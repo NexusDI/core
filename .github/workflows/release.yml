@@ -10,6 +10,7 @@ permissions:
   contents: write
   issues: write
   pull-requests: write
+  packages: write
 
 jobs:
   check-permissions:
@@ -54,6 +55,14 @@ jobs:
         cache: 'npm'
         registry-url: 'https://registry.npmjs.org'
 
+    - name: Setup Node.js for GitHub Packages
+      uses: actions/setup-node@v4
+      with:
+        node-version: 'current'
+        cache: 'npm'
+        registry-url: 'https://npm.pkg.github.com'
+        scope: '@nexusdi'
+
     - name: Install dependencies
       run: npm ci
 
@@ -88,6 +97,11 @@ jobs:
       run: npm publish --access public
       env:
         NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
+
+    - name: Publish to GitHub Packages
+      run: npm publish --access public
+      env:
+        NODE_AUTH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
     - name: Create Release
       id: create_release

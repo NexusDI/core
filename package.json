@@ -27,7 +27,14 @@
     "format:check": "biome format",
     "clean": "rm -rf dist",
     "prepublishOnly": "npm run clean && npm run build",
-    "release": "node scripts/release.js"
+    "release": "node scripts/release.js patch --create-branch",
+    "release:patch": "node scripts/release.js patch --create-branch",
+    "release:minor": "node scripts/release.js minor --create-branch",
+    "release:major": "node scripts/release.js major --create-branch",
+    "release:direct": "node scripts/release.js patch",
+    "release:direct:patch": "node scripts/release.js patch",
+    "release:direct:minor": "node scripts/release.js minor",
+    "release:direct:major": "node scripts/release.js major"
   },
   "keywords": [
     "dependency-injection",
@@ -45,6 +52,9 @@
   "repository": {
     "type": "git",
     "url": "https://github.com/NexusDI/core.git"
+  },
+  "publishConfig": {
+    "registry": "https://registry.npmjs.org/"
   },
   "homepage": "https://nexus.js.org",
   "bugs": {

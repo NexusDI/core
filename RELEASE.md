@@ -47,50 +47,112 @@ This document outlines the steps needed to release NexusDI to npm.
 
 ## Release Process
 
-### Option 1: Using the Release Script (Recommended)
+This document outlines the release process for NexusDI.
 
-1. **Bump version and prepare release:**
-   ```bash
-   npm run release patch    # For bug fixes
-   npm run release minor    # For new features
-   npm run release major    # For breaking changes
-   ```
+## Release Workflows
 
-2. **Push the release:**
-   ```bash
-   git push origin main --tags
-   ```
+#### Option 1: GitHub Actions Release (Default - npm + GitHub Packages)
+For releases that publish to both npm and GitHub Packages (recommended):
 
-### Option 2: Manual Release
+```bash
+# Patch release (0.1.0 -> 0.1.1) - creates release branch
+npm run release
 
-1. **Update version in package.json**
-2. **Run pre-release checks:**
-   ```bash
-   npm run test:coverage
-   npm run lint
-   npm run build
-   ```
+# Minor release (0.1.0 -> 0.2.0) - creates release branch
+npm run release:minor
 
-3. **Commit and tag:**
-   ```bash
-   git add package.json
-   git commit -m "chore: bump version to X.Y.Z"
-   git tag vX.Y.Z
-   git push origin main --tags
-   ```
+# Major release (0.1.0 -> 1.0.0) - creates release branch
+npm run release:major
+```
 
-## What Happens Automatically
+This workflow:
+1. Creates a release branch (e.g., `release/v0.1.1`)
+2. Bumps version in package.json
+3. Runs tests and builds
+4. Commits changes and creates tag
+5. Pushes branch and tag
+6. Provides next steps for PR creation
 
-When you push a tag starting with `v`, the CI/CD pipeline will:
+#### Option 2: Local Release (Direct to npm)
+For quick local releases to npm only (use with caution):
 
-1. **Run tests** on multiple Node.js versions
-2. **Build the project** and verify it works
-3. **Publish to npm** using the `@nexusdi/core` package name
-4. **Create a GitHub release** with:
-   - Release notes from commit messages
-   - Installation instructions
-   - Documentation links
-   - Build artifacts
+```bash
+# Patch release (0.1.0 -> 0.1.1) - direct to npm
+npm run release:direct
+
+# Minor release (0.1.0 -> 0.2.0) - direct to npm
+npm run release:direct:minor
+
+# Major release (0.1.0 -> 1.0.0) - direct to npm
+npm run release:direct:major
+
+# First release (keeps current version) - direct to npm
+npm run release:direct -- --first-release
+```
+
+## Release Steps
+
+### Before Release
+1. **Update CHANGELOG.md** - Move unreleased changes to new version
+2. **Run tests** - Ensure all tests pass
+3. **Update documentation** - Ensure docs are current
+
+### During Release
+1. **Choose release type** - patch, minor, or major
+2. **Run release command** - See options above
+3. **Confirm release** - Review changes before proceeding
+
+### After Release
+1. **For local releases** - Package is published immediately
+2. **For branch releases** - Create PR and merge to trigger GitHub Actions
+
+## Version Bumping
+
+- **Patch** (0.1.0 → 0.1.1): Bug fixes and minor improvements
+- **Minor** (0.1.0 → 0.2.0): New features, backward compatible
+- **Major** (0.1.0 → 1.0.0): Breaking changes
+
+## GitHub Actions
+
+The GitHub Actions workflow automatically:
+- Runs tests with coverage
+- Builds the project
+- Publishes to npm (with NPM_TOKEN)
+- Publishes to GitHub Packages (with GITHUB_TOKEN)
+- Creates GitHub Release with changelog
+- Uploads release assets
+
+## Required Secrets
+
+Set up these secrets in GitHub repository settings:
+
+- `NPM_TOKEN`: Your npm authentication token
+
+The `GITHUB_TOKEN` is automatically provided by GitHub Actions.
+
+## Troubleshooting
+
+### Release Fails
+- Check that all tests pass
+- Ensure you have proper git permissions
+- Verify npm token is valid
+- Check GitHub Actions logs for errors
+
+### Version Conflicts
+- Ensure you're on the correct branch
+- Check that version hasn't been bumped already
+- Verify git status is clean
+
+## Release Checklist
+
+- [ ] Update CHANGELOG.md
+- [ ] Run `npm test` to ensure tests pass
+- [ ] Run `npm run lint` to check code quality
+- [ ] Choose appropriate release type
+- [ ] Run release command
+- [ ] Verify package is published
+- [ ] Check GitHub release is created
+- [ ] Update documentation if needed
 
 ## Post-Release Verification
 
