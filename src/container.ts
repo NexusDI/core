@@ -1,5 +1,5 @@
 import 'reflect-metadata';
-import type { TokenType, Provider, IContainer, InjectionMetadata } from './types';
+import type { TokenType, Provider, IContainer, InjectionMetadata, ModuleProvider } from './types';
 import { METADATA_KEYS } from './types';
 import { Token } from './token';
 
@@ -132,6 +132,28 @@ export class Nexus implements IContainer {
       throw new Error(`Module ${moduleClass.name} is not properly decorated with @Module`);
     }
 
+    this.processModuleConfig(moduleConfig);
+  }
+
+  /**
+   * Register a dynamic module configuration
+   */
+  registerDynamicModule(moduleConfig: {
+    services?: (new (...args: any[]) => any)[];
+    providers?: ModuleProvider[];
+    imports?: (new (...args: any[]) => any)[];
+  }): void {
+    this.processModuleConfig(moduleConfig);
+  }
+
+  /**
+   * Process module configuration (shared between registerModule and registerDynamicModule)
+   */
+  private processModuleConfig(moduleConfig: {
+    services?: (new (...args: any[]) => any)[];
+    providers?: ModuleProvider[];
+    imports?: (new (...args: any[]) => any)[];
+  }): void {
     // Register imported modules
     if (moduleConfig.imports) {
       for (const importedModule of moduleConfig.imports) {
@@ -154,7 +176,20 @@ export class Nexus implements IContainer {
     // Register providers
     if (moduleConfig.providers) {
       for (const provider of moduleConfig.providers) {
-        this.set(provider.token, provider);
+        // Check if provider is a service class (has @Service decorator)
+        if (typeof provider === 'function') {
+          const serviceConfig = Reflect.getMetadata(METADATA_KEYS.SERVICE_METADATA, provider);
+          if (serviceConfig) {
+            this.set(serviceConfig.token, {
+              useClass: provider,
+            });
+          } else {
+            throw new Error(`Service class ${provider.name} is not decorated with @Service`);
+          }
+        } else {
+          // Full provider object
+          this.set(provider.token, provider);
+        }
       }
     }
   }

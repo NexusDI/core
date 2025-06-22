@@ -7,7 +7,7 @@ NexusDI supports advanced dependency injection patterns for large and complex ap
 You can use the `Token` class to create custom tokens with optional string identifiers:
 
 ```typescript
-import { Token } from 'nexusdi';
+import { Token } from '@nexusdi/core';
 
 const CONFIG_TOKEN = new Token('CONFIG');
 const API_URL = 'API_URL';

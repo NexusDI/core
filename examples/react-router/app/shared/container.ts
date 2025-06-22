@@ -10,6 +10,13 @@ let globalContainer: Nexus | null = null;
 // Create a context for the DI container
 export const containerContext = unstable_createContext<Nexus>();
 
+function getEnvironment(): 'development' | 'production' | 'test' {
+  if (typeof process !== 'undefined' && process.env.NODE_ENV) {
+    return process.env.NODE_ENV as 'development' | 'production' | 'test';
+  }
+  return 'development';
+}
+
 export function getContainer(context?: Route.LoaderArgs['context']): Nexus {
   // If context is provided, try to get container from context first
   if (context) {
@@ -27,9 +34,30 @@ export function getContainer(context?: Route.LoaderArgs['context']): Nexus {
   if (!globalContainer) {
     console.log('Creating new container instance');
     globalContainer = new Nexus();
-    globalContainer.registerModule(LoggerModule); // Register logger module first
-    globalContainer.registerModule(UsersModule);
-    console.log('Container created and modules registered');
+    
+    const env = getEnvironment();
+    console.log(`Configuring container for environment: ${env}`);
+    
+    // Register modules with environment-specific configuration
+    globalContainer.registerDynamicModule(LoggerModule.config({
+      level: env === 'production' ? 'info' : 'debug',
+      format: env === 'production' ? 'json' : 'text',
+      enableConsole: true,
+      enableFile: env === 'production',
+      filePath: env === 'production' ? '/var/log/app.log' : undefined,
+    }));
+    
+    globalContainer.registerDynamicModule(UsersModule.config({
+      apiUrl: env === 'production' 
+        ? (process.env.USERS_API_URL || 'https://api.example.com/users')
+        : 'http://localhost:3001/api/users',
+      cacheEnabled: env === 'production',
+      cacheTTL: env === 'production' ? 3600 : 300,
+      maxUsersPerPage: env === 'production' ? 50 : 10,
+      enableMockData: env !== 'production',
+    }));
+    
+    console.log('Container created and modules registered with environment-specific config');
   }
   return globalContainer;
 }

@@ -1,6 +1,6 @@
 import type { Route } from '../../+types/root';
 import { containerContext } from '../../shared/container';
-import { LOGGER_SERVICE_TOKEN } from './logger.service';
+import { LOGGER_SERVICE_TOKEN } from './logger.types';
 
 // Logger middleware - actually uses the logger service from container
 export const loggerMiddleware: Route.unstable_MiddlewareFunction = async ({ context, request }, next) => {

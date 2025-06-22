@@ -13,7 +13,7 @@ module.exports = {
     {
       type: 'category',
       label: 'Advanced',
-      items: ['advanced'],
+      items: ['advanced', 'modules'],
     },
     {
       type: 'category',

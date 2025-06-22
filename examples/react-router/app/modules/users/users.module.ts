@@ -1,9 +1,12 @@
-import { Module } from '../../../../../src';
-import { USER_SERVICE_TOKEN, UserService } from './user.service';
+import { Module, DynamicModule } from '../../../../../src';
+import { USER_SERVICE_TOKEN, USERS_CONFIG_TOKEN, type UsersConfig } from './users.types';
+import { UserService } from './user.service';
 
 @Module({
   providers: [
-    { token: USER_SERVICE_TOKEN, useClass: UserService },
+    UserService,
   ],
 })
-export class UsersModule {} 
+export class UsersModule extends DynamicModule<UsersConfig> {
+  protected readonly configToken = USERS_CONFIG_TOKEN;
+} 

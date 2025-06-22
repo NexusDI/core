@@ -1,6 +1,8 @@
-import { describe, it, expect, beforeEach, vi } from 'vitest';
-import { Nexus } from '../../../../../src';
-import { UserService, USER_SERVICE_TOKEN, type User } from '../../../../app/modules/users/user.service';
+import { describe, it, expect, beforeEach } from 'vitest';
+import { Nexus } from '../../../../../../src';
+import { UserService } from '../../../../app/modules/users/user.service';
+import { USER_SERVICE_TOKEN, type User } from '../../../../app/modules/users/users.types';
+import { UsersModule } from '../../../../app/modules/users/users.module';
 
 describe('UserService', () => {
   let container: Nexus;
@@ -8,8 +10,14 @@ describe('UserService', () => {
 
   beforeEach(() => {
     container = new Nexus();
-    container.register(USER_SERVICE_TOKEN, UserService);
-    userService = container.get(USER_SERVICE_TOKEN);
+    container.registerDynamicModule(UsersModule.config({
+      apiUrl: 'http://localhost:3001/api/users',
+      cacheEnabled: false,
+      cacheTTL: 300,
+      maxUsersPerPage: 10,
+      enableMockData: true,
+    }));
+    userService = container.get(USER_SERVICE_TOKEN) as UserService;
   });
 
   describe('getUsers', () => {
@@ -40,7 +48,7 @@ describe('UserService', () => {
     it('should return predefined users', async () => {
       const users = await userService.getUsers();
       
-      expect(users).toHaveLength(3);
+      expect(users).toHaveLength(5); // Mock data returns 5 users
       expect(users[0]).toMatchObject({
         id: '1',
         name: 'Alice',

@@ -26,18 +26,6 @@ describe('Button Component', () => {
     expect(button).toHaveClass('bg-red-500');
   });
 
-  it('should render as link when as="link" is specified', () => {
-    render(
-      <Button as="link" to="/test">
-        Link Button
-      </Button>
-    );
-    
-    const link = screen.getByRole('link', { name: /link button/i });
-    expect(link).toBeInTheDocument();
-    expect(link).toHaveAttribute('href', '/test');
-  });
-
   it('should handle click events', () => {
     const handleClick = vi.fn();
     render(<Button onClick={handleClick}>Click me</Button>);

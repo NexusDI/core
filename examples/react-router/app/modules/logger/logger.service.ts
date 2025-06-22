@@ -1,47 +1,89 @@
-import { Service, Token } from '../../../../../src';
+import { Service, Inject } from '../../../../../src';
+import { LOGGER_SERVICE_TOKEN, LOGGER_CONFIG_TOKEN, type ILoggerService, type LoggerConfig } from './logger.types';
 
-export interface ILoggerService {
-  log(level: 'info' | 'warn' | 'error', message: string, meta?: Record<string, unknown>): void;
-  info(message: string, meta?: Record<string, unknown>): void;
-  warn(message: string, meta?: Record<string, unknown>): void;
-  error(message: string, meta?: Record<string, unknown>): void;
-}
-
-export const LOGGER_SERVICE_TOKEN = new Token<ILoggerService>('LoggerService');
-
-@Service()
+@Service(LOGGER_SERVICE_TOKEN)
 export class LoggerService implements ILoggerService {
-  log(level: 'info' | 'warn' | 'error', message: string, meta?: Record<string, unknown>): void {
+  constructor(@Inject(LOGGER_CONFIG_TOKEN) private config: LoggerConfig) {}
+
+  private shouldLog(level: string): boolean {
+    const levels = ['debug', 'info', 'warn', 'error'];
+    const configLevelIndex = levels.indexOf(this.config.level);
+    const messageLevelIndex = levels.indexOf(level);
+    return messageLevelIndex >= configLevelIndex;
+  }
+
+  private formatMessage(level: string, message: string, ...args: any[]): string {
     const timestamp = new Date().toISOString();
-    const _logEntry = {
-      timestamp,
-      level,
-      message,
-      ...meta
-    };
+    
+    if (this.config.format === 'json') {
+      return JSON.stringify({
+        timestamp,
+        level,
+        message,
+        args
+      });
+    }
+    
+    if (this.config.format === 'minimal') {
+      return `[${level.toUpperCase()}] ${message}`;
+    }
+    
+    // Default text format
+    const argsStr = args.length > 0 ? ` ${args.map(arg => JSON.stringify(arg)).join(' ')}` : '';
+    return `[${level.toUpperCase()}] ${timestamp} - ${message}${argsStr}`;
+  }
+
+  private writeToConsole(level: string, formattedMessage: string): void {
+    if (!this.config.enableConsole) return;
     
     switch (level) {
+      case 'debug':
+        console.debug(formattedMessage);
+        break;
       case 'info':
-        console.log(`[INFO] ${timestamp} - ${message}`, meta || '');
+        console.log(formattedMessage);
         break;
       case 'warn':
-        console.warn(`[WARN] ${timestamp} - ${message}`, meta || '');
+        console.warn(formattedMessage);
         break;
       case 'error':
-        console.error(`[ERROR] ${timestamp} - ${message}`, meta || '');
+        console.error(formattedMessage);
         break;
     }
   }
 
-  info(message: string, meta?: Record<string, unknown>): void {
-    this.log('info', message, meta);
+  private writeToFile(level: string, formattedMessage: string): void {
+    if (!this.config.enableFile || !this.config.filePath) return;
+    
+    // In a real implementation, you'd use a file system library
+    // For now, we'll just log that we would write to file
+    console.log(`[FILE] Would write to ${this.config.filePath}: ${formattedMessage}`);
   }
 
-  warn(message: string, meta?: Record<string, unknown>): void {
-    this.log('warn', message, meta);
+  private log(level: 'debug' | 'info' | 'warn' | 'error', message: string, ...args: any[]): void {
+    if (!this.shouldLog(level)) return;
+    
+    const formattedMessage = this.formatMessage(level, message, ...args);
+    this.writeToConsole(level, formattedMessage);
+    this.writeToFile(level, formattedMessage);
   }
 
-  error(message: string, meta?: Record<string, unknown>): void {
-    this.log('error', message, meta);
+  debug(message: string, ...args: any[]): void {
+    this.log('debug', message, ...args);
   }
-} 
+
+  info(message: string, ...args: any[]): void {
+    this.log('info', message, ...args);
+  }
+
+  warn(message: string, ...args: any[]): void {
+    this.log('warn', message, ...args);
+  }
+
+  error(message: string, ...args: any[]): void {
+    this.log('error', message, ...args);
+  }
+}
+
+// Re-export types for convenience
+export { type ILoggerService, LOGGER_SERVICE_TOKEN }; 

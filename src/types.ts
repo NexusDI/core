@@ -30,9 +30,9 @@ export type Provider<T = any> = {
 
 // Module provider type (includes token for module configuration)
 // biome-ignore lint/suspicious/noExplicitAny: Generic DI system requires flexible type constraints
-export type ModuleProvider<T = any> = Provider<T> & {
-  token: TokenType<T>;
-};
+export type ModuleProvider<T = any> = 
+  | (Provider<T> & { token: TokenType<T> })  // Full provider object
+  | (new (...args: any[]) => T);             // Service class (uses @Service decorator token)
 
 // Service configuration
 // biome-ignore lint/suspicious/noExplicitAny: Generic DI system requires flexible type constraints
@@ -60,6 +60,11 @@ export interface IContainer {
   set<T>(token: TokenType<T>, provider: Provider<T>): void;
   // biome-ignore lint/suspicious/noExplicitAny: Module registration needs flexible constructor types
   registerModule(moduleClass: new (...args: any[]) => any): void;
+  registerDynamicModule(moduleConfig: {
+    services?: (new (...args: any[]) => any)[];
+    providers?: ModuleProvider[];
+    imports?: (new (...args: any[]) => any)[];
+  }): void;
 }
 
 // Metadata keys
