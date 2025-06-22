@@ -92,9 +92,6 @@ class EmailService implements IEmailService {
 })
 class DatabaseModule extends DynamicModule<DatabaseConfig> {
   protected readonly configToken = DATABASE_CONFIG;
-  protected readonly moduleConfig = {
-    services: [DatabaseService],
-  };
 }
 
 // Email Module with DynamicModule base class
@@ -103,9 +100,6 @@ class DatabaseModule extends DynamicModule<DatabaseConfig> {
 })
 class EmailModule extends DynamicModule<EmailConfig> {
   protected readonly configToken = EMAIL_CONFIG;
-  protected readonly moduleConfig = {
-    services: [EmailService],
-  };
 }
 
 // Example usage
