@@ -6,6 +6,9 @@ on:
   pull_request:
     branches: [ main ]
 
+permissions:
+  pull-requests: write # Required to post comments on PRs
+
 jobs:
   test:
     runs-on: ubuntu-latest
@@ -48,29 +51,48 @@ jobs:
           const fs = require('fs');
           const coverage = JSON.parse(fs.readFileSync('./coverage/coverage-summary.json', 'utf8'));
           const totalCoverage = coverage.total.lines.pct;
-          
-          const comment = `## Test Results ✅
-          
+
+          const marker = `<!-- Test Results for Node.js ${{ matrix.node-version }} -->`;
+
+          const body = `${marker}
+          ## Test Results ✅
+
           **Coverage:** ${totalCoverage}%
-          
+
           All tests passed successfully on Node.js ${{ matrix.node-version }}.
-          
+
           <details>
           <summary>Coverage Details</summary>
-          
+
           | File | Lines | Functions | Branches |
           |------|-------|-----------|----------|
-          ${Object.entries(coverage).filter(([key]) => key !== 'total').map(([file, data]) => 
+          ${Object.entries(coverage).filter(([key]) => key !== 'total').map(([file, data]) =>
             `| ${file} | ${data.lines.pct}% | ${data.functions.pct}% | ${data.branches.pct}% |`
-          ).join('\n')}
-          
+          ).join('\\n')}
+
           </details>`;
-          
-          github.rest.issues.createComment({
+
+          const { data: comments } = await github.rest.issues.listComments({
+            owner: context.repo.owner,
+            repo: context.repo.repo,
+            issue_number: context.issue.number,
+          });
+
+          const oldComment = comments.find(comment => comment.body.includes(marker));
+
+          if (oldComment) {
+            await github.rest.issues.deleteComment({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              comment_id: oldComment.id,
+            });
+          }
+
+          await github.rest.issues.createComment({
             issue_number: context.issue.number,
             owner: context.repo.owner,
             repo: context.repo.repo,
-            body: comment
+            body: body
           });
 
   lint:
@@ -97,35 +119,48 @@ jobs:
       with:
         script: |
           const { execSync } = require('child_process');
-          
+          const marker = '<!-- Linting Results -->';
+          let body;
+
           try {
             execSync('npm run lint', { encoding: 'utf8' });
-            const comment = `## Linting Results ✅
-            
+            body = `${marker}
+            ## Linting Results ✅
+
             All linting checks passed successfully!`;
-            
-            github.rest.issues.createComment({
-              issue_number: context.issue.number,
-              owner: context.repo.owner,
-              repo: context.repo.repo,
-              body: comment
-            });
           } catch (error) {
-            const comment = `## Linting Results ❌
-            
+            body = `${marker}
+            ## Linting Results ❌
+
             Linting failed. Please fix the issues before merging.
-            
+
             \`\`\`
             ${error.stdout}
             \`\`\``;
-            
-            github.rest.issues.createComment({
-              issue_number: context.issue.number,
+          }
+
+          const { data: comments } = await github.rest.issues.listComments({
+            owner: context.repo.owner,
+            repo: context.repo.repo,
+            issue_number: context.issue.number,
+          });
+
+          const oldComment = comments.find(comment => comment.body.includes(marker));
+
+          if (oldComment) {
+            await github.rest.issues.deleteComment({
               owner: context.repo.owner,
               repo: context.repo.repo,
-              body: comment
+              comment_id: oldComment.id,
             });
           }
+
+          await github.rest.issues.createComment({
+            issue_number: context.issue.number,
+            owner: context.repo.owner,
+            repo: context.repo.repo,
+            body: body
+          });
 
   build:
     runs-on: ubuntu-latest
