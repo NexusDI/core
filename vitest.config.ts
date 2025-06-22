@@ -7,6 +7,19 @@ export default defineConfig({
     include: ['src/**/*.{test,spec}.{ts,tsx}'],
     coverage: {
       reporter: ['text', 'html', 'lcov'],
+      exclude: [
+        'docs/**',
+        'examples/**',
+        '**/*.test.{ts,tsx}',
+        '**/*.spec.{ts,tsx}',
+        '**/test/**',
+        '**/tests/**',
+        '**/__tests__/**',
+        '**/coverage/**',
+        '**/dist/**',
+        '**/node_modules/**',
+        'vitest.config.ts'
+      ],
     },
   },
 }); 
