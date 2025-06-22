@@ -342,6 +342,6 @@ class UserService implements IUserService {
 - Read the [Concepts](./concepts.md) guide to understand DI principles
 - Check out [Advanced Usage](./advanced.md) for more complex scenarios
 - Explore the [FAQ](./faq.md) for common questions
-- Look at the [examples](../examples/) for complete working examples
+- Look at the [examples on GitHub](https://github.com/NexusDI/core/tree/main/examples) for complete working examples
 
 Happy coding with NexusDI! 🚀 

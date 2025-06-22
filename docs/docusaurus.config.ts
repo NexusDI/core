@@ -22,8 +22,8 @@ const config: Config & { themeConfig: ThemeConfig } = {
 
   // GitHub pages deployment config.
   // If you aren't using GitHub pages, you don't need these.
-  organizationName: 'your-org', // Usually your GitHub org/user name.
-  projectName: 'nexusdi', // Usually your repo name.
+  organizationName: 'NexusDI', // Usually your GitHub org/user name.
+  projectName: 'core', // Usually your repo name.
 
   onBrokenLinks: 'throw',
   onBrokenMarkdownLinks: 'warn',
@@ -65,7 +65,7 @@ const config: Config & { themeConfig: ThemeConfig } = {
         { to: '/docs/getting-started', label: 'Docs', position: 'left' },
         { to: '/docs/advanced', label: 'Advanced', position: 'left' },
         { to: '/docs/faq', label: 'FAQ', position: 'left' },
-        { href: 'https://github.com/your-org/nexusdi', label: 'GitHub', position: 'right' },
+        { href: 'https://github.com/NexusDI/core', label: 'GitHub', position: 'right' },
       ],
     },
     footer: {
@@ -82,7 +82,7 @@ const config: Config & { themeConfig: ThemeConfig } = {
         {
           title: 'Community',
           items: [
-            { label: 'GitHub', href: 'https://github.com/your-org/nexusdi' },
+            { label: 'GitHub', href: 'https://github.com/NexusDI/core' },
           ],
         },
       ],

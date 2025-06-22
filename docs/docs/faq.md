@@ -35,5 +35,5 @@ Use a string or symbol as a token, and the `@Inject(token)` decorator to inject 
 
 ## Where can I get help?
 
-- [GitHub Issues](https://github.com/your-org/nexusdi/issues)
-- [Discussions](https://github.com/your-org/nexusdi/discussions) 
+- [GitHub Issues](https://github.com/NexusDI/core/issues)
+- [Discussions](https://github.com/NexusDI/core/discussions) 
