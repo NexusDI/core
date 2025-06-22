@@ -6,25 +6,73 @@
 
 /* You can override the default Infima variables here. */
 :root {
-  --ifm-color-primary: #2e8555;
-  --ifm-color-primary-dark: #29784c;
-  --ifm-color-primary-darker: #277148;
-  --ifm-color-primary-darkest: #205d3b;
-  --ifm-color-primary-light: #33925d;
-  --ifm-color-primary-lighter: #359962;
-  --ifm-color-primary-lightest: #3cad6e;
+  --ifm-color-primary: #2C4B7A;
+  --ifm-color-primary-dark: #1e3a5f;
+  --ifm-color-primary-darker: #1a334f;
+  --ifm-color-primary-darkest: #162a42;
+  --ifm-color-primary-light: #5F7BA3;
+  --ifm-color-primary-lighter: #6b87b0;
+  --ifm-color-primary-lightest: #7a95bd;
   --ifm-code-font-size: 95%;
   --docusaurus-highlighted-code-line-bg: rgba(0, 0, 0, 0.1);
 }
 
 /* For readability concerns, you should choose a lighter palette in dark mode. */
 [data-theme='dark'] {
-  --ifm-color-primary: #25c2a0;
-  --ifm-color-primary-dark: #21af90;
-  --ifm-color-primary-darker: #1fa588;
-  --ifm-color-primary-darkest: #1a8870;
-  --ifm-color-primary-light: #29d5b0;
-  --ifm-color-primary-lighter: #32d8b4;
-  --ifm-color-primary-lightest: #4fddbf;
+  --ifm-color-primary: #5F7BA3;
+  --ifm-color-primary-dark: #4f6b8f;
+  --ifm-color-primary-darker: #4a6487;
+  --ifm-color-primary-darkest: #3d5270;
+  --ifm-color-primary-light: #8ba3c7;
+  --ifm-color-primary-lighter: #95acd0;
+  --ifm-color-primary-lightest: #a3b8d8;
   --docusaurus-highlighted-code-line-bg: rgba(0, 0, 0, 0.3);
+}
+
+/* Custom link styles to ensure they use the blue colors */
+a {
+  color: var(--ifm-color-primary);
+  text-decoration: none;
+  transition: color 0.2s ease;
+}
+
+a:hover {
+  color: var(--ifm-color-primary-light);
+  text-decoration: underline;
+}
+
+/* Ensure internal links in markdown also use the blue colors */
+.markdown a {
+  color: var(--ifm-color-primary);
+}
+
+.markdown a:hover {
+  color: var(--ifm-color-primary-light);
+}
+
+/* Navigation links */
+.navbar__link {
+  color: var(--ifm-color-primary);
+}
+
+.navbar__link:hover {
+  color: var(--ifm-color-primary-light);
+}
+
+/* Sidebar links */
+.menu__link {
+  color: var(--ifm-color-primary);
+}
+
+.menu__link:hover {
+  color: var(--ifm-color-primary-light);
+}
+
+/* Footer links */
+.footer__link-item {
+  color: var(--ifm-color-primary);
+}
+
+.footer__link-item:hover {
+  color: var(--ifm-color-primary-light);
 }

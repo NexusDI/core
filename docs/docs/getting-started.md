@@ -1,10 +1,16 @@
+---
+sidebar_position: 2
+---
+
 # Getting Started
 
 Welcome to NexusDI! This guide will help you get started with dependency injection using tokens and interfaces.
 
 ## Why Dependency Injection?
 
-Dependency Injection (DI) is a design pattern that helps you write more maintainable, testable, and flexible code. Here's why it matters:
+Dependency Injection (DI) is a design pattern that helps you write more maintainable, testable, and flexible code.
+
+For a comprehensive explanation of DI principles and benefits, see **[Dependency Injection](./dependency-injection.md)**.
 
 ### The Problem: Direct Dependencies
 
@@ -55,40 +61,7 @@ class UserService {
 - **Single responsibility**: Classes focus only on their core functionality
 - **Reusability**: Same class works with different dependency implementations
 
-### Real-World Example
-
-```typescript
-// Without DI - hard to test and configure
-class EmailService {
-  private smtpClient = new SMTPClient('smtp.gmail.com', 587);
-  
-  sendEmail(to: string, subject: string) {
-    return this.smtpClient.send({ to, subject });
-  }
-}
-
-// With DI - flexible and testable
-class EmailService {
-  constructor(private emailProvider: EmailProvider) {}
-  
-  sendEmail(to: string, subject: string) {
-    return this.emailProvider.send({ to, subject });
-  }
-}
-
-// Easy to test
-const mockProvider = { send: vi.fn() };
-const emailService = new EmailService(mockProvider);
-emailService.sendEmail('test@example.com', 'Hello');
-expect(mockProvider.send).toHaveBeenCalledWith({
-  to: 'test@example.com',
-  subject: 'Hello'
-});
-
-// Easy to configure
-const gmailService = new EmailService(new GmailProvider());
-const sendgridService = new EmailService(new SendGridProvider());
-```
+For detailed explanations and real-world examples, see **[Dependency Injection](./dependency-injection.md)** and **[DI vs Regular Imports](./di-vs-imports.md)**.
 
 ## Installation
 
@@ -135,6 +108,8 @@ export const LOGGER = new Token<ILogger>('LOGGER');
 export const DATABASE = new Token<IDataSource>('DATABASE');
 ```
 
+For a complete guide to tokens, see **[Tokens](./tokens.md)**.
+
 ### 3. Implement Your Services
 
 Implement your services using the interfaces and tokens:
@@ -168,9 +143,9 @@ export class UserService implements IUserService {
 }
 ```
 
-### 4. Create Your Container
+### 4. Create Your Nexus Container
 
-Set up your Nexus container and register your dependencies:
+Set up your Nexus container and set your dependencies:
 
 ```typescript
 // app.ts
@@ -195,153 +170,11 @@ const user = await userService.getUser('123');
 
 ## Why Tokens + Interfaces?
 
-Using tokens with interfaces provides several benefits:
-
-### 1. **Interface-Driven Development**
-Your code depends on contracts, not implementations:
-
-```typescript
-// ✅ Good - depends on interface
-@Service(USER_SERVICE)
-class UserService implements IUserService {
-  constructor(@Inject(DATABASE) private database: IDataSource) {}
-}
-
-// ❌ Bad - depends on concrete implementation
-class UserService {
-  constructor(private database: PostgresDatabase) {}
-}
-```
-
-### 2. **Easy Testing**
-Mock dependencies easily with interface-based tokens:
-
-```typescript
-// Test setup
-const mockDatabase = {
-  query: vi.fn().mockReturnValue([{ id: '123', name: 'John' }])
-};
-
-const mockLogger = {
-  log: vi.fn(),
-  error: vi.fn()
-};
-
-nexus.set(DATABASE, { token: DATABASE, useValue: mockDatabase });
-nexus.set(LOGGER, { token: LOGGER, useValue: mockLogger });
-
-const userService = nexus.get(USER_SERVICE);
-const user = await userService.getUser('123');
-
-expect(mockDatabase.query).toHaveBeenCalledWith("SELECT * FROM users WHERE id = '123'");
-```
-
-### 3. **Flexible Configuration**
-Switch implementations without changing your business logic:
-
-```typescript
-// Development
-nexus.set(DATABASE, { token: DATABASE, useClass: InMemoryDatabase });
-nexus.set(LOGGER, { token: LOGGER, useClass: ConsoleLogger });
-
-// Production
-nexus.set(DATABASE, { token: DATABASE, useClass: PostgresDatabase });
-nexus.set(LOGGER, { token: LOGGER, useClass: FileLogger });
-
-// Same UserService works with both configurations
-const userService = nexus.get(USER_SERVICE);
-```
-
-## Advanced Usage
-
-### Using Modules
-
-Organize related services into modules:
-
-```typescript
-// modules/user.module.ts
-import { Module } from '@nexusdi/core';
-import { USER_SERVICE, DATABASE, LOGGER } from '../tokens';
-import { UserService } from '../services/user.service';
-import { PostgresDatabase } from '../services/postgres-database.service';
-import { ConsoleLogger } from '../services/console-logger.service';
-
-@Module({
-  services: [UserService],
-  providers: [
-    { token: DATABASE, useClass: PostgresDatabase },
-    { token: LOGGER, useClass: ConsoleLogger }
-  ]
-})
-export class UserModule {}
-```
-
-### Property Injection
-
-Inject dependencies into properties:
-
-```typescript
-@Service(USER_SERVICE)
-export class UserService implements IUserService {
-  @Inject(DATABASE)
-  private database!: IDataSource;
-  
-  @Inject(LOGGER)
-  private logger!: ILogger;
-
-  async getUser(id: string): Promise<User> {
-    this.logger.log(`Fetching user: ${id}`);
-    return this.database.query(`SELECT * FROM users WHERE id = '${id}'`);
-  }
-}
-```
-
-### Factory Providers
-
-Create complex objects with factory functions:
-
-```typescript
-nexus.set(DATABASE, {
-  token: DATABASE,
-  useFactory: () => {
-    const config = loadDatabaseConfig();
-    return new PostgresDatabase(config);
-  }
-});
-```
-
-### Value Providers
-
-Register simple values or existing instances:
-
-```typescript
-nexus.set(API_KEY, { token: API_KEY, useValue: process.env.API_KEY });
-nexus.set(LOGGER, { token: LOGGER, useValue: winston.createLogger() });
-```
-
-## Type Safety
-
-NexusDI provides full TypeScript support with generics:
-
-```typescript
-// Tokens are type-safe
-export const USER_SERVICE = new Token<IUserService>('USER_SERVICE');
-
-// Getting services is type-safe
-const userService = nexus.get(USER_SERVICE); // Type: IUserService
-
-// Injection is type-safe
-@Service(USER_SERVICE)
-class UserService implements IUserService {
-  constructor(@Inject(DATABASE) private database: IDataSource) {} // Type: IDataSource
-}
-```
+For a detailed explanation of why tokens and interfaces are better than direct class references, see **[Dependency Injection](./dependency-injection.md)**.
 
 ## Next Steps
 
-- Read the [Concepts](./concepts.md) guide to understand DI principles
-- Check out [Advanced Usage](./advanced.md) for more complex scenarios
-- Explore the [FAQ](./faq.md) for common questions
-- Look at the [examples on GitHub](https://github.com/NexusDI/core/tree/main/examples) for complete working examples
-
-Happy coding with NexusDI! 🚀 
+- **[Core Concepts](./concepts.md)** - Fundamental DI concepts
+- **[Dependency Injection](./dependency-injection.md)** - Detailed DI principles
+- **[Tokens](./tokens.md)** - Complete guide to tokens
+- **[Best Practices](./best-practices.md)** - Guidelines for maintainable code 

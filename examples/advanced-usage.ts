@@ -192,7 +192,7 @@ async function main() {
   const nexus = new Nexus();
 
   // Register the module
-  nexus.registerModule(AppModule);
+  nexus.setModule(AppModule);
 
   // Override logger for development
   if (process.env.NODE_ENV === 'development') {
@@ -232,7 +232,7 @@ async function main() {
 // Child container example
 function demonstrateChildContainer() {
   const parentNexus = new Nexus();
-  parentNexus.registerModule(AppModule);
+  parentNexus.setModule(AppModule);
 
   // Create child container with overridden configuration
   const childNexus = parentNexus.createChildContainer();

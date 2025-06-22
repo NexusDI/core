@@ -58,8 +58,9 @@ export interface IContainer {
   // biome-ignore lint/suspicious/noExplicitAny: Container resolve method needs flexible constructor types
   resolve<T>(target: new (...args: any[]) => T): T;
   set<T>(token: TokenType<T>, provider: Provider<T>): void;
+  set<T>(token: TokenType<T>, serviceClass: new (...args: any[]) => T): void;
   // biome-ignore lint/suspicious/noExplicitAny: Module registration needs flexible constructor types
-  registerModule(moduleClass: new (...args: any[]) => any): void;
+  setModule(moduleClass: new (...args: any[]) => any): void;
   registerDynamicModule(moduleConfig: {
     services?: (new (...args: any[]) => any)[];
     providers?: ModuleProvider[];

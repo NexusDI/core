@@ -1,3 +1,7 @@
+---
+sidebar_position: 1
+---
+
 # Advanced Usage
 
 NexusDI supports advanced dependency injection patterns for large and complex applications.

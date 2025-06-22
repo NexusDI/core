@@ -10,9 +10,13 @@
   "scripts": {
     "build": "tsc",
     "dev": "tsc --watch",
-    "test": "vitest run",
-    "test:coverage": "vitest run --coverage",
+    "test": "vitest",
+    "test:coverage": "vitest --coverage",
     "test:watch": "vitest",
+    "test:e2e": "vitest --config vitest.e2e.config.ts",
+    "docs:dev": "cd docs && npm run start",
+    "docs:build": "cd docs && npm run build",
+    "docs:serve": "cd docs && npm run serve",
     "lint": "biome lint",
     "lint:fix": "biome lint --write",
     "format": "biome format --write",
@@ -49,6 +53,7 @@
     "@biomejs/biome": "2.0.4",
     "@types/node": "^22",
     "@vitest/coverage-v8": "^3.2.4",
+    "tsx": "^4.20.3",
     "typescript": "^5.8.3",
     "vitest": "^3.2.4"
   },

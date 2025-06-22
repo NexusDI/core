@@ -39,7 +39,7 @@ class UserService implements IUserService {
 
 // Use the container
 const container = new Nexus();
-container.registerModule(UserModule);
+container.setModule(UserModule);
 const userService = container.get(USER_SERVICE);
 ```
 

@@ -2,46 +2,45 @@
 sidebar_position: 1
 ---
 
-# Tutorial Intro
+# Welcome to NexusDI
 
-Let's discover **Docusaurus in less than 5 minutes**.
+NexusDI is a powerful, lightweight, and ergonomic dependency injection (DI) container for TypeScript and JavaScript. It helps you manage dependencies in your applications with minimal boilerplate and maximum flexibility.
 
-## Getting Started
+## Why NexusDI?
 
-Get started by **creating a new site**.
+- **Simple API:** Register and resolve services, values, and modules with a clean, intuitive interface.
+- **Type-safe:** Built for TypeScript, with full type inference and safety.
+- **Modular:** Organize your code with modules and dynamic configuration.
+- **Decorator Support:** Use decorators for services, providers, and injection.
+- **Testable:** Easily mock or override dependencies for testing.
 
-Or **try Docusaurus immediately** with **[docusaurus.new](https://docusaurus.new)**.
+## Quick Start
 
-### What you'll need
-
-- [Node.js](https://nodejs.org/en/download/) version 18.0 or above:
-  - When installing Node.js, you are recommended to check all checkboxes related to dependencies.
-
-## Generate a new site
-
-Generate a new Docusaurus site using the **classic template**.
-
-The classic template will automatically be added to your project after you run the command:
+Install NexusDI:
 
 ```bash
-npm init docusaurus@latest my-website classic
+npm install @nexusdi/core
 ```
 
-You can type this command into Command Prompt, Powershell, Terminal, or any other integrated terminal of your code editor.
+Register and resolve a service:
 
-The command also installs all necessary dependencies you need to run Docusaurus.
+```typescript
+import { Nexus, Service, Token } from '@nexusdi/core';
 
-## Start your site
+const USER_SERVICE = new Token('UserService');
 
-Run the development server:
+@Service()
+class UserService {
+  getUsers() {
+    return ['Alice', 'Bob', 'Charlie'];
+  }
+}
 
-```bash
-cd my-website
-npm run start
+const container = new Nexus();
+container.set(USER_SERVICE, UserService);
+
+const userService = container.get(USER_SERVICE);
+console.log(userService.getUsers()); // ['Alice', 'Bob', 'Charlie']
 ```
 
-The `cd` command changes the directory you're working with. In order to work with your newly created Docusaurus site, you'll need to navigate the terminal there.
-
-The `npm run start` command builds your website locally and serves it through a development server, ready for you to view at http://localhost:3000/.
-
-Open `docs/intro.md` (this page) and edit some lines: the site **reloads automatically** and displays your changes.
+Explore the rest of the documentation to learn about modules, advanced features, and best practices!

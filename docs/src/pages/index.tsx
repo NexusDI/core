@@ -14,26 +14,20 @@ import styles from './index.module.css';
 const exampleCode = `
 import { Nexus, Service, Token } from '@nexusdi/core';
 
-// 1. Define an interface and a token
-interface IGreeter {
-  greet(): string;
-}
-const GreeterToken = new Token<IGreeter>('Greeter');
+const USER_SERVICE = new Token('UserService');
 
-// 2. Create a service
-@Service(GreeterToken)
-class GreeterService implements IGreeter {
-  greet() {
-    return 'Hello from NexusDI!';
+@Service()
+class UserService {
+  getUsers() {
+    return ['Alice', 'Bob', 'Charlie'];
   }
 }
 
-// 3. Create a container and get the service
 const container = new Nexus();
-container.register(GreeterService);
+container.set(USER_SERVICE, { useClass: UserService });
 
-const greeter = container.get(GreeterToken);
-console.log(greeter.greet()); // Output: Hello from NexusDI!
+const userService = container.get(USER_SERVICE);
+console.log(userService.getUsers()); // ['Alice', 'Bob', 'Charlie']
 `.trim();
 
 function HomepageHeader() {
@@ -65,8 +59,23 @@ function HomepageHeader() {
           
           <div className={styles.heroRight}>
             <div className={styles.codeExample}>
-              <CodeBlock language="typescript" className={styles.codeExample}>
-{exampleCode}
+              <CodeBlock language="typescript">
+{`import { Nexus, Service, Token } from '@nexusdi/core';
+
+const USER_SERVICE = new Token('UserService');
+
+@Service()
+class UserService {
+  getUsers() {
+    return ['Alice', 'Bob', 'Charlie'];
+  }
+}
+
+const container = new Nexus();
+container.set(USER_SERVICE, UserService);
+
+const userService = container.get(USER_SERVICE);
+console.log(userService.getUsers()); // ['Alice', 'Bob', 'Charlie']`}
               </CodeBlock>
             </div>
           </div>

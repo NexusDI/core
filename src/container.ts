@@ -109,7 +109,19 @@ export class Nexus implements IContainer {
   /**
    * Set a provider
    */
-  set<T>(token: TokenType<T>, provider: Provider<T>): void {
+  set<T>(token: TokenType<T>, provider: Provider<T>): void;
+  set<T>(token: TokenType<T>, serviceClass: new (...args: any[]) => T): void;
+  set<T>(token: TokenType<T>, providerOrClass: Provider<T> | (new (...args: any[]) => T)): void {
+    let provider: Provider<T>;
+    
+    if (typeof providerOrClass === 'function') {
+      // If a class is passed directly, create a useClass provider
+      provider = { useClass: providerOrClass };
+    } else {
+      // If a provider object is passed, use it as-is
+      provider = providerOrClass;
+    }
+    
     this.providers.set(token, provider);
     // If useClass is present and token is not the class itself, create an alias
     if (provider.useClass && token !== provider.useClass) {
@@ -118,9 +130,9 @@ export class Nexus implements IContainer {
   }
 
   /**
-   * Register a module and process its configuration
+   * Set a module and process its configuration
    */
-  registerModule(moduleClass: new (...args: any[]) => any): void {
+  setModule(moduleClass: new (...args: any[]) => any): void {
     if (this.modules.has(moduleClass)) {
       return; // Module already registered
     }
@@ -147,7 +159,7 @@ export class Nexus implements IContainer {
   }
 
   /**
-   * Process module configuration (shared between registerModule and registerDynamicModule)
+   * Process module configuration (shared between setModule and registerDynamicModule)
    */
   private processModuleConfig(moduleConfig: {
     services?: (new (...args: any[]) => any)[];
@@ -157,7 +169,7 @@ export class Nexus implements IContainer {
     // Register imported modules
     if (moduleConfig.imports) {
       for (const importedModule of moduleConfig.imports) {
-        this.registerModule(importedModule);
+        this.setModule(importedModule);
       }
     }
 

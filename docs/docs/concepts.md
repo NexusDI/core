@@ -1,61 +1,33 @@
-# Dependency Injection Concepts
+---
+sidebar_position: 1
+---
+
+# Core Concepts
+
+This section covers the fundamental concepts of dependency injection and NexusDI. For detailed explanations and examples, see the specific articles in each category.
 
 ## What is Dependency Injection?
 
 Dependency Injection (DI) is a design pattern where dependencies are provided to a class from the outside, rather than the class creating them internally. This promotes loose coupling, testability, and maintainability.
 
-## Recommended Pattern: Tokens + Interfaces
+For a comprehensive explanation of DI principles, patterns, and benefits, see **[Dependency Injection](./dependency-injection.md)**.
 
-NexusDI promotes using tokens with interfaces rather than direct class references. This approach provides better flexibility and maintainability:
-
-```typescript
-// ✅ Recommended: Token + Interface pattern
-export const USER_SERVICE = new Token<IUserService>('USER_SERVICE');
-export const DATABASE = new Token<DataSource>('DATABASE');
-
-@Service(USER_SERVICE)
-class UserService implements IUserService {
-  constructor(@Inject(DATABASE) private database: DataSource) {}
-  
-  getUser(id: string): Promise<User> {
-    return this.database.query(`SELECT * FROM users WHERE id = '${id}'`);
-  }
-}
-
-// Usage
-const userService = nexus.get(USER_SERVICE); // Type-safe, interface-based
-```
-
-**Benefits of this approach:**
-- **Interface-driven**: Dependencies are defined by contracts, not implementations
-- **Type safety**: Full TypeScript support with generics
-- **Flexibility**: Easy to swap implementations without changing consumers
-- **Explicit**: Clear what dependencies are available in your system
-- **Testable**: Easy to mock with interface-based tokens
-
-## Core Principles
+## Key Principles
 
 ### 1. Inversion of Control (IoC)
 
-**Traditional approach (Control inside the class):**
+Instead of classes controlling their dependencies, dependencies are injected from outside:
+
 ```typescript
+// Traditional approach
 class UserService {
-  private database = new PostgresDatabase(); // Class controls its dependencies
-  private logger = new ConsoleLogger();
+  private database = new PostgresDatabase(); // Class controls dependencies
 }
-```
 
-**DI approach with tokens (Control outside the class):**
-```typescript
-export const DATABASE = new Token<DataSource>('DATABASE');
-export const LOGGER = new Token<ILogger>('LOGGER');
-
+// DI approach
 @Service(USER_SERVICE)
-class UserService implements IUserService {
-  constructor(
-    @Inject(DATABASE) private database: DataSource, // Dependencies injected from outside
-    @Inject(LOGGER) private logger: ILogger
-  ) {}
+class UserService {
+  constructor(@Inject(DATABASE) private database: IDatabase) {} // Dependencies injected
 }
 ```
 
@@ -64,331 +36,93 @@ class UserService implements IUserService {
 Always depend on interfaces, not concrete implementations:
 
 ```typescript
-// ✅ Good - depends on interface with token
-interface IUserService {
-  getUser(id: string): Promise<User>;
+// ✅ Good - depends on interface
+interface IDatabase {
+  query(sql: string, params: any[]): Promise<any>;
 }
 
-export const USER_SERVICE = new Token<IUserService>('USER_SERVICE');
-
 @Service(USER_SERVICE)
-class UserService implements IUserService {
-  constructor(@Inject(DATABASE) private database: DataSource) {}
-  
-  getUser(id: string): Promise<User> {
-    return this.database.query(`SELECT * FROM users WHERE id = '${id}'`);
-  }
+class UserService {
+  constructor(@Inject(DATABASE) private database: IDatabase) {} // Interface-based
 }
 
 // ❌ Bad - depends on concrete implementation
 class UserService {
-  constructor(private database: PostgresDatabase) {} // Depends on concrete class
+  constructor(private database: PostgresDatabase) {} // Concrete class
 }
 ```
 
-### 3. Single Responsibility Principle
+For detailed explanations of why interfaces and tokens are better, see **[Dependency Injection](./dependency-injection.md)**.
 
-Each class should have only one reason to change:
+## Core Components
+
+### Tokens
+
+Tokens are unique identifiers for dependencies with type safety:
 
 ```typescript
-// ❌ Bad - class handles both business logic and object creation
-class UserService {
-  private database = new PostgresDatabase();
-  private logger = new ConsoleLogger();
-  private emailService = new GmailEmailService();
-  
-  getUser(id: string) {
-    // Business logic mixed with object creation
-  }
-}
-
-// ✅ Good - class focuses only on business logic
 export const USER_SERVICE = new Token<IUserService>('USER_SERVICE');
+export const DATABASE = new Token<IDatabase>('DATABASE');
+```
 
+For a complete guide to tokens, see **[Tokens](./tokens.md)**.
+
+### Providers
+
+Providers define how dependencies are created:
+
+```typescript
+// Class provider
+nexus.set(USER_SERVICE, { useClass: UserService });
+
+// Value provider
+nexus.set(LOGGER, { useValue: new ConsoleLogger() });
+
+// Factory provider
+nexus.set(DATABASE, {
+  useFactory: (config: IConfig) => new Database(config),
+  deps: [CONFIG]
+});
+```
+
+### Services
+
+Services are classes that can be injected with dependencies:
+
+```typescript
 @Service(USER_SERVICE)
 class UserService implements IUserService {
   constructor(
-    @Inject(DATABASE) private database: DataSource,
-    @Inject(LOGGER) private logger: ILogger,
-    @Inject(EMAIL_SERVICE) private emailService: IEmailService
-  ) {}
-  
-  getUser(id: string) {
-    // Pure business logic
-  }
-}
-```
-
-## Benefits of Dependency Injection
-
-### 1. Testability
-
-**Without DI - Hard to test:**
-```typescript
-class UserService {
-  private database = new PostgresDatabase();
-  
-  getUser(id: string) {
-    return this.database.query(`SELECT * FROM users WHERE id = '${id}'`);
-  }
-}
-
-// Testing is difficult - need real database connection
-const userService = new UserService(); // Creates real database connection
-```
-
-**With DI and tokens - Easy to test:**
-```typescript
-export const USER_SERVICE = new Token<IUserService>('USER_SERVICE');
-export const DATABASE = new Token<DataSource>('DATABASE');
-
-@Service(USER_SERVICE)
-class UserService implements IUserService {
-  constructor(@Inject(DATABASE) private database: DataSource) {}
-  
-  getUser(id: string) {
-    return this.database.query(`SELECT * FROM users WHERE id = '${id}'`);
-  }
-}
-
-// Easy to test with mocks
-const mockDatabase = { query: vi.fn().mockReturnValue({ id: '123', name: 'John' }) };
-nexus.set(DATABASE, { useValue: mockDatabase });
-const userService = nexus.get(USER_SERVICE);
-const user = userService.getUser('123');
-expect(mockDatabase.query).toHaveBeenCalledWith("SELECT * FROM users WHERE id = '123'");
-```
-
-### 2. Flexibility and Configuration
-
-**Easy to switch implementations:**
-```typescript
-// Development environment
-const devNexus = new Nexus();
-devNexus.set(DATABASE, { useClass: InMemoryDatabase });
-devNexus.set(LOGGER, { useClass: ConsoleLogger });
-
-// Production environment
-const prodNexus = new Nexus();
-prodNexus.set(DATABASE, { useClass: PostgresDatabase });
-prodNexus.set(LOGGER, { useClass: FileLogger });
-
-// Same UserService works with both configurations
-const userService = devNexus.get(USER_SERVICE); // Uses InMemoryDatabase
-const userService = prodNexus.get(USER_SERVICE); // Uses PostgresDatabase
-```
-
-### 3. Maintainability
-
-**Changes are isolated:**
-```typescript
-// If you need to change the database implementation, you only change the registration
-// No need to modify UserService, OrderService, ProductService, etc.
-
-// Before
-nexus.set(DATABASE, { useClass: PostgresDatabase });
-
-// After - just change this line
-nexus.set(DATABASE, { useClass: MongoDBDatabase });
-// All services automatically use the new database
-```
-
-### 4. Reusability
-
-**Same class works in different contexts:**
-```typescript
-interface IEmailService {
-  sendEmail(to: string, subject: string, body: string): Promise<void>;
-}
-
-export const EMAIL_SERVICE = new Token<IEmailService>('EMAIL_SERVICE');
-
-@Service(EMAIL_SERVICE)
-class EmailService implements IEmailService {
-  constructor(@Inject(EMAIL_PROVIDER) private emailProvider: IEmailProvider) {}
-  
-  sendWelcomeEmail(user: User) {
-    return this.emailProvider.send({
-      to: user.email,
-      subject: 'Welcome!',
-      body: 'Welcome to our platform!'
-    });
-  }
-}
-
-// Web application
-const webNexus = new Nexus();
-webNexus.set(EMAIL_PROVIDER, { useClass: SendGridProvider });
-const webEmailService = webNexus.get(EMAIL_SERVICE);
-
-// Mobile application
-const mobileNexus = new Nexus();
-mobileNexus.set(EMAIL_PROVIDER, { useClass: FirebaseProvider });
-const mobileEmailService = mobileNexus.get(EMAIL_SERVICE);
-
-// Same EmailService class, different providers
-```
-
-## Common Patterns
-
-### 1. Constructor Injection with Tokens
-
-The most common pattern - inject dependencies through the constructor using tokens:
-
-```typescript
-export const USER_SERVICE = new Token<IUserService>('USER_SERVICE');
-export const DATABASE = new Token<DataSource>('DATABASE');
-export const LOGGER = new Token<ILogger>('LOGGER');
-
-@Service(USER_SERVICE)
-class UserService implements IUserService {
-  constructor(
-    @Inject(DATABASE) private database: DataSource,
+    @Inject(DATABASE) private database: IDatabase,
     @Inject(LOGGER) private logger: ILogger
   ) {}
 }
 ```
 
-### 2. Property Injection with Tokens
+## Benefits of DI
 
-Inject dependencies into properties using tokens:
+- **Loose coupling**: Dependencies are abstracted through interfaces
+- **Easy testing**: Simple to mock dependencies
+- **Flexible configuration**: Easy to switch implementations
+- **Modular architecture**: Easy to compose and reuse components
+- **Environment-specific setups**: Different configs for dev/staging/prod
 
-```typescript
-export const USER_SERVICE = new Token<IUserService>('USER_SERVICE');
+## When to Use DI
 
-@Service(USER_SERVICE)
-class UserService implements IUserService {
-  @Inject(DATABASE)
-  private database!: DataSource;
-  
-  @Inject(LOGGER)
-  private logger!: ILogger;
-}
-```
+Use Dependency Injection when you have:
+- Complex applications with many dependencies
+- High testing requirements
+- Multiple environments (dev/staging/prod)
+- Team development with multiple developers
+- Long-term maintenance needs
 
-### 3. Method Injection with Tokens
+For simple applications or quick prototypes, regular imports may be more appropriate.
 
-Inject dependencies into specific methods using tokens:
+For a detailed comparison of DI vs regular imports, see **[DI vs Regular Imports](./di-vs-imports.md)**.
 
-```typescript
-export const USER_SERVICE = new Token<IUserService>('USER_SERVICE');
+## Next Steps
 
-@Service(USER_SERVICE)
-class UserService implements IUserService {
-  processUser(@Inject(DATABASE) database: DataSource, userId: string) {
-    return database.query(`SELECT * FROM users WHERE id = '${userId}'`);
-  }
-}
-```
-
-## When to Use Dependency Injection
-
-### ✅ Good Use Cases
-
-- **Services with external dependencies** (databases, APIs, file systems)
-- **Classes that need to be tested in isolation**
-- **Applications with multiple environments** (dev, staging, production)
-- **Libraries and frameworks** that need to be configurable
-- **Complex applications** with many interconnected components
-
-### ❌ When Not to Use
-
-- **Simple utility functions** that don't have dependencies
-- **Value objects** (data structures without behavior)
-- **Configuration objects** that are just data
-- **Very small applications** where DI adds unnecessary complexity
-
-## Best Practices
-
-### 1. Use Tokens with Interfaces
-
-```typescript
-interface ILogger {
-  log(message: string): void;
-  error(message: string): void;
-}
-
-export const LOGGER = new Token<ILogger>('LOGGER');
-
-@Service(USER_SERVICE)
-class UserService implements IUserService {
-  constructor(@Inject(LOGGER) private logger: ILogger) {} // Interface, not concrete class
-}
-```
-
-### 2. Keep Dependencies Minimal
-
-```typescript
-// ❌ Too many dependencies
-@Service(USER_SERVICE)
-class UserService implements IUserService {
-  constructor(
-    @Inject(DATABASE) private database: DataSource,
-    @Inject(LOGGER) private logger: ILogger,
-    @Inject(EMAIL_SERVICE) private emailService: IEmailService,
-    @Inject(CACHE_SERVICE) private cacheService: ICacheService,
-    @Inject(ANALYTICS_SERVICE) private analyticsService: IAnalyticsService,
-    @Inject(NOTIFICATION_SERVICE) private notificationService: INotificationService
-  ) {}
-}
-
-// ✅ Focused dependencies
-@Service(USER_SERVICE)
-class UserService implements IUserService {
-  constructor(
-    @Inject(DATABASE) private database: DataSource,
-    @Inject(LOGGER) private logger: ILogger
-  ) {}
-}
-```
-
-### 3. Use Meaningful Token Names
-
-```typescript
-// ❌ Unclear tokens
-const DB = new Token();
-const LOG = new Token();
-
-// ✅ Clear, descriptive tokens
-export const DATABASE = new Token<DataSource>('DATABASE');
-export const LOGGER = new Token<ILogger>('LOGGER');
-```
-
-### 4. Group Related Services in Modules
-
-```typescript
-@Module({
-  services: [UserService, UserRepository, UserValidator],
-  providers: [
-    { token: DATABASE, useClass: PostgresDatabase }
-  ]
-})
-class UserModule {}
-```
-
-### 5. Export Tokens and Interfaces
-
-```typescript
-// tokens.ts
-export const USER_SERVICE = new Token<IUserService>('USER_SERVICE');
-export const DATABASE = new Token<DataSource>('DATABASE');
-export const LOGGER = new Token<ILogger>('LOGGER');
-
-// interfaces.ts
-export interface IUserService {
-  getUser(id: string): Promise<User>;
-}
-
-export interface ILogger {
-  log(message: string): void;
-  error(message: string): void;
-}
-
-// user.service.ts
-@Service(USER_SERVICE)
-class UserService implements IUserService {
-  constructor(@Inject(DATABASE) private database: DataSource) {}
-}
-```
-
-Dependency Injection with tokens and interfaces is a powerful pattern that, when used correctly, makes your code more maintainable, testable, and flexible. NexusDI provides a clean, modern API for implementing this pattern in your TypeScript applications. 
+- **[Dependency Injection](./dependency-injection.md)** - Detailed explanation of DI principles
+- **[Tokens](./tokens.md)** - Complete guide to tokens
+- **[DI vs Regular Imports](./di-vs-imports.md)** - When to use each approach
+- **[Best Practices](./best-practices.md)** - Guidelines for maintainable DI code 

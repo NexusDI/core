@@ -153,33 +153,42 @@
 }
 
 .codeExample :global(.token) {
-  color: #e2e8f0 !important;
+  color: #f8fafc !important;
 }
 
 .codeExample :global(.token.keyword) {
-  color: #93c5fd !important;
-}
-
-.codeExample :global(.token.string) {
-  color: #86efac !important;
-}
-
-.codeExample :global(.token.function) {
   color: #fbbf24 !important;
 }
 
-.codeExample :global(.token.class-name) {
+.codeExample :global(.token.string) {
+  color: #4ade80 !important;
+}
+
+.codeExample :global(.token.function) {
   color: #a78bfa !important;
 }
 
+.codeExample :global(.token.class-name) {
+  color: #93c5fd !important;
+}
+
 .codeExample :global(.token.punctuation) {
-  color: #cbd5e1 !important;
+  color: #e2e8f0 !important;
 }
 
 .codeExample :global(.token.operator) {
-  color: #cbd5e1 !important;
+  color: #e2e8f0 !important;
 }
 
 .codeExample :global(.token.number) {
   color: #fca5a5 !important;
+}
+
+.codeExample :global(.token.comment) {
+  color: #cbd5e1 !important;
+  font-style: italic;
+}
+
+.codeExample :global(.token.decorator) {
+  color: #fbbf24 !important;
 }

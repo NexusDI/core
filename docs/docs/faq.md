@@ -1,3 +1,7 @@
+---
+sidebar_position: 9
+---
+
 # FAQ & Troubleshooting
 
 ## Why am I getting 'Decorators are not valid here' errors in my tests/examples?
@@ -12,20 +16,17 @@ Make sure your `tsconfig.json` includes your test and example files, and has `"e
     // ...other options
   },
   "include": [
-    "src/**/*",
-    "examples/**/*"
+    "src/**/*"
   ]
 }
 ```
 
 ## How do I use custom tokens?
 
-Use a string or symbol as a token, and the `@Inject(token)` decorator to inject it.
+Use a string or `Token` as a token, and the `@Inject(token)` decorator to inject it.
 
-## How do I migrate from Jest/ESLint to Vitest/Biome?
-
-- Replace Jest with [Vitest](https://vitest.dev/) for testing. Use `vi.fn()` instead of `jest.fn()` for mocks.
-- Replace ESLint with [Biome](https://biomejs.dev/) for linting and formatting. See the README for updated scripts.
+## What runtime dependencies does Nexus have?
+Nexus have 1 runtime dependency, and that is `reflect-metadata`.
 
 ## How do I debug dependency resolution issues?
 
