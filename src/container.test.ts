@@ -101,7 +101,7 @@ describe('Nexus', () => {
       nexus.set(CONFIG_TOKEN, {
         useClass: ConfigService,
       });
-      const config = nexus.get(CONFIG_TOKEN) as any;
+      const config = nexus.get(CONFIG_TOKEN) as ConfigService;
       expect(config.getApiUrl()).toBe('https://api.example.com');
     });
     it('should work with factory providers', () => {

@@ -1,6 +1,6 @@
 import { describe, it, expect, beforeEach } from 'vitest';
 import { Nexus } from '../../../../../../src';
-import { UserService } from '../../../../app/modules/users/user.service';
+import type { UserService } from '../../../../app/modules/users/user.service';
 import { USER_SERVICE_TOKEN, type User } from '../../../../app/modules/users/users.types';
 import { UsersModule } from '../../../../app/modules/users/users.module';
 

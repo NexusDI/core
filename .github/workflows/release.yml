@@ -52,9 +52,13 @@ jobs:
       with:
         node-version: 'current'
         cache: 'npm'
+        registry-url: 'https://registry.npmjs.org'
 
     - name: Install dependencies
       run: npm ci
+
+    - name: Run tests
+      run: npm run test:coverage
 
     - name: Build project
       run: npm run build
@@ -80,7 +84,13 @@ jobs:
         
         echo "changelog=$CHANGELOG" >> $GITHUB_OUTPUT
 
+    - name: Publish to npm
+      run: npm publish --access public
+      env:
+        NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
+
     - name: Create Release
+      id: create_release
       uses: actions/create-release@v1
       env:
         GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
@@ -95,12 +105,12 @@ jobs:
           ## Installation
           
           ```bash
-          npm install nexusdi
+          npm install @nexusdi/core
           ```
           
           ## Documentation
           
-          Visit our [documentation](https://nexusdi.github.io/nexusdi) for detailed guides and examples.
+          Visit our [documentation](https://nexus.js.org) for detailed guides and examples.
         draft: false
         prerelease: false
 

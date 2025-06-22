@@ -1,7 +1,6 @@
 import 'reflect-metadata';
-import type { TokenType, Provider as ProviderType, ServiceConfig, ModuleConfig } from './types';
+import type { TokenType, ServiceConfig, ModuleConfig } from './types';
 import { METADATA_KEYS, type InjectionMetadata } from './types';
-import { Token } from './token';
 
 /**
  * Module decorator - defines a module with its imports, services, providers, and exports
@@ -61,7 +60,7 @@ export function Inject<T>(token: TokenType<T>): ParameterDecorator {
  * Injectable decorator - marks a class as injectable (alternative to @Service)
  */
 export function Injectable<T>() {
-  return (target: new (...args: any[]) => T) => {
+  return (_target: new (...args: any[]) => T) => {
     // This decorator is mainly for compatibility and documentation
     // The actual injection logic is handled by the container
   };

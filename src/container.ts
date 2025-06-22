@@ -19,7 +19,10 @@ export class Nexus implements IContainer {
       throw new Error(`No provider found for token: ${this.tokenToString(token)}`);
     }
 
-    const provider = this.providers.get(actualToken)!;
+    const provider = this.providers.get(actualToken);
+    if (!provider) {
+      throw new Error(`No provider found for token: ${this.tokenToString(token)}`);
+    }
 
     // Return singleton instance if exists
     if (this.instances.has(actualToken)) {

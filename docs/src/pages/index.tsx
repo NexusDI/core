@@ -1,4 +1,3 @@
-import React from 'react';
 import type {ReactNode} from 'react';
 import clsx from 'clsx';
 import Link from '@docusaurus/Link';
@@ -6,29 +5,8 @@ import useDocusaurusContext from '@docusaurus/useDocusaurusContext';
 import Layout from '@theme/Layout';
 import CodeBlock from '@theme/CodeBlock';
 import HomepageFeatures from '@site/src/components/HomepageFeatures';
-import Heading from '@theme/Heading';
-import CodeExample from '@site/src/components/CodeExample';
-
 import styles from './index.module.css';
 
-const exampleCode = `
-import { Nexus, Service, Token } from '@nexusdi/core';
-
-const USER_SERVICE = new Token('UserService');
-
-@Service()
-class UserService {
-  getUsers() {
-    return ['Alice', 'Bob', 'Charlie'];
-  }
-}
-
-const container = new Nexus();
-container.set(USER_SERVICE, { useClass: UserService });
-
-const userService = container.get(USER_SERVICE);
-console.log(userService.getUsers()); // ['Alice', 'Bob', 'Charlie']
-`.trim();
 
 function HomepageHeader() {
   const {siteConfig} = useDocusaurusContext();

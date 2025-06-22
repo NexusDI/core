@@ -1,7 +1,7 @@
 import { Module } from './decorators';
 import type { ModuleConfig, TokenType } from './types';
 import { METADATA_KEYS } from './types';
-import { Token } from './token';
+import type { Token } from './token';
 
 /**
  * Abstract base class for dynamic modules that automatically provides
@@ -14,9 +14,9 @@ export abstract class DynamicModule<TConfig = any> {
    * Gets the module configuration from the decorator metadata
    */
   static getModuleConfig<T extends typeof DynamicModule>(this: T): ModuleConfig {
-    const moduleConfig = Reflect.getMetadata(METADATA_KEYS.MODULE_METADATA, this);
+    const moduleConfig = Reflect.getMetadata(METADATA_KEYS.MODULE_METADATA, DynamicModule);
     if (!moduleConfig) {
-      throw new Error(`Module ${this.name} is not properly decorated with @Module`);
+      throw new Error(`Module ${DynamicModule.name} is not properly decorated with @Module`);
     }
     return moduleConfig;
   }
@@ -27,7 +27,7 @@ export abstract class DynamicModule<TConfig = any> {
   static getConfigToken<T extends typeof DynamicModule>(this: T): TokenType {
     // Cast to a constructor type that has a parameterless constructor and configToken property
     type WithConfigToken = { new (): { configToken: TokenType } };
-    return new (this as unknown as WithConfigToken)().configToken;
+    return new (DynamicModule as unknown as WithConfigToken)().configToken;
   }
 
   /**
@@ -37,8 +37,8 @@ export abstract class DynamicModule<TConfig = any> {
     this: T,
     config: TConfig
   ) {
-    const moduleConfig = this.getModuleConfig();
-    const configToken = this.getConfigToken();
+    const moduleConfig = DynamicModule.getModuleConfig();
+    const configToken = DynamicModule.getConfigToken();
     return {
       ...moduleConfig,
       providers: [
@@ -55,8 +55,8 @@ export abstract class DynamicModule<TConfig = any> {
     this: T,
     configFactory: () => TConfig | Promise<TConfig>
   ) {
-    const moduleConfig = this.getModuleConfig();
-    const configToken = this.getConfigToken();
+    const moduleConfig = DynamicModule.getModuleConfig();
+    const configToken = DynamicModule.getConfigToken();
     return {
       ...moduleConfig,
       providers: [

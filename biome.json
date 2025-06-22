@@ -16,8 +16,18 @@
 	},
 	"linter": {
 		"enabled": true,
+		"includes": [
+			"src/**/*",
+			"scripts/**/*"
+		],
 		"rules": {
-			"recommended": true
+			"recommended": true,
+			"style": {
+				"noDescendingSpecificity": "off"
+			},
+			"suspicious": {
+				"noExplicitAny": "off"
+			}
 		}
 	},
 	"javascript": {
@@ -27,6 +37,12 @@
 		"parser": {
 			"unsafeParameterDecoratorsEnabled": true
 		}
+	},
+	"css": {
+		"parser": {
+			"cssModules": true
+		}
+
 	},
 	"assist": {
 		"enabled": true,

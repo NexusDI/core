@@ -125,7 +125,10 @@ describe('Decorators', () => {
       const injectToken = new Token('INJECT');
       
       class TestService {
-        constructor(@Inject(injectToken) private dependency: any) {}
+        constructor(
+          // biome-ignore lint/correctness/noUnusedFunctionParameters: Test parameter for injection metadata
+          @Inject(injectToken) dependency: any
+        ) {}
       }
 
       const metadata = Reflect.getMetadata(METADATA_KEYS.INJECT_METADATA, TestService);
@@ -141,8 +144,10 @@ describe('Decorators', () => {
       
       class TestService {
         constructor(
-          @Inject(token1) private dep1: any,
-          @Inject(token2) private dep2: any
+          // biome-ignore lint/correctness/noUnusedFunctionParameters: Test parameter for injection metadata
+          @Inject(token1) dep1: any,
+          // biome-ignore lint/correctness/noUnusedFunctionParameters: Test parameter for injection metadata
+          @Inject(token2) dep2: any
         ) {}
       }
 
@@ -168,7 +173,10 @@ describe('Decorators', () => {
       
       @Service(serviceToken)
       class TestService {
-        constructor(@Inject(dependencyToken) private dep: any) {}
+        constructor(
+          // biome-ignore lint/correctness/noUnusedFunctionParameters: Test parameter for injection metadata
+          @Inject(dependencyToken) dep: any
+        ) {}
       }
 
       const serviceMetadata = Reflect.getMetadata(METADATA_KEYS.SERVICE_METADATA, TestService);

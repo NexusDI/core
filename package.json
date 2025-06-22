@@ -23,7 +23,7 @@
     "format:check": "biome format",
     "clean": "rm -rf dist",
     "prepublishOnly": "npm run clean && npm run build",
-    "check-names": "node check-npm-names.js"
+    "release": "node scripts/release.js"
   },
   "keywords": [
     "dependency-injection",
@@ -36,15 +36,15 @@
     "injection",
     "framework"
   ],
-  "author": "",
+  "author": "Mikael Pettersson<iam@evanion.com>",
   "license": "MIT",
   "repository": {
     "type": "git",
-    "url": "https://github.com/nexusdi/nexusdi.git"
+    "url": "https://github.com/NexusDI/core.git"
   },
-  "homepage": "https://github.com/nexusdi/nexusdi#readme",
+  "homepage": "https://nexus.js.org",
   "bugs": {
-    "url": "https://github.com/nexusdi/nexusdi/issues"
+    "url": "https://github.com/NexusDI/core/issues"
   },
   "engines": {
     "node": ">=16.0.0"

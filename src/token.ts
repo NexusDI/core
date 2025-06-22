@@ -2,7 +2,7 @@
  * Token class for dependency injection
  * Creates unique tokens for dependency injection with optional string identifiers
  */
-export class Token<T = any> {
+export class Token<_T = any> {
   private static counter = 0;
   private readonly id: string;
   private readonly symbol: symbol;
