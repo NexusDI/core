@@ -42,6 +42,10 @@ jobs:
         cd docs
         npm run build
 
+    - name: Copy CNAME file
+      run: |
+        cp docs/static/CNAME docs/build/CNAME
+
     - name: Setup Pages
       uses: actions/configure-pages@v4
 
