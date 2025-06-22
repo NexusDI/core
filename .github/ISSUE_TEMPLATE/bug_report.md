@@ -36,7 +36,7 @@ A clear and concise description of what actually happened.
 
 ```typescript
 // Minimal reproduction code
-import { Nexus, Service, Inject } from 'nexusdi';
+import { Nexus, Service, Inject } from '@nexusdi/core';
 
 @Service()
 class MyService {

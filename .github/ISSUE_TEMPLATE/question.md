@@ -18,7 +18,7 @@ Provide some context about what you're trying to achieve or what led to this que
 
 ```typescript
 // If your question involves code, please share it here
-import { Nexus, Service, Inject } from 'nexusdi';
+import { Nexus, Service, Inject } from '@nexusdi/core';
 
 @Service()
 class MyService {

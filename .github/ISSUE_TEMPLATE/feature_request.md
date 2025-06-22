@@ -26,7 +26,7 @@ A clear and concise description of any alternative solutions or features you've 
 
 ```typescript
 // Example of how the feature might be used
-import { Nexus, Service, Inject } from 'nexusdi';
+import { Nexus, Service, Inject } from '@nexusdi/core';
 
 // New feature usage example
 @Service()
