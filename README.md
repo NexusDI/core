@@ -1,6 +1,21 @@
 # NexusDI
 
-A modern, lightweight dependency injection container for TypeScript with decorator support, inspired by industry-leading frameworks.
+<div align="center">
+  <img src="logo.svg" alt="NexusDI Logo" width="120" height="120" />
+  <br />
+  <p><strong>A modern, lightweight dependency injection container for TypeScript with decorator support, inspired by industry-leading frameworks.</strong></p>
+</div>
+
+<div align="center">
+
+[![npm version](https://badge.fury.io/js/%40nexusdi%2Fcore.svg)](https://badge.fury.io/js/%40nexusdi%2Fcore)
+[![npm downloads](https://img.shields.io/npm/dm/@nexusdi/core.svg)](https://www.npmjs.com/package/@nexusdi/core)
+[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
+[![TypeScript](https://img.shields.io/badge/TypeScript-007ACC?logo=typescript&logoColor=white)](https://www.typescriptlang.org/)
+[![Bundle Size](https://img.shields.io/bundlephobia/min/@nexusdi/core)](https://bundlephobia.com/package/@nexusdi/core)
+[![GitHub stars](https://img.shields.io/github/stars/NexusDI/core.svg?style=social&label=Star)](https://github.com/NexusDI/core)
+
+</div>
 
 ## Features
 

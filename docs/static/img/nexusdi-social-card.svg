@@ -1,0 +1,41 @@
+<svg width="1200" height="630" viewBox="0 0 1200 630" xmlns="http://www.w3.org/2000/svg">
+  <!-- Background gradient -->
+  <defs>
+    <linearGradient id="bgGradient" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" style="stop-color:#1e3a8a;stop-opacity:1" />
+      <stop offset="50%" style="stop-color:#1e40af;stop-opacity:1" />
+      <stop offset="100%" style="stop-color:#3b82f6;stop-opacity:1" />
+    </linearGradient>
+  </defs>
+  
+  <!-- Background -->
+  <rect width="1200" height="630" fill="url(#bgGradient)"/>
+  
+  <!-- Logo positioned on the left -->
+  <g transform="translate(150, 165)" stroke-width="8" stroke-linecap="round">
+    <!-- Connecting Lines -->
+    <line x1="80" y1="80" x2="80" y2="24" stroke="white" />
+    <line x1="80" y1="80" x2="132" y2="110" stroke="white" />
+    <line x1="80" y1="80" x2="28" y2="110" stroke="white" />
+
+    <!-- Central Hexagon Hub -->
+    <polygon points="80,56 106,70 106,98 80,112 54,98 54,70" fill="#5F7BA3" stroke="white" />
+
+    <!-- Outer Nodes -->
+    <circle cx="80" cy="20" r="12" fill="white" />
+    <circle cx="132" cy="110" r="12" fill="white" />
+    <circle cx="28" cy="110" r="12" fill="white" />
+  </g>
+  
+  <!-- Text content -->
+  <text x="600" y="200" font-family="Arial, sans-serif" font-size="72" font-weight="bold" text-anchor="middle" fill="white">NexusDI</text>
+  <text x="600" y="280" font-family="Arial, sans-serif" font-size="36" text-anchor="middle" fill="#e2e8f0">TypeScript Dependency Injection</text>
+  <text x="600" y="330" font-family="Arial, sans-serif" font-size="24" text-anchor="middle" fill="#cbd5e1">Simple • Powerful • Type-Safe</text>
+  
+  <!-- Code snippet -->
+  <rect x="400" y="380" width="400" height="120" rx="8" fill="rgba(255,255,255,0.1)" stroke="rgba(255,255,255,0.2)" stroke-width="2"/>
+  <text x="420" y="410" font-family="monospace" font-size="16" fill="#e2e8f0">import { Nexus, Service } from '@nexusdi/core';</text>
+  <text x="420" y="435" font-family="monospace" font-size="16" fill="#e2e8f0">const container = new Nexus();</text>
+  <text x="420" y="460" font-family="monospace" font-size="16" fill="#e2e8f0">container.set(USER_SERVICE, UserService);</text>
+  <text x="420" y="485" font-family="monospace" font-size="16" fill="#e2e8f0">const service = container.get(USER_SERVICE);</text>
+</svg> 

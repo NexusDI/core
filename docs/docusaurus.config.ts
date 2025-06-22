@@ -7,7 +7,7 @@ import type {ThemeConfig} from '@docusaurus/preset-classic';
 const config: Config & { themeConfig: ThemeConfig } = {
   title: 'NexusDI',
   tagline: 'A modern, simple to use DI container for TypeScript',
-  favicon: 'img/favicon.ico',
+  favicon: 'img/favicon.svg',
 
   // Future flags, see https://docusaurus.io/docs/api/docusaurus-config#future
   future: {
@@ -54,7 +54,7 @@ const config: Config & { themeConfig: ThemeConfig } = {
 
   themeConfig: {
     // Replace with your project's social card
-    image: 'img/docusaurus-social-card.jpg',
+    image: 'img/nexusdi-social-card.svg',
     navbar: {
       title: 'NexusDI',
       logo: {
