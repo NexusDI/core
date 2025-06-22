@@ -1,7 +1,7 @@
 {
   "name": "@nexusdi/core",
   "version": "0.1.0",
-  "description": "A modern, simple to use DI container inspired by Nest.js, TypeDI, and Angular",
+  "description": "A modern, simple to use DI container inspired by industry-leading frameworks",
   "main": "dist/index.js",
   "types": "dist/index.d.ts",
   "files": [

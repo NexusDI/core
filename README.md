@@ -1,17 +1,15 @@
 # NexusDI
 
-A modern, lightweight dependency injection container for TypeScript with decorator support, inspired by NestJS and Angular.
+A modern, lightweight dependency injection container for TypeScript with decorator support, inspired by industry-leading frameworks.
 
 ## Features
 
-- 🚀 **Modern TypeScript** - Built with TypeScript and decorators
-- 🎯 **Type Safety** - Full type safety with generics and tokens
-- 🔧 **Decorator Support** - Clean, declarative syntax with `@Service`, `@Module`, and `@Inject`
-- 📦 **Module System** - Organize services into modules with imports and exports
-- ⚡ **Dynamic Configuration** - Static methods for environment-specific module configuration (NestJS-style)
-- 🔄 **Dependency Resolution** - Automatic dependency injection with constructor and property injection
-- 🧪 **Testing Friendly** - Easy mocking and testing with child containers
-- 📚 **Comprehensive Documentation** - Full API documentation and examples
+- 🚀 **Modern & Type-Safe** - Built with TypeScript decorators for a fully type-safe experience
+- 🧩 **Powerful Module System** - Organize your application into modules with support for both static and dynamic configuration
+- ⚡ **Dynamic Configuration** - Static methods for environment-specific module configuration (inspired by industry leaders)
+- 🎯 **Developer-Friendly API** - Clean and intuitive API that makes dependency management simple
+- 📦 **Lightweight** - Zero dependencies, minimal bundle size
+- 🔧 **Flexible** - Support for both class-based and factory providers
 
 ## Quick Start
 

@@ -86,7 +86,7 @@ const config: Config & { themeConfig: ThemeConfig } = {
           ],
         },
       ],
-      copyright: `Copyright © ${new Date().getFullYear()} NexusDI. Built with Docusaurus.`,
+      copyright: `Copyright © ${new Date().getFullYear()} NexusDI. Built with Docusaurus. Feature images from Unsplash.`,
     },
     prism: {
       theme: prismThemes.github,

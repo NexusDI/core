@@ -1,8 +1,6 @@
 /**
- * Example: Dynamic Module Configuration with NexusDI
- * 
- * This example demonstrates the new static method pattern for module configuration,
- * similar to NestJS dynamic modules.
+ * Example demonstrating dynamic module configuration,
+ * similar to industry-leading frameworks.
  */
 
 import { Nexus, Module, Service, Token, Inject, DynamicModule } from '../src';

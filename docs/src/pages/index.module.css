@@ -8,16 +8,178 @@
   text-align: center;
   position: relative;
   overflow: hidden;
+  background: linear-gradient(135deg, #1e3a8a 0%, #1e40af 50%, #3b82f6 100%);
 }
+
+.heroContent {
+  display: flex;
+  align-items: center;
+  gap: 3rem;
+  max-width: 1200px;
+  margin: 0 auto;
+}
+
+.heroLogoContainer {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+
+.heroLeft {
+  flex: 0 ;
+  text-align: left;
+  width: fit-content;
+}
+
+.heroRight {
+  flex: 1;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+
+  > div {
+    --prism-background-color: transparent;
+    max-width: none;
+
+    > div {
+      max-width: none;
+      backdrop-filter: none;
+      margin-bottom: 0;
+      padding: 0;
+    }
+  }
+}
+
 
 @media screen and (max-width: 996px) {
   .heroBanner {
     padding: 2rem;
+  }
+  
+  .heroContent {
+    flex-direction: column;
+    gap: 2rem;
+  }
+  
+  .heroLeft {
+    flex: none;
+    text-align: center;
+  }
+  
+  .heroRight {
+    flex: none;
   }
 }
 
 .buttons {
   display: flex;
   align-items: center;
-  justify-content: center;
+  justify-content: flex-start;
+  gap: 1rem;
+}
+
+@media screen and (max-width: 996px) {
+  .buttons {
+    justify-content: center;
+  }
+}
+
+.heroTitle {
+  font-size: 3rem;
+  font-weight: 700;
+  margin-bottom: 1rem;
+  color: white;
+  text-shadow: 0 2px 4px rgba(0, 0, 0, 0.3);
+}
+
+@media screen and (max-width: 768px) {
+  .heroTitle {
+    font-size: 2.5rem;
+  }
+}
+
+.heroSubtitle {
+  font-size: 1.25rem;
+  color: #e2e8f0;
+  margin-bottom: 2rem;
+  max-width: 600px;
+  line-height: 1.6;
+}
+
+.heroLogo {
+  width: 120px;
+  height: 120px;
+  margin: 0 0 2rem 0;
+  filter: drop-shadow(0 4px 8px rgba(0, 0, 0, 0.3));
+}
+
+@media screen and (max-width: 996px) {
+  .heroLogo {
+    margin: 0 auto 2rem;
+  }
+}
+
+.codeExample {
+  background: rgba(255, 255, 255, 0.1);
+  border-radius: 12px;
+  padding: 1.5rem;
+  width: 100%;
+  max-width: 450px;
+  backdrop-filter: blur(10px);
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  text-align: left;
+}
+
+/* Override CodeBlock default styling */
+.codeExample :global(.theme-code-block) {
+  background: transparent !important;
+  border: none !important;
+  box-shadow: none !important;
+}
+
+.codeExample :global(.theme-code-block__Line) {
+  background: transparent !important;
+}
+
+.codeExample :global(.prism-code) {
+  background: transparent !important;
+  color: #e2e8f0 !important;
+  font-size: 0.9rem;
+  line-height: 1.5;
+  margin: 0;
+  padding: 0;
+  border: none !important;
+  box-shadow: none !important;
+}
+
+.codeExample :global(.token) {
+  color: #e2e8f0 !important;
+}
+
+.codeExample :global(.token.keyword) {
+  color: #93c5fd !important;
+}
+
+.codeExample :global(.token.string) {
+  color: #86efac !important;
+}
+
+.codeExample :global(.token.function) {
+  color: #fbbf24 !important;
+}
+
+.codeExample :global(.token.class-name) {
+  color: #a78bfa !important;
+}
+
+.codeExample :global(.token.punctuation) {
+  color: #cbd5e1 !important;
+}
+
+.codeExample :global(.token.operator) {
+  color: #cbd5e1 !important;
+}
+
+.codeExample :global(.token.number) {
+  color: #fca5a5 !important;
 }
