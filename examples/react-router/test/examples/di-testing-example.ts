@@ -36,6 +36,7 @@ export function exampleServiceTest() {
   // Assert: logger should be mockLogger
 
   // Test service method calls
+  // @ts-expect-error - Mocking the logger service
   logger.info('Test message');
   // Assert: logger.info should have been called with 'Test message'
 }
@@ -72,7 +73,9 @@ export async function exampleLoaderTest() {
     const logger = container.get('LOGGER_SERVICE_TOKEN');
     const userService = container.get('USER_SERVICE_TOKEN');
 
+    // @ts-expect-error - Mocking the logger service
     logger.info('Page loaded');
+    // @ts-expect-error - Mocking the user service
     const users = await userService.getUsers();
 
     return {

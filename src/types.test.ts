@@ -1,6 +1,6 @@
 import { describe, it, expect } from 'vitest';
 import { Token } from './token';
-import { TokenType, Provider, ServiceConfig, ModuleConfig, METADATA_KEYS, InjectionMetadata } from './types';
+import { type TokenType, type Provider, type ServiceConfig, type ModuleConfig, METADATA_KEYS, type InjectionMetadata } from './types';
 
 describe('Types', () => {
   describe('TokenType', () => {

@@ -1,5 +1,5 @@
 import 'reflect-metadata';
-import { Nexus, Module, Service, Provider, Inject, Token } from '../src';
+import { Nexus, Module, Service, Inject, Token } from '../src';
 
 // Define interfaces for better contracts
 interface ILogger {
@@ -19,6 +19,7 @@ interface IUserService {
 }
 
 interface IDataSource {
+  // biome-ignore lint/suspicious/noExplicitAny: Mock database implementation for example purposes
   query(sql: string): Promise<any>;
 }
 
@@ -55,9 +56,9 @@ class AppConfig implements IConfig {
   environment: string;
 
   constructor() {
-    this.databaseUrl = process.env['DATABASE_URL'] || 'postgresql://localhost:5432/myapp';
-    this.emailApiKey = process.env['EMAIL_API_KEY'] || 'test-key';
-    this.environment = process.env['NODE_ENV'] || 'development';
+    this.databaseUrl = process.env.DATABASE_URL || 'postgresql://localhost:5432/myapp';
+    this.emailApiKey = process.env.EMAIL_API_KEY || 'test-key';
+    this.environment = process.env.NODE_ENV || 'development';
   }
 }
 
@@ -80,12 +81,15 @@ class ConsoleLogger implements ILogger {
 // Database service with configuration injection
 @Service(DATABASE)
 class PostgresDatabase implements IDataSource {
+  // biome-ignore lint/suspicious/noExplicitAny: Mock database connection for example purposes
   private connection: any;
 
+  // @ts-expect-error - Decorator is valid
   constructor(@Inject(CONFIG) private config: IConfig) {
     this.connection = { url: config.databaseUrl }; // Mock connection
   }
 
+  // biome-ignore lint/suspicious/noExplicitAny: Mock database implementation for example purposes
   async query(sql: string): Promise<any> {
     // Mock implementation
     if (sql.includes('SELECT')) {
@@ -105,11 +109,13 @@ class PostgresDatabase implements IDataSource {
 @Service(EMAIL_SERVICE)
 class SendGridEmailService implements IEmailService {
   constructor(
+    // @ts-expect-error - Decorator is valid
     @Inject(CONFIG) private config: IConfig,
+    // @ts-expect-error - Decorator is valid
     @Inject(LOGGER) private logger: ILogger
   ) {}
 
-  async sendEmail(to: string, subject: string, body: string): Promise<void> {
+  async sendEmail(to: string, _subject: string, _body: string): Promise<void> {
     this.logger.log(`Sending email to ${to} using SendGrid (API Key: ${this.config.emailApiKey})`);
     // Mock email sending
     await new Promise(resolve => setTimeout(resolve, 100));
@@ -121,8 +127,11 @@ class SendGridEmailService implements IEmailService {
 @Service(USER_SERVICE)
 class UserService implements IUserService {
   constructor(
+    // @ts-expect-error - Decorator is valid
     @Inject(DATABASE) private database: IDataSource,
+    // @ts-expect-error - Decorator is valid
     @Inject(LOGGER) private logger: ILogger,
+    // @ts-expect-error - Decorator is valid
     @Inject(EMAIL_SERVICE) private emailService: IEmailService
   ) {}
 
@@ -186,7 +195,7 @@ async function main() {
   nexus.registerModule(AppModule);
 
   // Override logger for development
-  if (process.env['NODE_ENV'] === 'development') {
+  if (process.env.NODE_ENV === 'development') {
     nexus.set(LOGGER, {
       useFactory: createDevelopmentLogger
     });

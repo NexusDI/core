@@ -1,3 +1,4 @@
+import 'reflect-metadata';
 import { Nexus, Service, Inject, Token } from '../src';
 
 // Define interfaces for better contracts
@@ -12,6 +13,7 @@ interface IUserService {
 }
 
 interface IDataSource {
+  // biome-ignore lint/suspicious/noExplicitAny: Mock database implementation for example purposes
   query(sql: string): Promise<any>;
 }
 
@@ -51,6 +53,7 @@ class InMemoryDatabase implements IDataSource {
     { id: '2', name: 'Jane Smith', email: 'jane@example.com' }
   ];
 
+  // biome-ignore lint/suspicious/noExplicitAny: Mock database implementation for example purposes
   async query(sql: string): Promise<any> {
     // Simple mock implementation
     if (sql.includes('SELECT')) {
@@ -116,7 +119,7 @@ async function main() {
       email: 'alice@example.com'
     });
     console.log('Created user:', newUser);
-  } catch (error) {
+  } catch (_error) {
     logger.error('Error occurred during user operations');
   }
 }
