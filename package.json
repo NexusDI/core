@@ -1,0 +1,59 @@
+{
+  "name": "@nexusdi/core",
+  "version": "0.1.0",
+  "description": "A modern, simple to use DI container inspired by Nest.js, TypeDI, and Angular",
+  "main": "dist/index.js",
+  "types": "dist/index.d.ts",
+  "files": [
+    "dist"
+  ],
+  "scripts": {
+    "build": "tsc",
+    "dev": "tsc --watch",
+    "test": "vitest run",
+    "test:watch": "vitest",
+    "lint": "biome lint .",
+    "lint:fix": "biome lint --apply .",
+    "format": "biome format .",
+    "format:check": "biome format --check .",
+    "clean": "rm -rf dist",
+    "prepublishOnly": "npm run clean && npm run build",
+    "check-names": "node check-npm-names.js"
+  },
+  "keywords": [
+    "dependency-injection",
+    "di",
+    "ioc",
+    "typescript",
+    "decorators",
+    "modules",
+    "container",
+    "injection",
+    "framework"
+  ],
+  "author": "",
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/nexusdi/nexusdi.git"
+  },
+  "homepage": "https://github.com/nexusdi/nexusdi#readme",
+  "bugs": {
+    "url": "https://github.com/nexusdi/nexusdi/issues"
+  },
+  "engines": {
+    "node": ">=16.0.0"
+  },
+  "devDependencies": {
+    "@types/node": "^20.8.10",
+    "biome": "^0.3.3",
+    "typescript": "^5.2.2",
+    "vitest": "^1.6.1"
+  },
+  "peerDependencies": {
+    "reflect-metadata": "^0.1.13"
+  },
+  "dependencies": {
+    "reflect-metadata": "^0.1.13"
+  }
+}
