@@ -16,21 +16,27 @@ const [major, minor, patch] = currentVersion.split('.').map(Number);
 
 // Determine release type from command line argument
 const releaseType = process.argv[2] || 'patch';
+const isFirstRelease = process.argv.includes('--first-release');
+
 let newVersion;
 
-switch (releaseType) {
-  case 'major':
-    newVersion = `${major + 1}.0.0`;
-    break;
-  case 'minor':
-    newVersion = `${major}.${minor + 1}.0`;
-    break;
-  default:
-    newVersion = `${major}.${minor}.${patch + 1}`;
-    break;
+if (isFirstRelease) {
+  newVersion = currentVersion; // Keep current version for first release
+  console.log(`First release - keeping version: ${newVersion}`);
+} else {
+  switch (releaseType) {
+    case 'major':
+      newVersion = `${major + 1}.0.0`;
+      break;
+    case 'minor':
+      newVersion = `${major}.${minor + 1}.0`;
+      break;
+    default:
+      newVersion = `${major}.${minor}.${patch + 1}`;
+      break;
+  }
+  console.log(`New version: ${newVersion}`);
 }
-
-console.log(`New version: ${newVersion}`);
 
 // Confirm release
 const readline = require('node:readline');
@@ -75,7 +81,7 @@ rl.question('Proceed with release? (y/N): ', (answer) => {
 
   // Publish to npm
   console.log('Publishing to npm...');
-  execSync('npm publish', { stdio: 'inherit' });
+  execSync('npm publish --access public', { stdio: 'inherit' });
 
   console.log(`✅ Successfully released v${newVersion}!`);
 }); 

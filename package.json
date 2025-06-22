@@ -4,13 +4,17 @@
   "description": "A modern, simple to use DI container inspired by industry-leading frameworks",
   "main": "dist/index.js",
   "types": "dist/index.d.ts",
+  "private": false,
   "files": [
-    "dist"
+    "dist",
+    "README.md",
+    "LICENSE",
+    "logo.svg"
   ],
   "scripts": {
     "build": "tsc",
     "dev": "tsc --watch",
-    "test": "vitest",
+    "test": "vitest run",
     "test:coverage": "vitest --coverage",
     "test:watch": "vitest",
     "test:e2e": "vitest --config vitest.e2e.config.ts",
