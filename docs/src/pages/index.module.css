@@ -78,6 +78,32 @@
   gap: 1rem;
 }
 
+/* Override outline button styling to be white */
+.buttons :global(.button--outline) {
+  color: white !important;
+  border-color: white !important;
+  background: transparent !important;
+}
+
+.buttons :global(.button--outline:hover) {
+  color: #1e3a8a !important;
+  background: white !important;
+  border-color: white !important;
+}
+
+/* Ensure secondary button maintains proper styling in both themes */
+.buttons :global(.button--secondary) {
+  color: #1e3a8a !important;
+  background: white !important;
+  border-color: white !important;
+}
+
+.buttons :global(.button--secondary:hover) {
+  color: #1e3a8a !important;
+  background: #f8fafc !important;
+  border-color: #e2e8f0 !important;
+}
+
 @media screen and (max-width: 996px) {
   .buttons {
     justify-content: center;

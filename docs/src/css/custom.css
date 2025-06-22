@@ -19,13 +19,13 @@
 
 /* For readability concerns, you should choose a lighter palette in dark mode. */
 [data-theme='dark'] {
-  --ifm-color-primary: #5F7BA3;
-  --ifm-color-primary-dark: #4f6b8f;
-  --ifm-color-primary-darker: #4a6487;
-  --ifm-color-primary-darkest: #3d5270;
-  --ifm-color-primary-light: #8ba3c7;
-  --ifm-color-primary-lighter: #95acd0;
-  --ifm-color-primary-lightest: #a3b8d8;
+  --ifm-color-primary: #93c5fd;
+  --ifm-color-primary-dark: #7dd3fc;
+  --ifm-color-primary-darker: #67e8f9;
+  --ifm-color-primary-darkest: #22d3ee;
+  --ifm-color-primary-light: #a5b4fc;
+  --ifm-color-primary-lighter: #c7d2fe;
+  --ifm-color-primary-lightest: #e0e7ff;
   --docusaurus-highlighted-code-line-bg: rgba(0, 0, 0, 0.3);
 }
 
@@ -70,9 +70,44 @@ a:hover {
 
 /* Footer links */
 .footer__link-item {
-  color: var(--ifm-color-primary);
+  color: white;
 }
 
 .footer__link-item:hover {
-  color: var(--ifm-color-primary-light);
+  color: #e0e0e0;
+  text-decoration: underline;
+}
+
+/* Dark mode link improvements */
+[data-theme='dark'] a:not(.button):not(.button--secondary):not(.button--outline) {
+  color: #93c5fd;
+}
+
+[data-theme='dark'] a:not(.button):not(.button--secondary):not(.button--outline):hover {
+  color: #c7d2fe;
+  text-decoration: underline;
+}
+
+[data-theme='dark'] .markdown a {
+  color: #93c5fd;
+}
+
+[data-theme='dark'] .markdown a:hover {
+  color: #c7d2fe;
+}
+
+[data-theme='dark'] .navbar__link {
+  color: #93c5fd;
+}
+
+[data-theme='dark'] .navbar__link:hover {
+  color: #c7d2fe;
+}
+
+[data-theme='dark'] .menu__link {
+  color: #93c5fd;
+}
+
+[data-theme='dark'] .menu__link:hover {
+  color: #c7d2fe;
 }
