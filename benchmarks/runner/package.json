@@ -1,0 +1,22 @@
+{
+  "name": "nexusdi-benchmarks",
+  "version": "1.0.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "validate": "tsx validate-numbers.ts",
+    "benchmark": "tsx performance-comparison.ts",
+    "compare": "tsx compare-libraries.ts"
+  },
+  "dependencies": {
+    "reflect-metadata": "^0.2.2",
+    "inversify": "^7.5.2",
+    "tsyringe": "^4.10.0",
+    "typedi": "^0.10.0"
+  },
+  "devDependencies": {
+    "tsx": "^4.20.3",
+    "typescript": "^5.8.3",
+    "@types/inversify": "^2.0.33"
+  }
+} 

@@ -1,0 +1,89 @@
+{
+  "timestamp": "2025-06-22T21:32:33.174Z",
+  "benchmarks": [
+    {
+      "library": "NexusDI",
+      "startup": {
+        "avg": 0.0007631800000031034,
+        "min": 0.0005419999999958236,
+        "max": 0.043750000000045475,
+        "iterations": 1000
+      },
+      "resolution": {
+        "avg": 0.000202435699999819,
+        "min": 0.00004100000001017179,
+        "max": 0.2562920000000304,
+        "iterations": 10000
+      },
+      "memory": 5,
+      "bundle": {
+        "core": 32,
+        "dependencies": 64,
+        "total": 96
+      }
+    },
+    {
+      "library": "InversifyJS",
+      "startup": {
+        "avg": 0.02203191899999092,
+        "min": 0.01062499999989086,
+        "max": 0.9474999999999909,
+        "iterations": 1000
+      },
+      "resolution": {
+        "avg": 0.0013923822999987805,
+        "min": 0.00024999999982355803,
+        "max": 1.5806250000000546,
+        "iterations": 10000
+      },
+      "memory": 31,
+      "bundle": {
+        "core": 50,
+        "dependencies": 64,
+        "total": 114
+      }
+    },
+    {
+      "library": "tsyringe",
+      "startup": {
+        "avg": 0.04539533500000175,
+        "min": 0.003500000000030923,
+        "max": 0.8206250000000637,
+        "iterations": 1000
+      },
+      "resolution": {
+        "avg": 0.0009448075999992625,
+        "min": 0.0003329999999550637,
+        "max": 0.39237500000012915,
+        "iterations": 10000
+      },
+      "memory": 145,
+      "bundle": {
+        "core": 35,
+        "dependencies": 64,
+        "total": 99
+      }
+    },
+    {
+      "library": "TypeDI",
+      "startup": {
+        "avg": 0.002134613999998237,
+        "min": 0.0013329999999314168,
+        "max": 0.13970799999992778,
+        "iterations": 1000
+      },
+      "resolution": {
+        "avg": 0.0001559915999988789,
+        "min": 0,
+        "max": 0.17766600000004473,
+        "iterations": 10000
+      },
+      "memory": 2,
+      "bundle": {
+        "core": 25,
+        "dependencies": 64,
+        "total": 89
+      }
+    }
+  ]
+}

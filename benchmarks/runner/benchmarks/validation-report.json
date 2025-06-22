@@ -1,0 +1,28 @@
+{
+  "timestamp": "2025-06-22T21:19:31.913Z",
+  "nexusdi": {
+    "startup": {
+      "avg": 0.0006889609999983577,
+      "min": 0.0004159999999728825,
+      "max": 0.09383299999990413,
+      "iterations": 1000
+    },
+    "resolution": {
+      "avg": 0.00022741050000074666,
+      "min": 0.00004099999989648495,
+      "max": 0.32341699999994944,
+      "iterations": 10000
+    },
+    "memory": 5,
+    "bundle": {
+      "core": 32,
+      "dependencies": 64,
+      "total": 96
+    }
+  },
+  "validation": {
+    "startupTimeValid": true,
+    "bundleSizeValid": true,
+    "memoryUsageValid": false
+  }
+}
