@@ -1,19 +1,19 @@
 import { Service, Token } from '../../../../../src';
 
 export interface ILoggerService {
-  log(level: 'info' | 'warn' | 'error', message: string, meta?: Record<string, any>): void;
-  info(message: string, meta?: Record<string, any>): void;
-  warn(message: string, meta?: Record<string, any>): void;
-  error(message: string, meta?: Record<string, any>): void;
+  log(level: 'info' | 'warn' | 'error', message: string, meta?: Record<string, unknown>): void;
+  info(message: string, meta?: Record<string, unknown>): void;
+  warn(message: string, meta?: Record<string, unknown>): void;
+  error(message: string, meta?: Record<string, unknown>): void;
 }
 
 export const LOGGER_SERVICE_TOKEN = new Token<ILoggerService>('LoggerService');
 
 @Service()
 export class LoggerService implements ILoggerService {
-  log(level: 'info' | 'warn' | 'error', message: string, meta?: Record<string, any>): void {
+  log(level: 'info' | 'warn' | 'error', message: string, meta?: Record<string, unknown>): void {
     const timestamp = new Date().toISOString();
-    const logEntry = {
+    const _logEntry = {
       timestamp,
       level,
       message,
@@ -33,15 +33,15 @@ export class LoggerService implements ILoggerService {
     }
   }
 
-  info(message: string, meta?: Record<string, any>): void {
+  info(message: string, meta?: Record<string, unknown>): void {
     this.log('info', message, meta);
   }
 
-  warn(message: string, meta?: Record<string, any>): void {
+  warn(message: string, meta?: Record<string, unknown>): void {
     this.log('warn', message, meta);
   }
 
-  error(message: string, meta?: Record<string, any>): void {
+  error(message: string, meta?: Record<string, unknown>): void {
     this.log('error', message, meta);
   }
 } 
