@@ -10,7 +10,7 @@ describe('UserService', () => {
 
   beforeEach(() => {
     container = new Nexus();
-    container.registerDynamicModule(UsersModule.config({
+    container.set(UsersModule.config({
       apiUrl: 'http://localhost:3001/api/users',
       cacheEnabled: false,
       cacheTTL: 300,
