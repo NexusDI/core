@@ -5,7 +5,6 @@ on:
     tags:
       - 'v*'
 
-# Restrict to approved users
 permissions:
   contents: write
   issues: write
@@ -39,7 +38,6 @@ jobs:
   release:
     runs-on: ubuntu-latest
     needs: check-permissions
-    # Only allow organization collaborators to run releases
     if: needs.check-permissions.outputs.is-collaborator == 'true'
     steps:
     - name: Checkout code
@@ -54,14 +52,6 @@ jobs:
         cache: 'npm'
         registry-url: 'https://registry.npmjs.org'
 
-    - name: Setup Node.js for GitHub Packages
-      uses: actions/setup-node@v4
-      with:
-        node-version: 'current'
-        cache: 'npm'
-        registry-url: 'https://npm.pkg.github.com'
-        scope: '@nexusdi'
-
     - name: Install dependencies
       run: npm ci
 
@@ -74,35 +64,31 @@ jobs:
     - name: Generate changelog
       id: changelog
       run: |
-        # Get the previous tag
         PREVIOUS_TAG=$(git describe --tags --abbrev=0 HEAD~1 2>/dev/null || echo "")
         
         if [ -z "$PREVIOUS_TAG" ]; then
-          # First release - get all commits
           CHANGELOG=$(git log --pretty=format:"- %s (%h)" --reverse)
         else
-          # Get commits since previous tag
           CHANGELOG=$(git log --pretty=format:"- %s (%h)" --reverse ${PREVIOUS_TAG}..HEAD)
         fi
         
-        # Escape newlines for GitHub Actions
         CHANGELOG="${CHANGELOG//'%'/'%25'}"
         CHANGELOG="${CHANGELOG//$'\n'/'%0A'}"
         CHANGELOG="${CHANGELOG//$'\r'/'%0D'}"
         
         echo "changelog=$CHANGELOG" >> $GITHUB_OUTPUT
 
-    - name: Publish to npm
+    - name: Publish to npm (public)
       run: npm publish --access public --registry=https://registry.npmjs.org
       env:
         NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
 
-    - name: Publish to GitHub Packages
+    - name: Publish to GitHub Packages (backup)
       run: npm publish --access public --registry=https://npm.pkg.github.com
       env:
         NODE_AUTH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
-    - name: Create Release
+    - name: Create GitHub Release
       id: create_release
       uses: actions/create-release@v1
       env:
@@ -126,13 +112,3 @@ jobs:
           Visit our [documentation](https://nexus.js.org) for detailed guides and examples.
         draft: false
         prerelease: false
-
-    - name: Upload Release Assets
-      uses: actions/upload-release-asset@v1
-      env:
-        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-      with:
-        upload_url: ${{ steps.create_release.outputs.upload_url }}
-        asset_path: ./dist/
-        asset_name: nexusdi-${{ github.ref_name }}.tgz
-        asset_content_type: application/gzip 
