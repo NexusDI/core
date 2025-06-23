@@ -24,13 +24,12 @@ jobs:
         with:
           script: |
             try {
-              const { data: members } = await github.rest.orgs.listMembers({
-                org: 'NexusDI'
+              const { data: membership } = await github.rest.orgs.getMembershipForUser({
+                org: 'NexusDI',
+                username: context.actor
               });
-              
-              const isMember = members.some(member => member.login === context.actor);
-              console.log(`User ${context.actor} is ${isMember ? 'a' : 'not a'} member of NexusDI organization`);
-              
+              const isMember = membership && (membership.state === 'active');
+              console.log(`User ${context.actor} membership state: ${membership ? membership.state : 'none'}`);
               core.setOutput('is-collaborator', isMember.toString());
             } catch (error) {
               console.log('Error checking organization membership:', error.message);
@@ -94,12 +93,12 @@ jobs:
         echo "changelog=$CHANGELOG" >> $GITHUB_OUTPUT
 
     - name: Publish to npm
-      run: npm publish --access public
+      run: npm publish --access public --registry=https://registry.npmjs.org
       env:
         NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
 
     - name: Publish to GitHub Packages
-      run: npm publish --access public
+      run: npm publish --access public --registry=https://npm.pkg.github.com
       env:
         NODE_AUTH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
