@@ -34,6 +34,13 @@ Nexus have 1 runtime dependency, and that is `reflect-metadata`.
 - Use explicit tokens and `@Inject` if needed.
 - Use `nexus.has(token)` to check registration.
 
+## How do I fix circular dependency errors?
+
+Circular dependencies occur when two or more services depend on each other, either directly or indirectly. This usually results in errors like "No provider found for token" or stack overflows. To fix them:
+- Refactor your code to remove the cycle if possible.
+- Use property injection or lazy resolution as a workaround (with caveats).
+- See the [Circular Dependencies](advanced/circular-dependencies.md) article for detailed strategies, examples, and workarounds.
+
 ## Where can I get help?
 
 - [GitHub Issues](https://github.com/NexusDI/core/issues)

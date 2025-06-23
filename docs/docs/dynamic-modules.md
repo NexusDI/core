@@ -41,14 +41,14 @@ class DatabaseModule extends DynamicModule<DatabaseConfig> {
 const container = new Nexus();
 
 // Synchronous configuration
-container.setModule(DatabaseModule.config({
+container.set(DatabaseModule.config({
   host: 'localhost',
   port: 5432,
   database: 'myapp'
 }));
 
 // Asynchronous configuration
-container.setModule(DatabaseModule.configAsync(async () => ({
+container.set(DatabaseModule.configAsync(async () => ({
   host: process.env.DB_HOST,
   port: parseInt(process.env.DB_PORT),
   database: process.env.DB_NAME,
@@ -98,19 +98,19 @@ class LoggingModule extends DynamicModule<LogConfig> {
 const container = new Nexus();
 
 // Development configuration
-container.setModule(LoggingModule.config({
+container.set(LoggingModule.config({
   level: 'debug',
   format: 'detailed'
 }));
 
 // Production configuration
-container.setModule(LoggingModule.config({
+container.set(LoggingModule.config({
   level: 'info',
   format: 'json'
 }));
 
 // Testing configuration
-container.setModule(LoggingModule.config({
+container.set(LoggingModule.config({
   level: 'error',
   format: 'minimal'
 }));
@@ -150,17 +150,17 @@ const container = new Nexus();
 
 // Choose email provider based on configuration
 if (process.env.EMAIL_PROVIDER === 'sendgrid') {
-  container.setModule(EmailModule.config({
+  container.set(EmailModule.config({
     provider: 'sendgrid',
     apiKey: process.env.SENDGRID_API_KEY
   }));
 } else if (process.env.EMAIL_PROVIDER === 'mailgun') {
-  container.setModule(EmailModule.config({
+  container.set(EmailModule.config({
     provider: 'mailgun',
     apiKey: process.env.MAILGUN_API_KEY
   }));
 } else {
-  container.setModule(EmailModule.config({
+  container.set(EmailModule.config({
     provider: 'smtp',
     smtpConfig: {
       host: process.env.SMTP_HOST,
@@ -201,7 +201,7 @@ class AppModule extends DynamicModule<{
 
 // Usage
 const container = new Nexus();
-container.setModule(AppModule.config({
+container.set(AppModule.config({
   database: {
     host: 'localhost',
     port: 5432,
@@ -260,7 +260,7 @@ class DatabaseModule extends DynamicModule<DatabaseConfig> {
 describe('DatabaseModule', () => {
   it('should work with test configuration', () => {
     const container = new Nexus();
-    container.setModule(DatabaseModule.config({
+    container.set(DatabaseModule.config({
       host: 'localhost',
       port: 5432,
       database: 'test_db'
@@ -273,7 +273,7 @@ describe('DatabaseModule', () => {
   it('should validate configuration', () => {
     expect(() => {
       const container = new Nexus();
-      container.setModule(DatabaseModule.config({
+      container.set(DatabaseModule.config({
         host: '', // Invalid
         port: 5432,
         database: 'test_db'
@@ -296,4 +296,8 @@ The `DynamicModule` base class approach provides:
 - **Testability**: Simple to test with different configurations
 - **Environment Support**: Easy environment-specific configurations
 
-This pattern makes modules much more ergonomic to use while keeping the interface clean and simple. 
+This pattern makes modules much more ergonomic to use while keeping the interface clean and simple.
+
+For advanced dynamic module patterns, see [Advanced Dynamic Modules](advanced/advanced-dynamic-modules.md).
+
+**Note:** As of v0.2.0, use `container.set(...)` to register modules and dynamic modules. `setModule` and `registerDynamicModule` are deprecated and will be removed in a future minor version. As long as the major version is 0, minor version bumps are considered breaking. 

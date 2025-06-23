@@ -278,4 +278,8 @@ Modules provide a powerful way to organize your dependency injection setup:
 - **Configuration**: Encapsulate environment-specific settings
 - **Composability**: Import and combine modules as needed
 
-For advanced module patterns and dynamic configuration, see [Module Patterns](./module-patterns.md) and [Dynamic Modules](./dynamic-modules.md). 
+For advanced module patterns and dynamic configuration, see [Module Patterns](./module-patterns.md) and [Dynamic Modules](./dynamic-modules.md).
+
+For advanced topics such as dynamic modules, lifetimes, multi-injection, and more, see the [Advanced](./advanced.md) section.
+
+**Note:** As of v0.2.0, use `container.set(...)` to register modules and dynamic modules. `setModule` and `registerDynamicModule` are deprecated and will be removed in a future version. 

@@ -265,7 +265,7 @@ const UserModule = {
   ]
 };
 
-nexus.setModule(UserModule);
+nexus.set(UserModule);
 ```
 
 ### Conditional Registration
@@ -294,4 +294,10 @@ The `deps` parameter essentially tells NexusDI: "When you call this factory func
 
 Understanding when and why to use `deps` is crucial for working with factory providers in NexusDI. While classes with decorators get automatic dependency injection, factory functions need explicit dependency specification through the `deps` array.
 
-For more information about tokens and how they work with providers, see **[Tokens](./tokens.md)**. 
+For more information about tokens and how they work with providers, see **[Tokens](./tokens.md)**.
+
+For advanced provider patterns, see [Advanced Providers & Factories](advanced/advanced-providers-and-factories.md).
+For multi-injection and plugin systems, see [Multi-injection & Collections](advanced/multi-injection-and-collections.md).
+For lifetimes and scoping, see [Scoped & Transient Lifetimes](advanced/scoped-and-transient-lifetimes.md).
+
+> **Note:** As of v0.2.0, use `container.set(...)` (or `nexus.set(...)`) to register modules and dynamic modules. `setModule` and `registerDynamicModule` are deprecated and will be removed in a future minor version. As long as the major version is 0, minor version bumps are considered breaking. 

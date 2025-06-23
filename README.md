@@ -23,14 +23,29 @@
 - 🧩 **Powerful Module System** - Organize your application into modules with support for both static and dynamic configuration
 - ⚡ **Dynamic Configuration** - Static methods for environment-specific module configuration (inspired by industry leaders)
 - 🎯 **Developer-Friendly API** - Clean and intuitive API that makes dependency management simple
-- 📦 **Lightweight** - Zero dependencies, minimal bundle size
+- 📦 **Lightweight** - One dependency, minimal bundle size
 - 🔧 **Flexible** - Support for both class-based and factory providers
+
+## 📊 Performance Comparison
+
+| Library    | Startup Time | Resolution Time | Memory Usage | Bundle Size |
+|------------|--------------|----------------|-------------|-------------|
+| **NexusDI**   | 1.3μs        | 0.2μs          | 6KB         | 96KB        |
+| InversifyJS | 22.2μs       | 1.4μs          | 32KB        | 114KB       |
+| tsyringe    | 45.2μs       | 0.9μs          | 150KB       | 99KB        |
+| TypeDI      | 2.0μs        | 0.1μs          | 2KB         | 89KB        |
+
+<sup>Based on real benchmarks: 1,000 startup iterations, 10,000 resolution iterations, Node.js v22.13.1, M1 Pro MacBook.</sup>
+
+👉 **See the full [Performance & Bundle Size](https://nexus.js.org/docs/performance) article for methodology and details.**
 
 ## Quick Start
 
 ```bash
-npm install @nexusdi/core
+npm install @nexusdi/core reflect-metadata
 ```
+
+**Note:** As of v0.2.0, use `container.set(...)` to register modules and dynamic modules. `setModule` and `registerDynamicModule` are deprecated and will be removed in a future minor version. As long as the major version is 0, minor version bumps are considered breaking.
 
 ```typescript
 import { Nexus, Service, Token, Inject } from '@nexusdi/core';
@@ -54,7 +69,7 @@ class UserService implements IUserService {
 
 // Use the container
 const container = new Nexus();
-container.setModule(UserModule);
+container.set(UserModule);
 const userService = container.get(USER_SERVICE);
 ```
 
@@ -84,14 +99,14 @@ class DatabaseModule extends DynamicModule<DatabaseConfig> {
 const container = new Nexus();
 
 // Synchronous configuration
-container.registerDynamicModule(DatabaseModule.config({
+container.set(DatabaseModule.config({
   host: 'localhost',
   port: 5432,
   database: 'dev_db'
 }));
 
 // Asynchronous configuration
-container.registerDynamicModule(DatabaseModule.configAsync(async () => ({
+container.set(DatabaseModule.configAsync(async () => ({
   host: process.env.DB_HOST,
   port: parseInt(process.env.DB_PORT),
   database: process.env.DB_NAME

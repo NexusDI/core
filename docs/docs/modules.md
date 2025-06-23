@@ -52,7 +52,7 @@ import { Nexus } from '@nexusdi/core';
 import { UserModule } from './modules/user.module';
 
 const container = new Nexus();
-container.setModule(UserModule);
+container.set(UserModule);
 ```
 
 ## Benefits of Modules
@@ -69,4 +69,6 @@ For detailed explanations of these benefits and advanced patterns, see **[Module
 
 - **[Module Basics](./module-basics.md)** - Complete guide to creating and using modules
 - **[Module Patterns](./module-patterns.md)** - Advanced patterns and best practices
-- **[Dynamic Modules](./dynamic-modules.md)** - Runtime configuration and validation 
+- **[Dynamic Modules](./dynamic-modules.md)** - Runtime configuration and validation
+
+> **Note:** As of v0.2.0, use `container.set(...)` to register modules and dynamic modules. `setModule` and `registerDynamicModule` are deprecated and will be removed in a future minor version. As long as the major version is 0, minor version bumps are considered breaking. 

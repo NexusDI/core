@@ -144,7 +144,7 @@ describe('UserModule', () => {
   });
 
   it('should register all services and providers', () => {
-    container.setModule(UserModule);
+    container.set(USER_SERVICE, { useClass: UserService });
 
     expect(container.has(USER_SERVICE)).toBe(true);
     expect(container.has(DATABASE)).toBe(true);
@@ -152,7 +152,7 @@ describe('UserModule', () => {
   });
 
   it('should resolve UserService with dependencies', () => {
-    container.setModule(UserModule);
+    container.set(USER_SERVICE, { useClass: UserService });
 
     const userService = container.get(USER_SERVICE);
     expect(userService).toBeInstanceOf(UserService);
@@ -190,7 +190,7 @@ describe('UserModule with mocks', () => {
   });
 
   it('should use mocked dependencies', async () => {
-    container.setModule(TestUserModule);
+    container.set(USER_SERVICE, { useClass: UserService });
 
     const mockUser = { id: '123', name: 'John' };
     mockDatabase.query.mockResolvedValue(mockUser);
@@ -232,11 +232,11 @@ class DatabaseModule extends DynamicModule<DatabaseConfig> {
 describe('DatabaseModule', () => {
   it('should work with test configuration', () => {
     const container = new Nexus();
-    container.setModule(DatabaseModule.config({
+    container.set(DATABASE_CONFIG, { useValue: {
       host: 'localhost',
       port: 5432,
       database: 'test_db'
-    }));
+    } });
 
     const databaseService = container.get(DATABASE_SERVICE);
     expect(databaseService).toBeInstanceOf(DatabaseService);
@@ -245,21 +245,17 @@ describe('DatabaseModule', () => {
   it('should validate configuration', () => {
     expect(() => {
       const container = new Nexus();
-      container.setModule(DatabaseModule.config({
-        host: '', // Invalid
-        port: 5432,
-        database: 'test_db'
-      }));
+      container.set(DATABASE_CONFIG, { useValue: {} });
     }).toThrow('Database host is required');
   });
 
   it('should work with async configuration', async () => {
     const container = new Nexus();
-    await container.setModule(DatabaseModule.configAsync(async () => ({
+    await container.set(DATABASE_CONFIG, { useValue: {
       host: 'test-host',
       port: 5432,
       database: 'test_db'
-    })));
+    } });
 
     const databaseService = container.get(DATABASE_SERVICE);
     expect(databaseService).toBeInstanceOf(DatabaseService);
@@ -299,7 +295,7 @@ describe('App Integration', () => {
     const container = new Nexus();
     
     // Use real database for integration testing
-    container.setModule(UserModule);
+    container.set(USER_SERVICE, { useClass: UserService });
     
     // Mock email service
     container.set(EMAIL_SERVICE, { useValue: mockEmailService });
@@ -472,3 +468,5 @@ Testing with NexusDI is straightforward and powerful:
 - **Child Containers**: Test inheritance and override scenarios
 
 The key is to use tokens and interfaces, which makes your code both more testable and more maintainable. 
+
+**Note:** As of v0.2.0, use `container.set(...)` to register modules and dynamic modules. `setModule` and `registerDynamicModule` are deprecated and will be removed in a future minor version. As long as the major version is 0, minor version bumps are considered breaking. 
