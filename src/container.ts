@@ -110,54 +110,82 @@ export class Nexus implements IContainer {
   }
 
   /**
-   * Set a provider
+   * Unified set method: register a provider, module, or dynamic module config.
    */
-  set<T>(token: TokenType<T>, provider: Provider<T>): void;
-  set<T>(token: TokenType<T>, serviceClass: new (...args: any[]) => T): void;
-  set<T>(token: TokenType<T>, providerOrClass: Provider<T> | (new (...args: any[]) => T)): void {
+  set(tokenOrModuleOrConfig: any, providerOrNothing?: any): void {
+    // If it's a module class (has @Module metadata)
+    if (
+      typeof tokenOrModuleOrConfig === 'function' &&
+      Reflect && Reflect.getMetadata &&
+      Reflect.getMetadata(METADATA_KEYS.MODULE_METADATA, tokenOrModuleOrConfig)
+    ) {
+      // Directly process the module config instead of calling setModule
+      if (this.modules.has(tokenOrModuleOrConfig)) {
+        return; // Module already registered
+      }
+      this.modules.add(tokenOrModuleOrConfig);
+      const moduleConfig = Reflect.getMetadata(METADATA_KEYS.MODULE_METADATA, tokenOrModuleOrConfig);
+      if (!moduleConfig) {
+        throw new Error(`Module ${tokenOrModuleOrConfig.name} is not properly decorated with @Module`);
+      }
+      this.processModuleConfig(moduleConfig);
+      return;
+    }
+    // If it's a dynamic module config (object with services/providers/imports)
+    if (
+      tokenOrModuleOrConfig &&
+      typeof tokenOrModuleOrConfig === 'object' &&
+      (tokenOrModuleOrConfig.services || tokenOrModuleOrConfig.providers || tokenOrModuleOrConfig.imports)
+    ) {
+      // Directly process the module config instead of calling registerDynamicModule
+      this.processModuleConfig(tokenOrModuleOrConfig);
+      return;
+    }
+    // Otherwise, treat as provider registration
+    this.setProvider(tokenOrModuleOrConfig, providerOrNothing);
+  }
+
+  /**
+   * Internal: Register a provider (class, value, or factory) for a token.
+   */
+  private setProvider<T>(token: TokenType<T>, providerOrClass: Provider<T> | (new (...args: any[]) => T)): void {
     let provider: Provider<T>;
-    
     if (typeof providerOrClass === 'function') {
-      // If a class is passed directly, create a useClass provider
       provider = { useClass: providerOrClass };
     } else {
-      // If a provider object is passed, use it as-is
       provider = providerOrClass;
     }
-    
     this.providers.set(token, provider);
-    // If useClass is present and token is not the class itself, create an alias
     if (provider.useClass && token !== provider.useClass) {
       this.aliases.set(provider.useClass, token);
     }
   }
 
   /**
-   * Set a module and process its configuration
+   * @deprecated Use the unified set() method instead.
    */
   setModule(moduleClass: new (...args: any[]) => any): void {
+    console.warn('[DEPRECATED] Use container.set(moduleClass) instead of setModule.');
     if (this.modules.has(moduleClass)) {
       return; // Module already registered
     }
-
     this.modules.add(moduleClass);
-
     const moduleConfig = Reflect.getMetadata(METADATA_KEYS.MODULE_METADATA, moduleClass);
     if (!moduleConfig) {
       throw new Error(`Module ${moduleClass.name} is not properly decorated with @Module`);
     }
-
     this.processModuleConfig(moduleConfig);
   }
 
   /**
-   * Register a dynamic module configuration
+   * @deprecated Use the unified set() method instead.
    */
   registerDynamicModule(moduleConfig: {
     services?: (new (...args: any[]) => any)[];
     providers?: ModuleProvider[];
     imports?: (new (...args: any[]) => any)[];
   }): void {
+    console.warn('[DEPRECATED] Use container.set(dynamicModuleConfig) instead of registerDynamicModule.');
     this.processModuleConfig(moduleConfig);
   }
 
@@ -255,5 +283,15 @@ export class Nexus implements IContainer {
       return token.name || 'Function';
     }
     return String(token);
+  }
+
+  /**
+   * List all registered provider tokens and module class names
+   */
+  list(): { providers: TokenType[]; modules: string[] } {
+    return {
+      providers: Array.from(this.providers.keys()),
+      modules: Array.from(this.modules).map(m => m.name),
+    };
   }
 } 

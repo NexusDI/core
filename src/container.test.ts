@@ -166,7 +166,7 @@ describe('Nexus', () => {
         services: [LoggerService, UserServiceWithLogger],
       })
       class AppModule {}
-      nexus.setModule(AppModule);
+      nexus.set(AppModule);
       expect(nexus.has(LoggerService)).toBe(true);
       expect(nexus.has(UserServiceWithLogger)).toBe(true);
       const userService = nexus.get(UserServiceWithLogger);
