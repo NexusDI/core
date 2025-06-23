@@ -5,7 +5,8 @@
   "type": "module",
   "scripts": {
     "validate": "tsx --tsconfig tsconfig.json validate-numbers.ts",
-    "compare": "tsx compare-libraries.ts"
+    "compare": "tsx compare-libraries.ts",
+    "registration": "tsx measure-registration.ts"
   },
   "dependencies": {
     "reflect-metadata": "^0.2.2",

@@ -63,6 +63,7 @@ const sidebars: SidebarsConfig = {
       ],
     },
     'faq',
+    'performance',
     {
       type: 'doc',
       id: 'roadmap',

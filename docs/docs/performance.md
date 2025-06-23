@@ -51,7 +51,7 @@ NexusDI is designed for fast startup with minimal overhead:
 const container = new Nexus(); // 1.3μs average
 
 // Efficient service registration
-container.set(USER_SERVICE, { useClass: UserService }); // < 0.1ms
+container.set(USER_SERVICE, { useClass: UserService }); // 0.16μs average
 
 // Quick dependency resolution
 const userService = container.get(USER_SERVICE); // 0.2μs average
@@ -92,16 +92,16 @@ Based on actual measurements with 1,000 startup iterations and 10,000 resolution
 | Library | Startup Time | Resolution Time | Memory Usage | Bundle Size |
 |---------|--------------|-----------------|--------------|-------------|
 | **NexusDI** | 1.3μs | 0.2μs | 6KB | 96KB |
+| TypeDI | 2.0μs | 0.1μs | 2KB | 89KB |
 | InversifyJS | 22.2μs | 1.4μs | 32KB | 114KB |
 | tsyringe | 45.2μs | 0.9μs | 150KB | 99KB |
-| TypeDI | 2.0μs | 0.1μs | 2KB | 89KB |
 
 ### Performance Rankings
 
 1. **Startup Speed**: NexusDI (1.3μs) > TypeDI (2.0μs) > tsyringe (45.2μs) > InversifyJS (22.2μs)
-2. **Resolution Speed**: TypeDI (0.1μs) ≈ NexusDI (0.2μs) > tsyringe (0.9μs) > InversifyJS (1.4μs)
+2. **Resolution Speed**: TypeDI (0.1μs) > NexusDI (0.2μs) > tsyringe (0.9μs) > InversifyJS (1.4μs)
 3. **Memory Efficiency**: TypeDI (2KB) > NexusDI (6KB) > InversifyJS (32KB) > tsyringe (150KB)
-4. **Bundle Size**: NexusDI (96KB) < TypeDI (89KB) < tsyringe (99KB) < InversifyJS (114KB)
+4. **Bundle Size**: TypeDI (89KB) < NexusDI (96KB) < tsyringe (99KB) < InversifyJS (114KB)
 
 ### How These Benchmarks Were Conducted
 
