@@ -1,6 +1,6 @@
 {
   "name": "@nexusdi/core",
-  "version": "0.1.1",
+  "version": "0.2.0",
   "description": "A modern, simple to use DI container inspired by industry-leading frameworks",
   "main": "dist/index.js",
   "types": "dist/index.d.ts",
