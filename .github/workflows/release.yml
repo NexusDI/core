@@ -33,7 +33,7 @@ jobs:
       - name: Changesets Release
         uses: changesets/action@v1
         with:
-          publish: npm run release # or `npm publish` if you don't use a custom script
+          publish: npm publish --access public
           commit: "chore: version packages"
           title: "chore: version packages"
         env:
