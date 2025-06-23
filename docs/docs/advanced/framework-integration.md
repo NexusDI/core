@@ -28,7 +28,7 @@ export const useDI = () => useContext(DIContext);
 const userService = useDI().get(UserService);
 ```
 
-> **Note:** In frameworks like React Router 7 (Framework mode), you will often want to separate your client-side DI container from your server-side DI container. Typically, you create a new container instance per request on the server, and a singleton container on the client. The [React Router 7 example](../../examples/react-router/) in the examples folder demonstrates server-side DI container usage; you can adapt this pattern for client-side DI as needed.
+> **Note:** In frameworks like React Router 7 (Framework mode), you will often want to separate your client-side DI container from your server-side DI container. Typically, you create a new container instance per request on the server, and a singleton container on the client. The [React Router 7 example](https://github.com/NexusDI/core/tree/main/examples/react-router/) in the examples folder demonstrates server-side DI container usage; you can adapt this pattern for client-side DI as needed.
 
 ---
 

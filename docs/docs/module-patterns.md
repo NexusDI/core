@@ -456,7 +456,7 @@ describe('DatabaseModule', () => {
 
 ## Advanced Patterns & Further Reading
 
-- For dynamic module configuration with runtime settings, see [Dynamic Modules](./dynamic-modules.md) and [Advanced Dynamic Modules](advanced/advanced-dynamic-modules.md).
+- For dynamic module configuration with runtime settings, see [Dynamic Modules](./dynamic-modules.md).
 - For multi-injection and plugin systems, see [Multi-injection & Collections](advanced/multi-injection-and-collections.md).
 - For lifetimes and scoping, see [Scoped & Transient Lifetimes](advanced/scoped-and-transient-lifetimes.md).
 - For interceptors and middleware, see [Interceptors & Middleware](advanced/interceptors-and-middleware.md).
