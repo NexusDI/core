@@ -463,15 +463,18 @@ class LibraryBenchmark {
 
     writeFileSync('benchmarks/library-comparison.json', JSON.stringify(results, null, 2));
 
+    // Helper to format time
+    const formatTime = (ms: number) => ms >= 1 ? `${ms.toFixed(3)}ms` : `${(ms * 1000).toFixed(1)}μs`;
+
     // Print comparison table
     console.log('\n📊 Performance Comparison Results:');
     console.log('====================================');
-    console.log('Library          | Startup | Resolution | Memory | Bundle');
-    console.log('------------------|---------|------------|--------|--------');
+    console.log('Library          | Startup     | Resolution   | Memory | Bundle');
+    console.log('------------------|-------------|--------------|--------|--------');
     
     this.results.forEach(result => {
       console.log(
-        `${result.library.padEnd(15)} | ${result.startup.avg.toFixed(1).padStart(6)}ms | ${result.resolution.avg.toFixed(4).padStart(9)}ms | ${result.memory.toString().padStart(5)}KB | ${result.bundle.total.toString().padStart(5)}KB`
+        `${result.library.padEnd(15)} | ${formatTime(result.startup.avg).padStart(11)} | ${formatTime(result.resolution.avg).padStart(11)} | ${result.memory.toString().padStart(5)}KB | ${result.bundle.total.toString().padStart(5)}KB`
       );
     });
 
