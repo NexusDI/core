@@ -107,14 +107,14 @@ async function main() {
   // Example 1: Development configuration
   console.log('1. Development Configuration:');
   const devContainer = new Nexus();
-  devContainer.registerDynamicModule(DatabaseModule.config({
+  devContainer.set(DatabaseModule.config({
     host: 'localhost',
     port: 5432,
     database: 'dev_db',
     username: 'dev_user',
     password: 'dev_pass'
   }));
-  devContainer.registerDynamicModule(EmailModule.config({
+  devContainer.set(EmailModule.config({
     provider: 'smtp',
     smtpConfig: {
       host: 'localhost',
@@ -133,14 +133,14 @@ async function main() {
   // Example 2: Production configuration
   console.log('2. Production Configuration:');
   const prodContainer = new Nexus();
-  prodContainer.registerDynamicModule(DatabaseModule.config({
+  prodContainer.set(DatabaseModule.config({
     host: process.env.DB_HOST || 'prod-db.example.com',
     port: parseInt(process.env.DB_PORT || '5432'),
     database: process.env.DB_NAME || 'prod_db',
     username: process.env.DB_USER,
     password: process.env.DB_PASS
   }));
-  prodContainer.registerDynamicModule(EmailModule.config({
+  prodContainer.set(EmailModule.config({
     provider: 'sendgrid',
     apiKey: process.env.SENDGRID_API_KEY || ''
   }));
@@ -155,14 +155,14 @@ async function main() {
   // Example 3: Custom configuration
   console.log('3. Custom Configuration:');
   const customContainer = new Nexus();
-  customContainer.registerDynamicModule(DatabaseModule.config({
+  customContainer.set(DatabaseModule.config({
     host: 'custom-db.example.com',
     port: 3306,
     database: 'custom_db',
     username: 'custom_user',
     password: 'custom_pass'
   }));
-  customContainer.registerDynamicModule(EmailModule.config({
+  customContainer.set(EmailModule.config({
     provider: 'mailgun',
     apiKey: 'mg-custom-key'
   }));
@@ -180,26 +180,26 @@ async function main() {
   const envContainer = new Nexus();
 
   if (env === 'production') {
-    envContainer.registerDynamicModule(DatabaseModule.config({
+    envContainer.set(DatabaseModule.config({
       host: process.env.DB_HOST || 'prod-db.example.com',
       port: parseInt(process.env.DB_PORT || '5432'),
       database: process.env.DB_NAME || 'prod_db',
       username: process.env.DB_USER,
       password: process.env.DB_PASS
     }));
-    envContainer.registerDynamicModule(EmailModule.config({
+    envContainer.set(EmailModule.config({
       provider: 'sendgrid',
       apiKey: process.env.SENDGRID_API_KEY || ''
     }));
   } else if (env === 'test') {
-    envContainer.registerDynamicModule(DatabaseModule.config({
+    envContainer.set(DatabaseModule.config({
       host: 'localhost',
       port: 5432,
       database: 'test_db',
       username: 'test_user',
       password: 'test_pass'
     }));
-    envContainer.registerDynamicModule(EmailModule.config({
+    envContainer.set(EmailModule.config({
       provider: 'smtp',
       smtpConfig: {
         host: 'localhost',
@@ -208,14 +208,14 @@ async function main() {
       }
     }));
   } else {
-    envContainer.registerDynamicModule(DatabaseModule.config({
+    envContainer.set(DatabaseModule.config({
       host: 'localhost',
       port: 5432,
       database: 'dev_db',
       username: 'dev_user',
       password: 'dev_pass'
     }));
-    envContainer.registerDynamicModule(EmailModule.config({
+    envContainer.set(EmailModule.config({
       provider: 'smtp',
       smtpConfig: {
         host: 'localhost',

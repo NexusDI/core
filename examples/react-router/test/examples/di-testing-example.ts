@@ -25,7 +25,7 @@ describe('Dynamic Module Configuration Examples', () => {
   describe('Logger Module Configuration', () => {
     it('should configure logger for development', () => {
       const container = new Nexus();
-      container.registerDynamicModule(LoggerModule.config({
+      container.set(LoggerModule.config({
         level: 'debug',
         format: 'text',
         enableConsole: true,
@@ -44,7 +44,7 @@ describe('Dynamic Module Configuration Examples', () => {
 
     it('should configure logger for production', () => {
       const container = new Nexus();
-      container.registerDynamicModule(LoggerModule.config({
+      container.set(LoggerModule.config({
         level: 'info',
         format: 'json',
         enableConsole: true,
@@ -64,7 +64,7 @@ describe('Dynamic Module Configuration Examples', () => {
 
     it('should configure logger for testing', () => {
       const container = new Nexus();
-      container.registerDynamicModule(LoggerModule.config({
+      container.set(LoggerModule.config({
         level: 'error',
         format: 'minimal',
         enableConsole: false,
@@ -90,7 +90,7 @@ describe('Dynamic Module Configuration Examples', () => {
       };
 
       const container = new Nexus();
-      container.registerDynamicModule(LoggerModule.config(customConfig));
+      container.set(LoggerModule.config(customConfig));
 
       const logger = container.get(LOGGER_SERVICE_TOKEN);
       expect(logger).toBeDefined();
@@ -106,7 +106,7 @@ describe('Dynamic Module Configuration Examples', () => {
   describe('Users Module Configuration', () => {
     it('should configure users for development', async () => {
       const container = new Nexus();
-      container.registerDynamicModule(UsersModule.config({
+      container.set(UsersModule.config({
         apiUrl: 'http://localhost:3001/api/users',
         cacheEnabled: false,
         cacheTTL: 300,
@@ -123,7 +123,7 @@ describe('Dynamic Module Configuration Examples', () => {
 
     it('should configure users for production', async () => {
       const container = new Nexus();
-      container.registerDynamicModule(UsersModule.config({
+      container.set(UsersModule.config({
         apiUrl: 'https://api.example.com/users',
         cacheEnabled: true,
         cacheTTL: 3600,
@@ -140,7 +140,7 @@ describe('Dynamic Module Configuration Examples', () => {
 
     it('should configure users for testing', async () => {
       const container = new Nexus();
-      container.registerDynamicModule(UsersModule.config({
+      container.set(UsersModule.config({
         apiUrl: 'http://localhost:3001/api/users',
         cacheEnabled: false,
         cacheTTL: 0,
@@ -165,7 +165,7 @@ describe('Dynamic Module Configuration Examples', () => {
       };
 
       const container = new Nexus();
-      container.registerDynamicModule(UsersModule.config(customConfig));
+      container.set(UsersModule.config(customConfig));
 
       const userService = container.get(USER_SERVICE_TOKEN);
       expect(userService).toBeDefined();
@@ -190,13 +190,13 @@ describe('Dynamic Module Configuration Examples', () => {
       // Simulate environment-based configuration
       const env = process.env.NODE_ENV;
       if (env === 'development') {
-        container.registerDynamicModule(LoggerModule.config({
+        container.set(LoggerModule.config({
           level: 'debug',
           format: 'text',
           enableConsole: true,
           enableFile: false,
         }));
-        container.registerDynamicModule(UsersModule.config({
+        container.set(UsersModule.config({
           apiUrl: 'http://localhost:3001/api/users',
           cacheEnabled: false,
           cacheTTL: 300,
@@ -220,14 +220,14 @@ describe('Dynamic Module Configuration Examples', () => {
       // Simulate environment-based configuration
       const env = process.env.NODE_ENV;
       if (env === 'production') {
-        container.registerDynamicModule(LoggerModule.config({
+        container.set(LoggerModule.config({
           level: 'info',
           format: 'json',
           enableConsole: true,
           enableFile: true,
           filePath: '/var/log/app.log',
         }));
-        container.registerDynamicModule(UsersModule.config({
+        container.set(UsersModule.config({
           apiUrl: 'https://api.example.com/users',
           cacheEnabled: true,
           cacheTTL: 3600,
@@ -251,13 +251,13 @@ describe('Dynamic Module Configuration Examples', () => {
       // Simulate environment-based configuration
       const env = process.env.NODE_ENV;
       if (env === 'test') {
-        container.registerDynamicModule(LoggerModule.config({
+        container.set(LoggerModule.config({
           level: 'error',
           format: 'minimal',
           enableConsole: false,
           enableFile: false,
         }));
-        container.registerDynamicModule(UsersModule.config({
+        container.set(UsersModule.config({
           apiUrl: 'http://localhost:3001/api/users',
           cacheEnabled: false,
           cacheTTL: 0,
@@ -280,7 +280,7 @@ describe('Dynamic Module Configuration Examples', () => {
       
       // This should work
       expect(() => {
-        container.registerDynamicModule(LoggerModule.config({
+        container.set(LoggerModule.config({
           level: 'info',
           format: 'text',
           enableConsole: true,
@@ -296,7 +296,7 @@ describe('Dynamic Module Configuration Examples', () => {
       
       // This should work
       expect(() => {
-        container.registerDynamicModule(UsersModule.config({
+        container.set(UsersModule.config({
           apiUrl: 'https://api.example.com/users',
           cacheEnabled: true,
           cacheTTL: 3600,
@@ -314,7 +314,7 @@ describe('Dynamic Module Configuration Examples', () => {
       const container = new Nexus();
       
       // Simplified format - just the service class
-      container.registerDynamicModule({
+      container.set({
         providers: [LoggerService], // Uses @Service decorator token automatically
       });
 
@@ -327,7 +327,7 @@ describe('Dynamic Module Configuration Examples', () => {
       const container = new Nexus();
       
       // Full format - explicit token and provider
-      container.registerDynamicModule({
+      container.set({
         providers: [
           { token: LOGGER_SERVICE_TOKEN, useClass: LoggerService },
         ],
@@ -342,7 +342,7 @@ describe('Dynamic Module Configuration Examples', () => {
       const container = new Nexus();
       
       // Mixed format - both simplified and full provider objects
-      container.registerDynamicModule({
+      container.set({
         providers: [
           LoggerService, // Simplified format
           { token: USERS_CONFIG_TOKEN, useValue: { apiUrl: 'test' } }, // Full format for config

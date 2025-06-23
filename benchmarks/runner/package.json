@@ -4,9 +4,9 @@
   "private": true,
   "type": "module",
   "scripts": {
-    "validate": "tsx validate-numbers.ts",
-    "benchmark": "tsx performance-comparison.ts",
-    "compare": "tsx compare-libraries.ts"
+    "validate": "tsx --tsconfig tsconfig.json validate-numbers.ts",
+    "compare": "tsx compare-libraries.ts",
+    "registration": "tsx measure-registration.ts"
   },
   "dependencies": {
     "reflect-metadata": "^0.2.2",

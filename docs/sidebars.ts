@@ -42,13 +42,33 @@ const sidebars: SidebarsConfig = {
     {
       type: 'category',
       label: 'Advanced',
+      collapsed: false,
       items: [
-        'advanced',
-        'testing',
-        'performance'
-      ]
+        'advanced/advanced-providers-and-factories',
+        'advanced/multi-injection-and-collections',
+        'advanced/scoped-and-transient-lifetimes',
+        'advanced/interceptors-and-middleware',
+        'advanced/framework-integration',
+        'advanced/performance-tuning',
+        'advanced/debugging-and-diagnostics',
+        'advanced/circular-dependencies',
+      ],
+    },
+    {
+      type: 'category',
+      label: 'Container',
+      items: [
+        'container/nexus-class',
+        'container/api-reference',
+      ],
     },
     'faq',
+    'performance',
+    {
+      type: 'doc',
+      id: 'roadmap',
+      label: 'Roadmap',
+    },
   ],
 
   // But you can create a sidebar manually

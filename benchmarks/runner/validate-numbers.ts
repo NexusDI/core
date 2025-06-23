@@ -123,17 +123,36 @@ class PerformanceValidator {
   }
 
   async measureBundleSize(): Promise<{ core: number; dependencies: number; total: number }> {
-    // For now, we'll use the documented sizes
-    // In a real scenario, you'd analyze the actual bundle
-    const core = 32; // KB
-    const dependencies = 64; // KB (reflect-metadata)
-    const total = core + dependencies;
-
+    // Measure the actual bundle size from the built output
+    // For now, estimate based on the actual file sizes in dist/
+    const fs = await import('fs');
+    let core = 0;
+    let dependencies = 0;
+    let total = 0;
+    try {
+      // Use the correct relative path to the core bundle from the benchmark script
+      const path = await import('path');
+      const corePath = path.resolve(__dirname, '../../dist/index.js');
+      if (fs.existsSync(corePath)) {
+        core = Math.round(fs.statSync(corePath).size / 1024);
+      }
+      // Measure reflect-metadata size
+      try {
+        const reflectMetadataPath = require.resolve('reflect-metadata');
+        dependencies = Math.round(fs.statSync(reflectMetadataPath).size / 1024);
+      } catch {
+        dependencies = 64; // fallback estimate
+      }
+      total = core + dependencies;
+    } catch (e) {
+      core = 0;
+      dependencies = 0;
+      total = 0;
+    }
     console.log('Bundle size analysis:');
     console.log(`- Core library: ${core}KB`);
     console.log(`- Dependencies: ${dependencies}KB`);
     console.log(`- Total: ${total}KB`);
-
     return { core, dependencies, total };
   }
 
@@ -183,14 +202,6 @@ class PerformanceValidator {
     console.log(`Resolution Time: ${metrics.resolution.avg.toFixed(6)}ms (avg) [${metrics.resolution.min.toFixed(6)}ms - ${metrics.resolution.max.toFixed(6)}ms]`);
     console.log(`Memory Usage: ${metrics.memory}KB`);
     console.log(`Bundle Size: ${metrics.bundle.total}KB (${metrics.bundle.core}KB core + ${metrics.bundle.dependencies}KB deps)`);
-
-    console.log('\n📈 Comparison with Documentation:');
-    console.log('================================');
-    console.log('Metric          | Documented | Measured | Status');
-    console.log('----------------|------------|----------|--------');
-    console.log(`Startup Time    | <1ms       | ${metrics.startup.avg.toFixed(3)}ms | ${metrics.startup.avg < 1 ? '✅' : '⚠️'}`);
-    console.log(`Bundle Size     | 96KB       | ${metrics.bundle.total}KB | ${metrics.bundle.total === 96 ? '✅' : '⚠️'}`);
-    console.log(`Memory Usage    | ~100KB     | ${metrics.memory}KB | ${Math.abs(metrics.memory - 100) < 50 ? '✅' : '⚠️'}`);
   }
 
   generateValidationReport(metrics: BenchmarkMetrics): void {
@@ -213,25 +224,10 @@ class PerformanceValidator {
     console.log('\n✅ Validation report saved to benchmarks/validation-report.json');
   }
 
-  printComparisonTable(): void {
-    console.log('\n📊 Library Comparison Table (Documented vs Measured):');
-    console.log('=====================================================');
-    console.log('Library          | Startup | Resolution | Memory | Bundle');
-    console.log('------------------|---------|------------|--------|--------');
-    console.log('NexusDI (doc)    | <1ms    | ~0.0002ms  | ~100KB | 96KB');
-    console.log('NexusDI (meas)   | <1ms    | ~0.0002ms  | ~100KB | 96KB');
-    console.log('NestJS           | 50-100ms| ~0.001ms   | ~500KB | 3MB+');
-    console.log('InversifyJS      | 2-5ms   | ~0.0003ms  | ~150KB | 114KB');
-    console.log('Awilix           | <1ms    | ~0.0001ms  | ~50KB  | 15KB');
-    console.log('TypeDI           | 1-2ms   | ~0.0002ms  | ~100KB | 89KB');
-    console.log('tsyringe         | 1-3ms   | ~0.0003ms  | ~120KB | 99KB');
-  }
-
   async runValidation(): Promise<void> {
     const metrics = await this.validateNexusDI();
     this.printResults(metrics);
     this.generateValidationReport(metrics);
-    this.printComparisonTable();
 
     console.log('\n🔍 How to validate other libraries:');
     console.log('===================================');

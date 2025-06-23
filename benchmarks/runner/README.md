@@ -128,17 +128,17 @@ const resolutionTime = resolutionEnd - resolutionStart;
 ## Expected Results
 
 ### NexusDI
-- **Startup Time**: <1ms
-- **Resolution Time**: ~0.0002ms
-- **Memory Usage**: ~100KB
-- **Bundle Size**: 96KB (32KB core + 64KB deps)
+- **Startup Time**: 1.3μs
+- **Resolution Time**: 0.2μs
+- **Memory Usage**: 6KB
+- **Bundle Size**: 96KB (core + deps)
 
 ### Other Libraries (Documented)
 - **NestJS**: 50-100ms startup, ~500KB memory, 3MB+ bundle
-- **InversifyJS**: 2-5ms startup, ~150KB memory, 114KB bundle
+- **InversifyJS**: 22.2μs startup, 32KB memory, 114KB bundle
 - **Awilix**: <1ms startup, ~50KB memory, 15KB bundle
-- **TypeDI**: 1-2ms startup, ~100KB memory, 89KB bundle
-- **tsyringe**: 1-3ms startup, ~120KB memory, 99KB bundle
+- **TypeDI**: 2.0μs startup, 2KB memory, 89KB bundle
+- **tsyringe**: 45.2μs startup, 150KB memory, 99KB bundle
 
 ## Output Files
 

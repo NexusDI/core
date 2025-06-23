@@ -39,7 +39,7 @@ export function getContainer(context?: Route.LoaderArgs['context']): Nexus {
     console.log(`Configuring container for environment: ${env}`);
     
     // Register modules with environment-specific configuration
-    globalContainer.registerDynamicModule(LoggerModule.config({
+    globalContainer.set(LoggerModule.config({
       level: env === 'production' ? 'info' : 'debug',
       format: env === 'production' ? 'json' : 'text',
       enableConsole: true,
@@ -47,7 +47,7 @@ export function getContainer(context?: Route.LoaderArgs['context']): Nexus {
       filePath: env === 'production' ? '/var/log/app.log' : undefined,
     }));
     
-    globalContainer.registerDynamicModule(UsersModule.config({
+    globalContainer.set(UsersModule.config({
       apiUrl: env === 'production' 
         ? (process.env.USERS_API_URL || 'https://api.example.com/users')
         : 'http://localhost:3001/api/users',

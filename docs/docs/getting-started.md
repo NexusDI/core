@@ -66,7 +66,7 @@ For detailed explanations and real-world examples, see **[Dependency Injection](
 ## Installation
 
 ```bash
-npm install @nexusdi/core
+npm install @nexusdi/core reflect-metadata
 ```
 
 ## Basic Usage with Tokens and Interfaces

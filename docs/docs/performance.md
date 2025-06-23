@@ -48,13 +48,13 @@ NexusDI is designed for fast startup with minimal overhead:
 
 ```typescript
 // Fast container instantiation
-const container = new Nexus(); // 0.001ms average
+const container = new Nexus(); // 1.3μs average
 
 // Efficient service registration
-container.set(USER_SERVICE, { useClass: UserService }); // < 0.1ms
+container.set(USER_SERVICE, { useClass: UserService }); // 0.16μs average
 
 // Quick dependency resolution
-const userService = container.get(USER_SERVICE); // 0.0002ms average
+const userService = container.get(USER_SERVICE); // 0.2μs average
 ```
 
 ### Runtime Performance
@@ -76,7 +76,7 @@ const container = new Nexus();
 container.set(USER_SERVICE, { useClass: UserService });
 container.set(EMAIL_SERVICE, { useClass: EmailService });
 
-// Memory overhead: ~5KB additional heap
+// Memory overhead: ~6KB additional heap
 // - Container instance: ~1KB
 // - Provider registry: ~2KB  
 // - Instance cache: ~1KB
@@ -91,17 +91,17 @@ Based on actual measurements with 1,000 startup iterations and 10,000 resolution
 
 | Library | Startup Time | Resolution Time | Memory Usage | Bundle Size |
 |---------|--------------|-----------------|--------------|-------------|
-| **NexusDI** | 0.001ms | 0.0002ms | 5KB | 80KB |
-| InversifyJS | 0.024ms | 0.0015ms | 32KB | 114KB |
-| tsyringe | 0.044ms | 0.0011ms | 150KB | 99KB |
-| TypeDI | 0.002ms | 0.0002ms | 2KB | 89KB |
+| **NexusDI** | 1.3μs | 0.2μs | 6KB | 96KB |
+| TypeDI | 2.0μs | 0.1μs | 2KB | 89KB |
+| InversifyJS | 22.2μs | 1.4μs | 32KB | 114KB |
+| tsyringe | 45.2μs | 0.9μs | 150KB | 99KB |
 
 ### Performance Rankings
 
-1. **Startup Speed**: NexusDI (0.001ms) > TypeDI (0.002ms) > tsyringe (0.044ms) > InversifyJS (0.024ms)
-2. **Resolution Speed**: TypeDI (0.0002ms) ≈ NexusDI (0.0002ms) > tsyringe (0.0011ms) > InversifyJS (0.0015ms)
-3. **Memory Efficiency**: TypeDI (2KB) > NexusDI (5KB) > InversifyJS (32KB) > tsyringe (150KB)
-4. **Bundle Size**: NexusDI (80KB) < TypeDI (89KB) < tsyringe (99KB) < InversifyJS (114KB)
+1. **Startup Speed**: NexusDI (1.3μs) > TypeDI (2.0μs) > tsyringe (45.2μs) > InversifyJS (22.2μs)
+2. **Resolution Speed**: TypeDI (0.1μs) > NexusDI (0.2μs) > tsyringe (0.9μs) > InversifyJS (1.4μs)
+3. **Memory Efficiency**: TypeDI (2KB) > NexusDI (6KB) > InversifyJS (32KB) > tsyringe (150KB)
+4. **Bundle Size**: TypeDI (89KB) < NexusDI (96KB) < tsyringe (99KB) < InversifyJS (114KB)
 
 ### How These Benchmarks Were Conducted
 
@@ -109,7 +109,7 @@ All performance data in this article is based on real benchmark measurements, no
 
 #### Test Environment
 - **Node.js**: v22.13.1
-- **Platform**: macOS
+- **Platform**: M1 Pro MacBook
 - **Iterations**: 1,000 for startup time, 10,000 for resolution time
 - **Test Scenario**: 3 services (Logger, Database, UserService) with dependencies
 
@@ -211,10 +211,10 @@ Example output:
 ====================================
 Library          | Startup | Resolution | Memory | Bundle
 ------------------|---------|------------|--------|--------
-NexusDI         |    0.0ms |    0.0002ms |     5KB |    80KB
-InversifyJS     |    0.0ms |    0.0015ms |    32KB |   114KB
-tsyringe        |    0.0ms |    0.0011ms |   150KB |    99KB
-TypeDI          |    0.0ms |    0.0002ms |     2KB |    89KB
+NexusDI         |    1.3μs |    0.2μs |     6KB |    96KB
+InversifyJS     |   22.2μs |    1.4μs |    32KB |   114KB
+tsyringe        |   45.2μs |    0.9μs |   150KB |    99KB
+TypeDI          |    2.0μs |    0.1μs |     2KB |    89KB
 ```
 
 #### Customizing Benchmarks
@@ -351,10 +351,10 @@ const container = new Nexus();
 
 if (process.env.NODE_ENV === 'production') {
   // Only load production modules
-  container.setModule(ProductionModule);
+  container.set(ProductionModule);
 } else {
   // Load development modules
-  container.setModule(DevelopmentModule);
+  container.set(DevelopmentModule);
 }
 ```
 
@@ -394,7 +394,7 @@ export const EmailModule = {
 // Load modules dynamically
 async function loadUserModule() {
   const { UserModule } = await import('./user-module');
-  container.setModule(UserModule);
+  container.set(UserModule);
 }
 
 // Only load when needed
@@ -427,7 +427,7 @@ console.timeEnd('service-resolution');
 ```typescript
 // Benchmark: Module registration
 console.time('module-registration');
-container.setModule(UserModule);
+container.set(UserModule);
 console.timeEnd('module-registration');
 
 // Result: ~0.1-0.5ms per module
@@ -440,8 +440,8 @@ console.timeEnd('module-registration');
 const initialMemory = process.memoryUsage().heapUsed;
 
 const container = new Nexus();
-container.setModule(UserModule);
-container.setModule(EmailModule);
+container.set(UserModule);
+container.set(EmailModule);
 
 const finalMemory = process.memoryUsage().heapUsed;
 const memoryIncrease = finalMemory - initialMemory;
@@ -614,4 +614,8 @@ For most applications, the performance impact is negligible while the benefits o
 - **Server applications** where performance is critical
 - **Large applications** where maintainability is key
 
-The key is choosing the right tool for your specific use case and performance requirements, and NexusDI excels in providing excellent performance characteristics across all metrics. 
+The key is choosing the right tool for your specific use case and performance requirements, and NexusDI excels in providing excellent performance characteristics across all metrics.
+
+For advanced performance tips and diagnostics, see [Performance Tuning](advanced/performance-tuning.md).
+
+> **Note:** As of v0.2.0, use `container.set(...)` to register modules and dynamic modules. `setModule` and `registerDynamicModule` are deprecated and will be removed in a future minor version. As long as the major version is 0, minor version bumps are considered breaking. 

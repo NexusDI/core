@@ -97,9 +97,9 @@ class ProductionModule {}
 // Use based on environment
 const container = new Nexus();
 if (process.env.NODE_ENV === 'production') {
-  container.setModule(ProductionModule);
+  container.set(ProductionModule);
 } else {
-  container.setModule(DevelopmentModule);
+  container.set(DevelopmentModule);
 }
 ```
 
@@ -117,7 +117,7 @@ describe('UserModule', () => {
 
   beforeEach(() => {
     container = new Nexus();
-    container.setModule(UserModule);
+    container.set(UserModule);
   });
 
   it('should provide UserService', () => {
@@ -149,7 +149,7 @@ class TestUserModule {}
 describe('UserModule with mocks', () => {
   it('should work with mocked dependencies', () => {
     const container = new Nexus();
-    container.setModule(TestUserModule);
+    container.set(TestUserModule);
     
     const userService = container.get(USER_SERVICE);
     // Test with mocked dependencies
@@ -269,19 +269,19 @@ class LoggingModule extends DynamicModule<LogConfig> {
 const container = new Nexus();
 
 // Development configuration
-container.setModule(LoggingModule.config({
+container.set(LoggingModule.config({
   level: 'debug',
   format: 'detailed'
 }));
 
 // Production configuration
-container.setModule(LoggingModule.config({
+container.set(LoggingModule.config({
   level: 'info',
   format: 'json'
 }));
 
 // Testing configuration
-container.setModule(LoggingModule.config({
+container.set(LoggingModule.config({
   level: 'error',
   format: 'minimal'
 }));
@@ -321,17 +321,17 @@ const container = new Nexus();
 
 // Choose email provider based on configuration
 if (process.env.EMAIL_PROVIDER === 'sendgrid') {
-  container.setModule(EmailModule.config({
+  container.set(EmailModule.config({
     provider: 'sendgrid',
     apiKey: process.env.SENDGRID_API_KEY
   }));
 } else if (process.env.EMAIL_PROVIDER === 'mailgun') {
-  container.setModule(EmailModule.config({
+  container.set(EmailModule.config({
     provider: 'mailgun',
     apiKey: process.env.MAILGUN_API_KEY
   }));
 } else {
-  container.setModule(EmailModule.config({
+  container.set(EmailModule.config({
     provider: 'smtp',
     smtpConfig: {
       host: process.env.SMTP_HOST,
@@ -372,7 +372,7 @@ class AppModule extends DynamicModule<{
 
 // Usage
 const container = new Nexus();
-container.setModule(AppModule.config({
+container.set(AppModule.config({
   database: {
     host: 'localhost',
     port: 5432,
@@ -431,7 +431,7 @@ class DatabaseModule extends DynamicModule<DatabaseConfig> {
 describe('DatabaseModule', () => {
   it('should work with test configuration', () => {
     const container = new Nexus();
-    container.setModule(DatabaseModule.config({
+    container.set(DatabaseModule.config({
       host: 'localhost',
       port: 5432,
       database: 'test_db'
@@ -444,7 +444,7 @@ describe('DatabaseModule', () => {
   it('should validate configuration', () => {
     expect(() => {
       const container = new Nexus();
-      container.setModule(DatabaseModule.config({
+      container.set(DatabaseModule.config({
         host: '', // Invalid
         port: 5432,
         database: 'test_db'
@@ -453,6 +453,13 @@ describe('DatabaseModule', () => {
   });
 });
 ```
+
+## Advanced Patterns & Further Reading
+
+- For dynamic module configuration with runtime settings, see [Dynamic Modules](./dynamic-modules.md) and [Advanced Dynamic Modules](advanced/advanced-dynamic-modules.md).
+- For multi-injection and plugin systems, see [Multi-injection & Collections](advanced/multi-injection-and-collections.md).
+- For lifetimes and scoping, see [Scoped & Transient Lifetimes](advanced/scoped-and-transient-lifetimes.md).
+- For interceptors and middleware, see [Interceptors & Middleware](advanced/interceptors-and-middleware.md).
 
 ## Summary
 
@@ -465,4 +472,6 @@ Module patterns help you create well-organized, maintainable applications:
 - **Configuration patterns** provide flexible setup options
 - **Best practices** guide you toward maintainable code
 
-For dynamic module configuration with runtime settings, see [Dynamic Modules](./dynamic-modules.md). 
+For dynamic module configuration with runtime settings, see [Dynamic Modules](./dynamic-modules.md).
+
+> **Note:** As of v0.2.0, use `container.set(...)` to register modules and dynamic modules. `setModule` and `registerDynamicModule` are deprecated and will be removed in a future minor version. As long as the major version is 0, minor version bumps are considered breaking. 
