@@ -6,7 +6,7 @@ sidebar_position: 7
 
 Learn how to measure and optimize the performance of your DI container usage in NexusDI.
 
-> See also: [Performance](../performance.md), [README Benchmarks](../../README.md#performance)
+> See also: [Performance](../performance.md)
 
 ## Quick Tips (Recommended)
 - Register all providers up front where possible.
@@ -24,7 +24,7 @@ Learn how to measure and optimize the performance of your DI container usage in 
 
 - Use Node.js profiling tools to analyze startup and runtime.
 - Profile with and without DI to compare overhead.
-- See the [benchmarks](../../benchmarks/compare-libraries.ts) and [Performance](../performance.md) article for details.
+- See the [Performance](../performance.md) article for details.
 
 ---
 

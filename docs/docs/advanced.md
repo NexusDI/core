@@ -8,13 +8,13 @@ Explore advanced dependency injection patterns, lifetimes, dynamic modules, and 
 
 ## Advanced Articles
 
-- [Advanced Providers & Factories](advanced/advanced-providers-and-factories.md)
-- [Multi-injection & Collections](advanced/multi-injection-and-collections.md)
-- [Scoped & Transient Lifetimes](advanced/scoped-and-transient-lifetimes.md)
-- [Interceptors & Middleware](advanced/interceptors-and-middleware.md)
-- [Advanced Dynamic Modules](advanced/advanced-dynamic-modules.md)
-- [Framework Integration](advanced/framework-integration.md)
-- [Performance Tuning](advanced/performance-tuning.md)
+- [Advanced Providers and Factories](advanced/advanced-providers-and-factories.md)
+- [Circular Dependencies](advanced/circular-dependencies.md)
 - [Debugging & Diagnostics](advanced/debugging-and-diagnostics.md)
+- [Framework Integration](advanced/framework-integration.md)
+- [Interceptors & Middleware](advanced/interceptors-and-middleware.md)
+- [Multi-Injection & Collections](advanced/multi-injection-and-collections.md)
+- [Performance Tuning](advanced/performance-tuning.md)
+- [Scoped & Transient Lifetimes](advanced/scoped-and-transient-lifetimes.md)
 
 See each article for focused guidance and code examples.

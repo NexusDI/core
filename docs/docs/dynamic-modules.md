@@ -298,6 +298,4 @@ The `DynamicModule` base class approach provides:
 
 This pattern makes modules much more ergonomic to use while keeping the interface clean and simple.
 
-For advanced dynamic module patterns, see [Advanced Dynamic Modules](advanced/advanced-dynamic-modules.md).
-
 **Note:** As of v0.2.0, use `container.set(...)` to register modules and dynamic modules. `setModule` and `registerDynamicModule` are deprecated and will be removed in a future minor version. As long as the major version is 0, minor version bumps are considered breaking. 

@@ -80,4 +80,4 @@ NexusDI will support built-in interceptors and middleware in the future. See the
 
 ---
 
-**Next:** [Advanced Dynamic Modules](advanced-dynamic-modules.md) 
+**Next:** [Dynamic Modules](../dynamic-modules.md) · [Module Patterns](../module-patterns.md) 
