@@ -1,188 +1,40 @@
-name: CI/CD Pipeline
+name: CI
 
 on:
   push:
-    branches: [ main ]
+    branches:
+      - main
   pull_request:
-    branches: [ main ]
 
 permissions:
-  pull-requests: write # Required to post comments on PRs
+  actions: read
+  contents: read
 
 jobs:
-  test:
-    runs-on: ubuntu-latest
-    strategy:
-      matrix:
-        node-version: [lts/*, current]
-
-    steps:
-    - name: Checkout code
-      uses: actions/checkout@v4
-
-    - name: Setup Node.js ${{ matrix.node-version }}
-      uses: actions/setup-node@v4
-      with:
-        node-version: ${{ matrix.node-version }}
-        cache: 'npm'
-
-    - name: Install dependencies
-      run: npm ci
-
-    - name: Run linting
-      run: npm run lint
-
-    - name: Run tests
-      run: npm run test:coverage
-
-    - name: Upload coverage to Codecov
-      uses: codecov/codecov-action@v3
-      with:
-        file: ./coverage/lcov.info
-        flags: unittests
-        name: codecov-umbrella
-        fail_ci_if_error: false
-
-    - name: Comment PR with test results
-      if: github.event_name == 'pull_request'
-      uses: actions/github-script@v7
-      with:
-        script: |
-          const fs = require('fs');
-          const coverage = JSON.parse(fs.readFileSync('./coverage/coverage-summary.json', 'utf8'));
-          const totalCoverage = coverage.total.lines.pct;
-
-          const marker = `<!-- Test Results for Node.js ${{ matrix.node-version }} -->`;
-
-          const body = `${marker}
-          ## Test Results ✅
-
-          **Coverage:** ${totalCoverage}%
-
-          All tests passed successfully on Node.js ${{ matrix.node-version }}.
-
-          <details>
-          <summary>Coverage Details</summary>
-
-          | File | Lines | Functions | Branches |
-          |------|-------|-----------|----------|
-          ${Object.entries(coverage).filter(([key]) => key !== 'total').map(([file, data]) =>
-            `| ${file} | ${data.lines.pct}% | ${data.functions.pct}% | ${data.branches.pct}% |`
-          ).join('\\n')}
-
-          </details>`;
-
-          const { data: comments } = await github.rest.issues.listComments({
-            owner: context.repo.owner,
-            repo: context.repo.repo,
-            issue_number: context.issue.number,
-          });
-
-          const oldComment = comments.find(comment => comment.body.includes(marker));
-
-          if (oldComment) {
-            await github.rest.issues.deleteComment({
-              owner: context.repo.owner,
-              repo: context.repo.repo,
-              comment_id: oldComment.id,
-            });
-          }
-
-          await github.rest.issues.createComment({
-            issue_number: context.issue.number,
-            owner: context.repo.owner,
-            repo: context.repo.repo,
-            body: body
-          });
-
-  lint:
+  main:
     runs-on: ubuntu-latest
     steps:
-    - name: Checkout code
-      uses: actions/checkout@v4
+      - uses: actions/checkout@v4
+        with:
+          filter: tree:0
+          fetch-depth: 0
 
-    - name: Setup Node.js
-      uses: actions/setup-node@v4
-      with:
-        node-version: 'current'
-        cache: 'npm'
+      # This enables task distribution via Nx Cloud
+      # Run this command as early as possible, before dependencies are installed
+      # Learn more at https://nx.dev/ci/reference/nx-cloud-cli#npx-nxcloud-startcirun
+      # Uncomment this line to enable task distribution
+      # - run: npx nx-cloud start-ci-run --distribute-on="3 linux-medium-js" --stop-agents-after="build"
 
-    - name: Install dependencies
-      run: npm ci
+      # Cache node_modules
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: 'npm'
 
-    - name: Run linting
-      run: npm run lint
+      - run: npm ci --legacy-peer-deps
+      - uses: nrwl/nx-set-shas@v4
 
-    - name: Comment PR with lint results
-      if: github.event_name == 'pull_request'
-      uses: actions/github-script@v7
-      with:
-        script: |
-          const { execSync } = require('child_process');
-          const marker = '<!-- Linting Results -->';
-          let body;
-
-          try {
-            execSync('npm run lint', { encoding: 'utf8' });
-            body = `${marker}
-            ## Linting Results ✅
-
-            All linting checks passed successfully!`;
-          } catch (error) {
-            body = `${marker}
-            ## Linting Results ❌
-
-            Linting failed. Please fix the issues before merging.
-
-            \`\`\`
-            ${error.stdout}
-            \`\`\``;
-          }
-
-          const { data: comments } = await github.rest.issues.listComments({
-            owner: context.repo.owner,
-            repo: context.repo.repo,
-            issue_number: context.issue.number,
-          });
-
-          const oldComment = comments.find(comment => comment.body.includes(marker));
-
-          if (oldComment) {
-            await github.rest.issues.deleteComment({
-              owner: context.repo.owner,
-              repo: context.repo.repo,
-              comment_id: oldComment.id,
-            });
-          }
-
-          await github.rest.issues.createComment({
-            issue_number: context.issue.number,
-            owner: context.repo.owner,
-            repo: context.repo.repo,
-            body: body
-          });
-
-  build:
-    runs-on: ubuntu-latest
-    needs: [test, lint]
-    steps:
-    - name: Checkout code
-      uses: actions/checkout@v4
-
-    - name: Setup Node.js
-      uses: actions/setup-node@v4
-      with:
-        node-version: 'current'
-        cache: 'npm'
-
-    - name: Install dependencies
-      run: npm ci
-
-    - name: Build project
-      run: npm run build
-
-    - name: Upload build artifacts
-      uses: actions/upload-artifact@v4
-      with:
-        name: build-files
-        path: dist/ 
+      # Prepend any command with "nx-cloud record --" to record its logs to Nx Cloud
+      # - run: npx nx-cloud record -- echo Hello World
+      # Nx Affected runs only tasks affected by the changes in this PR/commit. Learn more: https://nx.dev/ci/features/affected
+      - run: npx nx affected -t lint test build

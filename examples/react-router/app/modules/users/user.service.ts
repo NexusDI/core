@@ -1,5 +1,11 @@
-import { Service, Inject } from '../../../../../src';
-import { USER_SERVICE_TOKEN, USERS_CONFIG_TOKEN, type IUserService, type User, type UsersConfig } from './users.types';
+import { Service, Inject } from '@nexusdi/core';
+import {
+  USER_SERVICE_TOKEN,
+  USERS_CONFIG_TOKEN,
+  type IUserService,
+  type User,
+  type UsersConfig,
+} from './users.types';
 
 @Service(USER_SERVICE_TOKEN)
 export class UserService implements IUserService {
@@ -7,7 +13,10 @@ export class UserService implements IUserService {
 
   constructor(@Inject(USERS_CONFIG_TOKEN) private config: UsersConfig) {}
 
-  private async fetchFromAPI(page = 1, limit = this.config.maxUsersPerPage): Promise<User[]> {
+  private async fetchFromAPI(
+    page = 1,
+    limit = this.config.maxUsersPerPage
+  ): Promise<User[]> {
     if (this.config.enableMockData) {
       // Return mock data
       return [
@@ -22,7 +31,7 @@ export class UserService implements IUserService {
     // In a real implementation, you'd make an actual API call
     const url = `${this.config.apiUrl}?page=${page}&limit=${limit}`;
     console.log(`[UserService] Fetching users from: ${url}`);
-    
+
     // Simulate API call
     return [
       { id: '1', name: 'Alice', email: 'alice@example.com' },
@@ -39,9 +48,12 @@ export class UserService implements IUserService {
     return Date.now() - timestamp < this.config.cacheTTL * 1000;
   }
 
-  async getUsers(page = 1, limit = this.config.maxUsersPerPage): Promise<User[]> {
+  async getUsers(
+    page = 1,
+    limit = this.config.maxUsersPerPage
+  ): Promise<User[]> {
     const cacheKey = this.getCacheKey(page, limit);
-    
+
     // Check cache if enabled
     if (this.config.cacheEnabled) {
       const cached = this.cache.get(cacheKey);
@@ -53,12 +65,12 @@ export class UserService implements IUserService {
 
     // Fetch from API
     const users = await this.fetchFromAPI(page, limit);
-    
+
     // Cache if enabled
     if (this.config.cacheEnabled) {
       this.cache.set(cacheKey, {
         data: users,
-        timestamp: Date.now()
+        timestamp: Date.now(),
       });
     }
 
@@ -67,9 +79,9 @@ export class UserService implements IUserService {
 
   async getUserById(id: string): Promise<User | null> {
     const users = await this.getUsers();
-    return users.find(user => user.id === id) || null;
+    return users.find((user) => user.id === id) || null;
   }
 }
 
 // Re-export types for convenience
-export { type User, type IUserService, USER_SERVICE_TOKEN }; 
+export { type User, type IUserService, USER_SERVICE_TOKEN };

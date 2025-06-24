@@ -4,7 +4,7 @@ sidebar_position: 11
 
 # Debugging Utilities
 
-Advanced debugging tools and utilities for comprehensive dependency injection diagnostics. These utilities will be available in the upcoming `@nexusdi/utils` package.
+Advanced debugging tools and utilities for comprehensive dependency injection diagnostics. These utilities will be available in an upcoming package.
 
 > **Note**: These utilities are for advanced debugging scenarios. For basic debugging, see [Debugging & Diagnostics](debugging-and-diagnostics.md).
 
@@ -21,15 +21,15 @@ class ContainerDebugger {
    */
   static inspect(container: Nexus) {
     const { providers, modules } = container.list();
-    
+
     console.log('=== Container Inspection ===');
     console.log('Providers:', providers.length);
-    providers.forEach(provider => {
+    providers.forEach((provider) => {
       console.log(`  - ${provider.toString()}`);
     });
-    
+
     console.log('Modules:', modules.length);
-    modules.forEach(module => {
+    modules.forEach((module) => {
       console.log(`  - ${module}`);
     });
     console.log('===========================');
@@ -40,7 +40,7 @@ class ContainerDebugger {
    */
   static checkDependencies(container: Nexus, token: TokenType) {
     console.log(`=== Checking dependencies for ${token.toString()} ===`);
-    
+
     try {
       const instance = container.get(token);
       console.log('✅ Successfully resolved');
@@ -67,7 +67,9 @@ class ContainerDebugger {
       try {
         container.get(provider);
       } catch (error) {
-        errors.push(`Failed to resolve ${provider.toString()}: ${error.message}`);
+        errors.push(
+          `Failed to resolve ${provider.toString()}: ${error.message}`
+        );
       }
     }
 
@@ -79,7 +81,7 @@ class ContainerDebugger {
     return {
       valid: errors.length === 0,
       errors,
-      warnings
+      warnings,
     };
   }
 }
@@ -105,7 +107,10 @@ class DependencyGraphAnalyzer {
 
     for (const token of tokens) {
       const dependencies = this.getDependencies(container, token);
-      graph.set(token.toString(), dependencies.map(d => d.toString()));
+      graph.set(
+        token.toString(),
+        dependencies.map((d) => d.toString())
+      );
     }
 
     return this.formatGraph(graph);
@@ -114,7 +119,10 @@ class DependencyGraphAnalyzer {
   /**
    * Finds services with the most dependencies
    */
-  static findHighDependencyServices(container: Nexus, threshold: number = 5): Array<{token: string, count: number}> {
+  static findHighDependencyServices(
+    container: Nexus,
+    threshold: number = 5
+  ): Array<{ token: string; count: number }> {
     const services = [];
     const tokens = this.getAllTokens(container);
 
@@ -123,7 +131,7 @@ class DependencyGraphAnalyzer {
       if (dependencies.length >= threshold) {
         services.push({
           token: token.toString(),
-          count: dependencies.length
+          count: dependencies.length,
         });
       }
     }
@@ -140,12 +148,12 @@ class DependencyGraphAnalyzer {
 
     for (const token of allTokens) {
       const dependencies = this.getDependencies(container, token);
-      dependencies.forEach(dep => dependentTokens.add(dep.toString()));
+      dependencies.forEach((dep) => dependentTokens.add(dep.toString()));
     }
 
     return allTokens
-      .map(t => t.toString())
-      .filter(token => !dependentTokens.has(token));
+      .map((t) => t.toString())
+      .filter((token) => !dependentTokens.has(token));
   }
 
   /**
@@ -163,36 +171,42 @@ class DependencyGraphAnalyzer {
     return depths;
   }
 
-  private static calculateDepth(container: Nexus, token: TokenType, visited: Set<string>): number {
+  private static calculateDepth(
+    container: Nexus,
+    token: TokenType,
+    visited: Set<string>
+  ): number {
     const tokenName = token.toString();
-    
+
     if (visited.has(tokenName)) {
       return 0; // Avoid cycles
     }
 
     visited.add(tokenName);
     const dependencies = this.getDependencies(container, token);
-    
+
     if (dependencies.length === 0) {
       return 0;
     }
 
-    const maxDepth = Math.max(...dependencies.map(dep => 
-      this.calculateDepth(container, dep, new Set(visited))
-    ));
+    const maxDepth = Math.max(
+      ...dependencies.map((dep) =>
+        this.calculateDepth(container, dep, new Set(visited))
+      )
+    );
 
     return maxDepth + 1;
   }
 
   private static formatGraph(graph: Map<string, string[]>): string {
     let output = 'digraph DependencyGraph {\n';
-    
+
     for (const [token, deps] of graph) {
       for (const dep of deps) {
         output += `  "${token}" -> "${dep}";\n`;
       }
     }
-    
+
     output += '}';
     return output;
   }
@@ -202,12 +216,16 @@ class DependencyGraphAnalyzer {
     return [];
   }
 
-  private static getDependencies(container: Nexus, token: TokenType): TokenType[] {
+  private static getDependencies(
+    container: Nexus,
+    token: TokenType
+  ): TokenType[] {
     // Implementation depends on container internals
     return [];
   }
 }
 ```
+
 </details>
 
 ## Performance Monitoring Utilities
@@ -223,7 +241,7 @@ class DiagnosticMonitor {
     resolutionCount: 0,
     errors: 0,
     slowResolutions: [] as Array<{ token: string; time: number }>,
-    memoryUsage: [] as Array<{ timestamp: number; heapUsed: number }>
+    memoryUsage: [] as Array<{ timestamp: number; heapUsed: number }>,
   };
 
   /**
@@ -231,23 +249,24 @@ class DiagnosticMonitor {
    */
   static trackResolution<T>(token: TokenType<T>, fn: () => T): T {
     const start = performance.now();
-    
+
     try {
       const result = fn();
       const end = performance.now();
       const time = end - start;
-      
+
       this.metrics.resolutionCount++;
       this.metrics.resolutionTime += time;
-      
+
       // Track slow resolutions
-      if (time > 1) { // Over 1ms
+      if (time > 1) {
+        // Over 1ms
         this.metrics.slowResolutions.push({
           token: token.toString(),
-          time
+          time,
         });
       }
-      
+
       return result;
     } catch (error) {
       this.metrics.errors++;
@@ -263,7 +282,7 @@ class DiagnosticMonitor {
       const memory = process.memoryUsage();
       this.metrics.memoryUsage.push({
         timestamp: Date.now(),
-        heapUsed: memory.heapUsed
+        heapUsed: memory.heapUsed,
       });
     }
   }
@@ -272,18 +291,20 @@ class DiagnosticMonitor {
    * Gets comprehensive diagnostics
    */
   static getDiagnostics() {
-    const avgTime = this.metrics.resolutionCount > 0 
-      ? this.metrics.resolutionTime / this.metrics.resolutionCount 
-      : 0;
+    const avgTime =
+      this.metrics.resolutionCount > 0
+        ? this.metrics.resolutionTime / this.metrics.resolutionCount
+        : 0;
 
     return {
       averageResolutionTime: avgTime,
       totalResolutions: this.metrics.resolutionCount,
-      errorRate: this.metrics.resolutionCount > 0 
-        ? this.metrics.errors / this.metrics.resolutionCount 
-        : 0,
+      errorRate:
+        this.metrics.resolutionCount > 0
+          ? this.metrics.errors / this.metrics.resolutionCount
+          : 0,
       slowResolutions: this.metrics.slowResolutions,
-      memoryUsage: this.metrics.memoryUsage
+      memoryUsage: this.metrics.memoryUsage,
     };
   }
 
@@ -292,12 +313,16 @@ class DiagnosticMonitor {
    */
   static printReport() {
     const diagnostics = this.getDiagnostics();
-    
+
     console.log('=== DI Diagnostics Report ===');
-    console.log(`Average resolution time: ${diagnostics.averageResolutionTime.toFixed(3)}ms`);
+    console.log(
+      `Average resolution time: ${diagnostics.averageResolutionTime.toFixed(
+        3
+      )}ms`
+    );
     console.log(`Total resolutions: ${diagnostics.totalResolutions}`);
     console.log(`Error rate: ${(diagnostics.errorRate * 100).toFixed(2)}%`);
-    
+
     if (diagnostics.slowResolutions.length > 0) {
       console.log('Slow resolutions:');
       diagnostics.slowResolutions.forEach(({ token, time }) => {
@@ -306,8 +331,11 @@ class DiagnosticMonitor {
     }
 
     if (diagnostics.memoryUsage.length > 0) {
-      const latest = diagnostics.memoryUsage[diagnostics.memoryUsage.length - 1];
-      console.log(`Current memory usage: ${(latest.heapUsed / 1024 / 1024).toFixed(2)}MB`);
+      const latest =
+        diagnostics.memoryUsage[diagnostics.memoryUsage.length - 1];
+      console.log(
+        `Current memory usage: ${(latest.heapUsed / 1024 / 1024).toFixed(2)}MB`
+      );
     }
     console.log('============================');
   }
@@ -321,7 +349,7 @@ class DiagnosticMonitor {
       resolutionCount: 0,
       errors: 0,
       slowResolutions: [],
-      memoryUsage: []
+      memoryUsage: [],
     };
   }
 }
@@ -336,14 +364,17 @@ class MemoryDiagnostics {
   /**
    * Checks memory usage for container operations
    */
-  static checkMemoryUsage(container: Nexus, iterations: number = 100): {
+  static checkMemoryUsage(
+    container: Nexus,
+    iterations: number = 100
+  ): {
     initialMemory: number;
     finalMemory: number;
     increase: number;
     averagePerInstance: number;
   } {
     const initialMemory = process.memoryUsage().heapUsed;
-    
+
     // Create instances
     const instances = [];
     for (let i = 0; i < iterations; i++) {
@@ -353,22 +384,25 @@ class MemoryDiagnostics {
         console.warn(`Failed to create instance ${i}:`, error.message);
       }
     }
-    
+
     const finalMemory = process.memoryUsage().heapUsed;
     const increase = finalMemory - initialMemory;
-    const averagePerInstance = instances.length > 0 ? increase / instances.length : 0;
-    
+    const averagePerInstance =
+      instances.length > 0 ? increase / instances.length : 0;
+
     console.log('=== Memory Diagnostics ===');
     console.log(`Memory increase: ${(increase / 1024).toFixed(2)}KB`);
     console.log(`Instances created: ${instances.length}`);
-    console.log(`Average per instance: ${(averagePerInstance / 1024).toFixed(2)}KB`);
+    console.log(
+      `Average per instance: ${(averagePerInstance / 1024).toFixed(2)}KB`
+    );
     console.log('==========================');
-    
+
     return {
       initialMemory,
       finalMemory,
       increase,
-      averagePerInstance
+      averagePerInstance,
     };
   }
 
@@ -378,14 +412,14 @@ class MemoryDiagnostics {
   static monitorMemoryUsage(duration: number = 60000): void {
     const startTime = Date.now();
     const measurements: Array<{ timestamp: number; heapUsed: number }> = [];
-    
+
     const interval = setInterval(() => {
       const memory = process.memoryUsage();
       measurements.push({
         timestamp: Date.now(),
-        heapUsed: memory.heapUsed
+        heapUsed: memory.heapUsed,
       });
-      
+
       if (Date.now() - startTime >= duration) {
         clearInterval(interval);
         this.analyzeMemoryTrend(measurements);
@@ -393,7 +427,9 @@ class MemoryDiagnostics {
     }, 1000);
   }
 
-  private static analyzeMemoryTrend(measurements: Array<{ timestamp: number; heapUsed: number }>): void {
+  private static analyzeMemoryTrend(
+    measurements: Array<{ timestamp: number; heapUsed: number }>
+  ): void {
     if (measurements.length < 2) return;
 
     const first = measurements[0];
@@ -435,14 +471,14 @@ class ErrorReporter {
       stack: error.stack,
       context,
       timestamp: new Date().toISOString(),
-      token
+      token,
     };
-    
+
     this.errors.push(errorInfo);
-    
+
     // Log to console
     console.error('DI Error:', errorInfo);
-    
+
     // In production, send to monitoring service
     if (process.env.NODE_ENV === 'production') {
       this.sendToMonitoringService(errorInfo);
@@ -458,17 +494,20 @@ class ErrorReporter {
     recentErrors: Array<any>;
   } {
     const errorsByToken = new Map<string, number>();
-    
+
     for (const error of this.errors) {
       if (error.token) {
-        errorsByToken.set(error.token, (errorsByToken.get(error.token) || 0) + 1);
+        errorsByToken.set(
+          error.token,
+          (errorsByToken.get(error.token) || 0) + 1
+        );
       }
     }
 
     const recentErrors = this.errors
-      .filter(error => {
+      .filter((error) => {
         const errorTime = new Date(error.timestamp).getTime();
-        const oneHourAgo = Date.now() - (60 * 60 * 1000);
+        const oneHourAgo = Date.now() - 60 * 60 * 1000;
         return errorTime > oneHourAgo;
       })
       .slice(-10); // Last 10 errors
@@ -476,7 +515,7 @@ class ErrorReporter {
     return {
       totalErrors: this.errors.length,
       errorsByToken,
-      recentErrors
+      recentErrors,
     };
   }
 
@@ -517,7 +556,7 @@ if (!validation.valid) {
 
 ```typescript
 // Track resolution performance
-const userService = DiagnosticMonitor.trackResolution(USER_SERVICE, () => 
+const userService = DiagnosticMonitor.trackResolution(USER_SERVICE, () =>
   container.get(USER_SERVICE)
 );
 
@@ -535,10 +574,14 @@ DiagnosticMonitor.printReport();
 try {
   const service = container.get(USER_SERVICE);
 } catch (error) {
-  ErrorReporter.reportDIError(error, { 
-    containerState: container.list(),
-    timestamp: Date.now()
-  }, USER_SERVICE);
+  ErrorReporter.reportDIError(
+    error,
+    {
+      containerState: container.list(),
+      timestamp: Date.now(),
+    },
+    USER_SERVICE
+  );
 }
 
 // Get error statistics
@@ -566,21 +609,22 @@ console.log('High dependency services:', highDeps);
 const depths = DependencyGraphAnalyzer.analyzeDependencyDepth(container);
 console.log('Dependency depths:', depths);
 ```
+
 </details>
 
 ## Future Integration
 
-These utilities will be available in the upcoming `@nexusdi/utils` package:
+These utilities will be available in an upcoming package:
 
 ```typescript
 // Future usage
-import { 
-  ContainerDebugger, 
+import {
+  ContainerDebugger,
   DependencyGraphAnalyzer,
   DiagnosticMonitor,
   MemoryDiagnostics,
-  ErrorReporter 
-} from '@nexusdi/utils';
+  ErrorReporter,
+} from '@nexusdi/<some package>';
 
 // All utilities will be properly typed and integrated with NexusDI
 ```
@@ -591,4 +635,4 @@ import {
 - **[Circular Dependencies](circular-dependencies.md)** - Handle circular dependency issues
 - **[Performance Tuning](performance-tuning.md)** - Optimize container performance
 
-These utilities provide powerful debugging capabilities for complex dependency injection scenarios! 🛠️✨ 
+These utilities provide powerful debugging capabilities for complex dependency injection scenarios! 🛠️✨

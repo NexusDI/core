@@ -2,7 +2,7 @@
 sidebar_position: 11
 ---
 
-# Multi-Injection & Collections 🚀
+# Multi-Injection & Collections
 
 Learn how to inject multiple services, work with collections, and handle complex dependency scenarios in NexusDI. Like a Star Citizen ship with modular components, you can assemble complex systems from multiple interchangeable parts.
 
@@ -17,7 +17,7 @@ Multi-injection allows you to inject multiple services that share a common inter
 @Service(PLUGIN_MANAGER)
 class PluginManager {
   constructor(@InjectAll(PLUGIN) private plugins: IPlugin[]) {}
-  
+
   async initializeAll(): Promise<void> {
     for (const plugin of this.plugins) {
       await plugin.initialize();
@@ -35,7 +35,7 @@ class PluginManager {
 @Service(LOGGER_MANAGER)
 class LoggerManager {
   constructor(@InjectAll(LOGGER) private loggers: ILogger[]) {}
-  
+
   log(message: string, level: LogLevel): void {
     for (const logger of this.loggers) {
       logger.log(message, level);
@@ -67,7 +67,7 @@ class UserEventHandler implements IEventHandler {
   canHandle(eventType: string): boolean {
     return eventType === 'user.created' || eventType === 'user.updated';
   }
-  
+
   async handle(event: Event): Promise<void> {
     console.log('Handling user event:', event);
   }
@@ -78,7 +78,7 @@ class OrderEventHandler implements IEventHandler {
   canHandle(eventType: string): boolean {
     return eventType === 'order.created' || eventType === 'order.completed';
   }
-  
+
   async handle(event: Event): Promise<void> {
     console.log('Handling order event:', event);
   }
@@ -88,15 +88,13 @@ class OrderEventHandler implements IEventHandler {
 @Service(EVENT_DISPATCHER)
 class EventDispatcher {
   constructor(@InjectAll(EVENT_HANDLER) private handlers: IEventHandler[]) {}
-  
+
   async dispatch(event: Event): Promise<void> {
-    const relevantHandlers = this.handlers.filter(handler => 
+    const relevantHandlers = this.handlers.filter((handler) =>
       handler.canHandle(event.type)
     );
-    
-    await Promise.all(
-      relevantHandlers.map(handler => handler.handle(event))
-    );
+
+    await Promise.all(relevantHandlers.map((handler) => handler.handle(event)));
   }
 }
 ```
@@ -127,16 +125,16 @@ class PasswordValidator implements IValidator {
 @Service(FORM_VALIDATOR)
 class FormValidator {
   constructor(@InjectAll(VALIDATOR) private validators: IValidator[]) {}
-  
+
   validateForm(data: any): ValidationResult {
     const errors: string[] = [];
-    
+
     for (const validator of this.validators) {
       if (!validator.validate(data)) {
         errors.push(`Validation failed for ${validator.constructor.name}`);
       }
     }
-    
+
     return { isValid: errors.length === 0, errors };
   }
 }
@@ -151,15 +149,15 @@ class FormValidator {
 @Service(PLUGIN_LOADER)
 class PluginLoader {
   constructor(@InjectAll(PLUGIN) private allPlugins: IPlugin[]) {}
-  
+
   getEnabledPlugins(): IPlugin[] {
-    return this.allPlugins.filter(plugin => plugin.isEnabled());
+    return this.allPlugins.filter((plugin) => plugin.isEnabled());
   }
-  
+
   getPluginsByType(type: string): IPlugin[] {
-    return this.allPlugins.filter(plugin => plugin.getType() === type);
+    return this.allPlugins.filter((plugin) => plugin.getType() === type);
   }
-  
+
   getPluginsByPriority(): IPlugin[] {
     return this.allPlugins.sort((a, b) => b.getPriority() - a.getPriority());
   }
@@ -178,15 +176,15 @@ class LoggingPlugin implements IPlugin {
   async initialize(): Promise<void> {
     console.log('Initializing logging plugin');
   }
-  
+
   isEnabled(): boolean {
     return process.env.ENABLE_LOGGING === 'true';
   }
-  
+
   getType(): string {
     return 'logging';
   }
-  
+
   getPriority(): number {
     return 1;
   }
@@ -200,16 +198,18 @@ class LoggingPlugin implements IPlugin {
 @Service(PIPELINE_PROCESSOR)
 class PipelineProcessor {
   constructor(@InjectAll(PIPELINE_STAGE) private stages: IPipelineStage[]) {}
-  
+
   async process(data: any): Promise<any> {
     // Sort stages by order
-    const orderedStages = this.stages.sort((a, b) => a.getOrder() - b.getOrder());
-    
+    const orderedStages = this.stages.sort(
+      (a, b) => a.getOrder() - b.getOrder()
+    );
+
     let result = data;
     for (const stage of orderedStages) {
       result = await stage.process(result);
     }
-    
+
     return result;
   }
 }
@@ -225,7 +225,7 @@ class ValidationStage implements IPipelineStage {
     console.log('Validating data...');
     return data;
   }
-  
+
   getOrder(): number {
     return 1;
   }
@@ -237,7 +237,7 @@ class TransformationStage implements IPipelineStage {
     console.log('Transforming data...');
     return { ...data, transformed: true };
   }
-  
+
   getOrder(): number {
     return 2;
   }
@@ -250,17 +250,19 @@ class TransformationStage implements IPipelineStage {
 // Inject services based on runtime conditions
 @Service(CONDITIONAL_SERVICE_MANAGER)
 class ConditionalServiceManager {
-  constructor(@InjectAll(CONDITIONAL_SERVICE) private services: IConditionalService[]) {}
-  
+  constructor(
+    @InjectAll(CONDITIONAL_SERVICE) private services: IConditionalService[]
+  ) {}
+
   getActiveServices(context: ServiceContext): IConditionalService[] {
-    return this.services.filter(service => service.isActive(context));
+    return this.services.filter((service) => service.isActive(context));
   }
-  
+
   async executeActiveServices(context: ServiceContext): Promise<void> {
     const activeServices = this.getActiveServices(context);
-    
+
     await Promise.all(
-      activeServices.map(service => service.execute(context))
+      activeServices.map((service) => service.execute(context))
     );
   }
 }
@@ -275,7 +277,7 @@ class DevelopmentService implements IConditionalService {
   isActive(context: ServiceContext): boolean {
     return process.env.NODE_ENV === 'development';
   }
-  
+
   async execute(context: ServiceContext): Promise<void> {
     console.log('Executing development service');
   }
@@ -286,7 +288,7 @@ class ProductionService implements IConditionalService {
   isActive(context: ServiceContext): boolean {
     return process.env.NODE_ENV === 'production';
   }
-  
+
   async execute(context: ServiceContext): Promise<void> {
     console.log('Executing production service');
   }
@@ -301,19 +303,19 @@ class ProductionService implements IConditionalService {
 // Registry pattern for managing collections
 class CollectionRegistry<T> {
   private collections = new Map<string, T[]>();
-  
+
   register(collectionName: string, item: T): void {
     if (!this.collections.has(collectionName)) {
       this.collections.set(collectionName, []);
     }
-    
+
     this.collections.get(collectionName)!.push(item);
   }
-  
+
   get(collectionName: string): T[] {
     return this.collections.get(collectionName) || [];
   }
-  
+
   getAll(): Map<string, T[]> {
     return new Map(this.collections);
   }
@@ -328,11 +330,11 @@ class ServiceRegistry extends CollectionRegistry<IService> {
 @Service(SERVICE_MANAGER)
 class ServiceManager {
   constructor(@Inject(COLLECTION_REGISTRY) private registry: ServiceRegistry) {}
-  
+
   registerService(service: IService): void {
     this.registry.register('services', service);
   }
-  
+
   getServices(): IService[] {
     return this.registry.get('services');
   }
@@ -350,20 +352,20 @@ class CollectionFactory {
   ): T[] {
     return items.filter(filter);
   }
-  
+
   static createOrderedCollection<T>(
     items: T[],
     orderBy: (item: T) => number
   ): T[] {
     return [...items].sort((a, b) => orderBy(a) - orderBy(b));
   }
-  
+
   static createGroupedCollection<T, K>(
     items: T[],
     groupBy: (item: T) => K
   ): Map<K, T[]> {
     const groups = new Map<K, T[]>();
-    
+
     for (const item of items) {
       const key = groupBy(item);
       if (!groups.has(key)) {
@@ -371,7 +373,7 @@ class CollectionFactory {
       }
       groups.get(key)!.push(item);
     }
-    
+
     return groups;
   }
 }
@@ -380,18 +382,18 @@ class CollectionFactory {
 @Service(COLLECTION_PROCESSOR)
 class CollectionProcessor {
   constructor(@InjectAll(PROCESSOR) private processors: IProcessor[]) {}
-  
+
   processByType(): Map<string, IProcessor[]> {
     return CollectionFactory.createGroupedCollection(
       this.processors,
-      processor => processor.getType()
+      (processor) => processor.getType()
     );
   }
-  
+
   processByPriority(): IProcessor[] {
     return CollectionFactory.createOrderedCollection(
       this.processors,
-      processor => processor.getPriority()
+      (processor) => processor.getPriority()
     );
   }
 }
@@ -415,16 +417,16 @@ interface IPlugin {
 class LoggingPlugin implements IPlugin {
   name = 'logging';
   version = '1.0.0';
-  
+
   async initialize(): Promise<void> {
     console.log('Initializing logging plugin');
   }
-  
+
   async execute(data: any): Promise<any> {
     console.log('Logging data:', data);
     return data;
   }
-  
+
   async cleanup(): Promise<void> {
     console.log('Cleaning up logging plugin');
   }
@@ -434,18 +436,18 @@ class LoggingPlugin implements IPlugin {
 class ValidationPlugin implements IPlugin {
   name = 'validation';
   version = '1.0.0';
-  
+
   async initialize(): Promise<void> {
     console.log('Initializing validation plugin');
   }
-  
+
   async execute(data: any): Promise<any> {
     if (!data) {
       throw new Error('Data is required');
     }
     return data;
   }
-  
+
   async cleanup(): Promise<void> {
     console.log('Cleaning up validation plugin');
   }
@@ -454,33 +456,33 @@ class ValidationPlugin implements IPlugin {
 @Service(PLUGIN_MANAGER)
 class PluginManager {
   constructor(@InjectAll(PLUGIN) private plugins: IPlugin[]) {}
-  
+
   async initializeAll(): Promise<void> {
     console.log(`Initializing ${this.plugins.length} plugins...`);
-    
+
     for (const plugin of this.plugins) {
       await plugin.initialize();
     }
   }
-  
+
   async executeAll(data: any): Promise<any> {
     let result = data;
-    
+
     for (const plugin of this.plugins) {
       result = await plugin.execute(result);
     }
-    
+
     return result;
   }
-  
+
   async cleanupAll(): Promise<void> {
     for (const plugin of this.plugins) {
       await plugin.cleanup();
     }
   }
-  
+
   getPluginByName(name: string): IPlugin | undefined {
-    return this.plugins.find(plugin => plugin.name === name);
+    return this.plugins.find((plugin) => plugin.name === name);
   }
 }
 ```
@@ -499,7 +501,7 @@ interface IEventHandler<T = any> {
 class UserCreatedHandler implements IEventHandler<UserCreatedEvent> {
   eventType = 'user.created';
   priority = 1;
-  
+
   async handle(event: UserCreatedEvent): Promise<void> {
     console.log('Handling user created event:', event.userId);
     // Send welcome email, create profile, etc.
@@ -510,7 +512,7 @@ class UserCreatedHandler implements IEventHandler<UserCreatedEvent> {
 class UserUpdatedHandler implements IEventHandler<UserUpdatedEvent> {
   eventType = 'user.updated';
   priority = 2;
-  
+
   async handle(event: UserUpdatedEvent): Promise<void> {
     console.log('Handling user updated event:', event.userId);
     // Update cache, notify other services, etc.
@@ -521,7 +523,7 @@ class UserUpdatedHandler implements IEventHandler<UserUpdatedEvent> {
 class OrderCreatedHandler implements IEventHandler<OrderCreatedEvent> {
   eventType = 'order.created';
   priority = 1;
-  
+
   async handle(event: OrderCreatedEvent): Promise<void> {
     console.log('Handling order created event:', event.orderId);
     // Process payment, update inventory, etc.
@@ -531,22 +533,24 @@ class OrderCreatedHandler implements IEventHandler<OrderCreatedEvent> {
 @Service(EVENT_BUS)
 class EventBus {
   constructor(@InjectAll(EVENT_HANDLER) private handlers: IEventHandler[]) {}
-  
+
   async publish<T>(event: T): Promise<void> {
     const eventType = (event as any).type;
     const relevantHandlers = this.handlers
-      .filter(handler => handler.eventType === eventType)
+      .filter((handler) => handler.eventType === eventType)
       .sort((a, b) => a.priority - b.priority);
-    
-    console.log(`Publishing ${eventType} to ${relevantHandlers.length} handlers`);
-    
+
+    console.log(
+      `Publishing ${eventType} to ${relevantHandlers.length} handlers`
+    );
+
     for (const handler of relevantHandlers) {
       await handler.handle(event);
     }
   }
-  
+
   getHandlersByType(eventType: string): IEventHandler[] {
-    return this.handlers.filter(handler => handler.eventType === eventType);
+    return this.handlers.filter((handler) => handler.eventType === eventType);
   }
 }
 ```
@@ -565,16 +569,19 @@ interface IMiddleware {
 class LoggingMiddleware implements IMiddleware {
   name = 'logging';
   order = 1;
-  
-  async process(request: Request, next: () => Promise<Response>): Promise<Response> {
+
+  async process(
+    request: Request,
+    next: () => Promise<Response>
+  ): Promise<Response> {
     console.log(`[${this.name}] Processing request:`, request.url);
-    
+
     const start = performance.now();
     const response = await next();
     const duration = performance.now() - start;
-    
+
     console.log(`[${this.name}] Request completed in ${duration.toFixed(3)}ms`);
-    
+
     return response;
   }
 }
@@ -583,14 +590,17 @@ class LoggingMiddleware implements IMiddleware {
 class AuthenticationMiddleware implements IMiddleware {
   name = 'authentication';
   order = 2;
-  
-  async process(request: Request, next: () => Promise<Response>): Promise<Response> {
+
+  async process(
+    request: Request,
+    next: () => Promise<Response>
+  ): Promise<Response> {
     console.log(`[${this.name}] Authenticating request`);
-    
+
     if (!request.headers.authorization) {
       throw new Error('Authentication required');
     }
-    
+
     return next();
   }
 }
@@ -599,14 +609,17 @@ class AuthenticationMiddleware implements IMiddleware {
 class ValidationMiddleware implements IMiddleware {
   name = 'validation';
   order = 3;
-  
-  async process(request: Request, next: () => Promise<Response>): Promise<Response> {
+
+  async process(
+    request: Request,
+    next: () => Promise<Response>
+  ): Promise<Response> {
     console.log(`[${this.name}] Validating request`);
-    
+
     if (!request.body) {
       throw new Error('Request body is required');
     }
-    
+
     return next();
   }
 }
@@ -614,19 +627,24 @@ class ValidationMiddleware implements IMiddleware {
 @Service(MIDDLEWARE_PIPELINE)
 class MiddlewarePipeline {
   constructor(@InjectAll(MIDDLEWARE) private middlewares: IMiddleware[]) {}
-  
-  async process(request: Request, handler: () => Promise<Response>): Promise<Response> {
-    const orderedMiddlewares = this.middlewares.sort((a, b) => a.order - b.order);
-    
+
+  async process(
+    request: Request,
+    handler: () => Promise<Response>
+  ): Promise<Response> {
+    const orderedMiddlewares = this.middlewares.sort(
+      (a, b) => a.order - b.order
+    );
+
     const executeMiddleware = async (index: number): Promise<Response> => {
       if (index >= orderedMiddlewares.length) {
         return handler();
       }
-      
+
       const middleware = orderedMiddlewares[index];
       return middleware.process(request, () => executeMiddleware(index + 1));
     };
-    
+
     return executeMiddleware(0);
   }
 }
@@ -647,10 +665,10 @@ class CollectionPerformanceMonitor {
     container.get(token);
     return performance.now() - start;
   }
-  
+
   static compareCollectionSizes(container: Nexus): void {
     const tokens = [LOGGER, PLUGIN, EVENT_HANDLER, MIDDLEWARE];
-    
+
     for (const token of tokens) {
       const items = container.get(token);
       console.log(`${token.toString()}: ${items.length} items`);
@@ -675,21 +693,21 @@ CollectionPerformanceMonitor.compareCollectionSizes(container);
 @Service(LAZY_COLLECTION_MANAGER)
 class LazyCollectionManager {
   private cachedCollections = new Map<string, any[]>();
-  
+
   constructor(@InjectAll(LAZY_LOADABLE) private loadables: ILazyLoadable[]) {}
-  
+
   getCollection(name: string): any[] {
     if (!this.cachedCollections.has(name)) {
       const collection = this.loadables
-        .filter(item => item.getCollectionName() === name)
-        .map(item => item.load());
-      
+        .filter((item) => item.getCollectionName() === name)
+        .map((item) => item.load());
+
       this.cachedCollections.set(name, collection);
     }
-    
+
     return this.cachedCollections.get(name)!;
   }
-  
+
   clearCache(): void {
     this.cachedCollections.clear();
   }
@@ -720,7 +738,7 @@ describe('Multi-Injection Collections', () => {
     container.set(LOGGER, { useClass: DatabaseLogger });
 
     const loggerManager = container.get(LOGGER_MANAGER);
-    
+
     expect(loggerManager.loggers).toHaveLength(3);
     expect(loggerManager.loggers[0]).toBeInstanceOf(ConsoleLogger);
     expect(loggerManager.loggers[1]).toBeInstanceOf(FileLogger);
@@ -729,7 +747,7 @@ describe('Multi-Injection Collections', () => {
 
   it('should handle empty collections', () => {
     const loggerManager = container.get(LOGGER_MANAGER);
-    
+
     expect(loggerManager.loggers).toHaveLength(0);
   });
 
@@ -739,7 +757,7 @@ describe('Multi-Injection Collections', () => {
 
     const pluginLoader = container.get(PLUGIN_LOADER);
     const enabledPlugins = pluginLoader.getEnabledPlugins();
-    
+
     expect(enabledPlugins).toHaveLength(1);
     expect(enabledPlugins[0]).toBeInstanceOf(EnabledPlugin);
   });
@@ -763,7 +781,7 @@ describe('Collection Integration', () => {
 
     const processor = container.get(PIPELINE_PROCESSOR);
     const result = await processor.process({ data: 'test' });
-    
+
     expect(result.order).toEqual([1, 2, 3]);
   });
 
@@ -773,7 +791,7 @@ describe('Collection Integration', () => {
 
     const eventBus = container.get(EVENT_BUS);
     const event = { type: 'user.created', userId: '123' };
-    
+
     await expect(eventBus.publish(event)).resolves.not.toThrow();
   });
 });
@@ -804,13 +822,13 @@ interface IPlugin {
 @Service(PLUGIN_MANAGER)
 class PluginManager {
   constructor(@InjectAll(PLUGIN) private plugins: IPlugin[]) {}
-  
+
   async initializeAll(): Promise<void> {
     if (this.plugins.length === 0) {
       console.log('No plugins to initialize');
       return;
     }
-    
+
     for (const plugin of this.plugins) {
       await plugin.initialize();
     }
@@ -825,12 +843,10 @@ class PluginManager {
 @Service(EVENT_DISPATCHER)
 class EventDispatcher {
   constructor(@InjectAll(EVENT_HANDLER) private handlers: IEventHandler[]) {}
-  
+
   async dispatch(event: Event): Promise<void> {
     // Use Promise.all for parallel execution
-    await Promise.all(
-      this.handlers.map(handler => handler.handle(event))
-    );
+    await Promise.all(this.handlers.map((handler) => handler.handle(event)));
   }
 }
 ```
@@ -842,14 +858,14 @@ class EventDispatcher {
 @Service(LARGE_COLLECTION_PROCESSOR)
 class LargeCollectionProcessor {
   constructor(@InjectAll(ITEM) private items: IItem[]) {}
-  
+
   processInBatches(batchSize = 100): void {
     for (let i = 0; i < this.items.length; i += batchSize) {
       const batch = this.items.slice(i, i + batchSize);
       this.processBatch(batch);
     }
   }
-  
+
   private processBatch(batch: IItem[]): void {
     // Process batch
   }
@@ -862,4 +878,4 @@ class LargeCollectionProcessor {
 - **[Module Patterns](../module-patterns.md)** - Organize collections in modules
 - **[Performance Tuning](performance-tuning.md)** - Optimize collection performance
 
-Remember: Collections are like modular ship components - they let you assemble complex systems from interchangeable parts, but make sure each component has a clear purpose and interface! 🚀✨ 
+Remember: Collections are like modular ship components - they let you assemble complex systems from interchangeable parts, but make sure each component has a clear purpose and interface! 🚀✨

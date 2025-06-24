@@ -4,7 +4,7 @@ sidebar_position: 10
 
 # Circular Dependency Utilities
 
-Advanced utilities for detecting, analyzing, and debugging circular dependencies in NexusDI. These utilities will be available in the upcoming `@nexusdi/utils` package.
+Advanced utilities for detecting, analyzing, and debugging circular dependencies in NexusDI. These utilities will be available in an upcoming package.
 
 > **Note**: These utilities are for advanced debugging. For most cases, NexusDI's built-in circular dependency detection is sufficient.
 
@@ -58,40 +58,43 @@ class CircularDependencyDetector {
   }
 
   private static dfs(
-    container: Nexus, 
-    token: TokenType, 
+    container: Nexus,
+    token: TokenType,
     path: string[]
   ): string[] | null {
     const tokenName = token.toString();
-    
+
     if (this.recursionStack.has(tokenName)) {
       // Found a cycle - return the cycle path
       const cycleStart = path.indexOf(tokenName);
       return path.slice(cycleStart);
     }
-    
+
     if (this.visited.has(tokenName)) {
       return null; // Already visited, no cycle
     }
-    
+
     this.visited.add(tokenName);
     this.recursionStack.add(tokenName);
     path.push(tokenName);
-    
+
     try {
       const dependencies = this.getDependencies(container, token);
       for (const dep of dependencies) {
         const cycle = this.dfs(container, dep, [...path]);
         if (cycle) return cycle;
       }
-      
+
       return null;
     } finally {
       this.recursionStack.delete(tokenName);
     }
   }
 
-  private static getDependencies(container: Nexus, token: TokenType): TokenType[] {
+  private static getDependencies(
+    container: Nexus,
+    token: TokenType
+  ): TokenType[] {
     // This would need to access the container's internal dependency graph
     // Implementation depends on container internals
     return [];
@@ -104,6 +107,7 @@ class CircularDependencyDetector {
   }
 }
 ```
+
 </details>
 
 ### DependencyGraphAnalyzer
@@ -126,7 +130,10 @@ class DependencyGraphAnalyzer {
 
     for (const token of tokens) {
       const dependencies = this.getDependencies(container, token);
-      graph.set(token.toString(), dependencies.map(d => d.toString()));
+      graph.set(
+        token.toString(),
+        dependencies.map((d) => d.toString())
+      );
     }
 
     return this.formatGraph(graph);
@@ -135,7 +142,10 @@ class DependencyGraphAnalyzer {
   /**
    * Finds services with the most dependencies
    */
-  static findHighDependencyServices(container: Nexus, threshold: number = 5): Array<{token: string, count: number}> {
+  static findHighDependencyServices(
+    container: Nexus,
+    threshold: number = 5
+  ): Array<{ token: string; count: number }> {
     const services = [];
     const tokens = this.getAllTokens(container);
 
@@ -144,7 +154,7 @@ class DependencyGraphAnalyzer {
       if (dependencies.length >= threshold) {
         services.push({
           token: token.toString(),
-          count: dependencies.length
+          count: dependencies.length,
         });
       }
     }
@@ -161,12 +171,12 @@ class DependencyGraphAnalyzer {
 
     for (const token of allTokens) {
       const dependencies = this.getDependencies(container, token);
-      dependencies.forEach(dep => dependentTokens.add(dep.toString()));
+      dependencies.forEach((dep) => dependentTokens.add(dep.toString()));
     }
 
     return allTokens
-      .map(t => t.toString())
-      .filter(token => !dependentTokens.has(token));
+      .map((t) => t.toString())
+      .filter((token) => !dependentTokens.has(token));
   }
 
   /**
@@ -184,36 +194,42 @@ class DependencyGraphAnalyzer {
     return depths;
   }
 
-  private static calculateDepth(container: Nexus, token: TokenType, visited: Set<string>): number {
+  private static calculateDepth(
+    container: Nexus,
+    token: TokenType,
+    visited: Set<string>
+  ): number {
     const tokenName = token.toString();
-    
+
     if (visited.has(tokenName)) {
       return 0; // Avoid cycles
     }
 
     visited.add(tokenName);
     const dependencies = this.getDependencies(container, token);
-    
+
     if (dependencies.length === 0) {
       return 0;
     }
 
-    const maxDepth = Math.max(...dependencies.map(dep => 
-      this.calculateDepth(container, dep, new Set(visited))
-    ));
+    const maxDepth = Math.max(
+      ...dependencies.map((dep) =>
+        this.calculateDepth(container, dep, new Set(visited))
+      )
+    );
 
     return maxDepth + 1;
   }
 
   private static formatGraph(graph: Map<string, string[]>): string {
     let output = 'digraph DependencyGraph {\n';
-    
+
     for (const [token, deps] of graph) {
       for (const dep of deps) {
         output += `  "${token}" -> "${dep}";\n`;
       }
     }
-    
+
     output += '}';
     return output;
   }
@@ -223,12 +239,16 @@ class DependencyGraphAnalyzer {
     return [];
   }
 
-  private static getDependencies(container: Nexus, token: TokenType): TokenType[] {
+  private static getDependencies(
+    container: Nexus,
+    token: TokenType
+  ): TokenType[] {
     // Implementation depends on container internals
     return [];
   }
 }
 ```
+
 </details>
 
 ## Performance Utilities
@@ -246,16 +266,19 @@ class ResolutionPerformanceMonitor {
    */
   static measureResolution(container: Nexus, token: TokenType): number {
     const start = performance.now();
-    
+
     try {
       container.get(token);
       const end = performance.now();
       const duration = end - start;
-      
+
       this.recordMetric(token.toString(), duration);
       return duration;
     } catch (error) {
-      console.error(`Resolution failed for ${token.toString()}:`, error.message);
+      console.error(
+        `Resolution failed for ${token.toString()}:`,
+        error.message
+      );
       return -1;
     }
   }
@@ -283,8 +306,8 @@ class ResolutionPerformanceMonitor {
    * Compares performance between two containers
    */
   static comparePerformance(
-    container1: Nexus, 
-    container2: Nexus, 
+    container1: Nexus,
+    container2: Nexus,
     token: TokenType
   ): {
     container1: number;
@@ -340,14 +363,17 @@ class CircularDependencyDebugger {
   static analyzeContainer(container: Nexus): {
     totalServices: number;
     circularDependencies: Map<string, string[]>;
-    highDependencyServices: Array<{token: string, count: number}>;
+    highDependencyServices: Array<{ token: string; count: number }>;
     orphanedServices: string[];
     performanceIssues: string[];
   } {
     const totalServices = this.getAllTokens(container).length;
-    const circularDependencies = CircularDependencyDetector.getAllCircularDependencies(container);
-    const highDependencyServices = DependencyGraphAnalyzer.findHighDependencyServices(container);
-    const orphanedServices = DependencyGraphAnalyzer.findOrphanedServices(container);
+    const circularDependencies =
+      CircularDependencyDetector.getAllCircularDependencies(container);
+    const highDependencyServices =
+      DependencyGraphAnalyzer.findHighDependencyServices(container);
+    const orphanedServices =
+      DependencyGraphAnalyzer.findOrphanedServices(container);
     const performanceIssues = this.identifyPerformanceIssues(container);
 
     return {
@@ -355,7 +381,7 @@ class CircularDependencyDebugger {
       circularDependencies,
       highDependencyServices,
       orphanedServices,
-      performanceIssues
+      performanceIssues,
     };
   }
 
@@ -364,9 +390,9 @@ class CircularDependencyDebugger {
    */
   static generateDebugReport(container: Nexus): string {
     const analysis = this.analyzeContainer(container);
-    
+
     let report = '=== NexusDI Container Debug Report ===\n\n';
-    
+
     report += `Total Services: ${analysis.totalServices}\n`;
     report += `Circular Dependencies: ${analysis.circularDependencies.size}\n`;
     report += `High Dependency Services: ${analysis.highDependencyServices.length}\n`;
@@ -413,9 +439,16 @@ class CircularDependencyDebugger {
     const tokens = this.getAllTokens(container);
 
     for (const token of tokens) {
-      const stats = ResolutionPerformanceMonitor.getPerformanceStats(token.toString());
-      if (stats && stats.avg > 10) { // Threshold of 10ms
-        issues.push(`Slow resolution: ${token.toString()} (avg: ${stats.avg.toFixed(2)}ms)`);
+      const stats = ResolutionPerformanceMonitor.getPerformanceStats(
+        token.toString()
+      );
+      if (stats && stats.avg > 10) {
+        // Threshold of 10ms
+        issues.push(
+          `Slow resolution: ${token.toString()} (avg: ${stats.avg.toFixed(
+            2
+          )}ms)`
+        );
       }
     }
 
@@ -428,6 +461,7 @@ class CircularDependencyDebugger {
   }
 }
 ```
+
 </details>
 
 ## Usage Examples
@@ -446,7 +480,10 @@ if (cycle) {
 
 ```typescript
 // Monitor resolution performance
-const duration = ResolutionPerformanceMonitor.measureResolution(container, USER_SERVICE);
+const duration = ResolutionPerformanceMonitor.measureResolution(
+  container,
+  USER_SERVICE
+);
 console.log(`Resolution took ${duration.toFixed(2)}ms`);
 
 // Get performance stats
@@ -465,21 +502,23 @@ console.log(report);
 
 // Or get structured analysis
 const analysis = CircularDependencyDebugger.analyzeContainer(container);
-console.log(`Found ${analysis.circularDependencies.size} circular dependencies`);
+console.log(
+  `Found ${analysis.circularDependencies.size} circular dependencies`
+);
 ```
 
 ## Future Integration
 
-These utilities will be available in the upcoming `@nexusdi/utils` package:
+These utilities will be available in an upcoming package:
 
 ```typescript
 // Future usage
-import { 
-  CircularDependencyDetector, 
+import {
+  CircularDependencyDetector,
   DependencyGraphAnalyzer,
   ResolutionPerformanceMonitor,
-  CircularDependencyDebugger 
-} from '@nexusdi/utils';
+  CircularDependencyDebugger,
+} from '@nexusdi/<some package>';
 
 // All utilities will be properly typed and integrated with NexusDI
 ```
@@ -490,4 +529,4 @@ import {
 - **[Circular Dependencies](circular-dependencies.md)** - Handle circular dependency issues
 - **[Performance Tuning](performance-tuning.md)** - Optimize container performance
 
-These utilities provide powerful debugging capabilities for complex dependency injection scenarios! 🛠️✨ 
+These utilities provide powerful debugging capabilities for complex dependency injection scenarios! 🛠️✨

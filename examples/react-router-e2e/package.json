@@ -1,0 +1,10 @@
+{
+  "name": "@nexusdi/react-router-e2e",
+  "version": "0.0.1",
+  "private": true,
+  "nx": {
+    "implicitDependencies": [
+      "@nexusdi/react-router"
+    ]
+  }
+}

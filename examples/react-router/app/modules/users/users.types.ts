@@ -1,4 +1,4 @@
-import { Token } from '../../../../../src';
+import { Token } from '@nexusdi/core';
 
 export interface User {
   id: string;
@@ -21,4 +21,4 @@ export interface UsersConfig {
 
 // Shared tokens
 export const USER_SERVICE_TOKEN = new Token<IUserService>('UserService');
-export const USERS_CONFIG_TOKEN = new Token<UsersConfig>('USERS_CONFIG'); 
+export const USERS_CONFIG_TOKEN = new Token<UsersConfig>('USERS_CONFIG');

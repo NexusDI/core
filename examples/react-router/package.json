@@ -1,46 +1,21 @@
 {
-  "name": "react-router",
+  "name": "@nexusdi/react-router",
   "private": true,
   "type": "module",
-  "scripts": {
-    "build": "react-router build",
-    "dev": "react-router dev",
-    "start": "react-router-serve ./build/server/index.js",
-    "typecheck": "react-router typegen && tsc",
-    "test": "vitest",
-    "test:ui": "vitest --ui",
-    "test:coverage": "vitest --coverage",
-    "test:e2e": "vitest --config vitest.e2e.config.ts"
-  },
+  "scripts": {},
+  "sideEffects": false,
   "dependencies": {
     "@react-router/node": "^7.6.2",
     "@react-router/serve": "^7.6.2",
-    "class-variance-authority": "^0.7.1",
-    "clsx": "^2.1.1",
-    "isbot": "^5.1.27",
-    "react": "^19.1.0",
-    "react-dom": "^19.1.0",
-    "react-router": "^7.6.2",
-    "reflect-metadata": "^0.2.2"
+    "isbot": "^4.4.0",
+    "react": "19.1.0",
+    "react-dom": "19.1.0",
+    "react-router": "^7.6.2"
   },
   "devDependencies": {
     "@react-router/dev": "^7.6.2",
-    "@tailwindcss/vite": "^4.1.10",
-    "@testing-library/jest-dom": "^6.6.3",
-    "@testing-library/react": "^16.3.0",
-    "@testing-library/user-event": "^14.6.1",
     "@types/node": "^22",
-    "@types/react": "^19.1.2",
-    "@types/react-dom": "^19.1.2",
-    "@vitest/coverage-v8": "^3.2.4",
-    "@vitest/ui": "^3.2.4",
-    "jsdom": "^24.0.0",
-    "msw": "^2.10.2",
-    "tailwindcss": "^4.1.10",
-    "typescript": "^5.8.3",
-    "vite": "^6.3.5",
-    "vite-plugin-devtools-json": "^0.2.0",
-    "vite-tsconfig-paths": "^5.1.4",
-    "vitest": "^3.2.4"
+    "@types/react": "19.1.8",
+    "@types/react-dom": "19.1.6"
   }
 }

@@ -1,6 +1,6 @@
 ---
 slug: first-release
-title: "Tabula Rasa"
+title: 'Tabula Rasa'
 authors: [evanion]
 tags: [release, announcement, dependency-injection, v0.1.0]
 date: 2025-06-23
@@ -12,13 +12,13 @@ We're thrilled to announce the **first official release** of NexusDI, a modern, 
 
 ## Why NexusDI?
 
-Have you ever wished for a dependency injection library that just *gets out of your way*? One that's type-safe, lightning fast, and doesn't bloat your bundle? That's exactly why we built NexusDI. We wanted something that felt native to TypeScript, was easy to use, and didn't force you to choose between simplicity and power.
+Have you ever wished for a dependency injection library that just _gets out of your way_? One that's type-safe, lightning fast, and doesn't bloat your bundle? That's exactly why we built NexusDI. We wanted something that felt native to TypeScript, was easy to use, and didn't force you to choose between simplicity and power.
 
 ## What Makes NexusDI Special?
 
 NexusDI is all about **developer happiness** and **performance**. With a single, unified `container.set()` API, you can register services, modules, and even dynamic modules—no more memorizing a zoo of methods. TypeScript's type system is at the heart of everything, so you get autocompletion, safety, and confidence as you build.
 
-But we didn't stop at ergonomics. NexusDI is tiny (just 96KB with dependencies), and it's *fast*. Like, "blink and you'll miss it" fast. Whether you're building a tiny CLI or a sprawling web app, you'll barely notice the overhead.
+But we didn't stop at ergonomics. NexusDI is tiny (just 96KB with dependencies), and it's _fast_. Like, "blink and you'll miss it" fast. Whether you're building a tiny CLI or a sprawling web app, you'll barely notice the overhead.
 
 We also love modularity. Organize your code with classic modules, dynamic modules, and advanced configuration patterns. Use decorators for clean, declarative service registration and injection. And when it's time to test? NexusDI makes it easy to mock, override, and isolate dependencies.
 
@@ -59,4 +59,4 @@ So grab your towel (always know where it is), bring your rubber duck, and let's 
 
 _Happy coding, and may the source be with you!_
 
-— The NexusDI Team (currently: a dev and a helpful AI)
+— The NexusDI Team (currently: a dev and a helpful AI, I feel like the Bob and his Akbar)
