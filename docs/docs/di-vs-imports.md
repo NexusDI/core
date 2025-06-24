@@ -4,7 +4,7 @@ sidebar_position: 4
 
 # DI vs Regular Imports: When to Use Each
 
-Understanding when to use Dependency Injection versus regular imports is crucial for making the right architectural decisions in your projects.
+Understanding when to use Dependency Injection versus regular imports is crucial for making the right architectural decisions in your projects. It's like choosing between a basic hand tool and a full workshop - both have their place, but knowing when to use each makes all the difference.
 
 ## Regular Imports Approach
 
@@ -215,6 +215,8 @@ nexus.set(LOGGER, { useValue: mockLogger });
 const orderService = nexus.get(ORDER_SERVICE);
 // Test with clean mocks
 ```
+
+Sometimes you need to science the heck out of a complex problem, and sometimes you just need to duct tape a simple solution together! 🚀
 
 ## Decision Matrix
 

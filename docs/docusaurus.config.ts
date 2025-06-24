@@ -1,13 +1,13 @@
-import {themes as prismThemes} from 'prism-react-renderer';
-import type {Config} from '@docusaurus/types';
-import type {ThemeConfig} from '@docusaurus/preset-classic';
+import { themes as prismThemes } from "prism-react-renderer";
+import type { Config } from "@docusaurus/types";
+import type { ThemeConfig } from "@docusaurus/preset-classic";
 
 // This runs in Node.js - Don't use client-side code here (browser APIs, JSX...)
 
 const config: Config & { themeConfig: ThemeConfig } = {
-  title: 'NexusDI',
-  tagline: 'A modern, simple to use DI container for TypeScript',
-  favicon: 'img/favicon.svg',
+  title: "NexusDI",
+  tagline: "A modern, simple to use DI container for TypeScript",
+  favicon: "img/favicon.svg",
 
   // Future flags, see https://docusaurus.io/docs/api/docusaurus-config#future
   future: {
@@ -15,75 +15,80 @@ const config: Config & { themeConfig: ThemeConfig } = {
   },
 
   // Set the production url of your site here
-  url: 'https://nexus.js.org',
+  url: "https://nexus.js.org",
   // Set the /<baseUrl>/ pathname under which your site is served
   // For GitHub pages deployment, it is often '/<projectName>/'
-  baseUrl: '/',
+  baseUrl: "/",
 
   // GitHub pages deployment config.
   // If you aren't using GitHub pages, you don't need these.
-  organizationName: 'NexusDI', // Usually your GitHub org/user name.
-  projectName: 'core', // Usually your repo name.
+  organizationName: "NexusDI", // Usually your GitHub org/user name.
+  projectName: "core", // Usually your repo name.
 
-  onBrokenLinks: 'throw',
-  onBrokenMarkdownLinks: 'warn',
+  onBrokenLinks: "throw",
+  onBrokenMarkdownLinks: "warn",
 
   // Even if you don't use internationalization, you can use this field to set
   // useful metadata like html lang. For example, if your site is Chinese, you
   // may want to replace "en" with "zh-Hans".
   i18n: {
-    defaultLocale: 'en',
-    locales: ['en'],
+    defaultLocale: "en",
+    locales: ["en"],
   },
 
   presets: [
     [
-      'classic',
+      "classic",
       /** @type {import('@docusaurus/preset-classic').Options} */
-      ({
+      {
         docs: {
-          sidebarPath: require.resolve('./sidebars.js'),
+          sidebarPath: require.resolve("./sidebars.js"),
         },
-        blog: false,
+        blog: {
+          showReadingTime: true,
+        },
         theme: {
-          customCss: require.resolve('./src/css/custom.css'),
+          customCss: require.resolve("./src/css/custom.css"),
         },
-      }),
+      },
     ],
   ],
 
   themeConfig: {
     // Replace with your project's social card
-    image: 'img/nexusdi-social-card.svg',
+    image: "img/nexusdi-social-card.svg",
     navbar: {
-      title: 'NexusDI',
+      title: "NexusDI",
       logo: {
-        alt: 'NexusDI Logo',
-        src: 'img/logo.svg',
+        alt: "NexusDI Logo",
+        src: "img/logo.svg",
       },
       items: [
-        { to: '/docs/getting-started', label: 'Docs', position: 'left' },
-        { to: '/docs/advanced', label: 'Advanced', position: 'left' },
-        { to: '/docs/faq', label: 'FAQ', position: 'left' },
-        { href: 'https://github.com/NexusDI/core', label: 'GitHub', position: 'right' },
+        { to: "/docs/getting-started", label: "Docs", position: "left" },
+        { to: "/docs/advanced", label: "Advanced", position: "left" },
+        { to: "/docs/faq", label: "FAQ", position: "left" },
+        { to: "/blog", label: "Blog", position: "right" },
+        {
+          href: "https://github.com/NexusDI/core",
+          label: "GitHub",
+          position: "right",
+        },
       ],
     },
     footer: {
-      style: 'dark',
+      style: "dark",
       links: [
         {
-          title: 'Docs',
+          title: "Docs",
           items: [
-            { label: 'Getting Started', to: '/docs/getting-started' },
-            { label: 'Advanced Usage', to: '/docs/advanced' },
-            { label: 'FAQ', to: '/docs/faq' },
+            { label: "Getting Started", to: "/docs/getting-started" },
+            { label: "Advanced Usage", to: "/docs/advanced" },
+            { label: "FAQ", to: "/docs/faq" },
           ],
         },
         {
-          title: 'Community',
-          items: [
-            { label: 'GitHub', href: 'https://github.com/NexusDI/core' },
-          ],
+          title: "Community",
+          items: [{ label: "GitHub", href: "https://github.com/NexusDI/core" }],
         },
       ],
       copyright: `Copyright © ${new Date().getFullYear()} NexusDI. Feature images from <a href="https://unsplash.com">Unsplash</a>.`,

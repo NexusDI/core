@@ -17,3 +17,23 @@ hola:
   label: Hola
   permalink: /hola
   description: Hola tag description
+
+release:
+  label: Release
+  permalink: /release
+  description: Release announcements and changelogs
+
+announcement:
+  label: Announcement
+  permalink: /announcement
+  description: Major project news and updates
+
+dependency-injection:
+  label: Dependency Injection
+  permalink: /dependency-injection
+  description: Articles about DI patterns and libraries
+
+v0.1.0:
+  label: v0.1.0
+  permalink: /v0.1.0
+  description: NexusDI v0.1.0 release

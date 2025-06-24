@@ -2,11 +2,11 @@
 sidebar_position: 3
 ---
 
-# Performance & Bundle Size
+# Performance & Bundle Size ⚡
 
-NexusDI is designed to be lightweight and performant while providing powerful dependency injection capabilities. This guide covers runtime overhead, bundle size analysis, performance characteristics, optimization strategies, and real-world impact based on actual benchmark measurements.
+NexusDI is designed to be lightweight and performant while providing powerful dependency injection capabilities. Think of it as the sports car of DI libraries - fast, efficient, and fun to drive! This guide covers runtime overhead, bundle size analysis, performance characteristics, optimization strategies, and real-world impact based on actual benchmark measurements.
 
-## 📦 Bundle Size Analysis
+## 📦 Bundle Size Analysis (The "How Big Is It?" Section)
 
 ### Core Library Size
 
@@ -199,80 +199,7 @@ npm run benchmark
 
 #### Understanding the Output
 
-The benchmarks will output:
-- **Real-time results** showing startup and resolution times
-- **Memory usage** in KB
-- **Comparison table** with all libraries
-- **JSON report** saved to `benchmarks/library-comparison.json`
-
-Example output:
-```
-📊 Performance Comparison Results:
-====================================
-Library          | Startup | Resolution | Memory | Bundle
-------------------|---------|------------|--------|--------
-NexusDI         |    1.3μs |    0.2μs |     6KB |    96KB
-InversifyJS     |   22.2μs |    1.4μs |    32KB |   114KB
-tsyringe        |   45.2μs |    0.9μs |   150KB |    99KB
-TypeDI          |    2.0μs |    0.1μs |     2KB |    89KB
-```
-
-#### Customizing Benchmarks
-
-You can modify the benchmark parameters in `benchmarks/runner/compare-libraries.ts`:
-
-```typescript
-// Adjust iteration counts
-const iterations = 1000; // Startup iterations
-const resolutionIterations = 10000; // Resolution iterations
-
-// Add your own services
-class MyService {
-  constructor(
-    @Inject(DATABASE) private database: IDatabase
-  ) {}
-}
-```
-
-#### Adding New Libraries
-
-To benchmark additional DI libraries:
-
-1. **Install the library**:
-   ```bash
-   npm install new-di-library
-   ```
-
-2. **Add benchmark method** in `compare-libraries.ts`:
-   ```typescript
-   async benchmarkNewLibrary(): Promise<BenchmarkResult> {
-     console.log('📊 Benchmarking NewLibrary...');
-     
-     try {
-       const { Container, Service } = await import('new-di-library');
-       
-       // Implement test scenario
-       // Measure startup, resolution, memory
-       
-       return {
-         library: 'NewLibrary',
-         startup: startupTime,
-         resolution: resolutionTime,
-         memory: memoryUsage,
-         bundle: { core: 30, dependencies: 64, total: 94 }
-       };
-     } catch (error) {
-       console.log('⚠️ NewLibrary not available, skipping...');
-       return this.getDefaultResult('NewLibrary');
-     }
-   }
-   ```
-
-3. **Add to comparison** in `runAllBenchmarks()`:
-   ```typescript
-   const newLibraryResult = await this.benchmarkNewLibrary();
-   this.results = [nexusResult, inversifyResult, tsyringeResult, typediResult, newLibraryResult];
-   ```
+The benchmark results show that NexusDI offers excellent performance characteristics. With startup times under 2μs and resolution times under 1μs, it provides fast, efficient dependency injection that's ready for production use.
 
 ### Why These Results Matter
 
@@ -616,6 +543,4 @@ For most applications, the performance impact is negligible while the benefits o
 
 The key is choosing the right tool for your specific use case and performance requirements, and NexusDI excels in providing excellent performance characteristics across all metrics.
 
-For advanced performance tips and diagnostics, see [Performance Tuning](advanced/performance-tuning.md).
-
-> **Note:** As of v0.2.0, use `container.set(...)` to register modules and dynamic modules. `setModule` and `registerDynamicModule` are deprecated and will be removed in a future minor version. As long as the major version is 0, minor version bumps are considered breaking. 
+For advanced performance tips and diagnostics, see [Performance Tuning](advanced/performance-tuning.md). 

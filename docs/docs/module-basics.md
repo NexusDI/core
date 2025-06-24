@@ -4,7 +4,7 @@ sidebar_position: 2
 
 # Module Basics
 
-Modules are a powerful way to organize and structure your dependency injection setup in NexusDI. They allow you to group related services, providers, and configuration into logical units that can be easily imported, reused, and tested.
+Modules are a powerful way to organize and structure your dependency injection setup in NexusDI. They allow you to group related services, providers, and configuration into logical units that can be easily imported, reused, and tested. Much like the modular habitat systems on Mars, each module has specialized functions but can be connected to create something greater than the sum of its parts.
 
 ## What are Modules?
 
@@ -61,10 +61,12 @@ class AuthModule {}
 
 // Use in different applications
 const app1 = new Nexus();
-app1.setModule(AuthModule);
+app1.set(AuthModule);
+app1.set(UserModule);
 
 const app2 = new Nexus();
-app2.setModule(AuthModule);
+app2.set(AuthModule);
+app2.set(OrderModule);
 ```
 
 ### 3. **Testing & Mocking**
@@ -82,7 +84,7 @@ Modules make it easier to test specific parts of your application:
 class TestUserModule {}
 
 const testContainer = new Nexus();
-testContainer.setModule(TestUserModule);
+testContainer.set(TestUserModule);
 ```
 
 ### 4. **Configuration Management**
@@ -176,7 +178,7 @@ class DatabaseModule {}
 
 ## Module Registration
 
-### Registering Modules
+### Register Modules
 
 ```typescript
 import { Nexus } from '@nexusdi/core';
@@ -185,11 +187,11 @@ import { UserModule, OrderModule } from './modules';
 const container = new Nexus();
 
 // Register individual modules
-container.setModule(UserModule);
-container.setModule(OrderModule);
+container.set(UserModule);
+container.set(OrderModule);
 
 // Or register multiple at once
-container.setModule(UserModule, OrderModule);
+container.set(UserModule, OrderModule);
 ```
 
 ### Module Dependencies
@@ -282,4 +284,8 @@ For advanced module patterns and dynamic configuration, see [Module Patterns](./
 
 For advanced topics such as dynamic modules, lifetimes, multi-injection, and more, see the [Advanced](./advanced.md) section.
 
-**Note:** As of v0.2.0, use `container.set(...)` to register modules and dynamic modules. `setModule` and `registerDynamicModule` are deprecated and will be removed in a future version. 
+## Next Steps
+
+- **[Module Patterns](./module-patterns.md)** - Advanced patterns and best practices
+- **[Dynamic Modules](./dynamic-modules.md)** - Runtime configuration and validation
+- **[Testing](./testing.md)** - How to test modules and services 

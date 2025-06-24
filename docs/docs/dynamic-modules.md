@@ -4,22 +4,27 @@ sidebar_position: 4
 
 # Dynamic Modules
 
-Dynamic modules allow you to configure modules at runtime with different settings, making them perfect for environment-specific configurations, feature toggles, and flexible dependency injection setups.
+Dynamic modules allow you to configure modules at runtime with different settings for different environments or use cases.
 
-## What are Dynamic Modules?
+> **Note**: Dynamic module configuration patterns are planned for future releases. The current implementation supports basic module registration with `container.set()`.
 
-Dynamic modules extend the `DynamicModule` base class to automatically get `config()` and `configAsync()` methods. This allows you to:
+## Overview
 
-- Configure modules with different settings at runtime
-- Use environment-specific configurations
-- Validate configuration before module registration
-- Support both synchronous and asynchronous configuration
+Dynamic modules enable:
+- **Environment-specific configuration** (dev, staging, prod)
+- **Feature-based configuration** (different providers, settings)
+- **Runtime configuration** (user preferences, A/B testing)
+- **Validation** of configuration at registration time
 
-## Basic Dynamic Module
+## Planned Implementation
+
+<details>
+<summary>⚠️ Planned Feature - Currently Non-Functional</summary>
+
+Dynamic module configuration with `.config()` and `.configAsync()` methods is planned for future releases. This will allow runtime configuration of modules.
 
 ```typescript
-import { Module, DynamicModule, Token } from '@nexusdi/core';
-
+// Planned API - Not yet implemented
 interface DatabaseConfig {
   host: string;
   port: number;
@@ -28,13 +33,20 @@ interface DatabaseConfig {
   password?: string;
 }
 
-const DATABASE_CONFIG = new Token<DatabaseConfig>('DATABASE_CONFIG');
-
 @Module({
-  services: [DatabaseService, ConnectionPool], // Simplified format
+  services: [DatabaseService],
+  providers: [
+    { token: DATABASE_CONFIG, useValue: {} }
+  ]
 })
 class DatabaseModule extends DynamicModule<DatabaseConfig> {
   protected readonly configToken = DATABASE_CONFIG;
+  protected readonly moduleConfig = {
+    services: [DatabaseService],
+    providers: [
+      { token: DATABASE_CONFIG, useValue: {} }
+    ]
+  };
 }
 
 // Usage
@@ -56,8 +68,52 @@ container.set(DatabaseModule.configAsync(async () => ({
   password: process.env.DB_PASS
 })));
 ```
+</details>
 
-## Configuration Injection in Services
+## Current Implementation
+
+For now, you can achieve similar functionality using the current module system:
+
+### Environment-Specific Modules
+
+```typescript
+// Development module
+@Module({
+  services: [DatabaseService],
+  providers: [
+    { token: DATABASE_CONFIG, useValue: { 
+      host: 'localhost', 
+      port: 5432, 
+      database: 'dev_db' 
+    }}
+  ]
+})
+class DevelopmentDatabaseModule {}
+
+// Production module
+@Module({
+  services: [DatabaseService],
+  providers: [
+    { token: DATABASE_CONFIG, useValue: { 
+      host: process.env.DB_HOST, 
+      port: parseInt(process.env.DB_PORT), 
+      database: process.env.DB_NAME 
+    }}
+  ]
+})
+class ProductionDatabaseModule {}
+
+// Usage
+const container = new Nexus();
+
+if (process.env.NODE_ENV === 'production') {
+  container.set(ProductionDatabaseModule);
+} else {
+  container.set(DevelopmentDatabaseModule);
+}
+```
+
+### Configuration Injection in Services
 
 Services within the module can inject the configuration:
 
@@ -76,6 +132,11 @@ class DatabaseService {
 ## Advanced Configuration Patterns
 
 ### Environment-Specific Configuration
+
+<details>
+<summary>⚠️ Planned Feature - Currently Non-Functional</summary>
+
+This pattern will be supported with dynamic module configuration in future releases.
 
 ```typescript
 @Module({
@@ -115,8 +176,14 @@ container.set(LoggingModule.config({
   format: 'minimal'
 }));
 ```
+</details>
 
 ### Feature-Based Configuration
+
+<details>
+<summary>⚠️ Planned Feature - Currently Non-Functional</summary>
+
+This pattern will be supported with dynamic module configuration in future releases.
 
 ```typescript
 interface EmailConfig {
@@ -170,8 +237,14 @@ if (process.env.EMAIL_PROVIDER === 'sendgrid') {
   }));
 }
 ```
+</details>
 
 ### Composite Configuration
+
+<details>
+<summary>⚠️ Planned Feature - Currently Non-Functional</summary>
+
+This pattern will be supported with dynamic module configuration in future releases.
 
 ```typescript
 @Module({
@@ -216,10 +289,14 @@ container.set(AppModule.config({
   }
 }));
 ```
+</details>
 
 ## Configuration Validation
 
-You can add validation to your configuration methods:
+<details>
+<summary>⚠️ Planned Feature - Currently Non-Functional</summary>
+
+Configuration validation will be supported with dynamic module configuration in future releases.
 
 ```typescript
 @Module({
@@ -253,8 +330,14 @@ class DatabaseModule extends DynamicModule<DatabaseConfig> {
   }
 }
 ```
+</details>
 
 ## Testing with Dynamic Modules
+
+<details>
+<summary>⚠️ Planned Feature - Currently Non-Functional</summary>
+
+Testing with dynamic module configuration will be supported in future releases.
 
 ```typescript
 describe('DatabaseModule', () => {
@@ -282,20 +365,42 @@ describe('DatabaseModule', () => {
   });
 });
 ```
+</details>
 
-## Summary
+## Current Testing Approach
 
-The `DynamicModule` base class approach provides:
+For now, you can test modules using the current approach:
 
-- **Automatic Methods**: `config()` and `configAsync()` methods are automatically available
-- **Type Safety**: Configuration is fully typed with generics
-- **Minimal Boilerplate**: Just extend the base class and define two properties
-- **Validation**: Easy to add custom validation by overriding the static methods
-- **Flexibility**: Single configuration method with flexible config objects
-- **Composability**: Easy to combine configurations
-- **Testability**: Simple to test with different configurations
-- **Environment Support**: Easy environment-specific configurations
+```typescript
+describe('DatabaseModule', () => {
+  it('should work with test configuration', () => {
+    const container = new Nexus();
+    
+    // Use a test-specific module
+    @Module({
+      services: [DatabaseService],
+      providers: [
+        { token: DATABASE_CONFIG, useValue: { 
+          host: 'localhost', 
+          port: 5432, 
+          database: 'test_db' 
+        }}
+      ]
+    })
+    class TestDatabaseModule {}
+    
+    container.set(TestDatabaseModule);
 
-This pattern makes modules much more ergonomic to use while keeping the interface clean and simple.
+    const databaseService = container.get(DATABASE_SERVICE);
+    expect(databaseService).toBeInstanceOf(DatabaseService);
+  });
+});
+```
 
-**Note:** As of v0.2.0, use `container.set(...)` to register modules and dynamic modules. `setModule` and `registerDynamicModule` are deprecated and will be removed in a future minor version. As long as the major version is 0, minor version bumps are considered breaking. 
+## Next Steps
+
+- **[Module Basics](module-basics.md)** - Learn the fundamentals of modules
+- **[Module Patterns](module-patterns.md)** - Explore common module patterns
+- **[Advanced Providers & Factories](advanced/advanced-providers-and-factories.md)** - Advanced provider configuration
+
+Dynamic modules will provide powerful runtime configuration capabilities in future releases! 🚀 

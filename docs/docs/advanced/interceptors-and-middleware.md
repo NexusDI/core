@@ -1,83 +1,91 @@
 ---
-sidebar_position: 4
+sidebar_position: 10
 ---
 
-# Interceptors & Middleware
+# Interceptors & Middleware 🔧
 
-Implement cross-cutting concerns like logging, validation, and error handling using provider patterns or manual wrapping in NexusDI.
+> **Note:** Interceptors and middleware support is planned for future releases. This article provides a basic workaround until official support is added.
 
-> See also: [Providers & Services](../providers-and-services.md), [Module Patterns](../module-patterns.md)
+Interceptors allow you to add cross-cutting concerns to your dependency injection system. They let you transform and enhance your services as they're being resolved - perfect for when you need to add some middleware magic to your DI setup.
 
-## Simple Wrapping (Recommended)
+## Basic Workaround
 
-The most ergonomic way to add cross-cutting logic is to wrap your service or method:
+Until official interceptor support is added, you can achieve similar functionality using factory functions:
 
 ```typescript
-function withLogging(service: UserService): UserService {
-  return new Proxy(service, {
-    get(target, prop, receiver) {
-      const orig = target[prop];
-      if (typeof orig === 'function') {
-        return function (...args: any[]) {
-          console.log(`Calling ${String(prop)}`);
-          return orig.apply(target, args);
-        };
-      }
-      return orig;
-    },
-  });
+// Simple logging wrapper
+function withLogging<T>(token: TokenType<T>, factory: () => T): T {
+  console.log(`Creating ${token.toString()}`);
+  const instance = factory();
+  console.log(`Created ${token.toString()}`);
+  return instance;
 }
 
-container.set(UserService, {
-  useFactory: () => withLogging(new UserService()),
+// Usage
+container.set(USER_SERVICE, {
+  useFactory: () => withLogging(USER_SERVICE, () => new UserService())
 });
 ```
 
----
+## Advanced Workarounds
 
-## Advanced: Middleware-like Patterns
-
-> _Use this pattern for pipelines or plugin-style composition._
+### Caching Pattern
 
 ```typescript
-const MIDDLEWARE = new Token<MiddlewareFn[]>('MIDDLEWARE');
-container.set(MIDDLEWARE, { useValue: [
-  (next) => (ctx) => { console.log('mw1'); return next(ctx); },
-  (next) => (ctx) => { console.log('mw2'); return next(ctx); },
-] });
+const cache = new Map<string, any>();
 
-function applyMiddleware(middleware: MiddlewareFn[], handler: HandlerFn): HandlerFn {
-  return middleware.reduceRight((next, mw) => mw(next), handler);
+function withCaching<T>(token: TokenType<T>, factory: () => T): T {
+  const key = token.toString();
+  
+  if (cache.has(key)) {
+    return cache.get(key);
+  }
+  
+  const instance = factory();
+  cache.set(key, instance);
+  return instance;
 }
+
+// Usage
+container.set(DATABASE, {
+  useFactory: () => withCaching(DATABASE, () => new ExpensiveDatabase())
+});
 ```
 
----
-
-## Manual Decorator-based Interception
-
-> _You can use TypeScript decorators for interception, but must apply them manually._
+### Validation Pattern
 
 ```typescript
-function Log(target: any, propertyKey: string, descriptor: PropertyDescriptor) {
-  const original = descriptor.value;
-  descriptor.value = function (...args: any[]) {
-    console.log(`Calling ${propertyKey}`);
-    return original.apply(this, args);
-  };
+function withValidation<T>(token: TokenType<T>, factory: () => T): T {
+  const instance = factory();
+  
+  if (!instance) {
+    throw new Error(`Service ${token.toString()} resolved to null/undefined`);
+  }
+  
+  return instance;
 }
 
-class UserService {
-  @Log
-  getUser(id: string) { /* ... */ }
-}
+// Usage
+container.set(USER_SERVICE, {
+  useFactory: () => withValidation(USER_SERVICE, () => new UserService())
+});
 ```
 
----
+## Roadmap
 
-## Note: First-class Interceptors Planned
+Official interceptor and middleware support is planned to include:
 
-NexusDI will support built-in interceptors and middleware in the future. See the [Roadmap](../roadmap.md).
+- Decorator-based interceptors
+- Middleware chains
+- Performance monitoring
+- Error handling
 
----
+See the [Roadmap](../roadmap.md) for more details on upcoming features.
 
-**Next:** [Dynamic Modules](../dynamic-modules.md) · [Module Patterns](../module-patterns.md) 
+## Next Steps
+
+- **[Advanced Providers](advanced-providers-and-factories.md)** - Learn about advanced provider patterns
+- **[Performance Tuning](performance-tuning.md)** - Optimize your DI container
+- **[Roadmap](../roadmap.md)** - See what's coming next
+
+These workarounds will keep you productive until the full interceptor system arrives! 🔧✨ 

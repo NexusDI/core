@@ -48,10 +48,19 @@ const sidebars: SidebarsConfig = {
         'advanced/multi-injection-and-collections',
         'advanced/scoped-and-transient-lifetimes',
         'advanced/interceptors-and-middleware',
-        'advanced/framework-integration',
         'advanced/performance-tuning',
         'advanced/debugging-and-diagnostics',
         'advanced/circular-dependencies',
+        {
+          type: 'category',
+          label: 'Utilities 🛠️',
+          collapsed: false,
+          items: [
+            'advanced/performance-utilities',
+            'advanced/debugging-utilities',
+            'advanced/circular-dependency-utils',
+          ],
+        },
       ],
     },
     {
@@ -68,6 +77,11 @@ const sidebars: SidebarsConfig = {
       type: 'doc',
       id: 'roadmap',
       label: 'Roadmap',
+    },
+    {
+      type: 'doc',
+      id: 'contributing',
+      label: 'Contributing',
     },
   ],
 

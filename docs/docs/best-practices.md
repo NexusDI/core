@@ -2,11 +2,13 @@
 sidebar_position: 5
 ---
 
-# Best Practices
+# Best Practices 🎯
 
 Following best practices ensures your NexusDI implementation is maintainable, testable, and scalable.
 
 ## 1. Keep Dependencies Minimal
+
+Keep your dependencies focused and purposeful:
 
 ```typescript
 // ❌ Too many dependencies
@@ -34,6 +36,8 @@ class UserService implements IUserService {
 
 ## 2. Use Meaningful Token Names
 
+Your tokens should be clear and descriptive:
+
 ```typescript
 // ❌ Unclear tokens
 const DB = new Token();
@@ -46,6 +50,8 @@ export const LOGGER = new Token<ILogger>('LOGGER');
 
 ## 3. Group Related Services in Modules
 
+Keep your code organized and modular:
+
 ```typescript
 @Module({
   services: [UserService, UserRepository, UserValidator],
@@ -57,6 +63,8 @@ class UserModule {}
 ```
 
 ## 4. Export Tokens and Interfaces
+
+Share your tokens and interfaces with your team:
 
 ```typescript
 // tokens.ts
@@ -83,7 +91,7 @@ class UserService implements IUserService {
 
 ## 5. Use Strong Typing
 
-Always use strong typing with your tokens and interfaces:
+TypeScript is here to help - let it do its job:
 
 ```typescript
 // ✅ Good - strong typing
@@ -117,6 +125,8 @@ export const DATABASE_CONNECTION = new Token<IDatabaseConnection>('DATABASE_CONN
 
 ## 7. Use Factory Providers for Complex Dependencies
 
+Use factories when you need custom instantiation logic:
+
 ```typescript
 // ✅ Good - factory for complex initialization
 nexus.set(DATABASE, {
@@ -137,6 +147,8 @@ nexus.set(DATABASE, { useClass: PostgresDatabase });
 ```
 
 ## 8. Implement Proper Error Handling
+
+Good error handling is essential for robust applications:
 
 ```typescript
 // ✅ Good - proper error handling
@@ -167,6 +179,8 @@ class UserService implements IUserService {
 
 ## 9. Use Async Factories for Database Connections
 
+Some things take time, and that's okay:
+
 ```typescript
 // ✅ Good - async factory for database connection
 nexus.set(DATABASE, {
@@ -179,6 +193,8 @@ nexus.set(DATABASE, {
 ```
 
 ## 10. Implement Service Lifecycle Management
+
+Be a good citizen - clean up after yourself:
 
 ```typescript
 // ✅ Good - lifecycle management
@@ -340,4 +356,6 @@ Following these best practices will help you:
 - **Avoid common pitfalls** like circular dependencies
 - **Create maintainable** and long-lasting codebases
 
-Remember that these are guidelines, not strict rules. Adapt them to your specific project needs and team preferences. 
+Remember that these are guidelines, not strict rules. Adapt them to your specific project needs and team preferences.
+
+The best raids are the ones where everyone knows their role and works together. Your code should be no different - every service should have a clear purpose and work in harmony with the rest of your application! 🌟 

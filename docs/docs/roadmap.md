@@ -158,4 +158,50 @@ container.registerModule(TypeOrmModule.config({ /* ... */ }));
 
 We welcome your feedback and suggestions! Please join the discussion or propose new features in our [GitHub Discussions](https://github.com/NexusDI/core/discussions) section.
 
-*This roadmap is subject to change based on user feedback and community needs. Contributions and suggestions are welcome!* 
+*This roadmap is subject to change based on user feedback and community needs. Contributions and suggestions are welcome!*
+
+## Planned Features
+
+### Scoped Lifetimes
+```typescript
+// Request-scoped services
+container.set(UserService, { useClass: UserService, lifetime: 'scoped' });
+
+// Session-scoped services  
+container.set(SessionManager, { useClass: SessionManager, lifetime: 'session' });
+```
+
+### Lifecycle Hooks
+```typescript
+@Injectable()
+class DatabaseService {
+  onInit() {
+    // Called when service is first created
+    this.connect();
+  }
+
+  onDestroy() {
+    // Called when container is destroyed
+    this.disconnect();
+  }
+}
+```
+
+### Module System Enhancements
+```typescript
+// Dynamic module configuration
+container.set(DatabaseModule, {
+  services: [DatabaseService, ConnectionPool],
+  providers: [
+    { token: DATABASE_CONFIG, useValue: { host: 'localhost' } }
+  ]
+});
+
+// Framework integrations
+container.set(TypeOrmModule, {
+  services: [TypeOrmService],
+  providers: [
+    { token: TYPEORM_CONFIG, useValue: { /* ... */ } }
+  ]
+});
+``` 

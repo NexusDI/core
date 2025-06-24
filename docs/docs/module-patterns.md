@@ -4,7 +4,7 @@ sidebar_position: 3
 
 # Module Patterns
 
-This article covers advanced module patterns and best practices for organizing your NexusDI modules effectively.
+This article covers advanced module patterns and best practices for organizing your NexusDI modules effectively. Your modules are like Bob's various clones - each thinks they're the most important one, but they all need to stop arguing and work together if you want anything to actually get done.
 
 ## Advanced Module Patterns
 
@@ -248,46 +248,48 @@ class UserModule {}
 
 ### Environment-Specific Configuration
 
+You can achieve environment-specific configuration by creating separate modules for each environment:
+
 ```typescript
 @Module({
   services: [LoggerService],
   providers: [
-    { token: LOG_CONFIG, useValue: {} }
+    { token: LOG_CONFIG, useValue: { level: 'debug', format: 'detailed' } }
   ]
 })
-class LoggingModule extends DynamicModule<LogConfig> {
-  protected readonly configToken = LOG_CONFIG;
-  protected readonly moduleConfig = {
-    services: [LoggerService],
-    providers: [
-      { token: LOG_CONFIG, useValue: {} }
-    ]
-  };
-}
+class DevelopmentLoggingModule {}
 
-// Usage based on environment
+@Module({
+  services: [LoggerService],
+  providers: [
+    { token: LOG_CONFIG, useValue: { level: 'info', format: 'json' } }
+  ]
+})
+class ProductionLoggingModule {}
+
+@Module({
+  services: [LoggerService],
+  providers: [
+    { token: LOG_CONFIG, useValue: { level: 'error', format: 'minimal' } }
+  ]
+})
+class TestingLoggingModule {}
+
+// Usage
 const container = new Nexus();
 
-// Development configuration
-container.set(LoggingModule.config({
-  level: 'debug',
-  format: 'detailed'
-}));
-
-// Production configuration
-container.set(LoggingModule.config({
-  level: 'info',
-  format: 'json'
-}));
-
-// Testing configuration
-container.set(LoggingModule.config({
-  level: 'error',
-  format: 'minimal'
-}));
+if (process.env.NODE_ENV === 'production') {
+  container.set(ProductionLoggingModule);
+} else if (process.env.NODE_ENV === 'test') {
+  container.set(TestingLoggingModule);
+} else {
+  container.set(DevelopmentLoggingModule);
+}
 ```
 
 ### Feature-Based Configuration
+
+Create different modules for different feature configurations:
 
 ```typescript
 interface EmailConfig {
@@ -303,139 +305,143 @@ interface EmailConfig {
 @Module({
   services: [EmailService],
   providers: [
-    { token: EMAIL_CONFIG, useValue: {} }
+    { token: EMAIL_CONFIG, useValue: { provider: 'sendgrid' } }
   ]
 })
-class EmailModule extends DynamicModule<EmailConfig> {
-  protected readonly configToken = EMAIL_CONFIG;
-  protected readonly moduleConfig = {
-    services: [EmailService],
-    providers: [
-      { token: EMAIL_CONFIG, useValue: {} }
-    ]
-  };
-}
+class SendGridEmailModule {}
+
+@Module({
+  services: [EmailService],
+  providers: [
+    { token: EMAIL_CONFIG, useValue: { provider: 'mailgun' } }
+  ]
+})
+class MailgunEmailModule {}
+
+@Module({
+  services: [EmailService],
+  providers: [
+    { token: EMAIL_CONFIG, useValue: { provider: 'smtp' } }
+  ]
+})
+class SmtpEmailModule {}
 
 // Usage
 const container = new Nexus();
 
 // Choose email provider based on configuration
 if (process.env.EMAIL_PROVIDER === 'sendgrid') {
-  container.set(EmailModule.config({
-    provider: 'sendgrid',
-    apiKey: process.env.SENDGRID_API_KEY
-  }));
+  container.set(SendGridEmailModule);
 } else if (process.env.EMAIL_PROVIDER === 'mailgun') {
-  container.set(EmailModule.config({
-    provider: 'mailgun',
-    apiKey: process.env.MAILGUN_API_KEY
-  }));
+  container.set(MailgunEmailModule);
 } else {
-  container.set(EmailModule.config({
-    provider: 'smtp',
-    smtpConfig: {
-      host: process.env.SMTP_HOST,
-      port: parseInt(process.env.SMTP_PORT),
-      secure: process.env.SMTP_SECURE === 'true'
-    }
-  }));
+  container.set(SmtpEmailModule);
 }
 ```
 
 ### Composite Configuration
 
-```typescript
-@Module({
-  services: [AppService],
-  providers: [
-    { token: APP_CONFIG, useValue: {} }
-  ]
-})
-class AppModule extends DynamicModule<{
-  database: DatabaseConfig;
-  email: EmailConfig;
-  logging: LogConfig;
-}> {
-  protected readonly configToken = APP_CONFIG;
-  protected readonly moduleConfig = {
-    services: [AppService],
-    providers: [
-      { token: APP_CONFIG, useValue: {} }
-    ],
-    imports: [
-      DatabaseModule.config({} as DatabaseConfig),
-      EmailModule.config({} as EmailConfig),
-      LoggingModule.config({} as LogConfig)
-    ]
-  };
-}
-
-// Usage
-const container = new Nexus();
-container.set(AppModule.config({
-  database: {
-    host: 'localhost',
-    port: 5432,
-    database: 'myapp'
-  },
-  email: {
-    provider: 'sendgrid',
-    apiKey: process.env.SENDGRID_API_KEY
-  },
-  logging: {
-    level: process.env.NODE_ENV === 'production' ? 'info' : 'debug'
-  }
-}));
-```
-
-## Configuration Validation
-
-You can add validation to your configuration methods:
+Create composite modules that import other modules:
 
 ```typescript
 @Module({
   services: [DatabaseService],
   providers: [
-    { token: DATABASE_CONFIG, useValue: {} }
+    { token: DATABASE_CONFIG, useValue: { host: 'localhost', port: 5432, database: 'myapp' } }
   ]
 })
-class DatabaseModule extends DynamicModule<DatabaseConfig> {
-  protected readonly configToken = DATABASE_CONFIG;
-  protected readonly moduleConfig = {
-    services: [DatabaseService],
-    providers: [
-      { token: DATABASE_CONFIG, useValue: {} }
-    ]
-  };
+class DatabaseModule {}
 
-  static config(config: DatabaseConfig) {
-    // Validate configuration
-    if (!config.host) {
-      throw new Error('Database host is required');
-    }
-    if (!config.port || config.port < 1 || config.port > 65535) {
-      throw new Error('Database port must be between 1 and 65535');
-    }
-    if (!config.database) {
-      throw new Error('Database name is required');
-    }
+@Module({
+  services: [EmailService],
+  providers: [
+    { token: EMAIL_CONFIG, useValue: { provider: 'sendgrid', apiKey: process.env.SENDGRID_API_KEY } }
+  ]
+})
+class EmailModule {}
 
-    return super.config(config);
+@Module({
+  services: [LoggerService],
+  providers: [
+    { token: LOG_CONFIG, useValue: { level: process.env.NODE_ENV === 'production' ? 'info' : 'debug' } }
+  ]
+})
+class LoggingModule {}
+
+@Module({
+  services: [AppService],
+  imports: [DatabaseModule, EmailModule, LoggingModule]
+})
+class AppModule {}
+
+// Usage
+const container = new Nexus();
+container.set(AppModule);
+```
+
+## Configuration Validation
+
+You can validate configuration by creating factory functions that validate before creating modules:
+
+```typescript
+function validateDatabaseConfig(config: DatabaseConfig): void {
+  if (!config.host) {
+    throw new Error('Database host is required');
+  }
+  if (!config.port || config.port < 1 || config.port > 65535) {
+    throw new Error('Database port must be between 1 and 65535');
+  }
+  if (!config.database) {
+    throw new Error('Database name is required');
   }
 }
+
+function createDatabaseModule(config: DatabaseConfig) {
+  validateDatabaseConfig(config);
+  
+  @Module({
+    services: [DatabaseService],
+    providers: [
+      { token: DATABASE_CONFIG, useValue: config }
+    ]
+  })
+  class ValidatedDatabaseModule {}
+  
+  return ValidatedDatabaseModule;
+}
+
+// Usage
+const container = new Nexus();
+const DatabaseModule = createDatabaseModule({
+  host: 'localhost',
+  port: 5432,
+  database: 'myapp'
+});
+container.set(DatabaseModule);
 ```
 
 ## Testing with Dynamic Modules
+
+You can test different configurations by creating test-specific modules:
 
 ```typescript
 describe('DatabaseModule', () => {
   it('should work with test configuration', () => {
     const container = new Nexus();
-    container.set(DatabaseModule.config({
-      host: 'localhost',
-      port: 5432,
-      database: 'test_db'
-    }));
+    
+    @Module({
+      services: [DatabaseService],
+      providers: [
+        { token: DATABASE_CONFIG, useValue: { 
+          host: 'localhost', 
+          port: 5432, 
+          database: 'test_db' 
+        }}
+      ]
+    })
+    class TestDatabaseModule {}
+    
+    container.set(TestDatabaseModule);
 
     const databaseService = container.get(DATABASE_SERVICE);
     expect(databaseService).toBeInstanceOf(DatabaseService);
@@ -443,12 +449,11 @@ describe('DatabaseModule', () => {
 
   it('should validate configuration', () => {
     expect(() => {
-      const container = new Nexus();
-      container.set(DatabaseModule.config({
+      createDatabaseModule({
         host: '', // Invalid
         port: 5432,
         database: 'test_db'
-      }));
+      });
     }).toThrow('Database host is required');
   });
 });
@@ -474,4 +479,8 @@ Module patterns help you create well-organized, maintainable applications:
 
 For dynamic module configuration with runtime settings, see [Dynamic Modules](./dynamic-modules.md).
 
-> **Note:** As of v0.2.0, use `container.set(...)` to register modules and dynamic modules. `setModule` and `registerDynamicModule` are deprecated and will be removed in a future minor version. As long as the major version is 0, minor version bumps are considered breaking. 
+## Next Steps
+
+- **[Dynamic Modules](./dynamic-modules.md)** - Runtime configuration and validation
+- **[Testing](./testing.md)** - How to test modules and services
+- **[Advanced](./advanced.md)** - Advanced patterns and techniques 

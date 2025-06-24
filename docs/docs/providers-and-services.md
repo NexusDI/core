@@ -4,7 +4,7 @@ sidebar_position: 4
 
 # Providers and Services
 
-This article explains how providers and services work in NexusDI, what can be injected, and why the `deps` parameter is needed for factory providers.
+This article explains how providers and services work in NexusDI, what can be injected, and why the `deps` parameter is needed for factory providers. Think of providers as the different ways you can summon your dependencies - sometimes you conjure them from thin air, sometimes you need to build them step by step.
 
 ## What Can Be Injected?
 
@@ -300,4 +300,8 @@ For advanced provider patterns, see [Advanced Providers & Factories](advanced/ad
 For multi-injection and plugin systems, see [Multi-injection & Collections](advanced/multi-injection-and-collections.md).
 For lifetimes and scoping, see [Scoped & Transient Lifetimes](advanced/scoped-and-transient-lifetimes.md).
 
-> **Note:** As of v0.2.0, use `container.set(...)` (or `nexus.set(...)`) to register modules and dynamic modules. `setModule` and `registerDynamicModule` are deprecated and will be removed in a future minor version. As long as the major version is 0, minor version bumps are considered breaking. 
+## Next Steps
+
+- **[Module Basics](./module-basics.md)** - How to organize services into modules
+- **[Testing](./testing.md)** - How to test services and providers
+- **[Advanced](./advanced.md)** - Advanced provider patterns and techniques 

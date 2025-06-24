@@ -4,7 +4,7 @@ sidebar_position: 1
 
 # Modules
 
-Modules are a powerful way to organize and structure your dependency injection setup in NexusDI. They allow you to group related services, providers, and configuration into logical units.
+Modules are a powerful way to organize and structure your dependency injection setup in NexusDI. They allow you to group related services, providers, and configuration into logical units. Think of them as guild departments - each handles its own specialty, but they all contribute to the guild's success.
 
 For a complete guide to creating and using modules, see **[Module Basics](./module-basics.md)**.
 
@@ -69,6 +69,4 @@ For detailed explanations of these benefits and advanced patterns, see **[Module
 
 - **[Module Basics](./module-basics.md)** - Complete guide to creating and using modules
 - **[Module Patterns](./module-patterns.md)** - Advanced patterns and best practices
-- **[Dynamic Modules](./dynamic-modules.md)** - Runtime configuration and validation
-
-> **Note:** As of v0.2.0, use `container.set(...)` to register modules and dynamic modules. `setModule` and `registerDynamicModule` are deprecated and will be removed in a future minor version. As long as the major version is 0, minor version bumps are considered breaking. 
+- **[Dynamic Modules](./dynamic-modules.md)** - Runtime configuration and validation 

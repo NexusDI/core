@@ -418,12 +418,34 @@ container.set(PostgresDatabase, { useValue: mockPostgresDatabase });
 
 ### 3. Test Configuration Validation
 
+<details>
+<summary>⚠️ Planned Feature - Currently Non-Functional</summary>
+
+Configuration validation will be supported with dynamic module configuration in future releases.
+
 ```typescript
 describe('Module Configuration', () => {
   it('should validate required configuration', () => {
     expect(() => {
       DatabaseModule.config({} as DatabaseConfig);
     }).toThrow('Database host is required');
+  });
+});
+```
+</details>
+
+For now, you can test configuration validation manually:
+
+```typescript
+describe('Module Configuration', () => {
+  it('should validate required configuration', () => {
+    expect(() => {
+      // Test with invalid configuration
+      const container = new Nexus();
+      container.set(DATABASE_CONFIG, { useValue: {} }); // Missing required fields
+      container.set(DATABASE_SERVICE, { useClass: DatabaseService });
+      container.get(DATABASE_SERVICE); // This should fail
+    }).toThrow();
   });
 });
 ```
@@ -469,4 +491,8 @@ Testing with NexusDI is straightforward and powerful:
 
 The key is to use tokens and interfaces, which makes your code both more testable and more maintainable. 
 
-**Note:** As of v0.2.0, use `container.set(...)` to register modules and dynamic modules. `setModule` and `registerDynamicModule` are deprecated and will be removed in a future minor version. As long as the major version is 0, minor version bumps are considered breaking. 
+## Next Steps
+
+- **[Module Basics](./module-basics.md)** - How to organize services into modules
+- **[Advanced](./advanced.md)** - Advanced testing patterns and techniques
+- **[Best Practices](./best-practices.md)** - Testing best practices and guidelines 

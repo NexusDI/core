@@ -2,9 +2,9 @@
 sidebar_position: 1
 ---
 
-# Core Concepts
+# Core Concepts 🧠
 
-This section covers the fundamental concepts of dependency injection and NexusDI. For detailed explanations and examples, see the specific articles in each category.
+This section covers the fundamental concepts of dependency injection and NexusDI. We'll explain the key principles and components that make DI work.
 
 ## What is Dependency Injection?
 
@@ -116,7 +116,7 @@ Use Dependency Injection when you have:
 - Team development with multiple developers
 - Long-term maintenance needs
 
-For simple applications or quick prototypes, regular imports may be more appropriate.
+For simple applications or quick prototypes, regular imports may be more appropriate. Sometimes you just need to MacGyver a solution with what you have, not build a full workshop.
 
 For a detailed comparison of DI vs regular imports, see **[DI vs Regular Imports](./di-vs-imports.md)**.
 
@@ -125,4 +125,6 @@ For a detailed comparison of DI vs regular imports, see **[DI vs Regular Imports
 - **[Dependency Injection](./dependency-injection.md)** - Detailed explanation of DI principles
 - **[Tokens](./tokens.md)** - Complete guide to tokens
 - **[DI vs Regular Imports](./di-vs-imports.md)** - When to use each approach
-- **[Best Practices](./best-practices.md)** - Guidelines for maintainable DI code 
+- **[Best Practices](./best-practices.md)** - Guidelines for maintainable DI code
+
+Take your time to understand these concepts - they form the foundation of everything else! Remember, in the world of DI, you're not just a developer, you're a dependency warlock! 🌱 

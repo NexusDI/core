@@ -1,12 +1,10 @@
----
-sidebar_position: 2
----
+# Container API Reference
 
-# Nexus Container API Reference
+The `Nexus` class is the main dependency injection container in NexusDI. It provides methods for registering and resolving dependencies, managing modules, and creating child containers.
+
+## Container Instance
 
 This article documents all public methods available on the `Nexus` container class. For an overview, see the [Nexus Class](nexus-class.md).
-
-**Note:** As of v0.2.0, use `container.set(...)` to register modules and dynamic modules. `setModule` and `registerDynamicModule` are deprecated and will be removed in a future minor version. As long as the major version is 0, minor version bumps are considered breaking.
 
 ---
 

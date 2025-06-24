@@ -18,19 +18,24 @@ function HomepageHeader() {
             <div className={styles.heroLogoContainer}>
               <img src="/img/logo-white.svg" alt="NexusDI Logo" className={styles.heroLogo} />
               <h1 className={clsx('hero__title', styles.heroTitle)}>{siteConfig.title}</h1>
-              <p className={clsx('hero__subtitle', styles.heroSubtitle)}>{siteConfig.tagline}</p>
+              <p className={clsx('hero__subtitle', styles.heroSubtitle)}>
+                A modern, lightweight dependency injection library for TypeScript
+              </p>
+              <p className={styles.heroTagline}>
+                Fast, type-safe, and developer-friendly. Built for clean, maintainable code.
+              </p>
             </div>
             
             <div className={styles.buttons}>
               <Link
                 className="button button--secondary button--lg"
                 to="/docs/intro">
-                Get Started
+                🚀 Get Started
               </Link>
               <Link
                 className="button button--outline button--lg"
                 to="/docs/getting-started">
-                View Documentation
+                📚 View Documentation
               </Link>
             </div>
           </div>
@@ -67,8 +72,8 @@ export default function Home(): ReactNode {
   const {siteConfig} = useDocusaurusContext();
   return (
     <Layout
-      title={`Hello from ${siteConfig.title}`}
-      description="Description will go into a meta tag in <head />">
+      title={`Welcome to ${siteConfig.title} - Where DI meets simplicity`}
+      description="A fast, lightweight, TypeScript-first dependency injection library that makes your code cleaner and your life easier.">
       <HomepageHeader />
       <main>
         <HomepageFeatures />

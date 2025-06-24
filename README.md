@@ -4,6 +4,7 @@
   <img src="logo.svg" alt="NexusDI Logo" width="120" height="120" />
   <br />
   <p><strong>A modern, lightweight dependency injection container for TypeScript with decorator support, inspired by industry-leading frameworks.</strong></p>
+  <p><em>The DI library that doesn't make you want to inject yourself with coffee ☕</em></p>
 </div>
 
 <div align="center">
@@ -44,8 +45,6 @@
 ```bash
 npm install @nexusdi/core reflect-metadata
 ```
-
-**Note:** As of v0.2.0, use `container.set(...)` to register modules and dynamic modules. `setModule` and `registerDynamicModule` are deprecated and will be removed in a future minor version. As long as the major version is 0, minor version bumps are considered breaking.
 
 ```typescript
 import { Nexus, Service, Token, Inject } from '@nexusdi/core';
