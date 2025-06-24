@@ -7,10 +7,10 @@
       "path": "./libs/core"
     },
     {
-      "path": "./examples/react-router-e2e"
+      "path": "./examples/react-ssr-e2e"
     },
     {
-      "path": "./examples/react-router"
+      "path": "./examples/react-ssr"
     },
     {
       "path": "./docs"

@@ -1,5 +1,5 @@
 {
-  "name": "@nexusdi/react-router",
+  "name": "@nexusdi/react-ssr",
   "private": true,
   "type": "module",
   "scripts": {},
