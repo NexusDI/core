@@ -1,6 +1,7 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 import type { TokenType, ServiceConfig, ModuleConfig } from './types';
 import { METADATA_KEYS, type InjectionMetadata } from './types';
+import type { Token } from './token';
 
 /**
  * Decorator that marks a class as a DI module, allowing you to group providers, services, and imports.
@@ -48,10 +49,13 @@ export function Module(config: ModuleConfig) {
  * @see https://nexus.js.org/docs/modules/providers-and-services
  * @publicApi
  */
-export function Service<T>(token?: TokenType<T>) {
-  return (target: new (...args: any[]) => T) => {
+export function Service<T>(token?: new (...args: any[]) => T): ClassDecorator;
+export function Service<T = any>(token?: string): ClassDecorator;
+export function Service<T>(token?: Token<T>): ClassDecorator;
+export function Service<T>(token?: TokenType<T>): ClassDecorator {
+  return (target: any) => {
     const config: ServiceConfig<T> = {
-      token: token || target,
+      token: token || (target as TokenType<T>),
     };
     Reflect.defineMetadata(METADATA_KEYS.SERVICE_METADATA, config, target);
   };
@@ -78,8 +82,11 @@ export function Service<T>(token?: TokenType<T>) {
  * @see https://nexus.js.org/docs/modules/tokens
  * @publicApi
  */
-export function Provider<T>(token: TokenType<T>) {
-  return (target: new (...args: any[]) => T) => {
+export function Provider<T>(token: new (...args: any[]) => T): ClassDecorator;
+export function Provider<T = any>(token: string): ClassDecorator;
+export function Provider<T>(token: Token<T>): ClassDecorator;
+export function Provider<T>(token: TokenType<T>): ClassDecorator {
+  return (target: any) => {
     const config: ServiceConfig<T> = {
       token,
     };
@@ -113,14 +120,26 @@ export function Provider<T>(token: TokenType<T>) {
  * @see https://nexus.js.org/docs/modules/tokens
  * @publicApi
  */
-export function Inject<T>(token: TokenType<T>) {
+export function Inject<T>(
+  token: new (...args: any[]) => T
+): PropertyDecorator & ParameterDecorator;
+export function Inject<T = any>(
+  token: string
+): PropertyDecorator & ParameterDecorator;
+export function Inject<T>(
+  token: Token<T>
+): PropertyDecorator & ParameterDecorator;
+export function Inject<T>(
+  token: TokenType<T>
+): PropertyDecorator & ParameterDecorator {
+  // @ts-expect-error: Implementation signature must support both property and parameter decorators
   return (
-    target: any,
-    propertyKey: string | symbol,
+    target: object,
+    propertyKey: string | symbol | undefined,
     parameterIndex?: number
   ) => {
     if (typeof parameterIndex === 'number') {
-      // Constructor parameter injection: store on the constructor
+      // Parameter decorator
       const metadataTarget = target;
       const existingMetadata: InjectionMetadata[] =
         Reflect.getMetadata(METADATA_KEYS.INJECT_METADATA, metadataTarget) ||
@@ -136,8 +155,8 @@ export function Inject<T>(token: TokenType<T>) {
         existingMetadata,
         metadataTarget
       );
-    } else {
-      // Property injection: store on the prototype
+    } else if (propertyKey !== undefined) {
+      // Property decorator
       const metadataTarget = target;
       const existingMetadata: InjectionMetadata[] =
         Reflect.getMetadata(METADATA_KEYS.INJECT_METADATA, metadataTarget) ||
@@ -197,25 +216,56 @@ export const Injectable = Service;
  * @see https://nexus.js.org/docs/modules/tokens
  * @publicApi
  */
-export function Optional<T>(token: TokenType<T>) {
+export function Optional<T>(
+  token: new (...args: any[]) => T
+): PropertyDecorator & ParameterDecorator;
+export function Optional<T = any>(
+  token: string
+): PropertyDecorator & ParameterDecorator;
+export function Optional<T>(
+  token: Token<T>
+): PropertyDecorator & ParameterDecorator;
+export function Optional<T>(
+  token: TokenType<T>
+): PropertyDecorator & ParameterDecorator {
+  // @ts-expect-error: Implementation signature must support both property and parameter decorators
   return (
-    target: any,
-    propertyKey: string | symbol,
+    target: object,
+    propertyKey: string | symbol | undefined,
     parameterIndex?: number
   ) => {
-    const existingMetadata: InjectionMetadata[] =
-      Reflect.getMetadata(METADATA_KEYS.INJECT_METADATA, target) || [];
-    const metadata: InjectionMetadata = {
-      token,
-      index: typeof parameterIndex === 'number' ? parameterIndex : 0,
-      propertyKey: typeof parameterIndex === 'number' ? undefined : propertyKey,
-      optional: true,
-    };
-    existingMetadata.push(metadata);
-    Reflect.defineMetadata(
-      METADATA_KEYS.INJECT_METADATA,
-      existingMetadata,
-      target
-    );
+    if (typeof parameterIndex === 'number') {
+      // Parameter decorator
+      const existingMetadata: InjectionMetadata[] =
+        Reflect.getMetadata(METADATA_KEYS.INJECT_METADATA, target) || [];
+      const metadata: InjectionMetadata = {
+        token,
+        index: parameterIndex,
+        propertyKey: undefined,
+        optional: true,
+      };
+      existingMetadata.push(metadata);
+      Reflect.defineMetadata(
+        METADATA_KEYS.INJECT_METADATA,
+        existingMetadata,
+        target
+      );
+    } else if (propertyKey !== undefined) {
+      // Property decorator
+      const existingMetadata: InjectionMetadata[] =
+        Reflect.getMetadata(METADATA_KEYS.INJECT_METADATA, target) || [];
+      const metadata: InjectionMetadata = {
+        token,
+        index: 0,
+        propertyKey,
+        optional: true,
+      };
+      existingMetadata.push(metadata);
+      Reflect.defineMetadata(
+        METADATA_KEYS.INJECT_METADATA,
+        existingMetadata,
+        target
+      );
+    }
   };
 }

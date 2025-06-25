@@ -34,7 +34,10 @@ export class Nexus implements IContainer {
    * const logger = container.get(LoggerService);
    * @see https://nexus.js.org/docs/container/nexus-class
    */
-  get<T>(token: TokenType<T>): T {
+  get<T>(token: Token<T>): T;
+  get<T>(token: new (...args: any[]) => T): T;
+  get<T>(token: string): T;
+  get<T>(token: any): T {
     // Resolve aliases
     const actualToken = this.aliases.get(token) || token;
     if (!this.has(actualToken)) {
@@ -155,6 +158,15 @@ export class Nexus implements IContainer {
   /**
    * Unified set method: register a provider, module, or dynamic module config.
    */
+  set<T>(token: Token<T>, provider: Provider<T>): void;
+  set<T>(token: Token<T>, serviceClass: new (...args: any[]) => T): void;
+  set<T>(token: new (...args: any[]) => T, provider: Provider<T>): void;
+  set<T>(
+    token: new (...args: any[]) => T,
+    serviceClass: new (...args: any[]) => T
+  ): void;
+  set<T>(token: string, provider: Provider<T>): void;
+  set<T>(token: string, serviceClass: new (...args: any[]) => T): void;
   set(tokenOrModuleOrConfig: any, providerOrNothing?: any): void {
     // If it's a module class (has @Module metadata)
     if (
