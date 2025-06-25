@@ -86,7 +86,10 @@ export class Nexus implements IContainer {
    * @returns True if registered
    * @see https://nexus.js.org/docs/container/nexus-class
    */
-  has(token: TokenType): boolean {
+  has(token: Token): boolean;
+  has(token: new (...args: any[]) => unknown): boolean;
+  has(token: string): boolean;
+  has(token: any): boolean {
     const actualToken = this.aliases.get(token) || token;
     return (
       this.providers.has(actualToken) ||
@@ -167,6 +170,13 @@ export class Nexus implements IContainer {
   ): void;
   set<T>(token: string, provider: Provider<T>): void;
   set<T>(token: string, serviceClass: new (...args: any[]) => T): void;
+  set(moduleClass: new (...args: any[]) => any): void;
+  set(moduleConfig: {
+    providers?: ModuleProvider[];
+    imports?: (new (...args: any[]) => any)[];
+    services?: (new (...args: any[]) => any)[];
+    exports?: TokenType[];
+  }): void;
   set(tokenOrModuleOrConfig: any, providerOrNothing?: any): void {
     // If it's a module class (has @Module metadata)
     if (

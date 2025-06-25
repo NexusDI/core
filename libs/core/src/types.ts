@@ -76,7 +76,21 @@ export interface IContainer {
   resolve<T>(target: new (...args: any[]) => T): T;
   set<T>(token: TokenType<T>, provider: Provider<T>): void;
   set<T>(token: TokenType<T>, serviceClass: new (...args: any[]) => T): void;
-  setModule(moduleClass: new (...args: any[]) => any): void;
+  set<T>(token: new (...args: any[]) => T, provider: Provider<T>): void;
+  set<T>(
+    token: new (...args: any[]) => T,
+    serviceClass: new (...args: any[]) => T
+  ): void;
+  set<T>(token: string, provider: Provider<T>): void;
+  set<T>(token: string, serviceClass: new (...args: any[]) => T): void;
+  set(moduleClass: new (...args: any[]) => any): void;
+  set(moduleConfig: {
+    providers?: ModuleProvider[];
+    imports?: (new (...args: any[]) => any)[];
+    services?: (new (...args: any[]) => any)[];
+    exports?: TokenType[];
+  }): void;
+  set(tokenOrModuleOrConfig: any, providerOrNothing?: any): void;
   registerDynamicModule(moduleConfig: {
     services?: (new (...args: any[]) => any)[];
     providers?: ModuleProvider[];
