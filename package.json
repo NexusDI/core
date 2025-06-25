@@ -3,6 +3,13 @@
   "version": "0.0.0",
   "license": "MIT",
   "scripts": {
+    "docs:install": "cd ./docs && npm install",
+    "docs:build": "cd ./docs && npm run build",
+    "docs:start": "cd ./docs && npm run start",
+    "docs:deploy": "cd ./docs && npm run deploy",
+    "docs:clear": "cd ./docs && npm run clear",
+    "docs:serve": "cd ./docs && npm run serve",
+    "docs:write-translations": "cd ./docs && npm run write-translations",
     "benchmark:generate": "nx g @nexusdi/benchmark:benchmark"
   },
   "private": true,
