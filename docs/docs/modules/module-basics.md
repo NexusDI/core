@@ -183,6 +183,10 @@ container.set(OrderModule);
 
 // Or register multiple at once
 container.set(UserModule, OrderModule);
+
+// Async dynamic modules (see Dynamic Modules doc for details)
+const config = await SomeModule.configAsync(options);
+container.set(config); // Always await the result of configAsync() before passing it to set. See Dynamic Modules for details.
 ```
 
 ### Module Dependencies

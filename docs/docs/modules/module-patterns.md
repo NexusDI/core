@@ -148,6 +148,13 @@ describe('UserModule with mocks', () => {
 });
 ```
 
+### Testing with async dynamic modules (see Dynamic Modules doc for details)
+
+```typescript
+const config = await SomeModule.configAsync(options);
+container.set(config); // Always await the result of configAsync() before passing it to set. See Dynamic Modules for details.
+```
+
 ## Best Practices
 
 ### 1. **Single Responsibility**

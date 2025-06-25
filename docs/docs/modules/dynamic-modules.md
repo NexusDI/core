@@ -424,3 +424,20 @@ describe('DatabaseModule', () => {
 - **[Advanced Providers & Factories](advanced/advanced-providers-and-factories.md)** - Advanced provider configuration
 
 Dynamic modules will provide powerful runtime configuration capabilities in future releases! 🚀
+
+## 🚀 Async Dynamic Module Registration
+
+Sometimes, your modules need to fetch secrets, load configs, or call APIs before they're ready to join the party. That's where `configAsync()` comes in!
+
+```typescript
+// Correct: Wait for the config to finish before registering
+const config = await MyModule.configAsync(options);
+container.set(config);
+
+// ❌ Don't do this! (You'll hand the chef a recipe that's still in the oven)
+container.set(MyModule.configAsync(options)); // Not supported
+```
+
+> **Heads up:** Always `await` the result of `configAsync()` before passing it to `set`. The container expects a fully-baked config, not a promise.
+
+With this pattern, your modules will be ready to serve—no half-baked configs allowed. For more on dynamic modules, check out the rest of this guide!

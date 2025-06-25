@@ -138,12 +138,12 @@ const container = new Nexus();
 container.set(UserModule); // Registers all services and providers
 ```
 
-### Dynamic Module Configuration
+### 🚀 Dynamic Module Configuration (Async & Sync)
 
 <details>
 <summary>⚠️ Planned Feature - Currently Non-Functional</summary>
 
-Dynamic module configuration with `.config()` methods is planned for future releases.
+Dynamic module configuration with `.config()` and `.configAsync()` methods is planned for future releases.
 
 ```typescript
 @Module({
@@ -155,7 +155,7 @@ class DatabaseModule extends DynamicModule<DatabaseConfig> {
 
 const container = new Nexus();
 
-// Configure with different settings
+// Synchronous config
 container.set(
   DatabaseModule.config({
     host: 'localhost',
@@ -163,7 +163,17 @@ container.set(
     database: 'myapp',
   })
 );
+
+// Async config
+const config = await DatabaseModule.configAsync({
+  // ...async options
+});
+container.set(config);
 ```
+
+> **Tip:** Always await the result of `configAsync()` before passing it to `set`. The container expects a fully-prepared config, not a promise. See [Dynamic Modules](../modules/dynamic-modules.md) for details.
+
+With this approach, your modules will be ready to serve. You've got this!
 
 </details>
 
