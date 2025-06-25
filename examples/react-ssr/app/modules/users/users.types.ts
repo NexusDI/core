@@ -9,6 +9,7 @@ export interface User {
 export interface IUserService {
   getUsers(page?: number, limit?: number): Promise<User[]>;
   getUserById(id: string): Promise<User | null>;
+  createUser(user: Omit<User, 'id'>): Promise<User>;
 }
 
 export interface UsersConfig {
