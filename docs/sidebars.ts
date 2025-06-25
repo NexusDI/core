@@ -15,7 +15,18 @@ import type { SidebarsConfig } from '@docusaurus/plugin-content-docs';
 const sidebars: SidebarsConfig = {
   // By default, Docusaurus generates a sidebar from the docs folder structure
   tutorialSidebar: [
+    'intro',
     'getting-started',
+    {
+      type: 'category',
+      label: 'Concepts',
+      items: [
+        'concepts',
+        'dependency-injection',
+        'di-vs-imports',
+        'best-practices',
+      ],
+    },
     {
       type: 'category',
       label: 'Container',
@@ -34,16 +45,7 @@ const sidebars: SidebarsConfig = {
         'modules/modules',
       ],
     },
-    {
-      type: 'category',
-      label: 'Concepts & Best Practices',
-      items: [
-        'concepts',
-        'dependency-injection',
-        'di-vs-imports',
-        'best-practices',
-      ],
-    },
+
     {
       type: 'category',
       label: 'Advanced',
