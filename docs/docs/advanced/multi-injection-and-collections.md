@@ -6,7 +6,7 @@ sidebar_position: 11
 
 Learn how to inject multiple services, work with collections, and handle complex dependency scenarios in NexusDI. Like a Star Citizen ship with modular components, you can assemble complex systems from multiple interchangeable parts.
 
-> See also: [Advanced Providers](advanced-providers-and-factories.md), [Module Patterns](../module-patterns.md)
+> See also: [Advanced Providers](advanced-providers-and-factories), [Module Patterns](../modules/module-patterns)
 
 ## What Are Multi-Injections?
 
@@ -874,8 +874,8 @@ class LargeCollectionProcessor {
 
 ## Next Steps
 
-- **[Advanced Providers](advanced-providers-and-factories.md)** - Learn about advanced provider patterns
-- **[Module Patterns](../module-patterns.md)** - Organize collections in modules
+- **[Advanced Providers](advanced-providers-and-factories)** - Learn about advanced provider patterns
+- **[Module Patterns](../modules/module-patterns)** - Organize collections in modules
 - **[Performance Tuning](performance-tuning.md)** - Optimize collection performance
 
 Remember: Collections are like modular ship components - they let you assemble complex systems from interchangeable parts, but make sure each component has a clear purpose and interface! 🚀✨

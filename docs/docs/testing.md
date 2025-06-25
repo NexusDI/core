@@ -2,7 +2,7 @@
 sidebar_position: 2
 ---
 
-# Testing with NexusDI
+# Testing
 
 NexusDI is designed with testing in mind, making it easy to create isolated, maintainable tests for your applications. This guide covers testing strategies, mocking techniques, and best practices.
 
@@ -501,6 +501,6 @@ The key is to use tokens and interfaces, which makes your code both more testabl
 
 ## Next Steps
 
-- **[Module Basics](./module-basics.md)** - How to organize services into modules
-- **[Advanced](./advanced.md)** - Advanced testing patterns and techniques
-- **[Best Practices](./best-practices.md)** - Testing best practices and guidelines
+- **[Module Basics](modules/module-basics.md)** - How to organize services into modules
+- **[Advanced](advanced/advanced.md)** - Advanced testing patterns and techniques
+- **[Best Practices](best-practices.md)** - Testing best practices and guidelines

@@ -6,7 +6,7 @@ sidebar_position: 8
 
 Quick debugging tips and techniques to get you unstuck when dependency injection issues arise. When things go sideways, these simple workarounds can save you hours of troubleshooting.
 
-> See also: [Testing](../testing.md), [Circular Dependencies](circular-dependencies.md)
+> See also: [Testing](../testing.md), [Circular Dependencies](circular-dependencies)
 
 ## Quick Debugging Checklist
 
@@ -210,7 +210,7 @@ When troubleshooting DI issues:
 ## Next Steps
 
 - **[Testing](../testing.md)** - How to test with the container
-- **[Circular Dependencies](circular-dependencies.md)** - Handle circular dependency issues
+- **[Circular Dependencies](circular-dependencies)** - Handle circular dependency issues
 - **[Debugging Utilities](debugging-utilities.md)** - Advanced debugging tools and utilities
 
 Remember: Good debugging is like being a detective - follow the clues, check your assumptions, and don't be afraid to add some logging to see what's really happening! 🔍✨

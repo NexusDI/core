@@ -275,10 +275,10 @@ Modules provide a powerful way to organize your dependency injection setup:
 
 For advanced module patterns and dynamic configuration, see [Module Patterns](./module-patterns.md) and [Dynamic Modules](./dynamic-modules.md).
 
-For advanced topics such as dynamic modules, lifetimes, multi-injection, and more, see the [Advanced](./advanced.md) section.
+For advanced topics such as dynamic modules, lifetimes, multi-injection, and more, see the [Advanced](../advanced/advanced.md) section.
 
 ## Next Steps
 
 - **[Module Patterns](./module-patterns.md)** - Advanced patterns and best practices
 - **[Dynamic Modules](./dynamic-modules.md)** - Runtime configuration and validation
-- **[Testing](./testing.md)** - How to test modules and services
+- **[Testing](../testing.md)** - How to test modules and services

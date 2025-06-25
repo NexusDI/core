@@ -64,7 +64,11 @@ const config: Config & { themeConfig: ThemeConfig } = {
         src: 'img/logo.svg',
       },
       items: [
-        { to: '/docs/getting-started', label: 'Docs', position: 'left' },
+        {
+          to: '/docs/getting-started',
+          label: 'Docs',
+          position: 'left',
+        },
         { to: '/docs/advanced', label: 'Advanced', position: 'left' },
         { to: '/docs/faq', label: 'FAQ', position: 'left' },
         { to: '/blog', label: 'Blog', position: 'right' },
@@ -84,6 +88,7 @@ const config: Config & { themeConfig: ThemeConfig } = {
             { label: 'Getting Started', to: '/docs/getting-started' },
             { label: 'Advanced Usage', to: '/docs/advanced' },
             { label: 'FAQ', to: '/docs/faq' },
+            { label: 'Roadmap', to: '/docs/roadmap' },
           ],
         },
         {

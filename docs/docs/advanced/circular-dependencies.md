@@ -6,7 +6,7 @@ sidebar_position: 9
 
 Learn how to identify, prevent, and resolve circular dependencies in NexusDI. Like a recursive function without a base case, circular dependencies will bring your application to a halt.
 
-> See also: [Debugging](debugging-and-diagnostics.md), [Concepts](../concepts.md)
+> See also: [Debugging](debugging-and-diagnostics), [Concepts](../concepts)
 
 ## What Are Circular Dependencies?
 
@@ -222,7 +222,7 @@ describe('Circular Dependency Detection', () => {
 
 ## Next Steps
 
-- **[Debugging](debugging-and-diagnostics.md)** - How to debug circular dependency issues
+- **[Debugging](debugging-and-diagnostics)** - How to debug circular dependency issues
 - **[Performance Tuning](performance-tuning.md)** - Optimize container performance
 - **[Testing](../testing.md)** - Test your dependency injection setup
 

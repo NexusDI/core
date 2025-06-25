@@ -1,47 +1,47 @@
 ---
-sidebar_position: 20
+title: Contributing to Docs
+sidebar_position: 3
 ---
 
-# Contributing to NexusDI 📝
+# Contributing to NexusDI Documentation
 
-Thank you for your interest in contributing to NexusDI! Whether you're fixing a typo, adding examples, or writing a new guide, your contributions help make NexusDI better for everyone.
+Thank you for helping improve the NexusDI docs! Clear, helpful documentation is essential for every user.
 
-## How to Contribute
+## Quick Start
 
-### Quick Start
-
-1. **Fork the repository** on GitHub
+1. **Fork the repository** on GitHub ([NexusDI/core](https://github.com/NexusDI/core))
 2. **Clone your fork** locally
 3. **Create a branch** for your changes
 4. **Make your changes** following our style guide
 5. **Test your changes** by building the docs
-6. **Submit a pull request** with a clear description
+6. **Submit a pull request**
 
-### Documentation Setup
+## Documentation Setup
 
 ```bash
-# Clone your fork
-git clone https://github.com/your-username/nexusdi.git
-cd nexusdi
-
-# Install dependencies
+git clone https://github.com/your-username/core.git
+cd core
 npm install
-
-# Install docs dependencies
-cd docs && npm install && cd ..
-
-# Start the docs development server
-cd docs && npm start
 ```
 
-## Documentation Style Guide
+## Building and Previewing the Docs
 
-When writing NexusDI documentation or blog posts, follow these guidelines to maintain consistency:
+- **Build the docs:**
+  ```bash
+  nx build docs
+  ```
+- **Start the docs locally (dev server):**
+  ```bash
+  nx start docs
+  ```
+- Then visit `http://localhost:3000` to see your changes.
+
+## Documentation Style Guide
 
 ### Tone & Personality 🎭
 
 - **Warm and friendly** but professional - like a helpful colleague who knows their stuff
-- **Nerdy but not overwhelming** - include 1-2 subtle nerdy jokes per article, for instance from one of these fandoms:
+- **Nerdy but not overwhelming** - include 1-2 subtle nerdy and relevant jokes per article, for instance from one of these fandoms:
   - Star Wars
   - Star Trek
   - The Expanse
@@ -215,6 +215,8 @@ Brief description of the documentation changes
 - **Issues**: Use GitHub issues for documentation bugs or suggestions
 - **Discussions**: Use GitHub Discussions for questions about contributing
 - **Existing Docs**: Check the current documentation for examples
+- See the [main CONTRIBUTING.md](https://github.com/NexusDI/core/blob/main/CONTRIBUTING.md) for full details and the latest guidelines.
+- See the [Code of Conduct](https://github.com/NexusDI/core/blob/main/CODE_OF_CONDUCT.md)
 
 ## Recognition
 

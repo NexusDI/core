@@ -80,12 +80,12 @@ Official interceptor and middleware support is planned to include:
 - Performance monitoring
 - Error handling
 
-See the [Roadmap](../roadmap.md) for more details on upcoming features.
+See the [Roadmap](../roadmap) for more details on upcoming features.
 
 ## Next Steps
 
 - **[Advanced Providers](advanced-providers-and-factories.md)** - Learn about advanced provider patterns
 - **[Performance Tuning](performance-tuning.md)** - Optimize your DI container
-- **[Roadmap](../roadmap.md)** - See what's coming next
+- **[Roadmap](../roadmap)** - See what's coming next
 
 These workarounds will keep you productive until the full interceptor system arrives! 🔧✨

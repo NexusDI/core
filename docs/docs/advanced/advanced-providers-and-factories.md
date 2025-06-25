@@ -28,15 +28,16 @@ container.set('CONFIG', {
 > - Use an **async factory provider** for simple, one-off async values or services.
 > - Use a **DynamicModule** when you need to configure a group of related providers/services, especially if you want module encapsulation, validation, or imports/exports.
 
-| Use Case                        | Async Factory Provider | DynamicModule         |
-|----------------------------------|:---------------------:|:---------------------:|
-| Single async value/service       |         ✅            |          🚫           |
-| Multiple related providers       |         🚫            |          ✅           |
-| Module-level config/validation   |         🚫            |          ✅           |
-| Imports/exports between modules  |         🚫            |          ✅           |
-| Simple, one-off async setup      |         ✅            |          🚫           |
+| Use Case                        | Async Factory Provider | DynamicModule |
+| ------------------------------- | :--------------------: | :-----------: |
+| Single async value/service      |           ✅           |      🚫       |
+| Multiple related providers      |           🚫           |      ✅       |
+| Module-level config/validation  |           🚫           |      ✅       |
+| Imports/exports between modules |           🚫           |      ✅       |
+| Simple, one-off async setup     |           ✅           |      🚫       |
 
 **Rule of Thumb:**
+
 - Use an async factory provider for simple, one-off async values or services.
 - Use a DynamicModule for configuring groups of related providers/services.
 
@@ -65,7 +66,7 @@ container.set('DB_CONFIG', {
     host: process.env.DB_HOST,
     port: Number(process.env.DB_PORT),
     database: process.env.DB_NAME,
-  }
+  },
 });
 ```
 
@@ -95,10 +96,11 @@ container.set('FeatureService', {
 ```
 
 ## Best Practices
+
 - Use async factories for config/services that require I/O.
 - Use conditional registration for environment-specific or feature-flagged services.
 - Prefer explicit tokens for clarity.
 
 ---
 
-**Next:** [Multi-injection & Collections](multi-injection-and-collections.md) 
+**Next:** [Multi-injection & Collections](multi-injection-and-collections.md)

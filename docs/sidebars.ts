@@ -15,39 +15,39 @@ import type { SidebarsConfig } from '@docusaurus/plugin-content-docs';
 const sidebars: SidebarsConfig = {
   // By default, Docusaurus generates a sidebar from the docs folder structure
   tutorialSidebar: [
-    'modules/intro',
-    'modules/getting-started',
-    {
-      type: 'category',
-      label: 'Core Concepts',
-      items: [
-        'modules/concepts',
-        'modules/dependency-injection',
-        'modules/tokens',
-        'modules/providers-and-services',
-        'modules/di-vs-imports',
-      ],
-    },
-    'modules/best-practices',
-    {
-      type: 'category',
-      label: 'Modules',
-      items: [
-        'modules/modules',
-        'modules/module-basics',
-        'modules/module-patterns',
-        'modules/dynamic-modules',
-      ],
-    },
+    'getting-started',
     {
       type: 'category',
       label: 'Container',
       items: ['container/nexus-class', 'container/api-reference'],
     },
+    'providers-and-services',
+    'tokens',
+    'testing',
+    {
+      type: 'category',
+      label: 'Modules',
+      items: [
+        'modules/module-basics',
+        'modules/module-patterns',
+        'modules/dynamic-modules',
+        'modules/modules',
+      ],
+    },
+    {
+      type: 'category',
+      label: 'Concepts & Best Practices',
+      items: [
+        'concepts',
+        'dependency-injection',
+        'di-vs-imports',
+        'best-practices',
+      ],
+    },
     {
       type: 'category',
       label: 'Advanced',
-      collapsed: false,
+      collapsed: true,
       items: [
         'advanced/advanced-providers-and-factories',
         'advanced/module-inheritance',
@@ -60,7 +60,7 @@ const sidebars: SidebarsConfig = {
         {
           type: 'category',
           label: 'Utilities 🛠️',
-          collapsed: false,
+          collapsed: true,
           items: [
             'advanced/performance-utilities',
             'advanced/debugging-utilities',
@@ -69,19 +69,14 @@ const sidebars: SidebarsConfig = {
         },
       ],
     },
-    'modules/testing',
-    'modules/performance',
-    'modules/faq',
+    'performance',
     {
-      type: 'doc',
-      id: 'modules/roadmap',
-      label: 'Roadmap',
-    },
-    {
-      type: 'doc',
-      id: 'modules/contributing',
+      type: 'category',
       label: 'Contributing',
+      items: ['contributing/index', 'contributing/code', 'contributing/docs'],
     },
+    'faq',
+    'roadmap',
   ],
 
   // But you can create a sidebar manually

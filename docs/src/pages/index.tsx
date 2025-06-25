@@ -44,7 +44,7 @@ function HomepageHeader() {
                 className="button button--outline button--lg"
                 to="/docs/getting-started"
               >
-                📚 View Documentation
+                📚 Documentation
               </Link>
             </div>
           </div>

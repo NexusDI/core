@@ -2,7 +2,7 @@
 sidebar_position: 1
 ---
 
-# Nexus Class 🚀
+# Nexus Class
 
 The `Nexus` class is the core dependency injection container in NexusDI - think of it as your application's central nervous system, coordinating all the different parts and making sure they can communicate effectively. It's responsible for registering providers, resolving dependencies, and managing the entire dependency injection lifecycle.
 
@@ -327,8 +327,8 @@ describe('UserService', () => {
 ## Next Steps
 
 - **[API Reference](api-reference.md)** - Complete method reference and examples
-- **[Modules](./../modules.md)** - Organize services into modules
-- **[Testing](./../testing.md)** - How to test with the container
-- **[Advanced](./../advanced.md)** - Advanced container patterns and techniques
+- **[Modules](../modules/module-basics.md)** - Organize services into modules
+- **[Testing](../testing.md)** - How to test with the container
+- **[Advanced](../advanced/advanced.md)** - Advanced container patterns and techniques
 
-The `Nexus` container becomes an essential part of your application architecture when properly set up and used! 🎯
+The `

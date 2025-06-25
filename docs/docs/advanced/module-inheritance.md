@@ -134,8 +134,8 @@ class PremiumUserModule extends UserModule {}
 
 **Next Steps:**
 
-- [Module Patterns](../module-patterns.md)
-- [Dynamic Modules](../dynamic-modules.md)
+- [Module Patterns](../modules/module-patterns)
+- [Dynamic Modules](../modules/dynamic-modules)
 - [Testing](../testing.md)
 - [Advanced Providers and Factories](./advanced-providers-and-factories.md)
 

@@ -6,7 +6,7 @@ sidebar_position: 7
 
 Quick performance optimization tips and techniques for NexusDI. While NexusDI is already fast by default, these strategies can help you squeeze out every bit of performance for high-throughput applications.
 
-> See also: [Performance](../performance.md), [Performance Utilities](performance-utilities.md)
+> See also: [Performance](../performance.md), [Performance Utilities](performance-utilities)
 
 ## Quick Performance Tips
 
@@ -203,8 +203,8 @@ Before optimizing, ensure you have:
 
 ## Next Steps
 
-- **[Performance Utilities](performance-utilities.md)** - Advanced performance monitoring tools
-- **[Debugging & Diagnostics](debugging-and-diagnostics.md)** - Troubleshoot performance issues
+- **[Performance Utilities](performance-utilities)** - Advanced performance monitoring tools
+- **[Debugging & Diagnostics](debugging-and-diagnostics)** - Troubleshoot performance issues
 - **[Performance](../performance.md)** - Detailed performance benchmarks
 
 Remember: NexusDI is already optimized for most use cases. Only apply these techniques when you have measurable performance requirements that justify the additional complexity! 🚀

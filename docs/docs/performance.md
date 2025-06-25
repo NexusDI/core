@@ -547,4 +547,4 @@ For most applications, the performance impact is negligible while the benefits o
 
 The key is choosing the right tool for your specific use case and performance requirements, and NexusDI excels in providing excellent performance characteristics across all metrics.
 
-For advanced performance tips and diagnostics, see [Performance Tuning](advanced/performance-tuning.md).
+For advanced performance tips and diagnostics, see [Performance Tuning](./advanced/performance-tuning.md).
