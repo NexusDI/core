@@ -1,4 +1,4 @@
-import { getContainer } from '../shared/container';
+import { containerContext } from '../shared/container';
 import { USER_SERVICE_TOKEN } from '../modules/users/user.service';
 import {
   Card,
@@ -10,7 +10,7 @@ import {
 import type { Route } from './+types/users';
 
 export async function loader({ context }: Route.LoaderArgs) {
-  const container = getContainer(context);
+  const container = context.get(containerContext);
   const userService = container.get(USER_SERVICE_TOKEN);
   const users = await userService.getUsers();
   return { users };

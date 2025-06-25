@@ -1,10 +1,10 @@
 import { Outlet } from 'react-router';
 import { Button } from '../components/Button';
+import type { Route } from './+types/layout';
 
-export default function Layout() {
+export default function Layout(props: Route.ComponentProps) {
   return (
     <div className="container mx-auto p-4 max-w-4xl">
-      {/* Header */}
       <header className="mb-8 text-center">
         <h1 className="text-4xl font-bold dark:text-white">NexusDI Showcase</h1>
         <p className="text-lg text-gray-600 dark:text-gray-400">
@@ -12,7 +12,6 @@ export default function Layout() {
         </p>
       </header>
 
-      {/* Navigation */}
       <nav className="mb-6 flex justify-center gap-4">
         <Button as="link" to="/" variant="outline">
           Home
@@ -22,7 +21,6 @@ export default function Layout() {
         </Button>
       </nav>
 
-      {/* Content - Child routes will render here */}
       <main>
         <Outlet />
       </main>

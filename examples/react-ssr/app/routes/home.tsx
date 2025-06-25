@@ -1,4 +1,4 @@
-import { getContainer } from '../shared/container';
+import { containerContext } from '../shared/container';
 import { LOGGER_SERVICE_TOKEN } from '../modules/logger/logger.service';
 import { USER_SERVICE_TOKEN } from '../modules/users/user.service';
 import {
@@ -16,7 +16,7 @@ import { data, Form } from 'react-router';
 let user: any = null;
 
 export async function loader({ context }: Route.LoaderArgs) {
-  const container = getContainer(context);
+  const container = context.get(containerContext);
   const hasUserService = container.has(USER_SERVICE_TOKEN);
   const hasLoggerService = container.has(LOGGER_SERVICE_TOKEN);
 
@@ -33,7 +33,7 @@ export async function loader({ context }: Route.LoaderArgs) {
 export async function action({ request, context }: Route.ActionArgs) {
   const formData = await request.formData();
   const intent = formData.get('intent');
-  const container = getContainer(context);
+  const container = context.get(containerContext);
   const logger = container.get(LOGGER_SERVICE_TOKEN);
   const userService = container.get(USER_SERVICE_TOKEN);
 
