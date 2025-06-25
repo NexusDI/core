@@ -1,4 +1,3 @@
-/* eslint-disable @typescript-eslint/no-explicit-any */
 import 'reflect-metadata';
 import { describe, it, expect, beforeEach } from 'vitest';
 import { Module, Service, Provider, Inject } from './decorators';
@@ -205,7 +204,6 @@ describe('Decorators', () => {
       const injectToken = new Token('INJECT');
 
       class TestService {
-        // eslint-disable-next-line @typescript-eslint/no-unused-vars
         constructor(@Inject(injectToken) dependency: any) {}
       }
 
@@ -229,7 +227,6 @@ describe('Decorators', () => {
       const token2 = new Token('TOKEN2');
 
       class TestService {
-        // eslint-disable-next-line @typescript-eslint/no-unused-vars
         constructor(@Inject(token1) dep1: any, @Inject(token2) dep2: any) {}
       }
 
@@ -264,7 +261,6 @@ describe('Decorators', () => {
 
       @Service(serviceToken)
       class TestService {
-        // eslint-disable-next-line @typescript-eslint/no-unused-vars
         constructor(@Inject(dependencyToken) dep: any) {}
       }
 

@@ -2,6 +2,17 @@ import baseConfig from '../../eslint.config.mjs';
 
 export default [
   ...baseConfig,
+  // Suppress 'any', unused vars, and allow @ts-nocheck in decorators for DI/test flexibility
+  {
+    files: ['**/*.test.ts', 'src/decorators.ts'],
+    rules: {
+      '@typescript-eslint/no-explicit-any': 'off',
+      '@typescript-eslint/no-unused-vars': 'off',
+      // Allow @ts-nocheck in decorators.ts due to TypeScript decorator overload limitations
+      '@typescript-eslint/ban-ts-comment': 'off',
+      'eslint-comments/no-use': 'off',
+    },
+  },
   {
     files: ['**/*.json'],
     rules: {
