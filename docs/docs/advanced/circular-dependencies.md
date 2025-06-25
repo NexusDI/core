@@ -2,145 +2,228 @@
 sidebar_position: 9
 ---
 
-# Circular Dependencies
+# Circular Dependencies 🔄
 
-Circular dependencies are a common challenge in dependency injection systems. This article explains what they are, why they cause problems, and how to avoid or work around them in NexusDI.
+Learn how to identify, prevent, and resolve circular dependencies in NexusDI. Like a recursive function without a base case, circular dependencies will bring your application to a halt.
 
-> See also: [Debugging & Diagnostics](debugging-and-diagnostics.md), [Roadmap](../roadmap.md)
+> See also: [Debugging](debugging-and-diagnostics.md), [Concepts](../concepts.md)
 
-## What is a Circular Dependency?
+## What Are Circular Dependencies?
 
-A circular dependency occurs when two or more services depend on each other, either directly or indirectly. For example:
+A circular dependency occurs when two or more services depend on each other, either directly or indirectly. This creates a dependency cycle that the container cannot resolve.
 
 ```typescript
-@Service()
-class ServiceA {
-  constructor(@Inject(ServiceB) private b: ServiceB) {}
+// ❌ Direct circular dependency
+@Service(USER_SERVICE)
+class UserService {
+  constructor(@Inject(EMAIL_SERVICE) private email: IEmailService) {}
 }
 
-@Service()
-class ServiceB {
-  constructor(@Inject(ServiceA) private a: ServiceA) {}
+@Service(EMAIL_SERVICE)
+class EmailService {
+  constructor(@Inject(USER_SERVICE) private user: IUserService) {} // Circular!
 }
 ```
 
-This creates a cycle: `ServiceA` → `ServiceB` → `ServiceA`.
+## Detecting Circular Dependencies
 
-## Why is This a Problem?
-- The DI container cannot construct either service without the other already being available.
-- This usually results in a runtime error like "No provider found for token: ServiceA" or a stack overflow.
-- Circular dependencies make code harder to understand, test, and maintain.
+### Runtime Detection
 
-## Common Symptoms
-- Errors about missing providers or tokens
-- Stack overflows or infinite recursion
-- Unexpected `undefined` values in constructors
-
-## How to Avoid Circular Dependencies
-
-### 1. Refactor to Remove the Cycle
-- Split responsibilities so that services do not depend on each other directly.
-- Introduce a third service to mediate between the two.
+NexusDI automatically detects circular dependencies and throws descriptive errors:
 
 ```typescript
-@Service()
-class Mediator {
+// This will throw: "Circular dependency detected: USER_SERVICE → EMAIL_SERVICE → USER_SERVICE"
+try {
+  const userService = container.get(USER_SERVICE);
+} catch (error) {
+  console.error('Circular dependency detected:', error.message);
+}
+```
+
+### Manual Detection
+
+```typescript
+// Check for circular dependencies manually
+function detectCircularDependency(
+  container: Nexus,
+  startToken: TokenType
+): boolean {
+  const visited = new Set<string>();
+  const recursionStack = new Set<string>();
+
+  function dfs(token: TokenType): boolean {
+    const tokenName = token.toString();
+
+    if (recursionStack.has(tokenName)) {
+      return true; // Found a cycle
+    }
+
+    if (visited.has(tokenName)) {
+      return false; // Already visited, no cycle
+    }
+
+    visited.add(tokenName);
+    recursionStack.add(tokenName);
+
+    // Check dependencies (simplified)
+    const dependencies = getDependencies(container, token);
+    for (const dep of dependencies) {
+      if (dfs(dep)) return true;
+    }
+
+    recursionStack.delete(tokenName);
+    return false;
+  }
+
+  return dfs(startToken);
+}
+
+// Usage
+if (detectCircularDependency(container, USER_SERVICE)) {
+  console.error('Circular dependency detected!');
+}
+```
+
+## Solutions
+
+### 1. Dependency Inversion (Recommended)
+
+Extract shared interfaces and depend on abstractions:
+
+```typescript
+// ✅ Good - Use interfaces to break the cycle
+interface IUserRepository {
+  findById(id: string): Promise<User>;
+}
+
+interface IEmailService {
+  sendEmail(to: string, subject: string, body: string): Promise<void>;
+}
+
+@Service(USER_SERVICE)
+class UserService {
   constructor(
-    @Inject(ServiceA) private a: ServiceA,
-    @Inject(ServiceB) private b: ServiceB
+    @Inject(USER_REPOSITORY) private userRepo: IUserRepository,
+    @Inject(EMAIL_SERVICE) private email: IEmailService
+  ) {}
+}
+
+@Service(EMAIL_SERVICE)
+class EmailService {
+  constructor(
+    @Inject(LOGGER) private logger: ILogger,
+    @Inject(EMAIL_CONFIG) private config: IEmailConfig
+  ) {} // No dependency on UserService
+}
+```
+
+### 2. Event-Driven Communication
+
+Use events to decouple services:
+
+```typescript
+// ✅ Good - Use events instead of direct dependencies
+@Service(USER_SERVICE)
+class UserService {
+  constructor(
+    @Inject(USER_REPOSITORY) private userRepo: IUserRepository,
+    @Inject(EVENT_BUS) private eventBus: IEventBus
+  ) {}
+
+  async createUser(userData: CreateUserData): Promise<User> {
+    const user = await this.userRepo.create(userData);
+    this.eventBus.emit('user.created', { userId: user.id, email: user.email });
+    return user;
+  }
+}
+
+@Service(EMAIL_SERVICE)
+class EmailService {
+  constructor(@Inject(EVENT_BUS) private eventBus: IEventBus) {
+    this.eventBus.on('user.created', this.handleUserCreated.bind(this));
+  }
+
+  private async handleUserCreated(data: { userId: string; email: string }) {
+    await this.sendWelcomeEmail(data.email);
+  }
+}
+```
+
+### 3. Interface Segregation
+
+Break large interfaces into smaller, focused ones:
+
+```typescript
+// ✅ Good - Split interfaces to avoid circular dependencies
+interface IUserReader {
+  findById(id: string): Promise<User>;
+  findByEmail(email: string): Promise<User>;
+}
+
+interface IUserWriter {
+  create(userData: CreateUserData): Promise<User>;
+  update(id: string, updates: Partial<User>): Promise<User>;
+}
+
+@Service(USER_SERVICE)
+class UserService {
+  constructor(
+    @Inject(USER_REPOSITORY) private userRepo: IUserReader & IUserWriter,
+    @Inject(EMAIL_SENDER) private emailSender: IEmailSender
+  ) {}
+}
+
+@Service(EMAIL_SERVICE)
+class EmailService {
+  constructor(
+    @Inject(EMAIL_CONFIG) private config: IEmailConfig,
+    @Inject(USER_READER) private userReader: IUserReader // Only depends on read operations
   ) {}
 }
 ```
 
-### 2. Depend on Interfaces, Not Implementations
-- Use interfaces or tokens to decouple services.
-- This allows you to inject only what is needed, reducing the chance of a cycle.
+## Prevention Strategies
 
-### 3. Move Shared Logic to a Utility or Helper
-- Extract common functionality into a stateless helper or utility class.
+- **Single Responsibility Principle**: Each service should have one reason to change
+- **Dependency Inversion**: Depend on abstractions, not concretions
+- **Interface Segregation**: Use small, focused interfaces
+- **Event-Driven Architecture**: Use events for communication
+- **CQRS**: Separate read and write operations
 
-## Workarounds for Circular Dependencies
-
-> **Warning:** These are workarounds, not best practices. Prefer refactoring if possible.
-
-### 1. Property Injection
-- Inject the dependency after construction, rather than in the constructor.
-
-> **Note:** Property-injected dependencies are only available after the constructor has finished. If you try to use the property in the constructor, it will be `undefined`. Only use the property in methods called after construction.
+## Testing Circular Dependencies
 
 ```typescript
-@Service()
-class ServiceA {
-  @Inject(ServiceB) b!: ServiceB;
-  constructor(@Inject(OtherDep) private other: OtherDep) {
-    // this.b is undefined here!
-  }
-  doSomething() {
-    this.b.doWork(); // this.b is set here
-  }
-}
-```
+describe('Circular Dependency Detection', () => {
+  let container: Nexus;
 
-### 2. Lazy Resolution
-- Use a factory or a function to resolve the dependency only when needed.
+  beforeEach(() => {
+    container = new Nexus();
+  });
 
-> **Caution:** This pattern only works if the lazy function is not called during construction. Only call the function after all services are constructed (e.g., in a method, not in the constructor). If you call the function in the constructor, you will still get a circular dependency error or `undefined`.
+  it('should detect circular dependencies', () => {
+    container.set(A_SERVICE, { useClass: ServiceA });
+    container.set(B_SERVICE, { useClass: ServiceB });
 
-```typescript
-@Service()
-class ServiceA {
-  constructor(@Inject('getServiceB') private getB: () => ServiceB) {}
+    expect(() => {
+      container.get(A_SERVICE);
+    }).toThrow('Circular dependency detected');
+  });
 
-  doSomething() {
-    const b = this.getB(); // Safe: resolved only when needed
-    b.doWork();
-  }
-}
+  it('should resolve services without circular dependencies', () => {
+    container.set(USER_SERVICE, { useClass: UserService });
+    container.set(EMAIL_SERVICE, { useClass: EmailService });
 
-container.set('getServiceB', { useValue: () => container.get(ServiceB) });
-```
-
-### 3. Use Factories for One Side of the Cycle
-- Provide one of the services via a factory that resolves the other only when needed.
-
-> **Caution:** If the service has other dependencies, you must resolve all of them manually in the factory. This approach is manual, brittle, and not scalable—prefer refactoring or property/lazy injection if possible.
-
-```typescript
-// If ServiceA has other dependencies:
-@Service()
-class ServiceA {
-  constructor(
-    @Inject(ServiceB) private b: ServiceB,
-    @Inject(OtherDep) private other: OtherDep
-  ) {}
-}
-
-container.set(ServiceA, {
-  useFactory: () => new ServiceA(
-    container.get(ServiceB),
-    container.get(OtherDep)
-  ),
+    expect(() => {
+      container.get(USER_SERVICE);
+    }).not.toThrow();
+  });
 });
 ```
 
-- You must keep the factory in sync with the constructor signature.
-- If you add/remove dependencies, you must update the factory.
-- This is only practical for simple cases or as a last-resort workaround.
+## Next Steps
 
-**Tip:** If possible, use property injection for the circular dependency and let the container inject the rest:
+- **[Debugging](debugging-and-diagnostics.md)** - How to debug circular dependency issues
+- **[Performance Tuning](performance-tuning.md)** - Optimize container performance
+- **[Testing](../testing.md)** - Test your dependency injection setup
 
-```typescript
-@Service()
-class ServiceA {
-  @Inject(ServiceB) b!: ServiceB;
-  constructor(@Inject(OtherDep) private other: OtherDep) {}
-}
-```
-
-## Roadmap: First-class Circular Dependency Support
-
-NexusDI plans to add built-in support for resolving certain circular dependencies (e.g., via proxies or lazy injection). See the [Roadmap](../roadmap.md) for details.
-
----
-
-If you encounter a circular dependency, try to refactor first. Use workarounds only as a last resort, and watch for future improvements in NexusDI! 
+Remember: Design your services with clear boundaries and loose coupling to avoid circular dependency traps! 🔄✨

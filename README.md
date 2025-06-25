@@ -4,6 +4,7 @@
   <img src="logo.svg" alt="NexusDI Logo" width="120" height="120" />
   <br />
   <p><strong>A modern, lightweight dependency injection container for TypeScript with decorator support, inspired by industry-leading frameworks.</strong></p>
+  <p><em>The DI library that doesn't make you want to inject yourself with coffee ☕</em></p>
 </div>
 
 <div align="center">
@@ -28,12 +29,12 @@
 
 ## 📊 Performance Comparison
 
-| Library    | Startup Time | Resolution Time | Memory Usage | Bundle Size |
-|------------|--------------|----------------|-------------|-------------|
-| **NexusDI**   | 1.3μs        | 0.2μs          | 6KB         | 96KB        |
-| InversifyJS | 22.2μs       | 1.4μs          | 32KB        | 114KB       |
-| tsyringe    | 45.2μs       | 0.9μs          | 150KB       | 99KB        |
-| TypeDI      | 2.0μs        | 0.1μs          | 2KB         | 89KB        |
+| Library     | Startup Time | Resolution Time | Memory Usage | Bundle Size |
+| ----------- | ------------ | --------------- | ------------ | ----------- |
+| **NexusDI** | 1.3μs        | 0.2μs           | 6KB          | 96KB        |
+| InversifyJS | 22.2μs       | 1.4μs           | 32KB         | 114KB       |
+| tsyringe    | 45.2μs       | 0.9μs           | 150KB        | 99KB        |
+| TypeDI      | 2.0μs        | 0.1μs           | 2KB          | 89KB        |
 
 <sup>Based on real benchmarks: 1,000 startup iterations, 10,000 resolution iterations, Node.js v22.13.1, M1 Pro MacBook.</sup>
 
@@ -44,8 +45,6 @@
 ```bash
 npm install @nexusdi/core reflect-metadata
 ```
-
-**Note:** As of v0.2.0, use `container.set(...)` to register modules and dynamic modules. `setModule` and `registerDynamicModule` are deprecated and will be removed in a future minor version. As long as the major version is 0, minor version bumps are considered breaking.
 
 ```typescript
 import { Nexus, Service, Token, Inject } from '@nexusdi/core';
@@ -60,7 +59,7 @@ const USER_SERVICE = new Token<IUserService>('UserService');
 @Service(USER_SERVICE)
 class UserService implements IUserService {
   constructor(@Inject(LOGGER_SERVICE) private logger: ILoggerService) {}
-  
+
   async getUsers(): Promise<User[]> {
     this.logger.info('Fetching users');
     return [{ id: 1, name: 'John' }];
@@ -99,18 +98,22 @@ class DatabaseModule extends DynamicModule<DatabaseConfig> {
 const container = new Nexus();
 
 // Synchronous configuration
-container.set(DatabaseModule.config({
-  host: 'localhost',
-  port: 5432,
-  database: 'dev_db'
-}));
+container.set(
+  DatabaseModule.config({
+    host: 'localhost',
+    port: 5432,
+    database: 'dev_db',
+  })
+);
 
 // Asynchronous configuration
-container.set(DatabaseModule.configAsync(async () => ({
-  host: process.env.DB_HOST,
-  port: parseInt(process.env.DB_PORT),
-  database: process.env.DB_NAME
-})));
+container.set(
+  DatabaseModule.configAsync(async () => ({
+    host: process.env.DB_HOST,
+    port: parseInt(process.env.DB_PORT),
+    database: process.env.DB_NAME,
+  }))
+);
 ```
 
 ## Documentation

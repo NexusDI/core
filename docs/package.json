@@ -1,5 +1,5 @@
 {
-  "name": "docs",
+  "name": "@nexusdi/docs",
   "version": "0.0.0",
   "private": true,
   "scripts": {
@@ -12,6 +12,7 @@
     "serve": "docusaurus serve",
     "write-translations": "docusaurus write-translations",
     "write-heading-ids": "docusaurus write-heading-ids",
+    "test": "echo \"Error: no test specified\" && exit 1",
     "typecheck": "tsc"
   },
   "dependencies": {

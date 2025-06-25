@@ -1,0 +1,23 @@
+{
+  "files": [],
+  "include": [],
+  "references": [
+    {
+      "path": "../../libs/core"
+    },
+    {
+      "path": "./tsconfig.app.json"
+    },
+    {
+      "path": "./tsconfig.spec.json"
+    }
+  ],
+  "extends": "../../tsconfig.base.json",
+  "compilerOptions": {
+    "jsx": "react-jsx",
+    "experimentalDecorators": true,
+    "emitDecoratorMetadata": true,
+    "moduleResolution": "bundler",
+    "types": ["@react-router/node"]
+  }
+}

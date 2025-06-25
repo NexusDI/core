@@ -1,0 +1,17 @@
+name: Auto-add issues to Project
+
+on:
+  issues:
+    types: [opened, reopened]
+
+jobs:
+  add-to-project:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      issues: write
+    steps:
+      - uses: actions/add-to-project@v1
+        with:
+          project-url: https://github.com/orgs/NexusDI/projects/3
+          github-token: ${{ secrets.GITHUB_TOKEN }}

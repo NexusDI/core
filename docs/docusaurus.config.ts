@@ -1,6 +1,6 @@
-import {themes as prismThemes} from 'prism-react-renderer';
-import type {Config} from '@docusaurus/types';
-import type {ThemeConfig} from '@docusaurus/preset-classic';
+import { themes as prismThemes } from 'prism-react-renderer';
+import type { Config } from '@docusaurus/types';
+import type { ThemeConfig } from '@docusaurus/preset-classic';
 
 // This runs in Node.js - Don't use client-side code here (browser APIs, JSX...)
 
@@ -40,15 +40,17 @@ const config: Config & { themeConfig: ThemeConfig } = {
     [
       'classic',
       /** @type {import('@docusaurus/preset-classic').Options} */
-      ({
+      {
         docs: {
           sidebarPath: require.resolve('./sidebars.js'),
         },
-        blog: false,
+        blog: {
+          showReadingTime: true,
+        },
         theme: {
           customCss: require.resolve('./src/css/custom.css'),
         },
-      }),
+      },
     ],
   ],
 
@@ -65,7 +67,12 @@ const config: Config & { themeConfig: ThemeConfig } = {
         { to: '/docs/getting-started', label: 'Docs', position: 'left' },
         { to: '/docs/advanced', label: 'Advanced', position: 'left' },
         { to: '/docs/faq', label: 'FAQ', position: 'left' },
-        { href: 'https://github.com/NexusDI/core', label: 'GitHub', position: 'right' },
+        { to: '/blog', label: 'Blog', position: 'right' },
+        {
+          href: 'https://github.com/NexusDI/core',
+          label: 'GitHub',
+          position: 'right',
+        },
       ],
     },
     footer: {
@@ -81,9 +88,7 @@ const config: Config & { themeConfig: ThemeConfig } = {
         },
         {
           title: 'Community',
-          items: [
-            { label: 'GitHub', href: 'https://github.com/NexusDI/core' },
-          ],
+          items: [{ label: 'GitHub', href: 'https://github.com/NexusDI/core' }],
         },
       ],
       copyright: `Copyright © ${new Date().getFullYear()} NexusDI. Feature images from <a href="https://unsplash.com">Unsplash</a>.`,
