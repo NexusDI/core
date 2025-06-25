@@ -24,4 +24,4 @@ export const Section = ({ className, variant, ...props }: SectionProps) => {
       {...props}
     />
   );
-}; 
+};

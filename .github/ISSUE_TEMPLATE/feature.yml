@@ -1,0 +1,19 @@
+name: Feature Request
+description: Suggest a new feature or enhancement
+title: '[Feature]: '
+labels: [feature, needs-triage]
+body:
+  - type: textarea
+    attributes:
+      label: What problem would this feature solve?
+      description: Describe the use case / problem this solves
+      placeholder: 'When using Nexus I want to be able to...'
+    validations:
+      required: true
+  - type: textarea
+    attributes:
+      label: Proposed solution or design
+      description: If you have a rough idea of how it could work
+  - type: textarea
+    attributes:
+      label: Additional context

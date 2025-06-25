@@ -11,6 +11,7 @@ Dynamic modules allow you to configure modules at runtime with different setting
 ## Overview
 
 Dynamic modules enable:
+
 - **Environment-specific configuration** (dev, staging, prod)
 - **Feature-based configuration** (different providers, settings)
 - **Runtime configuration** (user preferences, A/B testing)
@@ -35,17 +36,13 @@ interface DatabaseConfig {
 
 @Module({
   services: [DatabaseService],
-  providers: [
-    { token: DATABASE_CONFIG, useValue: {} }
-  ]
+  providers: [{ token: DATABASE_CONFIG, useValue: {} }],
 })
 class DatabaseModule extends DynamicModule<DatabaseConfig> {
   protected readonly configToken = DATABASE_CONFIG;
   protected readonly moduleConfig = {
     services: [DatabaseService],
-    providers: [
-      { token: DATABASE_CONFIG, useValue: {} }
-    ]
+    providers: [{ token: DATABASE_CONFIG, useValue: {} }],
   };
 }
 
@@ -53,21 +50,26 @@ class DatabaseModule extends DynamicModule<DatabaseConfig> {
 const container = new Nexus();
 
 // Synchronous configuration
-container.set(DatabaseModule.config({
-  host: 'localhost',
-  port: 5432,
-  database: 'myapp'
-}));
+container.set(
+  DatabaseModule.config({
+    host: 'localhost',
+    port: 5432,
+    database: 'myapp',
+  })
+);
 
 // Asynchronous configuration
-container.set(DatabaseModule.configAsync(async () => ({
-  host: process.env.DB_HOST,
-  port: parseInt(process.env.DB_PORT),
-  database: process.env.DB_NAME,
-  username: process.env.DB_USER,
-  password: process.env.DB_PASS
-})));
+container.set(
+  DatabaseModule.configAsync(async () => ({
+    host: process.env.DB_HOST,
+    port: parseInt(process.env.DB_PORT),
+    database: process.env.DB_NAME,
+    username: process.env.DB_USER,
+    password: process.env.DB_PASS,
+  }))
+);
 ```
+
 </details>
 
 ## Current Implementation
@@ -81,12 +83,15 @@ For now, you can achieve similar functionality using the current module system:
 @Module({
   services: [DatabaseService],
   providers: [
-    { token: DATABASE_CONFIG, useValue: { 
-      host: 'localhost', 
-      port: 5432, 
-      database: 'dev_db' 
-    }}
-  ]
+    {
+      token: DATABASE_CONFIG,
+      useValue: {
+        host: 'localhost',
+        port: 5432,
+        database: 'dev_db',
+      },
+    },
+  ],
 })
 class DevelopmentDatabaseModule {}
 
@@ -94,12 +99,15 @@ class DevelopmentDatabaseModule {}
 @Module({
   services: [DatabaseService],
   providers: [
-    { token: DATABASE_CONFIG, useValue: { 
-      host: process.env.DB_HOST, 
-      port: parseInt(process.env.DB_PORT), 
-      database: process.env.DB_NAME 
-    }}
-  ]
+    {
+      token: DATABASE_CONFIG,
+      useValue: {
+        host: process.env.DB_HOST,
+        port: parseInt(process.env.DB_PORT),
+        database: process.env.DB_NAME,
+      },
+    },
+  ],
 })
 class ProductionDatabaseModule {}
 
@@ -123,7 +131,9 @@ class DatabaseService {
   constructor(@Inject(DATABASE_CONFIG) private config: DatabaseConfig) {}
 
   async connect() {
-    console.log(`Connecting to ${this.config.host}:${this.config.port}/${this.config.database}`);
+    console.log(
+      `Connecting to ${this.config.host}:${this.config.port}/${this.config.database}`
+    );
     // Connection logic
   }
 }
@@ -141,17 +151,13 @@ This pattern will be supported with dynamic module configuration in future relea
 ```typescript
 @Module({
   services: [LoggerService],
-  providers: [
-    { token: LOG_CONFIG, useValue: {} }
-  ]
+  providers: [{ token: LOG_CONFIG, useValue: {} }],
 })
 class LoggingModule extends DynamicModule<LogConfig> {
   protected readonly configToken = LOG_CONFIG;
   protected readonly moduleConfig = {
     services: [LoggerService],
-    providers: [
-      { token: LOG_CONFIG, useValue: {} }
-    ]
+    providers: [{ token: LOG_CONFIG, useValue: {} }],
   };
 }
 
@@ -159,23 +165,30 @@ class LoggingModule extends DynamicModule<LogConfig> {
 const container = new Nexus();
 
 // Development configuration
-container.set(LoggingModule.config({
-  level: 'debug',
-  format: 'detailed'
-}));
+container.set(
+  LoggingModule.config({
+    level: 'debug',
+    format: 'detailed',
+  })
+);
 
 // Production configuration
-container.set(LoggingModule.config({
-  level: 'info',
-  format: 'json'
-}));
+container.set(
+  LoggingModule.config({
+    level: 'info',
+    format: 'json',
+  })
+);
 
 // Testing configuration
-container.set(LoggingModule.config({
-  level: 'error',
-  format: 'minimal'
-}));
+container.set(
+  LoggingModule.config({
+    level: 'error',
+    format: 'minimal',
+  })
+);
 ```
+
 </details>
 
 ### Feature-Based Configuration
@@ -198,17 +211,13 @@ interface EmailConfig {
 
 @Module({
   services: [EmailService],
-  providers: [
-    { token: EMAIL_CONFIG, useValue: {} }
-  ]
+  providers: [{ token: EMAIL_CONFIG, useValue: {} }],
 })
 class EmailModule extends DynamicModule<EmailConfig> {
   protected readonly configToken = EMAIL_CONFIG;
   protected readonly moduleConfig = {
     services: [EmailService],
-    providers: [
-      { token: EMAIL_CONFIG, useValue: {} }
-    ]
+    providers: [{ token: EMAIL_CONFIG, useValue: {} }],
   };
 }
 
@@ -217,26 +226,33 @@ const container = new Nexus();
 
 // Choose email provider based on configuration
 if (process.env.EMAIL_PROVIDER === 'sendgrid') {
-  container.set(EmailModule.config({
-    provider: 'sendgrid',
-    apiKey: process.env.SENDGRID_API_KEY
-  }));
+  container.set(
+    EmailModule.config({
+      provider: 'sendgrid',
+      apiKey: process.env.SENDGRID_API_KEY,
+    })
+  );
 } else if (process.env.EMAIL_PROVIDER === 'mailgun') {
-  container.set(EmailModule.config({
-    provider: 'mailgun',
-    apiKey: process.env.MAILGUN_API_KEY
-  }));
+  container.set(
+    EmailModule.config({
+      provider: 'mailgun',
+      apiKey: process.env.MAILGUN_API_KEY,
+    })
+  );
 } else {
-  container.set(EmailModule.config({
-    provider: 'smtp',
-    smtpConfig: {
-      host: process.env.SMTP_HOST,
-      port: parseInt(process.env.SMTP_PORT),
-      secure: process.env.SMTP_SECURE === 'true'
-    }
-  }));
+  container.set(
+    EmailModule.config({
+      provider: 'smtp',
+      smtpConfig: {
+        host: process.env.SMTP_HOST,
+        port: parseInt(process.env.SMTP_PORT),
+        secure: process.env.SMTP_SECURE === 'true',
+      },
+    })
+  );
 }
 ```
+
 </details>
 
 ### Composite Configuration
@@ -249,9 +265,7 @@ This pattern will be supported with dynamic module configuration in future relea
 ```typescript
 @Module({
   services: [AppService],
-  providers: [
-    { token: APP_CONFIG, useValue: {} }
-  ]
+  providers: [{ token: APP_CONFIG, useValue: {} }],
 })
 class AppModule extends DynamicModule<{
   database: DatabaseConfig;
@@ -261,34 +275,35 @@ class AppModule extends DynamicModule<{
   protected readonly configToken = APP_CONFIG;
   protected readonly moduleConfig = {
     services: [AppService],
-    providers: [
-      { token: APP_CONFIG, useValue: {} }
-    ],
+    providers: [{ token: APP_CONFIG, useValue: {} }],
     imports: [
       DatabaseModule.config({} as DatabaseConfig),
       EmailModule.config({} as EmailConfig),
-      LoggingModule.config({} as LogConfig)
-    ]
+      LoggingModule.config({} as LogConfig),
+    ],
   };
 }
 
 // Usage
 const container = new Nexus();
-container.set(AppModule.config({
-  database: {
-    host: 'localhost',
-    port: 5432,
-    database: 'myapp'
-  },
-  email: {
-    provider: 'sendgrid',
-    apiKey: process.env.SENDGRID_API_KEY
-  },
-  logging: {
-    level: process.env.NODE_ENV === 'production' ? 'info' : 'debug'
-  }
-}));
+container.set(
+  AppModule.config({
+    database: {
+      host: 'localhost',
+      port: 5432,
+      database: 'myapp',
+    },
+    email: {
+      provider: 'sendgrid',
+      apiKey: process.env.SENDGRID_API_KEY,
+    },
+    logging: {
+      level: process.env.NODE_ENV === 'production' ? 'info' : 'debug',
+    },
+  })
+);
 ```
+
 </details>
 
 ## Configuration Validation
@@ -301,17 +316,13 @@ Configuration validation will be supported with dynamic module configuration in 
 ```typescript
 @Module({
   services: [DatabaseService],
-  providers: [
-    { token: DATABASE_CONFIG, useValue: {} }
-  ]
+  providers: [{ token: DATABASE_CONFIG, useValue: {} }],
 })
 class DatabaseModule extends DynamicModule<DatabaseConfig> {
   protected readonly configToken = DATABASE_CONFIG;
   protected readonly moduleConfig = {
     services: [DatabaseService],
-    providers: [
-      { token: DATABASE_CONFIG, useValue: {} }
-    ]
+    providers: [{ token: DATABASE_CONFIG, useValue: {} }],
   };
 
   static config(config: DatabaseConfig) {
@@ -330,6 +341,7 @@ class DatabaseModule extends DynamicModule<DatabaseConfig> {
   }
 }
 ```
+
 </details>
 
 ## Testing with Dynamic Modules
@@ -343,11 +355,13 @@ Testing with dynamic module configuration will be supported in future releases.
 describe('DatabaseModule', () => {
   it('should work with test configuration', () => {
     const container = new Nexus();
-    container.set(DatabaseModule.config({
-      host: 'localhost',
-      port: 5432,
-      database: 'test_db'
-    }));
+    container.set(
+      DatabaseModule.config({
+        host: 'localhost',
+        port: 5432,
+        database: 'test_db',
+      })
+    );
 
     const databaseService = container.get(DATABASE_SERVICE);
     expect(databaseService).toBeInstanceOf(DatabaseService);
@@ -356,15 +370,18 @@ describe('DatabaseModule', () => {
   it('should validate configuration', () => {
     expect(() => {
       const container = new Nexus();
-      container.set(DatabaseModule.config({
-        host: '', // Invalid
-        port: 5432,
-        database: 'test_db'
-      }));
+      container.set(
+        DatabaseModule.config({
+          host: '', // Invalid
+          port: 5432,
+          database: 'test_db',
+        })
+      );
     }).toThrow('Database host is required');
   });
 });
 ```
+
 </details>
 
 ## Current Testing Approach
@@ -375,20 +392,23 @@ For now, you can test modules using the current approach:
 describe('DatabaseModule', () => {
   it('should work with test configuration', () => {
     const container = new Nexus();
-    
+
     // Use a test-specific module
     @Module({
       services: [DatabaseService],
       providers: [
-        { token: DATABASE_CONFIG, useValue: { 
-          host: 'localhost', 
-          port: 5432, 
-          database: 'test_db' 
-        }}
-      ]
+        {
+          token: DATABASE_CONFIG,
+          useValue: {
+            host: 'localhost',
+            port: 5432,
+            database: 'test_db',
+          },
+        },
+      ],
     })
     class TestDatabaseModule {}
-    
+
     container.set(TestDatabaseModule);
 
     const databaseService = container.get(DATABASE_SERVICE);
@@ -403,4 +423,4 @@ describe('DatabaseModule', () => {
 - **[Module Patterns](module-patterns.md)** - Explore common module patterns
 - **[Advanced Providers & Factories](advanced/advanced-providers-and-factories.md)** - Advanced provider configuration
 
-Dynamic modules will provide powerful runtime configuration capabilities in future releases! 🚀 
+Dynamic modules will provide powerful runtime configuration capabilities in future releases! 🚀

@@ -14,12 +14,10 @@ Ah, the classic decorator confusion! This usually happens when TypeScript doesn'
 {
   "compilerOptions": {
     "experimentalDecorators": true,
-    "emitDecoratorMetadata": true,
+    "emitDecoratorMetadata": true
     // ...other options
   },
-  "include": [
-    "src/**/*"
-  ]
+  "include": ["src/**/*"]
 }
 ```
 
@@ -56,4 +54,4 @@ Don't suffer in silence! We're here to help:
 - [GitHub Issues](https://github.com/NexusDI/core/issues) - For bugs and feature requests
 - [Discussions](https://github.com/NexusDI/core/discussions) - For questions, ideas, and general chit-chat
 
-Remember: Every expert was once a beginner who asked a lot of questions. Keep asking, keep learning, and keep building awesome things! 🚀✨ 
+Remember: Every expert was once a beginner who asked a lot of questions. Keep asking, keep learning, and keep building awesome things! 🚀✨

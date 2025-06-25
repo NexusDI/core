@@ -41,7 +41,7 @@ When writing NexusDI documentation or blog posts, follow these guidelines to mai
 ### Tone & Personality 🎭
 
 - **Warm and friendly** but professional - like a helpful colleague who knows their stuff
-- **Nerdy but not overwhelming** - include 1-2 subtle nerdy jokes per article, for instance from one of these fandoms: 
+- **Nerdy but not overwhelming** - include 1-2 subtle nerdy jokes per article, for instance from one of these fandoms:
   - Star Wars
   - Star Trek
   - The Expanse
@@ -101,12 +101,11 @@ Here are examples showing good and bad documentation practices:
 Modules are a powerful way to organize your dependency injection setup in NexusDI. Think of them as guild departments - each handles its own specialty, but they all contribute to the guild's success.
 
 **Code Example:**
+
 ```typescript
 @Module({
   services: [UserService, UserRepository],
-  providers: [
-    { token: DATABASE, useClass: PostgresDatabase }
-  ]
+  providers: [{ token: DATABASE, useClass: PostgresDatabase }],
 })
 class UserModule {}
 ```
@@ -121,12 +120,11 @@ class UserModule {}
 Just as in World of Warcraft where you have different guild departments, modules in NexusDI work the same way. Think of them as the modular compartments of a well-designed ship - each section has its purpose, but they all work together seamlessly. Remember, just like in Star Wars, the force flows through everything, including your dependency injection setup.
 
 **Code Example:**
+
 ```typescript
 @Module({
   services: [UserService, UserRepository],
-  providers: [
-    { token: DATABASE, useClass: PostgresDatabase }
-  ]
+  providers: [{ token: DATABASE, useClass: PostgresDatabase }],
 })
 class UserModule {}
 ```
@@ -189,20 +187,24 @@ Then visit `http://localhost:3000` to see your changes.
 
 ```markdown
 ## Description
+
 Brief description of the documentation changes
 
 ## Type of Change
+
 - [ ] New documentation page
 - [ ] Updates to existing content
 - [ ] Bug fix (typo, broken link, etc.)
 - [ ] Style improvements
 
 ## Testing
+
 - [ ] Documentation builds successfully
 - [ ] All examples work correctly
 - [ ] Links are verified
 
 ## Checklist
+
 - [ ] Follows style guide
 - [ ] Self-review completed
 - [ ] Content is accurate
@@ -217,8 +219,9 @@ Brief description of the documentation changes
 ## Recognition
 
 Documentation contributors will be recognized in:
+
 - The project's README.md
 - Release notes
 - GitHub contributors page
 
-Thank you for helping make NexusDI documentation better for everyone! 🚀✨ 
+Thank you for helping make NexusDI documentation better for everyone! 🚀✨

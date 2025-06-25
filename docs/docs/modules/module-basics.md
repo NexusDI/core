@@ -9,6 +9,7 @@ Modules are a powerful way to organize and structure your dependency injection s
 ## What are Modules?
 
 A module is a class decorated with `@Module()` that defines a collection of:
+
 - **Services** - Classes that provide functionality
 - **Providers** - Dependencies that can be injected
 - **Imports** - Other modules to include
@@ -17,6 +18,7 @@ A module is a class decorated with `@Module()` that defines a collection of:
 ## Why Use Modules?
 
 ### 1. **Organization & Structure**
+
 Modules help you organize your application into logical, cohesive units:
 
 ```typescript
@@ -31,31 +33,26 @@ container.set(LOGGER, { useClass: Logger });
 // You can organize into focused modules
 @Module({
   services: [UserService, UserRepository],
-  providers: [
-    { token: DATABASE, useClass: Database }
-  ]
+  providers: [{ token: DATABASE, useClass: Database }],
 })
 class UserModule {}
 
 @Module({
   services: [EmailService, NotificationService],
-  providers: [
-    { token: EMAIL_CONFIG, useValue: emailConfig }
-  ]
+  providers: [{ token: EMAIL_CONFIG, useValue: emailConfig }],
 })
 class NotificationModule {}
 ```
 
 ### 2. **Reusability**
+
 Modules can be reused across different applications or parts of your application:
 
 ```typescript
 // Reusable authentication module
 @Module({
   services: [AuthService, JwtService, PasswordService],
-  providers: [
-    { token: AUTH_CONFIG, useValue: authConfig }
-  ]
+  providers: [{ token: AUTH_CONFIG, useValue: authConfig }],
 })
 class AuthModule {}
 
@@ -70,6 +67,7 @@ app2.set(OrderModule);
 ```
 
 ### 3. **Testing & Mocking**
+
 Modules make it easier to test specific parts of your application:
 
 ```typescript
@@ -78,8 +76,8 @@ Modules make it easier to test specific parts of your application:
   services: [UserService],
   providers: [
     { token: DATABASE, useValue: mockDatabase },
-    { token: LOGGER, useValue: mockLogger }
-  ]
+    { token: LOGGER, useValue: mockLogger },
+  ],
 })
 class TestUserModule {}
 
@@ -88,21 +86,22 @@ testContainer.set(TestUserModule);
 ```
 
 ### 4. **Configuration Management**
+
 Modules can encapsulate configuration and environment-specific settings:
 
 ```typescript
 @Module({
   services: [DatabaseService],
   providers: [
-    { 
-      token: DATABASE_CONFIG, 
+    {
+      token: DATABASE_CONFIG,
       useFactory: () => ({
         host: process.env.DB_HOST,
         port: process.env.DB_PORT,
-        database: process.env.DB_NAME
-      })
-    }
-  ]
+        database: process.env.DB_NAME,
+      }),
+    },
+  ],
 })
 class DatabaseModule {}
 ```
@@ -122,7 +121,7 @@ export const DATABASE = new Token<IDatabase>('DATABASE');
 @Service(USER_SERVICE)
 class UserService implements IUserService {
   constructor(@Inject(DATABASE) private db: IDatabase) {}
-  
+
   async getUser(id: string) {
     return this.db.query(`SELECT * FROM users WHERE id = ?`, [id]);
   }
@@ -131,9 +130,7 @@ class UserService implements IUserService {
 // Create the module
 @Module({
   services: [UserService],
-  providers: [
-    { token: DATABASE, useClass: PostgresDatabase }
-  ]
+  providers: [{ token: DATABASE, useClass: PostgresDatabase }],
 })
 export class UserModule {}
 ```
@@ -145,18 +142,14 @@ Modules can import other modules to compose functionality:
 ```typescript
 @Module({
   services: [AuthService],
-  providers: [
-    { token: JWT_SECRET, useValue: process.env.JWT_SECRET }
-  ]
+  providers: [{ token: JWT_SECRET, useValue: process.env.JWT_SECRET }],
 })
 class AuthModule {}
 
 @Module({
   services: [UserService],
-  providers: [
-    { token: DATABASE, useClass: PostgresDatabase }
-  ],
-  imports: [AuthModule] // Import the auth module
+  providers: [{ token: DATABASE, useClass: PostgresDatabase }],
+  imports: [AuthModule], // Import the auth module
 })
 class UserModule {}
 ```
@@ -168,10 +161,8 @@ Export services to make them available to other modules:
 ```typescript
 @Module({
   services: [DatabaseService, ConnectionPool],
-  providers: [
-    { token: DATABASE_CONFIG, useValue: dbConfig }
-  ],
-  exports: [DATABASE_SERVICE] // Export for other modules to use
+  providers: [{ token: DATABASE_CONFIG, useValue: dbConfig }],
+  exports: [DATABASE_SERVICE], // Export for other modules to use
 })
 class DatabaseModule {}
 ```
@@ -201,21 +192,19 @@ Modules can depend on each other through imports:
 ```typescript
 @Module({
   services: [DatabaseService],
-  providers: [
-    { token: DATABASE_CONFIG, useValue: dbConfig }
-  ]
+  providers: [{ token: DATABASE_CONFIG, useValue: dbConfig }],
 })
 class DatabaseModule {}
 
 @Module({
   services: [UserService],
-  imports: [DatabaseModule] // Depends on DatabaseModule
+  imports: [DatabaseModule], // Depends on DatabaseModule
 })
 class UserModule {}
 
 @Module({
   services: [OrderService],
-  imports: [DatabaseModule, UserModule] // Depends on both
+  imports: [DatabaseModule, UserModule], // Depends on both
 })
 class OrderModule {}
 ```
@@ -227,19 +216,21 @@ class OrderModule {}
 NexusDI supports two formats for registering providers in modules:
 
 #### Simplified Format (Recommended)
+
 When a service is decorated with `@Service(token)`, you can simply include the service class in the providers array:
 
 ```typescript
 @Module({
   providers: [
     LoggerService, // Automatically uses the token from @Service decorator
-    UserService,   // Automatically uses the token from @Service decorator
+    UserService, // Automatically uses the token from @Service decorator
   ],
 })
 class AppModule {}
 ```
 
 #### Full Provider Format
+
 For more complex scenarios, you can use the full provider object format:
 
 ```typescript
@@ -264,7 +255,9 @@ class DatabaseService {
   constructor(@Inject(DATABASE_CONFIG) private config: DatabaseConfig) {}
 
   async connect() {
-    console.log(`Connecting to ${this.config.host}:${this.config.port}/${this.config.database}`);
+    console.log(
+      `Connecting to ${this.config.host}:${this.config.port}/${this.config.database}`
+    );
     // Connection logic
   }
 }
@@ -288,4 +281,4 @@ For advanced topics such as dynamic modules, lifetimes, multi-injection, and mor
 
 - **[Module Patterns](./module-patterns.md)** - Advanced patterns and best practices
 - **[Dynamic Modules](./dynamic-modules.md)** - Runtime configuration and validation
-- **[Testing](./testing.md)** - How to test modules and services 
+- **[Testing](./testing.md)** - How to test modules and services

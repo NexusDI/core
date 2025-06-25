@@ -9,24 +9,21 @@ This article covers advanced module patterns and best practices for organizing y
 ## Advanced Module Patterns
 
 ### 1. **Feature Modules**
+
 Organize by application features:
 
 ```typescript
 // User feature module
 @Module({
   services: [UserService, UserRepository, UserValidator],
-  providers: [
-    { token: USER_CONFIG, useValue: userConfig }
-  ]
+  providers: [{ token: USER_CONFIG, useValue: userConfig }],
 })
 class UserModule {}
 
 // Order feature module
 @Module({
   services: [OrderService, OrderRepository, PaymentService],
-  providers: [
-    { token: PAYMENT_GATEWAY, useClass: StripeGateway }
-  ]
+  providers: [{ token: PAYMENT_GATEWAY, useClass: StripeGateway }],
 })
 class OrderModule {}
 
@@ -34,43 +31,37 @@ class OrderModule {}
 @Module({
   imports: [UserModule, OrderModule],
   services: [AppService],
-  providers: [
-    { token: APP_CONFIG, useValue: appConfig }
-  ]
+  providers: [{ token: APP_CONFIG, useValue: appConfig }],
 })
 class AppModule {}
 ```
 
 ### 2. **Infrastructure Modules**
+
 Separate infrastructure concerns:
 
 ```typescript
 @Module({
   services: [DatabaseService, ConnectionPool],
-  providers: [
-    { token: DATABASE_CONFIG, useValue: dbConfig }
-  ]
+  providers: [{ token: DATABASE_CONFIG, useValue: dbConfig }],
 })
 class DatabaseModule {}
 
 @Module({
   services: [LoggerService, LogFormatter],
-  providers: [
-    { token: LOG_LEVEL, useValue: process.env.LOG_LEVEL }
-  ]
+  providers: [{ token: LOG_LEVEL, useValue: process.env.LOG_LEVEL }],
 })
 class LoggingModule {}
 
 @Module({
   services: [EmailService, TemplateEngine],
-  providers: [
-    { token: SMTP_CONFIG, useValue: smtpConfig }
-  ]
+  providers: [{ token: SMTP_CONFIG, useValue: smtpConfig }],
 })
 class EmailModule {}
 ```
 
 ### 3. **Environment-Specific Modules**
+
 Different modules for different environments:
 
 ```typescript
@@ -79,8 +70,8 @@ Different modules for different environments:
   services: [DevLogger, DevDatabase],
   providers: [
     { token: LOG_LEVEL, useValue: 'debug' },
-    { token: DATABASE_URL, useValue: 'sqlite://dev.db' }
-  ]
+    { token: DATABASE_URL, useValue: 'sqlite://dev.db' },
+  ],
 })
 class DevelopmentModule {}
 
@@ -89,8 +80,8 @@ class DevelopmentModule {}
   services: [ProductionLogger, PostgresDatabase],
   providers: [
     { token: LOG_LEVEL, useValue: 'info' },
-    { token: DATABASE_URL, useValue: process.env.DATABASE_URL }
-  ]
+    { token: DATABASE_URL, useValue: process.env.DATABASE_URL },
+  ],
 })
 class ProductionModule {}
 
@@ -141,8 +132,8 @@ describe('UserModule', () => {
   services: [UserService],
   providers: [
     { token: DATABASE, useValue: mockDatabase },
-    { token: LOGGER, useValue: mockLogger }
-  ]
+    { token: LOGGER, useValue: mockLogger },
+  ],
 })
 class TestUserModule {}
 
@@ -150,7 +141,7 @@ describe('UserModule with mocks', () => {
   it('should work with mocked dependencies', () => {
     const container = new Nexus();
     container.set(TestUserModule);
-    
+
     const userService = container.get(USER_SERVICE);
     // Test with mocked dependencies
   });
@@ -160,15 +151,14 @@ describe('UserModule with mocks', () => {
 ## Best Practices
 
 ### 1. **Single Responsibility**
+
 Each module should have a single, well-defined responsibility:
 
 ```typescript
 // ✅ Good - focused on user management
 @Module({
   services: [UserService, UserRepository, UserValidator],
-  providers: [
-    { token: USER_CONFIG, useValue: userConfig }
-  ]
+  providers: [{ token: USER_CONFIG, useValue: userConfig }],
 })
 class UserModule {}
 
@@ -178,32 +168,34 @@ class UserModule {}
   providers: [
     { token: USER_CONFIG, useValue: userConfig },
     { token: EMAIL_CONFIG, useValue: emailConfig },
-    { token: PAYMENT_CONFIG, useValue: paymentConfig }
-  ]
+    { token: PAYMENT_CONFIG, useValue: paymentConfig },
+  ],
 })
 class EverythingModule {}
 ```
 
 ### 2. **Clear Dependencies**
+
 Make module dependencies explicit through imports:
 
 ```typescript
 // ✅ Good - explicit dependencies
 @Module({
   services: [UserService],
-  imports: [DatabaseModule, LoggingModule]
+  imports: [DatabaseModule, LoggingModule],
 })
 class UserModule {}
 
 // ❌ Bad - hidden dependencies
 @Module({
-  services: [UserService]
+  services: [UserService],
   // Missing imports, but UserService depends on DatabaseModule
 })
 class UserModule {}
 ```
 
 ### 3. **Consistent Naming**
+
 Use consistent naming conventions:
 
 ```typescript
@@ -219,17 +211,18 @@ class DB {}
 ```
 
 ### 4. **Documentation**
+
 Document your modules with clear descriptions:
 
 ```typescript
 /**
  * User management module
- * 
+ *
  * Provides user-related services including:
  * - User creation and management
  * - Authentication and authorization
  * - User profile operations
- * 
+ *
  * Dependencies:
  * - DatabaseModule for data persistence
  * - LoggingModule for audit trails
@@ -237,9 +230,7 @@ Document your modules with clear descriptions:
 @Module({
   services: [UserService, UserRepository, UserValidator],
   imports: [DatabaseModule, LoggingModule],
-  providers: [
-    { token: USER_CONFIG, useValue: userConfig }
-  ]
+  providers: [{ token: USER_CONFIG, useValue: userConfig }],
 })
 class UserModule {}
 ```
@@ -254,24 +245,24 @@ You can achieve environment-specific configuration by creating separate modules 
 @Module({
   services: [LoggerService],
   providers: [
-    { token: LOG_CONFIG, useValue: { level: 'debug', format: 'detailed' } }
-  ]
+    { token: LOG_CONFIG, useValue: { level: 'debug', format: 'detailed' } },
+  ],
 })
 class DevelopmentLoggingModule {}
 
 @Module({
   services: [LoggerService],
   providers: [
-    { token: LOG_CONFIG, useValue: { level: 'info', format: 'json' } }
-  ]
+    { token: LOG_CONFIG, useValue: { level: 'info', format: 'json' } },
+  ],
 })
 class ProductionLoggingModule {}
 
 @Module({
   services: [LoggerService],
   providers: [
-    { token: LOG_CONFIG, useValue: { level: 'error', format: 'minimal' } }
-  ]
+    { token: LOG_CONFIG, useValue: { level: 'error', format: 'minimal' } },
+  ],
 })
 class TestingLoggingModule {}
 
@@ -304,25 +295,19 @@ interface EmailConfig {
 
 @Module({
   services: [EmailService],
-  providers: [
-    { token: EMAIL_CONFIG, useValue: { provider: 'sendgrid' } }
-  ]
+  providers: [{ token: EMAIL_CONFIG, useValue: { provider: 'sendgrid' } }],
 })
 class SendGridEmailModule {}
 
 @Module({
   services: [EmailService],
-  providers: [
-    { token: EMAIL_CONFIG, useValue: { provider: 'mailgun' } }
-  ]
+  providers: [{ token: EMAIL_CONFIG, useValue: { provider: 'mailgun' } }],
 })
 class MailgunEmailModule {}
 
 @Module({
   services: [EmailService],
-  providers: [
-    { token: EMAIL_CONFIG, useValue: { provider: 'smtp' } }
-  ]
+  providers: [{ token: EMAIL_CONFIG, useValue: { provider: 'smtp' } }],
 })
 class SmtpEmailModule {}
 
@@ -347,30 +332,41 @@ Create composite modules that import other modules:
 @Module({
   services: [DatabaseService],
   providers: [
-    { token: DATABASE_CONFIG, useValue: { host: 'localhost', port: 5432, database: 'myapp' } }
-  ]
+    {
+      token: DATABASE_CONFIG,
+      useValue: { host: 'localhost', port: 5432, database: 'myapp' },
+    },
+  ],
 })
 class DatabaseModule {}
 
 @Module({
   services: [EmailService],
   providers: [
-    { token: EMAIL_CONFIG, useValue: { provider: 'sendgrid', apiKey: process.env.SENDGRID_API_KEY } }
-  ]
+    {
+      token: EMAIL_CONFIG,
+      useValue: { provider: 'sendgrid', apiKey: process.env.SENDGRID_API_KEY },
+    },
+  ],
 })
 class EmailModule {}
 
 @Module({
   services: [LoggerService],
   providers: [
-    { token: LOG_CONFIG, useValue: { level: process.env.NODE_ENV === 'production' ? 'info' : 'debug' } }
-  ]
+    {
+      token: LOG_CONFIG,
+      useValue: {
+        level: process.env.NODE_ENV === 'production' ? 'info' : 'debug',
+      },
+    },
+  ],
 })
 class LoggingModule {}
 
 @Module({
   services: [AppService],
-  imports: [DatabaseModule, EmailModule, LoggingModule]
+  imports: [DatabaseModule, EmailModule, LoggingModule],
 })
 class AppModule {}
 
@@ -398,15 +394,13 @@ function validateDatabaseConfig(config: DatabaseConfig): void {
 
 function createDatabaseModule(config: DatabaseConfig) {
   validateDatabaseConfig(config);
-  
+
   @Module({
     services: [DatabaseService],
-    providers: [
-      { token: DATABASE_CONFIG, useValue: config }
-    ]
+    providers: [{ token: DATABASE_CONFIG, useValue: config }],
   })
   class ValidatedDatabaseModule {}
-  
+
   return ValidatedDatabaseModule;
 }
 
@@ -415,7 +409,7 @@ const container = new Nexus();
 const DatabaseModule = createDatabaseModule({
   host: 'localhost',
   port: 5432,
-  database: 'myapp'
+  database: 'myapp',
 });
 container.set(DatabaseModule);
 ```
@@ -428,19 +422,22 @@ You can test different configurations by creating test-specific modules:
 describe('DatabaseModule', () => {
   it('should work with test configuration', () => {
     const container = new Nexus();
-    
+
     @Module({
       services: [DatabaseService],
       providers: [
-        { token: DATABASE_CONFIG, useValue: { 
-          host: 'localhost', 
-          port: 5432, 
-          database: 'test_db' 
-        }}
-      ]
+        {
+          token: DATABASE_CONFIG,
+          useValue: {
+            host: 'localhost',
+            port: 5432,
+            database: 'test_db',
+          },
+        },
+      ],
     })
     class TestDatabaseModule {}
-    
+
     container.set(TestDatabaseModule);
 
     const databaseService = container.get(DATABASE_SERVICE);
@@ -452,7 +449,7 @@ describe('DatabaseModule', () => {
       createDatabaseModule({
         host: '', // Invalid
         port: 5432,
-        database: 'test_db'
+        database: 'test_db',
       });
     }).toThrow('Database host is required');
   });
@@ -483,4 +480,4 @@ For dynamic module configuration with runtime settings, see [Dynamic Modules](./
 
 - **[Dynamic Modules](./dynamic-modules.md)** - Runtime configuration and validation
 - **[Testing](./testing.md)** - How to test modules and services
-- **[Advanced](./advanced.md)** - Advanced patterns and techniques 
+- **[Advanced](./advanced.md)** - Advanced patterns and techniques

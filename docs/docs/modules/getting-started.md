@@ -21,7 +21,7 @@ Without DI, your classes directly instantiate their dependencies:
 class UserService {
   private logger = new ConsoleLogger(); // Direct instantiation
   private database = new PostgresDatabase(); // Hard-coded implementation
-  
+
   getUser(id: string) {
     this.logger.log(`Getting user ${id}`);
     return this.database.query(`SELECT * FROM users WHERE id = '${id}'`);
@@ -30,6 +30,7 @@ class UserService {
 ```
 
 **Problems with this approach:**
+
 - **Hard to test**: You can't easily mock the logger or database
 - **Tight coupling**: UserService is locked to specific implementations
 - **Hard to configure**: Can't easily switch between different database types
@@ -46,7 +47,7 @@ class UserService {
     private logger: Logger, // Interface/abstract dependency
     private database: Database // Interface/abstract dependency
   ) {}
-  
+
   getUser(id: string) {
     this.logger.log(`Getting user ${id}`);
     return this.database.query(`SELECT * FROM users WHERE id = '${id}'`);
@@ -55,6 +56,7 @@ class UserService {
 ```
 
 **Benefits of this approach:**
+
 - **Easy testing**: Inject mock implementations for isolated unit tests
 - **Loose coupling**: Classes depend on abstractions, not concrete implementations
 - **Flexible configuration**: Switch implementations without changing business logic
@@ -129,7 +131,9 @@ export class UserService implements IUserService {
 
   async getUser(id: string): Promise<User> {
     this.logger.log(`Fetching user with id: ${id}`);
-    const result = await this.database.query(`SELECT * FROM users WHERE id = '${id}'`);
+    const result = await this.database.query(
+      `SELECT * FROM users WHERE id = '${id}'`
+    );
     return result[0];
   }
 
@@ -179,4 +183,4 @@ For a detailed explanation of why tokens and interfaces are better than direct c
 - **[Tokens](./tokens.md)** - Complete guide to tokens
 - **[Best Practices](./best-practices.md)** - Guidelines for maintainable code
 
-Take it one step at a time, and you'll be building robust applications in no time! Remember, the best code is like a well-oiled machine - it just works, beratna! 🚀 
+Take it one step at a time, and you'll be building robust applications in no time! Remember, the best code is like a well-oiled machine - it just works, beratna! 🚀

@@ -41,7 +41,7 @@ const DATABASE = new Token<IDatabase>('DATABASE');
 @Service(USER_SERVICE)
 class UserService implements IUserService {
   constructor(@Inject(DATABASE) private db: IDatabase) {}
-  
+
   async getUser(id: string) {
     return this.db.query(`SELECT * FROM users WHERE id = ?`, [id]);
   }
@@ -66,6 +66,7 @@ const user = await userService.getUser('123');
 ## Container Lifecycle
 
 ### 1. **Registration Phase**
+
 Register all your services, providers, and modules:
 
 ```typescript
@@ -81,6 +82,7 @@ container.set(EmailModule);
 ```
 
 ### 2. **Resolution Phase**
+
 Resolve and use your services:
 
 ```typescript
@@ -94,6 +96,7 @@ await emailService.sendWelcomeEmail(user.email);
 ```
 
 ### 3. **Cleanup Phase**
+
 Clean up when done:
 
 ```typescript
@@ -127,9 +130,7 @@ Register entire modules at once:
 ```typescript
 @Module({
   services: [UserService, UserRepository],
-  providers: [
-    { token: DATABASE, useClass: PostgresDatabase }
-  ]
+  providers: [{ token: DATABASE, useClass: PostgresDatabase }],
 })
 class UserModule {}
 
@@ -146,7 +147,7 @@ Dynamic module configuration with `.config()` methods is planned for future rele
 
 ```typescript
 @Module({
-  services: [DatabaseService]
+  services: [DatabaseService],
 })
 class DatabaseModule extends DynamicModule<DatabaseConfig> {
   protected readonly configToken = DATABASE_CONFIG;
@@ -155,12 +156,15 @@ class DatabaseModule extends DynamicModule<DatabaseConfig> {
 const container = new Nexus();
 
 // Configure with different settings
-container.set(DatabaseModule.config({
-  host: 'localhost',
-  port: 5432,
-  database: 'myapp'
-}));
+container.set(
+  DatabaseModule.config({
+    host: 'localhost',
+    port: 5432,
+    database: 'myapp',
+  })
+);
 ```
+
 </details>
 
 For now, you can achieve similar functionality using environment-specific modules:
@@ -169,12 +173,15 @@ For now, you can achieve similar functionality using environment-specific module
 @Module({
   services: [DatabaseService],
   providers: [
-    { token: DATABASE_CONFIG, useValue: { 
-      host: 'localhost', 
-      port: 5432, 
-      database: 'myapp' 
-    }}
-  ]
+    {
+      token: DATABASE_CONFIG,
+      useValue: {
+        host: 'localhost',
+        port: 5432,
+        database: 'myapp',
+      },
+    },
+  ],
 })
 class DatabaseModule {}
 
@@ -272,18 +279,18 @@ container.clear();
 // Bootstrap your application
 async function bootstrap() {
   const container = new Nexus();
-  
+
   // Register all modules
   container.set(DatabaseModule);
   container.set(UserModule);
   container.set(EmailModule);
-  
+
   // Get the main application service
   const app = container.get(APP_SERVICE);
-  
+
   // Start the application
   await app.start();
-  
+
   return container;
 }
 
@@ -299,7 +306,7 @@ describe('UserService', () => {
 
   beforeEach(() => {
     container = new Nexus();
-    
+
     // Register test dependencies
     container.set(DATABASE, { useValue: mockDatabase });
     container.set(USER_SERVICE, { useClass: UserService });
@@ -324,4 +331,4 @@ describe('UserService', () => {
 - **[Testing](./../testing.md)** - How to test with the container
 - **[Advanced](./../advanced.md)** - Advanced container patterns and techniques
 
-The `Nexus` container becomes an essential part of your application architecture when properly set up and used! 🎯 
+The `Nexus` container becomes an essential part of your application architecture when properly set up and used! 🎯

@@ -59,7 +59,7 @@ export async function action({ request, context }: Route.ActionArgs) {
   }
 }
 
-export default function Home({loaderData, actionData}:Route.ComponentProps) {
+export default function Home({ loaderData, actionData }: Route.ComponentProps) {
   const { hasUserService, hasLoggerService, user } = loaderData;
 
   const statusColor = (status: boolean) =>

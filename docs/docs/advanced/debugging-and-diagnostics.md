@@ -109,8 +109,10 @@ class EmailService {
 // Error: "Type 'DatabaseService' is not assignable to type 'IDatabase'"
 
 // Check if the service implements the interface
-console.log('DatabaseService implements IDatabase:', 
-  'query' in new DatabaseService());
+console.log(
+  'DatabaseService implements IDatabase:',
+  'query' in new DatabaseService()
+);
 
 // Solution: Ensure proper interface implementation
 class DatabaseService implements IDatabase {
@@ -127,7 +129,7 @@ class DatabaseService implements IDatabase {
 container.set(USER_SERVICE, {
   useFactory: () => {
     console.log('🔧 Creating UserService...');
-    
+
     try {
       const database = container.get(DATABASE);
       const logger = container.get(LOGGER);
@@ -138,7 +140,7 @@ container.set(USER_SERVICE, {
       console.error('❌ Failed to create UserService:', error);
       throw error;
     }
-  }
+  },
 });
 ```
 
@@ -150,7 +152,7 @@ describe('UserService Integration', () => {
 
   beforeEach(() => {
     container = new Nexus();
-    
+
     // Register dependencies with debugging
     try {
       container.set(DATABASE, { useClass: MockDatabase });
@@ -181,15 +183,15 @@ describe('UserService Integration', () => {
 if (process.env.NODE_ENV === 'development') {
   // Enable detailed logging
   container.set(DEBUG_MODE, { useValue: true });
-  
+
   // Add debug logging
   container.set(LOGGER, {
-    useFactory: () => new DebugLogger()
+    useFactory: () => new DebugLogger(),
   });
 } else {
   // Production: minimal logging
   container.set(LOGGER, {
-    useFactory: () => new ProductionLogger()
+    useFactory: () => new ProductionLogger(),
   });
 }
 ```
@@ -211,4 +213,4 @@ When troubleshooting DI issues:
 - **[Circular Dependencies](circular-dependencies.md)** - Handle circular dependency issues
 - **[Debugging Utilities](debugging-utilities.md)** - Advanced debugging tools and utilities
 
-Remember: Good debugging is like being a detective - follow the clues, check your assumptions, and don't be afraid to add some logging to see what's really happening! 🔍✨ 
+Remember: Good debugging is like being a detective - follow the clues, check your assumptions, and don't be afraid to add some logging to see what's really happening! 🔍✨

@@ -11,6 +11,7 @@ For a complete guide to creating and using modules, see **[Module Basics](./modu
 ## What are Modules?
 
 A module is a class decorated with `@Module()` that defines a collection of:
+
 - **Services** - Classes that provide functionality
 - **Providers** - Dependencies that can be injected
 - **Imports** - Other modules to include
@@ -29,7 +30,7 @@ export const DATABASE = new Token<IDatabase>('DATABASE');
 @Service(USER_SERVICE)
 class UserService implements IUserService {
   constructor(@Inject(DATABASE) private db: IDatabase) {}
-  
+
   async getUser(id: string) {
     return this.db.query(`SELECT * FROM users WHERE id = ?`, [id]);
   }
@@ -38,9 +39,7 @@ class UserService implements IUserService {
 // Create the module
 @Module({
   services: [UserService],
-  providers: [
-    { token: DATABASE, useClass: PostgresDatabase }
-  ]
+  providers: [{ token: DATABASE, useClass: PostgresDatabase }],
 })
 export class UserModule {}
 ```
@@ -69,4 +68,4 @@ For detailed explanations of these benefits and advanced patterns, see **[Module
 
 - **[Module Basics](./module-basics.md)** - Complete guide to creating and using modules
 - **[Module Patterns](./module-patterns.md)** - Advanced patterns and best practices
-- **[Dynamic Modules](./dynamic-modules.md)** - Runtime configuration and validation 
+- **[Dynamic Modules](./dynamic-modules.md)** - Runtime configuration and validation

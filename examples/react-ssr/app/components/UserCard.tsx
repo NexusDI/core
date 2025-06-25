@@ -42,4 +42,4 @@ export const UserCard = ({ user, title }: UserCardProps) => {
       </CardContent>
     </Card>
   );
-}; 
+};

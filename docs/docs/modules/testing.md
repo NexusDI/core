@@ -31,7 +31,7 @@ const DATABASE = new Token<IDatabase>('DATABASE');
 @Service(USER_SERVICE)
 class UserService implements IUserService {
   constructor(@Inject(DATABASE) private database: IDatabase) {}
-  
+
   async getUser(id: string): Promise<User> {
     return this.database.query(`SELECT * FROM users WHERE id = ?`, [id]);
   }
@@ -44,9 +44,9 @@ describe('UserService', () => {
   beforeEach(() => {
     container = new Nexus();
     mockDatabase = {
-      query: vi.fn()
+      query: vi.fn(),
     };
-    
+
     // Register the service with mock dependencies
     container.set(DATABASE, { useValue: mockDatabase });
     container.set(USER_SERVICE, { useClass: UserService });
@@ -75,23 +75,25 @@ describe('UserService with different mocks', () => {
   it('should handle database errors', async () => {
     const container = new Nexus();
     const errorDatabase = {
-      query: vi.fn().mockRejectedValue(new Error('Database connection failed'))
+      query: vi.fn().mockRejectedValue(new Error('Database connection failed')),
     };
-    
+
     container.set(DATABASE, { useValue: errorDatabase });
     container.set(USER_SERVICE, { useClass: UserService });
 
     const userService = container.get(USER_SERVICE);
-    
-    await expect(userService.getUser('123')).rejects.toThrow('Database connection failed');
+
+    await expect(userService.getUser('123')).rejects.toThrow(
+      'Database connection failed'
+    );
   });
 
   it('should handle empty results', async () => {
     const container = new Nexus();
     const emptyDatabase = {
-      query: vi.fn().mockResolvedValue(null)
+      query: vi.fn().mockResolvedValue(null),
     };
-    
+
     container.set(DATABASE, { useValue: emptyDatabase });
     container.set(USER_SERVICE, { useClass: UserService });
 
@@ -120,7 +122,7 @@ class UserService implements IUserService {
     @Inject(DATABASE) private database: IDatabase,
     @Inject(LOGGER) private logger: ILogger
   ) {}
-  
+
   async getUser(id: string): Promise<User> {
     this.logger.info(`Fetching user ${id}`);
     return this.database.query(`SELECT * FROM users WHERE id = ?`, [id]);
@@ -131,8 +133,8 @@ class UserService implements IUserService {
   services: [UserService],
   providers: [
     { token: DATABASE, useClass: InMemoryDatabase },
-    { token: LOGGER, useClass: ConsoleLogger }
-  ]
+    { token: LOGGER, useClass: ConsoleLogger },
+  ],
 })
 class UserModule {}
 
@@ -168,8 +170,8 @@ describe('UserModule', () => {
   services: [UserService],
   providers: [
     { token: DATABASE, useValue: mockDatabase },
-    { token: LOGGER, useValue: mockLogger }
-  ]
+    { token: LOGGER, useValue: mockLogger },
+  ],
 })
 class TestUserModule {}
 
@@ -181,11 +183,11 @@ describe('UserModule with mocks', () => {
   beforeEach(() => {
     container = new Nexus();
     mockDatabase = {
-      query: vi.fn()
+      query: vi.fn(),
     };
     mockLogger = {
       info: vi.fn(),
-      error: vi.fn()
+      error: vi.fn(),
     };
   });
 
@@ -221,9 +223,7 @@ const DATABASE_CONFIG = new Token<DatabaseConfig>('DATABASE_CONFIG');
 
 @Module({
   services: [DatabaseService],
-  providers: [
-    { token: DATABASE_CONFIG, useValue: {} }
-  ]
+  providers: [{ token: DATABASE_CONFIG, useValue: {} }],
 })
 class DatabaseModule extends DynamicModule<DatabaseConfig> {
   protected readonly configToken = DATABASE_CONFIG;
@@ -232,11 +232,13 @@ class DatabaseModule extends DynamicModule<DatabaseConfig> {
 describe('DatabaseModule', () => {
   it('should work with test configuration', () => {
     const container = new Nexus();
-    container.set(DATABASE_CONFIG, { useValue: {
-      host: 'localhost',
-      port: 5432,
-      database: 'test_db'
-    } });
+    container.set(DATABASE_CONFIG, {
+      useValue: {
+        host: 'localhost',
+        port: 5432,
+        database: 'test_db',
+      },
+    });
 
     const databaseService = container.get(DATABASE_SERVICE);
     expect(databaseService).toBeInstanceOf(DatabaseService);
@@ -251,11 +253,13 @@ describe('DatabaseModule', () => {
 
   it('should work with async configuration', async () => {
     const container = new Nexus();
-    await container.set(DATABASE_CONFIG, { useValue: {
-      host: 'test-host',
-      port: 5432,
-      database: 'test_db'
-    } });
+    await container.set(DATABASE_CONFIG, {
+      useValue: {
+        host: 'test-host',
+        port: 5432,
+        database: 'test_db',
+      },
+    });
 
     const databaseService = container.get(DATABASE_SERVICE);
     expect(databaseService).toBeInstanceOf(DatabaseService);
@@ -270,41 +274,42 @@ describe('DatabaseModule', () => {
 ```typescript
 @Module({
   services: [UserService],
-  providers: [
-    { token: DATABASE, useClass: PostgresDatabase }
-  ]
+  providers: [{ token: DATABASE, useClass: PostgresDatabase }],
 })
 class UserModule {}
 
 @Module({
   services: [EmailService],
-  providers: [
-    { token: EMAIL_CONFIG, useValue: emailConfig }
-  ]
+  providers: [{ token: EMAIL_CONFIG, useValue: emailConfig }],
 })
 class EmailModule {}
 
 @Module({
   imports: [UserModule, EmailModule],
-  services: [AppService]
+  services: [AppService],
 })
 class AppModule {}
 
 describe('App Integration', () => {
   it('should work with real database and mocked email', async () => {
     const container = new Nexus();
-    
+
     // Use real database for integration testing
     container.set(USER_SERVICE, { useClass: UserService });
-    
+
     // Mock email service
     container.set(EMAIL_SERVICE, { useValue: mockEmailService });
-    
+
     const appService = container.get(APP_SERVICE);
-    const result = await appService.createUser({ name: 'John', email: 'john@example.com' });
-    
+    const result = await appService.createUser({
+      name: 'John',
+      email: 'john@example.com',
+    });
+
     expect(result).toBeDefined();
-    expect(mockEmailService.sendWelcomeEmail).toHaveBeenCalledWith('john@example.com');
+    expect(mockEmailService.sendWelcomeEmail).toHaveBeenCalledWith(
+      'john@example.com'
+    );
   });
 });
 ```
@@ -317,17 +322,17 @@ describe('App Integration', () => {
 // Test utility function
 function createTestContainer(overrides: Record<string, any> = {}) {
   const container = new Nexus();
-  
+
   // Register default test implementations
   container.set(DATABASE, { useValue: createMockDatabase() });
   container.set(LOGGER, { useValue: createMockLogger() });
   container.set(EMAIL_SERVICE, { useValue: createMockEmailService() });
-  
+
   // Apply overrides
   Object.entries(overrides).forEach(([token, provider]) => {
     container.set(token, provider);
   });
-  
+
   return container;
 }
 
@@ -335,7 +340,7 @@ describe('UserService with test utilities', () => {
   it('should work with default mocks', () => {
     const container = createTestContainer();
     container.set(USER_SERVICE, { useClass: UserService });
-    
+
     const userService = container.get(USER_SERVICE);
     expect(userService).toBeInstanceOf(UserService);
   });
@@ -343,10 +348,10 @@ describe('UserService with test utilities', () => {
   it('should work with custom mocks', () => {
     const customDatabase = { query: vi.fn().mockResolvedValue({ id: '123' }) };
     const container = createTestContainer({
-      [DATABASE]: { useValue: customDatabase }
+      [DATABASE]: { useValue: customDatabase },
     });
     container.set(USER_SERVICE, { useClass: UserService });
-    
+
     const userService = container.get(USER_SERVICE);
     expect(userService).toBeInstanceOf(UserService);
   });
@@ -377,13 +382,13 @@ describe('Child Container Testing', () => {
   it('should allow overriding in child container', () => {
     const childContainer = parentContainer.createChildContainer();
     const mockDatabase = { query: vi.fn() };
-    
+
     childContainer.set(DATABASE, { useValue: mockDatabase });
     childContainer.set(USER_SERVICE, { useClass: UserService });
 
     const userService = childContainer.get(USER_SERVICE);
     expect(userService).toBeInstanceOf(UserService);
-    
+
     // Child uses mock, parent still uses real database
     const parentUserService = parentContainer.get(USER_SERVICE);
     expect(parentUserService).toBeInstanceOf(UserService);
@@ -432,6 +437,7 @@ describe('Module Configuration', () => {
   });
 });
 ```
+
 </details>
 
 For now, you can test configuration validation manually:
@@ -458,8 +464,8 @@ describe('Module Configuration', () => {
   services: [UserService],
   providers: [
     { token: DATABASE, useValue: inMemoryDatabase },
-    { token: LOGGER, useValue: silentLogger }
-  ]
+    { token: LOGGER, useValue: silentLogger },
+  ],
 })
 class TestUserModule {}
 ```
@@ -470,11 +476,13 @@ class TestUserModule {}
 describe('Error Handling', () => {
   it('should handle database connection failures', async () => {
     const container = createTestContainer({
-      [DATABASE]: { useValue: failingDatabase }
+      [DATABASE]: { useValue: failingDatabase },
     });
-    
+
     const userService = container.get(USER_SERVICE);
-    await expect(userService.getUser('123')).rejects.toThrow('Connection failed');
+    await expect(userService.getUser('123')).rejects.toThrow(
+      'Connection failed'
+    );
   });
 });
 ```
@@ -489,10 +497,10 @@ Testing with NexusDI is straightforward and powerful:
 - **Dynamic Modules**: Test different configurations and validation
 - **Child Containers**: Test inheritance and override scenarios
 
-The key is to use tokens and interfaces, which makes your code both more testable and more maintainable. 
+The key is to use tokens and interfaces, which makes your code both more testable and more maintainable.
 
 ## Next Steps
 
 - **[Module Basics](./module-basics.md)** - How to organize services into modules
 - **[Advanced](./advanced.md)** - Advanced testing patterns and techniques
-- **[Best Practices](./best-practices.md)** - Testing best practices and guidelines 
+- **[Best Practices](./best-practices.md)** - Testing best practices and guidelines

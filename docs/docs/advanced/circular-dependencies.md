@@ -44,34 +44,37 @@ try {
 
 ```typescript
 // Check for circular dependencies manually
-function detectCircularDependency(container: Nexus, startToken: TokenType): boolean {
+function detectCircularDependency(
+  container: Nexus,
+  startToken: TokenType
+): boolean {
   const visited = new Set<string>();
   const recursionStack = new Set<string>();
-  
+
   function dfs(token: TokenType): boolean {
     const tokenName = token.toString();
-    
+
     if (recursionStack.has(tokenName)) {
       return true; // Found a cycle
     }
-    
+
     if (visited.has(tokenName)) {
       return false; // Already visited, no cycle
     }
-    
+
     visited.add(tokenName);
     recursionStack.add(tokenName);
-    
+
     // Check dependencies (simplified)
     const dependencies = getDependencies(container, token);
     for (const dep of dependencies) {
       if (dfs(dep)) return true;
     }
-    
+
     recursionStack.delete(tokenName);
     return false;
   }
-  
+
   return dfs(startToken);
 }
 
@@ -223,4 +226,4 @@ describe('Circular Dependency Detection', () => {
 - **[Performance Tuning](performance-tuning.md)** - Optimize container performance
 - **[Testing](../testing.md)** - Test your dependency injection setup
 
-Remember: Design your services with clear boundaries and loose coupling to avoid circular dependency traps! 🔄✨ 
+Remember: Design your services with clear boundaries and loose coupling to avoid circular dependency traps! 🔄✨

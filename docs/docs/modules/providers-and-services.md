@@ -33,7 +33,7 @@ export const DATABASE = new Token<IDatabase>('DATABASE');
 @Service(USER_SERVICE)
 class UserService implements IUserService {
   constructor(@Inject(DATABASE) private database: IDatabase) {}
-  
+
   async getUser(id: string): Promise<User> {
     return this.database.query(`SELECT * FROM users WHERE id = ?`, [id]);
   }
@@ -66,8 +66,8 @@ const config = {
   database: {
     host: 'localhost',
     port: 5432,
-    name: 'myapp'
-  }
+    name: 'myapp',
+  },
 };
 nexus.set(CONFIG, { useValue: config });
 
@@ -86,7 +86,7 @@ nexus.set(DATABASE, {
   useFactory: () => {
     const config = nexus.get(DATABASE_CONFIG);
     return new PostgresDatabase(config);
-  }
+  },
 });
 
 // Factory with dependencies
@@ -98,7 +98,7 @@ nexus.set(EMAIL_SERVICE, {
       return new ConsoleEmailService(logger);
     }
   },
-  deps: [EMAIL_CONFIG, LOGGER]
+  deps: [EMAIL_CONFIG, LOGGER],
 });
 ```
 
@@ -112,7 +112,7 @@ nexus.set(DATABASE, {
     const config = nexus.get(DATABASE_CONFIG);
     const connection = await createDatabaseConnection(config);
     return new PostgresDatabase(connection);
-  }
+  },
 });
 
 // With dependencies
@@ -121,7 +121,7 @@ nexus.set(EMAIL_SERVICE, {
     const client = await EmailClient.create(config);
     return new EmailService(client, logger);
   },
-  deps: [EMAIL_CONFIG, LOGGER]
+  deps: [EMAIL_CONFIG, LOGGER],
 });
 ```
 
@@ -134,7 +134,7 @@ Factory functions don't have the same automatic dependency injection that class 
 ```typescript
 // ❌ This won't work - factory has no way to get dependencies
 nexus.set(DATABASE, {
-  useFactory: (config: IDatabaseConfig) => new Database(config)
+  useFactory: (config: IDatabaseConfig) => new Database(config),
 });
 
 // When you call nexus.get(DATABASE), the factory gets called with no arguments
@@ -148,7 +148,7 @@ nexus.set(DATABASE, {
 nexus.set(DATABASE_CONFIG, { useValue: { host: 'localhost', port: 5432 } });
 nexus.set(DATABASE, {
   useFactory: (config: IDatabaseConfig) => new Database(config),
-  deps: [DATABASE_CONFIG]  // Tells NexusDI to inject DATABASE_CONFIG as first argument
+  deps: [DATABASE_CONFIG], // Tells NexusDI to inject DATABASE_CONFIG as first argument
 });
 
 // When you call nexus.get(DATABASE):
@@ -205,7 +205,7 @@ nexus.set(DATABASE_SERVICE, {
     const logger = new Logger(loggerConfig);
     return new DatabaseService(dbConfig, logger);
   },
-  deps: [DATABASE_CONFIG, LOGGER_CONFIG]  // Order matters - matches factory parameters
+  deps: [DATABASE_CONFIG, LOGGER_CONFIG], // Order matters - matches factory parameters
 });
 ```
 
@@ -223,7 +223,7 @@ nexus.set(EMAIL_SERVICE, {
       return new ConsoleEmailService(logger);
     }
   },
-  deps: [EMAIL_CONFIG, LOGGER]
+  deps: [EMAIL_CONFIG, LOGGER],
 });
 ```
 
@@ -238,7 +238,7 @@ nexus.set(DATABASE_CONNECTION, {
     logger.info('Database connected successfully');
     return connection;
   },
-  deps: [DATABASE_CONFIG, LOGGER]
+  deps: [DATABASE_CONFIG, LOGGER],
 });
 ```
 
@@ -261,8 +261,8 @@ const UserModule = {
   services: [UserService, UserRepository],
   providers: [
     { token: DATABASE, useClass: PostgresDatabase },
-    { token: LOGGER, useClass: ConsoleLogger }
-  ]
+    { token: LOGGER, useClass: ConsoleLogger },
+  ],
 };
 
 nexus.set(UserModule);
@@ -304,4 +304,4 @@ For lifetimes and scoping, see [Scoped & Transient Lifetimes](advanced/scoped-an
 
 - **[Module Basics](./module-basics.md)** - How to organize services into modules
 - **[Testing](./testing.md)** - How to test services and providers
-- **[Advanced](./advanced.md)** - Advanced provider patterns and techniques 
+- **[Advanced](./advanced.md)** - Advanced provider patterns and techniques

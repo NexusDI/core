@@ -33,9 +33,15 @@ export default function Users({ loaderData }: Route.ComponentProps) {
             </CardHeader>
             <CardContent>
               <div className="text-sm dark:text-gray-300">
-                <p><strong>ID:</strong> {user.id}</p>
-                <p><strong>Username:</strong> {user.username}</p>
-                <p><strong>Email:</strong> {user.email}</p>
+                <p>
+                  <strong>ID:</strong> {user.id}
+                </p>
+                <p>
+                  <strong>Username:</strong> {user.username}
+                </p>
+                <p>
+                  <strong>Email:</strong> {user.email}
+                </p>
               </div>
             </CardContent>
           </Card>

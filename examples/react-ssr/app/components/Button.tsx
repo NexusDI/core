@@ -33,7 +33,8 @@ type ButtonBaseProps = VariantProps<typeof buttonVariants> & {
   asLink?: boolean;
 };
 
-type ButtonProps = ButtonBaseProps & ButtonHTMLAttributes<HTMLButtonElement> & { as?: 'button' };
+type ButtonProps = ButtonBaseProps &
+  ButtonHTMLAttributes<HTMLButtonElement> & { as?: 'button' };
 type LinkButtonProps = ButtonBaseProps & LinkProps & { as: 'link' };
 
 export const Button = ({
@@ -46,8 +47,10 @@ export const Button = ({
   const classes = clsx(buttonVariants({ variant, size, className }));
 
   if (as === 'link') {
-    return <Link className={classes} viewTransition {...(props as LinkProps)} />;
+    return (
+      <Link className={classes} viewTransition {...(props as LinkProps)} />
+    );
   }
 
   return <button className={classes} {...(props as ButtonProps)} />;
-}; 
+};

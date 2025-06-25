@@ -18,7 +18,7 @@ class UserService {
   private database = new PostgresDatabase();
   private logger = new ConsoleLogger();
   private emailService = new GmailEmailService();
-  
+
   async createUser(userData: UserData) {
     this.logger.info('Creating user');
     const user = await this.database.createUser(userData);
@@ -43,7 +43,7 @@ class UserService implements IUserService {
     @Inject(LOGGER) private logger: ILogger,
     @Inject(EMAIL_SERVICE) private emailService: IEmailService
   ) {}
-  
+
   async createUser(userData: UserData) {
     this.logger.info('Creating user');
     const user = await this.database.createUser(userData);
@@ -58,6 +58,7 @@ class UserService implements IUserService {
 ### Regular Imports
 
 **✅ Benefits:**
+
 - **Simple and familiar**: Standard JavaScript/TypeScript pattern
 - **No setup required**: Works out of the box
 - **Clear dependencies**: Easy to see what a class depends on
@@ -66,6 +67,7 @@ class UserService implements IUserService {
 - **IDE support**: Excellent autocomplete and refactoring support
 
 **❌ Drawbacks:**
+
 - **Hard to test**: Difficult to mock dependencies
 - **Tight coupling**: Classes are bound to specific implementations
 - **Configuration inflexibility**: Can't easily switch implementations
@@ -76,6 +78,7 @@ class UserService implements IUserService {
 ### Dependency Injection
 
 **✅ Benefits:**
+
 - **Excellent testability**: Easy to mock any dependency
 - **Loose coupling**: Dependencies are abstracted through interfaces
 - **Flexible configuration**: Easy to switch implementations
@@ -85,6 +88,7 @@ class UserService implements IUserService {
 - **Modular architecture**: Easy to compose and reuse modules
 
 **❌ Drawbacks:**
+
 - **Learning curve**: New concepts and patterns to understand
 - **Setup overhead**: Requires container initialization
 - **Runtime complexity**: Additional layer of abstraction
@@ -125,14 +129,15 @@ class UserService {
 }
 
 // Phase 2: Add interfaces for better design
-interface IDatabase { /* ... */ }
-interface ILogger { /* ... */ }
+interface IDatabase {
+  /* ... */
+}
+interface ILogger {
+  /* ... */
+}
 
 class UserService {
-  constructor(
-    private database: IDatabase,
-    private logger: ILogger
-  ) {}
+  constructor(private database: IDatabase, private logger: ILogger) {}
 }
 
 // Phase 3: Introduce DI container
@@ -153,6 +158,7 @@ class UserService {
 ### E-commerce Application
 
 **Without DI (Regular Imports):**
+
 ```typescript
 // Hard to test, tightly coupled
 class OrderService {
@@ -160,7 +166,7 @@ class OrderService {
   private paymentProcessor = new StripePaymentProcessor();
   private emailService = new SendGridEmailService();
   private logger = new WinstonLogger();
-  
+
   async processOrder(order: Order) {
     // Business logic mixed with object creation
     this.logger.info('Processing order');
@@ -176,6 +182,7 @@ const orderService = new OrderService(); // Creates real dependencies
 ```
 
 **With DI (NexusDI):**
+
 ```typescript
 // Easy to test, loosely coupled
 const DATABASE = new Token<IDatabase>('DATABASE');
@@ -191,7 +198,7 @@ class OrderService implements IOrderService {
     @Inject(EMAIL_SERVICE) private emailService: IEmailService,
     @Inject(LOGGER) private logger: ILogger
   ) {}
-  
+
   async processOrder(order: Order) {
     // Pure business logic
     this.logger.info('Processing order');
@@ -220,16 +227,16 @@ Sometimes you need to science the heck out of a complex problem, and sometimes y
 
 ## Decision Matrix
 
-| Factor | Regular Imports | Dependency Injection |
-|--------|----------------|---------------------|
-| **Project Size** | Small to medium | Medium to large |
-| **Team Size** | 1-3 developers | 3+ developers |
-| **Testing Requirements** | Basic | Comprehensive |
-| **Environment Count** | 1-2 | 3+ |
-| **Maintenance Period** | Short-term | Long-term |
-| **Performance Critical** | Yes | No |
-| **Learning Curve** | Low | Medium |
-| **Setup Time** | Minimal | Moderate |
+| Factor                   | Regular Imports | Dependency Injection |
+| ------------------------ | --------------- | -------------------- |
+| **Project Size**         | Small to medium | Medium to large      |
+| **Team Size**            | 1-3 developers  | 3+ developers        |
+| **Testing Requirements** | Basic           | Comprehensive        |
+| **Environment Count**    | 1-2             | 3+                   |
+| **Maintenance Period**   | Short-term      | Long-term            |
+| **Performance Critical** | Yes             | No                   |
+| **Learning Curve**       | Low             | Medium               |
+| **Setup Time**           | Minimal         | Moderate             |
 
 ## Hybrid Approach
 
@@ -239,7 +246,7 @@ You can also use a hybrid approach, starting with regular imports and gradually 
 // Start with regular imports for simple services
 class SimpleService {
   private calculator = new Calculator();
-  
+
   add(a: number, b: number) {
     return this.calculator.add(a, b);
   }
@@ -266,4 +273,4 @@ Choose the right approach based on your project's needs:
 - **Consider team expertise** and project requirements
 - **Balance simplicity** with flexibility and testability
 
-Both approaches have their place in modern software development. The key is choosing the right tool for the job and your team's needs. 
+Both approaches have their place in modern software development. The key is choosing the right tool for the job and your team's needs.

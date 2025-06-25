@@ -15,7 +15,7 @@ NexusDI's core library is extremely lightweight:
 ```bash
 # Compiled JavaScript files
 container.js:     8KB   # Main DI container logic
-decorators.js:    2.6KB # Decorator implementations  
+decorators.js:    2.6KB # Decorator implementations
 token.js:         1.1KB # Token system
 module.js:        1.9KB # Module system
 types.js:         0.6KB # Type definitions
@@ -78,7 +78,7 @@ container.set(EMAIL_SERVICE, { useClass: EmailService });
 
 // Memory overhead: ~6KB additional heap
 // - Container instance: ~1KB
-// - Provider registry: ~2KB  
+// - Provider registry: ~2KB
 // - Instance cache: ~1KB
 // - Metadata storage: ~1KB
 ```
@@ -89,12 +89,12 @@ container.set(EMAIL_SERVICE, { useClass: EmailService });
 
 Based on actual measurements with 1,000 startup iterations and 10,000 resolution iterations:
 
-| Library | Startup Time | Resolution Time | Memory Usage | Bundle Size |
-|---------|--------------|-----------------|--------------|-------------|
-| **NexusDI** | 1.3μs | 0.2μs | 6KB | 96KB |
-| TypeDI | 2.0μs | 0.1μs | 2KB | 89KB |
-| InversifyJS | 22.2μs | 1.4μs | 32KB | 114KB |
-| tsyringe | 45.2μs | 0.9μs | 150KB | 99KB |
+| Library     | Startup Time | Resolution Time | Memory Usage | Bundle Size |
+| ----------- | ------------ | --------------- | ------------ | ----------- |
+| **NexusDI** | 1.3μs        | 0.2μs           | 6KB          | 96KB        |
+| TypeDI      | 2.0μs        | 0.1μs           | 2KB          | 89KB        |
+| InversifyJS | 22.2μs       | 1.4μs           | 32KB         | 114KB       |
+| tsyringe    | 45.2μs       | 0.9μs           | 150KB        | 99KB        |
 
 ### Performance Rankings
 
@@ -108,6 +108,7 @@ Based on actual measurements with 1,000 startup iterations and 10,000 resolution
 All performance data in this article is based on real benchmark measurements, not estimates. Here's how the tests were conducted:
 
 #### Test Environment
+
 - **Node.js**: v22.13.1
 - **Platform**: M1 Pro MacBook
 - **Iterations**: 1,000 for startup time, 10,000 for resolution time
@@ -150,11 +151,8 @@ class Database implements IDatabase {
 }
 
 class UserService implements IUserService {
-  constructor(
-    private database: IDatabase,
-    private logger: ILogger
-  ) {}
-  
+  constructor(private database: IDatabase, private logger: ILogger) {}
+
   async getUser(id: string) {
     this.logger.log(`Getting user ${id}`);
     return await this.database.query(`SELECT * FROM users WHERE id = '${id}'`);
@@ -167,6 +165,7 @@ class UserService implements IUserService {
 You can verify these results by running the benchmarks yourself:
 
 #### Prerequisites
+
 ```bash
 # Clone the repository
 git clone git@github.com:NexusDI/core.git
@@ -180,6 +179,7 @@ npm run build
 ```
 
 #### Run Benchmarks
+
 ```bash
 # Navigate to benchmark runner
 cd benchmarks/runner
@@ -224,6 +224,7 @@ This ensures the performance claims are credible and verifiable by anyone who wa
 ### For Different Application Types
 
 #### Small Application (100KB bundle)
+
 ```
 Original: 100KB
 With NexusDI: 180KB (+80KB)
@@ -231,6 +232,7 @@ Impact: +80% bundle size
 ```
 
 #### Medium Application (1MB bundle)
+
 ```
 Original: 1MB
 With NexusDI: 1.080MB (+80KB)
@@ -238,6 +240,7 @@ Impact: +8% bundle size
 ```
 
 #### Large Application (5MB bundle)
+
 ```
 Original: 5MB
 With NexusDI: 5.080MB (+80KB)
@@ -305,13 +308,13 @@ if (process.env.ENABLE_CACHING === 'true') {
 // user-module.js
 export const UserModule = {
   services: [UserService, UserRepository],
-  providers: [{ token: DATABASE, useClass: PostgresDatabase }]
+  providers: [{ token: DATABASE, useClass: PostgresDatabase }],
 };
 
-// email-module.js  
+// email-module.js
 export const EmailModule = {
   services: [EmailService],
-  providers: [{ token: EMAIL_PROVIDER, useClass: SendGridProvider }]
+  providers: [{ token: EMAIL_PROVIDER, useClass: SendGridProvider }],
 };
 ```
 
@@ -395,13 +398,13 @@ console.log(`Memory increase: ${memoryIncrease / 1024}KB`);
 
 ### 📊 Decision Matrix
 
-| Application Type | Bundle Size | Performance Impact | Recommendation |
-|------------------|-------------|-------------------|----------------|
-| Small SPA | High (+80%) | Very Low | Good choice |
-| Medium Web App | Low (+8%) | Very Low | Excellent choice |
-| Large Enterprise App | Very Low (+1.6%) | Very Low | Excellent choice |
-| Microservice | Low (+80KB) | Very Low | Excellent choice |
-| Server Application | N/A | Very Low | Excellent choice |
+| Application Type     | Bundle Size      | Performance Impact | Recommendation   |
+| -------------------- | ---------------- | ------------------ | ---------------- |
+| Small SPA            | High (+80%)      | Very Low           | Good choice      |
+| Medium Web App       | Low (+8%)        | Very Low           | Excellent choice |
+| Large Enterprise App | Very Low (+1.6%) | Very Low           | Excellent choice |
+| Microservice         | Low (+80KB)      | Very Low           | Excellent choice |
+| Server Application   | N/A              | Very Low           | Excellent choice |
 
 ## 🔍 Real-World Performance Monitoring
 
@@ -428,17 +431,17 @@ module.exports = {
 class PerformanceMonitor {
   private static metrics = {
     resolutionTime: 0,
-    resolutionCount: 0
+    resolutionCount: 0,
   };
 
   static trackResolution<T>(token: TokenType<T>, fn: () => T): T {
     const start = performance.now();
     const result = fn();
     const end = performance.now();
-    
-    this.metrics.resolutionTime += (end - start);
+
+    this.metrics.resolutionTime += end - start;
     this.metrics.resolutionCount++;
-    
+
     return result;
   }
 
@@ -448,7 +451,7 @@ class PerformanceMonitor {
 }
 
 // Usage
-const userService = PerformanceMonitor.trackResolution(USER_SERVICE, () => 
+const userService = PerformanceMonitor.trackResolution(USER_SERVICE, () =>
   container.get(USER_SERVICE)
 );
 ```
@@ -476,7 +479,8 @@ class UserService {
     @Inject(EMAIL_SERVICE) private emailService: IEmailService,
     @Inject(CACHE_SERVICE) private cacheService: ICacheService,
     @Inject(ANALYTICS_SERVICE) private analyticsService: IAnalyticsService,
-    @Inject(NOTIFICATION_SERVICE) private notificationService: INotificationService
+    @Inject(NOTIFICATION_SERVICE)
+    private notificationService: INotificationService
   ) {}
 }
 ```
@@ -505,13 +509,13 @@ class UserService {
 // Split modules by feature to enable tree shaking
 @Module({
   services: [UserService, UserRepository],
-  providers: [{ token: DATABASE, useClass: PostgresDatabase }]
+  providers: [{ token: DATABASE, useClass: PostgresDatabase }],
 })
 class UserModule {}
 
 @Module({
   services: [EmailService],
-  providers: [{ token: EMAIL_PROVIDER, useClass: SendGridProvider }]
+  providers: [{ token: EMAIL_PROVIDER, useClass: SendGridProvider }],
 })
 class EmailModule {}
 ```
@@ -543,4 +547,4 @@ For most applications, the performance impact is negligible while the benefits o
 
 The key is choosing the right tool for your specific use case and performance requirements, and NexusDI excels in providing excellent performance characteristics across all metrics.
 
-For advanced performance tips and diagnostics, see [Performance Tuning](advanced/performance-tuning.md). 
+For advanced performance tips and diagnostics, see [Performance Tuning](advanced/performance-tuning.md).

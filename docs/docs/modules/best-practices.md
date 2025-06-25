@@ -20,7 +20,8 @@ class UserService implements IUserService {
     @Inject(EMAIL_SERVICE) private emailService: IEmailService,
     @Inject(CACHE_SERVICE) private cacheService: ICacheService,
     @Inject(ANALYTICS_SERVICE) private analyticsService: IAnalyticsService,
-    @Inject(NOTIFICATION_SERVICE) private notificationService: INotificationService
+    @Inject(NOTIFICATION_SERVICE)
+    private notificationService: INotificationService
   ) {}
 }
 
@@ -55,9 +56,7 @@ Keep your code organized and modular:
 ```typescript
 @Module({
   services: [UserService, UserRepository, UserValidator],
-  providers: [
-    { token: DATABASE, useClass: PostgresDatabase }
-  ]
+  providers: [{ token: DATABASE, useClass: PostgresDatabase }],
 })
 class UserModule {}
 ```
@@ -120,7 +119,9 @@ export const USER_VALIDATOR = new Token<IUserValidator>('USER_VALIDATOR');
 // tokens/database.tokens.ts
 export const DATABASE = new Token<IDatabase>('DATABASE');
 export const DATABASE_CONFIG = new Token<IDatabaseConfig>('DATABASE_CONFIG');
-export const DATABASE_CONNECTION = new Token<IDatabaseConnection>('DATABASE_CONNECTION');
+export const DATABASE_CONNECTION = new Token<IDatabaseConnection>(
+  'DATABASE_CONNECTION'
+);
 ```
 
 ## 7. Use Factory Providers for Complex Dependencies
@@ -139,7 +140,7 @@ nexus.set(DATABASE, {
       return new InMemoryDatabase(logger);
     }
   },
-  deps: [DATABASE_CONFIG, LOGGER]
+  deps: [DATABASE_CONFIG, LOGGER],
 });
 
 // ❌ Bad - hardcoded implementation
@@ -158,16 +159,19 @@ class UserService implements IUserService {
     @Inject(DATABASE) private database: IDatabase,
     @Inject(LOGGER) private logger: ILogger
   ) {}
-  
+
   async getUser(id: string): Promise<User> {
     try {
       this.logger.info(`Fetching user with id: ${id}`);
-      const user = await this.database.query(`SELECT * FROM users WHERE id = ?`, [id]);
-      
+      const user = await this.database.query(
+        `SELECT * FROM users WHERE id = ?`,
+        [id]
+      );
+
       if (!user) {
         throw new Error(`User not found: ${id}`);
       }
-      
+
       return user;
     } catch (error) {
       this.logger.error(`Failed to fetch user ${id}:`, error);
@@ -188,7 +192,7 @@ nexus.set(DATABASE, {
     const connection = await createDatabaseConnection(config);
     return new Database(connection);
   },
-  deps: [DATABASE_CONFIG]
+  deps: [DATABASE_CONFIG],
 });
 ```
 
@@ -204,12 +208,12 @@ class UserService implements IUserService, OnModuleInit, OnModuleDestroy {
     @Inject(DATABASE) private database: IDatabase,
     @Inject(LOGGER) private logger: ILogger
   ) {}
-  
+
   async onModuleInit() {
     this.logger.info('UserService initialized');
     await this.database.connect();
   }
-  
+
   async onModuleDestroy() {
     this.logger.info('UserService shutting down');
     await this.database.disconnect();
@@ -247,31 +251,31 @@ describe('UserService', () => {
 
   beforeEach(() => {
     nexus = new Nexus();
-    
+
     mockDatabase = {
       query: jest.fn(),
       connect: jest.fn(),
-      disconnect: jest.fn()
+      disconnect: jest.fn(),
     };
-    
+
     mockLogger = {
       info: jest.fn(),
       error: jest.fn(),
-      warn: jest.fn()
+      warn: jest.fn(),
     };
-    
+
     nexus.set(DATABASE, { useValue: mockDatabase });
     nexus.set(LOGGER, { useValue: mockLogger });
-    
+
     userService = nexus.get(USER_SERVICE);
   });
 
   it('should fetch user by id', async () => {
     const mockUser = { id: '123', name: 'John' };
     mockDatabase.query.mockResolvedValue(mockUser);
-    
+
     const result = await userService.getUser('123');
-    
+
     expect(result).toEqual(mockUser);
     expect(mockDatabase.query).toHaveBeenCalledWith(
       'SELECT * FROM users WHERE id = ?',
@@ -286,11 +290,13 @@ describe('UserService', () => {
 ```typescript
 // ✅ Good - validate required dependencies
 function validateDependencies(nexus: Nexus, requiredTokens: Token<any>[]) {
-  const missing = requiredTokens.filter(token => !nexus.has(token));
-  
+  const missing = requiredTokens.filter((token) => !nexus.has(token));
+
   if (missing.length > 0) {
     throw new Error(
-      `Missing required dependencies: ${missing.map(t => t.toString()).join(', ')}`
+      `Missing required dependencies: ${missing
+        .map((t) => t.toString())
+        .join(', ')}`
     );
   }
 }
@@ -317,7 +323,7 @@ class OrderService {
 @Service(USER_SERVICE)
 class UserService {
   constructor(@Inject(EVENT_BUS) private eventBus: IEventBus) {}
-  
+
   async createUser(userData: UserData) {
     const user = await this.database.createUser(userData);
     this.eventBus.emit('user.created', user);
@@ -358,4 +364,4 @@ Following these best practices will help you:
 
 Remember that these are guidelines, not strict rules. Adapt them to your specific project needs and team preferences.
 
-The best raids are the ones where everyone knows their role and works together. Your code should be no different - every service should have a clear purpose and work in harmony with the rest of your application! 🌟 
+The best raids are the ones where everyone knows their role and works together. Your code should be no different - every service should have a clear purpose and work in harmony with the rest of your application! 🌟

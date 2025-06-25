@@ -14,19 +14,19 @@ Service lifetimes determine how long a service instance exists and when it's cre
 
 ```typescript
 // Different lifetime strategies
-container.set(USER_SERVICE, { 
+container.set(USER_SERVICE, {
   useClass: UserService,
-  lifetime: 'singleton' // Default - one instance for the entire container
+  lifetime: 'singleton', // Default - one instance for the entire container
 });
 
-container.set(REQUEST_SERVICE, { 
+container.set(REQUEST_SERVICE, {
   useClass: RequestService,
-  lifetime: 'scoped' // One instance per scope/child container
+  lifetime: 'scoped', // One instance per scope/child container
 });
 
-container.set(LOGGER, { 
+container.set(LOGGER, {
   useClass: Logger,
-  lifetime: 'transient' // New instance every time
+  lifetime: 'transient', // New instance every time
 });
 ```
 
@@ -36,9 +36,9 @@ container.set(LOGGER, {
 
 ```typescript
 // Singleton - one instance for the entire container
-container.set(DATABASE, { 
+container.set(DATABASE, {
   useClass: Database,
-  lifetime: 'singleton' // or omit for default
+  lifetime: 'singleton', // or omit for default
 });
 
 // Same instance returned every time
@@ -51,9 +51,9 @@ console.log(db1 === db2); // true
 
 ```typescript
 // Scoped - one instance per child container
-container.set(REQUEST_CONTEXT, { 
+container.set(REQUEST_CONTEXT, {
   useClass: RequestContext,
-  lifetime: 'scoped'
+  lifetime: 'scoped',
 });
 
 // Different instances for different child containers
@@ -73,9 +73,9 @@ console.log(context1 === context1Again); // true
 
 ```typescript
 // Transient - new instance every time
-container.set(LOGGER, { 
+container.set(LOGGER, {
   useClass: Logger,
-  lifetime: 'transient'
+  lifetime: 'transient',
 });
 
 // Different instances every time
@@ -118,12 +118,12 @@ class UserService {
 app.use((req, res, next) => {
   // Create child container for each request
   const requestContainer = container.createChildContainer();
-  
+
   // Set request-specific data
   const context = requestContainer.get(REQUEST_CONTEXT);
   context.userId = req.headers['user-id'] as string;
   context.sessionId = req.headers['session-id'] as string;
-  
+
   // Attach container to request
   (req as any).container = requestContainer;
   next();
@@ -132,7 +132,7 @@ app.use((req, res, next) => {
 app.get('/user', (req, res) => {
   const requestContainer = (req as any).container;
   const userService = requestContainer.get(USER_SERVICE);
-  
+
   const currentUser = userService.getCurrentUser();
   res.json({ user: currentUser });
 });
@@ -160,7 +160,9 @@ class SessionManager {
 
 @Service(USER_PREFERENCES)
 class UserPreferences {
-  constructor(@Inject(SESSION_MANAGER) private sessionManager: SessionManager) {}
+  constructor(
+    @Inject(SESSION_MANAGER) private sessionManager: SessionManager
+  ) {}
 
   getTheme(sessionId: string): string {
     const session = this.sessionManager.getSession(sessionId);
@@ -234,27 +236,27 @@ class LifetimeManager {
 
   getSingleton<T>(token: TokenType<T>, factory: () => T): T {
     const key = token.toString();
-    
+
     if (!this.singletons.has(key)) {
       this.singletons.set(key, factory());
     }
-    
+
     return this.singletons.get(key);
   }
 
   getScoped<T>(token: TokenType<T>, scopeId: string, factory: () => T): T {
     const key = token.toString();
-    
+
     if (!this.scoped.has(key)) {
       this.scoped.set(key, new Map());
     }
-    
+
     const scopeMap = this.scoped.get(key)!;
-    
+
     if (!scopeMap.has(scopeId)) {
       scopeMap.set(scopeId, factory());
     }
-    
+
     return scopeMap.get(scopeId);
   }
 
@@ -273,7 +275,9 @@ class ContainerLifetimeManager extends LifetimeManager {
 
 @Service(SCOPED_SERVICE)
 class ScopedService {
-  constructor(@Inject(LIFETIME_MANAGER) private lifetimeManager: ContainerLifetimeManager) {}
+  constructor(
+    @Inject(LIFETIME_MANAGER) private lifetimeManager: ContainerLifetimeManager
+  ) {}
 
   getService<T>(token: TokenType<T>, scopeId: string): T {
     return this.lifetimeManager.getScoped(token, scopeId, () => {
@@ -324,11 +328,11 @@ class DisposableLifetimeManager {
 
   async disposeScope(scopeId: string): Promise<void> {
     const disposables = this.disposables.get(scopeId) || [];
-    
+
     for (const disposable of disposables) {
       await disposable.dispose();
     }
-    
+
     this.disposables.delete(scopeId);
   }
 }
@@ -371,7 +375,7 @@ class LazyService<T> {
 // Usage with dependency injection
 container.set(EXPENSIVE_SERVICE, {
   useFactory: () => new LazyService(() => new ExpensiveService()),
-  lifetime: 'singleton'
+  lifetime: 'singleton',
 });
 
 // Service is only created when first accessed
@@ -423,28 +427,28 @@ class OrderService {
 // Express.js middleware for request scoping
 app.use((req, res, next) => {
   const requestContainer = container.createChildContainer();
-  
+
   // Set request ID for logging
   const logger = requestContainer.get(REQUEST_LOGGER);
   logger.log(`Request started: ${req.method} ${req.path}`);
-  
+
   (req as any).container = requestContainer;
   next();
 });
 
 app.get('/user/:id', async (req, res) => {
   const requestContainer = (req as any).container;
-  
+
   const userService = requestContainer.get(USER_SERVICE);
   const orderService = requestContainer.get(ORDER_SERVICE);
-  
+
   const user = await userService.getUser(req.params.id);
   const orders = await orderService.getOrders(req.params.id);
-  
+
   // Both services share the same RequestLogger instance
   const logger = requestContainer.get(REQUEST_LOGGER);
   const logs = logger.getLogs();
-  
+
   res.json({ user, orders, logs });
 });
 ```
@@ -459,10 +463,10 @@ class JobProcessor {
 
   async processJob(job: Job): Promise<void> {
     this.logger.log(`Processing job ${job.id}`);
-    
+
     // Process job logic
-    await new Promise(resolve => setTimeout(resolve, 1000));
-    
+    await new Promise((resolve) => setTimeout(resolve, 1000));
+
     this.logger.log(`Job ${job.id} completed`);
   }
 }
@@ -486,9 +490,7 @@ class JobQueue {
 
   async processJobs(jobs: Job[]): Promise<void> {
     // Each job gets its own JobProcessor and JobLogger instance
-    await Promise.all(
-      jobs.map(job => this.processor.processJob(job))
-    );
+    await Promise.all(jobs.map((job) => this.processor.processJob(job)));
   }
 }
 
@@ -496,7 +498,7 @@ class JobQueue {
 const jobQueue = container.get(JOB_QUEUE);
 await jobQueue.processJobs([
   { id: 'job1', data: 'data1' },
-  { id: 'job2', data: 'data2' }
+  { id: 'job2', data: 'data2' },
 ]);
 ```
 
@@ -512,12 +514,12 @@ class AppConfig {
     this.config = {
       database: {
         host: process.env.DB_HOST || 'localhost',
-        port: parseInt(process.env.DB_PORT || '5432')
+        port: parseInt(process.env.DB_PORT || '5432'),
       },
       redis: {
         host: process.env.REDIS_HOST || 'localhost',
-        port: parseInt(process.env.REDIS_PORT || '6379')
-      }
+        port: parseInt(process.env.REDIS_PORT || '6379'),
+      },
     };
   }
 
@@ -536,15 +538,15 @@ class UserConfig {
 }
 
 // Singleton for app-wide configuration
-container.set(APP_CONFIG, { 
+container.set(APP_CONFIG, {
   useClass: AppConfig,
-  lifetime: 'singleton'
+  lifetime: 'singleton',
 });
 
 // Scoped for user-specific configuration
-container.set(USER_CONFIG, { 
+container.set(USER_CONFIG, {
   useClass: UserConfig,
-  lifetime: 'scoped'
+  lifetime: 'scoped',
 });
 
 // Usage
@@ -562,26 +564,34 @@ const userConfig = userContainer.get(USER_CONFIG); // Scoped
 class LifetimeAnalyzer {
   static analyzeMemoryUsage(container: Nexus): void {
     const { providers } = container.list();
-    
+
     console.log('=== Lifetime Analysis ===');
-    
+
     for (const provider of providers) {
       const lifetime = provider.lifetime || 'singleton';
       console.log(`${provider.token.toString()}: ${lifetime}`);
     }
-    
+
     console.log('========================');
   }
 
-  static measureInstanceCount(container: Nexus, token: TokenType, count: number): void {
+  static measureInstanceCount(
+    container: Nexus,
+    token: TokenType,
+    count: number
+  ): void {
     const instances = new Set();
-    
+
     for (let i = 0; i < count; i++) {
       const instance = container.get(token);
       instances.add(instance);
     }
-    
-    console.log(`${token.toString()}: ${instances.size} unique instances out of ${count} requests`);
+
+    console.log(
+      `${token.toString()}: ${
+        instances.size
+      } unique instances out of ${count} requests`
+    );
   }
 }
 
@@ -598,28 +608,46 @@ LifetimeAnalyzer.measureInstanceCount(container, TRANSIENT_SERVICE, 100); // Sho
 ```typescript
 // Compare performance of different lifetimes
 class LifetimePerformanceTest {
-  static measureResolutionTime(container: Nexus, token: TokenType, iterations: number): number {
+  static measureResolutionTime(
+    container: Nexus,
+    token: TokenType,
+    iterations: number
+  ): number {
     const start = performance.now();
-    
+
     for (let i = 0; i < iterations; i++) {
       container.get(token);
     }
-    
+
     return performance.now() - start;
   }
 
   static compareLifetimes(container: Nexus): void {
     const iterations = 1000;
-    
+
     console.log('=== Lifetime Performance Comparison ===');
-    
-    const singletonTime = this.measureResolutionTime(container, SINGLETON_SERVICE, iterations);
-    console.log(`Singleton: ${singletonTime.toFixed(3)}ms for ${iterations} resolutions`);
-    
-    const transientTime = this.measureResolutionTime(container, TRANSIENT_SERVICE, iterations);
-    console.log(`Transient: ${transientTime.toFixed(3)}ms for ${iterations} resolutions`);
-    
-    console.log(`Performance ratio: ${(transientTime / singletonTime).toFixed(2)}x`);
+
+    const singletonTime = this.measureResolutionTime(
+      container,
+      SINGLETON_SERVICE,
+      iterations
+    );
+    console.log(
+      `Singleton: ${singletonTime.toFixed(3)}ms for ${iterations} resolutions`
+    );
+
+    const transientTime = this.measureResolutionTime(
+      container,
+      TRANSIENT_SERVICE,
+      iterations
+    );
+    console.log(
+      `Transient: ${transientTime.toFixed(3)}ms for ${iterations} resolutions`
+    );
+
+    console.log(
+      `Performance ratio: ${(transientTime / singletonTime).toFixed(2)}x`
+    );
     console.log('=====================================');
   }
 }
@@ -641,9 +669,9 @@ describe('Service Lifetimes', () => {
   });
 
   it('should create singleton instances', () => {
-    container.set(SINGLETON_SERVICE, { 
+    container.set(SINGLETON_SERVICE, {
       useClass: TestService,
-      lifetime: 'singleton'
+      lifetime: 'singleton',
     });
 
     const instance1 = container.get(SINGLETON_SERVICE);
@@ -653,9 +681,9 @@ describe('Service Lifetimes', () => {
   });
 
   it('should create different instances for transient services', () => {
-    container.set(TRANSIENT_SERVICE, { 
+    container.set(TRANSIENT_SERVICE, {
       useClass: TestService,
-      lifetime: 'transient'
+      lifetime: 'transient',
     });
 
     const instance1 = container.get(TRANSIENT_SERVICE);
@@ -665,9 +693,9 @@ describe('Service Lifetimes', () => {
   });
 
   it('should create scoped instances per child container', () => {
-    container.set(SCOPED_SERVICE, { 
+    container.set(SCOPED_SERVICE, {
       useClass: TestService,
-      lifetime: 'scoped'
+      lifetime: 'scoped',
     });
 
     const child1 = container.createChildContainer();
@@ -694,9 +722,9 @@ describe('Lifetime Integration', () => {
   });
 
   it('should handle request scoping correctly', () => {
-    container.set(REQUEST_SERVICE, { 
+    container.set(REQUEST_SERVICE, {
       useClass: RequestService,
-      lifetime: 'scoped'
+      lifetime: 'scoped',
     });
 
     const request1 = container.createChildContainer();
@@ -718,14 +746,14 @@ describe('Lifetime Integration', () => {
 
   it('should dispose scoped services correctly', async () => {
     const disposables: IDisposable[] = [];
-    
+
     container.set(DISPOSABLE_SERVICE, {
       useFactory: () => {
         const service = new DisposableService();
         disposables.push(service);
         return service;
       },
-      lifetime: 'scoped'
+      lifetime: 'scoped',
     });
 
     const child = container.createChildContainer();
@@ -744,19 +772,19 @@ describe('Lifetime Integration', () => {
 
 ```typescript
 // ✅ Good - Appropriate lifetime choices
-container.set(DATABASE, { 
+container.set(DATABASE, {
   useClass: Database,
-  lifetime: 'singleton' // Expensive to create, stateless
+  lifetime: 'singleton', // Expensive to create, stateless
 });
 
-container.set(REQUEST_CONTEXT, { 
+container.set(REQUEST_CONTEXT, {
   useClass: RequestContext,
-  lifetime: 'scoped' // Per-request state
+  lifetime: 'scoped', // Per-request state
 });
 
-container.set(LOGGER, { 
+container.set(LOGGER, {
   useClass: Logger,
-  lifetime: 'transient' // Lightweight, stateless
+  lifetime: 'transient', // Lightweight, stateless
 });
 ```
 
@@ -786,10 +814,10 @@ class ScopedContainer {
 // ✅ Good - Use child containers for scoping
 app.use((req, res, next) => {
   const requestContainer = container.createChildContainer();
-  
+
   // Set request-specific data
   requestContainer.set(REQUEST_ID, { useValue: req.id });
-  
+
   (req as any).container = requestContainer;
   next();
 });
@@ -804,7 +832,7 @@ class MemoryMonitor {
     const usage = process.memoryUsage();
     console.log('Memory usage:', {
       heapUsed: `${(usage.heapUsed / 1024 / 1024).toFixed(2)}MB`,
-      heapTotal: `${(usage.heapTotal / 1024 / 1024).toFixed(2)}MB`
+      heapTotal: `${(usage.heapTotal / 1024 / 1024).toFixed(2)}MB`,
     });
   }
 }
@@ -816,4 +844,4 @@ class MemoryMonitor {
 - **[Child Containers](advanced-providers-and-factories.md)** - Learn about container hierarchies
 - **[Testing](../testing.md)** - Test your lifetime management
 
-Remember: Like The Expanse's ship systems, choose the right lifetime for each service - some need to be shared across compartments, others should be isolated for safety! ⏱️✨ 
+Remember: Like The Expanse's ship systems, choose the right lifetime for each service - some need to be shared across compartments, others should be isolated for safety! ⏱️✨

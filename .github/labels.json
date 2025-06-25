@@ -1,0 +1,28 @@
+[
+  {
+    "name": "feature",
+    "color": "1D76DB",
+    "description": "New feature request"
+  },
+  {
+    "name": "infra",
+    "color": "5319E7",
+    "description": "Infrastructure / tooling"
+  },
+  {
+    "name": "needs-triage",
+    "color": "FBCA04",
+    "description": "Needs prioritization"
+  },
+  {
+    "name": "high-priority",
+    "color": "B60205",
+    "description": "High priority / blocking"
+  },
+  {
+    "name": "low-priority",
+    "color": "C2E0C6",
+    "description": "Low priority / nice to have"
+  },
+  { "name": "bug", "color": "D73A4A", "description": "Bug or regression" }
+]

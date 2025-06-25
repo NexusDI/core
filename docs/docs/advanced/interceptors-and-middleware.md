@@ -23,7 +23,7 @@ function withLogging<T>(token: TokenType<T>, factory: () => T): T {
 
 // Usage
 container.set(USER_SERVICE, {
-  useFactory: () => withLogging(USER_SERVICE, () => new UserService())
+  useFactory: () => withLogging(USER_SERVICE, () => new UserService()),
 });
 ```
 
@@ -36,11 +36,11 @@ const cache = new Map<string, any>();
 
 function withCaching<T>(token: TokenType<T>, factory: () => T): T {
   const key = token.toString();
-  
+
   if (cache.has(key)) {
     return cache.get(key);
   }
-  
+
   const instance = factory();
   cache.set(key, instance);
   return instance;
@@ -48,7 +48,7 @@ function withCaching<T>(token: TokenType<T>, factory: () => T): T {
 
 // Usage
 container.set(DATABASE, {
-  useFactory: () => withCaching(DATABASE, () => new ExpensiveDatabase())
+  useFactory: () => withCaching(DATABASE, () => new ExpensiveDatabase()),
 });
 ```
 
@@ -57,17 +57,17 @@ container.set(DATABASE, {
 ```typescript
 function withValidation<T>(token: TokenType<T>, factory: () => T): T {
   const instance = factory();
-  
+
   if (!instance) {
     throw new Error(`Service ${token.toString()} resolved to null/undefined`);
   }
-  
+
   return instance;
 }
 
 // Usage
 container.set(USER_SERVICE, {
-  useFactory: () => withValidation(USER_SERVICE, () => new UserService())
+  useFactory: () => withValidation(USER_SERVICE, () => new UserService()),
 });
 ```
 
@@ -88,4 +88,4 @@ See the [Roadmap](../roadmap.md) for more details on upcoming features.
 - **[Performance Tuning](performance-tuning.md)** - Optimize your DI container
 - **[Roadmap](../roadmap.md)** - See what's coming next
 
-These workarounds will keep you productive until the full interceptor system arrives! 🔧✨ 
+These workarounds will keep you productive until the full interceptor system arrives! 🔧✨

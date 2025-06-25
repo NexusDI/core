@@ -45,7 +45,9 @@ export const USER_VALIDATOR = new Token<IUserValidator>('USER_VALIDATOR');
 // tokens/database.tokens.ts
 export const DATABASE = new Token<IDatabase>('DATABASE');
 export const DATABASE_CONFIG = new Token<IDatabaseConfig>('DATABASE_CONFIG');
-export const DATABASE_CONNECTION = new Token<IDatabaseConnection>('DATABASE_CONNECTION');
+export const DATABASE_CONNECTION = new Token<IDatabaseConnection>(
+  'DATABASE_CONNECTION'
+);
 ```
 
 ### 3. Use Strong Typing
@@ -120,18 +122,20 @@ nexus.set(USER_REPOSITORY, { useClass: UserService }); // Same implementation
 ```typescript
 // Compose tokens for complex scenarios
 export const DATABASE_CONFIG = new Token<IDatabaseConfig>('DATABASE_CONFIG');
-export const DATABASE_CONNECTION = new Token<IDatabaseConnection>('DATABASE_CONNECTION');
+export const DATABASE_CONNECTION = new Token<IDatabaseConnection>(
+  'DATABASE_CONNECTION'
+);
 export const DATABASE = new Token<IDatabase>('DATABASE');
 
 // Register in dependency order
 nexus.set(DATABASE_CONFIG, { useValue: { host: 'localhost', port: 5432 } });
-nexus.set(DATABASE_CONNECTION, { 
+nexus.set(DATABASE_CONNECTION, {
   useFactory: (config: IDatabaseConfig) => new DatabaseConnection(config),
-  deps: [DATABASE_CONFIG]
+  deps: [DATABASE_CONFIG],
 });
 nexus.set(DATABASE, {
   useFactory: (connection: IDatabaseConnection) => new Database(connection),
-  deps: [DATABASE_CONNECTION]
+  deps: [DATABASE_CONNECTION],
 });
 ```
 
@@ -140,10 +144,12 @@ nexus.set(DATABASE, {
 ```typescript
 // Validate token registration
 function validateTokens(nexus: Nexus, requiredTokens: Token<any>[]) {
-  const missing = requiredTokens.filter(token => !nexus.has(token));
-  
+  const missing = requiredTokens.filter((token) => !nexus.has(token));
+
   if (missing.length > 0) {
-    throw new Error(`Missing required tokens: ${missing.map(t => t.toString()).join(', ')}`);
+    throw new Error(
+      `Missing required tokens: ${missing.map((t) => t.toString()).join(', ')}`
+    );
   }
 }
 
@@ -163,4 +169,4 @@ Tokens are the core identifiers in NexusDI's dependency injection system:
 
 Understanding tokens is essential for building maintainable, testable applications with NexusDI. For information about how tokens work with providers, see **[Providers and Services](./providers-and-services.md)**.
 
-The right coordinates get you to the right destination. Use the right tokens, and your dependencies will find their way home! ✨ 
+The right coordinates get you to the right destination. Use the right tokens, and your dependencies will find their way home! ✨

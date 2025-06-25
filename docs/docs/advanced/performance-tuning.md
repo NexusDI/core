@@ -67,7 +67,7 @@ const app = container.get(APP_SERVICE); // Might trigger lazy registration
 ```typescript
 // ✅ Good - Lightweight factory
 container.set(LOGGER, {
-  useFactory: () => new ConsoleLogger()
+  useFactory: () => new ConsoleLogger(),
 });
 
 // ❌ Bad - Expensive factory
@@ -77,7 +77,7 @@ container.set(LOGGER, {
     const config = loadConfigFromFile();
     const connection = establishDatabaseConnection();
     return new DatabaseLogger(config, connection);
-  }
+  },
 });
 
 // ✅ Better - Move expensive operations outside
@@ -143,7 +143,7 @@ const child3 = child2.createChildContainer();
 @Service(DATABASE)
 class DatabaseService {
   private connection: Connection;
-  
+
   constructor() {
     this.connection = new Connection(); // Expensive operation
   }
@@ -153,8 +153,8 @@ class DatabaseService {
 container.set(DATABASE, { useClass: DatabaseService });
 
 // ❌ Bad - Creating new instances unnecessarily
-container.set(DATABASE, { 
-  useFactory: () => new DatabaseService() // Creates new instance every time
+container.set(DATABASE, {
+  useFactory: () => new DatabaseService(), // Creates new instance every time
 });
 ```
 
@@ -207,4 +207,4 @@ Before optimizing, ensure you have:
 - **[Debugging & Diagnostics](debugging-and-diagnostics.md)** - Troubleshoot performance issues
 - **[Performance](../performance.md)** - Detailed performance benchmarks
 
-Remember: NexusDI is already optimized for most use cases. Only apply these techniques when you have measurable performance requirements that justify the additional complexity! 🚀 
+Remember: NexusDI is already optimized for most use cases. Only apply these techniques when you have measurable performance requirements that justify the additional complexity! 🚀

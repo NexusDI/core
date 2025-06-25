@@ -81,7 +81,7 @@ nexus.set(LOGGER, { useValue: new ConsoleLogger() });
 // Factory provider
 nexus.set(DATABASE, {
   useFactory: (config: IConfig) => new Database(config),
-  deps: [CONFIG]
+  deps: [CONFIG],
 });
 ```
 
@@ -110,6 +110,7 @@ class UserService implements IUserService {
 ## When to Use DI
 
 Use Dependency Injection when you have:
+
 - Complex applications with many dependencies
 - High testing requirements
 - Multiple environments (dev/staging/prod)
@@ -127,4 +128,4 @@ For a detailed comparison of DI vs regular imports, see **[DI vs Regular Imports
 - **[DI vs Regular Imports](./di-vs-imports.md)** - When to use each approach
 - **[Best Practices](./best-practices.md)** - Guidelines for maintainable DI code
 
-Take your time to understand these concepts - they form the foundation of everything else! Remember, in the world of DI, you're not just a developer, you're a dependency warlock! 🌱 
+Take your time to understand these concepts - they form the foundation of everything else! Remember, in the world of DI, you're not just a developer, you're a dependency warlock! 🌱

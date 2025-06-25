@@ -2,7 +2,9 @@
   "name": "@nexusdi/source",
   "version": "0.0.0",
   "license": "MIT",
-  "scripts": {},
+  "scripts": {
+    "benchmark:generate": "nx g @nexusdi/benchmark:benchmark"
+  },
   "private": true,
   "dependencies": {
     "@docusaurus/core": "3.8.1",
@@ -13,6 +15,7 @@
     "@tailwindcss/vite": "^4.1.10",
     "class-variance-authority": "^0.7.1",
     "clsx": "^2.1.1",
+    "express": "^4.21.2",
     "isbot": "^4.4.0",
     "prism-react-renderer": "^2.3.0",
     "react": "19.1.0",
@@ -28,8 +31,10 @@
     "@nx/devkit": "21.2.1",
     "@nx/eslint": "21.2.1",
     "@nx/eslint-plugin": "21.2.1",
+    "@nx/express": "^21.2.1",
     "@nx/js": "21.2.1",
     "@nx/playwright": "21.2.1",
+    "@nx/plugin": "^21.2.1",
     "@nx/react": "^21.2.1",
     "@nx/vite": "21.2.1",
     "@nx/web": "21.2.1",
@@ -72,9 +77,11 @@
     "vitest": "^3.0.0"
   },
   "workspaces": [
+    "benchmarks/*",
     "docs",
-    "packages/*",
+    "examples/*",
     "libs/*",
-    "examples/*"
+    "packages/*",
+    "tools/*"
   ]
 }

@@ -41,7 +41,10 @@ export const CardTitle = ({
   ...props
 }: HTMLAttributes<HTMLHeadingElement>) => (
   <h3
-    className={clsx('text-lg font-semibold leading-none tracking-tight', className)}
+    className={clsx(
+      'text-lg font-semibold leading-none tracking-tight',
+      className
+    )}
     {...props}
   />
 );
@@ -51,4 +54,4 @@ export const CardContent = ({
   ...props
 }: HTMLAttributes<HTMLDivElement>) => (
   <div className={clsx('p-4', className)} {...props} />
-); 
+);
