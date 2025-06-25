@@ -24,15 +24,21 @@ cd core
 npm install
 ```
 
+> **Note:** The documentation site is fully isolated and not managed by Nx. All docs tasks must be run from inside the `docs` folder using npm scripts. This is temporary until Docusaurus supports modern React Router and can be reintegrated with Nx.
+
 ## Building and Previewing the Docs
 
 - **Build the docs:**
   ```bash
-  nx build docs
+  cd docs
+  npm install
+  npm run build
   ```
 - **Start the docs locally (dev server):**
   ```bash
-  nx start docs
+  cd docs
+  npm install
+  npm start
   ```
 - Then visit `http://localhost:3000` to see your changes.
 
