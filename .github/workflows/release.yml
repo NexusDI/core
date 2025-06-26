@@ -28,7 +28,7 @@ jobs:
         run: npm ci
 
       - name: Run NX versioning
-        run: npx nx release version --yes
+        run: npx nx release version --git-commit=true --git-tag=true --git-push=true
 
       - name: Push version changes
         run: |
