@@ -6,6 +6,7 @@ on:
       - main
     paths:
       - 'docs/**'
+  workflow_dispatch:
 
 permissions:
   contents: write
@@ -32,3 +33,6 @@ jobs:
       - name: Deploy docs
         run: npm run deploy
         working-directory: docs
+        env:
+          GIT_USER: github-actions[bot]
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
