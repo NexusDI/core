@@ -18,6 +18,7 @@ This is a living document outlining planned and possible features for NexusDI. E
 | Graph Visualization                         |     ★★★☆☆     |       ☆☆☆☆☆        | Dev tool only, great for onboarding/debugging                      |
 | Plugin/Extension System                     |     ★★★★★     |       ☆☆☆☆☆        | Ecosystem driver, enables integrations and community growth        |
 | Native Decorator Metadata (Symbol.metadata) |     ★★★★☆     |       ★☆☆☆☆        | Standards-based, enables removal of reflect-metadata, future-proof |
+| Benchmarking Suite & Nx Plugin              |     ★★★☆☆     |       ☆☆☆☆☆        | Enables transparent, reproducible performance comparisons          |
 
 ---
 
@@ -308,6 +309,38 @@ Stay tuned for updates as this feature is rolled out!
 NexusDI will include a built-in polyfill for `Symbol.metadata` to ensure compatibility with all JavaScript runtimes, even those that do not yet support this feature natively. This polyfill is lightweight, only defines `Symbol.metadata` if it is missing, and will never overwrite a native implementation if one exists in the environment. By including this polyfill automatically at the library level, NexusDI removes the need for users to add or configure it themselves, making setup seamless and reducing the risk of errors.
 
 This approach ensures a smooth migration to the new decorator metadata standard and future-proofs your codebase as runtimes adopt native support. **However, you still need to set the correct TypeScript compiler options** (such as `target`, `lib`, and `esnext.decorators`) as described above to enable the new decorator and metadata features in your project.
+
+## Benchmarking Suite & Nx Plugin
+
+**Description:**
+A dedicated benchmarking suite and Nx plugin to provide objective, reproducible performance data for NexusDI and other DI containers.
+
+- **Market Impact:** Medium (transparency, trust, and competitive positioning)
+- **Performance Impact:** None (dev tool only)
+
+**Possible Implementation:**
+
+- Maintain a benchmarking suite as an Nx plugin in the `tools` folder.
+- Include a generator to scaffold new benchmarks for NexusDI and other DI containers.
+- Provide an executor to run benchmarks and collect results in a consistent format.
+- Cover common DI operations (container creation, registration, resolution, etc.) and real-world scenarios.
+- Use results for documentation, marketing, and ongoing optimization.
+
+**Proposed API:**
+
+```bash
+# Run the NexusDI benchmark
+nx run benchmarks-nexus:benchmark
+```
+
+**Benefits:**
+
+- Ensures NexusDI remains competitive and transparent about its performance compared to other DI libraries.
+- Guides optimizations and catches regressions early.
+- Provides clear, reproducible data for users and contributors.
+
+**Additional context:**
+See the [NexusDI Roadmap](https://nexus.js.org/docs/roadmap) for the role of benchmarking in ongoing development and optimization. The Nx plugin approach ensures benchmarks are easy to extend and run as part of CI or release workflows.
 
 ## Community Feedback
 
