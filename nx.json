@@ -14,7 +14,9 @@
   },
   "release": {
     "projectsRelationship": "independent",
+    "releaseTagPattern": "{projectName}@{version}",
     "version": {
+      "fallbackCurrentVersionResolver": "disk",
       "preVersionCommand": "npx nx run-many -t build",
       "conventionalCommits": true
     },

@@ -4,7 +4,7 @@
     "nx-release-publish": {
       "executor": "@nx/js:release-publish",
       "options": {
-        "outputPath": "dist/libs/core"
+        "outputPath": "libs/core/dist"
       }
     }
   }
