@@ -1,5 +1,5 @@
-name: Question / Support
-description: Please ask questions or request help in our [GitHub Discussions](https://github.com/NexusDI/core/discussions) board instead of opening an issue.
+name: 💬 Question / Support
+description: For help, usage questions, or advice.
 title: '[Question]: '
 labels: [question, needs-triage]
 projects: ['NexusDI/3']
