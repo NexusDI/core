@@ -1,3 +1,13 @@
+## 0.2.1
+
+### 🩹 Fixes
+
+- correct outputPath for releases ([1509e84](https://github.com/NexusDI/core/commit/1509e84))
+
+### ❤️ Thank You
+
+- Mikael Pettersson @Evanion
+
 ## 0.2.0
 
 - **Unify Nexus.set**: Unify the `set`, `setModule`, and `registerDynamicModule`
