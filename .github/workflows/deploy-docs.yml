@@ -2,7 +2,7 @@ name: Deploy Documentation
 
 on:
   push:
-    branches: [ main ]
+    branches: [main]
     paths:
       - 'docs/**'
   workflow_dispatch:
@@ -13,7 +13,7 @@ permissions:
   id-token: write
 
 concurrency:
-  group: "pages"
+  group: 'pages'
   cancel-in-progress: false
 
 jobs:
@@ -42,7 +42,6 @@ jobs:
           npm run build
 
       - name: Copy CNAME file
-        if: exists('docs/static/CNAME')
         run: |
           cp docs/static/CNAME docs/build/CNAME
 
