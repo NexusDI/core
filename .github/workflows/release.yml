@@ -7,6 +7,9 @@ jobs:
   release:
     name: Run nx release & publish to npm
     runs-on: ubuntu-latest
+    permissions:
+      contents: write
+      packages: write
 
     steps:
       - uses: actions/checkout@v4

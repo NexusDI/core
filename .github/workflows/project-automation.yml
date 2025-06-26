@@ -1,5 +1,9 @@
 name: Auto-add issues to Project
 
+permissions:
+  contents: read
+  issues: write
+
 on:
   issues:
     types: [opened, reopened]
