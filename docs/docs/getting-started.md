@@ -4,11 +4,11 @@ sidebar_position: 2
 
 # Getting Started 🚀
 
-Welcome to NexusDI! This guide will help you get started with dependency injection using tokens and interfaces. We'll walk through the basics step by step.
+Welcome to NexusDI! This guide will help you get started with dependency injection using tokens and interfaces. We'll walk through the basics step by step—no need to reroute power from life support, just follow along!
 
 ## Why Dependency Injection?
 
-Dependency Injection (DI) is a design pattern that helps you write more maintainable, testable, and flexible code. It provides a way to manage dependencies in your applications. Think of it as the replicator from Star Trek - you ask for what you need, and it provides exactly that, no questions asked.
+Dependency Injection (DI) is a design pattern that helps you write more maintainable, testable, and flexible code. It provides a way to manage dependencies in your applications by letting you supply the building blocks your code needs, rather than having each part create its own. This makes your code easier to test, extend, and maintain.
 
 For a comprehensive explanation of DI principles and benefits, see **[Dependency Injection](./dependency-injection.md)**.
 
@@ -70,6 +70,23 @@ For detailed explanations and real-world examples, see **[Dependency Injection](
 ```bash
 npm install @nexusdi/core reflect-metadata
 ```
+
+## TypeScript Configuration
+
+To use decorators and metadata with NexusDI, make sure your `tsconfig.json` includes the following settings (set your phasers to es2022!):
+
+```json
+{
+  "compilerOptions": {
+    "target": "es2022",
+    "lib": ["es2022", "esnext.decorators"],
+    "experimentalDecorators": true,
+    "emitDecoratorMetadata": true
+  }
+}
+```
+
+> 🛠️ **Tip:** These settings ensure that TypeScript emits the correct decorator and metadata code for NexusDI. If you see errors about decorators or metadata, double-check your `tsconfig.json`.
 
 ## Basic Usage with Tokens and Interfaces
 
@@ -175,6 +192,53 @@ const user = await userService.getUser('123');
 ## Why Tokens + Interfaces?
 
 For a detailed explanation of why tokens and interfaces are better than direct class references, see **[Dependency Injection](./dependency-injection.md)**.
+
+## Testing Your Setup 🧪
+
+Want to make sure everything is working—and get comfortable with testing early? Here's a unit test using the NexusDI container, inspired by real-world NexusDI projects (with [Vitest](https://vitest.dev/), but you can use Jest or your favorite runner). This example uses the most common and compatible pattern for unit tests today:
+
+```typescript
+// user.service.test.ts
+// Example: Unit test for UserService using NexusDI container and interface-matching mocks
+import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
+import { Nexus } from '@nexusdi/core';
+import { USER_SERVICE, LOGGER, DATABASE } from './tokens';
+import { UserService } from './services/user.service';
+import type { IUserService, ILogger, IDataSource } from './interfaces';
+
+describe('UserService (with DI container)', () => {
+  let container: Nexus;
+  let mockLogger: ILogger;
+  let mockDatabase: IDataSource;
+
+  beforeEach(() => {
+    container = new Nexus();
+    mockLogger = { log: vi.fn(), error: vi.fn() };
+    mockDatabase = {
+      query: vi.fn().mockResolvedValue([{ id: '42', name: 'Test User' }]),
+    };
+    container.set(LOGGER, { useValue: mockLogger });
+    container.set(DATABASE, { useValue: mockDatabase });
+    container.set(USER_SERVICE, { useClass: UserService });
+  });
+
+  afterEach(() => {
+    container.clear();
+  });
+
+  it('returns a user by id', async () => {
+    const userService = container.get<IUserService>(USER_SERVICE);
+    const user = await userService.getUser('42');
+    expect(user).toEqual({ id: '42', name: 'Test User' });
+    expect(mockLogger.log).toHaveBeenCalledWith('Fetching user with id: 42');
+    expect(mockDatabase.query).toHaveBeenCalled();
+  });
+});
+```
+
+> 🧑‍🔬 **Tip:** This pattern is familiar to most developers and works with all major test runners. You can always migrate to the disposal protocol (`using`/`Symbol.dispose`) as it becomes more widely adopted.
+
+If you see output and no errors, you're ready to explore the galaxy of DI!
 
 ## Next Steps
 
