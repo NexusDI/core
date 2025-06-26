@@ -1,0 +1,30 @@
+name: Bug Report
+description: Report a bug or unexpected behavior in NexusDI
+title: '[Bug]: '
+labels: [bug, needs-triage]
+projects: ['NexusDI/3']
+body:
+  - type: textarea
+    attributes:
+      label: What happened?
+      description: Describe the bug and what you expected to happen.
+    validations:
+      required: true
+  - type: textarea
+    attributes:
+      label: Steps to reproduce
+      description: List the steps to reproduce the issue.
+    validations:
+      required: true
+  - type: textarea
+    attributes:
+      label: Minimal reproduction
+      description: If possible, provide a minimal code example or link to a repo.
+  - type: input
+    attributes:
+      label: Version
+      description: What version of NexusDI are you using?
+  - type: textarea
+    attributes:
+      label: Additional context
+      description: Any other information, error messages, or screenshots?

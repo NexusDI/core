@@ -1,0 +1,17 @@
+name: Question / Support
+description: Please ask questions or request help in our [GitHub Discussions](https://github.com/NexusDI/core/discussions) board instead of opening an issue.
+title: '[Question]: '
+labels: [question, needs-triage]
+projects: ['NexusDI/3']
+body:
+  - type: markdown
+    attributes:
+      value: |
+        👉 **Please do not open a GitHub Issue for questions or general support.**
+        Instead, use our [Discussions board](https://github.com/NexusDI/core/discussions) for help, usage questions, or advice.
+  - type: checkboxes
+    attributes:
+      label: Did you read the instructions above?
+      options:
+        - label: I understand and will use Discussions for questions/support.
+          required: true
