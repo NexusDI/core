@@ -1,0 +1,15 @@
+{
+  "name": "benchmarks-inversify",
+  "root": "benchmarks/inversify",
+  "sourceRoot": "benchmarks/inversify/src",
+  "projectType": "library",
+  "tags": ["benchmark"],
+  "targets": {
+    "benchmark": {
+      "executor": "tools/benchmark:benchmark",
+      "options": {
+        "main": "benchmarks/inversify/src/benchmark.ts"
+      }
+    }
+  }
+}

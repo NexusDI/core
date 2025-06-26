@@ -1,0 +1,69 @@
+// This file should be named benchmark.ts and is the entrypoint for your DI benchmark implementation.
+import { BenchmarkBase, ILoggerService, IDatabase, IUserService } from '@nexusdi/benchmark';
+// import your DI container and decorators here
+
+// --- Benchmarked service implementations ---
+// Create your tokens
+// const DATABASE = ...;
+// const LOGGER = ...;
+// const USER_SERVICE = ...;
+
+// Add decorators as needed for your DI container
+// @Service(LOGGER)
+export class LoggerService implements ILoggerService {
+  log(message: string): void {
+    // Minimal implementation
+  }
+}
+
+// @Service(DATABASE)
+export class Database implements IDatabase {
+  async getUser(id: string): Promise<{ id: string; name: string }> {
+    // Simulate DB fetch
+    return { id, name: `User_${id}` };
+  }
+}
+
+// @Service(USER_SERVICE)
+export class UserService implements IUserService {
+  constructor(
+    // @Inject(DATABASE) private db: IDatabase,
+    // @Inject(LOGGER) private logger: ILoggerService
+  ) {}
+
+  async getUserName(id: string): Promise<string> {
+    // this.logger.log(`Fetching user ${id}`);
+    // const user = await this.db.getUser(id);
+    // return user.name;
+    return '';
+  }
+}
+
+// --- Benchmark class ---
+
+// Implement your DI benchmark by extending BenchmarkBase
+export default class <%= className %>Benchmark extends BenchmarkBase {
+  // Set this to the npm package name or file path(s) to measure for bundle size
+  bundleTarget = '<%= name %>';
+  // The container is initialized in startup() for profiling; definite assignment assertion avoids TS error
+  private container!: unknown;
+
+  // Create the DI container (do not register services here)
+  async startup(): Promise<void> {
+    // this.container = new Container();
+  }
+
+  // Register services in the DI container (do not create the container here)
+  async register(): Promise<void> {
+    // this.container.set(LOGGER, LoggerService);
+    // this.container.set(DATABASE, Database);
+    // this.container.set(USER_SERVICE, UserService);
+  }
+
+  // Resolve UserService
+  async resolve(): Promise<void> {
+    // const _userService = this.container.get(USER_SERVICE);
+  }
+}
+
+// The benchmark executor will import and use this class to run the benchmark and collect results. 

@@ -1,0 +1,20 @@
+{
+  // This is a per-benchmark tsconfig.json. Adjust paths as needed for your DI container and the benchmark plugin.
+  "extends": "../../tsconfig.base.json",
+  "compilerOptions": {
+    "outDir": "./dist",
+    "rootDir": "./src",
+    "experimentalDecorators": true,
+    "emitDecoratorMetadata": true,
+    "paths": {
+      "@nexusdi/benchmark": ["../../../tools/benchmark/src/index.ts"]
+      // Add a path for your DI container here if it's local
+    }
+  },
+  "include": ["src"],
+  "references": [
+    {
+      "path": "../../tools/benchmark"
+    }
+  ]
+}

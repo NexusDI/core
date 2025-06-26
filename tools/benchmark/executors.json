@@ -1,0 +1,9 @@
+{
+  "executors": {
+    "benchmark": {
+      "implementation": "./dist/executors/benchmark",
+      "schema": "./dist/executors/schema.json",
+      "description": "benchmark executor"
+    }
+  }
+}

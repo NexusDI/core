@@ -1,0 +1,21 @@
+{
+  "$schema": "https://json-schema.org/schema",
+  "version": 2,
+  "title": "Benchmark executor",
+  "description": "",
+  "type": "object",
+  "properties": {
+    "outputFormat": {
+      "type": "string",
+      "enum": ["console", "json"],
+      "description": "Output format for benchmark results: 'console' (default) or 'json'"
+    },
+    "iterations": {
+      "type": "integer",
+      "minimum": 1,
+      "default": 1,
+      "description": "Number of times to repeat the benchmark for averaging."
+    }
+  },
+  "required": []
+}

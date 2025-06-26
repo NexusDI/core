@@ -1,0 +1,12 @@
+{
+  "name": "benchmarks-nexus",
+  "root": "benchmarks/nexus",
+  "sourceRoot": "benchmarks/nexus/src",
+  "projectType": "library",
+  "tags": ["benchmark"],
+  "targets": {
+    "benchmark": {
+      "executor": "tools/benchmark:benchmark"
+    }
+  }
+}
