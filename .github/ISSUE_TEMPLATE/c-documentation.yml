@@ -1,4 +1,4 @@
-name: 📚 Documentation Issue
+ name: 📚 Documentation Issue
 description: Report missing, unclear, or incorrect documentation. Use this if you found a typo, outdated info, or something that could be explained better in the docs.
 title: '[Docs]: '
 labels: [documentation, needs-triage]

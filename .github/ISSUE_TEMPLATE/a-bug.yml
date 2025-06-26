@@ -1,4 +1,4 @@
-name: 🐞 Bug Report
+ name: 🐞 Bug Report
 description: Report a bug or unexpected behavior in NexusDI. Use this if something is broken, not working as documented, or causing errors in your project.
 title: '[Bug]: '
 labels: [bug, needs-triage]
