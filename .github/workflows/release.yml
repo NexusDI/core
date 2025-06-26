@@ -1,40 +1,44 @@
-name: Release
+# ./.github/workflows/publish.yml
+name: Publish
 
 on:
+  push:
+    tags:
+      - '@nexusdi/*@*.*.*'
   workflow_dispatch:
 
 jobs:
-  release:
-    name: Run nx release & publish to npm
+  test:
+    name: Publish
     runs-on: ubuntu-latest
-
+    permissions:
+      contents: read
+      id-token: write # needed for provenance data generation
+    timeout-minutes: 10
     steps:
-      - uses: actions/checkout@v4
+      - name: Checkout repository
+        uses: actions/checkout@v4
         with:
           fetch-depth: 0
+          filter: tree:0
 
-      - name: Setup git user
-        run: |
-          git config user.name "GitHub Actions"
-          git config user.email "github-actions[bot]@users.noreply.github.com"
-
-      - name: Setup Node
+      - name: Install Node
         uses: actions/setup-node@v4
         with:
-          node-version: 'lts/*'
-          registry-url: https://registry.npmjs.org
+          node-version: 20
+          registry-url: https://registry.npmjs.org/
 
       - name: Install dependencies
-        run: npm ci
+        run: npm install
+        shell: bash
 
-      - name: Run NX versioning
-        run: npx nx release version --git-commit=true --git-tag=true --git-push=true
+      - name: Print Environment Info
+        run: npx nx report
+        shell: bash
 
-      - name: Push version changes
-        run: |
-          git push origin HEAD:main --follow-tags
-
-      - name: Publish to npm
-        run: npx nx release publish --yes
+      - name: Publish packages
+        run: npx nx release publish
+        shell: bash
         env:
           NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
+          NPM_CONFIG_PROVENANCE: true

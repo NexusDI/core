@@ -1,0 +1,11 @@
+{
+  "name": "@nexusdi/core",
+  "targets": {
+    "nx-release-publish": {
+      "executor": "@nx/js:release-publish",
+      "options": {
+        "outputPath": "dist/libs/core"
+      }
+    }
+  }
+}

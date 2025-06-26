@@ -15,11 +15,13 @@
   "release": {
     "projectsRelationship": "independent",
     "version": {
+      "preVersionCommand": "npx nx run-many -t build",
       "conventionalCommits": true
     },
-    "projects": ["libs/*"],
+    "projects": ["core"],
     "changelog": {
       "projectChangelogs": {
+        "createRelease": "github",
         "renderOptions": {
           "authors": true,
           "applyUsernameToAuthors": true,
