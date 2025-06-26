@@ -13,13 +13,20 @@
     "sharedGlobals": ["{workspaceRoot}/.github/workflows/ci.yml"]
   },
   "release": {
-    "conventionalCommits": {
-      "enabled": true
+    "projectsRelationship": "independent",
+    "version": {
+      "conventionalCommits": true
     },
-    "releaseTagPattern": "release/{projectName}/{version}",
     "projects": ["libs/*"],
     "changelog": {
-      "projectChangelogs": true
+      "projectChangelogs": {
+        "renderOptions": {
+          "authors": true,
+          "applyUsernameToAuthors": true,
+          "commitReferences": true,
+          "versionTitleDate": false
+        }
+      }
     }
   },
   "tui": {
