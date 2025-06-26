@@ -1,0 +1,20 @@
+{
+  "name": "benchmark",
+  "root": "tools/benchmark",
+  "sourceRoot": "tools/benchmark/src",
+  "projectType": "library",
+  "targets": {
+    "build": {
+      "executor": "@nx/js:tsc",
+      "outputs": ["{options.outputPath}"],
+      "options": {
+        "outputPath": "tools/benchmark/dist",
+        "main": "tools/benchmark/src/index.ts",
+        "tsConfig": "tools/benchmark/tsconfig.lib.json",
+        "rootDir": "tools/benchmark/src",
+        "generatePackageJson": false
+      }
+    }
+  },
+  "tags": []
+}

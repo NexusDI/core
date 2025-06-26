@@ -1,0 +1,9 @@
+{
+  "generators": {
+    "benchmark": {
+      "factory": "./dist/generators/benchmark",
+      "schema": "./dist/generators/schema.json",
+      "description": "benchmark generator"
+    }
+  }
+}

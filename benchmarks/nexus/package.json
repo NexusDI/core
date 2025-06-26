@@ -1,0 +1,18 @@
+{
+  "name": "nexus-benchmark",
+  "private": true,
+  "version": "0.0.0",
+  "license": "UNLICENSED",
+  "type": "module",
+  "main": "dist/index.js",
+  "scripts": {
+    "build": "tsc",
+    "clean": "rm -rf dist"
+  },
+  "dependencies": {
+    "@nexusdi/benchmark": "file:../../node_modules/@nexusdi/benchmark",
+    "@nexusdi/core": "file:../../node_modules/@nexusdi/core",
+    "reflect-metadata": "^0.2.2"
+  },
+  "devDependencies": {}
+}
