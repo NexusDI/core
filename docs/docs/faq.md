@@ -28,7 +28,7 @@ Great question! Use a string or `Token` as a token, and the `@Inject(token)` dec
 
 ## What runtime dependencies does Nexus have?
 
-Nexus is a lightweight library that believes in traveling light! It has only 1 runtime dependency, and that is `reflect-metadata`. That's it - no heavy baggage here!
+NexusDI has a low dependency footprint. The only required peer dependency is `reflect-metadata`. That's it—no heavy baggage here!
 
 ## How do I debug dependency resolution issues?
 

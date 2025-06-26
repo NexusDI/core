@@ -24,7 +24,7 @@
 - 🧩 **Powerful Module System** - Organize your application into modules with support for both static and dynamic configuration
 - ⚡ **Dynamic Configuration** - Static methods for environment-specific module configuration (inspired by industry leaders)
 - 🎯 **Developer-Friendly API** - Clean and intuitive API that makes dependency management simple
-- 📦 **Lightweight** - One dependency, minimal bundle size
+- 📦 **Lightweight** - Low dependency, minimal bundle size
 - 🔧 **Flexible** - Support for both class-based and factory providers
 
 ## 📊 Performance Comparison

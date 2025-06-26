@@ -26,10 +26,9 @@ Total Core:      16KB
 
 ### Runtime Dependencies
 
-NexusDI has minimal external dependencies:
+NexusDI has a low dependency footprint:
 
-- **reflect-metadata**: 64KB (required for decorator metadata)
-- **No other runtime dependencies**
+- **Only one required peer dependency: `reflect-metadata`**
 
 ### Total Runtime Overhead
 
@@ -536,7 +535,7 @@ NexusDI provides excellent performance characteristics:
 2. **Lowest memory usage** for typical applications
 3. **Competitive resolution speed** with minimal overhead
 4. **Small bundle size** with tree-shaking support
-5. **Zero runtime dependencies** beyond reflect-metadata
+5. **Low dependency footprint** (just `reflect-metadata` as a peer dependency)
 
 For most applications, the performance impact is negligible while the benefits of dependency injection (testability, maintainability, flexibility) are substantial. NexusDI is particularly well-suited for:
 
