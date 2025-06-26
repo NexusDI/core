@@ -13,6 +13,9 @@
     "sharedGlobals": ["{workspaceRoot}/.github/workflows/ci.yml"]
   },
   "release": {
+    "conventionalCommits": {
+      "enabled": true
+    },
     "releaseTagPattern": "release/{projectName}/{version}",
     "projects": ["libs/*"],
     "changelog": {
