@@ -1,4 +1,11 @@
-import 'reflect-metadata';
+// NOTE: This file assumes tsconfig.json includes "lib": ["es2022", "esnext.decorators", ...]
+// Symbol.metadata constant
+import { SYMBOL_METADATA, METADATA_KEYS } from './constants';
+// Polyfill for Symbol.metadata
+if (typeof (Symbol as any).metadata === 'undefined') {
+  (Symbol as any).metadata = Symbol(SYMBOL_METADATA);
+}
+
 // Core exports
 export { Nexus } from './container';
 export type { IContainer } from './types';
@@ -30,8 +37,10 @@ export type {
 } from './types';
 
 // Constants
-export { METADATA_KEYS } from './types';
+export { SYMBOL_METADATA, METADATA_KEYS };
 
 // Default export for convenience
 import { Nexus } from './container';
 export default Nexus;
+
+export * from './guards';

@@ -1,8 +1,10 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 import { Module } from './decorators';
 import type { ModuleConfig, TokenType } from './types';
-import { METADATA_KEYS } from './types';
+import { METADATA_KEYS } from './constants';
 import type { Token } from './token';
+import { SYMBOL_METADATA } from './constants';
+import { setMetadata, getMetadata } from './helpers';
 
 /**
  * Represents a dynamic module, allowing for runtime configuration of providers and imports.
@@ -21,10 +23,7 @@ export abstract class DynamicModule<TConfig = any> {
   static getModuleConfig<T extends typeof DynamicModule>(
     this: T
   ): ModuleConfig {
-    const moduleConfig = Reflect.getMetadata(
-      METADATA_KEYS.MODULE_METADATA,
-      this
-    );
+    const moduleConfig = getMetadata(this, METADATA_KEYS.MODULE_METADATA);
     if (!moduleConfig) {
       throw new Error(
         `Module ${this.name} is not properly decorated with @Module`
@@ -90,7 +89,7 @@ export abstract class DynamicModule<TConfig = any> {
    */
   static forRoot(config: any): any {
     class RuntimeDynamicModule {}
-    Reflect.defineMetadata('nexus:module', config, RuntimeDynamicModule);
+    setMetadata(RuntimeDynamicModule, METADATA_KEYS.MODULE_METADATA, config);
     return RuntimeDynamicModule;
   }
 }

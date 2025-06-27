@@ -6,8 +6,16 @@ import type {
   InjectionMetadata,
   ModuleProvider,
 } from './types';
-import { METADATA_KEYS } from './types';
 import { Token } from './token';
+import { METADATA_KEYS } from './constants';
+import { getMetadata } from './helpers';
+import {
+  isTokenType,
+  isProvider,
+  isFactory,
+  isService,
+  isContainer,
+} from './guards';
 
 /**
  * The main DI container class for NexusDI. Use this to bootstrap and resolve your modules and services.
@@ -35,9 +43,12 @@ export class Nexus implements IContainer {
    * @see https://nexus.js.org/docs/container/nexus-class
    */
   get<T>(token: Token<T>): T;
+  get<T>(token: symbol): T;
   get<T>(token: new (...args: any[]) => T): T;
-  get<T>(token: string): T;
   get<T>(token: any): T {
+    if (!isTokenType(token)) {
+      throw new InvalidToken(token);
+    }
     // Resolve aliases
     const actualToken = this.aliases.get(token) || token;
     if (!this.has(actualToken)) {
@@ -64,7 +75,7 @@ export class Nexus implements IContainer {
     if (provider.useValue !== undefined) {
       instance = provider.useValue;
     } else if (provider.useFactory) {
-      const deps = provider.deps?.map((dep) => this.get(dep)) || [];
+      const deps = provider.deps?.map((dep) => this.get(dep as any)) || [];
       instance = provider.useFactory(...deps);
     } else if (provider.useClass) {
       instance = this.resolve(provider.useClass);
@@ -86,9 +97,9 @@ export class Nexus implements IContainer {
    * @returns True if registered
    * @see https://nexus.js.org/docs/container/nexus-class
    */
-  has(token: Token): boolean;
-  has(token: new (...args: any[]) => unknown): boolean;
-  has(token: string): boolean;
+  has(token: Token<any>): boolean;
+  has(token: symbol): boolean;
+  has(token: new (...args: any[]) => any): boolean;
   has(token: any): boolean {
     const actualToken = this.aliases.get(token) || token;
     return (
@@ -103,15 +114,19 @@ export class Nexus implements IContainer {
    * @returns The resolved instance
    * @see https://nexus.js.org/docs/container/nexus-class
    */
-  resolve<T>(token: TokenType<T>): T {
+  resolve<T>(token: Token<T>): T;
+  resolve<T>(token: symbol): T;
+  resolve<T>(token: new (...args: any[]) => T): T;
+  resolve<T>(token: any): T {
+    if (!isTokenType(token)) {
+      throw new InvalidToken(token);
+    }
     const paramTypes =
-      Reflect.getMetadata(METADATA_KEYS.DESIGN_PARAMTYPES, token) || [];
-    // Get constructor parameter injection metadata from the constructor
+      getMetadata(token, METADATA_KEYS.DESIGN_PARAMTYPES) || [];
     const ctorInjectionMetadata: InjectionMetadata[] =
-      Reflect.getMetadata(METADATA_KEYS.INJECT_METADATA, token) || [];
-    // Get property injection metadata from the prototype
+      getMetadata(token, METADATA_KEYS.INJECT_METADATA) || [];
     const propInjectionMetadata: InjectionMetadata[] =
-      Reflect.getMetadata(METADATA_KEYS.INJECT_METADATA, token.prototype) || [];
+      getMetadata(token.prototype, METADATA_KEYS.INJECT_METADATA) || [];
 
     // Create parameter array for constructor
     const params: any[] = new Array(paramTypes.length);
@@ -163,13 +178,13 @@ export class Nexus implements IContainer {
    */
   set<T>(token: Token<T>, provider: Provider<T>): void;
   set<T>(token: Token<T>, serviceClass: new (...args: any[]) => T): void;
+  set<T>(token: symbol, provider: Provider<T>): void;
+  set<T>(token: symbol, serviceClass: new (...args: any[]) => T): void;
   set<T>(token: new (...args: any[]) => T, provider: Provider<T>): void;
   set<T>(
     token: new (...args: any[]) => T,
     serviceClass: new (...args: any[]) => T
   ): void;
-  set<T>(token: string, provider: Provider<T>): void;
-  set<T>(token: string, serviceClass: new (...args: any[]) => T): void;
   set(moduleClass: new (...args: any[]) => any): void;
   set(moduleConfig: {
     providers?: ModuleProvider[];
@@ -181,9 +196,7 @@ export class Nexus implements IContainer {
     // If it's a module class (has @Module metadata)
     if (
       typeof tokenOrModuleOrConfig === 'function' &&
-      Reflect &&
-      Reflect.getMetadata &&
-      Reflect.getMetadata(METADATA_KEYS.MODULE_METADATA, tokenOrModuleOrConfig)
+      getMetadata(tokenOrModuleOrConfig, METADATA_KEYS.MODULE_METADATA)
     ) {
       if (this.inProgressModules.has(tokenOrModuleOrConfig)) {
         return;
@@ -193,9 +206,9 @@ export class Nexus implements IContainer {
       }
       this.inProgressModules.add(tokenOrModuleOrConfig);
       this.modules.add(tokenOrModuleOrConfig);
-      const moduleConfig = Reflect.getMetadata(
-        METADATA_KEYS.MODULE_METADATA,
-        tokenOrModuleOrConfig
+      const moduleConfig = getMetadata(
+        tokenOrModuleOrConfig,
+        METADATA_KEYS.MODULE_METADATA
       );
       if (!moduleConfig) {
         this.inProgressModules.delete(tokenOrModuleOrConfig);
@@ -229,6 +242,9 @@ export class Nexus implements IContainer {
     token: TokenType<any>,
     providerOrClass: Provider<any> | (new (...args: any[]) => any)
   ): void {
+    if (!isTokenType(token)) {
+      throw new InvalidToken(token);
+    }
     let provider: Provider<any>;
     if (typeof providerOrClass === 'function') {
       provider = { useClass: providerOrClass };
@@ -250,43 +266,6 @@ export class Nexus implements IContainer {
   }
 
   /**
-   * @deprecated Use the unified set() method instead.
-   */
-  setModule(moduleClass: new (...args: any[]) => any): void {
-    console.warn(
-      '[DEPRECATED] Use container.set(moduleClass) instead of setModule.'
-    );
-    if (this.modules.has(moduleClass)) {
-      return; // Module already registered
-    }
-    this.modules.add(moduleClass);
-    const moduleConfig = Reflect.getMetadata(
-      METADATA_KEYS.MODULE_METADATA,
-      moduleClass
-    );
-    if (!moduleConfig) {
-      throw new Error(
-        `Module ${moduleClass.name} is not properly decorated with @Module`
-      );
-    }
-    this.processModuleConfig(moduleConfig);
-  }
-
-  /**
-   * @deprecated Use the unified set() method instead.
-   */
-  registerDynamicModule(moduleConfig: {
-    services?: (new (...args: any[]) => any)[];
-    providers?: ModuleProvider[];
-    imports?: (new (...args: any[]) => any)[];
-  }): void {
-    console.warn(
-      '[DEPRECATED] Use container.set(dynamicModuleConfig) instead of registerDynamicModule.'
-    );
-    this.processModuleConfig(moduleConfig);
-  }
-
-  /**
    * Process module configuration (shared between setModule and registerDynamicModule)
    */
   private processModuleConfig(moduleConfig: {
@@ -297,16 +276,16 @@ export class Nexus implements IContainer {
     // Register imported modules
     if (moduleConfig.imports) {
       for (const importedModule of moduleConfig.imports) {
-        this.setModule(importedModule);
+        this.set(importedModule);
       }
     }
 
     // Register services
     if (moduleConfig.services) {
       for (const serviceClass of moduleConfig.services) {
-        const serviceConfig = Reflect.getMetadata(
-          METADATA_KEYS.SERVICE_METADATA,
-          serviceClass
+        const serviceConfig = getMetadata(
+          serviceClass,
+          METADATA_KEYS.SERVICE_METADATA
         );
         if (!serviceConfig) {
           throw new Error(
@@ -323,10 +302,10 @@ export class Nexus implements IContainer {
     if (moduleConfig.providers) {
       for (const provider of moduleConfig.providers) {
         // Check if provider is a service class (has @Service decorator)
-        if (typeof provider === 'function') {
-          const serviceConfig = Reflect.getMetadata(
-            METADATA_KEYS.SERVICE_METADATA,
-            provider
+        if (isService(provider)) {
+          const serviceConfig = getMetadata(
+            provider,
+            METADATA_KEYS.SERVICE_METADATA
           );
           if (serviceConfig) {
             this.set(serviceConfig.token as TokenType<any>, {
@@ -337,9 +316,11 @@ export class Nexus implements IContainer {
               `Service class ${provider.name} is not decorated with @Service`
             );
           }
-        } else {
+        } else if (isProvider(provider)) {
           // Full provider object
           this.set(provider.token as TokenType<any>, provider);
+        } else {
+          throw new Error('Invalid provider type');
         }
       }
     }
@@ -403,5 +384,23 @@ export class Nexus implements IContainer {
       providers: Array.from(this.providers.keys()),
       modules: Array.from(this.modules).map((m) => m.name),
     };
+  }
+}
+
+export class ContainerException extends Error {
+  constructor(message: string) {
+    super(message);
+    this.name = 'ContainerException';
+  }
+}
+
+export class InvalidToken extends ContainerException {
+  constructor(token: any) {
+    super(
+      `Invalid token: ${String(
+        token
+      )}. Only class constructors, symbols, or Token<T> instances are allowed as tokens.`
+    );
+    this.name = 'InvalidToken';
   }
 }

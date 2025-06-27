@@ -2,13 +2,15 @@ import { describe, it, expect } from 'vitest';
 import { Token } from './token';
 import {
   type TokenType,
-  type Provider,
+  type InjectableToken,
   type ModuleProvider,
   type ServiceConfig,
   type ModuleConfig,
-  METADATA_KEYS,
   type InjectionMetadata,
 } from './types';
+import { getMetadata, setMetadata } from './helpers';
+import { METADATA_KEYS } from './constants';
+import { Inject, Service, Module, Provider } from './decorators';
 
 describe('Types', () => {
   // TokenType group: Ensures all supported token types are accepted and behave as expected
@@ -20,18 +22,8 @@ describe('Types', () => {
      */
     it('should accept Token instances', () => {
       const token = new Token('TEST');
-      const tokenType: TokenType = token;
+      const tokenType: InjectableToken = token;
       expect(tokenType).toBe(token);
-    });
-
-    /**
-     * Test: Accepts string tokens as TokenType
-     * Validates: Type compatibility and value equality
-     * Value: Allows simple string-based DI tokens for convenience
-     */
-    it('should accept string tokens', () => {
-      const tokenType: TokenType = 'STRING_TOKEN';
-      expect(tokenType).toBe('STRING_TOKEN');
     });
 
     /**
@@ -41,7 +33,7 @@ describe('Types', () => {
      */
     it('should accept symbol tokens', () => {
       const symbol = Symbol('SYMBOL_TOKEN');
-      const tokenType: TokenType = symbol;
+      const tokenType: InjectableToken = symbol;
       expect(tokenType).toBe(symbol);
     });
 
@@ -52,7 +44,7 @@ describe('Types', () => {
      */
     it('should accept class constructors', () => {
       class TestClass {}
-      const tokenType: TokenType = TestClass;
+      const tokenType: InjectableToken = TestClass;
       expect(tokenType).toBe(TestClass);
     });
   });
@@ -66,12 +58,12 @@ describe('Types', () => {
      */
     it('should define a provider with useClass', () => {
       class TestService {}
-      const provider: ModuleProvider = {
-        token: 'TEST_TOKEN',
-        useClass: TestService,
-      };
-
-      expect((provider as any).token).toBe('TEST_TOKEN');
+      const provider: { token: InjectableToken; useClass: typeof TestService } =
+        {
+          token: new Token('TEST_TOKEN'),
+          useClass: TestService,
+        };
+      expect((provider as any).token).toBeInstanceOf(Token);
       expect((provider as any).useClass).toBe(TestService);
     });
 
@@ -81,11 +73,10 @@ describe('Types', () => {
      * Value: Ensures DI can inject static values or configs
      */
     it('should define a provider with useValue', () => {
-      const provider: ModuleProvider = {
+      const provider: { token: InjectableToken; useValue: string } = {
         token: new Token('VALUE_TOKEN'),
         useValue: 'test value',
       };
-
       expect((provider as any).token).toBeInstanceOf(Token);
       expect((provider as any).useValue).toBe('test value');
     });
@@ -97,15 +88,18 @@ describe('Types', () => {
      */
     it('should define a provider with useFactory', () => {
       const factory = () => 'factory result';
-      const provider: ModuleProvider = {
-        token: 'FACTORY_TOKEN',
+      const provider: {
+        token: InjectableToken;
+        useFactory: () => string;
+        deps: InjectableToken[];
+      } = {
+        token: new Token('FACTORY_TOKEN'),
         useFactory: factory,
-        deps: ['DEP1', 'DEP2'],
+        deps: [Symbol('DEP1'), Symbol('DEP2')],
       };
-
-      expect((provider as any).token).toBe('FACTORY_TOKEN');
+      expect((provider as any).token).toBeInstanceOf(Token);
       expect((provider as any).useFactory).toBe(factory);
-      expect((provider as any).deps).toEqual(['DEP1', 'DEP2']);
+      expect((provider as any).deps.length).toBe(2);
     });
   });
 
@@ -118,11 +112,10 @@ describe('Types', () => {
      */
     it('should define service config with token', () => {
       const token = new Token('SERVICE_TOKEN');
-      const config: ServiceConfig = {
+      const config: { token: InjectableToken; singleton: boolean } = {
         token,
         singleton: true,
       };
-
       expect(config.token).toBe(token);
       expect(config.singleton).toBe(true);
     });
@@ -153,14 +146,17 @@ describe('Types', () => {
       class TestService {}
       class TestModule {}
       const token = new Token('PROVIDER_TOKEN');
-
-      const config: ModuleConfig = {
+      const config: {
+        imports: any[];
+        services: any[];
+        providers: { token: InjectableToken; useClass: typeof TestService }[];
+        exports: InjectableToken[];
+      } = {
         imports: [TestModule],
         services: [TestService],
         providers: [{ token, useClass: TestService }],
         exports: [token],
       };
-
       expect(config.imports).toEqual([TestModule]);
       expect(config.services).toEqual([TestService]);
       expect(config.providers).toHaveLength(1);

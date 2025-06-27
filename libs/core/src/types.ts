@@ -8,7 +8,11 @@ import type { Token } from './token';
  *
  * @see https://nexus.js.org/docs/modules/tokens
  */
-export type TokenType<T = any> = new (...args: any[]) => T | string | Token<T>;
+export type TokenType<T = any> = new (...args: any[]) => T | symbol | Token<T>;
+export type InjectableToken<T = any> =
+  | Token<T>
+  | symbol
+  | (new (...args: any[]) => T);
 
 /**
  * Provider definition for DI. Use this to register classes, values, or factories.
@@ -22,7 +26,7 @@ export type Provider<T = any> = {
   useClass?: new (...args: any[]) => T;
   useValue?: T;
   useFactory?: (...args: any[]) => T;
-  deps?: TokenType[];
+  deps?: InjectableToken[];
 };
 
 /**
@@ -34,8 +38,8 @@ export type Provider<T = any> = {
  * @see https://nexus.js.org/docs/modules/module-basics
  */
 export type ModuleProvider<T = any> =
-  | (Provider<T> & { token: TokenType<T> }) // Full provider object
-  | (new (...args: any[]) => T); // Service class (uses @Service decorator token)
+  | (Provider<T> & { token: InjectableToken<T> })
+  | (new (...args: any[]) => T);
 
 /**
  * Configuration for a service. Used with @Service and @Provider decorators.
@@ -71,18 +75,27 @@ export type ModuleConfig = {
  * @see https://nexus.js.org/docs/container/nexus-class
  */
 export interface IContainer {
-  get<T>(token: TokenType<T>): T;
-  has(token: TokenType): boolean;
-  resolve<T>(target: new (...args: any[]) => T): T;
-  set<T>(token: TokenType<T>, provider: Provider<T>): void;
-  set<T>(token: TokenType<T>, serviceClass: new (...args: any[]) => T): void;
+  get<T>(token: Token<T>): T;
+  get<T>(token: symbol): T;
+  get<T>(token: new (...args: any[]) => T): T;
+
+  has(token: Token<any>): boolean;
+  has(token: symbol): boolean;
+  has(token: new (...args: any[]) => any): boolean;
+
+  resolve<T>(token: Token<T>): T;
+  resolve<T>(token: symbol): T;
+  resolve<T>(token: new (...args: any[]) => T): T;
+
+  set<T>(token: Token<T>, provider: Provider<T>): void;
+  set<T>(token: Token<T>, serviceClass: new (...args: any[]) => T): void;
+  set<T>(token: symbol, provider: Provider<T>): void;
+  set<T>(token: symbol, serviceClass: new (...args: any[]) => T): void;
   set<T>(token: new (...args: any[]) => T, provider: Provider<T>): void;
   set<T>(
     token: new (...args: any[]) => T,
     serviceClass: new (...args: any[]) => T
   ): void;
-  set<T>(token: string, provider: Provider<T>): void;
-  set<T>(token: string, serviceClass: new (...args: any[]) => T): void;
   set(moduleClass: new (...args: any[]) => any): void;
   set(moduleConfig: {
     providers?: ModuleProvider[];
@@ -91,25 +104,7 @@ export interface IContainer {
     exports?: TokenType[];
   }): void;
   set(tokenOrModuleOrConfig: any, providerOrNothing?: any): void;
-  registerDynamicModule(moduleConfig: {
-    services?: (new (...args: any[]) => any)[];
-    providers?: ModuleProvider[];
-    imports?: (new (...args: any[]) => any)[];
-  }): void;
 }
-
-/**
- * Metadata keys used internally for decorators and reflection.
- *
- * @see https://nexus.js.org/docs/modules/module-basics
- */
-export const METADATA_KEYS = {
-  DESIGN_PARAMTYPES: 'design:paramtypes',
-  DESIGN_TYPE: 'design:type',
-  INJECT_METADATA: 'nexusdi:inject',
-  SERVICE_METADATA: 'nexusdi:service',
-  MODULE_METADATA: 'nexusdi:module',
-} as const;
 
 /**
  * Metadata for injection, used internally by @Inject and @Optional.

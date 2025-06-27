@@ -2,10 +2,11 @@
 // TypeScript's type system cannot express decorator overloads with union implementation signatures for DI ergonomics.
 // This file disables type checking to allow ergonomic and type-safe decorator APIs for users.
 // See: https://github.com/microsoft/TypeScript/issues/37181 for context on why this is necessary.
-import 'reflect-metadata';
 import type { TokenType, ServiceConfig, ModuleConfig } from './types';
-import { METADATA_KEYS, type InjectionMetadata } from './types';
+import { METADATA_KEYS } from './constants';
 import type { Token } from './token';
+import { SYMBOL_METADATA } from './constants';
+import { setMetadata, getMetadata } from './helpers';
 
 /**
  * Decorator that marks a class as a DI module, allowing you to group providers, services, and imports.
@@ -31,7 +32,7 @@ import type { Token } from './token';
  */
 export function Module(config: ModuleConfig) {
   return (target: new (...args: any[]) => any) => {
-    Reflect.defineMetadata(METADATA_KEYS.MODULE_METADATA, config, target);
+    setMetadata(target, METADATA_KEYS.MODULE_METADATA, config);
   };
 }
 
@@ -65,7 +66,7 @@ export function Service<T>(
     const config: ServiceConfig<T> = {
       token: token || (target as TokenType<T>),
     };
-    Reflect.defineMetadata(METADATA_KEYS.SERVICE_METADATA, config, target);
+    setMetadata(target, METADATA_KEYS.SERVICE_METADATA, config);
   };
 }
 
@@ -102,7 +103,7 @@ export function Provider<T>(
     const config: ServiceConfig<T> = {
       token,
     };
-    Reflect.defineMetadata(METADATA_KEYS.SERVICE_METADATA, config, target);
+    setMetadata(target, METADATA_KEYS.SERVICE_METADATA, config);
   };
 }
 
@@ -155,35 +156,33 @@ export function Inject<T>(
       // Parameter decorator
       const metadataTarget = target;
       const existingMetadata: InjectionMetadata[] =
-        Reflect.getMetadata(METADATA_KEYS.INJECT_METADATA, metadataTarget) ||
-        [];
+        getMetadata(metadataTarget, METADATA_KEYS.INJECT_METADATA) || [];
       const metadata: InjectionMetadata = {
         token,
         index: parameterIndex,
         propertyKey: undefined,
       };
       existingMetadata.push(metadata);
-      Reflect.defineMetadata(
+      setMetadata(
+        metadataTarget,
         METADATA_KEYS.INJECT_METADATA,
-        existingMetadata,
-        metadataTarget
+        existingMetadata
       );
     } else if (propertyKey !== undefined) {
       // Property decorator
       const metadataTarget = target;
       const existingMetadata: InjectionMetadata[] =
-        Reflect.getMetadata(METADATA_KEYS.INJECT_METADATA, metadataTarget) ||
-        [];
+        getMetadata(metadataTarget, METADATA_KEYS.INJECT_METADATA) || [];
       const metadata: InjectionMetadata = {
         token,
         index: 0,
         propertyKey,
       };
       existingMetadata.push(metadata);
-      Reflect.defineMetadata(
+      setMetadata(
+        metadataTarget,
         METADATA_KEYS.INJECT_METADATA,
-        existingMetadata,
-        metadataTarget
+        existingMetadata
       );
     }
   };
@@ -251,7 +250,7 @@ export function Optional<T>(
     if (typeof parameterIndex === 'number') {
       // Parameter decorator
       const existingMetadata: InjectionMetadata[] =
-        Reflect.getMetadata(METADATA_KEYS.INJECT_METADATA, target) || [];
+        getMetadata(target, METADATA_KEYS.INJECT_METADATA) || [];
       const metadata: InjectionMetadata = {
         token,
         index: parameterIndex,
@@ -259,15 +258,11 @@ export function Optional<T>(
         optional: true,
       };
       existingMetadata.push(metadata);
-      Reflect.defineMetadata(
-        METADATA_KEYS.INJECT_METADATA,
-        existingMetadata,
-        target
-      );
+      setMetadata(target, METADATA_KEYS.INJECT_METADATA, existingMetadata);
     } else if (propertyKey !== undefined) {
       // Property decorator
       const existingMetadata: InjectionMetadata[] =
-        Reflect.getMetadata(METADATA_KEYS.INJECT_METADATA, target) || [];
+        getMetadata(target, METADATA_KEYS.INJECT_METADATA) || [];
       const metadata: InjectionMetadata = {
         token,
         index: 0,
@@ -275,11 +270,7 @@ export function Optional<T>(
         optional: true,
       };
       existingMetadata.push(metadata);
-      Reflect.defineMetadata(
-        METADATA_KEYS.INJECT_METADATA,
-        existingMetadata,
-        target
-      );
+      setMetadata(target, METADATA_KEYS.INJECT_METADATA, existingMetadata);
     }
   };
 }

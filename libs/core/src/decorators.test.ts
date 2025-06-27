@@ -1,22 +1,28 @@
-import 'reflect-metadata';
 import { describe, it, expect, beforeEach } from 'vitest';
 import { Module, Service, Provider, Inject } from './decorators';
 import { Token } from './token';
-import { METADATA_KEYS } from './types';
+import { getMetadata } from './helpers';
+import { METADATA_KEYS } from './constants';
 
 describe('Decorators', () => {
   beforeEach(() => {
     // Clear metadata before each test - only clear what exists
-    Reflect.deleteMetadata(METADATA_KEYS.MODULE_METADATA, class TestModule {});
-    Reflect.deleteMetadata(
-      METADATA_KEYS.SERVICE_METADATA,
-      class TestService {}
-    );
-    Reflect.deleteMetadata(METADATA_KEYS.INJECT_METADATA, class TestService {});
-    Reflect.deleteMetadata(
-      METADATA_KEYS.INJECT_METADATA,
-      class TestService {}.prototype
-    );
+    if ((class TestModule {} as any)[(Symbol as any).metadata])
+      delete (class TestModule {} as any)[(Symbol as any).metadata][
+        METADATA_KEYS.MODULE_METADATA
+      ];
+    if ((class TestService {} as any)[(Symbol as any).metadata])
+      delete (class TestService {} as any)[(Symbol as any).metadata][
+        METADATA_KEYS.SERVICE_METADATA
+      ];
+    if ((class TestService {} as any)[(Symbol as any).metadata])
+      delete (class TestService {} as any)[(Symbol as any).metadata][
+        METADATA_KEYS.INJECT_METADATA
+      ];
+    if ((class TestService {}.prototype as any)[(Symbol as any).metadata])
+      delete (class TestService {}.prototype as any)[(Symbol as any).metadata][
+        METADATA_KEYS.INJECT_METADATA
+      ];
   });
 
   // @Module decorator group: Ensures module metadata is attached and correct
@@ -35,10 +41,7 @@ describe('Decorators', () => {
       })
       class TestModule {}
 
-      const metadata = Reflect.getMetadata(
-        METADATA_KEYS.MODULE_METADATA,
-        TestModule
-      );
+      const metadata = getMetadata(TestModule, METADATA_KEYS.MODULE_METADATA);
       expect(metadata).toEqual({
         imports: [],
         services: [],
@@ -60,10 +63,7 @@ describe('Decorators', () => {
       })
       class TestModule {}
 
-      const metadata = Reflect.getMetadata(
-        METADATA_KEYS.MODULE_METADATA,
-        TestModule
-      );
+      const metadata = getMetadata(TestModule, METADATA_KEYS.MODULE_METADATA);
       expect(metadata.services).toEqual([TestService]);
     });
 
@@ -73,19 +73,16 @@ describe('Decorators', () => {
      * Value: Ensures provider registration in modules works as expected
      */
     it('should handle module with providers', () => {
-      const testToken = new Token('TEST');
+      const TEST_TOKEN = new Token('TEST');
 
       @Module({
-        providers: [{ token: testToken, useClass: class TestProvider {} }],
+        providers: [{ token: TEST_TOKEN, useClass: class TestProvider {} }],
       })
       class TestModule {}
 
-      const metadata = Reflect.getMetadata(
-        METADATA_KEYS.MODULE_METADATA,
-        TestModule
-      );
+      const metadata = getMetadata(TestModule, METADATA_KEYS.MODULE_METADATA);
       expect(metadata.providers).toHaveLength(1);
-      expect(metadata.providers[0].token).toBe(testToken);
+      expect(metadata.providers[0].token).toBe(TEST_TOKEN);
     });
 
     /**
@@ -101,10 +98,7 @@ describe('Decorators', () => {
       })
       class TestModule {}
 
-      const metadata = Reflect.getMetadata(
-        METADATA_KEYS.MODULE_METADATA,
-        TestModule
-      );
+      const metadata = getMetadata(TestModule, METADATA_KEYS.MODULE_METADATA);
       expect(metadata.imports).toEqual([ImportedModule]);
     });
   });
@@ -120,10 +114,7 @@ describe('Decorators', () => {
       @Service()
       class TestService {}
 
-      const metadata = Reflect.getMetadata(
-        METADATA_KEYS.SERVICE_METADATA,
-        TestService
-      );
+      const metadata = getMetadata(TestService, METADATA_KEYS.SERVICE_METADATA);
       expect(metadata.token).toBe(TestService);
     });
 
@@ -138,27 +129,8 @@ describe('Decorators', () => {
       @Service(customToken)
       class TestService {}
 
-      const metadata = Reflect.getMetadata(
-        METADATA_KEYS.SERVICE_METADATA,
-        TestService
-      );
+      const metadata = getMetadata(TestService, METADATA_KEYS.SERVICE_METADATA);
       expect(metadata.token).toBe(customToken);
-    });
-
-    /**
-     * Test: Adds service metadata with string token
-     * Validates: Token is the string
-     * Value: Allows for string-based DI tokens for convenience
-     */
-    it('should add service metadata with string token', () => {
-      @Service('STRING_TOKEN')
-      class TestService {}
-
-      const metadata = Reflect.getMetadata(
-        METADATA_KEYS.SERVICE_METADATA,
-        TestService
-      );
-      expect(metadata.token).toBe('STRING_TOKEN');
     });
   });
 
@@ -179,18 +151,6 @@ describe('Decorators', () => {
       // The actual provider registration happens in the container
       expect(TestProvider).toBeDefined();
     });
-
-    /**
-     * Test: Works with string token
-     * Validates: Class is defined and usable
-     * Value: Allows for string-based provider tokens
-     */
-    it('should work with string token', () => {
-      @Provider('STRING_PROVIDER')
-      class TestProvider {}
-
-      expect(TestProvider).toBeDefined();
-    });
   });
 
   // @Inject decorator group: Ensures injection metadata is attached and correct
@@ -207,10 +167,7 @@ describe('Decorators', () => {
         constructor(@Inject(injectToken) dependency: any) {}
       }
 
-      const metadata = Reflect.getMetadata(
-        METADATA_KEYS.INJECT_METADATA,
-        TestService
-      );
+      const metadata = getMetadata(TestService, METADATA_KEYS.INJECT_METADATA);
       expect(metadata).toHaveLength(1);
       expect(metadata[0].token).toBe(injectToken);
       expect(metadata[0].index).toBe(0);
@@ -230,10 +187,7 @@ describe('Decorators', () => {
         constructor(@Inject(token1) dep1: any, @Inject(token2) dep2: any) {}
       }
 
-      const metadata = Reflect.getMetadata(
-        METADATA_KEYS.INJECT_METADATA,
-        TestService
-      );
+      const metadata = getMetadata(TestService, METADATA_KEYS.INJECT_METADATA);
       expect(metadata).toHaveLength(2);
 
       // Check that both tokens are present, but don't assume order
@@ -264,13 +218,13 @@ describe('Decorators', () => {
         constructor(@Inject(dependencyToken) dep: any) {}
       }
 
-      const serviceMetadata = Reflect.getMetadata(
-        METADATA_KEYS.SERVICE_METADATA,
-        TestService
+      const serviceMetadata = getMetadata(
+        TestService,
+        METADATA_KEYS.SERVICE_METADATA
       );
-      const injectMetadata = Reflect.getMetadata(
-        METADATA_KEYS.INJECT_METADATA,
-        TestService
+      const injectMetadata = getMetadata(
+        TestService,
+        METADATA_KEYS.INJECT_METADATA
       );
 
       expect(serviceMetadata.token).toBe(serviceToken);
@@ -284,29 +238,29 @@ describe('Decorators', () => {
      * Value: Ensures modules and services can be composed for application DI
      */
     it('should work with complete module setup', () => {
-      const serviceToken = new Token('MODULE_SERVICE');
+      const SERVICE_TOKEN = new Token('MODULE_SERVICE');
 
-      @Service(serviceToken)
+      @Service(SERVICE_TOKEN)
       class ModuleService {}
 
       @Module({
         services: [ModuleService],
-        providers: [{ token: 'CONFIG', useValue: 'config' }],
+        providers: [{ token: new Token('CONFIG'), useValue: 'config' }],
       })
       class TestModule {}
 
-      const moduleMetadata = Reflect.getMetadata(
-        METADATA_KEYS.MODULE_METADATA,
-        TestModule
+      const moduleMetadata = getMetadata(
+        TestModule,
+        METADATA_KEYS.MODULE_METADATA
       );
-      const serviceMetadata = Reflect.getMetadata(
-        METADATA_KEYS.SERVICE_METADATA,
-        ModuleService
+      const serviceMetadata = getMetadata(
+        ModuleService,
+        METADATA_KEYS.SERVICE_METADATA
       );
 
       expect(moduleMetadata.services).toEqual([ModuleService]);
       expect(moduleMetadata.providers).toHaveLength(1);
-      expect(serviceMetadata.token).toBe(serviceToken);
+      expect(serviceMetadata.token).toBe(SERVICE_TOKEN);
     });
   });
 });
