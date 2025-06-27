@@ -241,7 +241,7 @@ describe('Nexus', () => {
         }
       }
       @Module({
-        services: [LoggerService, UserServiceWithLogger],
+        providers: [LoggerService, UserServiceWithLogger],
       })
       class AppModule {}
       nexus.set(AppModule);
@@ -403,7 +403,7 @@ describe('Nexus', () => {
      */
     it('should throw if registering undecorated class in a module', () => {
       class NotAService {}
-      @Module({ services: [NotAService] })
+      @Module({ providers: [NotAService] })
       class Mod {}
       expect(() => nexus.set(Mod)).toThrowError(InvalidService);
     });

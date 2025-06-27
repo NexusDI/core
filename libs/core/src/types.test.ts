@@ -3,7 +3,6 @@ import { Token } from './token';
 import {
   type TokenType,
   type ModuleProvider,
-  type ServiceConfig,
   type ModuleConfig,
   type InjectionMetadata,
   type ProviderConfig,
@@ -79,38 +78,6 @@ describe('Types', () => {
     });
   });
 
-  // ServiceConfig group: Ensures service configuration is flexible and robust
-  describe('ServiceConfig', () => {
-    /**
-     * Test: ServiceConfig with token
-     * Validates: Structure and values
-     * Value: Ensures DI can register services with explicit tokens and singleton flag
-     */
-    it('should define service config with token', () => {
-      const token = new Token('SERVICE_TOKEN');
-      const config: { token: TokenType; singleton: boolean } = {
-        token,
-        singleton: true,
-      };
-      expect(config.token).toBe(token);
-      expect(config.singleton).toBe(true);
-    });
-
-    /**
-     * Test: ServiceConfig without token
-     * Validates: Structure and default values
-     * Value: Allows for simple singleton/non-singleton service registration
-     */
-    it('should define service config without token', () => {
-      const config: ServiceConfig = {
-        singleton: false,
-      };
-
-      expect(config.token).toBeUndefined();
-      expect(config.singleton).toBe(false);
-    });
-  });
-
   // ModuleConfig group: Ensures module configuration is flexible and robust
   describe('ModuleConfig', () => {
     /**
@@ -124,17 +91,14 @@ describe('Types', () => {
       const token = new Token('PROVIDER_TOKEN');
       const config: {
         imports: any[];
-        services: any[];
         providers: { token: TokenType; useClass: typeof TestService }[];
         exports: TokenType[];
       } = {
         imports: [TestModule],
-        services: [TestService],
         providers: [{ token, useClass: TestService }],
         exports: [token as unknown as TokenType],
       };
       expect(config.imports).toEqual([TestModule]);
-      expect(config.services).toEqual([TestService]);
       expect(config.providers).toHaveLength(1);
       expect(config.exports).toEqual([token as unknown as TokenType]);
     });
@@ -148,7 +112,6 @@ describe('Types', () => {
       const config: ModuleConfig = {};
 
       expect(config.imports).toBeUndefined();
-      expect(config.services).toBeUndefined();
       expect(config.providers).toBeUndefined();
       expect(config.exports).toBeUndefined();
     });

@@ -3,9 +3,9 @@ import { METADATA_KEYS } from '../constants';
 import { setMetadata } from '../helpers';
 
 /**
- * Decorator that marks a class as a DI module, allowing you to group providers, services, and imports.
+ * Decorator that marks a class as a DI module, allowing you to group providers and imports.
  *
- * Use this to define a module in NexusDI. Modules can import other modules, provide services, and export tokens.
+ * Use this to define a module in NexusDI. Modules can import other modules, provide services/providers, and export tokens.
  *
  * #### Usage
  * ```typescript

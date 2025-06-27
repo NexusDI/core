@@ -63,7 +63,6 @@ export type ProviderConfig<T = any> = {
  */
 export type ModuleConfig = {
   imports?: Constructor[];
-  services?: Constructor[];
   providers?: ModuleProvider[];
   exports?: TokenType[];
 };

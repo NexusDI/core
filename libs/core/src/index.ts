@@ -49,3 +49,5 @@ import { Nexus } from './container';
 export default Nexus;
 
 export * from './guards';
+
+export { setMetadata, getMetadata } from './helpers';

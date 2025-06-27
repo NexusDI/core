@@ -149,7 +149,6 @@ export class Nexus implements IContainer {
   set(moduleConfig: {
     providers?: ModuleProvider[];
     imports?: Constructor[];
-    services?: Constructor[];
     exports?: TokenType[];
   }): void;
   set(tokenOrModuleOrConfig: any, providerOrNothing?: any): void {
@@ -180,9 +179,7 @@ export class Nexus implements IContainer {
     if (
       tokenOrModuleOrConfig &&
       typeof tokenOrModuleOrConfig === 'object' &&
-      (tokenOrModuleOrConfig.services ||
-        tokenOrModuleOrConfig.providers ||
-        tokenOrModuleOrConfig.imports)
+      (tokenOrModuleOrConfig.providers || tokenOrModuleOrConfig.imports)
     ) {
       this.processModuleConfig(tokenOrModuleOrConfig);
       return;
@@ -277,19 +274,13 @@ export class Nexus implements IContainer {
    * Process module configuration (shared between setModule and registerDynamicModule)
    */
   private processModuleConfig(moduleConfig: {
-    services?: Constructor[];
     providers?: ModuleProvider[];
     imports?: Constructor[];
+    exports?: TokenType[];
   }): void {
     if (moduleConfig.imports) {
       for (const importedModule of moduleConfig.imports) {
         this.set(importedModule);
-      }
-    }
-    if (moduleConfig.services) {
-      for (const serviceClass of moduleConfig.services) {
-        const { token, provider } = this.normalizeProvider(serviceClass);
-        this.setProvider(token as TokenType<any>, provider as Provider<any>);
       }
     }
     if (moduleConfig.providers) {

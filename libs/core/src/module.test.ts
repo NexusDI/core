@@ -25,8 +25,7 @@ class TestDynamicModule extends DynamicModule<any> {
  * This ensures the decorator works for standard modules, not just DynamicModule.
  */
 @Module({
-  providers: [class ProviderA {}],
-  services: [class ServiceA {}],
+  providers: [class ProviderA {}, class ServiceA {}],
   imports: [],
   exports: [],
 })
@@ -112,7 +111,7 @@ describe('Module decorator', () => {
     const metadata = getMetadata(BasicModule, METADATA_KEYS.MODULE_METADATA);
     expect(metadata).toBeDefined();
     expect(metadata.providers).toBeInstanceOf(Array);
-    expect(metadata.services).toBeInstanceOf(Array);
+    expect(metadata.providers).toBeInstanceOf(Array);
     expect(metadata.imports).toBeInstanceOf(Array);
     expect(metadata.exports).toBeInstanceOf(Array);
   });
@@ -194,7 +193,7 @@ describe('Module edge cases', () => {
     const metadata = getMetadata(EmptyModule, METADATA_KEYS.MODULE_METADATA);
     expect(metadata).toBeDefined();
     expect(metadata.providers ?? []).toBeInstanceOf(Array);
-    expect(metadata.services ?? []).toBeInstanceOf(Array);
+    expect(metadata.providers ?? []).toBeInstanceOf(Array);
     expect(metadata.imports ?? []).toBeInstanceOf(Array);
     expect(metadata.exports ?? []).toBeInstanceOf(Array);
   });

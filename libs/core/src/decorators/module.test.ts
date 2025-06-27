@@ -13,12 +13,11 @@ describe('@Module', () => {
   });
 
   it('should add module metadata to class', () => {
-    @Module({ imports: [], services: [], providers: [], exports: [] })
+    @Module({ imports: [], providers: [], exports: [] })
     class TestModule {}
     const metadata = getMetadata(TestModule, METADATA_KEYS.MODULE_METADATA);
     expect(metadata).toEqual({
       imports: [],
-      services: [],
       providers: [],
       exports: [],
     });
@@ -26,10 +25,10 @@ describe('@Module', () => {
 
   it('should handle module with services', () => {
     class TestService {}
-    @Module({ services: [TestService] })
+    @Module({ providers: [TestService] })
     class TestModule {}
     const metadata = getMetadata(TestModule, METADATA_KEYS.MODULE_METADATA);
-    expect(metadata.services).toEqual([TestService]);
+    expect(metadata.providers).toEqual([TestService]);
   });
 
   it('should handle module with providers', () => {
