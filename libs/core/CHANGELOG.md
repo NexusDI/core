@@ -1,3 +1,26 @@
+## 0.3.0
+
+### 🚀 Features & Improvements
+
+- **Native Decorator Metadata**: Migrated from `reflect-metadata` to the new ECMAScript/TypeScript standard using `Symbol.metadata`. No need to install or import `reflect-metadata` for NexusDI v0.3+.
+- **Unified Module API**: Merged `services` and `providers` arrays in module definitions into a single `providers` array for simpler configuration.
+- **Polyfill Included**: NexusDI now includes a built-in polyfill for `Symbol.metadata` for environments that do not support it natively.
+- **Improved Type Safety**: Enhanced generics and overloads for decorators and containers.
+- **Performance**: Further optimized for tree-shaking and minimal runtime overhead.
+
+### 🛠️ Migration
+
+- Update your `tsconfig.json`:
+  - Remove `emitDecoratorMetadata`
+  - Ensure `experimentalDecorators` and `useDefineForClassFields` are enabled
+  - Set `"target": "ES2022"` or higher
+- Remove all imports of `reflect-metadata`
+- Update modules to use a single `providers` array
+
+### ❤️ Thank You
+
+- Mikael Pettersson @Evanion
+
 ## 0.2.1
 
 ### 🩹 Fixes
