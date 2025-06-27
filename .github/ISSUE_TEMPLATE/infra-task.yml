@@ -1,0 +1,18 @@
+name: Infra / Tooling Task
+description: Internal infrastructure task
+title: '[Infra]: '
+labels: [infra, needs-triage]
+body:
+  - type: textarea
+    attributes:
+      label: Task
+      description: What needs to be built or improved?
+    validations:
+      required: true
+  - type: textarea
+    attributes:
+      label: Why is this needed?
+  - type: textarea
+    attributes:
+      label: Acceptance criteria
+      description: What does "done" look like?

@@ -1,0 +1,18 @@
+ name: ✨ Feature Request
+description: Suggest a new feature or enhancement
+title: '[Feature]: '
+labels: [feature, needs-triage]
+projects: ['NexusDI/3']
+body:
+  - type: textarea
+    attributes:
+      label: What problem would this feature solve?
+      description: Describe the use case or problem this solves
+    validations:
+      required: true
+  - type: textarea
+    attributes:
+      label: Proposed solution or design
+  - type: textarea
+    attributes:
+      label: Additional context
