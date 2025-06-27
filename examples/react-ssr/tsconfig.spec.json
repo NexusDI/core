@@ -13,8 +13,7 @@
     ],
     "jsx": "react-jsx",
     "module": "es2022",
-    "experimentalDecorators": true,
-    "emitDecoratorMetadata": true
+    "experimentalDecorators": true
   },
   "include": [
     "vite.config.ts",

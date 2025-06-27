@@ -6,7 +6,6 @@
     "types": ["@react-router/node", "vite/client", "node"],
     "esModuleInterop": true,
     "experimentalDecorators": true,
-    "emitDecoratorMetadata": true,
     "jsx": "react-jsx",
     "module": "es2022",
     "resolveJsonModule": true,
