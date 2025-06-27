@@ -10,7 +10,7 @@ Learn how to identify, prevent, and resolve circular dependencies in NexusDI. Li
 
 ## What Are Circular Dependencies?
 
-A circular dependency occurs when two or more services depend on each other, either directly or indirectly. This creates a dependency cycle that the container cannot resolve.
+A circular dependency occurs when two or more providers depend on each other, either directly or indirectly. This creates a dependency cycle that the container cannot resolve.
 
 ```typescript
 // ❌ Direct circular dependency
@@ -184,7 +184,7 @@ class EmailService {
 
 ## Prevention Strategies
 
-- **Single Responsibility Principle**: Each service should have one reason to change
+- **Single Responsibility Principle**: Each provider should have one reason to change
 - **Dependency Inversion**: Depend on abstractions, not concretions
 - **Interface Segregation**: Use small, focused interfaces
 - **Event-Driven Architecture**: Use events for communication
@@ -209,7 +209,7 @@ describe('Circular Dependency Detection', () => {
     }).toThrow('Circular dependency detected');
   });
 
-  it('should resolve services without circular dependencies', () => {
+  it('should resolve providers without circular dependencies', () => {
     container.set(USER_SERVICE, { useClass: UserService });
     container.set(EMAIL_SERVICE, { useClass: EmailService });
 
@@ -226,4 +226,4 @@ describe('Circular Dependency Detection', () => {
 - **[Performance Tuning](performance-tuning.md)** - Optimize container performance
 - **[Testing](../testing.md)** - Test your dependency injection setup
 
-Remember: Design your services with clear boundaries and loose coupling to avoid circular dependency traps! 🔄✨
+Remember: Design your providers with clear boundaries and loose coupling to avoid circular dependency traps! 🔄✨

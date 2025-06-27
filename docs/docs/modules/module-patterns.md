@@ -15,23 +15,30 @@ Organize by application features:
 ```typescript
 // User feature module
 @Module({
-  services: [UserService, UserRepository, UserValidator],
-  providers: [{ token: USER_CONFIG, useValue: userConfig }],
+  providers: [
+    UserService,
+    UserRepository,
+    UserValidator,
+    { token: USER_CONFIG, useValue: userConfig },
+  ],
 })
 class UserModule {}
 
 // Order feature module
 @Module({
-  services: [OrderService, OrderRepository, PaymentService],
-  providers: [{ token: PAYMENT_GATEWAY, useClass: StripeGateway }],
+  providers: [
+    OrderService,
+    OrderRepository,
+    PaymentService,
+    { token: PAYMENT_GATEWAY, useClass: StripeGateway },
+  ],
 })
 class OrderModule {}
 
 // Main application module
 @Module({
   imports: [UserModule, OrderModule],
-  services: [AppService],
-  providers: [{ token: APP_CONFIG, useValue: appConfig }],
+  providers: [AppService, { token: APP_CONFIG, useValue: appConfig }],
 })
 class AppModule {}
 ```
@@ -42,20 +49,29 @@ Separate infrastructure concerns:
 
 ```typescript
 @Module({
-  services: [DatabaseService, ConnectionPool],
-  providers: [{ token: DATABASE_CONFIG, useValue: dbConfig }],
+  providers: [
+    DatabaseService,
+    ConnectionPool,
+    { token: DATABASE_CONFIG, useValue: dbConfig },
+  ],
 })
 class DatabaseModule {}
 
 @Module({
-  services: [LoggerService, LogFormatter],
-  providers: [{ token: LOG_LEVEL, useValue: process.env.LOG_LEVEL }],
+  providers: [
+    LoggerService,
+    LogFormatter,
+    { token: LOG_LEVEL, useValue: process.env.LOG_LEVEL },
+  ],
 })
 class LoggingModule {}
 
 @Module({
-  services: [EmailService, TemplateEngine],
-  providers: [{ token: SMTP_CONFIG, useValue: smtpConfig }],
+  providers: [
+    EmailService,
+    TemplateEngine,
+    { token: SMTP_CONFIG, useValue: smtpConfig },
+  ],
 })
 class EmailModule {}
 ```
@@ -67,8 +83,9 @@ Different modules for different environments:
 ```typescript
 // Development module
 @Module({
-  services: [DevLogger, DevDatabase],
   providers: [
+    DevLogger,
+    DevDatabase,
     { token: LOG_LEVEL, useValue: 'debug' },
     { token: DATABASE_URL, useValue: 'sqlite://dev.db' },
   ],
@@ -77,8 +94,9 @@ class DevelopmentModule {}
 
 // Production module
 @Module({
-  services: [ProductionLogger, PostgresDatabase],
   providers: [
+    ProductionLogger,
+    PostgresDatabase,
     { token: LOG_LEVEL, useValue: 'info' },
     { token: DATABASE_URL, useValue: process.env.DATABASE_URL },
   ],
@@ -129,8 +147,8 @@ describe('UserModule', () => {
 ```typescript
 // Create a test module with mocked dependencies
 @Module({
-  services: [UserService],
   providers: [
+    UserService,
     { token: DATABASE, useValue: mockDatabase },
     { token: LOGGER, useValue: mockLogger },
   ],
@@ -164,15 +182,22 @@ Each module should have a single, well-defined responsibility:
 ```typescript
 // ✅ Good - focused on user management
 @Module({
-  services: [UserService, UserRepository, UserValidator],
-  providers: [{ token: USER_CONFIG, useValue: userConfig }],
+  providers: [
+    UserService,
+    UserRepository,
+    UserValidator,
+    { token: USER_CONFIG, useValue: userConfig },
+  ],
 })
 class UserModule {}
 
 // ❌ Bad - mixing unrelated concerns
 @Module({
-  services: [UserService, EmailService, PaymentService, LoggerService],
   providers: [
+    UserService,
+    EmailService,
+    PaymentService,
+    LoggerService,
     { token: USER_CONFIG, useValue: userConfig },
     { token: EMAIL_CONFIG, useValue: emailConfig },
     { token: PAYMENT_CONFIG, useValue: paymentConfig },
@@ -188,14 +213,14 @@ Make module dependencies explicit through imports:
 ```typescript
 // ✅ Good - explicit dependencies
 @Module({
-  services: [UserService],
+  providers: [UserService],
   imports: [DatabaseModule, LoggingModule],
 })
 class UserModule {}
 
 // ❌ Bad - hidden dependencies
 @Module({
-  services: [UserService],
+  providers: [UserService],
   // Missing imports, but UserService depends on DatabaseModule
 })
 class UserModule {}
@@ -235,9 +260,13 @@ Document your modules with clear descriptions:
  * - LoggingModule for audit trails
  */
 @Module({
-  services: [UserService, UserRepository, UserValidator],
+  providers: [
+    UserService,
+    UserRepository,
+    UserValidator,
+    { token: USER_CONFIG, useValue: userConfig },
+  ],
   imports: [DatabaseModule, LoggingModule],
-  providers: [{ token: USER_CONFIG, useValue: userConfig }],
 })
 class UserModule {}
 ```
@@ -250,7 +279,7 @@ You can achieve environment-specific configuration by creating separate modules 
 
 ```typescript
 @Module({
-  services: [LoggerService],
+  providers: [LoggerService],
   providers: [
     { token: LOG_CONFIG, useValue: { level: 'debug', format: 'detailed' } },
   ],
@@ -258,7 +287,7 @@ You can achieve environment-specific configuration by creating separate modules 
 class DevelopmentLoggingModule {}
 
 @Module({
-  services: [LoggerService],
+  providers: [LoggerService],
   providers: [
     { token: LOG_CONFIG, useValue: { level: 'info', format: 'json' } },
   ],
@@ -266,7 +295,7 @@ class DevelopmentLoggingModule {}
 class ProductionLoggingModule {}
 
 @Module({
-  services: [LoggerService],
+  providers: [LoggerService],
   providers: [
     { token: LOG_CONFIG, useValue: { level: 'error', format: 'minimal' } },
   ],
@@ -301,19 +330,19 @@ interface EmailConfig {
 }
 
 @Module({
-  services: [EmailService],
+  providers: [EmailService],
   providers: [{ token: EMAIL_CONFIG, useValue: { provider: 'sendgrid' } }],
 })
 class SendGridEmailModule {}
 
 @Module({
-  services: [EmailService],
+  providers: [EmailService],
   providers: [{ token: EMAIL_CONFIG, useValue: { provider: 'mailgun' } }],
 })
 class MailgunEmailModule {}
 
 @Module({
-  services: [EmailService],
+  providers: [EmailService],
   providers: [{ token: EMAIL_CONFIG, useValue: { provider: 'smtp' } }],
 })
 class SmtpEmailModule {}
@@ -337,7 +366,7 @@ Create composite modules that import other modules:
 
 ```typescript
 @Module({
-  services: [DatabaseService],
+  providers: [DatabaseService],
   providers: [
     {
       token: DATABASE_CONFIG,
@@ -348,7 +377,7 @@ Create composite modules that import other modules:
 class DatabaseModule {}
 
 @Module({
-  services: [EmailService],
+  providers: [EmailService],
   providers: [
     {
       token: EMAIL_CONFIG,
@@ -359,7 +388,7 @@ class DatabaseModule {}
 class EmailModule {}
 
 @Module({
-  services: [LoggerService],
+  providers: [LoggerService],
   providers: [
     {
       token: LOG_CONFIG,
@@ -372,7 +401,7 @@ class EmailModule {}
 class LoggingModule {}
 
 @Module({
-  services: [AppService],
+  providers: [AppService],
   imports: [DatabaseModule, EmailModule, LoggingModule],
 })
 class AppModule {}
@@ -403,7 +432,7 @@ function createDatabaseModule(config: DatabaseConfig) {
   validateDatabaseConfig(config);
 
   @Module({
-    services: [DatabaseService],
+    providers: [DatabaseService],
     providers: [{ token: DATABASE_CONFIG, useValue: config }],
   })
   class ValidatedDatabaseModule {}
@@ -431,7 +460,7 @@ describe('DatabaseModule', () => {
     const container = new Nexus();
 
     @Module({
-      services: [DatabaseService],
+      providers: [DatabaseService],
       providers: [
         {
           token: DATABASE_CONFIG,

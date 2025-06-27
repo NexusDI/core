@@ -9,16 +9,16 @@ This is a living document outlining planned and possible features for NexusDI. E
 
 ## Summary Table
 
-| Feature                                     | Market Impact | Performance Impact | Notes                                                              |
-| ------------------------------------------- | :-----------: | :----------------: | ------------------------------------------------------------------ |
-| Lifetime Decorators                         |     ★★★★☆     |       ★☆☆☆☆        | Ergonomics, parity with top DI libraries                           |
-| Automatic Disposal                          |     ★★★★☆     |       ★☆☆☆☆        | Essential for resource management                                  |
-| Circular Dependency Fix                     |     ★★★★☆     |       ★★☆☆☆        | Lazy proxies, matches Angular/NestJS/TypeDI                        |
-| Interceptors/Middleware                     |     ★★★★☆     |       ★★☆☆☆        | AOP, cross-cutting concerns, enterprise appeal                     |
-| Graph Visualization                         |     ★★★☆☆     |       ☆☆☆☆☆        | Dev tool only, great for onboarding/debugging                      |
-| Plugin/Extension System                     |     ★★★★★     |       ☆☆☆☆☆        | Ecosystem driver, enables integrations and community growth        |
-| Native Decorator Metadata (Symbol.metadata) |     ★★★★☆     |       ★☆☆☆☆        | Standards-based, enables removal of reflect-metadata, future-proof |
-| Benchmarking Suite & Nx Plugin              |     ★★★☆☆     |       ☆☆☆☆☆        | Enables transparent, reproducible performance comparisons          |
+| Feature                                     | Market Impact | Performance Impact | Progress | Notes                                                              |
+| ------------------------------------------- | :-----------: | :----------------: | :------: | ------------------------------------------------------------------ |
+| Lifetime Decorators                         |     ★★★★☆     |       ★☆☆☆☆        | Planned  | Ergonomics, parity with top DI libraries                           |
+| Automatic Disposal                          |     ★★★★☆     |       ★☆☆☆☆        | Planned  | Essential for resource management                                  |
+| Circular Dependency Fix                     |     ★★★★☆     |       ★★☆☆☆        | Planned  | Lazy proxies, matches Angular/NestJS/TypeDI                        |
+| Interceptors/Middleware                     |     ★★★★☆     |       ★★☆☆☆        | Planned  | AOP, cross-cutting concerns, enterprise appeal                     |
+| Graph Visualization                         |     ★★★☆☆     |       ☆☆☆☆☆        | Planned  | Dev tool only, great for onboarding/debugging                      |
+| Plugin/Extension System                     |     ★★★★★     |       ☆☆☆☆☆        | Planned  | Ecosystem driver, enables integrations and community growth        |
+| Native Decorator Metadata (Symbol.metadata) |     ★★★★☆     |       ★☆☆☆☆        | ✅ Done  | Standards-based, enables removal of reflect-metadata, future-proof |
+| Benchmarking Suite & Nx Plugin              |     ★★★☆☆     |       ☆☆☆☆☆        | Planned  | Enables transparent, reproducible performance comparisons          |
 
 ---
 
@@ -262,6 +262,8 @@ container.registerModule(
 
 ## Native Decorator Metadata (Symbol.metadata)
 
+> **✅ Completed**
+
 **Description:** Migrate from the legacy `reflect-metadata` library to the new standards-based decorator metadata protocol using `Symbol.metadata`, as supported in TypeScript 5.2+ and the upcoming ECMAScript standard.
 
 - **Market Impact:** High (future-proof, reduces dependencies, aligns with ECMAScript)
@@ -385,14 +387,13 @@ class DatabaseService {
 ```typescript
 // Dynamic module configuration
 container.set(DatabaseModule, {
-  services: [DatabaseService, ConnectionPool],
-  providers: [{ token: DATABASE_CONFIG, useValue: { host: 'localhost' } }],
+  providers: [DatabaseService, ConnectionPool],
 });
 
 // Framework integrations
 container.set(TypeOrmModule, {
-  services: [TypeOrmService],
   providers: [
+    TypeOrmService,
     {
       token: TYPEORM_CONFIG,
       useValue: {

@@ -110,8 +110,11 @@ Modules are a powerful way to organize your dependency injection setup in NexusD
 
 ```typescript
 @Module({
-  services: [UserService, UserRepository],
-  providers: [{ token: DATABASE, useClass: PostgresDatabase }],
+  providers: [
+    UserService,
+    UserRepository,
+    { token: DATABASE, useClass: PostgresDatabase },
+  ],
 })
 class UserModule {}
 ```
@@ -129,8 +132,11 @@ Just as in World of Warcraft where you have different guild departments, modules
 
 ```typescript
 @Module({
-  services: [UserService, UserRepository],
-  providers: [{ token: DATABASE, useClass: PostgresDatabase }],
+  providers: [
+    UserService,
+    UserRepository,
+    { token: DATABASE, useClass: PostgresDatabase },
+  ],
 })
 class UserModule {}
 ```

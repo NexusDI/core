@@ -35,14 +35,12 @@ interface DatabaseConfig {
 }
 
 @Module({
-  services: [DatabaseService],
-  providers: [{ token: DATABASE_CONFIG, useValue: {} }],
+  providers: [DatabaseService, { token: DATABASE_CONFIG, useValue: {} }],
 })
 class DatabaseModule extends DynamicModule<DatabaseConfig> {
   protected readonly configToken = DATABASE_CONFIG;
   protected readonly moduleConfig = {
-    services: [DatabaseService],
-    providers: [{ token: DATABASE_CONFIG, useValue: {} }],
+    providers: [DatabaseService, { token: DATABASE_CONFIG, useValue: {} }],
   };
 }
 
@@ -81,8 +79,8 @@ For now, you can achieve similar functionality using the current module system:
 ```typescript
 // Development module
 @Module({
-  services: [DatabaseService],
   providers: [
+    DatabaseService,
     {
       token: DATABASE_CONFIG,
       useValue: {
@@ -97,8 +95,8 @@ class DevelopmentDatabaseModule {}
 
 // Production module
 @Module({
-  services: [DatabaseService],
   providers: [
+    DatabaseService,
     {
       token: DATABASE_CONFIG,
       useValue: {
@@ -150,14 +148,12 @@ This pattern will be supported with dynamic module configuration in future relea
 
 ```typescript
 @Module({
-  services: [LoggerService],
-  providers: [{ token: LOG_CONFIG, useValue: {} }],
+  providers: [LoggerService, { token: LOG_CONFIG, useValue: {} }],
 })
 class LoggingModule extends DynamicModule<LogConfig> {
   protected readonly configToken = LOG_CONFIG;
   protected readonly moduleConfig = {
-    services: [LoggerService],
-    providers: [{ token: LOG_CONFIG, useValue: {} }],
+    providers: [LoggerService, { token: LOG_CONFIG, useValue: {} }],
   };
 }
 
@@ -210,14 +206,12 @@ interface EmailConfig {
 }
 
 @Module({
-  services: [EmailService],
-  providers: [{ token: EMAIL_CONFIG, useValue: {} }],
+  providers: [EmailService, { token: EMAIL_CONFIG, useValue: {} }],
 })
 class EmailModule extends DynamicModule<EmailConfig> {
   protected readonly configToken = EMAIL_CONFIG;
   protected readonly moduleConfig = {
-    services: [EmailService],
-    providers: [{ token: EMAIL_CONFIG, useValue: {} }],
+    providers: [EmailService, { token: EMAIL_CONFIG, useValue: {} }],
   };
 }
 
@@ -264,8 +258,7 @@ This pattern will be supported with dynamic module configuration in future relea
 
 ```typescript
 @Module({
-  services: [AppService],
-  providers: [{ token: APP_CONFIG, useValue: {} }],
+  providers: [AppService, { token: APP_CONFIG, useValue: {} }],
 })
 class AppModule extends DynamicModule<{
   database: DatabaseConfig;
@@ -274,8 +267,7 @@ class AppModule extends DynamicModule<{
 }> {
   protected readonly configToken = APP_CONFIG;
   protected readonly moduleConfig = {
-    services: [AppService],
-    providers: [{ token: APP_CONFIG, useValue: {} }],
+    providers: [AppService, { token: APP_CONFIG, useValue: {} }],
     imports: [
       DatabaseModule.config({} as DatabaseConfig),
       EmailModule.config({} as EmailConfig),
@@ -315,14 +307,12 @@ Configuration validation will be supported with dynamic module configuration in 
 
 ```typescript
 @Module({
-  services: [DatabaseService],
-  providers: [{ token: DATABASE_CONFIG, useValue: {} }],
+  providers: [DatabaseService, { token: DATABASE_CONFIG, useValue: {} }],
 })
 class DatabaseModule extends DynamicModule<DatabaseConfig> {
   protected readonly configToken = DATABASE_CONFIG;
   protected readonly moduleConfig = {
-    services: [DatabaseService],
-    providers: [{ token: DATABASE_CONFIG, useValue: {} }],
+    providers: [DatabaseService, { token: DATABASE_CONFIG, useValue: {} }],
   };
 
   static config(config: DatabaseConfig) {
@@ -395,8 +385,8 @@ describe('DatabaseModule', () => {
 
     // Use a test-specific module
     @Module({
-      services: [DatabaseService],
       providers: [
+        DatabaseService,
         {
           token: DATABASE_CONFIG,
           useValue: {

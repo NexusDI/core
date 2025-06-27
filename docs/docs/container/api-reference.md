@@ -12,10 +12,14 @@ This article documents all public methods available on the `Nexus` container cla
 
 ### `get<T>(token: TokenType<T>): T`
 
-Retrieve an instance for the given token. Throws if the provider is not registered.
+Retrieve an instance for the given token from the container's registry. Throws if the provider is not registered.
+
+- If the token is registered as a singleton, always returns the same instance.
+- If the token is registered as a factory or value, returns the result/value.
+- Throws if the provider is not registered.
 
 ```typescript
-const userService = container.get(UserService);
+const userService = container.get(USER_SERVICE);
 ```
 
 ---
@@ -25,7 +29,7 @@ const userService = container.get(UserService);
 Check if a provider is registered for the given token.
 
 ```typescript
-if (container.has(UserService)) {
+if (container.has(USER_SERVICE)) {
   // ...
 }
 ```
@@ -36,19 +40,22 @@ if (container.has(UserService)) {
 
 Register a provider, module, or dynamic module configuration. The container will automatically detect the type and handle it appropriately.
 
+- You must register a decorated class (with `@Service` or `@Provider`) or a valid provider object (`{ useClass, useValue, useFactory }`).
+- Tokens must be a `Token<T>`, symbol, or class constructor (no string tokens).
+
 ```typescript
 // Register a provider (class, value, or factory)
-container.set(UserService, UserService);
-container.set('CONFIG', { useValue: config });
-container.set(Logger, { useFactory: () => new Logger() });
+container.set(USER_SERVICE, UserService); // UserService must be decorated
+container.set(LOGGER, { useValue: new ConsoleLogger() });
+container.set(DATABASE, { useFactory: () => new PostgresDatabase() });
 
 // Register a module class decorated with @Module
 container.set(AppModule);
 
 // Register a dynamic module configuration object
 container.set({
-  services: [UserService],
-  providers: [{ token: 'CONFIG', useValue: config }],
+  providers: [UserService],
+  providers: [{ token: LOGGER, useValue: new ConsoleLogger() }],
 });
 ```
 
@@ -56,27 +63,33 @@ container.set({
 
 ### `resolve<T>(target: new (...args: any[]) => T): T`
 
-Create a new instance of a class, injecting all dependencies (constructor and property injection).
+Instantiates a new instance of the given class, resolving and injecting all dependencies.
+
+- Only accepts a class constructor. Unlike `get`, this does not require the class to be registered as a provider and always returns a new instance.
+- Useful for transient or ad-hoc objects that are not managed by the container's provider registry.
+- Throws if dependencies cannot be resolved or if a non-constructor is passed.
 
 ```typescript
-const userService = container.resolve(UserService);
+const userService = container.resolve(UserService); // UserService must be a class constructor
 ```
 
 ---
 
 ### `createChildContainer(): Nexus`
 
-Create a new child container that inherits all providers, modules, and instances from the parent.
+Creates a new child container that inherits from the current container. Useful for request-scoped or session-scoped dependencies.
 
 ```typescript
 const requestContainer = container.createChildContainer();
+requestContainer.set(REQUEST_ID, { useValue: generateRequestId() });
+const userService = requestContainer.get(USER_SERVICE);
 ```
 
 ---
 
-### `clear(): void`
+### `clear()`
 
-Remove all registered providers, modules, and instances from the container.
+Clears all registered providers and instances from the container.
 
 ```typescript
 container.clear();
@@ -97,11 +110,3 @@ console.log('Modules:', modules);
 ---
 
 For more advanced usage and patterns, see the [Advanced](../advanced/advanced.md) section.
-
-### `setModule(moduleClass: new (...args: any[]) => any): void`
-
-**@deprecated** Use the unified `set()` method instead.
-
-### `registerDynamicModule(moduleConfig: { services?: Function[]; providers?: ModuleProvider[]; imports?: Function[] }): void`
-
-**@deprecated** Use the unified `set()` method instead.

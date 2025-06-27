@@ -55,8 +55,7 @@ Keep your code organized and modular:
 
 ```typescript
 @Module({
-  services: [UserService, UserRepository, UserValidator],
-  providers: [{ token: DATABASE, useClass: PostgresDatabase }],
+  providers: [UserService, UserRepository, UserValidator],
 })
 class UserModule {}
 ```

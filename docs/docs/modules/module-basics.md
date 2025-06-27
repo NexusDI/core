@@ -32,14 +32,16 @@ container.set(LOGGER, { useClass: Logger });
 
 // You can organize into focused modules
 @Module({
-  services: [UserService, UserRepository],
-  providers: [{ token: DATABASE, useClass: Database }],
+  providers: [UserService, UserRepository],
 })
 class UserModule {}
 
 @Module({
-  services: [EmailService, NotificationService],
-  providers: [{ token: EMAIL_CONFIG, useValue: emailConfig }],
+  providers: [
+    EmailService,
+    NotificationService,
+    { token: EMAIL_CONFIG, useValue: emailConfig },
+  ],
 })
 class NotificationModule {}
 ```
@@ -51,8 +53,12 @@ Modules can be reused across different applications or parts of your application
 ```typescript
 // Reusable authentication module
 @Module({
-  services: [AuthService, JwtService, PasswordService],
-  providers: [{ token: AUTH_CONFIG, useValue: authConfig }],
+  providers: [
+    AuthService,
+    JwtService,
+    PasswordService,
+    { token: AUTH_CONFIG, useValue: authConfig },
+  ],
 })
 class AuthModule {}
 
@@ -73,7 +79,7 @@ Modules make it easier to test specific parts of your application:
 ```typescript
 // Test with mocked dependencies
 @Module({
-  services: [UserService],
+  providers: [UserService],
   providers: [
     { token: DATABASE, useValue: mockDatabase },
     { token: LOGGER, useValue: mockLogger },
@@ -91,7 +97,7 @@ Modules can encapsulate configuration and environment-specific settings:
 
 ```typescript
 @Module({
-  services: [DatabaseService],
+  providers: [DatabaseService],
   providers: [
     {
       token: DATABASE_CONFIG,
@@ -129,8 +135,7 @@ class UserService implements IUserService {
 
 // Create the module
 @Module({
-  services: [UserService],
-  providers: [{ token: DATABASE, useClass: PostgresDatabase }],
+  providers: [UserService, { token: DATABASE, useClass: PostgresDatabase }],
 })
 export class UserModule {}
 ```
@@ -141,14 +146,15 @@ Modules can import other modules to compose functionality:
 
 ```typescript
 @Module({
-  services: [AuthService],
-  providers: [{ token: JWT_SECRET, useValue: process.env.JWT_SECRET }],
+  providers: [
+    AuthService,
+    { token: JWT_SECRET, useValue: process.env.JWT_SECRET },
+  ],
 })
 class AuthModule {}
 
 @Module({
-  services: [UserService],
-  providers: [{ token: DATABASE, useClass: PostgresDatabase }],
+  providers: [UserService, { token: DATABASE, useClass: PostgresDatabase }],
   imports: [AuthModule], // Import the auth module
 })
 class UserModule {}
@@ -160,8 +166,11 @@ Export services to make them available to other modules:
 
 ```typescript
 @Module({
-  services: [DatabaseService, ConnectionPool],
-  providers: [{ token: DATABASE_CONFIG, useValue: dbConfig }],
+  providers: [
+    DatabaseService,
+    ConnectionPool,
+    { token: DATABASE_CONFIG, useValue: dbConfig },
+  ],
   exports: [DATABASE_SERVICE], // Export for other modules to use
 })
 class DatabaseModule {}
@@ -195,19 +204,18 @@ Modules can depend on each other through imports:
 
 ```typescript
 @Module({
-  services: [DatabaseService],
-  providers: [{ token: DATABASE_CONFIG, useValue: dbConfig }],
+  providers: [DatabaseService, { token: DATABASE_CONFIG, useValue: dbConfig }],
 })
 class DatabaseModule {}
 
 @Module({
-  services: [UserService],
+  providers: [UserService],
   imports: [DatabaseModule], // Depends on DatabaseModule
 })
 class UserModule {}
 
 @Module({
-  services: [OrderService],
+  providers: [OrderService],
   imports: [DatabaseModule, UserModule], // Depends on both
 })
 class OrderModule {}

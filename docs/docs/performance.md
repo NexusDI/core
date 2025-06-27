@@ -306,14 +306,12 @@ if (process.env.ENABLE_CACHING === 'true') {
 // Split by feature modules
 // user-module.js
 export const UserModule = {
-  services: [UserService, UserRepository],
-  providers: [{ token: DATABASE, useClass: PostgresDatabase }],
+  providers: [UserService, UserRepository],
 };
 
 // email-module.js
 export const EmailModule = {
-  services: [EmailService],
-  providers: [{ token: EMAIL_PROVIDER, useClass: SendGridProvider }],
+  providers: [EmailService],
 };
 ```
 
@@ -507,14 +505,12 @@ class UserService {
 ```typescript
 // Split modules by feature to enable tree shaking
 @Module({
-  services: [UserService, UserRepository],
-  providers: [{ token: DATABASE, useClass: PostgresDatabase }],
+  providers: [UserService, UserRepository],
 })
 class UserModule {}
 
 @Module({
-  services: [EmailService],
-  providers: [{ token: EMAIL_PROVIDER, useClass: SendGridProvider }],
+  providers: [EmailService],
 })
 class EmailModule {}
 ```
