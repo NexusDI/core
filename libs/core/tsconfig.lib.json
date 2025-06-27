@@ -6,6 +6,7 @@
     "outDir": "dist",
     "tsBuildInfoFile": "dist/tsconfig.lib.tsbuildinfo",
     "emitDeclarationOnly": false,
+    "experimentalDecorators": true,
     "forceConsistentCasingInFileNames": true,
     "types": ["node"],
     "lib": ["es2022", "esnext.decorators"]

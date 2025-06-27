@@ -1,5 +1,5 @@
 import { describe, it, expect, beforeEach } from 'vitest';
-import { Provider, Service } from './service';
+import { Provider, Service } from './provider';
 import { Token } from '../token';
 import { getMetadata } from '../helpers';
 import { METADATA_KEYS } from '../constants';

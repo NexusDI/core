@@ -2,7 +2,12 @@ import { describe, it, expect, beforeEach, vi } from 'vitest';
 import { Nexus } from './container';
 import { Inject, Service, Module, Provider } from './decorators';
 import { Token } from './token';
-import { InvalidToken, InvalidService, NoProvider } from './exceptions';
+import {
+  InvalidToken,
+  InvalidService,
+  NoProvider,
+  InvalidProvider,
+} from './exceptions';
 
 describe('Nexus', () => {
   let nexus: Nexus;
@@ -355,10 +360,7 @@ describe('Nexus', () => {
      */
     it('should throw if provider is missing useClass, useValue, and useFactory', () => {
       class Invalid {}
-      nexus.set(Invalid, {} as any);
-      expect(() => nexus.get(Invalid)).toThrow(
-        /Invalid provider configuration/
-      );
+      expect(() => nexus.set(Invalid, {} as any)).toThrowError(InvalidProvider);
     });
 
     /**

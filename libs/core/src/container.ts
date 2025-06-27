@@ -9,7 +9,7 @@ import type {
 } from './types';
 import { METADATA_KEYS } from './constants';
 import { getMetadata } from './helpers';
-import { isTokenType, isProvider, isService } from './guards';
+import { isTokenType, isProvider, isConstructor } from './guards';
 import {
   InvalidToken,
   NoProvider,
@@ -191,27 +191,74 @@ export class Nexus implements IContainer {
   }
 
   /**
-   * Internal: Register a provider (class, value, or factory) for a token.
+   * Normalize a class or provider object into a { token, provider } pair.
+   * Ensures all registrations are consistent and robust.
    */
-  private setProvider<T>(
-    token: TokenType<T>,
-    providerOrClass: Provider<T> | Constructor<T>
-  ): void {
-    if (!isTokenType(token)) {
-      throw new InvalidToken(token);
-    }
-    let provider: Provider<T>;
-    if (typeof providerOrClass === 'function') {
+  private normalizeProvider<T>(input: Provider<T> | Constructor<T>): {
+    token: TokenType<T>;
+    provider: Provider<T>;
+  } {
+    if (isConstructor(input)) {
+      // Class registration
       const providerConfig = getMetadata(
-        providerOrClass,
+        input,
         METADATA_KEYS.PROVIDER_METADATA
       );
       if (!providerConfig) {
-        throw new InvalidService(providerOrClass);
+        throw new InvalidService(input);
       }
-      provider = { useClass: providerOrClass };
+      const token = providerConfig.token || (input as TokenType<T>);
+      return { token, provider: { useClass: input } };
+    } else if (isProvider(input)) {
+      // Provider object registration
+      if ('token' in input && input.token) {
+        return { token: input.token as TokenType<T>, provider: input };
+      } else {
+        throw new InvalidProvider('Provider object must have a token');
+      }
     } else {
-      provider = providerOrClass;
+      throw new InvalidProvider('Invalid provider type');
+    }
+  }
+
+  /**
+   * Internal: Register a provider (class, value, or factory) for a token.
+   */
+  private setProvider<T>(
+    tokenOrClass: TokenType<T> | Constructor<T>,
+    providerOrNothing?: Provider<T>
+  ): void {
+    let token: TokenType<any>;
+    let provider: Provider<any>;
+    if (providerOrNothing !== undefined) {
+      if (!isTokenType(tokenOrClass)) {
+        throw new InvalidToken(tokenOrClass);
+      }
+      if (isConstructor(providerOrNothing)) {
+        // (token, class) registration
+        const providerObj = {
+          token: tokenOrClass,
+          useClass: providerOrNothing,
+        };
+        ({ token, provider } = this.normalizeProvider(providerObj));
+      } else if (
+        providerOrNothing &&
+        (providerOrNothing.useClass ||
+          providerOrNothing.useValue ||
+          providerOrNothing.useFactory)
+      ) {
+        // (token, provider object) registration
+        const providerWithToken = Object.assign({}, providerOrNothing, {
+          token: tokenOrClass,
+        });
+        ({ token, provider } = this.normalizeProvider(providerWithToken));
+      } else {
+        throw new InvalidProvider(
+          'Invalid provider type. Only class constructors, symbols, or Token<T> instances are allowed as providers.'
+        );
+      }
+    } else {
+      ({ token, provider } = this.normalizeProvider(tokenOrClass as any));
     }
     this.providers.set(token, provider);
     this.instances.delete(token);
@@ -241,37 +288,19 @@ export class Nexus implements IContainer {
     }
     if (moduleConfig.services) {
       for (const serviceClass of moduleConfig.services) {
-        const providerConfig = getMetadata(
-          serviceClass,
-          METADATA_KEYS.PROVIDER_METADATA
-        );
-        if (!providerConfig) {
-          throw new InvalidService(serviceClass);
-        }
-        this.set(providerConfig.token as TokenType<any>, {
-          useClass: serviceClass,
-        });
+        const { token, provider } = this.normalizeProvider(serviceClass);
+        this.setProvider(token as TokenType<any>, provider as Provider<any>);
       }
     }
     if (moduleConfig.providers) {
       for (const provider of moduleConfig.providers) {
-        if (isService(provider)) {
-          const providerConfig = getMetadata(
-            provider,
-            METADATA_KEYS.PROVIDER_METADATA
-          );
-          if (providerConfig) {
-            this.set(providerConfig.token as TokenType<any>, {
-              useClass: provider,
-            });
-          } else {
-            throw new InvalidService(provider);
-          }
-        } else if (isProvider(provider)) {
-          this.set(provider.token as TokenType<any>, provider);
-        } else {
-          throw new InvalidProvider('Invalid provider type');
-        }
+        const { token, provider: normProvider } = this.normalizeProvider(
+          provider as any
+        );
+        this.setProvider(
+          token as TokenType<any>,
+          normProvider as Provider<any>
+        );
       }
     }
   }

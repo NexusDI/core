@@ -1,7 +1,9 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 // Type guards and validators for NexusDI public API
-import type { TokenType, Provider, IContainer } from './types';
+import type { TokenType, Provider, Constructor, IContainer } from './types';
 import { Token } from './token';
+import { getMetadata } from './helpers';
+import { METADATA_KEYS } from './constants';
 
 /**
  * Checks if a value is a Token instance.
@@ -49,14 +51,24 @@ export function isFactory(obj: unknown): obj is { useFactory: () => unknown } {
 }
 
 /**
- * Checks if a value is a service class (has a constructor, a non-empty name, and a prototype object).
+ * Returns true if the value is a class constructor (function with a prototype).
  */
-export function isService(obj: unknown): obj is new (...args: any[]) => any {
+export function isConstructor(obj: unknown): obj is Constructor<any> {
   return (
     typeof obj === 'function' &&
-    !!(obj as any).name &&
+    !!obj &&
     (obj as any).prototype &&
-    typeof (obj as any).prototype === 'object'
+    (obj as any).prototype.constructor === obj
+  );
+}
+
+/**
+ * Returns true if the value is a decorated service/provider class.
+ */
+export function isService(value: unknown): value is Constructor<any> {
+  return (
+    isConstructor(value) &&
+    !!getMetadata(value, METADATA_KEYS.PROVIDER_METADATA)
   );
 }
 

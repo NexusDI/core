@@ -8,6 +8,7 @@ import {
 } from './guards';
 import { Token } from './token';
 import type { IContainer } from './types';
+import { Service, Provider } from './decorators';
 
 /**
  * Guards: Ensures all public guard functions work as expected for valid and invalid cases
@@ -64,14 +65,17 @@ describe('Guards', () => {
   });
 
   describe('isService', () => {
-    it('should return true for class constructors', () => {
-      class Test {}
-      expect(isService(Test)).toBe(true);
+    it('should return true for decorated service/provider classes', () => {
+      @Service()
+      class TestService {}
+      expect(isService(TestService)).toBe(true);
+      @Provider()
+      class TestProvider {}
+      expect(isService(TestProvider)).toBe(true);
     });
-    it('should return false for objects, null, undefined', () => {
-      expect(isService({})).toBe(false);
-      expect(isService(null)).toBe(false);
-      expect(isService(undefined)).toBe(false);
+    it('should return false for undecorated class constructors', () => {
+      class NotAService {}
+      expect(isService(NotAService)).toBe(false);
     });
   });
 

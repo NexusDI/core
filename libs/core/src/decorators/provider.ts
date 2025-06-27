@@ -8,8 +8,8 @@ import { setMetadata } from '../helpers';
  */
 function makeProviderDecorator(
   defaults?: Partial<ProviderConfig>
-): (tokenOrConfig?: TokenType<any> | ProviderConfig) => ClassDecorator {
-  return (tokenOrConfig?: TokenType<any> | ProviderConfig) => (target) => {
+): (tokenOrConfig?: TokenType<unknown> | ProviderConfig) => ClassDecorator {
+  return (tokenOrConfig?: TokenType<unknown> | ProviderConfig) => (target) => {
     let config: ProviderConfig = { ...defaults };
     if (
       typeof tokenOrConfig === 'object' &&
@@ -20,9 +20,9 @@ function makeProviderDecorator(
     ) {
       config = { ...config, ...tokenOrConfig };
     } else if (tokenOrConfig) {
-      config.token = tokenOrConfig as TokenType<any>;
+      config.token = tokenOrConfig as TokenType<unknown>;
     }
-    if (!config.token) config.token = target as any;
+    if (!config.token) config.token = target as unknown as TokenType<unknown>;
     setMetadata(target, METADATA_KEYS.PROVIDER_METADATA, config);
   };
 }
