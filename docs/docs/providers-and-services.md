@@ -244,7 +244,27 @@ nexus.set(DATABASE_CONNECTION, {
 
 ## Provider Registration Patterns
 
-### Direct Registration
+### Conditional Registration
+
+You can register providers conditionally based on environment, feature flags, or runtime logic:
+
+```typescript
+if (process.env.NODE_ENV === 'production') {
+  nexus.set(LOGGER, { useClass: ProductionLogger });
+} else {
+  nexus.set(LOGGER, { useClass: ConsoleLogger });
+}
+
+if (process.env.EMAIL_PROVIDER === 'sendgrid') {
+  nexus.set(EMAIL_SERVICE, { useClass: SendGridEmailService });
+} else {
+  nexus.set(EMAIL_SERVICE, { useClass: ConsoleEmailService });
+}
+```
+
+### Module Registration Patterns
+
+#### Direct Registration
 
 ```typescript
 // Register services directly
@@ -253,40 +273,35 @@ nexus.set(DATABASE, { useClass: PostgresDatabase });
 nexus.set(LOGGER, { useClass: ConsoleLogger });
 ```
 
-### Module Registration
+#### Module Registration
 
 ```typescript
 // Register services through modules
 const UserModule = {
-  services: [UserService, UserRepository],
-  providers: [
-    { token: DATABASE, useClass: PostgresDatabase },
-    { token: LOGGER, useClass: ConsoleLogger },
-  ],
+  providers: [UserService, UserRepository],
 };
 
 nexus.set(UserModule);
 ```
 
-### Conditional Registration
+#### Environment-Based Module Registration
 
 ```typescript
-// Register based on environment
+// Register different modules based on environment
 if (process.env.NODE_ENV === 'production') {
-  nexus.set(LOGGER, { useClass: StructuredLogger });
-  nexus.set(DATABASE, { useClass: PostgresDatabase });
+  nexus.set(ProductionModule);
 } else {
-  nexus.set(LOGGER, { useClass: ConsoleLogger });
-  nexus.set(DATABASE, { useClass: InMemoryDatabase });
-}
-
-// Register based on configuration
-if (process.env.EMAIL_PROVIDER === 'sendgrid') {
-  nexus.set(EMAIL_SERVICE, { useClass: SendGridEmailService });
-} else {
-  nexus.set(EMAIL_SERVICE, { useClass: ConsoleEmailService });
+  nexus.set(DevelopmentModule);
 }
 ```
+
+### Best Practices
+
+- Use class constructors for services in the providers array.
+- Use the object form for advanced providers (custom tokens, useValue, useFactory, etc.).
+- Prefer module registration for grouping related providers.
+- Use conditional registration for environment-specific or feature-flagged services.
+- Document your provider registration patterns for maintainability.
 
 ## Summary
 
@@ -302,6 +317,8 @@ For lifetimes and scoping, see [Scoped & Transient Lifetimes](advanced/scoped-an
 
 ## Next Steps
 
-- **[Module Basics](./modules/module-basics.md)** - How to organize services into modules
+- **[Module Basics](./module-basics.md)** - Learn the fundamentals of modules
+- **[Module Patterns](./module-patterns.md)** - Explore common module patterns
+- **[Dynamic Modules](./dynamic-modules.md)** - Runtime configuration and validation
 - **[Testing](./testing.md)** - How to test services and providers
 - **[Advanced](advanced/advanced.md)** - Advanced provider patterns and techniques

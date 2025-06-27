@@ -130,7 +130,7 @@ class UserService implements IUserService {
 }
 
 @Module({
-  services: [UserService],
+  providers: [UserService],
   providers: [
     { token: DATABASE, useClass: InMemoryDatabase },
     { token: LOGGER, useClass: ConsoleLogger },
@@ -167,7 +167,7 @@ describe('UserModule', () => {
 ```typescript
 // Create a test module with mocked dependencies
 @Module({
-  services: [UserService],
+  providers: [UserService],
   providers: [
     { token: DATABASE, useValue: mockDatabase },
     { token: LOGGER, useValue: mockLogger },
@@ -222,7 +222,7 @@ interface DatabaseConfig {
 const DATABASE_CONFIG = new Token<DatabaseConfig>('DATABASE_CONFIG');
 
 @Module({
-  services: [DatabaseService],
+  providers: [DatabaseService],
   providers: [{ token: DATABASE_CONFIG, useValue: {} }],
 })
 class DatabaseModule extends DynamicModule<DatabaseConfig> {
@@ -273,20 +273,20 @@ describe('DatabaseModule', () => {
 
 ```typescript
 @Module({
-  services: [UserService],
+  providers: [UserService],
   providers: [{ token: DATABASE, useClass: PostgresDatabase }],
 })
 class UserModule {}
 
 @Module({
-  services: [EmailService],
+  providers: [EmailService],
   providers: [{ token: EMAIL_CONFIG, useValue: emailConfig }],
 })
 class EmailModule {}
 
 @Module({
   imports: [UserModule, EmailModule],
-  services: [AppService],
+  providers: [AppService],
 })
 class AppModule {}
 
@@ -461,7 +461,7 @@ describe('Module Configuration', () => {
 ```typescript
 // Create test-specific modules for different scenarios
 @Module({
-  services: [UserService],
+  providers: [UserService],
   providers: [
     { token: DATABASE, useValue: inMemoryDatabase },
     { token: LOGGER, useValue: silentLogger },

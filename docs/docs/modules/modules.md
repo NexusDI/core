@@ -38,7 +38,7 @@ class UserService implements IUserService {
 
 // Create the module
 @Module({
-  services: [UserService],
+  providers: [UserService],
   providers: [{ token: DATABASE, useClass: PostgresDatabase }],
 })
 export class UserModule {}

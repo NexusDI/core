@@ -6,6 +6,8 @@
  * @example
  * import { Token } from '@nexusdi/core';
  * export const MY_TOKEN = new Token('MyToken');
+ * export const MY_SERVICE = new Token<MyService>();
+ * export const MY_OTHER_SERVICE = new Token<IMyOtherService>();
  * @see https://nexus.js.org/docs/modules/tokens
  */
 // eslint-disable-next-line @typescript-eslint/no-unused-vars

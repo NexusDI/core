@@ -1,11 +1,27 @@
 # @nexusdi/core
 
-[![npm version](https://img.shields.io/npm/v/@nexusdi/core.svg)](https://www.npmjs.com/package/@nexusdi/core)
-[![build status](https://github.com/NexusDI/core/actions/workflows/ci.yml/badge.svg)](https://github.com/NexusDI/core/actions/workflows/ci.yml)
-[![license](https://img.shields.io/npm/l/@nexusdi/core.svg)](./LICENSE)
+<div align="center">
+  <img src="https://nexus.js.org/img/logo.svg" alt="NexusDI Logo" width="120" height="120" />
+  <br />
+  <p><strong>A modern, lightweight dependency injection container for TypeScript with native decorators, inspired by industry-leading frameworks.</strong></p>
+  <p><em>The DI library that doesn't make you want to inject yourself with coffee ☕</em></p>
+</div>
 
-NexusDI offers a fast, modern DI container for TypeScript projects.  
-This package delivers the core engine used by all NexusDI modules and extensions.
+<div align="center">
+
+[![npm version](https://img.shields.io/npm/v/@nexusdi/core.svg)](https://www.npmjs.com/package/@nexusdi/core)
+![GitHub Actions Workflow Status](https://img.shields.io/github/actions/workflow/status/nexusdi/core/ci.yml)
+![Libraries.io dependency status for GitHub repo](https://img.shields.io/librariesio/github/nexusdi/core)
+
+![npm bundle size (scoped)](https://img.shields.io/bundlephobia/min/%40nexusdi/core)
+![NPM Unpacked Size](https://img.shields.io/npm/unpacked-size/%40nexusdi%2Fcore)
+![Source language](https://img.shields.io/badge/language-TypeScript-blue)
+
+[![npm downloads](https://img.shields.io/npm/dm/@nexusdi/core.svg)](https://www.npmjs.com/package/@nexusdi/core)
+![GitHub License](https://img.shields.io/github/license/NexusDI/core)
+[![GitHub stars](https://img.shields.io/github/stars/NexusDI/core.svg?style=social&label=Star)](https://github.com/NexusDI/core)
+
+</div>
 
 ## Installation
 

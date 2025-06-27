@@ -5,9 +5,18 @@ import type {
   IContainer,
   InjectionMetadata,
   ModuleProvider,
+  Constructor,
 } from './types';
-import { METADATA_KEYS } from './types';
-import { Token } from './token';
+import { METADATA_KEYS } from './constants';
+import { getMetadata } from './helpers';
+import { isTokenType, isProvider, isConstructor } from './guards';
+import {
+  InvalidToken,
+  NoProvider,
+  InvalidProvider,
+  InvalidModule,
+  InvalidService,
+} from './exceptions';
 
 /**
  * The main DI container class for NexusDI. Use this to bootstrap and resolve your modules and services.
@@ -21,9 +30,9 @@ import { Token } from './token';
 export class Nexus implements IContainer {
   private providers = new Map<TokenType, Provider>();
   private instances = new Map<TokenType, any>();
-  private modules = new Set<new (...args: any[]) => any>();
+  private modules = new Set<Constructor<any>>();
   private aliases = new Map<TokenType, TokenType>();
-  private inProgressModules = new Set<new (...args: any[]) => any>();
+  private inProgressModules = new Set<Constructor<any>>();
 
   /**
    * Get an instance of a service or provider by token.
@@ -34,49 +43,35 @@ export class Nexus implements IContainer {
    * const logger = container.get(LoggerService);
    * @see https://nexus.js.org/docs/container/nexus-class
    */
-  get<T>(token: Token<T>): T;
-  get<T>(token: new (...args: any[]) => T): T;
-  get<T>(token: string): T;
-  get<T>(token: any): T {
-    // Resolve aliases
+  get<T>(token: TokenType<T>): T {
+    if (!isTokenType(token)) {
+      throw new InvalidToken(token);
+    }
     const actualToken = this.aliases.get(token) || token;
     if (!this.has(actualToken)) {
-      throw new Error(
-        `No provider found for token: ${this.tokenToString(token)}`
-      );
+      throw new NoProvider(token);
     }
-
     const provider = this.providers.get(actualToken);
     if (!provider) {
-      throw new Error(
-        `No provider found for token: ${this.tokenToString(token)}`
-      );
+      throw new NoProvider(token);
     }
-
-    // Return singleton instance if exists
     if (this.instances.has(actualToken)) {
       return this.instances.get(actualToken);
     }
-
-    // Create new instance
     let instance: T;
-
     if (provider.useValue !== undefined) {
       instance = provider.useValue;
     } else if (provider.useFactory) {
-      const deps = provider.deps?.map((dep) => this.get(dep)) || [];
+      const deps = provider.deps?.map((dep) => this.get(dep as any)) || [];
       instance = provider.useFactory(...deps);
     } else if (provider.useClass) {
       instance = this.resolve(provider.useClass);
     } else {
-      throw new Error(
+      throw new InvalidProvider(
         `Invalid provider configuration for token: ${this.tokenToString(token)}`
       );
     }
-
-    // Store singleton instance for all provider types
     this.instances.set(actualToken, instance);
-
     return instance;
   }
 
@@ -86,14 +81,11 @@ export class Nexus implements IContainer {
    * @returns True if registered
    * @see https://nexus.js.org/docs/container/nexus-class
    */
-  has(token: Token): boolean;
-  has(token: new (...args: any[]) => unknown): boolean;
-  has(token: string): boolean;
-  has(token: any): boolean {
+  has(token: TokenType<unknown>): boolean {
     const actualToken = this.aliases.get(token) || token;
     return (
       this.providers.has(actualToken) ||
-      this.modules.has(actualToken as new (...args: any[]) => any)
+      this.modules.has(actualToken as Constructor<any>)
     );
   }
 
@@ -104,140 +96,169 @@ export class Nexus implements IContainer {
    * @see https://nexus.js.org/docs/container/nexus-class
    */
   resolve<T>(token: TokenType<T>): T {
+    if (!isTokenType(token)) {
+      throw new InvalidToken(token);
+    }
     const paramTypes =
-      Reflect.getMetadata(METADATA_KEYS.DESIGN_PARAMTYPES, token) || [];
-    // Get constructor parameter injection metadata from the constructor
+      getMetadata(token, METADATA_KEYS.DESIGN_PARAMTYPES) || [];
     const ctorInjectionMetadata: InjectionMetadata[] =
-      Reflect.getMetadata(METADATA_KEYS.INJECT_METADATA, token) || [];
-    // Get property injection metadata from the prototype
-    const propInjectionMetadata: InjectionMetadata[] =
-      Reflect.getMetadata(METADATA_KEYS.INJECT_METADATA, token.prototype) || [];
-
-    // Create parameter array for constructor
+      getMetadata(token, METADATA_KEYS.INJECT_METADATA) || [];
+    let propInjectionMetadata: InjectionMetadata[] = [];
+    if (typeof token === 'function') {
+      propInjectionMetadata =
+        getMetadata(token.prototype, METADATA_KEYS.INJECT_METADATA) || [];
+    }
     const params: any[] = new Array(paramTypes.length);
-
-    // Fill in injected dependencies for constructor
     for (const metadata of ctorInjectionMetadata) {
       if (metadata.propertyKey === undefined) {
-        // Constructor parameter injection
         params[metadata.index] = this.get(metadata.token);
       }
     }
-
-    // Fill remaining parameters with resolved dependencies
     for (let i = 0; i < paramTypes.length; i++) {
       if (params[i] === undefined) {
         const paramType = paramTypes[i];
         if (paramType && paramType !== Object) {
-          // Try to get the dependency by type
           if (this.has(paramType)) {
             params[i] = this.get(paramType);
           } else {
-            // If not registered, try to resolve it directly
             params[i] = this.resolve(paramType);
           }
         }
       }
     }
-
-    // Create instance
     if (typeof token !== 'function') {
-      throw new Error(
+      throw new InvalidToken(
         `Cannot instantiate non-class token: ${this.tokenToString(token)}`
       );
     }
-    const instance = new (token as new (...args: any[]) => T)(...params);
-
-    // Handle property injection (from prototype metadata)
+    const instance = new (token as Constructor<T>)(...params);
     for (const metadata of propInjectionMetadata) {
       if (metadata.propertyKey !== undefined) {
         (instance as any)[metadata.propertyKey] = this.get(metadata.token);
       }
     }
-
     return instance;
   }
 
   /**
    * Unified set method: register a provider, module, or dynamic module config.
    */
-  set<T>(token: Token<T>, provider: Provider<T>): void;
-  set<T>(token: Token<T>, serviceClass: new (...args: any[]) => T): void;
-  set<T>(token: new (...args: any[]) => T, provider: Provider<T>): void;
-  set<T>(
-    token: new (...args: any[]) => T,
-    serviceClass: new (...args: any[]) => T
-  ): void;
-  set<T>(token: string, provider: Provider<T>): void;
-  set<T>(token: string, serviceClass: new (...args: any[]) => T): void;
-  set(moduleClass: new (...args: any[]) => any): void;
+  set<T>(token: TokenType<T>, provider: Provider<T>): void;
+  set<T>(token: TokenType<T>, serviceClass: Constructor<T>): void;
+  set<T>(moduleClass: Constructor<T>): void;
   set(moduleConfig: {
     providers?: ModuleProvider[];
-    imports?: (new (...args: any[]) => any)[];
-    services?: (new (...args: any[]) => any)[];
+    imports?: Constructor[];
     exports?: TokenType[];
   }): void;
   set(tokenOrModuleOrConfig: any, providerOrNothing?: any): void {
-    // If it's a module class (has @Module metadata)
     if (
       typeof tokenOrModuleOrConfig === 'function' &&
-      Reflect &&
-      Reflect.getMetadata &&
-      Reflect.getMetadata(METADATA_KEYS.MODULE_METADATA, tokenOrModuleOrConfig)
+      getMetadata(tokenOrModuleOrConfig, METADATA_KEYS.MODULE_METADATA)
     ) {
       if (this.inProgressModules.has(tokenOrModuleOrConfig)) {
         return;
       }
       if (this.modules.has(tokenOrModuleOrConfig)) {
-        return; // Module already registered
+        return;
       }
       this.inProgressModules.add(tokenOrModuleOrConfig);
       this.modules.add(tokenOrModuleOrConfig);
-      const moduleConfig = Reflect.getMetadata(
-        METADATA_KEYS.MODULE_METADATA,
-        tokenOrModuleOrConfig
+      const moduleConfig = getMetadata(
+        tokenOrModuleOrConfig,
+        METADATA_KEYS.MODULE_METADATA
       );
       if (!moduleConfig) {
         this.inProgressModules.delete(tokenOrModuleOrConfig);
-        throw new Error(
-          `Module ${tokenOrModuleOrConfig.name} is not properly decorated with @Module`
-        );
+        throw new InvalidModule(tokenOrModuleOrConfig);
       }
       this.processModuleConfig(moduleConfig);
       this.inProgressModules.delete(tokenOrModuleOrConfig);
       return;
     }
-    // If it's a dynamic module config (object with services/providers/imports)
     if (
       tokenOrModuleOrConfig &&
       typeof tokenOrModuleOrConfig === 'object' &&
-      (tokenOrModuleOrConfig.services ||
-        tokenOrModuleOrConfig.providers ||
-        tokenOrModuleOrConfig.imports)
+      (tokenOrModuleOrConfig.providers || tokenOrModuleOrConfig.imports)
     ) {
       this.processModuleConfig(tokenOrModuleOrConfig);
       return;
     }
-    // Otherwise, treat as provider registration
     this.setProvider(tokenOrModuleOrConfig, providerOrNothing);
+  }
+
+  /**
+   * Normalize a class or provider object into a { token, provider } pair.
+   * Ensures all registrations are consistent and robust.
+   */
+  private normalizeProvider<T>(input: Provider<T> | Constructor<T>): {
+    token: TokenType<T>;
+    provider: Provider<T>;
+  } {
+    if (isConstructor(input)) {
+      // Class registration
+      const providerConfig = getMetadata(
+        input,
+        METADATA_KEYS.PROVIDER_METADATA
+      );
+      if (!providerConfig) {
+        throw new InvalidService(input);
+      }
+      const token = providerConfig.token || (input as TokenType<T>);
+      return { token, provider: { useClass: input } };
+    } else if (isProvider(input)) {
+      // Provider object registration
+      if ('token' in input && input.token) {
+        return { token: input.token as TokenType<T>, provider: input };
+      } else {
+        throw new InvalidProvider('Provider object must have a token');
+      }
+    } else {
+      throw new InvalidProvider('Invalid provider type');
+    }
   }
 
   /**
    * Internal: Register a provider (class, value, or factory) for a token.
    */
-  private setProvider(
-    token: TokenType<any>,
-    providerOrClass: Provider<any> | (new (...args: any[]) => any)
+  private setProvider<T>(
+    tokenOrClass: TokenType<T> | Constructor<T>,
+    providerOrNothing?: Provider<T>
   ): void {
+    let token: TokenType<any>;
     let provider: Provider<any>;
-    if (typeof providerOrClass === 'function') {
-      provider = { useClass: providerOrClass };
+    if (providerOrNothing !== undefined) {
+      if (!isTokenType(tokenOrClass)) {
+        throw new InvalidToken(tokenOrClass);
+      }
+      if (isConstructor(providerOrNothing)) {
+        // (token, class) registration
+        const providerObj = {
+          token: tokenOrClass,
+          useClass: providerOrNothing,
+        };
+        ({ token, provider } = this.normalizeProvider(providerObj));
+      } else if (
+        providerOrNothing &&
+        (providerOrNothing.useClass ||
+          providerOrNothing.useValue ||
+          providerOrNothing.useFactory)
+      ) {
+        // (token, provider object) registration
+        const providerWithToken = Object.assign({}, providerOrNothing, {
+          token: tokenOrClass,
+        });
+        ({ token, provider } = this.normalizeProvider(providerWithToken));
+      } else {
+        throw new InvalidProvider(
+          'Invalid provider type. Only class constructors, symbols, or Token<T> instances are allowed as providers.'
+        );
+      }
     } else {
-      provider = providerOrClass;
+      ({ token, provider } = this.normalizeProvider(tokenOrClass as any));
     }
     this.providers.set(token, provider);
     this.instances.delete(token);
-    // Clear all aliases that point to this token
     for (const [alias, target] of this.aliases.entries()) {
       if (target === token) {
         this.instances.delete(alias);
@@ -250,97 +271,27 @@ export class Nexus implements IContainer {
   }
 
   /**
-   * @deprecated Use the unified set() method instead.
-   */
-  setModule(moduleClass: new (...args: any[]) => any): void {
-    console.warn(
-      '[DEPRECATED] Use container.set(moduleClass) instead of setModule.'
-    );
-    if (this.modules.has(moduleClass)) {
-      return; // Module already registered
-    }
-    this.modules.add(moduleClass);
-    const moduleConfig = Reflect.getMetadata(
-      METADATA_KEYS.MODULE_METADATA,
-      moduleClass
-    );
-    if (!moduleConfig) {
-      throw new Error(
-        `Module ${moduleClass.name} is not properly decorated with @Module`
-      );
-    }
-    this.processModuleConfig(moduleConfig);
-  }
-
-  /**
-   * @deprecated Use the unified set() method instead.
-   */
-  registerDynamicModule(moduleConfig: {
-    services?: (new (...args: any[]) => any)[];
-    providers?: ModuleProvider[];
-    imports?: (new (...args: any[]) => any)[];
-  }): void {
-    console.warn(
-      '[DEPRECATED] Use container.set(dynamicModuleConfig) instead of registerDynamicModule.'
-    );
-    this.processModuleConfig(moduleConfig);
-  }
-
-  /**
    * Process module configuration (shared between setModule and registerDynamicModule)
    */
   private processModuleConfig(moduleConfig: {
-    services?: (new (...args: any[]) => any)[];
     providers?: ModuleProvider[];
-    imports?: (new (...args: any[]) => any)[];
+    imports?: Constructor[];
+    exports?: TokenType[];
   }): void {
-    // Register imported modules
     if (moduleConfig.imports) {
       for (const importedModule of moduleConfig.imports) {
-        this.setModule(importedModule);
+        this.set(importedModule);
       }
     }
-
-    // Register services
-    if (moduleConfig.services) {
-      for (const serviceClass of moduleConfig.services) {
-        const serviceConfig = Reflect.getMetadata(
-          METADATA_KEYS.SERVICE_METADATA,
-          serviceClass
-        );
-        if (!serviceConfig) {
-          throw new Error(
-            `Service class ${serviceClass.name} is not decorated with @Service`
-          );
-        }
-        this.set(serviceConfig.token as TokenType<any>, {
-          useClass: serviceClass,
-        });
-      }
-    }
-
-    // Register providers
     if (moduleConfig.providers) {
       for (const provider of moduleConfig.providers) {
-        // Check if provider is a service class (has @Service decorator)
-        if (typeof provider === 'function') {
-          const serviceConfig = Reflect.getMetadata(
-            METADATA_KEYS.SERVICE_METADATA,
-            provider
-          );
-          if (serviceConfig) {
-            this.set(serviceConfig.token as TokenType<any>, {
-              useClass: provider,
-            });
-          } else {
-            throw new Error(
-              `Service class ${provider.name} is not decorated with @Service`
-            );
-          }
-        } else {
-          // Full provider object
-          this.set(provider.token as TokenType<any>, provider);
-        }
+        const { token, provider: normProvider } = this.normalizeProvider(
+          provider as any
+        );
+        this.setProvider(
+          token as TokenType<any>,
+          normProvider as Provider<any>
+        );
       }
     }
   }
@@ -350,8 +301,6 @@ export class Nexus implements IContainer {
    */
   createChildContainer(): Nexus {
     const child = new Nexus();
-
-    // Copy providers and instances
     for (const [token, provider] of this.providers) {
       child.providers.set(token, provider);
     }
@@ -381,17 +330,13 @@ export class Nexus implements IContainer {
    * Convert a token to a string representation for error messages
    */
   private tokenToString(token: TokenType): string {
-    if (token instanceof Token) {
+    if (typeof token === 'object' && token && 'toString' in token) {
       return token.toString();
-    } else if (typeof token === 'string') {
-      return token;
     } else if (typeof token === 'symbol') {
-      // TypeScript sometimes thinks token is never here, so cast to object
-      return (token as object).toString();
+      return (token as unknown as object).toString();
     } else if (typeof token === 'function') {
       return token.name || 'Function';
     }
-    // Fallback for unknown/never types
     return String(token);
   }
 

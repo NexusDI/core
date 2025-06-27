@@ -4,7 +4,7 @@ sidebar_position: 2
 
 # Getting Started 🚀
 
-Welcome to NexusDI! This guide will help you get started with dependency injection using tokens and interfaces. We'll walk through the basics step by step—no need to reroute power from life support, just follow along!
+This guide will help you get started with dependency injection using tokens and interfaces. We'll walk through the basics step by step—no need to reroute power from life support, just follow along!
 
 ## Why Dependency Injection?
 
@@ -68,7 +68,7 @@ For detailed explanations and real-world examples, see **[Dependency Injection](
 ## Installation
 
 ```bash
-npm install @nexusdi/core reflect-metadata
+npm install @nexusdi/core
 ```
 
 ## TypeScript Configuration
@@ -81,12 +81,14 @@ To use decorators and metadata with NexusDI, make sure your `tsconfig.json` incl
     "target": "es2022",
     "lib": ["es2022", "esnext.decorators"],
     "experimentalDecorators": true,
-    "emitDecoratorMetadata": true
+    "useDefineForClassFields": true // Defaults to 'true' in TypeScript 5.2+
   }
 }
 ```
 
 > 🛠️ **Tip:** These settings ensure that TypeScript emits the correct decorator and metadata code for NexusDI. If you see errors about decorators or metadata, double-check your `tsconfig.json`.
+
+> **Note:** NexusDI v0.3.0+ uses native decorator metadata (TypeScript 5.2+). You do not need to install or import `reflect-metadata`.
 
 ## Basic Usage with Tokens and Interfaces
 

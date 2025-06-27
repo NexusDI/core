@@ -1,7 +1,13 @@
-import 'reflect-metadata';
 import { describe, it, expect, beforeEach, vi } from 'vitest';
-import { Nexus, Module, Service, Provider, Inject, Token } from './index';
-import type { TokenType } from './types';
+import { Nexus } from './container';
+import { Inject, Service, Module, Provider } from './decorators';
+import { Token } from './token';
+import {
+  InvalidToken,
+  InvalidService,
+  NoProvider,
+  InvalidProvider,
+} from './exceptions';
 
 describe('Nexus', () => {
   let nexus: Nexus;
@@ -56,9 +62,8 @@ describe('Nexus', () => {
      * Value: Ensures missing providers are caught early and feedback is clear
      */
     it('should throw error for unregistered token', () => {
-      expect(() =>
-        nexus.get('UNREGISTERED_TOKEN' as unknown as TokenType<any>)
-      ).toThrow('No provider found for token: UNREGISTERED_TOKEN');
+      class Unregistered {}
+      expect(() => nexus.get(Unregistered)).toThrowError(NoProvider);
     });
     /**
      * Test: Token registration check
@@ -97,8 +102,7 @@ describe('Nexus', () => {
       @Service()
       class UserServiceWithLogger {
         constructor(
-          // @ts-expect-error: Decorator signature is not type-safe for parameter injection, intentional for test
-          @Inject(LoggerService as unknown as TokenType<any>)
+          @Inject(LoggerService)
           private logger: LoggerService
         ) {}
         getUser(id: string): string {
@@ -124,27 +128,22 @@ describe('Nexus', () => {
      * Value: Enables advanced DI scenarios with custom keys
      */
     it('should work with custom tokens', () => {
-      const API_URL = 'API_URL';
+      const API_URL = new Token<string>('API_URL');
       const CONFIG_TOKEN = new Token('CONFIG');
-      @Provider(CONFIG_TOKEN as unknown as TokenType<any>)
+      @Provider(CONFIG_TOKEN)
       class ConfigService {
-        constructor(
-          // @ts-expect-error: Decorator signature is not type-safe for parameter injection, intentional for test
-          @Inject(API_URL as unknown as TokenType<any>) private apiUrl: string
-        ) {}
+        constructor(@Inject(API_URL) private apiUrl: string) {}
         getApiUrl(): string {
           return this.apiUrl;
         }
       }
-      nexus.set(API_URL as unknown as TokenType<any>, {
+      nexus.set(API_URL, {
         useValue: 'https://api.example.com',
       });
-      nexus.set(CONFIG_TOKEN as unknown as TokenType<any>, {
+      nexus.set(CONFIG_TOKEN, {
         useClass: ConfigService,
       });
-      const config = nexus.get(
-        CONFIG_TOKEN as unknown as TokenType<any>
-      ) as ConfigService;
+      const config = nexus.get(CONFIG_TOKEN) as ConfigService;
       expect(config.getApiUrl()).toBe('https://api.example.com');
     });
     /**
@@ -153,11 +152,12 @@ describe('Nexus', () => {
      * Value: Enables dynamic provider creation in DI
      */
     it('should work with factory providers', () => {
+      const FACTORY_TOKEN = new Token<string>('FACTORY_TOKEN');
       const factory = vi.fn().mockReturnValue('factory-result');
-      nexus.set('FACTORY_TOKEN' as unknown as TokenType<any>, {
+      nexus.set(FACTORY_TOKEN, {
         useFactory: factory,
       });
-      const result = nexus.get('FACTORY_TOKEN' as unknown as TokenType<any>);
+      const result = nexus.get(FACTORY_TOKEN);
       expect(result).toBe('factory-result');
       expect(factory).toHaveBeenCalledTimes(1);
     });
@@ -167,13 +167,13 @@ describe('Nexus', () => {
      * Value: Ensures DI can resolve and inject dependencies for factories
      */
     it('should work with factory providers with dependencies', () => {
-      const DEP1 = 'DEP1';
-      const DEP2 = 'DEP2';
-      const FACTORY_TOKEN = 'FACTORY_WITH_DEPS';
+      const DEP1 = new Token<string>('DEP1');
+      const DEP2 = new Token<string>('DEP2');
+      const FACTORY_TOKEN = new Token<string>('FACTORY_WITH_DEPS');
 
       // Register dependencies
-      nexus.set(DEP1 as unknown as TokenType<any>, { useValue: 'dependency1' });
-      nexus.set(DEP2 as unknown as TokenType<any>, { useValue: 'dependency2' });
+      nexus.set(DEP1, { useValue: 'dependency1' });
+      nexus.set(DEP2, { useValue: 'dependency2' });
 
       // Create factory that expects dependencies
       const factory = vi
@@ -183,15 +183,12 @@ describe('Nexus', () => {
         });
 
       // Register factory with dependencies
-      nexus.set(FACTORY_TOKEN as unknown as TokenType<any>, {
+      nexus.set(FACTORY_TOKEN, {
         useFactory: factory,
-        deps: [
-          DEP1 as unknown as TokenType<any>,
-          DEP2 as unknown as TokenType<any>,
-        ],
+        deps: [DEP1, DEP2],
       });
 
-      const result = nexus.get(FACTORY_TOKEN as unknown as TokenType<any>);
+      const result = nexus.get(FACTORY_TOKEN);
       expect(result).toBe('dependency1-dependency2-result');
       expect(factory).toHaveBeenCalledWith('dependency1', 'dependency2');
     });
@@ -202,11 +199,20 @@ describe('Nexus', () => {
      */
     it('should work with auto-generated tokens', () => {
       const autoToken = new Token();
-      nexus.set(autoToken as unknown as TokenType<any>, {
+      nexus.set(autoToken, {
         useValue: 'auto-generated-value',
       });
-      const result = nexus.get(autoToken as unknown as TokenType<any>);
+      const result = nexus.get(autoToken);
       expect(result).toBe('auto-generated-value');
+    });
+
+    it('should throw InvalidToken for invalid token types', () => {
+      // @ts-expect-error
+      expect(() => nexus.get('INVALID')).toThrowError(InvalidToken);
+      // @ts-expect-error
+      expect(() => nexus.set('INVALID', { useValue: 123 })).toThrowError(
+        InvalidToken
+      );
     });
   });
 
@@ -227,8 +233,7 @@ describe('Nexus', () => {
       @Service()
       class UserServiceWithLogger {
         constructor(
-          // @ts-expect-error: Decorator signature is not type-safe for parameter injection, intentional for test
-          @Inject(LoggerService as unknown as TokenType<any>)
+          @Inject(LoggerService)
           private logger: LoggerService
         ) {}
         getUser(id: string): string {
@@ -236,7 +241,7 @@ describe('Nexus', () => {
         }
       }
       @Module({
-        services: [LoggerService, UserServiceWithLogger],
+        providers: [LoggerService, UserServiceWithLogger],
       })
       class AppModule {}
       nexus.set(AppModule);
@@ -340,13 +345,8 @@ describe('Nexus', () => {
         }
       }
       const container = new Nexus();
-      container.set(
-        USER_SERVICE as unknown as TokenType<UserService>,
-        UserService
-      );
-      const userService = container.get(
-        USER_SERVICE as unknown as TokenType<UserService>
-      ) as UserService;
+      container.set(USER_SERVICE, UserService);
+      const userService = container.get(USER_SERVICE) as UserService;
       expect(userService.getUsers()).toEqual(['Alice', 'Bob', 'Charlie']);
     });
   });
@@ -359,10 +359,8 @@ describe('Nexus', () => {
      * Value: Ensures misconfigured providers are caught early
      */
     it('should throw if provider is missing useClass, useValue, and useFactory', () => {
-      nexus.set('INVALID' as unknown as TokenType<any>, {} as any);
-      expect(() => nexus.get('INVALID' as unknown as TokenType<any>)).toThrow(
-        /Invalid provider configuration/
-      );
+      class Invalid {}
+      expect(() => nexus.set(Invalid, {} as any)).toThrowError(InvalidProvider);
     });
 
     /**
@@ -377,12 +375,10 @@ describe('Nexus', () => {
           return 42;
         }
       }
-      const ALIAS = 'ALIAS';
-      nexus.set(ALIAS as unknown as TokenType<any>, { useClass: AliasService });
-      const instance1 = nexus.get(
-        ALIAS as unknown as TokenType<any>
-      ) as AliasService;
-      const instance2 = nexus.get(AliasService) as AliasService;
+      const ALIAS = Symbol('ALIAS');
+      nexus.set(ALIAS, { useClass: AliasService });
+      const instance1 = nexus.get(ALIAS) as AliasService;
+      const instance2 = nexus.get(AliasService);
       expect(instance1).toBe(instance2);
       expect(instance1.getValue()).toBe(42);
     });
@@ -393,11 +389,11 @@ describe('Nexus', () => {
      * Value: Ensures predictable provider overriding
      */
     it('should allow overwriting providers for the same token', () => {
-      const TOKEN = 'OVERRIDE';
-      nexus.set(TOKEN as unknown as TokenType<any>, { useValue: 1 });
-      expect(nexus.get(TOKEN as unknown as TokenType<any>)).toBe(1);
-      nexus.set(TOKEN as unknown as TokenType<any>, { useValue: 2 });
-      expect(nexus.get(TOKEN as unknown as TokenType<any>)).toBe(2);
+      const TOKEN = new Token<number>('OVERRIDE');
+      nexus.set(TOKEN, { useValue: 1 });
+      expect(nexus.get(TOKEN)).toBe(1);
+      nexus.set(TOKEN, { useValue: 2 });
+      expect(nexus.get(TOKEN)).toBe(2);
     });
 
     /**
@@ -407,9 +403,9 @@ describe('Nexus', () => {
      */
     it('should throw if registering undecorated class in a module', () => {
       class NotAService {}
-      @Module({ services: [NotAService] })
+      @Module({ providers: [NotAService] })
       class Mod {}
-      expect(() => nexus.set(Mod)).toThrow(/is not decorated with @Service/);
+      expect(() => nexus.set(Mod)).toThrowError(InvalidService);
     });
   });
 

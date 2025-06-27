@@ -16,7 +16,6 @@
   "compilerOptions": {
     "jsx": "react-jsx",
     "experimentalDecorators": true,
-    "emitDecoratorMetadata": true,
     "moduleResolution": "bundler",
     "types": ["@react-router/node"]
   }

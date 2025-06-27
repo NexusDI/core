@@ -1,4 +1,3 @@
-import 'reflect-metadata';
 import { PassThrough } from 'node:stream';
 
 import type {
