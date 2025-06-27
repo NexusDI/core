@@ -37,7 +37,7 @@ jobs:
         shell: bash
 
       - name: Build packages
-        run: npx nx affected --target=build
+        run: npx nx build core
         shell: bash
 
       - name: Publish packages
