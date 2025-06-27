@@ -33,6 +33,26 @@ dependency-injection:
   permalink: /dependency-injection
   description: Articles about DI patterns and libraries
 
+decorators:
+  label: Decorators
+  permalink: /decorators
+  description: Articles about decorators
+
+typescript:
+  label: TypeScript
+  permalink: /typescript
+  description: Articles about TypeScript
+
+modules:
+  label: Modules
+  permalink: /modules
+  description: Articles about modules
+
+breaking-changes:
+  label: Breaking Changes
+  permalink: /breaking-changes
+  description: Articles about breaking changes
+
 v0.1.0:
   label: v0.1.0
   permalink: /v0.1.0
