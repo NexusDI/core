@@ -7,7 +7,7 @@ import {
   isContainer,
 } from './guards';
 import { Token } from './token';
-import type { Provider, IContainer } from './types';
+import type { IContainer } from './types';
 
 /**
  * Guards: Ensures all public guard functions work as expected for valid and invalid cases
@@ -77,12 +77,12 @@ describe('Guards', () => {
 
   describe('isContainer', () => {
     it('should return true for objects implementing IContainer', () => {
-      const fake: IContainer = {
+      const fake = {
         get: () => 1,
         set: () => {},
         has: () => true,
         resolve: () => 1,
-      };
+      } as unknown as IContainer;
       expect(isContainer(fake)).toBe(true);
     });
     it('should return false for objects missing required methods', () => {

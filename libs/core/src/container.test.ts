@@ -2,7 +2,7 @@ import { describe, it, expect, beforeEach, vi } from 'vitest';
 import { Nexus } from './container';
 import { Inject, Service, Module, Provider } from './decorators';
 import { Token } from './token';
-import { InvalidToken } from './container';
+import { InvalidToken, InvalidService, NoProvider } from './exceptions';
 
 describe('Nexus', () => {
   let nexus: Nexus;
@@ -58,9 +58,7 @@ describe('Nexus', () => {
      */
     it('should throw error for unregistered token', () => {
       class Unregistered {}
-      expect(() => nexus.get(Unregistered)).toThrow(
-        'No provider found for token: Unregistered'
-      );
+      expect(() => nexus.get(Unregistered)).toThrowError(NoProvider);
     });
     /**
      * Test: Token registration check
@@ -405,7 +403,7 @@ describe('Nexus', () => {
       class NotAService {}
       @Module({ services: [NotAService] })
       class Mod {}
-      expect(() => nexus.set(Mod)).toThrow(/is not decorated with @Service/);
+      expect(() => nexus.set(Mod)).toThrowError(InvalidService);
     });
   });
 

@@ -2,6 +2,7 @@ import { Module } from './decorators';
 import { DynamicModule } from './module';
 import { getMetadata } from './helpers';
 import { METADATA_KEYS } from './constants';
+import { InvalidModule } from './exceptions/invalid-module.exception';
 
 // Dummy config token for testing
 const TEST_CONFIG_TOKEN = Symbol('TEST_CONFIG');
@@ -153,9 +154,7 @@ describe('Module error handling', () => {
    * This ensures clear error messages for misconfiguration and helps developers debug quickly.
    */
   it('should throw if not decorated with @Module', () => {
-    expect(() => NotDecorated.getModuleConfig()).toThrow(
-      /not properly decorated/
-    );
+    expect(() => NotDecorated.getModuleConfig()).toThrowError(InvalidModule);
   });
 });
 

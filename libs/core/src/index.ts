@@ -27,6 +27,15 @@ export {
   Optional,
 } from './decorators';
 
+export {
+  ContainerException,
+  InvalidToken,
+  InvalidService,
+  NoProvider,
+  InvalidProvider,
+  InvalidModule,
+} from './exceptions';
+
 // Dynamic Module
 export { DynamicModule } from './module';
 

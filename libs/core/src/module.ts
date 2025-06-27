@@ -3,8 +3,8 @@ import { Module } from './decorators';
 import type { ModuleConfig, TokenType } from './types';
 import { METADATA_KEYS } from './constants';
 import type { Token } from './token';
-import { SYMBOL_METADATA } from './constants';
 import { setMetadata, getMetadata } from './helpers';
+import { InvalidModule } from './exceptions/invalid-module.exception';
 
 /**
  * Represents a dynamic module, allowing for runtime configuration of providers and imports.
@@ -25,9 +25,7 @@ export abstract class DynamicModule<TConfig = any> {
   ): ModuleConfig {
     const moduleConfig = getMetadata(this, METADATA_KEYS.MODULE_METADATA);
     if (!moduleConfig) {
-      throw new Error(
-        `Module ${this.name} is not properly decorated with @Module`
-      );
+      throw new InvalidModule(this);
     }
     return moduleConfig;
   }

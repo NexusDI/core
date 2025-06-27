@@ -1,18 +1,16 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 import type { Token } from './token';
 
+export type Constructor<T = any> = new (...args: any[]) => T;
+
 /**
- * [INTERNAL] Represents a token for DI registration. Used internally to support class, string, or Token-based tokens.
+ * [INTERNAL] Represents a token for DI registration. Used internally to support class, or Token-based tokens.
  *
  * Users should use the exported `Token` class for custom tokens instead of Symbol or string.
  *
  * @see https://nexus.js.org/docs/modules/tokens
  */
-export type TokenType<T = any> = new (...args: any[]) => T | symbol | Token<T>;
-export type InjectableToken<T = any> =
-  | Token<T>
-  | symbol
-  | (new (...args: any[]) => T);
+export type TokenType<T = any> = Token<T> | symbol | Constructor<T>;
 
 /**
  * Provider definition for DI. Use this to register classes, values, or factories.
@@ -23,10 +21,10 @@ export type InjectableToken<T = any> =
  * @see https://nexus.js.org/docs/modules/providers-and-services
  */
 export type Provider<T = any> = {
-  useClass?: new (...args: any[]) => T;
+  useClass?: Constructor<T>;
   useValue?: T;
   useFactory?: (...args: any[]) => T;
-  deps?: InjectableToken[];
+  deps?: TokenType[];
 };
 
 /**
@@ -38,8 +36,8 @@ export type Provider<T = any> = {
  * @see https://nexus.js.org/docs/modules/module-basics
  */
 export type ModuleProvider<T = any> =
-  | (Provider<T> & { token: InjectableToken<T> })
-  | (new (...args: any[]) => T);
+  | (Provider<T> & { token: TokenType<T> })
+  | Constructor<T>;
 
 /**
  * Configuration for a service. Used with @Service and @Provider decorators.
@@ -63,8 +61,8 @@ export type ServiceConfig<T = any> = {
  * @see https://nexus.js.org/docs/modules/module-basics
  */
 export type ModuleConfig = {
-  imports?: (new (...args: any[]) => any)[];
-  services?: (new (...args: any[]) => any)[];
+  imports?: Constructor[];
+  services?: Constructor[];
   providers?: ModuleProvider[];
   exports?: TokenType[];
 };
@@ -75,32 +73,19 @@ export type ModuleConfig = {
  * @see https://nexus.js.org/docs/container/nexus-class
  */
 export interface IContainer {
-  get<T>(token: Token<T>): T;
-  get<T>(token: symbol): T;
-  get<T>(token: new (...args: any[]) => T): T;
+  get<T>(token: TokenType<T>): T;
 
-  has(token: Token<any>): boolean;
-  has(token: symbol): boolean;
-  has(token: new (...args: any[]) => any): boolean;
+  has(token: TokenType<unknown>): boolean;
 
-  resolve<T>(token: Token<T>): T;
-  resolve<T>(token: symbol): T;
-  resolve<T>(token: new (...args: any[]) => T): T;
+  resolve<T>(token: TokenType<T>): T;
 
-  set<T>(token: Token<T>, provider: Provider<T>): void;
-  set<T>(token: Token<T>, serviceClass: new (...args: any[]) => T): void;
-  set<T>(token: symbol, provider: Provider<T>): void;
-  set<T>(token: symbol, serviceClass: new (...args: any[]) => T): void;
-  set<T>(token: new (...args: any[]) => T, provider: Provider<T>): void;
-  set<T>(
-    token: new (...args: any[]) => T,
-    serviceClass: new (...args: any[]) => T
-  ): void;
-  set(moduleClass: new (...args: any[]) => any): void;
+  set<T>(token: TokenType<T>, provider: Provider<T>): void;
+  set<T>(token: TokenType<T>, serviceClass: Constructor<T>): void;
+  set<T>(moduleClass: Constructor<T>): void;
   set(moduleConfig: {
     providers?: ModuleProvider[];
-    imports?: (new (...args: any[]) => any)[];
-    services?: (new (...args: any[]) => any)[];
+    imports?: Constructor[];
+    services?: Constructor[];
     exports?: TokenType[];
   }): void;
   set(tokenOrModuleOrConfig: any, providerOrNothing?: any): void;
@@ -117,6 +102,3 @@ export type InjectionMetadata = {
   propertyKey?: string | symbol;
   optional?: boolean;
 };
-
-// Re-export Token class for convenience
-export { Token } from './token';
