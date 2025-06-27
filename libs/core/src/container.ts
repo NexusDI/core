@@ -202,6 +202,13 @@ export class Nexus implements IContainer {
     }
     let provider: Provider<T>;
     if (typeof providerOrClass === 'function') {
+      const providerConfig = getMetadata(
+        providerOrClass,
+        METADATA_KEYS.PROVIDER_METADATA
+      );
+      if (!providerConfig) {
+        throw new InvalidService(providerOrClass);
+      }
       provider = { useClass: providerOrClass };
     } else {
       provider = providerOrClass;
@@ -234,14 +241,14 @@ export class Nexus implements IContainer {
     }
     if (moduleConfig.services) {
       for (const serviceClass of moduleConfig.services) {
-        const serviceConfig = getMetadata(
+        const providerConfig = getMetadata(
           serviceClass,
-          METADATA_KEYS.SERVICE_METADATA
+          METADATA_KEYS.PROVIDER_METADATA
         );
-        if (!serviceConfig) {
+        if (!providerConfig) {
           throw new InvalidService(serviceClass);
         }
-        this.set(serviceConfig.token as TokenType<any>, {
+        this.set(providerConfig.token as TokenType<any>, {
           useClass: serviceClass,
         });
       }
@@ -249,12 +256,12 @@ export class Nexus implements IContainer {
     if (moduleConfig.providers) {
       for (const provider of moduleConfig.providers) {
         if (isService(provider)) {
-          const serviceConfig = getMetadata(
+          const providerConfig = getMetadata(
             provider,
-            METADATA_KEYS.SERVICE_METADATA
+            METADATA_KEYS.PROVIDER_METADATA
           );
-          if (serviceConfig) {
-            this.set(serviceConfig.token as TokenType<any>, {
+          if (providerConfig) {
+            this.set(providerConfig.token as TokenType<any>, {
               useClass: provider,
             });
           } else {

@@ -40,16 +40,17 @@ export type ModuleProvider<T = any> =
   | Constructor<T>;
 
 /**
- * Configuration for a service. Used with @Service and @Provider decorators.
+ * Configuration for a provider. Used with @Service and @Provider decorators.
  *
  * @example
- * import { ServiceConfig } from '@nexusdi/core';
- * const config: ServiceConfig = { scope: 'singleton' };
+ * import { ProviderConfig } from '@nexusdi/core';
+ * const config: ProviderConfig = { scope: 'singleton' };
  * @see https://nexus.js.org/docs/modules/providers-and-services
  */
-export type ServiceConfig<T = any> = {
+export type ProviderConfig<T = any> = {
   token?: TokenType<T>;
   singleton?: boolean;
+  type?: 'service' | 'value' | 'factory' | string;
 };
 
 /**
@@ -77,8 +78,6 @@ export interface IContainer {
 
   has(token: TokenType<unknown>): boolean;
 
-  resolve<T>(token: TokenType<T>): T;
-
   set<T>(token: TokenType<T>, provider: Provider<T>): void;
   set<T>(token: TokenType<T>, serviceClass: Constructor<T>): void;
   set<T>(moduleClass: Constructor<T>): void;
@@ -89,6 +88,39 @@ export interface IContainer {
     exports?: TokenType[];
   }): void;
   set(tokenOrModuleOrConfig: any, providerOrNothing?: any): void;
+
+  /**
+   * Instantiates a new instance of the given class, resolving and injecting all dependencies.
+   *
+   * - Unlike `get`, this does not require the class to be registered as a provider and always returns a new instance.
+   * - Useful for transient or ad-hoc objects that are not managed by the container's provider registry.
+   * - Throws if dependencies cannot be resolved.
+   *
+   * @param target The class constructor to instantiate.
+   * @returns A new instance of the class with dependencies injected.
+   */
+  resolve<T>(ctor: Constructor<T>): T;
+
+  /**
+   * Creates a new child container that inherits the parent container's providers.
+   *
+   * @returns A new container with the same providers as the parent.
+   */
+  createChildContainer(): IContainer;
+
+  /**
+   * Clears all providers and instances from the container.
+   *
+   * @see https://nexus.js.org/docs/container/nexus-class#clear
+   */
+  clear(): void;
+
+  /**
+   * Lists all providers and modules registered in the container.
+   *
+   * @returns An object containing the providers and modules registered in the container.
+   */
+  list(): { providers: TokenType[]; modules: string[] };
 }
 
 /**

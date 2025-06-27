@@ -18,14 +18,7 @@ export { Token } from './token';
 export type { TokenType } from './types';
 
 // Decorators
-export {
-  Module,
-  Service,
-  Provider,
-  Inject,
-  Injectable,
-  Optional,
-} from './decorators';
+export { Module, Service, Provider, Inject, Optional } from './decorators';
 
 export {
   ContainerException,
@@ -43,7 +36,7 @@ export { DynamicModule } from './module';
 export type {
   Provider as ProviderType,
   ModuleProvider,
-  ServiceConfig,
+  ProviderConfig,
   ModuleConfig,
   InjectionMetadata,
 } from './types';

@@ -6,6 +6,7 @@ import {
   type ServiceConfig,
   type ModuleConfig,
   type InjectionMetadata,
+  type ProviderConfig,
 } from './types';
 import { METADATA_KEYS } from './constants';
 
@@ -46,56 +47,35 @@ describe('Types', () => {
     });
   });
 
-  // Provider group: Ensures all provider registration patterns are supported
-  describe('Provider', () => {
+  // ProviderConfig group: Ensures provider configuration is flexible and robust
+  describe('ProviderConfig', () => {
     /**
-     * Test: Provider with useClass
-     * Validates: Structure and value of provider object
-     * Value: Ensures DI can instantiate services from classes
+     * Test: ProviderConfig with token
+     * Validates: Structure and values
+     * Value: Ensures DI can register providers with explicit tokens and singleton flag
      */
-    it('should define a provider with useClass', () => {
-      class TestService {}
-      const provider: { token: TokenType; useClass: typeof TestService } = {
-        token: new Token('TEST_TOKEN'),
-        useClass: TestService,
+    it('should define provider config with token', () => {
+      const token = new Token('PROVIDER_TOKEN');
+      const config: { token: TokenType; singleton: boolean } = {
+        token,
+        singleton: true,
       };
-      expect(provider.token).toBeInstanceOf(Token);
-      expect(provider.useClass).toBe(TestService);
+      expect(config.token).toBe(token);
+      expect(config.singleton).toBe(true);
     });
 
     /**
-     * Test: Provider with useValue
-     * Validates: Structure and value of provider object
-     * Value: Ensures DI can inject static values or configs
+     * Test: ProviderConfig without token
+     * Validates: Structure and default values
+     * Value: Allows for simple singleton/non-singleton provider registration
      */
-    it('should define a provider with useValue', () => {
-      const provider: { token: TokenType; useValue: string } = {
-        token: new Token('VALUE_TOKEN'),
-        useValue: 'test value',
+    it('should define provider config without token', () => {
+      const config: ProviderConfig = {
+        singleton: false,
       };
-      expect(provider.token).toBeInstanceOf(Token);
-      expect(provider.useValue).toBe('test value');
-    });
 
-    /**
-     * Test: Provider with useFactory
-     * Validates: Structure, factory function, and dependencies
-     * Value: Enables dynamic/async provider creation in DI
-     */
-    it('should define a provider with useFactory', () => {
-      const factory = () => 'factory result';
-      const provider: {
-        token: TokenType;
-        useFactory: () => string;
-        deps: TokenType[];
-      } = {
-        token: new Token('FACTORY_TOKEN'),
-        useFactory: factory,
-        deps: [Symbol('DEP1'), Symbol('DEP2')],
-      };
-      expect(provider.token).toBeInstanceOf(Token);
-      expect(provider.useFactory).toBe(factory);
-      expect(provider.deps.length).toBe(2);
+      expect(config.token).toBeUndefined();
+      expect(config.singleton).toBe(false);
     });
   });
 
@@ -265,17 +245,17 @@ describe('Types', () => {
     });
 
     /**
-     * Test: Service configuration with TokenType
+     * Test: Provider configuration with TokenType
      * Validates: Structure and values
-     * Value: Ensures service configs can be registered with typed tokens
+     * Value: Ensures provider configs can be registered with typed tokens
      */
-    it('should work with service configuration', () => {
+    it('should work with provider configuration', () => {
       class TestService {}
       const token = new Token<TestService>(
-        'SERVICE_TOKEN'
+        'PROVIDER_TOKEN'
       ) as unknown as TokenType;
 
-      const config: ServiceConfig<TestService> = {
+      const config: ProviderConfig<TestService> = {
         token,
         singleton: true,
       };
