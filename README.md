@@ -48,8 +48,22 @@
 ## Quick Start
 
 ```bash
-npm install @nexusdi/core reflect-metadata
+npm install @nexusdi/core
 ```
+
+tsconfig.json
+
+```json
+{
+  "compilerOptions": {
+    "target": "ES2022", // or later
+    "experimentalDecorators": true,
+    "useDefineForClassFields": true
+  }
+}
+```
+
+> **Note:** Only these options are required for NexusDI v0.3+. You do **not** need to install or import `reflect-metadata`.
 
 ```typescript
 import { Nexus, Service, Token, Inject } from '@nexusdi/core';
