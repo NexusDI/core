@@ -2,7 +2,6 @@ import { Module } from './decorators';
 import { DynamicModule } from './module';
 import { getMetadata } from './helpers';
 import { METADATA_KEYS } from './constants';
-import type { TokenType } from './types';
 
 // Dummy config token for testing
 const TEST_CONFIG_TOKEN = Symbol('TEST_CONFIG');
@@ -38,8 +37,6 @@ class BasicModule {}
  */
 @Module({ providers: [class ProviderB {}] })
 class ParentModule {}
-
-class InheritedModule extends ParentModule {}
 
 /**
  * NotDecorated: Used to test error handling when getModuleConfig is called on a class

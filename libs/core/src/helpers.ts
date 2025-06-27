@@ -1,5 +1,5 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
 // Helpers for Symbol.metadata access
-import { SYMBOL_METADATA } from './constants';
 
 export function setMetadata(target: any, key: string, value: any) {
   // Ensure the metadata object is own, not inherited

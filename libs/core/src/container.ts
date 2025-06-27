@@ -9,13 +9,7 @@ import type {
 import { Token } from './token';
 import { METADATA_KEYS } from './constants';
 import { getMetadata } from './helpers';
-import {
-  isTokenType,
-  isProvider,
-  isFactory,
-  isService,
-  isContainer,
-} from './guards';
+import { isTokenType, isProvider, isService } from './guards';
 
 /**
  * The main DI container class for NexusDI. Use this to bootstrap and resolve your modules and services.

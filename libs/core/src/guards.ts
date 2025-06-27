@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
 // Type guards and validators for NexusDI public API
 import type { TokenType, Provider, IContainer } from './types';
 import { Token } from './token';
@@ -5,19 +6,21 @@ import { Token } from './token';
 /**
  * Checks if a value is a Token instance.
  */
-export function isToken<T = unknown>(token: any): token is Token<T> {
+export function isToken<T = unknown>(token: unknown): token is Token<T> {
   return !!(
     token &&
     typeof token === 'object' &&
-    token.constructor &&
-    token.constructor.name === 'Token'
+    (token as any).constructor &&
+    (token as any).constructor.name === 'Token'
   );
 }
 
 /**
  * Checks if a value is a valid TokenType (class constructor, symbol, or Token instance).
  */
-export function isTokenType<T = unknown>(token: any): token is TokenType<T> {
+export function isTokenType<T = unknown>(
+  token: unknown
+): token is TokenType<T> {
   return (
     typeof token === 'function' || typeof token === 'symbol' || isToken(token)
   );
@@ -26,7 +29,7 @@ export function isTokenType<T = unknown>(token: any): token is TokenType<T> {
 /**
  * Checks if a value is a Provider object (has useClass, useValue, or useFactory).
  */
-export function isProvider(obj: any): obj is Provider {
+export function isProvider(obj: unknown): obj is Provider {
   return !!(
     obj &&
     typeof obj === 'object' &&
@@ -37,36 +40,36 @@ export function isProvider(obj: any): obj is Provider {
 /**
  * Checks if a value is a factory provider (has useFactory).
  */
-export function isFactory(obj: any): obj is { useFactory: () => unknown } {
+export function isFactory(obj: unknown): obj is { useFactory: () => unknown } {
   return !!(
     obj &&
     typeof obj === 'object' &&
-    typeof obj.useFactory === 'function'
+    typeof (obj as any).useFactory === 'function'
   );
 }
 
 /**
  * Checks if a value is a service class (has a constructor, a non-empty name, and a prototype object).
  */
-export function isService(obj: any): obj is new (...args: any[]) => any {
+export function isService(obj: unknown): obj is new (...args: any[]) => any {
   return (
     typeof obj === 'function' &&
-    !!obj.name &&
-    obj.prototype &&
-    typeof obj.prototype === 'object'
+    !!(obj as any).name &&
+    (obj as any).prototype &&
+    typeof (obj as any).prototype === 'object'
   );
 }
 
 /**
  * Checks if a value is a NexusDI container (implements IContainer interface).
  */
-export function isContainer(obj: any): obj is IContainer {
+export function isContainer(obj: unknown): obj is IContainer {
   return !!(
     obj &&
     typeof obj === 'object' &&
-    typeof obj.get === 'function' &&
-    typeof obj.set === 'function' &&
-    typeof obj.has === 'function' &&
-    typeof obj.resolve === 'function'
+    typeof (obj as any).get === 'function' &&
+    typeof (obj as any).set === 'function' &&
+    typeof (obj as any).has === 'function' &&
+    typeof (obj as any).resolve === 'function'
   );
 }
