@@ -24,7 +24,13 @@
 
 </div>
 
-## Installation
+## Features
+
+- **TypeScript-native decorators** for clean, type-safe DI
+- **Modular & lightweight**: minimal dependencies, fast startup
+- **Works everywhere:** Node.js, browser, React, React Native, SPA, mobile apps, and more (if it runs JavaScript, this package will work)
+
+## Quick Start
 
 ```bash
 npm install @nexusdi/core
@@ -52,7 +58,7 @@ const userService = container.get(UserService);
 
 ## Documentation
 
-- 📚 [Full Documentation](https://nexusdi.dev)
+- 📚 [Full Documentation](https://nexus.js.org)
 - 💬 [Get Help / Ask Questions](https://github.com/NexusDI/core/discussions)
 
 ## License

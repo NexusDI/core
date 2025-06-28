@@ -6,6 +6,24 @@
   "module": "./dist/index.js",
   "types": "./dist/index.d.ts",
   "license": "MIT",
+  "description": "A modern, lightweight dependency injection container for TypeScript and Node.js, featuring native decorators, modular architecture, and high performance.",
+  "keywords": [
+    "dependency injection",
+    "di",
+    "inversion of control",
+    "ioc",
+    "typescript",
+    "decorators",
+    "service container",
+    "dependency injection container",
+    "nodejs",
+    "javascript",
+    "modular",
+    "lightweight",
+    "provider",
+    "service",
+    "module"
+  ],
   "repository": {
     "type": "git",
     "url": "https://github.com/NexusDI/core.git"
