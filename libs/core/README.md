@@ -19,6 +19,7 @@
 
 [![npm downloads](https://img.shields.io/npm/dm/@nexusdi/core.svg)](https://www.npmjs.com/package/@nexusdi/core)
 ![GitHub License](https://img.shields.io/github/license/NexusDI/core)
+![Released with provenance](https://img.shields.io/badge/provenance-signed-green)
 [![GitHub stars](https://img.shields.io/github/stars/NexusDI/core.svg?style=social&label=Star)](https://github.com/NexusDI/core)
 
 </div>
