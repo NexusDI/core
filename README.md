@@ -24,6 +24,19 @@
 
 </div>
 
+# 🚨 Call for Feedback 🚨
+
+**We want your input!**  
+NexusDI thrives on community input!  
+We have a number of open RFCs and discussions, and your feedback can help guide the direction of the project.  
+Jump in and let us know what you think!
+
+👉 [Share your ideas and feedback in the Ideas Discussions](https://github.com/NexusDI/core/discussions/categories/ideas)
+
+We look forward to hearing from you!
+
+---
+
 ## Features
 
 - 🚀 **Modern & Type-Safe** - Built with TypeScript decorators for a fully type-safe experience
