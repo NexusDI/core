@@ -24,6 +24,8 @@
 
 </div>
 
+NexusDI is a modern, lightweight <strong>dependency injection (DI) container</strong> for <strong>TypeScript</strong> and <strong>Node.js</strong>. It uses native decorators and a modular architecture to help you write scalable, testable, and maintainable applications. Inspired by frameworks like InversifyJS, tsyringe, TypeDI, and NestJS, NexusDI brings high performance and a developer-friendly API to your JavaScript and TypeScript projects. Works seamlessly in Node.js and modern JavaScript environments.
+
 # 🚨 Call for Feedback 🚨
 
 **We want your input!**  
@@ -39,12 +41,30 @@ We look forward to hearing from you!
 
 ## Features
 
-- 🚀 **Modern & Type-Safe** - Built with TypeScript decorators for a fully type-safe experience
+- 🚀 **TypeScript-Native Decorators** – Harness the power of modern TypeScript decorators for robust, type-safe dependency injection
 - 🧩 **Powerful Module System** - Organize your application into modules with support for both static and dynamic configuration
 - ⚡ **Dynamic Configuration** - Static methods for environment-specific module configuration (inspired by industry leaders)
 - 🎯 **Developer-Friendly API** - Clean and intuitive API that makes dependency management simple
 - 📦 **Lightweight** - Low dependency, minimal bundle size
 - 🔧 **Flexible** - Support for both class-based and factory providers
+
+## Why NexusDI?
+
+- <strong>TypeScript-first</strong>: Designed for modern TypeScript and JavaScript projects.
+- <strong>Zero bloat</strong>: Minimal dependencies, small bundle size, and no runtime polyfills required.
+- <strong>Native decorators</strong>: Uses the latest TypeScript decorator syntax for clean, intuitive code.
+- <strong>Modular & extensible</strong>: Organize your app with modules, plugins, and dynamic configuration.
+- <strong>Testable</strong>: Easily mock or override providers for unit and integration testing.
+- <strong>Inspired by the best</strong>: Familiar patterns for those coming from InversifyJS, tsyringe, TypeDI or NestJS.
+
+## Comparison / Alternatives
+
+NexusDI is an alternative to:
+
+- <strong>InversifyJS</strong>
+- <strong>tsyringe</strong>
+- <strong>TypeDI</strong>
+- <strong>NestJS DI system</strong>
 
 ## 📊 Performance Comparison
 
@@ -155,6 +175,7 @@ container.set(
 - [Concepts](https://nexus.js.org/docs/concepts)
 - [Modules](https://nexus.js.org/docs/modules)
 - [Advanced Usage](https://nexus.js.org/docs/advanced)
+- [Terminology](https://nexus.js.org/docs/terminology)
 
 ## Examples
 
