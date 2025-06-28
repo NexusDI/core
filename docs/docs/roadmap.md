@@ -236,27 +236,53 @@ npx nexusdi graph --output graph.svg
 
 ## Plugin/Extension System
 
-**Description:** Official API and ecosystem for third-party modules (e.g., `@nexusdi/typeorm`, `@nexusdi/http`).
+**Description:** Introduce a `use()` method on the container to enable a flexible, programmatic plugin system.
 
-- **Market Impact:** Very High (ecosystem driver)
-- **Performance Impact:** None (unless plugin is used)
-
-**Possible Implementation:**
-
-- Define a standard for DynamicModules as plugins
-- Publish and document official and community plugins
-- Add plugin discovery/registry to docs or CLI
+- The `use()` method allows plugins to register providers, add hooks, patch the container, or perform initialization logic at runtime.
+- Complements the existing module system:
+  - **Modules** are for declarative, static registration of providers and dependencies.
+  - **Plugins via `use()`** are for dynamic, programmatic, or side-effectful extensions.
+- Follows established patterns from frameworks like Express, Fastify, and Koa.
 
 **Proposed API:**
 
 ```typescript
-import { TypeOrmModule } from '@nexusdi/typeorm';
-container.registerModule(
-  TypeOrmModule.config({
-    /* ... */
-  })
-);
+container.use((container, options) => {
+  // Register providers, add hooks, etc.
+  container.set(MyService, { useClass: MyService });
+  // Add custom methods or event listeners
+  container.on?.('dispose', () => {
+    /* cleanup */
+  });
+});
 ```
+
+**Distinction: Modules vs Plugins**
+
+| Use Case                         | Module | Plugin (`use()`) |
+| -------------------------------- | ------ | ---------------- |
+| Registering providers/services   | ✅     | ✅               |
+| Grouping related providers       | ✅     |                  |
+| Declarative dependency graph     | ✅     |                  |
+| Dynamic/conditional registration |        | ✅               |
+| Adding container methods/hooks   |        | ✅               |
+| Running side effects/init code   |        | ✅               |
+| Integrating with external libs   |        | ✅               |
+| Community plugin ecosystem       |        | ✅               |
+
+**When to Use Each?**
+
+- **Modules** are for static, declarative registration of providers and dependencies.
+- **Plugins via `use()`** are for dynamic, programmatic, and side-effectful extensions of the container—especially for plugins that need to do more than just register providers.
+
+**Benefits:**
+
+- Enables a lightweight, flexible plugin ecosystem.
+- Keeps the core minimal and unopinionated.
+- Users can opt-in to features as needed, keeping their bundle size small.
+- Makes it easy to integrate with external libraries or add advanced features without bloating the core.
+
+**Status:** Planned
 
 ---
 
