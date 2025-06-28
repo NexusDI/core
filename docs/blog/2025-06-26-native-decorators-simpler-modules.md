@@ -108,10 +108,10 @@ export class UserModule {}
 
 ## 🛣️ Next Steps
 
-- [Getting Started Guide](../docs/getting-started)
-- [Advanced Providers & Factories](../docs/advanced/advanced-providers-and-factories)
-- [Best Practices](../docs/best-practices)
-- [Roadmap](../docs/roadmap)
+- [Getting Started Guide](/docs/getting-started)
+- [Advanced Providers & Factories](/docs/advanced/advanced-providers-and-factories)
+- [Best Practices](/docs/best-practices)
+- [Roadmap](/docs/roadmap)
 
 ---
 

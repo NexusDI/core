@@ -317,8 +317,8 @@ For lifetimes and scoping, see [Scoped & Transient Lifetimes](advanced/scoped-an
 
 ## Next Steps
 
-- **[Module Basics](./module-basics.md)** - Learn the fundamentals of modules
-- **[Module Patterns](./module-patterns.md)** - Explore common module patterns
-- **[Dynamic Modules](./dynamic-modules.md)** - Runtime configuration and validation
-- **[Testing](./testing.md)** - How to test services and providers
+- **[Module Basics](modules/module-basics.md)** - Learn the fundamentals of modules
+- **[Module Patterns](modules/module-patterns.md)** - Explore common module patterns
+- **[Dynamic Modules](modules/dynamic-modules.md)** - Runtime configuration and validation
+- **[Testing](testing.md)** - How to test services and providers
 - **[Advanced](advanced/advanced.md)** - Advanced provider patterns and techniques
