@@ -79,6 +79,7 @@ const sidebars: SidebarsConfig = {
     },
     'faq',
     'roadmap',
+    'terminology',
   ],
 
   // But you can create a sidebar manually
