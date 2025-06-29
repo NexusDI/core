@@ -27,8 +27,13 @@
 ## Features
 
 - **TypeScript-native decorators** for clean, type-safe DI
-- **Modular & lightweight**: minimal dependencies, fast startup
-- **Works everywhere:** Node.js, browser, React, React Native, SPA, mobile apps, and more (if it runs JavaScript, this package will work)
+- **Strict type inference**: Compile-time safety and autocompletion for all providers, tokens, and modules
+- **Flexible provider patterns**: Register classes, values, or factories for any use case
+- **No `reflect-metadata` required**: Uses the latest decorator metadata standard, with a built-in polyfill
+- **Modular & lightweight**: Minimal dependencies, fast startup
+- **Tree-shakable & bundle-friendly**: Only the code you use ends up in your final bundle
+- **Comprehensive docs & real-world examples**: Get started quickly with guides and demos
+- **Works everywhere**: NexusDI isn’t just for backend—if your environment supports native decorators and `Symbol.metadata`, it works out of the box. Or, just transpile for compatibility.
 
 ## Quick Start
 
