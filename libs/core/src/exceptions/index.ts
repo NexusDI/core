@@ -1,6 +1,5 @@
-export * from './invalid-module.exception';
-export * from './invalid-service.exception';
-export * from './invalid-token.exception';
-export * from './invalid-provider.exception';
-export * from './no-provider.exception';
-export * from './container.exception';
+export { InvalidModule } from './invalid-module.exception';
+export { InvalidToken } from './invalid-token.exception';
+export { InvalidProvider } from './invalid-provider.exception';
+export { NoProvider } from './no-provider.exception';
+export { ContainerException } from './container.exception';

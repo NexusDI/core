@@ -8,6 +8,9 @@ export default defineConfig(() => ({
   // worker: {
   //  plugins: [ nxViteTsPaths() ],
   // },
+  build: {
+    sourcemap: false,
+  },
   test: {
     watch: false,
     globals: true,

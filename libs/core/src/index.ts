@@ -23,7 +23,6 @@ export { Module, Service, Provider, Inject, Optional } from './decorators';
 export {
   ContainerException,
   InvalidToken,
-  InvalidService,
   NoProvider,
   InvalidProvider,
   InvalidModule,

@@ -9,7 +9,9 @@
     "experimentalDecorators": true,
     "forceConsistentCasingInFileNames": true,
     "types": ["node"],
-    "lib": ["es2022", "esnext.decorators"]
+    "lib": ["es2022", "esnext.decorators"],
+    "sourceMap": false,
+    "declarationMap": false
   },
   "include": ["src/**/*.ts"],
   "references": [],

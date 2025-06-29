@@ -17,15 +17,17 @@ export function isToken<T = unknown>(token: unknown): token is Token<T> {
   );
 }
 
+export function isSymbol(obj: unknown): obj is symbol {
+  return typeof obj === 'symbol';
+}
+
 /**
  * Checks if a value is a valid TokenType (class constructor, symbol, or Token instance).
  */
 export function isTokenType<T = unknown>(
   token: unknown
 ): token is TokenType<T> {
-  return (
-    typeof token === 'function' || typeof token === 'symbol' || isToken(token)
-  );
+  return isConstructor(token) || isSymbol(token) || isToken(token);
 }
 
 /**
@@ -83,5 +85,19 @@ export function isContainer(obj: unknown): obj is IContainer {
     typeof (obj as any).set === 'function' &&
     typeof (obj as any).has === 'function' &&
     typeof (obj as any).resolve === 'function'
+  );
+}
+
+export function isModuleClass(obj: unknown): obj is Constructor<any> {
+  return (
+    isConstructor(obj) && !!getMetadata(obj, METADATA_KEYS.MODULE_METADATA)
+  );
+}
+
+export function isModuleConfig(
+  obj: unknown
+): obj is { providers?: any[]; imports?: any[]; exports?: any[] } {
+  return (
+    !!obj && typeof obj === 'object' && ('providers' in obj || 'imports' in obj)
   );
 }

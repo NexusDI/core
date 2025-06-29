@@ -12,20 +12,60 @@ export type Constructor<T = any> = new (...args: any[]) => T;
  */
 export type TokenType<T = any> = Token<T> | symbol | Constructor<T>;
 
-/**
- * Provider definition for DI. Use this to register classes, values, or factories.
- *
- * @example
- * import { Provider } from '@nexusdi/core';
- * const provider: Provider = { provide: 'MyService', useClass: MyService };
- * @see https://nexus.js.org/docs/modules/providers-and-services
- */
-export type Provider<T = any> = {
-  useClass?: Constructor<T>;
-  useValue?: T;
-  useFactory?: (...args: any[]) => T;
+export interface BaseProvider<T = unknown> {
+  token: TokenType<T>;
+}
+
+export type ClassProviderConfig<T = unknown> = {
+  useClass: Constructor<T>;
+};
+
+// Public (user-facing) provider types
+export interface ClassProvider<T = unknown>
+  extends ClassProviderConfig<T>,
+    BaseProvider<T> {}
+
+export type ValueProviderConfig<T = unknown> = {
+  useValue: T;
+};
+
+export interface ValueProvider<T = unknown>
+  extends ValueProviderConfig<T>,
+    BaseProvider<T> {}
+
+export type FactoryProviderConfig<T = unknown> = {
+  useFactory: (...args: any[]) => T;
   deps?: TokenType[];
 };
+
+export interface FactoryProvider<T = unknown>
+  extends FactoryProviderConfig<T>,
+    BaseProvider<T> {}
+
+export type ProviderConfigObject<T = unknown> =
+  | ClassProviderConfig<T>
+  | ValueProviderConfig<T>
+  | FactoryProviderConfig<T>;
+
+export type Provider<T = unknown> =
+  | ClassProvider<T>
+  | ValueProvider<T>
+  | FactoryProvider<T>;
+
+// Internal (container-facing) provider types (with discriminant 'type')
+interface InternalClassProvider<T = unknown> extends ClassProvider<T> {
+  type: 'class';
+}
+interface InternalValueProvider<T = unknown> extends ValueProvider<T> {
+  type: 'value';
+}
+interface InternalFactoryProvider<T = unknown> extends FactoryProvider<T> {
+  type: 'factory';
+}
+type InternalProvider<T = unknown> =
+  | InternalClassProvider<T>
+  | InternalValueProvider<T>
+  | InternalFactoryProvider<T>;
 
 /**
  * Provider definition for modules. Used in the 'imports' property of @Module.
@@ -50,7 +90,7 @@ export type ModuleProvider<T = any> =
 export type ProviderConfig<T = any> = {
   token?: TokenType<T>;
   singleton?: boolean;
-  type?: 'service' | 'value' | 'factory' | string;
+  type?: string;
 };
 
 /**
@@ -132,4 +172,12 @@ export type InjectionMetadata = {
   index: number;
   propertyKey?: string | symbol;
   optional?: boolean;
+};
+
+// Export internal types for container use only (not public API)
+export type {
+  InternalClassProvider,
+  InternalValueProvider,
+  InternalFactoryProvider,
+  InternalProvider,
 };

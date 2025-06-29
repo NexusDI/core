@@ -6,3 +6,4 @@ tsconfig.json
 tsconfig.spec.json
 tsconfig.lib.json
 vite.config.ts
+dist/tsconfig.lib.tsbuildinfo
