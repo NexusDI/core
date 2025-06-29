@@ -1,3 +1,15 @@
+## 0.3.1
+
+### 🛠️ Improvements
+
+- **Stricter Type Checking**: Refactored core types and provider discrimination for improved type safety, better inference, and more robust error handling.
+- **Provider Discrimination**: Enhanced internal logic to more clearly distinguish between class, value, and factory providers.
+- **Codebase Cleanup**: Removed unused types, guards, and helpers for a leaner, more maintainable codebase.
+
+### 🗑️ Removed
+
+- **Source Maps**: Disabled all source map and declaration map generation for published npm packages, resulting in smaller and cleaner builds.
+
 ## 0.3.0
 
 ### 🚀 Features & Improvements
