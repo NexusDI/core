@@ -1,9 +1,5 @@
 import { Module } from './decorators';
-import {
-  DynamicModule,
-  createModuleConfig,
-  createModuleConfigAsync,
-} from './dynamic-module';
+import { DynamicModule, createModuleConfig } from './dynamic-module';
 import { InvalidModule } from './exceptions/invalid-module.exception';
 import type { ProviderConfigObject } from './types';
 
@@ -39,10 +35,10 @@ class TestDynamicModule extends DynamicModule {
     return createModuleConfig(TestDynamicModule, config);
   }
 
-  static async configAsync(
+  static configAsync(
     config: Promise<TestConfig> | ProviderConfigObject<Promise<TestConfig>>
   ) {
-    return createModuleConfigAsync(TestDynamicModule, config);
+    return createModuleConfig(TestDynamicModule, config);
   }
 }
 
@@ -123,7 +119,7 @@ describe('DynamicModule', () => {
       useFactory: async () => ({ foo: 'baz', quz: 2 }),
     });
     const provider = (result.providers ?? []).find(
-      (p) => typeof p === 'object' && p !== null && 'useValue' in p
+      (p: any) => typeof p === 'object' && p !== null && 'useValue' in p
     );
     expect(provider).toBeDefined();
     expect((await (provider as any).useValue).foo).toBe('baz');
@@ -135,7 +131,7 @@ describe('DynamicModule', () => {
       Promise.resolve({ foo: 'asyncValue', quz: 3 })
     );
     const provider = (result.providers ?? []).find(
-      (p) => typeof p === 'object' && p !== null && 'useValue' in p
+      (p: any) => typeof p === 'object' && p !== null && 'useValue' in p
     );
     expect(provider).toBeDefined();
     const value = await (provider as any).useValue;
@@ -254,7 +250,7 @@ describe('createModuleConfigAsync', () => {
       useFactory: async () => ({ foo: 'baz', quz: 2 }),
     });
     const provider = (result.providers ?? []).find(
-      (p) => typeof p === 'object' && p !== null && 'useValue' in p
+      (p: any) => typeof p === 'object' && p !== null && 'useValue' in p
     );
     expect(provider).toBeDefined();
     expect((await (provider as any).useValue).foo).toBe('baz');
@@ -266,7 +262,7 @@ describe('createModuleConfigAsync', () => {
       Promise.resolve({ foo: 'asyncValue', quz: 3 })
     );
     const provider = (result.providers ?? []).find(
-      (p) => typeof p === 'object' && p !== null && 'useValue' in p
+      (p: any) => typeof p === 'object' && p !== null && 'useValue' in p
     );
     expect(provider).toBeDefined();
     const value = await (provider as any).useValue;

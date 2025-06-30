@@ -4,7 +4,7 @@ import type { ModuleConfig, TokenType, ProviderConfigObject } from './types';
 import { METADATA_KEYS } from './constants';
 import { getMetadata } from './helpers';
 import { InvalidModule } from './exceptions/invalid-module.exception';
-import { isProvider, isFactory } from './guards';
+import { isProvider, isFactory, isPromise } from './guards';
 
 /**
  * Represents a dynamic module, allowing for runtime configuration of providers and imports.
@@ -41,67 +41,86 @@ export abstract class DynamicModule {
 }
 
 /**
- * Creates a ModuleConfig for a dynamic module from a config object or provider config.
+ * Creates a ModuleConfig for a dynamic module from a config object, provider config, or async variant.
  *
  * @param moduleClass The module class (should have a static configToken property)
- * @param config The config object or provider config
- * @returns ModuleConfig
+ * @param config The config object, provider config, promise, or provider config with promise
+ * @returns ModuleConfig or Promise<ModuleConfig>
  */
 export function createModuleConfig<T>(
   moduleClass: { configToken: TokenType<T> },
-  config: T | ProviderConfigObject<T>
-): ModuleConfig {
-  const provider = isProvider(config)
-    ? (config as ProviderConfigObject<T>)
-    : { useValue: config };
-  return {
-    providers: [
-      {
-        ...provider,
-        token: moduleClass.configToken,
-      },
-    ],
-  };
-}
-
-/**
- * Creates a ModuleConfig for a dynamic module from an async config object or provider config.
- *
- * @param moduleClass The module class (should have a static configToken property)
- * @param config The async config object or provider config
- * @returns Promise<ModuleConfig>
- */
-export async function createModuleConfigAsync<T>(
-  moduleClass: { configToken: TokenType<T> },
-  config: ProviderConfigObject<Promise<T>> | Promise<T>
-): Promise<ModuleConfig> {
+  config:
+    | T
+    | ProviderConfigObject<T>
+    | Promise<T>
+    | ProviderConfigObject<Promise<T>>
+): ModuleConfig | Promise<ModuleConfig> {
+  // If config is a factory provider
   if (isFactory(config)) {
-    const value = await config.useFactory(...(config.deps ?? []));
+    const result = config.useFactory(...(config.deps ?? []));
+    if (isPromise(result)) {
+      return Promise.resolve(result).then((resolved) => ({
+        providers: [
+          {
+            useValue: resolved,
+            token: moduleClass.configToken,
+          },
+        ],
+      }));
+    }
+    // Sync factory
     return {
       providers: [
         {
-          useValue: value,
+          ...config,
           token: moduleClass.configToken,
         },
       ],
     };
   }
-  // If config is a Promise, wrap in useValue provider
-  if (typeof (config as any).then === 'function') {
+
+  // If config is a provider config (but not a factory)
+  if (isProvider(config)) {
+    // If useValue is a promise
+    if ('useValue' in config && isPromise(config.useValue)) {
+      return Promise.resolve(config.useValue).then((resolved) => ({
+        providers: [
+          {
+            ...config,
+            useValue: resolved,
+            token: moduleClass.configToken,
+          },
+        ],
+      }));
+    }
+    // Otherwise, sync provider config
     return {
       providers: [
         {
-          useValue: await config,
+          ...config,
           token: moduleClass.configToken,
         },
       ],
     };
   }
-  // Otherwise, treat as provider config
+
+  // If config is a Promise
+  if (isPromise(config)) {
+    return Promise.resolve(config).then((resolved) => ({
+      providers: [
+        {
+          useValue: resolved,
+          token: moduleClass.configToken,
+        },
+      ],
+    }));
+  }
+
+  // Otherwise, it's a plain config object
   return {
     providers: [
       {
-        ...(config as ProviderConfigObject<Promise<T>>),
+        useValue: config,
         token: moduleClass.configToken,
       },
     ],
