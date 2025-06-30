@@ -29,7 +29,7 @@ export {
 } from './exceptions';
 
 // Dynamic Module
-export { DynamicModule } from './module';
+export { DynamicModule } from './dynamic-module';
 
 // Types
 export type {
