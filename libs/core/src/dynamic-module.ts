@@ -47,6 +47,19 @@ export abstract class DynamicModule {
  * @param config The config object, provider config, promise, or provider config with promise
  * @returns ModuleConfig or Promise<ModuleConfig>
  */
+// Overload for sync configs (non-promise values)
+export function createModuleConfig<T>(
+  moduleClass: { configToken: TokenType<T> },
+  config: T | ProviderConfigObject<T>
+): ModuleConfig;
+
+// Overload for async configs (promises)
+export function createModuleConfig<T>(
+  moduleClass: { configToken: TokenType<T> },
+  config: Promise<T> | ProviderConfigObject<Promise<T>>
+): Promise<ModuleConfig>;
+
+// Implementation
 export function createModuleConfig<T>(
   moduleClass: { configToken: TokenType<T> },
   config:
@@ -57,18 +70,8 @@ export function createModuleConfig<T>(
 ): ModuleConfig | Promise<ModuleConfig> {
   // If config is a factory provider
   if (isFactory(config)) {
-    const result = config.useFactory(...(config.deps ?? []));
-    if (isPromise(result)) {
-      return Promise.resolve(result).then((resolved) => ({
-        providers: [
-          {
-            useValue: resolved,
-            token: moduleClass.configToken,
-          },
-        ],
-      }));
-    }
-    // Sync factory
+    // Don't execute the factory here - let the DI container handle it
+    // Just pass the factory configuration through with the token
     return {
       providers: [
         {

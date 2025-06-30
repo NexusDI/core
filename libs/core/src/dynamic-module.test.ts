@@ -1,30 +1,31 @@
-import { Module } from './decorators';
+import { describe, it, expect } from 'vitest';
+import { Module } from './decorators/module';
 import { DynamicModule, createModuleConfig } from './dynamic-module';
 import { InvalidModule } from './exceptions/invalid-module.exception';
-import type { ProviderConfigObject } from './types';
+import type { ProviderConfigObject, ModuleConfig } from './types';
 
-// Dummy config token for testing
-const TEST_CONFIG_TOKEN = Symbol('TEST_CONFIG');
+// Test config type
 type TestConfig = {
   foo: string;
   quz: number;
 };
 
+// Valid config class for testing
 class ValidConfigClass {
   foo = 'ok';
   quz = 42;
 }
 
+// Invalid config class for testing (wrong types)
 class InvalidConfigClass {
   foo = 'bad';
-  quz = 'not-a-number';
+  quz = 'not-a-number'; // Should be number
 }
 
-/**
- * TestDynamicModule: Ensures that subclasses of DynamicModule decorated with @Module
- * are recognized correctly and their metadata is accessible. This prevents regressions
- * where subclass metadata was not read due to static method context issues.
- */
+// Dummy config token for testing
+const TEST_CONFIG_TOKEN = Symbol('TEST_CONFIG');
+
+// Test dynamic module
 @Module({
   providers: [],
 })
@@ -32,29 +33,26 @@ class TestDynamicModule extends DynamicModule {
   static override configToken = TEST_CONFIG_TOKEN;
 
   static config(config: TestConfig | ProviderConfigObject<TestConfig>) {
-    return createModuleConfig(TestDynamicModule, config);
+    return createModuleConfig(this, config);
   }
 
   static configAsync(
     config: Promise<TestConfig> | ProviderConfigObject<Promise<TestConfig>>
   ) {
-    return createModuleConfig(TestDynamicModule, config);
+    return createModuleConfig(this, config);
   }
 }
 
-/**
- * NotDecorated: Used to test error handling when getModuleConfig is called on a class
- * that is not decorated with @Module. This ensures clear error messages for misconfiguration.
- */
+// Module without @Module decorator for error testing
 class NotDecorated extends DynamicModule {
   protected readonly configToken = Symbol('NOT_DECORATED');
 }
 
 describe('DynamicModule', () => {
   it('should read @Module metadata from subclasses', () => {
-    const config = TestDynamicModule.getModuleConfig();
-    expect(config).toBeDefined();
-    expect(config.providers).toBeInstanceOf(Array);
+    const metadata = TestDynamicModule.getModuleConfig();
+    expect(metadata).toBeDefined();
+    expect(metadata.providers).toEqual([]);
   });
 
   it('should return the correct configToken from subclass', () => {
@@ -67,7 +65,7 @@ describe('DynamicModule', () => {
     });
     // ^?
     const provider = (result.providers ?? []).find(
-      (p) => typeof p === 'object' && p !== null && 'useValue' in p
+      (p: any) => typeof p === 'object' && p !== null && 'useValue' in p
     );
     expect(provider).toBeDefined();
     expect((provider as any).useValue.foo).toBe('bar');
@@ -83,7 +81,7 @@ describe('DynamicModule', () => {
       useClass: MyConfigClass,
     });
     const provider = (result.providers ?? []).find(
-      (p) => typeof p === 'object' && p !== null && 'useClass' in p
+      (p: any) => typeof p === 'object' && p !== null && 'useClass' in p
     );
     expect(provider).toBeDefined();
     expect((provider as any).useClass).toBe(MyConfigClass);
@@ -94,7 +92,7 @@ describe('DynamicModule', () => {
       useFactory: () => ({ foo: 'factory', quz: 1 }),
     });
     const provider = (result.providers ?? []).find(
-      (p) => typeof p === 'object' && p !== null && 'useFactory' in p
+      (p: any) => typeof p === 'object' && p !== null && 'useFactory' in p
     );
     expect(provider).toBeDefined();
     expect(typeof (provider as any).useFactory).toBe('function');
@@ -107,7 +105,7 @@ describe('DynamicModule', () => {
       useValue: { foo: 'plain', quz: 123 },
     });
     const provider = (result.providers ?? []).find(
-      (p) => typeof p === 'object' && p !== null && 'useValue' in p
+      (p: any) => typeof p === 'object' && p !== null && 'useValue' in p
     );
     expect(provider).toBeDefined();
     expect((provider as any).useValue.foo).toBe('plain');
@@ -119,11 +117,14 @@ describe('DynamicModule', () => {
       useFactory: async () => ({ foo: 'baz', quz: 2 }),
     });
     const provider = (result.providers ?? []).find(
-      (p: any) => typeof p === 'object' && p !== null && 'useValue' in p
+      (p: any) => typeof p === 'object' && p !== null && 'useFactory' in p
     );
     expect(provider).toBeDefined();
-    expect((await (provider as any).useValue).foo).toBe('baz');
-    expect((await (provider as any).useValue).quz).toBe(2);
+    expect(typeof (provider as any).useFactory).toBe('function');
+    // Test that the factory can be called and returns the expected result
+    const factoryResult = await (provider as any).useFactory();
+    expect(factoryResult.foo).toBe('baz');
+    expect(factoryResult.quz).toBe(2);
   });
 
   it('should create a config module with configAsync() using async useValue', async () => {
@@ -196,7 +197,7 @@ describe('createModuleConfig (strict type safety)', () => {
   it('accepts a valid config object', () => {
     const result = TestDynamicModule.config({ foo: 'bar', quz: 123 });
     const provider = (result.providers ?? []).find(
-      (p) => typeof p === 'object' && p !== null && 'useValue' in p
+      (p: any) => typeof p === 'object' && p !== null && 'useValue' in p
     );
     expect(provider).toBeDefined();
     expect((provider as any).useValue.foo).toBe('bar');
@@ -206,7 +207,7 @@ describe('createModuleConfig (strict type safety)', () => {
   it('accepts a valid useClass', () => {
     const result = TestDynamicModule.config({ useClass: ValidConfigClass });
     const provider = (result.providers ?? []).find(
-      (p) => typeof p === 'object' && p !== null && 'useClass' in p
+      (p: any) => typeof p === 'object' && p !== null && 'useClass' in p
     );
     expect(provider).toBeDefined();
     expect((provider as any).useClass).toBe(ValidConfigClass);
@@ -223,7 +224,7 @@ describe('createModuleConfig (strict type safety)', () => {
       useFactory: () => ({ foo: 'factory', quz: 1 }),
     });
     const provider = (result.providers ?? []).find(
-      (p) => typeof p === 'object' && p !== null && 'useFactory' in p
+      (p: any) => typeof p === 'object' && p !== null && 'useFactory' in p
     );
     expect(provider).toBeDefined();
     expect(typeof (provider as any).useFactory).toBe('function');
@@ -250,11 +251,14 @@ describe('createModuleConfigAsync', () => {
       useFactory: async () => ({ foo: 'baz', quz: 2 }),
     });
     const provider = (result.providers ?? []).find(
-      (p: any) => typeof p === 'object' && p !== null && 'useValue' in p
+      (p: any) => typeof p === 'object' && p !== null && 'useFactory' in p
     );
     expect(provider).toBeDefined();
-    expect((await (provider as any).useValue).foo).toBe('baz');
-    expect((await (provider as any).useValue).quz).toBe(2);
+    expect(typeof (provider as any).useFactory).toBe('function');
+    // Test that the factory can be called and returns the expected result
+    const factoryResult = await (provider as any).useFactory();
+    expect(factoryResult.foo).toBe('baz');
+    expect(factoryResult.quz).toBe(2);
   });
 
   it('accepts a valid async useValue', async () => {
