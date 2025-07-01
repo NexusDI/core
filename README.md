@@ -161,7 +161,7 @@ container.set(
 
 // Asynchronous configuration
 container.set(
-  DatabaseModule.configAsync(async () => ({
+  await DatabaseModule.configAsync(async () => ({
     host: process.env.DB_HOST,
     port: parseInt(process.env.DB_PORT),
     database: process.env.DB_NAME,

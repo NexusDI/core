@@ -101,3 +101,7 @@ export function isModuleConfig(
     !!obj && typeof obj === 'object' && ('providers' in obj || 'imports' in obj)
   );
 }
+
+export function isPromise(val: any): val is Promise<any> {
+  return !!val && typeof val.then === 'function';
+}

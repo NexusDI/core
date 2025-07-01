@@ -174,6 +174,12 @@ export type InjectionMetadata = {
   optional?: boolean;
 };
 
+export type DynamicModuleConfig<Config = unknown> =
+  | Config
+  | ProviderConfigObject<Config>;
+export type DynamicModuleConfigAsync<Config = unknown> =
+  | Promise<Config>
+  | ProviderConfigObject<Promise<Config>>;
 // Export internal types for container use only (not public API)
 export type {
   InternalClassProvider,
