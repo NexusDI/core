@@ -1,6 +1,6 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 // Type guards and validators for NexusDI public API
-import type { TokenType, Provider, Constructor, IContainer } from './types';
+import type { TokenType, Constructor, Provider, IContainer } from './types';
 import { Token } from './token';
 import { getMetadata } from './helpers';
 import { METADATA_KEYS } from './constants';

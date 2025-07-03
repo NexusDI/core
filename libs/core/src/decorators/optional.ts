@@ -8,20 +8,30 @@ import { setMetadata, getMetadata } from '../helpers';
  * Use this to indicate that a dependency is not required and may be undefined if not provided.
  *
  * #### Usage
+ * Constructor parameter:
  * ```typescript
- * import { Optional, Token } from '@nexusdi/core';
- *
- * const MY_TOKEN = new Token('MyToken');
- *
  * class MyService {
  *   constructor(@Optional(MY_TOKEN) private value?: string) {}
  * }
  * ```
  *
+ * Property injection:
+ * ```typescript
+ * class MyService {
+ *   @Optional(MY_TOKEN)
+ *   value?: string;
+ * }
+ * ```
+ *
+ * #### Notes
+ * - If the dependency is not registered, the value will be `undefined`.
+ * - Works with both constructor and property injection.
+ *
  * @param token The lookup key for the optional provider (class constructor, symbol, or Token).
  *
- * @see https://nexus.js.org/docs/modules/providers-and-services
- * @see https://nexus.js.org/docs/modules/tokens
+ * @see https://nexus.js.org/docs/providers-and-services#optional-dependencies
+ * @see https://nexus.js.org/docs/tokens
+ * @see https://nexus.js.org/docs/container/decorators
  * @publicApi
  */
 export function Optional<T>(

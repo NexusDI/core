@@ -1,19 +1,43 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
-// Helpers for Symbol.metadata access
 
-export function setMetadata(target: any, key: string, value: any) {
-  // Ensure the metadata object is own, not inherited
-  if (!Object.prototype.hasOwnProperty.call(target, (Symbol as any).metadata)) {
-    Object.defineProperty(target, (Symbol as any).metadata, {
-      value: {},
-      enumerable: false,
-      configurable: true,
-      writable: true,
-    });
+type MetadataKey = string | symbol;
+
+/**
+ * Set metadata on a target using Symbol.metadata (native decorators)
+ */
+export function setMetadata<T = any>(
+  target: any,
+  key: MetadataKey,
+  value: T
+): void {
+  // Ensure the target has Symbol.metadata
+  if (!target[Symbol.metadata]) {
+    target[Symbol.metadata] = {};
   }
-  (target as any)[(Symbol as any).metadata][key] = value;
+  target[Symbol.metadata][key] = value;
 }
 
-export function getMetadata(target: any, key: string) {
-  return (target as any)[(Symbol as any).metadata]?.[key];
+/**
+ * Get metadata from a target using Symbol.metadata (native decorators)
+ */
+export function getMetadata<T = any>(
+  target: any,
+  key: MetadataKey
+): T | undefined {
+  return target[Symbol.metadata]?.[key];
+}
+
+/**
+ * Get parameter types from constructor - for native decorators we need to store these manually
+ * since there's no automatic type reflection
+ */
+export function getParameterTypes(target: any): any[] {
+  return getMetadata(target, 'design:paramtypes') || [];
+}
+
+/**
+ * Set parameter types on constructor - used by decorators to store type information
+ */
+export function setParameterTypes(target: any, types: any[]): void {
+  setMetadata(target, 'design:paramtypes', types);
 }

@@ -3,6 +3,8 @@ import { Module } from './decorators/module';
 import { DynamicModule, createModuleConfig } from './dynamic-module';
 import { InvalidModule } from './exceptions/invalid-module.exception';
 import type { ProviderConfigObject, ModuleConfig } from './types';
+import { getMetadata } from './helpers';
+import { METADATA_KEYS } from './constants';
 
 // Test config type
 type TestConfig = {
@@ -29,23 +31,58 @@ const TEST_CONFIG_TOKEN = Symbol('TEST_CONFIG');
 @Module({
   providers: [],
 })
-class TestDynamicModule extends DynamicModule {
-  static override configToken = TEST_CONFIG_TOKEN;
+class TestDynamicModule implements DynamicModule<TestConfig> {
+  configToken = TEST_CONFIG_TOKEN;
 
   static config(config: TestConfig | ProviderConfigObject<TestConfig>) {
-    return createModuleConfig(this, config);
+    return createModuleConfig(new this(), config);
   }
 
   static configAsync(
     config: Promise<TestConfig> | ProviderConfigObject<Promise<TestConfig>>
   ) {
-    return createModuleConfig(this, config);
+    return createModuleConfig(new this(), config);
+  }
+
+  // Helper methods for testing compatibility
+  static getModuleConfig() {
+    const moduleConfig = getMetadata(
+      this,
+      METADATA_KEYS.MODULE_METADATA
+    ) as ModuleConfig;
+    if (!moduleConfig) {
+      throw new InvalidModule(
+        `Class ${this.name} is not decorated with @Module`
+      );
+    }
+    return moduleConfig;
+  }
+
+  static getConfigToken() {
+    return new this().configToken;
   }
 }
 
 // Module without @Module decorator for error testing
-class NotDecorated extends DynamicModule {
-  protected readonly configToken = Symbol('NOT_DECORATED');
+class NotDecorated implements DynamicModule<TestConfig> {
+  configToken = Symbol('NOT_DECORATED') as any;
+
+  static getModuleConfig() {
+    const moduleConfig = getMetadata(
+      this,
+      METADATA_KEYS.MODULE_METADATA
+    ) as ModuleConfig;
+    if (!moduleConfig) {
+      throw new InvalidModule(
+        `Class ${this.name} is not decorated with @Module`
+      );
+    }
+    return moduleConfig;
+  }
+
+  static getConfigToken() {
+    return new this().configToken;
+  }
 }
 
 describe('DynamicModule', () => {
@@ -141,34 +178,50 @@ describe('DynamicModule', () => {
   });
 
   it('should inherit configToken from parent if not overridden', () => {
-    class ParentDynamicModule extends DynamicModule {
-      static override configToken = Symbol('PARENT_TOKEN');
+    const PARENT_TOKEN = Symbol('PARENT_TOKEN');
+    class ParentDynamicModule implements DynamicModule<TestConfig> {
+      configToken = PARENT_TOKEN;
+      static getConfigToken() {
+        return new this().configToken;
+      }
     }
     @Module({ providers: [] })
-    class ChildDynamicModule extends ParentDynamicModule {}
-    expect(ChildDynamicModule.getConfigToken()).toBe(
-      ParentDynamicModule.configToken
-    );
+    class ChildDynamicModule extends ParentDynamicModule {
+      static getConfigToken() {
+        return new this().configToken;
+      }
+    }
+    expect(ChildDynamicModule.getConfigToken()).toBe(PARENT_TOKEN);
   });
 
   it('should allow subclass to override configToken', () => {
-    class ParentDynamicModule extends DynamicModule {
-      static override configToken = Symbol('PARENT_TOKEN');
-    }
+    const PARENT_TOKEN = Symbol('PARENT_TOKEN');
     const CHILD_TOKEN = Symbol('CHILD_TOKEN');
+    class ParentDynamicModule implements DynamicModule<TestConfig> {
+      configToken = PARENT_TOKEN;
+      static getConfigToken() {
+        return new this().configToken;
+      }
+    }
     @Module({ providers: [] })
     class ChildDynamicModule extends ParentDynamicModule {
-      static override configToken = CHILD_TOKEN;
+      configToken = CHILD_TOKEN;
+      static getConfigToken() {
+        return new this().configToken;
+      }
     }
     expect(ChildDynamicModule.getConfigToken()).toBe(CHILD_TOKEN);
-    expect(ChildDynamicModule.getConfigToken()).not.toBe(
-      ParentDynamicModule.configToken
-    );
+    expect(ChildDynamicModule.getConfigToken()).not.toBe(PARENT_TOKEN);
   });
 
   it('should return undefined for configToken if not set on any class', () => {
     @Module({ providers: [] })
-    class NoTokenDynamicModule extends DynamicModule {}
+    class NoTokenDynamicModule implements DynamicModule<TestConfig> {
+      configToken = undefined as any;
+      static getConfigToken() {
+        return new this().configToken;
+      }
+    }
     expect(NoTokenDynamicModule.getConfigToken()).toBeUndefined();
   });
 
@@ -176,12 +229,18 @@ describe('DynamicModule', () => {
     const TOKEN_A = Symbol('TOKEN_A');
     const TOKEN_B = Symbol('TOKEN_B');
     @Module({ providers: [] })
-    class ModuleA extends DynamicModule {
-      static override configToken = TOKEN_A;
+    class ModuleA implements DynamicModule<TestConfig> {
+      configToken = TOKEN_A;
+      static getConfigToken() {
+        return new this().configToken;
+      }
     }
     @Module({ providers: [] })
-    class ModuleB extends DynamicModule {
-      static override configToken = TOKEN_B;
+    class ModuleB implements DynamicModule<TestConfig> {
+      configToken = TOKEN_B;
+      static getConfigToken() {
+        return new this().configToken;
+      }
     }
     expect(ModuleA.getConfigToken()).toBe(TOKEN_A);
     expect(ModuleB.getConfigToken()).toBe(TOKEN_B);

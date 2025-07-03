@@ -21,9 +21,9 @@ describe('@Service', () => {
 
   it('should add service metadata with custom token', () => {
     const CUSTOM_TOKEN = new Token('CUSTOM_SERVICE');
-    @Service(CUSTOM_TOKEN)
+    @Service({ token: CUSTOM_TOKEN })
     class TestService {}
-    const metadata = getMetadata(TestService, METADATA_KEYS.PROVIDER_METADATA);
+    const metadata = getMetadata(TestService, METADATA_KEYS.SERVICE_METADATA);
     expect(metadata.token).toBe(CUSTOM_TOKEN);
   });
 });

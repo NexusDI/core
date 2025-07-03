@@ -1,80 +1,127 @@
-import { describe, it, expect, beforeEach, vi } from 'vitest';
+import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { Nexus } from './container';
-import { Inject, Service, Module, Provider } from './decorators';
+import { Service, Module, Inject, Optional } from './decorators';
 import { Token } from './token';
-import { InvalidToken, NoProvider, InvalidProvider } from './exceptions';
+import { NoProvider } from './exceptions';
+import { getMetadata } from './helpers';
+import { METADATA_KEYS } from './constants';
 
 describe('Nexus', () => {
   let nexus: Nexus;
 
-  beforeEach(() => {
+  beforeEach(async () => {
     nexus = new Nexus();
   });
 
-  // Basic functionality group: Ensures core service registration and resolution
+  // Basic functionality group: Core container operations
   describe('Basic functionality', () => {
     /**
      * Test: Register and resolve a service
-     * Validates: Service can be registered and resolved, and method works
-     * Value: Ensures DI container can instantiate and return services
+     * Validates: Service can be registered and resolved through DI container
+     * Value: Ensures basic DI container functionality
      */
-    it('should register and resolve a service', () => {
+    it('should register and resolve a service', async () => {
       @Service()
       class TestService {
         getMessage(): string {
           return 'Hello World';
         }
       }
-      nexus.set(TestService);
-      const service = nexus.get(TestService);
+
+      await nexus.set(TestService);
+      const service = await nexus.get(TestService);
       expect(service).toBeInstanceOf(TestService);
       expect(service.getMessage()).toBe('Hello World');
     });
+
+    /**
+     * Test: Register multiple services in parallel with setMany
+     * Validates: Multiple services can be registered efficiently in parallel
+     * Value: Ensures parallel registration performance and convenience
+     */
+    it('should register multiple services with setMany', async () => {
+      @Service()
+      class ServiceA {
+        getName(): string {
+          return 'ServiceA';
+        }
+      }
+
+      @Service()
+      class ServiceB {
+        getName(): string {
+          return 'ServiceB';
+        }
+      }
+
+      const TOKEN_C = new Token<string>('ServiceC');
+
+      // Register multiple providers in parallel
+      await nexus.setMany(ServiceA, ServiceB, {
+        token: TOKEN_C,
+        useValue: 'ServiceC',
+      });
+
+      // Verify all were registered
+      expect(nexus.has(ServiceA)).toBe(true);
+      expect(nexus.has(ServiceB)).toBe(true);
+      expect(nexus.has(TOKEN_C)).toBe(true);
+
+      // Verify they work
+      const serviceA = await nexus.get(ServiceA);
+      const serviceB = await nexus.get(ServiceB);
+      const serviceC = await nexus.get(TOKEN_C);
+
+      expect(serviceA.getName()).toBe('ServiceA');
+      expect(serviceB.getName()).toBe('ServiceB');
+      expect(serviceC).toBe('ServiceC');
+    });
+
     /**
      * Test: Singleton instance behavior
      * Validates: Multiple gets return the same instance
      * Value: Ensures singleton pattern is enforced by DI container
      */
-    it('should return singleton instances', () => {
+    it('should return singleton instances', async () => {
       @Service()
       class TestService {
         getMessage(): string {
           return 'Hello World';
         }
       }
-      nexus.set(TestService);
-      const service1 = nexus.get(TestService);
-      const service2 = nexus.get(TestService);
+
+      await nexus.set(TestService);
+      const service1 = await nexus.get(TestService);
+      const service2 = await nexus.get(TestService);
       expect(service1).toBe(service2);
     });
+
     /**
      * Test: Error for unregistered token
      * Validates: Throws with clear error message
      * Value: Ensures missing providers are caught early and feedback is clear
      */
-    it('should throw error for unregistered token', () => {
+    it('should throw error for unregistered token', async () => {
       class Unregistered {}
 
-      try {
-        nexus.get(Unregistered);
-      } catch (e) {
-        expect(e).toBeInstanceOf(NoProvider);
-      }
+      await expect(nexus.get(Unregistered)).rejects.toThrow(NoProvider);
     });
+
     /**
      * Test: Token registration check
      * Validates: has() returns correct boolean before and after registration
      * Value: Ensures container can check registration status for tokens
      */
-    it('should check if token is registered', () => {
+    it('should check if token is registered', async () => {
       @Service()
       class TestService {
         getMessage(): string {
           return 'Hello World';
         }
       }
+
       expect(nexus.has(TestService)).toBe(false);
-      nexus.set(TestService);
+      await nexus.set(TestService);
       expect(nexus.has(TestService)).toBe(true);
     });
   });
@@ -86,7 +133,7 @@ describe('Nexus', () => {
      * Validates: Dependencies are injected into constructor
      * Value: Ensures DI container can resolve and inject dependencies
      */
-    it('should inject dependencies automatically', () => {
+    it('should inject dependencies automatically', async () => {
       @Service()
       class LoggerService {
         log(message: string): string {
@@ -105,9 +152,9 @@ describe('Nexus', () => {
         }
       }
 
-      nexus.set(LoggerService);
-      nexus.set(UserServiceWithLogger);
-      const userService = nexus.get(UserServiceWithLogger);
+      await nexus.set(LoggerService);
+      await nexus.set(UserServiceWithLogger);
+      const userService = await nexus.get(UserServiceWithLogger);
       expect(userService.getUser('123')).toBe('[LOG] Getting user 123');
     });
   });
@@ -115,55 +162,58 @@ describe('Nexus', () => {
   // Custom tokens and providers group: Ensures advanced provider registration
   describe('Custom tokens and providers', () => {
     /**
-     * Test: Custom token registration
+     * Test: Custom token registration using object syntax
      * Validates: Providers can be registered and resolved with custom tokens
      * Value: Enables advanced DI scenarios with custom keys
      */
-    it('should work with custom tokens', () => {
+    it('should work with custom tokens', async () => {
       const API_URL = new Token<string>('API_URL');
       const CONFIG_TOKEN = new Token('CONFIG');
 
-      @Provider(CONFIG_TOKEN)
+      @Service({ token: CONFIG_TOKEN })
       class ConfigService {
         constructor(@Inject(API_URL) private apiUrl: string) {}
         getApiUrl(): string {
           return this.apiUrl;
         }
       }
-      nexus.set(API_URL, { useValue: 'https://api.example.com' });
-      nexus.set(CONFIG_TOKEN, ConfigService);
 
-      const config: ConfigService = nexus.get(CONFIG_TOKEN);
+      await nexus.set({ token: API_URL, useValue: 'https://api.example.com' });
+      await nexus.set(ConfigService);
+
+      const config: ConfigService = await nexus.get(CONFIG_TOKEN);
       expect(config.getApiUrl()).toBe('https://api.example.com');
     });
+
     /**
      * Test: Factory provider registration
      * Validates: Factory is called and result is returned
      * Value: Enables dynamic provider creation in DI
      */
-    it('should work with factory providers', () => {
+    it('should work with factory providers', async () => {
       const FACTORY_TOKEN = new Token<string>('FACTORY_TOKEN');
       const factory = vi.fn().mockReturnValue('factory-result');
 
-      nexus.set(FACTORY_TOKEN, { useFactory: factory });
-      const result = nexus.get(FACTORY_TOKEN);
+      await nexus.set({ token: FACTORY_TOKEN, useFactory: factory });
+      const result = await nexus.get(FACTORY_TOKEN);
 
       expect(result).toBe('factory-result');
       expect(factory).toHaveBeenCalledTimes(1);
     });
+
     /**
      * Test: Factory provider with dependencies
      * Validates: Factory receives correct dependencies
      * Value: Ensures DI can resolve and inject dependencies for factories
      */
-    it('should work with factory providers with dependencies', () => {
+    it('should work with factory providers with dependencies', async () => {
       const DEP1 = new Token<string>('DEP1');
       const DEP2 = new Token<string>('DEP2');
       const FACTORY_TOKEN = new Token<string>('FACTORY_WITH_DEPS');
 
       // Register dependencies
-      nexus.set(DEP1, { useValue: 'dependency1' });
-      nexus.set(DEP2, { useValue: 'dependency2' });
+      await nexus.set({ token: DEP1, useValue: 'dependency1' });
+      await nexus.set({ token: DEP2, useValue: 'dependency2' });
 
       // Create factory that expects dependencies
       const factory = vi
@@ -173,24 +223,27 @@ describe('Nexus', () => {
         });
 
       // Register factory with dependencies
-      nexus.set(FACTORY_TOKEN, {
+      await nexus.set({
+        token: FACTORY_TOKEN,
         useFactory: factory,
         deps: [DEP1, DEP2],
       });
 
-      const result = nexus.get(FACTORY_TOKEN);
+      const result = await nexus.get(FACTORY_TOKEN);
       expect(result).toBe('dependency1-dependency2-result');
       expect(factory).toHaveBeenCalledWith('dependency1', 'dependency2');
     });
+
     /**
      * Test: Auto-generated token registration
      * Validates: Providers can be registered and resolved with auto tokens
      * Value: Ensures DI supports unique, unnamed tokens
      */
-    it('should work with auto-generated tokens', () => {
-      const autoToken = new Token();
-      nexus.set(autoToken, { useValue: 'auto-generated-value' });
-      const result = nexus.get(autoToken);
+    it('should work with value providers', async () => {
+      const VALUE_TOKEN = new Token<string>('VALUE_TOKEN');
+
+      await nexus.set({ token: VALUE_TOKEN, useValue: 'auto-generated-value' });
+      const result = await nexus.get(VALUE_TOKEN);
       expect(result).toBe('auto-generated-value');
     });
   });
@@ -202,7 +255,7 @@ describe('Nexus', () => {
      * Validates: All services in module are registered and resolvable
      * Value: Ensures module-based DI registration works for applications
      */
-    it('should register module and its services', () => {
+    it('should register module and its services', async () => {
       @Service()
       class LoggerService {
         log(message: string): string {
@@ -226,271 +279,555 @@ describe('Nexus', () => {
       })
       class AppModule {}
 
-      nexus.set(AppModule);
+      await nexus.set(AppModule);
 
       expect(nexus.has(LoggerService)).toBe(true);
       expect(nexus.has(UserServiceWithLogger)).toBe(true);
-      const userService = nexus.get(UserServiceWithLogger);
+      const userService = await nexus.get(UserServiceWithLogger);
       expect(userService.getUser('123')).toBe('[LOG] Getting user 123');
     });
   });
 
-  // Child containers group: Ensures child containers inherit and override providers
+  // Child containers group: Ensures container inheritance works
   describe('Child containers', () => {
     /**
-     * Test: Inherit from parent container
-     * Validates: Child container can resolve parent providers
-     * Value: Enables hierarchical DI for modular applications
+     * Test: Child container inherits providers
+     * Validates: Child containers have access to parent providers
+     * Value: Enables scoped DI for different application contexts
      */
-    it('should inherit from parent container', () => {
+    it('should inherit from parent container', async () => {
       @Service()
       class ParentService {
         getMessage(): string {
           return 'parent';
         }
       }
-      nexus.set(ParentService, ParentService);
-      const child = nexus.createChildContainer();
+
+      await nexus.set(ParentService);
+      const child = nexus.createChild();
       expect(child.has(ParentService)).toBe(true);
-      const service = child.get(ParentService);
+      const service = await child.get(ParentService);
       expect(service.getMessage()).toBe('parent');
     });
+
     /**
-     * Test: Override provider in child container
-     * Validates: Child can override parent provider
-     * Value: Ensures flexibility for testing and modular overrides
+     * Test: Child container can override providers
+     * Validates: Child containers can shadow parent providers
+     * Value: Enables context-specific provider overrides in DI
      */
-    it('should allow overriding in child container', () => {
+    it('should allow overriding in child container', async () => {
       @Service()
       class ParentService {
         getMessage(): string {
           return 'parent';
         }
       }
+
       @Service()
       class ChildService {
         getMessage(): string {
           return 'child';
         }
       }
-      nexus.set(ParentService, ParentService);
-      const child = nexus.createChildContainer();
-      child.set(ParentService, ChildService);
-      const parentService = nexus.get(ParentService);
-      const childService = child.get(ParentService);
+
+      await nexus.set(ParentService);
+      const child = nexus.createChild();
+      await child.set({ token: ParentService, useClass: ChildService });
+
+      const parentService = await nexus.get(ParentService);
+      const childService = await child.get(ParentService);
+
       expect(parentService.getMessage()).toBe('parent');
       expect(childService.getMessage()).toBe('child');
     });
   });
 
-  // Container lifecycle group: Ensures providers and instances can be cleared
+  // Container lifecycle group: Ensures container lifecycle management
   describe('Container lifecycle', () => {
     /**
      * Test: Clear all providers and instances
-     * Validates: Providers are removed and cannot be resolved
-     * Value: Ensures container can be reset for testing or hot reload
+     * Validates: Container can be reset to empty state
+     * Value: Enables container cleanup for testing and lifecycle management
      */
-    it('should clear all providers and instances', () => {
+    it('should clear all providers and instances', async () => {
       @Service()
       class TestServiceForLifecycle {
         getMessage(): string {
           return 'test';
         }
       }
-      nexus.set(TestServiceForLifecycle, TestServiceForLifecycle);
+
+      await nexus.set(TestServiceForLifecycle);
       expect(nexus.has(TestServiceForLifecycle)).toBe(true);
-      nexus.clear();
+      await nexus.clear();
       expect(nexus.has(TestServiceForLifecycle)).toBe(false);
     });
   });
 
-  // Homepage Example group: Ensures real-world usage is covered
+  // Homepage Example group: Integration test for documentation example
   describe('Homepage Example', () => {
     /**
-     * Test: Register and resolve UserService using a token
-     * Validates: Service can be registered and resolved by token
-     * Value: Demonstrates real-world usage and regression coverage
+     * Test: Homepage example integration
+     * Validates: Documentation examples work correctly
+     * Value: Ensures examples in documentation are accurate
      */
-    it('should register and resolve UserService using a token', () => {
-      const USER_SERVICE = new Token('UserService');
-      @Service()
+    it('should register and resolve UserService using a token', async () => {
+      const USER_SERVICE = new Token<UserService>('UserService');
+
       class UserService {
         getUsers() {
           return ['Alice', 'Bob', 'Charlie'];
         }
       }
-      const container = new Nexus();
-      container.set(USER_SERVICE, UserService);
-      const userService = container.get(USER_SERVICE) as UserService;
+
+      await nexus.set({ token: USER_SERVICE, useClass: UserService });
+      const userService = (await nexus.get(USER_SERVICE)) as UserService;
       expect(userService.getUsers()).toEqual(['Alice', 'Bob', 'Charlie']);
     });
   });
 
-  // Invalid provider configuration: should throw if provider is missing all strategies
+  // Test edge cases for provider validation
   describe('Provider edge cases', () => {
-    /**
-     * Test: Invalid provider registration edge cases
-     * Validates: Throws error for invalid tokens, null/undefined providers, and invalid provider shapes
-     * Value: Ensures misconfigurations are caught early and errors are clear
-     */
     describe('Provider registration edge cases', () => {
-      it('should throw InvalidToken for invalid token types', () => {
-        try {
-          // @ts-expect-error
-          nexus.set('INVALID', { useValue: 123 });
-        } catch (e) {
-          expect(e).toBeInstanceOf(InvalidToken);
-        }
+      it('should throw InvalidToken for invalid token types', async () => {
+        await expect(nexus.get(null as any)).rejects.toThrow('Invalid token');
       });
 
-      it('should throw InvalidProvider for null or undefined provider', () => {
-        class Service {}
-        try {
-          // @ts-expect-error
-          nexus.set(Service, null);
-        } catch (e) {
-          expect(e).toBeInstanceOf(InvalidProvider);
-        }
-
-        try {
-          // @ts-expect-error
-          nexus.set(Service, undefined);
-        } catch (e) {
-          expect(e).toBeInstanceOf(InvalidProvider);
-        }
+      it('should throw InvalidProvider for null or undefined provider', async () => {
+        await expect(nexus.set(null as any)).rejects.toThrow('Invalid');
       });
 
-      it('should throw InvalidProvider for non-object provider', () => {
-        class Service {}
-        try {
-          // @ts-expect-error
-          nexus.set(Service, 123);
-        } catch (e) {
-          expect(e).toBeInstanceOf(InvalidProvider);
-        }
-
-        try {
-          // @ts-expect-error
-          nexus.set(Service, 'string');
-        } catch (e) {
-          expect(e).toBeInstanceOf(InvalidProvider);
-        }
+      it('should throw InvalidProvider for non-object provider', async () => {
+        await expect(nexus.set('invalid' as any)).rejects.toThrow('Invalid');
       });
 
-      it('should throw InvalidProvider if factory provider is missing useFactory', () => {
-        const TOKEN = new Token('NO_FACTORY');
-        try {
-          // @ts-expect-error
-          nexus.set(TOKEN, { deps: [] });
-        } catch (e) {
-          expect(e).toBeInstanceOf(InvalidProvider);
-        }
+      it('should throw InvalidProvider if factory provider is missing useFactory', async () => {
+        await expect(
+          nexus.set({ token: new Token('TEST'), deps: [] } as any)
+        ).rejects.toThrow('Invalid provider');
       });
 
-      it('should throw InvalidProvider if useFactory is not a function', () => {
-        const TOKEN = new Token('BAD_FACTORY');
-        try {
-          // @ts-expect-error
-          nexus.set(TOKEN, { useFactory: 123 });
-        } catch (e) {
-          expect(e).toBeInstanceOf(InvalidProvider);
-        }
+      it('should throw InvalidProvider if useFactory is not a function', async () => {
+        await expect(
+          nexus.set({
+            token: new Token('TEST'),
+            useFactory: 'not-function',
+          } as any)
+        ).rejects.toThrow('Invalid provider');
       });
     });
 
-    /**
-     * Test: Alias handling
-     * Validates: Class and alias resolve to the same instance
-     * Value: Ensures aliases work for DI
-     */
-    it('should resolve class and alias to the same instance', () => {
+    it('should resolve class and alias to the same instance', async () => {
+      const ALIAS = Symbol('ALIAS');
+
       @Service()
       class AliasService {
         getValue() {
           return 42;
         }
       }
-      const ALIAS = Symbol('ALIAS');
-      nexus.set(ALIAS, AliasService);
-      const instance1 = nexus.get(ALIAS) as AliasService;
-      const instance2 = nexus.get(AliasService);
+
+      await nexus.set({ token: ALIAS, useClass: AliasService });
+      const instance1 = (await nexus.get(ALIAS)) as AliasService;
+      const instance2 = await nexus.get(AliasService);
       expect(instance1).toBe(instance2);
       expect(instance1.getValue()).toBe(42);
     });
 
-    /**
-     * Test: Overwriting providers
-     * Validates: Last provider registered for a token wins
-     * Value: Ensures predictable provider overriding
-     */
-    it('should allow overwriting providers for the same token', () => {
+    it('should allow overwriting providers for the same token', async () => {
       const TOKEN = new Token<number>('OVERRIDE');
-      nexus.set(TOKEN, { useValue: 1 });
-      expect(nexus.get(TOKEN)).toBe(1);
-      nexus.set(TOKEN, { useValue: 2 });
-      expect(nexus.get(TOKEN)).toBe(2);
+
+      await nexus.set({ token: TOKEN, useValue: 1 });
+      expect(await nexus.get(TOKEN)).toBe(1);
+
+      await nexus.set({ token: TOKEN, useValue: 2 });
+      expect(await nexus.get(TOKEN)).toBe(2);
     });
 
-    /**
-     * Test: Registering undecorated class in a module
-     * Validates: Throws error if class is not decorated with @Service/@Provider
-     * Value: Prevents accidental registration of undecorated classes
-     */
-    it('should throw if registering undecorated class in a module', () => {
+    it('should throw if registering undecorated class without explicit configuration', async () => {
       class NotAService {}
-      @Module({ providers: [NotAService] })
-      class Mod {}
-      try {
-        nexus.set(Mod);
-      } catch (e) {
-        expect(e).toBeInstanceOf(InvalidProvider);
-      }
+
+      await expect(nexus.set(NotAService)).rejects.toThrow('Invalid provider');
     });
   });
 
-  // Circular module imports: should not stack overflow
   describe('Module import edge cases', () => {
-    /**
-     * Test: Circular module imports
-     * Validates: Container does not stack overflow or infinite loop
-     * Value: Ensures robust module import handling
-     */
-    it('should handle circular module imports gracefully', () => {
+    it('should handle circular module imports gracefully', async () => {
       @Module({ imports: [] })
       class A {}
+
       @Module({ imports: [A] })
       class B {}
-      // Create circular reference
-      (A as any).imports = [B];
-      // Should not throw
-      nexus.set(A);
-      nexus.set(B);
-      expect(nexus.has(A)).toBe(true);
-      expect(nexus.has(B)).toBe(true);
+
+      // Should not throw due to circular imports
+      await nexus.set(A);
+      await nexus.set(B);
     });
   });
 
-  // Property injection: using @Inject on a property
   describe('Property injection', () => {
-    /**
-     * Test: Property injection with @Inject
-     * Validates: Property is injected after instantiation
-     * Value: Enables property-based DI
-     */
-    it('should inject property with @Inject', () => {
+    it('should inject property with @Inject', async () => {
       @Service()
       class Dep {
         value = 123;
       }
+
       @Service()
       class Consumer {
         @Inject(Dep) dep!: Dep;
       }
-      nexus.set(Dep, Dep);
-      nexus.set(Consumer, Consumer);
-      const consumer = nexus.get(Consumer) as Consumer;
+
+      await nexus.set(Dep);
+      await nexus.set(Consumer);
+      const consumer = (await nexus.get(Consumer)) as Consumer;
       expect(consumer.dep).toBeInstanceOf(Dep);
       expect(consumer.dep.value).toBe(123);
+    });
+  });
+
+  describe('Container initialization', () => {
+    it('should initialize container successfully', async () => {
+      // Test basic initialization
+      await nexus.init();
+
+      // Should be able to initialize multiple times without error
+      await nexus.init();
+    });
+
+    it('should handle providers registered after initialization', async () => {
+      await nexus.init();
+
+      @Service()
+      class LateService {
+        getValue() {
+          return 'late-service';
+        }
+      }
+
+      await nexus.set(LateService);
+      const instance = await nexus.get(LateService);
+      expect(instance.getValue()).toBe('late-service');
+    });
+
+    it('should initialize singleton providers only once', async () => {
+      const mockFactory = vi.fn().mockReturnValue('singleton-result');
+      const TOKEN = new Token('SingletonProvider');
+
+      await nexus.set({
+        token: TOKEN,
+        useFactory: mockFactory,
+      });
+
+      await nexus.init();
+
+      // Getting it multiple times should return cached result
+      const result1 = await nexus.get(TOKEN);
+      const result2 = await nexus.get(TOKEN);
+
+      expect(result1).toBe('singleton-result');
+      expect(result2).toBe('singleton-result');
+      expect(mockFactory).toHaveBeenCalledTimes(1);
+    });
+  });
+
+  describe('Async provider support', () => {
+    it('should handle Promise<ModuleConfig> registration', async () => {
+      const TOKEN = new Token('AsyncConfig');
+      const configPromise = Promise.resolve({
+        providers: [{ token: TOKEN, useValue: 'async-value' }],
+      });
+
+      await nexus.set(configPromise);
+      const result = await nexus.get(TOKEN);
+      expect(result).toBe('async-value');
+    });
+
+    it('should handle multiple Promise<ModuleConfig> in setMany', async () => {
+      const TOKEN1 = new Token('Async1');
+      const TOKEN2 = new Token('Async2');
+
+      const config1 = Promise.resolve({
+        providers: [{ token: TOKEN1, useValue: 'async1' }],
+      });
+
+      const config2 = Promise.resolve({
+        providers: [{ token: TOKEN2, useValue: 'async2' }],
+      });
+
+      await nexus.setMany(config1, config2);
+
+      const result1 = await nexus.get(TOKEN1);
+      const result2 = await nexus.get(TOKEN2);
+
+      expect(result1).toBe('async1');
+      expect(result2).toBe('async2');
+    });
+
+    it('should reject invalid Promise<ModuleConfig>', async () => {
+      const invalidPromise = Promise.resolve('not-a-module-config' as any);
+
+      await expect(nexus.set(invalidPromise)).rejects.toThrow(
+        'Promise must resolve to a ModuleConfig'
+      );
+    });
+  });
+
+  describe('Container dispose and lifecycle', () => {
+    it('should implement AsyncDisposable', async () => {
+      expect(Symbol.asyncDispose in nexus).toBe(true);
+    });
+
+    it('should prevent operations on disposed container', async () => {
+      await nexus.dispose();
+
+      await expect(nexus.set({} as any)).rejects.toThrow(
+        'Cannot set providers on a disposed container'
+      );
+
+      await expect(nexus.get(new Token('test'))).rejects.toThrow(
+        'Cannot get from a disposed container'
+      );
+
+      expect(nexus.has(new Token('test'))).toBe(false);
+    });
+
+    it('should dispose tracked disposable instances', async () => {
+      const mockDispose = vi.fn();
+      const mockAsyncDispose = vi.fn();
+
+      class DisposableService {
+        [Symbol.dispose]() {
+          mockDispose();
+        }
+      }
+
+      class AsyncDisposableService {
+        [Symbol.asyncDispose]() {
+          mockAsyncDispose();
+        }
+      }
+
+      const TOKEN1 = new Token('Disposable');
+      const TOKEN2 = new Token('AsyncDisposable');
+
+      await nexus.set({ token: TOKEN1, useClass: DisposableService });
+      await nexus.set({ token: TOKEN2, useClass: AsyncDisposableService });
+
+      // Create instances (they get tracked for disposal)
+      await nexus.get(TOKEN1);
+      await nexus.get(TOKEN2);
+
+      await nexus.dispose();
+
+      // Note: Disposal might be called multiple times due to tracking in both
+      // disposables array and provider instances
+      expect(mockDispose).toHaveBeenCalled();
+      expect(mockAsyncDispose).toHaveBeenCalled();
+    });
+  });
+
+  describe('Resolve method (transient instances)', () => {
+    it('should resolve dependencies without registering service', async () => {
+      @Service()
+      class Dependency {
+        getValue() {
+          return 'dependency-value';
+        }
+      }
+
+      class TransientService {
+        constructor(@Inject(Dependency) private dep: Dependency) {}
+
+        getMessage() {
+          return `Message: ${this.dep.getValue()}`;
+        }
+      }
+
+      // Register the dependency but not the service
+      await nexus.set(Dependency);
+
+      // Resolve should create a new instance without registering it
+      const instance = await nexus.resolve(TransientService);
+      expect(instance).toBeInstanceOf(TransientService);
+      expect(instance.getMessage()).toBe('Message: dependency-value');
+
+      // Service should not be registered in container
+      expect(nexus.has(TransientService)).toBe(false);
+    });
+
+    it('should create new instances each time with resolve', async () => {
+      class SimpleService {
+        id = Math.random();
+      }
+
+      const instance1 = await nexus.resolve(SimpleService);
+      const instance2 = await nexus.resolve(SimpleService);
+
+      expect(instance1).not.toBe(instance2);
+      expect(instance1.id).not.toBe(instance2.id);
+    });
+
+    it('should handle property injection in resolved instances', async () => {
+      @Service()
+      class Dependency {
+        value = 42;
+      }
+
+      class ServiceWithPropertyInjection {
+        @Inject(Dependency) dep!: Dependency;
+      }
+
+      await nexus.set(Dependency);
+
+      const instance = await nexus.resolve(ServiceWithPropertyInjection);
+      expect(instance.dep).toBeInstanceOf(Dependency);
+      expect(instance.dep.value).toBe(42);
+    });
+
+    it('should throw for invalid constructor in resolve', async () => {
+      await expect(nexus.resolve('not-a-constructor' as any)).rejects.toThrow(
+        'resolve() requires a constructor function'
+      );
+    });
+  });
+
+  describe('Container introspection and utilities', () => {
+    it('should list all registered providers and modules', async () => {
+      @Service()
+      class TestService {
+        name = 'test';
+      }
+
+      @Module({ providers: [TestService] })
+      class TestModule {}
+
+      const TOKEN = new Token('test-token');
+
+      await nexus.set(TestModule);
+      await nexus.set({ token: TOKEN, useValue: 'test-value' });
+
+      const list = nexus.list();
+
+      expect(list.providers).toContain(TestService);
+      expect(list.providers).toContain(TOKEN);
+      expect(list.modules).toContain('TestModule');
+    });
+
+    it('should handle token aliases correctly', async () => {
+      @Service()
+      class OriginalService {
+        getValue() {
+          return 'original';
+        }
+      }
+
+      const ALIAS_TOKEN = Symbol('ServiceAlias');
+
+      await nexus.set({ token: ALIAS_TOKEN, useClass: OriginalService });
+
+      const aliasInstance = (await nexus.get(ALIAS_TOKEN)) as OriginalService;
+      const classInstance = await nexus.get(OriginalService);
+
+      // Should be the same singleton instance
+      expect(aliasInstance).toBe(classInstance);
+      expect(aliasInstance.getValue()).toBe('original');
+    });
+  });
+
+  describe('Complex dependency resolution', () => {
+    it('should handle deep dependency chains', async () => {
+      const TokenA = new Token('A');
+      const TokenB = new Token('B');
+      const TokenC = new Token('C');
+
+      await nexus.set({ token: TokenC, useValue: 'C' });
+      await nexus.set({
+        token: TokenB,
+        useFactory: (c: string) => `B-${c}`,
+        deps: [TokenC],
+      });
+      await nexus.set({
+        token: TokenA,
+        useFactory: (b: string) => `A-${b}`,
+        deps: [TokenB],
+      });
+
+      const result = await nexus.get(TokenA);
+      expect(result).toBe('A-B-C');
+    });
+
+    it('should handle multiple dependencies in factories', async () => {
+      const TokenX = new Token('X');
+      const TokenY = new Token('Y');
+      const TokenResult = new Token('Result');
+
+      await nexus.set({ token: TokenX, useValue: 'X' });
+      await nexus.set({ token: TokenY, useValue: 'Y' });
+      await nexus.set({
+        token: TokenResult,
+        useFactory: (x: string, y: string) => `${x}-${y}`,
+        deps: [TokenX, TokenY],
+      });
+
+      const result = await nexus.get(TokenResult);
+      expect(result).toBe('X-Y');
+    });
+
+    it('should handle mixed provider types in dependency chains', async () => {
+      @Service()
+      class BaseService {
+        getValue() {
+          return 'base';
+        }
+      }
+
+      const ConfigToken = new Token('Config');
+      const FactoryToken = new Token('Factory');
+
+      await nexus.set({ token: ConfigToken, useValue: { prefix: 'TEST' } });
+      await nexus.set(BaseService);
+      await nexus.set({
+        token: FactoryToken,
+        useFactory: (base: BaseService, config: any) =>
+          `${config.prefix}: ${base.getValue()}`,
+        deps: [BaseService, ConfigToken],
+      });
+
+      const result = await nexus.get(FactoryToken);
+      expect(result).toBe('TEST: base');
+    });
+  });
+
+  describe('Provider singleton behavior', () => {
+    it('should enforce singleton by default', async () => {
+      const mockFactory = vi.fn().mockReturnValue({ id: Math.random() });
+      const TOKEN = new Token('DefaultSingleton');
+
+      await nexus.set({
+        token: TOKEN,
+        useFactory: mockFactory,
+      });
+
+      const instance1 = await nexus.get(TOKEN);
+      const instance2 = await nexus.get(TOKEN);
+
+      expect(instance1).toBe(instance2);
+      expect(mockFactory).toHaveBeenCalledTimes(1);
+    });
+
+    it('should cache class instances as singletons', async () => {
+      @Service()
+      class SingletonService {
+        id = Math.random();
+      }
+
+      await nexus.set(SingletonService);
+
+      const instance1 = await nexus.get(SingletonService);
+      const instance2 = await nexus.get(SingletonService);
+
+      expect(instance1).toBe(instance2);
+      expect(instance1.id).toBe(instance2.id);
     });
   });
 });

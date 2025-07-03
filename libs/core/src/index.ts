@@ -9,17 +9,54 @@ if (typeof (Symbol as any).metadata === 'undefined') {
 }
 /* eslint-enable @typescript-eslint/no-explicit-any */
 
-// Core exports
+// Core container
 export { Nexus } from './container';
-export type { IContainer } from './types';
 
-// Token exports
+// Type system
+export type {
+  IContainer,
+  TokenType,
+  Constructor,
+  Provider,
+  ClassProvider,
+  ValueProvider,
+  FactoryProvider,
+  ProviderConfigObject,
+  ModuleProvider,
+  ModuleConfig,
+  ProviderConfig,
+  RegistrationOptions,
+  Disposable,
+  AsyncDisposable,
+  InjectionMetadata,
+} from './types';
+
+// Token system
 export { Token } from './token';
-export type { TokenType } from './types';
 
 // Decorators
-export { Module, Service, Provider, Inject, Optional } from './decorators';
+export { Service } from './decorators/provider';
+export { Module } from './decorators/module';
+export { Inject } from './decorators/inject';
+export { Optional } from './decorators/optional';
 
+// Dynamic modules
+export type { DynamicModule } from './dynamic-module';
+export { createModuleConfig } from './dynamic-module';
+
+// Guards for advanced usage
+export {
+  isTokenType,
+  isConstructor,
+  isProvider,
+  isModuleConfig,
+  isPromise,
+} from './guards';
+
+// Metadata utilities
+export { getMetadata, setMetadata } from './helpers';
+
+// Exception types
 export {
   ContainerException,
   InvalidToken,
@@ -28,25 +65,9 @@ export {
   InvalidModule,
 } from './exceptions';
 
-// Dynamic Module
-export { DynamicModule } from './dynamic-module';
-
-// Types
-export type {
-  Provider as ProviderType,
-  ModuleProvider,
-  ProviderConfig,
-  ModuleConfig,
-  InjectionMetadata,
-} from './types';
-
 // Constants
 export { SYMBOL_METADATA, METADATA_KEYS };
 
 // Default export for convenience
 import { Nexus } from './container';
 export default Nexus;
-
-export * from './guards';
-
-export { setMetadata, getMetadata } from './helpers';

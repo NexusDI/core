@@ -125,11 +125,10 @@ describe('Types', () => {
      * Value: Ensures decorators and reflection work as expected for DI
      */
     it('should have all required metadata keys', () => {
-      expect(METADATA_KEYS.DESIGN_PARAMTYPES).toBe('design:paramtypes');
-      expect(METADATA_KEYS.DESIGN_TYPE).toBe('design:type');
-      expect(METADATA_KEYS.INJECT_METADATA).toBe('nexusdi:inject');
-      expect(METADATA_KEYS.SERVICE_METADATA).toBe('nexusdi:service');
-      expect(METADATA_KEYS.MODULE_METADATA).toBe('nexusdi:module');
+      expect(METADATA_KEYS.INJECT_METADATA).toEqual(expect.any(Symbol));
+      expect(METADATA_KEYS.PROVIDER_METADATA).toEqual(expect.any(Symbol));
+      expect(METADATA_KEYS.SERVICE_METADATA).toEqual(expect.any(Symbol));
+      expect(METADATA_KEYS.MODULE_METADATA).toEqual(expect.any(Symbol));
     });
   });
 

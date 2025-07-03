@@ -12,21 +12,22 @@ export type Constructor<T = any> = new (...args: any[]) => T;
  */
 export type TokenType<T = any> = Token<T> | symbol | Constructor<T>;
 
+// Base provider interface
 export interface BaseProvider<T = unknown> {
-  token: TokenType<T>;
+  token?: TokenType<T>;
 }
 
+// Provider configuration types
 export type ClassProviderConfig<T = unknown> = {
   useClass: Constructor<T>;
 };
 
-// Public (user-facing) provider types
 export interface ClassProvider<T = unknown>
   extends ClassProviderConfig<T>,
     BaseProvider<T> {}
 
 export type ValueProviderConfig<T = unknown> = {
-  useValue: T;
+  useValue: T | Promise<T>; // Support async values
 };
 
 export interface ValueProvider<T = unknown>
@@ -34,7 +35,7 @@ export interface ValueProvider<T = unknown>
     BaseProvider<T> {}
 
 export type FactoryProviderConfig<T = unknown> = {
-  useFactory: (...args: any[]) => T;
+  useFactory: (...args: any[]) => T | Promise<T>; // Support async factories
   deps?: TokenType[];
 };
 
@@ -52,7 +53,7 @@ export type Provider<T = unknown> =
   | ValueProvider<T>
   | FactoryProvider<T>;
 
-// Internal (container-facing) provider types (with discriminant 'type')
+// Internal provider types (with discriminant 'type')
 interface InternalClassProvider<T = unknown> extends ClassProvider<T> {
   type: 'class';
 }
@@ -68,104 +69,159 @@ type InternalProvider<T = unknown> =
   | InternalFactoryProvider<T>;
 
 /**
- * Provider definition for modules. Used in the 'imports' property of @Module.
- *
- * @example
- * import { ModuleProvider } from '@nexusdi/core';
- * const imports: ModuleProvider[] = [OtherModule];
- * @see https://nexus.js.org/docs/modules/module-basics
+ * Registration options for providers and modules
  */
-export type ModuleProvider<T = any> =
-  | (Provider<T> & { token: TokenType<T> })
-  | Constructor<T>;
+export interface RegistrationOptions<T = any> {
+  token?: TokenType<T>;
+  provider?: ProviderConfigObject<T>;
+  singleton?: boolean;
+  eager?: boolean; // Initialize immediately during container startup
+}
 
 /**
- * Configuration for a provider. Used with @Service and @Provider decorators.
- *
- * @example
- * import { ProviderConfig } from '@nexusdi/core';
- * const config: ProviderConfig = { scope: 'singleton' };
- * @see https://nexus.js.org/docs/modules/providers-and-services
+ * Provider definition for modules and container registration
+ */
+export type ModuleProvider<T = any> =
+  | Constructor<T> // Just a class
+  | (Provider<T> & { token: TokenType<T> }) // Provider with explicit token
+  | { token: TokenType<T>; useClass: Constructor<T>; singleton?: boolean } // Object form
+  | { token: TokenType<T>; useValue: T | Promise<T> } // Value provider
+  | {
+      token: TokenType<T>;
+      useFactory: (...args: any[]) => T | Promise<T>;
+      deps?: TokenType[];
+    }; // Factory provider
+
+/**
+ * Disposable interface for resource cleanup
+ */
+export interface Disposable {
+  [Symbol.dispose](): void | Promise<void>;
+}
+
+/**
+ * Async disposable interface for resource cleanup
+ */
+export interface AsyncDisposable {
+  [Symbol.asyncDispose](): Promise<void>;
+}
+
+/**
+ * Configuration for a provider. Used with @Service decorator.
  */
 export type ProviderConfig<T = any> = {
   token?: TokenType<T>;
   singleton?: boolean;
-  type?: string;
+  eager?: boolean;
 };
 
 /**
  * Configuration for a module. Used with @Module decorator.
- *
- * @example
- * import { ModuleConfig } from '@nexusdi/core';
- * const config: ModuleConfig = { providers: [MyService] };
- * @see https://nexus.js.org/docs/modules/module-basics
  */
 export type ModuleConfig = {
   imports?: Constructor[];
   providers?: ModuleProvider[];
-  exports?: TokenType[];
+  exports?: TokenType[]; // If not specified, all providers are exported
 };
 
 /**
- * Interface for the DI container. Use Nexus class for actual usage.
+ * Container interface for dependency injection
  *
- * @see https://nexus.js.org/docs/container/nexus-class
+ * @example
+ * import { Nexus } from '@nexusdi/core';
+ * const container: IContainer = new Nexus();
  */
 export interface IContainer {
-  get<T>(token: TokenType<T>): T;
+  /**
+   * Register a provider, module, or configuration.
+   *
+   * @example
+   * await container.set(MyService);
+   * await container.set({ token: TOKEN, useValue: 123 });
+   * await container.set({ imports: [OtherModule], providers: [MyService] });
+   *
+   * @param input - The provider, class, or module config to register
+   * @returns The container instance (for chaining)
+   */
+  set(input: ModuleProvider | Constructor | ModuleConfig): Promise<this>;
 
+  /**
+   * Register multiple providers, modules, or configurations in parallel.
+   *
+   * @example
+   * await container.setMany(MyService, OtherService, { token: TOKEN, useValue: 123 });
+   *
+   * @param inputs - Providers, classes, or module configs to register
+   * @returns The container instance (for chaining)
+   */
+  setMany(
+    ...inputs: (ModuleProvider | Constructor | ModuleConfig)[]
+  ): Promise<this>;
+
+  /**
+   * Get an instance by token.
+   *
+   * @example
+   * const logger = await container.get(LoggerService);
+   * const value = await container.get(TOKEN);
+   *
+   * @param token - The token or class to resolve
+   * @returns The resolved instance
+   */
+  get<T>(token: TokenType<T>): Promise<T>;
+
+  /**
+   * Check if a token is registered.
+   *
+   * @example
+   * if (container.has(LoggerService)) { ... }
+   *
+   * @param token - The token or class to check
+   * @returns True if registered, false otherwise
+   */
   has(token: TokenType<unknown>): boolean;
 
-  set<T>(token: TokenType<T>, provider: Provider<T>): void;
-  set<T>(token: TokenType<T>, serviceClass: Constructor<T>): void;
-  set<T>(moduleClass: Constructor<T>): void;
-  set(moduleConfig: {
-    providers?: ModuleProvider[];
-    imports?: Constructor[];
-    services?: Constructor[];
-    exports?: TokenType[];
-  }): void;
-  set(tokenOrModuleOrConfig: any, providerOrNothing?: any): void;
+  /**
+   * Resolve dependencies for a class without registering it.
+   * Useful for transient instances that shouldn't be managed by the container.
+   *
+   * @example
+   * const temp = await container.resolve(TempService);
+   *
+   * @param ctor - The class constructor to resolve
+   * @returns The resolved instance
+   */
+  resolve<T>(ctor: Constructor<T>): Promise<T>;
 
   /**
-   * Instantiates a new instance of the given class, resolving and injecting all dependencies.
+   * Create a child container.
    *
-   * - Unlike `get`, this does not require the class to be registered as a provider and always returns a new instance.
-   * - Useful for transient or ad-hoc objects that are not managed by the container's provider registry.
-   * - Throws if dependencies cannot be resolved.
+   * @example
+   * const child = container.createChild();
    *
-   * @param target The class constructor to instantiate.
-   * @returns A new instance of the class with dependencies injected.
+   * @returns A new child container
    */
-  resolve<T>(ctor: Constructor<T>): T;
+  createChild(): IContainer;
 
   /**
-   * Creates a new child container that inherits the parent container's providers.
+   * Clear all providers and instances.
    *
-   * @returns A new container with the same providers as the parent.
+   * @example
+   * await container.clear();
    */
-  createChildContainer(): IContainer;
+  clear(): Promise<void>;
 
   /**
-   * Clears all providers and instances from the container.
+   * Initialize the container and all eager providers.
    *
-   * @see https://nexus.js.org/docs/container/nexus-class#clear
+   * @example
+   * await container.init();
    */
-  clear(): void;
-
-  /**
-   * Lists all providers and modules registered in the container.
-   *
-   * @returns An object containing the providers and modules registered in the container.
-   */
-  list(): { providers: TokenType[]; modules: string[] };
+  init(): Promise<void>;
 }
 
 /**
  * Metadata for injection, used internally by @Inject and @Optional.
- *
- * @see https://nexus.js.org/docs/modules/providers-and-services
  */
 export type InjectionMetadata = {
   token: TokenType;
@@ -180,6 +236,7 @@ export type DynamicModuleConfig<Config = unknown> =
 export type DynamicModuleConfigAsync<Config = unknown> =
   | Promise<Config>
   | ProviderConfigObject<Promise<Config>>;
+
 // Export internal types for container use only (not public API)
 export type {
   InternalClassProvider,
