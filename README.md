@@ -13,6 +13,8 @@
 ![GitHub Actions Workflow Status](https://img.shields.io/github/actions/workflow/status/nexusdi/core/ci.yml)
 ![Libraries.io dependency status for GitHub repo](https://img.shields.io/librariesio/github/nexusdi/core)
 
+[![codecov](https://codecov.io/gh/NexusDI/core/branch/main/graph/badge.svg)](https://codecov.io/gh/NexusDI/core)
+
 ![npm bundle size (scoped)](https://img.shields.io/bundlephobia/min/%40nexusdi/core)
 ![NPM Unpacked Size](https://img.shields.io/npm/unpacked-size/%40nexusdi%2Fcore)
 ![Source language](https://img.shields.io/badge/language-TypeScript-blue)
