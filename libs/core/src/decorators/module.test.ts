@@ -3,7 +3,7 @@ import { Module } from './module';
 import { Token } from '../token';
 import { getMetadata } from '../helpers';
 import { METADATA_KEYS } from '../constants';
-import { Provider, Service } from './provider';
+import { Service } from './service';
 
 // --- Basic metadata attachment ---
 describe('@Module', () => {
@@ -48,7 +48,7 @@ describe('@Module', () => {
   });
 
   it('should attach metadata to a decorated class (robust)', () => {
-    @Provider()
+    @Service()
     class ProviderA {
       foo = 'bar';
     }

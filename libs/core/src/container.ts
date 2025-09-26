@@ -9,6 +9,7 @@ import type {
   ModuleConfig,
   Disposable,
   AsyncDisposable,
+  ProviderRegistry,
 } from './types';
 import { METADATA_KEYS } from './constants';
 import { getMetadata } from './helpers';
@@ -17,6 +18,14 @@ import {
   isConstructor,
   isModuleConfig,
   isPromise,
+  isModuleClass,
+  isProviderConfigObject,
+  isValueProvider,
+  isFactoryProvider,
+  isClassProvider,
+  isToken,
+  isDisposable,
+  isAsyncDisposable,
 } from './guards';
 import {
   InvalidToken,
@@ -24,18 +33,7 @@ import {
   InvalidProvider,
   InvalidModule,
 } from './exceptions';
-
-/**
- * Internal registry for providers with async support
- */
-interface ProviderRegistry<T = any> {
-  token: TokenType<T>;
-  provider: InternalProvider<T>;
-  singleton: boolean;
-  eager: boolean;
-  instance?: T | Promise<T>;
-  disposed: boolean;
-}
+import { Token } from './token';
 
 /**
  * The main DI container class for NexusDI - now async-first with Symbol.dispose support.
@@ -115,34 +113,91 @@ export class Nexus implements IContainer, AsyncDisposable {
    * @publicApi
    */
   async set(
-    input: ModuleProvider | Constructor | ModuleConfig | Promise<ModuleConfig>
+    tokenOrProvider:
+      | TokenType<any>
+      | ModuleProvider
+      | Constructor
+      | ModuleConfig
+      | Promise<ModuleConfig>,
+    config?: Omit<ModuleProvider, 'token'>
   ): Promise<this> {
     if (this.isDisposed) {
       throw new Error('Cannot set providers on a disposed container');
     }
 
+    // Support set(Token, Class) for services
+    if (
+      isToken(tokenOrProvider) &&
+      isConstructor(config) &&
+      !isModuleClass(config)
+    ) {
+      await this._registerProvider({
+        token: tokenOrProvider,
+        useClass: config,
+      });
+      return this;
+    }
+
+    // Disallow array/tuple form
+    if (Array.isArray(tokenOrProvider)) {
+      throw new InvalidProvider(
+        'Array/tuple provider registration is not supported. Use object-based registration.'
+      );
+    }
+
+    if (isToken(tokenOrProvider) && !config) {
+      throw new InvalidProvider(
+        'Token registration requires a configuration object'
+      );
+    }
+
     // Handle Promise<ModuleConfig>
-    if (isPromise(input)) {
-      const resolved = await input;
-      if (isModuleConfig(resolved)) {
-        await this._registerModuleConfig(resolved);
-        return this;
-      } else {
+    if (isPromise(tokenOrProvider)) {
+      const resolved = await tokenOrProvider;
+      if (!isModuleConfig(resolved))
         throw new InvalidProvider('Promise must resolve to a ModuleConfig');
+
+      await this._registerModuleConfig(resolved);
+      return this;
+    }
+
+    // Handle ModuleConfig
+    if (isModuleConfig(tokenOrProvider)) {
+      await this._registerModuleConfig(tokenOrProvider);
+      return this;
+    }
+
+    // If two arguments: set(token, { useValue: ... })
+    if (isToken(tokenOrProvider) && isProviderConfigObject(config)) {
+      switch (true) {
+        case isValueProvider(config):
+          await this._registerProvider({
+            token: tokenOrProvider,
+            ...(config as { useValue: any }),
+          });
+          return this;
+        case isFactoryProvider(config):
+          await this._registerProvider({
+            token: tokenOrProvider,
+            ...(config as {
+              useFactory: (...args: any[]) => any;
+              deps?: any[];
+            }),
+          });
+          return this;
+        case isClassProvider(config):
+          await this._registerProvider({
+            token: tokenOrProvider,
+            ...(config as { useClass: new (...args: any[]) => any }),
+          });
+          return this;
+        default:
+          throw new InvalidProvider('Invalid provider configuration');
       }
     }
 
-    // Handle different registration types
-    if (isConstructor(input)) {
-      await this._registerClass(input);
-    } else if (isModuleConfig(input)) {
-      await this._registerModuleConfig(input);
-    } else if (typeof input === 'object' && input !== null) {
-      await this._registerProvider(input as ModuleProvider);
-    } else {
-      throw new InvalidProvider('Invalid registration input');
-    }
-
+    // If one argument: set({ token, ... }) or set(Class)
+    await this._registerProvider(tokenOrProvider as ModuleProvider);
     return this;
   }
 
@@ -165,33 +220,7 @@ export class Nexus implements IContainer, AsyncDisposable {
       | Promise<ModuleConfig>
     )[]
   ): Promise<this> {
-    if (this.isDisposed) {
-      throw new Error('Cannot set providers on a disposed container');
-    }
-
-    // Register all inputs in parallel for better performance
-    await Promise.all(
-      inputs.map(async (input) => {
-        // Handle Promise<ModuleConfig>
-        if (isPromise(input)) {
-          const resolved = await input;
-          if (isModuleConfig(resolved)) {
-            await this._registerModuleConfig(resolved);
-          } else {
-            throw new InvalidProvider('Promise must resolve to a ModuleConfig');
-          }
-        } else if (isConstructor(input)) {
-          await this._registerClass(input);
-        } else if (isModuleConfig(input)) {
-          await this._registerModuleConfig(input);
-        } else if (typeof input === 'object' && input !== null) {
-          await this._registerProvider(input as ModuleProvider);
-        } else {
-          throw new InvalidProvider('Invalid registration input');
-        }
-      })
-    );
-
+    await inputs.forEach((input) => this.set(input as any));
     return this;
   }
 
@@ -273,8 +302,26 @@ export class Nexus implements IContainer, AsyncDisposable {
     const propInjectionMetadata: InjectionMetadata[] =
       getMetadata(ctor.prototype, METADATA_KEYS.INJECT_METADATA) || [];
 
-    // Resolve constructor parameters from explicit injection metadata
-    const params = await this._resolveConstructorParams(ctorInjectionMetadata);
+    // Only use explicit @Inject decorator metadata
+    const paramCount =
+      ctorInjectionMetadata.length > 0
+        ? Math.max(...ctorInjectionMetadata.map((m) => m.index ?? 0)) + 1
+        : 0;
+    const params: any[] = new Array(paramCount);
+    for (const meta of ctorInjectionMetadata) {
+      if (meta.optional) {
+        // For optional dependencies, inject undefined if not registered
+        const actualToken = this._getActualToken(meta.token);
+        const registry = this.providers.get(actualToken);
+        if (registry) {
+          params[meta.index] = await this._resolveProvider(registry);
+        } else {
+          params[meta.index] = undefined;
+        }
+      } else {
+        params[meta.index] = await this.get(meta.token);
+      }
+    }
 
     // Create instance
     const instance = new ctor(...params);
@@ -289,12 +336,12 @@ export class Nexus implements IContainer, AsyncDisposable {
    * Create a child container.
    *
    * @example
-   * const child = container.createChild();
+   * const child = container.child();
    *
    * @see https://nexus.js.org/docs/container/nexus-class#child-containers
    * @publicApi
    */
-  createChild(): IContainer {
+  child(): IContainer {
     const child = new Nexus();
 
     // Copy provider registries
@@ -332,20 +379,7 @@ export class Nexus implements IContainer, AsyncDisposable {
     // Dispose all tracked disposables in reverse order
     const disposables = [...this.disposables].reverse();
     await Promise.all(
-      disposables.map(async (disposable) => {
-        try {
-          if (Symbol.asyncDispose in disposable) {
-            await (disposable as AsyncDisposable)[Symbol.asyncDispose]();
-          } else if (Symbol.dispose in disposable) {
-            const result = (disposable as Disposable)[Symbol.dispose]();
-            if (isPromise(result)) {
-              await result;
-            }
-          }
-        } catch (error) {
-          console.error('Error disposing resource:', error);
-        }
-      })
+      disposables.map(async (disposable) => this._dispose(disposable))
     );
 
     // Dispose all provider instances
@@ -358,20 +392,7 @@ export class Nexus implements IContainer, AsyncDisposable {
         if (!instance) return;
 
         const resolved = await Promise.resolve(instance);
-        if (resolved && typeof resolved === 'object') {
-          try {
-            if (Symbol.asyncDispose in resolved) {
-              await (resolved as AsyncDisposable)[Symbol.asyncDispose]();
-            } else if (Symbol.dispose in resolved) {
-              const result = (resolved as Disposable)[Symbol.dispose]();
-              if (isPromise(result)) {
-                await result;
-              }
-            }
-          } catch (error) {
-            console.error('Error disposing provider instance:', error);
-          }
-        }
+        return this._dispose(resolved);
       })
     );
 
@@ -429,7 +450,10 @@ export class Nexus implements IContainer, AsyncDisposable {
     return this.aliases.get(token) || token;
   }
 
-  private async _registerClass(ctor: Constructor): Promise<void> {
+  private async _registerClass(
+    ctor: Constructor,
+    fromModuleProvider = false
+  ): Promise<void> {
     // Check if it's a module
     const moduleMetadata = getMetadata(ctor, METADATA_KEYS.MODULE_METADATA);
     if (moduleMetadata) {
@@ -441,7 +465,7 @@ export class Nexus implements IContainer, AsyncDisposable {
     const serviceMetadata = getMetadata(ctor, METADATA_KEYS.SERVICE_METADATA);
     const providerMetadata = getMetadata(ctor, METADATA_KEYS.PROVIDER_METADATA);
 
-    if (!serviceMetadata && !providerMetadata) {
+    if (!serviceMetadata && !providerMetadata && !fromModuleProvider) {
       throw new InvalidProvider(
         `Class ${ctor.name} must be decorated with @Service or registered with explicit configuration`
       );
@@ -464,57 +488,69 @@ export class Nexus implements IContainer, AsyncDisposable {
     });
   }
 
-  private async _registerProvider(input: ModuleProvider): Promise<void> {
+  private async _registerProvider<T>(
+    input: ModuleProvider,
+    fromModuleProvider = false
+  ): Promise<void> {
+    if (input == null) {
+      throw new InvalidProvider('Invalid provider: input is null or undefined');
+    }
+    // If input is a value provider (has useValue), always treat as value provider, even if the value is a class constructor
+    if (isValueProvider(input)) {
+      const { token, useValue } = input as any;
+      const actualToken = token || this._generateAutoToken();
+      this._registerValueProvider({ token: actualToken, useValue });
+      return;
+    }
+    // If input is a class provider (has useClass)
+    if (isClassProvider<T>(input)) {
+      const { token, useClass, singleton, eager } = input;
+      const actualToken = token || this._generateAutoToken();
+      this._registerClassProvider({
+        token: actualToken,
+        useClass,
+        singleton,
+        eager,
+      });
+      return;
+    }
     if (isConstructor(input)) {
-      await this._registerClass(input);
+      await this._registerClass(input, fromModuleProvider);
       return;
     }
 
     const { token, ...config } = input as any;
     const actualToken = token || this._generateAutoToken();
 
-    let provider: InternalProvider;
-
-    if ('useClass' in config) {
-      provider = {
-        type: 'class',
+    if (isClassProvider(config)) {
+      this._registerClassProvider({
         token: actualToken,
         useClass: config.useClass,
-      };
-    } else if ('useValue' in config) {
-      provider = {
-        type: 'value',
-        token: actualToken,
-        useValue: config.useValue,
-      };
-    } else if ('useFactory' in config) {
+        singleton:
+          'singleton' in config ? Boolean(config.singleton) : undefined,
+        eager: 'eager' in config ? Boolean(config.eager) : undefined,
+        disposed: 'disposed' in config ? Boolean(config.disposed) : undefined,
+      });
+    }
+    if (isFactoryProvider<T>(config)) {
       if (typeof config.useFactory !== 'function') {
         throw new InvalidProvider(
           `Factory provider must have useFactory as a function, got ${typeof config.useFactory}`
         );
       }
-      provider = {
-        type: 'factory',
+      this._registerFactoryProvider({
         token: actualToken,
         useFactory: config.useFactory,
-        deps: config.deps || [],
-      };
-    } else {
-      throw new InvalidProvider('Invalid provider configuration');
+        deps: config.deps,
+        singleton:
+          'singleton' in config ? Boolean(config.singleton) : undefined,
+        eager: 'eager' in config ? Boolean(config.eager) : undefined,
+        disposed: 'disposed' in config ? Boolean(config.disposed) : undefined,
+      });
+      return;
     }
-
-    this.providers.set(actualToken, {
-      token: actualToken,
-      provider,
-      singleton: config.singleton !== false,
-      eager: config.eager === true,
-      disposed: false,
-    });
-
-    // Set up aliases if needed
-    if (provider.type === 'class' && actualToken !== provider.useClass) {
-      this.aliases.set(provider.useClass, actualToken);
-    }
+    // If we reach here, the provider config is invalid
+    throw new InvalidProvider('Invalid provider: Invalid registration input.');
   }
 
   private async _registerModule(moduleClass: Constructor): Promise<void> {
@@ -543,10 +579,77 @@ export class Nexus implements IContainer, AsyncDisposable {
       );
     }
 
+    // --- DYNAMIC MODULE/CONFIG TOKEN REGISTRATION ---
+    // If all providers are for the same token and one is a value provider, treat as config token registration
+    if (
+      Array.isArray(config.providers) &&
+      config.providers.length > 0 &&
+      config.providers.every(
+        (p) =>
+          typeof p === 'object' &&
+          p !== null &&
+          'token' in p &&
+          (p as any).token === (config.providers![0] as any).token
+      )
+    ) {
+      const valueProvider = config.providers.find(
+        (p) => typeof p === 'object' && p !== null && 'useValue' in p
+      );
+      if (valueProvider) {
+        await this._registerProvider(valueProvider as any);
+      }
+    }
+
+    // Register exported tokens from the module config's exports array
+    let exportsToRegister: any[] = [];
+    if (Array.isArray(config.exports)) {
+      exportsToRegister = config.exports;
+    } else if (Array.isArray(config.providers)) {
+      // If no exports specified, treat all providers as exports
+      for (const provider of config.providers) {
+        if (typeof provider === 'function') {
+          exportsToRegister.push(this._inferToken(provider));
+        } else if (
+          provider &&
+          typeof provider === 'object' &&
+          'token' in provider
+        ) {
+          exportsToRegister.push((provider as any).token);
+        }
+      }
+    }
+    for (const exportedToken of exportsToRegister) {
+      let classProvider: Constructor<any> | undefined = undefined;
+      if (Array.isArray(config.providers)) {
+        for (const p of config.providers) {
+          if (
+            typeof p === 'function' &&
+            this._inferToken(p) === exportedToken
+          ) {
+            classProvider = p;
+            break;
+          }
+        }
+      }
+      if (classProvider) {
+        await this._registerProvider({
+          token: exportedToken,
+          useClass: classProvider,
+        });
+      } else {
+        // Register as value provider (fallback)
+        await this._registerProvider({
+          token: exportedToken,
+          useValue: exportedToken,
+        });
+      }
+    }
+    // --- END DYNAMIC MODULE/CONFIG TOKEN REGISTRATION ---
+
     // Process providers
     if (config.providers) {
-      await Promise.all(
-        config.providers.map((provider) => this._registerProvider(provider))
+      await config.providers.forEach((provider) =>
+        this._registerProvider(provider, true)
       );
     }
   }
@@ -561,7 +664,7 @@ export class Nexus implements IContainer, AsyncDisposable {
 
     // Return existing instance if singleton
     if (registry.singleton && registry.instance) {
-      return await Promise.resolve(registry.instance);
+      return Promise.resolve(registry.instance);
     }
 
     this.resolving.add(registry.token);
@@ -575,10 +678,8 @@ export class Nexus implements IContainer, AsyncDisposable {
       }
 
       // Track for disposal if disposable
-      if (instance && typeof instance === 'object') {
-        if (Symbol.dispose in instance || Symbol.asyncDispose in instance) {
-          this.disposables.push(instance as Disposable | AsyncDisposable);
-        }
+      if (isDisposable(instance)) {
+        this.disposables.push(instance);
       }
 
       return instance;
@@ -597,8 +698,9 @@ export class Nexus implements IContainer, AsyncDisposable {
 
       case 'factory': {
         const deps = await this._resolveDependencies(provider.deps || []);
+        // Call the factory function with dependencies and return the result (await if async)
         const result = provider.useFactory(...deps);
-        return Promise.resolve(result);
+        return await Promise.resolve(result);
       }
 
       default:
@@ -609,16 +711,31 @@ export class Nexus implements IContainer, AsyncDisposable {
   }
 
   private async _instantiateClass<T>(ctor: Constructor<T>): Promise<T> {
-    // With native decorators, we don't get automatic paramtypes
-    // We rely on explicit @Inject decorators or manual registration
+    // For native decorators, we require explicit @Inject decorators
+    // Check if the class has injection metadata
     const ctorInjectionMetadata: InjectionMetadata[] =
       getMetadata(ctor, METADATA_KEYS.INJECT_METADATA) || [];
     const propInjectionMetadata: InjectionMetadata[] =
       getMetadata(ctor.prototype, METADATA_KEYS.INJECT_METADATA) || [];
 
-    // Resolve constructor parameters only from explicit injection metadata
-    const params = await this._resolveConstructorParams(ctorInjectionMetadata);
-
+    // Only use explicit @Inject decorator metadata
+    const paramCount =
+      ctorInjectionMetadata.length > 0
+        ? Math.max(...ctorInjectionMetadata.map((m) => m.index ?? 0)) + 1
+        : 0;
+    const params: any[] = new Array(paramCount);
+    for (const meta of ctorInjectionMetadata) {
+      if (meta.optional) {
+        // For optional dependencies, inject undefined if not registered
+        const actualToken = this._getActualToken(meta.token);
+        const registry = this.providers.get(actualToken);
+        params[meta.index] = registry
+          ? await this._resolveProvider(registry)
+          : undefined;
+      } else {
+        params[meta.index] = await this.get(meta.token);
+      }
+    }
     // Create instance
     const instance = new ctor(...params);
 
@@ -626,40 +743,6 @@ export class Nexus implements IContainer, AsyncDisposable {
     await this._injectProperties(instance, propInjectionMetadata);
 
     return instance;
-  }
-
-  private async _resolveConstructorParams(
-    injectionMetadata: InjectionMetadata[]
-  ): Promise<any[]> {
-    // Sort by parameter index to ensure correct order
-    const sortedMetadata = injectionMetadata
-      .filter((m) => m.propertyKey === undefined) // Constructor parameters only
-      .sort((a, b) => a.index - b.index);
-
-    // Create params array
-    const maxIndex =
-      sortedMetadata.length > 0
-        ? Math.max(...sortedMetadata.map((m) => m.index))
-        : -1;
-    const params: any[] = new Array(maxIndex + 1);
-
-    // Resolve each explicitly injected parameter
-    for (const metadata of sortedMetadata) {
-      if (metadata.optional) {
-        // For optional dependencies, check if provider exists first
-        const actualToken = this._getActualToken(metadata.token);
-        const registry = this.providers.get(actualToken);
-        if (registry) {
-          params[metadata.index] = await this._resolveProvider(registry);
-        } else {
-          params[metadata.index] = undefined;
-        }
-      } else {
-        params[metadata.index] = await this.get(metadata.token);
-      }
-    }
-
-    return params;
   }
 
   private async _injectProperties(
@@ -676,12 +759,12 @@ export class Nexus implements IContainer, AsyncDisposable {
             instance[metadata.propertyKey] = await this._resolveProvider(
               registry
             );
-          } else {
-            instance[metadata.propertyKey] = undefined;
+            return;
           }
-        } else {
-          instance[metadata.propertyKey] = await this.get(metadata.token);
+          instance[metadata.propertyKey] = undefined;
+          return;
         }
+        instance[metadata.propertyKey] = await this.get(metadata.token);
       }
     }
   }
@@ -722,5 +805,89 @@ export class Nexus implements IContainer, AsyncDisposable {
       return token.toString();
     }
     return String(token);
+  }
+
+  private async _dispose(provider: unknown): Promise<void> {
+    if (!provider) return;
+    if (!isDisposable(provider)) return;
+    try {
+      if (isAsyncDisposable(provider)) {
+        return provider[Symbol.asyncDispose]();
+      }
+      return provider[Symbol.dispose]();
+    } catch (error) {
+      console.error('Error disposing provider:', error);
+    }
+  }
+
+  private _registerClassProvider({
+    token,
+    useClass,
+    singleton = true,
+    eager = false,
+    disposed = false,
+  }: {
+    token: TokenType<any>;
+    useClass: Constructor<any>;
+    singleton?: boolean;
+    eager?: boolean;
+    disposed?: boolean;
+  }) {
+    this.providers.set(token, {
+      token,
+      provider: { type: 'class', token, useClass },
+      singleton,
+      eager,
+      disposed,
+    });
+    if (token !== useClass) {
+      this.aliases.set(useClass, token);
+    }
+  }
+
+  private _registerFactoryProvider({
+    token,
+    useFactory,
+    deps = [],
+    singleton = true,
+    eager = false,
+    disposed = false,
+  }: {
+    token: TokenType<any>;
+    useFactory: (...args: any[]) => any;
+    deps?: any[];
+    singleton?: boolean;
+    eager?: boolean;
+    disposed?: boolean;
+  }) {
+    this.providers.set(token, {
+      token,
+      provider: { type: 'factory', token, useFactory, deps },
+      singleton,
+      eager,
+      disposed,
+    });
+  }
+
+  private _registerValueProvider({
+    token,
+    useValue,
+    singleton = true,
+    eager = false,
+    disposed = false,
+  }: {
+    token: TokenType<any>;
+    useValue: any;
+    singleton?: boolean;
+    eager?: boolean;
+    disposed?: boolean;
+  }) {
+    this.providers.set(token, {
+      token,
+      provider: { type: 'value', token, useValue },
+      singleton,
+      eager,
+      disposed,
+    });
   }
 }

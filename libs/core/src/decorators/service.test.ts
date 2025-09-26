@@ -1,5 +1,5 @@
 import { describe, it, expect, beforeEach } from 'vitest';
-import { Provider, Service } from './provider';
+import { Service } from './service';
 import { Token } from '../token';
 import { getMetadata } from '../helpers';
 import { METADATA_KEYS } from '../constants';
@@ -25,14 +25,5 @@ describe('@Service', () => {
     class TestService {}
     const metadata = getMetadata(TestService, METADATA_KEYS.SERVICE_METADATA);
     expect(metadata.token).toBe(CUSTOM_TOKEN);
-  });
-});
-
-describe('@Provider', () => {
-  it('should add provider metadata', () => {
-    const PROVIDER_TOKEN = new Token('PROVIDER');
-    @Provider(PROVIDER_TOKEN)
-    class TestProvider {}
-    expect(TestProvider).toBeDefined();
   });
 });

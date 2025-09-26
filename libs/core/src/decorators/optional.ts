@@ -34,38 +34,25 @@ import { setMetadata, getMetadata } from '../helpers';
  * @see https://nexus.js.org/docs/container/decorators
  * @publicApi
  */
-export function Optional<T>(
-  token: TokenType<T>
-): PropertyDecorator & ParameterDecorator {
+export function Optional<T>(token: TokenType<T>): ParameterDecorator {
   return (
     target: object,
     propertyKey: string | symbol | undefined,
     parameterIndex?: number
   ) => {
-    if (typeof parameterIndex === 'number') {
-      // Parameter decorator
-      const existingMetadata: InjectionMetadata[] =
-        getMetadata(target, METADATA_KEYS.INJECT_METADATA) || [];
-      const metadata: InjectionMetadata = {
-        token,
-        index: parameterIndex,
-        propertyKey: undefined,
-        optional: true,
-      };
-      existingMetadata.push(metadata);
-      setMetadata(target, METADATA_KEYS.INJECT_METADATA, existingMetadata);
-    } else if (propertyKey !== undefined) {
-      // Property decorator
-      const existingMetadata: InjectionMetadata[] =
-        getMetadata(target, METADATA_KEYS.INJECT_METADATA) || [];
-      const metadata: InjectionMetadata = {
-        token,
-        index: 0,
-        propertyKey,
-        optional: true,
-      };
-      existingMetadata.push(metadata);
-      setMetadata(target, METADATA_KEYS.INJECT_METADATA, existingMetadata);
+    if (typeof parameterIndex !== 'number') {
+      throw new Error('@Optional can only be used on constructor parameters');
     }
+    // Parameter decorator
+    const existingMetadata: InjectionMetadata[] =
+      getMetadata(target, METADATA_KEYS.INJECT_METADATA) || [];
+    const metadata: InjectionMetadata = {
+      token,
+      index: parameterIndex,
+      propertyKey,
+      optional: true,
+    };
+    existingMetadata.push(metadata);
+    setMetadata(target, METADATA_KEYS.INJECT_METADATA, existingMetadata);
   };
 }

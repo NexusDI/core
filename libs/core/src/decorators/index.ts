@@ -1,4 +1,4 @@
-export * from './module';
-export * from './provider';
-export * from './inject';
-export * from './optional';
+export { Module } from './module';
+export { Service } from './service';
+export { Inject } from './inject';
+export { Optional } from './optional';

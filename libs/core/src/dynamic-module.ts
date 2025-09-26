@@ -1,7 +1,18 @@
 // DynamicModule and related types moved from module.ts
 
 import type { ModuleConfig, TokenType, ProviderConfigObject } from './types';
-import { isProvider, isFactory, isPromise } from './guards';
+import {
+  isProvider,
+  isFactoryProvider,
+  isPromise,
+  isModuleClass,
+  isProviderConfigObject,
+  isTokenType,
+  isService,
+  isConstructor,
+} from './guards';
+import { getMetadata } from './helpers';
+import { METADATA_KEYS } from './constants';
 
 /**
  * Interface for dynamic modules that allows for runtime configuration of providers and imports.
@@ -21,7 +32,7 @@ import { isProvider, isFactory, isPromise } from './guards';
  * ```
  * @see https://nexus.js.org/docs/modules/dynamic-modules
  */
-export interface DynamicModule<T = any> {
+export interface DynamicModule<T = unknown> {
   configToken: TokenType<T>;
 }
 
@@ -30,76 +41,104 @@ export interface DynamicModule<T = any> {
  *
  * Since NexusDI is async-first, this single method handles both sync and async configurations.
  *
- * @param moduleInstance The module instance (should have a configToken property)
+ * @param moduleOrToken Decorated module class or config token (legacy)
  * @param config The config object, provider config, or promise
  * @returns ModuleConfig or Promise<ModuleConfig> depending on whether the config contains promises
  */
 export function createModuleConfig<T>(
-  moduleInstance: { configToken: TokenType<T> },
+  moduleOrToken: any, // Decorated module class or config token (legacy)
   config:
     | T
     | ProviderConfigObject<T>
     | Promise<T>
     | ProviderConfigObject<Promise<T>>
 ): ModuleConfig | Promise<ModuleConfig> {
-  // If config is a factory provider
-  if (isFactory(config)) {
-    // Don't execute the factory here - let the DI container handle it
-    // Just pass the factory configuration through with the token
-    return {
-      providers: [
-        {
-          ...config,
-          token: moduleInstance.configToken,
-        },
-      ],
-    };
+  let configToken: any;
+  let moduleProviders: any[] = [];
+
+  if (isModuleClass(moduleOrToken)) {
+    // Modern usage: module class
+    const moduleInstance = new moduleOrToken();
+    configToken = moduleInstance.configToken;
+    if (!configToken) {
+      throw new Error('DynamicModule is missing configToken property');
+    }
+    const moduleMetadata = getMetadata(
+      moduleOrToken,
+      METADATA_KEYS.MODULE_METADATA
+    ) as ModuleConfig;
+    moduleProviders = (moduleMetadata?.providers ?? []).map((provider) => {
+      if (isService(provider) || isConstructor(provider)) {
+        // Use @Service token if present, else the class itself
+        const serviceMeta = getMetadata(
+          provider,
+          METADATA_KEYS.SERVICE_METADATA
+        );
+        const token = serviceMeta?.token || provider;
+        return { token, useClass: provider };
+      }
+      return provider;
+    });
+  } else if (isTokenType(moduleOrToken)) {
+    // Legacy usage: config token
+    configToken = moduleOrToken;
+    moduleProviders = [];
+  } else {
+    throw new Error(
+      'First argument to createModuleConfig must be a module class or config token'
+    );
   }
 
-  // If config is a provider config (but not a factory)
-  if (isProvider(config)) {
+  // Helper to build the providers array
+  const withConfigProvider = (configProvider: any) => {
+    return {
+      providers: [configProvider, ...moduleProviders],
+    };
+  };
+
+  // If config is a provider config object (useClass, useValue, useFactory, but not token)
+  if (
+    typeof config === 'object' &&
+    config !== null &&
+    isProviderConfigObject(config)
+  ) {
     // If useValue is a promise
     if ('useValue' in config && isPromise(config.useValue)) {
-      return Promise.resolve(config.useValue).then((resolved) => ({
-        providers: [
-          {
-            ...config,
-            useValue: resolved,
-            token: moduleInstance.configToken,
-          },
-        ],
-      }));
-    }
-    // Otherwise, sync provider config
-    return {
-      providers: [
-        {
+      return Promise.resolve(config.useValue).then((resolved) =>
+        withConfigProvider({
           ...config,
-          token: moduleInstance.configToken,
-        },
-      ],
-    };
+          token: configToken,
+          useValue: resolved,
+        })
+      );
+    }
+    return withConfigProvider({
+      ...config,
+      token: configToken,
+    });
+  }
+
+  // If config is a factory provider (legacy)
+  if (isFactoryProvider(config)) {
+    return withConfigProvider({
+      ...config,
+      token: configToken,
+    });
   }
 
   // If config is a Promise
   if (isPromise(config)) {
-    return Promise.resolve(config).then((resolved) => ({
-      providers: [
-        {
-          useValue: resolved,
-          token: moduleInstance.configToken,
-        },
-      ],
-    }));
+    return Promise.resolve(config).then((resolved) =>
+      withConfigProvider({
+        useValue: resolved,
+        token: configToken,
+      })
+    );
   }
 
   // Otherwise, it's a plain config object
-  return {
-    providers: [
-      {
-        useValue: config,
-        token: moduleInstance.configToken,
-      },
-    ],
-  };
+  return withConfigProvider({
+    useValue: config,
+    token: configToken,
+  });
 }

@@ -101,74 +101,6 @@ describe('@Optional decorator', () => {
     });
   });
 
-  describe('Property injection', () => {
-    it('should mark a property as optional', () => {
-      class UserService {
-        @Optional(LoggerToken)
-        private logger?: { log: (msg: string) => void };
-      }
-
-      const metadata: InjectionMetadata[] =
-        getMetadata(UserService.prototype, METADATA_KEYS.INJECT_METADATA) || [];
-
-      expect(metadata).toHaveLength(1);
-      expect(metadata[0]).toEqual({
-        token: LoggerToken,
-        propertyKey: 'logger',
-        index: 0,
-        optional: true,
-      });
-    });
-
-    it('should handle optional plugin system', () => {
-      class ExtensibleApp {
-        @Optional(PluginToken)
-        private analytics?: any;
-
-        @Optional(PluginToken)
-        private monitoring?: any;
-      }
-
-      const metadata: InjectionMetadata[] =
-        getMetadata(ExtensibleApp.prototype, METADATA_KEYS.INJECT_METADATA) ||
-        [];
-
-      expect(metadata).toHaveLength(2);
-      expect(metadata[0]).toEqual({
-        token: PluginToken,
-        propertyKey: 'analytics',
-        index: 0,
-        optional: true,
-      });
-      expect(metadata[1]).toEqual({
-        token: PluginToken,
-        propertyKey: 'monitoring',
-        index: 0,
-        optional: true,
-      });
-    });
-
-    it('should handle symbol property keys', () => {
-      const loggerSymbol = Symbol('logger');
-
-      class TestClass {
-        @Optional(LoggerToken)
-        [loggerSymbol]?: { log: (msg: string) => void };
-      }
-
-      const metadata: InjectionMetadata[] =
-        getMetadata(TestClass.prototype, METADATA_KEYS.INJECT_METADATA) || [];
-
-      expect(metadata).toHaveLength(1);
-      expect(metadata[0]).toEqual({
-        token: LoggerToken,
-        propertyKey: loggerSymbol,
-        index: 0,
-        optional: true,
-      });
-    });
-  });
-
   describe('Real-world patterns', () => {
     it('should support services that gracefully degrade without optional dependencies', () => {
       const TelemetryToken = new Token('Telemetry');
@@ -247,7 +179,7 @@ describe('@Optional decorator', () => {
 describe('@Optional with container integration', () => {
   it('should work when optional dependency is available', async () => {
     const { Nexus } = await import('../container');
-    const { Service } = await import('./provider');
+    const { Service } = await import('./service');
 
     const LoggerToken = new Token<{ log: (msg: string) => void }>('Logger');
 
@@ -291,26 +223,6 @@ describe('@Optional with container integration', () => {
     });
   });
 
-  it('should record metadata for optional property injection', () => {
-    const ConfigToken = new Token<{ theme: string }>('Config');
-
-    class AppService {
-      @Optional(ConfigToken)
-      public config?: { theme: string };
-    }
-
-    const metadata: InjectionMetadata[] =
-      getMetadata(AppService.prototype, METADATA_KEYS.INJECT_METADATA) || [];
-
-    expect(metadata).toHaveLength(1);
-    expect(metadata[0]).toEqual({
-      token: ConfigToken,
-      propertyKey: 'config',
-      index: 0,
-      optional: true,
-    });
-  });
-
   it('should properly record mixed required and optional dependency metadata', () => {
     const DatabaseToken = new Token('Database');
     const LoggerToken = new Token('Logger');
@@ -340,7 +252,7 @@ describe('@Optional with container integration', () => {
 
   it('should work when optional dependency is not available', async () => {
     const { Nexus } = await import('../container');
-    const { Service } = await import('./provider');
+    const { Service } = await import('./service');
 
     const LoggerToken = new Token<{ log: (msg: string) => void }>('Logger');
 
@@ -359,29 +271,9 @@ describe('@Optional with container integration', () => {
     expect(instance.logger).toBeUndefined();
   });
 
-  it('should handle optional property injection when dependency is missing', async () => {
-    const { Nexus } = await import('../container');
-    const { Service } = await import('./provider');
-
-    const ConfigToken = new Token<{ theme: string }>('Config');
-
-    @Service()
-    class AppService {
-      @Optional(ConfigToken)
-      public config?: { theme: string };
-    }
-
-    const container = new Nexus();
-    // Don't register the config
-    await container.set(AppService);
-
-    const instance = await container.get(AppService);
-    expect(instance.config).toBeUndefined();
-  });
-
   it('should handle mixed required and optional dependencies in container', async () => {
     const { Nexus } = await import('../container');
-    const { Service } = await import('./provider');
+    const { Service } = await import('./service');
 
     const DatabaseToken = new Token('Database');
     const LoggerToken = new Token('Logger');
@@ -408,7 +300,7 @@ describe('@Optional with container integration', () => {
 
   it('should handle multiple optional dependencies with some available', async () => {
     const { Nexus } = await import('../container');
-    const { Service } = await import('./provider');
+    const { Service } = await import('./service');
 
     const LoggerToken = new Token('Logger');
     const CacheToken = new Token('Cache');

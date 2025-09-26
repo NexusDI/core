@@ -35,13 +35,13 @@ class TestDynamicModule implements DynamicModule<TestConfig> {
   configToken = TEST_CONFIG_TOKEN;
 
   static config(config: TestConfig | ProviderConfigObject<TestConfig>) {
-    return createModuleConfig(new this(), config);
+    return createModuleConfig(this, config);
   }
 
   static configAsync(
     config: Promise<TestConfig> | ProviderConfigObject<Promise<TestConfig>>
   ) {
-    return createModuleConfig(new this(), config);
+    return createModuleConfig(this, config);
   }
 
   // Helper methods for testing compatibility
@@ -96,8 +96,8 @@ describe('DynamicModule', () => {
     expect(TestDynamicModule.getConfigToken()).toBe(TEST_CONFIG_TOKEN);
   });
 
-  it('should create a config module with config() using useValue', () => {
-    const result = TestDynamicModule.config({
+  it('should create a config module with config() using useValue', async () => {
+    const result = await TestDynamicModule.config({
       useValue: { foo: 'bar', quz: 123 },
     });
     // ^?
@@ -109,12 +109,12 @@ describe('DynamicModule', () => {
     expect((provider as any).useValue.quz).toBe(123);
   });
 
-  it('should create a config module with config() using useClass', () => {
+  it('should create a config module with config() using useClass', async () => {
     class MyConfigClass {
       foo = 'classy';
       quz = 42;
     }
-    const result = TestDynamicModule.config({
+    const result = await TestDynamicModule.config({
       useClass: MyConfigClass,
     });
     const provider = (result.providers ?? []).find(
@@ -124,8 +124,8 @@ describe('DynamicModule', () => {
     expect((provider as any).useClass).toBe(MyConfigClass);
   });
 
-  it('should create a config module with config() using useFactory', () => {
-    const result = TestDynamicModule.config({
+  it('should create a config module with config() using useFactory', async () => {
+    const result = await TestDynamicModule.config({
       useFactory: () => ({ foo: 'factory', quz: 1 }),
     });
     const provider = (result.providers ?? []).find(
@@ -137,8 +137,8 @@ describe('DynamicModule', () => {
     expect((provider as any).useFactory().quz).toBe(1);
   });
 
-  it('should create a config module with config() using a plain value', () => {
-    const result = TestDynamicModule.config({
+  it('should create a config module with config() using a plain value', async () => {
+    const result = await TestDynamicModule.config({
       useValue: { foo: 'plain', quz: 123 },
     });
     const provider = (result.providers ?? []).find(
@@ -187,7 +187,8 @@ describe('DynamicModule', () => {
     }
     @Module({ providers: [] })
     class ChildDynamicModule extends ParentDynamicModule {
-      static getConfigToken() {
+      override configToken = PARENT_TOKEN;
+      static override getConfigToken() {
         return new this().configToken;
       }
     }
@@ -205,8 +206,8 @@ describe('DynamicModule', () => {
     }
     @Module({ providers: [] })
     class ChildDynamicModule extends ParentDynamicModule {
-      configToken = CHILD_TOKEN;
-      static getConfigToken() {
+      override configToken = CHILD_TOKEN;
+      static override getConfigToken() {
         return new this().configToken;
       }
     }
@@ -253,8 +254,8 @@ describe('DynamicModule', () => {
 });
 
 describe('createModuleConfig (strict type safety)', () => {
-  it('accepts a valid config object', () => {
-    const result = TestDynamicModule.config({ foo: 'bar', quz: 123 });
+  it('accepts a valid config object', async () => {
+    const result = await TestDynamicModule.config({ foo: 'bar', quz: 123 });
     const provider = (result.providers ?? []).find(
       (p: any) => typeof p === 'object' && p !== null && 'useValue' in p
     );
@@ -263,8 +264,10 @@ describe('createModuleConfig (strict type safety)', () => {
     expect((provider as any).useValue.quz).toBe(123);
   });
 
-  it('accepts a valid useClass', () => {
-    const result = TestDynamicModule.config({ useClass: ValidConfigClass });
+  it('accepts a valid useClass', async () => {
+    const result = await TestDynamicModule.config({
+      useClass: ValidConfigClass,
+    });
     const provider = (result.providers ?? []).find(
       (p: any) => typeof p === 'object' && p !== null && 'useClass' in p
     );
@@ -278,8 +281,8 @@ describe('createModuleConfig (strict type safety)', () => {
     expect(true).toBe(true);
   });
 
-  it('accepts a valid useFactory', () => {
-    const result = TestDynamicModule.config({
+  it('accepts a valid useFactory', async () => {
+    const result = await TestDynamicModule.config({
       useFactory: () => ({ foo: 'factory', quz: 1 }),
     });
     const provider = (result.providers ?? []).find(

@@ -1,6 +1,14 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 // Type guards and validators for NexusDI public API
-import type { TokenType, Constructor, Provider, IContainer } from './types';
+import type {
+  TokenType,
+  Constructor,
+  Provider,
+  IContainer,
+  FactoryProvider,
+  ClassProvider,
+  ValueProvider,
+} from './types';
 import { Token } from './token';
 import { getMetadata } from './helpers';
 import { METADATA_KEYS } from './constants';
@@ -44,11 +52,27 @@ export function isProvider(obj: unknown): obj is Provider {
 /**
  * Checks if a value is a factory provider (has useFactory).
  */
-export function isFactory(obj: unknown): obj is { useFactory: () => unknown } {
+export function isFactoryProvider<T>(obj: unknown): obj is FactoryProvider<T> {
   return !!(
     obj &&
     typeof obj === 'object' &&
     typeof (obj as any).useFactory === 'function'
+  );
+}
+
+export function isValueProvider<T>(obj: unknown): obj is ValueProvider<T> {
+  return !!(
+    obj &&
+    typeof obj === 'object' &&
+    typeof (obj as any).useValue !== 'undefined'
+  );
+}
+
+export function isClassProvider<T>(obj: unknown): obj is ClassProvider<T> {
+  return !!(
+    obj &&
+    typeof obj === 'object' &&
+    typeof (obj as any).useClass === 'function'
   );
 }
 
@@ -104,4 +128,28 @@ export function isModuleConfig(
 
 export function isPromise(val: any): val is Promise<any> {
   return !!val && typeof val.then === 'function';
+}
+
+/**
+ * Checks if a value is a ProviderConfigObject (has useClass, useValue, or useFactory, but not token).
+ */
+export function isProviderConfigObject(obj: unknown): boolean {
+  return !!(
+    obj &&
+    typeof obj === 'object' &&
+    !('token' in obj) &&
+    ('useClass' in obj || 'useValue' in obj || 'useFactory' in obj)
+  );
+}
+
+export function isDisposable(obj: unknown): obj is Disposable {
+  return !!(
+    obj &&
+    typeof obj === 'object' &&
+    (Symbol.dispose in obj || Symbol.asyncDispose in obj)
+  );
+}
+
+export function isAsyncDisposable(obj: unknown): obj is AsyncDisposable {
+  return !!(obj && typeof obj === 'object' && Symbol.asyncDispose in obj);
 }

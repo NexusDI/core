@@ -10,6 +10,7 @@ export default defineConfig(() => ({
   // },
   build: {
     sourcemap: false,
+    exclude: ['src/storytest/*'],
   },
   test: {
     watch: false,
@@ -26,6 +27,7 @@ export default defineConfig(() => ({
         'vite.config.ts',
         'eslint.config.mjs',
         './src/types.ts',
+        './src/storytest/*',
       ],
     },
   },

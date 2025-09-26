@@ -2,13 +2,13 @@ import { describe, it, expect } from 'vitest';
 import {
   isTokenType,
   isProvider,
-  isFactory,
+  isFactoryProvider,
   isService,
   isContainer,
 } from './guards';
 import { Token } from './token';
 import type { IContainer } from './types';
-import { Service, Provider } from './decorators';
+import { Service } from './decorators';
 
 /**
  * Guards: Ensures all public guard functions work as expected for valid and invalid cases
@@ -53,14 +53,14 @@ describe('Guards', () => {
 
   describe('isFactory', () => {
     it('should return true for objects with useFactory function', () => {
-      expect(isFactory({ useFactory: () => 1 })).toBe(true);
+      expect(isFactoryProvider({ useFactory: () => 1 })).toBe(true);
     });
     it('should return false for objects without useFactory or with non-function', () => {
-      expect(isFactory({ useFactory: 123 })).toBe(false);
-      expect(isFactory({ useClass: class {} })).toBe(false);
-      expect(isFactory({})).toBe(false);
-      expect(isFactory(null)).toBe(false);
-      expect(isFactory(undefined)).toBe(false);
+      expect(isFactoryProvider({ useFactory: 123 })).toBe(false);
+      expect(isFactoryProvider({ useClass: class {} })).toBe(false);
+      expect(isFactoryProvider({})).toBe(false);
+      expect(isFactoryProvider(null)).toBe(false);
+      expect(isFactoryProvider(undefined)).toBe(false);
     });
   });
 
@@ -69,8 +69,10 @@ describe('Guards', () => {
       @Service()
       class TestService {}
       expect(isService(TestService)).toBe(true);
-      @Provider()
+
+      @Service()
       class TestProvider {}
+
       expect(isService(TestProvider)).toBe(true);
     });
     it('should return false for undecorated class constructors', () => {

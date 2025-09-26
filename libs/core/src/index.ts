@@ -35,7 +35,7 @@ export type {
 export { Token } from './token';
 
 // Decorators
-export { Service } from './decorators/provider';
+export { Service } from './decorators/service';
 export { Module } from './decorators/module';
 export { Inject } from './decorators/inject';
 export { Optional } from './decorators/optional';

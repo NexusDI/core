@@ -1,6 +1,6 @@
 // Tokenized constants for NexusDI core
 
-export const SYMBOL_METADATA = 'Symbol.metadata';
+export const SYMBOL_METADATA = 'Symbol.metadata' as const;
 
 /**
  * Metadata keys used by NexusDI decorators.

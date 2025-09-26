@@ -20,6 +20,7 @@ export interface BaseProvider<T = unknown> {
 // Provider configuration types
 export type ClassProviderConfig<T = unknown> = {
   useClass: Constructor<T>;
+  singleton?: boolean;
 };
 
 export interface ClassProvider<T = unknown>
@@ -84,13 +85,9 @@ export interface RegistrationOptions<T = any> {
 export type ModuleProvider<T = any> =
   | Constructor<T> // Just a class
   | (Provider<T> & { token: TokenType<T> }) // Provider with explicit token
-  | { token: TokenType<T>; useClass: Constructor<T>; singleton?: boolean } // Object form
-  | { token: TokenType<T>; useValue: T | Promise<T> } // Value provider
-  | {
-      token: TokenType<T>;
-      useFactory: (...args: any[]) => T | Promise<T>;
-      deps?: TokenType[];
-    }; // Factory provider
+  | ClassProvider<T>
+  | ValueProvider<T> // Value provider
+  | FactoryProvider<T>; // Factory provider
 
 /**
  * Disposable interface for resource cleanup
@@ -123,6 +120,18 @@ export type ModuleConfig = {
   providers?: ModuleProvider[];
   exports?: TokenType[]; // If not specified, all providers are exported
 };
+
+/**
+ * Internal registry for providers with async support
+ */
+export interface ProviderRegistry<T = any> {
+  token: TokenType<T>;
+  provider: InternalProvider<T>;
+  singleton?: boolean;
+  eager?: boolean;
+  instance?: T | Promise<T>;
+  disposed: boolean;
+}
 
 /**
  * Container interface for dependency injection
@@ -201,7 +210,7 @@ export interface IContainer {
    *
    * @returns A new child container
    */
-  createChild(): IContainer;
+  child(): IContainer;
 
   /**
    * Clear all providers and instances.
