@@ -94,14 +94,30 @@ We, the developers and maintainers of the NexusDI ecosystem, establish this cons
 - **Example Quality**: Examples must be complete, runnable, and demonstrate real-world usage scenarios
 - **Cross-Reference**: Documentation and examples must reference each other for comprehensive learning
 
-### 3.4 Development Workflow
+### 3.4 Documentation Style and Structure
+
+- **Tone and Personality**: Documentation MUST be warm and friendly but professional, like a helpful colleague
+- **Nerdy References**: Include 1-2 subtle, contextually relevant nerdy references per article from approved fandoms (Star Wars, Star Trek, The Expanse, The Martian, Bobiverse, Commonwealth Universe, Warcraft, Lord of the Rings, Star Citizen)
+- **Avoid Repetitive Phrases**: Must not use repetitive phrases like "Just as in..." or "Think of it as..." - analogies must flow naturally
+- **Progressive Complexity**: Start simple and build up to advanced concepts
+- **Code Examples First**: Show working code before explaining theory
+- **Practical Focus**: Emphasize real-world usage over academic concepts
+- **Active Voice**: Use active voice - "NexusDI provides..." not "NexusDI is provided..."
+- **Visual Structure**: Use clear headings with emojis for visual appeal (⚡ 🚀 🎯 📦 🔧), break up text with code blocks and lists
+- **Technical Requirements**: Use TypeScript examples with proper typing, ensure examples match actual library usage
+- **File Organization**: Use kebab-case for file names, group related content in subdirectories
+- **Front Matter**: Each documentation file MUST start with proper front matter including sidebar_position
+- **Testing Requirements**: All code examples MUST be tested and verified to work
+- **Next Steps**: Include "Next Steps" sections to guide readers to related content
+
+### 3.5 Development Workflow
 
 - **Nx Workspace**: Leverage Nx for consistent build, test, and development workflows
 - **ESLint Configuration**: Enforce consistent code style and catch potential issues early
 - **Prettier Integration**: Ensure consistent code formatting across the entire codebase
 - **Husky Hooks**: Implement pre-commit hooks for linting, testing, and formatting
 
-### 3.5 Error Messages and Debugging
+### 3.6 Error Messages and Debugging
 
 - **Clear Error Messages**: Provide actionable error messages with context and suggestions
 - **Debug Mode**: Include optional debug mode with detailed logging and diagnostics

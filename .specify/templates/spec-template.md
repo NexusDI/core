@@ -100,6 +100,9 @@ _Example of marking unclear requirements:_
 - **NFR-008**: System MUST provide clear, actionable error messages with context
 - **NFR-009**: Feature MUST have corresponding documentation article in docs project
 - **NFR-010**: Feature MUST have practical example implementation in examples projects
+- **NFR-011**: Documentation MUST follow style guide: warm tone, nerdy references, progressive complexity
+- **NFR-012**: All code examples MUST be tested and verified to work
+- **NFR-013**: Documentation MUST use proper front matter and file organization
 
 ### Key Entities _(include if feature involves data)_
 

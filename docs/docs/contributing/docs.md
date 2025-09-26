@@ -71,7 +71,7 @@ npm install
 
 ### Technical Content 💻
 
-- **Always include `reflect-metadata`** in npm install commands
+- **Ensure examples match actual library usage** and don't include unnecessary dependencies
 - **Use TypeScript examples** with proper typing
 - **Show both simple and advanced patterns**
 - **Include error handling and edge cases**
