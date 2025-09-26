@@ -11,7 +11,7 @@ import type { Route } from './+types/users';
 
 export async function loader({ context }: Route.LoaderArgs) {
   const container = context.get(containerContext);
-  const userService = container.get(USER_SERVICE_TOKEN);
+  const userService = await container.get(USER_SERVICE_TOKEN);
   const users = await userService.getUsers();
   return { users };
 }

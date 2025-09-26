@@ -44,8 +44,8 @@ describe('Users route empty state (framework mode, minimal DI example)', () => {
   });
 
   it('renders 0 users when user list is empty', async () => {
-    container.set(USER_SERVICE_TOKEN, { useValue: mockUserService });
-    container.set(LOGGER_SERVICE_TOKEN, { useValue: mockLoggerService });
+    await container.set(USER_SERVICE_TOKEN, { useValue: mockUserService });
+    await container.set(LOGGER_SERVICE_TOKEN, { useValue: mockLoggerService });
     const Stub = createRoutesStub(
       [
         {

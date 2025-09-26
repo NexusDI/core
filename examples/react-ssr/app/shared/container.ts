@@ -8,28 +8,37 @@ import { LoggerModule } from '../modules/logger/logger.module';
 const globalContainer = new Nexus();
 const env = getEnvironment();
 
-globalContainer.set(
-  LoggerModule.config({
-    level: env === 'production' ? 'info' : 'debug',
-    format: env === 'production' ? 'json' : 'text',
-    enableConsole: true,
-    enableFile: env === 'production',
-    filePath: env === 'production' ? '/var/log/app.log' : undefined,
-  })
-);
+/**
+ * Initializes the global container with all modules.
+ * Must be awaited before using the container.
+ */
+export async function initContainer() {
+  await globalContainer.set(
+    LoggerModule.config({
+      level: env === 'production' ? 'info' : 'debug',
+      format: env === 'production' ? 'json' : 'text',
+      enableConsole: true,
+      enableFile: env === 'production',
+      filePath: env === 'production' ? '/var/log/app.log' : undefined,
+    })
+  );
 
-globalContainer.set(
-  UsersModule.config({
-    apiUrl:
-      env === 'production'
-        ? process.env.USERS_API_URL || 'https://api.example.com/users'
-        : 'http://localhost:3001/api/users',
-    cacheEnabled: env === 'production',
-    cacheTTL: env === 'production' ? 3600 : 300,
-    maxUsersPerPage: env === 'production' ? 50 : 10,
-    enableMockData: env !== 'production',
-  })
-);
+  await globalContainer.set(
+    UsersModule.config({
+      apiUrl:
+        env === 'production'
+          ? process.env.USERS_API_URL || 'https://api.example.com/users'
+          : 'http://localhost:3001/api/users',
+      cacheEnabled: env === 'production',
+      cacheTTL: env === 'production' ? 3600 : 300,
+      maxUsersPerPage: env === 'production' ? 50 : 10,
+      enableMockData: env !== 'production',
+    })
+  );
+
+  await globalContainer.init();
+  return globalContainer;
+}
 
 // Create a context for the DI container
 export const containerContext = unstable_createContext<Nexus>(globalContainer);

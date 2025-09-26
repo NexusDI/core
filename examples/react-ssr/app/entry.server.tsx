@@ -9,10 +9,11 @@ import { ServerRouter } from 'react-router';
 import { isbot } from 'isbot';
 import type { RenderToPipeableStreamOptions } from 'react-dom/server';
 import { renderToPipeableStream } from 'react-dom/server';
+import { initContainer } from './shared/container';
 
 export const streamTimeout = 5_000;
 
-export default function handleRequest(
+export default async function handleRequest(
   request: Request,
   responseStatusCode: number,
   responseHeaders: Headers,
@@ -21,6 +22,9 @@ export default function handleRequest(
   // If you have middleware enabled:
   _loadContext: unstable_RouterContextProvider
 ) {
+  // Ensure the DI container is initialized before handling the request
+  await initContainer();
+
   return new Promise((resolve, reject) => {
     let shellRendered = false;
     const userAgent = request.headers.get('user-agent');

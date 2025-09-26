@@ -44,8 +44,8 @@ describe('Users route loader error (framework mode, minimal DI example)', () => 
   });
 
   it('renders error UI when loader throws', async () => {
-    container.set(USER_SERVICE_TOKEN, { useValue: mockUserService });
-    container.set(LOGGER_SERVICE_TOKEN, { useValue: mockLoggerService });
+    await container.set(USER_SERVICE_TOKEN, { useValue: mockUserService });
+    await container.set(LOGGER_SERVICE_TOKEN, { useValue: mockLoggerService });
     const Stub = createRoutesStub(
       [
         {

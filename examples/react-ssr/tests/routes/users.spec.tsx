@@ -49,8 +49,8 @@ describe('Users route (framework mode, minimal DI example)', () => {
   });
 
   it('renders the users page with users from DI', async () => {
-    container.set(USER_SERVICE_TOKEN, { useValue: mockUserService });
-    container.set(LOGGER_SERVICE_TOKEN, { useValue: mockLoggerService });
+    await container.set(USER_SERVICE_TOKEN, { useValue: mockUserService });
+    await container.set(LOGGER_SERVICE_TOKEN, { useValue: mockLoggerService });
     const Stub = createRoutesStub(
       [
         {

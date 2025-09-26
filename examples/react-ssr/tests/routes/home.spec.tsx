@@ -45,8 +45,8 @@ describe('Home route (framework mode, minimal DI example)', () => {
   });
 
   it('renders the home page with both providers registered', async () => {
-    container.set(USER_SERVICE_TOKEN, { useValue: mockUserService });
-    container.set(LOGGER_SERVICE_TOKEN, { useValue: mockLoggerService });
+    await container.set(USER_SERVICE_TOKEN, { useValue: mockUserService });
+    await container.set(LOGGER_SERVICE_TOKEN, { useValue: mockLoggerService });
 
     const Stub = createRoutesStub(
       [
@@ -66,7 +66,7 @@ describe('Home route (framework mode, minimal DI example)', () => {
   });
 
   it('renders the home page with only one provider registered', async () => {
-    container.set(LOGGER_SERVICE_TOKEN, { useValue: mockLoggerService });
+    await container.set(LOGGER_SERVICE_TOKEN, { useValue: mockLoggerService });
     // USER_SERVICE_TOKEN is not set
 
     const Stub = createRoutesStub(

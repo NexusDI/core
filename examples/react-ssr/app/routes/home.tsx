@@ -20,7 +20,7 @@ export async function loader({ context }: Route.LoaderArgs) {
   const hasUserService = container.has(USER_SERVICE_TOKEN);
   const hasLoggerService = container.has(LOGGER_SERVICE_TOKEN);
 
-  const logger = container.get(LOGGER_SERVICE_TOKEN);
+  const logger = await container.get(LOGGER_SERVICE_TOKEN);
   logger.info('Home page loaded');
 
   return {
@@ -34,8 +34,8 @@ export async function action({ request, context }: Route.ActionArgs) {
   const formData = await request.formData();
   const intent = formData.get('intent');
   const container = context.get(containerContext);
-  const logger = container.get(LOGGER_SERVICE_TOKEN);
-  const userService = container.get(USER_SERVICE_TOKEN);
+  const logger = await container.get(LOGGER_SERVICE_TOKEN);
+  const userService = await container.get(USER_SERVICE_TOKEN);
 
   switch (intent) {
     case 'logMessage': {

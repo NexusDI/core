@@ -1,3 +1,4 @@
+import { IContainer } from '@nexusdi/core';
 import type { Route } from '../../+types/root';
 import { containerContext } from '../../shared/container';
 import { LOGGER_SERVICE_TOKEN } from './logger.types';
@@ -10,8 +11,8 @@ export const loggerMiddleware: Route.unstable_MiddlewareFunction = async (
   const start = performance.now();
 
   // Get container and logger service from context
-  const container = context.get(containerContext);
-  const logger = container.get(LOGGER_SERVICE_TOKEN);
+  const container: IContainer = context.get(containerContext);
+  const logger = await container.get(LOGGER_SERVICE_TOKEN);
 
   // Log request start
   logger.info('Request started', {
@@ -57,8 +58,8 @@ export const performanceMiddleware: Route.unstable_MiddlewareFunction = async (
 ) => {
   const start = performance.now();
 
-  const container = context.get(containerContext);
-  const logger = container.get(LOGGER_SERVICE_TOKEN);
+  const container: IContainer = context.get(containerContext);
+  const logger = await container.get(LOGGER_SERVICE_TOKEN);
 
   const response = await next();
 
