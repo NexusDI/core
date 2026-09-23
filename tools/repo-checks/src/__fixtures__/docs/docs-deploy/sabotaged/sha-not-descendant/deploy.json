@@ -1,0 +1,24 @@
+{
+  "mode": "final",
+  "root": {
+    "tag": null,
+    "sha": "abc1234",
+    "reason": "fix a broken link on /tokens/"
+  },
+  "snapshot": {
+    "release": "docs-snapshot-0.3",
+    "source": "6d5e4f3",
+    "revision": 1,
+    "assets": {
+      "root": {
+        "name": "nexusdi-docs-0.3-root-r1.tar.gz",
+        "sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+      },
+      "archive": {
+        "name": "nexusdi-docs-0.3-archive-r1.tar.gz",
+        "sha256": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb"
+      }
+    }
+  },
+  "finalDate": "2027-01-15"
+}

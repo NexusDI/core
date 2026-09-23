@@ -1,0 +1,11 @@
+{
+  "mode": "snapshot-only",
+  "root": { "tag": null, "sha": null, "reason": null },
+  "snapshot": {
+    "release": "docs-snapshot-0.3",
+    "source": "6d5e4f3",
+    "revision": 0,
+    "assets": null
+  },
+  "finalDate": null
+}
