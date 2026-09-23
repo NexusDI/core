@@ -7,6 +7,7 @@ import { MultiToken, displayName } from '../definitions/token.js';
 import {
   InvalidModuleError,
   InvalidTokenError,
+  LoadedAfterScopeError,
   MissingProviderError,
   NotVisibleError,
   type NexusError,
@@ -33,10 +34,23 @@ export function lookupModule(bp: Blueprint, options?: LookupOptions): string {
 }
 
 function notFound(
+  container: ContainerState,
   bp: Blueprint,
   token: TokenKey,
   moduleId: string,
 ): NexusError {
+  const current = container.root.blueprint;
+  if (container.kind === 'scope' && current !== bp) {
+    const [later] = current.visibility.get(current.root)?.get(token) ?? [];
+    const record =
+      later === undefined ? undefined : current.providers.get(later);
+    if (record !== undefined) {
+      return new LoadedAfterScopeError({
+        token: displayName(token),
+        module: current.modules.get(record.module)?.name ?? record.module,
+      });
+    }
+  }
   const owners = [
     ...new Set(
       [...bp.providers.values()]
@@ -73,7 +87,7 @@ export function getFrom(
   const ctx = { bp, container, owner };
   if (token instanceof MultiToken) return ids.map((id) => resolveId(id, ctx));
   const [id] = ids;
-  if (id === undefined) throw notFound(bp, token, moduleId);
+  if (id === undefined) throw notFound(container, bp, token, moduleId);
   return resolveId(id, ctx);
 }
 

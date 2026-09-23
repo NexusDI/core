@@ -54,13 +54,27 @@ function resolveLazy(
       if (!slots.isReady(id)) throw notReady(owner, target, container.root);
       return live(slots.value(id), container);
     }
-    if (target.lifetime === 'scoped') return resolve(id, ctx);
+    if (target.lifetime === 'scoped') {
+      if (container.kind === 'root') return resolve(id, ctx);
+      if (constructionStack.contains(id, container))
+        throw notReady(owner, target, container);
+      if (container.slots.has(id)) {
+        if (!container.slots.isSettled(id))
+          throw notReady(owner, target, container);
+        return live(container.slots.value(id), container);
+      }
+      return resolve(id, { bp, container, owner: container });
+    }
 
     // A transient builds on demand, unless it is the one being built right now.
     if (constructionStack.contains(id, container))
       throw notReady(owner, target, container);
     const transientOwner: TransientOwner =
-      owner.lifetime === 'singleton' ? 'singleton-thunk' : 'root-transient';
+      container.kind === 'scope'
+        ? container
+        : owner.lifetime === 'singleton'
+          ? 'singleton-thunk'
+          : 'root-transient';
     return resolve(id, { bp, container, owner: transientOwner });
   }
 }

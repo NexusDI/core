@@ -72,4 +72,5 @@ export type { NexusRequest } from './definitions/request.js';
 export type { StandardSchemaV1 } from './definitions/standard-schema.js';
 export { Nexus } from './runtime/nexus.js';
 export type { CreateOptions, LookupOptions } from './runtime/options.js';
+export type { Scope } from './runtime/scope.js';
 export type { TraceEvent } from './runtime/trace.js';

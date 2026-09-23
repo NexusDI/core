@@ -126,6 +126,47 @@ export function construct(record: ProviderRecord, ctx: Ctx): unknown {
   );
 }
 
+/** REQUEST resolves to the scope's request; from the root it has no value. */
+export function requestOf(ctx: Ctx): unknown {
+  if (ctx.container.kind === 'root') {
+    throw new ScopeRequiredError({
+      token: 'REQUEST',
+      path: [...constructionStack.names(), 'REQUEST'],
+    });
+  }
+  return ctx.container.request;
+}
+
+/**
+ * A scoped provider: one instance per scope. A scoped factory was built by
+ * createScope; a scoped class builds here, on first use, and the scope owns it.
+ */
+export function resolveScoped(record: ProviderRecord, ctx: Ctx): unknown {
+  const { container } = ctx;
+  if (container.kind === 'root') {
+    throw new ScopeRequiredError({
+      token: record.name,
+      path: [...constructionStack.names(), record.name],
+    });
+  }
+  if (container.slots.has(record.id)) {
+    if (container.slots.isSettled(record.id))
+      return container.slots.value(record.id);
+    throw new NotReadyError({
+      owner: constructionStack.top()?.name ?? record.name,
+      target: record.name,
+      path: [],
+    });
+  }
+  const start = container.root.tracer.now();
+  const instance = construct(record, { ...ctx, owner: container });
+  container.slots.settle(record.id, instance);
+  container.slots.markReady(record.id);
+  adopt(container, record, instance);
+  traceConstruct(container, ctx.bp, record, false, start);
+  return instance;
+}
+
 function settledSingleton(record: ProviderRecord, ctx: Ctx): unknown {
   const slots = ctx.container.root.slots;
   if (slots.isSettled(record.id)) return slots.value(record.id);
@@ -154,12 +195,7 @@ function buildTransient(record: ProviderRecord, ctx: Ctx): unknown {
 
 /** The instance for a provider id, building it synchronously when its lifetime allows. */
 export function resolveId(id: string, ctx: Ctx): unknown {
-  if (id === REQUEST_ID) {
-    throw new ScopeRequiredError({
-      token: 'REQUEST',
-      path: [...constructionStack.names(), 'REQUEST'],
-    });
-  }
+  if (id === REQUEST_ID) return requestOf(ctx);
   const record = recordOf(ctx.bp, id);
   if (record.kind === 'alias')
     return resolveId(ctx.bp.bindings.get(id)?.target ?? '', ctx);
@@ -168,10 +204,7 @@ export function resolveId(id: string, ctx: Ctx): unknown {
     case 'singleton':
       return settledSingleton(record, ctx);
     case 'scoped':
-      throw new ScopeRequiredError({
-        token: record.name,
-        path: [...constructionStack.names(), record.name],
-      });
+      return resolveScoped(record, ctx);
     case 'transient':
       return buildTransient(record, ctx);
   }

@@ -1,9 +1,11 @@
 import { compile } from '../blueprint/compile.js';
 import type { ModuleRef } from '../definitions/define-module.js';
+import type { NexusRequest } from '../definitions/request.js';
 import type { InjectionToken, MultiToken } from '../definitions/token.js';
 import { loadModule } from './load.js';
 import { getFrom, hasIn } from './lookup.js';
 import type { CreateOptions, LookupOptions } from './options.js';
+import { openScope, type Scope } from './scope.js';
 import { startBlueprint } from './startup.js';
 import { assertOpen, createRootState, type RootState } from './state.js';
 import { Tracer } from './trace.js';
@@ -63,6 +65,14 @@ export class Nexus {
    */
   load(module: ModuleRef): Promise<void> {
     return loadModule(this.#state, module);
+  }
+
+  /**
+   * Creates a scope and builds its scoped factories. Pass the request that
+   * REQUEST resolves to inside the scope.
+   */
+  createScope(options?: { readonly request?: NexusRequest }): Promise<Scope> {
+    return openScope(this.#state, options);
   }
 }
 

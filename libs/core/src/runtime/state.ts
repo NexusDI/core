@@ -31,10 +31,47 @@ export interface RootState {
   loadQueue: Promise<void>;
   /** load() and createScope() operations still running. Disposal awaits them. */
   readonly inflight: Set<Promise<unknown>>;
+  /** Open scopes, oldest first. Disposal closes them newest first. */
+  readonly scopes: Set<ScopeState>;
+  /** The number the next scope id uses. */
+  nextScope: number;
 }
 
-/** A container that builds and owns instances. Task 22 adds scopes. */
-export type ContainerState = RootState;
+/** A child of the root. Scopes do not nest in 0.4. */
+export interface ScopeState {
+  readonly kind: 'scope';
+  /** `s0`, `s1`, ... */
+  readonly scopeId: string;
+  /** What createScope({ request }) received; REQUEST resolves to it. */
+  readonly request: unknown;
+  readonly root: RootState;
+  readonly slots: Slots;
+  /** Scoped and transient instances this scope disposes, in creation order. */
+  readonly owned: OwnedEntry[];
+  /** The blueprint current when the scope was created. */
+  readonly blueprint: Blueprint;
+  /** Set by the first [Symbol.asyncDispose]() call; later calls return it. */
+  disposal: Promise<void> | undefined;
+}
+
+/** A container that builds and owns instances. */
+export type ContainerState = RootState | ScopeState;
+
+export function createScopeState(
+  root: RootState,
+  request: unknown,
+): ScopeState {
+  return {
+    kind: 'scope',
+    scopeId: `s${root.nextScope++}`,
+    request,
+    root,
+    slots: new Slots(),
+    owned: [],
+    blueprint: root.blueprint,
+    disposal: undefined,
+  };
+}
 
 /** Who owns a transient built now: a container, or nobody and why. */
 export type TransientOwner = ContainerState | UntrackedReason;
@@ -72,6 +109,8 @@ export function createRootState(init: RootInit): RootState {
     disposing: false,
     loadQueue: Promise.resolve(),
     inflight: new Set(),
+    scopes: new Set(),
+    nextScope: 0,
   };
   return state;
 }
