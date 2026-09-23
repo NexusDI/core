@@ -23,3 +23,9 @@ apps/docs/out
 # assert source line numbers. A fence prettier pads with a blank line moves
 # every line after it.
 tools/repo-checks/src/__fixtures__
+# The 0.3 Docusaurus pages from 6d5e4f3 that the docs snapshot overlay copies
+# over the originals (docs spec §15.2). Each copy differs from its original
+# only by its corrections, and a format pass would rewrite the other lines.
+apps/docs/snapshot/docs
+# The 0.3 landing page from 6d5e4f3, changed only in its logo path.
+apps/docs/snapshot/src

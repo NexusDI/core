@@ -30,7 +30,19 @@
 
   // Guard fixtures: trees the docs guards read as data through computed
   // paths, and near-copies of each other by design.
-  "ignorePatterns": ["tools/repo-checks/src/__fixtures__/**"],
+  //
+  // The Docusaurus overlay configs and the copied 0.3 landing page under
+  // apps/docs/snapshot/ import `./docusaurus.config` and `@docusaurus/*`
+  // modules that resolve only after `cp -R apps/docs/snapshot/.
+  // snapshot-src/docs/` places them inside the 0.3 site (docs spec §15.2).
+  // Nothing in this workspace can resolve those imports, so fallow would
+  // report them as unused/unresolved. announcement.mjs is plain ESM with no
+  // such import, so it stays analysed.
+  "ignorePatterns": [
+    "tools/repo-checks/src/__fixtures__/**",
+    "apps/docs/snapshot/docusaurus.overlay.*.ts",
+    "apps/docs/snapshot/src/**",
+  ],
 
   // The docs guards under tools/repo-checks/src/docs import these names from
   // the shared site reader. `doc-fence` reads EXEMPTION_TAGS and SHELL_LANGS.
