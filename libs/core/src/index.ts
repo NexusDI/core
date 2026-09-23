@@ -48,3 +48,5 @@ export type {
   ResolveAll,
   Tokens,
 } from './definitions/modifiers.js';
+export { provide } from './definitions/provide.js';
+export type { Provider } from './definitions/provide.js';

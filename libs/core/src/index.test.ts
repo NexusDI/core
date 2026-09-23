@@ -34,6 +34,7 @@ const RUNTIME_EXPORTS: string[] = [
   'NotVisibleError',
   'optional',
   'OverrideError',
+  'provide',
   'ProviderError',
   'RequestMissingError',
   'ScopeRequiredError',
