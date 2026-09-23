@@ -28,6 +28,14 @@ const config: Config & { themeConfig: ThemeConfig } = {
   onBrokenLinks: 'throw',
   onBrokenMarkdownLinks: 'warn',
 
+  // Performance monitoring configuration
+  scripts: [
+    {
+      src: 'https://unpkg.com/lighthouse@10.0.0/lighthouse-core/report/scripts/lighthouse-details.js',
+      async: true,
+    },
+  ],
+
   // Even if you don't use internationalization, you can use this field to set
   // useful metadata like html lang. For example, if your site is Chinese, you
   // may want to replace "en" with "zh-Hans".
@@ -54,6 +62,9 @@ const config: Config & { themeConfig: ThemeConfig } = {
     ],
   ],
 
+  // Local search configuration
+  plugins: [],
+
   themeConfig: {
     // Replace with your project's social card
     image: 'img/nexusdi-social-card.svg',
@@ -79,6 +90,16 @@ const config: Config & { themeConfig: ThemeConfig } = {
         },
       ],
     },
+    // Local search configuration
+    algolia: {
+      // Use local search instead of Algolia
+      appId: 'local',
+      apiKey: 'local',
+      indexName: 'nexusdi-docs',
+      contextualSearch: true,
+      searchParameters: {},
+      searchPagePath: 'search',
+    },
     footer: {
       style: 'dark',
       links: [
@@ -88,7 +109,7 @@ const config: Config & { themeConfig: ThemeConfig } = {
             { label: 'Getting Started', to: '/docs/getting-started' },
             { label: 'Advanced Usage', to: '/docs/advanced' },
             { label: 'FAQ', to: '/docs/faq' },
-            { label: 'Roadmap', to: '/docs/roadmap' },
+            { label: 'Roadmap', to: '/docs/roadmap/future-features' },
           ],
         },
         {

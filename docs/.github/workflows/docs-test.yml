@@ -1,0 +1,77 @@
+name: Documentation Tests
+
+on:
+  push:
+    branches: [main, develop]
+    paths: ['docs/**']
+  pull_request:
+    branches: [main]
+    paths: ['docs/**']
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+
+    strategy:
+      matrix:
+        node-version: [18, 20]
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Use Node.js ${{ matrix.node-version }}
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ matrix.node-version }}
+          cache: 'npm'
+          cache-dependency-path: docs/package-lock.json
+
+      - name: Install dependencies
+        run: |
+          cd docs
+          npm ci
+
+      - name: Run TypeScript type checking
+        run: |
+          cd docs
+          npm run type-check
+
+      - name: Run ESLint
+        run: |
+          cd docs
+          npm run lint
+
+      - name: Run Prettier check
+        run: |
+          cd docs
+          npm run format:check
+
+      - name: Run unit tests
+        run: |
+          cd docs
+          npm run test:unit
+
+      - name: Run example validation tests
+        run: |
+          cd docs
+          npm run test:examples
+
+      - name: Build documentation
+        run: |
+          cd docs
+          npm run build
+
+      - name: Run Lighthouse CI
+        run: |
+          cd docs
+          npm run lighthouse
+
+      - name: Upload test results
+        uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: test-results-${{ matrix.node-version }}
+          path: |
+            docs/coverage/
+            docs/test-results/
+            docs/lighthouse-results/

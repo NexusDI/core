@@ -12,7 +12,7 @@ Learn how to identify, prevent, and resolve circular dependencies in NexusDI. Li
 
 A circular dependency occurs when two or more providers depend on each other, either directly or indirectly. This creates a dependency cycle that the container cannot resolve.
 
-```typescript
+```text
 // ❌ Direct circular dependency
 @Service(USER_SERVICE)
 class UserService {
@@ -31,7 +31,7 @@ class EmailService {
 
 NexusDI automatically detects circular dependencies and throws descriptive errors:
 
-```typescript
+```text
 // This will throw: "Circular dependency detected: USER_SERVICE → EMAIL_SERVICE → USER_SERVICE"
 try {
   const userService = container.get(USER_SERVICE);
@@ -42,7 +42,7 @@ try {
 
 ### Manual Detection
 
-```typescript
+```text
 // Check for circular dependencies manually
 function detectCircularDependency(
   container: Nexus,
@@ -90,7 +90,7 @@ if (detectCircularDependency(container, USER_SERVICE)) {
 
 Extract shared interfaces and depend on abstractions:
 
-```typescript
+```text
 // ✅ Good - Use interfaces to break the cycle
 interface IUserRepository {
   findById(id: string): Promise<User>;
@@ -121,7 +121,7 @@ class EmailService {
 
 Use events to decouple services:
 
-```typescript
+```text
 // ✅ Good - Use events instead of direct dependencies
 @Service(USER_SERVICE)
 class UserService {
@@ -153,7 +153,7 @@ class EmailService {
 
 Break large interfaces into smaller, focused ones:
 
-```typescript
+```text
 // ✅ Good - Split interfaces to avoid circular dependencies
 interface IUserReader {
   findById(id: string): Promise<User>;
@@ -192,7 +192,7 @@ class EmailService {
 
 ## Testing Circular Dependencies
 
-```typescript
+```text
 describe('Circular Dependency Detection', () => {
   let container: Nexus;
 

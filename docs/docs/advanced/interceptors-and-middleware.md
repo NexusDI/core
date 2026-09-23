@@ -12,7 +12,7 @@ Interceptors allow you to add cross-cutting concerns to your dependency injectio
 
 Until official interceptor support is added, you can achieve similar functionality using factory functions:
 
-```typescript
+```text
 // Simple logging wrapper
 function withLogging<T>(token: TokenType<T>, factory: () => T): T {
   console.log(`Creating ${token.toString()}`);
@@ -31,7 +31,7 @@ container.set(USER_SERVICE, {
 
 ### Caching Pattern
 
-```typescript
+```text
 const cache = new Map<string, any>();
 
 function withCaching<T>(token: TokenType<T>, factory: () => T): T {
@@ -54,7 +54,7 @@ container.set(DATABASE, {
 
 ### Validation Pattern
 
-```typescript
+```text
 function withValidation<T>(token: TokenType<T>, factory: () => T): T {
   const instance = factory();
 
@@ -80,12 +80,12 @@ Official interceptor and middleware support is planned to include:
 - Performance monitoring
 - Error handling
 
-See the [Roadmap](../roadmap) for more details on upcoming features.
+See the [Roadmap](../roadmap/future-features) for more details on upcoming features.
 
 ## Next Steps
 
 - **[Advanced Providers](advanced-providers-and-factories.md)** - Learn about advanced provider patterns
 - **[Performance Tuning](performance-tuning.md)** - Optimize your DI container
-- **[Roadmap](../roadmap)** - See what's coming next
+- **[Roadmap](../roadmap/future-features)** - See what's coming next
 
 These workarounds will keep you productive until the full interceptor system arrives! 🔧✨

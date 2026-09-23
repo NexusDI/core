@@ -111,7 +111,7 @@ export class UserModule {}
 - [Getting Started Guide](/docs/getting-started)
 - [Advanced Providers & Factories](/docs/advanced/advanced-providers-and-factories)
 - [Best Practices](/docs/best-practices)
-- [Roadmap](/docs/roadmap)
+- [Roadmap](/docs/roadmap/future-features)
 
 ---
 

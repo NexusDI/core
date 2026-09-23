@@ -176,7 +176,7 @@ docs/
 - **Accessibility**: axe-core for automated accessibility testing
 - **Performance**: Lighthouse CI for performance monitoring
 
-### Content Management
+### Content Validation
 
 - **Version Control**: Git-based with branch protection
 - **Review Process**: Pull request reviews for all changes

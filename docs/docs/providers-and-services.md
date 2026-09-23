@@ -311,7 +311,7 @@ Understanding when and why to use `deps` is crucial for working with factory pro
 
 For more information about tokens and how they work with providers, see **[Tokens](./tokens.md)**.
 
-For advanced provider patterns, see [Advanced Providers & Factories](advanced/advanced.md).
+For advanced provider patterns, see [Advanced Providers & Factories](advanced).
 For multi-injection and plugin systems, see [Multi-injection & Collections](advanced/multi-injection-and-collections.md).
 For lifetimes and scoping, see [Scoped & Transient Lifetimes](advanced/scoped-and-transient-lifetimes.md).
 
@@ -321,4 +321,4 @@ For lifetimes and scoping, see [Scoped & Transient Lifetimes](advanced/scoped-an
 - **[Module Patterns](modules/module-patterns.md)** - Explore common module patterns
 - **[Dynamic Modules](modules/dynamic-modules.md)** - Runtime configuration and validation
 - **[Testing](testing.md)** - How to test services and providers
-- **[Advanced](advanced/advanced.md)** - Advanced provider patterns and techniques
+- **[Advanced](advanced)** - Advanced provider patterns and techniques

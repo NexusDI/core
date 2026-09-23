@@ -516,4 +516,4 @@ For dynamic module configuration with runtime settings, see [Dynamic Modules](./
 
 - **[Dynamic Modules](./dynamic-modules.md)** - Runtime configuration and validation
 - **[Testing](../testing.md)** - How to test modules and services
-- **[Advanced](../advanced/advanced.md)** - Advanced patterns and techniques
+- **[Advanced](../advanced)** - Advanced patterns and techniques

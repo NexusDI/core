@@ -339,6 +339,6 @@ describe('UserService', () => {
 - **[API Reference](api-reference.md)** - Complete method reference and examples
 - **[Modules](../modules/module-basics.md)** - Organize services into modules
 - **[Testing](../testing.md)** - How to test with the container
-- **[Advanced](../advanced/advanced.md)** - Advanced container patterns and techniques
+- **[Advanced](../advanced)** - Advanced container patterns and techniques
 
 The `

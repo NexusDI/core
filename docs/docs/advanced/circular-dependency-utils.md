@@ -19,7 +19,7 @@ A comprehensive utility for detecting circular dependencies with detailed cycle 
 
 This utility requires access to the container's internal dependency graph, which is not currently exposed in the public API. It would need methods like `getDependencies()` and `getAllTokens()` to be added to the container.
 
-```typescript
+```text
 class CircularDependencyDetector {
   private static visited = new Set<string>();
   private static recursionStack = new Set<string>();
@@ -119,7 +119,7 @@ Analyzes the dependency graph for insights:
 
 This utility requires access to the container's internal dependency graph and metadata, which is not currently exposed. It would need methods to traverse dependencies and access constructor metadata.
 
-```typescript
+```text
 class DependencyGraphAnalyzer {
   /**
    * Creates a visual representation of the dependency graph
@@ -257,7 +257,7 @@ class DependencyGraphAnalyzer {
 
 Monitors dependency resolution performance:
 
-```typescript
+```text
 class ResolutionPerformanceMonitor {
   private static metrics = new Map<string, number[]>();
 
@@ -355,7 +355,7 @@ Provides detailed debugging information:
 
 This utility depends on the CircularDependencyDetector and DependencyGraphAnalyzer, which require internal container access that is not currently available.
 
-```typescript
+```text
 class CircularDependencyDebugger {
   /**
    * Analyzes a container and provides debugging report
@@ -468,7 +468,7 @@ class CircularDependencyDebugger {
 
 ### Basic Detection
 
-```typescript
+```text
 // Check for circular dependencies
 const cycle = CircularDependencyDetector.detectCycle(container, USER_SERVICE);
 if (cycle) {
@@ -478,7 +478,7 @@ if (cycle) {
 
 ### Performance Monitoring
 
-```typescript
+```text
 // Monitor resolution performance
 const duration = ResolutionPerformanceMonitor.measureResolution(
   container,
@@ -495,7 +495,7 @@ if (stats) {
 
 ### Comprehensive Analysis
 
-```typescript
+```text
 // Generate full debugging report
 const report = CircularDependencyDebugger.generateDebugReport(container);
 console.log(report);
@@ -511,7 +511,7 @@ console.log(
 
 These utilities will be available in an upcoming package:
 
-```typescript
+```text
 // Future usage
 import {
   CircularDependencyDetector,

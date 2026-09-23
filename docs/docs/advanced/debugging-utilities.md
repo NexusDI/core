@@ -14,7 +14,7 @@ Advanced debugging tools and utilities for comprehensive dependency injection di
 
 Comprehensive container inspection and analysis:
 
-```typescript
+```text
 class ContainerDebugger {
   /**
    * Inspects the container and provides detailed information
@@ -96,7 +96,7 @@ Analyzes dependency relationships and graph structure:
 
 This utility requires access to the container's internal dependency graph, which is not currently exposed in the public API. It would need methods to traverse dependencies and access constructor metadata.
 
-```typescript
+```text
 class DependencyGraphAnalyzer {
   /**
    * Creates a visual representation of the dependency graph
@@ -234,7 +234,7 @@ class DependencyGraphAnalyzer {
 
 Comprehensive performance tracking and diagnostics:
 
-```typescript
+```text
 class DiagnosticMonitor {
   private static metrics = {
     resolutionTime: 0,
@@ -359,7 +359,7 @@ class DiagnosticMonitor {
 
 Specialized memory usage analysis:
 
-```typescript
+```text
 class MemoryDiagnostics {
   /**
    * Checks memory usage for container operations
@@ -452,7 +452,7 @@ class MemoryDiagnostics {
 
 Comprehensive error tracking and reporting:
 
-```typescript
+```text
 class ErrorReporter {
   private static errors: Array<{
     message: string;
@@ -538,7 +538,7 @@ class ErrorReporter {
 
 ### Basic Container Inspection
 
-```typescript
+```text
 // Inspect container state
 ContainerDebugger.inspect(container);
 
@@ -554,7 +554,7 @@ if (!validation.valid) {
 
 ### Performance Monitoring
 
-```typescript
+```text
 // Track resolution performance
 const userService = DiagnosticMonitor.trackResolution(USER_SERVICE, () =>
   container.get(USER_SERVICE)
@@ -569,7 +569,7 @@ DiagnosticMonitor.printReport();
 
 ### Error Tracking
 
-```typescript
+```text
 // Report errors with context
 try {
   const service = container.get(USER_SERVICE);
@@ -596,7 +596,7 @@ console.log(`Total errors: ${stats.totalErrors}`);
 
 These examples depend on utilities that require internal container access.
 
-```typescript
+```text
 // Generate dependency graph
 const graph = DependencyGraphAnalyzer.generateDependencyGraph(container);
 console.log(graph);
@@ -616,7 +616,7 @@ console.log('Dependency depths:', depths);
 
 These utilities will be available in an upcoming package:
 
-```typescript
+```text
 // Future usage
 import {
   ContainerDebugger,

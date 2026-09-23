@@ -28,7 +28,7 @@ Quick debugging tips and techniques to get you unstuck when dependency injection
 
 ### Check Container State
 
-```typescript
+```text
 // Inspect what's registered
 const { providers, modules } = container.list();
 console.log('Registered providers:', providers);
@@ -40,7 +40,7 @@ console.log('Has USER_SERVICE:', container.has(USER_SERVICE));
 
 ### Error Handling
 
-```typescript
+```text
 // Handle missing dependencies gracefully
 try {
   const userService = container.get(USER_SERVICE);
@@ -52,7 +52,7 @@ try {
 
 ### TypeScript Compile-Time Checking
 
-```typescript
+```text
 // ✅ Good - Type-safe resolution
 const userService = container.get<UserService>(USER_SERVICE);
 const database = container.get<IDatabase>(DATABASE);
@@ -65,7 +65,7 @@ const userService = container.get(USER_SERVICE); // No type safety
 
 ### Scenario 1: Missing Provider
 
-```typescript
+```text
 // Error: "No provider found for token: USER_SERVICE"
 
 // Debug steps:
@@ -82,7 +82,7 @@ container.set(USER_SERVICE, { useClass: UserService });
 
 ### Scenario 2: Circular Dependency
 
-```typescript
+```text
 // Error: "Circular dependency detected"
 
 // Look for services that depend on each other
@@ -105,7 +105,7 @@ class EmailService {
 
 ### Scenario 3: Type Mismatch
 
-```typescript
+```text
 // Error: "Type 'DatabaseService' is not assignable to type 'IDatabase'"
 
 // Check if the service implements the interface
@@ -124,7 +124,7 @@ class DatabaseService implements IDatabase {
 
 ## Debug Factory Functions
 
-```typescript
+```text
 // Add logging to factory functions
 container.set(USER_SERVICE, {
   useFactory: () => {
@@ -146,7 +146,7 @@ container.set(USER_SERVICE, {
 
 ## Debug Test Setup
 
-```typescript
+```text
 describe('UserService Integration', () => {
   let container: Nexus;
 
@@ -178,7 +178,7 @@ describe('UserService Integration', () => {
 
 ## Environment-Specific Debugging
 
-```typescript
+```text
 // Only enable debugging in development
 if (process.env.NODE_ENV === 'development') {
   // Enable detailed logging

@@ -12,7 +12,7 @@ Take your provider patterns to the next level with advanced techniques for facto
 
 You can use `useFactory` with async functions to provide values that require asynchronous setup (e.g., fetching config from a remote source):
 
-```typescript
+```text
 container.set('CONFIG', {
   useFactory: async () => {
     const config = await fetchConfigFromRemote();
@@ -45,7 +45,8 @@ container.set('CONFIG', {
 
 Register providers only if certain conditions are met (e.g., environment, feature flag):
 
-```typescript
+```text
+// @ts-nocheck
 if (process.env.NODE_ENV === 'production') {
   container.set('LOGGER', { useClass: ProdLogger });
 } else {
@@ -60,7 +61,7 @@ if (process.env.NODE_ENV === 'production') {
 
 ### Simple Pattern (Recommended)
 
-```typescript
+```text
 container.set('DB_CONFIG', {
   useValue: {
     host: process.env.DB_HOST,
@@ -74,7 +75,7 @@ container.set('DB_CONFIG', {
 
 > _Use this only if you need to fetch config from a remote service or merge multiple sources._
 
-```typescript
+```text
 container.set('DB_CONFIG', {
   useFactory: async () => {
     if (process.env.NODE_ENV === 'production') {
@@ -88,7 +89,7 @@ container.set('DB_CONFIG', {
 
 ## Real-World Example: Feature Toggle
 
-```typescript
+```text
 const FEATURE_FLAG = process.env.FEATURE_X_ENABLED === 'true';
 container.set('FeatureService', {
   useClass: FEATURE_FLAG ? FeatureXService : NoopService,

@@ -287,7 +287,7 @@ Modules provide a powerful way to organize your dependency injection setup:
 
 For advanced module patterns and dynamic configuration, see [Module Patterns](./module-patterns.md) and [Dynamic Modules](./dynamic-modules.md).
 
-For advanced topics such as dynamic modules, lifetimes, multi-injection, and more, see the [Advanced](../advanced/advanced.md) section.
+For advanced topics such as dynamic modules, lifetimes, multi-injection, and more, see the [Advanced](../advanced) section.
 
 ## Next Steps
 

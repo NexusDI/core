@@ -109,4 +109,4 @@ console.log('Modules:', modules);
 
 ---
 
-For more advanced usage and patterns, see the [Advanced](../advanced/advanced.md) section.
+For more advanced usage and patterns, see the [Advanced](../advanced) section.

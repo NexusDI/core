@@ -502,5 +502,5 @@ The key is to use tokens and interfaces, which makes your code both more testabl
 ## Next Steps
 
 - **[Module Basics](modules/module-basics.md)** - How to organize services into modules
-- **[Advanced](advanced/advanced.md)** - Advanced testing patterns and techniques
-- **[Best Practices](best-practices.md)** - Testing best practices and guidelines
+- **[Advanced](advanced)** - Advanced testing patterns and techniques
+- **[Best Practices](best-practices)** - Testing best practices and guidelines
