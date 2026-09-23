@@ -113,6 +113,15 @@ describe('Scope', () => {
         entry: 'deps.link',
       });
     });
+
+    it('still returns a thunk for a lazy entry to a scoped provider', async () => {
+      const ship = await Nexus.create(Tactical);
+      await using shuttle = await ship.createScope({
+        request: { mission: 'x' },
+      });
+      const { x } = shuttle.resolve({ x: lazy(MISSION) });
+      expect(x()).toBe('x');
+    });
   });
 });
 
@@ -179,11 +188,17 @@ describe('Nexus', () => {
 
     it('throws NEXUS_INVALID_TOKEN for an entry that is not a token, and for a bare MultiToken', async () => {
       const ship = await Nexus.create(Tactical);
-      expect(thrown(() => rawResolve(ship, { name: 'nav' }))).toMatchObject({
+      const notAToken = thrown(() =>
+        rawResolve(ship, { name: 'nav' }),
+      ) as Error;
+      expect(notAToken).toMatchObject({
         code: 'NEXUS_INVALID_TOKEN',
         received: 'the string "nav"',
         entry: 'deps.name',
       });
+      expect(notAToken.message).toBe(
+        '[NEXUS_INVALID_TOKEN] deps.name: the string "nav" is not a token. A token is a class, a Token or a MultiToken.',
+      );
       const bare = thrown(() =>
         rawResolve(ship, { checks: DIAGNOSTICS }),
       ) as Error;
@@ -195,6 +210,40 @@ describe('Nexus', () => {
       expect(bare.message).toBe(
         '[NEXUS_INVALID_TOKEN] deps.checks: an object is the MultiToken Diagnostics; wrap it in all().',
       );
+    });
+
+    it('throws NEXUS_SCOPE_REQUIRED for a lazy entry to a scoped provider, at resolve time', async () => {
+      const ship = await Nexus.create(Tactical);
+      expect(thrown(() => ship.resolve({ x: lazy(MISSION) }))).toMatchObject({
+        code: 'NEXUS_SCOPE_REQUIRED',
+        token: 'Mission',
+        entry: 'deps.x',
+      });
+    });
+
+    it('attaches the entry to NEXUS_SCOPE_REQUIRED raised while building a transient entry, whatever the path length', async () => {
+      class Drone {
+        constructor(readonly mission: string) {}
+      }
+      const ship = await Nexus.create(
+        defineModule({
+          name: 'Tactical',
+          providers: [
+            provide(Drone, { deps: [MISSION], lifetime: 'transient' }),
+            provide(MISSION, {
+              useFactory: (request) => request.mission ?? 'none',
+              deps: [REQUEST],
+              lifetime: 'scoped',
+            }),
+          ],
+        }),
+      );
+      expect(thrown(() => ship.resolve({ drone: Drone }))).toMatchObject({
+        code: 'NEXUS_SCOPE_REQUIRED',
+        token: 'Mission',
+        entry: 'deps.drone',
+        path: ['Drone', 'Mission'],
+      });
     });
   });
 

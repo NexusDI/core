@@ -1,4 +1,8 @@
-import type { Blueprint, ProviderRecord } from '../blueprint/blueprint.js';
+import {
+  REQUEST_ID,
+  type Blueprint,
+  type ProviderRecord,
+} from '../blueprint/blueprint.js';
 import { depOf } from '../blueprint/records.js';
 import { describeValue } from '../definitions/describe.js';
 import {
@@ -48,14 +52,23 @@ function entriesOf(
   };
 }
 
-/** depOf's reason starts with the entry; the error names the entry in its own field. */
+/**
+ * depOf's reason starts with the entry; the error names the entry in its own
+ * field. depOf's generic "not a token" reason restates `received`, so that
+ * one case falls back to InvalidTokenError's own default reason instead of
+ * printing the value twice.
+ */
 function invalidEntry(
   where: string,
   value: unknown,
   reason: string,
 ): InvalidTokenError {
+  const received = describeValue(value);
+  if (reason.endsWith(', not a token')) {
+    return new InvalidTokenError({ received, entry: where });
+  }
   return new InvalidTokenError({
-    received: describeValue(value),
+    received,
     reason: `${reason.slice(where.length + 1)}.`,
     entry: where,
   });
@@ -69,20 +82,16 @@ function notADepsValue(deps: unknown): InvalidTokenError {
 }
 
 /**
- * resolve() builds each entry with nothing under construction, so a
- * ScopeRequiredError whose path holds one name is about the entry itself: a
- * scoped provider, an alias of one, or REQUEST, resolved from the root. A
- * longer path belongs to a provider the entry depends on.
+ * Every ScopeRequiredError a build for one entry raises belongs to that
+ * entry (spec §3.9): the entry itself resolved from the root, or a provider
+ * anywhere in the entry's own dependency tree. A nested resolve() or
+ * validate() call already set its own entry and is left alone.
  */
 function atEntry(where: string, build: () => unknown): unknown {
   try {
     return build();
   } catch (error) {
-    if (
-      error instanceof ScopeRequiredError &&
-      error.path.length === 1 &&
-      error.entry === null
-    ) {
+    if (error instanceof ScopeRequiredError && error.entry === null) {
       throw new ScopeRequiredError({
         token: error.token,
         path: error.path,
@@ -90,6 +99,24 @@ function atEntry(where: string, build: () => unknown): unknown {
       });
     }
     throw error;
+  }
+}
+
+/**
+ * Whether resolving `id` from the root throws NEXUS_SCOPE_REQUIRED before
+ * building anything: `id` is REQUEST, or an alias chain that ends at a
+ * scoped provider. A lazy entry to such a target throws at resolve() time
+ * instead of deferring to the thunk (spec §3.9); any other lazy entry still
+ * defers, since resolving it here would build it early.
+ */
+function needsScopeAtRoot(bp: Blueprint, id: string): boolean {
+  let current = id;
+  for (;;) {
+    if (current === REQUEST_ID) return true;
+    const record = bp.providers.get(current);
+    if (record === undefined) return false;
+    if (record.kind !== 'alias') return record.lifetime === 'scoped';
+    current = bp.bindings.get(current)?.target ?? '';
   }
 }
 
@@ -131,7 +158,10 @@ export function resolveDeps(
         throw notFound(container, bp, dep.token, moduleId, where);
       resolved = undefined;
     } else if (dep.kind === 'lazy')
-      resolved = makeThunk(id, thunkOwner(container), ctx, resolveId);
+      resolved =
+        container.kind === 'root' && needsScopeAtRoot(bp, id)
+          ? atEntry(where, () => resolveId(id, ctx))
+          : makeThunk(id, thunkOwner(container), ctx, resolveId);
     else resolved = atEntry(where, () => resolveId(id, ctx));
     Object.defineProperty(result, key, {
       value: resolved,
