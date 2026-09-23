@@ -121,8 +121,18 @@ name for it otherwise).
 The libraries repo's own `main` ruleset — the one this tooling is modeled on
 — is: rebase-only merge, 0 required approvals and no code-owner review,
 required status checks named after its CI job ids (`main`, `workflows`,
-`format`), no CodeQL rule, and a `DeployKey` bypass actor in addition to
-admins. Read the current ruleset first:
+`format`), no CodeQL rule, and two bypass actors: a `DeployKey` and
+`RepositoryRole` id `5` (Admin — GitHub's fixed repository-role ids are
+Read=1, Triage=2, Write=3, Maintain=4, Admin=5, cross-checked here against
+`gh api repos/Evanion/libraries/collaborators`, where the repo's only
+collaborator carries `role_name: "admin"`). That bypass actor is what "only
+maintainers can merge" means mechanically here: anyone who is not a
+collaborator with Admin permission on the repo cannot bypass the PR
+requirement (`pull_request` + `non_fast_forward`), and since
+`required_approving_review_count` is `0`, having Admin is what lets a
+maintainer merge their own PR (or push directly) without waiting on anyone
+else — the review count alone does not gate "who can merge", the repo's
+actual collaborator/team permissions do. Read the current ruleset first:
 
 ```bash
 gh api repos/NexusDI/core/rulesets/6234520
@@ -169,7 +179,7 @@ gh api --method PUT repos/NexusDI/core/rulesets/6234520 --input - <<'JSON'
     { "type": "copilot_code_review" }
   ],
   "bypass_actors": [
-    { "actor_id": null, "actor_type": "OrganizationAdmin", "bypass_mode": "always" },
+    { "actor_id": 5, "actor_type": "RepositoryRole", "bypass_mode": "always" },
     { "actor_id": <deploy-key-id-from-step-a>, "actor_type": "DeployKey", "bypass_mode": "always" }
   ]
 }
@@ -194,9 +204,28 @@ What changed from the ruleset as found, and why:
   workflow and no `code_scanning` rule; porting the rule without the workflow
   that satisfies it would permanently block every PR. If you want CodeQL,
   add `github/codeql-action`'s workflow first, then add the rule back.
-- **`bypass_actors` gains the `DeployKey`** from step (a), so the release
-  workflow's push is not itself blocked by the reviewed-PR requirement.
-  `OrganizationAdmin` is kept from the current config.
+- **`bypass_actors` becomes `RepositoryRole` id `5` (Admin) plus the
+  `DeployKey`** from step (a), replacing `OrganizationAdmin`. This mirrors
+  the libraries repo's own mechanism exactly rather than an org-only
+  equivalent of it: `RepositoryRole` is available on both user-owned repos
+  (like `Evanion/libraries`, which has no organization to be an
+  `OrganizationAdmin` of) and organization-owned repos (like
+  `NexusDI/core`) with the same fixed role ids on both, so it transfers
+  directly with no compatibility gap. It is a materially different actor
+  than `OrganizationAdmin`, though: `OrganizationAdmin` bypasses for every
+  org owner regardless of their permission on this specific repo, while
+  `RepositoryRole: Admin` bypasses for whoever holds Admin permission on
+  _this repo_, however that permission was granted -- a direct
+  collaborator grant, or (unlike on a user repo) inherited from an org
+  team's or the org's base repository permission. Today the two are
+  equivalent in practice: `NexusDI` has exactly one member (`@Evanion`,
+  org role `admin`) and `NexusDI/core` has exactly one collaborator
+  (`@Evanion`, `role_name: "admin"`) -- checked directly, not assumed. If
+  you later add a collaborator or a team with Admin access to this repo
+  without making them an org owner, `RepositoryRole` bypasses for them and
+  `OrganizationAdmin` would not have; that is the intended effect of
+  mirroring the libraries repo's per-repo role model instead of using the
+  org-wide one.
 - **`required_approving_review_count: 0`, `require_code_owner_review: false`,
   `require_last_push_approval: false`, `dismiss_stale_reviews_on_push: true`,
   `require_extra_approval_for_unattributed_changes: false`** (were `1`,
