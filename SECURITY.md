@@ -1,59 +1,59 @@
 # Security Policy
 
-## Supported Versions
-
-Use this section to tell people about which versions of your project are
-currently being supported with security updates.
-
-| Version | Supported          |
-| ------- | ------------------ |
-| 0.1.x   | :white_check_mark: |
-| < 0.1   | :x:                |
-
 ## Reporting a Vulnerability
 
-We take security vulnerabilities seriously. If you believe you have found a security vulnerability, please report it to us as described below.
+**Do not open a public issue for a security problem.** A public issue is
+visible to everyone, including anyone who would misuse it, before there is a
+fix to upgrade to.
 
-**Please do not report security vulnerabilities through public GitHub issues.**
+Report it privately through GitHub's private vulnerability reporting:
 
-Instead, please report them via email to [INSERT SECURITY EMAIL].
+**<https://github.com/NexusDI/core/security/advisories/new>**
 
-You should receive a response within 48 hours. If for some reason you do not, please follow up via email to ensure we received your original message.
+That opens a private advisory visible only to you and the maintainer.
 
-Please include the requested information listed below (as much as you can provide) to help us better understand the nature and scope of the possible issue:
+Please include:
 
-* Type of issue (buffer overflow, SQL injection, cross-site scripting, etc.)
-* Full paths of source file(s) related to the vulnerability
-* The location of the affected source code (tag/branch/commit or direct URL)
-* Any special configuration required to reproduce the issue
-* Step-by-step instructions to reproduce the issue
-* Proof-of-concept or exploit code (if possible)
-* Impact of the issue, including how an attacker might exploit it
+- Which version is affected.
+- What an attacker can do with it — the impact, not just the mechanism.
+- The smallest reproduction you can manage.
 
-This information will help us triage your report more quickly.
+## What to Expect
 
-## Preferred Languages
+- **Acknowledgement within 7 days.** This is a spare-time project, not a
+  funded one; that is a realistic commitment rather than an optimistic one.
+- An assessment of whether it is exploitable and how severe it is.
+- A fix released to npm, and a GitHub Security Advisory published with a CVE
+  where the severity warrants one.
+- Credit in the advisory, unless you would rather stay anonymous.
 
-We prefer all communications to be in English.
+Please give the fix a reasonable window before disclosing publicly. If you do
+not hear back within 14 days, escalating publicly is fair.
 
-## Policy
+## Supported Versions
 
-NexusDI follows the principle of [Responsible Disclosure](https://en.wikipedia.org/wiki/Responsible_disclosure).
+Only the **latest published version of `@nexusdi/core`** receives security
+fixes. There are no long-term support branches. Fixes land on `main` and go
+out in the next release.
 
-## Recognition
+## Scope
 
-We would like to thank all security researchers and users who report security vulnerabilities to us. Your efforts help us maintain the security and privacy of our users.
+In scope: anything in the published `@nexusdi/core` package — code injection,
+prototype pollution, an unsafe default, a dependency vulnerability that is
+actually reachable through this code.
 
-## Security Best Practices
+Out of scope: examples/react-ssr and examples/react-ssr-e2e (demo code, never
+published), anything in this repository that is not published to npm, and
+anything that requires an attacker to already control the machine running the
+code.
 
-When using NexusDI, please follow these security best practices:
+## How This Repository Is Protected
 
-1. **Keep dependencies updated**: Regularly update NexusDI and its dependencies
-2. **Validate inputs**: Always validate and sanitize user inputs
-3. **Use HTTPS**: Use HTTPS in production environments
-4. **Follow principle of least privilege**: Only grant necessary permissions
-5. **Regular security audits**: Conduct regular security reviews of your code
+For anyone auditing the supply chain:
 
-## Security Updates
-
-Security updates will be released as patch versions (e.g., 0.1.1, 0.1.2) and will be clearly marked in the changelog. 
+- Releases are published by a manually dispatched workflow, which only users
+  with write access can trigger.
+- npm publishing uses **trusted publishing (OIDC)**. There is no long-lived
+  npm token stored in this repository, and published packages carry
+  provenance attestation you can verify with `npm audit signatures`.
+- Every GitHub Action is pinned to a full commit SHA.
