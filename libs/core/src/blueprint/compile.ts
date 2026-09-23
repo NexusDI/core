@@ -4,12 +4,13 @@ import {
   CircularDependencyError,
   type NexusError,
 } from '../errors/index.js';
+import { bind } from './bind.js';
 import {
   REQUEST_ID,
   type Blueprint,
   type ProviderRecord,
 } from './blueprint.js';
-import { bind } from './bind.js';
+import { computeLevels } from './levels.js';
 import { checkLifetimes } from './lifetimes.js';
 import { cyclePath, findCycles, successorsOf } from './tarjan.js';
 import { computeVisibility } from './visibility.js';
@@ -40,6 +41,8 @@ function requestRecord(index: number, rootId: string): ProviderRecord {
 /**
  * Compiles definitions into a frozen Blueprint, or throws one BlueprintError
  * holding every error in pass order. Constructs nothing and calls no user code.
+ * Each pass collects errors and continues; a pass skips what an earlier error
+ * broke, so one missing token produces one error.
  */
 export function compile(input: CompileInput): Blueprint {
   const errors: NexusError[] = [];
@@ -52,6 +55,8 @@ export function compile(input: CompileInput): Blueprint {
     ...walked.records,
     requestRecord(walked.records.length, root),
   ];
+  const providers = new Map(records.map((r) => [r.id, r]));
+  const nameOf = (id: string): string => providers.get(id)?.name ?? id;
 
   // Pass 2: visibility.
   const visible = computeVisibility(
@@ -76,8 +81,6 @@ export function compile(input: CompileInput): Blueprint {
   );
 
   // Pass 4: cycles, ignoring lazy edges.
-  const providers = new Map(records.map((r) => [r.id, r]));
-  const nameOf = (id: string): string => providers.get(id)?.name ?? id;
   const strong = successorsOf(bound.edges, (kind) => kind !== 'lazy');
   for (const component of findCycles(
     records.map((r) => r.id),
@@ -100,6 +103,16 @@ export function compile(input: CompileInput): Blueprint {
 
   if (errors.length > 0) throw new BlueprintError(errors);
 
+  // Pass 6: levels.
+  const levels = computeLevels(providers, strong);
+  const requestDependents = [
+    ...new Set(
+      bound.edges
+        .filter((e) => e.to === REQUEST_ID && e.kind !== 'optional')
+        .map((e) => nameOf(e.from)),
+    ),
+  ];
+
   return Object.freeze({
     root,
     modules: new Map(walked.modules.map((m) => [m.id, m])),
@@ -111,5 +124,9 @@ export function compile(input: CompileInput): Blueprint {
     exportedTokens: visible.exportedTokens,
     bindings: bound.bindings,
     edges: bound.edges,
+    singletonLevels: levels.singleton,
+    scopedLevels: levels.scoped,
+    needsRequest: requestDependents.length > 0,
+    requestDependents,
   });
 }

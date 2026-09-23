@@ -107,4 +107,12 @@ export interface Blueprint {
   /** provider id → what its deps, properties and alias target bound to. */
   readonly bindings: ReadonlyMap<string, ProviderBindings>;
   readonly edges: readonly Edge[];
+  /** Singleton provider ids, level by level, for create and load. */
+  readonly singletonLevels: readonly (readonly string[])[];
+  /** Scoped factories and their scoped deps, level by level, for createScope. */
+  readonly scopedLevels: readonly (readonly string[])[];
+  /** True when any provider has a non-optional edge to REQUEST. */
+  readonly needsRequest: boolean;
+  /** Display names of the providers with a non-optional edge to REQUEST. */
+  readonly requestDependents: readonly string[];
 }
