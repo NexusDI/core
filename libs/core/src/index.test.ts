@@ -29,6 +29,7 @@ const RUNTIME_EXPORTS: string[] = [
   'ModuleImportCycleError',
   'ModuleOptionsError',
   'MultiToken',
+  'Nexus',
   'NexusError',
   'NoScopeContextError',
   'NotReadyError',

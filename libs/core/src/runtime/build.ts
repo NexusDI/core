@@ -1,0 +1,171 @@
+import {
+  REQUEST_ID,
+  type Binding,
+  type Blueprint,
+  type ProviderRecord,
+} from '../blueprint/blueprint.js';
+import {
+  NexusError,
+  NotReadyError,
+  ProviderError,
+  ScopeRequiredError,
+} from '../errors/index.js';
+import { constructionStack } from './construction-stack.js';
+import { isObject } from './ownership.js';
+import type { ContainerState, Ctx } from './state.js';
+
+export function moduleName(bp: Blueprint, record: ProviderRecord): string {
+  return bp.modules.get(record.module)?.name ?? record.module;
+}
+
+export function isThenable(value: unknown): value is PromiseLike<unknown> {
+  return (
+    isObject(value) && typeof (value as { then?: unknown }).then === 'function'
+  );
+}
+
+function recordOf(bp: Blueprint, id: string): ProviderRecord {
+  const record = bp.providers.get(id);
+  if (record === undefined)
+    throw new Error(`@nexusdi/core: no provider ${id} in the blueprint`);
+  return record;
+}
+
+/** Records an instance for disposal by `container`, unless another container or a useValue holds it. */
+export function adopt(
+  container: ContainerState,
+  record: ProviderRecord,
+  instance: unknown,
+): void {
+  if (isObject(instance) && container.root.ownership.claim(instance)) {
+    container.owned.push({
+      instance,
+      providerId: record.id,
+      token: record.name,
+    });
+  }
+}
+
+export function traceConstruct(
+  container: ContainerState,
+  bp: Blueprint,
+  record: ProviderRecord,
+  isAsync: boolean,
+  start?: number,
+): void {
+  const tracer = container.root.tracer;
+  tracer.emit(() => ({
+    type: 'construct',
+    token: record.name,
+    providerId: record.id,
+    module: moduleName(bp, record),
+    lifetime: record.lifetime,
+    scope: container.scopeId,
+    async: isAsync,
+    durationMs: start === undefined ? 0 : tracer.now() - start,
+  }));
+}
+
+function resolveBinding(
+  binding: Binding,
+  owner: ProviderRecord,
+  ctx: Ctx,
+): unknown {
+  switch (binding.kind) {
+    case 'required':
+      return resolveId(binding.ids[0]!, ctx);
+    case 'optional':
+      return binding.ids.length > 0
+        ? resolveId(binding.ids[0]!, ctx)
+        : undefined;
+    case 'all':
+      return binding.ids.map((id) => resolveId(id, ctx));
+    case 'lazy': {
+      // A plain thunk for now. Task 20 checks readiness and names `owner` in NEXUS_NOT_READY.
+      const target = binding.ids[0]!;
+      return () => resolveId(target, ctx);
+    }
+  }
+}
+
+/**
+ * Calls a class constructor or a factory with its deps, inside a stack frame.
+ * A class instance then receives its injected properties. A thrown value that
+ * is not a NexusError becomes a ProviderError naming this provider and the
+ * stack that led to it.
+ */
+export function construct(record: ProviderRecord, ctx: Ctx): unknown {
+  const bindings = ctx.bp.bindings.get(record.id);
+  return constructionStack.run(
+    { providerId: record.id, container: ctx.container, name: record.name },
+    () => {
+      try {
+        const args =
+          bindings?.args.map((binding) =>
+            resolveBinding(binding, record, ctx),
+          ) ?? [];
+        if (record.kind === 'class' && record.useClass !== undefined) {
+          const instance: unknown = new record.useClass(...args);
+          bindings?.props.forEach((binding, i) => {
+            const prop = record.props[i];
+            if (prop !== undefined && isObject(instance))
+              prop.set(instance, resolveBinding(binding, record, ctx));
+          });
+          return instance;
+        }
+        return record.useFactory?.(...args);
+      } catch (error) {
+        if (error instanceof NexusError) throw error;
+        throw new ProviderError({
+          token: record.name,
+          module: moduleName(ctx.bp, record),
+          path: constructionStack.names(),
+          cause: error,
+        });
+      }
+    },
+  );
+}
+
+function settledSingleton(record: ProviderRecord, ctx: Ctx): unknown {
+  const slots = ctx.container.root.slots;
+  if (slots.isSettled(record.id)) return slots.value(record.id);
+  throw new NotReadyError({
+    owner: constructionStack.top()?.name ?? record.name,
+    target: record.name,
+    path: [],
+  });
+}
+
+function buildTransient(record: ProviderRecord, ctx: Ctx): unknown {
+  const start = ctx.container.root.tracer.now();
+  const instance = construct(record, ctx);
+  if (typeof ctx.owner !== 'string') adopt(ctx.owner, record, instance);
+  traceConstruct(ctx.container, ctx.bp, record, false, start);
+  return instance;
+}
+
+/** The instance for a provider id, building it synchronously when its lifetime allows. */
+export function resolveId(id: string, ctx: Ctx): unknown {
+  if (id === REQUEST_ID) {
+    throw new ScopeRequiredError({
+      token: 'REQUEST',
+      path: [...constructionStack.names(), 'REQUEST'],
+    });
+  }
+  const record = recordOf(ctx.bp, id);
+  if (record.kind === 'alias')
+    return resolveId(ctx.bp.bindings.get(id)?.target ?? '', ctx);
+  switch (record.lifetime) {
+    case null:
+    case 'singleton':
+      return settledSingleton(record, ctx);
+    case 'scoped':
+      throw new ScopeRequiredError({
+        token: record.name,
+        path: [...constructionStack.names(), record.name],
+      });
+    case 'transient':
+      return buildTransient(record, ctx);
+  }
+}
