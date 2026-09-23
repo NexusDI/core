@@ -277,6 +277,20 @@ npm view @nexusdi/core repository          # should point at NexusDI/core
 provenance — the OIDC exchange did not happen. Check that `id-token: write` is
 still granted and that the trusted publisher's workflow filename still matches.
 
+## The docs site redeploys after a publish
+
+`docs.yml` (nexus.js.org) does not trigger on the release tag. GitHub Pages'
+default environment protection rule allows deployments only from the default
+branch, and a tag push is not on the default branch, so a tag trigger fails at
+the `deploy` job every time. Instead, the last step of a non-dry-run release
+runs `gh workflow run docs.yml --ref main`, which dispatches `docs.yml` on
+`main` once the release tag exists. `docs.yml` itself still resolves the root
+site from the newest `@nexusdi/core@*` tag (docs spec §15.6); dispatching it
+from `main` changes nothing about which commit it builds from, only how it
+gets triggered.
+
+A dry run skips this step, matching the "Publish to npm" step it follows.
+
 ## If a release fails
 
 - **`ENEEDAUTH` / 401 on publish** — usually the trusted publisher is not
@@ -289,3 +303,7 @@ still granted and that the trusted publisher's workflow filename still matches.
 - **The version/tag step fails to push** — the deploy key is missing, revoked,
   or not listed as a ruleset bypass actor. See "Repository setup — applied
   configuration" above.
+- **"Redeploy the docs site" fails** — `actions: write` was removed from
+  `release.yml`'s permissions, or `docs.yml` was renamed. The publish itself
+  already succeeded; re-run `docs.yml` manually (`workflow_dispatch`) once
+  fixed.

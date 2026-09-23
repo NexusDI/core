@@ -10,9 +10,6 @@ export const REQUIRED_PATHS = [
   '.github/workflows/docs.yml',
 ] as const;
 
-/** A release tag rebuilds the root site from that release (spec section 15.6). */
-export const RELEASE_TAG = '@nexusdi/core@*';
-
 /** Whether a root directory or file sits under one of the globs. */
 export function covers(globs: readonly string[], root: string): boolean {
   return globs.some((glob) =>
@@ -51,9 +48,12 @@ export function checkTrigger(
   if (!strings(push.branches).includes('main')) {
     findings.push("docs.yml: on.push.branches lacks 'main'.");
   }
-  if (!strings(push.tags).includes(RELEASE_TAG)) {
+  if (strings(push.tags).length > 0) {
     findings.push(
-      `docs.yml: on.push.tags lacks '${RELEASE_TAG}'. A release must rebuild the root site.`,
+      "docs.yml: on.push.tags is set. GitHub Pages' default environment " +
+        'protection rule allows only the default branch, so a tag-triggered ' +
+        'run fails at the deploy job; release.yml dispatches docs.yml on ' +
+        'main instead, after a successful publish.',
     );
   }
   if (!('workflow_dispatch' in on)) {

@@ -5,9 +5,6 @@ name: Docs
 on:
   push:
     branches: [main]
-    # GitHub evaluates no path filter on a tag push, so a release tag always
-    # deploys: the root builds from the newest stable tag after final.
-    tags: ['@nexusdi/core@*']
     paths:
       # tools/repo-checks/src/docs/docs-trigger.ts holds this list against the
       # release projects and the docs project's inputs.

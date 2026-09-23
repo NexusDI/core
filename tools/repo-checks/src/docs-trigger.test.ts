@@ -28,11 +28,11 @@ describe('docs-trigger fixtures', () => {
     expect(checkTrigger(read('clean.yml'), ROOTS)).toEqual([]);
   });
 
-  it('fails a missing path, a missing release tag, no manual run and an uncovered root', () => {
+  it('fails a missing path, a stray tag trigger, no manual run and an uncovered root', () => {
     expect(checkTrigger(read('sabotaged.yml'), ROOTS)).toEqual([
       "docs.yml: on.push.paths does not cover 'internal/meridian-ui', a project the site builds from. A change there would deploy nothing.",
       "docs.yml: on.push.paths lacks 'internal/**' (spec section 15.3).",
-      "docs.yml: on.push.tags lacks '@nexusdi/core@*'. A release must rebuild the root site.",
+      "docs.yml: on.push.tags is set. GitHub Pages' default environment protection rule allows only the default branch, so a tag-triggered run fails at the deploy job; release.yml dispatches docs.yml on main instead, after a successful publish.",
       'docs.yml: on.workflow_dispatch is missing. A person must be able to redeploy by hand.',
     ]);
   });
