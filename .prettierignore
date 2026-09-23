@@ -19,6 +19,7 @@
 # `next build`.
 apps/docs/.next
 apps/docs/out
+apps/docs/next-env.d.ts
 # Guard fixtures are data the docs guards read line by line, and their tests
 # assert source line numbers. A fence prettier pads with a blank line moves
 # every line after it.
