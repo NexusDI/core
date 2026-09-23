@@ -4,7 +4,7 @@ sidebar_position: 3
 
 # Performance & Bundle Size ⚡
 
-NexusDI is designed to be lightweight and performant while providing powerful dependency injection capabilities. Think of it as the sports car of DI libraries - fast, efficient, and fun to drive! This guide covers runtime overhead, bundle size analysis, performance characteristics, optimization strategies, and real-world impact based on actual benchmark measurements.
+NexusDI is designed to be lightweight and performant while providing powerful dependency injection capabilities. Think of it as the sports car of DI libraries - fast, efficient, and fun to drive! This guide covers runtime overhead, bundle size analysis, performance characteristics, optimization strategies, and real-world impact.
 
 ## 📦 Bundle Size Analysis (The "How Big Is It?" Section)
 
@@ -38,13 +38,13 @@ NexusDI is designed for fast startup with minimal overhead:
 
 ```typescript
 // Fast container instantiation
-const container = new Nexus(); // 1.3μs average
+const container = new Nexus();
 
 // Efficient service registration
-container.set(USER_SERVICE, { useClass: UserService }); // 0.16μs average
+container.set(USER_SERVICE, { useClass: UserService });
 
 // Quick dependency resolution
-const userService = container.get(USER_SERVICE); // 0.2μs average
+const userService = container.get(USER_SERVICE);
 ```
 
 ### Runtime Performance
@@ -54,152 +54,9 @@ const userService = container.get(USER_SERVICE); // 0.2μs average
 - **Memory efficient**: Minimal object creation overhead
 - **No reflection overhead**: Metadata is read when a provider is registered or resolved. `set()` reads module and provider metadata, and `get()` reads a class's injection metadata when it constructs the class
 
-### Memory Usage
-
-Based on actual measurements:
-
-```typescript
-// Memory usage example
-const container = new Nexus();
-
-// Register services
-container.set(USER_SERVICE, { useClass: UserService });
-container.set(EMAIL_SERVICE, { useClass: EmailService });
-
-// Memory overhead: ~6KB additional heap
-// - Container instance: ~1KB
-// - Provider registry: ~2KB
-// - Instance cache: ~1KB
-// - Metadata storage: ~1KB
-```
-
 ## 📊 Comparison with Other DI Libraries
 
-### Real Benchmark Results
-
-Based on actual measurements with 1,000 startup iterations and 10,000 resolution iterations:
-
-| Library     | Startup Time | Resolution Time | Memory Usage | Bundle Size |
-| ----------- | ------------ | --------------- | ------------ | ----------- |
-| **NexusDI** | 1.3μs        | 0.2μs           | 6KB          | 96KB        |
-| TypeDI      | 2.0μs        | 0.1μs           | 2KB          | 89KB        |
-| InversifyJS | 22.2μs       | 1.4μs           | 32KB         | 114KB       |
-| tsyringe    | 45.2μs       | 0.9μs           | 150KB        | 99KB        |
-
-### Performance Rankings
-
-1. **Startup Speed**: NexusDI (1.3μs) > TypeDI (2.0μs) > tsyringe (45.2μs) > InversifyJS (22.2μs)
-2. **Resolution Speed**: TypeDI (0.1μs) > NexusDI (0.2μs) > tsyringe (0.9μs) > InversifyJS (1.4μs)
-3. **Memory Efficiency**: TypeDI (2KB) > NexusDI (6KB) > InversifyJS (32KB) > tsyringe (150KB)
-4. **Bundle Size**: TypeDI (89KB) < NexusDI (96KB) < tsyringe (99KB) < InversifyJS (114KB)
-
-### How These Benchmarks Were Conducted
-
-All performance data in this article is based on real benchmark measurements, not estimates. Here's how the tests were conducted:
-
-#### Test Environment
-
-- **Node.js**: v22.13.1
-- **Platform**: M1 Pro MacBook
-- **Iterations**: 1,000 for startup time, 10,000 for resolution time
-- **Test Scenario**: 3 services (Logger, Database, UserService) with dependencies
-
-#### What Gets Measured
-
-1. **Startup Time**: Time to create container and register all services
-2. **Resolution Time**: Time to resolve a service from the container
-3. **Memory Usage**: Additional heap memory used by the DI container
-4. **Bundle Size**: Core library size + dependencies
-
-#### Test Implementation
-
-Each library is tested with equivalent functionality:
-
-```typescript
-// Example test scenario used for all libraries
-interface IDatabase {
-  query(sql: string): Promise<any>;
-}
-
-interface ILogger {
-  log(message: string): void;
-}
-
-interface IUserService {
-  getUser(id: string): Promise<any>;
-}
-
-// Services with dependencies
-class Logger implements ILogger {
-  log(message: string) {}
-}
-
-class Database implements IDatabase {
-  async query(sql: string) {
-    return { result: 'data' };
-  }
-}
-
-class UserService implements IUserService {
-  constructor(private database: IDatabase, private logger: ILogger) {}
-
-  async getUser(id: string) {
-    this.logger.log(`Getting user ${id}`);
-    return await this.database.query(`SELECT * FROM users WHERE id = '${id}'`);
-  }
-}
-```
-
-### Running the Benchmarks Yourself
-
-You can verify these results by running the benchmarks yourself:
-
-#### Prerequisites
-
-```bash
-# Clone the repository
-git clone git@github.com:NexusDI/core.git
-cd core
-
-# Install dependencies
-npm install
-
-# Build the project
-npm run build
-```
-
-#### Run Benchmarks
-
-```bash
-# Navigate to benchmark runner
-cd benchmarks/runner
-
-# Install benchmark dependencies
-npm install
-
-# Run all library comparisons
-npm run compare
-
-# Run NexusDI validation only
-npm run validate
-
-# Run comprehensive benchmarks
-npm run benchmark
-```
-
-#### Understanding the Output
-
-The benchmark results show that NexusDI offers excellent performance characteristics. With startup times under 2μs and resolution times under 1μs, it provides fast, efficient dependency injection that's ready for production use.
-
-### Why These Results Matter
-
-- **Reproducible**: All tests can be run independently
-- **Transparent**: Full source code and methodology available
-- **Fair**: Same test scenario across all libraries
-- **Current**: Tests use latest versions of all libraries
-- **Realistic**: Tests real-world usage patterns
-
-This ensures the performance claims are credible and verifiable by anyone who wants to check the results themselves.
+NexusDI 0.4 will include a reproducible benchmark harness that compares DI containers.
 
 ### Why NexusDI is Fast
 
@@ -318,68 +175,21 @@ if (userFeatureEnabled) {
 }
 ```
 
-## 📈 Performance Benchmarks
-
-### Service Resolution Performance
-
-```typescript
-// Benchmark: 10,000 service resolutions
-const container = new Nexus();
-container.set(USER_SERVICE, { useClass: UserService });
-
-console.time('service-resolution');
-for (let i = 0; i < 10000; i++) {
-  container.get(USER_SERVICE);
-}
-console.timeEnd('service-resolution');
-
-// Result: ~2-3ms for 10,000 resolutions
-// Average: 0.0002ms per resolution
-```
-
-### Module Registration Performance
-
-```typescript
-// Benchmark: Module registration
-console.time('module-registration');
-container.set(UserModule);
-console.timeEnd('module-registration');
-
-// Result: ~0.1-0.5ms per module
-```
-
-### Memory Usage Over Time
-
-```typescript
-// Memory usage monitoring
-const initialMemory = process.memoryUsage().heapUsed;
-
-const container = new Nexus();
-container.set(UserModule);
-container.set(EmailModule);
-
-const finalMemory = process.memoryUsage().heapUsed;
-const memoryIncrease = finalMemory - initialMemory;
-
-console.log(`Memory increase: ${memoryIncrease / 1024}KB`);
-// Result: ~5-10KB additional memory
-```
-
 ## 🎯 When Performance Matters
 
 ### ✅ Good Use Cases (Low Performance Impact)
 
 - **Web applications**: Bundle size impact is minimal (0.6% on a 1MB bundle)
-- **Server applications**: Runtime overhead is negligible (0.001ms startup)
+- **Server applications**: Runtime overhead is negligible
 - **Medium to large projects**: Benefits outweigh costs
 - **Applications with complex dependencies**: DI improves maintainability
-- **Microservices**: Very low memory footprint (5KB)
+- **Microservices**: Very low memory footprint
 
 ### ⚠️ Consider Alternatives When
 
-- **Edge computing**: Strict memory limits (though 5KB is very low)
+- **Edge computing**: Strict memory limits
 - **Simple applications**: DI adds unnecessary complexity
-- **Performance-critical applications**: Startup time is crucial (though 0.001ms is extremely fast)
+- **Performance-critical applications**: Startup time is crucial
 
 ### 📊 Decision Matrix
 
@@ -508,18 +318,12 @@ class EmailModule {}
 NexusDI provides excellent performance characteristics:
 
 - **Minimal overhead**: 6.1KB minified, 2.2KB gzipped
-- **Fast startup**: 0.001ms container initialization
-- **Efficient resolution**: 0.0002ms per service resolution
 - **Tree-shakeable**: Unused features are eliminated
-- **Memory efficient**: 5KB additional heap usage
 
 ### Key Performance Advantages
 
-1. **Fastest startup time** among major TypeScript DI libraries
-2. **Lowest memory usage** for typical applications
-3. **Competitive resolution speed** with minimal overhead
-4. **Small bundle size** with tree-shaking support
-5. **No runtime dependencies** in 0.3.2
+1. **Small bundle size** with tree-shaking support
+2. **No runtime dependencies** in 0.3.2
 
 For most applications, the performance impact is negligible while the benefits of dependency injection (testability, maintainability, flexibility) are substantial. NexusDI is particularly well-suited for:
 
