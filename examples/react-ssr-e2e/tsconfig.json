@@ -3,7 +3,11 @@
   "compilerOptions": {
     "allowJs": true,
     "outDir": "out-tsc/playwright",
-    "sourceMap": false
+    "sourceMap": false,
+    "module": "esnext",
+    "moduleResolution": "bundler",
+    "ignoreDeprecations": "6.0",
+    "rootDir": "."
   },
   "include": [
     "**/*.ts",

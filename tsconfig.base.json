@@ -1,22 +1,25 @@
 {
   "compilerOptions": {
     "composite": true,
-    "declarationMap": false,
+    "declarationMap": true,
     "emitDeclarationOnly": true,
-    "importHelpers": true,
+    "importHelpers": false,
     "isolatedModules": true,
     "lib": ["es2022"],
-    "module": "es2022",
-    "moduleResolution": "bundler",
+    "module": "nodenext",
+    "moduleResolution": "nodenext",
     "noEmitOnError": true,
     "noFallthroughCasesInSwitch": true,
-    "experimentalDecorators": true,
     "noImplicitOverride": true,
     "noImplicitReturns": true,
     "noUnusedLocals": true,
     "skipLibCheck": true,
     "strict": true,
     "target": "es2022",
-    "customConditions": ["development"]
+    "customConditions": ["@nexusdi/source"],
+    "noUncheckedSideEffectImports": false,
+    "types": ["*"],
+    "esModuleInterop": false,
+    "ignoreDeprecations": "6.0"
   }
 }

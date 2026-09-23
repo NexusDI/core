@@ -14,7 +14,6 @@
   },
   "release": {
     "projectsRelationship": "independent",
-    "releaseTagPattern": "{projectName}@{version}",
     "version": {
       "fallbackCurrentVersionResolver": "disk",
       "preVersionCommand": "npx nx run-many -t build",
@@ -31,6 +30,9 @@
           "versionTitleDate": false
         }
       }
+    },
+    "releaseTag": {
+      "pattern": "{projectName}@{version}"
     }
   },
   "tui": {
@@ -62,7 +64,6 @@
       "plugin": "@nx/vite/plugin",
       "options": {
         "buildTargetName": "build",
-        "testTargetName": "test",
         "serveTargetName": "serve",
         "devTargetName": "dev",
         "previewTargetName": "preview",
@@ -87,6 +88,12 @@
       "plugin": "@nx/playwright/plugin",
       "options": {
         "targetName": "e2e"
+      }
+    },
+    {
+      "plugin": "@nx/vitest",
+      "options": {
+        "testTargetName": "test"
       }
     }
   ],

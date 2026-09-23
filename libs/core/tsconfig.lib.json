@@ -7,13 +7,17 @@
     "tsBuildInfoFile": "dist/tsconfig.lib.tsbuildinfo",
     "emitDeclarationOnly": false,
     "experimentalDecorators": true,
+    // Legacy decorators are the one construct at target es2022 that still
+    // emits a tslib helper, so this package turns importHelpers back on
+    // next to experimentalDecorators and declares tslib as a runtime
+    // dependency in package.json (never devDependencies) to match.
+    "importHelpers": true,
     "forceConsistentCasingInFileNames": true,
     "types": ["node"],
     "lib": ["es2022", "esnext.decorators"],
     "sourceMap": false,
     "declarationMap": false,
-    "module": "nodenext",
-    "moduleResolution": "nodenext"
+    "ignoreDeprecations": "6.0"
   },
   "include": ["src/**/*.ts"],
   "references": [],
