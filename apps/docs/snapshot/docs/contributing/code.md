@@ -20,7 +20,7 @@ Thank you for your interest in contributing code to NexusDI! Your improvements h
 
 ### Prerequisites
 
-- Node.js 18.x or higher
+- Node.js 20 or higher (`@nexusdi/core` 0.3.2 declares `engines.node` `>=20`)
 - npm (or yarn)
 
 ### Installation

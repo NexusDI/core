@@ -34,7 +34,7 @@ class AuditingModule extends LoggingModule {}
 
 ## Pitfall: Metadata Inheritance
 
-By default, both TypeScript's `Reflect.getMetadata` and native `Symbol.metadata` (as accessed via NexusDI's `getMetadata`) will return metadata from the parent if the subclass isn't decorated. This can lead to subtle bugs:
+NexusDI 0.3 stores metadata under the `Symbol.metadata` key of each decorated class, and it polyfills `Symbol.metadata` when the runtime lacks it. By default, both TypeScript's `Reflect.getMetadata` and NexusDI's `getMetadata` will return metadata from the parent if the subclass isn't decorated. This can lead to subtle bugs:
 
 ```typescript
 import { getMetadata, METADATA_KEYS } from '@nexusdi/core';
@@ -46,7 +46,7 @@ const childMeta = getMetadata(
 ); // { providers: [LoggerService] } (inherited!)
 ```
 
-> **Note:** This inheritance behavior applies to both legacy `Reflect.getMetadata` and modern native `Symbol.metadata` (as used by NexusDI's `getMetadata`).
+> **Note:** This inheritance behavior applies to both `Reflect.getMetadata` and the `Symbol.metadata` key that NexusDI's `getMetadata` reads, because a subclass constructor inherits the static properties of its parent.
 
 This means **subclasses without `@Module` will appear to have the parent's metadata**, but NexusDI expects every module to be explicitly decorated. The real risk is that your subclass will only include the parent's providers and configuration — any new configuration added in the child will be ignored unless you decorate the subclass with `@Module`. To add new providers or configuration to a child module, you must decorate it as a module.
 
