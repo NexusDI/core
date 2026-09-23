@@ -53,6 +53,16 @@
       "file": "tools/repo-checks/src/docs/allowance.ts",
       "exports": ["readAllowance"],
     },
+    // REQUIRED_PATHS and RELEASE_TAG are part of docs-trigger's documented
+    // interface (the values checkTrigger checks docs.yml against), but
+    // checkTrigger reads them itself and no caller needs them separately --
+    // Task 42's live run against .github/workflows/docs.yml imports only
+    // checkTrigger. This entry does not go stale the way the block above
+    // does: no future guard is expected to import these two.
+    {
+      "file": "tools/repo-checks/src/docs/docs-trigger.ts",
+      "exports": ["REQUIRED_PATHS", "RELEASE_TAG"],
+    },
   ],
 
   // Every workspace project's own eslint.config.mjs spreads a preset from
