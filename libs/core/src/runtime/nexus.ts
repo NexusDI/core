@@ -1,6 +1,7 @@
 import { compile } from '../blueprint/compile.js';
 import type { ModuleRef } from '../definitions/define-module.js';
 import type { InjectionToken, MultiToken } from '../definitions/token.js';
+import { loadModule } from './load.js';
 import { getFrom, hasIn } from './lookup.js';
 import type { CreateOptions, LookupOptions } from './options.js';
 import { startBlueprint } from './startup.js';
@@ -54,6 +55,14 @@ export class Nexus {
   ): boolean {
     assertOpen(this.#state);
     return hasIn(this.#state.blueprint, token, options);
+  }
+
+  /**
+   * Adds a module after startup. Its exports become visible at the root once
+   * its singletons are built. Concurrent calls run one at a time, in call order.
+   */
+  load(module: ModuleRef): Promise<void> {
+    return loadModule(this.#state, module);
   }
 }
 

@@ -62,11 +62,14 @@ function settleValue(
 /**
  * Stores useValue providers as they are, never awaited, and reports aliases.
  * An options value with a schema is stored once its validation settles.
+ * Every value settleValue registers with `root.ownership` also lands in
+ * `registered`, so a caller that aborts this run can undo the registration.
  */
 async function registerStatic(
   root: RootState,
   plan: StartupPlan,
   touched: string[],
+  registered: unknown[],
 ): Promise<void> {
   const validated: string[] = [];
   for (const record of plan.bp.providers.values()) {
@@ -74,14 +77,16 @@ async function registerStatic(
     if (record.kind === 'alias') traceConstruct(root, plan.bp, record, false);
     if (record.kind !== 'value') continue;
     touched.push(record.id);
-    if (record.schema === undefined)
+    if (record.schema === undefined) {
       settleValue(root, plan.bp, record, record.value);
-    else validated.push(record.id);
+      registered.push(record.value);
+    } else validated.push(record.id);
   }
   await settleLevel(validated, async (id) => {
     const record = plan.bp.providers.get(id)!;
     const { value } = await validateOptions(record, plan.bp, record.value);
     settleValue(root, plan.bp, record, value);
+    registered.push(value);
   });
 }
 
@@ -135,8 +140,9 @@ export async function startBlueprint(
 ): Promise<void> {
   const mark = root.owned.length;
   const touched: string[] = [];
+  const registered: unknown[] = [];
   try {
-    await registerStatic(root, plan, touched);
+    await registerStatic(root, plan, touched, registered);
     for (const level of plan.bp.singletonLevels) {
       const ids = level.filter(plan.isNew);
       if (ids.length === 0) continue;
@@ -146,6 +152,7 @@ export async function startBlueprint(
     markReady(root, plan);
   } catch (error) {
     for (const id of touched) root.slots.abandon(id);
+    for (const value of registered) root.ownership.unregisterValue(value);
     const { errors } = await disposeInReverse(
       root.owned.splice(mark),
       root.ownership,

@@ -2,12 +2,16 @@ import { describe, expect, it, vi } from 'vitest';
 
 import { rejected } from '../../test-support/catch.js';
 import { frequencySchema } from '../../test-support/schema.js';
+import { compile } from '../blueprint/compile.js';
 import { defineModule } from '../definitions/define-module.js';
 import { provide } from '../definitions/provide.js';
 import type { StandardSchemaV1 } from '../definitions/standard-schema.js';
 import { Token } from '../definitions/token.js';
 import { ProviderError } from '../errors/index.js';
 import { Nexus } from './nexus.js';
+import { createRootState } from './state.js';
+import { startBlueprint } from './startup.js';
+import { Tracer } from './trace.js';
 
 function disposable(
   log: string[],
@@ -238,6 +242,37 @@ describe('Nexus', () => {
       const value = ship.get(OPTIONS, { module: tuned });
       expect(value.then).toBe(then);
       expect(then).not.toHaveBeenCalled();
+    });
+
+    it("leaves a failed build's useValue objects claimable afterward", async () => {
+      const shared = {};
+      const VALUE = new Token<object>('Value');
+      class Boom {
+        constructor() {
+          throw new Error('boom');
+        }
+      }
+      const bp = compile({
+        root: defineModule({
+          name: 'Root',
+          providers: [provide(VALUE, { useValue: shared }), Boom],
+        }),
+      });
+      const root = createRootState({
+        blueprint: bp,
+        rootRef: {},
+        tracer: new Tracer(),
+        initEnabled: true,
+      });
+      await expect(
+        startBlueprint(root, { bp, isNew: () => true }),
+      ).rejects.toMatchObject({ code: 'NEXUS_PROVIDER_FAILED' });
+      // registerStatic ran before Boom's level failed, so `shared` was
+      // registered as a useValue object; startBlueprint's failure path must
+      // undo that registration (Ownership.unregisterValue), or `shared`
+      // would stay unclaimable for the rest of the root's lifetime even
+      // though this build never published its blueprint.
+      expect(root.ownership.claim(shared)).toBe(true);
     });
   });
 });

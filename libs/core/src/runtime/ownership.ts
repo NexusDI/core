@@ -35,6 +35,18 @@ export class Ownership {
     if (isObject(value)) this.#values.add(value);
   }
 
+  /**
+   * Removes value from the set registerValue added it to. A failed load()
+   * leaves the container as it was before the call (spec §3.5), and this
+   * Set is part of that state: without removal, an object registered as
+   * useValue by a load() that then failed stays unownable for the rest of
+   * the container's lifetime, even once a later provider builds that same
+   * object for real.
+   */
+  unregisterValue(value: unknown): void {
+    if (isObject(value)) this.#values.delete(value);
+  }
+
   claim(value: unknown): boolean {
     if (!isObject(value) || this.#tracked.has(value) || this.#values.has(value))
       return false;

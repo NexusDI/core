@@ -29,6 +29,15 @@ describe('Ownership', () => {
     expect(ownership.claimInit(value)).toBe(false);
   });
 
+  it('lets a value be claimed again once its registration is undone', () => {
+    const ownership = new Ownership();
+    const value = {};
+    ownership.registerValue(value);
+    expect(ownership.claim(value)).toBe(false);
+    ownership.unregisterValue(value);
+    expect(ownership.claim(value)).toBe(true);
+  });
+
   it('remembers which objects were disposed', () => {
     const ownership = new Ownership();
     const reactor = {};

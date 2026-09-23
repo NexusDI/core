@@ -27,6 +27,10 @@ export interface RootState {
   readonly initEnabled: boolean;
   /** Set when disposal starts. Every public method checks it. */
   disposing: boolean;
+  /** load() calls run one at a time, in call order, on this chain. */
+  loadQueue: Promise<void>;
+  /** load() and createScope() operations still running. Disposal awaits them. */
+  readonly inflight: Set<Promise<unknown>>;
 }
 
 /** A container that builds and owns instances. Task 22 adds scopes. */
@@ -66,6 +70,8 @@ export function createRootState(init: RootInit): RootState {
     asyncFlags: new Map(),
     initEnabled: init.initEnabled,
     disposing: false,
+    loadQueue: Promise.resolve(),
+    inflight: new Set(),
   };
   return state;
 }
@@ -73,4 +79,16 @@ export function createRootState(init: RootInit): RootState {
 /** Public methods call this first (regression R17). */
 export function assertOpen(root: RootState): void {
   if (root.disposing) throw new DisposedError({ target: 'container' });
+}
+
+/** Keeps `work` in `set` until it settles, without creating an unhandled rejection. */
+export function track(
+  set: Set<Promise<unknown>>,
+  work: Promise<unknown>,
+): void {
+  set.add(work);
+  const done = (): void => {
+    set.delete(work);
+  };
+  work.then(done, done);
 }
