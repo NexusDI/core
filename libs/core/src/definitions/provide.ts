@@ -23,10 +23,24 @@ export type DepsFor<C extends Ctor> =
     ? { deps?: Tokens<ConstructorParameters<C>> }
     : { deps: Tokens<ConstructorParameters<C>> };
 
+// The definition keys are `never` so a definition object fails this form
+// before TypeScript checks its callbacks. TypeScript types a callback's
+// parameters from the first overload whose structural check passes, and
+// excess keys don't fail that check, so without these keys
+// `provide(Cls, { useFactory: (a) => ..., deps })` types `a` from this
+// overload, where useFactory has no type, and `a` is implicitly any.
+type ClassOptionsObject<C extends Ctor> = {
+  lifetime?: Lifetime;
+  useClass?: never;
+  useValue?: never;
+  useExisting?: never;
+  useFactory?: never;
+} & DepsFor<C>;
+
 export type ClassOptions<C extends Ctor> =
   DeclaresDeps<C> extends true
-    ? [options?: { lifetime?: Lifetime } & DepsFor<C>]
-    : [options: { lifetime?: Lifetime } & DepsFor<C>];
+    ? [options?: ClassOptionsObject<C>]
+    : [options: ClassOptionsObject<C>];
 
 /**
  * deps on a useClass binding. The compiler reads C's @Injectable metadata

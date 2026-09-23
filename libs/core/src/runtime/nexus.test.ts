@@ -65,7 +65,7 @@ describe('Nexus', () => {
         providers: [
           provide(ReactorCore, { useFactory: () => gate.promise, deps: [] }),
           provide(ShipComputer, {
-            useFactory: (reactor: ReactorCore) => {
+            useFactory: (reactor) => {
               order.push('computer');
               return new ShipComputer(reactor);
             },

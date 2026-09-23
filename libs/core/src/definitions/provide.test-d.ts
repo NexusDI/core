@@ -119,6 +119,41 @@ describe('provide', () => {
     });
   });
 
+  it('types factory arguments from deps when a class is its own token', () => {
+    expectTypeOf(
+      provide(ShipComputer, {
+        useFactory: (reactor) => {
+          expectTypeOf(reactor).toEqualTypeOf<ReactorCore>();
+          return new ShipComputer(reactor);
+        },
+        deps: [ReactorCore],
+      }),
+    ).toEqualTypeOf<Provider<ShipComputer>>();
+    provide(ShipComputer, {
+      // @ts-expect-error deps gives a ReactorCore, not a SubspaceLink
+      useFactory: (link: SubspaceLink) => {
+        expectTypeOf(link).toEqualTypeOf<SubspaceLink>();
+        return new ShipComputer(new ReactorCore());
+      },
+      deps: [ReactorCore],
+    });
+  });
+
+  it('accepts a class, a value or an alias when a class is its own token', () => {
+    const computer = new ShipComputer(new ReactorCore());
+    expectTypeOf(
+      provide(ShipComputer, { useClass: ShipComputer, deps: [ReactorCore] }),
+    ).toEqualTypeOf<Provider<ShipComputer>>();
+    expectTypeOf(provide(ShipComputer, { useValue: computer })).toEqualTypeOf<
+      Provider<ShipComputer>
+    >();
+    expectTypeOf(
+      provide(ShipComputer, { useExisting: COMPUTER }),
+    ).toEqualTypeOf<Provider<ShipComputer>>();
+    // @ts-expect-error a value has no lifetime
+    provide(ShipComputer, { useValue: computer, lifetime: 'scoped' });
+  });
+
   it('accepts an async factory for a singleton or a scoped token', () => {
     provide(NAV_CHARTS, { useFactory: asyncCharts, deps: [] });
     provide(NAV_CHARTS, {
