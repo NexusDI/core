@@ -340,8 +340,9 @@ duplicates gate ignores exactly those files, through `.fallowrc.jsonc`.
 ### 3.8 The example app
 
 Every sample in this spec, in the READMEs and in the guides is interface-first. A handler
-injects a `Token<I>` whose type is an interface, and a module binds the token to a class
-with `useClass`. No handler, test or `inject` record names a concrete class. The samples
+injects a `Token<I>` whose type is an interface, and a module binds the token with
+`useClass` or, for async construction, `useFactory`. No handler, test or `inject` record
+names a concrete class. The samples
 share one module, the bridge API:
 
 ```ts
@@ -362,7 +363,10 @@ export const FLIGHT_LOG = new Token<IFlightLog>('FlightLog');
 
 ```ts
 // tactical.module.ts, the NAV_CHARTS provider
-provide(NAV_CHARTS, { useClass: StarCharts, deps: [SubspaceLink] }),
+provide(NAV_CHARTS, {
+  useFactory: async (link) => StarCharts.download(link),
+  deps: [SUBSPACE_LINK],
+}),
 ```
 
 ```ts
@@ -390,10 +394,10 @@ export const Meridian = defineModule({
 });
 ```
 
-Core spec §3.4 builds `NAV_CHARTS` with an async factory. The interface-first samples
-bind it in `Tactical` with `useClass: StarCharts`, where `StarCharts implements INavCharts`
-and downloads its charts in `onInit`. `ShuttleFlightLog implements IFlightLog`. Both
-classes are imported only by the module that binds them. `FLIGHT_LOG` is scoped, so each
+`NAV_CHARTS` stays the async factory of core spec §3.4, typed by its interface:
+`StarCharts.download(link)` resolves to a `StarCharts`, which implements `INavCharts`.
+`ShuttleFlightLog implements IFlightLog`. Both classes are imported only by the module
+that binds them. `FLIGHT_LOG` is scoped, so each
 request gets its own log, built from that request's `MISSION`.
 
 Each server adapter's sample exports `createBridge(ship: Nexus)`, which builds the app
@@ -1486,15 +1490,10 @@ The docs spec's §7.1 vocabulary gains two rows, and every guide uses them:
 
 - "A server app: the bridge API (`BridgeApi`), built by `createBridge(ship)`, with the
   route `GET /course/:to` and the header `x-mission-id`."
-- "Interface-first contracts: `INavCharts` behind `NAV_CHARTS`, bound in `Tactical` with
-  `useClass: StarCharts`; `IFlightLog` behind the scoped `FLIGHT_LOG`, bound in
+- "Interface-first contracts: `INavCharts` behind `NAV_CHARTS`, still the async factory
+  in `Tactical` (`StarCharts.download(link)`); `IFlightLog` behind the scoped `FLIGHT_LOG`, bound in
   `BridgeApi` with `useClass: ShuttleFlightLog`; the doubles `fakeCharts` and
   `MemoryFlightLog`."
-
-The interface-first rule reaches the docs spec's examples too, in `examples/meridian` and
-the Academy. Section 3.8's `NAV_CHARTS` binding is a fifth difference from core spec §3.4
-in the docs spec's §7.1 list. The docs spec owns that change; this spec only records that
-the adapter samples depend on it.
 
 ### 12.3 `examples/react-ssr`
 
