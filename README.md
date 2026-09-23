@@ -24,7 +24,7 @@
 
 </div>
 
-NexusDI is a modern, lightweight <strong>dependency injection (DI) container</strong> for <strong>TypeScript</strong> and <strong>Node.js</strong>. It uses native decorators and a modular architecture to help you write scalable, testable, and maintainable applications. Inspired by frameworks like InversifyJS, tsyringe, TypeDI, and NestJS, NexusDI brings high performance and a developer-friendly API to your JavaScript and TypeScript projects. Works seamlessly in Node.js and modern JavaScript environments.
+NexusDI is a modern, lightweight <strong>dependency injection (DI) container</strong> for <strong>TypeScript</strong> and <strong>Node.js</strong>. It uses native decorators and a modular architecture to help you write scalable, testable, and maintainable applications. Inspired by frameworks like InversifyJS, tsyringe, TypeDI, and NestJS, NexusDI brings a developer-friendly API to your JavaScript and TypeScript projects. Works seamlessly in Node.js and modern JavaScript environments.
 
 # 🚨 Call for Feedback 🚨
 
