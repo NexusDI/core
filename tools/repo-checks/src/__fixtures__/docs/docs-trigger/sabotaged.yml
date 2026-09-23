@@ -1,0 +1,13 @@
+name: Docs
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'apps/docs/**'
+      - 'libs/**'
+      - 'examples/meridian/**'
+      - 'tools/doc-examples/**'
+      - 'package.json'
+      - 'package-lock.json'
+      - '.github/workflows/docs.yml'
+jobs: {}
