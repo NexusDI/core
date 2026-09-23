@@ -1,5 +1,5 @@
 {
-  "name": "@nexusdi/react-router-e2e",
+  "name": "@nexusdi/react-ssr-e2e",
   "version": "0.0.1",
   "private": true,
   "devDependencies": {
