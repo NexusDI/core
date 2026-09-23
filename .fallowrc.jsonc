@@ -1,0 +1,36 @@
+{
+  "$schema": "./node_modules/fallow/schema.json",
+
+  // @nexusdi/core ships an API to consumers outside this repository. An
+  // export or class member nothing in this workspace calls is the normal
+  // state of a published entry point, not dead code -- only
+  // scripts/verify-packaging.mjs and an external consumer's own code ever
+  // reach it. This makes its exports and re-export surface reachability
+  // roots, so they are not reported as unused.
+  "publicPackages": ["@nexusdi/core"],
+
+  // Every workspace project's own eslint.config.mjs spreads a preset from
+  // @nx/eslint-plugin (nx.configs['flat/base'|'flat/typescript'|'flat/javascript'|'flat/react']),
+  // and those presets require these plugins by name internally
+  // (node_modules/@nx/eslint-plugin/dist/src/flat-configs/*.js). Nothing in
+  // this workspace imports them directly, so fallow's static import tracing
+  // cannot see the consumer and reports them as unused.
+  "ignoreDependencies": [
+    "@swc-node/register",
+    "@swc/helpers",
+    "eslint-config-prettier",
+    "eslint-plugin-import",
+    "eslint-plugin-jsx-a11y",
+    "eslint-plugin-react",
+    "eslint-plugin-react-hooks",
+    "jiti",
+    "typescript-eslint",
+    // Consumed by both the root eslint.config.mjs and
+    // libs/core/eslint.config.mjs's `**/*.json` block
+    // (languageOptions.parser), resolved through root-level hoisting. Not
+    // duplicated into libs/core/package.json, which -- as a published
+    // package -- carries no devDependencies at all (see libs/urn in the
+    // libraries repo this tooling is modeled on).
+    "jsonc-eslint-parser"
+  ]
+}

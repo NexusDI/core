@@ -85,6 +85,13 @@ jobs:
 
       - run: npm ci
 
+      # A step in this job rather than a job of its own: it needs the install
+      # and nothing else, and it costs seconds against the minute that
+      # `npm ci` already costs. Ahead of `run-many` so a dead file or a new
+      # copy of an existing block reports in seconds instead of behind a
+      # full build.
+      - run: npx fallow dead-code --fail-on-issues && npx fallow dupes
+
       - run: npx nx run-many -t lint test build typecheck
 
       # Reports the run's task results to Nx Cloud. `always()` because the run
