@@ -78,7 +78,12 @@ git push origin '@nexusdi/core@<version>'
 back to the version on disk and reads conventional commits from the beginning
 of history.
 
-### 2. Repository setup — ruleset, deploy key, required checks
+### 2. Repository setup — applied configuration
+
+This is done; the `main` ruleset, the deploy key, and npm trusted publishing
+are all live. What follows is a factual record of that configuration, kept
+here so a change to it is a deliberate diff against a known state rather than
+a guess.
 
 `nx release` commits the version bump and pushes tags straight to `main`
 (`changelog.projectChangelogs.createRelease: "github"` forces this on — see
@@ -86,12 +91,31 @@ nx's `release.js`, `shouldPush`). This repo's `main` ruleset requires a
 reviewed pull request, and `github-actions[bot]` cannot be granted a bypass on
 a personal repository: the API rejects an `Integration` bypass actor outside
 an organisation. A deploy key can bypass, so the release workflow pushes as
-one (previous section, `ssh-key: secrets.RELEASE_SSH_KEY`).
+one.
 
-This is a one-time setup on GitHub. Everything below can be done through the
-`gh` CLI; replace `NexusDI/core` if you run it from a different clone.
+**`main` ruleset** (id `6234520`, `gh api repos/NexusDI/core/rulesets/6234520`):
 
-#### a. Generate the deploy key
+- Rebase-only merges (`allowed_merge_methods: ["rebase"]`), matching
+  `.husky/pre-merge-commit`'s assumption.
+- 0 required approvals, no code-owner review, no last-push approval.
+- Required status checks: `main`, `workflows`, `format`, `packaging` — the
+  job ids in `.github/workflows/ci.yml`, all four blocking.
+- A `code_scanning` rule for CodeQL, satisfied by this repo's default-setup
+  CodeQL scan — no dedicated `codeql.yml` workflow needed.
+- One bypass actor: `DeployKey`. There is no `RepositoryRole`/Admin bypass,
+  so a failing required check blocks a maintainer's own push the same as
+  anyone else's.
+
+**Deploy key**: org-level deploy keys are enabled for `NexusDI`
+(`deploy_keys_enabled_for_repositories: true` on the org). The repo carries
+one deploy key, titled `release.yml (nx release push)`, with write access
+(`--allow-write`). Its private half is the `RELEASE_SSH_KEY` secret that
+`release.yml` reads (`ssh-key: secrets.RELEASE_SSH_KEY`).
+
+**npm publishing**: no `NPM_TOKEN` secret exists on this repo. Publishing
+goes through OIDC trusted publishing, configured in section 1 above.
+
+#### Rotating the release deploy key
 
 ```bash
 ssh-keygen -t ed25519 -f release-deploy-key -N "" -C "nexusdi-core release workflow"
@@ -112,133 +136,11 @@ gh secret set RELEASE_SSH_KEY --repo NexusDI/core < release-deploy-key
 rm release-deploy-key release-deploy-key.pub
 ```
 
-`gh repo deploy-key add` prints the new key's id — note it, it is what you
-reference in the ruleset bypass entry below (GitHub does not expose a stable
-name for it otherwise).
+Then remove the old key — `gh api repos/NexusDI/core/keys` lists ids,
+`gh api --method DELETE repos/NexusDI/core/keys/<old-id>` removes one. GitHub
+does not retire a replaced key on its own.
 
-#### b. Update the `Main` ruleset (id `6234520`)
-
-The libraries repo's own `main` ruleset — the one this tooling is modeled on
-— is: rebase-only merge, 0 required approvals and no code-owner review,
-required status checks named after its CI job ids (`main`, `workflows`,
-`format`), no CodeQL rule, and two bypass actors: a `DeployKey` and
-`RepositoryRole` id `5` (Admin — GitHub's fixed repository-role ids are
-Read=1, Triage=2, Write=3, Maintain=4, Admin=5, cross-checked here against
-`gh api repos/Evanion/libraries/collaborators`, where the repo's only
-collaborator carries `role_name: "admin"`). That bypass actor is what "only
-maintainers can merge" means mechanically here: anyone who is not a
-collaborator with Admin permission on the repo cannot bypass the PR
-requirement (`pull_request` + `non_fast_forward`), and since
-`required_approving_review_count` is `0`, having Admin is what lets a
-maintainer merge their own PR (or push directly) without waiting on anyone
-else — the review count alone does not gate "who can merge", the repo's
-actual collaborator/team permissions do. Read the current ruleset first:
-
-```bash
-gh api repos/NexusDI/core/rulesets/6234520
-```
-
-Then replace it (this is a full replacement — `PUT`, not a patch — so include
-every rule you want to keep):
-
-```bash
-gh api --method PUT repos/NexusDI/core/rulesets/6234520 --input - <<'JSON'
-{
-  "name": "Main",
-  "target": "branch",
-  "enforcement": "active",
-  "conditions": { "ref_name": { "exclude": [], "include": ["~DEFAULT_BRANCH"] } },
-  "rules": [
-    { "type": "deletion" },
-    { "type": "non_fast_forward" },
-    {
-      "type": "pull_request",
-      "parameters": {
-        "required_approving_review_count": 0,
-        "dismiss_stale_reviews_on_push": true,
-        "required_reviewers": [],
-        "require_code_owner_review": false,
-        "require_last_push_approval": false,
-        "required_review_thread_resolution": true,
-        "require_extra_approval_for_unattributed_changes": false,
-        "allowed_merge_methods": ["rebase"]
-      }
-    },
-    {
-      "type": "required_status_checks",
-      "parameters": {
-        "strict_required_status_checks_policy": true,
-        "do_not_enforce_on_create": true,
-        "required_status_checks": [
-          { "context": "main" },
-          { "context": "workflows" },
-          { "context": "format" }
-        ]
-      }
-    },
-    { "type": "copilot_code_review" }
-  ],
-  "bypass_actors": [
-    { "actor_id": 5, "actor_type": "RepositoryRole", "bypass_mode": "always" },
-    { "actor_id": <deploy-key-id-from-step-a>, "actor_type": "DeployKey", "bypass_mode": "always" }
-  ]
-}
-JSON
-```
-
-What changed from the ruleset as found, and why:
-
-- **`allowed_merge_methods: ["rebase"]`** (was `["squash"]`) — rebase-only,
-  matching the libraries repo and `.husky/pre-merge-commit`'s assumption.
-  Squashing and rebasing are both linear-history strategies; either is
-  internally consistent, but the hook already installed on this branch
-  assumes rebase, so the ruleset needs to agree with it.
-- **`required_status_checks`** replaces the single `commitlint` context —
-  that workflow no longer exists (`ci: mirror the libraries repo's ci.yml`
-  dropped `commitlint.yml` in favor of the husky hook alone) — with the three
-  job ids from the current `.github/workflows/ci.yml`: `main`, `workflows`,
-  `format`. (`packaging` runs in CI but is **not** required in the libraries
-  repo's own ruleset either; leave it optional here too, or add
-  `{ "context": "packaging" }` to the list if you want it blocking.)
-- **`code_scanning` (CodeQL) is dropped.** The libraries repo has no CodeQL
-  workflow and no `code_scanning` rule; porting the rule without the workflow
-  that satisfies it would permanently block every PR. If you want CodeQL,
-  add `github/codeql-action`'s workflow first, then add the rule back.
-- **`bypass_actors` becomes `RepositoryRole` id `5` (Admin) plus the
-  `DeployKey`** from step (a), replacing `OrganizationAdmin`. This mirrors
-  the libraries repo's own mechanism exactly rather than an org-only
-  equivalent of it: `RepositoryRole` is available on both user-owned repos
-  (like `Evanion/libraries`, which has no organization to be an
-  `OrganizationAdmin` of) and organization-owned repos (like
-  `NexusDI/core`) with the same fixed role ids on both, so it transfers
-  directly with no compatibility gap. It is a materially different actor
-  than `OrganizationAdmin`, though: `OrganizationAdmin` bypasses for every
-  org owner regardless of their permission on this specific repo, while
-  `RepositoryRole: Admin` bypasses for whoever holds Admin permission on
-  _this repo_, however that permission was granted -- a direct
-  collaborator grant, or (unlike on a user repo) inherited from an org
-  team's or the org's base repository permission. Today the two are
-  equivalent in practice: `NexusDI` has exactly one member (`@Evanion`,
-  org role `admin`) and `NexusDI/core` has exactly one collaborator
-  (`@Evanion`, `role_name: "admin"`) -- checked directly, not assumed. If
-  you later add a collaborator or a team with Admin access to this repo
-  without making them an org owner, `RepositoryRole` bypasses for them and
-  `OrganizationAdmin` would not have; that is the intended effect of
-  mirroring the libraries repo's per-repo role model instead of using the
-  org-wide one.
-- **`required_approving_review_count: 0`, `require_code_owner_review: false`,
-  `require_last_push_approval: false`, `dismiss_stale_reviews_on_push: true`,
-  `require_extra_approval_for_unattributed_changes: false`** (were `1`,
-  `true`, `true`, `false`, `true`) — matches the libraries repo's own `main`
-  ruleset exactly, a single-maintainer configuration.
-
-Verify afterwards:
-
-```bash
-gh api repos/NexusDI/core/rulesets/6234520
-```
-
-#### c. npm trusted publisher
+#### npm trusted publisher
 
 Covered above in "1. Configure a trusted publisher for @nexusdi/core" — do
 that too before the first release.
@@ -385,5 +287,5 @@ still granted and that the trusted publisher's workflow filename still matches.
   its `BREAKING CHANGE:` footer. Fix the version by hand for that release
   rather than publishing a wrong one; npm versions are immutable.
 - **The version/tag step fails to push** — the deploy key is missing, revoked,
-  or not listed as a ruleset bypass actor. See "Repository setup — ruleset,
-  deploy key, required checks" above.
+  or not listed as a ruleset bypass actor. See "Repository setup — applied
+  configuration" above.
