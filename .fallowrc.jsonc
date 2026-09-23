@@ -9,6 +9,20 @@
   // roots, so they are not reported as unused.
   "publicPackages": ["@nexusdi/core"],
 
+  // `react-router typegen` writes +types/*.d.ts files that examples/react-ssr
+  // reaches only through tsconfig.app.json's `rootDirs` (app merged with
+  // .react-router/types/app at the same relative position) -- a TypeScript
+  // compiler feature built specifically for this virtual-merge case, and
+  // invisible to any resolver that isn't tsc itself. fallow's built-in
+  // react-router plugin recognizes react-router.config.ts as an entry point
+  // but does not implement rootDirs resolution (confirmed: even with typegen
+  // freshly run and the real files present on disk, `+types/*` imports still
+  // report unresolved -- fallow looks for them relative to the importing
+  // file, never through the rootDirs remap). `nx run-many -t typegen` is
+  // still run ahead of fallow in CI so the files exist for tsc, but this is
+  // the actual fix for fallow's own resolution.
+  "ignoreUnresolvedImports": ["**/+types/*"],
+
   // Every workspace project's own eslint.config.mjs spreads a preset from
   // @nx/eslint-plugin (nx.configs['flat/base'|'flat/typescript'|'flat/javascript'|'flat/react']),
   // and those presets require these plugins by name internally
