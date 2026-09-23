@@ -7,11 +7,13 @@
     "tsBuildInfoFile": "dist/tsconfig.lib.tsbuildinfo",
     "emitDeclarationOnly": false,
     "experimentalDecorators": true,
-    // Legacy decorators are the one construct at target es2022 that still
-    // emits a tslib helper, so this package turns importHelpers back on
-    // next to experimentalDecorators and declares tslib as a runtime
-    // dependency in package.json (never devDependencies) to match.
-    "importHelpers": true,
+    // Stays off (the tsconfig.base.json default): core's own source defines
+    // decorator factories but never applies a `@decorator` to one of its own
+    // classes, so tsc emits none of the __decorate/__param helper calls that
+    // would need tslib. scripts/verify-packaging.mjs checks the packed
+    // output for exactly this, and tools/repo-checks/src/tslib-dependency.test.ts
+    // holds this setting against the tslib entry (or its absence) in
+    // package.json.
     "forceConsistentCasingInFileNames": true,
     "types": ["node"],
     "lib": ["es2022", "esnext.decorators"],
