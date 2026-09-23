@@ -1,11 +1,11 @@
 import type { Blueprint } from '../blueprint/blueprint.js';
-import { compile } from '../blueprint/compile.js';
 import {
   resolveModuleRef,
   type ModuleDefinition,
 } from '../definitions/define-module.js';
 import { describeValue } from '../definitions/describe.js';
 import { InvalidModuleError, LoadError } from '../errors/index.js';
+import { compileTraced } from './compile-traced.js';
 import { startBlueprint } from './startup.js';
 import { assertOpen, track, type RootState } from './state.js';
 
@@ -60,10 +60,11 @@ async function loadNow(root: RootState, module: unknown): Promise<void> {
   const newGlobal = newGlobalImport(current, definition);
   if (newGlobal !== undefined) throw new LoadError({ module: newGlobal.name });
 
-  const next = compile({
-    root: root.rootRef,
-    extraImports: [...current.extraImports, module],
-  });
+  const next = compileTraced(
+    root.tracer,
+    { root: root.rootRef, extraImports: [...current.extraImports, module] },
+    'load',
+  );
   await startBlueprint(root, {
     bp: next,
     isNew: (id) => !current.providers.has(id),

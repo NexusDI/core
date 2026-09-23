@@ -12,6 +12,7 @@ import {
   ScopeRequiredError,
 } from '../errors/index.js';
 import { constructionStack } from './construction-stack.js';
+import { hasDisposer } from './dispose.js';
 import { makeThunk } from './lazy.js';
 import { isObject } from './ownership.js';
 import type { ContainerState, Ctx } from './state.js';
@@ -232,7 +233,18 @@ function buildTransient(record: ProviderRecord, ctx: Ctx): unknown {
       module: moduleName(ctx.bp, record),
     });
   }
-  if (typeof ctx.owner !== 'string') adopt(ctx.owner, record, instance);
+  if (typeof ctx.owner !== 'string') {
+    adopt(ctx.owner, record, instance);
+  } else if (hasDisposer(instance)) {
+    // Nothing will ever dispose this instance: a leak the trace names.
+    const reason = ctx.owner;
+    ctx.container.root.tracer.emit(() => ({
+      type: 'untracked',
+      token: record.name,
+      providerId: record.id,
+      reason,
+    }));
+  }
   traceConstruct(ctx.container, ctx.bp, record, false, start);
   return instance;
 }

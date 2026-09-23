@@ -1,9 +1,9 @@
-import { compile } from '../blueprint/compile.js';
 import type { ModuleRef } from '../definitions/define-module.js';
 import type { Dep, DepsMap, ResolvedDeps } from '../definitions/modifiers.js';
 import type { NexusRequest } from '../definitions/request.js';
 import type { InjectionToken, MultiToken } from '../definitions/token.js';
 import { NoScopeContextError } from '../errors/index.js';
+import { compileTraced } from './compile-traced.js';
 import { resolveDeps, validateDeps } from './deps.js';
 import { toGraph, type NexusGraph } from './graph.js';
 import { loadModule } from './load.js';
@@ -138,7 +138,7 @@ export async function createContainer(
   internals: ContainerInternals,
 ): Promise<Nexus> {
   const tracer = new Tracer(options?.trace);
-  const blueprint = compile({ root });
+  const blueprint = compileTraced(tracer, { root }, 'create');
   const state = createRootState({
     blueprint,
     rootRef: root,
