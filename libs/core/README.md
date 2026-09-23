@@ -3,7 +3,7 @@
 <div align="center">
   <img src="https://nexus.js.org/img/logo.svg" alt="NexusDI Logo" width="120" height="120" />
   <br />
-  <p><strong>A modern, lightweight dependency injection container for TypeScript with native decorators, inspired by industry-leading frameworks.</strong></p>
+  <p><strong>A modern, lightweight dependency injection container for TypeScript with decorators, inspired by industry-leading frameworks.</strong></p>
   <p><em>The DI library that doesn't make you want to inject yourself with coffee ☕</em></p>
 </div>
 
@@ -29,11 +29,11 @@
 - **TypeScript-native decorators** for clean, type-safe DI
 - **Strict type inference**: Compile-time safety and autocompletion for all providers, tokens, and modules
 - **Flexible provider patterns**: Register classes, values, or factories for any use case
-- **No `reflect-metadata` required**: Uses the latest decorator metadata standard, with a built-in polyfill
+- **No `reflect-metadata` required**: NexusDI 0.3 uses TypeScript's `experimentalDecorators` and stores metadata under the `Symbol.metadata` key, polyfilled when the runtime lacks it
 - **Modular & lightweight**: Minimal dependencies, fast startup
 - **Tree-shakable & bundle-friendly**: Only the code you use ends up in your final bundle
 - **Comprehensive docs & real-world examples**: Get started quickly with guides and demos
-- **Works everywhere**: NexusDI isn’t just for backend—if your environment supports native decorators and `Symbol.metadata`, it works out of the box. Or, just transpile for compatibility.
+- **Works everywhere**: runs anywhere TypeScript-compiled JavaScript runs; requires `experimentalDecorators: true` in tsconfig (0.3 does not support standard/native decorators)
 
 ## Quick Start
 
