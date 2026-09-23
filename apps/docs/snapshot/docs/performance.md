@@ -26,17 +26,14 @@ Total Core:      16KB
 
 ### Runtime Dependencies
 
-NexusDI has a low dependency footprint:
-
-- **Only one required peer dependency: `reflect-metadata`**
+`@nexusdi/core` 0.3.2 has no runtime dependencies and no peer dependencies. NexusDI 0.3 does not use `reflect-metadata`.
 
 ### Total Runtime Overhead
 
 ```
 NexusDI Core:    16KB
-reflect-metadata: 64KB
 ─────────────────────────────────
-Total Overhead:  80KB
+Total Overhead:  16KB
 ```
 
 ## 🚀 Performance Characteristics
@@ -226,24 +223,24 @@ This ensures the performance claims are credible and verifiable by anyone who wa
 
 ```
 Original: 100KB
-With NexusDI: 180KB (+80KB)
-Impact: +80% bundle size
+With NexusDI: 116KB (+16KB)
+Impact: +16% bundle size
 ```
 
 #### Medium Application (1MB bundle)
 
 ```
 Original: 1MB
-With NexusDI: 1.080MB (+80KB)
-Impact: +8% bundle size
+With NexusDI: 1.016MB (+16KB)
+Impact: +1.6% bundle size
 ```
 
 #### Large Application (5MB bundle)
 
 ```
 Original: 5MB
-With NexusDI: 5.080MB (+80KB)
-Impact: +1.6% bundle size
+With NexusDI: 5.016MB (+16KB)
+Impact: +0.32% bundle size
 ```
 
 ### Tree Shaking Benefits
@@ -395,13 +392,13 @@ console.log(`Memory increase: ${memoryIncrease / 1024}KB`);
 
 ### 📊 Decision Matrix
 
-| Application Type     | Bundle Size      | Performance Impact | Recommendation   |
-| -------------------- | ---------------- | ------------------ | ---------------- |
-| Small SPA            | High (+80%)      | Very Low           | Good choice      |
-| Medium Web App       | Low (+8%)        | Very Low           | Excellent choice |
-| Large Enterprise App | Very Low (+1.6%) | Very Low           | Excellent choice |
-| Microservice         | Low (+80KB)      | Very Low           | Excellent choice |
-| Server Application   | N/A              | Very Low           | Excellent choice |
+| Application Type     | Bundle Size       | Performance Impact | Recommendation   |
+| -------------------- | ----------------- | ------------------ | ---------------- |
+| Small SPA            | High (+16%)       | Very Low           | Good choice      |
+| Medium Web App       | Low (+1.6%)       | Very Low           | Excellent choice |
+| Large Enterprise App | Very Low (+0.32%) | Very Low           | Excellent choice |
+| Microservice         | Low (+16KB)       | Very Low           | Excellent choice |
+| Server Application   | N/A               | Very Low           | Excellent choice |
 
 ## 🔍 Real-World Performance Monitoring
 
@@ -519,7 +516,7 @@ class EmailModule {}
 
 NexusDI provides excellent performance characteristics:
 
-- **Minimal overhead**: 80KB total runtime
+- **Minimal overhead**: 16KB total runtime
 - **Fast startup**: 0.001ms container initialization
 - **Efficient resolution**: 0.0002ms per service resolution
 - **Tree-shakeable**: Unused features are eliminated
@@ -531,7 +528,7 @@ NexusDI provides excellent performance characteristics:
 2. **Lowest memory usage** for typical applications
 3. **Competitive resolution speed** with minimal overhead
 4. **Small bundle size** with tree-shaking support
-5. **Low dependency footprint** (just `reflect-metadata` as a peer dependency)
+5. **No runtime dependencies** in 0.3.2
 
 For most applications, the performance impact is negligible while the benefits of dependency injection (testability, maintainability, flexibility) are substantial. NexusDI is particularly well-suited for:
 

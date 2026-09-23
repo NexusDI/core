@@ -71,7 +71,7 @@ npm install
 
 ### Technical Content 💻
 
-- **Always include `reflect-metadata`** in npm install commands
+- Install commands name `@nexusdi/core` alone. NexusDI 0.3 does not use `reflect-metadata`.
 - **Use TypeScript examples** with proper typing
 - **Show both simple and advanced patterns**
 - **Include error handling and edge cases**

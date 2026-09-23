@@ -17,7 +17,7 @@ This is a living document outlining planned and possible features for NexusDI. E
 | Interceptors/Middleware                     |     ★★★★☆     |       ★★☆☆☆        | Planned  | AOP, cross-cutting concerns, enterprise appeal                     |
 | Graph Visualization                         |     ★★★☆☆     |       ☆☆☆☆☆        | Planned  | Dev tool only, great for onboarding/debugging                      |
 | Plugin/Extension System                     |     ★★★★★     |       ☆☆☆☆☆        | Planned  | Ecosystem driver, enables integrations and community growth        |
-| Native Decorator Metadata (Symbol.metadata) |     ★★★★☆     |       ★☆☆☆☆        | ✅ Done  | Standards-based, enables removal of reflect-metadata, future-proof |
+| Decorator Metadata (Symbol.metadata)        |     ★★★★☆     |       ★☆☆☆☆        | ✅ Done  | Removed reflect-metadata; requires `experimentalDecorators`        |
 | Benchmarking Suite & Nx Plugin              |     ★★★☆☆     |       ☆☆☆☆☆        | Planned  | Enables transparent, reproducible performance comparisons          |
 
 ---
@@ -286,14 +286,20 @@ container.use((container, options) => {
 
 ---
 
-## Native Decorator Metadata (Symbol.metadata)
+## Decorator Metadata (Symbol.metadata)
 
 > **✅ Completed**
+
+:::note
+
+NexusDI 0.3 implements this with TypeScript's legacy decorators, and it requires `"experimentalDecorators": true`. 0.3 does not support standard (TC39) decorators. The decorators write metadata under the `Symbol.metadata` key, and NexusDI polyfills `Symbol.metadata` when the runtime lacks it.
+
+:::
 
 **Description:** Migrate from the legacy `reflect-metadata` library to the new standards-based decorator metadata protocol using `Symbol.metadata`, as supported in TypeScript 5.2+ and the upcoming ECMAScript standard.
 
 - **Market Impact:** High (future-proof, reduces dependencies, aligns with ECMAScript)
-- **Performance Impact:** Minimal (native, no polyfill required)
+- **Performance Impact:** Minimal (a `Symbol.metadata` polyfill runs when the runtime lacks it)
 
 **Possible Implementation:**
 

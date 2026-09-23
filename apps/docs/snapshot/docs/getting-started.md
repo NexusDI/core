@@ -71,6 +71,8 @@ For detailed explanations and real-world examples, see **[Dependency Injection](
 npm install @nexusdi/core
 ```
 
+Install 0.3.2 or later. Node's ESM loader rejects 0.3.0 and 0.3.1 with `ERR_MODULE_NOT_FOUND`, and the Vite dev server and Vitest fail to resolve them. 0.3.2 declares Node 20 or later in `engines`.
+
 ## TypeScript Configuration
 
 To use decorators and metadata with NexusDI, make sure your `tsconfig.json` includes the following settings (set your phasers to es2022!):
@@ -81,14 +83,18 @@ To use decorators and metadata with NexusDI, make sure your `tsconfig.json` incl
     "target": "es2022",
     "lib": ["es2022", "esnext.decorators"],
     "experimentalDecorators": true,
-    "useDefineForClassFields": true // Defaults to 'true' in TypeScript 5.2+
+    "useDefineForClassFields": true // Defaults to 'true' when target is ES2022 or later
   }
 }
 ```
 
 > 🛠️ **Tip:** These settings ensure that TypeScript emits the correct decorator and metadata code for NexusDI. If you see errors about decorators or metadata, double-check your `tsconfig.json`.
 
-> **Note:** NexusDI v0.3.0+ uses native decorator metadata (TypeScript 5.2+). You do not need to install or import `reflect-metadata`.
+:::note
+
+`experimentalDecorators` is required. NexusDI 0.3 uses TypeScript's legacy decorators and does not support standard (TC39) decorators. Its decorators store metadata under the `Symbol.metadata` key, and NexusDI polyfills `Symbol.metadata` when the runtime lacks it. You do not need to install or import `reflect-metadata`.
+
+:::
 
 ## Basic Usage with Tokens and Interfaces
 
