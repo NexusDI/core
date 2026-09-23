@@ -1,6 +1,7 @@
 # NexusDI 0.4 framework integrations
 
-Status: draft for the owner's review.
+Status: draft, revised with the owner's decisions on the first draft (`d9a9a7b`). Section
+2.1 records them, and section 16 holds nothing open.
 Packages (all new, all published): `@nexusdi/hono`, `@nexusdi/express`, `@nexusdi/fastify`,
 `@nexusdi/react-router`, `@nexusdi/vitest`.
 Depends on:
@@ -10,8 +11,9 @@ Depends on:
   augmentation, `ScopeContext` with `runInScope` and `currentScope`, `@nexusdi/core/node`,
   `createTestingContainer` from `@nexusdi/core/testing`, `Symbol.asyncDispose` and the
   `trace` callback. The export list is the one in "What the codemod plan depends on" at the
-  end of `specs/plans/2026-09-23-core-0.4-engine.md`. Section 3.3 proposes one additive
-  amendment to core (decision D1 in section 16).
+  end of `specs/plans/2026-09-23-core-0.4-engine.md`. Section 3.3 adds
+  `Scope.resolve(deps)` and `Nexus.validate(deps)`, an amendment the owner approved; the
+  core spec is being amended with those signatures.
 - `specs/2026-09-23-docs-site-design.md`, whose Guides band and rc.0 list this spec amends
   (section 12).
 - The release setup on `main` at `ffea563`: `nx.json` `release` (independent projects,
@@ -93,11 +95,31 @@ container into the next test.
    Express and Fastify adapters are Node-only.
 9. `@nexusdi/vitest` provides `test.extend` fixtures for a testing container and a scope,
    each disposed after its test.
-10. Each package is versioned independently by `nx release`, published as `0.4.0-rc.N` on
-    `next` with core, and pins `@nexusdi/core` exactly in `peerDependencies`.
-11. `@nexusdi/vitest` and `@nexusdi/express` are in rc.0. `@nexusdi/hono`,
-    `@nexusdi/fastify` and `@nexusdi/react-router` follow within the RC window. 0.4.0
-    final requires all five (section 13).
+10. Each package is versioned independently by `nx release`, published as `0.4.0-rc.N`
+    with core, and pins `@nexusdi/core` exactly in `peerDependencies`.
+11. The Release workflow picks the dist-tag per package. A package with no stable version on
+    npm publishes every version with `latest`. A package with a stable version publishes a
+    prerelease with `next` and a stable version with `latest` (section 10.3).
+12. All five packages are in rc.0 (section 13).
+
+### 2.1 Decisions settled after review
+
+The owner decided these on the first draft. Each one is specified where the section
+reference points.
+
+1. Core adds `Scope.resolve(deps)` and `Nexus.validate(deps)` (section 3.3).
+2. No shared package. The body wrapper is copied, and a repo-check keeps the copies
+   identical (section 3.7).
+3. `@nexusdi/react-router` supports `^7.9.0` with `v8_middleware` and `^8.0.0`, and
+   `examples/react-ssr` moves to React Router 8 (sections 7.1 and 12.3).
+4. `@nexusdi/vitest` supports `^4.1.0` and `^5.0.0` (section 8.3).
+5. CI runs a leg per supported major of React Router and Vitest (section 11.4).
+6. The dist-tag is chosen per package in `release.yml`, with no npm token and no manual
+   tag step (section 10.3).
+7. All five adapters are in rc.0 (section 13).
+8. Express stays in scope. The Express middleware list takes no new entries
+   (`expressjs/expressjs.com#2375`), so launch material has no Express listing
+   (section 14).
 
 ## 3. Shared design
 
@@ -174,11 +196,10 @@ show `inject` first and name `di.scope` as the way out for code that is not a ha
    app starts, before the first request.
 2. Per request, it resolves the record from the request's scope, then calls the handler.
 
-Core has no public call for either step. The record is resolvable through `get` and `has`
-plus the public `kind` and `token` fields of `Optional`, `Lazy` and `All`, but the
-adapter would then reimplement core's modifier semantics four times, and the startup
-check would only know `has() === false`, without core's near-miss hints. This spec
-therefore proposes an additive core amendment (decision D1):
+Core's approved API has no call for either step. The adapters would have to rebuild
+core's modifier rules from `get`, `has` and the public `kind` and `token` fields, and the
+startup check would know only `has() === false`, without core's near-miss hints. So core
+gains two methods, and the core spec is being amended with these signatures:
 
 ```ts
 interface Scope {
@@ -198,10 +219,8 @@ interface Nexus {
 }
 ```
 
-Both methods are additive and can enter core in any RC. `@nexusdi/express` in rc.0 needs them,
-so the amendment goes into core before rc.0 (section 13). If the owner declines D1, each
-adapter carries a 30-line resolver over `get` and `has`, and the startup check throws an
-adapter error naming the token without near misses.
+Both methods are additive. Every adapter's `inject` calls them, so they are in core at
+rc.0 (section 13).
 
 ### 3.4 Disposal
 
@@ -290,22 +309,21 @@ the body contains neither `NEXUS_` nor the token's description.
 
 The code the adapters would share:
 
-1. Dep resolution and startup validation: moved into core by D1.
+1. Dep resolution and startup validation: in core, as `resolve` and `validate`.
 2. The body wrapper of section 3.4: used by Hono and React Router, about 40 lines.
 3. The status mapping of section 3.6: a function from a `NexusError` code to 500 or 503,
    about 10 lines.
 4. The `RequestOption` type: 4 lines.
 
-With D1 accepted, the remainder does not justify another published package, with its own
-bootstrap and an exact pin in four dependents. A private workspace
+The remainder does not justify another published package, with its own bootstrap and an
+exact pin in four dependents. A private workspace
 package does not work either, because the build is plain `tsc` and a published `dist`
 cannot import an unpublished package.
 
 So items 2 and 3 live in each adapter at `src/internal/`. The two copies of
 `dispose-with-body.ts` are byte-identical, and a repo-check,
 `tools/repo-checks/src/adapter-shared-copies.test.ts`, fails when they differ. The fallow
-duplicates gate ignores exactly those files, through `.fallowrc.jsonc`. Decision D2 asks
-the owner to confirm this.
+duplicates gate ignores exactly those files, through `.fallowrc.jsonc`.
 
 ## 4. `@nexusdi/hono`
 
@@ -399,7 +417,7 @@ extends core's node-only rule to `libs/hono/src`. Supported: Node 22 and later t
 "peerDependencies": { "@nexusdi/core": "0.4.0-rc.N", "hono": "^4.0.0" }
 ```
 
-`createMiddleware`, `c.var` and `HTTPException` exist from 4.0. The peer-floor job
+`createMiddleware`, `c.var` and `HTTPException` exist from 4.0. The `adapter-peers` job
 (section 11.4) runs the integration test against `hono@4.0.0` and proves the floor.
 
 ### 4.6 Tests
@@ -629,7 +647,7 @@ Node 22 and later.
 ```
 
 `fastify-plugin` is a regular dependency, as in every `@fastify/*` plugin. Its v6 notes
-list no Fastify floor; the peer-floor job runs against `fastify@5.0.0` with
+list no Fastify floor; the `adapter-peers` job runs against `fastify@5.0.0` with
 `fastify-plugin@6.0.0` and settles it.
 
 ### 6.6 Tests
@@ -648,8 +666,8 @@ list no Fastify floor; the peer-floor job runs against `fastify@5.0.0` with
 
 The package supports React Router 7.9 and later with `future.v8_middleware: true`, and
 React Router 8, where middleware is always on. The middleware API is the same in both
-(`createContext`, `RouterContextProvider`, the `middleware` route export). Decision D3
-asks the owner to confirm the 7.x support.
+(`createContext`, `RouterContextProvider`, the `middleware` route export). 7.x is still
+maintained on npm's `version-7` tag.
 
 `examples/react-ssr` runs 7.18.4 with `v8_middleware` today, and a dependabot branch
 moves it to 8.4.0. This spec moves the example to 8.x and to this adapter (section 12.3).
@@ -772,7 +790,9 @@ React Router 8 itself requires Node 22.22, which npm reports from its own manife
   asserts the scope stays open until the stream ends. It also covers an aborted document
   request, a loader that throws, `.data` requests, 50 concurrent requests counted through
   `trace`, and the client-bundle check of section 7.2.
-- CI runs the integration test on React Router 7 (latest 7.x, flag on) and 8 (latest).
+- The fixture app's `react-router.config.ts` sets `future.v8_middleware: true` when the
+  installed React Router is 7.x, and nothing on 8.x. The `adapter-peers` job runs the
+  integration test on each supported line (section 11.4).
 
 ## 8. `@nexusdi/vitest`
 
@@ -861,7 +881,7 @@ add `useAmbientScope()` on top of `aroundEach` if users ask.
 
 4.1 added `test.override` and the builder form of `test.extend`; the object form this
 package uses is the same in 4.1 and 5.0. The workspace runs 4.1.9, and CI runs the
-package's tests on 4.1 and 5.0 (decision D4).
+package's tests on each supported line (section 11.4).
 
 ### 8.4 Tests
 
@@ -963,58 +983,126 @@ README fence runs without a network. `doc-twoslash` type-checks the same fences.
 ### 10.1 Versions and peers
 
 Each package is an independent `nx release` project. The Release workflow's single
-`specifier` applies to every released project, so after a package's bootstrap
-(section 10.2) every run moves it with core: `prerelease` takes `0.4.0-rc.K` to
-`0.4.0-rc.K+1` for all of them, and `patch` takes them to `0.4.0` at final. The version
-numbers therefore stay equal to core's from the bootstrap on.
+`specifier` applies to every released project, so every run moves the adapters with core:
+`premajor --preid rc` takes all of them to `0.4.0-rc.0`, `prerelease` takes `0.4.0-rc.K`
+to `0.4.0-rc.K+1`, and `patch` takes them to `0.4.0` at final. The version numbers stay
+equal to core's.
+
+A new package has no release tag, and `fallbackCurrentVersionResolver: "disk"` makes nx
+read its base version from `package.json`. So each adapter, and `@nexusdi/codemod`, carries
+core's current version (`0.3.1`) on disk until rc.0, and pins `@nexusdi/core` at `0.3.1`,
+which npm workspaces link to `libs/core`. The rc.0 run versions them to `0.4.0-rc.0` with
+core. `0.0.0` would not work: the zero-major remap turns `premajor` into `preminor` and
+the result would be `0.1.0-rc.0`. No adapter is ever published at `0.3.1`.
 
 `versionPrefix: ""` and `updateDependents: "always"` rewrite the exact `@nexusdi/core`
 pin in each adapter on every core release. Whether `nx release version` rewrites
 `peerDependencies` the way it rewrites `dependencies` is the first thing the
-implementation plan checks, with `nx release --dry-run`. A repo-check,
-`adapter-core-peer.test.ts`, fails when an adapter's `@nexusdi/core` peer differs from
-`libs/core/package.json`'s version, so a missed rewrite fails CI before a publish.
+implementation plan checks, with `nx release --dry-run`, before the first adapter merges.
+A repo-check, `adapter-core-peer.test.ts`, fails when an adapter's `@nexusdi/core` peer
+differs from `libs/core/package.json`'s version, so a missed rewrite fails CI before a
+publish.
 
 ### 10.2 Bootstrap
 
-npm configures a trusted publisher only for a package that exists (`RELEASING.md`). Each
-new package enters the release train at the core version currently on `next`:
+npm configures a trusted publisher only for a package that exists (`RELEASING.md`). The
+five adapters and `@nexusdi/codemod` are first versioned by the rc.0 run, and the
+publish step skips a package npm does not know (section 10.3). The owner then publishes
+each one by hand from its release tag:
 
-1. A pull request sets the package's `version` and its `@nexusdi/core` peer to the
-   published core version, `0.4.0-rc.K`.
-2. After it merges, the owner builds, runs `npm run verify:packaging`, and publishes by
-   hand from `libs/<name>`:
-   `npm publish --access public --tag next --no-provenance --otp=<code>`.
-3. The owner tags `@nexusdi/<name>@0.4.0-rc.K` on that commit and pushes the tag, so
-   `nx release` reads the version and the changelog start from it.
-4. The owner configures the trusted publisher (`NexusDI` / `core` / `release.yml` /
+1. `git checkout '@nexusdi/<name>@0.4.0-rc.0'`.
+2. `npx nx build <name>` and `npm run verify:packaging`.
+3. From `libs/<name>`: `npm publish --access public --no-provenance --otp=<code>`. No
+   `--tag` is passed, so npm tags the version `latest`, which is also what the workflow
+   would choose for a package with no stable version.
+4. Configure the trusted publisher on npmjs.com (`NexusDI` / `core` / `release.yml` /
    `npm publish`).
-5. The next Release run moves the package to `rc.K+1` with core, with provenance.
 
-rc.0 packages bootstrap at `0.4.0-rc.0` right after core's rc.0 publish, from a commit on
-`main` that carries the rc.0 versions. `@nexusdi/codemod` follows the same steps (core
-spec §14). `RELEASING.md` gains a "Bootstrapping a new package" section with these steps,
-generalised from its `@nexusdi/core` paragraph.
-
-The bootstrap version has no provenance attestation, as `RELEASING.md` already states
-for a manual publish.
-
-npm points `latest` at a package's first published version, whatever `--tag` says. So
-after the bootstrap, `npm install @nexusdi/hono` installs the bootstrap RC until 0.4.0
-final publishes to `latest`, and later RCs reach users only through `@next`. OIDC trusted
-publishing covers `npm publish` alone, so CI cannot move the tag. Decision D5 covers
-this.
+The tag exists already, because the rc.0 run pushed it. From rc.1 on the workflow
+publishes every package with provenance. The bootstrap versions have no provenance
+attestation, as `RELEASING.md` already states for a manual publish.
 
 ### 10.3 `release.yml`
 
-The Release workflow gains no input. Between a package's first versioning commit and its
-bootstrap, the owner runs Release with `projects` listing the already-bootstrapped
-packages, which `scripts/resolve-release-projects.mjs` already supports.
+The "Resolve npm dist-tag" step and the "Publish to npm" step become one step that loops
+over the released packages, in dependency order: `@nexusdi/core` first, then
+`@nexusdi/codemod`, then the adapters. So an adapter's exact core peer is always on npm
+before the adapter.
+
+For each package, the step reads `name` and `version` from `libs/<dir>/package.json` and
+runs `npm view <name> versions --json`, which needs no token for a public package:
+
+| npm knows the package | Its versions include a stable one | Version being published | Result                                           |
+| --------------------- | --------------------------------- | ----------------------- | ------------------------------------------------ |
+| no (E404)             | n/a                               | any                     | skip, with a notice to bootstrap (10.2)          |
+| yes                   | any                               | already published       | skip, so a rerun is idempotent                   |
+| yes                   | no                                | any                     | `nx release publish --projects <p> --tag latest` |
+| yes                   | yes                               | prerelease              | `nx release publish --projects <p> --tag next`   |
+| yes                   | yes                               | stable                  | `nx release publish --projects <p> --tag latest` |
+
+A stable version is one with no `-` after `X.Y.Z`, the test the current step already
+applies to the version nx wrote. With `dry-run`, the step prints the table's decision for
+each package and publishes nothing.
+
+```yaml
+- name: Publish to npm
+  if: ${{ !inputs.dry-run }}
+  env:
+    PROJECTS: ${{ steps.projects.outputs.projects }}
+  run: node scripts/publish-released.mjs
+```
+
+`scripts/publish-released.mjs` holds the loop. It takes the resolved project list (empty
+means every project under `libs/*`), orders it by the workspace dependency graph, and
+applies the table. A repo-check test drives it against a stubbed `npm view` and a
+stubbed `nx`, one case per table row.
+
+What a user gets, checked with npm 11.19.0. A stand-in package with an exact prerelease
+peer (`react-router@8.0.0-pre.1`, while `latest` is 8.4.0) behaves like an adapter with
+its `@nexusdi/core@0.4.0-rc.N` peer while core's `latest` is 0.3.1:
+
+- In a project with no `@nexusdi/core`, `npm i @nexusdi/hono` installs the adapter's
+  `latest`, `0.4.0-rc.N`, and auto-installs the peer at exactly `0.4.0-rc.N` into the top
+  of `node_modules`. The version on `latest` does not matter for an exact spec. npm does
+  not add the peer to `package.json`.
+- In a project whose `package.json` has `@nexusdi/core` at 0.3.x, the same command fails
+  with `ERESOLVE`, naming both versions. The user upgrades core first.
+- `npm i @nexusdi/core@next @nexusdi/hono` resolves, because one Release run publishes
+  core on `next` and the adapter on `latest` at the same `0.4.0-rc.N`. This case was run
+  from a project that already had the older line installed.
+- At 0.4.0 final every package publishes a stable version with `latest`. After that the
+  adapters have a stable version, so their prereleases go to `next` like core's.
+
+Every README and guide therefore shows the install line with both packages, and the
+Getting started section says why. pnpm and Yarn were not checked. The explicit install
+line does not depend on a package manager installing peers.
+
+The `RELEASING.md` changes:
+
+- Replace the paragraph under "npm dist-tag" with:
+
+  > The publish step picks a dist-tag per package. A stable version publishes with
+  > `latest`. A prerelease publishes with `next` when npm already has a stable version of
+  > the package, and with `latest` when it has none, because the newest RC is then the
+  > version a user should get. `@nexusdi/core` has 0.3.1, so its RCs go to `next`. Each
+  > adapter's first version is an RC, so its RCs go to `latest` until 0.4.0. The step
+  > publishes `@nexusdi/core` first, so an adapter's exact core peer is always on npm.
+  > `scripts/publish-released.mjs` holds the rule.
+
+- Replace "1. Configure a trusted publisher for @nexusdi/core" with "1. Bootstrap a new
+  package", which lists the four steps of section 10.2, keeps the existing text on
+  `--no-provenance` and `--otp`, and says that the Release run skips a package npm does not
+  know yet and prints a notice naming it. The section also says that a new package
+  carries core's current version on disk and is versioned with core by the next run
+  (section 10.1).
 
 ### 10.4 Final
 
-Core spec §14 lists three conditions for 0.4.0 final. This spec adds a fourth: every
-adapter has been published in at least one RC, and its guide is live under `/next/`.
+Core spec §14 lists three conditions for 0.4.0 final. They apply to the adapters too: an
+RC with a breaking change to any adapter restarts the four-week count, and an
+`rc-blocker` on an adapter blocks final. This spec adds a fourth condition: on the final
+commit, every `adapter-peers` and `adapter-runtimes` leg passes, and every adapter guide
+is live under `/next/`.
 
 ## 11. Verification
 
@@ -1051,12 +1139,23 @@ this job.
 The toolchain matrix itself does not change. It proves that core compiles and runs under
 each TypeScript toolchain, and the adapters add no decorator or emit concern.
 
-### 11.4 Peer floors
+### 11.4 Peer ranges
 
-A CI job, `adapter-peer-floor`, installs each adapter's lowest peer versions
-(`hono@4.0.0`, `express@5.0.0`, `fastify@5.0.0` with `fastify-plugin@6.0.0`,
-`react-router@7.9.0`, `vitest@4.1.0`) and runs the integration tests. The same job runs
-React Router 8 latest and Vitest 5 latest, the upper lines the workspace does not pin.
+A CI job, `adapter-peers`, installs each leg's framework version over the workspace and
+runs that adapter's unit, type and integration tests:
+
+| Adapter                 | Legs                                                                       |
+| ----------------------- | -------------------------------------------------------------------------- |
+| `@nexusdi/hono`         | `hono@4.0.0`, latest 4.x                                                   |
+| `@nexusdi/express`      | `express@5.0.0`, latest 5.x                                                |
+| `@nexusdi/fastify`      | `fastify@5.0.0` with `fastify-plugin@6.0.0`, latest 5.x with latest 6.x    |
+| `@nexusdi/react-router` | `react-router@7.9.0` and latest 7.x, both with `v8_middleware`; latest 8.x |
+| `@nexusdi/vitest`       | `vitest@4.1.0`, latest 4.x, latest 5.x                                     |
+
+The workspace pins React Router 8, after `examples/react-ssr` moves, and Vitest 4.1.9, so
+the `main` job covers one line of each and this job covers the rest. The floor legs prove
+the lower bound of each peer range, including the unverified Fastify floor of
+`fastify-plugin` 6.
 
 ### 11.5 Benchmarks
 
@@ -1125,32 +1224,34 @@ plan Task 38), so this change does not touch the codemod fixtures.
 
 ### 12.4 Delivery
 
-`/testing/`'s Vitest H2, `/vitest/`, `/express/`, `/api-vitest/` and `/api-express/` join
-the docs spec's rc.0 list (§18.2), with the two rc.0 packages. `/hono/`, `/fastify/`,
-the `/react-router-ssr/` rewrite and their API pages are published with each package in
-the RC window, where `/react-router-ssr/` already sits.
+All five packages are in rc.0, so the docs spec's rc.0 list (§18.2) gains `/hono/`,
+`/express/`, `/fastify/`, `/vitest/`, the five API pages, the Vitest H2 on `/testing/`,
+the framework H2 on `/node-request-scopes/`, and `/react-router-ssr/`, which moves from
+the RC window to rc.0. `/runtimes/` stays in the RC window; its adapter rows join it
+there.
 
-## 13. rc.0 and the RC window
+## 13. rc.0
 
-rc.0 carries:
+rc.0 carries the core amendment of section 3.3 and all five adapters. The RC exists so
+users can report problems before the API is final, and an adapter published late in the
+window gets less of that feedback.
 
-- the core amendment of section 3.3 (D1), because `inject` depends on it;
-- `@nexusdi/vitest`. Every migrating project rewrites its tests (`container.set()` in
-  tests is the 0.3 pattern the RC breaks most often, docs spec §18.2), and the fixtures
-  are the shortest path from 0.3 test code to 0.4;
-- `@nexusdi/express`. `/node-request-scopes/` is an rc.0 page, `createChildContainer` per
-  request was the 0.3 server pattern, and Express is the framework most 0.3 server users
-  run. It is the smallest server adapter: no body wrapper, no plugin system.
+The implementation order, each step reusing the one before it:
 
-The RC window carries, in this order:
+1. Core's `resolve` and `validate`.
+2. `@nexusdi/express`: `openScope`, the status mapping, `inject` and `close` disposal.
+3. `@nexusdi/vitest`: independent of the server adapters.
+4. `@nexusdi/fastify`: Express's `close` disposal plus the plugin wrapper.
+5. `@nexusdi/hono`: the body wrapper and the `adapter-runtimes` job.
+6. `@nexusdi/react-router`: the second copy of the body wrapper, the copies check, the
+   move of `examples/react-ssr` to React Router 8, and the `/react-router-ssr/` rewrite.
 
-1. `@nexusdi/fastify`: the same `close` disposal as Express, plus the plugin wrapper.
-2. `@nexusdi/hono`: the body wrapper and the runtime job.
-3. `@nexusdi/react-router`: the same body wrapper, the example's move to 8.x, and the
-   `/react-router-ssr/` rewrite.
+The rc.0 checklist of core spec §14 gains:
 
-Hono before React Router puts the body wrapper and its tests in first on the smaller
-package. Decision D6 asks the owner to confirm the rc.0 set.
+- the five adapters and their guides and API pages, section 12.4;
+- the bootstrap of the five adapters and `@nexusdi/codemod`, section 10.2;
+- `scripts/publish-released.mjs` and the `RELEASING.md` changes, section 10.3;
+- a passing `adapter-peers` and `adapter-runtimes` run on the release commit, section 11.
 
 ## 14. Ecosystem listings
 
@@ -1161,10 +1262,13 @@ opened after 0.4.0 final.
 | ----------------------- | ----------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
 | `@nexusdi/hono`         | hono.dev "Third-party Middleware" (`https://hono.dev/docs/middleware/third-party`)                                                  | A pull request to the site's repository. The page states no criteria (unverified). The `honojs/middleware` monorepo is not a target, because it takes over the package.        |
 | `@nexusdi/fastify`      | `docs/Guides/Ecosystem.md`, Community section, in `fastify/fastify`                                                                 | A pull request with ``- [`@nexusdi/fastify`](url) description`` in alphabetical order, which `lint-ecosystem.js` checks. Needs docs and tests, which Write-Plugin.md requires. |
-| `@nexusdi/express`      | expressjs.com "Additional middleware modules" (`/en/resources/middleware.html`)                                                     | A pull request to `expressjs/expressjs.com`. No written criteria (unverified).                                                                                                 |
 | `@nexusdi/react-router` | reactrouter.com community resources                                                                                                 | Unverified whether a listing exists; the implementation plan checks at launch.                                                                                                 |
 | `@nexusdi/vitest`       | `awesome-vitest`                                                                                                                    | Unverified; the plan checks at launch.                                                                                                                                         |
 | all                     | npm keywords (`hono-middleware`, `fastify-plugin`, `express-middleware`, `react-router`, `vitest`) and the docs `/comparison/` page | In each `package.json`, and a `/comparison/` row on framework support.                                                                                                         |
+
+Express gets no listing. Its middleware page takes no new entries
+(`expressjs/expressjs.com#2375`), so `@nexusdi/express` reaches users through npm search,
+the docs and the launch post.
 
 The launch post (docs spec §6.2) lists the five packages with a link to each guide.
 
@@ -1183,29 +1287,4 @@ The launch post (docs spec §6.2) lists the five packages with a link to each gu
 
 ## 16. Open questions
 
-D1. Add `Scope.resolve(deps)` and `Nexus.validate(deps)` to core before rc.0 (section
-3.3). Recommendation: yes. It keeps the modifier semantics in core and gives `inject` a
-startup check with core's own error messages. The alternative is four copies of a
-resolver built on `get` and `has`.
-
-D2. Keep the adapters without a shared package, with two byte-identical copies of the body
-wrapper held by a repo-check (section 3.7). Recommendation: yes, given D1. Without D1,
-the shared code grows to about 120 lines, and a published `@nexusdi/adapter-kit` becomes
-the better answer.
-
-D3. Support React Router 7.9 and later with the `v8_middleware` flag, alongside 8.
-Recommendation: yes, with peer `^7.9.0 || ^8.0.0`. 7.x is still maintained on the
-`version-7` tag, the API is the same, and the cost is one CI leg. The example moves to 8.
-
-D4. Support Vitest 4.1 and 5 (peer `^4.1.0 || ^5.0.0`). Recommendation: yes. The fixture
-API is the same in both, and the workspace stays on 4.1.9 until a separate upgrade.
-
-D5. The `latest` dist-tag of a new package points at its bootstrap RC until final, and CI
-cannot move it. Recommendation: the owner moves `latest` by hand after each RC for the
-bootstrapped adapters (`npm dist-tag add @nexusdi/<name>@0.4.0-rc.N latest`, one command
-each, with 2FA), and the RC checklist in `RELEASING.md` lists the step. The alternative
-leaves `npm install @nexusdi/<name>` on a stale RC whose exact core peer pulls an old
-core.
-
-D6. rc.0 carries `@nexusdi/vitest` and `@nexusdi/express`; Fastify, Hono and React
-Router follow in that order within the RC window (section 13). Recommendation: yes.
+None. The owner decided D1 to D6 of the first draft, and section 2.1 records each answer.
