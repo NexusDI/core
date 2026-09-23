@@ -12,7 +12,11 @@
   "nx": {
     "targets": {
       "test": {
-        "inputs": ["default", "repoChecks", "^production"]
+        "inputs": [
+          "default",
+          "repoChecks",
+          "^production"
+        ]
       }
     }
   }
