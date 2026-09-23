@@ -3,8 +3,7 @@
 Status: approved design; implementation pending. Revised after an independent review of
 `8f36641` and the owner's decisions on it. The owner approved every decision in section 2.
 The owner then resolved every open question, and section 2 records each answer as a
-decision. Section 20 holds two items that came up later, between this spec and the
-benchmarks spec.
+decision. Section 20 holds nothing open.
 Packages: `apps/docs` (new, `@nexusdi/docs`, private), `apps/docs-e2e` (new, Playwright),
 `internal/meridian-ui` (new, private), `examples/meridian` (new, private),
 `tools/doc-examples` (copied from the libraries repo), `tools/repo-checks` (extended). No
@@ -397,8 +396,9 @@ time, resolve time and build time. Its H2 "Why NexusDI needs no compiler flags" 
 site's answer to that question, and it cites the same measurements, since dropping
 `experimentalDecorators`, `emitDecoratorMetadata` and `reflect-metadata` is what the build
 time and bundle figures measure. The benchmarks spec §5 extends the page and adds one
-`/vs-<library>/` page per competitor, all under section 4.6's rule. The harness records no
-build time yet, so the page shows none until it does (open question 2).
+`/vs-<library>/` page per competitor, all under section 4.6's rule. The build time figures
+render from the harness's `build` family, for example
+`<Figure of="build.nexusdi.plain.tsc-6.median" />`.
 
 `/decorators/` and the API reference are required for rc.0 (section 18.2).
 
@@ -464,6 +464,7 @@ benchmarks spec §4.9 declares in `benchmarks/src/schema.ts`, each carrying `sch
 | ---------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------ |
 | `results/size.json` (`SizeFile`)                           | per library, variant and bundler (`esbuild`, `rollup`): `minified`, `gzip`, `polyfillGzip`, all in bytes, and whether the bundle `runs`                                                                                          | bundle size                    |
 | `results/timings/<YYYY-MM-DD>-<sha7>.json` (`TimingsFile`) | per scenario (`cold-start`, `ready`, `resolve-singleton`, `resolve-transient`, `scope-cycle`), library and variant: `median` and `mad` in ns, optional `p99` and `heapBytes`, a `noisy` flag, with the runner, seed and versions | startup and resolve time       |
+| `results/build.json` (`BuildFile`)                         | per library, variant and toolchain cell: the build's wall time as `median` and `mad`                                                                                                                                             | build time                     |
 | `results/matrix.json` (`MatrixFile`)                       | per library, variant and toolchain cell: an outcome per lifetime section, the profile and the polyfill                                                                                                                           | no figures; the toolchain grid |
 | `results/probes.json` (`ProbesFile`)                       | per library and wiring-mistake probe: where the mistake is detected                                                                                                                                                              | no figures; the probe table    |
 
@@ -2566,15 +2567,5 @@ Within the RC window, before 0.4.0 final:
 
 ## 20. Open questions
 
-1. The Meridian's token names differ between this spec and the benchmarks spec. This spec
-   follows the owner's example, `REACTOR` and `COMPUTER`; benchmarks spec §4.2 and §12 use
-   `REACTOR_CORE` and `SHIP_COMPUTER`, and its `snippets.ts` regions appear on the
-   comparison pages beside this site's examples. Recommendation: one set everywhere. The
-   longer names match the token descriptions (`'ReactorCore'`, `'ShipComputer'`) and the
-   benchmarks fixtures already use them, so this spec should adopt `REACTOR_CORE`,
-   `SHIP_COMPUTER` and the matching long names for the other tokens, if the owner agrees.
-2. The owner named build time as one of the comparison page's benefits, and the harness
-   records no build time (benchmarks spec §4.7 lists matrix, probes, size and timings).
-   Recommendation: add a `build` family to the harness, the wall time of `tsc-6` and of the
-   esbuild bundle for each library and variant of Meridian-8, in a `BuildFile` beside
-   `SizeFile`. Until then the page shows bundle size, startup and resolve time only.
+None. The benchmarks spec adopts this spec's token names and adds the `build` family, which
+resolves the two items the previous revision held.
