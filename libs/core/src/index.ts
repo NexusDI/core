@@ -1,6 +1,6 @@
 // NOTE: This file assumes tsconfig.json includes "lib": ["es2022", "esnext.decorators", ...]
 // Symbol.metadata constant
-import { SYMBOL_METADATA, METADATA_KEYS } from './constants';
+import { SYMBOL_METADATA, METADATA_KEYS } from './constants.js';
 
 // Polyfill for Symbol.metadata
 /* eslint-disable @typescript-eslint/no-explicit-any */
@@ -10,15 +10,15 @@ if (typeof (Symbol as any).metadata === 'undefined') {
 /* eslint-enable @typescript-eslint/no-explicit-any */
 
 // Core exports
-export { Nexus } from './container';
-export type { IContainer } from './types';
+export { Nexus } from './container.js';
+export type { IContainer } from './types.js';
 
 // Token exports
-export { Token } from './token';
-export type { TokenType } from './types';
+export { Token } from './token.js';
+export type { TokenType } from './types.js';
 
 // Decorators
-export { Module, Service, Provider, Inject, Optional } from './decorators';
+export { Module, Service, Provider, Inject, Optional } from './decorators/index.js';
 
 export {
   ContainerException,
@@ -26,10 +26,10 @@ export {
   NoProvider,
   InvalidProvider,
   InvalidModule,
-} from './exceptions';
+} from './exceptions/index.js';
 
 // Dynamic Module
-export { DynamicModule } from './module';
+export { DynamicModule } from './module.js';
 
 // Types
 export type {
@@ -38,15 +38,15 @@ export type {
   ProviderConfig,
   ModuleConfig,
   InjectionMetadata,
-} from './types';
+} from './types.js';
 
 // Constants
 export { SYMBOL_METADATA, METADATA_KEYS };
 
 // Default export for convenience
-import { Nexus } from './container';
+import { Nexus } from './container.js';
 export default Nexus;
 
-export * from './guards';
+export * from './guards.js';
 
-export { setMetadata, getMetadata } from './helpers';
+export { setMetadata, getMetadata } from './helpers.js';

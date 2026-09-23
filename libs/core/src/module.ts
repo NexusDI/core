@@ -1,10 +1,10 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
-import { Module } from './decorators';
-import type { ModuleConfig, TokenType } from './types';
-import { METADATA_KEYS } from './constants';
-import type { Token } from './token';
-import { setMetadata, getMetadata } from './helpers';
-import { InvalidModule } from './exceptions/invalid-module.exception';
+import { Module } from './decorators/index.js';
+import type { ModuleConfig, TokenType } from './types.js';
+import { METADATA_KEYS } from './constants.js';
+import type { Token } from './token.js';
+import { setMetadata, getMetadata } from './helpers.js';
+import { InvalidModule } from './exceptions/invalid-module.exception.js';
 
 /**
  * Represents a dynamic module, allowing for runtime configuration of providers and imports.

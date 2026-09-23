@@ -1,6 +1,6 @@
-import type { TokenType, ProviderConfig } from '../types';
-import { METADATA_KEYS } from '../constants';
-import { setMetadata } from '../helpers';
+import type { TokenType, ProviderConfig } from '../types.js';
+import { METADATA_KEYS } from '../constants.js';
+import { setMetadata } from '../helpers.js';
 
 /**
  * Shared decorator factory for providers and services.

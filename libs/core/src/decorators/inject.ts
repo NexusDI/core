@@ -1,6 +1,6 @@
-import type { InjectionMetadata, TokenType } from '../types';
-import { METADATA_KEYS } from '../constants';
-import { setMetadata, getMetadata } from '../helpers';
+import type { InjectionMetadata, TokenType } from '../types.js';
+import { METADATA_KEYS } from '../constants.js';
+import { setMetadata, getMetadata } from '../helpers.js';
 
 /**
  * Decorator that marks a constructor parameter or property for dependency injection.

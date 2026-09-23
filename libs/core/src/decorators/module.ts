@@ -1,6 +1,6 @@
-import type { ModuleConfig } from '../types';
-import { METADATA_KEYS } from '../constants';
-import { setMetadata } from '../helpers';
+import type { ModuleConfig } from '../types.js';
+import { METADATA_KEYS } from '../constants.js';
+import { setMetadata } from '../helpers.js';
 
 /**
  * Decorator that marks a class as a DI module, allowing you to group providers and imports.

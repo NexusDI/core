@@ -11,7 +11,9 @@
     "types": ["node"],
     "lib": ["es2022", "esnext.decorators"],
     "sourceMap": false,
-    "declarationMap": false
+    "declarationMap": false,
+    "module": "nodenext",
+    "moduleResolution": "nodenext"
   },
   "include": ["src/**/*.ts"],
   "references": [],
