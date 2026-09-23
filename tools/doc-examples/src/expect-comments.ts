@@ -232,44 +232,48 @@ function namedBindings(clause: string): string {
  */
 function rewriteImport(line: string): string | null {
   const indent = line.slice(0, line.length - line.trimStart().length);
-  const source = line.trim();
+  // Collapsed once, up front, so every pattern below matches a literal
+  // single space instead of \s+/\s*. Two of those quantifiers back to back
+  // -- the leading \s+ after `import` and the \s* guarding `from`, with only
+  // zero-width optional groups between them -- let the regex engine
+  // redistribute one run of spaces between them in O(n) ways on a line that
+  // never reaches `from`, which is quadratic on a long run of spaces. A
+  // prettier-formatted import never carries a run of spaces here anyway, so
+  // normalizing costs nothing real.
+  const source = line.trim().replace(/ {2,}/g, ' ');
 
   if (!/^import\b/.test(source)) return null;
 
   // A type-only import has no runtime meaning, and the block it sits in is
   // type-checked by tsc through the file the region came from, not here.
-  if (/^import\s+type\b/.test(source)) return `${indent}// ${source}`;
+  if (/^import type\b/.test(source)) return `${indent}// ${source}`;
 
-  const bare = source.match(/^import\s+(['"][^'"]+['"])\s*;?$/);
+  const bare = source.match(/^import (['"][^'"]+['"]);?$/);
   if (bare) return `${indent}await import(${bare[1]});`;
 
   const namespace = source.match(
-    /^import\s+\*\s+as\s+(\w+)\s+from\s+(['"][^'"]+['"])\s*;?$/,
+    /^import \* as (\w+) from (['"][^'"]+['"]);?$/,
   );
   if (namespace) {
     return `${indent}const ${namespace[1]} = await import(${namespace[2]});`;
   }
 
   const named = source.match(
-    /^import\s+(\w+\s*,\s*)?(\{[^}]*\})?\s*from\s+(['"][^'"]+['"])\s*;?$/,
+    /^import (?:(\w+), )?(?:(\{[^}]*\}) )?from (['"][^'"]+['"]);?$/,
   );
   if (named) {
     const [, defaultImport, bindings, specifier] = named;
     // `import x from 'm'` binds the module's default export, which destructures
     // off the namespace object as `default`.
     const parts = [
-      ...(defaultImport
-        ? [`default: ${defaultImport.replace(/[\s,]/g, '')}`]
-        : []),
+      ...(defaultImport ? [`default: ${defaultImport}`] : []),
       ...(bindings ? [namedBindings(bindings)] : []),
     ].filter((part) => part !== '');
 
     return `${indent}const { ${parts.join(', ')} } = await import(${specifier});`;
   }
 
-  const onlyDefault = source.match(
-    /^import\s+(\w+)\s+from\s+(['"][^'"]+['"])\s*;?$/,
-  );
+  const onlyDefault = source.match(/^import (\w+) from (['"][^'"]+['"]);?$/);
   if (onlyDefault) {
     return `${indent}const { default: ${onlyDefault[1]} } = await import(${onlyDefault[2]});`;
   }
