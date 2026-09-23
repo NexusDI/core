@@ -50,3 +50,17 @@ export type {
 } from './definitions/modifiers.js';
 export { provide } from './definitions/provide.js';
 export type { Provider } from './definitions/provide.js';
+export { defineModule } from './definitions/define-module.js';
+export type {
+  ConfigurableModule,
+  ConfigurableModuleConfig,
+  ExportEntry,
+  ModuleConfig,
+  ModuleDefinition,
+  ModuleRef,
+  OptionsFactory,
+  ProviderEntry,
+} from './definitions/define-module.js';
+export { REQUEST } from './definitions/request.js';
+export type { NexusRequest } from './definitions/request.js';
+export type { StandardSchemaV1 } from './definitions/standard-schema.js';

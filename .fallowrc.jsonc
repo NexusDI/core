@@ -13,6 +13,19 @@
   // convention, never through an import, so the reachability walk reports
   // the whole content tree as unused without this.
   //
+  // libs/core/vite.decorators.ts is imported by libs/core/vite.config.ts,
+  // and libs/core/test-support/deferred.ts and
+  // libs/core/test-support/nexus-request.ts are helpers later 0.4 tests
+  // import -- all three are real roots fallow's static graph does not reach:
+  // a vite config file is a framework-recognized entry point in its own
+  // right, not a node whose own imports get traced, and a test-support
+  // helper has no importer yet in this task's minimal scaffold.
+  // nexus-request.ts in particular is reached only through TypeScript
+  // module augmentation (declare module '../src/index.js'), which
+  // request.test-d.ts relies on via tsconfig.spec.json's `test-support/**`
+  // include, not through an import fallow's resolver can trace; Task 22
+  // gives it its first real import.
+  //
   // Every *.test-d.ts file under libs/core/src is vitest's own type-only
   // test file. fallow's vitest plugin derives entry points from
   // vite.config.ts's `test.include` glob (`src/**/*.{test,spec}.ts`), which
@@ -24,6 +37,7 @@
     "apps/docs/content/**/*.{mdx,ts}",
     "libs/core/vite.decorators.ts",
     "libs/core/test-support/deferred.ts",
+    "libs/core/test-support/nexus-request.ts",
     "libs/core/src/**/*.test-d.ts",
   ],
 
@@ -132,6 +146,17 @@
     // it resolves through the root manifest instead.
     "vite-plugin-doctest",
   ],
+
+  // definitions/standard-schema.ts declares `StandardSchemaV1` twice on
+  // purpose -- an interface and a `declare namespace` of the same name,
+  // which TypeScript merges into one symbol (`StandardSchemaV1.Props`,
+  // `StandardSchemaV1.InferOutput`, ...). This is the Standard Schema spec's
+  // own published shape, copied verbatim so core takes no dependency on it.
+  // fallow's duplicate-export check does not model declaration merging, so
+  // it reports the file's two `export` statements as a duplicate-export
+  // group of one file against itself. `ignoreFindings` hides the finding
+  // without excluding the file from analysis or resolution.
+  "ignoreFindings": ["libs/core/src/definitions/standard-schema.ts"],
 
   // 30 tokens rather than the default 50, mirroring the libraries repo this
   // tooling is modeled on: a handful of lines duplicated between two
