@@ -12,6 +12,7 @@ import {
   ScopeRequiredError,
 } from '../errors/index.js';
 import { constructionStack } from './construction-stack.js';
+import { makeThunk } from './lazy.js';
 import { isObject } from './ownership.js';
 import type { ContainerState, Ctx } from './state.js';
 
@@ -81,11 +82,8 @@ function resolveBinding(
         : undefined;
     case 'all':
       return binding.ids.map((id) => resolveId(id, ctx));
-    case 'lazy': {
-      // A plain thunk for now. Task 20 checks readiness and names `owner` in NEXUS_NOT_READY.
-      const target = binding.ids[0]!;
-      return () => resolveId(target, ctx);
-    }
+    case 'lazy':
+      return makeThunk(binding.ids[0]!, owner, ctx, resolveId);
   }
 }
 
