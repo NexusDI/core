@@ -1,11 +1,16 @@
 import { REQUEST } from '../definitions/request.js';
-import { BlueprintError, type NexusError } from '../errors/index.js';
+import {
+  BlueprintError,
+  CircularDependencyError,
+  type NexusError,
+} from '../errors/index.js';
 import {
   REQUEST_ID,
   type Blueprint,
   type ProviderRecord,
 } from './blueprint.js';
 import { bind } from './bind.js';
+import { cyclePath, findCycles, successorsOf } from './tarjan.js';
 import { computeVisibility } from './visibility.js';
 import { walk } from './walk.js';
 
@@ -69,13 +74,29 @@ export function compile(input: CompileInput): Blueprint {
     errors,
   );
 
+  // Pass 4: cycles, ignoring lazy edges.
+  const providers = new Map(records.map((r) => [r.id, r]));
+  const nameOf = (id: string): string => providers.get(id)?.name ?? id;
+  const strong = successorsOf(bound.edges, (kind) => kind !== 'lazy');
+  for (const component of findCycles(
+    records.map((r) => r.id),
+    strong,
+  )) {
+    const path = cyclePath(
+      component,
+      strong,
+      (id) => providers.get(id)?.index ?? 0,
+    );
+    errors.push(new CircularDependencyError({ path: path.map(nameOf) }));
+  }
+
   if (errors.length > 0) throw new BlueprintError(errors);
 
   return Object.freeze({
     root,
     modules: new Map(walked.modules.map((m) => [m.id, m])),
     moduleByDefinition: walked.byDefinition,
-    providers: new Map(records.map((r) => [r.id, r])),
+    providers,
     extraImports,
     visibility: visible.visibility,
     moduleExports: visible.moduleExports,
