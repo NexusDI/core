@@ -6,6 +6,8 @@ Projects: `benchmarks` (new, `@nexusdi/benchmarks`, private), `examples/toolchai
 `tools/repo-checks` (four guards), the two READMEs and `libs/core/package.json`. No
 published API changes.
 Closes: #21.
+Prior art: the owner's two earlier benchmark attempts in this repository, the June 2025
+runner on `main` and the Nx plugin on `archive/stash-benchmark` (section 4.13).
 Depends on:
 
 - `specs/2026-09-23-core-0.4-design.md` at `b5ab435`: §2.1 (why the core has no
@@ -82,10 +84,20 @@ promises "high performance" with no figure behind it.
     type-stripper" applies to the decorator-free core only (section 8).
 12. Every NexusDI example is interface-first: an interface, a `Token<IReactorCore>` for it,
     and a class bound with `useClass`. Each example leads to the override: a test replaces
-    the class behind a token with `override(REACTOR_CORE, { useClass: FakeReactor })`, and
+    the class behind a token with `override(REACTOR, { useClass: FakeReactor })`, and
     no other line changes. The rule covers NexusDI's fixtures, the post, the README and the
     comparison-page snippets. Competitor fixtures stay idiomatic for their library
     (section 4.3).
+13. Build time is a harness metric. Every library-variant is built by every toolchain cell
+    that has a build step, cold, in ten interleaved rounds, and reported as a median with
+    its MAD. A library's headline build time uses a toolchain its own documentation names
+    for its documented setup, so a library whose docs require `tsc` for metadata is timed
+    with `tsc` (section 4.7).
+14. A "Performance comparison" table (bundle size, startup, resolve, build) appears in the
+    README and on every comparison page. Every cell comes from the results files and links
+    to the methodology page, `/benchmark-method/` (sections 5.6 and 8.2).
+15. The pages and the post explain where the differences come from, and each benefit is
+    stated with its measured number and nowhere without one (section 5.7).
 
 ## 3. Extending the toolchain matrix
 
@@ -214,12 +226,16 @@ benchmarks/
     awilix/plain.ts
     needle-di/plain.ts
     needle-di/decorated.ts
+    <library>/snippets.ts   the interface-first binding and test replacement
     probes/<library>/<variant>/<probe>.ts
     tsconfig/<profile>.json
   src/
     matrix.ts               runs every library × variant × toolchain cell
     probes.ts               runs the wiring-mistake probes
-    size.ts                 bundles, minifies, compresses, runs the bundles
+    size.ts                 bundles, minifies, compresses, runs the bundles,
+                            and counts what tsc-6 emits
+    scale.ts                generates the build-only scale-200 fixture per variant
+    build.ts                the build-time driver
     timings/cold-start.ts   the process-spawn driver
     timings/in-process.ts   one mitata process per library, scenario and round
     timings/rounds.ts       round order, seed, median and MAD
@@ -230,6 +246,7 @@ benchmarks/
     matrix.json             deterministic, committed
     probes.json             deterministic, committed
     size.json               deterministic, committed
+    build.json              build times of the newest published run, committed
     timings/<date>-<sha7>.json   one file per published timing run
 ```
 
@@ -247,8 +264,9 @@ Nx targets, all `nx:run-commands` in `package.json`:
 | `probes`  | `src/probes.ts`, writes `results/probes.json`               | no            |
 | `size`    | `src/size.ts`, writes `results/size.json`                   | no            |
 | `timings` | both timing drivers, writes one `results/timings/` file     | no            |
+| `build`   | `src/build.ts`, writes `results/build.json`                 | no            |
 | `check`   | `matrix`, `probes` and `size` with `--check` (section 4.10) | no            |
-| `bench`   | all four writers, in order                                  | no            |
+| `bench`   | all five writers, in order                                  | no            |
 | `readme`  | `src/readme.ts`                                             | on its inputs |
 
 ### 4.2 The graph: Meridian-8
@@ -258,22 +276,25 @@ satisfy the domain guard. It has eight providers. In NexusDI's fixtures each one
 interface, a token typed with it, and a class bound to the token with `useClass`, except
 `NAV_CHARTS`, which is a value:
 
-| Token           | Interface       | Bound to                 | Lifetime  | Dependencies                                 |
-| --------------- | --------------- | ------------------------ | --------- | -------------------------------------------- |
-| `REACTOR_CORE`  | `IReactorCore`  | `useClass: ReactorCore`  | singleton | none                                         |
-| `SHIP_COMPUTER` | `IShipComputer` | `useClass: ShipComputer` | singleton | `REACTOR_CORE`                               |
-| `POWER_ROUTER`  | `IPowerRouter`  | `useClass: PowerRouter`  | singleton | `REACTOR_CORE`                               |
-| `SHIELD_GRID`   | `IShieldGrid`   | `useClass: ShieldGrid`   | singleton | `POWER_ROUTER`                               |
-| `NAV_CHARTS`    | `INavCharts`    | `useValue`               | value     | none                                         |
-| `BRIDGE`        | `IBridge`       | `useClass: Bridge`       | singleton | `SHIP_COMPUTER`, `NAV_CHARTS`, `SHIELD_GRID` |
-| `SURVEY_DRONE`  | `ISurveyDrone`  | `useClass: SurveyDrone`  | transient | `SHIP_COMPUTER`                              |
-| `FLIGHT_LOG`    | `IFlightLog`    | `useClass: FlightLog`    | scoped    | `SHIP_COMPUTER`                              |
+| Token          | Description      | Interface       | Bound to                    | Lifetime  | Dependencies                            |
+| -------------- | ---------------- | --------------- | --------------------------- | --------- | --------------------------------------- |
+| `REACTOR`      | `'ReactorCore'`  | `IReactorCore`  | `useClass: FusionReactor`   | singleton | none                                    |
+| `COMPUTER`     | `'ShipComputer'` | `IShipComputer` | `useClass: QuantumComputer` | singleton | `REACTOR`                               |
+| `POWER_ROUTER` | `'PowerRouter'`  | `IPowerRouter`  | `useClass: PowerRouter`     | singleton | `REACTOR`                               |
+| `SHIELD_GRID`  | `'ShieldGrid'`   | `IShieldGrid`   | `useClass: ShieldGrid`      | singleton | `POWER_ROUTER`                          |
+| `NAV_CHARTS`   | `'NavCharts'`    | `INavCharts`    | `useValue`                  | value     | none                                    |
+| `BRIDGE`       | `'Bridge'`       | `IBridge`       | `useClass: Bridge`          | singleton | `COMPUTER`, `NAV_CHARTS`, `SHIELD_GRID` |
+| `DRONE`        | `'SurveyDrone'`  | `ISurveyDrone`  | `useClass: SurveyDrone`     | transient | `COMPUTER`                              |
+| `FLIGHT_LOG`   | `'FlightLog'`    | `IFlightLog`    | `useClass: FlightLog`       | scoped    | `COMPUTER`                              |
 
-A class's constructor takes interfaces, for example `constructor(reactor: IReactorCore)`,
-and the deps tuple names tokens:
-`provide(SHIP_COMPUTER, { useClass: ShipComputer, deps: [REACTOR_CORE] })`. The rest of this
-spec names a provider by its class (`ShipComputer`) when it means the provider, and by its
-token when it means the binding.
+The token names are the canonical Meridian tokens that the core, docs and integrations specs
+share, and each token's description is the role name. `BRIDGE` is the one token this spec
+adds: the graph needs a singleton with three dependencies at its top, and the canonical set
+has none. A class's constructor takes interfaces, for example
+`constructor(reactor: IReactorCore)`, and the deps tuple names tokens:
+`provide(COMPUTER, { useClass: QuantumComputer, deps: [REACTOR] })`. The rest of this spec
+names a provider by its role name (`ShipComputer`, the token's description) and a binding by
+its token.
 
 The docs spec's canonical vocabulary (§7.1) uses classes as tokens. It predates the owner's
 interface-first rule and needs the same change, which section 12 lists.
@@ -285,9 +306,10 @@ place: `PowerRouter` takes `ReactorCore` where the docs give it `lazy(ShieldGrid
 four of the five libraries express a lazy edge differently. The cycle probe restores the
 docs' cycle (section 4.6).
 
-Every class carries a `readonly kind` field holding its own name, for example
-`readonly kind = 'ShipComputer'`. The scenario identifies instances through `kind`, so a
-minified bundle, which renames classes, prints the same output.
+Every class carries a `readonly kind` field holding its role name, for example
+`readonly kind = 'ShipComputer'` on `QuantumComputer`. The scenario identifies instances
+through `kind`, so every library prints the same golden output whatever its class names, and
+a minified bundle, which renames classes, prints it too.
 
 The fixtures declare fields explicitly and use no parameter properties. Node's type
 stripping rejects parameter properties, and `node-strip` is a cell, so every library gets
@@ -340,12 +362,12 @@ Rules every fixture follows:
 5. Competitor fixtures use whatever tokens their documentation uses. NexusDI's fixtures
    follow decision 12.
 
-Each library also has `benchmarks/fixtures/<library>/snippets.ts`. It binds `REACTOR_CORE`
-and `SHIP_COMPUTER` interface-first in that library's own API (an interface, the library's
-token type, a class bound to the token), then replaces `REACTOR_CORE` with `FakeReactor` the
+Each library also has `benchmarks/fixtures/<library>/snippets.ts`. It binds `REACTOR`
+and `COMPUTER` interface-first in that library's own API (an interface, the library's
+token type, a class bound to the token), then replaces `REACTOR` with `FakeReactor` the
 way the library's documentation does for tests. The comparison pages and the post show these
 snippets (sections 5.2 and 6.2). `matrix.ts` compiles each snippets file with `tsc-6` and
-runs a `snippets` check: `SHIP_COMPUTER` resolves with the real `ReactorCore`, then with
+runs a `snippets` check: `COMPUTER` resolves with the real `FusionReactor`, then with
 `FakeReactor` after the replacement. A snippet that fails the check fails `bench-check`. Each
 snippet's header cites the pages that document the token and replacement APIs, and
 `libraries-claims` holds the citation to the pin.
@@ -418,14 +440,16 @@ lifetime.
 
 ### 4.7 Metrics and methodology
 
-Four metric families, each in its own file:
+Six metric families, in five files:
 
-| Family  | Metric                                                                    | Unit      |
-| ------- | ------------------------------------------------------------------------- | --------- |
-| matrix  | outcome per cell and section                                              | enum      |
-| probes  | `detectedAt` per probe, `reported` for `two-mistakes`                     | enum, int |
-| size    | minified and min+gzip size of the Meridian-8 app, per bundler             | bytes     |
-| timings | cold start, ready, warm singleton resolve, transient resolve, scope cycle | ns        |
+| Family  | Metric                                                                          | Unit         | File                 |
+| ------- | ------------------------------------------------------------------------------- | ------------ | -------------------- |
+| matrix  | outcome per cell and section                                                    | enum         | `matrix.json`        |
+| probes  | `detectedAt` per probe, `reported` for `two-mistakes`                           | enum, int    | `probes.json`        |
+| size    | minified and min+gzip size of the Meridian-8 app, per bundler                   | bytes        | `size.json`          |
+| emit    | `tsc-6` output bytes, `__metadata` and `__decorate` calls, imports kept in emit | bytes, count | `size.json`          |
+| timings | cold start, ready, warm singleton resolve, transient resolve, scope cycle       | ns           | `timings/<run>.json` |
+| build   | wall-clock cold build per library-variant and toolchain cell                    | ms           | `build.json`         |
 
 Size. The input for both bundlers is each variant's `tsc-6` output, so both bundle the same
 correct JavaScript. esbuild 0.28.2 bundles with `--bundle --minify --platform=browser
@@ -478,6 +502,48 @@ The in-process scenarios follow these rules:
 `resolve-singleton` measures a map lookup in most containers. The pages show it and say
 so; the post leaves it out of its charts.
 
+Build time. `build.ts` times the `compile()` step of section 3.3, from process spawn to
+exit, for every library-variant under every toolchain cell with a build step: `tsc-6`,
+`tsc-7`, `esbuild`, `swc`, `babel`, `vite-oxc`, `vite-babel` and `bun`. `deno` and
+`node-strip` transpile at load, so their build cells are `not-applicable`, and their transpile time
+sits inside a cold start. Two fixtures:
+
+- `meridian-8`, the fixture of section 4.2. At eight classes, toolchain start-up dominates
+  its build time, so it shows the fixed start-up time a user waits for on every build.
+- `scale-200`, generated by `scale.ts` for each library-variant: 200 classes in 20 layers
+  of 10, one class per file, each depending on two classes of the layer below, wired the
+  way that library-variant's Meridian-8 fixture wires its providers. It is build-only, so
+  it never runs, and its per-class work (decorator and metadata emit, type resolution
+  across files) show at a size where they outweigh start-up.
+
+A build is cold: the output directory is empty and every tool cache is cleared or disabled
+before each build (`tsc` without `incremental`, Vite with `--force` and an empty cache
+directory, `BABEL_DISABLE_CACHE=1`). One unmeasured build per cell runs first, so the
+operating system's file cache is warm for every measured build and each round measures the
+toolchain. The runner discipline is the timings': ten rounds, one process per build, the
+round order across libraries and toolchains shuffled with the recorded seed, the median of
+the rounds with the MAD, and the `noisy` flag above 5%.
+
+A build cell whose matrix outcome is `compile-error` is not timed. A cell that builds and
+then fails at run time is timed and carries its matrix outcome beside the figure, so a fast
+build that produces a broken app never reads as a result on its own.
+
+The metadata setups get the build their documentation requires. InversifyJS's
+getting-started page sets `experimentalDecorators` and `emitDecoratorMetadata` for `tsc`,
+and tsyringe's README names `tsc` and, for Babel, `babel-plugin-transform-typescript-metadata`.
+TypeScript emits `design:paramtypes` from the type checker's view of each parameter.
+Single-file compilers (esbuild, SWC, Oxc, Babel) see one file at a time: esbuild emits no
+metadata, and the others derive it from the annotation's syntax, which Vite documents as
+"only partially supported". `libraries.json` lists each library's `documentedToolchains`
+(`'any'` for NexusDI, awilix and needle-di, whose docs name no compiler). A library's
+headline build time is its fastest median among cells that pass the matrix and use a
+toolchain in that list. Every other cell stays in the build grid.
+
+Emit. `size.ts` also compiles each library-variant's `scale-200` fixture with `tsc-6` and
+counts, in the emitted JavaScript: total bytes, `__metadata(` calls, `__decorate(` calls,
+and import declarations kept, against the source's import declarations. These counts are
+deterministic, so they live in `size.json` and `--check` holds them byte for byte.
+
 mitata 1.0.34 was published on 2025-02-04, and its repository was last pushed on
 2025-02-17. It is pinned exactly. Its JSON output (`run({ format: 'json' })`) carries
 `samples`, `min`, `max`, `p25`, `p50`, `p75`, `p99`, `p999`, `avg` and optional `heap`
@@ -498,8 +564,8 @@ per run, which is all the harness reads.
   released version. It runs `nx run benchmarks:bench` on `ubuntu-24.04` and records the
   runner's CPU model, core count, memory and Node version. It opens a pull request titled
   `chore(benchmarks): results <date> <sha7>` when any deterministic file changed, when a
-  competitor pin changed, or on every tag run. The timing file is committed only in that
-  pull request. The raw mitata JSON is uploaded as a workflow artifact.
+  competitor pin changed, or on every tag run. The timing file and `build.json` are
+  committed only in that pull request. The raw mitata JSON is uploaded as a workflow artifact.
 - `competitor-releases` runs weekly with `bench-full`. For each pin in `libraries.json` it
   reads `npm view <package> version`, and for each newer version it opens one issue,
   labelled `benchmarks`, titled `benchmarks: <package> <version> released`, unless an issue
@@ -596,6 +662,17 @@ interface SizeFile {
     polyfillGzip: number; // bytes of the gzip total that the polyfill accounts for
     runs: Outcome;
   }>;
+  emit: Array<{
+    library: LibraryId;
+    variant: Variant;
+    fixture: 'scale-200';
+    toolchain: 'tsc-6';
+    emittedBytes: number; // unminified JavaScript output, all files
+    metadataCalls: number; // __metadata( occurrences
+    decorateCalls: number; // __decorate( occurrences
+    importsInSource: number;
+    importsKept: number; // import declarations still present in the output
+  }>;
 }
 
 // results/timings/<date>-<sha7>.json
@@ -631,14 +708,65 @@ interface TimingsFile {
     noisy: boolean;
   }>;
 }
+
+// results/build.json: rewritten by every published run; its git history is its history.
+interface BuildFile {
+  schema: 1;
+  sha: string;
+  startedAt: string; // ISO 8601
+  versions: Versions;
+  runner: TimingsFile['runner'];
+  seed: number;
+  rounds: number;
+  // build[library][variant][toolchain]; only cells with a build step appear.
+  build: Record<LibraryId, Partial<Record<Variant, Record<string, BuildCell>>>>;
+}
+interface BuildMeasure {
+  median: number; // ms, wall clock, cold
+  mad: number; // ms
+  rounds: number[]; // ms, in run order
+  noisy: boolean;
+}
+// The cell's own median and mad are the scale-200 build, the headline fixture.
+interface BuildCell extends BuildMeasure {
+  outcome: Outcome; // the matrix outcome of this cell
+  headline: boolean; // the library's fastest passing documented toolchain
+  'meridian-8': BuildMeasure;
+}
 ```
+
+The docs address a single figure with a dotted path, `<family>.<keys>.<field>`. Every
+component and `<Figure of="…" />` uses these paths, and `benchmark-data.mjs` indexes the
+array files into the same tree, so a path resolves the same way whatever the file's layout.
+A unit test in `benchmarks/src` holds the grammar, and a docs build fails on a path that
+does not resolve.
+
+| Family    | Path                                                                                                  | Example                                      |
+| --------- | ----------------------------------------------------------------------------------------------------- | -------------------------------------------- |
+| `matrix`  | `matrix.<library>.<variant>.<toolchain>.outcome`                                                      | `matrix.tsyringe.decorated.esbuild.outcome`  |
+| `probes`  | `probes.<library>.<variant>.<probe>.detectedAt`                                                       | `probes.awilix.plain.cycle.detectedAt`       |
+| `size`    | `size.<library>.<variant>.<bundler>.<minified\|gzip\|polyfillGzip\|runs>`                             | `size.nexusdi.plain.esbuild.gzip`            |
+| `emit`    | `emit.<library>.<variant>.<emittedBytes\|metadataCalls\|decorateCalls\|importsInSource\|importsKept>` | `emit.inversify.decorated.metadataCalls`     |
+| `timings` | `timings.<library>.<variant>.<scenario>.<median\|mad\|p99\|heapBytes\|noisy>`                         | `timings.nexusdi.plain.cold-start.median`    |
+| `build`   | `build.<library>.<variant>.<toolchain>.<median\|mad\|noisy\|outcome\|headline>`                       | `build.nexusdi.plain.tsc-6.median`           |
+| `build`   | `build.<library>.<variant>.<toolchain>.meridian-8.<median\|mad\|noisy>`                               | `build.nexusdi.plain.esbuild.meridian-8.mad` |
+
+`emit` paths read `size.json`'s `emit` array. A `timings` path reads the file the component's
+`run` prop names, or the newest. The other families read the file at the results commit the
+page or post pins, or the committed file.
 
 ### 4.10 Result history
 
-The three deterministic files are committed and carry no timestamp. `--check` regenerates
+The three deterministic files (`matrix.json`, `probes.json`, `size.json`) are committed
+and carry no timestamp. `--check` regenerates
 each one and fails when it differs from the committed file, as Task 30's `--check` does. Git
 history is their history: `git log -p benchmarks/results/matrix.json` shows every outcome
 that changed and the commit that changed it.
+
+`build.json` is rewritten by each published run and committed in that run's pull request.
+Build times vary by machine, so `--check` leaves it out, and its git history holds every
+earlier run. The post pins it through its results commit, as it pins the deterministic
+files.
 
 Timing files accumulate in `results/timings/`, one per published run, named
 `<YYYY-MM-DD>-<sha7>.json`. A file is never edited after its pull request merges. At about
@@ -664,8 +792,13 @@ Components, in `apps/docs/components/benchmarks/`, render only from that JSON:
 - `<SizeChart bundler="esbuild" />` and `<TimingChart scenario="ready" />`: the charts of
   section 6.4.
 - `<Figure of="size.nexusdi.plain.esbuild.gzip" />`: one figure inline in prose, with its
-  unit.
+  unit, addressed by the path grammar of section 4.9.
 - `<MeasuredWith />`: the versions, the runner and a link to the results file at its commit.
+- `<PerformanceTable libraries? />`: the table of section 5.6.
+- `<BuildChart fixture="scale-200" />`: headline build times from `build.json` as bars,
+  each labelled with its toolchain.
+- `<BuildGrid />`: every build cell as a table, with each cell's matrix outcome.
+- `<Benefits competitor />`: the rows of section 5.7 that the results support.
 
 Each component takes an optional `run` prop naming a timings file. Without it, the component
 reads the newest. The post passes `run` (section 6.1). Comparison pages omit it.
@@ -680,10 +813,13 @@ these statements:
   version, Node's version, and the profile flags per cell, linked to `libraries.json` and
   `toolchains.json` at the results commit.
 - What was tested: Meridian-8, eight providers, in the variants of section 4.3, under ten
-  toolchain cells, with five probes, two bundlers and five timing scenarios on Node 24.
-- What was not tested: timings on Bun, Deno or in a browser; graphs larger than eight
-  providers; async factories; request scoping semantics beyond "one instance per scope";
-  memory beyond mitata's heap figure; any framework integration.
+  toolchain cells, with five probes, two bundlers and five timing scenarios on Node 24;
+  cold builds of Meridian-8 and of the generated 200-class `scale-200` under eight
+  toolchain cells.
+- What was not tested: timings on Bun, Deno or in a browser; incremental, watch-mode or
+  editor type-check time; runtime graphs larger than eight providers; async factories;
+  request scoping semantics beyond "one instance per scope"; memory beyond mitata's heap
+  figure; any framework integration.
 - How to rerun: `git clone`, `npm ci`, `npx nx run benchmarks:bench`, and the note that
   timings differ by machine while ratios between libraries in one run should hold within
   the published MAD.
@@ -696,6 +832,98 @@ these statements:
 `.github/ISSUE_TEMPLATE/04-benchmark-setup.yml` asks for the library, the fixture path, the
 documentation URL that shows the correct setup, and the expected outcome. It applies the
 `benchmarks` label.
+
+### 4.13 Prior art in this repository
+
+The owner built two benchmark tools before this spec. Both were read at their commits on
+2026-09-23.
+
+The June 2025 runner. `c678b24` added `benchmarks/runner/` with `compare-libraries.ts`,
+`validate-numbers.ts` and `performance-comparison.ts`, run through `tsx`. `ed388b1` added
+`measure-registration.ts` and committed `results.json`. `deb8063` ("Adopt NX") deleted the
+directory. The runner:
+
+- wrote every library's graph with interfaces and tokens (`IDatabase`, `ILogger`,
+  `IUserService`, `new Token<IDatabase>('DATABASE')`), the pattern decision 12 now requires;
+- measured startup, resolve and heap for NexusDI, InversifyJS, tsyringe and TypeDI in one
+  process, after one `import 'reflect-metadata'` at the top of the file, as the average,
+  minimum and maximum of 1,000 iterations;
+- wrote bundle sizes as literals in the source (`bundle: { core: 32, dependencies: 64,
+total: 96 }`), and `validate-numbers.ts` checked a measurement against the documented
+  figure (`bundleSizeValid: metrics.bundle.total === 96`);
+- pinned the competitors with caret ranges.
+
+The Nx plugin. `archive/stash-benchmark` (`f344d32`, 2025-06-27) holds `tools/benchmark`,
+`@nexusdi/benchmark`, with:
+
+- `BenchmarkBase` in `src/shared.ts`: an abstract class with `startup()`, `register()` and
+  `resolve()` phases, timed with `performance.mark` and `measure`, heap snapshots after each
+  phase, and a `bundleTarget` field. `getBundleSize()` returns `0` under a
+  `@ts-expect-error` and a TODO.
+- An executor (`src/executors/benchmark.ts`) that imports a project's `src/benchmark.ts`
+  into the Nx process, runs it `iterations` times, averages the phases, and prints
+  `console.table` or JSON.
+- A generator (`src/generators/benchmark.ts`) that writes `benchmarks/<name>/` with a
+  `project.json` whose `benchmark` target uses the executor, a `package.json`, a
+  `tsconfig.json`, a README and a `benchmark.ts` from a template. It points the target at
+  `src/index.benchmark.ts` while the template writes `src/benchmark.ts`, and it calls
+  `generateFiles` twice with the same arguments.
+- Two generated projects, `benchmarks/nexus` and `benchmarks/inversify`, with the 0.3 API
+  and a `UserService` graph.
+
+What this spec reuses:
+
+1. The interface-and-token graph of the June runner. Meridian-8 keeps its shape (an
+   interface, a token, a class) and moves it to the Meridian nouns (section 4.2).
+2. `BenchmarkBase`'s idea of one contract every library implements. It becomes the
+   fixture's exported `adapter` object (`ready()`, `scope()`, `dispose()`), which the
+   shared `scenario.mjs` drives (section 4.4). The contract is an object a single file
+   exports, so every toolchain cell can build it; a base class imported from a workspace
+   package would have to be built by each toolchain too.
+3. The phase split of `BenchmarkBase`. Each phase becomes a separate scenario
+   (`cold-start`, `ready`, the resolves), because 0.4's sealed container has no register
+   phase apart from `Nexus.create` and the others differ in which phase does the work
+   (section 4.7).
+4. The heap figure after startup, as mitata's heap statistic for `ready`.
+5. `validate-numbers.ts`'s intent, a check that the published numbers are true, turned the
+   other way round: the docs and the README read the numbers from the results, and
+   `doc-benchmark-figures` and `readme-comparison` fail on any figure typed by hand
+   (section 9).
+
+What this spec replaces, and why:
+
+- Averages of in-process iterations, with every library in one process and
+  `reflect-metadata` loaded for all of them. `reflect-metadata` patches the global
+  `Reflect`, and V8 specialises code on the shapes it has seen, so one library's run changes
+  the next. The harness runs each library, scenario and round in its own process and
+  reports medians with their MAD.
+- The executor's in-process import. It runs the benchmark inside the Nx process, next to Nx's
+  own work, and it needs a TypeScript loader for `src/benchmark.ts`. Nx also runs one target
+  per project, in parallel by default, so two libraries' benchmarks would share the CPU,
+  and no per-project target can shuffle rounds across libraries. The timing drivers need
+  one process that schedules every library.
+- Hard-coded and stubbed bundle sizes. `size.ts` measures bundles with two bundlers.
+- Caret ranges. `libraries.json` pins exact versions, and `competitor-releases` moves them.
+- One project per library. The per-project `package.json` isolated each library's
+  dependencies. The harness gets the same isolation from the throwaway consumer each cell
+  installs into, and keeps one `libraries.json`, one golden file and one results schema for
+  five libraries.
+
+The recommendation: harvest the five parts above and supersede the plugin. The trade-offs
+of the three options:
+
+| Option                      | For it                                                                                                                                                         | Against it                                                                                                                                                                                                                                                                                                                                             |
+| --------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| Adopt and finish the plugin | #21 asked for it; the owner wrote it; `nx g` would scaffold a sixth library in one command; one `benchmark` target per library reads well in the project graph | the executor has to become a process spawner and a cross-library scheduler, which is what `build.ts` and the timing drivers are; the base class and phases assume the 0.3 `set()` API; per-project targets fight the interleaving; the plugin adds `@nx/devkit` code, its tests, and the `nx.json` rewrites that `generator-collateral` guards against |
+| Harvest parts (recommended) | keeps the ideas that were right (one contract, interface tokens, separate phases, checked numbers) and none of the code that measured the wrong thing          | #21's generator and executor do not exist; adding a sixth library is a manual copy of one library's fixture folder, guided by the header rules and `libraries-claims`                                                                                                                                                                                  |
+| Supersede, reuse nothing    | smallest spec                                                                                                                                                  | discards the interface-token graph and the contract idea, both of which the harness needs anyway                                                                                                                                                                                                                                                       |
+
+The generator is the one part with lasting value: it would write the six to nine fixture,
+probe and snippet files a new library needs, in the right places. The marketing plan names
+more candidates (typed-inject, brandi, iti). When the owner adds a sixth library, a local
+`@nx/plugin` generator that writes those files and the `libraries.json` entry justifies
+its upkeep, and section 11 lists it for that point. #21 is closed by the 0.4.0 harness with a
+comment that links this section.
 
 ## 5. Comparison pages
 
@@ -740,28 +968,31 @@ the page filters to NexusDI and that library. The H2 sections, in order:
 4. "When each library reports a wiring mistake": `<ProbeTable />`.
 5. "Lifetimes and scopes": the lifetime and scope claims from `libraries.json`, each with
    its source link.
-6. "Bundle size": `<SizeChart />` and the table view.
-7. "Startup and resolve time": `<TimingChart scenario="ready" />`, the other scenarios as a
-   table, and the `noisy` flags.
-8. "Where X fits better": the cases where the competitor is the better choice, from
+6. "Performance comparison": `<PerformanceTable />` for NexusDI and X (section 5.6).
+7. "Where the difference comes from": `<Benefits />` (section 5.7).
+8. "Size, startup, resolve and build in detail": `<SizeChart />`,
+   `<TimingChart scenario="ready" />`, `<BuildChart />`, `<BuildGrid />`, the other timing
+   scenarios as a table, and the `noisy` flags.
+9. "Where X fits better": the cases where the competitor is the better choice, from
    `libraries.json` claims with sources. Two examples of what this section holds: awilix needs
    no build-time type information and loads modules by glob; InversifyJS has the largest
    user base and its own framework integrations.
-9. "Binding an interface to a class": the `snippets.ts` binding region for X beside
-   NexusDI's, both binding `SHIP_COMPUTER` to `ShipComputer` under an interface token.
-10. "Replacing a provider in a test": the replacement regions of both snippets files.
-    NexusDI's is `createTestingContainer(Meridian).override(REACTOR_CORE, { useClass:
-FakeReactor })`. The prose states what the override checks: the testing container runs
+10. "Binding an interface to a class": the `snippets.ts` binding region for X beside
+    NexusDI's, both binding `COMPUTER` to `QuantumComputer` under an interface token.
+11. "Replacing a provider in a test": the replacement regions of both snippets files.
+    NexusDI's is
+    `createTestingContainer(Meridian).override(REACTOR, { useClass: FakeReactor })`.
+    The prose states what the override checks: the testing container runs
     the full compiler, so a replacement that breaks the graph fails at `create` (core spec
     §11).
-11. "Moving from X to NexusDI": an API mapping table, X's call on the left and NexusDI's on
+12. "Moving from X to NexusDI": an API mapping table, X's call on the left and NexusDI's on
     the right, one row per concept the page covers.
-12. "How this page was measured": section 4.12.
+13. "How this page was measured": section 4.12.
 
 ### 5.3 What comes from the harness
 
-Sections 2, 3, 4, 6, 7 and 12 render from the results files. Sections 9 and 10 cite the
-`snippets.ts` regions, which the snippets check has run. Sections 1, 5, 8 and 11 render from
+Sections 2, 3, 4, 6, 7, 8 and 13 render from the results files. Sections 10 and 11 cite the
+`snippets.ts` regions, which the snippets check has run. Sections 1, 5, 9 and 12 render from
 `libraries.json`'s `claims`, each of which has this shape:
 
 ```ts
@@ -784,7 +1015,7 @@ The pages follow the docs spec's prose rules and three more:
 
 1. A sentence about a competitor states what it does, with its source. It never
    characterises it ("heavy", "bloated", "outdated", "magic").
-2. Section 8, "Where X fits better", is required and holds at least two claims.
+2. Section 9, "Where X fits better", is required and holds at least two claims.
 3. A figure in prose names both libraries, the bundler or scenario, and the unit, and each
    number in the sentence is a `<Figure />` component. A sentence on bundle size also gives
    the polyfill's share where one exists.
@@ -799,6 +1030,49 @@ The pages follow the docs spec's prose rules and three more:
   edits it if needed, and updates `verifiedAgainst`. So a stale claim blocks the pin bump,
   and a page can never show new numbers beside a claim checked against an old version.
 - A major version of a competitor also re-runs the fixture review of section 4.3.
+
+### 5.6 The performance comparison table
+
+`<PerformanceTable />` renders one row per library and these columns, each cell a figure
+from the results with its unit and, for timings, its MAD:
+
+| Column                 | Source                                                                             |
+| ---------------------- | ---------------------------------------------------------------------------------- |
+| Bundle size (min+gzip) | `size.json`, documented variant, esbuild, with the polyfill's share in the tooltip |
+| Startup                | `cold-start` median, documented variant, Node 24; `ready` in the tooltip           |
+| Resolve                | `resolve-transient` median, documented variant                                     |
+| Build time             | the `build.json` cell with `headline: true`, `scale-200`, with its toolchain named |
+
+A cell with no source value shows "not measured" and the reason (for example, a library
+without transients). The table's caption names the results run, the runner's CPU and the
+core version, and links to `/benchmark-method/`.
+
+`/benchmark-method/`, "How NexusDI's benchmarks are measured", is a `contract` page in the
+Guides band. It holds sections 4.2 to 4.7 and 4.12 of this spec in the docs' prose rules,
+each H2 with its evidence: the graph, the variants and the documentation each follows, the
+toolchain cells and profiles, the break categories, the probes, and the method for size,
+emit, timings and builds. The comparison pages, the post and the README table link to it.
+
+### 5.7 Where the difference comes from
+
+The pages and the post explain the measured differences with the mechanisms below. A
+benefit is rendered only with its figures, and `<Benefits />` renders a row only when the
+results support it: for a count or a byte figure, NexusDI's value is lower; for a timing,
+NexusDI's median is lower by more than the two MADs added together. Where a row does not
+hold, the component shows both figures under the neutral heading "Measured" with no benefit
+sentence. A result that favours the competitor is shown the same way the others are.
+
+| Benefit                            | Mechanism, stated once in prose                                                                                                                                                    | Figures shown                                                                                          |
+| ---------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------ |
+| No `__metadata` emit per class     | `emitDecoratorMetadata` makes TypeScript write a `__metadata("design:paramtypes", […])` call for every decorated class, beside its `__decorate` call                               | `metadataCalls`, `decorateCalls` and `emittedBytes` for `scale-200`                                    |
+| Type-only imports stay erasable    | metadata turns a constructor parameter's type into a runtime reference, so the import of that class stays in the output; a deps tuple of tokens leaves interface imports type-only | `importsKept` of `importsInSource` for `scale-200`                                                     |
+| Fast single-file compilers work    | NexusDI needs no type information at build time, so esbuild, SWC and Oxc build a correct app; metadata needs the type checker for a correct result                                 | the headline build time and its toolchain for both libraries, and the matrix cells for those compilers |
+| No polyfill in the bundle          | `reflect-metadata` is loaded before any decorated class                                                                                                                            | `polyfillGzip` and the total bundle size                                                               |
+| Less work before the first resolve | the polyfill import and the metadata reads run at module load                                                                                                                      | `cold-start` medians                                                                                   |
+
+awilix and needle-di use no metadata, so the first two rows do not hold on their pages, and
+the component shows their figures as "Measured". Their pages carry the rows the results
+support, such as the graph checks from `probes.json`.
 
 ## 6. The launch post
 
@@ -838,9 +1112,9 @@ Target length: 1,500 words of prose, excluding code and tables.
    cited from `benchmarks/fixtures/nexusdi/plain.ts` with a `region`: the interfaces, their
    tokens, and `provide(TOKEN, { useClass, deps })` in `defineModule()`.
 3. "Swap the reactor in a test": the payoff of the interface tokens. The region from
-   `benchmarks/fixtures/nexusdi/snippets.ts` replaces `REACTOR_CORE` with `FakeReactor`
-   through `createTestingContainer(Meridian).override(...)`, and `ShipComputer` receives the
-   fake with no change to its class or its module. One sentence says the testing container
+   `benchmarks/fixtures/nexusdi/snippets.ts` replaces `REACTOR` with `FakeReactor`
+   through `createTestingContainer(Meridian).override(...)`, and `QuantumComputer` receives
+   the fake with no change to its class or its module. One sentence says the testing container
    compiles the graph as production does.
 4. "The same bindings in four other containers": each competitor's `snippets.ts` regions,
    the interface-token binding and the library's replacement for tests, 10 to 15 lines each.
@@ -857,9 +1131,13 @@ Target length: 1,500 words of prose, excluding code and tables.
    all five libraries. A link opens the same broken graph in the Playground
    (`/playground/?seed=launch-blueprint-error`). This section carries the differentiator
    against awilix and needle-di, which share "no reflect-metadata".
-8. "Size and startup": `<SizeChart bundler="esbuild" />` and
-   `<TimingChart scenario="ready" />`, with one sentence each on what the figure includes.
-   The other scenarios link to the comparison pages.
+8. "Size, startup and build": `<PerformanceTable />` for all five libraries,
+   `<SizeChart bundler="esbuild" />`, `<TimingChart scenario="cold-start" />` and
+   `<BuildChart fixture="scale-200" />`, each with one sentence on what the figure includes.
+   Then the flag-free, metadata-free design as concrete benefits: `<Benefits />` for
+   InversifyJS and tsyringe, whose documented setups use metadata, and the same rule of
+   section 5.7, so each benefit appears only with its number. A link goes to
+   `/benchmark-method/`, and the other scenarios link to the comparison pages.
 9. "Rerun it": the commands, the results files at their commit, the versions, and the
    invitation of section 4.12.
 10. "Try it": the Playground seed, Academy mission 1, `npm install @nexusdi/core`, and
@@ -1006,10 +1284,10 @@ item 1) uses the lead line as its first sentence.
 Under the hero, the README shows two regions that its doctests run, in this order:
 
 1. The wiring, about ten lines: `IReactorCore` and `IShipComputer`, the tokens
-   `REACTOR_CORE` and `SHIP_COMPUTER`, both bound with `useClass` in one `defineModule`,
-   then `Nexus.create` and `get(SHIP_COMPUTER)`.
+   `REACTOR` and `COMPUTER`, both bound with `useClass` in one `defineModule`,
+   then `Nexus.create` and `get(COMPUTER)`.
 2. The payoff, about five lines:
-   `createTestingContainer(Engineering).override(REACTOR_CORE, { useClass: FakeReactor })`,
+   `createTestingContainer(Engineering).override(REACTOR, { useClass: FakeReactor })`,
    and a `// ->` assertion that the computer holds the fake.
 
 The `BlueprintError` example follows as the first H2, "Wiring mistakes fail at startup",
@@ -1032,7 +1310,15 @@ NexusDI, InversifyJS, tsyringe, awilix and needle-di. Columns, from the marketin
 | Async init with sync `get()`      | the `async-init` claim in `libraries.json`                                                                                                                                |
 | Scopes                            | the `scopes` claim in `libraries.json`                                                                                                                                    |
 
-A line under the table links to `/comparison/` and to the results files. The table is
+A second generated region, between `<!-- performance:start -->` and
+`<!-- performance:end -->`, holds the "Performance comparison" table of section 5.6 as
+Markdown, same rows and columns, with a caption line naming the run and linking to
+`/benchmark-method/`. The README is published inside the npm tarball, so its figures come
+from the newest timings file at the release commit: for 0.4.0, the frozen run of T−7 on the
+last RC. The caption says which core version was measured. The docs pages show the newest
+run.
+
+A line under each table links to `/comparison/` and to the results files. Both tables are
 generated, so the `readme-comparison` check (section 9) fails when a README region differs
 from what the target writes.
 
@@ -1080,12 +1366,12 @@ The list drops "javascript", "nodejs", "lightweight", "modular", "provider", "se
 
 Four checks join `tools/repo-checks/src`, each with fixtures in the libraries shape:
 
-| Check                   | Rule                                                                                                                                                                                                                                                                                                                            |
-| ----------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `launch-claim`          | Every evidence entry in `claim.json` holds against the results files, CI config and tests it names. Both READMEs contain `hero.lead` and `hero.support` verbatim. No file under `apps/docs/content`, no README and no `package.json` description matches a `neverSay` pattern, pre-0.4.0 posts and the Migration band excepted. |
-| `doc-benchmark-figures` | On `/comparison/`, the four `/vs-*/` pages and every post from 0.4.0 on, no prose outside a component matches a number followed by `ns`, `µs`, `ms`, `kB`, `KB`, `bytes` or `%`. A page with a benchmark component names a `results` file that exists, when it names one.                                                       |
-| `libraries-claims`      | Every claim in `libraries.json` has a `source` URL and a `verifiedAgainst` equal to its library's pin. Every fixture's header cites the URL and version in `libraries.json`.                                                                                                                                                    |
-| `readme-comparison`     | Both READMEs' comparison regions equal what `benchmarks:readme` writes from the committed results.                                                                                                                                                                                                                              |
+| Check                   | Rule                                                                                                                                                                                                                                                                                                                                               |
+| ----------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `launch-claim`          | Every evidence entry in `claim.json` holds against the results files, CI config and tests it names. Both READMEs contain `hero.lead` and `hero.support` verbatim. No file under `apps/docs/content`, no README and no `package.json` description matches a `neverSay` pattern, pre-0.4.0 posts and the Migration band excepted.                    |
+| `doc-benchmark-figures` | On `/comparison/`, the four `/vs-*/` pages and every post from 0.4.0 on, no prose outside a component matches a number followed by `ns`, `µs`, `ms`, `s`, `kB`, `KB`, `bytes` or `%`, and neither README has such a figure outside its generated regions. A page with a benchmark component names a `results` file that exists, when it names one. |
+| `libraries-claims`      | Every claim in `libraries.json` has a `source` URL and a `verifiedAgainst` equal to its library's pin. Every fixture's header cites the URL and version in `libraries.json`.                                                                                                                                                                       |
+| `readme-comparison`     | Both READMEs' `comparison` and `performance` regions equal what `benchmarks:readme` writes from the committed results.                                                                                                                                                                                                                             |
 
 ## 10. Launch timeline in the repository
 
@@ -1140,29 +1426,33 @@ Playground seed URL and the repository URL. The post alone is off-topic there.
 Required for 0.4.0 final:
 
 - The recipe extension, the `benchmarks` project, the ten toolchain cells, the eleven
-  library-variants, the five probes, both bundlers and the five timing scenarios.
+  library-variants, the five probes, both bundlers, the emit counts, the five timing
+  scenarios, and build times for `meridian-8` and `scale-200`.
 - `benchmarks.yml` with all three jobs, and at least one tag run on an RC.
-- `/comparison/` updated and the four `/vs-*/` pages.
+- `/comparison/` updated, the four `/vs-*/` pages and `/benchmark-method/`.
 - The post, its charts, its PNG exports and the dev.to export.
-- `claim.json`, the four guards, the README hero and table, the badges, the keywords and the
+- `claim.json`, the four guards, the README hero and both tables, the badges, the keywords and the
   issue template.
 
 After the launch:
 
 - Timings on Bun and Deno, and a browser timing run through Playwright.
-- A scaled graph (a generated 200-provider layered graph) for `ready` and
-  `resolve-transient`.
+- Runtime scenarios (`ready`, `resolve-transient`) on the `scale-200` graph, which 0.4.0
+  uses for builds only.
 - Async factories as a fifth matrix section, for the libraries that support them.
 - A benchmark cell per integration package, once the integrations spec merges.
 - Migration guides from tsyringe, TypeDI and InversifyJS, which the marketing plan places
   in its content backlog.
+- A local `@nx/plugin` generator that scaffolds a library's fixtures, probes, snippets and
+  `libraries.json` entry, when a sixth library is added (section 4.13).
 - A dedicated runner or CodSpeed, if the owner wants timings to gate pull requests.
   CodSpeed supports tinybench and Vitest, and it does not support mitata.
 
 ## 12. Amendments to the docs spec
 
 - §4.3: inventory #24 changes its title (section 5.1). Pages 35 to 38 are `/vs-inversify/`,
-  `/vs-tsyringe/`, `/vs-awilix/` and `/vs-needle-di/`, kind `contract`, in the Guides band.
+  `/vs-tsyringe/`, `/vs-awilix/` and `/vs-needle-di/`, and page 39 is `/benchmark-method/`,
+  all kind `contract`, in the Guides band.
   The blog table gains B5, the launch post.
 - §8.2: the roles `chart-focus` and `chart-context` (section 6.4).
 - §14.2: the targets `docs:benchmark-data` and the `postbuild` steps `devto-export.mjs` and
@@ -1171,10 +1461,13 @@ After the launch:
 - §15.3: step 3 copies `benchmarks/results/` from `main`; the path filter adds
   `benchmarks/results/**`.
 - §19: the out-of-scope line for benchmarks (#21) is replaced by this spec.
-- §7.1: the canonical vocabulary becomes interface-first under the owner's rule. Each
-  provider gets an interface (`IReactorCore`) and a token (`REACTOR_CORE`), bound with
-  `useClass`. `FakeReactor` is the test double the override examples use. The domain
-  guard's deny list keeps the `I…Service` pattern, which no Meridian interface matches.
+- §7.1: the canonical vocabulary becomes interface-first under the owner's ruling: the
+  tokens `REACTOR` (`IReactorCore`, bound to `FusionReactor`), `COMPUTER` (`IShipComputer`,
+  bound to `QuantumComputer`), `NAV_CHARTS`, `SUBSPACE_LINK`, `POWER_ROUTER`,
+  `SHIELD_GRID`, `FLIGHT_LOG` and `DRONE`, each described by its role name. This spec adds
+  `BRIDGE` for Meridian-8 (section 4.2). `FakeReactor` is the test double the override
+  examples use. The domain guard's deny list keeps the `I…Service` pattern, which no
+  Meridian interface matches.
 
 ## 13. Decisions for the owner
 
@@ -1189,10 +1482,11 @@ After the launch:
    should gate pull requests.
 3. Runner. Recommendation: GitHub-hosted `ubuntu-24.04`, with interleaved rounds and the
    `noisy` flag, and no self-hosted machine. The pages compare libraries within one run only.
-4. Issue #21 proposes an Nx plugin with a generator and an executor. Recommendation: close
-   #21 with this project and write no plugin. The executors would wrap `nx:run-commands`,
-   and a generator for five fixed libraries would template files that the header-comment
-   rules already describe.
+4. The owner's Nx plugin on `archive/stash-benchmark` and issue #21's generator and
+   executor. Recommendation: harvest the interface-token graph, the one-contract idea, the
+   phase split, the heap figure and the checked-numbers intent, and supersede the plugin
+   (section 4.13). The executor would have to become the cross-library scheduler the timing
+   drivers already are. Revisit a generator when a sixth library is added.
 5. Inviting competitor maintainers before launch. Recommendation: yes, at T−7, one issue or
    Discussion in the InversifyJS, tsyringe, awilix and needle-di repositories linking their
    fixtures and the correction template. A setup a maintainer approved is the strongest
