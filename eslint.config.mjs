@@ -53,7 +53,16 @@ export default [
         'error',
         {
           enforceBuildableLibDependency: true,
-          allow: ['^.*/eslint(\\.base)?\\.config\\.[cm]?[jt]s$'],
+          // Build-time tooling that never reaches a shipped artefact. The
+          // eslint config is lint-only. @nexusdi/doc-examples is imported by
+          // libs/core/vite.config.ts to run the README's documented examples
+          // as tests, at build time, never in what the build produces.
+          // Without this, enforceBuildableLibDependency rejects a buildable
+          // project for importing it.
+          allow: [
+            '^.*/eslint(\\.base)?\\.config\\.[cm]?[jt]s$',
+            '^@nexusdi/doc-examples(/.+)?$',
+          ],
           depConstraints: [
             {
               sourceTag: '*',

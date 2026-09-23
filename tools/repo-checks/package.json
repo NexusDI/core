@@ -4,6 +4,7 @@
   "private": true,
   "type": "module",
   "devDependencies": {
+    "@nexusdi/doc-examples": "*",
     "@nx/devkit": "23.1.1",
     "jsonc-parser": "^3.3.1",
     "yaml": "^2.9.0"
