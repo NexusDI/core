@@ -20,8 +20,6 @@ on:
 
 permissions:
   contents: read
-  pages: write # publish the Pages deployment
-  id-token: write # Pages deployments are OIDC-authenticated
 
 concurrency:
   group: pages
@@ -30,6 +28,8 @@ concurrency:
 jobs:
   build:
     runs-on: ubuntu-latest
+    permissions:
+      contents: read
     outputs:
       mode: ${{ steps.config.outputs.mode }}
     env:
@@ -129,6 +129,9 @@ jobs:
   deploy:
     needs: build
     runs-on: ubuntu-latest
+    permissions:
+      pages: write # publish the Pages deployment
+      id-token: write # Pages deployments are OIDC-authenticated
     environment:
       name: github-pages
       url: ${{ steps.deployment.outputs.page_url }}
@@ -141,6 +144,8 @@ jobs:
   smoke:
     needs: [build, deploy]
     runs-on: ubuntu-latest
+    permissions:
+      contents: read
     steps:
       # The smoke check needs its own script and the Node version, nothing else.
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
