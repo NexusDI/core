@@ -1,4 +1,6 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
+import { TOKEN_BRAND } from './constants.js';
+
 /**
  * Token class for dependency injection
  * Creates unique tokens for dependency injection with optional string identifiers
@@ -22,6 +24,16 @@ export class Token<T = any> {
   constructor(identifier?: string) {
     this.id = identifier || `__token_${Token.counter++}__`;
     this.symbol = Symbol(this.id);
+    // Branded per instance, not on the prototype: a prototype assignment is
+    // a module-level statement with no export binding, which is exactly the
+    // shape of statement `sideEffects: false` licenses a bundler to drop
+    // (see index.ts's Symbol.metadata polyfill). Setting it here runs
+    // exactly when a Token is constructed, which every caller that needs
+    // the brand already triggers.
+    Object.defineProperty(this, TOKEN_BRAND, {
+      value: true,
+      enumerable: false,
+    });
   }
 
   /**
