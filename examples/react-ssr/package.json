@@ -7,6 +7,8 @@
   "dependencies": {
     "@react-router/node": "^7.6.3",
     "@react-router/serve": "^7.6.3",
+    "class-variance-authority": "^0.7.1",
+    "clsx": "^2.1.1",
     "isbot": "^4.4.0",
     "react": "19.1.0",
     "react-dom": "19.1.0",
@@ -14,8 +16,10 @@
   },
   "devDependencies": {
     "@react-router/dev": "^7.6.3",
+    "@tailwindcss/vite": "^4.1.10",
     "@types/node": "^22",
     "@types/react": "19.1.8",
-    "@types/react-dom": "19.1.6"
+    "@types/react-dom": "19.1.6",
+    "tailwindcss": "^4.1.10"
   }
 }
