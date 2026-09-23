@@ -102,6 +102,14 @@ function group(
  * every scoped provider reached through a chain of transients and aliases
  * from one. Walked with an explicit stack, not recursion, for the same
  * reason `levelFunction` is: a pass-through chain can be arbitrarily long.
+ *
+ * `seen` guards every id ever pushed, scoped or pass-through alike, so a
+ * shared node under a fan-out of transients or aliases (a "diamond": two or
+ * more nodes depending on the same downstream node) is expanded once. Without
+ * it, each of a diamond's incoming edges re-explores the whole subgraph below
+ * the shared node, and stacking N diamonds costs O(2^N): unlike a plain long
+ * chain, this is not a call-stack depth problem an explicit stack alone
+ * fixes, it is a suppressed-revisit problem.
  */
 function collectScoped(
   providers: ReadonlyMap<string, ProviderRecord>,
@@ -109,12 +117,19 @@ function collectScoped(
   isScoped: Member,
 ): Set<string> {
   const needed = new Set<string>();
+  const seen = new Set<string>();
   const stack: string[] = [];
+
+  const visit = (id: string): void => {
+    if (seen.has(id)) return;
+    seen.add(id);
+    stack.push(id);
+  };
 
   for (const record of providers.values()) {
     if (isScoped(record) && record.kind === 'factory') {
       needed.add(record.id);
-      stack.push(record.id);
+      visit(record.id);
     }
   }
 
@@ -124,11 +139,10 @@ function collectScoped(
       const record = providers.get(next);
       if (record === undefined) continue;
       if (isScoped(record)) {
-        if (needed.has(next)) continue;
         needed.add(next);
-        stack.push(next);
+        visit(next);
       } else if (record.lifetime === 'transient' || record.kind === 'alias') {
-        stack.push(next);
+        visit(next);
       }
     }
   }

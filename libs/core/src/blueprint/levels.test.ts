@@ -144,4 +144,55 @@ describe('compile', () => {
       idOf(bp, classes[LENGTH - 1]),
     ]);
   });
+
+  it('does not blow up on stacked transient diamonds under a scoped factory', () => {
+    // Each layer fans a shared node out to two transients and back in to one:
+    // Ni depends on [Ai, Bi], and Ai and Bi both depend on N(i-1). Without a
+    // seen set on the scoped-reachability walk, each of a diamond's two
+    // incoming edges re-explores everything below it, doubling the work
+    // stacked diamond by stacked diamond: 40 layers is 2^40 node visits for
+    // the unguarded walk, and a handful of milliseconds for the guarded one.
+    const LAYERS = 40;
+    let bottom: new (...args: any[]) => unknown = class Base {};
+    const providers: any[] = [bottom];
+    for (let i = 1; i <= LAYERS; i++) {
+      class A {
+        constructor(readonly n: unknown) {}
+      }
+      class B {
+        constructor(readonly n: unknown) {}
+      }
+      class N {
+        constructor(
+          readonly a: unknown,
+          readonly b: unknown,
+        ) {}
+      }
+      Object.defineProperty(A, 'name', { value: `A${i}` });
+      Object.defineProperty(B, 'name', { value: `B${i}` });
+      Object.defineProperty(N, 'name', { value: `N${i}` });
+      providers.push(
+        provide(A, { deps: [bottom], lifetime: 'transient' }),
+        provide(B, { deps: [bottom], lifetime: 'transient' }),
+        provide(N, { deps: [A, B], lifetime: 'transient' }),
+      );
+      bottom = N;
+    }
+    // collectScoped seeds only from scoped factories (kind 'factory'); a
+    // scoped class provider never seeds it, per the already-passing "levels
+    // scoped factories" test above, so the diamond chain hangs off a factory.
+    const MISSION = new Token<string>('Mission');
+    providers.push(
+      provide(MISSION, {
+        useFactory: () => 'x',
+        deps: [bottom],
+        lifetime: 'scoped',
+      }),
+    );
+
+    const bp = compile({
+      root: defineModule({ name: 'Root', providers }),
+    });
+    expect(bp.scopedLevels).toEqual([[idOf(bp, MISSION)]]);
+  });
 });
