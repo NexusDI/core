@@ -14,6 +14,21 @@ on:
         description: 'Projects, comma separated. Same names as commit scopes. Empty releases everything affected.'
         type: string
         default: ''
+      specifier:
+        description: >-
+          Version specifier. Empty infers the bump from conventional commits
+          (the normal path). Otherwise one of patch, minor, major, premajor,
+          preminor, prepatch, prerelease, or an exact version (e.g. 1.2.3 or
+          1.2.3-rc.0). See RELEASING.md's "Release candidates" section for
+          the rc.0 -> rc.N -> stable flow.
+        type: string
+        default: ''
+      preid:
+        description: >-
+          Prerelease identifier. Only takes effect when specifier is one of
+          premajor/preminor/prepatch/prerelease.
+        type: string
+        default: 'rc'
 
 permissions:
   contents: write # create tags and GitHub releases
@@ -118,6 +133,7 @@ jobs:
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
 
       - name: Version, changelog and tag
+        id: version
         # Inputs reach the script as environment variables. A `${{ }}`
         # interpolation is substituted into the script text before the shell
         # sees it, so a dispatch input containing shell syntax would run as
@@ -125,24 +141,74 @@ jobs:
         env:
           DRY_RUN: ${{ inputs.dry-run }}
           PROJECTS: ${{ steps.projects.outputs.projects }}
+          SPECIFIER: ${{ inputs.specifier }}
+          PREID: ${{ inputs.preid }}
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         # `nx release` publishes on its own unless told not to, so this step
         # passes --skip-publish -- without it, the Publish step below would
         # publish the same version a second time.
+        #
+        # --preid only accompanies an explicit pre* specifier. Passed
+        # unconditionally it would also apply during conventional-commits
+        # auto mode (empty SPECIFIER), turning an ordinary release into a
+        # prerelease -- nx's own --preid description: "This will only be
+        # applied in the case that the specifier argument has been set to
+        # `prerelease` OR when conventional commits are enabled, in which
+        # case it will modify the resolved specifier ... e.g. minor ->
+        # preminor." Continuing an existing rc series (specifier=prerelease
+        # or empty with the current version already a prerelease) needs no
+        # --preid either: `semver.inc` carries the existing identifier
+        # forward on its own (verified: rc.0 -> rc.1 with no --preid).
         run: |
           args=(--skip-publish)
           # An empty PROJECTS omits the flag. `--projects ""` is a filter
           # that matches nothing, which nx reports as an internal bug rather
           # than as an empty release.
           if [ -n "$PROJECTS" ]; then args+=(--projects "$PROJECTS"); fi
+          if [ -n "$SPECIFIER" ]; then args+=("$SPECIFIER"); fi
+          case "$SPECIFIER" in
+            premajor|preminor|prepatch|prerelease) args+=(--preid "$PREID") ;;
+          esac
           if [ "$DRY_RUN" = "true" ]; then args+=(--dry-run); fi
           echo "Running: nx release ${args[*]}"
           npx nx release "${args[@]}"
+
+      - name: Resolve npm dist-tag
+        id: tag
+        # nx release publish does not pick a dist-tag by itself: unset
+        # --tag falls through to npm's own default of "latest" regardless
+        # of the version's shape (@nx/js/src/utils/npm-config.js,
+        # getNpmTag). A prerelease version therefore has to be tagged
+        # "next" explicitly, or it becomes the default install for
+        # everyone. Read back the version the previous step just wrote
+        # rather than re-deriving it, so this can never disagree with what
+        # was actually versioned.
+        #
+        # Single package today, so one tag for the one release. A second
+        # released package would need this computed per project instead of
+        # once workspace-wide, since nx release publish --tag applies one
+        # value across the whole invocation.
+        run: |
+          version=$(node -p "require('./libs/core/package.json').version")
+          # A semver prerelease is a hyphen after the X.Y.Z core and before
+          # any +build metadata -- e.g. 0.4.0-rc.0, not 0.4.0 or
+          # 0.4.0+20260101. A plain string match, not a semver library: the
+          # version was just written by nx release itself, so it is
+          # guaranteed well-formed.
+          if [[ "$version" == *-* ]]; then
+            tag=next
+          else
+            tag=latest
+          fi
+          echo "version=$version" >> "$GITHUB_OUTPUT"
+          echo "tag=$tag" >> "$GITHUB_OUTPUT"
+          echo "Resolved $version -> dist-tag $tag"
 
       - name: Publish to npm
         if: ${{ !inputs.dry-run }}
         env:
           PROJECTS: ${{ steps.projects.outputs.projects }}
+          TAG: ${{ steps.tag.outputs.tag }}
           # No NODE_AUTH_TOKEN and no NPM_TOKEN, deliberately.
           #
           # The npm CLI detects the GitHub Actions OIDC environment and
@@ -157,7 +223,7 @@ jobs:
           # Provenance is automatic under trusted publishing, so neither
           # NPM_CONFIG_PROVENANCE nor --provenance is needed.
         run: |
-          args=()
+          args=(--tag "$TAG")
           if [ -n "$PROJECTS" ]; then args+=(--projects "$PROJECTS"); fi
           echo "Running: nx release publish ${args[*]}"
           npx nx release publish "${args[@]}"
