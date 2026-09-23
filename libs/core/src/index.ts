@@ -37,3 +37,14 @@ export type {
 export { MultiToken, Token } from './definitions/token.js';
 export type { InjectionToken } from './definitions/token.js';
 export type { Lifetime } from './definitions/types.js';
+export { all, lazy, optional } from './definitions/modifiers.js';
+export type {
+  All,
+  Dep,
+  DepFor,
+  Lazy,
+  Optional,
+  Resolve,
+  ResolveAll,
+  Tokens,
+} from './definitions/modifiers.js';

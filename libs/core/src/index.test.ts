@@ -7,6 +7,7 @@ import * as api from './index.js';
  * this list and not a side effect of a barrel edit.
  */
 const RUNTIME_EXPORTS: string[] = [
+  'all',
   'AmbiguousProviderError',
   'AsyncTransientError',
   'BlueprintError',
@@ -17,6 +18,7 @@ const RUNTIME_EXPORTS: string[] = [
   'InvalidModuleError',
   'InvalidProviderError',
   'InvalidTokenError',
+  'lazy',
   'LegacyDecoratorsError',
   'LifetimeError',
   'LoadedAfterScopeError',
@@ -30,6 +32,7 @@ const RUNTIME_EXPORTS: string[] = [
   'NoScopeContextError',
   'NotReadyError',
   'NotVisibleError',
+  'optional',
   'OverrideError',
   'ProviderError',
   'RequestMissingError',
