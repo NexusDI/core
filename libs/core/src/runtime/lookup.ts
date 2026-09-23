@@ -33,11 +33,12 @@ export function lookupModule(bp: Blueprint, options?: LookupOptions): string {
   return id;
 }
 
-function notFound(
+export function notFound(
   container: ContainerState,
   bp: Blueprint,
   token: TokenKey,
   moduleId: string,
+  entry?: string,
 ): NexusError {
   const current = container.root.blueprint;
   if (container.kind === 'scope' && current !== bp) {
@@ -48,6 +49,7 @@ function notFound(
       return new LoadedAfterScopeError({
         token: displayName(token),
         module: current.modules.get(record.module)?.name ?? record.module,
+        entry,
       });
     }
   }
@@ -59,7 +61,7 @@ function notFound(
     ),
   ];
   if (owners.length > 0)
-    return new NotVisibleError({ token: displayName(token), owners });
+    return new NotVisibleError({ token: displayName(token), owners, entry });
   return new MissingProviderError({
     token: displayName(token),
     requester: null,
@@ -69,6 +71,7 @@ function notFound(
       records: bp.providers.values(),
       exportedTokens: bp.exportedTokens,
     }),
+    entry,
   });
 }
 

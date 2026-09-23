@@ -4,13 +4,17 @@ import { NexusError } from './nexus-error.js';
 export class InvalidTokenError extends NexusError {
   declare readonly code: 'NEXUS_INVALID_TOKEN';
   readonly received: string;
+  /** The deps entry of resolve() or validate() this error is about, or null. */
+  readonly entry: string | null;
 
-  constructor(fields: { received: string; reason?: string }) {
+  constructor(fields: { received: string; reason?: string; entry?: string }) {
+    const at = fields.entry === undefined ? '' : `${fields.entry}: `;
     super(
       'NEXUS_INVALID_TOKEN',
-      `${fields.received} ${fields.reason ?? 'is not a token. A token is a class, a Token or a MultiToken.'}`,
+      `${at}${fields.received} ${fields.reason ?? 'is not a token. A token is a class, a Token or a MultiToken.'}`,
     );
     this.name = 'InvalidTokenError';
     this.received = fields.received;
+    this.entry = fields.entry ?? null;
   }
 }

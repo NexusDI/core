@@ -80,3 +80,11 @@ export function all<T>(token: MultiToken<T>): All<T> {
 export function isModifier(value: unknown): value is Modifier {
   return typeof value === 'object' && value !== null && MODIFIERS.has(value);
 }
+
+/** A record of deps entries, as resolve() and validate() take it. */
+export type DepsMap = Readonly<Record<string, Dep>>;
+
+/** A deps map or tuple mapped to what each entry resolves to. */
+export type ResolvedDeps<D extends DepsMap | readonly Dep[]> = {
+  -readonly [K in keyof D]: Resolve<D[K]>;
+};

@@ -1,7 +1,9 @@
+import type { Dep, DepsMap, ResolvedDeps } from '../definitions/modifiers.js';
 import type { NexusRequest } from '../definitions/request.js';
 import type { InjectionToken, MultiToken } from '../definitions/token.js';
 import { DisposedError, RequestMissingError } from '../errors/index.js';
 import { adopt, buildInto, traceConstruct } from './build.js';
+import { resolveDeps } from './deps.js';
 import { chainErrors, disposeInReverse } from './dispose.js';
 import { getFrom, hasIn } from './lookup.js';
 import type { LookupOptions } from './options.js';
@@ -24,6 +26,11 @@ export interface Scope {
     token: InjectionToken<unknown> | MultiToken<unknown>,
     options?: LookupOptions,
   ): boolean;
+  /** Resolves a deps map or tuple with the rules a factory's deps follow. Synchronous, like get(). */
+  resolve<const D extends DepsMap | readonly Dep[]>(
+    deps: D,
+    options?: LookupOptions,
+  ): ResolvedDeps<D>;
   /** Disposes the scope's scoped and transient instances. A second call returns the first call's promise. */
   [Symbol.asyncDispose](): Promise<void>;
 }
@@ -83,6 +90,20 @@ class ScopeHandle implements Scope {
   ): boolean {
     assertScopeOpen(this.#state);
     return hasIn(this.#state.blueprint, token, options);
+  }
+
+  resolve<const D extends DepsMap | readonly Dep[]>(
+    deps: D,
+    options?: LookupOptions,
+  ): ResolvedDeps<D> {
+    assertScopeOpen(this.#state);
+    return resolveDeps(
+      this.#state,
+      this.#state.blueprint,
+      deps,
+      options,
+      this.#state,
+    ) as ResolvedDeps<D>;
   }
 
   [Symbol.asyncDispose](): Promise<void> {

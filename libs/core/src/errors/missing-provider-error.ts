@@ -38,18 +38,23 @@ export class MissingProviderError extends NexusError {
   readonly requester: string | null;
   readonly module: string;
   readonly nearMisses: readonly NearMiss[];
+  /** The deps entry of resolve() or validate() this error is about, or null. */
+  readonly entry: string | null;
 
   constructor(fields: {
     token: string;
     requester: string | null;
     module: string;
     nearMisses: readonly NearMiss[];
+    entry?: string;
   }) {
     const { token, requester, module, nearMisses } = fields;
     const head =
-      requester === null
-        ? `get(${token}) found no provider of ${token} visible in ${module}.`
-        : `${requester} (module ${module}) depends on ${token}, but no provider of ${token} is visible in ${module}.`;
+      fields.entry !== undefined
+        ? `${fields.entry}: no provider of ${token} is visible in ${module}.`
+        : requester === null
+          ? `get(${token}) found no provider of ${token} visible in ${module}.`
+          : `${requester} (module ${module}) depends on ${token}, but no provider of ${token} is visible in ${module}.`;
     const lines = [
       head,
       ...nearMisses.map((miss) => `  ${hint(token, module, miss)}`),
@@ -61,5 +66,6 @@ export class MissingProviderError extends NexusError {
     this.requester = requester;
     this.module = module;
     this.nearMisses = nearMisses;
+    this.entry = fields.entry ?? null;
   }
 }

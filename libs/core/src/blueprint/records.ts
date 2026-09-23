@@ -212,7 +212,7 @@ export function tokenOfEntry(entry: unknown): TokenKey | undefined {
 }
 
 /** A dep, or the reason it is not one. */
-function depOf(value: unknown, where: string): DepEntry | string {
+export function depOf(value: unknown, where: string): DepEntry | string {
   if (isModifier(value)) {
     const wantsMulti = value.kind === 'all';
     if (

@@ -42,10 +42,12 @@ export type {
   All,
   Dep,
   DepFor,
+  DepsMap,
   Lazy,
   Optional,
   Resolve,
   ResolveAll,
+  ResolvedDeps,
   Tokens,
 } from './definitions/modifiers.js';
 export { provide } from './definitions/provide.js';
