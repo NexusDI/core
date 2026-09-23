@@ -44,7 +44,11 @@ async function buildSingleton(
   const record = bp.providers.get(id)!;
   const start = root.tracer.now();
   let value = construct(record, { bp, container: root, owner: root });
-  const isAsync = isThenable(value);
+  // Only a factory's result is awaited (spec §6.1: a class provider stores
+  // its constructed instance as is). Without the kind check, a class
+  // instance that happens to expose a `then` method would be replaced by
+  // its resolved value instead of stored.
+  const isAsync = record.kind === 'factory' && isThenable(value);
   if (isAsync) {
     const pending = Promise.resolve(value);
     root.slots.begin(id, pending);

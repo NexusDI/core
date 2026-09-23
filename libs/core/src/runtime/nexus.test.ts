@@ -179,6 +179,20 @@ describe('Nexus', () => {
         },
       ]);
     });
+
+    it('stores a class singleton whose instance has a then method, and never calls it', async () => {
+      const then = vi.fn();
+      class QueryBuilder {
+        then = then;
+      }
+      const ship = await Nexus.create(
+        defineModule({ name: 'Root', providers: [QueryBuilder] }),
+      );
+      const instance = ship.get(QueryBuilder);
+      expect(instance).toBeInstanceOf(QueryBuilder);
+      expect(instance.then).toBe(then);
+      expect(then).not.toHaveBeenCalled();
+    });
   });
 
   describe('get', () => {
