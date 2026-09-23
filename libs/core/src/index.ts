@@ -34,3 +34,6 @@ export type {
   ProviderFailure,
   SchemaIssue,
 } from './errors/index.js';
+export { MultiToken, Token } from './definitions/token.js';
+export type { InjectionToken } from './definitions/token.js';
+export type { Lifetime } from './definitions/types.js';

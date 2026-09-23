@@ -25,6 +25,7 @@ const RUNTIME_EXPORTS: string[] = [
   'MissingProviderError',
   'ModuleImportCycleError',
   'ModuleOptionsError',
+  'MultiToken',
   'NexusError',
   'NoScopeContextError',
   'NotReadyError',
@@ -33,6 +34,7 @@ const RUNTIME_EXPORTS: string[] = [
   'ProviderError',
   'RequestMissingError',
   'ScopeRequiredError',
+  'Token',
 ];
 
 describe('@nexusdi/core', () => {
