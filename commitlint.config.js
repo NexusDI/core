@@ -52,6 +52,13 @@ module.exports = {
         'release',
         'specs',
         'docs',
+        // The docs site's own projects. None is under nx.json's
+        // release.projects, so none of these commits versions a package.
+        // tools/repo-checks/src/docs-scopes.test.ts holds this list.
+        'docs-e2e',
+        'meridian-ui',
+        'meridian',
+        'doc-examples',
       ],
     ],
     'type-case': [2, 'always', 'lower-case'],

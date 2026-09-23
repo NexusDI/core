@@ -66,7 +66,11 @@ own):
 - **repo**: Repository-wide chores (tooling, nx.json, tsconfig.base.json, ...)
 - **release**: Release tooling and this runbook
 - **specs**: Changes under a specs/ or docs/specs directory, if one exists
-- **docs**: Changes to documentation
+- **docs**: Changes to documentation and to `apps/docs`
+- **docs-e2e**: Changes to `apps/docs-e2e`
+- **meridian-ui**: Changes to `internal/meridian-ui`
+- **meridian**: Changes to `examples/meridian`
+- **doc-examples**: Changes to `tools/doc-examples`
 
 The list is enforced. `commitlint.config.js` carries it as the `scope-enum`
 rule, and the commit-msg hook rejects anything outside it. It is a static list
