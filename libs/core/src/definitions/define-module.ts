@@ -150,7 +150,7 @@ export function defineModule(
     options,
     schema,
     with: (input: unknown): ModuleDefinition =>
-      register(fieldsOf(config), {
+      register(fieldsOf(base), {
         base,
         options,
         schema,

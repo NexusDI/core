@@ -37,6 +37,14 @@ describe('defineModule', () => {
     expect(Engineering.providers).toHaveLength(1);
   });
 
+  it('keeps with() unaffected by mutating the config object afterward', () => {
+    const providers = [ReactorCore];
+    const config = { name: 'Comms', options: COMMS_OPTIONS, providers };
+    const Comms = defineModule(config);
+    providers.push(class Other {});
+    expect(Comms.with({ frequency: 1 }).providers).toHaveLength(1);
+  });
+
   it('throws NEXUS_INVALID_MODULE for a config without a name', () => {
     expect(thrown(() => defineModule({} as never))).toMatchObject({
       code: 'NEXUS_INVALID_MODULE',
