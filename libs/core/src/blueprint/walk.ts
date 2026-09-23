@@ -36,15 +36,11 @@ export interface WalkResult {
   readonly broken: ReadonlySet<TokenKey>;
 }
 
-interface NodeDraft {
-  readonly id: string;
-  readonly index: number;
-  readonly name: string;
-  readonly definition: ModuleDefinition;
-  readonly global: boolean;
+/** A ModuleNode under construction: its id/imports/providers fill in as the walk proceeds. */
+type NodeDraft = Omit<ModuleNode, 'imports' | 'providers'> & {
   readonly imports: string[];
   readonly providers: string[];
-}
+};
 
 /**
  * Pass 1. A depth-first walk from the root that deduplicates modules by
