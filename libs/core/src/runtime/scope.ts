@@ -150,16 +150,19 @@ async function buildScope(scope: ScopeState): Promise<Scope> {
     for (const level of scope.blueprint.scopedLevels) {
       built += level.length;
       await settleLevel(level, (id) => buildScoped(scope, id));
-      if (root.disposing) throw new DisposedError({ target: 'container' });
+      assertOpen(root);
     }
-    if (root.disposing) throw new DisposedError({ target: 'container' });
+    assertOpen(root);
   } catch (error) {
     const { errors } = await disposeInReverse(
       scope.owned,
       root.ownership,
       reportDisposal(tracer, scope.scopeId),
     );
-    if (error instanceof DisposedError) throw error;
+    if (error instanceof DisposedError) {
+      root.abortErrors.push(...errors);
+      throw error;
+    }
     throw toProviderError(error, scope.blueprint, errors);
   }
   root.scopes.add(scope);

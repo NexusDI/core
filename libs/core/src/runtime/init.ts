@@ -1,8 +1,7 @@
 import type { Blueprint } from '../blueprint/blueprint.js';
-import { DisposedError } from '../errors/index.js';
 import { isObject } from './ownership.js';
 import { settleLevel } from './settle.js';
-import type { RootState } from './state.js';
+import { assertOpen, type RootState } from './state.js';
 
 interface Initializable {
   onInit(): unknown;
@@ -49,6 +48,6 @@ export async function runInit(
     // async onInit yields control back to the event loop). Checking it after
     // every level, not only once at the end, stops a later level's onInit
     // from starting once the container has begun disposing.
-    if (root.disposing) throw new DisposedError({ target: 'container' });
+    assertOpen(root);
   }
 }

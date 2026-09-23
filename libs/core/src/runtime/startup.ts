@@ -8,7 +8,7 @@ import { adopt, buildInto, moduleName, traceConstruct } from './build.js';
 import { disposeInReverse } from './dispose.js';
 import { runInit } from './init.js';
 import { settleLevel, toProviderError } from './settle.js';
-import type { RootState } from './state.js';
+import { assertOpen, type RootState } from './state.js';
 import { reportDisposal } from './trace.js';
 
 export interface StartupPlan {
@@ -112,11 +112,12 @@ async function buildSingleton(
 /**
  * Builds the new singletons of a blueprint into the root, level by level.
  * Providers in one level run together; the next level starts when every
- * provider in this one has settled. It also checks `root.disposing` after
- * each level and after onInit, so a disposal that starts mid-run stops the
- * next level from starting. On failure it forgets what it built and disposes
- * it one at a time in reverse creation order; it then rethrows a `DisposedError`
- * as is, and wraps any other failure in a ProviderError with the same code.
+ * provider in this one has settled. It checks `root.disposing` after each
+ * build level and after each onInit level, so a disposal that starts
+ * mid-run stops the next level from starting. On failure it forgets what
+ * it built and disposes it one at a time in reverse creation order. It
+ * then rethrows a `DisposedError` unchanged and wraps any other failure in
+ * a `ProviderError` (NEXUS_PROVIDER_FAILED).
  */
 export async function startBlueprint(
   root: RootState,
@@ -132,9 +133,9 @@ export async function startBlueprint(
       if (ids.length === 0) continue;
       touched.push(...ids);
       await settleLevel(ids, (id) => buildSingleton(root, plan.bp, id));
-      if (root.disposing) throw new DisposedError({ target: 'container' });
+      assertOpen(root);
     }
-    if (root.disposing) throw new DisposedError({ target: 'container' });
+    assertOpen(root);
     // With onInit off (the testing container), buildSingleton already marked each singleton ready.
     if (root.initEnabled) await runInit(root, plan.bp, plan.isNew);
   } catch (error) {
@@ -145,7 +146,10 @@ export async function startBlueprint(
       root.ownership,
       reportDisposal(root.tracer, null),
     );
-    if (error instanceof DisposedError) throw error;
+    if (error instanceof DisposedError) {
+      root.abortErrors.push(...errors);
+      throw error;
+    }
     throw toProviderError(error, plan.bp, errors);
   }
 }

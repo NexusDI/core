@@ -8,8 +8,10 @@ import { reportDisposal } from './trace.js';
  * awaits every in-flight load and createScope, disposes open scopes newest
  * first, then the root's instances one at a time in reverse creation order,
  * and emits `dispose`. Disposer errors do not stop it; they are thrown at the
- * end, chained the way DisposableStack chains them. A second call returns the
- * first call's promise.
+ * end, chained the way DisposableStack chains them, with a rollback disposer
+ * error from an in-flight load or createScope that disposal aborted (see
+ * `root.abortErrors`) chained ahead of the root's own disposal errors,
+ * since it ran first. A second call returns the first call's promise.
  */
 export function disposeRoot(root: RootState): Promise<void> {
   root.disposal ??= (async () => {
@@ -18,7 +20,7 @@ export function disposeRoot(root: RootState): Promise<void> {
     const start = tracer.now();
     await Promise.allSettled([...root.inflight]);
 
-    const errors: unknown[] = [];
+    const errors: unknown[] = [...root.abortErrors];
     for (const scope of [...root.scopes].reverse()) {
       try {
         await disposeScope(scope);

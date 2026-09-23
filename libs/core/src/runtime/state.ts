@@ -34,6 +34,12 @@ export interface RootState {
   loadQueue: Promise<void>;
   /** load() and createScope() operations still running. Disposal awaits them. */
   readonly inflight: Set<Promise<unknown>>;
+  /**
+   * Disposer errors from rolling back a load or createScope that disposal
+   * aborted mid-build. disposeRoot prepends these to its own disposal
+   * errors before chaining them into its rejection.
+   */
+  readonly abortErrors: unknown[];
   /** Open scopes, oldest first. Disposal closes them newest first. */
   readonly scopes: Set<ScopeState>;
   /** The number the next scope id uses. */
@@ -116,6 +122,7 @@ export function createRootState(init: RootInit): RootState {
     disposal: undefined,
     loadQueue: Promise.resolve(),
     inflight: new Set(),
+    abortErrors: [],
     scopes: new Set(),
     nextScope: 0,
     scopeContext: init.scopeContext,
@@ -123,7 +130,11 @@ export function createRootState(init: RootInit): RootState {
   return state;
 }
 
-/** Public methods call this first (regression R17). */
+/**
+ * Public methods call this first (regression R17). startBlueprint,
+ * buildScope and runInit also call it after each build level, so a
+ * disposal that starts mid-run stops the next level from starting.
+ */
 export function assertOpen(root: RootState): void {
   if (root.disposing) throw new DisposedError({ target: 'container' });
 }

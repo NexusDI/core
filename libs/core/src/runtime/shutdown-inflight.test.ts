@@ -148,5 +148,30 @@ describe('Nexus', () => {
       await closing;
       expect(log).toEqual(['computer disposed', 'reactor disposed']);
     });
+
+    it('chains a rollback disposer error from an aborted load into the container disposal rejection', async () => {
+      const gate = deferred<object>();
+      const SENSOR = new Token<object>('Sensor');
+      const boom = new Error('sensor disposer failed');
+      const Science = defineModule({
+        name: 'Science',
+        providers: [
+          provide(SENSOR, { useFactory: () => gate.promise, deps: [] }),
+        ],
+      });
+      const ship = await Nexus.create(defineModule({ name: 'Root' }));
+      const loading = ship.load(Science);
+      await flush();
+
+      const closing = ship[Symbol.asyncDispose]();
+      gate.resolve({
+        [Symbol.dispose]() {
+          throw boom;
+        },
+      });
+
+      expect(await rejected(loading)).toMatchObject({ code: 'NEXUS_DISPOSED' });
+      expect(await rejected(closing)).toBe(boom);
+    });
   });
 });
