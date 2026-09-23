@@ -66,18 +66,11 @@ NexusDI is an alternative to:
 - <strong>TypeDI</strong>
 - <strong>NestJS DI system</strong>
 
-## 📊 Performance Comparison
+## 📦 Bundle Size
 
-| Library     | Startup Time | Resolution Time | Memory Usage | Bundle Size |
-| ----------- | ------------ | --------------- | ------------ | ----------- |
-| **NexusDI** | 1.3μs        | 0.2μs           | 6KB          | 96KB        |
-| InversifyJS | 22.2μs       | 1.4μs           | 32KB         | 114KB       |
-| tsyringe    | 45.2μs       | 0.9μs           | 150KB        | 99KB        |
-| TypeDI      | 2.0μs        | 0.1μs           | 2KB          | 89KB        |
+A consumer that imports `Nexus`, `Service`, `Inject`, and `Token` from `@nexusdi/core@0.3.2`, registers two services, and resolves one comes to 6,840 bytes minified and 2,517 bytes gzipped, bundled with esbuild 0.28.2 (`--bundle --minify --format=esm`) against the published npm package. NexusDI 0.4 will include a reproducible benchmark harness that compares DI containers on bundle size, startup, resolve time, and build time.
 
-<sup>Based on real benchmarks: 1,000 startup iterations, 10,000 resolution iterations, Node.js v22.13.1, M1 Pro MacBook.</sup>
-
-👉 **See the full [Performance & Bundle Size](https://nexus.js.org/docs/performance) article for methodology and details.**
+👉 See the [Performance & Bundle Size](https://nexus.js.org/docs/performance) article for methodology and details.
 
 ## Quick Start
 
