@@ -9,6 +9,7 @@ import { loadModule } from './load.js';
 import { getFrom, hasIn } from './lookup.js';
 import type { CreateOptions, LookupOptions } from './options.js';
 import { openScope, type Scope } from './scope.js';
+import { disposeRoot } from './shutdown.js';
 import { startBlueprint } from './startup.js';
 import { assertOpen, createRootState, type RootState } from './state.js';
 import { Tracer } from './trace.js';
@@ -114,6 +115,14 @@ export class Nexus {
   /** The scope runInScope() bound to the current async context, or undefined. */
   currentScope(): Scope | undefined {
     return this.#state.scopeContext?.current();
+  }
+
+  /**
+   * Disposes the container: every public method throws NEXUS_DISPOSED from
+   * the first call on. A second call returns the first call's promise.
+   */
+  [Symbol.asyncDispose](): Promise<void> {
+    return disposeRoot(this.#state);
   }
 }
 

@@ -1,4 +1,5 @@
 import type { Lifetime } from '../definitions/types.js';
+import type { OwnedEntry } from './ownership.js';
 
 /** A typed lifecycle event (spec section 10.2). */
 export type TraceEvent =
@@ -64,4 +65,18 @@ export class Tracer {
   emit(make: () => TraceEvent): void {
     if (this.#sink !== undefined) this.#sink(make());
   }
+}
+
+/** The callback disposeInReverse calls per disposed instance: one dispose:instance event each. */
+export function reportDisposal(
+  tracer: Tracer,
+  scope: string | null,
+): (entry: OwnedEntry) => void {
+  return (entry) =>
+    tracer.emit(() => ({
+      type: 'dispose:instance',
+      token: entry.token,
+      providerId: entry.providerId,
+      scope,
+    }));
 }

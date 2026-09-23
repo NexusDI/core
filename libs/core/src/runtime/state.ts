@@ -28,6 +28,8 @@ export interface RootState {
   readonly initEnabled: boolean;
   /** Set when disposal starts. Every public method checks it. */
   disposing: boolean;
+  /** Set by the first [Symbol.asyncDispose]() call; later calls return it. */
+  disposal: Promise<void> | undefined;
   /** load() calls run one at a time, in call order, on this chain. */
   loadQueue: Promise<void>;
   /** load() and createScope() operations still running. Disposal awaits them. */
@@ -111,6 +113,7 @@ export function createRootState(init: RootInit): RootState {
     asyncFlags: new Map(),
     initEnabled: init.initEnabled,
     disposing: false,
+    disposal: undefined,
     loadQueue: Promise.resolve(),
     inflight: new Set(),
     scopes: new Set(),

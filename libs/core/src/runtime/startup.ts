@@ -9,6 +9,7 @@ import { disposeInReverse } from './dispose.js';
 import { runInit } from './init.js';
 import { settleLevel, toProviderError } from './settle.js';
 import type { RootState } from './state.js';
+import { reportDisposal } from './trace.js';
 
 export interface StartupPlan {
   readonly bp: Blueprint;
@@ -138,6 +139,7 @@ export async function startBlueprint(
     const { errors } = await disposeInReverse(
       root.owned.splice(mark),
       root.ownership,
+      reportDisposal(root.tracer, null),
     );
     throw toProviderError(error, plan.bp, errors);
   }

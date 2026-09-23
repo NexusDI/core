@@ -15,6 +15,7 @@ import {
   type RootState,
   type ScopeState,
 } from './state.js';
+import { reportDisposal } from './trace.js';
 
 /** A child container for one unit of work, such as a request. */
 export interface Scope {
@@ -46,7 +47,11 @@ export function disposeScope(scope: ScopeState): Promise<void> {
     scope.root.scopes.delete(scope);
     const tracer = scope.root.tracer;
     const start = tracer.now();
-    const report = await disposeInReverse(scope.owned, scope.root.ownership);
+    const report = await disposeInReverse(
+      scope.owned,
+      scope.root.ownership,
+      reportDisposal(tracer, scope.scopeId),
+    );
     tracer.emit(() => ({
       type: 'scope:dispose',
       scope: scope.scopeId,
@@ -140,7 +145,11 @@ async function buildScope(scope: ScopeState): Promise<Scope> {
       await settleLevel(level, (id) => buildScoped(scope, id));
     }
   } catch (error) {
-    const { errors } = await disposeInReverse(scope.owned, root.ownership);
+    const { errors } = await disposeInReverse(
+      scope.owned,
+      root.ownership,
+      reportDisposal(tracer, scope.scopeId),
+    );
     throw toProviderError(error, scope.blueprint, errors);
   }
   root.scopes.add(scope);
