@@ -10,6 +10,7 @@ import {
   type ProviderRecord,
 } from './blueprint.js';
 import { bind } from './bind.js';
+import { checkLifetimes } from './lifetimes.js';
 import { cyclePath, findCycles, successorsOf } from './tarjan.js';
 import { computeVisibility } from './visibility.js';
 import { walk } from './walk.js';
@@ -89,6 +90,13 @@ export function compile(input: CompileInput): Blueprint {
     );
     errors.push(new CircularDependencyError({ path: path.map(nameOf) }));
   }
+
+  // Pass 5: lifetimes, following every edge kind.
+  checkLifetimes(
+    providers,
+    successorsOf(bound.edges, () => true),
+    errors,
+  );
 
   if (errors.length > 0) throw new BlueprintError(errors);
 
