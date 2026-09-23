@@ -82,9 +82,9 @@
       "file": "apps/docs/tools/deploy/deploy-config.mjs",
       "exports": ["readDeployConfig"],
     },
-    // siteFiles is the directory walker check-artifact.mjs (Task 41) imports
-    // rather than duplicating. That file does not exist in this batch yet.
-    // Drop this entry once it imports siteFiles.
+    // siteFiles is the directory walker. check-artifact.mjs (Task 41) imports
+    // it. That file does not exist in this batch yet. Drop this entry once
+    // it imports siteFiles.
     {
       "file": "apps/docs/tools/deploy/assemble.mjs",
       "exports": ["siteFiles"],
