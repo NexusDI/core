@@ -76,7 +76,8 @@ if (import.meta.url === pathToFileURL(process.argv[1] ?? '').href) {
     ...(await runSmoke(targets, fetch, attempts)),
     ...(await runSmoke(notFoundTargets, fetch, attempts, checkNotFound)),
   ];
-  for (const url of [...targets, ...notFoundTargets]) console.log(`checked ${url}`);
+  for (const url of [...targets, ...notFoundTargets])
+    console.log(`checked ${url}`);
   if (findings.length > 0) {
     console.error(findings.map((finding) => `- ${finding}`).join('\n'));
     process.exit(1);
