@@ -74,7 +74,7 @@ promises "high performance" with no figure behind it.
    page or post types a figure by hand (sections 4.9 and 4.11).
 8. One comparison page per competitor, at `/vs-<id>/`, targets both "NexusDI vs X" and
    "X alternative" searches. No separate "alternative" pages exist (section 5).
-9. The launch post is `content/blog/dependency-injection-without-reflect-metadata.mdx` on
+9. The launch post is `content/blog/catch-di-wiring-mistakes-before-startup.mdx` on
    the new site, published on 0.4.0 final day. Its figures are pinned to one results run
    (section 6).
 10. The claim text lives once, in `apps/docs/claim.json`. A guard holds every evidence
@@ -373,8 +373,8 @@ snippet's header cites the pages that document the token and replacement APIs, a
 `libraries-claims` holds the citation to the pin.
 
 Review: before a fixture merges, a person reads it beside the cited page and ticks each rule
-in the pull request template section "Benchmark fixture review". After launch, the
-maintainers of each competitor are invited to review their fixtures (section 4.12).
+in the pull request template section "Benchmark fixture review". At T−7 the maintainers
+of each competitor are invited to review their fixtures (section 10.1).
 
 ### 4.4 The matrix
 
@@ -909,13 +909,13 @@ What this spec replaces, and why:
   installs into, and keeps one `libraries.json`, one golden file and one results schema for
   five libraries.
 
-The recommendation: harvest the five parts above and supersede the plugin. The trade-offs
-of the three options:
+The owner decided on 2026-09-23 to harvest the five parts above and supersede the plugin.
+The trade-offs of the three options, as they were weighed:
 
 | Option                      | For it                                                                                                                                                         | Against it                                                                                                                                                                                                                                                                                                                                             |
 | --------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
 | Adopt and finish the plugin | #21 asked for it; the owner wrote it; `nx g` would scaffold a sixth library in one command; one `benchmark` target per library reads well in the project graph | the executor has to become a process spawner and a cross-library scheduler, which is what `build.ts` and the timing drivers are; the base class and phases assume the 0.3 `set()` API; per-project targets fight the interleaving; the plugin adds `@nx/devkit` code, its tests, and the `nx.json` rewrites that `generator-collateral` guards against |
-| Harvest parts (recommended) | keeps the ideas that were right (one contract, interface tokens, separate phases, checked numbers) and none of the code that measured the wrong thing          | #21's generator and executor do not exist; adding a sixth library is a manual copy of one library's fixture folder, guided by the header rules and `libraries-claims`                                                                                                                                                                                  |
+| Harvest parts (decided)     | keeps the ideas that were right (one contract, interface tokens, separate phases, checked numbers) and none of the code that measured the wrong thing          | #21's generator and executor do not exist; adding a sixth library is a manual copy of one library's fixture folder, guided by the header rules and `libraries-claims`                                                                                                                                                                                  |
 | Supersede, reuse nothing    | smallest spec                                                                                                                                                  | discards the interface-token graph and the contract idea, both of which the harness needs anyway                                                                                                                                                                                                                                                       |
 
 The generator is the one part with lasting value: it would write the six to nine fixture,
@@ -1078,15 +1078,15 @@ support, such as the graph checks from `probes.json`.
 
 ### 6.1 Source and metadata
 
-The post is `apps/docs/content/blog/dependency-injection-without-reflect-metadata.mdx`, a
+The post is `apps/docs/content/blog/catch-di-wiring-mistakes-before-startup.mdx`, a
 `post` page (docs spec amendment A2) dated 0.4.0 final day:
 
 ```yaml
-title: 'Dependency injection without reflect-metadata: one graph, five containers, ten toolchains'
+title: 'Catch DI wiring mistakes before your app starts: one graph, five containers, ten toolchains'
 kind: post
 authors: [evanion]
 tags: [release, toolchains, benchmarks]
-description: The same eight-provider graph in NexusDI, InversifyJS, tsyringe, awilix and needle-di, built by ten TypeScript toolchains, with the setups, the failures, the wiring errors, the sizes and the timings.
+description: When NexusDI, InversifyJS, tsyringe, awilix and needle-di report a wiring mistake, measured on one eight-provider graph under ten TypeScript toolchains, with the setups, the failures, the sizes and the timings.
 version: 0.4.0
 ```
 
@@ -1099,38 +1099,61 @@ run's commit, which `benchmark-data.mjs` reads with
 `git show <sha>:benchmarks/results/<file>`. A later benchmark run changes the comparison
 pages and leaves the post as published.
 
+The title leads with what NexusDI does for the reader, by the owner's rule. The variants:
+
+1. "Catch DI wiring mistakes before your app starts: one graph, five containers, ten
+   toolchains". Recommended. It names the reader's gain, and the post's probe section
+   backs it for missing providers, cycles and captive scoped providers.
+2. "Find every missing provider before the first request: one graph, five containers, ten
+   toolchains". Accurate with "every", because `Nexus.create` reports all missing providers
+   in one `BlueprintError`, and narrower in scope.
+3. "Wiring mistakes reported at startup: NexusDI and four DI containers under ten
+   toolchains". It names the competitors' count in the title, which suits the comparison
+   readers of r/typescript, and it reads flatter than variant 1.
+
+The owner's example read "Catch every DI wiring mistake". The recommended title drops
+"every": `Nexus.create` reports every missing provider, cycle, lifetime violation and module
+error, and a factory that throws at run time, or a `useValue` cast through `any`, still
+surfaces later. The slug follows the title, `/blog/catch-di-wiring-mistakes-before-startup/`.
+
 The marketing plan's working title reads "compiled by four toolchains". The harness runs ten
-cells, and the title states what the post shows. The title is the owner's call (section 13).
+cells, and the title states what the post shows.
 
 Target length: 1,500 words of prose, excluding code and tables.
 
 ### 6.2 Outline
 
-1. Opening, two paragraphs. The three claim sentences from `claim.json`, rendered by
-   `<Claim />`. One sentence of disclosure: the author maintains NexusDI.
+The post leads with what NexusDI does for the reader: it reports wiring mistakes when the
+container starts. The toolchain story and the figures follow.
+
+1. Opening, two paragraphs. The first shows the reader's problem: a wiring mistake that
+   other containers report at the first resolve, in production. The second gives the three
+   claim sentences from `claim.json`, rendered by `<Claim />`, and one sentence of
+   disclosure: the author maintains NexusDI.
 2. "The graph": Meridian-8 as a captioned `mermaid` fence, and the NexusDI fixture's wiring,
    cited from `benchmarks/fixtures/nexusdi/plain.ts` with a `region`: the interfaces, their
    tokens, and `provide(TOKEN, { useClass, deps })` in `defineModule()`.
-3. "Swap the reactor in a test": the payoff of the interface tokens. The region from
+3. "Two wiring mistakes, reported before anything is constructed": the NexusDI
+   `two-mistakes` probe fixture, its `BlueprintError` output as the probe recorded it, and
+   `<ProbeTable />` for all five libraries. A link opens the same broken graph in the
+   Playground (`/playground/?seed=launch-blueprint-error`). This section carries the
+   differentiator against awilix and needle-di, which share "no reflect-metadata".
+4. "Swap the reactor in a test": the payoff of the interface tokens. The region from
    `benchmarks/fixtures/nexusdi/snippets.ts` replaces `REACTOR` with `FakeReactor`
    through `createTestingContainer(Meridian).override(...)`, and `QuantumComputer` receives
-   the fake with no change to its class or its module. One sentence says the testing container
-   compiles the graph as production does.
-4. "The same bindings in four other containers": each competitor's `snippets.ts` regions,
+   the fake with no change to its class or its module. One sentence says the testing
+   container checks the graph as production does, so a replacement that breaks it fails at
+   `create`.
+5. "The same bindings in four other containers": each competitor's `snippets.ts` regions,
    the interface-token binding and the library's replacement for tests, 10 to 15 lines each.
    Each fence links to the full fixture the harness measured.
-5. "Ten toolchains": `<ToolchainGrid />` for the documented variants. Every non-pass cell
+6. "Ten toolchains": `<ToolchainGrid />` for the documented variants. Every non-pass cell
    is explained in one or two sentences with its `message`. The explanation for a metadata
    failure: `emitDecoratorMetadata` needs the type checker, and esbuild does not run one
    (evanw/esbuild#257).
-6. "The workaround, and what it still needs": the `decorated-explicit` rows. They show which
+7. "The workaround, and what it still needs": the `decorated-explicit` rows. They show which
    cells an explicit token on every parameter fixes, and that `experimentalDecorators` and
    the Reflect polyfill remain.
-7. "What NexusDI checks before it constructs anything": the NexusDI `two-mistakes` probe
-   fixture, its `BlueprintError` output as the probe recorded it, and `<ProbeTable />` for
-   all five libraries. A link opens the same broken graph in the Playground
-   (`/playground/?seed=launch-blueprint-error`). This section carries the differentiator
-   against awilix and needle-di, which share "no reflect-metadata".
 8. "Size, startup and build": `<PerformanceTable />` for all five libraries,
    `<SizeChart bundler="esbuild" />`, `<TimingChart scenario="cold-start" />` and
    `<BuildChart fixture="scale-200" />`, each with one sentence on what the figure includes.
@@ -1138,8 +1161,8 @@ Target length: 1,500 words of prose, excluding code and tables.
    InversifyJS and tsyringe, whose documented setups use metadata, and the same rule of
    section 5.7, so each benefit appears only with its number. A link goes to
    `/benchmark-method/`, and the other scenarios link to the comparison pages.
-9. "Rerun it": the commands, the results files at their commit, the versions, and the
-   invitation of section 4.12.
+9. "Rerun it": the commands, the results files at their commit, the versions, the
+   maintainers' review of section 10.1, and the correction route of section 4.12.
 10. "Try it": the Playground seed, Academy mission 1, `npm install @nexusdi/core`, and
     `/upgrade/` for 0.3 users.
 
@@ -1185,12 +1208,12 @@ section sets them for every benchmark figure.
 ### 6.5 The dev.to cross-post
 
 `apps/docs/tools/devto-export.mjs` runs in `postbuild` after the `.md` siblings and writes
-`out/blog/dependency-injection-without-reflect-metadata.devto.md`, which is not linked from
+`out/blog/catch-di-wiring-mistakes-before-startup.devto.md`, which is not linked from
 any page. It takes the post's `.md` sibling and:
 
 - prepends dev.to front matter: `title`, `published: false`, `description`,
   `tags: typescript, javascript, node, webdev` (dev.to accepts at most four),
-  `canonical_url: https://nexus.js.org/blog/dependency-injection-without-reflect-metadata/`
+  `canonical_url: https://nexus.js.org/blog/catch-di-wiring-mistakes-before-startup/`
   and `cover_image`;
 - replaces each chart and the grid with a PNG at an absolute `nexus.js.org` URL plus its
   table view in Markdown. The PNGs and the 1000×420 cover are rendered from the same SVG in
@@ -1385,8 +1408,13 @@ covers what the repository does and when. T is 0.4.0 final day.
   newest RC tag.
 - T−21 days: the four `/vs-*/` pages and the updated `/comparison/` are content-complete on
   `/next/` (not indexed). The post is written against the newest RC run.
-- T−7: pins frozen. The owner's decision on inviting maintainers applies here (section 13).
-  `launch-claim`, `libraries-claims` and `readme-comparison` pass on `main`.
+- T−7: pins frozen. The owner opens one issue or Discussion in each of the InversifyJS,
+  tsyringe, awilix and needle-di repositories, linking that library's fixtures, its
+  `snippets.ts`, the newest results and the "Benchmark setup" issue template, and asking the
+  maintainers to review the setup before launch. A correction that arrives before T−1 is
+  merged and rerun under section 4.12; later ones follow the same route after launch, with a
+  dated `Note` on the post. `launch-claim`, `libraries-claims` and `readme-comparison` pass
+  on `main`.
 - T−2: a pull request sets `deploy.json` to `mode: "final"` and builds the artefact in CI
   without merging, so the final-mode artefact and its redirect stubs are checked before
   the day.
@@ -1469,29 +1497,30 @@ After the launch:
   examples use. The domain guard's deny list keeps the `I…Service` pattern, which no
   Meridian interface matches.
 
-## 13. Decisions for the owner
+## 13. Decisions
 
-1. The post title. Recommendation: "Dependency injection without reflect-metadata: one
-   graph, five containers, ten toolchains". The marketing plan's working title says four
-   toolchains and says the post shows failures "under esbuild, SWC and TS 7". The
-   fact-check found that TS 7.0.2 emits decorator metadata, and SWC documents
-   `decoratorMetadata`, so the post names failing cells from the results only.
-2. mitata. It is the owner's choice, pinned at 1.0.34, last released 2025-02-04, and
-   CodSpeed does not support it. Recommendation: keep it for 0.4.0. It reports the
-   percentiles, heap and dead-code flag the methodology uses. Revisit only if timings
-   should gate pull requests.
-3. Runner. Recommendation: GitHub-hosted `ubuntu-24.04`, with interleaved rounds and the
-   `noisy` flag, and no self-hosted machine. The pages compare libraries within one run only.
-4. The owner's Nx plugin on `archive/stash-benchmark` and issue #21's generator and
-   executor. Recommendation: harvest the interface-token graph, the one-contract idea, the
-   phase split, the heap figure and the checked-numbers intent, and supersede the plugin
-   (section 4.13). The executor would have to become the cross-library scheduler the timing
-   drivers already are. Revisit a generator when a sixth library is added.
-5. Inviting competitor maintainers before launch. Recommendation: yes, at T−7, one issue or
-   Discussion in the InversifyJS, tsyringe, awilix and needle-di repositories linking their
-   fixtures and the correction template. A setup a maintainer approved is the strongest
-   answer to a "rigged benchmark" comment.
-6. `@nexusdi/express`. The brief lists it for 0.4, the marketing plan says to skip Express,
+### 13.1 Decided on 2026-09-23
+
+1. The owner's earlier benchmark code: harvest the interface-token graph, the one-contract
+   idea, the phase split, the heap figure and the checked-numbers intent, and supersede the
+   Nx plugin on `archive/stash-benchmark` (section 4.13). A generator is revisited when a
+   sixth library is added.
+2. The post title leads with validation. The spec recommends variant 1 of section 6.1,
+   "Catch DI wiring mistakes before your app starts: one graph, five containers, ten
+   toolchains", and the owner picks among the three.
+3. The competitor maintainers are invited at T−7 (section 10.1).
+
+### 13.2 Open
+
+1. The benchmark tool and the runner. The owner wants to discuss both, and the spec keeps
+   its current method until then: mitata 1.0.34 on GitHub-hosted `ubuntu-24.04`, with
+   interleaved rounds, medians with MAD and the `noisy` flag. The facts for the discussion:
+   mitata's last release was 2025-02-04 and its repository was last pushed 2025-02-17;
+   CodSpeed supports tinybench and Vitest and does not support mitata; a hosted image ran on
+   two CPU models across ten runs in CodSpeed's report. Recommendation as written: keep
+   mitata and the hosted runner for 0.4.0, because the pages compare libraries within one
+   run, and revisit if timings should gate pull requests.
+2. `@nexusdi/express`. The brief lists it for 0.4, the marketing plan says to skip Express,
    and Express's middleware page accepts no new entries (expressjs/expressjs.com#2375,
    closed June 2026). Recommendation: decide in the integrations spec; this spec lists no
    Express page.
