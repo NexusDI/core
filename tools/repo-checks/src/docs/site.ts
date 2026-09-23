@@ -3,6 +3,9 @@ import { join, relative, sep } from 'node:path';
 import { pathToFileURL } from 'node:url';
 
 import { workspaceRoot } from '@nx/devkit';
+import remarkMdx from 'remark-mdx';
+import remarkParse from 'remark-parse';
+import { unified } from 'unified';
 import { parse } from 'yaml';
 
 /**
@@ -66,6 +69,31 @@ export interface MetaEntry {
 
 const FENCE = /^(\s*)(`{3,})(.*)$/;
 const HEADING = /^(#{1,6})\s+(.+?)\s*$/;
+
+/** Parses MDX without running any transform: a syntax tree, nothing more. */
+const mdxParser = unified().use(remarkParse).use(remarkMdx);
+
+interface ProseNode {
+  type: string;
+  position?: { start: { offset: number }; end: { offset: number } };
+  children?: ProseNode[];
+}
+
+/**
+ * The source offsets of every mdast `text` leaf under `node`.
+ *
+ * An allowlist, not a strip list: a fence, an import or export statement, an
+ * HTML or JSX comment, a JSX tag's own markup and a code span never produce
+ * a `text` node, so proseLines below cannot leak one through by missing a
+ * case in a regex.
+ */
+function textSpans(node: ProseNode, spans: [number, number][]): void {
+  if (node.type === 'text' && node.position) {
+    spans.push([node.position.start.offset, node.position.end.offset]);
+    return;
+  }
+  for (const child of node.children ?? []) textSpans(child, spans);
+}
 
 /** The anchor Nextra gives a heading: lower case, code marks and punctuation gone. */
 export function slugify(text: string): string {
@@ -308,35 +336,37 @@ export async function readMetaKeys(contentDir: string): Promise<string[]> {
  *
  * Fences, imports, comments, JSX tags and code spans go. The text inside a
  * JSX element stays, because a notice's sentence is prose a reader reads.
+ *
+ * Built by parsing the page as MDX and keeping only what the parser calls
+ * `text`, rather than by stripping fences, comments and tags out of each
+ * raw line with a regex: a regex missing a case (a nested or malformed tag,
+ * a comment spanning more than one line) can leak markup into what a guard
+ * treats as trusted prose. A real parser has no such gap, because it
+ * classifies every character instead of pattern-matching the ones it knows
+ * to remove.
  */
 export function proseLines(page: DocsPage): { line: number; text: string }[] {
   const offset = page.source.split('\n').length - page.body.split('\n').length;
+  const body = page.body;
+
+  const spans: [number, number][] = [];
+  textSpans(mdxParser.parse(body) as ProseNode, spans);
+
+  // A copy of body's line breaks with every non-prose offset blanked, so
+  // splitting on '\n' still lines up with the source line numbers.
+  const chars: string[] = Array.from(body, (ch) => (ch === '\n' ? '\n' : ' '));
+  for (const [start, end] of spans) {
+    for (let at = start; at < end; at += 1) chars[at] = body[at] as string;
+  }
+
   const out: { line: number; text: string }[] = [];
-  let open: string | null = null;
-
-  page.body.split('\n').forEach((raw, index) => {
-    const marker = FENCE.exec(raw);
-    if (marker && open === null) {
-      open = marker[2] as string;
-      return;
-    }
-    if (open !== null) {
-      if (marker && (marker[2] as string).startsWith(open)) open = null;
-      return;
-    }
-    if (/^\s*(import|export)\s/.test(raw)) return;
-
-    const text = raw
-      .replace(/<!--.*?-->/g, '')
-      .replace(/\{\/\*.*?\*\/\}/g, '')
-      .replace(/<\/?[A-Za-z][^>]*>/g, ' ')
-      .replace(/`[^`]*`/g, ' ')
-      .replace(/\]\([^)]*\)/g, ']')
-      .replace(/\s+/g, ' ')
-      .trim();
-
-    if (text !== '') out.push({ line: index + 1 + offset, text });
-  });
+  chars
+    .join('')
+    .split('\n')
+    .forEach((raw, index) => {
+      const text = raw.replace(/\s+/g, ' ').trim();
+      if (text !== '') out.push({ line: index + 1 + offset, text });
+    });
 
   return out;
 }

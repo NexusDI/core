@@ -5,6 +5,7 @@ import { FIXTURES } from './paths';
 import {
   compareVersions,
   isPreFinalPost,
+  parsePage,
   proseLines,
   readMeta,
   readMetaKeys,
@@ -116,6 +117,56 @@ describe('proseLines', () => {
       line.text.startsWith('A token'),
     );
     expect(first?.line).toBe(10);
+  });
+
+  it('keeps nested tags and drops the outer one, attribute quoting included', () => {
+    // The line-based regex this replaced matched a tag as `<...>`, up to the
+    // first `>`. A `>` inside a quoted attribute value ended the match early
+    // and left the rest of the attribute in the output: this exact line
+    // used to produce `0">A note with nested emphasis.`.
+    const page = parsePage(
+      'sample.mdx',
+      'sample',
+      '<Notice icon="score > 0">A note with <em>nested</em> emphasis.</Notice>\n',
+    );
+
+    const text = proseLines(page)
+      .map((line) => line.text)
+      .join('\n');
+
+    expect(text).toBe('A note with nested emphasis.');
+  });
+
+  it('drops a comment that spans more than one line', () => {
+    // The comment regex ran per line with no `s` flag, so it matched only a
+    // comment that opened and closed on the same line (CodeQL
+    // js/bad-tag-filter: "does not match comments containing newlines").
+    // A comment split across lines left its `{/*` and `*/}` delimiters,
+    // and everything between them, in the prose (CodeQL
+    // js/incomplete-multi-character-sanitization).
+    const page = parsePage(
+      'sample.mdx',
+      'sample',
+      [
+        'Prose before.',
+        '',
+        '{/*',
+        'a note for editors, not readers',
+        '*/}',
+        '',
+        'Prose after.',
+        '',
+      ].join('\n'),
+    );
+
+    const text = proseLines(page)
+      .map((line) => line.text)
+      .join('\n');
+
+    expect(text).toBe('Prose before.\nProse after.');
+    expect(text).not.toContain('{/*');
+    expect(text).not.toContain('*/}');
+    expect(text).not.toContain('a note for editors');
   });
 });
 
