@@ -1,0 +1,27 @@
+---
+title: Tokens
+kind: concept
+description: A token names what a provider supplies.
+console: true
+---
+
+# Tokens
+
+A token names what a provider supplies. The `Token` class takes a description.
+
+## A class is its own token
+
+<Notice kind="note">A class token needs no description.</Notice>
+
+```ts file=libs/core/README.md region=class-token
+```
+
+## Two tokens with one description stay distinct
+
+```ts no-run
+const a = new Token<NavCharts>('NavCharts');
+```
+
+```sh
+npm install @nexusdi/core
+```
