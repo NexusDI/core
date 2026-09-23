@@ -9,13 +9,12 @@ Got questions? We've got answers! This section covers the most common questions 
 
 ## Why am I getting 'Decorators are not valid here' errors in my tests/examples?
 
-Ah, the classic decorator confusion! This usually happens when TypeScript doesn't know it's supposed to be your friend. Make sure your `tsconfig.json` includes your test and example files, and has `"experimentalDecorators": true` and `"emitDecoratorMetadata": true` enabled. Example:
+Ah, the classic decorator confusion! This usually happens when TypeScript doesn't know it's supposed to be your friend. Make sure your `tsconfig.json` includes your test and example files, and has `"experimentalDecorators": true` enabled. NexusDI 0.3 uses TypeScript's legacy decorators and does not support standard (TC39) decorators, so `@Inject` on a constructor parameter needs this option. NexusDI 0.3 reads no metadata that `emitDecoratorMetadata` emits, so you do not need that option. Example:
 
 ```json
 {
   "compilerOptions": {
-    "experimentalDecorators": true,
-    "emitDecoratorMetadata": true
+    "experimentalDecorators": true
     // ...other options
   },
   "include": ["src/**/*"]
@@ -24,11 +23,11 @@ Ah, the classic decorator confusion! This usually happens when TypeScript doesn'
 
 ## How do I use custom tokens?
 
-Great question! Use a string or `Token` as a token, and the `@Inject(token)` decorator to inject it. It's like giving your dependencies name tags - simple but effective!
+Great question! Use a `Token`, a symbol or a class as a token (string tokens are not supported), and the `@Inject(token)` decorator to inject it. It's like giving your dependencies name tags - simple but effective!
 
 ## What runtime dependencies does Nexus have?
 
-NexusDI has a low dependency footprint. The only required peer dependency is `reflect-metadata`. That's it—no heavy baggage here!
+None. `@nexusdi/core` 0.3.2 has no runtime dependencies and no peer dependencies. NexusDI 0.3 does not use `reflect-metadata`. Versions 0.3.0 and 0.3.1 listed `tslib` as a dependency without importing it, and 0.3.2 removes it.
 
 ## How do I debug dependency resolution issues?
 

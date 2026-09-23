@@ -56,4 +56,8 @@ Now that you've had a taste, explore the rest of the documentation to learn abou
 
 Let's build something awesome together! ✨
 
-> **Note:** NexusDI vX.X+ uses native decorator metadata (TypeScript 5.2+). You do not need to install or import `reflect-metadata`, and you do not need `emitDecoratorMetadata` in your tsconfig. Only `experimentalDecorators` and `useDefineForClassFields` (default in TypeScript 5.2+) are required.
+:::note
+
+NexusDI 0.3 uses TypeScript's legacy decorators and requires `"experimentalDecorators": true` in your `tsconfig.json`. 0.3 does not support standard (TC39) decorators. Its decorators store metadata under the `Symbol.metadata` key, and NexusDI polyfills `Symbol.metadata` when the runtime lacks it. You do not need `reflect-metadata` or `emitDecoratorMetadata`.
+
+:::
