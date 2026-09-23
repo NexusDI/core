@@ -11,8 +11,9 @@ const config = [
   ...baseConfig,
   ...nx.configs['flat/react-typescript'],
   {
-    // `next build` rewrites next-env.d.ts on every run.
-    ignores: ['.next/**/*', 'out/**/*', 'next-env.d.ts'],
+    // `next build` rewrites next-env.d.ts on every run, and the Docusaurus
+    // overlay imports a config that exists only inside the 0.3 site.
+    ignores: ['.next/**/*', 'out/**/*', 'next-env.d.ts', 'snapshot/**/*'],
   },
 ];
 

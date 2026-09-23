@@ -45,5 +45,12 @@
     "mdx-components.js",
     "next.config.ts"
   ],
-  "exclude": ["out", "dist", "node_modules", ".next", "eslint.config.mjs"]
+  "exclude": [
+    "out",
+    "dist",
+    "node_modules",
+    ".next",
+    "eslint.config.mjs",
+    "snapshot"
+  ]
 }
