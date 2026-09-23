@@ -21,13 +21,21 @@ export interface StartupPlan {
   readonly isNew: (id: string) => boolean;
 }
 
-/** Runs a configurable module's Standard Schema over its options and returns the schema's output. */
+/**
+ * Runs a configurable module's Standard Schema over its options and boxes
+ * the output in `{ value }`. JavaScript's promise-resolution procedure
+ * thenable-adopts an async function's return value whenever it has a `then`
+ * method, no matter which branch produced it (the same hazard buildSingleton
+ * guards a factory's result against below). A bare return here would hang
+ * on a validated value with its own `then`; the box has none of its own, so
+ * callers can always await the call safely and unwrap `.value` afterward.
+ */
 async function validateOptions(
   record: ProviderRecord,
   bp: Blueprint,
   value: unknown,
-): Promise<unknown> {
-  if (record.schema === undefined) return value;
+): Promise<{ readonly value: unknown }> {
+  if (record.schema === undefined) return { value };
   const result = await record.schema['~standard'].validate(value);
   if (result.issues !== undefined) {
     throw new ModuleOptionsError({
@@ -36,7 +44,7 @@ async function validateOptions(
       issues: result.issues,
     });
   }
-  return result.value;
+  return { value: result.value };
 }
 
 function settleValue(
@@ -72,12 +80,8 @@ async function registerStatic(
   }
   await settleLevel(validated, async (id) => {
     const record = plan.bp.providers.get(id)!;
-    settleValue(
-      root,
-      plan.bp,
-      record,
-      await validateOptions(record, plan.bp, record.value),
-    );
+    const { value } = await validateOptions(record, plan.bp, record.value);
+    settleValue(root, plan.bp, record, value);
   });
 }
 
@@ -100,13 +104,11 @@ async function buildSingleton(
     value = await pending;
   }
   // validateOptions runs only when the record carries a schema (set only on
-  // options providers, per optionsShape in blueprint/records.ts). JavaScript
-  // resolves an async function's return value as a thenable whenever it has
-  // a `then` method, no matter which branch inside the function produced it,
-  // so awaiting the call for every provider would hang on a class instance
-  // whose own `then` never settles.
+  // options providers, per optionsShape in blueprint/records.ts): a plain
+  // provider's constructed value never needs it, and skipping the call
+  // avoids an extra microtask tick for the common case.
   if (record.schema !== undefined)
-    value = await validateOptions(record, bp, value);
+    value = (await validateOptions(record, bp, value)).value;
   root.slots.settle(id, value);
   if (record.kind === 'factory') root.asyncFlags.set(id, isAsync);
   adopt(root, record, value);

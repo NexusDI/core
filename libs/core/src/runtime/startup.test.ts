@@ -1,9 +1,10 @@
-import { describe, expect, it } from 'vitest';
+import { describe, expect, it, vi } from 'vitest';
 
 import { rejected } from '../../test-support/catch.js';
 import { frequencySchema } from '../../test-support/schema.js';
 import { defineModule } from '../definitions/define-module.js';
 import { provide } from '../definitions/provide.js';
+import type { StandardSchemaV1 } from '../definitions/standard-schema.js';
 import { Token } from '../definitions/token.js';
 import { ProviderError } from '../errors/index.js';
 import { Nexus } from './nexus.js';
@@ -217,6 +218,26 @@ describe('Nexus', () => {
         frequency: 1420,
         band: 'S',
       });
+    });
+
+    it('stores a schema-validated options value with a then method as is, never calling it', async () => {
+      const then = vi.fn();
+      const OPTIONS = new Token<{ then: () => void }>('WithThenOptions');
+      const schema: StandardSchemaV1<unknown, { then: () => void }> = {
+        '~standard': {
+          version: 1,
+          vendor: 'nexusdi-test',
+          validate: () => ({ value: { then } }),
+        },
+      };
+      const Comms = defineModule({ name: 'Comms', options: OPTIONS, schema });
+      const tuned = Comms.with({ then } as never);
+      const ship = await Nexus.create(
+        defineModule({ name: 'Root', imports: [tuned] }),
+      );
+      const value = ship.get(OPTIONS, { module: tuned });
+      expect(value.then).toBe(then);
+      expect(then).not.toHaveBeenCalled();
     });
   });
 });
