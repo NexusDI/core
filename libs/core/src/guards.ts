@@ -3,17 +3,30 @@
 import type { TokenType, Provider, Constructor, IContainer } from './types.js';
 import { Token } from './token.js';
 import { getMetadata } from './helpers.js';
-import { METADATA_KEYS } from './constants.js';
+import { METADATA_KEYS, TOKEN_BRAND } from './constants.js';
 
 /**
  * Checks if a value is a Token instance.
+ *
+ * `instanceof Token` is tried first, since it is the cheap common case, but
+ * is not enough on its own: it fails when a bundler emits two copies of this
+ * package's `token.js` into one bundle (a `Token` from copy A is not an
+ * `instanceof` copy B's class). Falling back to `constructor.name ===
+ * 'Token'` is not safe either, since a bundler renames a top-level class to
+ * dodge a scope collision with another top-level binding of the same name.
+ * The `TOKEN_BRAND` registered symbol survives both: it is looked up in the
+ * process-global symbol registry, not compared by identity or by name, so
+ * every copy of `Token` reads and writes the same key regardless of module
+ * duplication or renaming.
  */
 export function isToken<T = unknown>(token: unknown): token is Token<T> {
-  return !!(
-    token &&
-    typeof token === 'object' &&
-    (token as any).constructor &&
-    (token as any).constructor.name === 'Token'
+  return (
+    token instanceof Token ||
+    !!(
+      token &&
+      typeof token === 'object' &&
+      (token as any)[TOKEN_BRAND] === true
+    )
   );
 }
 
