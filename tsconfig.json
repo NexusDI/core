@@ -11,6 +11,9 @@
     },
     {
       "path": "./examples/react-ssr"
+    },
+    {
+      "path": "./tools/repo-checks"
     }
   ],
   "compilerOptions": {

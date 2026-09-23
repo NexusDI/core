@@ -10,17 +10,51 @@
       "!{projectRoot}/tsconfig.spec.json",
       "!{projectRoot}/src/test-setup.[jt]s"
     ],
-    "sharedGlobals": ["{workspaceRoot}/.github/workflows/ci.yml"]
+    // Part of every target's hash, so a change to the workflow that runs the
+    // targets invalidates the cache instead of replaying results produced
+    // under the previous one.
+    "sharedGlobals": ["{workspaceRoot}/.github/workflows/ci.yml"],
+    // What tools/repo-checks reads: the repository. Its tests hold the
+    // commitlint scope list against nx.json, and the tslib/coverage/release
+    // gate invariants against the project graph and workflow files. None of
+    // that sits under tools/repo-checks, so the default `{projectRoot}/**/*`
+    // hashes none of it and an unrelated edit replays a cached pass over
+    // content the run never read.
+    "repoChecks": ["{workspaceRoot}/**/*"]
   },
   "release": {
+    // Only one package today, but this is what a second library plugs into
+    // without an edit here: everything under libs/ is a published library.
     "projectsRelationship": "independent",
-    "version": {
-      "fallbackCurrentVersionResolver": "disk",
-      "preVersionCommand": "npx nx run-many -t build",
-      "conventionalCommits": true
+    "releaseTag": {
+      "pattern": "{projectName}@{version}"
     },
-    "projects": ["core"],
+    "version": {
+      "conventionalCommits": true,
+      // Where the current version comes from when the package has no
+      // release tag yet: its package.json on disk. The default resolver
+      // asks the npm registry, which has no entry for a name that has
+      // never been published.
+      "fallbackCurrentVersionResolver": "disk",
+      // While a package is below 1.0.0, a breaking change takes the minor
+      // and a feature the patch, so it does not reach 1.0.0 on its first
+      // breaking change.
+      "adjustSemverBumpsForZeroMajorVersion": true,
+      "versionPrefix": "",
+      "updateDependents": "always"
+    },
+    "projects": ["libs/*"],
+    "conventionalCommits": {
+      // Attribute each commit to the project its scope names, rather than
+      // to every project whose files it touched.
+      "useCommitScope": true,
+      "types": {
+        "refactor": { "changelog": { "hidden": false } }
+      }
+    },
     "changelog": {
+      "workspaceChangelog": false,
+      "automaticFromRef": true,
       "projectChangelogs": {
         "createRelease": "github",
         "renderOptions": {
@@ -30,9 +64,6 @@
           "versionTitleDate": false
         }
       }
-    },
-    "releaseTag": {
-      "pattern": "{projectName}@{version}"
     }
   },
   "tui": {
