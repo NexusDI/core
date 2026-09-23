@@ -31,6 +31,6 @@
     // duplicated into libs/core/package.json, which -- as a published
     // package -- carries no devDependencies at all (see libs/urn in the
     // libraries repo this tooling is modeled on).
-    "jsonc-eslint-parser"
-  ]
+    "jsonc-eslint-parser",
+  ],
 }
