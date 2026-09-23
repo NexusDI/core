@@ -1,7 +1,7 @@
 {
   "name": "@nexusdi/core",
   "version": "0.3.2",
-  "description": "A modern, lightweight dependency injection container for TypeScript and Node.js, featuring decorators, modular architecture, and high performance.",
+  "description": "A compiled, sealed dependency injection container for TypeScript: typed provide() definitions, module encapsulation, scopes and ordered shutdown.",
   "keywords": [
     "dependency injection",
     "di",
@@ -31,14 +31,14 @@
   "license": "MIT",
   "type": "module",
   "sideEffects": [
-    "./dist/index.js",
-    "./src/index.ts"
+    "./src/polyfill/symbol-metadata.ts",
+    "./dist/polyfill/symbol-metadata.js",
+    "./src/polyfill/symbol-dispose.ts",
+    "./dist/polyfill/symbol-dispose.js"
   ],
   "engines": {
-    "node": ">=20"
+    "node": ">=22"
   },
-  "main": "./dist/index.js",
-  "module": "./dist/index.js",
   "types": "./dist/index.d.ts",
   "exports": {
     "./package.json": "./package.json",
@@ -47,6 +47,18 @@
       "types": "./dist/index.d.ts",
       "import": "./dist/index.js",
       "default": "./dist/index.js"
+    },
+    "./node": {
+      "@nexusdi/source": "./src/node/index.ts",
+      "types": "./dist/node/index.d.ts",
+      "import": "./dist/node/index.js",
+      "default": "./dist/node/index.js"
+    },
+    "./testing": {
+      "@nexusdi/source": "./src/testing/index.ts",
+      "types": "./dist/testing/index.d.ts",
+      "import": "./dist/testing/index.js",
+      "default": "./dist/testing/index.js"
     }
   },
   "files": [
@@ -55,6 +67,7 @@
     "src",
     "!src/**/*.test.*",
     "!src/**/*.spec.*",
+    "!src/**/*.test-d.*",
     "README.md",
     "LICENSE",
     "CHANGELOG.md"

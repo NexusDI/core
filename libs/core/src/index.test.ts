@@ -1,0 +1,15 @@
+import { describe, expect, it } from 'vitest';
+
+import * as api from './index.js';
+
+/**
+ * The runtime exports, restated so that adding one is a deliberate edit to
+ * this list and not a side effect of a barrel edit.
+ */
+const RUNTIME_EXPORTS: string[] = [];
+
+describe('@nexusdi/core', () => {
+  it('exports exactly the public runtime API', () => {
+    expect(Object.keys(api).sort()).toEqual([...RUNTIME_EXPORTS].sort());
+  });
+});

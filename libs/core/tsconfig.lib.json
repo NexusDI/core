@@ -6,17 +6,16 @@
     "outDir": "dist",
     "tsBuildInfoFile": "dist/tsconfig.lib.tsbuildinfo",
     "emitDeclarationOnly": false,
-    "experimentalDecorators": true,
-    // Stays off (the tsconfig.base.json default): core's own source defines
-    // decorator factories but never applies a `@decorator` to one of its own
-    // classes, so tsc emits none of the __decorate/__param helper calls that
-    // would need tslib. scripts/verify-packaging.mjs checks the packed
-    // output for exactly this, and tools/repo-checks/src/tslib-dependency.test.ts
-    // holds this setting against the tslib entry (or its absence) in
-    // package.json.
+    // importHelpers stays off (the tsconfig.base.json default). Core's source
+    // applies no decorator and declares no `using`, so tsc emits no helper
+    // that would import tslib. scripts/verify-packaging.mjs checks the packed
+    // output for that, and tools/repo-checks/src/tslib-dependency.test.ts
+    // holds the setting against package.json.
     "forceConsistentCasingInFileNames": true,
     "types": ["node"],
-    "lib": ["es2022", "esnext.decorators"],
+    // esnext.disposable types Symbol.asyncDispose and AsyncDisposable, which
+    // the public declarations use. esnext.decorators types Symbol.metadata.
+    "lib": ["es2022", "esnext.decorators", "esnext.disposable"],
     "sourceMap": false,
     "declarationMap": false,
     "ignoreDeprecations": "6.0"
@@ -29,16 +28,10 @@
   ],
   "exclude": [
     "vite.config.ts",
-    "vite.config.mts",
-    "vitest.config.ts",
-    "vitest.config.mts",
+    "vitest.browser.config.ts",
+    "vite.decorators.ts",
     "src/**/*.test.ts",
     "src/**/*.spec.ts",
-    "src/**/*.test.tsx",
-    "src/**/*.spec.tsx",
-    "src/**/*.test.js",
-    "src/**/*.spec.js",
-    "src/**/*.test.jsx",
-    "src/**/*.spec.jsx"
+    "src/**/*.test-d.ts"
   ]
 }

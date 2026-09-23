@@ -2,15 +2,16 @@ import baseConfig from '../../eslint.config.mjs';
 
 export default [
   ...baseConfig,
-  // Suppress 'any', unused vars, and allow @ts-nocheck in decorators for DI/test flexibility
   {
-    files: ['**/*.test.ts', 'src/decorators.ts'],
+    // Tests cast through `never` and `any` to feed the container values its
+    // types reject, which is how they reach the runtime checks.
+    files: ['**/*.test.ts', '**/*.test-d.ts'],
     rules: {
       '@typescript-eslint/no-explicit-any': 'off',
       '@typescript-eslint/no-unused-vars': 'off',
-      // Allow @ts-nocheck in decorators.ts due to TypeScript decorator overload limitations
-      '@typescript-eslint/ban-ts-comment': 'off',
-      'eslint-comments/no-use': 'off',
+      // A type test states `Module.with;` under @ts-expect-error to prove a
+      // member is absent.
+      '@typescript-eslint/no-unused-expressions': 'off',
     },
   },
   {
@@ -22,6 +23,10 @@ export default [
           ignoredFiles: [
             '{projectRoot}/eslint.config.{js,cjs,mjs,ts,cts,mts}',
             '{projectRoot}/vite.config.{js,ts,mjs,mts}',
+            '{projectRoot}/vitest.browser.config.ts',
+            '{projectRoot}/vite.decorators.ts',
+            '{projectRoot}/test-support/**',
+            '{projectRoot}/src/**/*.test-d.ts',
           ],
         },
       ],

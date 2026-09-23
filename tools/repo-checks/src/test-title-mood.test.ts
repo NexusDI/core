@@ -21,20 +21,14 @@ import { describe, expect, it } from 'vitest';
  * A title starts lower-case, unless it opens with two capitals (an acronym
  * used as a verb).
  *
- * This fails rather than reports. libs/core is excluded: its ~80
- * pre-existing "should ..." titles predate this rule, and it is getting a
- * ground-up rewrite (see the 0.4 milestone) that will retitle them along
- * with everything else about its tests. Rewriting them by hand here, in a
- * tooling-only branch, would be a large, purely cosmetic diff against code
- * that is about to be replaced. Every project this rule does cover starts
- * clean.
+ * The test fails the build on a violation. It covers every project.
  */
 
 /** Where test sources live. */
 const ROOTS = ['libs', 'tools', 'examples'];
 
-/** A project excluded from this rule, and why -- see the file doc comment. */
-const EXCLUDED_ROOTS = ['libs/core'];
+/** Projects excluded from this rule. None today. */
+const EXCLUDED_ROOTS: string[] = [];
 
 /** A file the rules are read from. */
 const TEST_FILE = /\.(test|spec)\.[cm]?[jt]sx?$/;
