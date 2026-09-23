@@ -2,6 +2,7 @@ import { compile } from '../blueprint/compile.js';
 import type { ModuleRef } from '../definitions/define-module.js';
 import type { NexusRequest } from '../definitions/request.js';
 import type { InjectionToken, MultiToken } from '../definitions/token.js';
+import { NoScopeContextError } from '../errors/index.js';
 import { loadModule } from './load.js';
 import { getFrom, hasIn } from './lookup.js';
 import type { CreateOptions, LookupOptions } from './options.js';
@@ -74,6 +75,19 @@ export class Nexus {
   createScope(options?: { readonly request?: NexusRequest }): Promise<Scope> {
     return openScope(this.#state, options);
   }
+
+  /** Runs `fn` with `scope` as the current scope. Needs the scopeContext option. */
+  runInScope<R>(scope: Scope, fn: () => R): R {
+    assertOpen(this.#state);
+    const context = this.#state.scopeContext;
+    if (context === undefined) throw new NoScopeContextError();
+    return context.run(scope, fn);
+  }
+
+  /** The scope runInScope() bound to the current async context, or undefined. */
+  currentScope(): Scope | undefined {
+    return this.#state.scopeContext?.current();
+  }
 }
 
 export async function createContainer(
@@ -88,6 +102,7 @@ export async function createContainer(
     rootRef: root,
     tracer,
     initEnabled: internals.initEnabled,
+    scopeContext: options?.scopeContext,
   });
   await startBlueprint(state, { bp: blueprint, isNew: () => true });
   return wrap(state);
