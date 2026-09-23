@@ -3,7 +3,7 @@ import {
   type Blueprint,
   type ProviderRecord,
 } from '../blueprint/blueprint.js';
-import { ModuleOptionsError } from '../errors/index.js';
+import { DisposedError, ModuleOptionsError } from '../errors/index.js';
 import { adopt, buildInto, moduleName, traceConstruct } from './build.js';
 import { disposeInReverse } from './dispose.js';
 import { runInit } from './init.js';
@@ -112,9 +112,11 @@ async function buildSingleton(
 /**
  * Builds the new singletons of a blueprint into the root, level by level.
  * Providers in one level run together; the next level starts when every
- * provider in this one has settled. On failure it forgets what it built,
- * disposes it one at a time in reverse creation order, and throws a
- * ProviderError, so a failed startup always has the same code.
+ * provider in this one has settled. It also checks `root.disposing` after
+ * each level and after onInit, so a disposal that starts mid-run stops the
+ * next level from starting. On failure it forgets what it built and disposes
+ * it one at a time in reverse creation order; it then rethrows a `DisposedError`
+ * as is, and wraps any other failure in a ProviderError with the same code.
  */
 export async function startBlueprint(
   root: RootState,
@@ -130,7 +132,9 @@ export async function startBlueprint(
       if (ids.length === 0) continue;
       touched.push(...ids);
       await settleLevel(ids, (id) => buildSingleton(root, plan.bp, id));
+      if (root.disposing) throw new DisposedError({ target: 'container' });
     }
+    if (root.disposing) throw new DisposedError({ target: 'container' });
     // With onInit off (the testing container), buildSingleton already marked each singleton ready.
     if (root.initEnabled) await runInit(root, plan.bp, plan.isNew);
   } catch (error) {
@@ -141,6 +145,7 @@ export async function startBlueprint(
       root.ownership,
       reportDisposal(root.tracer, null),
     );
+    if (error instanceof DisposedError) throw error;
     throw toProviderError(error, plan.bp, errors);
   }
 }
