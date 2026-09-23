@@ -15,7 +15,7 @@ const source = readFileSync(
 );
 const workflow = parse(source) as {
   on: {
-    push: { branches: string[]; tags: string[] };
+    push: { branches: string[]; tags?: string[] };
     workflow_dispatch: unknown;
   };
   permissions: Record<string, string>;
@@ -31,9 +31,12 @@ const workflow = parse(source) as {
 };
 
 describe('docs.yml', () => {
-  it('deploys from main, from core release tags and by hand', () => {
+  it('deploys from main and by hand, never from a tag', () => {
+    // GitHub Pages' default environment protection rule allows only the
+    // default branch, so a tag push can never reach the deploy job.
+    // release.yml dispatches this workflow on main after a publish instead.
     expect(workflow.on.push.branches).toEqual(['main']);
-    expect(workflow.on.push.tags).toEqual(['@nexusdi/core@*']);
+    expect(workflow.on.push.tags).toBeUndefined();
     expect(workflow.on).toHaveProperty('workflow_dispatch');
   });
 
