@@ -9,21 +9,21 @@ import type {
   InternalProvider,
   InternalClassProvider,
   ProviderConfigObject,
-} from './types';
-import { METADATA_KEYS } from './constants';
-import { getMetadata } from './helpers';
+} from './types.js';
+import { METADATA_KEYS } from './constants.js';
+import { getMetadata } from './helpers.js';
 import {
   isTokenType,
   isConstructor,
   isModuleConfig,
   isProvider,
-} from './guards';
+} from './guards.js';
 import {
   InvalidToken,
   NoProvider,
   InvalidProvider,
   InvalidModule,
-} from './exceptions';
+} from './exceptions/index.js';
 
 /**
  * The main DI container class for NexusDI. Use this to bootstrap and resolve your modules and services.

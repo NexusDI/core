@@ -1,4 +1,4 @@
-import { ContainerException } from './container.exception';
+import { ContainerException } from './container.exception.js';
 
 export class NoProvider extends ContainerException {
   constructor(token: unknown) {

@@ -1,5 +1,5 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
-import type { Token } from './token';
+import type { Token } from './token.js';
 
 export type Constructor<T = any> = new (...args: any[]) => T;
 
