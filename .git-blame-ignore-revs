@@ -1,0 +1,9 @@
+# Commits listed here are skipped by `git blame`, once you point git at this
+# file:
+#
+#   git config blame.ignoreRevsFile .git-blame-ignore-revs
+#
+# GitHub's blame view applies it automatically.
+
+# style(repo): format the tree with prettier 3
+d37fc5d3744ea10150da132b23bb6717ea943d38
