@@ -10,12 +10,12 @@ NexusDI is designed to be lightweight and performant while providing powerful de
 
 ### Core Library Size
 
-These figures come from esbuild 0.28.2 bundling a minimal consumer against the `@nexusdi/core` 0.3.2 tarball from npm, with `--bundle --minify --format=esm`. The consumer imports `Nexus`, `Service`, `Inject` and `Token`, registers two services and resolves one.
+These figures come from `npm run measure:bundle` in the NexusDI repo, which bundles a minimal consumer against the `@nexusdi/core` 0.3.2 tarball from npm with esbuild 0.28.2 (`--bundle --minify --format=esm`). The consumer imports `Nexus`, `Service`, `Inject` and `Token`, registers two services and resolves one.
 
 ```bash
 # Minified ESM bundle of the consumer, @nexusdi/core 0.3.2
-Raw:        6,254 bytes (6.1KB)
-Gzipped:    2,270 bytes (2.2KB)
+Raw:        6,247 bytes (6.1KB)
+Gzipped:    2,257 bytes (2.2KB)
 ```
 
 ### Runtime Dependencies
@@ -100,9 +100,9 @@ NexusDI is fully tree-shakeable, so unused features are eliminated:
 
 ```typescript
 // Minified ESM bundles from esbuild 0.28.2, @nexusdi/core 0.3.2
-import { Nexus, Token } from '@nexusdi/core'; // 5,090 bytes
-import { Service, Inject } from '@nexusdi/core'; // 6,254 bytes for the two-service consumer
-import * as NexusDI from '@nexusdi/core'; // 7,589 bytes, every export
+import { Nexus, Token } from '@nexusdi/core'; // 5,102 bytes
+import { Service, Inject } from '@nexusdi/core'; // 6,247 bytes for the two-service consumer
+import * as NexusDI from '@nexusdi/core'; // 7,427 bytes, every export
 ```
 
 ## 🔧 Optimization Strategies
