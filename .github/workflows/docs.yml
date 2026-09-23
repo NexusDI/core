@@ -87,7 +87,7 @@ jobs:
           git worktree add --detach build/root-src "$ref"
           rm -rf build/root-src/apps/docs/content/blog
           cp -R apps/docs/content/blog build/root-src/apps/docs/content/blog
-          (cd build/root-src && npm ci && DOCS_BASE_PATH= DOCS_CHANNEL=release npx nx build @nexusdi/docs && npm --prefix apps/docs run postbuild)
+          (cd build/root-src && npm ci && DOCS_BASE_PATH='' DOCS_CHANNEL=release npx nx build @nexusdi/docs && npm --prefix apps/docs run postbuild)
           mv build/root-src/apps/docs/out build/root-out
 
       - name: Download and verify the snapshot
