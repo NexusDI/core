@@ -13,24 +13,18 @@
   // convention, never through an import, so the reachability walk reports
   // the whole content tree as unused without this.
   //
-  // libs/core/vite.decorators.ts is imported by libs/core/vite.config.ts,
-  // and libs/core/test-support/deferred.ts is a helper later 0.4 tests
-  // import -- both are real roots fallow's static graph does not reach: a
-  // vite config file is a framework-recognized entry point in its own right,
-  // not a node whose own imports get traced, and a test-support helper has
-  // no importer yet in this task's minimal scaffold.
-  //
-  // libs/core/src/definitions/token.test-d.ts (and every *.test-d.ts file
-  // after it) is vitest's own type-only test file. fallow's vitest plugin
-  // derives entry points from vite.config.ts's `test.include` glob
-  // (`src/**/*.{test,spec}.ts`), which never matches `*.test-d.ts`; those
-  // files run through the separate `test.typecheck.include` glob the plugin
-  // does not read, so they need to be listed here by hand.
+  // Every *.test-d.ts file under libs/core/src is vitest's own type-only
+  // test file. fallow's vitest plugin derives entry points from
+  // vite.config.ts's `test.include` glob (`src/**/*.{test,spec}.ts`), which
+  // never matches `*.test-d.ts`; those files run through the separate
+  // `test.typecheck.include` glob the plugin does not read. A glob here
+  // covers every current and future one, so later tasks don't need to add
+  // their own entry.
   "entry": [
     "apps/docs/content/**/*.{mdx,ts}",
     "libs/core/vite.decorators.ts",
     "libs/core/test-support/deferred.ts",
-    "libs/core/src/definitions/token.test-d.ts",
+    "libs/core/src/**/*.test-d.ts",
   ],
 
   // `react-router typegen` writes +types/*.d.ts files that examples/react-ssr
