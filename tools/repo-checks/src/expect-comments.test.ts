@@ -68,7 +68,7 @@ describe('rewriteLine', () => {
   });
 
   it('produces exactly one line, because doctest maps blocks by line number', () => {
-    const multiline = at('f(); // -> { a: 1,\n b: 2 }'.replace('\n', ' '));
+    const multiline = at('f(); // -> { a: 1,\n b: 2 }'.replaceAll('\n', ' '));
     expect(multiline.split('\n')).toHaveLength(1);
   });
 
