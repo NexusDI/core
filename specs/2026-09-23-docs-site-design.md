@@ -2,8 +2,8 @@
 
 Status: approved design; implementation pending. Revised after an independent review of
 `8f36641` and the owner's decisions on it. The owner approved every decision in section 2.
-Section 20 lists what is still open, each item with a recommendation. Where the body
-depends on an open question, it follows the recommendation and names the question.
+The owner then resolved every open question, and section 2 records each answer as a
+decision. Section 20 holds nothing open.
 Packages: `apps/docs` (new, `@nexusdi/docs`, private), `apps/docs-e2e` (new, Playwright),
 `internal/meridian-ui` (new, private), `examples/meridian` (new, private),
 `tools/doc-examples` (copied from the libraries repo), `tools/repo-checks` (extended). No
@@ -82,7 +82,7 @@ places.
    guidance, the loader chain and the guards, as of a pinned commit. It has its own visual
    identity. The owner's writing rules apply to every page. The libraries system comes with
    a test for each rule it can test, and the port brings those tests along.
-3. Migration is a first-class band with five pages (section 4.3). 0.3.1 has users, and the
+3. Migration is a first-class band with six pages (section 4.3). 0.3.1 has users, and the
    RC exists so those users can migrate and report problems before final.
 4. The stack is Next 16 and Nextra 4 with `output: 'export'`, Pagefind, twoslash, a `.md`
    sibling per page, and the libraries loader chain: the region loader, the reference
@@ -174,12 +174,25 @@ places.
     `<ViewTransition>`. Under `prefers-reduced-motion`, and in a browser without the API,
     the change is an instant swap. `@evanion/react-widget` needs no change for it
     (section 10.5).
-25. The standard gains two NexusDI amendments: a `concept` page kind (accepted) and a
+25. The standard gains two NexusDI amendments, both accepted: a `concept` page kind and a
     `post` page kind with the `blog/` folder (section 3).
 26. The site answers the evaluator and the migrator directly: a comparison page, a runtime
     matrix, a bundler page and a custom-scope-context page for evaluators; a list of
     silent behaviour changes, the CHANGELOG link and a 0.3 support policy for migrators
-    (section 4.3, open question 2).
+    (section 4.3).
+27. The 0.3 support policy: `latest` stays on 0.3.x until 0.4.0 final. A `0.3.x` branch
+    receives security, crash and data-loss fixes only, and no features, until the `/v0.3/`
+    retention ends: six months after 0.4.0 final or the release of 0.5.0, whichever is
+    later. After that, 0.3.x receives nothing. The Migration band's `/support-policy/`
+    page states the policy with its dates, and the RC announcement outlines it
+    (sections 4.3 and 6.1).
+28. The examples validate module options with valibot 1.5.0, vendored into the sandbox
+    runtime and its import map, so the examples read like real-world code. Core stays
+    dependency-free. A Guides page shows that zod and ArkType plug in the same way through
+    Standard Schema (sections 7.1 and 11.4).
+29. After 0.4.0 final, a documentation fix can reach the root before the next release
+    through a re-cut: `deploy.json`'s `root.sha` names a commit that descends from the
+    release tag, with a non-empty reason (section 15.6).
 
 ## 3. Amendments to the libraries standard
 
@@ -210,7 +223,7 @@ fills the standard's demonstration role as a whole. G2 holds the named list of e
 concept pages, and G4 accepts an H2 section with no console only when it carries
 `<ConsoleExempt reason="…" />`, which shows the reason in the console panel.
 
-### 3.2 A2, the `post` kind and the `blog/` folder (proposed)
+### 3.2 A2, the `post` kind and the `blog/` folder (accepted)
 
 A blog post is dated prose that nobody updates after publication, which is none of the
 standard's page kinds. The amendment:
@@ -221,8 +234,6 @@ standard's page kinds. The amendment:
 - G3 exempts `post` pages, and a post's code carries the `elided` tag, because a dated post
   is not maintained against the current API.
 - Posts dated before 0.4.0 are also exempt from the domain and refused-word guards.
-
-Open question 1 asks the owner to confirm A2.
 
 ## 4. Information architecture and page inventory
 
@@ -297,19 +308,21 @@ immediately before. Lookup pages carry no box and link to the page that teaches 
 | 19  | `/legacy-decorators/`    | How do I use NexusDI in a project that keeps experimentalDecorators? | `question`  | `NEXUS_LEGACY_DECORATORS` and the `provide()` path                                                         | none                          | none                                         |
 | 20  | `/scope-context/`        | How do I scope requests outside Node?                                | `question`  | a custom `ScopeContext` for Deno, Bun, Workers and the browser                                             | none                          | console: a scope context run                 |
 | 21  | `/bundlers/`             | How do I use NexusDI in a browser bundle?                            | `question`  | bundler settings, `keepNames`, the polyfills in `sideEffects`, decorator transforms                        | none                          | none                                         |
-| 22  | `/runtimes/`             | Where NexusDI runs                                                   | `contract`  | the runtime matrix with the evidence for each row                                                          | none                          | none                                         |
-| 23  | `/comparison/`           | NexusDI compared with tsyringe, InversifyJS, TypeDI and NestJS       | `contract`  | the differences, why NexusDI needs no `reflect-metadata`                                                   | none                          | none                                         |
-| 24  | `/upgrade/`              | How do I upgrade from 0.3 to 0.4?                                    | `question`  | core spec §13.1 steps 1 to 9, the CHANGELOG link, the 0.3 support policy                                   | none                          | none                                         |
-| 25  | `/upgrade-api-map/`      | 0.3 to 0.4 API map                                                   | `contract`  | one H2 per 0.3 API, from core spec §13.1's table                                                           | none                          | none                                         |
-| 26  | `/upgrade-behaviour/`    | Behaviour that changes without a compile error                       | `contract`  | the silent behaviour changes, one H2 each                                                                  | none                          | none                                         |
-| 27  | `/codemod/`              | How do I run the 0.4 codemod?                                        | `question`  | the CLI, the report, one H2 per TODO and note code                                                         | none                          | none                                         |
-| 28  | `/encapsulation/`        | Why does a provider stop resolving after upgrading to 0.4?           | `question`  | module encapsulation, seen from 0.3 code                                                                   | none                          | console: `NEXUS_NOT_VISIBLE`, then the fix   |
-| 29  | `/api/`                  | `@nexusdi/core`                                                      | `reference` | one H2 per export of `.`, error classes excepted                                                           | none                          | none                                         |
-| 30  | `/api-testing/`          | `@nexusdi/core/testing`                                              | `reference` | one H2 per export of `./testing`                                                                           | none                          | none                                         |
-| 31  | `/api-node/`             | `@nexusdi/core/node`                                                 | `reference` | one H2 per export of `./node`                                                                              | none                          | none                                         |
-| 32  | `/api-errors/`           | Error reference                                                      | `reference` | one H2 per error class, one H3 per code                                                                    | none                          | none                                         |
+| 22  | `/schemas/`              | Which schema libraries can validate module options?                  | `question`  | valibot in the examples; zod and ArkType through Standard Schema                                           | none                          | console: a failed validation                 |
+| 23  | `/runtimes/`             | Where NexusDI runs                                                   | `contract`  | the runtime matrix with the evidence for each row                                                          | none                          | none                                         |
+| 24  | `/comparison/`           | NexusDI compared with tsyringe, InversifyJS, TypeDI and NestJS       | `contract`  | the differences, why NexusDI needs no `reflect-metadata`                                                   | none                          | none                                         |
+| 25  | `/upgrade/`              | How do I upgrade from 0.3 to 0.4?                                    | `question`  | core spec §13.1 steps 1 to 9, the CHANGELOG link, the support-policy link                                  | none                          | none                                         |
+| 26  | `/upgrade-api-map/`      | 0.3 to 0.4 API map                                                   | `contract`  | one H2 per 0.3 API, from core spec §13.1's table                                                           | none                          | none                                         |
+| 27  | `/upgrade-behaviour/`    | Behaviour that changes without a compile error                       | `contract`  | the silent behaviour changes, one H2 each                                                                  | none                          | none                                         |
+| 28  | `/codemod/`              | How do I run the 0.4 codemod?                                        | `question`  | the CLI, the report, one H2 per TODO and note code                                                         | none                          | none                                         |
+| 29  | `/encapsulation/`        | Why does a provider stop resolving after upgrading to 0.4?           | `question`  | module encapsulation, seen from 0.3 code                                                                   | none                          | console: `NEXUS_NOT_VISIBLE`, then the fix   |
+| 30  | `/support-policy/`       | 0.3 support policy                                                   | `contract`  | the 0.3.x support policy and its dates                                                                     | none                          | none                                         |
+| 31  | `/api/`                  | `@nexusdi/core`                                                      | `reference` | one H2 per export of `.`, error classes excepted                                                           | none                          | none                                         |
+| 32  | `/api-testing/`          | `@nexusdi/core/testing`                                              | `reference` | one H2 per export of `./testing`                                                                           | none                          | none                                         |
+| 33  | `/api-node/`             | `@nexusdi/core/node`                                                 | `reference` | one H2 per export of `./node`                                                                              | none                          | none                                         |
+| 34  | `/api-errors/`           | Error reference                                                      | `reference` | one H2 per error class, one H3 per code                                                                    | none                          | none                                         |
 
-Pages 14 to 23 are the Guides band, 24 to 28 the Migration band and 29 to 32 the API band.
+Pages 14 to 24 are the Guides band, 25 to 30 the Migration band and 31 to 34 the API band.
 
 The blog, on the new site from 0.4.0 final:
 
@@ -329,14 +342,16 @@ Tool routes:
 | T3  | `/academy/[mission]/` | One route per mission, nine in all (section 13.1)                 |
 | T4  | `/academy/progress/`  | Progress, stats, storage state, export and reset (section 13.7)   |
 
-Counts: 32 documentation pages (2 Start, 11 Concepts, 10 Guides, 5 Migration, 4 API), 12
+Counts: 34 documentation pages (2 Start, 11 Concepts, 11 Guides, 6 Migration, 4 API), 12
 tool routes (the Playground, the Academy index, 9 missions and the progress page), and at
 final a blog of an index and at least three posts.
 
 Four notes on the inventory.
 
-The Migration band splits core spec §13.1. `/upgrade/` walks the steps and states the 0.3
-support policy (open question 2) and a link to `libs/core/CHANGELOG.md`.
+The Migration band splits core spec §13.1. `/upgrade/` walks the steps, links to
+`libs/core/CHANGELOG.md` and links to `/support-policy/`, which states decision 27's policy
+with its dates: the 0.4.0 release date, the end of the six months, and whether 0.5.0 has
+been released.
 `/upgrade-api-map/` holds the mapping table as one H2 per 0.3 API, so a reader who searches
 a 0.3 name reaches an anchor. It has about 45 entries and runs past the 1,200-word budget.
 G8 reports and does not fail (standard §4), and the page is recorded in
@@ -613,7 +628,9 @@ the newest RC post and one to `/next/upgrade/`.
 
 The post covers what core spec §14's rc.0 checklist item 1 lists: what changed and why, the
 codemod, how to install `@nexusdi/core@next`, the feedback channel, and the timeline to
-0.4.0 final.
+0.4.0 final. The outline adds the 0.3 support policy of decision 27: `latest` stays on
+0.3.x until final, and 0.3.x receives security, crash and data-loss fixes until the
+`/v0.3/` retention ends.
 
 ### 6.2 From 0.4.0 final
 
@@ -713,9 +730,14 @@ teaching reason:
    Multi-providers page and mission 9 can show a multi token crossing a module boundary.
    In core §3.4 the panel lives in `Engineering`.
 3. `FlightLog` is new. Core §3.4 has no scoped class, and the Scopes page needs one.
-4. `Comms`'s `schema` is a hand-written object with a `~standard.validate` function, about
-   ten lines, so the example depends on nothing but core. Open question 3 asks whether a
-   named Standard Schema library should replace it.
+4. `Comms`'s `schema` is a valibot schema,
+   `v.object({ frequency: v.pipe(v.number(), v.integer(), v.minValue(1)) })`, which
+   implements Standard Schema V1, so core validates it through `~standard.validate` with
+   no valibot-specific code. Core spec §3.4 leaves the validator open. `examples/meridian`
+   pins `valibot` at `1.5.0` exactly as a dependency of the examples only, and the sandbox
+   runtime carries the same version (section 11.4). `/schemas/` shows the same module
+   configured with zod and with ArkType, each a doctested region in `examples/meridian`,
+   which pins both as dev dependencies.
 
 ### 7.2 Where it binds
 
@@ -1141,14 +1163,16 @@ The compiler options live in one module, `apps/docs/components/runtime/compiler-
 `apps/docs/tools/playground-types.mjs` runs before `next build`. It collects the TypeScript
 lib files the options name, following each `/// <reference lib>` chain in
 `node_modules/typescript/lib`, plus `runtime-globals.d.ts` and the published declarations of
-`@nexusdi/core` and `@nexusdi/core/testing` from `libs/core/dist`. It writes one JSON file,
+`@nexusdi/core` and `@nexusdi/core/testing` from `libs/core/dist`, and valibot's
+`dist/index.d.mts` from the pinned `valibot@1.5.0`. It writes one JSON file,
 `public/runtime/types-<hash>.json`, mapping each virtual path to its contents. The hash is
 the SHA-256 of the contents, so a new core build or a TypeScript bump changes the URL.
 
 The `dom` lib is left out. The review measured the TypeScript 6.0.3 lib chain with `dom`
 at 63 files and 414 kB gzipped, of which `dom` alone is about 360 kB. Without it, and with
-the ambient file, the bundle is about 55 kB gzipped. A seed that needs a DOM API is out of
-scope for a DI playground.
+the ambient file, the TypeScript and core declarations come to about 55 kB gzipped.
+valibot's declarations add 52 kB gzipped, measured on `valibot@1.5.0`, so the JSON file is
+about 107 kB. A seed that needs a DOM API is out of scope for a DI playground.
 
 `@nexusdi/core/node` is left out too. It imports `node:async_hooks`, which no browser has,
 so the Node request guide keeps its server code in doctested regions that run in Node.
@@ -1182,6 +1206,7 @@ The `srcdoc` document holds three things:
      "imports": {
        "@nexusdi/core": "https://nexus.js.org/next/runtime/core-<hash>/harness.js",
        "@nexusdi/core/testing": "https://nexus.js.org/next/runtime/core-<hash>/harness-testing.js",
+       "valibot": "https://nexus.js.org/next/runtime/valibot-1.5.0/index.min.mjs",
        "@ship/engineering": "data:text/javascript;base64,…",
        "@ship/main": "data:text/javascript;base64,…"
      }
@@ -1193,7 +1218,11 @@ The `srcdoc` document holds three things:
    `apps/docs/tools/runtime-assets.mjs` before `next build`, so the code a reader runs is
    the code the workspace built and tested at that commit. No example loads anything from
    npm. Core's build emits ESM with explicit `.js` extensions (`4929328`), so the browser
-   loads its relative imports as they are.
+   loads its relative imports as they are. `runtime/valibot-1.5.0/index.min.mjs` is
+   valibot's own minified ESM build, copied from the pinned package by the same script. It
+   is one self-contained module of 84.6 kB, 14.7 kB gzipped, and the frame loads it only
+   when the reader's code imports `valibot`. The version sits in the path, so a bump
+   changes the URL.
 
 3. `<script type="module" src="<origin><basePath>/runtime/core-<hash>/boot.js">`, which
    imports `@ship/main` and reports results. Apart from the hashed import map the document
@@ -1322,8 +1351,9 @@ next run builds a new frame, so no state carries between runs.
 | Console island               | 35 kB   | the page hydrates                        |
 | CodeMirror 6 and its TS mode | 150 kB  | the reader opens an editor               |
 | TypeScript worker            | 1.05 MB | the first edit, or Run on an edited file |
-| Declarations JSON            | 55 kB   | with the worker                          |
+| Declarations JSON            | 107 kB  | with the worker                          |
 | Core runtime copy            | 30 kB   | the first Run                            |
+| valibot runtime copy         | 15 kB   | the first Run that imports `valibot`     |
 
 The published `typescript.js` gzips to 1.65 MB, and to 1.03 MB once minified, as the
 review measured. The worker chunk is minified, so the row reads 1.05 MB with
@@ -1747,14 +1777,14 @@ Nextra's `search: { codeblocks: false }`.
 The docs app's Nx targets run the generated inputs before `next build`, each cached on its
 inputs:
 
-| Target                  | Script                       | Writes                                                                                                  |
-| ----------------------- | ---------------------------- | ------------------------------------------------------------------------------------------------------- |
-| `docs:runtime-assets`   | `tools/runtime-assets.mjs`   | `public/runtime/core-<hash>/` from `libs/core/dist`, plus `harness.js`, `harness-testing.js`, `boot.js` |
-| `docs:playground-types` | `tools/playground-types.mjs` | `public/runtime/types-<hash>.json` and each seed's emitted JavaScript                                   |
-| `docs:console-fixtures` | `tools/console-fixtures.mjs` | `components/console/fixtures/<seed>.json`                                                               |
-| `docs:academy-runtime`  | `tools/academy-runtime.mjs`  | `public/academy-runtime/<id>-<hash>.js`                                                                 |
-| `docs:behaviour-data`   | `tools/behaviour-data.mjs`   | the per-export behaviour JSON the reference loader reads                                                |
-| `docs:package-facts`    | `tools/package-facts.mjs`    | the landing page's size and dependency figures                                                          |
+| Target                  | Script                       | Writes                                                                                                                                       |
+| ----------------------- | ---------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------- |
+| `docs:runtime-assets`   | `tools/runtime-assets.mjs`   | `public/runtime/core-<hash>/` from `libs/core/dist`, plus `harness.js`, `harness-testing.js`, `boot.js`, and `public/runtime/valibot-1.5.0/` |
+| `docs:playground-types` | `tools/playground-types.mjs` | `public/runtime/types-<hash>.json` and each seed's emitted JavaScript                                                                        |
+| `docs:console-fixtures` | `tools/console-fixtures.mjs` | `components/console/fixtures/<seed>.json`                                                                                                    |
+| `docs:academy-runtime`  | `tools/academy-runtime.mjs`  | `public/academy-runtime/<id>-<hash>.js`                                                                                                      |
+| `docs:behaviour-data`   | `tools/behaviour-data.mjs`   | the per-export behaviour JSON the reference loader reads                                                                                     |
+| `docs:package-facts`    | `tools/package-facts.mjs`    | the landing page's size and dependency figures                                                                                               |
 
 Every generated path is gitignored. `docs:build` depends on `^build` and on all six.
 
@@ -1905,7 +1935,12 @@ scopes `docs`, `docs-e2e`, `meridian-ui`, `example-meridian` and `doc-examples`,
 none of these projects is versioned or published.
 
 `apps/docs/package.json` pins `@evanion/widget` 0.1.0 and `@evanion/react-widget` 0.3.0
-exactly, next to Next 16.3.4, Nextra 4.6.1 and React 19.3.0.
+exactly, next to Next 16.3.4, Nextra 4.6.1 and React 19.3.0. It also pins `valibot` at
+`1.5.0`, so twoslash resolves the same declarations the playground carries.
+`examples/meridian` pins `valibot` at `1.5.0` as a dependency and `zod` and `arktype` as dev
+dependencies for `/schemas/`. A bump of any of them is a pull request a person opens, and
+`doc-seeds` asserts that the version in `examples/meridian`, in `apps/docs` and in the
+runtime path agree.
 
 `apps/docs/tsconfig.json` sets `customConditions: []`, so the app resolves `@nexusdi/core`
 through its published `exports` to `dist`. The libraries baize-ui spec §7 records why:
@@ -2088,7 +2123,7 @@ From then on the root builds from the newest stable release tag, and `/next/` fr
 `/next/` at once and the root at the next release. When a fix cannot wait, a pull request
 sets `root.sha` to a commit that descends from the release tag, with a non-empty `reason`,
 on the libraries re-cut pattern (released-by-default decision 7). `docs-deploy.test.ts`
-asserts the ancestry and the reason. Open question 4 asks the owner to confirm the re-cut.
+asserts the ancestry and the reason (decision 29).
 
 The swap moves the 0.3 URLs, so the assembly step writes redirect stubs:
 
@@ -2165,16 +2200,16 @@ Every page and both tools meet WCAG 2.2 AA.
 
 ### 16.2 Performance budgets
 
-| Budget                                                                              | Limit                                                     |
-| ----------------------------------------------------------------------------------- | --------------------------------------------------------- |
-| JavaScript on a content page beyond Nextra's shared chunks, console island excluded | 10 kB gzipped                                             |
-| The console island on a concept page, widget libraries included                     | 35 kB gzipped                                             |
-| The background module                                                               | 8 kB gzipped; section 9.4 for CPU and GPU                 |
-| The Playground before first interaction                                             | 200 kB gzipped, CodeMirror included                       |
-| TypeScript worker and declarations                                                  | 1.1 MB gzipped together, loaded on first interaction only |
-| Largest contentful paint                                                            | 2.5 s on Lighthouse's mobile profile                      |
-| Cumulative layout shift                                                             | 0.05                                                      |
-| Interaction to next paint                                                           | 200 ms                                                    |
+| Budget                                                                              | Limit                                                      |
+| ----------------------------------------------------------------------------------- | ---------------------------------------------------------- |
+| JavaScript on a content page beyond Nextra's shared chunks, console island excluded | 10 kB gzipped                                              |
+| The console island on a concept page, widget libraries included                     | 35 kB gzipped                                              |
+| The background module                                                               | 8 kB gzipped; section 9.4 for CPU and GPU                  |
+| The Playground before first interaction                                             | 200 kB gzipped, CodeMirror included                        |
+| TypeScript worker and declarations                                                  | 1.16 MB gzipped together, loaded on first interaction only |
+| Largest contentful paint                                                            | 2.5 s on Lighthouse's mobile profile                       |
+| Cumulative layout shift                                                             | 0.05                                                       |
+| Interaction to next paint                                                           | 200 ms                                                     |
 
 `apps/docs/tools/check-budgets.mjs` runs after the build. It reads the script tags of each
 exported HTML file, gzips every chunk the page references, and fails the build when a page
@@ -2333,7 +2368,7 @@ and the missions.
 Required for rc.0:
 
 - Start and Concepts, complete.
-- Migration, all five pages.
+- Migration, all six pages, `/support-policy/` included.
 - The API reference, all four pages.
 - Guides: `/testing/`, `/node-request-scopes/`, `/decorators/` and `/legacy-decorators/`.
   `container.set()` in tests is the most common 0.3 pattern the RC breaks.
@@ -2348,8 +2383,8 @@ Required for rc.0:
 
 Within the RC window, before 0.4.0 final:
 
-- `/react-router-ssr/`, `/load/`, `/scope-context/`, `/bundlers/`, `/runtimes/` and
-  `/comparison/`.
+- `/react-router-ssr/`, `/load/`, `/scope-context/`, `/bundlers/`, `/schemas/`,
+  `/runtimes/` and `/comparison/`.
 - The Academy, all nine missions. The Academy entry stays out of the navbar until missions
   1 to 4 pass the mission guard. Later missions join as each one passes it.
 - The blog migration, ready to deploy with the swap.
@@ -2380,21 +2415,5 @@ Within the RC window, before 0.4.0 final:
 
 ## 20. Open questions
 
-Each item carries a recommendation, and the body follows it.
-
-1. Amendment A2 (section 3.2) adds a `post` kind and the `blog/` folder to the standard's
-   vocabulary. Recommendation: accept it as written. The blog needs a kind the guards can
-   read, and the folder hides no teaching order.
-2. 0.3 support during and after the RC. `/upgrade/` needs a policy to state.
-   Recommendation: `latest` stays on 0.3.x until 0.4.0 final (core spec §14). Until the
-   `/v0.3/` retention ends, 0.3.x receives security fixes and fixes for crashes and data
-   loss as patch releases from a `0.3.x` branch, and no features. After retention ends,
-   0.3.x receives nothing. `/upgrade/` and the root `README.md` state the dates.
-3. The `Comms` example schema is a hand-written `~standard` object (section 7.1).
-   Recommendation: keep it. If the owner wants a named Standard Schema library in the
-   examples, vendor valibot's ESM build into `runtime/`, add it to the import map, add its
-   declarations to the playground bundle, and add it as a dev dependency of
-   `examples/meridian`. Core stays dependency-free either way.
-4. The re-cut of section 15.6 lets a documentation fix reach the root before the next
-   release, through `root.sha` with a reason. Recommendation: adopt it. Without it, a wrong
-   sentence on the root waits for a patch release of core.
+None. The owner resolved the four questions of the previous revision, and decisions 25, 27,
+28 and 29 record the answers.
