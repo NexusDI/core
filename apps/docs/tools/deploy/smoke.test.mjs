@@ -3,7 +3,13 @@ import { createServer } from 'node:http';
 
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 
-import { checkResponse, runSmoke, smokeTargets } from './smoke.mjs';
+import {
+  checkNotFound,
+  checkResponse,
+  runSmoke,
+  smokeNotFoundTargets,
+  smokeTargets,
+} from './smoke.mjs';
 
 describe('smokeTargets', () => {
   const origin = 'https://nexus.js.org';
@@ -42,6 +48,22 @@ describe('smokeTargets', () => {
   });
 });
 
+describe('smokeNotFoundTargets', () => {
+  const origin = 'https://nexus.js.org';
+
+  it('requires /next/ to 404 in snapshot-only mode', () => {
+    expect(smokeNotFoundTargets('snapshot-only', origin)).toEqual([
+      'https://nexus.js.org/next/',
+    ]);
+  });
+
+  it('checks nothing once /next/ is a real site', () => {
+    expect(smokeNotFoundTargets('rc', origin)).toEqual([]);
+    expect(smokeNotFoundTargets('final', origin)).toEqual([]);
+    expect(smokeNotFoundTargets('retired', origin)).toEqual([]);
+  });
+});
+
 describe('checkResponse', () => {
   it('passes a 200 without an injected script', () => {
     expect(
@@ -64,6 +86,18 @@ describe('checkResponse', () => {
       ),
     ).toEqual([
       'https://nexus.js.org/ carries /cdn-cgi/, so Cloudflare rewrote the HTML. Turn off Rocket Loader and every HTML-rewriting feature for the zone.',
+    ]);
+  });
+});
+
+describe('checkNotFound', () => {
+  it('passes a 404', () => {
+    expect(checkNotFound('https://nexus.js.org/next/', 404)).toEqual([]);
+  });
+
+  it('fails a status other than 404', () => {
+    expect(checkNotFound('https://nexus.js.org/next/', 200)).toEqual([
+      'https://nexus.js.org/next/ answered 200, not 404.',
     ]);
   });
 });
@@ -125,5 +159,27 @@ describe('runSmoke against a local server', () => {
     ).toEqual([
       `${origin}/injected/ carries /cdn-cgi/, so Cloudflare rewrote the HTML. Turn off Rocket Loader and every HTML-rewriting feature for the zone.`,
     ]);
+  });
+
+  it('passes a not-found target that really answers 404', async () => {
+    expect(
+      await runSmoke(
+        [`${origin}/next/`],
+        fetch,
+        { attempts: 1, delayMs: 0 },
+        checkNotFound,
+      ),
+    ).toEqual([]);
+  });
+
+  it('fails a not-found target that answers 200', async () => {
+    expect(
+      await runSmoke(
+        [`${origin}/`],
+        fetch,
+        { attempts: 1, delayMs: 0 },
+        checkNotFound,
+      ),
+    ).toEqual([`${origin}/ answered 200, not 404.`]);
   });
 });
