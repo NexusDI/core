@@ -1,0 +1,35 @@
+#!/usr/bin/env sh
+# Refuse to write a merge commit.
+#
+# If `main` is protected by a rebase-only ruleset, GitHub cannot
+# rebase-merge a branch whose history contains one. A branch assembled with
+# `git merge` has to be rebuilt before it can land, and rebuilding means
+# re-resolving every conflict already resolved once.
+#
+# This fires only when a merge would create a commit. A fast-forward writes
+# none and is untouched, so `git pull` on an unchanged branch still works.
+#
+# To collect work from another branch, replay it instead:
+#
+#   git cherry-pick <sha>...
+#   git rebase --onto <here> <their-base> <their-branch>
+#
+# If you genuinely need the merge commit, say so out loud:
+#
+#   git merge --no-verify <branch>
+
+cat >&2 <<'MESSAGE'
+
+  A merge commit was refused.
+
+  If main is rebase-only, GitHub will not rebase-merge a branch that contains
+  a merge commit. Replay the work instead so the branch stays linear:
+
+      git cherry-pick <sha>...
+      git rebase --onto <here> <their-base> <their-branch>
+
+  Deliberate exception: git merge --no-verify <branch>
+
+MESSAGE
+
+exit 1
