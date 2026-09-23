@@ -5,6 +5,7 @@
   "scripts": {},
   "sideEffects": false,
   "dependencies": {
+    "@nexusdi/core": "*",
     "@react-router/node": "^7.18.4",
     "@react-router/serve": "^7.18.4",
     "class-variance-authority": "^0.7.1",
@@ -15,8 +16,10 @@
     "react-router": "^7.18.4"
   },
   "devDependencies": {
+    "@nx/eslint-plugin": "23.1.1",
     "@react-router/dev": "^7.18.4",
     "@tailwindcss/vite": "^4.1.10",
+    "@testing-library/react": "16.3.0",
     "@types/node": "^22",
     "@types/react": "19.3.0",
     "@types/react-dom": "19.3.0",
