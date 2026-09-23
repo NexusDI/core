@@ -1,0 +1,14 @@
+# Every change needs review from the maintainer.
+#
+# Paired with a "require review from Code Owners" branch protection rule,
+# this is what makes the maintainer's approval the one that counts rather
+# than any approval from anyone else with write access.
+* @Evanion
+
+# The release path -- the workflow that holds npm publish rights, and the
+# config that decides what gets published -- is called out separately so
+# that a change to it is never buried in a large diff.
+/.github/workflows/release.yml @Evanion
+/nx.json                       @Evanion
+/package.json                  @Evanion
+/package-lock.json             @Evanion

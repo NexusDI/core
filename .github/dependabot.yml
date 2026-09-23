@@ -1,0 +1,51 @@
+version: 2
+
+updates:
+  # Actions are pinned to commit SHAs (the repo requires it), which means the
+  # tag no longer floats and security fixes do not arrive on their own.
+  # Dependabot reads the `# vX.Y.Z` comment next to each SHA to know what
+  # version is in use, and opens a PR that moves both the SHA and the comment.
+  - package-ecosystem: github-actions
+    directory: /
+    schedule:
+      interval: weekly
+    commit-message:
+      prefix: 'ci(deps)'
+    labels:
+      - dependencies
+      - github-actions
+
+  - package-ecosystem: npm
+    directory: /
+    schedule:
+      interval: weekly
+    groups:
+      dev-dependencies:
+        dependency-type: development
+        update-types:
+          - minor
+          - patch
+      production-dependencies:
+        dependency-type: production
+        update-types:
+          - patch
+    commit-message:
+      prefix: 'build(deps)'
+      prefix-development: 'build(deps-dev)'
+    labels:
+      - dependencies
+    open-pull-requests-limit: 10
+    ignore:
+      # Nx packages move as a set and are upgraded with `nx migrate`, which
+      # also runs the codemods. Dependabot bumping one of them in isolation
+      # produces a broken workspace.
+      - dependency-name: '@nx/*'
+      - dependency-name: 'nx'
+      # Pinned exact and upgraded deliberately, in step with the rest of the
+      # TypeScript toolchain (typescript-eslint, Vite's oxc transform).
+      - dependency-name: 'typescript'
+        versions: ['^7.0.0']
+      # eslint 10 is a new major; upgrade deliberately once the plugin
+      # ecosystem (typescript-eslint, eslint-plugin-import, ...) has caught up.
+      - dependency-name: 'eslint'
+        versions: ['^10.0.0']

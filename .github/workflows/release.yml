@@ -1,48 +1,147 @@
-# ./.github/workflows/publish.yml
-name: Publish
+name: Release
 
+# Manual trigger rather than publish-on-push. Releasing is the one thing in
+# this repo that cannot be undone -- npm versions are immutable and tags are
+# public -- so it stays a deliberate act.
 on:
-  push:
-    tags:
-      - '@nexusdi/*@*.*.*'
   workflow_dispatch:
+    inputs:
+      dry-run:
+        description: 'Dry run'
+        type: boolean
+        default: true
+      projects:
+        description: 'Projects, comma separated. Same names as commit scopes. Empty releases everything affected.'
+        type: string
+        default: ''
+
+permissions:
+  contents: write # create tags and GitHub releases
+  id-token: write # mint the OIDC token npm exchanges for publish rights
 
 jobs:
-  test:
-    name: Publish
+  release:
     runs-on: ubuntu-latest
-    permissions:
-      contents: read
-      id-token: write # needed for provenance data generation
-    timeout-minutes: 10
     steps:
-      - name: Checkout repository
-        uses: actions/checkout@v4
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
+          # nx release reads the full history to infer versions from
+          # conventional commits, and needs the tags to know where to start.
           fetch-depth: 0
           filter: tree:0
 
-      - name: Install Node
-        uses: actions/setup-node@v4
+      - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
         with:
-          node-version: lts/*
-          registry-url: https://registry.npmjs.org/
+          node-version-file: .nvmrc
+          registry-url: 'https://registry.npmjs.org'
+          # Deliberately no dependency cache. npm's guidance is that release
+          # builds should not restore one, so what gets published is built
+          # from exactly what the lockfile resolves to.
 
-      - name: Install dependencies
-        run: npm install
-        shell: bash
+      # Trusted publishing needs npm >= 11.5.1. Below that the CLI does not
+      # attempt the OIDC exchange at all and fails with an opaque auth error,
+      # so check explicitly rather than letting a runner image change break a
+      # release in a way that is hard to read.
+      - name: Check npm supports trusted publishing
+        run: |
+          required=11.5.1
+          actual=$(npm --version)
+          if [ "$(printf '%s\n%s\n' "$required" "$actual" | sort -V | head -n1)" != "$required" ]; then
+            echo "npm $actual is too old for trusted publishing (need >= $required)" >&2
+            exit 1
+          fi
+          echo "npm $actual supports trusted publishing"
 
-      - name: Print Environment Info
-        run: npx nx report
-        shell: bash
+      - run: npm ci
 
-      - name: Build packages
-        run: npx nx build core
-        shell: bash
-
-      - name: Publish packages
-        run: npx nx release publish
-        shell: bash
+      # Resolved once, before the expensive verify suite, so a typo costs
+      # seconds rather than a full build. Both `nx release` steps below read
+      # this step's output rather than the raw input, which is what keeps the
+      # set that gets versioned identical to the set that gets published.
+      - name: Resolve projects to release
+        id: projects
         env:
-          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
-          NPM_CONFIG_PROVENANCE: true
+          PROJECTS: ${{ inputs.projects }}
+        run: node scripts/resolve-release-projects.mjs
+
+      - name: Verify
+        # Same target list as CI. The release gate must not be weaker than
+        # the pull request gate, and
+        # tools/repo-checks/src/release-verify-gate.test.ts holds the two
+        # target lists against each other.
+        #
+        # Scoped to the release's blast radius: the released packages, what
+        # they are compiled against, and every project that depends on them.
+        # The resolve step above computes that closure from the project
+        # graph.
+        #
+        # An explicit list, never `--affected`. This workflow is
+        # workflow_dispatch on main, where an affected comparison has the
+        # same commit on both sides, so the affected set is empty and a gate
+        # scoped to it reports success having verified nothing.
+        env:
+          VERIFY_PROJECTS: ${{ steps.projects.outputs.verify-projects }}
+        run: |
+          args=()
+          if [ -n "$VERIFY_PROJECTS" ]; then args+=(--projects "$VERIFY_PROJECTS"); fi
+          echo "Running: nx run-many -t lint test build typecheck ${args[*]}"
+          npx nx run-many -t lint test build typecheck "${args[@]}"
+
+      # Catches problems that only exist once the package is packed --
+      # notably emitted .d.ts files that a nodenext consumer cannot resolve.
+      # Everything inside the workspace resolves from source, so nothing
+      # above sees these.
+      - name: Verify packaging
+        run: npm run verify:packaging
+
+      # `nx release` commits the version bumps and tags them, so it needs an
+      # identity.
+      - name: Configure git
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+
+      - name: Version, changelog and tag
+        # Inputs reach the script as environment variables. A `${{ }}`
+        # interpolation is substituted into the script text before the shell
+        # sees it, so a dispatch input containing shell syntax would run as
+        # part of this step.
+        env:
+          DRY_RUN: ${{ inputs.dry-run }}
+          PROJECTS: ${{ steps.projects.outputs.projects }}
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        # `nx release` publishes on its own unless told not to, so this step
+        # passes --skip-publish -- without it, the Publish step below would
+        # publish the same version a second time.
+        run: |
+          args=(--skip-publish)
+          # An empty PROJECTS omits the flag. `--projects ""` is a filter
+          # that matches nothing, which nx reports as an internal bug rather
+          # than as an empty release.
+          if [ -n "$PROJECTS" ]; then args+=(--projects "$PROJECTS"); fi
+          if [ "$DRY_RUN" = "true" ]; then args+=(--dry-run); fi
+          echo "Running: nx release ${args[*]}"
+          npx nx release "${args[@]}"
+
+      - name: Publish to npm
+        if: ${{ !inputs.dry-run }}
+        env:
+          PROJECTS: ${{ steps.projects.outputs.projects }}
+          # No NODE_AUTH_TOKEN and no NPM_TOKEN, deliberately.
+          #
+          # The npm CLI detects the GitHub Actions OIDC environment and
+          # exchanges the id-token granted above for short-lived publish
+          # rights, scoped to this repository and this workflow filename.
+          # There is no long-lived credential in this repo for anyone to
+          # steal.
+          #
+          # Renaming this file breaks publishing until the trusted publisher
+          # config on npmjs.com is updated -- npm matches it by filename.
+          #
+          # Provenance is automatic under trusted publishing, so neither
+          # NPM_CONFIG_PROVENANCE nor --provenance is needed.
+        run: |
+          args=()
+          if [ -n "$PROJECTS" ]; then args+=(--projects "$PROJECTS"); fi
+          echo "Running: nx release publish ${args[*]}"
+          npx nx release publish "${args[@]}"
