@@ -1,9 +1,0 @@
-out-tsc/*
-src/*
-test-output/*
-eslint.config.mjs
-tsconfig.json
-tsconfig.spec.json
-tsconfig.lib.json
-vite.config.ts
-dist/tsconfig.lib.tsbuildinfo
