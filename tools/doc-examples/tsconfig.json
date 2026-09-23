@@ -1,0 +1,11 @@
+{
+  "extends": "../../tsconfig.base.json",
+  "compilerOptions": {
+    "module": "esnext",
+    "moduleResolution": "bundler",
+    "types": ["node", "vitest/globals"],
+    "outDir": "dist",
+    "allowImportingTsExtensions": true
+  },
+  "include": ["src/**/*.ts"]
+}

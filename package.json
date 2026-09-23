@@ -6,7 +6,9 @@
     "commit": "cz",
     "commit:check": "commitlint --edit",
     "prepare": "husky",
-    "verify:packaging": "node scripts/verify-packaging.mjs"
+    "verify:packaging": "node scripts/verify-packaging.mjs",
+    "pre-commit:with-tests": "cp .husky/pre-commit .husky/pre-commit.backup && cp .husky/pre-commit-with-tests .husky/pre-commit",
+    "pre-commit:restore": "cp .husky/pre-commit.backup .husky/pre-commit && rm .husky/pre-commit.backup"
   },
   "private": true,
   "devDependencies": {
@@ -55,6 +57,7 @@
     "typescript": "6.0.3",
     "typescript-eslint": "^8.69.0",
     "vite": "8.3.0",
+    "vite-plugin-doctest": "3.0.0",
     "vitest": "4.1.9",
     "yaml": "^2.9.0"
   },

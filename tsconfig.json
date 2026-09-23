@@ -14,6 +14,9 @@
     },
     {
       "path": "./tools/repo-checks"
+    },
+    {
+      "path": "./tools/doc-examples"
     }
   ],
   "compilerOptions": {

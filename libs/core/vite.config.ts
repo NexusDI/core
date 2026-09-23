@@ -1,5 +1,7 @@
 import { defineConfig } from 'vite';
 
+import { docExampleSources, docExamples } from '@nexusdi/doc-examples';
+
 export default defineConfig(() => ({
   root: import.meta.dirname,
   cacheDir: '../../node_modules/.vite/libs/core',
@@ -8,11 +10,7 @@ export default defineConfig(() => ({
   // git worktree that walk can escape the worktree entirely; naming the file
   // explicitly is what keeps it from resolving anything but this project's own.
   tsconfig: './tsconfig.spec.json',
-  plugins: [],
-  // Uncomment this if you are using workers.
-  // worker: {
-  //  plugins: [ nxViteTsPaths() ],
-  // },
+  ...docExamples(),
   build: {
     sourcemap: false,
   },
@@ -21,6 +19,7 @@ export default defineConfig(() => ({
     globals: true,
     environment: 'node',
     include: ['src/**/*.{test,spec}.{js,mjs,cjs,ts,mts,cts,jsx,tsx}'],
+    includeSource: docExampleSources(),
     reporters: ['default'],
     coverage: {
       reportsDirectory: './test-output/vitest/coverage',
