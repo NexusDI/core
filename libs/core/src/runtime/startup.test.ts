@@ -1,0 +1,222 @@
+import { describe, expect, it } from 'vitest';
+
+import { rejected } from '../../test-support/catch.js';
+import { frequencySchema } from '../../test-support/schema.js';
+import { defineModule } from '../definitions/define-module.js';
+import { provide } from '../definitions/provide.js';
+import { Token } from '../definitions/token.js';
+import { ProviderError } from '../errors/index.js';
+import { Nexus } from './nexus.js';
+
+function disposable(
+  log: string[],
+  name: string,
+  options: { failDispose?: boolean } = {},
+) {
+  return class {
+    static readonly label = name;
+    constructor(..._deps: unknown[]) {}
+    async [Symbol.asyncDispose]() {
+      log.push(`dispose ${name}`);
+      if (options.failDispose) throw new Error(`${name} stuck`);
+    }
+  };
+}
+
+describe('Nexus', () => {
+  describe('create', () => {
+    it('throws NEXUS_PROVIDER_FAILED for the first failure by declaration order, with the rest in alsoFailed', async () => {
+      const first = new Error('first');
+      const second = new Error('second');
+      const A = new Token<string>('A');
+      const B = new Token<string>('B');
+      const Root = defineModule({
+        name: 'Root',
+        providers: [
+          provide(A, { useFactory: () => Promise.reject(first), deps: [] }),
+          provide(B, {
+            useFactory: () => {
+              throw second;
+            },
+            deps: [],
+          }),
+        ],
+      });
+      const error = await rejected(Nexus.create(Root));
+      expect(error).toBeInstanceOf(ProviderError);
+      expect(error).toMatchObject({
+        code: 'NEXUS_PROVIDER_FAILED',
+        token: 'A',
+        module: 'Root',
+        path: ['A'],
+        cause: first,
+        alsoFailed: [{ token: 'B', module: 'Root', cause: second }],
+        disposalErrors: [],
+      });
+    });
+
+    it('reports the construction stack that led to a failure as path', async () => {
+      class Probe {
+        constructor() {
+          throw new Error('probe jammed');
+        }
+      }
+      class ShipComputer {
+        constructor(readonly probe: Probe) {}
+      }
+      const Root = defineModule({
+        name: 'Root',
+        providers: [
+          provide(Probe, { lifetime: 'transient' }),
+          provide(ShipComputer, { deps: [Probe] }),
+        ],
+      });
+      expect(await rejected(Nexus.create(Root))).toMatchObject({
+        token: 'Probe',
+        path: ['ShipComputer', 'Probe'],
+        cause: { message: 'probe jammed' },
+      });
+    });
+
+    it('disposes every instance built so far, one at a time, in reverse creation order', async () => {
+      const log: string[] = [];
+      const Reactor = disposable(log, 'reactor');
+      const Computer = disposable(log, 'computer');
+      class Bridge {
+        constructor(readonly computer: unknown) {
+          throw new Error('bridge offline');
+        }
+      }
+      const Root = defineModule({
+        name: 'Root',
+        providers: [
+          Reactor,
+          provide(Computer, { deps: [Reactor] }),
+          provide(Bridge, { deps: [Computer] }),
+        ],
+      });
+      await rejected(Nexus.create(Root));
+      expect(log).toEqual(['dispose computer', 'dispose reactor']);
+    });
+
+    it('collects every disposer error in disposalErrors and keeps disposing', async () => {
+      const log: string[] = [];
+      const Reactor = disposable(log, 'reactor', { failDispose: true });
+      const Shields = disposable(log, 'shields');
+      class Bridge {
+        constructor(readonly deps: unknown) {
+          throw new Error('bridge offline');
+        }
+      }
+      const Root = defineModule({
+        name: 'Root',
+        providers: [Reactor, Shields, provide(Bridge, { deps: [Reactor] })],
+      });
+      const error = await rejected(Nexus.create(Root));
+      expect(log).toEqual(['dispose shields', 'dispose reactor']);
+      expect((error as ProviderError).disposalErrors).toMatchObject([
+        { message: 'reactor stuck' },
+      ]);
+    });
+
+    it.each([
+      ['a string', 'reactor offline', 'reactor offline'],
+      ['undefined', undefined, 'undefined'],
+      [
+        'an object with a null prototype',
+        Object.create(null) as object,
+        '[object Object]',
+      ],
+    ])(
+      'keeps a thrown %s as cause and still formats its message',
+      async (_label, value, text) => {
+        const NAME = new Token<string>('Name');
+        const Root = defineModule({
+          name: 'Root',
+          providers: [
+            provide(NAME, {
+              useFactory: () => {
+                throw value;
+              },
+              deps: [],
+            }),
+          ],
+        });
+        const error = (await rejected(Nexus.create(Root))) as ProviderError;
+        expect(error.cause).toBe(value);
+        expect(error.message).toBe(
+          `[NEXUS_PROVIDER_FAILED] Name (module Root) failed: ${text}`,
+        );
+      },
+    );
+
+    it('validates with() options against the schema and reports NEXUS_INVALID_MODULE_OPTIONS', async () => {
+      const OPTIONS = new Token<{ frequency: number; band?: string }>(
+        'CommsOptions',
+      );
+      const Comms = defineModule({
+        name: 'Comms',
+        options: OPTIONS,
+        schema: frequencySchema(),
+      });
+      const error = (await rejected(
+        Nexus.create(
+          defineModule({
+            name: 'Root',
+            imports: [Comms.with({ frequency: 'high' } as never)],
+          }),
+        ),
+      )) as ProviderError;
+      expect(error).toMatchObject({
+        code: 'NEXUS_PROVIDER_FAILED',
+        token: 'CommsOptions',
+        module: 'Comms',
+      });
+      expect(error.cause).toMatchObject({
+        code: 'NEXUS_INVALID_MODULE_OPTIONS',
+        module: 'Comms',
+        issues: [{ message: 'expected a number', path: ['frequency'] }],
+      });
+    });
+
+    it('validates a with() factory result after it resolves', async () => {
+      const OPTIONS = new Token<{ frequency: number; band?: string }>(
+        'CommsOptions',
+      );
+      const Comms = defineModule({
+        name: 'Comms',
+        options: OPTIONS,
+        schema: frequencySchema(),
+      });
+      const tuned = Comms.with({
+        deps: [],
+        useFactory: async () => ({ frequency: 'late' }) as never,
+      });
+      const error = (await rejected(
+        Nexus.create(defineModule({ name: 'Root', imports: [tuned] })),
+      )) as ProviderError;
+      expect(error.cause).toMatchObject({
+        code: 'NEXUS_INVALID_MODULE_OPTIONS',
+      });
+    });
+
+    it('provides the schema output as the options value', async () => {
+      const OPTIONS = new Token<{ frequency: number; band?: string }>(
+        'CommsOptions',
+      );
+      const Comms = defineModule({
+        name: 'Comms',
+        options: OPTIONS,
+        schema: frequencySchema(),
+      });
+      const tuned = Comms.with({ frequency: 1420 });
+      const ship = await Nexus.create(
+        defineModule({ name: 'Root', imports: [tuned] }),
+      );
+      expect(ship.get(OPTIONS, { module: tuned })).toEqual({
+        frequency: 1420,
+        band: 'S',
+      });
+    });
+  });
+});

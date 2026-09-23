@@ -5,6 +5,7 @@ import {
   type ProviderRecord,
 } from '../blueprint/blueprint.js';
 import {
+  AsyncTransientError,
   NexusError,
   NotReadyError,
   ProviderError,
@@ -140,6 +141,14 @@ function settledSingleton(record: ProviderRecord, ctx: Ctx): unknown {
 function buildTransient(record: ProviderRecord, ctx: Ctx): unknown {
   const start = ctx.container.root.tracer.now();
   const instance = construct(record, ctx);
+  if (isThenable(instance)) {
+    // get() cannot wait. Observe the promise so its rejection is never unhandled.
+    Promise.resolve(instance).catch(() => undefined);
+    throw new AsyncTransientError({
+      token: record.name,
+      module: moduleName(ctx.bp, record),
+    });
+  }
   if (typeof ctx.owner !== 'string') adopt(ctx.owner, record, instance);
   traceConstruct(ctx.container, ctx.bp, record, false, start);
   return instance;
