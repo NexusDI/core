@@ -172,16 +172,17 @@ or Express's `req` ties the service layer to one framework.
 ### 3.3 `inject`: typed handler dependencies
 
 ```ts
-type Deps = Readonly<Record<string, Dep>>;
-type Resolved<D extends Deps> = { -readonly [K in keyof D]: Resolve<D[K]> };
+import type { DepsMap, ResolvedDeps } from '@nexusdi/core';
 
-inject<const D extends Deps, R>(
+inject<const D extends DepsMap, R>(
   deps: D,
-  handler: (deps: Resolved<D>, ...frameworkArgs: FrameworkArgs) => R,
+  handler: (deps: ResolvedDeps<D>, ...frameworkArgs: FrameworkArgs) => R,
 ): FrameworkHandler<R>;
 ```
 
-`Dep` and `Resolve` are public core types (core spec §4.2), so `optional(T)` yields
+`DepsMap` and `ResolvedDeps<D>` are core's types for a record of deps and its resolved
+values, which the core spec amendment adds beside `Dep` and `Resolve` (core spec §4.2).
+The adapters import them and define no deps type of their own. So `optional(T)` yields
 `T | undefined`, `lazy(T)` yields `() => T` and `all(M)` yields `T[]`. The handler
 destructures by name, which avoids the positional mistakes a tuple invites, and the
 framework arguments follow unchanged.
@@ -204,9 +205,8 @@ gains two methods, and the core spec is being amended with these signatures:
 ```ts
 interface Scope {
   /** Resolves a record or tuple of deps, with the same rules as a factory's deps. */
-  resolve<const D extends Deps | readonly Dep[]>(
-    deps: D,
-  ): { -readonly [K in keyof D]: Resolve<D[K]> };
+  resolve<const D extends DepsMap>(deps: D): ResolvedDeps<D>;
+  resolve<const D extends readonly Dep[]>(deps: D): ResolveAll<D>;
 }
 
 interface Nexus {
@@ -215,12 +215,24 @@ interface Nexus {
    * module. Builds nothing. Throws one BlueprintError (NEXUS_BLUEPRINT_INVALID) holding a
    * NEXUS_MISSING_PROVIDER or NEXUS_NOT_VISIBLE error per failing entry.
    */
-  validate(deps: Deps | readonly Dep[]): void;
+  validate(deps: DepsMap | readonly Dep[]): void;
 }
 ```
 
+Every error `resolve` and `validate` raise carries an `entry` field naming the failing
+entry, such as `'deps.charts'` for the record key `charts`. The core spec defines the
+format. The adapters log it (section 3.6).
+
 Both methods are additive. Every adapter's `inject` calls them, so they are in core at
 rc.0 (section 13).
+
+When `validate` throws inside `inject`, the adapter logs one line per error in the
+`BlueprintError`, with the code, the `entry` and core's message, then rethrows, so the
+app fails at startup:
+
+```
+[@nexusdi/hono] inject: NEXUS_MISSING_PROVIDER at deps.charts: no provider of NavCharts is visible in Meridian.
+```
 
 ### 3.4 Disposal
 
@@ -295,8 +307,8 @@ framework's error pipeline.
 | `NEXUS_MISSING_PROVIDER`, `NEXUS_NOT_VISIBLE`, `NEXUS_LOADED_AFTER_SCOPE` from `resolve` | 500    | error     |
 | `NEXUS_NO_SCOPE_CONTEXT`                                                                 | 500    | error     |
 
-The adapter logs the original error once, with its code and message, through the `log`
-option. Then it raises the framework's own error type with the status, the status text as
+The adapter logs the original error once, with its code, its `entry` when `resolve`
+raised it, and its message, through the `log` option. Then it raises the framework's own error type with the status, the status text as
 its message (`Internal Server Error`, `Service Unavailable`) and the `NexusError` as
 `cause`. So the user's error handler can read `error.cause.code`, and the framework's
 default handler sends a body that contains nothing from core. The per-framework error type
