@@ -66,9 +66,11 @@ promises "high performance" with no figure behind it.
 5. A cell's outcome is one of `pass`, `compile-error`, `runtime-error`, `wrong-instance` or
    `not-applicable`. A shared scenario script detects each one the same way for every
    library (section 4.5).
-6. Timings use mitata 1.0.34 inside one process per library and round, and a process-spawn
-   driver for cold start. Every published timing is a median across rounds with its median
-   absolute deviation (section 4.7).
+6. Timings come from an interleaved, isolated sampler. Each library-variant runs in its
+   own long-lived worker process, and an orchestrator takes one sample from every worker per
+   iteration, in a rotating balanced order, for at least 1,000 iterations. Every timing is
+   published as a median with its MAD, p5 and p95, and every comparison as the median of
+   per-iteration paired ratios with a bootstrap 95% confidence interval (section 4.7).
 7. The deterministic results (matrix, probes, sizes) are committed files that reproduce
    byte for byte. Timings are dated history files. The docs read both at build time, and no
    page or post types a figure by hand (sections 4.9 and 4.11).
@@ -89,8 +91,9 @@ promises "high performance" with no figure behind it.
     comparison-page snippets. Competitor fixtures stay idiomatic for their library
     (section 4.3).
 13. Build time is a harness metric. Every library-variant is built by every toolchain cell
-    that has a build step, cold, in ten interleaved rounds, and reported as a median with
-    its MAD. A library's headline build time uses a toolchain its own documentation names
+    that has a build step, cold, in at least 30 interleaved rounds, and reported with the
+    same statistics as the timings. A library's headline build time uses a toolchain its
+    own documentation names
     for its documented setup, so a library whose docs require `tsc` for metadata is timed
     with `tsc` (section 4.7).
 14. A "Performance comparison" table (bundle size, startup, resolve, build) appears in the
@@ -211,8 +214,8 @@ Lint, format and typecheck run on the harness code before the second file is wri
 
 ```
 benchmarks/
-  package.json              @nexusdi/benchmarks, private; exact pins for mitata,
-                            rollup, the competitors and their polyfills
+  package.json              @nexusdi/benchmarks, private; exact pins for rollup,
+                            the competitors and their polyfills
   libraries.json            libraries, versions, variants, setup facts, cited claims
   fixtures/
     scenario.mjs            the shared scenario; plain JavaScript, never compiled
@@ -236,9 +239,11 @@ benchmarks/
                             and counts what tsc-6 emits
     scale.ts                generates the build-only scale-200 fixture per variant
     build.ts                the build-time driver
-    timings/cold-start.ts   the process-spawn driver
-    timings/in-process.ts   one mitata process per library, scenario and round
-    timings/rounds.ts       round order, seed, median and MAD
+    timings/orchestrator.ts the interleaved sampler: workers, iterations, order
+    timings/worker.mjs      the long-lived worker; plain JavaScript, never compiled
+    timings/cold-start.ts   the interleaved process-spawn driver
+    order.ts                the balanced Latin-square order, shared with build.ts
+    stats.ts                median, MAD, percentiles, paired ratios, the bootstrap
     schema.ts               the result types and their runtime validator
     readme.ts               writes the README comparison table
     *.test.ts               Vitest tests for every module above
@@ -462,42 +467,81 @@ that fails is recorded in the size cell as `runs: 'runtime-error'` or `'wrong-in
 Minification renames classes and parameters, and awilix's README warns that its `CLASSIC`
 mode breaks under it, so this check reaches a failure the unminified matrix cannot.
 
-Timings. All timings run on Node 24 from `.nvmrc`, with each library's documented variant
-built by `tsc-6`. Scenarios:
+Timings. All timings run on Node 24 from `.nvmrc`, on each library-variant's `tsc-6` build,
+for every library-variant whose `tsc-6` matrix section for the scenario is `pass`.
+Scenarios:
 
-| Scenario            | What one iteration does                                                                   | Driver |
+| Scenario            | What one operation does                                                                   | Driver |
 | ------------------- | ----------------------------------------------------------------------------------------- | ------ |
 | `cold-start`        | a fresh process imports the library and its polyfill, wires Meridian-8, resolves `Bridge` | spawn  |
-| `ready`             | create and configure a container, then resolve every singleton once                       | mitata |
-| `resolve-singleton` | `get(Bridge)` on a ready container                                                        | mitata |
-| `resolve-transient` | `get(SurveyDrone)` on a ready container                                                   | mitata |
-| `scope-cycle`       | open a scope, resolve `FlightLog` and `SurveyDrone` in it, close the scope                | mitata |
+| `ready`             | create and configure a container, then resolve every singleton once                       | worker |
+| `resolve-singleton` | `get(BRIDGE)` on a ready container                                                        | worker |
+| `resolve-transient` | `get(DRONE)` on a ready container                                                         | worker |
+| `scope-cycle`       | open a scope, resolve `FLIGHT_LOG` and `DRONE` in it, close the scope                     | worker |
 
-`ready` is the headline figure for startup work. NexusDI builds every singleton inside
-`Nexus.create`, and the others build lazily on first resolve, so container creation alone
-compares different amounts of work. `ready` makes every library do the same work: every
-singleton exists at the end of the iteration.
+`ready` is the headline figure for in-process startup work. NexusDI builds every singleton
+inside `Nexus.create`, and the others build lazily on first resolve, so container creation
+alone compares different amounts of work. `ready` makes every library do the same work:
+every singleton exists at the end of the operation.
 
-`cold-start` spawns `node` 50 times per library, in an interleaved random order, and reads
-`performance.now()` after `Bridge` resolves. `performance.now()` counts from the process's
-time origin, so the figure includes module loading and the polyfill.
+The sampler. Machine noise on a shared runner changes over seconds, so the harness samples
+every library close together in time and compares them within the same moment:
 
-The in-process scenarios follow these rules:
+1. Isolation. `timings/orchestrator.ts` forks one worker per library-variant with
+   `child_process.fork`, under `node --expose-gc`. A worker loads one compiled fixture and
+   lives for the whole run. `reflect-metadata` patches the global `Reflect`, and V8
+   specialises code on the shapes it has seen, so a separate process per library keeps
+   heaps, JIT state and garbage collection apart.
+2. Calibration. Before sampling, each worker finds, for each scenario, the batch size `N`:
+   it doubles `N` from 1 until one batch of `N` operations takes at least 1 ms, measured
+   with `process.hrtime.bigint()`. `N` is fixed for the run and recorded. A sample is one
+   batch, and the per-operation time is the batch time divided by `N`. For `ready` and
+   `scope-cycle` the worker runs `gc()` before each batch, outside the timed region.
+3. Interleaving. One iteration asks every worker, one after another, for one sample of the
+   scenario, so an iteration holds every library-variant back to back. The timing is taken
+   inside the worker, so the message round trip is not in the sample.
+4. Order. The order of workers changes every iteration by the rows of a balanced Latin
+   square (a Williams design; for an odd number of workers, the pair of squares of that
+   design), cycled through the iterations. Each library-variant takes every position equally
+   often, and each one follows every other one equally often, so neither position nor the
+   previous library biases a sample. `order.ts` builds the square from the recorded seed.
+5. Warm-up. The first 100 iterations are warm-up. The worker records them and the
+   statistics exclude them. Then 1,000 measured iterations run per scenario.
+6. Dead code. Each operation's result is folded into a sink value that the worker returns
+   with the sample, so no engine can drop the work. A per-operation median below 2 ns fails
+   the run, because no container resolves in that time.
+7. Heap. For `ready`, the worker also reads `v8.getHeapStatistics().used_heap_size` before
+   and after one measured batch, after `gc()`, and records the difference divided by `N`.
 
-1. One process per library, scenario and round. `reflect-metadata` patches the global
-   `Reflect`, and V8 specialises code on the shapes it has seen, so two libraries in one
-   process would measure each other.
-2. Ten rounds. The round order across libraries is shuffled with a seed recorded in the
-   results file.
-3. mitata with `.gc('inner')` for `ready` and `scope-cycle`, under `node --expose-gc`.
-4. Every result passes through `do_not_optimize`. A run where mitata flags possible
-   dead-code elimination fails.
-5. Only a cell whose matrix outcome under `tsc-6` is `pass` for that section is timed.
-6. Each round contributes mitata's `p50`. The published figure is the median of the ten
-   round medians, with the median absolute deviation across rounds and the median of the
-   rounds' `p99`. `ready` also records mitata's average heap per iteration.
-7. A figure whose MAD exceeds 5% of its median is flagged `noisy`. A page shows the flag
-   next to the figure.
+Cold start. Each iteration spawns one fresh `node` process per library, for each library's
+documented variant, in the iteration's balanced order, and times from just before the spawn
+to the child's `ready` message, with `process.hrtime.bigint()` in the orchestrator. The child
+sends the message after `Bridge` resolves, so the figure includes process start, module
+loading, the polyfill and the wiring. The child also reports its own `performance.now()` at
+that point, which the results keep as a second figure. 20 warm-up iterations run first and
+1,000 are measured.
+
+Statistics, in `stats.ts`:
+
+- Per library-variant and scenario: the median, the median absolute deviation, p5 and p95 of
+  the measured per-operation times, and the iteration count.
+- Paired ratio: for each competitor library-variant, and for each iteration, NexusDI's
+  documented variant's time divided by the competitor's time in that same iteration. The
+  published ratio is the median of those per-iteration ratios. Below 1 means NexusDI took
+  less time. Both samples of a pair come from the same few milliseconds on the same machine,
+  so drift in the machine's speed divides out.
+- The 95% confidence interval of that median comes from 10,000 bootstrap resamples, drawn
+  as a circular block bootstrap with blocks of ⌈n^(1/3)⌉ consecutive iterations (10 for
+  1,000), because consecutive iterations share machine state. The resampling uses a
+  seeded PRNG (mulberry32) seeded from the run's recorded seed, so a rerun of the statistics
+  over the raw samples reproduces the interval exactly.
+- `noisy`: MAD above 5% of the median. A page shows the flag next to the figure.
+
+`stats.ts` implements these functions itself, in about 150 lines with Vitest tests against
+known values, and the harness adds no statistics dependency.
+
+Every relative claim, in prose or in `<Benefits />`, uses the paired ratio and its interval.
+Absolute medians appear in tables and charts, labelled with the runner's CPU.
 
 `resolve-singleton` measures a map lookup in most containers. The pages show it and say
 so; the post leaves it out of its charts.
@@ -520,9 +564,17 @@ A build is cold: the output directory is empty and every tool cache is cleared o
 before each build (`tsc` without `incremental`, Vite with `--force` and an empty cache
 directory, `BABEL_DISABLE_CACHE=1`). One unmeasured build per cell runs first, so the
 operating system's file cache is warm for every measured build and each round measures the
-toolchain. The runner discipline is the timings': ten rounds, one process per build, the
-round order across libraries and toolchains shuffled with the recorded seed, the median of
-the rounds with the MAD, and the `noisy` flag above 5%.
+toolchain.
+
+Builds are interleaved as the timings are. One round builds every build cell of one fixture
+once, one build process at a time, in the order of that round's row of the balanced Latin
+square from `order.ts`. At least 30 rounds run per fixture, because a build takes seconds.
+Each cell gets the timings' statistics: median, MAD, p5, p95 and `noisy`. Each competitor
+cell gets a paired ratio against NexusDI's `plain` cell on the same toolchain and fixture in
+the same round, and each competitor's headline cell gets a paired ratio against NexusDI's
+headline cell in the same round, each with its bootstrap interval. Pairs never cross
+rounds, so the two fixtures can run in separate jobs if one run exceeds the job's
+330-minute timeout; the first full run records its duration.
 
 A build cell whose matrix outcome is `compile-error` is not timed. A cell that builds and
 then fails at run time is timed and carries its matrix outcome beside the figure, so a fast
@@ -544,11 +596,6 @@ counts, in the emitted JavaScript: total bytes, `__metadata(` calls, `__decorate
 and import declarations kept, against the source's import declarations. These counts are
 deterministic, so they live in `size.json` and `--check` holds them byte for byte.
 
-mitata 1.0.34 was published on 2025-02-04, and its repository was last pushed on
-2025-02-17. It is pinned exactly. Its JSON output (`run({ format: 'json' })`) carries
-`samples`, `min`, `max`, `p25`, `p50`, `p75`, `p99`, `p999`, `avg` and optional `heap`
-per run, which is all the harness reads.
-
 ### 4.8 The CI job and schedule
 
 `.github/workflows/benchmarks.yml`, with actions pinned by SHA as in `ci.yml`:
@@ -565,7 +612,9 @@ per run, which is all the harness reads.
   runner's CPU model, core count, memory and Node version. It opens a pull request titled
   `chore(benchmarks): results <date> <sha7>` when any deterministic file changed, when a
   competitor pin changed, or on every tag run. The timing file and `build.json` are
-  committed only in that pull request. The raw mitata JSON is uploaded as a workflow artifact.
+  committed only in that pull request. The raw samples of every iteration, warm-up
+  included, are written to `results/raw/<date>-<sha7>.json.gz`, committed for tag runs and
+  uploaded as a workflow artifact for the others, so anyone can recompute the statistics.
 - `competitor-releases` runs weekly with `bench-full`. For each pin in `libraries.json` it
   reads `npm view <package> version`, and for each newer version it opens one issue,
   labelled `benchmarks`, titled `benchmarks: <package> <version> released`, unless an issue
@@ -580,7 +629,9 @@ EPYC 7763 in nine of ten runs and on Intel Xeon 8370C in one
 (<https://codspeed.io/blog/unrelated-benchmark-regression>). The harness compares libraries
 inside one job on one machine, interleaved, which Laaber et al. (EMSE 2019) found to detect
 differences of 10% or less on cloud instances. It does not compare runs across weeks, and
-no timing gates a pull request.
+no timing gates a pull request. The interleaved sampler exists for this machine: within one
+iteration every library-variant runs within a few milliseconds of the others, and the paired
+ratio divides out whatever the host did to all of them.
 
 ### 4.9 The results schema
 
@@ -676,11 +727,32 @@ interface SizeFile {
 }
 
 // results/timings/<date>-<sha7>.json
+interface Stats {
+  median: number; // per operation: ns for timings, ms for builds
+  mad: number;
+  p5: number;
+  p95: number;
+  iterations: number; // measured iterations or rounds, warm-up excluded
+  noisy: boolean; // mad > 5% of median
+}
+interface PairedRatio {
+  median: number; // median over iterations of NexusDI's time / this cell's time
+  low: number; // bootstrap 95% CI, lower bound
+  high: number; // bootstrap 95% CI, upper bound
+  pairs: number;
+}
+interface Design {
+  order: 'williams';
+  warmup: number; // iterations or rounds recorded and excluded
+  measured: number;
+  bootstrap: { resamples: 10000; block: number; prng: 'mulberry32' };
+}
+
 interface TimingsFile {
   schema: 1;
   sha: string;
   startedAt: string; // ISO 8601
-  versions: Versions & { mitata: string };
+  versions: Versions;
   runner: {
     os: string;
     cpu: string;
@@ -689,7 +761,7 @@ interface TimingsFile {
     hosted: boolean;
   };
   seed: number;
-  rounds: number;
+  design: Record<'cold-start' | 'in-process', Design>;
   results: Array<{
     scenario:
       | 'cold-start'
@@ -700,12 +772,11 @@ interface TimingsFile {
     library: LibraryId;
     variant: Variant;
     toolchain: 'tsc-6';
-    median: number; // ns
-    mad: number; // ns
-    p99?: number; // ns, in-process scenarios only
-    heapBytes?: number; // ready only
-    roundMedians: number[]; // ns, in run order
-    noisy: boolean;
+    batch: number; // N operations per sample; 1 for cold-start
+    stats: Stats; // ns per operation
+    childNow?: Stats; // cold-start only: the child's own performance.now(), ms
+    heapBytes?: number; // ready only, per operation
+    vsNexus?: PairedRatio; // competitor rows only
   }>;
 }
 
@@ -717,17 +788,20 @@ interface BuildFile {
   versions: Versions;
   runner: TimingsFile['runner'];
   seed: number;
-  rounds: number;
+  design: Record<'meridian-8' | 'scale-200', Design>;
   // build[library][variant][toolchain]; only cells with a build step appear.
   build: Record<LibraryId, Partial<Record<Variant, Record<string, BuildCell>>>>;
+  // headline[library]: the headline cell's toolchain, and for competitors the paired ratio
+  // of NexusDI's headline scale-200 build to theirs within each round.
+  headline: Record<
+    LibraryId,
+    { variant: Variant; toolchain: string; vsNexus?: PairedRatio }
+  >;
 }
-interface BuildMeasure {
-  median: number; // ms, wall clock, cold
-  mad: number; // ms
-  rounds: number[]; // ms, in run order
-  noisy: boolean;
+interface BuildMeasure extends Stats {
+  vsNexus?: PairedRatio; // against NexusDI plain, same toolchain, fixture and round
 }
-// The cell's own median and mad are the scale-200 build, the headline fixture.
+// The cell's own figures are the scale-200 build, the headline fixture.
 interface BuildCell extends BuildMeasure {
   outcome: Outcome; // the matrix outcome of this cell
   headline: boolean; // the library's fastest passing documented toolchain
@@ -741,17 +815,22 @@ array files into the same tree, so a path resolves the same way whatever the fil
 A unit test in `benchmarks/src` holds the grammar, and a docs build fails on a path that
 does not resolve.
 
-| Family    | Path                                                                                                  | Example                                      |
-| --------- | ----------------------------------------------------------------------------------------------------- | -------------------------------------------- |
-| `matrix`  | `matrix.<library>.<variant>.<toolchain>.outcome`                                                      | `matrix.tsyringe.decorated.esbuild.outcome`  |
-| `probes`  | `probes.<library>.<variant>.<probe>.detectedAt`                                                       | `probes.awilix.plain.cycle.detectedAt`       |
-| `size`    | `size.<library>.<variant>.<bundler>.<minified\|gzip\|polyfillGzip\|runs>`                             | `size.nexusdi.plain.esbuild.gzip`            |
-| `emit`    | `emit.<library>.<variant>.<emittedBytes\|metadataCalls\|decorateCalls\|importsInSource\|importsKept>` | `emit.inversify.decorated.metadataCalls`     |
-| `timings` | `timings.<library>.<variant>.<scenario>.<median\|mad\|p99\|heapBytes\|noisy>`                         | `timings.nexusdi.plain.cold-start.median`    |
-| `build`   | `build.<library>.<variant>.<toolchain>.<median\|mad\|noisy\|outcome\|headline>`                       | `build.nexusdi.plain.tsc-6.median`           |
-| `build`   | `build.<library>.<variant>.<toolchain>.meridian-8.<median\|mad\|noisy>`                               | `build.nexusdi.plain.esbuild.meridian-8.mad` |
+| Family    | Path                                                                                                  | Example                                           |
+| --------- | ----------------------------------------------------------------------------------------------------- | ------------------------------------------------- |
+| `matrix`  | `matrix.<library>.<variant>.<toolchain>.outcome`                                                      | `matrix.tsyringe.decorated.esbuild.outcome`       |
+| `probes`  | `probes.<library>.<variant>.<probe>.detectedAt`                                                       | `probes.awilix.plain.cycle.detectedAt`            |
+| `size`    | `size.<library>.<variant>.<bundler>.<minified\|gzip\|polyfillGzip\|runs>`                             | `size.nexusdi.plain.esbuild.gzip`                 |
+| `emit`    | `emit.<library>.<variant>.<emittedBytes\|metadataCalls\|decorateCalls\|importsInSource\|importsKept>` | `emit.inversify.decorated.metadataCalls`          |
+| `timings` | `timings.<library>.<variant>.<scenario>.<median\|mad\|p5\|p95\|noisy\|heapBytes>`                     | `timings.nexusdi.plain.cold-start.median`         |
+| `timings` | `timings.<library>.<variant>.<scenario>.vsNexus.<median\|low\|high>`                                  | `timings.tsyringe.decorated.ready.vsNexus.median` |
+| `build`   | `build.<library>.<variant>.<toolchain>.<median\|mad\|p5\|p95\|noisy\|outcome\|headline>`              | `build.nexusdi.plain.tsc-6.median`                |
+| `build`   | `build.<library>.<variant>.<toolchain>.vsNexus.<median\|low\|high>`                                   | `build.inversify.decorated.tsc-6.vsNexus.low`     |
+| `build`   | `build.<library>.<variant>.<toolchain>.meridian-8.<median\|mad\|p5\|p95\|noisy>`                      | `build.nexusdi.plain.esbuild.meridian-8.mad`      |
+| `build`   | `build.headline.<library>.<toolchain\|vsNexus.median\|vsNexus.low\|vsNexus.high>`                     | `build.headline.tsyringe.vsNexus.high`            |
 
-`emit` paths read `size.json`'s `emit` array. A `timings` path reads the file the component's
+The `timings` and `build` paths address the `stats` fields directly: `…ready.median` reads
+`stats.median`. `emit` paths read `size.json`'s `emit` array. A `timings` path reads the
+file the component's
 `run` prop names, or the newest. The other families read the file at the results commit the
 page or post pins, or the committed file.
 
@@ -818,11 +897,17 @@ these statements:
   toolchain cells.
 - What was not tested: timings on Bun, Deno or in a browser; incremental, watch-mode or
   editor type-check time; runtime graphs larger than eight providers; async factories;
-  request scoping semantics beyond "one instance per scope"; memory beyond mitata's heap
-  figure; any framework integration.
+  request scoping semantics beyond "one instance per scope"; memory beyond the heap
+  difference per `ready` operation; any framework integration.
+- How it was sampled: each library-variant in its own worker process; every iteration
+  samples all of them back to back in a balanced rotating order; 100 warm-up iterations
+  excluded and 1,000 measured, 1,000 cold starts, and at least 30 build rounds; medians with
+  MAD, p5 and p95; comparisons as paired ratios within an iteration with a bootstrap 95%
+  interval. A comparison whose interval contains 1.0 is reported as no measured difference.
 - How to rerun: `git clone`, `npm ci`, `npx nx run benchmarks:bench`, and the note that
-  timings differ by machine while ratios between libraries in one run should hold within
-  the published MAD.
+  absolute times differ by machine while the paired ratios should fall inside the published
+  intervals. `results/raw/` holds every sample of a tag run, so the statistics can be
+  recomputed without rerunning.
 - How to correct it: a maintainer or user who finds a setup that departs from a library's
   documentation opens an issue with the "Benchmark setup" template. A correction that is
   accepted is merged, rerun and published within seven days. The comparison pages update
@@ -884,7 +969,8 @@ What this spec reuses:
    (`cold-start`, `ready`, the resolves), because 0.4's sealed container has no register
    phase apart from `Nexus.create` and the others differ in which phase does the work
    (section 4.7).
-4. The heap figure after startup, as mitata's heap statistic for `ready`.
+4. The heap figure after startup, as the heap difference per `ready` operation that the
+   worker records.
 5. `validate-numbers.ts`'s intent, a check that the published numbers are true, turned the
    other way round: the docs and the README read the numbers from the results, and
    `doc-benchmark-figures` and `readme-comparison` fail on any figure typed by hand
@@ -895,8 +981,8 @@ What this spec replaces, and why:
 - Averages of in-process iterations, with every library in one process and
   `reflect-metadata` loaded for all of them. `reflect-metadata` patches the global
   `Reflect`, and V8 specialises code on the shapes it has seen, so one library's run changes
-  the next. The harness runs each library, scenario and round in its own process and
-  reports medians with their MAD.
+  the next. The harness runs each library-variant in its own worker process, interleaves
+  the samples, and reports medians with MAD, percentiles and paired ratios.
 - The executor's in-process import. It runs the benchmark inside the Nx process, next to Nx's
   own work, and it needs a TypeScript loader for `src/benchmark.ts`. Nx also runs one target
   per project, in parallel by default, so two libraries' benchmarks would share the CPU,
@@ -1034,7 +1120,9 @@ The pages follow the docs spec's prose rules and three more:
 ### 5.6 The performance comparison table
 
 `<PerformanceTable />` renders one row per library and these columns, each cell a figure
-from the results with its unit and, for timings, its MAD:
+from the results with its unit. A timing or build cell shows the median, and its tooltip
+holds the MAD, p5, p95 and, on a competitor's row, the paired ratio to NexusDI with its
+interval:
 
 | Column                 | Source                                                                             |
 | ---------------------- | ---------------------------------------------------------------------------------- |
@@ -1057,8 +1145,9 @@ emit, timings and builds. The comparison pages, the post and the README table li
 
 The pages and the post explain the measured differences with the mechanisms below. A
 benefit is rendered only with its figures, and `<Benefits />` renders a row only when the
-results support it: for a count or a byte figure, NexusDI's value is lower; for a timing,
-NexusDI's median is lower by more than the two MADs added together. Where a row does not
+results support it: for a count or a byte figure, NexusDI's value is lower; for a timing
+or a build time, the paired ratio's 95% interval (`vsNexus.low` to `vsNexus.high`) lies
+entirely below 1.0. The benefit sentence states the ratio and its interval. Where a row does not
 hold, the component shows both figures under the neutral heading "Measured" with no benefit
 sentence. A result that favours the competitor is shown the same way the others are.
 
@@ -1191,15 +1280,16 @@ section sets them for every benchmark figure.
   3:1 against its surface. The validator's lightness and chroma checks fail by design,
   because the context colour is neutral, and they apply to categorical palettes, which
   this pair is not. `meridian-ui`'s token test runs the validator on both pairs.
-- Marks. Bars 4px rounded at the data end, a 2px gap between bars, a MAD whisker in
-  `text-secondary` on timing bars, the value as a direct label at the bar's end in text
+- Marks. Bars 4px rounded at the data end, a 2px gap between bars, a p5 to p95 whisker in
+  `text-secondary` on timing and build bars, the value as a direct label at the bar's end in text
   tokens, and a `noisy` label where the flag is set.
 - The toolchain grid is a table: rows are library and variant, columns are toolchain cells.
   A cell shows an icon and a text label (`pass`, `compile error`, `runtime error`,
   `wrong instance`, `n/a`), and `status-pass` or `status-fail` colours the icon only. A cell
   with a `message` opens it on focus or hover.
-- Interaction. Each bar shows a tooltip on hover and focus with the median, the MAD, the
-  p99 and the round count. Each chart has a `<details>` table view rendered on the server,
+- Interaction. Each bar shows a tooltip on hover and focus with the median, the MAD, p5,
+  p95, the iteration count and, on a competitor's bar, the paired ratio to NexusDI with its
+  95% interval. Each chart has a `<details>` table view rendered on the server,
   and a caption naming the scenario, the runner's CPU and the results file.
 - Rendering. The charts are server-rendered SVG from `generated/benchmarks.json`, in
   `apps/docs/components/benchmarks/`, with no chart library, as the graph view is drawn
@@ -1473,8 +1563,10 @@ After the launch:
   in its content backlog.
 - A local `@nx/plugin` generator that scaffolds a library's fixtures, probes, snippets and
   `libraries.json` entry, when a sixth library is added (section 4.13).
-- A dedicated runner or CodSpeed, if the owner wants timings to gate pull requests.
-  CodSpeed supports tinybench and Vitest, and it does not support mitata.
+- Regression gating on pull requests with CodSpeed or `vitest bench`, for NexusDI's own
+  performance. CodSpeed supports tinybench and Vitest benches and measures with CPU
+  simulation, which suits a pull-request gate. The launch harness compares libraries and
+  gates nothing.
 
 ## 12. Amendments to the docs spec
 
@@ -1509,18 +1601,13 @@ After the launch:
    "Catch DI wiring mistakes before your app starts: one graph, five containers, ten
    toolchains", and the owner picks among the three.
 3. The competitor maintainers are invited at T−7 (section 10.1).
+4. The runner and the method: GitHub-hosted `ubuntu-24.04`, with the machine recorded, and
+   the interleaved isolated sampler of section 4.7, which replaces mitata. Pull-request
+   regression gating is a follow-up (section 11).
 
 ### 13.2 Open
 
-1. The benchmark tool and the runner. The owner wants to discuss both, and the spec keeps
-   its current method until then: mitata 1.0.34 on GitHub-hosted `ubuntu-24.04`, with
-   interleaved rounds, medians with MAD and the `noisy` flag. The facts for the discussion:
-   mitata's last release was 2025-02-04 and its repository was last pushed 2025-02-17;
-   CodSpeed supports tinybench and Vitest and does not support mitata; a hosted image ran on
-   two CPU models across ten runs in CodSpeed's report. Recommendation as written: keep
-   mitata and the hosted runner for 0.4.0, because the pages compare libraries within one
-   run, and revisit if timings should gate pull requests.
-2. `@nexusdi/express`. The brief lists it for 0.4, the marketing plan says to skip Express,
+1. `@nexusdi/express`. The brief lists it for 0.4, the marketing plan says to skip Express,
    and Express's middleware page accepts no new entries (expressjs/expressjs.com#2375,
    closed June 2026). Recommendation: decide in the integrations spec; this spec lists no
    Express page.
