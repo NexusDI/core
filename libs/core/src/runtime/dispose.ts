@@ -89,8 +89,10 @@ export interface DisposeReport {
 
 /**
  * Disposes the entries one at a time, last first, and empties the list. A
- * throwing disposer does not stop the rest. `onDisposed` hears about each
- * entry whose disposer ran, in disposal order.
+ * throwing disposer does not stop the rest, and neither does a throwing
+ * `onDisposed`: its error joins the disposer errors instead, so a trace
+ * callback error still lets every remaining entry dispose. `onDisposed`
+ * hears about each entry whose disposer ran, in disposal order.
  */
 export async function disposeInReverse(
   entries: OwnedEntry[],
@@ -110,7 +112,11 @@ export async function disposeInReverse(
     ownership.markDisposed(entry.instance);
     if (ran) {
       disposed++;
-      onDisposed?.(entry);
+      try {
+        onDisposed?.(entry);
+      } catch (error) {
+        errors.push(error);
+      }
     }
   }
   return { disposed, errors };

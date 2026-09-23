@@ -11,7 +11,7 @@ import { ProviderError } from '../errors/index.js';
 import { Nexus } from './nexus.js';
 import { createRootState } from './state.js';
 import { startBlueprint } from './startup.js';
-import { Tracer } from './trace.js';
+import { Tracer, type TraceEvent } from './trace.js';
 
 function disposable(
   log: string[],
@@ -102,6 +102,45 @@ describe('Nexus', () => {
       });
       await rejected(Nexus.create(Root));
       expect(log).toEqual(['dispose computer', 'dispose reactor']);
+    });
+
+    it('emits dispose:instance, with scope null, for what a failed startup disposed', async () => {
+      class Reactor {
+        [Symbol.dispose]() {}
+      }
+      class Computer {
+        constructor(readonly reactor: Reactor) {}
+        [Symbol.dispose]() {}
+      }
+      class Bridge {
+        constructor(readonly computer: Computer) {
+          throw new Error('bridge offline');
+        }
+      }
+      const Root = defineModule({
+        name: 'Root',
+        providers: [
+          Reactor,
+          provide(Computer, { deps: [Reactor] }),
+          provide(Bridge, { deps: [Computer] }),
+        ],
+      });
+      const events: TraceEvent[] = [];
+      await rejected(
+        Nexus.create(Root, { trace: (event) => events.push(event) }),
+      );
+      expect(
+        events
+          .filter((e) => e.type === 'dispose:instance')
+          .map((e) =>
+            e.type === 'dispose:instance'
+              ? { token: e.token, scope: e.scope }
+              : null,
+          ),
+      ).toEqual([
+        { token: 'Computer', scope: null },
+        { token: 'Reactor', scope: null },
+      ]);
     });
 
     it('collects every disposer error in disposalErrors and keeps disposing', async () => {

@@ -140,6 +140,40 @@ describe('Nexus', () => {
       expect(log).toEqual(['log closed']);
     });
 
+    it('emits dispose:instance, with its scope id, for what a failed createScope disposed', async () => {
+      const events: TraceEvent[] = [];
+      const LOG = new Token<object>('Log');
+      const BROKEN = new Token<string>('Broken');
+      const ship = await Nexus.create(
+        defineModule({
+          name: 'Root',
+          providers: [
+            provide(LOG, {
+              useFactory: () => ({ [Symbol.dispose]() {} }),
+              deps: [],
+              lifetime: 'scoped',
+            }),
+            provide(BROKEN, {
+              useFactory: () => Promise.reject(new Error('jammed')),
+              deps: [LOG],
+              lifetime: 'scoped',
+            }),
+          ],
+        }),
+        { trace: (event) => events.push(event) },
+      );
+      await rejected(ship.createScope());
+      expect(
+        events
+          .filter((e) => e.type === 'dispose:instance')
+          .map((e) =>
+            e.type === 'dispose:instance'
+              ? { token: e.token, scope: e.scope }
+              : null,
+          ),
+      ).toEqual([{ token: 'Log', scope: 's0' }]);
+    });
+
     it('rejects NEXUS_NOT_READY for a lazy thunk to a scoped factory its own level has not reached yet', async () => {
       let lateCalls = 0;
       const LATE = new Token<string>('Late');

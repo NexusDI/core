@@ -44,23 +44,30 @@ export function assertScopeOpen(scope: ScopeState): void {
 
 export function disposeScope(scope: ScopeState): Promise<void> {
   scope.disposal ??= (async () => {
-    scope.root.scopes.delete(scope);
     const tracer = scope.root.tracer;
     const start = tracer.now();
-    const report = await disposeInReverse(
-      scope.owned,
-      scope.root.ownership,
-      reportDisposal(tracer, scope.scopeId),
-    );
-    tracer.emit(() => ({
-      type: 'scope:dispose',
-      scope: scope.scopeId,
-      disposed: report.disposed,
-      errors: report.errors.length,
-      durationMs: tracer.now() - start,
-    }));
-    const chained = chainErrors(report.errors);
-    if (chained !== undefined) throw chained.error;
+    try {
+      const report = await disposeInReverse(
+        scope.owned,
+        scope.root.ownership,
+        reportDisposal(tracer, scope.scopeId),
+      );
+      tracer.emit(() => ({
+        type: 'scope:dispose',
+        scope: scope.scopeId,
+        disposed: report.disposed,
+        errors: report.errors.length,
+        durationMs: tracer.now() - start,
+      }));
+      const chained = chainErrors(report.errors);
+      if (chained !== undefined) throw chained.error;
+    } finally {
+      // Stays in root.scopes until disposal settles, so a root disposal that
+      // starts while this scope is already closing (e.g. a signal arrives
+      // during an `await using` exit) finds it and awaits this same promise
+      // instead of disposing root instances the scope's disposers still need.
+      scope.root.scopes.delete(scope);
+    }
   })();
   return scope.disposal;
 }

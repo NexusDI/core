@@ -80,6 +80,24 @@ describe('disposeInReverse', () => {
     expect(report.errors).toEqual([boom]);
   });
 
+  it('continues after onDisposed throws and reports the error', async () => {
+    const boom = new Error('trace exploded');
+    const seen: string[] = [];
+    const report = await disposeInReverse(
+      [
+        entry({ [Symbol.dispose]() {} }, 'a'),
+        entry({ [Symbol.dispose]() {} }, 'b'),
+      ],
+      new Ownership(),
+      (e) => {
+        seen.push(e.token);
+        if (e.token === 'b') throw boom;
+      },
+    );
+    expect(seen).toEqual(['b', 'a']);
+    expect(report).toEqual({ disposed: 2, errors: [boom] });
+  });
+
   it('reports each disposed entry in disposal order and skips objects without a disposer', async () => {
     const seen: string[] = [];
     await disposeInReverse(

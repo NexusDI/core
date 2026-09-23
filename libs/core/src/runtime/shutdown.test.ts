@@ -1,6 +1,7 @@
 import { describe, expect, it, vi } from 'vitest';
 
 import { rejected, thrown } from '../../test-support/catch.js';
+import { deferred, flush } from '../../test-support/deferred.js';
 import { defineModule } from '../definitions/define-module.js';
 import { lazy } from '../definitions/modifiers.js';
 import { provide } from '../definitions/provide.js';
@@ -185,6 +186,86 @@ describe('Nexus', () => {
       await ship.createScope();
       await ship[Symbol.asyncDispose]();
       expect(log).toEqual(['scope 1', 'scope 0', 'root']);
+    });
+
+    it('awaits a scope that is already closing before disposing root instances', async () => {
+      const log: string[] = [];
+      const gate = deferred();
+      const SCOPED = new Token<object>('Scoped');
+      class Reactor {
+        [Symbol.dispose]() {
+          log.push('reactor');
+        }
+      }
+      const ship = await Nexus.create(
+        defineModule({
+          name: 'Root',
+          providers: [
+            Reactor,
+            provide(SCOPED, {
+              useFactory: () => ({
+                async [Symbol.asyncDispose]() {
+                  await gate.promise;
+                  log.push('scoped');
+                },
+              }),
+              deps: [],
+              lifetime: 'scoped',
+            }),
+          ],
+        }),
+      );
+      const shuttle = await ship.createScope();
+      shuttle.get(SCOPED);
+
+      // The scope's own close starts first, and blocks on the gate. Root
+      // disposal starts while that close is still in flight.
+      const closingScope = shuttle[Symbol.asyncDispose]();
+      const closingRoot = ship[Symbol.asyncDispose]();
+      await flush();
+      expect(log).toEqual([]);
+
+      gate.resolve();
+      await Promise.all([closingScope, closingRoot]);
+      expect(log).toEqual(['scoped', 'reactor']);
+    });
+
+    it('keeps disposing and still emits dispose when the trace callback throws for a dispose:instance event', async () => {
+      const log: string[] = [];
+      class Reactor {
+        [Symbol.dispose]() {
+          log.push('reactor');
+        }
+      }
+      class Computer {
+        constructor(readonly reactor: Reactor) {}
+        [Symbol.dispose]() {
+          log.push('computer');
+        }
+      }
+      const boom = new Error('trace exploded');
+      const events: TraceEvent[] = [];
+      const ship = await Nexus.create(
+        defineModule({
+          name: 'Root',
+          providers: [Reactor, provide(Computer, { deps: [Reactor] })],
+        }),
+        {
+          trace: (event) => {
+            events.push(event);
+            if (event.type === 'dispose:instance' && event.token === 'Computer')
+              throw boom;
+          },
+        },
+      );
+      const error = await rejected(ship[Symbol.asyncDispose]());
+      expect(log).toEqual(['computer', 'reactor']);
+      expect(error).toBe(boom);
+      expect(events.at(-1)).toMatchObject({
+        type: 'dispose',
+        disposed: 2,
+        errors: 1,
+      });
     });
 
     it('lets a disposer reach a live dependency through a thunk and throws NEXUS_DISPOSED for a disposed one', async () => {
