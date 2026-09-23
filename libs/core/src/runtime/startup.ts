@@ -115,9 +115,10 @@ async function buildSingleton(
  * provider in this one has settled. It checks `root.disposing` after each
  * build level and after each onInit level, so a disposal that starts
  * mid-run stops the next level from starting. On failure it forgets what
- * it built and disposes it one at a time in reverse creation order. It
- * then rethrows a `DisposedError` unchanged and wraps any other failure in
- * a `ProviderError` (NEXUS_PROVIDER_FAILED).
+ * it built, clears the async flags it recorded, and disposes what it built
+ * one at a time in reverse creation order. It then rethrows a
+ * `DisposedError` unchanged and wraps any other failure in a
+ * `ProviderError` (NEXUS_PROVIDER_FAILED).
  */
 export async function startBlueprint(
   root: RootState,
@@ -140,6 +141,13 @@ export async function startBlueprint(
     if (root.initEnabled) await runInit(root, plan.bp, plan.isNew);
   } catch (error) {
     for (const id of touched) root.slots.abandon(id);
+    // walk.ts assigns provider ids purely by position in the walk, and each
+    // compile call redoes the walk from scratch. A failed run's ids were
+    // never committed to root.blueprint, so the next load's compile can
+    // reassign one of them to an unrelated provider. touched holds only the
+    // ids this run introduced, so clearing their asyncFlags entries here
+    // never removes a flag a committed provider owns.
+    for (const id of touched) root.asyncFlags.delete(id);
     for (const value of registered) root.ownership.unregisterValue(value);
     const { errors } = await disposeInReverse(
       root.owned.splice(mark),

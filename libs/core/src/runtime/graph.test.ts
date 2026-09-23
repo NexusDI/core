@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest';
 
+import { rejected } from '../../test-support/catch.js';
 import { defineModule } from '../definitions/define-module.js';
 import { lazy } from '../definitions/modifiers.js';
 import { provide } from '../definitions/provide.js';
@@ -156,6 +157,43 @@ describe('Nexus', () => {
         'ReactorCore',
         'REQUEST',
       ]);
+    });
+
+    it('reports null for a scoped factory that reused a failed load provider id, not the stale flag it left behind', async () => {
+      class Boom {
+        constructor() {
+          throw new Error('boom');
+        }
+      }
+      const SURVEY = new Token<string>('Survey');
+      const ship = await Nexus.create(defineModule({ name: 'Root' }));
+
+      const Failing = defineModule({
+        name: 'Failing',
+        providers: [
+          provide(SURVEY, { useFactory: async () => 'x', deps: [] }),
+          Boom,
+        ],
+      });
+      expect(await rejected(ship.load(Failing))).toMatchObject({
+        code: 'NEXUS_PROVIDER_FAILED',
+      });
+
+      const ORDERS = new Token<string>('Orders');
+      const Relief = defineModule({
+        name: 'Relief',
+        providers: [
+          provide(ORDERS, {
+            useFactory: () => 'y',
+            deps: [],
+            lifetime: 'scoped',
+          }),
+        ],
+      });
+      await ship.load(Relief);
+
+      const orders = ship.graph().providers.find((p) => p.token === 'Orders');
+      expect(orders?.async).toBeNull();
     });
   });
 });
