@@ -136,7 +136,7 @@ const di = nexus(ship, {
 
 di.middleware; // or di.plugin for Fastify
 di.inject(
-  { charts: NAV_CHARTS, log: FlightLog },
+  { charts: NAV_CHARTS, log: FLIGHT_LOG },
   ({ charts, log }, ...frameworkArgs) => {},
 );
 di.scope(frameworkRequest); // the request's Scope, for code outside inject
@@ -337,37 +337,159 @@ So items 2 and 3 live in each adapter at `src/internal/`. The two copies of
 `tools/repo-checks/src/adapter-shared-copies.test.ts`, fails when they differ. The fallow
 duplicates gate ignores exactly those files, through `.fallowrc.jsonc`.
 
+### 3.8 The example app
+
+Every sample in this spec, in the READMEs and in the guides is interface-first. A handler
+injects a `Token<I>` whose type is an interface, and a module binds the token to a class
+with `useClass`. No handler, test or `inject` record names a concrete class. The samples
+share one module, the bridge API:
+
+```ts
+// bridge/contracts.ts
+import { Token } from '@nexusdi/core';
+
+export interface INavCharts {
+  plot(to: string): Course;
+}
+export const NAV_CHARTS = new Token<INavCharts>('NavCharts');
+
+export interface IFlightLog {
+  record(entry: string): void;
+  entries(): readonly string[];
+}
+export const FLIGHT_LOG = new Token<IFlightLog>('FlightLog');
+```
+
+```ts
+// tactical.module.ts, the NAV_CHARTS provider
+provide(NAV_CHARTS, { useClass: StarCharts, deps: [SubspaceLink] }),
+```
+
+```ts
+// bridge/bridge-api.module.ts
+import { defineModule, provide } from '@nexusdi/core';
+import { FLIGHT_LOG } from './contracts';
+import { ShuttleFlightLog } from './shuttle-flight-log';
+
+export const BridgeApi = defineModule({
+  name: 'BridgeApi',
+  imports: [Tactical], // for MISSION
+  providers: [
+    provide(FLIGHT_LOG, {
+      useClass: ShuttleFlightLog,
+      deps: [MISSION],
+      lifetime: 'scoped',
+    }),
+  ],
+  exports: [FLIGHT_LOG],
+});
+
+export const Meridian = defineModule({
+  name: 'Meridian',
+  imports: [Tactical, BridgeApi],
+});
+```
+
+Core spec §3.4 builds `NAV_CHARTS` with an async factory. The interface-first samples
+bind it in `Tactical` with `useClass: StarCharts`, where `StarCharts implements INavCharts`
+and downloads its charts in `onInit`. `ShuttleFlightLog implements IFlightLog`. Both
+classes are imported only by the module that binds them. `FLIGHT_LOG` is scoped, so each
+request gets its own log, built from that request's `MISSION`.
+
+Each server adapter's sample exports `createBridge(ship: Nexus)`, which builds the app
+from a container. The server entry passes the production container, and a test passes a
+testing container with overrides. The test doubles implement the same interfaces:
+
+```ts
+// test/doubles.ts
+import type { IFlightLog, INavCharts } from '../bridge/contracts';
+
+export const fakeCharts: INavCharts = {
+  plot: (to) => ({ to, heading: 42 }),
+};
+
+export class MemoryFlightLog implements IFlightLog {
+  readonly #entries: string[] = [];
+  record(entry: string) {
+    this.#entries.push(entry);
+  }
+  entries() {
+    return this.#entries;
+  }
+}
+```
+
+```ts
+// test/fixtures.ts
+import { nexusFixtures } from '@nexusdi/vitest';
+import { test as base } from 'vitest';
+import { FLIGHT_LOG, NAV_CHARTS } from '../bridge/contracts';
+import { Meridian } from '../bridge/bridge-api.module';
+import { fakeCharts, MemoryFlightLog } from './doubles';
+
+export const test = base.extend(
+  nexusFixtures(Meridian, {
+    setup: (builder) =>
+      builder
+        .override(NAV_CHARTS, { useValue: fakeCharts })
+        .override(FLIGHT_LOG, { useClass: MemoryFlightLog, deps: [] }),
+  }),
+);
+```
+
+`override(FLIGHT_LOG, ...)` keeps the provider's `scoped` lifetime (core spec §11), so the
+fake log is still one per request. Each adapter section ends with a route test built on
+these fixtures. Section 12.2 adds these names to the docs spec's vocabulary.
+
 ## 4. `@nexusdi/hono`
 
 ### 4.1 API
 
 ```ts
+// bridge/hono.ts
+import type { Nexus } from '@nexusdi/core';
+import { nexus } from '@nexusdi/hono';
+import { Hono } from 'hono';
+import { FLIGHT_LOG, NAV_CHARTS } from './contracts';
+
+export function createBridge(ship: Nexus) {
+  const di = nexus(ship, {
+    request: (c) => ({
+      mission: {
+        id: c.req.header('x-mission-id') ?? 'survey-7',
+        target: 'Kepler-442b',
+      },
+    }),
+  });
+
+  return new Hono().use(di.middleware).get(
+    '/course/:to',
+    di.inject({ charts: NAV_CHARTS, log: FLIGHT_LOG }, ({ charts, log }, c) => {
+      log.record(`plotting ${c.req.param('to')}`);
+      return c.json(charts.plot(c.req.param('to')));
+    }),
+  );
+}
+```
+
+```ts
+// server.ts
 import { Nexus } from '@nexusdi/core';
 import { nodeScopeContext } from '@nexusdi/core/node';
-import { nexus, type NexusEnv } from '@nexusdi/hono';
-import { Hono } from 'hono';
+import { serve } from '@hono/node-server';
+import { once } from 'node:events';
 
 await using ship = await Nexus.create(Meridian, {
   scopeContext: nodeScopeContext(),
 });
-
-const di = nexus(ship, {
-  request: (c) => ({
-    mission: {
-      id: c.req.header('x-mission-id') ?? 'survey-7',
-      target: 'Kepler-442b',
-    },
-  }),
-});
-
-export const bridge = new Hono().use(di.middleware).get(
-  '/course/:to',
-  di.inject({ charts: NAV_CHARTS, log: FlightLog }, ({ charts, log }, c) => {
-    log.record(`plotting ${c.req.param('to')}`);
-    return c.json(charts.plot(c.req.param('to')));
-  }),
-);
+const server = serve(createBridge(ship));
+process.once('SIGTERM', () => server.close());
+await once(server, 'close'); // the container is disposed after the server stops
 ```
+
+The final `await once(server, 'close')` keeps the module's `await using` block open for
+the server's lifetime. Without it, the top-level block would end, and dispose the
+container, as soon as `serve` returns.
 
 Exports:
 
@@ -443,7 +565,7 @@ extends core's node-only rule to `libs/hono/src`. Supported: Node 22 and later t
   `trace` callback that records `scope:create` and `scope:dispose`:
   - a JSON response disposes the scope after the body is sent;
   - a `streamSSE` response keeps the scope open until the stream closes, asserted with a
-    scoped `FlightLog` that the stream reads after `next()` returned;
+    scoped `FLIGHT_LOG` that the stream reads after `next()` returned;
   - a client abort mid-stream disposes the scope;
   - a handler that throws disposes the scope and returns 500;
   - 50 concurrent requests produce 50 `scope:create` and 50 `scope:dispose` events and
@@ -452,38 +574,93 @@ extends core's node-only rule to `libs/hono/src`. Supported: Node 22 and later t
     service call.
 - The runtime job runs the same integration file on Bun, Deno and workerd (section 11.3).
 
+### 4.7 A route test with overrides
+
+The README and the guide show a route test on the fixtures of section 3.8. The test
+reaches the route through `app.request()`, so it opens no port:
+
+```ts
+// bridge/hono.test.ts
+import { expect } from 'vitest';
+import { test } from '../test/fixtures';
+import { createBridge } from './hono';
+
+test('plots the course with the fake charts', async ({ nexus }) => {
+  const res = await createBridge(nexus).request('/course/Kepler-442b');
+  expect(await res.json()).toEqual({ to: 'Kepler-442b', heading: 42 });
+});
+```
+
 ## 5. `@nexusdi/express`
 
 ### 5.1 API
 
 ```ts
-import { Nexus } from '@nexusdi/core';
+// bridge/express.ts
+import type { Nexus } from '@nexusdi/core';
 import { nexus } from '@nexusdi/express';
 import express from 'express';
+import { FLIGHT_LOG, NAV_CHARTS } from './contracts';
+
+export function createBridge(ship: Nexus) {
+  const di = nexus(ship, {
+    request: (req) => ({
+      mission: {
+        id: req.get('x-mission-id') ?? 'survey-7',
+        target: 'Kepler-442b',
+      },
+    }),
+  });
+
+  const bridge = express();
+  bridge.use(di.middleware);
+  bridge.get(
+    '/course/:to',
+    di.inject(
+      { charts: NAV_CHARTS, log: FLIGHT_LOG },
+      ({ charts, log }, req, res) => {
+        log.record(`plotting ${req.params.to}`);
+        res.json(charts.plot(req.params.to));
+      },
+    ),
+  );
+  return bridge;
+}
+```
+
+```ts
+// server.ts
+import { Nexus } from '@nexusdi/core';
+import { once } from 'node:events';
 
 await using ship = await Nexus.create(Meridian);
+const server = createBridge(ship).listen(3000);
+process.once('SIGTERM', () => server.close());
+await once(server, 'close');
+```
 
-const di = nexus(ship, {
-  request: (req) => ({
-    mission: {
-      id: req.get('x-mission-id') ?? 'survey-7',
-      target: 'Kepler-442b',
-    },
-  }),
+The route test on the fixtures of section 3.8 listens on port 0, because Express has no
+in-process request API:
+
+```ts
+// bridge/express.test.ts
+import { once } from 'node:events';
+import type { AddressInfo } from 'node:net';
+import { expect } from 'vitest';
+import { test } from '../test/fixtures';
+import { createBridge } from './express';
+
+test('plots the course with the fake charts', async ({ nexus }) => {
+  const server = createBridge(nexus).listen(0);
+  await once(server, 'listening');
+  const { port } = server.address() as AddressInfo;
+  try {
+    const res = await fetch(`http://127.0.0.1:${port}/course/Kepler-442b`);
+    expect(await res.json()).toEqual({ to: 'Kepler-442b', heading: 42 });
+  } finally {
+    server.close();
+  }
 });
-
-const bridge = express();
-bridge.use(di.middleware);
-bridge.get(
-  '/course/:to',
-  di.inject(
-    { charts: NAV_CHARTS, log: FlightLog },
-    ({ charts, log }, req, res) => {
-      log.record(`plotting ${req.params.to}`);
-      res.json(charts.plot(req.params.to));
-    },
-  ),
-);
 ```
 
 Exports: `nexus(ship, options): NexusExpress`
@@ -566,31 +743,65 @@ declarations import from it and a JavaScript user needs none.
 ### 6.1 API
 
 ```ts
-import { Nexus } from '@nexusdi/core';
+// bridge/fastify.ts
+import type { Nexus } from '@nexusdi/core';
 import { nexus } from '@nexusdi/fastify';
 import Fastify from 'fastify';
+import { FLIGHT_LOG, NAV_CHARTS } from './contracts';
+
+export async function createBridge(ship: Nexus) {
+  const di = nexus(ship, {
+    request: (req) => ({
+      mission: {
+        id: String(req.headers['x-mission-id'] ?? 'survey-7'),
+        target: 'Kepler-442b',
+      },
+    }),
+  });
+
+  const bridge = Fastify({ logger: true });
+  await bridge.register(di.plugin);
+  bridge.get<{ Params: { to: string } }>(
+    '/course/:to',
+    di.inject(
+      { charts: NAV_CHARTS, log: FLIGHT_LOG },
+      ({ charts, log }, req) => {
+        log.record(`plotting ${req.params.to}`);
+        return charts.plot(req.params.to);
+      },
+    ),
+  );
+  return bridge;
+}
+```
+
+```ts
+// server.ts
+import { Nexus } from '@nexusdi/core';
 
 const ship = await Nexus.create(Meridian);
-const di = nexus(ship, {
-  request: (req) => ({
-    mission: {
-      id: String(req.headers['x-mission-id'] ?? 'survey-7'),
-      target: 'Kepler-442b',
-    },
-  }),
-});
-
-const bridge = Fastify({ logger: true });
+const bridge = await createBridge(ship);
 bridge.addHook('onClose', () => ship[Symbol.asyncDispose]());
-await bridge.register(di.plugin);
+await bridge.listen({ port: 3000 });
+process.once('SIGTERM', () => bridge.close());
+```
 
-bridge.get<{ Params: { to: string } }>(
-  '/course/:to',
-  di.inject({ charts: NAV_CHARTS, log: FlightLog }, ({ charts, log }, req) => {
-    log.record(`plotting ${req.params.to}`);
-    return charts.plot(req.params.to);
-  }),
-);
+The server entry disposes the container in `onClose`, which Fastify runs after in-flight
+requests drain. The route test on the fixtures of section 3.8 uses `inject()`, so it
+opens no port, and the `nexus` fixture disposes the testing container:
+
+```ts
+// bridge/fastify.test.ts
+import { expect } from 'vitest';
+import { test } from '../test/fixtures';
+import { createBridge } from './fastify';
+
+test('plots the course with the fake charts', async ({ nexus }) => {
+  const bridge = await createBridge(nexus);
+  const res = await bridge.inject({ url: '/course/Kepler-442b' });
+  expect(res.json()).toEqual({ to: 'Kepler-442b', heading: 42 });
+  await bridge.close();
+});
 ```
 
 Exports: `nexus(ship, options): NexusFastify`
@@ -713,16 +924,61 @@ export const middleware: Route.MiddlewareFunction[] = [di.middleware];
 
 ```ts
 // app/routes/course.tsx
+import { FLIGHT_LOG, NAV_CHARTS } from '../bridge/contracts';
 import { di } from '../nexus.server';
 
 export const loader = di.inject(
-  { charts: NAV_CHARTS, log: FlightLog },
+  { charts: NAV_CHARTS, log: FLIGHT_LOG },
   ({ charts, log }, { params }: Route.LoaderArgs) => {
     log.record(`plotting ${params.to}`);
     return { course: charts.plot(params.to) };
   },
 );
 ```
+
+A loader test on the fixtures of section 3.8 passes the `nexusScope` fixture through
+`NEXUS_SCOPE`, so the loader reads the fakes from a scope of the testing container:
+
+```ts
+// app/routes/course.test.ts
+import { createTestingContainer } from '@nexusdi/core/testing';
+import { NEXUS_SCOPE, nexus } from '@nexusdi/react-router';
+import { RouterContextProvider } from 'react-router';
+import { expect, vi } from 'vitest';
+import { test } from '../../test/fixtures';
+import { FLIGHT_LOG } from '../bridge/contracts';
+import { Meridian } from '../bridge/bridge-api.module';
+import { loader } from './course';
+
+// nexus.server.ts builds the production container at import. The loader only needs a
+// `di` for the startup check, so the test swaps in one built on a testing container.
+vi.mock('../nexus.server', async () => ({
+  di: nexus(await createTestingContainer(Meridian).create({ onInit: false })),
+}));
+
+test.override({
+  nexusRequest: { mission: { id: 'survey-7', target: 'Kepler-442b' } },
+});
+
+test('plots the course with the fake charts', async ({ nexusScope }) => {
+  const context = new RouterContextProvider(
+    new Map([[NEXUS_SCOPE, nexusScope]]),
+  );
+  const data = await loader({
+    params: { to: 'Kepler-442b' },
+    context,
+    request: new Request('http://bridge/course/Kepler-442b'),
+  } as Route.LoaderArgs);
+  expect(data.course).toEqual({ to: 'Kepler-442b', heading: 42 });
+  expect(nexusScope.get(FLIGHT_LOG).entries()).toEqual([
+    'plotting Kepler-442b',
+  ]);
+});
+```
+
+The loader resolves from the scope in `context`, which comes from the fixture's
+container with the fakes. The mocked `di` only runs `validate` when the route module
+loads.
 
 Exports:
 
@@ -798,7 +1054,7 @@ React Router 8 itself requires Node 22.22, which npm reports from its own manife
 - Type tests: `inject` over `Route.LoaderArgs`-shaped args.
 - Integration (`src/react-router.e2e.test.ts`): a fixture app under `src/__fixtures__/app`
   built once with `react-router build` and served by `react-router-serve` on port 0. A
-  route with a deferred `<Await>` value that reads a scoped `FlightLog` after a delay
+  route with a deferred `<Await>` value that reads the scoped `FLIGHT_LOG` after a delay
   asserts the scope stays open until the stream ends. It also covers an aborted document
   request, a loader that throws, `.data` requests, 50 concurrent requests counted through
   `trace`, and the client-bundle check of section 7.2.
@@ -810,41 +1066,52 @@ React Router 8 itself requires Node 22.22, which npm reports from its own manife
 
 ### 8.1 API
 
-```ts
-// test/fixtures.ts
-import { nexusFixtures } from '@nexusdi/vitest';
-import { test as base } from 'vitest';
-
-export const test = base.extend(
-  nexusFixtures(Meridian, {
-    setup: (builder) =>
-      builder
-        .override(NAV_CHARTS, { useValue: fakeCharts })
-        .override(ReactorCore, { useClass: FakeReactor }),
-    create: { onInit: false },
-  }),
-);
-```
+`test/fixtures.ts` in section 3.8 is the whole setup: `nexusFixtures(Meridian, { setup })`
+passed to `test.extend`, with `NAV_CHARTS` and `FLIGHT_LOG` overridden. Tests then read
+interface tokens from the fixtures, and a suite swaps an override with `test.override`:
 
 ```ts
-// bridge.test.ts
+// bridge/flight-log.test.ts
 import { describe, expect } from 'vitest';
-import { test } from './fixtures';
+import { MemoryFlightLog } from '../test/doubles';
+import { test } from '../test/fixtures';
+import { FLIGHT_LOG, NAV_CHARTS, type INavCharts } from './contracts';
+import { createBridge } from './hono';
 
-test('plots a course with the fake charts', ({ nexus }) => {
-  expect(nexus.get(Bridge).charts).toBe(fakeCharts);
-});
+const survey = { mission: { id: 'survey-7', target: 'Kepler-442b' } };
 
 describe('on a survey mission', () => {
+  test.override({ nexusRequest: survey });
+
+  test('gives each scope its own flight log', async ({ nexus, nexusScope }) => {
+    nexusScope.get(FLIGHT_LOG).record('launch');
+    await using other = await nexus.createScope({ request: survey });
+    expect(other.get(FLIGHT_LOG).entries()).toEqual([]);
+  });
+});
+
+describe('when the charts cannot plot', () => {
+  const unplottable: INavCharts = {
+    plot: () => {
+      throw new Error('sector not charted');
+    },
+  };
   test.override({
-    nexusRequest: { mission: { id: 'survey-7', target: 'Kepler-442b' } },
+    nexusSetup: (builder) =>
+      builder
+        .override(NAV_CHARTS, { useValue: unplottable })
+        .override(FLIGHT_LOG, { useClass: MemoryFlightLog, deps: [] }),
   });
 
-  test('reads the mission from the scope', ({ nexusScope }) => {
-    expect(nexusScope.get(MISSION).id).toBe('survey-7');
+  test('answers 500 for an uncharted sector', async ({ nexus }) => {
+    const res = await createBridge(nexus).request('/course/Kepler-442b');
+    expect(res.status).toBe(500);
   });
 });
 ```
+
+A `nexusSetup` override replaces the file's `setup` for that suite, so it repeats the
+overrides it still wants. `createBridge` is the Hono app of section 4.1.
 
 Fixtures, all test-scoped and lazy:
 
@@ -1215,8 +1482,19 @@ startup code carries `no-run`.
 - `examples/meridian` adds `hono`, `@hono/node-server`, `express`, `fastify` and
   `react-router` as dev dependencies at the workspace versions.
 
-The docs spec's §7.1 vocabulary gains one row: "A server app: the bridge API, with the
-route `GET /course/:to` and the header `x-mission-id`". Every guide uses it.
+The docs spec's §7.1 vocabulary gains two rows, and every guide uses them:
+
+- "A server app: the bridge API (`BridgeApi`), built by `createBridge(ship)`, with the
+  route `GET /course/:to` and the header `x-mission-id`."
+- "Interface-first contracts: `INavCharts` behind `NAV_CHARTS`, bound in `Tactical` with
+  `useClass: StarCharts`; `IFlightLog` behind the scoped `FLIGHT_LOG`, bound in
+  `BridgeApi` with `useClass: ShuttleFlightLog`; the doubles `fakeCharts` and
+  `MemoryFlightLog`."
+
+The interface-first rule reaches the docs spec's examples too, in `examples/meridian` and
+the Academy. Section 3.8's `NAV_CHARTS` binding is a fifth difference from core spec §3.4
+in the docs spec's §7.1 list. The docs spec owns that change; this spec only records that
+the adapter samples depend on it.
 
 ### 12.3 `examples/react-ssr`
 
