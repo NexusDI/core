@@ -52,8 +52,8 @@ export function checkTrigger(
     findings.push(
       "docs.yml: on.push.tags is set. GitHub Pages' default environment " +
         'protection rule allows only the default branch, so a tag-triggered ' +
-        'run fails at the deploy job; release.yml dispatches docs.yml on ' +
-        'main instead, after a successful publish.',
+        'run fails at the deploy job. release.yml dispatches docs.yml on ' +
+        'main after a successful publish.',
     );
   }
   if (!('workflow_dispatch' in on)) {
