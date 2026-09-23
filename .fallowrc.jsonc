@@ -28,6 +28,33 @@
   // the actual fix for fallow's own resolution.
   "ignoreUnresolvedImports": ["**/+types/*"],
 
+  // Guard fixtures: trees the docs guards read as data through computed
+  // paths, and near-copies of each other by design.
+  "ignorePatterns": ["tools/repo-checks/src/__fixtures__/**"],
+
+  // The docs guards under tools/repo-checks/src/docs import these names from
+  // the shared site reader. `doc-fence` reads EXEMPTION_TAGS and SHELL_LANGS.
+  // `doc-export-coverage`, `doc-twoslash`, `doc-regions` and `doc-commitments`
+  // call parsePage. Most guards read CONTENT and readAllowance, and
+  // `doc-control`, `doc-links` and `doc-commitments` read DOCS. proseOf joins
+  // proseLines into one string for a prose guard. None of those guards exists
+  // yet, so nothing imports the names today. Drop each name once a guard
+  // imports it.
+  "ignoreExports": [
+    {
+      "file": "tools/repo-checks/src/docs/paths.ts",
+      "exports": ["DOCS", "CONTENT"],
+    },
+    {
+      "file": "tools/repo-checks/src/docs/site.ts",
+      "exports": ["EXEMPTION_TAGS", "SHELL_LANGS", "parsePage", "proseOf"],
+    },
+    {
+      "file": "tools/repo-checks/src/docs/allowance.ts",
+      "exports": ["readAllowance"],
+    },
+  ],
+
   // Every workspace project's own eslint.config.mjs spreads a preset from
   // @nx/eslint-plugin (nx.configs['flat/base'|'flat/typescript'|'flat/javascript'|'flat/react']),
   // and those presets require these plugins by name internally
@@ -84,6 +111,7 @@
       "**/eslint.config.*",
       "**/*.test-d.*",
       "**/*.test.*",
+      "tools/repo-checks/src/__fixtures__/**",
     ],
   },
 }
