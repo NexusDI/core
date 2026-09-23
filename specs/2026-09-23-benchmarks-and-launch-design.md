@@ -80,6 +80,12 @@ promises "high performance" with no figure behind it.
     to its sentences and to its list of phrases never to use (section 7).
 11. The README hero leads with graph validation. "Any TypeScript compiler, bundler or
     type-stripper" applies to the decorator-free core only (section 8).
+12. Every NexusDI example is interface-first: an interface, a `Token<IReactorCore>` for it,
+    and a class bound with `useClass`. Each example leads to the override: a test replaces
+    the class behind a token with `override(REACTOR_CORE, { useClass: FakeReactor })`, and
+    no other line changes. The rule covers NexusDI's fixtures, the post, the README and the
+    comparison-page snippets. Competitor fixtures stay idiomatic for their library
+    (section 4.3).
 
 ## 3. Extending the toolchain matrix
 
@@ -247,23 +253,34 @@ Nx targets, all `nx:run-commands` in `package.json`:
 
 ### 4.2 The graph: Meridian-8
 
-The graph uses the docs' canonical vocabulary (docs spec §7.1), so the post and the pages
-satisfy the domain guard. It has eight providers:
+The graph uses the docs' canonical nouns (docs spec §7.1), so the post and the pages
+satisfy the domain guard. It has eight providers. In NexusDI's fixtures each one is an
+interface, a token typed with it, and a class bound to the token with `useClass`, except
+`NAV_CHARTS`, which is a value:
 
-| Provider       | Lifetime  | Dependencies                                |
-| -------------- | --------- | ------------------------------------------- |
-| `ReactorCore`  | singleton | none                                        |
-| `ShipComputer` | singleton | `ReactorCore`                               |
-| `PowerRouter`  | singleton | `ReactorCore`                               |
-| `ShieldGrid`   | singleton | `PowerRouter`                               |
-| `NAV_CHARTS`   | value     | none; a `Token<NavCharts>` for an interface |
-| `Bridge`       | singleton | `ShipComputer`, `NAV_CHARTS`, `ShieldGrid`  |
-| `SurveyDrone`  | transient | `ShipComputer`                              |
-| `FlightLog`    | scoped    | `ShipComputer`                              |
+| Token           | Interface       | Bound to                 | Lifetime  | Dependencies                                 |
+| --------------- | --------------- | ------------------------ | --------- | -------------------------------------------- |
+| `REACTOR_CORE`  | `IReactorCore`  | `useClass: ReactorCore`  | singleton | none                                         |
+| `SHIP_COMPUTER` | `IShipComputer` | `useClass: ShipComputer` | singleton | `REACTOR_CORE`                               |
+| `POWER_ROUTER`  | `IPowerRouter`  | `useClass: PowerRouter`  | singleton | `REACTOR_CORE`                               |
+| `SHIELD_GRID`   | `IShieldGrid`   | `useClass: ShieldGrid`   | singleton | `POWER_ROUTER`                               |
+| `NAV_CHARTS`    | `INavCharts`    | `useValue`               | value     | none                                         |
+| `BRIDGE`        | `IBridge`       | `useClass: Bridge`       | singleton | `SHIP_COMPUTER`, `NAV_CHARTS`, `SHIELD_GRID` |
+| `SURVEY_DRONE`  | `ISurveyDrone`  | `useClass: SurveyDrone`  | transient | `SHIP_COMPUTER`                              |
+| `FLIGHT_LOG`    | `IFlightLog`    | `useClass: FlightLog`    | scoped    | `SHIP_COMPUTER`                              |
+
+A class's constructor takes interfaces, for example `constructor(reactor: IReactorCore)`,
+and the deps tuple names tokens:
+`provide(SHIP_COMPUTER, { useClass: ShipComputer, deps: [REACTOR_CORE] })`. The rest of this
+spec names a provider by its class (`ShipComputer`) when it means the provider, and by its
+token when it means the binding.
+
+The docs spec's canonical vocabulary (§7.1) uses classes as tokens. It predates the owner's
+interface-first rule and needs the same change, which section 12 lists.
 
 The shape covers a chain three edges deep (`Bridge` to `ReactorCore` through `ShieldGrid`
-and `PowerRouter`), a diamond on `ReactorCore`, an interface token that metadata emit
-cannot describe, and one provider per lifetime. It differs from the docs' ship in one
+and `PowerRouter`), a diamond on `ReactorCore`, a token that no runtime type describes, and
+one provider per lifetime. It differs from the docs' ship in one
 place: `PowerRouter` takes `ReactorCore` where the docs give it `lazy(ShieldGrid)`, because
 four of the five libraries express a lazy edge differently. The cycle probe restores the
 docs' cycle (section 4.6).
@@ -292,13 +309,13 @@ so in its header comment.
 
 The variants:
 
-| Library     | `plain`                                                                                      | `decorated`                                                                         | `decorated-explicit`                                  |
-| ----------- | -------------------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------- | ----------------------------------------------------- |
-| NexusDI     | `provide()` and `defineModule()` (documented)                                                | `@Injectable({ deps })`, `@Module`, profile `standard`                              | not applicable                                        |
-| InversifyJS | `toResolvedValue(fn, [deps])` bindings                                                       | `@injectable()`, `@inject` for `NAV_CHARTS`, profile `legacy-metadata` (documented) | `@inject(Token)` on every parameter, profile `legacy` |
-| tsyringe    | `container.register` with `useFactory`                                                       | `@singleton()`, `@inject` for `NAV_CHARTS`, profile `legacy-metadata` (documented)  | `@inject(Token)` on every parameter, profile `legacy` |
-| awilix      | `createContainer({ injectionMode: PROXY, strict: true })`, `asClass`, `asValue` (documented) | not applicable                                                                      | not applicable                                        |
-| needle-di   | `container.bind` with `useFactory` and `inject()`                                            | `@injectable()` with `inject()` fields, profile `standard` (documented)             | not applicable                                        |
+| Library     | `plain`                                                                                      | `decorated`                                                                                                                | `decorated-explicit`                                  |
+| ----------- | -------------------------------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------- | ----------------------------------------------------- |
+| NexusDI     | interface tokens, `provide(TOKEN, { useClass, deps })`, `defineModule()` (documented)        | `@Injectable({ deps: [tokens] })` classes, each token bound to its class with `useExisting`, `@Module`, profile `standard` | not applicable                                        |
+| InversifyJS | `toResolvedValue(fn, [deps])` bindings                                                       | `@injectable()`, `@inject` for `NAV_CHARTS`, profile `legacy-metadata` (documented)                                        | `@inject(Token)` on every parameter, profile `legacy` |
+| tsyringe    | `container.register` with `useFactory`                                                       | `@singleton()`, `@inject` for `NAV_CHARTS`, profile `legacy-metadata` (documented)                                         | `@inject(Token)` on every parameter, profile `legacy` |
+| awilix      | `createContainer({ injectionMode: PROXY, strict: true })`, `asClass`, `asValue` (documented) | not applicable                                                                                                             | not applicable                                        |
+| needle-di   | `container.bind` with `useFactory` and `inject()`                                            | `@injectable()` with `inject()` fields, profile `standard` (documented)                                                    | not applicable                                        |
 
 That gives 11 library-variants. The `decorated-explicit` variant exists because the
 research found that InversifyJS reads `design:paramtypes` only where no `@inject` token is
@@ -320,6 +337,18 @@ Rules every fixture follows:
    its documentation presents it as the per-request mechanism.
 4. The header comment of each fixture cites the documentation URL, the version read, the
    date read, and every place the fixture departs from the documentation with the reason.
+5. Competitor fixtures use whatever tokens their documentation uses. NexusDI's fixtures
+   follow decision 12.
+
+Each library also has `benchmarks/fixtures/<library>/snippets.ts`. It binds `REACTOR_CORE`
+and `SHIP_COMPUTER` interface-first in that library's own API (an interface, the library's
+token type, a class bound to the token), then replaces `REACTOR_CORE` with `FakeReactor` the
+way the library's documentation does for tests. The comparison pages and the post show these
+snippets (sections 5.2 and 6.2). `matrix.ts` compiles each snippets file with `tsc-6` and
+runs a `snippets` check: `SHIP_COMPUTER` resolves with the real `ReactorCore`, then with
+`FakeReactor` after the replacement. A snippet that fails the check fails `bench-check`. Each
+snippet's header cites the pages that document the token and replacement APIs, and
+`libraries-claims` holds the citation to the pin.
 
 Review: before a fixture merges, a person reads it beside the cited page and ticks each rule
 in the pull request template section "Benchmark fixture review". After launch, the
@@ -718,14 +747,22 @@ the page filters to NexusDI and that library. The H2 sections, in order:
    `libraries.json` claims with sources. Two examples of what this section holds: awilix needs
    no build-time type information and loads modules by glob; InversifyJS has the largest
    user base and its own framework integrations.
-9. "Moving from X to NexusDI": an API mapping table, X's call on the left and NexusDI's on
-   the right, one row per concept the page covers.
-10. "How this page was measured": section 4.12.
+9. "Binding an interface to a class": the `snippets.ts` binding region for X beside
+   NexusDI's, both binding `SHIP_COMPUTER` to `ShipComputer` under an interface token.
+10. "Replacing a provider in a test": the replacement regions of both snippets files.
+    NexusDI's is `createTestingContainer(Meridian).override(REACTOR_CORE, { useClass:
+FakeReactor })`. The prose states what the override checks: the testing container runs
+    the full compiler, so a replacement that breaks the graph fails at `create` (core spec
+    §11).
+11. "Moving from X to NexusDI": an API mapping table, X's call on the left and NexusDI's on
+    the right, one row per concept the page covers.
+12. "How this page was measured": section 4.12.
 
 ### 5.3 What comes from the harness
 
-Sections 2, 3, 4, 6, 7 and 10 render from the results files. Sections 1, 5, 8 and 9 render
-from `libraries.json`'s `claims`, each of which has this shape:
+Sections 2, 3, 4, 6, 7 and 12 render from the results files. Sections 9 and 10 cite the
+`snippets.ts` regions, which the snippets check has run. Sections 1, 5, 8 and 11 render from
+`libraries.json`'s `claims`, each of which has this shape:
 
 ```ts
 interface Claim {
@@ -782,8 +819,9 @@ version: 0.4.0
 Two more keys are written in the pull request that publishes the post on final day
 (section 10.2): `date`, the release date, and `results`, the path of the timings file the
 0.4.0 tag run wrote. Until that pull request, `doc-benchmark-figures` accepts a post without
-`results` only on `/next/`, where the blog is not built. `results` pins every component on the page to the tag run's timings file, and to the
-matrix, probes and size files at that run's commit, which `benchmark-data.mjs` reads with
+`results` only on `/next/`, where the blog is not built. `results` pins every component on
+the page to the tag run's timings file, and to the matrix, probes and size files at that
+run's commit, which `benchmark-data.mjs` reads with
 `git show <sha>:benchmarks/results/<file>`. A later benchmark run changes the comparison
 pages and leaves the post as published.
 
@@ -796,35 +834,42 @@ Target length: 1,500 words of prose, excluding code and tables.
 
 1. Opening, two paragraphs. The three claim sentences from `claim.json`, rendered by
    `<Claim />`. One sentence of disclosure: the author maintains NexusDI.
-2. "The graph": Meridian-8 as a captioned `mermaid` fence, and the NexusDI fixture's wiring
-   (`provide()` and `defineModule()`), cited from `benchmarks/fixtures/nexusdi/plain.ts`
-   with a `region`.
-3. "The same graph in four other containers": the documented variant of each competitor,
-   each a region of its fixture, 10 to 15 lines each.
-4. "Ten toolchains": `<ToolchainGrid />` for the documented variants. Every non-pass cell
+2. "The graph": Meridian-8 as a captioned `mermaid` fence, and the NexusDI fixture's wiring,
+   cited from `benchmarks/fixtures/nexusdi/plain.ts` with a `region`: the interfaces, their
+   tokens, and `provide(TOKEN, { useClass, deps })` in `defineModule()`.
+3. "Swap the reactor in a test": the payoff of the interface tokens. The region from
+   `benchmarks/fixtures/nexusdi/snippets.ts` replaces `REACTOR_CORE` with `FakeReactor`
+   through `createTestingContainer(Meridian).override(...)`, and `ShipComputer` receives the
+   fake with no change to its class or its module. One sentence says the testing container
+   compiles the graph as production does.
+4. "The same bindings in four other containers": each competitor's `snippets.ts` regions,
+   the interface-token binding and the library's replacement for tests, 10 to 15 lines each.
+   Each fence links to the full fixture the harness measured.
+5. "Ten toolchains": `<ToolchainGrid />` for the documented variants. Every non-pass cell
    is explained in one or two sentences with its `message`. The explanation for a metadata
    failure: `emitDecoratorMetadata` needs the type checker, and esbuild does not run one
    (evanw/esbuild#257).
-5. "The workaround, and what it still needs": the `decorated-explicit` rows. They show which
+6. "The workaround, and what it still needs": the `decorated-explicit` rows. They show which
    cells an explicit token on every parameter fixes, and that `experimentalDecorators` and
    the Reflect polyfill remain.
-6. "What NexusDI checks before it constructs anything": the NexusDI `two-mistakes` probe
+7. "What NexusDI checks before it constructs anything": the NexusDI `two-mistakes` probe
    fixture, its `BlueprintError` output as the probe recorded it, and `<ProbeTable />` for
    all five libraries. A link opens the same broken graph in the Playground
    (`/playground/?seed=launch-blueprint-error`). This section carries the differentiator
    against awilix and needle-di, which share "no reflect-metadata".
-7. "Size and startup": `<SizeChart bundler="esbuild" />` and
+8. "Size and startup": `<SizeChart bundler="esbuild" />` and
    `<TimingChart scenario="ready" />`, with one sentence each on what the figure includes.
    The other scenarios link to the comparison pages.
-8. "Rerun it": the commands, the results files at their commit, the versions, and the
+9. "Rerun it": the commands, the results files at their commit, the versions, and the
    invitation of section 4.12.
-9. "Try it": the Playground seed, Academy mission 1, `npm install @nexusdi/core`, and
-   `/upgrade/` for 0.3 users.
+10. "Try it": the Playground seed, Academy mission 1, `npm install @nexusdi/core`, and
+    `/upgrade/` for 0.3 users.
 
 ### 6.3 Code shown
 
-Every TypeScript fence in the post is a region of a benchmark fixture, so the code a reader
-sees is the code the harness measured. `doc-regions` (docs spec §14.3) adds
+Every TypeScript fence in the post is a region of a benchmark fixture or of a
+`snippets.ts` file, so the harness has compiled and run every line a reader sees. Every
+NexusDI fence is interface-first (decision 12). `doc-regions` (docs spec §14.3) adds
 `benchmarks/fixtures` to its roots. G3 skips posts, and G5 checks the `@nexusdi/…` imports.
 Meridian names satisfy the domain guard.
 
@@ -927,7 +972,7 @@ The evidence per sentence:
 
 - `types`: the engine plan's Task 36 job that checks the type tests on TS 5.4 and TS 7;
   `libs/core/package.json` with empty `dependencies`; every NexusDI cell, both variants,
-  built with `emitDecoratorMetadata` absent from its profile.
+  built with profile `none` or `standard`.
 - `toolchains`: every `nexusdi` `plain` cell in `matrix.json` is `pass`, across all ten
   toolchain cells.
 - `decorators`: every `nexusdi` `decorated` cell is `pass` where the toolchain lowers
@@ -956,11 +1001,21 @@ the version range from sentence 1.
 
 `claim.json`'s `hero` holds both lines. The root `README.md` and `libs/core/README.md`
 carry them at the top, and the landing page's two-sentence definition (docs spec §5.2,
-item 1) uses the lead line as its first sentence. Under the hero, the README shows the
-ten-line NexusDI `two-mistakes` probe and the `BlueprintError` it prints, both regions the
-README doctests run. The logo stays. The tagline about coffee, the "inspired by" paragraph, the emoji
-and the "Call for Feedback" block go, and the RC info box of core spec §14 is removed in the 0.4.0
-release commit.
+item 1) uses the lead line as its first sentence.
+
+Under the hero, the README shows two regions that its doctests run, in this order:
+
+1. The wiring, about ten lines: `IReactorCore` and `IShipComputer`, the tokens
+   `REACTOR_CORE` and `SHIP_COMPUTER`, both bound with `useClass` in one `defineModule`,
+   then `Nexus.create` and `get(SHIP_COMPUTER)`.
+2. The payoff, about five lines:
+   `createTestingContainer(Engineering).override(REACTOR_CORE, { useClass: FakeReactor })`,
+   and a `// ->` assertion that the computer holds the fake.
+
+The `BlueprintError` example follows as the first H2, "Wiring mistakes fail at startup",
+with the `two-mistakes` probe and the error it prints. The logo stays. The tagline about
+coffee, the "inspired by" paragraph, the emoji and the "Call for Feedback" block go, and the
+RC info box of core spec §14 is removed in the 0.4.0 release commit.
 
 `libs/core/package.json`'s `description` becomes the lead line.
 
@@ -1116,6 +1171,10 @@ After the launch:
 - §15.3: step 3 copies `benchmarks/results/` from `main`; the path filter adds
   `benchmarks/results/**`.
 - §19: the out-of-scope line for benchmarks (#21) is replaced by this spec.
+- §7.1: the canonical vocabulary becomes interface-first under the owner's rule. Each
+  provider gets an interface (`IReactorCore`) and a token (`REACTOR_CORE`), bound with
+  `useClass`. `FakeReactor` is the test double the override examples use. The domain
+  guard's deny list keeps the `I…Service` pattern, which no Meridian interface matches.
 
 ## 13. Decisions for the owner
 
