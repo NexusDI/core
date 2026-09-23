@@ -17,7 +17,11 @@ const workflow = parse(source) as {
   permissions: Record<string, string>;
   jobs: Record<
     string,
-    { steps: { uses?: string; run?: string; with?: Record<string, unknown> }[] }
+    {
+      needs?: string | string[];
+      permissions?: Record<string, string>;
+      steps: { uses?: string; run?: string; with?: Record<string, unknown> }[];
+    }
   >;
 };
 const steps = Object.values(workflow.jobs).flatMap((job) => job.steps);
@@ -30,11 +34,46 @@ describe('docs-snapshot.yml', () => {
     );
   });
 
-  it('holds exactly the permissions steps 6 and 7 need', () => {
-    expect(workflow.permissions).toEqual({
+  it('grants no write token at workflow level', () => {
+    expect(workflow.permissions).toEqual({ contents: 'read' });
+  });
+
+  it('runs npm only in a read-only build job, and grants the write permissions to publish alone', () => {
+    expect(workflow.jobs.build.permissions).toEqual({ contents: 'read' });
+    expect(
+      workflow.jobs.build.steps.some((step) => step.run?.includes('npm ci')),
+    ).toBe(true);
+    expect(workflow.jobs.publish.needs).toBe('build');
+    expect(workflow.jobs.publish.permissions).toEqual({
       contents: 'write',
       'pull-requests': 'write',
     });
+    expect(
+      workflow.jobs.publish.steps.some((step) => step.run?.includes('npm ')),
+    ).toBe(false);
+  });
+
+  it('persists no checkout credentials in the build job', () => {
+    const checkouts = workflow.jobs.build.steps.filter((step) =>
+      step.uses?.startsWith('actions/checkout@'),
+    );
+    expect(checkouts.length).toBeGreaterThan(0);
+    for (const checkout of checkouts) {
+      expect(checkout.with?.['persist-credentials']).toBe(false);
+    }
+  });
+
+  it('hands the tarballs and checksums from build to publish as an artifact', () => {
+    expect(
+      workflow.jobs.build.steps.some((step) =>
+        step.uses?.startsWith('actions/upload-artifact@'),
+      ),
+    ).toBe(true);
+    expect(
+      workflow.jobs.publish.steps.some((step) =>
+        step.uses?.startsWith('actions/download-artifact@'),
+      ),
+    ).toBe(true);
   });
 
   it('pins every action by commit SHA with its version in a comment', () => {
