@@ -29,6 +29,22 @@ jobs:
           # conventional commits, and needs the tags to know where to start.
           fetch-depth: 0
           filter: tree:0
+          # Check out over SSH with a write deploy key rather than the default
+          # GITHUB_TOKEN.
+          #
+          # `nx release` pushes the version-bump commit and the tags straight to
+          # main (it is forced on by changelog.projectChangelogs.createRelease:
+          # "github" -- see nx's release.js, shouldPush). The main ruleset
+          # requires a reviewed pull request, and github-actions[bot] cannot be
+          # granted a bypass on a personal repository: the API rejects an
+          # Integration bypass actor outside an organisation. A deploy key can
+          # bypass, so the push authenticates as one.
+          #
+          # This key is git-write, this repo only. It cannot publish to npm --
+          # that stays credential-free OIDC below -- and it cannot change repo
+          # settings. Revoking it is deleting the deploy key. See RELEASING.md
+          # for how it and the ruleset bypass entry are set up.
+          ssh-key: ${{ secrets.RELEASE_SSH_KEY }}
 
       - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
         with:
