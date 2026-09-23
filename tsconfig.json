@@ -11,9 +11,6 @@
     },
     {
       "path": "./examples/react-ssr"
-    },
-    {
-      "path": "./docs"
     }
   ]
 }
