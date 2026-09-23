@@ -256,6 +256,85 @@ The verify gate follows the same resolved list. It runs `lint`, `test`,
 released packages, what they are compiled against, and every project that
 depends on them, transitively.
 
+## Release candidates
+
+0.4 ships as a series of release candidates before the stable tag. This uses
+`nx release`'s own prerelease support (`specifier`/`preid` inputs on the
+Release workflow) rather than a separate process — verified locally with
+`nx release <specifier> --preid <preid> --dry-run --skip-publish` for both a
+stable and a prerelease specifier before writing this section, not guessed
+from the docs.
+
+**Version numbers, exactly as nx computes them.** `adjustSemverBumpsForZeroMajorVersion`
+is on (nx.json), which remaps `major`→`minor` and `premajor`→`preminor` while
+the package is on a `0.x` version (`node_modules/nx/dist/src/command-line/release/utils/semver.js`,
+`adjustSpecifierForZeroMajorVersion`) — `patch`/`prepatch`/`prerelease` are
+left alone. So from `0.3.1`, requesting `premajor` is what lands on the next
+`0.4.0`-line version, not `major`. And prerelease numbering in this nx/semver
+version starts at **`.0`**, not `.1`: `premajor --preid rc` from `0.3.1`
+resolves to `0.4.0-rc.0` (checked directly with `--dry-run`), not
+`0.4.0-rc.1`. Plan the series as rc.0, rc.1, rc.2, ... — the workflow does not
+try to renumber this to start at 1.
+
+**1. Cut `0.4.0-rc.0`** — the first release candidate. Run **Release**:
+
+```
+specifier: premajor
+preid: rc
+dry-run: true     # then false once the preview looks right
+```
+
+**2. Cut `0.4.0-rc.1`, `rc.2`, ...** — further candidates, once more commits
+have landed. Run **Release** with:
+
+```
+specifier: prerelease
+dry-run: true     # then false
+```
+
+(`preid` is ignored here — `semver.inc` carries the existing `rc` identifier
+forward on its own; you only need `preid` to start a new prerelease series.)
+Leaving `specifier` empty also works for this step: conventional-commits mode
+sees the current version is already a prerelease and keeps it a prerelease
+(`derive-specifier-from-conventional-commits.js`: "Always assume that if the
+current version is a prerelease, then the next version should be a
+prerelease"). Prefer the explicit `prerelease` specifier anyway — it says
+what is happening without having to know that rule.
+
+**3. Promote `rc.N` to stable `0.4.0`.** Run **Release** with:
+
+```
+specifier: patch
+dry-run: true     # then false
+```
+
+`patch` is unaffected by the zero-major remap (it stays `patch`), and
+incrementing `patch` on a prerelease of `X.Y.Z` graduates it to the plain
+`X.Y.Z` instead of bumping further — this is `node-semver`'s own behavior,
+not something this repo adds. Nx's release notes call this out directly:
+"Users must manually graduate from a prerelease to a release by providing an
+explicit specifier." `minor` or `major` would also graduate it, but to a
+_different_ `X.Y.Z` than the one the rc series was validating — use `patch`
+to land on exactly the version you already shipped candidates of.
+
+**npm dist-tag.** The Release workflow's "Resolve npm dist-tag" step reads
+the version `nx release` just wrote and tags the npm publish itself:
+containing a `-` (i.e. any prerelease) publishes with dist-tag `next`;
+anything else publishes `latest`. This is not automatic in nx/@nx/js — without
+an explicit `--tag`, `nx release publish` falls through to npm's own default
+of `latest` regardless of the version's shape
+(`@nx/js/src/utils/npm-config.js`, `getNpmTag`) — so an rc left untagged would
+otherwise become the default install for everyone running `npm install
+@nexusdi/core`. `npm install @nexusdi/core@rc` (or `@next`) is how a
+consumer opts into a candidate; `npm install @nexusdi/core` never resolves to
+one.
+
+**GitHub release.** No extra flag needed: nx derives `isPrerelease` from the
+version's own shape (`semver.prerelease(version) !== null`,
+`utils/shared.js`) and marks the GitHub release a prerelease automatically
+whenever the version has one — confirmed in
+`utils/remote-release-clients/github.js`, `remoteReleaseOptions.prerelease`.
+
 ## Verifying a release worked
 
 ```bash
