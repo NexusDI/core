@@ -159,7 +159,7 @@ async function buildScope(scope: ScopeState): Promise<Scope> {
       root.ownership,
       reportDisposal(tracer, scope.scopeId),
     );
-    if (error instanceof DisposedError) {
+    if (error instanceof DisposedError && root.disposing) {
       root.abortErrors.push(...errors);
       throw error;
     }

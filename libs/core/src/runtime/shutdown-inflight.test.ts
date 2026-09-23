@@ -5,6 +5,7 @@ import { deferred, flush } from '../../test-support/deferred.js';
 import { defineModule } from '../definitions/define-module.js';
 import { provide } from '../definitions/provide.js';
 import { Token } from '../definitions/token.js';
+import { DisposedError, ProviderError } from '../errors/index.js';
 import { Nexus } from './nexus.js';
 
 function sensor(log: string[], name: string) {
@@ -172,6 +173,80 @@ describe('Nexus', () => {
 
       expect(await rejected(loading)).toMatchObject({ code: 'NEXUS_DISPOSED' });
       expect(await rejected(closing)).toBe(boom);
+    });
+
+    it('wraps a user-thrown DisposedError from a load while the root is open, keeping the rollback disposer error in disposalErrors', async () => {
+      const log: string[] = [];
+      const SENSOR = new Token<object>('Sensor');
+      const BOOM = new Token<unknown>('Boom');
+      const Science = defineModule({
+        name: 'Science',
+        providers: [
+          provide(SENSOR, {
+            useFactory: () => ({
+              [Symbol.dispose]() {
+                log.push('sensor disposed');
+                throw new Error('sensor stuck');
+              },
+            }),
+            deps: [],
+          }),
+          provide(BOOM, {
+            useFactory: () => {
+              throw new DisposedError({ target: 'container' });
+            },
+            deps: [SENSOR],
+          }),
+        ],
+      });
+      const ship = await Nexus.create(defineModule({ name: 'Root' }));
+      const error = (await rejected(ship.load(Science))) as ProviderError;
+      expect(error).toBeInstanceOf(ProviderError);
+      expect(error).toMatchObject({ code: 'NEXUS_PROVIDER_FAILED' });
+      expect(error.cause).toBeInstanceOf(DisposedError);
+      expect(error.disposalErrors).toMatchObject([{ message: 'sensor stuck' }]);
+      // The disposer error already reached the caller through disposalErrors;
+      // it must not also sit in root.abortErrors for a later asyncDispose to
+      // surface again.
+      await expect(ship[Symbol.asyncDispose]()).resolves.toBeUndefined();
+    });
+
+    it('wraps a user-thrown DisposedError from a scoped factory during createScope while the root is open, keeping the rollback disposer error in disposalErrors', async () => {
+      const log: string[] = [];
+      const SESSION = new Token<object>('Session');
+      const BOOM = new Token<unknown>('Boom');
+      const ship = await Nexus.create(
+        defineModule({
+          name: 'Root',
+          providers: [
+            provide(SESSION, {
+              useFactory: () => ({
+                [Symbol.dispose]() {
+                  log.push('session disposed');
+                  throw new Error('session stuck');
+                },
+              }),
+              deps: [],
+              lifetime: 'scoped',
+            }),
+            provide(BOOM, {
+              useFactory: () => {
+                throw new DisposedError({ target: 'container' });
+              },
+              deps: [SESSION],
+              lifetime: 'scoped',
+            }),
+          ],
+        }),
+      );
+      const error = (await rejected(ship.createScope())) as ProviderError;
+      expect(error).toBeInstanceOf(ProviderError);
+      expect(error).toMatchObject({ code: 'NEXUS_PROVIDER_FAILED' });
+      expect(error.cause).toBeInstanceOf(DisposedError);
+      expect(error.disposalErrors).toMatchObject([
+        { message: 'session stuck' },
+      ]);
+      await expect(ship[Symbol.asyncDispose]()).resolves.toBeUndefined();
     });
   });
 });

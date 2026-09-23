@@ -117,8 +117,13 @@ async function buildSingleton(
  * mid-run stops the next level from starting. On failure it forgets what
  * it built, clears the async flags it recorded, and disposes what it built
  * one at a time in reverse creation order. It then rethrows a
- * `DisposedError` unchanged and wraps any other failure in a
- * `ProviderError` (NEXUS_PROVIDER_FAILED).
+ * `DisposedError` unchanged, parking the rollback's disposer errors on
+ * `root.abortErrors`, only when the root is disposing: that is the abort
+ * path, where disposeRoot chains those errors ahead of its own. A
+ * `DisposedError` from user code while the root is still open is an
+ * ordinary provider failure and, like any other, gets wrapped in a
+ * `ProviderError` (NEXUS_PROVIDER_FAILED) with the rollback errors in
+ * `disposalErrors`.
  */
 export async function startBlueprint(
   root: RootState,
@@ -154,7 +159,7 @@ export async function startBlueprint(
       root.ownership,
       reportDisposal(root.tracer, null),
     );
-    if (error instanceof DisposedError) {
+    if (error instanceof DisposedError && root.disposing) {
       root.abortErrors.push(...errors);
       throw error;
     }
