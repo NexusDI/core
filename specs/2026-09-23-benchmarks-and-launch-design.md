@@ -26,7 +26,7 @@ Depends on:
   never to use are quoted in section 7.1 and stored once in `apps/docs/claim.json`.
 - The integrations spec on `spec/integrations` (not yet committed). It owns
   `@nexusdi/vitest`, `@nexusdi/hono`, `@nexusdi/react-router`, `@nexusdi/fastify` and
-  `@nexusdi/express`, and their ecosystem listings.
+  `@nexusdi/express`, all five released at rc.0, and their ecosystem listings.
 - The owner's marketing plan, "NexusDI marketing plan",
   <https://claude.ai/artifact/LAR6EMag71H3eZHfEzTMcq>. It owns the launch sequence by day,
   the channels and their rules, the targets, the sponsor setup (GitHub Sponsors,
@@ -1604,10 +1604,11 @@ After the launch:
 4. The runner and the method: GitHub-hosted `ubuntu-24.04`, with the machine recorded, and
    the interleaved isolated sampler of section 4.7, which replaces mitata. Pull-request
    regression gating is a follow-up (section 11).
+5. `@nexusdi/express`: all five adapters, Express included, are released at rc.0, as the
+   integrations spec on `spec/integrations` records. Express gets no ecosystem listing,
+   because its middleware page accepts no new entries (expressjs/expressjs.com#2375, closed
+   June 2026), and this spec lists no Express page.
 
 ### 13.2 Open
 
-1. `@nexusdi/express`. The brief lists it for 0.4, the marketing plan says to skip Express,
-   and Express's middleware page accepts no new entries (expressjs/expressjs.com#2375,
-   closed June 2026). Recommendation: decide in the integrations spec; this spec lists no
-   Express page.
+None.
