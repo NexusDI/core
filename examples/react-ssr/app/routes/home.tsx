@@ -13,6 +13,10 @@ import {
 import type { Route } from './+types/home';
 import { data, Form } from 'react-router';
 
+// TODO(0.4 rewrite): this demo's UserCard prop shape (id: number, username)
+// and users.types' User (id: string) never lined up; typing this properly
+// means reconciling the two rather than a tooling-only change.
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
 let user: any = null;
 
 export async function loader({ context }: Route.LoaderArgs) {

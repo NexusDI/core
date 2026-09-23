@@ -3,7 +3,7 @@
 import React from 'react';
 import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
 import { render, screen, waitFor } from '@testing-library/react';
-import { createRoutesStub, unstable_RouterContext } from 'react-router';
+import { createRoutesStub, RouterContext, RouterContextProvider } from 'react-router';
 import { Nexus } from '@nexusdi/core';
 import Home, { loader as homeLoader } from '../../app/routes/home';
 import {
@@ -32,7 +32,7 @@ const mockLoggerService: ILoggerService = {
 
 describe('Home route (framework mode, minimal DI example)', () => {
   let container: Nexus;
-  let contextMap: Map<unstable_RouterContext, unknown>;
+  let contextMap: Map<RouterContext, unknown>;
 
   beforeEach(() => {
     container = new Nexus();
@@ -56,7 +56,7 @@ describe('Home route (framework mode, minimal DI example)', () => {
           loader: homeLoader,
         },
       ],
-      () => contextMap
+      new RouterContextProvider(contextMap)
     );
     render(<Stub initialEntries={['/']} />);
     await waitFor(() => {
@@ -77,7 +77,7 @@ describe('Home route (framework mode, minimal DI example)', () => {
           loader: homeLoader,
         },
       ],
-      () => contextMap
+      new RouterContextProvider(contextMap)
     );
     render(<Stub initialEntries={['/']} />);
     await waitFor(() => {

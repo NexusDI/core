@@ -5,21 +5,42 @@
   "scripts": {},
   "sideEffects": false,
   "dependencies": {
-    "@react-router/node": "^7.6.3",
-    "@react-router/serve": "^7.6.3",
+    "@react-router/node": "^7.18.4",
+    "@react-router/serve": "^7.18.4",
     "class-variance-authority": "^0.7.1",
     "clsx": "^2.1.1",
     "isbot": "^4.4.0",
-    "react": "19.1.0",
-    "react-dom": "19.1.0",
-    "react-router": "^7.6.3"
+    "react": "19.3.0",
+    "react-dom": "19.3.0",
+    "react-router": "^7.18.4"
   },
   "devDependencies": {
-    "@react-router/dev": "^7.6.3",
+    "@react-router/dev": "^7.18.4",
     "@tailwindcss/vite": "^4.1.10",
     "@types/node": "^22",
-    "@types/react": "19.1.8",
-    "@types/react-dom": "19.1.6",
+    "@types/react": "19.3.0",
+    "@types/react-dom": "19.3.0",
     "tailwindcss": "^4.1.10"
+  },
+  "nx": {
+    "targets": {
+      "typegen": {
+        "cache": true,
+        "inputs": [
+          "{projectRoot}/app/**/*",
+          "{projectRoot}/react-router.config.ts",
+          "{projectRoot}/vite.config.ts"
+        ],
+        "outputs": ["{projectRoot}/.react-router"],
+        "executor": "nx:run-commands",
+        "options": {
+          "cwd": "examples/react-ssr",
+          "command": "react-router typegen"
+        }
+      },
+      "typecheck": {
+        "dependsOn": ["typegen", "^typecheck"]
+      }
+    }
   }
 }

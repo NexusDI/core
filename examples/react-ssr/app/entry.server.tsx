@@ -2,7 +2,7 @@ import { PassThrough } from 'node:stream';
 
 import type {
   EntryContext,
-  unstable_RouterContextProvider,
+  RouterContextProvider,
 } from 'react-router';
 import { createReadableStreamFromReadable } from '@react-router/node';
 import { ServerRouter } from 'react-router';
@@ -19,7 +19,7 @@ export default function handleRequest(
   routerContext: EntryContext,
   //loadContext: AppLoadContext
   // If you have middleware enabled:
-  _loadContext: unstable_RouterContextProvider
+  _loadContext: RouterContextProvider
 ) {
   return new Promise((resolve, reject) => {
     let shellRendered = false;

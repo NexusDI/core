@@ -13,7 +13,7 @@ import { containerMiddleware } from './shared/container';
 import { loggerMiddleware } from './modules/logger/logger.middleware';
 import { performanceMiddleware } from './modules/logger/logger.middleware';
 
-export const unstable_middleware: Route.unstable_MiddlewareFunction[] = [
+export const middleware: Route.MiddlewareFunction[] = [
   containerMiddleware,
   loggerMiddleware,
   performanceMiddleware,

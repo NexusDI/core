@@ -81,6 +81,17 @@ export class UserService implements IUserService {
     const users = await this.getUsers();
     return users.find((user) => user.id === id) || null;
   }
+
+  async createUser(user: Omit<User, 'id'>): Promise<User> {
+    const created: User = { id: String(Date.now()), ...user };
+    // In a real implementation this would persist through the API; the mock
+    // path here just makes the created user visible to a following getUsers
+    // call within the same cache window.
+    for (const cached of this.cache.values()) {
+      cached.data = [...cached.data, created];
+    }
+    return created;
+  }
 }
 
 // Re-export types for convenience
