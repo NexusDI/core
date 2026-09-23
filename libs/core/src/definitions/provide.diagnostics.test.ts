@@ -102,7 +102,7 @@ describe('provide', { timeout: 60_000 }, () => {
         "provide(NAV_CHARTS, { useFactory: async () => charts, deps: [], lifetime: 'transient' });",
       ),
     ).toContain(
-      'NEXUS_ASYNC_TRANSIENT: get() is synchronous, so a transient factory cannot be async',
+      "NEXUS_ASYNC_TRANSIENT: get() is synchronous, so a transient factory cannot be async. Use lifetime: 'scoped', or make the token a function type and provide () => Promise<T>",
     );
   });
 
@@ -111,6 +111,8 @@ describe('provide', { timeout: 60_000 }, () => {
       diagnosticsFor(
         "const PROMISED = new Token<Promise<NavCharts>>('Promised');\nprovide(PROMISED, { useFactory: async () => charts, deps: [] });",
       ),
-    ).toContain('NEXUS_PROMISE_TOKEN: the container awaits a factory result');
+    ).toContain(
+      'NEXUS_PROMISE_TOKEN: the container awaits a factory result, so a token cannot hold a Promise. Type the token as the resolved value, or as () => Promise<T>',
+    );
   });
 });
