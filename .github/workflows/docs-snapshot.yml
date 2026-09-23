@@ -1,0 +1,117 @@
+name: Docs snapshot
+
+# Builds the 0.3 Docusaurus site from `source` plus the overlay in
+# apps/docs/snapshot/, stores both variants as assets of the GitHub Release
+# `docs-snapshot-0.3`, and opens a pull request recording them in
+# apps/docs/deploy.json (docs spec §15.2). A release asset is permanent; a
+# workflow artifact expires after at most 90 days, and the snapshot has to
+# last until the /v0.3/ retention ends.
+on:
+  workflow_dispatch:
+    inputs:
+      source:
+        description: Commit of the 0.3 Docusaurus site
+        required: true
+        default: 6d5e4f3
+
+permissions:
+  contents: write # create the release and upload its assets
+  pull-requests: write # open the deploy.json pull request
+
+concurrency:
+  group: docs-snapshot
+  cancel-in-progress: false
+
+jobs:
+  snapshot:
+    runs-on: ubuntu-latest
+    env:
+      GH_TOKEN: ${{ github.token }}
+      SOURCE: ${{ inputs.source }}
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+
+      # actions/checkout rejects a ref that is only a short SHA once its
+      # default shallow fetch runs: the object is not in a depth-1 history.
+      # fetch-depth: 0 pulls the full history with no ref checked out, so the
+      # `git switch` below can resolve `$SOURCE` locally.
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          fetch-depth: 0
+          path: snapshot-src
+
+      - name: Check out the snapshot source
+        run: git -C snapshot-src switch --detach "$SOURCE"
+
+      # Docusaurus 3.8.1 exists only at the source commit. The docs spec's
+      # review built it on Node 22.
+      - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: snapshot-src/docs/package-lock.json
+
+      # Inside the site directory: Docusaurus does not resolve its preset
+      # from a config file outside it. The copy replaces whole files: the
+      # configs and the landing page, the posts in blog/, and each corrected
+      # 0.3 page in docs/ over the page at the same path.
+      - name: Copy the overlay
+        run: cp -R apps/docs/snapshot/. snapshot-src/docs/
+
+      - name: Build the root and archive variants
+        working-directory: snapshot-src/docs
+        run: |
+          npm ci
+          npx docusaurus build --config docusaurus.overlay.root.ts --out-dir build-root
+          npx docusaurus build --config docusaurus.overlay.archive.ts --out-dir build-archive
+
+      - name: Pack the next revision
+        id: pack
+        working-directory: snapshot-src/docs
+        run: |
+          set -euo pipefail
+          current="$(node -p "require('${GITHUB_WORKSPACE}/apps/docs/deploy.json').snapshot.revision")"
+          revision=$((current + 1))
+          rm -f build-root/CNAME build-archive/CNAME
+          tar -czf "nexusdi-docs-0.3-root-r${revision}.tar.gz" -C build-root .
+          tar -czf "nexusdi-docs-0.3-archive-r${revision}.tar.gz" -C build-archive .
+          sha256sum "nexusdi-docs-0.3-root-r${revision}.tar.gz" "nexusdi-docs-0.3-archive-r${revision}.tar.gz" > SHA256SUMS
+          {
+            echo "revision=${revision}"
+            echo "root_sha256=$(sha256sum "nexusdi-docs-0.3-root-r${revision}.tar.gz" | cut -d' ' -f1)"
+            echo "archive_sha256=$(sha256sum "nexusdi-docs-0.3-archive-r${revision}.tar.gz" | cut -d' ' -f1)"
+          } >> "$GITHUB_OUTPUT"
+
+      - name: Upload to the docs-snapshot-0.3 release
+        working-directory: snapshot-src/docs
+        env:
+          REVISION: ${{ steps.pack.outputs.revision }}
+        run: |
+          set -euo pipefail
+          if ! gh release view docs-snapshot-0.3 >/dev/null 2>&1; then
+            gh release create docs-snapshot-0.3 --target "$(git -C "${GITHUB_WORKSPACE}/snapshot-src" rev-parse HEAD)" \
+              --title "Docs snapshot 0.3" --notes "The 0.3 documentation site, built from ${SOURCE}." --latest=false
+          fi
+          gh release upload docs-snapshot-0.3 --clobber \
+            "nexusdi-docs-0.3-root-r${REVISION}.tar.gz" \
+            "nexusdi-docs-0.3-archive-r${REVISION}.tar.gz" \
+            SHA256SUMS
+
+      - name: Open the deploy.json pull request
+        env:
+          REVISION: ${{ steps.pack.outputs.revision }}
+          ROOT_SHA256: ${{ steps.pack.outputs.root_sha256 }}
+          ARCHIVE_SHA256: ${{ steps.pack.outputs.archive_sha256 }}
+        run: |
+          set -euo pipefail
+          branch="docs/snapshot-r${REVISION}"
+          node apps/docs/tools/deploy/record-snapshot.mjs apps/docs/deploy.json "$REVISION" "$ROOT_SHA256" "$ARCHIVE_SHA256"
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git switch -c "$branch"
+          git add apps/docs/deploy.json
+          git commit -m "chore(docs): record docs snapshot revision ${REVISION}"
+          git push origin "$branch"
+          gh pr create --base main --head "$branch" \
+            --title "chore(docs): record docs snapshot revision ${REVISION}" \
+            --body "docs-snapshot.yml built ${SOURCE} with the overlay and uploaded revision ${REVISION} to the docs-snapshot-0.3 release. This records the asset names and checksums in apps/docs/deploy.json."
