@@ -1,7 +1,7 @@
 import type { NexusRequest } from '../definitions/request.js';
 import type { InjectionToken, MultiToken } from '../definitions/token.js';
 import { DisposedError, RequestMissingError } from '../errors/index.js';
-import { adopt, construct, isThenable, traceConstruct } from './build.js';
+import { adopt, buildInto, traceConstruct } from './build.js';
 import { chainErrors, disposeInReverse } from './dispose.js';
 import { getFrom, hasIn } from './lookup.js';
 import type { LookupOptions } from './options.js';
@@ -91,19 +91,11 @@ class ScopeHandle implements Scope {
 }
 
 async function buildScoped(scope: ScopeState, id: string): Promise<void> {
-  const record = scope.blueprint.providers.get(id)!;
-  const start = scope.root.tracer.now();
-  let value = construct(record, {
-    bp: scope.blueprint,
-    container: scope,
-    owner: scope,
-  });
-  const isAsync = isThenable(value);
-  if (isAsync) {
-    const pending = Promise.resolve(value);
-    scope.slots.begin(id, pending);
-    value = await pending;
-  }
+  const { record, value, isAsync, start } = await buildInto(
+    scope,
+    scope.blueprint,
+    id,
+  );
   scope.slots.settle(id, value);
   scope.slots.markReady(id);
   if (record.kind === 'factory') scope.root.asyncFlags.set(id, isAsync);

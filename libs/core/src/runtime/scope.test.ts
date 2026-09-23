@@ -140,6 +140,117 @@ describe('Nexus', () => {
       expect(log).toEqual(['log closed']);
     });
 
+    it('rejects NEXUS_NOT_READY for a lazy thunk to a scoped factory its own level has not reached yet', async () => {
+      let lateCalls = 0;
+      const LATE = new Token<string>('Late');
+      const EAGER = new Token<string>('Eager');
+      const Lab = defineModule({
+        name: 'Lab',
+        providers: [
+          provide(EAGER, {
+            useFactory: (late) => `eager:${late()}`,
+            deps: [lazy(LATE)],
+            lifetime: 'scoped',
+          }),
+          provide(LATE, {
+            useFactory: () => {
+              lateCalls++;
+              return 'late';
+            },
+            deps: [],
+            lifetime: 'scoped',
+          }),
+        ],
+      });
+      const lab = await Nexus.create(Lab);
+      expect(await rejected(lab.createScope())).toMatchObject({
+        code: 'NEXUS_PROVIDER_FAILED',
+        token: 'Eager',
+        cause: {
+          code: 'NEXUS_NOT_READY',
+          owner: 'Eager',
+          target: 'Late',
+          path: [],
+        },
+      });
+      // LATE still builds once, from its own place in the level; the thunk
+      // never builds it a second time.
+      expect(lateCalls).toBe(1);
+    });
+
+    it('rejects NEXUS_NOT_READY for a lazy thunk to a scoped factory a later level has not reached yet', async () => {
+      let lateCalls = 0;
+      const ANCHOR = new Token<string>('Anchor');
+      const LATE = new Token<string>('Late');
+      const EAGER = new Token<string>('Eager');
+      const Lab = defineModule({
+        name: 'Lab',
+        providers: [
+          provide(ANCHOR, {
+            useFactory: () => 'anchor',
+            deps: [],
+            lifetime: 'scoped',
+          }),
+          // Depends on ANCHOR, so LATE lands one level after EAGER.
+          provide(LATE, {
+            useFactory: (anchor) => {
+              lateCalls++;
+              return `late:${anchor}`;
+            },
+            deps: [ANCHOR],
+            lifetime: 'scoped',
+          }),
+          provide(EAGER, {
+            useFactory: (late) => `eager:${late()}`,
+            deps: [lazy(LATE)],
+            lifetime: 'scoped',
+          }),
+        ],
+      });
+      const lab = await Nexus.create(Lab);
+      expect(await rejected(lab.createScope())).toMatchObject({
+        code: 'NEXUS_PROVIDER_FAILED',
+        token: 'Eager',
+        cause: {
+          code: 'NEXUS_NOT_READY',
+          owner: 'Eager',
+          target: 'Late',
+          path: [],
+        },
+      });
+      expect(lateCalls).toBe(0);
+    });
+
+    it('stores a scoped class instance with a `then` method as is, without awaiting it', async () => {
+      const SEEN = new Token<string>('Seen');
+      class Weird {
+        // A class instance may expose `then`; buildScoped stores it as is
+        // (spec §6.1 awaits only a factory's result). Never calling back
+        // proves a wrongly-awaited instance would hang this test out.
+        then(): void {}
+      }
+      const ship = await Nexus.create(
+        defineModule({
+          name: 'Root',
+          providers: [
+            provide(Weird, { lifetime: 'scoped' }),
+            // The factory's own return value is a plain string, not the
+            // Weird instance itself: a factory result with a `then` method
+            // is correctly awaited regardless of kind, so returning `weird`
+            // here would test that path instead of this one.
+            provide(SEEN, {
+              useFactory: (weird) => (weird instanceof Weird ? 'seen' : ''),
+              deps: [Weird],
+              lifetime: 'scoped',
+            }),
+          ],
+        }),
+      );
+      await using shuttle = await ship.createScope();
+      expect(shuttle.get(SEEN)).toBe('seen');
+      expect(shuttle.get(Weird)).toBeInstanceOf(Weird);
+    });
+
     it('emits scope:create and scope:dispose', async () => {
       const events: TraceEvent[] = [];
       const ship = await Nexus.create(
@@ -181,6 +292,15 @@ describe('Nexus', () => {
         code: 'NEXUS_SCOPE_REQUIRED',
         token: 'Mission',
         path: ['Drone', 'Mission'],
+      });
+    });
+
+    it('throws NEXUS_SCOPE_REQUIRED for REQUEST resolved from the root', async () => {
+      const ship = await Nexus.create(defineModule({ name: 'Root' }));
+      expect(thrown(() => ship.get(REQUEST))).toMatchObject({
+        code: 'NEXUS_SCOPE_REQUIRED',
+        token: 'REQUEST',
+        path: ['REQUEST'],
       });
     });
   });
@@ -246,5 +366,30 @@ describe('Scope', () => {
     expect(disposed).not.toHaveBeenCalled();
     await shuttle[Symbol.asyncDispose]();
     expect(disposed).toHaveBeenCalledOnce();
+  });
+
+  it('resolves REQUEST inside a scope from a provider in an imported module', async () => {
+    const SEEN = new Token<unknown>('Seen');
+    const Inner = defineModule({
+      name: 'Inner',
+      providers: [
+        provide(SEEN, {
+          useFactory: (request) => request,
+          deps: [REQUEST],
+          lifetime: 'scoped',
+        }),
+      ],
+      exports: [SEEN],
+    });
+    const ship = await Nexus.create(
+      defineModule({ name: 'Root', imports: [Inner], exports: [Inner] }),
+    );
+    await using shuttle = await ship.createScope({
+      request: { mission: 'survey-9' },
+    });
+    expect(shuttle.get(SEEN)).toEqual({ mission: 'survey-9' });
+    expect(shuttle.get(REQUEST, { module: Inner })).toEqual({
+      mission: 'survey-9',
+    });
   });
 });

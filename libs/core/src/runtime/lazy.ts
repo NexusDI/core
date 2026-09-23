@@ -63,6 +63,13 @@ function resolveLazy(
           throw notReady(owner, target, container);
         return live(container.slots.value(id), container);
       }
+      // Only a scoped class builds on demand (spec §6.3); a scoped factory's
+      // instance always comes from createScope's own build. An async
+      // factory's thunk call runs with an empty construction stack
+      // (construction-stack.ts), so `owner` must come from this closure,
+      // not from constructionStack.top() as resolveScoped's own
+      // NotReadyError falls back to for a caller reached synchronously.
+      if (target.kind === 'factory') throw notReady(owner, target, container);
       return resolve(id, { bp, container, owner: container });
     }
 

@@ -4,13 +4,7 @@ import {
   type ProviderRecord,
 } from '../blueprint/blueprint.js';
 import { ModuleOptionsError } from '../errors/index.js';
-import {
-  adopt,
-  construct,
-  isThenable,
-  moduleName,
-  traceConstruct,
-} from './build.js';
+import { adopt, buildInto, moduleName, traceConstruct } from './build.js';
 import { disposeInReverse } from './dispose.js';
 import { settleLevel, toProviderError } from './settle.js';
 import type { RootState } from './state.js';
@@ -97,19 +91,9 @@ async function buildSingleton(
   bp: Blueprint,
   id: string,
 ): Promise<void> {
-  const record = bp.providers.get(id)!;
-  const start = root.tracer.now();
-  let value = construct(record, { bp, container: root, owner: root });
-  // Only a factory's result is awaited (spec §6.1: a class provider stores
-  // its constructed instance as is). Without the kind check, a class
-  // instance that happens to expose a `then` method would be replaced by
-  // its resolved value instead of stored.
-  const isAsync = record.kind === 'factory' && isThenable(value);
-  if (isAsync) {
-    const pending = Promise.resolve(value);
-    root.slots.begin(id, pending);
-    value = await pending;
-  }
+  const built = await buildInto(root, bp, id);
+  const { record, isAsync, start } = built;
+  let { value } = built;
   // validateOptions runs only when the record carries a schema (set only on
   // options providers, per optionsShape in blueprint/records.ts): a plain
   // provider's constructed value never needs it, and skipping the call

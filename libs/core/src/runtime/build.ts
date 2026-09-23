@@ -126,6 +126,41 @@ export function construct(record: ProviderRecord, ctx: Ctx): unknown {
   );
 }
 
+/** What `buildInto` constructed for one provider, before a caller settles it. */
+export interface Built {
+  readonly record: ProviderRecord;
+  readonly value: unknown;
+  readonly isAsync: boolean;
+  readonly start: number;
+}
+
+/**
+ * Constructs one provider into `container`, shared by `startBlueprint`
+ * (root singletons) and `createScope` (scoped factories and their scoped
+ * deps): both build level by level into a container's own slots. Only a
+ * factory's result is awaited (spec §6.1: a class provider stores its
+ * constructed instance as is). Without the kind check, a class instance
+ * that happens to expose a `then` method would be replaced by its resolved
+ * value instead of stored, or hang the caller forever waiting on a `then`
+ * that never calls back.
+ */
+export async function buildInto(
+  container: ContainerState,
+  bp: Blueprint,
+  id: string,
+): Promise<Built> {
+  const record = recordOf(bp, id);
+  const start = container.root.tracer.now();
+  let value = construct(record, { bp, container, owner: container });
+  const isAsync = record.kind === 'factory' && isThenable(value);
+  if (isAsync) {
+    const pending = Promise.resolve(value);
+    container.slots.begin(id, pending);
+    value = await pending;
+  }
+  return { record, value, isAsync, start };
+}
+
 /** REQUEST resolves to the scope's request; from the root it has no value. */
 export function requestOf(ctx: Ctx): unknown {
   if (ctx.container.kind === 'root') {
@@ -152,6 +187,15 @@ export function resolveScoped(record: ProviderRecord, ctx: Ctx): unknown {
   if (container.slots.has(record.id)) {
     if (container.slots.isSettled(record.id))
       return container.slots.value(record.id);
+    throw new NotReadyError({
+      owner: constructionStack.top()?.name ?? record.name,
+      target: record.name,
+      path: [],
+    });
+  }
+  if (record.kind === 'factory') {
+    // A scoped factory only builds in createScope's own levels (spec §6.3);
+    // one missing from the scope's slots has not been built yet.
     throw new NotReadyError({
       owner: constructionStack.top()?.name ?? record.name,
       target: record.name,
