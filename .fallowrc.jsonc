@@ -46,5 +46,39 @@
     // package -- carries no devDependencies at all (see libs/urn in the
     // libraries repo this tooling is modeled on).
     "jsonc-eslint-parser",
+    // react-pair.test.ts imports tinyglobby directly, but nothing in this
+    // workspace declares it: it is a transitive dependency of vite/vitest,
+    // hoisted to the root. Mirrors the libraries repo's own entry for the
+    // same import.
+    "tinyglobby",
+    // Imported by tools/doc-examples/src/vite-config.ts, which every
+    // package's vite.config.ts pulls in through @nexusdi/doc-examples.
+    // tools/doc-examples is private and carries no dependencies of its own
+    // (see the libraries repo's tools/doc-examples, which this mirrors), so
+    // it resolves through the root manifest instead.
+    "vite-plugin-doctest",
   ],
+
+  // 30 tokens rather than the default 50, mirroring the libraries repo this
+  // tooling is modeled on: a handful of lines duplicated between two
+  // decorators, or between two routes in the same app, is exactly the size
+  // this is meant to catch. Config files are excluded because a per-project
+  // vite or eslint config is meant to read the same as its neighbours.
+  "duplicates": {
+    "minTokens": 30,
+    "minLines": 3,
+
+    // Today's figure is 2.5%. The ceiling is a ratchet, not a target: it
+    // fails the run that adds the next copy and is lowered whenever a clone
+    // group is consolidated.
+    "threshold": 2.6,
+
+    "ignore": [
+      "**/vite.config.*",
+      "**/vitest.config.*",
+      "**/eslint.config.*",
+      "**/*.test-d.*",
+      "**/*.test.*",
+    ],
+  },
 }
