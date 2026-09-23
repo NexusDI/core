@@ -34,17 +34,32 @@ function metadataOf(cls: unknown): MetadataRecord | undefined {
     : undefined;
 }
 
+/** The class's metadata objects, own first, stopping before Object.prototype. */
+function* metadataChain(cls: unknown): Generator<MetadataRecord> {
+  let metadata: MetadataRecord | null | undefined = metadataOf(cls);
+  while (
+    metadata !== null &&
+    metadata !== undefined &&
+    metadata !== (Object.prototype as MetadataRecord)
+  ) {
+    yield metadata;
+    metadata = Object.getPrototypeOf(metadata) as MetadataRecord | null;
+  }
+}
+
 export function readInjectable(cls: unknown): InjectableMetadata | undefined {
-  return metadataOf(cls)?.[INJECTABLE] as InjectableMetadata | undefined;
+  for (const metadata of metadataChain(cls)) {
+    if (Object.hasOwn(metadata, INJECTABLE))
+      return metadata[INJECTABLE] as InjectableMetadata;
+  }
+  return undefined;
 }
 
 export function readProps(cls: unknown): PropMetadata[] {
   const levels: (readonly PropMetadata[])[] = [];
-  let metadata: MetadataRecord | null | undefined = metadataOf(cls);
-  while (metadata !== null && metadata !== undefined) {
+  for (const metadata of metadataChain(cls)) {
     if (Object.hasOwn(metadata, PROPS))
       levels.unshift(metadata[PROPS] as PropMetadata[]);
-    metadata = Object.getPrototypeOf(metadata) as MetadataRecord | null;
   }
   return levels.flat();
 }

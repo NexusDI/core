@@ -105,6 +105,8 @@ function sourceOf(input: unknown): OptionsSource {
   if (
     typeof candidate === 'object' &&
     candidate !== null &&
+    Object.hasOwn(candidate, 'useFactory') &&
+    Object.hasOwn(candidate, 'deps') &&
     typeof candidate.useFactory === 'function' &&
     Array.isArray(candidate.deps)
   ) {

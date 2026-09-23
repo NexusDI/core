@@ -109,7 +109,12 @@ function readDeclaredDeps(
   cls: Ctor,
   fail: Fail,
 ): { readonly fromMetadata: unknown; readonly fromStatic: unknown } | null {
-  const fromMetadata = readInjectable(cls)?.deps;
+  const metadata = readClass(() => readInjectable(cls), fail);
+  if (metadata === null) return null;
+  const fromMetadata =
+    metadata !== undefined && Object.hasOwn(metadata, 'deps')
+      ? metadata.deps
+      : undefined;
   const declared = readStaticDeps(cls, fail);
   if (declared === null) return null;
   if (fromMetadata !== undefined && declared.value !== undefined)
@@ -194,6 +199,15 @@ export interface ProviderSite {
 
 type Fail = (reason: string) => null;
 
+/** Reads from a user class, turning a throwing getter or Proxy trap into a provider error. */
+function readClass<T>(read: () => T, fail: Fail): T | null {
+  try {
+    return read();
+  } catch (error) {
+    return fail(`is a class that throws when read: ${describeThrown(error)}`);
+  }
+}
+
 /**
  * The token an entry names, even when the entry is malformed. The walk marks
  * it broken, so pass 3 does not report a missing provider for a token whose
@@ -277,12 +291,14 @@ function classShape(
   if (list === undefined) {
     // C.length counts neither defaulted nor rest parameters, so such a class
     // builds with its defaults.
-    if (cls.length > 0) {
+    const arity = readClass(() => cls.length, fail);
+    if (arity === null) return null;
+    if (arity > 0) {
       errors.push(
         new MissingDepsError({
           token: displayName(token),
           module: site.module,
-          arity: cls.length,
+          arity,
           useClass: token === cls ? null : displayName(cls),
         }),
       );
@@ -292,7 +308,7 @@ function classShape(
   }
   if (!Array.isArray(list)) return fail('has deps that are not an array');
   const entries = depsOf(list, fail);
-  const props = entries && propsOf(cls, fail);
+  const props = entries && readClass(() => propsOf(cls, fail), fail);
   if (!entries || !props) return null;
   return {
     kind: 'class',
@@ -310,8 +326,12 @@ function bareClass(
   errors: NexusError[],
   fail: Fail,
 ): RecordShape | null {
-  const metadata = readInjectable(cls);
-  const lifetime = metadata?.lifetime ?? 'singleton';
+  const metadata = readClass(() => readInjectable(cls), fail);
+  if (metadata === null) return null;
+  const lifetime =
+    (metadata !== undefined && Object.hasOwn(metadata, 'lifetime')
+      ? metadata.lifetime
+      : undefined) ?? 'singleton';
   if (!LIFETIMES.has(lifetime)) {
     return fail(
       `has the @Injectable lifetime ${describeValue(lifetime)}; use 'singleton', 'scoped' or 'transient'`,

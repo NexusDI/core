@@ -67,7 +67,10 @@ export function computeVisibility(
     learn(record.token);
     if (input.pinned.has(record.token)) continue;
     const map = own.get(record.module);
-    map?.set(record.token, [...(map.get(record.token) ?? []), record.id]);
+    if (map === undefined) continue;
+    const ids = map.get(record.token);
+    if (ids === undefined) map.set(record.token, [record.id]);
+    else ids.push(record.id);
   }
   for (const token of input.pinned.keys()) learn(token);
 
@@ -103,20 +106,37 @@ export function computeVisibility(
   const active = new Set<string>();
   const tokenIds = new Map(universe.map((token, i) => [token, i]));
 
-  const sources = (node: ModuleNode): string[] => [
-    ...node.imports,
-    ...globals.filter((g) => g !== node.id && !node.imports.includes(g)),
-  ];
+  const sourceTable = new Map(
+    input.modules.map((node) => {
+      const imports = new Set(node.imports);
+      return [
+        node.id,
+        [
+          ...node.imports,
+          ...globals.filter((g) => g !== node.id && !imports.has(g)),
+        ],
+      ] as const;
+    }),
+  );
+  const sources = (node: ModuleNode): readonly string[] =>
+    sourceTable.get(node.id) ?? [];
 
+  const exportMemo = new Map<string, readonly string[]>();
   const exported = (moduleId: string, token: TokenKey): readonly string[] => {
+    const key = `${moduleId}|${tokenIds.get(token)}`;
+    const cached = exportMemo.get(key);
+    if (cached !== undefined) return cached;
     const plan = plans.get(moduleId);
-    if (plan === undefined) return [];
     const ids = new Set<string>();
-    if (plan.tokens.includes(token))
-      for (const id of lookup(moduleId, token)) ids.add(id);
-    for (const child of plan.modules)
-      for (const id of exported(child, token)) ids.add(id);
-    return [...ids].sort(byRank);
+    if (plan !== undefined) {
+      if (plan.tokens.includes(token))
+        for (const id of lookup(moduleId, token)) ids.add(id);
+      for (const child of plan.modules)
+        for (const id of exported(child, token)) ids.add(id);
+    }
+    const result = [...ids].sort(byRank);
+    exportMemo.set(key, result);
+    return result;
   };
 
   const lookup = (moduleId: string, token: TokenKey): readonly string[] => {

@@ -83,7 +83,12 @@ export function walk(input: WalkInput, errors: NexusError[]): WalkResult {
       node.providers.push(id);
     };
 
+    // The same entry listed twice is one provider, as one module imported twice is one module.
+    const listed = new Set<unknown>();
+
     definition.providers.forEach((entry, index) => {
+      if (listed.has(entry)) return;
+      listed.add(entry);
       const shape = normalizeProvider(
         entry,
         { module: definition.name, index },
@@ -161,9 +166,13 @@ export function walk(input: WalkInput, errors: NexusError[]): WalkResult {
     addProviders(node, definition);
 
     stack.push(definition);
+    const imported = new Set<string>();
     for (const child of [...definition.imports, ...extra]) {
       const id = visit(child, []);
-      if (id !== undefined && !node.imports.includes(id)) node.imports.push(id);
+      if (id !== undefined && !imported.has(id)) {
+        imported.add(id);
+        node.imports.push(id);
+      }
     }
     stack.pop();
     return node.id;
