@@ -232,8 +232,8 @@ jobs:
       - name: Redeploy the docs site
         # docs.yml no longer triggers on a release tag push: GitHub Pages'
         # default environment protection rule allows only the default
-        # branch, and a tag push isn't one. Dispatch it from main instead,
-        # now that the release tag it reads exists.
+        # branch, and a tag push isn't one. Dispatch it from main, now that
+        # the release tag it reads exists.
         if: ${{ !inputs.dry-run }}
         env:
           GH_TOKEN: ${{ github.token }}

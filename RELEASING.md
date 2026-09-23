@@ -282,7 +282,7 @@ still granted and that the trusted publisher's workflow filename still matches.
 `docs.yml` (nexus.js.org) does not trigger on the release tag. GitHub Pages'
 default environment protection rule allows deployments only from the default
 branch, and a tag push is not on the default branch, so a tag trigger fails at
-the `deploy` job every time. Instead, the last step of a non-dry-run release
+the `deploy` job every time. The last step of a non-dry-run release
 runs `gh workflow run docs.yml --ref main`, which dispatches `docs.yml` on
 `main` once the release tag exists. `docs.yml` itself still resolves the root
 site from the newest `@nexusdi/core@*` tag (docs spec §15.6); dispatching it
