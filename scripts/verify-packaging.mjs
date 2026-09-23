@@ -26,6 +26,8 @@ import {
 } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join, resolve } from 'node:path';
+import { rollup } from 'rollup';
+import { nodeResolve } from '@rollup/plugin-node-resolve';
 
 const ROOT = resolve(import.meta.dirname, '..');
 
@@ -289,6 +291,90 @@ if (consumer.greeter.greet() !== 'hello from the packed build') {
   run('node', [join(dir, 'runtime-out', 'runtime.mjs')], dir);
   console.log(
     '  ✓ the package imports cleanly as ESM and resolves DI at runtime',
+  );
+
+  // A third pass through a tree-shaking bundler, not just node's own
+  // resolver: Rollup treats `export { X } from './y.js'` in a
+  // `sideEffects: false` module as a facade. When nothing in the consumer's
+  // graph needs anything else from that module, Rollup links the import
+  // straight to `y.js` and never evaluates the re-exporting module at all --
+  // so a top-level statement in index.js that produces no export, like the
+  // `Symbol.metadata` polyfill, does not run. The two runtime checks above
+  // import unbundled: node evaluates dist/index.js top to bottom regardless
+  // of what package.json claims, so they cannot catch this. esbuild does not
+  // perform this facade elision, so it cannot exercise this path either --
+  // only Rollup's linker does.
+  console.log('Bundling a consumer with Rollup (tree-shaking check)…');
+  writeFileSync(
+    join(dir, 'bundle-entry.mjs'),
+    `
+import { Nexus, Service, Token } from '@nexusdi/core';
+
+// Applied as a plain function, not "@Service()", so this file needs no
+// decorator transform before Rollup bundles it -- the point is to observe
+// what the published JavaScript does under tree shaking, not to re-test
+// decorator syntax.
+class Greeter {
+  greet() {
+    return 'hello from the bundle';
+  }
+}
+Service()(Greeter);
+
+// Registered and resolved by the class itself, not a Token instance: Token
+// resolution goes through isToken()'s "constructor.name === 'Token'" check,
+// which a bundler that renames a top-level class to avoid a scope collision
+// breaks on its own, independently of the Symbol.metadata polyfill this
+// check exists to verify. Token is imported and sanity-checked below so a
+// build that fails to export it still fails loudly, without routing it
+// through that unrelated, pre-existing hazard.
+const GREETER = new Token('Greeter');
+
+const container = new Nexus();
+container.set(Greeter);
+const instance = container.get(Greeter);
+
+const failures = [];
+
+if (!(GREETER instanceof Token)) {
+  failures.push('Token did not produce an instance of the imported Token class');
+}
+
+if (typeof Symbol.metadata !== 'symbol') {
+  failures.push(
+    \`Symbol.metadata is \${typeof Symbol.metadata}, not "symbol": the bundler dropped @nexusdi/core's top-level polyfill\`,
+  );
+} else if (!Object.getOwnPropertyDescriptor(Greeter, Symbol.metadata)) {
+  failures.push('service metadata was not stored under Symbol.metadata');
+}
+
+if (Object.prototype.hasOwnProperty.call(Greeter, 'undefined')) {
+  failures.push(
+    "service metadata was stored under the string key 'undefined' instead of Symbol.metadata",
+  );
+}
+
+if (instance.greet() !== 'hello from the bundle') {
+  failures.push('the bundled container failed to resolve the registered service');
+}
+
+if (failures.length) {
+  console.error('tree-shaking check FAILED:');
+  for (const failure of failures) console.error(\`  - \${failure}\`);
+  process.exit(1);
+}
+`,
+  );
+  const bundle = await rollup({
+    input: join(dir, 'bundle-entry.mjs'),
+    plugins: [nodeResolve()],
+    treeshake: true,
+  });
+  await bundle.write({ file: join(dir, 'bundle-out.mjs'), format: 'esm' });
+  await bundle.close();
+  run('node', [join(dir, 'bundle-out.mjs')], dir);
+  console.log(
+    '  ✓ the Symbol.metadata polyfill survives a Rollup tree-shaking bundle',
   );
 
   // A helper tsc emits under `importHelpers` becomes an `import ... from
