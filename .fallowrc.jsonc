@@ -35,15 +35,14 @@
   // The docs guards under tools/repo-checks/src/docs import these names from
   // the shared site reader. `doc-fence` reads EXEMPTION_TAGS and SHELL_LANGS.
   // `doc-export-coverage`, `doc-twoslash`, `doc-regions` and `doc-commitments`
-  // call parsePage. Most guards read CONTENT and readAllowance, and
-  // `doc-control`, `doc-links` and `doc-commitments` read DOCS. proseOf joins
+  // call parsePage. Most guards read CONTENT and readAllowance. proseOf joins
   // proseLines into one string for a prose guard. None of those guards exists
   // yet, so nothing imports the names today. Drop each name once a guard
   // imports it.
   "ignoreExports": [
     {
       "file": "tools/repo-checks/src/docs/paths.ts",
-      "exports": ["DOCS", "CONTENT"],
+      "exports": ["CONTENT"],
     },
     {
       "file": "tools/repo-checks/src/docs/site.ts",
@@ -62,6 +61,14 @@
     {
       "file": "tools/repo-checks/src/docs/docs-trigger.ts",
       "exports": ["REQUIRED_PATHS", "RELEASE_TAG"],
+    },
+    // readDeployConfig is part of deploy-config's documented interface. Its
+    // one caller is the CLI block at the bottom of the same file, which
+    // docs.yml runs as `node apps/docs/tools/deploy/deploy-config.mjs`. No
+    // module imports it, and none is planned to.
+    {
+      "file": "apps/docs/tools/deploy/deploy-config.mjs",
+      "exports": ["readDeployConfig"],
     },
   ],
 
