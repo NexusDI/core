@@ -68,7 +68,7 @@ NexusDI is an alternative to:
 
 ## 📦 Bundle Size
 
-A consumer that imports `Nexus`, `Service`, `Inject`, and `Token` from `@nexusdi/core@0.3.2`, registers two services, and resolves one comes to 6,840 bytes minified and 2,517 bytes gzipped, bundled with esbuild 0.28.2 (`--bundle --minify --format=esm`) against the published npm package. NexusDI 0.4 will include a reproducible benchmark harness that compares DI containers on bundle size, startup, resolve time, and build time.
+A consumer that imports `Nexus`, `Service`, `Inject`, and `Token` from `@nexusdi/core@0.3.2`, registers two services, and resolves one comes to 6,247 bytes minified and 2,257 bytes gzipped, bundled with esbuild 0.28.2 (`--bundle --minify --format=esm`, `target: ES2022`, `experimentalDecorators`) against the published npm package; see `scripts/measure-bundle-0.3.mjs` to reproduce it or measure another import combination. NexusDI 0.4 will include a reproducible benchmark harness that compares DI containers on bundle size, startup, resolve time, and build time.
 
 👉 See the [Performance & Bundle Size](https://nexus.js.org/docs/performance) article for methodology and details.
 
