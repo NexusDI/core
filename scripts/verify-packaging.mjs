@@ -28,6 +28,7 @@ import { tmpdir } from 'node:os';
 import { join, resolve } from 'node:path';
 import { rollup } from 'rollup';
 import { nodeResolve } from '@rollup/plugin-node-resolve';
+import * as esbuild from 'esbuild';
 
 const ROOT = resolve(import.meta.dirname, '..');
 
@@ -375,6 +376,61 @@ if (failures.length) {
   run('node', [join(dir, 'bundle-out.mjs')], dir);
   console.log(
     '  ✓ the Symbol.metadata polyfill survives a Rollup tree-shaking bundle',
+  );
+
+  // A fourth pass, bundled with both esbuild and Rollup: a Token round-trip
+  // through the container, not the Symbol.metadata polyfill check above.
+  // When a bundler flattens multiple ES modules into one top-level scope, a
+  // name collision forces it to rename one of the colliding declarations.
+  // esbuild does this for this package's `Token` class; Rollup, for this
+  // entry point, does not, so it is included to prove the round-trip still
+  // works when nothing gets renamed. A token that resolution recognises
+  // only by `constructor.name === 'Token'` stops resolving the moment that
+  // name changes, even though the instance is exactly the one that was
+  // registered.
+  console.log('Bundling a Token round-trip with esbuild and Rollup…');
+  writeFileSync(
+    join(dir, 'token-entry.mjs'),
+    `
+import { Nexus, Token } from '@nexusdi/core';
+
+const TOKEN = new Token('X');
+const container = new Nexus();
+container.set(TOKEN, { useValue: 'token round-trip value' });
+const value = container.get(TOKEN);
+
+if (value !== 'token round-trip value') {
+  console.error('tree-shaking check FAILED:');
+  console.error(
+    \`  - container.get(TOKEN) returned \${JSON.stringify(value)}, not the value registered under that same Token instance (constructor.name is "\${TOKEN.constructor.name}")\`,
+  );
+  process.exit(1);
+}
+`,
+  );
+  await esbuild.build({
+    entryPoints: [join(dir, 'token-entry.mjs')],
+    outfile: join(dir, 'token-out-esbuild.mjs'),
+    absWorkingDir: dir,
+    bundle: true,
+    format: 'esm',
+    treeShaking: true,
+    platform: 'node',
+  });
+  run('node', [join(dir, 'token-out-esbuild.mjs')], dir);
+  const tokenRollupBundle = await rollup({
+    input: join(dir, 'token-entry.mjs'),
+    plugins: [nodeResolve()],
+    treeshake: true,
+  });
+  await tokenRollupBundle.write({
+    file: join(dir, 'token-out-rollup.mjs'),
+    format: 'esm',
+  });
+  await tokenRollupBundle.close();
+  run('node', [join(dir, 'token-out-rollup.mjs')], dir);
+  console.log(
+    '  ✓ a Token instance still resolves after esbuild and Rollup bundle it',
   );
 
   // A helper tsc emits under `importHelpers` becomes an `import ... from
