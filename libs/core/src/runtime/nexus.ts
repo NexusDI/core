@@ -5,6 +5,7 @@ import type { NexusRequest } from '../definitions/request.js';
 import type { InjectionToken, MultiToken } from '../definitions/token.js';
 import { NoScopeContextError } from '../errors/index.js';
 import { resolveDeps, validateDeps } from './deps.js';
+import { toGraph, type NexusGraph } from './graph.js';
 import { loadModule } from './load.js';
 import { getFrom, hasIn } from './lookup.js';
 import type { CreateOptions, LookupOptions } from './options.js';
@@ -115,6 +116,11 @@ export class Nexus {
   /** The scope runInScope() bound to the current async context, or undefined. */
   currentScope(): Scope | undefined {
     return this.#state.scopeContext?.current();
+  }
+
+  /** The compiled graph as plain JSON, including modules added by load(). Works after disposal. */
+  graph(): NexusGraph {
+    return toGraph(this.#state.blueprint, this.#state.asyncFlags);
   }
 
   /**
