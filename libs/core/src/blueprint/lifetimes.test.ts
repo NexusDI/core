@@ -6,6 +6,7 @@ import { lazy } from '../definitions/modifiers.js';
 import { provide } from '../definitions/provide.js';
 import { REQUEST } from '../definitions/request.js';
 import { Token } from '../definitions/token.js';
+import { LifetimeError } from '../errors/index.js';
 import { compile } from './compile.js';
 
 const MISSION = new Token<string>('Mission');
@@ -102,5 +103,42 @@ describe('compile', () => {
       ],
     });
     expect(() => compile({ root: Root })).not.toThrow();
+  });
+
+  it('walks a long transient chain to a scoped provider without overflowing the call stack', () => {
+    const CHAIN_LENGTH = 20000;
+    const chain = Array.from(
+      { length: CHAIN_LENGTH + 1 },
+      (_, i) => new Token<string>(`Link${i}`),
+    );
+    const providers = chain.slice(0, CHAIN_LENGTH).map((token, i) =>
+      provide(token, {
+        useFactory: (v: string) => v,
+        deps: [chain[i + 1]],
+        lifetime: 'transient',
+      }),
+    );
+    const end = provide(chain[CHAIN_LENGTH], {
+      useFactory: () => 'end',
+      deps: [],
+      lifetime: 'scoped',
+    });
+    const Root = defineModule({
+      name: 'Root',
+      providers: [
+        ...providers,
+        end,
+        provide(ShipComputer, { deps: [chain[0]] }),
+      ],
+    });
+    const errors = compileErrors(Root);
+    expect(errors).toHaveLength(1);
+    const [error] = errors;
+    if (!(error instanceof LifetimeError))
+      throw new Error('expected a LifetimeError');
+    expect(error.path).toHaveLength(CHAIN_LENGTH + 2);
+    expect(error.path[0]).toBe('ShipComputer');
+    expect(error.lifetimes[0]).toBe('singleton');
+    expect(error.lifetimes.at(-1)).toBe('scoped');
   });
 });
