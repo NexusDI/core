@@ -4,7 +4,7 @@ import type { InjectionToken, MultiToken } from '../definitions/token.js';
 import { DisposedError, RequestMissingError } from '../errors/index.js';
 import { adopt, buildInto, traceConstruct } from './build.js';
 import { resolveDeps } from './deps.js';
-import { chainErrors, disposeInReverse } from './dispose.js';
+import { chainErrors, collectInto, disposeInReverse } from './dispose.js';
 import { getFrom, hasIn } from './lookup.js';
 import type { LookupOptions } from './options.js';
 import { settleLevel, toProviderError } from './settle.js';
@@ -52,14 +52,20 @@ export function disposeScope(scope: ScopeState): Promise<void> {
         scope.root.ownership,
         reportDisposal(tracer, scope.scopeId),
       );
-      tracer.emit(() => ({
-        type: 'scope:dispose',
-        scope: scope.scopeId,
-        disposed: report.disposed,
-        errors: report.errors.length,
-        durationMs: tracer.now() - start,
-      }));
-      const chained = chainErrors(report.errors);
+      // A throwing trace callback joins the scope's disposal errors instead
+      // of escaping here, so the finally below still runs, and the scope's
+      // own disposal errors still reach the caller chained with it.
+      const errors = [...report.errors];
+      collectInto(errors, () =>
+        tracer.emit(() => ({
+          type: 'scope:dispose',
+          scope: scope.scopeId,
+          disposed: report.disposed,
+          errors: report.errors.length,
+          durationMs: tracer.now() - start,
+        })),
+      );
+      const chained = chainErrors(errors);
       if (chained !== undefined) throw chained.error;
     } finally {
       // Stays in root.scopes until disposal settles, so a root disposal that

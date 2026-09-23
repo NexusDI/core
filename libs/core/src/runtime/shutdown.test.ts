@@ -268,6 +268,41 @@ describe('Nexus', () => {
       });
     });
 
+    it('keeps disposing every root instance and chains a disposer error with the trace callback throw for the dispose event', async () => {
+      const log: string[] = [];
+      class Reactor {
+        [Symbol.dispose]() {
+          log.push('reactor');
+        }
+      }
+      class Computer {
+        constructor(readonly reactor: Reactor) {}
+        [Symbol.dispose]() {
+          log.push('computer');
+          throw new Error('computer stuck');
+        }
+      }
+      const boom = new Error('trace exploded');
+      const ship = await Nexus.create(
+        defineModule({
+          name: 'Root',
+          providers: [Reactor, provide(Computer, { deps: [Reactor] })],
+        }),
+        {
+          trace: (event) => {
+            if (event.type === 'dispose') throw boom;
+          },
+        },
+      );
+      const error = (await rejected(
+        ship[Symbol.asyncDispose](),
+      )) as SuppressedError;
+      expect(log).toEqual(['computer', 'reactor']);
+      expect(error).toBeInstanceOf(SuppressedError);
+      expect(error.error).toBe(boom);
+      expect(error.suppressed).toMatchObject({ message: 'computer stuck' });
+    });
+
     it('lets a disposer reach a live dependency through a thunk and throws NEXUS_DISPOSED for a disposed one', async () => {
       const seen: string[] = [];
       class Reactor {

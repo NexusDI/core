@@ -300,6 +300,43 @@ describe('Nexus', () => {
         { type: 'scope:dispose', scope: 's0', disposed: 0, errors: 0 },
       ]);
     });
+
+    it('keeps disposing and chains a disposer error with the trace callback throw for a scope:dispose event', async () => {
+      const log: string[] = [];
+      const LOG = new Token<object>('Log');
+      const boom = new Error('scope trace exploded');
+      const ship = await Nexus.create(
+        defineModule({
+          name: 'Root',
+          providers: [
+            provide(LOG, {
+              useFactory: () => ({
+                [Symbol.dispose]() {
+                  log.push('log disposed');
+                  throw new Error('log stuck');
+                },
+              }),
+              deps: [],
+              lifetime: 'scoped',
+            }),
+          ],
+        }),
+        {
+          trace: (event) => {
+            if (event.type === 'scope:dispose') throw boom;
+          },
+        },
+      );
+      const shuttle = await ship.createScope();
+      shuttle.get(LOG);
+      const error = (await rejected(
+        shuttle[Symbol.asyncDispose](),
+      )) as SuppressedError;
+      expect(log).toEqual(['log disposed']);
+      expect(error).toBeInstanceOf(SuppressedError);
+      expect(error.error).toBe(boom);
+      expect(error.suppressed).toMatchObject({ message: 'log stuck' });
+    });
   });
 
   describe('get', () => {

@@ -49,6 +49,24 @@ export function chainErrors(
   return { error: chained };
 }
 
+/**
+ * Runs `fn` and, if it throws, pushes the error onto `errors` instead of
+ * letting it propagate. `disposeInReverse` uses it per entry so a throwing
+ * `onDisposed` callback never stops the rest of disposal (Task 26 ruling);
+ * scope and root disposal use it the same way around their own trace
+ * `emit` call, so a throwing trace callback never stops disposal there
+ * either. When `fn` builds a trace event from the errors collected so far
+ * and then emits it, that event's `errors` count can never include the
+ * emit's own throw: the event is built before the sink runs.
+ */
+export function collectInto(errors: unknown[], fn: () => void): void {
+  try {
+    fn();
+  } catch (error) {
+    errors.push(error);
+  }
+}
+
 interface MaybeDisposable {
   readonly [Symbol.asyncDispose]?: unknown;
   readonly [Symbol.dispose]?: unknown;
@@ -112,10 +130,9 @@ export async function disposeInReverse(
     ownership.markDisposed(entry.instance);
     if (ran) {
       disposed++;
-      try {
-        onDisposed?.(entry);
-      } catch (error) {
-        errors.push(error);
+      if (onDisposed !== undefined) {
+        const disposedEntry = entry;
+        collectInto(errors, () => onDisposed(disposedEntry));
       }
     }
   }
