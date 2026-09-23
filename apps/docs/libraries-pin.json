@@ -1,0 +1,16 @@
+{
+  "repository": "Evanion/libraries",
+  "sha": "0332f43530e781566932ee9dcc0dfa9a45f52cf4",
+  "documents": [
+    "docs/specs/2026-09-16-documentation-standard.md",
+    "docs/specs/2026-09-20-public-documentation-guidance.md",
+    "docs/specs/2026-09-13-interactive-examples.md",
+    "docs/specs/2026-09-16-diagrams.md",
+    "docs/specs/2026-09-13-versioned-docs.md",
+    "docs/specs/2026-09-13-released-by-default.md",
+    "docs/specs/2026-09-21-docs-api-reference.md",
+    "docs/specs/2026-09-22-docs-tests-per-export.md",
+    "docs/specs/2026-09-21-reference-page-budget.md",
+    "docs/specs/2026-09-12-baize-ui.md"
+  ]
+}

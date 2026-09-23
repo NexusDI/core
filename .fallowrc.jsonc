@@ -9,6 +9,11 @@
   // roots, so they are not reported as unused.
   "publicPackages": ["@nexusdi/core"],
 
+  // Nextra loads every page and `_meta.ts` under apps/docs/content by file
+  // convention, never through an import, so the reachability walk reports
+  // the whole content tree as unused without this.
+  "entry": ["apps/docs/content/**/*.{mdx,ts}"],
+
   // `react-router typegen` writes +types/*.d.ts files that examples/react-ssr
   // reaches only through tsconfig.app.json's `rootDirs` (app merged with
   // .react-router/types/app at the same relative position) -- a TypeScript

@@ -17,6 +17,9 @@
     },
     {
       "path": "./tools/doc-examples"
+    },
+    {
+      "path": "./apps/docs"
     }
   ],
   "compilerOptions": {

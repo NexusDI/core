@@ -1,0 +1,61 @@
+{
+  "name": "@nexusdi/docs",
+  "version": "0.0.0",
+  "private": true,
+  "nx": {
+    "tags": [
+      "scope:docs",
+      "type:app"
+    ],
+    "targets": {
+      "build": {
+        "dependsOn": [
+          "^build"
+        ],
+        "inputs": [
+          "default",
+          "^production",
+          {
+            "env": "DOCS_BASE_PATH"
+          },
+          {
+            "env": "DOCS_CHANNEL"
+          }
+        ],
+        "outputs": [
+          "{projectRoot}/.next",
+          "{projectRoot}/out"
+        ]
+      },
+      "typecheck": {
+        "cache": true,
+        "dependsOn": [
+          "^build"
+        ],
+        "inputs": [
+          "default",
+          "^production"
+        ],
+        "outputs": [
+          "{projectRoot}/dist"
+        ],
+        "command": "tsc --project tsconfig.json",
+        "options": {
+          "cwd": "{projectRoot}"
+        }
+      }
+    }
+  },
+  "dependencies": {
+    "next": "16.3.4",
+    "nextra": "4.6.1",
+    "nextra-theme-docs": "4.6.1",
+    "react": "19.3.0",
+    "react-dom": "19.3.0"
+  },
+  "devDependencies": {
+    "@nx/eslint-plugin": "23.1.1",
+    "eslint-config-next": "16.3.4",
+    "typescript": "6.0.3"
+  }
+}

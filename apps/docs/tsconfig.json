@@ -1,0 +1,49 @@
+{
+  "extends": "../../tsconfig.base.json",
+  "compilerOptions": {
+    "jsx": "preserve",
+    "noEmit": true,
+    "emitDeclarationOnly": false,
+    "esModuleInterop": true,
+    "module": "esnext",
+    "moduleResolution": "bundler",
+    "resolveJsonModule": true,
+    "lib": ["dom", "dom.iterable", "esnext"],
+    "allowJs": true,
+    "allowSyntheticDefaultImports": true,
+    // next.config.ts imports `./app/channel.ts` with its extension: Nx loads
+    // the config under Node's type stripping, which resolves no extensionless
+    // relative import.
+    "allowImportingTsExtensions": true,
+    "forceConsistentCasingInFileNames": true,
+    "incremental": true,
+    "plugins": [{ "name": "next" }],
+    "paths": { "@/*": ["./*"] },
+    // The docs app resolves @nexusdi/core the way a published consumer does:
+    // the `import` and `types` conditions, which reach the package's built
+    // `dist/`. tsconfig.base.json sets `customConditions: ["@nexusdi/source"]`,
+    // which would resolve to TypeScript source instead. `next build`
+    // type-checks with a plain `tsc` that does not build project references,
+    // so the source file would redirect to a declaration output no target
+    // emitted (TS6305). nx.json orders core's build ahead of this app's.
+    "customConditions": [],
+    "outDir": "dist",
+    "rootDir": ".",
+    "types": ["node", "vitest/globals"],
+    "ignoreDeprecations": "6.0"
+  },
+  "include": [
+    "app/**/*.ts",
+    "app/**/*.tsx",
+    "content/**/*.ts",
+    "content/**/*.tsx",
+    "components/**/*.ts",
+    "components/**/*.tsx",
+    "tools/**/*.mjs",
+    "next-env.d.ts",
+    ".next/types/**/*.ts",
+    "mdx-components.js",
+    "next.config.ts"
+  ],
+  "exclude": ["out", "dist", "node_modules", ".next", "eslint.config.mjs"]
+}

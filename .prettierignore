@@ -15,3 +15,7 @@
 # and prettier collapses both to one, which makes the formatter a second
 # producer of the file.
 **/CHANGELOG.md
+# The docs app's Next build cache and static export, rewritten on every
+# `next build`.
+apps/docs/.next
+apps/docs/out

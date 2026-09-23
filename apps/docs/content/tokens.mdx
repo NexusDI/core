@@ -1,0 +1,18 @@
+---
+title: Tokens
+kind: concept
+console: true
+description: A NexusDI token names a dependency, and NexusDI compares tokens by identity.
+---
+
+# Tokens
+
+A NexusDI token names a dependency the container can provide. NexusDI accepts two kinds of token: a class, and a `Token<T>` for a value with no class of its own.
+
+## Use a class as a NexusDI token
+
+A class is its own NexusDI token. The container resolves a class token to an instance of that class, so the class name in a deps tuple names both the dependency and its type.
+
+## Name an interface with a NexusDI `Token<T>`
+
+A `Token<T>` names a dependency whose type is an interface, which has no runtime value. `Token` takes a required description, and NexusDI shows that description in errors, in `graph()` and in trace events. Two tokens with the same description stay distinct, because NexusDI compares tokens by identity.
