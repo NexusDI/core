@@ -8,10 +8,20 @@
     "experimentalDecorators": true,
     "jsx": "react-jsx",
     "module": "es2022",
+    "moduleResolution": "bundler",
     "resolveJsonModule": true,
     "allowJs": true,
     "forceConsistentCasingInFileNames": true,
-    "rootDir": "app",
+    // No `rootDir: "app"` here: it would reject the generated
+    // .react-router/types files below as outside it. rootDirs (below) is
+    // module-resolution only and needs no matching rootDir.
+    // `react-router typegen` writes `+types/*.d.ts` files that mirror app/'s
+    // own directory structure under .react-router/types/app. rootDirs is what
+    // lets `import type { Route } from './+types/home'` inside
+    // app/routes/home.tsx resolve to the generated
+    // .react-router/types/app/routes/+types/home.d.ts as though the two
+    // directories were one.
+    "rootDirs": ["app", ".react-router/types/app"],
     "tsBuildInfoFile": "dist/tsconfig.app.tsbuildinfo"
   },
   "include": [
@@ -22,7 +32,8 @@
     "**/.server/**/*.ts",
     "**/.server/**/*.tsx",
     "**/.client/**/*.ts",
-    "**/.client/**/*.tsx"
+    "**/.client/**/*.tsx",
+    ".react-router/types/**/*.ts"
   ],
   "exclude": [
     "out-tsc",

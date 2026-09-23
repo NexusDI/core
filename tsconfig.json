@@ -12,5 +12,8 @@
     {
       "path": "./examples/react-ssr"
     }
-  ]
+  ],
+  "compilerOptions": {
+    "ignoreDeprecations": "6.0"
+  }
 }

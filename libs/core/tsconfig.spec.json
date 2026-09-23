@@ -9,7 +9,12 @@
       "node",
       "vitest"
     ],
-    "forceConsistentCasingInFileNames": true
+    "module": "esnext",
+    "moduleResolution": "bundler",
+    "experimentalDecorators": true,
+    "forceConsistentCasingInFileNames": true,
+    "ignoreDeprecations": "6.0",
+    "rootDir": "."
   },
   "include": [
     "vite.config.ts",
