@@ -1,3 +1,25 @@
+## 0.3.2
+
+### 🚀 Features
+
+- **repo:** port readme doctests from the libraries repo ([f88e0fe](https://github.com/NexusDI/core/commit/f88e0fe))
+
+### 🩹 Fixes
+
+- **core:** recognise tokens after bundler class renaming ([e1d3ed3](https://github.com/NexusDI/core/commit/e1d3ed3))
+- **core:** keep the symbol.metadata polyfill under bundler tree-shaking ([610f7bb](https://github.com/NexusDI/core/commit/610f7bb))
+- **core:** add the tsconfig project reference nx sync wants for doc-examples ([c492743](https://github.com/NexusDI/core/commit/c492743))
+- **core:** remove the unused tslib dependency ([be440cf](https://github.com/NexusDI/core/commit/be440cf))
+- **core:** follow the libs/urn package.json template ([7f754a6](https://github.com/NexusDI/core/commit/7f754a6))
+- **core:** pin the vitest tsconfig explicitly for Vite 8's oxc transform ([d5faf85](https://github.com/NexusDI/core/commit/d5faf85))
+- **core:** emit node-resolvable ESM with explicit import extensions ([da05a1f](https://github.com/NexusDI/core/commit/da05a1f))
+- **core:** remove development export condition that points at unshipped src ([579e4ff](https://github.com/NexusDI/core/commit/579e4ff))
+
+### ❤️ Thank You
+
+- Claude Opus 5.5 (1M context)
+- Mikael Pettersson @Evanion
+
 ## 0.3.1
 
 ### 🛠️ Improvements
