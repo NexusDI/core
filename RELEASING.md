@@ -119,9 +119,10 @@ name for it otherwise).
 #### b. Update the `Main` ruleset (id `6234520`)
 
 The libraries repo's own `main` ruleset — the one this tooling is modeled on
-— is: rebase-only merge, required status checks named after its CI job ids
-(`main`, `workflows`, `format`), no CodeQL rule, and a `DeployKey` bypass
-actor in addition to admins. Read the current ruleset first:
+— is: rebase-only merge, 0 required approvals and no code-owner review,
+required status checks named after its CI job ids (`main`, `workflows`,
+`format`), no CodeQL rule, and a `DeployKey` bypass actor in addition to
+admins. Read the current ruleset first:
 
 ```bash
 gh api repos/NexusDI/core/rulesets/6234520
@@ -143,14 +144,13 @@ gh api --method PUT repos/NexusDI/core/rulesets/6234520 --input - <<'JSON'
     {
       "type": "pull_request",
       "parameters": {
-        "required_approving_review_count": 1,
-        "dismiss_stale_reviews_on_push": false,
+        "required_approving_review_count": 0,
+        "dismiss_stale_reviews_on_push": true,
         "required_reviewers": [],
-        "require_code_owner_review": true,
-        "dismissal_restriction": { "enabled": false, "allowed_actors": [] },
-        "require_last_push_approval": true,
+        "require_code_owner_review": false,
+        "require_last_push_approval": false,
         "required_review_thread_resolution": true,
-        "require_extra_approval_for_unattributed_changes": true,
+        "require_extra_approval_for_unattributed_changes": false,
         "allowed_merge_methods": ["rebase"]
       }
     },
@@ -197,12 +197,11 @@ What changed from the ruleset as found, and why:
 - **`bypass_actors` gains the `DeployKey`** from step (a), so the release
   workflow's push is not itself blocked by the reviewed-PR requirement.
   `OrganizationAdmin` is kept from the current config.
-- **`required_approving_review_count`, `require_code_owner_review`,
-  `require_last_push_approval`, `copilot_code_review`** are left as found
-  (1 approval, code-owner review required). The libraries repo runs with `0`
-  and no code-owner requirement — a single-maintainer choice that doesn't
-  automatically transfer here; change these only if you separately decide
-  this repo should relax review requirements too.
+- **`required_approving_review_count: 0`, `require_code_owner_review: false`,
+  `require_last_push_approval: false`, `dismiss_stale_reviews_on_push: true`,
+  `require_extra_approval_for_unattributed_changes: false`** (were `1`,
+  `true`, `true`, `false`, `true`) — matches the libraries repo's own `main`
+  ruleset exactly, a single-maintainer configuration.
 
 Verify afterwards:
 
