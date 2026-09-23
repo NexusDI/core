@@ -5,6 +5,7 @@ import {
   type Blueprint,
   type ProviderRecord,
 } from './blueprint.js';
+import { bind } from './bind.js';
 import { computeVisibility } from './visibility.js';
 import { walk } from './walk.js';
 
@@ -57,6 +58,17 @@ export function compile(input: CompileInput): Blueprint {
     errors,
   );
 
+  // Pass 3: bind.
+  const bound = bind(
+    {
+      modules: walked.modules,
+      records,
+      visibility: visible,
+      broken: walked.broken,
+    },
+    errors,
+  );
+
   if (errors.length > 0) throw new BlueprintError(errors);
 
   return Object.freeze({
@@ -68,5 +80,7 @@ export function compile(input: CompileInput): Blueprint {
     visibility: visible.visibility,
     moduleExports: visible.moduleExports,
     exportedTokens: visible.exportedTokens,
+    bindings: bound.bindings,
+    edges: bound.edges,
   });
 }

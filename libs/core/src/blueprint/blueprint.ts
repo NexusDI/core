@@ -104,4 +104,7 @@ export interface Blueprint {
   readonly moduleExports: ReadonlyMap<string, readonly string[]>;
   /** module id → tokens it exports, for near-miss hints. */
   readonly exportedTokens: ReadonlyMap<string, ReadonlySet<TokenKey>>;
+  /** provider id → what its deps, properties and alias target bound to. */
+  readonly bindings: ReadonlyMap<string, ProviderBindings>;
+  readonly edges: readonly Edge[];
 }
