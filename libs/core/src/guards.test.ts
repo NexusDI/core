@@ -1,5 +1,6 @@
 import { describe, it, expect } from 'vitest';
 import {
+  isToken,
   isTokenType,
   isProvider,
   isFactory,
@@ -14,6 +15,55 @@ import { Service, Provider } from './decorators';
  * Guards: Ensures all public guard functions work as expected for valid and invalid cases
  */
 describe('Guards', () => {
+  describe('isToken', () => {
+    it('should return true for real Token instances', () => {
+      const token = new Token('TEST');
+      expect(isToken(token)).toBe(true);
+    });
+
+    it('should return false for non-tokens', () => {
+      expect(isToken({})).toBe(false);
+      expect(isToken(null)).toBe(false);
+      expect(isToken(undefined)).toBe(false);
+      expect(isToken('token')).toBe(false);
+      expect(isToken(class Foo {})).toBe(false);
+    });
+
+    it('should still recognise a token after a bundler renames the Token class', () => {
+      // esbuild renames a top-level class to dodge a scope collision when it
+      // flattens two modules that both declare a top-level `Token` binding;
+      // `constructor.name` stops reading "Token" even though the instance
+      // itself is unchanged.
+      const token = new Token('RENAMED');
+      const descriptor = Object.getOwnPropertyDescriptor(Token, 'name');
+      if (!descriptor) throw new Error('Token.name has no descriptor');
+      Object.defineProperty(Token, 'name', { ...descriptor, value: '_Token' });
+      try {
+        expect(token.constructor.name).toBe('_Token');
+        expect(isToken(token)).toBe(true);
+      } finally {
+        Object.defineProperty(Token, 'name', descriptor);
+      }
+    });
+
+    it('should recognise a branded object from another copy of the Token class', () => {
+      // Simulates two copies of @nexusdi/core ending up in one bundle: an
+      // instance made by the *other* copy's `Token` class is not
+      // `instanceof` this one, but both copies brand with the same
+      // `Symbol.for('nexusdi.token')` registered symbol, which is looked up
+      // in the process-global registry rather than compared by class
+      // identity, so this hardcodes that key instead of importing it --
+      // pinning the actual cross-copy contract, not just this module's
+      // internal consistency.
+      const foreignToken = Object.create(null);
+      Object.defineProperty(foreignToken, Symbol.for('nexusdi.token'), {
+        value: true,
+        enumerable: false,
+      });
+      expect(isToken(foreignToken)).toBe(true);
+    });
+  });
+
   describe('isTokenType', () => {
     it('should return true for class constructors', () => {
       class Test {}

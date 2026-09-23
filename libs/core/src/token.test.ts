@@ -1,6 +1,12 @@
 import { describe, it, expect } from 'vitest';
 import { Token } from './token';
 
+// The registered symbol Token instances are branded with, hardcoded rather
+// than imported: it is the actual cross-copy contract isToken() in
+// guards.ts relies on (see guards.test.ts), not an implementation detail of
+// this module.
+const TOKEN_BRAND = Symbol.for('nexusdi.token');
+
 describe('Token', () => {
   describe('constructor', () => {
     it('should create a token with a string identifier', () => {
@@ -78,6 +84,17 @@ describe('Token', () => {
 
       expect(map.get(token1)).toBe('value1');
       expect(map.get(token2)).toBe('value2');
+    });
+  });
+
+  describe('branding', () => {
+    it('should carry the TOKEN_BRAND registered symbol as an own, non-enumerable property', () => {
+      const token = new Token('BRANDED');
+      const descriptor = Object.getOwnPropertyDescriptor(token, TOKEN_BRAND);
+      expect(descriptor).toBeDefined();
+      expect(descriptor?.value).toBe(true);
+      expect(descriptor?.enumerable).toBe(false);
+      expect(Object.keys(token)).not.toContain(TOKEN_BRAND);
     });
   });
 
