@@ -2212,10 +2212,16 @@ snapshot has to last until the retention ends. The docs deploy downloads the ass
 
 - Triggers: `push` to `main` with a `paths` filter (`apps/docs/**`, `libs/**`,
   `internal/**`, `examples/meridian/**`, `tools/doc-examples/**`, `benchmarks/results/**`,
-  `package.json`,
-  `package-lock.json`, `.github/workflows/docs.yml`), a `push` of an `@nexusdi/core@*` tag,
-  and `workflow_dispatch`. `docs-trigger.test.ts` holds the filter against the release
-  projects and the docs project's inputs.
+  `package.json`, `package-lock.json`, `.github/workflows/docs.yml`), and
+  `workflow_dispatch`. `docs-trigger.test.ts` holds the filter against the release projects
+  and the docs project's inputs.
+- No tag trigger. The `github-pages` environment's default protection accepts deployments
+  from the default branch only, so a run started by a tag push could not deploy. A release
+  redeploys the site by dispatch: after a publish that is not a dry run, `release.yml` runs
+  `gh workflow run docs.yml --ref main`, which needs `actions: write` in `release.yml`'s
+  permissions. The dispatched run builds from `main` and, in `final` and `retired` modes,
+  resolves the root's content from the newest release tag (step 3 below), so the tag the
+  release just pushed is the one it finds.
 - Permissions: `contents: read`, `pages: write`, `id-token: write`.
 - Concurrency: group `pages`, `cancel-in-progress: false`.
 - Every action pinned by commit SHA with the version in a comment, the pins the libraries
