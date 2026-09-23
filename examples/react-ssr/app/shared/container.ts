@@ -1,5 +1,5 @@
 import { Nexus } from '@nexusdi/core';
-import { unstable_createContext } from 'react-router';
+import { createContext } from 'react-router';
 import type { Route } from '../+types/root';
 import { UsersModule } from '../modules/users/users.module';
 import { LoggerModule } from '../modules/logger/logger.module';
@@ -32,7 +32,7 @@ globalContainer.set(
 );
 
 // Create a context for the DI container
-export const containerContext = unstable_createContext<Nexus>(globalContainer);
+export const containerContext = createContext<Nexus>(globalContainer);
 
 function getEnvironment(): 'development' | 'production' | 'test' {
   if (typeof process !== 'undefined' && process.env.NODE_ENV) {
@@ -42,7 +42,7 @@ function getEnvironment(): 'development' | 'production' | 'test' {
 }
 
 // Container middleware - provides DI container to downstream middleware/loaders
-export const containerMiddleware: Route.unstable_MiddlewareFunction = async (
+export const containerMiddleware: Route.MiddlewareFunction = async (
   { context },
   next
 ) => {

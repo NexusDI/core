@@ -26,7 +26,7 @@ export default function Users({ loaderData }: Route.ComponentProps) {
       </h2>
 
       <div className="grid gap-4">
-        {users?.map((user: any) => (
+        {users?.map((user) => (
           <Card key={user.id}>
             <CardHeader>
               <CardTitle>{user.name}</CardTitle>
@@ -35,9 +35,6 @@ export default function Users({ loaderData }: Route.ComponentProps) {
               <div className="text-sm dark:text-gray-300">
                 <p>
                   <strong>ID:</strong> {user.id}
-                </p>
-                <p>
-                  <strong>Username:</strong> {user.username}
                 </p>
                 <p>
                   <strong>Email:</strong> {user.email}

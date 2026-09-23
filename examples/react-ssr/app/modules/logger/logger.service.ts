@@ -20,7 +20,7 @@ export class LoggerService implements ILoggerService {
   private formatMessage(
     level: string,
     message: string,
-    ...args: any[]
+    ...args: unknown[]
   ): string {
     const timestamp = new Date().toISOString();
 
@@ -74,10 +74,10 @@ export class LoggerService implements ILoggerService {
     );
   }
 
-  private log(
+  private logMessage(
     level: 'debug' | 'info' | 'warn' | 'error',
     message: string,
-    ...args: any[]
+    ...args: unknown[]
   ): void {
     if (!this.shouldLog(level)) return;
 
@@ -86,20 +86,25 @@ export class LoggerService implements ILoggerService {
     this.writeToFile(level, formattedMessage);
   }
 
-  debug(message: string, ...args: any[]): void {
-    this.log('debug', message, ...args);
+  // ILoggerService.log is the generic entry point; this service treats it as info level.
+  log(message: string, ...args: unknown[]): void {
+    this.logMessage('info', message, ...args);
   }
 
-  info(message: string, ...args: any[]): void {
-    this.log('info', message, ...args);
+  debug(message: string, ...args: unknown[]): void {
+    this.logMessage('debug', message, ...args);
   }
 
-  warn(message: string, ...args: any[]): void {
-    this.log('warn', message, ...args);
+  info(message: string, ...args: unknown[]): void {
+    this.logMessage('info', message, ...args);
   }
 
-  error(message: string, ...args: any[]): void {
-    this.log('error', message, ...args);
+  warn(message: string, ...args: unknown[]): void {
+    this.logMessage('warn', message, ...args);
+  }
+
+  error(message: string, ...args: unknown[]): void {
+    this.logMessage('error', message, ...args);
   }
 }
 
