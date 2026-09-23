@@ -46,8 +46,4 @@ Thumbs.db
 vite.config.*.timestamp*
 vitest.config.*.timestamp*
 
-# Generated Docusaurus files
-.docusaurus/
-.cache-loader/
 test-output
-/docs/node_modules
