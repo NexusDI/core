@@ -1,0 +1,20 @@
+#!/bin/sh
+
+# Run linting and tests only for affected projects
+echo "🔍 Running linting on affected projects..."
+npx nx affected --target=lint --parallel=3
+
+if [ $? -ne 0 ]; then
+  echo "❌ Linting failed for affected projects"
+  exit 1
+fi
+
+echo "🧪 Running tests on affected projects..."
+npx nx affected --target=test --parallel=3
+
+if [ $? -ne 0 ]; then
+  echo "❌ Tests failed for affected projects"
+  exit 1
+fi
+
+echo "✅ All checks passed for affected projects"
