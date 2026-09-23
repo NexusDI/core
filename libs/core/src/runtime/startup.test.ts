@@ -7,7 +7,7 @@ import { defineModule } from '../definitions/define-module.js';
 import { provide } from '../definitions/provide.js';
 import type { StandardSchemaV1 } from '../definitions/standard-schema.js';
 import { Token } from '../definitions/token.js';
-import { ProviderError } from '../errors/index.js';
+import { DisposedError, ProviderError } from '../errors/index.js';
 import { Nexus } from './nexus.js';
 import { createRootState } from './state.js';
 import { startBlueprint } from './startup.js';
@@ -161,6 +161,41 @@ describe('Nexus', () => {
       expect((error as ProviderError).disposalErrors).toMatchObject([
         { message: 'reactor stuck' },
       ]);
+    });
+
+    it('wraps a DisposedError a trace callback throws on a construct event for an alias provider while the root is open', async () => {
+      // registerStatic (startup.ts) calls traceConstruct directly for an
+      // alias or a schema-less useValue provider, in its own synchronous
+      // loop, before any singleton build starts: unlike every singleton
+      // build, that call never goes through settleLevel's LevelFailure
+      // wrapping. A trace callback throwing DisposedError here reaches
+      // startBlueprint's catch as a bare DisposedError while root.disposing
+      // is still false, which is exactly the path the root.disposing guard
+      // exists for. registerStatic runs before any singleton (or scoped)
+      // build, so no owned instance with a disposer exists yet when this
+      // throws; disposalErrors is empty here because there is nothing to
+      // roll back yet, not because a rollback error was lost.
+      const REACTOR = new Token<object>('Reactor');
+      const ALIAS = new Token<object>('ReactorAlias');
+      const Root = defineModule({
+        name: 'Root',
+        providers: [
+          provide(REACTOR, { useValue: {} }),
+          provide(ALIAS, { useExisting: REACTOR }),
+        ],
+      });
+      const error = (await rejected(
+        Nexus.create(Root, {
+          trace: (event: TraceEvent) => {
+            if (event.type === 'construct' && event.token === 'ReactorAlias')
+              throw new DisposedError({ target: 'container' });
+          },
+        }),
+      )) as ProviderError;
+      expect(error).toBeInstanceOf(ProviderError);
+      expect(error).toMatchObject({ code: 'NEXUS_PROVIDER_FAILED' });
+      expect(error.cause).toBeInstanceOf(DisposedError);
+      expect(error.disposalErrors).toEqual([]);
     });
 
     it.each([
