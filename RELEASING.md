@@ -78,16 +78,142 @@ git push origin '@nexusdi/core@<version>'
 back to the version on disk and reads conventional commits from the beginning
 of history.
 
-### 2. Check that main allows the release workflow to push
+### 2. Repository setup — ruleset, deploy key, required checks
 
-`nx release` commits the version bump and pushes tags straight to `main`,
-authenticated as the default `GITHUB_TOKEN` this workflow runs with. If a
-branch protection rule on `main` requires every change to go through a
-reviewed pull request, that push is rejected. Either exempt the workflow's
-actor from that rule, or switch this step to a deploy key the way the
-libraries repo this tooling is modeled on does (see its
-`.github/workflows/release.yml` for the `ssh-key` pattern) — that decision is
-the owner's to make, since it depends on how `main` is actually protected here.
+`nx release` commits the version bump and pushes tags straight to `main`
+(`changelog.projectChangelogs.createRelease: "github"` forces this on — see
+nx's `release.js`, `shouldPush`). This repo's `main` ruleset requires a
+reviewed pull request, and `github-actions[bot]` cannot be granted a bypass on
+a personal repository: the API rejects an `Integration` bypass actor outside
+an organisation. A deploy key can bypass, so the release workflow pushes as
+one (previous section, `ssh-key: secrets.RELEASE_SSH_KEY`).
+
+This is a one-time setup on GitHub. Everything below can be done through the
+`gh` CLI; replace `NexusDI/core` if you run it from a different clone.
+
+#### a. Generate the deploy key
+
+```bash
+ssh-keygen -t ed25519 -f release-deploy-key -N "" -C "nexusdi-core release workflow"
+
+# Public half: added to the repo as a deploy key with write access.
+gh repo deploy-key add release-deploy-key.pub \
+  --repo NexusDI/core \
+  --title "release.yml (nx release push)" \
+  --allow-write
+
+# Private half: added as the secret release.yml reads. The secret name must
+# match what release.yml reads (RELEASE_SSH_KEY) — it is matched by name, not
+# by which key generated it.
+gh secret set RELEASE_SSH_KEY --repo NexusDI/core < release-deploy-key
+
+# Only the private key needs to leave your machine as a secret; delete both
+# local copies once the two commands above succeed.
+rm release-deploy-key release-deploy-key.pub
+```
+
+`gh repo deploy-key add` prints the new key's id — note it, it is what you
+reference in the ruleset bypass entry below (GitHub does not expose a stable
+name for it otherwise).
+
+#### b. Update the `Main` ruleset (id `6234520`)
+
+The libraries repo's own `main` ruleset — the one this tooling is modeled on
+— is: rebase-only merge, required status checks named after its CI job ids
+(`main`, `workflows`, `format`), no CodeQL rule, and a `DeployKey` bypass
+actor in addition to admins. Read the current ruleset first:
+
+```bash
+gh api repos/NexusDI/core/rulesets/6234520
+```
+
+Then replace it (this is a full replacement — `PUT`, not a patch — so include
+every rule you want to keep):
+
+```bash
+gh api --method PUT repos/NexusDI/core/rulesets/6234520 --input - <<'JSON'
+{
+  "name": "Main",
+  "target": "branch",
+  "enforcement": "active",
+  "conditions": { "ref_name": { "exclude": [], "include": ["~DEFAULT_BRANCH"] } },
+  "rules": [
+    { "type": "deletion" },
+    { "type": "non_fast_forward" },
+    {
+      "type": "pull_request",
+      "parameters": {
+        "required_approving_review_count": 1,
+        "dismiss_stale_reviews_on_push": false,
+        "required_reviewers": [],
+        "require_code_owner_review": true,
+        "dismissal_restriction": { "enabled": false, "allowed_actors": [] },
+        "require_last_push_approval": true,
+        "required_review_thread_resolution": true,
+        "require_extra_approval_for_unattributed_changes": true,
+        "allowed_merge_methods": ["rebase"]
+      }
+    },
+    {
+      "type": "required_status_checks",
+      "parameters": {
+        "strict_required_status_checks_policy": true,
+        "do_not_enforce_on_create": true,
+        "required_status_checks": [
+          { "context": "main" },
+          { "context": "workflows" },
+          { "context": "format" }
+        ]
+      }
+    },
+    { "type": "copilot_code_review" }
+  ],
+  "bypass_actors": [
+    { "actor_id": null, "actor_type": "OrganizationAdmin", "bypass_mode": "always" },
+    { "actor_id": <deploy-key-id-from-step-a>, "actor_type": "DeployKey", "bypass_mode": "always" }
+  ]
+}
+JSON
+```
+
+What changed from the ruleset as found, and why:
+
+- **`allowed_merge_methods: ["rebase"]`** (was `["squash"]`) — rebase-only,
+  matching the libraries repo and `.husky/pre-merge-commit`'s assumption.
+  Squashing and rebasing are both linear-history strategies; either is
+  internally consistent, but the hook already installed on this branch
+  assumes rebase, so the ruleset needs to agree with it.
+- **`required_status_checks`** replaces the single `commitlint` context —
+  that workflow no longer exists (`ci: mirror the libraries repo's ci.yml`
+  dropped `commitlint.yml` in favor of the husky hook alone) — with the three
+  job ids from the current `.github/workflows/ci.yml`: `main`, `workflows`,
+  `format`. (`packaging` runs in CI but is **not** required in the libraries
+  repo's own ruleset either; leave it optional here too, or add
+  `{ "context": "packaging" }` to the list if you want it blocking.)
+- **`code_scanning` (CodeQL) is dropped.** The libraries repo has no CodeQL
+  workflow and no `code_scanning` rule; porting the rule without the workflow
+  that satisfies it would permanently block every PR. If you want CodeQL,
+  add `github/codeql-action`'s workflow first, then add the rule back.
+- **`bypass_actors` gains the `DeployKey`** from step (a), so the release
+  workflow's push is not itself blocked by the reviewed-PR requirement.
+  `OrganizationAdmin` is kept from the current config.
+- **`required_approving_review_count`, `require_code_owner_review`,
+  `require_last_push_approval`, `copilot_code_review`** are left as found
+  (1 approval, code-owner review required). The libraries repo runs with `0`
+  and no code-owner requirement — a single-maintainer choice that doesn't
+  automatically transfer here; change these only if you separately decide
+  this repo should relax review requirements too.
+
+Verify afterwards:
+
+```bash
+gh api repos/NexusDI/core/rulesets/6234520
+```
+
+#### c. npm trusted publisher
+
+Covered above in "1. Configure a trusted publisher for @nexusdi/core" — do
+that too before the first release.
 
 ## In-workspace dependencies are pinned exactly
 
@@ -151,5 +277,6 @@ still granted and that the trusted publisher's workflow filename still matches.
 - **`nx release` proposes the wrong version** — a breaking change is missing
   its `BREAKING CHANGE:` footer. Fix the version by hand for that release
   rather than publishing a wrong one; npm versions are immutable.
-- **The version/tag step fails to push** — see "Check that main allows the
-  release workflow to push" above.
+- **The version/tag step fails to push** — the deploy key is missing, revoked,
+  or not listed as a ruleset bypass actor. See "Repository setup — ruleset,
+  deploy key, required checks" above.
