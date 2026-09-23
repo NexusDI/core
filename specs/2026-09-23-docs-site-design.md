@@ -385,9 +385,10 @@ docs link each code to a page that explains it, and these anchors are those link
 messages of `provide()`.
 
 The evaluator pages state facts with their evidence. `/runtimes/` gives each runtime
-(Node 22 and 24, Chromium, Firefox, Safari with the `Symbol.dispose` polyfill and the
-internal `SuppressedError` fallback, Deno, Bun, Cloudflare Workers) a row naming the CI
-job that tests it, or "not tested" when none does. `/comparison/` cites the documentation
+(Node 22 and 24, a CommonJS project on Node through `require()`, Chromium, Firefox, Safari
+with the `Symbol.dispose` polyfill and the internal `SuppressedError` fallback, Deno, Bun,
+Cloudflare Workers) a row naming the CI job that tests it, or "not tested" when none does.
+The page opens with the ESM-only note of section 5.3.1. `/comparison/` cites the documentation
 URL and version for every claim about another library, as read on the date the page
 states. Section 4.6 sets where every size and time figure comes from.
 
@@ -582,7 +583,8 @@ section as standard decision 20 and G6 require.
 ### 5.3 Tutorial: Getting started
 
 `/getting-started/` assumes nothing beyond the overview. It shows the install command
-(`npm install @nexusdi/core@next` during the RC), the TypeScript settings the reader needs
+(`npm install @nexusdi/core@next` during the RC) and, in the same section, the ESM-only
+note of section 5.3.1, then the TypeScript settings the reader needs
 (TypeScript 5.4 or later, no `experimentalDecorators`, and what the `esnext.disposable` lib
 reference adds), and one path that works end to end: the `IReactorCore` and
 `IShipComputer` interfaces, their tokens `REACTOR` and `COMPUTER`,
@@ -590,6 +592,34 @@ reference adds), and one path that works end to end: the `IReactorCore` and
 `provide(COMPUTER, { useClass: QuantumComputer, deps: [REACTOR] })`, one `defineModule`,
 `Nexus.create`, a `get(COMPUTER)` and `await using`. Every step is an executed region. The page mounts one inline console whose
 seed is the finished path.
+
+#### 5.3.1 The ESM-only note
+
+The note reads: "`@nexusdi/core` is published as ES modules only. A CommonJS project on Node 22.12 or
+later can `require()` it." It sits in the install section of `/getting-started/` and in the
+Node rows of `/runtimes/`, which add the details:
+
+- Node 22.12.0 removed `require()` of an ES module from behind the
+  `--experimental-require-module` flag, and Node 22.13.0 stopped printing the experimental
+  warning by default (Node's modules documentation, "Loading ECMAScript modules using
+  `require()`", version history, read 2026-09-23). Node 24 has both. On Node 22.0 to 22.11,
+  which `engines` (`>=22`) still admits, a CommonJS project loads the package with
+  `await import('@nexusdi/core')`.
+- `require()` resolves with the conditions `node`, `require` and `module-sync`, and falls
+  back to `default`. Core's `exports` map lists `default` beside `import` for every entry
+  (core spec §12), so `require()` finds the build.
+- `require()` returns the module namespace. The named exports read as they do in ESM:
+  `const { Nexus, provide } = require('@nexusdi/core')`.
+- `require()` fails with `ERR_REQUIRE_ASYNC_MODULE` on a module graph with top-level
+  `await`. Core has none, and its packaging check keeps it that way (section 5.3.2).
+
+#### 5.3.2 Evidence for the note
+
+The `/runtimes/` row for CommonJS names its evidence like every other row. The evidence is a
+CommonJS consumer in `scripts/verify-packaging.mjs` that calls `require('@nexusdi/core')`,
+`require('@nexusdi/core/testing')` and `require('@nexusdi/core/node')` on Node 22.12 and
+Node 24 and builds a container. That consumer belongs to core's packaging checks (core spec
+§17), and until it exists the row reads "not tested".
 
 ### 5.4 Concept page
 
