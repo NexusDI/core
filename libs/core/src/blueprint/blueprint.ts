@@ -82,3 +82,17 @@ export interface Edge {
   readonly to: string;
   readonly kind: EdgeKind;
 }
+
+/**
+ * The compiled, frozen graph the runtime builds from. `load()` produces a new
+ * Blueprint that contains the old one.
+ */
+export interface Blueprint {
+  /** The root module's id, always `m0`. */
+  readonly root: string;
+  readonly modules: ReadonlyMap<string, ModuleNode>;
+  readonly moduleByDefinition: ReadonlyMap<ModuleDefinition, string>;
+  readonly providers: ReadonlyMap<string, ProviderRecord>;
+  /** Modules load() added as root imports, in load order. */
+  readonly extraImports: readonly unknown[];
+}
