@@ -15,6 +15,11 @@ Depends on:
   error catalogue, §10 `graph()` and trace events, §11 the testing API, §13 the migration
   guide outline, the codemod and its `TODO_CODES` and `NOTE_CODES`, §14 the release plan
   and its rc.0 checklist.
+- The core spec revision that adds two ways to declare a provider, which `b5ab435` does not
+  yet specify: `static deps = [TOKEN] as const` on a plain class, and object-literal
+  providers `{ token, useValue | useClass | useFactory | useExisting, deps?, lifetime? }`.
+  Section 7.5 teaches both. Until that revision is merged, the regions that show them wait, and
+  every other example uses `provide()`.
 - `chore/tooling-upgrade`: Nx 23, TypeScript 6.0.3, Vitest 4, nodenext ESM, the
   `@nexusdi/source` condition, `tools/repo-checks`, SHA-pinned CI actions. It deletes
   `docs/` and `.github/workflows/deploy-docs.yml` from the tree.
@@ -189,10 +194,16 @@ places.
 28. The examples validate module options with valibot 1.5.0, vendored into the sandbox
     runtime and its import map, so the examples read like real-world code. Core stays
     dependency-free. A Guides page shows that zod and ArkType plug in the same way through
-    Standard Schema (sections 7.1 and 11.4).
+    Standard Schema (sections 7.2 and 11.4).
 29. After 0.4.0 final, a documentation fix can reach the root before the next release
     through a re-cut: `deploy.json`'s `root.sha` names a commit that descends from the
     release tag, with a non-empty reason (section 15.6).
+30. Every example is interface-first: in the docs, the blog from 0.4.0 on, the Playground
+    seeds and the Academy missions. Each service has an interface and a typed token, each
+    concrete class is bound in exactly one provider, consumers declare their deps as
+    tokens against interface-typed constructor parameters, and no concrete class depends
+    directly on another. Overrides are the recurring payoff: a module swap, a test override
+    and a configurable module that picks an implementation (section 7.3).
 
 ## 3. Amendments to the libraries standard
 
@@ -285,42 +296,42 @@ libraries repo treats `/matrix-explorer/` the same way.
 immediately before. Lookup pages carry no box and link to the page that teaches a concept.
 "Control" names what the console shows (section 10) or the specimen the page mounts.
 
-| #   | Path                     | Title                                                                | Kind        | Introduces                                                                                                 | Requires                      | Control                                      |
-| --- | ------------------------ | -------------------------------------------------------------------- | ----------- | ---------------------------------------------------------------------------------------------------------- | ----------------------------- | -------------------------------------------- |
-| 1   | `/`                      | NexusDI                                                              | `overview`  | what NexusDI is, when to use it and when to skip it, bundle size and dependency count                      | none                          | `MeridianOnline` specimen                    |
-| 2   | `/getting-started/`      | Getting started                                                      | `tutorial`  | install, the TypeScript settings, `provide(C, { deps })`, one module, `Nexus.create`, `get`, `await using` | none                          | console: graph of the first ship             |
-| 3   | `/tokens/`               | Tokens                                                               | `concept`   | a class as a token, `Token<T>`, identity comparison, `useValue`                                            | Getting started               | console: graph                               |
-| 4   | `/providers/`            | Providers                                                            | `concept`   | `useClass`, `useFactory` sync and async, `useExisting`, `optional()`, defaults and rest parameters         | Tokens                        | console: graph and a `NavCharts` specimen    |
-| 5   | `/lifetimes/`            | Lifetimes                                                            | `concept`   | `singleton` and `transient`                                                                                | Providers, Tokens             | console: trace replay of two drones          |
-| 6   | `/modules/`              | Modules                                                              | `concept`   | `defineModule`, `imports`, `exports`, encapsulation, `global: true`, `has()`, `get(T, { module })`         | Lifetimes, Providers          | console: graph with module visibility        |
-| 7   | `/configurable-modules/` | Configurable modules                                                 | `concept`   | `options`, `with(value)`, `with({ deps, useFactory })`, `schema`                                           | Modules, Lifetimes            | console: specimen of a frequency check       |
-| 8   | `/scopes/`               | Scopes and REQUEST                                                   | `concept`   | `createScope`, `scoped`, `REQUEST`, the captive rule                                                       | Configurable modules, Modules | console: trace replay of two shuttles        |
-| 9   | `/lifecycle/`            | Lifecycle and disposal                                               | `concept`   | `onInit`, `Symbol.asyncDispose`, disposal order, `SuppressedError`                                         | Scopes and REQUEST            | console: replay of startup and scram         |
-| 10  | `/lazy/`                 | Lazy edges and cycles                                                | `concept`   | `lazy()`, `NEXUS_CIRCULAR_DEPENDENCY`, `NEXUS_NOT_READY`                                                   | Lifecycle and disposal        | console: the cycle ring, then the lazy fix   |
-| 11  | `/multi-providers/`      | Multi-providers                                                      | `concept`   | `MultiToken`, `all()`, multi-token visibility                                                              | Lazy edges and cycles         | console: graph of the `DIAGNOSTICS` fan-in   |
-| 12  | `/errors/`               | Errors                                                               | `concept`   | `NexusError`, codes, one `BlueprintError` for every compile error, `ProviderError.cause`                   | Multi-providers               | console: the error view of a broken Meridian |
-| 13  | `/introspection/`        | Introspection and trace                                              | `concept`   | `graph()`, the `trace` callback                                                                            | Errors                        | `MeridianOnline` and a full trace replay     |
-| 14  | `/node-request-scopes/`  | Scope an HTTP request in Node                                        | `platform`  | `nodeScopeContext`, `runInScope`, `currentScope`                                                           | none; links to Scopes         | none: the unit is a running server           |
-| 15  | `/react-router-ssr/`     | React Router server rendering                                        | `platform`  | the `examples/react-ssr` wiring                                                                            | none; links to Scopes         | none: the unit is a running server           |
-| 16  | `/testing/`              | How do I replace a provider in a test?                               | `question`  | `createTestingContainer`, `override`, `overrideModule`                                                     | none                          | console: a test run                          |
-| 17  | `/load/`                 | How do I add a module after startup?                                 | `question`  | `load()`                                                                                                   | none                          | console: trace replay of a load              |
-| 18  | `/decorators/`           | How do I write providers with decorators?                            | `question`  | `@Injectable`, `@Inject` on an `accessor`, `@Module`                                                       | none                          | console: graph                               |
-| 19  | `/legacy-decorators/`    | How do I use NexusDI in a project that keeps experimentalDecorators? | `question`  | `NEXUS_LEGACY_DECORATORS` and the `provide()` path                                                         | none                          | none                                         |
-| 20  | `/scope-context/`        | How do I scope requests outside Node?                                | `question`  | a custom `ScopeContext` for Deno, Bun, Workers and the browser                                             | none                          | console: a scope context run                 |
-| 21  | `/bundlers/`             | How do I use NexusDI in a browser bundle?                            | `question`  | bundler settings, `keepNames`, the polyfills in `sideEffects`, decorator transforms                        | none                          | none                                         |
-| 22  | `/schemas/`              | Which schema libraries can validate module options?                  | `question`  | valibot in the examples; zod and ArkType through Standard Schema                                           | none                          | console: a failed validation                 |
-| 23  | `/runtimes/`             | Where NexusDI runs                                                   | `contract`  | the runtime matrix with the evidence for each row                                                          | none                          | none                                         |
-| 24  | `/comparison/`           | NexusDI compared with tsyringe, InversifyJS, TypeDI and NestJS       | `contract`  | the differences, why NexusDI needs no `reflect-metadata`                                                   | none                          | none                                         |
-| 25  | `/upgrade/`              | How do I upgrade from 0.3 to 0.4?                                    | `question`  | core spec §13.1 steps 1 to 9, the CHANGELOG link, the support-policy link                                  | none                          | none                                         |
-| 26  | `/upgrade-api-map/`      | 0.3 to 0.4 API map                                                   | `contract`  | one H2 per 0.3 API, from core spec §13.1's table                                                           | none                          | none                                         |
-| 27  | `/upgrade-behaviour/`    | Behaviour that changes without a compile error                       | `contract`  | the silent behaviour changes, one H2 each                                                                  | none                          | none                                         |
-| 28  | `/codemod/`              | How do I run the 0.4 codemod?                                        | `question`  | the CLI, the report, one H2 per TODO and note code                                                         | none                          | none                                         |
-| 29  | `/encapsulation/`        | Why does a provider stop resolving after upgrading to 0.4?           | `question`  | module encapsulation, seen from 0.3 code                                                                   | none                          | console: `NEXUS_NOT_VISIBLE`, then the fix   |
-| 30  | `/support-policy/`       | 0.3 support policy                                                   | `contract`  | the 0.3.x support policy and its dates                                                                     | none                          | none                                         |
-| 31  | `/api/`                  | `@nexusdi/core`                                                      | `reference` | one H2 per export of `.`, error classes excepted                                                           | none                          | none                                         |
-| 32  | `/api-testing/`          | `@nexusdi/core/testing`                                              | `reference` | one H2 per export of `./testing`                                                                           | none                          | none                                         |
-| 33  | `/api-node/`             | `@nexusdi/core/node`                                                 | `reference` | one H2 per export of `./node`                                                                              | none                          | none                                         |
-| 34  | `/api-errors/`           | Error reference                                                      | `reference` | one H2 per error class, one H3 per code                                                                    | none                          | none                                         |
+| #   | Path                     | Title                                                                | Kind        | Introduces                                                                                                                                              | Requires                         | Control                                              |
+| --- | ------------------------ | -------------------------------------------------------------------- | ----------- | ------------------------------------------------------------------------------------------------------------------------------------------------------- | -------------------------------- | ---------------------------------------------------- |
+| 1   | `/`                      | NexusDI                                                              | `overview`  | what NexusDI is, when to use it and when to skip it, bundle size and dependency count                                                                   | none                             | `MeridianOnline` specimen                            |
+| 2   | `/getting-started/`      | Getting started                                                      | `tutorial`  | install, the TypeScript settings, one interface and its token, `provide(TOKEN, { useClass, deps })`, one module, `Nexus.create`, `get`, `await using`   | none                             | console: graph of the first ship                     |
+| 3   | `/tokens/`               | Tokens and interfaces                                                | `concept`   | a typed `Token<T>` per interface, identity comparison, `useValue`, why the docs bind interfaces                                                         | Getting started                  | console: graph                                       |
+| 4   | `/providers/`            | Providers                                                            | `concept`   | `useClass` with `deps`, `useFactory` sync and async, `useExisting`, `optional()`, object-literal providers, `static deps`, defaults and rest parameters | Tokens and interfaces            | console: graph and a `NAV_CHARTS` specimen           |
+| 5   | `/lifetimes/`            | Lifetimes                                                            | `concept`   | `singleton` and `transient`                                                                                                                             | Providers, Tokens and interfaces | console: trace replay of two drones                  |
+| 6   | `/modules/`              | Modules                                                              | `concept`   | `defineModule`, `imports`, `exports`, encapsulation, `global: true`, `has()`, `get(T, { module })`, a module swap                                       | Lifetimes, Providers             | console: graph with module visibility, then the swap |
+| 7   | `/configurable-modules/` | Configurable modules                                                 | `concept`   | `options`, `with(value)`, `with({ deps, useFactory })`, `schema`, an option that picks the implementation                                               | Modules, Lifetimes               | console: the chosen link and a frequency check       |
+| 8   | `/scopes/`               | Scopes and REQUEST                                                   | `concept`   | `createScope`, `scoped`, `REQUEST`, the captive rule                                                                                                    | Configurable modules, Modules    | console: trace replay of two shuttles                |
+| 9   | `/lifecycle/`            | Lifecycle and disposal                                               | `concept`   | `onInit`, `Symbol.asyncDispose`, disposal order, `SuppressedError`                                                                                      | Scopes and REQUEST               | console: replay of startup and scram                 |
+| 10  | `/lazy/`                 | Lazy edges and cycles                                                | `concept`   | `lazy()`, `NEXUS_CIRCULAR_DEPENDENCY`, `NEXUS_NOT_READY`                                                                                                | Lifecycle and disposal           | console: the cycle ring, then the lazy fix           |
+| 11  | `/multi-providers/`      | Multi-providers                                                      | `concept`   | `MultiToken`, `all()`, multi-token visibility                                                                                                           | Lazy edges and cycles            | console: graph of the `DIAGNOSTICS` fan-in           |
+| 12  | `/errors/`               | Errors                                                               | `concept`   | `NexusError`, codes, one `BlueprintError` for every compile error, `ProviderError.cause`                                                                | Multi-providers                  | console: the error view of a broken Meridian         |
+| 13  | `/introspection/`        | Introspection and trace                                              | `concept`   | `graph()`, the `trace` callback                                                                                                                         | Errors                           | `MeridianOnline` and a full trace replay             |
+| 14  | `/node-request-scopes/`  | Scope an HTTP request in Node                                        | `platform`  | `nodeScopeContext`, `runInScope`, `currentScope`                                                                                                        | none; links to Scopes            | none: the unit is a running server                   |
+| 15  | `/react-router-ssr/`     | React Router server rendering                                        | `platform`  | the `examples/react-ssr` wiring                                                                                                                         | none; links to Scopes            | none: the unit is a running server                   |
+| 16  | `/testing/`              | How do I replace a provider in a test?                               | `question`  | `createTestingContainer`, `override(TOKEN, { useClass })`, `overrideModule`                                                                             | none                             | console: a test run with `FakeReactor`               |
+| 17  | `/load/`                 | How do I add a module after startup?                                 | `question`  | `load()`                                                                                                                                                | none                             | console: trace replay of a load                      |
+| 18  | `/decorators/`           | How do I write providers with decorators?                            | `question`  | `@Injectable`, `@Inject` on an `accessor`, `@Module`                                                                                                    | none                             | console: graph                                       |
+| 19  | `/legacy-decorators/`    | How do I use NexusDI in a project that keeps experimentalDecorators? | `question`  | `NEXUS_LEGACY_DECORATORS` and the `provide()` path                                                                                                      | none                             | none                                                 |
+| 20  | `/scope-context/`        | How do I scope requests outside Node?                                | `question`  | a custom `ScopeContext` for Deno, Bun, Workers and the browser                                                                                          | none                             | console: a scope context run                         |
+| 21  | `/bundlers/`             | How do I use NexusDI in a browser bundle?                            | `question`  | bundler settings, `keepNames`, the polyfills in `sideEffects`, decorator transforms                                                                     | none                             | none                                                 |
+| 22  | `/schemas/`              | Which schema libraries can validate module options?                  | `question`  | valibot in the examples; zod and ArkType through Standard Schema                                                                                        | none                             | console: a failed validation                         |
+| 23  | `/runtimes/`             | Where NexusDI runs                                                   | `contract`  | the runtime matrix with the evidence for each row                                                                                                       | none                             | none                                                 |
+| 24  | `/comparison/`           | NexusDI compared with tsyringe, InversifyJS, TypeDI and NestJS       | `contract`  | the differences, why NexusDI needs no `reflect-metadata`                                                                                                | none                             | none                                                 |
+| 25  | `/upgrade/`              | How do I upgrade from 0.3 to 0.4?                                    | `question`  | core spec §13.1 steps 1 to 9, the CHANGELOG link, the support-policy link                                                                               | none                             | none                                                 |
+| 26  | `/upgrade-api-map/`      | 0.3 to 0.4 API map                                                   | `contract`  | one H2 per 0.3 API, from core spec §13.1's table                                                                                                        | none                             | none                                                 |
+| 27  | `/upgrade-behaviour/`    | Behaviour that changes without a compile error                       | `contract`  | the silent behaviour changes, one H2 each                                                                                                               | none                             | none                                                 |
+| 28  | `/codemod/`              | How do I run the 0.4 codemod?                                        | `question`  | the CLI, the report, one H2 per TODO and note code                                                                                                      | none                             | none                                                 |
+| 29  | `/encapsulation/`        | Why does a provider stop resolving after upgrading to 0.4?           | `question`  | module encapsulation, seen from 0.3 code                                                                                                                | none                             | console: `NEXUS_NOT_VISIBLE`, then the fix           |
+| 30  | `/support-policy/`       | 0.3 support policy                                                   | `contract`  | the 0.3.x support policy and its dates                                                                                                                  | none                             | none                                                 |
+| 31  | `/api/`                  | `@nexusdi/core`                                                      | `reference` | one H2 per export of `.`, error classes excepted                                                                                                        | none                             | none                                                 |
+| 32  | `/api-testing/`          | `@nexusdi/core/testing`                                              | `reference` | one H2 per export of `./testing`                                                                                                                        | none                             | none                                                 |
+| 33  | `/api-node/`             | `@nexusdi/core/node`                                                 | `reference` | one H2 per export of `./node`                                                                                                                           | none                             | none                                                 |
+| 34  | `/api-errors/`           | Error reference                                                      | `reference` | one H2 per error class, one H3 per code                                                                                                                 | none                             | none                                                 |
 
 Pages 14 to 24 are the Guides band, 25 to 30 the Migration band and 31 to 34 the API band.
 
@@ -386,23 +397,24 @@ page N carries a short reminder on page N+1, a shorter one on N+2 and none from 
 (standard decision 2). The reminder is a clause or a parenthesis. It never repeats the
 explanation and never links away.
 
-| Concept                                       | Introduced on          | Short reminder on       | Shorter reminder on     |
-| --------------------------------------------- | ---------------------- | ----------------------- | ----------------------- |
-| `Nexus.create`, `get`, `provide(C, { deps })` | Getting started        | Tokens                  | Providers               |
-| `Token<T>`, `useValue`                        | Tokens                 | Providers               | Lifetimes               |
-| the other provider forms, `optional()`        | Providers              | Lifetimes               | Modules                 |
-| `singleton`, `transient`                      | Lifetimes              | Modules                 | Configurable modules    |
-| `defineModule`, `exports`, `has()`            | Modules                | Configurable modules    | Scopes and REQUEST      |
-| `with()`, `options`                           | Configurable modules   | Scopes and REQUEST      | Lifecycle and disposal  |
-| `createScope`, `scoped`, `REQUEST`            | Scopes and REQUEST     | Lifecycle and disposal  | Lazy edges and cycles   |
-| `onInit`, disposal order                      | Lifecycle and disposal | Lazy edges and cycles   | Multi-providers         |
-| `lazy()`                                      | Lazy edges and cycles  | Multi-providers         | Errors                  |
-| `MultiToken`, `all()`                         | Multi-providers        | Errors                  | Introspection and trace |
-| error codes, `BlueprintError`                 | Errors                 | Introspection and trace | none                    |
+| Concept                                                     | Introduced on          | Short reminder on       | Shorter reminder on     |
+| ----------------------------------------------------------- | ---------------------- | ----------------------- | ----------------------- |
+| `Nexus.create`, `get`, `provide(TOKEN, { useClass, deps })` | Getting started        | Tokens and interfaces   | Providers               |
+| an interface and its `Token<T>`, `useValue`                 | Tokens and interfaces  | Providers               | Lifetimes               |
+| the other provider forms, `static deps`, `optional()`       | Providers              | Lifetimes               | Modules                 |
+| `singleton`, `transient`                                    | Lifetimes              | Modules                 | Configurable modules    |
+| `defineModule`, `exports`, `has()`                          | Modules                | Configurable modules    | Scopes and REQUEST      |
+| `with()`, `options`                                         | Configurable modules   | Scopes and REQUEST      | Lifecycle and disposal  |
+| `createScope`, `scoped`, `REQUEST`                          | Scopes and REQUEST     | Lifecycle and disposal  | Lazy edges and cycles   |
+| `onInit`, disposal order                                    | Lifecycle and disposal | Lazy edges and cycles   | Multi-providers         |
+| `lazy()`                                                    | Lazy edges and cycles  | Multi-providers         | Errors                  |
+| `MultiToken`, `all()`                                       | Multi-providers        | Errors                  | Introspection and trace |
+| error codes, `BlueprintError`                               | Errors                 | Introspection and trace | none                    |
 
-The example code follows the same order. `SurveyDrone` takes only `ShipComputer` until the
-Scopes page, where `MISSION` joins its deps. Section 7.1 lists every place the docs' ship
-differs from core spec §3.4.
+The example code follows the same order. Getting started binds one interface to one class
+before the Tokens and interfaces page explains why, and every later page repeats the shape.
+`ScoutDrone` takes only `COMPUTER` until the Scopes page, where `MISSION` joins its deps.
+Section 7.2 lists every place the docs' ship differs from core spec §3.4.
 
 Lookup pages sit outside this order. A question page, a platform guide, a contract page or
 a reference page may name any concept and links to the page that introduces it.
@@ -523,9 +535,11 @@ section as standard decision 20 and G6 require.
 `/getting-started/` assumes nothing beyond the overview. It shows the install command
 (`npm install @nexusdi/core@next` during the RC), the TypeScript settings the reader needs
 (TypeScript 5.4 or later, no `experimentalDecorators`, and what the `esnext.disposable` lib
-reference adds), and one path that works end to end: two classes, `provide(ShipComputer,
-{ deps: [ReactorCore] })`, one `defineModule`, `Nexus.create`, a `get()` and
-`await using`. Every step is an executed region. The page mounts one inline console whose
+reference adds), and one path that works end to end: the `IReactorCore` and
+`IShipComputer` interfaces, their tokens `REACTOR` and `COMPUTER`,
+`provide(REACTOR, { useClass: FusionReactor })`,
+`provide(COMPUTER, { useClass: QuantumComputer, deps: [REACTOR] })`, one `defineModule`,
+`Nexus.create`, a `get(COMPUTER)` and `await using`. Every step is an executed region. The page mounts one inline console whose
 seed is the finished path.
 
 ### 5.4 Concept page
@@ -702,44 +716,98 @@ An example draws from this list and invents no neighbour. The code lives in
 `examples/meridian`: `src/ship/` holds the finished ship, and `src/pages/<slug>/` holds
 each page's code at the stage that page teaches.
 
-| Thing                  | The name                                                                                                                |
-| ---------------------- | ----------------------------------------------------------------------------------------------------------------------- |
-| The ship               | The Starship Meridian. The root module is `Meridian`, which imports `Tactical`.                                         |
-| The container          | `ship`, the variable that holds `await Nexus.create(Meridian)`.                                                         |
-| Singletons             | `ShipComputer` and `ReactorCore`. `ShipComputer` takes `ReactorCore`.                                                   |
-| A transient            | `SurveyDrone`. Every `get()` launches a new drone. It takes `ShipComputer`, and from the Scopes page on also `MISSION`. |
-| A scope                | A shuttle launched from the bay: `await using shuttle = await ship.createScope({ request })`. Scope ids are `s0`, `s1`. |
-| The per-scope value    | `MISSION`, a `Token<Mission>` built from `REQUEST`. A `Mission` is `{ id: 'survey-7', target: 'Kepler-442b' }`.         |
-| A scoped class         | `FlightLog`, one log per shuttle.                                                                                       |
-| An async factory       | `NAV_CHARTS`, a `Token<NavCharts>`, built by `link.download('charts/sector-7')` from a `SubspaceLink`.                  |
-| Disposal               | A reactor scram: `ReactorCore[Symbol.asyncDispose]()` drops the control rods.                                           |
-| Modules                | `Engineering`, `Tactical` and `Comms`. `Comms.with({ frequency: 1420 })` configures one, through `COMMS_OPTIONS`.       |
-| The lazy cycle         | `ShieldGrid` and `PowerRouter`. `PowerRouter` takes `lazy(ShieldGrid)`.                                                 |
-| A multi token          | `DIAGNOSTICS`, a `MultiToken<Diagnostic>` with `ReactorDiagnostic` and `hullDiagnostic`, read by `DiagnosticsPanel`.    |
-| An optional dependency | `DiagnosticsPanel` takes `optional(SubspaceLink)`.                                                                      |
-| Decorator sugar        | `Bridge`, with `@Inject(NAV_CHARTS) accessor charts`, in the `Command` module.                                          |
-| Test doubles           | `FakeReactor`, `LoopbackLink`, `CommsStub`, `fakeCharts`, `passingDiagnostic`.                                          |
-| A server request       | `IncomingRequest` with a `mission` field, handled by `dispatch(req)`.                                                   |
+Each service is an interface, a typed token named for the role, and one concrete class
+bound to the token in one provider. A token's description is the role's name, so `graph()`
+and the trace show `ReactorCore` and `ShipComputer` whatever class fills the role.
 
-The finished ship in `src/ship/` differs from core spec §3.4 in four places, each for a
+| Interface           | Token                                                      | Class                                 | Lifetime         | Bound in, with deps                                                                                                 |
+| ------------------- | ---------------------------------------------------------- | ------------------------------------- | ---------------- | ------------------------------------------------------------------------------------------------------------------- |
+| `IReactorCore`      | `REACTOR = new Token<IReactorCore>('ReactorCore')`         | `FusionReactor`                       | singleton        | `Engineering`, no deps                                                                                              |
+| `IShipComputer`     | `COMPUTER`, described `'ShipComputer'`                     | `QuantumComputer`                     | singleton        | `Engineering`, `[REACTOR]`                                                                                          |
+| `IPowerRouter`      | `POWER_ROUTER`, described `'PowerRouter'`                  | `PlasmaRouter`                        | singleton        | `Engineering`, `[lazy(SHIELDS)]`                                                                                    |
+| `IShieldGrid`       | `SHIELDS`, described `'ShieldGrid'`                        | `DeflectorGrid`                       | singleton        | `Engineering`, `[POWER_ROUTER]`                                                                                     |
+| `ISubspaceLink`     | `SUBSPACE_LINK = new Token<ISubspaceLink>('SubspaceLink')` | `SubspaceRelay` or `LaserLink`        | singleton        | `Comms`, chosen by the `transport` option (section 7.3)                                                             |
+| `INavCharts`        | `NAV_CHARTS: Token<INavCharts>`                            | an async factory                      | singleton        | `Tactical`, `provide(NAV_CHARTS, { useFactory: async (link) => StarCharts.download(link), deps: [SUBSPACE_LINK] })` |
+| `ISurveyDrone`      | `DRONE`, described `'SurveyDrone'`                         | `ScoutDrone`                          | transient        | `Tactical`, `[COMPUTER]`, and `[COMPUTER, MISSION]` from the Scopes page on                                         |
+| `IFlightLog`        | `FLIGHT_LOG = new Token<IFlightLog>('FlightLog')`          | `ShuttleFlightLog`                    | scoped           | `BridgeApi`, which imports `Tactical` for `MISSION`: `useClass: ShuttleFlightLog, deps: [MISSION]`                  |
+| `IDiagnosticsPanel` | `DIAGNOSTICS_PANEL`, described `'DiagnosticsPanel'`        | `StatusBoard`                         | singleton        | `Meridian`, `[all(DIAGNOSTICS), optional(SUBSPACE_LINK)]`                                                           |
+| `Diagnostic`        | `DIAGNOSTICS`, a `MultiToken<Diagnostic>`                  | `ReactorDiagnostic`, `hullDiagnostic` | singleton, value | `Engineering` and `Tactical`                                                                                        |
+| `Mission`           | `MISSION`, a `Token<Mission>`                              | a factory over `REQUEST`              | scoped           | `Tactical`, `[REQUEST]`                                                                                             |
+| `CommsOptions`      | `COMMS_OPTIONS`                                            | the `with()` value                    | none             | `Comms`                                                                                                             |
+
+The rest of the vocabulary:
+
+| Thing            | The name                                                                                                                                                                                      |
+| ---------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| The ship         | The Starship Meridian, whose root module is `Meridian`.                                                                                                                                       |
+| The container    | `ship`, the variable that holds `await Nexus.create(Meridian)`.                                                                                                                               |
+| A scope          | A shuttle launched from the bay: `await using shuttle = await ship.createScope({ request })`. Scope ids are `s0`, `s1`.                                                                       |
+| A mission        | `{ id: 'survey-7', target: 'Kepler-442b' }`.                                                                                                                                                  |
+| Disposal         | A reactor scram: `FusionReactor[Symbol.asyncDispose]()` drops the control rods.                                                                                                               |
+| Modules          | `Engineering`, `Tactical`, `Comms`, `BridgeApi` and the root `Meridian`, which imports `Tactical` and `BridgeApi`. `SimulatorEngineering` is the module a swap puts in `Engineering`'s place. |
+| Decorator sugar  | `Bridge`, with `@Inject(NAV_CHARTS) accessor charts: INavCharts`, in the `Command` module.                                                                                                    |
+| Test doubles     | `FakeReactor implements IReactorCore`, `MemoryFlightLog implements IFlightLog`, `LoopbackLink implements ISubspaceLink`, `CommsStub`, `fakeCharts`, `passingDiagnostic`.                      |
+| A server request | `IncomingRequest` with a `mission` field, handled by `dispatch(req)`.                                                                                                                         |
+
+### 7.2 Differences from core spec §3.4
+
+The finished ship in `src/ship/` differs from core spec §3.4 in five places, each for a
 teaching reason:
 
-1. `SurveyDrone` takes only `ShipComputer` on the pages before Scopes, so the Lifetimes
-   page teaches a transient before a scope exists.
-2. `DiagnosticsPanel` lives in `Meridian`, and `Tactical` exports `DIAGNOSTICS`, so the
+1. Every service is bound through an interface token (section 7.3). Core §3.4 uses classes
+   as their own tokens. That form is valid NexusDI, and the Tokens and interfaces page
+   states it in prose and shows no example of it.
+2. `ScoutDrone` takes only `COMPUTER` on the pages before Scopes, so the Lifetimes page
+   teaches a transient before a scope exists.
+3. The diagnostics panel lives in `Meridian`, and `Tactical` exports `DIAGNOSTICS`, so the
    Multi-providers page and mission 9 can show a multi token crossing a module boundary.
    In core §3.4 the panel lives in `Engineering`.
-3. `FlightLog` is new. Core §3.4 has no scoped class, and the Scopes page needs one.
-4. `Comms`'s `schema` is a valibot schema,
-   `v.object({ frequency: v.pipe(v.number(), v.integer(), v.minValue(1)) })`, which
-   implements Standard Schema V1, so core validates it through `~standard.validate` with
-   no valibot-specific code. Core spec §3.4 leaves the validator open. `examples/meridian`
-   pins `valibot` at `1.5.0` exactly as a dependency of the examples only, and the sandbox
-   runtime carries the same version (section 11.4). `/schemas/` shows the same module
-   configured with zod and with ArkType, each a doctested region in `examples/meridian`,
-   which pins both as dev dependencies.
+4. `FLIGHT_LOG` and the `BridgeApi` module that binds it are new. Core §3.4 has no scoped
+   class, and the Scopes page needs one. The integrations spec binds `FLIGHT_LOG` in
+   `BridgeApi` too, so the docs and that spec share the name and the binding.
+5. `Comms` takes a `transport` option beside `frequency`, and its `schema` is a valibot
+   schema,
+   `v.object({ frequency: v.pipe(v.number(), v.integer(), v.minValue(1)), transport: v.picklist(['relay', 'laser']) })`,
+   which implements Standard Schema V1, so core validates it through `~standard.validate`
+   with no valibot-specific code. Core spec §3.4 leaves the validator open.
+   `examples/meridian` pins `valibot` at `1.5.0` exactly, as a dependency of the examples
+   only, and the sandbox runtime carries the same version (section 11.4). `/schemas/`
+   shows the same module configured with zod and with ArkType, each a doctested region in
+   `examples/meridian`, which pins both as dev dependencies.
 
-### 7.2 Where it binds
+### 7.3 The interface-first rule
+
+Every example in the docs, in a post from 0.4.0 on, in a Playground seed and in an Academy
+mission follows four rules:
+
+1. Each service has an interface and a typed token: `interface IReactorCore` with
+   `REACTOR = new Token<IReactorCore>('ReactorCore')`, `NAV_CHARTS: Token<INavCharts>`,
+   `FLIGHT_LOG: Token<IFlightLog>`.
+2. Each concrete class is bound in exactly one provider of a program. A class the
+   container constructs is bound with `useClass`. `SubspaceRelay` and `LaserLink`, which
+   `Comms` chooses between by its `transport` option, are each constructed in that
+   module's one `SUBSPACE_LINK` factory, over `[COMMS_OPTIONS]`.
+3. A consumer declares its deps as tokens, and its constructor parameters take the
+   interfaces: `QuantumComputer`'s constructor takes `reactor: IReactorCore`, and its
+   provider declares `deps: [REACTOR]`.
+4. No concrete class depends directly on another concrete class.
+
+The rules pay off in three overrides, which recur through the pages and the missions:
+
+- A module swap. `SimulatorEngineering` binds `REACTOR` to `SimulatedReactor` and exports
+  the same tokens as `Engineering`, so a `Meridian` that imports it builds with no other
+  change (the Modules page, mission 4).
+- A test override.
+  `createTestingContainer(Meridian).override(REACTOR, { useClass: FakeReactor })` puts a
+  fake reactor under an unchanged `QuantumComputer` (`/testing/`, missions 1 and 7).
+- A configurable module that picks an implementation.
+  `Comms.with({ frequency: 1420, transport: 'laser' })` binds `SUBSPACE_LINK` to a `LaserLink` (the
+  Configurable modules page, mission 5).
+
+`doc-interface-first` (section 14.3) checks the rules a pattern can reach, and the
+reviewer checks the rest.
+
+### 7.4 Where it binds
 
 The domain binds on every teaching page, every question page, every platform guide, every
 post from 0.4.0 on, the Academy and the Playground seeds. A reference page takes it as the
@@ -755,29 +823,54 @@ the rule. No page carries humour, an idiom, a holiday, a season or a sport, in p
 heading or an example (public guidance decision 16). A Meridian noun is a name and carries
 no joke.
 
-### 7.3 Per-concept mapping
+### 7.5 Declaring deps
 
-| Concept page            | The Meridian example                                                                                                       | What the console shows                                                                              |
-| ----------------------- | -------------------------------------------------------------------------------------------------------------------------- | --------------------------------------------------------------------------------------------------- |
-| Getting started         | `provide(ShipComputer, { deps: [ReactorCore] })` in one module.                                                            | The two-node graph.                                                                                 |
-| Tokens                  | `NAV_CHARTS` names the `NavCharts` interface and gets a `useValue`. Two tokens described `'NavCharts'` stay distinct.      | The graph with a class token and a `Token` node.                                                    |
-| Providers               | `useClass`, `NAV_CHARTS` by an async factory from `SubspaceLink`, an alias, an optional `SubspaceLink`.                    | The graph with each provider kind marked, and the plotted course from `NavCharts`.                  |
-| Lifetimes               | Two `get(SurveyDrone)` calls launch two drones that share one `ShipComputer`.                                              | A trace replay: two `construct` events for the drone, one for the computer.                         |
-| Modules                 | `Engineering` exports `ShipComputer` and keeps `PowerRouter` private. `Tactical` imports `Engineering`.                    | The graph grouped by module, with `NEXUS_NOT_VISIBLE` on a private token.                           |
-| Configurable modules    | `Comms.with({ frequency: 1420 })`, a `with({ deps, useFactory })` variant, and a schema that rejects a negative frequency. | The validated options, then the schema's issues.                                                    |
-| Scopes and REQUEST      | Two shuttles with two missions, each with its own `FlightLog`, sharing the ship's `ShipComputer`.                          | A trace replay with lanes `s0` and `s1`.                                                            |
-| Lifecycle and disposal  | `ShipComputer.onInit()` runs a self-test. `await using` ends in a reactor scram, after the computer shuts down.            | A replay of `init` events and of the `dispose:instance` events in order.                            |
-| Lazy edges and cycles   | `ShieldGrid` and `PowerRouter` form a cycle. `lazy(ShieldGrid)` breaks it.                                                 | The cycle drawn as a ring with `NEXUS_CIRCULAR_DEPENDENCY`, then the graph with a dotted lazy edge. |
-| Multi-providers         | `Engineering` and `Tactical` contribute to `DIAGNOSTICS`, and `DiagnosticsPanel` in `Meridian` reads `all()`.              | The fan-in of `all` edges into `DiagnosticsPanel`.                                                  |
-| Errors                  | A Meridian with a missing export, a cycle and a captive `MISSION`.                                                         | The error view: every error in one list, the cycle drawn as a ring.                                 |
-| Introspection and trace | The full Meridian.                                                                                                         | `MeridianOnline` and a full trace replay, with the `graph()` JSON beside it.                        |
+NexusDI 0.4 accepts four ways to declare a class's deps, and the Providers page shows them
+in this order:
 
-### 7.4 The abandoned domains
+1. `provide(COMPUTER, { useClass: QuantumComputer, deps: [REACTOR] })`, the form every
+   other page uses and the one the docs recommend. TypeScript checks the deps tuple against
+   the constructor (core spec §4.3).
+2. An object-literal provider,
+   `{ token: COMPUTER, useClass: QuantumComputer, deps: [REACTOR] }`, which takes the
+   fields of `provide()`'s options plus `token`, with `useValue`, `useClass`, `useFactory`
+   or `useExisting`, and optional `deps` and `lifetime`. It suits providers built from data.
+3. `static deps = [REACTOR] as const` on a plain class, which the class carries wherever it
+   is bound.
+4. `@Injectable({ deps: [REACTOR] })`, the decorator sugar on `/decorators/`.
+
+NexusDI has no mode that reads `emitDecoratorMetadata` or `reflect-metadata`. The
+Providers, `/decorators/`, `/legacy-decorators/` and `/comparison/` pages each say so where
+a reader from another container would look for it.
+
+### 7.6 Per-concept mapping
+
+| Concept page            | The Meridian example                                                                                                                                                                        | What the console shows                                                                              |
+| ----------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | --------------------------------------------------------------------------------------------------- |
+| Getting started         | `IReactorCore` bound to `FusionReactor`, and `QuantumComputer` taking it through `deps: [REACTOR]`.                                                                                         | The two-node graph.                                                                                 |
+| Tokens and interfaces   | `NAV_CHARTS` types the `INavCharts` interface and gets a `useValue`. Two tokens described `'NavCharts'` stay distinct. A `FakeReactor` value shows that a consumer sees only the interface. | The graph with every node named by its token.                                                       |
+| Providers               | `useClass` with deps, `NAV_CHARTS` by an async factory over `SUBSPACE_LINK`, an alias, an optional `SUBSPACE_LINK`, the object-literal form and `static deps`.                              | The graph with each provider kind marked, and the plotted course from `NAV_CHARTS`.                 |
+| Lifetimes               | Two `get(DRONE)` calls launch two `ScoutDrone`s that share one `COMPUTER`.                                                                                                                  | A trace replay: two `construct` events for the drone, one for the computer.                         |
+| Modules                 | `Engineering` exports `COMPUTER` and keeps `POWER_ROUTER` private. `Tactical` imports `Engineering`. `SimulatorEngineering` takes `Engineering`'s place.                                    | The graph grouped by module, `NEXUS_NOT_VISIBLE` on a private token, then the swapped reactor.      |
+| Configurable modules    | `Comms.with({ frequency: 1420, transport: 'laser' })`, a `with({ deps, useFactory })` variant, and a schema that rejects a negative frequency.                                              | The chosen `LaserLink`, then the schema's issues.                                                   |
+| Scopes and REQUEST      | Two shuttles with two missions, each with its own `FLIGHT_LOG`, sharing the ship's `COMPUTER`.                                                                                              | A trace replay with lanes `s0` and `s1`.                                                            |
+| Lifecycle and disposal  | `QuantumComputer.onInit()` runs a self-test. `await using` ends in a reactor scram, after the computer shuts down.                                                                          | A replay of `init` events and of the `dispose:instance` events in order.                            |
+| Lazy edges and cycles   | `SHIELDS` and `POWER_ROUTER` form a cycle. `lazy(SHIELDS)` breaks it.                                                                                                                       | The cycle drawn as a ring with `NEXUS_CIRCULAR_DEPENDENCY`, then the graph with a dotted lazy edge. |
+| Multi-providers         | `Engineering` and `Tactical` contribute to `DIAGNOSTICS`, and `DIAGNOSTICS_PANEL` in `Meridian` reads `all()`.                                                                              | The fan-in of `all` edges into the panel.                                                           |
+| Errors                  | A Meridian with a missing export, a cycle and a captive `MISSION`.                                                                                                                          | The error view: every error in one list, the cycle drawn as a ring.                                 |
+| Introspection and trace | The full Meridian.                                                                                                                                                                          | `MeridianOnline` and a full trace replay, with the `graph()` JSON beside it.                        |
+
+### 7.7 The abandoned domains
 
 The domain guard (section 14.3) holds fences to a deny list of the nouns the 0.3 site
 used, counted at `6d5e4f3`: `UserService`, `UserModule`, `UserRepository`,
 `DatabaseService`, `DatabaseModule`, `EmailService`, `LoggerService`, `LoggingModule`,
-`OrderService` and `AppModule`, plus the `I…Service` interface pattern. The same list holds
+`OrderService` and `AppModule`, plus the interface pattern `/\bI[A-Z]\w*Service\b/`. The
+Meridian's own interfaces are named for their role and none ends in `Service`, so the
+pattern matches none of them: `IReactorCore`, `IShipComputer`, `IPowerRouter`,
+`IShieldGrid`, `ISubspaceLink`, `INavCharts`, `ISurveyDrone`, `IFlightLog` and
+`IDiagnosticsPanel`. The guard's fixture test asserts that list passes and that
+`IUserService` fails. The same list holds
 the 0.3 API names that 0.4 removes: `@Service`, `@Provider`, `DynamicModule`,
 `createChildContainer`, `TokenType`, `ContainerException`, `NoProvider`, `configAsync`,
 `forRoot` and `new Nexus()`. The Migration band and pre-0.4.0 posts are exempt, because both
@@ -1006,7 +1099,7 @@ An author places one `<ConsoleView>` in each H2 section of a concept page:
 <ConsoleView
   seed="scopes/two-shuttles"
   view="trace"
-  caption="Two shuttles each build their own MISSION and FlightLog, and share one ShipComputer."
+  caption="Two shuttles each build their own MISSION and FLIGHT_LOG, and share one COMPUTER."
 />
 ```
 
@@ -1289,7 +1382,7 @@ type RunnerMessage = { v: 1; runId: string } & (
 
 `TraceEvent` and `NexusGraph` are core's own types (core spec §10). `SerializedValue`
 renders a value for the console log: primitives as they are, a class instance as its class
-name and own enumerable fields to depth 3, a function or class as `[class ShipComputer]`,
+name and own enumerable fields to depth 3, a function or class as `[class QuantumComputer]`,
 a `NexusError` with its `code`. The harness serializes before posting, so the message
 structured-clones. A `NexusError` travels with its `path` field and, for a
 `BlueprintError`, every entry of `errors`. For a `ProviderError` the harness also
@@ -1506,20 +1599,23 @@ Each mission follows the concept page it practises, in the same order. Missions 
 guided cards (layout C) while the reader learns the Academy's controls. Missions 4 to 9
 use the briefing strip (layout B). Every mission stays unlocked.
 
-| #   | Id                     | Title             | Practises              | Objectives                                                                                                                                  | A failure message                                                    | Layout |
-| --- | ---------------------- | ----------------- | ---------------------- | ------------------------------------------------------------------------------------------------------------------------------------------- | -------------------------------------------------------------------- | ------ |
-| 1   | `01-first-light`       | First light       | Tokens                 | `NAV_CHARTS` is a `Token<NavCharts>` with a `useValue`; the bridge reads the charts through `get(NAV_CHARTS)`                               | "The bridge asked for NavCharts, and no provider answered."          | C      |
-| 2   | `02-chart-room`        | Chart room        | Providers              | `NAV_CHARTS` comes from an async factory over `SubspaceLink`; the factory runs once, during `create`                                        | "NavCharts was built from a value, and the charts never downloaded." | C      |
-| 3   | `03-drone-bay`         | Drone bay         | Lifetimes              | two `get(SurveyDrone)` calls launch two drones; both drones share one `ShipComputer`                                                        | "Both launches returned the same SurveyDrone."                       | C      |
-| 4   | `04-decks`             | Decks             | Modules                | `Engineering` exports `ShipComputer`; `PowerRouter` stays private; `Tactical` resolves `ShipComputer`                                       | "Tactical asked for ShipComputer, and Engineering keeps it private." | B      |
-| 5   | `05-open-channel`      | Open channel      | Configurable modules   | `Comms.with({ frequency: 1420 })` opens the link; the schema rejects a negative frequency                                                   | "Comms accepted frequency -3."                                       | B      |
-| 6   | `06-shuttle-launch`    | Shuttle launch    | Scopes and REQUEST     | each shuttle reads its own `MISSION`; each shuttle keeps one `FlightLog` of its own; no singleton holds a `MISSION`                         | "FlightLog was built once for two shuttles."                         | B      |
-| 7   | `07-scram-drill`       | Scram drill       | Lifecycle and disposal | `ShipComputer.onInit` finishes its self-test before `create` resolves; the trace shows the reactor disposed once, after the computer        | "The reactor scrammed before the computer shut down."                | B      |
-| 8   | `08-power-loop`        | Power loop        | Lazy edges and cycles  | the ship starts with `ShieldGrid` and `PowerRouter` both registered; `PowerRouter.divert()` reaches the grid                                | "ShieldGrid and PowerRouter each waited for the other."              | B      |
-| 9   | `09-diagnostics-sweep` | Diagnostics sweep | Multi-providers        | `Engineering` and `Tactical` each contribute a diagnostic; `Tactical` exports `DIAGNOSTICS`; `DiagnosticsPanel` in `Meridian` receives both | "DiagnosticsPanel saw one diagnostic of two."                        | B      |
+| #   | Id                     | Title             | Practises              | Objectives                                                                                                                                                                                               | A failure message                                                                          | Layout |
+| --- | ---------------------- | ----------------- | ---------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------ | ------ |
+| 1   | `01-first-light`       | First light       | Tokens and interfaces  | `REACTOR` is a `Token<IReactorCore>` bound to `FusionReactor`; `QuantumComputer` takes `IReactorCore` through `deps: [REACTOR]`; a test override puts `FakeReactor` under an unchanged `QuantumComputer` | "QuantumComputer asked for FusionReactor by name, so no other reactor can take its place." | C      |
+| 2   | `02-chart-room`        | Chart room        | Providers              | `NAV_CHARTS` comes from an async factory over `SUBSPACE_LINK`; the factory runs once, during `create`                                                                                                    | "NavCharts was built from a value, and the charts never downloaded."                       | C      |
+| 3   | `03-drone-bay`         | Drone bay         | Lifetimes              | two `get(DRONE)` calls launch two drones; both drones share one `COMPUTER`                                                                                                                               | "Both launches returned the same SurveyDrone."                                             | C      |
+| 4   | `04-decks`             | Decks             | Modules                | `Engineering` exports `COMPUTER`; `POWER_ROUTER` stays private; `Tactical` resolves `COMPUTER`; `SimulatorEngineering` swaps in with no change to `Tactical`                                             | "Tactical asked for ShipComputer, and Engineering keeps it private."                       | B      |
+| 5   | `05-open-channel`      | Open channel      | Configurable modules   | `Comms.with({ frequency: 1420, transport: 'laser' })` binds `SUBSPACE_LINK` to a `LaserLink`; the schema rejects a negative frequency                                                                    | "Comms accepted frequency -3."                                                             | B      |
+| 6   | `06-shuttle-launch`    | Shuttle launch    | Scopes and REQUEST     | each shuttle reads its own `MISSION`; each shuttle keeps one `FLIGHT_LOG` of its own; no singleton holds a `MISSION`                                                                                     | "FlightLog was built once for two shuttles."                                               | B      |
+| 7   | `07-scram-drill`       | Scram drill       | Lifecycle and disposal | `QuantumComputer.onInit` finishes its self-test before `create` resolves; the trace shows the reactor disposed once, after the computer, with `FusionReactor` and with `FakeReactor` overridden in       | "The reactor scrammed before the computer shut down."                                      | B      |
+| 8   | `08-power-loop`        | Power loop        | Lazy edges and cycles  | the ship starts with `SHIELDS` and `POWER_ROUTER` both bound; `divert()` on the router reaches the grid                                                                                                  | "ShieldGrid and PowerRouter each waited for the other."                                    | B      |
+| 9   | `09-diagnostics-sweep` | Diagnostics sweep | Multi-providers        | `Engineering` and `Tactical` each contribute a diagnostic; `Tactical` exports `DIAGNOSTICS`; `DIAGNOSTICS_PANEL` in `Meridian` receives both                                                             | "DiagnosticsPanel saw one diagnostic of two."                                              | B      |
 
-Mission 7 reads the order of `dispose:instance` events from the run's trace (core spec
-§8.2). Mission 9 teaches multi-token visibility: a contribution crosses a module boundary
+Every mission's seed and solution follow the interface-first rule (section 7.3). Mission 1
+starts from a seed that breaks it on purpose: `QuantumComputer` takes a `FusionReactor`
+directly, so the test override of its third objective cannot work until the reader
+introduces the interface and the token. Mission 7 reads the order of `dispose:instance`
+events from the run's trace (core spec §8.2). Mission 9 teaches multi-token visibility: a contribution crosses a module boundary
 only through an export.
 
 The Errors and Introspection pages have no mission. Every mission shows both: a failed
@@ -1552,29 +1648,29 @@ export default {
   seed: { files: [...], entry: 'main.ts' },
   seedDiagnostics: [],
   solution: { files: [...], entry: 'main.ts' },
-  reads: ['ship', 'FlightLog', 'MISSION'],
+  reads: ['ship', 'FLIGHT_LOG', 'MISSION'],
   objectives: [
     {
       id: 'flight-log-per-shuttle',
       title: 'Each shuttle keeps one FlightLog of its own',
       teaches: true,
       guided: false,
-      check: async ({ ship, exports: { FlightLog } }) => {
+      check: async ({ ship, exports: { FLIGHT_LOG } }) => {
         await using a = await ship.createScope({
           request: { mission: { id: 'survey-7', target: 'Kepler-442b' } },
         });
         await using b = await ship.createScope({
           request: { mission: { id: 'survey-8', target: 'Gliese-667Cc' } },
         });
-        if (a.get(FlightLog) !== a.get(FlightLog))
+        if (a.get(FLIGHT_LOG) !== a.get(FLIGHT_LOG))
           return { status: 'fail', message: 'One shuttle got two FlightLogs.' };
-        if (a.get(FlightLog) === b.get(FlightLog))
+        if (a.get(FLIGHT_LOG) === b.get(FLIGHT_LOG))
           return { status: 'fail', message: 'FlightLog was built once for two shuttles.' };
         return { status: 'pass' };
       },
       decoys: [
-        { name: 'singleton FlightLog', files: [...] },
-        { name: 'transient FlightLog', files: [...] },
+        { name: 'ShuttleFlightLog bound as a singleton', files: [...] },
+        { name: 'ShuttleFlightLog bound as a transient', files: [...] },
       ],
     },
   ],
@@ -1806,33 +1902,34 @@ libraries' slack and hygiene tests: a count that falls must be lowered in the fi
 entry no longer needed fails. By rc.0 every allowance is empty except G8's, which lists the
 pages whose length the reviewer accepted.
 
-| Guard                     | Libraries source             | Rule here                                                                                                                                                                                                                                                                                                                                                             |
-| ------------------------- | ---------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| G1 `doc-navigation`       | `docs-navigation`, G1 half   | Every page under `content/` is a `_meta.ts` key and every key is a page. Every page has exactly one `# ` heading and a valid `kind`. `requires` names the one or two pages immediately before it in `_meta.ts`, of a teaching kind.                                                                                                                                   |
-| G2 `doc-floor`            | `doc-floor`                  | `index` (`overview`), `getting-started` (`tutorial`) and `api` (`reference`) exist, and every slug in `navigation.ts`'s named concept list exists with `kind: concept`.                                                                                                                                                                                               |
-| G3 `doc-fence`            | `doc-fence`                  | Every fence is `file=… region=…`, `twoslash`, a shell language, `mermaid`, or carries one of the five tags. Per page, `no-run` and `anti-example` together never outnumber the executed fences. `post` pages are skipped.                                                                                                                                             |
-| G4 `doc-control`          | `doc-control`                | `getting-started` mounts a `ConsoleView`. Every H2 section of a `concept` page mounts one `ConsoleView` or one `ConsoleExempt` with a non-empty `reason`. Every `ConsoleView` has a non-empty `caption`.                                                                                                                                                              |
-| G5 `doc-exports`          | `doc-exports`                | Every `import … from '@nexusdi/…'` in a fence resolves through the package's `exports` map under `@nexusdi/source`, and every bound name is exported there. A `signature` fence's `##` heading names an export. An `@nexusdi/…` reference in a `mermaid` fence names an export. Pre-0.4.0 posts are skipped.                                                          |
-| G6 `doc-specimen`         | `doc-specimen`               | Every operable component under `components/specimens/` is registered in `mdx-components` and mounted on a content page besides `index`. No component name is hard-coded.                                                                                                                                                                                              |
-| G7 `doc-links`            | `doc-links`                  | Every root-relative link names a content page or an app route, the dynamic `/academy/[mission]/` included, checked against the mission list. A link that hard-codes `/next/` fails, because Next adds the base path. A link to a NexusDI README on GitHub fails, because the site documents what the README covers.                                                   |
-| G8 `doc-prose-budget`     | `doc-prose-budget`           | 1,200 words of prose a page, reported and not failed. Pages whose slug starts with `api` are exempt.                                                                                                                                                                                                                                                                  |
-| G9 `doc-domain`           | `doc-domain`                 | No fence, after region expansion, names a noun from section 7.4. Pages with `domainExempt` in frontmatter and pre-0.4.0 posts are skipped. Ratchet file ported.                                                                                                                                                                                                       |
-| G10 `doc-export-coverage` | `doc-export-coverage`        | Every export of `.`, `./node` and `./testing` has a `##` heading on an `api*` page, and every callable one appears in an executable fence. Every `NexusErrorCode` member has an `###` on `api-errors`. Every code in `@nexusdi/codemod`'s `TODO_CODES` and `NOTE_CODES` has an `##` on `codemod`, read from the lists themselves. Phase 1 allowance and ratchet file. |
-| G11 `doc-behaviour`       | `doc-behaviour`              | Every non-error callable export has a `describe` naming it in `libs/core`'s tests. Phase 1 allowance.                                                                                                                                                                                                                                                                 |
-| `doc-refused-words`       | `doc-refused-words`          | The libraries list, plus the em dash and the en dash in prose. Pre-0.4.0 posts are skipped.                                                                                                                                                                                                                                                                           |
-| `doc-antithesis`          | `doc-antithesis`             | Unchanged.                                                                                                                                                                                                                                                                                                                                                            |
-| `doc-figures`             | `doc-figures`                | The libraries list, plus `lands`, `bites`, `earns` and `pays` in prose, which have no literal use on this site.                                                                                                                                                                                                                                                       |
-| `doc-notices`             | new                          | Notice labels are `Note`, `Exception`, `Warning` and `Ship note`. At most two a page, and no two adjacent.                                                                                                                                                                                                                                                            |
-| `doc-twoslash`            | `doc-twoslash`, adapted      | Every `twoslash` fence compiles with the prelude of section 14.2, and every declared `@errors` code is still produced.                                                                                                                                                                                                                                                |
-| `doc-regions`             | `doc-regions`, adapted       | Every cited file and region exists, in `libs/core/README.md`, `examples/meridian` or the codemod fixtures, seed and mission regions included.                                                                                                                                                                                                                         |
-| `doc-md-siblings`         | `doc-md-siblings`, adapted   | Every `.md` sibling carries each cited region's code and each reference entry's expansion, posts included.                                                                                                                                                                                                                                                            |
-| `diagram-captions`        | `diagram-captions`           | Unchanged.                                                                                                                                                                                                                                                                                                                                                            |
-| `doc-reference`           | `doc-reference`, adapted     | The reference loader against `@nexusdi/core`'s built declarations.                                                                                                                                                                                                                                                                                                    |
-| `docs-trigger`            | `docs-trigger`, adapted      | `docs.yml`'s path filter covers `libs/**`, `internal/**`, `examples/meridian/**` and `tools/doc-examples/**`.                                                                                                                                                                                                                                                         |
-| `doc-commitments`         | new                          | Every heading in `apps/docs/commitments.json` exists on its page (section 4.5).                                                                                                                                                                                                                                                                                       |
-| `doc-seeds`               | new                          | Section 11.9.                                                                                                                                                                                                                                                                                                                                                         |
-| `academy-missions`        | new                          | Section 14.4.                                                                                                                                                                                                                                                                                                                                                         |
-| `docs-deploy`             | new, replaces `docs-archive` | `apps/docs/deploy.json` matches its schema, and the `/v0.3/` retention check of section 15.7. The libraries `docs-archive` guard checks archives for superseded majors; this site keeps one archive and no other before 1.0, so the retention check takes its place.                                                                                                  |
+| Guard                     | Libraries source             | Rule here                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                     |
+| ------------------------- | ---------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| G1 `doc-navigation`       | `docs-navigation`, G1 half   | Every page under `content/` is a `_meta.ts` key and every key is a page. Every page has exactly one `# ` heading and a valid `kind`. `requires` names the one or two pages immediately before it in `_meta.ts`, of a teaching kind.                                                                                                                                                                                                                                                                                                                                           |
+| G2 `doc-floor`            | `doc-floor`                  | `index` (`overview`), `getting-started` (`tutorial`) and `api` (`reference`) exist, and every slug in `navigation.ts`'s named concept list exists with `kind: concept`.                                                                                                                                                                                                                                                                                                                                                                                                       |
+| G3 `doc-fence`            | `doc-fence`                  | Every fence is `file=… region=…`, `twoslash`, a shell language, `mermaid`, or carries one of the five tags. Per page, `no-run` and `anti-example` together never outnumber the executed fences. `post` pages are skipped.                                                                                                                                                                                                                                                                                                                                                     |
+| G4 `doc-control`          | `doc-control`                | `getting-started` mounts a `ConsoleView`. Every H2 section of a `concept` page mounts one `ConsoleView` or one `ConsoleExempt` with a non-empty `reason`. Every `ConsoleView` has a non-empty `caption`.                                                                                                                                                                                                                                                                                                                                                                      |
+| G5 `doc-exports`          | `doc-exports`                | Every `import … from '@nexusdi/…'` in a fence resolves through the package's `exports` map under `@nexusdi/source`, and every bound name is exported there. A `signature` fence's `##` heading names an export. An `@nexusdi/…` reference in a `mermaid` fence names an export. Pre-0.4.0 posts are skipped.                                                                                                                                                                                                                                                                  |
+| G6 `doc-specimen`         | `doc-specimen`               | Every operable component under `components/specimens/` is registered in `mdx-components` and mounted on a content page besides `index`. No component name is hard-coded.                                                                                                                                                                                                                                                                                                                                                                                                      |
+| G7 `doc-links`            | `doc-links`                  | Every root-relative link names a content page or an app route, the dynamic `/academy/[mission]/` included, checked against the mission list. A link that hard-codes `/next/` fails, because Next adds the base path. A link to a NexusDI README on GitHub fails, because the site documents what the README covers.                                                                                                                                                                                                                                                           |
+| G8 `doc-prose-budget`     | `doc-prose-budget`           | 1,200 words of prose a page, reported and not failed. Pages whose slug starts with `api` are exempt.                                                                                                                                                                                                                                                                                                                                                                                                                                                                          |
+| G9 `doc-domain`           | `doc-domain`                 | No fence, after region expansion, names a noun from section 7.7. Pages with `domainExempt` in frontmatter and pre-0.4.0 posts are skipped. Ratchet file ported.                                                                                                                                                                                                                                                                                                                                                                                                               |
+| G10 `doc-export-coverage` | `doc-export-coverage`        | Every export of `.`, `./node` and `./testing` has a `##` heading on an `api*` page, and every callable one appears in an executable fence. Every `NexusErrorCode` member has an `###` on `api-errors`. Every code in `@nexusdi/codemod`'s `TODO_CODES` and `NOTE_CODES` has an `##` on `codemod`, read from the lists themselves. Phase 1 allowance and ratchet file.                                                                                                                                                                                                         |
+| G11 `doc-behaviour`       | `doc-behaviour`              | Every non-error callable export has a `describe` naming it in `libs/core`'s tests. Phase 1 allowance.                                                                                                                                                                                                                                                                                                                                                                                                                                                                         |
+| `doc-refused-words`       | `doc-refused-words`          | The libraries list, plus the em dash and the en dash in prose. Pre-0.4.0 posts are skipped.                                                                                                                                                                                                                                                                                                                                                                                                                                                                                   |
+| `doc-antithesis`          | `doc-antithesis`             | Unchanged.                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                    |
+| `doc-figures`             | `doc-figures`                | The libraries list, plus `lands`, `bites`, `earns` and `pays` in prose, which have no literal use on this site.                                                                                                                                                                                                                                                                                                                                                                                                                                                               |
+| `doc-notices`             | new                          | Notice labels are `Note`, `Exception`, `Warning` and `Ship note`. At most two a page, and no two adjacent.                                                                                                                                                                                                                                                                                                                                                                                                                                                                    |
+| `doc-interface-first`     | new                          | In every fence and region outside the Migration band and pre-0.4.0 posts, and in every seed and mission file: the first argument of `provide()`, the `token` of an object-literal provider, and every entry of `deps`, `static deps` and `@Injectable` deps is a SCREAMING_CASE token or a modifier over one; `useClass` names a class. In `examples/meridian`, a test builds each seed and page program and asserts that each concrete class appears in exactly one provider and that every constructor parameter of a bound class is typed with an interface (section 7.3). |
+| `doc-twoslash`            | `doc-twoslash`, adapted      | Every `twoslash` fence compiles with the prelude of section 14.2, and every declared `@errors` code is still produced.                                                                                                                                                                                                                                                                                                                                                                                                                                                        |
+| `doc-regions`             | `doc-regions`, adapted       | Every cited file and region exists, in `libs/core/README.md`, `examples/meridian` or the codemod fixtures, seed and mission regions included.                                                                                                                                                                                                                                                                                                                                                                                                                                 |
+| `doc-md-siblings`         | `doc-md-siblings`, adapted   | Every `.md` sibling carries each cited region's code and each reference entry's expansion, posts included.                                                                                                                                                                                                                                                                                                                                                                                                                                                                    |
+| `diagram-captions`        | `diagram-captions`           | Unchanged.                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                    |
+| `doc-reference`           | `doc-reference`, adapted     | The reference loader against `@nexusdi/core`'s built declarations.                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                            |
+| `docs-trigger`            | `docs-trigger`, adapted      | `docs.yml`'s path filter covers `libs/**`, `internal/**`, `examples/meridian/**` and `tools/doc-examples/**`.                                                                                                                                                                                                                                                                                                                                                                                                                                                                 |
+| `doc-commitments`         | new                          | Every heading in `apps/docs/commitments.json` exists on its page (section 4.5).                                                                                                                                                                                                                                                                                                                                                                                                                                                                                               |
+| `doc-seeds`               | new                          | Section 11.9.                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                 |
+| `academy-missions`        | new                          | Section 14.4.                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                 |
+| `docs-deploy`             | new, replaces `docs-archive` | `apps/docs/deploy.json` matches its schema, and the `/v0.3/` retention check of section 15.7. The libraries `docs-archive` guard checks archives for superseded majors; this site keeps one archive and no other before 1.0, so the retention check takes its place.                                                                                                                                                                                                                                                                                                          |
 
 Two libraries tools are not ported: the `/testing` statistics section and its
 `testing-data` target (`apps/docs/tools/test-statistics.mjs`). The behaviour lists on the
@@ -1884,10 +1981,12 @@ these changes:
 - The domain rule names the Meridian and section 7, and the notice rule names `Ship note`.
 - A region's source is in `examples/meridian`, `libs/core/README.md` or a codemod fixture,
   and the agent reads the region, since the fence is empty in the MDX.
-- Four new checks: a `ConsoleView` caption states in words what its view shows; no
+- Five new checks: a `ConsoleView` caption states in words what its view shows; no
   sentence sends the reader to the console for a meaning the prose leaves out; a mission
   briefing names every export its checks read; a claim about another library on
-  `/comparison/` cites its source and version.
+  `/comparison/` cites its source and version; every example follows the interface-first
+  rule of section 7.3, including the parts `doc-interface-first` cannot see, such as a
+  concrete class reached through a factory.
 - It reads the pinned libraries documents (section 14.5) and this spec's amendments
   (section 3).
 
