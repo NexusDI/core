@@ -39,7 +39,9 @@ describe('compile', () => {
       ['m3', 'Comms'],
     ]);
     expect(
-      [...bp.providers.values()].map((p) => [p.id, p.name, p.module]),
+      [...bp.providers.values()]
+        .filter((p) => p.id !== 'request')
+        .map((p) => [p.id, p.name, p.module]),
     ).toEqual([
       ['p0', 'ReactorCore', 'm0'],
       ['p1', 'ShieldGrid', 'm1'],
@@ -63,7 +65,7 @@ describe('compile', () => {
       'Shared',
       'B',
     ]);
-    expect(bp.providers.size).toBe(1);
+    expect(bp.providers.size - 1).toBe(1);
   });
 
   it('walks two with() instances as two modules', () => {
@@ -89,7 +91,9 @@ describe('compile', () => {
         imports: [Comms.with({ frequency: 1420 })],
       }),
     });
-    expect([...bp.providers.values()]).toMatchObject([
+    expect(
+      [...bp.providers.values()].filter((p) => p.id !== 'request'),
+    ).toMatchObject([
       {
         token: COMMS_OPTIONS,
         kind: 'value',
@@ -177,7 +181,7 @@ describe('compile', () => {
         ],
       }),
     });
-    expect(bp.providers.size).toBe(2);
+    expect(bp.providers.size - 1).toBe(2);
   });
 
   it('keeps the same token provided in two modules as two providers', () => {
@@ -186,10 +190,11 @@ describe('compile', () => {
     const bp = compile({
       root: defineModule({ name: 'Root', imports: [A, B] }),
     });
-    expect([...bp.providers.values()].map((p) => p.module)).toEqual([
-      'm1',
-      'm2',
-    ]);
+    expect(
+      [...bp.providers.values()]
+        .filter((p) => p.id !== 'request')
+        .map((p) => p.module),
+    ).toEqual(['m1', 'm2']);
   });
 
   it('keeps two distinct classes that share a name as two providers', () => {
@@ -198,9 +203,10 @@ describe('compile', () => {
     const bp = compile({
       root: defineModule({ name: 'Root', providers: [first, second] }),
     });
-    expect([...bp.providers.values()].map((p) => p.name)).toEqual([
-      'Probe',
-      'Probe',
-    ]);
+    expect(
+      [...bp.providers.values()]
+        .filter((p) => p.id !== 'request')
+        .map((p) => p.name),
+    ).toEqual(['Probe', 'Probe']);
   });
 });

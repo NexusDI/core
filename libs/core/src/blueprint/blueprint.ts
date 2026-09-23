@@ -95,4 +95,13 @@ export interface Blueprint {
   readonly providers: ReadonlyMap<string, ProviderRecord>;
   /** Modules load() added as root imports, in load order. */
   readonly extraImports: readonly unknown[];
+  /** module id → token → provider ids that module sees. */
+  readonly visibility: ReadonlyMap<
+    string,
+    ReadonlyMap<TokenKey, readonly string[]>
+  >;
+  /** module id → provider ids and module ids it exports. */
+  readonly moduleExports: ReadonlyMap<string, readonly string[]>;
+  /** module id → tokens it exports, for near-miss hints. */
+  readonly exportedTokens: ReadonlyMap<string, ReadonlySet<TokenKey>>;
 }
