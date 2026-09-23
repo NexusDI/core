@@ -10,18 +10,12 @@ NexusDI is designed to be lightweight and performant while providing powerful de
 
 ### Core Library Size
 
-NexusDI's core library is extremely lightweight:
+These figures come from esbuild 0.28.2 bundling a minimal consumer against the `@nexusdi/core` 0.3.2 tarball from npm, with `--bundle --minify --format=esm`. The consumer imports `Nexus`, `Service`, `Inject` and `Token`, registers two services and resolves one.
 
 ```bash
-# Compiled JavaScript files
-container.js:     8KB   # Main DI container logic
-decorators.js:    2.6KB # Decorator implementations
-token.js:         1.1KB # Token system
-module.js:        1.9KB # Module system
-types.js:         0.6KB # Type definitions
-index.js:         1.8KB # Main exports
-─────────────────────────────────
-Total Core:      16KB
+# Minified ESM bundle of the consumer, @nexusdi/core 0.3.2
+Raw:        6,254 bytes (6.1KB)
+Gzipped:    2,270 bytes (2.2KB)
 ```
 
 ### Runtime Dependencies
@@ -31,9 +25,9 @@ Total Core:      16KB
 ### Total Runtime Overhead
 
 ```
-NexusDI Core:    16KB
+NexusDI Core:    6.1KB minified (2.2KB gzipped)
 ─────────────────────────────────
-Total Overhead:  16KB
+Total Overhead:  6.1KB minified (2.2KB gzipped)
 ```
 
 ## 🚀 Performance Characteristics
@@ -58,7 +52,7 @@ const userService = container.get(USER_SERVICE); // 0.2μs average
 - **Token resolution**: O(1) lookup using Map-based storage
 - **Singleton caching**: Instances are cached after first creation
 - **Memory efficient**: Minimal object creation overhead
-- **No reflection overhead**: Metadata is read once at startup
+- **No reflection overhead**: Metadata is read when a provider is registered or resolved. `set()` reads module and provider metadata, and `get()` reads a class's injection metadata when it constructs the class
 
 ### Memory Usage
 
@@ -223,24 +217,24 @@ This ensures the performance claims are credible and verifiable by anyone who wa
 
 ```
 Original: 100KB
-With NexusDI: 116KB (+16KB)
-Impact: +16% bundle size
+With NexusDI: 106.1KB (+6.1KB)
+Impact: +6.1% bundle size
 ```
 
 #### Medium Application (1MB bundle)
 
 ```
 Original: 1MB
-With NexusDI: 1.016MB (+16KB)
-Impact: +1.6% bundle size
+With NexusDI: 1.006MB (+6.1KB)
+Impact: +0.6% bundle size
 ```
 
 #### Large Application (5MB bundle)
 
 ```
 Original: 5MB
-With NexusDI: 5.016MB (+16KB)
-Impact: +0.32% bundle size
+With NexusDI: 5.006MB (+6.1KB)
+Impact: +0.12% bundle size
 ```
 
 ### Tree Shaking Benefits
@@ -248,13 +242,10 @@ Impact: +0.32% bundle size
 NexusDI is fully tree-shakeable, so unused features are eliminated:
 
 ```typescript
-// Only imports what you use
-import { Nexus, Token } from '@nexusdi/core'; // 4KB
-import { Service, Inject } from '@nexusdi/core'; // +2KB
-import { Module } from '@nexusdi/core'; // +2KB
-
-// Unused features are eliminated
-// Total: 8KB instead of 16KB
+// Minified ESM bundles from esbuild 0.28.2, @nexusdi/core 0.3.2
+import { Nexus, Token } from '@nexusdi/core'; // 5,090 bytes
+import { Service, Inject } from '@nexusdi/core'; // 6,254 bytes for the two-service consumer
+import * as NexusDI from '@nexusdi/core'; // 7,589 bytes, every export
 ```
 
 ## 🔧 Optimization Strategies
@@ -378,7 +369,7 @@ console.log(`Memory increase: ${memoryIncrease / 1024}KB`);
 
 ### ✅ Good Use Cases (Low Performance Impact)
 
-- **Web applications**: Bundle size impact is minimal (1.6-8%)
+- **Web applications**: Bundle size impact is minimal (0.6% on a 1MB bundle)
 - **Server applications**: Runtime overhead is negligible (0.001ms startup)
 - **Medium to large projects**: Benefits outweigh costs
 - **Applications with complex dependencies**: DI improves maintainability
@@ -394,10 +385,10 @@ console.log(`Memory increase: ${memoryIncrease / 1024}KB`);
 
 | Application Type     | Bundle Size       | Performance Impact | Recommendation   |
 | -------------------- | ----------------- | ------------------ | ---------------- |
-| Small SPA            | High (+16%)       | Very Low           | Good choice      |
-| Medium Web App       | Low (+1.6%)       | Very Low           | Excellent choice |
-| Large Enterprise App | Very Low (+0.32%) | Very Low           | Excellent choice |
-| Microservice         | Low (+16KB)       | Very Low           | Excellent choice |
+| Small SPA            | Low (+6.1%)       | Very Low           | Good choice      |
+| Medium Web App       | Very Low (+0.6%)  | Very Low           | Excellent choice |
+| Large Enterprise App | Very Low (+0.12%) | Very Low           | Excellent choice |
+| Microservice         | Low (+6.1KB)      | Very Low           | Excellent choice |
 | Server Application   | N/A               | Very Low           | Excellent choice |
 
 ## 🔍 Real-World Performance Monitoring
@@ -516,7 +507,7 @@ class EmailModule {}
 
 NexusDI provides excellent performance characteristics:
 
-- **Minimal overhead**: 16KB total runtime
+- **Minimal overhead**: 6.1KB minified, 2.2KB gzipped
 - **Fast startup**: 0.001ms container initialization
 - **Efficient resolution**: 0.0002ms per service resolution
 - **Tree-shakeable**: Unused features are eliminated
