@@ -531,6 +531,35 @@ describe('normalizeProvider with static deps', () => {
     ).toMatchObject({ kind: 'class', deps: byName, lifetime: 'singleton' });
   });
 
+  it.each([
+    ['provide(C)', (cls: Ctor) => rawProvide(cls)],
+    [
+      'provide(C, { lifetime })',
+      (cls: Ctor) => rawProvide(cls, { lifetime: 'scoped' }),
+    ],
+    ['a { token: C } literal', (cls: Ctor) => ({ token: cls })],
+  ] as const)(
+    'reports NEXUS_MISSING_DEPS for %s when only @Injectable declares deps',
+    (_label, wrap) => {
+      // provide(C), provide(C, { lifetime }) and { token: C } never read
+      // @Injectable for deps (spec §3.2): a class with only @Injectable
+      // deps and no static deps behaves as if it declared none.
+      class Decorated {
+        constructor(readonly name: string) {}
+      }
+      const metadata = Object.create(null) as DecoratorMetadataObject;
+      writeInjectable(metadata, { deps: [NAME], lifetime: undefined });
+      Object.defineProperty(Decorated, Symbol.metadata, { value: metadata });
+      const [error] = normalize(wrap(Decorated)).errors;
+      expect(error).toMatchObject({
+        code: 'NEXUS_MISSING_DEPS',
+        token: 'Decorated',
+        useClass: null,
+        arity: 1,
+      });
+    },
+  );
+
   it('reports NEXUS_MISSING_DEPS naming the class and the token for a useClass that declares nothing', () => {
     class Bare {
       constructor(readonly name: string) {}

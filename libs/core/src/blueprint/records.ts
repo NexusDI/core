@@ -99,25 +99,60 @@ function readStaticDeps(
 }
 
 /**
- * The deps a class declares: its @Injectable metadata or its static deps.
- * Declaring both is an error, because either one could silently shadow the
- * other. classShape calls this once, for every class form that has no
- * explicit deps option, so the conflict check runs the same way for a bare
- * class, provide(C), provide(C, { lifetime }), a { token: C } literal and a
- * useClass binding alike; an explicit deps option wins as a whole and this
- * never runs (spec §3.2).
+ * Reads a class's @Injectable metadata deps and its static deps together, so
+ * the conflict check (both declared, own or inherited) runs for every class
+ * form that has no explicit deps option, whether or not that form's deps can
+ * come from metadata. Returns null after reporting a getter that throws, a
+ * static deps that is not an array, or a class that declares both.
  */
-function declaredDeps(
+function readDeclaredDeps(
   cls: Ctor,
   fail: Fail,
-): { readonly value: unknown } | null {
+): { readonly fromMetadata: unknown; readonly fromStatic: unknown } | null {
   const fromMetadata = readInjectable(cls)?.deps;
   const declared = readStaticDeps(cls, fail);
   if (declared === null) return null;
   if (fromMetadata !== undefined && declared.value !== undefined)
     return fail('declares deps in both @Injectable and static deps; keep one');
-  return { value: fromMetadata ?? declared.value };
+  return { fromMetadata, fromStatic: declared.value };
 }
+
+/** What a class form takes as deps when it sets no explicit deps option. */
+type DepsResolver = (
+  cls: Ctor,
+  fail: Fail,
+) => { readonly value: unknown } | null;
+
+/**
+ * Builds a deps resolver for one class form's policy: true when the form may
+ * take deps from @Injectable metadata (a bare class or useClass: C), false
+ * when it reads static deps only (provide(C), provide(C, { lifetime }) and a
+ * { token: C } literal never read @Injectable for deps). Either way
+ * readDeclaredDeps runs the conflict check first (spec §3.2).
+ */
+function makeDepsResolver(useMetadata: boolean): DepsResolver {
+  return (cls, fail) => {
+    const declared = readDeclaredDeps(cls, fail);
+    if (declared === null) return null;
+    return {
+      value: useMetadata
+        ? (declared.fromMetadata ?? declared.fromStatic)
+        : declared.fromStatic,
+    };
+  };
+}
+
+/**
+ * The deps a bare class or a useClass binding takes when it sets no deps
+ * option: its @Injectable metadata or its static deps (spec §3.2).
+ */
+const declaredDeps = makeDepsResolver(true);
+
+/**
+ * The deps provide(C), provide(C, { lifetime }) and a { token: C } literal
+ * take when they set no deps option: static deps only (spec §3.2).
+ */
+const staticOnlyDeps = makeDepsResolver(false);
 
 /** True for a provider literal: an object that sets `token` on itself (spec §3.2). */
 function isLiteral(value: unknown): value is { readonly token: unknown } {
@@ -225,13 +260,17 @@ function classShape(
   site: ProviderSite,
   errors: NexusError[],
   fail: Fail,
+  // provide(C), provide(C, { lifetime }) and a { token: C } literal never
+  // read @Injectable for deps; bareClass and the useClass branch pass
+  // declaredDeps to read it too (spec §3.2).
+  resolveDeps: DepsResolver = staticOnlyDeps,
 ): RecordShape | null {
   let list = deps;
   if (list === undefined) {
-    // declaredDeps already reports a static deps that is not an array and a
+    // resolveDeps already reports a static deps that is not an array and a
     // class that declares deps in both @Injectable and static deps, so list
     // is an array or still undefined here.
-    const declared = declaredDeps(cls, fail);
+    const declared = resolveDeps(cls, fail);
     if (declared === null) return null;
     list = declared.value;
   }
@@ -286,6 +325,7 @@ function bareClass(
     site,
     errors,
     fail,
+    declaredDeps,
   );
 }
 
@@ -403,6 +443,7 @@ function definitionShape(
         site,
         errors,
         fail,
+        declaredDeps,
       );
     }
     case 'useValue':
