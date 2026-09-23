@@ -263,15 +263,13 @@ try {
 
 ### Startup Performance
 
-- **Fast registration**: ~0.16μs per provider
-- **Efficient resolution**: ~0.2μs per service
-- **Minimal memory overhead**: ~6KB additional heap
+NexusDI 0.4 will include a reproducible benchmark harness that compares DI containers.
 
 ### Memory Management
 
 ```typescript
 // Container instances are lightweight
-const container = new Nexus(); // ~1KB memory
+const container = new Nexus();
 
 // Services are cached after first creation
 const service1 = container.get(USER_SERVICE); // Creates instance
