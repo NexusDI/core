@@ -1,0 +1,160 @@
+name: Docs
+
+# Builds and deploys nexus.js.org (docs spec §15.3). apps/docs/deploy.json
+# holds the mode, and the mode decides which sites the artifact holds.
+on:
+  push:
+    branches: [main]
+    # GitHub evaluates no path filter on a tag push, so a release tag always
+    # deploys: the root builds from the newest stable tag after final.
+    tags: ['@nexusdi/core@*']
+    paths:
+      # tools/repo-checks/src/docs/docs-trigger.ts holds this list against the
+      # release projects and the docs project's inputs.
+      - 'apps/docs/**'
+      - 'libs/**'
+      - 'internal/**'
+      - 'examples/meridian/**'
+      - 'tools/doc-examples/**'
+      - 'package.json'
+      - 'package-lock.json'
+      - '.github/workflows/docs.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  pages: write # publish the Pages deployment
+  id-token: write # Pages deployments are OIDC-authenticated
+
+concurrency:
+  group: pages
+  cancel-in-progress: false
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    outputs:
+      mode: ${{ steps.config.outputs.mode }}
+    env:
+      GH_TOKEN: ${{ github.token }}
+    steps:
+      # The release notice reads the newest stable and RC tags, and the root
+      # build after final checks out the newest stable tag.
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          fetch-depth: 0
+
+      - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
+        with:
+          node-version-file: .nvmrc
+          cache: 'npm'
+
+      - run: npm ci
+
+      - uses: actions/configure-pages@45bfe0192ca1faeb007ade9deae92b16b8254a0d # v6.0.0
+
+      - name: Read deploy.json
+        id: config
+        run: node apps/docs/tools/deploy/deploy-config.mjs apps/docs/deploy.json
+
+      - name: Require a snapshot revision
+        if: steps.config.outputs.revision == '0'
+        run: |
+          echo "apps/docs/deploy.json records no snapshot yet. Run docs-snapshot.yml and merge its pull request." >&2
+          exit 1
+
+      - name: Build the /next/ site
+        if: steps.config.outputs.mode != 'snapshot-only'
+        env:
+          DOCS_BASE_PATH: /next
+          DOCS_CHANNEL: next
+        run: |
+          npx nx build @nexusdi/docs
+          npm --prefix apps/docs run postbuild
+          node apps/docs/tools/check-budgets.mjs
+          mkdir -p build
+          mv apps/docs/out build/next-out
+
+      - name: Build the root site from the release
+        if: steps.config.outputs.mode == 'final' || steps.config.outputs.mode == 'retired'
+        env:
+          ROOT_SHA: ${{ steps.config.outputs.root_sha }}
+        run: |
+          set -euo pipefail
+          if [ -n "$ROOT_SHA" ]; then
+            ref="$ROOT_SHA"
+          else
+            ref="$(git tag --list '@nexusdi/core@*' --sort=-v:refname | grep -E '@[0-9]+\.[0-9]+\.[0-9]+$' | head -n 1)"
+          fi
+          echo "root builds from ${ref}"
+          git worktree add --detach build/root-src "$ref"
+          rm -rf build/root-src/apps/docs/content/blog
+          cp -R apps/docs/content/blog build/root-src/apps/docs/content/blog
+          (cd build/root-src && npm ci && DOCS_BASE_PATH= DOCS_CHANNEL=release npx nx build @nexusdi/docs && npm --prefix apps/docs run postbuild)
+          mv build/root-src/apps/docs/out build/root-out
+
+      - name: Download and verify the snapshot
+        env:
+          MODE: ${{ steps.config.outputs.mode }}
+          ROOT_ASSET: ${{ steps.config.outputs.root_asset }}
+          ROOT_SHA256: ${{ steps.config.outputs.root_sha256 }}
+          ARCHIVE_ASSET: ${{ steps.config.outputs.archive_asset }}
+          ARCHIVE_SHA256: ${{ steps.config.outputs.archive_sha256 }}
+        run: |
+          set -euo pipefail
+          mkdir -p build/assets build/snapshot-root build/snapshot-archive
+          gh release download docs-snapshot-0.3 --pattern "$ROOT_ASSET" --dir build/assets
+          node apps/docs/tools/deploy/snapshot-assets.mjs verify "build/assets/$ROOT_ASSET" "$ROOT_SHA256"
+          tar -xzf "build/assets/$ROOT_ASSET" -C build/snapshot-root
+          if [ "$MODE" = final ] || [ "$MODE" = retired ]; then
+            gh release download docs-snapshot-0.3 --pattern "$ARCHIVE_ASSET" --dir build/assets
+            node apps/docs/tools/deploy/snapshot-assets.mjs verify "build/assets/$ARCHIVE_ASSET" "$ARCHIVE_SHA256"
+            tar -xzf "build/assets/$ARCHIVE_ASSET" -C build/snapshot-archive
+          fi
+
+      - name: Assemble the site
+        env:
+          DEPLOY_MODE: ${{ steps.config.outputs.mode }}
+          SITE_DIR: site
+          NEXT_OUT: build/next-out
+          ROOT_OUT: build/root-out
+          SNAPSHOT_ROOT: build/snapshot-root
+          SNAPSHOT_ARCHIVE: build/snapshot-archive
+        run: node apps/docs/tools/deploy/assemble.mjs
+
+      - name: Check deploy artefacts
+        run: node apps/docs/tools/deploy/check-artifact.mjs site "${{ steps.config.outputs.mode }}"
+
+      - uses: actions/upload-pages-artifact@fc324d3547104276b827a68afc52ff2a11cc49c9 # v5.0.0
+        with:
+          path: site
+
+  deploy:
+    needs: build
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - id: deployment
+        uses: actions/deploy-pages@368f82528645a54fb793d4d04e342629a3f51346 # v5.0.1
+
+  # Requests the deployed site through Cloudflare. A status other than 200, or
+  # HTML carrying /cdn-cgi/, fails the run (docs spec §17.3).
+  smoke:
+    needs: [build, deploy]
+    runs-on: ubuntu-latest
+    steps:
+      # The smoke check needs its own script and the Node version, nothing else.
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          sparse-checkout: |
+            apps/docs/tools/deploy
+            .nvmrc
+          sparse-checkout-cone-mode: false
+
+      - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
+        with:
+          node-version-file: .nvmrc
+
+      - run: node apps/docs/tools/deploy/smoke.mjs https://nexus.js.org "${{ needs.build.outputs.mode }}"
