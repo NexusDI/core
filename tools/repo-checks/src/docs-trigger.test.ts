@@ -1,5 +1,7 @@
 import { readFileSync } from 'node:fs';
 import { join } from 'node:path';
+
+import { createProjectGraphAsync, workspaceRoot } from '@nx/devkit';
 import { describe, expect, it } from 'vitest';
 import { parse } from 'yaml';
 
@@ -33,5 +35,29 @@ describe('docs-trigger fixtures', () => {
       "docs.yml: on.push.tags lacks '@nexusdi/core@*'. A release must rebuild the root site.",
       'docs.yml: on.workflow_dispatch is missing. A person must be able to redeploy by hand.',
     ]);
+  });
+});
+
+describe('docs-trigger on .github/workflows/docs.yml', () => {
+  it('covers every released project and every project the site builds from', async () => {
+    const graph = await createProjectGraphAsync({ exitOnError: false });
+    const released = Object.values(graph.nodes)
+      .filter((node) => node.data.root.startsWith('libs/'))
+      .map((node) => node.name);
+    const docsDeps = (graph.dependencies['@nexusdi/docs'] ?? [])
+      .map((dependency) => dependency.target)
+      .filter((name) => name in graph.nodes);
+    const roots = [...new Set([...released, ...docsDeps])]
+      .map((name) => graph.nodes[name]!.data.root)
+      .sort();
+
+    const workflow = parse(
+      readFileSync(join(workspaceRoot, '.github/workflows/docs.yml'), 'utf8'),
+    );
+
+    expect(
+      checkTrigger(workflow, roots),
+      'Add each missing path to on.push.paths in .github/workflows/docs.yml.',
+    ).toEqual([]);
   });
 });
