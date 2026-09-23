@@ -20,6 +20,7 @@
     "@nx/eslint-plugin": "23.1.1",
     "@nx/express": "23.1.1",
     "@nx/js": "23.1.1",
+    "@nx/next": "23.1.1",
     "@nx/playwright": "23.1.1",
     "@nx/react": "23.1.1",
     "@nx/vite": "23.1.1",
@@ -64,6 +65,14 @@
     "vite-plugin-doctest": "3.0.0",
     "vitest": "4.1.9",
     "yaml": "^2.9.0"
+  },
+  "overrides": {
+    "nextra": {
+      "zod": "4.3.0"
+    },
+    "nextra-theme-docs": {
+      "zod": "4.3.0"
+    }
   },
   "workspaces": [
     "apps/*",

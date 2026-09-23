@@ -1,0 +1,8 @@
+.next
+out
+next-env.d.ts
+public/runtime
+public/behaviour
+public/academy-runtime
+components/api/behaviour
+components/console/fixtures
