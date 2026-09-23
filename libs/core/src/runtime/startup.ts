@@ -6,6 +6,7 @@ import {
 import { ModuleOptionsError } from '../errors/index.js';
 import { adopt, buildInto, moduleName, traceConstruct } from './build.js';
 import { disposeInReverse } from './dispose.js';
+import { runInit } from './init.js';
 import { settleLevel, toProviderError } from './settle.js';
 import type { RootState } from './state.js';
 
@@ -107,12 +108,6 @@ async function buildSingleton(
   traceConstruct(root, bp, record, isAsync, start);
 }
 
-function markReady(root: RootState, plan: StartupPlan): void {
-  for (const level of plan.bp.singletonLevels) {
-    for (const id of level) if (plan.isNew(id)) root.slots.markReady(id);
-  }
-}
-
 /**
  * Builds the new singletons of a blueprint into the root, level by level.
  * Providers in one level run together; the next level starts when every
@@ -135,7 +130,8 @@ export async function startBlueprint(
       touched.push(...ids);
       await settleLevel(ids, (id) => buildSingleton(root, plan.bp, id));
     }
-    markReady(root, plan);
+    // With onInit off (the testing container), buildSingleton already marked each singleton ready.
+    if (root.initEnabled) await runInit(root, plan.bp, plan.isNew);
   } catch (error) {
     for (const id of touched) root.slots.abandon(id);
     for (const value of registered) root.ownership.unregisterValue(value);
