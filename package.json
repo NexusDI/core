@@ -66,7 +66,9 @@
     "yaml": "^2.9.0"
   },
   "workspaces": [
+    "apps/*",
     "examples/*",
+    "internal/*",
     "libs/*",
     "tools/*"
   ],
