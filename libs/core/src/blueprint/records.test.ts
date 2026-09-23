@@ -8,6 +8,7 @@ import { all, lazy, optional } from '../definitions/modifiers.js';
 import { provide } from '../definitions/provide.js';
 import { REQUEST } from '../definitions/request.js';
 import { MultiToken, Token } from '../definitions/token.js';
+import type { Ctor } from '../definitions/types.js';
 import type { NexusError } from '../errors/index.js';
 import { normalizeProvider, optionsShape, tokenOfEntry } from './records.js';
 
@@ -560,6 +561,38 @@ describe('normalizeProvider with static deps', () => {
       },
     ]);
   });
+
+  /** A class with both @Injectable deps and static deps, and a subclass that inherits both. */
+  function classesWithBothDeclarations(): readonly [Ctor, Ctor] {
+    class Twice extends Probe {}
+    const metadata = Object.create(null) as DecoratorMetadataObject;
+    writeInjectable(metadata, { deps: [NAME], lifetime: undefined });
+    Object.defineProperty(Twice, Symbol.metadata, { value: metadata });
+    class TwiceChild extends Twice {}
+    return [Twice, TwiceChild];
+  }
+
+  it.each([
+    ['provide(C)', (cls: Ctor) => rawProvide(cls)],
+    [
+      'provide(C, { lifetime })',
+      (cls: Ctor) => rawProvide(cls, { lifetime: 'scoped' }),
+    ],
+    ['a { token: C } literal', (cls: Ctor) => ({ token: cls })],
+  ] as const)(
+    'reports deps in both @Injectable and static deps for %s, own and inherited',
+    (_label, wrap) => {
+      for (const cls of classesWithBothDeclarations()) {
+        expect(normalize(wrap(cls)).errors).toMatchObject([
+          {
+            code: 'NEXUS_INVALID_PROVIDER',
+            reason:
+              'declares deps in both @Injectable and static deps; keep one',
+          },
+        ]);
+      }
+    },
+  );
 
   it('ignores a deps key that only Function.prototype or Object.prototype carries', () => {
     const fn = Function.prototype as unknown as Record<string, unknown>;

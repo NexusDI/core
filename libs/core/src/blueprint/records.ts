@@ -79,9 +79,7 @@ function staticDepsOf(cls: Ctor): unknown {
 
 /**
  * `{ value }` with the declared static deps, or null after reporting a
- * getter that throws or a static deps that is not an array. Both bareClass
- * (through declaredDeps) and classShape's own fallback read static deps
- * through this function, so either path reports the same reason.
+ * getter that throws or a static deps that is not an array.
  */
 function readStaticDeps(
   cls: Ctor,
@@ -101,9 +99,13 @@ function readStaticDeps(
 }
 
 /**
- * The deps a class declares, for a bare class or a useClass binding without
- * a deps option: its @Injectable metadata or its static deps. Declaring both
- * is an error, because either one could silently shadow the other.
+ * The deps a class declares: its @Injectable metadata or its static deps.
+ * Declaring both is an error, because either one could silently shadow the
+ * other. classShape calls this once, for every class form that has no
+ * explicit deps option, so the conflict check runs the same way for a bare
+ * class, provide(C), provide(C, { lifetime }), a { token: C } literal and a
+ * useClass binding alike; an explicit deps option wins as a whole and this
+ * never runs (spec §3.2).
  */
 function declaredDeps(
   cls: Ctor,
@@ -226,9 +228,10 @@ function classShape(
 ): RecordShape | null {
   let list = deps;
   if (list === undefined) {
-    // readStaticDeps already reports a static deps that is not an array, so
-    // list is an array or still undefined here.
-    const declared = readStaticDeps(cls, fail);
+    // declaredDeps already reports a static deps that is not an array and a
+    // class that declares deps in both @Injectable and static deps, so list
+    // is an array or still undefined here.
+    const declared = declaredDeps(cls, fail);
     if (declared === null) return null;
     list = declared.value;
   }
@@ -275,12 +278,10 @@ function bareClass(
       `has the @Injectable lifetime ${describeValue(lifetime)}; use 'singleton', 'scoped' or 'transient'`,
     );
   }
-  const declared = declaredDeps(cls, fail);
-  if (declared === null) return null;
   return classShape(
     cls,
     cls,
-    declared.value,
+    undefined,
     lifetime as Lifetime,
     site,
     errors,
@@ -394,13 +395,15 @@ function definitionShape(
       const cls = options.useClass;
       if (typeof cls !== 'function' || !isToken(cls))
         return fail('has a useClass that is not a class');
-      let deps = options.deps;
-      if (deps === undefined) {
-        const declared = declaredDeps(cls as Ctor, fail);
-        if (declared === null) return null;
-        deps = declared.value;
-      }
-      return classShape(token, cls as Ctor, deps, life, site, errors, fail);
+      return classShape(
+        token,
+        cls as Ctor,
+        options.deps,
+        life,
+        site,
+        errors,
+        fail,
+      );
     }
     case 'useValue':
       if (hasLifetime)
