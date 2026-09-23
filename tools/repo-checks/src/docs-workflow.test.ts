@@ -25,6 +25,7 @@ const workflow = parse(source) as {
     {
       needs?: string | string[];
       environment?: unknown;
+      permissions?: Record<string, string>;
       steps: { uses?: string; run?: string; with?: Record<string, unknown> }[];
     }
   >;
@@ -40,12 +41,17 @@ describe('docs.yml', () => {
     expect(workflow.on).toHaveProperty('workflow_dispatch');
   });
 
-  it('holds the Pages permissions and nothing more', () => {
-    expect(workflow.permissions).toEqual({
-      contents: 'read',
+  it('grants no write token at workflow level', () => {
+    expect(workflow.permissions).toEqual({ contents: 'read' });
+  });
+
+  it('grants the Pages permissions to the deploy job only', () => {
+    expect(workflow.jobs.build.permissions).toEqual({ contents: 'read' });
+    expect(workflow.jobs.deploy.permissions).toEqual({
       pages: 'write',
       'id-token': 'write',
     });
+    expect(workflow.jobs.smoke.permissions).toEqual({ contents: 'read' });
   });
 
   it('never cancels a deploy half-way', () => {
