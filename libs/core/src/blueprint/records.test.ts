@@ -422,6 +422,164 @@ describe('normalizeProvider with a provider literal', () => {
   });
 });
 
+describe('normalizeProvider with static deps', () => {
+  const NAME = new Token<string>('Name');
+  const byName = [{ kind: 'required', token: NAME }];
+  class Probe {
+    static deps: readonly unknown[] = [NAME];
+    constructor(readonly name: string) {}
+  }
+
+  it.each([
+    ['a bare class', Probe],
+    ['provide(C)', rawProvide(Probe)],
+    ['provide(C, { lifetime })', rawProvide(Probe, { lifetime: 'scoped' })],
+    ['a { token: C } literal', { token: Probe }],
+    ['useClass', rawProvide(NAV_CHARTS, { useClass: Probe })],
+  ])('reads static deps for %s', (_label, entry) => {
+    expect(normalize(entry)).toMatchObject({
+      shape: { kind: 'class', deps: byName },
+      errors: [],
+    });
+  });
+
+  it('uses an explicit deps option as a whole', () => {
+    expect(
+      normalize(rawProvide(Probe, { deps: [ReactorCore] })).shape?.deps,
+    ).toEqual([{ kind: 'required', token: ReactorCore }]);
+  });
+
+  it("inherits a parent's static deps and prefers a subclass's own", () => {
+    class Derived extends Probe {}
+    class Rewired extends Probe {
+      static override deps: readonly unknown[] = [ReactorCore];
+    }
+    expect(normalize(Derived).shape?.deps).toEqual(byName);
+    expect(normalize(Rewired).shape?.deps).toEqual([
+      { kind: 'required', token: ReactorCore },
+    ]);
+  });
+
+  it('takes the lifetime from @Injectable and the deps from static deps', () => {
+    class Scoped extends Probe {}
+    const metadata = Object.create(null) as DecoratorMetadataObject;
+    writeInjectable(metadata, { deps: undefined, lifetime: 'scoped' });
+    Object.defineProperty(Scoped, Symbol.metadata, { value: metadata });
+    expect(normalize(Scoped).shape).toMatchObject({
+      lifetime: 'scoped',
+      deps: byName,
+    });
+  });
+
+  it.each([
+    [
+      'deps in both @Injectable and static deps',
+      (() => {
+        class Twice extends Probe {}
+        const metadata = Object.create(null) as DecoratorMetadataObject;
+        writeInjectable(metadata, { deps: [NAME], lifetime: undefined });
+        Object.defineProperty(Twice, Symbol.metadata, { value: metadata });
+        return Twice;
+      })(),
+      'declares deps in both @Injectable and static deps; keep one',
+    ],
+    [
+      'a static deps that is not an array',
+      class NotArray {
+        static deps = 'name';
+        constructor(readonly name: string) {}
+      },
+      'has a static deps that is not an array',
+    ],
+    [
+      'a static deps getter that throws',
+      class Trap {
+        static get deps(): never {
+          throw new Error('trap');
+        }
+        constructor(readonly name: string) {}
+      },
+      'has a static deps that throws when read: Error: trap',
+    ],
+    [
+      'a static deps entry that is not a token',
+      class Stringly {
+        static deps = ['nav'];
+        constructor(readonly name: string) {}
+      },
+      'deps[0] is the string "nav", not a token',
+    ],
+  ])('reports NEXUS_INVALID_PROVIDER for %s', (_label, entry, reason) => {
+    expect(normalize(entry).errors).toMatchObject([
+      { code: 'NEXUS_INVALID_PROVIDER', reason },
+    ]);
+  });
+
+  it("gives useClass the class's @Injectable deps when the binding has none", () => {
+    class Decorated {
+      constructor(readonly name: string) {}
+    }
+    const metadata = Object.create(null) as DecoratorMetadataObject;
+    writeInjectable(metadata, { deps: [NAME], lifetime: 'transient' });
+    Object.defineProperty(Decorated, Symbol.metadata, { value: metadata });
+    expect(
+      normalize(rawProvide(NAV_CHARTS, { useClass: Decorated })).shape,
+    ).toMatchObject({ kind: 'class', deps: byName, lifetime: 'singleton' });
+    expect(
+      normalize({ token: NAV_CHARTS, useClass: Decorated }).shape,
+    ).toMatchObject({ kind: 'class', deps: byName, lifetime: 'singleton' });
+  });
+
+  it('reports NEXUS_MISSING_DEPS naming the class and the token for a useClass that declares nothing', () => {
+    class Bare {
+      constructor(readonly name: string) {}
+    }
+    const [error] = normalize(
+      rawProvide(NAV_CHARTS, { useClass: Bare }),
+    ).errors;
+    expect(error).toMatchObject({
+      code: 'NEXUS_MISSING_DEPS',
+      token: 'NavCharts',
+      useClass: 'Bare',
+      arity: 1,
+    });
+    expect(error?.message).toContain('Bare (useClass for NavCharts)');
+  });
+
+  it('reports deps in both @Injectable and static deps through useClass', () => {
+    class Twice extends Probe {}
+    const metadata = Object.create(null) as DecoratorMetadataObject;
+    writeInjectable(metadata, { deps: [NAME], lifetime: undefined });
+    Object.defineProperty(Twice, Symbol.metadata, { value: metadata });
+    expect(
+      normalize(rawProvide(NAV_CHARTS, { useClass: Twice })).errors,
+    ).toMatchObject([
+      {
+        code: 'NEXUS_INVALID_PROVIDER',
+        reason: 'declares deps in both @Injectable and static deps; keep one',
+      },
+    ]);
+  });
+
+  it('ignores a deps key that only Function.prototype or Object.prototype carries', () => {
+    const fn = Function.prototype as unknown as Record<string, unknown>;
+    const obj = Object.prototype as Record<string, unknown>;
+    fn['deps'] = [NAME];
+    obj['deps'] = [NAME];
+    try {
+      class Plain {
+        constructor(readonly name: string) {}
+      }
+      expect(normalize(Plain).errors).toMatchObject([
+        { code: 'NEXUS_MISSING_DEPS', token: 'Plain' },
+      ]);
+    } finally {
+      delete fn['deps'];
+      delete obj['deps'];
+    }
+  });
+});
+
 describe('optionsShape', () => {
   it('provides the options token of a with() instance', () => {
     const OPTIONS = new Token<{ frequency: number }>('CommsOptions');

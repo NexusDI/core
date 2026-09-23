@@ -15,10 +15,14 @@ class ReactorCore { output = 1.21; }
 class ShipComputer { constructor(readonly reactor: ReactorCore) {} }
 interface NavCharts { plot(to: string): string }
 class SubspaceLink { download(path: string): Promise<NavCharts> { return Promise.resolve({ plot: () => path }); } }
+class ChartReader {
+  static deps = [ReactorCore] as const;
+  constructor(readonly charts: NavCharts) {}
+}
 const NAV_CHARTS = new Token<NavCharts>('NavCharts');
 const COMPUTER = new Token<ShipComputer>('Computer');
 const charts: NavCharts = { plot: (to) => to };
-void [ReactorCore, ShipComputer, SubspaceLink, NAV_CHARTS, COMPUTER, charts];
+void [ReactorCore, ShipComputer, SubspaceLink, ChartReader, NAV_CHARTS, COMPUTER, charts];
 `;
 
 const OPTIONS: ts.CompilerOptions = {
@@ -179,6 +183,17 @@ describe('defineModule', { timeout: 60_000 }, () => {
     expect(first?.at).toBe('scope');
     expect(first?.message).toContain(
       "Object literal may only specify known properties, and 'scope' does not exist",
+    );
+  });
+
+  it('names the mismatch for a static deps that does not fit, on the class', () => {
+    const [first] = diagnosticsFor(`ChartReader`);
+    expect(first?.at).toBe('ChartReader');
+    expect(first?.message).toContain(
+      "Types of property 'deps' are incompatible",
+    );
+    expect(first?.message).toContain(
+      "Property 'plot' is missing in type 'ReactorCore' but required in type 'NavCharts'",
     );
   });
 });

@@ -1,10 +1,11 @@
-import type { Dep, ResolveAll } from './modifiers.js';
+import type { Dep, ResolveAll, Tokens } from './modifiers.js';
 import type {
   AsyncTransientMessage,
   DepsFor,
   NoLifetimeMessage,
   PromiseTokenMessage,
   Provider,
+  UseClassDeps,
 } from './provide.js';
 import type { InjectionToken, MultiToken, Token } from './token.js';
 import type { Class, Ctor, Lifetime } from './types.js';
@@ -81,7 +82,7 @@ type CheckedLiteral<E> = E extends { token: infer K extends AnyToken }
               // eslint-disable-next-line @typescript-eslint/no-explicit-any -- matches Ctor: a class constraint needs an `any` rest
               useClass: C & (new (...args: any) => NoInfer<Provided<K>>);
               lifetime?: Lifetime;
-            } & DepsFor<C>
+            } & UseClassDeps<C>
           : K extends Ctor
             ? { token: K; lifetime?: Lifetime } & DepsFor<K>
             : { token: K; useValue: NoInfer<Provided<K>> }
@@ -101,18 +102,26 @@ interface UntypedLiteral {
   readonly useValue?: UntypedFunctionMessage;
 }
 
+/** A bare class with a static deps must list a token for each constructor parameter. */
+type CheckedClass<E> = E extends Ctor & { readonly deps: unknown }
+  ? { readonly deps: Tokens<ConstructorParameters<E>> }
+  : E;
+
 /**
  * One element's check. The conditional distributes over a union element, so
  * a widened `ProviderEntry[]` passes as itself: its elements can only be
  * checked at runtime.
  */
-type CheckedEntry<E> = E extends Provider<unknown> | Class
-  ? E
-  : unknown extends E
-    ? UntypedLiteral
-    : ProviderLiteral extends E
-      ? E
-      : CheckedLiteral<E>;
+type CheckedEntry<E> =
+  E extends Provider<unknown>
+    ? E
+    : E extends Class
+      ? CheckedClass<E>
+      : unknown extends E
+        ? UntypedLiteral
+        : ProviderLiteral extends E
+          ? E
+          : CheckedLiteral<E>;
 
 /**
  * Each element of a `providers` tuple, checked with the rules provide()

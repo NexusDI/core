@@ -58,6 +58,65 @@ function ownOptions(source: object): Options {
   return options;
 }
 
+/**
+ * The deps a class declares with `static deps`: an own property of the
+ * class, or of the nearest parent class that has one. The walk stops before
+ * Function.prototype, so a key only a built-in prototype carries is never a
+ * declaration (SEC-012). A subclass without its own static deps inherits its
+ * parent's, as it inherits @Injectable deps (spec §3.2).
+ */
+function staticDepsOf(cls: Ctor): unknown {
+  for (
+    let c: unknown = cls;
+    typeof c === 'function' && c !== Function.prototype;
+    c = Object.getPrototypeOf(c)
+  ) {
+    if (Object.hasOwn(c, 'deps'))
+      return (c as unknown as { readonly deps: unknown }).deps;
+  }
+  return undefined;
+}
+
+/**
+ * `{ value }` with the declared static deps, or null after reporting a
+ * getter that throws or a static deps that is not an array. Both bareClass
+ * (through declaredDeps) and classShape's own fallback read static deps
+ * through this function, so either path reports the same reason.
+ */
+function readStaticDeps(
+  cls: Ctor,
+  fail: Fail,
+): { readonly value: unknown } | null {
+  let value: unknown;
+  try {
+    value = staticDepsOf(cls);
+  } catch (error) {
+    return fail(
+      `has a static deps that throws when read: ${describeThrown(error)}`,
+    );
+  }
+  if (value !== undefined && !Array.isArray(value))
+    return fail('has a static deps that is not an array');
+  return { value };
+}
+
+/**
+ * The deps a class declares, for a bare class or a useClass binding without
+ * a deps option: its @Injectable metadata or its static deps. Declaring both
+ * is an error, because either one could silently shadow the other.
+ */
+function declaredDeps(
+  cls: Ctor,
+  fail: Fail,
+): { readonly value: unknown } | null {
+  const fromMetadata = readInjectable(cls)?.deps;
+  const declared = readStaticDeps(cls, fail);
+  if (declared === null) return null;
+  if (fromMetadata !== undefined && declared.value !== undefined)
+    return fail('declares deps in both @Injectable and static deps; keep one');
+  return { value: fromMetadata ?? declared.value };
+}
+
 /** True for a provider literal: an object that sets `token` on itself (spec §3.2). */
 function isLiteral(value: unknown): value is { readonly token: unknown } {
   return (
@@ -167,14 +226,22 @@ function classShape(
 ): RecordShape | null {
   let list = deps;
   if (list === undefined) {
+    // readStaticDeps already reports a static deps that is not an array, so
+    // list is an array or still undefined here.
+    const declared = readStaticDeps(cls, fail);
+    if (declared === null) return null;
+    list = declared.value;
+  }
+  if (list === undefined) {
     // C.length counts neither defaulted nor rest parameters, so such a class
     // builds with its defaults.
     if (cls.length > 0) {
       errors.push(
         new MissingDepsError({
-          token: displayName(cls),
+          token: displayName(token),
           module: site.module,
           arity: cls.length,
+          useClass: token === cls ? null : displayName(cls),
         }),
       );
       return null;
@@ -208,10 +275,12 @@ function bareClass(
       `has the @Injectable lifetime ${describeValue(lifetime)}; use 'singleton', 'scoped' or 'transient'`,
     );
   }
+  const declared = declaredDeps(cls, fail);
+  if (declared === null) return null;
   return classShape(
     cls,
     cls,
-    metadata?.deps,
+    declared.value,
     lifetime as Lifetime,
     site,
     errors,
@@ -325,15 +394,13 @@ function definitionShape(
       const cls = options.useClass;
       if (typeof cls !== 'function' || !isToken(cls))
         return fail('has a useClass that is not a class');
-      return classShape(
-        token,
-        cls as Ctor,
-        options.deps,
-        life,
-        site,
-        errors,
-        fail,
-      );
+      let deps = options.deps;
+      if (deps === undefined) {
+        const declared = declaredDeps(cls as Ctor, fail);
+        if (declared === null) return null;
+        deps = declared.value;
+      }
+      return classShape(token, cls as Ctor, deps, life, site, errors, fail);
     }
     case 'useValue':
       if (hasLifetime)

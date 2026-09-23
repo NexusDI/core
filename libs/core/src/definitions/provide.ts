@@ -9,16 +9,33 @@ export interface Provider<out T> {
   readonly [PROVIDER]: T;
 }
 
-/** deps is optional only for a parameterless class. */
-export type DepsFor<C extends Ctor> =
+/** True when a class needs no deps option: it takes no parameters, or its static deps supply them. */
+export type DeclaresDeps<C extends Ctor> =
   ConstructorParameters<C> extends []
-    ? { deps?: readonly [] }
+    ? true
+    : C extends { readonly deps: Tokens<ConstructorParameters<C>> }
+      ? true
+      : false;
+
+/** deps is optional for a class that declares its deps or takes no parameters. */
+export type DepsFor<C extends Ctor> =
+  DeclaresDeps<C> extends true
+    ? { deps?: Tokens<ConstructorParameters<C>> }
     : { deps: Tokens<ConstructorParameters<C>> };
 
 export type ClassOptions<C extends Ctor> =
-  ConstructorParameters<C> extends []
+  DeclaresDeps<C> extends true
     ? [options?: { lifetime?: Lifetime } & DepsFor<C>]
     : [options: { lifetime?: Lifetime } & DepsFor<C>];
+
+/**
+ * deps on a useClass binding. The compiler reads C's @Injectable metadata
+ * or static deps when the binding has none, and no type records metadata, so
+ * deps is optional; a static deps that a type can see is still checked.
+ */
+export type UseClassDeps<C extends Ctor> = C extends { readonly deps: unknown }
+  ? DepsFor<C>
+  : { deps?: Tokens<ConstructorParameters<C>> };
 
 /** The type a lifetime on useValue or useExisting must match, so the error names the rule. */
 export type NoLifetimeMessage =
@@ -33,7 +50,7 @@ export type TokenDefinition<T, C extends Ctor> =
       lifetime?: Lifetime;
       useValue?: never;
       useExisting?: never;
-    } & DepsFor<C>)
+    } & UseClassDeps<C>)
   | {
       useValue: NoInfer<T>;
       lifetime?: NoLifetimeMessage;
