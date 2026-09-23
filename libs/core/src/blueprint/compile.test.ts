@@ -75,8 +75,8 @@ describe('compile', () => {
     expect(error).toBeInstanceOf(BlueprintError);
     expect((error as BlueprintError).message.split('\n')).toEqual([
       '[NEXUS_BLUEPRINT_INVALID] the module graph has 2 errors; nothing was built.',
-      '  [NEXUS_INVALID_PROVIDER] Root.providers[0] is null, not a provider; create one with provide().',
-      '  [NEXUS_INVALID_PROVIDER] Root.providers[1] is the number 42, not a provider; create one with provide().',
+      '  [NEXUS_INVALID_PROVIDER] Root.providers[0] is null, not a provider; list a class, a provide() result or a { token } literal.',
+      '  [NEXUS_INVALID_PROVIDER] Root.providers[1] is the number 42, not a provider; list a class, a provide() result or a { token } literal.',
     ]);
   });
 
@@ -84,5 +84,34 @@ describe('compile', () => {
     expect(
       Object.isFrozen(compile({ root: defineModule({ name: 'Root' }) })),
     ).toBe(true);
+  });
+
+  it('compiles a module of literals into the blueprint provide() gives', () => {
+    const NAME = new Token<string>('Name');
+    class Probe {
+      constructor(readonly name: string) {}
+    }
+    const byLiteral = compile({
+      root: defineModule({
+        name: 'Root',
+        providers: [
+          { token: NAME, useValue: 'Meridian' },
+          { token: Probe, deps: [NAME], lifetime: 'transient' },
+        ],
+      }),
+    });
+    const byProvide = compile({
+      root: defineModule({
+        name: 'Root',
+        providers: [
+          provide(NAME, { useValue: 'Meridian' }),
+          provide(Probe, { deps: [NAME], lifetime: 'transient' }),
+        ],
+      }),
+    });
+    expect([...byLiteral.providers.values()]).toEqual([
+      ...byProvide.providers.values(),
+    ]);
+    expect(byLiteral.singletonLevels).toEqual(byProvide.singletonLevels);
   });
 });

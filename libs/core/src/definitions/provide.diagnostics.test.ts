@@ -115,4 +115,15 @@ describe('provide', { timeout: 60_000 }, () => {
       'NEXUS_PROMISE_TOKEN: the container awaits a factory result, so a token cannot hold a Promise. Type the token as the resolved value, or as () => Promise<T>',
     );
   });
+
+  it('reports NoLifetimeMessage for a lifetime on useValue and useExisting', () => {
+    for (const call of [
+      "provide(NAV_CHARTS, { useValue: charts, lifetime: 'scoped' });",
+      "provide(COMPUTER, { useExisting: ShipComputer, lifetime: 'scoped' });",
+    ]) {
+      expect(diagnosticsFor(call)).toContain(
+        'NEXUS_INVALID_PROVIDER: useValue and useExisting take no lifetime. Remove lifetime',
+      );
+    }
+  });
 });

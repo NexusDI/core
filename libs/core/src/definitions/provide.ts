@@ -20,13 +20,32 @@ export type ClassOptions<C extends Ctor> =
     ? [options?: { lifetime?: Lifetime } & DepsFor<C>]
     : [options: { lifetime?: Lifetime } & DepsFor<C>];
 
-// `lifetime?: never` on the value and alias forms: union excess-property
-// checking accepts a key that any member declares, so without it
-// `{ useValue, lifetime }` type-checks against the useClass member's key.
+/** The type a lifetime on useValue or useExisting must match, so the error names the rule. */
+export type NoLifetimeMessage =
+  'NEXUS_INVALID_PROVIDER: useValue and useExisting take no lifetime. Remove lifetime';
+
+// Each member excludes the other members' definition keys. Without that,
+// TypeScript reports `{ useValue, lifetime }` against the useClass member,
+// which accepts a lifetime, and the NoLifetimeMessage never shows.
 export type TokenDefinition<T, C extends Ctor> =
-  | ({ useClass: C; lifetime?: Lifetime } & DepsFor<C>)
-  | { useValue: NoInfer<T>; lifetime?: never }
-  | { useExisting: InjectionToken<NoInfer<T>>; lifetime?: never };
+  | ({
+      useClass: C;
+      lifetime?: Lifetime;
+      useValue?: never;
+      useExisting?: never;
+    } & DepsFor<C>)
+  | {
+      useValue: NoInfer<T>;
+      lifetime?: NoLifetimeMessage;
+      useClass?: never;
+      useExisting?: never;
+    }
+  | {
+      useExisting: InjectionToken<NoInfer<T>>;
+      lifetime?: NoLifetimeMessage;
+      useClass?: never;
+      useValue?: never;
+    };
 
 /** What createTestingContainer().override() accepts besides a factory. */
 export type OverrideDefinition<T, C extends Ctor> =
@@ -41,7 +60,7 @@ export type PromiseTokenMessage =
 
 export type FactoryDefinition<D extends readonly Dep[], R> = {
   useFactory: (...args: ResolveAll<D>) => R;
-  deps: D;
+  deps?: D;
   lifetime?: [R] extends [PromiseLike<unknown>]
     ? 'singleton' | 'scoped' | AsyncTransientMessage
     : Lifetime;
@@ -69,8 +88,8 @@ export function provide<T, C extends new (...args: any) => NoInfer<T>>(
 /** 3. A token with a factory. */
 export function provide<
   T,
-  const D extends readonly Dep[],
   R extends NoInfer<T> | PromiseLike<NoInfer<T>>,
+  const D extends readonly Dep[] = [],
 >(
   token: [T] extends [PromiseLike<unknown>]
     ? PromiseTokenMessage

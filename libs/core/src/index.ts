@@ -50,6 +50,12 @@ export type {
 } from './definitions/modifiers.js';
 export { provide } from './definitions/provide.js';
 export type { Provider } from './definitions/provide.js';
+export type {
+  ProviderEntries,
+  ProviderLiteral,
+  UntypedFunctionMessage,
+} from './definitions/provider-literal.js';
+export type { NoLifetimeMessage } from './definitions/provide.js';
 export { defineModule } from './definitions/define-module.js';
 export type {
   ConfigurableModule,

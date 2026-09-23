@@ -181,16 +181,30 @@ describe('normalizeProvider', () => {
   });
 
   it.each([
-    ['null', null, 'is null, not a provider; create one with provide()'],
+    [
+      'null',
+      null,
+      'is null, not a provider; list a class, a provide() result or a { token } literal',
+    ],
     [
       'a number',
       42,
-      'is the number 42, not a provider; create one with provide()',
+      'is the number 42, not a provider; list a class, a provide() result or a { token } literal',
     ],
     [
-      'a provider object without provide()',
-      { token: NAV_CHARTS, useValue: 1 },
-      'is an object, not a provider; create one with provide()',
+      'an object without an own token',
+      Object.create({ token: NAV_CHARTS, useValue: 1 }) as object,
+      'is an object, not a provider; list a class, a provide() result or a { token } literal',
+    ],
+    [
+      'a literal whose options throw when read',
+      {
+        token: NAV_CHARTS,
+        get useValue(): never {
+          throw new Error('trap');
+        },
+      },
+      'throws when its options are read: Error: trap',
     ],
     [
       'a module',
@@ -203,9 +217,9 @@ describe('normalizeProvider', () => {
       'has a useFactory that is not a function',
     ],
     [
-      'a factory without deps',
-      rawProvide(NAV_CHARTS, { useFactory: () => 1 }),
-      'has a useFactory without a deps array; pass deps: [] for none',
+      'factory deps that are not an array',
+      rawProvide(NAV_CHARTS, { useFactory: () => 1, deps: 'nav' }),
+      'has deps that are not an array',
     ],
     [
       'two definitions',
@@ -273,6 +287,141 @@ describe('normalizeProvider', () => {
   );
 });
 
+describe('normalizeProvider with a provider literal', () => {
+  class StarCharts {
+    plot(): string {
+      return 'sector 7';
+    }
+  }
+  const plotCharts = (core: ReactorCore) => ({ plot: () => `${core.output}` });
+  const check = { run: () => true };
+
+  it.each([
+    [
+      'a class as its own token',
+      { token: ShipComputer, deps: [lazy(ReactorCore)], lifetime: 'scoped' },
+      provide(ShipComputer, { deps: [lazy(ReactorCore)], lifetime: 'scoped' }),
+    ],
+    ['a parameterless class', { token: ReactorCore }, provide(ReactorCore)],
+    [
+      'useClass',
+      { token: NAV_CHARTS, useClass: StarCharts, deps: [] },
+      provide(NAV_CHARTS, { useClass: StarCharts, deps: [] }),
+    ],
+    [
+      'useValue undefined',
+      { token: NAV_CHARTS, useValue: undefined },
+      rawProvide(NAV_CHARTS, { useValue: undefined }),
+    ],
+    [
+      'useFactory',
+      {
+        token: NAV_CHARTS,
+        useFactory: plotCharts,
+        deps: [ReactorCore],
+        lifetime: 'transient',
+      },
+      provide(NAV_CHARTS, {
+        useFactory: plotCharts,
+        deps: [ReactorCore],
+        lifetime: 'transient',
+      }),
+    ],
+    [
+      'useExisting',
+      { token: NAV_CHARTS, useExisting: StarCharts },
+      provide(NAV_CHARTS, { useExisting: StarCharts }),
+    ],
+    [
+      'a MultiToken contribution',
+      { token: DIAGNOSTICS, useValue: check },
+      provide(DIAGNOSTICS, { useValue: check }),
+    ],
+    [
+      'two definitions',
+      { token: NAV_CHARTS, useValue: 1, useFactory: plotCharts, deps: [] },
+      rawProvide(NAV_CHARTS, { useValue: 1, useFactory: plotCharts, deps: [] }),
+    ],
+    [
+      'a bad lifetime',
+      { token: ReactorCore, lifetime: 'forever' },
+      rawProvide(ReactorCore, { lifetime: 'forever' }),
+    ],
+    [
+      'a lifetime on useValue',
+      { token: NAV_CHARTS, useValue: 1, lifetime: 'singleton' },
+      rawProvide(NAV_CHARTS, { useValue: 1, lifetime: 'singleton' }),
+    ],
+    [
+      'a factory without deps',
+      { token: NAV_CHARTS, useFactory: plotCharts },
+      rawProvide(NAV_CHARTS, { useFactory: plotCharts }),
+    ],
+    [
+      'a bare MultiToken dep',
+      { token: NAV_CHARTS, useFactory: plotCharts, deps: [DIAGNOSTICS] },
+      rawProvide(NAV_CHARTS, { useFactory: plotCharts, deps: [DIAGNOSTICS] }),
+    ],
+    [
+      'a token that is not a token',
+      { token: 'nav', useValue: 1 },
+      rawProvide('nav', { useValue: 1 }),
+    ],
+    [
+      'REQUEST',
+      { token: REQUEST, useValue: {} },
+      provide(REQUEST, { useValue: {} }),
+    ],
+  ])(
+    'reads %s exactly as it reads the provide() form',
+    (_label, literal, provided) => {
+      expect(normalize(literal)).toEqual(normalize(provided));
+    },
+  );
+
+  it('defaults a factory without deps to no deps, in both forms', () => {
+    const noArgs = () => ({ plot: () => 'x' });
+    const expected = { kind: 'factory', deps: [], lifetime: 'singleton' };
+    expect(
+      normalize(provide(NAV_CHARTS, { useFactory: noArgs })).shape,
+    ).toMatchObject(expected);
+    expect(
+      normalize({ token: NAV_CHARTS, useFactory: noArgs }).shape,
+    ).toMatchObject(expected);
+  });
+
+  it('ignores a key that no provider form has', () => {
+    expect(
+      normalize({ token: DIAGNOSTICS, useValue: check, scope: 'request' }),
+    ).toEqual(normalize(provide(DIAGNOSTICS, { useValue: check })));
+  });
+
+  it('ignores options that only the prototype chain supplies', () => {
+    const literal = Object.assign(
+      Object.create({ useValue: 'hijacked', lifetime: 'transient' }) as object,
+      { token: ReactorCore },
+    );
+    expect(normalize(literal)).toEqual(normalize(provide(ReactorCore)));
+  });
+
+  it('reads a literal while Object.prototype carries token and useValue', () => {
+    const proto = Object.prototype as Record<string, unknown>;
+    proto['token'] = NAV_CHARTS;
+    proto['useValue'] = 'hijacked';
+    try {
+      expect(normalize({}).errors).toMatchObject([
+        { code: 'NEXUS_INVALID_PROVIDER' },
+      ]);
+      expect(normalize({ token: ReactorCore })).toEqual(
+        normalize(provide(ReactorCore)),
+      );
+    } finally {
+      delete proto['token'];
+      delete proto['useValue'];
+    }
+  });
+});
+
 describe('optionsShape', () => {
   it('provides the options token of a with() instance', () => {
     const OPTIONS = new Token<{ frequency: number }>('CommsOptions');
@@ -293,5 +442,9 @@ describe('tokenOfEntry', () => {
     );
     expect(tokenOfEntry(ReactorCore)).toBe(ReactorCore);
     expect(tokenOfEntry(null)).toBeUndefined();
+    expect(tokenOfEntry({ token: NAV_CHARTS, useValue: 1 })).toBe(NAV_CHARTS);
+    expect(
+      tokenOfEntry(Object.create({ token: NAV_CHARTS }) as object),
+    ).toBeUndefined();
   });
 });

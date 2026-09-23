@@ -2,6 +2,7 @@ import { InvalidModuleError } from '../errors/index.js';
 import { describeValue } from './describe.js';
 import type { Dep, ResolveAll } from './modifiers.js';
 import type { Provider } from './provide.js';
+import type { ProviderEntries, ProviderLiteral } from './provider-literal.js';
 import type { StandardSchemaV1 } from './standard-schema.js';
 import type { InjectionToken, MultiToken, Token } from './token.js';
 import type { Class } from './types.js';
@@ -9,8 +10,8 @@ import type { Class } from './types.js';
 /** A module definition, or a class decorated with @Module. */
 export type ModuleRef = ModuleDefinition | Class;
 
-/** A provider() result, or a bare class. */
-export type ProviderEntry = Provider<unknown> | Class;
+/** A provide() result, a bare class or a provider literal. */
+export type ProviderEntry = Provider<unknown> | Class | ProviderLiteral;
 
 /** A token the module provides or sees, or a module it imports. */
 export type ExportEntry =
@@ -116,10 +117,22 @@ function sourceOf(input: unknown): OptionsSource {
   return { kind: 'value', value: input };
 }
 
-export function defineModule<Opts>(
-  config: ConfigurableModuleConfig<Opts>,
-): ConfigurableModule<Opts>;
-export function defineModule(config: ModuleConfig): ModuleDefinition;
+/**
+ * One signature: with overloads, TypeScript reports "No overload matches
+ * this call" and lists every overload's error, which buries the element that
+ * broke a rule. `Opts` comes from the options token; without one it stays
+ * `never` and the result is a plain `ModuleDefinition`.
+ */
+export function defineModule<
+  Opts = never,
+  const P extends readonly unknown[] = [],
+>(
+  config: Omit<ModuleConfig, 'providers'> & {
+    readonly providers?: ProviderEntries<P>;
+    readonly options?: Token<Opts>;
+    readonly schema?: StandardSchemaV1<unknown, NoInfer<Opts>>;
+  },
+): [Opts] extends [never] ? ModuleDefinition : ConfigurableModule<Opts>;
 export function defineModule(
   config: ModuleConfig & {
     readonly options?: Token<unknown>;

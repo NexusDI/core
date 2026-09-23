@@ -11,6 +11,7 @@ import { REQUEST } from '../definitions/request.js';
 import { MultiToken, displayName } from '../definitions/token.js';
 import type { Ctor, Lifetime } from '../definitions/types.js';
 import {
+  describeThrown,
   InvalidProviderError,
   InvalidTokenError,
   MissingDepsError,
@@ -37,6 +38,58 @@ const DEFINITION_KEYS = [
 const NO_DEFINITION =
   'with no definition; add useClass, useValue, useFactory or useExisting';
 
+/** The keys a provider definition reads. Pass 1 ignores every other key. */
+const OPTION_KEYS = ['deps', 'lifetime', ...DEFINITION_KEYS] as const;
+
+type OptionKey = (typeof OPTION_KEYS)[number];
+type Options = { readonly [K in OptionKey]?: unknown };
+
+/**
+ * Copies the option keys an object sets on itself into an object with no
+ * prototype. A key that only the prototype chain supplies is not an option
+ * (spec §9, SEC-003), and each option getter runs once, here.
+ */
+function ownOptions(source: object): Options {
+  const options: { [K in OptionKey]?: unknown } = Object.create(null);
+  for (const key of OPTION_KEYS) {
+    if (Object.hasOwn(source, key))
+      options[key] = (source as Record<OptionKey, unknown>)[key];
+  }
+  return options;
+}
+
+/** True for a provider literal: an object that sets `token` on itself (spec §3.2). */
+function isLiteral(value: unknown): value is { readonly token: unknown } {
+  return (
+    typeof value === 'object' && value !== null && Object.hasOwn(value, 'token')
+  );
+}
+
+/** What a provide() result or a provider literal defines. */
+interface Definition {
+  readonly token: unknown;
+  readonly options: Options | undefined;
+}
+
+function definitionOf(entry: unknown, fail: Fail): Definition | null {
+  const spec = readProvider(entry);
+  if (spec !== undefined) {
+    const { token, options } = spec;
+    if (options === undefined) return { token, options: undefined };
+    if (typeof options !== 'object' || options === null) {
+      return fail(
+        `has options that are ${describeValue(options)}, not an object`,
+      );
+    }
+    return { token, options: ownOptions(options) };
+  }
+  if (isLiteral(entry))
+    return { token: entry.token, options: ownOptions(entry) };
+  return fail(
+    `is ${describeValue(entry)}, not a provider; list a class, a provide() result or a { token } literal`,
+  );
+}
+
 /** Where a provider entry sits, for error messages. */
 export interface ProviderSite {
   readonly module: string;
@@ -48,10 +101,17 @@ type Fail = (reason: string) => null;
 /**
  * The token an entry names, even when the entry is malformed. The walk marks
  * it broken, so pass 3 does not report a missing provider for a token whose
- * provider already has an error.
+ * provider already has an error. A literal whose `token` read throws names
+ * none; normalizeProvider reports the throw.
  */
 export function tokenOfEntry(entry: unknown): TokenKey | undefined {
-  const candidate = readProvider(entry)?.token ?? entry;
+  let candidate: unknown = entry;
+  try {
+    candidate =
+      readProvider(entry)?.token ?? (isLiteral(entry) ? entry.token : entry);
+  } catch {
+    return undefined;
+  }
   return isToken(candidate) ? candidate : undefined;
 }
 
@@ -183,16 +243,34 @@ export function normalizeProvider(
   if (module !== undefined)
     return fail(`is the module ${module.name}; add it to imports`);
 
-  const spec = readProvider(entry);
-  if (spec === undefined) {
-    if (typeof entry === 'function' && isToken(entry))
-      return bareClass(entry as Ctor, site, errors, fail);
-    return fail(
-      `is ${describeValue(entry)}, not a provider; create one with provide()`,
-    );
-  }
+  if (
+    readProvider(entry) === undefined &&
+    typeof entry === 'function' &&
+    isToken(entry)
+  )
+    return bareClass(entry as Ctor, site, errors, fail);
 
-  const { token, options } = spec;
+  let definition: Definition | null;
+  try {
+    definition = definitionOf(entry, fail);
+  } catch (error) {
+    return fail(`throws when its options are read: ${describeThrown(error)}`);
+  }
+  if (definition === null) return null;
+  return definitionShape(definition, site, errors, fail);
+}
+
+/**
+ * The record shape for a token and its options. A provide() result and a
+ * provider literal both reach this function, so equal definitions give equal
+ * shapes and equal errors.
+ */
+function definitionShape(
+  { token, options }: Definition,
+  site: ProviderSite,
+  errors: NexusError[],
+  fail: Fail,
+): RecordShape | null {
   if (!isToken(token)) {
     errors.push(new InvalidTokenError({ received: describeValue(token) }));
     return null;
@@ -213,21 +291,15 @@ export function normalizeProvider(
       fail,
     );
   }
-  if (typeof options !== 'object' || options === null) {
-    return fail(
-      `has options that are ${describeValue(options)}, not an object`,
-    );
-  }
 
-  const o = options as Readonly<Record<string, unknown>>;
-  const present = DEFINITION_KEYS.filter((key) => key in o);
+  const present = DEFINITION_KEYS.filter((key) => Object.hasOwn(options, key));
   if (present.length > 1)
     return fail(`sets ${present.join(' and ')}; use one of them`);
   // exactOptionalPropertyTypes is off, so a caller can write
   // `{ useValue, lifetime: undefined }`; that reads as no lifetime key, not
   // as a lifetime set to undefined.
-  const hasLifetime = o['lifetime'] !== undefined;
-  const lifetime = hasLifetime ? o['lifetime'] : 'singleton';
+  const hasLifetime = options.lifetime !== undefined;
+  const lifetime = hasLifetime ? options.lifetime : 'singleton';
   if (!LIFETIMES.has(lifetime)) {
     return fail(
       `has the lifetime ${describeValue(lifetime)}; use 'singleton', 'scoped' or 'transient'`,
@@ -243,20 +315,20 @@ export function normalizeProvider(
       return classShape(
         token,
         token as Ctor,
-        o['deps'],
+        options.deps,
         life,
         site,
         errors,
         fail,
       );
     case 'useClass': {
-      const cls = o['useClass'];
+      const cls = options.useClass;
       if (typeof cls !== 'function' || !isToken(cls))
         return fail('has a useClass that is not a class');
       return classShape(
         token,
         cls as Ctor,
-        o['deps'],
+        options.deps,
         life,
         site,
         errors,
@@ -272,17 +344,16 @@ export function normalizeProvider(
         lifetime: null,
         deps: [],
         props: [],
-        value: o['useValue'],
+        value: options.useValue,
       };
     case 'useFactory': {
-      const useFactory = o['useFactory'];
+      const useFactory = options.useFactory;
       if (typeof useFactory !== 'function')
         return fail('has a useFactory that is not a function');
-      if (!Array.isArray(o['deps']))
-        return fail(
-          'has a useFactory without a deps array; pass deps: [] for none',
-        );
-      const deps = depsOf(o['deps'], fail);
+      // deps defaults to [] for a factory in both forms (spec §3.2).
+      const list = options.deps ?? [];
+      if (!Array.isArray(list)) return fail('has deps that are not an array');
+      const deps = depsOf(list, fail);
       if (!deps) return null;
       return {
         kind: 'factory',
@@ -296,7 +367,7 @@ export function normalizeProvider(
     case 'useExisting': {
       if (hasLifetime)
         return fail('sets a lifetime on useExisting; an alias has none');
-      const target = o['useExisting'];
+      const target = options.useExisting;
       if (!isToken(target)) {
         errors.push(new InvalidTokenError({ received: describeValue(target) }));
         return null;

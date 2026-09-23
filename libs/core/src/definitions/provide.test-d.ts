@@ -165,6 +165,16 @@ describe('provide', () => {
     // @ts-expect-error a MultiToken provider contributes one element, not the array
     provide(DIAGNOSTICS, { useValue: [passing] });
   });
+
+  it('lets a factory with no arguments leave out deps', () => {
+    const LABEL = new Token<string>('Label');
+    expectTypeOf(provide(LABEL, { useFactory: () => 'x' })).toEqualTypeOf<
+      Provider<string>
+    >();
+    provide(LABEL, { useFactory: async () => 'x', lifetime: 'scoped' });
+    // @ts-expect-error deps defaults to [], so the factory gets no argument
+    provide(LABEL, { useFactory: (n: number) => n.toFixed() });
+  });
 });
 
 describe('Provider', () => {
