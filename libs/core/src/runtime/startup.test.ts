@@ -267,12 +267,53 @@ describe('Nexus', () => {
       await expect(
         startBlueprint(root, { bp, isNew: () => true }),
       ).rejects.toMatchObject({ code: 'NEXUS_PROVIDER_FAILED' });
-      // registerStatic ran before Boom's level failed, so `shared` was
-      // registered as a useValue object; startBlueprint's failure path must
-      // undo that registration (Ownership.unregisterValue), or `shared`
-      // would stay unclaimable for the rest of the root's lifetime even
-      // though this build never published its blueprint.
       expect(root.ownership.claim(shared)).toBe(true);
+    });
+
+    it("keeps an earlier build's useValue object registered when a later failed build reuses it", async () => {
+      const shared = {};
+      const A = new Token<object>('A');
+      const B = new Token<object>('B');
+      class Boom {
+        constructor() {
+          throw new Error('boom');
+        }
+      }
+      const firstBp = compile({
+        root: defineModule({
+          name: 'Root',
+          providers: [provide(A, { useValue: shared })],
+        }),
+      });
+      const root = createRootState({
+        blueprint: firstBp,
+        rootRef: {},
+        tracer: new Tracer(),
+        initEnabled: true,
+      });
+      await startBlueprint(root, { bp: firstBp, isNew: () => true });
+      // `shared` is now registered as a useValue object by the first build,
+      // which succeeded and is not being undone.
+      expect(root.ownership.claim(shared)).toBe(false);
+
+      const secondBp = compile({
+        root: defineModule({
+          name: 'Root',
+          providers: [
+            provide(A, { useValue: shared }),
+            provide(B, { useValue: shared }),
+            Boom,
+          ],
+        }),
+      });
+      const isNew = (id: string): boolean => !firstBp.providers.has(id);
+      await expect(
+        startBlueprint(root, { bp: secondBp, isNew }),
+      ).rejects.toMatchObject({ code: 'NEXUS_PROVIDER_FAILED' });
+      // The second build's registration of the same object is a no-op
+      // (Ownership.registerValue already saw it), so its failure must not
+      // undo the first build's still-live registration.
+      expect(root.ownership.claim(shared)).toBe(false);
     });
   });
 });

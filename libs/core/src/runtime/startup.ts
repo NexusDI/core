@@ -47,23 +47,26 @@ async function validateOptions(
   return { value: result.value };
 }
 
+/** Returns whether this call is the one that registered value as owned. */
 function settleValue(
   root: RootState,
   bp: Blueprint,
   record: ProviderRecord,
   value: unknown,
-): void {
-  root.ownership.registerValue(value);
+): boolean {
+  const added = root.ownership.registerValue(value);
   root.slots.settle(record.id, value);
   root.slots.markReady(record.id);
   traceConstruct(root, bp, record, false);
+  return added;
 }
 
 /**
  * Stores useValue providers as they are, never awaited, and reports aliases.
- * An options value with a schema is stored once its validation settles.
- * Every value settleValue registers with `root.ownership` also lands in
- * `registered`, so a caller that aborts this run can undo the registration.
+ * An options value with a schema is stored once its validation settles. Only
+ * a value this call newly registered with `root.ownership` (not one an
+ * earlier create or load already owns) lands in `registered`, so a caller
+ * that aborts this run undoes only its own registrations.
  */
 async function registerStatic(
   root: RootState,
@@ -78,15 +81,14 @@ async function registerStatic(
     if (record.kind !== 'value') continue;
     touched.push(record.id);
     if (record.schema === undefined) {
-      settleValue(root, plan.bp, record, record.value);
-      registered.push(record.value);
+      if (settleValue(root, plan.bp, record, record.value))
+        registered.push(record.value);
     } else validated.push(record.id);
   }
   await settleLevel(validated, async (id) => {
     const record = plan.bp.providers.get(id)!;
     const { value } = await validateOptions(record, plan.bp, record.value);
-    settleValue(root, plan.bp, record, value);
-    registered.push(value);
+    if (settleValue(root, plan.bp, record, value)) registered.push(value);
   });
 }
 

@@ -31,18 +31,14 @@ export class Ownership {
   readonly #disposed = new WeakSet<object>();
   readonly #initialized = new WeakSet<object>();
 
-  registerValue(value: unknown): void {
-    if (isObject(value)) this.#values.add(value);
+  /** Returns whether value was newly added, so a caller can undo only that. */
+  registerValue(value: unknown): boolean {
+    if (!isObject(value) || this.#values.has(value)) return false;
+    this.#values.add(value);
+    return true;
   }
 
-  /**
-   * Removes value from the set registerValue added it to. A failed load()
-   * leaves the container as it was before the call (spec §3.5), and this
-   * Set is part of that state: without removal, an object registered as
-   * useValue by a load() that then failed stays unownable for the rest of
-   * the container's lifetime, even once a later provider builds that same
-   * object for real.
-   */
+  /** Undoes registerValue for a build that failed before it published. */
   unregisterValue(value: unknown): void {
     if (isObject(value)) this.#values.delete(value);
   }

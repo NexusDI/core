@@ -75,6 +75,43 @@ describe('Nexus', () => {
       });
     });
 
+    it('rejects NEXUS_LOAD_GLOBAL_MODULE for a module that imports a new global module', async () => {
+      const Telemetry = defineModule({ name: 'Telemetry', global: true });
+      const NAME = new Token<string>('Name');
+      const Wrapper = defineModule({
+        name: 'Wrapper',
+        imports: [Telemetry],
+        providers: [provide(NAME, { useValue: 'x' })],
+        exports: [NAME],
+      });
+      const ship = await Nexus.create(Meridian);
+      expect(await rejected(ship.load(Wrapper))).toMatchObject({
+        code: 'NEXUS_LOAD_GLOBAL_MODULE',
+        module: 'Telemetry',
+      });
+      expect(ship.has(NAME)).toBe(false);
+    });
+
+    it('loads a module that imports a global module already in the graph', async () => {
+      const factory = vi.fn(() => 'x');
+      const NAME = new Token<string>('Name');
+      const Telemetry = defineModule({ name: 'Telemetry', global: true });
+      const Root = defineModule({
+        name: 'Root',
+        imports: [Meridian, Telemetry],
+      });
+      const Wrapper = defineModule({
+        name: 'Wrapper',
+        imports: [Telemetry],
+        providers: [provide(NAME, { useFactory: factory, deps: [] })],
+        exports: [NAME],
+      });
+      const ship = await Nexus.create(Root);
+      await ship.load(Wrapper);
+      expect(ship.get(NAME)).toBe('x');
+      expect(factory).toHaveBeenCalledOnce();
+    });
+
     it('rejects NEXUS_INVALID_MODULE for a value that is not a module', async () => {
       const ship = await Nexus.create(Meridian);
       expect(await rejected(ship.load({} as never))).toMatchObject({
@@ -133,6 +170,27 @@ describe('Nexus', () => {
       });
       expect(log).toEqual(['sensor disposed']);
       expect(ship.has(Sensor)).toBe(false);
+    });
+
+    it('runs a later load after an earlier one on the queue rejected', async () => {
+      class Boom {
+        constructor() {
+          throw new Error('boom');
+        }
+      }
+      const Failing = defineModule({ name: 'Failing', providers: [Boom] });
+      const NAME = new Token<string>('Name');
+      const Named = defineModule({
+        name: 'Named',
+        providers: [provide(NAME, { useValue: 'x' })],
+        exports: [NAME],
+      });
+      const ship = await Nexus.create(Meridian);
+      expect(await rejected(ship.load(Failing))).toMatchObject({
+        code: 'NEXUS_PROVIDER_FAILED',
+      });
+      await ship.load(Named);
+      expect(ship.get(NAME)).toBe('x');
     });
 
     it('runs concurrent loads one at a time, in call order', async () => {
