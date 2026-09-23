@@ -1,7 +1,7 @@
 {
   "name": "@nexusdi/core",
   "version": "0.3.1",
-  "description": "A modern, lightweight dependency injection container for TypeScript and Node.js, featuring native decorators, modular architecture, and high performance.",
+  "description": "A modern, lightweight dependency injection container for TypeScript and Node.js, featuring decorators, modular architecture, and high performance.",
   "keywords": [
     "dependency injection",
     "di",
