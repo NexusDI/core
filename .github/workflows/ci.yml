@@ -11,30 +11,109 @@ permissions:
   contents: read
 
 jobs:
+  # An invalid workflow file does not fail a job, because no job runs. GitHub
+  # records a run with no jobs and the message "This run likely failed because
+  # of a workflow file issue", and a workflow that only triggers manually shows
+  # that against every push. actionlint reads the files as GitHub's schema
+  # does, so the error surfaces in a job that can actually go red.
+  #
+  # Separate from `main` so it reports on its own, and first because it takes
+  # seconds.
+  workflows:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          filter: tree:0
+
+      # Pinned by version and checksum rather than installed through a
+      # third-party action: the binary is the whole dependency, and verifying
+      # it is two lines.
+      - name: Lint workflow files
+        env:
+          ACTIONLINT_VERSION: 1.7.12
+          ACTIONLINT_SHA256: 8aca8db96f1b94770f1b0d72b6dddcb1ebb8123cb3712530b08cc387b349a3d8
+        run: |
+          set -euo pipefail
+          archive="actionlint_${ACTIONLINT_VERSION}_linux_amd64.tar.gz"
+          curl -fsSL -o "$archive" \
+            "https://github.com/rhysd/actionlint/releases/download/v${ACTIONLINT_VERSION}/${archive}"
+          echo "${ACTIONLINT_SHA256}  ${archive}" | sha256sum --check --strict
+          tar xzf "$archive" actionlint
+          ./actionlint -color
+
+  # Prettier directly rather than `nx format:check`: the nx command is scoped
+  # to what changed against a base ref, so it reports nothing when the base is
+  # the commit being pushed, and on a pull request it reports only the files
+  # in the diff -- a file left unformatted in the base passes. Formatting is a
+  # property of the working tree, not of a project, so the check has to read
+  # every file.
+  #
+  # Its own job rather than part of `main`, so a missing `nx format:write` is
+  # reported in the time of an install instead of behind a full build.
+  format:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          filter: tree:0
+
+      - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
+        with:
+          node-version-file: .nvmrc
+          cache: 'npm'
+
+      # From the lockfile, so the check runs with the prettier version the
+      # repository pins. `--ignore-scripts` because the only lifecycle script
+      # is husky installing git hooks, which nothing in this job uses.
+      - run: npm ci --ignore-scripts
+
+      - run: npx prettier --check .
+
   main:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           filter: tree:0
           fetch-depth: 0
 
-      # This enables task distribution via Nx Cloud
-      # Run this command as early as possible, before dependencies are installed
-      # Learn more at https://nx.dev/ci/reference/nx-cloud-cli#npx-nxcloud-startcirun
-      # Uncomment this line to enable task distribution
-      # - run: npx nx-cloud start-ci-run --distribute-on="3 linux-medium-js" --stop-agents-after="build"
-
-      # Cache node_modules
-      - uses: actions/setup-node@v4
+      - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
         with:
-          node-version: lts/*
+          node-version-file: .nvmrc
           cache: 'npm'
 
-      - run: npm ci --legacy-peer-deps
-      - uses: nrwl/nx-set-shas@v4
+      - run: npm ci
 
-      # Prepend any command with "nx-cloud record --" to record its logs to Nx Cloud
-      # - run: npx nx-cloud record -- echo Hello World
-      # Nx Affected runs only tasks affected by the changes in this PR/commit. Learn more: https://nx.dev/ci/features/affected
-      - run: npx nx affected -t lint test build
+      - run: npx nx run-many -t lint test build typecheck
+
+      # Reports the run's task results to Nx Cloud. `always()` because the run
+      # it reports on is the failing one.
+      - run: npx nx fix-ci
+        if: always()
+
+  # The only check that reads a package as npm publishes it. Everything in
+  # `main` resolves through `customConditions: ["@nexusdi/source"]`, which
+  # reaches a package's TypeScript source and never its exports map, emitted
+  # declarations or build output, so a package can pass every target there
+  # and still install into a consumer as nothing importable.
+  #
+  # Its own job rather than a step in `main`, because it shares no work with
+  # it: the script clears every `dist` and rebuilds with `--skip-nx-cache`, so
+  # `main`'s build buys it nothing and it runs beside `main` instead of
+  # behind it.
+  packaging:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          filter: tree:0
+
+      - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
+        with:
+          node-version-file: .nvmrc
+          cache: 'npm'
+
+      - run: npm ci
+
+      - run: npm run verify:packaging
