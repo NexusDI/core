@@ -6,6 +6,12 @@ name: Docs snapshot
 # apps/docs/deploy.json (docs spec §15.2). A release asset is permanent; a
 # workflow artifact expires after at most 90 days, and the snapshot has to
 # last until the /v0.3/ retention ends.
+#
+# Split into a read-only build job and a write publish job. The build job
+# runs `npm ci` and the 2025 Docusaurus lockfile's install scripts and
+# plugins, so it never holds a token that can push to the repository or
+# create a release; it hands the publish job the tarballs and their
+# checksums as a workflow artifact.
 on:
   workflow_dispatch:
     inputs:
@@ -13,23 +19,38 @@ on:
         description: Commit of the 0.3 Docusaurus site
         required: true
         default: 6d5e4f3
+      replace:
+        description: Overwrite this revision's release assets (only for a genuine re-run of a dispatch that failed after uploading)
+        type: boolean
+        default: false
 
 permissions:
-  contents: write # create the release and upload its assets
-  pull-requests: write # open the deploy.json pull request
+  contents: read
 
 concurrency:
   group: docs-snapshot
   cancel-in-progress: false
 
 jobs:
-  snapshot:
+  build:
+    # apps/docs/deploy.json on a stale branch can record an older revision
+    # than main's, so a dispatch against that branch would pack a revision
+    # number that already exists on the docs-snapshot-0.3 release. Only a
+    # dispatch against main can reach the checksum-verified upload below.
+    if: github.ref == 'refs/heads/main'
     runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    outputs:
+      revision: ${{ steps.pack.outputs.revision }}
+      root_sha256: ${{ steps.pack.outputs.root_sha256 }}
+      archive_sha256: ${{ steps.pack.outputs.archive_sha256 }}
     env:
-      GH_TOKEN: ${{ github.token }}
       SOURCE: ${{ inputs.source }}
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
 
       # actions/checkout rejects a ref that is only a short SHA once its
       # default shallow fetch runs: the object is not in a depth-1 history.
@@ -38,6 +59,7 @@ jobs:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           fetch-depth: 0
+          persist-credentials: false
           path: snapshot-src
 
       - name: Check out the snapshot source
@@ -81,27 +103,75 @@ jobs:
             echo "root_sha256=$(sha256sum "nexusdi-docs-0.3-root-r${revision}.tar.gz" | cut -d' ' -f1)"
             echo "archive_sha256=$(sha256sum "nexusdi-docs-0.3-archive-r${revision}.tar.gz" | cut -d' ' -f1)"
           } >> "$GITHUB_OUTPUT"
+          mv "nexusdi-docs-0.3-root-r${revision}.tar.gz" "nexusdi-docs-0.3-archive-r${revision}.tar.gz" SHA256SUMS "$GITHUB_WORKSPACE/"
+
+      - uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        with:
+          name: docs-snapshot
+          path: |
+            nexusdi-docs-0.3-root-r*.tar.gz
+            nexusdi-docs-0.3-archive-r*.tar.gz
+            SHA256SUMS
+          retention-days: 7
+
+  publish:
+    needs: build
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write # create the release, upload its assets and push the deploy.json branch
+      pull-requests: write # open the deploy.json pull request
+    env:
+      GH_TOKEN: ${{ github.token }}
+      SOURCE: ${{ inputs.source }}
+      REPLACE: ${{ inputs.replace }}
+      REVISION: ${{ needs.build.outputs.revision }}
+      ROOT_SHA256: ${{ needs.build.outputs.root_sha256 }}
+      ARCHIVE_SHA256: ${{ needs.build.outputs.archive_sha256 }}
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+
+      - uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # v8.0.1
+        with:
+          name: docs-snapshot
+
+      - name: Verify the downloaded tarballs against the build job's checksums
+        run: |
+          set -euo pipefail
+          node apps/docs/tools/deploy/snapshot-assets.mjs verify "nexusdi-docs-0.3-root-r${REVISION}.tar.gz" "$ROOT_SHA256"
+          node apps/docs/tools/deploy/snapshot-assets.mjs verify "nexusdi-docs-0.3-archive-r${REVISION}.tar.gz" "$ARCHIVE_SHA256"
 
       - name: Upload to the docs-snapshot-0.3 release
-        working-directory: snapshot-src/docs
-        env:
-          REVISION: ${{ steps.pack.outputs.revision }}
         run: |
           set -euo pipefail
           if ! gh release view docs-snapshot-0.3 >/dev/null 2>&1; then
-            gh release create docs-snapshot-0.3 --target "$(git -C "${GITHUB_WORKSPACE}/snapshot-src" rev-parse HEAD)" \
+            gh release create docs-snapshot-0.3 --target "$(git rev-parse HEAD)" \
               --title "Docs snapshot 0.3" --notes "The 0.3 documentation site, built from ${SOURCE}." --latest=false
           fi
-          gh release upload docs-snapshot-0.3 --clobber \
-            "nexusdi-docs-0.3-root-r${REVISION}.tar.gz" \
-            "nexusdi-docs-0.3-archive-r${REVISION}.tar.gz" \
-            SHA256SUMS
+          existing_assets="$(gh release view docs-snapshot-0.3 --json assets --jq '.assets[].name')"
+          for pair in "root:$ROOT_SHA256" "archive:$ARCHIVE_SHA256"; do
+            role="${pair%%:*}"
+            sha="${pair##*:}"
+            name="nexusdi-docs-0.3-${role}-r${REVISION}.tar.gz"
+            if ! grep -qx "$name" <<<"$existing_assets"; then
+              gh release upload docs-snapshot-0.3 "$name"
+              continue
+            fi
+            rm -rf existing-asset && mkdir existing-asset
+            gh release download docs-snapshot-0.3 --pattern "$name" --dir existing-asset
+            existing_sha256="$(sha256sum "existing-asset/$name" | cut -d' ' -f1)"
+            if [ "$existing_sha256" = "$sha" ]; then
+              echo "$name: already uploaded with a matching checksum, nothing to do"
+            elif [ "$REPLACE" = "true" ]; then
+              echo "$name: replacing deliberately (replace: true)"
+              gh release upload docs-snapshot-0.3 --clobber "$name"
+            else
+              echo "$name: the release already holds a different build (sha256 ${existing_sha256}, this run built ${sha}). Re-run with replace: true to overwrite it deliberately." >&2
+              exit 1
+            fi
+          done
+          gh release upload docs-snapshot-0.3 --clobber SHA256SUMS
 
       - name: Open the deploy.json pull request
-        env:
-          REVISION: ${{ steps.pack.outputs.revision }}
-          ROOT_SHA256: ${{ steps.pack.outputs.root_sha256 }}
-          ARCHIVE_SHA256: ${{ steps.pack.outputs.archive_sha256 }}
         run: |
           set -euo pipefail
           branch="docs/snapshot-r${REVISION}"
