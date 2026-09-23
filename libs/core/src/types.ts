@@ -22,16 +22,14 @@ export type ClassProviderConfig<T = unknown> = {
 
 // Public (user-facing) provider types
 export interface ClassProvider<T = unknown>
-  extends ClassProviderConfig<T>,
-    BaseProvider<T> {}
+  extends ClassProviderConfig<T>, BaseProvider<T> {}
 
 export type ValueProviderConfig<T = unknown> = {
   useValue: T;
 };
 
 export interface ValueProvider<T = unknown>
-  extends ValueProviderConfig<T>,
-    BaseProvider<T> {}
+  extends ValueProviderConfig<T>, BaseProvider<T> {}
 
 export type FactoryProviderConfig<T = unknown> = {
   useFactory: (...args: any[]) => T;
@@ -39,18 +37,13 @@ export type FactoryProviderConfig<T = unknown> = {
 };
 
 export interface FactoryProvider<T = unknown>
-  extends FactoryProviderConfig<T>,
-    BaseProvider<T> {}
+  extends FactoryProviderConfig<T>, BaseProvider<T> {}
 
 export type ProviderConfigObject<T = unknown> =
-  | ClassProviderConfig<T>
-  | ValueProviderConfig<T>
-  | FactoryProviderConfig<T>;
+  ClassProviderConfig<T> | ValueProviderConfig<T> | FactoryProviderConfig<T>;
 
 export type Provider<T = unknown> =
-  | ClassProvider<T>
-  | ValueProvider<T>
-  | FactoryProvider<T>;
+  ClassProvider<T> | ValueProvider<T> | FactoryProvider<T>;
 
 // Internal (container-facing) provider types (with discriminant 'type')
 interface InternalClassProvider<T = unknown> extends ClassProvider<T> {
@@ -76,8 +69,7 @@ type InternalProvider<T = unknown> =
  * @see https://nexus.js.org/docs/modules/module-basics
  */
 export type ModuleProvider<T = any> =
-  | (Provider<T> & { token: TokenType<T> })
-  | Constructor<T>;
+  (Provider<T> & { token: TokenType<T> }) | Constructor<T>;
 
 /**
  * Configuration for a provider. Used with @Service and @Provider decorators.

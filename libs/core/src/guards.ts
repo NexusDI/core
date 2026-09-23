@@ -25,7 +25,7 @@ export function isSymbol(obj: unknown): obj is symbol {
  * Checks if a value is a valid TokenType (class constructor, symbol, or Token instance).
  */
 export function isTokenType<T = unknown>(
-  token: unknown
+  token: unknown,
 ): token is TokenType<T> {
   return isConstructor(token) || isSymbol(token) || isToken(token);
 }
@@ -95,7 +95,7 @@ export function isModuleClass(obj: unknown): obj is Constructor<any> {
 }
 
 export function isModuleConfig(
-  obj: unknown
+  obj: unknown,
 ): obj is { providers?: any[]; imports?: any[]; exports?: any[] } {
   return (
     !!obj && typeof obj === 'object' && ('providers' in obj || 'imports' in obj)

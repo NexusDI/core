@@ -15,7 +15,7 @@ export class UserService implements IUserService {
 
   private async fetchFromAPI(
     page = 1,
-    limit = this.config.maxUsersPerPage
+    limit = this.config.maxUsersPerPage,
   ): Promise<User[]> {
     if (this.config.enableMockData) {
       // Return mock data
@@ -50,7 +50,7 @@ export class UserService implements IUserService {
 
   async getUsers(
     page = 1,
-    limit = this.config.maxUsersPerPage
+    limit = this.config.maxUsersPerPage,
   ): Promise<User[]> {
     const cacheKey = this.getCacheKey(page, limit);
 

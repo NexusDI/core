@@ -215,7 +215,7 @@ describe('Types', () => {
     it('should work with provider configuration', () => {
       class TestService {}
       const token = new Token<TestService>(
-        'PROVIDER_TOKEN'
+        'PROVIDER_TOKEN',
       ) as unknown as TokenType;
 
       const config: ProviderConfig<TestService> = {

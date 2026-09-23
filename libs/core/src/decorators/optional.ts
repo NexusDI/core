@@ -25,12 +25,12 @@ import { setMetadata, getMetadata } from '../helpers.js';
  * @publicApi
  */
 export function Optional<T>(
-  token: TokenType<T>
+  token: TokenType<T>,
 ): PropertyDecorator & ParameterDecorator {
   return (
     target: object,
     propertyKey: string | symbol | undefined,
-    parameterIndex?: number
+    parameterIndex?: number,
   ) => {
     if (typeof parameterIndex === 'number') {
       // Parameter decorator
