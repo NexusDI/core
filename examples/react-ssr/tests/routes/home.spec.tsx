@@ -3,7 +3,11 @@
 import React from 'react';
 import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
 import { render, screen, waitFor } from '@testing-library/react';
-import { createRoutesStub, RouterContext, RouterContextProvider } from 'react-router';
+import {
+  createRoutesStub,
+  RouterContext,
+  RouterContextProvider,
+} from 'react-router';
 import { Nexus } from '@nexusdi/core';
 import Home, { loader as homeLoader } from '../../app/routes/home';
 import {
@@ -56,7 +60,7 @@ describe('Home route (framework mode, minimal DI example)', () => {
           loader: homeLoader,
         },
       ],
-      new RouterContextProvider(contextMap)
+      new RouterContextProvider(contextMap),
     );
     render(<Stub initialEntries={['/']} />);
     await waitFor(() => {
@@ -77,7 +81,7 @@ describe('Home route (framework mode, minimal DI example)', () => {
           loader: homeLoader,
         },
       ],
-      new RouterContextProvider(contextMap)
+      new RouterContextProvider(contextMap),
     );
     render(<Stub initialEntries={['/']} />);
     await waitFor(() => {

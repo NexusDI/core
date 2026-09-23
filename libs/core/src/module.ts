@@ -21,7 +21,7 @@ export abstract class DynamicModule<TConfig = any> {
    * Gets the module configuration from the decorator metadata
    */
   static getModuleConfig<T extends typeof DynamicModule>(
-    this: T
+    this: T,
   ): ModuleConfig {
     const moduleConfig = getMetadata(this, METADATA_KEYS.MODULE_METADATA);
     if (!moduleConfig) {
@@ -44,7 +44,7 @@ export abstract class DynamicModule<TConfig = any> {
    */
   static config<T extends typeof DynamicModule, TConfig>(
     this: T,
-    config: TConfig
+    config: TConfig,
   ) {
     const moduleConfig = this.getModuleConfig();
     const configToken = this.getConfigToken();
@@ -62,7 +62,7 @@ export abstract class DynamicModule<TConfig = any> {
    */
   static configAsync<T extends typeof DynamicModule, TConfig>(
     this: T,
-    configFactory: () => TConfig | Promise<TConfig>
+    configFactory: () => TConfig | Promise<TConfig>,
   ) {
     const moduleConfig = this.getModuleConfig();
     const configToken = this.getConfigToken();

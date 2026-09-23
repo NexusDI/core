@@ -31,7 +31,9 @@
           "{projectRoot}/react-router.config.ts",
           "{projectRoot}/vite.config.ts"
         ],
-        "outputs": ["{projectRoot}/.react-router"],
+        "outputs": [
+          "{projectRoot}/.react-router"
+        ],
         "executor": "nx:run-commands",
         "options": {
           "cwd": "examples/react-ssr",
@@ -39,7 +41,10 @@
         }
       },
       "typecheck": {
-        "dependsOn": ["typegen", "^typecheck"]
+        "dependsOn": [
+          "typegen",
+          "^typecheck"
+        ]
       }
     }
   }

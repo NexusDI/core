@@ -70,7 +70,7 @@ export class LoggerService implements ILoggerService {
     // In a real implementation, you'd use a file system library
     // For now, we'll just log that we would write to file
     console.log(
-      `[FILE] Would write to ${this.config.filePath}: ${formattedMessage}`
+      `[FILE] Would write to ${this.config.filePath}: ${formattedMessage}`,
     );
   }
 

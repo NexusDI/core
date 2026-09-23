@@ -30,7 +30,7 @@ export const CardHeader = ({
   <div
     className={clsx(
       'p-4 border-b border-gray-200 dark:border-gray-700',
-      className
+      className,
     )}
     {...props}
   />
@@ -43,7 +43,7 @@ export const CardTitle = ({
   <h3
     className={clsx(
       'text-lg font-semibold leading-none tracking-tight',
-      className
+      className,
     )}
     {...props}
   />

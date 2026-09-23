@@ -1,2 +1,17 @@
+# Add files here to ignore them from prettier formatting
 .prettierignore
+/dist
+/coverage
+/.nx/cache
+/.nx/workspace-data
 .nx/self-healing
+# React Router writes its bundle to <app>/build and its route types to
+# <app>/.react-router, both on every build. Formatting generated output
+# just gets reverted by the next run.
+**/build
+**/.react-router
+# Written by `nx release` for every package it versions. Its renderer emits
+# two spaces after the breaking-change marker and before the commit link,
+# and prettier collapses both to one, which makes the formatter a second
+# producer of the file.
+**/CHANGELOG.md

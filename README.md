@@ -156,7 +156,7 @@ container.set(
     host: 'localhost',
     port: 5432,
     database: 'dev_db',
-  })
+  }),
 );
 
 // Asynchronous configuration
@@ -165,7 +165,7 @@ container.set(
     host: process.env.DB_HOST,
     port: parseInt(process.env.DB_PORT),
     database: process.env.DB_NAME,
-  }))
+  })),
 );
 ```
 

@@ -18,7 +18,13 @@ export { Token } from './token.js';
 export type { TokenType } from './types.js';
 
 // Decorators
-export { Module, Service, Provider, Inject, Optional } from './decorators/index.js';
+export {
+  Module,
+  Service,
+  Provider,
+  Inject,
+  Optional,
+} from './decorators/index.js';
 
 export {
   ContainerException,

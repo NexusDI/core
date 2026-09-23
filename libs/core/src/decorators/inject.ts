@@ -29,12 +29,12 @@ import { setMetadata, getMetadata } from '../helpers.js';
  * @publicApi
  */
 export function Inject<T>(
-  token: TokenType<T>
+  token: TokenType<T>,
 ): PropertyDecorator & ParameterDecorator {
   return (
     target: object,
     propertyKey: string | symbol | undefined,
-    parameterIndex?: number
+    parameterIndex?: number,
   ) => {
     if (typeof parameterIndex === 'number') {
       // Parameter decorator
@@ -50,7 +50,7 @@ export function Inject<T>(
       setMetadata(
         metadataTarget,
         METADATA_KEYS.INJECT_METADATA,
-        existingMetadata
+        existingMetadata,
       );
     } else if (propertyKey !== undefined) {
       // Property decorator
@@ -66,7 +66,7 @@ export function Inject<T>(
       setMetadata(
         metadataTarget,
         METADATA_KEYS.INJECT_METADATA,
-        existingMetadata
+        existingMetadata,
       );
     }
   };

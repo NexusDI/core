@@ -287,7 +287,9 @@ if (consumer.greeter.greet() !== 'hello from the packed build') {
     dir,
   );
   run('node', [join(dir, 'runtime-out', 'runtime.mjs')], dir);
-  console.log('  ✓ the package imports cleanly as ESM and resolves DI at runtime');
+  console.log(
+    '  ✓ the package imports cleanly as ESM and resolves DI at runtime',
+  );
 
   // A helper tsc emits under `importHelpers` becomes an `import ... from
   // "tslib"` in the published JavaScript, which the consumer's package
@@ -346,13 +348,16 @@ if (consumer.greeter.greet() !== 'hello from the packed build') {
   // instead of dist, and a consumer without the condition would import
   // TypeScript directly.
   const corePkg = JSON.parse(
-    readFileSync(join(dir, 'node_modules', '@nexusdi', 'core', 'package.json'), 'utf8'),
+    readFileSync(
+      join(dir, 'node_modules', '@nexusdi', 'core', 'package.json'),
+      'utf8',
+    ),
   );
   const conditions = Object.keys(corePkg.exports['.']);
   if (conditions[0] !== '@nexusdi/source') {
     throw new Error(
       "@nexusdi/core's exports map must list the @nexusdi/source condition " +
-        "first, so it is only ever chosen when a consumer explicitly enables it.",
+        'first, so it is only ever chosen when a consumer explicitly enables it.',
     );
   }
   if (!conditions.includes('types') || !conditions.includes('import')) {

@@ -77,7 +77,7 @@ describe('DynamicModule', () => {
         p !== null &&
         'useValue' in p &&
         (p as any).useValue &&
-        (p as any).useValue.foo === 'bar'
+        (p as any).useValue.foo === 'bar',
     );
     expect(hasConfigProvider).toBe(true);
   });
@@ -93,7 +93,7 @@ describe('DynamicModule', () => {
         typeof p === 'object' &&
         p !== null &&
         'useFactory' in p &&
-        typeof (p as any).useFactory === 'function'
+        typeof (p as any).useFactory === 'function',
     );
     expect(provider).toBeDefined();
     const value = await (provider as any).useFactory();
@@ -131,7 +131,7 @@ describe('Module inheritance', () => {
 
     // Should not have its own Symbol.metadata property
     expect(
-      Object.prototype.hasOwnProperty.call(SubModule, (Symbol as any).metadata)
+      Object.prototype.hasOwnProperty.call(SubModule, (Symbol as any).metadata),
     ).toBe(false);
 
     // Should inherit parent's MODULE_METADATA value
@@ -174,10 +174,10 @@ describe('Module token handling', () => {
     class TokenModule {}
     const metadata = getMetadata(TokenModule, METADATA_KEYS.MODULE_METADATA);
     expect(metadata.providers.some((p: any) => p.token === SymbolToken)).toBe(
-      true
+      true,
     );
     expect(metadata.providers.some((p: any) => p.token === ClassToken)).toBe(
-      true
+      true,
     );
   });
 });

@@ -3,7 +3,11 @@
 import React from 'react';
 import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
 import { render, screen, waitFor } from '@testing-library/react';
-import { createRoutesStub, RouterContext, RouterContextProvider } from 'react-router';
+import {
+  createRoutesStub,
+  RouterContext,
+  RouterContextProvider,
+} from 'react-router';
 import { Nexus } from '@nexusdi/core';
 import Users, { loader as usersLoader } from '../../app/routes/users';
 import {
@@ -59,7 +63,7 @@ describe('Users route (framework mode, minimal DI example)', () => {
           loader: usersLoader,
         },
       ],
-      new RouterContextProvider(contextMap)
+      new RouterContextProvider(contextMap),
     );
     render(<Stub initialEntries={['/users']} />);
     await waitFor(() => {

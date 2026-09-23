@@ -5,7 +5,7 @@ import { LOGGER_SERVICE_TOKEN } from './logger.types';
 // Logger middleware - actually uses the logger service from container
 export const loggerMiddleware: Route.MiddlewareFunction = async (
   { context, request },
-  next
+  next,
 ) => {
   const start = performance.now();
 
@@ -53,7 +53,7 @@ export const loggerMiddleware: Route.MiddlewareFunction = async (
 // Performance monitoring middleware
 export const performanceMiddleware: Route.MiddlewareFunction = async (
   { context, request },
-  next
+  next,
 ) => {
   const start = performance.now();
 

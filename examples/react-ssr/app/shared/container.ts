@@ -15,7 +15,7 @@ globalContainer.set(
     enableConsole: true,
     enableFile: env === 'production',
     filePath: env === 'production' ? '/var/log/app.log' : undefined,
-  })
+  }),
 );
 
 globalContainer.set(
@@ -28,7 +28,7 @@ globalContainer.set(
     cacheTTL: env === 'production' ? 3600 : 300,
     maxUsersPerPage: env === 'production' ? 50 : 10,
     enableMockData: env !== 'production',
-  })
+  }),
 );
 
 // Create a context for the DI container
@@ -44,7 +44,7 @@ function getEnvironment(): 'development' | 'production' | 'test' {
 // Container middleware - provides DI container to downstream middleware/loaders
 export const containerMiddleware: Route.MiddlewareFunction = async (
   { context },
-  next
+  next,
 ) => {
   console.log('Container middleware called');
 

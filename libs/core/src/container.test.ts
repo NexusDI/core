@@ -98,7 +98,7 @@ describe('Nexus', () => {
       class UserServiceWithLogger {
         constructor(
           @Inject(LoggerService)
-          private logger: LoggerService
+          private logger: LoggerService,
         ) {}
         getUser(id: string): string {
           return this.logger.log(`Getting user ${id}`);
@@ -214,7 +214,7 @@ describe('Nexus', () => {
       class UserServiceWithLogger {
         constructor(
           @Inject(LoggerService)
-          private logger: LoggerService
+          private logger: LoggerService,
         ) {}
         getUser(id: string): string {
           return this.logger.log(`Getting user ${id}`);

@@ -7,7 +7,7 @@ import { setMetadata } from '../helpers.js';
  * Allows for future extensibility (e.g., scopes, types).
  */
 function makeProviderDecorator(
-  defaults?: Partial<ProviderConfig>
+  defaults?: Partial<ProviderConfig>,
 ): (tokenOrConfig?: TokenType<unknown> | ProviderConfig) => ClassDecorator {
   return (tokenOrConfig?: TokenType<unknown> | ProviderConfig) => (target) => {
     let config: ProviderConfig = { ...defaults };

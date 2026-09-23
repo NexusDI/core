@@ -128,7 +128,7 @@ export class Nexus implements IContainer {
   resolve<T>(provider: Constructor<T>): T {
     if (!isConstructor(provider)) {
       throw new InvalidToken(
-        `Cannot instantiate non-class token: ${this.tokenToString(provider)}`
+        `Cannot instantiate non-class token: ${this.tokenToString(provider)}`,
       );
     }
     const paramTypes =
@@ -194,7 +194,7 @@ export class Nexus implements IContainer {
       this.modules.add(tokenOrModuleOrConfig);
       const moduleConfig = getMetadata(
         tokenOrModuleOrConfig,
-        METADATA_KEYS.MODULE_METADATA
+        METADATA_KEYS.MODULE_METADATA,
       );
       if (!moduleConfig) {
         this.inProgressModules.delete(tokenOrModuleOrConfig);
@@ -212,7 +212,7 @@ export class Nexus implements IContainer {
   }
 
   private normalizeProvider<T>(
-    input: Provider<T> | Constructor<T>
+    input: Provider<T> | Constructor<T>,
   ): InternalProvider<T> {
     if (isConstructor(input)) {
       return this.normalizeClassProvider(input);
@@ -235,14 +235,14 @@ export class Nexus implements IContainer {
   }
 
   private normalizeClassProvider<T>(
-    input: Constructor<T>
+    input: Constructor<T>,
   ): InternalClassProvider<T> {
     const providerConfig = getMetadata(input, METADATA_KEYS.PROVIDER_METADATA);
     if (!providerConfig) {
       throw new InvalidProvider(input);
     }
     const token: TokenType<T> = this.getToken(
-      providerConfig.token || (input as TokenType<any>)
+      providerConfig.token || (input as TokenType<any>),
     );
     return { token, useClass: input, type: 'class' };
   }
@@ -282,7 +282,7 @@ export class Nexus implements IContainer {
 
   private setProvider<T>(
     tokenOrClass: TokenType<T> | Constructor<T>,
-    providerOrNothing?: Provider<T> | Constructor<T>
+    providerOrNothing?: Provider<T> | Constructor<T>,
   ): void {
     let token: TokenType<any>;
     let provider: InternalProvider<any>;

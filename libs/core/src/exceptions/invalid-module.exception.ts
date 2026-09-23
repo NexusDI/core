@@ -5,7 +5,7 @@ export class InvalidModule extends ContainerException {
     super(
       `Module ${
         typeof module === 'function' ? module.name : String(module)
-      } is not properly decorated with @Module`
+      } is not properly decorated with @Module`,
     );
   }
 }
