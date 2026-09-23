@@ -1,0 +1,28 @@
+#!/bin/sh
+
+# A merge in progress reaches here when someone answers git's own suggestion to
+# "use 'git commit' to complete the merge", which does not re-run
+# pre-merge-commit. Same refusal, same reason, same escape hatch.
+if [ -e "$(git rev-parse --git-path MERGE_HEAD)" ]; then
+  echo "" >&2
+  echo "  A merge commit was refused. main is rebase-only, and GitHub will" >&2
+  echo "  not rebase-merge a branch that contains one." >&2
+  echo "" >&2
+  echo "  Replay the work instead:  git cherry-pick <sha>..." >&2
+  echo "  Abandon this merge:       git merge --abort" >&2
+  echo "  Deliberate exception:     git commit --no-verify" >&2
+  echo "" >&2
+  exit 1
+fi
+
+# Run linting only for affected projects
+echo "🔍 Running linting on affected projects..."
+npx nx affected --target=lint --parallel=3
+
+# If no projects are affected, skip linting
+if [ $? -eq 0 ]; then
+  echo "✅ Linting passed for affected projects"
+else
+  echo "❌ Linting failed for affected projects"
+  exit 1
+fi
