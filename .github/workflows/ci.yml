@@ -85,6 +85,23 @@ jobs:
 
       - run: npm ci
 
+      # `react-router typegen` writes the +types/*.d.ts files
+      # examples/react-ssr reaches through tsconfig.app.json's rootDirs. On a
+      # fresh checkout they don't exist yet. typecheck's own Nx target
+      # dependency (dependsOn: [typegen, ...]) already produces them in time
+      # for tsc; this step is for fallow below, which cannot see rootDirs at
+      # all (it isn't a tsc feature any generic resolver implements --
+      # .fallowrc.jsonc's ignoreUnresolvedImports is what actually silences
+      # the finding). Kept anyway: fallow's built-in react-router plugin may
+      # grow rootDirs support later, and generating the files first costs
+      # nothing extra to keep correct regardless.
+      #
+      # `nx run <project>:typegen` rather than `run-many -t typegen`, so this
+      # isn't a second `nx run-many` step in this file --
+      # tools/repo-checks/src/release-verify-gate.test.ts asserts there is
+      # exactly one, the actual gate below.
+      - run: npx nx run @nexusdi/react-ssr:typegen
+
       # A step in this job rather than a job of its own: it needs the install
       # and nothing else, and it costs seconds against the minute that
       # `npm ci` already costs. Ahead of `run-many` so a dead file or a new
