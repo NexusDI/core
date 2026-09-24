@@ -61,3 +61,6 @@ Ruling: R2 split under P18 — accepted — plugins/registry.ts holds a generic 
 Ruling: R2 "has a observe hook" article — carried to R5 — R5's one-line message for NEXUS_PLUGIN_INVALID uses correct wording ("an observe hook" or a neutral form) with a test.
 Task R2: fix round 1/5 (bad-modules, bad-compile member and missing apiVersion tests; read hooks once)
 Ruling: R2 throwing plugin getter — deferred to R5 — neither spec nor brief defines it; R5 decides whether a throwing hook getter becomes NEXUS_PLUGIN_INVALID.
+Task R2: minor (deferred): throwing hook getter escapes create (to R5)
+Task R2: complete (commits fc79dd3..9face5b, review clean)
+Task R3: dispatched (BASE 9face5b, opus)
