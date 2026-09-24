@@ -96,6 +96,10 @@ jobs:
           PROJECTS: ${{ inputs.projects }}
         run: node scripts/resolve-release-projects.mjs
 
+      # core's test target depends on test-browser (regression R20), which
+      # runs in Chromium through Playwright.
+      - run: npx playwright install --with-deps chromium
+
       - name: Verify
         # Same target list as CI. The release gate must not be weaker than
         # the pull request gate, and

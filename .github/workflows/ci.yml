@@ -109,6 +109,10 @@ jobs:
       # full build.
       - run: npx fallow dead-code --fail-on-issues && npx fallow dupes
 
+      # core's test target depends on test-browser (regression R20), which
+      # runs in Chromium through Playwright.
+      - run: npx playwright install --with-deps chromium
+
       - run: npx nx run-many -t lint test build typecheck
 
       # Reports the run's task results to Nx Cloud. `always()` because the run

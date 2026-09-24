@@ -36,9 +36,16 @@
   "entry": [
     "apps/docs/content/**/*.{mdx,ts}",
     "libs/core/vite.decorators.ts",
+    "libs/core/vitest.browser.config.ts",
     "libs/core/test-support/deferred.ts",
     "libs/core/test-support/nexus-request.ts",
     "libs/core/src/**/*.test-d.ts",
+    // fallow's vitest plugin derives entry points from the project's
+    // vite.config.ts test.include glob alone; a second Vitest project
+    // (vitest.browser.config.ts, Task 35's Chromium project for R20) is a
+    // separate config file the plugin never reads, so its *.browser.test.ts
+    // files need their own entry.
+    "libs/core/src/**/*.browser.test.ts",
 
     // Built and run by examples/toolchain-matrix/scripts/run-matrix.mjs in a
     // throwaway consumer; nothing in the workspace imports them. The vite
@@ -143,6 +150,11 @@
     // package -- carries no devDependencies at all (see libs/urn in the
     // libraries repo this tooling is modeled on).
     "jsonc-eslint-parser",
+    // Imported by libs/core/vitest.browser.config.ts (Task 35's Chromium
+    // project for R20). Declared in the root package.json, hoisted from
+    // there; not duplicated into libs/core/package.json, which -- as a
+    // published package -- carries no devDependencies at all.
+    "@vitest/browser-playwright",
     // react-pair.test.ts imports tinyglobby directly, but nothing in this
     // workspace declares it: it is a transitive dependency of vite/vitest,
     // hoisted to the root. Mirrors the libraries repo's own entry for the

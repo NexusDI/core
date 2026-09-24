@@ -1,0 +1,18 @@
+{
+  "$schema": "../../node_modules/nx/schemas/project-schema.json",
+  "name": "@nexusdi/core",
+  "targets": {
+    "test-browser": {
+      "executor": "nx:run-commands",
+      "cache": true,
+      "inputs": ["default", "^production"],
+      "options": {
+        "cwd": "libs/core",
+        "command": "vitest run --config vitest.browser.config.ts"
+      }
+    },
+    "test": {
+      "dependsOn": ["^build", "test-browser"]
+    }
+  }
+}
