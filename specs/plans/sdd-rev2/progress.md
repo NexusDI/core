@@ -95,3 +95,6 @@ Ruling: R7 InvalidProviderError parity case — accepted — the R1 line came fr
 Ruling: R7 explain() lookup optional, BlueprintError aggregate text, core error-cases one per code, describeThrown copied (dupes 1.5%, under threshold) — accepted.
 Ruling: R7 release tag under "fixed" — OWNER DECISION — nx fixed releases make one tag and never fill {projectName}. Least divergent: pattern "@nexusdi/core@{version}", which keeps the existing tag history (@nexusdi/core@0.3.2 resolves as the current version) and names one tag per shared release; verify with an nx release dry run; RELEASING.md says one tag per release.
 Task R7: fix round 1/5 (release tag pattern; small minors)
+Task R7: minor (deferred): core keeps a full copy of message-scenarios.ts; no explicit empty dependencies field (matches scaffold); unreachable near-miss branches kept for parity
+Task R7: complete (commits 2f404ba..7a49b2a, review clean)
+Task R8: dispatched (BASE 7a49b2a, opus)
