@@ -134,3 +134,6 @@ Task R12: complete (commits 4b46fba..13f897f, review clean)
 Task R13: dispatched (BASE 13f897f, opus)
 Task R13: container restarted mid-task; implementer lost; uncommitted partial work kept in the worktree; re-dispatched (BASE 13f897f, opus) to continue from it
 Task R13: fix round 1/5 (Module.with comments in five package eslint configs; SEC-002 inherited deps)
+Task R13: minor (deferred): deps: null treated as no deps (brief behaviour); verify-packaging type-list order
+Task R13: complete (commits 217f16b..b795a64, review clean)
+Task R14: dispatched (BASE b795a64, opus)
