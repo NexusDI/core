@@ -233,7 +233,9 @@ function settledSingleton(record: ProviderRecord, ctx: Ctx): unknown {
 function buildTransient(record: ProviderRecord, ctx: Ctx): unknown {
   const start = ctx.container.root.tracer.now();
   const instance = construct(record, ctx);
-  if (isThenable(instance)) {
+  // Only a factory result is awaited (spec §6.1); a class instance with a
+  // then method is an ordinary value.
+  if (record.kind === 'factory' && isThenable(instance)) {
     // get() cannot wait. Observe the promise so its rejection is never unhandled.
     Promise.resolve(instance).catch(() => undefined);
     throw new AsyncTransientError({

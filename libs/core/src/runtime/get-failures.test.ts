@@ -43,6 +43,40 @@ describe('Nexus', () => {
       expect(unhandled).toEqual([]);
     });
 
+    // A Knex-style query builder: a class whose instances are thenable. Only
+    // a factory result is awaited (spec §6.1), so a transient class is stored
+    // and returned as constructed, and its then() is never called.
+    it('returns a transient instance of a thenable class as is and never calls its then', async () => {
+      const calls: string[] = [];
+      class Query {
+        then(resolve: (rows: string[]) => void): void {
+          calls.push('then');
+          resolve(['row']);
+        }
+      }
+      const QUERY = new Token<Query>('Query');
+      await using ship = await Nexus.create(
+        defineModule({
+          name: 'Data',
+          providers: [
+            provide(QUERY, { useClass: Query, lifetime: 'transient' }),
+            provide(Query, { lifetime: 'transient' }),
+          ],
+        }),
+      );
+      const aliased = ship.get(QUERY);
+      const own = ship.get(Query);
+      expect(aliased).toBeInstanceOf(Query);
+      expect(own).toBeInstanceOf(Query);
+      expect(ship.get(Query)).not.toBe(own);
+      {
+        await using scope = await ship.createScope();
+        expect(scope.get(QUERY)).toBeInstanceOf(Query);
+      }
+      await flush();
+      expect(calls).toEqual([]);
+    });
+
     it('wraps a constructor error in NEXUS_PROVIDER_FAILED with the construction path', async () => {
       class Sensor {
         constructor() {
