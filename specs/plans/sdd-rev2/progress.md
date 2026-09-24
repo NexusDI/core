@@ -111,3 +111,6 @@ Note: blueprint/levels.test.ts stack-depth test flaked once under nx during R9 (
 Task R9: minor (deferred): core README documents @nexusdi/node (R23); nodeViolations mixes path conventions
 Task R9: complete (commits 1cebc8b..fcfc1db, review clean)
 Task R10: dispatched (BASE fcfc1db, opus)
+Ruling: R10 devtools vite.config importing ../core/vite.decorators.ts with an eslint-disable and a spec tsconfig reference — accepted for now; (Task R11) R11 points it at libs/decorators and removes the cross-project reach if possible.
+Ruling: R10 DevtoolsError wording written by the implementer (spec §9 gives none) — accepted, subject to the prose rules.
+Ruling: R10 inspect() puts the caller's plugins before its own — accepted — plugins[i] in NEXUS_PLUGIN_INVALID then matches the caller's array index.
