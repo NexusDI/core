@@ -189,3 +189,6 @@ Task R22: fix round 2/5 (fallback only when the base has no size fixture; Depend
 Task R22: complete (commits 799e367..8cf7c2c, review clean; workflows not yet run on a GitHub runner)
 Task R23: dispatched (BASE 8cf7c2c, opus)
 Ruling: R23 interface-first startup-cost example, 'built on core's public API' table wording, reflect-metadata left out of the root README (owner rule beats §14.1's list) — accepted.
+Ruling: (Task R24) add a gate that typechecks README doctest blocks (R23 found one that ran but failed tsc).
+Ruling: §14.1 guides (API/worker/CLI, multi-team shell) and the 0.3 migration pointer (§13.1, codemod) belong to the docs and codemod plans (Decision 14); recorded as out of this plan's scope.
+Task R23: fix round 1/5 (errors README typecheck; interface-first ShipComputer; decorators are not plugins)
