@@ -57,3 +57,5 @@ Ruling: P42 (all tasks) — environment — the matrix run rewrites examples/too
 Task R1: dispatched (BASE 03f2aca, sonnet)
 Task R1: complete (commits 3de3da3..3de3da3, review clean)
 Task R2: dispatched (BASE 3de3da3, opus)
+Ruling: R2 split under P18 — accepted — plugins/registry.ts holds a generic PluginSet<Event, Context>, plugins/views.ts the hook and view types; NexusPlugin, PluginContext and RootPlugins stay in runtime/plugins.ts because they name Nexus and TraceEvent. Later briefs map runtime/plugins.ts paths accordingly: registry logic to plugins/registry.ts, runtime-typed parts stay in runtime/plugins.ts.
+Ruling: R2 "has a observe hook" article — carried to R5 — R5's one-line message for NEXUS_PLUGIN_INVALID uses correct wording ("an observe hook" or a neutral form) with a test.
