@@ -88,3 +88,4 @@ Task R5: complete (commits 68948ec..d4f09c5, review clean)
 Task R6: dispatched (BASE d4f09c5, opus)
 Ruling: R6 load admission errors in check — spec §3.5 binds ("throws one BlueprintError otherwise"): check wraps NEXUS_INVALID_MODULE and NEXUS_LOAD_GLOBAL_MODULE from options.load in one BlueprintError (as inner errors); plugin validation errors stay direct, as at create.
 Ruling: R6 a load module the root already imports — accepted skipped, as load() does.
+Task R6: fix round 1/5 (wrap load admission errors in one BlueprintError)
