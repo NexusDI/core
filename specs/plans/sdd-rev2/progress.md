@@ -145,3 +145,5 @@ Task R14: minor (deferred): a transient factory returning one object shared by a
 Task R14: complete (commits f6e01d9..6ba0eea, review clean)
 Task R15: dispatched (BASE 6ba0eea, opus)
 Ruling: R15 create/load rollback limited to what its own build steps adopted (shared with extend()'s bookkeeping) and extend() clearing every slot the pinned blueprint lacks — accepted as needed for eager: false correctness; the reviewer verifies no revision 1 behaviour changed.
+Ruling: R15 onInit order for an eager: false singleton built during create/load — OWNER DECISION (spec §6.6 vs §8.1 conflict) — least divergent: while create or load runs, such a singleton's onInit joins its level's onInit step and runs after its dependencies' onInit, like an eager provider built at that level; at get() time outside a run, onInit runs right after the build (§6.6). No user can then observe an uninitialised dependency.
+Task R15: fix round 1/5 (dispose lazily built singletons on a failed create/load; onInit order during a run)
