@@ -31,7 +31,10 @@ export function Module<const P extends readonly unknown[] = []>(
       target,
       defineModule({
         ...(config as ModuleDecoratorConfig),
-        name: context.name ?? target.name,
+        // An empty name falls through too. When nothing reads a class's
+        // binding, Rollup drops it from tsc's emit, and then the class and its
+        // context both carry ''.
+        name: context.name || target.name || '(anonymous module)',
       }),
     );
   };

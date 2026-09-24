@@ -190,6 +190,35 @@ describe('Module', () => {
     ]);
   });
 
+  it('names an anonymous class (anonymous module)', async () => {
+    const [Anonymous] = [
+      @Module({ providers: [ReactorCore] })
+      class {},
+    ];
+    const ship = await Nexus.create(Anonymous);
+    expect(ship.get(ReactorCore)).toBeInstanceOf(ReactorCore);
+    expect(ship.graph().modules.map((m) => m.name)).toEqual([
+      '(anonymous module)',
+    ]);
+  });
+
+  it('names a class (anonymous module) when the context name is empty', async () => {
+    // What a Rollup bundle of tsc's emit passes: the class binding is gone,
+    // so the class and its context both carry ''.
+    const Unnamed = class {};
+    Object.defineProperty(Unnamed, 'name', { value: '' });
+    Module({ providers: [ReactorCore] })(Unnamed, {
+      kind: 'class',
+      name: '',
+      metadata: {},
+      addInitializer: () => {},
+    });
+    const ship = await Nexus.create(Unnamed);
+    expect(ship.graph().modules.map((m) => m.name)).toEqual([
+      '(anonymous module)',
+    ]);
+  });
+
   it('throws NEXUS_LEGACY_DECORATORS when called the experimentalDecorators way', () => {
     const legacy = Module({}) as unknown as (target: unknown) => void;
     expect(thrown(() => legacy(class Command {}))).toMatchObject({
