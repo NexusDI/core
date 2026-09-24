@@ -3,7 +3,7 @@
 <div align="center">
   <img src="https://nexus.js.org/img/logo.svg" alt="NexusDI Logo" width="120" height="120" />
   <br />
-  <p><strong>A modern, lightweight dependency injection container for TypeScript with native decorators, inspired by industry-leading frameworks.</strong></p>
+  <p><strong>A modern, lightweight dependency injection container for TypeScript with decorators, inspired by industry-leading frameworks.</strong></p>
   <p><em>The DI library that doesn't make you want to inject yourself with coffee ☕</em></p>
 </div>
 
@@ -24,7 +24,7 @@
 
 </div>
 
-NexusDI is a modern, lightweight <strong>dependency injection (DI) container</strong> for <strong>TypeScript</strong> and <strong>Node.js</strong>. It uses native decorators and a modular architecture to help you write scalable, testable, and maintainable applications. Inspired by frameworks like InversifyJS, tsyringe, TypeDI, and NestJS, NexusDI brings a developer-friendly API to your JavaScript and TypeScript projects. Works seamlessly in Node.js and modern JavaScript environments.
+NexusDI is a modern, lightweight <strong>dependency injection (DI) container</strong> for <strong>TypeScript</strong> and <strong>Node.js</strong>. It uses TypeScript decorators and a modular architecture to help you write scalable, testable, and maintainable applications. Inspired by frameworks like InversifyJS, tsyringe, TypeDI, and NestJS, NexusDI brings a developer-friendly API to your JavaScript and TypeScript projects. Works seamlessly in Node.js and modern JavaScript environments.
 
 # 🚨 Call for Feedback 🚨
 
@@ -41,7 +41,7 @@ We look forward to hearing from you!
 
 ## Features
 
-- 🚀 **TypeScript-Native Decorators** – Harness the power of modern TypeScript decorators for robust, type-safe dependency injection
+- 🚀 **TypeScript Decorators** – Harness the power of TypeScript decorators for robust, type-safe dependency injection
 - 🧩 **Powerful Module System** - Organize your application into modules with support for both static and dynamic configuration
 - ⚡ **Dynamic Configuration** - Static methods for environment-specific module configuration (inspired by industry leaders)
 - 🎯 **Developer-Friendly API** - Clean and intuitive API that makes dependency management simple
@@ -51,8 +51,8 @@ We look forward to hearing from you!
 ## Why NexusDI?
 
 - <strong>TypeScript-first</strong>: Designed for modern TypeScript and JavaScript projects.
-- <strong>Zero bloat</strong>: Minimal dependencies, small bundle size, and no runtime polyfills required.
-- <strong>Native decorators</strong>: Uses the latest TypeScript decorator syntax for clean, intuitive code.
+- <strong>Zero bloat</strong>: Minimal dependencies, small bundle size, and no runtime dependencies.
+- <strong>TypeScript decorators</strong>: Uses TypeScript's `experimentalDecorators` for clean, intuitive code.
 - <strong>Modular & extensible</strong>: Organize your app with modules, plugins, and dynamic configuration.
 - <strong>Testable</strong>: Easily mock or override providers for unit and integration testing.
 - <strong>Inspired by the best</strong>: Familiar patterns for those coming from InversifyJS, tsyringe, TypeDI or NestJS.
@@ -90,7 +90,7 @@ tsconfig.json
 }
 ```
 
-> **Note:** Only these options are required for NexusDI v0.3+. You do **not** need to install or import `reflect-metadata`.
+> **Note:** Only these options are required for NexusDI v0.3+.
 
 ```typescript
 import { Nexus, Service, Token, Inject } from '@nexusdi/core';
@@ -172,10 +172,7 @@ container.set(
 
 ## Examples
 
-- [Basic Usage](examples/basic-usage.ts)
-- [Advanced Usage](examples/advanced-usage.ts)
-- [Dynamic Modules](examples/dynamic-modules.ts)
-- [React Router Integration](examples/react-router/)
+- [React Router Integration](examples/react-ssr/)
 
 ## Contributing
 
