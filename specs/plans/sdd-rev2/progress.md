@@ -162,3 +162,6 @@ Ruling: R17 size fixtures duplicate each other by design (dupes 1.7% -> 2.2%) â€
 Task R17: minor (deferred): report misstated the dupes figure
 Task R17: complete (commits aa88c6b..aa88c6b, review clean)
 Task R18: dispatched (BASE aa88c6b, opus)
+Task R18: minor (deferred): stale 'Today's figure is 2.5%' comment in .fallowrc.jsonc (fix when next touched)
+Task R18: complete (commits 4861d07..143cb3f, review clean; rule table measured +96 bytes, reverted, recorded kept: false)
+Task R19: dispatched (BASE 143cb3f, opus)
