@@ -3,8 +3,17 @@
 <div align="center">
   <img src="https://nexus.js.org/img/logo.svg" alt="NexusDI Logo" width="120" height="120" />
   <br />
-  <p><strong>A modern, lightweight dependency injection container for TypeScript with decorators, inspired by industry-leading frameworks.</strong></p>
-  <p><em>The DI library that doesn't make you want to inject yourself with coffee ☕</em></p>
+  <p>
+    <strong
+      >Dependency injection for TypeScript that validates the whole module graph
+      before it builds anything.</strong
+    >
+  </p>
+  <p>
+    No runtime dependencies. The decorator-free core needs no compiler flag and
+    runs under tsc, TypeScript 7, esbuild, SWC, Babel, Vite, Bun, Deno and Node's
+    type stripping.
+  </p>
 </div>
 
 <div align="center">
@@ -34,7 +43,7 @@ Node 22.12 or later, TypeScript 5.4 or later. No runtime dependencies.
 
 ESM only. CommonJS projects can `require()` it.
 
-NexusDI's decorators are standard (TC39) decorators and need no compiler flag. A project that keeps `experimentalDecorators` for another library registers its classes with `provide()`, `static deps` and `defineModule()`; the decorators throw `NEXUS_LEGACY_DECORATORS` under that flag.
+Decorators are optional. `@Injectable`, `@Inject` and `@Module` are standard (TC39) decorators and need no compiler flag; a project that keeps `experimentalDecorators` for another library uses `provide()`, `static deps` and `defineModule()`, and the decorators throw `NEXUS_LEGACY_DECORATORS` under that flag.
 
 ## Quick start
 
