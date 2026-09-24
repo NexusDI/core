@@ -101,3 +101,4 @@ Task R8: dispatched (BASE 7a49b2a, opus)
 Ruling: R8 compile.check report type widened to NexusError<string> — accepted — spec §9 types a plugin's code as string.
 Ruling: R8 override errors reported from compile.check after core's passes — accepted — every revision 1 test passes; README doctests point at @nexusdi/testing until R23.
 Task R8: fix round 1/5 (stale usedModules after a no-op load reports a false NEXUS_OVERRIDE_EXPORTS)
+Task R8: fix round 2/5 (stale override entry when one stub replaces two modules)
