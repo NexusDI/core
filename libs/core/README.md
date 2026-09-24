@@ -43,7 +43,7 @@ Node 22.12 or later, TypeScript 5.4 or later. No runtime dependencies.
 
 ESM only. CommonJS projects can `require()` it.
 
-Decorators are optional. `@Injectable`, `@Inject` and `@Module` are standard (TC39) decorators and need no compiler flag; a project that keeps `experimentalDecorators` for another library uses `provide()`, `static deps` and `defineModule()`, and the decorators throw `NEXUS_LEGACY_DECORATORS` under that flag.
+Decorators are optional. `provide()`, `static deps` and `defineModule()` need no compiler flag. `@Injectable`, `@Inject` and `@Module` are standard (TC39) decorators, so they need a toolchain that compiles standard decorators: tsc, TypeScript 7, esbuild, SWC, Babel, Bun, Deno and Vite with its Babel plugin. Vite on its own and Node's type stripping cannot run them. A project that keeps `experimentalDecorators` for another library uses `provide()`, `static deps` and `defineModule()`, and the decorators throw `NEXUS_LEGACY_DECORATORS` under that flag.
 
 ## Quick start
 
