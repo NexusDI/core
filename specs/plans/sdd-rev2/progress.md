@@ -118,3 +118,6 @@ Task R10: fix round 1/5 (inspect() reads plugins before validation)
 Task R10: minor (deferred): packed-list shape duplication (dupes 1.8%); cosmetic M6; (Task R15) add a real eager: false graph assertion
 Task R10: complete (commits 3267aae..322a531, review clean)
 Task R11: dispatched (BASE 322a531, opus)
+Ruling: R11 R20 split between core and decorators (both describe('R20')) — accepted, as P39 did for R15; the decorators package gains a Chromium config and test-browser target for it.
+Ruling: R11 no separate pickOwnDeps helper — accepted when declareClass reads own keys only (reviewer verifies).
+Ruling: R11 R10 regression reads metadata through a test-only helper on core's Symbol.for keys; devtools' vite config reaches libs/decorators/vite.decorators.ts with an eslint-disable (typescript cannot ship in the published entry); decorator-syntax security tests moved to libs/decorators, direct metadata-function tests stay in core; core README decorators doctest moved to libs/decorators/README.md with a pointer — accepted.
