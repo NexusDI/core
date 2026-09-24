@@ -144,3 +144,4 @@ Task R14: fix round 2/5 (transients injected into a kept old-pin scoped class ar
 Task R14: minor (deferred): a transient factory returning one object shared by a new provider and a kept scoped class is owned by the first adopter (spec §8.2 ownership); a new scoped class reached only through a lazy thunk after an await is disposed by the scope later instead of the rollback
 Task R14: complete (commits f6e01d9..6ba0eea, review clean)
 Task R15: dispatched (BASE 6ba0eea, opus)
+Ruling: R15 create/load rollback limited to what its own build steps adopted (shared with extend()'s bookkeeping) and extend() clearing every slot the pinned blueprint lacks — accepted as needed for eager: false correctness; the reviewer verifies no revision 1 behaviour changed.
