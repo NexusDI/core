@@ -152,3 +152,6 @@ Task R15: complete (commits da33e6e..5144eff, review clean)
 Task R16: dispatched (BASE 5144eff, opus)
 Ruling: R16 testing's InvalidModuleError site passes otherCopy: false — accepted — a real value would need core's internal isForeign, which the spec does not make public; recorded as a known limit.
 Ruling: R16 nexus-error.test.ts KEYS table gains 'otherCopy' for the three classes that add the field — accepted (new field, P23).
+Ruling: R16 foreign @Module classes — declareModuleClass brands the class when it is extensible, so a second copy's @Module class gets otherCopy true (users first; C3's intent covers module references).
+Ruling: R16 core's one-line message does not show otherCopy — OWNER ITEM, deferred; @nexusdi/errors names the second copy.
+Task R16: fix round 1/5 (lazy thunk after a failed run builds into an uncommitted id; brand @Module classes)
