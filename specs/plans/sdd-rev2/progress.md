@@ -68,3 +68,6 @@ Task R3: fix round 1/5 (own-property reads for rewrite fields; load() compile.mo
 Task R3: minor (deferred): compile.module runs twice per module in load() (by design); later pin wins; shadowed NAMES in a security test; missing blank line in compile-hooks.test.ts
 Task R3: complete (commits 1a26084..40bba86, review clean)
 Task R4: dispatched (BASE 40bba86, opus)
+Ruling: R4 applyConstruct placement — accepted in runtime/build.ts — the brief's runtime/plugins.ts placement forms an import cycle that fallow rejects; pluginContext stays in runtime/plugins.ts.
+Ruling: R4 Tracer constructor — accepted widened (Sink[] | Sink | undefined) — keeps revision 1 calls unchanged; R10 narrows it when trace moves to devtools.
+Ruling: R4 failed setup marks the container disposing — accepted — a kept container throws NEXUS_DISPOSED, tested.
