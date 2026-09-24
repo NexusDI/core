@@ -23,6 +23,8 @@ import {
   writeInjectable,
 } from '../definitions/metadata.js';
 import {
+  Inject,
+  Injectable,
   MultiToken,
   Nexus,
   Token,
@@ -678,5 +680,58 @@ describe('SEC-011 no global writes (CWE-471)', () => {
     expect(extraKeys('Object.prototype')).toEqual([]);
     expect(extraKeys('Function.prototype')).toEqual([]);
     expect(extraKeys('Array.prototype')).toEqual([]);
+  });
+});
+
+describe('SEC-004 decorator metadata and Object.prototype (CWE-1321)', () => {
+  it('keeps decorator metadata off Object and the built-ins for a class that extends Object', async () => {
+    const before = snapshotBuiltins();
+    @Injectable({ deps: [] })
+    class Direct extends Object {}
+    await using ship = await Nexus.create(
+      defineModule({ name: 'Root', providers: [Direct] }),
+    );
+    expect(ship.get(Direct)).toBeInstanceOf(Direct);
+    expect(extraKeys('Object')).toEqual([]);
+    expect(snapshotBuiltins()).toEqual(before);
+  });
+});
+
+describe('SEC-005 frozen instances with decorators (CWE-471)', () => {
+  it('injects a property into an instance frozen in its constructor, through the accessor storage', async () => {
+    const CALLSIGN = new Token<string>('Callsign');
+    class Bridge {
+      @Inject(CALLSIGN) accessor callsign!: string;
+      constructor() {
+        Object.freeze(this);
+      }
+    }
+    await using ship = await Nexus.create(
+      defineModule({
+        name: 'Root',
+        providers: [provide(CALLSIGN, { useValue: 'Meridian' }), Bridge],
+      }),
+    );
+    expect(ship.get(Bridge).callsign).toBe('Meridian');
+    expect(Object.isFrozen(ship.get(Bridge))).toBe(true);
+  });
+});
+
+describe('SEC-011 no global writes with the decorators loaded (CWE-471)', () => {
+  it('leaves the built-ins unchanged across a decorated create and dispose', async () => {
+    const before = snapshotBuiltins();
+    @Injectable({ deps: [] })
+    class Reactor {}
+    class Console {
+      @Inject(Reactor) accessor reactor!: Reactor;
+    }
+    const ship = await Nexus.create(
+      defineModule({ name: 'Root', providers: [Reactor, Console] }),
+    );
+    expect(ship.get(Console).reactor).toBe(ship.get(Reactor));
+    await ship[Symbol.asyncDispose]();
+    expect(snapshotBuiltins()).toEqual(before);
+    for (const key of extraKeys('Symbol'))
+      expect(['metadata', 'dispose', 'asyncDispose']).toContain(key);
   });
 });

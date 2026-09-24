@@ -78,3 +78,6 @@ export type { CreateOptions, LookupOptions } from './runtime/options.js';
 export type { Scope } from './runtime/scope.js';
 export type { ScopeContext } from './runtime/scope-context.js';
 export type { TraceEvent } from './runtime/trace.js';
+export { Inject } from './decorators/inject.js';
+export { Injectable } from './decorators/injectable.js';
+export { Module, type ModuleDecoratorConfig } from './decorators/module.js';

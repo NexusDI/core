@@ -2,7 +2,19 @@
   {
     "toolchain": "babel",
     "version": "8.0.6",
+    "variant": "decorated",
+    "result": "pass"
+  },
+  {
+    "toolchain": "babel",
+    "version": "8.0.6",
     "variant": "plain",
+    "result": "pass"
+  },
+  {
+    "toolchain": "bun",
+    "version": "1.4.2",
+    "variant": "decorated",
     "result": "pass"
   },
   {
@@ -14,7 +26,19 @@
   {
     "toolchain": "deno",
     "version": "2.9.6",
+    "variant": "decorated",
+    "result": "pass"
+  },
+  {
+    "toolchain": "deno",
+    "version": "2.9.6",
     "variant": "plain",
+    "result": "pass"
+  },
+  {
+    "toolchain": "esbuild",
+    "version": "0.28.2",
+    "variant": "decorated",
     "result": "pass"
   },
   {
@@ -26,7 +50,20 @@
   {
     "toolchain": "node-strip-types",
     "version": "24.20.0",
+    "variant": "decorated",
+    "result": "unsupported",
+    "note": "Node 24 runs TypeScript by erasing types and lowers no syntax, so the decorated variant is a SyntaxError."
+  },
+  {
+    "toolchain": "node-strip-types",
+    "version": "24.20.0",
     "variant": "plain",
+    "result": "pass"
+  },
+  {
+    "toolchain": "swc",
+    "version": "1.16.2",
+    "variant": "decorated",
     "result": "pass"
   },
   {
@@ -38,7 +75,19 @@
   {
     "toolchain": "tsc",
     "version": "6.0.3",
+    "variant": "decorated",
+    "result": "pass"
+  },
+  {
+    "toolchain": "tsc",
+    "version": "6.0.3",
     "variant": "plain",
+    "result": "pass"
+  },
+  {
+    "toolchain": "tsgo",
+    "version": "7.0.2",
+    "variant": "decorated",
     "result": "pass"
   },
   {
@@ -50,7 +99,20 @@
   {
     "toolchain": "vite",
     "version": "8.3.0",
+    "variant": "decorated",
+    "result": "unsupported",
+    "note": "Vite 8.3 (Oxc 0.151, Rolldown 1.2.10) passes standard decorators through unlowered, and no option lowers them (oxc#9170). The vite8+babel-plugin cell is the workaround the Vite migration guide documents."
+  },
+  {
+    "toolchain": "vite",
+    "version": "8.3.0",
     "variant": "plain",
+    "result": "pass"
+  },
+  {
+    "toolchain": "vite8+babel-plugin",
+    "version": "8.3.0",
+    "variant": "decorated",
     "result": "pass"
   },
   {
