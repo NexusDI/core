@@ -137,3 +137,5 @@ Task R13: fix round 1/5 (Module.with comments in five package eslint configs; SE
 Task R13: minor (deferred): deps: null treated as no deps (brief behaviour); verify-packaging type-list order
 Task R13: complete (commits 217f16b..b795a64, review clean)
 Task R14: dispatched (BASE b795a64, opus)
+Ruling: R14 NEXUS_LOADED_AFTER_SCOPE fix line — accepted — revision 1's "Fix: create a new scope." becomes the brief's "call await scope.extend() after load(), or create a new scope." (spec D10); only the two LoadedAfterScopeError snapshot entries change, on that line.
+Ruling: R14 rollback errors when the scope itself is disposed mid-extend — accepted per preflight P28: extend() rejects NEXUS_DISPOSED, rollback errors surface in the scope's asyncDispose rejection (ScopeState.abortErrors), and go on root.abortErrors only while the root is disposing.
