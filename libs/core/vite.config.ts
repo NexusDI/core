@@ -27,7 +27,7 @@ export default defineConfig(() => ({
     watch: false,
     globals: true,
     environment: 'node',
-    include: ['src/**/*.{test,spec}.ts'],
+    include: ['src/**/*.{test,spec}.ts', 'vite.decorators.test.ts'],
     exclude: ['src/**/*.browser.test.ts'],
     includeSource: docExampleSources(),
     // R08 asserts that a root-level transient is collectable, which needs
