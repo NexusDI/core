@@ -96,7 +96,29 @@ export const errorCases: readonly ErrorCase[] = [
     name: 'InvalidTokenError',
     error: new InvalidTokenError({ received: 'the number 3' }),
     code: 'NEXUS_INVALID_TOKEN',
-    fields: { received: 'the number 3' },
+    fields: {
+      received: 'the number 3',
+      entry: null,
+      module: null,
+      index: null,
+    },
+  },
+  {
+    name: 'InvalidTokenError in a providers entry',
+    error: new InvalidTokenError({
+      received: 'the number 3',
+      module: 'Engineering',
+      index: 2,
+    }),
+    code: 'NEXUS_INVALID_TOKEN',
+    fields: {
+      received: 'the number 3',
+      entry: null,
+      module: 'Engineering',
+      index: 2,
+      message:
+        '[NEXUS_INVALID_TOKEN] Engineering.providers[2]: the number 3 is not a token. A token is a class, a Token or a MultiToken.',
+    },
   },
   {
     name: 'InvalidModuleError',

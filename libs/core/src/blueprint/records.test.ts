@@ -283,9 +283,33 @@ describe('normalizeProvider', () => {
     'reports NEXUS_INVALID_TOKEN for a provider whose token is %s',
     (_label, token, received) => {
       const { errors } = normalize(rawProvide(token as never, { useValue: 1 }));
-      expect(errors).toMatchObject([{ code: 'NEXUS_INVALID_TOKEN', received }]);
+      expect(errors).toMatchObject([
+        {
+          code: 'NEXUS_INVALID_TOKEN',
+          received,
+          module: 'Engineering',
+          index: 3,
+          message: `[NEXUS_INVALID_TOKEN] Engineering.providers[3]: ${received} is not a token. A token is a class, a Token or a MultiToken.`,
+        },
+      ]);
     },
   );
+
+  it('reports NEXUS_INVALID_TOKEN with the module and index for a useExisting target that is not a token', () => {
+    const { errors } = normalize(
+      rawProvide(NAV_CHARTS, { useExisting: Symbol('charts') }),
+    );
+    expect(errors).toMatchObject([
+      {
+        code: 'NEXUS_INVALID_TOKEN',
+        received: 'the symbol Symbol(charts)',
+        module: 'Engineering',
+        index: 3,
+        message:
+          '[NEXUS_INVALID_TOKEN] Engineering.providers[3]: the symbol Symbol(charts) is not a token, so useExisting cannot alias it. A token is a class, a Token or a MultiToken.',
+      },
+    ]);
+  });
 });
 
 describe('normalizeProvider with a provider literal', () => {

@@ -391,7 +391,9 @@ function definitionShape(
   fail: Fail,
 ): RecordShape | null {
   if (!isToken(token)) {
-    errors.push(new InvalidTokenError({ received: describeValue(token) }));
+    errors.push(
+      new InvalidTokenError({ received: describeValue(token), ...site }),
+    );
     return null;
   }
   if (token === REQUEST)
@@ -489,7 +491,14 @@ function definitionShape(
         return fail('sets a lifetime on useExisting; an alias has none');
       const target = options.useExisting;
       if (!isToken(target)) {
-        errors.push(new InvalidTokenError({ received: describeValue(target) }));
+        errors.push(
+          new InvalidTokenError({
+            received: describeValue(target),
+            reason:
+              'is not a token, so useExisting cannot alias it. A token is a class, a Token or a MultiToken.',
+            ...site,
+          }),
+        );
         return null;
       }
       if (target instanceof MultiToken) {
