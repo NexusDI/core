@@ -60,3 +60,4 @@ Task R2: dispatched (BASE 3de3da3, opus)
 Ruling: R2 split under P18 — accepted — plugins/registry.ts holds a generic PluginSet<Event, Context>, plugins/views.ts the hook and view types; NexusPlugin, PluginContext and RootPlugins stay in runtime/plugins.ts because they name Nexus and TraceEvent. Later briefs map runtime/plugins.ts paths accordingly: registry logic to plugins/registry.ts, runtime-typed parts stay in runtime/plugins.ts.
 Ruling: R2 "has a observe hook" article — carried to R5 — R5's one-line message for NEXUS_PLUGIN_INVALID uses correct wording ("an observe hook" or a neutral form) with a test.
 Task R2: fix round 1/5 (bad-modules, bad-compile member and missing apiVersion tests; read hooks once)
+Ruling: R2 throwing plugin getter — deferred to R5 — neither spec nor brief defines it; R5 decides whether a throwing hook getter becomes NEXUS_PLUGIN_INVALID.
