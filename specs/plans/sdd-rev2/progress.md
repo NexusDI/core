@@ -186,3 +186,5 @@ Task R22: dispatched (BASE 434a628, sonnet)
 Ruling: R22 base that cannot be measured (e.g. the first 0.4 PR against 0.3 main, whose core lacks defineModule) — the report shows head sizes only with a line saying the base could not be built, and the growth check passes; tested. Spec §12.4 measures head and merge base; this covers the case where the base fixture cannot build.
 Task R22: fix round 1/5 (unmeasurable base; measure the PR head and its merge base; concurrency; minors)
 Task R22: fix round 2/5 (fallback only when the base has no size fixture; Dependabot comment 403; prose dashes)
+Task R22: complete (commits 799e367..8cf7c2c, review clean; workflows not yet run on a GitHub runner)
+Task R23: dispatched (BASE 8cf7c2c, opus)
