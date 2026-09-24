@@ -1,0 +1,16 @@
+# Common instructions for every implementer (NexusDI 0.4 revision 2, feat/core-0.4)
+
+- Work from /Volumes/projects/Personal/NexusDI/.claude/worktrees/core-0.4 (branch feat/core-0.4). Run commands from the repo root.
+- Your brief (task-R<N>-brief.md in this directory) is your requirements, with exact values to use verbatim. Binding spec if needed: spec.md in this directory. Global constraints and controller rulings: constraints.md and the "## Preflight" section of progress.md in this directory. A ruling overrides the brief where the two differ. Do not read the whole plan.
+- If the brief conflicts with the repo in a way no ruling covers, stop and report NEEDS_CONTEXT with specifics. Do not guess.
+- Baseline: every gate was green at 03f2aca. No gate is expected red. Your task's own gates must pass: `npx nx run-many -t lint test build typecheck` over the projects you touched (for core: `npx nx test core`, `npx nx typecheck core`, `npx nx lint core`, `npx nx build core`), `npx prettier --check` on the files you touched (the full `prettier --check .` flags this git-ignored workspace directory; ignore those paths only), `npx fallow dead-code --fail-on-issues` (add fallow entries for new files nothing imports yet), `npx fallow dupes` (never raise the threshold), and `npm run verify:packaging` when you touch package.json, exports or the package list.
+- Every revision 1 test keeps passing, or moves with its feature exactly as the brief says. Never loosen or delete a revision 1 assertion to make a test pass; report it instead.
+- TDD: write the failing test first and capture RED, then implement and capture GREEN.
+- Commits: Conventional Commits with the scopes from commitlint.config.js. The commitlint hook runs. End every commit message with the Co-Authored-By attribution line your own session's system reminder gives (it names the model that wrote the commit); if none, use `Co-Authored-By: Claude Opus 5.5 (1M context) <noreply@anthropic.com>`. Subjects must pass commitlint subject-case (lower-case); adapt a brief's subject minimally if it fails. Never use --no-verify. Never push.
+- You do not dispatch subagents, and you never spawn a reviewer. The controller reviews after you report.
+- Prose in comments, READMEs and docs: plain sentences, no em dashes, no bold lead-ins, no "not X but Y", never the word "native", no reflect-metadata mention.
+- Self-review your own diff before you report.
+- Write the full report to task-R<N>-report.md in this directory. It covers what you built, tests with RED/GREEN evidence (commands and output), files changed, gate results, self-review findings and concerns. Then reply with ONLY, in under 15 lines: Status (DONE | DONE_WITH_CONCERNS | BLOCKED | NEEDS_CONTEXT), commits (short SHA and subject), a one-line test summary, concerns, and the report path.
+- If you are resumed with review findings: fix them, re-run the covering tests, append a fix report (changes, tests, command, output) to the same report file, and reply with the same short contract.
+- Known quirk: if `nx typecheck core` reports spurious errors against symbols you just added (stale composite build output), run `npx nx build core` first, then typecheck. Note it in your report.
+- `*.test-d.ts` files are already fallow entries via a glob in .fallowrc.jsonc; don't add them one by one.
