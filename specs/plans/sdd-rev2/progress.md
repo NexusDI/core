@@ -55,3 +55,4 @@ Ruling: P42 (all tasks) — environment — the matrix run rewrites examples/too
 
 ## Tasks
 Task R1: dispatched (BASE 03f2aca, sonnet)
+Task R1: complete (commits 3de3da3..3de3da3, review clean)
