@@ -199,3 +199,5 @@ Task R24: fix round 1/5 (core and decorators test.dependsOn override the new def
 Task R24: complete (commits 8beb213..e2586a0, review clean; gate green, spec checklist in task-R24-report.md)
 Task R25: dispatched (BASE e2586a0, opus)
 Ruling: R25 deps keyed in bind with optional Edge.token and RootInit.canon (keeps revision 1 toEqual tests), Blueprint.key for view.visible(), bench sites updated — accepted pending review.
+Ruling: R25 a tokenKey result that maps tokens of different kinds (Token, MultiToken, class) to one key — reported as NEXUS_PLUGIN_FAILED naming the plugin and hook 'tokenKey', independent of order; same-kind tokens on one key collide as two providers of one token would (spec §3.10.3).
+Task R25: fix round 1/5 (mixed-kind keys; ambiguity-on-keys test)
