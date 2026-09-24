@@ -209,6 +209,48 @@ describe('SEC-003 a polluted Object.prototype (CWE-1321)', () => {
       delete proto['lifetime'];
     }
   });
+
+  // Reactor has no metadata at all in the case above, so readInjectable(cls)
+  // is undefined and Object.prototype is never consulted, hardened or not.
+  // These two exercise the actual own-key read: metadata exists, but the
+  // key under test is one only Object.prototype supplies.
+  it('resolves a singleton when its own metadata has no lifetime, while Object.prototype carries one', async () => {
+    const proto = Object.prototype as Record<string, unknown>;
+    proto['lifetime'] = 'transient';
+    try {
+      class Reactor {}
+      const metadata = {
+        [INJECTABLE]: { deps: [] },
+      } as unknown as DecoratorMetadataObject;
+      Object.defineProperty(Reactor, Symbol.metadata, { value: metadata });
+      await using ship = await Nexus.create(
+        defineModule({ name: 'Root', providers: [Reactor] }),
+      );
+      expect(ship.get(Reactor)).toBeInstanceOf(Reactor);
+      expect(ship.get(Reactor)).toBe(ship.get(Reactor));
+    } finally {
+      delete proto['lifetime'];
+    }
+  });
+
+  it('resolves a class by its own arity when its metadata has no deps, while Object.prototype carries one', async () => {
+    const proto = Object.prototype as Record<string, unknown>;
+    const HIJACKED = new Token<string>('Hijacked');
+    proto['deps'] = [HIJACKED];
+    try {
+      class Reactor {}
+      const metadata = {
+        [INJECTABLE]: { lifetime: 'singleton' },
+      } as unknown as DecoratorMetadataObject;
+      Object.defineProperty(Reactor, Symbol.metadata, { value: metadata });
+      await using ship = await Nexus.create(
+        defineModule({ name: 'Root', providers: [Reactor] }),
+      );
+      expect(ship.get(Reactor)).toBeInstanceOf(Reactor);
+    } finally {
+      delete proto['deps'];
+    }
+  });
 });
 
 describe('SEC-004 metadata and Object.prototype (CWE-1321)', () => {
@@ -403,12 +445,14 @@ describe('SEC-009 deep chains (CWE-674)', { timeout: 60_000 }, () => {
       { length: 1_000 },
       (_, i) => new Token<number>(`Ring${i}`),
     );
-    const providers = tokens.map((token, i) =>
-      provide(token, {
+    const providers = tokens.map((token, i) => {
+      const next = tokens[(i + 1) % tokens.length];
+      if (next === undefined) throw new Error('index is always in range');
+      return provide(token, {
         useFactory: (n: number) => n,
-        deps: [tokens[(i + 1) % tokens.length]!],
-      }),
-    );
+        deps: [next],
+      });
+    });
     const [error] = compileErrors(defineModule({ name: 'Ring', providers }));
     expect(error).toMatchObject({ code: 'NEXUS_CIRCULAR_DEPENDENCY' });
     expect((error as unknown as { path: string[] }).path).toHaveLength(1_001);

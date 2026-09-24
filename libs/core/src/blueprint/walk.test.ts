@@ -170,6 +170,17 @@ describe('compile', () => {
     ]);
   });
 
+  it('holds one provide() entry for a plain token listed twice as one provider, not a duplicate', () => {
+    const NAME = new Token<string>('Name');
+    const entry = provide(NAME, { useValue: 'a' });
+    const bp = compile({
+      root: defineModule({ name: 'Root', providers: [entry, entry] }),
+    });
+    expect(
+      [...bp.providers.values()].filter((p) => p.id !== 'request'),
+    ).toHaveLength(1);
+  });
+
   it('accepts many contributions to a MultiToken in one module', () => {
     const NAMES = new MultiToken<string>('Names');
     const bp = compile({

@@ -21,7 +21,9 @@ describe('SECURITY.md', () => {
       .join('\n');
     const tested = [
       ...new Set(
-        [...suite.matchAll(/describe\('(SEC-\d{3})\b/g)].map((m) => m[1]!),
+        [...suite.matchAll(/describe\('(SEC-\d{3})\b/g)]
+          .map((m) => m[1])
+          .filter((id): id is string => id !== undefined),
       ),
     ].sort();
     expect(tested).toEqual(listed);

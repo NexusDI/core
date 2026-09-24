@@ -38,9 +38,10 @@ export function moduleChain(depth: number): {
     { length: depth },
     (_, i) => new Token<number>(`Level${i}`),
   );
+  const [head] = tokens;
+  if (head === undefined) throw new Error('moduleChain needs depth >= 1');
   let next: ModuleDefinition | undefined;
-  for (let i = depth - 1; i >= 0; i--) {
-    const token = tokens[i]!;
+  for (const [i, token] of [...tokens.entries()].reverse()) {
     const below = tokens[i + 1];
     next = defineModule({
       name: `Deck${i}`,
@@ -53,7 +54,8 @@ export function moduleChain(depth: number): {
       exports: next === undefined ? [token] : [token, next],
     });
   }
-  return { root: next!, head: tokens[0]! };
+  if (next === undefined) throw new Error('moduleChain needs depth >= 1');
+  return { root: next, head };
 }
 
 /** Keys the expression's object has here that a fresh realm's copy lacks. */
@@ -71,8 +73,11 @@ export function extraKeys(expression: string): string[] {
 export function snapshotBuiltins(): Record<string, [string, unknown][]> {
   const read = (target: object): [string, unknown][] =>
     Reflect.ownKeys(target).map((key) => {
-      const d = Object.getOwnPropertyDescriptor(target, key)!;
-      return [String(key), d.get ?? d.set ?? d.value];
+      const d = Object.getOwnPropertyDescriptor(target, key);
+      return [
+        String(key),
+        d === undefined ? undefined : (d.get ?? d.set ?? d.value),
+      ];
     });
   return {
     object: read(Object.prototype),

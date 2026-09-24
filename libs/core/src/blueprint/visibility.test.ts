@@ -201,6 +201,32 @@ describe('compile', () => {
     ]);
   });
 
+  it('keeps exportedTokens consistent when a global module re-exports two importers of the same module', () => {
+    const A = defineModule({
+      name: 'A',
+      providers: [provide(DIAGNOSTICS, { useValue: 'a' })],
+      exports: [DIAGNOSTICS],
+    });
+    const K1 = defineModule({ name: 'K1', imports: [A], exports: [A] });
+    const K2 = defineModule({ name: 'K2', imports: [A], exports: [A] });
+    const Global = defineModule({
+      name: 'Global',
+      global: true,
+      imports: [K1, K2],
+      exports: [K1, K2],
+    });
+    const bp = compile({
+      root: defineModule({ name: 'Root', imports: [Global] }),
+    });
+    const idOfModule = (name: string): string | undefined =>
+      [...bp.modules.values()].find((m) => m.name === name)?.id;
+    for (const name of ['A', 'K1', 'K2', 'Global']) {
+      const id = idOfModule(name);
+      expect(id).toBeDefined();
+      expect(bp.exportedTokens.get(id ?? '')?.has(DIAGNOSTICS)).toBe(true);
+    }
+  });
+
   it('lists provider ids and module ids in moduleExports', () => {
     const Engineering = defineModule({
       name: 'Engineering',
