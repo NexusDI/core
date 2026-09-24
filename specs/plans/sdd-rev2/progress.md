@@ -188,3 +188,4 @@ Task R22: fix round 1/5 (unmeasurable base; measure the PR head and its merge ba
 Task R22: fix round 2/5 (fallback only when the base has no size fixture; Dependabot comment 403; prose dashes)
 Task R22: complete (commits 799e367..8cf7c2c, review clean; workflows not yet run on a GitHub runner)
 Task R23: dispatched (BASE 8cf7c2c, opus)
+Ruling: R23 interface-first startup-cost example, 'built on core's public API' table wording, reflect-metadata left out of the root README (owner rule beats §14.1's list) — accepted.
