@@ -303,8 +303,8 @@ describe('Nexus', () => {
       expect(error.suppressed).toMatchObject({ message: 'computer stuck' });
     });
 
-    it('lets a disposer reach a live dependency through a thunk and throws NEXUS_DISPOSED for a disposed one', async () => {
-      const seen: string[] = [];
+    it('lets a disposer reach a live dependency through a thunk and throws NEXUS_DISPOSED for a disposed instance', async () => {
+      const seen: unknown[] = [];
       class Reactor {
         output = 1.21;
         [Symbol.dispose]() {}
@@ -312,17 +312,13 @@ describe('Nexus', () => {
       class Monitor {
         constructor(readonly reactor: () => Reactor) {}
         [Symbol.dispose]() {
-          seen.push(String(this.reactor().output));
+          seen.push(this.reactor().output);
         }
       }
       class Logger {
         constructor(readonly monitor: () => Monitor) {}
         [Symbol.dispose]() {
-          try {
-            this.monitor();
-          } catch (error) {
-            seen.push((error as { code: string }).code);
-          }
+          seen.push(thrown(() => this.monitor()));
         }
       }
       const ship = await Nexus.create(
@@ -336,7 +332,10 @@ describe('Nexus', () => {
         }),
       );
       await ship[Symbol.asyncDispose]();
-      expect(seen).toEqual(['1.21', 'NEXUS_DISPOSED']);
+      expect(seen).toMatchObject([
+        1.21,
+        { code: 'NEXUS_DISPOSED', target: 'instance' },
+      ]);
     });
   });
 });
