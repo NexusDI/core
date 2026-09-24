@@ -93,3 +93,5 @@ Task R6: complete (commits 5c79dea..5e66b58, review clean)
 Task R7: dispatched (BASE 5e66b58, opus)
 Ruling: R7 InvalidProviderError parity case — accepted — the R1 line came from a cast fixture reason, not real revision 1 output; the case now uses 'not-a-provider' with ['null'] (revision 1's real text for a null provider), and a dedicated parity test still asserts the old R1 line character for character through the unknown-reason fallback.
 Ruling: R7 explain() lookup optional, BlueprintError aggregate text, core error-cases one per code, describeThrown copied (dupes 1.5%, under threshold) — accepted.
+Ruling: R7 release tag under "fixed" — OWNER DECISION — nx fixed releases make one tag and never fill {projectName}. Least divergent: pattern "@nexusdi/core@{version}", which keeps the existing tag history (@nexusdi/core@0.3.2 resolves as the current version) and names one tag per shared release; verify with an nx release dry run; RELEASING.md says one tag per release.
+Task R7: fix round 1/5 (release tag pattern; small minors)
