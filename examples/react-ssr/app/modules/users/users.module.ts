@@ -1,10 +1,15 @@
-import { Module, DynamicModule } from '@nexusdi/core';
-import { USERS_CONFIG_TOKEN, type UsersConfig } from './users.types';
+import { defineModule, provide } from '@nexusdi/core';
 import { UserService } from './user.service';
+import { USER_SERVICE_TOKEN, USERS_CONFIG_TOKEN } from './users.types';
 
-@Module({
-  providers: [UserService],
-})
-export class UsersModule extends DynamicModule<UsersConfig> {
-  protected readonly configToken = USERS_CONFIG_TOKEN;
-}
+export const UsersModule = defineModule({
+  name: 'UsersModule',
+  options: USERS_CONFIG_TOKEN,
+  providers: [
+    provide(USER_SERVICE_TOKEN, {
+      useClass: UserService,
+      deps: [USERS_CONFIG_TOKEN],
+    }),
+  ],
+  exports: [USER_SERVICE_TOKEN],
+});

@@ -12,7 +12,6 @@
   "extends": "../../tsconfig.base.json",
   "compilerOptions": {
     "jsx": "react-jsx",
-    "experimentalDecorators": true,
     "moduleResolution": "bundler",
     "types": ["@react-router/node"],
     "ignoreDeprecations": "6.0"

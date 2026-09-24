@@ -1,25 +1,16 @@
 // Example: Minimal route test for Users using NexusDI and React Router v7
 // This test demonstrates how to provide a DI container for a single route using createRoutesStub.
 import React from 'react';
-import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
+import { describe, it, expect, afterEach, vi } from 'vitest';
 import { render, screen, waitFor } from '@testing-library/react';
-import {
-  createRoutesStub,
-  RouterContext,
-  RouterContextProvider,
-} from 'react-router';
-import { Nexus } from '@nexusdi/core';
+import { createRoutesStub, RouterContextProvider } from 'react-router';
 import Users, { loader as usersLoader } from '../../app/routes/users';
 import {
-  USER_SERVICE_TOKEN,
   type IUserService,
   type User,
 } from '../../app/modules/users/users.types';
-import {
-  LOGGER_SERVICE_TOKEN,
-  type ILoggerService,
-} from '../../app/modules/logger/logger.types';
-import { containerContext } from '../../app/shared/container';
+import { type ILoggerService } from '../../app/modules/logger/logger.types';
+import { routeContext } from '../support/route-context';
 
 const mockUsers: User[] = [
   { id: '1', name: 'Test User', email: 'test@example.com' },
@@ -39,22 +30,15 @@ const mockLoggerService: ILoggerService = {
 };
 
 describe('Users route (framework mode, minimal DI example)', () => {
-  let container: Nexus;
-  let contextMap: Map<RouterContext, unknown>;
-
-  beforeEach(() => {
-    container = new Nexus();
-    contextMap = new Map();
-    contextMap.set(containerContext, container);
-  });
-
   afterEach(() => {
     vi.clearAllMocks();
   });
 
   it('renders the users page with users from DI', async () => {
-    container.set(USER_SERVICE_TOKEN, { useValue: mockUserService });
-    container.set(LOGGER_SERVICE_TOKEN, { useValue: mockLoggerService });
+    const contextMap = await routeContext({
+      logger: mockLoggerService,
+      users: mockUserService,
+    });
     const Stub = createRoutesStub(
       [
         {

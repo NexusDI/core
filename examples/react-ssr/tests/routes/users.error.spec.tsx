@@ -1,24 +1,13 @@
 // Example: Minimal route test for Users error state using NexusDI and React Router v7
 // This test demonstrates how to provide a DI container for a single route using createRoutesStub.
 import React from 'react';
-import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
+import { describe, it, expect, afterEach, vi } from 'vitest';
 import { render, screen, waitFor } from '@testing-library/react';
-import {
-  createRoutesStub,
-  RouterContext,
-  RouterContextProvider,
-} from 'react-router';
-import { Nexus } from '@nexusdi/core';
+import { createRoutesStub, RouterContextProvider } from 'react-router';
 import Users, { loader as usersLoader } from '../../app/routes/users';
-import {
-  USER_SERVICE_TOKEN,
-  type IUserService,
-} from '../../app/modules/users/users.types';
-import {
-  LOGGER_SERVICE_TOKEN,
-  type ILoggerService,
-} from '../../app/modules/logger/logger.types';
-import { containerContext } from '../../app/shared/container';
+import { type IUserService } from '../../app/modules/users/users.types';
+import { type ILoggerService } from '../../app/modules/logger/logger.types';
+import { routeContext } from '../support/route-context';
 
 const mockUserService: IUserService = {
   getUsers: vi.fn().mockRejectedValue(new Error('Failed to fetch users')),
@@ -34,22 +23,15 @@ const mockLoggerService: ILoggerService = {
 };
 
 describe('Users route loader error (framework mode, minimal DI example)', () => {
-  let container: Nexus;
-  let contextMap: Map<RouterContext, unknown>;
-
-  beforeEach(() => {
-    container = new Nexus();
-    contextMap = new Map();
-    contextMap.set(containerContext, container);
-  });
-
   afterEach(() => {
     vi.clearAllMocks();
   });
 
   it('renders error UI when loader throws', async () => {
-    container.set(USER_SERVICE_TOKEN, { useValue: mockUserService });
-    container.set(LOGGER_SERVICE_TOKEN, { useValue: mockLoggerService });
+    const contextMap = await routeContext({
+      logger: mockLoggerService,
+      users: mockUserService,
+    });
     const Stub = createRoutesStub(
       [
         {

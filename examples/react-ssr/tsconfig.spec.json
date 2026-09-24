@@ -14,7 +14,6 @@
     "jsx": "react-jsx",
     "module": "es2022",
     "moduleResolution": "bundler",
-    "experimentalDecorators": true,
     "ignoreDeprecations": "6.0",
     "rootDir": "."
   },

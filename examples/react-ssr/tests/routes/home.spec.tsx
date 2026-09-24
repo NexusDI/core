@@ -1,24 +1,13 @@
 // Example: Minimal route test for Home using NexusDI and React Router v7
 // This test demonstrates how to provide a DI container for a single route using createRoutesStub.
 import React from 'react';
-import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
+import { describe, it, expect, afterEach, vi } from 'vitest';
 import { render, screen, waitFor } from '@testing-library/react';
-import {
-  createRoutesStub,
-  RouterContext,
-  RouterContextProvider,
-} from 'react-router';
-import { Nexus } from '@nexusdi/core';
+import { createRoutesStub, RouterContextProvider } from 'react-router';
 import Home, { loader as homeLoader } from '../../app/routes/home';
-import {
-  USER_SERVICE_TOKEN,
-  type IUserService,
-} from '../../app/modules/users/users.types';
-import {
-  LOGGER_SERVICE_TOKEN,
-  type ILoggerService,
-} from '../../app/modules/logger/logger.types';
-import { containerContext } from '../../app/shared/container';
+import { type IUserService } from '../../app/modules/users/users.types';
+import { type ILoggerService } from '../../app/modules/logger/logger.types';
+import { routeContext } from '../support/route-context';
 
 // Mocks
 const mockUserService: IUserService = {
@@ -35,22 +24,15 @@ const mockLoggerService: ILoggerService = {
 };
 
 describe('Home route (framework mode, minimal DI example)', () => {
-  let container: Nexus;
-  let contextMap: Map<RouterContext, unknown>;
-
-  beforeEach(() => {
-    container = new Nexus();
-    contextMap = new Map();
-    contextMap.set(containerContext, container);
-  });
-
   afterEach(() => {
     vi.clearAllMocks();
   });
 
   it('renders the home page with both providers registered', async () => {
-    container.set(USER_SERVICE_TOKEN, { useValue: mockUserService });
-    container.set(LOGGER_SERVICE_TOKEN, { useValue: mockLoggerService });
+    const contextMap = await routeContext({
+      logger: mockLoggerService,
+      users: mockUserService,
+    });
 
     const Stub = createRoutesStub(
       [
@@ -70,8 +52,7 @@ describe('Home route (framework mode, minimal DI example)', () => {
   });
 
   it('renders the home page with only one provider registered', async () => {
-    container.set(LOGGER_SERVICE_TOKEN, { useValue: mockLoggerService });
-    // USER_SERVICE_TOKEN is not set
+    const contextMap = await routeContext({ logger: mockLoggerService });
 
     const Stub = createRoutesStub(
       [

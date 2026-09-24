@@ -1,14 +1,11 @@
-import { Service, Inject } from '@nexusdi/core';
 import {
   LOGGER_SERVICE_TOKEN,
-  LOGGER_CONFIG_TOKEN,
   type ILoggerService,
   type LoggerConfig,
 } from './logger.types';
 
-@Service(LOGGER_SERVICE_TOKEN)
 export class LoggerService implements ILoggerService {
-  constructor(@Inject(LOGGER_CONFIG_TOKEN) private config: LoggerConfig) {}
+  constructor(private config: LoggerConfig) {}
 
   private shouldLog(level: string): boolean {
     const levels = ['debug', 'info', 'warn', 'error'];

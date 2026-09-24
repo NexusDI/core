@@ -1,66 +1,22 @@
 import { Nexus } from '@nexusdi/core';
 import { createContext } from 'react-router';
 import type { Route } from '../+types/root';
-import { UsersModule } from '../modules/users/users.module';
-import { LoggerModule } from '../modules/logger/logger.module';
+import { AppModule } from './app.module';
 
-// Global container instance for SSR
-const globalContainer = new Nexus();
-const env = getEnvironment();
+// One container per server process. Nexus.create is async, so the promise is
+// made once, at import, and each request awaits it.
+const ship = Nexus.create(AppModule);
+// A startup failure surfaces on the first request's await. This handler keeps
+// it from also being reported as an unhandled rejection at import time.
+ship.catch(() => undefined);
 
-globalContainer.set(
-  LoggerModule.config({
-    level: env === 'production' ? 'info' : 'debug',
-    format: env === 'production' ? 'json' : 'text',
-    enableConsole: true,
-    enableFile: env === 'production',
-    filePath: env === 'production' ? '/var/log/app.log' : undefined,
-  }),
-);
+export const containerContext = createContext<Nexus>();
 
-globalContainer.set(
-  UsersModule.config({
-    apiUrl:
-      env === 'production'
-        ? process.env.USERS_API_URL || 'https://api.example.com/users'
-        : 'http://localhost:3001/api/users',
-    cacheEnabled: env === 'production',
-    cacheTTL: env === 'production' ? 3600 : 300,
-    maxUsersPerPage: env === 'production' ? 50 : 10,
-    enableMockData: env !== 'production',
-  }),
-);
-
-// Create a context for the DI container
-export const containerContext = createContext<Nexus>(globalContainer);
-
-function getEnvironment(): 'development' | 'production' | 'test' {
-  if (typeof process !== 'undefined' && process.env.NODE_ENV) {
-    return process.env.NODE_ENV as 'development' | 'production' | 'test';
-  }
-  return 'development';
-}
-
-// Container middleware - provides DI container to downstream middleware/loaders
+// Container middleware: gives downstream middleware and loaders the container.
 export const containerMiddleware: Route.MiddlewareFunction = async (
   { context },
   next,
 ) => {
-  console.log('Container middleware called');
-
-  try {
-    const container = context.get(containerContext);
-    console.log('Container retrieved in middleware:', container);
-
-    context.set(containerContext, container);
-    console.log('Container set in context');
-
-    const response = await next();
-    console.log('Container middleware completed');
-
-    return response;
-  } catch (error) {
-    console.error('Error in container middleware:', error);
-    throw error;
-  }
+  context.set(containerContext, await ship);
+  return next();
 };

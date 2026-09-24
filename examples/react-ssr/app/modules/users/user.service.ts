@@ -1,17 +1,14 @@
-import { Service, Inject } from '@nexusdi/core';
 import {
   USER_SERVICE_TOKEN,
-  USERS_CONFIG_TOKEN,
   type IUserService,
   type User,
   type UsersConfig,
 } from './users.types';
 
-@Service(USER_SERVICE_TOKEN)
 export class UserService implements IUserService {
   private cache = new Map<string, { data: User[]; timestamp: number }>();
 
-  constructor(@Inject(USERS_CONFIG_TOKEN) private config: UsersConfig) {}
+  constructor(private config: UsersConfig) {}
 
   private async fetchFromAPI(
     page = 1,

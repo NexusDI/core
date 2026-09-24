@@ -5,7 +5,6 @@
     "lib": ["DOM", "DOM.Iterable", "ES2019"],
     "types": ["@react-router/node", "vite/client", "node"],
     "esModuleInterop": true,
-    "experimentalDecorators": true,
     "jsx": "react-jsx",
     "module": "es2022",
     "moduleResolution": "bundler",

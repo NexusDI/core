@@ -1,13 +1,15 @@
-import { Module, DynamicModule } from '@nexusdi/core';
-import { LOGGER_CONFIG_TOKEN, type LoggerConfig } from './logger.types';
+import { defineModule, provide } from '@nexusdi/core';
 import { LoggerService } from './logger.service';
+import { LOGGER_CONFIG_TOKEN, LOGGER_SERVICE_TOKEN } from './logger.types';
 
-@Module({
+export const LoggerModule = defineModule({
+  name: 'LoggerModule',
+  options: LOGGER_CONFIG_TOKEN,
   providers: [
-    LoggerService, // Simplified format - uses @Service decorator token
+    provide(LOGGER_SERVICE_TOKEN, {
+      useClass: LoggerService,
+      deps: [LOGGER_CONFIG_TOKEN],
+    }),
   ],
-  exports: [LoggerService],
-})
-export class LoggerModule extends DynamicModule<LoggerConfig> {
-  protected readonly configToken = LOGGER_CONFIG_TOKEN;
-}
+  exports: [LOGGER_SERVICE_TOKEN],
+});
