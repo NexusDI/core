@@ -38,6 +38,7 @@ export const CardHeader = ({
 
 export const CardTitle = ({
   className,
+  children,
   ...props
 }: HTMLAttributes<HTMLHeadingElement>) => (
   <h3
@@ -46,7 +47,9 @@ export const CardTitle = ({
       className,
     )}
     {...props}
-  />
+  >
+    {children}
+  </h3>
 );
 
 export const CardContent = ({
