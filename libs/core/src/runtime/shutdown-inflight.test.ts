@@ -175,6 +175,105 @@ describe('Nexus', () => {
       expect(await rejected(closing)).toBe(boom);
     });
 
+    it('chains a rollback disposer error from an aborted createScope ahead of the root disposal errors', async () => {
+      const gate = deferred<object>();
+      const SESSION = new Token<object>('Session');
+      const REACTOR = new Token<object>('Reactor');
+      const sessionStuck = new Error('session disposer failed');
+      const reactorStuck = new Error('reactor disposer failed');
+      const ship = await Nexus.create(
+        defineModule({
+          name: 'Root',
+          providers: [
+            provide(REACTOR, {
+              useFactory: () => ({
+                [Symbol.dispose]() {
+                  throw reactorStuck;
+                },
+              }),
+              deps: [],
+            }),
+            provide(SESSION, {
+              useFactory: () => gate.promise,
+              deps: [],
+              lifetime: 'scoped',
+            }),
+          ],
+        }),
+      );
+      const opening = ship.createScope();
+      await flush();
+
+      const closing = ship[Symbol.asyncDispose]();
+      gate.resolve({
+        [Symbol.dispose]() {
+          throw sessionStuck;
+        },
+      });
+
+      expect(await rejected(opening)).toMatchObject({
+        code: 'NEXUS_DISPOSED',
+      });
+      const error = (await rejected(closing)) as SuppressedError;
+      expect(error).toBeInstanceOf(SuppressedError);
+      expect(error.error).toBe(reactorStuck);
+      expect(error.suppressed).toBe(sessionStuck);
+    });
+
+    it('aborts a createScope between scoped levels, skips the later levels, and disposes the built ones in reverse', async () => {
+      const log: string[] = [];
+      const gate = deferred<void>();
+      const HULL = new Token<object>('Hull');
+      const SHIELD = new Token<object>('Shield');
+      const WEAPONS = new Token<object>('Weapons');
+      const failing = (name: string) => ({
+        [Symbol.dispose]() {
+          log.push(`${name} disposed`);
+          throw new Error(`${name} stuck`);
+        },
+      });
+      const ship = await Nexus.create(
+        defineModule({
+          name: 'Root',
+          providers: [
+            provide(HULL, {
+              useFactory: () => failing('hull'),
+              deps: [],
+              lifetime: 'scoped',
+            }),
+            provide(SHIELD, {
+              useFactory: async () => {
+                await gate.promise;
+                return failing('shield');
+              },
+              deps: [HULL],
+              lifetime: 'scoped',
+            }),
+            provide(WEAPONS, {
+              useFactory: () => (log.push('weapons built'), {}),
+              deps: [SHIELD],
+              lifetime: 'scoped',
+            }),
+          ],
+        }),
+      );
+      const opening = ship.createScope();
+      await flush();
+
+      const closing = ship[Symbol.asyncDispose]();
+      gate.resolve();
+
+      expect(await rejected(opening)).toMatchObject({
+        code: 'NEXUS_DISPOSED',
+        target: 'container',
+      });
+      const error = (await rejected(closing)) as SuppressedError;
+      expect(log).toEqual(['shield disposed', 'hull disposed']);
+      expect(error).toBeInstanceOf(SuppressedError);
+      expect(error.error).toMatchObject({ message: 'hull stuck' });
+      expect(error.suppressed).toMatchObject({ message: 'shield stuck' });
+    });
+
     it('wraps a user-thrown DisposedError from a load while the root is open, keeping the rollback disposer error in disposalErrors', async () => {
       const log: string[] = [];
       const SENSOR = new Token<object>('Sensor');

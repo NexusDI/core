@@ -174,6 +174,69 @@ describe('Nexus', () => {
       ).toEqual([{ token: 'Log', scope: 's0' }]);
     });
 
+    it('disposes what a scope owns in reverse creation order, as its dispose:instance events show', async () => {
+      const events: TraceEvent[] = [];
+      const log: string[] = [];
+      const disposable = (name: string) => ({
+        [Symbol.dispose]: () => log.push(name),
+      });
+      const LOG = new Token<object>('Log');
+      class Airlock {
+        [Symbol.dispose]() {
+          log.push('Airlock');
+        }
+      }
+      class Probe {
+        [Symbol.dispose]() {
+          log.push('Probe');
+        }
+      }
+      class Bridge {
+        constructor(
+          readonly log: object,
+          readonly airlock: Airlock,
+          readonly probe: Probe,
+        ) {}
+        [Symbol.dispose]() {
+          log.push('Bridge');
+        }
+      }
+      const ship = await Nexus.create(
+        defineModule({
+          name: 'Root',
+          providers: [
+            provide(LOG, {
+              useFactory: () => disposable('Log'),
+              deps: [],
+              lifetime: 'scoped',
+            }),
+            provide(Airlock, { lifetime: 'scoped' }),
+            provide(Probe, { lifetime: 'transient' }),
+            provide(Bridge, {
+              deps: [LOG, Airlock, Probe],
+              lifetime: 'scoped',
+            }),
+          ],
+        }),
+        { trace: (event) => events.push(event) },
+      );
+      const shuttle = await ship.createScope();
+      shuttle.get(Bridge);
+      await shuttle[Symbol.asyncDispose]();
+
+      const inScope = (type: TraceEvent['type']) =>
+        events
+          .filter(
+            (e) => e.type === type && 'scope' in e && e.scope === shuttle.id,
+          )
+          .map((e) => ('token' in e ? e.token : ''));
+      const constructed = inScope('construct');
+      const disposed = inScope('dispose:instance');
+      expect(constructed).toEqual(['Log', 'Airlock', 'Probe', 'Bridge']);
+      expect(disposed).toEqual(['Bridge', 'Probe', 'Airlock', 'Log']);
+      expect(log).toEqual(disposed);
+    });
+
     it('rejects NEXUS_NOT_READY for a lazy thunk to a scoped factory its own level has not reached yet', async () => {
       let lateCalls = 0;
       const LATE = new Token<string>('Late');
