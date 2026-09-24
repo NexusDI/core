@@ -107,3 +107,4 @@ Task R8: complete (commits 77eceda..b330351, review clean)
 Task R9: dispatched (BASE b330351, sonnet)
 Ruling: R9 NoScopeContextError — moves to libs/node/test-support (never ships; spec §9 retires the code unused); its parity test keeps revision 1's text.
 Task R9: fix round 1/5 (port gated concurrency, per-call storage, macrotask crossing and export-list tests; NoScopeContextError to test-support)
+Note: blueprint/levels.test.ts stack-depth test flaked once under nx during R9 (passed on retry); investigate in the final review.
