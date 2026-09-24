@@ -165,3 +165,6 @@ Task R18: dispatched (BASE aa88c6b, opus)
 Task R18: minor (deferred): stale 'Today's figure is 2.5%' comment in .fallowrc.jsonc (fix when next touched)
 Task R18: complete (commits 4861d07..143cb3f, review clean; rule table measured +96 bytes, reverted, recorded kept: false)
 Task R19: dispatched (BASE 143cb3f, opus)
+Ruling: R19 size-report.mjs compares a step with the last kept record — accepted (a reverted step's size must not be the baseline).
+Ruling: R19 export errors pushed after dropDuplicates — accepted, keeps error order identical.
+Note: during R19 a cached run failed devtools:test and testing:test once and passed unchanged on rerun; investigate in the final review together with the levels.test.ts flake.
