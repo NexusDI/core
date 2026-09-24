@@ -1,7 +1,7 @@
 # NexusDI 0.4 framework integrations
 
 Status: draft, revised with the owner's decisions on the first draft (`d9a9a7b`). Section
-2.1 records them, and section 16 holds nothing open.
+2.1 records them, and section 16 holds one question that the lazy request scope raises.
 Packages (all new, all published): `@nexusdi/hono`, `@nexusdi/express`, `@nexusdi/fastify`,
 `@nexusdi/react-router`, `@nexusdi/vitest`.
 Depends on:
@@ -76,8 +76,10 @@ container into the next test.
 2. Every server adapter has one shape: `nexus(ship, options)` returns an object with the
    framework's hook (`middleware` or `plugin`), `inject` and `scope`. The adapter never
    creates or disposes the container. The user owns it.
-3. A scope is created per request with `createScope({ request })`, where `request` comes
-   from a user function that maps the framework request to `NexusRequest`.
+3. A request gets at most one scope, created with `createScope({ request })` on the first
+   `inject` or `di.scope()` call in that request, where `request` comes from a user
+   function that maps the framework request to `NexusRequest`. The middleware creates no
+   scope (section 3.9).
 4. The adapter disposes the scope when the response is finished or the client is gone,
    whichever happens first. It never disposes at the return of `next()` while a body is
    still being written (section 3.4).
@@ -120,6 +122,8 @@ reference points.
 8. Express stays in scope. The Express middleware list takes no new entries
    (`expressjs/expressjs.com#2375`), so launch material has no Express listing
    (section 14).
+9. Adapters create the request scope on first use, and every adapter has `di.load(Module)`
+   for lazily loaded sections (section 3.9).
 
 ## 3. Shared design
 
@@ -139,7 +143,8 @@ di.inject(
   { charts: NAV_CHARTS, log: FLIGHT_LOG },
   ({ charts, log }, ...frameworkArgs) => {},
 );
-di.scope(frameworkRequest); // the request's Scope, for code outside inject
+await di.scope(frameworkRequest); // the request's Scope, created on first use
+di.load(Feature); // a middleware that loads a module before the section's handlers
 ```
 
 `nexus` takes a live `Nexus`. The user creates it with `await Nexus.create(...)` and
@@ -195,7 +200,8 @@ show `inject` first and name `di.scope` as the way out for code that is not a ha
 1. When called (at route definition), it checks every required and lazy entry against the
    container and throws when one has no visible provider. So a wrong token fails when the
    app starts, before the first request.
-2. Per request, it resolves the record from the request's scope, then calls the handler.
+2. Per request, it gets the request's scope, which creates it on the first use in that
+   request (section 3.9), resolves the record from it, then calls the handler.
 
 Core's approved API has no call for either step. The adapters would have to rebuild
 core's modifier rules from `get`, `has` and the public `kind` and `token` fields, and the
@@ -236,16 +242,19 @@ app fails at startup:
 
 ### 3.4 Disposal
 
-The adapter creates the scope before the handler runs and calls `[Symbol.asyncDispose]()`
-exactly once, from the first of these signals:
+The middleware registers disposal before the handler runs. At the first of these signals
+it closes the request's scope handle, and, if the scope was created, calls its
+`[Symbol.asyncDispose]()` exactly once. A scope still being created at that moment is
+disposed as soon as `createScope` settles. A request that never used a scope disposes
+nothing:
 
-| Framework    | Response done                                    | Client gone                              |
-| ------------ | ------------------------------------------------ | ---------------------------------------- |
-| Hono         | the wrapped body stream ends, errors or cancels  | `c.req.raw.signal` aborts                |
-| React Router | the wrapped body stream ends, errors or cancels  | `request.signal` aborts                  |
-| Express      | `res` emits `close`                              | `res` emits `close`                      |
-| Fastify      | `reply.raw` emits `close`                        | `reply.raw` emits `close`                |
-| Any          | a response with no body: at once, after `next()` | the signal fired while `createScope` ran |
+| Framework    | Response done                                    | Client gone                                |
+| ------------ | ------------------------------------------------ | ------------------------------------------ |
+| Hono         | the wrapped body stream ends, errors or cancels  | `c.req.raw.signal` aborts                  |
+| React Router | the wrapped body stream ends, errors or cancels  | `request.signal` aborts                    |
+| Express      | `res` emits `close`                              | `res` emits `close`                        |
+| Fastify      | `reply.raw` emits `close`                        | `reply.raw` emits `close`                  |
+| Any          | a response with no body: at once, after `next()` | the signal fired before the middleware ran |
 
 Node's `http.ServerResponse` emits `close` after `finish` on a normal response and alone
 on an abort, so one listener covers both cases for Express and Fastify.
@@ -278,7 +287,11 @@ request that arrives after disposal starts gets a 503.
 
 With `ambient: true`, the adapter runs the rest of the request inside
 `ship.runInScope(scope, ...)`, so `ship.currentScope()` works in code that has no access to
-the request. The container needs a `scopeContext`:
+the request. `runInScope` needs a `Scope` and `currentScope()` is synchronous, so an
+ambient request cannot defer creation: with `ambient: true` the middleware creates the
+scope itself, and section 3.9's first-use rule does not apply. Section 3.9 states what
+that means for `di.load`, and section 16 asks the owner to confirm it. The container
+needs a `scopeContext`:
 
 - Node, Bun and Deno: `nodeScopeContext()` from `@nexusdi/core/node`. Bun and Deno
   implement `AsyncLocalStorage` through `node:async_hooks`.
@@ -295,17 +308,19 @@ fails the first ambient request with core's `NEXUS_NO_SCOPE_CONTEXT`, whose mess
 
 ### 3.6 Error mapping
 
-The adapter catches a `NexusError` from `createScope`, `scope.resolve` or `runInScope`. It
-leaves every other error, and every `NexusError` a handler throws itself, to the
-framework's error pipeline.
+The adapter catches a `NexusError` from `createScope`, `scope.resolve`, `runInScope` or
+`ship.load`. `createScope` now runs at the first `inject`, so its errors surface there.
+The adapter leaves every other error, and every `NexusError` a handler throws itself, to
+the framework's error pipeline.
 
-| Code raised in adapter code                                                              | Status | Log level |
-| ---------------------------------------------------------------------------------------- | ------ | --------- |
-| `NEXUS_DISPOSED` from `createScope`                                                      | 503    | warn      |
-| `NEXUS_REQUEST_MISSING`                                                                  | 500    | error     |
-| `NEXUS_PROVIDER_FAILED` from a scoped factory                                            | 500    | error     |
-| `NEXUS_MISSING_PROVIDER`, `NEXUS_NOT_VISIBLE`, `NEXUS_LOADED_AFTER_SCOPE` from `resolve` | 500    | error     |
-| `NEXUS_NO_SCOPE_CONTEXT`                                                                 | 500    | error     |
+| Code raised in adapter code                                                                | Status | Log level |
+| ------------------------------------------------------------------------------------------ | ------ | --------- |
+| `NEXUS_DISPOSED` from `createScope` or `load`                                              | 503    | warn      |
+| `NEXUS_BLUEPRINT_INVALID`, `NEXUS_PROVIDER_FAILED`, `NEXUS_LOAD_GLOBAL_MODULE` from `load` | 500    | error     |
+| `NEXUS_REQUEST_MISSING`                                                                    | 500    | error     |
+| `NEXUS_PROVIDER_FAILED` from a scoped factory                                              | 500    | error     |
+| `NEXUS_MISSING_PROVIDER`, `NEXUS_NOT_VISIBLE`, `NEXUS_LOADED_AFTER_SCOPE` from `resolve`   | 500    | error     |
+| `NEXUS_NO_SCOPE_CONTEXT`                                                                   | 500    | error     |
 
 The adapter logs the original error once, with its code, its `entry` when `resolve`
 raised it, and its message, through the `log` option. Then it raises the framework's own error type with the status, the status text as
@@ -326,16 +341,19 @@ The code the adapters would share:
 3. The status mapping of section 3.6: a function from a `NexusError` code to 500 or 503,
    about 10 lines.
 4. The `RequestOption` type: 4 lines.
+5. The lazy scope handle and the `load` memo of section 3.9: used by all four server
+   adapters, about 50 lines.
 
 The remainder does not justify another published package, with its own bootstrap and an
 exact pin in four dependents. A private workspace
 package does not work either, because the build is plain `tsc` and a published `dist`
 cannot import an unpublished package.
 
-So items 2 and 3 live in each adapter at `src/internal/`. The two copies of
-`dispose-with-body.ts` are byte-identical, and a repo-check,
-`tools/repo-checks/src/adapter-shared-copies.test.ts`, fails when they differ. The fallow
-duplicates gate ignores exactly those files, through `.fallowrc.jsonc`.
+So items 2, 3 and 5 live in each adapter at `src/internal/`. The two copies of
+`dispose-with-body.ts` and the four copies of `request-scope.ts` are byte-identical, and a
+repo-check, `tools/repo-checks/src/adapter-shared-copies.test.ts`, fails when copies of
+one file differ. The fallow duplicates gate ignores exactly those files, through
+`.fallowrc.jsonc`.
 
 ### 3.8 The example app
 
@@ -445,6 +463,118 @@ export const test = base.extend(
 fake log is still one per request. Each adapter section ends with a route test built on
 these fixtures. Section 12.2 adds these names to the docs spec's vocabulary.
 
+### 3.9 Lazy request scopes and `di.load`
+
+Core pins a scope to the blueprint that was current when the scope was created (core
+spec §7.1). A token from a module loaded after that throws `NEXUS_LOADED_AFTER_SCOPE`.
+React Router 8 runs the root middleware before a lazy route's middleware. If the root
+middleware created the scope and the lazy route's middleware then called
+`ship.load(Navigation)`, the first request into that section would fail, and every
+later request would pass. Hono, Express and Fastify have the same order problem for any
+middleware registered after `di.middleware` that loads a module.
+
+So the middleware creates no scope. It records the request, attaches a scope handle and
+registers disposal (section 3.4):
+
+```ts
+// src/internal/request-scope.ts, copied into each server adapter
+export interface RequestScope {
+  /** Creates the scope on the first call; every later call returns the same promise. */
+  scope(): Promise<Scope>;
+  /** True once scope() has been called. */
+  readonly started: boolean;
+}
+
+export function requestScope(
+  ship: Nexus,
+  request: () => NexusRequest | undefined | Promise<NexusRequest | undefined>,
+): RequestScope & { close(): Promise<void> } {
+  let pending: Promise<Scope> | undefined;
+  let closed = false;
+  return {
+    get started() {
+      return pending !== undefined;
+    },
+    scope() {
+      if (closed) return Promise.reject(requestFinished());
+      pending ??= Promise.resolve(request()).then((r) =>
+        ship.createScope({ request: r }),
+      );
+      return pending;
+    },
+    async close() {
+      closed = true;
+      if (!pending) return;
+      const scope = await pending.catch(() => undefined); // a failed create built nothing
+      await scope?.[Symbol.asyncDispose]();
+    },
+  };
+}
+```
+
+- The first `inject`, or the first `await di.scope(...)`, calls `createScope`. Two
+  handlers or loaders that start together in one request, such as parallel React Router
+  loaders, share one promise and one scope.
+- `close` runs from the disposal signals of section 3.4. It disposes the scope only if one
+  was started, and waits for a scope still being created.
+- After `close`, `scope()` rejects with an adapter error, "the request has finished",
+  which the adapter logs. So a late first use after a client abort cannot create a scope
+  nobody disposes.
+- The user's `request` mapping also runs at first use, so a request that resolves nothing
+  never calls it.
+
+The framework slot holds the handle: `c.var.nexus`, `req.nexus` and `NEXUS_SCOPE` are
+`RequestScope`, and `di.scope(...)` returns `Promise<Scope>`.
+
+`di.load(Module)` returns a middleware for the framework that calls
+`await ship.load(Module)` and then continues. Core makes `load` idempotent and runs
+concurrent calls one at a time (core spec §3.5). The adapter keeps one promise per module
+in a `WeakMap` after a successful load, so later requests skip the call; a failed load is
+not kept, and the next request tries again. A lazily loaded section registers
+`di.load(Feature)` in front of its handlers, and the first `inject` in the request runs
+after it, so the scope sees `Feature`:
+
+```ts
+// app/routes/navigation.tsx, a lazy React Router route
+import { Navigation } from '../navigation/navigation.module';
+import { di } from '../nexus.server';
+
+const navigation = di.load(Navigation);
+export const middleware: Route.MiddlewareFunction[] = [navigation];
+export const loader = navigation.inject(
+  { routes: NAV_ROUTES },
+  ({ routes }, { params }: Route.LoaderArgs) => routes.find(params.sector),
+);
+```
+
+The middleware returned by `di.load` also has an `inject`. `di.inject` validates its deps
+when the route module is evaluated, and a lazy route's module is evaluated before its
+module is loaded, so `NAV_ROUTES` would fail that check. `navigation.inject` runs
+`ship.validate(deps)` once, after the first successful load, and caches the result. A
+failure there is a 500 with the log line of section 3.3, on the first request into the
+section.
+
+With `ambient: true` the middleware creates the scope at once (section 3.5), so a
+`di.load` that runs after it cannot reach that request's scope. When `di.load` finds no
+memo for its module and the request's scope has started, it loads the module, then
+throws an adapter error that names the fix: `ambient: false`, or `di.load` in front of
+`di.middleware`. The adapter logs it and answers 500. Later requests find the memo, and
+their scopes see the module.
+
+Each adapter's integration test adds these cases:
+
+- a lazy section whose first request succeeds: `di.load(Feature)` after `di.middleware`,
+  and a handler that injects a `Feature` token. This is the regression test for the
+  stale-scope case;
+- a request that resolves nothing creates no scope and never calls the `request`
+  mapping, asserted through `trace` (no `scope:create`);
+- two handlers or loaders that make their first use at the same time in one request share
+  one scope (one `scope:create`, one `scope:dispose`);
+- disposal still runs on a client abort and at stream end, with the scope created late in
+  the handler;
+- `ambient: true` with a `di.load` after the middleware answers 500 with the adapter
+  error.
+
 ## 4. `@nexusdi/hono`
 
 ### 4.1 API
@@ -498,8 +628,9 @@ container, as soon as `serve` returns.
 Exports:
 
 - `nexus(ship, options): NexusHono`, where `NexusHono` is
-  `{ middleware: MiddlewareHandler<NexusEnv>; inject; scope(c: Context): Scope }`.
-- `type NexusEnv = { Variables: { nexus: Scope } }`.
+  `{ middleware: MiddlewareHandler<NexusEnv>; inject; scope(c: Context): Promise<Scope>; load(module): MiddlewareHandler & { inject } }`.
+- `type NexusEnv = { Variables: { nexus: RequestScope } }`.
+- `type RequestScope` (section 3.9).
 - `type NexusHonoOptions`: `request`, `ambient`, `log`.
 
 The middleware sets `c.var.nexus`. Hono merges the middleware's `Env` into a chained app
@@ -509,23 +640,32 @@ chained form and `new Hono<NexusEnv>()` for apps that register routes in separat
 statements. The package does not augment `ContextVariableMap`: Hono's docs warn that a
 global augmentation types `c.get` in routes where the middleware never ran.
 
-`inject` returns a `Handler` whose context is `Context<NexusEnv>`. `di.scope(c)` throws
-`[@nexusdi/hono] no scope on this request: register di.middleware before this route`
+`inject` returns a `Handler` whose context is `Context<NexusEnv>`. `di.scope(c)` rejects
+with `[@nexusdi/hono] no scope on this request: register di.middleware before this route`
 when the middleware has not run.
 
 ### 4.2 Request flow
 
 ```ts
 createMiddleware<NexusEnv>(async (c, next) => {
-  const scope = await openScope(ship, options, c); // maps errors, section 3.6
-  const dispose = once(() => scope[Symbol.asyncDispose]().catch(log));
+  const handle = requestScope(ship, () => options.request?.(c)); // section 3.9
+  const dispose = once(() => handle.close().catch(log));
   if (c.req.raw.signal.aborted) return void (await dispose());
   c.req.raw.signal.addEventListener('abort', dispose, { once: true });
-  c.set('nexus', scope);
-  await (options.ambient ? ship.runInScope(scope, next) : next());
+  c.set('nexus', handle);
+  if (options.ambient) {
+    const scope = await mapErrors(handle.scope()); // section 3.6
+    await ship.runInScope(scope, next);
+  } else {
+    await next(); // inject creates the scope on first use
+  }
   c.res = disposeWithBody(c.res, dispose, c.req.method);
 });
 ```
+
+`di.load(Feature)` is a `MiddlewareHandler` that awaits the memoised `ship.load(Feature)`
+and calls `next()`. A Hono sub-app for a section registers it first:
+`new Hono().use(di.load(Navigation)).get(...)`.
 
 Hono's `next()` never throws. An error in a handler goes to `app.onError`, which sets
 `c.res` before `next()` resolves, so the wrapper also covers error responses.
@@ -668,8 +808,9 @@ test('plots the course with the fake charts', async ({ nexus }) => {
 ```
 
 Exports: `nexus(ship, options): NexusExpress`
-(`{ middleware: RequestHandler; inject; scope(req: Request): Scope }`), and
-`NexusExpressOptions`.
+(`{ middleware: RequestHandler; inject; scope(req: Request): Promise<Scope>; load(module): RequestHandler & { inject } }`),
+`RequestScope` and `NexusExpressOptions`. A section router registers `di.load(Feature)`
+first: `router.use(di.load(Navigation))`.
 
 `req.nexus` is typed through the global augmentation that `@types/express` supports:
 
@@ -677,7 +818,7 @@ Exports: `nexus(ship, options): NexusExpress`
 declare global {
   namespace Express {
     interface Request {
-      nexus?: Scope;
+      nexus?: RequestScope;
     }
   }
 }
@@ -691,20 +832,22 @@ before the middleware included. `inject` and `di.scope(req)` read it and throw t
 
 ```ts
 async (req, res, next) => {
-  const scope = await openScope(ship, options, req); // a rejection goes to next(err)
-  const dispose = once(() => scope[Symbol.asyncDispose]().catch(log));
+  const handle = requestScope(ship, () => options.request?.(req)); // section 3.9
+  const dispose = once(() => handle.close().catch(log));
   if (res.closed) return void (await dispose());
   res.once('close', dispose);
-  req.nexus = scope;
-  options.ambient ? ship.runInScope(scope, next) : next();
+  req.nexus = handle;
+  if (!options.ambient) return next(); // inject creates the scope on first use
+  const scope = await mapErrors(handle.scope()); // a rejection goes to next(err)
+  ship.runInScope(scope, next);
 };
 ```
 
 Express 5 forwards a rejected middleware promise to `next(err)`. `inject` returns an
-async handler, so a rejection there reaches the error pipeline too. `res.closed` covers a
-client that left while `createScope` ran. Express calls downstream handlers synchronously
-from `next`, so `runInScope(scope, next)` gives them the scope through
-`AsyncLocalStorage`.
+async handler, so a rejection there, the first `createScope` included, reaches the error
+pipeline too. `res.closed` covers a client that left before the middleware ran. Express
+calls downstream handlers synchronously from `next`, so `runInScope(scope, next)` gives
+them the scope through `AsyncLocalStorage`.
 
 ### 5.3 Errors
 
@@ -809,8 +952,10 @@ test('plots the course with the fake charts', async ({ nexus }) => {
 ```
 
 Exports: `nexus(ship, options): NexusFastify`
-(`{ plugin: FastifyPluginAsync; inject; scope(req: FastifyRequest): Scope }`), and
-`NexusFastifyOptions`.
+(`{ plugin: FastifyPluginAsync; inject; scope(req: FastifyRequest): Promise<Scope>; load(module): onRequestHookHandler & { inject } }`),
+`RequestScope` and `NexusFastifyOptions`. A section plugin adds `di.load(Feature)` as its
+own `onRequest` hook, which runs after the app-level hook of `di.plugin`:
+`section.addHook('onRequest', di.load(Navigation))`.
 
 The plugin is wrapped with `fastify-plugin` (`name: '@nexusdi/fastify'`,
 `fastify: '5.x'`), which sets `skip-override`, so the hook and the decoration apply to
@@ -821,7 +966,7 @@ scope only inside one encapsulated context registers `di.plugin` there with
 ```ts
 declare module 'fastify' {
   interface FastifyRequest {
-    nexus: Scope | null;
+    nexus: RequestScope | null;
   }
 }
 ```
@@ -831,21 +976,22 @@ Fastify 5 rejects a reference-type `decorateRequest` value, so the plugin decora
 
 ### 6.2 Request flow
 
-The plugin registers a callback-style `onRequest` hook. The callback style is what lets
-`runInScope(scope, done)` carry the scope through the rest of the lifecycle, the pattern
-`@fastify/request-context` uses:
+The plugin registers a callback-style `onRequest` hook. With `ambient: true`, the
+callback style is what lets `runInScope(scope, done)` carry the scope through the rest of
+the lifecycle, the pattern `@fastify/request-context` uses:
 
 ```ts
 fastify.addHook('onRequest', (req, reply, done) => {
-  openScope(ship, options, req).then((scope) => {
-    const dispose = once(() =>
-      scope[Symbol.asyncDispose]().catch((e) => req.log.error(e)),
-    );
-    if (reply.raw.closed) return void dispose();
-    reply.raw.once('close', dispose);
-    req.nexus = scope;
-    options.ambient ? ship.runInScope(scope, () => done()) : done();
-  }, done);
+  const handle = requestScope(ship, () => options.request?.(req)); // section 3.9
+  const dispose = once(() => handle.close().catch((e) => req.log.error(e)));
+  if (reply.raw.closed) return void dispose();
+  reply.raw.once('close', dispose);
+  req.nexus = handle;
+  if (!options.ambient) return done(); // inject creates the scope on first use
+  mapErrors(handle.scope()).then(
+    (scope) => ship.runInScope(scope, () => done()),
+    done,
+  );
 });
 ```
 
@@ -946,7 +1092,7 @@ A loader test on the fixtures of section 3.8 passes the `nexusScope` fixture thr
 ```ts
 // app/routes/course.test.ts
 import { createTestingContainer } from '@nexusdi/core/testing';
-import { NEXUS_SCOPE, nexus } from '@nexusdi/react-router';
+import { existingScope, NEXUS_SCOPE, nexus } from '@nexusdi/react-router';
 import { RouterContextProvider } from 'react-router';
 import { expect, vi } from 'vitest';
 import { test } from '../../test/fixtures';
@@ -966,7 +1112,7 @@ test.override({
 
 test('plots the course with the fake charts', async ({ nexusScope }) => {
   const context = new RouterContextProvider(
-    new Map([[NEXUS_SCOPE, nexusScope]]),
+    new Map([[NEXUS_SCOPE, existingScope(nexusScope)]]),
   );
   const data = await loader({
     params: { to: 'Kepler-442b' },
@@ -981,16 +1127,25 @@ test('plots the course with the fake charts', async ({ nexusScope }) => {
 ```
 
 The loader resolves from the scope in `context`, which comes from the fixture's
-container with the fakes. The mocked `di` only runs `validate` when the route module
-loads.
+container with the fakes. `existingScope(scope)` wraps a scope the test already owns in a
+`RequestScope` whose `scope()` returns it, and which disposes nothing. The mocked `di`
+only runs `validate` when the route module loads.
 
 Exports:
 
 - `nexus(ship, options): NexusRouter`, with
-  `{ middleware: MiddlewareFunction<Response>; inject; scope(context): Scope }`.
-- `NEXUS_SCOPE`, the `RouterContext<Scope>` the middleware sets. Route tests use it with
-  `createRoutesStub` and `new RouterContextProvider(new Map([[NEXUS_SCOPE, scope]]))`.
-- `NexusRouterOptions`.
+  `{ middleware: MiddlewareFunction<Response>; inject; scope(context): Promise<Scope>; load(module): MiddlewareFunction<Response> & { inject } }`.
+- `NEXUS_SCOPE`, the `RouterContext<RequestScope>` the middleware sets. Route tests use
+  it with `createRoutesStub` and
+  `new RouterContextProvider(new Map([[NEXUS_SCOPE, existingScope(scope)]]))`.
+- `existingScope(scope): RequestScope`, for tests.
+- `RequestScope` and `NexusRouterOptions`.
+
+A lazy route registers `di.load(Feature)` in its own `middleware` export and writes its
+loaders with the returned middleware's `inject`, as in section 3.9. Its first request
+works because the root middleware created no scope, and the loaders' first `inject` runs
+after the route's `di.load`. A route that is not lazy, and whose module is part of the
+root module, needs neither.
 
 `inject` accepts any args object with a `context: Readonly<RouterContextProvider>`, so it
 wraps loaders, actions and other middleware, typed by the route's generated `Route`
@@ -1009,17 +1164,22 @@ in development. Without it, each edit leaks a container.
 
 ```ts
 async ({ request, context, params }, next) => {
-  const scope = await openScope(ship, options, { request, params }); // throws a Response
-  const dispose = once(() => scope[Symbol.asyncDispose]().catch(log));
+  const handle = requestScope(ship, () =>
+    options.request?.({ request, params }),
+  );
+  const dispose = once(() => handle.close().catch(log));
   if (request.signal.aborted) return void (await dispose());
   request.signal.addEventListener('abort', dispose, { once: true });
-  context.set(NEXUS_SCOPE, scope);
-  const response = await (options.ambient
-    ? ship.runInScope(scope, next)
-    : next());
+  context.set(NEXUS_SCOPE, handle);
+  const response = options.ambient
+    ? await ship.runInScope(await mapErrors(handle.scope()), next) // throws a Response
+    : await next(); // loaders create the scope on first use
   return disposeWithBody(response, dispose, request.method);
 };
 ```
+
+Parallel loaders of one navigation start together, and their first `inject` calls share
+the handle's one `createScope` promise (section 3.9).
 
 `next()` never throws; loader errors become an error-boundary response, which the body
 wrapper also covers. A server middleware may return a new `Response`, and the adapter
@@ -1453,18 +1613,19 @@ for it.
 
 The docs spec's inventory (§4.3) changes as follows.
 
-| #   | Path                                                                                 | Change                                                                                                                                              |
-| --- | ------------------------------------------------------------------------------------ | --------------------------------------------------------------------------------------------------------------------------------------------------- |
-| 14  | `/node-request-scopes/`                                                              | Keeps `nodeScopeContext`, `runInScope` and `currentScope` on a bare `node:http` server. Adds an H2 "With a framework" linking to the adapter pages. |
-| 15  | `/react-router-ssr/`                                                                 | Rewritten around `@nexusdi/react-router`: `nexus.server.ts`, the root middleware, `inject` in loaders, route tests with `NEXUS_SCOPE`.              |
-| 16  | `/testing/`                                                                          | Keeps `createTestingContainer`. Adds an H2 "With Vitest fixtures" that shows `nexusFixtures` and links to `/vitest/`.                               |
-| 20  | `/scope-context/`                                                                    | Adds that Hono on Workers, Deno and Bun uses `nodeScopeContext()` through their `node:async_hooks`.                                                 |
-| 23  | `/runtimes/`                                                                         | One row per adapter per runtime, from the `adapter-runtimes` job.                                                                                   |
-| new | `/hono/`                                                                             | Platform guide: "Scope a Hono request".                                                                                                             |
-| new | `/express/`                                                                          | Platform guide: "Scope an Express request".                                                                                                         |
-| new | `/fastify/`                                                                          | Platform guide: "Scope a Fastify request".                                                                                                          |
-| new | `/vitest/`                                                                           | Question page: "How do I get a container in every Vitest test?"                                                                                     |
-| new | `/api-hono/`, `/api-express/`, `/api-fastify/`, `/api-react-router/`, `/api-vitest/` | Reference pages, one H2 per export.                                                                                                                 |
+| #   | Path                                                                                 | Change                                                                                                                                                                                                                                                            |
+| --- | ------------------------------------------------------------------------------------ | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| 14  | `/node-request-scopes/`                                                              | Keeps `nodeScopeContext`, `runInScope` and `currentScope` on a bare `node:http` server. Adds an H2 "With a framework" linking to the adapter pages.                                                                                                               |
+| 15  | `/react-router-ssr/`                                                                 | Rewritten around `@nexusdi/react-router`: `nexus.server.ts`, the root middleware, `inject` in loaders, a lazy route with `di.load(Feature)` in its `middleware` export and `navigation.inject` in its loader, route tests with `NEXUS_SCOPE` and `existingScope`. |
+| 17  | `/load/`                                                                             | Adds an H2 "Load a module for a lazy route or section": why a scope created before `load` cannot see the module (`NEXUS_LOADED_AFTER_SCOPE`), and the `di.load(Feature)` middleware in React Router, Hono, Express and Fastify.                                   |
+| 16  | `/testing/`                                                                          | Keeps `createTestingContainer`. Adds an H2 "With Vitest fixtures" that shows `nexusFixtures` and links to `/vitest/`.                                                                                                                                             |
+| 20  | `/scope-context/`                                                                    | Adds that Hono on Workers, Deno and Bun uses `nodeScopeContext()` through their `node:async_hooks`.                                                                                                                                                               |
+| 23  | `/runtimes/`                                                                         | One row per adapter per runtime, from the `adapter-runtimes` job.                                                                                                                                                                                                 |
+| new | `/hono/`                                                                             | Platform guide: "Scope a Hono request".                                                                                                                                                                                                                           |
+| new | `/express/`                                                                          | Platform guide: "Scope an Express request".                                                                                                                                                                                                                       |
+| new | `/fastify/`                                                                          | Platform guide: "Scope a Fastify request".                                                                                                                                                                                                                        |
+| new | `/vitest/`                                                                           | Question page: "How do I get a container in every Vitest test?"                                                                                                                                                                                                   |
+| new | `/api-hono/`, `/api-express/`, `/api-fastify/`, `/api-react-router/`, `/api-vitest/` | Reference pages, one H2 per export.                                                                                                                                                                                                                               |
 
 The counts become 43 documentation pages: 2 Start, 11 Concepts, 15 Guides, 6 Migration,
 9 API. React Router keeps its existing slug so the link from the Scopes page stands.
@@ -1506,7 +1667,10 @@ router context. The React Router adapter's plan then:
 - adds a scoped provider built from `REQUEST`, and deletes the module-level `let user`
   in `home.tsx`, which shares one user across requests;
 - removes the `console.log` calls from the middleware;
-- ports the route tests to `NEXUS_SCOPE`.
+- makes the users section a lazy route that loads `UsersModule` with `di.load`, so the
+  example exercises the first-request case of section 3.9 in a test that requests the
+  users page first on a fresh server;
+- ports the route tests to `NEXUS_SCOPE` and `existingScope`.
 
 The codemod's end-to-end test takes the example's 0.3 state from git history (engine
 plan Task 38), so this change does not touch the codemod fixtures.
@@ -1528,7 +1692,8 @@ window gets less of that feedback.
 The implementation order, each step reusing the one before it:
 
 1. Core's `resolve` and `validate`.
-2. `@nexusdi/express`: `openScope`, the status mapping, `inject` and `close` disposal.
+2. `@nexusdi/express`: the request scope handle, `di.load`, the status mapping, `inject`
+   and `close` disposal.
 3. `@nexusdi/vitest`: independent of the server adapters.
 4. `@nexusdi/fastify`: Express's `close` disposal plus the plugin wrapper.
 5. `@nexusdi/hono`: the body wrapper and the `adapter-runtimes` job.
@@ -1576,4 +1741,17 @@ The launch post (docs spec §6.2) lists the five packages with a link to each gu
 
 ## 16. Open questions
 
-None. The owner decided D1 to D6 of the first draft, and section 2.1 records each answer.
+The owner decided D1 to D6 of the first draft and the lazy request scope, and section 2.1
+records each answer. One question follows from the lazy scope.
+
+Q1. An ambient request needs its scope before the handlers run (section 3.5), so it
+cannot use the first-use rule, and a `di.load` after `di.middleware` cannot reach that
+request's scope. Section 3.9 therefore fails the first request into a lazy section with a
+clear adapter error when `ambient: true`, and later requests work. Recommendation: keep
+that, and document that an app with lazily loaded sections either leaves `ambient` off,
+which `inject` makes unnecessary for handlers, or registers `di.load` in front of
+`di.middleware`. React Router cannot do the second for a lazy route, because the root
+middleware always runs first. The alternative is a core change: a `ScopeContext` that
+holds a request's scope handle and creates the scope on the first `currentScope()`. That
+needs a synchronous `createScope`, which core spec §2.2 rules out for async scoped
+factories, so this spec does not propose it.
