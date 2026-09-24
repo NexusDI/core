@@ -432,6 +432,78 @@ describe('normalizeProvider with a provider literal', () => {
     expect(normalize(literal)).toEqual(normalize(provide(ReactorCore)));
   });
 
+  it.each([
+    [
+      'options whose getter throws',
+      {
+        token: NAV_CHARTS,
+        get useValue(): never {
+          throw new Error('trap');
+        },
+      },
+      rawProvide(NAV_CHARTS, {
+        get useValue(): never {
+          throw new Error('trap');
+        },
+      }),
+    ],
+    [
+      'options that only the prototype chain supplies',
+      Object.assign(
+        Object.create({
+          useValue: 'hijacked',
+          lifetime: 'transient',
+        }) as object,
+        { token: ReactorCore },
+      ),
+      rawProvide(
+        ReactorCore,
+        Object.create({ useValue: 'hijacked', lifetime: 'transient' }),
+      ),
+    ],
+    [
+      'a deps option that only the prototype chain supplies',
+      Object.assign(Object.create({ deps: [ReactorCore] }) as object, {
+        token: ShipComputer,
+      }),
+      rawProvide(ShipComputer, Object.create({ deps: [ReactorCore] })),
+    ],
+  ])(
+    'reads %s exactly as it reads the provide() form',
+    (_label, literal, provided) => {
+      expect(normalize(literal)).toEqual(normalize(provided));
+    },
+  );
+
+  it('reads a literal and provide() options alike while Object.prototype carries every option key', () => {
+    const proto = Object.prototype as Record<string, unknown>;
+    const keys = [
+      'useValue',
+      'useFactory',
+      'useExisting',
+      'useClass',
+      'lifetime',
+      'deps',
+    ];
+    proto['useValue'] = 'hijacked';
+    proto['useFactory'] = () => 'hijacked';
+    proto['useExisting'] = NAV_CHARTS;
+    proto['useClass'] = StarCharts;
+    proto['lifetime'] = 'transient';
+    proto['deps'] = [NAV_CHARTS];
+    try {
+      const expected = {
+        shape: { kind: 'class', lifetime: 'singleton', deps: [] },
+        errors: [],
+      };
+      expect(normalize({ token: ReactorCore })).toMatchObject(expected);
+      expect(normalize(provide(ReactorCore))).toMatchObject(expected);
+      expect(normalize(rawProvide(ReactorCore, {}))).toMatchObject(expected);
+    } finally {
+      for (const key of keys) delete proto[key];
+    }
+  });
+
   it('reads a literal while Object.prototype carries token and useValue', () => {
     const proto = Object.prototype as Record<string, unknown>;
     proto['token'] = NAV_CHARTS;
@@ -499,48 +571,70 @@ describe('normalizeProvider with static deps', () => {
     });
   });
 
-  it.each([
+  // Every class form reads static deps and runs the conflict check, so each
+  // reports these four errors the same way.
+  const forms: readonly (readonly [string, (cls: Ctor) => unknown])[] = [
+    ['a bare class', (cls) => cls],
+    ['provide(C)', (cls) => rawProvide(cls)],
+    [
+      'provide(C, { lifetime })',
+      (cls) => rawProvide(cls, { lifetime: 'scoped' }),
+    ],
+    ['a { token: C } literal', (cls) => ({ token: cls })],
+    ['provide() useClass', (cls) => rawProvide(NAV_CHARTS, { useClass: cls })],
+    ['a useClass literal', (cls) => ({ token: NAV_CHARTS, useClass: cls })],
+  ];
+  const classErrors: readonly (readonly [string, () => Ctor, string])[] = [
     [
       'deps in both @Injectable and static deps',
-      (() => {
+      () => {
         class Twice extends Probe {}
         const metadata = Object.create(null) as DecoratorMetadataObject;
-        writeInjectable(metadata, { deps: [NAME], lifetime: undefined });
+        writeInjectable(metadata, { deps: [NAME] });
         Object.defineProperty(Twice, Symbol.metadata, { value: metadata });
         return Twice;
-      })(),
+      },
       'declares deps in both @Injectable and static deps; keep one',
     ],
     [
       'a static deps that is not an array',
-      class NotArray {
-        static deps = 'name';
-        constructor(readonly name: string) {}
-      },
+      () =>
+        class NotArray {
+          static deps = 'name';
+          constructor(readonly name: string) {}
+        },
       'has a static deps that is not an array',
     ],
     [
       'a static deps getter that throws',
-      class Trap {
-        static get deps(): never {
-          throw new Error('trap');
-        }
-        constructor(readonly name: string) {}
-      },
+      () =>
+        class Trap {
+          static get deps(): never {
+            throw new Error('trap');
+          }
+          constructor(readonly name: string) {}
+        },
       'has a static deps that throws when read: Error: trap',
     ],
     [
       'a static deps entry that is not a token',
-      class Stringly {
-        static deps = ['nav'];
-        constructor(readonly name: string) {}
-      },
+      () =>
+        class Stringly {
+          static deps = ['nav'];
+          constructor(readonly name: string) {}
+        },
       'deps[0] is the string "nav", not a token',
     ],
-  ])('reports NEXUS_INVALID_PROVIDER for %s', (_label, entry, reason) => {
-    expect(normalize(entry).errors).toMatchObject([
-      { code: 'NEXUS_INVALID_PROVIDER', reason },
-    ]);
+  ];
+  describe.each(forms)('through %s', (_form, wrap) => {
+    it.each(classErrors)(
+      'reports NEXUS_INVALID_PROVIDER for %s',
+      (_label, make, reason) => {
+        expect(normalize(wrap(make())).errors).toMatchObject([
+          { code: 'NEXUS_INVALID_PROVIDER', reason },
+        ]);
+      },
+    );
   });
 
   it("gives useClass the class's @Injectable deps when the binding has none", () => {
