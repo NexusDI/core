@@ -102,3 +102,6 @@ Ruling: R8 compile.check report type widened to NexusError<string> — accepted 
 Ruling: R8 override errors reported from compile.check after core's passes — accepted — every revision 1 test passes; README doctests point at @nexusdi/testing until R23.
 Task R8: fix round 1/5 (stale usedModules after a no-op load reports a false NEXUS_OVERRIDE_EXPORTS)
 Task R8: fix round 2/5 (stale override entry when one stub replaces two modules)
+Task R8: minor (deferred): M5 module-export comparison after replacement; M6 Blueprint.exportedTokens has no reader (R19); M7 distinct CompileContext per compile unpinned (carried to R9)
+Task R8: complete (commits 77eceda..b330351, review clean)
+Task R9: dispatched (BASE b330351, sonnet)
