@@ -170,3 +170,5 @@ Ruling: R19 export errors pushed after dropDuplicates — accepted, keeps error 
 Note: during R19 a cached run failed devtools:test and testing:test once and passed unchanged on rerun; investigate in the final review together with the levels.test.ts flake.
 Note: the flake is a dist race: a package's test-d typecheck reads another package's dist while it is being rebuilt ('libs/testing/dist/index.d.ts has not been built from source'); fix in the final wave (test targets depend on the built dist, or typecheck resolves source).
 Task R19: fix round 1/5 (compile.module hook timing for export-only modules)
+Task R19: complete (commits 26d357f..a789f0d, review clean; core 18135 -> 18121, kept)
+Task R20: dispatched (BASE a789f0d, opus)
