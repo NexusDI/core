@@ -1,0 +1,21 @@
+{
+  "name": "@nexusdi/toolchain-matrix",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "description": "Builds and runs the packed @nexusdi/core under every mainstream TypeScript toolchain.",
+  "scripts": {
+    "matrix": "node scripts/run-matrix.mjs --check"
+  },
+  "nx": {
+    "targets": {
+      "matrix": {
+        "executor": "nx:run-commands",
+        "options": {
+          "cwd": "examples/toolchain-matrix",
+          "command": "node scripts/run-matrix.mjs --check"
+        }
+      }
+    }
+  }
+}

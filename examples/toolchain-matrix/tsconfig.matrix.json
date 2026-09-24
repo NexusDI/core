@@ -1,0 +1,20 @@
+{
+  "compilerOptions": {
+    "strict": true,
+    "target": "es2022",
+    "module": "nodenext",
+    "moduleResolution": "nodenext",
+    // dom for console only; the program runs on Node, Bun and Deno.
+    "lib": ["es2022", "dom"],
+    "types": [],
+    "skipLibCheck": false,
+    "rootDir": "src",
+    // The sources must run under Node's type stripping: no parameter
+    // properties, enums or namespaces, and type-only imports marked.
+    "erasableSyntaxOnly": true,
+    "verbatimModuleSyntax": true,
+    // Sources import siblings as ./x.ts; the emitted JavaScript imports ./x.js.
+    "rewriteRelativeImportExtensions": true
+  },
+  "include": ["src/**/*.ts"]
+}

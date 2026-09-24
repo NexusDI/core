@@ -1,0 +1,92 @@
+{
+  "toolchains": [
+    {
+      "id": "tsc",
+      "version": "6.0.3",
+      "packages": {
+        "typescript": "6.0.3"
+      },
+      "decorators": true
+    },
+    {
+      "id": "tsgo",
+      "version": "7.0.2",
+      "packages": {
+        "typescript7": "npm:typescript@7.0.2"
+      },
+      "decorators": true
+    },
+    {
+      "id": "esbuild",
+      "version": "0.28.2",
+      "packages": {
+        "esbuild": "0.28.2"
+      },
+      "decorators": true
+    },
+    {
+      "id": "swc",
+      "version": "1.16.2",
+      "packages": {
+        "@swc/core": "1.16.2",
+        "@swc/cli": "0.8.1"
+      },
+      "decorators": true
+    },
+    {
+      "id": "babel",
+      "version": "8.0.6",
+      "packages": {
+        "@babel/core": "8.0.6",
+        "@babel/cli": "8.0.6",
+        "@babel/preset-typescript": "8.0.1",
+        "@babel/plugin-proposal-decorators": "8.0.2"
+      },
+      "decorators": true
+    },
+    {
+      "id": "vite",
+      "version": "8.3.0",
+      "packages": {
+        "vite": "8.3.0"
+      },
+      "decorators": false,
+      "note": "Vite 8.3 (Oxc 0.151, Rolldown 1.2.10) passes standard decorators through unlowered, and no option lowers them (oxc#9170). The vite8+babel-plugin cell is the workaround the Vite migration guide documents."
+    },
+    {
+      "id": "vite8+babel-plugin",
+      "version": "8.3.0",
+      "packages": {
+        "vite": "8.3.0",
+        "@rolldown/plugin-babel": "0.2.4",
+        "@babel/core": "8.0.6",
+        "@babel/preset-typescript": "8.0.1",
+        "@babel/plugin-proposal-decorators": "8.0.2"
+      },
+      "decorators": true
+    },
+    {
+      "id": "bun",
+      "version": "1.4.2",
+      "packages": {
+        "bun": "1.4.2"
+      },
+      "decorators": true
+    },
+    {
+      "id": "deno",
+      "version": "2.9.6",
+      "packages": {
+        "deno": "2.9.6"
+      },
+      "decorators": true
+    },
+    {
+      "id": "node-strip-types",
+      "version": null,
+      "packages": {},
+      "decorators": false,
+      "note": "Node 24 runs TypeScript by erasing types and lowers no syntax, so the decorated variant is a SyntaxError."
+    }
+  ]
+}

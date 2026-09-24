@@ -1,0 +1,119 @@
+{
+  "values": {
+    "course": "course to Kepler-442b",
+    "divert": 0.4,
+    "mission": "survey-7"
+  },
+  "graph": {
+    "modules": [
+      {
+        "id": "m0",
+        "name": "Meridian",
+        "global": false,
+        "imports": ["m1"],
+        "exports": []
+      },
+      {
+        "id": "m1",
+        "name": "Tactical",
+        "global": false,
+        "imports": ["m2"],
+        "exports": ["p2", "p1", "m2"]
+      },
+      {
+        "id": "m2",
+        "name": "Engineering",
+        "global": false,
+        "imports": [],
+        "exports": ["p4", "p5"]
+      }
+    ],
+    "providers": [
+      {
+        "id": "p0",
+        "token": "NavCharts",
+        "module": "m1",
+        "lifetime": "singleton",
+        "kind": "factory",
+        "async": true
+      },
+      {
+        "id": "p1",
+        "token": "Mission",
+        "module": "m1",
+        "lifetime": "scoped",
+        "kind": "factory",
+        "async": false
+      },
+      {
+        "id": "p2",
+        "token": "Bridge",
+        "module": "m1",
+        "lifetime": "singleton",
+        "kind": "class",
+        "async": false
+      },
+      {
+        "id": "p3",
+        "token": "ReactorCore",
+        "module": "m2",
+        "lifetime": "singleton",
+        "kind": "class",
+        "async": false
+      },
+      {
+        "id": "p4",
+        "token": "ShipComputer",
+        "module": "m2",
+        "lifetime": "singleton",
+        "kind": "class",
+        "async": false
+      },
+      {
+        "id": "p5",
+        "token": "PowerRouter",
+        "module": "m2",
+        "lifetime": "singleton",
+        "kind": "class",
+        "async": false
+      },
+      {
+        "id": "p6",
+        "token": "ShieldGrid",
+        "module": "m2",
+        "lifetime": "singleton",
+        "kind": "class",
+        "async": false
+      },
+      {
+        "id": "request",
+        "token": "REQUEST",
+        "module": "m0",
+        "lifetime": "scoped",
+        "kind": "value",
+        "async": false
+      }
+    ],
+    "edges": [
+      { "from": "p1", "to": "request", "kind": "required" },
+      { "from": "p2", "to": "p4", "kind": "required" },
+      { "from": "p2", "to": "p0", "kind": "required" },
+      { "from": "p4", "to": "p3", "kind": "required" },
+      { "from": "p5", "to": "p6", "kind": "lazy" },
+      { "from": "p6", "to": "p5", "kind": "required" }
+    ]
+  },
+  "trace": {
+    "counts": {
+      "compile": 1,
+      "construct": 7,
+      "init": 1,
+      "scope:create": 1,
+      "scope:dispose": 1,
+      "dispose:instance": 2,
+      "dispose": 1
+    },
+    "disposed": ["ShipComputer", "ReactorCore"]
+  },
+  "log": ["computer self-test", "computer off", "reactor scrammed"]
+}

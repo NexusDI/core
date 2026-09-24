@@ -1,0 +1,62 @@
+[
+  {
+    "toolchain": "babel",
+    "version": "8.0.6",
+    "variant": "plain",
+    "result": "pass"
+  },
+  {
+    "toolchain": "bun",
+    "version": "1.4.2",
+    "variant": "plain",
+    "result": "pass"
+  },
+  {
+    "toolchain": "deno",
+    "version": "2.9.6",
+    "variant": "plain",
+    "result": "pass"
+  },
+  {
+    "toolchain": "esbuild",
+    "version": "0.28.2",
+    "variant": "plain",
+    "result": "pass"
+  },
+  {
+    "toolchain": "node-strip-types",
+    "version": "24.20.0",
+    "variant": "plain",
+    "result": "pass"
+  },
+  {
+    "toolchain": "swc",
+    "version": "1.16.2",
+    "variant": "plain",
+    "result": "pass"
+  },
+  {
+    "toolchain": "tsc",
+    "version": "6.0.3",
+    "variant": "plain",
+    "result": "pass"
+  },
+  {
+    "toolchain": "tsgo",
+    "version": "7.0.2",
+    "variant": "plain",
+    "result": "pass"
+  },
+  {
+    "toolchain": "vite",
+    "version": "8.3.0",
+    "variant": "plain",
+    "result": "pass"
+  },
+  {
+    "toolchain": "vite8+babel-plugin",
+    "version": "8.3.0",
+    "variant": "plain",
+    "result": "pass"
+  }
+]

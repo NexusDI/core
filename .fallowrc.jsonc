@@ -39,6 +39,15 @@
     "libs/core/test-support/deferred.ts",
     "libs/core/test-support/nexus-request.ts",
     "libs/core/src/**/*.test-d.ts",
+
+    // Built and run by examples/toolchain-matrix/scripts/run-matrix.mjs in a
+    // throwaway consumer; nothing in the workspace imports them. The vite
+    // configs are passed to vite by --config, a CLI argument fallow's
+    // static resolver does not follow, so they need the same entry.
+    "examples/toolchain-matrix/src/*/main.ts",
+    "examples/toolchain-matrix/scripts/*.mjs",
+    "examples/toolchain-matrix/vite.matrix.config.mjs",
+    "examples/toolchain-matrix/vite.babel.config.mjs",
   ],
 
   // `react-router typegen` writes +types/*.d.ts files that examples/react-ssr
@@ -145,6 +154,15 @@
     // (see the libraries repo's tools/doc-examples, which this mirrors), so
     // it resolves through the root manifest instead.
     "vite-plugin-doctest",
+    // examples/toolchain-matrix/src/*.ts import @nexusdi/core, and
+    // vite.babel.config.mjs imports @rolldown/plugin-babel, but neither
+    // belongs in the project's package.json: run-matrix.mjs installs the
+    // packed core tarball and every pinned toolchain package into a
+    // throwaway consumer it builds in, never into this workspace project
+    // (see toolchains.json and Step 1's package.json, which the brief
+    // gives no dependencies on purpose).
+    "@nexusdi/core",
+    "@rolldown/plugin-babel",
   ],
 
   // definitions/standard-schema.ts declares `StandardSchemaV1` twice on

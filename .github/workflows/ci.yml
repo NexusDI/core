@@ -141,3 +141,29 @@ jobs:
       - run: npm ci
 
       - run: npm run verify:packaging
+
+  # Builds the packed @nexusdi/core with tsc 6, TypeScript 7, esbuild, SWC,
+  # Babel, Vite (with and without the Babel plugin), Bun, Deno and Node's
+  # type stripping, runs each build, and holds its output to one golden file. Every toolchain version is pinned in
+  # examples/toolchain-matrix/toolchains.json and installed from npm.
+  #
+  # Runs after packaging (D11): it packs and installs the same tarball
+  # packaging verifies, so a broken pack fails there first instead of
+  # spending this job's install time on a tarball packaging would already
+  # have rejected.
+  toolchain-matrix:
+    needs: packaging
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          filter: tree:0
+
+      - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
+        with:
+          node-version-file: .nvmrc
+          cache: 'npm'
+
+      - run: npm ci
+
+      - run: npx nx run @nexusdi/toolchain-matrix:matrix
