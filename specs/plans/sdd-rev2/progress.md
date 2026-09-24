@@ -115,3 +115,6 @@ Ruling: R10 devtools vite.config importing ../core/vite.decorators.ts with an es
 Ruling: R10 DevtoolsError wording written by the implementer (spec §9 gives none) — accepted, subject to the prose rules.
 Ruling: R10 inspect() puts the caller's plugins before its own — accepted — plugins[i] in NEXUS_PLUGIN_INVALID then matches the caller's array index.
 Task R10: fix round 1/5 (inspect() reads plugins before validation)
+Task R10: minor (deferred): packed-list shape duplication (dupes 1.8%); cosmetic M6; (Task R15) add a real eager: false graph assertion
+Task R10: complete (commits 3267aae..322a531, review clean)
+Task R11: dispatched (BASE 322a531, opus)
