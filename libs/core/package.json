@@ -37,7 +37,7 @@
     "./dist/polyfill/symbol-dispose.js"
   ],
   "engines": {
-    "node": ">=22"
+    "node": ">=22.12"
   },
   "types": "./dist/index.d.ts",
   "exports": {
