@@ -77,3 +77,7 @@ Task R4: fix round 1/5 (adopt the built value before a construct hook failure; P
 Task R4: minor (deferred): M2 failed setup does not await in-flight load/createScope rollbacks; M6 retries of a failing scoped construct hook hold instances until scope disposal
 Task R4: complete (commits 8646107..b95802a, review clean)
 Task R5: dispatched (BASE b95802a, opus)
+Ruling: R5 one-line message omits empty arrays — accepted — spec §9's example and the brief's exact line both drop an empty nearMisses.
+Ruling: R5 new reason ids 'bad-description' (InvalidTokenReason) and 'getter-throws' (PluginInvalidReason) — accepted — additions only; a throwing plugin getter is NEXUS_PLUGIN_INVALID naming plugin and key.
+Ruling: R5 formatter split — accepted — formatThrown and layout in plugins/format.ts; guard, guardAsync and formatFor in runtime/guard.ts because they need runtime state.
+Ruling: (Task R7) the InvalidProviderError error case's cast reason — R7 replaces it with a real InvalidProviderReason id while the parity suite keeps revision 1's text.
