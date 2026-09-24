@@ -126,3 +126,4 @@ Task R11: fix round 2/5 (default setter: defineProperty only for '__proto__')
 Task R11: minor (deferred): M1 frozen parent metadata throws on write (revision 1 behaviour); M3 core README line (R23)
 Task R11: complete (commits 9012aca..8f5952c, review clean)
 Task R12: dispatched (BASE 8f5952c, opus)
+Ruling: R12 RootRef<P, Q> with a ProviderEntry[] default, the corrected MISSING_DEPS type-test premise (spec §3.2), and NEXUS_INVALID_MODULE for a non-array providers/imports/exports in a root object — accepted.
