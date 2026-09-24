@@ -98,3 +98,5 @@ Task R7: fix round 1/5 (release tag pattern; small minors)
 Task R7: minor (deferred): core keeps a full copy of message-scenarios.ts; no explicit empty dependencies field (matches scaffold); unreachable near-miss branches kept for parity
 Task R7: complete (commits 2f404ba..7a49b2a, review clean)
 Task R8: dispatched (BASE 7a49b2a, opus)
+Ruling: R8 compile.check report type widened to NexusError<string> — accepted — spec §9 types a plugin's code as string.
+Ruling: R8 override errors reported from compile.check after core's passes — accepted — every revision 1 test passes; README doctests point at @nexusdi/testing until R23.
