@@ -1,3 +1,4 @@
+import type { CompileOverrides } from '../blueprint/overrides.js';
 import type { ModuleRef } from '../definitions/define-module.js';
 import type { Dep, DepsMap, ResolvedDeps } from '../definitions/modifiers.js';
 import type { NexusRequest } from '../definitions/request.js';
@@ -18,6 +19,7 @@ import { Tracer } from './trace.js';
 /** Settings the testing entry sets; Nexus.create uses the defaults. */
 export interface ContainerInternals {
   readonly initEnabled: boolean;
+  readonly overrides?: CompileOverrides;
 }
 
 let wrap: (state: RootState) => Nexus;
@@ -138,13 +140,18 @@ export async function createContainer(
   internals: ContainerInternals,
 ): Promise<Nexus> {
   const tracer = new Tracer(options?.trace);
-  const blueprint = compileTraced(tracer, { root }, 'create');
+  const blueprint = compileTraced(
+    tracer,
+    { root, overrides: internals.overrides },
+    'create',
+  );
   const state = createRootState({
     blueprint,
     rootRef: root,
     tracer,
     initEnabled: internals.initEnabled,
     scopeContext: options?.scopeContext,
+    overrides: internals.overrides,
   });
   await startBlueprint(state, { bp: blueprint, isNew: () => true });
   return wrap(state);

@@ -1,3 +1,4 @@
+import type { ModuleDefinition } from '../definitions/define-module.js';
 import { REQUEST } from '../definitions/request.js';
 import {
   BlueprintError,
@@ -12,6 +13,12 @@ import {
 } from './blueprint.js';
 import { computeLevels } from './levels.js';
 import { checkLifetimes } from './lifetimes.js';
+import {
+  applyProviderOverrides,
+  checkModuleOverrides,
+  moduleReplacer,
+  type CompileOverrides,
+} from './overrides.js';
 import { cyclePath, findCycles, successorsOf } from './tarjan.js';
 import { computeVisibility } from './visibility.js';
 import { walk } from './walk.js';
@@ -21,6 +28,8 @@ export interface CompileInput {
   readonly root: unknown;
   /** Modules load() added as root imports. */
   readonly extraImports?: readonly unknown[];
+  /** Testing overrides (createTestingContainer). */
+  readonly overrides?: CompileOverrides;
 }
 
 /** The built-in REQUEST provider: scoped, visible in every module. */
@@ -48,11 +57,20 @@ export function compile(input: CompileInput): Blueprint {
   const errors: NexusError[] = [];
   const extraImports = [...(input.extraImports ?? [])];
 
-  // Pass 1: walk and deduplicate.
-  const walked = walk({ root: input.root, extraImports }, errors);
+  // Pass 1: walk and deduplicate, with testing overrides applied.
+  const usedStubs = new Set<ModuleDefinition>();
+  const replace =
+    input.overrides === undefined
+      ? undefined
+      : moduleReplacer(input.overrides, usedStubs);
+  const walked = walk({ root: input.root, extraImports, replace }, errors);
+  const overridden =
+    input.overrides === undefined
+      ? { records: [...walked.records], pinned: new Map() }
+      : applyProviderOverrides(walked.records, input.overrides, errors);
   const root = walked.modules[0]?.id ?? 'm0';
   const records = [
-    ...walked.records,
+    ...overridden.records,
     requestRecord(walked.records.length, root),
   ];
   const providers = new Map(records.map((r) => [r.id, r]));
@@ -64,10 +82,20 @@ export function compile(input: CompileInput): Blueprint {
       modules: walked.modules,
       records,
       byDefinition: walked.byDefinition,
-      pinned: new Map([[REQUEST, [REQUEST_ID]]]),
+      pinned: new Map([[REQUEST, [REQUEST_ID]], ...overridden.pinned]),
+      replace,
     },
     errors,
   );
+  if (input.overrides !== undefined) {
+    checkModuleOverrides(
+      input.overrides,
+      usedStubs,
+      walked.byDefinition,
+      visible.exportedTokens,
+      errors,
+    );
+  }
 
   // Pass 3: bind.
   const bound = bind(

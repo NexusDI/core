@@ -1,4 +1,5 @@
 import type { Blueprint } from '../blueprint/blueprint.js';
+import type { CompileOverrides } from '../blueprint/overrides.js';
 import { DisposedError } from '../errors/index.js';
 import { Ownership, type OwnedEntry } from './ownership.js';
 import { Slots } from './readiness.js';
@@ -26,6 +27,8 @@ export interface RootState {
   readonly asyncFlags: Map<string, boolean>;
   /** False only for createTestingContainer().create({ onInit: false }). */
   readonly initEnabled: boolean;
+  /** Set only by createTestingContainer(); load() replays it on every recompile. */
+  readonly overrides: CompileOverrides | undefined;
   /** Set when disposal starts. Every public method checks it. */
   disposing: boolean;
   /** Set by the first [Symbol.asyncDispose]() call; later calls return it. */
@@ -100,6 +103,7 @@ export interface RootInit {
   readonly tracer: Tracer;
   readonly initEnabled: boolean;
   readonly scopeContext: ScopeContext | undefined;
+  readonly overrides: CompileOverrides | undefined;
 }
 
 export function createRootState(init: RootInit): RootState {
@@ -118,6 +122,7 @@ export function createRootState(init: RootInit): RootState {
     tracer: init.tracer,
     asyncFlags: new Map(),
     initEnabled: init.initEnabled,
+    overrides: init.overrides,
     disposing: false,
     disposal: undefined,
     loadQueue: Promise.resolve(),

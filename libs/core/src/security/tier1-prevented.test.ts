@@ -6,6 +6,7 @@ import '../polyfill/symbol-metadata.js';
 
 import { describe, expect, it } from 'vitest';
 
+import { thrown } from '../../test-support/catch.js';
 import { compileErrors, idOf, visible } from '../../test-support/compile.js';
 import {
   expectPlainGraph,
@@ -31,6 +32,7 @@ import {
   provide,
   type StandardSchemaV1,
 } from '../index.js';
+import { createTestingContainer } from '../testing/index.js';
 
 const rawProvide = provide as (token: unknown, options?: unknown) => never;
 const NAMES = ['__proto__', 'constructor', 'prototype'] as const;
@@ -249,6 +251,34 @@ describe('SEC-003 a polluted Object.prototype (CWE-1321)', () => {
       expect(ship.get(Reactor)).toBeInstanceOf(Reactor);
     } finally {
       delete proto['deps'];
+    }
+  });
+
+  // applyProviderOverrides reads an override's own `lifetime` key the same
+  // way records.ts does (Object.hasOwn), not with `'lifetime' in options`,
+  // which a polluted prototype would satisfy for every override, even one
+  // that never set a lifetime. This test fails if the check used `in`: the
+  // scoped lifetime provide() declared would flip to the override's default
+  // (singleton), and get() at the root would stop throwing.
+  it('keeps the original lifetime when override() omits it, even while Object.prototype carries one', async () => {
+    const proto = Object.prototype as Record<string, unknown>;
+    proto['lifetime'] = 'transient';
+    try {
+      class Reactor {}
+      class FakeReactor extends Reactor {}
+      const ship = await createTestingContainer(
+        defineModule({
+          name: 'Root',
+          providers: [provide(Reactor, { lifetime: 'scoped' })],
+        }),
+      )
+        .override(Reactor, { useClass: FakeReactor })
+        .create();
+      expect(thrown(() => ship.get(Reactor))).toMatchObject({
+        code: 'NEXUS_SCOPE_REQUIRED',
+      });
+    } finally {
+      delete proto['lifetime'];
     }
   });
 });
