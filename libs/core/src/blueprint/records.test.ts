@@ -51,6 +51,9 @@ describe('normalizeProvider', () => {
         token: 'ShipComputer',
         module: 'Engineering',
         arity: 1,
+        message:
+          '[NEXUS_MISSING_DEPS] ShipComputer in Engineering takes 1 constructor parameter and has no deps.\n' +
+          '  Fix: declare static deps = [...] as const on ShipComputer, decorate it with @Injectable({ deps }), or list provide(ShipComputer, { deps: [...] }) in providers.',
       },
     ]);
   });
@@ -580,6 +583,9 @@ describe('normalizeProvider with static deps', () => {
         token: 'Decorated',
         useClass: null,
         arity: 1,
+        message:
+          '[NEXUS_MISSING_DEPS] Decorated in Engineering takes 1 constructor parameter and has no deps.\n' +
+          '  Fix: add deps to the binding, or declare static deps = [...] as const on Decorated. A binding of a class to itself does not read @Injectable deps.',
       });
     },
   );
@@ -597,7 +603,25 @@ describe('normalizeProvider with static deps', () => {
       useClass: 'Bare',
       arity: 1,
     });
-    expect(error?.message).toContain('Bare (useClass for NavCharts)');
+    expect(error?.message).toBe(
+      '[NEXUS_MISSING_DEPS] Bare (useClass for NavCharts) in Engineering takes 1 constructor parameter and has no deps.\n' +
+        '  Fix: add deps to the binding, declare static deps = [...] as const on Bare, or decorate it with @Injectable({ deps }).',
+    );
+  });
+
+  it('gives the useClass fix for a useClass that names its own token', () => {
+    class Bare {
+      constructor(readonly name: string) {}
+    }
+    const [error] = normalize(rawProvide(Bare, { useClass: Bare })).errors;
+    expect(error).toMatchObject({
+      code: 'NEXUS_MISSING_DEPS',
+      token: 'Bare',
+      useClass: 'Bare',
+    });
+    expect(error?.message).toContain(
+      'or decorate it with @Injectable({ deps })',
+    );
   });
 
   it('reports deps in both @Injectable and static deps through useClass', () => {

@@ -255,6 +255,14 @@ function propsOf(cls: Ctor, fail: Fail): PropEntry[] | null {
   return props;
 }
 
+/**
+ * How a class reached the providers list: listed bare, bound to itself by
+ * provide(C) or a { token: C } literal, or named by useClass. A bare class
+ * and useClass read @Injectable deps; a binding to itself reads static deps
+ * only (spec §3.2).
+ */
+type ClassForm = 'bare' | 'binding' | 'useClass';
+
 function classShape(
   token: TokenKey,
   cls: Ctor,
@@ -263,17 +271,15 @@ function classShape(
   site: ProviderSite,
   errors: NexusError[],
   fail: Fail,
-  // provide(C), provide(C, { lifetime }) and a { token: C } literal never
-  // read @Injectable for deps; bareClass and the useClass branch pass
-  // declaredDeps to read it too (spec §3.2).
-  resolveDeps: DepsResolver = staticOnlyDeps,
+  form: ClassForm,
 ): RecordShape | null {
   let list = deps;
   if (list === undefined) {
-    // resolveDeps already reports a static deps that is not an array and a
+    // The resolver already reports a static deps that is not an array and a
     // class that declares deps in both @Injectable and static deps, so list
     // is an array or still undefined here.
-    const declared = resolveDeps(cls, fail);
+    const readDeps = form === 'binding' ? staticOnlyDeps : declaredDeps;
+    const declared = readDeps(cls, fail);
     if (declared === null) return null;
     list = declared.value;
   }
@@ -288,7 +294,8 @@ function classShape(
           token: displayName(token),
           module: site.module,
           arity,
-          useClass: token === cls ? null : displayName(cls),
+          useClass: form === 'useClass' ? displayName(cls) : null,
+          bare: form === 'bare',
         }),
       );
       return null;
@@ -334,7 +341,7 @@ function bareClass(
     site,
     errors,
     fail,
-    declaredDeps,
+    'bare',
   );
 }
 
@@ -410,6 +417,7 @@ function definitionShape(
       site,
       errors,
       fail,
+      'binding',
     );
   }
 
@@ -441,6 +449,7 @@ function definitionShape(
         site,
         errors,
         fail,
+        'binding',
       );
     case 'useClass': {
       const cls = options.useClass;
@@ -454,7 +463,7 @@ function definitionShape(
         site,
         errors,
         fail,
-        declaredDeps,
+        'useClass',
       );
     }
     case 'useValue':
