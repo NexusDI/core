@@ -10,16 +10,15 @@ Packages: `apps/docs` (new, `@nexusdi/docs`, private), `apps/docs-e2e` (new, Pla
 published package changes.
 Depends on:
 
-- `specs/2026-09-23-core-0.4-design.md` at `b5ab435`, the API this site teaches: §3 the
-  public API and the Meridian names, §8.2 disposal and the `dispose:instance` event, §9 the
-  error catalogue, §10 `graph()` and trace events, §11 the testing API, §13 the migration
-  guide outline, the codemod and its `TODO_CODES` and `NOTE_CODES`, §14 the release plan
-  and its rc.0 checklist.
-- The core spec revision that adds two ways to declare a provider, which `b5ab435` does not
-  yet specify: `static deps = [TOKEN] as const` on a plain class, and object-literal
+- `specs/2026-09-23-core-0.4-design.md` on `plan/core-0.4-engine` at `ab6a3e8`, revision 2,
+  the API this site teaches: §0 the package split (D9) and the plugin API (D19, D20), §3
+  the public API and the Meridian names, §8.2 disposal and the `dispose:instance` event, §9
+  the error catalogue and core's one-line messages (D15, D21), §10 `graph(ship)` and trace
+  events from `@nexusdi/devtools`, §11 the testing API, §13 the migration guide outline, the
+  codemod and its `TODO_CODES` and `NOTE_CODES`, §14 the release plan and its rc.0
+  checklist. Revision 2 specifies both ways to declare a provider's deps that section 7.5
+  teaches: `static deps = [TOKEN] as const` on a plain class (D2, D17), and object-literal
   providers `{ token, useValue | useClass | useFactory | useExisting, deps?, lifetime? }`.
-  Section 7.5 teaches both. Until that revision is merged, the regions that show them wait, and
-  every other example uses `provide()`.
 - `specs/2026-09-23-benchmarks-and-launch-design.md` on `spec/benchmarks-launch` at
   `85af1c1`: §4.7 the metrics, §4.9 the results schema, §4.11 how the docs read the results,
   §9 the guards, §12 its amendments to this spec. Every size and time figure on the site
@@ -182,7 +181,7 @@ places.
     briefing modes, the progress dashboard and data-driven views such as the next-mission
     recommendation. The pins are exact and a person bumps them in a pull request. Scroll
     and in-view tracking stay docs code (section 10.4).
-24. Panel and mode changes animate with native View Transitions through React 19.3.0's
+24. Panel and mode changes animate with View Transitions through React 19.3.0's
     `<ViewTransition>`. Under `prefers-reduced-motion`, and in a browser without the API,
     the change is an instant swap. `@evanion/react-widget` needs no change for it
     (section 10.5).
@@ -308,40 +307,46 @@ immediately before. Lookup pages carry no box and link to the page that teaches 
 | 1   | `/`                      | NexusDI                                                              | `overview`  | what NexusDI is, when to use it and when to skip it, bundle size and dependency count                                                                                          | none                             | `MeridianOnline` specimen                            |
 | 2   | `/getting-started/`      | Getting started                                                      | `tutorial`  | install, the TypeScript settings, one interface and its token, `provide(TOKEN, { useClass, deps })`, one module, `Nexus.create`, `get`, `await using`                          | none                             | console: graph of the first ship                     |
 | 3   | `/tokens/`               | Tokens and interfaces                                                | `concept`   | a typed `Token<T>` per interface, identity comparison, `useValue`, why the docs bind interfaces                                                                                | Getting started                  | console: graph                                       |
-| 4   | `/providers/`            | Providers                                                            | `concept`   | `useClass` with `deps`, `useFactory` sync and async, `useExisting`, `optional()`, object-literal providers, `static deps`, defaults and rest parameters                        | Tokens and interfaces            | console: graph and a `NAV_CHARTS` specimen           |
+| 4   | `/providers/`            | Providers                                                            | `concept`   | `static deps = [TOKEN] as const` as the primary form, `useClass` with `deps` for a class the reader cannot edit, `useFactory` sync and async, `useExisting`, `optional()`, defaults and rest parameters | Tokens and interfaces            | console: graph and a `NAV_CHARTS` specimen           |
 | 5   | `/lifetimes/`            | Lifetimes                                                            | `concept`   | `singleton` and `transient`                                                                                                                                                    | Providers, Tokens and interfaces | console: trace replay of two drones                  |
 | 6   | `/modules/`              | Modules                                                              | `concept`   | `defineModule`, `imports`, `exports`, encapsulation, `global: true`, `has()`, `get(T, { module })`, a module swap                                                              | Lifetimes, Providers             | console: graph with module visibility, then the swap |
-| 7   | `/configurable-modules/` | Configurable modules                                                 | `concept`   | `options`, `with(value)`, `with({ deps, useFactory })`, `schema`, an option that picks the implementation                                                                      | Modules, Lifetimes               | console: the chosen link and a frequency check       |
+| 7   | `/configurable-modules/` | Configurable modules                                                 | `concept`   | `options`, `forRoot(value)`, `forRootAsync({ deps?, useFactory })`, `schema`, an option that picks the implementation                                                          | Modules, Lifetimes               | console: the chosen link and a frequency check       |
 | 8   | `/scopes/`               | Scopes and REQUEST                                                   | `concept`   | `createScope`, `scoped`, `REQUEST`, the captive rule                                                                                                                           | Configurable modules, Modules    | console: trace replay of two shuttles                |
 | 9   | `/lifecycle/`            | Lifecycle and disposal                                               | `concept`   | `onInit`, `Symbol.asyncDispose`, disposal order, `SuppressedError`                                                                                                             | Scopes and REQUEST               | console: replay of startup and scram                 |
 | 10  | `/lazy/`                 | Lazy edges and cycles                                                | `concept`   | `lazy()`, `NEXUS_CIRCULAR_DEPENDENCY`, `NEXUS_NOT_READY`                                                                                                                       | Lifecycle and disposal           | console: the cycle ring, then the lazy fix           |
 | 11  | `/multi-providers/`      | Multi-providers                                                      | `concept`   | `MultiToken`, `all()`, multi-token visibility                                                                                                                                  | Lazy edges and cycles            | console: graph of the `DIAGNOSTICS` fan-in           |
-| 12  | `/errors/`               | Errors                                                               | `concept`   | `NexusError`, codes, one `BlueprintError` for every compile error, `ProviderError.cause`                                                                                       | Multi-providers                  | console: the error view of a broken Meridian         |
-| 13  | `/introspection/`        | Introspection and trace                                              | `concept`   | `graph()`, the `trace` callback                                                                                                                                                | Errors                           | `MeridianOnline` and a full trace replay             |
-| 14  | `/node-request-scopes/`  | Scope an HTTP request in Node                                        | `platform`  | `nodeScopeContext`, `runInScope`, `currentScope`                                                                                                                               | none; links to Scopes            | none: the unit is a running server                   |
+| 12  | `/errors/`               | Errors                                                               | `concept`   | `NexusError`, codes, one `BlueprintError` for every compile error, `ProviderError.cause`, core's one-line message, the full text `errors()` from `@nexusdi/errors` restores    | Multi-providers                  | console: the error view of a broken Meridian, with and without `errors()` |
+| 13  | `/introspection/`        | Introspection and trace                                              | `concept`   | `devtools()` from `@nexusdi/devtools`, `graph()`, the `trace(fn)` callback                                                                                                     | Errors                           | `MeridianOnline` and a full trace replay             |
+| 14  | `/node-request-scopes/`  | Scope an HTTP request in Node                                        | `platform`  | `nodeScopes()` from `@nexusdi/node`, passed as the `scopes` option to `Nexus.create`, `scopes.run(shuttle, fn)`, `scopes.current()`                                            | none; links to Scopes            | none: the unit is a running server                   |
 | 15  | `/react-router-ssr/`     | React Router server rendering                                        | `platform`  | the `@nexusdi/react-router` wiring over `examples/react-ssr`: the request scope an adapter creates on first use, and `di.load(Feature)` as route middleware for a lazy section | none; links to Scopes            | none: the unit is a running server                   |
 | 16  | `/testing/`              | How do I replace a provider in a test?                               | `question`  | `createTestingContainer`, `override(TOKEN, { useClass })`, `overrideModule`                                                                                                    | none                             | console: a test run with `FakeReactor`               |
 | 17  | `/load/`                 | How do I add a module after startup?                                 | `question`  | `ship.load(Module)`, why it is named for lazily loaded sections, and the `di.load(Feature)` route middleware for code-split sections                                           | none                             | console: trace replay of a load                      |
-| 18  | `/decorators/`           | How do I write providers with decorators?                            | `question`  | `@Injectable`, `@Inject` on an `accessor`, `@Module`                                                                                                                           | none                             | console: graph                                       |
+| 18  | `/decorators/`           | How do I write providers with decorators?                            | `question`  | `@Injectable`, `@Inject` on an `accessor`, `@Module`, all from `@nexusdi/decorators`                                                                                           | none                             | console: graph                                       |
 | 19  | `/legacy-decorators/`    | How do I use NexusDI in a project that keeps experimentalDecorators? | `question`  | `NEXUS_LEGACY_DECORATORS` and the `provide()` path                                                                                                                             | none                             | none                                                 |
-| 20  | `/scope-context/`        | How do I scope requests outside Node?                                | `question`  | a custom `ScopeContext` for Deno, Bun, Workers and the browser                                                                                                                 | none                             | console: a scope context run                         |
+| 20  | `/scope-context/`        | How do I scope requests outside Node?                                | `question`  | a custom object that satisfies the structural `scopes` option, for Deno, Bun, Workers and the browser                                                                          | none                             | console: a scope context run                         |
 | 21  | `/bundlers/`             | How do I use NexusDI in a browser bundle?                            | `question`  | bundler settings, `keepNames`, the polyfills in `sideEffects`, decorator transforms                                                                                            | none                             | none                                                 |
 | 22  | `/schemas/`              | Which schema libraries can validate module options?                  | `question`  | valibot in the examples; zod and ArkType through Standard Schema                                                                                                               | none                             | console: a failed validation                         |
 | 23  | `/runtimes/`             | Where NexusDI runs                                                   | `contract`  | the runtime matrix with the evidence for each row                                                                                                                              | none                             | none                                                 |
-| 24  | `/comparison/`           | NexusDI compared with tsyringe, InversifyJS, TypeDI and NestJS       | `contract`  | the differences; why NexusDI needs no compiler flags and no `reflect-metadata`; bundle size, startup, resolve time and build time, each from the benchmark harness             | none                             | none                                                 |
-| 25  | `/upgrade/`              | How do I upgrade from 0.3 to 0.4?                                    | `question`  | core spec §13.1 steps 1 to 9, the CHANGELOG link, the support-policy link                                                                                                      | none                             | none                                                 |
-| 26  | `/upgrade-api-map/`      | 0.3 to 0.4 API map                                                   | `contract`  | one H2 per 0.3 API, from core spec §13.1's table                                                                                                                               | none                             | none                                                 |
-| 27  | `/upgrade-behaviour/`    | Behaviour that changes without a compile error                       | `contract`  | the silent behaviour changes, one H2 each                                                                                                                                      | none                             | none                                                 |
-| 28  | `/codemod/`              | How do I run the 0.4 codemod?                                        | `question`  | the CLI, the report, one H2 per TODO and note code                                                                                                                             | none                             | none                                                 |
-| 29  | `/encapsulation/`        | Why does a provider stop resolving after upgrading to 0.4?           | `question`  | module encapsulation, seen from 0.3 code                                                                                                                                       | none                             | console: `NEXUS_NOT_VISIBLE`, then the fix           |
-| 30  | `/set-removed/`          | Where did `set()` go?                                                | `question`  | why 0.4 has no `set()`, how `load(Module)` differs, and what each 0.3 `set()` call becomes                                                                                     | none                             | none                                                 |
-| 31  | `/support-policy/`       | 0.3 support policy                                                   | `contract`  | the 0.3.x support policy and its dates                                                                                                                                         | none                             | none                                                 |
-| 32  | `/api/`                  | `@nexusdi/core`                                                      | `reference` | one H2 per export of `.`, error classes excepted                                                                                                                               | none                             | none                                                 |
-| 33  | `/api-testing/`          | `@nexusdi/core/testing`                                              | `reference` | one H2 per export of `./testing`                                                                                                                                               | none                             | none                                                 |
-| 34  | `/api-node/`             | `@nexusdi/core/node`                                                 | `reference` | one H2 per export of `./node`                                                                                                                                                  | none                             | none                                                 |
-| 35  | `/api-errors/`           | Error reference                                                      | `reference` | one H2 per error class, one H3 per code                                                                                                                                        | none                             | none                                                 |
+| 24  | `/comparison/`           | NexusDI compared with tsyringe, InversifyJS, TypeDI and NestJS       | `contract`  | the differences; why NexusDI needs no compiler flags or a metadata-emitting decorator runtime; bundle size, startup, resolve time and build time, each from the benchmark harness | none                             | none                                                 |
+| 25  | `/plugins/`              | How do I register a plugin?                                          | `question`  | `Nexus.create(root, { plugins: [...] })`, registration order, `errors()` and `devtools()` as the first-party examples, that `devtools()` includes `errors()`                   | none                             | console: an error, first with no plugin, then with `errors()` registered |
+| 26  | `/upgrade/`              | How do I upgrade from 0.3 to 0.4?                                    | `question`  | core spec §13.1 steps 1 to 9, the CHANGELOG link, the support-policy link                                                                                                      | none                             | none                                                 |
+| 27  | `/upgrade-api-map/`      | 0.3 to 0.4 API map                                                   | `contract`  | one H2 per 0.3 API, from core spec §13.1's table                                                                                                                               | none                             | none                                                 |
+| 28  | `/upgrade-behaviour/`    | Behaviour that changes without a compile error                       | `contract`  | the silent behaviour changes, one H2 each                                                                                                                                      | none                             | none                                                 |
+| 29  | `/codemod/`              | How do I run the 0.4 codemod?                                        | `question`  | the CLI, the report, one H2 per TODO and note code                                                                                                                             | none                             | none                                                 |
+| 30  | `/encapsulation/`        | Why does a provider stop resolving after upgrading to 0.4?           | `question`  | module encapsulation, seen from 0.3 code                                                                                                                                       | none                             | console: `NEXUS_NOT_VISIBLE`, then the fix           |
+| 31  | `/set-removed/`          | Where did `set()` go?                                                | `question`  | why 0.4 has no `set()`, how `load(Module)` differs, and what each 0.3 `set()` call becomes                                                                                     | none                             | none                                                 |
+| 32  | `/support-policy/`       | 0.3 support policy                                                   | `contract`  | the 0.3.x support policy and its dates                                                                                                                                         | none                             | none                                                 |
+| 33  | `/api/`                  | `@nexusdi/core`                                                      | `reference` | one H2 per export of `.`, error classes excepted, the `plugins` option of `Nexus.create` included                                                                             | none                             | none                                                 |
+| 34  | `/api-testing/`          | `@nexusdi/testing`                                                   | `reference` | one H2 per export of `.`                                                                                                                                                       | none                             | none                                                 |
+| 35  | `/api-node/`             | `@nexusdi/node`                                                      | `reference` | one H2 per export of `.`                                                                                                                                                       | none                             | none                                                 |
+| 36  | `/api-errors/`           | Error reference                                                      | `reference` | one H2 per error class, one H3 per code                                                                                                                                        | none                             | none                                                 |
+| 37  | `/api-decorators/`       | `@nexusdi/decorators`                                                 | `reference` | one H2 per export of `.`                                                                                                                                                       | none                             | none                                                 |
+| 38  | `/api-devtools/`         | `@nexusdi/devtools`                                                   | `reference` | one H2 per export of `.`                                                                                                                                                       | none                             | none                                                 |
+| 39  | `/api-federation/`       | `@nexusdi/federation`                                                 | `reference` | one H2 per export of `.`                                                                                                                                                       | none                             | none                                                 |
+| 40  | `/api-errors-package/`   | `@nexusdi/errors`                                                     | `reference` | one H2 per export of `.`: `errors()`, `explain(error)`                                                                                                                          | none                             | none                                                 |
+| 41  | `/api-react/`            | `@nexusdi/react`                                                      | `reference` | one H2 per export of `.`                                                                                                                                                       | none                             | none                                                 |
 
-Pages 14 to 24 are the Guides band, 25 to 31 the Migration band and 32 to 35 the API band.
+Pages 14 to 25 are the Guides band, 26 to 32 the Migration band and 33 to 41 the API band.
 
 The blog, on the new site from 0.4.0 final:
 
@@ -349,7 +354,7 @@ The blog, on the new site from 0.4.0 final:
 | --- | ------------------------------------------ | -------------------------------------------------------------------- |
 | B1  | `/blog/`                                   | The post index                                                       |
 | B2  | `/blog/first-release/`                     | "Tabula Rasa", migrated, 0.1.0                                       |
-| B3  | `/blog/native-decorators-simpler-modules/` | "The jump to lightspeed", migrated, 0.2                              |
+| B3  | `/blog/standard-decorators-simpler-modules/` | "The jump to lightspeed", migrated, 0.2                            |
 | B4  | `/blog/0-4-release-candidate/`             | The RC announcement, migrated from the snapshot, plus any RC updates |
 
 Tool routes:
@@ -361,7 +366,7 @@ Tool routes:
 | T3  | `/academy/[mission]/` | One route per mission, nine in all (section 13.1)                 |
 | T4  | `/academy/progress/`  | Progress, stats, storage state, export and reset (section 13.7)   |
 
-Counts: 35 documentation pages (2 Start, 11 Concepts, 11 Guides, 7 Migration, 4 API), 12
+Counts: 41 documentation pages (2 Start, 11 Concepts, 12 Guides, 7 Migration, 9 API), 12
 tool routes (the Playground, the Academy index, 9 missions and the progress page), and at
 final a blog of an index and at least three posts.
 
@@ -406,7 +411,7 @@ G8 reports and does not fail (standard §4), and the page is recorded in
 and behave differently: a class-typed parameter 0.3.1 left `undefined` is now injected
 (the codemod note `undecorated-param-injected`), every singleton is built at `create`,
 `onInit` runs inside `create`, `has()` answers for visibility and returns `false` for a
-private token or a module class, two `with()` calls build two module instances, one token
+private token or a module class, two `forRoot()` calls build two module instances, one token
 provided in two modules builds two singletons, a factory's result is disposed with the
 container, and error messages start with their code (the TODO `error-message-match`).
 
@@ -427,8 +432,9 @@ states. Section 4.6 sets where every size and time figure comes from.
 `/comparison/` presents the measured benefits as its concrete case: bundle size, startup
 time, resolve time and build time. Its H2 "Why NexusDI needs no compiler flags" is the
 site's answer to that question, and it cites the same measurements, since dropping
-`experimentalDecorators`, `emitDecoratorMetadata` and `reflect-metadata` is what the build
-time and bundle figures measure. The benchmarks spec §5 extends the page and adds one
+`experimentalDecorators` and `emitDecoratorMetadata`, and needing no metadata-emitting
+decorator runtime, is what the build time and bundle figures measure. The benchmarks spec
+§5 extends the page and adds one
 `/vs-<library>/` page per competitor, all under section 4.6's rule. The build time figures
 render from the harness's `build` family, for example
 `<Figure of="build.nexusdi.plain.tsc-6.median" />`.
@@ -449,7 +455,7 @@ explanation and never links away.
 | the other provider forms, `static deps`, `optional()`       | Providers              | Lifetimes               | Modules                 |
 | `singleton`, `transient`                                    | Lifetimes              | Modules                 | Configurable modules    |
 | `defineModule`, `exports`, `has()`                          | Modules                | Configurable modules    | Scopes and REQUEST      |
-| `with()`, `options`                                         | Configurable modules   | Scopes and REQUEST      | Lifecycle and disposal  |
+| `forRoot()`, `options`                                       | Configurable modules   | Scopes and REQUEST      | Lifecycle and disposal  |
 | `createScope`, `scoped`, `REQUEST`                          | Scopes and REQUEST     | Lifecycle and disposal  | Lazy edges and cycles   |
 | `onInit`, disposal order                                    | Lifecycle and disposal | Lazy edges and cycles   | Multi-providers         |
 | `lazy()`                                                    | Lazy edges and cycles  | Multi-providers         | Errors                  |
@@ -473,7 +479,7 @@ checks for the heading (section 14.3).
 | Core spec line | Commitment                                                                            | Page and H2                                                                |
 | -------------- | ------------------------------------------------------------------------------------- | -------------------------------------------------------------------------- |
 | 254            | A class with default or rest parameters needs `provide(C, { deps })` or `@Injectable` | `/providers/`, "A class whose constructor has defaults or rest parameters" |
-| 393            | Call `with()` once and import the result                                              | `/configurable-modules/`, "Call `with()` once and share the module"        |
+| 393            | Call `forRoot()` once and import the result                                           | `/configurable-modules/`, "Call `forRoot()` once and share the module"     |
 | 466            | Resolve disposable transients inside a scope                                          | `/lifecycle/`, "A disposable transient belongs in a scope"                 |
 | 818            | The `esnext.disposable` lib reference adds the disposable globals                     | `/getting-started/`, "TypeScript settings for NexusDI"                     |
 | 1034           | A scoped factory runs once in every scope; on-demand work goes in a scoped class      | `/scopes/`, "A scoped factory runs in every shuttle"                       |
@@ -542,7 +548,7 @@ Every H2 section stands alone when cut out (standard §5a):
 1. No pronoun reaches back past its own heading.
 2. The heading names the package as well as the operation. On a one-package site the
    package is NexusDI, so a heading names NexusDI or the symbol it covers, for example
-   "Configure `Comms` with `with()`". The reviewer applies this to every H2, as §5a
+   "Configure `Comms` with `forRoot()`". The reviewer applies this to every H2, as §5a
    states it.
 3. Each fact sits next to the sentence that uses it.
 
@@ -603,8 +609,8 @@ design pass.
 4. "When to reach for it": an application with enough services that hand wiring hides
    mistakes until runtime, a server that needs per-request values, resources that must
    shut down in dependency order, and tests that replace one service without rebuilding
-   the graph. A line says NexusDI needs no `reflect-metadata` and no compiler flag, with a
-   link to `/comparison/`. [design pass: layout as cards]
+   the graph. A line says NexusDI needs no metadata-emitting decorator runtime and no
+   compiler flag, with a link to `/comparison/`. [design pass: layout as cards]
 5. "When to skip it": a script with a handful of objects, and a framework with its own
    container (NestJS, Angular), where NexusDI adds a second container beside the first.
 6. Links to the four entry pages. [design pass: card treatment]
@@ -649,8 +655,8 @@ Node rows of `/runtimes/`, which add the details:
 #### 5.3.2 Evidence for the note
 
 The `/runtimes/` row for CommonJS names its evidence like every other row: core spec §17's
-CommonJS check. That check calls `require('@nexusdi/core')`, `require('@nexusdi/core/testing')`
-and `require('@nexusdi/core/node')` from a CommonJS consumer on Node 22.12 and Node 24, and
+CommonJS check. That check calls `require('@nexusdi/core')`, `require('@nexusdi/testing')`
+and `require('@nexusdi/node')` from a CommonJS consumer on Node 22.12 and Node 24, and
 a top-level-await guard fails the build if any module in the package's graph gains a
 top-level `await`. The row names the CI job that runs the check.
 
@@ -711,13 +717,13 @@ each entry states its evidence beside it.
 
 ### 5.8 Reference page
 
-The four API pages follow `2026-09-21-docs-api-reference.md`: one `## \`symbol\`` heading
+The nine API pages follow `2026-09-21-docs-api-reference.md`: one `## \`symbol\`` heading
 per export, and under it one directive the reference loader expands:
 
 ```md
 ## `createTestingContainer`
 
-<!-- reference @nexusdi/core/testing#createTestingContainer example=testing-override -->
+<!-- reference @nexusdi/testing#createTestingContainer example=testing-override -->
 
 Prose the author writes, which the loader never touches.
 ```
@@ -852,7 +858,7 @@ and the trace show `ReactorCore` and `ShipComputer` whatever class fills the rol
 | `IDiagnosticsPanel` | `DIAGNOSTICS_PANEL`, described `'DiagnosticsPanel'`        | `StatusBoard`                         | singleton        | `Meridian`, `[all(DIAGNOSTICS), optional(SUBSPACE_LINK)]`                                                           |
 | `Diagnostic`        | `DIAGNOSTICS`, a `MultiToken<Diagnostic>`                  | `ReactorDiagnostic`, `hullDiagnostic` | singleton, value | `Engineering` and `Tactical`                                                                                        |
 | `Mission`           | `MISSION`, a `Token<Mission>`                              | a factory over `REQUEST`              | scoped           | `Tactical`, `[REQUEST]`                                                                                             |
-| `CommsOptions`      | `COMMS_OPTIONS`                                            | the `with()` value                    | none             | `Comms`                                                                                                             |
+| `CommsOptions`      | `COMMS_OPTIONS`                                            | the `forRoot()` value                 | none             | `Comms`                                                                                                             |
 
 The rest of the vocabulary:
 
@@ -920,7 +926,7 @@ The rules pay off in three overrides, which recur through the pages and the miss
   `createTestingContainer(Meridian).override(REACTOR, { useClass: FakeReactor })` puts a
   fake reactor under an unchanged `QuantumComputer` (`/testing/`, missions 1 and 7).
 - A configurable module that picks an implementation.
-  `Comms.with({ frequency: 1420, transport: 'laser' })` binds `SUBSPACE_LINK` to a `LaserLink` (the
+  `Comms.forRoot({ frequency: 1420, transport: 'laser' })` binds `SUBSPACE_LINK` to a `LaserLink` (the
   Configurable modules page, mission 5).
 
 `doc-interface-first` (section 14.3) checks the rules a pattern can reach, and the
@@ -944,23 +950,32 @@ no joke.
 
 ### 7.5 Declaring deps
 
-NexusDI 0.4 accepts four ways to declare a class's deps, and the Providers page shows them
-in this order:
+NexusDI 0.4 accepts four ways to declare a class's deps. The Providers page teaches the
+two forms a reader writes day to day, in this order, and links out to the other two where
+each belongs:
 
-1. `provide(COMPUTER, { useClass: QuantumComputer, deps: [REACTOR] })`, the form every
-   other page uses and the one the docs recommend. TypeScript checks the deps tuple against
-   the constructor (core spec §4.3).
-2. An object-literal provider,
-   `{ token: COMPUTER, useClass: QuantumComputer, deps: [REACTOR] }`, which takes the
-   fields of `provide()`'s options plus `token`, with `useValue`, `useClass`, `useFactory`
-   or `useExisting`, and optional `deps` and `lifetime`. It suits providers built from data.
-3. `static deps = [REACTOR] as const` on a plain class, which the class carries wherever it
-   is bound.
-4. `@Injectable({ deps: [REACTOR] })`, the decorator sugar on `/decorators/`.
+1. `static deps = [REACTOR] as const` on `QuantumComputer`, read by every class form that
+   binds it. `provide(COMPUTER, { useClass: QuantumComputer })` needs no `deps` option,
+   because the class already carries its own. TypeScript checks the tuple against the
+   constructor at the class's own declaration (core spec §4.3). This is the primary form
+   and the one the docs recommend.
+2. `provide(COMPUTER, { useClass: QuantumComputer, deps: [REACTOR] })` with an explicit
+   `deps` option, which wins over a `static deps` the class carries. This is the form for a
+   class the reader cannot edit, such as a class from a package.
 
-NexusDI has no mode that reads `emitDecoratorMetadata` or `reflect-metadata`. The
-Providers, `/decorators/`, `/legacy-decorators/` and `/comparison/` pages each say so where
-a reader from another container would look for it.
+The other two forms live where a reader who needs them will look:
+
+- An object-literal provider,
+  `{ token: COMPUTER, useClass: QuantumComputer, deps: [REACTOR] }`, which takes the fields
+  of `provide()`'s options plus `token`, with `useValue`, `useClass`, `useFactory` or
+  `useExisting`, and optional `deps` and `lifetime`. It suits a provider built from data,
+  and the Migration band shows it as the shape the codemod may leave behind.
+- `@Injectable({ deps: [REACTOR] })`, the decorator sugar on `/decorators/`, from
+  `@nexusdi/decorators`.
+
+NexusDI has no mode that reads `emitDecoratorMetadata` or any metadata-emitting decorator
+runtime. The Providers, `/decorators/`, `/legacy-decorators/` and `/comparison/` pages each
+say so where a reader from another container would look for it.
 
 ### 7.6 Per-concept mapping
 
@@ -968,10 +983,10 @@ a reader from another container would look for it.
 | ----------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | --------------------------------------------------------------------------------------------------- |
 | Getting started         | `IReactorCore` bound to `FusionReactor`, and `QuantumComputer` taking it through `deps: [REACTOR]`.                                                                                         | The two-node graph.                                                                                 |
 | Tokens and interfaces   | `NAV_CHARTS` types the `INavCharts` interface and gets a `useValue`. Two tokens described `'NavCharts'` stay distinct. A `FakeReactor` value shows that a consumer sees only the interface. | The graph with every node named by its token.                                                       |
-| Providers               | `useClass` with deps, `NAV_CHARTS` by an async factory over `SUBSPACE_LINK`, an alias, an optional `SUBSPACE_LINK`, the object-literal form and `static deps`.                              | The graph with each provider kind marked, and the plotted course from `NAV_CHARTS`.                 |
+| Providers               | `QuantumComputer`'s `static deps`, `useClass` with an explicit `deps` override, `NAV_CHARTS` by an async factory over `SUBSPACE_LINK`, an alias, an optional `SUBSPACE_LINK`.                | The graph with each provider kind marked, and the plotted course from `NAV_CHARTS`.                 |
 | Lifetimes               | Two `get(DRONE)` calls launch two `ScoutDrone`s that share one `COMPUTER`.                                                                                                                  | A trace replay: two `construct` events for the drone, one for the computer.                         |
 | Modules                 | `Engineering` exports `COMPUTER` and keeps `POWER_ROUTER` private. `Tactical` imports `Engineering`. `SimulatorEngineering` takes `Engineering`'s place.                                    | The graph grouped by module, `NEXUS_NOT_VISIBLE` on a private token, then the swapped reactor.      |
-| Configurable modules    | `Comms.with({ frequency: 1420, transport: 'laser' })`, a `with({ deps, useFactory })` variant, and a schema that rejects a negative frequency.                                              | The chosen `LaserLink`, then the schema's issues.                                                   |
+| Configurable modules    | `Comms.forRoot({ frequency: 1420, transport: 'laser' })`, a `forRootAsync({ deps, useFactory })` variant, and a schema that rejects a negative frequency.                                    | The chosen `LaserLink`, then the schema's issues.                                                   |
 | Scopes and REQUEST      | Two shuttles with two missions, each with its own `FLIGHT_LOG`, sharing the ship's `COMPUTER`.                                                                                              | A trace replay with lanes `s0` and `s1`.                                                            |
 | Lifecycle and disposal  | `QuantumComputer.onInit()` runs a self-test. `await using` ends in a reactor scram, after the computer shuts down.                                                                          | A replay of `init` events and of the `dispose:instance` events in order.                            |
 | Lazy edges and cycles   | `SHIELDS` and `POWER_ROUTER` form a cycle. `lazy(SHIELDS)` breaks it.                                                                                                                       | The cycle drawn as a ring with `NEXUS_CIRCULAR_DEPENDENCY`, then the graph with a dotted lazy edge. |
@@ -1248,11 +1263,13 @@ seed in the shared runtime (section 11) and replaces the static view with the li
 ### 10.3 Without JavaScript
 
 The server renders each view from a build-time fixture. `apps/docs/tools/console-fixtures.mjs`
-runs every console seed in Node against the workspace-built `@nexusdi/core`, records
-`graph()`, the trace events, the console output and any thrown error, sets every
-`durationMs` to 0 so the HTML is identical between builds, and writes one JSON file per
-seed. The views render that JSON to static SVG and markup. The live runtime loads only
-when the reader presses Run or opens the editor.
+runs every console seed in Node against the workspace-built `@nexusdi/core`, with a
+`trace(fn)` plugin from the workspace-built `@nexusdi/devtools` registered on every seed's
+`Nexus.create` so `graph(ship)` has a container to read, records `graph(ship)`, the trace
+events, the console output and any thrown error, sets every `durationMs` to 0 so the HTML
+is identical between builds, and writes one JSON file per seed. The views render that JSON
+to static SVG and markup. The live runtime loads only when the reader presses Run or opens
+the editor.
 
 ### 10.4 Composition with `@evanion/react-widget`
 
@@ -1285,7 +1302,7 @@ else.
 
 ### 10.5 View transitions
 
-A console view change, an Academy mode change and a trace step animate through native
+A console view change, an Academy mode change and a trace step animate through
 View Transitions. React 19.3.0 exports `ViewTransition` as a stable export (checked in the
 libraries repo's `node_modules/react/cjs/react.production.js`). The console wraps its panel
 area in `<ViewTransition>` and applies each view change inside `startTransition`, which is
@@ -1375,8 +1392,9 @@ The compiler options live in one module, `apps/docs/components/runtime/compiler-
 `apps/docs/tools/playground-types.mjs` runs before `next build`. It collects the TypeScript
 lib files the options name, following each `/// <reference lib>` chain in
 `node_modules/typescript/lib`, plus `runtime-globals.d.ts` and the published declarations of
-`@nexusdi/core` and `@nexusdi/core/testing` from `libs/core/dist`, and valibot's
-`dist/index.d.mts` from the pinned `valibot@1.5.0`. It writes one JSON file,
+`@nexusdi/core` from `libs/core/dist`, `@nexusdi/testing` from `libs/testing/dist`,
+`@nexusdi/errors` from `libs/errors/dist`, `@nexusdi/devtools` from `libs/devtools/dist`,
+and valibot's `dist/index.d.mts` from the pinned `valibot@1.5.0`. It writes one JSON file,
 `public/runtime/types-<hash>.json`, mapping each virtual path to its contents. The hash is
 the SHA-256 of the contents, so a new core build or a TypeScript bump changes the URL.
 
@@ -1384,9 +1402,13 @@ The `dom` lib is left out. The review measured the TypeScript 6.0.3 lib chain wi
 at 63 files and 414 kB gzipped, of which `dom` alone is about 360 kB. Without it, and with
 the ambient file, the TypeScript and core declarations come to about 55 kB gzipped.
 valibot's declarations add 52 kB gzipped, measured on `valibot@1.5.0`, so the JSON file is
-about 107 kB. A seed that needs a DOM API is out of scope for a DI playground.
+about 107 kB. A seed that needs a DOM API is out of scope for a DI playground. The
+`@nexusdi/errors` and `@nexusdi/devtools` declarations add to this file for the plugin
+examples on `/plugins/`; revision 2 adds the packages the playground needs after this
+figure was measured, so the total is unmeasured and the plan step that adds them re-runs
+the measurement.
 
-`@nexusdi/core/node` is left out too. It imports `node:async_hooks`, which no browser has,
+`@nexusdi/node` is left out too. It imports `node:async_hooks`, which no browser has,
 so the Node request guide keeps its server code in doctested regions that run in Node.
 
 ### 11.4 The sandbox
@@ -1417,7 +1439,9 @@ The `srcdoc` document holds three things:
    {
      "imports": {
        "@nexusdi/core": "https://nexus.js.org/next/runtime/core-<hash>/harness.js",
-       "@nexusdi/core/testing": "https://nexus.js.org/next/runtime/core-<hash>/harness-testing.js",
+       "@nexusdi/testing": "https://nexus.js.org/next/runtime/testing-<hash>/harness-testing.js",
+       "@nexusdi/errors": "https://nexus.js.org/next/runtime/errors-<hash>/index.js",
+       "@nexusdi/devtools": "https://nexus.js.org/next/runtime/devtools-<hash>/index.js",
        "valibot": "https://nexus.js.org/next/runtime/valibot-1.5.0/index.min.mjs",
        "@ship/engineering": "data:text/javascript;base64,…",
        "@ship/main": "data:text/javascript;base64,…"
@@ -1426,7 +1450,9 @@ The `srcdoc` document holds three things:
    ```
 
    The parent writes the URLs from its own `location.origin` and the build's base path.
-   `runtime/core-<hash>/` is a copy of `libs/core/dist` made by
+   `runtime/core-<hash>/`, `runtime/testing-<hash>/`, `runtime/errors-<hash>/` and
+   `runtime/devtools-<hash>/` are copies of `libs/core/dist`, `libs/testing/dist`,
+   `libs/errors/dist` and `libs/devtools/dist`, made by
    `apps/docs/tools/runtime-assets.mjs` before `next build`, so the code a reader runs is
    the code the workspace built and tested at that commit. No example loads anything from
    npm. Core's build emits ESM with explicit `.js` extensions (`4929328`), so the browser
@@ -1440,16 +1466,18 @@ The `srcdoc` document holds three things:
    imports `@ship/main` and reports results. Apart from the hashed import map the document
    carries no inline script, so the CSP needs no `'unsafe-inline'`.
 
-`harness.js` imports core's real `index.js`, patches two methods on the real `Nexus`
-class, and re-exports the module. No subclass exists, so `instanceof Nexus` holds for every
-container the reader builds. The static `create` gains a `trace` callback that posts every
-event and then calls the reader's own `trace`, and it posts `ship.graph()` after `create`
-resolves. `Nexus.prototype.load` posts `graph()` after each `load()` resolves. Core's
-`testing` entry imports the same `index.js` URL, so a testing container runs through the
-patched class. `harness-testing.js` re-exports `testing/index.js` and wraps the builder's
-`create`, so a testing container posts its graph the same way. The reader's types come
-from the real declarations, and the harness changes no behaviour a reader can observe
-apart from the reports.
+`harness.js` imports core's real `index.js` and `@nexusdi/devtools`'s `trace()` and
+`graph()`, patches the static `create` on the real `Nexus` class, and re-exports the
+module. No subclass exists, so `instanceof Nexus` holds for every container the reader
+builds. The patched `create` appends a `trace(fn)` plugin, where `fn` posts every event, to
+whatever `plugins` array the reader's own code passes, so `graph(ship)` finds the container
+whether or not the seed registers `devtools()` itself; it then posts `graph(ship)` after
+`create` resolves. `Nexus.prototype.load` posts `graph(ship)` again after each `load()`
+resolves. `@nexusdi/testing`'s real entry imports the same `index.js` URL, so a testing
+container runs through the patched class. `harness-testing.js` re-exports the testing
+package and wraps the builder's `create` the same way, so a testing container posts its
+graph the same way. The reader's types come from the real declarations, and the harness
+changes no behaviour a reader can observe apart from the reports.
 
 The review probed this design in Chromium, Firefox and WebKit, and every point held: the
 import map with `data:` targets, the hashed CSP, a module fetch that carries
@@ -1457,11 +1485,11 @@ import map with `data:` targets, the hashed CSP, a module fetch that carries
 `parent.document` and on `indexedDB`. nexus.js.org is served through Cloudflare, which
 passes the Pages response with `Access-Control-Allow-Origin: *` and
 `Cache-Control: max-age=600`, and that header satisfies the CORS module fetch from the
-opaque origin. The zone must keep Rocket Loader off and every HTML-rewriting feature off
-(email obfuscation, HTML minification, script injection), because each rewrites the script
-tags the static export and the sandbox depend on. Phase 1 re-runs the probe through the
-proxy against the deployed site (section 18.1), and the post-deploy smoke job fails when
-served HTML contains `/cdn-cgi/` (section 17.3).
+opaque origin. The owner does not control the js.org zone, so the post-deploy smoke job is
+the guard: Phase 1 re-runs the probe through the proxy against the deployed site
+(section 18.1), and the smoke job fails when served HTML
+contains `/cdn-cgi/`, which is what an HTML-rewriting feature (Rocket Loader, email
+obfuscation, script injection) would leave in the markup (section 17.3).
 
 ### 11.5 The message protocol
 
@@ -1619,10 +1647,10 @@ test (the libraries interactive-examples spec §6).
 
 ## 12. Graph and trace views
 
-Both views render core's own data: `NexusGraph` from `ship.graph()` and `TraceEvent`s from
-the `trace` callback (core spec §10). They live in `apps/docs/components/graph/` as React
-components over pure layout and replay functions that the unit tests call directly. Core
-is unchanged by them.
+Both views render `@nexusdi/devtools`'s own data: `NexusGraph` from `graph(ship)` and
+`TraceEvent`s from the `trace(fn)` plugin (core spec §10). They live in
+`apps/docs/components/graph/` as React components over pure layout and replay functions
+that the unit tests call directly. Core is unchanged by them.
 
 ### 12.1 The graph view
 
@@ -1724,7 +1752,7 @@ use the briefing strip (layout B). Every mission stays unlocked.
 | 2   | `02-chart-room`        | Chart room        | Providers              | `NAV_CHARTS` comes from an async factory over `SUBSPACE_LINK`; the factory runs once, during `create`                                                                                                    | "NavCharts was built from a value, and the charts never downloaded."                       | C      |
 | 3   | `03-drone-bay`         | Drone bay         | Lifetimes              | two `get(DRONE)` calls launch two drones; both drones share one `COMPUTER`                                                                                                                               | "Both launches returned the same SurveyDrone."                                             | C      |
 | 4   | `04-decks`             | Decks             | Modules                | `Engineering` exports `COMPUTER`; `POWER_ROUTER` stays private; `Tactical` resolves `COMPUTER`; `SimulatorEngineering` swaps in with no change to `Tactical`                                             | "Tactical asked for ShipComputer, and Engineering keeps it private."                       | B      |
-| 5   | `05-open-channel`      | Open channel      | Configurable modules   | `Comms.with({ frequency: 1420, transport: 'laser' })` binds `SUBSPACE_LINK` to a `LaserLink`; the schema rejects a negative frequency                                                                    | "Comms accepted frequency -3."                                                             | B      |
+| 5   | `05-open-channel`      | Open channel      | Configurable modules   | `Comms.forRoot({ frequency: 1420, transport: 'laser' })` binds `SUBSPACE_LINK` to a `LaserLink`; the schema rejects a negative frequency                                                                 | "Comms accepted frequency -3."                                                             | B      |
 | 6   | `06-shuttle-launch`    | Shuttle launch    | Scopes and REQUEST     | each shuttle reads its own `MISSION`; each shuttle keeps one `FLIGHT_LOG` of its own; no singleton holds a `MISSION`                                                                                     | "FlightLog was built once for two shuttles."                                               | B      |
 | 7   | `07-scram-drill`       | Scram drill       | Lifecycle and disposal | `QuantumComputer.onInit` finishes its self-test before `create` resolves; the trace shows the reactor disposed once, after the computer, with `FusionReactor` and with `FakeReactor` overridden in       | "The reactor scrammed before the computer shut down."                                      | B      |
 | 8   | `08-power-loop`        | Power loop        | Lazy edges and cycles  | the ship starts with `SHIELDS` and `POWER_ROUTER` both bound; `divert()` on the router reaches the grid                                                                                                  | "ShieldGrid and PowerRouter each waited for the other."                                    | B      |
@@ -1820,7 +1848,7 @@ objective changes, and the progress store keys every event by it (section 13.6).
 A `check` receives `ship`, the container the reader's `main.ts` exports
 (`export const ship = await Nexus.create(Meridian)`); `exports`, the reader's other
 exports from every file; `trace`, every `TraceEvent` of the run so far, in order; and
-`core`, which holds `@nexusdi/core` and `@nexusdi/core/testing`. After the last check the
+`core`, which holds `@nexusdi/core` and `@nexusdi/testing`. After the last check the
 harness disposes `ship`.
 
 The objectives are "hidden" in the sense that the interface shows their titles and results
@@ -1924,7 +1952,7 @@ The page offers two actions:
 - Export downloads a JSON file, `nexusdi-academy-progress.json`, with
   `{ format: 'nexusdi-academy-export', version: 1, exportedAt, stores: { … } }` holding
   every record of every store, through a `Blob` and an object URL.
-- Reset asks for confirmation in a native `<dialog>`, then deletes the database and reloads
+- Reset asks for confirmation in a `<dialog>` element, then deletes the database and reloads
   the page.
 
 When `indexedDB.open` throws or fails, the Academy shows a notice on every mission:
@@ -1994,7 +2022,7 @@ inputs:
 
 | Target                  | Script                       | Writes                                                                                                                                       |
 | ----------------------- | ---------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------- |
-| `docs:runtime-assets`   | `tools/runtime-assets.mjs`   | `public/runtime/core-<hash>/` from `libs/core/dist`, plus `harness.js`, `harness-testing.js`, `boot.js`, and `public/runtime/valibot-1.5.0/` |
+| `docs:runtime-assets`   | `tools/runtime-assets.mjs`   | `public/runtime/core-<hash>/`, `testing-<hash>/`, `errors-<hash>/` and `devtools-<hash>/` from the matching `libs/*/dist`, plus `harness.js`, `harness-testing.js`, `boot.js`, and `public/runtime/valibot-1.5.0/` |
 | `docs:playground-types` | `tools/playground-types.mjs` | `public/runtime/types-<hash>.json` and each seed's emitted JavaScript                                                                        |
 | `docs:console-fixtures` | `tools/console-fixtures.mjs` | `components/console/fixtures/<seed>.json`                                                                                                    |
 | `docs:academy-runtime`  | `tools/academy-runtime.mjs`  | `public/academy-runtime/<id>-<hash>.js`                                                                                                      |
@@ -2033,8 +2061,8 @@ pages whose length the reviewer accepted.
 | G7 `doc-links`            | `doc-links`                           | Every root-relative link names a content page or an app route, the dynamic `/academy/[mission]/` included, checked against the mission list. A link that hard-codes `/next/` fails, because Next adds the base path. A link to a NexusDI README on GitHub fails, because the site documents what the README covers.                                                                                                                                                                                                                                                           |
 | G8 `doc-prose-budget`     | `doc-prose-budget`                    | 1,200 words of prose a page, reported and not failed. Pages whose slug starts with `api` are exempt.                                                                                                                                                                                                                                                                                                                                                                                                                                                                          |
 | G9 `doc-domain`           | `doc-domain`                          | No fence, after region expansion, names a noun from section 7.7. Pages with `domainExempt` in frontmatter and pre-0.4.0 posts are skipped. Ratchet file ported.                                                                                                                                                                                                                                                                                                                                                                                                               |
-| G10 `doc-export-coverage` | `doc-export-coverage`                 | Every export of `.`, `./node` and `./testing` has a `##` heading on an `api*` page, and every callable one appears in an executable fence. Every `NexusErrorCode` member has an `###` on `api-errors`. Every code in `@nexusdi/codemod`'s `TODO_CODES` and `NOTE_CODES` has an `##` on `codemod`, read from the lists themselves. Phase 1 allowance and ratchet file.                                                                                                                                                                                                         |
-| G11 `doc-behaviour`       | `doc-behaviour`                       | Every non-error callable export has a `describe` naming it in `libs/core`'s tests. Phase 1 allowance.                                                                                                                                                                                                                                                                                                                                                                                                                                                                         |
+| G10 `doc-export-coverage` | `doc-export-coverage`                 | Every export of `@nexusdi/core`, `@nexusdi/testing`, `@nexusdi/node`, `@nexusdi/decorators`, `@nexusdi/errors`, `@nexusdi/devtools`, `@nexusdi/federation` and `@nexusdi/react` has a `##` heading on that package's `api*` page, and every callable one appears in an executable fence. Every `NexusErrorCode` member has an `###` on `api-errors`. Every code in `@nexusdi/codemod`'s `TODO_CODES` and `NOTE_CODES` has an `##` on `codemod`, read from the lists themselves. Phase 1 allowance and ratchet file.                                                          |
+| G11 `doc-behaviour`       | `doc-behaviour`                       | Every non-error callable export has a `describe` naming it in its own package's tests, under the matching `libs/*`. Phase 1 allowance.                                                                                                                                                                                                                                                                                                                                                                                                                                       |
 | `doc-refused-words`       | `doc-refused-words`                   | The libraries list, plus the em dash and the en dash in prose. Pre-0.4.0 posts are skipped.                                                                                                                                                                                                                                                                                                                                                                                                                                                                                   |
 | `doc-antithesis`          | `doc-antithesis`                      | Unchanged.                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                    |
 | `doc-figures`             | `doc-figures`                         | The libraries list, plus `lands`, `bites`, `earns` and `pays` in prose, which have no literal use on this site.                                                                                                                                                                                                                                                                                                                                                                                                                                                               |
@@ -2042,10 +2070,10 @@ pages whose length the reviewer accepted.
 | `doc-interface-first`     | new                                   | In every fence and region outside the Migration band and pre-0.4.0 posts, and in every seed and mission file: the first argument of `provide()`, the `token` of an object-literal provider, and every entry of `deps`, `static deps` and `@Injectable` deps is a SCREAMING_CASE token or a modifier over one; `useClass` names a class. In `examples/meridian`, a test builds each seed and page program and asserts that each concrete class appears in exactly one provider and that every constructor parameter of a bound class is typed with an interface (section 7.3). |
 | `doc-benchmark-figures`   | new, from benchmarks spec §9, widened | On every content page except pre-0.4.0 posts, no prose and no table cell outside a component states a number followed by a size or time unit (`B`, `bytes`, `kB`, `KB`, `MB`, `ns`, `µs`, `ms`, `s`) or a `%`. Every `<Figure of>` path and every `run` names data that exists.                                                                                                                                                                                                                                                                                               |
 | `doc-twoslash`            | `doc-twoslash`, adapted               | Every `twoslash` fence compiles with the prelude of section 14.2, and every declared `@errors` code is still produced.                                                                                                                                                                                                                                                                                                                                                                                                                                                        |
-| `doc-regions`             | `doc-regions`, adapted                | Every cited file and region exists, in `libs/core/README.md`, `examples/meridian` or the codemod fixtures, seed and mission regions included.                                                                                                                                                                                                                                                                                                                                                                                                                                 |
+| `doc-regions`             | `doc-regions`, adapted                | Every cited file and region exists, in a `libs/*/README.md`, `examples/meridian` or the codemod fixtures, seed and mission regions included.                                                                                                                                                                                                                                                                                                                                                                                                                                  |
 | `doc-md-siblings`         | `doc-md-siblings`, adapted            | Every `.md` sibling carries each cited region's code and each reference entry's expansion, posts included.                                                                                                                                                                                                                                                                                                                                                                                                                                                                    |
 | `diagram-captions`        | `diagram-captions`                    | Unchanged.                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                    |
-| `doc-reference`           | `doc-reference`, adapted              | The reference loader against `@nexusdi/core`'s built declarations.                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                            |
+| `doc-reference`           | `doc-reference`, adapted              | The reference loader against each package's built declarations: `@nexusdi/core`, `@nexusdi/testing`, `@nexusdi/node`, `@nexusdi/decorators`, `@nexusdi/errors`, `@nexusdi/devtools`, `@nexusdi/federation` and `@nexusdi/react`.                                                                                                                                                                                                                                                                                                                                            |
 | `docs-trigger`            | `docs-trigger`, adapted               | `docs.yml`'s path filter covers `libs/**`, `internal/**`, `examples/meridian/**` and `tools/doc-examples/**`.                                                                                                                                                                                                                                                                                                                                                                                                                                                                 |
 | `doc-commitments`         | new                                   | Every heading in `apps/docs/commitments.json` exists on its page (section 4.5).                                                                                                                                                                                                                                                                                                                                                                                                                                                                                               |
 | `doc-seeds`               | new                                   | Section 11.9.                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                 |
@@ -2127,8 +2155,9 @@ adds four:
 
 - A link written as `/next/…` breaks at the swap. Write root-relative links; Next adds the
   base path.
-- Console fixtures and seed JavaScript are built from `libs/core/dist`. After an engine
-  change, rebuild core before reading a console.
+- Console fixtures and seed JavaScript are built from `libs/core/dist` and
+  `libs/devtools/dist`. After an engine change, rebuild core and devtools before reading a
+  console.
 - A `mission.ts` edit that changes an objective raises `version`, or the progress store
   mixes attempts from two definitions.
 - A new decoy that passes its objective means the check is too weak. Strengthen the check
@@ -2337,9 +2366,10 @@ With a custom Actions workflow, GitHub Pages takes the custom domain from the re
 settings and ignores a `CNAME` file. The step keeps the file and checks it anyway, as the
 libraries workflow does, so the artifact states its own domain.
 
-nexus.js.org is served through Cloudflare. The zone keeps Rocket Loader and every
-HTML-rewriting feature off (section 11.4), passes the Pages headers through, and caches for
-the Pages `max-age` of 600 seconds, so a deploy reaches every reader within ten minutes.
+nexus.js.org is served through Cloudflare, which the owner does not control (section 11.4).
+Cloudflare passes the Pages headers through and caches for the Pages `max-age` of 600
+seconds, so a deploy reaches every reader within ten minutes; the smoke job's `/cdn-cgi/`
+check (section 17.3) is what guards against the zone rewriting the deployed HTML.
 
 ### 15.6 The swap at final and the redirect stubs
 
@@ -2420,8 +2450,8 @@ Every page and both tools meet WCAG 2.2 AA.
 - Screen readers. Each graph has a text alternative: its caption, and a `<details>` table
   of providers and edges. The error view is a list. The trace replay announces each step
   through `aria-live="polite"`. Objective results are text with an icon beside it. A guided
-  card moves focus to its heading when it changes. The reset confirmation is a native
-  `<dialog>`.
+  card moves focus to its heading when it changes. The reset confirmation is a
+  `<dialog>` element.
 - Structure. One `h1` a page, headings in order, landmarks from Nextra's layout, and the
   skip link Nextra provides. The tool routes render their own `main` landmark and skip
   link.
@@ -2597,7 +2627,10 @@ Required for rc.0:
 
 - Start and Concepts, complete.
 - Migration, all seven pages, `/support-policy/` and `/set-removed/` included.
-- The API reference, all four pages.
+- The API reference: `/api/`, `/api-testing/`, `/api-node/` and `/api-errors/`. The other
+  five package pages (`/api-decorators/`, `/api-devtools/`, `/api-federation/`,
+  `/api-errors-package/`, `/api-react/`) ship within the RC window, with the plugin and
+  package guide pages below.
 - Guides: `/testing/`, `/node-request-scopes/`, `/decorators/` and `/legacy-decorators/`.
   `container.set()` in tests is the most common 0.3 pattern the RC breaks.
   `createChildContainer` was the 0.3 answer for per-request state on a server. Every 0.3
@@ -2612,7 +2645,9 @@ Required for rc.0:
 Within the RC window, before 0.4.0 final:
 
 - `/react-router-ssr/`, `/load/`, `/scope-context/`, `/bundlers/`, `/schemas/`,
-  `/runtimes/` and `/comparison/`.
+  `/runtimes/`, `/comparison/` and `/plugins/`.
+- `/api-decorators/`, `/api-devtools/`, `/api-federation/`, `/api-errors-package/` and
+  `/api-react/`.
 - The Academy, all nine missions. The Academy entry stays out of the navbar until missions
   1 to 4 pass the mission guard. Later missions join as each one passes it.
 - The blog migration, ready to deploy with the swap.
@@ -2634,8 +2669,11 @@ Within the RC window, before 0.4.0 final:
 - `llms.txt` (standard decision 14).
 - A service worker or an offline mode.
 - Any archive other than `/v0.3/` before 1.0.
-- Documentation for interceptors (#17), the plugin registry (#19), the graph CLI (#18) and
-  benchmarks (#21). Each feature's own spec adds its pages.
+- Documentation for interceptors (#17), a third-party plugin discovery registry (issue
+  #19's registry proposal, dropped for 0.4 per core spec §0), the graph CLI (#18) and
+  benchmarks (#21). Each feature's own spec adds its pages. The plugin API itself and the
+  first-party plugin packages are in scope: `/plugins/` and the package reference pages
+  (section 4.3).
 - Nested scopes, which 0.4 does not have (core spec §3.6).
 - PixiJS, Sandpack, Monaco and Mermaid-rendered graph views.
 - Replacing `nextra-theme-docs` with a custom shell (baize-ui spec §7, step 3).
