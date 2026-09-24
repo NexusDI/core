@@ -141,3 +141,6 @@ Ruling: R14 NEXUS_LOADED_AFTER_SCOPE fix line — accepted — revision 1's "Fix
 Ruling: R14 rollback errors when the scope itself is disposed mid-extend — accepted per preflight P28: extend() rejects NEXUS_DISPOSED, rollback errors surface in the scope's asyncDispose rejection (ScopeState.abortErrors), and go on root.abortErrors only while the root is disposing.
 Task R14: fix round 1/5 (rollback disposes concurrent get() instances and on-demand old-pin builds; pendingExtend cleared late)
 Task R14: fix round 2/5 (transients injected into a kept old-pin scoped class are rolled back)
+Task R14: minor (deferred): a transient factory returning one object shared by a new provider and a kept scoped class is owned by the first adopter (spec §8.2 ownership); a new scoped class reached only through a lazy thunk after an await is disposed by the scope later instead of the rollback
+Task R14: complete (commits f6e01d9..6ba0eea, review clean)
+Task R15: dispatched (BASE 6ba0eea, opus)
