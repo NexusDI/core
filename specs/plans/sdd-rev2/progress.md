@@ -65,3 +65,6 @@ Task R2: minor (deferred): throwing hook getter escapes create (to R5)
 Task R2: complete (commits fc79dd3..9face5b, review clean)
 Task R3: dispatched (BASE 9face5b, opus)
 Task R3: fix round 1/5 (own-property reads for rewrite fields; load() compile.module tests)
+Task R3: minor (deferred): compile.module runs twice per module in load() (by design); later pin wins; shadowed NAMES in a security test; missing blank line in compile-hooks.test.ts
+Task R3: complete (commits 1a26084..40bba86, review clean)
+Task R4: dispatched (BASE 40bba86, opus)
