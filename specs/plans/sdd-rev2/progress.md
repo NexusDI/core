@@ -64,3 +64,4 @@ Ruling: R2 throwing plugin getter — deferred to R5 — neither spec nor brief 
 Task R2: minor (deferred): throwing hook getter escapes create (to R5)
 Task R2: complete (commits fc79dd3..9face5b, review clean)
 Task R3: dispatched (BASE 9face5b, opus)
+Task R3: fix round 1/5 (own-property reads for rewrite fields; load() compile.module tests)
