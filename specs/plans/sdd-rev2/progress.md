@@ -192,3 +192,6 @@ Ruling: R23 interface-first startup-cost example, 'built on core's public API' t
 Ruling: (Task R24) add a gate that typechecks README doctest blocks (R23 found one that ran but failed tsc).
 Ruling: §14.1 guides (API/worker/CLI, multi-team shell) and the 0.3 migration pointer (§13.1, codemod) belong to the docs and codemod plans (Decision 14); recorded as out of this plan's scope.
 Task R23: fix round 1/5 (errors README typecheck; interface-first ShipComputer; decorators are not plugins)
+Task R23: minor (deferred): Minors 4-7 (wording and naming nits in README examples)
+Task R23: complete (commits 69234d3..788daf3, review clean)
+Task R24: dispatched (BASE 788daf3, opus)
