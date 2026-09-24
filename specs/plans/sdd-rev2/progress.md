@@ -155,3 +155,6 @@ Ruling: R16 nexus-error.test.ts KEYS table gains 'otherCopy' for the three class
 Ruling: R16 foreign @Module classes — declareModuleClass brands the class when it is extensible, so a second copy's @Module class gets otherCopy true (users first; C3's intent covers module references).
 Ruling: R16 core's one-line message does not show otherCopy — OWNER ITEM, deferred; @nexusdi/errors names the second copy.
 Task R16: fix round 1/5 (lazy thunk after a failed run builds into an uncommitted id; brand @Module classes)
+Task R16: minor (deferred): modifier results (lazy/optional/all) carry no brand (spec does not require it); core one-line message does not show otherCopy (owner item)
+Task R16: complete (commits 62c870b..c297a63, review clean)
+Task R17: dispatched (BASE c297a63, sonnet)
