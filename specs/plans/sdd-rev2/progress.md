@@ -177,3 +177,5 @@ Task R20: complete (commits 4c92367..c1e30cc, review clean; level builder measur
 Task R21: dispatched (BASE c1e30cc, opus)
 Task R21: complete (commits 850f7db..850f7db, review clean; one store path measured +33 bytes, reverted, recorded kept: false)
 Task R21a: dispatched (BASE 850f7db, opus)
+Ruling: R21a benchmark finds get() 5-12% slower with hook sites — spec D19/§17.3 bind ("no measurable cost" is a test): fix core, never weaken the benchmark. With no plugin registered each get() site must cost at most a length test: no event closure allocation without an observer, no clock read without an observer, guard/formatError wrapping skipped when no formatError hook, construct site a length test. Measure size before and after (report both); record a consolidation.json step if core's size changes.
+Task R21a: fix round 1/5 (make hook sites free with no plugin so the benchmark passes)
