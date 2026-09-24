@@ -127,3 +127,5 @@ Task R11: minor (deferred): M1 frozen parent metadata throws on write (revision 
 Task R11: complete (commits 9012aca..8f5952c, review clean)
 Task R12: dispatched (BASE 8f5952c, opus)
 Ruling: R12 RootRef<P, Q> with a ProviderEntry[] default, the corrected MISSING_DEPS type-test premise (spec §3.2), and NEXUS_INVALID_MODULE for a non-array providers/imports/exports in a root object — accepted.
+Ruling: R12 root object with an extra key at create — create rejects with one BlueprintError wrapping NEXUS_INVALID_MODULE, as create(3) and check already do (spec §9 does not list create as a bare raiser); the brief's bare-error test changes to match.
+Task R12: fix round 1/5 (undefined keys absent; consistent BlueprintError at create; comment wording)
