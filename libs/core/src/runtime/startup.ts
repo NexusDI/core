@@ -82,7 +82,9 @@ async function registerStatic(
     } else validated.push(record.id);
   }
   await settleLevel(validated, async (id) => {
-    const record = plan.bp.providers.get(id)!;
+    const record = plan.bp.providers.get(id);
+    if (record === undefined)
+      throw new Error(`internal: no provider record for ${id}`);
     const { value } = await validateOptions(record, plan.bp, record.value);
     if (settleValue(root, plan.bp, record, value)) registered.push(value);
   });

@@ -223,10 +223,14 @@ describe('lazy', () => {
     });
     const droneRecord = [...bp.providers.values()].find(
       (record) => record.name === 'Drone',
-    )!;
+    );
+    if (droneRecord === undefined)
+      throw new Error('internal: no compiled provider record for Drone');
     const bayRecord = [...bp.providers.values()].find(
       (record) => record.name === 'Bay',
-    )!;
+    );
+    if (bayRecord === undefined)
+      throw new Error('internal: no compiled provider record for Bay');
     const owners: TransientOwner[] = [];
     const resolve: ResolveId = (id, ctx) => {
       owners.push(ctx.owner);

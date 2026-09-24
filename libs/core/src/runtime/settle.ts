@@ -28,11 +28,13 @@ export async function settleLevel(
   build: (id: string) => Promise<void>,
 ): Promise<void> {
   const results = await Promise.allSettled(ids.map((id) => build(id)));
-  const failures = results.flatMap((result, i) =>
-    result.status === 'rejected'
-      ? [{ id: ids[i]!, error: result.reason as unknown }]
-      : [],
-  );
+  const failures = results.flatMap((result, i) => {
+    if (result.status !== 'rejected') return [];
+    const id = ids[i];
+    if (id === undefined)
+      throw new Error('internal: settleLevel result index outside ids');
+    return [{ id, error: result.reason as unknown }];
+  });
   if (failures.length > 0) throw new LevelFailure(failures);
 }
 
@@ -78,8 +80,10 @@ export function toProviderError(
   const [first, ...rest] = failures.map(({ id, error: cause }) =>
     failureOf(id, cause, bp),
   );
+  if (first === undefined)
+    throw new Error('internal: toProviderError received no failures');
   return new ProviderError({
-    ...first!,
+    ...first,
     alsoFailed: rest.map(({ token, module, cause }) => ({
       token,
       module,

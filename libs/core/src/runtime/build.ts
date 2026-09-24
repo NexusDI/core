@@ -75,16 +75,24 @@ function resolveBinding(
   ctx: Ctx,
 ): unknown {
   switch (binding.kind) {
-    case 'required':
-      return resolveId(binding.ids[0]!, ctx);
-    case 'optional':
-      return binding.ids.length > 0
-        ? resolveId(binding.ids[0]!, ctx)
-        : undefined;
+    case 'required': {
+      const [id] = binding.ids;
+      if (id === undefined)
+        throw new Error('internal: a required binding has no provider');
+      return resolveId(id, ctx);
+    }
+    case 'optional': {
+      const [id] = binding.ids;
+      return id === undefined ? undefined : resolveId(id, ctx);
+    }
     case 'all':
       return binding.ids.map((id) => resolveId(id, ctx));
-    case 'lazy':
-      return makeThunk(binding.ids[0]!, owner, ctx, resolveId);
+    case 'lazy': {
+      const [id] = binding.ids;
+      if (id === undefined)
+        throw new Error('internal: a lazy binding has no provider');
+      return makeThunk(id, owner, ctx, resolveId);
+    }
   }
 }
 

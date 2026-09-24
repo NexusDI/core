@@ -13,6 +13,11 @@
     },
     "test": {
       "dependsOn": ["^build", "test-browser"]
+    },
+    "lint": {
+      "options": {
+        "args": ["--max-warnings=0"]
+      }
     }
   }
 }

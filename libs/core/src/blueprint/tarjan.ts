@@ -119,18 +119,24 @@ export function cyclePath(
   rank: (id: string) => number,
 ): string[] {
   const members = new Set(component);
-  const start = [...component].sort((a, b) => rank(a) - rank(b))[0]!;
+  const [start] = [...component].sort((a, b) => rank(a) - rank(b));
+  if (start === undefined)
+    throw new Error('internal: cyclePath received an empty component');
   const previous = new Map<string, string>();
   const queue = [start];
 
-  while (queue.length > 0) {
-    const node = queue.shift()!;
+  for (let node = queue.shift(); node !== undefined; node = queue.shift()) {
     for (const next of successors.get(node) ?? []) {
       if (!members.has(next)) continue;
       if (next === start) {
         const path = [start];
-        for (let at = node; at !== start; at = previous.get(at)!)
+        for (let at = node; at !== start;) {
           path.splice(1, 0, at);
+          const parent = previous.get(at);
+          if (parent === undefined)
+            throw new Error('internal: cyclePath lost the path back to start');
+          at = parent;
+        }
         path.push(start);
         return path;
       }

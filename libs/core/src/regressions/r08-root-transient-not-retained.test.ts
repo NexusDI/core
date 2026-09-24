@@ -13,6 +13,8 @@ describe('R08', () => {
       gc,
       'run vitest with --expose-gc (libs/core/vite.config.ts sets execArgv)',
     ).toBeTypeOf('function');
+    if (typeof gc !== 'function')
+      throw new Error('internal: gc missing after the expect above');
     const log: string[] = [];
     class Drone {
       [Symbol.dispose]() {
@@ -29,9 +31,9 @@ describe('R08', () => {
     const ref = (() => new WeakRef(ship.get(Drone)))();
     // A WeakRef keeps its target alive until the job that created it ends.
     await macrotask();
-    gc!();
+    gc();
     await macrotask();
-    gc!();
+    gc();
     expect(ref.deref()).toBeUndefined();
 
     const shuttle = await ship.createScope();

@@ -39,6 +39,9 @@ export const constructionStack = {
       (f) => f.providerId === providerId && f.container === container,
     );
     if (start === -1) return [];
-    return [...frames.slice(start).map((f) => f.name), frames[start]!.name];
+    const first = frames[start];
+    if (first === undefined)
+      throw new Error('internal: cycleFrom lost its own frame index');
+    return [...frames.slice(start).map((f) => f.name), first.name];
   },
 };

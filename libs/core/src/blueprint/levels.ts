@@ -44,8 +44,7 @@ function levelFunction(
     };
     push(start);
 
-    while (stack.length > 0) {
-      const frame = stack[stack.length - 1]!;
+    for (let frame = stack.at(-1); frame !== undefined; frame = stack.at(-1)) {
       const record = providers.get(frame.id);
       const isMember = record !== undefined && member(record);
       const passes = record !== undefined && passesThrough(record);
@@ -56,8 +55,12 @@ function levelFunction(
       } else {
         const successors = strong.get(frame.id) ?? [];
         if (frame.next < successors.length) {
-          const next = successors[frame.next]!;
+          const next = successors[frame.next];
           frame.next++;
+          if (next === undefined)
+            throw new Error(
+              `internal: no successor at index ${frame.next - 1} of ${frame.id}`,
+            );
           const known = memo.get(next);
           if (known !== undefined) {
             frame.max = Math.max(frame.max, known);
@@ -80,7 +83,10 @@ function levelFunction(
       if (parent !== undefined) parent.max = Math.max(parent.max, value);
     }
 
-    return memo.get(start)!;
+    const result = memo.get(start);
+    if (result === undefined)
+      throw new Error(`internal: no computed level for ${start}`);
+    return result;
   };
 }
 
@@ -133,8 +139,7 @@ function collectScoped(
     }
   }
 
-  while (stack.length > 0) {
-    const id = stack.pop()!;
+  for (let id = stack.pop(); id !== undefined; id = stack.pop()) {
     for (const next of strong.get(id) ?? []) {
       const record = providers.get(next);
       if (record === undefined) continue;
