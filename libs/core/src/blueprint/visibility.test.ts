@@ -227,6 +227,89 @@ describe('compile', () => {
     }
   });
 
+  it('shows a MultiToken to every module of a re-export cycle a global module closes', () => {
+    const A = defineModule({
+      name: 'A',
+      providers: [provide(DIAGNOSTICS, { useValue: 'a' })],
+      exports: [DIAGNOSTICS],
+    });
+    const K1 = defineModule({
+      name: 'K1',
+      imports: [A],
+      exports: [DIAGNOSTICS],
+    });
+    const K2 = defineModule({
+      name: 'K2',
+      imports: [A],
+      exports: [DIAGNOSTICS],
+    });
+    const Global = defineModule({
+      name: 'Global',
+      global: true,
+      imports: [K1, K2],
+      exports: [K1, K2],
+    });
+    const bp = compile({
+      root: defineModule({ name: 'Root', imports: [Global] }),
+    });
+    const provider = idOf(bp, DIAGNOSTICS, 'A');
+    for (const name of ['A', 'K1', 'K2', 'Global', 'Root'])
+      expect(visible(bp, name, DIAGNOSTICS)).toEqual([provider]);
+  });
+
+  it('resolves a plain token that enters a re-export cycle from one provider', () => {
+    const A = defineModule({
+      name: 'A',
+      providers: [provide(LOGGER, { useValue: 'a' })],
+      exports: [LOGGER],
+    });
+    const K1 = defineModule({ name: 'K1', imports: [A], exports: [LOGGER] });
+    const K2 = defineModule({ name: 'K2', imports: [A], exports: [LOGGER] });
+    const Global = defineModule({
+      name: 'Global',
+      global: true,
+      imports: [K1, K2],
+      exports: [K1, K2],
+    });
+    const bp = compile({
+      root: defineModule({ name: 'Root', imports: [Global] }),
+    });
+    const provider = idOf(bp, LOGGER, 'A');
+    for (const name of ['K1', 'K2', 'Global', 'Root'])
+      expect(visible(bp, name, LOGGER)).toEqual([provider]);
+  });
+
+  it('reports NEXUS_AMBIGUOUS_PROVIDER for a plain token that enters a re-export cycle from two providers', () => {
+    const A = defineModule({
+      name: 'A',
+      providers: [provide(LOGGER, { useValue: 'a' })],
+      exports: [LOGGER],
+    });
+    const B = defineModule({
+      name: 'B',
+      providers: [provide(LOGGER, { useValue: 'b' })],
+      exports: [LOGGER],
+    });
+    const K1 = defineModule({ name: 'K1', imports: [A], exports: [LOGGER] });
+    const K2 = defineModule({ name: 'K2', imports: [B], exports: [LOGGER] });
+    const Global = defineModule({
+      name: 'Global',
+      global: true,
+      imports: [K1, K2],
+      exports: [K1, K2],
+    });
+    const errors = compileErrors(
+      defineModule({ name: 'Root', imports: [Global] }),
+    );
+    expect(errors).toContainEqual(
+      expect.objectContaining({
+        code: 'NEXUS_AMBIGUOUS_PROVIDER',
+        module: 'K1',
+      }),
+    );
+    expect(errors.map((e) => e.code)).not.toContain('NEXUS_INVALID_EXPORT');
+  });
+
   it('lists provider ids and module ids in moduleExports', () => {
     const Engineering = defineModule({
       name: 'Engineering',

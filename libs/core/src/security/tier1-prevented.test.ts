@@ -6,7 +6,7 @@ import '../polyfill/symbol-metadata.js';
 
 import { describe, expect, it } from 'vitest';
 
-import { compileErrors } from '../../test-support/compile.js';
+import { compileErrors, idOf, visible } from '../../test-support/compile.js';
 import {
   expectPlainGraph,
   extraKeys,
@@ -438,6 +438,70 @@ describe('SEC-009 deep chains (CWE-674)', { timeout: 60_000 }, () => {
     const { root, head } = moduleChain(1_000);
     await using ship = await Nexus.create(root);
     expect(ship.get(head)).toBe(1_000);
+  });
+
+  it('compiles a 50-level diamond re-export chain that a global module closes into a cycle', () => {
+    const SIGNAL = new MultiToken<string>('Signal');
+    let below = defineModule({
+      name: 'Beacon',
+      providers: [provide(SIGNAL, { useValue: 'ping' })],
+      exports: [SIGNAL],
+    });
+    for (let i = 49; i >= 0; i--) {
+      const left = defineModule({
+        name: `Port${i}`,
+        imports: [below],
+        exports: [below],
+      });
+      const right = defineModule({
+        name: `Starboard${i}`,
+        imports: [below],
+        exports: [below],
+      });
+      below = defineModule({
+        name: `Junction${i}`,
+        imports: [left, right],
+        exports: [left, right],
+      });
+    }
+    const Relay = defineModule({
+      name: 'Relay',
+      global: true,
+      imports: [below],
+      exports: [below],
+    });
+    const started = performance.now();
+    const bp = compile({
+      root: defineModule({ name: 'Bridge', imports: [Relay] }),
+    });
+    expect(performance.now() - started).toBeLessThan(5_000);
+    expect(bp.modules.size).toBe(153);
+    expect(visible(bp, 'Bridge', SIGNAL)).toEqual([idOf(bp, SIGNAL)]);
+  });
+
+  it('compiles a chain of 1,000 global modules, each re-exporting the next', () => {
+    const SIGNAL = new MultiToken<string>('Signal');
+    let next = defineModule({
+      name: 'Relay999',
+      global: true,
+      providers: [provide(SIGNAL, { useValue: 'ping' })],
+      exports: [SIGNAL],
+    });
+    for (let i = 998; i >= 0; i--) {
+      next = defineModule({
+        name: `Relay${i}`,
+        global: true,
+        imports: [next],
+        exports: [next],
+      });
+    }
+    const started = performance.now();
+    const bp = compile({
+      root: defineModule({ name: 'Bridge', imports: [next] }),
+    });
+    expect(performance.now() - started).toBeLessThan(5_000);
+    expect(bp.modules.size).toBe(1_001);
+    expect(visible(bp, 'Bridge', SIGNAL)).toEqual([idOf(bp, SIGNAL)]);
   });
 
   it('reports a 1,000-provider dependency cycle with its full path', () => {
