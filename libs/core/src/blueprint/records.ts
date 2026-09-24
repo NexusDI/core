@@ -6,6 +6,7 @@ import { describeValue } from '../definitions/describe.js';
 import { isToken } from '../definitions/guards.js';
 import { readInjectable, readProps } from '../definitions/metadata.js';
 import { isModifier } from '../definitions/modifiers.js';
+import { pickOwn } from '../definitions/own-keys.js';
 import { readProvider } from '../definitions/provide.js';
 import { REQUEST } from '../definitions/request.js';
 import { MultiToken, displayName } from '../definitions/token.js';
@@ -38,25 +39,13 @@ const DEFINITION_KEYS = [
 const NO_DEFINITION =
   'with no definition; add useClass, useValue, useFactory or useExisting';
 
-/** The keys a provider definition reads. Pass 1 ignores every other key. */
+/**
+ * The keys a provider definition reads, as own properties only (SEC-003).
+ * Pass 1 ignores every other key.
+ */
 const OPTION_KEYS = ['deps', 'lifetime', ...DEFINITION_KEYS] as const;
 
-type OptionKey = (typeof OPTION_KEYS)[number];
-type Options = { readonly [K in OptionKey]?: unknown };
-
-/**
- * Copies the option keys an object sets on itself into an object with no
- * prototype. A key that only the prototype chain supplies is not an option
- * (spec §9, SEC-003), and each option getter runs once, here.
- */
-function ownOptions(source: object): Options {
-  const options: { [K in OptionKey]?: unknown } = Object.create(null);
-  for (const key of OPTION_KEYS) {
-    if (Object.hasOwn(source, key))
-      options[key] = (source as Record<OptionKey, unknown>)[key];
-  }
-  return options;
-}
+type Options = { readonly [K in (typeof OPTION_KEYS)[number]]?: unknown };
 
 /**
  * The deps a class declares with `static deps`: an own property of the
@@ -182,10 +171,10 @@ function definitionOf(entry: unknown, fail: Fail): Definition | null {
         `has options that are ${describeValue(options)}, not an object`,
       );
     }
-    return { token, options: ownOptions(options) };
+    return { token, options: pickOwn(options, OPTION_KEYS) };
   }
   if (isLiteral(entry))
-    return { token: entry.token, options: ownOptions(entry) };
+    return { token: entry.token, options: pickOwn(entry, OPTION_KEYS) };
   return fail(
     `is ${describeValue(entry)}, not a provider; list a class, a provide() result or a { token } literal`,
   );

@@ -25,6 +25,7 @@ import {
 import {
   Inject,
   Injectable,
+  Module,
   MultiToken,
   Nexus,
   Token,
@@ -281,6 +282,122 @@ describe('SEC-003 a polluted Object.prototype (CWE-1321)', () => {
       });
     } finally {
       delete proto['lifetime'];
+    }
+  });
+
+  it('keeps an @Injectable class a singleton when Object.prototype carries lifetime at decoration time', async () => {
+    const proto = Object.prototype as Record<string, unknown>;
+    proto['lifetime'] = 'transient';
+    try {
+      @Injectable({ deps: [] })
+      class Reactor {}
+      await using ship = await Nexus.create(
+        defineModule({ name: 'Root', providers: [Reactor] }),
+      );
+      expect(ship.get(Reactor)).toBe(ship.get(Reactor));
+    } finally {
+      delete proto['lifetime'];
+    }
+  });
+
+  it('builds an @Injectable class by its own arity when Object.prototype carries deps at decoration time', async () => {
+    const proto = Object.prototype as Record<string, unknown>;
+    const HIJACKED = new Token<string>('Hijacked');
+    proto['deps'] = [HIJACKED];
+    try {
+      @Injectable({ lifetime: 'singleton' })
+      class Reactor {}
+      await using ship = await Nexus.create(
+        defineModule({ name: 'Root', providers: [Reactor] }),
+      );
+      expect(ship.get(Reactor)).toBeInstanceOf(Reactor);
+    } finally {
+      delete proto['deps'];
+    }
+  });
+
+  const SIGNAL = new Token<string>('Signal');
+  const hiddenAndFeature = () => ({
+    hidden: {
+      providers: [provide(SIGNAL, { useValue: 'on' })],
+      exports: [SIGNAL],
+    },
+    feature: {
+      providers: [provide(new Token<string>('Relay'), { useValue: 'r' })],
+    },
+  });
+
+  it('keeps a defineModule module local when Object.prototype carries global', () => {
+    const proto = Object.prototype as Record<string, unknown>;
+    proto['global'] = true;
+    try {
+      const { hidden, feature } = hiddenAndFeature();
+      const Hidden = defineModule({ name: 'Hidden', ...hidden });
+      const Feature = defineModule({ name: 'Feature', ...feature });
+      expect(Hidden.global).toBe(false);
+      const bp = compile({
+        root: defineModule({ name: 'Root', imports: [Hidden, Feature] }),
+      });
+      expect(visible(bp, 'Feature', SIGNAL)).toEqual([]);
+    } finally {
+      delete proto['global'];
+    }
+  });
+
+  it('keeps an @Module class local when Object.prototype carries global at decoration time', () => {
+    const proto = Object.prototype as Record<string, unknown>;
+    proto['global'] = true;
+    try {
+      const { hidden, feature } = hiddenAndFeature();
+      @Module(hidden)
+      class Hidden {}
+      @Module(feature)
+      class Feature {}
+      const bp = compile({
+        root: defineModule({ name: 'Root', imports: [Hidden, Feature] }),
+      });
+      expect(visible(bp, 'Feature', SIGNAL)).toEqual([]);
+    } finally {
+      delete proto['global'];
+    }
+  });
+
+  it('reads no module config key that only Object.prototype supplies', () => {
+    const proto = Object.prototype as Record<string, unknown>;
+    const Evil = defineModule({
+      name: 'Evil',
+      providers: [provide(SIGNAL, { useValue: 'hijacked' })],
+      exports: [SIGNAL],
+    });
+    const keys = [
+      'name',
+      'imports',
+      'providers',
+      'exports',
+      'options',
+      'schema',
+    ];
+    proto['name'] = 'Hijacked';
+    proto['imports'] = [Evil];
+    proto['providers'] = [provide(SIGNAL, { useValue: 'hijacked' })];
+    proto['exports'] = [SIGNAL];
+    proto['options'] = new Token<string>('Hijacked');
+    proto['schema'] = { '~standard': {} };
+    try {
+      const Root = defineModule({ name: 'Root' });
+      expect(Root).toEqual({
+        name: 'Root',
+        imports: [],
+        providers: [],
+        exports: [],
+        global: false,
+      });
+      expect('with' in Root).toBe(false);
+      expect(thrown(() => defineModule({} as never))).toMatchObject({
+        code: 'NEXUS_INVALID_MODULE',
+      });
+    } finally {
+      for (const key of keys) delete proto[key];
     }
   });
 });

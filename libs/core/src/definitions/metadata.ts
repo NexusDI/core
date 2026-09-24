@@ -11,10 +11,11 @@
 export const INJECTABLE: unique symbol = Symbol.for('nexusdi.injectable');
 export const PROPS: unique symbol = Symbol.for('nexusdi.props');
 
+/** Holds only the keys the decorator's options set on themselves. */
 export interface InjectableMetadata {
-  readonly deps: readonly unknown[] | undefined;
+  readonly deps?: readonly unknown[] | undefined;
   /** Validated by the compiler, since JavaScript callers can write anything. */
-  readonly lifetime: unknown;
+  readonly lifetime?: unknown;
 }
 
 export interface PropMetadata {

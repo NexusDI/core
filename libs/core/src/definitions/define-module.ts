@@ -1,6 +1,7 @@
 import { InvalidModuleError } from '../errors/index.js';
 import { describeValue } from './describe.js';
 import type { Dep, ResolveAll } from './modifiers.js';
+import { pickOwn } from './own-keys.js';
 import type { Provider } from './provide.js';
 import type { ProviderEntries, ProviderLiteral } from './provider-literal.js';
 import type { StandardSchemaV1 } from './standard-schema.js';
@@ -73,6 +74,17 @@ export interface ModuleInternals {
   readonly source: OptionsSource | undefined;
 }
 
+/** The keys a module config reads, as own properties only (SEC-003). */
+const CONFIG_KEYS = [
+  'name',
+  'imports',
+  'providers',
+  'exports',
+  'global',
+  'options',
+  'schema',
+] as const;
+
 const INTERNALS = new WeakMap<object, ModuleInternals>();
 const CLASSES = new WeakMap<object, ModuleDefinition>();
 
@@ -141,27 +153,26 @@ export function defineModule(
     readonly schema?: StandardSchemaV1;
   },
 ): ModuleDefinition {
-  if (
-    typeof config !== 'object' ||
-    config === null ||
-    typeof config.name !== 'string' ||
-    config.name === ''
-  ) {
+  const own =
+    typeof config === 'object' && config !== null
+      ? (pickOwn(config, CONFIG_KEYS) as Partial<typeof config>)
+      : undefined;
+  if (own === undefined || typeof own.name !== 'string' || own.name === '') {
     throw new InvalidModuleError({
       received: describeValue(config),
       path: [],
     });
   }
-  const { options, schema } = config;
+  const { options, schema } = own;
   if (options === undefined) {
-    return register(fieldsOf(config), {
+    return register(fieldsOf(own as ModuleConfig), {
       options: undefined,
       schema: undefined,
       source: undefined,
     });
   }
   const base: ConfigurableModule<unknown> = {
-    ...fieldsOf(config),
+    ...fieldsOf(own as ModuleConfig),
     options,
     schema,
     with: (input: unknown): ModuleDefinition =>
