@@ -168,3 +168,5 @@ Task R19: dispatched (BASE 143cb3f, opus)
 Ruling: R19 size-report.mjs compares a step with the last kept record — accepted (a reverted step's size must not be the baseline).
 Ruling: R19 export errors pushed after dropDuplicates — accepted, keeps error order identical.
 Note: during R19 a cached run failed devtools:test and testing:test once and passed unchanged on rerun; investigate in the final review together with the levels.test.ts flake.
+Note: the flake is a dist race: a package's test-d typecheck reads another package's dist while it is being rebuilt ('libs/testing/dist/index.d.ts has not been built from source'); fix in the final wave (test targets depend on the built dist, or typecheck resolves source).
+Task R19: fix round 1/5 (compile.module hook timing for export-only modules)
