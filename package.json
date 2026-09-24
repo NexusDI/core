@@ -9,7 +9,8 @@
     "verify:packaging": "node scripts/verify-packaging.mjs",
     "measure:bundle": "node scripts/measure-bundle-0.3.mjs",
     "pre-commit:with-tests": "cp .husky/pre-commit .husky/pre-commit.backup && cp .husky/pre-commit-with-tests .husky/pre-commit",
-    "pre-commit:restore": "cp .husky/pre-commit.backup .husky/pre-commit && rm .husky/pre-commit.backup"
+    "pre-commit:restore": "cp .husky/pre-commit.backup .husky/pre-commit && rm .husky/pre-commit.backup",
+    "check:type-floor": "node scripts/check-type-floor.mjs"
   },
   "private": true,
   "devDependencies": {

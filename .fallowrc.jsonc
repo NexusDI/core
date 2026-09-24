@@ -55,6 +55,10 @@
     "examples/toolchain-matrix/scripts/*.mjs",
     "examples/toolchain-matrix/vite.matrix.config.mjs",
     "examples/toolchain-matrix/vite.babel.config.mjs",
+
+    // Run by `npm run check:type-floor` (package.json), not imported by
+    // anything in the workspace.
+    "scripts/check-type-floor.mjs",
   ],
 
   // `react-router typegen` writes +types/*.d.ts files that examples/react-ssr
