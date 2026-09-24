@@ -172,3 +172,4 @@ Note: the flake is a dist race: a package's test-d typecheck reads another packa
 Task R19: fix round 1/5 (compile.module hook timing for export-only modules)
 Task R19: complete (commits 26d357f..a789f0d, review clean; core 18135 -> 18121, kept)
 Task R20: dispatched (BASE a789f0d, opus)
+Ruling: R20 createScope pin test (eager: false-only scoped level, dispose in the same turn rejects NEXUS_DISPOSED without calling the factory) — land it on its own as a test(core) commit; it pins existing behaviour.
