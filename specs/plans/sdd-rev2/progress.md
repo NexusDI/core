@@ -195,3 +195,4 @@ Task R23: fix round 1/5 (errors README typecheck; interface-first ShipComputer; 
 Task R23: minor (deferred): Minors 4-7 (wording and naming nits in README examples)
 Task R23: complete (commits 69234d3..788daf3, review clean)
 Task R24: dispatched (BASE 788daf3, opus)
+Task R24: fix round 1/5 (core and decorators test.dependsOn override the new default; README gate comment)
