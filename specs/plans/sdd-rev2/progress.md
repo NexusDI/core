@@ -71,3 +71,6 @@ Task R4: dispatched (BASE 40bba86, opus)
 Ruling: R4 applyConstruct placement — accepted in runtime/build.ts — the brief's runtime/plugins.ts placement forms an import cycle that fallow rejects; pluginContext stays in runtime/plugins.ts.
 Ruling: R4 Tracer constructor — accepted widened (Sink[] | Sink | undefined) — keeps revision 1 calls unchanged; R10 narrows it when trace moves to devtools.
 Ruling: R4 failed setup marks the container disposing — accepted — a kept container throws NEXUS_DISPOSED, tested.
+Ruling: R4 async setup hook — a thenable returned by setup fails create with NEXUS_PLUGIN_FAILED naming the setup hook, as a thenable from construct does, and core attaches a rejection handler so no unhandled rejection escapes — spec types setup as void; this keeps create's failure explicit.
+Ruling: (Task R6) Nexus.check passes the plugins' contributed modules (pluginImports) to compile, as create does.
+Task R4: fix round 1/5 (adopt the built value before a construct hook failure; ProviderError path; async setup)
