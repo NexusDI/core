@@ -35,8 +35,9 @@ export interface TestingCreateOptions extends CreateOptions {
 
 export interface ModuleOverrideOptions {
   /**
-   * Allows the override to go unused at create, for a module a later load()
-   * adds. The walk still replaces the module wherever it meets it.
+   * Marks the override as applying later, when a `ship.load()` call brings
+   * in the module, instead of at `create()`. `create()` then does not
+   * report the override as unused.
    */
   readonly lazy?: boolean;
 }
