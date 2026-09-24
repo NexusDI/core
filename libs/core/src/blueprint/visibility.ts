@@ -11,6 +11,7 @@ import {
   type NexusError,
 } from '../errors/index.js';
 import type { ModuleNode, ProviderRecord, TokenKey } from './blueprint.js';
+import { isCyclic, strongComponents } from './tarjan.js';
 
 export interface VisibilityInput {
   readonly modules: readonly ModuleNode[];
@@ -47,7 +48,6 @@ export function computeVisibility(
   input: VisibilityInput,
   errors: NexusError[],
 ): Visibility {
-  const nodes = new Map(input.modules.map((m) => [m.id, m]));
   const rank = new Map(input.records.map((r) => [r.id, r.index]));
   const byRank = (a: string, b: string): number =>
     (rank.get(a) ?? 0) - (rank.get(b) ?? 0);
@@ -102,120 +102,172 @@ export function computeVisibility(
   }
 
   const ambiguous = new Map<string, Set<TokenKey>>();
-  const memo = new Map<string, Map<TokenKey, readonly string[]>>();
-  const active = new Set<string>();
-  const tokenIds = new Map(universe.map((token, i) => [token, i]));
-  // A re-export cycle through a global module makes lookup cut a nested call
-  // short (see lookup's `active` check below). exported() calls lookup() and
-  // recurses into other exported() calls, so a cut anywhere inside one of
-  // its calls leaves that call's own result incomplete; counting cuts lets
-  // exported() skip memoising a result built on top of one, so a later,
-  // uncut call recomputes and caches the real answer instead.
-  let cuts = 0;
-
-  const sourceTable = new Map(
-    input.modules.map((node) => {
-      const imports = new Set(node.imports);
-      return [
-        node.id,
-        [
-          ...node.imports,
-          ...globals.filter((g) => g !== node.id && !imports.has(g)),
-        ],
-      ] as const;
-    }),
+  const indexOf = new Map(input.modules.map((m, i) => [m.id, i]));
+  const toIndex = (ids: readonly string[]): number[] =>
+    ids.flatMap((id) => indexOf.get(id) ?? []);
+  const sourceIndex = input.modules.map((node) => {
+    const imports = new Set(node.imports);
+    return toIndex([
+      ...node.imports,
+      ...globals.filter((g) => g !== node.id && !imports.has(g)),
+    ]);
+  });
+  const exportsToken = input.modules.map(
+    (node) => new Set(plans.get(node.id)?.tokens),
   );
-  const sources = (node: ModuleNode): readonly string[] =>
-    sourceTable.get(node.id) ?? [];
+  const reexports = input.modules.map((node) =>
+    toIndex(plans.get(node.id)?.modules ?? []),
+  );
+  const ownOf = (i: number, token: TokenKey): readonly string[] =>
+    own.get(input.modules[i]?.id ?? '')?.get(token) ?? [];
 
-  const exportMemo = new Map<string, readonly string[]>();
-  const exported = (moduleId: string, token: TokenKey): readonly string[] => {
-    const key = `${moduleId}|${tokenIds.get(token)}`;
-    const cached = exportMemo.get(key);
-    if (cached !== undefined) return cached;
-    const before = cuts;
-    const plan = plans.get(moduleId);
-    const ids = new Set<string>();
-    if (plan !== undefined) {
-      if (plan.tokens.includes(token))
-        for (const id of lookup(moduleId, token)) ids.add(id);
-      for (const child of plan.modules)
-        for (const id of exported(child, token)) ids.add(id);
+  // Each (module, token) pair is two nodes: 2i is what module i sees of the
+  // token (its lookup), 2i + 1 is what module i exports of it. Import cycles
+  // are rejected by walk, but a global module is a source of every module, so
+  // a global that re-exports its own importers closes a cycle through them.
+  // Tarjan's algorithm condenses each token's graph into strongly connected
+  // components and settles them callees first, so every node is computed once
+  // from complete inputs: O(V + E) per token. The search is iterative, so a
+  // 1,000-module chain does not grow the call stack.
+  const successors = (token: TokenKey, node: number): readonly number[] => {
+    const i = node >> 1;
+    if (node % 2 === 1) {
+      const next = reexports[i]?.map((c) => 2 * c + 1) ?? [];
+      return exportsToken[i]?.has(token) ? [2 * i, ...next] : next;
     }
-    const result = [...ids].sort(byRank);
-    // A cut anywhere inside this call (directly, or inside a nested
-    // exported() it called) means `result` may be missing a contribution a
-    // later, uncut call would see; cache only a result no cut touched.
-    if (cuts === before) exportMemo.set(key, result);
-    return result;
+    if (input.pinned.has(token)) return [];
+    if (!(token instanceof MultiToken) && ownOf(i, token).length > 0) return [];
+    return sourceIndex[i]?.map((s) => 2 * s + 1) ?? [];
   };
 
-  const lookup = (moduleId: string, token: TokenKey): readonly string[] => {
+  type Values = (readonly string[] | undefined)[];
+  const valueOf = (values: Values, node: number): readonly string[] =>
+    values[node] ?? [];
+
+  const exportOf = (
+    values: Values,
+    token: TokenKey,
+    i: number,
+  ): readonly string[] => {
+    const ids = new Set<string>();
+    for (const next of successors(token, 2 * i + 1))
+      for (const id of valueOf(values, next)) ids.add(id);
+    return [...ids].sort(byRank);
+  };
+
+  const lookupOf = (
+    values: Values,
+    token: TokenKey,
+    i: number,
+  ): readonly string[] => {
     const pinned = input.pinned.get(token);
     if (pinned !== undefined) return pinned;
-    const cached = memo.get(moduleId)?.get(token);
-    if (cached !== undefined) return cached;
-    // A re-export chain that loops back to itself contributes nothing.
-    const key = `${moduleId}|${tokenIds.get(token)}`;
-    if (active.has(key)) {
-      cuts++;
-      return [];
+    const node = input.modules[i];
+    if (node === undefined) return [];
+    const mine = ownOf(i, token);
+    const sourceList = sourceIndex[i] ?? [];
+    if (token instanceof MultiToken) {
+      const ids = new Set(mine);
+      for (const s of sourceList)
+        for (const id of valueOf(values, 2 * s + 1)) ids.add(id);
+      return [...ids].sort(byRank);
     }
-    active.add(key);
-
-    const node = nodes.get(moduleId);
-    const mine = own.get(moduleId)?.get(token) ?? [];
-    let result: readonly string[] = [];
-    if (node !== undefined) {
-      if (token instanceof MultiToken) {
-        const ids = new Set(mine);
-        for (const source of sources(node))
-          for (const id of exported(source, token)) ids.add(id);
-        result = [...ids].sort(byRank);
-      } else if (mine.length > 0) {
-        result = mine;
-      } else {
-        const offers = new Map<string, string[]>();
-        for (const source of sources(node)) {
-          for (const id of exported(source, token)) {
-            offers.set(id, [
-              ...(offers.get(id) ?? []),
-              nodes.get(source)?.name ?? source,
-            ]);
-          }
-        }
-        if (offers.size > 1) {
-          const seen = ambiguous.get(moduleId) ?? new Set<TokenKey>();
-          if (!seen.has(token)) {
-            seen.add(token);
-            ambiguous.set(moduleId, seen);
-            errors.push(
-              new AmbiguousProviderError({
-                token: displayName(token),
-                module: node.name,
-                candidates: [...offers.values()].flat(),
-              }),
-            );
-          }
-        } else {
-          result = [...offers.keys()];
-        }
+    if (mine.length > 0) return mine;
+    const offers = new Map<string, string[]>();
+    for (const s of sourceList) {
+      const name = input.modules[s]?.name ?? '';
+      for (const id of valueOf(values, 2 * s + 1)) {
+        const names = offers.get(id);
+        if (names === undefined) offers.set(id, [name]);
+        else names.push(name);
       }
     }
-
-    active.delete(key);
-    const perModule =
-      memo.get(moduleId) ?? new Map<TokenKey, readonly string[]>();
-    perModule.set(token, result);
-    memo.set(moduleId, perModule);
-    return result;
+    if (offers.size <= 1) return [...offers.keys()];
+    const seen = ambiguous.get(node.id) ?? new Set<TokenKey>();
+    if (!seen.has(token)) {
+      seen.add(token);
+      ambiguous.set(node.id, seen);
+      errors.push(
+        new AmbiguousProviderError({
+          token: displayName(token),
+          module: node.name,
+          candidates: [...offers.values()].flat(),
+        }),
+      );
+    }
+    return [];
   };
 
+  // Settles one component once its callee components are settled. In a
+  // cycle every node reaches every other. For a MultiToken every node takes
+  // a union, so the least fixpoint gives each node the same set: every
+  // provider a member provides or a callee component hands in. For a plain
+  // token no lookup in a cycle has its own provider (one that does has no
+  // successors), so the same set is what enters the cycle. Exports take that
+  // set, then lookups run as usual over it: one provider resolves everywhere
+  // in the cycle, two make every lookup in the cycle ambiguous.
+  const settle = (
+    values: Values,
+    token: TokenKey,
+    members: readonly number[],
+  ): void => {
+    const out = (node: number): readonly number[] => successors(token, node);
+    const cyclic = isCyclic(members, out);
+    if (cyclic) {
+      const inside = new Set(members);
+      const ids = new Set<string>();
+      for (const member of members) {
+        if (member % 2 === 0)
+          for (const id of ownOf(member >> 1, token)) ids.add(id);
+        for (const next of out(member))
+          if (!inside.has(next))
+            for (const id of valueOf(values, next)) ids.add(id);
+      }
+      const all = [...ids].sort(byRank);
+      for (const member of members) if (member % 2 === 1) values[member] = all;
+    }
+    for (const member of members) {
+      if (cyclic && member % 2 === 1) continue;
+      values[member] =
+        member % 2 === 0
+          ? lookupOf(values, token, member >> 1)
+          : exportOf(values, token, member >> 1);
+    }
+  };
+
+  const solved = new Map<
+    TokenKey,
+    { values: Values; visit: (root: number) => void }
+  >();
+  const solve = (token: TokenKey, root: number): readonly string[] => {
+    let entry = solved.get(token);
+    if (entry === undefined) {
+      const size = 2 * input.modules.length;
+      const values: Values = new Array(size);
+      entry = {
+        values,
+        visit: strongComponents(
+          size,
+          (node) => successors(token, node),
+          (members) => settle(values, token, members),
+        ),
+      };
+      solved.set(token, entry);
+    }
+    entry.visit(root);
+    return valueOf(entry.values, root);
+  };
+
+  const lookup = (i: number, token: TokenKey): readonly string[] =>
+    solve(token, 2 * i);
+  const exported = (i: number, token: TokenKey): readonly string[] =>
+    solve(token, 2 * i + 1);
+
   const visibility = new Map<string, Map<TokenKey, readonly string[]>>();
-  for (const node of input.modules) {
+  for (const [i, node] of input.modules.entries()) {
     const map = new Map<TokenKey, readonly string[]>();
     for (const token of universe) {
-      const ids = lookup(node.id, token);
+      const ids = lookup(i, token);
       if (ids.length > 0) map.set(token, ids);
     }
     visibility.set(node.id, map);
@@ -223,11 +275,11 @@ export function computeVisibility(
 
   const moduleExports = new Map<string, readonly string[]>();
   const exportedTokens = new Map<string, Set<TokenKey>>();
-  for (const node of input.modules) {
+  for (const [i, node] of input.modules.entries()) {
     const plan = plans.get(node.id) ?? { tokens: [], modules: [] };
     for (const token of plan.tokens) {
       if (
-        lookup(node.id, token).length === 0 &&
+        lookup(i, token).length === 0 &&
         !ambiguous.get(node.id)?.has(token)
       ) {
         errors.push(
@@ -240,7 +292,7 @@ export function computeVisibility(
     }
     moduleExports.set(node.id, [
       ...new Set([
-        ...plan.tokens.flatMap((t) => lookup(node.id, t)),
+        ...plan.tokens.flatMap((t) => lookup(i, t)),
         ...plan.modules,
       ]),
     ]);
@@ -248,8 +300,7 @@ export function computeVisibility(
       node.id,
       new Set(
         universe.filter(
-          (token) =>
-            !input.pinned.has(token) && exported(node.id, token).length > 0,
+          (token) => !input.pinned.has(token) && exported(i, token).length > 0,
         ),
       ),
     );
