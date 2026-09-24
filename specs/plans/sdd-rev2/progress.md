@@ -158,3 +158,7 @@ Task R16: fix round 1/5 (lazy thunk after a failed run builds into an uncommitte
 Task R16: minor (deferred): modifier results (lazy/optional/all) carry no brand (spec does not require it); core one-line message does not show otherCopy (owner item)
 Task R16: complete (commits 62c870b..c297a63, review clean)
 Task R17: dispatched (BASE c297a63, sonnet)
+Ruling: R17 size fixtures duplicate each other by design (dupes 1.7% -> 2.2%) — (Task R18) add "examples/size/src/**" to duplicates.ignore in .fallowrc.jsonc with a comment, as P26 did for test-support; never raise the threshold.
+Task R17: minor (deferred): report misstated the dupes figure
+Task R17: complete (commits aa88c6b..aa88c6b, review clean)
+Task R18: dispatched (BASE aa88c6b, opus)
