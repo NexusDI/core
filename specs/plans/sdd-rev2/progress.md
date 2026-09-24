@@ -123,3 +123,6 @@ Ruling: R11 no separate pickOwnDeps helper — accepted when declareClass reads 
 Ruling: R11 R10 regression reads metadata through a test-only helper on core's Symbol.for keys; devtools' vite config reaches libs/decorators/vite.decorators.ts with an eslint-disable (typescript cannot ship in the published entry); decorator-syntax security tests moved to libs/decorators, direct metadata-function tests stay in core; core README decorators doctest moved to libs/decorators/README.md with a pointer — accepted.
 Task R11: fix round 1/5 (LegacyDecoratorsError instanceof assertions; declareClass own-key test)
 Task R11: fix round 2/5 (default setter: defineProperty only for '__proto__')
+Task R11: minor (deferred): M1 frozen parent metadata throws on write (revision 1 behaviour); M3 core README line (R23)
+Task R11: complete (commits 9012aca..8f5952c, review clean)
+Task R12: dispatched (BASE 8f5952c, opus)
