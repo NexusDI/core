@@ -73,9 +73,9 @@ export function applyProviderOverrides(
       errors,
     );
     if (shape === null) continue;
-    // A hostile provide() options object can inherit a `lifetime` key from a
-    // polluted Object.prototype (spec §9, SEC-003); only an own key counts
-    // as the override setting a lifetime (X8).
+    // Only an own `lifetime` key counts as the override setting a lifetime.
+    // A polluted Object.prototype can supply an inherited one (SEC-003,
+    // spec §3.2).
     const options = readProvider(provider)?.options;
     const setsLifetime =
       typeof options === 'object' &&

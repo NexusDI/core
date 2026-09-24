@@ -15,11 +15,11 @@ function traceFailed(error: unknown, module: string): ProviderError {
 
 /**
  * compile() plus the `compile` trace event, which a failure emits too, with
- * its error count. A throw from the trace callback itself (S9), not a
- * compile failure, surfaces as a ProviderError with the callback's
- * exception as `cause`, matching how a callback throw during construct or
- * init surfaces (both cross startBlueprint's own catch; this one has no
- * such catch to cross, since it runs before startBlueprint).
+ * its error count. A throw from the trace callback surfaces as a
+ * ProviderError whose `cause` is the callback's exception, the same way a
+ * callback throw during construct or init surfaces through startBlueprint's
+ * catch. This function runs before startBlueprint, so it wraps the throw
+ * itself.
  */
 export function compileTraced(
   tracer: Tracer,

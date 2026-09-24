@@ -52,8 +52,8 @@ export function chainErrors(
 /**
  * Runs `fn` and, if it throws, pushes the error onto `errors` instead of
  * letting it propagate. `disposeInReverse` uses it per entry so a throwing
- * `onDisposed` callback never stops the rest of disposal (Task 26 ruling);
- * scope and root disposal use it the same way around their own trace
+ * `onDisposed` callback never stops the rest of disposal; scope and root
+ * disposal use it the same way around their own trace
  * `emit` call, so a throwing trace callback never stops disposal there
  * either. When `fn` builds a trace event from the errors collected so far
  * and then emits it, that event's `errors` count can never include the

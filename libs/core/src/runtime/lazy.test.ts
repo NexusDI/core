@@ -246,7 +246,7 @@ describe('lazy', () => {
     // adopt() in build.ts tracks a built transient for disposal only when
     // ctx.owner is a container object (spec section 6.5); a singleton's
     // thunk passes the string 'singleton-thunk' instead, so each transient
-    // it builds stays untracked rather than joining root.owned.
+    // it builds stays untracked and never joins root.owned.
     expect(owners).toEqual(['singleton-thunk']);
   });
 });

@@ -14,14 +14,12 @@ type Member = (record: ProviderRecord) => boolean;
  * hop itself. Lazy edges are not in `strong`, so they never contribute.
  *
  * `contribute(id)` is a pure function of `id` (`providers` and `strong` are
- * fixed for one call), member or not, so one memo covers both what the
- * original two-function split called a member's own level and a pass-through
- * node's reach: for a member it is `1 + max(contribute(successor))`, for a
- * pass-through it is `max(contribute(successor))` with no `+1`, and for
- * anything else it is `-1`. Walked with an explicit stack, not recursion: a
- * pass-through chain, or a chain of singleton or scoped deps, can be
- * arbitrarily long, and recursing one call frame per hop would let it
- * overflow the call stack.
+ * fixed for one call), so one memo serves members and pass-through nodes.
+ * For a member it is `1 + max(contribute(successor))`, for a pass-through
+ * it is `max(contribute(successor))`, and for anything else it is `-1`.
+ * The walk uses an explicit stack. A pass-through chain, or a chain of
+ * singleton or scoped deps, can be arbitrarily long, and one call frame per
+ * hop would overflow the call stack.
  */
 function levelFunction(
   providers: ReadonlyMap<string, ProviderRecord>,
@@ -72,10 +70,9 @@ function levelFunction(
         value = isMember ? frame.max + 1 : frame.max;
       }
 
-      // Frame is done: memoise it and fold its value into the frame below,
-      // the same way tarjan.ts folds a finished frame's low-link into its
-      // parent's after popping, rather than only when a child was already
-      // memoised before this frame tried to visit it.
+      // The frame is done: memoise it and fold its value into the parent
+      // frame's max after popping, as tarjan.ts folds a finished frame's
+      // low-link into its parent's.
       stack.pop();
       onStack.delete(frame.id);
       memo.set(frame.id, value);
@@ -106,8 +103,8 @@ function group(
 /**
  * Every scoped provider `createScope` must build: every scoped factory, and
  * every scoped provider reached through a chain of transients and aliases
- * from one. Walked with an explicit stack, not recursion, for the same
- * reason `levelFunction` is: a pass-through chain can be arbitrarily long.
+ * from one. The walk uses an explicit stack for the same reason
+ * `levelFunction` does: a pass-through chain can be arbitrarily long.
  *
  * `seen` guards every id ever pushed, scoped or pass-through alike, so a
  * shared node under a fan-out of transients or aliases (a "diamond": two or

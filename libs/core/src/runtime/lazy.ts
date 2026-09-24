@@ -5,8 +5,8 @@ import { isObject } from './ownership.js';
 import type { ContainerState, Ctx, TransientOwner } from './state.js';
 
 /**
- * The shape of `resolveId` (runtime/build.ts), passed in rather than
- * imported so build.ts and lazy.ts do not import each other.
+ * The shape of `resolveId` (runtime/build.ts). Callers pass it in, so
+ * build.ts and lazy.ts do not import each other.
  */
 export type ResolveId = (id: string, ctx: Ctx) => unknown;
 
@@ -29,9 +29,8 @@ function live(value: unknown, container: ContainerState): unknown {
 }
 
 /**
- * Follows alias hops with a loop, not recursion: an alias chain can be
- * arbitrarily long, and recursing one call frame per hop would overflow the
- * call stack instead of resolving.
+ * Follows alias hops with a loop. An alias chain can be arbitrarily long,
+ * and one call frame per hop would overflow the call stack.
  */
 function resolveLazy(
   id: string,
