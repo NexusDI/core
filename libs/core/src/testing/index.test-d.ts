@@ -1,6 +1,6 @@
 import { describe, expectTypeOf, it } from 'vitest';
 
-import { defineModule, Token, type Nexus } from '../index.js';
+import { defineModule, Injectable, Token, type Nexus } from '../index.js';
 import {
   createTestingContainer,
   type TestingContainerBuilder,
@@ -39,6 +39,18 @@ describe('TestingContainerBuilder', () => {
     builder.override(NAV_CHARTS, { useValue: { nope: 1 } });
     // @ts-expect-error useExisting is not an override form
     builder.override(COMPUTER, { useExisting: ShipComputer });
+  });
+
+  it('accepts an @Injectable fake as useClass without deps, as provide() does', () => {
+    @Injectable({ deps: [ReactorCore] })
+    class FakeComputer extends ShipComputer {}
+    builder.override(COMPUTER, { useClass: FakeComputer });
+    builder.override(COMPUTER, { useClass: FakeComputer, deps: [FakeReactor] });
+    // @ts-expect-error SubspaceLink is not assignable to ReactorCore
+    builder.override(COMPUTER, {
+      useClass: FakeComputer,
+      deps: [SubspaceLink],
+    });
   });
 
   it('creates a Nexus', () => {

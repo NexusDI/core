@@ -78,9 +78,13 @@ export type TokenDefinition<T, C extends Ctor> =
       useValue?: never;
     };
 
-/** What createTestingContainer().override() accepts besides a factory. */
+/**
+ * What createTestingContainer().override() accepts besides a factory. Its
+ * useClass takes deps the way provide()'s does (UseClassDeps), so an
+ * @Injectable fake needs no deps option.
+ */
 export type OverrideDefinition<T, C extends Ctor> =
-  | ({ useClass: C; lifetime?: Lifetime } & DepsFor<C>)
+  | ({ useClass: C; lifetime?: Lifetime } & UseClassDeps<C>)
   | { useValue: NoInfer<T>; lifetime?: never };
 
 export type AsyncTransientMessage =
