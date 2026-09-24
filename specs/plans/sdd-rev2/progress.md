@@ -198,3 +198,4 @@ Task R24: dispatched (BASE 788daf3, opus)
 Task R24: fix round 1/5 (core and decorators test.dependsOn override the new default; README gate comment)
 Task R24: complete (commits 8beb213..e2586a0, review clean; gate green, spec checklist in task-R24-report.md)
 Task R25: dispatched (BASE e2586a0, opus)
+Ruling: R25 deps keyed in bind with optional Edge.token and RootInit.canon (keeps revision 1 toEqual tests), Blueprint.key for view.visible(), bench sites updated — accepted pending review.
