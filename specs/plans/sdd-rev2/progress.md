@@ -150,3 +150,5 @@ Task R15: fix round 1/5 (dispose lazily built singletons on a failed create/load
 Task R15: minor (deferred): aborted createScope rejects PROVIDER_FAILED in one edge case (user-thrown DisposedError); failed on-demand builds stay in root.owned; M4 a rollback disposer calling a thunk to a never-built eager: false singleton builds and leaks it (carried to R16)
 Task R15: complete (commits da33e6e..5144eff, review clean)
 Task R16: dispatched (BASE 5144eff, opus)
+Ruling: R16 testing's InvalidModuleError site passes otherCopy: false — accepted — a real value would need core's internal isForeign, which the spec does not make public; recorded as a known limit.
+Ruling: R16 nexus-error.test.ts KEYS table gains 'otherCopy' for the three classes that add the field — accepted (new field, P23).
