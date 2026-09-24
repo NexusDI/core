@@ -5,40 +5,45 @@
  *
  * Nothing inside the repo can tell whether the package resolves as published.
  * tsconfig.base.json sets `customConditions: ["@nexusdi/source"]`, so every
- * in-workspace import reaches the package's TypeScript source and the exports
- * map, the emitted declarations and the build output are all bypassed. The
- * package can therefore typecheck, test and lint clean while exporting
- * nothing a consumer can reach -- an extensionless relative specifier in an
- * emitted .d.ts is enough, because `moduleResolution: nodenext` requires the
- * extension.
+ * in-workspace import reaches the package's TypeScript source, and the exports
+ * map, the emitted declarations and the build output are all bypassed.
  *
- * Everything that only exists once the package is packed is checked here: the
- * exports map, the conditions in it, the declarations as emitted, the entry
- * point, and the imports the compiler left in the output.
+ * The consumer here is the strictest one spec section 17 names: `lib:
+ * ["es2022"]`, no @types/node, `skipLibCheck: false`, standard decorators and
+ * `await using`. The declarations carry `/// <reference lib="esnext.disposable"
+ * />`, which is what lets that consumer compile without a `lib` change.
  */
 import { execFileSync } from 'node:child_process';
 import {
   mkdtempSync,
-  writeFileSync,
-  rmSync,
   readdirSync,
   readFileSync,
+  rmSync,
+  writeFileSync,
 } from 'node:fs';
 import { tmpdir } from 'node:os';
+import { createRequire } from 'node:module';
 import { join, resolve } from 'node:path';
-import { rollup } from 'rollup';
 import { nodeResolve } from '@rollup/plugin-node-resolve';
 import * as esbuild from 'esbuild';
+import { rollup } from 'rollup';
 
 const ROOT = resolve(import.meta.dirname, '..');
 
 /**
- * Every package whose packed output is checked, as `[directory, package
- * name]`. That is `libs/*`, which npm publishes. A package missing from this
- * list is packed by nothing and checked by nothing; the count is asserted
- * after packing so a failed `npm pack` cannot pass as a shorter list.
+ * Every published package, as `[directory, package name]`. The package name
+ * is also the Nx project name the build step selects.
  */
 const LIBS = [['libs/core', '@nexusdi/core']];
+
+/** The entry points of @nexusdi/core, as its exports map names them. */
+const CORE_ENTRIES = ['.', './node', './testing'];
+
+/** Every JavaScript module under `root`, at any depth. */
+const modulesUnder = (root) =>
+  readdirSync(root, { recursive: true, withFileTypes: true })
+    .filter((entry) => entry.isFile() && /\.(?:js|cjs|mjs)$/.test(entry.name))
+    .map((entry) => join(entry.parentPath, entry.name));
 
 const run = (cmd, args, cwd) =>
   execFileSync(cmd, args, { cwd, encoding: 'utf8', stdio: 'pipe' });
@@ -46,172 +51,390 @@ const run = (cmd, args, cwd) =>
 const dir = mkdtempSync(join(tmpdir(), 'nexusdi-packaging-'));
 let failed = false;
 
-try {
-  // CI builds from a checkout that has no `dist` at all. Here `dist` is
-  // whatever the last local build left, and `nx build` empties it at no
-  // point: a file planted in `libs/core/dist` survives a rebuild, which
-  // overwrites what it emits and touches nothing else, and survives a cache
-  // hit, which restores the cached outputs alongside what is already on
-  // disk. A source file deleted since the last build therefore leaves its
-  // JavaScript behind, `npm pack` ships it, and every check below reports on
-  // a tarball that cannot be published.
-  //
-  // Both halves are needed. Clearing alone is not enough, because a build
-  // that ran against a dirty `dist` cached the stale file as part of its
-  // output, and that cache entry is keyed on the sources as they are now --
-  // so the build after the clean hits it and puts the file straight back.
-  // `--skip-nx-cache` alone is not enough either, since a rebuild does not
-  // prune. Together they give a build from sources into an empty directory,
-  // which is what ships, and the run replaces the poisoned cache entry on
-  // its way past.
-  console.log('Clearing build output…');
-  for (const [libDir] of LIBS) {
-    rmSync(join(ROOT, libDir, 'dist'), { recursive: true, force: true });
+/**
+ * A CommonJS consumer. The package is ESM only (spec section 12), and Node
+ * 22.12.0, the engines floor, is the first 22.x release whose require() loads
+ * an ES module without a flag. It requires all three entries and uses each.
+ */
+const CJS_CONSUMER = `'use strict';
+const { Nexus, Token, defineModule, provide } = require('@nexusdi/core');
+const { createTestingContainer } = require('@nexusdi/core/testing');
+const { nodeScopeContext } = require('@nexusdi/core/node');
+
+const REACTOR = new Token('ReactorCore');
+class FusionReactor {
+  constructor() {
+    this.output = 1.21;
   }
+}
+class FakeReactor {
+  constructor() {
+    this.output = 0;
+  }
+}
+const Engineering = defineModule({
+  name: 'Engineering',
+  providers: [provide(REACTOR, { useClass: FusionReactor })],
+  exports: [REACTOR],
+});
+
+(async () => {
+  const ship = await Nexus.create(Engineering, {
+    scopeContext: nodeScopeContext(),
+  });
+  if (ship.get(REACTOR).output !== 1.21)
+    throw new Error('require(esm): the provider did not resolve');
+  const shuttle = await ship.createScope();
+  const bound = await ship.runInScope(
+    shuttle,
+    async () => ship.currentScope() === shuttle,
+  );
+  if (!bound) throw new Error('require(esm): the node entry did not bind the scope');
+  await shuttle[Symbol.asyncDispose]();
+  await ship[Symbol.asyncDispose]();
+
+  const fake = await createTestingContainer(Engineering)
+    .override(REACTOR, { useClass: FakeReactor })
+    .create();
+  if (fake.get(REACTOR).output !== 0)
+    throw new Error('require(esm): the testing entry did not override');
+  await fake[Symbol.asyncDispose]();
+  console.log(process.versions.node);
+})().catch((error) => {
+  console.error(error);
+  process.exit(1);
+});
+`;
+
+/** The engines floor, and the current LTS line. npx fetches each binary from the `node` package. */
+const CJS_NODE_VERSIONS = ['22.12.0', '24'];
+
+/**
+ * True when a module's top level awaits: an `await`, a `for await` or an
+ * `await using` outside every function. require() throws
+ * ERR_REQUIRE_ASYNC_MODULE for any ES module graph that contains one.
+ */
+function hasTopLevelAwait(ts, fileName, text) {
+  const source = ts.createSourceFile(
+    fileName,
+    text,
+    ts.ScriptTarget.Latest,
+    false,
+    ts.ScriptKind.JS,
+  );
+  let found = false;
+  const visit = (node) => {
+    if (found || ts.isFunctionLike(node)) return;
+    if (
+      ts.isAwaitExpression(node) ||
+      (ts.isForOfStatement(node) && node.awaitModifier !== undefined) ||
+      (ts.isVariableDeclarationList(node) &&
+        (node.flags & ts.NodeFlags.AwaitUsing) === ts.NodeFlags.AwaitUsing)
+    ) {
+      found = true;
+      return;
+    }
+    ts.forEachChild(node, visit);
+  };
+  visit(source);
+  return found;
+}
+
+/** Names every public export, so tsc fails on one that stopped being exported. */
+const CONSUMER = `
+import {
+  AmbiguousProviderError, AsyncTransientError, BlueprintError, CircularDependencyError,
+  DisposedError, DuplicateProviderError, InvalidExportError, InvalidModuleError,
+  InvalidProviderError, InvalidTokenError, LegacyDecoratorsError, LifetimeError,
+  LoadedAfterScopeError, LoadError, MissingDepsError, MissingProviderError,
+  ModuleImportCycleError, ModuleOptionsError, NexusError, NoScopeContextError,
+  NotReadyError, NotVisibleError, OverrideError, ProviderError, RequestMissingError,
+  ScopeRequiredError,
+  Inject, Injectable, Module, MultiToken, Nexus, REQUEST, Token,
+  all, defineModule, lazy, optional, provide,
+} from '@nexusdi/core';
+import type {
+  All, ConfigurableModule, ConfigurableModuleConfig, CreateOptions, Dep, DepFor,
+  ErrorLifetime, ExportEntry, InjectionToken, Lazy, Lifetime, LookupOptions,
+  ModuleConfig, ModuleDecoratorConfig, ModuleDefinition, ModuleRef, NearMiss,
+  NexusErrorCode, NexusGraph, NexusRequest, NoLifetimeMessage, Optional, OptionsFactory,
+  Provider, ProviderEntries, ProviderEntry, ProviderFailure, ProviderLiteral, Resolve,
+  ResolveAll, SchemaIssue, Scope, ScopeContext, StandardSchemaV1, TraceEvent, Tokens,
+  DepsMap, ResolvedDeps, UntypedFunctionMessage,
+} from '@nexusdi/core';
+import { nodeScopeContext } from '@nexusdi/core/node';
+import { createTestingContainer } from '@nexusdi/core/testing';
+import type { TestingContainerBuilder, TestingCreateOptions } from '@nexusdi/core/testing';
+
+declare module '@nexusdi/core' {
+  interface NexusRequest {
+    mission: string;
+  }
+}
+
+interface NavCharts {
+  plot(to: string): string;
+}
+const NAV_CHARTS = new Token<NavCharts>('NavCharts');
+const DIAGNOSTICS = new MultiToken<string>('Diagnostics');
+const MISSION = new Token<string>('Mission');
+
+class ReactorCore {
+  output = 1.21;
+}
+
+@Injectable({ deps: [ReactorCore, optional(NAV_CHARTS)] })
+class ShipComputer {
+  @Inject(NAV_CHARTS) accessor charts!: NavCharts;
+  constructor(readonly reactor: ReactorCore, readonly maybe?: NavCharts) {}
+}
+
+class PowerRouter {
+  constructor(readonly shields: () => ShieldGrid) {}
+}
+class ShieldGrid {
+  constructor(readonly router: PowerRouter) {}
+}
+
+@Module({
+  providers: [
+    ReactorCore,
+    ShipComputer,
+    provide(NAV_CHARTS, { useFactory: async () => ({ plot: (to: string) => 'course to ' + to }), deps: [] }),
+    provide(PowerRouter, { deps: [lazy(ShieldGrid)] }),
+    provide(ShieldGrid, { deps: [PowerRouter] }),
+    { token: DIAGNOSTICS, useValue: 'hull' },
+    provide(MISSION, { useFactory: (request) => request.mission, deps: [REQUEST], lifetime: 'scoped' }),
+  ],
+  exports: [ShipComputer, NAV_CHARTS, DIAGNOSTICS, MISSION],
+})
+class Engineering {}
+
+const COURSE = new Token<string>('Course');
+const Meridian = defineModule({
+  name: 'Meridian',
+  imports: [Engineering],
+  providers: [{ token: COURSE, useFactory: (charts: NavCharts) => charts.plot('Vega'), deps: [NAV_CHARTS] }],
+});
+
+function check(ok: boolean, what: string): void {
+  if (!ok) throw new Error('@nexusdi/core from the packed build: ' + what);
+}
+
+{
+  await using ship = await Nexus.create(Meridian, { scopeContext: nodeScopeContext() });
+  check(ship.get(ShipComputer).charts.plot('Kepler') === 'course to Kepler', 'a property injection');
+  check(ship.get(DIAGNOSTICS)[0] === 'hull', 'a MultiToken from a provider literal');
+  check(ship.get(COURSE) === 'course to Vega', 'a factory from a provider literal');
+  await using shuttle = await ship.createScope({ request: { mission: 'survey-7' } });
+  const mission = await ship.runInScope(shuttle, async () => ship.currentScope()?.get(MISSION));
+  check(mission === 'survey-7', 'a scoped provider through the node scope context');
+  const handlerDeps = { computer: ShipComputer, mission: MISSION, checks: all(DIAGNOSTICS) } as const satisfies DepsMap;
+  ship.validate(handlerDeps);
+  const resolved: ResolvedDeps<typeof handlerDeps> = shuttle.resolve(handlerDeps);
+  check(resolved.mission === 'survey-7' && resolved.checks[0] === 'hull', 'resolve() on a scope');
+  const graph: NexusGraph = ship.graph();
+  check(graph.modules.length === 2, 'graph()');
+}
+{
+  await using fake = await createTestingContainer(Meridian)
+    .override(NAV_CHARTS, { useValue: { plot: () => 'fake' } })
+    .create({ onInit: false });
+  check(fake.get(ShipComputer).charts.plot('x') === 'fake', 'the testing entry');
+}
+
+const errorClasses = [
+  AmbiguousProviderError, AsyncTransientError, BlueprintError, CircularDependencyError,
+  DisposedError, DuplicateProviderError, InvalidExportError, InvalidModuleError,
+  InvalidProviderError, InvalidTokenError, LegacyDecoratorsError, LifetimeError,
+  LoadedAfterScopeError, LoadError, MissingDepsError, MissingProviderError,
+  ModuleImportCycleError, ModuleOptionsError, NexusError, NoScopeContextError,
+  NotReadyError, NotVisibleError, OverrideError, ProviderError, RequestMissingError,
+  ScopeRequiredError,
+];
+check(errorClasses.every((c) => typeof c === 'function') && typeof all === 'function', 'the error classes');
+
+type EveryType = [
+  All<unknown>, ConfigurableModule<unknown>, ConfigurableModuleConfig<unknown>, CreateOptions,
+  Dep, DepFor<unknown>, ErrorLifetime, ExportEntry, InjectionToken<unknown>, Lazy<unknown>,
+  Lifetime, LookupOptions, ModuleConfig, ModuleDecoratorConfig, ModuleDefinition, ModuleRef,
+  NearMiss, NexusErrorCode, NexusGraph, NexusRequest, NoLifetimeMessage, Optional<unknown>,
+  OptionsFactory<unknown, []>, Provider<unknown>, ProviderEntries<[]>, ProviderEntry,
+  ProviderFailure, ProviderLiteral,
+  Resolve<unknown>, ResolveAll<[]>, SchemaIssue, Scope, ScopeContext, StandardSchemaV1,
+  TraceEvent, Tokens<[]>, TestingContainerBuilder, TestingCreateOptions, UntypedFunctionMessage,
+];
+const everyType: EveryType | undefined = undefined;
+void everyType;
+`;
+
+/**
+ * The two programs both bundlers build. The decorated one needs the
+ * Symbol.metadata polyfill that the decorator modules import; the
+ * provide()-only one imports no decorator, so its bundle must leave the
+ * polyfill out. Each resolves a Token, because a bundler that renames the
+ * Token class to avoid a scope collision must not break resolution.
+ */
+const BUNDLED = {
+  decorated: `
+import { Inject, Injectable, Module, Nexus, Token, provide } from '@nexusdi/core';
+
+interface Beacon {
+  signal(): string;
+}
+const BEACON = new Token<Beacon>('Beacon');
+
+class ReactorCore {
+  output = 1.21;
+}
+
+@Injectable({ deps: [ReactorCore] })
+class Bridge {
+  @Inject(BEACON) accessor beacon!: Beacon;
+  constructor(readonly reactor: ReactorCore) {}
+}
+
+@Module({
+  providers: [ReactorCore, Bridge, provide(BEACON, { useValue: { signal: () => 'ping' } })],
+})
+class Flagship {}
+
+const ship = await Nexus.create(Flagship);
+const bridge = ship.get(Bridge);
+if (bridge.reactor.output !== 1.21) throw new Error('the constructor dependency did not resolve');
+if (bridge.beacon.signal() !== 'ping') throw new Error('the Token property injection did not resolve');
+if (ship.get(BEACON) !== bridge.beacon) throw new Error('the Token did not round-trip');
+await ship[Symbol.asyncDispose]();
+`,
+  'provide-only': `
+import { Nexus, Token, defineModule, provide } from '@nexusdi/core';
+
+const NAME = new Token<string>('Name');
+const ship = await Nexus.create(
+  defineModule({ name: 'Root', providers: [provide(NAME, { useValue: 'x' })] }),
+);
+if (ship.get(NAME) !== 'x') throw new Error('the Token did not round-trip');
+await ship[Symbol.asyncDispose]();
+`,
+};
+
+/**
+ * The polyfill assigns Symbol.for('Symbol.metadata'). definitions/metadata.ts
+ * only reads Symbol.metadata, and esbuild's decorator helper builds its key
+ * as 'Symbol.' + name, so this literal appears only where the polyfill does.
+ */
+const METADATA_POLYFILL = /Symbol\.for\(\s*["']Symbol\.metadata["']\s*\)/;
+
+/** Bundles `<name>.ts` with esbuild, which applies the standard decorator transform itself. */
+async function bundleWithEsbuild(name) {
+  const outfile = join(dir, 'bundles', `${name}.esbuild.mjs`);
+  await esbuild.build({
+    entryPoints: [join(dir, `${name}.ts`)],
+    outfile,
+    absWorkingDir: dir,
+    bundle: true,
+    format: 'esm',
+    platform: 'node',
+    target: 'es2022',
+    // Pinned so no tsconfig on disk can switch on experimentalDecorators.
+    tsconfigRaw: {},
+    logLevel: 'silent',
+  });
+  return outfile;
+}
+
+/** Bundles tsc's emit of `<name>.ts` with Rollup and node-resolve. */
+async function bundleWithRollup(name) {
+  const file = join(dir, 'bundles', `${name}.rollup.mjs`);
+  const bundle = await rollup({
+    input: join(dir, 'out-bundle-input', `${name}.js`),
+    plugins: [nodeResolve()],
+    onwarn(warning, warn) {
+      if (warning.code === 'UNRESOLVED_IMPORT')
+        throw new Error(`Rollup could not resolve ${warning.exporter}`);
+      warn(warning);
+    },
+  });
+  await bundle.write({ file, format: 'esm' });
+  await bundle.close();
+  return file;
+}
+
+const tsconfig = (resolution) =>
+  JSON.stringify({
+    compilerOptions: {
+      strict: true,
+      target: 'es2022',
+      module: resolution === 'bundler' ? 'esnext' : 'nodenext',
+      moduleResolution: resolution,
+      // No DOM, no esnext.disposable, no @types/node: the package's
+      // declarations must bring what they use.
+      lib: ['es2022'],
+      types: [],
+      skipLibCheck: false,
+      outDir: `out-${resolution}`,
+    },
+    include: ['consumer.ts'],
+  });
+
+try {
+  // A build from sources into an empty dist. A rebuild and a cache hit both
+  // leave a stale file in dist, and npm pack would include it, so dist is
+  // cleared and the Nx cache is skipped. Only the published packages build:
+  // nothing here reads an example's output.
+  console.log('Clearing build output…');
+  for (const [libDir] of LIBS)
+    rmSync(join(ROOT, libDir, 'dist'), { recursive: true, force: true });
 
   console.log('Building libraries…');
-  run('npx', ['nx', 'run-many', '-t', 'build', '--skip-nx-cache'], ROOT);
+  run(
+    'npx',
+    [
+      'nx',
+      'run-many',
+      '-t',
+      'build',
+      '-p',
+      ...LIBS.map(([, name]) => name),
+      '--skip-nx-cache',
+    ],
+    ROOT,
+  );
 
   console.log(`Packing into ${dir}`);
-  for (const [libDir] of LIBS) {
+  for (const [libDir] of LIBS)
     run('npm', ['pack', '--pack-destination', dir], join(ROOT, libDir));
-  }
   const tarballs = readdirSync(dir).filter((f) => f.endsWith('.tgz'));
-  if (tarballs.length !== LIBS.length) {
+  if (tarballs.length !== LIBS.length)
     throw new Error(
       `expected ${LIBS.length} tarball(s), found ${tarballs.length}`,
     );
-  }
 
   writeFileSync(
     join(dir, 'package.json'),
     JSON.stringify({ name: 'packaging-check', private: true, type: 'module' }),
   );
+  writeFileSync(join(dir, 'consumer.ts'), CONSUMER);
+  writeFileSync(join(dir, 'cjs-consumer.cjs'), CJS_CONSUMER);
+  for (const [name, source] of Object.entries(BUNDLED))
+    writeFileSync(join(dir, `${name}.ts`), source);
+  writeFileSync(join(dir, 'tsconfig.nodenext.json'), tsconfig('nodenext'));
+  writeFileSync(join(dir, 'tsconfig.bundler.json'), tsconfig('bundler'));
   writeFileSync(
-    join(dir, 'tsconfig.json'),
+    join(dir, 'tsconfig.bundle-input.json'),
     JSON.stringify({
-      // nodenext on purpose: this is the resolution mode that catches
-      // extensionless relative specifiers in emitted .d.ts files.
       compilerOptions: {
         strict: true,
         target: 'es2022',
-        module: 'nodenext',
-        moduleResolution: 'nodenext',
-        noEmit: true,
-        skipLibCheck: true,
-        experimentalDecorators: true,
+        module: 'esnext',
+        moduleResolution: 'bundler',
+        lib: ['es2022'],
+        types: [],
+        skipLibCheck: false,
+        outDir: 'out-bundle-input',
       },
-      include: ['consumer.ts'],
+      include: Object.keys(BUNDLED).map((name) => `${name}.ts`),
     }),
-  );
-  // Names every public export and assigns the types to annotated bindings, so
-  // `tsc` fails on a symbol that stopped being exported and on one whose type
-  // stopped being reachable. `void [...]` at the end keeps the values used
-  // without running anything.
-  writeFileSync(
-    join(dir, 'consumer.ts'),
-    `
-import Nexus, {
-  Nexus as NexusNamed,
-  Token,
-  Module,
-  Service,
-  Inject,
-  Optional,
-  DynamicModule,
-  ContainerException,
-  InvalidToken,
-  NoProvider,
-  InvalidProvider,
-  InvalidModule,
-  isToken,
-  isProvider,
-  isContainer,
-  setMetadata,
-  getMetadata,
-} from '@nexusdi/core';
-import type {
-  IContainer,
-  TokenType,
-  ProviderType,
-  ModuleProvider,
-  ProviderConfig,
-  ModuleConfig,
-  InjectionMetadata,
-} from '@nexusdi/core';
-
-interface Logger {
-  log(message: string): void;
-}
-
-const LOGGER_TOKEN = new Token<Logger>('Logger');
-
-@Service(LOGGER_TOKEN)
-class ConsoleLogger implements Logger {
-  log(message: string): void {
-    void message;
-  }
-}
-
-@Service()
-class UserService {
-  constructor(@Optional(LOGGER_TOKEN) private logger?: Logger) {}
-
-  greet(): string {
-    this.logger?.log('greeting');
-    return 'hello';
-  }
-}
-
-@Module({ providers: [ConsoleLogger, UserService] })
-class AppModule {}
-
-const container: IContainer = new Nexus();
-const alsoNexus = new NexusNamed();
-container.set(LOGGER_TOKEN, ConsoleLogger);
-container.set(UserService);
-const userService = container.get(UserService);
-const greeting: string = userService.greet();
-
-// Referenced by type only: proves the DynamicModule export still resolves
-// and still carries the shape a subclass has to implement, without pulling
-// a second, unrelated feature (runtime module configuration) into this check.
-abstract class ConfiguredModule extends DynamicModule<{ level: string }> {
-  protected readonly configToken: Token<{ level: string }> = new Token(
-    'config',
-  );
-}
-void ConfiguredModule;
-
-const moduleRef: typeof AppModule = AppModule;
-const providerType: ProviderType = { token: LOGGER_TOKEN, useClass: ConsoleLogger };
-const moduleProvider: ModuleProvider = ConsoleLogger;
-const providerConfig: ProviderConfig<Logger> = { token: LOGGER_TOKEN, singleton: true };
-const moduleConfig: ModuleConfig = { providers: [ConsoleLogger] };
-const tokenType: TokenType<Logger> = LOGGER_TOKEN;
-const injectionMetadata: InjectionMetadata[] = [];
-
-setMetadata(ConsoleLogger, 'custom', true);
-const metadataValue: unknown = getMetadata(ConsoleLogger, 'custom');
-
-const tokenCheck: boolean = isToken(LOGGER_TOKEN);
-const providerCheck: boolean = isProvider(providerType);
-const containerCheck: boolean = isContainer(container);
-
-const errors: [
-  typeof ContainerException,
-  typeof InvalidToken,
-  typeof NoProvider,
-  typeof InvalidProvider,
-  typeof InvalidModule,
-] = [ContainerException, InvalidToken, NoProvider, InvalidProvider, InvalidModule];
-
-void [
-  alsoNexus, greeting, moduleRef, providerType, moduleProvider, providerConfig, moduleConfig,
-  tokenType, injectionMetadata, metadataValue, tokenCheck, providerCheck,
-  containerCheck, errors,
-];
-`,
   );
 
   console.log('Installing tarball…');
@@ -228,222 +451,85 @@ void [
     dir,
   );
 
-  console.log('Type-checking a consumer…');
-  run('npx', ['tsc', '-p', 'tsconfig.json'], dir);
-  console.log('  ✓ the package exposes its types under nodenext');
+  console.log('Type-checking a strict consumer…');
+  run('npx', ['tsc', '-p', 'tsconfig.nodenext.json'], dir);
+  console.log(
+    '  ✓ ., ./node and ./testing resolve with types under nodenext, with lib es2022 and no @types/node',
+  );
+  run('npx', ['tsc', '-p', 'tsconfig.bundler.json', '--noEmit'], dir);
+  console.log(
+    '  ✓ the same consumer type-checks under moduleResolution bundler',
+  );
 
-  // A second pass at runtime: the typecheck above resolves through the
-  // exports map's `types` condition, node resolves through `import`, and the
-  // two point at different files. A declaration can promise a value the
-  // emitted JavaScript does not export.
-  console.log('Importing at runtime…');
-  writeFileSync(
-    join(dir, 'runtime.mjs'),
-    `
-import Nexus, { Token, Service, Inject } from '@nexusdi/core';
+  // tsc resolves through the `types` condition, node through `import`, and the
+  // two point at different files. Running the emitted consumer checks the second.
+  console.log('Running the consumer…');
+  run('node', [join(dir, 'out-nodenext', 'consumer.js')], dir);
+  console.log(
+    '  ✓ a decorated class, scopes, the node entry and the testing entry run from the packed build',
+  );
 
-const TOKEN = new Token('greeting');
+  console.log('Checking the published modules for top-level await…');
+  const ts = createRequire(join(dir, 'package.json'))('typescript');
+  const coreDist = join(dir, 'node_modules', '@nexusdi', 'core', 'dist');
+  const awaiting = modulesUnder(coreDist).filter((file) =>
+    hasTopLevelAwait(ts, file, readFileSync(file, 'utf8')),
+  );
+  if (awaiting.length)
+    throw new Error(
+      `top-level await makes require() throw ERR_REQUIRE_ASYNC_MODULE:\n${awaiting.join('\n')}`,
+    );
+  console.log('  ✓ no published module uses top-level await');
 
-@Service(TOKEN)
-class Greeter {
-  greet() { return 'hello from the packed build'; }
-}
-
-@Service()
-class Consumer {
-  constructor(@Inject(TOKEN) greeter) {
-    this.greeter = greeter;
+  console.log('Requiring every entry from CommonJS…');
+  for (const version of CJS_NODE_VERSIONS) {
+    const printed = run(
+      'npx',
+      ['--yes', `node@${version}`, join(dir, 'cjs-consumer.cjs')],
+      dir,
+    ).trim();
+    if (!printed.startsWith(version))
+      throw new Error(
+        `expected Node ${version}, the consumer ran on ${printed}`,
+      );
+    console.log(
+      `  ✓ Node ${printed}: require() loads ., ./testing and ./node, and each resolves`,
+    );
   }
-}
 
-const container = new Nexus();
-container.set(TOKEN, Greeter);
-container.set(Consumer);
-const consumer = container.get(Consumer);
-if (consumer.greeter.greet() !== 'hello from the packed build') {
-  console.error('@nexusdi/core does not resolve an injected dependency from its published build');
-  process.exit(1);
-}
-`,
-  );
-  // The consumer above uses decorators, which need to run through a
-  // transpiler (Node does not execute experimentalDecorators syntax
-  // natively). tsc itself is used to transpile rather than run the source
-  // directly, matching how a real consumer's own build would compile it.
-  writeFileSync(
-    join(dir, 'runtime.tsconfig.json'),
-    JSON.stringify({
-      compilerOptions: {
-        target: 'es2022',
-        module: 'nodenext',
-        moduleResolution: 'nodenext',
-        experimentalDecorators: true,
-        outDir: 'runtime-out',
-        skipLibCheck: true,
-      },
-      include: ['runtime.mjs'],
-    }),
-  );
-  run(
-    'npx',
-    ['tsc', '-p', 'runtime.tsconfig.json', '--allowJs', '--checkJs', 'false'],
-    dir,
-  );
-  run('node', [join(dir, 'runtime-out', 'runtime.mjs')], dir);
-  console.log(
-    '  ✓ the package imports cleanly as ESM and resolves DI at runtime',
-  );
+  // Both bundlers honour the sideEffects list, which is the only thing that
+  // keeps the polyfill out of a program that imports no decorator. Running
+  // each bundle checks that resolution survives the bundler's renaming.
+  console.log('Bundling a decorated and a provide()-only program…');
+  run('npx', ['tsc', '-p', 'tsconfig.bundle-input.json'], dir);
+  for (const [bundler, bundle] of [
+    ['esbuild', bundleWithEsbuild],
+    ['Rollup', bundleWithRollup],
+  ]) {
+    const decorated = await bundle('decorated');
+    if (!METADATA_POLYFILL.test(readFileSync(decorated, 'utf8')))
+      throw new Error(
+        `the ${bundler} bundle of a decorated program lost the Symbol.metadata polyfill`,
+      );
+    run('node', [decorated], dir);
+    console.log(
+      `  ✓ ${bundler}: a decorated bundle keeps the Symbol.metadata polyfill and resolves its deps and a Token`,
+    );
 
-  // A third pass through a tree-shaking bundler, not just node's own
-  // resolver: Rollup treats `export { X } from './y.js'` in a
-  // `sideEffects: false` module as a facade. When nothing in the consumer's
-  // graph needs anything else from that module, Rollup links the import
-  // straight to `y.js` and never evaluates the re-exporting module at all --
-  // so a top-level statement in index.js that produces no export, like the
-  // `Symbol.metadata` polyfill, does not run. The two runtime checks above
-  // import unbundled: node evaluates dist/index.js top to bottom regardless
-  // of what package.json claims, so they cannot catch this. esbuild does not
-  // perform this facade elision, so it cannot exercise this path either --
-  // only Rollup's linker does.
-  console.log('Bundling a consumer with Rollup (tree-shaking check)…');
-  writeFileSync(
-    join(dir, 'bundle-entry.mjs'),
-    `
-import { Nexus, Service, Token } from '@nexusdi/core';
-
-// Applied as a plain function, not "@Service()", so this file needs no
-// decorator transform before Rollup bundles it -- the point is to observe
-// what the published JavaScript does under tree shaking, not to re-test
-// decorator syntax.
-class Greeter {
-  greet() {
-    return 'hello from the bundle';
+    const provideOnly = await bundle('provide-only');
+    if (METADATA_POLYFILL.test(readFileSync(provideOnly, 'utf8')))
+      throw new Error(
+        `the ${bundler} bundle of a program that imports no decorator contains the Symbol.metadata polyfill; sideEffects or the decorators/ import boundary regressed`,
+      );
+    run('node', [provideOnly], dir);
+    console.log(
+      `  ✓ ${bundler}: a provide()-only bundle contains no Symbol.metadata assignment and resolves a Token`,
+    );
   }
-}
-Service()(Greeter);
 
-// Registered and resolved by the class itself, not a Token instance: Token
-// resolution goes through isToken()'s "constructor.name === 'Token'" check,
-// which a bundler that renames a top-level class to avoid a scope collision
-// breaks on its own, independently of the Symbol.metadata polyfill this
-// check exists to verify. Token is imported and sanity-checked below so a
-// build that fails to export it still fails loudly, without routing it
-// through that unrelated, pre-existing hazard.
-const GREETER = new Token('Greeter');
-
-const container = new Nexus();
-container.set(Greeter);
-const instance = container.get(Greeter);
-
-const failures = [];
-
-if (!(GREETER instanceof Token)) {
-  failures.push('Token did not produce an instance of the imported Token class');
-}
-
-if (typeof Symbol.metadata !== 'symbol') {
-  failures.push(
-    \`Symbol.metadata is \${typeof Symbol.metadata}, not "symbol": the bundler dropped @nexusdi/core's top-level polyfill\`,
-  );
-} else if (!Object.getOwnPropertyDescriptor(Greeter, Symbol.metadata)) {
-  failures.push('service metadata was not stored under Symbol.metadata');
-}
-
-if (Object.prototype.hasOwnProperty.call(Greeter, 'undefined')) {
-  failures.push(
-    "service metadata was stored under the string key 'undefined' instead of Symbol.metadata",
-  );
-}
-
-if (instance.greet() !== 'hello from the bundle') {
-  failures.push('the bundled container failed to resolve the registered service');
-}
-
-if (failures.length) {
-  console.error('tree-shaking check FAILED:');
-  for (const failure of failures) console.error(\`  - \${failure}\`);
-  process.exit(1);
-}
-`,
-  );
-  const bundle = await rollup({
-    input: join(dir, 'bundle-entry.mjs'),
-    plugins: [nodeResolve()],
-    treeshake: true,
-  });
-  await bundle.write({ file: join(dir, 'bundle-out.mjs'), format: 'esm' });
-  await bundle.close();
-  run('node', [join(dir, 'bundle-out.mjs')], dir);
-  console.log(
-    '  ✓ the Symbol.metadata polyfill survives a Rollup tree-shaking bundle',
-  );
-
-  // A fourth pass, bundled with both esbuild and Rollup: a Token round-trip
-  // through the container, not the Symbol.metadata polyfill check above.
-  // When a bundler flattens multiple ES modules into one top-level scope, a
-  // name collision forces it to rename one of the colliding declarations.
-  // esbuild does this for this package's `Token` class; Rollup, for this
-  // entry point, does not, so it is included to prove the round-trip still
-  // works when nothing gets renamed. A token that resolution recognises
-  // only by `constructor.name === 'Token'` stops resolving the moment that
-  // name changes, even though the instance is exactly the one that was
-  // registered.
-  console.log('Bundling a Token round-trip with esbuild and Rollup…');
-  writeFileSync(
-    join(dir, 'token-entry.mjs'),
-    `
-import { Nexus, Token } from '@nexusdi/core';
-
-const TOKEN = new Token('X');
-const container = new Nexus();
-container.set(TOKEN, { useValue: 'token round-trip value' });
-const value = container.get(TOKEN);
-
-if (value !== 'token round-trip value') {
-  console.error('tree-shaking check FAILED:');
-  console.error(
-    \`  - container.get(TOKEN) returned \${JSON.stringify(value)}, not the value registered under that same Token instance (constructor.name is "\${TOKEN.constructor.name}")\`,
-  );
-  process.exit(1);
-}
-`,
-  );
-  await esbuild.build({
-    entryPoints: [join(dir, 'token-entry.mjs')],
-    outfile: join(dir, 'token-out-esbuild.mjs'),
-    absWorkingDir: dir,
-    bundle: true,
-    format: 'esm',
-    treeShaking: true,
-    platform: 'node',
-  });
-  run('node', [join(dir, 'token-out-esbuild.mjs')], dir);
-  const tokenRollupBundle = await rollup({
-    input: join(dir, 'token-entry.mjs'),
-    plugins: [nodeResolve()],
-    treeshake: true,
-  });
-  await tokenRollupBundle.write({
-    file: join(dir, 'token-out-rollup.mjs'),
-    format: 'esm',
-  });
-  await tokenRollupBundle.close();
-  run('node', [join(dir, 'token-out-rollup.mjs')], dir);
-  console.log(
-    '  ✓ a Token instance still resolves after esbuild and Rollup bundle it',
-  );
-
-  // A helper tsc emits under `importHelpers` becomes an `import ... from
-  // "tslib"` in the published JavaScript, which the consumer's package
-  // manager has to have installed. Nothing inside the workspace can tell:
-  // tslib sits in the root node_modules, so every in-repo build and test
-  // resolves it whether the package declares it or not, and the import only
-  // fails once it is resolved from a consumer's own install -- which is this
-  // directory.
-  //
-  // tools/repo-checks/src/tslib-dependency.test.ts checks the setting that
-  // governs the emit. This checks the emit, so it also covers a tslib import
-  // written by hand and one left in the output by anything else.
+  // A helper tsc emits under `importHelpers` becomes an import of tslib, which
+  // the consumer must have installed. tools/repo-checks/src/tslib-dependency.test.ts
+  // checks the setting; this checks the emit.
   console.log('Checking tslib declarations against the packed output…');
   const tslibProblems = [];
   for (const [, name] of LIBS) {
@@ -452,63 +538,48 @@ if (value !== 'token round-trip value') {
       readFileSync(join(pkgRoot, 'package.json'), 'utf8'),
     );
     const declared = 'tslib' in (manifest.dependencies ?? {});
-
-    const modules = readdirSync(join(pkgRoot, 'dist'), {
-      recursive: true,
-      withFileTypes: true,
-    })
-      .filter((entry) => entry.isFile() && /\.(?:js|cjs|mjs)$/.test(entry.name))
-      .map((entry) => join(entry.parentPath, entry.name));
-
-    const importers = modules.filter((file) =>
+    const importers = modulesUnder(join(pkgRoot, 'dist')).filter((file) =>
       /(?:from|import|require\s*\()\s*["']tslib(?:\/[^"']*)?["']/.test(
         readFileSync(file, 'utf8'),
       ),
     );
-
-    if (importers.length && !declared) {
+    if (importers.length && !declared)
       tslibProblems.push(
-        `${name} imports tslib from ${importers.length} module(s) but declares ` +
-          `no tslib dependency: a consumer install resolves nothing`,
+        `${name} imports tslib from ${importers.length} module(s) but declares no tslib dependency`,
       );
-    }
-    if (!importers.length && declared) {
+    if (!importers.length && declared)
       tslibProblems.push(
-        `${name} declares tslib but no module in its published output imports ` +
-          `it: every consumer installs it for nothing`,
+        `${name} declares tslib but no module in its published output imports it`,
       );
-    }
   }
-  if (tslibProblems.length) {
-    throw new Error(tslibProblems.join('\n'));
-  }
+  if (tslibProblems.length) throw new Error(tslibProblems.join('\n'));
   console.log('  ✓ tslib is declared by exactly the packages that import it');
 
-  // The package promises a `@nexusdi/source` condition published consumers
-  // never enable. If it were the resolution manager reaches under any of
-  // node's default conditions, source would ship as the resolved entry
-  // instead of dist, and a consumer without the condition would import
-  // TypeScript directly.
+  // The @nexusdi/source condition must come first in every entry, so node's
+  // default conditions never select source.
   const corePkg = JSON.parse(
     readFileSync(
       join(dir, 'node_modules', '@nexusdi', 'core', 'package.json'),
       'utf8',
     ),
   );
-  const conditions = Object.keys(corePkg.exports['.']);
-  if (conditions[0] !== '@nexusdi/source') {
-    throw new Error(
-      "@nexusdi/core's exports map must list the @nexusdi/source condition " +
-        'first, so it is only ever chosen when a consumer explicitly enables it.',
-    );
-  }
-  if (!conditions.includes('types') || !conditions.includes('import')) {
-    throw new Error(
-      "@nexusdi/core's exports map lost its types or import condition.",
-    );
+  for (const entry of CORE_ENTRIES) {
+    const conditions = Object.keys(corePkg.exports[entry] ?? {});
+    if (conditions[0] !== '@nexusdi/source')
+      throw new Error(`exports["${entry}"] must list @nexusdi/source first`);
+    if (!conditions.includes('types') || !conditions.includes('import'))
+      throw new Error(`exports["${entry}"] lost its types or import condition`);
+    if (!conditions.includes('default'))
+      throw new Error(
+        `exports["${entry}"] lost its default condition, which require(esm) resolves through`,
+      );
+    if (conditions.includes('require'))
+      throw new Error(
+        `exports["${entry}"] has a require condition; the package is ESM only (spec section 12)`,
+      );
   }
   console.log(
-    '  ✓ the tarball resolved through node without the @nexusdi/source condition',
+    '  ✓ every entry lists @nexusdi/source first, keeps types, import and default, and has no require condition',
   );
 
   console.log('\nPackaging verified.');
@@ -517,6 +588,7 @@ if (value !== 'token round-trip value') {
   console.error('\nPackaging check FAILED\n');
   console.error(error.stdout || error.message);
   if (error.stderr) console.error(error.stderr);
+  if (error.errors?.length) console.error(error.errors);
 } finally {
   rmSync(dir, { recursive: true, force: true });
 }
