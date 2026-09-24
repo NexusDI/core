@@ -341,4 +341,90 @@ describe('createTestingContainer', () => {
       expect(ship.get(SubspaceLink)).toBeInstanceOf(LoopbackLink);
     });
   });
+
+  describe('overrideModule with { lazy: true }', () => {
+    class LoopbackLink extends SubspaceLink {}
+    const Comms = defineModule({
+      name: 'Comms',
+      providers: [SubspaceLink],
+      exports: [SubspaceLink],
+    });
+    const CommsStub = defineModule({
+      name: 'CommsStub',
+      providers: [provide(SubspaceLink, { useClass: LoopbackLink })],
+      exports: [SubspaceLink],
+    });
+    const Root = defineModule({ name: 'Root' });
+    const lazily = () =>
+      createTestingContainer(Root).overrideModule(Comms, CommsStub, {
+        lazy: true,
+      });
+
+    it('walks the stub when load() adds the module', async () => {
+      await using ship = await lazily().create();
+      await ship.load(Comms);
+      expect(ship.get(SubspaceLink)).toBeInstanceOf(LoopbackLink);
+      expect(ship.graph().modules.map((m) => m.name)).toEqual([
+        'Root',
+        'CommsStub',
+      ]);
+    });
+
+    it('walks the stub for a module the loaded module imports transitively', async () => {
+      const Relay = defineModule({
+        name: 'Relay',
+        imports: [Comms],
+        exports: [Comms],
+      });
+      const Outpost = defineModule({
+        name: 'Outpost',
+        imports: [Relay],
+        exports: [Relay],
+      });
+      await using ship = await lazily().create();
+      await ship.load(Outpost);
+      expect(ship.get(SubspaceLink)).toBeInstanceOf(LoopbackLink);
+    });
+
+    it('accepts a lazy override that no load() uses', async () => {
+      await using ship = await lazily().create();
+      expect(ship.graph().modules.map((m) => m.name)).toEqual(['Root']);
+    });
+
+    it('keeps NEXUS_OVERRIDE_UNUSED at create for a non-lazy override of an absent module', async () => {
+      const error = await rejected(
+        createTestingContainer(Root).overrideModule(Comms, CommsStub).create(),
+      );
+      expect(error).toMatchObject({
+        code: 'NEXUS_BLUEPRINT_INVALID',
+        errors: [{ code: 'NEXUS_OVERRIDE_UNUSED', token: 'Comms' }],
+      });
+    });
+
+    it('checks the stub exports when a load() uses the lazy override', async () => {
+      const Empty = defineModule({ name: 'Empty' });
+      await using ship = await createTestingContainer(Root)
+        .overrideModule(Comms, Empty, { lazy: true })
+        .create();
+      expect(await rejected(ship.load(Comms))).toMatchObject({
+        code: 'NEXUS_BLUEPRINT_INVALID',
+        errors: [
+          {
+            code: 'NEXUS_OVERRIDE_EXPORTS',
+            module: 'Comms',
+            missing: ['SubspaceLink'],
+          },
+        ],
+      });
+    });
+
+    it('makes a later non-lazy registration of the same module strict again', async () => {
+      const error = await rejected(
+        lazily().overrideModule(Comms, CommsStub).create(),
+      );
+      expect(error).toMatchObject({
+        errors: [{ code: 'NEXUS_OVERRIDE_UNUSED', token: 'Comms' }],
+      });
+    });
+  });
 });

@@ -16,6 +16,11 @@ export interface CompileOverrides {
   readonly providers: ReadonlyMap<TokenKey, unknown>;
   /** Module, or configurable base module → the stub walked in its place. */
   readonly modules: ReadonlyMap<ModuleDefinition, ModuleDefinition>;
+  /**
+   * Module overrides a later load() may be the first to use. create cannot
+   * know which modules will load, so these are never reported unused.
+   */
+  readonly lazyModules?: ReadonlySet<ModuleDefinition>;
 }
 
 /** The walk's replace hook. A stub stands in for its module and for every with() instance of it. */
@@ -113,6 +118,7 @@ export function checkModuleOverrides(
 ): void {
   for (const [original, stub] of overrides.modules) {
     if (!used.has(original)) {
+      if (overrides.lazyModules?.has(original)) continue;
       errors.push(
         new OverrideError({
           code: 'NEXUS_OVERRIDE_UNUSED',

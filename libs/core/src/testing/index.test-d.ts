@@ -46,4 +46,15 @@ describe('TestingContainerBuilder', () => {
       Promise<Nexus>
     >();
   });
+
+  it('takes a lazy flag on overrideModule', () => {
+    const Comms = defineModule({ name: 'Comms' });
+    const CommsStub = defineModule({ name: 'CommsStub' });
+    expectTypeOf(
+      builder.overrideModule(Comms, CommsStub, { lazy: true }),
+    ).toEqualTypeOf<TestingContainerBuilder>();
+    builder.overrideModule(Comms, CommsStub);
+    // @ts-expect-error lazy is a boolean
+    builder.overrideModule(Comms, CommsStub, { lazy: 'yes' });
+  });
 });

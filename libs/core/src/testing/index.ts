@@ -33,6 +33,14 @@ export interface TestingCreateOptions extends CreateOptions {
   readonly onInit?: boolean;
 }
 
+export interface ModuleOverrideOptions {
+  /**
+   * Allows the override to go unused at create, for a module a later load()
+   * adds. The walk still replaces the module wherever it meets it.
+   */
+  readonly lazy?: boolean;
+}
+
 export interface TestingContainerBuilder {
   /** Replaces every provider of `token` with a value or a class, typed like provide(). */
   // eslint-disable-next-line @typescript-eslint/no-explicit-any -- the class constraint provide() uses
@@ -51,8 +59,15 @@ export interface TestingContainerBuilder {
       : InjectionToken<T> | MultiToken<T>,
     definition: FactoryDefinition<D, R>,
   ): TestingContainerBuilder;
-  /** Walks `stub` wherever the walk meets `module`, including every with() instance of it. */
-  overrideModule(module: ModuleRef, stub: ModuleRef): TestingContainerBuilder;
+  /**
+   * Walks `stub` wherever the walk meets `module`, including every with()
+   * instance of it. `{ lazy: true }` lets a later load() be the first use.
+   */
+  overrideModule(
+    module: ModuleRef,
+    stub: ModuleRef,
+    options?: ModuleOverrideOptions,
+  ): TestingContainerBuilder;
   /** Runs the full compiler with the overrides and builds the container. */
   create(options?: TestingCreateOptions): Promise<Nexus>;
 }
@@ -61,6 +76,7 @@ interface BuilderState {
   readonly root: ModuleRef;
   readonly providers: ReadonlyMap<unknown, unknown>;
   readonly modules: ReadonlyMap<ModuleDefinition, ModuleDefinition>;
+  readonly lazyModules: ReadonlySet<ModuleDefinition>;
 }
 
 const register = provide as (token: unknown, definition: unknown) => unknown;
@@ -86,13 +102,16 @@ function builder(state: BuilderState): TestingContainerBuilder {
     overrideModule(
       module: ModuleRef,
       stub: ModuleRef,
+      options: ModuleOverrideOptions = {},
     ): TestingContainerBuilder {
+      const original = definitionOf(module);
+      const lazyModules = new Set(state.lazyModules);
+      if (options.lazy === true) lazyModules.add(original);
+      else lazyModules.delete(original);
       return builder({
         ...state,
-        modules: new Map([
-          ...state.modules,
-          [definitionOf(module), definitionOf(stub)],
-        ]),
+        modules: new Map([...state.modules, [original, definitionOf(stub)]]),
+        lazyModules,
       });
     },
     create(options: TestingCreateOptions = {}): Promise<Nexus> {
@@ -100,6 +119,7 @@ function builder(state: BuilderState): TestingContainerBuilder {
       const overrides: CompileOverrides = {
         providers: state.providers as CompileOverrides['providers'],
         modules: state.modules,
+        lazyModules: state.lazyModules,
       };
       return createContainer(state.root, rest, {
         initEnabled: onInit,
@@ -112,5 +132,10 @@ function builder(state: BuilderState): TestingContainerBuilder {
 export function createTestingContainer(
   root: ModuleRef,
 ): TestingContainerBuilder {
-  return builder({ root, providers: new Map(), modules: new Map() });
+  return builder({
+    root,
+    providers: new Map(),
+    modules: new Map(),
+    lazyModules: new Set(),
+  });
 }
