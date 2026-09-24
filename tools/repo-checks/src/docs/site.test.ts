@@ -16,6 +16,13 @@ import {
 
 const CONTENT = join(FIXTURES, 'site', 'content');
 
+/** The fixture page with this slug; fails the test when the fixture lacks it. */
+function pageAt(slug: string): ReturnType<typeof readSite>[number] {
+  const page = readSite(CONTENT).find((candidate) => candidate.slug === slug);
+  if (page === undefined) throw new Error(`no fixture page ${slug}`);
+  return page;
+}
+
 describe('readSite', () => {
   const pages = readSite(CONTENT);
   const tokens = pages.find((page) => page.slug === 'tokens');
@@ -99,8 +106,7 @@ describe('readSite', () => {
 
 describe('proseLines', () => {
   it('keeps prose and headings and drops fences, tags and code spans', () => {
-    const tokens = readSite(CONTENT).find((page) => page.slug === 'tokens');
-    const text = proseLines(tokens!)
+    const text = proseLines(pageAt('tokens'))
       .map((line) => line.text)
       .join('\n');
 
@@ -112,8 +118,7 @@ describe('proseLines', () => {
   });
 
   it('reports the source line of each prose line', () => {
-    const tokens = readSite(CONTENT).find((page) => page.slug === 'tokens');
-    const first = proseLines(tokens!).find((line) =>
+    const first = proseLines(pageAt('tokens')).find((line) =>
       line.text.startsWith('A token'),
     );
     expect(first?.line).toBe(10);
@@ -212,11 +217,7 @@ describe('helpers', () => {
   });
 
   it('treats a post whose version is below 0.4.0 as pre-final', () => {
-    const post = readSite(CONTENT).find(
-      (page) => page.slug === 'blog/first-release',
-    );
-    const concept = readSite(CONTENT).find((page) => page.slug === 'tokens');
-    expect(isPreFinalPost(post!)).toBe(true);
-    expect(isPreFinalPost(concept!)).toBe(false);
+    expect(isPreFinalPost(pageAt('blog/first-release'))).toBe(true);
+    expect(isPreFinalPost(pageAt('tokens'))).toBe(false);
   });
 });

@@ -48,7 +48,12 @@ describe('docs-trigger on .github/workflows/docs.yml', () => {
       .map((dependency) => dependency.target)
       .filter((name) => name in graph.nodes);
     const roots = [...new Set([...released, ...docsDeps])]
-      .map((name) => graph.nodes[name]!.data.root)
+      .map((name) => {
+        const node = graph.nodes[name];
+        if (node === undefined)
+          throw new Error(`no project graph node ${name}`);
+        return node.data.root;
+      })
       .sort();
 
     const workflow = parse(
