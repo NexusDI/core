@@ -105,6 +105,13 @@ export function computeVisibility(
   const memo = new Map<string, Map<TokenKey, readonly string[]>>();
   const active = new Set<string>();
   const tokenIds = new Map(universe.map((token, i) => [token, i]));
+  // A re-export cycle through a global module makes lookup cut a nested call
+  // short (see lookup's `active` check below). exported() calls lookup() and
+  // recurses into other exported() calls, so a cut anywhere inside one of
+  // its calls leaves that call's own result incomplete; counting cuts lets
+  // exported() skip memoising a result built on top of one, so a later,
+  // uncut call recomputes and caches the real answer instead.
+  let cuts = 0;
 
   const sourceTable = new Map(
     input.modules.map((node) => {
@@ -126,6 +133,7 @@ export function computeVisibility(
     const key = `${moduleId}|${tokenIds.get(token)}`;
     const cached = exportMemo.get(key);
     if (cached !== undefined) return cached;
+    const before = cuts;
     const plan = plans.get(moduleId);
     const ids = new Set<string>();
     if (plan !== undefined) {
@@ -135,7 +143,10 @@ export function computeVisibility(
         for (const id of exported(child, token)) ids.add(id);
     }
     const result = [...ids].sort(byRank);
-    exportMemo.set(key, result);
+    // A cut anywhere inside this call (directly, or inside a nested
+    // exported() it called) means `result` may be missing a contribution a
+    // later, uncut call would see; cache only a result no cut touched.
+    if (cuts === before) exportMemo.set(key, result);
     return result;
   };
 
@@ -146,7 +157,10 @@ export function computeVisibility(
     if (cached !== undefined) return cached;
     // A re-export chain that loops back to itself contributes nothing.
     const key = `${moduleId}|${tokenIds.get(token)}`;
-    if (active.has(key)) return [];
+    if (active.has(key)) {
+      cuts++;
+      return [];
+    }
     active.add(key);
 
     const node = nodes.get(moduleId);
