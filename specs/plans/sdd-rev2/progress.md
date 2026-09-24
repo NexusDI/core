@@ -54,3 +54,4 @@ Ruling: P41 (Task R7) — MissingLookup — define once in core (token: unknown)
 Ruling: P42 (all tasks) — environment — the matrix run rewrites examples/toolchain-matrix/toolchain-matrix.json with the local Node version (22.22.2); never commit that change, restore it after each matrix run.
 
 ## Tasks
+Task R1: dispatched (BASE 03f2aca, sonnet)
