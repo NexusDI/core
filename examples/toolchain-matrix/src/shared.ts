@@ -3,11 +3,10 @@ import { Token } from '@nexusdi/core';
 import type { Handles } from './run.ts';
 
 /**
- * Held here rather than in each variant's meridian.ts (D9): the plain and
- * decorated variants (Task 34) wire the same graph through different
- * provider registration, but everything that has no decorator-shaped
- * difference -- the log sink, the tokens, and the classes whose constructor
- * parameters are all self-tokens -- is one module both import.
+ * The parts of the matrix graph both variants share: the log sink, the
+ * tokens, and the classes whose constructor parameters are all self-tokens.
+ * The plain and decorated variants register the same graph in their own
+ * meridian.ts and import this module for everything else.
  */
 export const log: string[] = [];
 
@@ -28,10 +27,9 @@ export class PowerRouter {
   constructor(shields: () => ShieldGrid) {
     this.#shields = shields;
   }
-  // @nexusdi/core's container constructs PowerRouter and calls this method
-  // through the resolved instance run.ts holds as Handles['router'], typed by
-  // the token's interface rather than by this class, so fallow's static call
-  // graph cannot trace the call back to this member.
+  // run.ts calls this method on the instance the container resolves, which
+  // Handles['router'] types by the token's interface. fallow's static call
+  // graph cannot trace that call back to this class member.
   // fallow-ignore-next-line unused-class-member
   divert() {
     return this.#shields().draw();
@@ -43,8 +41,8 @@ export class ShieldGrid {
   constructor(router: PowerRouter) {
     this.router = router;
   }
-  // Called only through the lazy() thunk PowerRouter resolves at runtime;
-  // see the comment on PowerRouter.divert.
+  // PowerRouter calls this through a lazy() thunk the container resolves at
+  // runtime, which fallow's static call graph cannot trace.
   // fallow-ignore-next-line unused-class-member
   draw() {
     return 0.4;

@@ -13,38 +13,31 @@
   // convention, never through an import, so the reachability walk reports
   // the whole content tree as unused without this.
   //
-  // libs/core/vite.decorators.ts is imported by libs/core/vite.config.ts,
-  // and libs/core/test-support/deferred.ts and
-  // libs/core/test-support/nexus-request.ts are helpers later 0.4 tests
-  // import -- all three are real roots fallow's static graph does not reach:
-  // a vite config file is a framework-recognized entry point in its own
-  // right, not a node whose own imports get traced, and a test-support
-  // helper has no importer yet in this task's minimal scaffold.
-  // nexus-request.ts in particular is reached only through TypeScript
-  // module augmentation (declare module '../src/index.js'), which
-  // request.test-d.ts relies on via tsconfig.spec.json's `test-support/**`
-  // include, not through an import fallow's resolver can trace; Task 22
-  // gives it its first real import.
+  // libs/core/vite.decorators.ts is imported by libs/core/vite.config.ts.
+  // fallow treats a vite config as an entry point of its own and does not
+  // trace its imports, so the file needs an entry.
+  //
+  // libs/core/test-support/nexus-request.ts has no importer. It augments
+  // NexusRequest with `declare module '../src/index.js'`, and
+  // request.test-d.ts reaches it through tsconfig.spec.json's
+  // `test-support/**` include, which fallow's resolver does not read.
   //
   // Every *.test-d.ts file under libs/core/src is vitest's own type-only
   // test file. fallow's vitest plugin derives entry points from
   // vite.config.ts's `test.include` glob (`src/**/*.{test,spec}.ts`), which
   // never matches `*.test-d.ts`; those files run through the separate
   // `test.typecheck.include` glob the plugin does not read. A glob here
-  // covers every current and future one, so later tasks don't need to add
-  // their own entry.
+  // covers every current and future one.
   "entry": [
     "apps/docs/content/**/*.{mdx,ts}",
     "libs/core/vite.decorators.ts",
     "libs/core/vitest.browser.config.ts",
-    "libs/core/test-support/deferred.ts",
     "libs/core/test-support/nexus-request.ts",
     "libs/core/src/**/*.test-d.ts",
-    // fallow's vitest plugin derives entry points from the project's
-    // vite.config.ts test.include glob alone; a second Vitest project
-    // (vitest.browser.config.ts, Task 35's Chromium project for R20) is a
-    // separate config file the plugin never reads, so its *.browser.test.ts
-    // files need their own entry.
+    // fallow's vitest plugin derives entry points from vite.config.ts's
+    // test.include glob alone. vitest.browser.config.ts, the Chromium
+    // project that runs R20, is a separate config file the plugin never
+    // reads, so its *.browser.test.ts files need their own entry.
     "libs/core/src/**/*.browser.test.ts",
 
     // Built and run by examples/toolchain-matrix/scripts/run-matrix.mjs in a
@@ -113,8 +106,8 @@
     },
     // REQUIRED_PATHS is part of docs-trigger's documented interface (the
     // path filter checkTrigger checks docs.yml against), but checkTrigger
-    // reads it itself and no caller needs it separately -- Task 42's live
-    // run against .github/workflows/docs.yml imports only checkTrigger.
+    // reads it itself and no caller needs it separately. The live check
+    // against .github/workflows/docs.yml imports only checkTrigger.
     // This entry does not go stale the way the block above does: no future
     // guard is expected to import it.
     {
@@ -154,8 +147,8 @@
     // package -- carries no devDependencies at all (see libs/urn in the
     // libraries repo this tooling is modeled on).
     "jsonc-eslint-parser",
-    // Imported by libs/core/vitest.browser.config.ts (Task 35's Chromium
-    // project for R20). Declared in the root package.json, hoisted from
+    // Imported by libs/core/vitest.browser.config.ts, the Chromium project
+    // that runs R20. Declared in the root package.json, hoisted from
     // there; not duplicated into libs/core/package.json, which -- as a
     // published package -- carries no devDependencies at all.
     "@vitest/browser-playwright",
@@ -175,8 +168,8 @@
     // belongs in the project's package.json: run-matrix.mjs installs the
     // packed core tarball and every pinned toolchain package into a
     // throwaway consumer it builds in, never into this workspace project
-    // (see toolchains.json and Step 1's package.json, which the brief
-    // gives no dependencies on purpose).
+    // (see toolchains.json). The project's package.json declares no
+    // dependencies.
     "@nexusdi/core",
     "@rolldown/plugin-babel",
   ],
