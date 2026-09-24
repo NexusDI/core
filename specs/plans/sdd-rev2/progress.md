@@ -183,3 +183,5 @@ Ruling: R21a hook removal lives in the benchmark's own bundling step with a byte
 Task R21a: minor (deferred): noise bound is the max of 14 A/A gaps (createScope bound 20-45%); bench job not yet seen on a GitHub runner; two comment nits
 Task R21a: complete (commits bb294d4..434a628, review clean; core 18121 -> 18227 recorded)
 Task R22: dispatched (BASE 434a628, sonnet)
+Ruling: R22 base that cannot be measured (e.g. the first 0.4 PR against 0.3 main, whose core lacks defineModule) — the report shows head sizes only with a line saying the base could not be built, and the growth check passes; tested. Spec §12.4 measures head and merge base; this covers the case where the base fixture cannot build.
+Task R22: fix round 1/5 (unmeasurable base; measure the PR head and its merge base; concurrency; minors)
