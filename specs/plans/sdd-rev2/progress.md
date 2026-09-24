@@ -179,3 +179,7 @@ Task R21: complete (commits 850f7db..850f7db, review clean; one store path measu
 Task R21a: dispatched (BASE 850f7db, opus)
 Ruling: R21a benchmark finds get() 5-12% slower with hook sites — spec D19/§17.3 bind ("no measurable cost" is a test): fix core, never weaken the benchmark. With no plugin registered each get() site must cost at most a length test: no event closure allocation without an observer, no clock read without an observer, guard/formatError wrapping skipped when no formatError hook, construct site a length test. Measure size before and after (report both); record a consolidation.json step if core's size changes.
 Task R21a: fix round 1/5 (make hook sites free with no plugin so the benchmark passes)
+Ruling: R21a hook removal lives in the benchmark's own bundling step with a byte-identity check of the hooks-on bundle against the shipped code — accepted (meets §17.3; the shipped source keeps no build constant).
+Task R21a: minor (deferred): noise bound is the max of 14 A/A gaps (createScope bound 20-45%); bench job not yet seen on a GitHub runner; two comment nits
+Task R21a: complete (commits bb294d4..434a628, review clean; core 18121 -> 18227 recorded)
+Task R22: dispatched (BASE 434a628, sonnet)
