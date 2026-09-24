@@ -132,3 +132,4 @@ Task R12: fix round 1/5 (undefined keys absent; consistent BlueprintError at cre
 Task R12: minor (deferred): stale asBlueprintError comment at nexus.ts:166 (carried to R13); extra-key error names no key (needs a spec §9 field; owner item); missing-provider text 'in a module root imports'
 Task R12: complete (commits 4b46fba..13f897f, review clean)
 Task R13: dispatched (BASE 13f897f, opus)
+Task R13: container restarted mid-task; implementer lost; uncommitted partial work kept in the worktree; re-dispatched (BASE 13f897f, opus) to continue from it
