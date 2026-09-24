@@ -91,3 +91,5 @@ Ruling: R6 a load module the root already imports — accepted skipped, as load(
 Task R6: fix round 1/5 (wrap load admission errors in one BlueprintError)
 Task R6: complete (commits 5c79dea..5e66b58, review clean)
 Task R7: dispatched (BASE 5e66b58, opus)
+Ruling: R7 InvalidProviderError parity case — accepted — the R1 line came from a cast fixture reason, not real revision 1 output; the case now uses 'not-a-provider' with ['null'] (revision 1's real text for a null provider), and a dedicated parity test still asserts the old R1 line character for character through the unknown-reason fallback.
+Ruling: R7 explain() lookup optional, BlueprintError aggregate text, core error-cases one per code, describeThrown copied (dupes 1.5%, under threshold) — accepted.
