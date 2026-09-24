@@ -175,3 +175,5 @@ Task R20: dispatched (BASE a789f0d, opus)
 Ruling: R20 createScope pin test (eager: false-only scoped level, dispose in the same turn rejects NEXUS_DISPOSED without calling the factory) — land it on its own as a test(core) commit; it pins existing behaviour.
 Task R20: complete (commits 4c92367..c1e30cc, review clean; level builder measured +16 bytes, reverted, recorded kept: false; pin test landed)
 Task R21: dispatched (BASE c1e30cc, opus)
+Task R21: complete (commits 850f7db..850f7db, review clean; one store path measured +33 bytes, reverted, recorded kept: false)
+Task R21a: dispatched (BASE 850f7db, opus)
