@@ -81,3 +81,4 @@ Ruling: R5 one-line message omits empty arrays — accepted — spec §9's examp
 Ruling: R5 new reason ids 'bad-description' (InvalidTokenReason) and 'getter-throws' (PluginInvalidReason) — accepted — additions only; a throwing plugin getter is NEXUS_PLUGIN_INVALID naming plugin and key.
 Ruling: R5 formatter split — accepted — formatThrown and layout in plugins/format.ts; guard, guardAsync and formatFor in runtime/guard.ts because they need runtime state.
 Ruling: (Task R7) the InvalidProviderError error case's cast reason — R7 replaces it with a real InvalidProviderReason id while the parity suite keeps revision 1's text.
+Task R5: fix round 1/5 (malformed ErrorText loses the error; asyncDispose promise identity with a formatter)
