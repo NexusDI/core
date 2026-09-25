@@ -225,3 +225,4 @@ Note: OWNER DECISION — with 10 ms samples the dispatch benchmark fails about 3
 Note: OWNER ITEM — spec §9.1's example "a ProviderError's cause" (a value user code threw) needs a wording edit now that core formats the causes it raised itself.
 Note: FR-I2 kept last-wins for two plugin pins on different providers of one token (spec §3.10.3 names a conflict only for one provider); documented and tested; owner item.
 Scoped re-review: dispatched (range bf3df20..09704e8, opus)
+Scoped re-review: needs one fix (N1: failed-setup close does not set root.disposal, so a later dispose re-runs plugin dispose hooks); fixing N1 with M1, M2, M4.
