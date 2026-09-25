@@ -227,3 +227,61 @@ Not taken:
 3. Core size 18,866 B against revision 1's 16,050 B (+17.5%) and D5's estimate (FR-I1). The draft `## Size` text is above.
 4. The dispatch benchmark: calibrated, it now shows a get() cost on the order of 1% to 11% that fails 3 of 5 runs, the same as bf3df20. A perf task, a change to the estimator, or accepting the finding.
 5. Spec §9.1's example "such as a ProviderError's cause" now differs from the implementation, which formats the causes core raised. A spec edit may be wanted.
+
+## Fix round 1: re-review findings (final-rereview.md)
+
+Commits:
+- 829eb0a fix(core): make a failed setup's close the container's disposal (N1, M4)
+- cda23ac docs(core): cite the order table for the plugin conflict rule (M1)
+- 3d298c0 ci: keep no credentials in the bench job's checkout (M2)
+- 0a8d77e chore(repo): record core's size after the re-review fixes (18,917 B, +51)
+
+### N1: a kept container disposed a second time
+
+- `closeFailed` (runtime/nexus.ts) now sets `state.disposal` synchronously.
+  - A later `asyncDispose()` on a container that a setup hook kept goes through `disposeRoot` (`root.disposal ??=`) and gets the close's promise.
+  - No dispose hook runs twice. The failing plugin's dispose hook never runs.
+  - The stored promise resolves once the close finishes; its errors reach the caller only in the PluginError's `disposalErrors`. It never rejects, so nothing is left unhandled when nobody disposes the kept container.
+- One more case: a setup hook might dispose the container it kept and then throw. `closeFailed` then waits for that disposal, which runs every step itself, and returns its error, if any, as the disposal errors.
+
+New test in `runtime-hooks.test.ts`, "makes the failed close the disposal of a container a setup hook kept":
+- Plugin a keeps the container; plugin b throws in setup.
+- Two later `asyncDispose()` calls return one promise.
+- The log is `init 1.21, a setup, scram, a dispose`.
+
+### M4: the `dispose` event
+
+Spec §10.2 defines the `dispose` event, and §8.2 orders disposal as: instances, then "Emits `dispose`", then each plugin's `dispose` in reverse order. The close is now the container's disposal, so it follows §8.2:
+- It emits `dispose` (disposed, errors, durationMs) after the instances and before the dispose hooks.
+- A throwing observer joins the errors, as in `disposeRoot`.
+- `bench/sites.mjs` now counts 12 `emit(` and 12 `const start = ...now()` sites. The site table is complete and the guarded hooks bundle is still byte-identical to the shipped one; I checked with a direct esbuild run.
+
+New test, "emits dispose before the dispose hooks when a setup fails (spec §8.2)":
+- The observed order is `dispose:instance`, `dispose` (`"disposed":1,"errors":0`), then `a dispose`.
+
+RED (`ffw-evidence/n1-red.txt`):
+```
+× makes the failed close the disposal of a container a setup hook kept
+  expected [ 'init 1.21', 'a setup', …(4) ] to deeply equal [ 'init 1.21', 'a setup', …(2) ]
+× emits dispose before the dispose hooks when a setup fails (spec §8.2)
+  expected [ 'dispose:instance', 'a' ] to deeply equal [ 'dispose:instance', 'dispose', 'a' ]
+Tests  2 failed | 28 passed (30)
+```
+GREEN (`ffw-evidence/n1-green.txt`): `Tests 30 passed (30)`.
+
+### M1 and M2
+
+- M1: the pin comments in `blueprint/hooks.ts` and `compile-hooks.test.ts` now cite the order table of spec §3.10.2 for NEXUS_PLUGIN_CONFLICT. The FR-I2 section above should read §3.10.2 for the conflict rule; §3.10.3 is where `pin` is defined.
+- M2: the bench job's checkout in `ci.yml` sets `persist-credentials: false`. actionlint on ci.yml is clean.
+
+### Gates
+
+| Gate | Result |
+| --- | --- |
+| `npx nx run-many -t lint test typecheck build -p @nexusdi/core @nexusdi/devtools @nexusdi/errors @nexusdi/repo-checks` | pass (core 907, errors 225, devtools 46, repo-checks 250) |
+| `npx prettier --check .` | only `.superpowers/` workspace files warn |
+| `npx fallow dead-code --fail-on-issues` | no issues |
+| `npx fallow dupes` | exit 0, 1.6% |
+| `npm run verify:packaging` (dist deleted first) | Packaging verified. |
+| `npm run size` | core 18,917 B, recorded as "final fix wave, re-review" |
+| commitlint 09704e8..HEAD | pass |

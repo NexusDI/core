@@ -88,3 +88,14 @@ Added comments and docs follow the rules: no em dashes, no bold lead-ins, no "na
 ## Owner items
 
 None new. The recorded ones stand: benchmark get() cost (fails some runs), §9.1 example wording, two pins from different plugins, dispose after a failed setup, core size and the `## Size` section.
+
+## Re-check after fix round 1 (09704e8..0a8d77e)
+
+Four commits (829eb0a, cda23ac, 3d298c0, 0a8d77e); `final-fix2.diff` matches `git diff 09704e8..0a8d77e`. Verdict: ready for the owner. N1, M1, M2 and M4 are fixed; no new Critical, Important or Minor finding.
+
+- N1: `closeFailed` now sets `state.disposal` synchronously to a promise that never rejects (its errors reach the caller only in the PluginError's `disposalErrors`), so `disposeRoot`'s `root.disposal ??=` returns it. My probe from the re-review now logs `a setup, a dispose, NEXUS_PLUGIN_FAILED, kept disposed`: no second `a dispose`, and no `b dispose`. Two later `asyncDispose()` calls return the same promise. When a setup hook disposes the container it kept and then throws, `closeFailed` waits for that disposal and returns its error; that path is a full `disposeRoot`, so it also runs the failing plugin's and setup-less plugins' dispose hooks. That is consistent: the plugin itself asked for full disposal. The new test fails at 09704e8 (`ffw-evidence/n1-red.txt`).
+- M4, dispose event (§8.2, §10.2): the close emits `dispose` with `disposed`, `errors` and `durationMs` (the §10.2 shape) after the `dispose:instance` events and before the dispose hooks, the §8.2 step 4, 5, 6 order. A throwing observer joins the errors through `collectInto`, as in `disposeRoot`. Probe with an observer plugin: `D disposed, dispose:instance, dispose 1/0, a dispose`. Step 3 (open scopes) has nothing to do here: setup is synchronous, and a scope a setup hook starts is in `inflight` and rolls back because `disposing` is set. `bench/sites.mjs` counts 12 `emit(` and 12 `now()` sites, and the bench's byte-identity check passes within the core test and build run.
+- M1: `hooks.ts` and the `compile-hooks.test.ts` comment now cite the §3.10.2 order table. The comment move is the only removed test line in the round.
+- M2: the bench job's checkout sets `persist-credentials: false`.
+- Gates at 0a8d77e: `nx run-many -t lint test build typecheck --skip-nx-cache` with dist deleted, all 14 projects: pass (core 907, errors 225, devtools 46, repo-checks 250). `verify:packaging` (dist deleted): pass. prettier: only `.superpowers/` files warn. commitlint 09704e8..0a8d77e: pass. consolidation.json records 18,917 B (+51). No prose-rule violations in the added lines.
+- Owner items added: none.

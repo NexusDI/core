@@ -226,3 +226,17 @@ Note: OWNER ITEM — spec §9.1's example "a ProviderError's cause" (a value use
 Note: FR-I2 kept last-wins for two plugin pins on different providers of one token (spec §3.10.3 names a conflict only for one provider); documented and tested; owner item.
 Scoped re-review: dispatched (range bf3df20..09704e8, opus)
 Scoped re-review: needs one fix (N1: failed-setup close does not set root.disposal, so a later dispose re-runs plugin dispose hooks); fixing N1 with M1, M2, M4.
+Scoped re-review: ready for the owner (fix round 829eb0a..0a8d77e; core 18917; all gates green; the benchmark's get-scenario failures remain an owner item).
+Plan complete: feat/core-0.4 at 0a8d77e. Push blocked (GitHub 403 for this session); both branches are committed locally.
+
+## Owner decisions open
+1. Core size 18917 B (+18% over revision 1's 16050; D5 estimated 13.5-14.5 KB): accept for rc.0 or run a consolidation pass; the PR needs a `## Size` section.
+2. Dispatch benchmark fails some runs on get (8-11% vs noise): perf task on get() before rc.0, or accept and make the bench job informational.
+3. Plugin dispose after a failed setup (ruled: dispose set-up plugins in reverse order).
+4. Two plugin pins on different providers of one token: last-wins (documented).
+5. Federation: invalid contract version throws TypeError (no Nexus code); prerelease versions rejected.
+6. R15 onInit order for eager: false singletons during create/load (ruled: join the level's onInit step).
+7. P18 plugins/ layout, P19 size.json as an artifact only, P20 benchmark added, P22 fixed release relationship with tag @nexusdi/core@{version}, P37 package tests on workspace resolution.
+8. Core one-line message without otherCopy; root-object extra-key error names no key (needs a spec §9 field); spec §9.1 wording on "a ProviderError's cause".
+9. Override of an eager: false provider and eager; testing overrides of another copy's federation contract token.
+10. Run the size workflow and the bench job on a GitHub runner before rc.0; wire size.json to the README; §14.1 guides and the 0.3 migration pointer belong to the docs and codemod plans.
