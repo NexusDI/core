@@ -203,3 +203,6 @@ Ruling: R25 a tokenKey result that maps tokens of different kinds (Token, MultiT
 Task R25: fix round 1/5 (mixed-kind keys; ambiguity-on-keys test)
 Note: core is 18645 after R25 (+2.29% over R21a's 18227, above coreGrowthPercent 2); the PR carrying revision 2 needs a `## Size` section (owner item; feature growth is reported, never reverted).
 Note: the dispatch benchmark sits near its noise edge even at BASE e2586a0 (createScope 50 failed once there; get scenarios fail about one short run in three); final wave: make the default run robust (more blocks or a sturdier noise estimate) without loosening the rule.
+Task R25: minor (deferred): a dependency on a token that failed the kind check also reports NEXUS_MISSING_PROVIDER; byKey holds keys strongly (documented)
+Task R25: complete (commits 21c5c53..ce4bd60, review clean; core 18645)
+Task R26: dispatched (BASE ce4bd60, opus)
