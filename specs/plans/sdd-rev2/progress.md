@@ -207,3 +207,6 @@ Task R25: minor (deferred): a dependency on a token that failed the kind check a
 Task R25: complete (commits 21c5c53..ce4bd60, review clean; core 18645)
 Task R26: dispatched (BASE ce4bd60, opus)
 Ruling: R26 federation caches and keys contracts by kind and name (a token and a multi of one name never share a key, avoiding R25's mixed-kind error); README package lists gain federation — accepted.
+Ruling: R26 ProviderView.token must be the token the provider wrote (spec §3.10 "the user's own objects"), not the first token met for its key; core keeps the written token on the provider record (R25 surface) and federation reads it.
+Ruling: R26 invalid contract version — defineContract rejects a version that is not MAJOR.MINOR.PATCH digits with a TypeError naming the value (programmer error at definition time; the spec has no code for it). Recorded as an owner item in case a Nexus code is wanted.
+Task R26: fix round 1/5 (provider view token; version validation; key separators; wording)
