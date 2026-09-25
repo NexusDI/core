@@ -206,3 +206,4 @@ Note: the dispatch benchmark sits near its noise edge even at BASE e2586a0 (crea
 Task R25: minor (deferred): a dependency on a token that failed the kind check also reports NEXUS_MISSING_PROVIDER; byKey holds keys strongly (documented)
 Task R25: complete (commits 21c5c53..ce4bd60, review clean; core 18645)
 Task R26: dispatched (BASE ce4bd60, opus)
+Ruling: R26 federation caches and keys contracts by kind and name (a token and a multi of one name never share a key, avoiding R25's mixed-kind error); README package lists gain federation — accepted.
