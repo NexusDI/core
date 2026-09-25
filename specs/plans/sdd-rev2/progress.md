@@ -211,3 +211,5 @@ Ruling: R26 ProviderView.token must be the token the provider wrote (spec §3.10
 Ruling: R26 invalid contract version — defineContract rejects a version that is not MAJOR.MINOR.PATCH digits with a TypeError naming the value (programmer error at definition time; the spec has no code for it). Recorded as an owner item in case a Nexus code is wanted.
 Task R26: fix round 1/5 (provider view token; version validation; key separators; wording)
 Note: R26 contract versions accept digits-only MAJOR.MINOR.PATCH; prerelease versions such as 2.3.0-rc.1 are rejected (owner item if RC contract versions should work).
+Task R26: complete (commits cb1cebd..bf3df20, review clean; core 18671)
+Final review: dispatched (range 03f2aca..bf3df20, opus)
