@@ -213,3 +213,10 @@ Task R26: fix round 1/5 (provider view token; version validation; key separators
 Note: R26 contract versions accept digits-only MAJOR.MINOR.PATCH; prerelease versions such as 2.3.0-rc.1 are rejected (owner item if RC contract versions should work).
 Task R26: complete (commits cb1cebd..bf3df20, review clean; core 18671)
 Final review: dispatched (range 03f2aca..bf3df20, opus)
+Final review: done (final-review.md: 1 Critical, 4 Important, 24 Minor, 10 owner decisions; every gate green).
+Ruling: FR-C1 fix — errors raised by core are formatted by formatError hooks wherever they surface, including a ProviderError's cause and alsoFailed, with parity scenarios for create, createScope, load, extend and a construct hook.
+Ruling: FR-I2 two plugins pinning one token — follow spec §3.10.3 exactly; if the spec names a conflict code, raise it; if it is silent, keep last-wins, document it, and record it as an owner item.
+Ruling: FR-I3 benchmark — calibrate an inner repeat count so each sample runs about 10 ms, add a stats test with a synthetic 5% slowdown that must fail, keep the rule (median slower by more than measured noise fails); no loosening.
+Ruling: FR-I4 OWNER DECISION (spec silent) — least divergent and users first: when a later plugin's setup fails, core calls the dispose hooks of the plugins whose setup completed, in reverse order, and reports their errors with the setup failure; recorded for the owner.
+Ruling: FR-I1 core size (+16% over revision 1, D5 estimated 13.5-14.5 KB) — OWNER DECISION; the fix wave adds a "revision 1 (03f2aca)" baseline record to consolidation.json marked as a baseline without changing later deltas' meaning, if the script allows it cleanly; otherwise it is documented.
+Final fix wave: dispatched (BASE bf3df20, opus)
