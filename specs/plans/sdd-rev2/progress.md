@@ -201,3 +201,5 @@ Task R25: dispatched (BASE e2586a0, opus)
 Ruling: R25 deps keyed in bind with optional Edge.token and RootInit.canon (keeps revision 1 toEqual tests), Blueprint.key for view.visible(), bench sites updated — accepted pending review.
 Ruling: R25 a tokenKey result that maps tokens of different kinds (Token, MultiToken, class) to one key — reported as NEXUS_PLUGIN_FAILED naming the plugin and hook 'tokenKey', independent of order; same-kind tokens on one key collide as two providers of one token would (spec §3.10.3).
 Task R25: fix round 1/5 (mixed-kind keys; ambiguity-on-keys test)
+Note: core is 18645 after R25 (+2.29% over R21a's 18227, above coreGrowthPercent 2); the PR carrying revision 2 needs a `## Size` section (owner item; feature growth is reported, never reverted).
+Note: the dispatch benchmark sits near its noise edge even at BASE e2586a0 (createScope 50 failed once there; get scenarios fail about one short run in three); final wave: make the default run robust (more blocks or a sturdier noise estimate) without loosening the rule.
