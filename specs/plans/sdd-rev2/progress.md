@@ -220,3 +220,8 @@ Ruling: FR-I3 benchmark — calibrate an inner repeat count so each sample runs 
 Ruling: FR-I4 OWNER DECISION (spec silent) — least divergent and users first: when a later plugin's setup fails, core calls the dispose hooks of the plugins whose setup completed, in reverse order, and reports their errors with the setup failure; recorded for the owner.
 Ruling: FR-I1 core size (+16% over revision 1, D5 estimated 13.5-14.5 KB) — OWNER DECISION; the fix wave adds a "revision 1 (03f2aca)" baseline record to consolidation.json marked as a baseline without changing later deltas' meaning, if the script allows it cleanly; otherwise it is documented.
 Final fix wave: dispatched (BASE bf3df20, opus)
+Final fix wave: done (commits c8bea31..09704e8; core 18866 recorded "final fix wave"; 1677 tests; all gates green except the benchmark).
+Note: OWNER DECISION — with 10 ms samples the dispatch benchmark fails about 3 of 5 runs on a get scenario (8-11% slowdown against 6-11% noise), also at bf3df20; no single hook site found. Options: a perf task on get() before rc.0, or accept the finding and make the bench job informational. Until decided the CI bench job is red on some runs.
+Note: OWNER ITEM — spec §9.1's example "a ProviderError's cause" (a value user code threw) needs a wording edit now that core formats the causes it raised itself.
+Note: FR-I2 kept last-wins for two plugin pins on different providers of one token (spec §3.10.3 names a conflict only for one provider); documented and tested; owner item.
+Scoped re-review: dispatched (range bf3df20..09704e8, opus)
