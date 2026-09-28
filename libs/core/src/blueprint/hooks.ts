@@ -7,7 +7,7 @@ import { describeValue } from '../definitions/describe.js';
 import { readProvider } from '../definitions/provide.js';
 import { MultiToken } from '../definitions/token.js';
 import { PluginError, type NexusError } from '../errors/index.js';
-import type { ProviderRecord, TokenKey } from './blueprint.js';
+import { NO_ENTRIES, type ProviderRecord, type TokenKey } from './blueprint.js';
 import { normalizeProvider } from './records.js';
 import {
   providerView,
@@ -67,8 +67,8 @@ interface HookSite<R> {
   readonly hook: 'compile.module' | 'compile.provider';
   /** The display name of what the hook may replace. */
   readonly target: string;
-  /** What a result must be, for the TypeError of a bad one. */
-  readonly expected: string;
+  /** What the hook returns, for the TypeError of a bad result. */
+  readonly returns: string;
   /** The result as R, or undefined when it is not one. */
   accept(result: unknown): R | undefined;
 }
@@ -103,7 +103,7 @@ function firstAnswer<S, R>(
           hook.plugin,
           site.hook,
           new TypeError(
-            `returned ${describeValue(result)}, not ${site.expected}`,
+            `returned ${describeValue(result)}; a ${site.hook} hook returns ${site.returns}.`,
           ),
         ),
       );
@@ -146,7 +146,7 @@ export function moduleReplacerFor(
       {
         hook: 'compile.module',
         target: definition.name,
-        expected: 'a module',
+        returns: 'a module or undefined',
         accept: resolveModuleRef,
       },
       errors,
@@ -180,6 +180,8 @@ function setsLifetime(entry: unknown): boolean {
  * `with` replaces in place (id, module and, unless the entry sets one,
  * lifetime kept); `pin` also drops every other provider of the token and
  * makes the replacement visible in every module; `remove` drops the record.
+ * With no compile.provider hook it returns `records` itself and the shared
+ * empty maps.
  */
 export function rewriteProviders(
   records: readonly ProviderRecord[],
@@ -187,14 +189,14 @@ export function rewriteProviders(
   context: CompileContext,
   errors: NexusError[],
 ): {
-  readonly records: ProviderRecord[];
-  readonly pinned: Map<TokenKey, readonly string[]>;
-  readonly rewrittenBy: Map<string, string>;
+  readonly records: readonly ProviderRecord[];
+  readonly pinned: ReadonlyMap<TokenKey, readonly string[]>;
+  readonly rewrittenBy: ReadonlyMap<string, string>;
 } {
+  if (hooks.provider.length === 0)
+    return { records, pinned: NO_ENTRIES, rewrittenBy: NO_ENTRIES };
   const pinned = new Map<TokenKey, readonly string[]>();
   const rewrittenBy = new Map<string, string>();
-  if (hooks.provider.length === 0)
-    return { records: [...records], pinned, rewrittenBy };
 
   const out: ProviderRecord[] = [];
   for (const record of records) {
@@ -205,7 +207,7 @@ export function rewriteProviders(
       {
         hook: 'compile.provider',
         target: record.name,
-        expected: '{ with } or { remove: true }',
+        returns: '{ with }, { remove: true } or undefined',
         accept: (result) => (isRewrite(result) ? result : undefined),
       },
       errors,

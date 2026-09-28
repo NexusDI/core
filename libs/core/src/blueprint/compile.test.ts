@@ -115,3 +115,14 @@ describe('compile', () => {
     expect(byLiteral.singletonLevels).toEqual(byProvide.singletonLevels);
   });
 });
+
+describe('compile with no plugin', () => {
+  it('shares one empty map for the hook results of every compile', () => {
+    const a = compile({ root: defineModule({ name: 'A' }) });
+    const b = compile({ root: defineModule({ name: 'B' }) });
+    expect(a.rewrittenBy.size).toBe(0);
+    expect(a.rewrittenBy).toBe(b.rewrittenBy);
+    expect(a.replacedModules).toBe(b.replacedModules);
+    expect(a.moduleByReplaced).toBe(b.moduleByReplaced);
+  });
+});

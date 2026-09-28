@@ -86,6 +86,108 @@ describe('compile.module', () => {
       ]),
     });
   });
+  it('asks each definition once per compile during load()', async () => {
+    const calls = new Map<string, number>();
+    const ship = await Nexus.create(Meridian, {
+      plugins: [
+        {
+          name: 'count',
+          apiVersion: 1,
+          compile: {
+            module: (m) => {
+              calls.set(m.name, (calls.get(m.name) ?? 0) + 1);
+              return undefined;
+            },
+          },
+        },
+      ],
+    });
+    calls.clear();
+    await ship.load(defineModule({ name: 'Outpost', imports: [Science] }));
+    expect(Object.fromEntries(calls)).toEqual({
+      Meridian: 1,
+      Engineering: 1,
+      Science: 1,
+      Outpost: 1,
+    });
+  });
+
+  it('loads a module a hook replaced as a no-op, without asking the hook again', async () => {
+    const Stub = defineModule({
+      name: 'ScienceStub',
+      providers: [provide(DIAGNOSTICS, { useValue: 'stub' })],
+      exports: [DIAGNOSTICS],
+    });
+    let calls = 0;
+    const ship = await Nexus.create(
+      defineModule({ name: 'Root', imports: [Science] }),
+      {
+        plugins: [
+          {
+            name: 'stub',
+            apiVersion: 1,
+            compile: {
+              module: (m) => {
+                calls += 1;
+                return m === Science ? Stub : undefined;
+              },
+            },
+          },
+        ],
+      },
+    );
+    calls = 0;
+    await ship.load(Science);
+    expect(calls).toBe(0);
+    expect(ship.get(DIAGNOSTICS)).toEqual(['stub']);
+  });
+
+  it('rejects a load whose replacement reaches a new global module', async () => {
+    const Relay = defineModule({ name: 'Relay', global: true });
+    const Outpost = defineModule({ name: 'Outpost' });
+    const OutpostStub = defineModule({ name: 'OutpostStub', imports: [Relay] });
+    const ship = await Nexus.create(Meridian, {
+      plugins: [
+        {
+          name: 'stub',
+          apiVersion: 1,
+          compile: { module: (m) => (m === Outpost ? OutpostStub : undefined) },
+        },
+      ],
+    });
+    expect(await rejected(ship.load(Outpost))).toMatchObject({
+      code: 'NEXUS_LOAD_GLOBAL_MODULE',
+      module: 'Relay',
+    });
+  });
+
+  it('reports a result that is not a module, naming what the hook returns', async () => {
+    const error = await rejected(
+      Nexus.create(Meridian, {
+        plugins: [
+          {
+            name: 'bad',
+            apiVersion: 1,
+            compile: { module: () => 42 as never },
+          },
+        ],
+      }),
+    );
+    // The hook answers 42 for every module the walk meets, one error each.
+    expect(error).toMatchObject({
+      errors: expect.arrayContaining([
+        expect.objectContaining({
+          code: 'NEXUS_PLUGIN_FAILED',
+          plugin: 'bad',
+          hook: 'compile.module',
+          cause: expect.objectContaining({
+            message:
+              'returned the number 42; a compile.module hook returns a module or undefined.',
+          }),
+        }),
+      ]),
+    });
+  });
 });
 
 describe('compile.provider', () => {
@@ -200,6 +302,130 @@ describe('compile.provider', () => {
           hook: 'compile.provider',
         }),
       ]),
+    });
+  });
+  it('reports a result that is not a rewrite, naming what the hook returns', async () => {
+    const error = await rejected(
+      Nexus.create(Meridian, {
+        plugins: [
+          rewrite('bad', (p) => (p.token === REACTOR ? 'swap' : undefined)),
+        ],
+      }),
+    );
+    expect(error).toMatchObject({
+      errors: [
+        {
+          code: 'NEXUS_PLUGIN_FAILED',
+          plugin: 'bad',
+          hook: 'compile.provider',
+          cause: {
+            message:
+              'returned the string "swap"; a compile.provider hook returns { with }, { remove: true } or undefined.',
+          },
+        },
+      ],
+    });
+  });
+
+  it('runs before the duplicate check, so removing one of two duplicates clears it', async () => {
+    const Twice = defineModule({
+      name: 'Twice',
+      providers: [
+        provide(REACTOR, { useClass: FusionReactor }),
+        provide(REACTOR, { useClass: FakeReactor }),
+      ],
+      exports: [REACTOR],
+    });
+    let seen = 0;
+    const ship = await Nexus.create(Twice, {
+      plugins: [
+        rewrite('dedupe', (p) =>
+          p.token === REACTOR && seen++ === 0 ? { remove: true } : undefined,
+        ),
+      ],
+    });
+    expect(ship.get(REACTOR)).toBeInstanceOf(FakeReactor);
+  });
+
+  it('reports a cycle that a rewrite forms', async () => {
+    interface IHelm {
+      readonly nav: INav;
+    }
+    interface INav {
+      readonly course: string;
+    }
+    const HELM = new Token<IHelm>('Helm');
+    const NAV = new Token<INav>('Nav');
+    class Helm implements IHelm {
+      constructor(readonly nav: INav) {}
+    }
+    class StarCharts implements INav {
+      readonly course = 'Vega';
+    }
+    class HelmCharts implements INav {
+      readonly course = 'Vega';
+      constructor(readonly helm: IHelm) {}
+    }
+    const Bridge = defineModule({
+      name: 'Bridge',
+      providers: [
+        provide(HELM, { useClass: Helm, deps: [NAV] }),
+        provide(NAV, { useClass: StarCharts }),
+      ],
+    });
+    const error = await rejected(
+      Nexus.create(Bridge, {
+        plugins: [
+          rewrite('loop', (p) =>
+            p.token === NAV
+              ? { with: provide(NAV, { useClass: HelmCharts, deps: [HELM] }) }
+              : undefined,
+          ),
+        ],
+      }),
+    );
+    expect(error).toMatchObject({
+      errors: [{ code: 'NEXUS_CIRCULAR_DEPENDENCY' }],
+    });
+  });
+
+  it('reports a lifetime that a rewrite violates', async () => {
+    interface ILog {
+      write(line: string): void;
+    }
+    const LOG = new Token<ILog>('Log');
+    class ConsoleLog implements ILog {
+      write(): void {}
+    }
+    class ReactorLog implements ILog {
+      constructor(readonly reactor: IReactorCore) {}
+      write(): void {}
+    }
+    const Ship = defineModule({
+      name: 'Ship',
+      imports: [Meridian],
+      providers: [provide(LOG, { useClass: ConsoleLog })],
+    });
+    const error = await rejected(
+      Nexus.create(Ship, {
+        plugins: [
+          rewrite('trace', (p) =>
+            p.token === LOG
+              ? {
+                  with: provide(LOG, { useClass: ReactorLog, deps: [REACTOR] }),
+                }
+              : undefined,
+          ),
+        ],
+      }),
+    );
+    expect(error).toMatchObject({
+      errors: [
+        {
+          code: 'NEXUS_LIFETIME_VIOLATION',
+          path: ['Log', 'ReactorCore'],
+        },
+      ],
     });
   });
 });

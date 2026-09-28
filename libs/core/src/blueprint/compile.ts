@@ -3,13 +3,16 @@ import { REQUEST } from '../definitions/request.js';
 import {
   BlueprintError,
   CircularDependencyError,
+  LoadError,
   type NexusError,
 } from '../errors/index.js';
 import { bind } from './bind.js';
 import {
+  NO_ENTRIES,
   REQUEST_ID,
   type Blueprint,
   type ProviderRecord,
+  type TokenKey,
 } from './blueprint.js';
 import {
   NO_COMPILE_HOOKS,
@@ -30,7 +33,7 @@ import {
 import { cyclePath, findCycles, successorsOf } from './tarjan.js';
 import { buildView, rememberFailedView, sameToken } from './views.js';
 import { computeVisibility } from './visibility.js';
-import { walk } from './walk.js';
+import { rejectDuplicates, walk, type WalkResult } from './walk.js';
 
 export interface CompileInput {
   /** The root module. */
@@ -44,6 +47,11 @@ export interface CompileInput {
   readonly phase?: 'create' | 'load' | 'check';
   /** Build a view of a failed compile for formatError hooks. */
   readonly wantsView?: boolean;
+  /**
+   * The live blueprint load() compiles against. A global module this compile
+   * reaches that `previous` lacks is NEXUS_LOAD_GLOBAL_MODULE.
+   */
+  readonly previous?: Blueprint;
 }
 
 type Replace = (definition: ModuleDefinition) => ModuleDefinition;
@@ -56,6 +64,44 @@ function composeReplacers(
   if (first === undefined) return second;
   if (second === undefined) return first;
   return (definition) => second(first(definition));
+}
+
+/** `replace`, recording each definition it swaps into `swapped`. */
+function recording(
+  replace: Replace,
+  swapped: Map<ModuleDefinition, ModuleDefinition>,
+): Replace {
+  return (definition) => {
+    const result = replace(definition);
+    if (result !== definition) swapped.set(definition, result);
+    return result;
+  };
+}
+
+/** Original definition → the id of the module the walk visited in its place. */
+function moduleIdsOf(
+  swapped: ReadonlyMap<ModuleDefinition, ModuleDefinition> | undefined,
+  walked: WalkResult,
+): ReadonlyMap<ModuleDefinition, string> {
+  if (swapped === undefined || swapped.size === 0) return NO_ENTRIES;
+  const ids = new Map<ModuleDefinition, string>();
+  for (const [original, replacement] of swapped) {
+    const id = walked.byDefinition.get(replacement);
+    if (id !== undefined) ids.set(original, id);
+  }
+  return ids;
+}
+
+/**
+ * load()'s rule: every existing module's bindings are computed, so a global
+ * module new to the graph would change them all. Walk order decides which
+ * one the error names.
+ */
+function checkNewGlobals(walked: WalkResult, previous: Blueprint): void {
+  const added = walked.modules.find(
+    (m) => m.global && !previous.moduleByDefinition.has(m.definition),
+  );
+  if (added !== undefined) throw new LoadError({ module: added.name });
 }
 
 /** The built-in REQUEST provider: scoped, visible in every module. */
@@ -84,36 +130,69 @@ export function compile(input: CompileInput): Blueprint {
   const extraImports = [...(input.extraImports ?? [])];
 
   // Pass 1: walk and deduplicate, with testing overrides and compile.module
-  // hooks applied, then the compile.provider hooks.
+  // hooks applied, then the compile.provider hooks, then the duplicate check.
+  // With no plugin, the hook sites cost one length test each (spec D19).
   const phase = input.phase ?? 'create';
   const hooks = input.hooks ?? NO_COMPILE_HOOKS;
-  const context = compileContext(phase);
-  const replacedModules = new Map<ModuleDefinition, ModuleDefinition>();
+  const context =
+    hooks.module.length > 0 || hooks.provider.length > 0
+      ? compileContext(phase)
+      : undefined;
+  let replacedModules: ReadonlyMap<ModuleDefinition, ModuleDefinition> =
+    NO_ENTRIES;
+  let pluginReplace: Replace | undefined;
+  if (context !== undefined && hooks.module.length > 0) {
+    const replaced = new Map<ModuleDefinition, ModuleDefinition>();
+    pluginReplace = moduleReplacerFor(hooks, context, errors, replaced);
+    replacedModules = replaced;
+  }
   const usedStubs = new Set<ModuleDefinition>();
   const replace = composeReplacers(
     input.overrides === undefined
       ? undefined
       : moduleReplacer(input.overrides, usedStubs),
-    hooks.module.length > 0
-      ? moduleReplacerFor(hooks, context, errors, replacedModules)
-      : undefined,
+    pluginReplace,
   );
-  const walked = walk({ root: input.root, extraImports, replace }, errors);
-  const overridden =
-    input.overrides === undefined
-      ? { records: [...walked.records], pinned: new Map() }
-      : applyProviderOverrides(walked.records, input.overrides, errors);
-  const rewritten = rewriteProviders(
-    overridden.records,
-    hooks,
-    context,
+  const swapped =
+    replace === undefined
+      ? undefined
+      : new Map<ModuleDefinition, ModuleDefinition>();
+  const walked = walk(
+    {
+      root: input.root,
+      extraImports,
+      replace:
+        replace === undefined || swapped === undefined
+          ? undefined
+          : recording(replace, swapped),
+    },
     errors,
   );
+  if (input.previous !== undefined) checkNewGlobals(walked, input.previous);
+  const overridden =
+    input.overrides === undefined
+      ? { records: walked.records, pinned: NO_ENTRIES }
+      : applyProviderOverrides(walked.records, input.overrides, errors);
+  const rewritten =
+    context === undefined
+      ? undefined
+      : rewriteProviders(overridden.records, hooks, context, errors);
   const root = walked.modules[0]?.id ?? 'm0';
   const records = [
-    ...rewritten.records,
+    ...rejectDuplicates(
+      rewritten?.records ?? overridden.records,
+      walked,
+      errors,
+    ),
     requestRecord(walked.records.length, root),
   ];
+  const rewrittenBy = rewritten?.rewrittenBy ?? NO_ENTRIES;
+  const pinned = new Map<TokenKey, readonly string[]>([
+    [REQUEST, [REQUEST_ID]],
+    ...overridden.pinned,
+  ]);
+  if (rewritten !== undefined)
+    for (const [token, ids] of rewritten.pinned) pinned.set(token, ids);
   const providers = new Map(records.map((r) => [r.id, r]));
   const nameOf = (id: string): string => providers.get(id)?.name ?? id;
 
@@ -123,11 +202,7 @@ export function compile(input: CompileInput): Blueprint {
       modules: walked.modules,
       records,
       byDefinition: walked.byDefinition,
-      pinned: new Map([
-        [REQUEST, [REQUEST_ID]],
-        ...overridden.pinned,
-        ...rewritten.pinned,
-      ]),
+      pinned,
       replace,
     },
     errors,
@@ -174,9 +249,11 @@ export function compile(input: CompileInput): Blueprint {
     errors,
   );
 
-  // The check hooks see what the passes finished, errors or not.
+  // The check hooks see what the passes finished, errors or not. A
+  // formatError hook needs the view of a failed compile only; a compiled
+  // blueprint's view comes from viewOfBlueprint.
   const view =
-    hooks.check.length > 0 || input.wantsView === true
+    hooks.check.length > 0 || (input.wantsView === true && errors.length > 0)
       ? buildView(
           {
             phase,
@@ -188,7 +265,7 @@ export function compile(input: CompileInput): Blueprint {
             moduleExports: visible.moduleExports,
             edges: bound.edges,
             replaced: replacedModules,
-            rewrittenBy: rewritten.rewrittenBy,
+            rewrittenBy,
           },
           sameToken,
         )
@@ -215,6 +292,7 @@ export function compile(input: CompileInput): Blueprint {
     root,
     modules: new Map(walked.modules.map((m) => [m.id, m])),
     moduleByDefinition: walked.byDefinition,
+    moduleByReplaced: moduleIdsOf(swapped, walked),
     providers,
     extraImports,
     visibility: visible.visibility,
@@ -228,6 +306,6 @@ export function compile(input: CompileInput): Blueprint {
     requestDependents,
     phase,
     replacedModules,
-    rewrittenBy: rewritten.rewrittenBy,
+    rewrittenBy,
   });
 }

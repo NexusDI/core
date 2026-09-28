@@ -6,6 +6,12 @@ import type { Ctor, Lifetime } from '../definitions/types.js';
 /** The id of the built-in REQUEST provider. Every other provider id is `p<n>`. */
 export const REQUEST_ID = 'request';
 
+/**
+ * The one empty map compiles share where a map has no entries, so a compile
+ * with no plugin allocates nothing for hooks (spec D19). Nothing writes to it.
+ */
+export const NO_ENTRIES: ReadonlyMap<never, never> = new Map<never, never>();
+
 export type TokenKey = AnyToken;
 export type ProviderKind = 'class' | 'value' | 'factory' | 'alias';
 export type DepKind = 'required' | 'optional' | 'lazy' | 'all';
@@ -91,7 +97,13 @@ export interface Blueprint {
   /** The root module's id, always `m0`. */
   readonly root: string;
   readonly modules: ReadonlyMap<string, ModuleNode>;
+  /** The definitions the walk visited, replacements included, originals not. */
   readonly moduleByDefinition: ReadonlyMap<ModuleDefinition, string>;
+  /**
+   * A definition a testing module override or a compile.module hook replaced
+   * → the id of the module that replaced it.
+   */
+  readonly moduleByReplaced: ReadonlyMap<ModuleDefinition, string>;
   readonly providers: ReadonlyMap<string, ProviderRecord>;
   /** Modules load() added as root imports, in load order. */
   readonly extraImports: readonly unknown[];
