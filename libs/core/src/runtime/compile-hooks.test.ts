@@ -1,0 +1,299 @@
+import { describe, expect, it } from 'vitest';
+
+import { rejected } from '../../test-support/catch.js';
+import { defineModule } from '../definitions/define-module.js';
+import { provide } from '../definitions/provide.js';
+import { MultiToken, Token } from '../definitions/token.js';
+import type { BlueprintView, ProviderView } from '../blueprint/views.js';
+import { Nexus } from './nexus.js';
+
+interface IReactorCore {
+  readonly output: number;
+}
+const REACTOR = new Token<IReactorCore>('ReactorCore');
+const DIAGNOSTICS = new MultiToken<string>('Diagnostics');
+class FusionReactor implements IReactorCore {
+  readonly output = 1.21;
+}
+class FakeReactor implements IReactorCore {
+  readonly output = 0;
+}
+
+const Engineering = defineModule({
+  name: 'Engineering',
+  providers: [
+    provide(REACTOR, { useClass: FusionReactor, lifetime: 'scoped' }),
+    provide(DIAGNOSTICS, { useValue: 'hull' }),
+  ],
+  exports: [REACTOR, DIAGNOSTICS],
+});
+const Science = defineModule({
+  name: 'Science',
+  providers: [provide(DIAGNOSTICS, { useValue: 'sensors' })],
+  exports: [DIAGNOSTICS],
+});
+const Meridian = defineModule({
+  name: 'Meridian',
+  imports: [Engineering, Science],
+  exports: [REACTOR],
+});
+
+const rewrite = (name: string, provider: (view: ProviderView) => unknown) =>
+  ({ name, apiVersion: 1, compile: { provider } }) as never;
+
+describe('compile.module', () => {
+  it('walks the returned module wherever the walk meets the original', async () => {
+    const Stub = defineModule({
+      name: 'EngineeringStub',
+      providers: [provide(REACTOR, { useClass: FakeReactor })],
+      exports: [REACTOR, DIAGNOSTICS],
+      imports: [Science],
+    });
+    const ship = await Nexus.create(Meridian, {
+      plugins: [
+        {
+          name: 'stub',
+          apiVersion: 1,
+          compile: { module: (m) => (m === Engineering ? Stub : undefined) },
+        },
+      ],
+    });
+    const scope = await ship.createScope();
+    expect(scope.get(REACTOR)).toBeInstanceOf(FakeReactor);
+  });
+
+  it('validates the replacement like any module', async () => {
+    const Broken = defineModule({ name: 'Broken', exports: [REACTOR] });
+    const error = await rejected(
+      Nexus.create(Meridian, {
+        plugins: [
+          {
+            name: 'stub',
+            apiVersion: 1,
+            compile: {
+              module: (m) => (m === Engineering ? Broken : undefined),
+            },
+          },
+        ],
+      }),
+    );
+    expect(error).toMatchObject({
+      errors: expect.arrayContaining([
+        expect.objectContaining({
+          code: 'NEXUS_INVALID_EXPORT',
+          module: 'Broken',
+        }),
+      ]),
+    });
+  });
+});
+
+describe('compile.provider', () => {
+  it('replaces a provider in place, keeping its module and lifetime', async () => {
+    const ship = await Nexus.create(Meridian, {
+      plugins: [
+        rewrite('fake', (p) =>
+          p.token === REACTOR
+            ? { with: provide(REACTOR, { useClass: FakeReactor }) }
+            : undefined,
+        ),
+      ],
+    });
+    expect(() => ship.get(REACTOR)).toThrow(
+      expect.objectContaining({ code: 'NEXUS_SCOPE_REQUIRED' }),
+    );
+    expect((await ship.createScope()).get(REACTOR)).toBeInstanceOf(FakeReactor);
+  });
+
+  it('pins one contribution of a MultiToken for every module', async () => {
+    let first = true;
+    const ship = await Nexus.create(Meridian, {
+      plugins: [
+        rewrite('pin', (p) => {
+          if (p.token !== DIAGNOSTICS || !first) return undefined;
+          first = false;
+          return {
+            with: provide(DIAGNOSTICS, { useValue: 'pass' }),
+            pin: true,
+          };
+        }),
+      ],
+    });
+    expect(ship.get(DIAGNOSTICS)).toEqual(['pass']);
+  });
+
+  it('removes a provider, and the compiler reports its dependents', async () => {
+    class Bridge {
+      constructor(readonly reactor: IReactorCore) {}
+    }
+    const Ship = defineModule({
+      name: 'Ship',
+      imports: [Meridian],
+      providers: [provide(Bridge, { deps: [REACTOR], lifetime: 'scoped' })],
+    });
+    const error = await rejected(
+      Nexus.create(Ship, {
+        plugins: [
+          rewrite('drop', (p) =>
+            p.token === REACTOR ? { remove: true } : undefined,
+          ),
+        ],
+      }),
+    );
+    expect(error).toMatchObject({
+      errors: expect.arrayContaining([
+        expect.objectContaining({
+          code: 'NEXUS_MISSING_PROVIDER',
+          requester: 'Bridge',
+        }),
+      ]),
+    });
+  });
+
+  it('reports two plugins that rewrite one provider', async () => {
+    const both = (p: ProviderView) =>
+      p.token === REACTOR ? { remove: true } : undefined;
+    const error = await rejected(
+      Nexus.create(Meridian, {
+        plugins: [rewrite('a', both), rewrite('b', both)],
+      }),
+    );
+    expect(error).toMatchObject({
+      errors: expect.arrayContaining([
+        expect.objectContaining({
+          code: 'NEXUS_PLUGIN_CONFLICT',
+          plugins: ['a', 'b'],
+          target: 'ReactorCore',
+        }),
+      ]),
+    });
+  });
+
+  it('reports a hook that throws, beside the errors of the other passes', async () => {
+    const error = await rejected(
+      Nexus.create(
+        defineModule({
+          name: 'Root',
+          imports: [Meridian],
+          providers: [null as never],
+        }),
+        {
+          plugins: [
+            rewrite('boom', () => {
+              throw new Error('boom');
+            }),
+          ],
+        },
+      ),
+    );
+    expect(
+      (error as { errors: { code: string; hook?: string }[] }).errors.map(
+        (e) => e.code,
+      ),
+    ).toEqual(
+      expect.arrayContaining(['NEXUS_INVALID_PROVIDER', 'NEXUS_PLUGIN_FAILED']),
+    );
+    expect(error).toMatchObject({
+      errors: expect.arrayContaining([
+        expect.objectContaining({
+          plugin: 'boom',
+          hook: 'compile.provider',
+        }),
+      ]),
+    });
+  });
+});
+
+describe('compile.check', () => {
+  it('receives a frozen view marked incomplete, and appends errors after core errors', async () => {
+    let seen: unknown;
+    const error = await rejected(
+      Nexus.create(defineModule({ name: 'Root', providers: [null as never] }), {
+        plugins: [
+          {
+            name: 'lint',
+            apiVersion: 1,
+            compile: {
+              check: (view, report) => {
+                seen = view;
+                report(new PluginErrorLike('lint found a problem') as never);
+              },
+            },
+          },
+        ],
+      }),
+    );
+    expect(Object.isFrozen(seen)).toBe(true);
+    expect(seen).toMatchObject({ phase: 'create', complete: false });
+    expect(
+      (error as { errors: { code: string }[] }).errors.map((e) => e.code),
+    ).toEqual(['NEXUS_INVALID_PROVIDER', 'NEXUS_TEST_LINT']);
+  });
+
+  it("reads the root module's id on a failed compile", async () => {
+    let seen: BlueprintView | undefined;
+    await rejected(
+      Nexus.create(
+        defineModule({
+          name: 'Root',
+          imports: [Science],
+          providers: [null as never],
+        }),
+        {
+          plugins: [
+            {
+              name: 'root',
+              apiVersion: 1,
+              compile: { check: (view) => void (seen = view) },
+            },
+          ],
+        },
+      ),
+    );
+    expect(seen?.complete).toBe(false);
+    expect(seen?.root).toBe('m0');
+    expect(seen?.modules.find((m) => m.id === seen?.root)?.name).toBe('Root');
+  });
+
+  it('runs again in load() with phase load', async () => {
+    const phases: string[] = [];
+    const ship = await Nexus.create(defineModule({ name: 'Root' }), {
+      plugins: [
+        {
+          name: 'phases',
+          apiVersion: 1,
+          compile: { check: (view) => void phases.push(view.phase) },
+        },
+      ],
+    });
+    await ship.load(defineModule({ name: 'Science' }));
+    expect(phases).toEqual(['create', 'load']);
+  });
+
+  it('ignores a change to a definition after compile', async () => {
+    const providers = [provide(REACTOR, { useClass: FusionReactor })];
+    const Root = defineModule({ name: 'Root', providers, exports: [REACTOR] });
+    let view: BlueprintView | undefined;
+    const ship = await Nexus.create(Root, {
+      plugins: [
+        {
+          name: 'keep',
+          apiVersion: 1,
+          compile: { check: (v) => void (view = v) },
+        },
+      ],
+    });
+    expect(() => (view?.providers as ProviderView[]).pop()).toThrow(TypeError);
+    expect(ship.get(REACTOR)).toBeInstanceOf(FusionReactor);
+
+    providers.push(provide(DIAGNOSTICS, { useValue: 'late' }) as never);
+    await ship.load(defineModule({ name: 'Science' }));
+    expect(view?.phase).toBe('load');
+    expect(view?.providers.map((p) => p.token)).not.toContain(DIAGNOSTICS);
+  });
+});
+
+/** A NexusError from a hypothetical lint plugin. */
+class PluginErrorLike extends Error {
+  readonly code = 'NEXUS_TEST_LINT';
+}

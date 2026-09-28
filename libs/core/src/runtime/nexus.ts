@@ -144,7 +144,13 @@ export async function createContainer(
   const tracer = new Tracer(options?.trace);
   const blueprint = compileTraced(
     tracer,
-    { root, overrides: internals.overrides },
+    {
+      root,
+      overrides: internals.overrides,
+      hooks: plugins.compile,
+      phase: 'create',
+      wantsView: plugins.formatError.length > 0,
+    },
     'create',
   );
   const state = createRootState({

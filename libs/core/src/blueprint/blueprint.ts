@@ -115,4 +115,10 @@ export interface Blueprint {
   readonly needsRequest: boolean;
   /** Display names of the providers with a non-optional edge to REQUEST. */
   readonly requestDependents: readonly string[];
+  /** The phase that compiled it. */
+  readonly phase: 'create' | 'load' | 'check';
+  /** Replacement → the module a compile.module hook replaced. */
+  readonly replacedModules: ReadonlyMap<ModuleDefinition, ModuleDefinition>;
+  /** Provider id → the plugin whose compile.provider hook rewrote it. */
+  readonly rewrittenBy: ReadonlyMap<string, string>;
 }

@@ -4,6 +4,14 @@ import type {
 } from '../definitions/define-module.js';
 import type { AnyToken } from '../definitions/guards.js';
 import type { Class, Lifetime } from '../definitions/types.js';
+import type { BlueprintError } from '../errors/index.js';
+import type {
+  Blueprint,
+  Edge,
+  ModuleNode,
+  ProviderRecord,
+  TokenKey,
+} from './blueprint.js';
 
 /** What a compile hook, a check hook or an error formatter reads. Frozen. */
 export interface BlueprintView {
@@ -62,3 +70,133 @@ export interface CompileContext {
 export type ProviderRewrite =
   | { readonly with: ProviderEntry; readonly pin?: true }
   | { readonly remove: true };
+
+/** What buildView reads: a compile's passes, finished or not. */
+export interface ViewParts {
+  readonly phase: BlueprintView['phase'];
+  readonly complete: boolean;
+  /** The root module's id. */
+  readonly root: string;
+  readonly modules: readonly ModuleNode[];
+  readonly records: Iterable<ProviderRecord>;
+  readonly visibility: ReadonlyMap<
+    string,
+    ReadonlyMap<TokenKey, readonly string[]>
+  >;
+  readonly moduleExports: ReadonlyMap<string, readonly string[]>;
+  readonly edges: readonly Edge[];
+  /** Replacement → the definition a compile.module hook replaced. */
+  readonly replaced: ReadonlyMap<ModuleDefinition, ModuleDefinition>;
+  /** Provider id → the plugin whose compile.provider hook rewrote it. */
+  readonly rewrittenBy: ReadonlyMap<string, string>;
+}
+
+/** Maps a token to the key the visibility map uses. */
+export type Canonicalizer = (token: AnyToken) => TokenKey;
+
+/** The canonicalizer of a container with no tokenKey hook: every token is its own key. */
+export const sameToken: Canonicalizer = (token) => token;
+
+export function providerView(
+  record: ProviderRecord,
+  rewrittenBy: string | null,
+): ProviderView {
+  return Object.freeze({
+    id: record.id,
+    token: record.token,
+    name: record.name,
+    module: record.module,
+    kind: record.kind,
+    lifetime: record.lifetime,
+    eager: true,
+    implementation: record.kind === 'class' ? (record.useClass ?? null) : null,
+    rewrittenBy,
+  });
+}
+
+/**
+ * A frozen view of `parts`. `visible()` looks its token up under
+ * `canon(token)`, the key every lookup of the container uses.
+ */
+export function buildView(
+  parts: ViewParts,
+  canon: Canonicalizer,
+): BlueprintView {
+  const modules = Object.freeze(
+    parts.modules.map((m) =>
+      Object.freeze({
+        id: m.id,
+        name: m.name,
+        global: m.global,
+        imports: Object.freeze([...m.imports]),
+        exports: Object.freeze([...(parts.moduleExports.get(m.id) ?? [])]),
+        definition: m.definition,
+        replaced: parts.replaced.get(m.definition) ?? null,
+      }),
+    ),
+  );
+  const providers = Object.freeze(
+    [...parts.records].map((r) =>
+      providerView(r, parts.rewrittenBy.get(r.id) ?? null),
+    ),
+  );
+  const edges = Object.freeze(
+    parts.edges.map((e) =>
+      Object.freeze({ from: e.from, to: e.to, kind: e.kind }),
+    ),
+  );
+  const visibility = parts.visibility;
+  return Object.freeze({
+    phase: parts.phase,
+    complete: parts.complete,
+    root: parts.root,
+    modules,
+    providers,
+    edges,
+    visible: (moduleId: string, token: AnyToken) =>
+      Object.freeze([...(visibility.get(moduleId)?.get(canon(token)) ?? [])]),
+  });
+}
+
+const VIEWS = new WeakMap<Blueprint, BlueprintView>();
+const FAILED = new WeakMap<BlueprintError, BlueprintView>();
+
+/**
+ * The view of a compiled blueprint: one frozen object per blueprint, built on
+ * the first call.
+ */
+export function viewOfBlueprint(bp: Blueprint): BlueprintView {
+  let view = VIEWS.get(bp);
+  if (view === undefined) {
+    view = buildView(
+      {
+        phase: bp.phase,
+        complete: true,
+        root: bp.root,
+        modules: [...bp.modules.values()],
+        records: bp.providers.values(),
+        visibility: bp.visibility,
+        moduleExports: bp.moduleExports,
+        edges: bp.edges,
+        replaced: bp.replacedModules,
+        rewrittenBy: bp.rewrittenBy,
+      },
+      sameToken,
+    );
+    VIEWS.set(bp, view);
+  }
+  return view;
+}
+
+/** Keeps the view of the compile that threw `error`, for failedView(). */
+export function rememberFailedView(
+  error: BlueprintError,
+  view: BlueprintView,
+): void {
+  FAILED.set(error, view);
+}
+
+/** The view of the compile that threw `error`, when a plugin asked for one. */
+export function failedView(error: BlueprintError): BlueprintView | undefined {
+  return FAILED.get(error);
+}
