@@ -342,6 +342,73 @@ describe('createTestingContainer', () => {
     });
   });
 
+  describe('get() and has() with { module } after overrideModule', () => {
+    const Comms = defineModule({
+      name: 'Comms',
+      providers: [SubspaceLink],
+      exports: [SubspaceLink],
+    });
+    class LoopbackLink extends SubspaceLink {}
+    const CommsStub = defineModule({
+      name: 'CommsStub',
+      providers: [provide(SubspaceLink, { useClass: LoopbackLink })],
+      exports: [SubspaceLink],
+    });
+
+    it('makes get(T, { module: Mod }) return the stub provider', async () => {
+      const ship = await createTestingContainer(
+        defineModule({ name: 'Root', imports: [Comms] }),
+      )
+        .overrideModule(Comms, CommsStub)
+        .create();
+      expect(ship.get(SubspaceLink, { module: Comms })).toBeInstanceOf(
+        LoopbackLink,
+      );
+    });
+
+    it('makes has(T, { module: Mod }) true', async () => {
+      const ship = await createTestingContainer(
+        defineModule({ name: 'Root', imports: [Comms] }),
+      )
+        .overrideModule(Comms, CommsStub)
+        .create();
+      expect(ship.has(SubspaceLink, { module: Comms })).toBe(true);
+    });
+
+    it('still resolves get(T, { module: Stub }), naming the replacement itself', async () => {
+      const ship = await createTestingContainer(
+        defineModule({ name: 'Root', imports: [Comms] }),
+      )
+        .overrideModule(Comms, CommsStub)
+        .create();
+      expect(ship.get(SubspaceLink, { module: CommsStub })).toBeInstanceOf(
+        LoopbackLink,
+      );
+    });
+
+    it('returns the stub provider after a lazy override plus load(Mod)', async () => {
+      const ship = await createTestingContainer(defineModule({ name: 'Root' }))
+        .overrideModule(Comms, CommsStub, { lazy: true })
+        .create();
+      await ship.load(Comms);
+      expect(ship.get(SubspaceLink, { module: Comms })).toBeInstanceOf(
+        LoopbackLink,
+      );
+    });
+
+    it('still throws NEXUS_INVALID_MODULE for a module in no graph', async () => {
+      const Unrelated = defineModule({ name: 'Unrelated' });
+      const ship = await createTestingContainer(
+        defineModule({ name: 'Root', imports: [Comms] }),
+      )
+        .overrideModule(Comms, CommsStub)
+        .create();
+      expect(
+        thrown(() => ship.get(SubspaceLink, { module: Unrelated })),
+      ).toMatchObject({ code: 'NEXUS_INVALID_MODULE' });
+    });
+  });
+
   describe('overrideModule with { lazy: true }', () => {
     class LoopbackLink extends SubspaceLink {}
     const Comms = defineModule({

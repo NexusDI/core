@@ -16,14 +16,21 @@ import { resolveId } from './build.js';
 import type { LookupOptions } from './options.js';
 import type { ContainerState, TransientOwner } from './state.js';
 
-/** The module a lookup runs in: the root, or the `module` option. */
+/**
+ * The module a lookup runs in: the root, or the `module` option.
+ * `moduleByDefinition` holds every definition the walk visited, replacements
+ * included. A definition a testing override or a compile.module hook
+ * replaced is not in it (spec §3.5), so the option falls back to
+ * `moduleByReplaced` and gets the module that stands in for it.
+ */
 export function lookupModule(bp: Blueprint, options?: LookupOptions): string {
   if (options?.module === undefined) return bp.root;
   const definition = resolveModuleRef(options.module);
   const id =
     definition === undefined
       ? undefined
-      : bp.moduleByDefinition.get(definition);
+      : (bp.moduleByDefinition.get(definition) ??
+        bp.moduleByReplaced.get(definition));
   if (id === undefined) {
     throw new InvalidModuleError({
       received: definition?.name ?? describeValue(options.module),

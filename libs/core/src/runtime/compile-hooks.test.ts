@@ -62,6 +62,28 @@ describe('compile.module', () => {
     expect(scope.get(REACTOR)).toBeInstanceOf(FakeReactor);
   });
 
+  it('makes get(T, { module: Mod }) select the replacement provider', async () => {
+    const Stub = defineModule({
+      name: 'EngineeringStub',
+      providers: [provide(REACTOR, { useClass: FakeReactor })],
+      exports: [REACTOR, DIAGNOSTICS],
+      imports: [Science],
+    });
+    const ship = await Nexus.create(Meridian, {
+      plugins: [
+        {
+          name: 'stub',
+          apiVersion: 1,
+          compile: { module: (m) => (m === Engineering ? Stub : undefined) },
+        },
+      ],
+    });
+    const scope = await ship.createScope();
+    expect(scope.get(REACTOR, { module: Engineering })).toBeInstanceOf(
+      FakeReactor,
+    );
+  });
+
   it('validates the replacement like any module', async () => {
     const Broken = defineModule({ name: 'Broken', exports: [REACTOR] });
     const error = await rejected(
