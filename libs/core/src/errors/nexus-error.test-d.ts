@@ -5,6 +5,7 @@ import {
   isNexusError,
   MissingProviderError,
   NexusError,
+  type NexusErrorByCode,
   type NexusErrorCode,
 } from './index.js';
 
@@ -51,6 +52,24 @@ describe('MissingProviderError', () => {
     expectTypeOf(error.requester).toEqualTypeOf<string | null>();
     expectTypeOf(error.code).toEqualTypeOf<'NEXUS_MISSING_PROVIDER'>();
   });
+
+  it('spreads with the code after the fields, and rejects the code before them', () => {
+    const error = new MissingProviderError({
+      token: 'A',
+      requester: null,
+      module: 'Root',
+      entry: null,
+      nearMisses: [],
+    });
+    expectTypeOf(
+      {
+        ...error,
+        code: error.code,
+      }.code,
+    ).toEqualTypeOf<'NEXUS_MISSING_PROVIDER'>();
+    // @ts-expect-error TS2783: the spread's `code` overwrites the one before it
+    void { code: error.code, ...error };
+  });
 });
 
 describe('isNexusError', () => {
@@ -61,6 +80,6 @@ describe('isNexusError', () => {
   });
 
   it('knows every core code', () => {
-    expectTypeOf<NexusErrorCode>().toMatchTypeOf<string>();
+    expectTypeOf<keyof NexusErrorByCode>().toEqualTypeOf<NexusErrorCode>();
   });
 });

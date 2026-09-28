@@ -15,7 +15,7 @@ function checkDescription(description: unknown): string {
         entry: null,
         module: null,
         index: null,
-        reason: null,
+        reason: 'bad-description',
         detail: [],
       },
       {

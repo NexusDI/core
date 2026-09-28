@@ -22,6 +22,7 @@ import {
   type NexusError,
   type PluginInvalidReason,
 } from '../errors/index.js';
+import { formatThrown } from './format.js';
 import type { Nexus } from './nexus.js';
 import { factoryAsync } from './graph.js';
 import type { RootState } from './state.js';
@@ -49,18 +50,6 @@ export interface ErrorText {
   readonly hints?: readonly string[];
   readonly fix?: string;
   readonly nearMisses?: readonly NearMiss[];
-}
-
-/**
- * The message core writes from an ErrorText: `[CODE] `, the message, each
- * hint on its own line indented by two spaces, then the fix line.
- */
-export function layoutText(code: string, text: ErrorText): string {
-  return [
-    `[${code}] ${text.message}`,
-    ...(text.hints ?? []).map((hint) => `  ${hint}`),
-    ...(text.fix === undefined ? [] : [`  Fix: ${text.fix}`]),
-  ].join('\n');
 }
 
 export interface PluginContext {
@@ -303,7 +292,14 @@ export function registerPlugins(input: unknown): PluginSet {
     if (initFlag === false) onInit = false;
     if (Array.isArray(pluginModules)) modules.push(...pluginModules);
   }
-  if (errors.length > 0) throw new BlueprintError(errors);
+  // The plugins that passed validation format the faults, with no view:
+  // nothing has compiled yet (spec §9.1).
+  if (errors.length > 0)
+    throw formatThrown(
+      { formatError: hooks.formatError },
+      () => undefined,
+      new BlueprintError(errors),
+    );
 
   return Object.freeze({
     count: input.length,

@@ -123,7 +123,7 @@ export class Nexus {
    * its singletons are built. Concurrent calls run one at a time, in call order.
    */
   load(module: ModuleRef): Promise<void> {
-    return guardAsync(this.#state, () => loadModule(this.#state, module));
+    return guardAsync(this.#state, loadModule(this.#state, module));
   }
 
   /**
@@ -131,7 +131,7 @@ export class Nexus {
    * REQUEST resolves to inside the scope.
    */
   createScope(options?: { readonly request?: NexusRequest }): Promise<Scope> {
-    return guardAsync(this.#state, () => openScope(this.#state, options));
+    return guardAsync(this.#state, openScope(this.#state, options));
   }
 
   /** Runs `fn` with `scope` as the current scope. Needs the scopeContext option. */
@@ -161,7 +161,7 @@ export class Nexus {
    * the first call on. A second call returns the first call's promise.
    */
   [Symbol.asyncDispose](): Promise<void> {
-    return guardAsync(this.#state, () => disposeRoot(this.#state));
+    return guardAsync(this.#state, disposeRoot(this.#state));
   }
 }
 

@@ -10,20 +10,26 @@ const Base = errorBase<'NEXUS_BLUEPRINT_INVALID', BlueprintFields>(
   'BlueprintError',
 );
 
+/**
+ * Core's message for a BlueprintError: the count and the docs link, then
+ * each inner error's current message, indented by two spaces.
+ */
+export function blueprintMessage(errors: readonly NexusError[]): string {
+  const lines = errors.map(
+    (error) => `  ${error.message.split('\n').join('\n    ')}`,
+  );
+  return [
+    `[NEXUS_BLUEPRINT_INVALID] ${errors.length} error${errors.length === 1 ? '' : 's'}. ${DOCS_URL}NEXUS_BLUEPRINT_INVALID`,
+    ...lines,
+  ].join('\n');
+}
+
 /** Every error one compilation found, in pass order. Nothing was built. */
 export class BlueprintError extends Base {
   constructor(errors: readonly NexusError[]) {
-    const lines = errors.map(
-      (error) => `  ${error.message.split('\n').join('\n    ')}`,
-    );
-    super(
-      { errors },
-      {
-        text: [
-          `${errors.length} error${errors.length === 1 ? '' : 's'}. ${DOCS_URL}NEXUS_BLUEPRINT_INVALID`,
-          ...lines,
-        ].join('\n'),
-      },
-    );
+    super({ errors });
+    // Written after super() and not through `text`, because a formatter may
+    // still write this error's message.
+    this.message = blueprintMessage(errors);
   }
 }

@@ -74,6 +74,8 @@ export function tokenReason(
   detail: readonly string[],
 ): string {
   switch (reason) {
+    case 'bad-description':
+      return 'is not a token description. A Token needs a non-empty description string.';
     case 'not-a-deps-value':
       return 'is not a deps map or a deps tuple.';
     case 'bad-modifier':

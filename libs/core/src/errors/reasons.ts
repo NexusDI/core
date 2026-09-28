@@ -23,4 +23,8 @@ export type InvalidProviderReason =
 
 /** Why a value is not a token. */
 export type InvalidTokenReason =
-  'not-a-deps-value' | 'bad-modifier' | 'bare-multi-token' | 'alias-target';
+  | 'bad-description'
+  | 'not-a-deps-value'
+  | 'bad-modifier'
+  | 'bare-multi-token'
+  | 'alias-target';

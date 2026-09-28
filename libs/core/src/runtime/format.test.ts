@@ -2,6 +2,7 @@ import { describe, expect, it } from 'vitest';
 
 import { rejected, thrown } from '../../test-support/catch.js';
 import { coreLine } from '../../test-support/modes.js';
+import { textPlugin } from '../../test-support/text-plugin.js';
 import type { BlueprintView } from '../blueprint/views.js';
 import { defineModule } from '../definitions/define-module.js';
 import { lazy } from '../definitions/modifiers.js';
@@ -161,6 +162,80 @@ describe('formatThrown', () => {
     expect(error.message).toBe('[NEXUS_BLUEPRINT_INVALID] aggregate');
   });
 
+  it('rebuilds the aggregate line from the formatted inner errors when no hook formats the aggregate', async () => {
+    const error = (await rejected(
+      Nexus.create(
+        defineModule({
+          name: 'Root',
+          providers: [null as never, 42 as never],
+        }),
+        {
+          plugins: [
+            formatter('inner', (formatted) =>
+              formatted instanceof BlueprintError
+                ? undefined
+                : { message: `inner ${formatted.code}` },
+            ),
+          ],
+        },
+      ),
+    )) as BlueprintError;
+    expect(error.message.split('\n')).toEqual([
+      '[NEXUS_BLUEPRINT_INVALID] 2 errors. https://nexus.js.org/errors/NEXUS_BLUEPRINT_INVALID',
+      '  [NEXUS_INVALID_PROVIDER] inner NEXUS_INVALID_PROVIDER',
+      '  [NEXUS_INVALID_PROVIDER] inner NEXUS_INVALID_PROVIDER',
+    ]);
+  });
+
+  it('leaves an error that owns its text, such as one a factory raises with new Token()', async () => {
+    const DESCRIBED = new Token<Token<string>>('Described');
+    const calls: string[] = [];
+    const ship = await Nexus.create(
+      defineModule({
+        name: 'Root',
+        providers: [
+          provide(DESCRIBED, {
+            useFactory: () => new Token<string>(''),
+            lifetime: 'transient',
+          }),
+        ],
+      }),
+      { plugins: [textPlugin(), recording('after', calls)] },
+    );
+    const error = thrown(() => ship.get(DESCRIBED)) as NexusError;
+    expect(error.message).toBe(
+      '[NEXUS_INVALID_TOKEN] the string "" is not a token description. A Token needs a non-empty description string.',
+    );
+    expect(error).toMatchObject({ reason: 'bad-description' });
+    expect(calls).toEqual([]);
+  });
+
+  it('formats a plugin registration error with the plugins that passed validation, and no view', async () => {
+    const views: (BlueprintView | undefined)[] = [];
+    const error = (await rejected(
+      Nexus.create(Root, {
+        plugins: [
+          formatter('text', (formatted, view) => {
+            views.push(view);
+            return { message: `text ${formatted.code}` };
+          }),
+          { name: 'broken', apiVersion: 1, formatError: 'loud' } as never,
+        ],
+      }),
+    )) as BlueprintError;
+    expect(error).toBeInstanceOf(BlueprintError);
+    expect(error.errors).toMatchObject([
+      { code: 'NEXUS_PLUGIN_INVALID', plugin: 'broken', reason: 'bad-hook' },
+    ]);
+    expect(error.errors[0]?.message).toBe(
+      '[NEXUS_PLUGIN_INVALID] text NEXUS_PLUGIN_INVALID',
+    );
+    expect(error.message).toBe(
+      '[NEXUS_BLUEPRINT_INVALID] text NEXUS_BLUEPRINT_INVALID',
+    );
+    expect(views).toEqual([undefined, undefined]);
+  });
+
   it('fills nearMisses from the text and keeps every other field', async () => {
     const nearMisses = [{ kind: 'not-imported', module: 'Tactical' }] as const;
     const ship = await Nexus.create(Root, {
@@ -173,13 +248,13 @@ describe('formatThrown', () => {
       ],
     });
     const error = thrown(() => ship.get(NAV_CHARTS)) as MissingProviderError;
-    expect({ code: error.code, ...(error as object) }).toEqual({
-      code: 'NEXUS_MISSING_PROVIDER',
+    expect({ ...error, code: error.code }).toEqual({
       token: 'NavCharts',
       requester: null,
       module: 'Root',
       entry: null,
       nearMisses,
+      code: 'NEXUS_MISSING_PROVIDER',
     });
   });
 

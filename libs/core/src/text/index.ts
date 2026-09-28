@@ -1,6 +1,11 @@
 import type { BlueprintView } from '../blueprint/views.js';
-import type { BlueprintError, NexusError } from '../errors/index.js';
-import { layoutText, type ErrorText } from '../runtime/plugins.js';
+import {
+  layoutText,
+  ownsText,
+  type BlueprintError,
+  type NexusError,
+} from '../errors/index.js';
+import type { ErrorText } from '../runtime/plugins.js';
 import { BUILDERS } from './builders.js';
 
 /** Revision 1's aggregate text, with each inner error rendered and indented. */
@@ -29,6 +34,7 @@ export function textOf(
 
 /** The full message a formatter writes: the code, the body, the hints, the fix. */
 export function render(error: NexusError, view?: BlueprintView): string {
+  if (ownsText(error)) return error.message;
   const text = textOf(error, view);
   return text === undefined ? error.message : layoutText(error.code, text);
 }

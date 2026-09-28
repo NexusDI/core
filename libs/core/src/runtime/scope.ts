@@ -138,7 +138,7 @@ class ScopeHandle implements Scope {
   }
 
   [Symbol.asyncDispose](): Promise<void> {
-    return guardAsync(this.#state.root, () => disposeScope(this.#state));
+    return guardAsync(this.#state.root, disposeScope(this.#state));
   }
 }
 

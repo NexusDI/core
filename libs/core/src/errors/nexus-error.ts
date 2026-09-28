@@ -13,6 +13,14 @@ export interface NexusErrorOptions extends ErrorOptions {
   readonly text?: string;
 }
 
+/** Errors built with `text`: their raiser owns the words, so no formatter rewrites them. */
+const OWN_TEXT = new WeakSet<Error>();
+
+/** True for an error built with the `text` option. */
+export function ownsText(error: Error): boolean {
+  return OWN_TEXT.has(error);
+}
+
 /**
  * The base of every error NexusDI raises. One constructor does all the
  * work: the fields become own enumerable properties; code, name and the
@@ -35,6 +43,7 @@ export class NexusError<C extends string = string> extends Error {
       name: { value: name, enumerable: false, writable: true },
       [ERROR_BRAND]: { value: true, enumerable: false },
     });
+    if (options?.text !== undefined) OWN_TEXT.add(this);
   }
 }
 

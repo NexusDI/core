@@ -91,17 +91,29 @@ describe('NexusError', () => {
     expect(error.message).toBe(
       '[NEXUS_MISSING_PROVIDER] token=NavCharts requester=ShipComputer module=Engineering. https://nexus.js.org/errors/NEXUS_MISSING_PROVIDER',
     );
-    // A spread of the typed error names `code` twice for TypeScript (TS2783),
-    // though at run time `code` is not enumerable, so the test spreads it as
-    // a plain object.
-    expect({ code: error.code, ...(error as object) }).toEqual({
-      code: 'NEXUS_MISSING_PROVIDER',
+    expect({ ...error, code: error.code }).toEqual({
       token: 'NavCharts',
       requester: 'ShipComputer',
       module: 'Engineering',
       nearMisses: [],
       entry: null,
+      code: 'NEXUS_MISSING_PROVIDER',
     });
+  });
+
+  it('escapes a line break inside a field, so the message stays on one line', () => {
+    const error = new MissingProviderError({
+      token: 'Nav\nCharts\r\u2028',
+      requester: null,
+      module: 'Engineering',
+      entry: null,
+      nearMisses: [],
+    });
+    expect(error.message).toBe(
+      '[NEXUS_MISSING_PROVIDER] token=Nav\\nCharts\\r\\u2028 module=Engineering. https://nexus.js.org/errors/NEXUS_MISSING_PROVIDER',
+    );
+    expect(error.message.split(/[\n\r\u2028]/)).toHaveLength(1);
+    expect(error.token).toBe('Nav\nCharts\r\u2028');
   });
 
   it('prints numbers and string arrays, and skips empty arrays and objects', () => {
