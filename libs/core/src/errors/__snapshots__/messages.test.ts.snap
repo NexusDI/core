@@ -198,7 +198,7 @@ exports[`NexusError > keeps the message of 'PluginError (version)' 1`] = `
   Fix: install the plugin version built for this @nexusdi/core."
 `;
 
-exports[`NexusError > keeps the message of 'PluginError' 1`] = `"[NEXUS_PLUGIN_INVALID] devtools has no name; set name to a non-empty string."`;
+exports[`NexusError > keeps the message of 'PluginError' 1`] = `"[NEXUS_PLUGIN_INVALID] plugins[0] has no name; set name to a non-empty string."`;
 
 exports[`NexusError > keeps the message of 'ProviderError (path, also failed, dis…' 1`] = `
 "[NEXUS_PROVIDER_FAILED] NavCharts (module Tactical) failed: Error: offline

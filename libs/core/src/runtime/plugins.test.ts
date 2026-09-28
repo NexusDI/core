@@ -39,6 +39,26 @@ describe('registerPlugins', () => {
     registerPlugins([owner]).observe[0]?.call({ type: 'x' } as never);
     expect(owner.seen).toEqual([{ type: 'x' }]);
   });
+
+  it('reads a hook getter exactly once', () => {
+    let reads = 0;
+    const owner: Record<string, unknown> = { name: 'a', apiVersion: 1 };
+    Object.defineProperty(owner, 'observe', {
+      enumerable: true,
+      get() {
+        reads++;
+        return () => undefined;
+      },
+    });
+    registerPlugins([owner]);
+    expect(reads).toBe(1);
+  });
+
+  it('collects a plugin module alongside its function hooks', () => {
+    const Extra = defineModule({ name: 'Extra' });
+    const set = registerPlugins([plugin('a', { modules: [Extra] })]);
+    expect(set.modules).toEqual([Extra]);
+  });
 });
 
 describe('Nexus.create', () => {
@@ -88,6 +108,17 @@ describe('Nexus.create', () => {
         { plugin: 'bad', reason: 'bad-on-init' },
         { plugin: 'bad', reason: 'bad-compile' },
       ],
+    });
+  });
+
+  it('rejects a plugin whose modules is not an array', async () => {
+    const error = await rejected(
+      Nexus.create(Root, {
+        plugins: [plugin('bad', { modules: Root })] as never,
+      }),
+    );
+    expect(error).toMatchObject({
+      errors: [{ plugin: 'bad', reason: 'bad-modules' }],
     });
   });
 

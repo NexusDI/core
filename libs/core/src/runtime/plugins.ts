@@ -1,4 +1,8 @@
-import type { CompileHooks, Hook } from '../blueprint/hooks.js';
+import {
+  NO_COMPILE_HOOKS,
+  type CompileHooks,
+  type Hook,
+} from '../blueprint/hooks.js';
 import type {
   BlueprintView,
   CompileContext,
@@ -103,7 +107,7 @@ const COMPILE_HOOKS = ['module', 'provider', 'check'] as const;
 export const NO_PLUGINS: PluginSet = Object.freeze({
   modules: Object.freeze([]),
   onInit: true,
-  compile: Object.freeze({ module: [], provider: [], check: [] }),
+  compile: NO_COMPILE_HOOKS,
   construct: Object.freeze([]),
   observe: Object.freeze([]),
   formatError: Object.freeze([]),

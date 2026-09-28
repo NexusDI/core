@@ -499,11 +499,11 @@ export const errorCases: readonly ErrorCase[] = [
     name: 'PluginError',
     error: new PluginError({
       code: 'NEXUS_PLUGIN_INVALID',
-      plugin: 'devtools',
+      plugin: 'plugins[0]',
       reason: 'no-name',
     }),
     code: 'NEXUS_PLUGIN_INVALID',
-    fields: { plugin: 'devtools', reason: 'no-name', detail: [] },
+    fields: { plugin: 'plugins[0]', reason: 'no-name', detail: [] },
   },
   {
     name: 'PluginError (version)',
