@@ -1,0 +1,390 @@
+// Vitest Snapshot v1, https://vitest.dev/guide/snapshot.html
+
+exports[`NexusError > keeps the message of 'AmbiguousProviderError' 1`] = `
+"[NEXUS_AMBIGUOUS_PROVIDER] Root sees Logger from A and B, and they provide different instances.
+  Fix: export Logger from one of them only, or provide Logger in Root, which shadows the imports."
+`;
+
+exports[`NexusError > keeps the message of 'AsyncTransientError' 1`] = `
+"[NEXUS_ASYNC_TRANSIENT] Probe (module Tactical) is transient and its factory returned a promise. get() is synchronous and cannot wait for it.
+  Fix: use lifetime: 'scoped', or make the token a function type and provide () => Promise<T>."
+`;
+
+exports[`NexusError > keeps the message of 'BlueprintError' 1`] = `
+"[NEXUS_BLUEPRINT_INVALID] the module graph has 1 error; nothing was built.
+  [NEXUS_MISSING_PROVIDER] ShipComputer (module Engineering) depends on NavCharts, but no provider of NavCharts is visible in Engineering.
+      NavCharts is provided in Tactical, which does not export it.
+      Fix: add NavCharts to Tactical's exports and import Tactical into Engineering."
+`;
+
+exports[`NexusError > keeps the message of 'CircularDependencyError' 1`] = `
+"[NEXUS_CIRCULAR_DEPENDENCY] ShieldGrid → PowerRouter → ShieldGrid is a dependency cycle.
+  Fix: wrap one edge in lazy(), for example the dependency of ShieldGrid on PowerRouter: lazy(PowerRouter)."
+`;
+
+exports[`NexusError > keeps the message of 'DisposedError' 1`] = `"[NEXUS_DISPOSED] the container is disposed or disposing."`;
+
+exports[`NexusError > keeps the message of 'DuplicateProviderError' 1`] = `
+"[NEXUS_DUPLICATE_PROVIDER] Root provides Logger twice.
+  Fix: remove one of them, or use a MultiToken to collect several."
+`;
+
+exports[`NexusError > keeps the message of 'InvalidExportError' 1`] = `
+"[NEXUS_INVALID_EXPORT] Root exports Logger, which it neither provides nor sees through an import.
+  Fix: provide Logger in Root, or import the module that exports it."
+`;
+
+exports[`NexusError > keeps the message of 'InvalidModuleError (import path)' 1`] = `
+"[NEXUS_INVALID_MODULE] the number 4 is not a module (imported by Meridian → Tactical).
+  Fix: create one with defineModule(), or decorate a class with @Module."
+`;
+
+exports[`NexusError > keeps the message of 'InvalidModuleError' 1`] = `
+"[NEXUS_INVALID_MODULE] undefined is not a module (imported by Meridian → Tactical).
+  Fix: create one with defineModule(), or decorate a class with @Module."
+`;
+
+exports[`NexusError > keeps the message of 'InvalidProviderError' 1`] = `"[NEXUS_INVALID_PROVIDER] Root.providers[2] is null, not a provider; list a class, a provide() result or a { token } literal."`;
+
+exports[`NexusError > keeps the message of 'InvalidTokenError (deps entry)' 1`] = `"[NEXUS_INVALID_TOKEN] deps.name: the string "nav" is not a token. A token is a class, a Token or a MultiToken."`;
+
+exports[`NexusError > keeps the message of 'InvalidTokenError (providers entry wi…' 1`] = `"[NEXUS_INVALID_TOKEN] Engineering.providers[2]: the number 4 is not a token, so useExisting cannot alias it. A token is a class, a Token or a MultiToken."`;
+
+exports[`NexusError > keeps the message of 'InvalidTokenError in a providers entry' 1`] = `"[NEXUS_INVALID_TOKEN] Engineering.providers[2]: the number 3 is not a token. A token is a class, a Token or a MultiToken."`;
+
+exports[`NexusError > keeps the message of 'InvalidTokenError' 1`] = `"[NEXUS_INVALID_TOKEN] the number 3 is not a token. A token is a class, a Token or a MultiToken."`;
+
+exports[`NexusError > keeps the message of 'LegacyDecoratorsError' 1`] = `
+"[NEXUS_LEGACY_DECORATORS] @Injectable was called as a legacy decorator, and NexusDI's decorators are standard (TC39) decorators.
+  Fix: remove experimentalDecorators from tsconfig, or register the class with provide() and defineModule()."
+`;
+
+exports[`NexusError > keeps the message of 'LifetimeError (alias step)' 1`] = `
+"[NEXUS_LIFETIME_VIOLATION] ShipComputer is a singleton and captures a scoped provider: ShipComputer (singleton) → MissionAlias (alias) → Mission (scoped). A singleton outlives every scope.
+  Fix: make ShipComputer scoped, or move the scoped dependency out of its dependency chain."
+`;
+
+exports[`NexusError > keeps the message of 'LifetimeError (empty path)' 1`] = `
+"[NEXUS_LIFETIME_VIOLATION] ? is a singleton and captures a scoped provider: . A singleton outlives every scope.
+  Fix: make ? scoped, or move the scoped dependency out of its dependency chain."
+`;
+
+exports[`NexusError > keeps the message of 'LifetimeError' 1`] = `
+"[NEXUS_LIFETIME_VIOLATION] ShipComputer is a singleton and captures a scoped provider: ShipComputer (singleton) → Mission (scoped). A singleton outlives every scope.
+  Fix: make ShipComputer scoped, or move the scoped dependency out of its dependency chain."
+`;
+
+exports[`NexusError > keeps the message of 'LoadError' 1`] = `
+"[NEXUS_LOAD_GLOBAL_MODULE] Telemetry is global and cannot be loaded after startup, because every module's bindings are already computed.
+  Fix: import Telemetry from the root module, or make it non-global."
+`;
+
+exports[`NexusError > keeps the message of 'LoadedAfterScopeError (deps entry)' 1`] = `
+"[NEXUS_LOADED_AFTER_SCOPE] deps[0]: Probe comes from Science, which was loaded after this scope was created. A scope resolves against the graph current at its creation.
+  Fix: create a new scope."
+`;
+
+exports[`NexusError > keeps the message of 'LoadedAfterScopeError' 1`] = `
+"[NEXUS_LOADED_AFTER_SCOPE] Probe comes from Science, which was loaded after this scope was created. A scope resolves against the graph current at its creation.
+  Fix: create a new scope."
+`;
+
+exports[`NexusError > keeps the message of 'MissingDepsError (bare)' 1`] = `
+"[NEXUS_MISSING_DEPS] Drone in Bay takes 2 constructor parameters and has no deps.
+  Fix: declare static deps = [...] as const on Drone, decorate it with @Injectable({ deps }), or list provide(Drone, { deps: [...] }) in providers."
+`;
+
+exports[`NexusError > keeps the message of 'MissingDepsError (useClass)' 1`] = `
+"[NEXUS_MISSING_DEPS] Bare (useClass for NavCharts) in Engineering takes 1 constructor parameter and has no deps.
+  Fix: add deps to the binding, declare static deps = [...] as const on Bare, or decorate it with @Injectable({ deps })."
+`;
+
+exports[`NexusError > keeps the message of 'MissingDepsError' 1`] = `
+"[NEXUS_MISSING_DEPS] ShipComputer in Engineering takes 1 constructor parameter and has no deps.
+  Fix: add deps to the binding, or declare static deps = [...] as const on ShipComputer. A binding of a class to itself does not read @Injectable deps."
+`;
+
+exports[`NexusError > keeps the message of 'MissingProviderError (deps entry)' 1`] = `
+"[NEXUS_MISSING_PROVIDER] deps[1]: no provider of ReactorCore is visible in Meridian.
+  ReactorCore is exported by Engineering, which Meridian does not import.
+  Fix: import Engineering into Meridian."
+`;
+
+exports[`NexusError > keeps the message of 'MissingProviderError (root get)' 1`] = `
+"[NEXUS_MISSING_PROVIDER] get(NavCharts) found no provider of NavCharts visible in Meridian.
+  Fix: provide NavCharts in Meridian or in a module Meridian imports."
+`;
+
+exports[`NexusError > keeps the message of 'MissingProviderError (same descriptio…' 1`] = `
+"[NEXUS_MISSING_PROVIDER] ShipComputer (module Engineering) depends on NavCharts, but no provider of NavCharts is visible in Engineering.
+  A Token with the same description 'NavCharts' exists in Tactical. Tokens compare by identity, so use that Token object.
+  Fix: provide NavCharts in Engineering or in a module Engineering imports."
+`;
+
+exports[`NexusError > keeps the message of 'MissingProviderError' 1`] = `
+"[NEXUS_MISSING_PROVIDER] ShipComputer (module Engineering) depends on NavCharts, but no provider of NavCharts is visible in Engineering.
+  NavCharts is provided in Tactical, which does not export it.
+  Fix: add NavCharts to Tactical's exports and import Tactical into Engineering."
+`;
+
+exports[`NexusError > keeps the message of 'ModuleImportCycleError' 1`] = `
+"[NEXUS_MODULE_IMPORT_CYCLE] A → B → A is a module import cycle.
+  Fix: move the shared providers into a module that both import."
+`;
+
+exports[`NexusError > keeps the message of 'ModuleOptionsError (invalid options)' 1`] = `
+"[NEXUS_INVALID_MODULE_OPTIONS] Comms.with() received options its schema rejects:
+  frequency: Expected number
+  Unknown key"
+`;
+
+exports[`NexusError > keeps the message of 'ModuleOptionsError (invalid)' 1`] = `
+"[NEXUS_INVALID_MODULE_OPTIONS] Comms.with() received options its schema rejects:
+  frequency: expected a number"
+`;
+
+exports[`NexusError > keeps the message of 'ModuleOptionsError (issue with a key …' 1`] = `
+"[NEXUS_INVALID_MODULE_OPTIONS] Comms.with() received options its schema rejects:
+  frequency: Expected number"
+`;
+
+exports[`NexusError > keeps the message of 'ModuleOptionsError (missing)' 1`] = `
+"[NEXUS_MODULE_OPTIONS_MISSING] Comms is configurable and was imported without with().
+  Fix: import Comms.with(options)."
+`;
+
+exports[`NexusError > keeps the message of 'NoScopeContextError' 1`] = `
+"[NEXUS_NO_SCOPE_CONTEXT] runInScope() needs a ScopeContext, and this container was created without one.
+  Fix: Nexus.create(Root, { scopeContext: nodeScopeContext() }), with nodeScopeContext from '@nexusdi/core/node'."
+`;
+
+exports[`NexusError > keeps the message of 'NotReadyError (runtime cycle)' 1`] = `
+"[NEXUS_NOT_READY] PowerRouter called its lazy(ShieldGrid) thunk before ShieldGrid was ready.
+  Runtime cycle: PowerRouter → ShieldGrid
+  Fix: call the thunk after startup, from a method, and not from a constructor, a factory's continuation or onInit."
+`;
+
+exports[`NexusError > keeps the message of 'NotReadyError' 1`] = `
+"[NEXUS_NOT_READY] PowerRouter called its lazy(ShieldGrid) thunk before ShieldGrid was ready.
+  Fix: call the thunk after startup, from a method, and not from a constructor, a factory's continuation or onInit."
+`;
+
+exports[`NexusError > keeps the message of 'NotVisibleError (no owners)' 1`] = `
+"[NEXUS_NOT_VISIBLE] SubspaceLink is provided in , and the lookup module cannot see it.
+  Fix: export it along a path to the root module, or call get(SubspaceLink, { module: ? })."
+`;
+
+exports[`NexusError > keeps the message of 'NotVisibleError' 1`] = `
+"[NEXUS_NOT_VISIBLE] SubspaceLink is provided in Comms, and the lookup module cannot see it.
+  Fix: export it along a path to the root module, or call get(SubspaceLink, { module: Comms })."
+`;
+
+exports[`NexusError > keeps the message of 'OverrideError (exports)' 1`] = `
+"[NEXUS_OVERRIDE_EXPORTS] the stub for Comms does not export SubspaceLink, which Comms exports.
+  Fix: add them to the stub's exports."
+`;
+
+exports[`NexusError > keeps the message of 'OverrideError (unused)' 1`] = `
+"[NEXUS_OVERRIDE_UNUSED] override(NavCharts) matched no provider in the module graph.
+  Fix: remove the override, or import the module that provides NavCharts."
+`;
+
+exports[`NexusError > keeps the message of 'ProviderError (path, also failed, dis…' 1`] = `
+"[NEXUS_PROVIDER_FAILED] NavCharts (module Tactical) failed: Error: offline
+  While building: Bridge → NavCharts
+  Also failed in the same level: SubspaceLink
+  1 disposer(s) threw during cleanup; see disposalErrors."
+`;
+
+exports[`NexusError > keeps the message of 'ProviderError' 1`] = `
+"[NEXUS_PROVIDER_FAILED] NavCharts (module Tactical) failed: offline
+  Also failed in the same level: Sensors
+  1 disposer(s) threw during cleanup; see disposalErrors."
+`;
+
+exports[`NexusError > keeps the message of 'RequestMissingError (many dependents)' 1`] = `
+"[NEXUS_REQUEST_MISSING] createScope() received no request, and Mission, Comms depend on REQUEST.
+  Fix: pass createScope({ request })."
+`;
+
+exports[`NexusError > keeps the message of 'RequestMissingError' 1`] = `
+"[NEXUS_REQUEST_MISSING] createScope() received no request, and Mission depends on REQUEST.
+  Fix: pass createScope({ request })."
+`;
+
+exports[`NexusError > keeps the message of 'ScopeRequiredError (deps entry)' 1`] = `
+"[NEXUS_SCOPE_REQUIRED] deps[0]: Mission is scoped, and the root container has no scope.
+  Fix: resolve it from a scope: const scope = await ship.createScope(); scope.get(Mission)."
+`;
+
+exports[`NexusError > keeps the message of 'ScopeRequiredError (reached through a…' 1`] = `
+"[NEXUS_SCOPE_REQUIRED] Mission is scoped, and the root container has no scope. It was reached through Bridge → Mission.
+  Fix: resolve it from a scope: const scope = await ship.createScope(); scope.get(Mission)."
+`;
+
+exports[`NexusError > keeps the message of 'ScopeRequiredError' 1`] = `
+"[NEXUS_SCOPE_REQUIRED] Mission is scoped, and the root container has no scope.
+  Fix: resolve it from a scope: const scope = await ship.createScope(); scope.get(Mission)."
+`;
+
+exports[`NexusError > keeps the message of 'a bare class that declares deps in bo…' 1`] = `
+"[NEXUS_BLUEPRINT_INVALID] the module graph has 1 error; nothing was built.
+  [NEXUS_INVALID_PROVIDER] Engineering.providers[0] declares deps in both @Injectable and static deps; keep one."
+`;
+
+exports[`NexusError > keeps the message of 'a bare class whose @Injectable metada…' 1`] = `
+"[NEXUS_BLUEPRINT_INVALID] the module graph has 1 error; nothing was built.
+  [NEXUS_INVALID_PROVIDER] Engineering.providers[0] is a class that throws when read: Error: offline."
+`;
+
+exports[`NexusError > keeps the message of 'a bare class whose static deps getter…' 1`] = `
+"[NEXUS_BLUEPRINT_INVALID] the module graph has 1 error; nothing was built.
+  [NEXUS_INVALID_PROVIDER] Engineering.providers[0] has a static deps that throws when read: Error: offline."
+`;
+
+exports[`NexusError > keeps the message of 'a bare class whose static deps is not…' 1`] = `
+"[NEXUS_BLUEPRINT_INVALID] the module graph has 1 error; nothing was built.
+  [NEXUS_INVALID_PROVIDER] Engineering.providers[0] has a static deps that is not an array."
+`;
+
+exports[`NexusError > keeps the message of 'a bare class with a bad @Inject depen…' 1`] = `
+"[NEXUS_BLUEPRINT_INVALID] the module graph has 1 error; nothing was built.
+  [NEXUS_INVALID_PROVIDER] Engineering.providers[0] @Inject on charts is the string "nav", not a token."
+`;
+
+exports[`NexusError > keeps the message of 'a bare class with an invalid @Injecta…' 1`] = `
+"[NEXUS_BLUEPRINT_INVALID] the module graph has 1 error; nothing was built.
+  [NEXUS_INVALID_PROVIDER] Engineering.providers[0] has the @Injectable lifetime the string "forever"; use 'singleton', 'scoped' or 'transient'."
+`;
+
+exports[`NexusError > keeps the message of 'a class binding with an invalid lifet…' 1`] = `
+"[NEXUS_BLUEPRINT_INVALID] the module graph has 1 error; nothing was built.
+  [NEXUS_INVALID_PROVIDER] Engineering.providers[0] has the lifetime the string "forever"; use 'singleton', 'scoped' or 'transient'."
+`;
+
+exports[`NexusError > keeps the message of 'a dependency provided in a module tha…' 1`] = `
+"[NEXUS_BLUEPRINT_INVALID] the module graph has 1 error; nothing was built.
+  [NEXUS_MISSING_PROVIDER] ShipComputer (module Engineering) depends on NavCharts, but no provider of NavCharts is visible in Engineering.
+      NavCharts is provided in Tactical, which does not export it.
+      Fix: add NavCharts to Tactical's exports and import Tactical into Engineering."
+`;
+
+exports[`NexusError > keeps the message of 'a factory that throws a string' 1`] = `"[NEXUS_PROVIDER_FAILED] Name (module Root) failed: offline"`;
+
+exports[`NexusError > keeps the message of 'a lifetime set on useExisting' 1`] = `
+"[NEXUS_BLUEPRINT_INVALID] the module graph has 1 error; nothing was built.
+  [NEXUS_INVALID_PROVIDER] Engineering.providers[0] sets a lifetime on useExisting; an alias has none."
+`;
+
+exports[`NexusError > keeps the message of 'a lifetime set on useValue' 1`] = `
+"[NEXUS_BLUEPRINT_INVALID] the module graph has 1 error; nothing was built.
+  [NEXUS_INVALID_PROVIDER] Engineering.providers[0] sets a lifetime on useValue; a value has none."
+`;
+
+exports[`NexusError > keeps the message of 'a provide() result whose options are …' 1`] = `
+"[NEXUS_BLUEPRINT_INVALID] the module graph has 1 error; nothing was built.
+  [NEXUS_INVALID_PROVIDER] Engineering.providers[0] has options that are the number 5, not an object."
+`;
+
+exports[`NexusError > keeps the message of 'a provider for REQUEST' 1`] = `
+"[NEXUS_BLUEPRINT_INVALID] the module graph has 1 error; nothing was built.
+  [NEXUS_INVALID_PROVIDER] Engineering.providers[0] provides REQUEST, which createScope({ request }) supplies."
+`;
+
+exports[`NexusError > keeps the message of 'a provider literal whose options thro…' 1`] = `
+"[NEXUS_BLUEPRINT_INVALID] the module graph has 1 error; nothing was built.
+  [NEXUS_INVALID_PROVIDER] Engineering.providers[0] throws when its options are read: Error: offline."
+`;
+
+exports[`NexusError > keeps the message of 'a provider that sets two definitions' 1`] = `
+"[NEXUS_BLUEPRINT_INVALID] the module graph has 1 error; nothing was built.
+  [NEXUS_INVALID_PROVIDER] Engineering.providers[0] sets useValue and useFactory; use one of them."
+`;
+
+exports[`NexusError > keeps the message of 'a providers deps entry that is a bare…' 1`] = `
+"[NEXUS_BLUEPRINT_INVALID] the module graph has 1 error; nothing was built.
+  [NEXUS_INVALID_PROVIDER] Engineering.providers[0] deps[0] is the MultiToken Diagnostics; wrap it in all()."
+`;
+
+exports[`NexusError > keeps the message of 'a providers deps entry that is not a …' 1`] = `
+"[NEXUS_BLUEPRINT_INVALID] the module graph has 1 error; nothing was built.
+  [NEXUS_INVALID_PROVIDER] Engineering.providers[0] deps[0] is the string "nav", not a token."
+`;
+
+exports[`NexusError > keeps the message of 'a providers deps entry with a bad mod…' 1`] = `
+"[NEXUS_BLUEPRINT_INVALID] the module graph has 1 error; nothing was built.
+  [NEXUS_INVALID_PROVIDER] Engineering.providers[0] deps[0] is optional(an object); optional() takes a class or a Token."
+`;
+
+exports[`NexusError > keeps the message of 'a providers entry that is a module' 1`] = `
+"[NEXUS_BLUEPRINT_INVALID] the module graph has 1 error; nothing was built.
+  [NEXUS_INVALID_PROVIDER] Engineering.providers[0] is the module Comms; add it to imports."
+`;
+
+exports[`NexusError > keeps the message of 'a providers entry with deps that are …' 1`] = `
+"[NEXUS_BLUEPRINT_INVALID] the module graph has 1 error; nothing was built.
+  [NEXUS_INVALID_PROVIDER] Engineering.providers[0] has deps that are not an array."
+`;
+
+exports[`NexusError > keeps the message of 'a providers list with null and a numb…' 1`] = `
+"[NEXUS_BLUEPRINT_INVALID] the module graph has 2 errors; nothing was built.
+  [NEXUS_INVALID_PROVIDER] Root.providers[0] is null, not a provider; list a class, a provide() result or a { token } literal.
+  [NEXUS_INVALID_PROVIDER] Root.providers[1] is the number 42, not a provider; list a class, a provide() result or a { token } literal."
+`;
+
+exports[`NexusError > keeps the message of 'a three-provider cycle' 1`] = `
+"[NEXUS_BLUEPRINT_INVALID] the module graph has 1 error; nothing was built.
+  [NEXUS_CIRCULAR_DEPENDENCY] Helm → Navigation → Sensors → Helm is a dependency cycle.
+      Fix: wrap one edge in lazy(), for example the dependency of Helm on Navigation: lazy(Navigation)."
+`;
+
+exports[`NexusError > keeps the message of 'a token provider with no definition' 1`] = `
+"[NEXUS_BLUEPRINT_INVALID] the module graph has 1 error; nothing was built.
+  [NEXUS_INVALID_PROVIDER] Engineering.providers[0] provides NavCharts with no definition; add useClass, useValue, useFactory or useExisting."
+`;
+
+exports[`NexusError > keeps the message of 'a useClass binding to a class without…' 1`] = `
+"[NEXUS_BLUEPRINT_INVALID] the module graph has 1 error; nothing was built.
+  [NEXUS_MISSING_DEPS] Bare (useClass for NavCharts) in Engineering takes 1 constructor parameter and has no deps.
+      Fix: add deps to the binding, declare static deps = [...] as const on Bare, or decorate it with @Injectable({ deps })."
+`;
+
+exports[`NexusError > keeps the message of 'a useClass that is not a class' 1`] = `
+"[NEXUS_BLUEPRINT_INVALID] the module graph has 1 error; nothing was built.
+  [NEXUS_INVALID_PROVIDER] Engineering.providers[0] has a useClass that is not a class."
+`;
+
+exports[`NexusError > keeps the message of 'a useExisting that aliases a MultiTok…' 1`] = `
+"[NEXUS_BLUEPRINT_INVALID] the module graph has 1 error; nothing was built.
+  [NEXUS_INVALID_PROVIDER] Engineering.providers[0] aliases the MultiToken Diagnostics; useExisting takes a class or a Token."
+`;
+
+exports[`NexusError > keeps the message of 'a useFactory that is not a function' 1`] = `
+"[NEXUS_BLUEPRINT_INVALID] the module graph has 1 error; nothing was built.
+  [NEXUS_INVALID_PROVIDER] Engineering.providers[0] has a useFactory that is not a function."
+`;
+
+exports[`NexusError > keeps the message of 'a with() factory with a bad dep' 1`] = `
+"[NEXUS_BLUEPRINT_INVALID] the module graph has 1 error; nothing was built.
+  [NEXUS_INVALID_PROVIDER] Comms.providers[0] (the with() factory) deps[0] is the string "freq", not a token."
+`;
+
+exports[`NexusError > keeps the message of 'defineModule() with a config that has…' 1`] = `
+"[NEXUS_INVALID_MODULE] an object is not a module.
+  Fix: create one with defineModule(), or decorate a class with @Module."
+`;
+
+exports[`NexusError > keeps the message of 'new Token() with an empty description' 1`] = `"[NEXUS_INVALID_TOKEN] the string "" is not a token description. A Token needs a non-empty description string."`;
+
+exports[`NexusError > keeps the message of 'resolve() with a bad modifier entry' 1`] = `"[NEXUS_INVALID_TOKEN] deps.checks: an object is all(an object); all() takes a MultiToken."`;
+
+exports[`NexusError > keeps the message of 'resolve() with a bare MultiToken entry' 1`] = `"[NEXUS_INVALID_TOKEN] deps.checks: an object is the MultiToken Diagnostics; wrap it in all()."`;
+
+exports[`NexusError > keeps the message of 'resolve() with a missing deps[1]' 1`] = `
+"[NEXUS_NOT_VISIBLE] deps[1]: ReactorCore is provided in Engineering, and the lookup module cannot see it.
+  Fix: export it along a path to the root module, or call get(ReactorCore, { module: Engineering })."
+`;
+
+exports[`NexusError > keeps the message of 'resolve() with a string entry' 1`] = `"[NEXUS_INVALID_TOKEN] deps.name: the string "nav" is not a token. A token is a class, a Token or a MultiToken."`;
+
+exports[`NexusError > keeps the message of 'resolve() with a value that is not a …' 1`] = `"[NEXUS_INVALID_TOKEN] the number 5 is not a deps map or a deps tuple."`;
