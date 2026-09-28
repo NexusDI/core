@@ -56,6 +56,20 @@ describe('Nexus', () => {
       ]);
     });
 
+    it('emits compile with one error when a load reaches a new global module', async () => {
+      const events: TraceEvent[] = [];
+      const ship = await Nexus.create(defineModule({ name: 'Root' }), {
+        trace: (e) => events.push(e),
+      });
+      await rejected(
+        ship.load(defineModule({ name: 'Telemetry', global: true })),
+      );
+      expect(events.filter((e) => e.type === 'compile')).toMatchObject([
+        { phase: 'create', errors: 0 },
+        { phase: 'load', errors: 1 },
+      ]);
+    });
+
     it('emits untracked for a disposable transient from root get and from a singleton thunk', async () => {
       const events: TraceEvent[] = [];
       const ship = await Nexus.create(

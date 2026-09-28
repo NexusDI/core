@@ -6,7 +6,7 @@ import type { OwnedEntry } from './ownership.js';
 export type TraceEvent =
   | {
       type: 'compile';
-      phase: 'create' | 'load';
+      phase: 'create' | 'load' | 'check';
       modules: number;
       providers: number;
       errors: number;

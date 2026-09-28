@@ -1,6 +1,6 @@
 import type { Blueprint } from '../blueprint/blueprint.js';
 import { compile, type CompileInput } from '../blueprint/compile.js';
-import { BlueprintError, ProviderError } from '../errors/index.js';
+import { BlueprintError, LoadError, ProviderError } from '../errors/index.js';
 import type { Tracer } from './trace.js';
 
 /** A trace callback's own throw while reporting `compile`, not a compile failure. */
@@ -9,6 +9,13 @@ function traceFailed(error: unknown, module: string): ProviderError {
     { token: 'startup', module, path: [], alsoFailed: [], disposalErrors: [] },
     { cause: error },
   );
+}
+
+/** How many errors a compile throw reports, or undefined for a throw that is not a compile failure. */
+function errorCount(error: unknown): number | undefined {
+  if (error instanceof BlueprintError) return error.errors.length;
+  // compile() throws a LoadError alone, before its later passes run.
+  return error instanceof LoadError ? 1 : undefined;
 }
 
 /**
@@ -22,21 +29,22 @@ function traceFailed(error: unknown, module: string): ProviderError {
 export function compileTraced(
   tracer: Tracer,
   input: CompileInput,
-  phase: 'create' | 'load',
+  phase: 'create' | 'load' | 'check',
 ): Blueprint {
   const start = tracer.now();
   let blueprint: Blueprint;
   try {
     blueprint = compile(input);
   } catch (error) {
-    if (error instanceof BlueprintError) {
+    const errors = errorCount(error);
+    if (errors !== undefined) {
       try {
         tracer.emit(() => ({
           type: 'compile',
           phase,
           modules: 0,
           providers: 0,
-          errors: error.errors.length,
+          errors,
           durationMs: tracer.now() - start,
         }));
       } catch (traceError) {

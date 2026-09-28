@@ -84,7 +84,11 @@ export type { NexusRequest } from './definitions/request.js';
 export type { StandardSchemaV1 } from './definitions/standard-schema.js';
 export { Nexus } from './runtime/nexus.js';
 export type { NexusGraph } from './runtime/graph.js';
-export type { CreateOptions, LookupOptions } from './runtime/options.js';
+export type {
+  CheckOptions,
+  CreateOptions,
+  LookupOptions,
+} from './runtime/options.js';
 export { NEXUS_PLUGIN_API, SUPPORTED_PLUGIN_APIS } from './runtime/plugins.js';
 export type {
   CompilePluginHooks,

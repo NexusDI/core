@@ -6,7 +6,11 @@ import type { ModuleRef } from '../definitions/define-module.js';
 import type { Dep, DepsMap, ResolvedDeps } from '../definitions/modifiers.js';
 import type { NexusRequest } from '../definitions/request.js';
 import type { InjectionToken, MultiToken } from '../definitions/token.js';
-import { NoScopeContextError } from '../errors/index.js';
+import {
+  BlueprintError,
+  LoadError,
+  NoScopeContextError,
+} from '../errors/index.js';
 import { isThenable } from './build.js';
 import { compileTraced } from './compile-traced.js';
 import { resolveDeps, validateDeps } from './deps.js';
@@ -14,7 +18,7 @@ import { formatFor, formatThrown, guardAsync } from './format.js';
 import { toGraph, type NexusGraph } from './graph.js';
 import { loadModule } from './load.js';
 import { getFrom, hasIn } from './lookup.js';
-import type { CreateOptions, LookupOptions } from './options.js';
+import type { CheckOptions, CreateOptions, LookupOptions } from './options.js';
 import {
   pluginContext,
   registerPlugins,
@@ -54,6 +58,48 @@ export class Nexus {
   /** Compiles the module graph, builds every singleton, and returns the sealed container. */
   static create(root: ModuleRef, options?: CreateOptions): Promise<Nexus> {
     return createContainer(root, options, { initEnabled: true });
+  }
+
+  /**
+   * Compiles `root` and then each module of `options.load` against it, as
+   * load() would. Builds nothing and calls no user code but the plugins'
+   * compile, observe and formatError hooks, so options schemas and setup
+   * hooks do not run. Throws one BlueprintError for the first compile that
+   * fails, and compiles no load after it.
+   */
+  static check(root: ModuleRef, options?: CheckOptions): void {
+    const plugins = registerPlugins(options?.plugins);
+    // The last compile that passed. A load compiles against it, and a
+    // LoadError, which carries no view of its own, is formatted with its view.
+    let last: Blueprint | undefined;
+    try {
+      const tracer = new Tracer(traceSinks(undefined, plugins));
+      const input = {
+        root,
+        pluginImports: plugins.modules,
+        hooks: plugins.compile,
+        phase: 'check' as const,
+        wantsView: plugins.formatError.length > 0,
+      };
+      last = compileTraced(tracer, input, 'check');
+      for (const module of options?.load ?? []) {
+        last = compileTraced(
+          tracer,
+          {
+            ...input,
+            extraImports: [...last.extraImports, module],
+            previous: last,
+          },
+          'check',
+        );
+      }
+    } catch (error) {
+      throw formatThrown(
+        plugins,
+        () => (last === undefined ? undefined : viewOfBlueprint(last)),
+        error instanceof LoadError ? new BlueprintError([error]) : error,
+      );
+    }
   }
 
   get<T>(token: MultiToken<T>, options?: LookupOptions): T[];
