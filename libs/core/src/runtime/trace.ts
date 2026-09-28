@@ -46,24 +46,32 @@ export type TraceEvent =
     }
   | { type: 'dispose'; disposed: number; errors: number; durationMs: number };
 
+/** One consumer of trace events: the `trace` option or a plugin's observe hook. */
+export type TraceSink = (event: TraceEvent) => void;
+
+const NO_SINKS: readonly TraceSink[] = Object.freeze([]);
+
 /**
- * Hands events to the `trace` callback. Without a callback, `emit` runs one
- * `if` and builds nothing, and `now` reads no clock. An exception the callback
- * throws propagates to the caller of the operation that emitted the event.
+ * Hands events to every sink, in order. With none, `emit` runs one length
+ * test and builds nothing, and `now` reads no clock. An exception a sink
+ * throws propagates to the caller of the operation that emitted the event,
+ * and the sinks after it do not see that event.
  */
 export class Tracer {
-  readonly #sink: ((event: TraceEvent) => void) | undefined;
+  readonly #sinks: readonly TraceSink[];
 
-  constructor(sink?: (event: TraceEvent) => void) {
-    this.#sink = sink;
+  constructor(sinks: TraceSink | readonly TraceSink[] = NO_SINKS) {
+    this.#sinks = typeof sinks === 'function' ? [sinks] : sinks;
   }
 
   now(): number {
-    return this.#sink === undefined ? 0 : performance.now();
+    return this.#sinks.length === 0 ? 0 : performance.now();
   }
 
   emit(make: () => TraceEvent): void {
-    if (this.#sink !== undefined) this.#sink(make());
+    if (this.#sinks.length === 0) return;
+    const event = make();
+    for (const sink of this.#sinks) sink(event);
   }
 }
 

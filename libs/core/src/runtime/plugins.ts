@@ -3,11 +3,12 @@ import {
   type CompileHooks,
   type Hook,
 } from '../blueprint/hooks.js';
-import type {
-  BlueprintView,
-  CompileContext,
-  ProviderRewrite,
-  ProviderView,
+import {
+  viewOfBlueprint,
+  type BlueprintView,
+  type CompileContext,
+  type ProviderRewrite,
+  type ProviderView,
 } from '../blueprint/views.js';
 import type {
   ModuleDefinition,
@@ -22,6 +23,7 @@ import {
   type PluginInvalidReason,
 } from '../errors/index.js';
 import type { Nexus } from './nexus.js';
+import type { RootState } from './state.js';
 import type { TraceEvent } from './trace.js';
 
 /** The plugin API version this core implements. */
@@ -269,4 +271,24 @@ export function registerPlugins(input: unknown): PluginSet {
     setup: Object.freeze(hooks.setup),
     dispose: Object.freeze(hooks.dispose),
   }) as PluginSet;
+}
+
+/**
+ * The context setup hooks receive. `blueprint()` reads the published
+ * blueprint on each call, so it follows every load(), and returns the one
+ * cached view of it. `builtAsync` reads the async flags the root and its
+ * scopes record per factory build.
+ */
+export function pluginContext(
+  state: RootState,
+  container: Nexus,
+): PluginContext {
+  return Object.freeze({
+    container,
+    blueprint: () => viewOfBlueprint(state.blueprint),
+    builtAsync: (providerId: string) =>
+      state.blueprint.providers.get(providerId)?.kind === 'factory'
+        ? (state.asyncFlags.get(providerId) ?? null)
+        : null,
+  });
 }

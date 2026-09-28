@@ -37,6 +37,7 @@ async function loadNow(root: RootState, module: unknown): Promise<void> {
     {
       root: root.rootRef,
       extraImports: [...current.extraImports, module],
+      pluginImports: root.plugins.modules,
       overrides: root.overrides,
       hooks: root.plugins.compile,
       phase: 'load',

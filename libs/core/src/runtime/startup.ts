@@ -4,7 +4,13 @@ import {
   type ProviderRecord,
 } from '../blueprint/blueprint.js';
 import { DisposedError, ModuleOptionsError } from '../errors/index.js';
-import { adopt, buildInto, moduleName, traceConstruct } from './build.js';
+import {
+  adopt,
+  applyConstruct,
+  buildInto,
+  moduleName,
+  traceConstruct,
+} from './build.js';
 import { disposeInReverse } from './dispose.js';
 import { runInit } from './init.js';
 import { settleLevel, toProviderError } from './settle.js';
@@ -104,6 +110,9 @@ async function buildSingleton(
   // avoids an extra microtask tick for the common case.
   if (record.schema !== undefined)
     value = (await validateOptions(record, bp, value)).value;
+  // After validation, so the schema checks the factory's own output and
+  // the runtime stores what the construct hooks return.
+  value = applyConstruct(root, bp, record, value, null);
   root.slots.settle(id, value);
   if (record.kind === 'factory') root.asyncFlags.set(id, isAsync);
   adopt(root, record, value);

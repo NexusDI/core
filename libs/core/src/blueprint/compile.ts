@@ -38,6 +38,11 @@ import { rejectDuplicates, walk, type WalkResult } from './walk.js';
 export interface CompileInput {
   /** The root module. */
   readonly root: unknown;
+  /**
+   * Modules plugins add as root imports, walked ahead of `extraImports`. The
+   * blueprint does not store them: every compile receives them again.
+   */
+  readonly pluginImports?: readonly unknown[];
   /** Modules load() added as root imports. */
   readonly extraImports?: readonly unknown[];
   /** Testing overrides (createTestingContainer). */
@@ -157,10 +162,14 @@ export function compile(input: CompileInput): Blueprint {
     replace === undefined
       ? undefined
       : new Map<ModuleDefinition, ModuleDefinition>();
+  const pluginImports = input.pluginImports;
   const walked = walk(
     {
       root: input.root,
-      extraImports,
+      extraImports:
+        pluginImports === undefined || pluginImports.length === 0
+          ? extraImports
+          : [...pluginImports, ...extraImports],
       replace:
         replace === undefined || swapped === undefined
           ? undefined

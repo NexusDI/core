@@ -2,7 +2,7 @@ import type { Dep, DepsMap, ResolvedDeps } from '../definitions/modifiers.js';
 import type { NexusRequest } from '../definitions/request.js';
 import type { InjectionToken, MultiToken } from '../definitions/token.js';
 import { DisposedError, RequestMissingError } from '../errors/index.js';
-import { adopt, buildInto, traceConstruct } from './build.js';
+import { adopt, applyConstruct, buildInto, traceConstruct } from './build.js';
 import { resolveDeps } from './deps.js';
 import { chainErrors, collectInto, disposeInReverse } from './dispose.js';
 import { getFrom, hasIn } from './lookup.js';
@@ -130,10 +130,14 @@ class ScopeHandle implements Scope {
 }
 
 async function buildScoped(scope: ScopeState, id: string): Promise<void> {
-  const { record, value, isAsync, start } = await buildInto(
-    scope,
+  const built = await buildInto(scope, scope.blueprint, id);
+  const { record, isAsync, start } = built;
+  const value = applyConstruct(
+    scope.root,
     scope.blueprint,
-    id,
+    record,
+    built.value,
+    scope.scopeId,
   );
   scope.slots.settle(id, value);
   scope.slots.markReady(id);
