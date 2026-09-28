@@ -101,6 +101,11 @@ promises "high performance" with no figure behind it.
     to the methodology page, `/benchmark-method/` (sections 5.6 and 8.2).
 15. The pages and the post explain where the differences come from, and each benefit is
     stated with its measured number and nowhere without one (section 5.7).
+16. NexusDI's own package size is two figures, core alone and core with the common plugins
+    (`@nexusdi/decorators` and `@nexusdi/devtools`, which pulls in `@nexusdi/errors`), read
+    from core spec §12.4's CI job; this harness does not measure them again. Both use the
+    ESM, esbuild `--minify`, gzip level 9 method that job already runs, so a tree-shaken
+    plugin export or an unused type is never counted (section 4.7).
 
 ## 3. Extending the toolchain matrix
 
@@ -466,6 +471,17 @@ a user deploys it. `size.ts` then runs each minified bundle through `scenario.mj
 that fails is recorded in the size cell as `runs: 'runtime-error'` or `'wrong-instance'`.
 Minification renames classes and parameters, and awilix's README warns that its `CLASSIC`
 mode breaks under it, so this check reaches a failure the unminified matrix cannot.
+
+Package size. Separately from the Meridian-8 comparison above, NexusDI's own package size
+is two figures: core alone, and core with the common plugins. Both come from core spec
+§12.4's CI job, not from this harness: an ESM consumer (`"type": "module"`), esbuild
+`--bundle --minify --format=esm`, gzip level 9, against the two-service fixture of core
+spec §17.2 for the first figure, and the same fixture with `devtools()` registered and one
+class using `@Injectable` for the second, so `@nexusdi/decorators` and `@nexusdi/devtools`
+(which pulls in `@nexusdi/errors`) both have code the bundler keeps. Bundling and
+minifying an ESM entry drops every tree-shaken export and every type-only import before
+gzip runs, so neither figure counts code or a type the app never uses. Section 8.3 reads
+both from core's `size.json` on `main`.
 
 Timings. All timings run on Node 24 from `.nvmrc`, on each library-variant's `tsc-6` build,
 for every library-variant whose `tsc-6` matrix section for the scenario is `pass`.
@@ -1441,11 +1457,14 @@ The README keeps five badges: the npm version, the `ci.yml` status, the license,
 provenance badge, and one new "toolchains" badge. It drops bundlephobia, unpacked size,
 libraries.io, the language badge and the stars badge. A size and a dependency badge come
 from the build: `apps/docs/tools/badges.mjs` writes Shields endpoint JSON
-(`{ "schemaVersion": 1, "label", "message", "color" }`) to `out/badges/size.json` (from
-`size.json`, NexusDI `plain`, esbuild gzip), `out/badges/dependencies.json` (from
-`package-facts`) and `out/badges/toolchains.json` ("10 of 10 pass" from `matrix.json`).
-The READMEs point `img.shields.io/endpoint?url=` at the root site, so each badge shows the
-newest release's figures.
+(`{ "schemaVersion": 1, "label", "message", "color" }`) to `out/badges/size.json` (core
+alone, from core spec §12.4's `size.json` on `main`, not from this harness's own
+`results/size.json`), `out/badges/dependencies.json` (from `package-facts`) and
+`out/badges/toolchains.json` ("10 of 10 pass" from `matrix.json`). The badge shows core
+alone, since a badge holds one number; Decision 16's second figure, core with the common
+plugins, stays in the same `size.json` for a page that wants both. The READMEs point
+`img.shields.io/endpoint?url=` at the root site, so each badge shows the newest release's
+figures.
 
 ### 8.4 npm keywords
 

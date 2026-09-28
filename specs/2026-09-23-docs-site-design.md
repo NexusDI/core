@@ -1245,11 +1245,12 @@ import map with `data:` targets, the hashed CSP, a module fetch that carries
 `parent.document` and on `indexedDB`. nexus.js.org is served through Cloudflare, which
 passes the Pages response with `Access-Control-Allow-Origin: *` and
 `Cache-Control: max-age=600`, and that header satisfies the CORS module fetch from the
-opaque origin. The zone must keep Rocket Loader off and every HTML-rewriting feature off
-(email obfuscation, HTML minification, script injection), because each rewrites the script
-tags the static export and the sandbox depend on. Phase 1 re-runs the probe through the
-proxy against the deployed site (section 18.1), and the post-deploy smoke job fails when
-served HTML contains `/cdn-cgi/` (section 17.3).
+opaque origin. Rocket Loader and any other HTML-rewriting feature (email obfuscation, HTML
+minification, script injection) would rewrite the script tags the static export and the
+sandbox depend on, and the owner does not own the js.org zone, so no step here can turn
+those off. The guard is the post-deploy smoke job: Phase 1 re-runs the probe through the
+proxy against the deployed site (section 18.1), and the job fails when served HTML
+contains `/cdn-cgi/` (section 17.3).
 
 ### 11.5 The message protocol
 
@@ -2109,9 +2110,11 @@ With a custom Actions workflow, GitHub Pages takes the custom domain from the re
 settings and ignores a `CNAME` file. The step keeps the file and checks it anyway, as the
 libraries workflow does, so the artifact states its own domain.
 
-nexus.js.org is served through Cloudflare. The zone keeps Rocket Loader and every
-HTML-rewriting feature off (section 11.4), passes the Pages headers through, and caches for
-the Pages `max-age` of 600 seconds, so a deploy reaches every reader within ten minutes.
+nexus.js.org is served through Cloudflare, which passes the Pages headers through and
+caches for the Pages `max-age` of 600 seconds, so a deploy reaches every reader within ten
+minutes. The owner does not own the js.org zone and sets nothing there; the post-deploy
+smoke job (section 17.3) is what catches Rocket Loader or another HTML-rewriting feature
+touching the served markup (section 11.4).
 
 ### 15.6 The swap at final and the redirect stubs
 
