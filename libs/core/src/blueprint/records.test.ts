@@ -10,6 +10,12 @@ import { REQUEST } from '../definitions/request.js';
 import { MultiToken, Token } from '../definitions/token.js';
 import type { Ctor } from '../definitions/types.js';
 import type { NexusError } from '../errors/index.js';
+import {
+  coreLine,
+  errorModes,
+  expectRendered,
+} from '../../test-support/modes.js';
+import { render } from '../text/index.js';
 import { normalizeProvider, optionsShape, tokenOfEntry } from './records.js';
 
 class ReactorCore {
@@ -42,20 +48,27 @@ describe('normalizeProvider', () => {
     });
   });
 
-  it('reports NEXUS_MISSING_DEPS for a bare class with parameters and no metadata', () => {
-    const { shape, errors } = normalize(ShipComputer);
-    expect(shape).toBeNull();
-    expect(errors).toMatchObject([
-      {
-        code: 'NEXUS_MISSING_DEPS',
-        token: 'ShipComputer',
-        module: 'Engineering',
-        arity: 1,
-        message:
-          '[NEXUS_MISSING_DEPS] ShipComputer in Engineering takes 1 constructor parameter and has no deps.\n' +
+  describe.each(errorModes)('$name mode', (mode) => {
+    it('reports NEXUS_MISSING_DEPS for a bare class with parameters and no metadata', () => {
+      const { shape, errors } = normalize(ShipComputer);
+      expect(shape).toBeNull();
+      expect(errors).toMatchObject([
+        {
+          code: 'NEXUS_MISSING_DEPS',
+          token: 'ShipComputer',
+          module: 'Engineering',
+          arity: 1,
+          useClass: null,
+          bare: true,
+        },
+      ]);
+      expectRendered(
+        mode,
+        errors[0] as NexusError,
+        '[NEXUS_MISSING_DEPS] ShipComputer in Engineering takes 1 constructor parameter and has no deps.\n' +
           '  Fix: declare static deps = [...] as const on ShipComputer, decorate it with @Injectable({ deps }), or list provide(ShipComputer, { deps: [...] }) in providers.',
-      },
-    ]);
+      );
+    });
   });
 
   it('accepts a bare class whose parameters all have defaults', () => {
@@ -184,134 +197,189 @@ describe('normalizeProvider', () => {
     });
   });
 
-  it.each([
-    [
-      'null',
-      null,
-      'is null, not a provider; list a class, a provide() result or a { token } literal',
-    ],
-    [
-      'a number',
-      42,
-      'is the number 42, not a provider; list a class, a provide() result or a { token } literal',
-    ],
-    [
-      'an object without an own token',
-      Object.create({ token: NAV_CHARTS, useValue: 1 }) as object,
-      'is an object, not a provider; list a class, a provide() result or a { token } literal',
-    ],
-    [
-      'a literal whose options throw when read',
-      {
-        token: NAV_CHARTS,
-        get useValue(): never {
-          throw new Error('trap');
+  describe.each(errorModes)('$name mode', (mode) => {
+    it.each([
+      [
+        'null',
+        null,
+        'is null, not a provider; list a class, a provide() result or a { token } literal',
+        'not-a-provider',
+        ['null'],
+      ],
+      [
+        'a number',
+        42,
+        'is the number 42, not a provider; list a class, a provide() result or a { token } literal',
+        'not-a-provider',
+        ['the number 42'],
+      ],
+      [
+        'an object without an own token',
+        Object.create({ token: NAV_CHARTS, useValue: 1 }) as object,
+        'is an object, not a provider; list a class, a provide() result or a { token } literal',
+        'not-a-provider',
+        ['an object'],
+      ],
+      [
+        'a literal whose options throw when read',
+        {
+          token: NAV_CHARTS,
+          get useValue(): never {
+            throw new Error('trap');
+          },
         },
+        'throws when its options are read: Error: trap',
+        'options-throw',
+        ['Error: trap'],
+      ],
+      [
+        'a module',
+        defineModule({ name: 'Comms' }),
+        'is the module Comms; add it to imports',
+        'is-a-module',
+        ['Comms'],
+      ],
+      [
+        'a factory without a function',
+        rawProvide(NAV_CHARTS, { useFactory: 5, deps: [] }),
+        'has a useFactory that is not a function',
+        'factory-not-a-function',
+        [],
+      ],
+      [
+        'factory deps that are not an array',
+        rawProvide(NAV_CHARTS, { useFactory: () => 1, deps: 'nav' }),
+        'has deps that are not an array',
+        'deps-not-array',
+        [],
+      ],
+      [
+        'two definitions',
+        rawProvide(NAV_CHARTS, { useValue: 1, useFactory: () => 1, deps: [] }),
+        'sets useValue and useFactory; use one of them',
+        'several-definitions',
+        ['useValue and useFactory'],
+      ],
+      [
+        'a Token without a definition',
+        rawProvide(NAV_CHARTS, {}),
+        'provides NavCharts with no definition; add useClass, useValue, useFactory or useExisting',
+        'no-definition',
+        ['NavCharts'],
+      ],
+      [
+        'a bad lifetime',
+        rawProvide(ReactorCore, { lifetime: 'forever' }),
+        "has the lifetime the string \"forever\"; use 'singleton', 'scoped' or 'transient'",
+        'bad-lifetime',
+        ['the string "forever"'],
+      ],
+      [
+        'a lifetime on useValue',
+        rawProvide(NAV_CHARTS, { useValue: 1, lifetime: 'singleton' }),
+        'sets a lifetime on useValue; a value has none',
+        'value-with-lifetime',
+        [],
+      ],
+      [
+        'a bare MultiToken dep',
+        rawProvide(NAV_CHARTS, { useFactory: () => 1, deps: [DIAGNOSTICS] }),
+        'deps[0] is the MultiToken Diagnostics; wrap it in all()',
+        'bad-dep',
+        ['deps[0]', 'bare-multi-token', 'Diagnostics'],
+      ],
+      [
+        'a dep that is not a token',
+        rawProvide(NAV_CHARTS, { useFactory: () => 1, deps: ['nav'] }),
+        'deps[0] is the string "nav", not a token',
+        'bad-dep',
+        ['deps[0]', 'not-a-token', 'the string "nav"'],
+      ],
+      [
+        'a MultiToken alias',
+        rawProvide(NAV_CHARTS, { useExisting: DIAGNOSTICS }),
+        'aliases the MultiToken Diagnostics; useExisting takes a class or a Token',
+        'alias-to-multi-token',
+        ['Diagnostics'],
+      ],
+      [
+        'REQUEST',
+        provide(REQUEST, { useValue: {} }),
+        'provides REQUEST, which createScope({ request }) supplies',
+        'provides-request',
+        [],
+      ],
+    ] as const)(
+      'reports NEXUS_INVALID_PROVIDER for %s',
+      (_label, entry, sentence, reason, detail) => {
+        const { shape, errors } = normalize(entry);
+        expect(shape).toBeNull();
+        expect(errors).toMatchObject([
+          {
+            code: 'NEXUS_INVALID_PROVIDER',
+            module: 'Engineering',
+            index: 3,
+            reason,
+            detail,
+          },
+        ]);
+        expectRendered(
+          mode,
+          errors[0] as NexusError,
+          `[NEXUS_INVALID_PROVIDER] Engineering.providers[3] ${sentence}.`,
+        );
       },
-      'throws when its options are read: Error: trap',
-    ],
-    [
-      'a module',
-      defineModule({ name: 'Comms' }),
-      'is the module Comms; add it to imports',
-    ],
-    [
-      'a factory without a function',
-      rawProvide(NAV_CHARTS, { useFactory: 5, deps: [] }),
-      'has a useFactory that is not a function',
-    ],
-    [
-      'factory deps that are not an array',
-      rawProvide(NAV_CHARTS, { useFactory: () => 1, deps: 'nav' }),
-      'has deps that are not an array',
-    ],
-    [
-      'two definitions',
-      rawProvide(NAV_CHARTS, { useValue: 1, useFactory: () => 1, deps: [] }),
-      'sets useValue and useFactory; use one of them',
-    ],
-    [
-      'a Token without a definition',
-      rawProvide(NAV_CHARTS, {}),
-      'provides NavCharts with no definition; add useClass, useValue, useFactory or useExisting',
-    ],
-    [
-      'a bad lifetime',
-      rawProvide(ReactorCore, { lifetime: 'forever' }),
-      "has the lifetime the string \"forever\"; use 'singleton', 'scoped' or 'transient'",
-    ],
-    [
-      'a lifetime on useValue',
-      rawProvide(NAV_CHARTS, { useValue: 1, lifetime: 'singleton' }),
-      'sets a lifetime on useValue; a value has none',
-    ],
-    [
-      'a bare MultiToken dep',
-      rawProvide(NAV_CHARTS, { useFactory: () => 1, deps: [DIAGNOSTICS] }),
-      'deps[0] is the MultiToken Diagnostics; wrap it in all()',
-    ],
-    [
-      'a dep that is not a token',
-      rawProvide(NAV_CHARTS, { useFactory: () => 1, deps: ['nav'] }),
-      'deps[0] is the string "nav", not a token',
-    ],
-    [
-      'a MultiToken alias',
-      rawProvide(NAV_CHARTS, { useExisting: DIAGNOSTICS }),
-      'aliases the MultiToken Diagnostics; useExisting takes a class or a Token',
-    ],
-    [
-      'REQUEST',
-      provide(REQUEST, { useValue: {} }),
-      'provides REQUEST, which createScope({ request }) supplies',
-    ],
-  ])('reports NEXUS_INVALID_PROVIDER for %s', (_label, entry, reason) => {
-    const { shape, errors } = normalize(entry);
-    expect(shape).toBeNull();
-    expect(errors).toMatchObject([
-      {
-        code: 'NEXUS_INVALID_PROVIDER',
-        module: 'Engineering',
-        index: 3,
-        reason,
-      },
-    ]);
+    );
   });
 
-  it.each([
-    ['a symbol', Symbol('nav'), 'the symbol Symbol(nav)'],
-    ['a string', 'nav', 'the string "nav"'],
-    ['undefined', undefined, 'undefined'],
-  ])(
-    'reports NEXUS_INVALID_TOKEN for a provider whose token is %s',
-    (_label, token, received) => {
-      const { errors } = normalize(rawProvide(token as never, { useValue: 1 }));
+  describe.each(errorModes)('$name mode', (mode) => {
+    it.each([
+      ['a symbol', Symbol('nav'), 'the symbol Symbol(nav)'],
+      ['a string', 'nav', 'the string "nav"'],
+      ['undefined', undefined, 'undefined'],
+    ])(
+      'reports NEXUS_INVALID_TOKEN for a provider whose token is %s',
+      (_label, token, received) => {
+        const { errors } = normalize(
+          rawProvide(token as never, { useValue: 1 }),
+        );
+        expect(errors).toMatchObject([
+          {
+            code: 'NEXUS_INVALID_TOKEN',
+            received,
+            module: 'Engineering',
+            index: 3,
+            reason: null,
+          },
+        ]);
+        expectRendered(
+          mode,
+          errors[0] as NexusError,
+          `[NEXUS_INVALID_TOKEN] Engineering.providers[3]: ${received} is not a token. A token is a class, a Token or a MultiToken.`,
+        );
+      },
+    );
+
+    it('reports NEXUS_INVALID_TOKEN with the module and index for a useExisting target that is not a token', () => {
+      const { errors } = normalize(
+        rawProvide(NAV_CHARTS, { useExisting: Symbol('charts') }),
+      );
       expect(errors).toMatchObject([
         {
           code: 'NEXUS_INVALID_TOKEN',
-          received,
+          received: 'the symbol Symbol(charts)',
           module: 'Engineering',
           index: 3,
-          message: `[NEXUS_INVALID_TOKEN] Engineering.providers[3]: ${received} is not a token. A token is a class, a Token or a MultiToken.`,
+          reason: 'alias-target',
+          detail: [],
         },
       ]);
-    },
-  );
-
-  it('reports NEXUS_INVALID_TOKEN with the module and index for a useExisting target that is not a token', () => {
-    const { errors } = normalize(
-      rawProvide(NAV_CHARTS, { useExisting: Symbol('charts') }),
-    );
-    expect(errors).toMatchObject([
-      {
-        code: 'NEXUS_INVALID_TOKEN',
-        received: 'the symbol Symbol(charts)',
-        module: 'Engineering',
-        index: 3,
-        message:
-          '[NEXUS_INVALID_TOKEN] Engineering.providers[3]: the symbol Symbol(charts) is not a token, so useExisting cannot alias it. A token is a class, a Token or a MultiToken.',
-      },
-    ]);
+      expectRendered(
+        mode,
+        errors[0] as NexusError,
+        '[NEXUS_INVALID_TOKEN] Engineering.providers[3]: the symbol Symbol(charts) is not a token, so useExisting cannot alias it. A token is a class, a Token or a MultiToken.',
+      );
+    });
   });
 });
 
@@ -584,7 +652,13 @@ describe('normalizeProvider with static deps', () => {
     ['provide() useClass', (cls) => rawProvide(NAV_CHARTS, { useClass: cls })],
     ['a useClass literal', (cls) => ({ token: NAV_CHARTS, useClass: cls })],
   ];
-  const classErrors: readonly (readonly [string, () => Ctor, string])[] = [
+  const classErrors: readonly (readonly [
+    string,
+    () => Ctor,
+    string,
+    string,
+    readonly string[],
+  ])[] = [
     [
       'deps in both @Injectable and static deps',
       () => {
@@ -595,6 +669,8 @@ describe('normalizeProvider with static deps', () => {
         return Twice;
       },
       'declares deps in both @Injectable and static deps; keep one',
+      'deps-in-both',
+      [],
     ],
     [
       'a static deps that is not an array',
@@ -604,6 +680,8 @@ describe('normalizeProvider with static deps', () => {
           constructor(readonly name: string) {}
         },
       'has a static deps that is not an array',
+      'static-deps-not-array',
+      [],
     ],
     [
       'a static deps getter that throws',
@@ -615,6 +693,8 @@ describe('normalizeProvider with static deps', () => {
           constructor(readonly name: string) {}
         },
       'has a static deps that throws when read: Error: trap',
+      'static-deps-throws',
+      ['Error: trap'],
     ],
     [
       'a static deps entry that is not a token',
@@ -624,17 +704,27 @@ describe('normalizeProvider with static deps', () => {
           constructor(readonly name: string) {}
         },
       'deps[0] is the string "nav", not a token',
+      'bad-dep',
+      ['deps[0]', 'not-a-token', 'the string "nav"'],
     ],
   ];
-  describe.each(forms)('through %s', (_form, wrap) => {
-    it.each(classErrors)(
-      'reports NEXUS_INVALID_PROVIDER for %s',
-      (_label, make, reason) => {
-        expect(normalize(wrap(make())).errors).toMatchObject([
-          { code: 'NEXUS_INVALID_PROVIDER', reason },
-        ]);
-      },
-    );
+  describe.each(errorModes)('$name mode', (mode) => {
+    describe.each(forms)('through %s', (_form, wrap) => {
+      it.each(classErrors)(
+        'reports NEXUS_INVALID_PROVIDER for %s',
+        (_label, make, sentence, reason, detail) => {
+          const { errors } = normalize(wrap(make()));
+          expect(errors).toMatchObject([
+            { code: 'NEXUS_INVALID_PROVIDER', reason, detail },
+          ]);
+          expectRendered(
+            mode,
+            errors[0] as NexusError,
+            `[NEXUS_INVALID_PROVIDER] Engineering.providers[3] ${sentence}.`,
+          );
+        },
+      );
+    });
   });
 
   it("gives useClass the class's @Injectable deps when the binding has none", () => {
@@ -652,85 +742,99 @@ describe('normalizeProvider with static deps', () => {
     ).toMatchObject({ kind: 'class', deps: byName, lifetime: 'singleton' });
   });
 
-  it.each([
-    ['provide(C)', (cls: Ctor) => rawProvide(cls)],
-    [
-      'provide(C, { lifetime })',
-      (cls: Ctor) => rawProvide(cls, { lifetime: 'scoped' }),
-    ],
-    ['a { token: C } literal', (cls: Ctor) => ({ token: cls })],
-  ] as const)(
-    'reports NEXUS_MISSING_DEPS for %s when only @Injectable declares deps',
-    (_label, wrap) => {
-      // provide(C), provide(C, { lifetime }) and { token: C } never read
-      // @Injectable for deps (spec §3.2): a class with only @Injectable
-      // deps and no static deps behaves as if it declared none.
-      class Decorated {
+  describe.each(errorModes)('$name mode', (mode) => {
+    it.each([
+      ['provide(C)', (cls: Ctor) => rawProvide(cls)],
+      [
+        'provide(C, { lifetime })',
+        (cls: Ctor) => rawProvide(cls, { lifetime: 'scoped' }),
+      ],
+      ['a { token: C } literal', (cls: Ctor) => ({ token: cls })],
+    ] as const)(
+      'reports NEXUS_MISSING_DEPS for %s when only @Injectable declares deps',
+      (_label, wrap) => {
+        // provide(C), provide(C, { lifetime }) and { token: C } never read
+        // @Injectable for deps (spec §3.2): a class with only @Injectable
+        // deps and no static deps behaves as if it declared none.
+        class Decorated {
+          constructor(readonly name: string) {}
+        }
+        const metadata = Object.create(null) as DecoratorMetadataObject;
+        writeInjectable(metadata, { deps: [NAME], lifetime: undefined });
+        Object.defineProperty(Decorated, Symbol.metadata, { value: metadata });
+        const [error] = normalize(wrap(Decorated)).errors;
+        expect(error).toMatchObject({
+          code: 'NEXUS_MISSING_DEPS',
+          token: 'Decorated',
+          useClass: null,
+          arity: 1,
+          bare: false,
+        });
+        expectRendered(
+          mode,
+          error as NexusError,
+          '[NEXUS_MISSING_DEPS] Decorated in Engineering takes 1 constructor parameter and has no deps.\n' +
+            '  Fix: add deps to the binding, or declare static deps = [...] as const on Decorated. A binding of a class to itself does not read @Injectable deps.',
+        );
+      },
+    );
+  });
+
+  describe.each(errorModes)('$name mode', (mode) => {
+    it('reports NEXUS_MISSING_DEPS naming the class and the token for a useClass that declares nothing', () => {
+      class Bare {
         constructor(readonly name: string) {}
       }
-      const metadata = Object.create(null) as DecoratorMetadataObject;
-      writeInjectable(metadata, { deps: [NAME], lifetime: undefined });
-      Object.defineProperty(Decorated, Symbol.metadata, { value: metadata });
-      const [error] = normalize(wrap(Decorated)).errors;
+      const [error] = normalize(
+        rawProvide(NAV_CHARTS, { useClass: Bare }),
+      ).errors;
       expect(error).toMatchObject({
         code: 'NEXUS_MISSING_DEPS',
-        token: 'Decorated',
-        useClass: null,
+        token: 'NavCharts',
+        useClass: 'Bare',
         arity: 1,
-        message:
-          '[NEXUS_MISSING_DEPS] Decorated in Engineering takes 1 constructor parameter and has no deps.\n' +
-          '  Fix: add deps to the binding, or declare static deps = [...] as const on Decorated. A binding of a class to itself does not read @Injectable deps.',
+        bare: false,
       });
-    },
-  );
-
-  it('reports NEXUS_MISSING_DEPS naming the class and the token for a useClass that declares nothing', () => {
-    class Bare {
-      constructor(readonly name: string) {}
-    }
-    const [error] = normalize(
-      rawProvide(NAV_CHARTS, { useClass: Bare }),
-    ).errors;
-    expect(error).toMatchObject({
-      code: 'NEXUS_MISSING_DEPS',
-      token: 'NavCharts',
-      useClass: 'Bare',
-      arity: 1,
+      expectRendered(
+        mode,
+        error as NexusError,
+        '[NEXUS_MISSING_DEPS] Bare (useClass for NavCharts) in Engineering takes 1 constructor parameter and has no deps.\n' +
+          '  Fix: add deps to the binding, declare static deps = [...] as const on Bare, or decorate it with @Injectable({ deps }).',
+      );
     });
-    expect(error?.message).toBe(
-      '[NEXUS_MISSING_DEPS] Bare (useClass for NavCharts) in Engineering takes 1 constructor parameter and has no deps.\n' +
-        '  Fix: add deps to the binding, declare static deps = [...] as const on Bare, or decorate it with @Injectable({ deps }).',
-    );
-  });
 
-  it('gives the useClass fix for a useClass that names its own token', () => {
-    class Bare {
-      constructor(readonly name: string) {}
-    }
-    const [error] = normalize(rawProvide(Bare, { useClass: Bare })).errors;
-    expect(error).toMatchObject({
-      code: 'NEXUS_MISSING_DEPS',
-      token: 'Bare',
-      useClass: 'Bare',
+    it('gives the useClass fix for a useClass that names its own token', () => {
+      class Bare {
+        constructor(readonly name: string) {}
+      }
+      const [error] = normalize(rawProvide(Bare, { useClass: Bare })).errors;
+      expect(error).toMatchObject({
+        code: 'NEXUS_MISSING_DEPS',
+        token: 'Bare',
+        useClass: 'Bare',
+      });
+      if (mode.name === 'text')
+        expect(render(error as NexusError)).toContain(
+          'or decorate it with @Injectable({ deps })',
+        );
+      else expect(error?.message).toBe(coreLine(error as NexusError));
     });
-    expect(error?.message).toContain(
-      'or decorate it with @Injectable({ deps })',
-    );
-  });
 
-  it('reports deps in both @Injectable and static deps through useClass', () => {
-    class Twice extends Probe {}
-    const metadata = Object.create(null) as DecoratorMetadataObject;
-    writeInjectable(metadata, { deps: [NAME], lifetime: undefined });
-    Object.defineProperty(Twice, Symbol.metadata, { value: metadata });
-    expect(
-      normalize(rawProvide(NAV_CHARTS, { useClass: Twice })).errors,
-    ).toMatchObject([
-      {
-        code: 'NEXUS_INVALID_PROVIDER',
-        reason: 'declares deps in both @Injectable and static deps; keep one',
-      },
-    ]);
+    it('reports deps in both @Injectable and static deps through useClass', () => {
+      class Twice extends Probe {}
+      const metadata = Object.create(null) as DecoratorMetadataObject;
+      writeInjectable(metadata, { deps: [NAME], lifetime: undefined });
+      Object.defineProperty(Twice, Symbol.metadata, { value: metadata });
+      const { errors } = normalize(rawProvide(NAV_CHARTS, { useClass: Twice }));
+      expect(errors).toMatchObject([
+        { code: 'NEXUS_INVALID_PROVIDER', reason: 'deps-in-both', detail: [] },
+      ]);
+      expectRendered(
+        mode,
+        errors[0] as NexusError,
+        '[NEXUS_INVALID_PROVIDER] Engineering.providers[3] declares deps in both @Injectable and static deps; keep one.',
+      );
+    });
   });
 
   /** A class with both @Injectable deps and static deps, and a subclass that inherits both. */
@@ -743,27 +847,35 @@ describe('normalizeProvider with static deps', () => {
     return [Twice, TwiceChild];
   }
 
-  it.each([
-    ['provide(C)', (cls: Ctor) => rawProvide(cls)],
-    [
-      'provide(C, { lifetime })',
-      (cls: Ctor) => rawProvide(cls, { lifetime: 'scoped' }),
-    ],
-    ['a { token: C } literal', (cls: Ctor) => ({ token: cls })],
-  ] as const)(
-    'reports deps in both @Injectable and static deps for %s, own and inherited',
-    (_label, wrap) => {
-      for (const cls of classesWithBothDeclarations()) {
-        expect(normalize(wrap(cls)).errors).toMatchObject([
-          {
-            code: 'NEXUS_INVALID_PROVIDER',
-            reason:
-              'declares deps in both @Injectable and static deps; keep one',
-          },
-        ]);
-      }
-    },
-  );
+  describe.each(errorModes)('$name mode', (mode) => {
+    it.each([
+      ['provide(C)', (cls: Ctor) => rawProvide(cls)],
+      [
+        'provide(C, { lifetime })',
+        (cls: Ctor) => rawProvide(cls, { lifetime: 'scoped' }),
+      ],
+      ['a { token: C } literal', (cls: Ctor) => ({ token: cls })],
+    ] as const)(
+      'reports deps in both @Injectable and static deps for %s, own and inherited',
+      (_label, wrap) => {
+        for (const cls of classesWithBothDeclarations()) {
+          const { errors } = normalize(wrap(cls));
+          expect(errors).toMatchObject([
+            {
+              code: 'NEXUS_INVALID_PROVIDER',
+              reason: 'deps-in-both',
+              detail: [],
+            },
+          ]);
+          expectRendered(
+            mode,
+            errors[0] as NexusError,
+            '[NEXUS_INVALID_PROVIDER] Engineering.providers[3] declares deps in both @Injectable and static deps; keep one.',
+          );
+        }
+      },
+    );
+  });
 
   it('ignores a deps key that only Function.prototype or Object.prototype carries', () => {
     const fn = Function.prototype as unknown as Record<string, unknown>;

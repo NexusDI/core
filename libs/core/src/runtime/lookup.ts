@@ -38,7 +38,7 @@ export function notFound(
   bp: Blueprint,
   token: TokenKey,
   moduleId: string,
-  entry?: string,
+  entry: string | null = null,
 ): NexusError {
   const current = container.root.blueprint;
   if (container.kind === 'scope' && current !== bp) {
@@ -66,12 +66,12 @@ export function notFound(
     token: displayName(token),
     requester: null,
     module: bp.modules.get(moduleId)?.name ?? moduleId,
+    entry,
     nearMisses: findNearMisses(token, moduleId, {
       modules: bp.modules.values(),
       records: bp.providers.values(),
       exportedTokens: bp.exportedTokens,
     }),
-    entry,
   });
 }
 
@@ -84,7 +84,14 @@ export function getFrom(
   owner: TransientOwner,
 ): unknown {
   if (!isToken(token))
-    throw new InvalidTokenError({ received: describeValue(token) });
+    throw new InvalidTokenError({
+      received: describeValue(token),
+      entry: null,
+      module: null,
+      index: null,
+      reason: null,
+      detail: [],
+    });
   const moduleId = lookupModule(bp, options);
   const ids = bp.visibility.get(moduleId)?.get(token) ?? [];
   const ctx = { bp, container, owner };

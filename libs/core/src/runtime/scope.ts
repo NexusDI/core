@@ -5,6 +5,7 @@ import { DisposedError, RequestMissingError } from '../errors/index.js';
 import { adopt, applyConstruct, buildInto, traceConstruct } from './build.js';
 import { resolveDeps } from './deps.js';
 import { chainErrors, collectInto, disposeInReverse } from './dispose.js';
+import { formatFor, guardAsync } from './format.js';
 import { getFrom, hasIn } from './lookup.js';
 import type { LookupOptions } from './options.js';
 import { settleLevel, toProviderError } from './settle.js';
@@ -92,40 +93,52 @@ class ScopeHandle implements Scope {
   get<T>(token: MultiToken<T>, options?: LookupOptions): T[];
   get<T>(token: InjectionToken<T>, options?: LookupOptions): T;
   get(token: unknown, options?: LookupOptions): unknown {
-    assertScopeOpen(this.#state);
-    return getFrom(
-      this.#state,
-      this.#state.blueprint,
-      token,
-      options,
-      this.#state,
-    );
+    try {
+      assertScopeOpen(this.#state);
+      return getFrom(
+        this.#state,
+        this.#state.blueprint,
+        token,
+        options,
+        this.#state,
+      );
+    } catch (error) {
+      throw formatFor(this.#state.root, error);
+    }
   }
 
   has(
     token: InjectionToken<unknown> | MultiToken<unknown>,
     options?: LookupOptions,
   ): boolean {
-    assertScopeOpen(this.#state);
-    return hasIn(this.#state.blueprint, token, options);
+    try {
+      assertScopeOpen(this.#state);
+      return hasIn(this.#state.blueprint, token, options);
+    } catch (error) {
+      throw formatFor(this.#state.root, error);
+    }
   }
 
   resolve<const D extends DepsMap | readonly Dep[]>(
     deps: D,
     options?: LookupOptions,
   ): ResolvedDeps<D> {
-    assertScopeOpen(this.#state);
-    return resolveDeps(
-      this.#state,
-      this.#state.blueprint,
-      deps,
-      options,
-      this.#state,
-    ) as ResolvedDeps<D>;
+    try {
+      assertScopeOpen(this.#state);
+      return resolveDeps(
+        this.#state,
+        this.#state.blueprint,
+        deps,
+        options,
+        this.#state,
+      ) as ResolvedDeps<D>;
+    } catch (error) {
+      throw formatFor(this.#state.root, error);
+    }
   }
 
   [Symbol.asyncDispose](): Promise<void> {
-    return disposeScope(this.#state);
+    return guardAsync(this.#state.root, () => disposeScope(this.#state));
   }
 }
 

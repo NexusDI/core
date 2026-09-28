@@ -34,12 +34,37 @@ export interface ErrorCase {
   readonly error: NexusError;
   readonly code: NexusErrorCode;
   readonly fields: Readonly<Record<string, unknown>>;
+  /** The error's Error.cause, for a class that carries one. */
+  readonly cause?: unknown;
 }
+
+/** PluginError's fields, each null or empty, for a case to override. */
+const NO_PLUGIN_FIELDS = {
+  plugin: null,
+  reason: null,
+  detail: [],
+  apiVersion: null,
+  supported: [],
+  plugins: [],
+  target: null,
+  hook: null,
+  disposalErrors: [],
+} as const;
+
+/** InvalidTokenError's optional fields, each null or empty. */
+const NO_TOKEN_SITE = {
+  entry: null,
+  module: null,
+  index: null,
+  reason: null,
+  detail: [],
+} as const;
 
 const missing = new MissingProviderError({
   token: 'NavCharts',
   requester: 'ShipComputer',
   module: 'Engineering',
+  entry: null,
   nearMisses: [{ kind: 'not-exported', module: 'Tactical' }],
 });
 
@@ -67,6 +92,7 @@ export const errorCases: readonly ErrorCase[] = [
       token: 'NavCharts',
       requester: null,
       module: 'Meridian',
+      entry: null,
       nearMisses: [],
     }),
     code: 'NEXUS_MISSING_PROVIDER',
@@ -78,8 +104,8 @@ export const errorCases: readonly ErrorCase[] = [
       token: 'ReactorCore',
       requester: null,
       module: 'Meridian',
-      nearMisses: [{ kind: 'not-imported', module: 'Engineering' }],
       entry: 'deps[1]',
+      nearMisses: [{ kind: 'not-imported', module: 'Engineering' }],
     }),
     code: 'NEXUS_MISSING_PROVIDER',
     fields: { entry: 'deps[1]' },
@@ -90,6 +116,7 @@ export const errorCases: readonly ErrorCase[] = [
       token: 'NavCharts',
       requester: 'ShipComputer',
       module: 'Engineering',
+      entry: null,
       nearMisses: [{ kind: 'same-description', module: 'Tactical' }],
     }),
     code: 'NEXUS_MISSING_PROVIDER',
@@ -122,32 +149,38 @@ export const errorCases: readonly ErrorCase[] = [
     error: new InvalidProviderError({
       module: 'Root',
       index: 2,
-      reason:
-        'is null, not a provider; list a class, a provide() result or a { token } literal',
+      reason: 'not-a-provider',
+      detail: ['null'],
     }),
     code: 'NEXUS_INVALID_PROVIDER',
     fields: {
       module: 'Root',
       index: 2,
-      reason:
-        'is null, not a provider; list a class, a provide() result or a { token } literal',
+      reason: 'not-a-provider',
+      detail: ['null'],
     },
   },
   {
     name: 'InvalidTokenError',
-    error: new InvalidTokenError({ received: 'the number 3' }),
+    error: new InvalidTokenError({
+      received: 'the number 3',
+      ...NO_TOKEN_SITE,
+    }),
     code: 'NEXUS_INVALID_TOKEN',
     fields: {
       received: 'the number 3',
       entry: null,
       module: null,
       index: null,
+      reason: null,
+      detail: [],
     },
   },
   {
     name: 'InvalidTokenError (deps entry)',
     error: new InvalidTokenError({
       received: 'the string "nav"',
+      ...NO_TOKEN_SITE,
       entry: 'deps.name',
     }),
     code: 'NEXUS_INVALID_TOKEN',
@@ -157,18 +190,20 @@ export const errorCases: readonly ErrorCase[] = [
     name: 'InvalidTokenError (providers entry with reason)',
     error: new InvalidTokenError({
       received: 'the number 4',
-      reason:
-        'is not a token, so useExisting cannot alias it. A token is a class, a Token or a MultiToken.',
+      entry: null,
       module: 'Engineering',
       index: 2,
+      reason: 'alias-target',
+      detail: [],
     }),
     code: 'NEXUS_INVALID_TOKEN',
-    fields: { module: 'Engineering', index: 2 },
+    fields: { module: 'Engineering', index: 2, reason: 'alias-target' },
   },
   {
     name: 'InvalidTokenError in a providers entry',
     error: new InvalidTokenError({
       received: 'the number 3',
+      ...NO_TOKEN_SITE,
       module: 'Engineering',
       index: 2,
     }),
@@ -178,8 +213,6 @@ export const errorCases: readonly ErrorCase[] = [
       entry: null,
       module: 'Engineering',
       index: 2,
-      message:
-        '[NEXUS_INVALID_TOKEN] Engineering.providers[2]: the number 3 is not a token. A token is a class, a Token or a MultiToken.',
     },
   },
   {
@@ -206,6 +239,8 @@ export const errorCases: readonly ErrorCase[] = [
       token: 'ShipComputer',
       module: 'Engineering',
       arity: 1,
+      useClass: null,
+      bare: false,
     }),
     code: 'NEXUS_MISSING_DEPS',
     fields: { token: 'ShipComputer', module: 'Engineering', arity: 1 },
@@ -220,7 +255,7 @@ export const errorCases: readonly ErrorCase[] = [
       bare: true,
     }),
     code: 'NEXUS_MISSING_DEPS',
-    fields: { arity: 2 },
+    fields: { arity: 2, bare: true },
   },
   {
     name: 'MissingDepsError (useClass)',
@@ -229,6 +264,7 @@ export const errorCases: readonly ErrorCase[] = [
       module: 'Engineering',
       arity: 1,
       useClass: 'Bare',
+      bare: false,
     }),
     code: 'NEXUS_MISSING_DEPS',
     fields: { useClass: 'Bare' },
@@ -282,6 +318,7 @@ export const errorCases: readonly ErrorCase[] = [
     error: new ModuleOptionsError({
       code: 'NEXUS_MODULE_OPTIONS_MISSING',
       module: 'Comms',
+      issues: [],
     }),
     code: 'NEXUS_MODULE_OPTIONS_MISSING',
     fields: { module: 'Comms', issues: [] },
@@ -330,38 +367,43 @@ export const errorCases: readonly ErrorCase[] = [
   },
   {
     name: 'ProviderError (path, also failed, disposal errors)',
-    error: new ProviderError({
-      token: 'NavCharts',
-      module: 'Tactical',
-      path: ['Bridge', 'NavCharts'],
-      cause: new Error('offline'),
-      alsoFailed: [
-        { token: 'SubspaceLink', module: 'Comms', cause: new Error('x') },
-      ],
-      disposalErrors: [new Error('scram')],
-    }),
+    error: new ProviderError(
+      {
+        token: 'NavCharts',
+        module: 'Tactical',
+        path: ['Bridge', 'NavCharts'],
+        alsoFailed: [
+          { token: 'SubspaceLink', module: 'Comms', cause: new Error('x') },
+        ],
+        disposalErrors: [new Error('scram')],
+      },
+      { cause: new Error('offline') },
+    ),
     code: 'NEXUS_PROVIDER_FAILED',
     fields: { path: ['Bridge', 'NavCharts'] },
+    cause: new Error('offline'),
   },
   {
     name: 'ProviderError',
-    error: new ProviderError({
-      token: 'NavCharts',
-      module: 'Tactical',
-      path: ['NavCharts'],
-      cause: 'offline',
-      alsoFailed: [{ token: 'Sensors', module: 'Tactical', cause: 'down' }],
-      disposalErrors: ['stuck'],
-    }),
+    error: new ProviderError(
+      {
+        token: 'NavCharts',
+        module: 'Tactical',
+        path: ['NavCharts'],
+        alsoFailed: [{ token: 'Sensors', module: 'Tactical', cause: 'down' }],
+        disposalErrors: ['stuck'],
+      },
+      { cause: 'offline' },
+    ),
     code: 'NEXUS_PROVIDER_FAILED',
     fields: {
       token: 'NavCharts',
       module: 'Tactical',
       path: ['NavCharts'],
-      cause: 'offline',
       alsoFailed: [{ token: 'Sensors', module: 'Tactical', cause: 'down' }],
       disposalErrors: ['stuck'],
     },
+    cause: 'offline',
   },
   {
     name: 'NotReadyError',
@@ -395,19 +437,31 @@ export const errorCases: readonly ErrorCase[] = [
   },
   {
     name: 'NotVisibleError',
-    error: new NotVisibleError({ token: 'SubspaceLink', owners: ['Comms'] }),
+    error: new NotVisibleError({
+      token: 'SubspaceLink',
+      owners: ['Comms'],
+      entry: null,
+    }),
     code: 'NEXUS_NOT_VISIBLE',
     fields: { token: 'SubspaceLink', owners: ['Comms'] },
   },
   {
     name: 'NotVisibleError (no owners)',
-    error: new NotVisibleError({ token: 'SubspaceLink', owners: [] }),
+    error: new NotVisibleError({
+      token: 'SubspaceLink',
+      owners: [],
+      entry: null,
+    }),
     code: 'NEXUS_NOT_VISIBLE',
     fields: { token: 'SubspaceLink', owners: [] },
   },
   {
     name: 'ScopeRequiredError',
-    error: new ScopeRequiredError({ token: 'Mission', path: ['Mission'] }),
+    error: new ScopeRequiredError({
+      token: 'Mission',
+      path: ['Mission'],
+      entry: null,
+    }),
     code: 'NEXUS_SCOPE_REQUIRED',
     fields: { token: 'Mission', path: ['Mission'] },
   },
@@ -426,6 +480,7 @@ export const errorCases: readonly ErrorCase[] = [
     error: new ScopeRequiredError({
       token: 'Mission',
       path: ['Bridge', 'Mission'],
+      entry: null,
     }),
     code: 'NEXUS_SCOPE_REQUIRED',
     fields: { token: 'Mission', path: ['Bridge', 'Mission'] },
@@ -444,7 +499,11 @@ export const errorCases: readonly ErrorCase[] = [
   },
   {
     name: 'LoadedAfterScopeError',
-    error: new LoadedAfterScopeError({ token: 'Probe', module: 'Science' }),
+    error: new LoadedAfterScopeError({
+      token: 'Probe',
+      module: 'Science',
+      entry: null,
+    }),
     code: 'NEXUS_LOADED_AFTER_SCOPE',
     fields: { token: 'Probe', module: 'Science' },
   },
@@ -460,7 +519,7 @@ export const errorCases: readonly ErrorCase[] = [
   },
   {
     name: 'NoScopeContextError',
-    error: new NoScopeContextError(),
+    error: new NoScopeContextError({}),
     code: 'NEXUS_NO_SCOPE_CONTEXT',
     fields: {},
   },
@@ -481,6 +540,8 @@ export const errorCases: readonly ErrorCase[] = [
     error: new OverrideError({
       code: 'NEXUS_OVERRIDE_UNUSED',
       token: 'NavCharts',
+      module: null,
+      missing: [],
     }),
     code: 'NEXUS_OVERRIDE_UNUSED',
     fields: { token: 'NavCharts', module: null, missing: [] },
@@ -489,6 +550,7 @@ export const errorCases: readonly ErrorCase[] = [
     name: 'OverrideError (exports)',
     error: new OverrideError({
       code: 'NEXUS_OVERRIDE_EXPORTS',
+      token: null,
       module: 'Comms',
       missing: ['SubspaceLink'],
     }),
@@ -498,6 +560,7 @@ export const errorCases: readonly ErrorCase[] = [
   {
     name: 'PluginError',
     error: new PluginError({
+      ...NO_PLUGIN_FIELDS,
       code: 'NEXUS_PLUGIN_INVALID',
       plugin: 'plugins[0]',
       reason: 'no-name',
@@ -508,6 +571,7 @@ export const errorCases: readonly ErrorCase[] = [
   {
     name: 'PluginError (version)',
     error: new PluginError({
+      ...NO_PLUGIN_FIELDS,
       code: 'NEXUS_PLUGIN_VERSION',
       plugin: 'devtools',
       apiVersion: '2',
@@ -519,6 +583,7 @@ export const errorCases: readonly ErrorCase[] = [
   {
     name: 'PluginError (conflict)',
     error: new PluginError({
+      ...NO_PLUGIN_FIELDS,
       code: 'NEXUS_PLUGIN_CONFLICT',
       plugins: ['devtools', 'federation'],
       target: 'NavCharts',
@@ -528,18 +593,22 @@ export const errorCases: readonly ErrorCase[] = [
   },
   {
     name: 'PluginError (failed)',
-    error: new PluginError({
-      code: 'NEXUS_PLUGIN_FAILED',
-      plugin: 'devtools',
-      hook: 'observe',
-      cause: new Error('offline'),
-      disposalErrors: [new Error('scram')],
-    }),
+    error: new PluginError(
+      {
+        ...NO_PLUGIN_FIELDS,
+        code: 'NEXUS_PLUGIN_FAILED',
+        plugin: 'devtools',
+        hook: 'observe',
+        disposalErrors: [new Error('scram')],
+      },
+      { cause: new Error('offline') },
+    ),
     code: 'NEXUS_PLUGIN_FAILED',
     fields: {
       plugin: 'devtools',
       hook: 'observe',
       disposalErrors: [new Error('scram')],
     },
+    cause: new Error('offline'),
   },
 ];

@@ -158,10 +158,14 @@ export function defineModule(
       ? (pickOwn(config, CONFIG_KEYS) as Partial<typeof config>)
       : undefined;
   if (own === undefined || typeof own.name !== 'string' || own.name === '') {
-    throw new InvalidModuleError({
-      received: describeValue(config),
-      path: [],
-    });
+    const received = describeValue(config);
+    // Raised before any container exists, so core keeps its text (spec §9).
+    throw new InvalidModuleError(
+      { received, path: [] },
+      {
+        text: `${received} is not a module.\n  Fix: create one with defineModule(), or decorate a class with @Module.`,
+      },
+    );
   }
   const { options, schema } = own;
   if (options === undefined) {

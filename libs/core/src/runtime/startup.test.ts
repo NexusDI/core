@@ -1,6 +1,7 @@
 import { describe, expect, it, vi } from 'vitest';
 
 import { rejected } from '../../test-support/catch.js';
+import { errorModes, expectMessage } from '../../test-support/modes.js';
 import { frequencySchema } from '../../test-support/schema.js';
 import { compile } from '../blueprint/compile.js';
 import { defineModule } from '../definitions/define-module.js';
@@ -198,36 +199,42 @@ describe('Nexus', () => {
       expect(error.disposalErrors).toEqual([]);
     });
 
-    it.each([
-      ['a string', 'reactor offline', 'reactor offline'],
-      ['undefined', undefined, 'undefined'],
-      [
-        'an object with a null prototype',
-        Object.create(null) as object,
-        '[object Object]',
-      ],
-    ])(
-      'keeps a thrown %s as cause and still formats its message',
-      async (_label, value, text) => {
-        const NAME = new Token<string>('Name');
-        const Root = defineModule({
-          name: 'Root',
-          providers: [
-            provide(NAME, {
-              useFactory: () => {
-                throw value;
-              },
-              deps: [],
-            }),
-          ],
-        });
-        const error = (await rejected(Nexus.create(Root))) as ProviderError;
-        expect(error.cause).toBe(value);
-        expect(error.message).toBe(
-          `[NEXUS_PROVIDER_FAILED] Name (module Root) failed: ${text}`,
-        );
-      },
-    );
+    describe.each(errorModes)('$name mode', (mode) => {
+      it.each([
+        ['a string', 'reactor offline', 'reactor offline'],
+        ['undefined', undefined, 'undefined'],
+        [
+          'an object with a null prototype',
+          Object.create(null) as object,
+          '[object Object]',
+        ],
+      ])(
+        'keeps a thrown %s as cause and still formats its message',
+        async (_label, value, text) => {
+          const NAME = new Token<string>('Name');
+          const Root = defineModule({
+            name: 'Root',
+            providers: [
+              provide(NAME, {
+                useFactory: () => {
+                  throw value;
+                },
+                deps: [],
+              }),
+            ],
+          });
+          const error = (await rejected(
+            Nexus.create(Root, { plugins: mode.plugins }),
+          )) as ProviderError;
+          expect(error.cause).toBe(value);
+          expectMessage(
+            mode,
+            error,
+            `[NEXUS_PROVIDER_FAILED] Name (module Root) failed: ${text}`,
+          );
+        },
+      );
+    });
 
     it('validates with() options against the schema and reports NEXUS_INVALID_MODULE_OPTIONS', async () => {
       const OPTIONS = new Token<{ frequency: number; band?: string }>(

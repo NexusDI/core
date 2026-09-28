@@ -7,11 +7,21 @@ declare const ELEMENT: unique symbol;
 
 function checkDescription(description: unknown): string {
   if (typeof description !== 'string' || description === '') {
-    throw new InvalidTokenError({
-      received: describeValue(description),
-      reason:
-        'is not a token description. A Token needs a non-empty description string.',
-    });
+    const received = describeValue(description);
+    // Raised before any container exists, so core keeps its text (spec §9).
+    throw new InvalidTokenError(
+      {
+        received,
+        entry: null,
+        module: null,
+        index: null,
+        reason: null,
+        detail: [],
+      },
+      {
+        text: `${received} is not a token description. A Token needs a non-empty description string.`,
+      },
+    );
   }
   return description;
 }

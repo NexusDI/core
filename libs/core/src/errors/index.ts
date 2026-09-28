@@ -1,6 +1,14 @@
 export type { NexusErrorCode } from './codes.js';
 export { describeThrown } from './describe-thrown.js';
-export { NexusError } from './nexus-error.js';
+export { DOCS_URL, lineOf } from './line.js';
+export {
+  errorBase,
+  NexusError,
+  type ErrorFields,
+  type NexusErrorOptions,
+} from './nexus-error.js';
+export { isNexusError, type NexusErrorByCode } from './is-nexus-error.js';
+export type { InvalidProviderReason, InvalidTokenReason } from './reasons.js';
 export { AmbiguousProviderError } from './ambiguous-provider-error.js';
 export { AsyncTransientError } from './async-transient-error.js';
 export { BlueprintError } from './blueprint-error.js';

@@ -1,12 +1,16 @@
+import type { Blueprint } from '../blueprint/blueprint.js';
+import { pluginFailed } from '../blueprint/hooks.js';
 import type { CompileOverrides } from '../blueprint/overrides.js';
+import { viewOfBlueprint } from '../blueprint/views.js';
 import type { ModuleRef } from '../definitions/define-module.js';
 import type { Dep, DepsMap, ResolvedDeps } from '../definitions/modifiers.js';
 import type { NexusRequest } from '../definitions/request.js';
 import type { InjectionToken, MultiToken } from '../definitions/token.js';
-import { NoScopeContextError, PluginError } from '../errors/index.js';
+import { NoScopeContextError } from '../errors/index.js';
 import { isThenable } from './build.js';
 import { compileTraced } from './compile-traced.js';
 import { resolveDeps, validateDeps } from './deps.js';
+import { formatFor, formatThrown, guardAsync } from './format.js';
 import { toGraph, type NexusGraph } from './graph.js';
 import { loadModule } from './load.js';
 import { getFrom, hasIn } from './lookup.js';
@@ -55,22 +59,30 @@ export class Nexus {
   get<T>(token: MultiToken<T>, options?: LookupOptions): T[];
   get<T>(token: InjectionToken<T>, options?: LookupOptions): T;
   get(token: unknown, options?: LookupOptions): unknown {
-    assertOpen(this.#state);
-    return getFrom(
-      this.#state,
-      this.#state.blueprint,
-      token,
-      options,
-      'root-transient',
-    );
+    try {
+      assertOpen(this.#state);
+      return getFrom(
+        this.#state,
+        this.#state.blueprint,
+        token,
+        options,
+        'root-transient',
+      );
+    } catch (error) {
+      throw formatFor(this.#state, error);
+    }
   }
 
   has(
     token: InjectionToken<unknown> | MultiToken<unknown>,
     options?: LookupOptions,
   ): boolean {
-    assertOpen(this.#state);
-    return hasIn(this.#state.blueprint, token, options);
+    try {
+      assertOpen(this.#state);
+      return hasIn(this.#state.blueprint, token, options);
+    } catch (error) {
+      throw formatFor(this.#state, error);
+    }
   }
 
   /** Resolves a deps map or tuple from the root, with the rules of root get(). */
@@ -78,14 +90,18 @@ export class Nexus {
     deps: D,
     options?: LookupOptions,
   ): ResolvedDeps<D> {
-    assertOpen(this.#state);
-    return resolveDeps(
-      this.#state,
-      this.#state.blueprint,
-      deps,
-      options,
-      'root-transient',
-    ) as ResolvedDeps<D>;
+    try {
+      assertOpen(this.#state);
+      return resolveDeps(
+        this.#state,
+        this.#state.blueprint,
+        deps,
+        options,
+        'root-transient',
+      ) as ResolvedDeps<D>;
+    } catch (error) {
+      throw formatFor(this.#state, error);
+    }
   }
 
   /**
@@ -94,8 +110,12 @@ export class Nexus {
    * Throws one BlueprintError holding an error per failing entry.
    */
   validate(deps: DepsMap | readonly Dep[], options?: LookupOptions): void {
-    assertOpen(this.#state);
-    validateDeps(this.#state, this.#state.blueprint, deps, options);
+    try {
+      assertOpen(this.#state);
+      validateDeps(this.#state, this.#state.blueprint, deps, options);
+    } catch (error) {
+      throw formatFor(this.#state, error);
+    }
   }
 
   /**
@@ -103,7 +123,7 @@ export class Nexus {
    * its singletons are built. Concurrent calls run one at a time, in call order.
    */
   load(module: ModuleRef): Promise<void> {
-    return loadModule(this.#state, module);
+    return guardAsync(this.#state, () => loadModule(this.#state, module));
   }
 
   /**
@@ -111,14 +131,18 @@ export class Nexus {
    * REQUEST resolves to inside the scope.
    */
   createScope(options?: { readonly request?: NexusRequest }): Promise<Scope> {
-    return openScope(this.#state, options);
+    return guardAsync(this.#state, () => openScope(this.#state, options));
   }
 
   /** Runs `fn` with `scope` as the current scope. Needs the scopeContext option. */
   runInScope<R>(scope: Scope, fn: () => R): R {
-    assertOpen(this.#state);
     const context = this.#state.scopeContext;
-    if (context === undefined) throw new NoScopeContextError();
+    try {
+      assertOpen(this.#state);
+      if (context === undefined) throw new NoScopeContextError({});
+    } catch (error) {
+      throw formatFor(this.#state, error);
+    }
     return context.run(scope, fn);
   }
 
@@ -137,7 +161,7 @@ export class Nexus {
    * the first call on. A second call returns the first call's promise.
    */
   [Symbol.asyncDispose](): Promise<void> {
-    return disposeRoot(this.#state);
+    return guardAsync(this.#state, () => disposeRoot(this.#state));
   }
 }
 
@@ -212,13 +236,7 @@ async function runSetup(
   } catch (error) {
     if (!(error instanceof SetupFailure)) throw error;
     const disposalErrors = await abandonRoot(state);
-    throw new PluginError({
-      code: 'NEXUS_PLUGIN_FAILED',
-      plugin: error.plugin,
-      hook: 'setup',
-      cause: error.error,
-      disposalErrors,
-    });
+    throw pluginFailed(error.plugin, 'setup', error.error, disposalErrors);
   }
 }
 
@@ -228,30 +246,42 @@ export async function createContainer(
   internals: ContainerInternals,
 ): Promise<Nexus> {
   const plugins = registerPlugins(options?.plugins);
-  const tracer = new Tracer(traceSinks(options?.trace, plugins));
-  const blueprint = compileTraced(
-    tracer,
-    {
-      root,
-      pluginImports: plugins.modules,
+  // Set once compile returns: a runtime error in create reads the compiled
+  // view, and a compile error carries its own through failedView().
+  let compiled: Blueprint | undefined;
+  try {
+    const tracer = new Tracer(traceSinks(options?.trace, plugins));
+    const blueprint = compileTraced(
+      tracer,
+      {
+        root,
+        pluginImports: plugins.modules,
+        overrides: internals.overrides,
+        hooks: plugins.compile,
+        phase: 'create',
+        wantsView: plugins.formatError.length > 0,
+      },
+      'create',
+    );
+    compiled = blueprint;
+    const state = createRootState({
+      blueprint,
+      rootRef: root,
+      tracer,
+      initEnabled: internals.initEnabled && plugins.onInit,
+      scopeContext: options?.scopeContext,
       overrides: internals.overrides,
-      hooks: plugins.compile,
-      phase: 'create',
-      wantsView: plugins.formatError.length > 0,
-    },
-    'create',
-  );
-  const state = createRootState({
-    blueprint,
-    rootRef: root,
-    tracer,
-    initEnabled: internals.initEnabled && plugins.onInit,
-    scopeContext: options?.scopeContext,
-    overrides: internals.overrides,
-    plugins,
-  });
-  await startBlueprint(state, { bp: blueprint, isNew: () => true });
-  const ship = wrap(state);
-  await runSetup(state, plugins, ship);
-  return ship;
+      plugins,
+    });
+    await startBlueprint(state, { bp: blueprint, isNew: () => true });
+    const ship = wrap(state);
+    await runSetup(state, plugins, ship);
+    return ship;
+  } catch (error) {
+    throw formatThrown(
+      plugins,
+      () => (compiled === undefined ? undefined : viewOfBlueprint(compiled)),
+      error,
+    );
+  }
 }

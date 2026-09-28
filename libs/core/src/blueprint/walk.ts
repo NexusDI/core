@@ -151,6 +151,7 @@ export function walk(input: WalkInput, errors: NexusError[]): WalkResult {
         new ModuleOptionsError({
           code: 'NEXUS_MODULE_OPTIONS_MISSING',
           module: definition.name,
+          issues: [],
         }),
       );
     }

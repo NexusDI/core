@@ -58,8 +58,28 @@ export function compileContext(phase: CompileContext['phase']): CompileContext {
   });
 }
 
-function failed(plugin: string, hook: string, cause: unknown): PluginError {
-  return new PluginError({ code: 'NEXUS_PLUGIN_FAILED', plugin, hook, cause });
+/** NEXUS_PLUGIN_FAILED for a hook call that threw `cause` or returned a bad value. */
+export function pluginFailed(
+  plugin: string,
+  hook: string,
+  cause: unknown,
+  disposalErrors: readonly unknown[] = [],
+): PluginError {
+  return new PluginError(
+    {
+      code: 'NEXUS_PLUGIN_FAILED',
+      plugin,
+      reason: null,
+      detail: [],
+      apiVersion: null,
+      supported: [],
+      plugins: [],
+      target: null,
+      hook,
+      disposalErrors,
+    },
+    { cause },
+  );
 }
 
 /** Where a compile hook runs, for its errors. */
@@ -92,14 +112,14 @@ function firstAnswer<S, R>(
     try {
       result = hook.call(subject, context);
     } catch (error) {
-      errors.push(failed(hook.plugin, site.hook, error));
+      errors.push(pluginFailed(hook.plugin, site.hook, error));
       continue;
     }
     if (result === undefined) continue;
     const value = site.accept(result);
     if (value === undefined) {
       errors.push(
-        failed(
+        pluginFailed(
           hook.plugin,
           site.hook,
           new TypeError(
@@ -113,8 +133,15 @@ function firstAnswer<S, R>(
       errors.push(
         new PluginError({
           code: 'NEXUS_PLUGIN_CONFLICT',
+          plugin: null,
+          reason: null,
+          detail: [],
+          apiVersion: null,
+          supported: [],
           plugins: [chosen.plugin, hook.plugin],
           target: site.target,
+          hook: null,
+          disposalErrors: [],
         }),
       );
       continue;
@@ -265,7 +292,7 @@ export function runChecks(
         errors.push(error);
       });
     } catch (error) {
-      errors.push(failed(hook.plugin, 'compile.check', error));
+      errors.push(pluginFailed(hook.plugin, 'compile.check', error));
     }
   }
 }

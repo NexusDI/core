@@ -51,6 +51,18 @@ export interface ErrorText {
   readonly nearMisses?: readonly NearMiss[];
 }
 
+/**
+ * The message core writes from an ErrorText: `[CODE] `, the message, each
+ * hint on its own line indented by two spaces, then the fix line.
+ */
+export function layoutText(code: string, text: ErrorText): string {
+  return [
+    `[${code}] ${text.message}`,
+    ...(text.hints ?? []).map((hint) => `  ${hint}`),
+    ...(text.fix === undefined ? [] : [`  Fix: ${text.fix}`]),
+  ].join('\n');
+}
+
 export interface PluginContext {
   readonly container: Nexus;
   /** The current blueprint's view: one frozen object per published blueprint. A load() that changes the graph publishes a new one. */
@@ -159,7 +171,18 @@ export function registerPlugins(input: unknown): PluginSet {
     detail: readonly string[] = [],
   ): void => {
     errors.push(
-      new PluginError({ code: 'NEXUS_PLUGIN_INVALID', plugin, reason, detail }),
+      new PluginError({
+        code: 'NEXUS_PLUGIN_INVALID',
+        plugin,
+        reason,
+        detail,
+        apiVersion: null,
+        supported: [],
+        plugins: [],
+        target: null,
+        hook: null,
+        disposalErrors: [],
+      }),
     );
   };
   if (!Array.isArray(input)) {
@@ -208,8 +231,14 @@ export function registerPlugins(input: unknown): PluginSet {
         new PluginError({
           code: 'NEXUS_PLUGIN_VERSION',
           plugin: name,
+          reason: null,
+          detail: [],
           apiVersion: String(apiVersion),
           supported: SUPPORTED_PLUGIN_APIS,
+          plugins: [],
+          target: null,
+          hook: null,
+          disposalErrors: [],
         }),
       );
       continue;

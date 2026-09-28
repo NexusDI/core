@@ -16,6 +16,7 @@ import {
   InvalidProviderError,
   InvalidTokenError,
   MissingDepsError,
+  type InvalidProviderReason,
   type NexusError,
 } from '../errors/index.js';
 import type {
@@ -36,8 +37,6 @@ const DEFINITION_KEYS = [
   'useFactory',
   'useExisting',
 ] as const;
-const NO_DEFINITION =
-  'with no definition; add useClass, useValue, useFactory or useExisting';
 
 /**
  * The keys a provider definition reads, as own properties only (SEC-003).
@@ -78,12 +77,10 @@ function readStaticDeps(
   try {
     value = staticDepsOf(cls);
   } catch (error) {
-    return fail(
-      `has a static deps that throws when read: ${describeThrown(error)}`,
-    );
+    return fail('static-deps-throws', describeThrown(error));
   }
   if (value !== undefined && !Array.isArray(value))
-    return fail('has a static deps that is not an array');
+    return fail('static-deps-not-array');
   return { value };
 }
 
@@ -107,7 +104,7 @@ function readDeclaredDeps(
   const declared = readStaticDeps(cls, fail);
   if (declared === null) return null;
   if (fromMetadata !== undefined && declared.value !== undefined)
-    return fail('declares deps in both @Injectable and static deps; keep one');
+    return fail('deps-in-both');
   return { fromMetadata, fromStatic: declared.value };
 }
 
@@ -167,17 +164,13 @@ function definitionOf(entry: unknown, fail: Fail): Definition | null {
     const { token, options } = spec;
     if (options === undefined) return { token, options: undefined };
     if (typeof options !== 'object' || options === null) {
-      return fail(
-        `has options that are ${describeValue(options)}, not an object`,
-      );
+      return fail('options-not-object', describeValue(options));
     }
     return { token, options: pickOwn(options, OPTION_KEYS) };
   }
   if (isLiteral(entry))
     return { token: entry.token, options: pickOwn(entry, OPTION_KEYS) };
-  return fail(
-    `is ${describeValue(entry)}, not a provider; list a class, a provide() result or a { token } literal`,
-  );
+  return fail('not-a-provider', describeValue(entry));
 }
 
 /** Where a provider entry sits, for error messages. */
@@ -186,14 +179,53 @@ export interface ProviderSite {
   readonly index: number;
 }
 
-type Fail = (reason: string) => null;
+/** Reports a malformed entry: the reason id, then the values its text names. */
+type Fail = (reason: InvalidProviderReason, ...detail: string[]) => null;
+
+/**
+ * The Fail of one providers entry. `prefix` leads every detail, as
+ * `(the with() factory)` does for the provider a with() instance adds.
+ */
+function invalidProvider(
+  site: ProviderSite,
+  errors: NexusError[],
+  prefix: readonly string[],
+): Fail {
+  return (reason, ...detail) => {
+    errors.push(
+      new InvalidProviderError({
+        module: site.module,
+        index: site.index,
+        reason,
+        detail: [...prefix, ...detail],
+      }),
+    );
+    return null;
+  };
+}
+
+/** The InvalidTokenError of a providers entry whose token or alias target is not a token. */
+function invalidToken(
+  value: unknown,
+  site: ProviderSite,
+  reason: 'alias-target' | null,
+): InvalidTokenError {
+  return new InvalidTokenError({
+    received: describeValue(value),
+    entry: null,
+    module: site.module,
+    index: site.index,
+    reason,
+    detail: [],
+  });
+}
 
 /** Reads from a user class, turning a throwing getter or Proxy trap into a provider error. */
 function readClass<T>(read: () => T, fail: Fail): T | null {
   try {
     return read();
   } catch (error) {
-    return fail(`is a class that throws when read: ${describeThrown(error)}`);
+    return fail('class-throws', describeThrown(error));
   }
 }
 
@@ -214,32 +246,38 @@ export function tokenOfEntry(entry: unknown): TokenKey | undefined {
   return isToken(candidate) ? candidate : undefined;
 }
 
-/** A dep, or the reason it is not one. */
-export function depOf(value: unknown, where: string): DepEntry | string {
+/** Why a value is not a dep, with the values the reason's text names. */
+export interface BadDep {
+  readonly reason: 'bad-modifier' | 'bare-multi-token' | 'not-a-token';
+  readonly detail: readonly string[];
+}
+
+/** A dep, or why the value is not one. */
+export function depOf(value: unknown): DepEntry | BadDep {
   if (isModifier(value)) {
-    const wantsMulti = value.kind === 'all';
     if (
       !isToken(value.token) ||
-      value.token instanceof MultiToken !== wantsMulti
+      value.token instanceof MultiToken !== (value.kind === 'all')
     ) {
-      const takes = wantsMulti
-        ? 'all() takes a MultiToken'
-        : `${value.kind}() takes a class or a Token`;
-      return `${where} is ${value.kind}(${describeValue(value.token)}); ${takes}`;
+      return {
+        reason: 'bad-modifier',
+        detail: [value.kind, describeValue(value.token)],
+      };
     }
     return { kind: value.kind, token: value.token };
   }
   if (value instanceof MultiToken)
-    return `${where} is the MultiToken ${value.description}; wrap it in all()`;
+    return { reason: 'bare-multi-token', detail: [value.description] };
   if (isToken(value)) return { kind: 'required', token: value };
-  return `${where} is ${describeValue(value)}, not a token`;
+  return { reason: 'not-a-token', detail: [describeValue(value)] };
 }
 
 function depsOf(list: readonly unknown[], fail: Fail): DepEntry[] | null {
   const deps: DepEntry[] = [];
   for (const [i, value] of list.entries()) {
-    const dep = depOf(value, `deps[${i}]`);
-    if (typeof dep === 'string') return fail(dep);
+    const dep = depOf(value);
+    if ('reason' in dep)
+      return fail('bad-dep', `deps[${i}]`, dep.reason, ...dep.detail);
     deps.push(dep);
   }
   return deps;
@@ -248,8 +286,11 @@ function depsOf(list: readonly unknown[], fail: Fail): DepEntry[] | null {
 function propsOf(cls: Ctor, fail: Fail): PropEntry[] | null {
   const props: PropEntry[] = [];
   for (const prop of readProps(cls)) {
-    const dep = depOf(prop.dep, `@Inject on ${String(prop.key)}`);
-    if (typeof dep === 'string') return fail(dep);
+    const dep = depOf(prop.dep);
+    if ('reason' in dep) {
+      const where = `@Inject on ${String(prop.key)}`;
+      return fail('bad-dep', where, dep.reason, ...dep.detail);
+    }
     props.push({ key: prop.key, dep, set: prop.set });
   }
   return props;
@@ -302,7 +343,7 @@ function classShape(
     }
     list = [];
   }
-  if (!Array.isArray(list)) return fail('has deps that are not an array');
+  if (!Array.isArray(list)) return fail('deps-not-array');
   const entries = depsOf(list, fail);
   const props = entries && readClass(() => propsOf(cls, fail), fail);
   if (!entries || !props) return null;
@@ -329,9 +370,7 @@ function bareClass(
       ? metadata.lifetime
       : undefined) ?? 'singleton';
   if (!LIFETIMES.has(lifetime)) {
-    return fail(
-      `has the @Injectable lifetime ${describeValue(lifetime)}; use 'singleton', 'scoped' or 'transient'`,
-    );
+    return fail('bad-injectable-lifetime', describeValue(lifetime));
   }
   return classShape(
     cls,
@@ -354,20 +393,10 @@ export function normalizeProvider(
   site: ProviderSite,
   errors: NexusError[],
 ): RecordShape | null {
-  const fail: Fail = (reason) => {
-    errors.push(
-      new InvalidProviderError({
-        module: site.module,
-        index: site.index,
-        reason,
-      }),
-    );
-    return null;
-  };
+  const fail = invalidProvider(site, errors, []);
 
   const module = resolveModuleRef(entry);
-  if (module !== undefined)
-    return fail(`is the module ${module.name}; add it to imports`);
+  if (module !== undefined) return fail('is-a-module', module.name);
 
   if (
     readProvider(entry) === undefined &&
@@ -380,7 +409,7 @@ export function normalizeProvider(
   try {
     definition = definitionOf(entry, fail);
   } catch (error) {
-    return fail(`throws when its options are read: ${describeThrown(error)}`);
+    return fail('options-throw', describeThrown(error));
   }
   if (definition === null) return null;
   return definitionShape(definition, site, errors, fail);
@@ -398,17 +427,14 @@ function definitionShape(
   fail: Fail,
 ): RecordShape | null {
   if (!isToken(token)) {
-    errors.push(
-      new InvalidTokenError({ received: describeValue(token), ...site }),
-    );
+    errors.push(invalidToken(token, site, null));
     return null;
   }
-  if (token === REQUEST)
-    return fail('provides REQUEST, which createScope({ request }) supplies');
+  if (token === REQUEST) return fail('provides-request');
 
   if (options === undefined) {
     if (typeof token !== 'function')
-      return fail(`provides ${displayName(token)} ${NO_DEFINITION}`);
+      return fail('no-definition', displayName(token));
     return classShape(
       token,
       token as Ctor,
@@ -423,16 +449,14 @@ function definitionShape(
 
   const present = DEFINITION_KEYS.filter((key) => Object.hasOwn(options, key));
   if (present.length > 1)
-    return fail(`sets ${present.join(' and ')}; use one of them`);
+    return fail('several-definitions', present.join(' and '));
   // exactOptionalPropertyTypes is off, so a caller can write
   // `{ useValue, lifetime: undefined }`; that reads as no lifetime key, not
   // as a lifetime set to undefined.
   const hasLifetime = options.lifetime !== undefined;
   const lifetime = hasLifetime ? options.lifetime : 'singleton';
   if (!LIFETIMES.has(lifetime)) {
-    return fail(
-      `has the lifetime ${describeValue(lifetime)}; use 'singleton', 'scoped' or 'transient'`,
-    );
+    return fail('bad-lifetime', describeValue(lifetime));
   }
   const life = lifetime as Lifetime;
   const kind: (typeof DEFINITION_KEYS)[number] | undefined = present[0];
@@ -440,7 +464,7 @@ function definitionShape(
   switch (kind) {
     case undefined:
       if (typeof token !== 'function')
-        return fail(`provides ${displayName(token)} ${NO_DEFINITION}`);
+        return fail('no-definition', displayName(token));
       return classShape(
         token,
         token as Ctor,
@@ -454,7 +478,7 @@ function definitionShape(
     case 'useClass': {
       const cls = options.useClass;
       if (typeof cls !== 'function' || !isToken(cls))
-        return fail('has a useClass that is not a class');
+        return fail('use-class-not-a-class');
       return classShape(
         token,
         cls as Ctor,
@@ -467,8 +491,7 @@ function definitionShape(
       );
     }
     case 'useValue':
-      if (hasLifetime)
-        return fail('sets a lifetime on useValue; a value has none');
+      if (hasLifetime) return fail('value-with-lifetime');
       return {
         kind: 'value',
         token,
@@ -480,10 +503,10 @@ function definitionShape(
     case 'useFactory': {
       const useFactory = options.useFactory;
       if (typeof useFactory !== 'function')
-        return fail('has a useFactory that is not a function');
+        return fail('factory-not-a-function');
       // deps defaults to [] for a factory in both forms (spec §3.2).
       const list = options.deps ?? [];
-      if (!Array.isArray(list)) return fail('has deps that are not an array');
+      if (!Array.isArray(list)) return fail('deps-not-array');
       const deps = depsOf(list, fail);
       if (!deps) return null;
       return {
@@ -496,25 +519,14 @@ function definitionShape(
       };
     }
     case 'useExisting': {
-      if (hasLifetime)
-        return fail('sets a lifetime on useExisting; an alias has none');
+      if (hasLifetime) return fail('alias-with-lifetime');
       const target = options.useExisting;
       if (!isToken(target)) {
-        errors.push(
-          new InvalidTokenError({
-            received: describeValue(target),
-            reason:
-              'is not a token, so useExisting cannot alias it. A token is a class, a Token or a MultiToken.',
-            ...site,
-          }),
-        );
+        errors.push(invalidToken(target, site, 'alias-target'));
         return null;
       }
-      if (target instanceof MultiToken) {
-        return fail(
-          `aliases the MultiToken ${target.description}; useExisting takes a class or a Token`,
-        );
-      }
+      if (target instanceof MultiToken)
+        return fail('alias-to-multi-token', target.description);
       return {
         kind: 'alias',
         token,
@@ -546,16 +558,7 @@ export function optionsShape(
       schema,
     };
   }
-  const fail: Fail = (reason) => {
-    errors.push(
-      new InvalidProviderError({
-        module: site.module,
-        index: site.index,
-        reason: `(the with() factory) ${reason}`,
-      }),
-    );
-    return null;
-  };
+  const fail = invalidProvider(site, errors, ['(the with() factory)']);
   const deps = depsOf(source.deps, fail);
   if (!deps) return null;
   return {

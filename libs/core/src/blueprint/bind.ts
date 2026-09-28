@@ -54,6 +54,7 @@ export function bind(input: BindInput, errors: NexusError[]): BindResult {
           token: displayName(token),
           requester: record.name,
           module: names.get(record.module) ?? record.module,
+          entry: null,
           nearMisses: findNearMisses(token, record.module, {
             modules: input.modules,
             records: input.records,

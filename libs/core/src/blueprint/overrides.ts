@@ -63,6 +63,8 @@ export function applyProviderOverrides(
         new OverrideError({
           code: 'NEXUS_OVERRIDE_UNUSED',
           token: displayName(token),
+          module: null,
+          missing: [],
         }),
       );
       continue;
@@ -123,6 +125,8 @@ export function checkModuleOverrides(
         new OverrideError({
           code: 'NEXUS_OVERRIDE_UNUSED',
           token: original.name,
+          module: null,
+          missing: [],
         }),
       );
       continue;
@@ -144,6 +148,7 @@ export function checkModuleOverrides(
       errors.push(
         new OverrideError({
           code: 'NEXUS_OVERRIDE_EXPORTS',
+          token: null,
           module: original.name,
           missing,
         }),

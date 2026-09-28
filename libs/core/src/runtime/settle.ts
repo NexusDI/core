@@ -82,13 +82,18 @@ export function toProviderError(
   );
   if (first === undefined)
     throw new Error('internal: toProviderError received no failures');
-  return new ProviderError({
-    ...first,
-    alsoFailed: rest.map(({ token, module, cause }) => ({
-      token,
-      module,
-      cause,
-    })),
-    disposalErrors,
-  });
+  return new ProviderError(
+    {
+      token: first.token,
+      module: first.module,
+      path: first.path,
+      alsoFailed: rest.map(({ token, module, cause }) => ({
+        token,
+        module,
+        cause,
+      })),
+      disposalErrors,
+    },
+    { cause: first.cause },
+  );
 }

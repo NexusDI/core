@@ -1,10 +1,12 @@
 import { describe, expect, it } from 'vitest';
 
 import { compileErrors, idOf } from '../../test-support/compile.js';
+import { errorModes, expectRendered } from '../../test-support/modes.js';
 import { defineModule } from '../definitions/define-module.js';
 import { all, lazy, optional } from '../definitions/modifiers.js';
 import { provide } from '../definitions/provide.js';
 import { MultiToken, Token } from '../definitions/token.js';
+import type { NexusError } from '../errors/index.js';
 import { compile } from './compile.js';
 
 class ReactorCore {}
@@ -111,30 +113,35 @@ describe('compile', () => {
     );
   });
 
-  it('reports NEXUS_MISSING_PROVIDER with the requester, its module and a not-exported near miss', () => {
-    const Tactical = defineModule({
-      name: 'Tactical',
-      providers: [provide(NAV_CHARTS, { useValue: charts })],
+  describe.each(errorModes)('$name mode', (mode) => {
+    it('reports NEXUS_MISSING_PROVIDER with the requester, its module and a not-exported near miss', () => {
+      const Tactical = defineModule({
+        name: 'Tactical',
+        providers: [provide(NAV_CHARTS, { useValue: charts })],
+      });
+      const Engineering = defineModule({
+        name: 'Engineering',
+        providers: [provide(ShipComputer, { deps: [NAV_CHARTS] as never })],
+      });
+      const [error] = compileErrors(
+        defineModule({ name: 'Meridian', imports: [Engineering, Tactical] }),
+      );
+      expect(error).toMatchObject({
+        code: 'NEXUS_MISSING_PROVIDER',
+        token: 'NavCharts',
+        requester: 'ShipComputer',
+        module: 'Engineering',
+        entry: null,
+        nearMisses: [{ kind: 'not-exported', module: 'Tactical' }],
+      });
+      expectRendered(
+        mode,
+        error as NexusError,
+        '[NEXUS_MISSING_PROVIDER] ShipComputer (module Engineering) depends on NavCharts, but no provider of NavCharts is visible in Engineering.\n' +
+          '  NavCharts is provided in Tactical, which does not export it.\n' +
+          "  Fix: add NavCharts to Tactical's exports and import Tactical into Engineering.",
+      );
     });
-    const Engineering = defineModule({
-      name: 'Engineering',
-      providers: [provide(ShipComputer, { deps: [NAV_CHARTS] as never })],
-    });
-    const [error] = compileErrors(
-      defineModule({ name: 'Meridian', imports: [Engineering, Tactical] }),
-    );
-    expect(error).toMatchObject({
-      code: 'NEXUS_MISSING_PROVIDER',
-      token: 'NavCharts',
-      requester: 'ShipComputer',
-      module: 'Engineering',
-      nearMisses: [{ kind: 'not-exported', module: 'Tactical' }],
-    });
-    expect(error?.message).toBe(
-      '[NEXUS_MISSING_PROVIDER] ShipComputer (module Engineering) depends on NavCharts, but no provider of NavCharts is visible in Engineering.\n' +
-        '  NavCharts is provided in Tactical, which does not export it.\n' +
-        "  Fix: add NavCharts to Tactical's exports and import Tactical into Engineering.",
-    );
   });
 
   it('reports a not-imported near miss for an exported token the requester cannot reach', () => {

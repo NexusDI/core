@@ -4,12 +4,12 @@ import {
   type Blueprint,
   type ProviderRecord,
 } from '../blueprint/blueprint.js';
+import { pluginFailed } from '../blueprint/hooks.js';
 import { providerView, type ProviderView } from '../blueprint/views.js';
 import {
   AsyncTransientError,
   NexusError,
   NotReadyError,
-  PluginError,
   ProviderError,
   ScopeRequiredError,
 } from '../errors/index.js';
@@ -131,12 +131,16 @@ export function construct(record: ProviderRecord, ctx: Ctx): unknown {
         return record.useFactory?.(...args);
       } catch (error) {
         if (error instanceof NexusError) throw error;
-        throw new ProviderError({
-          token: record.name,
-          module: moduleName(ctx.bp, record),
-          path: constructionStack.names(),
-          cause: error,
-        });
+        throw new ProviderError(
+          {
+            token: record.name,
+            module: moduleName(ctx.bp, record),
+            path: constructionStack.names(),
+            alsoFailed: [],
+            disposalErrors: [],
+          },
+          { cause: error },
+        );
       }
     },
   );
@@ -166,17 +170,16 @@ function constructFailed(
   plugin: string,
   cause: unknown,
 ): ProviderError {
-  return new ProviderError({
-    token: record.name,
-    module: moduleName(bp, record),
-    path: [...constructionStack.names(), record.name],
-    cause: new PluginError({
-      code: 'NEXUS_PLUGIN_FAILED',
-      plugin,
-      hook: 'construct',
-      cause,
-    }),
-  });
+  return new ProviderError(
+    {
+      token: record.name,
+      module: moduleName(bp, record),
+      path: [...constructionStack.names(), record.name],
+      alsoFailed: [],
+      disposalErrors: [],
+    },
+    { cause: pluginFailed(plugin, 'construct', cause) },
+  );
 }
 
 /**
@@ -292,6 +295,7 @@ export function requestOf(ctx: Ctx): unknown {
     throw new ScopeRequiredError({
       token: 'REQUEST',
       path: [...constructionStack.names(), 'REQUEST'],
+      entry: null,
     });
   }
   return ctx.container.request;
@@ -307,6 +311,7 @@ export function resolveScoped(record: ProviderRecord, ctx: Ctx): unknown {
     throw new ScopeRequiredError({
       token: record.name,
       path: [...constructionStack.names(), record.name],
+      entry: null,
     });
   }
   if (container.slots.has(record.id)) {

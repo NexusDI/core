@@ -1,20 +1,16 @@
-import { NexusError } from './nexus-error.js';
+import { errorBase } from './nexus-error.js';
+import type { InvalidProviderReason } from './reasons.js';
 
-/** An entry in a module's providers is malformed. */
-export class InvalidProviderError extends NexusError {
-  declare readonly code: 'NEXUS_INVALID_PROVIDER';
+interface InvalidProviderFields {
   readonly module: string;
   readonly index: number;
-  readonly reason: string;
-
-  constructor(fields: { module: string; index: number; reason: string }) {
-    super(
-      'NEXUS_INVALID_PROVIDER',
-      `${fields.module}.providers[${fields.index}] ${fields.reason}.`,
-    );
-    this.name = 'InvalidProviderError';
-    this.module = fields.module;
-    this.index = fields.index;
-    this.reason = fields.reason;
-  }
+  readonly reason: InvalidProviderReason;
+  /** The values the reason names, such as the value an entry holds. */
+  readonly detail: readonly string[];
 }
+
+/** An entry in a module's providers is malformed. */
+export class InvalidProviderError extends errorBase<
+  'NEXUS_INVALID_PROVIDER',
+  InvalidProviderFields
+>('NEXUS_INVALID_PROVIDER', 'InvalidProviderError') {}

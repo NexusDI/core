@@ -3,7 +3,7 @@ import {
   type Blueprint,
   type ProviderRecord,
 } from '../blueprint/blueprint.js';
-import { depOf } from '../blueprint/records.js';
+import { depOf, type BadDep } from '../blueprint/records.js';
 import { describeValue } from '../definitions/describe.js';
 import {
   BlueprintError,
@@ -53,31 +53,34 @@ function entriesOf(
 }
 
 /**
- * depOf's reason starts with the entry; the error names the entry in its own
- * field. depOf's generic "not a token" reason restates `received`, so that
- * one case falls back to InvalidTokenError's own default reason instead of
- * printing the value twice.
+ * The error names the entry in its own field. depOf's 'not-a-token' names
+ * only the value, which `received` already holds, so that case has no
+ * reason of its own.
  */
 function invalidEntry(
   where: string,
   value: unknown,
-  reason: string,
+  bad: BadDep,
 ): InvalidTokenError {
-  const received = describeValue(value);
-  if (reason.endsWith(', not a token')) {
-    return new InvalidTokenError({ received, entry: where });
-  }
+  const plain = bad.reason === 'not-a-token';
   return new InvalidTokenError({
-    received,
-    reason: `${reason.slice(where.length + 1)}.`,
+    received: describeValue(value),
     entry: where,
+    module: null,
+    index: null,
+    reason: plain ? null : bad.reason,
+    detail: plain ? [] : bad.detail,
   });
 }
 
 function notADepsValue(deps: unknown): InvalidTokenError {
   return new InvalidTokenError({
     received: describeValue(deps),
-    reason: 'is not a deps map or a deps tuple.',
+    entry: null,
+    module: null,
+    index: null,
+    reason: 'not-a-deps-value',
+    detail: [],
   });
 }
 
@@ -146,8 +149,8 @@ export function resolveDeps(
   const result: object = read.tuple ? [] : {};
 
   for (const { key, where, value } of read.entries) {
-    const dep = depOf(value, where);
-    if (typeof dep === 'string') throw invalidEntry(where, value, dep);
+    const dep = depOf(value);
+    if ('reason' in dep) throw invalidEntry(where, value, dep);
     const ids = visible?.get(dep.token) ?? [];
     const [id] = ids;
     let resolved: unknown;
@@ -191,8 +194,8 @@ export function validateDeps(
   if (read === null) errors.push(notADepsValue(deps));
 
   for (const { where, value } of read?.entries ?? []) {
-    const dep = depOf(value, where);
-    if (typeof dep === 'string') {
+    const dep = depOf(value);
+    if ('reason' in dep) {
       errors.push(invalidEntry(where, value, dep));
       continue;
     }

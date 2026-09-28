@@ -1,6 +1,7 @@
 import { REQUEST_ID, type ProviderRecord } from '../blueprint/blueprint.js';
 import { DisposedError, NotReadyError } from '../errors/index.js';
 import { constructionStack } from './construction-stack.js';
+import { formatFor } from './format.js';
 import { isObject } from './ownership.js';
 import type { ContainerState, Ctx, TransientOwner } from './state.js';
 
@@ -96,5 +97,11 @@ export function makeThunk(
   ctx: Ctx,
   resolve: ResolveId,
 ): () => unknown {
-  return () => resolveLazy(targetId, owner, ctx, resolve);
+  return () => {
+    try {
+      return resolveLazy(targetId, owner, ctx, resolve);
+    } catch (error) {
+      throw formatFor(ctx.container.root, error);
+    }
+  };
 }

@@ -5,12 +5,10 @@ import type { Tracer } from './trace.js';
 
 /** A trace callback's own throw while reporting `compile`, not a compile failure. */
 function traceFailed(error: unknown, module: string): ProviderError {
-  return new ProviderError({
-    token: 'startup',
-    module,
-    path: [],
-    cause: error,
-  });
+  return new ProviderError(
+    { token: 'startup', module, path: [], alsoFailed: [], disposalErrors: [] },
+    { cause: error },
+  );
 }
 
 /**
