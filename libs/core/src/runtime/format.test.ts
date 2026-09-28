@@ -10,6 +10,7 @@ import { provide } from '../definitions/provide.js';
 import { Token } from '../definitions/token.js';
 import {
   BlueprintError,
+  DisposedError,
   MissingProviderError,
   type NexusError,
 } from '../errors/index.js';
@@ -361,5 +362,252 @@ describe('guardAsync', () => {
     const first = ship[Symbol.asyncDispose]();
     expect(ship[Symbol.asyncDispose]()).toBe(first);
     await first;
+  });
+});
+
+describe('fromUserCode', () => {
+  class Missing {}
+  const THROWER = new Token<string>('Thrower');
+
+  /** B, a container with no plugin unless given one, and an error its get() raised. */
+  async function containerB(plugins: readonly NexusPlugin[] = []) {
+    const b = await Nexus.create(
+      defineModule({ name: 'Bravo', providers: [ReactorCore] }),
+      { plugins },
+    );
+    return b;
+  }
+
+  /** A, whose transient THROWER factory runs `body`. */
+  function containerA(
+    body: () => string,
+    plugins: readonly NexusPlugin[],
+  ): Promise<Nexus> {
+    return Nexus.create(
+      defineModule({
+        name: 'Alpha',
+        providers: [
+          provide(THROWER, { useFactory: body, lifetime: 'transient' }),
+        ],
+      }),
+      { plugins },
+    );
+  }
+
+  it('leaves an error another container raised inside a factory', async () => {
+    const calls: string[] = [];
+    const b = await containerB();
+    const a = await containerA(
+      () => b.get(Missing) as never,
+      [recording('alpha', calls)],
+    );
+    const error = thrown(() => a.get(THROWER)) as MissingProviderError;
+    expect(error).toBeInstanceOf(MissingProviderError);
+    expect(error.module).toBe('Bravo');
+    expect(error.message).toBe(coreLine(error));
+    expect(error.nearMisses).toEqual([]);
+    expect(calls).toEqual([]);
+  });
+
+  it("lets the other container's own formatter format it once, with its view", async () => {
+    const calls: string[] = [];
+    const views: (BlueprintView | undefined)[] = [];
+    const b = await containerB([
+      formatter('bravo', (error, view) => {
+        calls.push(`bravo ${error.code}`);
+        views.push(view);
+        return { message: `bravo ${error.code}` };
+      }),
+    ]);
+    const a = await containerA(
+      () => b.get(Missing) as never,
+      [recording('alpha', calls)],
+    );
+    const error = thrown(() => a.get(THROWER)) as Error;
+    expect(error.message).toBe(
+      '[NEXUS_MISSING_PROVIDER] bravo NEXUS_MISSING_PROVIDER',
+    );
+    expect(calls).toEqual(['bravo NEXUS_MISSING_PROVIDER']);
+    expect(views[0]?.providers.map((p) => p.name)).toContain('ReactorCore');
+  });
+
+  it('leaves a NexusError a factory builds and throws itself', async () => {
+    const calls: string[] = [];
+    const a = await containerA(() => {
+      throw new DisposedError({ target: 'container' });
+    }, [recording('alpha', calls)]);
+    const error = thrown(() => a.get(THROWER)) as NexusError;
+    expect(error.message).toBe(
+      '[NEXUS_DISPOSED] target=container. https://nexus.js.org/errors/NEXUS_DISPOSED',
+    );
+    expect(calls).toEqual([]);
+  });
+
+  it("still formats core's error on a dependency path and a ProviderError around a plain throw", async () => {
+    const SCOPED = new Token<string>('Mission');
+    class Drone {
+      constructor(readonly mission: string) {}
+    }
+    const calls: string[] = [];
+    const cause = new Error('offline');
+    const a = await Nexus.create(
+      defineModule({
+        name: 'Alpha',
+        providers: [
+          provide(THROWER, {
+            useFactory: (): string => {
+              throw cause;
+            },
+            lifetime: 'transient',
+          }),
+          provide(Drone, { deps: [SCOPED], lifetime: 'transient' }),
+          provide(SCOPED, {
+            useFactory: () => 'x',
+            lifetime: 'scoped',
+          }),
+        ],
+      }),
+      { plugins: [recording('alpha', calls)] },
+    );
+    expect(thrown(() => a.get(Drone))).toMatchObject({
+      message: '[NEXUS_SCOPE_REQUIRED] alpha: NEXUS_SCOPE_REQUIRED',
+    });
+    const failed = thrown(() => a.get(THROWER)) as Error;
+    expect(failed.message).toBe(
+      '[NEXUS_PROVIDER_FAILED] alpha: NEXUS_PROVIDER_FAILED',
+    );
+    expect(failed.cause).toBe(cause);
+    expect(cause.message).toBe('offline');
+    expect(calls).toEqual([
+      'alpha NEXUS_SCOPE_REQUIRED',
+      'alpha NEXUS_PROVIDER_FAILED',
+    ]);
+  });
+
+  it("formats a lazy thunk's error once, in the thunk's own call, when a constructor rethrows it", async () => {
+    class Probe {
+      constructor(readonly self: () => Probe) {
+        self();
+      }
+    }
+    const calls: string[] = [];
+    const a = await Nexus.create(
+      defineModule({
+        name: 'Alpha',
+        providers: [
+          provide(Probe, { deps: [lazy(Probe)], lifetime: 'transient' }),
+        ],
+      }),
+      { plugins: [recording('alpha', calls)] },
+    );
+    const error = thrown(() => a.get(Probe)) as Error;
+    expect(error.message).toBe('[NEXUS_NOT_READY] alpha: NEXUS_NOT_READY');
+    expect(calls).toEqual(['alpha NEXUS_NOT_READY']);
+  });
+
+  it('leaves an error a trace callback throws', async () => {
+    const b = await containerB();
+    const foreign = thrown(() => b.get(Missing)) as NexusError;
+    const calls: string[] = [];
+    const a = await Nexus.create(
+      defineModule({
+        name: 'Alpha',
+        providers: [
+          provide(THROWER, { useFactory: () => 'x', lifetime: 'transient' }),
+        ],
+      }),
+      {
+        plugins: [recording('alpha', calls)],
+        trace: (event) => {
+          if (event.type === 'construct') throw foreign;
+        },
+      },
+    );
+    expect(thrown(() => a.get(THROWER))).toBe(foreign);
+    expect(foreign.message).toBe(coreLine(foreign));
+    expect(calls).toEqual([]);
+  });
+
+  it('leaves an error a disposer throws', async () => {
+    const b = await containerB();
+    const foreign = thrown(() => b.get(Missing)) as NexusError;
+    class Hull {
+      [Symbol.dispose](): void {
+        throw foreign;
+      }
+    }
+    const calls: string[] = [];
+    const a = await Nexus.create(
+      defineModule({ name: 'Alpha', providers: [Hull] }),
+      { plugins: [recording('alpha', calls)] },
+    );
+    expect(await rejected(a[Symbol.asyncDispose]())).toBe(foreign);
+    expect(foreign.message).toBe(coreLine(foreign));
+    expect(calls).toEqual([]);
+  });
+
+  it("leaves an error a plugin's dispose hook throws", async () => {
+    const b = await containerB();
+    const foreign = thrown(() => b.get(Missing)) as NexusError;
+    const calls: string[] = [];
+    const a = await Nexus.create(Root, {
+      plugins: [
+        {
+          ...recording('alpha', calls),
+          dispose: () => {
+            throw foreign;
+          },
+        },
+      ],
+    });
+    expect(await rejected(a[Symbol.asyncDispose]())).toBe(foreign);
+    expect(foreign.message).toBe(coreLine(foreign));
+    expect(calls).toEqual([]);
+  });
+
+  it("formats the container's own error once when its factory calls the same container", async () => {
+    const calls: string[] = [];
+    const views: (BlueprintView | undefined)[] = [];
+    const CHARTS = new Token<string>('Charts');
+    // A second Token with the same description, so the near miss names
+    // Tactical, a module of this container.
+    const Tactical = defineModule({
+      name: 'Tactical',
+      providers: [provide(new Token<string>('Charts'), { useValue: 'x' })],
+    });
+    const holder: { a?: Nexus } = {};
+    const a = await Nexus.create(
+      defineModule({
+        name: 'Alpha',
+        imports: [Tactical],
+        providers: [
+          provide(THROWER, {
+            useFactory: (): string => holder.a?.get(CHARTS) ?? '',
+            lifetime: 'transient',
+          }),
+        ],
+      }),
+      {
+        plugins: [
+          formatter('alpha', (error, view) => {
+            calls.push(error.code);
+            views.push(view);
+            return { message: `alpha ${error.code}` };
+          }),
+        ],
+      },
+    );
+    holder.a = a;
+    const error = thrown(() => a.get(THROWER)) as MissingProviderError;
+    expect(error).toBeInstanceOf(MissingProviderError);
+    expect(error.message).toBe(
+      '[NEXUS_MISSING_PROVIDER] alpha NEXUS_MISSING_PROVIDER',
+    );
+    expect(error.nearMisses).toEqual([
+      { kind: 'same-description', module: 'Tactical' },
+    ]);
+    expect(calls).toEqual(['NEXUS_MISSING_PROVIDER']);
+    expect(views).toHaveLength(1);
+    expect(views[0]?.modules.map((m) => m.name)).toContain('Tactical');
   });
 });

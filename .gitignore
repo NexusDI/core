@@ -56,3 +56,6 @@ test-output
 .nx/polygraph
 .nx/self-healing
 .nx/migrate-runs
+# Vitest browser run artifacts
+.vitest-attachments/
+__screenshots__/

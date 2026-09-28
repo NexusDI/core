@@ -1,4 +1,5 @@
 import type { Lifetime } from '../definitions/types.js';
+import { fromUserCode } from './format.js';
 import type { OwnedEntry } from './ownership.js';
 
 /** A typed lifecycle event (spec section 10.2). */
@@ -71,7 +72,13 @@ export class Tracer {
   emit(make: () => TraceEvent): void {
     if (this.#sinks.length === 0) return;
     const event = make();
-    for (const sink of this.#sinks) sink(event);
+    for (const sink of this.#sinks) {
+      try {
+        sink(event);
+      } catch (error) {
+        throw fromUserCode(error);
+      }
+    }
   }
 }
 

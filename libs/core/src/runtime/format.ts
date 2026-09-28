@@ -14,7 +14,22 @@ import {
 import type { ErrorText, PluginSet } from './plugins.js';
 import type { RootState } from './state.js';
 
+/** Errors a container formatted, so a rethrow keeps their text. */
 const FORMATTED = new WeakSet<object>();
+
+/** NexusErrors that left user code as they were, which no container formats. */
+const USER_THROWN = new WeakSet<object>();
+
+/**
+ * Marks `error` as thrown by user code when it is a NexusError, and returns
+ * it. A catch around a constructor, a factory, a property setter, a trace
+ * sink, a disposer or a plugin's dispose hook calls it on the throw path
+ * (spec §9.1), so the error keeps the text its raiser gave it.
+ */
+export function fromUserCode(error: unknown): unknown {
+  if (error instanceof NexusError) USER_THROWN.add(error);
+  return error;
+}
 
 function isText(value: unknown): value is ErrorText {
   return (
@@ -28,8 +43,9 @@ function isText(value: unknown): value is ErrorText {
  * Lets the first formatError hook that returns text write the message of a
  * NexusError core raised. Inner errors of a BlueprintError go first, and the
  * aggregate's own line is rebuilt from them. A hook that throws or returns
- * something else leaves core's line. An error is formatted once, and an
- * error built with its own text is never formatted. The code prefix and
+ * something else leaves core's line. An error is formatted once. An
+ * error built with its own text, or one fromUserCode marked, is never
+ * formatted. The code prefix and
  * every field but nearMisses stay core's.
  */
 export function formatThrown(
@@ -41,6 +57,7 @@ export function formatThrown(
     plugins.formatError.length === 0 ||
     !(error instanceof NexusError) ||
     FORMATTED.has(error) ||
+    USER_THROWN.has(error) ||
     ownsText(error)
   )
     return error;

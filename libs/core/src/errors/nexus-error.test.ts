@@ -116,6 +116,26 @@ describe('NexusError', () => {
     expect(error.token).toBe('Nav\nCharts\r\u2028');
   });
 
+  it('doubles a backslash, so a value holding backslash-n reads apart from a line break', () => {
+    const literal = new MissingProviderError({
+      token: 'Nav\\nCharts',
+      requester: null,
+      module: 'Engineering',
+      entry: null,
+      nearMisses: [],
+    });
+    const broken = new MissingProviderError({
+      token: 'Nav\nCharts',
+      requester: null,
+      module: 'Engineering',
+      entry: null,
+      nearMisses: [],
+    });
+    expect(literal.message).toContain('token=Nav\\\\nCharts ');
+    expect(broken.message).toContain('token=Nav\\nCharts ');
+    expect(literal.message).not.toBe(broken.message);
+  });
+
   it('prints numbers and string arrays, and skips empty arrays and objects', () => {
     class ShapeError extends errorBase<
       'NEXUS_TEST_SHAPE',

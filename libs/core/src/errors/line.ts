@@ -1,17 +1,23 @@
 /** The docs page of each code. */
 export const DOCS_URL = 'https://nexus.js.org/errors/';
 
-/** Every character that ends a line: LF, CR, VT, FF, NEL, LS and PS. */
-const LINE_BREAK = /[\n\r\v\f\u0085\u2028\u2029]/g;
+/** A backslash, and every character that ends a line: LF, CR, VT, FF, NEL, LS and PS. */
+const ESCAPED = /[\\\n\r\v\f\u0085\u2028\u2029]/g;
 
-/** `value` with each line break written as an escape, so it stays on one line. */
+/**
+ * `value` with each line break written as an escape, so it stays on one
+ * line. A backslash is doubled, so a value that holds the two characters
+ * `\n` prints apart from one that holds a line break.
+ */
 function oneLine(value: string): string {
-  return value.replace(LINE_BREAK, (ch) =>
-    ch === '\n'
-      ? '\\n'
-      : ch === '\r'
-        ? '\\r'
-        : `\\u${ch.charCodeAt(0).toString(16).padStart(4, '0')}`,
+  return value.replace(ESCAPED, (ch) =>
+    ch === '\\'
+      ? '\\\\'
+      : ch === '\n'
+        ? '\\n'
+        : ch === '\r'
+          ? '\\r'
+          : `\\u${ch.charCodeAt(0).toString(16).padStart(4, '0')}`,
   );
 }
 

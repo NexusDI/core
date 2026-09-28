@@ -1,4 +1,5 @@
 import { chainErrors, collectInto, disposeInReverse } from './dispose.js';
+import { fromUserCode } from './format.js';
 import { disposeScope } from './scope.js';
 import type { RootState } from './state.js';
 import { reportDisposal } from './trace.js';
@@ -51,7 +52,7 @@ async function disposePlugins(
     try {
       await hook.call();
     } catch (error) {
-      errors.push(error);
+      errors.push(fromUserCode(error));
     }
   }
 }

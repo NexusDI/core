@@ -14,6 +14,7 @@ import {
   ScopeRequiredError,
 } from '../errors/index.js';
 import { constructionStack } from './construction-stack.js';
+import { fromUserCode } from './format.js';
 import { hasDisposer } from './dispose.js';
 import { makeThunk } from './lazy.js';
 import { isObject } from './ownership.js';
@@ -119,16 +120,32 @@ export function construct(record: ProviderRecord, ctx: Ctx): unknown {
           bindings?.args.map((binding) =>
             resolveBinding(binding, record, ctx),
           ) ?? [];
+        // The inner catches mark a NexusError the user's constructor,
+        // setter or factory threw; a dependency's error passes unmarked.
         if (record.kind === 'class' && record.useClass !== undefined) {
-          const instance: unknown = new record.useClass(...args);
+          let instance: unknown;
+          try {
+            instance = new record.useClass(...args);
+          } catch (error) {
+            throw fromUserCode(error);
+          }
           bindings?.props.forEach((binding, i) => {
             const prop = record.props[i];
-            if (prop !== undefined && isObject(instance))
-              prop.set(instance, resolveBinding(binding, record, ctx));
+            if (prop === undefined || !isObject(instance)) return;
+            const value = resolveBinding(binding, record, ctx);
+            try {
+              prop.set(instance, value);
+            } catch (error) {
+              throw fromUserCode(error);
+            }
           });
           return instance;
         }
-        return record.useFactory?.(...args);
+        try {
+          return record.useFactory?.(...args);
+        } catch (error) {
+          throw fromUserCode(error);
+        }
       } catch (error) {
         if (error instanceof NexusError) throw error;
         throw new ProviderError(

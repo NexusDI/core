@@ -1,5 +1,6 @@
 import '../polyfill/symbol-dispose.js';
 
+import { fromUserCode } from './format.js';
 import { isObject } from './ownership.js';
 import type { OwnedEntry, Ownership } from './ownership.js';
 
@@ -125,7 +126,7 @@ export async function disposeInReverse(
       ran = await disposeObject(entry.instance);
     } catch (error) {
       ran = true;
-      errors.push(error);
+      errors.push(fromUserCode(error));
     }
     ownership.markDisposed(entry.instance);
     if (ran) {
