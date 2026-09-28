@@ -31,6 +31,10 @@ const ALL_CODES = [
   'NEXUS_LEGACY_DECORATORS',
   'NEXUS_OVERRIDE_UNUSED',
   'NEXUS_OVERRIDE_EXPORTS',
+  'NEXUS_PLUGIN_INVALID',
+  'NEXUS_PLUGIN_VERSION',
+  'NEXUS_PLUGIN_CONFLICT',
+  'NEXUS_PLUGIN_FAILED',
 ] as const satisfies readonly NexusErrorCode[];
 
 // A compile error here means a code in the union is missing from ALL_CODES.

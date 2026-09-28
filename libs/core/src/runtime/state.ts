@@ -2,6 +2,7 @@ import type { Blueprint } from '../blueprint/blueprint.js';
 import type { CompileOverrides } from '../blueprint/overrides.js';
 import { DisposedError } from '../errors/index.js';
 import { Ownership, type OwnedEntry } from './ownership.js';
+import { NO_PLUGINS, type PluginSet } from './plugins.js';
 import { Slots } from './readiness.js';
 import type { ScopeContext } from './scope-context.js';
 import type { Tracer } from './trace.js';
@@ -25,6 +26,8 @@ export interface RootState {
   readonly tracer: Tracer;
   /** Factory provider id → whether its last build returned a thenable. */
   readonly asyncFlags: Map<string, boolean>;
+  /** The plugins registered at create(). */
+  readonly plugins: PluginSet;
   /** False only for createTestingContainer().create({ onInit: false }). */
   readonly initEnabled: boolean;
   /** Set only by createTestingContainer(); load() replays it on every recompile. */
@@ -104,6 +107,7 @@ export interface RootInit {
   readonly initEnabled: boolean;
   readonly scopeContext: ScopeContext | undefined;
   readonly overrides: CompileOverrides | undefined;
+  readonly plugins?: PluginSet;
 }
 
 export function createRootState(init: RootInit): RootState {
@@ -121,6 +125,7 @@ export function createRootState(init: RootInit): RootState {
     ownership: new Ownership(),
     tracer: init.tracer,
     asyncFlags: new Map(),
+    plugins: init.plugins ?? NO_PLUGINS,
     initEnabled: init.initEnabled,
     overrides: init.overrides,
     disposing: false,

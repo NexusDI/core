@@ -23,6 +23,7 @@ export {
   NotReadyError,
   NotVisibleError,
   OverrideError,
+  PluginError,
   ProviderError,
   RequestMissingError,
   ScopeRequiredError,
@@ -31,6 +32,7 @@ export type {
   ErrorLifetime,
   NearMiss,
   NexusErrorCode,
+  PluginInvalidReason,
   ProviderFailure,
   SchemaIssue,
 } from './errors/index.js';
@@ -75,9 +77,24 @@ export type { StandardSchemaV1 } from './definitions/standard-schema.js';
 export { Nexus } from './runtime/nexus.js';
 export type { NexusGraph } from './runtime/graph.js';
 export type { CreateOptions, LookupOptions } from './runtime/options.js';
+export { NEXUS_PLUGIN_API, SUPPORTED_PLUGIN_APIS } from './runtime/plugins.js';
+export type {
+  CompilePluginHooks,
+  ErrorText,
+  NexusPlugin,
+  PluginContext,
+} from './runtime/plugins.js';
 export type { Scope } from './runtime/scope.js';
 export type { ScopeContext } from './runtime/scope-context.js';
 export type { TraceEvent } from './runtime/trace.js';
+export type {
+  BlueprintView,
+  CompileContext,
+  EdgeView,
+  ModuleView,
+  ProviderRewrite,
+  ProviderView,
+} from './blueprint/views.js';
 export { Inject } from './decorators/inject.js';
 export { Injectable } from './decorators/injectable.js';
 export { Module, type ModuleDecoratorConfig } from './decorators/module.js';

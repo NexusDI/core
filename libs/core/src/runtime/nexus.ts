@@ -10,6 +10,7 @@ import { toGraph, type NexusGraph } from './graph.js';
 import { loadModule } from './load.js';
 import { getFrom, hasIn } from './lookup.js';
 import type { CreateOptions, LookupOptions } from './options.js';
+import { registerPlugins } from './plugins.js';
 import { openScope, type Scope } from './scope.js';
 import { disposeRoot } from './shutdown.js';
 import { startBlueprint } from './startup.js';
@@ -139,6 +140,7 @@ export async function createContainer(
   options: CreateOptions | undefined,
   internals: ContainerInternals,
 ): Promise<Nexus> {
+  const plugins = registerPlugins(options?.plugins);
   const tracer = new Tracer(options?.trace);
   const blueprint = compileTraced(
     tracer,
@@ -152,6 +154,7 @@ export async function createContainer(
     initEnabled: internals.initEnabled,
     scopeContext: options?.scopeContext,
     overrides: internals.overrides,
+    plugins,
   });
   await startBlueprint(state, { bp: blueprint, isNew: () => true });
   return wrap(state);

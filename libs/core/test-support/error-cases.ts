@@ -21,6 +21,7 @@ import {
   NotReadyError,
   NotVisibleError,
   OverrideError,
+  PluginError,
   ProviderError,
   RequestMissingError,
   ScopeRequiredError,
@@ -493,5 +494,52 @@ export const errorCases: readonly ErrorCase[] = [
     }),
     code: 'NEXUS_OVERRIDE_EXPORTS',
     fields: { token: null, module: 'Comms', missing: ['SubspaceLink'] },
+  },
+  {
+    name: 'PluginError',
+    error: new PluginError({
+      code: 'NEXUS_PLUGIN_INVALID',
+      plugin: 'devtools',
+      reason: 'no-name',
+    }),
+    code: 'NEXUS_PLUGIN_INVALID',
+    fields: { plugin: 'devtools', reason: 'no-name', detail: [] },
+  },
+  {
+    name: 'PluginError (version)',
+    error: new PluginError({
+      code: 'NEXUS_PLUGIN_VERSION',
+      plugin: 'devtools',
+      apiVersion: '2',
+      supported: [1],
+    }),
+    code: 'NEXUS_PLUGIN_VERSION',
+    fields: { plugin: 'devtools', apiVersion: '2', supported: [1] },
+  },
+  {
+    name: 'PluginError (conflict)',
+    error: new PluginError({
+      code: 'NEXUS_PLUGIN_CONFLICT',
+      plugins: ['devtools', 'federation'],
+      target: 'NavCharts',
+    }),
+    code: 'NEXUS_PLUGIN_CONFLICT',
+    fields: { plugins: ['devtools', 'federation'], target: 'NavCharts' },
+  },
+  {
+    name: 'PluginError (failed)',
+    error: new PluginError({
+      code: 'NEXUS_PLUGIN_FAILED',
+      plugin: 'devtools',
+      hook: 'observe',
+      cause: new Error('offline'),
+      disposalErrors: [new Error('scram')],
+    }),
+    code: 'NEXUS_PLUGIN_FAILED',
+    fields: {
+      plugin: 'devtools',
+      hook: 'observe',
+      disposalErrors: [new Error('scram')],
+    },
   },
 ];

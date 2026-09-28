@@ -189,6 +189,17 @@ exports[`NexusError > keeps the message of 'OverrideError (unused)' 1`] = `
   Fix: remove the override, or import the module that provides NavCharts."
 `;
 
+exports[`NexusError > keeps the message of 'PluginError (conflict)' 1`] = `"[NEXUS_PLUGIN_CONFLICT] devtools and federation both rewrite NavCharts; one plugin may rewrite a module or a provider."`;
+
+exports[`NexusError > keeps the message of 'PluginError (failed)' 1`] = `"[NEXUS_PLUGIN_FAILED] the observe hook of devtools failed: Error: offline"`;
+
+exports[`NexusError > keeps the message of 'PluginError (version)' 1`] = `
+"[NEXUS_PLUGIN_VERSION] devtools was written for plugin API 2; this @nexusdi/core supports 1.
+  Fix: install the plugin version built for this @nexusdi/core."
+`;
+
+exports[`NexusError > keeps the message of 'PluginError' 1`] = `"[NEXUS_PLUGIN_INVALID] devtools has no name; set name to a non-empty string."`;
+
 exports[`NexusError > keeps the message of 'ProviderError (path, also failed, dis…' 1`] = `
 "[NEXUS_PROVIDER_FAILED] NavCharts (module Tactical) failed: Error: offline
   While building: Bridge → NavCharts
