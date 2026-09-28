@@ -28,6 +28,11 @@ export interface RootState {
   readonly asyncFlags: Map<string, boolean>;
   /** The plugins registered at create(). */
   readonly plugins: PluginSet;
+  /**
+   * How many plugins, from the start of the array, finished their setup
+   * step. Disposal runs the dispose hooks of these plugins only.
+   */
+  pluginsStarted: number;
   /** False only for createTestingContainer().create({ onInit: false }). */
   readonly initEnabled: boolean;
   /** Set only by createTestingContainer(); load() replays it on every recompile. */
@@ -126,6 +131,7 @@ export function createRootState(init: RootInit): RootState {
     tracer: init.tracer,
     asyncFlags: new Map(),
     plugins: init.plugins ?? NO_PLUGINS,
+    pluginsStarted: 0,
     initEnabled: init.initEnabled,
     overrides: init.overrides,
     disposing: false,

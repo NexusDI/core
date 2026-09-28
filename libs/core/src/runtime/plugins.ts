@@ -23,6 +23,7 @@ import {
   type PluginInvalidReason,
 } from '../errors/index.js';
 import type { Nexus } from './nexus.js';
+import { factoryAsync } from './graph.js';
 import type { RootState } from './state.js';
 import type { TraceEvent } from './trace.js';
 
@@ -75,14 +76,21 @@ export interface NexusPlugin {
     error: NexusError,
     view: BlueprintView | undefined,
   ): ErrorText | undefined;
-  setup?(context: PluginContext): void;
+  setup?(context: PluginContext): void | PromiseLike<void>;
   dispose?(): void | PromiseLike<void>;
 }
 
 type Fn = (...args: never[]) => unknown;
 
+/** A hook with its plugin's position in the plugins array. */
+export interface PluginHook<F> extends Hook<F> {
+  readonly index: number;
+}
+
 /** A container's plugins, split into per-hook arrays in plugin order. */
 export interface PluginSet {
+  /** How many plugins the container registered. */
+  readonly count: number;
   readonly modules: readonly unknown[];
   readonly onInit: boolean;
   readonly compile: CompileHooks;
@@ -93,8 +101,8 @@ export interface PluginSet {
   readonly formatError: readonly Hook<
     (error: NexusError, view: BlueprintView | undefined) => unknown
   >[];
-  readonly setup: readonly Hook<(context: PluginContext) => void>[];
-  readonly dispose: readonly Hook<() => unknown>[];
+  readonly setup: readonly PluginHook<(context: PluginContext) => unknown>[];
+  readonly dispose: readonly PluginHook<() => unknown>[];
 }
 
 const FUNCTION_HOOKS = [
@@ -107,6 +115,7 @@ const FUNCTION_HOOKS = [
 const COMPILE_HOOKS = ['module', 'provider', 'check'] as const;
 
 export const NO_PLUGINS: PluginSet = Object.freeze({
+  count: 0,
   modules: Object.freeze([]),
   onInit: true,
   compile: NO_COMPILE_HOOKS,
@@ -123,9 +132,15 @@ function own(object: object, key: string): unknown {
     : undefined;
 }
 
-function bind<F extends Fn>(owner: object, plugin: string, fn: F): Hook<F> {
+function bind<F extends Fn>(
+  owner: object,
+  plugin: string,
+  index: number,
+  fn: F,
+): PluginHook<F> {
   return {
     plugin,
+    index,
     call: ((...args: never[]) => fn.apply(owner, args)) as F,
   };
 }
@@ -154,14 +169,14 @@ export function registerPlugins(input: unknown): PluginSet {
 
   const modules: unknown[] = [];
   const hooks = {
-    module: [] as Hook<never>[],
-    provider: [] as Hook<never>[],
-    check: [] as Hook<never>[],
-    construct: [] as Hook<never>[],
-    observe: [] as Hook<never>[],
-    formatError: [] as Hook<never>[],
-    setup: [] as Hook<never>[],
-    dispose: [] as Hook<never>[],
+    module: [] as PluginHook<never>[],
+    provider: [] as PluginHook<never>[],
+    check: [] as PluginHook<never>[],
+    construct: [] as PluginHook<never>[],
+    observe: [] as PluginHook<never>[],
+    formatError: [] as PluginHook<never>[],
+    setup: [] as PluginHook<never>[],
+    dispose: [] as PluginHook<never>[],
   };
   let onInit = true;
   const names = new Set<string>();
@@ -243,13 +258,17 @@ export function registerPlugins(input: unknown): PluginSet {
     for (const key of FUNCTION_HOOKS) {
       const fn = hookFns[key];
       if (typeof fn === 'function')
-        hooks[key].push(bind(candidate, name, fn as Fn) as Hook<never>);
+        hooks[key].push(
+          bind(candidate, name, index, fn as Fn) as PluginHook<never>,
+        );
     }
     if (typeof compile === 'object' && compile !== null) {
       for (const key of COMPILE_HOOKS) {
         const fn = compileFns[key];
         if (typeof fn === 'function')
-          hooks[key].push(bind(compile, name, fn as Fn) as Hook<never>);
+          hooks[key].push(
+            bind(compile, name, index, fn as Fn) as PluginHook<never>,
+          );
       }
     }
     if (initFlag === false) onInit = false;
@@ -258,6 +277,7 @@ export function registerPlugins(input: unknown): PluginSet {
   if (errors.length > 0) throw new BlueprintError(errors);
 
   return Object.freeze({
+    count: input.length,
     modules: Object.freeze(modules),
     onInit,
     compile: Object.freeze({
@@ -286,9 +306,11 @@ export function pluginContext(
   return Object.freeze({
     container,
     blueprint: () => viewOfBlueprint(state.blueprint),
-    builtAsync: (providerId: string) =>
-      state.blueprint.providers.get(providerId)?.kind === 'factory'
-        ? (state.asyncFlags.get(providerId) ?? null)
-        : null,
+    builtAsync: (providerId: string) => {
+      const record = state.blueprint.providers.get(providerId);
+      return record?.kind === 'factory'
+        ? factoryAsync(record, state.asyncFlags)
+        : null;
+    },
   });
 }

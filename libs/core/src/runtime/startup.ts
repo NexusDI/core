@@ -108,11 +108,18 @@ async function buildSingleton(
   // options providers, per optionsShape in blueprint/records.ts): a plain
   // provider's constructed value never needs it, and skipping the call
   // avoids an extra microtask tick for the common case.
-  if (record.schema !== undefined)
-    value = (await validateOptions(record, bp, value)).value;
+  if (record.schema !== undefined) {
+    try {
+      value = (await validateOptions(record, bp, value)).value;
+    } catch (error) {
+      // The rollback disposes the rejected output with what was built.
+      adopt(root, record, value);
+      throw error;
+    }
+  }
   // After validation, so the schema checks the factory's own output and
   // the runtime stores what the construct hooks return.
-  value = applyConstruct(root, bp, record, value, null);
+  value = applyConstruct(root, root, bp, record, value, null);
   root.slots.settle(id, value);
   if (record.kind === 'factory') root.asyncFlags.set(id, isAsync);
   adopt(root, record, value);

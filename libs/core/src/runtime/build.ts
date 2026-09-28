@@ -17,7 +17,12 @@ import { constructionStack } from './construction-stack.js';
 import { hasDisposer } from './dispose.js';
 import { makeThunk } from './lazy.js';
 import { isObject } from './ownership.js';
-import type { ContainerState, Ctx, RootState } from './state.js';
+import type {
+  ContainerState,
+  Ctx,
+  RootState,
+  TransientOwner,
+} from './state.js';
 
 export function moduleName(bp: Blueprint, record: ProviderRecord): string {
   return bp.modules.get(record.module)?.name ?? record.module;
@@ -175,13 +180,39 @@ function constructFailed(
 }
 
 /**
+ * Hands a built instance to `owner` for disposal. An untracked owner (a root
+ * transient, a singleton's thunk) owns nothing, so an instance with a
+ * disposer produces an `untracked` event, the leak the trace names.
+ */
+export function takeOwnership(
+  root: RootState,
+  owner: TransientOwner,
+  record: ProviderRecord,
+  instance: unknown,
+): void {
+  if (typeof owner !== 'string') {
+    adopt(owner, record, instance);
+  } else if (hasDisposer(instance)) {
+    root.tracer.emit(() => ({
+      type: 'untracked',
+      token: record.name,
+      providerId: record.id,
+      reason: owner,
+    }));
+  }
+}
+
+/**
  * Runs every construct hook over a class or factory instance, in plugin
  * order, each on the previous result; `undefined` keeps the instance. The
  * hooks are synchronous, because get() is, so a returned thenable fails the
- * build. With no construct hook it runs one length test.
+ * build. A failed build hands the raw instance to `owner`, whose disposal
+ * disposes it once; an earlier plugin's wrapper forwards to it and is never
+ * disposed. With no construct hook it runs one length test.
  */
 export function applyConstruct(
   root: RootState,
+  owner: TransientOwner,
   bp: Blueprint,
   record: ProviderRecord,
   instance: unknown,
@@ -200,12 +231,14 @@ export function applyConstruct(
     try {
       next = hook.call(current, view, scope);
     } catch (error) {
+      takeOwnership(root, owner, record, instance);
       throw constructFailed(bp, record, hook.plugin, error);
     }
     if (next === undefined) continue;
     if (isThenable(next)) {
       // Observe the thenable so its rejection is never unhandled.
       Promise.resolve(next).catch(() => undefined);
+      takeOwnership(root, owner, record, instance);
       throw constructFailed(
         bp,
         record,
@@ -297,6 +330,7 @@ export function resolveScoped(record: ProviderRecord, ctx: Ctx): unknown {
   const start = container.root.tracer.now();
   const instance = applyConstruct(
     container.root,
+    container,
     ctx.bp,
     record,
     construct(record, { ...ctx, owner: container }),
@@ -327,6 +361,8 @@ function buildTransient(record: ProviderRecord, ctx: Ctx): unknown {
   if (record.kind === 'factory' && isThenable(built)) {
     // get() cannot wait. Observe the promise so its rejection is never unhandled.
     Promise.resolve(built).catch(() => undefined);
+    // graph() and builtAsync report a transient factory false until now.
+    ctx.container.root.asyncFlags.set(record.id, true);
     throw new AsyncTransientError({
       token: record.name,
       module: moduleName(ctx.bp, record),
@@ -334,23 +370,13 @@ function buildTransient(record: ProviderRecord, ctx: Ctx): unknown {
   }
   const instance = applyConstruct(
     ctx.container.root,
+    ctx.owner,
     ctx.bp,
     record,
     built,
     ctx.container.scopeId,
   );
-  if (typeof ctx.owner !== 'string') {
-    adopt(ctx.owner, record, instance);
-  } else if (hasDisposer(instance)) {
-    // Nothing will ever dispose this instance: a leak the trace names.
-    const reason = ctx.owner;
-    ctx.container.root.tracer.emit(() => ({
-      type: 'untracked',
-      token: record.name,
-      providerId: record.id,
-      reason,
-    }));
-  }
+  takeOwnership(ctx.container.root, ctx.owner, record, instance);
   traceConstruct(ctx.container, ctx.bp, record, false, start);
   return instance;
 }

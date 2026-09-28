@@ -279,6 +279,40 @@ describe('Nexus', () => {
       });
     });
 
+    it('disposes a with() factory result the schema rejected before create rejects', async () => {
+      const OPTIONS = new Token<{ frequency: number; band?: string }>(
+        'CommsOptions',
+      );
+      const Comms = defineModule({
+        name: 'Comms',
+        options: OPTIONS,
+        schema: frequencySchema(),
+      });
+      const log: string[] = [];
+      const tuned = Comms.with({
+        deps: [],
+        useFactory: async () =>
+          ({
+            frequency: 'late',
+            [Symbol.asyncDispose]: () => {
+              log.push('link closed');
+              return Promise.resolve();
+            },
+          }) as never,
+      });
+      const error = await rejected(
+        Nexus.create(defineModule({ name: 'Root', imports: [tuned] }), {
+          trace: (e) => {
+            if (e.type === 'dispose:instance') log.push(`event ${e.token}`);
+          },
+        }),
+      );
+      expect(error).toMatchObject({
+        cause: { code: 'NEXUS_INVALID_MODULE_OPTIONS' },
+      });
+      expect(log).toEqual(['link closed', 'event CommsOptions']);
+    });
+
     it('provides the schema output as the options value', async () => {
       const OPTIONS = new Token<{ frequency: number; band?: string }>(
         'CommsOptions',

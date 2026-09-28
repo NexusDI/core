@@ -353,6 +353,7 @@ describe('setup', () => {
       code: 'NEXUS_PLUGIN_FAILED',
       plugin: 'tools',
       hook: 'setup',
+      disposalErrors: [],
     });
     expect(log).toEqual(['init 1.21', 'scram']);
   });

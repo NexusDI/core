@@ -4,17 +4,23 @@ import type { Dep, DepsMap, ResolvedDeps } from '../definitions/modifiers.js';
 import type { NexusRequest } from '../definitions/request.js';
 import type { InjectionToken, MultiToken } from '../definitions/token.js';
 import { NoScopeContextError, PluginError } from '../errors/index.js';
+import { isThenable } from './build.js';
 import { compileTraced } from './compile-traced.js';
 import { resolveDeps, validateDeps } from './deps.js';
 import { toGraph, type NexusGraph } from './graph.js';
 import { loadModule } from './load.js';
 import { getFrom, hasIn } from './lookup.js';
 import type { CreateOptions, LookupOptions } from './options.js';
-import { pluginContext, registerPlugins, type PluginSet } from './plugins.js';
+import {
+  pluginContext,
+  registerPlugins,
+  type PluginContext,
+  type PluginSet,
+} from './plugins.js';
 import { openScope, type Scope } from './scope.js';
 import { abandonRoot, disposeRoot } from './shutdown.js';
 import { startBlueprint } from './startup.js';
-import { assertOpen, createRootState, type RootState } from './state.js';
+import { assertOpen, createRootState, track, type RootState } from './state.js';
 import { Tracer, type TraceSink } from './trace.js';
 
 /** Settings the testing entry sets; Nexus.create uses the defaults. */
@@ -145,27 +151,74 @@ function traceSinks(
   return trace === undefined ? observers : [trace, ...observers];
 }
 
-/** Runs each setup hook in plugin order; a throw closes the container. */
+/** A setup hook's throw or rejection, carried out of the tracked setup loop. */
+class SetupFailure {
+  constructor(
+    readonly plugin: string,
+    readonly error: unknown,
+  ) {}
+}
+
+/**
+ * Runs each setup hook in plugin order, awaiting a returned thenable before
+ * the next. `pluginsStarted` counts the plugins whose setup step settled. A
+ * disposal that started during a setup stops the loop once that setup
+ * settles.
+ */
+async function setupLoop(
+  state: RootState,
+  plugins: PluginSet,
+  context: PluginContext,
+): Promise<void> {
+  for (const hook of plugins.setup) {
+    state.pluginsStarted = hook.index;
+    try {
+      const result = hook.call(context);
+      if (isThenable(result)) await result;
+    } catch (error) {
+      throw new SetupFailure(hook.plugin, error);
+    }
+    state.pluginsStarted = hook.index + 1;
+    assertOpen(state);
+  }
+  state.pluginsStarted = plugins.count;
+}
+
+/**
+ * Step 4 of create. The loop joins `inflight` before any hook runs, so a
+ * disposal a hook starts waits for it, as it waits for a load(). A failed
+ * setup closes the container: `track` drops the loop from `inflight` before
+ * this catch runs, since it subscribed first, so abandonRoot never waits on
+ * the loop that called it.
+ */
 async function runSetup(
   state: RootState,
   plugins: PluginSet,
   ship: Nexus,
 ): Promise<void> {
-  if (plugins.setup.length === 0) return;
+  if (plugins.setup.length === 0) {
+    state.pluginsStarted = plugins.count;
+    return;
+  }
   const context = pluginContext(state, ship);
-  for (const hook of plugins.setup) {
-    try {
-      hook.call(context);
-    } catch (error) {
-      const disposalErrors = await abandonRoot(state);
-      throw new PluginError({
-        code: 'NEXUS_PLUGIN_FAILED',
-        plugin: hook.plugin,
-        hook: 'setup',
-        cause: error,
-        disposalErrors,
-      });
-    }
+  let start!: (loop: Promise<void>) => void;
+  const work = new Promise<void>((resolve) => {
+    start = resolve;
+  });
+  track(state.inflight, work);
+  start(setupLoop(state, plugins, context));
+  try {
+    await work;
+  } catch (error) {
+    if (!(error instanceof SetupFailure)) throw error;
+    const disposalErrors = await abandonRoot(state);
+    throw new PluginError({
+      code: 'NEXUS_PLUGIN_FAILED',
+      plugin: error.plugin,
+      hook: 'setup',
+      cause: error.error,
+      disposalErrors,
+    });
   }
 }
 

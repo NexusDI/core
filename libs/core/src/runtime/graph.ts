@@ -1,4 +1,4 @@
-import type { Blueprint } from '../blueprint/blueprint.js';
+import type { Blueprint, ProviderRecord } from '../blueprint/blueprint.js';
 
 /** The compiled graph as plain JSON. The docs playground renders it; the graph CLI reads it. */
 export interface NexusGraph {
@@ -30,6 +30,22 @@ export interface NexusGraph {
   }>;
 }
 
+/**
+ * Whether a factory's last build returned a thenable. A transient factory is
+ * synchronous by contract, so it reports false until a get() finds a
+ * thenable (NEXUS_ASYNC_TRANSIENT). Another factory reports null before its
+ * first build.
+ */
+export function factoryAsync(
+  record: ProviderRecord,
+  asyncFlags: ReadonlyMap<string, boolean>,
+): boolean | null {
+  return (
+    asyncFlags.get(record.id) ??
+    (record.lifetime === 'transient' ? false : null)
+  );
+}
+
 export function toGraph(
   bp: Blueprint,
   asyncFlags: ReadonlyMap<string, boolean>,
@@ -50,7 +66,7 @@ export function toGraph(
       kind: p.kind,
       async:
         p.kind === 'factory'
-          ? (asyncFlags.get(p.id) ?? null)
+          ? factoryAsync(p, asyncFlags)
           : p.kind === 'alias'
             ? null
             : false,

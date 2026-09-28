@@ -36,12 +36,33 @@ async function releaseInstances(
 }
 
 /**
+ * Runs the dispose hook of every plugin whose setup step finished
+ * (`root.pluginsStarted`), in reverse plugin order, awaiting each, and
+ * collects each throw into `errors`.
+ */
+async function disposePlugins(
+  root: RootState,
+  errors: unknown[],
+): Promise<void> {
+  const hooks = root.plugins.dispose;
+  for (let i = hooks.length - 1; i >= 0; i--) {
+    const hook = hooks[i];
+    if (hook === undefined || hook.index >= root.pluginsStarted) continue;
+    try {
+      await hook.call();
+    } catch (error) {
+      errors.push(error);
+    }
+  }
+}
+
+/**
  * The container's disposal path. The first call releases every instance,
- * emits `dispose`, then runs each plugin's dispose hook in reverse plugin
- * order, awaiting each. Neither a disposer error, a throwing `dispose`
- * trace sink nor a throwing plugin hook stops it; every one joins the same
- * list and is thrown at the end, chained the way DisposableStack chains
- * them. A second call returns the first call's promise.
+ * emits `dispose`, then runs the dispose hook of each plugin whose setup
+ * step finished, in reverse plugin order, awaiting each. Neither a disposer
+ * error, a throwing `dispose` trace sink nor a throwing plugin hook stops
+ * it; every one joins the same list and is thrown at the end, chained the
+ * way DisposableStack chains them. A second call returns the first call's promise.
  */
 export function disposeRoot(root: RootState): Promise<void> {
   root.disposal ??= (async () => {
@@ -60,14 +81,7 @@ export function disposeRoot(root: RootState): Promise<void> {
         durationMs: tracer.now() - start,
       })),
     );
-    const hooks = root.plugins.dispose;
-    for (let i = hooks.length - 1; i >= 0; i--) {
-      try {
-        await hooks[i]?.call();
-      } catch (error) {
-        errors.push(error);
-      }
-    }
+    await disposePlugins(root, errors);
     const chained = chainErrors(errors);
     if (chained !== undefined) throw chained.error;
   })();
@@ -75,13 +89,27 @@ export function disposeRoot(root: RootState): Promise<void> {
 }
 
 /**
- * Closes a container that create() will not return, because a setup hook
- * threw: releases every instance, as a failed build does, with no `dispose`
- * event and no plugin dispose hook. A later [Symbol.asyncDispose]() on a
- * reference a hook kept resolves. Returns the disposer errors.
+ * Closes a container that create() will not return, because plugin k's
+ * setup failed: releases every instance, then runs the dispose hooks of the
+ * plugins before k, with no `dispose` event. Returns the disposer errors,
+ * then the plugin dispose errors. When a hook already started disposal,
+ * it waits for that disposal and returns its error, if any, and starts no
+ * second release. A later [Symbol.asyncDispose]() resolves.
  */
 export async function abandonRoot(root: RootState): Promise<unknown[]> {
-  const release = releaseInstances(root);
-  root.disposal = release.then(ignore, ignore);
-  return (await release).errors;
+  if (root.disposal !== undefined) {
+    try {
+      await root.disposal;
+      return [];
+    } catch (error) {
+      return [error];
+    }
+  }
+  const work = (async () => {
+    const { errors } = await releaseInstances(root);
+    await disposePlugins(root, errors);
+    return errors;
+  })();
+  root.disposal = work.then(ignore, ignore);
+  return work;
 }

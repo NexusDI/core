@@ -134,6 +134,7 @@ async function buildScoped(scope: ScopeState, id: string): Promise<void> {
   const { record, isAsync, start } = built;
   const value = applyConstruct(
     scope.root,
+    scope,
     scope.blueprint,
     record,
     built.value,
