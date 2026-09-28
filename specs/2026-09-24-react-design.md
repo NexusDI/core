@@ -1,7 +1,8 @@
 # @nexusdi/react: React bindings for NexusDI 0.4
 
-Status: draft for owner review. Every choice has a recommendation, and section 17 lists
-the owner decisions with their consequences. Section 18 lists the open items for core.
+Status: decided, 2026-09-28. The owner delegated the open decisions to an architect and a
+tech lead. Section 17 records the ruling and the reason for each, and section 18 records
+the core items with the exact text core adds.
 Package: `@nexusdi/react` (new, published). Released in 0.4, targeting rc.0 with the other
 adapters (core spec §0, D18).
 Depends on:
@@ -227,7 +228,7 @@ test and a browser each call it their own way.
 The context value is an object the provider creates once per container:
 `{ container, resolver, store }`. `resolver` is the scope given by the `scope` prop, or
 the container. `store` holds the section cache, the scope bookkeeping and the MultiToken
-cache (section 4.3). The context object itself is private: consumers use the hooks.
+memo (section 4.3). The context object itself is private: consumers use the hooks.
 
 `container` accepts three forms:
 
@@ -304,10 +305,17 @@ and `useService` runs it when the container has that plugin:
   the component calls.
 - An alias follows its `alias` edges to the target's lifetime.
 - A `MultiToken` with at least one transient contribution throws the same error.
+- For `{ module: ref }`, the check resolves `ref` with core's `moduleDefinitionOf` and
+  checks the module whose `definition` or `replaced` is that definition, which is the
+  module core's `get()` selects (core §3.5, K6). A `@Module` class is a different object
+  from its definition, so a plain `definition === ref` compare would skip every
+  decorator user. A unit test covers `overrideModule` together with `{ module }`.
+- When the view has no provider for the token, the check does nothing, and `get()`
+  throws its own error.
 - The result is cached per token for the current blueprint, so the check is one `Map`
   lookup after the first render of each token.
 
-Recommendation: register `react()` in development and in tests, beside `devtools()`, and
+Decision (R4): register `react()` in development and in tests, beside `devtools()`, and
 leave it out of production builds. The check guards against a coding mistake that shows
 on the first render in development, so production gains nothing from it, and core builds
 the blueprint views only when a plugin asks for them (core §3.10.1).
@@ -319,8 +327,9 @@ Consequences for users:
 - An app that never registers `react()` gets no check. The docs page on transients says
   so, and `devtools()` does not include `react()`, because `devtools()` must not depend
   on a React package.
-- The check depends on two core items (section 18, K1 and K2). Without K1 the plugin
-  cannot find the root module's view, and the check cannot be released.
+- The check depends on three core items (section 18, K1, K2 and K3), all decided for core
+  0.4. Without K1 the plugin cannot find the root module's view, and the check cannot be
+  released (R16 gives the rule if one of them is late).
 
 Alternatives, rejected:
 
@@ -337,13 +346,17 @@ Alternatives, rejected:
 ### 4.3 `MultiToken` arrays
 
 `get(MULTI)` returns a new array on every call (core §6.2), so a component that passes
-the result to a child or a `useMemo` dependency re-renders every time. `useService` of a
-`MultiToken` caches the array in the provider's store, keyed by token and module, and
-returns a frozen array. The store clears the cache when a `SectionBoundary` under the
-provider finishes a `load()`, because a loaded module's exports can add contributions
-that root `get()` sees. A `load()` that app code runs outside the package leaves the
-cached array stale until the next package-driven load. With K2 the cache can key on the
-blueprint object and drop this gap; section 18 records it.
+the result to a child or a `useMemo` dependency would re-render every time. `useService`
+of a `MultiToken` calls `resolver.get(token, options)` on every render and memoizes the
+result in the provider's store, keyed by resolver, token and module. When the new array
+has the same length and the same elements by `===` as the stored one, `useService`
+returns the stored array. Otherwise it freezes the new array, stores it and returns it.
+The array stays the same object while its contents do, under the root and under each
+scope separately, and it changes after any `load()` that adds a contribution, whoever
+ran it. `useService` subscribes to nothing: a component sees a new contribution on its
+next render. A transient contribution makes a new array on every render, and `react()`
+rejects it in development (section 4.2). The store write in render is safe under
+concurrent rendering, because every render stores an array equal to its own `get()`.
 
 ### 4.4 Tokens from a section
 
@@ -373,14 +386,17 @@ for every construction, core §3.10.5).
 
 Plugin API use, checked against core §3.10:
 
-| Need                                        | Core API                                           | Status                            |
-| ------------------------------------------- | -------------------------------------------------- | --------------------------------- |
-| find the container a plugin is attached to  | `setup(context)`, `context.container`              | available                         |
-| lifetime of the provider root `get()` binds | `context.blueprint()`, `visible(rootId, token)`    | gap K1: no root module id         |
-| know the blueprint changed after `load()`   | `context.blueprint()` identity                     | gap K2: unspecified               |
-| lifetime through an alias                   | `edges` with `kind: 'alias'`                       | available                         |
-| lifetime with `{ module }`                  | `modules[].definition === ref`, then `visible(id)` | available                         |
-| contract tokens from `@nexusdi/federation`  | `visible()` maps through `tokenKey`                | assumed; K3 asks core to state it |
+| Need                                        | Core API                                                                                               | Status        |
+| ------------------------------------------- | ------------------------------------------------------------------------------------------------------ | ------------- |
+| find the container a plugin is attached to  | `setup(context)`, `context.container`                                                                  | available     |
+| lifetime of the provider root `get()` binds | `context.blueprint()`, `visible(view.root, token)`                                                     | core 0.4 (K1) |
+| know the blueprint changed after `load()`   | `context.blueprint()` identity                                                                         | core 0.4 (K2) |
+| lifetime through an alias                   | `edges` with `kind: 'alias'`                                                                           | available     |
+| lifetime with `{ module }`                  | `moduleDefinitionOf(ref)`, then `modules[]` whose `definition` or `replaced` is it, then `visible(id)` | available     |
+| contract tokens from `@nexusdi/federation`  | `visible()` maps through `tokenKey`                                                                    | core 0.4 (K3) |
+
+`moduleDefinitionOf` is public in the core 0.4 plan (Task R8), and core.md does not yet
+document it. The core controller confirms the export stays.
 
 The components need no plugin: `NexusProvider`, `ScopeProvider` and `SectionBoundary`
 call `get`, `createScope`, `load` and `scope.extend` on a container the app created, as
@@ -447,7 +463,7 @@ request scope that the React Router adapter disposes at stream end (integrations
 With nested scopes (section 18, K4), the server render could create a child of the request
 scope, and the adapter's disposal of the parent would end it.
 
-Recommendation: `ScopeProvider` is client only in 0.4, with the effect-based lifecycle
+Decision (R6): `ScopeProvider` is client only in 0.4, with the effect-based lifecycle
 above.
 
 Consequences for users:
@@ -484,12 +500,16 @@ docs say so; an app that must keep it moves the `ScopeProvider` above the `Activ
 
 ### 6.4 Nesting
 
-A `ScopeProvider` inside another `ScopeProvider`, or inside a `NexusProvider` given a
-`scope`, throws `NEXUS_REACT_NESTED_SCOPE` in render. Core 0.4 scopes do not nest (core
-§3.6), and both silent options are wrong. Reusing the outer scope shares scoped
-instances that two sibling dialogs expect to own. Creating a sibling scope of the root
-hides the outer scope's instances from the inner subtree. K4 asks core for
-`scope.createScope()`, which core §3.6 says a later release can add without a break.
+After hydration, a `ScopeProvider` whose context resolver is a scope (an outer
+`ScopeProvider`, or a `NexusProvider` given `scope`) throws `NEXUS_REACT_NESTED_SCOPE` in
+render. On the server and during hydration it renders `fallback` (section 6.1, step 1),
+so a React Router server render, whose `NexusProvider` carries the request scope, never
+throws it. The check runs in render, where its result is deterministic. Core 0.4 scopes
+do not nest (core §3.6), and both silent options are wrong. Reusing the outer scope
+shares scoped instances that two sibling dialogs expect to own. Creating a sibling scope
+of the root hides the outer scope's instances from the inner subtree. K4 defers
+`scope.createScope()` to 0.5, which core §3.6 says a later release can add without a
+break.
 
 ### 6.5 Scopes and `load()`
 
@@ -605,7 +625,7 @@ container:
 - Its exports stay visible to root `get()`.
 - The store keeps the resolved promise, so a remount renders at once with no fallback.
 
-Recommendation: section singletons hold what the whole visit to the app needs (an API
+Decision (R9): section singletons hold what the whole visit to the app needs (an API
 client, a cache). Anything that should end when the user leaves the section (a live
 socket, a polling timer, a draft) is `scoped` and lives under a `ScopeProvider` inside
 the boundary, so unmounting the boundary disposes it (section 6). The docs' sections page
@@ -673,7 +693,7 @@ startTransition(() => {
 });
 ```
 
-Recommendation: `await` before `hydrateRoot` in SSR apps, and the promise form with
+Decision: `await` before `hydrateRoot` in SSR apps, and the promise form with
 Suspense in SPAs.
 
 Consequences for users: hydration starts after `create` in both forms, so the page stays
@@ -748,6 +768,10 @@ Rules for users, which the React Router guide states:
   needs it before hydration reads it from a JSON `<script>` the root route renders.
   NexusDI has no transfer-state mechanism, and every framework already has a payload
   channel (frontend §3.3).
+- A token that a component reads in render outside a `ScopeProvider` binds to a
+  singleton or a value provider in the client graph (an alias counts as its target). It
+  may be `scoped` in the server graph. The client root has no scope, so root `get()` of a
+  scoped token throws `NEXUS_SCOPE_REQUIRED` during hydration (core §3.5).
 - `clientLoader` and `clientMiddleware` run outside React. They import `shipReady` from
   `ship.client.ts` and `await` it. `@nexusdi/react-router` stays server only
   (integrations §7.2).
@@ -757,7 +781,8 @@ passes the middleware `RouterContextProvider` as `loadContext`, so the entry can
 `NEXUS_SCOPE`. If it does not, the adapter needs a way to expose the scope to the
 entry, and the integrations spec takes the item.
 
-Recommendation: SSR with the request scope as above.
+Decision (R11): SSR with the request scope as above, with the lifetime rule for tokens
+read in render.
 
 Consequences for users: a React Router app keeps server HTML for every component that
 uses `useService`, except under `ScopeProvider` and `SectionBoundary` (sections 6.2 and
@@ -783,6 +808,7 @@ export function Providers({ children }: { children: ReactNode }) {
     <NexusProvider
       container={shipReady}
       clientOnly
+      dispose
       fallback={<ConsoleSkeleton />}
     >
       {children}
@@ -801,7 +827,7 @@ export const shipReady =
 through the same `useSyncExternalStore` flag as section 6.2, and then the container.
 Without it, the client's hydration render would differ from the server HTML.
 
-Recommendation: `clientOnly` for Next. Place the provider around the interactive parts
+Decision (R12): `clientOnly` for Next. Place the provider around the interactive parts
 that use services, so the rest of the page keeps its server HTML.
 
 Consequences for users: components under a `clientOnly` provider have no server HTML. A
@@ -937,21 +963,37 @@ A `load()` of it into the container that already holds the old copy fails with
 The store keeps, per container, the module object each section name loaded. When a
 `LazySection` object it has not seen arrives with a known name, the store runs its
 loader. The same module object means only the file holding `lazySection` changed, and
-nothing happens. A different module object means the section's module changed:
+nothing happens. A different module object has three cases:
 
-- In development, the package calls `location.reload()` after a `console.info` naming the
-  section. A full reload is the only correct result while the old module's singletons
-  cannot be removed.
-- In production the case means two builds of one section in one page, and the boundary
-  fails with `NEXUS_REACT_SECTION_CONFLICT` through `errorFallback`.
+- A module with a different `name` from the module that section name loaded: two sections
+  share one section name. The boundary fails with `NEXUS_REACT_SECTION_CONFLICT`, in
+  development and in production.
+- The same module `name`, in production: two builds of one section in one page. The
+  boundary fails with `NEXUS_REACT_SECTION_CONFLICT`.
+- The same module `name`, in development: the package reads the sessionStorage key
+  `nexusdi:section-reload`. When it holds this section name with a time less than 10
+  seconds old, the reload did not remove the conflict, which means two copies of the
+  section are in the page. The package removes the key and the boundary fails with
+  `NEXUS_REACT_SECTION_CONFLICT`. Otherwise the package writes
+  `{ section, at: Date.now() }` to the key, logs a `console.info` naming the section, and
+  calls `location.reload()`. Every storage read and write runs in try/catch. When storage
+  throws, the boundary fails with the conflict error and the page does not reload.
 
-Recommendation: the full reload in development. The alternative, a new container for the
-whole app on every section edit, would need the provider to own `Nexus.create`, which
-section 3.1 keeps in app code.
+A full reload is the only correct result while the old module's singletons cannot be
+removed, and any automatic reload needs a loop breaker. Two copies of one section share a
+module name, so a rule on the name alone would reload on every page load. The guard is a
+few lines of development-only code, which production builds strip.
+
+Decision (R10): the guarded full reload in development. The alternative, a new
+container for the whole app on every section edit, would need the provider to own
+`Nexus.create`, which section 3.1 keeps in app code.
 
 Consequences for users: an edit to a section's module file reloads the page in
 development. Edits to the section's components still use Fast Refresh, since they do not
-change the module object. K5 (unload) turns the reload into a swap in 0.5.
+change the module object. A second edit of the same section module within 10 seconds of
+the reload shows the conflict error once, and the next edit reloads again. A copy-pasted
+section name gives a named error in every build. K5 (unload) turns the reload into a
+swap in 0.5.
 
 ### 12.4 Next.js
 
@@ -1015,7 +1057,8 @@ Rules the testing page states:
   awaits it: `await screen.findByRole(...)`.
 - A section test replaces the section's module with
   `overrideModule(Cartography, CartographyStub, { lazy: true })`, so the boundary's
-  `load()` walks the stub (core §11). A load failure test gives the boundary a
+  `load()` walks the stub (core §11). A component that passes `{ module: Cartography }`
+  resolves in the stub (core §3.5, K6). A load failure test gives the boundary a
   `lazySection` whose loader rejects.
 - A hook test uses `renderHook(() => useService(FLIGHT_LOG), { wrapper })` with a
   `ScopeProvider` in the wrapper.
@@ -1026,15 +1069,16 @@ Rules the testing page states:
 
 ## 14. Errors
 
-The package declares four codes as bodyless `NexusError` subclasses, added to
+The package declares four codes as bodyless `NexusError` subclasses built with core's
+public `errorBase` (as `@nexusdi/decorators` does for `NEXUS_LEGACY_DECORATORS`), added to
 `NexusErrorByCode` by augmentation (core §9). `isNexusError(error, code)` recognises them.
 
-| Code                              | Thrown by                                                                           | Fields                              |
-| --------------------------------- | ----------------------------------------------------------------------------------- | ----------------------------------- |
-| `NEXUS_REACT_NO_PROVIDER`         | `useService`, `useContainer`, `ScopeProvider`, `SectionBoundary` outside a provider | `hook: string`                      |
-| `NEXUS_REACT_TRANSIENT_IN_RENDER` | `useService` with `react()` registered                                              | `token: string`, `provider: string` |
-| `NEXUS_REACT_NESTED_SCOPE`        | `ScopeProvider` under a scope                                                       | none                                |
-| `NEXUS_REACT_SECTION_CONFLICT`    | `SectionBoundary` in production                                                     | `section: string`                   |
+| Code                              | Thrown by                                                                                                          | Fields                              |
+| --------------------------------- | ------------------------------------------------------------------------------------------------------------------ | ----------------------------------- |
+| `NEXUS_REACT_NO_PROVIDER`         | `useService`, `useContainer`, `ScopeProvider`, `SectionBoundary` outside a provider                                | `hook: string`                      |
+| `NEXUS_REACT_TRANSIENT_IN_RENDER` | `useService` with `react()` registered                                                                             | `token: string`, `provider: string` |
+| `NEXUS_REACT_NESTED_SCOPE`        | `ScopeProvider` under a scope, after hydration                                                                     | none                                |
+| `NEXUS_REACT_SECTION_CONFLICT`    | `SectionBoundary`: a different module name, a production duplicate, or a development conflict right after a reload | `section: string`                   |
 
 The message is core's one line with the code, the fields and the link
 `https://nexus.js.org/errors/<CODE>`. The docs site has a page per code with the fix.
@@ -1067,7 +1111,7 @@ wargame rates NexusDI negative value there (frontend §1). The docs' "when you d
 a container" section (core D6) says so on the React page too. The package is for apps
 that need what core adds: async startup in dependency order, validated lazy sections, and
 one override path for tests. The comparison page lists `inversify-react` and
-`react-tsyringe`, which also need `reflect-metadata` and legacy decorators, with sizes the
+`react-tsyringe`, which also need legacy decorators, with sizes the
 size report measures in the same fixture before the page states any figure.
 
 ## 16. Package, peers and tests
@@ -1100,15 +1144,21 @@ Tests:
   the deferred release (StrictMode keeps one scope, a real unmount disposes it); the
   nesting error; the section cache (two boundaries, one `load()`); retry after a
   rejected loader; a component error inside a boundary reaching the outer boundary; the
-  `MultiToken` cache cleared after a load; `scope.extend()` of every live scope after a
+  `MultiToken` memo (same array while contents match, a new array after an app-driven
+  `load()`, separate arrays per scope); `scope.extend()` of every live scope after a
   load; `dispose` on swap and on unmount; the transient check with `react()`, through an
-  alias and a `MultiToken`.
+  alias and a `MultiToken`; `react()` with `{ module }` under `overrideModule`; the
+  section reload guard (a mocked `location.reload` and sessionStorage, including storage
+  that throws).
 - Type tests: `useService` overloads, `readonly T[]` for a `MultiToken`, `LookupOptions`.
 - SSR: `renderToReadableStream` with the `scope` prop; `hydrateRoot` on that HTML with no
-  hydration warning for `ScopeProvider`, `SectionBoundary` and `clientOnly`.
+  hydration warning for `ScopeProvider`, `SectionBoundary` and `clientOnly`; a
+  `ScopeProvider` under a `NexusProvider` with `scope` renders its fallback and throws
+  nothing.
 - React Router 8 e2e: a fixture app whose `entry.server.tsx` reads `NEXUS_SCOPE` from
-  `loadContext` (the item of section 9.1), rendering a component that uses a scoped
-  token on the server.
+  `loadContext` (the item of section 9.1), rendering a component that reads a token bound
+  `scoped` in the server graph and `singleton` in the client graph, then hydrating with
+  no `NEXUS_SCOPE_REQUIRED` and no hydration warning.
 - Next 16 e2e: a fixture with `providers.tsx`, asserting that no client container is
   created in the server process and that a server component importing `useService`
   fails with Next's client-reference error.
@@ -1117,170 +1167,316 @@ Tests:
   edit reloads the page.
 - Peers: the unit and SSR suites run on `react` 19.0 and the latest 19.x.
 
-## 17. Owner decisions
+## 17. Resolved decisions
 
-Each entry gives the recommendation, the pillars, and what changes for users. None
-removes or renames core API. Every name below is new API of `@nexusdi/react`.
+The owner delegated R1 to R16 to an architect and a tech lead on 2026-09-28. The
+architect proposed a ruling for each item, and the tech lead checked each against the
+pillars, users (0.3 users included), migration cost, bundle size and DX, and gave the
+final ruling below. The body of this spec already reflects every ruling. None removes or
+renames core API. Every name below is new API of `@nexusdi/react`, and 0.3 had no React
+package, so no 0.3 user migrates anything for this package.
+
+Five rulings amend the draft recommendation: R4, R5, R7, R10 and R16. R11 keeps its
+recommendation and adds a rule.
 
 R1. React 19 only.
 
-- Recommendation: `react` `^19.0.0`.
-- Pillars: P1.
-- Users: a React 18 app cannot use the package in 0.4 and keeps its own glue. The
-  package relies on `use()`, which React 18 lacks.
+- Ruling: `react` `^19.0.0`. Accepted as recommended.
+- Reason: the provider's promise form needs `use()`, which React 18 lacks (sections 3.1
+  and 8). P1.
+- Users: a React 18 app keeps its own glue until it upgrades.
 
 R2. The app creates the container, and the provider only publishes it.
 
-- Recommendation: `NexusProvider` takes `Nexus | Promise<Nexus> | null` and never calls
-  `Nexus.create` (section 3.1).
-- Pillars: P2, P5.
-- Users: `Nexus.create` looks the same in a React app as in a server or a test. The app
-  writes one module-level line for the promise. The provider cannot rebuild the
-  container by itself, which is why section 12.3 reloads the page on a section edit.
+- Ruling: `NexusProvider` takes `Nexus | Promise<Nexus> | null` and never calls
+  `Nexus.create` (section 3.1). Accepted as recommended.
+- Reason: `Nexus.create` looks the same in a server, a test and a browser, and the
+  provider stays small. P2, P5, P6.
+- Users: one module-level line for the promise. The provider cannot rebuild the
+  container, which is why a section module edit reloads the page (R10).
 
 R3. The provider disposes only with `dispose`.
 
-- Recommendation: default `false`; `dispose` for the HMR recipe and for containers
-  that live exactly as long as the React root.
-- Pillars: P5.
-- Users: a test's `await using` and a server's shutdown hook keep ownership. An app that
-  forgets `dispose` in the HMR recipe leaks one container per edit in development.
+- Ruling: default `false`; `dispose` for the HMR recipe and for containers that live
+  exactly as long as the React root. Accepted as recommended.
+- Reason: the code that called `create` owns disposal, as core §8.2 and `await using`
+  already say. P5.
+- Users: tests and servers keep ownership. The HMR recipe sets `dispose`, or it leaks
+  one container per edit in development.
 
 R4. The transient check lives in the optional `react()` plugin.
 
-- Recommendation: register `react()` in development and tests (section 4.2). It needs
-  K1 in core. If K1 is not in core by rc.0, `react()` is released in the first RC that has it,
-  and the rest of the package is released in rc.0.
-- Pillars: P5 (a named error on first render), P6 (no production cost), P2 (one line
-  beside `devtools()`).
-- Users: without `react()`, a transient in render builds an instance per render with no
-  warning. `devtools()` does not include `react()`, so a developer registers both.
+- Ruling (amended): register `react()` in development and tests (section 4.2). It is
+  released in rc.0 and needs K1, K2 and K3 in core, which section 18 puts in core 0.4.
+  R16 gives the rule if one of them is late. For `{ module: ref }`, `react()` resolves
+  `ref` with core's `moduleDefinitionOf` and checks the module whose `definition` or
+  `replaced` is that definition, which is the module core's `get()` selects after K6.
+  When the view has no provider for the token, the check does nothing and `get()` throws
+  its own error. A unit test covers `overrideModule` together with `{ module }`.
+- Reason: core builds views only for a plugin that asks for them, so the check costs
+  nothing in production (P6) and adds one line beside `devtools()` (P2). The draft
+  compared `definition === ref`, which misses every `@Module` class, because a class is a
+  different object from its definition.
+- Users: in development and tests, a transient read in render fails on the first render
+  with the fix in the message. Without `react()`, nothing warns. `devtools()` does not
+  include `react()`.
 
-R5. `useService` caches `MultiToken` arrays.
+R5. `useService` memoizes `MultiToken` arrays.
 
-- Recommendation: cache per provider, cleared on package-driven loads (section 4.3).
-- Pillars: P5.
-- Users: arrays are stable across renders. After a `load()` run outside the package, a
-  component sees the old array until the next package-driven load, or until core adds K2.
+- Ruling (amended): a shallow-compare memo per resolver, token and module, as section
+  4.3 states. The draft's cache, cleared on package-driven loads, is dropped, and R5 no
+  longer depends on K2.
+- Reason: the draft cache went stale after an app-driven `load()`, and K2 could not fix
+  that in production, because without a registered plugin the package never sees a
+  blueprint. It also keyed only by token and module, so two `ScopeProvider`s would share
+  one array of scoped contributions, and it would have kept one transient instance
+  forever. The memo costs one `get()` plus an O(n) compare of a small array per render.
+  P5.
+- Users: arrays are stable across renders while their contents are, and reflect every
+  `load()` on the next render. A transient contribution gives a new array each render,
+  and `react()` rejects that token in development.
 
 R6. `ScopeProvider` is client only, created in an effect, with `request` read once.
 
-- Recommendation: as section 6.
-- Pillars: P5, P8.
-- Users: no server HTML under a `ScopeProvider`. No leaked scopes from abandoned
-  renders. A new request needs a `key`. A hidden `<Activity>` disposes the scope.
+- Ruling: as section 6. Accepted as recommended.
+- Reason: a scope created in render leaks on every abandoned render and every server
+  render, and core 0.4 has no parent scope to hang a server scope on (core §3.6, K4). P5,
+  P8.
+- Users: no server HTML under a `ScopeProvider`. A new request needs a `key`. A hidden
+  `<Activity>` disposes the scope. The docs state all three.
 
-R7. A nested `ScopeProvider` throws.
+R7. A nested `ScopeProvider` throws after hydration.
 
-- Recommendation: `NEXUS_REACT_NESTED_SCOPE` until core has nested scopes (K4).
-- Pillars: P5.
-- Users: a dialog inside a scoped page cannot have its own scope in 0.4. The page's
-  scope must cover both, or the dialog's `ScopeProvider` moves out of the page's.
+- Ruling (amended): `NEXUS_REACT_NESTED_SCOPE` after hydration only, until core has
+  nested scopes (K4). On the server and during hydration a `ScopeProvider` renders
+  `fallback`, also under a `NexusProvider` given `scope` (section 6.4). A unit test
+  renders that case through `renderToReadableStream`.
+- Reason: the draft threw in render under any `NexusProvider` given `scope`. Section 9.1
+  passes `scope` on every React Router server render, so every `ScopeProvider` in a React
+  Router app would have crashed the server render, against section 6.1 step 1.
+- Users: React Router apps can use `ScopeProvider`. A true nesting on the client throws
+  until 0.5. A dialog inside a scoped page shares the page's scope, or its
+  `ScopeProvider` moves out of the page's.
 
 R8. `SectionBoundary` owns load failures only, and renders on the client.
 
-- Recommendation: as section 7. `lazySection` takes a name, which the cache, the HMR
-  check and the 0.5 `mount()` use.
-- Pillars: P3, P5.
-- Users: one component for a lazy section with a fallback and an error fallback. A
+- Ruling: as section 7. `lazySection` takes a name, which the cache, the HMR check and
+  the 0.5 `mount()` use. Accepted as recommended.
+- Reason: one validated `load()` per container and section name, and one
+  `BlueprintError` that lists every problem (core §3.5, §9). P3, P5.
+- Users: one component gives a lazy section a fallback and an error fallback. A
   component error inside a section still reaches the app's own error boundary. A
   section's UI has no server HTML.
 
 R9. Unmounting a section leaves its module loaded.
 
-- Recommendation: document it and steer per-visit resources into a `ScopeProvider`
-  inside the boundary (section 7.3).
-- Pillars: P3 (the module system is honest about what it cannot do yet).
+- Ruling: document it and steer per-visit resources into a `ScopeProvider` inside the
+  boundary (section 7.3). Accepted as recommended.
+- Reason: core 0.4 has no unload (K5). P3.
 - Users: section singletons live until the tab closes. Scoped resources end on unmount.
 
-R10. A section module edit reloads the page in development.
+R10. A section module edit reloads the page once in development.
 
-- Recommendation: as section 12.3.
-- Pillars: P5.
-- Users: each section module edit reloads the page in development. Component edits keep
-  Fast Refresh.
+- Ruling (amended): the guarded reload of section 12.3. A different module name fails
+  with `NEXUS_REACT_SECTION_CONFLICT` in every build. The same name reloads in
+  development, guarded by the sessionStorage key `nexusdi:section-reload` with a
+  10-second window, and fails with the conflict error in production.
+- Reason: the draft reloaded on every conflict in development, so two `lazySection`
+  handles with one name, or two copies of one section, reloaded the page forever. The
+  architect's guard, cleared after the next successful load, still looped on two copies.
+  The time window breaks the loop, and production builds strip the code. P5.
+- Users: an edit to a section module reloads the page once. A second edit of that module
+  within 10 seconds of the reload shows the conflict error once. A copy-pasted section
+  name gives a named error, where the draft gave an endless reload.
 
 R11. React Router 8 SSR renders with the adapter's request scope.
 
-- Recommendation: `entry.server.tsx` passes `scope` to `NexusProvider` (section 9.1).
-- Pillars: P5, P3.
-- Users: server HTML for components that use services, two module graphs (server and
-  client), and one CI test that checks both.
+- Ruling (recommendation kept, rule added): `entry.server.tsx` passes `scope` to
+  `NexusProvider` (section 9.1). The React Router guide adds the rule that a token read
+  in render outside a `ScopeProvider` binds to a singleton or a value in the client
+  graph, and may be `scoped` in the server graph. The e2e test hydrates and asserts no
+  `NEXUS_SCOPE_REQUIRED` and no hydration warning. The `loadContext` question stays with
+  the integrations spec.
+- Reason: the server resolves through the request scope, and the client root throws
+  `NEXUS_SCOPE_REQUIRED` for scoped tokens (core §3.5), so a component valid on the
+  server could crash at hydration. The draft e2e test would have hit exactly that. P5,
+  P3.
+- Users: server HTML for components that use services, two graphs, and one CI
+  `Nexus.check` over both. The rule tells them which lifetime each side's binding may
+  have.
 
 R12. Next.js uses a `clientOnly` provider, and the RSC side stays a recipe.
 
-- Recommendation: as sections 9.2 and 10, with no `@nexusdi/next`.
-- Pillars: P2, P6.
+- Ruling: as sections 9.2 and 10, with no `@nexusdi/next`. The section 9.2 example sets
+  `dispose`, matching section 12.4. Accepted as recommended.
+- Reason: a module-level client container on the Next server is shared across requests,
+  which leaks one user's state into another user's HTML. P2, P6.
 - Users: no server HTML under the provider in Next. Server components use the
   `cache()` plus `after()` recipe, whose page waits on the token identity reproduction.
 
 R13. The entry starts with `'use client'`.
 
-- Recommendation: yes (section 10).
-- Pillars: P5.
-- Users: importing the package in a server component gives Next's client-reference
-  error, which names the component. Without the directive the import fails on `createContext`.
+- Ruling: yes (section 10). Accepted as recommended.
+- Reason: a misuse in a server component gets Next's client-reference error, which names
+  the component. Without the directive the import fails on `createContext`. P5.
+- Users: a clearer error and nothing else.
 
 R14. No test helper export.
 
-- Recommendation: React Testing Library's `wrapper` with `NexusProvider` (section 13).
-- Pillars: P2, P6.
-- Users: one line per test file, or a shared `wrapper` in the app's test setup.
+- Ruling: React Testing Library's `wrapper` with `NexusProvider` (section 13). Accepted
+  as recommended.
+- Reason: the `wrapper` is one line, so a helper would add API and save none. P2, P6.
+- Users: one wrapper per test file or a shared one in setup, plus an explicit
+  `unmount()` before `await using` disposes.
 
 R15. Package errors carry core's one-line message and a docs page per code.
 
-- Recommendation: as section 14.
-- Pillars: P6.
-- Users: the fix is on the docs page linked from the message, as for core's own codes
-  without `errors()`.
+- Ruling: as section 14. The four classes use core's public `errorBase`, as
+  `@nexusdi/decorators` does. Accepted as recommended.
+- Reason: this matches core D15 and D21, and `formatError` cannot reach errors raised in
+  render (core §3.10.6). P6.
+- Users: `isNexusError(e, 'NEXUS_REACT_…')` works across two copies of core, and the fix
+  is on the linked page.
 
 R16. Everything in this spec targets rc.0.
 
-- Recommendation: rc.0 for the package, with the exception R4 names.
-- Pillars: P5 (core D18: a React user gets the adapter at launch).
-- Users: the RC feedback on the flagship multi-team case covers the package from the
-  first RC.
+- Ruling (amended): rc.0 for the whole package. `react()` needs K1, K2 and K3. If one of
+  them is not in core by rc.0, `react()` is released in the first RC that has all three,
+  and the rest of the package in rc.0. K6 gates no export. Until K6 is in core, the
+  testing page leaves out the `overrideModule` rule for components that pass
+  `{ module }`.
+- Reason: core D18 puts React at launch with the other adapters. The draft exception
+  named K1 only, and the check needs all three items. `react()` never calls `get()` with
+  a replaced module, so K6 does not hold the plugin back. P5.
+- Users: the RC feedback on the flagship multi-team case covers the whole package from
+  the first RC.
 
-## 18. Open items for core
+## 18. Core items
 
-This spec invents no core API. Each item is a gap it found in core spec revision 2, with a
-recommendation for the core spec.
+This spec invents no core API. Each item is a gap it found in core spec revision 2. The
+architect and the tech lead ruled on each on 2026-09-28. K1, K2, K3 and K6 go into core
+0.4 before rc.0, with the text below, which the core controller pastes verbatim. K4 and
+K5 are deferred to 0.5 and change no core text.
 
-K1. `BlueprintView` does not identify the root module.
+K1. `BlueprintView.root`. In core 0.4.
 
-- Need: the transient check calls `visible(rootId, token)` (section 4.2). A root module
-  given as an array or an object is named `root`, but a root given as a module has its
-  own name, and `ModuleView` has no root flag.
-- Recommendation: add `readonly root: string`, the root module's id, to `BlueprintView`.
-  A new field on a view does not raise `NEXUS_PLUGIN_API` (core §3.10.2).
+- Need: the transient check calls `visible(root, token)` (section 4.2). Core §5 assigns
+  module ids in walk order, so the root is `m0` in practice, but the spec states neither
+  the root's id nor the order of `modules`, and `PluginContext` has no root.
+- Ruling: add the field. A string id matches `visible(moduleId)`, `ModuleView.id` and
+  `ProviderView.module`. A new field on a view does not raise `NEXUS_PLUGIN_API` (core
+  §3.10.2). The internal `Blueprint.root` already exists on `feat/core-0.4`, so the view
+  copies one string.
+- Core §3.10.1, `interface BlueprintView`, after the `complete` field:
+
+  ```ts
+    /** The root module's id. Root get(), has(), resolve(), validate() and every scope look tokens up in this module. */
+    readonly root: string;
+  ```
+
+- Core §3.10.1, a new paragraph after the views code block, before "Core builds the views
+  only when...": "`root` is the id of the root module, the module whose visibility root
+  `get()`, `has()`, `resolve()`, `validate()` and every scope use (sections 3.5 and 7.1).
+  `load()` adds imports to the root and never replaces it, so every view of one container
+  carries the same `root`. In a `Nexus.check` view, `root` is the checked root.
+  `visible(view.root, token)` returns the providers a root lookup of `token` considers, in
+  lookup order."
+- Controller: add `root` to `ViewParts`, and set it in `viewOfBlueprint`, the
+  compile-time check view and `failedView`. Test that a `compile.check` hook on a failed
+  compile reads it.
 - Blocks: R4.
 
-K2. `context.blueprint()` does not state its identity or its cost.
+K2. Identity and cost of `context.blueprint()`. In core 0.4.
 
-- Need: the plugin caches lifetimes per blueprint, and section 4.3 wants to key the
-  `MultiToken` cache on it. If each call builds new views, a call per `useService` is too
-  slow, and the cache cannot tell a `load()` happened.
-- Recommendation: state that `blueprint()` returns the same frozen object until the next
-  `load()` publishes, and builds it at most once per publish.
+- Need: `react()` caches lifetimes per blueprint and must know when a `load()` changed
+  the graph.
+- Ruling: state the guarantee. The core plan already caches one view per frozen
+  `Blueprint` in a `WeakMap`, and core §5 publishes one frozen `Blueprint` per successful
+  `load()`, so the guarantee costs nothing extra.
+- Core §3.10.1, `interface PluginContext`, replace the doc comment on `blueprint()`:
 
-K3. `visible()` and `tokenKey` are not stated together.
+  ```ts
+    /** The current blueprint's view: one frozen object per published blueprint. A load() that changes the graph publishes a new one. */
+    blueprint(): BlueprintView;
+  ```
+
+- Core §3.10.5, the `setup` bullet, replace the whole sentence "`context.container` is the
+  finished container, and `context.blueprint()` returns the current view, which a later
+  `load()` replaces." with: "`context.container` is the finished container.
+  `context.blueprint()` returns the view of the current blueprint. It returns the same
+  frozen object on every call until a `load()` publishes a new blueprint, so a plugin can
+  key a cache on the view's identity. Core builds that view on the first call after a
+  publish, at most once per blueprint. A `load()` that does nothing, and a `load()` that
+  fails, publish no blueprint, and the view stays the same object."
+- Blocks: R4.
+
+K3. `visible()` and `tokenKey`. In core 0.4.
 
 - Need: a contract token from `@nexusdi/federation` must resolve its lifetime through
-  the same key `get()` uses.
-- Recommendation: state that `visible(moduleId, token)` maps `token` through the
-  `tokenKey` hooks, as every lookup does (core §3.10.3).
+  the key `get()` uses. The core plan (Task R25) keys lookups through `state.canon`, while
+  `buildView.visible` still indexes the raw token, so with `federation()` registered the
+  view misses a contract token from a second copy of the contracts package.
+- Ruling: state it and fix the view.
+- Core §3.10.1, `interface BlueprintView`, replace the `visible` doc comment:
 
-K4. Nested scopes.
+  ```ts
+    /** Provider ids of `token` visible in the module, in lookup order. The token is keyed through the tokenKey hooks, as get() keys it. */
+    visible(moduleId: string, token: AnyToken): readonly string[];
+  ```
+
+- Core §3.10.3, append to the paragraph that starts "`tokenKey(token)` maps a token to the
+  key every lookup uses": "`BlueprintView.visible()` keys its `token` argument the same
+  way, so a plugin that asks about a token from a second copy of a contracts package gets
+  the providers that `get()` of that token would consider."
+- Controller: `buildView` takes the container's canonicalizer (`RootState.canon`, or
+  `Nexus.check`'s own) and applies it in `visible`.
+- Blocks: R4.
+
+K4. Nested scopes. Deferred to 0.5.
 
 - Need: a `ScopeProvider` inside a scope (section 6.4), and a server-rendered
   `ScopeProvider` as a child of the React Router request scope (section 6.2).
-- Recommendation: `scope.createScope()` in 0.5, in the sections spec that synthesis
-  decision 8 plans, with the ownership rule "a child scope ends when its parent ends".
-  Core §3.6 already says it can be added without a break.
+- Ruling: `scope.createScope()` in 0.5, in the sections spec that synthesis decision 8
+  plans, with the rule "a child scope ends when its parent ends". That spec also decides
+  which scope owns a scoped instance, and whether an inner scope sees the outer
+  `REQUEST`. No core text changes now: core §3.6 already says `scope.createScope()` can be
+  added without a break.
+- Users: a scoped dialog inside a scoped page throws on the client (R7). In a React
+  Router app, server HTML stops at the first `ScopeProvider`.
 
-K5. Unload.
+K5. Unload. Deferred to 0.5.
 
 - Need: a section's singletons end on unmount (section 7.3), and a section module edit
   swaps in place (section 12.3).
-- Recommendation: as synthesis C19, in 0.5. `SectionBoundary` moves to `mount()` without
-  a change to its props.
+- Ruling: as synthesis C19, `mount()` returning an `AsyncDisposable`, in 0.5. Unload has
+  to undo `load()`'s additive guarantees (core §3.5, §7.4), which needs its own design.
+  No core text changes now. `SectionBoundary` moves to `mount()` with no change to its
+  props.
+- Users: section singletons live for the whole tab, and a section module edit reloads
+  the page in development (R10).
+
+K6. `{ module: Mod }` after `overrideModule(Mod, Stub)`. In core 0.4.
+
+- Need: the section tests of section 13. On `feat/core-0.4`, `lookupModule` runs
+  `bp.moduleByDefinition.get(definition)` on the unreplaced definition, and that map is
+  keyed by the replacement the walk visited. So `get(T, { module: Cartography })` under
+  `overrideModule(Cartography, Stub)` throws `NEXUS_INVALID_MODULE`. Core §3.5 does not
+  define the case, and nothing outside core can fix it.
+- Ruling: the option selects the replacement.
+- Core §3.5, append after "With the `module` option, `get()` resolves as if called from
+  inside that module.": "When a `compile.module` hook replaced that module (section
+  3.10.3), the option selects the module that replaced it, so `get(T, { module: Mod })`
+  works in a testing container with `overrideModule(Mod, Stub)`. Naming the replacement
+  itself also works. `has()`, `resolve()`, `validate()` and a scope's lookups follow the
+  same rule, and a plugin finds the same module through `ModuleView.replaced`."
+- Controller: add a reverse map (original definition to stub id) on `Blueprint`.
+  `lookupModule` falls back to it: `moduleByDefinition.get(d) ?? moduleByReplaced.get(d)`.
+  Leave originals out of `moduleByDefinition`, because the `load()` walk treats that map
+  as its visited set. `load()` recompiles from the root, so the reverse map is complete
+  after every load, lazy overrides included. Tests: `get` and `has` with `{ module: Mod }`
+  after `overrideModule`, and after a lazy override plus `load(Mod)`.
+- Blocks: the section 13 rule for components that pass `{ module }`, and no export.
+- Users: section tests that pass `{ module }` work. 0.3 users are unaffected.
+
+`moduleDefinitionOf`, which R4 uses, is public in the core 0.4 plan (Task R8), and core.md
+does not document it. The core controller confirms the export stays.
