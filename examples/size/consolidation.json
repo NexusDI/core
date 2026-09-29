@@ -58,5 +58,11 @@
     "core": 18276,
     "delta": 0,
     "kept": true
+  },
+  {
+    "step": "R25b canonical",
+    "core": 18287,
+    "delta": 11,
+    "kept": true
   }
 ]

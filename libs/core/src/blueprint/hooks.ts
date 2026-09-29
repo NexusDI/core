@@ -57,9 +57,14 @@ export const NO_COMPILE_HOOKS: CompileHooks = Object.freeze({
   check: Object.freeze([]),
 });
 
-export function compileContext(phase: CompileContext['phase']): CompileContext {
+/** The context every compile hook of one compile receives; `canon` is the container's canonicalizer. */
+export function compileContext(
+  phase: CompileContext['phase'],
+  canon: Canonicalizer,
+): CompileContext {
   return Object.freeze({
     phase,
+    canonical: canon,
     configuredFrom: (module: ModuleDefinition) => {
       const base = moduleInternals(module)?.base;
       return base === undefined || base === module ? undefined : base;
@@ -127,6 +132,9 @@ export function canonicalizer(
 /**
  * `canon` for one compile. A hook's throw joins `errors` once per token, and
  * the token keys to itself, so the compile reports it with the rest.
+ * Only the walk and rewriteProviders use it; views and contexts get the
+ * container's canonicalizer, because a plugin can keep them after the
+ * compile.
  */
 export function reportingCanon(
   canon: Canonicalizer,

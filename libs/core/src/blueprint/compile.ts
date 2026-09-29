@@ -121,7 +121,7 @@ export function compile(input: CompileInput): Blueprint {
   const hooks = input.hooks ?? NO_COMPILE_HOOKS;
   const context =
     hooks.module.length > 0 || hooks.provider.length > 0
-      ? compileContext(phase)
+      ? compileContext(phase, input.canon ?? sameToken)
       : undefined;
   let replacedModules: ReadonlyMap<ModuleDefinition, ModuleDefinition> =
     NO_ENTRIES;

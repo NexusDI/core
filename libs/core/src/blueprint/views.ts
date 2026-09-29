@@ -25,6 +25,8 @@ export interface BlueprintView {
   readonly edges: readonly EdgeView[];
   /** Provider ids of `token` visible in the module, in lookup order. The token is keyed through the tokenKey hooks, as get() keys it. */
   visible(moduleId: string, token: AnyToken): readonly string[];
+  /** The key's canonical token for `token`: the one ProviderView.token holds. `token` itself without a tokenKey plugin. */
+  canonical(token: AnyToken): AnyToken;
 }
 
 export interface ModuleView {
@@ -41,6 +43,7 @@ export interface ModuleView {
 
 export interface ProviderView {
   readonly id: string;
+  /** The key's canonical token: the first token the container met with this token's key. */
   readonly token: AnyToken;
   /** The display name. */
   readonly name: string;
@@ -67,6 +70,8 @@ export interface CompileContext {
   readonly phase: 'create' | 'load' | 'check';
   /** The definition a forRoot or forRootAsync instance was made from. */
   configuredFrom(module: ModuleDefinition): ModuleDefinition | undefined;
+  /** The key's canonical token for `token`: the one ProviderView.token holds. `token` itself without a tokenKey plugin. */
+  canonical(token: AnyToken): AnyToken;
 }
 
 export type ProviderRewrite =
@@ -123,7 +128,8 @@ export function providerView(
 
 /**
  * A frozen view of `parts`. `visible()` looks its token up under
- * `canon(token)`, the key every lookup of the container uses.
+ * `canon(token)`, the key every lookup of the container uses, and
+ * `canonical()` is `canon` itself.
  */
 export function buildView(
   parts: ViewParts,
@@ -162,6 +168,7 @@ export function buildView(
     edges,
     visible: (moduleId: string, token: AnyToken) =>
       Object.freeze([...(visibility.get(moduleId)?.get(canon(token)) ?? [])]),
+    canonical: canon,
   });
 }
 

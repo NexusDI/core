@@ -1,13 +1,14 @@
 import { describe, expect, it } from 'vitest';
 
 import { rejected } from '../../test-support/catch.js';
-import type { BlueprintView } from '../blueprint/views.js';
+import type { BlueprintView, CompileContext } from '../blueprint/views.js';
 import { defineModule } from '../definitions/define-module.js';
 import { optional } from '../definitions/modifiers.js';
 import { provide } from '../definitions/provide.js';
 import { REQUEST } from '../definitions/request.js';
 import { Token } from '../definitions/token.js';
 import { Nexus } from './nexus.js';
+import type { PluginContext } from './plugins.js';
 
 /** Two copies of a contracts package make two Token objects per name. */
 const shellAuth = new Token<string>('bank/Auth');
@@ -176,6 +177,223 @@ describe('tokenKey', () => {
       });
       expect(seen[0]).toHaveLength(1);
       expect(seen[0]).toEqual(seen[1]);
+    });
+  });
+
+  describe('canonical()', () => {
+    const Shell = defineModule({
+      name: 'Shell',
+      providers: [provide(shellAuth, { useValue: 'shell-auth' })],
+    });
+    const breaksOn = (token: unknown, cause: Error) => ({
+      name: 'broken',
+      apiVersion: 1,
+      tokenKey: (seen: unknown) => {
+        if (seen === token) throw cause;
+        return byDescription.tokenKey(seen);
+      },
+    });
+
+    it('gives a compile.provider hook the canonical token the provider holds', async () => {
+      const seen: unknown[] = [];
+      await Nexus.create(Shell, {
+        plugins: [
+          {
+            ...byDescription,
+            compile: {
+              provider: (provider, context) =>
+                void seen.push(provider.token, context.canonical(remoteAuth)),
+            },
+          },
+        ],
+      });
+      expect(seen).toEqual([shellAuth, shellAuth]);
+      expect(seen[1]).toBe(shellAuth);
+    });
+
+    it('returns the token itself without a tokenKey plugin', async () => {
+      const seen: unknown[] = [];
+      await Nexus.create(Shell, {
+        plugins: [
+          {
+            name: 'probe',
+            apiVersion: 1,
+            compile: {
+              provider: (_, context) =>
+                void seen.push(context.canonical(remoteAuth)),
+              check: (view) => void seen.push(view.canonical(remoteAuth)),
+            },
+          },
+        ],
+      });
+      expect(seen).toHaveLength(2);
+      for (const token of seen) expect(token).toBe(remoteAuth);
+    });
+
+    it('keys its token in a compile.check view, a setup view and a Nexus.check view', async () => {
+      const seen: unknown[] = [];
+      const plugin = {
+        ...byDescription,
+        compile: {
+          check: (view: BlueprintView) =>
+            void seen.push(view.canonical(remoteAuth)),
+        },
+        setup: (context: PluginContext) =>
+          void seen.push(context.blueprint().canonical(remoteAuth)),
+      };
+      await Nexus.create(Shell, { plugins: [plugin] });
+      Nexus.check(Shell, { plugins: [plugin] });
+      expect(seen).toHaveLength(3);
+      for (const token of seen) expect(token).toBe(shellAuth);
+    });
+
+    it('keys REQUEST to itself', async () => {
+      const seen: unknown[] = [];
+      await Nexus.create(Shell, {
+        plugins: [
+          {
+            ...byDescription,
+            compile: {
+              provider: (_, context) =>
+                void seen.push(context.canonical(REQUEST)),
+            },
+          },
+        ],
+      });
+      expect(seen).toEqual([REQUEST]);
+      expect(seen[0]).toBe(REQUEST);
+    });
+
+    it('fails the calling compile.provider hook when tokenKey throws', async () => {
+      const cause = new Error('no key');
+      const error = await rejected(
+        Nexus.create(Shell, {
+          plugins: [
+            breaksOn(remoteAuth, cause),
+            {
+              name: 'p',
+              apiVersion: 1,
+              compile: {
+                provider: (_, context) => void context.canonical(remoteAuth),
+              },
+            },
+          ],
+        }),
+      );
+      expect(error).toMatchObject({
+        code: 'NEXUS_BLUEPRINT_INVALID',
+        errors: [
+          {
+            code: 'NEXUS_PLUGIN_FAILED',
+            plugin: 'p',
+            hook: 'compile.provider',
+            cause: { code: 'NEXUS_PLUGIN_FAILED', hook: 'tokenKey', cause },
+          },
+        ],
+      });
+    });
+
+    it('fails the calling compile.check hook when tokenKey throws', async () => {
+      const cause = new Error('no key');
+      const error = await rejected(
+        Nexus.create(Shell, {
+          plugins: [
+            breaksOn(remoteAuth, cause),
+            {
+              name: 'p',
+              apiVersion: 1,
+              compile: { check: (view) => void view.canonical(remoteAuth) },
+            },
+          ],
+        }),
+      );
+      expect(error).toMatchObject({
+        errors: [
+          {
+            code: 'NEXUS_PLUGIN_FAILED',
+            plugin: 'p',
+            hook: 'compile.check',
+            cause: { code: 'NEXUS_PLUGIN_FAILED', hook: 'tokenKey', cause },
+          },
+        ],
+      });
+    });
+
+    it('adds no error to a failed compile when formatError calls it on a throwing tokenKey', async () => {
+      const MISSING = new Token<string>('Missing');
+      let calls = 0;
+      const error = await rejected(
+        Nexus.create(
+          defineModule({
+            name: 'Shell',
+            providers: [
+              provide(new Token<string>('Needs'), {
+                useFactory: (value: string) => value,
+                deps: [MISSING],
+              }),
+            ],
+          }),
+          {
+            plugins: [
+              {
+                ...breaksOn(remoteAuth, new Error('no key')),
+                formatError: (_, view) => {
+                  calls++;
+                  view?.canonical(remoteAuth);
+                  return undefined;
+                },
+              },
+            ],
+          },
+        ),
+      );
+      expect(calls).toBeGreaterThan(0);
+      expect(error).toMatchObject({
+        errors: [{ code: 'NEXUS_MISSING_PROVIDER' }],
+      });
+      expect((error as { errors: unknown[] }).errors).toHaveLength(1);
+    });
+
+    it('keeps working on a context kept after the compile', async () => {
+      let kept: CompileContext | undefined;
+      await Nexus.create(Shell, {
+        plugins: [
+          {
+            ...byDescription,
+            compile: { provider: (_, context) => void (kept = context) },
+          },
+        ],
+      });
+      expect(kept?.canonical(remoteAuth)).toBe(shellAuth);
+    });
+
+    it('makes a token it meets first the canonical token of its key', async () => {
+      let context: PluginContext | undefined;
+      const ship = await Nexus.create(defineModule({ name: 'Shell' }), {
+        plugins: [
+          {
+            ...byDescription,
+            setup: (given: PluginContext) => {
+              context = given;
+              expect(given.blueprint().canonical(remoteAuth)).toBe(remoteAuth);
+            },
+          },
+        ],
+      });
+      await ship.load(
+        defineModule({
+          name: 'Remote',
+          providers: [provide(shellAuth, { useValue: 'remote-auth' })],
+          exports: [shellAuth],
+        }),
+      );
+      expect(ship.get(shellAuth)).toBe('remote-auth');
+      const tokens = context
+        ?.blueprint()
+        .providers.filter((p) => p.name === 'bank/Auth')
+        .map((p) => p.token);
+      expect(tokens).toHaveLength(1);
+      expect(tokens?.[0]).toBe(remoteAuth);
     });
   });
 

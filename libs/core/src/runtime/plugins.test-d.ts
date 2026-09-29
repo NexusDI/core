@@ -1,6 +1,9 @@
 import { describe, expectTypeOf, it } from 'vitest';
 
+import type { AnyToken } from '../definitions/guards.js';
 import type {
+  BlueprintView,
+  CompileContext,
   NexusPlugin,
   PluginContext,
   ProviderEntry,
@@ -36,5 +39,16 @@ describe('ProviderRewrite', () => {
       with: ProviderEntry;
       label: number;
     }>().not.toExtend<ProviderRewrite>();
+  });
+});
+
+describe('canonical', () => {
+  it('maps a token to a token on a compile context and a view', () => {
+    expectTypeOf<CompileContext['canonical']>().toEqualTypeOf<
+      (token: AnyToken) => AnyToken
+    >();
+    expectTypeOf<BlueprintView['canonical']>().toEqualTypeOf<
+      (token: AnyToken) => AnyToken
+    >();
   });
 });

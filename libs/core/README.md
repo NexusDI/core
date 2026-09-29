@@ -767,6 +767,55 @@ constructed; // -> 2
 
 <!-- #endregion plugins -->
 
+With a `tokenKey` plugin, several tokens find one provider, and `ProviderView.token` holds the first of them the container met. A plugin compares a token it holds through `canonical()`, which the compile context and every `BlueprintView` carry:
+
+<!-- #region plugin-canonical -->
+
+```ts @import.meta.vitest
+import { NEXUS_PLUGIN_API, Nexus, Token } from '@nexusdi/core';
+import { defineModule, provide, type NexusPlugin } from '@nexusdi/core';
+
+interface IAuth {
+  user(): string;
+}
+// Two copies of a contracts package each make their own token.
+const shellAuth = new Token<IAuth>('bank/Auth');
+const remoteAuth = new Token<IAuth>('bank/Auth');
+class CrewAuth implements IAuth {
+  user() {
+    return 'crew';
+  }
+}
+
+const byName: NexusPlugin = {
+  name: 'by-name',
+  apiVersion: NEXUS_PLUGIN_API,
+  tokenKey: (token) => (token instanceof Token ? token.description : undefined),
+};
+let provided = false;
+const probe: NexusPlugin = {
+  name: 'auth-probe',
+  apiVersion: NEXUS_PLUGIN_API,
+  compile: {
+    check(view) {
+      const auth = view.canonical(remoteAuth);
+      provided = view.providers.some((p) => p.token === auth);
+    },
+  },
+};
+
+await using app = await Nexus.create(
+  defineModule({
+    name: 'Shell',
+    providers: [provide(shellAuth, { useClass: CrewAuth })],
+  }),
+  { plugins: [byName, probe] },
+);
+provided; // -> true
+```
+
+<!-- #endregion plugin-canonical -->
+
 ## Packages
 
 Core holds the container. Each of these is optional, built on the plugin API,
