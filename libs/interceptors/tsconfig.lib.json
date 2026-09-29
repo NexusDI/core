@@ -31,6 +31,9 @@
       "path": "../../tools/doc-examples"
     },
     {
+      "path": "../testing/tsconfig.lib.json"
+    },
+    {
       "path": "../core/tsconfig.lib.json"
     }
   ],
