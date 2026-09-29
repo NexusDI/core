@@ -16,6 +16,9 @@
       "path": "./libs/devtools"
     },
     {
+      "path": "./libs/interceptors"
+    },
+    {
       "path": "./libs/node"
     },
     {
