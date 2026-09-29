@@ -2,7 +2,17 @@
   "$schema": "../../node_modules/nx/schemas/project-schema.json",
   "name": "@nexusdi/decorators",
   "targets": {
-    "lint": { "options": { "args": ["--max-warnings=0"] } },
-    "test": { "dependsOn": ["^build", "build"] }
+    "test-browser": {
+      "executor": "nx:run-commands",
+      "cache": true,
+      "inputs": ["default", "^production"],
+      "dependsOn": ["^build"],
+      "options": {
+        "cwd": "libs/decorators",
+        "command": "vitest run --config vitest.browser.config.ts"
+      }
+    },
+    "test": { "dependsOn": ["^build", "build", "test-browser"] },
+    "lint": { "options": { "args": ["--max-warnings=0"] } }
   }
 }

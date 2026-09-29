@@ -21,6 +21,7 @@ export default defineConfig(() => ({
     globals: true,
     environment: 'node',
     include: ['src/**/*.{test,spec}.ts', 'vite.decorators.test.ts'],
+    exclude: ['src/**/*.browser.test.ts'],
     includeSource: docExampleSources(),
     typecheck: {
       enabled: true,

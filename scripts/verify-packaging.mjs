@@ -185,7 +185,7 @@ import {
   moduleDefinitionOf, optional, provide,
 } from '@nexusdi/core';
 import type {
-  All, ConfigurableModule, ConfigurableModuleConfig, CreateOptions, Dep, DepFor, DepsFor,
+  All, ConfigurableModule, ConfigurableModuleConfig, CreateOptions, Ctor, Dep, DepFor, DepsFor,
   ErrorLifetime, ExportEntry, FactoryDefinition, InjectionToken, Lazy, Lifetime, LookupOptions,
   ModuleConfig, ModuleDefinition, ModuleRef, NearMiss,
   NexusErrorCode, NexusRequest, NoLifetimeMessage, Optional, OptionsFactory,
@@ -338,7 +338,7 @@ type EveryType = [
   All<unknown>, ConfigurableModule<unknown>, ConfigurableModuleConfig<unknown>, CreateOptions,
   Dep, DepFor<unknown>, ErrorLifetime, ExportEntry, InjectionToken<unknown>, Lazy<unknown>,
   Lifetime, LookupOptions, ModuleConfig, ModuleDecoratorConfig, ModuleDefinition, ModuleRef,
-  DepsFor<new () => unknown>,
+  Ctor, DepsFor<new () => unknown>,
   NearMiss, NexusErrorCode, NexusGraph, NexusRequest, NoLifetimeMessage, Optional<unknown>,
   OptionsFactory<unknown, []>, Provider<unknown>, ProviderEntries<[]>, ProviderEntry,
   ProviderFailure, ProviderLiteral,

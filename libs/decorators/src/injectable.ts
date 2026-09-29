@@ -2,16 +2,13 @@ import './polyfill/symbol-metadata.js';
 
 import {
   declareClass,
+  type Ctor,
   type Dep,
   type DepsFor,
   type Lifetime,
 } from '@nexusdi/core';
 
 import { assertStandard } from './legacy.js';
-
-/** Any constructor, as core's DepsFor takes it. */
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-type Ctor = new (...args: any) => unknown;
 
 /**
  * The `deps` and `lifetime` that `options` sets on itself. A key only the

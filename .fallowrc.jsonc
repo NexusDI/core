@@ -40,6 +40,7 @@
     "apps/docs/content/**/*.{mdx,ts}",
     "libs/decorators/vite.decorators.ts",
     "libs/core/vitest.browser.config.ts",
+    "libs/decorators/vitest.browser.config.ts",
     "libs/core/test-support/nexus-request.ts",
     "libs/core/src/**/*.test-d.ts",
     "libs/errors/src/**/*.test-d.ts",
@@ -48,10 +49,11 @@
     "libs/devtools/src/**/*.test-d.ts",
     "libs/decorators/src/**/*.test-d.ts",
     // fallow's vitest plugin derives entry points from vite.config.ts's
-    // test.include glob alone. vitest.browser.config.ts, the Chromium
+    // test.include glob alone. Each vitest.browser.config.ts, the Chromium
     // project that runs R20, is a separate config file the plugin never
     // reads, so its *.browser.test.ts files need their own entry.
     "libs/core/src/**/*.browser.test.ts",
+    "libs/decorators/src/**/*.browser.test.ts",
 
     // Built and run by examples/toolchain-matrix/scripts/run-matrix.mjs in a
     // throwaway consumer; nothing in the workspace imports them. The vite
@@ -160,10 +162,10 @@
     // package -- carries no devDependencies at all (see libs/urn in the
     // libraries repo this tooling is modeled on).
     "jsonc-eslint-parser",
-    // Imported by libs/core/vitest.browser.config.ts, the Chromium project
-    // that runs R20. Declared in the root package.json, hoisted from
-    // there; not duplicated into libs/core/package.json, which -- as a
-    // published package -- carries no devDependencies at all.
+    // Imported by the core and decorators vitest.browser.config.ts files,
+    // the Chromium projects that run R20. Declared in the root package.json,
+    // hoisted from there; not duplicated into either package.json, which --
+    // as a published package -- carries no devDependencies at all.
     "@vitest/browser-playwright",
     // react-pair.test.ts imports tinyglobby directly, but nothing in this
     // workspace declares it: it is a transitive dependency of vite/vitest,
@@ -225,6 +227,7 @@
     "ignore": [
       "**/vite.config.*",
       "**/vitest.config.*",
+      "**/vitest.browser.config.*",
       "**/eslint.config.*",
       "**/*.test-d.*",
       "**/*.test.*",

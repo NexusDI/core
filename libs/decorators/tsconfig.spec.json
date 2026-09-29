@@ -19,6 +19,7 @@
   },
   "include": [
     "vite.config.ts",
+    "vitest.browser.config.ts",
     "vite.decorators.ts",
     "vite.decorators.test.ts",
     "test-support/**/*.ts",

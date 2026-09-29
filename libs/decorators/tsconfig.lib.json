@@ -28,6 +28,7 @@
   ],
   "exclude": [
     "vite.config.ts",
+    "vitest.browser.config.ts",
     "vite.decorators.ts",
     "src/**/*.test.ts",
     "src/**/*.spec.ts",
