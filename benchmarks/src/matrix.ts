@@ -50,14 +50,25 @@ const golden = JSON.parse(
   readFileSync(join(FIXTURES, 'golden.json'), 'utf8'),
 ) as Parameters<typeof classify>[2];
 
-/** The first non-empty line of a tool's output. */
+/**
+ * The line of a tool's output that names the error: the first that says
+ * "error", else the first non-empty one. Build durations are dropped, so
+ * the file reproduces.
+ */
 function firstLine(text: string): string {
-  return (
-    text
-      .split('\n')
-      .map((line) => line.trim())
-      .find((line) => line !== '') ?? ''
+  const lines = stripVTControlCharacters(text)
+    .split('\n')
+    .map((line) => line.trim())
+    .filter((line) => line !== '');
+  const at = Math.max(
+    lines.findIndex((l) => /error/i.test(l)),
+    0,
   );
+  // "error during build:" and the like put the error on the next line.
+  let line = lines[at] ?? '';
+  for (let next = at + 1; line.endsWith(':') && next < lines.length; next++)
+    line = `${line} ${lines[next]}`;
+  return line.replace(/ in \d+(?:\.\d+)?m?s\b/g, '');
 }
 
 /**
