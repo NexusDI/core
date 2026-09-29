@@ -140,6 +140,38 @@ inspect(Meridian).modules.map((module) => module.name); // -> ['Meridian', 'Engi
 
 <!-- #endregion inspect -->
 
+## Render
+
+`toMermaid(graph)` and `toDot(graph)` turn a `NexusGraph` from `graph()` or `inspect()` into Mermaid or Graphviz DOT text. Both are pure functions with no dependencies, so they run in a browser too. `{ view: 'modules' }` draws the module import graph in place of the providers. The `nexusdi graph` command in `@nexusdi/cli` writes the same text, and SVG and PNG, from a shell.
+
+<!-- #region render -->
+
+```ts @import.meta.vitest
+import { Token, defineModule, provide } from '@nexusdi/core';
+import { inspect, toMermaid } from '@nexusdi/devtools';
+
+interface INavCharts {
+  plot(to: string): string;
+}
+const NAV_CHARTS = new Token<INavCharts>('NavCharts');
+class StellarCharts implements INavCharts {
+  plot(to: string): string {
+    return `course to ${to}`;
+  }
+}
+const Navigation = defineModule({
+  name: 'Navigation',
+  providers: [provide(NAV_CHARTS, { useClass: StellarCharts })],
+  exports: [NAV_CHARTS],
+});
+
+toMermaid(inspect(Navigation)).split('\n')[2]; // -> '    p0["NavCharts<br/>StellarCharts"]'
+```
+
+<!-- #endregion render -->
+
+Each provider shows its token, the class bound to it when the names differ, and what differs from a class singleton built at `create`. Exported providers have a heavy border, and every edge kind other than `required` carries its kind as a label.
+
 ## License
 
 MIT
