@@ -18,3 +18,4 @@ export type {
   MethodKey,
   Next,
 } from './types.js';
+export { UseInterceptors } from './use-interceptors.js';
