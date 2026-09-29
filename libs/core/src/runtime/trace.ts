@@ -77,15 +77,19 @@ export class Tracer {
     return HOOK_SITES && this.#sinks.length > 0 ? performance.now() : 0;
   }
 
+  // emit stays this small so the engine inlines it into each caller, and
+  // with no sink the `make` closure a caller passes is never allocated.
   emit(make: () => TraceEvent): void {
-    if (!(HOOK_SITES && this.#sinks.length > 0)) return;
-    const event = make();
-    for (const sink of this.#sinks) {
-      try {
-        sink(event);
-      } catch (error) {
-        throw fromUserCode(error);
-      }
+    if (HOOK_SITES && this.#sinks.length > 0) send(this.#sinks, make());
+  }
+}
+
+function send(sinks: readonly TraceSink[], event: TraceEvent): void {
+  for (const sink of sinks) {
+    try {
+      sink(event);
+    } catch (error) {
+      throw fromUserCode(error);
     }
   }
 }

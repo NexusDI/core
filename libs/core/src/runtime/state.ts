@@ -177,16 +177,10 @@ export interface RootInit {
 }
 
 export function createRootState(init: RootInit): RootState {
-  const state: RootState = {
+  const fields: Omit<RootState, 'root' | 'handle'> = {
     kind: 'root',
     scopeId: null,
     request: undefined,
-    get root(): RootState {
-      return state;
-    },
-    get handle(): Nexus {
-      return handle;
-    },
     slots: new Slots(),
     owned: [],
     blueprint: init.blueprint,
@@ -208,7 +202,11 @@ export function createRootState(init: RootInit): RootState {
     scopes: new Set(),
     nextScope: 0,
   };
-  const handle = init.wrap(state);
+  // Data properties, set once the object exists. get() reads
+  // container.root on every lookup, and a getter there is a call per get.
+  const state = fields as { -readonly [K in keyof RootState]: RootState[K] };
+  state.root = state;
+  state.handle = init.wrap(state);
   return state;
 }
 
