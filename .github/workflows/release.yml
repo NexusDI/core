@@ -10,10 +10,6 @@ on:
         description: 'Dry run'
         type: boolean
         default: true
-      projects:
-        description: 'Projects, comma separated. Same names as commit scopes. Empty releases everything affected.'
-        type: string
-        default: ''
       specifier:
         description: >-
           Version specifier. Empty infers the bump from conventional commits
@@ -86,16 +82,6 @@ jobs:
 
       - run: npm ci
 
-      # Resolved once, before the expensive verify suite, so a typo costs
-      # seconds rather than a full build. Both `nx release` steps below read
-      # this step's output rather than the raw input, which is what keeps the
-      # set that gets versioned identical to the set that gets published.
-      - name: Resolve projects to release
-        id: projects
-        env:
-          PROJECTS: ${{ inputs.projects }}
-        run: node scripts/resolve-release-projects.mjs
-
       # core's test target depends on test-browser (regression R20), which
       # runs in Chromium through Playwright.
       - run: npx playwright install --with-deps chromium
@@ -106,22 +92,15 @@ jobs:
         # tools/repo-checks/src/release-verify-gate.test.ts holds the two
         # target lists against each other.
         #
-        # Scoped to the release's blast radius: the released packages, what
-        # they are compiled against, and every project that depends on them.
-        # The resolve step above computes that closure from the project
-        # graph.
+        # Over every project. nx.json's release group is fixed, so every
+        # release versions and publishes all the packages under libs/, and
+        # the gate covers the whole workspace they are built from.
         #
-        # An explicit list, never `--affected`. This workflow is
-        # workflow_dispatch on main, where an affected comparison has the
-        # same commit on both sides, so the affected set is empty and a gate
-        # scoped to it reports success having verified nothing.
-        env:
-          VERIFY_PROJECTS: ${{ steps.projects.outputs.verify-projects }}
-        run: |
-          args=()
-          if [ -n "$VERIFY_PROJECTS" ]; then args+=(--projects "$VERIFY_PROJECTS"); fi
-          echo "Running: nx run-many -t lint test build typecheck ${args[*]}"
-          npx nx run-many -t lint test build typecheck "${args[@]}"
+        # Never `--affected`. This workflow is workflow_dispatch on main,
+        # where an affected comparison has the same commit on both sides, so
+        # the affected set is empty and a gate scoped to it reports success
+        # having verified nothing.
+        run: npx nx run-many -t lint test build typecheck
 
       # Catches problems that only exist once the package is packed --
       # notably emitted .d.ts files that a nodenext consumer cannot resolve.
@@ -145,7 +124,6 @@ jobs:
         # part of this step.
         env:
           DRY_RUN: ${{ inputs.dry-run }}
-          PROJECTS: ${{ steps.projects.outputs.projects }}
           SPECIFIER: ${{ inputs.specifier }}
           PREID: ${{ inputs.preid }}
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
@@ -166,10 +144,6 @@ jobs:
         # forward on its own (verified: rc.0 -> rc.1 with no --preid).
         run: |
           args=(--skip-publish)
-          # An empty PROJECTS omits the flag. `--projects ""` is a filter
-          # that matches nothing, which nx reports as an internal bug rather
-          # than as an empty release.
-          if [ -n "$PROJECTS" ]; then args+=(--projects "$PROJECTS"); fi
           if [ -n "$SPECIFIER" ]; then args+=("$SPECIFIER"); fi
           case "$SPECIFIER" in
             premajor|preminor|prepatch|prerelease) args+=(--preid "$PREID") ;;
@@ -189,10 +163,9 @@ jobs:
         # rather than re-deriving it, so this can never disagree with what
         # was actually versioned.
         #
-        # Single package today, so one tag for the one release. A second
-        # released package would need this computed per project instead of
-        # once workspace-wide, since nx release publish --tag applies one
-        # value across the whole invocation.
+        # One tag serves every package: the release group is fixed, so all
+        # of them carry core's version, and nx release publish --tag applies
+        # one value across the whole invocation.
         run: |
           version=$(node -p "require('./libs/core/package.json').version")
           # A semver prerelease is a hyphen after the X.Y.Z core and before
@@ -212,7 +185,6 @@ jobs:
       - name: Publish to npm
         if: ${{ !inputs.dry-run }}
         env:
-          PROJECTS: ${{ steps.projects.outputs.projects }}
           TAG: ${{ steps.tag.outputs.tag }}
           # No NODE_AUTH_TOKEN and no NPM_TOKEN, deliberately.
           #
@@ -228,10 +200,8 @@ jobs:
           # Provenance is automatic under trusted publishing, so neither
           # NPM_CONFIG_PROVENANCE nor --provenance is needed.
         run: |
-          args=(--tag "$TAG")
-          if [ -n "$PROJECTS" ]; then args+=(--projects "$PROJECTS"); fi
-          echo "Running: nx release publish ${args[*]}"
-          npx nx release publish "${args[@]}"
+          echo "Running: nx release publish --tag $TAG"
+          npx nx release publish --tag "$TAG"
 
       - name: Redeploy the docs site
         # docs.yml no longer triggers on a release tag push: GitHub Pages'

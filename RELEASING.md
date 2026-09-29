@@ -179,9 +179,10 @@ released alone would make the published set uninstallable together. A commit
 scoped to any one package bumps the whole group, and each package still gets
 its own `{projectName}@{version}` tag, changelog entry and GitHub release.
 
-Leave the workflow's `projects` input empty. Nx does not version a subset of a
-fixed group: a `--projects` filter that names only some of the seven stops the
-run with "No projects are set to be processed".
+The Release workflow takes no project list, and its verify step runs `lint`,
+`test`, `build` and `typecheck` over every project. Nx does not version a
+subset of a fixed group: `nx release --projects` naming only some of the seven
+stops with "No projects are set to be processed".
 
 An explicit version applies to the whole group:
 
