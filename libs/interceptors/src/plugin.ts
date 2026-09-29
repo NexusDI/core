@@ -11,6 +11,7 @@ import {
 } from '@nexusdi/core';
 
 import { bindingsFor, chainFor } from './chain.js';
+import { checkBlueprint } from './check.js';
 import { invalid, shared } from './interceptor-error.js';
 import { declarationsOf, type Declarations } from './metadata.js';
 import { keyName, nameOf } from './names.js';
@@ -124,7 +125,7 @@ export function interceptors(options: InterceptorsOptions): NexusPlugin {
         );
         if (own !== undefined && view.phase !== 'check')
           state.moduleIds.add(own.id);
-        void report;
+        checkBlueprint(view, report, config, own?.id);
       },
     },
     construct(instance, provider, scope) {
