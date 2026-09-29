@@ -34,6 +34,12 @@ export function devtools(options: DevtoolsOptions = {}): NexusPlugin {
 /** The compiled graph of a container registered with devtools(), as plain JSON. */
 export function graph(ship: Nexus): NexusGraph {
   const context = CONTEXTS.get(ship);
-  if (context === undefined) throw new DevtoolsError({});
+  if (context === undefined)
+    throw new DevtoolsError(
+      {},
+      {
+        text: "graph() reads the container through devtools(), and this container was created without it.\n  Fix: register devtools() in Nexus.create's plugins: Nexus.create(Root, { plugins: [devtools()] }).",
+      },
+    );
   return graphOf(context.blueprint(), (id) => context.builtAsync(id));
 }

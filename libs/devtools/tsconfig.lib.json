@@ -6,15 +6,16 @@
     "outDir": "dist",
     "tsBuildInfoFile": "dist/tsconfig.lib.tsbuildinfo",
     "emitDeclarationOnly": false,
-    // importHelpers stays off (the tsconfig.base.json default). Core's source
-    // applies no decorator and declares no `using`, so tsc emits no helper
+    // importHelpers stays off (the tsconfig.base.json default). The devtools
+    // source applies no decorator and declares no `using`, so tsc emits no helper
     // that would import tslib. scripts/verify-packaging.mjs checks the packed
     // output for that, and tools/repo-checks/src/tslib-dependency.test.ts
     // holds the setting against package.json.
     "forceConsistentCasingInFileNames": true,
     "types": ["node"],
-    // esnext.disposable types Symbol.asyncDispose and AsyncDisposable, which
-    // the public declarations use. esnext.decorators types Symbol.metadata.
+    // esnext.disposable types Symbol.asyncDispose and AsyncDisposable, and
+    // esnext.decorators types Symbol.metadata. Core's declarations, which
+    // this package's declarations import, use both.
     "lib": ["es2022", "esnext.decorators", "esnext.disposable"],
     "sourceMap": false,
     "declarationMap": false,

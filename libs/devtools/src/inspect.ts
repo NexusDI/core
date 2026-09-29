@@ -5,11 +5,16 @@ import {
   type CheckOptions,
   type ModuleRef,
 } from '@nexusdi/core';
-import { errors } from '@nexusdi/errors';
+import { explain } from '@nexusdi/errors';
 
 import { graphOf, type NexusGraph } from './graph.js';
 
-/** The graph Nexus.check compiles, for a CLI or a CI job. Builds nothing. */
+/**
+ * The graph Nexus.check compiles, for a CLI or a CI job. Builds nothing.
+ * Errors carry @nexusdi/errors' text. The one internal plugin takes no name
+ * a caller's errors() or devtools() uses, so an app's plugin list passes
+ * through unchanged.
+ */
 export function inspect(
   root: ModuleRef,
   options: CheckOptions = {},
@@ -18,11 +23,11 @@ export function inspect(
   Nexus.check(root, {
     ...options,
     plugins: [
-      errors(),
       {
         name: 'nexus:inspect',
         apiVersion: NEXUS_PLUGIN_API,
         compile: { check: (view) => void (last = view) },
+        formatError: (error, view) => explain(error, view),
       },
       ...(options.plugins ?? []),
     ],

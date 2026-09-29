@@ -9,9 +9,6 @@ export default [
     rules: {
       '@typescript-eslint/no-explicit-any': 'off',
       '@typescript-eslint/no-unused-vars': 'off',
-      // A type test states `Module.with;` under @ts-expect-error to prove a
-      // member is absent.
-      '@typescript-eslint/no-unused-expressions': 'off',
     },
   },
   {

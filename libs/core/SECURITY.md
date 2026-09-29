@@ -9,7 +9,7 @@ It runs under `nx test core`, with the rest of the package's tests.
 - Tier 1: the container prevents it. The test asserts the hostile input produces a construction error, or no effect outside the container.
 - Tier 3: out of scope. The test pins what the container actually does, so nobody reads that behaviour as a defence.
 
-Counts: 11 tier 1, 2 tier 3. The plain JSON entry for `graph()` moved to `@nexusdi/devtools` with `graph()`, and its test to `libs/devtools/src/security`.
+Counts: 11 tier 1, 2 tier 3.
 
 ## Tier 1: prevented
 

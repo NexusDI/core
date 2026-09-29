@@ -1,17 +1,12 @@
 /**
- * Tier 1 entries of libs/core/SECURITY.md whose subject moved into
- * @nexusdi/devtools with graph().
+ * Tier 1: hostile inputs the package prevents. One describe per entry of
+ * libs/devtools/SECURITY.md, titled with its identifier.
  */
 import { describe, expect, it } from 'vitest';
 
-import {
-  Nexus,
-  Token,
-  defineModule,
-  provide,
-  type ModuleDefinition,
-} from '@nexusdi/core';
+import { Nexus, Token, defineModule, provide } from '@nexusdi/core';
 
+import { moduleChain } from '../../test-support/security.js';
 import { devtools, graph, type NexusGraph } from '../index.js';
 
 /** A graph survives a JSON round trip, holds no cycle, and every object in it is plain. */
@@ -30,14 +25,6 @@ function expectPlainGraph(view: NexusGraph): void {
   visit(view);
 }
 
-/** `depth` modules, each importing and re-exporting the next. */
-function importChain(depth: number): ModuleDefinition {
-  let next = defineModule({ name: `Deck${depth - 1}` });
-  for (let i = depth - 2; i >= 0; i--)
-    next = defineModule({ name: `Deck${i}`, imports: [next], exports: [next] });
-  return next;
-}
-
 describe('SEC-010 graph() stays plain JSON (CWE-20)', () => {
   it('returns plain JSON for prototype names, proxies, null chains, repeats and deep chains', async () => {
     class Engine {}
@@ -52,9 +39,10 @@ describe('SEC-010 graph() stays plain JSON (CWE-20)', () => {
       providers: [provide(PROTO, { useValue: 'x' })],
       exports: [PROTO],
     });
+    const { root: Deep } = moduleChain(50);
     const Root = defineModule({
       name: 'prototype',
-      imports: [Proto, Proto, importChain(50)],
+      imports: [Proto, Proto, Deep],
       providers: [new Proxy(Engine, {}), Void, Void],
     });
     await using ship = await Nexus.create(Root, { plugins: [devtools()] });

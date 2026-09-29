@@ -3,7 +3,7 @@ import { compile, type CompileInput } from '../blueprint/compile.js';
 import { BlueprintError, LoadError, ProviderError } from '../errors/index.js';
 import type { Tracer } from './trace.js';
 
-/** An observe hook's own throw while reporting `compile`, not a compile failure. */
+/** An observe hook's own throw while reporting `compile`. The compile itself passed. */
 function traceFailed(error: unknown, module: string): ProviderError {
   return new ProviderError(
     { token: 'startup', module, path: [], alsoFailed: [], disposalErrors: [] },

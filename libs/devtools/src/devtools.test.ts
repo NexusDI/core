@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest';
 
 import { Nexus, Token, defineModule, provide } from '@nexusdi/core';
+import { errors } from '@nexusdi/errors';
 
 import { devtools, graph, inspect, type TraceEvent } from './index.js';
 
@@ -36,7 +37,11 @@ describe('graph', () => {
   it('throws NEXUS_DEVTOOLS_UNREGISTERED for a container without devtools()', async () => {
     const ship = await Nexus.create(Science);
     expect(() => graph(ship)).toThrow(
-      expect.objectContaining({ code: 'NEXUS_DEVTOOLS_UNREGISTERED' }),
+      expect.objectContaining({
+        code: 'NEXUS_DEVTOOLS_UNREGISTERED',
+        message:
+          "[NEXUS_DEVTOOLS_UNREGISTERED] graph() reads the container through devtools(), and this container was created without it.\n  Fix: register devtools() in Nexus.create's plugins: Nexus.create(Root, { plugins: [devtools()] }).",
+      }),
     );
   });
 });
@@ -68,6 +73,11 @@ describe('inspect', () => {
       ['alias', null],
       ['value', null],
     ]);
+  });
+
+  it('accepts errors() and devtools() in options.plugins', () => {
+    const view = inspect(Tactical, { plugins: [errors(), devtools()] });
+    expect(view.modules.map((m) => m.name)).toEqual(['Tactical']);
   });
 
   it('throws the BlueprintError Nexus.check throws, with @nexusdi/errors text', () => {

@@ -226,6 +226,10 @@
       // only their own test-support and core's package entry, so the two
       // files cannot share one module.
       "libs/*/test-support/error-cases.ts",
+      // moduleChain, the deep chain core's SEC-009 and devtools' SEC-010
+      // compile. Each package's tests reach only their own test-support, so
+      // the two copies cannot share one module.
+      "libs/*/test-support/security.ts",
       "tools/repo-checks/src/__fixtures__/**",
     ],
   },
