@@ -19,3 +19,4 @@ export type {
   Next,
 } from './types.js';
 export { UseInterceptors } from './use-interceptors.js';
+export { interceptor } from './options.js';
