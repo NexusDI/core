@@ -15,16 +15,17 @@
     "@nexusdi/devtools",
     "@nexusdi/decorators",
     "@nexusdi/federation",
+    "@nexusdi/interceptors",
   ],
 
   // Nextra loads every page and `_meta.ts` under apps/docs/content by file
   // convention, never through an import, so the reachability walk reports
   // the whole content tree as unused without this.
   //
-  // libs/decorators/vite.decorators.ts is imported by the decorators and
-  // devtools vite.config.ts files. fallow treats a vite config as an entry
-  // point of its own and does not trace its imports, so the file needs an
-  // entry.
+  // libs/decorators/vite.decorators.ts is imported by the decorators,
+  // devtools and interceptors vite.config.ts files. fallow treats a vite
+  // config as an entry point of its own and does not trace its imports, so
+  // the file needs an entry.
   //
   // libs/core/test-support/nexus-request.ts has no importer. It augments
   // NexusRequest with `declare module '../src/index.js'`, and
@@ -54,6 +55,7 @@
     "libs/devtools/src/**/*.test-d.ts",
     "libs/decorators/src/**/*.test-d.ts",
     "libs/federation/src/**/*.test-d.ts",
+    "libs/interceptors/src/**/*.test-d.ts",
     // fallow's vitest plugin derives entry points from vite.config.ts's
     // test.include glob alone. Each vitest.browser.config.ts, the Chromium
     // project that runs R20, is a separate config file the plugin never
