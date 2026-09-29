@@ -1,18 +1,25 @@
 import { describe, expect, it } from 'vitest';
 
-import { thrown } from '../../test-support/catch.js';
-import { errorCases } from '../../test-support/error-cases.js';
-import { messageScenarios } from '../../test-support/message-scenarios.js';
-import { textPlugin } from '../../test-support/text-plugin.js';
-import { defineModule } from '../definitions/define-module.js';
-import { Token } from '../definitions/token.js';
-import { render } from '../text/index.js';
 import {
+  defineModule,
   errorBase,
   InvalidModuleError,
   InvalidTokenError,
+  Token,
   type NexusError,
-} from './index.js';
+} from '@nexusdi/core';
+
+import { thrown } from '../../test-support/catch.js';
+import { errorCases } from '../../test-support/error-cases.js';
+import { messageScenarios } from '../../test-support/message-scenarios.js';
+import { errors, explain } from '../index.js';
+import { layout } from '../layout.js';
+
+/** The message errors() writes for `error`, from explain() alone. */
+function render(error: NexusError): string {
+  const text = explain(error);
+  return text === undefined ? error.message : layout(error.code, text);
+}
 
 describe('NexusError', () => {
   it.each(errorCases)('keeps the message of $name', ({ error }) => {
@@ -20,12 +27,12 @@ describe('NexusError', () => {
   });
 
   it.each(messageScenarios)('keeps the message of $name', async ({ run }) => {
-    const error = (await run([textPlugin()])) as NexusError;
+    const error = (await run([errors()])) as NexusError;
     expect(error.message).toMatchSnapshot();
   });
 });
 
-describe('render', () => {
+describe('explain', () => {
   it('keeps the line of a code it has no text for', () => {
     class ContractError extends errorBase<
       'NEXUS_TEST_CONTRACT',

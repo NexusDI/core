@@ -7,7 +7,7 @@
   // scripts/verify-packaging.mjs and an external consumer's own code ever
   // reach it. This makes its exports and re-export surface reachability
   // roots, so they are not reported as unused.
-  "publicPackages": ["@nexusdi/core"],
+  "publicPackages": ["@nexusdi/core", "@nexusdi/errors"],
 
   // Nextra loads every page and `_meta.ts` under apps/docs/content by file
   // convention, never through an import, so the reachability walk reports
@@ -34,6 +34,7 @@
     "libs/core/vitest.browser.config.ts",
     "libs/core/test-support/nexus-request.ts",
     "libs/core/src/**/*.test-d.ts",
+    "libs/errors/src/**/*.test-d.ts",
     // fallow's vitest plugin derives entry points from vite.config.ts's
     // test.include glob alone. vitest.browser.config.ts, the Chromium
     // project that runs R20, is a separate config file the plugin never
@@ -205,6 +206,11 @@
       "**/eslint.config.*",
       "**/*.test-d.*",
       "**/*.test.*",
+      // Core's error fixtures, one case per code, and the full set
+      // @nexusdi/errors snapshots the text of. Each package's tests reach
+      // only their own test-support and core's package entry, so the two
+      // files cannot share one module.
+      "libs/*/test-support/error-cases.ts",
       "tools/repo-checks/src/__fixtures__/**",
     ],
   },

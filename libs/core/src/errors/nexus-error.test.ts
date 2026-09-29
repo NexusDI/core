@@ -179,6 +179,26 @@ describe('NexusError', () => {
     expect(error.message).toBe('[NEXUS_TEST_TEXT] bank has its own words.');
     expect(error.plugin).toBe('bank');
   });
+
+  it('makes each hidden option an own non-enumerable property, outside the message', () => {
+    const lookup = { token: 'NavCharts', moduleId: 'm0' };
+    const error = new MissingProviderError(
+      {
+        token: 'NavCharts',
+        requester: null,
+        module: 'Engineering',
+        entry: null,
+        nearMisses: [],
+      },
+      { hidden: { lookup } },
+    );
+    expect(error.lookup).toBe(lookup);
+    expect(Object.getOwnPropertyDescriptor(error, 'lookup')).toMatchObject({
+      enumerable: false,
+    });
+    expect(Object.keys(error)).toEqual(FIELD_ORDER['MissingProviderError']);
+    expect(error.message).not.toContain('m0');
+  });
 });
 
 describe('errorBase', () => {

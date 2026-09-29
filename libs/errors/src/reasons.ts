@@ -1,7 +1,4 @@
-import type {
-  InvalidProviderReason,
-  InvalidTokenReason,
-} from '../errors/index.js';
+import type { InvalidProviderReason, InvalidTokenReason } from '@nexusdi/core';
 
 const NO_DEFINITION =
   'with no definition; add useClass, useValue, useFactory or useExisting';

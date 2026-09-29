@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
 
 import { compileErrors, idOf } from '../../test-support/compile.js';
-import { errorModes, expectRendered } from '../../test-support/modes.js';
+import { expectCoreLine } from '../../test-support/modes.js';
 import { defineModule } from '../definitions/define-module.js';
 import { all, lazy, optional } from '../definitions/modifiers.js';
 import { provide } from '../definitions/provide.js';
@@ -113,38 +113,44 @@ describe('compile', () => {
     );
   });
 
-  describe.each(errorModes)('$name mode', (mode) => {
-    it('reports NEXUS_MISSING_PROVIDER with the requester, its module and a not-exported near miss', () => {
-      const Tactical = defineModule({
-        name: 'Tactical',
-        providers: [provide(NAV_CHARTS, { useValue: charts })],
-      });
-      const Engineering = defineModule({
-        name: 'Engineering',
-        providers: [provide(ShipComputer, { deps: [NAV_CHARTS] as never })],
-      });
-      const [error] = compileErrors(
-        defineModule({ name: 'Meridian', imports: [Engineering, Tactical] }),
-      );
-      expect(error).toMatchObject({
-        code: 'NEXUS_MISSING_PROVIDER',
-        token: 'NavCharts',
-        requester: 'ShipComputer',
-        module: 'Engineering',
-        entry: null,
-        nearMisses: [{ kind: 'not-exported', module: 'Tactical' }],
-      });
-      expectRendered(
-        mode,
-        error as NexusError,
-        '[NEXUS_MISSING_PROVIDER] ShipComputer (module Engineering) depends on NavCharts, but no provider of NavCharts is visible in Engineering.\n' +
-          '  NavCharts is provided in Tactical, which does not export it.\n' +
-          "  Fix: add NavCharts to Tactical's exports and import Tactical into Engineering.",
-      );
+  it('reports NEXUS_MISSING_PROVIDER with the requester and its module, and no near miss', () => {
+    const Tactical = defineModule({
+      name: 'Tactical',
+      providers: [provide(NAV_CHARTS, { useValue: charts })],
     });
+    const Engineering = defineModule({
+      name: 'Engineering',
+      providers: [provide(ShipComputer, { deps: [NAV_CHARTS] as never })],
+    });
+    const [error] = compileErrors(
+      defineModule({ name: 'Meridian', imports: [Engineering, Tactical] }),
+    );
+    expect(error).toMatchObject({
+      code: 'NEXUS_MISSING_PROVIDER',
+      token: 'NavCharts',
+      requester: 'ShipComputer',
+      module: 'Engineering',
+      entry: null,
+      nearMisses: [],
+    });
+    expectCoreLine(error as NexusError);
   });
 
-  it('reports a not-imported near miss for an exported token the requester cannot reach', () => {
+  it('records the token and the module id it looked in, as a hidden lookup', () => {
+    const Engineering = defineModule({
+      name: 'Engineering',
+      providers: [provide(ShipComputer, { deps: [NAV_CHARTS] as never })],
+    });
+    const [error] = compileErrors(
+      defineModule({ name: 'Meridian', imports: [Engineering] }),
+    );
+    expect(error).toMatchObject({
+      lookup: { token: NAV_CHARTS, moduleId: expect.any(String) },
+    });
+    expect(Object.keys(error ?? {})).not.toContain('lookup');
+  });
+
+  it('leaves nearMisses empty for an exported token the requester cannot reach', () => {
     const Tactical = defineModule({
       name: 'Tactical',
       providers: [provide(NAV_CHARTS, { useValue: charts })],
@@ -159,12 +165,12 @@ describe('compile', () => {
     ).toMatchObject([
       {
         code: 'NEXUS_MISSING_PROVIDER',
-        nearMisses: [{ kind: 'not-imported', module: 'Tactical' }],
+        nearMisses: [],
       },
     ]);
   });
 
-  it('reports a same-description near miss for a second Token object with one description', () => {
+  it('leaves nearMisses empty for a second Token object with one description', () => {
     const OTHER = new Token<NavCharts>('NavCharts');
     const Tactical = defineModule({
       name: 'Tactical',
@@ -179,7 +185,7 @@ describe('compile', () => {
     expect(compileErrors(Engineering)).toMatchObject([
       {
         code: 'NEXUS_MISSING_PROVIDER',
-        nearMisses: [{ kind: 'same-description', module: 'Tactical' }],
+        nearMisses: [],
       },
     ]);
   });

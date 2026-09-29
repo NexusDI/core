@@ -1,12 +1,10 @@
 import { describe, expect, it } from 'vitest';
 
 import { compileErrors } from '../../test-support/compile.js';
-import { errorModes } from '../../test-support/modes.js';
 import { defineModule } from '../definitions/define-module.js';
 import { provide } from '../definitions/provide.js';
 import { Token } from '../definitions/token.js';
 import { BlueprintError } from '../errors/index.js';
-import { render } from '../text/index.js';
 import { compile } from './compile.js';
 
 describe('compile', () => {
@@ -62,38 +60,24 @@ describe('compile', () => {
     ]);
   });
 
-  describe.each(errorModes)('$name mode', (mode) => {
-    it('throws a BlueprintError whose message lists each error on its own line', () => {
-      let error: unknown;
-      try {
-        compile({
-          root: defineModule({
-            name: 'Root',
-            providers: [null as never, 42 as never],
-          }),
-        });
-      } catch (caught) {
-        error = caught;
-      }
-      expect(error).toBeInstanceOf(BlueprintError);
-      const blueprint = error as BlueprintError;
-      // compile() runs outside a container, so text mode renders the text.
-      const message =
-        mode.name === 'text' ? render(blueprint) : blueprint.message;
-      expect(message.split('\n')).toEqual(
-        mode.name === 'text'
-          ? [
-              '[NEXUS_BLUEPRINT_INVALID] the module graph has 2 errors; nothing was built.',
-              '  [NEXUS_INVALID_PROVIDER] Root.providers[0] is null, not a provider; list a class, a provide() result or a { token } literal.',
-              '  [NEXUS_INVALID_PROVIDER] Root.providers[1] is the number 42, not a provider; list a class, a provide() result or a { token } literal.',
-            ]
-          : [
-              '[NEXUS_BLUEPRINT_INVALID] 2 errors. https://nexus.js.org/errors/NEXUS_BLUEPRINT_INVALID',
-              '  [NEXUS_INVALID_PROVIDER] module=Root index=0 reason=not-a-provider detail=null. https://nexus.js.org/errors/NEXUS_INVALID_PROVIDER',
-              '  [NEXUS_INVALID_PROVIDER] module=Root index=1 reason=not-a-provider detail=the number 42. https://nexus.js.org/errors/NEXUS_INVALID_PROVIDER',
-            ],
-      );
-    });
+  it('throws a BlueprintError whose message lists each error on its own line', () => {
+    let error: unknown;
+    try {
+      compile({
+        root: defineModule({
+          name: 'Root',
+          providers: [null as never, 42 as never],
+        }),
+      });
+    } catch (caught) {
+      error = caught;
+    }
+    expect(error).toBeInstanceOf(BlueprintError);
+    expect((error as BlueprintError).message.split('\n')).toEqual([
+      '[NEXUS_BLUEPRINT_INVALID] 2 errors. https://nexus.js.org/errors/NEXUS_BLUEPRINT_INVALID',
+      '  [NEXUS_INVALID_PROVIDER] module=Root index=0 reason=not-a-provider detail=null. https://nexus.js.org/errors/NEXUS_INVALID_PROVIDER',
+      '  [NEXUS_INVALID_PROVIDER] module=Root index=1 reason=not-a-provider detail=the number 42. https://nexus.js.org/errors/NEXUS_INVALID_PROVIDER',
+    ]);
   });
 
   it('returns a frozen blueprint', () => {

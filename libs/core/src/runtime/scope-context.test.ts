@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
 
 import { thrown } from '../../test-support/catch.js';
-import { coreLine, errorModes } from '../../test-support/modes.js';
+import { expectCoreLine } from '../../test-support/modes.js';
 import { defineModule } from '../definitions/define-module.js';
 import type { NexusError } from '../errors/index.js';
 import { Nexus } from './nexus.js';
@@ -26,20 +26,14 @@ function stackContext(): ScopeContext {
 
 describe('Nexus', () => {
   describe('runInScope', () => {
-    describe.each(errorModes)('$name mode', (mode) => {
-      it('throws NEXUS_NO_SCOPE_CONTEXT without a scopeContext, naming nodeScopeContext', async () => {
-        const ship = await Nexus.create(defineModule({ name: 'Root' }), {
-          plugins: mode.plugins,
-        });
-        await using shuttle = await ship.createScope();
-        const error = thrown(() =>
-          ship.runInScope(shuttle, () => 1),
-        ) as NexusError;
-        expect(error).toMatchObject({ code: 'NEXUS_NO_SCOPE_CONTEXT' });
-        if (mode.name === 'text')
-          expect(error.message).toContain('nodeScopeContext()');
-        else expect(error.message).toBe(coreLine(error));
-      });
+    it('throws NEXUS_NO_SCOPE_CONTEXT without a scopeContext', async () => {
+      const ship = await Nexus.create(defineModule({ name: 'Root' }));
+      await using shuttle = await ship.createScope();
+      const error = thrown(() =>
+        ship.runInScope(shuttle, () => 1),
+      ) as NexusError;
+      expect(error).toMatchObject({ code: 'NEXUS_NO_SCOPE_CONTEXT' });
+      expectCoreLine(error);
     });
 
     it('runs the function inside the scope and returns its value', async () => {

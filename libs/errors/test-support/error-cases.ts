@@ -27,7 +27,7 @@ import {
   ScopeRequiredError,
   type NexusError,
   type NexusErrorCode,
-} from '../src/errors/index.js';
+} from '@nexusdi/core';
 
 export interface ErrorCase {
   readonly name: string;
@@ -87,6 +87,42 @@ export const errorCases: readonly ErrorCase[] = [
     },
   },
   {
+    name: 'MissingProviderError (root get)',
+    error: new MissingProviderError({
+      token: 'NavCharts',
+      requester: null,
+      module: 'Meridian',
+      entry: null,
+      nearMisses: [],
+    }),
+    code: 'NEXUS_MISSING_PROVIDER',
+    fields: { requester: null, nearMisses: [] },
+  },
+  {
+    name: 'MissingProviderError (deps entry)',
+    error: new MissingProviderError({
+      token: 'ReactorCore',
+      requester: null,
+      module: 'Meridian',
+      entry: 'deps[1]',
+      nearMisses: [{ kind: 'not-imported', module: 'Engineering' }],
+    }),
+    code: 'NEXUS_MISSING_PROVIDER',
+    fields: { entry: 'deps[1]' },
+  },
+  {
+    name: 'MissingProviderError (same description)',
+    error: new MissingProviderError({
+      token: 'NavCharts',
+      requester: 'ShipComputer',
+      module: 'Engineering',
+      entry: null,
+      nearMisses: [{ kind: 'same-description', module: 'Tactical' }],
+    }),
+    code: 'NEXUS_MISSING_PROVIDER',
+    fields: { nearMisses: [{ kind: 'same-description', module: 'Tactical' }] },
+  },
+  {
     name: 'AmbiguousProviderError',
     error: new AmbiguousProviderError({
       token: 'Logger',
@@ -141,6 +177,45 @@ export const errorCases: readonly ErrorCase[] = [
     },
   },
   {
+    name: 'InvalidTokenError (deps entry)',
+    error: new InvalidTokenError({
+      received: 'the string "nav"',
+      ...NO_TOKEN_SITE,
+      entry: 'deps.name',
+    }),
+    code: 'NEXUS_INVALID_TOKEN',
+    fields: { entry: 'deps.name' },
+  },
+  {
+    name: 'InvalidTokenError (providers entry with reason)',
+    error: new InvalidTokenError({
+      received: 'the number 4',
+      entry: null,
+      module: 'Engineering',
+      index: 2,
+      reason: 'alias-target',
+      detail: [],
+    }),
+    code: 'NEXUS_INVALID_TOKEN',
+    fields: { module: 'Engineering', index: 2, reason: 'alias-target' },
+  },
+  {
+    name: 'InvalidTokenError in a providers entry',
+    error: new InvalidTokenError({
+      received: 'the number 3',
+      ...NO_TOKEN_SITE,
+      module: 'Engineering',
+      index: 2,
+    }),
+    code: 'NEXUS_INVALID_TOKEN',
+    fields: {
+      received: 'the number 3',
+      entry: null,
+      module: 'Engineering',
+      index: 2,
+    },
+  },
+  {
     name: 'InvalidModuleError',
     error: new InvalidModuleError({
       received: 'undefined',
@@ -148,6 +223,15 @@ export const errorCases: readonly ErrorCase[] = [
     }),
     code: 'NEXUS_INVALID_MODULE',
     fields: { received: 'undefined', path: ['Meridian', 'Tactical'] },
+  },
+  {
+    name: 'InvalidModuleError (import path)',
+    error: new InvalidModuleError({
+      received: 'the number 4',
+      path: ['Meridian', 'Tactical'],
+    }),
+    code: 'NEXUS_INVALID_MODULE',
+    fields: { path: ['Meridian', 'Tactical'] },
   },
   {
     name: 'MissingDepsError',
@@ -160,6 +244,30 @@ export const errorCases: readonly ErrorCase[] = [
     }),
     code: 'NEXUS_MISSING_DEPS',
     fields: { token: 'ShipComputer', module: 'Engineering', arity: 1 },
+  },
+  {
+    name: 'MissingDepsError (bare)',
+    error: new MissingDepsError({
+      token: 'Drone',
+      module: 'Bay',
+      arity: 2,
+      useClass: null,
+      bare: true,
+    }),
+    code: 'NEXUS_MISSING_DEPS',
+    fields: { arity: 2, bare: true },
+  },
+  {
+    name: 'MissingDepsError (useClass)',
+    error: new MissingDepsError({
+      token: 'NavCharts',
+      module: 'Engineering',
+      arity: 1,
+      useClass: 'Bare',
+      bare: false,
+    }),
+    code: 'NEXUS_MISSING_DEPS',
+    fields: { useClass: 'Bare' },
   },
   {
     name: 'CircularDependencyError',
@@ -179,6 +287,24 @@ export const errorCases: readonly ErrorCase[] = [
     fields: {
       path: ['ShipComputer', 'Mission'],
       lifetimes: ['singleton', 'scoped'],
+    },
+  },
+  {
+    name: 'LifetimeError (empty path)',
+    error: new LifetimeError({ path: [], lifetimes: [] }),
+    code: 'NEXUS_LIFETIME_VIOLATION',
+    fields: { path: [], lifetimes: [] },
+  },
+  {
+    name: 'LifetimeError (alias step)',
+    error: new LifetimeError({
+      path: ['ShipComputer', 'MissionAlias', 'Mission'],
+      lifetimes: ['singleton', null, 'scoped'],
+    }),
+    code: 'NEXUS_LIFETIME_VIOLATION',
+    fields: {
+      path: ['ShipComputer', 'MissionAlias', 'Mission'],
+      lifetimes: ['singleton', null, 'scoped'],
     },
   },
   {
@@ -211,10 +337,51 @@ export const errorCases: readonly ErrorCase[] = [
     },
   },
   {
+    name: 'ModuleOptionsError (invalid options)',
+    error: new ModuleOptionsError({
+      code: 'NEXUS_INVALID_MODULE_OPTIONS',
+      module: 'Comms',
+      issues: [
+        { message: 'Expected number', path: ['frequency'] },
+        { message: 'Unknown key' },
+      ],
+    }),
+    code: 'NEXUS_INVALID_MODULE_OPTIONS',
+    fields: { module: 'Comms' },
+  },
+  {
+    name: 'ModuleOptionsError (issue with a key path segment)',
+    error: new ModuleOptionsError({
+      code: 'NEXUS_INVALID_MODULE_OPTIONS',
+      module: 'Comms',
+      issues: [{ message: 'Expected number', path: [{ key: 'frequency' }] }],
+    }),
+    code: 'NEXUS_INVALID_MODULE_OPTIONS',
+    fields: { module: 'Comms' },
+  },
+  {
     name: 'LoadError',
     error: new LoadError({ module: 'Telemetry' }),
     code: 'NEXUS_LOAD_GLOBAL_MODULE',
     fields: { module: 'Telemetry' },
+  },
+  {
+    name: 'ProviderError (path, also failed, disposal errors)',
+    error: new ProviderError(
+      {
+        token: 'NavCharts',
+        module: 'Tactical',
+        path: ['Bridge', 'NavCharts'],
+        alsoFailed: [
+          { token: 'SubspaceLink', module: 'Comms', cause: new Error('x') },
+        ],
+        disposalErrors: [new Error('scram')],
+      },
+      { cause: new Error('offline') },
+    ),
+    code: 'NEXUS_PROVIDER_FAILED',
+    fields: { path: ['Bridge', 'NavCharts'] },
+    cause: new Error('offline'),
   },
   {
     name: 'ProviderError',
@@ -249,6 +416,20 @@ export const errorCases: readonly ErrorCase[] = [
     fields: { owner: 'PowerRouter', target: 'ShieldGrid', path: [] },
   },
   {
+    name: 'NotReadyError (runtime cycle)',
+    error: new NotReadyError({
+      owner: 'PowerRouter',
+      target: 'ShieldGrid',
+      path: ['PowerRouter', 'ShieldGrid'],
+    }),
+    code: 'NEXUS_NOT_READY',
+    fields: {
+      owner: 'PowerRouter',
+      target: 'ShieldGrid',
+      path: ['PowerRouter', 'ShieldGrid'],
+    },
+  },
+  {
     name: 'AsyncTransientError',
     error: new AsyncTransientError({ token: 'Probe', module: 'Tactical' }),
     code: 'NEXUS_ASYNC_TRANSIENT',
@@ -265,6 +446,16 @@ export const errorCases: readonly ErrorCase[] = [
     fields: { token: 'SubspaceLink', owners: ['Comms'] },
   },
   {
+    name: 'NotVisibleError (no owners)',
+    error: new NotVisibleError({
+      token: 'SubspaceLink',
+      owners: [],
+      entry: null,
+    }),
+    code: 'NEXUS_NOT_VISIBLE',
+    fields: { token: 'SubspaceLink', owners: [] },
+  },
+  {
     name: 'ScopeRequiredError',
     error: new ScopeRequiredError({
       token: 'Mission',
@@ -275,10 +466,36 @@ export const errorCases: readonly ErrorCase[] = [
     fields: { token: 'Mission', path: ['Mission'] },
   },
   {
+    name: 'ScopeRequiredError (deps entry)',
+    error: new ScopeRequiredError({
+      token: 'Mission',
+      path: ['Mission'],
+      entry: 'deps[0]',
+    }),
+    code: 'NEXUS_SCOPE_REQUIRED',
+    fields: { token: 'Mission', path: ['Mission'], entry: 'deps[0]' },
+  },
+  {
+    name: 'ScopeRequiredError (reached through a path)',
+    error: new ScopeRequiredError({
+      token: 'Mission',
+      path: ['Bridge', 'Mission'],
+      entry: null,
+    }),
+    code: 'NEXUS_SCOPE_REQUIRED',
+    fields: { token: 'Mission', path: ['Bridge', 'Mission'] },
+  },
+  {
     name: 'RequestMissingError',
     error: new RequestMissingError({ dependents: ['Mission'] }),
     code: 'NEXUS_REQUEST_MISSING',
     fields: { dependents: ['Mission'] },
+  },
+  {
+    name: 'RequestMissingError (many dependents)',
+    error: new RequestMissingError({ dependents: ['Mission', 'Comms'] }),
+    code: 'NEXUS_REQUEST_MISSING',
+    fields: { dependents: ['Mission', 'Comms'] },
   },
   {
     name: 'LoadedAfterScopeError',
@@ -289,6 +506,16 @@ export const errorCases: readonly ErrorCase[] = [
     }),
     code: 'NEXUS_LOADED_AFTER_SCOPE',
     fields: { token: 'Probe', module: 'Science' },
+  },
+  {
+    name: 'LoadedAfterScopeError (deps entry)',
+    error: new LoadedAfterScopeError({
+      token: 'Probe',
+      module: 'Science',
+      entry: 'deps[0]',
+    }),
+    code: 'NEXUS_LOADED_AFTER_SCOPE',
+    fields: { token: 'Probe', module: 'Science', entry: 'deps[0]' },
   },
   {
     name: 'NoScopeContextError',

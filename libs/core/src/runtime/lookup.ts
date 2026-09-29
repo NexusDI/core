@@ -1,5 +1,4 @@
 import type { Blueprint, TokenKey } from '../blueprint/blueprint.js';
-import { findNearMisses } from '../blueprint/near-misses.js';
 import { resolveModuleRef } from '../definitions/define-module.js';
 import { describeValue } from '../definitions/describe.js';
 import { isToken } from '../definitions/guards.js';
@@ -69,17 +68,16 @@ export function notFound(
   ];
   if (owners.length > 0)
     return new NotVisibleError({ token: displayName(token), owners, entry });
-  return new MissingProviderError({
-    token: displayName(token),
-    requester: null,
-    module: bp.modules.get(moduleId)?.name ?? moduleId,
-    entry,
-    nearMisses: findNearMisses(token, moduleId, {
-      modules: bp.modules.values(),
-      records: bp.providers.values(),
-      exportedTokens: bp.exportedTokens,
-    }),
-  });
+  return new MissingProviderError(
+    {
+      token: displayName(token),
+      requester: null,
+      module: bp.modules.get(moduleId)?.name ?? moduleId,
+      entry,
+      nearMisses: [],
+    },
+    { hidden: { lookup: { token, moduleId } } },
+  );
 }
 
 /** get() for the root and for a scope. */

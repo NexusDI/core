@@ -281,6 +281,7 @@ describe('Nexus', () => {
         requester: null,
         module: 'Meridian',
         nearMisses: [],
+        lookup: { token: SubspaceLink, moduleId: expect.any(String) },
       });
     });
 

@@ -11,6 +11,8 @@ export type ErrorFields = object & { readonly [K in Reserved]?: never };
 export interface NexusErrorOptions extends ErrorOptions {
   /** The whole message body, for an error whose text its raiser owns. */
   readonly text?: string;
+  /** Own non-enumerable properties, for what a formatter needs beyond the fields. */
+  readonly hidden?: Readonly<Record<string, unknown>>;
 }
 
 /** Errors built with `text`: their raiser owns the words, so no formatter rewrites them. */
@@ -38,6 +40,8 @@ export class NexusError<C extends string = string> extends Error {
     super(`[${code}] ${options?.text ?? lineOf(code, fields)}`, options);
     for (const [key, value] of Object.entries(fields))
       if (key !== 'code') (this as Record<string, unknown>)[key] = value;
+    for (const [key, value] of Object.entries(options?.hidden ?? {}))
+      Object.defineProperty(this, key, { value, enumerable: false });
     Object.defineProperties(this, {
       code: { value: code, enumerable: false },
       name: { value: name, enumerable: false, writable: true },

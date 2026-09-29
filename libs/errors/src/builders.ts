@@ -1,36 +1,37 @@
-import type { BlueprintView } from '../blueprint/views.js';
-import {
-  describeThrown,
-  type AmbiguousProviderError,
-  type AsyncTransientError,
-  type CircularDependencyError,
-  type DisposedError,
-  type DuplicateProviderError,
-  type InvalidExportError,
-  type InvalidModuleError,
-  type InvalidProviderError,
-  type InvalidTokenError,
-  type LegacyDecoratorsError,
-  type LifetimeError,
-  type LoadedAfterScopeError,
-  type LoadError,
-  type MissingDepsError,
-  type MissingProviderError,
-  type ModuleImportCycleError,
-  type ModuleOptionsError,
-  type NearMiss,
-  type NoScopeContextError,
-  type NotReadyError,
-  type NotVisibleError,
-  type OverrideError,
-  type PluginError,
-  type PluginInvalidReason,
-  type ProviderError,
-  type RequestMissingError,
-  type ScopeRequiredError,
-  type SchemaIssue,
-} from '../errors/index.js';
-import type { ErrorText } from '../runtime/plugins.js';
+import type {
+  AmbiguousProviderError,
+  AsyncTransientError,
+  BlueprintView,
+  CircularDependencyError,
+  DisposedError,
+  DuplicateProviderError,
+  ErrorText,
+  InvalidExportError,
+  InvalidModuleError,
+  InvalidProviderError,
+  InvalidTokenError,
+  LegacyDecoratorsError,
+  LifetimeError,
+  LoadedAfterScopeError,
+  LoadError,
+  MissingDepsError,
+  MissingProviderError,
+  ModuleImportCycleError,
+  ModuleOptionsError,
+  NearMiss,
+  NoScopeContextError,
+  NotReadyError,
+  NotVisibleError,
+  OverrideError,
+  PluginError,
+  PluginInvalidReason,
+  ProviderError,
+  RequestMissingError,
+  ScopeRequiredError,
+  SchemaIssue,
+} from '@nexusdi/core';
+
+import { describeThrown } from './describe-thrown.js';
 import { PROVIDER_REASONS, tokenReason } from './reasons.js';
 
 // Each builder is revision 1's message code for its class, reading the
@@ -66,8 +67,17 @@ function nearMissFix(
   return `provide ${token} in ${module} or in a module ${module} imports.`;
 }
 
-const missingProvider: Builder<MissingProviderError> = (error) => {
-  const { token, requester, module, nearMisses, entry } = error;
+/**
+ * `nearMisses` is the search explain() ran over a view. Without one the
+ * builder reads the error's own field, so a constructed error renders the
+ * near misses it was built with.
+ */
+const missingProvider = (
+  error: MissingProviderError,
+  _view: BlueprintView | undefined,
+  nearMisses: readonly NearMiss[] = error.nearMisses,
+): ErrorText => {
+  const { token, requester, module, entry } = error;
   const head =
     entry !== null
       ? `${entry}: no provider of ${token} is visible in ${module}.`
@@ -341,7 +351,7 @@ const plugin: Builder<PluginError> = (error) => {
 
 /**
  * The builder of each code but NEXUS_BLUEPRINT_INVALID, which renders its
- * inner errors and so sits beside render() in index.ts.
+ * inner errors and so sits beside explain() in explain.ts.
  */
 export const BUILDERS = {
   NEXUS_MISSING_PROVIDER: missingProvider,

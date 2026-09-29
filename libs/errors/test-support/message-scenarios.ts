@@ -7,10 +7,10 @@ import {
   optional,
   provide,
   REQUEST,
-} from '../src/index.js';
-import { appendProp, writeInjectable } from '../src/definitions/metadata.js';
-import '../src/polyfill/symbol-metadata.js';
+} from '@nexusdi/core';
+
 import { rejected, thrown } from './catch.js';
+import { inject, injectable } from './metadata.js';
 
 /** An operation that ends in the error whose message a test asserts. */
 export interface MessageScenario {
@@ -225,9 +225,7 @@ export const messageScenarios: readonly MessageScenario[] = [
         static deps: readonly unknown[] = [NAV_CHARTS];
         constructor(readonly charts: unknown) {}
       }
-      const metadata = Object.create(null) as DecoratorMetadataObject;
-      writeInjectable(metadata, { deps: [NAV_CHARTS] });
-      Object.defineProperty(Twice, Symbol.metadata, { value: metadata });
+      injectable(Twice, { deps: [NAV_CHARTS] });
       return rejectEngineering(Twice)(plugins);
     },
   },
@@ -248,9 +246,7 @@ export const messageScenarios: readonly MessageScenario[] = [
     name: 'a bare class with an invalid @Injectable lifetime',
     run: (plugins) => {
       class BadLifetime {}
-      const metadata = Object.create(null) as DecoratorMetadataObject;
-      writeInjectable(metadata, { lifetime: 'forever' });
-      Object.defineProperty(BadLifetime, Symbol.metadata, { value: metadata });
+      injectable(BadLifetime, { lifetime: 'forever' });
       return rejectEngineering(BadLifetime)(plugins);
     },
   },
@@ -258,9 +254,7 @@ export const messageScenarios: readonly MessageScenario[] = [
     name: 'a bare class with a bad @Inject dependency',
     run: (plugins) => {
       class Bridge {}
-      const metadata = Object.create(null) as DecoratorMetadataObject;
-      appendProp(metadata, { key: 'charts', dep: 'nav', set: () => undefined });
-      Object.defineProperty(Bridge, Symbol.metadata, { value: metadata });
+      inject(Bridge, 'charts', 'nav');
       return rejectEngineering(Bridge)(plugins);
     },
   },

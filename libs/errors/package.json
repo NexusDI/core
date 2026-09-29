@@ -1,0 +1,54 @@
+{
+  "name": "@nexusdi/errors",
+  "version": "0.3.2",
+  "description": "Revision-1-quality error messages, fix lines and near-miss suggestions for NexusDI, as a plugin.",
+  "keywords": [
+    "dependency injection",
+    "di",
+    "nexusdi",
+    "typescript"
+  ],
+  "homepage": "https://github.com/NexusDI/core#readme",
+  "bugs": {
+    "url": "https://github.com/NexusDI/core/issues"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/NexusDI/core.git",
+    "directory": "libs/errors"
+  },
+  "license": "MIT",
+  "type": "module",
+  "sideEffects": false,
+  "engines": {
+    "node": ">=22.12"
+  },
+  "types": "./dist/index.d.ts",
+  "exports": {
+    "./package.json": "./package.json",
+    ".": {
+      "@nexusdi/source": "./src/index.ts",
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js",
+      "default": "./dist/index.js"
+    }
+  },
+  "files": [
+    "dist",
+    "!dist/**/*.tsbuildinfo",
+    "src",
+    "!src/**/*.test.*",
+    "!src/**/*.spec.*",
+    "!src/**/*.test-d.*",
+    "README.md",
+    "LICENSE",
+    "CHANGELOG.md"
+  ],
+  "peerDependencies": {
+    "@nexusdi/core": "0.3.2"
+  },
+  "publishConfig": {
+    "access": "public",
+    "provenance": true
+  }
+}

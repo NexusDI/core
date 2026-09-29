@@ -1,7 +1,8 @@
 #!/usr/bin/env node
 /**
- * Packs @nexusdi/core, installs the tarball into a throwaway project outside
- * the workspace, and checks that a consumer can import it and see its types.
+ * Packs every published package, installs the tarballs into a throwaway
+ * project outside the workspace, and checks that a consumer can import them
+ * and see their types.
  *
  * Nothing inside the repo can tell whether the package resolves as published.
  * tsconfig.base.json sets `customConditions: ["@nexusdi/source"]`, so every
@@ -34,10 +35,10 @@ const ROOT = resolve(import.meta.dirname, '..');
  * Every published package, as `[directory, package name]`. The package name
  * is also the Nx project name the build step selects.
  */
-const LIBS = [['libs/core', '@nexusdi/core']];
-
-/** The entry points of @nexusdi/core, as its exports map names them. */
-const CORE_ENTRIES = ['.', './node', './testing'];
+const LIBS = [
+  ['libs/core', '@nexusdi/core'],
+  ['libs/errors', '@nexusdi/errors'],
+];
 
 /** Every JavaScript module under `root`, at any depth. */
 const modulesUnder = (root) =>
@@ -54,12 +55,13 @@ let failed = false;
 /**
  * A CommonJS consumer. The package is ESM only (spec section 12), and Node
  * 22.12.0, the engines floor, is the first 22.x release whose require() loads
- * an ES module without a flag. It requires all three entries and uses each.
+ * an ES module without a flag. It requires every entry and uses each.
  */
 const CJS_CONSUMER = `'use strict';
 const { Nexus, Token, defineModule, provide } = require('@nexusdi/core');
 const { createTestingContainer } = require('@nexusdi/core/testing');
 const { nodeScopeContext } = require('@nexusdi/core/node');
+const { errors } = require('@nexusdi/errors');
 
 const REACTOR = new Token('ReactorCore');
 class FusionReactor {
@@ -81,6 +83,7 @@ const Engineering = defineModule({
 (async () => {
   const ship = await Nexus.create(Engineering, {
     scopeContext: nodeScopeContext(),
+    plugins: [errors()],
   });
   if (ship.get(REACTOR).output !== 1.21)
     throw new Error('require(esm): the provider did not resolve');
@@ -140,6 +143,26 @@ function hasTopLevelAwait(ts, fileName, text) {
   return found;
 }
 
+/**
+ * Throws unless an exports entry, named by `where`, lists `conditions` as
+ * the spec requires: @nexusdi/source first, then types, import and default,
+ * and no require condition.
+ */
+function checkEntry(where, conditions) {
+  if (conditions[0] !== '@nexusdi/source')
+    throw new Error(`${where} must list @nexusdi/source first`);
+  if (!conditions.includes('types') || !conditions.includes('import'))
+    throw new Error(`${where} lost its types or import condition`);
+  if (!conditions.includes('default'))
+    throw new Error(
+      `${where} lost its default condition, which require(esm) resolves through`,
+    );
+  if (conditions.includes('require'))
+    throw new Error(
+      `${where} has a require condition; the package is ESM only (spec section 12)`,
+    );
+}
+
 /** Names every public export, so tsc fails on one that stopped being exported. */
 const CONSUMER = `
 import {
@@ -165,6 +188,7 @@ import type {
 import { nodeScopeContext } from '@nexusdi/core/node';
 import { createTestingContainer } from '@nexusdi/core/testing';
 import type { TestingContainerBuilder, TestingCreateOptions } from '@nexusdi/core/testing';
+import { errors, explain } from '@nexusdi/errors';
 
 declare module '@nexusdi/core' {
   interface NexusRequest {
@@ -241,6 +265,18 @@ function check(ok: boolean, what: string): void {
     .override(NAV_CHARTS, { useValue: { plot: () => 'fake' } })
     .create({ onInit: false });
   check(fake.get(ShipComputer).charts.plot('x') === 'fake', 'the testing entry');
+}
+{
+  const broken = defineModule({ name: 'Broken', providers: [ShipComputer] });
+  const error = await Nexus.create(broken, { plugins: [errors()] }).catch(
+    (caught: unknown) => caught as BlueprintError,
+  );
+  check(
+    error instanceof BlueprintError &&
+      error.errors[0]?.message.includes('Fix:') === true &&
+      explain(error.errors[0]) !== undefined,
+    '@nexusdi/errors formats a compile error',
+  );
 }
 
 const errorClasses = [
@@ -471,10 +507,9 @@ try {
 
   console.log('Checking the published modules for top-level await…');
   const ts = createRequire(join(dir, 'package.json'))('typescript');
-  const coreDist = join(dir, 'node_modules', '@nexusdi', 'core', 'dist');
-  const awaiting = modulesUnder(coreDist).filter((file) =>
-    hasTopLevelAwait(ts, file, readFileSync(file, 'utf8')),
-  );
+  const awaiting = LIBS.flatMap(([, name]) =>
+    modulesUnder(join(dir, 'node_modules', ...name.split('/'), 'dist')),
+  ).filter((file) => hasTopLevelAwait(ts, file, readFileSync(file, 'utf8')));
   if (awaiting.length)
     throw new Error(
       `top-level await makes require() throw ERR_REQUIRE_ASYNC_MODULE:\n${awaiting.join('\n')}`,
@@ -493,7 +528,7 @@ try {
         `expected Node ${version}, the consumer ran on ${printed}`,
       );
     console.log(
-      `  ✓ Node ${printed}: require() loads ., ./testing and ./node, and each resolves`,
+      `  ✓ Node ${printed}: require() loads every entry, and each resolves`,
     );
   }
 
@@ -555,28 +590,21 @@ try {
   if (tslibProblems.length) throw new Error(tslibProblems.join('\n'));
   console.log('  ✓ tslib is declared by exactly the packages that import it');
 
-  // The @nexusdi/source condition must come first in every entry, so node's
-  // default conditions never select source.
-  const corePkg = JSON.parse(
-    readFileSync(
-      join(dir, 'node_modules', '@nexusdi', 'core', 'package.json'),
-      'utf8',
-    ),
-  );
-  for (const entry of CORE_ENTRIES) {
-    const conditions = Object.keys(corePkg.exports[entry] ?? {});
-    if (conditions[0] !== '@nexusdi/source')
-      throw new Error(`exports["${entry}"] must list @nexusdi/source first`);
-    if (!conditions.includes('types') || !conditions.includes('import'))
-      throw new Error(`exports["${entry}"] lost its types or import condition`);
-    if (!conditions.includes('default'))
-      throw new Error(
-        `exports["${entry}"] lost its default condition, which require(esm) resolves through`,
-      );
-    if (conditions.includes('require'))
-      throw new Error(
-        `exports["${entry}"] has a require condition; the package is ESM only (spec section 12)`,
-      );
+  // The @nexusdi/source condition must come first in every entry of every
+  // package, so node's default conditions never select source.
+  for (const [, name] of LIBS) {
+    const manifest = JSON.parse(
+      readFileSync(
+        join(dir, 'node_modules', ...name.split('/'), 'package.json'),
+        'utf8',
+      ),
+    );
+    if (manifest.exports?.['.'] === undefined)
+      throw new Error(`${name} has no "." entry in its exports map`);
+    for (const [entry, target] of Object.entries(manifest.exports)) {
+      if (entry === './package.json') continue;
+      checkEntry(`${name} exports["${entry}"]`, Object.keys(target));
+    }
   }
   console.log(
     '  ✓ every entry lists @nexusdi/source first, keeps types, import and default, and has no require condition',

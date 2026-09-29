@@ -15,8 +15,17 @@ interface MissingProviderFields {
   readonly nearMisses: readonly NearMiss[];
 }
 
+/** What a MissingProviderError looked up. `errors/` imports nothing, so the token is unknown here. */
+export interface MissingLookup {
+  readonly token: unknown;
+  readonly moduleId: string;
+}
+
 /** No provider of a token is visible where it was requested. */
 export class MissingProviderError extends errorBase<
   'NEXUS_MISSING_PROVIDER',
   MissingProviderFields
->('NEXUS_MISSING_PROVIDER', 'MissingProviderError') {}
+>('NEXUS_MISSING_PROVIDER', 'MissingProviderError') {
+  /** Own and non-enumerable; set by the constructor's `hidden` option. */
+  declare readonly lookup: MissingLookup | null;
+}

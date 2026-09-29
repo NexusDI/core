@@ -1,0 +1,7 @@
+{
+  "$schema": "../../node_modules/nx/schemas/project-schema.json",
+  "name": "@nexusdi/errors",
+  "targets": {
+    "lint": { "options": { "args": ["--max-warnings=0"] } }
+  }
+}

@@ -42,8 +42,6 @@ const ALLOWED: Readonly<Record<string, readonly string[]>> = {
   polyfill: [],
   node: ['node/', 'index.ts'],
   testing: ['testing/', 'index.ts', 'internal.ts'],
-  // Revision 1's message text, kept in core only until @nexusdi/errors takes it.
-  text: ['text/', 'errors/', 'blueprint/views.ts', 'runtime/plugins.ts'],
 };
 
 /** The layer a file belongs to: its first directory, or null for a root file. */
@@ -53,7 +51,7 @@ function layerOf(path: string): string | null {
 }
 
 /** Every module specifier a file names in an import, export-from or import(). */
-function specifiersOf(file: SourceFileText): string[] {
+export function specifiersOf(file: SourceFileText): string[] {
   const source = ts.createSourceFile(
     file.path,
     file.source,

@@ -8,7 +8,7 @@ import { describe, expect, it } from 'vitest';
 
 import { thrown } from '../../test-support/catch.js';
 import { compileErrors, idOf, visible } from '../../test-support/compile.js';
-import { errorModes, expectRendered } from '../../test-support/modes.js';
+import { expectCoreLine } from '../../test-support/modes.js';
 import {
   expectPlainGraph,
   extraKeys,
@@ -144,54 +144,42 @@ describe('SEC-002 options carrying prototype keys (CWE-1321)', () => {
 });
 
 describe('SEC-003 a polluted Object.prototype (CWE-1321)', () => {
-  describe.each(errorModes)('$name mode', (mode) => {
-    it('ignores provider options that only an inherited property supplies', () => {
-      const NAME = new Token<string>('Name');
-      const inherited = Object.create({ useValue: 'hijacked' }) as object;
-      const errors = compileErrors(
-        defineModule({
-          name: 'Root',
-          providers: [rawProvide(NAME, inherited)],
-        }),
-      );
-      expect(errors).toMatchObject([
-        {
-          code: 'NEXUS_INVALID_PROVIDER',
-          reason: 'no-definition',
-          detail: ['Name'],
-        },
-      ]);
-      expectRendered(
-        mode,
-        errors[0] as NexusError,
-        '[NEXUS_INVALID_PROVIDER] Root.providers[0] provides Name with no definition; add useClass, useValue, useFactory or useExisting.',
-      );
-    });
+  it('ignores provider options that only an inherited property supplies', () => {
+    const NAME = new Token<string>('Name');
+    const inherited = Object.create({ useValue: 'hijacked' }) as object;
+    const errors = compileErrors(
+      defineModule({
+        name: 'Root',
+        providers: [rawProvide(NAME, inherited)],
+      }),
+    );
+    expect(errors).toMatchObject([
+      {
+        code: 'NEXUS_INVALID_PROVIDER',
+        reason: 'no-definition',
+        detail: ['Name'],
+      },
+    ]);
+    expectCoreLine(errors[0] as NexusError);
   });
 
-  describe.each(errorModes)('$name mode', (mode) => {
-    it('ignores literal options that only an inherited property supplies', () => {
-      const NAME = new Token<string>('Name');
-      const literal = Object.assign(
-        Object.create({ useValue: 'hijacked' }) as object,
-        { token: NAME },
-      );
-      const errors = compileErrors(
-        defineModule({ name: 'Root', providers: [literal as never] }),
-      );
-      expect(errors).toMatchObject([
-        {
-          code: 'NEXUS_INVALID_PROVIDER',
-          reason: 'no-definition',
-          detail: ['Name'],
-        },
-      ]);
-      expectRendered(
-        mode,
-        errors[0] as NexusError,
-        '[NEXUS_INVALID_PROVIDER] Root.providers[0] provides Name with no definition; add useClass, useValue, useFactory or useExisting.',
-      );
-    });
+  it('ignores literal options that only an inherited property supplies', () => {
+    const NAME = new Token<string>('Name');
+    const literal = Object.assign(
+      Object.create({ useValue: 'hijacked' }) as object,
+      { token: NAME },
+    );
+    const errors = compileErrors(
+      defineModule({ name: 'Root', providers: [literal as never] }),
+    );
+    expect(errors).toMatchObject([
+      {
+        code: 'NEXUS_INVALID_PROVIDER',
+        reason: 'no-definition',
+        detail: ['Name'],
+      },
+    ]);
+    expectCoreLine(errors[0] as NexusError);
   });
 
   it('reads provide() options the same way while Object.prototype carries useValue and lifetime', async () => {
@@ -502,32 +490,26 @@ describe('SEC-006 proxied classes (CWE-248)', () => {
     expect(ship.graph().providers[0]?.token).toBe('Engine');
   });
 
-  describe.each(errorModes)('$name mode', (mode) => {
-    it('reports NEXUS_INVALID_PROVIDER for a proxied class whose trap throws while the compiler reads it', () => {
-      class Engine {}
-      const Hostile = new Proxy(Engine, {
-        get(target, key, receiver) {
-          if (typeof key === 'symbol') throw new Error('trap');
-          return Reflect.get(target, key, receiver);
-        },
-      });
-      const errors = compileErrors(
-        defineModule({ name: 'Root', providers: [Hostile] }),
-      );
-      expect(errors).toMatchObject([
-        {
-          code: 'NEXUS_INVALID_PROVIDER',
-          index: 0,
-          reason: 'class-throws',
-          detail: ['Error: trap'],
-        },
-      ]);
-      expectRendered(
-        mode,
-        errors[0] as NexusError,
-        '[NEXUS_INVALID_PROVIDER] Root.providers[0] is a class that throws when read: Error: trap.',
-      );
+  it('reports NEXUS_INVALID_PROVIDER for a proxied class whose trap throws while the compiler reads it', () => {
+    class Engine {}
+    const Hostile = new Proxy(Engine, {
+      get(target, key, receiver) {
+        if (typeof key === 'symbol') throw new Error('trap');
+        return Reflect.get(target, key, receiver);
+      },
     });
+    const errors = compileErrors(
+      defineModule({ name: 'Root', providers: [Hostile] }),
+    );
+    expect(errors).toMatchObject([
+      {
+        code: 'NEXUS_INVALID_PROVIDER',
+        index: 0,
+        reason: 'class-throws',
+        detail: ['Error: trap'],
+      },
+    ]);
+    expectCoreLine(errors[0] as NexusError);
   });
 });
 
@@ -721,30 +703,24 @@ describe('SEC-010 graph() stays plain JSON (CWE-20)', () => {
 });
 
 describe('SEC-012 static deps from a getter or a built-in prototype (CWE-1321)', () => {
-  describe.each(errorModes)('$name mode', (mode) => {
-    it('reports a static deps getter that throws as NEXUS_INVALID_PROVIDER', () => {
-      class Probe {
-        static get deps(): never {
-          throw new Error('trap');
-        }
-        constructor(readonly input: unknown) {}
+  it('reports a static deps getter that throws as NEXUS_INVALID_PROVIDER', () => {
+    class Probe {
+      static get deps(): never {
+        throw new Error('trap');
       }
-      const errors = compileErrors(
-        defineModule({ name: 'Root', providers: [Probe] }),
-      );
-      expect(errors).toMatchObject([
-        {
-          code: 'NEXUS_INVALID_PROVIDER',
-          reason: 'static-deps-throws',
-          detail: ['Error: trap'],
-        },
-      ]);
-      expectRendered(
-        mode,
-        errors[0] as NexusError,
-        '[NEXUS_INVALID_PROVIDER] Root.providers[0] has a static deps that throws when read: Error: trap.',
-      );
-    });
+      constructor(readonly input: unknown) {}
+    }
+    const errors = compileErrors(
+      defineModule({ name: 'Root', providers: [Probe] }),
+    );
+    expect(errors).toMatchObject([
+      {
+        code: 'NEXUS_INVALID_PROVIDER',
+        reason: 'static-deps-throws',
+        detail: ['Error: trap'],
+      },
+    ]);
+    expectCoreLine(errors[0] as NexusError);
   });
 
   it('ignores a deps key that Function.prototype or Object.prototype carries', () => {

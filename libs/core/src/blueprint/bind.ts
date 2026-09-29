@@ -10,7 +10,6 @@ import {
   type ProviderRecord,
   type TokenKey,
 } from './blueprint.js';
-import { findNearMisses } from './near-misses.js';
 import type { Visibility } from './visibility.js';
 
 export interface BindInput {
@@ -50,17 +49,16 @@ export function bind(input: BindInput, errors: NexusError[]): BindResult {
       )
         return;
       errors.push(
-        new MissingProviderError({
-          token: displayName(token),
-          requester: record.name,
-          module: names.get(record.module) ?? record.module,
-          entry: null,
-          nearMisses: findNearMisses(token, record.module, {
-            modules: input.modules,
-            records: input.records,
-            exportedTokens: input.visibility.exportedTokens,
-          }),
-        }),
+        new MissingProviderError(
+          {
+            token: displayName(token),
+            requester: record.name,
+            module: names.get(record.module) ?? record.module,
+            entry: null,
+            nearMisses: [],
+          },
+          { hidden: { lookup: { token, moduleId: record.module } } },
+        ),
       );
     };
 

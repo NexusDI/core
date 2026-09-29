@@ -1,11 +1,7 @@
 import { describe, expect, it, vi } from 'vitest';
 
 import { thrown } from '../../test-support/catch.js';
-import {
-  coreLine,
-  errorModes,
-  expectMessage,
-} from '../../test-support/modes.js';
+import { expectCoreLine } from '../../test-support/modes.js';
 import { defineModule } from '../definitions/define-module.js';
 import { all, lazy, optional } from '../definitions/modifiers.js';
 import { provide } from '../definitions/provide.js';
@@ -167,72 +163,56 @@ describe('Nexus', () => {
       ).toBeInstanceOf(SubspaceLink);
     });
 
-    describe.each(errorModes)('$name mode', (mode) => {
-      it('throws the error root get() throws for an entry it cannot find', async () => {
-        const Comms = defineModule({
-          name: 'Comms',
-          providers: [SubspaceLink],
-        });
-        const ship = await Nexus.create(
-          defineModule({ name: 'Meridian', imports: [Comms] }),
-          { plugins: mode.plugins },
-        );
-        expect(
-          thrown(() => ship.resolve({ link: SubspaceLink })),
-        ).toMatchObject({
-          code: 'NEXUS_NOT_VISIBLE',
-          owners: ['Comms'],
-          entry: 'deps.link',
-        });
-        const missing = thrown(() =>
-          ship.resolve([optional(SubspaceLink), ReactorCore]),
-        ) as NexusError;
-        expect(missing).toMatchObject({
-          code: 'NEXUS_MISSING_PROVIDER',
-          requester: null,
-          entry: 'deps[1]',
-          module: 'Meridian',
-        });
-        if (mode.name === 'text')
-          expect(
-            missing.message.startsWith('[NEXUS_MISSING_PROVIDER] deps[1]'),
-          ).toBe(true);
-        else expect(missing.message).toBe(coreLine(missing));
+    it('throws the error root get() throws for an entry it cannot find', async () => {
+      const Comms = defineModule({
+        name: 'Comms',
+        providers: [SubspaceLink],
       });
+      const ship = await Nexus.create(
+        defineModule({ name: 'Meridian', imports: [Comms] }),
+        undefined,
+      );
+      expect(thrown(() => ship.resolve({ link: SubspaceLink }))).toMatchObject({
+        code: 'NEXUS_NOT_VISIBLE',
+        owners: ['Comms'],
+        entry: 'deps.link',
+      });
+      const missing = thrown(() =>
+        ship.resolve([optional(SubspaceLink), ReactorCore]),
+      ) as NexusError;
+      expect(missing).toMatchObject({
+        code: 'NEXUS_MISSING_PROVIDER',
+        requester: null,
+        entry: 'deps[1]',
+        module: 'Meridian',
+      });
+      expectCoreLine(missing);
+    });
 
-      it('throws NEXUS_INVALID_TOKEN for an entry that is not a token, and for a bare MultiToken', async () => {
-        const ship = await Nexus.create(Tactical, { plugins: mode.plugins });
-        const notAToken = thrown(() =>
-          rawResolve(ship, { name: 'nav' }),
-        ) as NexusError;
-        expect(notAToken).toMatchObject({
-          code: 'NEXUS_INVALID_TOKEN',
-          received: 'the string "nav"',
-          entry: 'deps.name',
-          reason: null,
-          detail: [],
-        });
-        expectMessage(
-          mode,
-          notAToken,
-          '[NEXUS_INVALID_TOKEN] deps.name: the string "nav" is not a token. A token is a class, a Token or a MultiToken.',
-        );
-        const bare = thrown(() =>
-          rawResolve(ship, { checks: DIAGNOSTICS }),
-        ) as NexusError;
-        expect(bare).toMatchObject({
-          code: 'NEXUS_INVALID_TOKEN',
-          received: 'an object',
-          entry: 'deps.checks',
-          reason: 'bare-multi-token',
-          detail: ['Diagnostics'],
-        });
-        expectMessage(
-          mode,
-          bare,
-          '[NEXUS_INVALID_TOKEN] deps.checks: an object is the MultiToken Diagnostics; wrap it in all().',
-        );
+    it('throws NEXUS_INVALID_TOKEN for an entry that is not a token, and for a bare MultiToken', async () => {
+      const ship = await Nexus.create(Tactical);
+      const notAToken = thrown(() =>
+        rawResolve(ship, { name: 'nav' }),
+      ) as NexusError;
+      expect(notAToken).toMatchObject({
+        code: 'NEXUS_INVALID_TOKEN',
+        received: 'the string "nav"',
+        entry: 'deps.name',
+        reason: null,
+        detail: [],
       });
+      expectCoreLine(notAToken);
+      const bare = thrown(() =>
+        rawResolve(ship, { checks: DIAGNOSTICS }),
+      ) as NexusError;
+      expect(bare).toMatchObject({
+        code: 'NEXUS_INVALID_TOKEN',
+        received: 'an object',
+        entry: 'deps.checks',
+        reason: 'bare-multi-token',
+        detail: ['Diagnostics'],
+      });
+      expectCoreLine(bare);
     });
 
     it('throws NEXUS_SCOPE_REQUIRED for a lazy entry to a scoped provider, at resolve time', async () => {
@@ -347,7 +327,7 @@ describe('Nexus', () => {
       });
     });
 
-    it('names the entry and the near misses in NEXUS_MISSING_PROVIDER', async () => {
+    it('names the entry in NEXUS_MISSING_PROVIDER, with no near misses', async () => {
       const OTHER = new Token<string>('NavCharts');
       const NAV_CHARTS = new Token<string>('NavCharts');
       const Science = defineModule({
@@ -368,7 +348,7 @@ describe('Nexus', () => {
           requester: null,
           entry: 'deps.charts',
           module: 'Meridian',
-          nearMisses: [{ kind: 'same-description', module: 'Science' }],
+          nearMisses: [],
         },
       ]);
     });

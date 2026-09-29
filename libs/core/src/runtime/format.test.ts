@@ -2,7 +2,6 @@ import { describe, expect, it } from 'vitest';
 
 import { rejected, thrown } from '../../test-support/catch.js';
 import { coreLine } from '../../test-support/modes.js';
-import { textPlugin } from '../../test-support/text-plugin.js';
 import type { BlueprintView } from '../blueprint/views.js';
 import { defineModule } from '../definitions/define-module.js';
 import { lazy } from '../definitions/modifiers.js';
@@ -201,7 +200,7 @@ describe('formatThrown', () => {
           }),
         ],
       }),
-      { plugins: [textPlugin(), recording('after', calls)] },
+      { plugins: [recording('before', calls), recording('after', calls)] },
     );
     const error = thrown(() => ship.get(DESCRIBED)) as NexusError;
     expect(error.message).toBe(
@@ -569,8 +568,8 @@ describe('fromUserCode', () => {
     const calls: string[] = [];
     const views: (BlueprintView | undefined)[] = [];
     const CHARTS = new Token<string>('Charts');
-    // A second Token with the same description, so the near miss names
-    // Tactical, a module of this container.
+    // Tactical belongs to this container, so the view the hook receives
+    // names it.
     const Tactical = defineModule({
       name: 'Tactical',
       providers: [provide(new Token<string>('Charts'), { useValue: 'x' })],
@@ -603,9 +602,7 @@ describe('fromUserCode', () => {
     expect(error.message).toBe(
       '[NEXUS_MISSING_PROVIDER] alpha NEXUS_MISSING_PROVIDER',
     );
-    expect(error.nearMisses).toEqual([
-      { kind: 'same-description', module: 'Tactical' },
-    ]);
+    expect(error.nearMisses).toEqual([]);
     expect(calls).toEqual(['NEXUS_MISSING_PROVIDER']);
     expect(views).toHaveLength(1);
     expect(views[0]?.modules.map((m) => m.name)).toContain('Tactical');

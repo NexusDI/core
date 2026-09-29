@@ -186,6 +186,16 @@ The verify gate follows the same resolved list. It runs `lint`, `test`,
 released packages, what they are compiled against, and every project that
 depends on them, transitively.
 
+### One version for every package
+
+Every package under `libs/` carries `@nexusdi/core`'s version, and each
+optional package's peer dependency on core is that exact version
+(`tools/repo-checks/src/package-versions.test.ts` holds this). Release them
+together with an explicit version, which applies to every project `nx.json`'s
+`release.projects` selects:
+
+    npx nx release version 0.4.0-rc.0
+
 ## Release candidates
 
 0.4 ships as a series of release candidates before the stable tag. This uses
