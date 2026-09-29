@@ -401,6 +401,24 @@ describe('SEC-003 a polluted Object.prototype (CWE-1321)', () => {
     });
   });
 
+  it('registers only the hooks a plugin object sets on itself', async () => {
+    const calls: string[] = [];
+    const inherited = {
+      setup: () => void calls.push('setup'),
+      compile: { check: () => void calls.push('check') },
+    };
+    const plugin = Object.assign(Object.create(inherited) as object, {
+      name: 'plain',
+      apiVersion: 1 as const,
+    });
+    await using app = await Nexus.create(
+      defineModule({ name: 'Root', providers: [] }),
+      { plugins: [plugin as never] },
+    );
+    expect(app).toBeInstanceOf(Nexus);
+    expect(calls).toEqual([]);
+  });
+
   it('keeps a declared class a singleton when Object.prototype carries lifetime at declaration time', async () => {
     const proto = Object.prototype as Record<string, unknown>;
     proto['lifetime'] = 'transient';
