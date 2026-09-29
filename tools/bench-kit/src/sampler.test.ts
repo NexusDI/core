@@ -1,0 +1,57 @@
+import { join } from 'node:path';
+import { describe, expect, it } from 'vitest';
+
+import { forkWorker, interleave } from './sampler.ts';
+
+const script = join(import.meta.dirname, '__fixtures__', 'echo-worker.ts');
+
+describe('interleave', () => {
+  it('collects one sample per worker per round, warm-up apart', async () => {
+    const workers = [forkWorker('a', script), forkWorker('b', script)];
+    try {
+      const out = await interleave(workers, 'spin', {
+        warmup: 3,
+        measured: 10,
+        seed: 1,
+      });
+      expect(out.a.warmup).toHaveLength(3);
+      expect(out.a.measured).toHaveLength(10);
+      expect(out.b.measured.every((ns) => ns > 0)).toBe(true);
+    } finally {
+      for (const w of workers) w.close();
+    }
+  });
+  it('awaits async operations', async () => {
+    const w = forkWorker('a', script);
+    try {
+      const out = await interleave([w], 'async', {
+        warmup: 1,
+        measured: 2,
+        seed: 1,
+      });
+      expect(out.a.measured).toHaveLength(2);
+    } finally {
+      w.close();
+    }
+  });
+  it('fails the run naming the worker, operation and round when a worker throws', async () => {
+    const w = forkWorker('lib', script);
+    try {
+      await expect(
+        interleave([w], 'boom', { warmup: 0, measured: 50, seed: 1 }),
+      ).rejects.toThrow('lib boom round 2: fixture broke');
+    } finally {
+      w.close();
+    }
+  });
+  it('fails the run naming the worker and operation when calibration throws', async () => {
+    const w = forkWorker('lib', script);
+    try {
+      await expect(
+        interleave([w], 'broken', { warmup: 0, measured: 5, seed: 1 }),
+      ).rejects.toThrow('lib broken calibration: fixture broke');
+    } finally {
+      w.close();
+    }
+  });
+});
