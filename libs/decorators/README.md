@@ -1,14 +1,18 @@
 # @nexusdi/decorators
 
-Standard decorators for NexusDI: `@Injectable`, `@Inject` and `@Module`.
+`@Injectable`, `@Inject` and `@Module` declare NexusDI classes and modules with standard (TC39) decorators.
 
 ```bash
-npm install @nexusdi/core @nexusdi/decorators
+npm install @nexusdi/decorators @nexusdi/core
 ```
 
-Decorators are optional. `provide()`, `static deps` and `defineModule()` need no compiler flag. `@Injectable`, `@Inject` and `@Module` from `@nexusdi/decorators` are standard (TC39) decorators, so they need a toolchain that compiles standard decorators: tsc, TypeScript 7, esbuild, SWC, Babel, Bun, Deno and Vite with its Babel plugin. Vite on its own and Node's type stripping cannot run them. A project that keeps `experimentalDecorators` for another library uses `provide()`, `static deps` and `defineModule()`, and the decorators throw `NEXUS_LEGACY_DECORATORS` under that flag.
+The version of `@nexusdi/decorators` must equal the version of `@nexusdi/core`.
 
-The decorators write the same definitions `provide()` and `defineModule()` build. A `useClass` binding reads the deps `@Injectable` declares.
+## Decorators
+
+Decorators are optional. `provide()`, `static deps` and `defineModule()` need no compiler flag. `@Injectable`, `@Inject` and `@Module`, from `@nexusdi/decorators`, are standard (TC39) decorators, so they need a toolchain that compiles standard decorators: tsc, TypeScript 7, esbuild, SWC, Babel, Bun, Deno and Vite with its Babel plugin. Vite on its own and Node's type stripping cannot run them. A project that keeps `experimentalDecorators` for another library uses `provide()`, `static deps` and `defineModule()`, and the decorators throw `NEXUS_LEGACY_DECORATORS` under that flag.
+
+The decorators write the same definitions `provide()` and `defineModule()` build, through core's `declareClass`, `declareProperty` and `declareModuleClass`, which a decorator library of your own can call too. A `useClass` binding reads the deps `@Injectable` declares.
 
 <!-- #region decorators -->
 
@@ -74,3 +78,7 @@ ship.get(BRIDGE).link; // -> undefined
 <!-- #endregion decorators -->
 
 `@Module` classes are not configurable; configurable modules use `defineModule`.
+
+## License
+
+MIT

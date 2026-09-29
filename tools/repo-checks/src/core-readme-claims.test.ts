@@ -78,6 +78,30 @@ describe('libs/core README', () => {
     }
   });
 
+  it('leads with modules and async startup, and starts with classes as tokens', () => {
+    expect(head).toContain(
+      'NestJS-style modules and async startup for any TypeScript app, checked before it runs, with no compiler flags.',
+    );
+    const quickStart = readme.slice(readme.indexOf('## Quick start'));
+    const firstBlock = quickStart.slice(
+      0,
+      quickStart.indexOf('```\n', quickStart.indexOf('```ts')),
+    );
+    expect(firstBlock).not.toContain('Token<');
+    expect(firstBlock).toContain('Nexus.create([');
+  });
+
+  it('closes with when you do not need a container', () => {
+    expect(readme).toContain('## When you do not need a container');
+    expect(
+      readme.indexOf('## When you do not need a container'),
+    ).toBeGreaterThan(readme.indexOf('## Packages'));
+  });
+
+  it('states no size figure by hand', () => {
+    expect(readme).not.toMatch(/\b\d+(\.\d+)?\s?KB\b/);
+  });
+
   it('claims no runtime dependencies only while package.json declares none', () => {
     const manifest = JSON.parse(
       readFileSync(join(workspaceRoot, 'libs/core/package.json'), 'utf-8'),

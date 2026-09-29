@@ -3,8 +3,7 @@
 <div align="center">
   <img src="https://nexus.js.org/img/logo.svg" alt="NexusDI Logo" width="120" height="120" />
   <br />
-  <p><strong>A modern, lightweight dependency injection container for TypeScript with decorators, inspired by industry-leading frameworks.</strong></p>
-  <p><em>The DI library that doesn't make you want to inject yourself with coffee ☕</em></p>
+  <p><strong>NestJS-style modules and async startup for any TypeScript app, checked before it runs, with no compiler flags.</strong></p>
 </div>
 
 <div align="center">
@@ -13,7 +12,6 @@
 ![GitHub Actions Workflow Status](https://img.shields.io/github/actions/workflow/status/nexusdi/core/ci.yml)
 ![Libraries.io dependency status for GitHub repo](https://img.shields.io/librariesio/github/nexusdi/core)
 
-![npm bundle size (scoped)](https://img.shields.io/bundlephobia/min/%40nexusdi/core)
 ![NPM Unpacked Size](https://img.shields.io/npm/unpacked-size/%40nexusdi%2Fcore)
 ![Source language](https://img.shields.io/badge/language-TypeScript-blue)
 
@@ -24,12 +22,11 @@
 
 </div>
 
-NexusDI is a modern, lightweight <strong>dependency injection (DI) container</strong> for <strong>TypeScript</strong> and <strong>Node.js</strong>. It uses TypeScript decorators and a modular architecture to help you write scalable, testable, and maintainable applications. Inspired by frameworks like InversifyJS, tsyringe, TypeDI, and NestJS, NexusDI brings a developer-friendly API to your JavaScript and TypeScript projects. Works seamlessly in Node.js and modern JavaScript environments.
+NexusDI is a dependency injection container for TypeScript. It compiles your module graph before it builds anything, so a missing provider or a dependency cycle fails at startup, in one error. Modules keep their providers private unless they export them, as NestJS modules do, and async factories finish during startup.
 
 # 🚨 Call for Feedback 🚨
 
-**We want your input!**  
-NexusDI thrives on community input!  
+We want your input.  
 We have a number of open RFCs and discussions, and your feedback can help guide the direction of the project.  
 Jump in and let us know what you think!
 
@@ -41,36 +38,27 @@ We look forward to hearing from you!
 
 ## Features
 
-- 🚀 **TypeScript Decorators** – Harness the power of TypeScript decorators for robust, type-safe dependency injection
-- 🧩 **Powerful Module System** - Organize your application into modules with support for both static and dynamic configuration
-- ⚡ **Dynamic Configuration** - Static methods for environment-specific module configuration (inspired by industry leaders)
-- 🎯 **Developer-Friendly API** - Clean and intuitive API that makes dependency management simple
-- 📦 **Lightweight** - Low dependency, minimal bundle size
-- 🔧 **Flexible** - Support for both class-based and factory providers
-
-## Why NexusDI?
-
-- <strong>TypeScript-first</strong>: Designed for modern TypeScript and JavaScript projects.
-- <strong>Zero bloat</strong>: Minimal dependencies, small bundle size, and no runtime dependencies.
-- <strong>TypeScript decorators</strong>: Uses TypeScript's `experimentalDecorators` for clean, intuitive code.
-- <strong>Modular & extensible</strong>: Organize your app with modules, plugins, and dynamic configuration.
-- <strong>Testable</strong>: Easily mock or override providers for unit and integration testing.
-- <strong>Inspired by the best</strong>: Familiar patterns for those coming from InversifyJS, tsyringe, TypeDI or NestJS.
+- Modules with encapsulation: a module sees its own providers and what its imports export
+- Whole-graph validation: `Nexus.create` reports every missing provider, cycle, lifetime mistake and invalid provider at startup, in one error
+- Async startup: async factories finish during `create`, and `get()` stays synchronous
+- Configurable modules through `forRoot()` and `forRootAsync()`
+- Plugins for everything optional
+- Scopes for per-request work, and disposal in reverse creation order
+- No compiler flags: a class lists its dependencies in `static deps`, and decorators are an optional package
+- TypeScript 5.4 to 7
 
 ## Comparison / Alternatives
 
 NexusDI is an alternative to:
 
-- <strong>InversifyJS</strong>
-- <strong>tsyringe</strong>
-- <strong>TypeDI</strong>
-- <strong>NestJS DI system</strong>
+- InversifyJS
+- tsyringe
+- TypeDI
+- the NestJS DI system
 
-## 📦 Bundle Size
+## Size
 
-A consumer that imports `Nexus`, `Service`, `Inject`, and `Token` from `@nexusdi/core@0.3.2`, registers two services, and resolves one comes to 6,247 bytes minified and 2,257 bytes gzipped, bundled with esbuild 0.28.2 (`--bundle --minify --format=esm`, `target: ES2022`, `experimentalDecorators`) against the published npm package; see `scripts/measure-bundle-0.3.mjs` to reproduce it or measure another import combination. NexusDI 0.4 will include a reproducible benchmark harness that compares DI containers on bundle size, startup, resolve time, and build time.
-
-👉 See the [Performance & Bundle Size](https://nexus.js.org/docs/performance) article for methodology and details.
+The size report on every pull request measures core's ESM gzip size; `npm run size` prints it.
 
 ## Quick Start
 
@@ -78,89 +66,93 @@ A consumer that imports `Nexus`, `Service`, `Inject`, and `Token` from `@nexusdi
 npm install @nexusdi/core
 ```
 
-tsconfig.json
+A class lists the classes its constructor takes in `static deps`, and `Nexus.create` takes the classes.
 
-```json
-{
-  "compilerOptions": {
-    "target": "ES2022", // or later
-    "experimentalDecorators": true,
-    "useDefineForClassFields": true
+```ts
+import { Nexus } from '@nexusdi/core';
+
+class Logger {
+  log(line: string) {
+    return `[app] ${line}`;
   }
 }
-```
-
-> **Note:** Only these options are required for NexusDI v0.3+.
-
-```typescript
-import { Nexus, Service, Token, Inject } from '@nexusdi/core';
-
-// Define service interface and token
-interface IUserService {
-  getUsers(): Promise<User[]>;
-}
-const USER_SERVICE = new Token<IUserService>('UserService');
-
-// Create service with dependency injection
-@Service(USER_SERVICE)
-class UserService implements IUserService {
-  constructor(@Inject(LOGGER_SERVICE) private logger: ILoggerService) {}
-
-  async getUsers(): Promise<User[]> {
-    this.logger.info('Fetching users');
-    return [{ id: 1, name: 'John' }];
+class UserService {
+  static deps = [Logger] as const;
+  constructor(readonly logger: Logger) {}
+  greet(name: string) {
+    return this.logger.log(`hello ${name}`);
   }
 }
 
-// Use the container
-const container = new Nexus();
-container.set(UserModule);
-const userService = container.get(USER_SERVICE);
+const app = await Nexus.create([Logger, UserService]);
+app.get(UserService).greet('Ada'); // '[app] hello Ada'
 ```
+
+`Nexus.create` checks the whole graph first: a class missing from the list, a cycle or a lifetime mistake is one error, before any constructor runs.
 
 ## Dynamic Module Configuration
 
-NexusDI supports dynamic module configuration with a simple base class approach:
+A configurable module declares an options token and takes its options through `forRoot()` or `forRootAsync()`. Call either once and import the result: each call makes a new module instance.
 
-```typescript
-import { Module, DynamicModule } from '@nexusdi/core';
+```ts
+import { Nexus, Token, defineModule, provide } from '@nexusdi/core';
 
-interface DatabaseConfig {
-  host: string;
-  port: number;
-  database: string;
+interface IDatabaseConfig {
+  readonly host: string;
+  readonly port: number;
+}
+interface IDatabase {
+  query(sql: string): Promise<unknown[]>;
+}
+const DATABASE_CONFIG = new Token<IDatabaseConfig>('DatabaseConfig');
+const DATABASE = new Token<IDatabase>('Database');
+
+class PostgresClient implements IDatabase {
+  static deps = [DATABASE_CONFIG] as const;
+  constructor(readonly config: IDatabaseConfig) {}
+  async query(sql: string) {
+    return [{ host: this.config.host, sql }];
+  }
 }
 
-const DATABASE_CONFIG = Symbol('DATABASE_CONFIG');
+const DatabaseModule = defineModule({
+  name: 'Database',
+  options: DATABASE_CONFIG,
+  providers: [provide(DATABASE, { useClass: PostgresClient })],
+  exports: [DATABASE],
+});
 
-@Module({
-  providers: [DatabaseService], // Simplified format - uses @Service decorator token
-})
-class DatabaseModule extends DynamicModule<DatabaseConfig> {
-  protected readonly configToken = DATABASE_CONFIG;
-}
+// Options as a value
+const Api = defineModule({
+  name: 'Api',
+  imports: [DatabaseModule.forRoot({ host: 'localhost', port: 5432 })],
+});
 
-// Usage
-const container = new Nexus();
+// Options computed at startup
+const Worker = defineModule({
+  name: 'Worker',
+  imports: [
+    DatabaseModule.forRootAsync({
+      useFactory: async () => ({
+        host: process.env.DB_HOST ?? 'localhost',
+        port: Number(process.env.DB_PORT ?? 5432),
+      }),
+    }),
+  ],
+});
 
-// Synchronous configuration
-container.set(
-  DatabaseModule.config({
-    host: 'localhost',
-    port: 5432,
-    database: 'dev_db',
-  }),
-);
-
-// Asynchronous configuration
-container.set(
-  DatabaseModule.configAsync(async () => ({
-    host: process.env.DB_HOST,
-    port: parseInt(process.env.DB_PORT),
-    database: process.env.DB_NAME,
-  })),
-);
+await using api = await Nexus.create(Api);
 ```
+
+## Packages
+
+[`@nexusdi/core`](libs/core/README.md) holds the container. Each of these is optional, built on the plugin API, and pinned to core's version:
+
+- [`@nexusdi/errors`](libs/errors/README.md): full error messages with fix lines and near-miss suggestions
+- [`@nexusdi/devtools`](libs/devtools/README.md): `graph()`, `inspect()`, `trace()`, and the messages of `errors`
+- [`@nexusdi/testing`](libs/testing/README.md): `createTestingContainer()` with provider and module overrides
+- [`@nexusdi/node`](libs/node/README.md): `nodeScopes()`, the ambient scope over `AsyncLocalStorage`
+- [`@nexusdi/decorators`](libs/decorators/README.md): `@Injectable`, `@Inject` and `@Module`
 
 ## Documentation
 
