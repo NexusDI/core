@@ -12,6 +12,8 @@ export default defineConfig(() => ({
     watch: false,
     globals: true,
     include: ['src/**/*.browser.test.ts'],
+    // Parallel browser projects share Vite's default port and rely on Vite
+    // moving to the next free one, so browser.api.strictPort stays unset.
     browser: {
       enabled: true,
       headless: true,

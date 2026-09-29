@@ -10,9 +10,9 @@ import {
 
 /**
  * expectComments turns a README block's static imports into dynamic ones in
- * the test body, so the first test paid for loading the package's source
- * graph under vitest's per-test timeout. doctestPreload appends a top-level
- * import of each, which vitest loads while it collects the file.
+ * the test body. doctestPreload appends a top-level import of each, so vitest
+ * loads the package's source graph while it collects the file, outside any
+ * test's timeout.
  */
 
 const fence = '```';

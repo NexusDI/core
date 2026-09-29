@@ -249,6 +249,25 @@ describe('rewriteMarkdown', () => {
     );
   });
 
+  it('reports each value import it rewrites to onImport', () => {
+    const source = [
+      "import { a } from 'outside';",
+      `${fence}ts @import.meta.vitest`,
+      "import { Nexus } from '@nexusdi/core';",
+      "import type { IShip } from '@nexusdi/core';",
+      "import '@nexusdi/decorators';",
+      "const lazy = await import('@nexusdi/testing');",
+      fence,
+    ].join('\n');
+    const specifiers: string[] = [];
+
+    rewriteMarkdown(source, 'README.md', (specifier) =>
+      specifiers.push(specifier),
+    );
+
+    expect(specifiers).toEqual(['@nexusdi/core', '@nexusdi/decorators']);
+  });
+
   it('closes a block on its own fence length, so a nested fence does not end it', () => {
     const source = [
       '````md @import.meta.vitest',
