@@ -248,7 +248,9 @@ export function nodeViolations(files: readonly SourceFileText[]): string[] {
     const source = parseFile(file);
     for (const specifier of specifiersOf(source)) {
       if (specifier.startsWith('node:'))
-        found.push(`${file.path} references '${specifier}'; only node/ may`);
+        found.push(
+          `${file.path} references '${specifier}'; only node/ and cli/ may`,
+        );
     }
     let reported = false;
     const visit = (node: ts.Node): void => {
@@ -268,7 +270,9 @@ export function nodeViolations(files: readonly SourceFileText[]): string[] {
           isPropertyAccessName ||
           (ts.isPropertyAssignment(parent) && parent.name === node);
         if (!isPropertyName || isGlobalThisProcess) {
-          found.push(`${file.path} references process; only node/ may`);
+          found.push(
+            `${file.path} references process; only node/ and cli/ may`,
+          );
           reported = true;
           return;
         }
