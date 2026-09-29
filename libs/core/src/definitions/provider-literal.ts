@@ -102,6 +102,13 @@ interface UntypedLiteral {
   readonly useValue?: UntypedFunctionMessage;
 }
 
+/**
+ * Any element of an array TypeScript left uninferred as a whole, which
+ * happens when a Nexus.create root holds an untyped function. A correct
+ * class or provide() result beside that function then reports nothing.
+ */
+export type UninferredEntry = Provider<unknown> | Class | UntypedLiteral;
+
 /** A bare class with a static deps must list a token for each constructor parameter. */
 type CheckedClass<E> = E extends Ctor & { readonly deps: unknown }
   ? { readonly deps: Tokens<ConstructorParameters<E>> }

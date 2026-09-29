@@ -2,7 +2,6 @@ import type { Blueprint } from '../blueprint/blueprint.js';
 import { pluginFailed } from '../blueprint/hooks.js';
 import { viewOfBlueprint } from '../blueprint/views.js';
 import type { ModuleRef } from '../definitions/define-module.js';
-import type { ProviderEntries } from '../definitions/provider-literal.js';
 import type { Dep, DepsMap, ResolvedDeps } from '../definitions/modifiers.js';
 import type { NexusRequest } from '../definitions/request.js';
 import type { InjectionToken, MultiToken } from '../definitions/token.js';
@@ -20,8 +19,8 @@ import {
   type PluginContext,
   type PluginSet,
 } from './plugins.js';
+import { rootModuleOf, type CheckedRoot, type UninferredRoot } from './root.js';
 import { openScope, type Scope } from './scope.js';
-import { rootModuleOf, type RootConfig } from './root.js';
 import { abandonRoot, disposeRoot } from './shutdown.js';
 import { startBlueprint } from './startup.js';
 import { assertOpen, createRootState, track, type RootState } from './state.js';
@@ -46,40 +45,31 @@ export class Nexus {
   }
 
   /**
-   * Compiles the module graph, builds every singleton, and returns the sealed
-   * container. `root` is a module, an array of providers, or
-   * `{ providers, imports, exports }`; the last two compile as a module named
-   * `root`.
+   * Builds a container from a root: a module, a provider array, or
+   * `{ providers, imports, exports }`. TypeScript checks each provider as
+   * defineModule does and reports a mistake on the element or key.
    */
-  static create<const P extends readonly unknown[] = []>(
-    root: ProviderEntries<P>,
+  static create<const R = UninferredRoot>(
+    root: CheckedRoot<R>,
     options?: CreateOptions,
   ): Promise<Nexus>;
-  static create<const P extends readonly unknown[] = []>(
-    root: RootConfig<P>,
-    options?: CreateOptions,
-  ): Promise<Nexus>;
-  static create(root: ModuleRef, options?: CreateOptions): Promise<Nexus>;
   static create(root: unknown, options?: CreateOptions): Promise<Nexus> {
     return createContainer(root, options);
   }
 
   /**
-   * Compiles `root`, in any form Nexus.create takes, and then each module of
-   * `options.load` against it, as load() would. Builds nothing and calls no user code but the plugins'
-   * compile, observe and formatError hooks, so options schemas and setup
-   * hooks do not run. Throws one BlueprintError for the first compile that
-   * fails, and compiles no load after it.
+   * Compiles a root as create() would, without building it. Takes the same
+   * root forms: a module, a provider array, or
+   * `{ providers, imports, exports }`. Then compiles each module of
+   * `options.load` against it, as load() would. Calls no user code but the
+   * plugins' compile, observe and formatError hooks, so options schemas and
+   * setup hooks do not run. Throws one BlueprintError for the first compile
+   * that fails, and compiles no load after it.
    */
-  static check<const P extends readonly unknown[] = []>(
-    root: ProviderEntries<P>,
+  static check<const R = UninferredRoot>(
+    root: CheckedRoot<R>,
     options?: CheckOptions,
   ): void;
-  static check<const P extends readonly unknown[] = []>(
-    root: RootConfig<P>,
-    options?: CheckOptions,
-  ): void;
-  static check(root: ModuleRef, options?: CheckOptions): void;
   static check(root: unknown, options?: CheckOptions): void {
     const plugins = registerPlugins(options?.plugins);
     // The last compile that passed. A load compiles against it, and a

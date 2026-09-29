@@ -212,6 +212,21 @@ describe('defineModule', () => {
     });
   });
 
+  it('reports only the untyped function when a class sits beside it', () => {
+    defineModule({
+      name: 'Mixed',
+      providers: [
+        Beacon,
+        {
+          token: NAV_CHARTS,
+          // @ts-expect-error a literal cannot type link from deps; provide() can
+          useFactory: (link) => link.download('charts'),
+          deps: [SubspaceLink],
+        },
+      ],
+    });
+  });
+
   it('infers Opts from the options token and checks the schema against it', () => {
     const OPTIONS = new Token<{ frequency: number }>('CommsOptions');
     const Comms = defineModule({

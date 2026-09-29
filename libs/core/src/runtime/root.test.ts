@@ -49,12 +49,19 @@ describe('Nexus.create', () => {
     }
   });
 
-  it('rejects an object with any other key', async () => {
+  it('rejects an object with any other key, naming the key', async () => {
+    const error = (await rejected(
+      Nexus.create({ name: 'App', providers: [Logger] } as never),
+    )) as NexusError;
+    expect(error).toMatchObject({
+      code: 'NEXUS_INVALID_MODULE',
+      received: 'an object with the key "name"',
+      path: [],
+    });
+    expectCoreLine(error);
     expect(
-      await rejected(
-        Nexus.create({ name: 'App', providers: [Logger] } as never),
-      ),
-    ).toMatchObject({ code: 'NEXUS_INVALID_MODULE' });
+      await rejected(Nexus.create({ name: 'App', global: true } as never)),
+    ).toMatchObject({ received: 'an object with the keys "name", "global"' });
   });
 
   it('rejects a bare class with parameters and no static deps with NEXUS_MISSING_DEPS', async () => {
