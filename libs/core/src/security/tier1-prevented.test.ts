@@ -6,7 +6,7 @@ import '../../test-support/symbol-metadata.js';
 
 import { describe, expect, it } from 'vitest';
 
-import { thrown } from '../../test-support/catch.js';
+import { rejected, thrown } from '../../test-support/catch.js';
 import { compileErrors, idOf, visible } from '../../test-support/compile.js';
 import { declared } from '../../test-support/declared.js';
 import { viewRecorder } from '../../test-support/context.js';
@@ -88,7 +88,7 @@ describe('SEC-002 options carrying prototype keys (CWE-1321)', () => {
       '{"__proto__": {"polluted": true}, "constructor": {"prototype": {"polluted": true}}, "frequency": 1420}',
     ) as Record<string, unknown>;
 
-  it('passes an options object with __proto__ and constructor keys through with() as given', async () => {
+  it('passes an options object with __proto__ and constructor keys through forRoot() as given', async () => {
     const value = hostile();
     const Comms = defineModule({
       name: 'Comms',
@@ -96,7 +96,7 @@ describe('SEC-002 options carrying prototype keys (CWE-1321)', () => {
       exports: [OPTIONS],
     });
     await using ship = await Nexus.create(
-      defineModule({ name: 'Root', imports: [Comms.with(value)] }),
+      defineModule({ name: 'Root', imports: [Comms.forRoot(value)] }),
     );
     expect(ship.get(OPTIONS)).toBe(value);
     expect(Object.hasOwn(value, '__proto__')).toBe(true);
@@ -119,7 +119,7 @@ describe('SEC-002 options carrying prototype keys (CWE-1321)', () => {
       exports: [OPTIONS],
     });
     await using ship = await Nexus.create(
-      defineModule({ name: 'Root', imports: [Comms.with(value)] }),
+      defineModule({ name: 'Root', imports: [Comms.forRoot(value)] }),
     );
     expect(ship.get(OPTIONS)).toBe(value);
     expect(polluted()).toBeUndefined();
@@ -136,9 +136,26 @@ describe('SEC-002 options carrying prototype keys (CWE-1321)', () => {
       exports: [OPTIONS],
     });
     await using ship = await Nexus.create(
-      defineModule({ name: 'Root', imports: [Comms.with(value)] }),
+      defineModule({ name: 'Root', imports: [Comms.forRoot(value)] }),
     );
     expect(ship.get(OPTIONS)).toBe(value);
+  });
+
+  it('reads useFactory for forRootAsync() as an own property only', async () => {
+    const config = Object.create({
+      useFactory: () => ({ hijacked: true }),
+    }) as never;
+    const Comms = defineModule({ name: 'Comms', options: OPTIONS });
+    const error = await rejected(
+      Nexus.create(
+        defineModule({ name: 'Root', imports: [Comms.forRootAsync(config)] }),
+      ),
+    );
+    expect(error).toMatchObject({
+      errors: [
+        { code: 'NEXUS_INVALID_PROVIDER', reason: 'factory-not-a-function' },
+      ],
+    });
   });
 });
 

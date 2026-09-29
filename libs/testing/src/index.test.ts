@@ -150,7 +150,7 @@ describe('createTestingContainer', () => {
     expect(ship.get(SubspaceLink)).toBeInstanceOf(LoopbackLink);
   });
 
-  it('replaces every with() instance of a configurable base module', async () => {
+  it('replaces every forRoot() instance of a configurable base module', async () => {
     const OPTIONS = new Token<number>('Frequency');
     const Comms = defineModule({
       name: 'Comms',
@@ -165,7 +165,7 @@ describe('createTestingContainer', () => {
     });
     const graph = capture();
     await createTestingContainer(
-      defineModule({ name: 'Root', imports: [Comms.with(1420)] }),
+      defineModule({ name: 'Root', imports: [Comms.forRoot(1420)] }),
     )
       .overrideModule(Comms, CommsStub)
       .create({ plugins: [graph.plugin] });

@@ -132,7 +132,7 @@ describe('construct', () => {
     expect(received).toEqual([{ sector: 7 }]);
   });
 
-  it('receives a with() factory result after the schema validated it', async () => {
+  it('receives a forRootAsync() factory result after the schema validated it', async () => {
     const OPTIONS = new Token<{ frequency: number; band?: string }>(
       'CommsOptions',
     );
@@ -141,9 +141,9 @@ describe('construct', () => {
       options: OPTIONS,
       schema: frequencySchema(),
     });
-    const tuned = Comms.with({
-      deps: [],
+    const tuned = Comms.forRootAsync({
       useFactory: async () => ({ frequency: 1420 }),
+      deps: [],
     });
     const received: unknown[] = [];
     const ship = await Nexus.create(

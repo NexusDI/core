@@ -63,8 +63,9 @@ export interface TestingContainerBuilder {
     definition: FactoryDefinition<D, R>,
   ): TestingContainerBuilder;
   /**
-   * Walks `stub` wherever the walk meets `module`, including every with()
-   * instance of it. `{ lazy: true }` lets a later load() be the first use.
+   * Walks `stub` wherever the walk meets `module`, including every forRoot()
+   * or forRootAsync() instance of it. `{ lazy: true }` lets a later load()
+   * be the first use.
    */
   overrideModule(
     module: ModuleRef,

@@ -107,7 +107,7 @@ const invalidExport: Builder<InvalidExportError> = (error) =>
       `  Fix: provide ${error.token} in ${error.module}, or import the module that exports it.`,
   );
 
-/** A detail that names a factory, such as `(the with() factory)`, leads the sentence. */
+/** A detail that names a factory, such as `(the forRootAsync() factory)`, leads the sentence. */
 function isFactoryPrefix(value: string | undefined): value is string {
   return (
     value !== undefined &&
@@ -203,8 +203,8 @@ function issueWhere(issue: SchemaIssue): string {
 const moduleOptions: Builder<ModuleOptionsError> = (error) =>
   text(
     error.code === 'NEXUS_MODULE_OPTIONS_MISSING'
-      ? `${error.module} is configurable and was imported without with().\n  Fix: import ${error.module}.with(options).`
-      : `${error.module}.with() received options its schema rejects:\n${error.issues.map((issue) => `  ${issueWhere(issue)}${issue.message}`).join('\n')}`,
+      ? `${error.module} is configurable and was imported without forRoot() or forRootAsync().\n  Fix: import ${error.module}.forRoot(options) or ${error.module}.forRootAsync({ useFactory }).`
+      : `${error.module} received options its schema rejects:\n${error.issues.map((issue) => `  ${issueWhere(issue)}${issue.message}`).join('\n')}`,
   );
 
 const load: Builder<LoadError> = (error) =>

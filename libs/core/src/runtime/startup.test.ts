@@ -229,7 +229,7 @@ describe('Nexus', () => {
       },
     );
 
-    it('validates with() options against the schema and reports NEXUS_INVALID_MODULE_OPTIONS', async () => {
+    it('validates forRoot() options against the schema and reports NEXUS_INVALID_MODULE_OPTIONS', async () => {
       const OPTIONS = new Token<{ frequency: number; band?: string }>(
         'CommsOptions',
       );
@@ -242,7 +242,7 @@ describe('Nexus', () => {
         Nexus.create(
           defineModule({
             name: 'Root',
-            imports: [Comms.with({ frequency: 'high' } as never)],
+            imports: [Comms.forRoot({ frequency: 'high' } as never)],
           }),
         ),
       )) as ProviderError;
@@ -258,7 +258,7 @@ describe('Nexus', () => {
       });
     });
 
-    it('validates a with() factory result after it resolves', async () => {
+    it('validates a forRootAsync() factory result after it resolves', async () => {
       const OPTIONS = new Token<{ frequency: number; band?: string }>(
         'CommsOptions',
       );
@@ -267,9 +267,9 @@ describe('Nexus', () => {
         options: OPTIONS,
         schema: frequencySchema(),
       });
-      const tuned = Comms.with({
-        deps: [],
+      const tuned = Comms.forRootAsync({
         useFactory: async () => ({ frequency: 'late' }) as never,
+        deps: [],
       });
       const error = (await rejected(
         Nexus.create(defineModule({ name: 'Root', imports: [tuned] })),
@@ -279,7 +279,7 @@ describe('Nexus', () => {
       });
     });
 
-    it('disposes a with() factory result the schema rejected before create rejects', async () => {
+    it('disposes a forRootAsync() factory result the schema rejected before create rejects', async () => {
       const OPTIONS = new Token<{ frequency: number; band?: string }>(
         'CommsOptions',
       );
@@ -289,8 +289,7 @@ describe('Nexus', () => {
         schema: frequencySchema(),
       });
       const log: string[] = [];
-      const tuned = Comms.with({
-        deps: [],
+      const tuned = Comms.forRootAsync({
         useFactory: async () =>
           ({
             frequency: 'late',
@@ -299,6 +298,7 @@ describe('Nexus', () => {
               return Promise.resolve();
             },
           }) as never,
+        deps: [],
       });
       const error = await rejected(
         Nexus.create(defineModule({ name: 'Root', imports: [tuned] }), {
@@ -324,7 +324,7 @@ describe('Nexus', () => {
         options: OPTIONS,
         schema: frequencySchema(),
       });
-      const tuned = Comms.with({ frequency: 1420 });
+      const tuned = Comms.forRoot({ frequency: 1420 });
       const ship = await Nexus.create(
         defineModule({ name: 'Root', imports: [tuned] }),
       );
@@ -345,7 +345,7 @@ describe('Nexus', () => {
         },
       };
       const Comms = defineModule({ name: 'Comms', options: OPTIONS, schema });
-      const tuned = Comms.with({ then } as never);
+      const tuned = Comms.forRoot({ then } as never);
       const ship = await Nexus.create(
         defineModule({ name: 'Root', imports: [tuned] }),
       );

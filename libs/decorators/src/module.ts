@@ -7,8 +7,9 @@ import {
 import { assertStandard } from './legacy.js';
 
 /**
- * A decorator cannot add a typed static with() to a class, so @Module classes
- * are not configurable. Configurable modules use defineModule.
+ * A decorator cannot add typed static forRoot() and forRootAsync() methods
+ * to a class, so @Module classes are not configurable. Configurable modules
+ * use defineModule.
  */
 export type ModuleDecoratorConfig = Omit<ModuleConfig, 'name'> & {
   readonly options?: never;

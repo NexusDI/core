@@ -68,12 +68,15 @@ describe('compile', () => {
     expect(bp.providers.size - 1).toBe(1);
   });
 
-  it('walks two with() instances as two modules', () => {
+  it('walks two forRoot() instances as two modules', () => {
     const Comms = defineModule({ name: 'Comms', options: COMMS_OPTIONS });
     const bp = compile({
       root: defineModule({
         name: 'Root',
-        imports: [Comms.with({ frequency: 1 }), Comms.with({ frequency: 1 })],
+        imports: [
+          Comms.forRoot({ frequency: 1 }),
+          Comms.forRoot({ frequency: 1 }),
+        ],
       }),
     });
     expect([...bp.modules.values()].map((m) => m.name)).toEqual([
@@ -83,12 +86,12 @@ describe('compile', () => {
     ]);
   });
 
-  it('provides the options token inside a with() instance', () => {
+  it('provides the options token inside a forRoot() instance', () => {
     const Comms = defineModule({ name: 'Comms', options: COMMS_OPTIONS });
     const bp = compile({
       root: defineModule({
         name: 'Root',
-        imports: [Comms.with({ frequency: 1420 })],
+        imports: [Comms.forRoot({ frequency: 1420 })],
       }),
     });
     expect(
@@ -147,7 +150,7 @@ describe('compile', () => {
     ]);
   });
 
-  it('reports NEXUS_MODULE_OPTIONS_MISSING for a configurable module imported without with()', () => {
+  it('reports NEXUS_MODULE_OPTIONS_MISSING for a configurable module imported without forRoot()', () => {
     const Comms = defineModule({ name: 'Comms', options: COMMS_OPTIONS });
     expect(
       compileErrors(defineModule({ name: 'Root', imports: [Comms] })),

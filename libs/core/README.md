@@ -247,7 +247,7 @@ code; // -> 'NEXUS_NOT_VISIBLE'
 
 <!-- #endregion modules -->
 
-A configurable module declares an options token and takes its options through `with()`. Call `with()` once and import the result: each call makes a new module instance.
+A configurable module declares an options token. `forRoot(options)` takes the options as a value. `forRootAsync({ useFactory, deps })` computes them at startup: the factory may return a promise, and its `deps` resolve where the module's own providers resolve. Each call makes a new module instance, so call it once and import the result.
 
 ```ts
 const COMMS_OPTIONS = new Token<{ frequency: number }>('CommsOptions');
@@ -262,7 +262,23 @@ const Comms = defineModule({
 });
 const Tactical = defineModule({
   name: 'Tactical',
-  imports: [Comms.with({ frequency: 1420 })],
+  imports: [Comms.forRoot({ frequency: 1420 })],
+});
+
+interface IVault {
+  read(key: string): Promise<number>;
+}
+const VAULT = new Token<IVault>('Vault');
+const Science = defineModule({
+  name: 'Science',
+  imports: [
+    Comms.forRootAsync({
+      useFactory: async (vault) => ({
+        frequency: await vault.read('comms/frequency'),
+      }),
+      deps: [VAULT],
+    }),
+  ],
 });
 ```
 

@@ -52,4 +52,37 @@ describe('errors', () => {
     );
     expect(error).toMatchObject({ errors: [{ nearMisses: [] }] });
   });
+
+  it.each([
+    {
+      name: 'a useFactory that is not a function',
+      config: { useFactory: 4 },
+      sentence: 'has a useFactory that is not a function',
+    },
+    {
+      name: 'deps that are not an array',
+      config: { useFactory: () => ({}), deps: 'freq' },
+      sentence: 'has deps that are not an array',
+    },
+  ])(
+    'leads the forRootAsync() reason for $name with the factory detail',
+    async ({ config, sentence }) => {
+      const OPTIONS = new Token<{ freq: number }>('CommsOptions');
+      const Comms = defineModule({ name: 'Comms', options: OPTIONS });
+      const error = await Nexus.create(Comms.forRootAsync(config as never), {
+        plugins: [errors()],
+      }).then(
+        () => undefined,
+        (caught: unknown) => caught,
+      );
+      expect(error).toMatchObject({
+        errors: [
+          {
+            code: 'NEXUS_INVALID_PROVIDER',
+            message: `[NEXUS_INVALID_PROVIDER] Comms.providers[0] (the forRootAsync() factory) ${sentence}.`,
+          },
+        ],
+      });
+    },
+  );
 });

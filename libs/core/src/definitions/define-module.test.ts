@@ -37,12 +37,12 @@ describe('defineModule', () => {
     expect(Engineering.providers).toHaveLength(1);
   });
 
-  it('keeps with() unaffected by mutating the config object afterward', () => {
+  it('keeps forRoot() unaffected by mutating the config object afterward', () => {
     const providers = [ReactorCore];
     const config = { name: 'Comms', options: COMMS_OPTIONS, providers };
     const Comms = defineModule(config);
     providers.push(class Other {});
-    expect(Comms.with({ frequency: 1 }).providers).toHaveLength(1);
+    expect(Comms.forRoot({ frequency: 1 }).providers).toHaveLength(1);
   });
 
   it('throws NEXUS_INVALID_MODULE for a config without a name', () => {
@@ -53,9 +53,9 @@ describe('defineModule', () => {
     });
   });
 
-  it('gives a configurable module a with() that records the options value', () => {
+  it('gives a configurable module a forRoot() that records the options value', () => {
     const Comms = defineModule({ name: 'Comms', options: COMMS_OPTIONS });
-    const tuned = Comms.with({ frequency: 1420 });
+    const tuned = Comms.forRoot({ frequency: 1420 });
     expect(moduleInternals(tuned)).toEqual({
       base: Comms,
       options: COMMS_OPTIONS,
@@ -65,11 +65,11 @@ describe('defineModule', () => {
     expect(moduleInternals(Comms)?.source).toBeUndefined();
   });
 
-  it('records a factory passed to with()', () => {
+  it('records a factory passed to forRootAsync()', () => {
     const Comms = defineModule({ name: 'Comms', options: COMMS_OPTIONS });
     const useFactory = () => ({ frequency: 7 });
     expect(
-      moduleInternals(Comms.with({ deps: [], useFactory }))?.source,
+      moduleInternals(Comms.forRootAsync({ useFactory, deps: [] }))?.source,
     ).toEqual({
       kind: 'factory',
       deps: [],
@@ -77,9 +77,11 @@ describe('defineModule', () => {
     });
   });
 
-  it('returns a new module instance from every with() call', () => {
+  it('returns a new module instance from every forRoot() call', () => {
     const Comms = defineModule({ name: 'Comms', options: COMMS_OPTIONS });
-    expect(Comms.with({ frequency: 1 })).not.toBe(Comms.with({ frequency: 1 }));
+    expect(Comms.forRoot({ frequency: 1 })).not.toBe(
+      Comms.forRoot({ frequency: 1 }),
+    );
   });
 });
 

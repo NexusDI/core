@@ -184,7 +184,8 @@ type Fail = (reason: InvalidProviderReason, ...detail: string[]) => null;
 
 /**
  * The Fail of one providers entry. `prefix` leads every detail, as
- * `(the with() factory)` does for the provider a with() instance adds.
+ * `(the forRootAsync() factory)` does for the provider a forRootAsync()
+ * instance adds.
  */
 function invalidProvider(
   site: ProviderSite,
@@ -539,7 +540,7 @@ function definitionShape(
   }
 }
 
-/** The provider a with() instance adds for its options token. */
+/** The provider a forRoot() or forRootAsync() instance adds for its options token. */
 export function optionsShape(
   internals: ModuleInternals,
   site: ProviderSite,
@@ -558,7 +559,10 @@ export function optionsShape(
       schema,
     };
   }
-  const fail = invalidProvider(site, errors, ['(the with() factory)']);
+  const fail = invalidProvider(site, errors, ['(the forRootAsync() factory)']);
+  const { useFactory } = source;
+  if (typeof useFactory !== 'function') return fail('factory-not-a-function');
+  if (!Array.isArray(source.deps)) return fail('deps-not-array');
   const deps = depsOf(source.deps, fail);
   if (!deps) return null;
   return {
@@ -567,7 +571,7 @@ export function optionsShape(
     lifetime: 'singleton',
     deps,
     props: [],
-    useFactory: source.useFactory,
+    useFactory: useFactory as (...args: unknown[]) => unknown,
     schema,
   };
 }

@@ -81,10 +81,10 @@ export type {
   ConfigurableModule,
   ConfigurableModuleConfig,
   ExportEntry,
+  ForRootAsyncConfig,
   ModuleConfig,
   ModuleDefinition,
   ModuleRef,
-  OptionsFactory,
   ProviderEntry,
 } from './definitions/define-module.js';
 export { REQUEST } from './definitions/request.js';

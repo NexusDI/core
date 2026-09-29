@@ -186,9 +186,9 @@ import {
 } from '@nexusdi/core';
 import type {
   All, ConfigurableModule, ConfigurableModuleConfig, CreateOptions, Ctor, Dep, DepFor, DepsFor,
-  ErrorLifetime, ExportEntry, FactoryDefinition, InjectionToken, Lazy, Lifetime, LookupOptions,
+  ErrorLifetime, ExportEntry, FactoryDefinition, ForRootAsyncConfig, InjectionToken, Lazy, Lifetime, LookupOptions,
   ModuleConfig, ModuleDefinition, ModuleRef, NearMiss,
-  NexusErrorCode, NexusRequest, NoLifetimeMessage, Optional, OptionsFactory,
+  NexusErrorCode, NexusRequest, NoLifetimeMessage, Optional,
   OverrideDefinition, PromiseTokenMessage, Provider, ProviderEntries, ProviderEntry, ProviderFailure, ProviderLiteral, Resolve,
   ResolveAll, SchemaIssue, Scope, StandardSchemaV1, Tokens,
   DepsMap, ResolvedDeps, UntypedFunctionMessage,
@@ -340,7 +340,7 @@ type EveryType = [
   Lifetime, LookupOptions, ModuleConfig, ModuleDecoratorConfig, ModuleDefinition, ModuleRef,
   Ctor, DepsFor<new () => unknown>,
   NearMiss, NexusErrorCode, NexusGraph, NexusRequest, NoLifetimeMessage, Optional<unknown>,
-  OptionsFactory<unknown, []>, Provider<unknown>, ProviderEntries<[]>, ProviderEntry,
+  ForRootAsyncConfig<unknown, []>, Provider<unknown>, ProviderEntries<[]>, ProviderEntry,
   ProviderFailure, ProviderLiteral,
   Resolve<unknown>, ResolveAll<[]>, SchemaIssue, Scope, StandardSchemaV1,
   TraceEvent, Tokens<[]>, TestingContainerBuilder, TestingCreateOptions, UntypedFunctionMessage,

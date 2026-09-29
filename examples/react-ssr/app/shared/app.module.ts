@@ -14,14 +14,14 @@ const env = getEnvironment();
 export const AppModule = defineModule({
   name: 'AppModule',
   imports: [
-    LoggerModule.with({
+    LoggerModule.forRoot({
       level: env === 'production' ? 'info' : 'debug',
       format: env === 'production' ? 'json' : 'text',
       enableConsole: true,
       enableFile: env === 'production',
       filePath: env === 'production' ? '/var/log/app.log' : undefined,
     }),
-    UsersModule.with({
+    UsersModule.forRoot({
       apiUrl:
         env === 'production'
           ? process.env.USERS_API_URL || 'https://api.example.com/users'

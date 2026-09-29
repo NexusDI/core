@@ -844,10 +844,10 @@ describe('normalizeProvider with static deps', () => {
 });
 
 describe('optionsShape', () => {
-  it('provides the options token of a with() instance', () => {
+  it('provides the options token of a forRoot() instance', () => {
     const OPTIONS = new Token<{ frequency: number }>('CommsOptions');
     const Comms = defineModule({ name: 'Comms', options: OPTIONS });
-    const internals = moduleInternals(Comms.with({ frequency: 1420 }));
+    const internals = moduleInternals(Comms.forRoot({ frequency: 1420 }));
     expect(internals && optionsShape(internals, SITE, [])).toMatchObject({
       kind: 'value',
       token: OPTIONS,

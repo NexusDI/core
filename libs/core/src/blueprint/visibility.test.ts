@@ -105,7 +105,7 @@ describe('compile', () => {
     ]);
   });
 
-  it('reports NEXUS_AMBIGUOUS_PROVIDER for two with() instances that export one token', () => {
+  it('reports NEXUS_AMBIGUOUS_PROVIDER for two forRoot() instances that export one token', () => {
     const OPTIONS = new Token<number>('Frequency');
     const Comms = defineModule({
       name: 'Comms',
@@ -114,7 +114,10 @@ describe('compile', () => {
     });
     expect(
       compileErrors(
-        defineModule({ name: 'Root', imports: [Comms.with(1), Comms.with(2)] }),
+        defineModule({
+          name: 'Root',
+          imports: [Comms.forRoot(1), Comms.forRoot(2)],
+        }),
       ),
     ).toMatchObject([
       {

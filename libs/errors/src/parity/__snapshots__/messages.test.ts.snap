@@ -128,24 +128,24 @@ exports[`NexusError > keeps the message of 'ModuleImportCycleError' 1`] = `
 `;
 
 exports[`NexusError > keeps the message of 'ModuleOptionsError (invalid options)' 1`] = `
-"[NEXUS_INVALID_MODULE_OPTIONS] Comms.with() received options its schema rejects:
+"[NEXUS_INVALID_MODULE_OPTIONS] Comms received options its schema rejects:
   frequency: Expected number
   Unknown key"
 `;
 
 exports[`NexusError > keeps the message of 'ModuleOptionsError (invalid)' 1`] = `
-"[NEXUS_INVALID_MODULE_OPTIONS] Comms.with() received options its schema rejects:
+"[NEXUS_INVALID_MODULE_OPTIONS] Comms received options its schema rejects:
   frequency: expected a number"
 `;
 
 exports[`NexusError > keeps the message of 'ModuleOptionsError (issue with a key …' 1`] = `
-"[NEXUS_INVALID_MODULE_OPTIONS] Comms.with() received options its schema rejects:
+"[NEXUS_INVALID_MODULE_OPTIONS] Comms received options its schema rejects:
   frequency: Expected number"
 `;
 
 exports[`NexusError > keeps the message of 'ModuleOptionsError (missing)' 1`] = `
-"[NEXUS_MODULE_OPTIONS_MISSING] Comms is configurable and was imported without with().
-  Fix: import Comms.with(options)."
+"[NEXUS_MODULE_OPTIONS_MISSING] Comms is configurable and was imported without forRoot() or forRootAsync().
+  Fix: import Comms.forRoot(options) or Comms.forRootAsync({ useFactory })."
 `;
 
 exports[`NexusError > keeps the message of 'NotReadyError (runtime cycle)' 1`] = `
@@ -262,6 +262,11 @@ exports[`NexusError > keeps the message of 'a dependency provided in a module th
 
 exports[`NexusError > keeps the message of 'a factory that throws a string' 1`] = `"[NEXUS_PROVIDER_FAILED] Name (module Root) failed: offline"`;
 
+exports[`NexusError > keeps the message of 'a forRootAsync() factory with a bad d…' 1`] = `
+"[NEXUS_BLUEPRINT_INVALID] the module graph has 1 error; nothing was built.
+  [NEXUS_INVALID_PROVIDER] Comms.providers[0] (the forRootAsync() factory) deps[0] is the string "freq", not a token."
+`;
+
 exports[`NexusError > keeps the message of 'a lifetime set on useExisting' 1`] = `
 "[NEXUS_BLUEPRINT_INVALID] the module graph has 1 error; nothing was built.
   [NEXUS_INVALID_PROVIDER] Engineering.providers[0] sets a lifetime on useExisting; an alias has none."
@@ -353,11 +358,6 @@ exports[`NexusError > keeps the message of 'a useExisting that aliases a MultiTo
 exports[`NexusError > keeps the message of 'a useFactory that is not a function' 1`] = `
 "[NEXUS_BLUEPRINT_INVALID] the module graph has 1 error; nothing was built.
   [NEXUS_INVALID_PROVIDER] Engineering.providers[0] has a useFactory that is not a function."
-`;
-
-exports[`NexusError > keeps the message of 'a with() factory with a bad dep' 1`] = `
-"[NEXUS_BLUEPRINT_INVALID] the module graph has 1 error; nothing was built.
-  [NEXUS_INVALID_PROVIDER] Comms.providers[0] (the with() factory) deps[0] is the string "freq", not a token."
 `;
 
 exports[`NexusError > keeps the message of 'defineModule() with a config that has…' 1`] = `

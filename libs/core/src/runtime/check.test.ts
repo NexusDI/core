@@ -173,7 +173,7 @@ describe('Nexus.check', () => {
       },
     });
     Nexus.check(defineModule({ name: 'Root' }), {
-      load: [Configured.with({ level: 1 })],
+      load: [Configured.forRoot({ level: 1 })],
       plugins: [
         {
           name: 'setup',

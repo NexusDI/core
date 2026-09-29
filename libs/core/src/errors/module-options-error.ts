@@ -15,7 +15,7 @@ interface ModuleOptionsFields {
   readonly issues: readonly SchemaIssue[];
 }
 
-/** A configurable module was imported without with(), or its options failed validation. */
+/** A configurable module was imported without forRoot() or forRootAsync(), or its options failed validation. */
 export class ModuleOptionsError extends errorBase<
   ModuleOptionsFields['code'],
   ModuleOptionsFields

@@ -30,27 +30,27 @@ const Comms = defineModule({
 });
 
 describe('defineModule', () => {
-  it('returns a plain definition without with()', () => {
+  it('returns a plain definition without forRoot()', () => {
     expectTypeOf(Engineering).toEqualTypeOf<ModuleDefinition>();
-    // @ts-expect-error a module without options has no with()
-    Engineering.with;
+    // @ts-expect-error a module without options has no forRoot()
+    Engineering.forRoot;
   });
 
-  it('checks a with() value against the options token', () => {
+  it('checks a forRoot() value against the options token', () => {
     expectTypeOf(
-      Comms.with({ frequency: 1420 }),
+      Comms.forRoot({ frequency: 1420 }),
     ).toEqualTypeOf<ModuleDefinition>();
     // @ts-expect-error frequency is a number
-    Comms.with({ frequency: 'high' });
+    Comms.forRoot({ frequency: 'high' });
   });
 
-  it('types a with() factory from its deps', () => {
-    Comms.with({
-      deps: [SubspaceLink],
+  it('types a forRootAsync() factory from its deps', () => {
+    Comms.forRootAsync({
       useFactory: (link) => {
         expectTypeOf(link).toEqualTypeOf<SubspaceLink>();
         return { frequency: link.options.frequency + 1 };
       },
+      deps: [SubspaceLink],
     });
   });
 

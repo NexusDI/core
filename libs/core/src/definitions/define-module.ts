@@ -40,37 +40,43 @@ export interface ModuleDefinition {
   readonly global: boolean;
 }
 
-export interface OptionsFactory<Opts, D extends readonly Dep[]> {
-  readonly deps: D;
-  readonly useFactory: (...args: ResolveAll<D>) => Opts | PromiseLike<Opts>;
+/** What forRootAsync() takes: a factory for the options, and its deps. */
+export interface ForRootAsyncConfig<Opts, D extends readonly Dep[]> {
+  readonly useFactory: (
+    ...args: ResolveAll<D>
+  ) => NoInfer<Opts> | PromiseLike<NoInfer<Opts>>;
+  readonly deps?: D;
 }
 
-/** A module that takes options through with(). */
+/** A module that takes options, named as in NestJS. */
 export interface ConfigurableModule<Opts> extends ModuleDefinition {
   readonly options: Token<Opts>;
   readonly schema: StandardSchemaV1<unknown, Opts> | undefined;
-  with<const D extends readonly Dep[]>(
-    factory: OptionsFactory<Opts, D>,
+  forRoot(options: NoInfer<Opts>): ModuleDefinition;
+  forRootAsync<const D extends readonly Dep[] = []>(
+    config: ForRootAsyncConfig<Opts, D>,
   ): ModuleDefinition;
-  with(value: Opts): ModuleDefinition;
 }
 
-/** How a with() instance supplies its options. */
+/**
+ * How a forRoot() or forRootAsync() instance supplies its options. The
+ * factory fields hold what the caller passed; the compiler checks them.
+ */
 export type OptionsSource =
   | { readonly kind: 'value'; readonly value: unknown }
   | {
       readonly kind: 'factory';
-      readonly deps: readonly unknown[];
-      readonly useFactory: (...args: unknown[]) => unknown;
+      readonly deps: unknown;
+      readonly useFactory: unknown;
     };
 
 /** What the compiler needs to know about a module beyond its public fields. */
 export interface ModuleInternals {
-  /** The definition with() was called on, or the module itself. */
+  /** The definition forRoot() or forRootAsync() was called on, or the module itself. */
   readonly base: ModuleDefinition;
   readonly options: Token<unknown> | undefined;
   readonly schema: StandardSchemaV1 | undefined;
-  /** Set on a with() instance only. */
+  /** Set on a forRoot() or forRootAsync() instance only. */
   readonly source: OptionsSource | undefined;
 }
 
@@ -110,25 +116,6 @@ function register<D extends ModuleDefinition>(
     base: internals.base ?? definition,
   });
   return definition;
-}
-
-function sourceOf(input: unknown): OptionsSource {
-  const candidate = input as { deps?: unknown; useFactory?: unknown } | null;
-  if (
-    typeof candidate === 'object' &&
-    candidate !== null &&
-    Object.hasOwn(candidate, 'useFactory') &&
-    Object.hasOwn(candidate, 'deps') &&
-    typeof candidate.useFactory === 'function' &&
-    Array.isArray(candidate.deps)
-  ) {
-    return {
-      kind: 'factory',
-      deps: candidate.deps,
-      useFactory: candidate.useFactory as (...args: unknown[]) => unknown,
-    };
-  }
-  return { kind: 'value', value: input };
 }
 
 /**
@@ -175,17 +162,25 @@ export function defineModule(
       source: undefined,
     });
   }
+  const instance = (source: OptionsSource): ModuleDefinition =>
+    register(fieldsOf(base), { base, options, schema, source });
   const base: ConfigurableModule<unknown> = {
     ...fieldsOf(own as ModuleConfig),
     options,
     schema,
-    with: (input: unknown): ModuleDefinition =>
-      register(fieldsOf(base), {
-        base,
-        options,
-        schema,
-        source: sourceOf(input),
-      }),
+    forRoot: (value: unknown) => instance({ kind: 'value', value }),
+    forRootAsync: (config: unknown) => {
+      // Own properties only, as the module config reads (SEC-002).
+      const fields: { useFactory?: unknown; deps?: unknown } =
+        typeof config === 'object' && config !== null
+          ? pickOwn(config, ['useFactory', 'deps'])
+          : {};
+      return instance({
+        kind: 'factory',
+        deps: fields.deps ?? [],
+        useFactory: fields.useFactory,
+      });
+    },
   };
   return register(base, { options, schema, source: undefined });
 }

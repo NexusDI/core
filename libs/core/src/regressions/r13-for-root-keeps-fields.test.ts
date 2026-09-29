@@ -4,7 +4,7 @@ import { defineModule, moduleInternals } from '../definitions/define-module.js';
 import { Token } from '../definitions/token.js';
 
 describe('R13', () => {
-  it('keeps imports, exports and providers on a module returned by with()', () => {
+  it('keeps imports, exports and providers on a module returned by forRoot()', () => {
     class SubspaceLink {}
     const Engineering = defineModule({ name: 'Engineering' });
     const COMMS_OPTIONS = new Token<{ frequency: number }>('CommsOptions');
@@ -17,7 +17,7 @@ describe('R13', () => {
       global: true,
     });
 
-    const tuned = Comms.with({ frequency: 1420 });
+    const tuned = Comms.forRoot({ frequency: 1420 });
 
     expect(tuned).toMatchObject({
       name: 'Comms',

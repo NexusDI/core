@@ -110,13 +110,23 @@ describe('Nexus.create', () => {
   });
 
   it('takes a configured module as the root and as an import', () => {
-    void Nexus.create(Comms.with({ frequency: 1420 }));
-    void Nexus.create({ imports: [Comms.with({ frequency: 1420 })] });
+    void Nexus.create(Comms.forRoot({ frequency: 1420 }));
+    void Nexus.create({ imports: [Comms.forRoot({ frequency: 1420 })] });
     void Nexus.create({
       imports: [
-        Comms.with({
+        Comms.forRoot({
           // @ts-expect-error frequency is a number
           frequency: 'high',
+        }),
+      ],
+    });
+    void Nexus.create({
+      imports: [
+        Comms.forRootAsync({
+          useFactory: () => ({
+            // @ts-expect-error frequency is a number
+            frequency: 'high',
+          }),
         }),
       ],
     });

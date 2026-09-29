@@ -362,15 +362,15 @@ export const messageScenarios: readonly MessageScenario[] = [
     ),
   },
   {
-    name: 'a with() factory with a bad dep',
+    name: 'a forRootAsync() factory with a bad dep',
     run: async (plugins) => {
       const OPTIONS = new Token<{ freq: number }>('CommsOptions');
       const Comms = defineModule({ name: 'Comms', options: OPTIONS });
       return rejected(
         Nexus.create(
-          Comms.with({
-            deps: ['freq'],
+          Comms.forRootAsync({
             useFactory: (freq: unknown) => ({ freq }),
+            deps: ['freq'],
           } as never),
           options(plugins),
         ),
