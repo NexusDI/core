@@ -58,6 +58,7 @@ Package scopes:
 - **core**: Changes to the `@nexusdi/core` library
 - **testing**: Changes to the `@nexusdi/testing` library
 - **errors**: Changes to the `@nexusdi/errors` library
+- **node**: Changes to the `@nexusdi/node` library
 
 Repository scopes (these are not projects and never bump a package on their
 own):

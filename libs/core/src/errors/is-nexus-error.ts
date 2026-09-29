@@ -17,7 +17,6 @@ import type { MissingProviderError } from './missing-provider-error.js';
 import type { ModuleImportCycleError } from './module-import-cycle-error.js';
 import type { ModuleOptionsError } from './module-options-error.js';
 import { ERROR_BRAND } from './nexus-error.js';
-import type { NoScopeContextError } from './no-scope-context-error.js';
 import type { NotReadyError } from './not-ready-error.js';
 import type { NotVisibleError } from './not-visible-error.js';
 import type { PluginError } from './plugin-error.js';
@@ -49,7 +48,6 @@ export interface NexusErrorByCode {
   NEXUS_SCOPE_REQUIRED: ScopeRequiredError;
   NEXUS_REQUEST_MISSING: RequestMissingError;
   NEXUS_LOADED_AFTER_SCOPE: LoadedAfterScopeError;
-  NEXUS_NO_SCOPE_CONTEXT: NoScopeContextError;
   NEXUS_DISPOSED: DisposedError;
   NEXUS_LEGACY_DECORATORS: LegacyDecoratorsError;
   NEXUS_PLUGIN_INVALID: PluginError;

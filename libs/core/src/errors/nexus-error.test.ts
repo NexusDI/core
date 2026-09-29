@@ -38,7 +38,6 @@ const FIELD_ORDER: Readonly<Record<string, readonly string[]>> = {
   ScopeRequiredError: ['token', 'path', 'entry'],
   RequestMissingError: ['dependents'],
   LoadedAfterScopeError: ['token', 'module', 'entry'],
-  NoScopeContextError: [],
   DisposedError: ['target'],
   LegacyDecoratorsError: ['decorator'],
   PluginError: [

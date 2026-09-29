@@ -34,7 +34,6 @@ export {
   ModuleOptionsError,
   type SchemaIssue,
 } from './module-options-error.js';
-export { NoScopeContextError } from './no-scope-context-error.js';
 export { NotReadyError } from './not-ready-error.js';
 export { NotVisibleError } from './not-visible-error.js';
 export { PluginError, type PluginInvalidReason } from './plugin-error.js';

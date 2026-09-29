@@ -22,7 +22,6 @@ export {
   ModuleImportCycleError,
   ModuleOptionsError,
   NexusError,
-  NoScopeContextError,
   NotReadyError,
   NotVisibleError,
   PluginError,
@@ -104,7 +103,6 @@ export type {
   PluginContext,
 } from './runtime/plugins.js';
 export type { Scope } from './runtime/scope.js';
-export type { ScopeContext } from './runtime/scope-context.js';
 export type { TraceEvent } from './runtime/trace.js';
 export type {
   BlueprintView,

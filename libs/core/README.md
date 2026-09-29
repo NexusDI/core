@@ -562,44 +562,6 @@ events.map((event) => event.type); // -> ['compile', 'construct', 'construct']
 
 `graph()` returns plain JSON. Ids are stable for a given set of definitions. Minifiers rename classes, so a production graph can show `t` in place of `ShipComputer`; give tokens a description, or keep class names, where names matter.
 
-## Node
-
-On Node, `@nexusdi/core/node` binds a scope to the async context of a request, so code deep in the call chain finds it.
-
-<!-- #region node -->
-
-```ts @import.meta.vitest
-import { Nexus, REQUEST, Token, defineModule, provide } from '@nexusdi/core';
-import { nodeScopeContext } from '@nexusdi/core/node';
-
-const MISSION = new Token<string>('Mission');
-const Tactical = defineModule({
-  name: 'Tactical',
-  providers: [
-    provide(MISSION, {
-      useFactory: (request) => request.mission,
-      deps: [REQUEST],
-      lifetime: 'scoped',
-    }),
-  ],
-});
-await using ship = await Nexus.create(Tactical, {
-  scopeContext: nodeScopeContext(),
-});
-
-async function dispatch() {
-  await Promise.resolve();
-  return ship.currentScope()?.get(MISSION);
-}
-
-await using shuttle = await ship.createScope({
-  request: { mission: 'survey-7' },
-});
-const mission = await ship.runInScope(shuttle, () => dispatch()); // -> 'survey-7'
-```
-
-<!-- #endregion node -->
-
 ## Decorators
 
 The decorators write the same definitions `provide()` and `defineModule()` build. A `useClass` binding reads the deps `@Injectable` declares.

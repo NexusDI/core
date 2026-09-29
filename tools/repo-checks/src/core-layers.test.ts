@@ -1,4 +1,4 @@
-import { readdirSync, readFileSync } from 'node:fs';
+import { existsSync, readdirSync, readFileSync } from 'node:fs';
 import { join, relative } from 'node:path';
 
 import { workspaceRoot } from '@nx/devkit';
@@ -10,21 +10,37 @@ import {
   type SourceFileText,
 } from './core-layers.js';
 
-const SRC = join(workspaceRoot, 'libs', 'core', 'src');
+const LIBS = join(workspaceRoot, 'libs');
+const SRC = join(LIBS, 'core', 'src');
 const TEST = /\.(test|spec|test-d|browser\.test)\.ts$/;
 
-function sources(): SourceFileText[] {
-  const walk = (dir: string): string[] =>
-    readdirSync(dir, { withFileTypes: true }).flatMap((entry) => {
-      const path = join(dir, entry.name);
+/** Every non-test `.ts` file under `dir`, with `path` relative to `root`. */
+function sourcesUnder(dir: string, root: string): SourceFileText[] {
+  const walk = (d: string): string[] =>
+    readdirSync(d, { withFileTypes: true }).flatMap((entry) => {
+      const path = join(d, entry.name);
       if (entry.isDirectory())
         return entry.name === 'regressions' ? [] : walk(path);
       return entry.name.endsWith('.ts') && !TEST.test(entry.name) ? [path] : [];
     });
-  return walk(SRC).map((path) => ({
-    path: relative(SRC, path).split('\\').join('/'),
+  return walk(dir).map((path) => ({
+    path: relative(root, path).split('\\').join('/'),
     source: readFileSync(path, 'utf8'),
   }));
+}
+
+function sources(): SourceFileText[] {
+  return sourcesUnder(SRC, SRC);
+}
+
+/** Every package's sources under libs/, with `path` relative to libs/. */
+function everyPackageSources(): SourceFileText[] {
+  return readdirSync(LIBS, { withFileTypes: true })
+    .filter((entry) => entry.isDirectory())
+    .flatMap((entry) => {
+      const src = join(LIBS, entry.name, 'src');
+      return existsSync(src) ? sourcesUnder(src, LIBS) : [];
+    });
 }
 
 describe('layerViolations', () => {
@@ -144,29 +160,29 @@ describe('nodeViolations', () => {
     ).toEqual([]);
   });
 
-  it('accepts node: inside node/', () => {
+  it('accepts node: inside node/src/', () => {
     expect(
       nodeViolations([
         {
-          path: 'node/index.ts',
+          path: 'node/src/index.ts',
           source: "import { AsyncLocalStorage } from 'node:async_hooks';",
         },
       ]),
     ).toEqual([]);
   });
 
-  it('accepts globalThis.process inside node/', () => {
+  it('accepts globalThis.process inside node/src/', () => {
     expect(
       nodeViolations([
         {
-          path: 'node/index.ts',
+          path: 'node/src/index.ts',
           source: 'const debug = globalThis.process.env.DEBUG;',
         },
       ]),
     ).toEqual([]);
   });
 
-  it('holds for the current libs/core source', () => {
-    expect(nodeViolations(sources())).toEqual([]);
+  it('holds for the current workspace source', () => {
+    expect(nodeViolations(everyPackageSources())).toEqual([]);
   });
 });

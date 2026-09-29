@@ -39,7 +39,6 @@ const RUNTIME_EXPORTS: string[] = [
   'Nexus',
   'NEXUS_PLUGIN_API',
   'NexusError',
-  'NoScopeContextError',
   'NotReadyError',
   'NotVisibleError',
   'optional',

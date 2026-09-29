@@ -218,7 +218,6 @@ describe('lazy', () => {
       rootRef: {},
       tracer: new Tracer(),
       initEnabled: true,
-      scopeContext: undefined,
     });
     const droneRecord = [...bp.providers.values()].find(
       (record) => record.name === 'Drone',

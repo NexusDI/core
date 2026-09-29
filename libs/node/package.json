@@ -1,23 +1,12 @@
 {
-  "name": "@nexusdi/core",
+  "name": "@nexusdi/node",
   "version": "0.3.2",
-  "description": "A compiled, sealed dependency injection container for TypeScript: typed provide() definitions, module encapsulation, scopes and ordered shutdown.",
+  "description": "The AsyncLocalStorage ambient scope for NexusDI on Node.",
   "keywords": [
     "dependency injection",
     "di",
-    "inversion of control",
-    "ioc",
-    "typescript",
-    "decorators",
-    "service container",
-    "dependency injection container",
-    "nodejs",
-    "javascript",
-    "modular",
-    "lightweight",
-    "provider",
-    "service",
-    "module"
+    "nexusdi",
+    "typescript"
   ],
   "homepage": "https://github.com/NexusDI/core#readme",
   "bugs": {
@@ -26,16 +15,11 @@
   "repository": {
     "type": "git",
     "url": "git+https://github.com/NexusDI/core.git",
-    "directory": "libs/core"
+    "directory": "libs/node"
   },
   "license": "MIT",
   "type": "module",
-  "sideEffects": [
-    "./src/polyfill/symbol-metadata.ts",
-    "./dist/polyfill/symbol-metadata.js",
-    "./src/polyfill/symbol-dispose.ts",
-    "./dist/polyfill/symbol-dispose.js"
-  ],
+  "sideEffects": false,
   "engines": {
     "node": ">=22.12"
   },
@@ -60,6 +44,9 @@
     "LICENSE",
     "CHANGELOG.md"
   ],
+  "peerDependencies": {
+    "@nexusdi/core": "0.3.2"
+  },
   "publishConfig": {
     "access": "public",
     "provenance": true

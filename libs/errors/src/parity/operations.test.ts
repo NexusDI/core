@@ -641,17 +641,4 @@ describe('errors', () => {
       ]);
     });
   });
-
-  describe('runInScope', () => {
-    it('throws NEXUS_NO_SCOPE_CONTEXT without a scopeContext, naming nodeScopeContext', async () => {
-      const ship = await Nexus.create(defineModule({ name: 'Root' }), {
-        plugins: [errors()],
-      });
-      await using shuttle = await ship.createScope();
-      const error = thrown(() =>
-        ship.runInScope(shuttle, () => 1),
-      ) as NexusError;
-      expect(error.message).toContain('nodeScopeContext()');
-    });
-  });
 });

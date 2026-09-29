@@ -153,11 +153,6 @@ exports[`NexusError > keeps the message of 'ModuleOptionsError (missing)' 1`] = 
   Fix: import Comms.with(options)."
 `;
 
-exports[`NexusError > keeps the message of 'NoScopeContextError' 1`] = `
-"[NEXUS_NO_SCOPE_CONTEXT] runInScope() needs a ScopeContext, and this container was created without one.
-  Fix: Nexus.create(Root, { scopeContext: nodeScopeContext() }), with nodeScopeContext from '@nexusdi/core/node'."
-`;
-
 exports[`NexusError > keeps the message of 'NotReadyError (runtime cycle)' 1`] = `
 "[NEXUS_NOT_READY] PowerRouter called its lazy(ShieldGrid) thunk before ShieldGrid was ready.
   Runtime cycle: PowerRouter → ShieldGrid

@@ -3,7 +3,6 @@ import { DisposedError } from '../errors/index.js';
 import { Ownership, type OwnedEntry } from './ownership.js';
 import { NO_PLUGINS, type PluginSet } from './plugins.js';
 import { Slots } from './readiness.js';
-import type { ScopeContext } from './scope-context.js';
 import type { Tracer } from './trace.js';
 
 /** Why a built transient has no owner, for the `untracked` trace event. */
@@ -52,8 +51,6 @@ export interface RootState {
   readonly scopes: Set<ScopeState>;
   /** The number the next scope id uses. */
   nextScope: number;
-  /** Binds a scope to the current async context for runInScope()/currentScope(). */
-  readonly scopeContext: ScopeContext | undefined;
 }
 
 /** A child of the root. Scopes do not nest in 0.4. */
@@ -107,7 +104,6 @@ export interface RootInit {
   readonly rootRef: unknown;
   readonly tracer: Tracer;
   readonly initEnabled: boolean;
-  readonly scopeContext: ScopeContext | undefined;
   readonly plugins?: PluginSet;
 }
 
@@ -136,7 +132,6 @@ export function createRootState(init: RootInit): RootState {
     abortErrors: [],
     scopes: new Set(),
     nextScope: 0,
-    scopeContext: init.scopeContext,
   };
   return state;
 }

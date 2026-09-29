@@ -370,7 +370,6 @@ describe('Nexus', () => {
         rootRef: {},
         tracer: new Tracer(),
         initEnabled: true,
-        scopeContext: undefined,
       });
       await expect(
         startBlueprint(root, { bp, isNew: () => true }),
@@ -398,7 +397,6 @@ describe('Nexus', () => {
         rootRef: {},
         tracer: new Tracer(),
         initEnabled: true,
-        scopeContext: undefined,
       });
       await startBlueprint(root, { bp: firstBp, isNew: () => true });
       // `shared` is now registered as a useValue object by the first build,

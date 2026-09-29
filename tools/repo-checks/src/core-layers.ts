@@ -14,7 +14,11 @@ import ts from 'typescript';
  */
 
 export interface SourceFileText {
-  /** Relative to libs/core/src, with forward slashes. */
+  /**
+   * Forward-slashed and relative to the root its check walks: libs/core/src
+   * for layerViolations, libs/ for nodeViolations (spec section 12's `node:`
+   * and `process` rule binds every package, not just core).
+   */
   readonly path: string;
   readonly source: string;
 }
@@ -37,7 +41,6 @@ const ALLOWED: Readonly<Record<string, readonly string[]>> = {
     'polyfill/symbol-metadata.ts',
   ],
   polyfill: [],
-  node: ['node/', 'index.ts'],
 };
 
 /** The layer a file belongs to: its first directory, or null for a root file. */
@@ -124,7 +127,7 @@ export function layerViolations(files: readonly SourceFileText[]): string[] {
 export function nodeViolations(files: readonly SourceFileText[]): string[] {
   const found: string[] = [];
   for (const file of files) {
-    if (file.path.startsWith('node/')) continue;
+    if (file.path.startsWith('node/src/')) continue;
     for (const specifier of specifiersOf(file)) {
       if (specifier.startsWith('node:'))
         found.push(`${file.path} references '${specifier}'; only node/ may`);

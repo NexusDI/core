@@ -19,7 +19,6 @@ import type {
   ModuleImportCycleError,
   ModuleOptionsError,
   NearMiss,
-  NoScopeContextError,
   NotReadyError,
   NotVisibleError,
   PluginError,
@@ -283,12 +282,6 @@ const loadedAfterScope: Builder<LoadedAfterScopeError> = (error) =>
       `  Fix: create a new scope.`,
   );
 
-const noScopeContext: Builder<NoScopeContextError> = () =>
-  text(
-    'runInScope() needs a ScopeContext, and this container was created without one.\n' +
-      "  Fix: Nexus.create(Root, { scopeContext: nodeScopeContext() }), with nodeScopeContext from '@nexusdi/core/node'.",
-  );
-
 const DISPOSED = {
   container: 'the container is disposed or disposing',
   scope: 'the scope is disposed',
@@ -367,7 +360,6 @@ export const BUILDERS = {
   NEXUS_SCOPE_REQUIRED: scopeRequired,
   NEXUS_REQUEST_MISSING: requestMissing,
   NEXUS_LOADED_AFTER_SCOPE: loadedAfterScope,
-  NEXUS_NO_SCOPE_CONTEXT: noScopeContext,
   NEXUS_DISPOSED: disposed,
   NEXUS_LEGACY_DECORATORS: legacyDecorators,
   NEXUS_PLUGIN_INVALID: plugin,

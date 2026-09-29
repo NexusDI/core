@@ -278,7 +278,6 @@ describe('runInit', () => {
       rootRef: {},
       tracer: new Tracer(),
       initEnabled: false,
-      scopeContext: undefined,
     });
     // initEnabled false builds the singletons into root.slots without
     // running onInit, so this test can call runInit on its own afterward.

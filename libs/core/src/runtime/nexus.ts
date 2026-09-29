@@ -5,11 +5,7 @@ import type { ModuleRef } from '../definitions/define-module.js';
 import type { Dep, DepsMap, ResolvedDeps } from '../definitions/modifiers.js';
 import type { NexusRequest } from '../definitions/request.js';
 import type { InjectionToken, MultiToken } from '../definitions/token.js';
-import {
-  BlueprintError,
-  LoadError,
-  NoScopeContextError,
-} from '../errors/index.js';
+import { BlueprintError, LoadError } from '../errors/index.js';
 import { isThenable } from './build.js';
 import { compileTraced } from './compile-traced.js';
 import { resolveDeps, validateDeps } from './deps.js';
@@ -173,23 +169,6 @@ export class Nexus {
     return guardAsync(this.#state, openScope(this.#state, options));
   }
 
-  /** Runs `fn` with `scope` as the current scope. Needs the scopeContext option. */
-  runInScope<R>(scope: Scope, fn: () => R): R {
-    const context = this.#state.scopeContext;
-    try {
-      assertOpen(this.#state);
-      if (context === undefined) throw new NoScopeContextError({});
-    } catch (error) {
-      throw formatFor(this.#state, error);
-    }
-    return context.run(scope, fn);
-  }
-
-  /** The scope runInScope() bound to the current async context, or undefined. */
-  currentScope(): Scope | undefined {
-    return this.#state.scopeContext?.current();
-  }
-
   /** The compiled graph as plain JSON, including modules added by load(). Works after disposal. */
   graph(): NexusGraph {
     return toGraph(this.#state.blueprint, this.#state.asyncFlags);
@@ -306,7 +285,6 @@ export async function createContainer(
       rootRef: root,
       tracer,
       initEnabled: plugins.onInit,
-      scopeContext: options?.scopeContext,
       plugins,
     });
     await startBlueprint(state, { bp: blueprint, isNew: () => true });

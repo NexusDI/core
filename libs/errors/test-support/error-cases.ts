@@ -17,7 +17,6 @@ import {
   MissingProviderError,
   ModuleImportCycleError,
   ModuleOptionsError,
-  NoScopeContextError,
   NotReadyError,
   NotVisibleError,
   PluginError,
@@ -515,12 +514,6 @@ export const errorCases: readonly ErrorCase[] = [
     }),
     code: 'NEXUS_LOADED_AFTER_SCOPE',
     fields: { token: 'Probe', module: 'Science', entry: 'deps[0]' },
-  },
-  {
-    name: 'NoScopeContextError',
-    error: new NoScopeContextError({}),
-    code: 'NEXUS_NO_SCOPE_CONTEXT',
-    fields: {},
   },
   {
     name: 'DisposedError',

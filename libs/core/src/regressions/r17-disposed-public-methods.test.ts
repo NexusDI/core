@@ -11,7 +11,6 @@ describe('R17', () => {
     const ship = await Nexus.create(
       defineModule({ name: 'Root', providers: [Reactor] }),
     );
-    const shuttle = await ship.createScope();
 
     const closing = ship[Symbol.asyncDispose]();
     const disposed = { code: 'NEXUS_DISPOSED', target: 'container' };
@@ -22,9 +21,6 @@ describe('R17', () => {
       disposed,
     );
     expect(thrown(() => ship.validate({ reactor: Reactor }))).toMatchObject(
-      disposed,
-    );
-    expect(thrown(() => ship.runInScope(shuttle, () => 1))).toMatchObject(
       disposed,
     );
     expect(await rejected(ship.load(Science))).toMatchObject(disposed);

@@ -39,6 +39,7 @@ const LIBS = [
   ['libs/core', '@nexusdi/core'],
   ['libs/errors', '@nexusdi/errors'],
   ['libs/testing', '@nexusdi/testing'],
+  ['libs/node', '@nexusdi/node'],
 ];
 
 /** Every JavaScript module under `root`, at any depth. */
@@ -61,7 +62,7 @@ let failed = false;
 const CJS_CONSUMER = `'use strict';
 const { Nexus, Token, defineModule, provide } = require('@nexusdi/core');
 const { createTestingContainer } = require('@nexusdi/testing');
-const { nodeScopeContext } = require('@nexusdi/core/node');
+const { nodeScopes } = require('@nexusdi/node');
 const { errors } = require('@nexusdi/errors');
 
 const REACTOR = new Token('ReactorCore');
@@ -83,17 +84,17 @@ const Engineering = defineModule({
 
 (async () => {
   const ship = await Nexus.create(Engineering, {
-    scopeContext: nodeScopeContext(),
     plugins: [errors()],
   });
   if (ship.get(REACTOR).output !== 1.21)
     throw new Error('require(esm): the provider did not resolve');
+  const scopes = nodeScopes();
   const shuttle = await ship.createScope();
-  const bound = await ship.runInScope(
+  const bound = await scopes.run(
     shuttle,
-    async () => ship.currentScope() === shuttle,
+    async () => scopes.current() === shuttle,
   );
-  if (!bound) throw new Error('require(esm): the node entry did not bind the scope');
+  if (!bound) throw new Error('require(esm): @nexusdi/node did not bind the scope');
   await shuttle[Symbol.asyncDispose]();
   await ship[Symbol.asyncDispose]();
 
@@ -171,7 +172,7 @@ import {
   DisposedError, DuplicateProviderError, InvalidExportError, InvalidModuleError,
   InvalidProviderError, InvalidTokenError, LegacyDecoratorsError, LifetimeError,
   LoadedAfterScopeError, LoadError, MissingDepsError, MissingProviderError,
-  ModuleImportCycleError, ModuleOptionsError, NexusError, NoScopeContextError,
+  ModuleImportCycleError, ModuleOptionsError, NexusError,
   NotReadyError, NotVisibleError, ProviderError, RequestMissingError,
   ScopeRequiredError,
   Inject, Injectable, Module, MultiToken, Nexus, REQUEST, Token,
@@ -183,10 +184,11 @@ import type {
   ModuleConfig, ModuleDecoratorConfig, ModuleDefinition, ModuleRef, NearMiss,
   NexusErrorCode, NexusGraph, NexusRequest, NoLifetimeMessage, Optional, OptionsFactory,
   OverrideDefinition, PromiseTokenMessage, Provider, ProviderEntries, ProviderEntry, ProviderFailure, ProviderLiteral, Resolve,
-  ResolveAll, SchemaIssue, Scope, ScopeContext, StandardSchemaV1, TraceEvent, Tokens,
+  ResolveAll, SchemaIssue, Scope, StandardSchemaV1, TraceEvent, Tokens,
   DepsMap, ResolvedDeps, UntypedFunctionMessage,
 } from '@nexusdi/core';
-import { nodeScopeContext } from '@nexusdi/core/node';
+import { nodeScopes } from '@nexusdi/node';
+import type { NodeScopes } from '@nexusdi/node';
 import { OverrideError, createTestingContainer } from '@nexusdi/testing';
 import type {
   ModuleOverrideOptions, TestingContainerBuilder, TestingCreateOptions,
@@ -249,13 +251,14 @@ function check(ok: boolean, what: string): void {
 }
 
 {
-  await using ship = await Nexus.create(Meridian, { scopeContext: nodeScopeContext() });
+  await using ship = await Nexus.create(Meridian);
   check(ship.get(ShipComputer).charts.plot('Kepler') === 'course to Kepler', 'a property injection');
   check(ship.get(DIAGNOSTICS)[0] === 'hull', 'a MultiToken from a provider literal');
   check(ship.get(COURSE) === 'course to Vega', 'a factory from a provider literal');
+  const scopes = nodeScopes();
   await using shuttle = await ship.createScope({ request: { mission: 'survey-7' } });
-  const mission = await ship.runInScope(shuttle, async () => ship.currentScope()?.get(MISSION));
-  check(mission === 'survey-7', 'a scoped provider through the node scope context');
+  const mission = await scopes.run(shuttle, async () => scopes.current()?.get(MISSION));
+  check(mission === 'survey-7', 'a scoped provider through @nexusdi/node');
   const handlerDeps = { computer: ShipComputer, mission: MISSION, checks: all(DIAGNOSTICS) } as const satisfies DepsMap;
   ship.validate(handlerDeps);
   const resolved: ResolvedDeps<typeof handlerDeps> = shuttle.resolve(handlerDeps);
@@ -288,7 +291,7 @@ const errorClasses = [
   DisposedError, DuplicateProviderError, InvalidExportError, InvalidModuleError,
   InvalidProviderError, InvalidTokenError, LegacyDecoratorsError, LifetimeError,
   LoadedAfterScopeError, LoadError, MissingDepsError, MissingProviderError,
-  ModuleImportCycleError, ModuleOptionsError, NexusError, NoScopeContextError,
+  ModuleImportCycleError, ModuleOptionsError, NexusError,
   NotReadyError, NotVisibleError, ProviderError, RequestMissingError,
   ScopeRequiredError, OverrideError,
 ];
@@ -301,8 +304,9 @@ type EveryType = [
   NearMiss, NexusErrorCode, NexusGraph, NexusRequest, NoLifetimeMessage, Optional<unknown>,
   OptionsFactory<unknown, []>, Provider<unknown>, ProviderEntries<[]>, ProviderEntry,
   ProviderFailure, ProviderLiteral,
-  Resolve<unknown>, ResolveAll<[]>, SchemaIssue, Scope, ScopeContext, StandardSchemaV1,
+  Resolve<unknown>, ResolveAll<[]>, SchemaIssue, Scope, StandardSchemaV1,
   TraceEvent, Tokens<[]>, TestingContainerBuilder, TestingCreateOptions, UntypedFunctionMessage,
+  NodeScopes,
   ModuleOverrideOptions, FactoryDefinition<[], unknown>, OverrideDefinition<unknown, new () => unknown>,
   PromiseTokenMessage,
 ];
@@ -496,7 +500,7 @@ try {
   console.log('Type-checking a strict consumer…');
   run('npx', ['tsc', '-p', 'tsconfig.nodenext.json'], dir);
   console.log(
-    '  ✓ ., ./node and @nexusdi/testing resolve with types under nodenext, with lib es2022 and no @types/node',
+    '  ✓ ., @nexusdi/node and @nexusdi/testing resolve with types under nodenext, with lib es2022 and no @types/node',
   );
   run('npx', ['tsc', '-p', 'tsconfig.bundler.json', '--noEmit'], dir);
   console.log(
@@ -508,7 +512,7 @@ try {
   console.log('Running the consumer…');
   run('node', [join(dir, 'out-nodenext', 'consumer.js')], dir);
   console.log(
-    '  ✓ a decorated class, scopes, the node entry and @nexusdi/testing run from the packed build',
+    '  ✓ a decorated class, scopes, @nexusdi/node and @nexusdi/testing run from the packed build',
   );
 
   console.log('Checking the published modules for top-level await…');
