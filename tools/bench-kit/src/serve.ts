@@ -33,6 +33,11 @@ export function serveSamples(ops: Record<string, Operation>): void {
       if (!states.has(m.op)) states.set(m.op, await op.setup?.());
       const state = states.get(m.op);
       if (m.type === 'calibrate') {
+        // A cold first call can take over 1 ms alone and fix the batch at 1,
+        // so the operation runs for up to 20 ms (100 calls) before the
+        // doubling starts.
+        for (let spent = 0, i = 0; i < 100 && spent < 20_000_000; i++)
+          spent += (await timeBatch(op, state, 1)).ns;
         let batch = 1;
         while ((await timeBatch(op, state, batch)).ns < 1_000_000) batch *= 2;
         batches.set(m.op, batch);

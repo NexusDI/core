@@ -1,8 +1,11 @@
 import { serveSamples } from '../serve.ts';
 
-/** Busy-waits past the 1 ms calibration target, so calibration settles on a batch of 1. */
+/**
+ * Busy-waits past the 20 ms calibration warm-up, so the warm-up runs the
+ * operation once and calibration settles on a batch of 1.
+ */
 function slow(): void {
-  const end = process.hrtime.bigint() + 1_500_000n;
+  const end = process.hrtime.bigint() + 21_000_000n;
   while (process.hrtime.bigint() < end);
 }
 
@@ -15,11 +18,12 @@ serveSamples({
       return x;
     },
   },
-  // Calibration runs it once, rounds 0 and 1 run it twice more, round 2 throws.
+  // The warm-up and calibration run it once each, rounds 0 and 1 twice more,
+  // and round 2 throws.
   boom: {
     run: () => {
       slow();
-      if (++n > 3) throw new Error('fixture broke');
+      if (++n > 4) throw new Error('fixture broke');
       return n;
     },
   },
