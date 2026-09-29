@@ -69,6 +69,22 @@ async function errorsOf(run: () => unknown): Promise<unknown[]> {
   return [];
 }
 
+/** The errors of a shell at `provided` and a remote at `required`. */
+const verdict = (required: string, provided: string) =>
+  errorsOf(() =>
+    Nexus.create(
+      root(
+        shellOf(defineContract({ key: 'bank', version: provided })),
+        remoteUsing(
+          defineContract({ key: 'bank', version: required }).token<IAuth>(
+            'Auth',
+          ),
+        ).module,
+      ),
+      { plugins: [federation()] },
+    ),
+  );
+
 const mismatch = (required: string, provided: string) => ({
   code: 'NEXUS_CONTRACT_VERSION',
   contract: 'bank/Auth',
@@ -156,21 +172,20 @@ describe('federation', () => {
     }
   });
 
-  describe('at major 0', () => {
-    const at = (version: string) =>
-      defineContract({ key: 'bank', version }).token<IAuth>('Auth');
-    /** The errors of a shell at `provided` and a remote at `required`. */
-    const verdict = (required: string, provided: string) =>
-      errorsOf(() =>
-        Nexus.create(
-          root(
-            shellOf(defineContract({ key: 'bank', version: provided })),
-            remoteUsing(at(required)).module,
-          ),
-          { plugins: [federation()] },
-        ),
-      );
+  describe('at major 1 and above', () => {
+    it('rejects a provider at an older patch of the same minor', async () => {
+      expect(await verdict('2.3.5', '2.3.1')).toEqual([
+        expect.objectContaining(mismatch('2.3.5', '2.3.1')),
+      ]);
+    });
 
+    it('accepts a provider at the same or a newer patch of the same minor', async () => {
+      expect(await verdict('2.3.1', '2.3.1')).toEqual([]);
+      expect(await verdict('2.3.1', '2.3.5')).toEqual([]);
+    });
+  });
+
+  describe('at major 0', () => {
     it('rejects a provider at a newer minor than the dependent was built against', async () => {
       expect(await verdict('0.3.0', '0.4.0')).toEqual([
         expect.objectContaining(mismatch('0.3.0', '0.4.0')),

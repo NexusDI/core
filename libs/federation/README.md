@@ -83,7 +83,7 @@ refused?.errors.map((error) => error.code); // -> ['NEXUS_CONTRACT_VERSION']
 
 <!-- #endregion contracts -->
 
-A dependent's contract version must have the provider's major, and a minor no newer than the provider's. At major 0 a minor is a breaking change, so a dependent at 0.x needs the provider's minor, and a patch no newer than the provider's. This is the rule of npm's `^` range. Any other pair fails the compile with `NEXUS_CONTRACT_VERSION`, which names the contract, the version required and the version provided.
+A dependent's contract version must have the provider's major, and a minor no newer than the provider's. When the minors match, the dependent's patch must be no newer than the provider's. At major 0 a minor is a breaking change, so a dependent at 0.x needs the provider's minor. This is the rule of npm's `^` range. Any other pair fails the compile with `NEXUS_CONTRACT_VERSION`, which names the contract, the version required and the version provided.
 
 ## Sharing
 
