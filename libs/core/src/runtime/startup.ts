@@ -3,6 +3,7 @@ import {
   type Blueprint,
   type ProviderRecord,
 } from '../blueprint/blueprint.js';
+import { unreachable } from '../definitions/unreachable.js';
 import { ModuleOptionsError } from '../errors/index.js';
 import {
   adopt,
@@ -87,8 +88,7 @@ async function registerStatic(
   }
   await settleLevel(validated, async (id) => {
     const record = plan.bp.providers.get(id);
-    if (record === undefined)
-      throw new Error(`internal: no provider record for ${id}`);
+    if (record === undefined) unreachable();
     const { value } = await validateOptions(record, plan.bp, record.value);
     if (settleValue(root, plan.bp, record, value)) registered.push(value);
   });

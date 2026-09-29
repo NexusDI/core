@@ -1,3 +1,5 @@
+import { unreachable } from '../definitions/unreachable.js';
+
 /** One constructor or factory call in progress. */
 export interface StackFrame {
   readonly providerId: string;
@@ -40,8 +42,7 @@ export const constructionStack = {
     );
     if (start === -1) return [];
     const first = frames[start];
-    if (first === undefined)
-      throw new Error('internal: cycleFrom lost its own frame index');
+    if (first === undefined) return unreachable();
     return [...frames.slice(start).map((f) => f.name), first.name];
   },
 };

@@ -114,6 +114,7 @@ const FUNCTION_HOOKS = [
   'dispose',
 ] as const;
 const COMPILE_HOOKS = ['module', 'provider', 'check'] as const;
+type HookKey = (typeof FUNCTION_HOOKS)[number] | (typeof COMPILE_HOOKS)[number];
 
 export const NO_PLUGINS: PluginSet = Object.freeze({
   count: 0,
@@ -127,23 +128,10 @@ export const NO_PLUGINS: PluginSet = Object.freeze({
   dispose: Object.freeze([]),
 });
 
-function own(object: object, key: string): unknown {
-  return Object.hasOwn(object, key)
-    ? (object as Record<string, unknown>)[key]
+function take(owner: object, key: string): unknown {
+  return Object.hasOwn(owner, key)
+    ? (owner as Record<string, unknown>)[key]
     : undefined;
-}
-
-function bind<F extends Fn>(
-  owner: object,
-  plugin: string,
-  index: number,
-  fn: F,
-): PluginHook<F> {
-  return {
-    plugin,
-    index,
-    call: ((...args: never[]) => fn.apply(owner, args)) as F,
-  };
 }
 
 /**
@@ -200,7 +188,7 @@ export function registerPlugins(input: unknown): PluginSet {
       invalid(at, 'not-an-object', [describeValue(candidate)]);
       continue;
     }
-    const name = own(candidate, 'name');
+    const name = take(candidate, 'name');
     if (typeof name !== 'string' || name === '') {
       invalid(at, 'no-name');
       continue;
@@ -211,7 +199,7 @@ export function registerPlugins(input: unknown): PluginSet {
     }
     names.add(name);
 
-    const apiVersion = own(candidate, 'apiVersion');
+    const apiVersion = take(candidate, 'apiVersion');
     if (
       typeof apiVersion !== 'number' ||
       !SUPPORTED_PLUGIN_APIS.includes(apiVersion)
@@ -235,59 +223,48 @@ export function registerPlugins(input: unknown): PluginSet {
 
     const before = errors.length;
 
-    // Read each own hook key exactly once, into a local record, so a getter
-    // is never read twice: once here to validate, once again to register.
-    const hookFns: Partial<Record<(typeof FUNCTION_HOOKS)[number], unknown>> =
-      {};
+    // Read each own hook key exactly once, so a getter is never read twice:
+    // once here to validate, once again to register.
+    const records: (readonly [key: HookKey, owner: object, fn: Fn])[] = [];
     for (const key of FUNCTION_HOOKS) {
-      const fn = own(candidate, key);
-      hookFns[key] = fn;
-      if (fn !== undefined && typeof fn !== 'function')
-        invalid(name, 'bad-hook', [key]);
+      const fn = take(candidate, key);
+      if (fn === undefined) continue;
+      if (typeof fn !== 'function') invalid(name, 'bad-hook', [key]);
+      else records.push([key, candidate, fn as Fn]);
     }
 
-    const initFlag = own(candidate, 'onInit');
+    const initFlag = take(candidate, 'onInit');
     if (initFlag !== undefined && initFlag !== false)
       invalid(name, 'bad-on-init', [describeValue(initFlag)]);
 
-    const compile = own(candidate, 'compile');
-    const compileFns: Partial<Record<(typeof COMPILE_HOOKS)[number], unknown>> =
-      {};
+    const compile = take(candidate, 'compile');
     if (compile !== undefined) {
       if (typeof compile !== 'object' || compile === null) {
         invalid(name, 'bad-compile');
       } else {
         let compileOk = true;
         for (const key of COMPILE_HOOKS) {
-          const fn = own(compile, key);
-          compileFns[key] = fn;
-          if (fn !== undefined && typeof fn !== 'function') compileOk = false;
+          const fn = take(compile, key);
+          if (fn === undefined) continue;
+          if (typeof fn !== 'function') compileOk = false;
+          else records.push([key, compile, fn as Fn]);
         }
         if (!compileOk) invalid(name, 'bad-compile');
       }
     }
 
-    const pluginModules = own(candidate, 'modules');
+    const pluginModules = take(candidate, 'modules');
     if (pluginModules !== undefined && !Array.isArray(pluginModules))
       invalid(name, 'bad-modules');
 
     if (errors.length > before) continue;
 
-    for (const key of FUNCTION_HOOKS) {
-      const fn = hookFns[key];
-      if (typeof fn === 'function')
-        hooks[key].push(
-          bind(candidate, name, index, fn as Fn) as PluginHook<never>,
-        );
-    }
-    if (typeof compile === 'object' && compile !== null) {
-      for (const key of COMPILE_HOOKS) {
-        const fn = compileFns[key];
-        if (typeof fn === 'function')
-          hooks[key].push(
-            bind(compile, name, index, fn as Fn) as PluginHook<never>,
-          );
-      }
+    for (const [key, owner, fn] of records) {
+      hooks[key].push({
+        plugin: name,
+        index,
+        call: ((...args: never[]) => fn.apply(owner, args)) as never,
+      });
     }
     if (initFlag === false) onInit = false;
     if (Array.isArray(pluginModules)) modules.push(...pluginModules);
@@ -305,17 +282,15 @@ export function registerPlugins(input: unknown): PluginSet {
     count: input.length,
     modules: Object.freeze(modules),
     onInit,
-    compile: Object.freeze({
-      module: Object.freeze(hooks.module),
-      provider: Object.freeze(hooks.provider),
-      check: Object.freeze(hooks.check),
-    }),
-    construct: Object.freeze(hooks.construct),
-    observe: Object.freeze(hooks.observe),
-    formatError: Object.freeze(hooks.formatError),
-    setup: Object.freeze(hooks.setup),
-    dispose: Object.freeze(hooks.dispose),
-  }) as PluginSet;
+    compile: Object.freeze(
+      Object.fromEntries(
+        COMPILE_HOOKS.map((key) => [key, Object.freeze(hooks[key])]),
+      ),
+    ),
+    ...Object.fromEntries(
+      FUNCTION_HOOKS.map((key) => [key, Object.freeze(hooks[key])]),
+    ),
+  }) as unknown as PluginSet;
 }
 
 /**

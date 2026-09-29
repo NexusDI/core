@@ -28,5 +28,11 @@
     "core": 18152,
     "delta": -1,
     "kept": true
+  },
+  {
+    "step": "S1 internal assertions, one registration pass, build failures",
+    "core": 17876,
+    "delta": -276,
+    "kept": true
   }
 ]

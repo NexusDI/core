@@ -6,6 +6,7 @@ import {
 } from '../blueprint/blueprint.js';
 import { pluginFailed } from '../blueprint/hooks.js';
 import { providerView, type ProviderView } from '../blueprint/views.js';
+import { unreachable } from '../definitions/unreachable.js';
 import {
   AsyncTransientError,
   LazyAsyncError,
@@ -40,9 +41,33 @@ export function isThenable(value: unknown): value is PromiseLike<unknown> {
 
 function recordOf(bp: Blueprint, id: string): ProviderRecord {
   const record = bp.providers.get(id);
-  if (record === undefined)
-    throw new Error(`@nexusdi/core: no provider ${id} in the blueprint`);
+  if (record === undefined) return unreachable();
   return record;
+}
+
+/**
+ * The ProviderError of a build failure: construct's catch, a failed
+ * construct hook (`constructFailed`) and a failed onInit. `path` defaults to
+ * the stack construct's own frame is still on; a failure that runs after
+ * that frame popped passes it explicitly, with the provider's own name
+ * appended.
+ */
+function buildFailed(
+  bp: Blueprint,
+  record: ProviderRecord,
+  cause: unknown,
+  path: readonly string[] = constructionStack.names(),
+): ProviderError {
+  return new ProviderError(
+    {
+      token: record.name,
+      module: moduleName(bp, record),
+      path,
+      alsoFailed: [],
+      disposalErrors: [],
+    },
+    { cause },
+  );
 }
 
 /** Records an instance for disposal by `owner`, unless another container or a useValue holds it. */
@@ -114,8 +139,7 @@ function resolveBinding(
   switch (binding.kind) {
     case 'required': {
       const [id] = binding.ids;
-      if (id === undefined)
-        throw new Error('internal: a required binding has no provider');
+      if (id === undefined) return unreachable();
       return resolveId(id, ctx);
     }
     case 'optional': {
@@ -126,8 +150,7 @@ function resolveBinding(
       return binding.ids.map((id) => resolveId(id, ctx));
     case 'lazy': {
       const [id] = binding.ids;
-      if (id === undefined)
-        throw new Error('internal: a lazy binding has no provider');
+      if (id === undefined) return unreachable();
       return makeThunk(id, owner, ctx, resolveId);
     }
   }
@@ -177,16 +200,7 @@ export function construct(record: ProviderRecord, ctx: Ctx): unknown {
         }
       } catch (error) {
         if (error instanceof NexusError) throw error;
-        throw new ProviderError(
-          {
-            token: record.name,
-            module: moduleName(ctx.bp, record),
-            path: constructionStack.names(),
-            alsoFailed: [],
-            disposalErrors: [],
-          },
-          { cause: error },
-        );
+        throw buildFailed(ctx.bp, record, error);
       }
     },
   );
@@ -216,16 +230,10 @@ function constructFailed(
   plugin: string,
   cause: unknown,
 ): ProviderError {
-  return new ProviderError(
-    {
-      token: record.name,
-      module: moduleName(bp, record),
-      path: [...constructionStack.names(), record.name],
-      alsoFailed: [],
-      disposalErrors: [],
-    },
-    { cause: pluginFailed(plugin, 'construct', cause) },
-  );
+  return buildFailed(bp, record, pluginFailed(plugin, 'construct', cause), [
+    ...constructionStack.names(),
+    record.name,
+  ]);
 }
 
 /**
@@ -410,25 +418,6 @@ function onDemandOwner(
   return { container, owner: run?.owner ?? container, run };
 }
 
-/** What a get() throws when onInit throws in a build on first request. */
-function onInitFailed(
-  bp: Blueprint,
-  record: ProviderRecord,
-  cause: unknown,
-): unknown {
-  if (cause instanceof NexusError) return fromUserCode(cause);
-  return new ProviderError(
-    {
-      token: record.name,
-      module: moduleName(bp, record),
-      path: [...constructionStack.names(), record.name],
-      alsoFailed: [],
-      disposalErrors: [],
-    },
-    { cause },
-  );
-}
-
 /**
  * Builds a provider at its first request, synchronously, into the container
  * that owns it: an eager: false singleton into the root, a scoped class or
@@ -484,7 +473,12 @@ export function buildOnDemand(record: ProviderRecord, ctx: Ctx): unknown {
       result = (instance as { onInit(): unknown }).onInit();
     } catch (error) {
       container.slots.abandon(record.id);
-      throw onInitFailed(ctx.bp, record, error);
+      throw error instanceof NexusError
+        ? fromUserCode(error)
+        : buildFailed(ctx.bp, record, error, [
+            ...constructionStack.names(),
+            record.name,
+          ]);
     }
     if (isThenable(result)) {
       container.slots.abandon(record.id);

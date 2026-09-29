@@ -1,4 +1,5 @@
 import type { Blueprint } from '../blueprint/blueprint.js';
+import { unreachable } from '../definitions/unreachable.js';
 import { DisposedError, ProviderError } from '../errors/index.js';
 import { moduleName } from './build.js';
 import { disposeInReverse } from './dispose.js';
@@ -35,8 +36,7 @@ export async function settleLevel(
   const failures = results.flatMap((result, i) => {
     if (result.status !== 'rejected') return [];
     const id = ids[i];
-    if (id === undefined)
-      throw new Error('internal: settleLevel result index outside ids');
+    if (id === undefined) unreachable();
     return [{ id, error: result.reason as unknown }];
   });
   if (failures.length > 0) throw new LevelFailure(failures);
@@ -84,8 +84,7 @@ export function toProviderError(
   const [first, ...rest] = failures.map(({ id, error: cause }) =>
     failureOf(id, cause, bp),
   );
-  if (first === undefined)
-    throw new Error('internal: toProviderError received no failures');
+  if (first === undefined) return unreachable();
   return new ProviderError(
     {
       token: first.token,

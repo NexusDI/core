@@ -1,3 +1,4 @@
+import { unreachable } from '../definitions/unreachable.js';
 import type { Edge, EdgeKind } from './blueprint.js';
 
 /** Adjacency lists over the edges whose kind `include` accepts. */
@@ -120,8 +121,7 @@ export function cyclePath(
 ): string[] {
   const members = new Set(component);
   const [start] = [...component].sort((a, b) => rank(a) - rank(b));
-  if (start === undefined)
-    throw new Error('internal: cyclePath received an empty component');
+  if (start === undefined) return unreachable();
   const previous = new Map<string, string>();
   const queue = [start];
 
@@ -133,8 +133,7 @@ export function cyclePath(
         for (let at = node; at !== start;) {
           path.splice(1, 0, at);
           const parent = previous.get(at);
-          if (parent === undefined)
-            throw new Error('internal: cyclePath lost the path back to start');
+          if (parent === undefined) unreachable();
           at = parent;
         }
         path.push(start);

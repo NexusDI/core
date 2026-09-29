@@ -1,3 +1,4 @@
+import { unreachable } from '../definitions/unreachable.js';
 import { REQUEST_ID, type ProviderRecord } from './blueprint.js';
 
 export interface Levels {
@@ -57,10 +58,7 @@ function levelFunction(
         if (frame.next < successors.length) {
           const next = successors[frame.next];
           frame.next++;
-          if (next === undefined)
-            throw new Error(
-              `internal: no successor at index ${frame.next - 1} of ${frame.id}`,
-            );
+          if (next === undefined) unreachable();
           const known = memo.get(next);
           if (known !== undefined) {
             frame.max = Math.max(frame.max, known);
@@ -83,8 +81,7 @@ function levelFunction(
     }
 
     const result = memo.get(start);
-    if (result === undefined)
-      throw new Error(`internal: no computed level for ${start}`);
+    if (result === undefined) return unreachable();
     return result;
   };
 }
