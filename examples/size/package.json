@@ -1,0 +1,15 @@
+{
+  "name": "@nexusdi/size",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "description": "The two-service app the size report bundles (spec §17.2).",
+  "dependencies": {
+    "@nexusdi/core": "*",
+    "@nexusdi/decorators": "*",
+    "@nexusdi/devtools": "*",
+    "@nexusdi/errors": "*",
+    "@nexusdi/node": "*",
+    "@nexusdi/testing": "*"
+  }
+}

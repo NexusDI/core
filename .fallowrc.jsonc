@@ -67,6 +67,13 @@
     // Run by `npm run check:type-floor` (package.json), not imported by
     // anything in the workspace.
     "scripts/check-type-floor.mjs",
+
+    // scripts/size-report.mjs runs from `npm run size` and bundles each
+    // examples/size fixture by path through esbuild. The size workflow runs
+    // scripts/size-compare.mjs by path. Nothing imports any of them.
+    "scripts/size-report.mjs",
+    "scripts/size-compare.mjs",
+    "examples/size/src/*.ts",
   ],
 
   // `react-router typegen` writes +types/*.d.ts files that examples/react-ssr
