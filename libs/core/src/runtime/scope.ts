@@ -3,13 +3,14 @@ import type { Dep, DepsMap, ResolvedDeps } from '../definitions/modifiers.js';
 import type { NexusRequest } from '../definitions/request.js';
 import type { InjectionToken, MultiToken } from '../definitions/token.js';
 import { DisposedError, RequestMissingError } from '../errors/index.js';
+import { buildLevels } from './build-levels.js';
 import { adopt, applyConstruct, buildInto, traceConstruct } from './build.js';
 import { resolveDeps } from './deps.js';
 import { chainErrors, collectInto, disposeInReverse } from './dispose.js';
 import { formatFor, guardAsync } from './format.js';
 import { getFrom, hasIn } from './lookup.js';
 import type { LookupOptions } from './options.js';
-import { rollBack, settleLevel } from './settle.js';
+import { rollBack } from './settle.js';
 import {
   assertOpen,
   createScopeState,
@@ -197,11 +198,12 @@ async function buildScope(scope: ScopeState): Promise<Scope> {
   const start = tracer.now();
   let built = 0;
   try {
-    for (const level of scope.blueprint.scopedLevels) {
-      built += level.length;
-      await settleLevel(level, (id) => buildScoped(scope, scope.blueprint, id));
-      assertOpen(root);
-    }
+    built = await buildLevels(
+      scope.blueprint.scopedLevels,
+      () => true,
+      (id) => buildScoped(scope, scope.blueprint, id),
+      () => assertOpen(root),
+    );
     assertOpen(root);
   } catch (error) {
     // The scope is never handed out, so its slots need no abandoning.
@@ -256,29 +258,22 @@ async function extendNow(scope: ScopeState, target: Blueprint): Promise<void> {
     touched,
   };
   try {
-    for (const level of target.scopedLevels) {
-      // The delta, and a scoped factory the pin deferred that a delta
-      // factory needs, unless a request built it already. That one is a
-      // provider of the pin, so the scope owns it at once, as it owns one a
-      // get() builds, and a failed extend() keeps it.
-      const ids = level.filter(
-        (id) =>
-          !pinned.providers.has(id) ||
-          (pinned.deferred.has(id) && !scope.slots.has(id)),
-      );
-      if (ids.length === 0) continue;
-      levelled += ids.length;
-      touched.push(...ids.filter((id) => !pinned.providers.has(id)));
-      await settleLevel(ids, (id) =>
-        buildScoped(
-          scope,
-          target,
-          id,
-          pinned.providers.has(id) ? scope : built,
-        ),
-      );
-      assertScopeOpen(scope);
-    }
+    // The delta, and a scoped factory the pin deferred that a delta
+    // factory needs, unless a request built it already. That one is a
+    // provider of the pin, so the scope owns it at once, as it owns one a
+    // get() builds, and a failed extend() keeps it.
+    levelled = await buildLevels(
+      target.scopedLevels,
+      (id) =>
+        !pinned.providers.has(id) ||
+        (pinned.deferred.has(id) && !scope.slots.has(id)),
+      (id) => {
+        const old = pinned.providers.has(id);
+        if (!old) touched.push(id);
+        return buildScoped(scope, target, id, old ? scope : built);
+      },
+      () => assertScopeOpen(scope),
+    );
   } catch (error) {
     scope.run = undefined;
     throw await rollBack(

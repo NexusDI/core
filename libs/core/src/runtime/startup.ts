@@ -11,6 +11,7 @@ import {
   moduleName,
   traceConstruct,
 } from './build.js';
+import { buildLevels } from './build-levels.js';
 import { runInit } from './init.js';
 import { rollBack, settleLevel } from './settle.js';
 import { assertOpen, type Owner, type RootState } from './state.js';
@@ -157,13 +158,15 @@ export async function startBlueprint(
   root.run = { isNew: plan.isNew, owner: built, touched };
   try {
     await registerStatic(root, plan, touched, registered);
-    for (const level of plan.bp.singletonLevels) {
-      const ids = level.filter(plan.isNew);
-      if (ids.length === 0) continue;
-      touched.push(...ids);
-      await settleLevel(ids, (id) => buildSingleton(root, plan.bp, id, built));
-      assertOpen(root);
-    }
+    await buildLevels(
+      plan.bp.singletonLevels,
+      plan.isNew,
+      (id) => {
+        touched.push(id);
+        return buildSingleton(root, plan.bp, id, built);
+      },
+      () => assertOpen(root),
+    );
     assertOpen(root);
     // With onInit off (a plugin set onInit: false), buildSingleton already
     // marked each singleton ready.

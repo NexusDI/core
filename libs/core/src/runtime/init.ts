@@ -1,6 +1,6 @@
 import type { Blueprint } from '../blueprint/blueprint.js';
 import { isObject } from './ownership.js';
-import { settleLevel } from './settle.js';
+import { buildLevels } from './build-levels.js';
 import { assertOpen, type RootState } from './state.js';
 
 interface Initializable {
@@ -23,9 +23,10 @@ export async function runInit(
   bp: Blueprint,
   isNew: (id: string) => boolean,
 ): Promise<void> {
-  for (const level of bp.singletonLevels) {
-    const ids = level.filter(isNew);
-    await settleLevel(ids, async (id) => {
+  await buildLevels(
+    bp.singletonLevels,
+    isNew,
+    async (id) => {
       const instance = root.slots.value(id);
       if (
         !isObject(instance) ||
@@ -42,12 +43,14 @@ export async function runInit(
         providerId: id,
         durationMs: tracer.now() - start,
       }));
-    });
-    for (const id of ids) root.slots.markReady(id);
-    // root.disposing can flip while a level's onInit calls are running (an
-    // async onInit yields control back to the event loop). Checking it after
-    // every level, not only once at the end, stops a later level's onInit
-    // from starting once the container has begun disposing.
-    assertOpen(root);
-  }
+    },
+    (ids) => {
+      for (const id of ids) root.slots.markReady(id);
+      // root.disposing can flip while a level's onInit calls are running (an
+      // async onInit yields control back to the event loop). Checking it
+      // after every level, not only once at the end, stops a later level's
+      // onInit from starting once the container has begun disposing.
+      assertOpen(root);
+    },
+  );
 }

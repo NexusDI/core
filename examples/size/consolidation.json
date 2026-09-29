@@ -16,5 +16,11 @@
     "core": 18162,
     "delta": -16,
     "kept": true
+  },
+  {
+    "step": "R20 one level builder",
+    "core": 18153,
+    "delta": -9,
+    "kept": true
   }
 ]
