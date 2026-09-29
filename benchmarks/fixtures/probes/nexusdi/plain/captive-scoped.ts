@@ -1,6 +1,11 @@
 // Probe captive-scoped (benchmarks spec 4.6) on nexusdi plain: the singleton Bridge takes the scoped FlightLog.
 // The rest is fixtures/nexusdi/plain.ts, with ready() creating and
 // configuring the container and resolving nothing.
+//
+// Meridian-8 in NexusDI, the form the second docs page teaches (core spec
+// D2, D8): interface tokens, classes with static deps, provide() bindings.
+// Docs: https://github.com/NexusDI/core#readme at this commit, read 2026-09-30.
+// Departures: none.
 import { Nexus, Token, defineModule, provide } from '@nexusdi/core';
 
 interface IReactorCore {

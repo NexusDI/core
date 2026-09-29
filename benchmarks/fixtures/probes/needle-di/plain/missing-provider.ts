@@ -1,6 +1,14 @@
 // Probe missing-provider (benchmarks spec 4.6) on needle-di plain: NAV_CHARTS is never registered.
 // The rest is fixtures/needle-di/plain.ts, with ready() creating and
 // configuring the container and resolving nothing.
+//
+// Meridian-8 in needle-di without decorators: InjectionToken per interface,
+// and factory providers that call inject() inside the factory (the
+// Providers page, "Factory providers").
+// Docs: https://needle-di.io (1.2.1), read 2026-09-30.
+// Departures: fields instead of constructor parameter properties
+// (node-strip-types is a cell). needle-di documents singletons only, so the
+// transient and scoped sections are not-applicable (libraries.json).
 import { Container, InjectionToken, inject } from '@needle-di/core';
 
 interface IReactorCore {

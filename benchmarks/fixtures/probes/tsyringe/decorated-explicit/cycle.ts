@@ -4,6 +4,17 @@
 // ShieldGrid is declared after PowerRouter, so the parameter names it
 // with delay(), tsyringe's forward reference. delay() also hands out a
 // lazy proxy, which breaks the cycle.
+//
+// Meridian-8 in tsyringe with @inject(token) on every constructor
+// parameter, under the legacy profile (experimentalDecorators on,
+// emitDecoratorMetadata off): the workaround for a toolchain without
+// decorator metadata (spec 4.3). reflect-metadata stays imported, because
+// tsyringe throws "tsyringe requires a reflect polyfill." at import
+// without it.
+// Docs: https://github.com/microsoft/tsyringe#readme (4.10.0), read 2026-09-30.
+// Departures: every parameter names its token with @inject; fields instead
+// of constructor parameter properties (node-strip-types is a cell);
+// ready() clears the global container's instances, as in decorated.ts.
 import 'reflect-metadata';
 import {
   Lifecycle,

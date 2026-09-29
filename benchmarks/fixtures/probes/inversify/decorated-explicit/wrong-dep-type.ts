@@ -4,6 +4,14 @@
 // PowerRouter is declared after QuantumComputer, so the parameter names
 // it with LazyServiceIdentifier, the forward reference InversifyJS
 // documents.
+//
+// Meridian-8 in InversifyJS with the getting-started page's code under the
+// legacy profile: experimentalDecorators on, emitDecoratorMetadata off. The
+// page already names every dependency with @inject(id), the form a user on
+// a toolchain without decorator metadata needs, so the source is the
+// documented variant's.
+// Docs: https://inversify.io/docs/introduction/getting-started/ (8.2.3), read 2026-09-30.
+// Departures: emitDecoratorMetadata off; the rest as in decorated.ts.
 import {
   Container,
   LazyServiceIdentifier,
