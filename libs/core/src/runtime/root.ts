@@ -68,6 +68,8 @@ export type CheckedRoot<R> = R extends readonly unknown[]
  * The default of R when TypeScript infers nothing, which happens when a
  * literal holds an unannotated function. Both forms then check each element
  * as UninferredEntry, and the untyped function reports UntypedFunctionMessage.
+ * A function that wraps Nexus.check declares `<const R = UninferredRoot>`
+ * and takes `CheckedRoot<R>`, as devtools' inspect() does.
  */
 export type UninferredRoot =
   readonly unknown[] | { readonly providers: readonly unknown[] };

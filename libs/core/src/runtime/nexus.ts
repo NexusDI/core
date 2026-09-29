@@ -63,8 +63,8 @@ export class Nexus {
    * `{ providers, imports, exports }`. Then compiles each module of
    * `options.load` against it, as load() would. Calls no user code but the
    * plugins' compile, tokenKey, observe and formatError hooks, so options
-   * schemas and setup hooks do not run. Throws one BlueprintError for the first compile
-   * that fails, and compiles no load after it.
+   * schemas and setup hooks do not run. Throws one BlueprintError for the
+   * first compile that fails, and compiles no load after it.
    */
   static check<const R = UninferredRoot>(
     root: CheckedRoot<R>,
