@@ -26,9 +26,10 @@
     "repoChecks": ["{workspaceRoot}/**/*"]
   },
   "release": {
-    // Only one package today, but this is what a second library plugs into
-    // without an edit here: everything under libs/ is a published library.
-    "projectsRelationship": "independent",
+    // Every library under libs/ is published, and they release together at
+    // one version: each optional package peers on core's exact version, so
+    // a package bumped alone would make the published set uninstallable.
+    "projectsRelationship": "fixed",
     "releaseTag": {
       "pattern": "{projectName}@{version}"
     },

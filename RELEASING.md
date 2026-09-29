@@ -168,31 +168,22 @@ during the version step of the same run.
 
 3. Re-run with `dry-run: false`.
 
-### Releasing a subset
-
-`projects` takes a comma-separated list and defaults to empty, which releases
-everything affected. Names are the bare form used as commit scopes (`core`).
-
-```
-projects: core
-```
-
-The list is resolved against the project graph before anything is versioned,
-so a name that is not released here fails the run immediately and prints the
-releasable names.
-
-The verify gate follows the same resolved list. It runs `lint`, `test`,
-`build` and `typecheck` — the target list CI runs on a pull request — over the
-released packages, what they are compiled against, and every project that
-depends on them, transitively.
-
 ### One version for every package
 
-Every package under `libs/` carries `@nexusdi/core`'s version, and each
-optional package's peer dependency on core is that exact version
-(`tools/repo-checks/src/package-versions.test.ts` holds this). Release them
-together with an explicit version, which applies to every project `nx.json`'s
-`release.projects` selects:
+`release.projectsRelationship` in `nx.json` is `fixed`: the seven packages
+under `libs/` form one release group, and every release versions, tags and
+publishes all of them at one version. Each optional package's peer dependency
+on `@nexusdi/core` is that exact version
+(`tools/repo-checks/src/package-versions.test.ts` holds this), so a package
+released alone would make the published set uninstallable together. A commit
+scoped to any one package bumps the whole group, and each package still gets
+its own `{projectName}@{version}` tag, changelog entry and GitHub release.
+
+Leave the workflow's `projects` input empty. Nx does not version a subset of a
+fixed group: a `--projects` filter that names only some of the seven stops the
+run with "No projects are set to be processed".
+
+An explicit version applies to the whole group:
 
     npx nx release version 0.4.0-rc.0
 
