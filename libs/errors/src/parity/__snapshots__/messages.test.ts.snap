@@ -76,12 +76,12 @@ exports[`NexusError > keeps the message of 'LoadError' 1`] = `
 
 exports[`NexusError > keeps the message of 'LoadedAfterScopeError (deps entry)' 1`] = `
 "[NEXUS_LOADED_AFTER_SCOPE] deps[0]: Probe comes from Science, which was loaded after this scope was created. A scope resolves against the graph current at its creation.
-  Fix: create a new scope."
+  Fix: call await scope.extend() after load(), or create a new scope."
 `;
 
 exports[`NexusError > keeps the message of 'LoadedAfterScopeError' 1`] = `
 "[NEXUS_LOADED_AFTER_SCOPE] Probe comes from Science, which was loaded after this scope was created. A scope resolves against the graph current at its creation.
-  Fix: create a new scope."
+  Fix: call await scope.extend() after load(), or create a new scope."
 `;
 
 exports[`NexusError > keeps the message of 'MissingDepsError (bare)' 1`] = `

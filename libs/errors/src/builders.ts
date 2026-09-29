@@ -278,7 +278,7 @@ const requestMissing: Builder<RequestMissingError> = (error) => {
 const loadedAfterScope: Builder<LoadedAfterScopeError> = (error) =>
   text(
     `${entryPrefix(error.entry)}${error.token} comes from ${error.module}, which was loaded after this scope was created. A scope resolves against the graph current at its creation.\n` +
-      `  Fix: create a new scope.`,
+      `  Fix: call await scope.extend() after load(), or create a new scope.`,
   );
 
 const DISPOSED = {

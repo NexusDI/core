@@ -21,6 +21,7 @@ import { isObject } from './ownership.js';
 import type {
   ContainerState,
   Ctx,
+  Owner,
   RootState,
   TransientOwner,
 } from './state.js';
@@ -42,14 +43,14 @@ function recordOf(bp: Blueprint, id: string): ProviderRecord {
   return record;
 }
 
-/** Records an instance for disposal by `container`, unless another container or a useValue holds it. */
+/** Records an instance for disposal by `owner`, unless another container or a useValue holds it. */
 export function adopt(
-  container: ContainerState,
+  owner: Owner,
   record: ProviderRecord,
   instance: unknown,
 ): void {
-  if (isObject(instance) && container.root.ownership.claim(instance)) {
-    container.owned.push({
+  if (isObject(instance) && owner.root.ownership.claim(instance)) {
+    owner.owned.push({
       instance,
       providerId: record.id,
       token: record.name,
@@ -281,22 +282,25 @@ export interface Built {
 
 /**
  * Constructs one provider into `container`, shared by `startBlueprint`
- * (root singletons) and `createScope` (scoped factories and their scoped
- * deps): both build level by level into a container's own slots. Only a
- * factory's result is awaited (spec §6.1: a class provider stores its
- * constructed instance as is). Without the kind check, a class instance
- * that happens to expose a `then` method would be replaced by its resolved
- * value instead of stored, or hang the caller forever waiting on a `then`
- * that never calls back.
+ * (root singletons), `createScope` and `extend()` (scoped factories and
+ * their scoped deps): each builds level by level into a container's own
+ * slots. Only a factory's result is awaited (spec §6.1: a class provider
+ * stores its constructed instance as is). Without the kind check, a class
+ * instance that happens to expose a `then` method would be replaced by its
+ * resolved value instead of stored, or hang the caller forever waiting on a
+ * `then` that never calls back. Transients built as its deps go to `owner`:
+ * the container itself, or in extend() a list of extend()'s own, so its
+ * rollback disposes only its own builds.
  */
 export async function buildInto(
   container: ContainerState,
   bp: Blueprint,
   id: string,
+  owner: Owner = container,
 ): Promise<Built> {
   const record = recordOf(bp, id);
   const start = container.root.tracer.now();
-  let value = construct(record, { bp, container, owner: container });
+  let value = construct(record, { bp, container, owner });
   const isAsync = record.kind === 'factory' && isThenable(value);
   if (isAsync) {
     const pending = Promise.resolve(value);

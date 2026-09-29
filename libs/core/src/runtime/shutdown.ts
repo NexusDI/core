@@ -7,11 +7,11 @@ import { reportDisposal } from './trace.js';
 const ignore = (): void => undefined;
 
 /**
- * Sets the disposed flag, awaits every in-flight load and createScope,
- * disposes open scopes newest first, then the root's instances one at a
- * time in reverse creation order. Returns every error, the rollback errors
- * of an aborted load or createScope (`root.abortErrors`) first, since they
- * ran first.
+ * Sets the disposed flag, awaits every in-flight load, createScope and
+ * extend(), disposes open scopes newest first, then the root's instances
+ * one at a time in reverse creation order. Returns every error, the
+ * rollback errors of an aborted load, createScope or extend()
+ * (`root.abortErrors`) first, since they ran first.
  */
 async function releaseInstances(
   root: RootState,

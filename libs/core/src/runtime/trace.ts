@@ -32,6 +32,13 @@ export type TraceEvent =
   | { type: 'init'; token: string; providerId: string; durationMs: number }
   | { type: 'scope:create'; scope: string; built: number; durationMs: number }
   | {
+      type: 'scope:extend';
+      scope: string;
+      modules: string[];
+      built: number;
+      durationMs: number;
+    }
+  | {
       type: 'scope:dispose';
       scope: string;
       disposed: number;

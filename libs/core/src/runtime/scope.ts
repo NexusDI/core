@@ -1,3 +1,4 @@
+import type { Blueprint } from '../blueprint/blueprint.js';
 import type { Dep, DepsMap, ResolvedDeps } from '../definitions/modifiers.js';
 import type { NexusRequest } from '../definitions/request.js';
 import type { InjectionToken, MultiToken } from '../definitions/token.js';
@@ -13,10 +14,13 @@ import {
   assertOpen,
   createScopeState,
   track,
+  type Owner,
   type RootState,
   type ScopeState,
 } from './state.js';
 import { reportDisposal } from './trace.js';
+
+const ignore = (): void => undefined;
 
 /** A child container for one unit of work, such as a request. */
 export interface Scope {
@@ -33,6 +37,8 @@ export interface Scope {
     deps: D,
     options?: LookupOptions,
   ): ResolvedDeps<D>;
+  /** Re-pins the scope to the current blueprint and builds what later loads added. */
+  extend(): Promise<void>;
   /** Disposes the scope's scoped and transient instances. A second call returns the first call's promise. */
   [Symbol.asyncDispose](): Promise<void>;
 }
@@ -43,8 +49,14 @@ export function assertScopeOpen(scope: ScopeState): void {
   if (scope.root.disposing) throw new DisposedError({ target: 'container' });
 }
 
+/**
+ * Waits for an in-flight extend(), which then aborts and disposes what it
+ * built, and disposes the rest newest first. The errors of that rollback
+ * come first in the rejection, since they ran first.
+ */
 export function disposeScope(scope: ScopeState): Promise<void> {
   scope.disposal ??= (async () => {
+    await scope.extendQueue;
     const tracer = scope.root.tracer;
     const start = tracer.now();
     try {
@@ -56,13 +68,13 @@ export function disposeScope(scope: ScopeState): Promise<void> {
       // A throwing observe hook joins the scope's disposal errors instead
       // of escaping here, so the finally below still runs, and the scope's
       // own disposal errors still reach the caller chained with it.
-      const errors = [...report.errors];
+      const errors = [...scope.abortErrors, ...report.errors];
       collectInto(errors, () =>
         tracer.emit(() => ({
           type: 'scope:dispose',
           scope: scope.scopeId,
           disposed: report.disposed,
-          errors: report.errors.length,
+          errors: errors.length,
           durationMs: tracer.now() - start,
         })),
       );
@@ -137,18 +149,32 @@ class ScopeHandle implements Scope {
     }
   }
 
+  extend(): Promise<void> {
+    return guardAsync(this.#state.root, extendScope(this.#state));
+  }
+
   [Symbol.asyncDispose](): Promise<void> {
     return guardAsync(this.#state.root, disposeScope(this.#state));
   }
 }
 
-async function buildScoped(scope: ScopeState, id: string): Promise<void> {
-  const built = await buildInto(scope, scope.blueprint, id);
+/**
+ * Builds one scoped provider of `bp` into the scope's slots. `owner` takes
+ * the instance and the transients built as its deps: the scope itself in
+ * createScope, extend()'s own list in extend().
+ */
+async function buildScoped(
+  scope: ScopeState,
+  bp: Blueprint,
+  id: string,
+  owner: Owner = scope,
+): Promise<void> {
+  const built = await buildInto(scope, bp, id, owner);
   const { record, isAsync, start } = built;
   const value = applyConstruct(
     scope.root,
-    scope,
-    scope.blueprint,
+    owner,
+    bp,
     record,
     built.value,
     scope.scopeId,
@@ -156,8 +182,8 @@ async function buildScoped(scope: ScopeState, id: string): Promise<void> {
   scope.slots.settle(id, value);
   scope.slots.markReady(id);
   if (record.kind === 'factory') scope.root.asyncFlags.set(id, isAsync);
-  adopt(scope, record, value);
-  traceConstruct(scope, scope.blueprint, record, isAsync, start);
+  adopt(owner, record, value);
+  traceConstruct(scope, bp, record, isAsync, start);
 }
 
 /**
@@ -173,7 +199,7 @@ async function buildScope(scope: ScopeState): Promise<Scope> {
   try {
     for (const level of scope.blueprint.scopedLevels) {
       built += level.length;
-      await settleLevel(level, (id) => buildScoped(scope, id));
+      await settleLevel(level, (id) => buildScoped(scope, scope.blueprint, id));
       assertOpen(root);
     }
     assertOpen(root);
@@ -197,6 +223,90 @@ async function buildScope(scope: ScopeState): Promise<Scope> {
     durationMs: tracer.now() - start,
   }));
   return new ScopeHandle(scope);
+}
+
+/**
+ * Builds the scoped providers `target` adds to the scope's pin, level by
+ * level, then moves the pin. What it builds goes to a list of its own and
+ * joins the scope's creation order only when every level settled, after
+ * the instances the scope already holds. A failure abandons the new slots
+ * and disposes that list, newest first, and nothing the scope held before:
+ * an older scoped class a new factory built on first use stays in its
+ * slot, and so does a transient a get() built meanwhile.
+ */
+async function extendNow(scope: ScopeState, target: Blueprint): Promise<void> {
+  const { root } = scope;
+  assertScopeOpen(scope);
+  const pinned = scope.blueprint;
+  if (target === pinned) return;
+  const dependents = target.requestDependents.filter(
+    (name) => !pinned.requestDependents.includes(name),
+  );
+  if (dependents.length > 0 && scope.request === undefined)
+    throw new RequestMissingError({ dependents });
+
+  const tracer = root.tracer;
+  const start = tracer.now();
+  const built: Owner = { root, owned: [] };
+  const touched: string[] = [];
+  try {
+    for (const level of target.scopedLevels) {
+      const ids = level.filter((id) => !pinned.providers.has(id));
+      if (ids.length === 0) continue;
+      touched.push(...ids);
+      await settleLevel(ids, (id) => buildScoped(scope, target, id, built));
+      assertScopeOpen(scope);
+    }
+  } catch (error) {
+    for (const id of touched) scope.slots.abandon(id);
+    const { errors } = await disposeInReverse(
+      built.owned,
+      root.ownership,
+      reportDisposal(tracer, scope.scopeId),
+    );
+    if (error instanceof DisposedError) {
+      (root.disposing ? root.abortErrors : scope.abortErrors).push(...errors);
+      throw error;
+    }
+    throw toProviderError(error, target, errors);
+  }
+  scope.owned.push(...built.owned);
+  scope.blueprint = target;
+  const known = new Set([...pinned.modules.values()].map((m) => m.definition));
+  tracer.emit(() => ({
+    type: 'scope:extend',
+    scope: scope.scopeId,
+    modules: [...target.modules.values()]
+      .filter((m) => !known.has(m.definition))
+      .map((m) => m.name),
+    built: touched.length,
+    durationMs: tracer.now() - start,
+  }));
+}
+
+/**
+ * Re-pins the scope to the root's current blueprint and builds the scoped
+ * factories that later loads added (spec §7.4). Calls run one at a time; a
+ * call for the blueprint an in-flight call targets shares its promise. The
+ * work joins root.inflight, so root disposal waits for it. It is async so
+ * a throw before the queue, such as NEXUS_DISPOSED, rejects the promise
+ * guardAsync formats.
+ */
+async function extendScope(scope: ScopeState): Promise<void> {
+  assertScopeOpen(scope);
+  const target = scope.root.blueprint;
+  if (scope.pendingExtend?.target === target)
+    return scope.pendingExtend.promise;
+  const promise = scope.extendQueue.then(() => extendNow(scope, target));
+  const settled = promise.then(ignore, ignore);
+  scope.extendQueue = settled;
+  scope.pendingExtend = { target, promise };
+  void settled.then(() => {
+    if (scope.pendingExtend?.promise === promise)
+      scope.pendingExtend = undefined;
+  });
+  track(scope.root.inflight, promise);
+  return promise;
 }
 
 export async function openScope(

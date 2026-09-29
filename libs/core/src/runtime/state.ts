@@ -39,12 +39,12 @@ export interface RootState {
   disposal: Promise<void> | undefined;
   /** load() calls run one at a time, in call order, on this chain. */
   loadQueue: Promise<void>;
-  /** load() and createScope() operations still running. Disposal awaits them. */
+  /** load(), createScope() and extend() operations still running. Disposal awaits them. */
   readonly inflight: Set<Promise<unknown>>;
   /**
-   * Disposer errors from rolling back a load or createScope that disposal
-   * aborted mid-build. disposeRoot prepends these to its own disposal
-   * errors before chaining them into its rejection.
+   * Disposer errors from rolling back a load, createScope or extend() that
+   * root disposal aborted mid-build. disposeRoot prepends these to its own
+   * disposal errors before chaining them into its rejection.
    */
   readonly abortErrors: unknown[];
   /** Open scopes, oldest first. Disposal closes them newest first. */
@@ -64,10 +64,20 @@ export interface ScopeState {
   readonly slots: Slots;
   /** Scoped and transient instances this scope disposes, in creation order. */
   readonly owned: OwnedEntry[];
-  /** The blueprint current when the scope was created. */
-  readonly blueprint: Blueprint;
+  /** The blueprint the scope resolves against: the root's at creation, then extend()'s. */
+  blueprint: Blueprint;
   /** Set by the first [Symbol.asyncDispose]() call; later calls return it. */
   disposal: Promise<void> | undefined;
+  /** extend() calls run one at a time on this chain. */
+  extendQueue: Promise<void>;
+  /** The extend() in flight, and the blueprint it pins to. */
+  pendingExtend:
+    { readonly target: Blueprint; readonly promise: Promise<void> } | undefined;
+  /**
+   * Disposer errors from rolling back an extend() that the scope's own
+   * disposal aborted. disposeScope reports them ahead of its own errors.
+   */
+  readonly abortErrors: unknown[];
 }
 
 /** A container that builds and owns instances. */
@@ -86,11 +96,23 @@ export function createScopeState(
     owned: [],
     blueprint: root.blueprint,
     disposal: undefined,
+    extendQueue: Promise.resolve(),
+    pendingExtend: undefined,
+    abortErrors: [],
   };
 }
 
-/** Who owns a transient built now: a container, or nobody and why. */
-export type TransientOwner = ContainerState | UntrackedReason;
+/**
+ * What takes ownership of a built instance: a container, or the list an
+ * extend() collects its builds in until they all settle.
+ */
+export interface Owner {
+  readonly root: RootState;
+  readonly owned: OwnedEntry[];
+}
+
+/** Who owns a transient built now: an owner, or nobody and why. */
+export type TransientOwner = Owner | UntrackedReason;
 
 /** Everything a resolution needs: the blueprint, the container, the transient owner. */
 export interface Ctx {
