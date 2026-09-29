@@ -55,7 +55,7 @@ export function checkBlueprint(
           invalid(
             'unknown-method',
             { target: cls.name, method },
-            `${cls.name} declares interceptors for ${method}, which is not a method of the class.`,
+            `${cls.name} declares interceptors for ${method}, which is not a method on the class or its prototype chain.\n  Fix: correct the name, or declare ${method} as a method; an arrow-function field is not a prototype method.`,
           ),
         );
       for (const token of tokens)

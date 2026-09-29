@@ -226,10 +226,14 @@ Each entry gives the architect's proposal, the challenge, and the final call.
 - Challenge: the `construct` hook receives no container identity, so a plugin object
   registered in two live containers could not tell their registries apart.
 - Ruling: `interceptors()` returns a new plugin per call, and a plugin object binds to
-  one container. When the registry of a second container is built while the first is
-  alive, the build throws `NEXUS_INTERCEPTORS_SHARED`, which `create` reports as a
-  `ProviderError`. Disposing the first container frees the plugin object. G1 removes
-  this limit too.
+  one container. A `create` that compiles while the plugin is bound to a live container
+  reports `NEXUS_INTERCEPTORS_SHARED` from `compile.check`, before any build, so the
+  live container's state is untouched (final review F1). Two `create` calls that
+  overlap before either registry is built both compile; the second registry build
+  throws `NEXUS_INTERCEPTORS_SHARED`, which `create` reports as a `ProviderError`.
+  Disposing the first container frees the plugin object. Module and provider ids are
+  container-local, so the plugin keeps them per container session. G1 removes this
+  limit too.
 
 ### R10. No per-call context token
 
@@ -248,6 +252,14 @@ Each entry gives the architect's proposal, the challenge, and the final call.
   names it.
 - The providers in the plugin's own module (the interceptors and the registry) are never
   intercepted, so an interceptor cannot recurse into itself through a global entry.
+- Global entries also skip every provider the plugin's module reaches through a
+  dependency edge, transitively (final review F2). A global logging interceptor that
+  calls `journal.write()` would otherwise intercept that call and recurse until the
+  stack overflows. A per-call re-entrancy guard was rejected: it holds only while the
+  interceptor runs synchronously, and an async interceptor that writes after an `await`
+  would still recurse. Skipping only the calling interceptor's own deps was rejected too:
+  two global interceptors whose deps call each other still recurse. Declarations and
+  bindings still apply to these providers, since the user named them.
 - A provider with no matching global entry, binding or declaration is not wrapped: the
   hook returns `undefined` and the instance stays unproxied.
 
@@ -274,7 +286,7 @@ One error class, `InterceptorError`, built with core's `errorBase`, with codes:
 | `NEXUS_INTERCEPTOR_MISSING`   | a declaration, binding or global entry names a token that `interceptors({ register })` does not register                        | `compile.check`                                                         |
 | `NEXUS_INTERCEPTOR_LIFETIME`  | a registered interceptor is scoped or transient                                                                                 | `compile.check`                                                         |
 | `NEXUS_INTERCEPTOR_NOT_READY` | a call before the registry is built, or after the container is disposed                                                         | the wrapper                                                             |
-| `NEXUS_INTERCEPTORS_SHARED`   | the plugin object is already bound to a live container                                                                          | the registry build                                                      |
+| `NEXUS_INTERCEPTORS_SHARED`   | the plugin object is already bound to a live container                                                                          | `compile.check`, or the registry build for overlapping creates          |
 
 Fields: `code`, `reason` (for `INVALID`: `'options' | 'declaration' | 'unknown-method' |
 'two-forms' | 'private-method' | 'static-method' | 'bad-target' | 'legacy-decorators' |
@@ -468,6 +480,9 @@ Runs for `create`, `load` and `Nexus.check`, over `view.providers`:
 - Each global entry and binding token that is not registered (`MISSING`).
 - Each registered interceptor provider with `lifetime` `'scoped'` or `'transient'`
   (`NEXUS_INTERCEPTOR_LIFETIME`).
+- For `create` and `load`: a plugin bound to a live container (`NEXUS_INTERCEPTORS_SHARED`,
+  `create` only), then the plugin module's id and the providers it reaches through
+  dependency edges, recorded on this container's session (R9, R11).
 
 Tokens compare through `provider.token` and `provider.written`, so a `tokenKey` plugin
 (`@nexusdi/federation`) does not hide a match. A binding whose token has no provider is

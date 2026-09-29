@@ -94,6 +94,8 @@ The chain runs global entries first, then bindings, then class lists, then metho
 ## What to know
 
 - `get()` returns a proxy of an intercepted service. Methods run with `this` set to the service itself, so private fields work, and a call from one method to another on `this` skips interceptors.
+- Global entries skip every provider your interceptors depend on, directly or through their own deps, so an interceptor never intercepts a service it calls. Declarations and bindings still apply to those providers.
+- `static interceptors` and `@UseInterceptors` name methods on the class or its prototype chain. An arrow-function field is not one, and `create` reports it as `NEXUS_INTERCEPTOR_INVALID`.
 - Interceptors are singletons. A scoped or transient interceptor fails at `create` with `NEXUS_INTERCEPTOR_LIFETIME`.
 - `next(args)` replaces the arguments. Not calling `next()` returns your value in place of the method's.
 - An async method's caller sees a synchronous throw from an interceptor as a rejection. `tap(next, { value, error })` observes sync and async results alike.
