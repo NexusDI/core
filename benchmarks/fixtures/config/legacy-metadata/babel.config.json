@@ -1,0 +1,19 @@
+{
+  "presets": [
+    [
+      "@babel/preset-typescript",
+      {
+        "rewriteImportExtensions": true
+      }
+    ]
+  ],
+  "plugins": [
+    "babel-plugin-transform-typescript-metadata",
+    [
+      "@babel/plugin-proposal-decorators",
+      {
+        "version": "legacy"
+      }
+    ]
+  ]
+}

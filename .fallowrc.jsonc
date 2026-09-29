@@ -76,6 +76,13 @@
     "scripts/size-report.mjs",
     "scripts/size-compare.mjs",
     "examples/size/src/*.ts",
+
+    // The benchmark harness. The fixtures and scenario.mjs are copied into a
+    // throwaway consumer and built there; the profile configs reach the
+    // toolchains through CLI flags; the src/*.ts writers and core's
+    // dispatch benchmark run by path from nx targets. Nothing imports them.
+    "benchmarks/fixtures/**/*.{ts,mjs}",
+    "libs/core/bench/*.mjs",
   ],
 
   // `react-router typegen` writes +types/*.d.ts files that examples/react-ssr
@@ -206,6 +213,10 @@
     // links the package, and libs/errors/package.json, as a published
     // package, carries no devDependencies.
     "@nexusdi/testing",
+    // libs/core/bench/build.mjs bundles core with esbuild from the root
+    // manifest. libs/core/package.json, as a published package, carries no
+    // devDependencies.
+    "esbuild",
   ],
 
   // definitions/standard-schema.ts declares `StandardSchemaV1` twice on
@@ -250,6 +261,10 @@
       // the two copies cannot share one module.
       "libs/*/test-support/security.ts",
       "tools/repo-checks/src/__fixtures__/**",
+      // Meridian-8 once per library and variant: each fixture is one
+      // self-contained file a toolchain builds alone (benchmarks spec 4.1),
+      // and the profile configs differ in one or two keys each.
+      "benchmarks/fixtures/**",
     ],
   },
 }
