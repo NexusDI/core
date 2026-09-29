@@ -21,7 +21,7 @@ import {
 } from 'tsyringe';
 
 interface INavCharts {
-  readonly kind: string;
+  readonly kind: 'NavCharts';
 }
 @singleton()
 class FusionReactor {

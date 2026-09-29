@@ -1,12 +1,12 @@
-// Meridian-8 in InversifyJS with the getting-started page's code under the
-// legacy profile: experimentalDecorators on, emitDecoratorMetadata off. The
-// page already names every dependency with @inject(id), the form a user on
-// a toolchain without decorator metadata needs, so the source is the
-// documented variant's.
-// Docs: https://inversify.io/docs/introduction/getting-started/ (8.2.3), read 2026-09-30.
-// Departures: emitDecoratorMetadata off; the rest as in decorated.ts.
+// Probe two-mistakes (benchmarks spec 4.6) on inversify decorated-explicit: missing-provider and cycle together.
+// The rest is fixtures/inversify/decorated-explicit.ts, with ready() creating and
+// configuring the container and resolving nothing.
+// ShieldGrid is declared after PowerRouter, so the parameter names it
+// with LazyServiceIdentifier, the forward reference InversifyJS
+// documents.
 import {
   Container,
+  LazyServiceIdentifier,
   inject,
   injectable,
   type ServiceIdentifier,
@@ -33,7 +33,9 @@ class QuantumComputer {
 class PowerRouter {
   readonly kind = 'PowerRouter';
   readonly reactor: FusionReactor;
-  constructor(@inject(FusionReactor) reactor: FusionReactor) {
+  constructor(
+    @inject(new LazyServiceIdentifier(() => ShieldGrid)) reactor: FusionReactor,
+  ) {
     this.reactor = reactor;
   }
 }
@@ -88,19 +90,16 @@ export const adapter = {
     container.bind(QuantumComputer).toSelf().inSingletonScope();
     container.bind(PowerRouter).toSelf().inSingletonScope();
     container.bind(ShieldGrid).toSelf().inSingletonScope();
-    container
-      .bind<INavCharts>(NAV_CHARTS)
-      .toConstantValue({ kind: 'NavCharts' });
     container.bind(Bridge).toSelf().inSingletonScope();
     container.bind(SurveyDrone).toSelf().inTransientScope();
-    container.get(FusionReactor);
-    container.get(QuantumComputer);
-    container.get(PowerRouter);
-    container.get(ShieldGrid);
-    container.get(Bridge);
     return {
       get: (name: keyof typeof IDS) =>
         container.get(IDS[name] as ServiceIdentifier<{ kind: string }>),
     };
   },
 };
+
+/** The first resolve the probe runner makes. */
+export function resolveBridge(ship: { get(name: 'bridge'): unknown }): unknown {
+  return ship.get('bridge');
+}

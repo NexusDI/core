@@ -1,9 +1,6 @@
-// Meridian-8 in NexusDI with @nexusdi/decorators (core spec D9): interface
-// tokens, @Injectable({ deps }) classes bound with provide(), and an
-// @Module class. A useClass binding sets the lifetime; the class's
-// @Injectable lifetime applies only to a class listed bare.
-// Docs: https://github.com/NexusDI/core#readme at this commit, read 2026-09-30.
-// Departures: none.
+// Probe missing-provider (benchmarks spec 4.6) on nexusdi decorated: NAV_CHARTS is never registered.
+// The rest is fixtures/nexusdi/decorated.ts, with ready() creating and
+// configuring the container and resolving nothing.
 import { Nexus, Token, provide } from '@nexusdi/core';
 import { Injectable, Module } from '@nexusdi/decorators';
 
@@ -116,7 +113,6 @@ class FlightLog implements IFlightLog {
     provide(COMPUTER, { useClass: QuantumComputer, lifetime: 'singleton' }),
     provide(POWER_ROUTER, { useClass: PowerRouter, lifetime: 'singleton' }),
     provide(SHIELD_GRID, { useClass: ShieldGrid, lifetime: 'singleton' }),
-    provide(NAV_CHARTS, { useValue: { kind: 'NavCharts' } }),
     provide(BRIDGE, { useClass: Bridge, lifetime: 'singleton' }),
     provide(DRONE, { useClass: SurveyDrone, lifetime: 'transient' }),
     provide(FLIGHT_LOG, { useClass: FlightLog, lifetime: 'scoped' }),
@@ -154,3 +150,8 @@ export const adapter = {
   },
   dispose: (handle: { ship: Nexus }) => handle.ship[Symbol.asyncDispose](),
 };
+
+/** The first resolve the probe runner makes. */
+export function resolveBridge(ship: { get(name: 'bridge'): unknown }): unknown {
+  return ship.get('bridge');
+}

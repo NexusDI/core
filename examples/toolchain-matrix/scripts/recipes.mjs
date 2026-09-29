@@ -150,11 +150,8 @@ export function buildCommand(id, dir, entry, c) {
   }
 }
 
-/** Builds `entry` and returns the module the runtime loads, relative to `dir`. */
-export function compile(id, dir, entry, c) {
-  rmSync(join(dir, outDirOf(id, entry)), { recursive: true, force: true });
-  const step = buildCommand(id, dir, entry, c);
-  if (step !== null) run(step.cmd, step.args, dir);
+/** The module a build of `entry` writes, relative to the consumer directory. */
+export function outputOf(id, entry, c) {
   const out = outDirOf(id, entry);
   switch (id) {
     case 'tsc':
@@ -171,6 +168,14 @@ export function compile(id, dir, entry, c) {
     default:
       return entry;
   }
+}
+
+/** Builds `entry` and returns the module the runtime loads, relative to `dir`. */
+export function compile(id, dir, entry, c) {
+  rmSync(join(dir, outDirOf(id, entry)), { recursive: true, force: true });
+  const step = buildCommand(id, dir, entry, c);
+  if (step !== null) run(step.cmd, step.args, dir);
+  return outputOf(id, entry, c);
 }
 
 /** The command that runs `modulePath` under the toolchain's runtime, from `dir`. */

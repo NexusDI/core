@@ -1,9 +1,6 @@
-// Meridian-8 in NexusDI with @nexusdi/decorators (core spec D9): interface
-// tokens, @Injectable({ deps }) classes bound with provide(), and an
-// @Module class. A useClass binding sets the lifetime; the class's
-// @Injectable lifetime applies only to a class listed bare.
-// Docs: https://github.com/NexusDI/core#readme at this commit, read 2026-09-30.
-// Departures: none.
+// Probe wrong-dep-type (benchmarks spec 4.6) on nexusdi decorated: ShipComputer is wired to PowerRouter where it takes ReactorCore.
+// The rest is fixtures/nexusdi/decorated.ts, with ready() creating and
+// configuring the container and resolving nothing.
 import { Nexus, Token, provide } from '@nexusdi/core';
 import { Injectable, Module } from '@nexusdi/decorators';
 
@@ -53,7 +50,7 @@ const FLIGHT_LOG = new Token<IFlightLog>('FlightLog');
 class FusionReactor implements IReactorCore {
   readonly kind = 'ReactorCore';
 }
-@Injectable({ deps: [REACTOR] })
+@Injectable({ deps: [POWER_ROUTER] })
 class QuantumComputer implements IShipComputer {
   readonly kind = 'ShipComputer';
   readonly reactor: IReactorCore;
@@ -154,3 +151,8 @@ export const adapter = {
   },
   dispose: (handle: { ship: Nexus }) => handle.ship[Symbol.asyncDispose](),
 };
+
+/** The first resolve the probe runner makes. */
+export function resolveBridge(ship: { get(name: 'bridge'): unknown }): unknown {
+  return ship.get('bridge');
+}

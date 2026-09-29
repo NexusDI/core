@@ -1,9 +1,6 @@
-// Meridian-8 in NexusDI with @nexusdi/decorators (core spec D9): interface
-// tokens, @Injectable({ deps }) classes bound with provide(), and an
-// @Module class. A useClass binding sets the lifetime; the class's
-// @Injectable lifetime applies only to a class listed bare.
-// Docs: https://github.com/NexusDI/core#readme at this commit, read 2026-09-30.
-// Departures: none.
+// Probe cycle (benchmarks spec 4.6) on nexusdi decorated: PowerRouter takes ShieldGrid, which takes PowerRouter.
+// The rest is fixtures/nexusdi/decorated.ts, with ready() creating and
+// configuring the container and resolving nothing.
 import { Nexus, Token, provide } from '@nexusdi/core';
 import { Injectable, Module } from '@nexusdi/decorators';
 
@@ -16,7 +13,7 @@ interface IShipComputer {
 }
 interface IPowerRouter {
   readonly kind: 'PowerRouter';
-  readonly reactor: IReactorCore;
+  readonly shield: IShieldGrid;
 }
 interface IShieldGrid {
   readonly kind: 'ShieldGrid';
@@ -61,12 +58,12 @@ class QuantumComputer implements IShipComputer {
     this.reactor = reactor;
   }
 }
-@Injectable({ deps: [REACTOR] })
+@Injectable({ deps: [SHIELD_GRID] })
 class PowerRouter implements IPowerRouter {
   readonly kind = 'PowerRouter';
-  readonly reactor: IReactorCore;
-  constructor(reactor: IReactorCore) {
-    this.reactor = reactor;
+  readonly shield: IShieldGrid;
+  constructor(shield: IShieldGrid) {
+    this.shield = shield;
   }
 }
 @Injectable({ deps: [POWER_ROUTER] })
@@ -154,3 +151,8 @@ export const adapter = {
   },
   dispose: (handle: { ship: Nexus }) => handle.ship[Symbol.asyncDispose](),
 };
+
+/** The first resolve the probe runner makes. */
+export function resolveBridge(ship: { get(name: 'bridge'): unknown }): unknown {
+  return ship.get('bridge');
+}

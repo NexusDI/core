@@ -108,7 +108,7 @@ export function prepareConsumer(opts: { libraries: LibraryId[] }): string {
   );
   installConsumer(dir, specs);
   cpSync(join(FIXTURES, 'config'), join(dir, 'config'), { recursive: true });
-  for (const script of ['scenario.mjs', 'snippets-check.mjs'])
+  for (const script of ['scenario.mjs', 'snippets-check.mjs', 'probe-run.mjs'])
     copyFileSync(join(FIXTURES, script), join(dir, script));
   return dir;
 }

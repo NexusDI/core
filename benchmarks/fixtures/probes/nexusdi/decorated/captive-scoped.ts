@@ -1,9 +1,6 @@
-// Meridian-8 in NexusDI with @nexusdi/decorators (core spec D9): interface
-// tokens, @Injectable({ deps }) classes bound with provide(), and an
-// @Module class. A useClass binding sets the lifetime; the class's
-// @Injectable lifetime applies only to a class listed bare.
-// Docs: https://github.com/NexusDI/core#readme at this commit, read 2026-09-30.
-// Departures: none.
+// Probe captive-scoped (benchmarks spec 4.6) on nexusdi decorated: the singleton Bridge takes the scoped FlightLog.
+// The rest is fixtures/nexusdi/decorated.ts, with ready() creating and
+// configuring the container and resolving nothing.
 import { Nexus, Token, provide } from '@nexusdi/core';
 import { Injectable, Module } from '@nexusdi/decorators';
 
@@ -77,17 +74,20 @@ class ShieldGrid implements IShieldGrid {
     this.router = router;
   }
 }
-@Injectable({ deps: [COMPUTER, NAV_CHARTS, SHIELD_GRID] })
+@Injectable({ deps: [COMPUTER, NAV_CHARTS, SHIELD_GRID, FLIGHT_LOG] })
 class Bridge implements IBridge {
   readonly kind = 'Bridge';
   readonly computer: IShipComputer;
   readonly charts: INavCharts;
   readonly shield: IShieldGrid;
+  readonly log: IFlightLog;
   constructor(
     computer: IShipComputer,
     charts: INavCharts,
     shield: IShieldGrid,
+    log: IFlightLog,
   ) {
+    this.log = log;
     this.computer = computer;
     this.charts = charts;
     this.shield = shield;
@@ -154,3 +154,8 @@ export const adapter = {
   },
   dispose: (handle: { ship: Nexus }) => handle.ship[Symbol.asyncDispose](),
 };
+
+/** The first resolve the probe runner makes. */
+export function resolveBridge(ship: { get(name: 'bridge'): unknown }): unknown {
+  return ship.get('bridge');
+}
