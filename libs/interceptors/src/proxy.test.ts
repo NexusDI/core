@@ -232,4 +232,76 @@ describe('interceptedProxy', () => {
     proxy.value = 2;
     expect(raw.value).toBe(2);
   });
+
+  it('intercepts an own method of a frozen object', () => {
+    const log: string[] = [];
+    const client = Object.freeze({
+      send: (text: string) => `sent ${text}`,
+      ping: () => 'pong',
+    });
+    const proxy = interceptedProxy(client, provider, null, {
+      session: session([[A, recorder(log, 'A')]]),
+      chain: (key) => (key === 'send' ? [A] : []),
+    });
+    expect(proxy.send('x')).toBe('sent x');
+    expect(proxy.ping()).toBe('pong');
+    expect(log).toEqual(['A:before:send', 'A:after']);
+  });
+
+  it('reads keys, membership and descriptors of a frozen object through its proxy', () => {
+    class Client {
+      send() {
+        return 'sent';
+      }
+    }
+    const raw = Object.freeze(
+      Object.assign(new Client(), { label: 'c', run: () => 1 }),
+    );
+    const proxy = interceptedProxy(raw, provider, null, {
+      session: session([[A, recorder([], 'A')]]),
+      chain: () => [A],
+    });
+    expect(proxy).toBeInstanceOf(Client);
+    expect(Reflect.ownKeys(proxy)).toEqual(['label', 'run']);
+    expect('send' in proxy).toBe(true);
+    expect(Object.getOwnPropertyDescriptor(proxy, 'label')).toMatchObject({
+      value: 'c',
+      writable: false,
+    });
+    expect(
+      thrown(() => ((proxy as { label: string }).label = 'd')),
+    ).toBeInstanceOf(TypeError);
+    expect(proxy.send()).toBe('sent');
+  });
+
+  it('fails for a frozen function whose own method is intercepted', () => {
+    const fn = Object.freeze(
+      Object.assign(() => 'called', { send: () => 'sent' }),
+    );
+    const env = {
+      session: session([[A, recorder([], 'A')]]),
+      chain: () => [A],
+    };
+    expect(
+      findCode(
+        thrown(() => interceptedProxy(fn, provider, null, env)),
+        'NEXUS_INTERCEPTOR_INVALID',
+      ),
+    ).toMatchObject({
+      reason: 'bad-target',
+      target: 'Payments',
+      method: 'send',
+    });
+  });
+
+  it("returns a frozen function's own method as is when nothing intercepts it", () => {
+    const send = () => 'sent';
+    const fn = Object.freeze(Object.assign(() => 'called', { send }));
+    const proxy = interceptedProxy(fn, provider, null, {
+      session: session([]),
+      chain: () => [],
+    });
+    expect(proxy.send).toBe(send);
+    expect(proxy()).toBe('called');
+  });
 });

@@ -324,6 +324,42 @@ describe('interceptors()', () => {
     });
   });
 
+  it('intercepts a frozen factory result under a global interceptor', async () => {
+    const LOG = new Token<Interceptor>('Log');
+    const CLIENT = new Token<{ send(text: string): string }>('Client');
+    const seen: string[] = [];
+    await using ship = await Nexus.create(
+      defineModule({
+        name: 'App',
+        providers: [
+          provide(CLIENT, {
+            useFactory: () => Object.freeze({ send: (text: string) => text }),
+          }),
+        ],
+        exports: [CLIENT],
+      }),
+      {
+        plugins: [
+          interceptors({
+            register: [
+              interceptor(LOG, {
+                useValue: {
+                  intercept: (call, next) => (
+                    seen.push(String(call.method)),
+                    next()
+                  ),
+                },
+              }),
+            ],
+            global: [LOG],
+          }),
+        ],
+      },
+    );
+    expect(ship.get(CLIENT).send('hi')).toBe('hi');
+    expect(seen).toEqual(['send']);
+  });
+
   it('never intercepts a useValue provider', async () => {
     const VALUE = new Token<{ ping(): string }>('Value');
     const value = { ping: () => 'pong' };
