@@ -66,7 +66,7 @@ A factory's `async` in `graph()` says whether its last build returned a thenable
 
 ## Inspect
 
-`inspect(root)` compiles the graph `Nexus.check` compiles and builds nothing, for a CLI or a CI job. Every provider's `async` in its graph is `null`, since nothing ran.
+`inspect(root)` compiles the graph `Nexus.check` compiles and builds nothing, for a CLI or a CI job. It takes the root forms `Nexus.check` takes: a module, a provider array, or `{ providers, imports, exports }`. Every provider's `async` in its graph is `null`, since nothing ran.
 
 <!-- #region inspect -->
 

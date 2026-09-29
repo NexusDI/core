@@ -75,6 +75,17 @@ describe('inspect', () => {
     ]);
   });
 
+  it('takes a provider array and a root object, as Nexus.check does', () => {
+    const fromArray = inspect([provide(CHARTS, { useValue: 'charts' })]);
+    const fromObject = inspect({
+      providers: [provide(CHARTS, { useValue: 'charts' })],
+      imports: [Science],
+    });
+    expect(fromArray.modules.map((m) => m.name)).toEqual(['root']);
+    expect(fromArray.providers.map((p) => p.token)).toContain('Charts');
+    expect(fromObject.modules.map((m) => m.name)).toEqual(['root', 'Science']);
+  });
+
   it('accepts errors() and devtools() in options.plugins', () => {
     const view = inspect(Tactical, { plugins: [errors(), devtools()] });
     expect(view.modules.map((m) => m.name)).toEqual(['Tactical']);
