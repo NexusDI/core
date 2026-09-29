@@ -948,4 +948,233 @@ describe('eager: false during a failed run', () => {
     expect(events).toEqual(['pool init', 'client init, pool ready=true']);
     await ship[Symbol.asyncDispose]();
   });
+
+  it('treats a levelled eager: false singleton as eager, so a thunk that reaches it before its level is not ready', async () => {
+    const events: string[] = [];
+    const PILOT = new Token<IReactor>('Pilot');
+    const SHIELDS = new Token<IReactor>('Shields');
+    class Pilot implements IReactor {
+      readonly output: number;
+      static deps = [lazy(REACTOR)] as const;
+      constructor(reactorOf: () => IReactor) {
+        this.output = reactorOf().output;
+      }
+    }
+    const error = await rejected(
+      Nexus.create(
+        defineModule({
+          name: 'Engineering',
+          providers: [
+            provide(PILOT, { useClass: Pilot }),
+            provide(REACTOR, {
+              useClass: reactor('Reactor', events),
+              eager: false,
+            }),
+            provide(SHIELDS, {
+              useFactory: (core) => core,
+              deps: [REACTOR],
+            }),
+          ],
+        }),
+      ),
+    );
+    expect(error).toMatchObject({
+      code: 'NEXUS_PROVIDER_FAILED',
+      cause: { code: 'NEXUS_NOT_READY', target: 'Reactor' },
+    });
+    expect(events.filter((e) => e === 'Reactor built')).toHaveLength(1);
+  });
+
+  it('treats a levelled eager: false scoped factory as eager, so a thunk that reaches it before its level is not ready', async () => {
+    let zones = 0;
+    const ZONE = new Token<number>('Zone');
+    const FIELD = new Token<number>('Field');
+    const GRID = new Token<number>('Grid');
+    const ship = await Nexus.create(
+      defineModule({
+        name: 'Tactical',
+        providers: [
+          provide(FIELD, {
+            useFactory: (zone) => zone(),
+            deps: [lazy(ZONE)],
+            lifetime: 'scoped',
+          }),
+          provide(ZONE, {
+            useFactory: () => ++zones,
+            lifetime: 'scoped',
+            eager: false,
+          }),
+          provide(GRID, {
+            useFactory: (zone) => zone,
+            deps: [ZONE],
+            lifetime: 'scoped',
+          }),
+        ],
+      }),
+    );
+    expect(await rejected(ship.createScope())).toMatchObject({
+      code: 'NEXUS_PROVIDER_FAILED',
+      cause: { code: 'NEXUS_NOT_READY', target: 'Zone' },
+    });
+    expect(zones).toBeLessThanOrEqual(1);
+  });
+
+  it('builds an earlier eager: false singleton in the level of a load that needs it', async () => {
+    const events: string[] = [];
+    const SHIELDS = new Token<IReactor>('Shields');
+    const Engineering = defineModule({
+      name: 'Engineering',
+      providers: [
+        provide(REACTOR, {
+          useClass: reactor('Reactor', events),
+          eager: false,
+        }),
+      ],
+      exports: [REACTOR],
+      global: true,
+    });
+    const ship = await Nexus.create(
+      defineModule({ name: 'Bridge', imports: [Engineering] }),
+    );
+    await ship.load(
+      defineModule({
+        name: 'Tactical',
+        providers: [
+          provide(SHIELDS, { useFactory: (core) => core, deps: [REACTOR] }),
+        ],
+        exports: [SHIELDS],
+      }),
+    );
+    expect(events).toEqual(['Reactor built']);
+    expect(ship.get(SHIELDS)).toBe(ship.get(REACTOR));
+  });
+
+  it('builds an earlier eager: false scoped factory in the level of an extend() that needs it', async () => {
+    let zones = 0;
+    const ZONE = new Token<number>('Zone');
+    const GRID = new Token<number>('Grid');
+    const Zones = defineModule({
+      name: 'Zones',
+      providers: [
+        provide(ZONE, {
+          useFactory: () => ++zones,
+          lifetime: 'scoped',
+          eager: false,
+        }),
+      ],
+      exports: [ZONE],
+      global: true,
+    });
+    const ship = await Nexus.create(
+      defineModule({ name: 'Bridge', imports: [Zones] }),
+    );
+    const shuttle = await ship.createScope();
+    await ship.load(
+      defineModule({
+        name: 'Tactical',
+        providers: [
+          provide(GRID, {
+            useFactory: (zone) => zone * 10,
+            deps: [ZONE],
+            lifetime: 'scoped',
+          }),
+        ],
+        exports: [GRID],
+      }),
+    );
+    await shuttle.extend();
+    expect(zones).toBe(1);
+    expect(shuttle.get(GRID)).toBe(10);
+    expect(shuttle.get(ZONE)).toBe(1);
+  });
+
+  it('forgets an earlier eager: false singleton a failed load built before its onInit ran, and builds it again', async () => {
+    const events: string[] = [];
+    const SHIELDS = new Token<IReactor>('Shields');
+    class Reactor implements IReactor {
+      readonly output = 1.21;
+      constructor() {
+        events.push('built');
+      }
+      onInit() {
+        events.push('init');
+      }
+      [Symbol.dispose]() {
+        events.push('disposed');
+      }
+    }
+    const Engineering = defineModule({
+      name: 'Engineering',
+      providers: [provide(REACTOR, { useClass: Reactor, eager: false })],
+      exports: [REACTOR],
+      global: true,
+    });
+    const ship = await Nexus.create(
+      defineModule({ name: 'Bridge', imports: [Engineering] }),
+    );
+    await rejected(
+      ship.load(
+        defineModule({
+          name: 'Tactical',
+          providers: [
+            provide(SHIELDS, {
+              useFactory: (): IReactor => {
+                throw new Error('overload');
+              },
+              deps: [REACTOR],
+            }),
+          ],
+        }),
+      ),
+    );
+    expect(events).toEqual(['built']);
+    ship.get(REACTOR);
+    expect(events).toEqual(['built', 'built', 'init']);
+    await ship[Symbol.asyncDispose]();
+    expect(events).toEqual(['built', 'built', 'init', 'disposed', 'disposed']);
+  });
+
+  it('keeps an earlier eager: false scoped factory a failed extend() built for a delta factory', async () => {
+    let zones = 0;
+    const ZONE = new Token<number>('Zone');
+    const GRID = new Token<number>('Grid');
+    const FAULT = new Token<number>('Fault');
+    const Zones = defineModule({
+      name: 'Zones',
+      providers: [
+        provide(ZONE, {
+          useFactory: () => ++zones,
+          lifetime: 'scoped',
+          eager: false,
+        }),
+      ],
+      exports: [ZONE],
+      global: true,
+    });
+    const ship = await Nexus.create(
+      defineModule({ name: 'Bridge', imports: [Zones] }),
+    );
+    const shuttle = await ship.createScope();
+    await ship.load(
+      defineModule({
+        name: 'Tactical',
+        providers: [
+          provide(GRID, {
+            useFactory: (zone) => zone * 10,
+            deps: [ZONE],
+            lifetime: 'scoped',
+          }),
+          provide(FAULT, {
+            useFactory: (): Promise<number> =>
+              Promise.reject(new Error('overload')),
+            deps: [GRID],
+            lifetime: 'scoped',
+          }),
+        ],
+      }),
+    );
+    await rejected(shuttle.extend());
+    expect(shuttle.get(ZONE)).toBe(1);
+    expect(zones).toBe(1);
+  });
 });

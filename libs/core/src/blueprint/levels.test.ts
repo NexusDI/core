@@ -228,5 +228,6 @@ describe('compile', () => {
     ]);
     // TX seeds nothing, so its scoped dep Probe waits for it too.
     expect(bp.scopedLevels).toEqual([[idOf(bp, AUDIT)]]);
+    expect(bp.deferred).toEqual(new Set([idOf(bp, Beacon), idOf(bp, TX)]));
   });
 });

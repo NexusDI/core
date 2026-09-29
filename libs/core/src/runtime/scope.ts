@@ -247,6 +247,7 @@ async function extendNow(scope: ScopeState, target: Blueprint): Promise<void> {
   const start = tracer.now();
   const built: Owner = { root, owned: [] };
   const touched: string[] = [];
+  let levelled = 0;
   // A provider the delta adds that a request builds on first use while
   // extend() runs joins built and touched too (scope.run).
   scope.run = {
@@ -256,10 +257,26 @@ async function extendNow(scope: ScopeState, target: Blueprint): Promise<void> {
   };
   try {
     for (const level of target.scopedLevels) {
-      const ids = level.filter((id) => !pinned.providers.has(id));
+      // The delta, and a scoped factory the pin deferred that a delta
+      // factory needs, unless a request built it already. That one is a
+      // provider of the pin, so the scope owns it at once, as it owns one a
+      // get() builds, and a failed extend() keeps it.
+      const ids = level.filter(
+        (id) =>
+          !pinned.providers.has(id) ||
+          (pinned.deferred.has(id) && !scope.slots.has(id)),
+      );
       if (ids.length === 0) continue;
-      touched.push(...ids);
-      await settleLevel(ids, (id) => buildScoped(scope, target, id, built));
+      levelled += ids.length;
+      touched.push(...ids.filter((id) => !pinned.providers.has(id)));
+      await settleLevel(ids, (id) =>
+        buildScoped(
+          scope,
+          target,
+          id,
+          pinned.providers.has(id) ? scope : built,
+        ),
+      );
       assertScopeOpen(scope);
     }
   } catch (error) {
@@ -282,7 +299,7 @@ async function extendNow(scope: ScopeState, target: Blueprint): Promise<void> {
     modules: [...target.modules.values()]
       .filter((m) => !known.has(m.definition))
       .map((m) => m.name),
-    built: touched.length,
+    built: levelled,
     durationMs: tracer.now() - start,
   }));
 }

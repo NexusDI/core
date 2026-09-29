@@ -352,9 +352,11 @@ export function resolveScoped(record: ProviderRecord, ctx: Ctx): unknown {
       return container.slots.value(record.id);
     throw notBuilt(record);
   }
-  // An eager scoped factory only builds in createScope's own levels (spec
-  // §6.3); one missing from the scope's slots has not been built yet.
-  if (record.kind === 'factory' && record.eager) throw notBuilt(record);
+  // A scoped factory in the levels only builds in createScope's or
+  // extend()'s own levels (spec §6.3); one missing from the scope's slots
+  // has not been built yet. A deferred one builds here.
+  if (record.kind === 'factory' && !ctx.bp.deferred.has(record.id))
+    throw notBuilt(record);
   return buildOnDemand(record, ctx);
 }
 
@@ -475,7 +477,8 @@ export function buildOnDemand(record: ProviderRecord, ctx: Ctx): unknown {
 function settledSingleton(record: ProviderRecord, ctx: Ctx): unknown {
   const slots = ctx.container.root.slots;
   if (slots.isSettled(record.id)) return slots.value(record.id);
-  if (!record.eager && !slots.has(record.id)) return buildOnDemand(record, ctx);
+  if (!slots.has(record.id) && ctx.bp.deferred.has(record.id))
+    return buildOnDemand(record, ctx);
   throw notBuilt(record);
 }
 

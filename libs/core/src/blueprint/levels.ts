@@ -3,6 +3,8 @@ import { REQUEST_ID, type ProviderRecord } from './blueprint.js';
 export interface Levels {
   readonly singleton: string[][];
   readonly scoped: string[][];
+  /** The eager: false providers left out of both, built at their first request. */
+  readonly deferred: Set<string>;
 }
 
 type Member = (record: ProviderRecord) => boolean;
@@ -181,7 +183,13 @@ export function computeLevels(
     (r) => r.kind === 'factory' && r.eager,
   );
 
+  const levelled = new Set([...singletons, ...scoped]);
+  const deferred = new Set<string>();
+  for (const record of providers.values())
+    if (!record.eager && !levelled.has(record.id)) deferred.add(record.id);
+
   return {
+    deferred,
     singleton: group(
       singletons,
       levelFunction(providers, strong, isSingleton),

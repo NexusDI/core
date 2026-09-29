@@ -126,6 +126,12 @@ export interface Blueprint {
   readonly edges: readonly Edge[];
   /** Singleton provider ids, level by level, for create and load. */
   readonly singletonLevels: readonly (readonly string[])[];
+  /**
+   * The eager: false providers no eager provider reaches, so no level holds
+   * them; the runtime builds each at its first request (spec §6.6). A
+   * levelled eager: false provider builds as an eager one does.
+   */
+  readonly deferred: ReadonlySet<string>;
   /** Scoped factories and their scoped deps, level by level, for createScope. */
   readonly scopedLevels: readonly (readonly string[])[];
   /** True when any provider has a non-optional edge to REQUEST. */

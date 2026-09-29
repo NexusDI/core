@@ -51,19 +51,22 @@ function resolveLazy(
 
     if (target.lifetime === null || target.lifetime === 'singleton') {
       const slots = container.root.slots;
-      // An eager: false singleton builds at this call, into the root and
-      // owned by it: the thunk may run long after the build that made it.
-      if (!target.eager && !slots.has(id)) {
-        if (constructionStack.contains(id, container.root))
-          throw notReady(owner, target, container.root);
-        return resolve(id, {
-          bp,
-          container: container.root,
-          owner: container.root,
-        });
-      }
-      if (!slots.isReady(id)) throw notReady(owner, target, container.root);
-      return live(slots.value(id), container);
+      if (slots.isReady(id)) return live(slots.value(id), container);
+      // A deferred singleton builds at this call, in the root: the thunk may
+      // run long after the build that made it, so its own ctx is stale. Any
+      // other that is not ready yet, a levelled eager: false one included,
+      // is not ready here either.
+      if (
+        slots.has(id) ||
+        !bp.deferred.has(id) ||
+        constructionStack.contains(id, container.root)
+      )
+        throw notReady(owner, target, container.root);
+      return resolve(id, {
+        bp,
+        container: container.root,
+        owner: container.root,
+      });
     }
     if (target.lifetime === 'scoped') {
       if (container.kind === 'root') return resolve(id, ctx);
@@ -74,14 +77,14 @@ function resolveLazy(
           throw notReady(owner, target, container);
         return live(container.slots.value(id), container);
       }
-      // A scoped class and an eager: false scoped factory build on demand
-      // (spec §6.3, §6.6); an eager scoped factory's instance always comes
-      // from createScope's own build. An async factory's thunk call runs
+      // A scoped class and a deferred scoped factory build on demand (spec
+      // §6.3, §6.6); a levelled scoped factory's instance always comes from
+      // createScope's or extend()'s own build. An async factory's thunk call runs
       // with an empty construction stack (construction-stack.ts), so
       // `owner` must come from this closure, not from
       // constructionStack.top() as resolveScoped's own NotReadyError falls
       // back to for a caller reached synchronously.
-      if (target.kind === 'factory' && target.eager)
+      if (target.kind === 'factory' && !bp.deferred.has(id))
         throw notReady(owner, target, container);
       return resolve(id, { bp, container, owner: container });
     }

@@ -268,6 +268,7 @@ export function compile(input: CompileInput): Blueprint {
     bindings: bound.bindings,
     edges: bound.edges,
     singletonLevels: levels.singleton,
+    deferred: levels.deferred,
     scopedLevels: levels.scoped,
     needsRequest: requestDependents.length > 0,
     requestDependents,

@@ -48,6 +48,7 @@ async function loadNow(root: RootState, module: unknown): Promise<void> {
   await startBlueprint(root, {
     bp: next,
     isNew: (id) => !current.providers.has(id),
+    previous: current,
   });
   root.blueprint = next;
 }
