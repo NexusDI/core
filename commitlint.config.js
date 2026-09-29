@@ -65,6 +65,10 @@ module.exports = {
         'meridian-ui',
         'meridian',
         'doc-examples',
+        // The benchmark projects. Neither is under nx.json's release.projects,
+        // so neither versions a package.
+        'bench-kit',
+        'benchmarks',
       ],
     ],
     'type-case': [2, 'always', 'lower-case'],
