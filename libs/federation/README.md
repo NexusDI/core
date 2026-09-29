@@ -15,12 +15,18 @@ The version of `@nexusdi/federation` must equal the version of `@nexusdi/core`.
 <!-- #region contracts -->
 
 ```ts @import.meta.vitest
-import { Nexus, defineModule, provide } from '@nexusdi/core';
+import { Nexus, Token, defineModule, provide } from '@nexusdi/core';
 import type { BlueprintError } from '@nexusdi/core';
 import { defineContract, federation } from '@nexusdi/federation';
 
 interface IAuth {
   user(): string;
+}
+interface IStatements {
+  owner(): string;
+}
+interface ITransfers {
+  sender(): string;
 }
 
 // The shell's copy and a remote's copy of one contracts package.
@@ -37,27 +43,40 @@ const Shell = defineModule({
 await using ship = await Nexus.create(Shell, { plugins: [federation()] });
 
 // The remote names the token through its own copy.
-class Statement {
+const STATEMENTS = new Token<IStatements>('Statements');
+class Statements implements IStatements {
   static deps = [remoteBank.token<IAuth>('Auth')] as const;
-  constructor(readonly auth: IAuth) {}
+  constructor(private readonly auth: IAuth) {}
+  owner() {
+    return this.auth.user();
+  }
 }
 await ship.load(
   defineModule({
     name: 'Statements',
-    providers: [Statement],
-    exports: [Statement],
+    providers: [provide(STATEMENTS, { useClass: Statements })],
+    exports: [STATEMENTS],
   }),
 );
-ship.get(Statement).auth.user(); // -> 'ada'
+ship.get(STATEMENTS).owner(); // -> 'ada'
 
 // A remote built against a newer minor than the shell provides.
 const newerBank = defineContract({ key: 'bank', version: '2.4.0' });
-class Transfers {
+const TRANSFERS = new Token<ITransfers>('Transfers');
+class Transfers implements ITransfers {
   static deps = [newerBank.token<IAuth>('Auth')] as const;
-  constructor(readonly auth: IAuth) {}
+  constructor(private readonly auth: IAuth) {}
+  sender() {
+    return this.auth.user();
+  }
 }
 const refused = await ship
-  .load(defineModule({ name: 'Transfers', providers: [Transfers] }))
+  .load(
+    defineModule({
+      name: 'Transfers',
+      providers: [provide(TRANSFERS, { useClass: Transfers })],
+    }),
+  )
   .catch((error: unknown) => error as BlueprintError);
 refused?.errors.map((error) => error.code); // -> ['NEXUS_CONTRACT_VERSION']
 ```
