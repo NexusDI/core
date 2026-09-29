@@ -20,6 +20,14 @@
         "command": "vitest run --config bench/vitest.config.ts"
       }
     },
+    "bench-dispatch": {
+      "executor": "nx:run-commands",
+      "cache": false,
+      "options": {
+        "cwd": "libs/core",
+        "command": "node bench/run.mjs"
+      }
+    },
     "test": {
       "dependsOn": ["^build", "build", "test-browser", "test-bench"]
     },

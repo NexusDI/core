@@ -24,6 +24,9 @@
   "references": [
     {
       "path": "../../tools/doc-examples"
+    },
+    {
+      "path": "../../tools/bench-kit"
     }
   ],
   "exclude": [
