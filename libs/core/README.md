@@ -832,7 +832,11 @@ and pinned to core's version:
 
 In development, register `devtools()`:
 
-    const app = await Nexus.create(Root, { plugins: [devtools()] });
+```ts
+import { devtools } from '@nexusdi/devtools';
+
+const app = await Nexus.create(Root, { plugins: [devtools()] });
+```
 
 ## Good to know
 
