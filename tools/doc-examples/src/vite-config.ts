@@ -1,7 +1,11 @@
 import { defaultServerConditions } from 'vite';
 import { doctest } from 'vite-plugin-doctest';
 
-import { expectComments } from './vite-plugin.ts';
+import {
+  type DoctestImports,
+  doctestPreload,
+  expectComments,
+} from './vite-plugin.ts';
 
 /**
  * The Vite configuration that makes a package's documented examples run.
@@ -19,12 +23,17 @@ import { expectComments } from './vite-plugin.ts';
  * ```
  */
 export function docExamples(options: { preamble?: string } = {}) {
+  const imports: DoctestImports = new Map();
+
   return {
     // `expectComments` is enforce: 'pre', so a `// -> value` claim has already
     // become an assertion by the time doctest extracts the block around it.
+    // `doctestPreload` appends the imports `expectComments` rewrote, after
+    // doctest has commented out the prose.
     plugins: [
-      expectComments(),
+      expectComments(imports),
       doctest({ markdown: { preamble: options.preamble ?? '' } }),
+      doctestPreload(imports),
     ],
     // A doc example imports the package by the specifier a reader would write.
     // `@nexusdi/source` is the condition tsconfig.base.json already resolves

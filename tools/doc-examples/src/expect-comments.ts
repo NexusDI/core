@@ -281,6 +281,16 @@ function rewriteImport(line: string): string | null {
   return null;
 }
 
+/**
+ * The specifier of an import line that rewriteImport turns into a dynamic
+ * import, or null for any other line, a type-only import included.
+ */
+function importSpecifier(line: string): string | null {
+  const rewritten = rewriteImport(line);
+
+  return rewritten?.match(/await import\((['"])([^'"]+)\1\);$/)?.[2] ?? null;
+}
+
 /** Whether a fence info string marks the block as a doctest. */
 const isDoctestFence = (info: string): boolean =>
   info.includes('@import.meta.vitest');
@@ -292,8 +302,15 @@ const isDoctestFence = (info: string): boolean =>
  * Scoped to marked fences because an unmarked block is illustrative — it may
  * not even be JavaScript — and because in a source file the same marker
  * appears in ordinary comments that must never become assertions.
+ *
+ * `onImport` receives the specifier of each static import the rewrite turns
+ * into a dynamic one.
  */
-export function rewriteMarkdown(code: string, file: string): string {
+export function rewriteMarkdown(
+  code: string,
+  file: string,
+  onImport?: (specifier: string) => void,
+): string {
   const lines = code.split('\n');
   let fence: string | null = null;
   let running = false;
@@ -318,7 +335,12 @@ export function rewriteMarkdown(code: string, file: string): string {
         return line;
       }
 
-      return running ? rewriteLine(line, file, index + 1) : line;
+      if (!running) return line;
+
+      const specifier = importSpecifier(line);
+      if (specifier !== null) onImport?.(specifier);
+
+      return rewriteLine(line, file, index + 1);
     })
     .join('\n');
 }
