@@ -23,10 +23,47 @@ import type {
   InterceptorToken,
 } from './types.js';
 
-export interface PluginState {
-  /** The plugin module's ids in the containers compiled so far (spec 5.2). */
+/**
+ * One container's session. Module and provider ids are container-local
+ * (`m0`, `p3`), so they live on the session of the container that compiled
+ * them and never leak into another container's.
+ */
+interface ContainerSession extends Session {
+  /** The plugin module's id (spec 5.2). */
   readonly moduleIds: Set<string>;
-  session: Session | undefined;
+  /** Providers an interceptor reaches through its deps; global entries skip them. */
+  readonly support: Set<string>;
+}
+
+interface PluginState {
+  session: ContainerSession | undefined;
+}
+
+const newSession = (): ContainerSession => ({
+  instances: undefined,
+  disposed: false,
+  moduleIds: new Set(),
+  support: new Set(),
+});
+
+/**
+ * The providers of the plugin's module and every provider they reach
+ * through a dependency edge, transitively. An interceptor calls these
+ * itself, so a global entry on them would recurse into the interceptor.
+ */
+function supportOf(view: BlueprintView, moduleId: string): string[] {
+  const found = new Set(
+    view.providers.filter((p) => p.module === moduleId).map((p) => p.id),
+  );
+  for (let grew = true; grew;) {
+    grew = false;
+    for (const edge of view.edges)
+      if (found.has(edge.from) && !found.has(edge.to)) {
+        found.add(edge.to);
+        grew = true;
+      }
+  }
+  return [...found];
 }
 
 const NO_DECLARATIONS: Declarations = Object.freeze({
@@ -37,6 +74,7 @@ const NO_DECLARATIONS: Declarations = Object.freeze({
 });
 
 interface ProviderPlan {
+  readonly global: NormalOptions['global'];
   readonly bindings: NormalOptions['bindings'];
   readonly declarations: Declarations;
   readonly chains: Map<string | symbol, readonly InterceptorToken[]>;
@@ -51,12 +89,12 @@ export function interceptors(options: InterceptorsOptions): NexusPlugin {
   const config = normalizeOptions(options);
   const tokens = config.registered.map((entry) => entry.token);
   const REGISTRY = new Token<Disposable>('interceptors registry');
-  const state: PluginState = { moduleIds: new Set(), session: undefined };
+  const state: PluginState = { session: undefined };
 
-  /** The live session, or a fresh one once the previous container is disposed. */
-  const session = (): Session => {
+  /** The live session; compile.check opens one for each create. */
+  const session = (): ContainerSession => {
     if (state.session === undefined || state.session.disposed)
-      state.session = { instances: undefined, disposed: false };
+      state.session = newSession();
     return state.session;
   };
 
@@ -97,10 +135,14 @@ export function interceptors(options: InterceptorsOptions): NexusPlugin {
   });
 
   const plans = new WeakMap<ProviderView, ProviderPlan>();
-  const planFor = (provider: ProviderView): ProviderPlan => {
+  const planFor = (
+    provider: ProviderView,
+    current: ContainerSession,
+  ): ProviderPlan => {
     let plan = plans.get(provider);
     if (plan === undefined) {
       plan = {
+        global: current.support.has(provider.id) ? [] : config.global,
         bindings: bindingsFor(provider, config.bindings),
         declarations:
           provider.implementation === null
@@ -119,25 +161,42 @@ export function interceptors(options: InterceptorsOptions): NexusPlugin {
     modules: [module],
     compile: {
       check(view: BlueprintView, report: (error: NexusError) => void): void {
-        if (view.phase === 'create') state.moduleIds.clear();
         const own = view.modules.find(
           (m) => m.definition === module || m.replaced === module,
         );
-        if (own !== undefined && view.phase !== 'check')
-          state.moduleIds.add(own.id);
         checkBlueprint(view, report, config, own?.id);
+        if (view.phase === 'check') return;
+        const live = state.session;
+        if (view.phase === 'create') {
+          // A bound, undisposed session belongs to a container that is still
+          // alive. Failing here, before any build, leaves its ids alone.
+          if (
+            live !== undefined &&
+            !live.disposed &&
+            live.instances !== undefined
+          ) {
+            report(shared());
+            return;
+          }
+          state.session = newSession();
+        }
+        const current = session();
+        if (own === undefined) return;
+        current.moduleIds.add(own.id);
+        for (const id of supportOf(view, own.id)) current.support.add(id);
       },
     },
     construct(instance, provider, scope) {
-      if (state.moduleIds.has(provider.module)) return undefined;
+      const current = session();
+      if (current.moduleIds.has(provider.module)) return undefined;
       if (
         (typeof instance !== 'object' && typeof instance !== 'function') ||
         instance === null
       )
         return undefined;
-      const plan = planFor(provider);
+      const plan = planFor(provider, current);
       if (
-        config.global.length === 0 &&
+        plan.global.length === 0 &&
         plan.bindings.length === 0 &&
         !plan.declarations.any
       )
@@ -153,14 +212,14 @@ export function interceptors(options: InterceptorsOptions): NexusPlugin {
         }
       }
       return interceptedProxy(instance, provider, scope, {
-        session: session(),
+        session: current,
         chain: (key) => {
           let chain = plan.chains.get(key);
           if (chain === undefined) {
             chain = chainFor(
               provider,
               key,
-              config.global,
+              plan.global,
               plan.bindings,
               plan.declarations,
             );

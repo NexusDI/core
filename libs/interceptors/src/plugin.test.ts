@@ -398,4 +398,98 @@ describe('interceptors()', () => {
     ship.get(Caller).payments().charge(1);
     expect(ship.get(LEDGER).lines).toEqual(['Payments.charge']);
   });
+
+  it("skips global entries on the interceptors' own deps, so an interceptor never re-enters itself", async () => {
+    interface IJournal {
+      write(line: string): void;
+      readonly lines: string[];
+    }
+    const JOURNAL = new Token<IJournal>('Journal');
+    const LOG = new Token<Interceptor>('Log');
+    class Journal implements IJournal {
+      readonly lines: string[] = [];
+      write(line: string): void {
+        this.lines.push(line);
+      }
+    }
+    class LogInterceptor implements Interceptor {
+      static deps = [JOURNAL] as const;
+      constructor(private readonly journal: IJournal) {}
+      intercept(call: CallContext, next: Next) {
+        this.journal.write(String(call.method));
+        return next();
+      }
+    }
+    class Radar {
+      scan(): string {
+        return 'clear';
+      }
+    }
+    const JournalModule = defineModule({
+      name: 'Journal',
+      providers: [provide(JOURNAL, { useClass: Journal })],
+      exports: [JOURNAL],
+    });
+    await using ship = await Nexus.create(
+      defineModule({
+        name: 'App',
+        imports: [JournalModule],
+        providers: [Radar],
+        exports: [JOURNAL],
+      }),
+      {
+        plugins: [
+          interceptors({
+            imports: [JournalModule],
+            register: [interceptor(LOG, { useClass: LogInterceptor })],
+            global: [LOG],
+          }),
+        ],
+      },
+    );
+    expect(ship.get(Radar).scan()).toBe('clear');
+    ship.get(JOURNAL).write('direct');
+    expect(ship.get(JOURNAL).lines).toEqual(['scan', 'direct']);
+  });
+
+  it('leaves a live container intact when a second create with the same plugin fails', async () => {
+    const calls: string[] = [];
+    const shared = interceptors({
+      register: [
+        interceptor(AUDIT, {
+          useValue: {
+            intercept: (call, next) => (
+              calls.push(String(call.method)),
+              next()
+            ),
+          },
+        }),
+      ],
+    });
+    const SCOPED = new Token<{ run(): string }>('Scoped');
+    class Worker {
+      static interceptors = { class: [AUDIT] };
+      run() {
+        return 'ran';
+      }
+    }
+    // Inner is m1 in the first container; the plugin's module is m1 in the
+    // second, so a module id shared across containers would skip Worker.
+    const Inner = defineModule({
+      name: 'Inner',
+      providers: [provide(SCOPED, { useClass: Worker, lifetime: 'scoped' })],
+      exports: [SCOPED],
+    });
+    await using first = await Nexus.create(
+      defineModule({ name: 'First', imports: [Inner], exports: [Inner] }),
+      { plugins: [shared] },
+    );
+    const error = await rejected(
+      Nexus.create(defineModule({ name: 'Second' }), { plugins: [shared] }),
+    );
+    expect(findCode(error, 'NEXUS_INTERCEPTORS_SHARED')).toBeDefined();
+    await using shuttle = await first.createScope();
+    expect(shuttle.get(SCOPED).run()).toBe('ran');
+    expect(calls).toEqual(['run']);
+  });
 });
