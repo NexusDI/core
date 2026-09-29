@@ -173,14 +173,15 @@ export function compile(id, dir, entry, c) {
   }
 }
 
-export function runModule(id, dir, modulePath, c, args = []) {
+/** The command that runs `modulePath` under the toolchain's runtime, from `dir`. */
+export function runCommand(id, modulePath, c, args = []) {
   switch (runtimeFor(id)) {
     case 'bun':
-      return run('npx', ['bun', modulePath, ...args], dir);
+      return { cmd: 'npx', args: ['bun', modulePath, ...args] };
     case 'deno':
-      return run(
-        'npx',
-        [
+      return {
+        cmd: 'npx',
+        args: [
           'deno',
           'run',
           '--allow-read',
@@ -191,11 +192,16 @@ export function runModule(id, dir, modulePath, c, args = []) {
           modulePath,
           ...args,
         ],
-        dir,
-      );
+      };
     default:
-      return run(process.execPath, [modulePath, ...args], dir);
+      return { cmd: process.execPath, args: [modulePath, ...args] };
   }
+}
+
+/** Runs `modulePath` under the toolchain's runtime and returns its stdout. */
+export function runModule(id, dir, modulePath, c, args = []) {
+  const step = runCommand(id, modulePath, c, args);
+  return run(step.cmd, step.args, dir);
 }
 
 export function packInto(dir, root, packages) {
