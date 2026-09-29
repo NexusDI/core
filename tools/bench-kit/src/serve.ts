@@ -1,3 +1,5 @@
+import { getHeapStatistics } from 'node:v8';
+
 export interface Operation {
   setup?(): unknown;
   run(state: unknown): unknown;
@@ -5,7 +7,7 @@ export interface Operation {
   gc?: boolean;
 }
 
-type Message = { type: 'calibrate' | 'sample'; op: string };
+type Message = { type: 'calibrate' | 'sample' | 'heap'; op: string };
 
 const gc = (globalThis as { gc?: () => void }).gc;
 
@@ -38,6 +40,16 @@ export function serveSamples(ops: Record<string, Operation>): void {
         return;
       }
       const batch = batches.get(m.op) ?? 1;
+      if (m.type === 'heap') {
+        // One batch between two reads of the used heap, after gc(), so the
+        // difference is what the batch left allocated.
+        gc?.();
+        const before = getHeapStatistics().used_heap_size;
+        const { sink } = await timeBatch({ ...op, gc: false }, state, batch);
+        const bytes = (getHeapStatistics().used_heap_size - before) / batch;
+        process.send?.({ type: 'heap', op: m.op, bytes, sink: typeof sink });
+        return;
+      }
       const { ns, sink } = await timeBatch(op, state, batch);
       process.send?.({
         type: 'sample',

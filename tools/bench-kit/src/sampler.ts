@@ -6,12 +6,15 @@ export interface Worker {
   readonly id: string;
   calibrate(op: string): Promise<number>;
   sample(op: string): Promise<{ ns: number; batch: number }>;
+  /** Heap bytes one operation leaves allocated, over one batch after gc(). */
+  heap(op: string): Promise<number>;
   close(): void;
 }
 
 type Reply =
   | { type: 'calibrated'; batch: number }
   | { type: 'sample'; ns: number; batch: number }
+  | { type: 'heap'; bytes: number }
   | { type: 'error'; message: string };
 
 function ask(child: ChildProcess, message: object): Promise<Reply> {
@@ -52,6 +55,11 @@ export function forkWorker(
       const r = await call({ type: 'sample', op });
       if (r.type !== 'sample') throw new Error(`unexpected reply ${r.type}`);
       return { ns: r.ns / r.batch, batch: r.batch };
+    },
+    async heap(op) {
+      const r = await call({ type: 'heap', op });
+      if (r.type !== 'heap') throw new Error(`unexpected reply ${r.type}`);
+      return r.bytes;
     },
     close: () => void child.kill(),
   };
