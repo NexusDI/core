@@ -4,7 +4,7 @@ import type { NexusRequest } from '../definitions/request.js';
 import type { InjectionToken, MultiToken } from '../definitions/token.js';
 import { DisposedError, RequestMissingError } from '../errors/index.js';
 import { buildLevels } from './build-levels.js';
-import { adopt, buildInto, store } from './build.js';
+import { adopt, applyConstruct, buildInto, store } from './build.js';
 import { resolveDeps } from './deps.js';
 import { chainErrors, collectInto, disposeInReverse } from './dispose.js';
 import { formatFor, guardAsync } from './format.js';
@@ -170,11 +170,15 @@ async function buildScoped(
   id: string,
   owner: Owner = scope,
 ): Promise<void> {
-  const { record, value, isAsync, start } = await buildInto(
-    scope,
-    bp,
-    id,
+  const built = await buildInto(scope, bp, id, owner);
+  const { record, isAsync, start } = built;
+  const value = applyConstruct(
+    scope.root,
     owner,
+    bp,
+    record,
+    built.value,
+    scope.scopeId,
   );
   adopt(owner, record, value);
   store(scope, bp, record, value, start, isAsync, true);

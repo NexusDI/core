@@ -469,6 +469,47 @@ describe('eager: false builds', () => {
     expect(events).toEqual(['Reactor']);
   });
 
+  it('adopts the raw instance when a construct hook fails and disposes it once', async () => {
+    const events: string[] = [];
+    let fail = true;
+    const saboteur: NexusPlugin = {
+      name: 'saboteur',
+      apiVersion: 1,
+      construct: (_, provider) => {
+        if (provider.token === REACTOR && fail) {
+          fail = false;
+          throw new Error('sabotaged');
+        }
+        return undefined;
+      },
+    };
+    const ship = await Nexus.create(
+      defineModule({
+        name: 'Engineering',
+        providers: [
+          provide(REACTOR, {
+            useClass: reactor('Reactor', events),
+            eager: false,
+          }),
+        ],
+        exports: [REACTOR],
+      }),
+      { plugins: [saboteur] },
+    );
+    expect(thrown(() => ship.get(REACTOR))).toMatchObject({
+      code: 'NEXUS_PROVIDER_FAILED',
+      cause: { code: 'NEXUS_PLUGIN_FAILED', plugin: 'saboteur' },
+    });
+    ship.get(REACTOR);
+    await ship[Symbol.asyncDispose]();
+    expect(events).toEqual([
+      'Reactor built',
+      'Reactor built',
+      'Reactor disposed',
+      'Reactor disposed',
+    ]);
+  });
+
   it('disposes an eager: false singleton a failed load built for an eager provider', async () => {
     const events: string[] = [];
     const SHIELDS = new Token<IReactor>('Shields');

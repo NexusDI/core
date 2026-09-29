@@ -7,6 +7,7 @@ import { unreachable } from '../definitions/unreachable.js';
 import { ModuleOptionsError } from '../errors/index.js';
 import {
   adopt,
+  applyConstruct,
   buildInto,
   moduleName,
   store,
@@ -116,6 +117,9 @@ async function buildSingleton(
       throw error;
     }
   }
+  // After validation, so the schema checks the factory's own output and
+  // the runtime stores what the construct hooks return.
+  value = applyConstruct(root, owner, bp, record, value, null);
   adopt(owner, record, value);
   store(root, bp, record, value, start, isAsync, !root.initEnabled);
 }

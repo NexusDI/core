@@ -4,6 +4,8 @@ import {
   type Blueprint,
   type ProviderRecord,
 } from '../blueprint/blueprint.js';
+import { pluginFailed } from '../blueprint/hooks.js';
+import { providerView, type ProviderView } from '../blueprint/views.js';
 import { unreachable } from '../definitions/unreachable.js';
 import {
   AsyncTransientError,
@@ -41,6 +43,31 @@ function recordOf(bp: Blueprint, id: string): ProviderRecord {
   const record = bp.providers.get(id);
   if (record === undefined) return unreachable();
   return record;
+}
+
+/**
+ * The ProviderError of a build failure: construct's catch, a failed
+ * construct hook (`constructFailed`) and a failed onInit. When the failure
+ * happens while construct's own stack frame is still on, `path` defaults to
+ * the construction stack. A failure that runs after that frame has popped
+ * passes `path` explicitly, with the provider's own name appended.
+ */
+function buildFailed(
+  bp: Blueprint,
+  record: ProviderRecord,
+  cause: unknown,
+  path: readonly string[] = constructionStack.names(),
+): ProviderError {
+  return new ProviderError(
+    {
+      token: record.name,
+      module: moduleName(bp, record),
+      path,
+      alsoFailed: [],
+      disposalErrors: [],
+    },
+    { cause },
+  );
 }
 
 /** Records an instance for disposal by `owner`, unless another container or a useValue holds it. */
@@ -173,19 +200,40 @@ export function construct(record: ProviderRecord, ctx: Ctx): unknown {
         }
       } catch (error) {
         if (error instanceof NexusError) throw error;
-        throw new ProviderError(
-          {
-            token: record.name,
-            module: moduleName(ctx.bp, record),
-            path: constructionStack.names(),
-            alsoFailed: [],
-            disposalErrors: [],
-          },
-          { cause: error },
-        );
+        throw buildFailed(ctx.bp, record, error);
       }
     },
   );
+}
+
+const PROVIDER_VIEWS = new WeakMap<Blueprint, Map<string, ProviderView>>();
+
+/** The view construct hooks receive: one frozen object per provider per blueprint. */
+function providerViewIn(bp: Blueprint, record: ProviderRecord): ProviderView {
+  let views = PROVIDER_VIEWS.get(bp);
+  if (views === undefined) {
+    views = new Map();
+    PROVIDER_VIEWS.set(bp, views);
+  }
+  let view = views.get(record.id);
+  if (view === undefined) {
+    view = providerView(record, bp.rewrittenBy.get(record.id) ?? null);
+    views.set(record.id, view);
+  }
+  return view;
+}
+
+/** The ProviderError a failing construct hook raises, as a failing constructor would. */
+function constructFailed(
+  bp: Blueprint,
+  record: ProviderRecord,
+  plugin: string,
+  cause: unknown,
+): ProviderError {
+  return buildFailed(bp, record, pluginFailed(plugin, 'construct', cause), [
+    ...constructionStack.names(),
+    record.name,
+  ]);
 }
 
 /**
@@ -209,6 +257,54 @@ export function takeOwnership(
       reason: owner,
     }));
   }
+}
+
+/**
+ * Runs every construct hook over a class or factory instance, in plugin
+ * order, each on the previous result; `undefined` keeps the instance. The
+ * hooks are synchronous, because get() is, so a returned thenable fails the
+ * build. A failed build hands the raw instance to `owner`, whose disposal
+ * disposes it once; an earlier plugin's wrapper forwards to it and is never
+ * disposed. With no construct hook it runs one length test.
+ */
+export function applyConstruct(
+  root: RootState,
+  owner: TransientOwner,
+  bp: Blueprint,
+  record: ProviderRecord,
+  instance: unknown,
+  scope: string | null,
+): unknown {
+  const hooks = root.plugins.construct;
+  if (
+    hooks.length === 0 ||
+    (record.kind !== 'class' && record.kind !== 'factory')
+  )
+    return instance;
+  const view = providerViewIn(bp, record);
+  let current = instance;
+  for (const hook of hooks) {
+    let next: unknown;
+    try {
+      next = hook.call(current, view, scope);
+    } catch (error) {
+      takeOwnership(root, owner, record, instance);
+      throw constructFailed(bp, record, hook.plugin, error);
+    }
+    if (next === undefined) continue;
+    if (isThenable(next)) {
+      observeRejection(next);
+      takeOwnership(root, owner, record, instance);
+      throw constructFailed(
+        bp,
+        record,
+        hook.plugin,
+        new TypeError('returned a thenable; a construct hook is synchronous.'),
+      );
+    }
+    current = next;
+  }
+  return current;
 }
 
 /** What `buildInto` constructed for one provider, before a caller settles it. */
@@ -351,9 +447,16 @@ export function buildOnDemand(record: ProviderRecord, ctx: Ctx): unknown {
     });
   };
   const start = root.tracer.now();
-  const instance = construct(record, { bp: ctx.bp, container, owner });
-  if (record.kind === 'factory' && isThenable(instance))
-    throw lazyAsync(instance);
+  const built = construct(record, { bp: ctx.bp, container, owner });
+  if (record.kind === 'factory' && isThenable(built)) throw lazyAsync(built);
+  const instance = applyConstruct(
+    root,
+    owner,
+    ctx.bp,
+    record,
+    built,
+    container.scopeId,
+  );
   adopt(owner, record, instance);
   if (
     record.lifetime === 'singleton' &&
@@ -370,20 +473,12 @@ export function buildOnDemand(record: ProviderRecord, ctx: Ctx): unknown {
       result = (instance as { onInit(): unknown }).onInit();
     } catch (error) {
       container.slots.abandon(record.id);
-      // construct has popped this provider's frame, so the path appends
-      // its name to the stack that is left.
       throw error instanceof NexusError
         ? fromUserCode(error)
-        : new ProviderError(
-            {
-              token: record.name,
-              module: moduleName(ctx.bp, record),
-              path: [...constructionStack.names(), record.name],
-              alsoFailed: [],
-              disposalErrors: [],
-            },
-            { cause: error },
-          );
+        : buildFailed(ctx.bp, record, error, [
+            ...constructionStack.names(),
+            record.name,
+          ]);
     }
     if (isThenable(result)) {
       container.slots.abandon(record.id);
@@ -405,12 +500,12 @@ function settledSingleton(record: ProviderRecord, ctx: Ctx): unknown {
 
 function buildTransient(record: ProviderRecord, ctx: Ctx): unknown {
   const start = ctx.container.root.tracer.now();
-  const instance = construct(record, ctx);
+  const built = construct(record, ctx);
   // Only a factory result is awaited (spec §6.1); a class instance with a
   // then method is an ordinary value.
-  if (record.kind === 'factory' && isThenable(instance)) {
+  if (record.kind === 'factory' && isThenable(built)) {
     // get() cannot wait on it.
-    observeRejection(instance);
+    observeRejection(built);
     // builtAsync reports a transient factory false until now.
     ctx.container.root.asyncFlags.set(record.id, true);
     throw new AsyncTransientError({
@@ -418,6 +513,14 @@ function buildTransient(record: ProviderRecord, ctx: Ctx): unknown {
       module: moduleName(ctx.bp, record),
     });
   }
+  const instance = applyConstruct(
+    ctx.container.root,
+    ctx.owner,
+    ctx.bp,
+    record,
+    built,
+    ctx.container.scopeId,
+  );
   takeOwnership(ctx.container.root, ctx.owner, record, instance);
   traceConstruct(ctx.container, ctx.bp, record, false, start);
   return instance;

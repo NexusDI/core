@@ -28,6 +28,278 @@ function system(name: string, log: string[], disposerFails = false) {
 
 const HULL = new Token<ISystem>('Hull');
 const SENSORS = new Token<ISystem>('Sensors');
+const SHIELDS = new Token<ISystem>('Shields');
+
+/** A plugin whose construct hook fails the build of `token`. */
+function failConstruct(
+  token: unknown,
+  mode: 'throw' | 'thenable' = 'throw',
+): NexusPlugin {
+  return {
+    name: 'saboteur',
+    apiVersion: 1,
+    construct: (_, provider) => {
+      if (provider.token !== token) return undefined;
+      if (mode === 'thenable') return Promise.reject(new Error('late'));
+      throw new Error('sabotaged');
+    },
+  };
+}
+
+const CONSTRUCT_FAILED = {
+  code: 'NEXUS_PROVIDER_FAILED',
+  cause: { code: 'NEXUS_PLUGIN_FAILED', plugin: 'saboteur', hook: 'construct' },
+};
+
+/** CONSTRUCT_FAILED for toThrow, which compares a nested object by equality. */
+const THROWN_CONSTRUCT_FAILED = expect.objectContaining({
+  code: 'NEXUS_PROVIDER_FAILED',
+  cause: expect.objectContaining(CONSTRUCT_FAILED.cause),
+}) as unknown;
+
+describe('construct', () => {
+  function hullSensorsShields(log: string[], sensorsDisposerFails = false) {
+    return defineModule({
+      name: 'Root',
+      providers: [
+        provide(HULL, { useClass: system('Hull', log) }),
+        provide(SENSORS, {
+          useClass: system('Sensors', log, sensorsDisposerFails),
+          deps: [HULL],
+        }),
+        provide(SHIELDS, { useClass: system('Shields', log), deps: [HULL] }),
+      ],
+    });
+  }
+
+  it('disposes the raw instance of a failed hook in the create rollback, in reverse creation order', async () => {
+    const log: string[] = [];
+    const disposed: string[] = [];
+    const error = await rejected(
+      Nexus.create(hullSensorsShields(log), {
+        plugins: [
+          observer((e) => {
+            if (e.type === 'dispose:instance') disposed.push(e.token);
+          }),
+          failConstruct(SENSORS),
+        ],
+      }),
+    );
+    expect(error).toMatchObject(CONSTRUCT_FAILED);
+    expect(log).toEqual([
+      'Shields disposed',
+      'Sensors disposed',
+      'Hull disposed',
+    ]);
+    expect(disposed).toEqual(['Shields', 'Sensors', 'Hull']);
+  });
+
+  it('reports the raw instance disposer error in disposalErrors', async () => {
+    const log: string[] = [];
+    const error = await rejected(
+      Nexus.create(hullSensorsShields(log, true), {
+        plugins: [failConstruct(SENSORS)],
+      }),
+    );
+    expect(error).toMatchObject({
+      ...CONSTRUCT_FAILED,
+      disposalErrors: [
+        expect.objectContaining({ message: 'Sensors disposer failed' }),
+      ],
+    });
+  });
+
+  it('disposes the raw instance once and never the wrapper an earlier plugin returned', async () => {
+    const log: string[] = [];
+    let wrapperDisposals = 0;
+    await rejected(
+      Nexus.create(
+        defineModule({
+          name: 'Root',
+          providers: [provide(SENSORS, { useClass: system('Sensors', log) })],
+        }),
+        {
+          plugins: [
+            {
+              name: 'wrap',
+              apiVersion: 1,
+              construct: (instance) => ({
+                inner: instance,
+                [Symbol.asyncDispose]: () => {
+                  wrapperDisposals++;
+                  return Promise.resolve();
+                },
+              }),
+            },
+            failConstruct(SENSORS),
+          ],
+        },
+      ),
+    );
+    expect(log).toEqual(['Sensors disposed']);
+    expect(wrapperDisposals).toBe(0);
+  });
+
+  it('disposes the raw instance when the hook returns a thenable, and observes its rejection', async () => {
+    const log: string[] = [];
+    const error = await rejected(
+      Nexus.create(
+        defineModule({
+          name: 'Root',
+          providers: [provide(SENSORS, { useClass: system('Sensors', log) })],
+        }),
+        { plugins: [failConstruct(SENSORS, 'thenable')] },
+      ),
+    );
+    expect(error).toMatchObject(CONSTRUCT_FAILED);
+    expect(log).toEqual(['Sensors disposed']);
+  });
+
+  it('disposes the raw instance in the load() rollback and keeps the old graph', async () => {
+    const log: string[] = [];
+    const ship = await Nexus.create(
+      defineModule({
+        name: 'Root',
+        providers: [provide(HULL, { useClass: system('Hull', log) })],
+        exports: [HULL],
+      }),
+      { plugins: [failConstruct(SENSORS)] },
+    );
+    const error = await rejected(
+      ship.load(
+        defineModule({
+          name: 'Science',
+          providers: [provide(SENSORS, { useClass: system('Sensors', log) })],
+          exports: [SENSORS],
+        }),
+      ),
+    );
+    expect(error).toMatchObject(CONSTRUCT_FAILED);
+    expect(log).toEqual(['Sensors disposed']);
+    expect(ship.get(HULL).name).toBe('Hull');
+    expect(ship.has(SENSORS)).toBe(false);
+  });
+
+  it('disposes the raw result of a scoped factory in the createScope rollback', async () => {
+    const log: string[] = [];
+    const Sensors = system('Sensors', log, true);
+    const ship = await Nexus.create(
+      defineModule({
+        name: 'Root',
+        providers: [
+          provide(SENSORS, {
+            useFactory: () => new Sensors(),
+            lifetime: 'scoped',
+          }),
+        ],
+      }),
+      { plugins: [failConstruct(SENSORS)] },
+    );
+    const error = await rejected(ship.createScope());
+    expect(error).toMatchObject({
+      ...CONSTRUCT_FAILED,
+      disposalErrors: [
+        expect.objectContaining({ message: 'Sensors disposer failed' }),
+      ],
+    });
+    expect(log).toEqual(['Sensors disposed']);
+  });
+
+  it('leaves a scoped class raw instance to the scope, which disposes it on exit', async () => {
+    const log: string[] = [];
+    let built = 0;
+    class Sensors implements ISystem {
+      readonly name = `Sensors ${++built}`;
+      [Symbol.dispose]() {
+        log.push(`${this.name} disposed`);
+      }
+    }
+    let failures = 1;
+    const ship = await Nexus.create(
+      defineModule({
+        name: 'Root',
+        providers: [
+          provide(SENSORS, { useClass: Sensors, lifetime: 'scoped' }),
+        ],
+        exports: [SENSORS],
+      }),
+      {
+        plugins: [
+          {
+            name: 'saboteur',
+            apiVersion: 1,
+            construct: () => {
+              if (failures-- > 0) throw new Error('sabotaged');
+              return undefined;
+            },
+          },
+        ],
+      },
+    );
+    const scope = await ship.createScope();
+    expect(() => scope.get(SENSORS)).toThrow(THROWN_CONSTRUCT_FAILED);
+    expect(log).toEqual([]);
+    expect(scope.get(SENSORS).name).toBe('Sensors 2');
+    await scope[Symbol.asyncDispose]();
+    expect(log).toEqual(['Sensors 2 disposed', 'Sensors 1 disposed']);
+  });
+
+  it('leaves a transient raw instance to its owner, and reports one untracked event from the root', async () => {
+    const log: string[] = [];
+    const untracked: string[] = [];
+    const ship = await Nexus.create(
+      defineModule({
+        name: 'Root',
+        providers: [
+          provide(SENSORS, {
+            useClass: system('Sensors', log),
+            lifetime: 'transient',
+          }),
+        ],
+        exports: [SENSORS],
+      }),
+      {
+        plugins: [
+          observer((e) => {
+            if (e.type === 'untracked')
+              untracked.push(`${e.token} ${e.reason}`);
+          }),
+          failConstruct(SENSORS),
+        ],
+      },
+    );
+    expect(() => ship.get(SENSORS)).toThrow(THROWN_CONSTRUCT_FAILED);
+    expect(untracked).toEqual(['Sensors root-transient']);
+
+    const scope = await ship.createScope();
+    expect(() => scope.get(SENSORS)).toThrow(THROWN_CONSTRUCT_FAILED);
+    expect(log).toEqual([]);
+    await scope[Symbol.asyncDispose]();
+    expect(log).toEqual(['Sensors disposed']);
+  });
+
+  it('never disposes an object another owner already holds', async () => {
+    const log: string[] = [];
+    const ship = await Nexus.create(
+      defineModule({
+        name: 'Root',
+        providers: [
+          provide(HULL, { useClass: system('Hull', log) }),
+          provide(SENSORS, {
+            useFactory: (hull: ISystem) => hull,
+            deps: [HULL],
+            lifetime: 'scoped',
+          }),
+        ],
+      }),
+      { plugins: [failConstruct(SENSORS)] },
+    );
+    expect(await rejected(ship.createScope())).toMatchObject(CONSTRUCT_FAILED);
+    expect(log).toEqual([]);
+    await ship[Symbol.asyncDispose]();
+    expect(log).toEqual(['Hull disposed']);
+  });
+});
 
 describe('PluginContext.builtAsync', () => {
   async function contextOf(

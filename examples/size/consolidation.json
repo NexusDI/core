@@ -40,5 +40,11 @@
     "core": 17620,
     "delta": -256,
     "kept": true
+  },
+  {
+    "step": "S3 restore the construct hook",
+    "core": 17876,
+    "delta": 256,
+    "kept": true
   }
 ]
