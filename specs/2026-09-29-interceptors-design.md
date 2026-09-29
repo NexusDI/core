@@ -39,7 +39,8 @@ class AuditInterceptor implements Interceptor {
 
   intercept(call: CallContext, next: Next) {
     return tap(next, {
-      value: () => this.log.write(`${call.provider.name}.${String(call.method)}`),
+      value: () =>
+        this.log.write(`${call.provider.name}.${String(call.method)}`),
     });
   }
 }
@@ -51,7 +52,9 @@ class PaymentService implements IPaymentService {
   } satisfies InterceptorMap<PaymentService>;
 
   constructor(private readonly ledger: ILedger) {}
-  async charge(order: Order) { /* ... */ }
+  async charge(order: Order) {
+    /* ... */
+  }
 }
 
 await using ship = await Nexus.create(Billing, {
@@ -66,17 +69,17 @@ await using ship = await Nexus.create(Billing, {
 
 ## 1. Pillar and users check
 
-| Pillar | Effect |
-| ------ | ------ |
-| P1 modern | TC39 decorators and `Symbol.metadata`; `Proxy`; no reflect metadata. |
-| P2 not complicated | One interceptor contract, one registration point, the same three declaration forms core uses for deps (static field first, decorator second, config for code the user cannot edit). |
-| P3 module system | Interceptors are providers in a module the plugin contributes. Their deps come from its `imports` and from global modules, under core's encapsulation rules. |
-| P4 forRoot config | `interceptors({ register, providers, imports, global, bindings })` is the one configuration call, validated when it is called. |
-| P5 developer-friendly | Missing interceptors show in the same `BlueprintError` as wiring errors; `@nexusdi/testing` overrides an interceptor like any provider; `tap()` covers sync and async methods in one call. |
-| P6 lightweight | Core gains 0 bytes. An app that does not install the package pays nothing. The package is est. 1.4 to 1.9 KB gzip. |
-| P7 class and factory providers | Interceptors can be class, factory or value providers. Class and factory services are intercepted. |
-| P8 async core | Async methods keep their promise contract; interceptors are built at `create`. |
-| P9 TS 7 | Standard decorators only; the static form needs no decorator at all. |
+| Pillar                         | Effect                                                                                                                                                                                     |
+| ------------------------------ | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| P1 modern                      | TC39 decorators and `Symbol.metadata`; `Proxy`; no reflect metadata.                                                                                                                       |
+| P2 not complicated             | One interceptor contract, one registration point, the same three declaration forms core uses for deps (static field first, decorator second, config for code the user cannot edit).        |
+| P3 module system               | Interceptors are providers in a module the plugin contributes. Their deps come from its `imports` and from global modules, under core's encapsulation rules.                               |
+| P4 forRoot config              | `interceptors({ register, providers, imports, global, bindings })` is the one configuration call, validated when it is called.                                                             |
+| P5 developer-friendly          | Missing interceptors show in the same `BlueprintError` as wiring errors; `@nexusdi/testing` overrides an interceptor like any provider; `tap()` covers sync and async methods in one call. |
+| P6 lightweight                 | Core gains 0 bytes. An app that does not install the package pays nothing. The package is est. 1.4 to 1.9 KB gzip.                                                                         |
+| P7 class and factory providers | Interceptors can be class, factory or value providers. Class and factory services are intercepted.                                                                                         |
+| P8 async core                  | Async methods keep their promise contract; interceptors are built at `create`.                                                                                                             |
+| P9 TS 7                        | Standard decorators only; the static form needs no decorator at all.                                                                                                                       |
 
 Divergences are listed as owner decisions in section 12.
 
@@ -265,13 +268,13 @@ Each entry gives the architect's proposal, the challenge, and the final call.
 
 One error class, `InterceptorError`, built with core's `errorBase`, with codes:
 
-| Code | When | Raised by |
-| ---- | ---- | --------- |
-| `NEXUS_INTERCEPTOR_INVALID` | bad `interceptors()` options; bad declaration; a legacy decorator call; an interceptor instance without an `intercept` function | `interceptors()`, the decorator, `compile.check`, or the registry build |
-| `NEXUS_INTERCEPTOR_MISSING` | a declaration, binding or global entry names a token that `interceptors({ register })` does not register | `compile.check` |
-| `NEXUS_INTERCEPTOR_LIFETIME` | a registered interceptor is scoped or transient | `compile.check` |
-| `NEXUS_INTERCEPTOR_NOT_READY` | a call before the registry is built, or after the container is disposed | the wrapper |
-| `NEXUS_INTERCEPTORS_SHARED` | the plugin object is already bound to a live container | the registry build |
+| Code                          | When                                                                                                                            | Raised by                                                               |
+| ----------------------------- | ------------------------------------------------------------------------------------------------------------------------------- | ----------------------------------------------------------------------- |
+| `NEXUS_INTERCEPTOR_INVALID`   | bad `interceptors()` options; bad declaration; a legacy decorator call; an interceptor instance without an `intercept` function | `interceptors()`, the decorator, `compile.check`, or the registry build |
+| `NEXUS_INTERCEPTOR_MISSING`   | a declaration, binding or global entry names a token that `interceptors({ register })` does not register                        | `compile.check`                                                         |
+| `NEXUS_INTERCEPTOR_LIFETIME`  | a registered interceptor is scoped or transient                                                                                 | `compile.check`                                                         |
+| `NEXUS_INTERCEPTOR_NOT_READY` | a call before the registry is built, or after the container is disposed                                                         | the wrapper                                                             |
+| `NEXUS_INTERCEPTORS_SHARED`   | the plugin object is already bound to a live container                                                                          | the registry build                                                      |
 
 Fields: `code`, `reason` (for `INVALID`: `'options' | 'declaration' | 'unknown-method' |
 'two-forms' | 'private-method' | 'static-method' | 'bad-target' | 'legacy-decorators' |
@@ -490,13 +493,16 @@ error. The plugin needs no `dispose` hook.
     .override(AUDIT, { useValue: { intercept: (_call, next) => next() } })
     .create({
       plugins: [
-        interceptors({ register: [interceptor(AUDIT, { useClass: AuditInterceptor })] }),
+        interceptors({
+          register: [interceptor(AUDIT, { useClass: AuditInterceptor })],
+        }),
       ],
     });
   ```
 
   `override` reaches the interceptor because it is a provider in the plugin's module,
   and `NEXUS_OVERRIDE_UNUSED` still fires for a misspelt token.
+
 - Turning interceptors off in a test: leave the plugin out. A declaration without the
   plugin is inert metadata.
 
