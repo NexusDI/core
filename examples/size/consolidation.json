@@ -34,5 +34,11 @@
     "core": 17876,
     "delta": -276,
     "kept": true
+  },
+  {
+    "step": "S2 defer the construct hook",
+    "core": 17620,
+    "delta": -256,
+    "kept": true
   }
 ]

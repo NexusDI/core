@@ -2,6 +2,8 @@ import { describe, expect, it } from 'vitest';
 
 import { rejected } from '../../test-support/catch.js';
 import { defineModule } from '../definitions/define-module.js';
+import { provide } from '../definitions/provide.js';
+import { Token } from '../definitions/token.js';
 import { Nexus } from './nexus.js';
 import { registerPlugins } from './plugins.js';
 
@@ -136,6 +138,36 @@ describe('Nexus.create', () => {
         },
       ],
     });
+  });
+
+  it('ignores an own construct function, as it ignores every unknown own key', async () => {
+    interface IReactor {
+      readonly output: number;
+    }
+    class Reactor implements IReactor {
+      readonly output = 1.21;
+    }
+    const REACTOR = new Token<IReactor>('Reactor');
+    let calls = 0;
+    const ship = await Nexus.create(
+      defineModule({
+        name: 'Engineering',
+        providers: [provide(REACTOR, { useClass: Reactor })],
+        exports: [REACTOR],
+      }),
+      {
+        plugins: [
+          plugin('wrapper', {
+            construct: () => {
+              calls++;
+              return { output: 0 };
+            },
+          }),
+        ],
+      },
+    );
+    expect(ship.get(REACTOR)).toBeInstanceOf(Reactor);
+    expect(calls).toBe(0);
   });
 
   it('builds nothing when a plugin is invalid', async () => {

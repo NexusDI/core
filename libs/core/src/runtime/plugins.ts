@@ -67,11 +67,6 @@ export interface NexusPlugin {
   readonly modules?: readonly ModuleRef[];
   readonly onInit?: false;
   readonly compile?: CompilePluginHooks;
-  construct?(
-    instance: unknown,
-    provider: ProviderView,
-    scope: string | null,
-  ): unknown;
   observe?(event: TraceEvent): void;
   formatError?(
     error: NexusError,
@@ -95,9 +90,6 @@ export interface PluginSet {
   readonly modules: readonly unknown[];
   readonly onInit: boolean;
   readonly compile: CompileHooks;
-  readonly construct: readonly Hook<
-    (instance: unknown, provider: ProviderView, scope: string | null) => unknown
-  >[];
   readonly observe: readonly Hook<(event: TraceEvent) => void>[];
   readonly formatError: readonly Hook<
     (error: NexusError, view: BlueprintView | undefined) => unknown
@@ -106,13 +98,7 @@ export interface PluginSet {
   readonly dispose: readonly PluginHook<() => unknown>[];
 }
 
-const FUNCTION_HOOKS = [
-  'construct',
-  'observe',
-  'formatError',
-  'setup',
-  'dispose',
-] as const;
+const FUNCTION_HOOKS = ['observe', 'formatError', 'setup', 'dispose'] as const;
 const COMPILE_HOOKS = ['module', 'provider', 'check'] as const;
 type HookKey = (typeof FUNCTION_HOOKS)[number] | (typeof COMPILE_HOOKS)[number];
 
@@ -121,7 +107,6 @@ export const NO_PLUGINS: PluginSet = Object.freeze({
   modules: Object.freeze([]),
   onInit: true,
   compile: NO_COMPILE_HOOKS,
-  construct: Object.freeze([]),
   observe: Object.freeze([]),
   formatError: Object.freeze([]),
   setup: Object.freeze([]),
@@ -172,7 +157,6 @@ export function registerPlugins(input: unknown): PluginSet {
     module: [] as PluginHook<never>[],
     provider: [] as PluginHook<never>[],
     check: [] as PluginHook<never>[],
-    construct: [] as PluginHook<never>[],
     observe: [] as PluginHook<never>[],
     formatError: [] as PluginHook<never>[],
     setup: [] as PluginHook<never>[],

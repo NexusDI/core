@@ -465,29 +465,6 @@ describe('Scope.extend rollback', () => {
     await shuttle[Symbol.asyncDispose]();
     expect(log).toEqual(['Drone disposed']);
   });
-
-  it('disposes the raw instance of a failed construct hook once', async () => {
-    const log: string[] = [];
-    const probe = section('Probe', disposing('Probe', log));
-    const saboteur: NexusPlugin = {
-      name: 'saboteur',
-      apiVersion: 1,
-      construct: (_, provider) => {
-        if (provider.token === probe.token) throw new Error('sabotaged');
-        return undefined;
-      },
-    };
-    const ship = await Nexus.create(Root, { plugins: [saboteur] });
-    const shuttle = await ship.createScope();
-    await ship.load(probe.module);
-    expect(await rejected(shuttle.extend())).toMatchObject({
-      code: 'NEXUS_PROVIDER_FAILED',
-      cause: { code: 'NEXUS_PLUGIN_FAILED', plugin: 'saboteur' },
-    });
-    expect(log).toEqual(['Probe disposed']);
-    await shuttle[Symbol.asyncDispose]();
-    expect(log).toEqual(['Probe disposed']);
-  });
 });
 
 describe('Scope.extend errors', () => {
