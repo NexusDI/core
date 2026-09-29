@@ -49,6 +49,10 @@ export interface NexusGraph {
      * the order each annotator returned them. Empty when none names it.
      */
     notes: string[];
+     * A class provider's class name; null for factory, value and alias
+     * providers, and for an anonymous class.
+     */
+    implementation: string | null;
   }>;
   edges: Array<{
     from: string;
@@ -109,6 +113,10 @@ export function graphOf(
               ? null
               : false,
       notes: [...(notes.get(p.id) ?? [])],
+      implementation:
+        p.implementation === null || p.implementation.name === ''
+          ? null
+          : p.implementation.name,
     })),
     edges: view.edges.map((e) => ({ from: e.from, to: e.to, kind: e.kind })),
   };

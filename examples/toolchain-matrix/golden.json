@@ -37,7 +37,8 @@
         "kind": "factory",
         "eager": true,
         "async": true,
-        "notes": []
+        "notes": [],
+        "implementation": null
       },
       {
         "id": "p1",
@@ -47,7 +48,8 @@
         "kind": "factory",
         "eager": true,
         "async": false,
-        "notes": []
+        "notes": [],
+        "implementation": null
       },
       {
         "id": "p2",
@@ -57,7 +59,8 @@
         "kind": "class",
         "eager": true,
         "async": false,
-        "notes": []
+        "notes": [],
+        "implementation": "Bridge"
       },
       {
         "id": "p3",
@@ -67,7 +70,8 @@
         "kind": "class",
         "eager": true,
         "async": false,
-        "notes": []
+        "notes": [],
+        "implementation": "ReactorCore"
       },
       {
         "id": "p4",
@@ -77,7 +81,8 @@
         "kind": "class",
         "eager": true,
         "async": false,
-        "notes": []
+        "notes": [],
+        "implementation": "ShipComputer"
       },
       {
         "id": "p5",
@@ -87,7 +92,8 @@
         "kind": "class",
         "eager": true,
         "async": false,
-        "notes": []
+        "notes": [],
+        "implementation": "PowerRouter"
       },
       {
         "id": "p6",
@@ -97,7 +103,8 @@
         "kind": "class",
         "eager": true,
         "async": false,
-        "notes": []
+        "notes": [],
+        "implementation": "ShieldGrid"
       },
       {
         "id": "request",
@@ -107,7 +114,8 @@
         "kind": "value",
         "eager": true,
         "async": false,
-        "notes": []
+        "notes": [],
+        "implementation": null
       }
     ],
     "edges": [
