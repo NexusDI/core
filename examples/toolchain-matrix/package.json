@@ -4,6 +4,11 @@
   "private": true,
   "type": "module",
   "description": "Builds and runs the packed @nexusdi/core under every mainstream TypeScript toolchain.",
+  "exports": {
+    "./recipes": "./scripts/recipes.mjs",
+    "./toolchains.json": "./toolchains.json",
+    "./toolchain-matrix.json": "./toolchain-matrix.json"
+  },
   "scripts": {
     "matrix": "node scripts/run-matrix.mjs --check"
   },
@@ -14,6 +19,13 @@
         "options": {
           "cwd": "examples/toolchain-matrix",
           "command": "node scripts/run-matrix.mjs --check"
+        }
+      },
+      "test": {
+        "executor": "nx:run-commands",
+        "options": {
+          "cwd": "examples/toolchain-matrix",
+          "command": "node --test scripts/recipes.test.mjs"
         }
       }
     }

@@ -23,6 +23,14 @@ import { tmpdir } from 'node:os';
 import { join, resolve } from 'node:path';
 import { isDeepStrictEqual } from 'node:util';
 
+import {
+  compile,
+  installConsumer,
+  packInto,
+  readToolchains,
+  runModule,
+} from './recipes.mjs';
+
 const HERE = resolve(import.meta.dirname, '..');
 const ROOT = resolve(HERE, '..', '..');
 const CHECK = process.argv.includes('--check');
@@ -35,162 +43,12 @@ const PACKAGES = [
   ['libs/devtools', '@nexusdi/devtools'],
 ];
 
-const { toolchains } = JSON.parse(
-  readFileSync(join(HERE, 'toolchains.json'), 'utf8'),
-);
+const toolchains = readToolchains();
 const golden = JSON.parse(readFileSync(join(HERE, 'golden.json'), 'utf8'));
 const variants = readdirSync(join(HERE, 'src'), { withFileTypes: true })
   .filter((entry) => entry.isDirectory())
   .map((entry) => entry.name)
   .sort();
-
-const run = (cmd, args, cwd) =>
-  execFileSync(cmd, args, { cwd, encoding: 'utf8', stdio: 'pipe' });
-
-/**
- * The path of a package's binary. typescript 6 and its typescript7 alias both
- * name their binary tsc, so the run calls each by path.
- */
-function binOf(dir, pkg, name) {
-  const manifest = JSON.parse(
-    readFileSync(join(dir, 'node_modules', pkg, 'package.json'), 'utf8'),
-  );
-  const bin =
-    typeof manifest.bin === 'string'
-      ? manifest.bin
-      : (manifest.bin?.[name] ?? Object.values(manifest.bin ?? {})[0]);
-  return join(dir, 'node_modules', pkg, bin);
-}
-
-const runBin = (path, args, cwd) =>
-  /\.[cm]?js$/.test(path)
-    ? run(process.execPath, [path, ...args], cwd)
-    : run(path, args, cwd);
-
-const viteBuild = (dir, v, config, outDir) => {
-  run(
-    'npx',
-    [
-      'vite',
-      'build',
-      '--config',
-      config,
-      '--ssr',
-      `src/${v}/main.ts`,
-      '--outDir',
-      `${outDir}/${v}`,
-    ],
-    dir,
-  );
-  return run('node', [`${outDir}/${v}/main.js`], dir);
-};
-
-/** How each toolchain builds a variant and runs the result. Each returns what the program printed. */
-const recipes = {
-  tsc: (dir, v) => {
-    runBin(
-      binOf(dir, 'typescript', 'tsc'),
-      ['-p', 'tsconfig.matrix.json', '--outDir', 'out/tsc'],
-      dir,
-    );
-    return run('node', [`out/tsc/${v}/main.js`], dir);
-  },
-  tsgo: (dir, v) => {
-    runBin(
-      binOf(dir, 'typescript7', 'tsc'),
-      ['-p', 'tsconfig.matrix.json', '--outDir', 'out/tsgo'],
-      dir,
-    );
-    return run('node', [`out/tsgo/${v}/main.js`], dir);
-  },
-  esbuild: (dir, v) => {
-    const out = `out/esbuild/${v}.mjs`;
-    run(
-      'npx',
-      [
-        'esbuild',
-        `src/${v}/main.ts`,
-        '--bundle',
-        '--platform=node',
-        '--format=esm',
-        '--target=es2022',
-        '--packages=external',
-        `--outfile=${out}`,
-      ],
-      dir,
-    );
-    return run('node', [out], dir);
-  },
-  swc: (dir, v) => {
-    run(
-      'npx',
-      [
-        'swc',
-        'src',
-        '-d',
-        'out/swc',
-        '--strip-leading-paths',
-        '--config-file',
-        '.swcrc',
-      ],
-      dir,
-    );
-    return run('node', [`out/swc/${v}/main.js`], dir);
-  },
-  babel: (dir, v) => {
-    run(
-      'npx',
-      [
-        'babel',
-        'src',
-        '--out-dir',
-        'out/babel',
-        '--extensions',
-        '.ts',
-        '--config-file',
-        './babel.config.json',
-      ],
-      dir,
-    );
-    return run('node', [`out/babel/${v}/main.js`], dir);
-  },
-  vite: (dir, v) => viteBuild(dir, v, 'vite.matrix.config.mjs', 'out/vite'),
-  'vite8+babel-plugin': (dir, v) =>
-    viteBuild(dir, v, 'vite.babel.config.mjs', 'out/vite-babel'),
-  bun: (dir, v) => {
-    const out = `out/bun/${v}.mjs`;
-    run(
-      'npx',
-      [
-        'bun',
-        'build',
-        `src/${v}/main.ts`,
-        '--target=node',
-        '--packages=external',
-        `--outfile=${out}`,
-      ],
-      dir,
-    );
-    return run('npx', ['bun', out], dir);
-  },
-  deno: (dir, v) =>
-    run(
-      'npx',
-      [
-        'deno',
-        'run',
-        '--allow-read',
-        '--allow-env',
-        '--allow-sys',
-        '--node-modules-dir=manual',
-        `src/${v}/main.ts`,
-      ],
-      dir,
-    ),
-  // Plain Node 24: it strips the types and runs the sources as they are.
-  'node-strip-types': (dir, v) =>
-    run(process.execPath, [`src/${v}/main.ts`], dir),
-};
 
 const dir = mkdtempSync(join(tmpdir(), 'nexusdi-toolchains-'));
 const results = [];
@@ -200,7 +58,7 @@ try {
   console.log(`Packing ${PACKAGES.map(([, name]) => name).join(', ')}…`);
   for (const [lib] of PACKAGES)
     rmSync(join(ROOT, lib, 'dist'), { recursive: true, force: true });
-  run(
+  execFileSync(
     'npx',
     [
       'nx',
@@ -211,11 +69,9 @@ try {
       ...PACKAGES.map(([, name]) => name),
       '--skip-nx-cache',
     ],
-    ROOT,
+    { cwd: ROOT, encoding: 'utf8', stdio: 'pipe' },
   );
-  for (const [lib] of PACKAGES)
-    run('npm', ['pack', '--pack-destination', dir], join(ROOT, lib));
-  const tarballs = readdirSync(dir).filter((f) => f.endsWith('.tgz'));
+  const tarballs = packInto(dir, ROOT, PACKAGES);
 
   for (const file of [
     'src',
@@ -240,18 +96,7 @@ try {
     Object.entries(t.packages).map(([pkg, version]) => `${pkg}@${version}`),
   );
   console.log(`Installing ${pins.join(', ')}…`);
-  run(
-    'npm',
-    [
-      'install',
-      '--silent',
-      '--no-audit',
-      '--no-fund',
-      ...tarballs.map((t) => `./${t}`),
-      ...pins,
-    ],
-    dir,
-  );
+  installConsumer(dir, [...tarballs.map((t) => `./${t}`), ...pins]);
 
   for (const toolchain of toolchains) {
     const version = toolchain.version ?? process.versions.node;
@@ -262,7 +107,25 @@ try {
         continue;
       }
       try {
-        const printed = JSON.parse(recipes[toolchain.id](dir, variant));
+        const configs = {
+          rootDir: 'src',
+          tsconfig: 'tsconfig.matrix.json',
+          swcrc: '.swcrc',
+          babelrc: 'babel.config.json',
+          viteConfig:
+            toolchain.id === 'vite'
+              ? 'vite.matrix.config.mjs'
+              : 'vite.babel.config.mjs',
+        };
+        const modulePath = compile(
+          toolchain.id,
+          dir,
+          `src/${variant}/main.ts`,
+          configs,
+        );
+        const printed = JSON.parse(
+          runModule(toolchain.id, dir, modulePath, configs),
+        );
         const pass = isDeepStrictEqual(printed, golden);
         if (!pass)
           console.error(
