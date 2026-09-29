@@ -1,6 +1,20 @@
 // Probe missing-provider (benchmarks spec 4.6) on inversify decorated: NAV_CHARTS is never registered.
 // The rest is fixtures/inversify/decorated.ts, with ready() creating and
 // configuring the container and resolving nothing.
+//
+// Meridian-8 in InversifyJS, as its getting-started page sets it up: the
+// reflect-metadata package installed, experimentalDecorators and
+// emitDecoratorMetadata on, @injectable() on every class, and @inject(id)
+// naming every constructor dependency.
+// Docs: https://inversify.io/docs/introduction/getting-started/ (8.2.3), read 2026-09-30.
+// The page imports no polyfill itself: @inversifyjs/container imports
+// reflect-metadata/lite.
+// Departures: fields instead of constructor parameter properties, because
+// Node's type stripping rejects parameter properties and node-strip-types
+// is a cell. Every binding sets its scope, since InversifyJS defaults to
+// transient (spec 4.3 rule 1). ready() builds the container, so each call
+// starts empty. InversifyJS documents no per-request child container, so
+// the scoped section is not-applicable (libraries.json).
 import {
   Container,
   inject,

@@ -1,6 +1,13 @@
 // Probe two-mistakes (benchmarks spec 4.6) on nexusdi decorated: missing-provider and cycle together.
 // The rest is fixtures/nexusdi/decorated.ts, with ready() creating and
 // configuring the container and resolving nothing.
+//
+// Meridian-8 in NexusDI with @nexusdi/decorators (core spec D9): interface
+// tokens, @Injectable({ deps }) classes bound with provide(), and an
+// @Module class. A useClass binding sets the lifetime; the class's
+// @Injectable lifetime applies only to a class listed bare.
+// Docs: https://github.com/NexusDI/core#readme at this commit, read 2026-09-30.
+// Departures: none.
 import { Nexus, Token, provide } from '@nexusdi/core';
 import { Injectable, Module } from '@nexusdi/decorators';
 

@@ -1,6 +1,17 @@
 // Probe cycle (benchmarks spec 4.6) on needle-di decorated: PowerRouter takes ShieldGrid, which takes PowerRouter.
 // The rest is fixtures/needle-di/decorated.ts, with ready() creating and
 // configuring the container and resolving nothing.
+//
+// Meridian-8 in needle-di, as needle-di.io sets it up: standard decorators
+// (no compiler flag), @injectable() classes, inject() for every dependency,
+// an InjectionToken for the value, and container.get() to bootstrap.
+// Docs: https://needle-di.io (1.2.1), read 2026-09-30; the pages "Getting
+// started", "Injection" and "Tokens".
+// Departures: initializer injection, which the Injection page documents,
+// in place of the constructor parameter properties it recommends, because
+// Node's type stripping rejects parameter properties and node-strip-types
+// is a cell. needle-di documents singletons only, so the transient and
+// scoped sections are not-applicable (libraries.json).
 import { Container, InjectionToken, inject, injectable } from '@needle-di/core';
 
 interface INavCharts {

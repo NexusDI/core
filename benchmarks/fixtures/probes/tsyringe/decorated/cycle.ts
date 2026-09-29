@@ -4,6 +4,19 @@
 // ShieldGrid is declared after PowerRouter, so the parameter names it
 // with delay(), tsyringe's forward reference. delay() also hands out a
 // lazy proxy, which breaks the cycle.
+//
+// Meridian-8 in tsyringe, as its README sets it up: experimentalDecorators
+// and emitDecoratorMetadata on, reflect-metadata imported first, @singleton()
+// and @injectable() classes whose constructor types name their
+// dependencies, @inject() for the string token, and a child container per
+// request with @scoped(Lifecycle.ContainerScoped) (README "Child Containers"
+// and "scoped()").
+// Docs: https://github.com/microsoft/tsyringe#readme (4.10.0), read 2026-09-30.
+// Departures: fields instead of constructor parameter properties
+// (node-strip-types is a cell). @singleton() registers in the global
+// container and the README builds one container per process, so ready()
+// starts with container.clearInstances() (README "Clearing Instances") and
+// registers NavCharts again, and each call builds the graph from nothing.
 import 'reflect-metadata';
 import {
   Lifecycle,

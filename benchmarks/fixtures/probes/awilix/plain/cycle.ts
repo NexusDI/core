@@ -1,6 +1,14 @@
 // Probe cycle (benchmarks spec 4.6) on awilix plain: PowerRouter takes ShieldGrid, which takes PowerRouter.
 // The rest is fixtures/awilix/plain.ts, with ready() creating and
 // configuring the container and resolving nothing.
+//
+// Meridian-8 in awilix, as its README sets it up: PROXY injection, strict
+// mode, asClass and asValue registrations, and a scope per request from
+// container.createScope().
+// Docs: https://github.com/jeffijoe/awilix#readme (13.0.5), read 2026-09-30.
+// Departures: every registration sets its lifetime, since awilix defaults
+// to transient (spec 4.3 rule 1). ready() builds the container, so each
+// call starts empty.
 import { InjectionMode, asClass, asValue, createContainer } from 'awilix';
 
 interface Cradle {

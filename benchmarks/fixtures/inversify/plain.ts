@@ -1,7 +1,8 @@
 // Meridian-8 in InversifyJS without decorators: symbol identifiers typed
 // with ServiceIdentifier, and toResolvedValue bindings that name each
 // dependency (the binding syntax page's toResolvedValue section).
-// Docs: https://inversify.io/docs/api/binding-syntax/ (8.2.3), read 2026-09-30.
+// Docs: https://inversify.io/docs/introduction/getting-started/ and
+// https://inversify.io/docs/api/binding-syntax/ (8.2.3), read 2026-09-30.
 // Departures: fields instead of constructor parameter properties
 // (node-strip-types is a cell). ready() builds the container, so each call
 // starts empty.
