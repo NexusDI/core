@@ -1,0 +1,57 @@
+{
+  "modules": [
+    {
+      "id": "m0",
+      "name": "Meridian",
+      "global": false,
+      "imports": ["m1"],
+      "exports": []
+    },
+    {
+      "id": "m1",
+      "name": "Navigation",
+      "global": false,
+      "imports": [],
+      "exports": ["p1"]
+    }
+  ],
+  "providers": [
+    {
+      "id": "p0",
+      "token": "ShipComputer",
+      "module": "m0",
+      "lifetime": "singleton",
+      "kind": "class",
+      "eager": true,
+      "async": null,
+      "implementation": "ShipComputer"
+    },
+    {
+      "id": "p1",
+      "token": "NavCharts",
+      "module": "m1",
+      "lifetime": "singleton",
+      "kind": "class",
+      "eager": true,
+      "async": null,
+      "implementation": "StellarCharts"
+    },
+    {
+      "id": "request",
+      "token": "REQUEST",
+      "module": "m0",
+      "lifetime": "scoped",
+      "kind": "value",
+      "eager": true,
+      "async": null,
+      "implementation": null
+    }
+  ],
+  "edges": [
+    {
+      "from": "p0",
+      "to": "p1",
+      "kind": "required"
+    }
+  ]
+}
