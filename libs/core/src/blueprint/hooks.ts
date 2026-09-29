@@ -282,9 +282,10 @@ export function moduleReplacerFor(
 }
 
 /**
- * A `with` form without an own `remove`, whose own `label`, when present, is
- * a non-empty string; or an own `remove: true` form. Every key is read as an
- * own key only, so a polluted Object.prototype adds none (SEC-003).
+ * A `with` form without an own `remove`, whose own `label`, when present and
+ * not undefined, is a non-empty string; or an own `remove: true` form. Every
+ * key is read as an own key only, so a polluted Object.prototype adds none
+ * (SEC-003).
  */
 function isRewrite(value: unknown): value is ProviderRewrite {
   if (typeof value !== 'object' || value === null) return false;
@@ -296,7 +297,7 @@ function isRewrite(value: unknown): value is ProviderRewrite {
   if (Object.hasOwn(value, 'remove')) return false;
   if (!Object.hasOwn(value, 'label')) return true;
   const label = (value as { label?: unknown }).label;
-  return typeof label === 'string' && label !== '';
+  return label === undefined || (typeof label === 'string' && label !== '');
 }
 
 /** The `with` form, told apart by an own `with` key as isRewrite checked it. */
@@ -365,9 +366,9 @@ export function rewriteProviders(
     }
     const rewrite = chosen.value;
     if (!isReplacement(rewrite)) continue;
-    const label = Object.hasOwn(rewrite, 'label')
-      ? rewrite.label
-      : chosen.plugin;
+    const label =
+      (Object.hasOwn(rewrite, 'label') ? rewrite.label : undefined) ??
+      chosen.plugin;
     const site = `${label}(${record.name})`;
     let atSite = shapes.get(site);
     if (atSite === undefined) {

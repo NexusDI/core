@@ -521,6 +521,24 @@ describe('compile.provider', () => {
       });
     });
 
+    it('names the rewriter by the plugin when the label is undefined', async () => {
+      const options: { label?: string } = {};
+      const error = await rejected(
+        Nexus.create(Deck, {
+          plugins: [
+            rewrite('flags', (p) =>
+              p.token === LOG ? { with: BAD, label: options.label } : undefined,
+            ),
+          ],
+        }),
+      );
+      expect(error).toMatchObject({
+        errors: [
+          { code: 'NEXUS_INVALID_PROVIDER', module: 'flags(Log)', index: 0 },
+        ],
+      });
+    });
+
     it('reports one entry returned for two providers of a token once', async () => {
       const error = await rejected(
         Nexus.create(Ship, {

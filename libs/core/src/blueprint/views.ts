@@ -80,7 +80,7 @@ export type ProviderRewrite =
   | {
       readonly with: ProviderEntry;
       readonly pin?: true;
-      /** Names the rewriter in the entry's errors: `<label>(<provider name>)`. Defaults to the plugin name. */
+      /** Names the rewriter in the entry's errors: `<label>(<provider name>)`. Defaults to the plugin name when absent or undefined. */
       readonly label?: string;
     }
   | { readonly remove: true };
