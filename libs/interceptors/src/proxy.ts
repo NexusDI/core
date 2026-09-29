@@ -1,6 +1,6 @@
 import type { ProviderView } from '@nexusdi/core';
 
-import { missing, notReady } from './interceptor-error.js';
+import { invalid, missing, notReady } from './interceptor-error.js';
 import { EXCLUDED_KEYS } from './metadata.js';
 import { keyName } from './names.js';
 import type { CallContext, Interceptor, InterceptorToken } from './types.js';
@@ -112,9 +112,56 @@ function wrap(
 }
 
 /**
+ * Own keys whose value is a function the proxy may not replace: a get trap
+ * must return the actual value of a non-writable, non-configurable data
+ * property, which is what Object.freeze leaves on every own method.
+ */
+function lockedMethods(target: object): (string | symbol)[] {
+  return Reflect.ownKeys(target).filter((key) => {
+    const descriptor = Object.getOwnPropertyDescriptor(target, key);
+    return (
+      descriptor !== undefined &&
+      descriptor.configurable === false &&
+      descriptor.writable === false &&
+      typeof descriptor.value === 'function'
+    );
+  });
+}
+
+/**
+ * Traps that point a proxy over a shadow object at the raw instance. The
+ * shadow has no own properties, so the get trap may return a wrapper for a
+ * frozen method. A descriptor reads as configurable, the one invariant a
+ * shadow cannot honour otherwise; the value, writability and keys are the
+ * raw instance's.
+ */
+function shadowTraps(raw: object): ProxyHandler<object> {
+  return {
+    has: (_shadow, key) => Reflect.has(raw, key),
+    ownKeys: () => Reflect.ownKeys(raw),
+    getOwnPropertyDescriptor(_shadow, key) {
+      const descriptor = Reflect.getOwnPropertyDescriptor(raw, key);
+      return descriptor === undefined
+        ? undefined
+        : { ...descriptor, configurable: true };
+    },
+    defineProperty: (_shadow, key, descriptor) =>
+      Reflect.defineProperty(raw, key, descriptor),
+    deleteProperty: (_shadow, key) => Reflect.deleteProperty(raw, key),
+  };
+}
+
+/**
  * The instance the container stores (spec 5.2, R6). Methods run with
  * `this` set to the raw instance, so private fields work and self calls are
  * not intercepted. Every method read returns one cached function per key.
+ *
+ * A frozen object's own methods cannot be replaced through a proxy of the
+ * object itself, so such an object is proxied through a shadow with its
+ * prototype. A frozen function with an intercepted own method has no such
+ * route (a shadow would have to be callable with the same own keys), so it
+ * fails the build: skipping its interceptors silently could skip an auth
+ * check.
  */
 export function interceptedProxy<T extends object>(
   target: T,
@@ -122,9 +169,28 @@ export function interceptedProxy<T extends object>(
   scope: string | null,
   env: ProxyEnv,
 ): T {
+  const raw: object = target;
+  const locked = lockedMethods(raw);
+  const chainOf = (key: PropertyKey): readonly InterceptorToken[] =>
+    EXCLUDED_KEYS.has(key) ? [] : env.chain(key as string | symbol);
+  let shadow: object = raw;
+  if (locked.length > 0 && typeof raw === 'function') {
+    const intercepted = locked.find((key) => chainOf(key).length > 0);
+    if (intercepted !== undefined)
+      throw invalid(
+        'bad-target',
+        { target: provider.name, method: keyName(intercepted) },
+        `${provider.name} is a frozen function, so its own method ${keyName(intercepted)} cannot be wrapped.\n  Fix: do not freeze it, skip it with the global entry's when, or move the method to an object.`,
+      );
+  } else if (locked.length > 0) {
+    shadow = Object.create(
+      Object.getPrototypeOf(raw) as object | null,
+    ) as object;
+  }
   const cache = new Map<PropertyKey, { source: Method; wrapper: Method }>();
-  return new Proxy(target, {
-    get(raw, key) {
+  return new Proxy(shadow, {
+    ...(shadow === raw ? {} : shadowTraps(raw)),
+    get(_target, key) {
       const value: unknown = Reflect.get(raw, key, raw);
       if (typeof value !== 'function') return value;
       const method = value as Method;
@@ -132,9 +198,9 @@ export function interceptedProxy<T extends object>(
       if (cached !== undefined && cached.source === method)
         return cached.wrapper;
       if (findMethod(raw, key) !== method) return method;
-      const chain = EXCLUDED_KEYS.has(key)
-        ? []
-        : env.chain(key as string | symbol);
+      if (shadow === raw && locked.includes(key as string | symbol))
+        return method;
+      const chain = chainOf(key);
       const wrapper: Method =
         chain.length === 0
           ? function bound(...args: unknown[]): unknown {
@@ -152,9 +218,9 @@ export function interceptedProxy<T extends object>(
       cache.set(key, { source: method, wrapper });
       return wrapper;
     },
-    set(raw, key, value) {
+    set(_target, key, value) {
       cache.delete(key);
       return Reflect.set(raw, key, value, raw);
     },
-  });
+  }) as T;
 }
