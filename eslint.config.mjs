@@ -44,6 +44,10 @@ export default [
       '**/build',
       '**/.react-router',
       '**/test-output',
+      // Scratch output .gitignore already drops: the dispatch builds under
+      // libs/core/tmp and the benchmark harness's local runs under
+      // benchmarks/tmp.
+      '**/tmp',
     ],
   },
   {
