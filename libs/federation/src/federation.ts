@@ -3,15 +3,31 @@ import { NEXUS_PLUGIN_API, type NexusPlugin } from '@nexusdi/core';
 import { markOf } from './contract.js';
 import { contractVersion } from './contract-version-error.js';
 
-function parts(version: string): [number, number] {
-  const [major = 'NaN', minor = 'NaN'] = version.split('.');
-  return [Number(major), Number(minor)];
+/** The major, minor and patch of a version defineContract accepted. */
+function parts(version: string): [number, number, number] {
+  const [, major, minor, patch] = /^(\d+)\.(\d+)\.(\d+)/.exec(version) ?? [];
+  return [Number(major), Number(minor), Number(patch)];
+}
+
+/**
+ * Whether a provider at `have` satisfies a dependent built against `want`,
+ * as npm's `^want` range does. The majors must match, and the dependent's
+ * minor must be no newer than the provider's. At major 0 a minor is a
+ * breaking change, so the minors must match and the dependent's patch must
+ * be no newer than the provider's. A prerelease tag is not compared.
+ */
+function satisfies(want: string, have: string): boolean {
+  const [wantMajor, wantMinor, wantPatch] = parts(want);
+  const [haveMajor, haveMinor, havePatch] = parts(have);
+  if (wantMajor !== haveMajor) return false;
+  if (wantMajor !== 0) return wantMinor <= haveMinor;
+  return wantMinor === haveMinor && wantPatch <= havePatch;
 }
 
 /**
  * Binds contract tokens by key, and reports a dependent whose contract
- * version the provider's cannot satisfy: another major, or a newer minor.
- * Both versions come from the tokens as written, since the key's canonical
+ * version the provider's cannot satisfy, as `satisfies` decides. Both
+ * versions come from the tokens as written, since the key's canonical
  * token is whichever copy the container met first. Each mismatch is reported
  * once per check.
  */
@@ -31,9 +47,7 @@ export function federation(): NexusPlugin {
           const wanted = markOf(edge.written);
           const had = markOf(byId.get(edge.to)?.written);
           if (wanted === undefined || had === undefined) continue;
-          const [wantMajor, wantMinor] = parts(wanted.version);
-          const [haveMajor, haveMinor] = parts(had.version);
-          if (wantMajor === haveMajor && wantMinor <= haveMinor) continue;
+          if (satisfies(wanted.version, had.version)) continue;
           const contract = `${wanted.key}/${wanted.name}`;
           const once = `${contract} ${wanted.version} ${had.version}`;
           if (seen.has(once)) continue;
