@@ -226,10 +226,10 @@
     "minTokens": 30,
     "minLines": 3,
 
-    // Today's figure is 2.5%. The ceiling is a ratchet, not a target: it
+    // Today's figure is 2.14%. The ceiling is a ratchet, not a target: it
     // fails the run that adds the next copy and is lowered whenever a clone
     // group is consolidated.
-    "threshold": 2.6,
+    "threshold": 2.2,
 
     "ignore": [
       "**/vite.config.*",
