@@ -1,7 +1,11 @@
 import { spawnSync } from 'node:child_process';
 import { fileURLToPath } from 'node:url';
 
-/** The built bin; the test target depends on build. */
+/**
+ * The built bin; the test target depends on build. The tests spawn it with
+ * node and never import it, and CI runs fallow before a build creates dist/.
+ */
+// fallow-ignore-next-line unresolved-import
 export const BIN = fileURLToPath(new URL('../dist/bin.js', import.meta.url));
 export const FIXTURES = fileURLToPath(
   new URL('../test-fixtures/', import.meta.url),
