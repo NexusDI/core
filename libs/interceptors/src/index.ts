@@ -3,3 +3,18 @@ export type {
   InterceptorErrorCode,
   InvalidReason,
 } from './interceptor-error.js';
+export { tap, type TapObserver } from './tap.js';
+export type {
+  CallContext,
+  GlobalEntry,
+  GlobalTarget,
+  Interceptor,
+  InterceptorBinding,
+  InterceptorClass,
+  InterceptorEntry,
+  InterceptorMap,
+  InterceptorsOptions,
+  InterceptorToken,
+  MethodKey,
+  Next,
+} from './types.js';
