@@ -4,6 +4,8 @@ import { rejected, thrown } from '../../test-support/catch.js';
 import { deferred, flush } from '../../test-support/deferred.js';
 import { coreLine } from '../../test-support/modes.js';
 import { recordEvents } from '../../test-support/observe.js';
+import type { Blueprint } from '../blueprint/blueprint.js';
+import { compile } from '../blueprint/compile.js';
 import { defineModule } from '../definitions/define-module.js';
 import { provide } from '../definitions/provide.js';
 import { REQUEST } from '../definitions/request.js';
@@ -213,6 +215,28 @@ describe('Scope.extend concurrency', () => {
     });
     await shuttle.extend();
     expect(shuttle.get(later.token)).toBe('later');
+  });
+
+  it('gives two calls for one blueprint the same rejection from one build', async () => {
+    const gate = deferred();
+    let builds = 0;
+    const ship = await Nexus.create(Root);
+    const shuttle = await ship.createScope();
+    await ship.load(
+      section('Slow', async () => {
+        builds++;
+        await gate.promise;
+        throw new Error('offline');
+      }).module,
+    );
+    const first = rejected(shuttle.extend());
+    await flush();
+    const second = rejected(shuttle.extend());
+    gate.resolve();
+    const [a, b] = await Promise.all([first, second]);
+    expect(a).toMatchObject({ code: 'NEXUS_PROVIDER_FAILED' });
+    expect(b).toBe(a);
+    expect(builds).toBe(1);
   });
 
   it('runs a call for a newer blueprint after the one in flight', async () => {
@@ -504,5 +528,74 @@ describe('Scope.extend errors', () => {
     expect(cause).toBeInstanceOf(DisposedError);
     expect(cause.message).toBe(coreLine(cause));
     expect(calls).toEqual(['NEXUS_PROVIDER_FAILED']);
+  });
+});
+
+describe('load() visibility', () => {
+  /** Each provider a module sees, named by its module and token; ids are positional. */
+  function entries(bp: Blueprint, moduleId: string) {
+    const named = (id: string) => {
+      const record = bp.providers.get(id);
+      const module = bp.modules.get(record?.module ?? '')?.name ?? '?';
+      return `${module}/${record?.name ?? id}`;
+    };
+    return new Map(
+      [...(bp.visibility.get(moduleId) ?? new Map<unknown, string[]>())].map(
+        ([token, ids]) => [token, ids.map(named)] as const,
+      ),
+    );
+  }
+
+  it('keeps every old module seeing a superset, with equal entries for its old tokens', () => {
+    const NAV_CHARTS = new Token<string>('NavCharts');
+    const CORE = new Token<string>('ReactorCore');
+    const PROBE = new Token<string>('Probe');
+    const Nav = defineModule({
+      name: 'Nav',
+      providers: [provide(NAV_CHARTS, { useValue: 'charts' })],
+      exports: [NAV_CHARTS],
+    });
+    const Engineering = defineModule({
+      name: 'Engineering',
+      imports: [Nav],
+      providers: [provide(CORE, { useValue: 'core' })],
+      exports: [CORE, Nav],
+    });
+    const Comms = defineModule({
+      name: 'Comms',
+      global: true,
+      providers: [provide(LOG, { useValue: [] })],
+      exports: [LOG],
+    });
+    const Bridge = defineModule({ name: 'Bridge', imports: [Engineering] });
+    const Ship = defineModule({
+      name: 'Ship',
+      imports: [Comms, Engineering, Bridge],
+    });
+    const Science = defineModule({
+      name: 'Science',
+      imports: [Engineering],
+      providers: [provide(PROBE, { useValue: 'probe' })],
+      exports: [PROBE],
+    });
+    const before = compile({ root: Ship });
+    const after = compile({
+      root: Ship,
+      extraImports: [Science],
+      phase: 'load',
+      previous: before,
+    });
+    expect(before.modules.size).toBeGreaterThan(3);
+    for (const node of before.modules.values()) {
+      const id = after.moduleByDefinition.get(node.definition);
+      expect(id, node.name).toBeDefined();
+      const old = entries(before, node.id);
+      const now = entries(after, id ?? '');
+      for (const [token, ids] of old)
+        expect(now.get(token), node.name).toEqual(ids);
+      expect(now.size).toBeGreaterThanOrEqual(old.size);
+    }
+    const root = after.moduleByDefinition.get(Ship) ?? '';
+    expect(after.visibility.get(root)?.has(PROBE)).toBe(true);
   });
 });
