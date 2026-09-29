@@ -1,0 +1,18 @@
+{
+  "singleton": {
+    "bridge": "Bridge",
+    "computer": "ShipComputer",
+    "charts": "NavCharts",
+    "shield": "ShieldGrid",
+    "router": "PowerRouter",
+    "reactor": "ReactorCore",
+    "sameBridge": true,
+    "sharedReactor": true
+  },
+  "transient": { "distinct": true, "sharedComputer": true },
+  "scoped": {
+    "sameInScope": true,
+    "distinctAcrossScopes": true,
+    "sharedComputer": true
+  }
+}

@@ -1,0 +1,101 @@
+{
+  "libraries": [
+    {
+      "id": "nexusdi",
+      "package": "@nexusdi/core",
+      "version": "workspace",
+      "docs": "https://github.com/NexusDI/core#readme",
+      "read": "2026-09-30",
+      "polyfill": null,
+      "documentedToolchains": "any",
+      "variants": {
+        "plain": { "profile": "none", "documented": true },
+        "decorated": { "profile": "standard" }
+      },
+      "notApplicable": {},
+      "claims": []
+    },
+    {
+      "id": "inversify",
+      "package": "inversify",
+      "version": "8.2.3",
+      "docs": "https://inversify.io/docs/introduction/getting-started/",
+      "read": "2026-09-30",
+      "polyfill": "reflect-metadata@0.2.2",
+      "documentedToolchains": ["tsc", "tsgo"],
+      "variants": {
+        "plain": { "profile": "none" },
+        "decorated": { "profile": "legacy-metadata", "documented": true },
+        "decorated-explicit": { "profile": "legacy" }
+      },
+      "notApplicable": {
+        "scoped": "inRequestScope is one instance per resolution graph, and the docs present no per-request child container."
+      },
+      "claims": [
+        {
+          "claim": "reads design:paramtypes only where no @inject token is given",
+          "source": "https://inversify.io/docs/api/decorator/#inject",
+          "verifiedAgainst": "8.2.3"
+        }
+      ]
+    },
+    {
+      "id": "tsyringe",
+      "package": "tsyringe",
+      "version": "4.10.0",
+      "docs": "https://github.com/microsoft/tsyringe#readme",
+      "read": "2026-09-30",
+      "polyfill": "reflect-metadata@0.2.2",
+      "documentedToolchains": ["tsc", "tsgo", "babel"],
+      "variants": {
+        "plain": { "profile": "none" },
+        "decorated": { "profile": "legacy-metadata", "documented": true },
+        "decorated-explicit": { "profile": "legacy" }
+      },
+      "notApplicable": {},
+      "claims": [
+        {
+          "claim": "throws 'tsyringe requires a reflect polyfill.' at import without one",
+          "source": "https://github.com/microsoft/tsyringe#installation",
+          "verifiedAgainst": "4.10.0"
+        }
+      ]
+    },
+    {
+      "id": "awilix",
+      "package": "awilix",
+      "version": "13.0.5",
+      "docs": "https://github.com/jeffijoe/awilix#readme",
+      "read": "2026-09-30",
+      "polyfill": null,
+      "documentedToolchains": "any",
+      "variants": { "plain": { "profile": "none", "documented": true } },
+      "notApplicable": {},
+      "claims": [
+        {
+          "claim": "CLASSIC injection mode breaks under minification",
+          "source": "https://github.com/jeffijoe/awilix#injection-modes",
+          "verifiedAgainst": "13.0.5"
+        }
+      ]
+    },
+    {
+      "id": "needle-di",
+      "package": "@needle-di/core",
+      "version": "1.2.1",
+      "docs": "https://needle-di.io",
+      "read": "2026-09-30",
+      "polyfill": null,
+      "documentedToolchains": "any",
+      "variants": {
+        "plain": { "profile": "none" },
+        "decorated": { "profile": "standard", "documented": true }
+      },
+      "notApplicable": {
+        "transient": "needle-di documents singletons only.",
+        "scoped": "needle-di documents singletons only."
+      },
+      "claims": []
+    }
+  ]
+}

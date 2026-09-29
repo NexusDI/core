@@ -1,0 +1,14 @@
+{
+  "jsc": {
+    "parser": {
+      "syntax": "typescript",
+      "decorators": true
+    },
+    "transform": {},
+    "rewriteRelativeImportExtensions": true,
+    "target": "es2022"
+  },
+  "module": {
+    "type": "es6"
+  }
+}
