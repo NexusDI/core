@@ -68,7 +68,12 @@ export interface CompileContext {
 }
 
 export type ProviderRewrite =
-  | { readonly with: ProviderEntry; readonly pin?: true }
+  | {
+      readonly with: ProviderEntry;
+      readonly pin?: true;
+      /** Names the rewriter in the entry's errors: `<label>(<provider name>)`. Defaults to the plugin name. */
+      readonly label?: string;
+    }
   | { readonly remove: true };
 
 /** What buildView reads: a compile's passes, finished or not. */

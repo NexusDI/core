@@ -7,7 +7,12 @@ import { describeValue } from '../definitions/describe.js';
 import { readProvider } from '../definitions/provide.js';
 import { MultiToken } from '../definitions/token.js';
 import { PluginError, type NexusError } from '../errors/index.js';
-import { NO_ENTRIES, type ProviderRecord, type TokenKey } from './blueprint.js';
+import {
+  NO_ENTRIES,
+  type ProviderRecord,
+  type RecordShape,
+  type TokenKey,
+} from './blueprint.js';
 import { normalizeProvider } from './records.js';
 import {
   providerView,
@@ -185,11 +190,29 @@ export function moduleReplacerFor(
   };
 }
 
+/**
+ * A `with` form without an own `remove`, whose own `label`, when present, is
+ * a non-empty string; or an own `remove: true` form. Every key is read as an
+ * own key only, so a polluted Object.prototype adds none (SEC-003).
+ */
 function isRewrite(value: unknown): value is ProviderRewrite {
   if (typeof value !== 'object' || value === null) return false;
-  return Object.hasOwn(value, 'with')
-    ? !Object.hasOwn(value, 'remove')
-    : (value as { remove?: unknown }).remove === true;
+  if (!Object.hasOwn(value, 'with'))
+    return (
+      Object.hasOwn(value, 'remove') &&
+      (value as { remove?: unknown }).remove === true
+    );
+  if (Object.hasOwn(value, 'remove')) return false;
+  if (!Object.hasOwn(value, 'label')) return true;
+  const label = (value as { label?: unknown }).label;
+  return typeof label === 'string' && label !== '';
+}
+
+/** The `with` form, told apart by an own `with` key as isRewrite checked it. */
+function isReplacement(
+  rewrite: ProviderRewrite,
+): rewrite is Extract<ProviderRewrite, { readonly with: unknown }> {
+  return Object.hasOwn(rewrite, 'with');
 }
 
 /** Whether a replacement entry sets its own lifetime (an own key only, SEC-003). */
@@ -224,6 +247,10 @@ export function rewriteProviders(
     return { records, pinned: NO_ENTRIES, rewrittenBy: NO_ENTRIES };
   const pinned = new Map<TokenKey, readonly string[]>();
   const rewrittenBy = new Map<string, string>();
+  // Site → entry → its shape, or null when it failed. One entry a hook
+  // returns for several providers at one site is normalised, and reported,
+  // once.
+  const shapes = new Map<string, Map<unknown, RecordShape | null>>();
 
   const out: ProviderRecord[] = [];
   for (const record of records) {
@@ -244,12 +271,25 @@ export function rewriteProviders(
       continue;
     }
     const rewrite = chosen.value;
-    if ('remove' in rewrite) continue;
-    const shape = normalizeProvider(
-      rewrite.with,
-      { module: `${chosen.plugin}(${record.name})`, index: 0 },
-      errors,
-    );
+    if (!isReplacement(rewrite)) continue;
+    const label = Object.hasOwn(rewrite, 'label')
+      ? rewrite.label
+      : chosen.plugin;
+    const site = `${label}(${record.name})`;
+    let atSite = shapes.get(site);
+    if (atSite === undefined) {
+      atSite = new Map();
+      shapes.set(site, atSite);
+    }
+    let shape = atSite.get(rewrite.with);
+    if (shape === undefined) {
+      shape = normalizeProvider(
+        rewrite.with,
+        { module: site, index: 0 },
+        errors,
+      );
+      atSite.set(rewrite.with, shape);
+    }
     if (shape === null) {
       out.push(record);
       continue;
@@ -270,7 +310,11 @@ export function rewriteProviders(
             : shape.lifetime,
     });
     rewrittenBy.set(record.id, chosen.plugin);
-    if (rewrite.pin === true && record.token instanceof MultiToken)
+    if (
+      Object.hasOwn(rewrite, 'pin') &&
+      rewrite.pin === true &&
+      record.token instanceof MultiToken
+    )
       pinned.set(record.token, [record.id]);
   }
   const kept = out.filter((r) => {

@@ -300,6 +300,90 @@ describe('SEC-003 a polluted Object.prototype (CWE-1321)', () => {
     }
   });
 
+  // A compile.provider rewrite reads `remove`, `pin` and `label` as own keys
+  // only. With `'remove' in rewrite`, every `{ with }` rewrite would remove
+  // its provider; with `rewrite.pin`, every MultiToken rewrite would pin; with
+  // `rewrite.label`, a polluted prototype would rename every error site.
+  describe('a compile.provider rewrite, while Object.prototype carries remove, pin and label', () => {
+    const DIAGNOSTICS = new MultiToken<string>('Diagnostics');
+    const rewriter = (answer: (token: unknown) => unknown) => ({
+      plugins: [
+        {
+          name: 'swap',
+          apiVersion: 1 as const,
+          compile: { provider: (p: { token: unknown }) => answer(p.token) },
+        },
+      ],
+    });
+    const pollute = <T>(run: () => Promise<T>): Promise<T> => {
+      const proto = Object.prototype as Record<string, unknown>;
+      proto['remove'] = true;
+      proto['pin'] = true;
+      proto['label'] = 'forged';
+      return run().finally(() => {
+        delete proto['remove'];
+        delete proto['pin'];
+        delete proto['label'];
+      });
+    };
+
+    it('replaces each contribution and removes none', async () => {
+      const ship = await pollute(() =>
+        Nexus.create(
+          defineModule({
+            name: 'Root',
+            providers: [
+              provide(DIAGNOSTICS, { useValue: 'hull' }),
+              provide(DIAGNOSTICS, { useValue: 'deck' }),
+            ],
+          }),
+          rewriter(() => ({
+            with: provide(DIAGNOSTICS, { useValue: 'swapped' }),
+          })) as never,
+        ),
+      );
+      expect(ship.get(DIAGNOSTICS)).toEqual(['swapped', 'swapped']);
+    });
+
+    it('fails the hook for an answer with no own key', async () => {
+      const error = await pollute(() =>
+        Nexus.create(
+          defineModule({
+            name: 'Root',
+            providers: [provide(DIAGNOSTICS, { useValue: 'hull' })],
+          }),
+          rewriter(() => ({})) as never,
+        ).then(
+          () => undefined,
+          (reason: unknown) => reason,
+        ),
+      );
+      expect(error).toMatchObject({
+        errors: [{ code: 'NEXUS_PLUGIN_FAILED', hook: 'compile.provider' }],
+      });
+    });
+
+    it('names a malformed entry by the plugin', async () => {
+      const error = await pollute(() =>
+        Nexus.create(
+          defineModule({
+            name: 'Root',
+            providers: [provide(DIAGNOSTICS, { useValue: 'hull' })],
+          }),
+          rewriter(() => ({ with: { useClass: 42 } })) as never,
+        ).then(
+          () => undefined,
+          (reason: unknown) => reason,
+        ),
+      );
+      expect(error).toMatchObject({
+        errors: [
+          { code: 'NEXUS_INVALID_PROVIDER', module: 'swap(Diagnostics)' },
+        ],
+      });
+    });
+  });
+
   it('keeps an @Injectable class a singleton when Object.prototype carries lifetime at decoration time', async () => {
     const proto = Object.prototype as Record<string, unknown>;
     proto['lifetime'] = 'transient';

@@ -1,6 +1,11 @@
 import { describe, expectTypeOf, it } from 'vitest';
 
-import type { NexusPlugin, PluginContext } from '../index.js';
+import type {
+  NexusPlugin,
+  PluginContext,
+  ProviderEntry,
+  ProviderRewrite,
+} from '../index.js';
 
 describe('NexusPlugin', () => {
   it('accepts a synchronous or an async setup', () => {
@@ -18,5 +23,18 @@ describe('NexusPlugin', () => {
     expectTypeOf<Parameters<NonNullable<NexusPlugin['setup']>>>().toEqualTypeOf<
       [PluginContext]
     >();
+  });
+});
+
+describe('ProviderRewrite', () => {
+  it('takes a string label on the with form and rejects any other', () => {
+    expectTypeOf<{
+      with: ProviderEntry;
+      label: string;
+    }>().toExtend<ProviderRewrite>();
+    expectTypeOf<{
+      with: ProviderEntry;
+      label: number;
+    }>().not.toExtend<ProviderRewrite>();
   });
 });

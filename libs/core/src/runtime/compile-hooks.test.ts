@@ -450,6 +450,158 @@ describe('compile.provider', () => {
       ],
     });
   });
+
+  describe('an invalid entry', () => {
+    interface ILog {
+      write(line: string): void;
+    }
+    const LOG = new Token<ILog>('Log');
+    const TRACE = new Token<ILog>('Trace');
+    class ConsoleLog implements ILog {
+      write(): void {}
+    }
+    const Deck = defineModule({
+      name: 'Deck',
+      providers: [provide(LOG, { useClass: ConsoleLog, lifetime: 'scoped' })],
+    });
+    const Hull = defineModule({
+      name: 'Hull',
+      providers: [
+        provide(LOG, { useClass: ConsoleLog, lifetime: 'transient' }),
+        provide(TRACE, { useClass: ConsoleLog }),
+      ],
+    });
+    const Ship = defineModule({ name: 'Ship', imports: [Deck, Hull] });
+    const BAD = { useClass: 42 } as never;
+    /** A check hook that records each Log provider's view. */
+    const watch = (seen: ProviderView[]) =>
+      ({
+        name: 'watch',
+        apiVersion: 1,
+        compile: {
+          check: (view: BlueprintView) =>
+            void seen.push(...view.providers.filter((p) => p.name === 'Log')),
+        },
+      }) as never;
+
+    it('names the rewriter by its label', async () => {
+      const error = await rejected(
+        Nexus.create(Deck, {
+          plugins: [
+            rewrite('flags', (p) =>
+              p.token === LOG ? { with: BAD, label: 'swap' } : undefined,
+            ),
+          ],
+        }),
+      );
+      expect(error).toMatchObject({
+        errors: [
+          { code: 'NEXUS_INVALID_PROVIDER', module: 'swap(Log)', index: 0 },
+        ],
+      });
+      const [inner] = (error as { errors: Error[] }).errors;
+      expect(inner?.message).toContain('swap(Log)');
+      expect(inner?.message).not.toContain('\n');
+    });
+
+    it('names the rewriter by the plugin without a label', async () => {
+      const error = await rejected(
+        Nexus.create(Deck, {
+          plugins: [
+            rewrite('flags', (p) =>
+              p.token === LOG ? { with: BAD } : undefined,
+            ),
+          ],
+        }),
+      );
+      expect(error).toMatchObject({
+        errors: [
+          { code: 'NEXUS_INVALID_PROVIDER', module: 'flags(Log)', index: 0 },
+        ],
+      });
+    });
+
+    it('reports one entry returned for two providers of a token once', async () => {
+      const error = await rejected(
+        Nexus.create(Ship, {
+          plugins: [
+            rewrite('flags', (p) =>
+              p.token === LOG ? { with: BAD } : undefined,
+            ),
+          ],
+        }),
+      );
+      expect(error).toMatchObject({
+        errors: [{ code: 'NEXUS_INVALID_PROVIDER', module: 'flags(Log)' }],
+      });
+      expect((error as { errors: unknown[] }).errors).toHaveLength(1);
+    });
+
+    it('reports one entry returned for two tokens once per token', async () => {
+      const error = await rejected(
+        Nexus.create(Hull, {
+          plugins: [rewrite('flags', () => ({ with: BAD }))],
+        }),
+      );
+      expect(error).toMatchObject({
+        errors: [
+          { code: 'NEXUS_INVALID_PROVIDER', module: 'flags(Log)' },
+          { code: 'NEXUS_INVALID_PROVIDER', module: 'flags(Trace)' },
+        ],
+      });
+      expect((error as { errors: unknown[] }).errors).toHaveLength(2);
+    });
+
+    it.each(['', 42])(
+      'fails the hook for the label %j and leaves the provider as it was',
+      async (label) => {
+        const seen: ProviderView[] = [];
+        const error = await rejected(
+          Nexus.create(Deck, {
+            plugins: [
+              rewrite('flags', (p) =>
+                p.token === LOG
+                  ? { with: provide(LOG, { useClass: ConsoleLog }), label }
+                  : undefined,
+              ),
+              watch(seen),
+            ],
+          }),
+        );
+        expect(error).toMatchObject({
+          errors: [
+            {
+              code: 'NEXUS_PLUGIN_FAILED',
+              plugin: 'flags',
+              hook: 'compile.provider',
+            },
+          ],
+        });
+        expect(seen.map((p) => p.rewrittenBy)).toEqual([null]);
+      },
+    );
+
+    it('keeps each record its own id, module and lifetime when one valid entry replaces two', async () => {
+      const seen: ProviderView[] = [];
+      const entry = provide(LOG, { useClass: ConsoleLog });
+      await Nexus.create(Ship, {
+        plugins: [
+          rewrite('flags', (p) =>
+            p.token === LOG ? { with: entry } : undefined,
+          ),
+          watch(seen),
+        ],
+      });
+      expect(seen).toHaveLength(2);
+      expect(new Set(seen.map((p) => p.id)).size).toBe(2);
+      expect(new Set(seen.map((p) => p.module)).size).toBe(2);
+      expect(seen.map((p) => p.lifetime).sort()).toEqual([
+        'scoped',
+        'transient',
+      ]);
+      expect(seen.map((p) => p.rewrittenBy)).toEqual(['flags', 'flags']);
+    });
+  });
 });
 
 describe('compile.check', () => {
