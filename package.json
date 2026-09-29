@@ -82,7 +82,8 @@
     "examples/*",
     "internal/*",
     "libs/*",
-    "tools/*"
+    "tools/*",
+    "benchmarks"
   ],
   "nx": {
     "includedScripts": [],
