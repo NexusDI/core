@@ -246,7 +246,11 @@ export function registerPlugins(input: unknown): PluginSet {
 
     const compile = take(candidate, 'compile');
     if (compile !== undefined) {
-      if (typeof compile !== 'object' || compile === null) {
+      if (
+        typeof compile !== 'object' ||
+        compile === null ||
+        Array.isArray(compile)
+      ) {
         invalid(name, 'bad-compile');
       } else {
         let compileOk = true;

@@ -111,6 +111,17 @@ describe('Nexus.create', () => {
     });
   });
 
+  it('rejects a plugin whose compile is an array', async () => {
+    const error = await rejected(
+      Nexus.create(Root, {
+        plugins: [plugin('bad', { compile: [] })] as never,
+      }),
+    );
+    expect(error).toMatchObject({
+      errors: [{ plugin: 'bad', reason: 'bad-compile' }],
+    });
+  });
+
   it('rejects a plugin whose modules is not an array', async () => {
     const error = await rejected(
       Nexus.create(Root, {
