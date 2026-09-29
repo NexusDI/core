@@ -36,6 +36,14 @@
           "cwd": "benchmarks",
           "command": "node src/size.ts"
         }
+      },
+      "build-times": {
+        "executor": "nx:run-commands",
+        "cache": false,
+        "options": {
+          "cwd": "benchmarks",
+          "command": "node src/build.ts"
+        }
       }
     }
   }

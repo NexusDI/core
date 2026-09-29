@@ -3,10 +3,6 @@ import baseConfig from '../../eslint.config.mjs';
 export default [
   ...baseConfig,
   {
-    // The dispatch builds libs/core/bench writes: generated bundles.
-    ignores: ['tmp'],
-  },
-  {
     // Tests cast through `never` and `any` to feed the container values its
     // types reject, which is how they reach the runtime checks.
     files: ['**/*.test.ts', '**/*.test-d.ts'],
