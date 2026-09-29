@@ -11,8 +11,17 @@
         "command": "vitest run --config vitest.browser.config.ts"
       }
     },
+    "test-bench": {
+      "executor": "nx:run-commands",
+      "cache": true,
+      "inputs": ["default"],
+      "options": {
+        "cwd": "libs/core",
+        "command": "vitest run --config bench/vitest.config.ts"
+      }
+    },
     "test": {
-      "dependsOn": ["^build", "build", "test-browser"]
+      "dependsOn": ["^build", "build", "test-browser", "test-bench"]
     },
     "lint": {
       "options": {
