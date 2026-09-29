@@ -151,7 +151,8 @@ await using api = await Nexus.create(Api);
 [`@nexusdi/core`](libs/core/README.md) holds the container. Each of these is optional, built on the plugin API, and pinned to core's version:
 
 - [`@nexusdi/errors`](libs/errors/README.md): full error messages with fix lines and near-miss suggestions
-- [`@nexusdi/devtools`](libs/devtools/README.md): `graph()`, `inspect()`, `trace()`, and the messages of `errors`
+- [`@nexusdi/devtools`](libs/devtools/README.md): `graph()`, `inspect()`, `trace()`, `toMermaid()`, `toDot()`, and the messages of `errors`
+- [`@nexusdi/cli`](libs/cli/README.md): the `nexusdi graph` command
 - [`@nexusdi/testing`](libs/testing/README.md): `createTestingContainer()` with provider and module overrides
 - [`@nexusdi/node`](libs/node/README.md): `nodeScopes()`, the ambient scope over `AsyncLocalStorage`
 - [`@nexusdi/decorators`](libs/decorators/README.md): `@Injectable`, `@Inject` and `@Module`

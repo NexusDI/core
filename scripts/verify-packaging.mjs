@@ -42,6 +42,7 @@ const LIBS = [
   ['libs/node', '@nexusdi/node'],
   ['libs/devtools', '@nexusdi/devtools'],
   ['libs/interceptors', '@nexusdi/interceptors'],
+  ['libs/cli', '@nexusdi/cli'],
   ['libs/decorators', '@nexusdi/decorators'],
   ['libs/federation', '@nexusdi/federation'],
 ];
@@ -667,6 +668,34 @@ try {
     '  ✓ a decorated class, the class metadata functions, scopes, @nexusdi/node, @nexusdi/testing, @nexusdi/devtools, @nexusdi/federation and @nexusdi/interceptors run from the packed build',
   );
 
+  // The bin as published: its shebang, and the rule that it loads the
+  // project's @nexusdi/devtools and core, both installed here from tarballs.
+  console.log('Running the nexusdi bin…');
+  writeFileSync(
+    join(dir, 'meridian.module.js'),
+    `import { Token, defineModule, provide } from '@nexusdi/core';
+const NAV_CHARTS = new Token('NavCharts');
+class StellarCharts {}
+export default defineModule({
+  name: 'Meridian',
+  providers: [provide(NAV_CHARTS, { useClass: StellarCharts })],
+});
+`,
+  );
+  const mermaid = run(
+    'npx',
+    ['--no', 'nexusdi', 'graph', 'meridian.module.js'],
+    dir,
+  );
+  if (
+    !mermaid.startsWith('flowchart LR\n') ||
+    !mermaid.includes('StellarCharts')
+  )
+    throw new Error(`nexusdi graph printed:\n${mermaid}`);
+  console.log(
+    '  ✓ npx nexusdi graph runs from the packed build and graphs the project',
+  );
+
   console.log('Checking the published modules for top-level await…');
   const ts = createRequire(join(dir, 'package.json'))('typescript');
   const awaiting = LIBS.flatMap(([, name]) =>
@@ -784,7 +813,7 @@ try {
   // package, so node's default conditions never select source.
   for (const [, name] of LIBS) {
     const manifest = packedManifest(name);
-    if (manifest.exports?.['.'] === undefined)
+    if (manifest.exports?.['.'] === undefined && manifest.bin === undefined)
       throw new Error(`${name} has no "." entry in its exports map`);
     for (const [entry, target] of Object.entries(manifest.exports)) {
       if (entry === './package.json') continue;
