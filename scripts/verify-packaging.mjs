@@ -42,6 +42,7 @@ const LIBS = [
   ['libs/node', '@nexusdi/node'],
   ['libs/devtools', '@nexusdi/devtools'],
   ['libs/decorators', '@nexusdi/decorators'],
+  ['libs/federation', '@nexusdi/federation'],
 ];
 
 /** Every JavaScript module under `root`, at any depth. */
@@ -67,6 +68,7 @@ const { createTestingContainer } = require('@nexusdi/testing');
 const { nodeScopes } = require('@nexusdi/node');
 const { errors } = require('@nexusdi/errors');
 const { Inject, Injectable, Module } = require('@nexusdi/decorators');
+const { defineContract, federation } = require('@nexusdi/federation');
 
 const REACTOR = new Token('ReactorCore');
 class FusionReactor {
@@ -109,6 +111,19 @@ const Engineering = defineModule({
   await fake[Symbol.asyncDispose]();
   if (![Inject, Injectable, Module].every((d) => typeof d === 'function'))
     throw new Error('require(esm): @nexusdi/decorators lost a decorator');
+
+  const shellBank = defineContract({ key: 'bank', version: '2.3.0' });
+  const remoteBank = defineContract({ key: 'bank', version: '2.1.0' });
+  const shell = await Nexus.create(
+    defineModule({
+      name: 'Shell',
+      providers: [provide(shellBank.token('Auth'), { useValue: 'ada' })],
+    }),
+    { plugins: [federation()] },
+  );
+  if (shell.get(remoteBank.token('Auth')) !== 'ada')
+    throw new Error('require(esm): @nexusdi/federation did not bind a contract copy');
+  await shell[Symbol.asyncDispose]();
   console.log(process.versions.node);
 })().catch((error) => {
   console.error(error);
@@ -204,6 +219,8 @@ import type {
 import { errors, explain } from '@nexusdi/errors';
 import { devtools, graph, trace } from '@nexusdi/devtools';
 import type { NexusGraph, TraceEvent } from '@nexusdi/devtools';
+import { ContractVersionError, defineContract, federation } from '@nexusdi/federation';
+import type { Contract } from '@nexusdi/federation';
 
 declare module '@nexusdi/core' {
   interface NexusRequest {
@@ -323,6 +340,33 @@ function check(ok: boolean, what: string): void {
   );
 }
 
+{
+  interface IAuth {
+    user(): string;
+  }
+  const shellBank: Contract = defineContract({ key: 'bank', version: '2.3.0' });
+  const remoteBank = defineContract({ key: 'bank', version: '2.4.0' });
+  const AUTH = shellBank.token<IAuth>('Auth');
+  await using shell = await Nexus.create(
+    defineModule({
+      name: 'Shell',
+      providers: [provide(AUTH, { useValue: { user: () => 'ada' } })],
+      exports: [AUTH],
+      global: true,
+    }),
+    { plugins: [federation()] },
+  );
+  check(shell.get(defineContract({ key: 'bank', version: '2.1.0' }).token<IAuth>('Auth')).user() === 'ada', '@nexusdi/federation binds a contract copy');
+  class Transfers {
+    static deps = [remoteBank.token<IAuth>('Auth')] as const;
+    constructor(readonly auth: IAuth) {}
+  }
+  const refused = await shell
+    .load(defineModule({ name: 'Transfers', providers: [Transfers] }))
+    .catch((caught: unknown) => caught as BlueprintError);
+  check(refused?.errors[0] instanceof ContractVersionError, '@nexusdi/federation reports a newer minor');
+}
+
 const errorClasses = [
   AmbiguousProviderError, AsyncTransientError, BlueprintError, CircularDependencyError,
   DisposedError, DuplicateProviderError, InvalidExportError, InvalidModuleError,
@@ -330,7 +374,7 @@ const errorClasses = [
   LoadedAfterScopeError, LoadError, MissingDepsError, MissingProviderError,
   ModuleImportCycleError, ModuleOptionsError, NexusError,
   NotReadyError, NotVisibleError, ProviderError, RequestMissingError,
-  ScopeRequiredError, OverrideError, LegacyDecoratorsError,
+  ScopeRequiredError, OverrideError, LegacyDecoratorsError, ContractVersionError,
 ];
 check(errorClasses.every((c) => typeof c === 'function') && typeof all === 'function', 'the error classes');
 
@@ -540,7 +584,7 @@ try {
   console.log('Type-checking a strict consumer…');
   run('npx', ['tsc', '-p', 'tsconfig.nodenext.json'], dir);
   console.log(
-    '  ✓ ., @nexusdi/decorators, @nexusdi/node, @nexusdi/testing and @nexusdi/devtools resolve with types under nodenext, with lib es2022 and no @types/node',
+    '  ✓ ., @nexusdi/decorators, @nexusdi/node, @nexusdi/testing, @nexusdi/devtools and @nexusdi/federation resolve with types under nodenext, with lib es2022 and no @types/node',
   );
   run('npx', ['tsc', '-p', 'tsconfig.bundler.json', '--noEmit'], dir);
   console.log(
@@ -552,7 +596,7 @@ try {
   console.log('Running the consumer…');
   run('node', [join(dir, 'out-nodenext', 'consumer.js')], dir);
   console.log(
-    '  ✓ a decorated class, the class metadata functions, scopes, @nexusdi/node, @nexusdi/testing and @nexusdi/devtools run from the packed build',
+    '  ✓ a decorated class, the class metadata functions, scopes, @nexusdi/node, @nexusdi/testing, @nexusdi/devtools and @nexusdi/federation run from the packed build',
   );
 
   console.log('Checking the published modules for top-level await…');

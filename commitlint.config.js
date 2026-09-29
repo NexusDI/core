@@ -40,6 +40,7 @@ module.exports = {
         // sits under nx.json's `release.projects` globs is what versions a
         // package.
         'core',
+        'federation',
         'decorators',
         'testing',
         'errors',

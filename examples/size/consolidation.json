@@ -52,5 +52,11 @@
     "core": 18276,
     "delta": 400,
     "kept": true
+  },
+  {
+    "step": "R26 federation",
+    "core": 18276,
+    "delta": 0,
+    "kept": true
   }
 ]

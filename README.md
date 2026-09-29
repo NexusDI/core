@@ -155,6 +155,7 @@ await using api = await Nexus.create(Api);
 - [`@nexusdi/testing`](libs/testing/README.md): `createTestingContainer()` with provider and module overrides
 - [`@nexusdi/node`](libs/node/README.md): `nodeScopes()`, the ambient scope over `AsyncLocalStorage`
 - [`@nexusdi/decorators`](libs/decorators/README.md): `@Injectable`, `@Inject` and `@Module`
+- [`@nexusdi/federation`](libs/federation/README.md): `defineContract()` and `federation()`, keyed and versioned contract tokens for a shell and its remotes
 
 ## Documentation
 

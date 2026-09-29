@@ -61,6 +61,7 @@ Package scopes:
 - **errors**: Changes to the `@nexusdi/errors` library
 - **node**: Changes to the `@nexusdi/node` library
 - **devtools**: Changes to the `@nexusdi/devtools` library
+- **federation**: Changes to the `@nexusdi/federation` library
 
 Repository scopes (these are not projects and never bump a package on their
 own):

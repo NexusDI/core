@@ -9,6 +9,7 @@
     "@nexusdi/decorators": "*",
     "@nexusdi/devtools": "*",
     "@nexusdi/errors": "*",
+    "@nexusdi/federation": "*",
     "@nexusdi/node": "*",
     "@nexusdi/testing": "*"
   }

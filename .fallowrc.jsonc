@@ -14,6 +14,7 @@
     "@nexusdi/node",
     "@nexusdi/devtools",
     "@nexusdi/decorators",
+    "@nexusdi/federation",
   ],
 
   // Nextra loads every page and `_meta.ts` under apps/docs/content by file
@@ -48,6 +49,7 @@
     "libs/node/src/**/*.test-d.ts",
     "libs/devtools/src/**/*.test-d.ts",
     "libs/decorators/src/**/*.test-d.ts",
+    "libs/federation/src/**/*.test-d.ts",
     // fallow's vitest plugin derives entry points from vite.config.ts's
     // test.include glob alone. Each vitest.browser.config.ts, the Chromium
     // project that runs R20, is a separate config file the plugin never

@@ -714,7 +714,7 @@ A plugin extends one container. It is a plain object with a `name`, unique among
 | `setup`            | Runs once when `create` has built the container, and receives it         |
 | `dispose`          | Runs at container disposal, after every root-owned instance              |
 
-A plugin reads the graph and cannot change it once the compiler has validated it. `@nexusdi/errors`, `@nexusdi/devtools` and `@nexusdi/testing` are plugins built on this API alone.
+A plugin reads the graph and cannot change it once the compiler has validated it. `@nexusdi/errors`, `@nexusdi/devtools`, `@nexusdi/testing` and `@nexusdi/federation` are plugins built on this API alone.
 
 <!-- #region plugins -->
 
@@ -779,6 +779,7 @@ and pinned to core's version:
 | `@nexusdi/testing`    | `createTestingContainer()` with provider and module overrides   |
 | `@nexusdi/node`       | `nodeScopes()`, the ambient scope over `AsyncLocalStorage`      |
 | `@nexusdi/decorators` | `@Injectable`, `@Inject` and `@Module`                          |
+| `@nexusdi/federation` | Contract tokens: `defineContract()` and `federation()`          |
 
 In development, register `devtools()`:
 
