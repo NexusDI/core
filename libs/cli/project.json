@@ -2,6 +2,34 @@
   "$schema": "../../node_modules/nx/schemas/project-schema.json",
   "name": "@nexusdi/cli",
   "targets": {
+    "build": {
+      "executor": "nx:run-commands",
+      "dependsOn": ["^build"],
+      "cache": true,
+      "inputs": [
+        "{projectRoot}/package.json",
+        "{workspaceRoot}/tsconfig.base.json",
+        "{projectRoot}/tsconfig.lib.json",
+        "{projectRoot}/src/**/*.ts",
+        "!{projectRoot}/src/**/*.test.ts",
+        "!{projectRoot}/src/**/*.spec.ts",
+        {
+          "dependentTasksOutputFiles": "**/*.{d.ts,d.cts,d.mts,tsbuildinfo}",
+          "transitive": true
+        },
+        "^{projectRoot}/tsconfig.json",
+        "^{projectRoot}/tsconfig.lib.json"
+      ],
+      "outputs": [
+        "{projectRoot}/dist/**/*.{js,d.ts}",
+        "{projectRoot}/dist/tsconfig.lib.tsbuildinfo"
+      ],
+      "syncGenerators": ["@nx/js:typescript-sync"],
+      "options": {
+        "cwd": "libs/cli",
+        "command": "tsc --build tsconfig.lib.json"
+      }
+    },
     "lint": { "options": { "args": ["--max-warnings=0"] } },
     "test": { "dependsOn": ["^build", "build"] }
   }

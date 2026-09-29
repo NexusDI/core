@@ -18,6 +18,8 @@ export default [
           // (src/resolve.ts), so no import statement names them.
           ignoredDependencies: [
             '@nexusdi/core',
+            // TEMP until src/graph-json.ts imports its NexusGraph type.
+            '@nexusdi/devtools',
             'tsx',
             '@viz-js/viz',
             '@resvg/resvg-js',
