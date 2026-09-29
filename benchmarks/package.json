@@ -19,6 +19,14 @@
           "cwd": "benchmarks",
           "command": "node src/matrix.ts"
         }
+      },
+      "probes": {
+        "executor": "nx:run-commands",
+        "cache": false,
+        "options": {
+          "cwd": "benchmarks",
+          "command": "node src/probes.ts"
+        }
       }
     }
   }

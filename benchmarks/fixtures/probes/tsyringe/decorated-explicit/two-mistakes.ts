@@ -1,17 +1,14 @@
-// Meridian-8 in tsyringe with @inject(token) on every constructor
-// parameter, under the legacy profile (experimentalDecorators on,
-// emitDecoratorMetadata off): the workaround for a toolchain without
-// decorator metadata (spec 4.3). reflect-metadata stays imported, because
-// tsyringe throws "tsyringe requires a reflect polyfill." at import
-// without it.
-// Docs: https://github.com/microsoft/tsyringe#readme (4.10.0), read 2026-09-30.
-// Departures: every parameter names its token with @inject; fields instead
-// of constructor parameter properties (node-strip-types is a cell);
-// ready() clears the global container's instances, as in decorated.ts.
+// Probe two-mistakes (benchmarks spec 4.6) on tsyringe decorated-explicit: missing-provider and cycle together.
+// The rest is fixtures/tsyringe/decorated-explicit.ts, with ready() creating and
+// configuring the container and resolving nothing.
+// ShieldGrid is declared after PowerRouter, so the parameter names it
+// with delay(), tsyringe's forward reference. delay() also hands out a
+// lazy proxy, which breaks the cycle.
 import 'reflect-metadata';
 import {
   Lifecycle,
   container,
+  delay,
   inject,
   injectable,
   scoped,
@@ -37,7 +34,7 @@ class QuantumComputer {
 class PowerRouter {
   readonly kind = 'PowerRouter';
   readonly reactor: FusionReactor;
-  constructor(@inject(FusionReactor) reactor: FusionReactor) {
+  constructor(@inject(delay(() => ShieldGrid)) reactor: FusionReactor) {
     this.reactor = reactor;
   }
 }
@@ -101,14 +98,6 @@ export const adapter = {
   lifetimes: ['singleton', 'transient', 'scoped'] as const,
   ready() {
     container.clearInstances();
-    container.register<INavCharts>('NavCharts', {
-      useValue: { kind: 'NavCharts' },
-    });
-    container.resolve(FusionReactor);
-    container.resolve(QuantumComputer);
-    container.resolve(PowerRouter);
-    container.resolve(ShieldGrid);
-    container.resolve(Bridge);
     return view(container);
   },
   scope() {
@@ -116,3 +105,8 @@ export const adapter = {
     return Object.assign(view(child), { close: () => child.dispose() });
   },
 };
+
+/** The first resolve the probe runner makes. */
+export function resolveBridge(ship: { get(name: 'bridge'): unknown }): unknown {
+  return ship.get('bridge');
+}

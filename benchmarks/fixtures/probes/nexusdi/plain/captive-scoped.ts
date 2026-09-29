@@ -1,11 +1,7 @@
-// Meridian-8 in NexusDI with @nexusdi/decorators (core spec D9): interface
-// tokens, @Injectable({ deps }) classes bound with provide(), and an
-// @Module class. A useClass binding sets the lifetime; the class's
-// @Injectable lifetime applies only to a class listed bare.
-// Docs: https://github.com/NexusDI/core#readme at this commit, read 2026-09-30.
-// Departures: none.
-import { Nexus, Token, provide } from '@nexusdi/core';
-import { Injectable, Module } from '@nexusdi/decorators';
+// Probe captive-scoped (benchmarks spec 4.6) on nexusdi plain: the singleton Bridge takes the scoped FlightLog.
+// The rest is fixtures/nexusdi/plain.ts, with ready() creating and
+// configuring the container and resolving nothing.
+import { Nexus, Token, defineModule, provide } from '@nexusdi/core';
 
 interface IReactorCore {
   readonly kind: 'ReactorCore';
@@ -49,60 +45,62 @@ const BRIDGE = new Token<IBridge>('Bridge');
 const DRONE = new Token<ISurveyDrone>('SurveyDrone');
 const FLIGHT_LOG = new Token<IFlightLog>('FlightLog');
 
-@Injectable({ deps: [] })
 class FusionReactor implements IReactorCore {
   readonly kind = 'ReactorCore';
 }
-@Injectable({ deps: [REACTOR] })
 class QuantumComputer implements IShipComputer {
+  static deps = [REACTOR] as const;
   readonly kind = 'ShipComputer';
   readonly reactor: IReactorCore;
   constructor(reactor: IReactorCore) {
     this.reactor = reactor;
   }
 }
-@Injectable({ deps: [REACTOR] })
 class PowerRouter implements IPowerRouter {
+  static deps = [REACTOR] as const;
   readonly kind = 'PowerRouter';
   readonly reactor: IReactorCore;
   constructor(reactor: IReactorCore) {
     this.reactor = reactor;
   }
 }
-@Injectable({ deps: [POWER_ROUTER] })
 class ShieldGrid implements IShieldGrid {
+  static deps = [POWER_ROUTER] as const;
   readonly kind = 'ShieldGrid';
   readonly router: IPowerRouter;
   constructor(router: IPowerRouter) {
     this.router = router;
   }
 }
-@Injectable({ deps: [COMPUTER, NAV_CHARTS, SHIELD_GRID] })
 class Bridge implements IBridge {
+  static deps = [COMPUTER, NAV_CHARTS, SHIELD_GRID, FLIGHT_LOG] as const;
   readonly kind = 'Bridge';
   readonly computer: IShipComputer;
   readonly charts: INavCharts;
   readonly shield: IShieldGrid;
+  readonly log: IFlightLog;
   constructor(
     computer: IShipComputer,
     charts: INavCharts,
     shield: IShieldGrid,
+    log: IFlightLog,
   ) {
+    this.log = log;
     this.computer = computer;
     this.charts = charts;
     this.shield = shield;
   }
 }
-@Injectable({ deps: [COMPUTER] })
 class SurveyDrone implements ISurveyDrone {
+  static deps = [COMPUTER] as const;
   readonly kind = 'SurveyDrone';
   readonly computer: IShipComputer;
   constructor(computer: IShipComputer) {
     this.computer = computer;
   }
 }
-@Injectable({ deps: [COMPUTER] })
 class FlightLog implements IFlightLog {
+  static deps = [COMPUTER] as const;
   readonly kind = 'FlightLog';
   readonly computer: IShipComputer;
   constructor(computer: IShipComputer) {
@@ -110,7 +108,8 @@ class FlightLog implements IFlightLog {
   }
 }
 
-@Module({
+const Meridian = defineModule({
+  name: 'Meridian',
   providers: [
     provide(REACTOR, { useClass: FusionReactor, lifetime: 'singleton' }),
     provide(COMPUTER, { useClass: QuantumComputer, lifetime: 'singleton' }),
@@ -121,8 +120,7 @@ class FlightLog implements IFlightLog {
     provide(DRONE, { useClass: SurveyDrone, lifetime: 'transient' }),
     provide(FLIGHT_LOG, { useClass: FlightLog, lifetime: 'scoped' }),
   ],
-})
-class Meridian {}
+});
 
 const TOKENS = {
   bridge: BRIDGE,
@@ -154,3 +152,8 @@ export const adapter = {
   },
   dispose: (handle: { ship: Nexus }) => handle.ship[Symbol.asyncDispose](),
 };
+
+/** The first resolve the probe runner makes. */
+export function resolveBridge(ship: { get(name: 'bridge'): unknown }): unknown {
+  return ship.get('bridge');
+}

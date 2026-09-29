@@ -19,7 +19,7 @@ import {
 } from 'inversify';
 
 interface INavCharts {
-  readonly kind: string;
+  readonly kind: 'NavCharts';
 }
 const NAV_CHARTS = Symbol.for('NavCharts');
 

@@ -1,13 +1,6 @@
-// Meridian-8 in tsyringe with @inject(token) on every constructor
-// parameter, under the legacy profile (experimentalDecorators on,
-// emitDecoratorMetadata off): the workaround for a toolchain without
-// decorator metadata (spec 4.3). reflect-metadata stays imported, because
-// tsyringe throws "tsyringe requires a reflect polyfill." at import
-// without it.
-// Docs: https://github.com/microsoft/tsyringe#readme (4.10.0), read 2026-09-30.
-// Departures: every parameter names its token with @inject; fields instead
-// of constructor parameter properties (node-strip-types is a cell);
-// ready() clears the global container's instances, as in decorated.ts.
+// Probe missing-provider (benchmarks spec 4.6) on tsyringe decorated: NAV_CHARTS is never registered.
+// The rest is fixtures/tsyringe/decorated.ts, with ready() creating and
+// configuring the container and resolving nothing.
 import 'reflect-metadata';
 import {
   Lifecycle,
@@ -29,7 +22,7 @@ class FusionReactor {
 class QuantumComputer {
   readonly kind = 'ShipComputer';
   readonly reactor: FusionReactor;
-  constructor(@inject(FusionReactor) reactor: FusionReactor) {
+  constructor(reactor: FusionReactor) {
     this.reactor = reactor;
   }
 }
@@ -37,7 +30,7 @@ class QuantumComputer {
 class PowerRouter {
   readonly kind = 'PowerRouter';
   readonly reactor: FusionReactor;
-  constructor(@inject(FusionReactor) reactor: FusionReactor) {
+  constructor(reactor: FusionReactor) {
     this.reactor = reactor;
   }
 }
@@ -45,7 +38,7 @@ class PowerRouter {
 class ShieldGrid {
   readonly kind = 'ShieldGrid';
   readonly router: PowerRouter;
-  constructor(@inject(PowerRouter) router: PowerRouter) {
+  constructor(router: PowerRouter) {
     this.router = router;
   }
 }
@@ -56,9 +49,9 @@ class Bridge {
   readonly charts: INavCharts;
   readonly shield: ShieldGrid;
   constructor(
-    @inject(QuantumComputer) computer: QuantumComputer,
+    computer: QuantumComputer,
     @inject('NavCharts') charts: INavCharts,
-    @inject(ShieldGrid) shield: ShieldGrid,
+    shield: ShieldGrid,
   ) {
     this.computer = computer;
     this.charts = charts;
@@ -69,7 +62,7 @@ class Bridge {
 class SurveyDrone {
   readonly kind = 'SurveyDrone';
   readonly computer: QuantumComputer;
-  constructor(@inject(QuantumComputer) computer: QuantumComputer) {
+  constructor(computer: QuantumComputer) {
     this.computer = computer;
   }
 }
@@ -77,7 +70,7 @@ class SurveyDrone {
 class FlightLog {
   readonly kind = 'FlightLog';
   readonly computer: QuantumComputer;
-  constructor(@inject(QuantumComputer) computer: QuantumComputer) {
+  constructor(computer: QuantumComputer) {
     this.computer = computer;
   }
 }
@@ -101,14 +94,6 @@ export const adapter = {
   lifetimes: ['singleton', 'transient', 'scoped'] as const,
   ready() {
     container.clearInstances();
-    container.register<INavCharts>('NavCharts', {
-      useValue: { kind: 'NavCharts' },
-    });
-    container.resolve(FusionReactor);
-    container.resolve(QuantumComputer);
-    container.resolve(PowerRouter);
-    container.resolve(ShieldGrid);
-    container.resolve(Bridge);
     return view(container);
   },
   scope() {
@@ -116,3 +101,8 @@ export const adapter = {
     return Object.assign(view(child), { close: () => child.dispose() });
   },
 };
+
+/** The first resolve the probe runner makes. */
+export function resolveBridge(ship: { get(name: 'bridge'): unknown }): unknown {
+  return ship.get('bridge');
+}

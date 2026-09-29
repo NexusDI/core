@@ -1,10 +1,6 @@
-// Meridian-8 in InversifyJS without decorators: symbol identifiers typed
-// with ServiceIdentifier, and toResolvedValue bindings that name each
-// dependency (the binding syntax page's toResolvedValue section).
-// Docs: https://inversify.io/docs/api/binding-syntax/ (8.2.3), read 2026-09-30.
-// Departures: fields instead of constructor parameter properties
-// (node-strip-types is a cell). ready() builds the container, so each call
-// starts empty.
+// Probe missing-provider (benchmarks spec 4.6) on inversify plain: NAV_CHARTS is never registered.
+// The rest is fixtures/inversify/plain.ts, with ready() creating and
+// configuring the container and resolving nothing.
 import { Container, type ServiceIdentifier } from 'inversify';
 
 interface IReactorCore {
@@ -130,7 +126,6 @@ export const adapter = {
         [POWER_ROUTER],
       )
       .inSingletonScope();
-    container.bind(NAV_CHARTS).toConstantValue({ kind: 'NavCharts' });
     container
       .bind(BRIDGE)
       .toResolvedValue(
@@ -146,11 +141,14 @@ export const adapter = {
         [COMPUTER],
       )
       .inTransientScope();
-    for (const id of [REACTOR, COMPUTER, POWER_ROUTER, SHIELD_GRID, BRIDGE])
-      container.get(id);
     return {
       get: (name: keyof typeof IDS) =>
         container.get(IDS[name] as ServiceIdentifier<{ kind: string }>),
     };
   },
 };
+
+/** The first resolve the probe runner makes. */
+export function resolveBridge(ship: { get(name: 'bridge'): unknown }): unknown {
+  return ship.get('bridge');
+}

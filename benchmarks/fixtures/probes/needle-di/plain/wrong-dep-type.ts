@@ -1,10 +1,6 @@
-// Meridian-8 in needle-di without decorators: InjectionToken per interface,
-// and factory providers that call inject() inside the factory (the
-// Providers page, "Factory providers").
-// Docs: https://needle-di.io (1.2.1), read 2026-09-30.
-// Departures: fields instead of constructor parameter properties
-// (node-strip-types is a cell). needle-di documents singletons only, so the
-// transient and scoped sections are not-applicable (libraries.json).
+// Probe wrong-dep-type (benchmarks spec 4.6) on needle-di plain: ShipComputer is wired to PowerRouter where it takes ReactorCore.
+// The rest is fixtures/needle-di/plain.ts, with ready() creating and
+// configuring the container and resolving nothing.
 import { Container, InjectionToken, inject } from '@needle-di/core';
 
 interface IReactorCore {
@@ -95,7 +91,7 @@ export const adapter = {
     container.bind({ provide: REACTOR, useFactory: () => new FusionReactor() });
     container.bind({
       provide: COMPUTER,
-      useFactory: () => new QuantumComputer(inject(REACTOR)),
+      useFactory: () => new QuantumComputer(inject(POWER_ROUTER)),
     });
     container.bind({
       provide: POWER_ROUTER,
@@ -111,14 +107,14 @@ export const adapter = {
       useFactory: () =>
         new Bridge(inject(COMPUTER), inject(NAV_CHARTS), inject(SHIELD_GRID)),
     });
-    container.get(REACTOR);
-    container.get(COMPUTER);
-    container.get(POWER_ROUTER);
-    container.get(SHIELD_GRID);
-    container.get(BRIDGE);
     return {
       get: (name: keyof typeof IDS) =>
         container.get(IDS[name] as InjectionToken<{ kind: string }>),
     };
   },
 };
+
+/** The first resolve the probe runner makes. */
+export function resolveBridge(ship: { get(name: 'bridge'): unknown }): unknown {
+  return ship.get('bridge');
+}

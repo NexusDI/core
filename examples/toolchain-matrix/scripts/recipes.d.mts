@@ -32,6 +32,11 @@ export function buildCommand(
   entry: string,
   configs: Configs,
 ): Command | null;
+export function outputOf(
+  toolchainId: string,
+  entry: string,
+  configs: Configs,
+): string;
 export function compile(
   toolchainId: string,
   dir: string,

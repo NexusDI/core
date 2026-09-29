@@ -5,35 +5,35 @@
 import { Nexus, Token, defineModule, provide } from '@nexusdi/core';
 
 interface IReactorCore {
-  readonly kind: string;
+  readonly kind: 'ReactorCore';
 }
 interface IShipComputer {
-  readonly kind: string;
+  readonly kind: 'ShipComputer';
   readonly reactor: IReactorCore;
 }
 interface IPowerRouter {
-  readonly kind: string;
+  readonly kind: 'PowerRouter';
   readonly reactor: IReactorCore;
 }
 interface IShieldGrid {
-  readonly kind: string;
+  readonly kind: 'ShieldGrid';
   readonly router: IPowerRouter;
 }
 interface INavCharts {
-  readonly kind: string;
+  readonly kind: 'NavCharts';
 }
 interface IBridge {
-  readonly kind: string;
+  readonly kind: 'Bridge';
   readonly computer: IShipComputer;
   readonly charts: INavCharts;
   readonly shield: IShieldGrid;
 }
 interface ISurveyDrone {
-  readonly kind: string;
+  readonly kind: 'SurveyDrone';
   readonly computer: IShipComputer;
 }
 interface IFlightLog {
-  readonly kind: string;
+  readonly kind: 'FlightLog';
   readonly computer: IShipComputer;
 }
 

@@ -1,14 +1,6 @@
-// Meridian-8 in tsyringe without decorators: string tokens registered with
-// factory providers (README "Factory provider"): instanceCachingFactory for
-// the singletons, a plain useFactory for the transient drone, and
-// instancePerContainerCachingFactory for the flight log, which the README
-// likens to @scoped(Lifecycle.ContainerScoped).
-// Docs: https://github.com/microsoft/tsyringe#readme (4.10.0), read 2026-09-30.
-// The file imports reflect-metadata, because tsyringe's entry throws
-// "tsyringe requires a reflect polyfill." without it.
-// Departures: fields instead of constructor parameter properties
-// (node-strip-types is a cell). ready() builds its own child container, so
-// each call starts empty.
+// Probe captive-scoped (benchmarks spec 4.6) on tsyringe plain: the singleton Bridge takes the scoped FlightLog.
+// The rest is fixtures/tsyringe/plain.ts, with ready() creating and
+// configuring the container and resolving nothing.
 import 'reflect-metadata';
 import {
   container as root,
@@ -88,11 +80,14 @@ class Bridge implements IBridge {
   readonly computer: IShipComputer;
   readonly charts: INavCharts;
   readonly shield: IShieldGrid;
+  readonly log: IFlightLog;
   constructor(
     computer: IShipComputer,
     charts: INavCharts,
     shield: IShieldGrid,
+    log: IFlightLog,
   ) {
+    this.log = log;
     this.computer = computer;
     this.charts = charts;
     this.shield = shield;
@@ -141,6 +136,7 @@ function build(): DependencyContainer {
           d.resolve<IShipComputer>(COMPUTER),
           d.resolve<INavCharts>(NAV_CHARTS),
           d.resolve<IShieldGrid>(SHIELD_GRID),
+          d.resolve<IFlightLog>(FLIGHT_LOG),
         ),
     ),
   });
@@ -173,8 +169,6 @@ export const adapter = {
   lifetimes: ['singleton', 'transient', 'scoped'] as const,
   ready() {
     const c = build();
-    for (const id of [REACTOR, COMPUTER, POWER_ROUTER, SHIELD_GRID, BRIDGE])
-      c.resolve(id);
     return Object.assign(view(c), { container: c });
   },
   scope(ship: { container: DependencyContainer }) {
@@ -182,3 +176,8 @@ export const adapter = {
     return Object.assign(view(child), { close: () => child.dispose() });
   },
 };
+
+/** The first resolve the probe runner makes. */
+export function resolveBridge(ship: { get(name: 'bridge'): unknown }): unknown {
+  return ship.get('bridge');
+}
