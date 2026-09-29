@@ -1,30 +1,11 @@
 import { runInNewContext } from 'node:vm';
 
-import { expect } from 'vitest';
-
 import {
   defineModule,
   provide,
   Token,
   type ModuleDefinition,
-  type NexusGraph,
 } from '../src/index.js';
-
-/** A graph survives a JSON round trip, holds no cycle, and every object in it is plain. */
-export function expectPlainGraph(graph: NexusGraph): void {
-  expect(JSON.parse(JSON.stringify(graph))).toEqual(graph);
-  const visit = (value: unknown): void => {
-    expect(['function', 'symbol', 'undefined', 'bigint']).not.toContain(
-      typeof value,
-    );
-    if (typeof value !== 'object' || value === null) return;
-    expect([Object.prototype, Array.prototype]).toContain(
-      Object.getPrototypeOf(value),
-    );
-    for (const child of Object.values(value)) visit(child);
-  };
-  visit(graph);
-}
 
 /**
  * `depth` modules, each importing and re-exporting the next, each providing a

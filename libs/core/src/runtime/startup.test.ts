@@ -3,6 +3,7 @@ import { describe, expect, it, vi } from 'vitest';
 import { rejected } from '../../test-support/catch.js';
 import { expectCoreLine } from '../../test-support/modes.js';
 import { frequencySchema } from '../../test-support/schema.js';
+import { observer, recordEvents } from '../../test-support/observe.js';
 import { compile } from '../blueprint/compile.js';
 import { defineModule } from '../definitions/define-module.js';
 import { provide } from '../definitions/provide.js';
@@ -12,7 +13,7 @@ import { DisposedError, ProviderError } from '../errors/index.js';
 import { Nexus } from './nexus.js';
 import { createRootState } from './state.js';
 import { startBlueprint } from './startup.js';
-import { Tracer, type TraceEvent } from './trace.js';
+import { Tracer } from './trace.js';
 
 function disposable(
   log: string[],
@@ -126,10 +127,8 @@ describe('Nexus', () => {
           provide(Bridge, { deps: [Computer] }),
         ],
       });
-      const events: TraceEvent[] = [];
-      await rejected(
-        Nexus.create(Root, { trace: (event) => events.push(event) }),
-      );
+      const { events, plugin: recorder } = recordEvents();
+      await rejected(Nexus.create(Root, { plugins: [recorder] }));
       expect(
         events
           .filter((e) => e.type === 'dispose:instance')
@@ -187,10 +186,12 @@ describe('Nexus', () => {
       });
       const error = (await rejected(
         Nexus.create(Root, {
-          trace: (event: TraceEvent) => {
-            if (event.type === 'construct' && event.token === 'ReactorAlias')
-              throw new DisposedError({ target: 'container' });
-          },
+          plugins: [
+            observer((event) => {
+              if (event.type === 'construct' && event.token === 'ReactorAlias')
+                throw new DisposedError({ target: 'container' });
+            }),
+          ],
         }),
       )) as ProviderError;
       expect(error).toBeInstanceOf(ProviderError);
@@ -301,9 +302,11 @@ describe('Nexus', () => {
       });
       const error = await rejected(
         Nexus.create(defineModule({ name: 'Root', imports: [tuned] }), {
-          trace: (e) => {
-            if (e.type === 'dispose:instance') log.push(`event ${e.token}`);
-          },
+          plugins: [
+            observer((e) => {
+              if (e.type === 'dispose:instance') log.push(`event ${e.token}`);
+            }),
+          ],
         }),
       );
       expect(error).toMatchObject({

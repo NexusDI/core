@@ -25,7 +25,7 @@ export interface VisibilityInput {
 export interface Visibility {
   /** module id → token → provider ids the module sees. */
   readonly visibility: Map<string, Map<TokenKey, readonly string[]>>;
-  /** module id → provider ids and module ids it exports, for graph(). */
+  /** module id → provider ids and module ids it exports, for the view. */
   readonly moduleExports: Map<string, readonly string[]>;
   /** module id → tokens it exports, directly or through re-exports. */
   readonly exportedTokens: Map<string, Set<TokenKey>>;

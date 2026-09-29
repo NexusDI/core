@@ -3,7 +3,7 @@ import { compile, type CompileInput } from '../blueprint/compile.js';
 import { BlueprintError, LoadError, ProviderError } from '../errors/index.js';
 import type { Tracer } from './trace.js';
 
-/** A trace callback's own throw while reporting `compile`, not a compile failure. */
+/** An observe hook's own throw while reporting `compile`, not a compile failure. */
 function traceFailed(error: unknown, module: string): ProviderError {
   return new ProviderError(
     { token: 'startup', module, path: [], alsoFailed: [], disposalErrors: [] },
@@ -20,8 +20,8 @@ function errorCount(error: unknown): number | undefined {
 
 /**
  * compile() plus the `compile` trace event, which a failure emits too, with
- * its error count. A throw from the trace callback surfaces as a
- * ProviderError whose `cause` is the callback's exception, the same way a
+ * its error count. A throw from an observe hook surfaces as a
+ * ProviderError whose `cause` is the hook's exception, the same way a
  * callback throw during construct or init surfaces through startBlueprint's
  * catch. This function runs before startBlueprint, so it wraps the throw
  * itself.

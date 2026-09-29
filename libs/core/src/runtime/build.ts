@@ -383,7 +383,7 @@ function buildTransient(record: ProviderRecord, ctx: Ctx): unknown {
   if (record.kind === 'factory' && isThenable(built)) {
     // get() cannot wait. Observe the promise so its rejection is never unhandled.
     Promise.resolve(built).catch(() => undefined);
-    // graph() and builtAsync report a transient factory false until now.
+    // builtAsync reports a transient factory false until now.
     ctx.container.root.asyncFlags.set(record.id, true);
     throw new AsyncTransientError({
       token: record.name,

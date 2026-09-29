@@ -2,6 +2,7 @@ import { describe, expect, it } from 'vitest';
 
 import { rejected, thrown } from '../../test-support/catch.js';
 import { coreLine } from '../../test-support/modes.js';
+import { observer } from '../../test-support/observe.js';
 import type { BlueprintView } from '../blueprint/views.js';
 import { defineModule } from '../definitions/define-module.js';
 import { lazy } from '../definitions/modifiers.js';
@@ -516,10 +517,12 @@ describe('fromUserCode', () => {
         ],
       }),
       {
-        plugins: [recording('alpha', calls)],
-        trace: (event) => {
-          if (event.type === 'construct') throw foreign;
-        },
+        plugins: [
+          observer((event) => {
+            if (event.type === 'construct') throw foreign;
+          }),
+          recording('alpha', calls),
+        ],
       },
     );
     expect(thrown(() => a.get(THROWER))).toBe(foreign);

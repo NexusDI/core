@@ -287,21 +287,6 @@ describe('observe', () => {
     expect(events.slice(0, 2)).toEqual(['a compile', 'b compile']);
     expect(events.at(-1)).toBe('b dispose');
   });
-
-  it('runs after the trace option callback', async () => {
-    const events: string[] = [];
-    await Nexus.create(defineModule({ name: 'Root' }), {
-      trace: (e) => void events.push(`trace ${e.type}`),
-      plugins: [
-        {
-          name: 'a',
-          apiVersion: 1,
-          observe: (e: TraceEvent) => void events.push(`a ${e.type}`),
-        },
-      ],
-    });
-    expect(events).toEqual(['trace compile', 'a compile']);
-  });
 });
 
 describe('setup', () => {

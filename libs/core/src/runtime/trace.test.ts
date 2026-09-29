@@ -19,7 +19,7 @@ describe('Tracer', () => {
 
   it('hands every event to the sink', () => {
     const events: unknown[] = [];
-    const tracer = new Tracer((event) => events.push(event));
+    const tracer = new Tracer([(event) => events.push(event)]);
     tracer.emit(() => ({
       type: 'dispose',
       disposed: 1,

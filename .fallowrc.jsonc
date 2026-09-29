@@ -12,6 +12,7 @@
     "@nexusdi/errors",
     "@nexusdi/testing",
     "@nexusdi/node",
+    "@nexusdi/devtools",
   ],
 
   // Nextra loads every page and `_meta.ts` under apps/docs/content by file
@@ -42,6 +43,7 @@
     "libs/errors/src/**/*.test-d.ts",
     "libs/testing/src/**/*.test-d.ts",
     "libs/node/src/**/*.test-d.ts",
+    "libs/devtools/src/**/*.test-d.ts",
     // fallow's vitest plugin derives entry points from vite.config.ts's
     // test.include glob alone. vitest.browser.config.ts, the Chromium
     // project that runs R20, is a separate config file the plugin never
@@ -171,14 +173,15 @@
     // (see the libraries repo's tools/doc-examples, which this mirrors), so
     // it resolves through the root manifest instead.
     "vite-plugin-doctest",
-    // examples/toolchain-matrix/src/*.ts import @nexusdi/core, and
-    // vite.babel.config.mjs imports @rolldown/plugin-babel, but neither
-    // belongs in the project's package.json: run-matrix.mjs installs the
-    // packed core tarball and every pinned toolchain package into a
-    // throwaway consumer it builds in, never into this workspace project
-    // (see toolchains.json). The project's package.json declares no
-    // dependencies.
+    // examples/toolchain-matrix/src/*.ts import @nexusdi/core and
+    // @nexusdi/devtools, and vite.babel.config.mjs imports
+    // @rolldown/plugin-babel, but none belongs in the project's package.json:
+    // run-matrix.mjs installs the packed tarballs and every pinned toolchain
+    // package into a throwaway consumer it builds in, never into this
+    // workspace project (see toolchains.json). The project's package.json
+    // declares no dependencies.
     "@nexusdi/core",
+    "@nexusdi/devtools",
     "@rolldown/plugin-babel",
     // libs/errors/src/parity/messages.test.ts imports @nexusdi/testing to
     // pin the text errors() writes for a malformed override. The workspace

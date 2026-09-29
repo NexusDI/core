@@ -35,6 +35,7 @@
         "module": "m1",
         "lifetime": "singleton",
         "kind": "factory",
+        "eager": true,
         "async": true
       },
       {
@@ -43,6 +44,7 @@
         "module": "m1",
         "lifetime": "scoped",
         "kind": "factory",
+        "eager": true,
         "async": false
       },
       {
@@ -51,6 +53,7 @@
         "module": "m1",
         "lifetime": "singleton",
         "kind": "class",
+        "eager": true,
         "async": false
       },
       {
@@ -59,6 +62,7 @@
         "module": "m2",
         "lifetime": "singleton",
         "kind": "class",
+        "eager": true,
         "async": false
       },
       {
@@ -67,6 +71,7 @@
         "module": "m2",
         "lifetime": "singleton",
         "kind": "class",
+        "eager": true,
         "async": false
       },
       {
@@ -75,6 +80,7 @@
         "module": "m2",
         "lifetime": "singleton",
         "kind": "class",
+        "eager": true,
         "async": false
       },
       {
@@ -83,6 +89,7 @@
         "module": "m2",
         "lifetime": "singleton",
         "kind": "class",
+        "eager": true,
         "async": false
       },
       {
@@ -91,6 +98,7 @@
         "module": "m0",
         "lifetime": "scoped",
         "kind": "value",
+        "eager": true,
         "async": false
       }
     ],

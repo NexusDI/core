@@ -2,11 +2,11 @@ import { describe, expect, it, vi } from 'vitest';
 
 import { deferred, flush } from '../../test-support/deferred.js';
 import { rejected, thrown } from '../../test-support/catch.js';
+import { recordEvents } from '../../test-support/observe.js';
 import { defineModule } from '../definitions/define-module.js';
 import { all } from '../definitions/modifiers.js';
 import { provide } from '../definitions/provide.js';
 import { MultiToken, Token } from '../definitions/token.js';
-import type { TraceEvent } from './trace.js';
 import { Nexus } from './nexus.js';
 
 class ReactorCore {
@@ -141,7 +141,7 @@ describe('Nexus', () => {
     });
 
     it('emits a construct event per provider when given a trace callback', async () => {
-      const events: TraceEvent[] = [];
+      const { events, plugin: recorder } = recordEvents();
       await Nexus.create(
         defineModule({
           name: 'Engineering',
@@ -153,7 +153,7 @@ describe('Nexus', () => {
             }),
           ],
         }),
-        { trace: (event) => events.push(event) },
+        { plugins: [recorder] },
       );
       expect(events.filter((e) => e.type === 'construct')).toMatchObject([
         {

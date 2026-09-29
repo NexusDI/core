@@ -1,6 +1,8 @@
 import { describe, expect, it } from 'vitest';
 
-import { Injectable, Module, Nexus } from '../index.js';
+import { Injectable, Module, Nexus } from '@nexusdi/core';
+
+import { devtools, graph } from '../index.js';
 
 describe('R04', () => {
   it('honours the lifetime set in @Injectable and reports it in graph()', async () => {
@@ -11,11 +13,11 @@ describe('R04', () => {
     @Module({ providers: [SurveyDrone, ReactorCore] })
     class Bay {}
 
-    const ship = await Nexus.create(Bay);
+    const ship = await Nexus.create(Bay, { plugins: [devtools()] });
 
     expect(ship.get(SurveyDrone)).not.toBe(ship.get(SurveyDrone));
     expect(ship.get(ReactorCore)).toBe(ship.get(ReactorCore));
-    expect(ship.graph().providers.slice(0, 2)).toMatchObject([
+    expect(graph(ship).providers.slice(0, 2)).toMatchObject([
       { token: 'SurveyDrone', lifetime: 'transient' },
       { token: 'ReactorCore', lifetime: 'singleton' },
     ]);

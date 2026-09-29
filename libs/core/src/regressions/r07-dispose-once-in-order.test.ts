@@ -1,14 +1,14 @@
 import { describe, expect, it } from 'vitest';
 
+import { recordEvents } from '../../test-support/observe.js';
 import { defineModule } from '../definitions/define-module.js';
 import { provide } from '../definitions/provide.js';
 import { Token } from '../definitions/token.js';
 import { Nexus } from '../runtime/nexus.js';
-import type { TraceEvent } from '../runtime/trace.js';
 
 describe('R07', () => {
   it('disposes each object once, in reverse creation order, whichever providers reach it', async () => {
-    const events: TraceEvent[] = [];
+    const { events, plugin: recorder } = recordEvents();
     const log: string[] = [];
     class Reactor {
       [Symbol.dispose]() {
@@ -40,7 +40,7 @@ describe('R07', () => {
           }),
         ],
       }),
-      { trace: (event) => events.push(event) },
+      { plugins: [recorder] },
     );
     const shuttle = await ship.createScope();
     expect(shuttle.get(IN_SCOPE)).toBe(ship.get(Reactor));

@@ -2,11 +2,11 @@ import { describe, expect, it } from 'vitest';
 
 import { rejected } from '../../test-support/catch.js';
 import { deferred, flush } from '../../test-support/deferred.js';
+import { observer } from '../../test-support/observe.js';
 import { defineModule } from '../definitions/define-module.js';
 import { provide } from '../definitions/provide.js';
 import { Token } from '../definitions/token.js';
 import type { NexusPlugin, PluginContext } from './plugins.js';
-import type { TraceEvent } from './trace.js';
 import { Nexus } from './nexus.js';
 
 interface ISystem {
@@ -77,10 +77,12 @@ describe('construct', () => {
     const disposed: string[] = [];
     const error = await rejected(
       Nexus.create(hullSensorsShields(log), {
-        trace: (e) => {
-          if (e.type === 'dispose:instance') disposed.push(e.token);
-        },
-        plugins: [failConstruct(SENSORS)],
+        plugins: [
+          observer((e) => {
+            if (e.type === 'dispose:instance') disposed.push(e.token);
+          }),
+          failConstruct(SENSORS),
+        ],
       }),
     );
     expect(error).toMatchObject(CONSTRUCT_FAILED);
@@ -257,10 +259,13 @@ describe('construct', () => {
         exports: [SENSORS],
       }),
       {
-        trace: (e) => {
-          if (e.type === 'untracked') untracked.push(`${e.token} ${e.reason}`);
-        },
-        plugins: [failConstruct(SENSORS)],
+        plugins: [
+          observer((e) => {
+            if (e.type === 'untracked')
+              untracked.push(`${e.token} ${e.reason}`);
+          }),
+          failConstruct(SENSORS),
+        ],
       },
     );
     expect(() => ship.get(SENSORS)).toThrow(THROWN_CONSTRUCT_FAILED);
@@ -322,8 +327,6 @@ describe('PluginContext.builtAsync', () => {
     if (context === undefined) throw new Error('setup did not run');
     return { ship, context };
   }
-  const graphAsync = (ship: Nexus) =>
-    ship.graph().providers.find((p) => p.token === 'Sensors')?.async;
 
   it('reports false for a transient factory before and after a synchronous get()', async () => {
     const { ship, context } = await contextOf([
@@ -333,10 +336,8 @@ describe('PluginContext.builtAsync', () => {
       }),
     ]);
     expect(context.builtAsync('p0')).toBe(false);
-    expect(graphAsync(ship)).toBe(false);
     ship.get(SENSORS);
     expect(context.builtAsync('p0')).toBe(false);
-    expect(graphAsync(ship)).toBe(false);
   });
 
   it('reports true after a transient factory returned a thenable', async () => {
@@ -350,7 +351,6 @@ describe('PluginContext.builtAsync', () => {
       expect.objectContaining({ code: 'NEXUS_ASYNC_TRANSIENT' }),
     );
     expect(context.builtAsync('p0')).toBe(true);
-    expect(graphAsync(ship)).toBe(true);
   });
 
   it('reports true on the root after a scope get() found a thenable', async () => {
@@ -442,11 +442,11 @@ describe('setup', () => {
           providers: [provide(HULL, { useClass: system('Hull', log) })],
         }),
         {
-          trace: (e: TraceEvent) => {
-            if (e.type === 'dispose:instance') log.push(`event ${e.token}`);
-            if (e.type === 'dispose') log.push('event dispose');
-          },
           plugins: [
+            observer((e) => {
+              if (e.type === 'dispose:instance') log.push(`event ${e.token}`);
+              if (e.type === 'dispose') log.push('event dispose');
+            }),
             plugin('A', log, { setup: 'ok', dispose: 'ok' }),
             plugin('B', log, { setup: 'throws' }),
           ],

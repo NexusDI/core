@@ -1,10 +1,7 @@
 import type { ModuleRef } from '../definitions/define-module.js';
 import type { NexusPlugin } from './plugins.js';
-import type { TraceEvent } from './trace.js';
 
 export interface CreateOptions {
-  /** Receives typed lifecycle events. */
-  readonly trace?: (event: TraceEvent) => void;
   /** Plugins, in order (spec §3.10). */
   readonly plugins?: readonly NexusPlugin[];
 }

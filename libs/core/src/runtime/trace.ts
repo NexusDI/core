@@ -47,7 +47,7 @@ export type TraceEvent =
     }
   | { type: 'dispose'; disposed: number; errors: number; durationMs: number };
 
-/** One consumer of trace events: the `trace` option or a plugin's observe hook. */
+/** One consumer of trace events: a plugin's observe hook. */
 export type TraceSink = (event: TraceEvent) => void;
 
 const NO_SINKS: readonly TraceSink[] = Object.freeze([]);
@@ -61,8 +61,8 @@ const NO_SINKS: readonly TraceSink[] = Object.freeze([]);
 export class Tracer {
   readonly #sinks: readonly TraceSink[];
 
-  constructor(sinks: TraceSink | readonly TraceSink[] = NO_SINKS) {
-    this.#sinks = typeof sinks === 'function' ? [sinks] : sinks;
+  constructor(sinks: readonly TraceSink[] = NO_SINKS) {
+    this.#sinks = sinks;
   }
 
   now(): number {

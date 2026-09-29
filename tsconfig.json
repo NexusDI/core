@@ -7,6 +7,9 @@
       "path": "./libs/core"
     },
     {
+      "path": "./libs/devtools"
+    },
+    {
       "path": "./libs/node"
     },
     {

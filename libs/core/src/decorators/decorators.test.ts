@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest';
 
 import { thrown } from '../../test-support/catch.js';
+import { viewRecorder } from '../../test-support/context.js';
 import {
   Inject,
   Injectable,
@@ -182,9 +183,10 @@ describe('Module', () => {
     class Engineering {}
     @Module({ imports: [Engineering] })
     class Meridian {}
-    const ship = await Nexus.create(Meridian);
+    const { plugin, view } = viewRecorder();
+    const ship = await Nexus.create(Meridian, { plugins: [plugin] });
     expect(ship.get(ReactorCore)).toBeInstanceOf(ReactorCore);
-    expect(ship.graph().modules.map((m) => m.name)).toEqual([
+    expect(view().modules.map((m) => m.name)).toEqual([
       'Meridian',
       'Engineering',
     ]);
@@ -195,11 +197,10 @@ describe('Module', () => {
       @Module({ providers: [ReactorCore] })
       class {},
     ];
-    const ship = await Nexus.create(Anonymous);
+    const { plugin, view } = viewRecorder();
+    const ship = await Nexus.create(Anonymous, { plugins: [plugin] });
     expect(ship.get(ReactorCore)).toBeInstanceOf(ReactorCore);
-    expect(ship.graph().modules.map((m) => m.name)).toEqual([
-      '(anonymous module)',
-    ]);
+    expect(view().modules.map((m) => m.name)).toEqual(['(anonymous module)']);
   });
 
   it('names a class (anonymous module) when the context name is empty', async () => {
@@ -213,10 +214,9 @@ describe('Module', () => {
       metadata: {},
       addInitializer: () => {},
     });
-    const ship = await Nexus.create(Unnamed);
-    expect(ship.graph().modules.map((m) => m.name)).toEqual([
-      '(anonymous module)',
-    ]);
+    const { plugin, view } = viewRecorder();
+    await Nexus.create(Unnamed, { plugins: [plugin] });
+    expect(view().modules.map((m) => m.name)).toEqual(['(anonymous module)']);
   });
 
   it('throws NEXUS_LEGACY_DECORATORS when called the experimentalDecorators way', () => {

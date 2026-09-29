@@ -2,6 +2,7 @@ import { describe, expect, it } from 'vitest';
 
 import { rejected } from '../../test-support/catch.js';
 import { deferred, flush } from '../../test-support/deferred.js';
+import { recordEvents } from '../../test-support/observe.js';
 import { compile } from '../blueprint/compile.js';
 import { defineModule } from '../definitions/define-module.js';
 import { lazy } from '../definitions/modifiers.js';
@@ -11,7 +12,6 @@ import { runInit } from './init.js';
 import { Nexus } from './nexus.js';
 import { createRootState } from './state.js';
 import { startBlueprint } from './startup.js';
-import type { TraceEvent } from './trace.js';
 import { Tracer } from './trace.js';
 
 describe('Nexus', () => {
@@ -215,12 +215,12 @@ describe('Nexus', () => {
     });
 
     it('emits an init event per onInit call', async () => {
-      const events: TraceEvent[] = [];
+      const { events, plugin: recorder } = recordEvents();
       class Reactor {
         onInit() {}
       }
       await Nexus.create(defineModule({ name: 'Root', providers: [Reactor] }), {
-        trace: (e) => events.push(e),
+        plugins: [recorder],
       });
       expect(events.filter((e) => e.type === 'init')).toMatchObject([
         { type: 'init', token: 'Reactor', providerId: 'p0' },

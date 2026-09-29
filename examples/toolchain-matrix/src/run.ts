@@ -1,10 +1,11 @@
+import { Nexus, type InjectionToken, type ModuleRef } from '@nexusdi/core';
 import {
-  Nexus,
-  type InjectionToken,
-  type ModuleRef,
+  devtools,
+  graph,
+  trace,
   type NexusGraph,
   type TraceEvent,
-} from '@nexusdi/core';
+} from '@nexusdi/devtools';
 
 declare module '@nexusdi/core' {
   interface NexusRequest {
@@ -40,14 +41,14 @@ export async function runScenario(
 ): Promise<ScenarioOutput> {
   const events: TraceEvent[] = [];
   const ship = await Nexus.create(root, {
-    trace: (event) => events.push(event),
+    plugins: [devtools(), trace((event) => events.push(event))],
   });
   const course = ship.get(handles.bridge).course('Kepler-442b');
   const divert = ship.get(handles.router).divert();
   const shuttle = await ship.createScope({ request: { mission: 'survey-7' } });
   const mission = shuttle.get(handles.mission);
   await shuttle[Symbol.asyncDispose]();
-  const graph = ship.graph();
+  const view = graph(ship);
   await ship[Symbol.asyncDispose]();
 
   const counts: Record<string, number> = {};
@@ -58,7 +59,7 @@ export async function runScenario(
   );
   return {
     values: { course, divert, mission },
-    graph,
+    graph: view,
     trace: { counts, disposed },
     log,
   };

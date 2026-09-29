@@ -40,6 +40,7 @@ const LIBS = [
   ['libs/errors', '@nexusdi/errors'],
   ['libs/testing', '@nexusdi/testing'],
   ['libs/node', '@nexusdi/node'],
+  ['libs/devtools', '@nexusdi/devtools'],
 ];
 
 /** Every JavaScript module under `root`, at any depth. */
@@ -182,9 +183,9 @@ import type {
   All, ConfigurableModule, ConfigurableModuleConfig, CreateOptions, Dep, DepFor,
   ErrorLifetime, ExportEntry, FactoryDefinition, InjectionToken, Lazy, Lifetime, LookupOptions,
   ModuleConfig, ModuleDecoratorConfig, ModuleDefinition, ModuleRef, NearMiss,
-  NexusErrorCode, NexusGraph, NexusRequest, NoLifetimeMessage, Optional, OptionsFactory,
+  NexusErrorCode, NexusRequest, NoLifetimeMessage, Optional, OptionsFactory,
   OverrideDefinition, PromiseTokenMessage, Provider, ProviderEntries, ProviderEntry, ProviderFailure, ProviderLiteral, Resolve,
-  ResolveAll, SchemaIssue, Scope, StandardSchemaV1, TraceEvent, Tokens,
+  ResolveAll, SchemaIssue, Scope, StandardSchemaV1, Tokens,
   DepsMap, ResolvedDeps, UntypedFunctionMessage,
 } from '@nexusdi/core';
 import { nodeScopes } from '@nexusdi/node';
@@ -194,6 +195,8 @@ import type {
   ModuleOverrideOptions, TestingContainerBuilder, TestingCreateOptions,
 } from '@nexusdi/testing';
 import { errors, explain } from '@nexusdi/errors';
+import { devtools, graph, trace } from '@nexusdi/devtools';
+import type { NexusGraph, TraceEvent } from '@nexusdi/devtools';
 
 declare module '@nexusdi/core' {
   interface NexusRequest {
@@ -251,7 +254,10 @@ function check(ok: boolean, what: string): void {
 }
 
 {
-  await using ship = await Nexus.create(Meridian);
+  const events: TraceEvent[] = [];
+  await using ship = await Nexus.create(Meridian, {
+    plugins: [devtools(), trace((event) => events.push(event))],
+  });
   check(ship.get(ShipComputer).charts.plot('Kepler') === 'course to Kepler', 'a property injection');
   check(ship.get(DIAGNOSTICS)[0] === 'hull', 'a MultiToken from a provider literal');
   check(ship.get(COURSE) === 'course to Vega', 'a factory from a provider literal');
@@ -263,8 +269,9 @@ function check(ok: boolean, what: string): void {
   ship.validate(handlerDeps);
   const resolved: ResolvedDeps<typeof handlerDeps> = shuttle.resolve(handlerDeps);
   check(resolved.mission === 'survey-7' && resolved.checks[0] === 'hull', 'resolve() on a scope');
-  const graph: NexusGraph = ship.graph();
-  check(graph.modules.length === 2, 'graph()');
+  const view: NexusGraph = graph(ship);
+  check(view.modules.length === 2, '@nexusdi/devtools graph()');
+  check(events[0]?.type === 'compile', '@nexusdi/devtools trace()');
 }
 {
   await using fake = await createTestingContainer(Meridian)
@@ -500,7 +507,7 @@ try {
   console.log('Type-checking a strict consumer…');
   run('npx', ['tsc', '-p', 'tsconfig.nodenext.json'], dir);
   console.log(
-    '  ✓ ., @nexusdi/node and @nexusdi/testing resolve with types under nodenext, with lib es2022 and no @types/node',
+    '  ✓ ., @nexusdi/node, @nexusdi/testing and @nexusdi/devtools resolve with types under nodenext, with lib es2022 and no @types/node',
   );
   run('npx', ['tsc', '-p', 'tsconfig.bundler.json', '--noEmit'], dir);
   console.log(
@@ -512,7 +519,7 @@ try {
   console.log('Running the consumer…');
   run('node', [join(dir, 'out-nodenext', 'consumer.js')], dir);
   console.log(
-    '  ✓ a decorated class, scopes, @nexusdi/node and @nexusdi/testing run from the packed build',
+    '  ✓ a decorated class, scopes, @nexusdi/node, @nexusdi/testing and @nexusdi/devtools run from the packed build',
   );
 
   console.log('Checking the published modules for top-level await…');

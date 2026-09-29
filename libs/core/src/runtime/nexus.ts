@@ -10,7 +10,6 @@ import { isThenable } from './build.js';
 import { compileTraced } from './compile-traced.js';
 import { resolveDeps, validateDeps } from './deps.js';
 import { formatFor, formatThrown, guardAsync } from './format.js';
-import { toGraph, type NexusGraph } from './graph.js';
 import { loadModule } from './load.js';
 import { getFrom, hasIn } from './lookup.js';
 import type { CheckOptions, CreateOptions, LookupOptions } from './options.js';
@@ -62,7 +61,7 @@ export class Nexus {
     // LoadError, which carries no view of its own, is formatted with its view.
     let last: Blueprint | undefined;
     try {
-      const tracer = new Tracer(traceSinks(undefined, plugins));
+      const tracer = new Tracer(traceSinks(plugins));
       const input = {
         root,
         pluginImports: plugins.modules,
@@ -169,11 +168,6 @@ export class Nexus {
     return guardAsync(this.#state, openScope(this.#state, options));
   }
 
-  /** The compiled graph as plain JSON, including modules added by load(). Works after disposal. */
-  graph(): NexusGraph {
-    return toGraph(this.#state.blueprint, this.#state.asyncFlags);
-  }
-
   /**
    * Disposes the container: every public method throws NEXUS_DISPOSED from
    * the first call on. A second call returns the first call's promise.
@@ -183,14 +177,9 @@ export class Nexus {
   }
 }
 
-/** The `trace` option, then each plugin's observe hook, in plugin order. */
-function traceSinks(
-  trace: TraceSink | undefined,
-  plugins: PluginSet,
-): TraceSink | readonly TraceSink[] | undefined {
-  if (plugins.observe.length === 0) return trace;
-  const observers = plugins.observe.map((hook) => hook.call);
-  return trace === undefined ? observers : [trace, ...observers];
+/** Each plugin's observe hook, in plugin order. */
+function traceSinks(plugins: PluginSet): readonly TraceSink[] {
+  return plugins.observe.map((hook) => hook.call);
 }
 
 /** A setup hook's throw or rejection, carried out of the tracked setup loop. */
@@ -267,7 +256,7 @@ export async function createContainer(
   // view, and a compile error carries its own through failedView().
   let compiled: Blueprint | undefined;
   try {
-    const tracer = new Tracer(traceSinks(options?.trace, plugins));
+    const tracer = new Tracer(traceSinks(plugins));
     const blueprint = compileTraced(
       tracer,
       {

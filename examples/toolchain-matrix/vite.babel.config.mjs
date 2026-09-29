@@ -11,5 +11,7 @@ export default {
     }),
   ],
   build: { ssr: true, target: 'node22', minify: false },
-  ssr: { external: ['@nexusdi/core'] },
+  ssr: {
+    external: ['@nexusdi/core', '@nexusdi/devtools', '@nexusdi/errors'],
+  },
 };

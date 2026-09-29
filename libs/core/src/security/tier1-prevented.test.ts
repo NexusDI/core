@@ -8,9 +8,9 @@ import { describe, expect, it } from 'vitest';
 
 import { thrown } from '../../test-support/catch.js';
 import { compileErrors, idOf, visible } from '../../test-support/compile.js';
+import { viewRecorder } from '../../test-support/context.js';
 import { expectCoreLine } from '../../test-support/modes.js';
 import {
-  expectPlainGraph,
   extraKeys,
   moduleChain,
   snapshotBuiltins,
@@ -52,12 +52,14 @@ describe('SEC-001 prototype names as tokens and modules (CWE-1321)', () => {
         providers: [provide(TOKEN, { useValue: 'safe' })],
         exports: [TOKEN],
       });
+      const { plugin, view } = viewRecorder();
       await using ship = await Nexus.create(
         defineModule({ name: 'Root', imports: [Named] }),
+        { plugins: [plugin] },
       );
       expect(ship.get(TOKEN)).toBe('safe');
       expect(ship.get(TOKEN, { module: Named })).toBe('safe');
-      expect(ship.graph().modules[1]?.name).toBe(name);
+      expect(view().modules[1]?.name).toBe(name);
     },
   );
 
@@ -579,12 +581,14 @@ describe('SEC-006 proxied classes (CWE-248)', () => {
       output = 1.21;
     }
     const Proxied = new Proxy(Engine, {});
+    const { plugin, view } = viewRecorder();
     await using ship = await Nexus.create(
       defineModule({ name: 'Root', providers: [Proxied] }),
+      { plugins: [plugin] },
     );
     expect(ship.get(Proxied)).toBeInstanceOf(Engine);
     expect(ship.has(Engine)).toBe(false);
-    expect(ship.graph().providers[0]?.token).toBe('Engine');
+    expect(view().providers[0]?.name).toBe('Engine');
   });
 
   it('reports NEXUS_INVALID_PROVIDER for a proxied class whose trap throws while the compiler reads it', () => {
@@ -771,31 +775,6 @@ describe('SEC-009 deep chains (CWE-674)', { timeout: 60_000 }, () => {
     const [error] = compileErrors(defineModule({ name: 'Ring', providers }));
     expect(error).toMatchObject({ code: 'NEXUS_CIRCULAR_DEPENDENCY' });
     expect((error as unknown as { path: string[] }).path).toHaveLength(1_001);
-  });
-});
-
-describe('SEC-010 graph() stays plain JSON (CWE-20)', () => {
-  it('returns plain JSON for prototype names, proxies, null chains, repeats and deep chains', async () => {
-    class Engine {}
-    class Void extends null {
-      constructor() {
-        return Object.create(Void.prototype) as Void;
-      }
-    }
-    const PROTO = new Token<string>('__proto__');
-    const Proto = defineModule({
-      name: 'constructor',
-      providers: [provide(PROTO, { useValue: 'x' })],
-      exports: [PROTO],
-    });
-    const { root: Deep } = moduleChain(50);
-    const Root = defineModule({
-      name: 'prototype',
-      imports: [Proto, Proto, Deep],
-      providers: [new Proxy(Engine, {}), Void, Void],
-    });
-    await using ship = await Nexus.create(Root);
-    expectPlainGraph(ship.graph());
   });
 });
 

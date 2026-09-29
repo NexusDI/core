@@ -521,46 +521,7 @@ caught?.errors.map((error) => error.code); // -> ['NEXUS_MISSING_DEPS', 'NEXUS_M
 
 ## Graph and trace
 
-<!-- #region graph -->
-
-```ts @import.meta.vitest
-import { Nexus, Token, defineModule, provide } from '@nexusdi/core';
-import type { TraceEvent } from '@nexusdi/core';
-
-interface IReactorCore {
-  readonly output: number;
-}
-interface IShipComputer {
-  readonly reactor: IReactorCore;
-}
-const REACTOR = new Token<IReactorCore>('ReactorCore');
-const COMPUTER = new Token<IShipComputer>('ShipComputer');
-class FusionReactor implements IReactorCore {
-  readonly output = 1.21;
-}
-class ShipComputer implements IShipComputer {
-  static deps = [REACTOR] as const;
-  constructor(readonly reactor: IReactorCore) {}
-}
-const events: TraceEvent[] = [];
-
-await using ship = await Nexus.create(
-  defineModule({
-    name: 'Engineering',
-    providers: [
-      provide(REACTOR, { useClass: FusionReactor }),
-      provide(COMPUTER, { useClass: ShipComputer }),
-    ],
-  }),
-  { trace: (event) => events.push(event) },
-);
-ship.graph().edges; // -> [{ from: 'p1', to: 'p0', kind: 'required' }]
-events.map((event) => event.type); // -> ['compile', 'construct', 'construct']
-```
-
-<!-- #endregion graph -->
-
-`graph()` returns plain JSON. Ids are stable for a given set of definitions. Minifiers rename classes, so a production graph can show `t` in place of `ShipComputer`; give tokens a description, or keep class names, where names matter.
+`@nexusdi/devtools` reads the compiled graph of a live container as plain JSON, compiles one without building it, and hands every lifecycle event to a callback. Core emits the events to each plugin's `observe` hook.
 
 ## Decorators
 

@@ -1,3 +1,4 @@
+import type { ProviderRecord } from '../blueprint/blueprint.js';
 import {
   NO_COMPILE_HOOKS,
   type CompileHooks,
@@ -24,7 +25,6 @@ import {
 } from '../errors/index.js';
 import { formatThrown } from './format.js';
 import type { Nexus } from './nexus.js';
-import { factoryAsync } from './graph.js';
 import type { RootState } from './state.js';
 import type { TraceEvent } from './trace.js';
 
@@ -316,6 +316,22 @@ export function registerPlugins(input: unknown): PluginSet {
     setup: Object.freeze(hooks.setup),
     dispose: Object.freeze(hooks.dispose),
   }) as PluginSet;
+}
+
+/**
+ * Whether a factory's last build returned a thenable. A transient factory is
+ * synchronous by contract, so it reports false until a get() finds a
+ * thenable (NEXUS_ASYNC_TRANSIENT). A singleton or scoped factory reports
+ * null before its first build.
+ */
+function factoryAsync(
+  record: ProviderRecord,
+  asyncFlags: ReadonlyMap<string, boolean>,
+): boolean | null {
+  return (
+    asyncFlags.get(record.id) ??
+    (record.lifetime === 'transient' ? false : null)
+  );
 }
 
 /**

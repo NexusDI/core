@@ -1,8 +1,9 @@
 #!/usr/bin/env node
 /**
- * Packs @nexusdi/core, installs the tarball and every pinned toolchain into
- * one throwaway consumer, builds each variant with each toolchain, runs the
- * output, and compares what it prints with golden.json.
+ * Packs @nexusdi/core, @nexusdi/errors and @nexusdi/devtools, installs the
+ * tarballs and every pinned toolchain into one throwaway consumer, builds
+ * each variant with each toolchain, runs the output, and compares what it
+ * prints with golden.json.
  *
  * Writes toolchain-matrix.json. With --check it also fails when the fresh
  * results differ from the committed file, so the docs page and the launch
@@ -26,6 +27,12 @@ const HERE = resolve(import.meta.dirname, '..');
 const ROOT = resolve(HERE, '..', '..');
 const CHECK = process.argv.includes('--check');
 const RESULTS = join(HERE, 'toolchain-matrix.json');
+/** The packages the scenario imports, by folder and name. */
+const PACKAGES = [
+  ['libs/core', '@nexusdi/core'],
+  ['libs/errors', '@nexusdi/errors'],
+  ['libs/devtools', '@nexusdi/devtools'],
+];
 
 const { toolchains } = JSON.parse(
   readFileSync(join(HERE, 'toolchains.json'), 'utf8'),
@@ -189,11 +196,25 @@ const results = [];
 let failed = false;
 
 try {
-  console.log('Packing @nexusdi/core…');
-  rmSync(join(ROOT, 'libs/core/dist'), { recursive: true, force: true });
-  run('npx', ['nx', 'run', 'core:build', '--skip-nx-cache'], ROOT);
-  run('npm', ['pack', '--pack-destination', dir], join(ROOT, 'libs/core'));
-  const [tarball] = readdirSync(dir).filter((f) => f.endsWith('.tgz'));
+  console.log(`Packing ${PACKAGES.map(([, name]) => name).join(', ')}…`);
+  for (const [lib] of PACKAGES)
+    rmSync(join(ROOT, lib, 'dist'), { recursive: true, force: true });
+  run(
+    'npx',
+    [
+      'nx',
+      'run-many',
+      '-t',
+      'build',
+      '-p',
+      ...PACKAGES.map(([, name]) => name),
+      '--skip-nx-cache',
+    ],
+    ROOT,
+  );
+  for (const [lib] of PACKAGES)
+    run('npm', ['pack', '--pack-destination', dir], join(ROOT, lib));
+  const tarballs = readdirSync(dir).filter((f) => f.endsWith('.tgz'));
 
   for (const file of [
     'src',
@@ -220,7 +241,14 @@ try {
   console.log(`Installing ${pins.join(', ')}…`);
   run(
     'npm',
-    ['install', '--silent', '--no-audit', '--no-fund', `./${tarball}`, ...pins],
+    [
+      'install',
+      '--silent',
+      '--no-audit',
+      '--no-fund',
+      ...tarballs.map((t) => `./${t}`),
+      ...pins,
+    ],
     dir,
   );
 

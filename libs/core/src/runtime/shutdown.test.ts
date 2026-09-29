@@ -2,6 +2,7 @@ import { describe, expect, it, vi } from 'vitest';
 
 import { rejected, thrown } from '../../test-support/catch.js';
 import { deferred, flush } from '../../test-support/deferred.js';
+import { observer, recordEvents } from '../../test-support/observe.js';
 import { defineModule } from '../definitions/define-module.js';
 import { lazy } from '../definitions/modifiers.js';
 import { provide } from '../definitions/provide.js';
@@ -20,7 +21,7 @@ function disposable(log: string[], name: string) {
 describe('Nexus', () => {
   describe('[Symbol.asyncDispose]', () => {
     it('reports the exact reverse creation order through dispose:instance events', async () => {
-      const events: TraceEvent[] = [];
+      const { events, plugin: recorder } = recordEvents();
       const log: string[] = [];
       class Reactor {
         async [Symbol.asyncDispose]() {
@@ -61,7 +62,7 @@ describe('Nexus', () => {
             provide(VALUE, { useValue: disposable(log, 'value') }),
           ],
         }),
-        { trace: (event) => events.push(event) },
+        { plugins: [recorder] },
       );
       ship.get(Probe); // untracked root-level transient: never disposed by the container
 
@@ -251,11 +252,16 @@ describe('Nexus', () => {
           providers: [Reactor, provide(Computer, { deps: [Reactor] })],
         }),
         {
-          trace: (event) => {
-            events.push(event);
-            if (event.type === 'dispose:instance' && event.token === 'Computer')
-              throw boom;
-          },
+          plugins: [
+            observer((event) => {
+              events.push(event);
+              if (
+                event.type === 'dispose:instance' &&
+                event.token === 'Computer'
+              )
+                throw boom;
+            }),
+          ],
         },
       );
       const error = await rejected(ship[Symbol.asyncDispose]());
@@ -289,9 +295,11 @@ describe('Nexus', () => {
           providers: [Reactor, provide(Computer, { deps: [Reactor] })],
         }),
         {
-          trace: (event) => {
-            if (event.type === 'dispose') throw boom;
-          },
+          plugins: [
+            observer((event) => {
+              if (event.type === 'dispose') throw boom;
+            }),
+          ],
         },
       );
       const error = (await rejected(
@@ -343,7 +351,7 @@ describe('Nexus', () => {
 describe('Scope', () => {
   describe('[Symbol.asyncDispose]', () => {
     it('disposes its instances once, emits dispose:instance with its id, and throws NEXUS_DISPOSED afterwards', async () => {
-      const events: TraceEvent[] = [];
+      const { events, plugin: recorder } = recordEvents();
       const log: string[] = [];
       class Logbook {
         [Symbol.dispose]() {
@@ -355,9 +363,7 @@ describe('Scope', () => {
           name: 'Root',
           providers: [provide(Logbook, { lifetime: 'scoped' })],
         }),
-        {
-          trace: (event) => events.push(event),
-        },
+        { plugins: [recorder] },
       );
       const shuttle = await ship.createScope();
       shuttle.get(Logbook);

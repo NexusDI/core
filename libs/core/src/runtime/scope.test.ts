@@ -1,6 +1,7 @@
 import { describe, expect, it, vi } from 'vitest';
 
 import { rejected, thrown } from '../../test-support/catch.js';
+import { observer, recordEvents } from '../../test-support/observe.js';
 import { defineModule } from '../definitions/define-module.js';
 import { lazy } from '../definitions/modifiers.js';
 import { provide } from '../definitions/provide.js';
@@ -141,7 +142,7 @@ describe('Nexus', () => {
     });
 
     it('emits dispose:instance, with its scope id, for what a failed createScope disposed', async () => {
-      const events: TraceEvent[] = [];
+      const { events, plugin: recorder } = recordEvents();
       const LOG = new Token<object>('Log');
       const BROKEN = new Token<string>('Broken');
       const ship = await Nexus.create(
@@ -160,7 +161,7 @@ describe('Nexus', () => {
             }),
           ],
         }),
-        { trace: (event) => events.push(event) },
+        { plugins: [recorder] },
       );
       await rejected(ship.createScope());
       expect(
@@ -175,7 +176,7 @@ describe('Nexus', () => {
     });
 
     it('disposes what a scope owns in reverse creation order, as its dispose:instance events show', async () => {
-      const events: TraceEvent[] = [];
+      const { events, plugin: recorder } = recordEvents();
       const log: string[] = [];
       const disposable = (name: string) => ({
         [Symbol.dispose]: () => log.push(name),
@@ -218,7 +219,7 @@ describe('Nexus', () => {
             }),
           ],
         }),
-        { trace: (event) => events.push(event) },
+        { plugins: [recorder] },
       );
       const shuttle = await ship.createScope();
       shuttle.get(Bridge);
@@ -349,12 +350,10 @@ describe('Nexus', () => {
     });
 
     it('emits scope:create and scope:dispose', async () => {
-      const events: TraceEvent[] = [];
+      const { events, plugin: recorder } = recordEvents();
       const ship = await Nexus.create(
         defineModule({ name: 'Tactical', providers: [missionFromRequest] }),
-        {
-          trace: (event) => events.push(event),
-        },
+        { plugins: [recorder] },
       );
       const shuttle = await ship.createScope({ request: { mission: 'x' } });
       await shuttle[Symbol.asyncDispose]();
@@ -385,9 +384,11 @@ describe('Nexus', () => {
           ],
         }),
         {
-          trace: (event) => {
-            if (event.type === 'scope:dispose') throw boom;
-          },
+          plugins: [
+            observer((event) => {
+              if (event.type === 'scope:dispose') throw boom;
+            }),
+          ],
         },
       );
       const shuttle = await ship.createScope();

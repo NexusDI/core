@@ -53,7 +53,7 @@ export function disposeScope(scope: ScopeState): Promise<void> {
         scope.root.ownership,
         reportDisposal(tracer, scope.scopeId),
       );
-      // A throwing trace callback joins the scope's disposal errors instead
+      // A throwing observe hook joins the scope's disposal errors instead
       // of escaping here, so the finally below still runs, and the scope's
       // own disposal errors still reach the caller chained with it.
       const errors = [...report.errors];
