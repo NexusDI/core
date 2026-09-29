@@ -1,6 +1,7 @@
 import { isForeign } from '../definitions/brand.js';
 import { resolveModuleRef } from '../definitions/define-module.js';
 import { describeValue } from '../definitions/describe.js';
+import { HOOK_SITES } from '../definitions/hook-sites.js';
 import { InvalidModuleError } from '../errors/index.js';
 import { compileTraced } from './compile-traced.js';
 import { startBlueprint } from './startup.js';
@@ -46,7 +47,7 @@ async function loadNow(root: RootState, module: unknown): Promise<void> {
       hooks: root.plugins.compile,
       canon: root.canon,
       phase: 'load',
-      wantsView: root.plugins.formatError.length > 0,
+      wantsView: HOOK_SITES && root.plugins.formatError.length > 0,
       previous: current,
     },
     'load',

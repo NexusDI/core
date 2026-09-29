@@ -6,6 +6,7 @@ import {
 import { depOf, type BadDep } from '../blueprint/records.js';
 import { isForeign } from '../definitions/brand.js';
 import { describeValue } from '../definitions/describe.js';
+import { HOOK_SITES } from '../definitions/hook-sites.js';
 import {
   BlueprintError,
   InvalidTokenError,
@@ -154,7 +155,7 @@ export function resolveDeps(
   for (const { key, where, value } of read.entries) {
     const dep = depOf(value);
     if ('reason' in dep) throw invalidEntry(where, value, dep);
-    const token = container.root.canon(dep.token);
+    const token = HOOK_SITES ? container.root.canon(dep.token) : dep.token;
     const ids = visible?.get(token) ?? [];
     const [id] = ids;
     let resolved: unknown;
@@ -204,7 +205,7 @@ export function validateDeps(
       continue;
     }
     if (dep.kind === 'optional' || dep.kind === 'all') continue;
-    const token = container.root.canon(dep.token);
+    const token = HOOK_SITES ? container.root.canon(dep.token) : dep.token;
     if ((visible?.get(token)?.length ?? 0) === 0)
       errors.push(notFound(container, bp, token, moduleId, where));
   }

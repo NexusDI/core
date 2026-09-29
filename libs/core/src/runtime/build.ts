@@ -6,6 +6,7 @@ import {
 } from '../blueprint/blueprint.js';
 import { pluginFailed } from '../blueprint/hooks.js';
 import { providerView, type ProviderView } from '../blueprint/views.js';
+import { HOOK_SITES } from '../definitions/hook-sites.js';
 import { unreachable } from '../definitions/unreachable.js';
 import {
   AsyncTransientError,
@@ -277,12 +278,12 @@ export function applyConstruct(
   instance: unknown,
 ): unknown {
   const { root } = container;
-  const hooks = root.plugins.construct;
   if (
-    hooks.length === 0 ||
+    !(HOOK_SITES && root.plugins.construct.length > 0) ||
     (record.kind !== 'class' && record.kind !== 'factory')
   )
     return instance;
+  const hooks = root.plugins.construct;
   const view = providerViewIn(bp, record);
   let current = instance;
   for (const hook of hooks) {

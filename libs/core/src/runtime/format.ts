@@ -3,6 +3,7 @@ import {
   viewOfBlueprint,
   type BlueprintView,
 } from '../blueprint/views.js';
+import { HOOK_SITES } from '../definitions/hook-sites.js';
 import {
   BlueprintError,
   blueprintMessage,
@@ -54,7 +55,7 @@ export function formatThrown(
   error: unknown,
 ): unknown {
   if (
-    plugins.formatError.length === 0 ||
+    !(HOOK_SITES && plugins.formatError.length > 0) ||
     !(error instanceof NexusError) ||
     FORMATTED.has(error) ||
     USER_THROWN.has(error) ||
@@ -94,13 +95,13 @@ export function formatThrown(
  * a method calls it from its catch block and adds nothing to its normal path.
  */
 export function formatFor(state: RootState, error: unknown): unknown {
-  return state.plugins.formatError.length === 0
-    ? error
-    : formatThrown(
+  return HOOK_SITES && state.plugins.formatError.length > 0
+    ? formatThrown(
         state.plugins,
         () => viewOfBlueprint(state.blueprint, state.canon),
         error,
-      );
+      )
+    : error;
 }
 
 const GUARDED = new WeakMap<Promise<unknown>, Promise<unknown>>();
@@ -115,7 +116,7 @@ export function guardAsync<T>(
   state: RootState,
   promise: Promise<T>,
 ): Promise<T> {
-  if (state.plugins.formatError.length === 0) return promise;
+  if (!(HOOK_SITES && state.plugins.formatError.length > 0)) return promise;
   let guarded = GUARDED.get(promise) as Promise<T> | undefined;
   if (guarded === undefined) {
     guarded = promise.then(undefined, (error: unknown) => {

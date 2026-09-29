@@ -3,6 +3,7 @@ import { isForeign } from '../definitions/brand.js';
 import { resolveModuleRef } from '../definitions/define-module.js';
 import { describeValue } from '../definitions/describe.js';
 import { isToken } from '../definitions/guards.js';
+import { HOOK_SITES } from '../definitions/hook-sites.js';
 import { MultiToken, displayName } from '../definitions/token.js';
 import {
   InvalidModuleError,
@@ -101,7 +102,7 @@ export function getFrom(
       otherCopy: isForeign(token),
     });
   const moduleId = lookupModule(bp, options);
-  const key = container.root.canon(token);
+  const key = HOOK_SITES ? container.root.canon(token) : token;
   const ids = bp.visibility.get(moduleId)?.get(key) ?? [];
   const ctx = { bp, container, owner };
   if (key instanceof MultiToken) return ids.map((id) => resolveId(id, ctx));
@@ -121,6 +122,6 @@ export function hasIn(
   return (
     (bp.visibility
       .get(lookupModule(bp, options))
-      ?.get(container.root.canon(token))?.length ?? 0) > 0
+      ?.get(HOOK_SITES ? container.root.canon(token) : token)?.length ?? 0) > 0
   );
 }

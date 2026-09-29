@@ -1,7 +1,8 @@
 import type { Blueprint } from '../blueprint/blueprint.js';
 import { canonicalizer, pluginFailed } from '../blueprint/hooks.js';
-import { viewOfBlueprint } from '../blueprint/views.js';
+import { sameToken, viewOfBlueprint } from '../blueprint/views.js';
 import type { ModuleRef } from '../definitions/define-module.js';
+import { HOOK_SITES } from '../definitions/hook-sites.js';
 import type { Dep, DepsMap, ResolvedDeps } from '../definitions/modifiers.js';
 import type { NexusRequest } from '../definitions/request.js';
 import type { InjectionToken, MultiToken } from '../definitions/token.js';
@@ -14,6 +15,7 @@ import { loadModule } from './load.js';
 import { getFrom, hasIn } from './lookup.js';
 import type { CheckOptions, CreateOptions, LookupOptions } from './options.js';
 import {
+  NO_PLUGINS,
   pluginContext,
   registerPlugins,
   type PluginContext,
@@ -71,8 +73,8 @@ export class Nexus {
     options?: CheckOptions,
   ): void;
   static check(root: unknown, options?: CheckOptions): void {
-    const plugins = registerPlugins(options?.plugins);
-    const canon = canonicalizer(plugins.tokenKey);
+    const plugins = HOOK_SITES ? registerPlugins(options?.plugins) : NO_PLUGINS;
+    const canon = HOOK_SITES ? canonicalizer(plugins.tokenKey) : sameToken;
     // The last compile that passed. A load compiles against it, and a
     // LoadError, which carries no view of its own, is formatted with its view.
     let last: Blueprint | undefined;
@@ -85,7 +87,7 @@ export class Nexus {
         hooks: plugins.compile,
         canon,
         phase: 'check' as const,
-        wantsView: plugins.formatError.length > 0,
+        wantsView: HOOK_SITES && plugins.formatError.length > 0,
       };
       last = compileTraced(tracer, input, 'check');
       for (const module of options?.load ?? []) {
@@ -197,7 +199,7 @@ export class Nexus {
 
 /** Each plugin's observe hook, in plugin order. */
 function traceSinks(plugins: PluginSet): readonly TraceSink[] {
-  return plugins.observe.map((hook) => hook.call);
+  return HOOK_SITES ? plugins.observe.map((hook) => hook.call) : [];
 }
 
 /** A setup hook's throw or rejection, carried out of the tracked setup loop. */
@@ -245,7 +247,7 @@ async function runSetup(
   plugins: PluginSet,
   ship: Nexus,
 ): Promise<void> {
-  if (plugins.setup.length === 0) {
+  if (!(HOOK_SITES && plugins.setup.length > 0)) {
     state.pluginsStarted = plugins.count;
     return;
   }
@@ -306,8 +308,8 @@ export async function createContainer(
   root: unknown,
   options: CreateOptions | undefined,
 ): Promise<Nexus> {
-  const plugins = registerPlugins(options?.plugins);
-  const canon = canonicalizer(plugins.tokenKey);
+  const plugins = HOOK_SITES ? registerPlugins(options?.plugins) : NO_PLUGINS;
+  const canon = HOOK_SITES ? canonicalizer(plugins.tokenKey) : sameToken;
   // Set once compile returns: a runtime error in create reads the compiled
   // view, and a compile error carries its own through failedView().
   let compiled: Blueprint | undefined;
@@ -322,7 +324,7 @@ export async function createContainer(
         hooks: plugins.compile,
         canon,
         phase: 'create',
-        wantsView: plugins.formatError.length > 0,
+        wantsView: HOOK_SITES && plugins.formatError.length > 0,
       },
       'create',
     );
