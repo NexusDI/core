@@ -152,6 +152,14 @@ applies it on its own; your clone does not until you point git at it:
 git config blame.ignoreRevsFile .git-blame-ignore-revs
 ```
 
+### Size report
+
+Every pull request gets a comment with core's ESM gzip size against `main`,
+measured by `npm run size`. When core grows more than the percentage in
+`size-report.json`, the check fails until the description has a `## Size`
+section that says what the added bytes give the user and why they cannot live
+in a plugin. Packages are reported and never fail the check.
+
 ### Commit Linting
 
 All commit messages are linted using commitlint via a Husky `commit-msg`
@@ -189,7 +197,8 @@ Fixes #456
 3. Run the gate locally: `npx nx run-many -t lint test build typecheck`.
 4. Format: `npx prettier --write .`.
 5. Submit a pull request with a clear description. CI runs the same gate,
-   plus `npm run verify:packaging` and a workflow-file lint.
+   plus `npm run verify:packaging`, a workflow-file lint and the size report
+   above.
 
 ## Getting Help
 

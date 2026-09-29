@@ -3,7 +3,10 @@ import { join } from 'node:path';
 import { pathToFileURL } from 'node:url';
 import { describe, expect, it } from 'vitest';
 
-type Sizes = { core: number; packages: Record<string, number> };
+type Sizes = {
+  core: number | null;
+  packages: Record<string, number | null>;
+};
 const { compareSizes } = (await import(
   pathToFileURL(join(workspaceRoot, 'scripts', 'size-compare.mjs')).href
 )) as {
@@ -57,5 +60,23 @@ describe('compareSizes', () => {
         '<!-- nexusdi-size-report -->',
       ),
     ).toBe(true);
+  });
+
+  it('passes and reports no figure when the merge base does not build the fixture', () => {
+    // The first 0.4 pull request's merge base is core 0.3.1, whose API
+    // predates the fixture (R22). Nothing to compare against, so the job
+    // never fails on it, no matter how large core's head figure is.
+    const noBase: Sizes = { core: null, packages: { errors: null } };
+    const result = compareSizes(
+      noBase,
+      { core: 50_000, packages: { errors: 9000 } },
+      '',
+      2,
+    );
+    expect(result.fail).toBe(false);
+    expect(result.markdown).toContain('| core | no figure | 50000 | | |');
+    expect(result.markdown).toContain(
+      '| @nexusdi/errors | no figure | 9000 | | |',
+    );
   });
 });

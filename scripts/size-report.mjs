@@ -73,17 +73,33 @@ async function gzipOf(file) {
   return gzipSync(result.outputFiles[0].contents, { level: 9 }).length;
 }
 
-const core = await gzipOf('core.ts');
+// `--root` can point at a checkout whose core predates this fixture (the
+// merge base of the first 0.4 pull request is core 0.3.1, which has no
+// provide() or Token). esbuild throws when the bundle can't resolve an
+// import, so that checkout reports no figure for the entry instead of
+// failing the whole measurement (R22; size-compare.mjs reads the `null`).
+async function measure(file) {
+  try {
+    return await gzipOf(file);
+  } catch {
+    return null;
+  }
+}
+
+const core = await measure('core.ts');
 const packages = {};
 for (const dir of libs) {
   if (dir === 'core' || !existsSync(join(fixture, `${dir}.ts`))) continue;
-  packages[dir] = (await gzipOf(`${dir}.ts`)) - core;
+  const size = await measure(`${dir}.ts`);
+  packages[dir] = size === null || core === null ? null : size - core;
 }
 const sizes = { core, packages };
 console.log(JSON.stringify(sizes, null, 2));
 if (values.json) writeFileSync(values.json, JSON.stringify(sizes));
 
 if (values.record) {
+  if (core === null)
+    throw new Error('core.ts did not bundle, so there is no figure to record.');
   const file = join(HERE, 'examples', 'size', 'consolidation.json');
   const history = JSON.parse(readFileSync(file, 'utf8'));
   // A step measured and not kept left no code behind, so the delta compares

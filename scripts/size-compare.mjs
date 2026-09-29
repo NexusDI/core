@@ -17,23 +17,35 @@ const pct = (base, head) =>
 const bytes = (base, head) => `${head >= base ? '+' : ''}${head - base}`;
 
 export function compareSizes(base, head, body, threshold) {
-  const growth = ((head.core - base.core) / base.core) * 100;
+  // The merge base's fixture can fail to build against it: the first 0.4
+  // pull request's base is core 0.3.1, whose API predates provide() and
+  // Token (R22). There is nothing to compare core against, so the job
+  // reports that and never fails on it. A base that does measure keeps the
+  // ordinary growth rule; only a missing base figure skips it.
+  const baseHasCore = typeof base.core === 'number';
+  const growth = baseHasCore
+    ? ((head.core - base.core) / base.core) * 100
+    : null;
   const justified = /^## Size\b/m.test(body ?? '');
-  const fail = growth > threshold && !justified;
+  const fail = baseHasCore && growth > threshold && !justified;
   const rows = [
-    `| core | ${base.core} | ${head.core} | ${bytes(base.core, head.core)} | ${pct(base.core, head.core)} |`,
+    baseHasCore
+      ? `| core | ${base.core} | ${head.core} | ${bytes(base.core, head.core)} | ${pct(base.core, head.core)} |`
+      : `| core | no figure | ${head.core} | | |`,
     ...Object.keys(head.packages)
       .sort()
       .map((name) => {
         const was = base.packages[name];
         const now = head.packages[name];
-        return was === undefined
-          ? `| @nexusdi/${name} | new | ${now} | | |`
-          : `| @nexusdi/${name} | ${was} | ${now} | ${bytes(was, now)} | ${pct(was, now)} |`;
+        if (was === undefined) return `| @nexusdi/${name} | new | ${now} | | |`;
+        if (was === null || now === null)
+          return `| @nexusdi/${name} | no figure | ${now} | | |`;
+        return `| @nexusdi/${name} | ${was} | ${now} | ${bytes(was, now)} | ${pct(was, now)} |`;
       }),
   ];
-  const verdict =
-    growth <= threshold
+  const verdict = !baseHasCore
+    ? 'The merge base has no figure for core: its API predates this fixture. Nothing to compare, so the check passes.'
+    : growth <= threshold
       ? `Core grew ${growth.toFixed(2)}%, within the ${threshold}% threshold.`
       : justified
         ? `Core grew ${growth.toFixed(2)}%, over the ${threshold}% threshold; the description's Size section explains it.`

@@ -1,0 +1,68 @@
+name: Size report
+
+# Core has no size budget (spec §0, D5). This reports core's ESM gzip size
+# against the merge base on every pull request, and fails when core grows
+# more than size-report.json's coreGrowthPercent without a `## Size`
+# section in the description. Editing the description re-runs it.
+on:
+  pull_request:
+    types: [opened, synchronize, edited, reopened]
+
+permissions:
+  contents: read
+  pull-requests: write
+
+jobs:
+  size:
+    name: Size report
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          fetch-depth: 0
+      - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
+        with:
+          node-version-file: .nvmrc
+          cache: npm
+      - run: npm ci
+      - name: Measure this pull request
+        run: node scripts/size-report.mjs --json head.json
+      - name: Measure the merge base
+        env:
+          BASE_REF: ${{ github.base_ref }}
+        run: |
+          base=$(git merge-base "origin/$BASE_REF" HEAD)
+          git worktree add ../base "$base"
+          (cd ../base && npm ci)
+          node scripts/size-report.mjs --root ../base --json base.json
+      - name: Compare
+        id: compare
+        env:
+          PR_BODY: ${{ github.event.pull_request.body }}
+        run: |
+          if node scripts/size-compare.mjs base.json head.json > report.md; then
+            echo "failed=false" >> "$GITHUB_OUTPUT"
+          else
+            echo "failed=true" >> "$GITHUB_OUTPUT"
+          fi
+          cat report.md >> "$GITHUB_STEP_SUMMARY"
+      - name: Comment
+        # A fork's token cannot write comments; the step summary still has the table.
+        continue-on-error: true
+        env:
+          GH_TOKEN: ${{ github.token }}
+          PR: ${{ github.event.pull_request.number }}
+          REPO: ${{ github.repository }}
+        run: |
+          id=$(gh api "repos/$REPO/issues/$PR/comments" --paginate \
+            --jq '.[] | select(.body | startswith("<!-- nexusdi-size-report -->")) | .id' | head -n 1)
+          if [ -n "$id" ]; then
+            gh api -X PATCH "repos/$REPO/issues/comments/$id" -F body=@report.md
+          else
+            gh api "repos/$REPO/issues/$PR/comments" -F body=@report.md
+          fi
+      - name: Fail on unexplained growth
+        if: steps.compare.outputs.failed == 'true'
+        run: |
+          echo "Core grew past the threshold. Add a '## Size' section to the description."
+          exit 1

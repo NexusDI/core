@@ -13,7 +13,10 @@
     // Part of every target's hash, so a change to the workflow that runs the
     // targets invalidates the cache instead of replaying results produced
     // under the previous one.
-    "sharedGlobals": ["{workspaceRoot}/.github/workflows/ci.yml"],
+    "sharedGlobals": [
+      "{workspaceRoot}/.github/workflows/ci.yml",
+      "{workspaceRoot}/.github/workflows/size-report.yml"
+    ],
     // What tools/repo-checks reads: the repository. Its tests hold the
     // commitlint scope list against nx.json, and the tslib/coverage/release
     // gate invariants against the project graph and workflow files. None of
