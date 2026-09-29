@@ -22,7 +22,10 @@
       "packages": {
         "esbuild": "0.28.2"
       },
-      "decorators": true
+      "decorators": true,
+      "documented": {
+        "legacy-metadata": "https://esbuild.github.io/content-types/#typescript-caveats"
+      }
     },
     {
       "id": "swc",
@@ -51,7 +54,10 @@
         "vite": "8.3.0"
       },
       "decorators": false,
-      "documented": { "standard": "https://vite.dev/guide/migration" },
+      "documented": {
+        "standard": "https://vite.dev/guide/migration",
+        "legacy-metadata": "https://vite.dev/guide/features.html#typescript"
+      },
       "note": "Vite 8.3 (Oxc 0.151, Rolldown 1.2.10) passes standard decorators through unlowered, and no option lowers them (oxc#9170). The vite8+babel-plugin cell is the workaround the Vite migration guide documents."
     },
     {
@@ -88,7 +94,9 @@
       "packages": {},
       "decorators": false,
       "documented": {
-        "standard": "https://nodejs.org/api/typescript.html#type-stripping"
+        "standard": "https://nodejs.org/api/typescript.html#type-stripping",
+        "legacy": "https://nodejs.org/api/typescript.html#type-stripping",
+        "legacy-metadata": "https://nodejs.org/api/typescript.html#type-stripping"
       },
       "note": "Node 24 runs TypeScript by erasing types and lowers no syntax, so the decorated variant is a SyntaxError."
     }
