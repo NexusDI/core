@@ -9,14 +9,10 @@
  */
 import { spawnSync } from 'node:child_process';
 import {
-  copyFileSync,
-  cpSync,
   existsSync,
   mkdirSync,
   readFileSync,
-  realpathSync,
   rmSync,
-  symlinkSync,
   writeFileSync,
 } from 'node:fs';
 import { join } from 'node:path';
@@ -28,7 +24,9 @@ import {
   runCommand,
 } from '@nexusdi/toolchain-matrix/recipes';
 
-import { coreVersion, prepareConsumer } from './consumer.ts';
+import { coreVersion, makeCell, prepareConsumer } from './consumer.ts';
+import { checkSnippets } from './snippets.ts';
+import { firstLine, stripPaths } from './text.ts';
 import {
   BENCHMARKS,
   FIXTURES,
@@ -49,41 +47,6 @@ import {
 const golden = JSON.parse(
   readFileSync(join(FIXTURES, 'golden.json'), 'utf8'),
 ) as Parameters<typeof classify>[2];
-
-/**
- * The line of a tool's output that names the error: the first that says
- * "error", else the first non-empty one. Build durations are dropped, so
- * the file reproduces.
- */
-function firstLine(text: string): string {
-  const lines = stripVTControlCharacters(text)
-    .split('\n')
-    .map((line) => line.trim())
-    .filter((line) => line !== '');
-  const at = Math.max(
-    lines.findIndex((l) => /error/i.test(l)),
-    0,
-  );
-  // "error during build:" and the like put the error on the next line.
-  let line = lines[at] ?? '';
-  for (let next = at + 1; line.endsWith(':') && next < lines.length; next++)
-    line = `${line} ${lines[next]}`;
-  return line.replace(/ in \d+(?:\.\d+)?m?s\b/g, '');
-}
-
-/**
- * A message with the throwaway directory's paths and every line and column
- * number removed, so the file reproduces byte for byte.
- */
-export function stripPaths(message: string, dir: string): string {
-  let out = message;
-  for (const path of new Set([dir, realpathSync(dir)]))
-    out = out.split(path).join('<cell>');
-  return out
-    .replace(/(\.[cm]?[jt]s):\d+(?::\d+)?/g, '$1')
-    .replace(/\((\d+),(\d+)\)/g, '')
-    .replace(/[ \t]+$/, '');
-}
 
 /** Versions every results file records. */
 export function versionsOf(): Versions {
@@ -142,22 +105,12 @@ function runOne(
   const spec = lib.variants[variant];
   if (spec === undefined) throw new Error(`${lib.id} has no ${variant}`);
   const profile = spec.profile;
-  const cellDir = join(
+  const cellDir = makeCell(
     dir,
-    'cells',
-    `${lib.id}-${variant}-${toolchain.id.replace(/[^a-z0-9]+/gi, '-')}`,
-  );
-  mkdirSync(join(cellDir, 'src'), { recursive: true });
-  copyFileSync(
+    `${lib.id}-${variant}-${toolchain.id}`,
     join(FIXTURES, lib.id, `${variant}.ts`),
-    join(cellDir, 'src', 'main.ts'),
+    profile,
   );
-  cpSync(join(dir, 'config'), join(cellDir, 'config'), { recursive: true });
-  copyFileSync(
-    join(dir, 'config', profile, 'tsconfig.json'),
-    join(cellDir, 'tsconfig.json'),
-  );
-  symlinkSync(join(dir, 'node_modules'), join(cellDir, 'node_modules'), 'dir');
   const configs = configsFor(profile, toolchain.id);
 
   let modulePath: string | null = null;
@@ -237,6 +190,15 @@ export function runMatrix(opts: {
           );
         }
     }
+    const snippets = checkSnippets(dir, libraries);
+    for (const s of snippets)
+      console.log(
+        `  snippets ${s.ok ? 'ok' : 'FAILED'} ${s.library}${
+          s.message === undefined ? '' : `: ${s.message}`
+        }`,
+      );
+    if (snippets.some((s) => !s.ok))
+      throw new Error('a snippets file failed its check');
   } finally {
     rmSync(dir, { recursive: true, force: true });
   }
