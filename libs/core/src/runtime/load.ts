@@ -1,3 +1,4 @@
+import { isForeign } from '../definitions/brand.js';
 import { resolveModuleRef } from '../definitions/define-module.js';
 import { describeValue } from '../definitions/describe.js';
 import { InvalidModuleError } from '../errors/index.js';
@@ -16,7 +17,11 @@ async function loadNow(root: RootState, module: unknown): Promise<void> {
   assertOpen(root);
   const definition = resolveModuleRef(module);
   if (definition === undefined)
-    throw new InvalidModuleError({ received: describeValue(module), path: [] });
+    throw new InvalidModuleError({
+      received: describeValue(module),
+      path: [],
+      otherCopy: isForeign(module),
+    });
 
   const current = root.blueprint;
   // A compile.module hook may have replaced `module` at the last compile.

@@ -1,3 +1,4 @@
+import { brand } from './brand.js';
 import type { Dep, ResolveAll, Tokens } from './modifiers.js';
 import type { InjectionToken, MultiToken } from './token.js';
 import type { Ctor, Lifetime } from './types.js';
@@ -151,7 +152,7 @@ export function provide<
   options: FactoryDefinition<D, R>,
 ): Provider<T>;
 export function provide(token: unknown, options?: unknown): Provider<unknown> {
-  const provider = Object.freeze({}) as Provider<unknown>;
+  const provider = Object.freeze(brand({})) as Provider<unknown>;
   SPECS.set(provider, { token, options });
   return provider;
 }

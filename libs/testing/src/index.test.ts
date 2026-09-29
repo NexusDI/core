@@ -754,6 +754,23 @@ describe('createTestingContainer', () => {
     },
   );
 
+  it('sets otherCopy for a module another copy of core made', () => {
+    const Remote = Object.defineProperty(
+      { name: 'Remote' },
+      Symbol.for('nexusdi.definition'),
+      { value: true },
+    );
+    const Comms = defineModule({ name: 'Comms' });
+    const builder = createTestingContainer(defineModule({ name: 'Root' }));
+    expect(
+      thrown(() => builder.overrideModule(Remote as never, Comms)),
+    ).toMatchObject({ code: 'NEXUS_INVALID_MODULE', otherCopy: true });
+    for (const local of [{}, new Token<string>('Nav')])
+      expect(
+        thrown(() => builder.overrideModule(local as never, Comms)),
+      ).toMatchObject({ code: 'NEXUS_INVALID_MODULE', otherCopy: false });
+  });
+
   it('names an anonymous class token (anonymous class) when its override matches nothing', async () => {
     const Anonymous = (() => class {})();
     const error = await rejected(

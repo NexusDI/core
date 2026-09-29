@@ -1,10 +1,11 @@
 import { MultiToken, Token } from '@nexusdi/core';
 
 /*
- * Core words its own errors with these two rules and exports neither. The
+ * Core words its own errors with these rules and exports none of them. The
  * package keeps a copy, so a value or a token reads the same in its errors
- * as in core's. Keep both in step with libs/core/src/definitions/describe.ts
- * and displayName in libs/core/src/definitions/token.ts.
+ * as in core's. Keep them in step with libs/core/src/definitions/describe.ts,
+ * displayName in libs/core/src/definitions/token.ts and isForeign in
+ * libs/core/src/definitions/brand.ts.
  */
 
 /** A short description of any value, for the `received` field of an error. */
@@ -34,4 +35,23 @@ export function displayName(token: unknown): string {
     return token.description;
   if (typeof token === 'function') return token.name || '(anonymous class)';
   return describeValue(token);
+}
+
+/**
+ * True when another copy of core made `value`: it carries the brand as an
+ * own property and is no token of this copy. Core also knows its own
+ * provide() results; the package cannot, so one of those reads true.
+ */
+export function isForeign(value: unknown): boolean {
+  if ((typeof value !== 'object' && typeof value !== 'function') || !value)
+    return false;
+  if (value instanceof Token || value instanceof MultiToken) return false;
+  try {
+    return (
+      Object.getOwnPropertyDescriptor(value, Symbol.for('nexusdi.definition'))
+        ?.value === true
+    );
+  } catch {
+    return false;
+  }
 }

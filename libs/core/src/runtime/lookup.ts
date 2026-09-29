@@ -1,4 +1,5 @@
 import type { Blueprint, TokenKey } from '../blueprint/blueprint.js';
+import { isForeign } from '../definitions/brand.js';
 import { resolveModuleRef } from '../definitions/define-module.js';
 import { describeValue } from '../definitions/describe.js';
 import { isToken } from '../definitions/guards.js';
@@ -34,6 +35,7 @@ export function lookupModule(bp: Blueprint, options?: LookupOptions): string {
     throw new InvalidModuleError({
       received: definition?.name ?? describeValue(options.module),
       path: [],
+      otherCopy: isForeign(options.module),
     });
   }
   return id;
@@ -96,6 +98,7 @@ export function getFrom(
       index: null,
       reason: null,
       detail: [],
+      otherCopy: isForeign(token),
     });
   const moduleId = lookupModule(bp, options);
   const ids = bp.visibility.get(moduleId)?.get(token) ?? [];

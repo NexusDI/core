@@ -56,6 +56,7 @@ const NO_TOKEN_SITE = {
   index: null,
   reason: null,
   detail: [],
+  otherCopy: false,
 } as const;
 
 const missing = new MissingProviderError({
@@ -113,6 +114,7 @@ export const errorCases: readonly ErrorCase[] = [
       index: 2,
       reason: 'not-a-provider',
       detail: ['null'],
+      otherCopy: false,
     }),
     code: 'NEXUS_INVALID_PROVIDER',
     fields: {
@@ -120,6 +122,7 @@ export const errorCases: readonly ErrorCase[] = [
       index: 2,
       reason: 'not-a-provider',
       detail: ['null'],
+      otherCopy: false,
     },
   },
   {
@@ -136,6 +139,7 @@ export const errorCases: readonly ErrorCase[] = [
       index: null,
       reason: null,
       detail: [],
+      otherCopy: false,
     },
   },
   {
@@ -143,9 +147,14 @@ export const errorCases: readonly ErrorCase[] = [
     error: new InvalidModuleError({
       received: 'undefined',
       path: ['Meridian', 'Tactical'],
+      otherCopy: false,
     }),
     code: 'NEXUS_INVALID_MODULE',
-    fields: { received: 'undefined', path: ['Meridian', 'Tactical'] },
+    fields: {
+      received: 'undefined',
+      path: ['Meridian', 'Tactical'],
+      otherCopy: false,
+    },
   },
   {
     name: 'MissingDepsError',

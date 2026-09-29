@@ -56,6 +56,7 @@ const NO_TOKEN_SITE = {
   index: null,
   reason: null,
   detail: [],
+  otherCopy: false,
 } as const;
 
 const missing = new MissingProviderError({
@@ -149,6 +150,7 @@ export const errorCases: readonly ErrorCase[] = [
       index: 2,
       reason: 'not-a-provider',
       detail: ['null'],
+      otherCopy: false,
     }),
     code: 'NEXUS_INVALID_PROVIDER',
     fields: {
@@ -193,6 +195,7 @@ export const errorCases: readonly ErrorCase[] = [
       index: 2,
       reason: 'alias-target',
       detail: [],
+      otherCopy: false,
     }),
     code: 'NEXUS_INVALID_TOKEN',
     fields: { module: 'Engineering', index: 2, reason: 'alias-target' },
@@ -218,6 +221,7 @@ export const errorCases: readonly ErrorCase[] = [
     error: new InvalidModuleError({
       received: 'undefined',
       path: ['Meridian', 'Tactical'],
+      otherCopy: false,
     }),
     code: 'NEXUS_INVALID_MODULE',
     fields: { received: 'undefined', path: ['Meridian', 'Tactical'] },
@@ -227,9 +231,44 @@ export const errorCases: readonly ErrorCase[] = [
     error: new InvalidModuleError({
       received: 'the number 4',
       path: ['Meridian', 'Tactical'],
+      otherCopy: false,
     }),
     code: 'NEXUS_INVALID_MODULE',
     fields: { path: ['Meridian', 'Tactical'] },
+  },
+  {
+    name: 'InvalidModuleError (other copy)',
+    error: new InvalidModuleError({
+      received: 'an object',
+      path: ['Meridian'],
+      otherCopy: true,
+    }),
+    code: 'NEXUS_INVALID_MODULE',
+    fields: { received: 'an object', path: ['Meridian'], otherCopy: true },
+  },
+  {
+    name: 'InvalidTokenError (other copy)',
+    error: new InvalidTokenError({
+      received: 'an object',
+      ...NO_TOKEN_SITE,
+      module: 'Engineering',
+      index: 2,
+      otherCopy: true,
+    }),
+    code: 'NEXUS_INVALID_TOKEN',
+    fields: { module: 'Engineering', index: 2, otherCopy: true },
+  },
+  {
+    name: 'InvalidProviderError (other copy)',
+    error: new InvalidProviderError({
+      module: 'Engineering',
+      index: 1,
+      reason: 'bad-dep',
+      detail: ['deps[0]', 'not-a-token', 'an object'],
+      otherCopy: true,
+    }),
+    code: 'NEXUS_INVALID_PROVIDER',
+    fields: { reason: 'bad-dep', otherCopy: true },
   },
   {
     name: 'MissingDepsError',

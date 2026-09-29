@@ -7,6 +7,8 @@ interface InvalidProviderFields {
   readonly reason: InvalidProviderReason;
   /** The values the reason names, such as the value an entry holds. */
   readonly detail: readonly string[];
+  /** True when another copy of core made the value the entry holds. */
+  readonly otherCopy: boolean;
 }
 
 /** An entry in a module's providers is malformed. */

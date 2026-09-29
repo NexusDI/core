@@ -5,6 +5,7 @@ import {
   type ModuleRef,
   type ProviderEntry,
 } from '../definitions/define-module.js';
+import { isForeign } from '../definitions/brand.js';
 import { pickOwn } from '../definitions/own-keys.js';
 import type {
   ProviderEntries,
@@ -91,7 +92,11 @@ export function rootModuleOf(root: unknown): unknown {
     (key) => !(ROOT_KEYS as readonly string[]).includes(key),
   );
   if (extra.length > 0)
-    throw new InvalidModuleError({ received: withKeys(extra), path: [] });
+    throw new InvalidModuleError({
+      received: withKeys(extra),
+      path: [],
+      otherCopy: isForeign(root),
+    });
   return defineModule({ name: 'root', ...pickOwn(root, ROOT_KEYS) } as never);
 }
 

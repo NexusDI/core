@@ -13,6 +13,8 @@ interface InvalidTokenFields {
   readonly reason: InvalidTokenReason | null;
   /** The values the reason names. */
   readonly detail: readonly string[];
+  /** True when another copy of core made the value. */
+  readonly otherCopy: boolean;
 }
 
 /** A value used as a token is not a class, a Token or a MultiToken. */

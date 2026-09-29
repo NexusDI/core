@@ -40,6 +40,15 @@ type Builder<E> = (error: E, view: BlueprintView | undefined) => ErrorText;
 
 const text = (message: string): ErrorText => ({ message });
 
+/**
+ * The text of a value another copy of core made. `where` is the builder's
+ * own location text, such as ` (imported by Shell)`.
+ */
+const otherCopy = (received: string, where: string): ErrorText => ({
+  message: `${received} was made by another copy of @nexusdi/core, which this copy does not recognise${where}.`,
+  fix: 'load one copy of @nexusdi/core. In module federation, list @nexusdi/core in shared with singleton: true.',
+});
+
 function nearMissHint(token: string, module: string, miss: NearMiss): string {
   switch (miss.kind) {
     case 'not-exported':
@@ -120,6 +129,16 @@ function isFactoryPrefix(value: string | undefined): value is string {
 const invalidProvider: Builder<InvalidProviderError> = (error) => {
   const [first, ...rest] = error.detail;
   const prefixed = isFactoryPrefix(first);
+  if (error.otherCopy) {
+    // The last detail describes the rejected value: the entry itself, or the
+    // dep a 'bad-dep' entry holds, whose location leads the detail.
+    const [where] = prefixed ? rest : error.detail;
+    const site = `${error.module}.providers[${error.index}]${prefixed ? ` ${first}` : ''}`;
+    return otherCopy(
+      error.detail.at(-1) ?? 'the value',
+      error.reason === 'bad-dep' ? ` (${site}, ${where})` : ` (${site})`,
+    );
+  }
   const sentence = PROVIDER_REASONS[error.reason](
     prefixed ? rest : error.detail,
   );
@@ -134,6 +153,8 @@ const invalidToken: Builder<InvalidTokenError> = (error) => {
     (error.module === null || error.index === null
       ? undefined
       : `${error.module}.providers[${error.index}]`);
+  if (error.otherCopy)
+    return otherCopy(error.received, at === undefined ? '' : ` (${at})`);
   return text(
     `${at === undefined ? '' : `${at}: `}${error.received} ${tokenReason(error.reason, error.detail)}`,
   );
@@ -142,6 +163,7 @@ const invalidToken: Builder<InvalidTokenError> = (error) => {
 const invalidModule: Builder<InvalidModuleError> = (error) => {
   const where =
     error.path.length > 0 ? ` (imported by ${error.path.join(' → ')})` : '';
+  if (error.otherCopy) return otherCopy(error.received, where);
   return text(
     `${error.received} is not a module${where}.\n  Fix: create one with defineModule(), or decorate a class with @Module.`,
   );

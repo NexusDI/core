@@ -50,7 +50,11 @@ describe('explain', () => {
     // defineModule keeps revision 1's text in core, and the snapshot above
     // holds it, so the builder's no-path form is pinned to the same text.
     const raised = thrown(() => defineModule({} as never)) as Error;
-    const error = new InvalidModuleError({ received: 'an object', path: [] });
+    const error = new InvalidModuleError({
+      received: 'an object',
+      path: [],
+      otherCopy: false,
+    });
     expect(render(error)).toBe(raised.message);
   });
 
@@ -68,6 +72,7 @@ describe('explain', () => {
       index: null,
       reason: 'bad-description',
       detail: [],
+      otherCopy: false,
     });
     expect(render(error)).toBe(raised.message);
   });

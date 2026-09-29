@@ -1,4 +1,5 @@
 import { InvalidTokenError } from '../errors/index.js';
+import { brand, isForeign } from './brand.js';
 import { describeValue } from './describe.js';
 import type { Class } from './types.js';
 
@@ -17,6 +18,7 @@ function checkDescription(description: unknown): string {
         index: null,
         reason: 'bad-description',
         detail: [],
+        otherCopy: isForeign(description),
       },
       {
         text: `${received} is not a token description. A Token needs a non-empty description string.`,
@@ -40,6 +42,7 @@ export class Token<out T> {
 
   constructor(description: string) {
     this.description = checkDescription(description);
+    brand(this);
   }
 
   toString(): string {
@@ -60,6 +63,7 @@ export class MultiToken<out T> {
 
   constructor(description: string) {
     this.description = checkDescription(description);
+    brand(this);
   }
 
   toString(): string {

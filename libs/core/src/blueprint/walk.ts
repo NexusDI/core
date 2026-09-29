@@ -3,6 +3,7 @@ import {
   resolveModuleRef,
   type ModuleDefinition,
 } from '../definitions/define-module.js';
+import { isForeign } from '../definitions/brand.js';
 import { describeValue } from '../definitions/describe.js';
 import { MultiToken, displayName } from '../definitions/token.js';
 import {
@@ -127,6 +128,7 @@ export function walk(input: WalkInput, errors: NexusError[]): WalkResult {
         new InvalidModuleError({
           received: describeValue(ref),
           path: stack.map((m) => m.name),
+          otherCopy: isForeign(ref),
         }),
       );
       return undefined;

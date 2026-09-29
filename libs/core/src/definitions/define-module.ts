@@ -1,4 +1,5 @@
 import { InvalidModuleError } from '../errors/index.js';
+import { brand, isForeign } from './brand.js';
 import { describeValue } from './describe.js';
 import type { Dep, ResolveAll } from './modifiers.js';
 import { pickOwn } from './own-keys.js';
@@ -110,7 +111,7 @@ function register<D extends ModuleDefinition>(
     readonly base?: ModuleDefinition;
   },
 ): D {
-  Object.freeze(definition);
+  Object.freeze(brand(definition));
   INTERNALS.set(definition, {
     ...internals,
     base: internals.base ?? definition,
@@ -148,7 +149,7 @@ export function defineModule(
     const received = describeValue(config);
     // Raised before any container exists, so core keeps its text (spec §9).
     throw new InvalidModuleError(
-      { received, path: [] },
+      { received, path: [], otherCopy: isForeign(config) },
       {
         text: `${received} is not a module.\n  Fix: create one with defineModule(), or decorate a class with @Module.`,
       },
@@ -198,7 +199,7 @@ export function declareModuleClass<C extends Class>(
   config: ModuleConfig,
 ): C {
   CLASSES.set(cls, defineModule(config as never));
-  return cls;
+  return brand(cls);
 }
 
 /** The definition behind a ModuleRef, or undefined when the value is not a module. */

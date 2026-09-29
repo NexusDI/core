@@ -4,6 +4,7 @@ import {
   type ProviderRecord,
 } from '../blueprint/blueprint.js';
 import { depOf, type BadDep } from '../blueprint/records.js';
+import { isForeign } from '../definitions/brand.js';
 import { describeValue } from '../definitions/describe.js';
 import {
   BlueprintError,
@@ -70,6 +71,7 @@ function invalidEntry(
     index: null,
     reason: plain ? null : bad.reason,
     detail: plain ? [] : bad.detail,
+    otherCopy: bad.otherCopy,
   });
 }
 
@@ -81,6 +83,7 @@ function notADepsValue(deps: unknown): InvalidTokenError {
     index: null,
     reason: 'not-a-deps-value',
     detail: [],
+    otherCopy: isForeign(deps),
   });
 }
 

@@ -4,6 +4,8 @@ interface InvalidModuleFields {
   readonly received: string;
   /** The import path that reached the value, empty outside the walk. */
   readonly path: readonly string[];
+  /** True when another copy of core made the value. */
+  readonly otherCopy: boolean;
 }
 
 /** A value used as a module is not a module definition or an @Module class. */

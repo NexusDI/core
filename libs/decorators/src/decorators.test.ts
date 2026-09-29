@@ -10,7 +10,7 @@ import {
   provide,
 } from '@nexusdi/core';
 
-import { thrown } from '../test-support/catch.js';
+import { rejected, thrown } from '../test-support/catch.js';
 import { viewRecorder } from '../test-support/context.js';
 import { Inject, Injectable, LegacyDecoratorsError, Module } from './index.js';
 
@@ -246,6 +246,28 @@ describe('Module', () => {
     const { plugin, view } = viewRecorder();
     await Nexus.create(Unnamed, { plugins: [plugin] });
     expect(view().modules.map((m) => m.name)).toEqual(['(anonymous module)']);
+  });
+
+  it('brands the class as a definition core made, non-enumerably', () => {
+    @Module({ providers: [ReactorCore] })
+    class Hangar {}
+    const brand = Symbol.for('nexusdi.definition');
+    expect(Object.getOwnPropertyDescriptor(Hangar, brand)).toMatchObject({
+      value: true,
+      enumerable: false,
+    });
+    expect(Object.keys(Hangar)).toEqual([]);
+  });
+
+  it('leaves otherCopy false for a subclass of a module class, which inherits the brand', async () => {
+    @Module({ providers: [ReactorCore] })
+    class Hangar {}
+    class Annex extends Hangar {}
+    @Module({ imports: [Annex] })
+    class Station {}
+    expect(await rejected(Nexus.create(Station))).toMatchObject({
+      errors: [{ code: 'NEXUS_INVALID_MODULE', otherCopy: false }],
+    });
   });
 
   it('throws NEXUS_LEGACY_DECORATORS when called the experimentalDecorators way', () => {

@@ -39,14 +39,29 @@ exports[`NexusError > keeps the message of 'InvalidModuleError (import path)' 1`
   Fix: create one with defineModule(), or decorate a class with @Module."
 `;
 
+exports[`NexusError > keeps the message of 'InvalidModuleError (other copy)' 1`] = `
+"[NEXUS_INVALID_MODULE] an object was made by another copy of @nexusdi/core, which this copy does not recognise (imported by Meridian).
+  Fix: load one copy of @nexusdi/core. In module federation, list @nexusdi/core in shared with singleton: true."
+`;
+
 exports[`NexusError > keeps the message of 'InvalidModuleError' 1`] = `
 "[NEXUS_INVALID_MODULE] undefined is not a module (imported by Meridian → Tactical).
   Fix: create one with defineModule(), or decorate a class with @Module."
 `;
 
+exports[`NexusError > keeps the message of 'InvalidProviderError (other copy)' 1`] = `
+"[NEXUS_INVALID_PROVIDER] an object was made by another copy of @nexusdi/core, which this copy does not recognise (Engineering.providers[1], deps[0]).
+  Fix: load one copy of @nexusdi/core. In module federation, list @nexusdi/core in shared with singleton: true."
+`;
+
 exports[`NexusError > keeps the message of 'InvalidProviderError' 1`] = `"[NEXUS_INVALID_PROVIDER] Root.providers[2] is null, not a provider; list a class, a provide() result or a { token } literal."`;
 
 exports[`NexusError > keeps the message of 'InvalidTokenError (deps entry)' 1`] = `"[NEXUS_INVALID_TOKEN] deps.name: the string "nav" is not a token. A token is a class, a Token or a MultiToken."`;
+
+exports[`NexusError > keeps the message of 'InvalidTokenError (other copy)' 1`] = `
+"[NEXUS_INVALID_TOKEN] an object was made by another copy of @nexusdi/core, which this copy does not recognise (Engineering.providers[2]).
+  Fix: load one copy of @nexusdi/core. In module federation, list @nexusdi/core in shared with singleton: true."
+`;
 
 exports[`NexusError > keeps the message of 'InvalidTokenError (providers entry wi…' 1`] = `"[NEXUS_INVALID_TOKEN] Engineering.providers[2]: the number 4 is not a token, so useExisting cannot alias it. A token is a class, a Token or a MultiToken."`;
 

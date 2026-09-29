@@ -1,3 +1,4 @@
+import { isForeign } from '../definitions/brand.js';
 import {
   resolveModuleRef,
   type ModuleInternals,
@@ -170,7 +171,10 @@ function definitionOf(entry: unknown, fail: Fail): Definition | null {
   }
   if (isLiteral(entry))
     return { token: entry.token, options: pickOwn(entry, OPTION_KEYS) };
-  return fail('not-a-provider', describeValue(entry));
+  return (isForeign(entry) ? fail.otherCopy : fail)(
+    'not-a-provider',
+    describeValue(entry),
+  );
 }
 
 /** Where a provider entry sits, for error messages. */
@@ -179,8 +183,13 @@ export interface ProviderSite {
   readonly index: number;
 }
 
+type Report = (reason: InvalidProviderReason, ...detail: string[]) => null;
+
 /** Reports a malformed entry: the reason id, then the values its text names. */
-type Fail = (reason: InvalidProviderReason, ...detail: string[]) => null;
+interface Fail extends Report {
+  /** The same report for a value another copy of core made. */
+  readonly otherCopy: Report;
+}
 
 /**
  * The Fail of one providers entry. `prefix` leads every detail, as
@@ -192,17 +201,21 @@ function invalidProvider(
   errors: NexusError[],
   prefix: readonly string[],
 ): Fail {
-  return (reason, ...detail) => {
-    errors.push(
-      new InvalidProviderError({
-        module: site.module,
-        index: site.index,
-        reason,
-        detail: [...prefix, ...detail],
-      }),
-    );
-    return null;
-  };
+  const report =
+    (otherCopy: boolean): Report =>
+    (reason, ...detail) => {
+      errors.push(
+        new InvalidProviderError({
+          module: site.module,
+          index: site.index,
+          reason,
+          detail: [...prefix, ...detail],
+          otherCopy,
+        }),
+      );
+      return null;
+    };
+  return Object.assign(report(false), { otherCopy: report(true) });
 }
 
 /** The InvalidTokenError of a providers entry whose token or alias target is not a token. */
@@ -218,6 +231,7 @@ function invalidToken(
     index: site.index,
     reason,
     detail: [],
+    otherCopy: isForeign(value),
   });
 }
 
@@ -251,6 +265,8 @@ export function tokenOfEntry(entry: unknown): TokenKey | undefined {
 export interface BadDep {
   readonly reason: 'bad-modifier' | 'bare-multi-token' | 'not-a-token';
   readonly detail: readonly string[];
+  /** True when another copy of core made the rejected value. */
+  readonly otherCopy: boolean;
 }
 
 /** A dep, or why the value is not one. */
@@ -263,14 +279,23 @@ export function depOf(value: unknown): DepEntry | BadDep {
       return {
         reason: 'bad-modifier',
         detail: [value.kind, describeValue(value.token)],
+        otherCopy: isForeign(value.token),
       };
     }
     return { kind: value.kind, token: value.token };
   }
   if (value instanceof MultiToken)
-    return { reason: 'bare-multi-token', detail: [value.description] };
+    return {
+      reason: 'bare-multi-token',
+      detail: [value.description],
+      otherCopy: false,
+    };
   if (isToken(value)) return { kind: 'required', token: value };
-  return { reason: 'not-a-token', detail: [describeValue(value)] };
+  return {
+    reason: 'not-a-token',
+    detail: [describeValue(value)],
+    otherCopy: isForeign(value),
+  };
 }
 
 function depsOf(list: readonly unknown[], fail: Fail): DepEntry[] | null {
@@ -278,7 +303,12 @@ function depsOf(list: readonly unknown[], fail: Fail): DepEntry[] | null {
   for (const [i, value] of list.entries()) {
     const dep = depOf(value);
     if ('reason' in dep)
-      return fail('bad-dep', `deps[${i}]`, dep.reason, ...dep.detail);
+      return (dep.otherCopy ? fail.otherCopy : fail)(
+        'bad-dep',
+        `deps[${i}]`,
+        dep.reason,
+        ...dep.detail,
+      );
     deps.push(dep);
   }
   return deps;
@@ -290,7 +320,12 @@ function propsOf(cls: Ctor, fail: Fail): PropEntry[] | null {
     const dep = depOf(prop.dep);
     if ('reason' in dep) {
       const where = `@Inject on ${String(prop.key)}`;
-      return fail('bad-dep', where, dep.reason, ...dep.detail);
+      return (dep.otherCopy ? fail.otherCopy : fail)(
+        'bad-dep',
+        where,
+        dep.reason,
+        ...dep.detail,
+      );
     }
     props.push({ key: prop.key, dep, set: prop.set });
   }
