@@ -765,6 +765,14 @@ describe('createTestingContainer', () => {
     expect(
       thrown(() => builder.overrideModule(Remote as never, Comms)),
     ).toMatchObject({ code: 'NEXUS_INVALID_MODULE', otherCopy: true });
+    const Versioned = Object.defineProperty(
+      { name: 'Versioned' },
+      Symbol.for('nexusdi.definition'),
+      { value: '0.5.0' },
+    );
+    expect(
+      thrown(() => builder.overrideModule(Versioned as never, Comms)),
+    ).toMatchObject({ code: 'NEXUS_INVALID_MODULE', otherCopy: true });
     for (const local of [{}, new Token<string>('Nav')])
       expect(
         thrown(() => builder.overrideModule(local as never, Comms)),

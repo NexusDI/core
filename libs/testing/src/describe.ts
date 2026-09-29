@@ -39,7 +39,7 @@ export function displayName(token: unknown): string {
 
 /**
  * True when another copy of core made `value`: it carries the brand as an
- * own property and is no token of this copy. Core also knows its own
+ * own property, whatever its value, and is no token of this copy. Core also knows its own
  * provide() results; the package cannot, so one of those reads true.
  */
 export function isForeign(value: unknown): boolean {
@@ -48,8 +48,10 @@ export function isForeign(value: unknown): boolean {
   if (value instanceof Token || value instanceof MultiToken) return false;
   try {
     return (
-      Object.getOwnPropertyDescriptor(value, Symbol.for('nexusdi.definition'))
-        ?.value === true
+      Object.getOwnPropertyDescriptor(
+        value,
+        Symbol.for('nexusdi.definition'),
+      ) !== undefined
     );
   } catch {
     return false;

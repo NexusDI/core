@@ -213,6 +213,19 @@ describe('brand', () => {
     expect(isForeign(Object.create(foreign({})) as object)).toBe(false);
   });
 
+  it('counts a brand whatever value another copy wrote', () => {
+    for (const value of ['0.5.0', false, 1, null]) {
+      const remote = Object.defineProperty(
+        {},
+        Symbol.for('nexusdi.definition'),
+        {
+          value,
+        },
+      );
+      expect(isForeign(remote)).toBe(true);
+    }
+  });
+
   it('reads false from a Proxy whose traps throw', () => {
     const trap = (): never => {
       throw new Error('trap');

@@ -28,7 +28,7 @@ export function brand<T extends object>(value: T): T {
 
 /**
  * True when another copy of core made `value`: it carries the brand as an
- * own property, and this copy did not write it. A Token this copy made,
+ * own property, whatever its value, and this copy did not write it. A Token this copy made,
  * listed where a provider belongs, reads false. An inherited brand does not
  * count, so a subclass of a branded class reads false. A Proxy whose trap
  * throws reads false, so building an error never throws.
@@ -39,7 +39,7 @@ export function isForeign(value: unknown): boolean {
   if (MINE.has(value)) return false;
   try {
     return (
-      Object.getOwnPropertyDescriptor(value, DEFINITION_BRAND)?.value === true
+      Object.getOwnPropertyDescriptor(value, DEFINITION_BRAND) !== undefined
     );
   } catch {
     return false;
