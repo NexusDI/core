@@ -9,6 +9,7 @@ import {
   applyConstruct,
   buildInto,
   moduleName,
+  store,
   traceConstruct,
 } from './build.js';
 import { buildLevels } from './build-levels.js';
@@ -56,9 +57,7 @@ function settleValue(
   value: unknown,
 ): boolean {
   const added = root.ownership.registerValue(value);
-  root.slots.settle(record.id, value);
-  root.slots.markReady(record.id);
-  traceConstruct(root, bp, record, false);
+  store(root, bp, record, value, undefined, false, true);
   return added;
 }
 
@@ -121,11 +120,8 @@ async function buildSingleton(
   // After validation, so the schema checks the factory's own output and
   // the runtime stores what the construct hooks return.
   value = applyConstruct(root, owner, bp, record, value, null);
-  root.slots.settle(id, value);
-  if (record.kind === 'factory') root.asyncFlags.set(id, isAsync);
   adopt(owner, record, value);
-  if (!root.initEnabled) root.slots.markReady(id);
-  traceConstruct(root, bp, record, isAsync, start);
+  store(root, bp, record, value, start, isAsync, !root.initEnabled);
 }
 
 /**

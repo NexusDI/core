@@ -22,5 +22,11 @@
     "core": 18153,
     "delta": -9,
     "kept": true
+  },
+  {
+    "step": "R21 one store path",
+    "core": 18152,
+    "delta": -1,
+    "kept": true
   }
 ]

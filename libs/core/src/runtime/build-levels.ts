@@ -1,13 +1,13 @@
 import { settleLevel } from './settle.js';
 
 /**
- * The level loop create, load, createScope and extend() share, and onInit
- * after them. Each level's included ids run `buildOne` together, and the
- * next level starts when every one has settled. A level with no included
- * id is skipped. `afterLevel` gets the level's ids and runs between levels,
- * where the callers mark providers ready and check for disposal. A caller
- * that rolls back records what it touched in `buildOne`, which runs
- * synchronously for every id of a level before any build settles.
+ * Runs a list of levels in order. Create, load, createScope, extend() and
+ * the onInit pass use it. Each level's included ids run `buildOne`
+ * together, and the next level starts when every one has settled. A level
+ * with no included id is skipped. `afterLevel` gets the level's ids and runs
+ * between levels, where the callers mark providers ready and check for
+ * disposal. A caller that rolls back records what it touched in `buildOne`,
+ * which runs synchronously for every id of a level before any build settles.
  * Returns how many ids it ran.
  */
 export async function buildLevels(

@@ -80,6 +80,32 @@ export function traceConstruct(
   }));
 }
 
+/**
+ * Settles a built instance in its container, marks it ready when `ready`,
+ * records a factory's async flag and emits its construct event. Every build
+ * path ends here; the caller adopts the instance first, into its own owner.
+ */
+export function store(
+  container: ContainerState,
+  bp: Blueprint,
+  record: ProviderRecord,
+  instance: unknown,
+  start: number | undefined,
+  isAsync: boolean,
+  ready: boolean,
+): void {
+  container.slots.settle(record.id, instance);
+  if (ready) container.slots.markReady(record.id);
+  if (record.kind === 'factory')
+    container.root.asyncFlags.set(record.id, isAsync);
+  traceConstruct(container, bp, record, isAsync, start);
+}
+
+/** Observes a thenable nothing will await, so its rejection is never unhandled. */
+function observeRejection(value: unknown): void {
+  Promise.resolve(value).catch(() => undefined);
+}
+
 function resolveBinding(
   binding: Binding,
   owner: ProviderRecord,
@@ -259,8 +285,7 @@ export function applyConstruct(
     }
     if (next === undefined) continue;
     if (isThenable(next)) {
-      // Observe the thenable so its rejection is never unhandled.
-      Promise.resolve(next).catch(() => undefined);
+      observeRejection(next);
       takeOwnership(root, owner, record, instance);
       throw constructFailed(
         bp,
@@ -426,7 +451,7 @@ export function buildOnDemand(record: ProviderRecord, ctx: Ctx): unknown {
     });
   }
   const lazyAsync = (value: unknown): LazyAsyncError => {
-    Promise.resolve(value).catch(() => undefined);
+    observeRejection(value);
     return new LazyAsyncError({
       token: record.name,
       module: moduleName(ctx.bp, record),
@@ -466,11 +491,8 @@ export function buildOnDemand(record: ProviderRecord, ctx: Ctx): unknown {
       throw lazyAsync(result);
     }
   }
-  container.slots.settle(record.id, instance);
-  container.slots.markReady(record.id);
   run?.touched.push(record.id);
-  if (record.kind === 'factory') root.asyncFlags.set(record.id, false);
-  traceConstruct(container, ctx.bp, record, false, start);
+  store(container, ctx.bp, record, instance, start, false, true);
   return instance;
 }
 
@@ -488,8 +510,8 @@ function buildTransient(record: ProviderRecord, ctx: Ctx): unknown {
   // Only a factory result is awaited (spec §6.1); a class instance with a
   // then method is an ordinary value.
   if (record.kind === 'factory' && isThenable(built)) {
-    // get() cannot wait. Observe the promise so its rejection is never unhandled.
-    Promise.resolve(built).catch(() => undefined);
+    // get() cannot wait on it.
+    observeRejection(built);
     // builtAsync reports a transient factory false until now.
     ctx.container.root.asyncFlags.set(record.id, true);
     throw new AsyncTransientError({

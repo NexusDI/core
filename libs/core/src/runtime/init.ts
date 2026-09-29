@@ -47,9 +47,9 @@ export async function runInit(
     (ids) => {
       for (const id of ids) root.slots.markReady(id);
       // root.disposing can flip while a level's onInit calls are running (an
-      // async onInit yields control back to the event loop). Checking it
-      // after every level, not only once at the end, stops a later level's
-      // onInit from starting once the container has begun disposing.
+      // async onInit yields control back to the event loop). The check runs
+      // after every level, so a later level's onInit never starts once the
+      // container has begun disposing.
       assertOpen(root);
     },
   );
