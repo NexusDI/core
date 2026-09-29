@@ -64,10 +64,10 @@ export function bind(input: BindInput, errors: NexusError[]): BindResult {
 
     const bindOne = (dep: DepEntry): Binding => {
       const ids = lookup(dep.token);
-      const token = dep.written ?? dep.token;
+      const written = dep.written ?? dep.token;
       if (dep.kind === 'all') {
         for (const to of ids)
-          edges.push({ from: record.id, to, kind: 'all', token });
+          edges.push({ from: record.id, to, kind: 'all', written });
         return { kind: 'all', token: dep.token, ids };
       }
       const [to] = ids;
@@ -75,7 +75,7 @@ export function bind(input: BindInput, errors: NexusError[]): BindResult {
         if (dep.kind !== 'optional') reportMissing(dep.token);
         return { kind: dep.kind, token: dep.token, ids: [] };
       }
-      edges.push({ from: record.id, to, kind: dep.kind, token });
+      edges.push({ from: record.id, to, kind: dep.kind, written });
       return { kind: dep.kind, token: dep.token, ids: [to] };
     };
 
@@ -90,7 +90,7 @@ export function bind(input: BindInput, errors: NexusError[]): BindResult {
           from: record.id,
           to,
           kind: 'alias',
-          token: record.writtenTarget ?? record.target,
+          written: record.writtenTarget ?? record.target,
         });
         target = to;
       }

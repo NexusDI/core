@@ -43,8 +43,10 @@ export interface ModuleView {
 
 export interface ProviderView {
   readonly id: string;
-  /** The key's canonical token: the first token the container met with this token's key. */
+  /** The key's canonical token (spec §3.10.3). Compare it to find a provider; read `written` for what a token carries. */
   readonly token: AnyToken;
+  /** The token the module listed, before a tokenKey hook keyed it. `token` itself without a tokenKey plugin. A compile.provider rewrite keeps it. */
+  readonly written: AnyToken;
   /** The display name. */
   readonly name: string;
   /** The owning module's id. */
@@ -62,8 +64,8 @@ export interface EdgeView {
   readonly from: string;
   readonly to: string;
   readonly kind: 'required' | 'optional' | 'lazy' | 'all' | 'alias';
-  /** The token the dependent named, before a tokenKey hook keyed it. */
-  readonly token: AnyToken;
+  /** The token the dependent named (an alias: its target), before a tokenKey hook keyed it. `canonical(written)` is the target provider's `token`. */
+  readonly written: AnyToken;
 }
 
 export interface CompileContext {
@@ -116,6 +118,7 @@ export function providerView(
   return Object.freeze({
     id: record.id,
     token: record.token,
+    written: record.written ?? record.token,
     name: record.name,
     module: record.module,
     kind: record.kind,
@@ -155,7 +158,12 @@ export function buildView(
   );
   const edges = Object.freeze(
     parts.edges.map((e) =>
-      Object.freeze({ from: e.from, to: e.to, kind: e.kind, token: e.token }),
+      Object.freeze({
+        from: e.from,
+        to: e.to,
+        kind: e.kind,
+        written: e.written,
+      }),
     ),
   );
   const visibility = parts.visibility;

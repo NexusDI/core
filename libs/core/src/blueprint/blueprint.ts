@@ -36,6 +36,8 @@ export interface PropEntry {
 export interface RecordShape {
   readonly kind: ProviderKind;
   readonly token: TokenKey;
+  /** The token the module listed, when a tokenKey hook keyed `token`. */
+  readonly written?: TokenKey;
   /** null for value and alias providers. */
   readonly lifetime: Lifetime | null;
   /**
@@ -102,7 +104,7 @@ export interface Edge {
   readonly to: string;
   readonly kind: EdgeKind;
   /** The token the dependent named, before a tokenKey hook keyed it. */
-  readonly token: TokenKey;
+  readonly written: TokenKey;
 }
 
 /**

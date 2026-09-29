@@ -24,7 +24,7 @@ export function federation(): NexusPlugin {
       check(view, report) {
         const byId = new Map(view.providers.map((p) => [p.id, p]));
         for (const edge of view.edges) {
-          const wanted = markOf(edge.token);
+          const wanted = markOf(edge.written);
           const had = markOf(byId.get(edge.to)?.token);
           if (wanted === undefined || had === undefined) continue;
           const [wantMajor, wantMinor] = parts(wanted.version);

@@ -154,8 +154,8 @@ export function reportingCanon(
 
 /**
  * `shape` with its token, deps, properties and alias target keyed through
- * `canon`. Each dep keeps the token it named as `written`, and an alias its
- * target as `writtenTarget`, for the edges.
+ * `canon`. The record keeps its token as written in `written`, each dep in
+ * `written`, and an alias its target in `writtenTarget`.
  */
 export function keyShape(
   shape: RecordShape,
@@ -170,6 +170,7 @@ export function keyShape(
   return {
     ...shape,
     token: canon(shape.token),
+    written: shape.token,
     deps: shape.deps.map(key),
     props: shape.props.map((prop) => ({ ...prop, dep: key(prop.dep) })),
     target: target && canon(target),
@@ -397,6 +398,8 @@ export function rewriteProviders(
     out.push({
       ...shape,
       token: record.token,
+      // The listing stays the module's: the entry replaces the implementation.
+      written: record.written,
       id: record.id,
       index: record.index,
       module: record.module,

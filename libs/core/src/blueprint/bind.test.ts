@@ -34,7 +34,7 @@ describe('compile', () => {
     const computer = idOf(bp, ShipComputer);
     const reactor = idOf(bp, ReactorCore);
     expect(bp.edges).toEqual([
-      { from: computer, to: reactor, kind: 'required', token: ReactorCore },
+      { from: computer, to: reactor, kind: 'required', written: ReactorCore },
     ]);
     expect(bp.bindings.get(computer)).toEqual({
       args: [{ kind: 'required', token: ReactorCore, ids: [reactor] }],

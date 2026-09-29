@@ -1,14 +1,18 @@
 import { describe, expect, it } from 'vitest';
 
 import { rejected } from '../../test-support/catch.js';
-import type { BlueprintView, CompileContext } from '../blueprint/views.js';
+import type {
+  BlueprintView,
+  CompileContext,
+  ProviderView,
+} from '../blueprint/views.js';
 import { defineModule } from '../definitions/define-module.js';
-import { optional } from '../definitions/modifiers.js';
+import { all, lazy, optional } from '../definitions/modifiers.js';
 import { provide } from '../definitions/provide.js';
 import { REQUEST } from '../definitions/request.js';
-import { Token } from '../definitions/token.js';
+import { MultiToken, Token } from '../definitions/token.js';
 import { Nexus } from './nexus.js';
-import type { PluginContext } from './plugins.js';
+import type { NexusPlugin, PluginContext } from './plugins.js';
 
 /** Two copies of a contracts package make two Token objects per name. */
 const shellAuth = new Token<string>('bank/Auth');
@@ -84,13 +88,14 @@ describe('tokenKey', () => {
           {
             ...byDescription,
             compile: {
-              check: (view) => void (tokens = view.edges.map((e) => e.token)),
+              check: (view) => void (tokens = view.edges.map((e) => e.written)),
             },
           },
         ],
       },
     );
-    expect(tokens).toEqual([remoteAuth]);
+    expect(tokens).toHaveLength(1);
+    expect(tokens[0]).toBe(remoteAuth);
   });
 
   it('gives an alias edge the target the alias named', async () => {
@@ -109,13 +114,14 @@ describe('tokenKey', () => {
           {
             ...byDescription,
             compile: {
-              check: (view) => void (tokens = view.edges.map((e) => e.token)),
+              check: (view) => void (tokens = view.edges.map((e) => e.written)),
             },
           },
         ],
       },
     );
-    expect(tokens).toEqual([remoteAuth]);
+    expect(tokens).toHaveLength(1);
+    expect(tokens[0]).toBe(remoteAuth);
   });
 
   describe('BlueprintView.visible()', () => {
@@ -207,7 +213,8 @@ describe('tokenKey', () => {
           },
         ],
       });
-      expect(seen).toEqual([shellAuth, shellAuth]);
+      expect(seen).toHaveLength(2);
+      expect(seen[0]).toBe(shellAuth);
       expect(seen[1]).toBe(shellAuth);
     });
 
@@ -321,7 +328,7 @@ describe('tokenKey', () => {
 
     it('adds no error to a failed compile when formatError calls it on a throwing tokenKey', async () => {
       const MISSING = new Token<string>('Missing');
-      let calls = 0;
+      const views: (BlueprintView | undefined)[] = [];
       const error = await rejected(
         Nexus.create(
           defineModule({
@@ -338,7 +345,7 @@ describe('tokenKey', () => {
               {
                 ...breaksOn(remoteAuth, new Error('no key')),
                 formatError: (_, view) => {
-                  calls++;
+                  views.push(view);
                   view?.canonical(remoteAuth);
                   return undefined;
                 },
@@ -347,7 +354,8 @@ describe('tokenKey', () => {
           },
         ),
       );
-      expect(calls).toBeGreaterThan(0);
+      expect(views.length).toBeGreaterThan(0);
+      for (const view of views) expect(view).toBeDefined();
       expect(error).toMatchObject({
         errors: [{ code: 'NEXUS_MISSING_PROVIDER' }],
       });
@@ -388,12 +396,249 @@ describe('tokenKey', () => {
         }),
       );
       expect(ship.get(shellAuth)).toBe('remote-auth');
-      const tokens = context
+      const loaded = context
         ?.blueprint()
-        .providers.filter((p) => p.name === 'bank/Auth')
-        .map((p) => p.token);
-      expect(tokens).toHaveLength(1);
-      expect(tokens?.[0]).toBe(remoteAuth);
+        .providers.filter((p) => p.name === 'bank/Auth');
+      expect(loaded).toHaveLength(1);
+      expect(loaded?.[0]?.token).toBe(remoteAuth);
+      expect(loaded?.[0]?.written).toBe(shellAuth);
+    });
+  });
+
+  describe('written', () => {
+    interface IAuth {
+      user(): string;
+    }
+    interface IAudit {
+      record(): string;
+    }
+    const copyA = new Token<IAuth>('bank/Auth');
+    const copyB = new Token<IAuth>('bank/Auth');
+    const copyC = new Token<IAuth>('bank/Auth');
+    const auditA = new MultiToken<IAudit>('bank/Audit');
+    const auditB = new MultiToken<IAudit>('bank/Audit');
+    const ada: IAuth = { user: () => 'ada' };
+    class Auth implements IAuth {
+      user(): string {
+        return 'auth';
+      }
+    }
+    /** Keys a Token and a MultiToken by description. */
+    const keyed = {
+      name: 'keys',
+      apiVersion: 1,
+      tokenKey: (token: unknown) =>
+        token instanceof Token || token instanceof MultiToken
+          ? `key:${token.description}`
+          : undefined,
+    };
+    class Teller {
+      static deps = [copyA] as const;
+      constructor(readonly auth: IAuth) {}
+    }
+    const Remote = defineModule({
+      name: 'Remote',
+      providers: [Teller],
+      exports: [Teller],
+    });
+    const Shell = defineModule({
+      name: 'Shell',
+      providers: [provide(copyB, { useValue: ada })],
+      exports: [copyB],
+      global: true,
+    });
+    /** The view a compile.check hook receives from Nexus.check. */
+    const checkView = (
+      root: unknown,
+      plugin: NexusPlugin = keyed,
+    ): BlueprintView => {
+      let seen: BlueprintView | undefined;
+      const check = (view: BlueprintView): void => void (seen = view);
+      Nexus.check(root as never, {
+        plugins: [{ ...plugin, compile: { ...plugin.compile, check } }],
+      });
+      if (seen === undefined) throw new Error('compile.check never ran');
+      return seen;
+    };
+    const named = (view: BlueprintView, name: string): ProviderView[] =>
+      view.providers.filter((p) => p.name === name);
+
+    it('holds the token the module listed while token holds the copy met first', () => {
+      const [first] = named(
+        checkView(defineModule({ name: 'Root', imports: [Remote, Shell] })),
+        'bank/Auth',
+      );
+      expect(first?.token).toBe(copyA);
+      expect(first?.written).toBe(copyB);
+      const [second] = named(
+        checkView(defineModule({ name: 'Root', imports: [Shell, Remote] })),
+        'bank/Auth',
+      );
+      expect(second?.token).toBe(copyB);
+      expect(second?.written).toBe(copyB);
+    });
+
+    it('equals token for every provider and names the dependent token on every edge without a tokenKey plugin', () => {
+      const MISSION = new Token<unknown>('Mission');
+      const view = checkView(
+        defineModule({
+          name: 'Root',
+          imports: [Shell],
+          providers: [
+            Teller,
+            provide(copyA, { useValue: ada }),
+            provide(MISSION, {
+              useFactory: (request: unknown) => request,
+              deps: [REQUEST],
+              lifetime: 'scoped',
+            }),
+          ],
+        }),
+        { name: 'probe', apiVersion: 1 },
+      );
+      expect(view.providers.map((p) => p.token)).toContain(REQUEST);
+      for (const provider of view.providers)
+        expect(provider.written).toBe(provider.token);
+      const written = view.edges.map((e) => e.written);
+      expect(written).toHaveLength(2);
+      expect(written[0]).toBe(copyA);
+      expect(written[1]).toBe(REQUEST);
+    });
+
+    it('keeps the listed token through a compile.provider rewrite', () => {
+      const view = checkView(defineModule({ name: 'Root', imports: [Shell] }), {
+        ...keyed,
+        name: 'fake',
+        compile: {
+          provider: (provider: ProviderView) =>
+            provider.written === copyB
+              ? { with: provide(copyC, { useValue: ada }) }
+              : undefined,
+        },
+      });
+      const [auth] = named(view, 'bank/Auth');
+      expect(auth?.written).toBe(copyB);
+      expect(auth?.rewrittenBy).toBe('fake');
+    });
+
+    it('holds each contributor its own copy of a MultiToken key', () => {
+      const Audits = defineModule({
+        name: 'Audits',
+        providers: [provide(auditB, { useValue: { record: () => 'b' } })],
+        exports: [auditB],
+      });
+      const view = checkView(
+        defineModule({
+          name: 'Root',
+          imports: [Audits],
+          providers: [provide(auditA, { useValue: { record: () => 'a' } })],
+        }),
+      );
+      const audits = named(view, 'bank/Audit');
+      expect(audits).toHaveLength(2);
+      expect(audits.map((p) => p.written)).toContain(auditA);
+      expect(audits.map((p) => p.written)).toContain(auditB);
+      const [one, two] = audits;
+      expect(one?.token).toBe(two?.token);
+    });
+
+    it('holds the loaded copy on a provider load() adds', async () => {
+      class Probe {
+        static deps = [optional(copyA)] as const;
+        constructor(readonly auth: IAuth | undefined) {}
+      }
+      let context: PluginContext | undefined;
+      const ship = await Nexus.create(
+        defineModule({ name: 'Root', providers: [Probe] }),
+        { plugins: [{ ...keyed, setup: (given) => void (context = given) }] },
+      );
+      await ship.load(
+        defineModule({
+          name: 'Remote',
+          providers: [provide(copyC, { useValue: ada })],
+          exports: [copyC],
+        }),
+      );
+      if (context === undefined) throw new Error('setup never ran');
+      const [loaded] = named(context.blueprint(), 'bank/Auth');
+      expect(loaded?.token).toBe(copyA);
+      expect(loaded?.written).toBe(copyC);
+    });
+
+    it('gives a construct hook the listed token', async () => {
+      const seen: unknown[] = [];
+      const ship = await Nexus.create(
+        defineModule({
+          name: 'Root',
+          providers: [Teller, provide(copyB, { useClass: Auth })],
+        }),
+        {
+          plugins: [
+            {
+              ...keyed,
+              construct: (instance, provider) => {
+                if (provider.name === 'bank/Auth')
+                  seen.push(provider.token, provider.written);
+                return instance;
+              },
+            },
+          ],
+        },
+      );
+      ship.get(Teller);
+      expect(seen).toHaveLength(2);
+      expect(seen[0]).toBe(copyA);
+      expect(seen[1]).toBe(copyB);
+    });
+
+    it('keys every edge written token to the token of its provider', () => {
+      const ALIAS = new Token<IAuth>('Alias');
+      const DESK = new Token<unknown[]>('Desk');
+      const view = checkView(
+        defineModule({
+          name: 'Root',
+          providers: [
+            provide(DESK, {
+              useFactory: (...args: unknown[]) => args,
+              deps: [copyA, optional(copyA), lazy(copyA), all(auditA)],
+            } as never),
+            provide(copyB, { useValue: ada }),
+            provide(auditB, { useValue: { record: () => 'b' } }),
+            provide(ALIAS, { useExisting: copyC }),
+          ],
+        }),
+      );
+      const byId = new Map(view.providers.map((p) => [p.id, p]));
+      expect(new Set(view.edges.map((e) => e.kind))).toEqual(
+        new Set(['required', 'optional', 'lazy', 'all', 'alias']),
+      );
+      for (const edge of view.edges)
+        expect(view.canonical(edge.written)).toBe(byId.get(edge.to)?.token);
+      expect(view.edges.map((e) => e.written)).toContain(copyC);
+    });
+
+    it('gives a compile.provider hook the listed token beside the canonical one', async () => {
+      const seen: unknown[] = [];
+      await Nexus.create(
+        defineModule({ name: 'Root', imports: [Remote, Shell] }),
+        {
+          plugins: [
+            {
+              ...keyed,
+              compile: {
+                provider: (provider) => {
+                  if (provider.name === 'bank/Auth')
+                    seen.push(provider.token, provider.written);
+                  return undefined;
+                },
+              },
+            },
+          ],
+        },
+      );
+      expect(seen).toHaveLength(2);
+      expect(seen[0]).toBe(copyA);
+      expect(seen[1]).toBe(copyB);
     });
   });
 

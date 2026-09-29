@@ -4,10 +4,12 @@ import type { AnyToken } from '../definitions/guards.js';
 import type {
   BlueprintView,
   CompileContext,
+  EdgeView,
   NexusPlugin,
   PluginContext,
   ProviderEntry,
   ProviderRewrite,
+  ProviderView,
 } from '../index.js';
 
 describe('NexusPlugin', () => {
@@ -50,5 +52,15 @@ describe('canonical', () => {
     expectTypeOf<BlueprintView['canonical']>().toEqualTypeOf<
       (token: AnyToken) => AnyToken
     >();
+  });
+});
+
+describe('written', () => {
+  it('holds a token on a provider view and an edge view, and the edge has no token', () => {
+    expectTypeOf<ProviderView['written']>().toEqualTypeOf<AnyToken>();
+    expectTypeOf<EdgeView['written']>().toEqualTypeOf<AnyToken>();
+    expectTypeOf<
+      'token' extends keyof EdgeView ? true : false
+    >().toEqualTypeOf<false>();
   });
 });
