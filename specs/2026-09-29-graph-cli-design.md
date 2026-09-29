@@ -129,10 +129,14 @@ nexusdi: src/meridian.module.ts has no default export.
 
 The root export is any `RootRef` that `Nexus.check` accepts: a module, a provider array,
 or `{ providers, imports, exports }`. The CLI hands it to `inspect()` unchanged, so core
-does the validation and a wrong value is a `BlueprintError` with `@nexusdi/errors` text,
-exit 1.
+does the validation. Core throws an object root with other keys as
+`NEXUS_INVALID_MODULE` before it compiles; the CLI prints core's message, which ends in
+its Fix line, and exits 2, because the input is wrong and no graph was checked. Every
+other bad value reaches the compile and is a `BlueprintError`, exit 1 (ruling 11).
 
-`--load` exports are modules, compiled in flag order, as `CheckOptions.load` does.
+`--load` exports are modules, compiled in flag order, as `CheckOptions.load` does. A
+`.json` file after `--load` or `--plugins` exits 2, since it has no exports. When a
+`--load` or `--plugins` file lacks the named export, the fix line repeats that flag.
 `--plugins` names one export holding a `NexusPlugin[]`. The graph depends on compile
 hooks: `@nexusdi/federation`'s `tokenKey` merges contract tokens, and without it a
 federated shell's graph reports duplicates that the running app never has. A value that
@@ -441,6 +445,13 @@ ran in that session and are recorded here in the same form.
 10. Exit codes. Architect: a fifth code for internal errors. Tech lead: four codes; CI
     needs "invalid graph" to be exactly 1, and an internal error prints its stack under
     code 2. Final: section 3.3.
+11. Core input errors outside a `BlueprintError`. Found in the final review: an object
+    root with keys other than `providers`, `imports` and `exports` makes `Nexus.check`
+    throw `NEXUS_INVALID_MODULE` directly, and the CLI printed it as an unexpected error
+    with a stack. Architect: exit 1 for every `NEXUS_` error, so "core refused it" is
+    one code. Tech lead: exit 1 means the graph was checked and is invalid, which CI
+    keys on; this input never reached the compile, so it is a wrong input, exit 2 with
+    core's message and no stack. Final: exit 2, section 3.1.
 
 ## 10. Core plugin API gaps
 
