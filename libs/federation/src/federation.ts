@@ -11,6 +11,9 @@ function parts(version: string): [number, number] {
 /**
  * Binds contract tokens by key, and reports a dependent whose contract
  * version the provider's cannot satisfy: another major, or a newer minor.
+ * Both versions come from the tokens as written, since the key's canonical
+ * token is whichever copy the container met first. Each mismatch is reported
+ * once per check.
  */
 export function federation(): NexusPlugin {
   return {
@@ -23,20 +26,25 @@ export function federation(): NexusPlugin {
     compile: {
       check(view, report) {
         const byId = new Map(view.providers.map((p) => [p.id, p]));
+        const seen = new Set<string>();
         for (const edge of view.edges) {
           const wanted = markOf(edge.written);
-          const had = markOf(byId.get(edge.to)?.token);
+          const had = markOf(byId.get(edge.to)?.written);
           if (wanted === undefined || had === undefined) continue;
           const [wantMajor, wantMinor] = parts(wanted.version);
           const [haveMajor, haveMinor] = parts(had.version);
-          if (wantMajor !== haveMajor || wantMinor > haveMinor)
-            report(
-              contractVersion({
-                contract: `${wanted.key}/${wanted.name}`,
-                required: wanted.version,
-                provided: had.version,
-              }),
-            );
+          if (wantMajor === haveMajor && wantMinor <= haveMinor) continue;
+          const contract = `${wanted.key}/${wanted.name}`;
+          const once = `${contract} ${wanted.version} ${had.version}`;
+          if (seen.has(once)) continue;
+          seen.add(once);
+          report(
+            contractVersion({
+              contract,
+              required: wanted.version,
+              provided: had.version,
+            }),
+          );
         }
       },
     },

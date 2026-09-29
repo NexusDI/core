@@ -6,7 +6,7 @@ interface ContractVersionFields {
   readonly provided: string;
 }
 
-/** A remote needs a newer minor, or another major, of a contract than the shell provides. */
+/** A dependent needs another major, or a newer minor, of a contract than its provider has. */
 export class ContractVersionError extends errorBase<
   'NEXUS_CONTRACT_VERSION',
   ContractVersionFields
@@ -15,8 +15,9 @@ export class ContractVersionError extends errorBase<
 export function contractVersion(
   fields: ContractVersionFields,
 ): ContractVersionError {
+  const major = fields.required.split('.')[0];
   return new ContractVersionError(fields, {
-    text: `${fields.contract} is needed at ${fields.required}, and the shell provides ${fields.provided}.\n  Fix: upgrade the shell's contracts package, or build the remote against ${fields.provided}.`,
+    text: `${fields.contract} is needed at ${fields.required}, and the provider has ${fields.provided}.\n  Fix: build the provider against ${fields.required} or a newer ${major}.x, or build the dependent against ${fields.provided}.`,
   });
 }
 

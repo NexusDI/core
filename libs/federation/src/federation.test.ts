@@ -1,8 +1,21 @@
 import { describe, expect, it } from 'vitest';
 
-import { Nexus, Token, all, defineModule, provide } from '@nexusdi/core';
+import {
+  Nexus,
+  Token,
+  all,
+  defineModule,
+  optional,
+  provide,
+} from '@nexusdi/core';
+import type { ModuleDefinition, NexusPlugin } from '@nexusdi/core';
 
-import { ContractVersionError, defineContract, federation } from './index.js';
+import {
+  ContractVersionError,
+  defineContract,
+  federation,
+  type Contract,
+} from './index.js';
 
 interface IAuth {
   user(): string;
@@ -27,6 +40,41 @@ function remoteUsing(auth: ReturnType<typeof shellBank.token<IAuth>>) {
     }),
   };
 }
+
+interface IAudit {
+  record(): string;
+}
+
+/** A module that provides and exports `contract`'s Auth, global by default. */
+function shellOf(contract: Contract, name = 'Shell', global = true) {
+  const auth = contract.token<IAuth>('Auth');
+  return defineModule({
+    name,
+    providers: [provide(auth, { useValue: { user: () => 'ada' } })],
+    exports: [auth],
+    global,
+  });
+}
+
+const root = (...imports: ModuleDefinition[]) =>
+  defineModule({ name: 'Root', imports });
+
+/** The errors a rejected create, load or check carries, or [] when it passed. */
+async function errorsOf(run: () => unknown): Promise<unknown[]> {
+  try {
+    await run();
+  } catch (error) {
+    return (error as { errors: unknown[] }).errors;
+  }
+  return [];
+}
+
+const mismatch = (required: string, provided: string) => ({
+  code: 'NEXUS_CONTRACT_VERSION',
+  contract: 'bank/Auth',
+  required,
+  provided,
+});
 
 const Shell = defineModule({
   name: 'Shell',
@@ -69,6 +117,215 @@ describe('federation', () => {
     await expect(ship.load(remote.module)).rejects.toMatchObject({
       errors: [{ code: 'NEXUS_CONTRACT_VERSION', required: '3.0.0' }],
     });
+  });
+
+  it('rejects a newer minor at create in either import order', async () => {
+    const remote = remoteUsing(remoteBank.token<IAuth>('Auth')).module;
+    for (const graph of [root(Shell, remote), root(remote, Shell)]) {
+      const errors = await errorsOf(() =>
+        Nexus.create(graph, { plugins: [federation()] }),
+      );
+      expect(errors).toHaveLength(1);
+      expect(errors[0]).toMatchObject(mismatch('2.4.0', '2.3.0'));
+    }
+  });
+
+  it('rejects a module whose own provider needs a newer minor than a module it imports', async () => {
+    const { Statement } = remoteUsing(remoteBank.token<IAuth>('Auth'));
+    const errors = await errorsOf(() =>
+      Nexus.create(
+        defineModule({
+          name: 'Remote',
+          imports: [Shell],
+          providers: [Statement],
+        }),
+        { plugins: [federation()] },
+      ),
+    );
+    expect(errors).toEqual([
+      expect.objectContaining(mismatch('2.4.0', '2.3.0')),
+    ]);
+  });
+
+  it('accepts a provider at a newer patch of the minor the dependent needs, in either order', async () => {
+    const patched = shellOf(defineContract({ key: 'bank', version: '2.4.1' }));
+    const remote = remoteUsing(shellBank.token<IAuth>('Auth')).module;
+    for (const graph of [root(patched, remote), root(remote, patched)]) {
+      const ship = await Nexus.create(graph, { plugins: [federation()] });
+      expect(ship.has(shellBank.token<IAuth>('Auth'))).toBe(true);
+    }
+  });
+
+  it('gives Nexus.check the verdict create gives, in either order', () => {
+    const newer = remoteUsing(remoteBank.token<IAuth>('Auth')).module;
+    const patched = shellOf(defineContract({ key: 'bank', version: '2.4.1' }));
+    const older = remoteUsing(shellBank.token<IAuth>('Auth')).module;
+    for (const graph of [root(Shell, newer), root(newer, Shell)])
+      expect(() => Nexus.check(graph, { plugins: [federation()] })).toThrow(
+        expect.objectContaining({
+          errors: [expect.objectContaining(mismatch('2.4.0', '2.3.0'))],
+        }),
+      );
+    for (const graph of [root(patched, older), root(older, patched)])
+      expect(Nexus.check(graph, { plugins: [federation()] })).toBeUndefined();
+  });
+
+  it('checks each contributor of a contract multi token against an all() dependent, in either order', async () => {
+    const Hooks = defineModule({
+      name: 'Hooks',
+      providers: [
+        provide(shellBank.multi<IAudit>('Hooks'), {
+          useValue: { record: () => 'shell' },
+        }),
+      ],
+      exports: [shellBank.multi<IAudit>('Hooks')],
+      global: true,
+    });
+    const hooks = remoteBank.multi<IAudit>('Hooks');
+    class Audit {
+      static deps = [all(hooks)] as const;
+      constructor(readonly hooks: readonly IAudit[]) {}
+    }
+    const Remote = defineModule({
+      name: 'Remote',
+      providers: [
+        provide(hooks, { useValue: { record: () => 'remote' } }),
+        Audit,
+      ],
+    });
+    for (const graph of [root(Hooks, Remote), root(Remote, Hooks)]) {
+      const errors = await errorsOf(() =>
+        Nexus.create(graph, { plugins: [federation()] }),
+      );
+      expect(errors).toEqual([
+        expect.objectContaining({
+          code: 'NEXUS_CONTRACT_VERSION',
+          contract: 'bank/Hooks',
+          required: '2.4.0',
+          provided: '2.3.0',
+        }),
+      ]);
+    }
+  });
+
+  it('rejects an older contributor to an all() dependent in one module', async () => {
+    const hooks = shellBank.multi<IAudit>('Hooks');
+    class Audit {
+      static deps = [all(hooks)] as const;
+      constructor(readonly hooks: readonly IAudit[]) {}
+    }
+    const errors = await errorsOf(() =>
+      Nexus.create(
+        defineModule({
+          name: 'Remote',
+          providers: [
+            Audit,
+            provide(olderRemote.multi<IAudit>('Hooks'), {
+              useValue: { record: () => 'old' },
+            }),
+          ],
+        }),
+        { plugins: [federation()] },
+      ),
+    );
+    expect(errors).toEqual([
+      expect.objectContaining({ required: '2.3.0', provided: '2.1.0' }),
+    ]);
+  });
+
+  it('checks a provider load() adds against its own copy, whatever copy create met first', async () => {
+    class Probe {
+      static deps = [optional(shellBank.token<IAuth>('Auth'))] as const;
+      constructor(readonly auth: IAuth | undefined) {}
+    }
+    const ship = await Nexus.create(
+      defineModule({ name: 'Root', providers: [Probe] }),
+      { plugins: [federation()] },
+    );
+    const later = defineContract({ key: 'bank', version: '2.5.0' });
+    const { Statement } = remoteUsing(later.token<IAuth>('Auth'));
+    await ship.load(
+      defineModule({
+        name: 'Remote',
+        imports: [shellOf(later, 'Bank', false)],
+        providers: [Statement],
+        exports: [Statement],
+      }),
+    );
+    expect(ship.get(Statement).auth.user()).toBe('ada');
+  });
+
+  it('keeps its verdict when a plugin before it meets another copy first', async () => {
+    const newer = remoteBank.token<IAuth>('Auth');
+    const meddler: NexusPlugin = {
+      name: 'meddler',
+      apiVersion: 1,
+      compile: {
+        check: (view) => {
+          view.visible(view.root, newer);
+          view.canonical(newer);
+        },
+      },
+    };
+    const remote = remoteUsing(newer).module;
+    for (const graph of [root(Shell, remote), root(remote, Shell)]) {
+      const errors = await errorsOf(() =>
+        Nexus.create(graph, { plugins: [meddler, federation()] }),
+      );
+      expect(errors).toEqual([
+        expect.objectContaining(mismatch('2.4.0', '2.3.0')),
+      ]);
+    }
+  });
+
+  it('rejects a shell that needs a newer minor than a remote provides', async () => {
+    const auth = shellBank.token<IAuth>('Auth');
+    const Remote = defineModule({
+      name: 'Remote',
+      providers: [provide(auth, { useValue: { user: () => 'remote' } })],
+      exports: [auth],
+    });
+    const { Statement } = remoteUsing(remoteBank.token<IAuth>('Auth'));
+    const errors = await errorsOf(() =>
+      Nexus.create(
+        defineModule({
+          name: 'Shell',
+          imports: [Remote],
+          providers: [Statement],
+        }),
+        { plugins: [federation()] },
+      ),
+    );
+    expect(errors).toHaveLength(1);
+    expect((errors[0] as Error).message).toContain('the provider has 2.3.0');
+  });
+
+  it('reports one mismatch once for several dependents', async () => {
+    const ship = await Nexus.create(Shell, { plugins: [federation()] });
+    const first = remoteUsing(remoteBank.token<IAuth>('Auth'));
+    const second = remoteUsing(remoteBank.token<IAuth>('Auth'));
+    const errors = await errorsOf(() =>
+      ship.load(
+        defineModule({
+          name: 'Remotes',
+          providers: [first.Statement, second.Statement],
+        }),
+      ),
+    );
+    expect(errors).toEqual([
+      expect.objectContaining(mismatch('2.4.0', '2.3.0')),
+    ]);
+  });
+
+  it('rejects a remote built against an older major', async () => {
+    const ship = await Nexus.create(Shell, { plugins: [federation()] });
+    const oldMajor = defineContract({ key: 'bank', version: '1.9.0' });
+    const errors = await errorsOf(() =>
+      ship.load(remoteUsing(oldMajor.token<IAuth>('Auth')).module),
+    );
+    expect(errors).toEqual([
+      expect.objectContaining(mismatch('1.9.0', '2.3.0')),
+    ]);
   });
 
   it('collects the providers of every copy of a contract multi token', async () => {
@@ -117,7 +374,7 @@ describe('ContractVersionError', () => {
     const [error] = caught.errors;
     expect(error).toBeInstanceOf(ContractVersionError);
     expect(error.message).toBe(
-      "[NEXUS_CONTRACT_VERSION] bank/Auth is needed at 2.4.0, and the shell provides 2.3.0.\n  Fix: upgrade the shell's contracts package, or build the remote against 2.3.0.",
+      '[NEXUS_CONTRACT_VERSION] bank/Auth is needed at 2.4.0, and the provider has 2.3.0.\n  Fix: build the provider against 2.4.0 or a newer 2.x, or build the dependent against 2.3.0.',
     );
   });
 });

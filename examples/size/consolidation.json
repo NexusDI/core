@@ -64,5 +64,11 @@
     "core": 18287,
     "delta": 11,
     "kept": true
+  },
+  {
+    "step": "R26 fix written",
+    "core": 18305,
+    "delta": 18,
+    "kept": true
   }
 ]
