@@ -4,5 +4,11 @@
     "core": 18178,
     "delta": 0,
     "kept": true
+  },
+  {
+    "step": "R18 provider rule table",
+    "core": 18271,
+    "delta": 93,
+    "kept": false
   }
 ]
