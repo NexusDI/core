@@ -41,6 +41,7 @@ const LIBS = [
   ['libs/testing', '@nexusdi/testing'],
   ['libs/node', '@nexusdi/node'],
   ['libs/devtools', '@nexusdi/devtools'],
+  ['libs/interceptors', '@nexusdi/interceptors'],
   ['libs/decorators', '@nexusdi/decorators'],
   ['libs/federation', '@nexusdi/federation'],
 ];
@@ -226,6 +227,8 @@ import type {
 import { errors, explain } from '@nexusdi/errors';
 import { devtools, graph, trace } from '@nexusdi/devtools';
 import type { NexusGraph, TraceEvent } from '@nexusdi/devtools';
+import { interceptor, interceptors } from '@nexusdi/interceptors';
+import type { Interceptor } from '@nexusdi/interceptors';
 import { ContractVersionError, defineContract, federation } from '@nexusdi/federation';
 import type { Contract } from '@nexusdi/federation';
 import { federationText } from '@nexusdi/federation/text';
@@ -304,6 +307,26 @@ function check(ok: boolean, what: string): void {
   const view: NexusGraph = graph(ship);
   check(view.modules.length === 2, '@nexusdi/devtools graph()');
   check(events[0]?.type === 'compile', '@nexusdi/devtools trace()');
+}
+{
+  const GREETING = new Token<{ say(): string }>('Greeting');
+  const SHOUT = new Token<Interceptor>('Shout');
+  await using shouting = await Nexus.create(
+    defineModule({
+      name: 'Shout',
+      providers: [provide(GREETING, { useFactory: () => ({ say: () => 'hi' }) })],
+      exports: [GREETING],
+    }),
+    {
+      plugins: [
+        interceptors({
+          register: [interceptor(SHOUT, { useValue: { intercept: (_c, next) => String(next()).toUpperCase() } })],
+          bindings: [{ token: GREETING, methods: { say: [SHOUT] } }],
+        }),
+      ],
+    },
+  );
+  check(shouting.get(GREETING).say() === 'HI', '@nexusdi/interceptors interceptors()');
 }
 {
   await using fake = await createTestingContainer(Meridian)
@@ -607,7 +630,7 @@ try {
   console.log('Type-checking a strict consumer…');
   run('npx', ['tsc', '-p', 'tsconfig.nodenext.json'], dir);
   console.log(
-    '  ✓ ., @nexusdi/decorators, @nexusdi/node, @nexusdi/testing, @nexusdi/devtools and @nexusdi/federation resolve with types under nodenext, with lib es2022 and no @types/node',
+    '  ✓ ., @nexusdi/decorators, @nexusdi/node, @nexusdi/testing, @nexusdi/devtools, @nexusdi/federation and @nexusdi/interceptors resolve with types under nodenext, with lib es2022 and no @types/node',
   );
   run('npx', ['tsc', '-p', 'tsconfig.bundler.json', '--noEmit'], dir);
   console.log(
@@ -619,7 +642,7 @@ try {
   console.log('Running the consumer…');
   run('node', [join(dir, 'out-nodenext', 'consumer.js')], dir);
   console.log(
-    '  ✓ a decorated class, the class metadata functions, scopes, @nexusdi/node, @nexusdi/testing, @nexusdi/devtools and @nexusdi/federation run from the packed build',
+    '  ✓ a decorated class, the class metadata functions, scopes, @nexusdi/node, @nexusdi/testing, @nexusdi/devtools, @nexusdi/federation and @nexusdi/interceptors run from the packed build',
   );
 
   console.log('Checking the published modules for top-level await…');
