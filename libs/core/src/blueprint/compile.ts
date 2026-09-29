@@ -101,6 +101,7 @@ function requestRecord(index: number, rootId: string): ProviderRecord {
     module: rootId,
     name: 'REQUEST',
     lifetime: 'scoped',
+    eager: true,
     deps: [],
     props: [],
   };

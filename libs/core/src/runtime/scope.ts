@@ -250,6 +250,8 @@ async function extendNow(scope: ScopeState, target: Blueprint): Promise<void> {
   const built: Owner = { root, owned: [] };
   const touched: string[] = [];
   try {
+    // scopedLevels holds no eager: false factory (levels.ts), so the delta
+    // skips one; it builds at the scope's first request for it.
     for (const level of target.scopedLevels) {
       const ids = level.filter((id) => !pinned.providers.has(id));
       if (ids.length === 0) continue;

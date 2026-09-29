@@ -113,7 +113,7 @@ export function providerView(
     module: record.module,
     kind: record.kind,
     lifetime: record.lifetime,
-    eager: true,
+    eager: record.eager,
     implementation: record.kind === 'class' ? (record.useClass ?? null) : null,
     rewrittenBy,
   });

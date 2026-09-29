@@ -42,7 +42,7 @@ const DEFINITION_KEYS = [
  * The keys a provider definition reads, as own properties only (SEC-003).
  * Pass 1 ignores every other key.
  */
-const OPTION_KEYS = ['deps', 'lifetime', ...DEFINITION_KEYS] as const;
+const OPTION_KEYS = ['deps', 'lifetime', 'eager', ...DEFINITION_KEYS] as const;
 
 type Options = { readonly [K in (typeof OPTION_KEYS)[number]]?: unknown };
 
@@ -310,6 +310,7 @@ function classShape(
   cls: Ctor,
   deps: unknown,
   lifetime: Lifetime,
+  eager: boolean,
   site: ProviderSite,
   errors: NexusError[],
   fail: Fail,
@@ -352,6 +353,7 @@ function classShape(
     kind: 'class',
     token,
     lifetime,
+    eager,
     deps: entries,
     props,
     useClass: cls,
@@ -378,6 +380,7 @@ function bareClass(
     cls,
     undefined,
     lifetime as Lifetime,
+    true,
     site,
     errors,
     fail,
@@ -441,6 +444,7 @@ function definitionShape(
       token as Ctor,
       undefined,
       'singleton',
+      true,
       site,
       errors,
       fail,
@@ -461,6 +465,22 @@ function definitionShape(
   }
   const life = lifetime as Lifetime;
   const kind: (typeof DEFINITION_KEYS)[number] | undefined = present[0];
+  // Read as lifetime is: an eager key set to undefined reads as no key.
+  const eager = options.eager ?? true;
+  if (typeof eager !== 'boolean')
+    return fail('bad-eager', describeValue(eager));
+  if (
+    !eager &&
+    (life === 'transient' || kind === 'useValue' || kind === 'useExisting')
+  )
+    return fail(
+      'eager-not-deferrable',
+      kind === 'useValue'
+        ? 'value'
+        : kind === 'useExisting'
+          ? 'alias'
+          : 'transient',
+    );
 
   switch (kind) {
     case undefined:
@@ -471,6 +491,7 @@ function definitionShape(
         token as Ctor,
         options.deps,
         life,
+        eager,
         site,
         errors,
         fail,
@@ -485,6 +506,7 @@ function definitionShape(
         cls as Ctor,
         options.deps,
         life,
+        eager,
         site,
         errors,
         fail,
@@ -497,6 +519,7 @@ function definitionShape(
         kind: 'value',
         token,
         lifetime: null,
+        eager: true,
         deps: [],
         props: [],
         value: options.useValue,
@@ -514,6 +537,7 @@ function definitionShape(
         kind: 'factory',
         token,
         lifetime: life,
+        eager,
         deps,
         props: [],
         useFactory: useFactory as (...args: unknown[]) => unknown,
@@ -532,6 +556,7 @@ function definitionShape(
         kind: 'alias',
         token,
         lifetime: null,
+        eager: true,
         deps: [],
         props: [],
         target,
@@ -553,6 +578,7 @@ export function optionsShape(
       kind: 'value',
       token: options,
       lifetime: null,
+      eager: true,
       deps: [],
       props: [],
       value: source.value,
@@ -569,6 +595,7 @@ export function optionsShape(
     kind: 'factory',
     token: options,
     lifetime: 'singleton',
+    eager: true,
     deps,
     props: [],
     useFactory: useFactory as (...args: unknown[]) => unknown,

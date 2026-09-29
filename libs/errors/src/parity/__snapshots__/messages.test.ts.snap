@@ -54,6 +54,11 @@ exports[`NexusError > keeps the message of 'InvalidTokenError in a providers ent
 
 exports[`NexusError > keeps the message of 'InvalidTokenError' 1`] = `"[NEXUS_INVALID_TOKEN] the number 3 is not a token. A token is a class, a Token or a MultiToken."`;
 
+exports[`NexusError > keeps the message of 'LazyAsyncError' 1`] = `
+"[NEXUS_LAZY_ASYNC] Charts (module Navigation) is eager: false and its build returned a promise; get() cannot wait for it.
+  Fix: remove eager: false, or make the token a function type and provide () => Promise<T>."
+`;
+
 exports[`NexusError > keeps the message of 'LifetimeError (alias step)' 1`] = `
 "[NEXUS_LIFETIME_VIOLATION] ShipComputer is a singleton and captures a scoped provider: ShipComputer (singleton) → MissionAlias (alias) → Mission (scoped). A singleton outlives every scope.
   Fix: make ShipComputer scoped, or move the scoped dependency out of its dependency chain."

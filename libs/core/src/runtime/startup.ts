@@ -14,7 +14,7 @@ import {
 import { disposeInReverse } from './dispose.js';
 import { runInit } from './init.js';
 import { settleLevel, toProviderError } from './settle.js';
-import { assertOpen, type RootState } from './state.js';
+import { assertOpen, type Owner, type RootState } from './state.js';
 import { reportDisposal } from './trace.js';
 
 export interface StartupPlan {
@@ -96,12 +96,14 @@ async function registerStatic(
   });
 }
 
+/** Builds one singleton into the root's slots; `owner` takes the instance. */
 async function buildSingleton(
   root: RootState,
   bp: Blueprint,
   id: string,
+  owner: Owner,
 ): Promise<void> {
-  const built = await buildInto(root, bp, id);
+  const built = await buildInto(root, bp, id, owner);
   const { record, isAsync, start } = built;
   let { value } = built;
   // validateOptions runs only when the record carries a schema (set only on
@@ -113,16 +115,16 @@ async function buildSingleton(
       value = (await validateOptions(record, bp, value)).value;
     } catch (error) {
       // The rollback disposes the rejected output with what was built.
-      adopt(root, record, value);
+      adopt(owner, record, value);
       throw error;
     }
   }
   // After validation, so the schema checks the factory's own output and
   // the runtime stores what the construct hooks return.
-  value = applyConstruct(root, root, bp, record, value, null);
+  value = applyConstruct(root, owner, bp, record, value, null);
   root.slots.settle(id, value);
   if (record.kind === 'factory') root.asyncFlags.set(id, isAsync);
-  adopt(root, record, value);
+  adopt(owner, record, value);
   if (!root.initEnabled) root.slots.markReady(id);
   traceConstruct(root, bp, record, isAsync, start);
 }
@@ -147,7 +149,11 @@ export async function startBlueprint(
   root: RootState,
   plan: StartupPlan,
 ): Promise<void> {
-  const mark = root.owned.length;
+  // What this run builds, eager: false providers its new providers needed
+  // included, goes to a list of its own. It joins root.owned when the run
+  // succeeds, so a failure disposes only this run's builds, and never an
+  // instance a get() built meanwhile.
+  const built: Owner = { root, owned: [] };
   const touched: string[] = [];
   const registered: unknown[] = [];
   try {
@@ -156,14 +162,19 @@ export async function startBlueprint(
       const ids = level.filter(plan.isNew);
       if (ids.length === 0) continue;
       touched.push(...ids);
-      await settleLevel(ids, (id) => buildSingleton(root, plan.bp, id));
+      await settleLevel(ids, (id) => buildSingleton(root, plan.bp, id, built));
       assertOpen(root);
     }
     assertOpen(root);
     // With onInit off (a plugin set onInit: false), buildSingleton already
     // marked each singleton ready.
     if (root.initEnabled) await runInit(root, plan.bp, plan.isNew);
+    root.owned.push(...built.owned);
   } catch (error) {
+    // A new eager: false singleton this run built on first use holds a
+    // slot too; it is not in touched, since no level listed it.
+    for (const record of plan.bp.providers.values())
+      if (!record.eager && plan.isNew(record.id)) touched.push(record.id);
     for (const id of touched) root.slots.abandon(id);
     // walk.ts assigns provider ids purely by position in the walk, and each
     // compile call redoes the walk from scratch. A failed run's ids were
@@ -174,7 +185,7 @@ export async function startBlueprint(
     for (const id of touched) root.asyncFlags.delete(id);
     for (const value of registered) root.ownership.unregisterValue(value);
     const { errors } = await disposeInReverse(
-      root.owned.splice(mark),
+      built.owned,
       root.ownership,
       reportDisposal(root.tracer, null),
     );

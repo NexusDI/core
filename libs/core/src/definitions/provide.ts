@@ -30,12 +30,12 @@ export type DepsFor<C extends Ctor> =
 // `provide(Cls, { useFactory: (a) => ..., deps })` types `a` from this
 // overload, where useFactory has no type, and `a` is implicitly any.
 type ClassOptionsObject<C extends Ctor> = {
-  lifetime?: Lifetime;
   useClass?: never;
   useValue?: never;
   useExisting?: never;
   useFactory?: never;
-} & DepsFor<C>;
+} & LifetimeAndEager<ClassEager<C>> &
+  DepsFor<C>;
 
 export type ClassOptions<C extends Ctor> =
   DeclaresDeps<C> extends true
@@ -51,6 +51,25 @@ export type UseClassDeps<C extends Ctor> = C extends { readonly deps: unknown }
   ? DepsFor<C>
   : { deps?: Tokens<ConstructorParameters<C>> };
 
+/** The type eager: false on an async build must match, so the error names the rule. */
+export type LazyAsyncMessage =
+  'NEXUS_LAZY_ASYNC: an async provider is built during create or createScope, so it cannot be eager: false. Remove eager: false, or make the token a function type and provide () => Promise<T>';
+
+/** eager for a class form: false is rejected on a class whose onInit returns a promise. */
+export type ClassEager<C extends Ctor> =
+  InstanceType<C> extends { onInit(): PromiseLike<unknown> }
+    ? { eager?: true | LazyAsyncMessage }
+    : { eager?: boolean };
+
+/**
+ * The lifetime and eager keys of a class or factory form. A transient takes
+ * no eager. lifetime sits in the first member, so TypeScript reports a bad
+ * lifetime against it first.
+ */
+export type LifetimeAndEager<E> =
+  | ({ lifetime?: 'singleton' | 'scoped' } & E)
+  | { lifetime: 'transient'; eager?: never };
+
 /** The type a lifetime on useValue or useExisting must match, so the error names the rule. */
 export type NoLifetimeMessage =
   'NEXUS_INVALID_PROVIDER: useValue and useExisting take no lifetime. Remove lifetime';
@@ -61,10 +80,10 @@ export type NoLifetimeMessage =
 export type TokenDefinition<T, C extends Ctor> =
   | ({
       useClass: C;
-      lifetime?: Lifetime;
       useValue?: never;
       useExisting?: never;
-    } & UseClassDeps<C>)
+    } & LifetimeAndEager<ClassEager<C>> &
+      UseClassDeps<C>)
   | {
       useValue: NoInfer<T>;
       lifetime?: NoLifetimeMessage;
@@ -96,10 +115,10 @@ export type PromiseTokenMessage =
 export type FactoryDefinition<D extends readonly Dep[], R> = {
   useFactory: (...args: ResolveAll<D>) => R;
   deps?: D;
-  lifetime?: [R] extends [PromiseLike<unknown>]
-    ? 'singleton' | 'scoped' | AsyncTransientMessage
-    : Lifetime;
-};
+} & ([R] extends [PromiseLike<unknown>]
+  ? | { lifetime?: 'singleton' | 'scoped'; eager?: true | LazyAsyncMessage }
+    | { lifetime: AsyncTransientMessage; eager?: never }
+  : LifetimeAndEager<{ eager?: boolean }>);
 
 /** What provide() recorded. The compiler validates it (pass 1). */
 export interface ProviderSpec {

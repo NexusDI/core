@@ -34,6 +34,7 @@ const FIELD_ORDER: Readonly<Record<string, readonly string[]>> = {
   ProviderError: ['token', 'module', 'path', 'alsoFailed', 'disposalErrors'],
   NotReadyError: ['owner', 'target', 'path'],
   AsyncTransientError: ['token', 'module'],
+  LazyAsyncError: ['token', 'module'],
   NotVisibleError: ['token', 'owners', 'entry'],
   ScopeRequiredError: ['token', 'path', 'entry'],
   RequestMissingError: ['dependents'],

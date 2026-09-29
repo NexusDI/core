@@ -8,6 +8,7 @@ import { pluginFailed } from '../blueprint/hooks.js';
 import { providerView, type ProviderView } from '../blueprint/views.js';
 import {
   AsyncTransientError,
+  LazyAsyncError,
   NexusError,
   NotReadyError,
   ProviderError,
@@ -322,9 +323,19 @@ export function requestOf(ctx: Ctx): unknown {
   return ctx.container.request;
 }
 
+/** The NotReadyError of a provider whose instance is not built yet. */
+function notBuilt(record: ProviderRecord): NotReadyError {
+  return new NotReadyError({
+    owner: constructionStack.top()?.name ?? record.name,
+    target: record.name,
+    path: [],
+  });
+}
+
 /**
- * A scoped provider: one instance per scope. A scoped factory was built by
- * createScope; a scoped class builds here, on first use, and the scope owns it.
+ * A scoped provider: one instance per scope. An eager scoped factory was
+ * built by createScope; a scoped class and an eager: false scoped factory
+ * build here, on first use, and the scope owns them.
  */
 export function resolveScoped(record: ProviderRecord, ctx: Ctx): unknown {
   const { container } = ctx;
@@ -338,33 +349,130 @@ export function resolveScoped(record: ProviderRecord, ctx: Ctx): unknown {
   if (container.slots.has(record.id)) {
     if (container.slots.isSettled(record.id))
       return container.slots.value(record.id);
+    throw notBuilt(record);
+  }
+  // An eager scoped factory only builds in createScope's own levels (spec
+  // §6.3); one missing from the scope's slots has not been built yet.
+  if (record.kind === 'factory' && record.eager) throw notBuilt(record);
+  return buildOnDemand(record, ctx);
+}
+
+/**
+ * Who builds and owns a provider built at its first request. A scoped
+ * provider builds into the scope that asked. A singleton builds into
+ * the root; a create or load that builds it for one of its own new
+ * providers owns it, so a failed run disposes it with the rest of its
+ * builds. A singleton of an earlier blueprint belongs to the root at once,
+ * so a failed load never disposes an instance a get() may already hold.
+ */
+function onDemandOwner(
+  record: ProviderRecord,
+  ctx: Ctx,
+): { readonly container: ContainerState; readonly owner: Owner } {
+  const { container } = ctx;
+  if (record.lifetime !== 'singleton') return { container, owner: container };
+  const root = container.root;
+  // startBlueprint builds with a list of its own as the owner; nothing else
+  // resolves in the root with an owner other than the root.
+  const run =
+    container.kind === 'root' &&
+    typeof ctx.owner !== 'string' &&
+    ctx.owner !== root
+      ? ctx.owner
+      : undefined;
+  // During a load, root.blueprint is still the blueprint before it.
+  const earlier =
+    ctx.bp !== root.blueprint && root.blueprint.providers.has(record.id);
+  return {
+    container: root,
+    owner: run !== undefined && !earlier ? run : root,
+  };
+}
+
+/** What a get() throws when onInit throws in a build on first request. */
+function onInitFailed(
+  bp: Blueprint,
+  record: ProviderRecord,
+  cause: unknown,
+): unknown {
+  if (cause instanceof NexusError) return fromUserCode(cause);
+  return new ProviderError(
+    {
+      token: record.name,
+      module: moduleName(bp, record),
+      path: [...constructionStack.names(), record.name],
+      alsoFailed: [],
+      disposalErrors: [],
+    },
+    { cause },
+  );
+}
+
+/**
+ * Builds a provider at its first request, synchronously, into the container
+ * that owns it: an eager: false singleton into the root, a scoped class or
+ * an eager: false scoped factory into the scope (spec §6.3, §6.6). A
+ * singleton's onInit runs right after the build. A thenable from the factory or from onInit is NEXUS_LAZY_ASYNC:
+ * the runtime observes it, so its rejection is never unhandled, and stores
+ * nothing, so the next request tries again. An instance that was built
+ * joins its owner's creation order at once, whether or not a later step
+ * fails, so the owner's disposal disposes it.
+ */
+export function buildOnDemand(record: ProviderRecord, ctx: Ctx): unknown {
+  const { container, owner } = onDemandOwner(record, ctx);
+  const root = container.root;
+  // A lazy thunk that leads back to a provider still in its own build.
+  if (constructionStack.contains(record.id, container)) {
     throw new NotReadyError({
       owner: constructionStack.top()?.name ?? record.name,
       target: record.name,
-      path: [],
+      path: constructionStack.cycleFrom(record.id, container),
     });
   }
-  if (record.kind === 'factory') {
-    // A scoped factory only builds in createScope's own levels (spec §6.3);
-    // one missing from the scope's slots has not been built yet.
-    throw new NotReadyError({
-      owner: constructionStack.top()?.name ?? record.name,
-      target: record.name,
-      path: [],
+  const lazyAsync = (value: unknown): LazyAsyncError => {
+    Promise.resolve(value).catch(() => undefined);
+    return new LazyAsyncError({
+      token: record.name,
+      module: moduleName(ctx.bp, record),
     });
-  }
-  const start = container.root.tracer.now();
+  };
+  const start = root.tracer.now();
+  const built = construct(record, { bp: ctx.bp, container, owner });
+  if (record.kind === 'factory' && isThenable(built)) throw lazyAsync(built);
   const instance = applyConstruct(
-    container.root,
-    container,
+    root,
+    owner,
     ctx.bp,
     record,
-    construct(record, { ...ctx, owner: container }),
+    built,
     container.scopeId,
   );
+  adopt(owner, record, instance);
+  if (
+    record.lifetime === 'singleton' &&
+    root.initEnabled &&
+    isObject(instance) &&
+    typeof (instance as { onInit?: unknown }).onInit === 'function' &&
+    root.ownership.claimInit(instance)
+  ) {
+    // Settled first, as create settles a singleton before its onInit, so a
+    // get() from onInit returns the instance.
+    container.slots.settle(record.id, instance);
+    let result: unknown;
+    try {
+      result = (instance as { onInit(): unknown }).onInit();
+    } catch (error) {
+      container.slots.abandon(record.id);
+      throw onInitFailed(ctx.bp, record, error);
+    }
+    if (isThenable(result)) {
+      container.slots.abandon(record.id);
+      throw lazyAsync(result);
+    }
+  }
   container.slots.settle(record.id, instance);
   container.slots.markReady(record.id);
-  adopt(container, record, instance);
+  if (record.kind === 'factory') root.asyncFlags.set(record.id, false);
   traceConstruct(container, ctx.bp, record, false, start);
   return instance;
 }
@@ -372,11 +480,8 @@ export function resolveScoped(record: ProviderRecord, ctx: Ctx): unknown {
 function settledSingleton(record: ProviderRecord, ctx: Ctx): unknown {
   const slots = ctx.container.root.slots;
   if (slots.isSettled(record.id)) return slots.value(record.id);
-  throw new NotReadyError({
-    owner: constructionStack.top()?.name ?? record.name,
-    target: record.name,
-    path: [],
-  });
+  if (!record.eager && !slots.has(record.id)) return buildOnDemand(record, ctx);
+  throw notBuilt(record);
 }
 
 function buildTransient(record: ProviderRecord, ctx: Ctx): unknown {

@@ -26,6 +26,7 @@ const RUNTIME_EXPORTS: string[] = [
   'InvalidTokenError',
   'isNexusError',
   'lazy',
+  'LazyAsyncError',
   'LifetimeError',
   'LoadedAfterScopeError',
   'LoadError',

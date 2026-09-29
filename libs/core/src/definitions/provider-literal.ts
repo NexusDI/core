@@ -1,7 +1,10 @@
 import type { Dep, ResolveAll, Tokens } from './modifiers.js';
 import type {
   AsyncTransientMessage,
+  ClassEager,
   DepsFor,
+  LazyAsyncMessage,
+  LifetimeAndEager,
   NoLifetimeMessage,
   PromiseTokenMessage,
   Provider,
@@ -31,6 +34,7 @@ export interface ProviderLiteral {
   readonly token: AnyToken;
   readonly deps?: readonly Dep[];
   readonly lifetime?: Lifetime;
+  readonly eager?: boolean;
   readonly useClass?: Ctor;
   readonly useValue?: unknown;
   readonly useFactory?: (...args: never) => unknown;
@@ -42,13 +46,18 @@ export type UntypedFunctionMessage =
 
 type IsPromise<K> = [Provided<K>] extends [PromiseLike<unknown>] ? true : false;
 
-type FactoryLifetime<E> = E extends {
+/** The lifetime and eager keys of a factory literal, as FactoryDefinition types them. */
+type FactoryLifetimeAndEager<E> = E extends {
   useFactory: (...args: never) => infer R;
 }
   ? [R] extends [PromiseLike<unknown>]
-    ? 'singleton' | 'scoped' | AsyncTransientMessage
-    : Lifetime
-  : Lifetime;
+    ? | {
+          lifetime?: 'singleton' | 'scoped';
+          eager?: true | LazyAsyncMessage;
+        }
+      | { lifetime: AsyncTransientMessage; eager?: never }
+    : LifetimeAndEager<{ eager?: boolean }>
+  : LifetimeAndEager<{ eager?: boolean }>;
 
 /** The rules provide() enforces (spec §4.3), restated for one literal element. */
 type CheckedLiteral<E> = E extends { token: infer K extends AnyToken }
@@ -74,17 +83,16 @@ type CheckedLiteral<E> = E extends { token: infer K extends AnyToken }
                 : []
             ) => NoInfer<Provided<K>> | PromiseLike<NoInfer<Provided<K>>>;
             deps?: readonly Dep[];
-            lifetime?: FactoryLifetime<E>;
-          }
+          } & FactoryLifetimeAndEager<E>
         : E extends { useClass: infer C extends Ctor }
           ? {
               token: K;
               // eslint-disable-next-line @typescript-eslint/no-explicit-any -- matches Ctor: a class constraint needs an `any` rest
               useClass: C & (new (...args: any) => NoInfer<Provided<K>>);
-              lifetime?: Lifetime;
-            } & UseClassDeps<C>
+            } & LifetimeAndEager<ClassEager<C>> &
+              UseClassDeps<C>
           : K extends Ctor
-            ? { token: K; lifetime?: Lifetime } & DepsFor<K>
+            ? { token: K } & LifetimeAndEager<ClassEager<K>> & DepsFor<K>
             : { token: K; useValue: NoInfer<Provided<K>> }
   : { token: AnyToken };
 
@@ -98,6 +106,7 @@ interface UntypedLiteral {
   readonly token: AnyToken;
   readonly deps?: readonly Dep[];
   readonly lifetime?: Lifetime;
+  readonly eager?: boolean;
   readonly useFactory?: UntypedFunctionMessage;
   readonly useValue?: UntypedFunctionMessage;
 }

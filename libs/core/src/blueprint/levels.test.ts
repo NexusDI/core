@@ -195,4 +195,34 @@ describe('compile', () => {
     });
     expect(bp.scopedLevels).toEqual([[idOf(bp, MISSION)]]);
   });
+
+  it('leaves eager: false providers out of the levels and keeps the others where they were', () => {
+    const TX = new Token<string>('Transaction');
+    const AUDIT = new Token<string>('Audit');
+    const bp = compile({
+      root: defineModule({
+        name: 'Root',
+        providers: [
+          provide(Bridge, { deps: [ShipComputer] }),
+          provide(ShipComputer, { deps: [ReactorCore], eager: false }),
+          ReactorCore,
+          provide(Probe, { deps: [REQUEST], lifetime: 'scoped' }),
+          provide(TX, {
+            useFactory: (probe: Probe) => String(probe),
+            deps: [Probe],
+            lifetime: 'scoped',
+            eager: false,
+          }),
+          provide(AUDIT, { useFactory: () => 'a', lifetime: 'scoped' }),
+        ],
+      }),
+    });
+    expect(bp.singletonLevels).toEqual([
+      [idOf(bp, ReactorCore)],
+      [],
+      [idOf(bp, Bridge)],
+    ]);
+    // TX seeds nothing, so its scoped dep Probe waits for it too.
+    expect(bp.scopedLevels).toEqual([[idOf(bp, AUDIT)]]);
+  });
 });

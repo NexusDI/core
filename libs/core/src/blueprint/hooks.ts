@@ -295,6 +295,12 @@ export function rewriteProviders(
       continue;
     }
     const keepLifetime = !setsLifetime(rewrite.with);
+    const lifetime =
+      shape.lifetime === null
+        ? null
+        : keepLifetime
+          ? (record.lifetime ?? shape.lifetime)
+          : shape.lifetime;
     out.push({
       ...shape,
       token: record.token,
@@ -302,12 +308,10 @@ export function rewriteProviders(
       index: record.index,
       module: record.module,
       name: record.name,
-      lifetime:
-        shape.lifetime === null
-          ? null
-          : keepLifetime
-            ? (record.lifetime ?? shape.lifetime)
-            : shape.lifetime,
+      lifetime,
+      // A kept transient lifetime builds at every request, so eager: false
+      // on the replacement has nothing to defer.
+      eager: shape.eager || lifetime === 'transient',
     });
     rewrittenBy.set(record.id, chosen.plugin);
     if (

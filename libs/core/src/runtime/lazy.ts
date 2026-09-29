@@ -51,6 +51,17 @@ function resolveLazy(
 
     if (target.lifetime === null || target.lifetime === 'singleton') {
       const slots = container.root.slots;
+      // An eager: false singleton builds at this call, into the root and
+      // owned by it: the thunk may run long after the build that made it.
+      if (!target.eager && !slots.has(id)) {
+        if (constructionStack.contains(id, container.root))
+          throw notReady(owner, target, container.root);
+        return resolve(id, {
+          bp,
+          container: container.root,
+          owner: container.root,
+        });
+      }
       if (!slots.isReady(id)) throw notReady(owner, target, container.root);
       return live(slots.value(id), container);
     }
@@ -63,13 +74,15 @@ function resolveLazy(
           throw notReady(owner, target, container);
         return live(container.slots.value(id), container);
       }
-      // Only a scoped class builds on demand (spec §6.3); a scoped factory's
-      // instance always comes from createScope's own build. An async
-      // factory's thunk call runs with an empty construction stack
-      // (construction-stack.ts), so `owner` must come from this closure,
-      // not from constructionStack.top() as resolveScoped's own
-      // NotReadyError falls back to for a caller reached synchronously.
-      if (target.kind === 'factory') throw notReady(owner, target, container);
+      // A scoped class and an eager: false scoped factory build on demand
+      // (spec §6.3, §6.6); an eager scoped factory's instance always comes
+      // from createScope's own build. An async factory's thunk call runs
+      // with an empty construction stack (construction-stack.ts), so
+      // `owner` must come from this closure, not from
+      // constructionStack.top() as resolveScoped's own NotReadyError falls
+      // back to for a caller reached synchronously.
+      if (target.kind === 'factory' && target.eager)
+        throw notReady(owner, target, container);
       return resolve(id, { bp, container, owner: container });
     }
 

@@ -8,6 +8,7 @@ import type { InvalidExportError } from './invalid-export-error.js';
 import type { InvalidModuleError } from './invalid-module-error.js';
 import type { InvalidProviderError } from './invalid-provider-error.js';
 import type { InvalidTokenError } from './invalid-token-error.js';
+import type { LazyAsyncError } from './lazy-async-error.js';
 import type { LifetimeError } from './lifetime-error.js';
 import type { LoadError } from './load-error.js';
 import type { LoadedAfterScopeError } from './loaded-after-scope-error.js';
@@ -43,6 +44,7 @@ export interface NexusErrorByCode {
   NEXUS_PROVIDER_FAILED: ProviderError;
   NEXUS_NOT_READY: NotReadyError;
   NEXUS_ASYNC_TRANSIENT: AsyncTransientError;
+  NEXUS_LAZY_ASYNC: LazyAsyncError;
   NEXUS_NOT_VISIBLE: NotVisibleError;
   NEXUS_SCOPE_REQUIRED: ScopeRequiredError;
   NEXUS_REQUEST_MISSING: RequestMissingError;

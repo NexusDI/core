@@ -10,6 +10,7 @@ import type {
   InvalidModuleError,
   InvalidProviderError,
   InvalidTokenError,
+  LazyAsyncError,
   LifetimeError,
   LoadedAfterScopeError,
   LoadError,
@@ -245,6 +246,11 @@ const asyncTransient: Builder<AsyncTransientError> = (error) =>
       `  Fix: use lifetime: 'scoped', or make the token a function type and provide () => Promise<T>.`,
   );
 
+const lazyAsync: Builder<LazyAsyncError> = (error) => ({
+  message: `${error.token} (module ${error.module}) is eager: false and its build returned a promise; get() cannot wait for it.`,
+  fix: 'remove eager: false, or make the token a function type and provide () => Promise<T>.',
+});
+
 /** `deps[0]: ` for an error about a deps entry, or nothing. */
 const entryPrefix = (entry: string | null): string =>
   entry === null ? '' : `${entry}: `;
@@ -349,6 +355,7 @@ export const BUILDERS = {
   NEXUS_PROVIDER_FAILED: provider,
   NEXUS_NOT_READY: notReady,
   NEXUS_ASYNC_TRANSIENT: asyncTransient,
+  NEXUS_LAZY_ASYNC: lazyAsync,
   NEXUS_NOT_VISIBLE: notVisible,
   NEXUS_SCOPE_REQUIRED: scopeRequired,
   NEXUS_REQUEST_MISSING: requestMissing,

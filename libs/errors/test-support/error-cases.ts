@@ -9,6 +9,7 @@ import {
   InvalidModuleError,
   InvalidProviderError,
   InvalidTokenError,
+  LazyAsyncError,
   LifetimeError,
   LoadedAfterScopeError,
   LoadError,
@@ -431,6 +432,12 @@ export const errorCases: readonly ErrorCase[] = [
     error: new AsyncTransientError({ token: 'Probe', module: 'Tactical' }),
     code: 'NEXUS_ASYNC_TRANSIENT',
     fields: { token: 'Probe', module: 'Tactical' },
+  },
+  {
+    name: 'LazyAsyncError',
+    error: new LazyAsyncError({ token: 'Charts', module: 'Navigation' }),
+    code: 'NEXUS_LAZY_ASYNC',
+    fields: { token: 'Charts', module: 'Navigation' },
   },
   {
     name: 'NotVisibleError',

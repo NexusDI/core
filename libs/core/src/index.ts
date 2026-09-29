@@ -13,6 +13,7 @@ export {
   InvalidProviderError,
   InvalidTokenError,
   isNexusError,
+  LazyAsyncError,
   LifetimeError,
   LoadedAfterScopeError,
   LoadError,
@@ -67,6 +68,7 @@ export type {
 export type {
   DepsFor,
   FactoryDefinition,
+  LazyAsyncMessage,
   NoLifetimeMessage,
   OverrideDefinition,
   PromiseTokenMessage,

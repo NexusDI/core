@@ -35,6 +35,11 @@ export interface RecordShape {
   readonly token: TokenKey;
   /** null for value and alias providers. */
   readonly lifetime: Lifetime | null;
+  /**
+   * False when the provider builds at its first request (spec §6.6). True
+   * for value and alias providers, transients and REQUEST.
+   */
+  readonly eager: boolean;
   /** Constructor or factory arguments, in order. */
   readonly deps: readonly DepEntry[];
   readonly props: readonly PropEntry[];

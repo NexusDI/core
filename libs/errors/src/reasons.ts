@@ -63,6 +63,9 @@ export const PROVIDER_REASONS: Record<
     'sets a lifetime on useExisting; an alias has none',
   'alias-to-multi-token': ([d]) =>
     `aliases the MultiToken ${d}; useExisting takes a class or a Token`,
+  'bad-eager': ([d]) => `has eager set to ${d}; eager takes true or false`,
+  'eager-not-deferrable': ([d]) =>
+    `sets eager: false on a ${d}; only a singleton or scoped class or factory builds on first use`,
 };
 
 /** Revision 1's sentence for each InvalidTokenError reason, after `received`. */

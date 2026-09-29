@@ -19,7 +19,9 @@ export type InvalidProviderReason =
   | 'value-with-lifetime'
   | 'factory-not-a-function'
   | 'alias-with-lifetime'
-  | 'alias-to-multi-token';
+  | 'alias-to-multi-token'
+  | 'bad-eager'
+  | 'eager-not-deferrable';
 
 /** Why a value is not a token. */
 export type InvalidTokenReason =
