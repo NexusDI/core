@@ -44,6 +44,18 @@ describe('pairedRatio', () => {
     const b = [1, 1, 3, 3, 5, 5, 7, 7];
     expect(pairedRatio(a, b, 5, 500)).toEqual(pairedRatio(a, b, 5, 500));
   });
+  it('widens the interval when blocks span whole processes', () => {
+    // Four processes of 25 pairs, each with its own offset.
+    const rand = mulberry32(11);
+    const offsets = [0.96, 1.0, 1.04, 1.08];
+    const a = offsets.flatMap((o) =>
+      Array.from({ length: 25 }, () => o * (1 + (rand() - 0.5) * 0.002)),
+    );
+    const b = a.map(() => 1);
+    const short = pairedRatio(a, b, 2, 2000);
+    const long = pairedRatio(a, b, 2, 2000, 25);
+    expect(long.high - long.low).toBeGreaterThan(short.high - short.low);
+  });
   it('rejects samples of different lengths', () => {
     expect(() => pairedRatio([1, 2], [1], 1)).toThrow(/same length/);
   });

@@ -15,19 +15,21 @@ export function blockSize(n: number): number {
 /**
  * The median of numerator[i] / denominator[i] with a circular block
  * bootstrap 95% interval. Consecutive iterations share machine state, so
- * resamples draw blocks of consecutive pairs.
+ * resamples draw blocks of consecutive pairs. A caller whose pairs come
+ * from several worker processes in turn passes the pairs per process as
+ * `block`, so the interval carries the process-to-process noise too.
  */
 export function pairedRatio(
   numerator: readonly number[],
   denominator: readonly number[],
   seed: number,
   resamples = 10_000,
+  block = blockSize(numerator.length),
 ): PairedRatio {
   if (numerator.length !== denominator.length)
     throw new RangeError('paired samples must have the same length');
   const ratios = numerator.map((x, i) => x / denominator[i]);
   const n = ratios.length;
-  const block = blockSize(n);
   const rand = mulberry32(seed);
   const medians: number[] = [];
   const draw = new Array<number>(n);
