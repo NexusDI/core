@@ -1,4 +1,5 @@
 import type { Lifetime } from '../definitions/types.js';
+import { HOOK_SITES } from '../definitions/hook-sites.js';
 import { fromUserCode } from './format.js';
 import type { OwnedEntry } from './ownership.js';
 
@@ -73,11 +74,11 @@ export class Tracer {
   }
 
   now(): number {
-    return this.#sinks.length === 0 ? 0 : performance.now();
+    return HOOK_SITES && this.#sinks.length > 0 ? performance.now() : 0;
   }
 
   emit(make: () => TraceEvent): void {
-    if (this.#sinks.length === 0) return;
+    if (!(HOOK_SITES && this.#sinks.length > 0)) return;
     const event = make();
     for (const sink of this.#sinks) {
       try {

@@ -1,3 +1,4 @@
+import { HOOK_SITES } from '../definitions/hook-sites.js';
 import { chainErrors, collectInto, disposeInReverse } from './dispose.js';
 import { fromUserCode } from './format.js';
 import { disposeScope } from './scope.js';
@@ -82,7 +83,7 @@ export function disposeRoot(root: RootState): Promise<void> {
         durationMs: tracer.now() - start,
       })),
     );
-    await disposePlugins(root, errors);
+    if (HOOK_SITES) await disposePlugins(root, errors);
     const chained = chainErrors(errors);
     if (chained !== undefined) throw chained.error;
   })();
@@ -108,7 +109,7 @@ export async function abandonRoot(root: RootState): Promise<unknown[]> {
   }
   const work = (async () => {
     const { errors } = await releaseInstances(root);
-    await disposePlugins(root, errors);
+    if (HOOK_SITES) await disposePlugins(root, errors);
     return errors;
   })();
   root.disposal = work.then(ignore, ignore);

@@ -1,4 +1,5 @@
 import type { ModuleDefinition } from '../definitions/define-module.js';
+import { HOOK_SITES } from '../definitions/hook-sites.js';
 import { REQUEST } from '../definitions/request.js';
 import {
   BlueprintError,
@@ -120,7 +121,7 @@ export function compile(input: CompileInput): Blueprint {
   const phase = input.phase ?? 'create';
   const hooks = input.hooks ?? NO_COMPILE_HOOKS;
   const context =
-    hooks.module.length > 0 || hooks.provider.length > 0
+    HOOK_SITES && (hooks.module.length > 0 || hooks.provider.length > 0)
       ? compileContext(phase, input.canon ?? sameToken)
       : undefined;
   let replacedModules: ReadonlyMap<ModuleDefinition, ModuleDefinition> =
@@ -134,7 +135,7 @@ export function compile(input: CompileInput): Blueprint {
   const keying = input.canon === sameToken ? undefined : input.canon;
   const canon =
     keying === undefined ? undefined : reportingCanon(keying, errors);
-  const pluginImports = input.pluginImports;
+  const pluginImports = HOOK_SITES ? input.pluginImports : undefined;
   const walked = walk(
     {
       canon,
@@ -213,7 +214,8 @@ export function compile(input: CompileInput): Blueprint {
   // formatError hook needs the view of a failed compile only; a compiled
   // blueprint's view comes from viewOfBlueprint.
   const view =
-    hooks.check.length > 0 || (input.wantsView === true && errors.length > 0)
+    HOOK_SITES &&
+    (hooks.check.length > 0 || (input.wantsView === true && errors.length > 0))
       ? buildView(
           {
             phase,
