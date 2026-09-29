@@ -16,6 +16,9 @@
       "path": "../tools/bench-kit"
     },
     {
+      "path": "../libs/testing"
+    },
+    {
       "path": "../libs/decorators"
     },
     {
