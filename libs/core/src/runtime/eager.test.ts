@@ -1019,7 +1019,7 @@ describe('eager: false during a failed run', () => {
     expect(zones).toBeLessThanOrEqual(1);
   });
 
-  it('builds an earlier eager: false singleton in the level of a load that needs it', async () => {
+  it('builds an earlier eager: false singleton on demand when a new provider of a load needs it', async () => {
     const events: string[] = [];
     const SHIELDS = new Token<IReactor>('Shields');
     const Engineering = defineModule({
@@ -1088,50 +1088,145 @@ describe('eager: false during a failed run', () => {
     expect(shuttle.get(ZONE)).toBe(1);
   });
 
-  it('forgets an earlier eager: false singleton a failed load built before its onInit ran, and builds it again', async () => {
-    const events: string[] = [];
+  describe('an earlier eager: false singleton during a load', () => {
     const SHIELDS = new Token<IReactor>('Shields');
-    class Reactor implements IReactor {
-      readonly output = 1.21;
-      constructor() {
-        events.push('built');
+    const SENSORS = new Token<IReactor>('Sensors');
+
+    /** A global module with a deferred reactor that logs its build and onInit. */
+    function engineering(events: string[]) {
+      class Reactor implements IReactor {
+        readonly output = 1.21;
+        constructor() {
+          events.push('built');
+        }
+        onInit() {
+          events.push('init');
+        }
+        [Symbol.dispose]() {
+          events.push('disposed');
+        }
       }
-      onInit() {
-        events.push('init');
-      }
-      [Symbol.dispose]() {
-        events.push('disposed');
-      }
+      return defineModule({
+        name: 'Engineering',
+        providers: [provide(REACTOR, { useClass: Reactor, eager: false })],
+        exports: [REACTOR],
+        global: true,
+      });
     }
-    const Engineering = defineModule({
-      name: 'Engineering',
-      providers: [provide(REACTOR, { useClass: Reactor, eager: false })],
-      exports: [REACTOR],
-      global: true,
+
+    /** A module whose Shields needs the reactor, after Sensors waits on `gate`. */
+    function tactical(gate: Promise<IReactor>, fails = false) {
+      return defineModule({
+        name: 'Tactical',
+        providers: [
+          provide(SENSORS, { useFactory: () => gate }),
+          provide(SHIELDS, {
+            useFactory: (_sensors: IReactor, core: IReactor): IReactor => {
+              if (fails) throw new Error('overload');
+              return core;
+            },
+            deps: [SENSORS, REACTOR],
+          }),
+        ],
+        exports: [SHIELDS],
+      });
+    }
+
+    it('gives a get() during the load one fully initialised instance', async () => {
+      const events: string[] = [];
+      const gate = deferred<IReactor>();
+      const ship = await Nexus.create(
+        defineModule({ name: 'Bridge', imports: [engineering(events)] }),
+      );
+      const loading = ship.load(tactical(gate.promise));
+      await flush();
+      const core = ship.get(REACTOR);
+      expect(events).toEqual(['built', 'init']);
+      gate.resolve({ output: 0 });
+      await loading;
+      expect(ship.get(SHIELDS)).toBe(core);
+      expect(events).toEqual(['built', 'init']);
     });
-    const ship = await Nexus.create(
-      defineModule({ name: 'Bridge', imports: [Engineering] }),
-    );
-    await rejected(
-      ship.load(
+
+    it('leaves one instance after a failed load', async () => {
+      const events: string[] = [];
+      const gate = deferred<IReactor>();
+      const ship = await Nexus.create(
+        defineModule({ name: 'Bridge', imports: [engineering(events)] }),
+      );
+      const loading = ship.load(tactical(gate.promise, true));
+      gate.resolve({ output: 0 });
+      await rejected(loading);
+      const core = ship.get(REACTOR);
+      expect(ship.get(REACTOR)).toBe(core);
+      expect(events).toEqual(['built', 'init']);
+      await ship[Symbol.asyncDispose]();
+      expect(events).toEqual(['built', 'init', 'disposed']);
+    });
+
+    it('keeps the lazy thunk of a committed provider working during an unrelated load', async () => {
+      const events: string[] = [];
+      const gate = deferred<IReactor>();
+      const PILOT = new Token<() => IReactor>('Pilot');
+      const ship = await Nexus.create(
         defineModule({
-          name: 'Tactical',
+          name: 'Bridge',
+          imports: [engineering(events)],
           providers: [
-            provide(SHIELDS, {
-              useFactory: (): IReactor => {
-                throw new Error('overload');
-              },
-              deps: [REACTOR],
+            provide(PILOT, {
+              useFactory: (core) => core,
+              deps: [lazy(REACTOR)],
             }),
           ],
         }),
-      ),
-    );
-    expect(events).toEqual(['built']);
-    ship.get(REACTOR);
-    expect(events).toEqual(['built', 'built', 'init']);
-    await ship[Symbol.asyncDispose]();
-    expect(events).toEqual(['built', 'built', 'init', 'disposed', 'disposed']);
+      );
+      const loading = ship.load(tactical(gate.promise));
+      await flush();
+      const core = ship.get(PILOT)();
+      expect(events).toEqual(['built', 'init']);
+      gate.resolve({ output: 0 });
+      await loading;
+      expect(ship.get(SHIELDS)).toBe(core);
+    });
+
+    it('throws NEXUS_LAZY_ASYNC for an async factory a new provider needs', async () => {
+      const ship = await Nexus.create(
+        defineModule({
+          name: 'Bridge',
+          imports: [
+            defineModule({
+              name: 'Engineering',
+              providers: [
+                provide(REACTOR, {
+                  useFactory: () => Promise.resolve({ output: 1 }),
+                  eager: false,
+                } as never),
+              ],
+              exports: [REACTOR],
+              global: true,
+            }),
+          ],
+        }),
+      );
+      expect(
+        await rejected(
+          ship.load(
+            defineModule({
+              name: 'Tactical',
+              providers: [
+                provide(SHIELDS, {
+                  useFactory: (core: IReactor) => core,
+                  deps: [REACTOR],
+                }),
+              ],
+            }),
+          ),
+        ),
+      ).toMatchObject({
+        code: 'NEXUS_PROVIDER_FAILED',
+        cause: { code: 'NEXUS_LAZY_ASYNC', token: 'Reactor' },
+      });
+    });
   });
 
   it('keeps an earlier eager: false scoped factory a failed extend() built for a delta factory', async () => {

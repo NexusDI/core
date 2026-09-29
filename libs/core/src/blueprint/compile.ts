@@ -46,7 +46,8 @@ export interface CompileInput {
   readonly wantsView?: boolean;
   /**
    * The live blueprint load() compiles against. A global module this compile
-   * reaches that `previous` lacks is NEXUS_LOAD_GLOBAL_MODULE.
+   * reaches that `previous` lacks is NEXUS_LOAD_GLOBAL_MODULE. A singleton
+   * `previous` deferred stays deferred (spec §6.6).
    */
   readonly previous?: Blueprint;
 }
@@ -246,7 +247,7 @@ export function compile(input: CompileInput): Blueprint {
   }
 
   // Pass 6: levels.
-  const levels = computeLevels(providers, strong);
+  const levels = computeLevels(providers, strong, input.previous?.deferred);
   const requestDependents = [
     ...new Set(
       bound.edges

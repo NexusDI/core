@@ -127,8 +127,9 @@ export interface Blueprint {
   /** Singleton provider ids, level by level, for create and load. */
   readonly singletonLevels: readonly (readonly string[])[];
   /**
-   * The eager: false providers no eager provider reaches, so no level holds
-   * them; the runtime builds each at its first request (spec §6.6). A
+   * The eager: false providers no level holds: those no eager provider
+   * reaches, and a singleton the blueprint a load compiled against
+   * deferred. The runtime builds each at its first request (spec §6.6). A
    * levelled eager: false provider builds as an eager one does.
    */
   readonly deferred: ReadonlySet<string>;

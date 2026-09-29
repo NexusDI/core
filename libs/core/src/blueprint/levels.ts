@@ -159,9 +159,16 @@ function collectReached(
   return [...needed];
 }
 
+/**
+ * `stillDeferred` is the deferred set of the blueprint a load compiles
+ * against. A singleton in it keeps no level, even when a new eager provider
+ * needs it: the root may already hold it, or build it at any request, so it
+ * builds on demand in every later blueprint of that root (spec §6.6).
+ */
 export function computeLevels(
   providers: ReadonlyMap<string, ProviderRecord>,
   strong: ReadonlyMap<string, readonly string[]>,
+  stillDeferred?: ReadonlySet<string>,
 ): Levels {
   const rank = (id: string): number => providers.get(id)?.index ?? 0;
   const isSingleton: Member = (r) => r.lifetime === 'singleton';
@@ -173,7 +180,9 @@ export function computeLevels(
   const singletons = collectReached(
     providers,
     strong,
-    isSingleton,
+    stillDeferred === undefined
+      ? isSingleton
+      : (r) => isSingleton(r) && !stillDeferred.has(r.id),
     (r) => r.eager,
   );
   const scoped = collectReached(
