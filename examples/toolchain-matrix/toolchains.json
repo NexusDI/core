@@ -51,6 +51,7 @@
         "vite": "8.3.0"
       },
       "decorators": false,
+      "documented": { "standard": "https://vite.dev/guide/migration" },
       "note": "Vite 8.3 (Oxc 0.151, Rolldown 1.2.10) passes standard decorators through unlowered, and no option lowers them (oxc#9170). The vite8+babel-plugin cell is the workaround the Vite migration guide documents."
     },
     {
@@ -86,6 +87,9 @@
       "version": null,
       "packages": {},
       "decorators": false,
+      "documented": {
+        "standard": "https://nodejs.org/api/typescript.html#type-stripping"
+      },
       "note": "Node 24 runs TypeScript by erasing types and lowers no syntax, so the decorated variant is a SyntaxError."
     }
   ]
