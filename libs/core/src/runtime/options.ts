@@ -12,7 +12,7 @@ export interface LookupOptions {
 }
 
 export interface CheckOptions {
-  /** Plugins, in order (spec §3.10). Nexus.check runs their compile hooks, observe and formatError, and no setup. */
+  /** Plugins, in order (spec §3.10). Nexus.check runs their compile hooks, tokenKey, observe and formatError, and no setup. */
   readonly plugins?: readonly NexusPlugin[];
   /** Modules to compile after the root, in order, as load() would. */
   readonly load?: readonly ModuleRef[];

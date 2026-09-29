@@ -71,9 +71,9 @@ export function disposeRoot(root: RootState): Promise<void> {
     const start = tracer.now();
     const { errors, disposed } = await releaseInstances(root);
 
-    // A throwing trace sink joins errors instead of escaping here, so
-    // root.disposal still settles (rejecting with the chain below) instead
-    // of leaving a second asyncDispose() to start disposal over.
+    // A throwing trace sink joins errors, so root.disposal still settles
+    // (rejecting with the chain below) and a second asyncDispose() never
+    // starts disposal over.
     collectInto(errors, () =>
       tracer.emit(() => ({
         type: 'dispose',

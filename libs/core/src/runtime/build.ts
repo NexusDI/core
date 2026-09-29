@@ -107,8 +107,9 @@ export function traceConstruct(
 
 /**
  * Settles a built instance in its container, marks it ready when `ready`,
- * records a factory's async flag and emits its construct event. Every build
- * path ends here; the caller adopts the instance first, into its own owner.
+ * records a factory's async flag and emits its construct event. Singleton
+ * and scoped builds end here, and a transient build does not. The caller
+ * adopts the instance first, into its own owner.
  */
 export function store(
   container: ContainerState,
@@ -322,7 +323,7 @@ export interface Built {
  * slots. Only a factory's result is awaited (spec §6.1: a class provider
  * stores its constructed instance as is). Without the kind check, a class
  * instance that happens to expose a `then` method would be replaced by its
- * resolved value instead of stored, or hang the caller forever waiting on a
+ * resolved value, or hang the caller forever waiting on a
  * `then` that never calls back. Transients built as its deps go to `owner`:
  * the container itself, or in extend() a list of extend()'s own, so its
  * rollback disposes only its own builds.

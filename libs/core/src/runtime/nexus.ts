@@ -31,7 +31,7 @@ let wrap: (state: RootState) => Nexus;
 /**
  * A compiled, sealed container. Create one with `await Nexus.create(Root)`.
  * `get()` and `has()` are synchronous; async work happens only in `create`,
- * `load` and `createScope`.
+ * `load`, `createScope` and a scope's `extend()`.
  */
 export class Nexus {
   readonly #state: RootState;
@@ -62,8 +62,8 @@ export class Nexus {
    * root forms: a module, a provider array, or
    * `{ providers, imports, exports }`. Then compiles each module of
    * `options.load` against it, as load() would. Calls no user code but the
-   * plugins' compile, observe and formatError hooks, so options schemas and
-   * setup hooks do not run. Throws one BlueprintError for the first compile
+   * plugins' compile, tokenKey, observe and formatError hooks, so options
+   * schemas and setup hooks do not run. Throws one BlueprintError for the first compile
    * that fails, and compiles no load after it.
    */
   static check<const R = UninferredRoot>(
