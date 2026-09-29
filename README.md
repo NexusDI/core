@@ -46,6 +46,8 @@ We look forward to hearing from you!
 - Scopes for per-request work, and disposal in reverse creation order
 - No compiler flags: a class lists its dependencies in `static deps`, and decorators are an optional package
 - TypeScript 5.4 to 7
+- No runtime dependencies
+- Node 22.12 or later, ESM only
 
 ## Comparison / Alternatives
 
@@ -85,10 +87,10 @@ class UserService {
 }
 
 const app = await Nexus.create([Logger, UserService]);
-app.get(UserService).greet('Ada'); // '[app] hello Ada'
+app.get(UserService).greet('Ada'); // -> '[app] hello Ada'
 ```
 
-`Nexus.create` checks the whole graph first: a class missing from the list, a cycle or a lifetime mistake is one error, before any constructor runs.
+`Nexus.create` checks the whole graph first: a class missing from the list, a cycle or a lifetime mistake is one error, before any constructor runs. TypeScript checks each `static deps` list against the constructor that receives it.
 
 ## Dynamic Module Configuration
 
@@ -168,7 +170,11 @@ await using api = await Nexus.create(Api);
 
 ## Contributing
 
-We welcome contributions! Please see our [Contributing Guide](CONTRIBUTING.md) for details.
+NexusDI grows with its community's input. Contributions are welcome; see the [Contributing Guide](CONTRIBUTING.md) for details.
+
+## When you do not need a container
+
+A single script or a small app whose objects you can build by hand in one file does not need a container: a few `new` calls in `main` are clearer. NexusDI helps when one graph serves several entry points, such as an API, a worker and a CLI, or when several teams own sections of one app.
 
 ## License
 

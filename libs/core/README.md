@@ -66,6 +66,7 @@ app.get(UserService).greet('Ada'); // -> '[app] hello Ada'
 
 `Nexus.create` checks the whole graph first: a class missing from the list,
 a cycle or a lifetime mistake is one error, before any constructor runs.
+TypeScript checks each `static deps` list against the constructor that receives it.
 
 ## Interfaces and tokens
 
@@ -707,7 +708,7 @@ A plugin extends one container. It is a plain object with a `name`, unique among
 | `compile.provider` | Replaces or removes a provider before the compiler validates it          |
 | `compile.check`    | Reads the compiled graph and reports errors of its own                   |
 | `construct`        | Receives each instance as it is built, and may return a wrapper to store |
-| `observe`          | Receives every lifecycle event: compile, construct, scope and dispose    |
+| `observe`          | Receives every trace event as it happens                                 |
 | `formatError`      | Writes the message of an error core raised                               |
 | `setup`            | Runs once when `create` has built the container, and receives it         |
 | `dispose`          | Runs at container disposal, after every root-owned instance              |
