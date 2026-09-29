@@ -1,0 +1,67 @@
+{
+  "name": "@nexusdi/cli",
+  "version": "0.3.2",
+  "description": "The nexusdi command: graph a NexusDI app as Mermaid, DOT, JSON, SVG or PNG.",
+  "keywords": [
+    "dependency injection",
+    "di",
+    "nexusdi",
+    "typescript",
+    "cli",
+    "graph"
+  ],
+  "homepage": "https://github.com/NexusDI/core#readme",
+  "bugs": {
+    "url": "https://github.com/NexusDI/core/issues"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/NexusDI/core.git",
+    "directory": "libs/cli"
+  },
+  "license": "MIT",
+  "type": "module",
+  "sideEffects": false,
+  "engines": {
+    "node": ">=22.12"
+  },
+  "bin": {
+    "nexusdi": "./dist/bin.js"
+  },
+  "exports": {
+    "./package.json": "./package.json"
+  },
+  "files": [
+    "dist",
+    "!dist/**/*.tsbuildinfo",
+    "src",
+    "!src/**/*.test.*",
+    "!src/**/*.spec.*",
+    "README.md",
+    "LICENSE",
+    "CHANGELOG.md"
+  ],
+  "dependencies": {},
+  "peerDependencies": {
+    "@nexusdi/core": "0.3.2",
+    "@nexusdi/devtools": "0.3.2",
+    "tsx": "^4.20.0",
+    "@viz-js/viz": "^3.20.0",
+    "@resvg/resvg-js": "^2.6.0"
+  },
+  "peerDependenciesMeta": {
+    "tsx": {
+      "optional": true
+    },
+    "@viz-js/viz": {
+      "optional": true
+    },
+    "@resvg/resvg-js": {
+      "optional": true
+    }
+  },
+  "publishConfig": {
+    "access": "public",
+    "provenance": true
+  }
+}

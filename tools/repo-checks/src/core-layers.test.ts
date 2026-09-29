@@ -188,6 +188,18 @@ describe('layerViolations', () => {
 });
 
 describe('nodeViolations', () => {
+  it('lets cli/ use node: modules and process', () => {
+    expect(
+      nodeViolations([
+        {
+          path: 'cli/src/main.ts',
+          source:
+            "import { parseArgs } from 'node:util';\nconst argv = process.argv;",
+        },
+      ]),
+    ).toEqual([]);
+  });
+
   it('reports a node: specifier outside node/', () => {
     expect(
       nodeViolations([
