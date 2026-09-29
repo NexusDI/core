@@ -24,12 +24,6 @@ import {
 } from './hooks.js';
 import { computeLevels } from './levels.js';
 import { checkLifetimes } from './lifetimes.js';
-import {
-  applyProviderOverrides,
-  checkModuleOverrides,
-  moduleReplacer,
-  type CompileOverrides,
-} from './overrides.js';
 import { cyclePath, findCycles, successorsOf } from './tarjan.js';
 import { buildView, rememberFailedView, sameToken } from './views.js';
 import { computeVisibility } from './visibility.js';
@@ -45,8 +39,6 @@ export interface CompileInput {
   readonly pluginImports?: readonly unknown[];
   /** Modules load() added as root imports. */
   readonly extraImports?: readonly unknown[];
-  /** Testing overrides (createTestingContainer). */
-  readonly overrides?: CompileOverrides;
   /** Plugin compile hooks. */
   readonly hooks?: CompileHooks;
   readonly phase?: 'create' | 'load' | 'check';
@@ -60,16 +52,6 @@ export interface CompileInput {
 }
 
 type Replace = (definition: ModuleDefinition) => ModuleDefinition;
-
-/** The testing replacer, then the plugin replacer, or undefined when neither exists. */
-function composeReplacers(
-  first: Replace | undefined,
-  second: Replace | undefined,
-): Replace | undefined {
-  if (first === undefined) return second;
-  if (second === undefined) return first;
-  return (definition) => second(first(definition));
-}
 
 /** `replace`, recording each definition it swaps into `swapped`. */
 function recording(
@@ -134,8 +116,8 @@ export function compile(input: CompileInput): Blueprint {
   const errors: NexusError[] = [];
   const extraImports = [...(input.extraImports ?? [])];
 
-  // Pass 1: walk and deduplicate, with testing overrides and compile.module
-  // hooks applied, then the compile.provider hooks, then the duplicate check.
+  // Pass 1: walk and deduplicate, with the compile.module hooks applied,
+  // then the compile.provider hooks, then the duplicate check.
   // With no plugin, the hook sites cost one length test each (spec D19).
   const phase = input.phase ?? 'create';
   const hooks = input.hooks ?? NO_COMPILE_HOOKS;
@@ -145,19 +127,12 @@ export function compile(input: CompileInput): Blueprint {
       : undefined;
   let replacedModules: ReadonlyMap<ModuleDefinition, ModuleDefinition> =
     NO_ENTRIES;
-  let pluginReplace: Replace | undefined;
+  let replace: Replace | undefined;
   if (context !== undefined && hooks.module.length > 0) {
     const replaced = new Map<ModuleDefinition, ModuleDefinition>();
-    pluginReplace = moduleReplacerFor(hooks, context, errors, replaced);
+    replace = moduleReplacerFor(hooks, context, errors, replaced);
     replacedModules = replaced;
   }
-  const usedStubs = new Set<ModuleDefinition>();
-  const replace = composeReplacers(
-    input.overrides === undefined
-      ? undefined
-      : moduleReplacer(input.overrides, usedStubs),
-    pluginReplace,
-  );
   const swapped =
     replace === undefined
       ? undefined
@@ -178,27 +153,18 @@ export function compile(input: CompileInput): Blueprint {
     errors,
   );
   if (input.previous !== undefined) checkNewGlobals(walked, input.previous);
-  const overridden =
-    input.overrides === undefined
-      ? { records: walked.records, pinned: NO_ENTRIES }
-      : applyProviderOverrides(walked.records, input.overrides, errors);
   const rewritten =
     context === undefined
       ? undefined
-      : rewriteProviders(overridden.records, hooks, context, errors);
+      : rewriteProviders(walked.records, hooks, context, errors);
   const root = walked.modules[0]?.id ?? 'm0';
   const records = [
-    ...rejectDuplicates(
-      rewritten?.records ?? overridden.records,
-      walked,
-      errors,
-    ),
+    ...rejectDuplicates(rewritten?.records ?? walked.records, walked, errors),
     requestRecord(walked.records.length, root),
   ];
   const rewrittenBy = rewritten?.rewrittenBy ?? NO_ENTRIES;
   const pinned = new Map<TokenKey, readonly string[]>([
     [REQUEST, [REQUEST_ID]],
-    ...overridden.pinned,
   ]);
   if (rewritten !== undefined)
     for (const [token, ids] of rewritten.pinned) pinned.set(token, ids);
@@ -216,15 +182,6 @@ export function compile(input: CompileInput): Blueprint {
     },
     errors,
   );
-  if (input.overrides !== undefined) {
-    checkModuleOverrides(
-      input.overrides,
-      usedStubs,
-      walked.byDefinition,
-      visible.exportedTokens,
-      errors,
-    );
-  }
 
   // Pass 3: bind.
   const bound = bind(

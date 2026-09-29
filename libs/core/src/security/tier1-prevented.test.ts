@@ -37,7 +37,6 @@ import {
   type NexusError,
   type StandardSchemaV1,
 } from '../index.js';
-import { createTestingContainer } from '../testing/index.js';
 
 const rawProvide = provide as (token: unknown, options?: unknown) => never;
 const NAMES = ['__proto__', 'constructor', 'prototype'] as const;
@@ -259,26 +258,40 @@ describe('SEC-003 a polluted Object.prototype (CWE-1321)', () => {
     }
   });
 
-  // applyProviderOverrides reads an override's own `lifetime` key the same
+  // A compile.provider rewrite reads its entry's own `lifetime` key the same
   // way records.ts does (Object.hasOwn), not with `'lifetime' in options`,
-  // which a polluted prototype would satisfy for every override, even one
+  // which a polluted prototype would satisfy for every rewrite, even one
   // that never set a lifetime. This test fails if the check used `in`: the
-  // scoped lifetime provide() declared would flip to the override's default
+  // scoped lifetime provide() declared would flip to the rewrite's default
   // (singleton), and get() at the root would stop throwing.
-  it('keeps the original lifetime when override() omits it, even while Object.prototype carries one', async () => {
+  // @nexusdi/testing's override() is such a rewrite, and its tests repeat
+  // this case through override().
+  it('keeps the original lifetime when a compile.provider rewrite omits it, even while Object.prototype carries one', async () => {
     const proto = Object.prototype as Record<string, unknown>;
     proto['lifetime'] = 'transient';
     try {
       class Reactor {}
       class FakeReactor extends Reactor {}
-      const ship = await createTestingContainer(
+      const ship = await Nexus.create(
         defineModule({
           name: 'Root',
           providers: [provide(Reactor, { lifetime: 'scoped' })],
         }),
-      )
-        .override(Reactor, { useClass: FakeReactor })
-        .create();
+        {
+          plugins: [
+            {
+              name: 'fake-reactor',
+              apiVersion: 1,
+              compile: {
+                provider: (provider) =>
+                  provider.token === Reactor
+                    ? { with: provide(Reactor, { useClass: FakeReactor }) }
+                    : undefined,
+              },
+            },
+          ],
+        },
+      );
       expect(thrown(() => ship.get(Reactor))).toMatchObject({
         code: 'NEXUS_SCOPE_REQUIRED',
       });

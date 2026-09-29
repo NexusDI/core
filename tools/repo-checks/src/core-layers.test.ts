@@ -76,24 +76,6 @@ describe('layerViolations', () => {
     ]);
   });
 
-  it('allows testing/ to import the public and the internal entry only', () => {
-    expect(
-      layerViolations([
-        {
-          path: 'testing/index.ts',
-          source:
-            "import { Nexus } from '../index.js';\nimport { createContainer } from '../internal.js';",
-        },
-        {
-          path: 'testing/other.ts',
-          source: "import { compile } from '../blueprint/compile.js';",
-        },
-      ]),
-    ).toEqual([
-      'testing/other.ts imports blueprint/compile.ts, and testing/ may import only testing/, index.ts, internal.ts',
-    ]);
-  });
-
   it('reads re-exports and type-only imports as imports', () => {
     expect(
       layerViolations([
@@ -105,19 +87,16 @@ describe('layerViolations', () => {
     ).toHaveLength(1);
   });
 
-  it('allows internal.ts to be imported from testing/ and from nowhere else', () => {
+  it('reports a testing/ folder, which @nexusdi/testing now holds', () => {
     expect(
       layerViolations([
-        { path: 'index.ts', source: "export * from './internal.js';" },
-        { path: 'runtime/x.ts', source: "import { a } from '../internal.js';" },
         {
           path: 'testing/index.ts',
-          source: "import { a } from '../internal.js';",
+          source: "import { Nexus } from '../index.js';",
         },
       ]),
     ).toEqual([
-      'index.ts imports internal.ts, which only testing/ may import',
-      'runtime/x.ts imports internal.ts, and runtime/ may import only runtime/, blueprint/, definitions/, errors/, polyfill/symbol-dispose.ts',
+      'testing/index.ts sits in testing/, which is not a known layer',
     ]);
   });
 

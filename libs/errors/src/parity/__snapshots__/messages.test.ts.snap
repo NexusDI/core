@@ -179,16 +179,6 @@ exports[`NexusError > keeps the message of 'NotVisibleError' 1`] = `
   Fix: export it along a path to the root module, or call get(SubspaceLink, { module: Comms })."
 `;
 
-exports[`NexusError > keeps the message of 'OverrideError (exports)' 1`] = `
-"[NEXUS_OVERRIDE_EXPORTS] the stub for Comms does not export SubspaceLink, which Comms exports.
-  Fix: add them to the stub's exports."
-`;
-
-exports[`NexusError > keeps the message of 'OverrideError (unused)' 1`] = `
-"[NEXUS_OVERRIDE_UNUSED] override(NavCharts) matched no provider in the module graph.
-  Fix: remove the override, or import the module that provides NavCharts."
-`;
-
 exports[`NexusError > keeps the message of 'PluginError (conflict)' 1`] = `"[NEXUS_PLUGIN_CONFLICT] devtools and federation both rewrite NavCharts; one plugin may rewrite a module or a provider."`;
 
 exports[`NexusError > keeps the message of 'PluginError (failed)' 1`] = `"[NEXUS_PLUGIN_FAILED] the observe hook of devtools failed: Error: offline"`;

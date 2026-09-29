@@ -19,8 +19,7 @@ async function loadNow(root: RootState, module: unknown): Promise<void> {
     throw new InvalidModuleError({ received: describeValue(module), path: [] });
 
   const current = root.blueprint;
-  // A testing override or a compile.module hook may have replaced `module`
-  // at the last compile; moduleByReplaced finds the module that stands in
+  // A compile.module hook may have replaced `module` at the last compile; moduleByReplaced finds the module that stands in
   // for it, so a loaded original is not added again under its own identity.
   const existing =
     current.moduleByDefinition.get(definition) ??
@@ -38,7 +37,6 @@ async function loadNow(root: RootState, module: unknown): Promise<void> {
       root: root.rootRef,
       extraImports: [...current.extraImports, module],
       pluginImports: root.plugins.modules,
-      overrides: root.overrides,
       hooks: root.plugins.compile,
       phase: 'load',
       wantsView: root.plugins.formatError.length > 0,

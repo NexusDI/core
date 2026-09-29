@@ -7,6 +7,9 @@
       "path": "./libs/core"
     },
     {
+      "path": "./libs/testing"
+    },
+    {
       "path": "./libs/errors"
     },
     {

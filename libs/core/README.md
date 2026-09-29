@@ -53,7 +53,7 @@ Depend on interfaces. A `Token<T>` names an interface, `provide()` binds it to a
 
 ```ts @import.meta.vitest
 import { Nexus, Token, defineModule, provide } from '@nexusdi/core';
-import { createTestingContainer } from '@nexusdi/core/testing';
+import { createTestingContainer } from '@nexusdi/testing';
 
 interface IReactorCore {
   readonly output: number;
@@ -121,7 +121,7 @@ sim.get(COMPUTER).course('anywhere'); // -> 'loopback'
 ```ts @import.meta.vitest
 import { MultiToken, Nexus, Token } from '@nexusdi/core';
 import { defineModule, provide } from '@nexusdi/core';
-import { createTestingContainer } from '@nexusdi/core/testing';
+import { createTestingContainer } from '@nexusdi/testing';
 
 interface IDiagnostic {
   run(): boolean;
@@ -433,13 +433,13 @@ ship.get(POWER_ROUTER).divert(); // -> 0.4
 
 ## Testing
 
-A unit test calls the constructor with fakes and needs no container. `@nexusdi/core/testing` builds the real module graph with replacements.
+A unit test calls the constructor with fakes and needs no container. `@nexusdi/testing` builds the real module graph with replacements.
 
 <!-- #region testing -->
 
 ```ts @import.meta.vitest
 import { Token, defineModule, provide } from '@nexusdi/core';
-import { createTestingContainer } from '@nexusdi/core/testing';
+import { createTestingContainer } from '@nexusdi/testing';
 
 interface INavCharts {
   plot(to: string): string;

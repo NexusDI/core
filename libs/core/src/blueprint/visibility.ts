@@ -17,7 +17,7 @@ export interface VisibilityInput {
   readonly modules: readonly ModuleNode[];
   readonly records: readonly ProviderRecord[];
   readonly byDefinition: ReadonlyMap<ModuleDefinition, string>;
-  /** Tokens bound to fixed providers in every module: REQUEST, and MultiTokens a test overrides. */
+  /** Tokens bound to fixed providers in every module: REQUEST, and MultiTokens a compile.provider hook pins. */
   readonly pinned: ReadonlyMap<TokenKey, readonly string[]>;
   readonly replace?: (definition: ModuleDefinition) => ModuleDefinition;
 }

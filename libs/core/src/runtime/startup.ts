@@ -160,7 +160,8 @@ export async function startBlueprint(
       assertOpen(root);
     }
     assertOpen(root);
-    // With onInit off (the testing container), buildSingleton already marked each singleton ready.
+    // With onInit off (a plugin set onInit: false), buildSingleton already
+    // marked each singleton ready.
     if (root.initEnabled) await runInit(root, plan.bp, plan.isNew);
   } catch (error) {
     for (const id of touched) root.slots.abandon(id);

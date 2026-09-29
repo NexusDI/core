@@ -37,7 +37,6 @@ export {
 export { NoScopeContextError } from './no-scope-context-error.js';
 export { NotReadyError } from './not-ready-error.js';
 export { NotVisibleError } from './not-visible-error.js';
-export { OverrideError } from './override-error.js';
 export { PluginError, type PluginInvalidReason } from './plugin-error.js';
 export { ProviderError, type ProviderFailure } from './provider-error.js';
 export { RequestMissingError } from './request-missing-error.js';

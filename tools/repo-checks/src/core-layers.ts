@@ -8,12 +8,9 @@ import ts from 'typescript';
  * Each layer imports only from the layers below it. The two polyfills are
  * named on their own, because the decorator one must stay out of any bundle
  * that never imports a decorator, and the runtime needs only the disposal one.
- * testing/ reaches the package through its public entry plus internal.ts,
- * which the exports map does not publish. A root file (index.ts,
- * internal.ts) may import any layer, but not internal.ts (testing/'s alone)
- * and not the metadata polyfill (decorators/'s alone), so the same guarantee
- * that keeps a decorator-free bundle free of the polyfill holds for the
- * public entry too.
+ * A root file (index.ts) may import any layer but the metadata polyfill
+ * (decorators/'s alone), so the same guarantee that keeps a decorator-free
+ * bundle free of the polyfill holds for the public entry too.
  */
 
 export interface SourceFileText {
@@ -41,7 +38,6 @@ const ALLOWED: Readonly<Record<string, readonly string[]>> = {
   ],
   polyfill: [],
   node: ['node/', 'index.ts'],
-  testing: ['testing/', 'index.ts', 'internal.ts'],
 };
 
 /** The layer a file belongs to: its first directory, or null for a root file. */
@@ -92,16 +88,10 @@ export function layerViolations(files: readonly SourceFileText[]): string[] {
   for (const file of files) {
     const layer = layerOf(file.path);
     if (layer === null) {
-      // A root file (index.ts, internal.ts) may import any layer, except that
-      // internal.ts is testing/'s alone and the metadata polyfill is
-      // decorators/'s alone.
+      // A root file (index.ts) may import any layer, except that the
+      // metadata polyfill is decorators/'s alone.
       for (const specifier of specifiersOf(file)) {
         const target = targetOf(file.path, specifier);
-        if (target === 'internal.ts') {
-          found.push(
-            `${file.path} imports internal.ts, which only testing/ may import`,
-          );
-        }
         if (target === 'polyfill/symbol-metadata.ts') {
           found.push(
             `${file.path} imports polyfill/symbol-metadata.ts, which only decorators/ may import`,

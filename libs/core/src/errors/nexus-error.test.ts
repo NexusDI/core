@@ -41,7 +41,6 @@ const FIELD_ORDER: Readonly<Record<string, readonly string[]>> = {
   NoScopeContextError: [],
   DisposedError: ['target'],
   LegacyDecoratorsError: ['decorator'],
-  OverrideError: ['token', 'module', 'missing'],
   PluginError: [
     'plugin',
     'reason',

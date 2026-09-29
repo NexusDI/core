@@ -38,6 +38,7 @@ const ROOT = resolve(import.meta.dirname, '..');
 const LIBS = [
   ['libs/core', '@nexusdi/core'],
   ['libs/errors', '@nexusdi/errors'],
+  ['libs/testing', '@nexusdi/testing'],
 ];
 
 /** Every JavaScript module under `root`, at any depth. */
@@ -59,7 +60,7 @@ let failed = false;
  */
 const CJS_CONSUMER = `'use strict';
 const { Nexus, Token, defineModule, provide } = require('@nexusdi/core');
-const { createTestingContainer } = require('@nexusdi/core/testing');
+const { createTestingContainer } = require('@nexusdi/testing');
 const { nodeScopeContext } = require('@nexusdi/core/node');
 const { errors } = require('@nexusdi/errors');
 
@@ -100,7 +101,7 @@ const Engineering = defineModule({
     .override(REACTOR, { useClass: FakeReactor })
     .create();
   if (fake.get(REACTOR).output !== 0)
-    throw new Error('require(esm): the testing entry did not override');
+    throw new Error('require(esm): @nexusdi/testing did not override');
   await fake[Symbol.asyncDispose]();
   console.log(process.versions.node);
 })().catch((error) => {
@@ -171,23 +172,25 @@ import {
   InvalidProviderError, InvalidTokenError, LegacyDecoratorsError, LifetimeError,
   LoadedAfterScopeError, LoadError, MissingDepsError, MissingProviderError,
   ModuleImportCycleError, ModuleOptionsError, NexusError, NoScopeContextError,
-  NotReadyError, NotVisibleError, OverrideError, ProviderError, RequestMissingError,
+  NotReadyError, NotVisibleError, ProviderError, RequestMissingError,
   ScopeRequiredError,
   Inject, Injectable, Module, MultiToken, Nexus, REQUEST, Token,
-  all, defineModule, lazy, optional, provide,
+  all, defineModule, lazy, moduleDefinitionOf, optional, provide,
 } from '@nexusdi/core';
 import type {
   All, ConfigurableModule, ConfigurableModuleConfig, CreateOptions, Dep, DepFor,
-  ErrorLifetime, ExportEntry, InjectionToken, Lazy, Lifetime, LookupOptions,
+  ErrorLifetime, ExportEntry, FactoryDefinition, InjectionToken, Lazy, Lifetime, LookupOptions,
   ModuleConfig, ModuleDecoratorConfig, ModuleDefinition, ModuleRef, NearMiss,
   NexusErrorCode, NexusGraph, NexusRequest, NoLifetimeMessage, Optional, OptionsFactory,
-  Provider, ProviderEntries, ProviderEntry, ProviderFailure, ProviderLiteral, Resolve,
+  OverrideDefinition, PromiseTokenMessage, Provider, ProviderEntries, ProviderEntry, ProviderFailure, ProviderLiteral, Resolve,
   ResolveAll, SchemaIssue, Scope, ScopeContext, StandardSchemaV1, TraceEvent, Tokens,
   DepsMap, ResolvedDeps, UntypedFunctionMessage,
 } from '@nexusdi/core';
 import { nodeScopeContext } from '@nexusdi/core/node';
-import { createTestingContainer } from '@nexusdi/core/testing';
-import type { TestingContainerBuilder, TestingCreateOptions } from '@nexusdi/core/testing';
+import { OverrideError, createTestingContainer } from '@nexusdi/testing';
+import type {
+  ModuleOverrideOptions, TestingContainerBuilder, TestingCreateOptions,
+} from '@nexusdi/testing';
 import { errors, explain } from '@nexusdi/errors';
 
 declare module '@nexusdi/core' {
@@ -264,7 +267,8 @@ function check(ok: boolean, what: string): void {
   await using fake = await createTestingContainer(Meridian)
     .override(NAV_CHARTS, { useValue: { plot: () => 'fake' } })
     .create({ onInit: false });
-  check(fake.get(ShipComputer).charts.plot('x') === 'fake', 'the testing entry');
+  check(fake.get(ShipComputer).charts.plot('x') === 'fake', '@nexusdi/testing');
+  check(moduleDefinitionOf(Engineering)?.name === 'Engineering', 'moduleDefinitionOf');
 }
 {
   const broken = defineModule({ name: 'Broken', providers: [ShipComputer] });
@@ -285,8 +289,8 @@ const errorClasses = [
   InvalidProviderError, InvalidTokenError, LegacyDecoratorsError, LifetimeError,
   LoadedAfterScopeError, LoadError, MissingDepsError, MissingProviderError,
   ModuleImportCycleError, ModuleOptionsError, NexusError, NoScopeContextError,
-  NotReadyError, NotVisibleError, OverrideError, ProviderError, RequestMissingError,
-  ScopeRequiredError,
+  NotReadyError, NotVisibleError, ProviderError, RequestMissingError,
+  ScopeRequiredError, OverrideError,
 ];
 check(errorClasses.every((c) => typeof c === 'function') && typeof all === 'function', 'the error classes');
 
@@ -299,6 +303,8 @@ type EveryType = [
   ProviderFailure, ProviderLiteral,
   Resolve<unknown>, ResolveAll<[]>, SchemaIssue, Scope, ScopeContext, StandardSchemaV1,
   TraceEvent, Tokens<[]>, TestingContainerBuilder, TestingCreateOptions, UntypedFunctionMessage,
+  ModuleOverrideOptions, FactoryDefinition<[], unknown>, OverrideDefinition<unknown, new () => unknown>,
+  PromiseTokenMessage,
 ];
 const everyType: EveryType | undefined = undefined;
 void everyType;
@@ -490,7 +496,7 @@ try {
   console.log('Type-checking a strict consumer…');
   run('npx', ['tsc', '-p', 'tsconfig.nodenext.json'], dir);
   console.log(
-    '  ✓ ., ./node and ./testing resolve with types under nodenext, with lib es2022 and no @types/node',
+    '  ✓ ., ./node and @nexusdi/testing resolve with types under nodenext, with lib es2022 and no @types/node',
   );
   run('npx', ['tsc', '-p', 'tsconfig.bundler.json', '--noEmit'], dir);
   console.log(
@@ -502,7 +508,7 @@ try {
   console.log('Running the consumer…');
   run('node', [join(dir, 'out-nodenext', 'consumer.js')], dir);
   console.log(
-    '  ✓ a decorated class, scopes, the node entry and the testing entry run from the packed build',
+    '  ✓ a decorated class, scopes, the node entry and @nexusdi/testing run from the packed build',
   );
 
   console.log('Checking the published modules for top-level await…');
@@ -611,6 +617,11 @@ try {
   console.log(
     `  ✓ every optional package peers on @nexusdi/core ${coreVersion} exactly`,
   );
+  if (packedManifest('@nexusdi/core').exports?.['./testing'] !== undefined)
+    throw new Error(
+      '@nexusdi/core publishes ./testing; the testing container is @nexusdi/testing',
+    );
+  console.log('  ✓ @nexusdi/core publishes no ./testing entry');
 
   // The @nexusdi/source condition must come first in every entry of every
   // package, so node's default conditions never select source.

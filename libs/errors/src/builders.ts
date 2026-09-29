@@ -22,7 +22,6 @@ import type {
   NoScopeContextError,
   NotReadyError,
   NotVisibleError,
-  OverrideError,
   PluginError,
   PluginInvalidReason,
   ProviderError,
@@ -305,13 +304,6 @@ const legacyDecorators: Builder<LegacyDecoratorsError> = (error) =>
       '  Fix: remove experimentalDecorators from tsconfig, or register the class with provide() and defineModule().',
   );
 
-const override: Builder<OverrideError> = (error) =>
-  text(
-    error.code === 'NEXUS_OVERRIDE_UNUSED'
-      ? `override(${error.token}) matched no provider in the module graph.\n  Fix: remove the override, or import the module that provides ${error.token}.`
-      : `the stub for ${error.module} does not export ${error.missing.join(', ')}, which ${error.module} exports.\n  Fix: add them to the stub's exports.`,
-  );
-
 const PLUGIN_INVALID: Record<PluginInvalidReason, (detail: string) => string> =
   {
     'not-an-array': (d) => `is ${d}; plugins takes an array of plugin objects.`,
@@ -378,8 +370,6 @@ export const BUILDERS = {
   NEXUS_NO_SCOPE_CONTEXT: noScopeContext,
   NEXUS_DISPOSED: disposed,
   NEXUS_LEGACY_DECORATORS: legacyDecorators,
-  NEXUS_OVERRIDE_UNUSED: override,
-  NEXUS_OVERRIDE_EXPORTS: override,
   NEXUS_PLUGIN_INVALID: plugin,
   NEXUS_PLUGIN_VERSION: plugin,
   NEXUS_PLUGIN_CONFLICT: plugin,

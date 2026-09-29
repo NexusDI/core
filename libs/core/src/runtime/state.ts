@@ -1,5 +1,4 @@
 import type { Blueprint } from '../blueprint/blueprint.js';
-import type { CompileOverrides } from '../blueprint/overrides.js';
 import { DisposedError } from '../errors/index.js';
 import { Ownership, type OwnedEntry } from './ownership.js';
 import { NO_PLUGINS, type PluginSet } from './plugins.js';
@@ -33,10 +32,8 @@ export interface RootState {
    * step. Disposal runs the dispose hooks of these plugins only.
    */
   pluginsStarted: number;
-  /** False only for createTestingContainer().create({ onInit: false }). */
+  /** False when a plugin sets `onInit: false`. */
   readonly initEnabled: boolean;
-  /** Set only by createTestingContainer(); load() replays it on every recompile. */
-  readonly overrides: CompileOverrides | undefined;
   /** Set when disposal starts. Every public method checks it. */
   disposing: boolean;
   /** Set by the first [Symbol.asyncDispose]() call; later calls return it. */
@@ -111,7 +108,6 @@ export interface RootInit {
   readonly tracer: Tracer;
   readonly initEnabled: boolean;
   readonly scopeContext: ScopeContext | undefined;
-  readonly overrides: CompileOverrides | undefined;
   readonly plugins?: PluginSet;
 }
 
@@ -133,7 +129,6 @@ export function createRootState(init: RootInit): RootState {
     plugins: init.plugins ?? NO_PLUGINS,
     pluginsStarted: 0,
     initEnabled: init.initEnabled,
-    overrides: init.overrides,
     disposing: false,
     disposal: undefined,
     loadQueue: Promise.resolve(),

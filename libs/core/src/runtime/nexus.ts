@@ -1,6 +1,5 @@
 import type { Blueprint } from '../blueprint/blueprint.js';
 import { pluginFailed } from '../blueprint/hooks.js';
-import type { CompileOverrides } from '../blueprint/overrides.js';
 import { viewOfBlueprint } from '../blueprint/views.js';
 import type { ModuleRef } from '../definitions/define-module.js';
 import type { Dep, DepsMap, ResolvedDeps } from '../definitions/modifiers.js';
@@ -31,12 +30,6 @@ import { startBlueprint } from './startup.js';
 import { assertOpen, createRootState, track, type RootState } from './state.js';
 import { Tracer, type TraceSink } from './trace.js';
 
-/** Settings the testing entry sets; Nexus.create uses the defaults. */
-export interface ContainerInternals {
-  readonly initEnabled: boolean;
-  readonly overrides?: CompileOverrides;
-}
-
 let wrap: (state: RootState) => Nexus;
 
 /**
@@ -57,7 +50,7 @@ export class Nexus {
 
   /** Compiles the module graph, builds every singleton, and returns the sealed container. */
   static create(root: ModuleRef, options?: CreateOptions): Promise<Nexus> {
-    return createContainer(root, options, { initEnabled: true });
+    return createContainer(root, options);
   }
 
   /**
@@ -289,7 +282,6 @@ async function runSetup(
 export async function createContainer(
   root: unknown,
   options: CreateOptions | undefined,
-  internals: ContainerInternals,
 ): Promise<Nexus> {
   const plugins = registerPlugins(options?.plugins);
   // Set once compile returns: a runtime error in create reads the compiled
@@ -302,7 +294,6 @@ export async function createContainer(
       {
         root,
         pluginImports: plugins.modules,
-        overrides: internals.overrides,
         hooks: plugins.compile,
         phase: 'create',
         wantsView: plugins.formatError.length > 0,
@@ -314,9 +305,8 @@ export async function createContainer(
       blueprint,
       rootRef: root,
       tracer,
-      initEnabled: internals.initEnabled && plugins.onInit,
+      initEnabled: plugins.onInit,
       scopeContext: options?.scopeContext,
-      overrides: internals.overrides,
       plugins,
     });
     await startBlueprint(state, { bp: blueprint, isNew: () => true });

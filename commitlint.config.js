@@ -40,6 +40,7 @@ module.exports = {
         // sits under nx.json's `release.projects` globs is what versions a
         // package.
         'core',
+        'testing',
         'errors',
         // Repository scopes, for work that is not one package's. None of
         // them names a project, so nx attributes such a commit to no package

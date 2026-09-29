@@ -1,32 +1,33 @@
 /// <reference lib="esnext.disposable" preserve="true" />
 /**
- * `@nexusdi/core/testing`: a container with replacements.
+ * `@nexusdi/testing`: a container with replacements.
  *
  * A unit test of one class needs none of this; it calls the constructor with
- * fakes. This entry is for tests that want the real module graph with a few
+ * fakes. This package is for tests that want the real module graph with a few
  * providers or modules swapped. The builder is immutable, so a beforeEach can
- * share a base builder.
+ * share a base builder. The container it builds is a plain Nexus with one
+ * plugin, nexus:testing, ahead of the caller's plugins.
  */
 import {
   InvalidModuleError,
+  moduleDefinitionOf,
+  Nexus,
   provide,
   type CreateOptions,
   type Dep,
+  type FactoryDefinition,
   type InjectionToken,
   type ModuleDefinition,
   type ModuleRef,
   type MultiToken,
-  type Nexus,
-} from '../index.js';
-import {
-  createContainer,
-  describeValue,
-  resolveModuleRef,
-  type CompileOverrides,
-  type FactoryDefinition,
   type OverrideDefinition,
   type PromiseTokenMessage,
-} from '../internal.js';
+  type ProviderEntry,
+} from '@nexusdi/core';
+
+import { testingPlugin } from './plugin.js';
+
+export { OverrideError } from './override-error.js';
 
 export interface TestingCreateOptions extends CreateOptions {
   /** Run onInit during create. Defaults to true. */
@@ -75,17 +76,20 @@ export interface TestingContainerBuilder {
 
 interface BuilderState {
   readonly root: ModuleRef;
-  readonly providers: ReadonlyMap<unknown, unknown>;
+  readonly providers: ReadonlyMap<unknown, ProviderEntry>;
   readonly modules: ReadonlyMap<ModuleDefinition, ModuleDefinition>;
   readonly lazyModules: ReadonlySet<ModuleDefinition>;
 }
 
-const register = provide as (token: unknown, definition: unknown) => unknown;
+const register = provide as (
+  token: unknown,
+  definition: unknown,
+) => ProviderEntry;
 
 function definitionOf(ref: ModuleRef): ModuleDefinition {
-  const definition = resolveModuleRef(ref);
+  const definition = moduleDefinitionOf(ref);
   if (definition === undefined)
-    throw new InvalidModuleError({ received: describeValue(ref), path: [] });
+    throw new InvalidModuleError({ received: String(ref), path: [] });
   return definition;
 }
 
@@ -116,15 +120,22 @@ function builder(state: BuilderState): TestingContainerBuilder {
       });
     },
     create(options: TestingCreateOptions = {}): Promise<Nexus> {
-      const { onInit = true, ...rest } = options;
-      const overrides: CompileOverrides = {
-        providers: state.providers as CompileOverrides['providers'],
-        modules: state.modules,
-        lazyModules: state.lazyModules,
-      };
-      return createContainer(state.root, rest, {
-        initEnabled: onInit,
-        overrides,
+      const { onInit = true, plugins = [], ...rest } = options;
+      // A plugins value that is not an array goes to core as given, so
+      // Nexus.create reports it as it would without the testing container.
+      return Nexus.create(state.root, {
+        ...rest,
+        plugins: Array.isArray(plugins)
+          ? [
+              testingPlugin({
+                providers: state.providers,
+                modules: state.modules,
+                lazyModules: state.lazyModules,
+                onInit,
+              }),
+              ...plugins,
+            ]
+          : plugins,
       });
     },
   };

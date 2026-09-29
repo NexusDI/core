@@ -1,23 +1,12 @@
 {
-  "name": "@nexusdi/core",
+  "name": "@nexusdi/testing",
   "version": "0.3.2",
-  "description": "A compiled, sealed dependency injection container for TypeScript: typed provide() definitions, module encapsulation, scopes and ordered shutdown.",
+  "description": "A container with replacements for testing NexusDI module graphs, built on the plugin API.",
   "keywords": [
     "dependency injection",
     "di",
-    "inversion of control",
-    "ioc",
-    "typescript",
-    "decorators",
-    "service container",
-    "dependency injection container",
-    "nodejs",
-    "javascript",
-    "modular",
-    "lightweight",
-    "provider",
-    "service",
-    "module"
+    "nexusdi",
+    "typescript"
   ],
   "homepage": "https://github.com/NexusDI/core#readme",
   "bugs": {
@@ -26,16 +15,11 @@
   "repository": {
     "type": "git",
     "url": "git+https://github.com/NexusDI/core.git",
-    "directory": "libs/core"
+    "directory": "libs/testing"
   },
   "license": "MIT",
   "type": "module",
-  "sideEffects": [
-    "./src/polyfill/symbol-metadata.ts",
-    "./dist/polyfill/symbol-metadata.js",
-    "./src/polyfill/symbol-dispose.ts",
-    "./dist/polyfill/symbol-dispose.js"
-  ],
+  "sideEffects": false,
   "engines": {
     "node": ">=22.12"
   },
@@ -47,12 +31,6 @@
       "types": "./dist/index.d.ts",
       "import": "./dist/index.js",
       "default": "./dist/index.js"
-    },
-    "./node": {
-      "@nexusdi/source": "./src/node/index.ts",
-      "types": "./dist/node/index.d.ts",
-      "import": "./dist/node/index.js",
-      "default": "./dist/node/index.js"
     }
   },
   "files": [
@@ -66,6 +44,9 @@
     "LICENSE",
     "CHANGELOG.md"
   ],
+  "peerDependencies": {
+    "@nexusdi/core": "0.3.2"
+  },
   "publishConfig": {
     "access": "public",
     "provenance": true

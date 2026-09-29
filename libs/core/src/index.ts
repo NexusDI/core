@@ -25,7 +25,6 @@ export {
   NoScopeContextError,
   NotReadyError,
   NotVisibleError,
-  OverrideError,
   PluginError,
   ProviderError,
   RequestMissingError,
@@ -67,8 +66,16 @@ export type {
   ProviderLiteral,
   UntypedFunctionMessage,
 } from './definitions/provider-literal.js';
-export type { NoLifetimeMessage } from './definitions/provide.js';
-export { defineModule } from './definitions/define-module.js';
+export type {
+  FactoryDefinition,
+  NoLifetimeMessage,
+  OverrideDefinition,
+  PromiseTokenMessage,
+} from './definitions/provide.js';
+export {
+  defineModule,
+  resolveModuleRef as moduleDefinitionOf,
+} from './definitions/define-module.js';
 export type {
   ConfigurableModule,
   ConfigurableModuleConfig,

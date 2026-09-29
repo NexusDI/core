@@ -1,6 +1,6 @@
 import { describe, expectTypeOf, it } from 'vitest';
 
-import { defineModule, Injectable, Token, type Nexus } from '../index.js';
+import { defineModule, Injectable, Token, type Nexus } from '@nexusdi/core';
 import {
   createTestingContainer,
   type TestingContainerBuilder,

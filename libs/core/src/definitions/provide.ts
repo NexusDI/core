@@ -79,7 +79,7 @@ export type TokenDefinition<T, C extends Ctor> =
     };
 
 /**
- * What createTestingContainer().override() accepts besides a factory. Its
+ * What @nexusdi/testing's override() accepts besides a factory. Its
  * useClass takes deps the way provide()'s does (UseClassDeps), so an
  * @Injectable fake needs no deps option.
  */

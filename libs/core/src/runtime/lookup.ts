@@ -18,9 +18,9 @@ import type { ContainerState, TransientOwner } from './state.js';
 /**
  * The module a lookup runs in: the root, or the `module` option.
  * `moduleByDefinition` holds every definition the walk visited, replacements
- * included. A definition a testing override or a compile.module hook
- * replaced is not in it (spec §3.5), so the option falls back to
- * `moduleByReplaced` and gets the module that stands in for it.
+ * included. A definition a compile.module hook replaced is not in it (spec
+ * §3.5), so the option falls back to `moduleByReplaced` and gets the module
+ * that stands in for it.
  */
 export function lookupModule(bp: Blueprint, options?: LookupOptions): string {
   if (options?.module === undefined) return bp.root;

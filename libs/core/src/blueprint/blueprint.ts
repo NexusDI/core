@@ -100,8 +100,8 @@ export interface Blueprint {
   /** The definitions the walk visited, replacements included, originals not. */
   readonly moduleByDefinition: ReadonlyMap<ModuleDefinition, string>;
   /**
-   * A definition a testing module override or a compile.module hook replaced
-   * → the id of the module that replaced it.
+   * A definition a compile.module hook replaced → the id of the module that
+   * replaced it. @nexusdi/testing's overrideModule() is such a hook.
    */
   readonly moduleByReplaced: ReadonlyMap<ModuleDefinition, string>;
   readonly providers: ReadonlyMap<string, ProviderRecord>;

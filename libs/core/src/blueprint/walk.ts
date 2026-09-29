@@ -25,7 +25,7 @@ export interface WalkInput {
   readonly root: unknown;
   /** Imports load() added to the root, walked after the root's own. */
   readonly extraImports: readonly unknown[];
-  /** The module to walk in place of the one met. Testing overrides use it. */
+  /** The module to walk in place of the one met. The compile.module hooks use it. */
   readonly replace?: (definition: ModuleDefinition) => ModuleDefinition;
 }
 

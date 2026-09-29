@@ -20,7 +20,6 @@ import { ERROR_BRAND } from './nexus-error.js';
 import type { NoScopeContextError } from './no-scope-context-error.js';
 import type { NotReadyError } from './not-ready-error.js';
 import type { NotVisibleError } from './not-visible-error.js';
-import type { OverrideError } from './override-error.js';
 import type { PluginError } from './plugin-error.js';
 import type { ProviderError } from './provider-error.js';
 import type { RequestMissingError } from './request-missing-error.js';
@@ -53,8 +52,6 @@ export interface NexusErrorByCode {
   NEXUS_NO_SCOPE_CONTEXT: NoScopeContextError;
   NEXUS_DISPOSED: DisposedError;
   NEXUS_LEGACY_DECORATORS: LegacyDecoratorsError;
-  NEXUS_OVERRIDE_UNUSED: OverrideError;
-  NEXUS_OVERRIDE_EXPORTS: OverrideError;
   NEXUS_PLUGIN_INVALID: PluginError;
   NEXUS_PLUGIN_VERSION: PluginError;
   NEXUS_PLUGIN_CONFLICT: PluginError;

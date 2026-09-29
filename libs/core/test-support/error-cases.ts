@@ -20,7 +20,6 @@ import {
   NoScopeContextError,
   NotReadyError,
   NotVisibleError,
-  OverrideError,
   PluginError,
   ProviderError,
   RequestMissingError,
@@ -307,28 +306,6 @@ export const errorCases: readonly ErrorCase[] = [
     error: new LegacyDecoratorsError({ decorator: 'Injectable' }),
     code: 'NEXUS_LEGACY_DECORATORS',
     fields: { decorator: 'Injectable' },
-  },
-  {
-    name: 'OverrideError (unused)',
-    error: new OverrideError({
-      code: 'NEXUS_OVERRIDE_UNUSED',
-      token: 'NavCharts',
-      module: null,
-      missing: [],
-    }),
-    code: 'NEXUS_OVERRIDE_UNUSED',
-    fields: { token: 'NavCharts', module: null, missing: [] },
-  },
-  {
-    name: 'OverrideError (exports)',
-    error: new OverrideError({
-      code: 'NEXUS_OVERRIDE_EXPORTS',
-      token: null,
-      module: 'Comms',
-      missing: ['SubspaceLink'],
-    }),
-    code: 'NEXUS_OVERRIDE_EXPORTS',
-    fields: { token: null, module: 'Comms', missing: ['SubspaceLink'] },
   },
   {
     name: 'PluginError',

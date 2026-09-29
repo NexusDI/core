@@ -1,16 +1,22 @@
 import { describe, expect, it, vi } from 'vitest';
 
-import { rejected, thrown } from '../../test-support/catch.js';
 import {
+  BlueprintError,
   defineModule,
+  isNexusError,
   lazy,
   MultiToken,
   Nexus,
+  NexusError,
   provide,
   Token,
+  type NexusPlugin,
+  type PluginContext,
   type TraceEvent,
-} from '../index.js';
-import { createTestingContainer } from './index.js';
+} from '@nexusdi/core';
+
+import { rejected, thrown } from '../test-support/catch.js';
+import { createTestingContainer, OverrideError } from './index.js';
 
 interface NavCharts {
   plot(to: string): string;
@@ -26,6 +32,27 @@ class FakeReactor extends ReactorCore {
   override output = 0;
 }
 class SubspaceLink {}
+const REACTOR = new Token<ReactorCore>('ReactorCore');
+const Meridian = defineModule({
+  name: 'Meridian',
+  providers: [provide(REACTOR, { useClass: ReactorCore })],
+});
+
+/**
+ * A plugin whose setup keeps the plugin context, and the module names of
+ * the blueprint the container currently publishes.
+ */
+function capture(): { plugin: NexusPlugin; modules(): string[] } {
+  let context: PluginContext | undefined;
+  return {
+    plugin: {
+      name: 'capture',
+      apiVersion: 1,
+      setup: (given: PluginContext) => void (context = given),
+    },
+    modules: () => context?.blueprint().modules.map((m) => m.name) ?? [],
+  };
+}
 
 describe('createTestingContainer', () => {
   it('replaces every provider of a plain token, in every module', async () => {
@@ -136,15 +163,13 @@ describe('createTestingContainer', () => {
       providers: [SubspaceLink],
       exports: [SubspaceLink],
     });
-    const ship = await createTestingContainer(
+    const graph = capture();
+    await createTestingContainer(
       defineModule({ name: 'Root', imports: [Comms.with(1420)] }),
     )
       .overrideModule(Comms, CommsStub)
-      .create();
-    expect(ship.graph().modules.map((m) => m.name)).toEqual([
-      'Root',
-      'CommsStub',
-    ]);
+      .create({ plugins: [graph.plugin] });
+    expect(graph.modules()).toEqual(['Root', 'CommsStub']);
   });
 
   it('rejects NEXUS_OVERRIDE_EXPORTS when a stub misses an export of the module it replaces', async () => {
@@ -244,9 +269,14 @@ describe('createTestingContainer', () => {
 
   it('passes the CreateOptions through and returns a Nexus', async () => {
     const events: TraceEvent[] = [];
+    const recorder = {
+      name: 'recorder',
+      apiVersion: 1,
+      observe: (event: TraceEvent) => void events.push(event),
+    };
     const ship = await createTestingContainer(
       defineModule({ name: 'Root' }),
-    ).create({ trace: (e) => events.push(e) });
+    ).create({ plugins: [recorder] });
     expect(ship).toBeInstanceOf(Nexus);
     expect(events[0]).toMatchObject({ type: 'compile', phase: 'create' });
   });
@@ -285,16 +315,13 @@ describe('createTestingContainer', () => {
       // of Comms cannot take the "already a direct import" shortcut and must
       // reach newGlobalImport's walk.
       const Bridge = defineModule({ name: 'Bridge', imports: [Comms] });
+      const graph = capture();
       const ship = await createTestingContainer(
         defineModule({ name: 'Root', imports: [Bridge] }),
       )
         .overrideModule(Comms, CommsStub)
-        .create();
-      expect(ship.graph().modules.map((m) => m.name)).toEqual([
-        'Root',
-        'Bridge',
-        'CommsStub',
-      ]);
+        .create({ plugins: [graph.plugin] });
+      expect(graph.modules()).toEqual(['Root', 'Bridge', 'CommsStub']);
       await expect(ship.load(Comms)).resolves.toBeUndefined();
     });
 
@@ -428,13 +455,11 @@ describe('createTestingContainer', () => {
       });
 
     it('walks the stub when load() adds the module', async () => {
-      await using ship = await lazily().create();
+      const graph = capture();
+      await using ship = await lazily().create({ plugins: [graph.plugin] });
       await ship.load(Comms);
       expect(ship.get(SubspaceLink)).toBeInstanceOf(LoopbackLink);
-      expect(ship.graph().modules.map((m) => m.name)).toEqual([
-        'Root',
-        'CommsStub',
-      ]);
+      expect(graph.modules()).toEqual(['Root', 'CommsStub']);
     });
 
     it('walks the stub for a module the loaded module imports transitively', async () => {
@@ -454,8 +479,10 @@ describe('createTestingContainer', () => {
     });
 
     it('accepts a lazy override that no load() uses', async () => {
-      await using ship = await lazily().create();
-      expect(ship.graph().modules.map((m) => m.name)).toEqual(['Root']);
+      const graph = capture();
+      await using ship = await lazily().create({ plugins: [graph.plugin] });
+      expect(graph.modules()).toEqual(['Root']);
+      expect(ship.has(SubspaceLink)).toBe(false);
     });
 
     it('keeps NEXUS_OVERRIDE_UNUSED at create for a non-lazy override of an absent module', async () => {
@@ -493,5 +520,203 @@ describe('createTestingContainer', () => {
         errors: [{ code: 'NEXUS_OVERRIDE_UNUSED', token: 'Comms' }],
       });
     });
+  });
+
+  it('passes the caller plugins after its own', async () => {
+    const seen: string[] = [];
+    await createTestingContainer(Meridian)
+      .override(REACTOR, { useClass: FakeReactor })
+      .create({
+        plugins: [
+          {
+            name: 'probe',
+            apiVersion: 1,
+            compile: {
+              check: (view) =>
+                void seen.push(
+                  view.providers.find((p) => p.name === 'ReactorCore')
+                    ?.rewrittenBy ?? 'none',
+                ),
+            },
+          },
+        ],
+      });
+    expect(seen).toEqual(['nexus:testing']);
+  });
+
+  it('rejects NEXUS_PLUGIN_INVALID for a plugins option that is not an array, as Nexus.create does', async () => {
+    const error = await rejected(
+      createTestingContainer(Meridian).create({ plugins: {} as never }),
+    );
+    expect(error).toMatchObject({
+      code: 'NEXUS_BLUEPRINT_INVALID',
+      errors: [{ code: 'NEXUS_PLUGIN_INVALID', reason: 'not-an-array' }],
+    });
+  });
+
+  it('accepts a stub that exports the token through a module it re-exports', async () => {
+    const Comms = defineModule({
+      name: 'Comms',
+      providers: [SubspaceLink],
+      exports: [SubspaceLink],
+    });
+    class LoopbackLink extends SubspaceLink {}
+    const Loopback = defineModule({
+      name: 'Loopback',
+      providers: [provide(SubspaceLink, { useClass: LoopbackLink })],
+      exports: [SubspaceLink],
+    });
+    const CommsStub = defineModule({
+      name: 'CommsStub',
+      imports: [Loopback],
+      exports: [Loopback],
+    });
+    const ship = await createTestingContainer(
+      defineModule({ name: 'Root', imports: [Comms] }),
+    )
+      .overrideModule(Comms, CommsStub)
+      .create();
+    expect(ship.get(SubspaceLink)).toBeInstanceOf(LoopbackLink);
+  });
+
+  it('accepts a stub that re-exports a module another override replaced', async () => {
+    const Relay = defineModule({
+      name: 'Relay',
+      providers: [SubspaceLink],
+      exports: [SubspaceLink],
+    });
+    const RelayStub = defineModule({
+      name: 'RelayStub',
+      providers: [SubspaceLink],
+      exports: [SubspaceLink],
+    });
+    const Comms = defineModule({
+      name: 'Comms',
+      imports: [Relay],
+      exports: [Relay],
+    });
+    const CommsStub = defineModule({
+      name: 'CommsStub',
+      imports: [Relay],
+      exports: [Relay],
+    });
+    const ship = await createTestingContainer(
+      defineModule({ name: 'Root', imports: [Comms] }),
+    )
+      .overrideModule(Comms, CommsStub)
+      .overrideModule(Relay, RelayStub)
+      .create();
+    expect(ship.has(SubspaceLink)).toBe(true);
+  });
+
+  it('checks only the stubs its own compile walked, after a load() that failed mid-walk', async () => {
+    class LoopbackLink extends SubspaceLink {}
+    const Comms = defineModule({
+      name: 'Comms',
+      providers: [SubspaceLink],
+      exports: [SubspaceLink],
+    });
+    const CommsStub = defineModule({
+      name: 'CommsStub',
+      providers: [provide(SubspaceLink, { useClass: LoopbackLink })],
+      exports: [SubspaceLink],
+    });
+    const Relay = defineModule({ name: 'Relay', global: true });
+    // The walk meets Comms, so the stub is used, and then Relay, a global
+    // module new to the graph, fails the load before any check hook runs.
+    const Outpost = defineModule({ name: 'Outpost', imports: [Comms, Relay] });
+    const ship = await createTestingContainer(defineModule({ name: 'Root' }))
+      .overrideModule(Comms, CommsStub, { lazy: true })
+      .create();
+    expect(await rejected(ship.load(Outpost))).toMatchObject({
+      code: 'NEXUS_LOAD_GLOBAL_MODULE',
+    });
+    await expect(
+      ship.load(defineModule({ name: 'Science' })),
+    ).resolves.toBeUndefined();
+  });
+
+  // SEC-003 through override(): an override reads its own `lifetime` key
+  // only (Object.hasOwn), so a polluted prototype cannot flip the scoped
+  // lifetime provide() declared to the override's default. Core's
+  // tier1-prevented.test.ts holds the same case for any compile.provider
+  // rewrite.
+  it('keeps the original lifetime when override() omits it, even while Object.prototype carries one', async () => {
+    const proto = Object.prototype as Record<string, unknown>;
+    proto['lifetime'] = 'transient';
+    try {
+      class Reactor {}
+      class FakeReactor extends Reactor {}
+      const ship = await createTestingContainer(
+        defineModule({
+          name: 'Root',
+          providers: [provide(Reactor, { lifetime: 'scoped' })],
+        }),
+      )
+        .override(Reactor, { useClass: FakeReactor })
+        .create();
+      expect(thrown(() => ship.get(Reactor))).toMatchObject({
+        code: 'NEXUS_SCOPE_REQUIRED',
+      });
+    } finally {
+      delete proto['lifetime'];
+    }
+  });
+});
+
+describe('OverrideError', () => {
+  /** The inner errors of the BlueprintError `promise` rejects with. */
+  const innerOf = async (
+    promise: Promise<unknown>,
+  ): Promise<readonly NexusError[]> => {
+    const error = await rejected(promise);
+    expect(error).toBeInstanceOf(BlueprintError);
+    return (error as BlueprintError).errors;
+  };
+
+  it('keeps the message of an unused override', async () => {
+    const [error] = await innerOf(
+      createTestingContainer(defineModule({ name: 'Root' }))
+        .override(NAV_CHARTS, { useValue: fake })
+        .create(),
+    );
+    expect(error?.message).toBe(
+      '[NEXUS_OVERRIDE_UNUSED] override(NavCharts) matched no provider in the module graph.\n  Fix: remove the override, or import the module that provides NavCharts.',
+    );
+  });
+
+  it('keeps the message of a stub that misses an export', async () => {
+    const Comms = defineModule({
+      name: 'Comms',
+      providers: [SubspaceLink],
+      exports: [SubspaceLink],
+    });
+    const [error] = await innerOf(
+      createTestingContainer(defineModule({ name: 'Root', imports: [Comms] }))
+        .overrideModule(Comms, defineModule({ name: 'Empty' }))
+        .create(),
+    );
+    expect(error?.message).toBe(
+      "[NEXUS_OVERRIDE_EXPORTS] the stub for Comms does not export SubspaceLink, which Comms exports.\n  Fix: add them to the stub's exports.",
+    );
+  });
+
+  it('is a NexusError whose fields are its enumerable keys, and isNexusError narrows to it by code', async () => {
+    const [error] = await innerOf(
+      createTestingContainer(defineModule({ name: 'Root' }))
+        .override(NAV_CHARTS, { useValue: fake })
+        .create(),
+    );
+    expect(error).toBeInstanceOf(OverrideError);
+    expect(error).toBeInstanceOf(NexusError);
+    expect(error?.name).toBe('OverrideError');
+    expect({ ...error }).toEqual({
+      token: 'NavCharts',
+      module: null,
+      missing: [],
+    });
+    if (!isNexusError(error, 'NEXUS_OVERRIDE_UNUSED'))
+      throw new Error('expected NEXUS_OVERRIDE_UNUSED');
+    expect(error.token).toBe('NavCharts');
   });
 });
