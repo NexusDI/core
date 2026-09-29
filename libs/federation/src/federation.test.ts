@@ -432,6 +432,14 @@ describe('ContractVersionError', () => {
       '[NEXUS_CONTRACT_VERSION] bank/Auth is needed at 2.4.0, and the provider has 2.3.0.\n  Fix: build the provider against 2.4.0 or a newer 2.x, or build the dependent against 2.3.0.',
     );
   });
+
+  it('names a newer patch of the needed minor at major 0', async () => {
+    const [error] = (await verdict('0.4.2', '0.3.0')) as Error[];
+    expect(error).toBeInstanceOf(ContractVersionError);
+    expect(error?.message).toBe(
+      '[NEXUS_CONTRACT_VERSION] bank/Auth is needed at 0.4.2, and the provider has 0.3.0.\n  Fix: build the provider against 0.4.2 or a newer 0.4.x patch, or build the dependent against 0.3.0.',
+    );
+  });
 });
 
 describe('defineContract', () => {

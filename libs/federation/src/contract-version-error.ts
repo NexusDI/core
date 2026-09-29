@@ -6,7 +6,7 @@ interface ContractVersionFields {
   readonly provided: string;
 }
 
-/** A dependent needs another major, or a newer minor, of a contract than its provider has. */
+/** A dependent needs another major, a newer minor, or a newer patch of the same minor of a contract than its provider has; at major 0, any other minor. */
 export class ContractVersionError extends errorBase<
   'NEXUS_CONTRACT_VERSION',
   ContractVersionFields
@@ -15,9 +15,12 @@ export class ContractVersionError extends errorBase<
 export function contractVersion(
   fields: ContractVersionFields,
 ): ContractVersionError {
-  const major = fields.required.split('.')[0];
+  // At major 0 a newer minor is a breaking change, so only a newer patch of
+  // the needed minor satisfies the dependent.
+  const [major, minor] = fields.required.split('.');
+  const newer = major === '0' ? `0.${minor}.x patch` : `${major}.x`;
   return new ContractVersionError(fields, {
-    text: `${fields.contract} is needed at ${fields.required}, and the provider has ${fields.provided}.\n  Fix: build the provider against ${fields.required} or a newer ${major}.x, or build the dependent against ${fields.provided}.`,
+    text: `${fields.contract} is needed at ${fields.required}, and the provider has ${fields.provided}.\n  Fix: build the provider against ${fields.required} or a newer ${newer}, or build the dependent against ${fields.provided}.`,
   });
 }
 
