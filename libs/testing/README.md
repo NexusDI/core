@@ -45,6 +45,8 @@ ship.get(NAV_CHARTS).plot('anywhere'); // -> 'loopback'
 
 The testing container runs the full compiler, so an override that introduces a missing dependency fails exactly as it would in production.
 
+With `federation()` registered, an override matches every copy of a contract token.
+
 ## Overrides keep the lifetime
 
 An override keeps the lifetime of the binding it replaces, so a transient stays transient.

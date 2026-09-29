@@ -815,6 +815,169 @@ describe('createTestingContainer', () => {
   });
 });
 
+describe('tokenKey', () => {
+  interface IAuth {
+    user(): string;
+  }
+  /** Three copies of a contracts package make three Token objects per name. */
+  const authA = new Token<IAuth>('bank/Auth');
+  const authB = new Token<IAuth>('bank/Auth');
+  const authC = new Token<IAuth>('bank/Auth');
+  const realAuth: IAuth = { user: () => 'real' };
+  const fakeAuth: IAuth = { user: () => 'fake' };
+  const byDescription: NexusPlugin = {
+    name: 'keys',
+    apiVersion: 1,
+    tokenKey: (token) =>
+      token instanceof Token || token instanceof MultiToken
+        ? `key:${token.description}`
+        : undefined,
+  };
+  const Shell = defineModule({
+    name: 'Shell',
+    providers: [provide(authA, { useValue: realAuth })],
+    exports: [authA],
+  });
+
+  it('replaces the provider of every token with the override token key', async () => {
+    const ship = await createTestingContainer(Shell)
+      .override(authB, { useValue: fakeAuth })
+      .create({ plugins: [byDescription] });
+    expect(ship.get(authA)).toBe(fakeAuth);
+    expect(ship.get(authB)).toBe(fakeAuth);
+  });
+
+  it('replaces a MultiToken contract contributed in two modules with one contribution', async () => {
+    interface IAudit {
+      record(): string;
+    }
+    const auditA = new MultiToken<IAudit>('bank/Audit');
+    const auditB = new MultiToken<IAudit>('bank/Audit');
+    const fakeAudit: IAudit = { record: () => 'fake' };
+    const Ledger = defineModule({
+      name: 'Ledger',
+      providers: [provide(auditA, { useValue: { record: () => 'ledger' } })],
+      exports: [auditA],
+    });
+    const Vault = defineModule({
+      name: 'Vault',
+      providers: [provide(auditA, { useValue: { record: () => 'vault' } })],
+      exports: [auditA],
+    });
+    const ship = await createTestingContainer(
+      defineModule({ name: 'Root', imports: [Ledger, Vault] }),
+    )
+      .override(auditB, { useValue: fakeAudit })
+      .create({ plugins: [byDescription] });
+    expect(ship.get(auditA)).toEqual([fakeAudit]);
+    expect(ship.get(auditB)).toEqual([fakeAudit]);
+  });
+
+  it('lets the later of two overrides with one key win', async () => {
+    const first: IAuth = { user: () => 'first' };
+    const ship = await createTestingContainer(Shell)
+      .override(authA, { useValue: first })
+      .override(authB, { useValue: fakeAuth })
+      .create({ plugins: [byDescription] });
+    expect(ship.get(authA)).toBe(fakeAuth);
+  });
+
+  it('compares the exports of a module override by key', async () => {
+    const Remote = defineModule({
+      name: 'Remote',
+      providers: [provide(authA, { useValue: realAuth })],
+      exports: [authA],
+    });
+    const Stub = defineModule({
+      name: 'Stub',
+      providers: [provide(authB, { useValue: fakeAuth })],
+      exports: [authB],
+    });
+    const ship = await createTestingContainer(
+      defineModule({ name: 'Root', imports: [Remote] }),
+    )
+      .overrideModule(Remote, Stub)
+      .create({ plugins: [byDescription] });
+    expect(ship.get(authA)).toBe(fakeAuth);
+  });
+
+  it('rejects NEXUS_OVERRIDE_UNUSED for a key no module provides', async () => {
+    interface IVault {
+      open(): boolean;
+    }
+    const VAULT = new Token<IVault>('bank/Vault');
+    const error = await rejected(
+      createTestingContainer(Shell)
+        .override(VAULT, { useValue: { open: () => true } })
+        .create({ plugins: [byDescription] }),
+    );
+    expect(error).toMatchObject({
+      errors: [{ code: 'NEXUS_OVERRIDE_UNUSED', token: 'bank/Vault' }],
+    });
+  });
+
+  it('matches by identity without a tokenKey plugin', async () => {
+    const error = await rejected(
+      createTestingContainer(Shell)
+        .override(authB, { useValue: fakeAuth })
+        .create(),
+    );
+    expect(error).toMatchObject({
+      errors: [{ code: 'NEXUS_OVERRIDE_UNUSED', token: 'bank/Auth' }],
+    });
+  });
+
+  it('gives a loaded module that names a third copy the override', async () => {
+    class Teller {
+      static deps = [authC] as const;
+      constructor(readonly auth: IAuth) {}
+    }
+    const Contracts = defineModule({
+      name: 'Contracts',
+      global: true,
+      providers: [provide(authA, { useValue: realAuth })],
+      exports: [authA],
+    });
+    const ship = await createTestingContainer(
+      defineModule({ name: 'Root', imports: [Contracts] }),
+    )
+      .override(authB, { useValue: fakeAuth })
+      .create({ plugins: [byDescription] });
+    await ship.load(
+      defineModule({ name: 'Remote', providers: [Teller], exports: [Teller] }),
+    );
+    expect(ship.get(Teller).auth).toBe(fakeAuth);
+  });
+
+  it('reports a tokenKey throw for the override token once, as a compile.provider failure', async () => {
+    const cause = new Error('no key');
+    const error = await rejected(
+      createTestingContainer(Shell)
+        .override(authB, { useValue: fakeAuth })
+        .create({
+          plugins: [
+            {
+              ...byDescription,
+              tokenKey: (token) => {
+                if (token === authB) throw cause;
+                return byDescription.tokenKey?.(token);
+              },
+            },
+          ],
+        }),
+    );
+    const failed = (error as BlueprintError).errors.filter(
+      (inner) => inner.code === 'NEXUS_PLUGIN_FAILED',
+    );
+    expect(failed).toHaveLength(1);
+    expect(failed[0]).toMatchObject({
+      plugin: 'nexus:testing',
+      hook: 'compile.provider',
+      cause: { hook: 'tokenKey', cause },
+    });
+  });
+});
+
 describe('OverrideError', () => {
   /** The inner errors of the BlueprintError `promise` rejects with. */
   const innerOf = async (

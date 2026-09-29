@@ -61,6 +61,18 @@ interface Matches {
   readonly modules: Map<ModuleDefinition, ModuleDefinition>;
   /** MultiTokens whose one replacement this compile already pinned. */
   readonly pinned: Set<unknown>;
+  /** Canonical token → the overrides with its key, from the first compile.provider call. */
+  overrides: Map<AnyToken, Override> | undefined;
+}
+
+/** A token a compile hook may key, as CompileContext.canonical takes it. */
+type AnyToken = Parameters<CompileContext['canonical']>[0];
+
+interface Override {
+  /** Every override token with this key, in override order. */
+  readonly tokens: readonly unknown[];
+  /** The entry of the last of them. */
+  readonly entry: ProviderEntry;
 }
 
 const noMatches = (context: CompileContext | undefined): Matches => ({
@@ -68,7 +80,30 @@ const noMatches = (context: CompileContext | undefined): Matches => ({
   tokens: new Set(),
   modules: new Map(),
   pinned: new Set(),
+  overrides: undefined,
 });
+
+/**
+ * The overrides of `state` by canonical token, built on the first call of a
+ * compile. Two override tokens with one key share an entry, and the later
+ * override wins. The map is set before it is filled, so a tokenKey throw
+ * fails one compile.provider call and the compile keeps what was filled.
+ */
+function overridesOf(
+  state: TestingState,
+  current: Matches,
+  context: CompileContext,
+): Map<AnyToken, Override> {
+  if (current.overrides !== undefined) return current.overrides;
+  const overrides = new Map<AnyToken, Override>();
+  current.overrides = overrides;
+  for (const [token, entry] of state.providers) {
+    const key = context.canonical(token as AnyToken);
+    const tokens = overrides.get(key)?.tokens ?? [];
+    overrides.set(key, { tokens: [...tokens, token], entry });
+  }
+  return overrides;
+}
 
 /**
  * The testing container as a plugin: compile.module walks stubs,
@@ -103,10 +138,11 @@ export function testingPlugin(state: TestingState): NexusPlugin {
         return undefined;
       },
       provider(provider, context) {
-        const entry = state.providers.get(provider.token);
-        if (entry === undefined) return undefined;
         const current = matchesOf(context);
-        current.tokens.add(provider.token);
+        const hit = overridesOf(state, current, context).get(provider.token);
+        if (hit === undefined) return undefined;
+        for (const token of hit.tokens) current.tokens.add(token);
+        const entry = hit.entry;
         if (!(provider.token instanceof MultiToken))
           return { with: entry, label: 'override' };
         if (current.pinned.has(provider.token)) return undefined;
@@ -131,7 +167,9 @@ export function testingPlugin(state: TestingState): NexusPlugin {
             const module = moduleDefinitionOf(entry);
             if (module !== undefined)
               return exported.has(module) ? [] : [module.name];
-            return exported.has(entry) ? [] : [displayName(entry)];
+            return exported.has(view.canonical(entry as AnyToken))
+              ? []
+              : [displayName(entry)];
           });
           if (missing.length > 0)
             report(overrideExports(original.name, missing));
