@@ -5,9 +5,11 @@ import {
 } from '../definitions/define-module.js';
 import { isForeign } from '../definitions/brand.js';
 import { describeValue } from '../definitions/describe.js';
+import { isToken } from '../definitions/guards.js';
 import { MultiToken, displayName } from '../definitions/token.js';
 import {
   DuplicateProviderError,
+  InvalidExportError,
   InvalidModuleError,
   ModuleImportCycleError,
   ModuleOptionsError,
@@ -42,12 +44,24 @@ export interface WalkResult {
    * reports the ones the compile.provider hooks leave, at that place.
    */
   readonly duplicates: ReadonlyMap<string, number>;
+  /** Each definition `replace` swapped → the definition walked in its place. */
+  readonly swapped: ReadonlyMap<ModuleDefinition, ModuleDefinition>;
+  /**
+   * The errors the export plans raised, in module id order. The compile
+   * reports them after the compile.provider hooks, ahead of pass 2's.
+   */
+  readonly exportErrors: readonly NexusError[];
 }
 
-/** A ModuleNode under construction: its id/imports/providers fill in as the walk proceeds. */
-type NodeDraft = Omit<ModuleNode, 'imports' | 'providers'> & {
+/** A ModuleNode under construction: its lists fill in as the walk proceeds. */
+type NodeDraft = Omit<
+  ModuleNode,
+  'imports' | 'providers' | 'exportTokens' | 'exportModules'
+> & {
   readonly imports: string[];
   readonly providers: string[];
+  readonly exportTokens: TokenKey[];
+  readonly exportModules: string[];
 };
 
 /**
@@ -62,6 +76,7 @@ export function walk(input: WalkInput, errors: NexusError[]): WalkResult {
   const byDefinition = new Map<ModuleDefinition, string>();
   const broken = new Set<TokenKey>();
   let duplicates: Map<string, number> | undefined;
+  let swapped: Map<ModuleDefinition, ModuleDefinition> | undefined;
   const stack: ModuleDefinition[] = [];
 
   const addProviders = (
@@ -134,6 +149,7 @@ export function walk(input: WalkInput, errors: NexusError[]): WalkResult {
       return undefined;
     }
     const definition = input.replace?.(found) ?? found;
+    if (definition !== found) (swapped ??= new Map()).set(found, definition);
 
     const onStack = stack.indexOf(definition);
     if (onStack !== -1) {
@@ -166,6 +182,8 @@ export function walk(input: WalkInput, errors: NexusError[]): WalkResult {
       global: definition.global,
       imports: [],
       providers: [],
+      exportTokens: [],
+      exportModules: [],
     };
     modules.push(node);
     byDefinition.set(definition, node.id);
@@ -185,12 +203,44 @@ export function walk(input: WalkInput, errors: NexusError[]): WalkResult {
   };
 
   visit(input.root, input.extraImports);
+
+  // Each module's export plan, in module id order. A module entry must name
+  // a module the node imports, after replacement. A compile.module hook may
+  // report errors here too, so every error from this point moves to
+  // `exportErrors` in the order it was raised.
+  const mark = errors.length;
+  for (const node of modules) {
+    for (const entry of node.definition.exports) {
+      const found = resolveModuleRef(entry);
+      if (found !== undefined) {
+        const id = byDefinition.get(input.replace?.(found) ?? found);
+        if (id !== undefined && node.imports.includes(id))
+          node.exportModules.push(id);
+        else
+          errors.push(
+            new InvalidExportError({ token: found.name, module: node.name }),
+          );
+      } else if (isToken(entry)) {
+        node.exportTokens.push(entry);
+      } else {
+        errors.push(
+          new InvalidExportError({
+            token: describeValue(entry),
+            module: node.name,
+          }),
+        );
+      }
+    }
+  }
+
   return {
     modules,
     records,
     byDefinition,
     broken,
     duplicates: duplicates ?? NO_ENTRIES,
+    swapped: swapped ?? NO_ENTRIES,
+    exportErrors: errors.splice(mark),
   };
 }
 

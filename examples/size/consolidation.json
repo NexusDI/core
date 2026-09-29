@@ -10,5 +10,11 @@
     "core": 18271,
     "delta": 93,
     "kept": false
+  },
+  {
+    "step": "R19 export plans in the walk",
+    "core": 18162,
+    "delta": -16,
+    "kept": true
   }
 ]

@@ -71,6 +71,10 @@ export interface ModuleNode {
   readonly global: boolean;
   readonly imports: readonly string[];
   readonly providers: readonly string[];
+  /** The tokens the module's exports list names, in list order. */
+  readonly exportTokens: readonly TokenKey[];
+  /** The ids of the imported modules the module re-exports, in list order. */
+  readonly exportModules: readonly string[];
 }
 
 /** What one deps entry or property bound to. */

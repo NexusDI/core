@@ -52,28 +52,13 @@ export interface CompileInput {
   readonly previous?: Blueprint;
 }
 
-type Replace = (definition: ModuleDefinition) => ModuleDefinition;
-
-/** `replace`, recording each definition it swaps into `swapped`. */
-function recording(
-  replace: Replace,
-  swapped: Map<ModuleDefinition, ModuleDefinition>,
-): Replace {
-  return (definition) => {
-    const result = replace(definition);
-    if (result !== definition) swapped.set(definition, result);
-    return result;
-  };
-}
-
 /** Original definition → the id of the module the walk visited in its place. */
 function moduleIdsOf(
-  swapped: ReadonlyMap<ModuleDefinition, ModuleDefinition> | undefined,
   walked: WalkResult,
 ): ReadonlyMap<ModuleDefinition, string> {
-  if (swapped === undefined || swapped.size === 0) return NO_ENTRIES;
+  if (walked.swapped.size === 0) return NO_ENTRIES;
   const ids = new Map<ModuleDefinition, string>();
-  for (const [original, replacement] of swapped) {
+  for (const [original, replacement] of walked.swapped) {
     const id = walked.byDefinition.get(replacement);
     if (id !== undefined) ids.set(original, id);
   }
@@ -129,16 +114,12 @@ export function compile(input: CompileInput): Blueprint {
       : undefined;
   let replacedModules: ReadonlyMap<ModuleDefinition, ModuleDefinition> =
     NO_ENTRIES;
-  let replace: Replace | undefined;
+  let replace: ((definition: ModuleDefinition) => ModuleDefinition) | undefined;
   if (context !== undefined && hooks.module.length > 0) {
     const replaced = new Map<ModuleDefinition, ModuleDefinition>();
     replace = moduleReplacerFor(hooks, context, errors, replaced);
     replacedModules = replaced;
   }
-  const swapped =
-    replace === undefined
-      ? undefined
-      : new Map<ModuleDefinition, ModuleDefinition>();
   const pluginImports = input.pluginImports;
   const walked = walk(
     {
@@ -147,10 +128,7 @@ export function compile(input: CompileInput): Blueprint {
         pluginImports === undefined || pluginImports.length === 0
           ? extraImports
           : [...pluginImports, ...extraImports],
-      replace:
-        replace === undefined || swapped === undefined
-          ? undefined
-          : recording(replace, swapped),
+      replace,
     },
     errors,
   );
@@ -172,15 +150,14 @@ export function compile(input: CompileInput): Blueprint {
     for (const [token, ids] of rewritten.pinned) pinned.set(token, ids);
   const providers = new Map(records.map((r) => [r.id, r]));
   const nameOf = (id: string): string => providers.get(id)?.name ?? id;
+  errors.push(...walked.exportErrors);
 
   // Pass 2: visibility.
   const visible = computeVisibility(
     {
       modules: walked.modules,
       records,
-      byDefinition: walked.byDefinition,
       pinned,
-      replace,
     },
     errors,
   );
@@ -260,7 +237,7 @@ export function compile(input: CompileInput): Blueprint {
     root,
     modules: new Map(walked.modules.map((m) => [m.id, m])),
     moduleByDefinition: walked.byDefinition,
-    moduleByReplaced: moduleIdsOf(swapped, walked),
+    moduleByReplaced: moduleIdsOf(walked),
     providers,
     extraImports,
     visibility: visible.visibility,

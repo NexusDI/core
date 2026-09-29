@@ -1,9 +1,3 @@
-import {
-  resolveModuleRef,
-  type ModuleDefinition,
-} from '../definitions/define-module.js';
-import { describeValue } from '../definitions/describe.js';
-import { isToken } from '../definitions/guards.js';
 import { MultiToken, displayName } from '../definitions/token.js';
 import {
   AmbiguousProviderError,
@@ -16,10 +10,8 @@ import { isCyclic, strongComponents } from './tarjan.js';
 export interface VisibilityInput {
   readonly modules: readonly ModuleNode[];
   readonly records: readonly ProviderRecord[];
-  readonly byDefinition: ReadonlyMap<ModuleDefinition, string>;
   /** Tokens bound to fixed providers in every module: REQUEST, and MultiTokens a compile.provider hook pins. */
   readonly pinned: ReadonlyMap<TokenKey, readonly string[]>;
-  readonly replace?: (definition: ModuleDefinition) => ModuleDefinition;
 }
 
 export interface Visibility {
@@ -31,11 +23,6 @@ export interface Visibility {
   readonly exportedTokens: Map<string, Set<TokenKey>>;
   /** module id → plain tokens it sees from more than one provider. */
   readonly ambiguous: Map<string, Set<TokenKey>>;
-}
-
-interface ExportPlan {
-  readonly tokens: TokenKey[];
-  readonly modules: string[];
 }
 
 /**
@@ -74,33 +61,6 @@ export function computeVisibility(
   }
   for (const token of input.pinned.keys()) learn(token);
 
-  const plans = new Map<string, ExportPlan>();
-  for (const node of input.modules) {
-    const plan: ExportPlan = { tokens: [], modules: [] };
-    for (const entry of node.definition.exports) {
-      const found = resolveModuleRef(entry);
-      if (found !== undefined) {
-        const id = input.byDefinition.get(input.replace?.(found) ?? found);
-        if (id !== undefined && node.imports.includes(id))
-          plan.modules.push(id);
-        else
-          errors.push(
-            new InvalidExportError({ token: found.name, module: node.name }),
-          );
-      } else if (isToken(entry)) {
-        plan.tokens.push(entry);
-      } else {
-        errors.push(
-          new InvalidExportError({
-            token: describeValue(entry),
-            module: node.name,
-          }),
-        );
-      }
-    }
-    plans.set(node.id, plan);
-  }
-
   const ambiguous = new Map<string, Set<TokenKey>>();
   const indexOf = new Map(input.modules.map((m, i) => [m.id, i]));
   const toIndex = (ids: readonly string[]): number[] =>
@@ -112,12 +72,8 @@ export function computeVisibility(
       ...globals.filter((g) => g !== node.id && !imports.has(g)),
     ]);
   });
-  const exportsToken = input.modules.map(
-    (node) => new Set(plans.get(node.id)?.tokens),
-  );
-  const reexports = input.modules.map((node) =>
-    toIndex(plans.get(node.id)?.modules ?? []),
-  );
+  const exportsToken = input.modules.map((node) => new Set(node.exportTokens));
+  const reexports = input.modules.map((node) => toIndex(node.exportModules));
   const ownOf = (i: number, token: TokenKey): readonly string[] =>
     own.get(input.modules[i]?.id ?? '')?.get(token) ?? [];
 
@@ -276,8 +232,7 @@ export function computeVisibility(
   const moduleExports = new Map<string, readonly string[]>();
   const exportedTokens = new Map<string, Set<TokenKey>>();
   for (const [i, node] of input.modules.entries()) {
-    const plan = plans.get(node.id) ?? { tokens: [], modules: [] };
-    for (const token of plan.tokens) {
+    for (const token of node.exportTokens) {
       if (
         lookup(i, token).length === 0 &&
         !ambiguous.get(node.id)?.has(token)
@@ -292,8 +247,8 @@ export function computeVisibility(
     }
     moduleExports.set(node.id, [
       ...new Set([
-        ...plan.tokens.flatMap((t) => lookup(i, t)),
-        ...plan.modules,
+        ...node.exportTokens.flatMap((t) => lookup(i, t)),
+        ...node.exportModules,
       ]),
     ]);
     exportedTokens.set(
