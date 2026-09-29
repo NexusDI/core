@@ -205,7 +205,7 @@ describe('nodeViolations', () => {
       nodeViolations([
         { path: 'runtime/x.ts', source: "import { x } from 'node:util';" },
       ]),
-    ).toEqual(["runtime/x.ts references 'node:util'; only node/ may"]);
+    ).toEqual(["runtime/x.ts references 'node:util'; only node/ and cli/ may"]);
   });
 
   it('reports a process reference outside node/', () => {
@@ -213,7 +213,7 @@ describe('nodeViolations', () => {
       nodeViolations([
         { path: 'decorators/x.ts', source: 'const debug = process.env.DEBUG;' },
       ]),
-    ).toEqual(['decorators/x.ts references process; only node/ may']);
+    ).toEqual(['decorators/x.ts references process; only node/ and cli/ may']);
   });
 
   it('reports a globalThis.process reference outside node/', () => {
@@ -224,7 +224,7 @@ describe('nodeViolations', () => {
           source: 'const debug = globalThis.process.env.DEBUG;',
         },
       ]),
-    ).toEqual(['decorators/x.ts references process; only node/ may']);
+    ).toEqual(['decorators/x.ts references process; only node/ and cli/ may']);
   });
 
   it('ignores a property named process', () => {
