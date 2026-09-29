@@ -32,10 +32,15 @@ const PACKED = [
   ['libs/decorators', '@nexusdi/decorators'],
 ] as const;
 
-/** Packages a profile or the harness needs beside the libraries and toolchains. */
+/**
+ * Packages a profile or the harness needs beside the libraries and
+ * toolchains. The consumer is a Node 24 app, so it has Node's types, as
+ * awilix's declarations need.
+ */
 const EXTRA = [
   'reflect-metadata@0.2.2',
   'babel-plugin-transform-typescript-metadata@0.4.0',
+  '@types/node@24.19.0',
 ];
 
 /** The version of @nexusdi/core the consumer installs. */
