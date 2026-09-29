@@ -126,7 +126,7 @@ class ScopeHandle implements Scope {
   ): boolean {
     try {
       assertScopeOpen(this.#state);
-      return hasIn(this.#state.blueprint, token, options);
+      return hasIn(this.#state, this.#state.blueprint, token, options);
     } catch (error) {
       throw formatFor(this.#state.root, error);
     }

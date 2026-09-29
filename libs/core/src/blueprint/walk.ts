@@ -22,7 +22,9 @@ import {
   type RecordShape,
   type TokenKey,
 } from './blueprint.js';
+import { keyShape } from './hooks.js';
 import { normalizeProvider, optionsShape, tokenOfEntry } from './records.js';
+import { sameToken, type Canonicalizer } from './views.js';
 
 export interface WalkInput {
   readonly root: unknown;
@@ -30,6 +32,12 @@ export interface WalkInput {
   readonly extraImports: readonly unknown[];
   /** The module to walk in place of the one met. The compile.module hooks use it. */
   readonly replace?: (definition: ModuleDefinition) => ModuleDefinition;
+  /**
+   * Keys every token when a tokenKey hook is registered: records, deps,
+   * properties, alias targets, exports and broken tokens. Absent, every
+   * token is its own key and the walk copies nothing.
+   */
+  readonly canon?: Canonicalizer;
 }
 
 export interface WalkResult {
@@ -78,13 +86,16 @@ export function walk(input: WalkInput, errors: NexusError[]): WalkResult {
   let duplicates: Map<string, number> | undefined;
   let swapped: Map<ModuleDefinition, ModuleDefinition> | undefined;
   const stack: ModuleDefinition[] = [];
+  const canon = input.canon;
+  const keyOf = canon ?? sameToken;
 
   const addProviders = (
     node: NodeDraft,
     definition: ModuleDefinition,
   ): void => {
     const plain = new Set<TokenKey>();
-    const accept = (shape: RecordShape): void => {
+    const accept = (written: RecordShape): void => {
+      const shape = canon === undefined ? written : keyShape(written, canon);
       const index = records.length;
       const id = `p${index}`;
       if (!(shape.token instanceof MultiToken)) {
@@ -97,7 +108,7 @@ export function walk(input: WalkInput, errors: NexusError[]): WalkResult {
         id,
         index,
         module: node.id,
-        name: displayName(shape.token),
+        name: displayName(written.token),
       });
       node.providers.push(id);
     };
@@ -115,13 +126,13 @@ export function walk(input: WalkInput, errors: NexusError[]): WalkResult {
       );
       if (shape !== null) return accept(shape);
       const token = tokenOfEntry(entry);
-      if (token !== undefined) broken.add(token);
+      if (token !== undefined) broken.add(keyOf(token));
     });
 
     const internals = moduleInternals(definition);
     if (internals?.options === undefined) return;
     if (internals.source === undefined) {
-      broken.add(internals.options);
+      broken.add(keyOf(internals.options));
       return;
     }
     const shape = optionsShape(
@@ -129,7 +140,7 @@ export function walk(input: WalkInput, errors: NexusError[]): WalkResult {
       { module: definition.name, index: definition.providers.length },
       errors,
     );
-    if (shape === null) broken.add(internals.options);
+    if (shape === null) broken.add(keyOf(internals.options));
     else accept(shape);
   };
 
@@ -221,7 +232,7 @@ export function walk(input: WalkInput, errors: NexusError[]): WalkResult {
             new InvalidExportError({ token: found.name, module: node.name }),
           );
       } else if (isToken(entry)) {
-        node.exportTokens.push(entry);
+        node.exportTokens.push(keyOf(entry));
       } else {
         errors.push(
           new InvalidExportError({

@@ -27,9 +27,9 @@ export interface BindResult {
 
 /**
  * Pass 3. Looks every deps entry, property and alias target up in the owning
- * module's visibility map and records an edge per binding. A required, lazy
- * or alias entry with no binding is NEXUS_MISSING_PROVIDER, unless an earlier
- * pass already reported that token.
+ * module's visibility map and records an edge per binding, with the token
+ * the dependent wrote. A required, lazy or alias entry with no binding is
+ * NEXUS_MISSING_PROVIDER, unless an earlier pass already reported that token.
  */
 export function bind(input: BindInput, errors: NexusError[]): BindResult {
   const names = new Map(input.modules.map((m) => [m.id, m.name]));
@@ -64,8 +64,10 @@ export function bind(input: BindInput, errors: NexusError[]): BindResult {
 
     const bindOne = (dep: DepEntry): Binding => {
       const ids = lookup(dep.token);
+      const token = dep.written ?? dep.token;
       if (dep.kind === 'all') {
-        for (const to of ids) edges.push({ from: record.id, to, kind: 'all' });
+        for (const to of ids)
+          edges.push({ from: record.id, to, kind: 'all', token });
         return { kind: 'all', token: dep.token, ids };
       }
       const [to] = ids;
@@ -73,7 +75,7 @@ export function bind(input: BindInput, errors: NexusError[]): BindResult {
         if (dep.kind !== 'optional') reportMissing(dep.token);
         return { kind: dep.kind, token: dep.token, ids: [] };
       }
-      edges.push({ from: record.id, to, kind: dep.kind });
+      edges.push({ from: record.id, to, kind: dep.kind, token });
       return { kind: dep.kind, token: dep.token, ids: [to] };
     };
 
@@ -84,7 +86,12 @@ export function bind(input: BindInput, errors: NexusError[]): BindResult {
       const [to] = lookup(record.target);
       if (to === undefined) reportMissing(record.target);
       else {
-        edges.push({ from: record.id, to, kind: 'alias' });
+        edges.push({
+          from: record.id,
+          to,
+          kind: 'alias',
+          token: record.writtenTarget ?? record.target,
+        });
         target = to;
       }
     }

@@ -5,10 +5,12 @@ import {
 } from '../definitions/define-module.js';
 import { describeValue } from '../definitions/describe.js';
 import { readProvider } from '../definitions/provide.js';
+import { REQUEST } from '../definitions/request.js';
 import { MultiToken } from '../definitions/token.js';
 import { PluginError, type NexusError } from '../errors/index.js';
 import {
   NO_ENTRIES,
+  type DepEntry,
   type ProviderRecord,
   type RecordShape,
   type TokenKey,
@@ -16,7 +18,9 @@ import {
 import { normalizeProvider } from './records.js';
 import {
   providerView,
+  sameToken,
   type BlueprintView,
+  type Canonicalizer,
   type CompileContext,
   type ProviderRewrite,
   type ProviderView,
@@ -85,6 +89,84 @@ export function pluginFailed(
     },
     { cause },
   );
+}
+
+/**
+ * Maps a token to the token that stands for its key: the first token met
+ * with that key. The first plugin whose tokenKey returns a value other than
+ * undefined decides the key; a token no plugin keys is its own key, and
+ * REQUEST always is. Each token asks the hooks once. A hook's throw is
+ * NEXUS_PLUGIN_FAILED, and the token asks again next time. With no hook it
+ * returns sameToken, so a lookup allocates nothing (spec D19).
+ */
+export function canonicalizer(
+  hooks: readonly Hook<(token: TokenKey) => unknown>[],
+): Canonicalizer {
+  if (hooks.length === 0) return sameToken;
+  const byToken = new WeakMap<TokenKey, TokenKey>([[REQUEST, REQUEST]]);
+  const byKey = new Map<unknown, TokenKey>();
+  return (token) => {
+    let canonical = byToken.get(token);
+    if (canonical !== undefined) return canonical;
+    let key: unknown;
+    for (const hook of hooks) {
+      try {
+        key = hook.call(token);
+      } catch (error) {
+        throw pluginFailed(hook.plugin, 'tokenKey', error);
+      }
+      if (key !== undefined) break;
+    }
+    canonical = key === undefined ? token : (byKey.get(key) ?? token);
+    if (key !== undefined) byKey.set(key, canonical);
+    byToken.set(token, canonical);
+    return canonical;
+  };
+}
+
+/**
+ * `canon` for one compile. A hook's throw joins `errors` once per token, and
+ * the token keys to itself, so the compile reports it with the rest.
+ */
+export function reportingCanon(
+  canon: Canonicalizer,
+  errors: NexusError[],
+): Canonicalizer {
+  const failed = new Set<TokenKey>();
+  return (token) => {
+    try {
+      return canon(token);
+    } catch (error) {
+      if (!failed.has(token)) errors.push(error as NexusError);
+      failed.add(token);
+      return token;
+    }
+  };
+}
+
+/**
+ * `shape` with its token, deps, properties and alias target keyed through
+ * `canon`. Each dep keeps the token it named as `written`, and an alias its
+ * target as `writtenTarget`, for the edges.
+ */
+export function keyShape(
+  shape: RecordShape,
+  canon: Canonicalizer,
+): RecordShape {
+  const key = (dep: DepEntry): DepEntry => ({
+    ...dep,
+    token: canon(dep.token),
+    written: dep.token,
+  });
+  const { target } = shape;
+  return {
+    ...shape,
+    token: canon(shape.token),
+    deps: shape.deps.map(key),
+    props: shape.props.map((prop) => ({ ...prop, dep: key(prop.dep) })),
+    target: target && canon(target),
+    writtenTarget: target,
+  };
 }
 
 /** Where a compile hook runs, for its errors. */
@@ -231,13 +313,15 @@ function setsOption(entry: unknown, key: 'lifetime' | 'eager'): boolean {
  * lifetime and eager kept); `pin` also drops every other provider of the token and
  * makes the replacement visible in every module; `remove` drops the record.
  * With no compile.provider hook it returns `records` itself and the shared
- * empty maps.
+ * empty maps. `canon`, when a tokenKey hook is registered, keys a
+ * replacement's tokens as the walk keyed the module's.
  */
 export function rewriteProviders(
   records: readonly ProviderRecord[],
   hooks: CompileHooks,
   context: CompileContext,
   errors: NexusError[],
+  canon?: Canonicalizer,
 ): {
   readonly records: readonly ProviderRecord[];
   readonly pinned: ReadonlyMap<TokenKey, readonly string[]>;
@@ -288,6 +372,7 @@ export function rewriteProviders(
         { module: site, index: 0 },
         errors,
       );
+      if (shape !== null && canon !== undefined) shape = keyShape(shape, canon);
       atSite.set(rewrite.with, shape);
     }
     if (shape === null) {

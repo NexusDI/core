@@ -1,5 +1,5 @@
 import type { Blueprint } from '../blueprint/blueprint.js';
-import { pluginFailed } from '../blueprint/hooks.js';
+import { canonicalizer, pluginFailed } from '../blueprint/hooks.js';
 import { viewOfBlueprint } from '../blueprint/views.js';
 import type { ModuleRef } from '../definitions/define-module.js';
 import type { Dep, DepsMap, ResolvedDeps } from '../definitions/modifiers.js';
@@ -72,6 +72,7 @@ export class Nexus {
   ): void;
   static check(root: unknown, options?: CheckOptions): void {
     const plugins = registerPlugins(options?.plugins);
+    const canon = canonicalizer(plugins.tokenKey);
     // The last compile that passed. A load compiles against it, and a
     // LoadError, which carries no view of its own, is formatted with its view.
     let last: Blueprint | undefined;
@@ -82,6 +83,7 @@ export class Nexus {
         root: rootModule,
         pluginImports: plugins.modules,
         hooks: plugins.compile,
+        canon,
         phase: 'check' as const,
         wantsView: plugins.formatError.length > 0,
       };
@@ -100,7 +102,7 @@ export class Nexus {
     } catch (error) {
       throw formatThrown(
         plugins,
-        () => (last === undefined ? undefined : viewOfBlueprint(last)),
+        () => (last === undefined ? undefined : viewOfBlueprint(last, canon)),
         error instanceof LoadError ? new BlueprintError([error]) : error,
       );
     }
@@ -129,7 +131,7 @@ export class Nexus {
   ): boolean {
     try {
       assertOpen(this.#state);
-      return hasIn(this.#state.blueprint, token, options);
+      return hasIn(this.#state, this.#state.blueprint, token, options);
     } catch (error) {
       throw formatFor(this.#state, error);
     }
@@ -268,6 +270,7 @@ export async function createContainer(
   options: CreateOptions | undefined,
 ): Promise<Nexus> {
   const plugins = registerPlugins(options?.plugins);
+  const canon = canonicalizer(plugins.tokenKey);
   // Set once compile returns: a runtime error in create reads the compiled
   // view, and a compile error carries its own through failedView().
   let compiled: Blueprint | undefined;
@@ -280,6 +283,7 @@ export async function createContainer(
         root: module,
         pluginImports: plugins.modules,
         hooks: plugins.compile,
+        canon,
         phase: 'create',
         wantsView: plugins.formatError.length > 0,
       },
@@ -292,6 +296,7 @@ export async function createContainer(
       tracer,
       initEnabled: plugins.onInit,
       plugins,
+      canon,
     });
     await startBlueprint(state, { bp: blueprint, isNew: () => true });
     const ship = wrap(state);
@@ -300,7 +305,8 @@ export async function createContainer(
   } catch (error) {
     throw formatThrown(
       plugins,
-      () => (compiled === undefined ? undefined : viewOfBlueprint(compiled)),
+      () =>
+        compiled === undefined ? undefined : viewOfBlueprint(compiled, canon),
       error,
     );
   }

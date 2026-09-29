@@ -46,5 +46,11 @@
     "core": 17876,
     "delta": 256,
     "kept": true
+  },
+  {
+    "step": "R25 tokenKey hook",
+    "core": 18276,
+    "delta": 400,
+    "kept": true
   }
 ]

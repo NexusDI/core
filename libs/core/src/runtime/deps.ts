@@ -154,14 +154,15 @@ export function resolveDeps(
   for (const { key, where, value } of read.entries) {
     const dep = depOf(value);
     if ('reason' in dep) throw invalidEntry(where, value, dep);
-    const ids = visible?.get(dep.token) ?? [];
+    const token = container.root.canon(dep.token);
+    const ids = visible?.get(token) ?? [];
     const [id] = ids;
     let resolved: unknown;
     if (dep.kind === 'all')
       resolved = atEntry(where, () => ids.map((each) => resolveId(each, ctx)));
     else if (id === undefined) {
       if (dep.kind !== 'optional')
-        throw notFound(container, bp, dep.token, moduleId, where);
+        throw notFound(container, bp, token, moduleId, where);
       resolved = undefined;
     } else if (dep.kind === 'lazy')
       resolved =
@@ -203,8 +204,9 @@ export function validateDeps(
       continue;
     }
     if (dep.kind === 'optional' || dep.kind === 'all') continue;
-    if ((visible?.get(dep.token)?.length ?? 0) === 0)
-      errors.push(notFound(container, bp, dep.token, moduleId, where));
+    const token = container.root.canon(dep.token);
+    if ((visible?.get(token)?.length ?? 0) === 0)
+      errors.push(notFound(container, bp, token, moduleId, where));
   }
 
   if (errors.length > 0) throw new BlueprintError(errors);

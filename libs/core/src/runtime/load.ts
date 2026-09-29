@@ -44,6 +44,7 @@ async function loadNow(root: RootState, module: unknown): Promise<void> {
       extraImports: [...current.extraImports, module],
       pluginImports: root.plugins.modules,
       hooks: root.plugins.compile,
+      canon: root.canon,
       phase: 'load',
       wantsView: root.plugins.formatError.length > 0,
       previous: current,

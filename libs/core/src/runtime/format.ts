@@ -98,7 +98,7 @@ export function formatFor(state: RootState, error: unknown): unknown {
     ? error
     : formatThrown(
         state.plugins,
-        () => viewOfBlueprint(state.blueprint),
+        () => viewOfBlueprint(state.blueprint, state.canon),
         error,
       );
 }

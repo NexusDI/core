@@ -59,6 +59,8 @@ export interface EdgeView {
   readonly from: string;
   readonly to: string;
   readonly kind: 'required' | 'optional' | 'lazy' | 'all' | 'alias';
+  /** The token the dependent named, before a tokenKey hook keyed it. */
+  readonly token: AnyToken;
 }
 
 export interface CompileContext {
@@ -147,7 +149,7 @@ export function buildView(
   );
   const edges = Object.freeze(
     parts.edges.map((e) =>
-      Object.freeze({ from: e.from, to: e.to, kind: e.kind }),
+      Object.freeze({ from: e.from, to: e.to, kind: e.kind, token: e.token }),
     ),
   );
   const visibility = parts.visibility;
@@ -168,9 +170,12 @@ const FAILED = new WeakMap<BlueprintError, BlueprintView>();
 
 /**
  * The view of a compiled blueprint: one frozen object per blueprint, built on
- * the first call.
+ * the first call. `canon` is the canonicalizer the blueprint compiled with.
  */
-export function viewOfBlueprint(bp: Blueprint): BlueprintView {
+export function viewOfBlueprint(
+  bp: Blueprint,
+  canon: Canonicalizer,
+): BlueprintView {
   let view = VIEWS.get(bp);
   if (view === undefined) {
     view = buildView(
@@ -186,7 +191,7 @@ export function viewOfBlueprint(bp: Blueprint): BlueprintView {
         replaced: bp.replacedModules,
         rewrittenBy: bp.rewrittenBy,
       },
-      sameToken,
+      canon,
     );
     VIEWS.set(bp, view);
   }

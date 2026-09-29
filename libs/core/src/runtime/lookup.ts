@@ -82,7 +82,7 @@ export function notFound(
   );
 }
 
-/** get() for the root and for a scope. */
+/** get() for the root and for a scope. The lookup keys `token` as the compile did. */
 export function getFrom(
   container: ContainerState,
   bp: Blueprint,
@@ -101,22 +101,26 @@ export function getFrom(
       otherCopy: isForeign(token),
     });
   const moduleId = lookupModule(bp, options);
-  const ids = bp.visibility.get(moduleId)?.get(token) ?? [];
+  const key = container.root.canon(token);
+  const ids = bp.visibility.get(moduleId)?.get(key) ?? [];
   const ctx = { bp, container, owner };
-  if (token instanceof MultiToken) return ids.map((id) => resolveId(id, ctx));
+  if (key instanceof MultiToken) return ids.map((id) => resolveId(id, ctx));
   const [id] = ids;
-  if (id === undefined) throw notFound(container, bp, token, moduleId);
+  if (id === undefined) throw notFound(container, bp, key, moduleId);
   return resolveId(id, ctx);
 }
 
 /** has(): the lookup get() would run, without building anything. */
 export function hasIn(
+  container: ContainerState,
   bp: Blueprint,
   token: unknown,
   options: LookupOptions | undefined,
 ): boolean {
   if (!isToken(token)) return false;
   return (
-    (bp.visibility.get(lookupModule(bp, options))?.get(token)?.length ?? 0) > 0
+    (bp.visibility
+      .get(lookupModule(bp, options))
+      ?.get(container.root.canon(token))?.length ?? 0) > 0
   );
 }

@@ -704,6 +704,7 @@ A plugin extends one container. It is a plain object with a `name`, unique among
 | ------------------ | ------------------------------------------------------------------------ |
 | `modules`          | Adds modules to the root's imports, compiled like any import             |
 | `onInit`           | `false` skips `onInit` at `create` and `load`                            |
+| `tokenKey`         | Maps a token to the key every lookup uses; one key finds one provider    |
 | `compile.module`   | Replaces a module definition before the compiler validates it            |
 | `compile.provider` | Replaces or removes a provider before the compiler validates it          |
 | `compile.check`    | Reads the compiled graph and reports errors of its own                   |

@@ -1,4 +1,4 @@
-import type { ProviderRecord } from '../blueprint/blueprint.js';
+import type { ProviderRecord, TokenKey } from '../blueprint/blueprint.js';
 import {
   NO_COMPILE_HOOKS,
   type CompileHooks,
@@ -15,6 +15,7 @@ import type {
   ModuleDefinition,
   ModuleRef,
 } from '../definitions/define-module.js';
+import type { AnyToken } from '../definitions/guards.js';
 import { describeValue } from '../definitions/describe.js';
 import type { NearMiss } from '../errors/index.js';
 import {
@@ -66,6 +67,8 @@ export interface NexusPlugin {
   readonly apiVersion: number;
   readonly modules?: readonly ModuleRef[];
   readonly onInit?: false;
+  /** The key the compiler and the runtime look a token up by. undefined leaves the token to the next plugin; a token no plugin keys is its own key. */
+  tokenKey?(token: AnyToken): unknown;
   readonly compile?: CompilePluginHooks;
   construct?(
     instance: unknown,
@@ -95,6 +98,7 @@ export interface PluginSet {
   readonly modules: readonly unknown[];
   readonly onInit: boolean;
   readonly compile: CompileHooks;
+  readonly tokenKey: readonly Hook<(token: TokenKey) => unknown>[];
   readonly construct: readonly Hook<
     (instance: unknown, provider: ProviderView, scope: string | null) => unknown
   >[];
@@ -107,6 +111,7 @@ export interface PluginSet {
 }
 
 const FUNCTION_HOOKS = [
+  'tokenKey',
   'construct',
   'observe',
   'formatError',
@@ -121,6 +126,7 @@ export const NO_PLUGINS: PluginSet = Object.freeze({
   modules: Object.freeze([]),
   onInit: true,
   compile: NO_COMPILE_HOOKS,
+  tokenKey: Object.freeze([]),
   construct: Object.freeze([]),
   observe: Object.freeze([]),
   formatError: Object.freeze([]),
@@ -172,6 +178,7 @@ export function registerPlugins(input: unknown): PluginSet {
     module: [] as PluginHook<never>[],
     provider: [] as PluginHook<never>[],
     check: [] as PluginHook<never>[],
+    tokenKey: [] as PluginHook<never>[],
     construct: [] as PluginHook<never>[],
     observe: [] as PluginHook<never>[],
     formatError: [] as PluginHook<never>[],
@@ -321,7 +328,7 @@ export function pluginContext(
 ): PluginContext {
   return Object.freeze({
     container,
-    blueprint: () => viewOfBlueprint(state.blueprint),
+    blueprint: () => viewOfBlueprint(state.blueprint, state.canon),
     builtAsync: (providerId: string) => {
       const record = state.blueprint.providers.get(providerId);
       return record?.kind === 'factory'

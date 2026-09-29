@@ -1,4 +1,5 @@
 import type { Blueprint } from '../blueprint/blueprint.js';
+import { sameToken, type Canonicalizer } from '../blueprint/views.js';
 import { DisposedError } from '../errors/index.js';
 import { Ownership, type OwnedEntry } from './ownership.js';
 import { NO_PLUGINS, type PluginSet } from './plugins.js';
@@ -26,6 +27,11 @@ export interface RootState {
   readonly asyncFlags: Map<string, boolean>;
   /** The plugins registered at create(). */
   readonly plugins: PluginSet;
+  /**
+   * The canonicalizer of the plugins' tokenKey hooks, for the container's
+   * life, so load(), get() and the views key a token as create did.
+   */
+  readonly canon: Canonicalizer;
   /**
    * How many plugins, from the start of the array, finished their setup
    * step. Disposal runs the dispose hooks of these plugins only.
@@ -147,6 +153,7 @@ export interface RootInit {
   readonly tracer: Tracer;
   readonly initEnabled: boolean;
   readonly plugins?: PluginSet;
+  readonly canon?: Canonicalizer;
 }
 
 export function createRootState(init: RootInit): RootState {
@@ -165,6 +172,7 @@ export function createRootState(init: RootInit): RootState {
     tracer: init.tracer,
     asyncFlags: new Map(),
     plugins: init.plugins ?? NO_PLUGINS,
+    canon: init.canon ?? sameToken,
     pluginsStarted: 0,
     initEnabled: init.initEnabled,
     disposing: false,

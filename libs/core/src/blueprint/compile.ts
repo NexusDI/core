@@ -18,6 +18,7 @@ import {
   NO_COMPILE_HOOKS,
   compileContext,
   moduleReplacerFor,
+  reportingCanon,
   rewriteProviders,
   runChecks,
   type CompileHooks,
@@ -25,7 +26,12 @@ import {
 import { computeLevels } from './levels.js';
 import { checkLifetimes } from './lifetimes.js';
 import { cyclePath, findCycles, successorsOf } from './tarjan.js';
-import { buildView, rememberFailedView, sameToken } from './views.js';
+import {
+  buildView,
+  rememberFailedView,
+  sameToken,
+  type Canonicalizer,
+} from './views.js';
 import { computeVisibility } from './visibility.js';
 import { rejectDuplicates, walk, type WalkResult } from './walk.js';
 
@@ -41,6 +47,11 @@ export interface CompileInput {
   readonly extraImports?: readonly unknown[];
   /** Plugin compile hooks. */
   readonly hooks?: CompileHooks;
+  /**
+   * The container's canonicalizer, from its tokenKey hooks. The compile
+   * keys every token through it, and the view's visible() keys with it.
+   */
+  readonly canon?: Canonicalizer;
   readonly phase?: 'create' | 'load' | 'check';
   /** Build a view of a failed compile for formatError hooks. */
   readonly wantsView?: boolean;
@@ -120,9 +131,13 @@ export function compile(input: CompileInput): Blueprint {
     replace = moduleReplacerFor(hooks, context, errors, replaced);
     replacedModules = replaced;
   }
+  const keying = input.canon === sameToken ? undefined : input.canon;
+  const canon =
+    keying === undefined ? undefined : reportingCanon(keying, errors);
   const pluginImports = input.pluginImports;
   const walked = walk(
     {
+      canon,
       root: input.root,
       extraImports:
         pluginImports === undefined || pluginImports.length === 0
@@ -136,7 +151,7 @@ export function compile(input: CompileInput): Blueprint {
   const rewritten =
     context === undefined
       ? undefined
-      : rewriteProviders(walked.records, hooks, context, errors);
+      : rewriteProviders(walked.records, hooks, context, errors, canon);
   const root = walked.modules[0]?.id ?? 'm0';
   const records = [
     ...rejectDuplicates(rewritten?.records ?? walked.records, walked, errors),
@@ -212,7 +227,7 @@ export function compile(input: CompileInput): Blueprint {
             replaced: replacedModules,
             rewrittenBy,
           },
-          sameToken,
+          keying ?? sameToken,
         )
       : undefined;
   if (view !== undefined) runChecks(hooks, view, errors);

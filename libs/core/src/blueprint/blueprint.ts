@@ -19,7 +19,10 @@ export type EdgeKind = DepKind | 'alias';
 
 export interface DepEntry {
   readonly kind: DepKind;
+  /** The key the lookups use: the token as written, or the token a tokenKey hook keyed it to. */
   readonly token: TokenKey;
+  /** The token the dependent named, when a tokenKey hook keyed it. */
+  readonly written?: TokenKey;
 }
 
 /** One @Inject accessor. `set` writes through the decorator's own accessor. */
@@ -45,6 +48,8 @@ export interface RecordShape {
   readonly props: readonly PropEntry[];
   /** useExisting only. */
   readonly target?: TokenKey;
+  /** useExisting only: the target as written, when a tokenKey hook keyed it. */
+  readonly writtenTarget?: TokenKey;
   readonly useClass?: Ctor;
   readonly useFactory?: (...args: unknown[]) => unknown;
   readonly value?: unknown;
@@ -96,6 +101,8 @@ export interface Edge {
   readonly from: string;
   readonly to: string;
   readonly kind: EdgeKind;
+  /** The token the dependent named, before a tokenKey hook keyed it. */
+  readonly token: TokenKey;
 }
 
 /**

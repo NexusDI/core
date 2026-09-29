@@ -5,7 +5,7 @@ import type { AnyToken } from '../definitions/guards.js';
 import { provide } from '../definitions/provide.js';
 import { Token } from '../definitions/token.js';
 import { compile } from './compile.js';
-import { buildView, viewOfBlueprint } from './views.js';
+import { buildView, sameToken, viewOfBlueprint } from './views.js';
 
 interface INavComputer {
   readonly course: string;
@@ -20,15 +20,15 @@ const Helm = defineModule({
 describe('viewOfBlueprint', () => {
   it('returns one frozen object per blueprint', () => {
     const bp = compile({ root: Helm });
-    const view = viewOfBlueprint(bp);
+    const view = viewOfBlueprint(bp, sameToken);
     expect(Object.isFrozen(view)).toBe(true);
-    expect(viewOfBlueprint(bp)).toBe(view);
-    expect(viewOfBlueprint(compile({ root: Helm }))).not.toBe(view);
+    expect(viewOfBlueprint(bp, sameToken)).toBe(view);
+    expect(viewOfBlueprint(compile({ root: Helm }), sameToken)).not.toBe(view);
   });
 
   it("carries the root module's id, and visible() finds the root's providers", () => {
     const bp = compile({ root: Helm });
-    const view = viewOfBlueprint(bp);
+    const view = viewOfBlueprint(bp, sameToken);
     expect(view).toMatchObject({ phase: 'create', complete: true, root: 'm0' });
     expect(view.modules.find((m) => m.id === view.root)?.name).toBe('Helm');
     expect(view.visible(view.root, NAV)).toHaveLength(1);
