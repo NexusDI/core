@@ -5,11 +5,15 @@ import {
   errorBase,
   InvalidModuleError,
   InvalidTokenError,
+  MultiToken,
+  provide,
   Token,
+  type BlueprintError,
   type NexusError,
 } from '@nexusdi/core';
+import { createTestingContainer } from '@nexusdi/testing';
 
-import { thrown } from '../../test-support/catch.js';
+import { rejected, thrown } from '../../test-support/catch.js';
 import { errorCases } from '../../test-support/error-cases.js';
 import { messageScenarios } from '../../test-support/message-scenarios.js';
 import { errors, explain } from '../index.js';
@@ -66,5 +70,58 @@ describe('explain', () => {
       detail: [],
     });
     expect(render(error)).toBe(raised.message);
+  });
+});
+
+describe('a malformed @nexusdi/testing override', () => {
+  interface ILog {
+    write(line: string): void;
+  }
+  class ConsoleLog implements ILog {
+    write(): void {}
+  }
+
+  // The expected strings are revision 1's output for the same scenario, taken
+  // by running it against 22514e7 with errors() registered.
+  it('keeps the message of a plain token provided in two modules', async () => {
+    const LOG = new Token<ILog>('Log');
+    const module = (name: string) =>
+      defineModule({
+        name,
+        providers: [provide(LOG, { useClass: ConsoleLog })],
+      });
+    const error = (await rejected(
+      createTestingContainer(
+        defineModule({
+          name: 'Ship',
+          imports: [module('Deck'), module('Hull')],
+        }),
+      )
+        .override(LOG, { useClass: 42 } as never)
+        .create({ plugins: [errors()] }),
+    )) as BlueprintError;
+    expect(error.errors.map((inner) => inner.message)).toEqual([
+      '[NEXUS_INVALID_PROVIDER] override(Log).providers[0] has a useClass that is not a class.',
+    ]);
+  });
+
+  it('keeps the message of a MultiToken with two contributions', async () => {
+    const DIAGNOSTICS = new MultiToken<ILog>('Diagnostics');
+    const error = (await rejected(
+      createTestingContainer(
+        defineModule({
+          name: 'Ship',
+          providers: [
+            provide(DIAGNOSTICS, { useClass: ConsoleLog }),
+            provide(DIAGNOSTICS, { useValue: new ConsoleLog() }),
+          ],
+        }),
+      )
+        .override(DIAGNOSTICS, { useClass: 42 } as never)
+        .create({ plugins: [errors()] }),
+    )) as BlueprintError;
+    expect(error.errors.map((inner) => inner.message)).toEqual([
+      '[NEXUS_INVALID_PROVIDER] override(Diagnostics).providers[0] has a useClass that is not a class.',
+    ]);
   });
 });

@@ -5,11 +5,11 @@ import {
   type BlueprintView,
   type CompileContext,
   type ModuleDefinition,
-  type NexusError,
   type NexusPlugin,
   type ProviderEntry,
 } from '@nexusdi/core';
 
+import { displayName } from './describe.js';
 import { overrideExports, overrideUnused } from './override-error.js';
 
 export interface TestingState {
@@ -24,11 +24,6 @@ export interface TestingState {
   readonly lazyModules: ReadonlySet<ModuleDefinition>;
   readonly onInit: boolean;
 }
-
-const nameOf = (token: unknown): string =>
-  typeof token === 'function'
-    ? token.name
-    : String((token as { description?: unknown }).description);
 
 /**
  * The tokens and module definitions a module of the view exports, and
@@ -112,16 +107,17 @@ export function testingPlugin(state: TestingState): NexusPlugin {
         if (entry === undefined) return undefined;
         const current = matchesOf(context);
         current.tokens.add(provider.token);
-        if (!(provider.token instanceof MultiToken)) return { with: entry };
+        if (!(provider.token instanceof MultiToken))
+          return { with: entry, label: 'override' };
         if (current.pinned.has(provider.token)) return undefined;
         current.pinned.add(provider.token);
-        return { with: entry, pin: true };
+        return { with: entry, pin: true, label: 'override' };
       },
-      check(view, report: (error: NexusError) => void) {
+      check(view, report) {
         if (view.phase === 'create') {
           for (const token of state.providers.keys())
             if (!matches.tokens.has(token))
-              report(overrideUnused(nameOf(token)));
+              report(overrideUnused(displayName(token)));
           for (const original of state.modules.keys())
             if (
               !matches.modules.has(original) &&
@@ -135,7 +131,7 @@ export function testingPlugin(state: TestingState): NexusPlugin {
             const module = moduleDefinitionOf(entry);
             if (module !== undefined)
               return exported.has(module) ? [] : [module.name];
-            return exported.has(entry) ? [] : [nameOf(entry)];
+            return exported.has(entry) ? [] : [displayName(entry)];
           });
           if (missing.length > 0)
             report(overrideExports(original.name, missing));

@@ -25,6 +25,7 @@ import {
   type ProviderEntry,
 } from '@nexusdi/core';
 
+import { describeValue } from './describe.js';
 import { testingPlugin } from './plugin.js';
 
 export { OverrideError } from './override-error.js';
@@ -89,7 +90,7 @@ const register = provide as (
 function definitionOf(ref: ModuleRef): ModuleDefinition {
   const definition = moduleDefinitionOf(ref);
   if (definition === undefined)
-    throw new InvalidModuleError({ received: String(ref), path: [] });
+    throw new InvalidModuleError({ received: describeValue(ref), path: [] });
   return definition;
 }
 

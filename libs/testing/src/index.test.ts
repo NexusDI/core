@@ -662,6 +662,132 @@ describe('createTestingContainer', () => {
       delete proto['lifetime'];
     }
   });
+
+  describe('a malformed override', () => {
+    interface ILog {
+      write(line: string): void;
+    }
+    class ConsoleLog implements ILog {
+      write(): void {}
+    }
+
+    it('is one NEXUS_INVALID_PROVIDER at override(Log), however many modules provide Log', async () => {
+      const LOG = new Token<ILog>('Log');
+      const Deck = defineModule({
+        name: 'Deck',
+        providers: [provide(LOG, { useClass: ConsoleLog })],
+      });
+      const Hull = defineModule({
+        name: 'Hull',
+        providers: [provide(LOG, { useClass: ConsoleLog })],
+      });
+      const error = await rejected(
+        createTestingContainer(
+          defineModule({ name: 'Ship', imports: [Deck, Hull] }),
+        )
+          .override(LOG, { useClass: 42 } as never)
+          .create(),
+      );
+      expect(error).toBeInstanceOf(BlueprintError);
+      expect((error as BlueprintError).errors).toHaveLength(1);
+      expect(error).toMatchObject({
+        errors: [
+          { code: 'NEXUS_INVALID_PROVIDER', module: 'override(Log)', index: 0 },
+        ],
+      });
+    });
+
+    it('is one NEXUS_INVALID_PROVIDER at override(Diagnostics) for a MultiToken with two contributions', async () => {
+      const DIAGNOSTICS = new MultiToken<ILog>('Diagnostics');
+      const error = await rejected(
+        createTestingContainer(
+          defineModule({
+            name: 'Ship',
+            providers: [
+              provide(DIAGNOSTICS, { useClass: ConsoleLog }),
+              provide(DIAGNOSTICS, { useValue: new ConsoleLog() }),
+            ],
+          }),
+        )
+          .override(DIAGNOSTICS, { useClass: 42 } as never)
+          .create(),
+      );
+      expect((error as BlueprintError).errors).toHaveLength(1);
+      expect(error).toMatchObject({
+        errors: [
+          {
+            code: 'NEXUS_INVALID_PROVIDER',
+            module: 'override(Diagnostics)',
+            index: 0,
+          },
+        ],
+      });
+    });
+  });
+
+  it.each([
+    ['a plain object', {}, 'an object'],
+    ['a string', 'x', 'the string "x"'],
+    ['an undecorated class', class Probe {}, 'the function Probe'],
+    [
+      'an anonymous function',
+      (
+        () => () =>
+          undefined
+      )(),
+      'the function (anonymous)',
+    ],
+  ])(
+    'describes %s that is not a module the way revision 1 did',
+    (_, value, received) => {
+      const Comms = defineModule({ name: 'Comms' });
+      const builder = createTestingContainer(defineModule({ name: 'Root' }));
+      for (const call of [
+        () => builder.overrideModule(value as never, Comms),
+        () => builder.overrideModule(Comms, value as never),
+      ])
+        expect(thrown(call)).toMatchObject({
+          code: 'NEXUS_INVALID_MODULE',
+          received,
+          path: [],
+        });
+    },
+  );
+
+  it('names an anonymous class token (anonymous class) when its override matches nothing', async () => {
+    const Anonymous = (() => class {})();
+    const error = await rejected(
+      createTestingContainer(defineModule({ name: 'Root' }))
+        .override(Anonymous, { useValue: new Anonymous() })
+        .create(),
+    );
+    expect(error).toMatchObject({
+      errors: [{ code: 'NEXUS_OVERRIDE_UNUSED', token: '(anonymous class)' }],
+    });
+  });
+
+  it('names an anonymous class export (anonymous class) when a stub misses it', async () => {
+    const Anonymous = (() => class {})();
+    const Comms = defineModule({
+      name: 'Comms',
+      providers: [Anonymous],
+      exports: [Anonymous],
+    });
+    const error = await rejected(
+      createTestingContainer(defineModule({ name: 'Root', imports: [Comms] }))
+        .overrideModule(Comms, defineModule({ name: 'Empty' }))
+        .create(),
+    );
+    expect(error).toMatchObject({
+      errors: [
+        {
+          code: 'NEXUS_OVERRIDE_EXPORTS',
+          module: 'Comms',
+          missing: ['(anonymous class)'],
+        },
+      ],
+    });
+  });
 });
 
 describe('OverrideError', () => {
@@ -715,6 +841,7 @@ describe('OverrideError', () => {
       module: null,
       missing: [],
     });
+    expect(Object.keys(error ?? {})).toEqual(['token', 'module', 'missing']);
     if (!isNexusError(error, 'NEXUS_OVERRIDE_UNUSED'))
       throw new Error('expected NEXUS_OVERRIDE_UNUSED');
     expect(error.token).toBe('NavCharts');

@@ -174,6 +174,11 @@
     // dependencies.
     "@nexusdi/core",
     "@rolldown/plugin-babel",
+    // libs/errors/src/parity/messages.test.ts imports @nexusdi/testing to
+    // pin the text errors() writes for a malformed override. The workspace
+    // links the package, and libs/errors/package.json, as a published
+    // package, carries no devDependencies.
+    "@nexusdi/testing",
   ],
 
   // definitions/standard-schema.ts declares `StandardSchemaV1` twice on
