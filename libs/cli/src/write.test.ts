@@ -1,17 +1,14 @@
-import { mkdtempSync, readFileSync } from 'node:fs';
-import { tmpdir } from 'node:os';
+import { readFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { describe, expect, it } from 'vitest';
 
+import { tempDir } from '../test-support/temp.js';
 import { emit, writeTo, type Output } from './write.js';
 
-function slowStream(
-  isTTY = false,
-): Output & { chunks: unknown[]; done: boolean } {
+function slowStream(): Output & { chunks: unknown[]; done: boolean } {
   const stream = {
     chunks: [] as unknown[],
     done: false,
-    isTTY,
     write(
       chunk: string | Uint8Array,
       callback: (error?: Error | null) => void,
@@ -37,7 +34,7 @@ describe('writeTo', () => {
 
 describe('emit', () => {
   it('writes to --out when given', async () => {
-    const dir = mkdtempSync(join(tmpdir(), 'nexusdi-cli-'));
+    const dir = tempDir();
     await emit('graph\n', join(dir, 'g.mmd'), slowStream());
     expect(readFileSync(join(dir, 'g.mmd'), 'utf8')).toBe('graph\n');
   });

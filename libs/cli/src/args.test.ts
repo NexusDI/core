@@ -93,6 +93,8 @@ describe('parseCommand', () => {
     [['graph', 'a.ts', '--view', 'tokens']],
     [['graph', 'g.json', '--load', 'b.ts#B']],
     [['graph', 'g.json', '--plugins', 'p.ts#plugins']],
+    [['graph', 'a.ts', '--load', 'g.json']],
+    [['graph', 'a.ts', '--plugins', 'p.json']],
   ])('exits 2 for %j', (argv) => {
     expect(exitOf(argv)).toBe(2);
   });

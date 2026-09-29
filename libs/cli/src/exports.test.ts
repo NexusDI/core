@@ -40,4 +40,21 @@ describe('pickExport', () => {
       pickExport({ Meridian }, parseEntryRef('src/m.ts#Science', '/w')),
     ).toThrow('src/m.ts has no export named Science.');
   });
+
+  it('repeats the flag a --load or --plugins ref came from', () => {
+    let error: unknown;
+    try {
+      pickExport(
+        { notArray: {}, plugins: [] },
+        parseEntryRef('plugins.js', '/w'),
+        { via: '--plugins', fits: Array.isArray },
+      );
+    } catch (caught) {
+      error = caught;
+    }
+    expect(error).toMatchObject({
+      exitCode: 2,
+      fix: 'Its exports: notArray, plugins\n  Pass one: --plugins plugins.js#plugins',
+    });
+  });
 });

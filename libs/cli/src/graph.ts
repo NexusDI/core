@@ -7,7 +7,7 @@ import type { GraphCommand } from './args.js';
 import { CliError } from './cli-error.js';
 import { loadDevtools, type DevtoolsApi } from './devtools.js';
 import { entryKind, type EntryRef } from './entry.js';
-import { pickExport } from './exports.js';
+import { pickExport, type ExportUse } from './exports.js';
 import { parseGraphJson } from './graph-json.js';
 import { importEntry, prepareLoader } from './load.js';
 
@@ -18,11 +18,11 @@ export interface GraphResult {
   readonly from: string;
 }
 
-function isBlueprintError(error: unknown): error is Error {
-  return (
-    error instanceof Error &&
-    (error as { code?: unknown }).code === 'NEXUS_BLUEPRINT_INVALID'
-  );
+/** The NEXUS_ code a core error carries, or null for any other error. */
+function nexusCode(error: unknown): string | null {
+  const code =
+    error instanceof Error ? (error as { code?: unknown }).code : undefined;
+  return typeof code === 'string' && code.startsWith('NEXUS_') ? code : null;
 }
 
 export async function graphFor(
@@ -55,21 +55,25 @@ export async function graphFor(
   const devtools = await loadDevtools(command.entry.path, version);
 
   const namespaces = new Map<string, Record<string, unknown>>();
-  const exportOf = async (ref: EntryRef): Promise<unknown> => {
+  const exportOf = async (ref: EntryRef, use?: ExportUse): Promise<unknown> => {
     let namespace = namespaces.get(ref.path);
     if (namespace === undefined) {
       namespace = await importEntry(ref);
       namespaces.set(ref.path, namespace);
     }
-    return pickExport(namespace, ref);
+    return pickExport(namespace, ref, use);
   };
 
   const root = await exportOf(command.entry);
   const load: unknown[] = [];
-  for (const ref of command.load) load.push(await exportOf(ref));
+  for (const ref of command.load)
+    load.push(await exportOf(ref, { via: '--load' }));
   let plugins: unknown[] | undefined;
   if (command.plugins !== null) {
-    const value = await exportOf(command.plugins);
+    const value = await exportOf(command.plugins, {
+      via: '--plugins',
+      fits: Array.isArray,
+    });
     if (!Array.isArray(value))
       throw new CliError(
         2,
@@ -88,7 +92,14 @@ export async function graphFor(
     });
     return { graph, devtools, from: command.entry.path };
   } catch (error) {
-    if (isBlueprintError(error)) throw new CliError(1, error.message);
+    const code = nexusCode(error);
+    if (code === 'NEXUS_BLUEPRINT_INVALID')
+      throw new CliError(1, (error as Error).message);
+    // Core throws some input errors before it compiles, such as an object
+    // root with keys other than providers, imports and exports. The input is
+    // wrong and no graph was checked, so exit 2. Core's message ends in its
+    // Fix line.
+    if (code !== null) throw new CliError(2, (error as Error).message);
     throw error;
   }
 }

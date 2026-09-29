@@ -1,9 +1,9 @@
-import { mkdtempSync, readFileSync } from 'node:fs';
-import { tmpdir } from 'node:os';
+import { readFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { describe, expect, it } from 'vitest';
 
 import { makeProject } from '../test-support/project.js';
+import { tempDir } from '../test-support/temp.js';
 import { FIXTURES, runCli } from '../test-support/run.js';
 
 const JS = join(FIXTURES, 'js');
@@ -23,7 +23,7 @@ describe('nexusdi graph, images', () => {
   });
 
   it('writes png through @resvg/resvg-js to --out', () => {
-    const dir = mkdtempSync(join(tmpdir(), 'nexusdi-cli-'));
+    const dir = tempDir();
     const run = runCli(
       ['graph', 'meridian.module.js', '-o', join(dir, 'g.png')],
       { cwd: JS },

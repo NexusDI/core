@@ -1,9 +1,9 @@
-import { mkdtempSync, readFileSync } from 'node:fs';
-import { tmpdir } from 'node:os';
+import { readFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { describe, expect, it } from 'vitest';
 
 import { FIXTURES, runCli } from '../test-support/run.js';
+import { tempDir } from '../test-support/temp.js';
 
 const JS = join(FIXTURES, 'js');
 const JSON_DIR = join(FIXTURES, 'json');
@@ -34,7 +34,7 @@ describe('nexusdi graph, JavaScript entries', () => {
   });
 
   it('writes to --out and takes the format from its extension', () => {
-    const dir = mkdtempSync(join(tmpdir(), 'nexusdi-cli-'));
+    const dir = tempDir();
     const run = runCli(
       ['graph', 'meridian.module.js', '-o', join(dir, 'g.dot')],
       { cwd: JS },
@@ -91,6 +91,15 @@ describe('nexusdi graph, JavaScript entries', () => {
     expect(run.stderr).toMatch(/^nexusdi: \[NEXUS_BLUEPRINT_INVALID\]/);
     expect(run.stderr).toContain('NEXUS_MISSING_PROVIDER');
     expect(run.stderr).toContain('NavCharts');
+  });
+
+  it("exits 2 with core's fix line when the export is not a module", () => {
+    const run = runCli(['graph', 'not-a-module.js'], { cwd: JS });
+    expect(run.status).toBe(2);
+    expect(run.stdout).toBe('');
+    expect(run.stderr).toMatch(/^nexusdi: \[NEXUS_INVALID_MODULE\]/);
+    expect(run.stderr).toContain('Fix: create one with defineModule()');
+    expect(run.stderr).not.toContain('unexpected error');
   });
 
   it('exits 2 and lists the exports when there is no default export', () => {
