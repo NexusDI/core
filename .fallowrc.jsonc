@@ -16,6 +16,7 @@
     "@nexusdi/decorators",
     "@nexusdi/federation",
     "@nexusdi/interceptors",
+    "@nexusdi/cli",
   ],
 
   // Nextra loads every page and `_meta.ts` under apps/docs/content by file
@@ -62,6 +63,10 @@
     // reads, so its *.browser.test.ts files need their own entry.
     "libs/core/src/**/*.browser.test.ts",
     "libs/decorators/src/**/*.browser.test.ts",
+    // The bin is the cli package's entry point, named by package.json's bin;
+    // the fixtures are imported by the spawned bin, never by a static import.
+    "libs/cli/src/bin.ts",
+    "libs/cli/test-fixtures/**",
 
     // Built and run by examples/toolchain-matrix/scripts/run-matrix.mjs in a
     // throwaway consumer; nothing in the workspace imports them. The vite

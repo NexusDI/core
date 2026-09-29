@@ -19,6 +19,9 @@
       "path": "./libs/interceptors"
     },
     {
+      "path": "./libs/cli"
+    },
+    {
       "path": "./libs/node"
     },
     {

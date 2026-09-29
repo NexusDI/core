@@ -234,10 +234,17 @@ export function layerViolations(files: readonly SourceFileText[]): string[] {
   return found;
 }
 
+/**
+ * Package sources that run on Node only and may use node: modules and
+ * process: @nexusdi/node, which owns AsyncLocalStorage, and @nexusdi/cli, a
+ * bin no app bundles.
+ */
+const NODE_ONLY = ['node/src/', 'cli/src/'];
+
 export function nodeViolations(files: readonly SourceFileText[]): string[] {
   const found: string[] = [];
   for (const file of files) {
-    if (file.path.startsWith('node/src/')) continue;
+    if (NODE_ONLY.some((prefix) => file.path.startsWith(prefix))) continue;
     const source = parseFile(file);
     for (const specifier of specifiersOf(source)) {
       if (specifier.startsWith('node:'))
