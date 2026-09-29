@@ -86,7 +86,9 @@ if (values.json) writeFileSync(values.json, JSON.stringify(sizes));
 if (values.record) {
   const file = join(HERE, 'examples', 'size', 'consolidation.json');
   const history = JSON.parse(readFileSync(file, 'utf8'));
-  const last = history.at(-1);
+  // A step measured and not kept left no code behind, so the delta compares
+  // against the last kept record.
+  const last = history.findLast((record) => record.kept);
   history.push({
     step: values.record,
     core,
