@@ -1,6 +1,6 @@
 import type { Blueprint } from '../blueprint/blueprint.js';
 import { canonicalizer, pluginFailed } from '../blueprint/hooks.js';
-import { sameToken, viewOfBlueprint } from '../blueprint/views.js';
+import { viewOfBlueprint } from '../blueprint/views.js';
 import type { ModuleRef } from '../definitions/define-module.js';
 import { HOOK_SITES } from '../definitions/hook-sites.js';
 import type { Dep, DepsMap, ResolvedDeps } from '../definitions/modifiers.js';
@@ -15,7 +15,6 @@ import { loadModule } from './load.js';
 import { getFrom, hasIn } from './lookup.js';
 import type { CheckOptions, CreateOptions, LookupOptions } from './options.js';
 import {
-  NO_PLUGINS,
   pluginContext,
   registerPlugins,
   type PluginContext,
@@ -73,8 +72,8 @@ export class Nexus {
     options?: CheckOptions,
   ): void;
   static check(root: unknown, options?: CheckOptions): void {
-    const plugins = HOOK_SITES ? registerPlugins(options?.plugins) : NO_PLUGINS;
-    const canon = HOOK_SITES ? canonicalizer(plugins.tokenKey) : sameToken;
+    const plugins = registerPlugins(options?.plugins);
+    const canon = canonicalizer(plugins.tokenKey);
     // The last compile that passed. A load compiles against it, and a
     // LoadError, which carries no view of its own, is formatted with its view.
     let last: Blueprint | undefined;
@@ -199,7 +198,7 @@ export class Nexus {
 
 /** Each plugin's observe hook, in plugin order. */
 function traceSinks(plugins: PluginSet): readonly TraceSink[] {
-  return HOOK_SITES ? plugins.observe.map((hook) => hook.call) : [];
+  return plugins.observe.map((hook) => hook.call);
 }
 
 /** A setup hook's throw or rejection, carried out of the tracked setup loop. */
@@ -308,8 +307,8 @@ export async function createContainer(
   root: unknown,
   options: CreateOptions | undefined,
 ): Promise<Nexus> {
-  const plugins = HOOK_SITES ? registerPlugins(options?.plugins) : NO_PLUGINS;
-  const canon = HOOK_SITES ? canonicalizer(plugins.tokenKey) : sameToken;
+  const plugins = registerPlugins(options?.plugins);
+  const canon = canonicalizer(plugins.tokenKey);
   // Set once compile returns: a runtime error in create reads the compiled
   // view, and a compile error carries its own through failedView().
   let compiled: Blueprint | undefined;

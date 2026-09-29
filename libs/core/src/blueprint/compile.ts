@@ -132,7 +132,8 @@ export function compile(input: CompileInput): Blueprint {
     replace = moduleReplacerFor(hooks, context, errors, replaced);
     replacedModules = replaced;
   }
-  const keying = input.canon === sameToken ? undefined : input.canon;
+  const keying =
+    HOOK_SITES && input.canon !== sameToken ? input.canon : undefined;
   const canon =
     keying === undefined ? undefined : reportingCanon(keying, errors);
   const pluginImports = HOOK_SITES ? input.pluginImports : undefined;
