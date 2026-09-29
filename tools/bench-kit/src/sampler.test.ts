@@ -54,4 +54,13 @@ describe('interleave', () => {
       w.close();
     }
   });
+  it('reports the heap one operation leaves allocated', async () => {
+    const w = forkWorker('a', script);
+    try {
+      await w.calibrate('keep');
+      expect(await w.heap('keep')).toBeGreaterThan(1000);
+    } finally {
+      w.close();
+    }
+  });
 });

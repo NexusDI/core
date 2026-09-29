@@ -29,4 +29,9 @@ serveSamples({
     },
   },
   async: { run: async () => 1 },
+  // Keeps an 8 KiB buffer per call alive, so the heap grows by it.
+  keep: {
+    setup: () => [] as unknown[],
+    run: (kept) => (kept as unknown[]).push(new Array(1024).fill(0)),
+  },
 });
