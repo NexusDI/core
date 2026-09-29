@@ -2,6 +2,7 @@ import type { Blueprint } from '../blueprint/blueprint.js';
 import { pluginFailed } from '../blueprint/hooks.js';
 import { viewOfBlueprint } from '../blueprint/views.js';
 import type { ModuleRef } from '../definitions/define-module.js';
+import type { ProviderEntries } from '../definitions/provider-literal.js';
 import type { Dep, DepsMap, ResolvedDeps } from '../definitions/modifiers.js';
 import type { NexusRequest } from '../definitions/request.js';
 import type { InjectionToken, MultiToken } from '../definitions/token.js';
@@ -20,6 +21,7 @@ import {
   type PluginSet,
 } from './plugins.js';
 import { openScope, type Scope } from './scope.js';
+import { rootModuleOf, type RootConfig } from './root.js';
 import { abandonRoot, disposeRoot } from './shutdown.js';
 import { startBlueprint } from './startup.js';
 import { assertOpen, createRootState, track, type RootState } from './state.js';
@@ -43,27 +45,51 @@ export class Nexus {
     this.#state = state;
   }
 
-  /** Compiles the module graph, builds every singleton, and returns the sealed container. */
-  static create(root: ModuleRef, options?: CreateOptions): Promise<Nexus> {
+  /**
+   * Compiles the module graph, builds every singleton, and returns the sealed
+   * container. `root` is a module, an array of providers, or
+   * `{ providers, imports, exports }`; the last two compile as a module named
+   * `root`.
+   */
+  static create<const P extends readonly unknown[] = []>(
+    root: ProviderEntries<P>,
+    options?: CreateOptions,
+  ): Promise<Nexus>;
+  static create<const P extends readonly unknown[] = []>(
+    root: RootConfig<P>,
+    options?: CreateOptions,
+  ): Promise<Nexus>;
+  static create(root: ModuleRef, options?: CreateOptions): Promise<Nexus>;
+  static create(root: unknown, options?: CreateOptions): Promise<Nexus> {
     return createContainer(root, options);
   }
 
   /**
-   * Compiles `root` and then each module of `options.load` against it, as
-   * load() would. Builds nothing and calls no user code but the plugins'
+   * Compiles `root`, in any form Nexus.create takes, and then each module of
+   * `options.load` against it, as load() would. Builds nothing and calls no user code but the plugins'
    * compile, observe and formatError hooks, so options schemas and setup
    * hooks do not run. Throws one BlueprintError for the first compile that
    * fails, and compiles no load after it.
    */
-  static check(root: ModuleRef, options?: CheckOptions): void {
+  static check<const P extends readonly unknown[] = []>(
+    root: ProviderEntries<P>,
+    options?: CheckOptions,
+  ): void;
+  static check<const P extends readonly unknown[] = []>(
+    root: RootConfig<P>,
+    options?: CheckOptions,
+  ): void;
+  static check(root: ModuleRef, options?: CheckOptions): void;
+  static check(root: unknown, options?: CheckOptions): void {
     const plugins = registerPlugins(options?.plugins);
     // The last compile that passed. A load compiles against it, and a
     // LoadError, which carries no view of its own, is formatted with its view.
     let last: Blueprint | undefined;
     try {
+      const rootModule = rootModuleOf(root);
       const tracer = new Tracer(traceSinks(plugins));
       const input = {
-        root,
+        root: rootModule,
         pluginImports: plugins.modules,
         hooks: plugins.compile,
         phase: 'check' as const,
@@ -256,11 +282,12 @@ export async function createContainer(
   // view, and a compile error carries its own through failedView().
   let compiled: Blueprint | undefined;
   try {
+    const module = rootModuleOf(root);
     const tracer = new Tracer(traceSinks(plugins));
     const blueprint = compileTraced(
       tracer,
       {
-        root,
+        root: module,
         pluginImports: plugins.modules,
         hooks: plugins.compile,
         phase: 'create',
@@ -271,7 +298,7 @@ export async function createContainer(
     compiled = blueprint;
     const state = createRootState({
       blueprint,
-      rootRef: root,
+      rootRef: module,
       tracer,
       initEnabled: plugins.onInit,
       plugins,

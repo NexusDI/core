@@ -96,6 +96,7 @@ export type {
   CreateOptions,
   LookupOptions,
 } from './runtime/options.js';
+export type { RootConfig, RootRef } from './runtime/root.js';
 export { NEXUS_PLUGIN_API, SUPPORTED_PLUGIN_APIS } from './runtime/plugins.js';
 export type {
   CompilePluginHooks,
