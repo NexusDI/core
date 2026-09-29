@@ -10,6 +10,7 @@
     "@nexusdi/devtools": "*",
     "@nexusdi/errors": "*",
     "@nexusdi/federation": "*",
+    "@nexusdi/interceptors": "*",
     "@nexusdi/node": "*",
     "@nexusdi/testing": "*"
   }
