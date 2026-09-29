@@ -39,6 +39,8 @@ export interface RootState {
   disposal: Promise<void> | undefined;
   /** load() calls run one at a time, in call order, on this chain. */
   loadQueue: Promise<void>;
+  /** The create or load building right now. load() calls run one at a time. */
+  run: Run | undefined;
   /** load(), createScope() and extend() operations still running. Disposal awaits them. */
   readonly inflight: Set<Promise<unknown>>;
   /**
@@ -70,6 +72,8 @@ export interface ScopeState {
   disposal: Promise<void> | undefined;
   /** extend() calls run one at a time on this chain. */
   extendQueue: Promise<void>;
+  /** The extend() building right now. */
+  run: Run | undefined;
   /** The extend() in flight, and the blueprint it pins to. */
   pendingExtend:
     { readonly target: Blueprint; readonly promise: Promise<void> } | undefined;
@@ -97,6 +101,7 @@ export function createScopeState(
     blueprint: root.blueprint,
     disposal: undefined,
     extendQueue: Promise.resolve(),
+    run: undefined,
     pendingExtend: undefined,
     abortErrors: [],
   };
@@ -109,6 +114,21 @@ export function createScopeState(
 export interface Owner {
   readonly root: RootState;
   readonly owned: OwnedEntry[];
+}
+
+/**
+ * A create, load or extend() in flight. A provider new in it that a request
+ * builds on first use while it runs (an eager: false singleton or scoped
+ * factory, a scoped class) joins `owner` and `touched`, so a failed run
+ * disposes and forgets it with the rest of its builds.
+ */
+export interface Run {
+  /** Whether the run's blueprint added this provider id. */
+  readonly isNew: (id: string) => boolean;
+  /** What the run built, in creation order, until it commits. */
+  readonly owner: Owner;
+  /** The slot ids the run filled, which its rollback abandons. */
+  readonly touched: string[];
 }
 
 /** Who owns a transient built now: an owner, or nobody and why. */
@@ -150,6 +170,7 @@ export function createRootState(init: RootInit): RootState {
     disposing: false,
     disposal: undefined,
     loadQueue: Promise.resolve(),
+    run: undefined,
     inflight: new Set(),
     abortErrors: [],
     scopes: new Set(),

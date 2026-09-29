@@ -101,13 +101,16 @@ function group(
 }
 
 /**
- * Every scoped provider `createScope` must build: every eager scoped
- * factory, and every scoped provider reached through a chain of transients
- * and aliases from one. An `eager: false` factory seeds nothing, so its deps
- * wait for its first request too. The walk uses an explicit stack for the same reason
- * `levelFunction` does: a pass-through chain can be arbitrarily long.
+ * Every member a build must include: each seed, and every member reached
+ * from one through strong edges, directly or through a chain of transients
+ * and aliases. create seeds with the eager singletons and createScope with
+ * the eager scoped factories, so an `eager: false` provider that an eager
+ * one needs builds in its level, with its onInit in level order, and one
+ * nothing eager needs waits for its first request (spec §6.6). The walk
+ * uses an explicit stack for the same reason `levelFunction` does: a chain
+ * can be arbitrarily long.
  *
- * `seen` guards every id ever pushed, scoped or pass-through alike, so a
+ * `seen` guards every id ever pushed, member or pass-through alike, so a
  * shared node under a fan-out of transients or aliases (a "diamond": two or
  * more nodes depending on the same downstream node) is expanded once. Without
  * it, each of a diamond's incoming edges re-explores the whole subgraph below
@@ -115,11 +118,12 @@ function group(
  * chain, this is not a call-stack depth problem an explicit stack alone
  * fixes, it is a suppressed-revisit problem.
  */
-function collectScoped(
+function collectReached(
   providers: ReadonlyMap<string, ProviderRecord>,
   strong: ReadonlyMap<string, readonly string[]>,
-  isScoped: Member,
-): Set<string> {
+  isMember: Member,
+  isSeed: Member,
+): string[] {
   const needed = new Set<string>();
   const seen = new Set<string>();
   const stack: string[] = [];
@@ -131,7 +135,7 @@ function collectScoped(
   };
 
   for (const record of providers.values()) {
-    if (isScoped(record) && record.kind === 'factory' && record.eager) {
+    if (isMember(record) && isSeed(record)) {
       needed.add(record.id);
       visit(record.id);
     }
@@ -141,7 +145,7 @@ function collectScoped(
     for (const next of strong.get(id) ?? []) {
       const record = providers.get(next);
       if (record === undefined) continue;
-      if (isScoped(record)) {
+      if (isMember(record)) {
         needed.add(next);
         visit(next);
       } else if (record.lifetime === 'transient' || record.kind === 'alias') {
@@ -150,21 +154,7 @@ function collectScoped(
     }
   }
 
-  return needed;
-}
-
-/**
- * Drops the `eager: false` providers from each level (spec §6.6). The runtime
- * builds them at their first request. The other providers keep their level
- * numbers, so an eager provider still sits above its deferred deps.
- */
-function withoutDeferred(
-  levels: string[][],
-  providers: ReadonlyMap<string, ProviderRecord>,
-): string[][] {
-  return levels.map((level) =>
-    level.filter((id) => providers.get(id)?.eager !== false),
-  );
+  return [...needed];
 }
 
 export function computeLevels(
@@ -176,21 +166,27 @@ export function computeLevels(
   const isScoped: Member = (r) =>
     r.lifetime === 'scoped' && r.id !== REQUEST_ID;
 
-  const singletons = [...providers.values()]
-    .filter(isSingleton)
-    .map((r) => r.id);
-
-  // createScope builds every scoped factory and the scoped providers it depends on.
-  const needed = collectScoped(providers, strong, isScoped);
+  // create builds the eager singletons and what they need; createScope
+  // builds the eager scoped factories and the scoped providers they need.
+  const singletons = collectReached(
+    providers,
+    strong,
+    isSingleton,
+    (r) => r.eager,
+  );
+  const scoped = collectReached(
+    providers,
+    strong,
+    isScoped,
+    (r) => r.kind === 'factory' && r.eager,
+  );
 
   return {
-    singleton: withoutDeferred(
-      group(singletons, levelFunction(providers, strong, isSingleton), rank),
-      providers,
+    singleton: group(
+      singletons,
+      levelFunction(providers, strong, isSingleton),
+      rank,
     ),
-    scoped: withoutDeferred(
-      group([...needed], levelFunction(providers, strong, isScoped), rank),
-      providers,
-    ),
+    scoped: group(scoped, levelFunction(providers, strong, isScoped), rank),
   };
 }

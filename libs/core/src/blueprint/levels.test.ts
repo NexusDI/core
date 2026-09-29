@@ -196,7 +196,10 @@ describe('compile', () => {
     expect(bp.scopedLevels).toEqual([[idOf(bp, MISSION)]]);
   });
 
-  it('leaves eager: false providers out of the levels and keeps the others where they were', () => {
+  it('keeps an eager: false provider an eager one needs, and leaves out one nothing eager needs', () => {
+    class Beacon {
+      constructor(readonly input: any) {}
+    }
     const TX = new Token<string>('Transaction');
     const AUDIT = new Token<string>('Audit');
     const bp = compile({
@@ -206,6 +209,7 @@ describe('compile', () => {
           provide(Bridge, { deps: [ShipComputer] }),
           provide(ShipComputer, { deps: [ReactorCore], eager: false }),
           ReactorCore,
+          provide(Beacon, { deps: [ReactorCore], eager: false }),
           provide(Probe, { deps: [REQUEST], lifetime: 'scoped' }),
           provide(TX, {
             useFactory: (probe: Probe) => String(probe),
@@ -219,7 +223,7 @@ describe('compile', () => {
     });
     expect(bp.singletonLevels).toEqual([
       [idOf(bp, ReactorCore)],
-      [],
+      [idOf(bp, ShipComputer)],
       [idOf(bp, Bridge)],
     ]);
     // TX seeds nothing, so its scoped dep Probe waits for it too.

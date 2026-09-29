@@ -58,11 +58,16 @@ describe('eager: false', () => {
     class Repository {
       static deps = [DatabaseClient] as const;
       constructor(readonly client: DatabaseClient) {}
+      onInit() {
+        log.push('repository init');
+      }
     }
-    await Nexus.create(
+    const ship = await Nexus.create(
       defineModule({ name: 'App', imports: [Data], providers: [Repository] }),
     );
-    expect(log).toEqual(['connect', 'init']);
+    expect(log).toEqual(['connect', 'init', 'repository init']);
+    await ship[Symbol.asyncDispose]();
+    expect(log).toEqual(['connect', 'init', 'repository init', 'close']);
   });
 
   it('defers a scoped factory until the scope asks for it', async () => {
@@ -505,7 +510,7 @@ describe('eager: false builds', () => {
     ]);
   });
 
-  it('disposes a singleton a failed load built on first use, and forgets it', async () => {
+  it('disposes an eager: false singleton a failed load built for an eager provider', async () => {
     const events: string[] = [];
     const SHIELDS = new Token<IReactor>('Shields');
     const ship = await Nexus.create(defineModule({ name: 'Bridge' }));
@@ -660,12 +665,48 @@ describe('compile.provider with eager: false', () => {
     expect(ship.get(REACTOR)).not.toBe(ship.get(REACTOR));
     expect(events).toEqual(['Replacement built', 'Replacement built']);
   });
+  it('keeps eager: false when a replacement sets no eager', async () => {
+    const events: string[] = [];
+    const ship = await Nexus.create(
+      defineModule({
+        name: 'Engineering',
+        providers: [
+          provide(REACTOR, {
+            useClass: reactor('Reactor', events),
+            eager: false,
+          }),
+        ],
+        exports: [REACTOR],
+      }),
+      {
+        plugins: [
+          {
+            name: 'swap',
+            apiVersion: 1,
+            compile: {
+              provider: (view) =>
+                view.token === REACTOR
+                  ? {
+                      with: provide(REACTOR, {
+                        useClass: reactor('Replacement', events),
+                      }),
+                    }
+                  : undefined,
+            },
+          },
+        ],
+      },
+    );
+    expect(events).toEqual([]);
+    ship.get(REACTOR);
+    expect(events).toEqual(['Replacement built']);
+  });
 });
 
 describe('Scope.extend with eager: false', () => {
   it('skips a scoped factory load() added, which then builds on first get() into the scope', async () => {
     const events: string[] = [];
-    const TX = new Token<string>('Transaction');
+    const TX = new Token<{ readonly id: string }>('Transaction');
     const EARLY = new Token<IReactor>('Early');
     const ship = await Nexus.create(
       defineModule({
@@ -699,7 +740,7 @@ describe('Scope.extend with eager: false', () => {
             },
             lifetime: 'scoped',
             eager: false,
-          } as never),
+          }),
         ],
         exports: [TX],
       }),
@@ -718,5 +759,193 @@ describe('Scope.extend with eager: false', () => {
     ]);
     await ship[Symbol.asyncDispose]();
     expect(events).toHaveLength(4);
+  });
+
+  it('disposes an eager: false scoped factory a failed extend() built, and builds a new one on retry', async () => {
+    const events: string[] = [];
+    let attempt = 0;
+    const ZONE = new Token<IReactor>('Zone');
+    const FIELD = new Token<IReactor>('Field');
+    const GRID = new Token<IReactor>('Grid');
+    const ship = await Nexus.create(defineModule({ name: 'Bridge' }));
+    const shuttle = await ship.createScope();
+    await ship.load(
+      defineModule({
+        name: 'Tactical',
+        providers: [
+          provide(ZONE, {
+            useFactory: () => {
+              const n = ++attempt;
+              events.push(`zone built ${n}`);
+              return {
+                output: n,
+                [Symbol.dispose]: () => void events.push(`zone disposed ${n}`),
+              };
+            },
+            lifetime: 'scoped',
+            eager: false,
+          }),
+          provide(FIELD, {
+            useFactory: (zone) => zone,
+            deps: [ZONE],
+            lifetime: 'scoped',
+          }),
+          provide(GRID, {
+            useFactory: (field) =>
+              attempt === 1
+                ? Promise.reject(new Error('overload'))
+                : Promise.resolve(field),
+            deps: [FIELD],
+            lifetime: 'scoped',
+          }),
+        ],
+        exports: [FIELD],
+      }),
+    );
+    expect(await rejected(shuttle.extend())).toMatchObject({
+      code: 'NEXUS_PROVIDER_FAILED',
+    });
+    expect(events).toEqual(['zone built 1', 'zone disposed 1']);
+    await shuttle.extend();
+    expect(shuttle.get(FIELD).output).toBe(2);
+    await shuttle[Symbol.asyncDispose]();
+    expect(events).toEqual([
+      'zone built 1',
+      'zone disposed 1',
+      'zone built 2',
+      'zone disposed 2',
+    ]);
+  });
+
+  it('disposes an eager: false scoped factory a lazy thunk built during a failed extend()', async () => {
+    const events: string[] = [];
+    const ZONE = new Token<IReactor>('Zone');
+    const FIELD = new Token<IReactor>('Field');
+    const GRID = new Token<IReactor>('Grid');
+    const ship = await Nexus.create(defineModule({ name: 'Bridge' }));
+    const shuttle = await ship.createScope();
+    await ship.load(
+      defineModule({
+        name: 'Tactical',
+        providers: [
+          provide(ZONE, {
+            useFactory: () => {
+              events.push('zone built');
+              return {
+                output: 1,
+                [Symbol.dispose]: () => void events.push('zone disposed'),
+              };
+            },
+            lifetime: 'scoped',
+            eager: false,
+          }),
+          provide(FIELD, {
+            useFactory: (zone) => zone(),
+            deps: [lazy(ZONE)],
+            lifetime: 'scoped',
+          }),
+          provide(GRID, {
+            useFactory: (): Promise<IReactor> =>
+              Promise.reject(new Error('overload')),
+            deps: [FIELD],
+            lifetime: 'scoped',
+          }),
+        ],
+      }),
+    );
+    await rejected(shuttle.extend());
+    expect(events).toEqual(['zone built', 'zone disposed']);
+    await shuttle[Symbol.asyncDispose]();
+    expect(events).toEqual(['zone built', 'zone disposed']);
+  });
+});
+
+describe('eager: false during a failed run', () => {
+  /** A module whose Bridge onInit calls its lazy Reactor thunk, and whose Shields onInit rejects. */
+  function failingRun(events: string[]) {
+    const BRIDGE = new Token<IReactor>('Bridge');
+    const SHIELDS = new Token<IReactor>('Shields');
+    class Bridge implements IReactor {
+      readonly output = 1;
+      static deps = [lazy(REACTOR)] as const;
+      constructor(readonly reactor: () => IReactor) {}
+      onInit() {
+        this.reactor();
+      }
+    }
+    class Shields implements IReactor {
+      readonly output = 1;
+      static deps = [BRIDGE] as const;
+      constructor(readonly bridge: IReactor) {}
+      onInit(): Promise<void> {
+        return Promise.reject(new Error('overload'));
+      }
+    }
+    return defineModule({
+      name: 'Engineering',
+      providers: [
+        provide(REACTOR, {
+          useClass: reactor('Reactor', events),
+          eager: false,
+        }),
+        provide(BRIDGE, { useClass: Bridge }),
+        provide(SHIELDS, { useClass: Shields }),
+      ],
+    });
+  }
+
+  it('disposes an eager: false singleton a lazy thunk built during a failed create', async () => {
+    const events: string[] = [];
+    await rejected(Nexus.create(failingRun(events)));
+    expect(events).toEqual(['Reactor built', 'Reactor disposed']);
+  });
+
+  it('disposes an eager: false singleton a lazy thunk built during a failed load, once', async () => {
+    const events: string[] = [];
+    const ship = await Nexus.create(defineModule({ name: 'Bridge' }));
+    await rejected(ship.load(failingRun(events)));
+    expect(events).toEqual(['Reactor built', 'Reactor disposed']);
+    await ship[Symbol.asyncDispose]();
+    expect(events).toEqual(['Reactor built', 'Reactor disposed']);
+  });
+
+  it('runs the onInit of an eager: false singleton after its deps finish theirs', async () => {
+    const events: string[] = [];
+    const POOL = new Token<{ ready: boolean }>('Pool');
+    const CLIENT = new Token<IReactor>('Client');
+    const REPOSITORY = new Token<IReactor>('Repository');
+    class Pool {
+      ready = false;
+      async onInit() {
+        await Promise.resolve();
+        this.ready = true;
+        events.push('pool init');
+      }
+    }
+    class Client implements IReactor {
+      readonly output = 1;
+      static deps = [POOL] as const;
+      constructor(readonly pool: { ready: boolean }) {}
+      onInit() {
+        events.push(`client init, pool ready=${this.pool.ready}`);
+      }
+    }
+    class Repository implements IReactor {
+      readonly output = 1;
+      static deps = [CLIENT] as const;
+      constructor(readonly client: IReactor) {}
+    }
+    const ship = await Nexus.create(
+      defineModule({
+        name: 'Data',
+        providers: [
+          provide(POOL, { useClass: Pool }),
+          provide(CLIENT, { useClass: Client, eager: false }),
+          provide(REPOSITORY, { useClass: Repository }),
+        ],
+      }),
+    );
+    expect(events).toEqual(['pool init', 'client init, pool ready=true']);
+    await ship[Symbol.asyncDispose]();
   });
 });

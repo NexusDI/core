@@ -24,6 +24,7 @@ import type {
   Ctx,
   Owner,
   RootState,
+  Run,
   TransientOwner,
 } from './state.js';
 
@@ -358,35 +359,28 @@ export function resolveScoped(record: ProviderRecord, ctx: Ctx): unknown {
 }
 
 /**
- * Who builds and owns a provider built at its first request. A scoped
- * provider builds into the scope that asked. A singleton builds into
- * the root; a create or load that builds it for one of its own new
- * providers owns it, so a failed run disposes it with the rest of its
- * builds. A singleton of an earlier blueprint belongs to the root at once,
+ * Who builds a provider at its first request, and the run it joins. A
+ * singleton builds into the root, a scoped provider into the scope that
+ * asked. When a create, load or extend() of that container is running and
+ * its blueprint added the provider, the run owns the instance, so a failed
+ * run disposes and forgets it. Anything else joins the container at once,
  * so a failed load never disposes an instance a get() may already hold.
  */
 function onDemandOwner(
   record: ProviderRecord,
   ctx: Ctx,
-): { readonly container: ContainerState; readonly owner: Owner } {
-  const { container } = ctx;
-  if (record.lifetime !== 'singleton') return { container, owner: container };
-  const root = container.root;
-  // startBlueprint builds with a list of its own as the owner; nothing else
-  // resolves in the root with an owner other than the root.
+): {
+  readonly container: ContainerState;
+  readonly owner: Owner;
+  readonly run: Run | undefined;
+} {
+  const container =
+    record.lifetime === 'singleton' ? ctx.container.root : ctx.container;
   const run =
-    container.kind === 'root' &&
-    typeof ctx.owner !== 'string' &&
-    ctx.owner !== root
-      ? ctx.owner
+    container.run !== undefined && container.run.isNew(record.id)
+      ? container.run
       : undefined;
-  // During a load, root.blueprint is still the blueprint before it.
-  const earlier =
-    ctx.bp !== root.blueprint && root.blueprint.providers.has(record.id);
-  return {
-    container: root,
-    owner: run !== undefined && !earlier ? run : root,
-  };
+  return { container, owner: run?.owner ?? container, run };
 }
 
 /** What a get() throws when onInit throws in a build on first request. */
@@ -419,7 +413,7 @@ function onInitFailed(
  * fails, so the owner's disposal disposes it.
  */
 export function buildOnDemand(record: ProviderRecord, ctx: Ctx): unknown {
-  const { container, owner } = onDemandOwner(record, ctx);
+  const { container, owner, run } = onDemandOwner(record, ctx);
   const root = container.root;
   // A lazy thunk that leads back to a provider still in its own build.
   if (constructionStack.contains(record.id, container)) {
@@ -472,6 +466,7 @@ export function buildOnDemand(record: ProviderRecord, ctx: Ctx): unknown {
   }
   container.slots.settle(record.id, instance);
   container.slots.markReady(record.id);
+  run?.touched.push(record.id);
   if (record.kind === 'factory') root.asyncFlags.set(record.id, false);
   traceConstruct(container, ctx.bp, record, false, start);
   return instance;

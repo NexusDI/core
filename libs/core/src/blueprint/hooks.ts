@@ -216,19 +216,19 @@ function isReplacement(
 }
 
 /** Whether a replacement entry sets its own lifetime (an own key only, SEC-003). */
-function setsLifetime(entry: unknown): boolean {
+function setsOption(entry: unknown, key: 'lifetime' | 'eager'): boolean {
   const options = readProvider(entry)?.options ?? entry;
   return (
     typeof options === 'object' &&
     options !== null &&
-    Object.hasOwn(options, 'lifetime')
+    Object.hasOwn(options, key)
   );
 }
 
 /**
  * Pass 1, after the walk: every compile.provider hook sees every record.
- * `with` replaces in place (id, module and, unless the entry sets one,
- * lifetime kept); `pin` also drops every other provider of the token and
+ * `with` replaces in place (id, module and, unless the entry sets them,
+ * lifetime and eager kept); `pin` also drops every other provider of the token and
  * makes the replacement visible in every module; `remove` drops the record.
  * With no compile.provider hook it returns `records` itself and the shared
  * empty maps.
@@ -294,7 +294,7 @@ export function rewriteProviders(
       out.push(record);
       continue;
     }
-    const keepLifetime = !setsLifetime(rewrite.with);
+    const keepLifetime = !setsOption(rewrite.with, 'lifetime');
     const lifetime =
       shape.lifetime === null
         ? null
@@ -309,9 +309,14 @@ export function rewriteProviders(
       module: record.module,
       name: record.name,
       lifetime,
-      // A kept transient lifetime builds at every request, so eager: false
-      // on the replacement has nothing to defer.
-      eager: shape.eager || lifetime === 'transient',
+      // eager is kept as lifetime is, unless the entry sets one. A value,
+      // an alias or a transient builds nothing to defer, so it stays eager.
+      eager:
+        lifetime === null || lifetime === 'transient'
+          ? true
+          : setsOption(rewrite.with, 'eager')
+            ? shape.eager
+            : record.eager,
     });
     rewrittenBy.set(record.id, chosen.plugin);
     if (

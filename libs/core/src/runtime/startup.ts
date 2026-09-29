@@ -3,7 +3,7 @@ import {
   type Blueprint,
   type ProviderRecord,
 } from '../blueprint/blueprint.js';
-import { DisposedError, ModuleOptionsError } from '../errors/index.js';
+import { ModuleOptionsError } from '../errors/index.js';
 import {
   adopt,
   applyConstruct,
@@ -11,11 +11,9 @@ import {
   moduleName,
   traceConstruct,
 } from './build.js';
-import { disposeInReverse } from './dispose.js';
 import { runInit } from './init.js';
-import { settleLevel, toProviderError } from './settle.js';
+import { rollBack, settleLevel } from './settle.js';
 import { assertOpen, type Owner, type RootState } from './state.js';
-import { reportDisposal } from './trace.js';
 
 export interface StartupPlan {
   readonly bp: Blueprint;
@@ -149,13 +147,14 @@ export async function startBlueprint(
   root: RootState,
   plan: StartupPlan,
 ): Promise<void> {
-  // What this run builds, eager: false providers its new providers needed
-  // included, goes to a list of its own. It joins root.owned when the run
-  // succeeds, so a failure disposes only this run's builds, and never an
-  // instance a get() built meanwhile.
+  // What this run builds goes to a list of its own, and so does a new
+  // provider a request builds on first use while it runs (root.run). The
+  // list joins root.owned when the run succeeds, so a failure disposes only
+  // this run's builds, and never an instance a get() built meanwhile.
   const built: Owner = { root, owned: [] };
   const touched: string[] = [];
   const registered: unknown[] = [];
+  root.run = { isNew: plan.isNew, owner: built, touched };
   try {
     await registerStatic(root, plan, touched, registered);
     for (const level of plan.bp.singletonLevels) {
@@ -169,13 +168,10 @@ export async function startBlueprint(
     // With onInit off (a plugin set onInit: false), buildSingleton already
     // marked each singleton ready.
     if (root.initEnabled) await runInit(root, plan.bp, plan.isNew);
+    root.run = undefined;
     root.owned.push(...built.owned);
   } catch (error) {
-    // A new eager: false singleton this run built on first use holds a
-    // slot too; it is not in touched, since no level listed it.
-    for (const record of plan.bp.providers.values())
-      if (!record.eager && plan.isNew(record.id)) touched.push(record.id);
-    for (const id of touched) root.slots.abandon(id);
+    root.run = undefined;
     // walk.ts assigns provider ids purely by position in the walk, and each
     // compile call redoes the walk from scratch. A failed run's ids were
     // never committed to root.blueprint, so the next load's compile can
@@ -184,15 +180,12 @@ export async function startBlueprint(
     // never removes a flag a committed provider owns.
     for (const id of touched) root.asyncFlags.delete(id);
     for (const value of registered) root.ownership.unregisterValue(value);
-    const { errors } = await disposeInReverse(
-      built.owned,
-      root.ownership,
-      reportDisposal(root.tracer, null),
+    throw await rollBack(
+      root,
+      { touched, owned: built.owned },
+      plan.bp,
+      error,
+      () => (root.disposing ? root.abortErrors : undefined),
     );
-    if (error instanceof DisposedError && root.disposing) {
-      root.abortErrors.push(...errors);
-      throw error;
-    }
-    throw toProviderError(error, plan.bp, errors);
   }
 }

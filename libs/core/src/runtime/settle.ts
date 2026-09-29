@@ -1,6 +1,10 @@
 import type { Blueprint } from '../blueprint/blueprint.js';
-import { ProviderError } from '../errors/index.js';
+import { DisposedError, ProviderError } from '../errors/index.js';
 import { moduleName } from './build.js';
+import { disposeInReverse } from './dispose.js';
+import type { OwnedEntry } from './ownership.js';
+import type { ContainerState } from './state.js';
+import { reportDisposal } from './trace.js';
 
 /** Every failure of one build level, in declaration order. */
 export class LevelFailure extends Error {
@@ -96,4 +100,33 @@ export function toProviderError(
     },
     { cause: first.cause },
   );
+}
+
+/**
+ * Undoes a failed create, load, createScope or extend() in `container`: it
+ * abandons the slots the run filled, disposes what the run built, newest
+ * first, and returns the error to throw. A DisposedError passes through
+ * unchanged when `parkIn()` names a list, and the disposer errors wait
+ * there for the disposal that aborted the run. Any other failure becomes
+ * the ProviderError naming its first failure, with the disposer errors in
+ * `disposalErrors`.
+ */
+export async function rollBack(
+  container: ContainerState,
+  run: { readonly touched: readonly string[]; readonly owned: OwnedEntry[] },
+  bp: Blueprint,
+  error: unknown,
+  parkIn: () => unknown[] | undefined,
+): Promise<unknown> {
+  const { root } = container;
+  for (const id of run.touched) container.slots.abandon(id);
+  const { errors } = await disposeInReverse(
+    run.owned,
+    root.ownership,
+    reportDisposal(root.tracer, container.scopeId),
+  );
+  const parked = error instanceof DisposedError ? parkIn() : undefined;
+  if (parked === undefined) return toProviderError(error, bp, errors);
+  parked.push(...errors);
+  return error;
 }

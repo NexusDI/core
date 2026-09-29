@@ -9,7 +9,7 @@ import { chainErrors, collectInto, disposeInReverse } from './dispose.js';
 import { formatFor, guardAsync } from './format.js';
 import { getFrom, hasIn } from './lookup.js';
 import type { LookupOptions } from './options.js';
-import { settleLevel, toProviderError } from './settle.js';
+import { rollBack, settleLevel } from './settle.js';
 import {
   assertOpen,
   createScopeState,
@@ -204,16 +204,14 @@ async function buildScope(scope: ScopeState): Promise<Scope> {
     }
     assertOpen(root);
   } catch (error) {
-    const { errors } = await disposeInReverse(
-      scope.owned,
-      root.ownership,
-      reportDisposal(tracer, scope.scopeId),
+    // The scope is never handed out, so its slots need no abandoning.
+    throw await rollBack(
+      scope,
+      { touched: [], owned: scope.owned },
+      scope.blueprint,
+      error,
+      () => (root.disposing ? root.abortErrors : undefined),
     );
-    if (error instanceof DisposedError && root.disposing) {
-      root.abortErrors.push(...errors);
-      throw error;
-    }
-    throw toProviderError(error, scope.blueprint, errors);
   }
   root.scopes.add(scope);
   tracer.emit(() => ({
@@ -249,9 +247,14 @@ async function extendNow(scope: ScopeState, target: Blueprint): Promise<void> {
   const start = tracer.now();
   const built: Owner = { root, owned: [] };
   const touched: string[] = [];
+  // A provider the delta adds that a request builds on first use while
+  // extend() runs joins built and touched too (scope.run).
+  scope.run = {
+    isNew: (id) => !pinned.providers.has(id),
+    owner: built,
+    touched,
+  };
   try {
-    // scopedLevels holds no eager: false factory (levels.ts), so the delta
-    // skips one; it builds at the scope's first request for it.
     for (const level of target.scopedLevels) {
       const ids = level.filter((id) => !pinned.providers.has(id));
       if (ids.length === 0) continue;
@@ -260,18 +263,16 @@ async function extendNow(scope: ScopeState, target: Blueprint): Promise<void> {
       assertScopeOpen(scope);
     }
   } catch (error) {
-    for (const id of touched) scope.slots.abandon(id);
-    const { errors } = await disposeInReverse(
-      built.owned,
-      root.ownership,
-      reportDisposal(tracer, scope.scopeId),
+    scope.run = undefined;
+    throw await rollBack(
+      scope,
+      { touched, owned: built.owned },
+      target,
+      error,
+      () => (root.disposing ? root.abortErrors : scope.abortErrors),
     );
-    if (error instanceof DisposedError) {
-      (root.disposing ? root.abortErrors : scope.abortErrors).push(...errors);
-      throw error;
-    }
-    throw toProviderError(error, target, errors);
   }
+  scope.run = undefined;
   scope.owned.push(...built.owned);
   scope.blueprint = target;
   const known = new Set([...pinned.modules.values()].map((m) => m.definition));
