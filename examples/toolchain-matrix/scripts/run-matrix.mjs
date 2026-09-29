@@ -1,9 +1,9 @@
 #!/usr/bin/env node
 /**
- * Packs @nexusdi/core, @nexusdi/errors and @nexusdi/devtools, installs the
- * tarballs and every pinned toolchain into one throwaway consumer, builds
- * each variant with each toolchain, runs the output, and compares what it
- * prints with golden.json.
+ * Packs @nexusdi/core, @nexusdi/decorators, @nexusdi/errors and
+ * @nexusdi/devtools, installs the tarballs and every pinned toolchain into
+ * one throwaway consumer, builds each variant with each toolchain, runs the
+ * output, and compares what it prints with golden.json.
  *
  * Writes toolchain-matrix.json. With --check it also fails when the fresh
  * results differ from the committed file, so the docs page and the launch
@@ -30,6 +30,7 @@ const RESULTS = join(HERE, 'toolchain-matrix.json');
 /** The packages the scenario imports, by folder and name. */
 const PACKAGES = [
   ['libs/core', '@nexusdi/core'],
+  ['libs/decorators', '@nexusdi/decorators'],
   ['libs/errors', '@nexusdi/errors'],
   ['libs/devtools', '@nexusdi/devtools'],
 ];

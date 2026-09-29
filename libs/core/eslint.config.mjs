@@ -24,7 +24,6 @@ export default [
             '{projectRoot}/eslint.config.{js,cjs,mjs,ts,cts,mts}',
             '{projectRoot}/vite.config.{js,ts,mjs,mts}',
             '{projectRoot}/vitest.browser.config.ts',
-            '{projectRoot}/vite.decorators.ts',
             '{projectRoot}/test-support/**',
             '{projectRoot}/src/**/*.test-d.ts',
           ],

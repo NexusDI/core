@@ -2,13 +2,6 @@ import { defineConfig } from 'vite';
 
 import { docExampleSources, docExamples } from '@nexusdi/doc-examples';
 
-import { standardDecorators } from './vite.decorators.ts';
-
-// docExamples() returns its own `plugins` array (the doctest wiring), which
-// a plain object spread would silently replace rather than merge with
-// standardDecorators() below. Pulled apart here so both plugin sets run.
-const { plugins: docExamplePlugins, ...docExampleConfig } = docExamples();
-
 export default defineConfig(() => ({
   root: import.meta.dirname,
   cacheDir: '../../node_modules/.vite/libs/core',
@@ -17,8 +10,7 @@ export default defineConfig(() => ({
   // git worktree that walk can escape the worktree entirely; naming the file
   // explicitly keeps it on this project's own.
   tsconfig: './tsconfig.spec.json',
-  ...docExampleConfig,
-  plugins: [standardDecorators(), ...docExamplePlugins],
+  ...docExamples(),
   build: {
     sourcemap: false,
   },
@@ -27,7 +19,7 @@ export default defineConfig(() => ({
     watch: false,
     globals: true,
     environment: 'node',
-    include: ['src/**/*.{test,spec}.ts', 'vite.decorators.test.ts'],
+    include: ['src/**/*.{test,spec}.ts'],
     exclude: ['src/**/*.browser.test.ts'],
     includeSource: docExampleSources(),
     // R08 asserts that a root-level transient is collectable, which needs

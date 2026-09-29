@@ -8,7 +8,6 @@ import type { InvalidExportError } from './invalid-export-error.js';
 import type { InvalidModuleError } from './invalid-module-error.js';
 import type { InvalidProviderError } from './invalid-provider-error.js';
 import type { InvalidTokenError } from './invalid-token-error.js';
-import type { LegacyDecoratorsError } from './legacy-decorators-error.js';
 import type { LifetimeError } from './lifetime-error.js';
 import type { LoadError } from './load-error.js';
 import type { LoadedAfterScopeError } from './loaded-after-scope-error.js';
@@ -49,7 +48,6 @@ export interface NexusErrorByCode {
   NEXUS_REQUEST_MISSING: RequestMissingError;
   NEXUS_LOADED_AFTER_SCOPE: LoadedAfterScopeError;
   NEXUS_DISPOSED: DisposedError;
-  NEXUS_LEGACY_DECORATORS: LegacyDecoratorsError;
   NEXUS_PLUGIN_INVALID: PluginError;
   NEXUS_PLUGIN_VERSION: PluginError;
   NEXUS_PLUGIN_CONFLICT: PluginError;

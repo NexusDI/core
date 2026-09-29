@@ -1,7 +1,9 @@
 import { describe, expect, it } from 'vitest';
 
-import { readInjectable, readProps } from '../definitions/metadata.js';
-import { Inject, Injectable, Module, Nexus, Token, provide } from '../index.js';
+import { Nexus, Token, provide } from '@nexusdi/core';
+
+import { readInjectable, readProps } from '../../test-support/metadata.js';
+import { Inject, Injectable, Module } from '../index.js';
 
 describe('R10', () => {
   it("leaves the parent's metadata unchanged when a subclass is decorated", async () => {

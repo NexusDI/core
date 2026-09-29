@@ -1,12 +1,16 @@
 /**
- * The metadata the decorators write into `C[Symbol.metadata]` and the
- * compiler reads back.
+ * The metadata declareClass and declareProperty write into
+ * `C[Symbol.metadata]` and the compiler reads back.
  *
  * Standard decorators create one metadata object per decorated class, whose
  * prototype is the parent class's metadata object. A read therefore inherits
  * the parent's entry, and a write creates an own key, so a subclass never
  * changes its parent's metadata (regression R10).
  */
+
+import type { Dep } from './modifiers.js';
+import { pickOwn } from './own-keys.js';
+import type { Lifetime } from './types.js';
 
 export const INJECTABLE: unique symbol = Symbol.for('nexusdi.injectable');
 export const PROPS: unique symbol = Symbol.for('nexusdi.props');
@@ -65,17 +69,40 @@ export function readProps(cls: unknown): PropMetadata[] {
   return levels.flat();
 }
 
-export function writeInjectable(
+/**
+ * Declares a class's deps and lifetime on its decorator metadata object.
+ * Only the keys `options` sets on itself are recorded (SEC-003), as own keys
+ * of `metadata` (regression R10).
+ */
+export function declareClass(
   metadata: DecoratorMetadataObject,
-  value: InjectableMetadata,
+  options: { readonly deps?: readonly Dep[]; readonly lifetime?: Lifetime },
 ): void {
-  metadata[INJECTABLE] = Object.freeze({ ...value });
+  metadata[INJECTABLE] = Object.freeze(
+    pickOwn(options, ['deps', 'lifetime']) as InjectableMetadata,
+  );
 }
 
-export function appendProp(
+/**
+ * Adds a property injection to a class's decorator metadata object. The
+ * container calls `access.set(instance, value)`; without `access` it assigns
+ * `instance[key] = value`. A decorator passes its `context.access`.
+ */
+export function declareProperty(
   metadata: DecoratorMetadataObject,
-  prop: PropMetadata,
+  key: string | symbol,
+  dep: Dep,
+  access?: { set(target: object, value: unknown): void },
 ): void {
   if (!Object.hasOwn(metadata, PROPS)) metadata[PROPS] = [];
-  (metadata[PROPS] as PropMetadata[]).push(prop);
+  (metadata[PROPS] as PropMetadata[]).push({
+    key,
+    dep,
+    set:
+      access === undefined
+        ? (target, value) => {
+            (target as Record<PropertyKey, unknown>)[key] = value;
+          }
+        : (target, value) => access.set(target, value),
+  });
 }

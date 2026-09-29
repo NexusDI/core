@@ -13,7 +13,6 @@ export {
   InvalidProviderError,
   InvalidTokenError,
   isNexusError,
-  LegacyDecoratorsError,
   LifetimeError,
   LoadedAfterScopeError,
   LoadError,
@@ -66,15 +65,18 @@ export type {
   UntypedFunctionMessage,
 } from './definitions/provider-literal.js';
 export type {
+  DepsFor,
   FactoryDefinition,
   NoLifetimeMessage,
   OverrideDefinition,
   PromiseTokenMessage,
 } from './definitions/provide.js';
 export {
+  declareModuleClass,
   defineModule,
   resolveModuleRef as moduleDefinitionOf,
 } from './definitions/define-module.js';
+export { declareClass, declareProperty } from './definitions/metadata.js';
 export type {
   ConfigurableModule,
   ConfigurableModuleConfig,
@@ -111,6 +113,3 @@ export type {
   ProviderRewrite,
   ProviderView,
 } from './blueprint/views.js';
-export { Inject } from './decorators/inject.js';
-export { Injectable } from './decorators/injectable.js';
-export { Module, type ModuleDecoratorConfig } from './decorators/module.js';

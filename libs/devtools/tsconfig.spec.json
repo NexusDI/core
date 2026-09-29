@@ -30,7 +30,7 @@
       "path": "./tsconfig.lib.json"
     },
     {
-      "path": "../core/tsconfig.spec.json"
+      "path": "../decorators/tsconfig.spec.json"
     }
   ]
 }

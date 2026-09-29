@@ -1,4 +1,4 @@
-import { LegacyDecoratorsError } from '../errors/index.js';
+import { legacyDecorators } from './legacy-decorators-error.js';
 
 /**
  * Under experimentalDecorators, TypeScript calls a class decorator with the
@@ -11,6 +11,6 @@ export function assertStandard(context: unknown, decorator: string): void {
     context === null ||
     typeof (context as { kind?: unknown }).kind !== 'string'
   ) {
-    throw new LegacyDecoratorsError({ decorator });
+    throw legacyDecorators(decorator);
   }
 }

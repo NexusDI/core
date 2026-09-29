@@ -1,11 +1,5 @@
-import {
-  Inject,
-  Injectable,
-  Module,
-  REQUEST,
-  lazy,
-  provide,
-} from '@nexusdi/core';
+import { REQUEST, lazy, provide } from '@nexusdi/core';
+import { Inject, Injectable, Module } from '@nexusdi/decorators';
 
 import {
   MISSION,

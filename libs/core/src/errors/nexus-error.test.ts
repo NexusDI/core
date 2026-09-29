@@ -39,7 +39,6 @@ const FIELD_ORDER: Readonly<Record<string, readonly string[]>> = {
   RequestMissingError: ['dependents'],
   LoadedAfterScopeError: ['token', 'module', 'entry'],
   DisposedError: ['target'],
-  LegacyDecoratorsError: ['decorator'],
   PluginError: [
     'plugin',
     'reason',

@@ -1,9 +1,9 @@
-import '../polyfill/symbol-metadata.js';
+import '../../test-support/symbol-metadata.js';
 
 import { describe, expect, it } from 'vitest';
 
 import { defineModule, moduleInternals } from '../definitions/define-module.js';
-import { appendProp, writeInjectable } from '../definitions/metadata.js';
+import { declareClass, declareProperty } from '../definitions/metadata.js';
 import { all, lazy, optional } from '../definitions/modifiers.js';
 import { provide } from '../definitions/provide.js';
 import { REQUEST } from '../definitions/request.js';
@@ -79,7 +79,7 @@ describe('normalizeProvider', () => {
       constructor(readonly computer: ShipComputer) {}
     }
     const metadata = Object.create(null) as DecoratorMetadataObject;
-    writeInjectable(metadata, { deps: [ShipComputer], lifetime: 'transient' });
+    declareClass(metadata, { deps: [ShipComputer], lifetime: 'transient' });
     Object.defineProperty(Drone, Symbol.metadata, { value: metadata });
     expect(normalize(Drone).shape).toMatchObject({
       lifetime: 'transient',
@@ -90,12 +90,23 @@ describe('normalizeProvider', () => {
   it('reads property injections from metadata', () => {
     class Bridge {}
     const metadata = Object.create(null) as DecoratorMetadataObject;
-    const set = () => undefined;
-    appendProp(metadata, { key: 'charts', dep: optional(NAV_CHARTS), set });
+    const calls: unknown[][] = [];
+    const access = {
+      set: (target: object, value: unknown) => void calls.push([target, value]),
+    };
+    declareProperty(metadata, 'charts', optional(NAV_CHARTS), access);
     Object.defineProperty(Bridge, Symbol.metadata, { value: metadata });
-    expect(normalize(Bridge).shape?.props).toEqual([
-      { key: 'charts', dep: { kind: 'optional', token: NAV_CHARTS }, set },
+    const props = normalize(Bridge).shape?.props;
+    expect(props).toEqual([
+      {
+        key: 'charts',
+        dep: { kind: 'optional', token: NAV_CHARTS },
+        set: expect.any(Function),
+      },
     ]);
+    const target = new Bridge();
+    props?.[0]?.set(target, 'plotted');
+    expect(calls).toEqual([[target, 'plotted']]);
   });
 
   it('uses explicit provide() options and ignores metadata', () => {
@@ -601,7 +612,7 @@ describe('normalizeProvider with static deps', () => {
   it('takes the lifetime from @Injectable and the deps from static deps', () => {
     class Scoped extends Probe {}
     const metadata = Object.create(null) as DecoratorMetadataObject;
-    writeInjectable(metadata, { deps: undefined, lifetime: 'scoped' });
+    declareClass(metadata, { deps: undefined, lifetime: 'scoped' });
     Object.defineProperty(Scoped, Symbol.metadata, { value: metadata });
     expect(normalize(Scoped).shape).toMatchObject({
       lifetime: 'scoped',
@@ -634,7 +645,7 @@ describe('normalizeProvider with static deps', () => {
       () => {
         class Twice extends Probe {}
         const metadata = Object.create(null) as DecoratorMetadataObject;
-        writeInjectable(metadata, { deps: [NAME] });
+        declareClass(metadata, { deps: [NAME] });
         Object.defineProperty(Twice, Symbol.metadata, { value: metadata });
         return Twice;
       },
@@ -696,7 +707,7 @@ describe('normalizeProvider with static deps', () => {
       constructor(readonly name: string) {}
     }
     const metadata = Object.create(null) as DecoratorMetadataObject;
-    writeInjectable(metadata, { deps: [NAME], lifetime: 'transient' });
+    declareClass(metadata, { deps: [NAME], lifetime: 'transient' });
     Object.defineProperty(Decorated, Symbol.metadata, { value: metadata });
     expect(
       normalize(rawProvide(NAV_CHARTS, { useClass: Decorated })).shape,
@@ -723,7 +734,7 @@ describe('normalizeProvider with static deps', () => {
         constructor(readonly name: string) {}
       }
       const metadata = Object.create(null) as DecoratorMetadataObject;
-      writeInjectable(metadata, { deps: [NAME], lifetime: undefined });
+      declareClass(metadata, { deps: [NAME], lifetime: undefined });
       Object.defineProperty(Decorated, Symbol.metadata, { value: metadata });
       const [error] = normalize(wrap(Decorated)).errors;
       expect(error).toMatchObject({
@@ -770,7 +781,7 @@ describe('normalizeProvider with static deps', () => {
   it('reports deps in both @Injectable and static deps through useClass', () => {
     class Twice extends Probe {}
     const metadata = Object.create(null) as DecoratorMetadataObject;
-    writeInjectable(metadata, { deps: [NAME], lifetime: undefined });
+    declareClass(metadata, { deps: [NAME], lifetime: undefined });
     Object.defineProperty(Twice, Symbol.metadata, { value: metadata });
     const { errors } = normalize(rawProvide(NAV_CHARTS, { useClass: Twice }));
     expect(errors).toMatchObject([
@@ -783,7 +794,7 @@ describe('normalizeProvider with static deps', () => {
   function classesWithBothDeclarations(): readonly [Ctor, Ctor] {
     class Twice extends Probe {}
     const metadata = Object.create(null) as DecoratorMetadataObject;
-    writeInjectable(metadata, { deps: [NAME], lifetime: undefined });
+    declareClass(metadata, { deps: [NAME], lifetime: undefined });
     Object.defineProperty(Twice, Symbol.metadata, { value: metadata });
     class TwiceChild extends Twice {}
     return [Twice, TwiceChild];

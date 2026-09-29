@@ -1,14 +1,14 @@
-import '../polyfill/symbol-metadata.js';
+import '../../test-support/symbol-metadata.js';
 
 import { describe, expect, it } from 'vitest';
 
 import {
-  appendProp,
+  declareClass,
+  declareProperty,
   readInjectable,
   readProps,
-  writeInjectable,
-  type PropMetadata,
 } from './metadata.js';
+import { Token } from './token.js';
 
 /** Gives a class the metadata object standard decorators would create. */
 function decorate<T extends object>(
@@ -23,11 +23,9 @@ function decorate<T extends object>(
   return metadata;
 }
 
-const prop = (key: string): PropMetadata => ({
-  key,
-  dep: key,
-  set: () => undefined,
-});
+const REACTOR = new Token<string>('ReactorCore');
+const A = new Token<string>('A');
+const B = new Token<string>('B');
 
 describe('readInjectable', () => {
   it('reads nothing from a class without metadata', () => {
@@ -36,12 +34,12 @@ describe('readInjectable', () => {
 
   it('reads the deps and lifetime written for a class', () => {
     class ShipComputer {}
-    writeInjectable(decorate(ShipComputer), {
-      deps: ['ReactorCore'],
+    declareClass(decorate(ShipComputer), {
+      deps: [REACTOR],
       lifetime: 'transient',
     });
     expect(readInjectable(ShipComputer)).toEqual({
-      deps: ['ReactorCore'],
+      deps: [REACTOR],
       lifetime: 'transient',
     });
   });
@@ -50,35 +48,35 @@ describe('readInjectable', () => {
     class Parent {}
     class Child extends Parent {}
     const parent = decorate(Parent);
-    writeInjectable(parent, { deps: ['A'], lifetime: undefined });
+    declareClass(parent, { deps: [A], lifetime: undefined });
     decorate(Child, parent);
-    expect(readInjectable(Child)).toEqual({ deps: ['A'], lifetime: undefined });
+    expect(readInjectable(Child)).toEqual({ deps: [A], lifetime: undefined });
   });
 
   it('uses the subclass entry when the subclass wrote one', () => {
     class Parent {}
     class Child extends Parent {}
     const parent = decorate(Parent);
-    writeInjectable(parent, { deps: ['A'], lifetime: undefined });
-    writeInjectable(decorate(Child, parent), {
-      deps: ['B'],
+    declareClass(parent, { deps: [A], lifetime: undefined });
+    declareClass(decorate(Child, parent), {
+      deps: [B],
       lifetime: 'scoped',
     });
-    expect(readInjectable(Child)).toEqual({ deps: ['B'], lifetime: 'scoped' });
+    expect(readInjectable(Child)).toEqual({ deps: [B], lifetime: 'scoped' });
     expect(readInjectable(Parent)).toEqual({
-      deps: ['A'],
+      deps: [A],
       lifetime: undefined,
     });
   });
 });
 
-describe('appendProp', () => {
+describe('declareProperty', () => {
   it('writes to the subclass own list and leaves the parent list unchanged', () => {
     class Parent {}
     class Child extends Parent {}
     const parent = decorate(Parent);
-    appendProp(parent, prop('charts'));
-    appendProp(decorate(Child, parent), prop('link'));
+    declareProperty(parent, 'charts', A);
+    declareProperty(decorate(Child, parent), 'link', B);
     expect(readProps(Parent).map((p) => p.key)).toEqual(['charts']);
   });
 });
@@ -88,8 +86,8 @@ describe('readProps', () => {
     class Parent {}
     class Child extends Parent {}
     const parent = decorate(Parent);
-    appendProp(parent, prop('charts'));
-    appendProp(decorate(Child, parent), prop('link'));
+    declareProperty(parent, 'charts', A);
+    declareProperty(decorate(Child, parent), 'link', B);
     expect(readProps(Child).map((p) => p.key)).toEqual(['charts', 'link']);
   });
 

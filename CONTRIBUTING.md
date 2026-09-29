@@ -56,6 +56,7 @@ be taken back. Run `npx nx show projects` if you are unsure of a name.
 Package scopes:
 
 - **core**: Changes to the `@nexusdi/core` library
+- **decorators**: Changes to the `@nexusdi/decorators` library
 - **testing**: Changes to the `@nexusdi/testing` library
 - **errors**: Changes to the `@nexusdi/errors` library
 - **node**: Changes to the `@nexusdi/node` library

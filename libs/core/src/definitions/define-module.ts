@@ -197,12 +197,13 @@ export function moduleInternals(
   return INTERNALS.get(definition);
 }
 
-/** Records the definition an @Module class stands for. */
-export function registerModuleClass(
-  cls: Class,
-  definition: ModuleDefinition,
-): void {
-  CLASSES.set(cls, definition);
+/** Makes `cls` a ModuleRef for `config`, and returns it. */
+export function declareModuleClass<C extends Class>(
+  cls: C,
+  config: ModuleConfig,
+): C {
+  CLASSES.set(cls, defineModule(config as never));
+  return cls;
 }
 
 /** The definition behind a ModuleRef, or undefined when the value is not a module. */

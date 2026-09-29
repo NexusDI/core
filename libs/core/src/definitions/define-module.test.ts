@@ -2,9 +2,9 @@ import { describe, expect, it } from 'vitest';
 
 import { thrown } from '../../test-support/catch.js';
 import {
+  declareModuleClass,
   defineModule,
   moduleInternals,
-  registerModuleClass,
   resolveModuleRef,
 } from './define-module.js';
 import { provide } from './provide.js';
@@ -87,9 +87,12 @@ describe('resolveModuleRef', () => {
   it('resolves a definition to itself and a registered class to its definition', () => {
     const Engineering = defineModule({ name: 'Engineering' });
     class Command {}
-    registerModuleClass(Command, Engineering);
+    expect(declareModuleClass(Command, { name: 'Command' })).toBe(Command);
+    const definition = resolveModuleRef(Command);
     expect(resolveModuleRef(Engineering)).toBe(Engineering);
-    expect(resolveModuleRef(Command)).toBe(Engineering);
+    expect(definition).toMatchObject({ name: 'Command' });
+    expect(resolveModuleRef(definition)).toBe(definition);
+    expect(resolveModuleRef(Command)).toBe(definition);
   });
 
   it('resolves nothing for other values', () => {

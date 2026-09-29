@@ -1,6 +1,8 @@
 import { describe, expect, it } from 'vitest';
 
-import { Inject, Injectable, Module, Nexus, optional } from '../index.js';
+import { Nexus, optional } from '@nexusdi/core';
+
+import { Inject, Injectable, Module } from '../index.js';
 
 describe('R21', () => {
   it('resolves an optional dep and an optional property with no provider to undefined', async () => {

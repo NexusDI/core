@@ -1,6 +1,7 @@
 import { describe, expectTypeOf, it } from 'vitest';
 
-import { defineModule, Injectable, Token, type Nexus } from '@nexusdi/core';
+import { defineModule, Token, type Nexus } from '@nexusdi/core';
+import { Injectable } from '@nexusdi/decorators';
 import {
   createTestingContainer,
   type TestingContainerBuilder,

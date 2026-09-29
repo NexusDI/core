@@ -1,17 +1,18 @@
 import { describe, expect, it } from 'vitest';
 
-import { thrown } from '../../test-support/catch.js';
-import { viewRecorder } from '../../test-support/context.js';
 import {
-  Inject,
-  Injectable,
-  Module,
   Nexus,
+  NexusError,
   Token,
+  isNexusError,
   lazy,
   optional,
   provide,
-} from '../index.js';
+} from '@nexusdi/core';
+
+import { thrown } from '../test-support/catch.js';
+import { viewRecorder } from '../test-support/context.js';
+import { Inject, Injectable, LegacyDecoratorsError, Module } from './index.js';
 
 interface NavCharts {
   plot(): string;
@@ -164,6 +165,34 @@ describe('Inject', () => {
     expect((await Nexus.create(Command)).get(BRIDGE).charts).toBe(charts);
   });
 
+  it('injects a private accessor, read through a public getter', async () => {
+    class Bridge {
+      @Inject(NAV_CHARTS) accessor #charts!: NavCharts;
+      get charts(): NavCharts {
+        return this.#charts;
+      }
+    }
+    @Module({
+      providers: [provide(NAV_CHARTS, { useValue: charts }), Bridge],
+    })
+    class Command {}
+    await using ship = await Nexus.create(Command);
+    expect(ship.get(Bridge).charts).toBe(charts);
+  });
+
+  it('injects an accessor with a symbol key', async () => {
+    const CHARTS = Symbol('charts');
+    class Bridge {
+      @Inject(NAV_CHARTS) accessor [CHARTS]!: NavCharts;
+    }
+    @Module({
+      providers: [provide(NAV_CHARTS, { useValue: charts }), Bridge],
+    })
+    class Command {}
+    await using ship = await Nexus.create(Command);
+    expect(ship.get(Bridge)[CHARTS]).toBe(charts);
+  });
+
   it('throws NEXUS_LEGACY_DECORATORS when called the experimentalDecorators way', () => {
     const legacy = Inject(NAV_CHARTS) as unknown as (
       target: object,
@@ -225,5 +254,31 @@ describe('Module', () => {
       code: 'NEXUS_LEGACY_DECORATORS',
       decorator: 'Module',
     });
+  });
+});
+
+describe('LegacyDecoratorsError', () => {
+  const legacyError = (): unknown =>
+    thrown(() =>
+      (Injectable({ deps: [] }) as unknown as (target: unknown) => void)(
+        class Drone {},
+      ),
+    );
+
+  it('keeps the message revision 1 wrote', () => {
+    expect((legacyError() as Error).message).toBe(
+      "[NEXUS_LEGACY_DECORATORS] @Injectable was called as a legacy decorator, and NexusDI's decorators are standard (TC39) decorators.\n  Fix: remove experimentalDecorators from tsconfig, or register the class with provide() and defineModule().",
+    );
+  });
+
+  it('is a NexusError whose fields are its enumerable keys, and isNexusError narrows to it by code', () => {
+    const error = legacyError();
+    expect(error).toBeInstanceOf(LegacyDecoratorsError);
+    expect(error).toBeInstanceOf(NexusError);
+    expect((error as Error).name).toBe('LegacyDecoratorsError');
+    expect(Object.keys(error as object)).toEqual(['decorator']);
+    if (!isNexusError(error, 'NEXUS_LEGACY_DECORATORS'))
+      throw new Error('expected NEXUS_LEGACY_DECORATORS');
+    expect(error.decorator).toBe('Injectable');
   });
 });

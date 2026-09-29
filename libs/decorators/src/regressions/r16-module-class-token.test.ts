@@ -1,12 +1,13 @@
 import { describe, expect, it } from 'vitest';
 
-import { thrown } from '../../test-support/catch.js';
 import {
+  Nexus,
+  declareModuleClass,
   defineModule,
-  registerModuleClass,
-} from '../definitions/define-module.js';
-import { Nexus } from '../runtime/nexus.js';
-import type { Scope } from '../runtime/scope.js';
+  type Scope,
+} from '@nexusdi/core';
+
+import { thrown } from '../../test-support/catch.js';
 
 describe('R16', () => {
   it('returns false from has and throws NEXUS_INVALID_TOKEN from get for an @Module class', async () => {
@@ -18,14 +19,11 @@ describe('R16', () => {
     });
     // What @Module does to a class (Task 34).
     class Command {}
-    registerModuleClass(
-      Command,
-      defineModule({
-        name: 'Command',
-        imports: [Engineering],
-        exports: [Engineering],
-      }),
-    );
+    declareModuleClass(Command, {
+      name: 'Command',
+      imports: [Engineering],
+      exports: [Engineering],
+    });
 
     const ship = await Nexus.create(Command);
     await using shuttle = await ship.createScope();

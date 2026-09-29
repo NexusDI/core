@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest';
 
-import { Injectable, Module, Nexus } from '@nexusdi/core';
+import { Nexus } from '@nexusdi/core';
+import { Injectable, Module } from '@nexusdi/decorators';
 
 import { devtools, graph } from '../index.js';
 

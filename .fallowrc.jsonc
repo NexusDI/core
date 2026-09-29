@@ -13,15 +13,17 @@
     "@nexusdi/testing",
     "@nexusdi/node",
     "@nexusdi/devtools",
+    "@nexusdi/decorators",
   ],
 
   // Nextra loads every page and `_meta.ts` under apps/docs/content by file
   // convention, never through an import, so the reachability walk reports
   // the whole content tree as unused without this.
   //
-  // libs/core/vite.decorators.ts is imported by libs/core/vite.config.ts.
-  // fallow treats a vite config as an entry point of its own and does not
-  // trace its imports, so the file needs an entry.
+  // libs/decorators/vite.decorators.ts is imported by the decorators and
+  // devtools vite.config.ts files. fallow treats a vite config as an entry
+  // point of its own and does not trace its imports, so the file needs an
+  // entry.
   //
   // libs/core/test-support/nexus-request.ts has no importer. It augments
   // NexusRequest with `declare module '../src/index.js'`, and
@@ -36,7 +38,7 @@
   // covers every current and future one.
   "entry": [
     "apps/docs/content/**/*.{mdx,ts}",
-    "libs/core/vite.decorators.ts",
+    "libs/decorators/vite.decorators.ts",
     "libs/core/vitest.browser.config.ts",
     "libs/core/test-support/nexus-request.ts",
     "libs/core/src/**/*.test-d.ts",
@@ -44,6 +46,7 @@
     "libs/testing/src/**/*.test-d.ts",
     "libs/node/src/**/*.test-d.ts",
     "libs/devtools/src/**/*.test-d.ts",
+    "libs/decorators/src/**/*.test-d.ts",
     // fallow's vitest plugin derives entry points from vite.config.ts's
     // test.include glob alone. vitest.browser.config.ts, the Chromium
     // project that runs R20, is a separate config file the plugin never
@@ -173,14 +176,18 @@
     // (see the libraries repo's tools/doc-examples, which this mirrors), so
     // it resolves through the root manifest instead.
     "vite-plugin-doctest",
-    // examples/toolchain-matrix/src/*.ts import @nexusdi/core and
-    // @nexusdi/devtools, and vite.babel.config.mjs imports
-    // @rolldown/plugin-babel, but none belongs in the project's package.json:
-    // run-matrix.mjs installs the packed tarballs and every pinned toolchain
-    // package into a throwaway consumer it builds in, never into this
-    // workspace project (see toolchains.json). The project's package.json
-    // declares no dependencies.
+    // examples/toolchain-matrix/src/*.ts import @nexusdi/core,
+    // @nexusdi/decorators and @nexusdi/devtools, and vite.babel.config.mjs
+    // imports @rolldown/plugin-babel, but none belongs in the project's
+    // package.json: run-matrix.mjs installs the packed tarballs and every
+    // pinned toolchain package into a throwaway consumer it builds in, never
+    // into this workspace project (see toolchains.json). The project's
+    // package.json declares no dependencies. libs/devtools's R04 test imports
+    // @nexusdi/decorators too; the workspace links it, and
+    // libs/devtools/package.json, as a published package, carries no
+    // devDependencies.
     "@nexusdi/core",
+    "@nexusdi/decorators",
     "@nexusdi/devtools",
     "@rolldown/plugin-babel",
     // libs/errors/src/parity/messages.test.ts imports @nexusdi/testing to

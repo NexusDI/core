@@ -41,6 +41,7 @@ const LIBS = [
   ['libs/testing', '@nexusdi/testing'],
   ['libs/node', '@nexusdi/node'],
   ['libs/devtools', '@nexusdi/devtools'],
+  ['libs/decorators', '@nexusdi/decorators'],
 ];
 
 /** Every JavaScript module under `root`, at any depth. */
@@ -65,6 +66,7 @@ const { Nexus, Token, defineModule, provide } = require('@nexusdi/core');
 const { createTestingContainer } = require('@nexusdi/testing');
 const { nodeScopes } = require('@nexusdi/node');
 const { errors } = require('@nexusdi/errors');
+const { Inject, Injectable, Module } = require('@nexusdi/decorators');
 
 const REACTOR = new Token('ReactorCore');
 class FusionReactor {
@@ -105,6 +107,8 @@ const Engineering = defineModule({
   if (fake.get(REACTOR).output !== 0)
     throw new Error('require(esm): @nexusdi/testing did not override');
   await fake[Symbol.asyncDispose]();
+  if (![Inject, Injectable, Module].every((d) => typeof d === 'function'))
+    throw new Error('require(esm): @nexusdi/decorators lost a decorator');
   console.log(process.versions.node);
 })().catch((error) => {
   console.error(error);
@@ -171,23 +175,26 @@ const CONSUMER = `
 import {
   AmbiguousProviderError, AsyncTransientError, BlueprintError, CircularDependencyError,
   DisposedError, DuplicateProviderError, InvalidExportError, InvalidModuleError,
-  InvalidProviderError, InvalidTokenError, LegacyDecoratorsError, LifetimeError,
+  InvalidProviderError, InvalidTokenError, LifetimeError,
   LoadedAfterScopeError, LoadError, MissingDepsError, MissingProviderError,
   ModuleImportCycleError, ModuleOptionsError, NexusError,
   NotReadyError, NotVisibleError, ProviderError, RequestMissingError,
   ScopeRequiredError,
-  Inject, Injectable, Module, MultiToken, Nexus, REQUEST, Token,
-  all, defineModule, lazy, moduleDefinitionOf, optional, provide,
+  MultiToken, Nexus, REQUEST, Token,
+  all, declareClass, declareModuleClass, declareProperty, defineModule, lazy,
+  moduleDefinitionOf, optional, provide,
 } from '@nexusdi/core';
 import type {
-  All, ConfigurableModule, ConfigurableModuleConfig, CreateOptions, Dep, DepFor,
+  All, ConfigurableModule, ConfigurableModuleConfig, CreateOptions, Dep, DepFor, DepsFor,
   ErrorLifetime, ExportEntry, FactoryDefinition, InjectionToken, Lazy, Lifetime, LookupOptions,
-  ModuleConfig, ModuleDecoratorConfig, ModuleDefinition, ModuleRef, NearMiss,
+  ModuleConfig, ModuleDefinition, ModuleRef, NearMiss,
   NexusErrorCode, NexusRequest, NoLifetimeMessage, Optional, OptionsFactory,
   OverrideDefinition, PromiseTokenMessage, Provider, ProviderEntries, ProviderEntry, ProviderFailure, ProviderLiteral, Resolve,
   ResolveAll, SchemaIssue, Scope, StandardSchemaV1, Tokens,
   DepsMap, ResolvedDeps, UntypedFunctionMessage,
 } from '@nexusdi/core';
+import { Inject, Injectable, LegacyDecoratorsError, Module } from '@nexusdi/decorators';
+import type { ModuleDecoratorConfig } from '@nexusdi/decorators';
 import { nodeScopes } from '@nexusdi/node';
 import type { NodeScopes } from '@nexusdi/node';
 import { OverrideError, createTestingContainer } from '@nexusdi/testing';
@@ -281,6 +288,29 @@ function check(ok: boolean, what: string): void {
   check(moduleDefinitionOf(Engineering)?.name === 'Engineering', 'moduleDefinitionOf');
 }
 {
+  class Probe {
+    constructor(readonly reactor: ReactorCore) {}
+    charts?: NavCharts;
+  }
+  const metadata = Object.create(null) as DecoratorMetadataObject;
+  declareClass(metadata, { deps: [ReactorCore], lifetime: 'transient' });
+  declareProperty(metadata, 'charts', NAV_CHARTS);
+  // lib es2022 does not type Symbol.metadata; @nexusdi/decorators' polyfill,
+  // loaded above, defines it.
+  const METADATA = (Symbol as unknown as { metadata: symbol }).metadata;
+  Object.defineProperty(Probe, METADATA, { value: metadata });
+  const Survey = declareModuleClass(class Survey {}, {
+    name: 'Survey',
+    imports: [Engineering],
+    providers: [ReactorCore, Probe],
+  });
+  await using ship = await Nexus.create(Survey);
+  check(
+    ship.get(Probe).charts?.plot('Vega') === 'course to Vega' && ship.get(Probe) !== ship.get(Probe),
+    'the class metadata functions',
+  );
+}
+{
   const broken = defineModule({ name: 'Broken', providers: [ShipComputer] });
   const error = await Nexus.create(broken, { plugins: [errors()] }).catch(
     (caught: unknown) => caught as BlueprintError,
@@ -300,7 +330,7 @@ const errorClasses = [
   LoadedAfterScopeError, LoadError, MissingDepsError, MissingProviderError,
   ModuleImportCycleError, ModuleOptionsError, NexusError,
   NotReadyError, NotVisibleError, ProviderError, RequestMissingError,
-  ScopeRequiredError, OverrideError,
+  ScopeRequiredError, OverrideError, LegacyDecoratorsError,
 ];
 check(errorClasses.every((c) => typeof c === 'function') && typeof all === 'function', 'the error classes');
 
@@ -308,6 +338,7 @@ type EveryType = [
   All<unknown>, ConfigurableModule<unknown>, ConfigurableModuleConfig<unknown>, CreateOptions,
   Dep, DepFor<unknown>, ErrorLifetime, ExportEntry, InjectionToken<unknown>, Lazy<unknown>,
   Lifetime, LookupOptions, ModuleConfig, ModuleDecoratorConfig, ModuleDefinition, ModuleRef,
+  DepsFor<new () => unknown>,
   NearMiss, NexusErrorCode, NexusGraph, NexusRequest, NoLifetimeMessage, Optional<unknown>,
   OptionsFactory<unknown, []>, Provider<unknown>, ProviderEntries<[]>, ProviderEntry,
   ProviderFailure, ProviderLiteral,
@@ -323,14 +354,15 @@ void everyType;
 
 /**
  * The two programs both bundlers build. The decorated one needs the
- * Symbol.metadata polyfill that the decorator modules import; the
- * provide()-only one imports no decorator, so its bundle must leave the
- * polyfill out. Each resolves a Token, because a bundler that renames the
+ * Symbol.metadata polyfill that @nexusdi/decorators' decorator modules
+ * import; the provide()-only one imports only @nexusdi/core, which ships no
+ * such polyfill, so its bundle contains none. Each resolves a Token, because a bundler that renames the
  * Token class to avoid a scope collision must not break resolution.
  */
 const BUNDLED = {
   decorated: `
-import { Inject, Injectable, Module, Nexus, Token, provide } from '@nexusdi/core';
+import { Nexus, Token, provide } from '@nexusdi/core';
+import { Inject, Injectable, Module } from '@nexusdi/decorators';
 
 interface Beacon {
   signal(): string;
@@ -372,9 +404,10 @@ await ship[Symbol.asyncDispose]();
 };
 
 /**
- * The polyfill assigns Symbol.for('Symbol.metadata'). definitions/metadata.ts
- * only reads Symbol.metadata, and esbuild's decorator helper builds its key
- * as 'Symbol.' + name, so this literal appears only where the polyfill does.
+ * @nexusdi/decorators' polyfill assigns Symbol.for('Symbol.metadata'). Core's
+ * definitions/metadata.ts only reads Symbol.metadata, and esbuild's decorator
+ * helper builds its key as 'Symbol.' + name, so this literal appears only
+ * where the polyfill does.
  */
 const METADATA_POLYFILL = /Symbol\.for\(\s*["']Symbol\.metadata["']\s*\)/;
 
@@ -507,7 +540,7 @@ try {
   console.log('Type-checking a strict consumer…');
   run('npx', ['tsc', '-p', 'tsconfig.nodenext.json'], dir);
   console.log(
-    '  ✓ ., @nexusdi/node, @nexusdi/testing and @nexusdi/devtools resolve with types under nodenext, with lib es2022 and no @types/node',
+    '  ✓ ., @nexusdi/decorators, @nexusdi/node, @nexusdi/testing and @nexusdi/devtools resolve with types under nodenext, with lib es2022 and no @types/node',
   );
   run('npx', ['tsc', '-p', 'tsconfig.bundler.json', '--noEmit'], dir);
   console.log(
@@ -519,7 +552,7 @@ try {
   console.log('Running the consumer…');
   run('node', [join(dir, 'out-nodenext', 'consumer.js')], dir);
   console.log(
-    '  ✓ a decorated class, scopes, @nexusdi/node, @nexusdi/testing and @nexusdi/devtools run from the packed build',
+    '  ✓ a decorated class, the class metadata functions, scopes, @nexusdi/node, @nexusdi/testing and @nexusdi/devtools run from the packed build',
   );
 
   console.log('Checking the published modules for top-level await…');
@@ -549,9 +582,10 @@ try {
     );
   }
 
-  // Both bundlers honour the sideEffects list, which is the only thing that
-  // keeps the polyfill out of a program that imports no decorator. Running
-  // each bundle checks that resolution survives the bundler's renaming.
+  // The decorated bundle must keep the polyfill @nexusdi/decorators lists in
+  // sideEffects, and the provide()-only bundle, which imports only
+  // @nexusdi/core, must contain none. Running each bundle checks that
+  // resolution survives the bundler's renaming.
   console.log('Bundling a decorated and a provide()-only program…');
   run('npx', ['tsc', '-p', 'tsconfig.bundle-input.json'], dir);
   for (const [bundler, bundle] of [
@@ -571,11 +605,11 @@ try {
     const provideOnly = await bundle('provide-only');
     if (METADATA_POLYFILL.test(readFileSync(provideOnly, 'utf8')))
       throw new Error(
-        `the ${bundler} bundle of a program that imports no decorator contains the Symbol.metadata polyfill; sideEffects or the decorators/ import boundary regressed`,
+        `the ${bundler} bundle of a program that imports only @nexusdi/core contains the Symbol.metadata polyfill; core must ship none`,
       );
     run('node', [provideOnly], dir);
     console.log(
-      `  ✓ ${bundler}: a provide()-only bundle contains no Symbol.metadata assignment and resolves a Token`,
+      `  ✓ ${bundler}: a provide()-only bundle of @nexusdi/core contains no Symbol.metadata assignment and resolves a Token`,
     );
   }
 

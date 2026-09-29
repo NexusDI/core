@@ -1,6 +1,8 @@
 import { describe, it } from 'vitest';
 
-import { Inject, Injectable, Module, Token, optional } from '../index.js';
+import { Token, optional } from '@nexusdi/core';
+
+import { Inject, Injectable, Module } from './index.js';
 
 class ReactorCore {
   output = 1.21;
@@ -37,6 +39,24 @@ describe('Inject', () => {
       @Inject(optional(SubspaceLink)) accessor link!: SubspaceLink | undefined;
       // @ts-expect-error NavCharts is not a ReactorCore
       @Inject(NAV_CHARTS) accessor wrong!: ReactorCore;
+      @Inject(NAV_CHARTS) accessor #charts!: NavCharts;
+      read(): NavCharts {
+        return this.#charts;
+      }
+    }
+    void Bridge;
+  });
+
+  it('rejects a static accessor, public or private', () => {
+    const charts: NavCharts = { plot: () => 'x' };
+    class Bridge {
+      // @ts-expect-error @Inject decorates instance accessors only
+      @Inject(NAV_CHARTS) static accessor charts: NavCharts = charts;
+      // @ts-expect-error @Inject decorates instance accessors only
+      @Inject(NAV_CHARTS) static accessor #charts: NavCharts = charts;
+      static read(): NavCharts {
+        return Bridge.#charts;
+      }
     }
     void Bridge;
   });

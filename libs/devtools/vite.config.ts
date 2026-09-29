@@ -2,12 +2,13 @@ import { defineConfig } from 'vite';
 
 import { docExampleSources, docExamples } from '@nexusdi/doc-examples';
 
-// regressions/r04-injectable-lifetime.test.ts applies core's @Injectable and
-// @Module, so these tests compile decorators the way core's own tests do.
-// vite.decorators.ts is build tooling core does not publish, which leaves a
-// relative path as the only way to reach it.
+// regressions/r04-injectable-lifetime.test.ts applies @nexusdi/decorators'
+// @Injectable and @Module, so these tests lower decorators the way the
+// decorators package's own tests do. vite.decorators.ts is build tooling that
+// package does not publish, which leaves a relative path as the only way to
+// reach it.
 // eslint-disable-next-line @nx/enforce-module-boundaries
-import { standardDecorators } from '../core/vite.decorators.ts';
+import { standardDecorators } from '../decorators/vite.decorators.ts';
 
 // docExamples() returns its own `plugins` array, which a plain object spread
 // would replace. Pulled apart so both plugin sets run.

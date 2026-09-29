@@ -68,30 +68,6 @@ describe('layerViolations', () => {
     ]);
   });
 
-  it('reports the metadata polyfill imported outside decorators', () => {
-    expect(
-      layerViolations([
-        {
-          path: 'runtime/nexus.ts',
-          source: "import '../polyfill/symbol-metadata.js';",
-        },
-      ]),
-    ).toHaveLength(1);
-  });
-
-  it('reports the metadata polyfill imported from a root file', () => {
-    expect(
-      layerViolations([
-        {
-          path: 'index.ts',
-          source: "import './polyfill/symbol-metadata.js';",
-        },
-      ]),
-    ).toEqual([
-      'index.ts imports polyfill/symbol-metadata.ts, which only decorators/ may import',
-    ]);
-  });
-
   it('reads re-exports and type-only imports as imports', () => {
     expect(
       layerViolations([

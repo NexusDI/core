@@ -1,10 +1,9 @@
 import {
-  defineModule,
-  registerModuleClass,
+  declareModuleClass,
   type ModuleConfig,
-} from '../definitions/define-module.js';
-import type { ProviderEntries } from '../definitions/provider-literal.js';
-import type { Class } from '../definitions/types.js';
+  type ProviderEntries,
+} from '@nexusdi/core';
+
 import { assertStandard } from './legacy.js';
 
 /**
@@ -15,6 +14,8 @@ export type ModuleDecoratorConfig = Omit<ModuleConfig, 'name'> & {
   readonly options?: never;
   readonly schema?: never;
 };
+
+type Class = abstract new (...args: never) => unknown;
 
 /**
  * Sugar for defineModule, named after the class. `providers` gets the
@@ -27,15 +28,12 @@ export function Module<const P extends readonly unknown[] = []>(
 ): (target: Class, context: ClassDecoratorContext) => void {
   return (target, context) => {
     assertStandard(context, 'Module');
-    registerModuleClass(
-      target,
-      defineModule({
-        ...(config as ModuleDecoratorConfig),
-        // An empty name falls through too. When nothing reads a class's
-        // binding, Rollup drops it from tsc's emit, and then the class and its
-        // context both carry ''.
-        name: context.name || target.name || '(anonymous module)',
-      }),
-    );
+    declareModuleClass(target, {
+      ...(config as ModuleDecoratorConfig),
+      // An empty name falls through too. When nothing reads a class's
+      // binding, Rollup drops it from tsc's emit, and then the class and its
+      // context both carry ''.
+      name: context.name || target.name || '(anonymous module)',
+    });
   };
 }

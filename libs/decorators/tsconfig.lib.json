@@ -1,0 +1,36 @@
+{
+  "extends": "../../tsconfig.base.json",
+  "compilerOptions": {
+    "baseUrl": ".",
+    "rootDir": "src",
+    "outDir": "dist",
+    "tsBuildInfoFile": "dist/tsconfig.lib.tsbuildinfo",
+    "emitDeclarationOnly": false,
+    // importHelpers stays off (the tsconfig.base.json default). The decorators
+    // source applies no decorator and declares no `using`, so tsc emits no helper
+    // that would import tslib. scripts/verify-packaging.mjs checks the packed
+    // output for that, and tools/repo-checks/src/tslib-dependency.test.ts
+    // holds the setting against package.json.
+    "forceConsistentCasingInFileNames": true,
+    "types": ["node"],
+    // esnext.decorators types Symbol.metadata and the decorator contexts, and
+    // esnext.disposable types Symbol.asyncDispose and AsyncDisposable. Core's
+    // declarations, which this package's declarations import, use both.
+    "lib": ["es2022", "esnext.decorators", "esnext.disposable"],
+    "sourceMap": false,
+    "declarationMap": false,
+    "ignoreDeprecations": "6.0"
+  },
+  "include": ["src/**/*.ts"],
+  "references": [
+    { "path": "../core/tsconfig.lib.json" },
+    { "path": "../../tools/doc-examples" }
+  ],
+  "exclude": [
+    "vite.config.ts",
+    "vite.decorators.ts",
+    "src/**/*.test.ts",
+    "src/**/*.spec.ts",
+    "src/**/*.test-d.ts"
+  ]
+}

@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 
-import { defineModule, registerModuleClass } from './define-module.js';
+import { declareModuleClass, defineModule } from './define-module.js';
 import { isModuleRef, isToken } from './guards.js';
 import { MultiToken, Token } from './token.js';
 
@@ -13,7 +13,7 @@ describe('isToken', () => {
 
   it('rejects symbols, strings, arrow functions and module classes', () => {
     class Command {}
-    registerModuleClass(Command, defineModule({ name: 'Command' }));
+    declareModuleClass(Command, { name: 'Command' });
     expect(isToken(Symbol('x'))).toBe(false);
     expect(isToken('x')).toBe(false);
     expect(isToken(() => 1)).toBe(false);

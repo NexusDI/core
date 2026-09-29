@@ -9,7 +9,6 @@ import {
   InvalidModuleError,
   InvalidProviderError,
   InvalidTokenError,
-  LegacyDecoratorsError,
   LifetimeError,
   LoadedAfterScopeError,
   LoadError,
@@ -293,12 +292,6 @@ export const errorCases: readonly ErrorCase[] = [
     error: new DisposedError({ target: 'container' }),
     code: 'NEXUS_DISPOSED',
     fields: { target: 'container' },
-  },
-  {
-    name: 'LegacyDecoratorsError',
-    error: new LegacyDecoratorsError({ decorator: 'Injectable' }),
-    code: 'NEXUS_LEGACY_DECORATORS',
-    fields: { decorator: 'Injectable' },
   },
   {
     name: 'PluginError',

@@ -5,12 +5,9 @@ import ts from 'typescript';
 /**
  * The import rules of @nexusdi/core's layers (spec section 12).
  *
- * Each layer imports only from the layers below it. The two polyfills are
- * named on their own, because the decorator one must stay out of any bundle
- * that never imports a decorator, and the runtime needs only the disposal one.
- * A root file (index.ts) may import any layer but the metadata polyfill
- * (decorators/'s alone), so the same guarantee that keeps a decorator-free
- * bundle free of the polyfill holds for the public entry too.
+ * Each layer imports only from the layers below it. The disposal polyfill
+ * is named on its own, because only the runtime needs it. A root file
+ * (index.ts) may import any layer.
  */
 
 export interface SourceFileText {
@@ -33,12 +30,6 @@ const ALLOWED: Readonly<Record<string, readonly string[]>> = {
     'definitions/',
     'errors/',
     'polyfill/symbol-dispose.ts',
-  ],
-  decorators: [
-    'decorators/',
-    'definitions/',
-    'errors/',
-    'polyfill/symbol-metadata.ts',
   ],
   polyfill: [],
 };
@@ -90,19 +81,8 @@ export function layerViolations(files: readonly SourceFileText[]): string[] {
   const found: string[] = [];
   for (const file of files) {
     const layer = layerOf(file.path);
-    if (layer === null) {
-      // A root file (index.ts) may import any layer, except that the
-      // metadata polyfill is decorators/'s alone.
-      for (const specifier of specifiersOf(file)) {
-        const target = targetOf(file.path, specifier);
-        if (target === 'polyfill/symbol-metadata.ts') {
-          found.push(
-            `${file.path} imports polyfill/symbol-metadata.ts, which only decorators/ may import`,
-          );
-        }
-      }
-      continue;
-    }
+    // A root file (index.ts) may import any layer.
+    if (layer === null) continue;
     const allowed = ALLOWED[layer];
     if (allowed === undefined) {
       found.push(`${file.path} sits in ${layer}/, which is not a known layer`);

@@ -2,7 +2,7 @@
  * Tier 3: out of scope, documented. No test here asserts a defence. Each pins
  * what the container does, so nobody reads the behaviour as one.
  */
-import '../polyfill/symbol-metadata.js';
+import '../../test-support/symbol-metadata.js';
 
 import { describe, expect, it } from 'vitest';
 

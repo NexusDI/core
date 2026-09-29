@@ -1,6 +1,8 @@
 import { describe, expect, it } from 'vitest';
 
-import { Inject, Module, Nexus, Token, optional, provide } from '../index.js';
+import { Nexus, Token, optional, provide } from '@nexusdi/core';
+
+import { Inject, Module } from '../index.js';
 
 describe('R09', () => {
   it('injects every property when an earlier optional property has no provider', async () => {

@@ -2,12 +2,13 @@
  * Tier 1: hostile inputs the container prevents. One describe per entry of
  * libs/core/SECURITY.md, titled with its identifier.
  */
-import '../polyfill/symbol-metadata.js';
+import '../../test-support/symbol-metadata.js';
 
 import { describe, expect, it } from 'vitest';
 
 import { thrown } from '../../test-support/catch.js';
 import { compileErrors, idOf, visible } from '../../test-support/compile.js';
+import { declared } from '../../test-support/declared.js';
 import { viewRecorder } from '../../test-support/context.js';
 import { expectCoreLine } from '../../test-support/modes.js';
 import {
@@ -16,17 +17,14 @@ import {
   snapshotBuiltins,
 } from '../../test-support/security.js';
 import { compile } from '../blueprint/compile.js';
-import { registerModuleClass } from '../definitions/define-module.js';
+import { declareModuleClass } from '../definitions/define-module.js';
 import {
   INJECTABLE,
   PROPS,
-  appendProp,
-  writeInjectable,
+  declareClass,
+  declareProperty,
 } from '../definitions/metadata.js';
 import {
-  Inject,
-  Injectable,
-  Module,
   MultiToken,
   Nexus,
   Token,
@@ -386,12 +384,14 @@ describe('SEC-003 a polluted Object.prototype (CWE-1321)', () => {
     });
   });
 
-  it('keeps an @Injectable class a singleton when Object.prototype carries lifetime at decoration time', async () => {
+  it('keeps a declared class a singleton when Object.prototype carries lifetime at declaration time', async () => {
     const proto = Object.prototype as Record<string, unknown>;
     proto['lifetime'] = 'transient';
     try {
-      @Injectable({ deps: [] })
       class Reactor {}
+      const metadata = Object.create(null) as DecoratorMetadataObject;
+      declareClass(metadata, { deps: [] });
+      Object.defineProperty(Reactor, Symbol.metadata, { value: metadata });
       await using ship = await Nexus.create(
         defineModule({ name: 'Root', providers: [Reactor] }),
       );
@@ -401,13 +401,15 @@ describe('SEC-003 a polluted Object.prototype (CWE-1321)', () => {
     }
   });
 
-  it('builds an @Injectable class by its own arity when Object.prototype carries deps at decoration time', async () => {
+  it('builds a declared class by its own arity when Object.prototype carries deps at declaration time', async () => {
     const proto = Object.prototype as Record<string, unknown>;
     const HIJACKED = new Token<string>('Hijacked');
     proto['deps'] = [HIJACKED];
     try {
-      @Injectable({ lifetime: 'singleton' })
       class Reactor {}
+      const metadata = Object.create(null) as DecoratorMetadataObject;
+      declareClass(metadata, { lifetime: 'singleton' });
+      Object.defineProperty(Reactor, Symbol.metadata, { value: metadata });
       await using ship = await Nexus.create(
         defineModule({ name: 'Root', providers: [Reactor] }),
       );
@@ -445,15 +447,19 @@ describe('SEC-003 a polluted Object.prototype (CWE-1321)', () => {
     }
   });
 
-  it('keeps an @Module class local when Object.prototype carries global at decoration time', () => {
+  it('keeps a declared module class local when Object.prototype carries global at declaration time', () => {
     const proto = Object.prototype as Record<string, unknown>;
     proto['global'] = true;
     try {
       const { hidden, feature } = hiddenAndFeature();
-      @Module(hidden)
-      class Hidden {}
-      @Module(feature)
-      class Feature {}
+      const Hidden = declareModuleClass(class Hidden {}, {
+        name: 'Hidden',
+        ...hidden,
+      });
+      const Feature = declareModuleClass(class Feature {}, {
+        name: 'Feature',
+        ...feature,
+      });
       const bp = compile({
         root: defineModule({ name: 'Root', imports: [Hidden, Feature] }),
       });
@@ -525,12 +531,8 @@ describe('SEC-004 metadata and Object.prototype (CWE-1321)', () => {
 
   it('writes metadata as own keys of the metadata object and leaves Object.prototype alone', () => {
     const metadata = {} as DecoratorMetadataObject;
-    writeInjectable(metadata, { deps: [], lifetime: undefined });
-    appendProp(metadata, {
-      key: 'probe',
-      dep: optional(new Token<string>('Probe')),
-      set: () => undefined,
-    });
+    declareClass(metadata, { deps: [], lifetime: undefined });
+    declareProperty(metadata, 'probe', optional(new Token<string>('Probe')));
     expect(Object.getOwnPropertySymbols(metadata)).toEqual([INJECTABLE, PROPS]);
     expect(extraKeys('Object.prototype')).toEqual([]);
   });
@@ -562,14 +564,11 @@ describe('SEC-005 frozen classes (CWE-471)', () => {
     Object.freeze(Computer);
     Object.freeze(Computer.prototype);
     class Command {}
-    registerModuleClass(
-      Object.freeze(Command),
-      defineModule({
-        name: 'Command',
-        providers: [Reactor, provide(Computer, { deps: [Reactor] })],
-        exports: [Computer],
-      }),
-    );
+    declareModuleClass(Object.freeze(Command), {
+      name: 'Command',
+      providers: [Reactor, provide(Computer, { deps: [Reactor] })],
+      exports: [Computer],
+    });
     await using ship = await Nexus.create(Command);
     expect(ship.get(Computer).reactor).toBeInstanceOf(Reactor);
   });
@@ -633,7 +632,7 @@ describe('SEC-007 classes with a null prototype chain (CWE-754)', () => {
       constructor(readonly beacon: Beacon) {}
     }
     const metadata = Object.create(null) as DecoratorMetadataObject;
-    writeInjectable(metadata, { deps: [Beacon], lifetime: 'transient' });
+    declareClass(metadata, { deps: [Beacon], lifetime: 'transient' });
     Object.defineProperty(Relay, Symbol.metadata, { value: metadata });
     Object.setPrototypeOf(Beacon, null);
     Object.setPrototypeOf(Relay, null);
@@ -884,11 +883,10 @@ describe('SEC-011 no global writes (CWE-471)', () => {
   });
 });
 
-describe('SEC-004 decorator metadata and Object.prototype (CWE-1321)', () => {
-  it('keeps decorator metadata off Object and the built-ins for a class that extends Object', async () => {
+describe('SEC-004 declared metadata and Object.prototype (CWE-1321)', () => {
+  it('keeps class metadata off Object and the built-ins for a declared class that extends Object', async () => {
     const before = snapshotBuiltins();
-    @Injectable({ deps: [] })
-    class Direct extends Object {}
+    const Direct = declared(class Direct extends Object {}, { deps: [] });
     await using ship = await Nexus.create(
       defineModule({ name: 'Root', providers: [Direct] }),
     );
@@ -898,15 +896,26 @@ describe('SEC-004 decorator metadata and Object.prototype (CWE-1321)', () => {
   });
 });
 
-describe('SEC-005 frozen instances with decorators (CWE-471)', () => {
-  it('injects a property into an instance frozen in its constructor, through the accessor storage', async () => {
+describe('SEC-005 frozen instances with declared properties (CWE-471)', () => {
+  it('injects a property into an instance frozen in its constructor, through the private storage its access object sets', async () => {
     const CALLSIGN = new Token<string>('Callsign');
     class Bridge {
-      @Inject(CALLSIGN) accessor callsign!: string;
+      #callsign?: string;
+      static readonly access = {
+        set: (target: object, value: unknown) => {
+          (target as Bridge).#callsign = value as string;
+        },
+      };
       constructor() {
         Object.freeze(this);
       }
+      get callsign() {
+        return this.#callsign;
+      }
     }
+    const metadata = Object.create(null) as DecoratorMetadataObject;
+    declareProperty(metadata, 'callsign', CALLSIGN, Bridge.access);
+    Object.defineProperty(Bridge, Symbol.metadata, { value: metadata });
     await using ship = await Nexus.create(
       defineModule({
         name: 'Root',
@@ -918,14 +927,16 @@ describe('SEC-005 frozen instances with decorators (CWE-471)', () => {
   });
 });
 
-describe('SEC-011 no global writes with the decorators loaded (CWE-471)', () => {
-  it('leaves the built-ins unchanged across a decorated create and dispose', async () => {
+describe('SEC-011 no global writes with declared classes (CWE-471)', () => {
+  it('leaves the built-ins unchanged across a declared create and dispose', async () => {
     const before = snapshotBuiltins();
-    @Injectable({ deps: [] })
-    class Reactor {}
-    class Console {
-      @Inject(Reactor) accessor reactor!: Reactor;
-    }
+    const Reactor = declared(class Reactor {}, { deps: [] });
+    const Console = declared(
+      class Console {
+        reactor?: InstanceType<typeof Reactor>;
+      },
+      { props: [{ key: 'reactor', dep: Reactor }] },
+    );
     const ship = await Nexus.create(
       defineModule({ name: 'Root', providers: [Reactor, Console] }),
     );

@@ -2,8 +2,8 @@ import { describe, expect, it } from 'vitest';
 
 import { compileErrors } from '../../test-support/compile.js';
 import {
+  declareModuleClass,
   defineModule,
-  registerModuleClass,
 } from '../definitions/define-module.js';
 import { provide } from '../definitions/provide.js';
 import { MultiToken, Token } from '../definitions/token.js';
@@ -116,8 +116,8 @@ describe('compile', () => {
   it('reports NEXUS_MODULE_IMPORT_CYCLE with the full path', () => {
     class A {}
     class B {}
-    registerModuleClass(A, defineModule({ name: 'A', imports: [B] }));
-    registerModuleClass(B, defineModule({ name: 'B', imports: [A] }));
+    declareModuleClass(A, { name: 'A', imports: [B] });
+    declareModuleClass(B, { name: 'B', imports: [A] });
     expect(
       compileErrors(defineModule({ name: 'Root', imports: [A] })),
     ).toMatchObject([

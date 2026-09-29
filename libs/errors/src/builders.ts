@@ -10,7 +10,6 @@ import type {
   InvalidModuleError,
   InvalidProviderError,
   InvalidTokenError,
-  LegacyDecoratorsError,
   LifetimeError,
   LoadedAfterScopeError,
   LoadError,
@@ -291,12 +290,6 @@ const DISPOSED = {
 const disposed: Builder<DisposedError> = (error) =>
   text(`${DISPOSED[error.target]}.`);
 
-const legacyDecorators: Builder<LegacyDecoratorsError> = (error) =>
-  text(
-    `@${error.decorator} was called as a legacy decorator, and NexusDI's decorators are standard (TC39) decorators.\n` +
-      '  Fix: remove experimentalDecorators from tsconfig, or register the class with provide() and defineModule().',
-  );
-
 const PLUGIN_INVALID: Record<PluginInvalidReason, (detail: string) => string> =
   {
     'not-an-array': (d) => `is ${d}; plugins takes an array of plugin objects.`,
@@ -361,7 +354,6 @@ export const BUILDERS = {
   NEXUS_REQUEST_MISSING: requestMissing,
   NEXUS_LOADED_AFTER_SCOPE: loadedAfterScope,
   NEXUS_DISPOSED: disposed,
-  NEXUS_LEGACY_DECORATORS: legacyDecorators,
   NEXUS_PLUGIN_INVALID: plugin,
   NEXUS_PLUGIN_VERSION: plugin,
   NEXUS_PLUGIN_CONFLICT: plugin,

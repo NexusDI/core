@@ -20,7 +20,6 @@ export { InvalidExportError } from './invalid-export-error.js';
 export { InvalidModuleError } from './invalid-module-error.js';
 export { InvalidProviderError } from './invalid-provider-error.js';
 export { InvalidTokenError } from './invalid-token-error.js';
-export { LegacyDecoratorsError } from './legacy-decorators-error.js';
 export { LifetimeError, type ErrorLifetime } from './lifetime-error.js';
 export { LoadedAfterScopeError } from './loaded-after-scope-error.js';
 export { LoadError } from './load-error.js';

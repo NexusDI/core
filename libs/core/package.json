@@ -31,8 +31,6 @@
   "license": "MIT",
   "type": "module",
   "sideEffects": [
-    "./src/polyfill/symbol-metadata.ts",
-    "./dist/polyfill/symbol-metadata.js",
     "./src/polyfill/symbol-dispose.ts",
     "./dist/polyfill/symbol-dispose.js"
   ],
