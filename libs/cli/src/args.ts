@@ -121,5 +121,15 @@ export function parseCommand(argv: readonly string[], cwd: string): Command {
       '--load and --plugins need a module entry; a .json entry is a finished graph.',
       'Drop --load and --plugins, or pass the file that defines the root module.',
     );
+  for (const [flag, ref] of [
+    ...load.map((ref) => ['--load', ref] as const),
+    ...(plugins === null ? [] : [['--plugins', plugins] as const]),
+  ])
+    if (entryKind(ref) === 'json')
+      throw new CliError(
+        2,
+        `${flag} ${ref.shown}: ${flag} takes a module file, and a .json file holds no exports.`,
+        `Pass the .ts or .js file that exports it: ${flag} src/file.ts#Export`,
+      );
   return { kind: 'graph', entry, format, out, view, load, plugins };
 }
