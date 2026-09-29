@@ -6,7 +6,8 @@
     "dependency injection",
     "di",
     "nexusdi",
-    "typescript"
+    "typescript",
+    "decorators"
   ],
   "homepage": "https://github.com/NexusDI/core#readme",
   "bugs": {
