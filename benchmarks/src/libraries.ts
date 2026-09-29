@@ -5,6 +5,8 @@
 import { readFileSync } from 'node:fs';
 import { join } from 'node:path';
 
+import type { Configs } from '@nexusdi/toolchain-matrix/recipes';
+
 import type { LibraryId, Profile, Variant } from './schema.ts';
 
 export interface Claim {
@@ -45,16 +47,6 @@ export function readLibraries(): LibrariesFile {
   return JSON.parse(
     readFileSync(join(BENCHMARKS, 'libraries.json'), 'utf8'),
   ) as LibrariesFile;
-}
-
-/** Config file paths as the recipes take them, relative to a cell's directory. */
-export interface Configs {
-  rootDir: string;
-  tsconfig: string;
-  swcrc: string;
-  babelrc: string;
-  viteConfig: string;
-  denoConfig?: string;
 }
 
 /**

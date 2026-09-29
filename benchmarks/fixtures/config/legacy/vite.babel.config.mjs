@@ -1,13 +1,16 @@
+import { readFileSync } from 'node:fs';
+
 import babel from '@rolldown/plugin-babel';
 
 // The Vite migration guide's workaround for decorators: Babel runs over the
-// TypeScript sources first, with this profile's babel.config.json.
+// TypeScript sources first. The plugin loads no Babel config file, so this
+// passes it the profile's babel.config.json.
+const { presets, plugins } = JSON.parse(
+  readFileSync(new URL('./babel.config.json', import.meta.url), 'utf8'),
+);
+
 export default {
-  plugins: [
-    babel({
-      configFile: new URL('./babel.config.json', import.meta.url).pathname,
-    }),
-  ],
+  plugins: [babel({ presets, plugins })],
   build: { ssr: true, target: 'node22', minify: false },
   ssr: {
     external: [

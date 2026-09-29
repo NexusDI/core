@@ -1,0 +1,159 @@
+// Meridian-8 in NexusDI with @nexusdi/decorators (core spec D9): interface
+// tokens, @Injectable({ deps }) classes bound with provide(), and an
+// @Module class. A useClass binding sets the lifetime; the class's
+// @Injectable lifetime applies only to a class listed bare.
+// Docs: https://github.com/NexusDI/core#readme at this commit, read 2026-09-30.
+// Departures: none.
+import { Nexus, Token, provide } from '@nexusdi/core';
+import { Injectable, Module } from '@nexusdi/decorators';
+
+interface IReactorCore {
+  readonly kind: string;
+}
+interface IShipComputer {
+  readonly kind: string;
+  readonly reactor: IReactorCore;
+}
+interface IPowerRouter {
+  readonly kind: string;
+  readonly reactor: IReactorCore;
+}
+interface IShieldGrid {
+  readonly kind: string;
+  readonly router: IPowerRouter;
+}
+interface INavCharts {
+  readonly kind: string;
+}
+interface IBridge {
+  readonly kind: string;
+  readonly computer: IShipComputer;
+  readonly charts: INavCharts;
+  readonly shield: IShieldGrid;
+}
+interface ISurveyDrone {
+  readonly kind: string;
+  readonly computer: IShipComputer;
+}
+interface IFlightLog {
+  readonly kind: string;
+  readonly computer: IShipComputer;
+}
+
+const REACTOR = new Token<IReactorCore>('ReactorCore');
+const COMPUTER = new Token<IShipComputer>('ShipComputer');
+const POWER_ROUTER = new Token<IPowerRouter>('PowerRouter');
+const SHIELD_GRID = new Token<IShieldGrid>('ShieldGrid');
+const NAV_CHARTS = new Token<INavCharts>('NavCharts');
+const BRIDGE = new Token<IBridge>('Bridge');
+const DRONE = new Token<ISurveyDrone>('SurveyDrone');
+const FLIGHT_LOG = new Token<IFlightLog>('FlightLog');
+
+@Injectable({ deps: [] })
+class FusionReactor implements IReactorCore {
+  readonly kind = 'ReactorCore';
+}
+@Injectable({ deps: [REACTOR] })
+class QuantumComputer implements IShipComputer {
+  readonly kind = 'ShipComputer';
+  readonly reactor: IReactorCore;
+  constructor(reactor: IReactorCore) {
+    this.reactor = reactor;
+  }
+}
+@Injectable({ deps: [REACTOR] })
+class PowerRouter implements IPowerRouter {
+  readonly kind = 'PowerRouter';
+  readonly reactor: IReactorCore;
+  constructor(reactor: IReactorCore) {
+    this.reactor = reactor;
+  }
+}
+@Injectable({ deps: [POWER_ROUTER] })
+class ShieldGrid implements IShieldGrid {
+  readonly kind = 'ShieldGrid';
+  readonly router: IPowerRouter;
+  constructor(router: IPowerRouter) {
+    this.router = router;
+  }
+}
+@Injectable({
+  deps: [COMPUTER, NAV_CHARTS, SHIELD_GRID],
+  lifetime: 'singleton',
+})
+class Bridge implements IBridge {
+  readonly kind = 'Bridge';
+  readonly computer: IShipComputer;
+  readonly charts: INavCharts;
+  readonly shield: IShieldGrid;
+  constructor(
+    computer: IShipComputer,
+    charts: INavCharts,
+    shield: IShieldGrid,
+  ) {
+    this.computer = computer;
+    this.charts = charts;
+    this.shield = shield;
+  }
+}
+@Injectable({ deps: [COMPUTER] })
+class SurveyDrone implements ISurveyDrone {
+  readonly kind = 'SurveyDrone';
+  readonly computer: IShipComputer;
+  constructor(computer: IShipComputer) {
+    this.computer = computer;
+  }
+}
+@Injectable({ deps: [COMPUTER] })
+class FlightLog implements IFlightLog {
+  readonly kind = 'FlightLog';
+  readonly computer: IShipComputer;
+  constructor(computer: IShipComputer) {
+    this.computer = computer;
+  }
+}
+
+@Module({
+  providers: [
+    provide(REACTOR, { useClass: FusionReactor, lifetime: 'singleton' }),
+    provide(COMPUTER, { useClass: QuantumComputer, lifetime: 'singleton' }),
+    provide(POWER_ROUTER, { useClass: PowerRouter, lifetime: 'singleton' }),
+    provide(SHIELD_GRID, { useClass: ShieldGrid, lifetime: 'singleton' }),
+    provide(NAV_CHARTS, { useValue: { kind: 'NavCharts' } }),
+    provide(BRIDGE, { useClass: Bridge, lifetime: 'singleton' }),
+    provide(DRONE, { useClass: SurveyDrone, lifetime: 'transient' }),
+    provide(FLIGHT_LOG, { useClass: FlightLog, lifetime: 'scoped' }),
+  ],
+})
+class Meridian {}
+
+const TOKENS = {
+  bridge: BRIDGE,
+  computer: COMPUTER,
+  charts: NAV_CHARTS,
+  shield: SHIELD_GRID,
+  router: POWER_ROUTER,
+  reactor: REACTOR,
+  drone: DRONE,
+  flightLog: FLIGHT_LOG,
+};
+type Name = keyof typeof TOKENS;
+type Getter = { get(token: Token<unknown>): unknown };
+const view = (c: Getter) => ({
+  get: (name: Name) => c.get(TOKENS[name]) as { kind: string },
+});
+
+export const adapter = {
+  lifetimes: ['singleton', 'transient', 'scoped'] as const,
+  async ready() {
+    const ship = await Nexus.create(Meridian);
+    return Object.assign(view(ship), { ship });
+  },
+  async scope(handle: { ship: Nexus }) {
+    const scope = await handle.ship.createScope();
+    return Object.assign(view(scope), {
+      close: () => scope[Symbol.asyncDispose](),
+    });
+  },
+  dispose: (handle: { ship: Nexus }) => handle.ship[Symbol.asyncDispose](),
+};
