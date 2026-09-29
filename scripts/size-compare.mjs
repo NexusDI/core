@@ -22,16 +22,28 @@ export function compareSizes(base, head, body, threshold) {
   // Token (R22). There is nothing to compare core against, so the job
   // reports that and never fails on it. A base that does measure keeps the
   // ordinary growth rule; only a missing base figure skips it.
+  //
+  // The pull request's own head has no such excuse. A null head.core means
+  // core (or the fixture) failed to bundle in this pull request, and that
+  // fails the check unconditionally. It is not growth a `## Size` section
+  // could justify. Treating a missing figure as 0 read a broken build as
+  // core shrinking to nothing (fix round 1, reviewer finding).
   const baseHasCore = typeof base.core === 'number';
-  const growth = baseHasCore
-    ? ((head.core - base.core) / base.core) * 100
-    : null;
+  const headHasCore = typeof head.core === 'number';
+  const growth =
+    baseHasCore && headHasCore
+      ? ((head.core - base.core) / base.core) * 100
+      : null;
   const justified = /^## Size\b/m.test(body ?? '');
-  const fail = baseHasCore && growth > threshold && !justified;
-  const rows = [
-    baseHasCore
+  const fail =
+    !headHasCore || (baseHasCore && growth > threshold && !justified);
+  const coreRow = !headHasCore
+    ? `| core | ${baseHasCore ? base.core : 'no figure'} | no figure | | |`
+    : baseHasCore
       ? `| core | ${base.core} | ${head.core} | ${bytes(base.core, head.core)} | ${pct(base.core, head.core)} |`
-      : `| core | no figure | ${head.core} | | |`,
+      : `| core | no figure | ${head.core} | | |`;
+  const rows = [
+    coreRow,
     ...Object.keys(head.packages)
       .sort()
       .map((name) => {
@@ -39,17 +51,19 @@ export function compareSizes(base, head, body, threshold) {
         const now = head.packages[name];
         if (was === undefined) return `| @nexusdi/${name} | new | ${now} | | |`;
         if (was === null || now === null)
-          return `| @nexusdi/${name} | no figure | ${now} | | |`;
+          return `| @nexusdi/${name} | no figure | ${now ?? 'no figure'} | | |`;
         return `| @nexusdi/${name} | ${was} | ${now} | ${bytes(was, now)} | ${pct(was, now)} |`;
       }),
   ];
-  const verdict = !baseHasCore
-    ? 'The merge base has no figure for core: its API predates this fixture. Nothing to compare, so the check passes.'
-    : growth <= threshold
-      ? `Core grew ${growth.toFixed(2)}%, within the ${threshold}% threshold.`
-      : justified
-        ? `Core grew ${growth.toFixed(2)}%, over the ${threshold}% threshold; the description's Size section explains it.`
-        : `Core grew ${growth.toFixed(2)}%, over the ${threshold}% threshold. Add a \`## Size\` section to the pull request description that says what the added bytes give the user and why they cannot live in a plugin.`;
+  const verdict = !headHasCore
+    ? 'This pull request has no figure for core: it did not bundle against the fixture. Fix the build; a `## Size` section cannot justify a broken build.'
+    : !baseHasCore
+      ? 'The merge base has no figure for core: its API predates this fixture. Nothing to compare, so the check passes.'
+      : growth <= threshold
+        ? `Core grew ${growth.toFixed(2)}%, within the ${threshold}% threshold.`
+        : justified
+          ? `Core grew ${growth.toFixed(2)}%, over the ${threshold}% threshold; the description's Size section explains it.`
+          : `Core grew ${growth.toFixed(2)}%, over the ${threshold}% threshold. Add a \`## Size\` section to the pull request description that says what the added bytes give the user and why they cannot live in a plugin.`;
   const markdown = [
     MARKER,
     '### Size report',

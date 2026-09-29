@@ -79,4 +79,21 @@ describe('compareSizes', () => {
       '| @nexusdi/errors | no figure | 9000 | | |',
     );
   });
+
+  it('fails when the pull request itself has no figure for core, no matter what the base measures', () => {
+    // A pull request that breaks the fixture's own build (renames or drops
+    // an export examples/size/src/core.ts imports) must fail loudly, not
+    // read as core shrinking to nothing (base 17620, head null used to
+    // coerce to a -100% "growth" that always passed).
+    const head: Sizes = { core: null, packages: { errors: null } };
+    const result = compareSizes(
+      { core: 17_620, packages: { errors: 4336 } },
+      head,
+      '## Size\nThis explains growth, but there is none to explain.',
+      2,
+    );
+    expect(result.fail).toBe(true);
+    expect(result.markdown).not.toContain('null');
+    expect(result.markdown).toContain('| core | 17620 | no figure | | |');
+  });
 });
