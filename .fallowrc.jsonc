@@ -175,6 +175,11 @@
   // this workspace imports them directly, so fallow's static import tracing
   // cannot see the consumer and reports them as unused.
   "ignoreDependencies": [
+    // Optional peers of @nexusdi/cli. The cli's image tests spawn the built
+    // bin, which resolves them by path from the user's project
+    // (libs/cli/src/resolve.ts), so no import statement names either one.
+    "@viz-js/viz",
+    "@resvg/resvg-js",
     "@swc-node/register",
     "@swc/helpers",
     "eslint-config-prettier",
