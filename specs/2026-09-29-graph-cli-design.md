@@ -186,30 +186,35 @@ tries, in order:
    ordinary loader. tsx reads the project's `tsconfig.json` (paths, `.js` specifiers
    that name `.ts` files) and lowers standard decorators, so a `@nexusdi/decorators` app
    loads as it does under `tsx` itself.
-2. Node's built-in type stripping, when `process.features.typescript` is truthy (Node
-   22.18 and later, or an earlier 22.x run with `--experimental-strip-types`). This
-   covers erasable TypeScript whose relative imports name `.ts` files.
-3. Otherwise, exit 3:
+2. A direct `import()` of the entry. A loader the user registered by starting the CLI
+   under `node --import` loads it, and so does Node's built-in type stripping when
+   `process.features.typescript` is truthy (Node 22.18 and later, or an earlier 22.x
+   run with `--experimental-strip-types`). Stripping covers erasable TypeScript whose
+   relative imports name `.ts` files.
+3. When the import in step 2 fails with one of these codes, the CLI exits 3:
+   - `ERR_UNKNOWN_FILE_EXTENSION`: no loader and no type stripping.
+   - `ERR_UNSUPPORTED_TYPESCRIPT_SYNTAX`: an enum, a parameter property, a decorator.
+   - `ERR_MODULE_NOT_FOUND` for a specifier ending in `.js` whose `.ts` sibling exists.
 
 ```
-nexusdi: src/app.module.ts is TypeScript, and this Node cannot load it.
+nexusdi: src/app.module.ts is TypeScript that this Node cannot load (ERR_UNKNOWN_FILE_EXTENSION).
   Install tsx in the project: npm i -D tsx
 ```
 
-When step 2 fails with `ERR_UNSUPPORTED_TYPESCRIPT_SYNTAX` (an enum, a parameter
-property, a decorator) or with `ERR_MODULE_NOT_FOUND` for a `.js` specifier whose `.ts`
-sibling exists, the CLI exits 3 with the same install line, and names the syntax or the
-specifier.
+Any other error thrown by the import is the entry's own failure, exit 2 (section 3.2).
 
-The CLI calls `register()`. tsx's `tsImport()` loads the import
-graph under a namespaced URL, which would give the entry its own copy of
-`@nexusdi/core`, and core would reject every module as `NEXUS_INVALID_MODULE` with
-`otherCopy` set (core spec, the package split). A test pins this with a TypeScript
-fixture.
+The CLI resolves tsx from the entry's directory only, with no fallback to its own
+location: the loader for a project's code is the project's choice, and a user who wants
+no tsx gets none.
 
-A user whose project runs another loader (swc, ts-node) starts the CLI under it:
+The CLI calls `register()`. tsx's `tsImport()` loads the import graph under a namespaced
+URL, which would give the entry its own copy of `@nexusdi/core`, and core would reject
+every module as `NEXUS_INVALID_MODULE` with `otherCopy` set (core spec, the package
+split). A test pins this with a TypeScript fixture.
+
+A user whose project runs another loader (swc, ts-node) and has no tsx installed starts
+the CLI under it:
 `node --import @swc-node/register/esm-register node_modules/@nexusdi/cli/dist/bin.js graph ...`.
-The CLI imports the entry first, so a loader already registered wins before step 1.
 
 ### 4.3 One copy of core
 
@@ -227,9 +232,8 @@ nexusdi: @nexusdi/devtools 0.4.0 is required next to @nexusdi/cli 0.4.0; found n
   Install it: npm i -D @nexusdi/devtools@0.4.0
 ```
 
-The same resolve-from-project rule, falling back to the CLI's own location, finds tsx,
-`@viz-js/viz` and `@resvg/resvg-js`, so a one-off `npx` run uses what the project has
-installed.
+`@viz-js/viz` and `@resvg/resvg-js` resolve from the entry's directory first and then
+from the CLI's own location, so a one-off `npx` run uses what the project has installed.
 
 ## 5. Renderers
 
