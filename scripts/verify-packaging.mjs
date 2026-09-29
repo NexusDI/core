@@ -590,15 +590,32 @@ try {
   if (tslibProblems.length) throw new Error(tslibProblems.join('\n'));
   console.log('  ✓ tslib is declared by exactly the packages that import it');
 
-  // The @nexusdi/source condition must come first in every entry of every
-  // package, so node's default conditions never select source.
-  for (const [, name] of LIBS) {
-    const manifest = JSON.parse(
+  // Every optional package pins its peer dependency on core to core's
+  // version exactly (spec section 17), read from the packed manifests.
+  const packedManifest = (name) =>
+    JSON.parse(
       readFileSync(
         join(dir, 'node_modules', ...name.split('/'), 'package.json'),
         'utf8',
       ),
     );
+  const coreVersion = packedManifest('@nexusdi/core').version;
+  for (const [, name] of LIBS) {
+    if (name === '@nexusdi/core') continue;
+    const peer = packedManifest(name).peerDependencies?.['@nexusdi/core'];
+    if (peer !== coreVersion)
+      throw new Error(
+        `${name} peers on @nexusdi/core ${peer ?? '(none)'}; it must be exactly ${coreVersion}`,
+      );
+  }
+  console.log(
+    `  ✓ every optional package peers on @nexusdi/core ${coreVersion} exactly`,
+  );
+
+  // The @nexusdi/source condition must come first in every entry of every
+  // package, so node's default conditions never select source.
+  for (const [, name] of LIBS) {
+    const manifest = packedManifest(name);
     if (manifest.exports?.['.'] === undefined)
       throw new Error(`${name} has no "." entry in its exports map`);
     for (const [entry, target] of Object.entries(manifest.exports)) {

@@ -147,11 +147,11 @@ that too before the first release.
 
 ## In-workspace dependencies are pinned exactly
 
-`version.versionPrefix` is `""`, so a dependency between two packages in this
-workspace would be written as `"@nexusdi/other": "1.2.3"` rather than
-`^1.2.3`. There is only one published package today, so this has no visible
-effect yet, but it is what a second library plugs into without a config
-change: an exact pin never matches the next version, so
+`version.versionPrefix` is `""`, so nx writes a dependency between two
+packages in this workspace as an exact version, such as
+`"@nexusdi/core": "1.2.3"`, with no `^`. Each optional package, starting with
+`@nexusdi/errors`, declares its peer dependency on `@nexusdi/core` the same
+way. An exact pin never matches the next version, so
 `preserveMatchingDependencyRanges` never preserves it and nx rewrites it
 during the version step of the same run.
 
