@@ -8,6 +8,7 @@
     "@nexusdi/toolchain-matrix": "*",
     "@rollup/plugin-node-resolve": "16.0.3",
     "@rollup/plugin-terser": "1.0.0",
+    "esbuild": "0.28.2",
     "rollup": "4.63.4"
   },
   "nx": {
@@ -26,6 +27,14 @@
         "options": {
           "cwd": "benchmarks",
           "command": "node src/probes.ts"
+        }
+      },
+      "size": {
+        "executor": "nx:run-commands",
+        "cache": false,
+        "options": {
+          "cwd": "benchmarks",
+          "command": "node src/size.ts"
         }
       }
     }
