@@ -10,7 +10,8 @@ export interface GraphNote {
 /**
  * Reads the view and returns notes for its providers, for `devtools({ annotate })`
  * and `inspect(root, { annotate })`. A package can match the shape with no
- * import from @nexusdi/devtools.
+ * import from @nexusdi/devtools. An annotator that throws makes graph() or
+ * inspect() throw the same error object, unwrapped.
  */
 export type GraphAnnotator = (view: BlueprintView) => readonly GraphNote[];
 

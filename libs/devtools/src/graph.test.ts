@@ -2,7 +2,7 @@ import { describe, expect, it } from 'vitest';
 
 import { Nexus, Token, defineModule, lazy, provide } from '@nexusdi/core';
 
-import { rejected } from '../test-support/catch.js';
+import { rejected, thrown } from '../test-support/catch.js';
 import { fuelLineNotes } from '../test-support/third-party-annotator.js';
 import { devtools, graph, inspect, type GraphAnnotator } from './index.js';
 
@@ -272,6 +272,17 @@ describe('graph', () => {
       plugins: [devtools({ annotate: [shielding, crew, fuelLineNotes] })],
     });
     expect(notesOf(graph(ship).providers)).toEqual(BRIDGE_NOTES);
+  });
+
+  it("throws the annotator's own error to graph()'s caller", async () => {
+    const failure = new Error('annotator failed');
+    const failing: GraphAnnotator = () => {
+      throw failure;
+    };
+    const ship = await Nexus.create(Bridge, {
+      plugins: [devtools({ annotate: [failing] })],
+    });
+    expect(thrown(() => graph(ship))).toBe(failure);
   });
 });
 
