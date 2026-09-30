@@ -16,9 +16,16 @@ import { resolveRelative } from './entry-graph.js';
  * argument must be a `new X(...)` written at the call, or a call to a
  * package-local function whose every return is one. A `check` member must
  * be a function written there or a package-local function, with a named
- * second parameter. `report` and `format` (reached as `x.format`,
- * `x['format']` or a binding of either) may only be called. Anything else
- * fails unless the policy names the site with a reason.
+ * second parameter. `report` and `format` (reached as `context.format`,
+ * `context['format']` or a binding of either) may only be called.
+ *
+ * `format` counts only when it is read off a plugin context: the first
+ * parameter of a `setup` member, followed through bindings, destructures,
+ * object properties and package-local function parameters. A `setup` member
+ * must be a function the check can read, with a named first parameter. A
+ * context used any other way, such as passed to a function outside the
+ * package, fails, since the check can no longer see its `format`. Anything
+ * else fails unless the policy names the site with a reason.
  */
 
 /** One package's non-test sources, with paths relative to its src/. */
@@ -390,13 +397,16 @@ interface Handoff {
   readonly verb: 'reports' | 'formats';
 }
 
-/** A place `report` or `format` is used other than as a callee. */
+/**
+ * A place `report`, `format` or a plugin context is used other than as the
+ * check can follow.
+ */
 interface PassedOn {
   readonly node: ts.Node;
-  readonly name: 'report' | 'format';
+  readonly name: 'report' | 'format' | 'context';
 }
 
-/** A check hook the check cannot trace, with the text an allowance names. */
+/** A hook the check cannot trace, with the text an allowance names. */
 interface Untraced {
   readonly node: ts.Node;
   readonly argument: string;
@@ -442,7 +452,7 @@ function isNameOnly(node: ts.Identifier): boolean {
 function usesOf(
   scope: ts.Node,
   name: ts.Identifier,
-  kind: PassedOn['name'],
+  kind: 'report' | 'format',
   handoffs: Handoff[],
   passedOn: PassedOn[],
 ): void {
@@ -462,7 +472,7 @@ function usesOf(
 
 /**
  * True for an array literal or `Object.freeze` of one: a registry of hooks
- * held under a `check` key, which is never a hook itself.
+ * held under a hook's key, which is never a hook itself.
  */
 function isArrayValue(value: ts.Expression): boolean {
   const expr = unwrap(value);
@@ -481,22 +491,30 @@ function isArrayValue(value: ts.Expression): boolean {
 }
 
 /**
- * The function of an object literal member named `check`, or an Untraced
- * when the member's value is not a function the check can read.
+ * The function of an object literal member named `hook`, or an Untraced
+ * when the member's value is not a function the check can read. `setup`
+ * also counts as a member of a class.
  */
-function checkHook(
+function pluginHook(
   sources: Sources,
   node: ts.Node,
+  hook: 'check' | 'setup',
 ): FunctionNode | Untraced | undefined {
-  if (!ts.isObjectLiteralElementLike(node) || nameOf(node.name) !== 'check')
-    return undefined;
-  if (!ts.isObjectLiteralExpression(node.parent)) return undefined;
-  if (ts.isMethodDeclaration(node)) return node;
-  const value = ts.isPropertyAssignment(node)
-    ? node.initializer
-    : ts.isShorthandPropertyAssignment(node)
-      ? node.name
-      : undefined;
+  const inClass =
+    hook === 'setup' &&
+    (ts.isMethodDeclaration(node) || ts.isPropertyDeclaration(node)) &&
+    ts.isClassLike(node.parent);
+  if (!inClass && !ts.isObjectLiteralElementLike(node)) return undefined;
+  const member = node as ts.ObjectLiteralElementLike | ts.ClassElement;
+  if (nameOf(member.name) !== hook) return undefined;
+  if (!inClass && !ts.isObjectLiteralExpression(node.parent)) return undefined;
+  if (ts.isMethodDeclaration(member)) return member;
+  const value =
+    ts.isPropertyAssignment(member) || ts.isPropertyDeclaration(member)
+      ? member.initializer
+      : ts.isShorthandPropertyAssignment(member)
+        ? member.name
+        : undefined;
   if (value === undefined || isArrayValue(value)) return undefined;
   const fn = functionOf(sources, value);
   if (fn !== undefined) return fn;
@@ -504,8 +522,327 @@ function checkHook(
   return {
     node,
     argument: text,
-    message: `${at(node)} sets check to ${text}, which is neither a function written there nor a package-local function; write the hook as one, or allowlist the site with a reason`,
+    message: `${at(node)} sets ${hook} to ${text}, which is neither a function written there nor a package-local function; write the hook as one, or allowlist the site with a reason`,
   };
+}
+
+/**
+ * A type checker over one package's sources. It resolves local bindings and
+ * relative imports, and nothing outside the package.
+ */
+function checkerOf(sources: Sources): ts.TypeChecker {
+  const host: ts.CompilerHost = {
+    getSourceFile: (name) => sources.get(name),
+    fileExists: (name) => sources.has(name),
+    readFile: (name) => sources.get(name)?.text,
+    getDefaultLibFileName: () => 'lib.d.ts',
+    writeFile: () => undefined,
+    getCurrentDirectory: () => '',
+    getCanonicalFileName: (name) => name,
+    useCaseSensitiveFileNames: () => true,
+    getNewLine: () => '\n',
+  };
+  return ts
+    .createProgram({
+      rootNames: [...sources.keys()],
+      options: {
+        noLib: true,
+        noEmit: true,
+        types: [],
+        module: ts.ModuleKind.ESNext,
+        moduleResolution: ts.ModuleResolutionKind.Bundler,
+      },
+      host,
+    })
+    .getTypeChecker();
+}
+
+/** Where a package's plugin contexts go. */
+interface ContextFlow {
+  /** Member reads off a context: `context.x` or `context['x']`. */
+  readonly members: readonly (
+    ts.PropertyAccessExpression | ts.ElementAccessExpression
+  )[];
+  /** Object destructures of a context. */
+  readonly patterns: readonly ts.ObjectBindingPattern[];
+  /** Uses the check cannot follow, where a context may leave its sight. */
+  readonly escapes: readonly ts.Node[];
+}
+
+const PASS_THROUGH = new Set([
+  ts.SyntaxKind.QuestionQuestionToken,
+  ts.SyntaxKind.BarBarToken,
+  ts.SyntaxKind.AmpersandAmpersandToken,
+]);
+
+const ASSIGNS = new Set([
+  ts.SyntaxKind.EqualsToken,
+  ts.SyntaxKind.QuestionQuestionEqualsToken,
+  ts.SyntaxKind.BarBarEqualsToken,
+  ts.SyntaxKind.AmpersandAmpersandEqualsToken,
+]);
+
+/** Operators that read a context and yield something else. */
+const TESTS = new Set([
+  ts.SyntaxKind.EqualsEqualsEqualsToken,
+  ts.SyntaxKind.ExclamationEqualsEqualsToken,
+  ts.SyntaxKind.EqualsEqualsToken,
+  ts.SyntaxKind.ExclamationEqualsToken,
+  ts.SyntaxKind.InstanceOfKeyword,
+  ts.SyntaxKind.InKeyword,
+]);
+
+/**
+ * The outermost expression that carries `expr`'s value unchanged:
+ * parentheses, casts, `!`, `??`, `||`, `&&` and a conditional's branches.
+ */
+function carrierOf(expr: ts.Expression): ts.Expression {
+  for (;;) {
+    const parent = expr.parent;
+    const carries =
+      ts.isParenthesizedExpression(parent) ||
+      ts.isAsExpression(parent) ||
+      ts.isSatisfiesExpression(parent) ||
+      ts.isNonNullExpression(parent) ||
+      ts.isTypeAssertionExpression(parent) ||
+      (ts.isBinaryExpression(parent) &&
+        PASS_THROUGH.has(parent.operatorToken.kind)) ||
+      (ts.isConditionalExpression(parent) && parent.condition !== expr);
+    if (!carries) return expr;
+    expr = parent;
+  }
+}
+
+/** The name a member access reads, when it is written as a name or string. */
+function memberName(expr: ts.Expression): string | undefined {
+  if (ts.isPropertyAccessExpression(expr)) return expr.name.text;
+  if (
+    ts.isElementAccessExpression(expr) &&
+    ts.isStringLiteralLike(expr.argumentExpression)
+  )
+    return expr.argumentExpression.text;
+  return undefined;
+}
+
+/**
+ * Follows the contexts that `seeds` (setup hooks' first parameters) receive
+ * through the package: into bindings assigned from them, destructures of
+ * them, object properties that hold them, and the parameters of
+ * package-local functions they are passed to. A property that holds a
+ * context is tracked by name, so every read of that name counts as one.
+ */
+function contextFlow(
+  sources: Sources,
+  seeds: readonly ts.ParameterDeclaration[],
+): ContextFlow {
+  const checker = checkerOf(sources);
+  const symbols = new Set<ts.Symbol>();
+  const props = new Set<string>();
+  const members = new Set<
+    ts.PropertyAccessExpression | ts.ElementAccessExpression
+  >();
+  const patterns = new Set<ts.ObjectBindingPattern>();
+  const escapes = new Set<ts.Node>();
+  const resolved = (symbol: ts.Symbol | undefined) =>
+    symbol !== undefined && symbol.flags & ts.SymbolFlags.Alias
+      ? checker.getAliasedSymbol(symbol)
+      : symbol;
+  const bind = (name: ts.BindingName, site: ts.Node): void => {
+    if (ts.isIdentifier(name)) {
+      const symbol = resolved(checker.getSymbolAtLocation(name));
+      if (symbol !== undefined) symbols.add(symbol);
+      return;
+    }
+    if (ts.isArrayBindingPattern(name)) {
+      escapes.add(site);
+      return;
+    }
+    patterns.add(name);
+    for (const element of name.elements) {
+      if (element.dotDotDotToken !== undefined) bind(element.name, site);
+      else if (
+        nameOf(element.propertyName ?? (element.name as ts.Identifier)) ===
+        undefined
+      )
+        escapes.add(element);
+    }
+  };
+  const isReference = (node: ts.Node): node is ts.Expression => {
+    if (!ts.isIdentifier(node)) {
+      const name = ts.isExpression(node) ? memberName(node) : undefined;
+      return name !== undefined && props.has(name);
+    }
+    const parent = node.parent;
+    if (
+      isNameOnly(node) ||
+      ts.isImportClause(parent) ||
+      ts.isImportSpecifier(parent) ||
+      ts.isNamespaceImport(parent)
+    )
+      return false;
+    const symbol = ts.isShorthandPropertyAssignment(parent)
+      ? checker.getShorthandAssignmentValueSymbol(parent)
+      : checker.getSymbolAtLocation(node);
+    const target = resolved(symbol);
+    return target !== undefined && symbols.has(target);
+  };
+  const follow = (reference: ts.Expression): void => {
+    const expr = carrierOf(reference);
+    const parent = expr.parent;
+    if (
+      (ts.isPropertyAccessExpression(parent) ||
+        ts.isElementAccessExpression(parent)) &&
+      parent.expression === expr
+    ) {
+      if (memberName(parent) === undefined) escapes.add(parent);
+      else members.add(parent);
+      return;
+    }
+    if (ts.isVariableDeclaration(parent) && parent.initializer === expr)
+      return bind(parent.name, parent);
+    if (ts.isBinaryExpression(parent)) {
+      const kind = parent.operatorToken.kind;
+      if (parent.left === expr && ASSIGNS.has(kind)) return;
+      if (parent.right === expr && ASSIGNS.has(kind)) {
+        const target = unwrap(parent.left);
+        const symbol = ts.isIdentifier(target)
+          ? resolved(checker.getSymbolAtLocation(target))
+          : undefined;
+        const name = memberName(target);
+        if (symbol !== undefined) symbols.add(symbol);
+        else if (name !== undefined) props.add(name);
+        else escapes.add(expr);
+        return;
+      }
+      if (
+        TESTS.has(kind) ||
+        (kind === ts.SyntaxKind.CommaToken && parent.left === expr)
+      )
+        return;
+    }
+    if (
+      ts.isExpressionStatement(parent) ||
+      ts.isTypeOfExpression(parent) ||
+      ts.isVoidExpression(parent) ||
+      (ts.isPrefixUnaryExpression(parent) &&
+        parent.operator === ts.SyntaxKind.ExclamationToken) ||
+      ((ts.isIfStatement(parent) ||
+        ts.isWhileStatement(parent) ||
+        ts.isDoStatement(parent)) &&
+        parent.expression === expr) ||
+      ((ts.isForStatement(parent) || ts.isConditionalExpression(parent)) &&
+        parent.condition === expr)
+    )
+      return;
+    if (ts.isShorthandPropertyAssignment(parent)) {
+      props.add(parent.name.text);
+      return;
+    }
+    if (ts.isPropertyAssignment(parent) && parent.initializer === expr) {
+      const name = nameOf(parent.name);
+      if (name !== undefined) {
+        props.add(name);
+        return;
+      }
+    }
+    if (ts.isCallExpression(parent) && parent.arguments.includes(expr)) {
+      const index = parent.arguments.indexOf(expr);
+      const parameter = functionOf(sources, parent.expression)?.parameters[
+        index
+      ];
+      if (
+        parameter !== undefined &&
+        parameter.dotDotDotToken === undefined &&
+        !parent.arguments.slice(0, index).some(ts.isSpreadElement)
+      )
+        return bind(parameter.name, expr);
+    }
+    escapes.add(expr);
+  };
+
+  for (const seed of seeds) bind(seed.name, seed);
+  const nodes = allNodes(sources).map(([, node]) => node);
+  let known = -1;
+  while (known !== symbols.size + props.size) {
+    known = symbols.size + props.size;
+    for (const node of nodes) {
+      if (
+        ts.isBindingElement(node) &&
+        ts.isObjectBindingPattern(node.parent) &&
+        node.dotDotDotToken === undefined &&
+        props.has(
+          nameOf(node.propertyName ?? (node.name as ts.Identifier)) ?? '',
+        )
+      )
+        bind(node.name, node);
+      if (isReference(node)) follow(node);
+    }
+  }
+  return {
+    members: [...members],
+    patterns: [...patterns],
+    escapes: [...escapes],
+  };
+}
+
+/** Source order: by file, then by position. */
+function bySource(a: ts.Node, b: ts.Node): number {
+  const files = a
+    .getSourceFile()
+    .fileName.localeCompare(b.getSourceFile().fileName);
+  return files !== 0 ? files : a.getStart() - b.getStart();
+}
+
+/**
+ * The format handoffs of a package's plugin contexts. `format` counts only
+ * when it is read off a context the check follows from a setup hook; a
+ * context it loses sight of is passed on.
+ */
+function formatHandoffs(
+  sources: Sources,
+  seeds: readonly ts.ParameterDeclaration[],
+  handoffs: Handoff[],
+  passedOn: PassedOn[],
+): void {
+  if (seeds.length === 0) return;
+  const { members, patterns, escapes } = contextFlow(sources, seeds);
+  for (const node of escapes) passedOn.push({ node, name: 'context' });
+  // format through a member access: context.format(e),
+  // context['format'](e), const format = context.format, or format handed
+  // on as a value.
+  for (const access of members.filter(isFormatAccess)) {
+    let expr: ts.Expression = access;
+    while (
+      ts.isParenthesizedExpression(expr.parent) ||
+      ts.isAsExpression(expr.parent) ||
+      ts.isSatisfiesExpression(expr.parent) ||
+      ts.isNonNullExpression(expr.parent)
+    )
+      expr = expr.parent;
+    const parent = expr.parent;
+    if (ts.isCallExpression(parent) && parent.expression === expr)
+      handoffs.push({ call: parent, verb: 'formats' });
+    else if (
+      ts.isVariableDeclaration(parent) &&
+      parent.initializer === expr &&
+      ts.isIdentifier(parent.name)
+    )
+      usesOf(scopeOf(parent), parent.name, 'format', handoffs, passedOn);
+    else passedOn.push({ node: access, name: 'format' });
+  }
+  // format through a destructure: const { format } = context.
+  for (const pattern of patterns)
+    for (const element of pattern.elements) {
+      if (
+        element.dotDotDotToken !== undefined ||
+        nameOf(element.propertyName ?? (element.name as ts.Identifier)) !==
+          'format'
+      )
+        continue;
+      if (ts.isIdentifier(element.name))
+        usesOf(scopeOf(element), element.name, 'format', handoffs, passedOn);
+      else passedOn.push({ node: element, name: 'format' });
+    }
 }
 
 function handoffsOf(sources: Sources): {
@@ -517,33 +854,22 @@ function handoffsOf(sources: Sources): {
   const passedOn: PassedOn[] = [];
   const untraced: Untraced[] = [];
   const hooks = new Set<FunctionNode>();
+  const seeds = new Set<ts.ParameterDeclaration>();
   for (const [, node] of allNodes(sources)) {
-    // format through a member access: x.format(e), x['format'](e), or
-    // x.format handed on as a value.
-    if (isFormatAccess(node)) {
-      const parent = node.parent;
-      if (ts.isCallExpression(parent) && parent.expression === node)
-        handoffs.push({ call: parent, verb: 'formats' });
-      else if (!ts.isVariableDeclaration(parent))
-        passedOn.push({ node, name: 'format' });
+    const setup = pluginHook(sources, node, 'setup');
+    if (setup !== undefined && !('parameters' in setup)) untraced.push(setup);
+    else if (setup !== undefined) {
+      const [context] = setup.parameters;
+      if (context?.dotDotDotToken !== undefined) {
+        const text = context.getText();
+        untraced.push({
+          node: setup,
+          argument: text,
+          message: `${at(setup)} takes the plugin context as ${text}, which the check cannot follow; name the first parameter, or allowlist the site with a reason`,
+        });
+      } else if (context !== undefined) seeds.add(context);
     }
-    // format through a binding: const { format } = context, or
-    // const format = context.format.
-    const bound =
-      (ts.isBindingElement(node) &&
-        ts.isObjectBindingPattern(node.parent) &&
-        nameOf(node.propertyName ?? (node.name as ts.Identifier)) ===
-          'format') ||
-      (ts.isVariableDeclaration(node) &&
-        node.initializer !== undefined &&
-        isFormatAccess(unwrap(node.initializer)));
-    if (bound) {
-      const binding = node as ts.BindingElement | ts.VariableDeclaration;
-      if (ts.isIdentifier(binding.name))
-        usesOf(scopeOf(binding), binding.name, 'format', handoffs, passedOn);
-      else passedOn.push({ node, name: 'format' });
-    }
-    const hook = checkHook(sources, node);
+    const hook = pluginHook(sources, node, 'check');
     if (hook === undefined) continue;
     if (!('parameters' in hook)) {
       untraced.push(hook);
@@ -571,6 +897,10 @@ function handoffsOf(sources: Sources): {
     if (report !== undefined && ts.isIdentifier(report.name))
       usesOf(hook, report.name, 'report', handoffs, passedOn);
   }
+  formatHandoffs(sources, [...seeds], handoffs, passedOn);
+  handoffs.sort((a, b) => bySource(a.call, b.call));
+  passedOn.sort((a, b) => bySource(a.node, b.node));
+  untraced.sort((a, b) => bySource(a.node, b.node));
   return { handoffs, passedOn, untraced };
 }
 
@@ -650,7 +980,9 @@ export function textPlacement(
       : node.getText();
     excuse(
       siteAllowance(node, argument),
-      `${at(node)} passes ${name} on as a value, and the check cannot follow it; call ${name} where it is bound, or allowlist the site with a reason`,
+      name === 'context'
+        ? `${at(node)} passes the plugin context on as a value, and the check cannot follow it to its format calls; keep it in a binding or property the check can trace, or allowlist the site with a reason`
+        : `${at(node)} passes ${name} on as a value, and the check cannot follow it; call ${name} where it is bound, or allowlist the site with a reason`,
     );
   }
   for (const { node, argument, message } of untraced)

@@ -180,6 +180,24 @@ describe('textPlacement', () => {
     ]);
   });
 
+  it('ignores a format field on a value that is not a plugin context', () => {
+    expect(textPlacement(fixture('format-field'), EMPTY).violations).toEqual(
+      [],
+    );
+  });
+
+  it('follows the plugin context into a local function and a property, and fails closed where it escapes', () => {
+    expect(
+      textPlacement(fixture('sabotaged/context-escapes'), EMPTY).violations,
+    ).toEqual([
+      'plugin.ts:10 formats ACME_CACHE_MISS, built with inline text at plugin.ts:10; reported and formatted errors take their text from the pack',
+      'plugin.ts:45 formats ACME_CACHE_MISS, built with inline text at plugin.ts:45; reported and formatted errors take their text from the pack',
+      'plugin.ts:20 passes the plugin context on as a value, and the check cannot follow it to its format calls; keep it in a binding or property the check can trace, or allowlist the site with a reason',
+      'plugin.ts:33 sets setup to makeSetup(), which is neither a function written there nor a package-local function; write the hook as one, or allowlist the site with a reason',
+      'plugin.ts:37 takes the plugin context as ...args, which the check cannot follow; name the first parameter, or allowlist the site with a reason',
+    ]);
+  });
+
   it('lets an inline-text allowance cover its codes', () => {
     const allowance = {
       package: '@acme/cache',
