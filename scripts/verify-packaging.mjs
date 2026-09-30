@@ -64,6 +64,7 @@ let failed = false;
  */
 const CJS_CONSUMER = `'use strict';
 const { Nexus, Token, defineModule, provide } = require('@nexusdi/core');
+const { coreText } = require('@nexusdi/core/text');
 const { createTestingContainer } = require('@nexusdi/testing');
 const { nodeScopes } = require('@nexusdi/node');
 const { errors } = require('@nexusdi/errors');
@@ -88,6 +89,8 @@ const Engineering = defineModule({
 });
 
 (async () => {
+  if (typeof coreText !== 'object' || coreText === null)
+    throw new Error('require(esm): @nexusdi/core/text has no coreText');
   const ship = await Nexus.create(Engineering, {
     plugins: [errors()],
   });
@@ -208,6 +211,7 @@ import type {
   ResolveAll, SchemaIssue, Scope, StandardSchemaV1, Tokens,
   DepsMap, ResolvedDeps, UntypedFunctionMessage,
 } from '@nexusdi/core';
+import { coreText, layoutText } from '@nexusdi/core/text';
 import { Inject, Injectable, LegacyDecoratorsError, Module } from '@nexusdi/decorators';
 import type { ModuleDecoratorConfig } from '@nexusdi/decorators';
 import { nodeScopes } from '@nexusdi/node';
@@ -337,6 +341,14 @@ function check(ok: boolean, what: string): void {
       error.errors[0]?.message.includes('Fix:') === true &&
       explain(error.errors[0]) !== undefined,
     '@nexusdi/errors formats a compile error',
+  );
+  const inner = error instanceof BlueprintError ? error.errors[0] : undefined;
+  const text = inner === undefined ? undefined : explain(inner);
+  check(
+    typeof coreText.NEXUS_MISSING_DEPS === 'function' &&
+      text !== undefined &&
+      layoutText(inner?.code ?? '', text) === inner?.message,
+    '@nexusdi/core/text lays out the text errors() wrote',
   );
 }
 
