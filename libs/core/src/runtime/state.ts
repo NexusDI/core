@@ -1,6 +1,7 @@
 import type { Blueprint } from '../blueprint/blueprint.js';
 import { sameToken, type Canonicalizer } from '../blueprint/views.js';
 import { DisposedError } from '../errors/index.js';
+import { HOOK_SITES } from '../definitions/hook-sites.js';
 import type { Nexus } from './nexus.js';
 import { Ownership, type OwnedEntry } from './ownership.js';
 import { NO_PLUGINS, type PluginSet } from './plugins.js';
@@ -31,6 +32,13 @@ export interface RootState {
   readonly asyncFlags: Map<string, boolean>;
   /** The plugins registered at create(). */
   readonly plugins: PluginSet;
+  /**
+   * Whether a transient build runs construct hooks or traces: a plugin has
+   * a construct or an observe hook. The tracer's sinks are the observe
+   * hooks, and both are fixed at create, so get() builds a transient with
+   * one check when no plugin needs either.
+   */
+  readonly buildHooks: boolean;
   /**
    * The canonicalizer of the plugins' tokenKey hooks, for the container's
    * life, so load(), get() and the views key a token as create did.
@@ -177,6 +185,7 @@ export interface RootInit {
 }
 
 export function createRootState(init: RootInit): RootState {
+  const plugins = init.plugins ?? NO_PLUGINS;
   const fields: Omit<RootState, 'root' | 'handle'> = {
     kind: 'root',
     scopeId: null,
@@ -188,7 +197,10 @@ export function createRootState(init: RootInit): RootState {
     ownership: new Ownership(),
     tracer: init.tracer,
     asyncFlags: new Map(),
-    plugins: init.plugins ?? NO_PLUGINS,
+    plugins,
+    buildHooks:
+      HOOK_SITES &&
+      (plugins.construct.length > 0 || plugins.observe.length > 0),
     canon: init.canon ?? sameToken,
     pluginsStarted: 0,
     initEnabled: init.initEnabled,
