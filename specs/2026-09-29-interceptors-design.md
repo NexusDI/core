@@ -246,7 +246,7 @@ Each entry gives the architect's proposal, the challenge, and the final call.
   entry for every class and factory provider into a `WeakMap<ProviderView,
 CompiledProvider>`: the compile record, whether the provider is the plugin's registry
   or guard, and whether global entries skip it (R11). A provider with nothing to wrap
-  gets a shared empty entry. `construct` reads the entry of the view it receives and the
+  maps to `null`. `construct` reads the entry of the view it receives and the
   session of the entry's compile. A `create`'s record starts with no session, and its
   first build, always the guard's (a singleton with no deps), claims the plugin object
   and opens it. A `load` runs inside the one live container, so its record joins that
@@ -372,7 +372,10 @@ wrapper throws the latter through `context.format`. `interceptorsText` from
 `errors({ text: [interceptorsText] })`. An error thrown where no container formatter
 runs carries its own text: the decorator's faults, `NOT_READY`, `UNCHECKED`, and the
 `construct` hook's `no-intercept`, binding `unknown-method`, frozen-function
-`bad-target` and `SHARED`. Core wraps a `construct` throw as a cause. An error an
+`bad-target` and `SHARED`. Core wraps a `construct` throw as a cause. A call-time
+`MISSING` or `bad-next` fault raised before `setup`, as from an `onInit`, finds no plugin
+context to format it, so it carries the same words as the pack, which both take from
+`call-text.ts`. An error an
 interceptor throws in the call path is never wrapped: the caller receives it as thrown.
 `next()` called with arguments that are not an array throws `NEXUS_INTERCEPTOR_INVALID`
 (`reason: 'bad-next'`).
@@ -682,6 +685,7 @@ libs/interceptors/
     check.ts              compile.check (5.4)
     plugin.ts             interceptors(): module, registry, construct, check
     text.ts               interceptorsText, the ./text entry (R13)
+    call-text.ts          the call-time MISSING and bad-next wording, shared by text.ts and proxy.ts (R13)
 ```
 
 Repository collateral, as for `@nexusdi/devtools`: the root `tsconfig.json` reference,
