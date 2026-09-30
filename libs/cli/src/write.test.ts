@@ -24,11 +24,32 @@ function slowStream(): Output & { chunks: unknown[]; done: boolean } {
   return stream;
 }
 
+function failingStream(code: string): Output {
+  return {
+    write(_chunk, callback) {
+      setTimeout(() =>
+        callback(Object.assign(new Error(`write ${code}`), { code })),
+      );
+      return false;
+    },
+  };
+}
+
 describe('writeTo', () => {
   it('resolves after the stream calls back', async () => {
     const stream = slowStream();
     await writeTo(stream, 'digraph {}\n');
     expect(stream.done).toBe(true);
+  });
+
+  it('resolves when the reader has closed the pipe', async () => {
+    await expect(writeTo(failingStream('EPIPE'), 'x')).resolves.toBeUndefined();
+  });
+
+  it('rejects for any other write error', async () => {
+    await expect(writeTo(failingStream('EIO'), 'x')).rejects.toMatchObject({
+      code: 'EIO',
+    });
   });
 });
 
@@ -44,6 +65,13 @@ describe('emit', () => {
       emit('x', '/no/such/dir/g.mmd', slowStream()),
     ).rejects.toMatchObject({
       exitCode: 2,
+    });
+  });
+
+  it('exits 2 when stdout cannot be written', async () => {
+    await expect(emit('x', null, failingStream('EIO'))).rejects.toMatchObject({
+      exitCode: 2,
+      message: 'cannot write to stdout: write EIO',
     });
   });
 
