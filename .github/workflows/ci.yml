@@ -188,6 +188,10 @@ jobs:
   # promises 22.12, where Node has no type stripping by default and tsx
   # loads through a different path, so the cli tests run there too. The test
   # target builds the libraries it needs on the same Node.
+  #
+  # The install runs on the .nvmrc Node: the npm that ships with 22.12 reads
+  # the lockfile's optional platform packages as missing and `npm ci` fails.
+  # A second setup-node then puts 22.12 first on PATH for the tests.
   cli-node-floor:
     runs-on: ubuntu-latest
     steps:
@@ -197,12 +201,16 @@ jobs:
 
       - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
         with:
-          node-version: 22.12.0
+          node-version-file: .nvmrc
           cache: 'npm'
 
       - run: npm ci
 
-      - run: npx nx run @nexusdi/cli:test
+      - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
+        with:
+          node-version: 22.12.0
+
+      - run: node --version && npx nx run @nexusdi/cli:test
 
   # Vitest's typecheck mode checks the type tests on the workspace's
   # TypeScript. This checks the same files on the supported floor (5.4) and
