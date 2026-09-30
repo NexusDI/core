@@ -55,7 +55,7 @@ export function graph(ship: Nexus): NexusGraph {
   const registered = CONTEXTS.get(ship);
   if (registered === undefined)
     throw new DevtoolsError(
-      {},
+      { code: 'NEXUS_DEVTOOLS_UNREGISTERED', path: null },
       {
         text: "graph() reads the container through devtools(), and this container was created without it.\n  Fix: register devtools() in Nexus.create's plugins: Nexus.create(Root, { plugins: [devtools()] }).",
       },

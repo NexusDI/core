@@ -93,6 +93,7 @@ describe('graph', () => {
           async: false,
           notes: [],
           implementation: 'ReactorCore',
+          internal: false,
         },
         {
           id: 'p1',
@@ -104,6 +105,7 @@ describe('graph', () => {
           async: false,
           notes: [],
           implementation: 'ShipComputer',
+          internal: false,
         },
         {
           id: 'p2',
@@ -115,6 +117,7 @@ describe('graph', () => {
           async: true,
           notes: [],
           implementation: null,
+          internal: false,
         },
         {
           id: 'p3',
@@ -126,6 +129,7 @@ describe('graph', () => {
           async: null,
           notes: [],
           implementation: null,
+          internal: false,
         },
         {
           id: 'p4',
@@ -137,6 +141,7 @@ describe('graph', () => {
           async: false,
           notes: [],
           implementation: 'SubspaceLink',
+          internal: false,
         },
         {
           id: 'request',
@@ -148,6 +153,7 @@ describe('graph', () => {
           async: false,
           notes: [],
           implementation: null,
+          internal: true,
         },
       ],
       edges: [

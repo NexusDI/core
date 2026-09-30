@@ -1,6 +1,7 @@
 import { readFile } from 'node:fs/promises';
 import { join } from 'node:path';
 
+import { isNexusError } from '@nexusdi/core';
 import type { NexusGraph } from '@nexusdi/devtools';
 
 import type { GraphCommand } from './args.js';
@@ -8,7 +9,6 @@ import { CliError } from './cli-error.js';
 import { loadDevtools, type DevtoolsApi } from './devtools.js';
 import { entryKind, type EntryRef } from './entry.js';
 import { pickExport, type ExportUse } from './exports.js';
-import { parseGraphJson } from './graph-json.js';
 import { importEntry, prepareLoader } from './load.js';
 
 export interface GraphResult {
@@ -18,11 +18,48 @@ export interface GraphResult {
   readonly from: string;
 }
 
-/** The NEXUS_ code a core error carries, or null for any other error. */
-function nexusCode(error: unknown): string | null {
-  const code =
-    error instanceof Error ? (error as { code?: unknown }).code : undefined;
-  return typeof code === 'string' && code.startsWith('NEXUS_') ? code : null;
+/**
+ * The CliError for an error inspect() threw, or null for an error the CLI
+ * does not classify. Any NexusError is classified, a third party's included.
+ */
+export function inspectFailure(error: unknown): CliError | null {
+  if (!isNexusError(error)) return null;
+  if (isNexusError(error, 'NEXUS_BLUEPRINT_INVALID'))
+    return new CliError(1, error.message);
+  // Core throws some input errors before it compiles, such as an object
+  // root with keys other than providers, imports and exports. The input is
+  // wrong and no graph was checked, so exit 2. Core's message ends in its
+  // Fix line.
+  return new CliError(2, error.message);
+}
+
+/**
+ * The NexusGraph in a .json file's text. The project's devtools checks the
+ * schema. Throws CliError 2 for text that is not JSON or not a NexusGraph.
+ */
+function readGraph(
+  text: string,
+  shown: string,
+  devtools: DevtoolsApi,
+): NexusGraph {
+  let value: unknown;
+  try {
+    value = JSON.parse(text);
+  } catch (error) {
+    throw new CliError(
+      2,
+      `${shown} is not JSON: ${(error as Error).message}`,
+      'Write the file with JSON.stringify(graph(ship)) from @nexusdi/devtools.',
+    );
+  }
+  try {
+    return devtools.parseGraph(value);
+  } catch (error) {
+    // devtools' message ends in its Fix line.
+    if (isNexusError(error))
+      throw new CliError(2, `${shown}: ${error.message}`);
+    throw error;
+  }
 }
 
 export async function graphFor(
@@ -43,7 +80,11 @@ export async function graphFor(
         'Pass a file written with JSON.stringify(graph(ship)).',
       );
     }
-    return { graph: parseGraphJson(text, command.entry.shown), devtools, from };
+    return {
+      graph: readGraph(text, command.entry.shown, devtools),
+      devtools,
+      from,
+    };
   }
 
   const refs = [
@@ -92,14 +133,6 @@ export async function graphFor(
     });
     return { graph, devtools, from: command.entry.path };
   } catch (error) {
-    const code = nexusCode(error);
-    if (code === 'NEXUS_BLUEPRINT_INVALID')
-      throw new CliError(1, (error as Error).message);
-    // Core throws some input errors before it compiles, such as an object
-    // root with keys other than providers, imports and exports. The input is
-    // wrong and no graph was checked, so exit 2. Core's message ends in its
-    // Fix line.
-    if (code !== null) throw new CliError(2, (error as Error).message);
-    throw error;
+    throw inspectFailure(error) ?? error;
   }
 }

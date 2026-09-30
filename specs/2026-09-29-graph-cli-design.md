@@ -29,10 +29,10 @@ What is missing, and what this spec adds:
 
 Two additions, in two packages:
 
-| Package              | Adds                                                                                                                                                           | Runs in                       |
-| -------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------- | ----------------------------- |
-| `@nexusdi/devtools`  | `toDot(graph, options?)`, `toMermaid(graph, options?)`, the `RenderOptions` and `GraphView` types, and an `implementation` field on each `NexusGraph` provider | any runtime, browser included |
-| `@nexusdi/cli` (new) | the `nexusdi` bin; no library export                                                                                                                           | Node only                     |
+| Package              | Adds                                                                                                                                                                                                                                      | Runs in                       |
+| -------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ----------------------------- |
+| `@nexusdi/devtools`  | `toDot(graph, options?)`, `toMermaid(graph, options?)`, `parseGraph(value)`, the `RenderOptions` and `GraphView` types, the `NEXUS_DEVTOOLS_GRAPH_INVALID` code, and `implementation` and `internal` fields on each `NexusGraph` provider | any runtime, browser included |
+| `@nexusdi/cli` (new) | the `nexusdi` bin; no library export                                                                                                                                                                                                      | Node only                     |
 
 Why the renderers live in `@nexusdi/devtools`:
 
@@ -144,11 +144,16 @@ is not an array exits 2.
 A `.json` entry is read as a `NexusGraph`, for instance one a running app wrote with
 `JSON.stringify(graph(ship))`. That graph carries `load()` modules and each factory's
 `async` result, which `inspect()` cannot know. `--load` and `--plugins` with a `.json`
-entry exit 2. The CLI checks the shape: `modules`, `providers` and `edges` arrays whose
-items carry the string ids and fields section 10.1 lists, and every edge endpoint names a
-provider. Ids take the shapes core writes: `m<n>` for a module, `p<n>` or `request` for a
-provider, each used once. A file that fails the check exits 2 and names the first bad
-path, such as `providers[3].module`.
+entry exit 2. The CLI parses the text itself, and a file that is not JSON exits 2 with
+the CLI's own line. The project's `@nexusdi/devtools` then checks the value with
+`parseGraph` (extension-principle spec, V5): `modules`, `providers` and `edges` arrays
+whose items carry the fields section 10.1 lists, each id used once across modules and
+providers, and every reference (an edge endpoint, a provider's module, a module's
+imports and exports) naming an entry that exists. Ids are opaque strings, so the check
+does not look at their shape. `parseGraph` throws `NEXUS_DEVTOOLS_GRAPH_INVALID`, whose
+`path` names the first bad field, such as `providers[3].module`. The CLI exits 2 for any
+NexusError `parseGraph` throws and prints `<file>: ` before devtools' message, which ends
+in its Fix line.
 
 ### 3.2 Import side effects
 
@@ -308,9 +313,10 @@ files, so a committed graph diffs cleanly in review.
   `style=dashed` for `optional` and `alias`, `style=dotted` for `lazy`, `style=bold` for
   `all`; Mermaid uses `-. optional .->`, `-. lazy .->`, `== all ==>` and `-- alias -->`.
 - Module imports are not drawn in this view; the modules view draws them.
-- Core lists its built-in `REQUEST` provider (id `request`) in every graph. Both views
-  leave it out, and out of the modules view's provider count, unless a provider depends
-  on it.
+- Each provider carries `internal: boolean`. `graphOf` sets it for core's built-in
+  `REQUEST` provider, by token, which core lists in every graph. Both views leave an
+  internal provider out, and out of the modules view's provider count, unless a drawn
+  provider depends on it. An edge is drawn only when both of its providers are drawn.
 
 ### 5.2 The modules view
 
@@ -323,15 +329,20 @@ files, so a committed graph diffs cleanly in review.
 Display names come from user code, so the renderers escape them:
 
 - DOT: every id and label is a double-quoted string; `\` and `"` are backslash-escaped
-  and a newline or carriage return in a name becomes `\n`. Node ids are the graph's `p0` and `m0` ids,
-  never a user string.
-- Mermaid: node ids are the graph's ids. Labels are double-quoted, and `"`, `#`, `<`,
+  and a newline or carriage return in a name becomes `\n`. Node ids are the graph's ids,
+  quoted, so a hand-written id cannot break out either.
+- Mermaid: Mermaid reads a bare node name as syntax, and a hand-written JSON graph can
+  carry any id, so `toMermaid` writes no graph id. It names the i-th module `m<i>` and
+  the i-th provider `p<i>`, and an id that no entry has `u<n>`. A live graph's names
+  match core's ids until `load()` adds modules. Labels are double-quoted, and `"`, `#`, `<`,
   `>`, `&` and `` ` `` become the entity codes `#quot;`, `#35;`, `#lt;`, `#gt;`, `#amp;`
   and `#96;`, so a name cannot close the label, inject markup or turn the label into a
   Markdown string. A newline or carriage return in a name becomes a space.
 
 A test feeds a token named `a"b#c<script>&\` through both renderers and pins the output,
-and another runs the Mermaid output through Mermaid's own parser.
+and another runs the Mermaid output through Mermaid's own parser. A third graph carries
+ids such as `end`, `a-->b`, `x;y` and a module id `p0`, through both renderers and the
+parser.
 
 ### 5.4 `implementation` on `NexusGraph`
 
@@ -347,6 +358,19 @@ implementation: string | null;
 `graphOf` reads it from `ProviderView.implementation?.name`. This is an additive field on
 a devtools type; core's `ProviderView` already carries the class. The core spec's
 section 10.1 listing on plan/core-0.4-engine carries the field.
+
+### 5.5 `internal` on `NexusGraph`
+
+The extension-principle spec (V4) adds one more provider field:
+
+```ts
+/** Plumbing every graph lists, such as core's REQUEST. */
+internal: boolean;
+```
+
+`graphOf` sets it to `p.token === REQUEST`. The renderers read the flag and never an id,
+and `--format json` output carries it. `parseGraph` requires both `implementation` and
+`internal`.
 
 ## 6. SVG and PNG
 

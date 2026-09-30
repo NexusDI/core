@@ -1,5 +1,6 @@
 import type { NexusGraph } from '../graph.js';
 import {
+  drawnEdges,
   drawnProviders,
   exportedIds,
   membersOf,
@@ -82,7 +83,7 @@ export function toDot(graph: NexusGraph, options: RenderOptions = {}): string {
         );
       lines.push('  }');
     }
-    for (const e of graph.edges)
+    for (const e of drawnEdges(graph, drawn))
       lines.push(`  ${quote(e.from)} -> ${quote(e.to)}${EDGE[e.kind]};`);
   }
   lines.push('}');

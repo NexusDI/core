@@ -1,4 +1,4 @@
-import type { BlueprintView } from '@nexusdi/core';
+import { REQUEST, type BlueprintView } from '@nexusdi/core';
 
 /** A line of text a plugin attaches to one provider in the graph. */
 export interface GraphNote {
@@ -53,6 +53,11 @@ export interface NexusGraph {
      * providers, and for an anonymous class.
      */
     implementation: string | null;
+    /**
+     * Plumbing every graph lists, such as core's REQUEST. toDot and
+     * toMermaid draw it only when a drawn provider depends on it.
+     */
+    internal: boolean;
   }>;
   edges: Array<{
     from: string;
@@ -117,6 +122,7 @@ export function graphOf(
         p.implementation === null || p.implementation.name === ''
           ? null
           : p.implementation.name,
+      internal: p.token === REQUEST,
     })),
     edges: view.edges.map((e) => ({ from: e.from, to: e.to, kind: e.kind })),
   };

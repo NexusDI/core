@@ -17,7 +17,7 @@ npx nexusdi graph src/meridian.module.ts#Meridian --view modules -f dot
 npx nexusdi graph src/meridian.module.ts#Meridian --load src/science.module.ts#Science
 ```
 
-The entry is `path#export`, or `path` for the default export (`path#default` names it too). A `#` inside the path stays part of the path, as in `d#x/app.module.ts`. Point it at the file that defines the root module; `nexusdi` imports that file, so a file that starts the app starts it. A `.json` file written with `JSON.stringify(graph(ship))` from a running app works as an entry too.
+The entry is `path#export`, or `path` for the default export (`path#default` names it too). A `#` inside the path stays part of the path, as in `d#x/app.module.ts`. Point it at the file that defines the root module; `nexusdi` imports that file, so a file that starts the app starts it. A `.json` file written with `JSON.stringify(graph(ship))` from a running app works as an entry too. The project's `@nexusdi/devtools` checks it with `parseGraph`, and a file that is not a graph exits 2 with devtools' `NEXUS_DEVTOOLS_GRAPH_INVALID` text.
 
 | Option                    | Meaning                                                                                      |
 | ------------------------- | -------------------------------------------------------------------------------------------- |
@@ -47,7 +47,7 @@ With Graphviz installed, `nexusdi graph src/meridian.module.ts -f dot | dot -Tpn
 | ---- | ----------------------------------------------------------------------------------- |
 | 0    | The graph was written.                                                              |
 | 1    | The graph is invalid. stderr holds the `BlueprintError` text.                       |
-| 2    | The command or its input is wrong.                                                  |
+| 2    | The command or its input is wrong, such as a `.json` entry that is not a graph.     |
 | 3    | Something is missing: tsx, `@nexusdi/devtools`, `@viz-js/viz` or `@resvg/resvg-js`. |
 
 A CI job can run `nexusdi graph src/meridian.module.ts -f json -o graph.json`: it fails exactly when the graph is invalid.
