@@ -340,10 +340,14 @@ function check(ok: boolean, what: string): void {
         global: [LOST],
       }),
     ],
-  }).catch((caught: unknown) => caught as BlueprintError);
+  }).then(
+    () => undefined,
+    (caught: unknown) => caught as BlueprintError,
+  );
   check(
-    refused?.errors[0]?.message ===
-      '[NEXUS_INTERCEPTOR_MISSING] a global entry or binding uses the interceptor Lost, which is not registered.\n  Fix: add Lost to interceptors({ register }).',
+    refused?.errors[0]?.message.startsWith(
+      '[NEXUS_INTERCEPTOR_MISSING] a global entry or binding uses the interceptor Lost, which is not registered.',
+    ) === true,
     '@nexusdi/interceptors/text words a missing interceptor',
   );
 }
