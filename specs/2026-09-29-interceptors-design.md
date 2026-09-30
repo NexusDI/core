@@ -81,7 +81,7 @@ await using ship = await Nexus.create(Billing, {
 | P3 module system               | Interceptors are providers in a module the plugin contributes. Their deps come from its `imports` and from global modules, under core's encapsulation rules.                               |
 | P4 forRoot config              | `interceptors({ register, providers, imports, global, bindings, exempt })` is the one configuration call. `compile.check` reports each fault in it with the graph's other errors.          |
 | P5 developer-friendly          | Missing interceptors show in the same `BlueprintError` as wiring errors; `@nexusdi/testing` overrides an interceptor like any provider; `tap()` covers sync and async methods in one call. |
-| P6 lightweight                 | Core gains 0 bytes from the package. The package measures 4,388 B gzip (section 8). Its reported errors' text is the opt-in `@nexusdi/interceptors/text` pack, 1,153 B.                    |
+| P6 lightweight                 | Core gains 0 bytes from the package. The package measures 4,633 B gzip (section 8). Its reported errors' text is the opt-in `@nexusdi/interceptors/text` pack, 1,181 B.                    |
 | P7 class and factory providers | Interceptors can be class, factory or value providers. Class and factory services are intercepted.                                                                                         |
 | P8 async core                  | Async methods keep their promise contract; interceptors are built at `create`.                                                                                                             |
 | P9 TS 7                        | Standard decorators only; the static form needs no decorator at all.                                                                                                                       |
@@ -646,16 +646,17 @@ Closing twice is harmless.
 
 - Core: 0 bytes from this package. The `container` parameter it uses (D1) grew core from
   18,317 B to 18,446 B gzip.
-- `@nexusdi/interceptors`: 4,388 B gzip for the plugin, the proxy and `tap`, measured
+- `@nexusdi/interceptors`: 4,633 B gzip for the plugin, the proxy and `tap`, measured
   by `scripts/size-report.mjs` over `examples/size/src/interceptors.ts` with the method
   of core section 12.4. The first cut measured 3,752 B, of which about 0.9 KB was
   inline error text. The session lifecycle fix (R9, section 6), the exemption checks
   (R11) and keying sessions per container took it to 4,313 B with no text of its own.
   The text of the errors thrown where no container formats them (R13) took it to
-  4,782 B, and keying compiles by provider view (R9, V15) brought it to 4,388 B. The
+  4,782 B, and keying compiles by provider view (R9, V15) brought it to 4,388 B. The text of a call-time fault raised before `setup` (R13) took
+  it to 4,633 B. The
   draft's 1.4 to 1.9 KB estimate did not count the compile checks or the frozen object
   path.
-- `@nexusdi/interceptors/text`: 1,153 B gzip, measured over
+- `@nexusdi/interceptors/text`: 1,181 B gzip, measured over
   `examples/size/src/interceptors-text.ts`. An app pays it only when it imports the
   subpath to register `errors({ text: [interceptorsText] })`. `@nexusdi/errors` carries
   no interceptor text.
@@ -759,7 +760,7 @@ registers with `errors({ text: [interceptorsText] })`. Errors thrown where no co
 formats them carry their own text. Why: text lives with the package that raises it, so a
 pack cannot drift from its error fields, and `@nexusdi/errors` stays the engine for every
 package. Consequence: `errors()` and `devtools()` carry no interceptor text, the pack
-costs 1,153 B gzip only for apps that import it, and an app that leaves it out sees core's
+costs 1,181 B gzip only for apps that import it, and an app that leaves it out sees core's
 one line with the docs link.
 
 The exemption rule of R11, with the `unexempted-dep`, `unused-exempt` and
