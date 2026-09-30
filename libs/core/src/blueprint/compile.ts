@@ -28,6 +28,7 @@ import { computeLevels } from './levels.js';
 import { checkLifetimes } from './lifetimes.js';
 import { cyclePath, findCycles, successorsOf } from './tarjan.js';
 import {
+  adoptView,
   buildView,
   rememberFailedView,
   sameToken,
@@ -251,7 +252,7 @@ export function compile(input: CompileInput): Blueprint {
     ),
   ];
 
-  return Object.freeze({
+  const bp: Blueprint = Object.freeze({
     root,
     modules: new Map(walked.modules.map((m) => [m.id, m])),
     moduleByDefinition: walked.byDefinition,
@@ -272,4 +273,6 @@ export function compile(input: CompileInput): Blueprint {
     replacedModules,
     rewrittenBy,
   });
+  if (view !== undefined) adoptView(bp, view);
+  return bp;
 }

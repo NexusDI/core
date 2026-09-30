@@ -181,6 +181,7 @@ export function buildView(
 }
 
 const VIEWS = new WeakMap<Blueprint, BlueprintView>();
+const PROVIDER_VIEWS = new WeakMap<Blueprint, Map<string, ProviderView>>();
 const FAILED = new WeakMap<BlueprintError, BlueprintView>();
 
 /**
@@ -224,4 +225,31 @@ export function rememberFailedView(
 /** The view of the compile that threw `error`, when a plugin asked for one. */
 export function failedView(error: BlueprintError): BlueprintView | undefined {
   return FAILED.get(error);
+}
+
+/**
+ * Keeps the check view's provider views for `bp`, so construct hooks receive
+ * the objects the compile's check hooks saw (spec §3.10.3). The rest of the
+ * view is dropped.
+ */
+export function adoptView(bp: Blueprint, view: BlueprintView): void {
+  PROVIDER_VIEWS.set(bp, new Map(view.providers.map((p) => [p.id, p])));
+}
+
+/** The view construct hooks receive: one frozen object per provider per blueprint. */
+export function providerViewIn(
+  bp: Blueprint,
+  record: ProviderRecord,
+): ProviderView {
+  let views = PROVIDER_VIEWS.get(bp);
+  if (views === undefined) {
+    views = new Map();
+    PROVIDER_VIEWS.set(bp, views);
+  }
+  let view = views.get(record.id);
+  if (view === undefined) {
+    view = providerView(record, bp.rewrittenBy.get(record.id) ?? null);
+    views.set(record.id, view);
+  }
+  return view;
 }

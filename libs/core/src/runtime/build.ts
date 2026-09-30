@@ -5,7 +5,7 @@ import {
   type ProviderRecord,
 } from '../blueprint/blueprint.js';
 import { pluginFailed } from '../blueprint/hooks.js';
-import { providerView, type ProviderView } from '../blueprint/views.js';
+import { providerViewIn } from '../blueprint/views.js';
 import { HOOK_SITES } from '../definitions/hook-sites.js';
 import { unreachable } from '../definitions/unreachable.js';
 import {
@@ -206,23 +206,6 @@ export function construct(record: ProviderRecord, ctx: Ctx): unknown {
       }
     },
   );
-}
-
-const PROVIDER_VIEWS = new WeakMap<Blueprint, Map<string, ProviderView>>();
-
-/** The view construct hooks receive: one frozen object per provider per blueprint. */
-function providerViewIn(bp: Blueprint, record: ProviderRecord): ProviderView {
-  let views = PROVIDER_VIEWS.get(bp);
-  if (views === undefined) {
-    views = new Map();
-    PROVIDER_VIEWS.set(bp, views);
-  }
-  let view = views.get(record.id);
-  if (view === undefined) {
-    view = providerView(record, bp.rewrittenBy.get(record.id) ?? null);
-    views.set(record.id, view);
-  }
-  return view;
 }
 
 /** The ProviderError a failing construct hook raises, as a failing constructor would. */
