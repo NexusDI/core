@@ -461,6 +461,26 @@ function usesOf(
 }
 
 /**
+ * True for an array literal or `Object.freeze` of one: a registry of hooks
+ * held under a `check` key, which is never a hook itself.
+ */
+function isArrayValue(value: ts.Expression): boolean {
+  const expr = unwrap(value);
+  if (ts.isArrayLiteralExpression(expr)) return true;
+  const [argument] = ts.isCallExpression(expr) ? expr.arguments : [];
+  return (
+    ts.isCallExpression(expr) &&
+    expr.arguments.length === 1 &&
+    argument !== undefined &&
+    ts.isArrayLiteralExpression(unwrap(argument)) &&
+    ts.isPropertyAccessExpression(expr.expression) &&
+    ts.isIdentifier(expr.expression.expression) &&
+    expr.expression.expression.text === 'Object' &&
+    expr.expression.name.text === 'freeze'
+  );
+}
+
+/**
  * The function of an object literal member named `check`, or an Untraced
  * when the member's value is not a function the check can read.
  */
@@ -477,7 +497,7 @@ function checkHook(
     : ts.isShorthandPropertyAssignment(node)
       ? node.name
       : undefined;
-  if (value === undefined) return undefined;
+  if (value === undefined || isArrayValue(value)) return undefined;
   const fn = functionOf(sources, value);
   if (fn !== undefined) return fn;
   const text = value.getText();

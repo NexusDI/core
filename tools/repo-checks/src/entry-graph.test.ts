@@ -52,9 +52,15 @@ describe('mainEntryOf', () => {
     );
   });
 
-  it('returns undefined for a package with no . source', () => {
-    expect(mainEntryOf({ './text': './src/text.ts' })).toBeUndefined();
-    expect(mainEntryOf(undefined)).toBeUndefined();
+  it('returns null for a package with no . export', () => {
+    expect(mainEntryOf({ './package.json': './package.json' })).toBeNull();
+    expect(mainEntryOf(undefined)).toBeNull();
+  });
+
+  it('throws for a . export without a @nexusdi/source file', () => {
+    expect(() => mainEntryOf({ '.': { default: './dist/index.js' } })).toThrow(
+      'exports . has no @nexusdi/source file',
+    );
   });
 });
 
@@ -134,7 +140,7 @@ describe('entryGraphViolations', () => {
       readFileSync(join(LIBS, dir, 'package.json'), 'utf8'),
     ) as { exports?: Record<string, unknown> };
     const entry = mainEntryOf(manifest.exports);
-    expect(entry, `libs/${dir} exports . without a source file`).toBeDefined();
+    if (entry === null) return;
     expect(
       entryGraphViolations(
         sourcesOf(join(LIBS, dir, 'src')),

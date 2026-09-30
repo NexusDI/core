@@ -50,22 +50,7 @@ const POLICY: TextPolicy = {
   ],
   // Sites the check cannot trace: report() and format() arguments, check
   // members, report and format handed on.
-  opaqueSites: [
-    {
-      package: '@nexusdi/core',
-      file: 'blueprint/hooks.ts',
-      argument: 'Object.freeze([])',
-      reason:
-        "NO_COMPILE_HOOKS: core's empty list of registered check hooks, which is no hook",
-    },
-    {
-      package: '@nexusdi/core',
-      file: 'runtime/plugins.ts',
-      argument: '[] as PluginHook<never>[]',
-      reason:
-        "the list core collects each plugin's check hook into, which is no hook",
-    },
-  ],
+  opaqueSites: [],
 };
 
 const EMPTY: TextPolicy = {
@@ -164,6 +149,14 @@ describe('textPlacement', () => {
   it('follows a check hook the plugin names by reference', () => {
     expect(
       textPlacement(fixture('sabotaged/hook-by-name'), EMPTY).violations,
+    ).toEqual([
+      'plugin.ts:10 reports ACME_CACHE_MISS, built with inline text at errors.ts:9; reported and formatted errors take their text from the pack',
+    ]);
+  });
+
+  it('ignores an array-valued check and inspects a compile object built apart', () => {
+    expect(
+      textPlacement(fixture('sabotaged/hook-lists'), EMPTY).violations,
     ).toEqual([
       'plugin.ts:10 reports ACME_CACHE_MISS, built with inline text at errors.ts:9; reported and formatted errors take their text from the pack',
     ]);

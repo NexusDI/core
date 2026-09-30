@@ -64,11 +64,18 @@ function underSrc(source: string): string {
   return posix.normalize(source).replace(/^src\//, '');
 }
 
-/** The main entry's source file, relative to src/: the `.` export's `@nexusdi/source`. */
-export function mainEntryOf(exports: unknown): string | undefined {
-  if (typeof exports !== 'object' || exports === null) return undefined;
+/**
+ * The main entry's source file, relative to src/: the `.` export's
+ * `@nexusdi/source`. Null for a package with no `.` export; throws for a `.`
+ * export without a source file, which the walk could not start from.
+ */
+export function mainEntryOf(exports: unknown): string | null {
+  if (typeof exports !== 'object' || exports === null || !('.' in exports))
+    return null;
   const source = sourceOf((exports as Record<string, unknown>)['.']);
-  return source === undefined ? undefined : underSrc(source);
+  if (source === undefined)
+    throw new Error('exports . has no @nexusdi/source file');
+  return underSrc(source);
 }
 
 /**
