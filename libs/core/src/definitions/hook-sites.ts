@@ -6,9 +6,12 @@
  * branches when it minifies, so a bundled app carries no check.
  *
  * Write a guard as `HOOK_SITES && x`, `HOOK_SITES ? x : y` or
- * `if (HOOK_SITES)`. esbuild folds those after it inlines the constant
- * across modules, and leaves `!HOOK_SITES || x` and `if (!HOOK_SITES)` in
- * the bundle as `!!0`.
+ * `if (HOOK_SITES && x) { ... }`. esbuild inlines the constant across
+ * modules and folds the first two, and an `if` whose body is one
+ * statement, to the branch that runs. An `if` with a block body stays in the
+ * `off` bundle as `if (!1) { ... }`, which never runs, and a negated guard
+ * such as `!HOOK_SITES || x` stays as `!!1 || x`. The dispatch completeness test
+ * checks the `off` bundle for the condition of every site.
  *
  * The assertion keeps TypeScript from narrowing the value to `true`, which
  * would mark every guard as an unnecessary condition.

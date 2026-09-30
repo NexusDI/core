@@ -246,24 +246,24 @@ async function runSetup(
   plugins: PluginSet,
   ship: Nexus,
 ): Promise<void> {
-  if (!(HOOK_SITES && plugins.setup.length > 0)) {
-    state.pluginsStarted = plugins.count;
+  if (HOOK_SITES && plugins.setup.length > 0) {
+    const context = pluginContext(state, ship);
+    let start!: (loop: Promise<void>) => void;
+    const work = new Promise<void>((resolve) => {
+      start = resolve;
+    });
+    track(state.inflight, work);
+    start(setupLoop(state, plugins, context));
+    try {
+      await work;
+    } catch (error) {
+      if (!(error instanceof SetupFailure)) throw error;
+      const disposalErrors = await abandonRoot(state);
+      throw pluginFailed(error.plugin, 'setup', error.error, disposalErrors);
+    }
     return;
   }
-  const context = pluginContext(state, ship);
-  let start!: (loop: Promise<void>) => void;
-  const work = new Promise<void>((resolve) => {
-    start = resolve;
-  });
-  track(state.inflight, work);
-  start(setupLoop(state, plugins, context));
-  try {
-    await work;
-  } catch (error) {
-    if (!(error instanceof SetupFailure)) throw error;
-    const disposalErrors = await abandonRoot(state);
-    throw pluginFailed(error.plugin, 'setup', error.error, disposalErrors);
-  }
+  state.pluginsStarted = plugins.count;
 }
 
 /**

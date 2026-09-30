@@ -279,35 +279,39 @@ export function applyConstruct(
 ): unknown {
   const { root } = container;
   if (
-    !(HOOK_SITES && root.plugins.construct.length > 0) ||
-    (record.kind !== 'class' && record.kind !== 'factory')
-  )
-    return instance;
-  const hooks = root.plugins.construct;
-  const view = providerViewIn(bp, record);
-  let current = instance;
-  for (const hook of hooks) {
-    let next: unknown;
-    try {
-      next = hook.call(current, view, container.scopeId, container.handle);
-    } catch (error) {
-      takeOwnership(root, owner, record, instance);
-      throw constructFailed(bp, record, hook.plugin, error);
+    HOOK_SITES &&
+    root.plugins.construct.length > 0 &&
+    (record.kind === 'class' || record.kind === 'factory')
+  ) {
+    const hooks = root.plugins.construct;
+    const view = providerViewIn(bp, record);
+    let current = instance;
+    for (const hook of hooks) {
+      let next: unknown;
+      try {
+        next = hook.call(current, view, container.scopeId, container.handle);
+      } catch (error) {
+        takeOwnership(root, owner, record, instance);
+        throw constructFailed(bp, record, hook.plugin, error);
+      }
+      if (next === undefined) continue;
+      if (isThenable(next)) {
+        observeRejection(next);
+        takeOwnership(root, owner, record, instance);
+        throw constructFailed(
+          bp,
+          record,
+          hook.plugin,
+          new TypeError(
+            'returned a thenable; a construct hook is synchronous.',
+          ),
+        );
+      }
+      current = next;
     }
-    if (next === undefined) continue;
-    if (isThenable(next)) {
-      observeRejection(next);
-      takeOwnership(root, owner, record, instance);
-      throw constructFailed(
-        bp,
-        record,
-        hook.plugin,
-        new TypeError('returned a thenable; a construct hook is synchronous.'),
-      );
-    }
-    current = next;
+    return current;
   }
-  return current;
+  return instance;
 }
 
 /** What `buildInto` constructed for one provider, before a caller settles it. */
