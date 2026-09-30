@@ -16,6 +16,7 @@ for (const size of [50, 2000]) {
     },
   };
   ops[`get-${size}`] = {
+    gc: true,
     setup: () => core.Nexus.create(providers),
     run: (ship) => {
       let last;
