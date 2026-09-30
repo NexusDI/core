@@ -21,6 +21,12 @@ export default defineModule({ name: 'Meridian', imports: [Navigation] });
 `,
 };
 
+/**
+ * Type stripping is on by default from Node 22.18 and behind a flag on the
+ * 22.12 floor, so the tests that rely on it turn it on where it is off.
+ */
+const STRIP = process.features.typescript ? [] : ['--experimental-strip-types'];
+
 describe('nexusdi graph, TypeScript entries', () => {
   it('loads a TS entry with .js specifiers and decorators through tsx', () => {
     const run = runCli(['graph', 'meridian.module.ts#Meridian', '-f', 'json'], {
@@ -43,6 +49,7 @@ describe('nexusdi graph, TypeScript entries', () => {
     const cwd = makeProject(STRIPPABLE, ['core', 'devtools']);
     const run = runCli(['graph', 'src/meridian.module.ts', '-f', 'dot'], {
       cwd,
+      nodeArgs: STRIP,
     });
     // stderr may carry Node's type-stripping ExperimentalWarning.
     expect(run.stderr).not.toContain('nexusdi:');
@@ -61,7 +68,10 @@ describe('nexusdi graph, TypeScript entries', () => {
       },
       ['core', 'devtools'],
     );
-    const run = runCli(['graph', 'src/meridian.module.ts'], { cwd });
+    const run = runCli(['graph', 'src/meridian.module.ts'], {
+      cwd,
+      nodeArgs: STRIP,
+    });
     expect(run.status).toBe(3);
     expect(run.stderr).toContain('ERR_MODULE_NOT_FOUND');
     expect(run.stderr).toContain('Install tsx in the project: npm i -D tsx');
