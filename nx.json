@@ -15,7 +15,8 @@
     // under the previous one.
     "sharedGlobals": [
       "{workspaceRoot}/.github/workflows/ci.yml",
-      "{workspaceRoot}/.github/workflows/size-report.yml"
+      "{workspaceRoot}/.github/workflows/size-report.yml",
+      "{workspaceRoot}/.github/workflows/benchmarks.yml"
     ],
     // What tools/repo-checks reads: the repository. Its tests hold the
     // commitlint scope list against nx.json, and the tslib/coverage/release
