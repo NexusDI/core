@@ -77,6 +77,14 @@ export function errorOf(fault: Fault): InterceptorError {
   return new InterceptorError({ ...NONE, ...fault });
 }
 
+/**
+ * A call-time fault raised before setup, when the plugin has no context to
+ * format it: it carries `text`, the message body (spec section 2.5.1).
+ */
+export function faultWithText(fault: Fault, text: string): InterceptorError {
+  return new InterceptorError({ ...NONE, ...fault }, { text });
+}
+
 // The errors below are thrown where no container formatter runs (spec
 // section 2.5.1): at decorator evaluation, from the construct hook, whose
 // throw core wraps as a cause, and from a call before setup or after
