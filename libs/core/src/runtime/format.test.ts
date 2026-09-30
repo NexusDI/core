@@ -11,8 +11,10 @@ import { Token } from '../definitions/token.js';
 import {
   BlueprintError,
   DisposedError,
+  errorBase,
   MissingProviderError,
   type ErrorText,
+  type NearMiss,
   type NexusError,
 } from '../errors/index.js';
 import { Nexus } from './nexus.js';
@@ -258,6 +260,57 @@ describe('formatThrown', () => {
       nearMisses,
       code: 'NEXUS_MISSING_PROVIDER',
     });
+  });
+
+  /** The error `raise` builds, reported from a compile.check hook and formatted with `nearMisses`. */
+  async function checkedWith(
+    raise: () => NexusError,
+    nearMisses: readonly NearMiss[],
+  ): Promise<NexusError> {
+    const failed = await rejected(
+      Nexus.create(Root, {
+        plugins: [
+          {
+            name: 'acme-docking',
+            apiVersion: 1,
+            compile: { check: (_view, report) => report(raise()) },
+          },
+          formatter('text', () => ({ message: 'no berth.', nearMisses })),
+        ],
+      }),
+    );
+    const inner = (failed as BlueprintError).errors[0];
+    if (inner === undefined) throw new Error('expected one inner error');
+    return inner;
+  }
+
+  const DOCKING_DOCS = 'https://acme.example/errors/';
+  const nearBerth = [{ kind: 'not-imported', module: 'Docking' }] as const;
+
+  it('writes nearMisses back to a third-party error that has the field', async () => {
+    class BerthMissingError extends errorBase<
+      'ACME_BERTH_MISSING',
+      { berth: string; nearMisses: readonly NearMiss[] }
+    >('ACME_BERTH_MISSING', 'BerthMissingError', DOCKING_DOCS) {}
+    const error = await checkedWith(
+      () => new BerthMissingError({ berth: 'B7', nearMisses: [] }),
+      nearBerth,
+    );
+    expect(error).toBeInstanceOf(BerthMissingError);
+    expect({ ...error }).toEqual({ berth: 'B7', nearMisses: nearBerth });
+  });
+
+  it('adds no nearMisses to an error without the field', async () => {
+    class BerthClosedError extends errorBase<
+      'ACME_BERTH_CLOSED',
+      { berth: string }
+    >('ACME_BERTH_CLOSED', 'BerthClosedError', DOCKING_DOCS) {}
+    const error = await checkedWith(
+      () => new BerthClosedError({ berth: 'B7' }),
+      nearBerth,
+    );
+    expect(error.message).toBe('[ACME_BERTH_CLOSED] no berth.');
+    expect(Object.hasOwn(error, 'nearMisses')).toBe(false);
   });
 
   it('passes the failed compile its view, and a runtime error the current one', async () => {

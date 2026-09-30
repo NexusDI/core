@@ -8,7 +8,6 @@ import {
   BlueprintError,
   blueprintMessage,
   layoutText,
-  MissingProviderError,
   NexusError,
   ownsText,
   type ErrorText,
@@ -48,7 +47,8 @@ function isText(value: unknown): value is ErrorText {
  * something else leaves core's line. An error is formatted once. An
  * error built with its own text, or one fromUserCode marked, is never
  * formatted. The code prefix and
- * every field but nearMisses stay core's.
+ * every field but nearMisses stay core's. nearMisses takes the text's list
+ * when the error has an own nearMisses field, whatever its class.
  */
 export function formatThrown(
   plugins: Pick<PluginSet, 'formatError'>,
@@ -80,10 +80,7 @@ export function formatThrown(
       }
       if (text === undefined) continue;
       if (!isText(text)) return error;
-      if (
-        text.nearMisses !== undefined &&
-        error instanceof MissingProviderError
-      )
+      if (text.nearMisses !== undefined && Object.hasOwn(error, 'nearMisses'))
         Object.defineProperty(error, 'nearMisses', {
           value: text.nearMisses,
           enumerable: true,
