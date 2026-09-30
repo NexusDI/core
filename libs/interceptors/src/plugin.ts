@@ -1,21 +1,25 @@
 import {
   defineModule,
   displayName,
-  Nexus,
   NEXUS_PLUGIN_API,
   provide,
   Token,
   type BlueprintView,
   type ModuleDefinition,
+  type Nexus,
   type NexusError,
   type NexusPlugin,
   type ProviderView,
-  type Scope,
 } from '@nexusdi/core';
 
 import { bindingsFor, chainFor } from './chain.js';
 import { checkBlueprint, reach } from './check.js';
-import { errorOf, invalidAt, sharedAtBuild } from './interceptor-error.js';
+import {
+  errorOf,
+  invalidAt,
+  sharedAtBuild,
+  unchecked,
+} from './interceptor-error.js';
 import { declarationsOf, keyName, type Declarations } from './metadata.js';
 import { parseOptions, type NormalOptions } from './options.js';
 import { findMethod, interceptedProxy, type Session } from './proxy.js';
@@ -25,85 +29,52 @@ import type {
   InterceptorToken,
 } from './types.js';
 
-/** What one compile says about a provider: its token and module, for matching, and the two skips. */
-interface CompiledProvider {
-  readonly token: unknown;
-  readonly module: string;
-  /** In the plugin's module: never wrapped. */
-  readonly own: boolean;
-  /** Reached through the plugin module's deps: global entries skip it. */
-  readonly support: boolean;
-}
-
-/** Provider id to what the compile says about it. Ids are container-local. */
-type Compiled = ReadonlyMap<string, CompiledProvider>;
-
 /**
- * A create's compile, waiting for the container that builds it. The check
- * hook sees no container, so the construct hook matches its container to
- * the compiles whose providers agree with what it builds. `count` is how
- * many creates compiled this graph and have not been matched yet.
- */
-interface PendingCompile {
-  readonly compiled: Compiled;
-  count: number;
-}
-
-/**
- * One container's session, keyed by the Nexus that builds it. Scopes of the
- * container share it.
+ * One container's session. Every compile the container runs, its create
+ * and each load, leads to it, and so does every scope of the container.
  */
 interface ContainerSession extends Session {
   readonly container: Nexus;
-  /**
-   * The compiles that agree with every provider the container has built so
-   * far. One, once the container is matched; a load replaces it.
-   */
-  candidates: readonly PendingCompile[];
-  /** One compile is left, and it no longer counts as pending. */
-  matched: boolean;
   /** The container finished create: the plugin's dispose hook closes the session. */
   started: boolean;
   /** No container holds the session. */
   closed: boolean;
 }
 
-interface PluginState {
-  /** The session of the one live container, or of the last one. */
-  live: ContainerSession | undefined;
-  readonly sessions: WeakMap<Nexus, ContainerSession>;
-  /** A registry map to the session of the container that built it. */
-  readonly registries: WeakMap<object, ContainerSession>;
-  /** A scope to its root's session, found through the registry it sees. */
-  readonly scopes: WeakMap<Scope, ContainerSession | undefined>;
-  readonly pending: PendingCompile[];
-  /** Sessions whose container finished create and is not closed yet. */
-  readonly started: Set<ContainerSession>;
+/**
+ * One create or load that compile.check saw. A create's session starts at
+ * its first build, which is always the guard's (it is a singleton with no
+ * deps). A load joins the live container's session (spec R9).
+ */
+interface Compile {
+  session: ContainerSession | undefined;
+}
+
+interface ProviderPlan {
+  readonly global: NormalOptions['global'];
+  readonly bindings: NormalOptions['bindings'];
+  readonly declarations: Declarations;
+  readonly chains: Map<string | symbol, readonly InterceptorToken[]>;
+}
+
+/**
+ * What a compile says about one provider view. `own` names the plugin's
+ * registry and guard; `support` is a provider the plugin's module reaches
+ * through its deps, which global entries skip (spec R11). `plan` fills on
+ * the first wrapped build.
+ */
+interface CompiledProvider {
+  readonly compile: Compile;
+  readonly own: 'registry' | 'guard' | null;
+  readonly support: boolean;
+  plan?: ProviderPlan;
 }
 
 /** Ends a session: calls through its proxies throw NOT_READY. */
-const close = (session: ContainerSession | undefined): void => {
-  if (session === undefined) return;
+const close = (session: ContainerSession): void => {
   session.disposed = session.closed = true;
   session.instances = undefined;
   session.context = undefined;
-};
-
-/** Whether two compiles say the same about every provider. */
-const sameCompile = (a: Compiled, b: Compiled): boolean => {
-  if (a.size !== b.size) return false;
-  for (const [id, x] of a) {
-    const y = b.get(id);
-    if (
-      y === undefined ||
-      y.token !== x.token ||
-      y.module !== x.module ||
-      y.own !== x.own ||
-      y.support !== x.support
-    )
-      return false;
-  }
-  return true;
 };
 
 const NO_DECLARATIONS: Declarations = Object.freeze({
@@ -112,13 +83,6 @@ const NO_DECLARATIONS: Declarations = Object.freeze({
   problems: [],
   any: false,
 });
-
-interface ProviderPlan {
-  readonly global: NormalOptions['global'];
-  readonly bindings: NormalOptions['bindings'];
-  readonly declarations: Declarations;
-  readonly chains: Map<string | symbol, readonly InterceptorToken[]>;
-}
 
 /**
  * The interceptors plugin (spec section 5). Registers every interceptor in
@@ -143,14 +107,15 @@ export function interceptors(options: InterceptorsOptions): NexusPlugin {
   const tokens = config.registered.map((entry) => entry.token);
   const REGISTRY = new Token<unknown>('interceptors registry');
   const GUARD = new Token<object>('interceptors guard');
-  const state: PluginState = {
-    live: undefined,
-    sessions: new WeakMap(),
-    registries: new WeakMap(),
-    scopes: new WeakMap(),
-    pending: [],
-    started: new Set(),
-  };
+  /** The session of the one live container, or of the last one. */
+  let live: ContainerSession | undefined;
+  /** Sessions whose container finished create and is not closed yet. */
+  const started = new Set<ContainerSession>();
+  /**
+   * Keyed by the provider views core hands both compile.check and construct
+   * (core 3.10.3). null for a provider with nothing to wrap.
+   */
+  const entries = new WeakMap<ProviderView, CompiledProvider | null>();
 
   /** Maps each registered token to its built interceptor (spec R1). */
   const bind = (...instances: unknown[]): unknown => {
@@ -191,132 +156,14 @@ export function interceptors(options: InterceptorsOptions): NexusPlugin {
    * Whether the session's container is open. has() throws NEXUS_DISPOSED
    * once disposal starts, and core closes a container whose create failed.
    */
-  const isLive = (session: ContainerSession): boolean => {
-    if (session.closed) return false;
+  const isLive = (session: ContainerSession | undefined): boolean => {
+    if (session === undefined || session.closed) return false;
     try {
       session.container.has(GUARD);
       return true;
     } catch {
       return false;
     }
-  };
-
-  /** The compile of a create or load, as the construct hook reads it. */
-  const compileOf = (view: BlueprintView, ownId: string): Compiled => {
-    const support = reach(
-      view,
-      view.providers.filter((p) => p.module === ownId).map((p) => p.id),
-    );
-    return new Map(
-      view.providers.map((p) => [
-        p.id,
-        {
-          token: p.token,
-          module: p.module,
-          own: p.module === ownId,
-          support: support.has(p.id),
-        },
-      ]),
-    );
-  };
-
-  /**
-   * The session of a scope's root. A scope does not name its root, so it
-   * reads the registry as the plugin's module sees it: singletons come from
-   * the root, and the registry map leads to the root's session. A scope of
-   * a container whose disposal started throws there and gets no session.
-   */
-  const scopeSession = (scope: Scope): ContainerSession | undefined => {
-    if (state.scopes.has(scope)) return state.scopes.get(scope);
-    let session: ContainerSession | undefined;
-    try {
-      session = state.registries.get(scope.get(REGISTRY, { module }) as object);
-    } catch {
-      return undefined;
-    }
-    state.scopes.set(scope, session);
-    return session;
-  };
-
-  /**
-   * The session of the container building `provider`. A container's first
-   * build claims the plugin object, which fails while another container
-   * holds it (spec R9).
-   */
-  const sessionFor = (
-    container: Nexus | Scope,
-  ): ContainerSession | undefined => {
-    if (!(container instanceof Nexus)) return scopeSession(container);
-    let session = state.sessions.get(container);
-    if (session !== undefined) return session;
-    const live = state.live;
-    if (live !== undefined && isLive(live)) throw sharedAtBuild();
-    session = {
-      container,
-      candidates: state.pending.filter((p) => p.count > 0),
-      matched: false,
-      instances: undefined,
-      disposed: false,
-      context: undefined,
-      started: false,
-      closed: false,
-    };
-    state.sessions.set(container, session);
-    state.live = session;
-    return session;
-  };
-
-  /** Whether a compile's record of a provider is the provider being built. */
-  const agrees = (
-    entry: CompiledProvider | undefined,
-    provider: ProviderView,
-  ): entry is CompiledProvider =>
-    entry !== undefined &&
-    entry.token === provider.token &&
-    entry.module === provider.module;
-
-  /** Takes a matched compile out of the pending list. */
-  const claim = (session: ContainerSession, match: PendingCompile): void => {
-    session.matched = true;
-    match.count--;
-    if (match.count === 0)
-      state.pending.splice(state.pending.indexOf(match), 1);
-  };
-
-  /**
-   * What the session's compiles say about `provider`. Keeps the compiles
-   * that agree with it; when one is left, the container is matched and
-   * takes it out of the pending list. Compiles that disagree on a skip
-   * that applies cannot be told apart, so the build fails (spec R9). The
-   * support skip applies only with global entries.
-   */
-  const compiledFor = (
-    session: ContainerSession,
-    provider: ProviderView,
-  ): CompiledProvider => {
-    if (session.matched) {
-      const entry = session.candidates[0]?.compiled.get(provider.id);
-      if (!agrees(entry, provider)) throw sharedAtBuild();
-      return entry;
-    }
-    const kept: PendingCompile[] = [];
-    let found: CompiledProvider | undefined;
-    for (const candidate of session.candidates) {
-      const entry = candidate.compiled.get(provider.id);
-      if (!agrees(entry, provider)) continue;
-      if (
-        found !== undefined &&
-        (found.own !== entry.own ||
-          (config.global.length > 0 && found.support !== entry.support))
-      )
-        throw sharedAtBuild();
-      found = entry;
-      kept.push(candidate);
-    }
-    if (found === undefined) throw sharedAtBuild();
-    if (kept.length === 1) claim(session, kept[0] as PendingCompile);
-    session.candidates = kept;
-    return found;
   };
 
   /** A disposer that closes the session when its container never finished create. */
@@ -326,23 +173,50 @@ export function interceptors(options: InterceptorsOptions): NexusPlugin {
     },
   });
 
-  const plans = new WeakMap<ProviderView, ProviderPlan>();
-  const planFor = (provider: ProviderView, support: boolean): ProviderPlan => {
-    let plan = plans.get(provider);
-    if (plan === undefined) {
-      plan = {
-        global: support ? [] : config.global,
-        bindings: bindingsFor(provider, config.bindings),
-        declarations:
-          provider.implementation === null
-            ? NO_DECLARATIONS
-            : declarationsOf(provider.implementation),
-        chains: new Map(),
-      };
-      plans.set(provider, plan);
+  /** Writes an entry for every class and factory provider of the compile. */
+  const record = (view: BlueprintView, compile: Compile, ownId: string) => {
+    const support = reach(
+      view,
+      view.providers.filter((p) => p.module === ownId).map((p) => p.id),
+    );
+    for (const provider of view.providers) {
+      // construct runs for class and factory instances only.
+      if (provider.kind !== 'class' && provider.kind !== 'factory') continue;
+      const inside = provider.module === ownId;
+      const own =
+        inside && provider.written === REGISTRY
+          ? 'registry'
+          : inside && provider.written === GUARD
+            ? 'guard'
+            : null;
+      const skipsGlobal = support.has(provider.id);
+      const wraps =
+        own !== null ||
+        (!inside &&
+          ((!skipsGlobal && config.global.length > 0) ||
+            bindingsFor(provider, config.bindings).length > 0 ||
+            (provider.implementation !== null &&
+              declarationsOf(provider.implementation).any)));
+      entries.set(
+        provider,
+        wraps ? { compile, own, support: skipsGlobal } : null,
+      );
     }
-    return plan;
   };
+
+  const planFor = (
+    provider: ProviderView,
+    entry: CompiledProvider,
+  ): ProviderPlan =>
+    (entry.plan ??= {
+      global: entry.support ? [] : config.global,
+      bindings: bindingsFor(provider, config.bindings),
+      declarations:
+        provider.implementation === null
+          ? NO_DECLARATIONS
+          : declarationsOf(provider.implementation),
+      chains: new Map(),
+    });
 
   return {
     name: 'nexus:interceptors',
@@ -353,55 +227,29 @@ export function interceptors(options: InterceptorsOptions): NexusPlugin {
         const own = view.modules.find(
           (m) => m.definition === module || m.replaced === module,
         );
-        const faults = checkBlueprint(view, config, own?.id);
-        for (const fault of faults) report(errorOf(fault));
-        const failed = !view.complete || faults.length > 0;
-        if (view.phase === 'check' || failed || own === undefined) return;
-        const live = state.live;
-        const compiled = compileOf(view, own.id);
+        for (const fault of checkBlueprint(view, config, own?.id))
+          report(errorOf(fault));
+        if (view.phase === 'check' || own === undefined) return;
         if (view.phase === 'load') {
-          // A load compiles for the one live container; its view holds
-          // every provider the container has.
-          if (live === undefined || !isLive(live)) return;
-          // The load keeps the ids of the providers the container had, so
-          // it matches a container that was still unmatched.
-          if (!live.matched) {
-            const match = live.candidates.find((c) =>
-              [...c.compiled].every(([id, entry]) => {
-                const next = compiled.get(id);
-                return (
-                  next !== undefined &&
-                  next.token === entry.token &&
-                  next.module === entry.module &&
-                  next.own === entry.own &&
-                  (config.global.length === 0 || next.support === entry.support)
-                );
-              }),
-            );
-            if (match !== undefined) claim(live, match);
-          }
-          live.candidates = [{ compiled, count: 0 }];
-          live.matched = true;
+          // A load runs inside the one live container (spec R9).
+          record(view, { session: isLive(live) ? live : undefined }, own.id);
           return;
         }
         // A live container holds the plugin object. Failing here, before
         // any build, leaves its session alone (spec R9).
-        if (live !== undefined && isLive(live)) {
+        if (isLive(live)) {
           report(errorOf({ code: 'NEXUS_INTERCEPTORS_SHARED' }));
           return;
         }
-        const same = state.pending.find((p) =>
-          sameCompile(p.compiled, compiled),
-        );
-        if (same === undefined) state.pending.push({ compiled, count: 1 });
-        else same.count++;
+        // A compile that fails later keeps nothing: core drops its views.
+        record(view, { session: undefined }, own.id);
       },
     },
     setup(context) {
-      const session = state.sessions.get(context.container);
-      if (session === undefined) return;
-      session.started = true;
-      state.started.add(session);
+      if (live === undefined || live.container !== context.container) return;
+      live.started = true;
+      live.context = context;
+      started.add(live);
     },
     dispose() {
       // Core runs this after it disposes every instance the container
@@ -409,35 +257,48 @@ export function interceptors(options: InterceptorsOptions): NexusPlugin {
       // its interceptors (spec section 6). The hook names no container, so
       // it closes each started session whose container is closed: a
       // container that claimed the plugin object meanwhile keeps its own.
-      for (const session of state.started) {
+      for (const session of started) {
         if (isLive(session)) continue;
         close(session);
-        state.started.delete(session);
+        started.delete(session);
       }
     },
     construct(instance, provider, scope, container) {
-      const session = sessionFor(container);
-      if (session === undefined || session.closed) return undefined;
-      const compiled = compiledFor(session, provider);
-      if (compiled.own) {
-        if (provider.token === REGISTRY) {
-          session.instances = instance as ReadonlyMap<unknown, Interceptor>;
-          state.registries.set(instance as object, session);
-        }
-        return provider.token === GUARD ? guardFor(session) : undefined;
+      const entry = entries.get(provider);
+      // Every view core builds from passed compile.check (core 3.10.3), so
+      // a miss is a core that breaks that rule or a caller outside core.
+      if (entry === undefined) throw unchecked(provider.name);
+      if (entry === null) return undefined;
+      let session = entry.compile.session;
+      if (session === undefined) {
+        // A create's first build is the root container's, which claims the
+        // plugin object. It fails while another container holds it, as when
+        // two creates overlap (spec R9).
+        if (isLive(live)) throw sharedAtBuild();
+        session =
+          entry.compile.session =
+          live =
+            {
+              container: container as Nexus,
+              instances: undefined,
+              disposed: false,
+              context: undefined,
+              started: false,
+              closed: false,
+            };
       }
+      if (entry.own === 'registry') {
+        if (!session.closed)
+          session.instances = instance as ReadonlyMap<unknown, Interceptor>;
+        return undefined;
+      }
+      if (entry.own === 'guard') return guardFor(session);
       if (
         (typeof instance !== 'object' && typeof instance !== 'function') ||
         instance === null
       )
         return undefined;
-      const plan = planFor(provider, compiled.support);
-      if (
-        plan.global.length === 0 &&
-        plan.bindings.length === 0 &&
-        !plan.declarations.any
-      )
-        return undefined;
+      const plan = planFor(provider, entry);
       for (const binding of plan.bindings) {
         for (const key of binding.methods.keys()) {
           if (findMethod(instance, key) === undefined) {
