@@ -82,5 +82,11 @@
     "core": 18446,
     "delta": 129,
     "kept": true
+  },
+  {
+    "step": "extension principle",
+    "core": 18552,
+    "delta": 106,
+    "kept": true
   }
 ]
