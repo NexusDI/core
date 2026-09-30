@@ -58,8 +58,12 @@ const EMPTY: TextPolicy = {
   opaqueSites: [],
 };
 
+/** Each fixture's pack sits in text.ts, which its `./text` export names. */
+const TEXT_EXPORT = { './text': { '@nexusdi/source': './src/text.ts' } };
+
 const fixture = (name: string) => ({
   name: '@acme/cache',
+  exports: TEXT_EXPORT,
   files: sourcesOf(join(FIXTURES, name)),
 });
 
@@ -76,11 +80,35 @@ describe('declaredCodes', () => {
 
 describe('packCodes', () => {
   it('reads the keys of the pack in text.ts', () => {
-    expect(packCodes(fixture('clean').files)).toEqual([
+    const { files, exports } = fixture('clean');
+    expect(packCodes(files, exports)).toEqual([
       'ACME_CACHE_MISS',
       'ACME_STORE_FULL',
       'ACME_STORE_LOCKED',
     ]);
+  });
+
+  it('reads the pack of every module the ./text export reaches', () => {
+    const files = [
+      {
+        path: 'packs/index.ts',
+        source: "export { cacheText } from './cache-text.js';",
+      },
+      {
+        path: 'packs/cache-text.ts',
+        source:
+          'export const cacheText = { ACME_CACHE_MISS: () => ({ message: "" }) } satisfies ErrorTextPack;',
+      },
+    ];
+    expect(
+      packCodes(files, {
+        './text': { '@nexusdi/source': './src/packs/index.ts' },
+      }),
+    ).toEqual(['ACME_CACHE_MISS']);
+  });
+
+  it('reads no pack from a text.ts that no ./text export names', () => {
+    expect(packCodes(fixture('clean').files, {})).toEqual([]);
   });
 });
 
@@ -293,7 +321,7 @@ describe('textPlacement', () => {
     for (const entry of POLICY.engineRendered) {
       const pkg = packages.find((p) => p.name === entry.package);
       if (pkg === undefined) continue;
-      expect(packCodes(pkg.files)).not.toContain(entry.code);
+      expect(packCodes(pkg.files, pkg.exports)).not.toContain(entry.code);
     }
   });
 });

@@ -128,17 +128,31 @@ function underSrc(source: string): string {
 }
 
 /**
+ * The source file of the `subpath` export, relative to src/: its
+ * `@nexusdi/source`, or the entry itself when it is a string. Null for a
+ * package with no such export, undefined for an export without a source
+ * file.
+ */
+export function subpathEntryOf(
+  exports: unknown,
+  subpath: string,
+): string | null | undefined {
+  if (typeof exports !== 'object' || exports === null || !(subpath in exports))
+    return null;
+  const source = sourceOf((exports as Record<string, unknown>)[subpath]);
+  return source === undefined ? undefined : underSrc(source);
+}
+
+/**
  * The main entry's source file, relative to src/: the `.` export's
  * `@nexusdi/source`. Null for a package with no `.` export; throws for a `.`
  * export without a source file, which the walk could not start from.
  */
 export function mainEntryOf(exports: unknown): string | null {
-  if (typeof exports !== 'object' || exports === null || !('.' in exports))
-    return null;
-  const source = sourceOf((exports as Record<string, unknown>)['.']);
-  if (source === undefined)
+  const entry = subpathEntryOf(exports, '.');
+  if (entry === undefined)
     throw new Error('exports . has no @nexusdi/source file');
-  return underSrc(source);
+  return entry;
 }
 
 /**
@@ -148,11 +162,9 @@ export function mainEntryOf(exports: unknown): string | null {
  */
 export function ownSubpathModules(exports: unknown): string[] {
   const rules = ['text.ts', 'text/', 'devtools/'];
-  if (typeof exports !== 'object' || exports === null) return rules;
   for (const subpath of ['./text', './devtools']) {
-    const source = sourceOf((exports as Record<string, unknown>)[subpath]);
-    if (source === undefined) continue;
-    const path = underSrc(source);
+    const path = subpathEntryOf(exports, subpath);
+    if (typeof path !== 'string') continue;
     const rule = path.endsWith('/index.ts')
       ? path.slice(0, -'index.ts'.length)
       : path;

@@ -3,6 +3,7 @@ import { dirname, join } from 'node:path';
 import ts from 'typescript';
 
 import { resolveRelative, type SourceFileText } from './core-layers.js';
+import { subpathEntryOf, walkEntry } from './entry-graph.js';
 
 /**
  * Where each error's text lives (spec section 2.5.1).
@@ -34,6 +35,11 @@ export interface PackageFiles {
   /** The package name the policy entries key on, such as `@nexusdi/testing`. */
   readonly name: string;
   readonly files: readonly SourceFileText[];
+}
+
+/** A package's sources and its manifest's `exports`, which name its pack. */
+export interface TextPackage extends PackageFiles {
+  readonly exports: unknown;
 }
 
 /** Codes a package reports or formats with inline text (V9). */
@@ -160,14 +166,21 @@ function isErrorTextPack(type: ts.TypeNode | undefined): boolean {
 }
 
 /**
- * The keys of each pack in the package's text module (`text.ts` or
- * `text/`): an object literal that satisfies, or is typed as,
- * `ErrorTextPack`.
+ * The keys of each pack the package's `./text` export ships: an object
+ * literal that satisfies, or is typed as, `ErrorTextPack`, in any module
+ * the export's source file reaches through value imports. None for a
+ * package with no `./text` export.
  */
-export function packCodes(files: readonly SourceFileText[]): string[] {
-  const texts = files.filter(
-    (file) => file.path === 'text.ts' || file.path.startsWith('text/'),
-  );
+export function packCodes(
+  files: readonly SourceFileText[],
+  exports: unknown,
+): string[] {
+  const entry = subpathEntryOf(exports, './text');
+  if (typeof entry !== 'string') return [];
+  const shipped = new Set<string>();
+  for (const step of walkEntry(files, entry))
+    if (step.kind === 'module') shipped.add(step.path);
+  const texts = files.filter((file) => shipped.has(file.path));
   const codes = allNodes(parse(texts)).flatMap(([, node]) => {
     let pack: ts.Expression | undefined;
     if (ts.isSatisfiesExpression(node) && isErrorTextPack(node.type))
@@ -1118,7 +1131,7 @@ function handoffsOf(sources: Sources): {
  * entries that excused one.
  */
 export function textPlacement(
-  pkg: PackageFiles,
+  pkg: TextPackage,
   policy: TextPolicy,
 ): TextPlacement {
   const sources = parse(pkg.files);
@@ -1138,7 +1151,7 @@ export function textPlacement(
   };
 
   // Case 1: every declared code has a pack entry or an inline raise site.
-  const packed = new Set(packCodes(pkg.files));
+  const packed = new Set(packCodes(pkg.files, pkg.exports));
   const inline = new Set(
     allNodes(sources).flatMap(([, node]) => {
       if (!ts.isNewExpression(node)) return [];
