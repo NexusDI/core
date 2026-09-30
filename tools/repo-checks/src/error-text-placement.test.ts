@@ -205,6 +205,7 @@ describe('textPlacement', () => {
       'plugin.ts:7 formats ACME_CACHE_MISS, built with inline text at plugin.ts:7; reported and formatted errors take their text from the pack',
       'plugin.ts:23 formats ACME_CACHE_MISS, built with inline text at plugin.ts:23; reported and formatted errors take their text from the pack',
       'plugin.ts:27 formats ACME_CACHE_MISS, built with inline text at plugin.ts:27; reported and formatted errors take their text from the pack',
+      'plugin.ts:41 formats ACME_CACHE_MISS, built with inline text at plugin.ts:41; reported and formatted errors take their text from the pack',
       'plugin.ts:19 passes the plugin context on as a value, and the check cannot follow it to its format calls; keep it in a binding or property the check can trace, or allowlist the site with a reason',
       'plugin.ts:20 passes the plugin context on as a value, and the check cannot follow it to its format calls; keep it in a binding or property the check can trace, or allowlist the site with a reason',
     ]);

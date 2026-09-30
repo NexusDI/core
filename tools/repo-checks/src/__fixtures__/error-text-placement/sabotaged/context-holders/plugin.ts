@@ -28,3 +28,16 @@ export function cache(): NexusPlugin {
     },
   };
 }
+
+export class Store implements NexusPlugin {
+  readonly name = 'acme:store';
+  readonly apiVersion = 1;
+  ctx: PluginContext | undefined;
+  setup(context: PluginContext): void {
+    this.ctx = context;
+  }
+  onResolve(): void {
+    const { ctx } = this;
+    throw ctx?.format(new CacheMissError({ key: 'd' }, { text: 'd' }));
+  }
+}

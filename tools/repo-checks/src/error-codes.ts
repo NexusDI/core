@@ -863,6 +863,11 @@ function contextFlow(
         node.properties.some((property) => held.has(property))
         ? 'holder'
         : undefined;
+    // `this` in a class whose fields hold a context.
+    if (node.kind === ts.SyntaxKind.ThisKeyword)
+      return trackedProperties(checker.getTypeAtLocation(node)).length > 0
+        ? 'holder'
+        : undefined;
     let symbol: ts.Symbol | undefined;
     let name: string | undefined;
     if (ts.isIdentifier(node)) {
