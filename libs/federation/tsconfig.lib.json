@@ -22,8 +22,15 @@
   },
   "include": ["src/**/*.ts"],
   "references": [
-    { "path": "../core/tsconfig.lib.json" },
-    { "path": "../../tools/doc-examples" }
+    {
+      "path": "../../tools/doc-examples"
+    },
+    {
+      "path": "../errors/tsconfig.lib.json"
+    },
+    {
+      "path": "../core/tsconfig.lib.json"
+    }
   ],
   "exclude": [
     "vite.config.ts",

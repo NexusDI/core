@@ -85,6 +85,61 @@ refused?.errors.map((error) => error.code); // -> ['NEXUS_CONTRACT_VERSION']
 
 A dependent's contract version must have the provider's major, and a minor no newer than the provider's. When the minors match, the dependent's patch must be no newer than the provider's. At major 0 a minor is a breaking change, so a dependent at 0.x needs the provider's minor. This is the rule of npm's `^` range. Any other pair fails the compile with `NEXUS_CONTRACT_VERSION`, which names the contract, the version required and the version provided.
 
+## Error text
+
+`NEXUS_CONTRACT_VERSION` carries a one-line message: its fields and a link to its docs page. The full text, with the versions that would fix the pair, lives in `federationText` at `@nexusdi/federation/text`. Pass it to `errors()` from `@nexusdi/errors`:
+
+<!-- #region text -->
+
+```ts @import.meta.vitest
+import { Nexus, defineModule, provide } from '@nexusdi/core';
+import { errors } from '@nexusdi/errors';
+import { defineContract, federation } from '@nexusdi/federation';
+import { federationText } from '@nexusdi/federation/text';
+
+interface IAuth {
+  user(): string;
+}
+
+const AUTH = defineContract({ key: 'bank', version: '2.3.0' }).token<IAuth>(
+  'Auth',
+);
+class Transfers {
+  static deps = [
+    defineContract({ key: 'bank', version: '2.4.0' }).token<IAuth>('Auth'),
+  ] as const;
+  constructor(readonly auth: IAuth) {}
+}
+const graph = defineModule({
+  name: 'Root',
+  imports: [
+    defineModule({
+      name: 'Shell',
+      providers: [provide(AUTH, { useValue: { user: () => 'ada' } })],
+      exports: [AUTH],
+      global: true,
+    }),
+    defineModule({ name: 'Transfers', providers: [Transfers] }),
+  ],
+});
+
+const messageWith = (plugins: Parameters<typeof Nexus.check>[1]) => {
+  try {
+    Nexus.check(graph, plugins);
+  } catch (error) {
+    return (error as { errors: Error[] }).errors[0]?.message.split('\n');
+  }
+  return undefined;
+};
+
+messageWith({ plugins: [federation()] }); // -> ['[NEXUS_CONTRACT_VERSION] contract=bank/Auth required=2.4.0 provided=2.3.0. https://nexus.js.org/errors/NEXUS_CONTRACT_VERSION']
+messageWith({ plugins: [federation(), errors({ text: [federationText] })] }); // -> ['[NEXUS_CONTRACT_VERSION] bank/Auth is needed at 2.4.0, and the provider has 2.3.0.', '  Fix: build the provider against 2.4.0 or a newer 2.x, or build the dependent against 2.3.0.']
+```
+
+<!-- #endregion text -->
+
+Nothing in the main entry imports `@nexusdi/federation/text`, so an app that leaves the pack out carries none of its bytes.
+
 ## Sharing
 
 The shell and its remotes share one `@nexusdi/core` as a singleton, so every copy of a contract token meets one container and one `Token` class. The contracts package may be bundled once per remote. `federation()` keys each copy's tokens by the contract key and the name, so two copies of one contract bind to one provider.

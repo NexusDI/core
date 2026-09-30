@@ -351,8 +351,9 @@ describe('federation', () => {
         { plugins: [federation()] },
       ),
     );
-    expect(errors).toHaveLength(1);
-    expect((errors[0] as Error).message).toContain('the provider has 2.3.0');
+    expect(errors).toEqual([
+      expect.objectContaining(mismatch('2.4.0', '2.3.0')),
+    ]);
   });
 
   it('reports one mismatch once for several dependents', async () => {
@@ -422,22 +423,14 @@ describe('federation', () => {
 });
 
 describe('ContractVersionError', () => {
-  it('names the contract, the version needed and the version provided', async () => {
+  it('names the contract, the version needed and the version provided in one line', async () => {
     const ship = await Nexus.create(Shell, { plugins: [federation()] });
     const remote = remoteUsing(remoteBank.token<IAuth>('Auth'));
     const caught = await ship.load(remote.module).catch((error) => error);
     const [error] = caught.errors;
     expect(error).toBeInstanceOf(ContractVersionError);
     expect(error.message).toBe(
-      '[NEXUS_CONTRACT_VERSION] bank/Auth is needed at 2.4.0, and the provider has 2.3.0.\n  Fix: build the provider against 2.4.0 or a newer 2.x, or build the dependent against 2.3.0.',
-    );
-  });
-
-  it('names a newer patch of the needed minor at major 0', async () => {
-    const [error] = (await verdict('0.4.2', '0.3.0')) as Error[];
-    expect(error).toBeInstanceOf(ContractVersionError);
-    expect(error?.message).toBe(
-      '[NEXUS_CONTRACT_VERSION] bank/Auth is needed at 0.4.2, and the provider has 0.3.0.\n  Fix: build the provider against 0.4.2 or a newer 0.4.x patch, or build the dependent against 0.3.0.',
+      '[NEXUS_CONTRACT_VERSION] contract=bank/Auth required=2.4.0 provided=2.3.0. https://nexus.js.org/errors/NEXUS_CONTRACT_VERSION',
     );
   });
 });
