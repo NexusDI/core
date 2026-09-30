@@ -29,4 +29,10 @@ describe('compareVersions', () => {
   it('sorts a prerelease before its release', () => {
     expect(compareVersions('0.4.0-rc.1', '0.4.0')).toBe(-1);
   });
+  it('orders numeric prerelease identifiers by value', () => {
+    expect(compareVersions('0.4.0-rc.10', '0.4.0-rc.9')).toBe(1);
+    expect(compareVersions('0.4.0-0', '0.4.0-rc.1')).toBe(-1);
+    expect(compareVersions('0.4.0-rc', '0.4.0-rc.1')).toBe(-1);
+    expect(compareVersions('0.4.0-rc.2', '0.4.0-rc.2')).toBe(0);
+  });
 });

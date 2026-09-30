@@ -13,10 +13,16 @@ export interface Pin {
   version: string;
 }
 
-/** -1, 0 or 1 for two x.y.z versions; a prerelease sorts before its release. */
+/**
+ * -1, 0 or 1 for two x.y.z versions. A prerelease sorts before its
+ * release, and prerelease identifiers compare as semver says: numbers by
+ * value and below words, so rc.10 follows rc.9.
+ */
 export function compareVersions(a: string, b: string): number {
   const parse = (v: string) => {
-    const [core = '', pre] = v.split('-', 2);
+    const at = v.indexOf('-');
+    const core = at === -1 ? v : v.slice(0, at);
+    const pre = at === -1 ? undefined : v.slice(at + 1).split('.');
     return { parts: core.split('.').map(Number), pre };
   };
   const x = parse(a);
@@ -25,10 +31,29 @@ export function compareVersions(a: string, b: string): number {
     const d = (x.parts[i] ?? 0) - (y.parts[i] ?? 0);
     if (d !== 0) return Math.sign(d);
   }
-  if (x.pre === y.pre) return 0;
-  if (x.pre === undefined) return 1;
-  if (y.pre === undefined) return -1;
-  return x.pre < y.pre ? -1 : 1;
+  if (x.pre === undefined || y.pre === undefined)
+    return x.pre === y.pre ? 0 : x.pre === undefined ? 1 : -1;
+  for (let i = 0; i < Math.max(x.pre.length, y.pre.length); i++) {
+    const p = x.pre[i];
+    const q = y.pre[i];
+    if (p === undefined) return -1;
+    if (q === undefined) return 1;
+    const d = compareIdentifiers(p, q);
+    if (d !== 0) return d;
+  }
+  return 0;
+}
+
+const NUMERIC = /^\d+$/;
+
+/** One prerelease identifier against another: numbers by value, numbers before words. */
+function compareIdentifiers(p: string, q: string): number {
+  const pn = NUMERIC.test(p);
+  const qn = NUMERIC.test(q);
+  if (pn && qn) return Math.sign(Number(p) - Number(q));
+  if (pn !== qn) return pn ? -1 : 1;
+  if (p === q) return 0;
+  return p < q ? -1 : 1;
 }
 
 /** The pins whose latest npm version is newer, with the issue title for each. */
