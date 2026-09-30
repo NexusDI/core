@@ -37,6 +37,7 @@ const SITE_CONDITIONS = [
   'await disposePlugins(',
   'input.pluginImports',
   'input.wantsView',
+  '.buildHooks ?',
 ];
 
 function spyPlugin(core: Core) {

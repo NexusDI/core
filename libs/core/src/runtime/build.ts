@@ -499,7 +499,10 @@ function settledSingleton(record: ProviderRecord, ctx: Ctx): unknown {
 }
 
 function buildTransient(record: ProviderRecord, ctx: Ctx): unknown {
-  const start = ctx.container.root.tracer.now();
+  const root = ctx.container.root;
+  // Each guard reads the flag inline: esbuild folds HOOK_SITES && x, and
+  // would leave a local boolean's check in the off build.
+  const start = HOOK_SITES && root.buildHooks ? root.tracer.now() : 0;
   const built = construct(record, ctx);
   // Only a factory result is awaited (spec §6.1); a class instance with a
   // then method is an ordinary value.
@@ -507,21 +510,19 @@ function buildTransient(record: ProviderRecord, ctx: Ctx): unknown {
     // get() cannot wait on it.
     observeRejection(built);
     // builtAsync reports a transient factory false until now.
-    ctx.container.root.asyncFlags.set(record.id, true);
+    root.asyncFlags.set(record.id, true);
     throw new AsyncTransientError({
       token: record.name,
       module: moduleName(ctx.bp, record),
     });
   }
-  const instance = applyConstruct(
-    ctx.container,
-    ctx.owner,
-    ctx.bp,
-    record,
-    built,
-  );
-  takeOwnership(ctx.container.root, ctx.owner, record, instance);
-  traceConstruct(ctx.container, ctx.bp, record, false, start);
+  const instance =
+    HOOK_SITES && root.buildHooks
+      ? applyConstruct(ctx.container, ctx.owner, ctx.bp, record, built)
+      : built;
+  takeOwnership(root, ctx.owner, record, instance);
+  if (HOOK_SITES && root.buildHooks)
+    traceConstruct(ctx.container, ctx.bp, record, false, start);
   return instance;
 }
 
