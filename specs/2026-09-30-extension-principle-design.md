@@ -9,7 +9,8 @@ Tech lead notes on section 4.5 applied 2026-09-30. The tech lead's rulings from 
 applied 2026-10-01.
 
 Amends the core 0.4 spec (`specs/2026-09-23-core-0.4-design.md`) sections D15, 3.10.1,
-3.10.2, 3.10.3, 3.10.4, 3.10.6, 9, 9.1, 10 and 12.1, and records P1-P5 there. Replaces
+3.10.2, 3.10.3, 3.10.4, 3.10.6, 9, 9.1, 10 and 12.1, and records the rules there as
+E1-E5 (core spec 3.10.10). Replaces
 owner decision O5 of the interceptors spec (`specs/2026-09-29-interceptors-design.md` on
 `feat/rfc-17-interceptors`) and amends its R9 (V15). Amends the react spec sections 14
 and 15 and the integrations spec sections 3.6 and 3.7 (section 5.2).
@@ -624,7 +625,7 @@ and its follow-up. Section 5 places the audit fixes around these steps.
 8. Edit the core spec: D15 (text lives with the raising package, core's in
    `@nexusdi/core/text`), 3.10.1 (`PluginContext.format`), 3.10.2 (the plugin API 1 list
    of section 2.5.11), 3.10.6, 9 (the rule of section 2.5.1 replaces the inline-text
-   sentence), 9.1, 10 and 12.1. Record P1-P5.
+   sentence), 9.1, 10 and 12.1. Record P1-P5 as E1-E5.
 
 PR #62:
 
@@ -1128,7 +1129,7 @@ In dependency order:
     type tests and `plugin-api-1.test-d.ts` with every point of section 2.5.11 that is
     merged by then.
 11. Text-pack step 7: the `nearMisses` write-back, after PR #63.
-12. Text-pack step 8: the core spec edits, including P1-P5.
+12. Text-pack step 8: the core spec edits, recording P1-P5 as E1-E5.
 
 ### 5.2 RFC PRs and specs
 
@@ -1192,7 +1193,8 @@ Outside the fixtures:
 `@nexusdi/core`:
 
 - Adds types `ErrorTextPack` and `ErrorTextKit`.
-- Adds the entry `@nexusdi/core/text`, exporting `coreText: ErrorTextPack`.
+- Adds the entry `@nexusdi/core/text`, exporting `coreText: ErrorTextPack` and
+  re-exporting `layoutText` for the engine.
 - Adds `PluginContext.format(error)`.
 - `errorBase(code, name, docs?)` gains the optional docs base URL.
 - `NexusError`'s constructor gains an optional fifth `docs` argument, which `errorBase`
