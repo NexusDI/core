@@ -92,16 +92,43 @@ describe('parseGraphJson', () => {
     ).toContain('providers[0].module');
   });
 
-  it.each(['p 0', 'end', 'style', 'class', 'a-->b', '0p', ''])(
-    'rejects an id that is not a plain identifier: %j',
+  it.each(['call', 'href', 'interpolate', 'end', 'm0', 'p', 'p0x', 'P0', ''])(
+    'rejects a provider id that core does not write: %j',
+    (id) => {
+      const message = messageOf({
+        ...GOOD,
+        providers: [{ ...GOOD.providers[0], id }, GOOD.providers[1]],
+        edges: [],
+      });
+      expect(message).toContain(`providers[0].id is ${JSON.stringify(id)}`);
+      expect(message).toContain('provider ids are p<n> or request');
+    },
+  );
+
+  it.each(['p0', 'request', 'module', 'm', 'call'])(
+    'rejects a module id that core does not write: %j',
     (id) => {
       expect(
         messageOf({
           ...GOOD,
-          providers: [{ ...GOOD.providers[0], id }, GOOD.providers[1]],
-          edges: [],
+          modules: [{ ...GOOD.modules[0], id }],
         }),
-      ).toContain('providers[0].id');
+      ).toContain('module ids are m<n>');
     },
   );
+
+  it('rejects two providers with the same id', () => {
+    expect(
+      messageOf({
+        ...GOOD,
+        providers: [GOOD.providers[0], GOOD.providers[0], GOOD.providers[1]],
+      }),
+    ).toContain('providers[1].id is "p0", which an earlier entry already uses');
+  });
+
+  it('rejects two modules with the same id', () => {
+    expect(
+      messageOf({ ...GOOD, modules: [GOOD.modules[0], GOOD.modules[0]] }),
+    ).toContain('modules[1].id is "m0", which an earlier entry already uses');
+  });
 });

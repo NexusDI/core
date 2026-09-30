@@ -2,25 +2,13 @@ import type { NexusGraph } from '@nexusdi/devtools';
 
 import { CliError } from './cli-error.js';
 
-/** Ids both renderers can write unquoted. */
-const ID = /^[A-Za-z][A-Za-z0-9_]*$/;
 /**
- * Words Mermaid reads as a statement at the start of a line, where the
- * Mermaid renderer writes ids: `end` closes a subgraph, `style` and `class`
- * start styling statements.
+ * The ids core writes: `m<n>` for modules, `p<n>` for providers, and
+ * `request` for the built-in REQUEST provider. Both renderers write ids
+ * unquoted, so the check accepts these shapes only.
  */
-const MERMAID_KEYWORDS: ReadonlySet<string> = new Set([
-  'end',
-  'subgraph',
-  'graph',
-  'flowchart',
-  'direction',
-  'style',
-  'class',
-  'classDef',
-  'linkStyle',
-  'click',
-]);
+const MODULE_ID = /^m\d+$/;
+const PROVIDER_ID = /^(p\d+|request)$/;
 const LIFETIMES = ['singleton', 'scoped', 'transient', null] as const;
 const KINDS = ['class', 'value', 'factory', 'alias'] as const;
 const EDGE_KINDS = ['required', 'optional', 'lazy', 'all', 'alias'] as const;
@@ -64,10 +52,28 @@ class Reader {
     this.fail(`${path}.${key}`);
   }
 
-  id(item: Json, key: string, path: string): string {
-    const value = this.string(item, key, path);
-    if (!ID.test(value) || MERMAID_KEYWORDS.has(value))
-      this.fail(`${path}.${key}`);
+  /** An id of the given shape that no earlier module or provider took. */
+  id(
+    item: Json,
+    path: string,
+    shape: RegExp,
+    shapes: string,
+    seen: Set<string>,
+  ): string {
+    const value = this.string(item, 'id', path);
+    if (!shape.test(value))
+      throw new CliError(
+        2,
+        `${this.shown} is not a NexusGraph: ${path}.id is ${JSON.stringify(value)}, and ${shapes}.`,
+        FIX,
+      );
+    if (seen.has(value))
+      throw new CliError(
+        2,
+        `${this.shown} is not a NexusGraph: ${path}.id is ${JSON.stringify(value)}, which an earlier entry already uses.`,
+        FIX,
+      );
+    seen.add(value);
     return value;
   }
 
@@ -105,12 +111,13 @@ export function parseGraphJson(text: string, shown: string): NexusGraph {
   }
   const r = new Reader(shown);
   const root = r.record(value, '(root)');
+  const ids = new Set<string>();
 
   const modules = r.list(root['modules'], 'modules').map((raw, i) => {
     const path = `modules[${i}]`;
     const m = r.record(raw, path);
     return {
-      id: r.id(m, 'id', path),
+      id: r.id(m, path, MODULE_ID, 'module ids are m<n>', ids),
       name: r.string(m, 'name', path),
       global: r.boolean(m, 'global', path),
       imports: r.strings(m, 'imports', path),
@@ -126,7 +133,7 @@ export function parseGraphJson(text: string, shown: string): NexusGraph {
     if (!moduleIds.has(module)) r.fail(`${path}.module`);
     const implementation = r.stringOrNull(p, 'implementation', path);
     return {
-      id: r.id(p, 'id', path),
+      id: r.id(p, path, PROVIDER_ID, 'provider ids are p<n> or request', ids),
       token: r.string(p, 'token', path),
       module,
       lifetime: r.oneOf(p, 'lifetime', path, LIFETIMES),
