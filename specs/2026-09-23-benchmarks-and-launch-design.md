@@ -1766,7 +1766,9 @@ four negated guards (`applyConstruct`, `formatThrown`, `guardAsync`, `runSetup`)
 get-2000 at 1.032 [1.001, 1.053] over 30 pairs. Every transient build made three hook checks, for the tracer's clock, the construct hooks and the trace emit. `RootState.buildHooks`, true when a plugin has a construct
 or an observe hook, now guards all three in `buildTransient`. After it, two runs measured
 get-2000 at 1.013 [0.999, 1.029] and 1.025 [1.011, 1.053], and every case passed. The flag
-takes core to 18,353 bytes gzipped (+38 against 18,315, +36 against 18,317 before K14). A Node user who runs core's `dist` without a bundler reads one immutable
+takes core to 18,353 bytes gzipped (+38 against 18,315, +36 against 18,317 before K14). The
+`construct` hook's `container` parameter (D1), replayed from `feat/core-0.4`, takes it to
+18,485 bytes. A Node user who runs core's `dist` without a bundler reads one immutable
 module binding per site, which V8 treats as a constant once optimised.
 
 The two builds. `libs/core/bench/build.mjs` bundles `libs/core/src/index.ts` twice with
