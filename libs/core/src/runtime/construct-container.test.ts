@@ -122,6 +122,32 @@ describe('construct hook container', () => {
     expect(seen).toEqual([['Archive', scope]]);
   });
 
+  it('receives the root for a transient built as the dep of a singleton a scope asked for', async () => {
+    const LAZY = new Token<object>('LazyArray');
+    const { plugin, seen } = containerRecorder();
+    const ship = await Nexus.create(
+      defineModule({
+        name: 'Root',
+        providers: [
+          provide(PROBE, { useClass: class {}, lifetime: 'transient' }),
+          provide(LAZY, {
+            useFactory: (probe: object) => ({ probe }),
+            deps: [PROBE],
+            eager: false,
+          }),
+        ],
+        exports: [LAZY],
+      }),
+      { plugins: [plugin] },
+    );
+    await using scope = await ship.createScope();
+    scope.get(LAZY);
+    expect(seen).toEqual([
+      ['Probe', ship],
+      ['LazyArray', ship],
+    ]);
+  });
+
   it('tells two scopes apart', async () => {
     const { plugin, seen } = containerRecorder();
     const ship = await Nexus.create(Bridge, { plugins: [plugin] });
@@ -313,5 +339,98 @@ describe('a container a construct hook holds during create', () => {
       code: 'NEXUS_DISPOSED',
     });
     await expect(held[Symbol.asyncDispose]()).resolves.toBeUndefined();
+  });
+
+  it('aborts create when the hook disposes the container, and reports the rollback', async () => {
+    const SENSOR = new Token<object>('Sensor');
+    const leak = new Error('coolant leak');
+    let disposing: Promise<unknown> | undefined;
+    class LeakyReactor implements IReactorCore {
+      readonly output = 1.21;
+      [Symbol.dispose]() {
+        throw leak;
+      }
+    }
+    const error = await rejected(
+      Nexus.create(
+        defineModule({
+          name: 'Root',
+          providers: [
+            provide(REACTOR, { useClass: LeakyReactor }),
+            provide(SENSOR, { useFactory: () => ({}), deps: [REACTOR] }),
+          ],
+        }),
+        {
+          plugins: [
+            {
+              name: 'scram',
+              apiVersion: 1,
+              construct: (_instance, provider, _scope, container) => {
+                // Caught at once: it settles before create rejects.
+                if (provider.token === REACTOR)
+                  disposing = rejected(
+                    (container as Nexus)[Symbol.asyncDispose](),
+                  );
+                return undefined;
+              },
+            },
+          ],
+        },
+      ),
+    );
+    expect(error).toMatchObject({ code: 'NEXUS_DISPOSED' });
+    if (disposing === undefined) throw new Error('the hook did not run');
+    expect(await disposing).toBe(leak);
+  });
+});
+
+describe('a scope a construct hook holds during createScope', () => {
+  it('aborts createScope when the hook disposes it, and disposes each build once', async () => {
+    const RELAY = new Token<object>('Relay');
+    const disposed: string[] = [];
+    let disposing: Promise<void> | undefined;
+    let relayBuilt = false;
+    const ship = await Nexus.create(
+      defineModule({
+        name: 'Root',
+        providers: [
+          provide(SIGNAL, {
+            useFactory: () => ({
+              [Symbol.dispose]: () => void disposed.push('Signal'),
+            }),
+            lifetime: 'scoped',
+          }),
+          provide(RELAY, {
+            useFactory: () => {
+              relayBuilt = true;
+              return {};
+            },
+            deps: [SIGNAL],
+            lifetime: 'scoped',
+          }),
+        ],
+      }),
+      {
+        plugins: [
+          {
+            name: 'scuttle',
+            apiVersion: 1,
+            construct: (_instance, provider, _scope, container) => {
+              if (provider.token === SIGNAL)
+                disposing = (container as Scope)[Symbol.asyncDispose]();
+              return undefined;
+            },
+          },
+        ],
+      },
+    );
+    expect(await rejected(ship.createScope())).toMatchObject({
+      code: 'NEXUS_DISPOSED',
+    });
+    await disposing;
+    expect(relayBuilt).toBe(false);
+    expect(disposed).toEqual(['Signal']);
+    await ship[Symbol.asyncDispose]();
+    expect(disposed).toEqual(['Signal']);
   });
 });

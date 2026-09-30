@@ -283,9 +283,14 @@ async function buildRoot(
   });
   state.building = building;
   state.loadQueue = building;
+  // The build joins inflight before any hook runs, as runSetup's loop does.
+  let start!: (build: Promise<void>) => void;
+  const build = new Promise<void>((resolve) => {
+    start = resolve;
+  });
+  track(state.inflight, build);
   try {
-    const build = startBlueprint(state, { bp: blueprint, isNew: () => true });
-    track(state.inflight, build);
+    start(startBlueprint(state, { bp: blueprint, isNew: () => true }));
     await build;
   } catch (error) {
     state.disposing = true;

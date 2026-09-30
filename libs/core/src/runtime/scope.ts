@@ -180,7 +180,9 @@ async function buildScoped(
 /**
  * Builds every scoped factory and the scoped providers they depend on, level
  * by level. The runtime cannot tell a sync factory from an async one without
- * calling it, so every scoped factory runs here, once per scope.
+ * calling it, so every scoped factory runs here, once per scope. A construct
+ * hook holds the scope meanwhile, so a disposal of the scope stops the next
+ * level, as a root disposal does.
  */
 async function buildScope(scope: ScopeState): Promise<Scope> {
   const { root } = scope;
@@ -192,20 +194,28 @@ async function buildScope(scope: ScopeState): Promise<Scope> {
       scope.blueprint.scopedLevels,
       () => true,
       (id) => buildScoped(scope, scope.blueprint, id),
-      () => assertOpen(root),
+      () => assertScopeOpen(scope),
     );
-    assertOpen(root);
+    assertScopeOpen(scope);
   } catch (error) {
+    // Read before the scope closes: a disposal a hook started waits on this
+    // build, and reports the rollback's disposer errors.
+    const aborted = scope.disposal !== undefined;
     // createScope never returns the scope, but a construct hook may hold its
     // handle, so the scope closes: its methods throw NEXUS_DISPOSED and its
     // [Symbol.asyncDispose]() resolves. Its slots then need no abandoning.
-    scope.disposal = Promise.resolve();
+    scope.disposal ??= Promise.resolve();
     throw await rollBack(
       scope,
       { touched: [], owned: scope.owned },
       scope.blueprint,
       error,
-      () => (root.disposing ? root.abortErrors : undefined),
+      () =>
+        root.disposing
+          ? root.abortErrors
+          : aborted
+            ? scope.abortErrors
+            : undefined,
     );
   }
   root.scopes.add(scope);
@@ -332,9 +342,15 @@ export async function openScope(
   if (bp.needsRequest && options?.request === undefined) {
     throw new RequestMissingError({ dependents: bp.requestDependents });
   }
-  const work = buildScope(
-    createScopeState(root, options?.request, (state) => new ScopeHandle(state)),
+  const scope = createScopeState(
+    root,
+    options?.request,
+    (state) => new ScopeHandle(state),
   );
+  const work = buildScope(scope);
+  // A disposal or extend() a construct hook starts on the scope waits for
+  // the build, as they wait for an extend() in flight.
+  scope.extendQueue = work.then(ignore, ignore);
   track(root.inflight, work);
   return work;
 }
