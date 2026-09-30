@@ -344,10 +344,14 @@ The variants:
 | Library     | `plain`                                                                                      | `decorated`                                                                                                                | `decorated-explicit`                                  |
 | ----------- | -------------------------------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------- | ----------------------------------------------------- |
 | NexusDI     | interface tokens, `provide(TOKEN, { useClass, deps })`, `defineModule()` (documented)        | `@Injectable({ deps: [tokens] })` classes, each token bound to its class with `useExisting`, `@Module`, profile `standard` | not applicable                                        |
-| InversifyJS | `toResolvedValue(fn, [deps])` bindings                                                       | `@injectable()`, `@inject` for `NAV_CHARTS`, profile `legacy-metadata` (documented)                                        | `@inject(Token)` on every parameter, profile `legacy` |
+| InversifyJS | `toResolvedValue(fn, [deps])` bindings                                                       | `@injectable()`, `@inject(Token)` on every parameter, profile `legacy-metadata` (documented)                               | `@inject(Token)` on every parameter, profile `legacy` |
 | tsyringe    | `container.register` with `useFactory`                                                       | `@singleton()`, `@inject` for `NAV_CHARTS`, profile `legacy-metadata` (documented)                                         | `@inject(Token)` on every parameter, profile `legacy` |
 | awilix      | `createContainer({ injectionMode: PROXY, strict: true })`, `asClass`, `asValue` (documented) | not applicable                                                                                                             | not applicable                                        |
 | needle-di   | `container.bind` with `useFactory` and `inject()`                                            | `@injectable()` with `inject()` fields, profile `standard` (documented)                                                    | not applicable                                        |
+
+InversifyJS's getting-started page puts `@inject` on every parameter, and its `decorated`
+fixture follows the page. Its `decorated` and `decorated-explicit` fixtures therefore share
+their source and differ only in profile.
 
 That gives 11 library-variants. The `decorated-explicit` variant exists because the
 research found that InversifyJS reads `design:paramtypes` only where no `@inject` token is
@@ -498,7 +502,9 @@ Scenarios:
 `ready` is the headline figure for in-process startup work. NexusDI builds every singleton
 inside `Nexus.create`, and the others build lazily on first resolve, so container creation
 alone compares different amounts of work. `ready` makes every library do the same work:
-every singleton exists at the end of the operation.
+every singleton exists at the end of the operation. Disposal is outside the timed region.
+The worker disposes each container after the timer stops, for every library whose adapter
+has a `dispose`, so no library's figure carries teardown work that another's lacks.
 
 The sampler. Machine noise on a shared runner changes over seconds, so the harness samples
 every library close together in time and compares them within the same moment:
@@ -636,9 +642,13 @@ deterministic, so they live in `size.json` and `--check` holds them byte for byt
   labelled `benchmarks`, titled `benchmarks: <package> <version> released`, unless an issue
   with that title exists (section 5.5).
 
-The permissions are `contents: write` and `pull-requests: write` for `bench-full`, and
-`issues: write` for `competitor-releases`, as `docs-snapshot.yml` holds for its pull
-request.
+The permissions are `contents: write` and `pull-requests: write` for the `results` job of
+`bench-full`, and `issues: write` for `competitor-releases`, as `docs-snapshot.yml` holds
+for its pull request. Every checkout sets `persist-credentials: false`. A read-only `merge`
+job runs `npm ci` and merges the measuring jobs' files. The `results` job runs no `npm ci`:
+`open-results-pr.ts` imports Node builtins only, and its `git push` is the one command that
+authenticates, through `gh auth git-credential`. `competitor-releases` creates the
+`benchmarks` label before it opens issues, so the label needs no manual setup.
 
 The job uses GitHub-hosted runners. CodSpeed reports that the same hosted image ran on AMD
 EPYC 7763 in nine of ten runs and on Intel Xeon 8370C in one
@@ -1715,8 +1725,9 @@ root `workspaces` already lists.
 
 Ruling: `benchmarks.yml`'s `bench-full` runs as four jobs from the start: `deterministic`
 (matrix, probes, size), `build-meridian-8`, `build-scale-200` and `timings`. Pairs never
-cross rounds, so the build fixtures can run apart (section 4.7). A fifth job merges the
-outputs and opens the results pull request.
+cross rounds, so the build fixtures can run apart (section 4.7). A `merge` job combines
+the outputs without write access, and a `results` job opens the results pull request
+(section 4.8).
 
 Ruling: every writer takes `--quick` (10 warm-up iterations, 50 measured, 3 build rounds)
 for local runs. A quick run writes to `benchmarks/tmp/`, which git ignores, and never to
@@ -1737,8 +1748,11 @@ plugin registered.
 The constant. `libs/core/src/definitions/hook-sites.ts` exports
 `export const HOOK_SITES = true as boolean;`, so TypeScript does not narrow it to `true`. Every hook site guards itself with it: the
 tracer's `now` and `emit`, the `canon` lookup in `get()` and `has()`, `applyConstruct`,
-the `formatError` paths, the compile hooks (`module`, `provider`, `check`), plugin
-`modules`, `setup`, `dispose`, the view builds, and `registerPlugins`. The file sits in
+the `formatError` paths (`formatThrown`, `formatFor`, `guardAsync` and the `wantsView`
+flags), the compile hooks (`module`, `provider`, `check`), plugin `modules`, `setup`,
+`dispose`, and the view builds. `registerPlugins` and the `onInit` flag are not hook sites:
+they run once per `create` or `check`, call no hook, and the `off` build still registers a
+plugin and honours `onInit: false`. The file sits in
 `definitions/`, the lowest layer both `blueprint/` and `runtime/` may import. `index.ts`
 does not export it, and a test holds that.
 
@@ -1746,7 +1760,9 @@ Bundle cost. esbuild inlines an imported `const` primitive when it bundles with
 `--minify`, and then drops `true &&`. The size report bundles that way, so the guards add
 no bytes. Two changes the benchmark led to do: `root` became a data property set after the
 state object exists, and the tracer's sink loop moved into its own function so `emit`
-inlines. Core's size report goes from 18,317 to 18,328 bytes gzipped (+11). A Node user who runs core's `dist` without a bundler reads one immutable
+inlines. Core's size report goes from 18,317 to 18,328 bytes gzipped (+11). Rewriting the
+four negated guards (`applyConstruct`, `formatThrown`, `guardAsync`, `runSetup`) as
+`if (HOOK_SITES && ...)` blocks takes it to 18,315 (-13 against 18,328). A Node user who runs core's `dist` without a bundler reads one immutable
 module binding per site, which V8 treats as a constant once optimised.
 
 The two builds. `libs/core/bench/build.mjs` bundles `libs/core/src/index.ts` twice with
@@ -1756,8 +1772,14 @@ identifier mangling). An esbuild `onLoad` plugin serves `hook-sites.ts` as
 
 Completeness. A test registers a plugin whose every hook is a counting spy, runs `create`,
 `get`, `has`, `createScope`, `load`, a failing `get` and disposal against each build, and
-asserts the `off` build calls no hook and the `on` build calls every one. A hook site left
-unguarded fails it.
+asserts the `off` build calls no hook and the `on` build calls every one. Some sites cost a
+check and call no hook (the tracer's clock, the `wantsView` flags, `formatFor` and
+`guardAsync`), so a second test reads the bundle text. It lists the condition each site
+evaluates as esbuild prints it (`performance.now(`, `#sinks.length`, `.formatError.length`,
+`.construct.length`, `.setup.length`, the compile hook lengths, `.canon(`,
+`await disposePlugins(`, `input.pluginImports`, `input.wantsView`) and asserts each one is
+in the `on` bundle and absent from the `off` bundle. Removing the guard from any listed
+site fails it. A new site is covered once its condition joins the list.
 
 The graphs. `libs/core/bench/graph.mjs` generates a layered DAG of 50 or 2,000 classes in
 layers of 10, positions 0 to 9. Position 4 is `transient`, position 9 is `scoped`, and the
@@ -1767,7 +1789,8 @@ no class depends on a scoped class and the graph has no captive dependency.
 
 The operations, per graph size:
 
-- `create`: one `Nexus.create(graph)`, awaited.
+- `create`: one `Nexus.create(graph)`, awaited. The worker disposes the container after
+  the timer stops.
 - `get`: 10,000 `get()` calls on a ready container, cycling through the singleton and
   transient tokens.
 - `createScope`: 1,000 `createScope()` calls, each followed by its disposal.
@@ -1776,7 +1799,10 @@ The sampler. Each operation and graph size runs in 10 fresh pairs of worker proc
 `on` and `off`, forked with `node --expose-gc`. One round asks each worker of the pair for
 one sample, in the Williams order of `bench-kit` (for two workers, alternating `on, off`
 and `off, on`), with `gc()` before each sample outside the timed region. Each pair runs 20
-warm-up rounds and 20 measured rounds, 200 measured rounds in all. One pair alone reports a
+warm-up rounds and 20 measured rounds, 200 measured rounds in all. Both workers calibrate
+the operation, and both then run the larger of the two batch sizes, so the pair amortises
+the `gc()` before each batch and the first call after it over the same count.
+`dispatch.json` records the batch of every pair. One pair alone reports a
 tight interval around an offset that a process restart moves by several percent, so the
 pairs carry that noise into the result. The six results each get the paired ratio
 (`on / off` per round), its median and a 10,000-resample 95% interval from
@@ -1786,9 +1812,25 @@ The verdict, per result, checked in this order:
 
 1. `fail`: the interval's lower bound is above 1.03. The hook build is more than 3%
    slower, beyond the noise the run measured.
-2. `inconclusive`: the interval is wider than 0.06. The run measured too much noise to
-   decide, and the job reports it without failing.
-3. `pass`: otherwise.
+2. `inconclusive`: the median is above 1.03, or the interval is wider than 0.06.
+3. `pass`: otherwise. The median is at or under 1.03 and the interval is narrow enough to
+   trust it.
+
+An `inconclusive` case runs 20 more fresh pairs, once, and the verdict is taken again over
+all 30 pairs. The extension is fixed in advance, runs once and pools the first 10 pairs,
+so the two stages form one design with a known error rate. After it, the job
+fails on a `fail`, and on an `inconclusive` whose median is above 1.03. An `inconclusive`
+whose median is at or under 1.03 was too noisy to decide and reports without failing.
+`dispatch.json` records each case's pair count, whether it was extended, its verdict and
+whether it failed the job. A rerun of a failed job by hand is no evidence either way, since
+it repeats the sampling until one run passes.
+
+The architect and the tech lead both ruled for the one extension over pooled pairs and
+against exiting 0 on every inconclusive result, since a 4.8% median then passes unseen. The
+architect proposed 20 extra pairs and a split on the median after them. The tech lead
+proposed 10 extra pairs and a failed job on any remaining `inconclusive`. The rule above
+takes 20 pairs, which narrows the interval to about 0.04, and the split on the median, so a
+noisy runner whose median is under the bound does not fail an unrelated pull request.
 
 Ruling: the benchmark runs as `nx run @nexusdi/core:bench-dispatch`, and a
 `dispatch` job in `benchmarks.yml` runs it on pull requests that touch `libs/core/src/**`.
@@ -1799,7 +1841,9 @@ out for the cross-library timings, so it is reported as an owner decision.
 
 1. K14 gates pull requests that touch `libs/core/src/**` (section 14.6). Section 4.8 said
    no timing gates a pull request. The gate compares two builds of one commit, interleaved
-   in one job, so machine drift divides out, and an `inconclusive` run passes. Without the
+   in one job, so machine drift divides out. An `inconclusive` case is extended once and
+   then fails when its median is above 1.03, which makes the gate stricter than the first
+   ruling, where every `inconclusive` run passed. Without the
    gate, a hook site that costs more than 3% reaches `main` and is found at the RC
    checklist.
 
