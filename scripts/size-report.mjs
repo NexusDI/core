@@ -2,7 +2,9 @@
 /**
  * Core's ESM gzip size by the one method spec §12.4 fixes (D12): an ESM
  * consumer (examples/size), esbuild --bundle --minify --format=esm, gzip
- * level 9. Each package's figure is its fixture minus core's.
+ * level 9. Each package's figure is its fixture minus core's. A package
+ * with an error text pack at `./text` adds a `<dir>-text.ts` fixture, and
+ * the report lists it as `<dir>/text`, also minus core.
  *
  *   node scripts/size-report.mjs [--root <dir>] [--json <file>]
  *     [--record <step>] [--skip-build]
@@ -57,6 +59,25 @@ export async function measure(fixture, root, file, swallow) {
   }
 }
 
+// Measures every package with a `<dir>.ts` or `<dir>-text.ts` fixture,
+// each as its fixture minus `core`. A new package or pack needs only its
+// fixture file. `core.ts` is the baseline itself, so core reports only its
+// pack.
+export async function measurePackages(fixture, root, libs, core, swallow) {
+  const packages = {};
+  for (const dir of libs) {
+    for (const [name, file] of [
+      [dir, `${dir}.ts`],
+      [`${dir}/text`, `${dir}-text.ts`],
+    ]) {
+      if (name === 'core' || !existsSync(join(fixture, file))) continue;
+      const size = await measure(fixture, root, file, swallow);
+      packages[name] = size === null || core === null ? null : size - core;
+    }
+  }
+  return packages;
+}
+
 async function main() {
   const { values } = parseArgs({
     options: {
@@ -97,12 +118,7 @@ async function main() {
   }
 
   const core = await measure(fixture, ROOT, 'core.ts', swallow);
-  const packages = {};
-  for (const dir of libs) {
-    if (dir === 'core' || !existsSync(join(fixture, `${dir}.ts`))) continue;
-    const size = await measure(fixture, ROOT, `${dir}.ts`, swallow);
-    packages[dir] = size === null || core === null ? null : size - core;
-  }
+  const packages = await measurePackages(fixture, ROOT, libs, core, swallow);
   const sizes = { core, packages };
   console.log(JSON.stringify(sizes, null, 2));
   if (values.json) writeFileSync(values.json, JSON.stringify(sizes));
