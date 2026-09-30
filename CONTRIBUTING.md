@@ -203,6 +203,18 @@ Fixes #456
    plus `npm run verify:packaging`, a workflow-file lint and the size report
    above.
 
+## Benchmarks
+
+A pull request that adds or changes a file under `benchmarks/fixtures/` needs a reviewer to read the fixture beside the page its header cites and confirm:
+
+- The header names the docs URL, the version from `benchmarks/libraries.json` and the date read.
+- The container is created and configured the way that page shows, polyfill import included.
+- Every lifetime is set explicitly.
+- Every departure from the page is listed in the header with its reason.
+- A lifetime the library does not document is `not-applicable` in `libraries.json`, with the reason.
+
+`npx nx run @nexusdi/benchmarks:check` rebuilds the matrix, probe and size results and fails when they differ from the committed files. Each writer takes `--quick` or `--only=<library>` for a local run, which writes under `benchmarks/tmp/`.
+
 ## Getting Help
 
 - **Issues**: Use GitHub issues for bug reports and feature requests.

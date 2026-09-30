@@ -1,0 +1,353 @@
+{
+  "schema": 1,
+  "versions": {
+    "core": "0.3.2",
+    "libraries": {
+      "nexusdi": "0.3.2",
+      "inversify": "8.2.3",
+      "tsyringe": "4.10.0",
+      "awilix": "13.0.5",
+      "needle-di": "1.2.1"
+    },
+    "toolchains": {
+      "tsc": "6.0.3",
+      "tsgo": "7.0.2",
+      "esbuild": "0.28.2",
+      "swc": "1.16.2",
+      "babel": "8.0.6",
+      "vite": "8.3.0",
+      "vite8+babel-plugin": "8.3.0",
+      "bun": "1.4.2",
+      "deno": "2.9.6",
+      "node-strip-types": "24.20.0"
+    },
+    "node": "24.20.0",
+    "bundlers": {
+      "esbuild": "0.28.2",
+      "rollup": "4.63.4"
+    }
+  },
+  "sizes": [
+    {
+      "library": "awilix",
+      "variant": "plain",
+      "bundler": "esbuild",
+      "minified": 10070,
+      "gzip": 3921,
+      "polyfillGzip": 0,
+      "runs": "pass"
+    },
+    {
+      "library": "awilix",
+      "variant": "plain",
+      "bundler": "rollup",
+      "minified": 9734,
+      "gzip": 3761,
+      "polyfillGzip": 0,
+      "runs": "pass"
+    },
+    {
+      "library": "inversify",
+      "variant": "decorated",
+      "bundler": "esbuild",
+      "minified": 91658,
+      "gzip": 21969,
+      "polyfillGzip": 4650,
+      "runs": "pass"
+    },
+    {
+      "library": "inversify",
+      "variant": "decorated",
+      "bundler": "rollup",
+      "minified": 88746,
+      "gzip": 20600,
+      "polyfillGzip": 4123,
+      "runs": "pass"
+    },
+    {
+      "library": "inversify",
+      "variant": "decorated-explicit",
+      "bundler": "esbuild",
+      "minified": 91391,
+      "gzip": 21914,
+      "polyfillGzip": 4650,
+      "runs": "pass"
+    },
+    {
+      "library": "inversify",
+      "variant": "decorated-explicit",
+      "bundler": "rollup",
+      "minified": 88479,
+      "gzip": 20547,
+      "polyfillGzip": 4123,
+      "runs": "pass"
+    },
+    {
+      "library": "inversify",
+      "variant": "plain",
+      "bundler": "esbuild",
+      "minified": 88279,
+      "gzip": 20989,
+      "polyfillGzip": 4650,
+      "runs": "pass"
+    },
+    {
+      "library": "inversify",
+      "variant": "plain",
+      "bundler": "rollup",
+      "minified": 84661,
+      "gzip": 19500,
+      "polyfillGzip": 4123,
+      "runs": "pass"
+    },
+    {
+      "library": "needle-di",
+      "variant": "decorated",
+      "bundler": "esbuild",
+      "minified": 10518,
+      "gzip": 3407,
+      "polyfillGzip": 0,
+      "runs": "pass"
+    },
+    {
+      "library": "needle-di",
+      "variant": "decorated",
+      "bundler": "rollup",
+      "minified": 10399,
+      "gzip": 3308,
+      "polyfillGzip": 0,
+      "runs": "pass"
+    },
+    {
+      "library": "needle-di",
+      "variant": "plain",
+      "bundler": "esbuild",
+      "minified": 8118,
+      "gzip": 2828,
+      "polyfillGzip": 0,
+      "runs": "pass"
+    },
+    {
+      "library": "needle-di",
+      "variant": "plain",
+      "bundler": "rollup",
+      "minified": 8039,
+      "gzip": 2760,
+      "polyfillGzip": 0,
+      "runs": "pass"
+    },
+    {
+      "library": "nexusdi",
+      "variant": "decorated",
+      "bundler": "esbuild",
+      "minified": 61225,
+      "gzip": 19687,
+      "polyfillGzip": 0,
+      "runs": "pass"
+    },
+    {
+      "library": "nexusdi",
+      "variant": "decorated",
+      "bundler": "rollup",
+      "minified": 61350,
+      "gzip": 18919,
+      "polyfillGzip": 0,
+      "runs": "pass"
+    },
+    {
+      "library": "nexusdi",
+      "variant": "plain",
+      "bundler": "esbuild",
+      "minified": 56745,
+      "gzip": 18751,
+      "polyfillGzip": 0,
+      "runs": "pass"
+    },
+    {
+      "library": "nexusdi",
+      "variant": "plain",
+      "bundler": "rollup",
+      "minified": 56923,
+      "gzip": 17987,
+      "polyfillGzip": 0,
+      "runs": "pass"
+    },
+    {
+      "library": "tsyringe",
+      "variant": "decorated",
+      "bundler": "esbuild",
+      "minified": 30556,
+      "gzip": 9758,
+      "polyfillGzip": 4650,
+      "runs": "pass"
+    },
+    {
+      "library": "tsyringe",
+      "variant": "decorated",
+      "bundler": "rollup",
+      "minified": 28635,
+      "gzip": 8827,
+      "polyfillGzip": 4123,
+      "runs": "pass"
+    },
+    {
+      "library": "tsyringe",
+      "variant": "decorated-explicit",
+      "bundler": "esbuild",
+      "minified": 30343,
+      "gzip": 9738,
+      "polyfillGzip": 4650,
+      "runs": "pass"
+    },
+    {
+      "library": "tsyringe",
+      "variant": "decorated-explicit",
+      "bundler": "rollup",
+      "minified": 28454,
+      "gzip": 8807,
+      "polyfillGzip": 4123,
+      "runs": "pass"
+    },
+    {
+      "library": "tsyringe",
+      "variant": "plain",
+      "bundler": "esbuild",
+      "minified": 29677,
+      "gzip": 9477,
+      "polyfillGzip": 4650,
+      "runs": "pass"
+    },
+    {
+      "library": "tsyringe",
+      "variant": "plain",
+      "bundler": "rollup",
+      "minified": 28030,
+      "gzip": 8625,
+      "polyfillGzip": 4123,
+      "runs": "pass"
+    }
+  ],
+  "emit": [
+    {
+      "library": "awilix",
+      "variant": "plain",
+      "fixture": "scale-200",
+      "toolchain": "tsc",
+      "emittedBytes": 45419,
+      "metadataCalls": 0,
+      "decorateCalls": 0,
+      "importsInSource": 581,
+      "importsKept": 201
+    },
+    {
+      "library": "inversify",
+      "variant": "decorated",
+      "fixture": "scale-200",
+      "toolchain": "tsc",
+      "emittedBytes": 284084,
+      "metadataCalls": 200,
+      "decorateCalls": 200,
+      "importsInSource": 781,
+      "importsKept": 781
+    },
+    {
+      "library": "inversify",
+      "variant": "decorated-explicit",
+      "fixture": "scale-200",
+      "toolchain": "tsc",
+      "emittedBytes": 238024,
+      "metadataCalls": 0,
+      "decorateCalls": 200,
+      "importsInSource": 781,
+      "importsKept": 781
+    },
+    {
+      "library": "inversify",
+      "variant": "plain",
+      "fixture": "scale-200",
+      "toolchain": "tsc",
+      "emittedBytes": 69105,
+      "metadataCalls": 0,
+      "decorateCalls": 0,
+      "importsInSource": 403,
+      "importsKept": 202
+    },
+    {
+      "library": "needle-di",
+      "variant": "decorated",
+      "fixture": "scale-200",
+      "toolchain": "tsc",
+      "emittedBytes": 647370,
+      "metadataCalls": 0,
+      "decorateCalls": 0,
+      "importsInSource": 781,
+      "importsKept": 781
+    },
+    {
+      "library": "needle-di",
+      "variant": "plain",
+      "fixture": "scale-200",
+      "toolchain": "tsc",
+      "emittedBytes": 67529,
+      "metadataCalls": 0,
+      "decorateCalls": 0,
+      "importsInSource": 403,
+      "importsKept": 203
+    },
+    {
+      "library": "nexusdi",
+      "variant": "decorated",
+      "fixture": "scale-200",
+      "toolchain": "tsc",
+      "emittedBytes": 678568,
+      "metadataCalls": 0,
+      "decorateCalls": 0,
+      "importsInSource": 603,
+      "importsKept": 603
+    },
+    {
+      "library": "nexusdi",
+      "variant": "plain",
+      "fixture": "scale-200",
+      "toolchain": "tsc",
+      "emittedBytes": 70328,
+      "metadataCalls": 0,
+      "decorateCalls": 0,
+      "importsInSource": 403,
+      "importsKept": 403
+    },
+    {
+      "library": "tsyringe",
+      "variant": "decorated",
+      "fixture": "scale-200",
+      "toolchain": "tsc",
+      "emittedBytes": 230775,
+      "metadataCalls": 200,
+      "decorateCalls": 200,
+      "importsInSource": 782,
+      "importsKept": 782
+    },
+    {
+      "library": "tsyringe",
+      "variant": "decorated-explicit",
+      "fixture": "scale-200",
+      "toolchain": "tsc",
+      "emittedBytes": 227155,
+      "metadataCalls": 0,
+      "decorateCalls": 200,
+      "importsInSource": 782,
+      "importsKept": 782
+    },
+    {
+      "library": "tsyringe",
+      "variant": "plain",
+      "fixture": "scale-200",
+      "toolchain": "tsc",
+      "emittedBytes": 67860,
+      "metadataCalls": 0,
+      "decorateCalls": 0,
+      "importsInSource": 403,
+      "importsKept": 203
+    }
+  ]
+}
