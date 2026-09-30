@@ -79,7 +79,7 @@ await using ship = await Nexus.create(Billing, {
 | P3 module system               | Interceptors are providers in a module the plugin contributes. Their deps come from its `imports` and from global modules, under core's encapsulation rules.                                     |
 | P4 forRoot config              | `interceptors({ register, providers, imports, global, bindings, exempt })` is the one configuration call, validated when it is called.                                                           |
 | P5 developer-friendly          | Missing interceptors show in the same `BlueprintError` as wiring errors; `@nexusdi/testing` overrides an interceptor like any provider; `tap()` covers sync and async methods in one call.       |
-| P6 lightweight                 | Core gains 0 bytes from the package. The package measures 3,701 B gzip (section 8). Its error text lives in `@nexusdi/errors`, so `errors()` grows by 1,305 B for every app (owner decision O5). |
+| P6 lightweight                 | Core gains 0 bytes from the package. The package measures 4,313 B gzip (section 8). Its error text lives in `@nexusdi/errors`, so `errors()` grows by 1,305 B for every app (owner decision O5). |
 | P7 class and factory providers | Interceptors can be class, factory or value providers. Class and factory services are intercepted.                                                                                               |
 | P8 async core                  | Async methods keep their promise contract; interceptors are built at `create`.                                                                                                                   |
 | P9 TS 7                        | Standard decorators only; the static form needs no decorator at all.                                                                                                                             |
@@ -235,16 +235,19 @@ Each entry gives the architect's proposal, the challenge, and the final call.
   and their container-local ids apart.
 - Ruling: `interceptors()` returns a new plugin per call, and a plugin object serves one
   live container at a time. The `construct` hook receives the building container (core
-  G1, owner decision D1), so the plugin keys each session by the `Nexus` that builds it,
-  and a scope builds for the one live container.
+  G1, owner decision D1), so the plugin keys each session by the `Nexus` that builds it.
+  A scope names no root, so a scope build reads the registry as the plugin's module sees
+  it, and the registry map leads to the session of the root that built it.
 - `compile.check` sees no container. For each `create` that compiles cleanly it records
   the compile (every provider's id, token and module, and the two skips of R11) as
   pending, and counts equal compiles once. A container's first `construct` call claims
-  the plugin object and starts its session. Each later call keeps the pending compiles
+  the plugin object and starts its session. Each call keeps the pending compiles
   whose provider with that id has the same token and module, and when one is left the
   container is matched and the compile leaves the pending list. Compiles that agree on
-  every provider built so far but disagree on a skip for this one cannot be told apart,
-  and the build fails with `NEXUS_INTERCEPTORS_SHARED`.
+  every provider built so far but disagree on a skip that applies to this one (the
+  own-module skip, or the support skip when global entries exist) cannot be told apart,
+  and the build fails with `NEXUS_INTERCEPTORS_SHARED`. A `load` matches a container
+  that is still unmatched, since it keeps the ids of the providers the container had.
 - A container is live until its disposal starts or its `create` fails; the plugin tests it
   with `has()`, which throws `NEXUS_DISPOSED` then. A `create` that compiles while a live
   container holds the plugin object reports `NEXUS_INTERCEPTORS_SHARED` before any build,
@@ -261,8 +264,14 @@ Each entry gives the architect's proposal, the challenge, and the final call.
   `compile.check` failed, or a `create` whose module options schema rejected before the
   first build level, left the session open, and the next `create` with that plugin object
   reported `NEXUS_INTERCEPTORS_SHARED`. Such a compile now stays pending and claims
-  nothing, so the next `create` runs. A pending compile that is never matched stays in
-  the list, counted once per distinct graph.
+  nothing, so the next `create` runs.
+- Remaining limits. A pending compile that is never matched stays in the list, counted
+  once per distinct graph, and holds that graph's tokens. A stale pending compile that
+  agrees with a later container on every id, token and module it builds, and disagrees
+  on a skip that applies, fails that create with `NEXUS_INTERCEPTORS_SHARED`. Keying the
+  compile by `ProviderView` identity would remove both; it needs core to hand the
+  `construct` hook the provider views of the compile's view, which no owner decision
+  covers yet.
 
 ### R10. No per-call context token
 
@@ -510,9 +519,9 @@ the first level; its disposer closes the session when the container never finish
 
 `construct(instance, provider, scope, container)`:
 
-0. Finds the session of `container` (R9): the `Nexus` keys it, and a scope builds for the
-   one live container. The first call from a container claims the plugin object, and
-   each call matches the provider against the pending compiles.
+0. Finds the session of `container` (R9): the `Nexus` keys it, and a scope finds its
+   root's session through the registry. The first call from a container claims the
+   plugin object, and each call matches the provider against the pending compiles.
 1. Returns `undefined` for providers of the plugin's own module, and for an instance
    that is not an object or function. `compile.check` records each provider's module
    from `view.modules` (the entry whose `definition` is the plugin's module) before any
@@ -577,8 +586,8 @@ not reported: a later `load()` may bring it.
 
 Interceptors are providers, so core disposes them in reverse creation order with the
 rest of the root. The plugin's `dispose` hook, which core runs after every instance the
-container owns (core section 3.10.5), closes the session of each container whose disposal
-has started. A disposer that calls an
+container owns (core section 3.10.5), closes each started session whose container's
+disposal has started. A disposer that calls an
 intercepted method of a dependency therefore still runs its interceptors (final review
 I1). A wrapped method called after the hook throws `NEXUS_INTERCEPTOR_NOT_READY` with
 `state: 'disposed'`, since running a disposed interceptor, or skipping an auth
@@ -619,14 +628,15 @@ Closing twice is harmless.
 
 ## 8. Bundle cost
 
-- Core: 0 bytes. No core file changes.
-- `@nexusdi/interceptors`: 3,701 B gzip for the plugin, the proxy and `tap`, measured
+- Core: 0 bytes from this package. The `container` parameter it uses (D1) grew core from
+  18,317 B to 18,446 B gzip.
+- `@nexusdi/interceptors`: 4,313 B gzip for the plugin, the proxy and `tap`, measured
   by `scripts/size-report.mjs` over `examples/size/src/interceptors.ts` with the method
   of core section 12.4. The first cut measured 3,752 B, of which about 0.9 KB was
   inline error text. Moving that text to `@nexusdi/errors` (R13) removed it; the session
   lifecycle fix (R9, section 6) and the exemption checks (R11) added most of it back.
   The draft's 1.4 to 1.9 KB estimate did not count the compile checks or the frozen
-  object path.
+  object path. Keying sessions per container (R9) took it from 3,701 B to 4,313 B.
 - `@nexusdi/errors` carries the interceptor text: its figure goes from 4,338 B to
   5,643 B gzip, and an app that registers `errors()` or `devtools()` pays the 1,305 B
   whether or not it installs this package. This is owner decision O5.
