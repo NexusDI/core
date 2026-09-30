@@ -64,3 +64,9 @@ describe('written', () => {
     >().toEqualTypeOf<false>();
   });
 });
+
+describe('PluginContext.format', () => {
+  it('returns the type it receives', () => {
+    expectTypeOf<PluginContext['format']>().toEqualTypeOf<<E>(error: E) => E>();
+  });
+});

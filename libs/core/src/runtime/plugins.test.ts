@@ -2,8 +2,13 @@ import { describe, expect, it } from 'vitest';
 
 import { rejected } from '../../test-support/catch.js';
 import { defineModule } from '../definitions/define-module.js';
+import { MissingDepsError } from '../errors/index.js';
 import { Nexus } from './nexus.js';
-import { registerPlugins } from './plugins.js';
+import {
+  registerPlugins,
+  type NexusPlugin,
+  type PluginContext,
+} from './plugins.js';
 
 const Root = defineModule({ name: 'Root' });
 const plugin = <T extends object>(name: string, extra: T = {} as T) => ({
@@ -162,5 +167,86 @@ describe('Nexus.create', () => {
       }),
     );
     expect(built).toBe(0);
+  });
+});
+
+describe('PluginContext.format', () => {
+  const missingDeps = (text?: string) =>
+    new MissingDepsError(
+      {
+        token: 'WarpDrive',
+        module: 'Engineering',
+        arity: 2,
+        useClass: null,
+        bare: true,
+      },
+      text === undefined ? undefined : { text },
+    );
+
+  async function contextWith(
+    ...after: readonly NexusPlugin[]
+  ): Promise<PluginContext> {
+    let context: PluginContext | undefined;
+    await Nexus.create(Root, {
+      plugins: [
+        plugin('raiser', {
+          setup: (c: PluginContext) => {
+            context = c;
+          },
+        }),
+        ...after,
+      ],
+    });
+    if (context === undefined) throw new Error('setup did not run');
+    return context;
+  }
+
+  const formatter = (calls: unknown[] = []): NexusPlugin =>
+    plugin('formatter', {
+      formatError: (error: unknown) => {
+        calls.push(error);
+        return { message: 'The warp drive needs deps.', fix: 'List them.' };
+      },
+    });
+
+  it('returns the same error with the text of a formatError plugin registered after it', async () => {
+    const context = await contextWith(formatter());
+    const error = missingDeps();
+    expect(context.format(error)).toBe(error);
+    expect(error.message).toBe(
+      '[NEXUS_MISSING_DEPS] The warp drive needs deps.\n  Fix: List them.',
+    );
+  });
+
+  it('returns the error unchanged without a formatError hook', async () => {
+    const context = await contextWith();
+    const error = missingDeps();
+    const line = error.message;
+    expect(context.format(error)).toBe(error);
+    expect(error.message).toBe(line);
+    expect(line).not.toContain('\n');
+  });
+
+  it('keeps the text of an error built with its own text', async () => {
+    const context = await contextWith(formatter());
+    const error = missingDeps('Warp drive offline.');
+    context.format(error);
+    expect(error.message).toBe('[NEXUS_MISSING_DEPS] Warp drive offline.');
+  });
+
+  it('formats an error once', async () => {
+    const calls: unknown[] = [];
+    const context = await contextWith(formatter(calls));
+    const error = missingDeps();
+    context.format(context.format(error));
+    expect(calls).toEqual([error]);
+  });
+
+  it('returns a value that is not a NexusError as is', async () => {
+    const context = await contextWith(formatter());
+    const thrown = new Error('coolant leak');
+    expect(context.format(thrown)).toBe(thrown);
+    expect(thrown.message).toBe('coolant leak');
+    expect(context.format('breach')).toBe('breach');
   });
 });

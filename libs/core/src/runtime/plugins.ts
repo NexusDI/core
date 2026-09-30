@@ -24,7 +24,7 @@ import {
   type NexusError,
   type PluginInvalidReason,
 } from '../errors/index.js';
-import { formatThrown } from './format.js';
+import { formatFor, formatThrown } from './format.js';
 import type { Nexus } from './nexus.js';
 import type { Scope } from './scope.js';
 import type { RootState } from './state.js';
@@ -53,6 +53,8 @@ export interface PluginContext {
   blueprint(): BlueprintView;
   /** Whether the last build of factory `providerId` in this container, root or any scope, returned a thenable. null for other providers and before the first build. */
   builtAsync(providerId: string): boolean | null;
+  /** `error` with this container's formatError text, as core formats an error it raises. A plugin that raises after setup throws `context.format(error)`. */
+  format<E>(error: E): E;
 }
 
 /** Extends one container. Every hook is optional (spec §3.10). */
@@ -330,7 +332,8 @@ function factoryAsync(
  * The context setup hooks receive. `blueprint()` reads the published
  * blueprint on each call, so it follows every load(), and returns the one
  * cached view of it. `builtAsync` reads the async flags the root and its
- * scopes record per factory build.
+ * scopes record per factory build. `format` applies the rules of spec §9.1
+ * through `formatFor`.
  */
 export function pluginContext(
   state: RootState,
@@ -345,5 +348,6 @@ export function pluginContext(
         ? factoryAsync(record, state.asyncFlags)
         : null;
     },
+    format: <E>(error: E) => formatFor(state, error) as E,
   });
 }
