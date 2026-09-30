@@ -72,6 +72,10 @@ interface PluginState {
   /** The session of the one live container, or of the last one. */
   live: ContainerSession | undefined;
   readonly sessions: WeakMap<Nexus, ContainerSession>;
+  /** A registry map to the session of the container that built it. */
+  readonly registries: WeakMap<object, ContainerSession>;
+  /** A scope to its root's session, found through the registry it sees. */
+  readonly scopes: WeakMap<Scope, ContainerSession | undefined>;
   readonly pending: PendingCompile[];
   /** Sessions whose container finished create and is not closed yet. */
   readonly started: Set<ContainerSession>;
@@ -128,6 +132,8 @@ export function interceptors(options: InterceptorsOptions): NexusPlugin {
   const state: PluginState = {
     live: undefined,
     sessions: new WeakMap(),
+    registries: new WeakMap(),
+    scopes: new WeakMap(),
     pending: [],
     started: new Set(),
   };
@@ -195,14 +201,32 @@ export function interceptors(options: InterceptorsOptions): NexusPlugin {
   };
 
   /**
-   * The session of the container building `provider`. A scope builds for
-   * the one live container. A container's first build claims the plugin
-   * object, which fails while another container holds it (spec R9).
+   * The session of a scope's root. A scope does not name its root, so it
+   * reads the registry as the plugin's module sees it: singletons come from
+   * the root, and the registry map leads to the root's session. A scope of
+   * a container whose disposal started throws there and gets no session.
+   */
+  const scopeSession = (scope: Scope): ContainerSession | undefined => {
+    if (state.scopes.has(scope)) return state.scopes.get(scope);
+    let session: ContainerSession | undefined;
+    try {
+      session = state.registries.get(scope.get(REGISTRY, { module }) as object);
+    } catch {
+      return undefined;
+    }
+    state.scopes.set(scope, session);
+    return session;
+  };
+
+  /**
+   * The session of the container building `provider`. A container's first
+   * build claims the plugin object, which fails while another container
+   * holds it (spec R9).
    */
   const sessionFor = (
     container: Nexus | Scope,
   ): ContainerSession | undefined => {
-    if (!(container instanceof Nexus)) return state.live;
+    if (!(container instanceof Nexus)) return scopeSession(container);
     let session = state.sessions.get(container);
     if (session !== undefined) return session;
     const live = state.live;
@@ -221,42 +245,55 @@ export function interceptors(options: InterceptorsOptions): NexusPlugin {
     return session;
   };
 
+  /** Whether a compile's record of a provider is the provider being built. */
+  const agrees = (
+    entry: CompiledProvider | undefined,
+    provider: ProviderView,
+  ): entry is CompiledProvider =>
+    entry !== undefined &&
+    entry.token === provider.token &&
+    entry.module === provider.module;
+
+  /** Takes a matched compile out of the pending list. */
+  const claim = (session: ContainerSession, match: PendingCompile): void => {
+    session.matched = true;
+    match.count--;
+    if (match.count === 0)
+      state.pending.splice(state.pending.indexOf(match), 1);
+  };
+
   /**
    * What the session's compiles say about `provider`. Keeps the compiles
    * that agree with it; when one is left, the container is matched and
-   * takes it out of the pending list. Compiles that disagree on the skips
-   * cannot be told apart, so the build fails (spec R9).
+   * takes it out of the pending list. Compiles that disagree on a skip
+   * that applies cannot be told apart, so the build fails (spec R9). The
+   * support skip applies only with global entries.
    */
   const compiledFor = (
     session: ContainerSession,
     provider: ProviderView,
   ): CompiledProvider => {
+    if (session.matched) {
+      const entry = session.candidates[0]?.compiled.get(provider.id);
+      if (!agrees(entry, provider)) throw shared();
+      return entry;
+    }
     const kept: PendingCompile[] = [];
     let found: CompiledProvider | undefined;
     for (const candidate of session.candidates) {
       const entry = candidate.compiled.get(provider.id);
-      if (
-        entry === undefined ||
-        entry.token !== provider.token ||
-        entry.module !== provider.module
-      )
-        continue;
+      if (!agrees(entry, provider)) continue;
       if (
         found !== undefined &&
-        (found.own !== entry.own || found.support !== entry.support)
+        (found.own !== entry.own ||
+          (config.global.length > 0 && found.support !== entry.support))
       )
         throw shared();
       found = entry;
       kept.push(candidate);
     }
     if (found === undefined) throw shared();
-    if (!session.matched && kept.length === 1) {
-      const [match] = kept as [PendingCompile];
-      session.matched = true;
-      match.count--;
-      if (match.count === 0)
-        state.pending.splice(state.pending.indexOf(match), 1);
-    }
+    if (kept.length === 1) claim(session, kept[0] as PendingCompile);
     session.candidates = kept;
     return found;
   };
@@ -311,10 +348,26 @@ export function interceptors(options: InterceptorsOptions): NexusPlugin {
         if (view.phase === 'load') {
           // A load compiles for the one live container; its view holds
           // every provider the container has.
-          if (live !== undefined && isLive(live)) {
-            live.candidates = [{ compiled, count: 0 }];
-            live.matched = true;
+          if (live === undefined || !isLive(live)) return;
+          // The load keeps the ids of the providers the container had, so
+          // it matches a container that was still unmatched.
+          if (!live.matched) {
+            const match = live.candidates.find((c) =>
+              [...c.compiled].every(([id, entry]) => {
+                const next = compiled.get(id);
+                return (
+                  next !== undefined &&
+                  next.token === entry.token &&
+                  next.module === entry.module &&
+                  next.own === entry.own &&
+                  next.support === entry.support
+                );
+              }),
+            );
+            if (match !== undefined) claim(live, match);
           }
+          live.candidates = [{ compiled, count: 0 }];
+          live.matched = true;
           return;
         }
         // A live container holds the plugin object. Failing here, before
@@ -353,8 +406,10 @@ export function interceptors(options: InterceptorsOptions): NexusPlugin {
       if (session === undefined || session.closed) return undefined;
       const compiled = compiledFor(session, provider);
       if (compiled.own) {
-        if (provider.token === REGISTRY)
+        if (provider.token === REGISTRY) {
           session.instances = instance as ReadonlyMap<unknown, Interceptor>;
+          state.registries.set(instance as object, session);
+        }
         return provider.token === GUARD ? guardFor(session) : undefined;
       }
       if (
