@@ -12,11 +12,8 @@ const lifetimes = new Set(adapter.lifetimes);
 const ops = {
   ready: {
     gc: true,
-    run: async () => {
-      const ship = await adapter.ready();
-      await adapter.dispose?.(ship);
-      return ship;
-    },
+    run: () => adapter.ready(),
+    teardown: (ship) => adapter.dispose?.(ship),
   },
   'resolve-singleton': {
     setup: () => adapter.ready(),

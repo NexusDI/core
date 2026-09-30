@@ -7,10 +7,9 @@
 // an InjectionToken for the value, and container.get() to bootstrap.
 // Docs: https://needle-di.io (1.2.1), read 2026-09-30; the pages "Getting
 // started", "Injection" and "Tokens".
-// Departures: initializer injection, which the Injection page documents,
-// in place of the constructor parameter properties it recommends, because
-// Node's type stripping rejects parameter properties and node-strip-types
-// is a cell. needle-di documents singletons only, so the transient and
+// Departures: initializer injection, which the Injection page documents.
+// The page recommends constructor parameter properties, and Node's type
+// stripping rejects them in the node-strip-types cell. needle-di documents singletons only, so the transient and
 // scoped sections are not-applicable (libraries.json).
 import { Container, InjectionToken, inject, injectable } from '@needle-di/core';
 

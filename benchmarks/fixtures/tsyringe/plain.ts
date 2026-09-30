@@ -6,8 +6,8 @@
 // Docs: https://github.com/microsoft/tsyringe#readme (4.10.0), read 2026-09-30.
 // The file imports reflect-metadata, because tsyringe's entry throws
 // "tsyringe requires a reflect polyfill." without it.
-// Departures: fields instead of constructor parameter properties
-// (node-strip-types is a cell). ready() builds its own child container, so
+// Departures: fields for dependencies, because Node's type stripping
+// rejects constructor parameter properties (node-strip-types is a cell). ready() builds its own child container, so
 // each call starts empty.
 import 'reflect-metadata';
 import {
