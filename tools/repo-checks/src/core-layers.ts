@@ -84,13 +84,13 @@ function isTypeOnly(
 }
 
 /** A module specifier a file names, and whether it brings in types only. */
-interface ImportOf {
+export interface ImportOf {
   readonly specifier: string;
   readonly typeOnly: boolean;
 }
 
 /** Every import, export-from and import() in a file. */
-function importsOf(file: SourceFileText): ImportOf[] {
+export function importsOf(file: SourceFileText): ImportOf[] {
   const source = ts.createSourceFile(
     file.path,
     file.source,

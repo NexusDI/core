@@ -1,0 +1,232 @@
+import { existsSync, readdirSync } from 'node:fs';
+import { join } from 'node:path';
+
+import { workspaceRoot } from '@nx/devkit';
+import { describe, expect, it } from 'vitest';
+
+import { sourcesOf } from './entry-graph.js';
+import {
+  declaredCodes,
+  instanceofClasses,
+  packCodes,
+  textPlacement,
+  type TextPolicy,
+} from './error-codes.js';
+
+// The fixtures import errorBase from '@acme/nexusdi-core', a module nothing
+// resolves. An import of '@nexusdi/core' would make the project graph read
+// the fixtures as a dependency of repo-checks on core.
+const FIXTURES = join(
+  import.meta.dirname,
+  '__fixtures__',
+  'error-text-placement',
+);
+const LIBS = join(workspaceRoot, 'libs');
+
+/**
+ * Where spec section 2.5.1's rule gives way, each with its reason. An entry
+ * for a package absent from libs/ is ignored; an entry for a present package
+ * that nothing uses fails the live test, so the list cannot go stale.
+ */
+const POLICY: TextPolicy = {
+  // V9: codes a package reports from compile.check with inline text.
+  inlineText: [
+    {
+      package: '@nexusdi/testing',
+      codes: ['NEXUS_OVERRIDE_UNUSED', 'NEXUS_OVERRIDE_EXPORTS'],
+      reason:
+        'dev-only package; full text with zero wiring; translation not supported',
+    },
+  ],
+  // Codes with no pack entry because the errors engine renders their text.
+  engineRendered: [
+    {
+      package: '@nexusdi/core',
+      code: 'NEXUS_BLUEPRINT_INVALID',
+      errorClass: 'BlueprintError',
+      reason:
+        "the engine renders the aggregate from each inner error's pack text (spec section 2.5.3)",
+    },
+  ],
+  // report() and .format() arguments the check cannot trace to a raise site.
+  opaqueSites: [],
+};
+
+const EMPTY: TextPolicy = {
+  inlineText: [],
+  engineRendered: [],
+  opaqueSites: [],
+};
+
+const fixture = (name: string) => ({
+  name: '@acme/cache',
+  files: sourcesOf(join(FIXTURES, name)),
+});
+
+describe('declaredCodes', () => {
+  it('reads each NexusErrorByCode augmentation', () => {
+    expect(declaredCodes(fixture('clean').files)).toEqual([
+      'ACME_CACHE_MISS',
+      'ACME_STORE_FULL',
+      'ACME_STORE_LOCKED',
+      'ACME_CACHE_KEY',
+    ]);
+  });
+});
+
+describe('packCodes', () => {
+  it('reads the keys of the pack in text.ts', () => {
+    expect(packCodes(fixture('clean').files)).toEqual([
+      'ACME_CACHE_MISS',
+      'ACME_STORE_FULL',
+      'ACME_STORE_LOCKED',
+    ]);
+  });
+});
+
+describe('instanceofClasses', () => {
+  it('finds each engine-rendered class tested with instanceof in @nexusdi/errors', () => {
+    const engine = instanceofClasses(sourcesOf(join(LIBS, 'errors', 'src')));
+    for (const entry of POLICY.engineRendered)
+      expect(engine).toContain(entry.errorClass);
+  });
+});
+
+describe('textPlacement', () => {
+  it('accepts pack text for reported and formatted codes and inline text elsewhere', () => {
+    expect(textPlacement(fixture('clean'), EMPTY).violations).toEqual([]);
+  });
+
+  it('reports a declared code with neither a pack entry nor an inline raise site', () => {
+    expect(
+      textPlacement(fixture('sabotaged/missing-text'), EMPTY).violations,
+    ).toEqual([
+      '@acme/cache declares ACME_CACHE_STALE, and it has neither a pack entry nor an inline raise site',
+    ]);
+  });
+
+  it('reports a check that reports a package-local factory error with inline text', () => {
+    expect(
+      textPlacement(fixture('sabotaged/reported-text'), EMPTY).violations,
+    ).toEqual([
+      'plugin.ts:10 reports ACME_CACHE_MISS, built with inline text at errors.ts:9; reported and formatted errors take their text from the pack',
+    ]);
+  });
+
+  it('reports a plugin that formats an error built with inline text', () => {
+    expect(
+      textPlacement(fixture('sabotaged/formatted-text'), EMPTY).violations,
+    ).toEqual([
+      'plugin.ts:15 formats ACME_CACHE_MISS, built with inline text at plugin.ts:16; reported and formatted errors take their text from the pack',
+    ]);
+  });
+
+  it('fails closed on an argument it cannot trace to a raise site', () => {
+    expect(
+      textPlacement(fixture('sabotaged/opaque-argument'), EMPTY).violations,
+    ).toEqual([
+      'plugin.ts:11 reports error, which is neither a new expression nor a call to a package-local factory that returns one; build the error there, or allowlist the site with a reason',
+    ]);
+  });
+
+  it('fails closed on options it cannot read', () => {
+    expect(
+      textPlacement(fixture('sabotaged/options-unread'), EMPTY).violations,
+    ).toEqual([
+      'plugin.ts:11 reports ACME_CACHE_MISS, built at plugin.ts:11 with options the check cannot read; pass an object literal, or allowlist the site with a reason',
+    ]);
+  });
+
+  it('fails closed on a check that passes report on', () => {
+    expect(
+      textPlacement(fixture('sabotaged/report-passed-on'), EMPTY).violations,
+    ).toEqual([
+      'plugin.ts:17 passes report on as a value, and the check cannot follow it; call report where the hook is written',
+    ]);
+  });
+
+  it('lets an inline-text allowance cover its codes', () => {
+    const allowance = {
+      package: '@acme/cache',
+      codes: ['ACME_CACHE_MISS'],
+      reason: 'fixture',
+    };
+    const result = textPlacement(fixture('sabotaged/reported-text'), {
+      ...EMPTY,
+      inlineText: [allowance],
+    });
+    expect(result.violations).toEqual([]);
+    expect(result.used).toContain(allowance);
+  });
+
+  it('lets an engine-rendered entry cover a code with no pack entry', () => {
+    const entry = {
+      package: '@acme/cache',
+      code: 'ACME_CACHE_STALE',
+      errorClass: 'CacheStaleError',
+      reason: 'fixture',
+    };
+    const result = textPlacement(fixture('sabotaged/missing-text'), {
+      ...EMPTY,
+      engineRendered: [entry],
+    });
+    expect(result.violations).toEqual([]);
+    expect(result.used).toContain(entry);
+  });
+
+  it('lets a site allowance cover an opaque argument', () => {
+    const site = {
+      package: '@acme/cache',
+      file: 'plugin.ts',
+      argument: 'error',
+      reason: 'fixture',
+    };
+    const result = textPlacement(fixture('sabotaged/opaque-argument'), {
+      ...EMPTY,
+      opaqueSites: [site],
+    });
+    expect(result.violations).toEqual([]);
+    expect(result.used).toContain(site);
+  });
+
+  it('ignores an allowance for another package', () => {
+    expect(
+      textPlacement(fixture('sabotaged/reported-text'), POLICY).violations,
+    ).toHaveLength(1);
+  });
+
+  const packages = readdirSync(LIBS)
+    .filter((dir) => existsSync(join(LIBS, dir, 'src')))
+    .map((dir) => ({
+      name: `@nexusdi/${dir}`,
+      files: sourcesOf(join(LIBS, dir, 'src')),
+    }));
+
+  it.each(packages.map((pkg) => [pkg.name, pkg] as const))(
+    'holds for %s',
+    (_, pkg) => {
+      expect(textPlacement(pkg, POLICY).violations).toEqual([]);
+    },
+  );
+
+  it('uses every policy entry for a package in libs/', () => {
+    const used = new Set(
+      packages.flatMap((pkg) => [...textPlacement(pkg, POLICY).used]),
+    );
+    const present = new Set(packages.map((pkg) => pkg.name));
+    const entries = [
+      ...POLICY.inlineText,
+      ...POLICY.engineRendered,
+      ...POLICY.opaqueSites,
+    ].filter((entry) => present.has(entry.package));
+    expect(entries.filter((entry) => !used.has(entry))).toEqual([]);
+  });
+
+  it('finds no pack entry for an engine-rendered code', () => {
+    for (const entry of POLICY.engineRendered) {
+      const pkg = packages.find((p) => p.name === entry.package);
+      if (pkg === undefined) continue;
+      expect(packCodes(pkg.files)).not.toContain(entry.code);
+    }
+  });
+});
