@@ -1,9 +1,11 @@
 import type { Blueprint } from '../blueprint/blueprint.js';
 import { sameToken, type Canonicalizer } from '../blueprint/views.js';
 import { DisposedError } from '../errors/index.js';
+import type { Nexus } from './nexus.js';
 import { Ownership, type OwnedEntry } from './ownership.js';
 import { NO_PLUGINS, type PluginSet } from './plugins.js';
 import { Slots } from './readiness.js';
+import type { Scope } from './scope.js';
 import type { Tracer } from './trace.js';
 
 /** Why a built transient has no owner, for the `untracked` trace event. */
@@ -14,6 +16,8 @@ export interface RootState {
   readonly scopeId: null;
   readonly request: undefined;
   readonly root: RootState;
+  /** The Nexus create() returns. Construct hooks receive it before create resolves. */
+  readonly handle: Nexus;
   readonly slots: Slots;
   /** Instances the root disposes, in creation order. */
   readonly owned: OwnedEntry[];
@@ -47,6 +51,12 @@ export interface RootState {
   loadQueue: Promise<void>;
   /** The create or load building right now. load() calls run one at a time. */
   run: Run | undefined;
+  /**
+   * Settles when create's build settles; undefined after that. createScope()
+   * waits for it, so a construct hook that opens a scope during create gets
+   * one built on every singleton.
+   */
+  building: Promise<void> | undefined;
   /** load(), createScope() and extend() operations still running. Disposal awaits them. */
   readonly inflight: Set<Promise<unknown>>;
   /**
@@ -69,6 +79,8 @@ export interface ScopeState {
   /** What createScope({ request }) received; REQUEST resolves to it. */
   readonly request: unknown;
   readonly root: RootState;
+  /** The Scope createScope() returns. Construct hooks receive it before createScope resolves. */
+  readonly handle: Scope;
   readonly slots: Slots;
   /** Scoped and transient instances this scope disposes, in creation order. */
   readonly owned: OwnedEntry[];
@@ -96,12 +108,16 @@ export type ContainerState = RootState | ScopeState;
 export function createScopeState(
   root: RootState,
   request: unknown,
+  wrap: (state: ScopeState) => Scope,
 ): ScopeState {
-  return {
+  const state: ScopeState = {
     kind: 'scope',
     scopeId: `s${root.nextScope++}`,
     request,
     root,
+    get handle(): Scope {
+      return handle;
+    },
     slots: new Slots(),
     owned: [],
     blueprint: root.blueprint,
@@ -111,6 +127,8 @@ export function createScopeState(
     pendingExtend: undefined,
     abortErrors: [],
   };
+  const handle = wrap(state);
+  return state;
 }
 
 /**
@@ -154,6 +172,8 @@ export interface RootInit {
   readonly initEnabled: boolean;
   readonly plugins?: PluginSet;
   readonly canon?: Canonicalizer;
+  /** Makes the Nexus that wraps the state. */
+  readonly wrap: (state: RootState) => Nexus;
 }
 
 export function createRootState(init: RootInit): RootState {
@@ -163,6 +183,9 @@ export function createRootState(init: RootInit): RootState {
     request: undefined,
     get root(): RootState {
       return state;
+    },
+    get handle(): Nexus {
+      return handle;
     },
     slots: new Slots(),
     owned: [],
@@ -179,11 +202,13 @@ export function createRootState(init: RootInit): RootState {
     disposal: undefined,
     loadQueue: Promise.resolve(),
     run: undefined,
+    building: undefined,
     inflight: new Set(),
     abortErrors: [],
     scopes: new Set(),
     nextScope: 0,
   };
+  const handle = init.wrap(state);
   return state;
 }
 

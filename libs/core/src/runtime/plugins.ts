@@ -26,6 +26,7 @@ import {
 } from '../errors/index.js';
 import { formatThrown } from './format.js';
 import type { Nexus } from './nexus.js';
+import type { Scope } from './scope.js';
 import type { RootState } from './state.js';
 import type { TraceEvent } from './trace.js';
 
@@ -70,10 +71,17 @@ export interface NexusPlugin {
   /** The key the compiler and the runtime look a token up by. undefined leaves the token to the next plugin; a token no plugin keys is its own key. */
   tokenKey?(token: AnyToken): unknown;
   readonly compile?: CompilePluginHooks;
+  /**
+   * Runs on each class or factory instance before the runtime stores it; a
+   * return other than undefined replaces it. `scope` is the building scope's
+   * id, or null at the root. `container` is the Nexus or Scope building the
+   * value, the one create() or createScope() returns (spec §3.10.4).
+   */
   construct?(
     instance: unknown,
     provider: ProviderView,
     scope: string | null,
+    container: Nexus | Scope,
   ): unknown;
   observe?(event: TraceEvent): void;
   formatError?(
@@ -100,7 +108,12 @@ export interface PluginSet {
   readonly compile: CompileHooks;
   readonly tokenKey: readonly Hook<(token: TokenKey) => unknown>[];
   readonly construct: readonly Hook<
-    (instance: unknown, provider: ProviderView, scope: string | null) => unknown
+    (
+      instance: unknown,
+      provider: ProviderView,
+      scope: string | null,
+      container: Nexus | Scope,
+    ) => unknown
   >[];
   readonly observe: readonly Hook<(event: TraceEvent) => void>[];
   readonly formatError: readonly Hook<

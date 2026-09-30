@@ -265,6 +265,38 @@ async function runSetup(
   }
 }
 
+/**
+ * Step 3 of create: builds the singletons. A construct hook holds the
+ * container before create resolves, so a load() it starts queues behind the
+ * build, a createScope() waits on `building`, and a disposal awaits the
+ * build through `inflight`. A failed build closes the container before
+ * either waiter resumes: its methods throw NEXUS_DISPOSED and its
+ * [Symbol.asyncDispose]() resolves.
+ */
+async function buildRoot(
+  state: RootState,
+  blueprint: Blueprint,
+): Promise<void> {
+  let release!: () => void;
+  const building = new Promise<void>((resolve) => {
+    release = resolve;
+  });
+  state.building = building;
+  state.loadQueue = building;
+  try {
+    const build = startBlueprint(state, { bp: blueprint, isNew: () => true });
+    track(state.inflight, build);
+    await build;
+  } catch (error) {
+    state.disposing = true;
+    state.disposal ??= Promise.resolve();
+    throw error;
+  } finally {
+    state.building = undefined;
+    release();
+  }
+}
+
 export async function createContainer(
   root: unknown,
   options: CreateOptions | undefined,
@@ -297,11 +329,11 @@ export async function createContainer(
       initEnabled: plugins.onInit,
       plugins,
       canon,
+      wrap,
     });
-    await startBlueprint(state, { bp: blueprint, isNew: () => true });
-    const ship = wrap(state);
-    await runSetup(state, plugins, ship);
-    return ship;
+    await buildRoot(state, blueprint);
+    await runSetup(state, plugins, state.handle);
+    return state.handle;
   } catch (error) {
     throw formatThrown(
       plugins,

@@ -10,7 +10,7 @@ import { provide } from '../definitions/provide.js';
 import { Token } from '../definitions/token.js';
 import { runInit } from './init.js';
 import { Nexus } from './nexus.js';
-import { createRootState } from './state.js';
+import { rootState } from '../../test-support/root-state.js';
 import { startBlueprint } from './startup.js';
 import { Tracer } from './trace.js';
 
@@ -273,7 +273,7 @@ describe('runInit', () => {
         providers: [Reactor, provide(Computer, { deps: [Reactor] })],
       }),
     });
-    const root = createRootState({
+    const root = rootState({
       blueprint: bp,
       rootRef: {},
       tracer: new Tracer(),

@@ -1,0 +1,317 @@
+import { describe, expect, it } from 'vitest';
+
+import { rejected, thrown } from '../../test-support/catch.js';
+import { defineModule } from '../definitions/define-module.js';
+import { provide } from '../definitions/provide.js';
+import { Token } from '../definitions/token.js';
+import { Nexus } from './nexus.js';
+import type { NexusPlugin } from './plugins.js';
+import type { Scope } from './scope.js';
+
+interface IReactorCore {
+  readonly output: number;
+}
+interface ICaptainsLog {
+  readonly entries: string[];
+}
+const REACTOR = new Token<IReactorCore>('ReactorCore');
+const PROBE = new Token<object>('Probe');
+const LOG = new Token<ICaptainsLog>('CaptainsLog');
+const SIGNAL = new Token<object>('Signal');
+const ARCHIVE = new Token<object>('Archive');
+
+class FusionReactor implements IReactorCore {
+  readonly output = 1.21;
+}
+class CaptainsLog implements ICaptainsLog {
+  readonly entries: string[] = [];
+}
+
+/** A plugin that records each build's provider name and container. */
+function containerRecorder(): {
+  readonly plugin: NexusPlugin;
+  readonly seen: [string, Nexus | Scope][];
+} {
+  const seen: [string, Nexus | Scope][] = [];
+  return {
+    seen,
+    plugin: {
+      name: 'test:container',
+      apiVersion: 1,
+      construct: (_instance, provider, _scope, container) => {
+        seen.push([provider.name, container]);
+        return undefined;
+      },
+    },
+  };
+}
+
+const Bridge = defineModule({
+  name: 'Bridge',
+  providers: [
+    provide(REACTOR, { useClass: FusionReactor }),
+    provide(PROBE, { useClass: class {}, lifetime: 'transient' }),
+    provide(LOG, { useClass: CaptainsLog, lifetime: 'scoped' }),
+    provide(SIGNAL, { useFactory: () => ({}), lifetime: 'scoped' }),
+  ],
+  exports: [REACTOR, PROBE, LOG, SIGNAL],
+});
+
+describe('construct hook container', () => {
+  it('receives the Nexus that create returns for singletons and root transients', async () => {
+    const { plugin, seen } = containerRecorder();
+    const ship = await Nexus.create(Bridge, { plugins: [plugin] });
+    ship.get(PROBE);
+    expect(seen).toEqual([
+      ['ReactorCore', ship],
+      ['Probe', ship],
+    ]);
+  });
+
+  it('receives the root for the singletons a load builds', async () => {
+    const { plugin, seen } = containerRecorder();
+    const ship = await Nexus.create(defineModule({ name: 'Root' }), {
+      plugins: [plugin],
+    });
+    await ship.load(Bridge);
+    expect(seen).toEqual([['ReactorCore', ship]]);
+  });
+
+  it('receives the Scope that createScope returns for scoped and scope transient builds', async () => {
+    const LAZY = new Token<object>('LazyArray');
+    const { plugin, seen } = containerRecorder();
+    const ship = await Nexus.create(
+      defineModule({
+        name: 'Root',
+        imports: [Bridge],
+        providers: [provide(LAZY, { useClass: class {}, eager: false })],
+        exports: [LAZY],
+      }),
+      { plugins: [plugin] },
+    );
+    seen.length = 0;
+    await using scope = await ship.createScope();
+    scope.get(LOG);
+    scope.get(PROBE);
+    // An eager: false singleton builds into the root, whichever container asked.
+    scope.get(LAZY);
+    expect(seen).toEqual([
+      ['Signal', scope],
+      ['CaptainsLog', scope],
+      ['Probe', scope],
+      ['LazyArray', ship],
+    ]);
+  });
+
+  it('receives the extended Scope for the scoped factories extend builds', async () => {
+    const { plugin, seen } = containerRecorder();
+    const ship = await Nexus.create(defineModule({ name: 'Root' }), {
+      plugins: [plugin],
+    });
+    await using scope = await ship.createScope();
+    await ship.load(
+      defineModule({
+        name: 'Archives',
+        providers: [
+          provide(ARCHIVE, { useFactory: () => ({}), lifetime: 'scoped' }),
+        ],
+        exports: [ARCHIVE],
+      }),
+    );
+    await scope.extend();
+    expect(seen).toEqual([['Archive', scope]]);
+  });
+
+  it('tells two scopes apart', async () => {
+    const { plugin, seen } = containerRecorder();
+    const ship = await Nexus.create(Bridge, { plugins: [plugin] });
+    seen.length = 0;
+    await using first = await ship.createScope();
+    await using second = await ship.createScope();
+    expect(first).not.toBe(second);
+    expect(seen).toEqual([
+      ['Signal', first],
+      ['Signal', second],
+    ]);
+  });
+});
+
+describe('a container a construct hook holds during create', () => {
+  it('serves get() for a singleton already built', async () => {
+    const SENSOR = new Token<object>('Sensor');
+    let read: unknown;
+    const ship = await Nexus.create(
+      defineModule({
+        name: 'Root',
+        providers: [
+          provide(REACTOR, { useClass: FusionReactor }),
+          provide(SENSOR, { useFactory: () => ({}), deps: [REACTOR] }),
+        ],
+      }),
+      {
+        plugins: [
+          {
+            name: 'reader',
+            apiVersion: 1,
+            construct: (_instance, provider, _scope, container) => {
+              if (provider.token === SENSOR)
+                read = (container as Nexus).get(REACTOR);
+              return undefined;
+            },
+          },
+        ],
+      },
+    );
+    expect(read).toBe(ship.get(REACTOR));
+  });
+
+  it('runs a load() the hook starts after create has built every singleton', async () => {
+    const order: string[] = [];
+    let loading: Promise<void> | undefined;
+    const Late = defineModule({
+      name: 'Late',
+      providers: [provide(ARCHIVE, { useFactory: () => ({}) })],
+      exports: [ARCHIVE],
+    });
+    const ship = await Nexus.create(Bridge, {
+      plugins: [
+        {
+          name: 'loader',
+          apiVersion: 1,
+          construct: (_instance, provider, _scope, container) => {
+            order.push(provider.name);
+            if (provider.token === REACTOR)
+              loading = (container as Nexus).load(Late);
+            return undefined;
+          },
+        },
+      ],
+    });
+    await loading;
+    expect(order).toEqual(['ReactorCore', 'Archive']);
+    expect(ship.has(ARCHIVE)).toBe(true);
+  });
+
+  it('builds a scope the hook opens on every singleton', async () => {
+    const REPORT = new Token<object>('Report');
+    let opening: Promise<Scope> | undefined;
+    const ship = await Nexus.create(
+      defineModule({
+        name: 'Root',
+        providers: [
+          provide(PROBE, { useClass: class {} }),
+          provide(REACTOR, { useClass: FusionReactor }),
+          provide(REPORT, {
+            useFactory: (reactor: IReactorCore) => ({ reactor }),
+            deps: [REACTOR],
+            lifetime: 'scoped',
+          }),
+        ],
+        exports: [REPORT],
+      }),
+      {
+        plugins: [
+          {
+            name: 'opener',
+            apiVersion: 1,
+            construct: (_instance, provider, _scope, container) => {
+              if (provider.token === PROBE && opening === undefined)
+                opening = (container as Nexus).createScope();
+              return undefined;
+            },
+          },
+        ],
+      },
+    );
+    if (opening === undefined) throw new Error('the hook did not run');
+    await using scope = await opening;
+    expect(scope.get(REPORT)).toEqual({ reactor: ship.get(REACTOR) });
+  });
+
+  it('is closed when create fails', async () => {
+    let held: Nexus | undefined;
+    // Caught at once: both settle before create rejects.
+    let loading: Promise<unknown> | undefined;
+    let opening: Promise<unknown> | undefined;
+    const error = await rejected(
+      Nexus.create(
+        defineModule({
+          name: 'Root',
+          providers: [
+            provide(REACTOR, { useClass: FusionReactor }),
+            provide(PROBE, {
+              useFactory: () => {
+                throw new Error('breach');
+              },
+              deps: [REACTOR],
+            }),
+          ],
+        }),
+        {
+          plugins: [
+            {
+              name: 'holder',
+              apiVersion: 1,
+              construct: (_instance, _provider, _scope, container) => {
+                held = container as Nexus;
+                loading = rejected(held.load(defineModule({ name: 'Late' })));
+                opening = rejected(held.createScope());
+                return undefined;
+              },
+            },
+          ],
+        },
+      ),
+    );
+    expect(error).toMatchObject({ code: 'NEXUS_PROVIDER_FAILED' });
+    if (held === undefined || loading === undefined || opening === undefined)
+      throw new Error('the hook did not run');
+    expect(thrown(() => held?.get(REACTOR))).toMatchObject({
+      code: 'NEXUS_DISPOSED',
+    });
+    expect(await loading).toMatchObject({ code: 'NEXUS_DISPOSED' });
+    expect(await opening).toMatchObject({ code: 'NEXUS_DISPOSED' });
+    await expect(held[Symbol.asyncDispose]()).resolves.toBeUndefined();
+  });
+
+  it('closes a scope whose createScope fails', async () => {
+    const RELAY = new Token<object>('Relay');
+    let held: Scope | undefined;
+    const ship = await Nexus.create(
+      defineModule({
+        name: 'Root',
+        providers: [
+          provide(SIGNAL, { useFactory: () => ({}), lifetime: 'scoped' }),
+          provide(RELAY, {
+            useFactory: () => {
+              throw new Error('static');
+            },
+            deps: [SIGNAL],
+            lifetime: 'scoped',
+          }),
+        ],
+        exports: [SIGNAL],
+      }),
+      {
+        plugins: [
+          {
+            name: 'holder',
+            apiVersion: 1,
+            construct: (_instance, _provider, _scope, container) => {
+              held = container as Scope;
+              return undefined;
+            },
+          },
+        ],
+      },
+    );
+    expect(await rejected(ship.createScope())).toMatchObject({
+      code: 'NEXUS_PROVIDER_FAILED',
+    });
+    if (held === undefined) throw new Error('the hook did not run');
+    expect(thrown(() => held?.get(SIGNAL))).toMatchObject({
+      code: 'NEXUS_DISPOSED',
+    });
+    await expect(held[Symbol.asyncDispose]()).resolves.toBeUndefined();
+  });
+});

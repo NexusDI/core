@@ -266,16 +266,17 @@ export function takeOwnership(
  * hooks are synchronous, because get() is, so a returned thenable fails the
  * build. A failed build hands the raw instance to `owner`, whose disposal
  * disposes it once; an earlier plugin's wrapper forwards to it and is never
- * disposed. With no construct hook it runs one length test.
+ * disposed. With no construct hook it runs one length test. Each hook
+ * receives `container`'s id and public handle.
  */
 export function applyConstruct(
-  root: RootState,
+  container: ContainerState,
   owner: TransientOwner,
   bp: Blueprint,
   record: ProviderRecord,
   instance: unknown,
-  scope: string | null,
 ): unknown {
+  const { root } = container;
   const hooks = root.plugins.construct;
   if (
     hooks.length === 0 ||
@@ -287,7 +288,7 @@ export function applyConstruct(
   for (const hook of hooks) {
     let next: unknown;
     try {
-      next = hook.call(current, view, scope);
+      next = hook.call(current, view, container.scopeId, container.handle);
     } catch (error) {
       takeOwnership(root, owner, record, instance);
       throw constructFailed(bp, record, hook.plugin, error);
@@ -450,14 +451,7 @@ export function buildOnDemand(record: ProviderRecord, ctx: Ctx): unknown {
   const start = root.tracer.now();
   const built = construct(record, { bp: ctx.bp, container, owner });
   if (record.kind === 'factory' && isThenable(built)) throw lazyAsync(built);
-  const instance = applyConstruct(
-    root,
-    owner,
-    ctx.bp,
-    record,
-    built,
-    container.scopeId,
-  );
+  const instance = applyConstruct(container, owner, ctx.bp, record, built);
   adopt(owner, record, instance);
   if (
     record.lifetime === 'singleton' &&
@@ -515,12 +509,11 @@ function buildTransient(record: ProviderRecord, ctx: Ctx): unknown {
     });
   }
   const instance = applyConstruct(
-    ctx.container.root,
+    ctx.container,
     ctx.owner,
     ctx.bp,
     record,
     built,
-    ctx.container.scopeId,
   );
   takeOwnership(ctx.container.root, ctx.owner, record, instance);
   traceConstruct(ctx.container, ctx.bp, record, false, start);

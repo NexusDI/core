@@ -9,7 +9,7 @@ import { provide } from '../definitions/provide.js';
 import { Token } from '../definitions/token.js';
 import { makeThunk, type ResolveId } from './lazy.js';
 import { Nexus } from './nexus.js';
-import { createRootState } from './state.js';
+import { rootState } from '../../test-support/root-state.js';
 import type { TransientOwner } from './state.js';
 import { Tracer } from './trace.js';
 
@@ -213,7 +213,7 @@ describe('lazy', () => {
         ],
       }),
     });
-    const root = createRootState({
+    const root = rootState({
       blueprint: bp,
       rootRef: {},
       tracer: new Tracer(),

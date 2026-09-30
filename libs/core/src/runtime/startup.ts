@@ -119,7 +119,7 @@ async function buildSingleton(
   }
   // After validation, so the schema checks the factory's own output and
   // the runtime stores what the construct hooks return.
-  value = applyConstruct(root, owner, bp, record, value, null);
+  value = applyConstruct(root, owner, bp, record, value);
   adopt(owner, record, value);
   store(root, bp, record, value, start, isAsync, !root.initEnabled);
 }

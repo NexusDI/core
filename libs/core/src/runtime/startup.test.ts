@@ -11,7 +11,7 @@ import type { StandardSchemaV1 } from '../definitions/standard-schema.js';
 import { Token } from '../definitions/token.js';
 import { DisposedError, ProviderError } from '../errors/index.js';
 import { Nexus } from './nexus.js';
-import { createRootState } from './state.js';
+import { rootState } from '../../test-support/root-state.js';
 import { startBlueprint } from './startup.js';
 import { Tracer } from './trace.js';
 
@@ -368,7 +368,7 @@ describe('Nexus', () => {
           providers: [provide(VALUE, { useValue: shared }), Boom],
         }),
       });
-      const root = createRootState({
+      const root = rootState({
         blueprint: bp,
         rootRef: {},
         tracer: new Tracer(),
@@ -395,7 +395,7 @@ describe('Nexus', () => {
           providers: [provide(A, { useValue: shared })],
         }),
       });
-      const root = createRootState({
+      const root = rootState({
         blueprint: firstBp,
         rootRef: {},
         tracer: new Tracer(),

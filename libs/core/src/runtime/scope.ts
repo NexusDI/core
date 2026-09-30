@@ -172,14 +172,7 @@ async function buildScoped(
 ): Promise<void> {
   const built = await buildInto(scope, bp, id, owner);
   const { record, isAsync, start } = built;
-  const value = applyConstruct(
-    scope.root,
-    owner,
-    bp,
-    record,
-    built.value,
-    scope.scopeId,
-  );
+  const value = applyConstruct(scope, owner, bp, record, built.value);
   adopt(owner, record, value);
   store(scope, bp, record, value, start, isAsync, true);
 }
@@ -203,7 +196,10 @@ async function buildScope(scope: ScopeState): Promise<Scope> {
     );
     assertOpen(root);
   } catch (error) {
-    // The scope is never handed out, so its slots need no abandoning.
+    // createScope never returns the scope, but a construct hook may hold its
+    // handle, so the scope closes: its methods throw NEXUS_DISPOSED and its
+    // [Symbol.asyncDispose]() resolves. Its slots then need no abandoning.
+    scope.disposal = Promise.resolve();
     throw await rollBack(
       scope,
       { touched: [], owned: scope.owned },
@@ -219,7 +215,7 @@ async function buildScope(scope: ScopeState): Promise<Scope> {
     built,
     durationMs: tracer.now() - start,
   }));
-  return new ScopeHandle(scope);
+  return scope.handle;
 }
 
 /**
@@ -326,11 +322,19 @@ export async function openScope(
   options?: { readonly request?: NexusRequest },
 ): Promise<Scope> {
   assertOpen(root);
+  // A construct hook that calls createScope() during create waits for the
+  // singletons, and a failed create closes the root before this resumes.
+  if (root.building !== undefined) {
+    await root.building;
+    assertOpen(root);
+  }
   const bp = root.blueprint;
   if (bp.needsRequest && options?.request === undefined) {
     throw new RequestMissingError({ dependents: bp.requestDependents });
   }
-  const work = buildScope(createScopeState(root, options?.request));
+  const work = buildScope(
+    createScopeState(root, options?.request, (state) => new ScopeHandle(state)),
+  );
   track(root.inflight, work);
   return work;
 }
