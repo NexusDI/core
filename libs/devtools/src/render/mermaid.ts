@@ -1,5 +1,6 @@
 import type { NexusGraph } from '../graph.js';
 import {
+  drawnProviders,
   exportedIds,
   membersOf,
   moduleTitle,
@@ -16,6 +17,8 @@ const ENTITY: Readonly<Record<string, string>> = {
   '#': '#35;',
   '<': '#lt;',
   '>': '#gt;',
+  // A label that starts with a backtick reads as a Markdown string.
+  '`': '#96;',
 };
 
 const SHAPE: Record<GraphProvider['kind'], readonly [string, string]> = {
@@ -36,8 +39,8 @@ const EDGE: Record<GraphEdge['kind'], string> = {
 /** Label text with every character Mermaid reads as syntax as an entity code. */
 function text(value: string): string {
   return value
-    .replace(/[&"#<>]/g, (c) => ENTITY[c] ?? c)
-    .replace(/\r?\n/g, ' ');
+    .replace(/[&"#<>`]/g, (c) => ENTITY[c] ?? c)
+    .replace(/\r\n|\r|\n/g, ' ');
 }
 
 function label(lines: readonly string[]): string {
@@ -75,7 +78,7 @@ export function toMermaid(
     for (const e of graph.edges)
       lines.push(`  ${e.from} ${EDGE[e.kind]} ${e.to}`);
     const exported = exportedIds(graph);
-    const marked = graph.providers
+    const marked = drawnProviders(graph)
       .filter((p) => exported.has(p.id))
       .map((p) => p.id);
     if (marked.length > 0)

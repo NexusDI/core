@@ -1,6 +1,10 @@
 import { describe, expect, it } from 'vitest';
 
-import { ESCAPE_FIXTURE, FIXTURE } from '../../test-support/graph-fixture.js';
+import {
+  ESCAPE_FIXTURE,
+  FIXTURE,
+  WITH_REQUEST,
+} from '../../test-support/graph-fixture.js';
 import { toMermaid } from '../index.js';
 
 describe('toMermaid', () => {
@@ -50,7 +54,29 @@ describe('toMermaid', () => {
     expect(mermaid).not.toContain('<script>');
   });
 
+  it('turns backticks into entity codes and a lone carriage return into a space', () => {
+    const mermaid = toMermaid(ESCAPE_FIXTURE);
+    expect(mermaid).toContain('subgraph m1["#96;md#96;"]');
+    expect(mermaid).toContain(
+      'p1[/"#96;**bold** md#96; next<br/>value, on first get"/]',
+    );
+    expect(mermaid).not.toMatch(/[`\r]/);
+  });
+
   it('writes no classDef when nothing is exported', () => {
     expect(toMermaid(ESCAPE_FIXTURE)).not.toContain('classDef');
+  });
+
+  it('leaves out REQUEST unless a provider depends on it', () => {
+    expect(toMermaid(WITH_REQUEST)).not.toContain('REQUEST');
+    expect(toMermaid(WITH_REQUEST, { view: 'modules' })).toContain(
+      '1 provider',
+    );
+    const used = {
+      ...WITH_REQUEST,
+      edges: [{ from: 'p0', to: 'request', kind: 'required' as const }],
+    };
+    expect(toMermaid(used)).toContain('REQUEST');
+    expect(toMermaid(used, { view: 'modules' })).toContain('2 providers');
   });
 });

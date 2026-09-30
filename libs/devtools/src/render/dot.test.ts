@@ -1,6 +1,10 @@
 import { describe, expect, it } from 'vitest';
 
-import { ESCAPE_FIXTURE, FIXTURE } from '../../test-support/graph-fixture.js';
+import {
+  ESCAPE_FIXTURE,
+  FIXTURE,
+  WITH_REQUEST,
+} from '../../test-support/graph-fixture.js';
 import { toDot } from '../index.js';
 
 describe('toDot', () => {
@@ -57,6 +61,14 @@ describe('toDot', () => {
     );
   });
 
+  it('writes a lone carriage return as a line break', () => {
+    const dot = toDot(ESCAPE_FIXTURE);
+    expect(dot).toContain(
+      String.raw`"p1" [label="${'`'}**bold** md${'`'}\nnext`,
+    );
+    expect(dot).not.toContain('\r');
+  });
+
   it('skips a module with no providers in the providers view', () => {
     const graph = {
       ...FIXTURE,
@@ -76,5 +88,16 @@ describe('toDot', () => {
 
   it('returns the same bytes on every call', () => {
     expect(toDot(FIXTURE)).toBe(toDot(structuredClone(FIXTURE)));
+  });
+
+  it('leaves out REQUEST unless a provider depends on it', () => {
+    expect(toDot(WITH_REQUEST)).not.toContain('REQUEST');
+    expect(toDot(WITH_REQUEST, { view: 'modules' })).toContain('1 provider');
+    const used = {
+      ...WITH_REQUEST,
+      edges: [{ from: 'p0', to: 'request', kind: 'required' as const }],
+    };
+    expect(toDot(used)).toContain('REQUEST');
+    expect(toDot(used, { view: 'modules' })).toContain('2 providers');
   });
 });
