@@ -17,10 +17,10 @@ import type {
 } from '../definitions/define-module.js';
 import type { AnyToken } from '../definitions/guards.js';
 import { describeValue } from '../definitions/describe.js';
-import type { NearMiss } from '../errors/index.js';
 import {
   BlueprintError,
   PluginError,
+  type ErrorText,
   type NexusError,
   type PluginInvalidReason,
 } from '../errors/index.js';
@@ -45,13 +45,6 @@ export interface CompilePluginHooks {
     context: CompileContext,
   ): ProviderRewrite | undefined;
   check?(view: BlueprintView, report: (error: NexusError) => void): void;
-}
-
-export interface ErrorText {
-  readonly message: string;
-  readonly hints?: readonly string[];
-  readonly fix?: string;
-  readonly nearMisses?: readonly NearMiss[];
 }
 
 export interface PluginContext {

@@ -4,7 +4,12 @@ import type {
 } from '../definitions/define-module.js';
 import type { AnyToken } from '../definitions/guards.js';
 import type { Class, Lifetime } from '../definitions/types.js';
-import type { BlueprintError } from '../errors/index.js';
+import type {
+  BlueprintError,
+  ErrorText,
+  NearMiss,
+  NexusErrorByCode,
+} from '../errors/index.js';
 import type {
   Blueprint,
   Edge,
@@ -27,6 +32,21 @@ export interface BlueprintView {
   visible(moduleId: string, token: AnyToken): readonly string[];
   /** The key's canonical token for `token`: the one ProviderView.token holds. `token` itself without a tokenKey plugin. */
   canonical(token: AnyToken): AnyToken;
+}
+
+/** Text for the codes one package raises. Keys are codes from NexusErrorByCode. */
+export type ErrorTextPack = {
+  readonly [C in keyof NexusErrorByCode]?: (
+    error: NexusErrorByCode[C],
+    view: BlueprintView | undefined,
+    kit: ErrorTextKit,
+  ) => ErrorText | undefined;
+};
+
+/** What @nexusdi/errors lends a pack. Grows by adding members only. */
+export interface ErrorTextKit {
+  /** Where `token` exists that `moduleId` cannot see. Empty without a view. */
+  nearMisses(token: unknown, moduleId: string): readonly NearMiss[];
 }
 
 export interface ModuleView {

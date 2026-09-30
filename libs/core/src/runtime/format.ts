@@ -11,8 +11,9 @@ import {
   MissingProviderError,
   NexusError,
   ownsText,
+  type ErrorText,
 } from '../errors/index.js';
-import type { ErrorText, PluginSet } from './plugins.js';
+import type { PluginSet } from './plugins.js';
 import type { RootState } from './state.js';
 
 /** Errors a container formatted, so a rethrow keeps their text. */

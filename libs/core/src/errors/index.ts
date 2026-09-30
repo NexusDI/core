@@ -1,5 +1,6 @@
 export type { NexusErrorCode } from './codes.js';
 export { describeThrown } from './describe-thrown.js';
+export type { ErrorText } from './error-text.js';
 export { DOCS_URL, layoutText, lineOf } from './line.js';
 export {
   errorBase,

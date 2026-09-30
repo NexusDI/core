@@ -12,10 +12,11 @@ import {
   BlueprintError,
   DisposedError,
   MissingProviderError,
+  type ErrorText,
   type NexusError,
 } from '../errors/index.js';
 import { Nexus } from './nexus.js';
-import type { ErrorText, NexusPlugin } from './plugins.js';
+import type { NexusPlugin } from './plugins.js';
 
 class ReactorCore {}
 const NAV_CHARTS = new Token<string>('NavCharts');

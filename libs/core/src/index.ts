@@ -32,6 +32,7 @@ export {
 export type {
   ErrorFields,
   ErrorLifetime,
+  ErrorText,
   InvalidProviderReason,
   InvalidTokenReason,
   NearMiss,
@@ -110,7 +111,6 @@ export type {
 export { NEXUS_PLUGIN_API, SUPPORTED_PLUGIN_APIS } from './runtime/plugins.js';
 export type {
   CompilePluginHooks,
-  ErrorText,
   NexusPlugin,
   PluginContext,
 } from './runtime/plugins.js';
@@ -120,6 +120,8 @@ export type {
   BlueprintView,
   CompileContext,
   EdgeView,
+  ErrorTextKit,
+  ErrorTextPack,
   ModuleView,
   ProviderRewrite,
   ProviderView,

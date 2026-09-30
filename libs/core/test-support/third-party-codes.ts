@@ -6,7 +6,7 @@ import { errorBase } from '../src/index.js';
 // NexusErrorCode. Every test file in core's spec program sees the key.
 export class AcmeCacheStoreError extends errorBase<
   'ACME_CACHE_STORE',
-  { store: string }
+  { store: string; module: string }
 >('ACME_CACHE_STORE', 'AcmeCacheStoreError') {}
 
 declare module '../src/index.js' {
