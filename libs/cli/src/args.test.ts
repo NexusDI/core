@@ -95,7 +95,16 @@ describe('parseCommand', () => {
     [['graph', 'g.json', '--plugins', 'p.ts#plugins']],
     [['graph', 'a.ts', '--load', 'g.json']],
     [['graph', 'a.ts', '--plugins', 'p.json']],
+    [['graph', 'src/a.js', '-o', 'src/a.js', '-f', 'dot']],
+    [['graph', 'a.js', '-o', './b.js', '--load', 'b.js#B']],
+    [['graph', 'a.js', '-o', 'p.js', '--plugins', 'p.js#plugins']],
   ])('exits 2 for %j', (argv) => {
     expect(exitOf(argv)).toBe(2);
+  });
+
+  it('names the input that --out would overwrite', () => {
+    expect(() =>
+      parseCommand(['graph', 'src/a.js', '-o', 'src/a.js'], CWD),
+    ).toThrow('--out src/a.js is src/a.js, an input to this run.');
   });
 });

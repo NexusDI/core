@@ -17,7 +17,7 @@ npx nexusdi graph src/meridian.module.ts#Meridian --view modules -f dot
 npx nexusdi graph src/meridian.module.ts#Meridian --load src/science.module.ts#Science
 ```
 
-The entry is `path#export`, or `path` for the default export. Point it at the file that defines the root module; `nexusdi` imports that file, so a file that starts the app starts it. A `.json` file written with `JSON.stringify(graph(ship))` from a running app works as an entry too.
+The entry is `path#export`, or `path` for the default export (`path#default` names it too). A `#` inside the path stays part of the path, as in `d#x/app.module.ts`. Point it at the file that defines the root module; `nexusdi` imports that file, so a file that starts the app starts it. A `.json` file written with `JSON.stringify(graph(ship))` from a running app works as an entry too.
 
 | Option                    | Meaning                                                                                      |
 | ------------------------- | -------------------------------------------------------------------------------------------- |

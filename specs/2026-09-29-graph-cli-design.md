@@ -147,8 +147,9 @@ A `.json` entry is read as a `NexusGraph`, for instance one a running app wrote 
 `async` result, which `inspect()` cannot know. `--load` and `--plugins` with a `.json`
 entry exit 2. The CLI checks the shape: `modules`, `providers` and `edges` arrays whose
 items carry the string ids and fields section 10.1 lists, and every edge endpoint names a
-provider. A file that fails the check exits 2 and names the first bad path, such as
-`providers[3].module`.
+provider. Ids take the shapes core writes: `m<n>` for a module, `p<n>` or `request` for a
+provider, each used once. A file that fails the check exits 2 and names the first bad
+path, such as `providers[3].module`.
 
 ### 3.2 Import side effects
 
@@ -315,13 +316,15 @@ files, so a committed graph diffs cleanly in review.
 Display names come from user code, so the renderers escape them:
 
 - DOT: every id and label is a double-quoted string; `\` and `"` are backslash-escaped
-  and a newline in a name becomes `\n`. Node ids are the graph's `p0` and `m0` ids,
+  and a newline or carriage return in a name becomes `\n`. Node ids are the graph's `p0` and `m0` ids,
   never a user string.
 - Mermaid: node ids are the graph's ids. Labels are double-quoted, and `"`, `#`, `<`,
-  `>` and `&` become the entity codes `#quot;`, `#35;`, `#lt;`, `#gt;` and `#amp;`,
-  so a name cannot close the label or inject markup.
+  `>`, `&` and `` ` `` become the entity codes `#quot;`, `#35;`, `#lt;`, `#gt;`, `#amp;`
+  and `#96;`, so a name cannot close the label, inject markup or turn the label into a
+  Markdown string. A newline or carriage return in a name becomes a space.
 
-A test feeds a token named `a"b#c<script>&\` through both renderers and pins the output.
+A test feeds a token named `a"b#c<script>&\` through both renderers and pins the output,
+and another runs the Mermaid output through Mermaid's own parser.
 
 ### 5.4 `implementation` on `NexusGraph`
 
@@ -336,7 +339,8 @@ implementation: string | null;
 
 `graphOf` reads it from `ProviderView.implementation?.name`. This is an additive field on
 a devtools type; core's `ProviderView` already carries the class. The core spec's
-section 10.1 listing gains the field.
+section 10.1 listing needs the field too; that spec lives on the plan/core-0.4-engine
+branch, so the edit goes there.
 
 ## 6. SVG and PNG
 
