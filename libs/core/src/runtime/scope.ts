@@ -347,10 +347,15 @@ export async function openScope(
     options?.request,
     (state) => new ScopeHandle(state),
   );
-  const work = buildScope(scope);
   // A disposal or extend() a construct hook starts on the scope waits for
-  // the build, as they wait for an extend() in flight.
-  scope.extendQueue = work.then(ignore, ignore);
+  // the build, as they wait for an extend() in flight. The queue is set
+  // before the build starts, so no hook runs ahead of it.
+  let settle!: () => void;
+  scope.extendQueue = new Promise<void>((resolve) => {
+    settle = resolve;
+  });
+  const work = buildScope(scope);
+  void work.then(settle, settle);
   track(root.inflight, work);
   return work;
 }

@@ -433,4 +433,56 @@ describe('a scope a construct hook holds during createScope', () => {
     await ship[Symbol.asyncDispose]();
     expect(disposed).toEqual(['Signal']);
   });
+
+  it('runs an extend() the hook starts after createScope has built the scope', async () => {
+    const order: string[] = [];
+    let extending: Promise<void> | undefined;
+    const load: { loading?: Promise<void> } = {};
+    const ship = await Nexus.create(
+      defineModule({
+        name: 'Root',
+        providers: [
+          provide(SIGNAL, {
+            // Resolves once the load has published, so the scope was pinned
+            // before it and extend() has work to do.
+            useFactory: async () => {
+              await load.loading;
+              return {};
+            },
+            lifetime: 'scoped',
+          }),
+        ],
+      }),
+      {
+        plugins: [
+          {
+            name: 'extender',
+            apiVersion: 1,
+            observe: (event) => {
+              if (event.type === 'scope:create') order.push('scope:create');
+            },
+            construct: (_instance, provider, _scope, container) => {
+              order.push(provider.name);
+              if (provider.token === SIGNAL)
+                extending = (container as Scope).extend();
+              return undefined;
+            },
+          },
+        ],
+      },
+    );
+    load.loading = ship.load(
+      defineModule({
+        name: 'Archives',
+        providers: [
+          provide(ARCHIVE, { useFactory: () => ({}), lifetime: 'scoped' }),
+        ],
+        exports: [ARCHIVE],
+      }),
+    );
+    await using scope = await ship.createScope();
+    await extending;
+    expect(order).toEqual(['Signal', 'scope:create', 'Archive']);
+    expect(scope.has(ARCHIVE)).toBe(true);
+  });
 });
