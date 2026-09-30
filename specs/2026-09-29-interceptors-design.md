@@ -272,6 +272,9 @@ Each entry gives the architect's proposal, the challenge, and the final call.
   compile by `ProviderView` identity would remove both; it needs core to hand the
   `construct` hook the provider views of the compile's view, which no owner decision
   covers yet.
+- A scope whose first build runs after its root started disposing finds no session, so
+  its scoped instances stay unwrapped. Core aborts that scope and never returns it; only
+  its rollback disposers call those instances.
 
 ### R10. No per-call context token
 

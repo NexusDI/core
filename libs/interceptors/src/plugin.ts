@@ -360,7 +360,7 @@ export function interceptors(options: InterceptorsOptions): NexusPlugin {
                   next.token === entry.token &&
                   next.module === entry.module &&
                   next.own === entry.own &&
-                  next.support === entry.support
+                  (config.global.length === 0 || next.support === entry.support)
                 );
               }),
             );
