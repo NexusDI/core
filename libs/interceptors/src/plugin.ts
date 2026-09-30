@@ -98,8 +98,8 @@ export function interceptors(options: InterceptorsOptions): NexusPlugin {
   /**
    * A singleton with no deps, so core builds it in the first level. When a
    * create fails, core disposes it with the rest of the build, and the
-   * session closes; the plugin's dispose hook runs only for a container
-   * create returned (spec section 6).
+   * session closes. Core runs the plugin's dispose hook only once the
+   * build succeeded and the plugin's setup step ran (spec section 6).
    */
   const guard = (): Disposable => {
     const current = state.session;

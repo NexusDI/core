@@ -1,4 +1,5 @@
 import {
+  MultiToken,
   provide,
   Token,
   type Dep,
@@ -19,6 +20,7 @@ import {
 } from './metadata.js';
 import { nameOf } from './names.js';
 import type {
+  ExemptToken,
   GlobalTarget,
   Interceptor,
   InterceptorEntry,
@@ -26,6 +28,20 @@ import type {
 } from './types.js';
 
 const ENTRIES = new WeakSet<object>();
+
+/** A value as an error names it, without calling its own toString. */
+const shown = (value: unknown): string =>
+  value instanceof Token || value instanceof MultiToken
+    ? value.description
+    : typeof value === 'function'
+      ? value.name || 'a function'
+      : typeof value === 'object'
+        ? value === null
+          ? 'null'
+          : 'an object'
+        : typeof value === 'undefined'
+          ? 'nothing'
+          : String(value);
 
 /** A bad interceptors() option: `detail` names the rule, then what was received. */
 const bad = (...detail: string[]) => invalid('options', { detail });
@@ -48,7 +64,7 @@ export function interceptor(
   definition: unknown,
 ): InterceptorEntry {
   if (!(token instanceof Token) && typeof token !== 'function')
-    throw bad('interceptor-token', String(token));
+    throw bad('interceptor-token', shown(token));
   const entry: InterceptorEntry = Object.freeze({
     token: token as InterceptorToken,
     provider: provide(
@@ -80,7 +96,7 @@ export interface NormalOptions {
   readonly imports: readonly ModuleRef[];
   readonly global: readonly NormalGlobal[];
   readonly bindings: readonly NormalBinding[];
-  readonly exempt: readonly InjectionToken<unknown>[];
+  readonly exempt: readonly ExemptToken[];
 }
 
 const list = (value: unknown, name: string): readonly unknown[] => {
@@ -110,7 +126,7 @@ export function normalizeOptions(options: unknown): NormalOptions {
       ENTRIES.has(element)
     )
       entry = element as InterceptorEntry;
-    else throw bad('register-entry', String(element));
+    else throw bad('register-entry', shown(element));
     if (seen.has(entry.token))
       throw invalid('options', {
         token: nameOf(entry.token),
@@ -124,12 +140,12 @@ export function normalizeOptions(options: unknown): NormalOptions {
     (element): NormalGlobal => {
       if (isInterceptorToken(element)) return { use: element, when: undefined };
       if (typeof element !== 'object' || element === null)
-        throw bad('global-entry', String(element));
+        throw bad('global-entry', shown(element));
       const use = own(element, 'use');
       const when = own(element, 'when');
-      if (!isInterceptorToken(use)) throw bad('global-use', String(use));
+      if (!isInterceptorToken(use)) throw bad('global-use', shown(use));
       if (when !== undefined && typeof when !== 'function')
-        throw bad('global-when', String(when));
+        throw bad('global-when', shown(when));
       return { use, when: when as NormalGlobal['when'] };
     },
   );
@@ -137,10 +153,10 @@ export function normalizeOptions(options: unknown): NormalOptions {
   const bindings = list(own(options, 'bindings'), 'bindings').map(
     (element): NormalBinding => {
       if (typeof element !== 'object' || element === null)
-        throw bad('binding', String(element));
+        throw bad('binding', shown(element));
       const token = own(element, 'token');
       if (!(token instanceof Token) && typeof token !== 'function')
-        throw bad('binding-token', String(token));
+        throw bad('binding-token', shown(token));
       const parsed = parseMap(element, ['token']);
       if (typeof parsed === 'string')
         throw invalid('options', {
@@ -158,9 +174,9 @@ export function normalizeOptions(options: unknown): NormalOptions {
     global,
     bindings,
     exempt: list(own(options, 'exempt'), 'exempt').map((element) => {
-      if (!isInterceptorToken(element))
-        throw bad('exempt-entry', String(element));
-      return element as InjectionToken<unknown>;
+      if (!isInterceptorToken(element) && !(element instanceof MultiToken))
+        throw bad('exempt-entry', shown(element));
+      return element as ExemptToken;
     }),
   };
 }

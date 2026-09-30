@@ -102,11 +102,37 @@ describe('interceptor texts', () => {
     );
   });
 
+  it('names the option that must be an array, and a bad binding list', () => {
+    expect(
+      render(
+        make('NEXUS_INTERCEPTOR_INVALID', {
+          reason: 'options',
+          detail: ['not-array', 'imports'],
+        }),
+      ),
+    ).toBe(
+      '[NEXUS_INTERCEPTOR_INVALID] interceptors(): imports must be an array.',
+    );
+    expect(
+      render(
+        make('NEXUS_INTERCEPTOR_INVALID', {
+          reason: 'options',
+          token: 'Journal',
+          detail: ['binding-map', 'methods.write'],
+        }),
+      ),
+    ).toBe(
+      '[NEXUS_INTERCEPTOR_INVALID] interceptors(): the binding (Journal) has a methods.write that is not a list of tokens.',
+    );
+  });
+
   it.each([
     ['options', { detail: ['register-empty'] }],
     ['options', { detail: ['interceptor-token', 'Audit'] }],
     ['options', { token: 'Audit', detail: ['register-twice'] }],
     ['options', { token: 'Payments', detail: ['binding-map', 'method'] }],
+    ['options', { token: 'Payments', detail: ['binding-map', 'methods.x'] }],
+    ['options', { detail: ['not-array', 'imports'] }],
     ['declaration', { detail: ['Audit'] }],
     ['declaration', { target: 'Payments', detail: ['methods.charge'] }],
     ['unknown-method', { target: 'Payments', method: 'charge' }],

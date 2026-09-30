@@ -2,6 +2,7 @@ import type {
   Ctor,
   InjectionToken,
   ModuleRef,
+  MultiToken,
   Provider,
   ProviderEntry,
   ProviderView,
@@ -78,6 +79,9 @@ export interface InterceptorEntry {
   readonly provider: Provider<Interceptor>;
 }
 
+/** A token `exempt` takes: an injection token, or a multi token for `all()` deps. */
+export type ExemptToken = InjectionToken<unknown> | MultiToken<unknown>;
+
 export interface InterceptorsOptions {
   /** The interceptors: classes, or interceptor(TOKEN, definition) entries. */
   readonly register: readonly (InterceptorClass | InterceptorEntry)[];
@@ -94,5 +98,5 @@ export interface InterceptorsOptions {
    * every provider it reaches, so an interceptor never intercepts a service
    * it calls. `create` names each one missing.
    */
-  readonly exempt?: readonly InjectionToken<unknown>[];
+  readonly exempt?: readonly ExemptToken[];
 }

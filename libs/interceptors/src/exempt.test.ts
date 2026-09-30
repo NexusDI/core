@@ -1,11 +1,14 @@
 import {
+  all,
   defineModule,
   lazy,
+  MultiToken,
   Nexus,
   provide,
   Token,
   type BlueprintError,
   type Dep,
+  type NexusPlugin,
 } from '@nexusdi/core';
 import { describe, expect, it } from 'vitest';
 
@@ -176,6 +179,81 @@ describe('exempt', () => {
     expect(reasons(error)).toEqual([
       { reason: 'unused-exempt', token: null, target: 'Db', detail: ['Users'] },
     ]);
+  });
+
+  it('takes a multi token for an all() dep, and reports its contributors once', async () => {
+    interface IHook {
+      run(): string;
+    }
+    const HOOKS = new MultiToken<IHook>('Hooks');
+    class Before implements IHook {
+      run() {
+        return 'before';
+      }
+    }
+    class After implements IHook {
+      run() {
+        return 'after';
+      }
+    }
+    const Hooks = defineModule({
+      name: 'Hooks',
+      providers: [
+        provide(HOOKS, { useClass: Before }),
+        provide(HOOKS, { useClass: After }),
+      ],
+      exports: [HOOKS],
+    });
+    const hooked = (extra: Partial<InterceptorsOptions>) =>
+      interceptors({
+        imports: [Hooks],
+        register: [authWith([all(HOOKS)], [])],
+        global: [AUTH],
+        ...extra,
+      });
+    const error = await rejected(
+      Nexus.create(defineModule({ name: 'App' }), { plugins: [hooked({})] }),
+    );
+    expect(reasons(error)).toEqual([
+      {
+        reason: 'unexempted-dep',
+        token: 'Auth',
+        target: 'Hooks',
+        detail: ['Hooks', 'Hooks'],
+      },
+    ]);
+    await using ship = await Nexus.create(defineModule({ name: 'App' }), {
+      plugins: [hooked({ exempt: [HOOKS] })],
+    });
+    expect(ship).toBeDefined();
+  });
+
+  it('matches exempt through a tokenKey plugin', async () => {
+    const written = new Token<IUsers>('bank/Users');
+    const listed = new Token<IUsers>('bank/Users');
+    const byDescription: NexusPlugin = {
+      name: 'keys',
+      apiVersion: 1,
+      tokenKey: (token) =>
+        token instanceof Token ? `key:${token.description}` : undefined,
+    };
+    const Remote = defineModule({
+      name: 'Remote',
+      providers: [provide(written, { useFactory: () => ({ find: String }) })],
+      exports: [written],
+    });
+    await using ship = await Nexus.create(defineModule({ name: 'App' }), {
+      plugins: [
+        byDescription,
+        interceptors({
+          imports: [Remote],
+          register: [authWith([written], [])],
+          global: [AUTH],
+          exempt: [listed],
+        }),
+      ],
+    });
+    expect(ship).toBeDefined();
   });
 
   it('runs neither check without global entries', async () => {

@@ -10,6 +10,14 @@ import {
 import { keyName } from './names.js';
 import type { InterceptorToken } from './types.js';
 
+/** A value as an error names it, without calling its own toString. */
+const describe = (value: unknown): string =>
+  typeof value === 'object' && value !== null
+    ? 'an object'
+    : typeof value === 'symbol'
+      ? value.toString()
+      : String(value);
+
 type Context = ClassDecoratorContext | ClassMethodDecoratorContext;
 
 /* eslint-disable @typescript-eslint/no-explicit-any -- a decorator context is generic in its class and method, and `any` accepts every one */
@@ -26,7 +34,7 @@ export function UseInterceptors(
 ): (target: unknown, context: AnyContext) => void {
   for (const token of tokens) {
     if (!isInterceptorToken(token))
-      throw invalid('declaration', { detail: [String(token)] });
+      throw invalid('declaration', { detail: [describe(token as unknown)] });
   }
   return (_target, context: Context) => {
     if (

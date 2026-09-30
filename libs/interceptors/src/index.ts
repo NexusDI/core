@@ -6,6 +6,7 @@ export type {
 export { tap, type TapObserver } from './tap.js';
 export type {
   CallContext,
+  ExemptToken,
   GlobalEntry,
   GlobalTarget,
   Interceptor,

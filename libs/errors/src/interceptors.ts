@@ -18,7 +18,7 @@ type Builder = (error: InterceptorFields) => ErrorText;
 /** interceptors() options: detail[0] names the rule, detail[1] what was received. */
 const OPTIONS: Record<string, string> = {
   'not-object': 'options must be an object',
-  'not-array': 'this option must be an array',
+  'not-array': '$ must be an array',
   'register-empty': 'register must list an interceptor',
   'register-entry': 'register takes classes and interceptor() entries',
   'register-twice': 'an interceptor is registered twice',
@@ -27,15 +27,32 @@ const OPTIONS: Record<string, string> = {
   'global-when': "a global entry's when must be a function",
   binding: 'a binding is { token, class?, methods? }',
   'binding-token': "a binding's token must be a Token or a class",
-  'binding-map': 'a binding takes token, class and methods only',
+  'binding-map': '$',
   'exempt-entry': 'exempt takes tokens',
   'interceptor-token': 'interceptor() takes a Token or a class',
 };
 
 const INVALID: Record<string, Builder> = {
-  options: (e) => ({
-    message: `interceptors(): ${OPTIONS[e.detail[0] ?? ''] ?? e.detail[0]}${e.token === null ? '' : ` (${e.token})`}${e.detail[1] === undefined ? '' : `, and received ${e.detail[1]}`}.`,
-  }),
+  options: (e) => {
+    const [rule = '', got] = e.detail;
+    const text = OPTIONS[rule] ?? rule;
+    const named = e.token === null ? '' : ` (${e.token})`;
+    if (rule === 'binding-map')
+      return {
+        message: `interceptors(): the binding${named} ${
+          got === 'class' || got?.startsWith('methods') === true
+            ? `has a ${got} that is not a list of tokens`
+            : `has the key ${got}, and takes token, class and methods`
+        }.`,
+      };
+    return {
+      message: `interceptors(): ${
+        text.includes('$')
+          ? text.replace('$', got ?? '')
+          : `${text}${named}${got === undefined ? '' : `, and received ${got}`}`
+      }.`,
+    };
+  },
   declaration: (e) => ({
     message:
       e.target === null
