@@ -62,7 +62,8 @@ export async function measure(fixture, root, file, swallow) {
 // Measures every package with a `<dir>.ts` or `<dir>-text.ts` fixture,
 // each as its fixture minus `core`. A new package or pack needs only its
 // fixture file. `core.ts` is the baseline itself, so core reports only its
-// pack.
+// pack. A pack with no fixture would go unmeasured here, so the repo-checks
+// size-fixtures check fails on a `./text` export without `<dir>-text.ts`.
 export async function measurePackages(fixture, root, libs, core, swallow) {
   const packages = {};
   for (const dir of libs) {
