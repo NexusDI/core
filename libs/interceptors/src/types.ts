@@ -88,4 +88,11 @@ export interface InterceptorsOptions {
   /** Interceptors for every intercepted method, outermost first. */
   readonly global?: readonly (InterceptorToken | GlobalEntry)[];
   readonly bindings?: readonly InterceptorBinding[];
+  /**
+   * The services outside `providers` that the interceptors depend on.
+   * With `global` entries, each must be listed: global entries skip it and
+   * every provider it reaches, so an interceptor never intercepts a service
+   * it calls. `create` names each one missing.
+   */
+  readonly exempt?: readonly InjectionToken<unknown>[];
 }

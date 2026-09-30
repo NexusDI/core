@@ -11,7 +11,7 @@ import {
 } from '@nexusdi/core';
 
 import { bindingsFor, chainFor } from './chain.js';
-import { checkBlueprint } from './check.js';
+import { checkBlueprint, reach } from './check.js';
 import { invalid, shared } from './interceptor-error.js';
 import { declarationsOf, type Declarations } from './metadata.js';
 import { keyName, nameOf } from './names.js';
@@ -33,38 +33,22 @@ interface ContainerSession extends Session {
   readonly moduleIds: Set<string>;
   /** Providers an interceptor reaches through its deps; global entries skip them. */
   readonly support: Set<string>;
+  /** The container finished create: the plugin's dispose hook closes the session. */
+  started: boolean;
+  /** No container holds the session, so a create may open a new one. */
+  closed: boolean;
 }
 
 interface PluginState {
   session: ContainerSession | undefined;
 }
 
-const newSession = (): ContainerSession => ({
-  instances: undefined,
-  disposed: false,
-  moduleIds: new Set(),
-  support: new Set(),
-});
-
-/**
- * The providers of the plugin's module and every provider they reach
- * through a dependency edge, transitively. An interceptor calls these
- * itself, so a global entry on them would recurse into the interceptor.
- */
-function supportOf(view: BlueprintView, moduleId: string): string[] {
-  const found = new Set(
-    view.providers.filter((p) => p.module === moduleId).map((p) => p.id),
-  );
-  for (let grew = true; grew;) {
-    grew = false;
-    for (const edge of view.edges)
-      if (found.has(edge.from) && !found.has(edge.to)) {
-        found.add(edge.to);
-        grew = true;
-      }
-  }
-  return [...found];
-}
+/** Ends a session: calls through its proxies throw NOT_READY, and a create may open a new one. */
+const close = (session: ContainerSession | undefined): void => {
+  if (session === undefined) return;
+  session.disposed = session.closed = true;
+  session.instances = undefined;
+};
 
 const NO_DECLARATIONS: Declarations = Object.freeze({
   classTokens: [],
@@ -88,38 +72,40 @@ interface ProviderPlan {
 export function interceptors(options: InterceptorsOptions): NexusPlugin {
   const config = normalizeOptions(options);
   const tokens = config.registered.map((entry) => entry.token);
-  const REGISTRY = new Token<Disposable>('interceptors registry');
+  const REGISTRY = new Token<unknown>('interceptors registry');
+  const GUARD = new Token<Disposable>('interceptors guard');
   const state: PluginState = { session: undefined };
 
-  /** The live session; compile.check opens one for each create. */
-  const session = (): ContainerSession => {
-    if (state.session === undefined || state.session.disposed)
-      state.session = newSession();
-    return state.session;
-  };
-
-  const bind = (...instances: unknown[]): Disposable => {
-    const current = session();
-    if (current.instances !== undefined) throw shared();
+  /**
+   * Hands the built interceptors to the session. Core builds the registry
+   * before any onInit (spec R1).
+   */
+  const bind = (...instances: unknown[]): unknown => {
     const map = new Map<unknown, Interceptor>();
     instances.forEach((instance, index) => {
       const token = tokens[index];
       if (
-        (typeof instance !== 'object' && typeof instance !== 'function') ||
-        instance === null ||
-        typeof (instance as { intercept?: unknown }).intercept !== 'function'
+        typeof (instance as { intercept?: unknown } | null)?.intercept !==
+        'function'
       )
-        throw invalid(
-          'no-intercept',
-          { token: nameOf(token) },
-          `the interceptor ${nameOf(token)} has no intercept(call, next) method.`,
-        );
+        throw invalid('no-intercept', { token: nameOf(token) });
       map.set(token, instance as Interceptor);
     });
-    current.instances = map;
+    if (state.session !== undefined) state.session.instances = map;
+    return map;
+  };
+
+  /**
+   * A singleton with no deps, so core builds it in the first level. When a
+   * create fails, core disposes it with the rest of the build, and the
+   * session closes; the plugin's dispose hook runs only for a container
+   * create returned (spec section 6).
+   */
+  const guard = (): Disposable => {
+    const current = state.session;
     return {
       [Symbol.dispose]() {
-        current.disposed = true;
+        if (current?.started === false) close(current);
       },
     };
   };
@@ -131,6 +117,7 @@ export function interceptors(options: InterceptorsOptions): NexusPlugin {
       ...config.registered.map((entry) => entry.provider),
       ...config.providers,
       provide(REGISTRY, { deps: tokens, useFactory: bind } as never),
+      provide(GUARD, { useFactory: guard }),
     ],
   });
 
@@ -164,31 +151,59 @@ export function interceptors(options: InterceptorsOptions): NexusPlugin {
         const own = view.modules.find(
           (m) => m.definition === module || m.replaced === module,
         );
-        checkBlueprint(view, report, config, own?.id);
-        if (view.phase === 'check') return;
-        const live = state.session;
+        let failed = !view.complete;
+        checkBlueprint(
+          view,
+          (error) => {
+            failed = true;
+            report(error);
+          },
+          config,
+          own?.id,
+        );
+        if (view.phase === 'check' || failed || own === undefined) return;
         if (view.phase === 'create') {
-          // A bound, undisposed session belongs to a container that is still
-          // alive. Failing here, before any build, leaves its ids alone.
-          if (
-            live !== undefined &&
-            !live.disposed &&
-            live.instances !== undefined
-          ) {
+          // Any session no container has closed belongs to a live or
+          // still-building container. Failing here, before any build,
+          // leaves its ids and instances alone (spec R9).
+          if (state.session?.closed === false) {
             report(shared());
             return;
           }
-          state.session = newSession();
+          state.session = {
+            instances: undefined,
+            disposed: false,
+            moduleIds: new Set(),
+            support: new Set(),
+            started: false,
+            closed: false,
+          };
         }
-        const current = session();
-        if (own === undefined) return;
+        const current = state.session;
+        if (current === undefined) return;
         current.moduleIds.add(own.id);
-        for (const id of supportOf(view, own.id)) current.support.add(id);
+        for (const id of reach(
+          view,
+          view.providers.filter((p) => p.module === own.id).map((p) => p.id),
+        ))
+          current.support.add(id);
       },
     },
+    setup() {
+      if (state.session !== undefined) state.session.started = true;
+    },
+    dispose() {
+      // Core runs this after it disposes every instance the container
+      // owns, so a disposer that calls an intercepted method still runs
+      // its interceptors (spec section 6).
+      close(state.session);
+    },
     construct(instance, provider, scope) {
-      const current = session();
-      if (current.moduleIds.has(provider.module)) return undefined;
+      // The session of the container building: compile.check opened it,
+      // and no other create can open one until this container closes it.
+      const current = state.session;
+      if (current === undefined || current.moduleIds.has(provider.module))
+        return undefined;
       if (
         (typeof instance !== 'object' && typeof instance !== 'function') ||
         instance === null
@@ -204,11 +219,10 @@ export function interceptors(options: InterceptorsOptions): NexusPlugin {
       for (const binding of plan.bindings) {
         for (const key of binding.methods.keys()) {
           if (findMethod(instance, key) === undefined)
-            throw invalid(
-              'unknown-method',
-              { target: provider.name, method: keyName(key) },
-              `a binding for ${provider.name} names ${keyName(key)}, which is not a method of the instance.`,
-            );
+            throw invalid('unknown-method', {
+              target: provider.name,
+              method: keyName(key),
+            });
         }
       }
       return interceptedProxy(instance, provider, scope, {

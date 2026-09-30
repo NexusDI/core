@@ -11,7 +11,12 @@ import {
 } from '@nexusdi/core';
 
 import { invalid } from './interceptor-error.js';
-import { isInterceptorToken, parseMap, type ParsedMap } from './metadata.js';
+import {
+  isInterceptorToken,
+  own,
+  parseMap,
+  type ParsedMap,
+} from './metadata.js';
 import { nameOf } from './names.js';
 import type {
   GlobalTarget,
@@ -22,7 +27,8 @@ import type {
 
 const ENTRIES = new WeakSet<object>();
 
-const bad = (text: string) => invalid('options', {}, `interceptors(): ${text}`);
+/** A bad interceptors() option: `detail` names the rule, then what was received. */
+const bad = (...detail: string[]) => invalid('options', { detail });
 
 /** Binds an interceptor to an interface token, typed like provide(). */
 // eslint-disable-next-line @typescript-eslint/no-explicit-any -- the class constraint provide() uses
@@ -42,9 +48,7 @@ export function interceptor(
   definition: unknown,
 ): InterceptorEntry {
   if (!(token instanceof Token) && typeof token !== 'function')
-    throw bad(
-      `interceptor() needs a Token or a class, and received ${String(token)}.`,
-    );
+    throw bad('interceptor-token', String(token));
   const entry: InterceptorEntry = Object.freeze({
     token: token as InterceptorToken,
     provider: provide(
@@ -76,27 +80,21 @@ export interface NormalOptions {
   readonly imports: readonly ModuleRef[];
   readonly global: readonly NormalGlobal[];
   readonly bindings: readonly NormalBinding[];
+  readonly exempt: readonly InjectionToken<unknown>[];
 }
-
-const own = (value: object, key: string): unknown =>
-  Object.hasOwn(value, key)
-    ? (value as Record<string, unknown>)[key]
-    : undefined;
 
 const list = (value: unknown, name: string): readonly unknown[] => {
   if (value === undefined) return [];
-  if (!Array.isArray(value)) throw bad(`${name} must be an array.`);
+  if (!Array.isArray(value)) throw bad('not-array', name);
   return value;
 };
 
 /** Validates interceptors() options from own keys only (SEC-013). */
 export function normalizeOptions(options: unknown): NormalOptions {
-  if (typeof options !== 'object' || options === null)
-    throw bad('options must be an object.');
+  if (typeof options !== 'object' || options === null) throw bad('not-object');
 
   const register = list(own(options, 'register'), 'register');
-  if (register.length === 0)
-    throw bad('register must list at least one interceptor.');
+  if (register.length === 0) throw bad('register-empty');
   const registered: Registered[] = [];
   const seen = new Set<unknown>();
   for (const element of register) {
@@ -112,12 +110,12 @@ export function normalizeOptions(options: unknown): NormalOptions {
       ENTRIES.has(element)
     )
       entry = element as InterceptorEntry;
-    else
-      throw bad(
-        `register takes classes and interceptor() entries, and received ${String(element)}.`,
-      );
+    else throw bad('register-entry', String(element));
     if (seen.has(entry.token))
-      throw bad(`${nameOf(entry.token)} is registered twice.`);
+      throw invalid('options', {
+        token: nameOf(entry.token),
+        detail: ['register-twice'],
+      });
     seen.add(entry.token);
     registered.push(entry);
   }
@@ -126,13 +124,12 @@ export function normalizeOptions(options: unknown): NormalOptions {
     (element): NormalGlobal => {
       if (isInterceptorToken(element)) return { use: element, when: undefined };
       if (typeof element !== 'object' || element === null)
-        throw bad('a global entry is a token or { use, when }.');
+        throw bad('global-entry', String(element));
       const use = own(element, 'use');
       const when = own(element, 'when');
-      if (!isInterceptorToken(use))
-        throw bad('a global entry needs a token in use.');
+      if (!isInterceptorToken(use)) throw bad('global-use', String(use));
       if (when !== undefined && typeof when !== 'function')
-        throw bad("a global entry's when must be a function.");
+        throw bad('global-when', String(when));
       return { use, when: when as NormalGlobal['when'] };
     },
   );
@@ -140,15 +137,16 @@ export function normalizeOptions(options: unknown): NormalOptions {
   const bindings = list(own(options, 'bindings'), 'bindings').map(
     (element): NormalBinding => {
       if (typeof element !== 'object' || element === null)
-        throw bad('a binding is { token, class?, methods? }.');
+        throw bad('binding', String(element));
       const token = own(element, 'token');
       if (!(token instanceof Token) && typeof token !== 'function')
-        throw bad('a binding needs a Token or a class in token.');
-      const parsed = parseMap(element);
-      if (parsed === undefined)
-        throw bad(
-          `the binding for ${nameOf(token)} has a malformed class or methods list.`,
-        );
+        throw bad('binding-token', String(token));
+      const parsed = parseMap(element, ['token']);
+      if (typeof parsed === 'string')
+        throw invalid('options', {
+          token: nameOf(token),
+          detail: ['binding-map', parsed],
+        });
       return { token: token as InjectionToken<unknown>, ...parsed };
     },
   );
@@ -159,5 +157,10 @@ export function normalizeOptions(options: unknown): NormalOptions {
     imports: list(own(options, 'imports'), 'imports') as ModuleRef[],
     global,
     bindings,
+    exempt: list(own(options, 'exempt'), 'exempt').map((element) => {
+      if (!isInterceptorToken(element))
+        throw bad('exempt-entry', String(element));
+      return element as InjectionToken<unknown>;
+    }),
   };
 }

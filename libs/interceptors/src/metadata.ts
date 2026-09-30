@@ -1,5 +1,6 @@
 import { Token } from '@nexusdi/core';
 
+import { keyName } from './names.js';
 import type { InterceptorToken } from './types.js';
 
 /** Any class, abstract or not; core's Class type, which its entry does not export. */
@@ -29,7 +30,8 @@ interface Recorded {
   methods: Map<string | symbol, InterceptorToken[]>;
 }
 
-const own = (value: object, key: PropertyKey): unknown =>
+/** An own property's value, never an inherited one (SEC-013). */
+export const own = (value: object, key: PropertyKey): unknown =>
   Object.hasOwn(value, key)
     ? (value as Record<PropertyKey, unknown>)[key]
     : undefined;
@@ -39,19 +41,29 @@ const tokenList = (value: unknown): InterceptorToken[] | undefined =>
     ? [...value]
     : undefined;
 
-/** Reads `{ class?, methods? }` from own keys only (SEC-013). */
-export function parseMap(value: unknown): ParsedMap | undefined {
+/**
+ * Reads `{ class?, methods? }` from own keys only (SEC-013). Returns the
+ * name of the first key at fault when the value is malformed or has a key
+ * other than `class`, `methods` and `extra`.
+ */
+export function parseMap(
+  value: unknown,
+  extra: readonly string[] = [],
+): ParsedMap | string {
   if (typeof value !== 'object' || value === null || Array.isArray(value))
-    return undefined;
+    return 'class';
+  for (const key of Reflect.ownKeys(value))
+    if (key !== 'class' && key !== 'methods' && !extra.includes(key as string))
+      return keyName(key);
   const classList = tokenList(own(value, 'class') ?? []);
-  if (classList === undefined) return undefined;
+  if (classList === undefined) return 'class';
   const methodsValue = own(value, 'methods') ?? {};
   if (typeof methodsValue !== 'object' || methodsValue === null)
-    return undefined;
+    return 'methods';
   const methods = new Map<string | symbol, InterceptorToken[]>();
   for (const key of Reflect.ownKeys(methodsValue)) {
     const list = tokenList(own(methodsValue, key));
-    if (list === undefined) return undefined;
+    if (list === undefined) return `methods.${keyName(key)}`;
     methods.set(key, list);
   }
   return { class: classList, methods };
@@ -85,6 +97,8 @@ export function recordMethod(
 export interface DeclarationProblem {
   readonly reason: 'declaration' | 'two-forms';
   readonly target: string;
+  /** For 'declaration': the key at fault. */
+  readonly key?: string;
 }
 
 export interface Declarations {
@@ -129,8 +143,8 @@ export function declarationsOf(cls: AnyClass): Declarations {
     const staticValue = own(current, 'interceptors');
     const fromStatic =
       staticValue === undefined ? undefined : parseMap(staticValue);
-    if (staticValue !== undefined && fromStatic === undefined) {
-      problems.push({ reason: 'declaration', target });
+    if (typeof fromStatic === 'string') {
+      problems.push({ reason: 'declaration', target, key: fromStatic });
       continue;
     }
     const metadata = own(current, metadataSymbol());

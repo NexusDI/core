@@ -2,7 +2,7 @@ import type { ProviderView } from '@nexusdi/core';
 
 import { invalid, missing, notReady } from './interceptor-error.js';
 import { EXCLUDED_KEYS } from './metadata.js';
-import { keyName } from './names.js';
+import { keyName, nameOf } from './names.js';
 import type { CallContext, Interceptor, InterceptorToken } from './types.js';
 
 /** A method as the proxy reads it off an instance. */
@@ -24,9 +24,17 @@ export interface ProxyEnv {
 }
 
 /**
- * The function a data property holds, on the instance or its prototype
- * chain below Object.prototype. Undefined for an accessor, a non-function,
- * or an Object.prototype member.
+ * A class: its `prototype` is read-only, which holds for every `class` and
+ * built-in constructor and for no method or plain function. Calling one
+ * without `new` throws, so the proxy returns it as read (spec 5.2).
+ */
+const isClass = (fn: object): boolean =>
+  Object.getOwnPropertyDescriptor(fn, 'prototype')?.writable === false;
+
+/**
+ * The method a data property holds, on the instance or its prototype chain
+ * below Object.prototype. Undefined for an accessor, a non-function, a
+ * class (`constructor` included), or an Object.prototype member.
  */
 export function findMethod(
   target: object,
@@ -39,7 +47,9 @@ export function findMethod(
   ) {
     const descriptor = Object.getOwnPropertyDescriptor(owner, key);
     if (descriptor === undefined) continue;
-    return 'value' in descriptor && typeof descriptor.value === 'function'
+    return 'value' in descriptor &&
+      typeof descriptor.value === 'function' &&
+      !isClass(descriptor.value as object)
       ? (descriptor.value as Method)
       : undefined;
   }
@@ -94,9 +104,15 @@ function wrap(
         async,
         scope,
       });
-      return interceptor.intercept(context, (next) =>
-        step(index + 1, next ?? current),
-      );
+      return interceptor.intercept(context, (next) => {
+        if (next !== undefined && !Array.isArray(next))
+          throw invalid('bad-next', {
+            token: nameOf(chain[index]),
+            target: provider.name,
+            method: keyName(key),
+          });
+        return step(index + 1, next ?? current);
+      });
     };
     return step(0, args);
   };
@@ -177,11 +193,10 @@ export function interceptedProxy<T extends object>(
   if (locked.length > 0 && typeof raw === 'function') {
     const intercepted = locked.find((key) => chainOf(key).length > 0);
     if (intercepted !== undefined)
-      throw invalid(
-        'bad-target',
-        { target: provider.name, method: keyName(intercepted) },
-        `${provider.name} is a frozen function, so its own method ${keyName(intercepted)} cannot be wrapped.\n  Fix: do not freeze it, skip it with the global entry's when, or move the method to an object.`,
-      );
+      throw invalid('bad-target', {
+        target: provider.name,
+        method: keyName(intercepted),
+      });
   } else if (locked.length > 0) {
     shadow = Object.create(
       Object.getPrototypeOf(raw) as object | null,

@@ -26,11 +26,7 @@ export function UseInterceptors(
 ): (target: unknown, context: AnyContext) => void {
   for (const token of tokens) {
     if (!isInterceptorToken(token))
-      throw invalid(
-        'declaration',
-        {},
-        `@UseInterceptors received ${String(token)}, which is not a Token or a class.`,
-      );
+      throw invalid('declaration', { detail: [String(token)] });
   }
   return (_target, context: Context) => {
     if (
@@ -38,41 +34,21 @@ export function UseInterceptors(
       context === null ||
       typeof (context as { kind?: unknown }).kind !== 'string'
     ) {
-      throw invalid(
-        'legacy-decorators',
-        {},
-        '@UseInterceptors was called as a legacy decorator, and it is a standard (TC39) decorator.\n  Fix: remove experimentalDecorators from tsconfig, or use static interceptors.',
-      );
+      throw invalid('legacy-decorators');
     }
     if (context.kind === 'class') {
       recordClass(context.metadata, tokens);
       return;
     }
     if (context.kind !== 'method')
-      throw invalid(
-        'bad-target',
-        {},
-        `@UseInterceptors applies to a class or a method, not a ${String((context as { kind: string }).kind)}.`,
-      );
+      throw invalid('bad-target', {
+        detail: [String((context as { kind: string }).kind)],
+      });
     const method = keyName(context.name);
-    if (context.private)
-      throw invalid(
-        'private-method',
-        { method },
-        `@UseInterceptors cannot wrap the private method ${method}; a proxy never sees it.`,
-      );
-    if (context.static)
-      throw invalid(
-        'static-method',
-        { method },
-        `@UseInterceptors cannot wrap the static method ${method}; the container builds instances.`,
-      );
+    if (context.private) throw invalid('private-method', { method });
+    if (context.static) throw invalid('static-method', { method });
     if (EXCLUDED_KEYS.has(context.name))
-      throw invalid(
-        'bad-target',
-        { method },
-        `${method} is never intercepted: the container calls it itself.`,
-      );
+      throw invalid('bad-target', { method });
     recordMethod(context.metadata, context.name, tokens);
   };
 }

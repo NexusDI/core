@@ -97,6 +97,89 @@ describe('interceptedProxy', () => {
     expect(chain).not.toHaveBeenCalledWith('onInit');
   });
 
+  it('returns constructor as read, so identity, statics and new hold', () => {
+    class Svc {
+      static region = 'eu';
+      ping() {
+        return 'pong';
+      }
+    }
+    const proxy = interceptedProxy(new Svc(), provider, null, {
+      session: session([[A, recorder([], 'A')]]),
+      chain: () => [A],
+    });
+    expect(proxy.constructor).toBe(Svc);
+    expect(proxy.constructor.name).toBe('Svc');
+    expect((proxy.constructor as typeof Svc).region).toBe('eu');
+    expect(new (proxy.constructor as typeof Svc)()).toBeInstanceOf(Svc);
+  });
+
+  it('returns a class-valued field as read, even under a global chain', () => {
+    class Model {
+      constructor(readonly id: number) {}
+    }
+    class Repo {
+      readonly Model = Model;
+      readonly Builtin = Map;
+    }
+    const chain = vi.fn(() => [A]);
+    const proxy = interceptedProxy(new Repo(), provider, null, {
+      session: session([[A, recorder([], 'A')]]),
+      chain,
+    });
+    expect(proxy.Model).toBe(Model);
+    expect(new proxy.Model(3).id).toBe(3);
+    expect(proxy.Builtin).toBe(Map);
+    expect(chain).not.toHaveBeenCalled();
+  });
+
+  it('runs the method again for each next() call, as a retry does', () => {
+    let attempts = 0;
+    const retry: Interceptor = {
+      intercept(_call, next) {
+        try {
+          return next();
+        } catch {
+          return next();
+        }
+      },
+    };
+    const proxy = interceptedProxy(
+      {
+        send(): string {
+          attempts++;
+          if (attempts === 1) throw new Error('flaky');
+          return 'sent';
+        },
+      },
+      provider,
+      null,
+      { session: session([[A, retry]]), chain: () => [A] },
+    );
+    expect(proxy.send()).toBe('sent');
+    expect(attempts).toBe(2);
+  });
+
+  it('rejects next() with arguments that are not an array', () => {
+    const proxy = interceptedProxy(new Payments(), provider, null, {
+      session: session([
+        [A, { intercept: (_call, next) => next('5' as never) }],
+      ]),
+      chain: (key) => (key === 'charge' ? [A] : []),
+    });
+    expect(
+      findCode(
+        thrown(() => proxy.charge(1)),
+        'NEXUS_INTERCEPTOR_INVALID',
+      ),
+    ).toMatchObject({
+      reason: 'bad-next',
+      token: 'A',
+      target: 'Payments',
+      method: 'charge',
+    });
+  });
+
   it('passes the context and lets next() replace the arguments', () => {
     let seen: CallContext | undefined;
     const doubler: Interceptor = {

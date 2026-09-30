@@ -91,6 +91,29 @@ describe('normalizeOptions', () => {
     ).toBe('options');
   });
 
+  it('names the rule each bad option breaks in detail', () => {
+    const detail = (options: unknown) =>
+      findCode(
+        thrown(() => normalizeOptions(options)),
+        'NEXUS_INTERCEPTOR_INVALID',
+      )?.detail;
+    const register = [LoggingInterceptor];
+    expect(detail(undefined)).toEqual(['not-object']);
+    expect(detail({ register: [] })).toEqual(['register-empty']);
+    expect(detail({ register, global: 'x' })).toEqual(['not-array', 'global']);
+    expect(detail({ register, exempt: ['x'] })).toEqual(['exempt-entry', 'x']);
+    expect(
+      detail({ register, bindings: [{ token: PAYMENTS, method: {} }] }),
+    ).toEqual(['binding-map', 'method']);
+  });
+
+  it('keeps exempt tokens', () => {
+    expect(
+      normalizeOptions({ register: [LoggingInterceptor], exempt: [PAYMENTS] })
+        .exempt,
+    ).toEqual([PAYMENTS]);
+  });
+
   it('rejects a forged entry that interceptor() did not make', () => {
     expect(
       invalidReason(() =>
