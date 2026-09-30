@@ -74,7 +74,7 @@ export class MultiToken<out T> {
 /** A class, which is its own token, or a Token. */
 export type InjectionToken<T> = Token<T> | Class<T>;
 
-/** The name errors, `graph()` and trace events use for a token. */
+/** The name core's errors, `graph()` and trace events use for a token. */
 export function displayName(token: unknown): string {
   if (token instanceof Token || token instanceof MultiToken)
     return token.description;
