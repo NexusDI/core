@@ -1,6 +1,7 @@
-import { describe, expect, it } from 'vitest';
+import { describe, expect, it, vi } from 'vitest';
 
 import { rejected } from '../../test-support/catch.js';
+import { reportMiss } from '../../test-support/third-party-trace.js';
 import { defineModule } from '../definitions/define-module.js';
 import { MissingDepsError } from '../errors/index.js';
 import { Nexus } from './nexus.js';
@@ -268,5 +269,64 @@ describe('PluginContext.format', () => {
     expect(context.format(thrown)).toBe(thrown);
     expect(thrown.message).toBe('coolant leak');
     expect(context.format('breach')).toBe('breach');
+  });
+});
+
+describe('PluginContext.emit', () => {
+  async function contextWith(
+    ...after: readonly NexusPlugin[]
+  ): Promise<PluginContext> {
+    let context: PluginContext | undefined;
+    await Nexus.create(Root, {
+      plugins: [
+        plugin('cache', {
+          setup: (c: PluginContext) => {
+            context = c;
+          },
+        }),
+        ...after,
+      ],
+    });
+    if (context === undefined) throw new Error('setup did not run');
+    return context;
+  }
+
+  it('hands the event to every observe hook in plugin order', async () => {
+    const seen: string[] = [];
+    const record =
+      (name: string) =>
+      (event: { type: string; key?: string }): void => {
+        if (event.type === '@acme/cache/miss')
+          seen.push(`${name} ${event.key}`);
+      };
+    const context = await contextWith(
+      plugin('first', { observe: record('first') }),
+      plugin('second', { observe: record('second') }),
+    );
+    reportMiss(context, 'warp-core');
+    expect(seen).toEqual(['first warp-core', 'second warp-core']);
+  });
+
+  it('never calls make without an observer', async () => {
+    const context = await contextWith();
+    const make = vi.fn(() => ({
+      type: '@acme/cache/miss' as const,
+      key: 'warp-core',
+      durationMs: 0,
+    }));
+    context.emit(make);
+    expect(make).not.toHaveBeenCalled();
+  });
+
+  it("throws an observer's exception to the caller of emit", async () => {
+    const leak = new Error('coolant leak');
+    const context = await contextWith(
+      plugin('observer', {
+        observe: (event: { type: string }) => {
+          if (event.type === '@acme/cache/miss') throw leak;
+        },
+      }),
+    );
+    expect(() => reportMiss(context, 'warp-core')).toThrow(leak);
   });
 });

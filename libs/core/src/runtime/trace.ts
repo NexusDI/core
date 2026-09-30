@@ -3,57 +3,62 @@ import { HOOK_SITES } from '../definitions/hook-sites.js';
 import { fromUserCode } from './format.js';
 import type { OwnedEntry } from './ownership.js';
 
-/** A typed lifecycle event (spec section 10.2). */
-export type TraceEvent =
-  | {
-      type: 'compile';
-      phase: 'create' | 'load' | 'check';
-      modules: number;
-      providers: number;
-      errors: number;
-      durationMs: number;
-    }
-  | {
-      type: 'construct';
-      token: string;
-      providerId: string;
-      module: string;
-      /** null for value and alias providers. */
-      lifetime: Lifetime | null;
-      scope: string | null;
-      async: boolean;
-      durationMs: number;
-    }
-  | {
-      type: 'untracked';
-      token: string;
-      providerId: string;
-      reason: 'root-transient' | 'singleton-thunk';
-    }
-  | { type: 'init'; token: string; providerId: string; durationMs: number }
-  | { type: 'scope:create'; scope: string; built: number; durationMs: number }
-  | {
-      type: 'scope:extend';
-      scope: string;
-      modules: string[];
-      built: number;
-      durationMs: number;
-    }
-  | {
-      type: 'scope:dispose';
-      scope: string;
-      disposed: number;
-      errors: number;
-      durationMs: number;
-    }
+/**
+ * Each trace event type's fields (spec section 10.2). A package adds its own
+ * by augmentation, keyed `<package>/<event>`.
+ */
+export interface TraceEventByType {
+  compile: {
+    phase: 'create' | 'load' | 'check';
+    modules: number;
+    providers: number;
+    errors: number;
+    durationMs: number;
+  };
+  construct: {
+    token: string;
+    providerId: string;
+    module: string;
+    /** null for value and alias providers. */
+    lifetime: Lifetime | null;
+    scope: string | null;
+    async: boolean;
+    durationMs: number;
+  };
+  untracked: {
+    token: string;
+    providerId: string;
+    reason: 'root-transient' | 'singleton-thunk';
+  };
+  init: { token: string; providerId: string; durationMs: number };
+  'scope:create': { scope: string; built: number; durationMs: number };
+  'scope:extend': {
+    scope: string;
+    modules: string[];
+    built: number;
+    durationMs: number;
+  };
+  'scope:dispose': {
+    scope: string;
+    disposed: number;
+    errors: number;
+    durationMs: number;
+  };
   /** One per instance the container or a scope disposes, in disposal order. */
-  | {
-      type: 'dispose:instance';
-      token: string;
-      providerId: string;
-      scope: string | null;
-    }
-  | { type: 'dispose'; disposed: number; errors: number; durationMs: number };
+  'dispose:instance': {
+    token: string;
+    providerId: string;
+    scope: string | null;
+  };
+  dispose: { disposed: number; errors: number; durationMs: number };
+}
+
+/** A typed lifecycle event. `TraceEvent` alone is the union of every type. */
+export type TraceEvent<
+  K extends keyof TraceEventByType = keyof TraceEventByType,
+> = {
+  [T in K]: { readonly type: T } & TraceEventByType[T];
+}[K];
 
 /** One consumer of trace events: a plugin's observe hook. */
 export type TraceSink = (event: TraceEvent) => void;

@@ -28,7 +28,7 @@ import { formatFor, formatThrown } from './format.js';
 import type { Nexus } from './nexus.js';
 import type { Scope } from './scope.js';
 import type { RootState } from './state.js';
-import type { TraceEvent } from './trace.js';
+import type { TraceEvent, TraceEventByType } from './trace.js';
 
 /** The plugin API version this core implements. */
 export const NEXUS_PLUGIN_API = 1;
@@ -55,6 +55,12 @@ export interface PluginContext {
   builtAsync(providerId: string): boolean | null;
   /** `error` with this container's formatError text, as core formats an error it raises. A plugin that raises after setup throws `context.format(error)`. */
   format<E>(error: E): E;
+  /** Hands the event `make` builds to every observe hook, in plugin order. Without an observer, `make` never runs. An exception an observer throws reaches the caller of emit. */
+  emit(
+    make: () => TraceEvent<
+      Extract<keyof TraceEventByType, `${string}/${string}`>
+    >,
+  ): void;
 }
 
 /** Extends one container. Every hook is optional (spec §3.10). */
@@ -333,7 +339,8 @@ function factoryAsync(
  * blueprint on each call, so it follows every load(), and returns the one
  * cached view of it. `builtAsync` reads the async flags the root and its
  * scopes record per factory build. `format` applies the rules of spec §9.1
- * through `formatFor`.
+ * through `formatFor`. `emit` hands a plugin's event to the container's
+ * tracer, which builds it only when an observe hook exists.
  */
 export function pluginContext(
   state: RootState,
@@ -349,5 +356,6 @@ export function pluginContext(
         : null;
     },
     format: <E>(error: E) => formatFor(state, error) as E,
+    emit: (make: () => TraceEvent) => state.tracer.emit(make),
   });
 }

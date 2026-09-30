@@ -115,7 +115,7 @@ export type {
   PluginContext,
 } from './runtime/plugins.js';
 export type { Scope } from './runtime/scope.js';
-export type { TraceEvent } from './runtime/trace.js';
+export type { TraceEvent, TraceEventByType } from './runtime/trace.js';
 export type {
   BlueprintView,
   CompileContext,
