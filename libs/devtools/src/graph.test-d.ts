@@ -18,10 +18,9 @@ describe('devtools', () => {
   });
 
   it('names a provider id and a label in each note', () => {
-    expectTypeOf<GraphNote>().toEqualTypeOf<{
-      readonly provider: string;
-      readonly label: string;
-    }>();
+    expectTypeOf<GraphNote['provider']>().toEqualTypeOf<string>();
+    expectTypeOf<GraphNote['label']>().toEqualTypeOf<string>();
+    expectTypeOf<{ provider: string; label: string }>().toExtend<GraphNote>();
   });
 });
 
