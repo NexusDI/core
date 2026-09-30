@@ -2,8 +2,7 @@ import { dirname, join } from 'node:path';
 
 import ts from 'typescript';
 
-import type { SourceFileText } from './core-layers.js';
-import { resolveRelative } from './entry-graph.js';
+import { resolveRelative, type SourceFileText } from './core-layers.js';
 
 /**
  * Where each error's text lives (spec section 2.5.1).

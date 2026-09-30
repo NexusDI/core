@@ -1,7 +1,11 @@
 import { existsSync, readdirSync, readFileSync } from 'node:fs';
 import { join, posix, relative, sep } from 'node:path';
 
-import { importsOf, type SourceFileText } from './core-layers.js';
+import {
+  importsOf,
+  resolveRelative,
+  type SourceFileText,
+} from './core-layers.js';
 
 /**
  * The import graph of a package's main entry (spec section 2.5.9).
@@ -96,23 +100,6 @@ export function libPackages(
         files: sourcesOf(join(libs, dir, 'src')),
       };
     });
-}
-
-/** The module a relative specifier names among `paths`, or null. */
-export function resolveRelative(
-  from: string,
-  specifier: string,
-  paths: ReadonlySet<string>,
-): string | null {
-  const joined = posix.join(posix.dirname(from), specifier);
-  for (const candidate of [
-    joined.replace(/\.js$/, '.ts'),
-    joined,
-    `${joined}.ts`,
-    `${joined}/index.ts`,
-  ])
-    if (paths.has(candidate)) return candidate;
-  return null;
 }
 
 /** A rule's match: a folder prefix, or one file. */

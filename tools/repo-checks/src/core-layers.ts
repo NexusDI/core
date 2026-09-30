@@ -140,20 +140,49 @@ export function specifiersOf(file: SourceFileText): string[] {
   return importsOf(file).map((found) => found.specifier);
 }
 
-/** The target path under src, with `.js` mapped back to `.ts`. */
-function targetOf(from: string, specifier: string): string | null {
+/** The module a relative specifier names among `paths`, or null. */
+export function resolveRelative(
+  from: string,
+  specifier: string,
+  paths: ReadonlySet<string>,
+): string | null {
+  const joined = posix.join(posix.dirname(from), specifier);
+  for (const candidate of [
+    joined.replace(/\.js$/, '.ts'),
+    joined,
+    `${joined}.ts`,
+    `${joined}/index.ts`,
+  ])
+    if (paths.has(candidate)) return candidate;
+  return null;
+}
+
+/**
+ * The target path under src: the module `resolveRelative` finds among
+ * `paths`, so `./text` names `text/index.ts`, or else the specifier with
+ * `.js` mapped back to `.ts`. Null for a package specifier.
+ */
+function targetOf(
+  from: string,
+  specifier: string,
+  paths: ReadonlySet<string>,
+): string | null {
   if (!specifier.startsWith('.')) return null;
-  return posix.join(posix.dirname(from), specifier).replace(/\.js$/, '.ts');
+  return (
+    resolveRelative(from, specifier, paths) ??
+    posix.join(posix.dirname(from), specifier).replace(/\.js$/, '.ts')
+  );
 }
 
 export function layerViolations(files: readonly SourceFileText[]): string[] {
   const found: string[] = [];
+  const paths = new Set(files.map((file) => file.path));
   for (const file of files) {
     const layer = layerOf(file.path);
     if (layer === null) {
       // A root file (index.ts) may import any layer but text/.
       for (const specifier of specifiersOf(file)) {
-        const target = targetOf(file.path, specifier);
+        const target = targetOf(file.path, specifier, paths);
         if (target?.startsWith('text/'))
           found.push(
             `${file.path} imports ${target}, and the main entry may not reach text/`,
@@ -167,7 +196,7 @@ export function layerViolations(files: readonly SourceFileText[]): string[] {
       continue;
     }
     for (const specifier of specifiersOf(file)) {
-      const target = targetOf(file.path, specifier);
+      const target = targetOf(file.path, specifier, paths);
       if (target === null) continue;
       if (!allowed.some((rule) => matches(rule, target))) {
         found.push(
@@ -178,7 +207,7 @@ export function layerViolations(files: readonly SourceFileText[]): string[] {
     const typesOnly = TYPES_ONLY[layer] ?? [];
     for (const { specifier, typeOnly } of importsOf(file)) {
       if (typeOnly) continue;
-      const target = targetOf(file.path, specifier);
+      const target = targetOf(file.path, specifier, paths);
       if (target === null || !typesOnly.some((rule) => matches(rule, target)))
         continue;
       found.push(

@@ -190,6 +190,18 @@ describe('layerViolations', () => {
     ]);
   });
 
+  it('reports a root file that imports the text/ folder by its name', () => {
+    expect(
+      layerViolations([
+        { path: 'index.ts', source: "export * from './text';" },
+        { path: 'text/index.ts', source: "export * from './core-text.js';" },
+        { path: 'text/core-text.ts', source: 'export const coreText = {};' },
+      ]),
+    ).toEqual([
+      'index.ts imports text/index.ts, and the main entry may not reach text/',
+    ]);
+  });
+
   it('holds for the current libs/core source', () => {
     expect(layerViolations(sources())).toEqual([]);
   });

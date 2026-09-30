@@ -5,13 +5,13 @@ import { join } from 'node:path';
 import { workspaceRoot } from '@nx/devkit';
 import { describe, expect, it } from 'vitest';
 
+import { resolveRelative } from './core-layers.js';
 import {
   entryGraphViolations,
   filesUnder,
   libPackages,
   mainEntryOf,
   ownSubpathModules,
-  resolveRelative,
   sourcesOf,
   walkEntry,
 } from './entry-graph.js';
