@@ -779,6 +779,15 @@ describe('createTestingContainer', () => {
       ).toMatchObject({ code: 'NEXUS_INVALID_MODULE', otherCopy: false });
   });
 
+  it('reports otherCopy false for a module ref this copy of core made', () => {
+    const Comms = defineModule({ name: 'Comms' });
+    const builder = createTestingContainer(defineModule({ name: 'Root' }));
+    const provided = provide(new Token<string>('Nav'), { useValue: 'x' });
+    expect(
+      thrown(() => builder.overrideModule(provided as never, Comms)),
+    ).toMatchObject({ code: 'NEXUS_INVALID_MODULE', otherCopy: false });
+  });
+
   it('names an anonymous class token (anonymous class) when its override matches nothing', async () => {
     const Anonymous = (() => class {})();
     const error = await rejected(

@@ -1,4 +1,5 @@
 import {
+  displayName,
   moduleDefinitionOf,
   MultiToken,
   NEXUS_PLUGIN_API,
@@ -9,7 +10,6 @@ import {
   type ProviderEntry,
 } from '@nexusdi/core';
 
-import { displayName } from './describe.js';
 import { overrideExports, overrideUnused } from './override-error.js';
 
 export interface TestingState {

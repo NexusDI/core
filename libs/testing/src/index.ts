@@ -9,7 +9,9 @@
  * plugin, nexus:testing, ahead of the caller's plugins.
  */
 import {
+  describeValue,
   InvalidModuleError,
+  isForeign,
   moduleDefinitionOf,
   Nexus,
   provide,
@@ -25,7 +27,6 @@ import {
   type ProviderEntry,
 } from '@nexusdi/core';
 
-import { describeValue, isForeign } from './describe.js';
 import { testingPlugin } from './plugin.js';
 
 export { OverrideError } from './override-error.js';
