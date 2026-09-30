@@ -1,8 +1,9 @@
+import { spawn } from 'node:child_process';
 import { readFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { describe, expect, it } from 'vitest';
 
-import { FIXTURES, runCli } from '../test-support/run.js';
+import { BIN, FIXTURES, runCli } from '../test-support/run.js';
 import { tempDir } from '../test-support/temp.js';
 
 const JS = join(FIXTURES, 'js');
@@ -65,12 +66,13 @@ describe('nexusdi graph, JavaScript entries', () => {
   });
 
   it('registers the --plugins array', () => {
-    expect(
-      runCli(
-        ['graph', 'meridian.module.js', '--plugins', 'plugins.js#plugins'],
-        { cwd: JS },
-      ).status,
-    ).toBe(0);
+    const run = runCli(
+      ['graph', 'meridian.module.js', '--plugins', 'plugins.js#plugins'],
+      { cwd: JS },
+    );
+    // The fixture's check hook reports an error, which only a registered plugin can do.
+    expect(run.status).toBe(1);
+    expect(run.stderr).toContain('[FIXTURE_LINT] the fixture check hook ran');
   });
 
   it('exits 2 when --plugins names something other than an array', () => {
@@ -142,6 +144,23 @@ describe('nexusdi graph, JavaScript entries', () => {
     });
     expect(() => JSON.parse(run.stdout)).not.toThrow();
     expect(run.stdout.endsWith('}\n')).toBe(true);
+  });
+
+  it('exits 0 with nothing on stderr when the reader closes the pipe early', async () => {
+    const child = spawn(
+      process.execPath,
+      [BIN, 'graph', 'meridian.module.js', '-f', 'json'],
+      { cwd: JS, stdio: ['ignore', 'pipe', 'pipe'] },
+    );
+    // Closing the read end before the CLI writes makes its write fail with EPIPE.
+    child.stdout.destroy();
+    let stderr = '';
+    child.stderr.on('data', (chunk: Buffer) => (stderr += chunk.toString()));
+    const status = await new Promise<number | null>((resolve) =>
+      child.on('close', resolve),
+    );
+    expect(stderr).toBe('');
+    expect(status).toBe(0);
   });
 
   it('renders a .json graph', () => {
