@@ -228,6 +228,12 @@
     // manifest. libs/core/package.json, as a published package, carries no
     // devDependencies.
     "esbuild",
+    // libs/core/bench/run.mjs and worker.mjs import the shared benchmark
+    // harness from tools/bench-kit (benchmarks/package.json already declares
+    // it as a devDependency for its own imports). libs/core/package.json, as
+    // a published package, carries no devDependencies, and bench-kit is
+    // private and never published, so it cannot go there either way.
+    "@nexusdi/bench-kit",
   ],
 
   // definitions/standard-schema.ts declares `StandardSchemaV1` twice on
