@@ -11,13 +11,13 @@ import {
   type BlueprintError,
   type NexusError,
 } from '@nexusdi/core';
+import { layoutText } from '@nexusdi/core/text';
 import { createTestingContainer } from '@nexusdi/testing';
 
 import { rejected, thrown } from '../../test-support/catch.js';
 import { errorCases } from '../../test-support/error-cases.js';
 import { messageScenarios } from '../../test-support/message-scenarios.js';
 import { errors, explain } from '../index.js';
-import { layoutText } from '@nexusdi/core/text';
 
 /** The message errors() writes for `error`, from explain() alone. */
 function render(error: NexusError): string {

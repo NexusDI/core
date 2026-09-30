@@ -10,10 +10,10 @@ import {
   type BlueprintView,
   type NexusPlugin,
 } from '@nexusdi/core';
+import { layoutText } from '@nexusdi/core/text';
 
 import { rejected } from '../test-support/catch.js';
 import { errors, explain } from './index.js';
-import { layoutText } from '@nexusdi/core/text';
 
 interface NavCharts {
   plot(): string;
