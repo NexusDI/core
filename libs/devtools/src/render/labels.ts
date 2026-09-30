@@ -36,16 +36,32 @@ export function moduleTitle(module: GraphModule): string {
   return module.global ? `${module.name} (global)` : module.name;
 }
 
-/** The id core gives its built-in REQUEST provider, which every graph lists. */
-const REQUEST_ID = 'request';
-
 /**
- * The providers the renderers draw: every one but REQUEST, which appears
- * only when a provider depends on it.
+ * The providers the renderers draw, in graph order: every provider that is
+ * not internal, and an internal one when a drawn provider depends on it.
  */
 export function drawnProviders(graph: NexusGraph): GraphProvider[] {
-  const used = graph.edges.some((e) => e.to === REQUEST_ID);
-  return graph.providers.filter((p) => used || p.id !== REQUEST_ID);
+  const drawn = new Set(
+    graph.providers.filter((p) => !p.internal).map((p) => p.id),
+  );
+  for (let grew = true; grew;) {
+    grew = false;
+    for (const e of graph.edges)
+      if (drawn.has(e.from) && !drawn.has(e.to)) {
+        drawn.add(e.to);
+        grew = true;
+      }
+  }
+  return graph.providers.filter((p) => drawn.has(p.id));
+}
+
+/** The edges between two drawn providers, in graph order. */
+export function drawnEdges(
+  graph: NexusGraph,
+  drawn: readonly GraphProvider[],
+): GraphEdge[] {
+  const ids = new Set(drawn.map((p) => p.id));
+  return graph.edges.filter((e) => ids.has(e.from) && ids.has(e.to));
 }
 
 /** `drawn` is drawnProviders(graph), computed once per render. */

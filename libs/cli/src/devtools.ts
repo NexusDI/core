@@ -1,6 +1,6 @@
 import { readFileSync } from 'node:fs';
 
-import type { inspect, toDot, toMermaid } from '@nexusdi/devtools';
+import type { inspect, parseGraph, toDot, toMermaid } from '@nexusdi/devtools';
 
 import { CliError } from './cli-error.js';
 import { importFile, resolveFrom } from './resolve.js';
@@ -8,6 +8,7 @@ import { importFile, resolveFrom } from './resolve.js';
 /** The project's @nexusdi/devtools, which runs on the project's copy of core. */
 export interface DevtoolsApi {
   readonly inspect: typeof inspect;
+  readonly parseGraph: typeof parseGraph;
   readonly toDot: typeof toDot;
   readonly toMermaid: typeof toMermaid;
 }

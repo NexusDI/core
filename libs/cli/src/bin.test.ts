@@ -1,5 +1,5 @@
 import { spawn } from 'node:child_process';
-import { readFileSync } from 'node:fs';
+import { readFileSync, writeFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { describe, expect, it } from 'vitest';
 
@@ -26,8 +26,14 @@ describe('nexusdi graph, JavaScript entries', () => {
       runCli(['graph', 'meridian.module.js#Meridian', '-f', 'json'], {
         cwd: JS,
       }).stdout,
-    ) as { modules: { name: string }[] };
+    ) as {
+      modules: { name: string }[];
+      providers: { token: string; internal: boolean }[];
+    };
     expect(json.modules.map((m) => m.name)).toEqual(['Meridian', 'Navigation']);
+    expect(
+      json.providers.filter((p) => p.internal).map((p) => p.token),
+    ).toEqual(['REQUEST']);
     expect(
       runCli(['graph', 'meridian.module.js', '--view', 'modules'], { cwd: JS })
         .stdout,
@@ -172,7 +178,19 @@ describe('nexusdi graph, JavaScript entries', () => {
   it('exits 2 for a .json file that is not a NexusGraph', () => {
     const run = runCli(['graph', 'bad-graph.json'], { cwd: JSON_DIR });
     expect(run.status).toBe(2);
-    expect(run.stderr).toContain('providers[0]');
+    expect(run.stderr).toBe(
+      'nexusdi: bad-graph.json: [NEXUS_DEVTOOLS_GRAPH_INVALID] not a NexusGraph: providers[0].token is missing or has the wrong type.\n' +
+        '  Fix: pass JSON.parse of the text that JSON.stringify(graph(ship)), JSON.stringify(inspect(root)) or nexusdi graph --format json wrote.\n',
+    );
+  });
+
+  it('exits 2 with its own line for a .json file that is not JSON', () => {
+    const file = join(tempDir(), 'not-json.json');
+    writeFileSync(file, '{ "modules": [');
+    const run = runCli(['graph', file], { cwd: JSON_DIR });
+    expect(run.status).toBe(2);
+    expect(run.stderr).toContain(`nexusdi: ${file} is not JSON: `);
+    expect(run.stderr).not.toContain('NEXUS_DEVTOOLS_GRAPH_INVALID');
   });
 
   it('prints usage and the version', () => {

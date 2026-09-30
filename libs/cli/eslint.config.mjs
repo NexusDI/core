@@ -16,12 +16,7 @@ export default [
           ],
           // Loaded at run time from the user's project by resolved path
           // (src/resolve.ts), so no import statement names them.
-          ignoredDependencies: [
-            '@nexusdi/core',
-            'tsx',
-            '@viz-js/viz',
-            '@resvg/resvg-js',
-          ],
+          ignoredDependencies: ['tsx', '@viz-js/viz', '@resvg/resvg-js'],
         },
       ],
     },

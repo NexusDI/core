@@ -2,7 +2,9 @@ import { describe, expect, it } from 'vitest';
 
 import {
   ESCAPE_FIXTURE,
+  HOSTILE_IDS,
   FIXTURE,
+  WITH_INTERNAL,
   WITH_REQUEST,
 } from '../../test-support/graph-fixture.js';
 import { toDot } from '../index.js';
@@ -99,5 +101,34 @@ describe('toDot', () => {
     };
     expect(toDot(used)).toContain('REQUEST');
     expect(toDot(used, { view: 'modules' })).toContain('2 providers');
+  });
+
+  it('leaves out an internal provider by its flag, whatever its id', () => {
+    expect(toDot(WITH_INTERNAL)).not.toContain('RelayPlumbing');
+    expect(toDot(WITH_INTERNAL, { view: 'modules' })).toContain('1 provider');
+    const used = {
+      ...WITH_INTERNAL,
+      edges: [{ from: 'p0', to: 'p1', kind: 'required' as const }],
+    };
+    expect(toDot(used)).toContain('RelayPlumbing');
+    expect(toDot(used, { view: 'modules' })).toContain('2 providers');
+  });
+
+  it('draws no edge to or from a provider it leaves out', () => {
+    const hidden = {
+      ...WITH_INTERNAL,
+      edges: [{ from: 'p1', to: 'p0', kind: 'required' as const }],
+    };
+    expect(toDot(hidden)).not.toContain('"p1"');
+    expect(toDot(hidden)).toBe(toDot({ ...WITH_INTERNAL, edges: [] }));
+  });
+
+  it('quotes and escapes every id', () => {
+    const dot = toDot(HOSTILE_IDS);
+    expect(dot).toContain('    "say \\"hi\\" \\\\ now" [label=');
+    expect(dot).toContain('  "x;y" -> "say \\"hi\\" \\\\ now" [label="lazy"');
+    expect(toDot(HOSTILE_IDS, { view: 'modules' })).toContain(
+      '  "end" -> "p0";',
+    );
   });
 });

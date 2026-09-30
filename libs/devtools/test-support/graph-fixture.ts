@@ -35,6 +35,7 @@ export const FIXTURE: NexusGraph = {
       eager: true,
       async: null,
       implementation: 'ShipComputer',
+      internal: false,
     },
     {
       id: 'p1',
@@ -45,6 +46,7 @@ export const FIXTURE: NexusGraph = {
       eager: false,
       async: null,
       implementation: null,
+      internal: false,
     },
     {
       id: 'p2',
@@ -55,6 +57,7 @@ export const FIXTURE: NexusGraph = {
       eager: true,
       async: null,
       implementation: 'StellarCharts',
+      internal: false,
     },
     {
       id: 'p3',
@@ -65,6 +68,7 @@ export const FIXTURE: NexusGraph = {
       eager: true,
       async: null,
       implementation: null,
+      internal: false,
     },
     {
       id: 'p4',
@@ -75,6 +79,7 @@ export const FIXTURE: NexusGraph = {
       eager: true,
       async: null,
       implementation: null,
+      internal: false,
     },
   ],
   edges: [
@@ -102,6 +107,7 @@ export const ESCAPE_FIXTURE: NexusGraph = {
       eager: true,
       async: null,
       implementation: null,
+      internal: false,
     },
     {
       id: 'p1',
@@ -112,6 +118,7 @@ export const ESCAPE_FIXTURE: NexusGraph = {
       eager: false,
       async: null,
       implementation: null,
+      internal: false,
     },
   ],
   edges: [],
@@ -132,6 +139,7 @@ export const WITH_REQUEST: NexusGraph = {
       eager: true,
       async: null,
       implementation: null,
+      internal: false,
     },
     {
       id: 'request',
@@ -142,7 +150,105 @@ export const WITH_REQUEST: NexusGraph = {
       eager: true,
       async: null,
       implementation: null,
+      internal: true,
     },
   ],
   edges: [],
+};
+
+/**
+ * A plugin's plumbing provider under an ordinary id: the renderers hide it
+ * by its internal flag.
+ */
+export const WITH_INTERNAL: NexusGraph = {
+  modules: [
+    { id: 'm0', name: 'Meridian', global: false, imports: [], exports: [] },
+  ],
+  providers: [
+    {
+      id: 'p0',
+      token: 'ShipComputer',
+      module: 'm0',
+      lifetime: 'singleton',
+      kind: 'class',
+      eager: true,
+      async: null,
+      implementation: null,
+      internal: false,
+    },
+    {
+      id: 'p1',
+      token: 'RelayPlumbing',
+      module: 'm0',
+      lifetime: 'singleton',
+      kind: 'value',
+      eager: true,
+      async: null,
+      implementation: null,
+      internal: true,
+    },
+  ],
+  edges: [],
+};
+
+/**
+ * Ids a hand-written JSON file can carry: Mermaid keywords and syntax, and a
+ * module id equal to a provider's rendered name.
+ */
+export const HOSTILE_IDS: NexusGraph = {
+  modules: [
+    {
+      id: 'end',
+      name: 'Meridian',
+      global: true,
+      imports: ['p0'],
+      exports: ['a-->b', 'p0'],
+    },
+    {
+      id: 'p0',
+      name: 'Navigation',
+      global: false,
+      imports: [],
+      exports: ['x;y'],
+    },
+  ],
+  providers: [
+    {
+      id: 'a-->b',
+      token: 'ShipComputer',
+      module: 'end',
+      lifetime: 'singleton',
+      kind: 'class',
+      eager: true,
+      async: null,
+      implementation: null,
+      internal: false,
+    },
+    {
+      id: 'x;y',
+      token: 'NavCharts',
+      module: 'p0',
+      lifetime: 'singleton',
+      kind: 'factory',
+      eager: true,
+      async: null,
+      implementation: null,
+      internal: false,
+    },
+    {
+      id: 'say "hi" \\ now',
+      token: 'Comms',
+      module: 'p0',
+      lifetime: 'transient',
+      kind: 'value',
+      eager: false,
+      async: null,
+      implementation: null,
+      internal: false,
+    },
+  ],
+  edges: [
+    { from: 'a-->b', to: 'x;y', kind: 'required' },
+    { from: 'x;y', to: 'say "hi" \\ now', kind: 'lazy' },
+  ],
 };

@@ -3,7 +3,11 @@
 import mermaid from 'mermaid';
 import { describe, expect, it } from 'vitest';
 
-import { ESCAPE_FIXTURE, FIXTURE } from '../../test-support/graph-fixture.js';
+import {
+  ESCAPE_FIXTURE,
+  FIXTURE,
+  HOSTILE_IDS,
+} from '../../test-support/graph-fixture.js';
 import { toMermaid } from '../index.js';
 
 describe('toMermaid through the Mermaid parser', () => {
@@ -14,6 +18,11 @@ describe('toMermaid through the Mermaid parser', () => {
     [
       'names full of Mermaid syntax, modules view',
       toMermaid(ESCAPE_FIXTURE, { view: 'modules' }),
+    ],
+    ['ids full of Mermaid syntax', toMermaid(HOSTILE_IDS)],
+    [
+      'ids full of Mermaid syntax, modules view',
+      toMermaid(HOSTILE_IDS, { view: 'modules' }),
     ],
   ])('parses %s', async (_, source) => {
     await expect(mermaid.parse(source)).resolves.toMatchObject({

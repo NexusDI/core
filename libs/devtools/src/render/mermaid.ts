@@ -1,5 +1,6 @@
 import type { NexusGraph } from '../graph.js';
 import {
+  drawnEdges,
   drawnProviders,
   exportedIds,
   membersOf,
@@ -47,6 +48,28 @@ function label(lines: readonly string[]): string {
   return `"${lines.map(text).join('<br/>')}"`;
 }
 
+/**
+ * The node name of each graph id: `m<i>` for the i-th module and `p<i>` for
+ * the i-th provider. Mermaid reads a node name as syntax, and graph ids are
+ * opaque strings, so no id is written as is. An id no module or provider
+ * has, such as a dangling import in a hand-built graph, gets `u<n>`. A live
+ * graph's names match core's ids until a load() adds modules.
+ */
+function nodeNames(graph: NexusGraph): (id: string) => string {
+  const names = new Map<string, string>();
+  graph.modules.forEach((m, i) => names.set(m.id, `m${i}`));
+  graph.providers.forEach((p, i) => names.set(p.id, `p${i}`));
+  let unknown = 0;
+  return (id) => {
+    let name = names.get(id);
+    if (name === undefined) {
+      name = `u${unknown++}`;
+      names.set(id, name);
+    }
+    return name;
+  };
+}
+
 /** The graph as a Mermaid flowchart. Pure and deterministic. */
 export function toMermaid(
   graph: NexusGraph,
@@ -54,32 +77,37 @@ export function toMermaid(
 ): string {
   const lines = ['flowchart LR'];
   const drawn = drawnProviders(graph);
+  const name = nodeNames(graph);
   const bold: string[] = [];
   if (options.view === 'modules') {
     for (const m of graph.modules) {
       lines.push(
-        `  ${m.id}[${label([moduleTitle(m), providerCount(drawn, m.id)])}]`,
+        `  ${name(m.id)}[${label([moduleTitle(m), providerCount(drawn, m.id)])}]`,
       );
-      if (m.global) bold.push(m.id);
+      if (m.global) bold.push(name(m.id));
     }
     for (const m of graph.modules)
-      for (const to of m.imports) lines.push(`  ${m.id} --> ${to}`);
+      for (const to of m.imports) lines.push(`  ${name(m.id)} --> ${name(to)}`);
   } else {
     for (const m of graph.modules) {
       const members = membersOf(drawn, m.id);
       if (members.length === 0) continue;
-      lines.push(`  subgraph ${m.id}[${label([moduleTitle(m)])}]`);
+      lines.push(`  subgraph ${name(m.id)}[${label([moduleTitle(m)])}]`);
       for (const p of members) {
         const [open, close] = SHAPE[p.kind];
-        lines.push(`    ${p.id}${open}${label(providerLines(p))}${close}`);
+        lines.push(
+          `    ${name(p.id)}${open}${label(providerLines(p))}${close}`,
+        );
       }
       lines.push('  end');
-      if (m.global) bold.push(m.id);
+      if (m.global) bold.push(name(m.id));
     }
-    for (const e of graph.edges)
-      lines.push(`  ${e.from} ${EDGE[e.kind]} ${e.to}`);
+    for (const e of drawnEdges(graph, drawn))
+      lines.push(`  ${name(e.from)} ${EDGE[e.kind]} ${name(e.to)}`);
     const exported = exportedIds(graph);
-    const marked = drawn.filter((p) => exported.has(p.id)).map((p) => p.id);
+    const marked = drawn
+      .filter((p) => exported.has(p.id))
+      .map((p) => name(p.id));
     if (marked.length > 0)
       lines.push(
         '  classDef exported stroke-width:3px',

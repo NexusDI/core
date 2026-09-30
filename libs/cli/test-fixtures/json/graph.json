@@ -24,7 +24,8 @@
       "kind": "class",
       "eager": true,
       "async": null,
-      "implementation": "ShipComputer"
+      "implementation": "ShipComputer",
+      "internal": false
     },
     {
       "id": "p1",
@@ -34,7 +35,8 @@
       "kind": "class",
       "eager": true,
       "async": null,
-      "implementation": "StellarCharts"
+      "implementation": "StellarCharts",
+      "internal": false
     },
     {
       "id": "request",
@@ -44,7 +46,8 @@
       "kind": "value",
       "eager": true,
       "async": null,
-      "implementation": null
+      "implementation": null,
+      "internal": true
     }
   ],
   "edges": [
