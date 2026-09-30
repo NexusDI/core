@@ -11,8 +11,8 @@
 // request with @scoped(Lifecycle.ContainerScoped) (README "Child Containers"
 // and "scoped()").
 // Docs: https://github.com/microsoft/tsyringe#readme (4.10.0), read 2026-09-30.
-// Departures: fields instead of constructor parameter properties
-// (node-strip-types is a cell). @singleton() registers in the global
+// Departures: fields for dependencies, because Node's type stripping
+// rejects constructor parameter properties (node-strip-types is a cell). @singleton() registers in the global
 // container and the README builds one container per process, so ready()
 // starts with container.clearInstances() (README "Clearing Instances") and
 // registers NavCharts again, and each call builds the graph from nothing.

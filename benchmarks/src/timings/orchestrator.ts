@@ -131,17 +131,21 @@ export async function runTimings(opts: {
   return rows;
 }
 
-/** Stats per row, and each competitor's ratio against NexusDI plain in the same rounds. */
+/**
+ * Stats per row, and each competitor's ratio against NexusDI's documented
+ * variant (`nexusVariant`, from libraries.json) in the same rounds.
+ */
 export function toTimingRows(
   raw: readonly RawRow[],
   seed: number,
+  nexusVariant: string,
 ): TimingRow[] {
   return raw.map((r) => {
     const nexus = raw.find(
       (n) =>
         n.scenario === r.scenario &&
         n.library === 'nexusdi' &&
-        n.variant === 'plain',
+        n.variant === nexusVariant,
     );
     const row: TimingRow = {
       scenario: r.scenario,
@@ -232,6 +236,11 @@ if (import.meta.main) {
       { warmup: coldWarmup, measured: coldMeasured, seed },
     );
     const raw = await runTimings({ fixtures, quick, seed });
+    const nexusVariant = fixtures.find(
+      (f) => f.library === 'nexusdi' && f.documented,
+    )?.variant;
+    if (nexusVariant === undefined)
+      throw new Error('libraries.json documents no NexusDI variant');
     const coldNexus = cold.find((c) => c.library === 'nexusdi');
     const rows: TimingRow[] = [
       ...cold.map((c) => {
@@ -248,7 +257,7 @@ if (import.meta.main) {
           row.vsNexus = pairedRatio(coldNexus.spawnNs, c.spawnNs, seed);
         return row;
       }),
-      ...toTimingRows(raw, seed),
+      ...toTimingRows(raw, seed, nexusVariant),
     ];
     checkFloor(rows);
 
