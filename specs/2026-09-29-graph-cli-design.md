@@ -1,6 +1,6 @@
 # Graph CLI and export (#18)
 
-Status: draft for the owner, rulings applied (section 9).
+Status: owner decisions accepted 2026-09-30 (D6, D7, D8; section 9), rulings applied.
 Issue: NexusDI/core#18, "Graph Visualization": a `nexusdi graph` command that exports the
 dependency graph as DOT, JSON, SVG and PNG.
 Depends on: the 0.4 engine on `feat/core-0.4` (PR #60, open, not merged), specifically
@@ -45,10 +45,9 @@ Why the renderers live in `@nexusdi/devtools`:
 Why the CLI is a separate package, with no bin in `@nexusdi/devtools`:
 
 - The CLI needs `node:fs`, `node:module`, `node:util` and `process`. Core spec section
-  12.1 allows `node:` imports in `@nexusdi/node` only, and `@nexusdi/devtools` must stay
-  browser-safe for the playground. A separate package keeps that rule true for every
-  package an app bundles; the rule gains one named exemption, `libs/cli/src`, for a
-  package no app bundles.
+  12.1 keeps packages an app bundles node-free, with `libs/cli/src` exempt (owner
+  decision D8), and `@nexusdi/devtools` must stay browser-safe for the playground. A
+  separate package keeps that rule true for every package an app bundles.
 - The CLI's optional peers (section 6) belong on the package that loads them. On
   `@nexusdi/devtools` they would show up as install warnings or prompts in every project
   that registers the plugin.
@@ -347,8 +346,7 @@ implementation: string | null;
 
 `graphOf` reads it from `ProviderView.implementation?.name`. This is an additive field on
 a devtools type; core's `ProviderView` already carries the class. The core spec's
-section 10.1 listing needs the field too; that spec lives on the plan/core-0.4-engine
-branch, so the edit goes there.
+section 10.1 listing on plan/core-0.4-engine carries the field.
 
 ## 6. SVG and PNG
 
@@ -424,7 +422,8 @@ ran in that session and are recorded here in the same form.
    lead: renderers move to `@nexusdi/devtools`, because the playground and a live app's
    debug endpoint render `graph(ship)` in environments with no CLI and no `node:`.
    The CLI stays a separate package for the `node:` rule and its optional peers.
-   Final: section 2. Owner decision (new package, new devtools exports).
+   Final: section 2. Owner decision D6, accepted 2026-09-30: `@nexusdi/cli`, and the
+   devtools exports `toDot`, `toMermaid`, `RenderOptions` and `GraphView`.
 2. Devtools as a peer. Architect: `dependencies: { "@nexusdi/devtools": "0.4.0" }`. Tech
    lead: a dependency gives an `npx` or global run its own copy of core, which rejects
    the user's modules. Peer plus resolve-from-project. Final: section 4.3.
@@ -441,7 +440,8 @@ ran in that session and are recorded here in the same form.
    fallback. Tech lead: two code paths for one output, and a system binary whose version
    the CLI cannot pin. One path, `@viz-js/viz`, as an optional peer; Graphviz users pipe
    `-f dot`. PNG through `@resvg/resvg-js`, because the WASM build has no system fonts.
-   Final: section 6. Owner decision (third-party optional peers, a first for the package set).
+   Final: section 6. Owner decision D7, accepted 2026-09-30: `tsx`, `@viz-js/viz` and
+   `@resvg/resvg-js` as optional peers of `@nexusdi/cli`.
 6. Default format. Architect: `dot`. Tech lead: `mermaid`, because it renders on GitHub
    and the docs with nothing installed. Final: section 3.
 7. Partial graphs. Architect: a `--partial` flag and a new `tryInspect()` export returning
@@ -450,10 +450,13 @@ ran in that session and are recorded here in the same form.
    already names the fix. Final: section 8.
 8. `implementation` field. Tech lead addition: an interface-first graph that hides the
    bound class fails the user who opens it to find out what is wired. Additive field on
-   `NexusGraph`. Final: section 5.4. Owner decision (public type change in devtools).
-9. `node:` rule. The core spec lets `@nexusdi/node` alone import `node:` modules. The
-   repo-check gains `libs/cli/src` as a second exemption. Owner decision (a rule in the
-   core spec changes).
+   `NexusGraph`. Final: section 5.4. Owner decision D6, accepted 2026-09-30:
+   `implementation: string | null` on each `NexusGraph` provider.
+9. `node:` rule. The core spec let `@nexusdi/node` alone import `node:` modules. The
+   repo-check gains `libs/cli/src` as a second exemption. Owner decision D8, accepted
+   2026-09-30: the rule reads "packages an app bundles stay node-free", with
+   `libs/cli/src` exempt. Core spec section 12.1 on plan/core-0.4-engine carries the
+   wording.
 10. Exit codes. Architect: a fifth code for internal errors. Tech lead: four codes; CI
     needs "invalid graph" to be exactly 1, and an internal error prints its stack under
     code 2. Final: section 3.3.
