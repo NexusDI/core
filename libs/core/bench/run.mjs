@@ -5,17 +5,17 @@
  * Each operation runs in 10 fresh pairs of worker processes, 20 measured
  * rounds per pair. One pair alone reports a tight interval around an
  * offset that a restart moves by several percent (JIT decisions and heap
- * layout differ per process), so the bootstrap draws whole pairs and the
- * interval carries the run-to-run noise the spec bounds against.
+ * layout differ per process), so clusteredRatio resamples whole pairs and
+ * the interval carries the run-to-run noise the spec bounds against.
  *
  * `--quick` runs 2 pairs of 2 warm-up and 5 measured rounds for a local
  * smoke test.
  */
 import {
+  clusteredRatio,
   dispatchVerdict,
   forkWorker,
   interleave,
-  pairedRatio,
   summarize,
 } from '@nexusdi/bench-kit';
 import { writeFileSync } from 'node:fs';
@@ -59,7 +59,7 @@ for (const size of [50, 2000]) {
   for (const op of ['create', 'get', 'createScope']) {
     const name = `${op}-${size}`;
     const s = await measure(name);
-    const ratio = pairedRatio(s.on, s.off, seed, 10_000, perPair);
+    const ratio = clusteredRatio(s.on, s.off, seed, perPair);
     const verdict = quick ? 'inconclusive' : dispatchVerdict(ratio);
     results.push({
       op,
