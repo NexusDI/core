@@ -1,10 +1,9 @@
-import { readdirSync } from 'node:fs';
 import { join } from 'node:path';
 
 import { workspaceRoot } from '@nx/devkit';
 import { describe, expect, it } from 'vitest';
 
-import { libPackages, sourcesOf } from './entry-graph.js';
+import { libDirs, libPackages, sourcesOf } from './entry-graph.js';
 import {
   ownerVocabulary,
   type VocabularyAllowance,
@@ -48,12 +47,10 @@ const fixture = (scenario: string) => {
   const dir = join(FIXTURES, scenario);
   return [
     { name: '@acme/core', files: sourcesOf(join(FIXTURES, 'owner')) },
-    ...readdirSync(dir)
-      .sort()
-      .map((name) => ({
-        name: `@acme/${name}`,
-        files: sourcesOf(join(dir, name)),
-      })),
+    ...libDirs(dir).map((name) => ({
+      name: `@acme/${name}`,
+      files: sourcesOf(join(dir, name)),
+    })),
   ];
 };
 
@@ -168,11 +165,7 @@ describe('ownerVocabulary', () => {
 
   it('scans every package in libs/, with files, codes and brands to check', () => {
     expect(packages.map((pkg) => pkg.name)).toContain('@nexusdi/core');
-    expect(packages).toHaveLength(
-      readdirSync(LIBS, { withFileTypes: true }).filter((entry) =>
-        entry.isDirectory(),
-      ).length,
-    );
+    expect(packages).toHaveLength(libDirs(LIBS).length);
     expect(live.scanned.files).toBeGreaterThan(0);
     expect(live.scanned.codes).toBeGreaterThan(0);
     expect(live.scanned.brands).toBeGreaterThan(0);

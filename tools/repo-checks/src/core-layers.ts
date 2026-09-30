@@ -46,7 +46,7 @@ const TYPES_ONLY: Readonly<Record<string, readonly string[]>> = {
 };
 
 /** True when `target` matches `rule`: a folder prefix, or one file. */
-function matches(rule: string, target: string): boolean {
+export function matches(rule: string, target: string): boolean {
   return rule.endsWith('/') ? target.startsWith(rule) : target === rule;
 }
 

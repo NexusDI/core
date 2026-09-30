@@ -1,5 +1,4 @@
-import { existsSync, readdirSync, readFileSync } from 'node:fs';
-import { join, relative } from 'node:path';
+import { join } from 'node:path';
 
 import { workspaceRoot } from '@nx/devkit';
 import { describe, expect, it } from 'vitest';
@@ -10,38 +9,16 @@ import {
   nodeViolations,
   type SourceFileText,
 } from './core-layers.js';
+import { libDirs, sourcesOf } from './entry-graph.js';
 
 const LIBS = join(workspaceRoot, 'libs');
 const SRC = join(LIBS, 'core', 'src');
-const TEST = /\.(test|spec|test-d|browser\.test)\.ts$/;
-
-/** Every non-test `.ts` file under `dir`, with `path` relative to `root`. */
-function sourcesUnder(dir: string, root: string): SourceFileText[] {
-  const walk = (d: string): string[] =>
-    readdirSync(d, { withFileTypes: true }).flatMap((entry) => {
-      const path = join(d, entry.name);
-      if (entry.isDirectory())
-        return entry.name === 'regressions' ? [] : walk(path);
-      return entry.name.endsWith('.ts') && !TEST.test(entry.name) ? [path] : [];
-    });
-  return walk(dir).map((path) => ({
-    path: relative(root, path).split('\\').join('/'),
-    source: readFileSync(path, 'utf8'),
-  }));
-}
-
-function sources(): SourceFileText[] {
-  return sourcesUnder(SRC, SRC);
-}
 
 /** Every package's sources under libs/, with `path` relative to libs/. */
 function everyPackageSources(): SourceFileText[] {
-  return readdirSync(LIBS, { withFileTypes: true })
-    .filter((entry) => entry.isDirectory())
-    .flatMap((entry) => {
-      const src = join(LIBS, entry.name, 'src');
-      return existsSync(src) ? sourcesUnder(src, LIBS) : [];
-    });
+  return libDirs(LIBS).flatMap((dir) =>
+    sourcesOf(join(LIBS, dir, 'src'), LIBS),
+  );
 }
 
 describe('importsOf', () => {
@@ -203,7 +180,7 @@ describe('layerViolations', () => {
   });
 
   it('holds for the current libs/core source', () => {
-    expect(layerViolations(sources())).toEqual([]);
+    expect(layerViolations(sourcesOf(SRC))).toEqual([]);
   });
 });
 

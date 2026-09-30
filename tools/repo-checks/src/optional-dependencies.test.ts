@@ -1,10 +1,9 @@
-import { readdirSync } from 'node:fs';
 import { join } from 'node:path';
 
 import { workspaceRoot } from '@nx/devkit';
 import { describe, expect, it } from 'vitest';
 
-import { libPackages } from './entry-graph.js';
+import { libDirs, libPackages } from './entry-graph.js';
 import {
   type DependencyAllowance,
   optionalDependencies,
@@ -94,11 +93,7 @@ describe('optionalDependencies', () => {
   const live = optionalDependencies(packages, ALLOWLIST);
 
   it('scans every package in libs/, with files, imports and main entries to check', () => {
-    expect(packages).toHaveLength(
-      readdirSync(LIBS, { withFileTypes: true }).filter((entry) =>
-        entry.isDirectory(),
-      ).length,
-    );
+    expect(packages).toHaveLength(libDirs(LIBS).length);
     expect(live.scanned.files).toBeGreaterThan(0);
     expect(live.scanned.imports).toBeGreaterThan(0);
     expect(live.scanned.mainEntries).toBeGreaterThan(0);

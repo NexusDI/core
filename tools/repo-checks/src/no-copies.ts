@@ -1,9 +1,9 @@
-import { readdirSync, readFileSync, statSync } from 'node:fs';
+import { readFileSync } from 'node:fs';
 import { join, matchesGlob, posix } from 'node:path';
 
 import { parse } from 'jsonc-parser';
 
-import { filesUnder } from './entry-graph.js';
+import { filesUnder, libDirs, TEST_FILE } from './entry-graph.js';
 
 /**
  * P4: no copy of another package's logic (spec section 1.5).
@@ -36,7 +36,6 @@ export interface NoCopies {
   };
 }
 
-const TEST = /\.(test|spec|test-d)\.[cm]?[jt]sx?$/;
 /** The marker, also when a comment wraps it over lines. */
 const COPY_MARKER = new RegExp(
   ['keep', 'them', 'in', 'step', 'with', 'libs/'].join(
@@ -56,13 +55,11 @@ export function noCopies(
   };
   const globs = config.duplicates?.ignore ?? [];
   const libs = join(root, 'libs');
-  const packages = readdirSync(libs)
-    .filter((name) => statSync(join(libs, name)).isDirectory())
-    .sort();
+  const packages = libDirs(libs);
   const code = packages.flatMap((dir) =>
     ['src', 'test-support']
       .flatMap((folder) => filesUnder(join(libs, dir, folder), root))
-      .filter((path) => !TEST.test(path))
+      .filter((path) => !TEST_FILE.test(path))
       .map((path) => ({ dir, path })),
   );
   const violations: string[] = [];

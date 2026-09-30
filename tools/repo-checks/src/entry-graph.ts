@@ -3,6 +3,7 @@ import { join, posix, relative, sep } from 'node:path';
 
 import {
   importsOf,
+  matches,
   resolveRelative,
   type SourceFileText,
 } from './core-layers.js';
@@ -17,7 +18,19 @@ import {
  * that brings in types only, since the compiler erases it.
  */
 
-const TEST = /\.(test|spec|test-d|browser\.test)\.ts$/;
+/**
+ * A test file: `.test`, `.spec` or `.test-d`, of any JS or TS extension. A
+ * browser test (`.browser.test.ts`) ends in `.test.ts`, so it matches too.
+ */
+export const TEST_FILE = /\.(test|spec|test-d)\.[cm]?[jt]sx?$/;
+
+/** Every folder directly under `dir`, sorted by name. */
+export function libDirs(dir: string): string[] {
+  return readdirSync(dir, { withFileTypes: true })
+    .filter((entry) => entry.isDirectory())
+    .map((entry) => entry.name)
+    .sort();
+}
 
 /**
  * Every file under `dir`, sorted, forward-slashed and relative to `root`;
@@ -39,11 +52,14 @@ export function filesUnder(dir: string, root = dir): string[] {
   return found.sort();
 }
 
-/** Every non-test `.ts` file under `dir`, with `path` relative to `dir`. */
-export function sourcesOf(dir: string): SourceFileText[] {
-  return filesUnder(dir)
-    .filter((path) => path.endsWith('.ts') && !TEST.test(path))
-    .map((path) => ({ path, source: readFileSync(join(dir, path), 'utf8') }));
+/**
+ * Every non-test `.ts` file under `dir`, with `path` relative to `root`;
+ * none when `dir` does not exist.
+ */
+export function sourcesOf(dir: string, root = dir): SourceFileText[] {
+  return filesUnder(dir, root)
+    .filter((path) => path.endsWith('.ts') && !TEST_FILE.test(path))
+    .map((path) => ({ path, source: readFileSync(join(root, path), 'utf8') }));
 }
 
 /** A package under libs/: what its manifest declares, and its sources. */
@@ -78,13 +94,9 @@ export function libPackages(
   libs: string,
   manifestFile = 'package.json',
 ): LibPackage[] {
-  return readdirSync(libs, { withFileTypes: true })
-    .filter(
-      (entry) =>
-        entry.isDirectory() && existsSync(join(libs, entry.name, manifestFile)),
-    )
-    .sort((a, b) => a.name.localeCompare(b.name))
-    .map(({ name: dir }) => {
+  return libDirs(libs)
+    .filter((dir) => existsSync(join(libs, dir, manifestFile)))
+    .map((dir) => {
       const manifest = JSON.parse(
         readFileSync(join(libs, dir, manifestFile), 'utf8'),
       ) as Manifest;
@@ -100,11 +112,6 @@ export function libPackages(
         files: sourcesOf(join(libs, dir, 'src')),
       };
     });
-}
-
-/** A rule's match: a folder prefix, or one file. */
-function matches(rule: string, path: string): boolean {
-  return rule.endsWith('/') ? path.startsWith(rule) : path === rule;
 }
 
 /** The source file of one exports entry: the entry itself, or its `@nexusdi/source` condition. */

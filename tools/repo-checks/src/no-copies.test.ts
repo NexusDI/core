@@ -1,9 +1,9 @@
-import { readdirSync } from 'node:fs';
 import { join } from 'node:path';
 
 import { workspaceRoot } from '@nx/devkit';
 import { describe, expect, it } from 'vitest';
 
+import { libDirs } from './entry-graph.js';
 import { type CopyAllowance, noCopies } from './no-copies.js';
 
 const FIXTURES = join(import.meta.dirname, '__fixtures__', 'no-copies');
@@ -60,9 +60,7 @@ describe('noCopies', () => {
 
   it('scans every package in libs/, with ignores and files to check', () => {
     expect(live.scanned.packages).toBe(
-      readdirSync(join(workspaceRoot, 'libs'), { withFileTypes: true }).filter(
-        (entry) => entry.isDirectory(),
-      ).length,
+      libDirs(join(workspaceRoot, 'libs')).length,
     );
     expect(live.scanned.globs).toBeGreaterThan(0);
     expect(live.scanned.files).toBeGreaterThan(0);
