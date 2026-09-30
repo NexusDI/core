@@ -34,8 +34,13 @@ const ALL_CODES = [
   'NEXUS_PLUGIN_FAILED',
 ] as const satisfies readonly NexusErrorCode[];
 
-// A compile error here means a code in the union is missing from ALL_CODES.
-type Unlisted = Exclude<NexusErrorCode, (typeof ALL_CODES)[number]>;
+// A compile error here means a core code is missing from ALL_CODES.
+// ACME_CACHE_STORE is the third-party code test-support/third-party-codes.ts
+// adds to NexusErrorByCode, so it is a NexusErrorCode in this program.
+type Unlisted = Exclude<
+  NexusErrorCode,
+  (typeof ALL_CODES)[number] | 'ACME_CACHE_STORE'
+>;
 const everyCodeListed: [Unlisted] extends [never] ? true : false = true;
 
 describe.each(errorCases)('$name', ({ error, code, fields, name }) => {

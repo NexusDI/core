@@ -1,5 +1,6 @@
 import { describe, expectTypeOf, it } from 'vitest';
 
+import { AcmeCacheStoreError } from '../../test-support/third-party-codes.js';
 import {
   errorBase,
   isNexusError,
@@ -79,7 +80,21 @@ describe('isNexusError', () => {
       expectTypeOf(value).toEqualTypeOf<MissingProviderError>();
   });
 
-  it('knows every core code', () => {
-    expectTypeOf<keyof NexusErrorByCode>().toEqualTypeOf<NexusErrorCode>();
+  it('narrows to the class of a code a package added', () => {
+    const value: unknown = undefined;
+    if (isNexusError(value, 'ACME_CACHE_STORE'))
+      expectTypeOf(value).toEqualTypeOf<AcmeCacheStoreError>();
+  });
+});
+
+describe('NexusErrorCode', () => {
+  it('includes a code a package adds to NexusErrorByCode', () => {
+    expectTypeOf<'ACME_CACHE_STORE'>().toExtend<NexusErrorCode>();
+  });
+
+  it('includes every core code', () => {
+    expectTypeOf<
+      Exclude<keyof NexusErrorByCode, 'ACME_CACHE_STORE'>
+    >().toExtend<NexusErrorCode>();
   });
 });

@@ -1,33 +1,8 @@
+import type { NexusErrorByCode } from './is-nexus-error.js';
+
 /**
- * Every code a NexusError carries. The codes are public API: a code is never
- * renamed or reused, and the docs link each one to a page that explains it.
+ * Every code a NexusError carries: core's and each code a package adds to
+ * NexusErrorByCode. The codes are public API: a code is never renamed or
+ * reused, and the docs link each one to a page that explains it.
  */
-export type NexusErrorCode =
-  | 'NEXUS_BLUEPRINT_INVALID'
-  | 'NEXUS_MISSING_PROVIDER'
-  | 'NEXUS_AMBIGUOUS_PROVIDER'
-  | 'NEXUS_DUPLICATE_PROVIDER'
-  | 'NEXUS_INVALID_EXPORT'
-  | 'NEXUS_INVALID_PROVIDER'
-  | 'NEXUS_INVALID_TOKEN'
-  | 'NEXUS_INVALID_MODULE'
-  | 'NEXUS_MISSING_DEPS'
-  | 'NEXUS_CIRCULAR_DEPENDENCY'
-  | 'NEXUS_LIFETIME_VIOLATION'
-  | 'NEXUS_MODULE_IMPORT_CYCLE'
-  | 'NEXUS_MODULE_OPTIONS_MISSING'
-  | 'NEXUS_LOAD_GLOBAL_MODULE'
-  | 'NEXUS_INVALID_MODULE_OPTIONS'
-  | 'NEXUS_PROVIDER_FAILED'
-  | 'NEXUS_NOT_READY'
-  | 'NEXUS_ASYNC_TRANSIENT'
-  | 'NEXUS_LAZY_ASYNC'
-  | 'NEXUS_NOT_VISIBLE'
-  | 'NEXUS_SCOPE_REQUIRED'
-  | 'NEXUS_REQUEST_MISSING'
-  | 'NEXUS_LOADED_AFTER_SCOPE'
-  | 'NEXUS_DISPOSED'
-  | 'NEXUS_PLUGIN_INVALID'
-  | 'NEXUS_PLUGIN_VERSION'
-  | 'NEXUS_PLUGIN_CONFLICT'
-  | 'NEXUS_PLUGIN_FAILED';
+export type NexusErrorCode = keyof NexusErrorByCode;
