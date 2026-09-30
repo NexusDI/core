@@ -174,7 +174,7 @@ toMermaid(inspect(Navigation)).split('\n')[2]; // -> '    p0["NavCharts<br/>Stel
 
 Each provider shows its token, the class bound to it when the names differ, and what differs from a class singleton built at `create`. Exported providers have a heavy border, and every edge kind other than `required` carries its kind as a label.
 
-`toMermaid` names each node by its position in the graph (`m0`, `p3`), because Mermaid reads a bare node name as syntax. Graphs from `graph()` and `inspect()` keep core's ids, so the names match them until `load()` adds modules.
+`toMermaid` names each node by its position in the graph (`m0`, `p3`), because Mermaid reads a bare node name as syntax. A node name says nothing about the provider's id.
 
 ## Parse
 

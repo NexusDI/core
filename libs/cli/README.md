@@ -43,11 +43,11 @@ With Graphviz installed, `nexusdi graph src/meridian.module.ts -f dot | dot -Tpn
 
 ## Exit codes
 
-| Code | Meaning                                                                             |
-| ---- | ----------------------------------------------------------------------------------- |
-| 0    | The graph was written.                                                              |
-| 1    | The graph is invalid. stderr holds the `BlueprintError` text.                       |
-| 2    | The command or its input is wrong, such as a `.json` entry that is not a graph.     |
-| 3    | Something is missing: tsx, `@nexusdi/devtools`, `@viz-js/viz` or `@resvg/resvg-js`. |
+| Code | Meaning                                                                                              |
+| ---- | ---------------------------------------------------------------------------------------------------- |
+| 0    | The graph was written.                                                                               |
+| 1    | The graph is invalid. stderr holds the `BlueprintError` text.                                        |
+| 2    | The command or its input is wrong, such as a `.json` entry that is not a graph.                      |
+| 3    | Something is missing: `@nexusdi/core`, `@nexusdi/devtools`, tsx, `@viz-js/viz` or `@resvg/resvg-js`. |
 
 A CI job can run `nexusdi graph src/meridian.module.ts -f json -o graph.json`: it fails exactly when the graph is invalid.

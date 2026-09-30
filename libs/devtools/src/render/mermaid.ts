@@ -52,8 +52,9 @@ function label(lines: readonly string[]): string {
  * The node name of each graph id: `m<i>` for the i-th module and `p<i>` for
  * the i-th provider. Mermaid reads a node name as syntax, and graph ids are
  * opaque strings, so no id is written as is. An id no module or provider
- * has, such as a dangling import in a hand-built graph, gets `u<n>`. A live
- * graph's names match core's ids until a load() adds modules.
+ * has, such as a dangling import in a hand-built graph, gets `u<n>`. The
+ * names follow graph order, so they equal core's ids unless a
+ * compile.provider hook removed or pinned providers.
  */
 function nodeNames(graph: NexusGraph): (id: string) => string {
   const names = new Map<string, string>();
