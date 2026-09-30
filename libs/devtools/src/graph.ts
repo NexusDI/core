@@ -49,6 +49,7 @@ export interface NexusGraph {
      * the order each annotator returned them. Empty when none names it.
      */
     notes: string[];
+    /**
      * A class provider's class name; null for factory, value and alias
      * providers, and for an anonymous class.
      */

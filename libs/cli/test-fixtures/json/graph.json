@@ -24,6 +24,7 @@
       "kind": "class",
       "eager": true,
       "async": null,
+      "notes": [],
       "implementation": "ShipComputer",
       "internal": false
     },
@@ -35,6 +36,7 @@
       "kind": "class",
       "eager": true,
       "async": null,
+      "notes": [],
       "implementation": "StellarCharts",
       "internal": false
     },
@@ -46,6 +48,7 @@
       "kind": "value",
       "eager": true,
       "async": null,
+      "notes": [],
       "implementation": null,
       "internal": true
     }
