@@ -1226,6 +1226,9 @@ Outside the fixtures:
 - `inspect()` options gain `text` and `annotate`. Its internal formatter moves after
   `options.plugins`.
 - Adds types `GraphAnnotator` and `GraphNote`.
+- Exports the type `InspectOptions`: `Nexus.check`'s options plus `text` and `annotate`.
+- Re-exports core's `TraceEventByType` beside `TraceEvent`, so a `trace()` consumer can
+  name one event type without importing `@nexusdi/core`.
 - `NexusGraph` providers gain `notes: string[]` and `internal: boolean` (V4), which also
   appear in `--format json` output.
 - Adds `parseGraph(value: unknown): NexusGraph` and the code
