@@ -45,8 +45,8 @@ describe('benchmarks workflow', () => {
     expect(wf.on).toHaveProperty('workflow_dispatch');
     expect(wf.on.push.tags).toEqual(['@nexusdi/core@*']);
   });
-  it('splits the full run into jobs that a results job merges', () => {
-    expect(wf.jobs.results.needs).toEqual(
+  it('splits the full run into jobs that a merge job combines for the results job', () => {
+    expect(wf.jobs.merge.needs).toEqual(
       expect.arrayContaining([
         'deterministic',
         'build-meridian-8',
@@ -54,6 +54,31 @@ describe('benchmarks workflow', () => {
         'timings',
       ]),
     );
+    expect(wf.jobs.results.needs).toBe('merge');
+  });
+  it('keeps no credentials in any checkout', () => {
+    const checkouts = Object.values(
+      wf.jobs as Record<
+        string,
+        { steps: Array<{ uses?: string; with?: Record<string, unknown> }> }
+      >,
+    ).flatMap((j) =>
+      j.steps.filter((s) => s.uses?.startsWith('actions/checkout@')),
+    );
+    expect(checkouts.length).toBeGreaterThan(0);
+    for (const c of checkouts)
+      expect(c.with?.['persist-credentials']).toBe(false);
+  });
+  it('runs no npm ci and no repository script but the push in the job that can write', () => {
+    expect(runs('results')).not.toContain('npm ci');
+    expect(runs('results').trim()).toBe(
+      'node benchmarks/src/open-results-pr.ts',
+    );
+    expect(wf.jobs.merge.permissions).toBeUndefined();
+    expect(runs('merge')).toContain('build.ts --merge');
+  });
+  it('bounds the dispatch job in time', () => {
+    expect(wf.jobs.dispatch['timeout-minutes']).toBe(45);
   });
   it('grants write access only to the jobs that need it', () => {
     expect(wf.permissions).toEqual({ contents: 'read' });
