@@ -4,6 +4,9 @@ Status: draft, 2026-09-30. The owner approved the text-pack design (part 2) at f
 The extension principle (section 1), the audit (section 3) and the ruled fixes (sections
 4 and 5) were added after that approval, from the architect's audit and the tech lead's
 rulings. Part 2 was built from the architect's design A and the tech lead's amendments.
+Tech lead notes on section 4.5 applied 2026-09-30. The tech lead's rulings from the
+`feat/core-0.4` build and the measured sizes (sections 2.5.1, 2.5.10, 2.7, 6 and 7)
+applied 2026-10-01.
 
 Amends the core 0.4 spec (`specs/2026-09-23-core-0.4-design.md`) sections D15, 3.10.1,
 3.10.2, 3.10.3, 3.10.4, 3.10.6, 9, 9.1, 10 and 12.1, and records P1-P5 there. Replaces
@@ -254,7 +257,13 @@ A package writes each error's text in one of two places, by one rule:
 A package declares each code once, in `NexusErrorByCode`. Each first-party package has a
 test that fails in two cases. A declared code has neither a pack entry nor an inline
 raise site. A raise site that `compile.check` reports, or that `PluginContext.format`
-formats, passes `text`.
+formats, passes `text`. The second check fails closed: a `report(...)` or `.format(...)`
+argument that is not a local `new X(...)` or a known package-local factory fails unless
+a named allowlist entry gives a reason.
+
+`NEXUS_BLUEPRINT_INVALID` has no pack entry, because the engine renders its aggregate
+(section 2.5.3). The engine finds it with `instanceof BlueprintError`, so it names no
+code (P1). The test counts it as engine-rendered, a category separate from the allowlist.
 
 The test holds one allowlist entry: `@nexusdi/testing`'s `NEXUS_OVERRIDE_UNUSED` and
 `NEXUS_OVERRIDE_EXPORTS`, with the reason "dev-only package; full text with zero wiring;
@@ -470,17 +479,20 @@ entry, so subpaths need no new tooling.
 
 #### 2.5.10 Core's text
 
-Core's builders move from `libs/errors/src/{builders,reasons,describe-thrown}.ts` to
+Core's builders move from `libs/errors/src/{builders,reasons}.ts` to
 `libs/core/src/text/`, exported as `coreText` from `@nexusdi/core/text`. Their text is
 unchanged, and the revision 1 error tests still pass with `errors()` registered (core
-spec section 17). A new core error is then one change inside `libs/core`, which R2
-requires. Core's main bundle does not change. Core's tarball grows by about 20 KB raw of
-source, in a package every user already installs.
+spec section 17). `@nexusdi/errors` deletes its copies of core's `describeThrown` and
+`layoutText` (`describe-thrown.ts`, `layout.ts`, P4), and `@nexusdi/core/text`
+re-exports `layoutText` for the engine. A new core error is then one change inside
+`libs/core`, which R2 requires. Core's main bundle does not change. Core's tarball grows
+by about 20 KB raw of source, in a package every user already installs.
 
-Core spec 12.1 changes. Core gains `text/`, which imports only types from `errors/`,
-`blueprint/views.ts` and `definitions/`, and nothing in core imports `text/`. Optional
-packages import `@nexusdi/core` and `@nexusdi/core/text` and nothing else of core. Among
-first-party packages only `@nexusdi/errors` imports `@nexusdi/core/text`.
+Core spec 12.1 changes. Core gains `text/`, which imports `describeThrown` and
+`layoutText` from `errors/`, and only types from `blueprint/views.ts` and `definitions/`.
+Nothing in core imports `text/`. Optional packages import `@nexusdi/core` and
+`@nexusdi/core/text` and nothing else of core. Among first-party packages only
+`@nexusdi/errors` imports `@nexusdi/core/text`.
 
 #### 2.5.11 Plugin API version and contract stability
 
@@ -590,9 +602,10 @@ and its follow-up. Section 5 places the audit fixes around these steps.
 
 `feat/core-0.4`:
 
-1. Move `builders.ts`, `reasons.ts` and `describe-thrown.ts` to `libs/core/src/text/`,
-   typed as `ErrorTextPack`. Add the `./text` export to core's `package.json`, and to
-   `verify-packaging` and the size fixture.
+1. Move `builders.ts` and `reasons.ts` to `libs/core/src/text/`, typed as
+   `ErrorTextPack`, and delete errors' `describe-thrown.ts` and `layout.ts`. Add the
+   `./text` export to core's `package.json`, and to `verify-packaging` and the size
+   fixture. `size-report.mjs` measures each `<dir>-text.ts` fixture as `<dir>/text`.
 2. Add `ErrorTextPack`, `ErrorTextKit`, `PluginContext.format` and the `errorBase` docs
    argument.
 3. Rework `@nexusdi/errors` to the engine plus the registry: `errors({ text })`,
@@ -605,7 +618,8 @@ and its follow-up. Section 5 places the audit fixes around these steps.
    `GraphAnnotator`, `notes` on providers.
 6. Update `tools/repo-checks`: allow `@nexusdi/core/text`, and fail when a main entry
    imports its own `text/` or `devtools/` module. Extend the section 2.5.1 test to both
-   failure cases, with testing's allowlist entry.
+   failure cases, with testing's allowlist entry and the engine-rendered
+   `NEXUS_BLUEPRINT_INVALID`.
 7. Generic `nearMisses` write-back in `format.ts`, on top of PR #63's `HOOK_SITES` form.
 8. Edit the core spec: D15 (text lives with the raising package, core's in
    `@nexusdi/core/text`), 3.10.1 (`PluginContext.format`), 3.10.2 (the plugin API 1 list
@@ -622,7 +636,8 @@ PR #62:
    call-time sites.
 4. Add `./devtools` with `interceptorNotes` and the optional devtools peer. This step
    waits for PR #61's `render/` files.
-5. Teach `size-report.mjs` a pack fixture. It measures only `${dir}.ts` today.
+5. Add the pack fixture `examples/size/src/interceptors-text.ts`. `feat/core-0.4`
+   already taught `size-report.mjs` pack fixtures (step 1).
 6. Replace O5 in the interceptors spec, and fix the lightweight row of section 1 and the
    size numbers of section 8.
 
@@ -919,11 +934,12 @@ export function parseGraph(value: unknown): NexusGraph;
 ```
 
 `DevtoolsError` gains the code `NEXUS_DEVTOOLS_GRAPH_INVALID`, declared in
-`NexusErrorByCode`, and a `path: string` field. The error carries inline text, because
-no container runs (2.5.1). cli's `DevtoolsApi` (`libs/cli/src/devtools.ts`) gains
-`parseGraph`. The cli keeps its own `JSON.parse` error (exit 2) and maps
-`isNexusError(error, 'NEXUS_DEVTOOLS_GRAPH_INVALID')` to exit 2. `graph-json.ts` is
-deleted from cli in the same PR. The cli already requires devtools at its own exact
+`NexusErrorByCode`, and a `path: string | null` field, null for
+`NEXUS_DEVTOOLS_UNREGISTERED`. The error carries inline text, because no container runs
+(2.5.1). cli's `DevtoolsApi` (`libs/cli/src/devtools.ts`) gains `parseGraph`. The cli
+keeps its own `JSON.parse` error (exit 2) and maps any NexusError that `parseGraph`
+throws to exit 2 with `isNexusError(error)`, and names no devtools code. `graph-json.ts`
+is deleted from cli in the same PR. The cli already requires devtools at its own exact
 version, so the schema always matches.
 
 Bytes, measured: 0 B in app bundles, because `parseGraph` tree-shakes out of an app that
@@ -1154,6 +1170,14 @@ The `errors` figure includes core's text, which it imports from `@nexusdi/core/t
 The interceptors figure includes the inline sites of section 2.5.12 and the
 `context.format` calls. The size report replaces each est. when the work merges.
 
+Measured at `feat/core-0.4` 7625733, fixture minus core except core's own row:
+
+- `@nexusdi/core`: 18,552 B, against est. 18,446 plus about 90 B (+42 V15, +8 V2,
+  about +40 text packs).
+- `@nexusdi/core/text`: 3,869 B.
+- `@nexusdi/federation`: 367 B.
+- `@nexusdi/federation/text`: 171 B.
+
 Outside the fixtures:
 
 - `@nexusdi/core` full export surface: +38 B measured with V2 and V7 (18,687 to 18,725),
@@ -1171,6 +1195,8 @@ Outside the fixtures:
 - Adds the entry `@nexusdi/core/text`, exporting `coreText: ErrorTextPack`.
 - Adds `PluginContext.format(error)`.
 - `errorBase(code, name, docs?)` gains the optional docs base URL.
+- `NexusError`'s constructor gains an optional fifth `docs` argument, which `errorBase`
+  passes. The default base lives in `lineOf`.
 - `formatThrown` writes `nearMisses` back for any error with an own `nearMisses`
   property. Behaviour only, no signature change.
 - `NexusErrorCode` becomes `keyof NexusErrorByCode` (V1).
@@ -1200,7 +1226,8 @@ Outside the fixtures:
 - `NexusGraph` providers gain `notes: string[]` and `internal: boolean` (V4), which also
   appear in `--format json` output.
 - Adds `parseGraph(value: unknown): NexusGraph` and the code
-  `NEXUS_DEVTOOLS_GRAPH_INVALID` on `DevtoolsError`, with a `path: string` field (V5).
+  `NEXUS_DEVTOOLS_GRAPH_INVALID` on `DevtoolsError`, with a `path: string | null` field,
+  null for `NEXUS_DEVTOOLS_UNREGISTERED` (V5).
 
 `@nexusdi/federation`:
 
@@ -1219,8 +1246,8 @@ Outside the fixtures:
 - Messages name tokens and values with core's wording (V8).
 
 `@nexusdi/cli` (PR #61 and follow-up): adds `--text` and `--annotate`. Exit code 2 now
-covers any NexusError, third-party codes included (V6), and an invalid graph JSON file
-(V5).
+covers any NexusError, third-party codes included (V6), and an invalid graph JSON file:
+its own `JSON.parse` error and any NexusError that `parseGraph` throws (V5).
 
 `@nexusdi/react` (spec): the four `NEXUS_REACT_*` codes carry full text outside
 production (V11).
