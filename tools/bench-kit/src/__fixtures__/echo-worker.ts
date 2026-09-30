@@ -13,9 +13,6 @@ function busy(us: number): void {
   while (process.hrtime.bigint() < end);
 }
 
-/** Microseconds per `sized` call, from argv, so two workers calibrate apart. */
-const sizedUs = Number(process.argv[2] ?? 100);
-
 let n = 0;
 serveSamples({
   spin: {
@@ -40,7 +37,7 @@ serveSamples({
     },
   },
   async: { run: async () => 1 },
-  sized: { run: () => busy(sizedUs) },
+  sized: { run: () => busy(100) },
   // 1.1 ms per call fixes the batch at 1; the 3 ms teardown must stay
   // outside the sample.
   teardown: {

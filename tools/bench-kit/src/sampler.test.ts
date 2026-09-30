@@ -1,7 +1,7 @@
 import { join } from 'node:path';
 import { describe, expect, it } from 'vitest';
 
-import { forkWorker, interleave } from './sampler.ts';
+import { forkWorker, interleave, type Worker } from './sampler.ts';
 
 const script = join(import.meta.dirname, '__fixtures__', 'echo-worker.ts');
 
@@ -55,24 +55,38 @@ describe('interleave', () => {
     }
   });
   it('runs every worker at the largest calibrated batch when the batch is shared', async () => {
-    const workers = [
-      forkWorker('fast', script, ['50']),
-      forkWorker('slow', script, ['600']),
-    ];
+    // Fixed calibrations: a real worker's calibration depends on timing, and
+    // two calibrations of one child can differ by an order of magnitude.
+    const asked: Record<string, (number | undefined)[]> = {
+      fast: [],
+      slow: [],
+    };
+    const fake = (id: string, calibrated: number): Worker => ({
+      id,
+      calibrate: () => Promise.resolve(calibrated),
+      sample: (_op, batch) => {
+        asked[id].push(batch);
+        return Promise.resolve({ ns: 1, batch: batch ?? calibrated });
+      },
+      heap: () => Promise.resolve(0),
+      close: () => undefined,
+    });
+    const out = await interleave([fake('fast', 32), fake('slow', 2)], 'sized', {
+      warmup: 1,
+      measured: 2,
+      seed: 1,
+      sharedBatch: true,
+    });
+    expect(out.fast.batch).toBe(32);
+    expect(out.slow.batch).toBe(32);
+    expect(asked).toEqual({ fast: [32, 32, 32], slow: [32, 32, 32] });
+  });
+  it('runs a worker at the batch a sample asks for', async () => {
+    const w = forkWorker('a', script);
     try {
-      const own = await Promise.all(workers.map((w) => w.calibrate('sized')));
-      expect(own[0]).toBeGreaterThan(own[1]);
-      const out = await interleave(workers, 'sized', {
-        warmup: 0,
-        measured: 2,
-        seed: 1,
-        sharedBatch: true,
-      });
-      expect(out.fast.batch).toBe(out.slow.batch);
-      expect(out.slow.batch).toBeGreaterThanOrEqual(own[0]);
-      expect((await workers[1].sample('sized', 3)).batch).toBe(3);
+      expect((await w.sample('sized', 3)).batch).toBe(3);
     } finally {
-      for (const w of workers) w.close();
+      w.close();
     }
   });
   it('runs teardown after the timer stops', async () => {
