@@ -706,11 +706,7 @@ interface ProbesFile {
       | 'wrong-dep-type'
       | 'two-mistakes';
     detectedAt:
-      | 'typecheck'
-      | 'create'
-      | 'first-resolve'
-      | 'never'
-      | 'not-applicable';
+      'typecheck' | 'create' | 'first-resolve' | 'never' | 'not-applicable';
     reported?: 0 | 1 | 2;
     message?: string;
   }>;
