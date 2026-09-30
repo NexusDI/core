@@ -4,8 +4,10 @@ import {
   type ProviderView,
 } from '@nexusdi/core';
 
+import { badNextText, missingText } from './call-text.js';
 import {
   errorOf,
+  faultWithText,
   invalidAt,
   notReady,
   type Fault,
@@ -30,12 +32,25 @@ export interface Session {
 /**
  * A call-time fault as an error. From setup on, the container formats it,
  * so it carries interceptorsText's words when errors() has the pack.
+ * Before setup no formatter runs, as for a call from onInit, so the error
+ * carries the same words itself.
  */
 const callFault = (session: Session, fault: Fault): Error => {
   const context = session.context;
-  return context === undefined
-    ? errorOf(fault)
-    : context.format(errorOf(fault));
+  if (context !== undefined) return context.format(errorOf(fault));
+  const fields = {
+    token: fault.token ?? null,
+    target: fault.target ?? null,
+    method: fault.method ?? null,
+  };
+  const { message, fix } =
+    fault.code === 'NEXUS_INTERCEPTOR_MISSING'
+      ? missingText(fields)
+      : badNextText(fields);
+  return faultWithText(
+    fault,
+    fix === undefined ? message : `${message}\n  Fix: ${fix}`,
+  );
 };
 
 export interface ProxyEnv {

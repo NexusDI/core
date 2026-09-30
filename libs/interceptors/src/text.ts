@@ -1,5 +1,6 @@
 import type { ErrorText, ErrorTextPack } from '@nexusdi/core';
 
+import { badNextText, missingText } from './call-text.js';
 import type { InterceptorError } from './interceptor-error.js';
 
 /** interceptors() options: detail[0] names the rule, detail[1] what was received. */
@@ -54,9 +55,7 @@ const INVALID: Readonly<Record<string, Builder>> = {
     message: `${e.target} uses both static interceptors and @UseInterceptors.`,
     fix: 'keep one form.',
   }),
-  'bad-next': (e) => ({
-    message: `${e.token} passed next() arguments that are not an array, in ${e.target}.${e.method}.`,
-  }),
+  'bad-next': badNextText,
   'unexempted-dep': (e) => ({
     message: `${e.token} depends on ${e.target}, which exempt does not list. Exempting it makes global entries skip ${e.detail.join(', ')}.`,
     fix: `add ${e.target} to interceptors({ exempt }), or move it into providers.`,
@@ -83,18 +82,7 @@ export const interceptorsText = {
     error.reason !== null && Object.hasOwn(INVALID, error.reason)
       ? INVALID[error.reason]?.(error)
       : undefined,
-  NEXUS_INTERCEPTOR_MISSING: (error: InterceptorError) => ({
-    message: `${
-      error.target === null
-        ? error.method === null
-          ? 'a global entry or binding'
-          : `a binding for ${error.method}`
-        : error.method === null
-          ? error.target
-          : `${error.target}.${error.method}`
-    } uses the interceptor ${error.token}, which is not registered.`,
-    fix: `add ${error.token} to interceptors({ register }).`,
-  }),
+  NEXUS_INTERCEPTOR_MISSING: (error: InterceptorError) => missingText(error),
   NEXUS_INTERCEPTOR_LIFETIME: (error: InterceptorError) => ({
     message: `the interceptor ${error.token} is ${error.detail[0]}, and interceptors are singletons.`,
     fix: 'remove its lifetime, and read request data from call.instance.',

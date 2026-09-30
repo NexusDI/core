@@ -136,6 +136,37 @@ describe('integration', () => {
     );
   });
 
+  it('gives a call-time fault its own text before setup, when no container formats it', async () => {
+    class Warmup {
+      static deps = [GREETER] as const;
+      constructor(private readonly greeter: IGreeter) {}
+      onInit() {
+        this.greeter.greet('ada');
+      }
+    }
+    const error = await rejected(
+      Nexus.create(
+        defineModule({ name: 'Warm', imports: [App], providers: [Warmup] }),
+        {
+          plugins: [
+            interceptors({
+              register: [
+                interceptor(SHOUT, {
+                  useValue: {
+                    intercept: (_call, next) => next('ada' as never),
+                  },
+                }),
+              ],
+            }),
+          ],
+        },
+      ),
+    );
+    expect(findCode(error, 'NEXUS_INTERCEPTOR_INVALID')?.message).toBe(
+      '[NEXUS_INTERCEPTOR_INVALID] Shout passed next() arguments that are not an array, in Greeter.greet.',
+    );
+  });
+
   it('leaves a decorated class inert without the plugin', async () => {
     await using ship = await Nexus.create(App);
     expect(ship.get(GREETER).greet('ada')).toBe('hello ada');
