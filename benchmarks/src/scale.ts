@@ -30,286 +30,271 @@ function graph(): Node[] {
   return nodes;
 }
 
-const top = (nodes: Node[]) => nodes.slice(-WIDTH);
 const iface = (name: string) => `I${name}`;
 const token = (name: string) => `T${name}`;
+const each = (nodes: readonly Node[], line: (n: Node) => string) =>
+  nodes.map(line).join('');
+const top = (nodes: readonly Node[]) => nodes.slice(-WIDTH);
 
-/** The fields and constructor every class shares; `param` types a dependency. */
-function body(n: Node, param: (dep: string) => string): string {
+/**
+ * The fields and constructor every class shares. `param` types a
+ * dependency, and `decorate` prefixes its parameter.
+ */
+function body(
+  n: Node,
+  param: (dep: string) => string,
+  decorate: (dep: string) => string = () => '',
+): string {
   const fields = n.deps
     .map((d, i) => `  readonly d${i}: ${param(d)};\n`)
     .join('');
-  const params = n.deps.map((d, i) => `d${i}: ${param(d)}`).join(', ');
+  const params = n.deps
+    .map((d, i) => `${decorate(d)}d${i}: ${param(d)}`)
+    .join(', ');
   const sets = n.deps.map((_, i) => `    this.d${i} = d${i};\n`).join('');
   return `  readonly id = '${n.name}';\n${fields}  constructor(${params}) {\n${sets}  }\n`;
 }
 
+const classImports = (n: Node, keyword = 'import') =>
+  n.deps.map((d) => `${keyword} { ${d} } from './${d}.ts';\n`).join('');
+const allClasses = (nodes: readonly Node[]) =>
+  each(nodes, (n) => `import { ${n.name} } from './${n.name}.ts';\n`);
+
+/** Imports every token, and with `types` every interface, from tokens.ts. */
+const allTokens = (nodes: readonly Node[], types: boolean) =>
+  `import {\n${nodes
+    .map(
+      (n) => `  ${token(n.name)},${types ? `\n  type ${iface(n.name)},` : ''}`,
+    )
+    .join('\n')}\n} from './tokens.ts';\n`;
+
 /** tokens.ts for the interface-first variants: an interface and a token per class. */
 function tokens(
-  nodes: Node[],
+  nodes: readonly Node[],
   importLine: string,
   make: (n: string) => string,
-) {
+): string {
   const lines = nodes.flatMap((n) => [
     `export interface ${iface(n.name)} {\n  readonly id: '${n.name}';\n}`,
     `export const ${token(n.name)} = ${make(n.name)};`,
   ]);
-  return `${importLine}\n\n${lines.join('\n')}\n`;
+  return `${importLine}${importLine === '' ? '' : '\n\n'}${lines.join('\n')}\n`;
 }
 
-const tokenImport = (n: Node) =>
-  `import {\n${[n.name, ...n.deps]
-    .flatMap((d) =>
-      d === n.name
-        ? [`  type ${iface(d)},`]
-        : [`  ${token(d)},`, `  type ${iface(d)},`],
-    )
-    .join('\n')}\n} from './tokens.ts';\n`;
-const classImports = (n: Node) =>
-  n.deps.map((d) => `import { ${d} } from './${d}.ts';\n`).join('');
-const allClasses = (nodes: Node[]) =>
-  nodes.map((n) => `import { ${n.name} } from './${n.name}.ts';\n`).join('');
-const allTokens = (nodes: Node[]) =>
-  `import {\n${nodes.map((n) => `  ${token(n.name)},`).join('\n')}\n} from './tokens.ts';\n`;
+type Files = Record<string, string>;
+type Template = (nodes: readonly Node[]) => Files;
 
-type Template = (nodes: Node[]) => Record<string, string>;
-
-function perClass(
-  nodes: Node[],
+function files(
+  nodes: readonly Node[],
   file: (n: Node) => string,
-  extra: Record<string, string>,
-): Record<string, string> {
+  extra: Files,
+): Files {
   return {
     ...Object.fromEntries(nodes.map((n) => [n.name, file(n)])),
     ...extra,
   };
 }
 
+/** A class that implements its interface and takes its dependencies' interfaces. */
+const interfaceClass = (n: Node, head = '') =>
+  `${head}export class ${n.name} implements ${iface(n.name)} {\n${body(n, iface)}}\n`;
+
+/**
+ * The factory form of a plain variant: undecorated classes, a token per
+ * class, and main.ts registering a factory per token.
+ */
+function factoryVariant(v: {
+  tokenImport: string;
+  tokenOf: (name: string) => string;
+  mainImport: string;
+  withTypes: boolean;
+  setup: string;
+  register: (n: Node) => string;
+  resolve: (n: Node) => string;
+}): Template {
+  return (nodes) =>
+    files(
+      nodes,
+      (n) =>
+        interfaceClass(
+          n,
+          `import type { ${[n.name, ...n.deps].map(iface).join(', ')} } from './tokens.ts';\n\n`,
+        ),
+      {
+        tokens: tokens(nodes, v.tokenImport, v.tokenOf),
+        main: `${v.mainImport}\n\n${allClasses(nodes)}${allTokens(nodes, v.withTypes)}\n${v.setup}${each(nodes, v.register)}${each(top(nodes), v.resolve)}`,
+      },
+    );
+}
+
+/** A decorated variant whose classes take their dependencies' classes. */
+function classVariant(v: {
+  head: string;
+  decorator: string;
+  inject: boolean;
+  mainImport: string;
+  setup: string;
+  register?: (n: Node) => string;
+  resolve: (n: Node) => string;
+}): Template {
+  return (nodes) =>
+    files(
+      nodes,
+      (n) =>
+        `${v.head}\n${classImports(n)}\n${v.decorator}\nexport class ${n.name} {\n${body(
+          n,
+          (d) => d,
+          v.inject ? (d) => `@inject(${d}) ` : undefined,
+        )}}\n`,
+      {
+        main: `${v.mainImport}\n\n${allClasses(nodes)}\n${v.setup}${v.register === undefined ? '' : each(nodes, v.register)}${each(top(nodes), v.resolve)}`,
+      },
+    );
+}
+
 const nexusdi =
   (decorated: boolean): Template =>
   (nodes) =>
-    perClass(
+    files(
       nodes,
       (n) =>
-        `${decorated ? "import { Injectable } from '@nexusdi/decorators';\n" : ''}${tokenImport(n)}\n` +
-        `${decorated ? `@Injectable({ deps: [${n.deps.map(token).join(', ')}] })\n` : ''}` +
-        `export class ${n.name} implements ${iface(n.name)} {\n` +
-        `${decorated ? '' : `  static deps = [${n.deps.map(token).join(', ')}] as const;\n`}` +
-        body(n, iface) +
-        '}\n',
+        interfaceClass(
+          n,
+          `${decorated ? "import { Injectable } from '@nexusdi/decorators';\n" : ''}import {\n${[
+            n.name,
+            ...n.deps,
+          ]
+            .map((d) =>
+              d === n.name
+                ? `  type ${iface(d)},`
+                : `  ${token(d)},\n  type ${iface(d)},`,
+            )
+            .join('\n')}\n} from './tokens.ts';\n\n${
+            decorated
+              ? `@Injectable({ deps: [${n.deps.map(token).join(', ')}] })\n`
+              : ''
+          }`,
+        ).replace(
+          '{\n  readonly id',
+          decorated
+            ? '{\n  readonly id'
+            : `{\n  static deps = [${n.deps.map(token).join(', ')}] as const;\n  readonly id`,
+        ),
       {
         tokens: tokens(
           nodes,
           "import { Token } from '@nexusdi/core';",
           (x) => `new Token<${iface(x)}>('${x}')`,
         ),
-        main:
-          `import { Nexus, defineModule, provide } from '@nexusdi/core';\n\n${allClasses(nodes)}${allTokens(nodes)}\n` +
-          `const Scale = defineModule({\n  name: 'Scale',\n  providers: [\n${nodes
-            .map(
-              (n) => `    provide(${token(n.name)}, { useClass: ${n.name} }),`,
-            )
-            .join(
-              '\n',
-            )}\n  ],\n});\n\nconst ship = await Nexus.create(Scale);\n` +
-          top(nodes)
-            .map((n) => `ship.get(${token(n.name)});\n`)
-            .join(''),
+        main: `import { Nexus, defineModule, provide } from '@nexusdi/core';\n\n${allClasses(nodes)}${allTokens(nodes, false)}\nconst Scale = defineModule({\n  name: 'Scale',\n  providers: [\n${each(
+          nodes,
+          (n) => `    provide(${token(n.name)}, { useClass: ${n.name} }),\n`,
+        )}  ],\n});\n\nconst ship = await Nexus.create(Scale);\n${each(
+          top(nodes),
+          (n) => `ship.get(${token(n.name)});\n`,
+        )}`,
       },
     );
 
-const inversifyDecorated: Template = (nodes) =>
-  perClass(
-    nodes,
-    (n) =>
-      `import { inject, injectable } from 'inversify';\n${classImports(n)}\n@injectable()\nexport class ${n.name} {\n` +
-      body(n, (d) => d).replace(
-        /constructor\((.*)\)/,
-        (_, ps: string) =>
-          `constructor(${ps
-            .split(', ')
-            .filter((p) => p !== '')
-            .map((p) => `@inject(${p.split(': ')[1]}) ${p}`)
-            .join(', ')})`,
-      ) +
-      '}\n',
-    {
-      main:
-        `import { Container } from 'inversify';\n\n${allClasses(nodes)}\nconst container = new Container();\n` +
-        nodes
-          .map(
-            (n) => `container.bind(${n.name}).toSelf().inSingletonScope();\n`,
-          )
-          .join('') +
-        top(nodes)
-          .map((n) => `container.get(${n.name});\n`)
-          .join(''),
-    },
-  );
+const inversifyDecorated = classVariant({
+  head: "import { inject, injectable } from 'inversify';",
+  decorator: '@injectable()',
+  inject: true,
+  mainImport: "import { Container } from 'inversify';",
+  setup: 'const container = new Container();\n',
+  register: (n) => `container.bind(${n.name}).toSelf().inSingletonScope();\n`,
+  resolve: (n) => `container.get(${n.name});\n`,
+});
 
-const inversifyPlain: Template = (nodes) =>
-  perClass(
-    nodes,
-    (n) =>
-      `import type { ${[n.name, ...n.deps].map(iface).join(', ')} } from './tokens.ts';\n\nexport class ${n.name} implements ${iface(n.name)} {\n${body(n, iface)}}\n`,
-    {
-      tokens: tokens(
-        nodes,
-        "import type { ServiceIdentifier } from 'inversify';",
-        (x) => `Symbol.for('${x}') as ServiceIdentifier<${iface(x)}>`,
-      ),
-      main:
-        `import { Container } from 'inversify';\n\n${allClasses(nodes)}${tokenImportAll(nodes)}\nconst container = new Container();\n` +
-        nodes
-          .map(
-            (n) =>
-              `container\n  .bind(${token(n.name)})\n  .toResolvedValue(\n    (${n.deps.map((d, i) => `d${i}: ${iface(d)}`).join(', ')}) => new ${n.name}(${n.deps.map((_, i) => `d${i}`).join(', ')}),\n    [${n.deps.map(token).join(', ')}],\n  )\n  .inSingletonScope();\n`,
-          )
-          .join('') +
-        top(nodes)
-          .map((n) => `container.get(${token(n.name)});\n`)
-          .join(''),
-    },
-  );
-
-/** Every token and interface, for main.ts files that name dependency types. */
-function tokenImportAll(nodes: Node[]): string {
-  return `import {\n${nodes.map((n) => `  ${token(n.name)},\n  type ${iface(n.name)},`).join('\n')}\n} from './tokens.ts';\n`;
-}
-
-const tsyringeDecorated =
-  (explicit: boolean): Template =>
-  (nodes) =>
-    perClass(
-      nodes,
-      (n) =>
-        `import { ${explicit ? 'inject, ' : ''}singleton } from 'tsyringe';\n${classImports(n)}\n@singleton()\nexport class ${n.name} {\n` +
-        (explicit
-          ? body(n, (d) => d).replace(
-              /constructor\((.*)\)/,
-              (_, ps: string) =>
-                `constructor(${ps
-                  .split(', ')
-                  .filter((p) => p !== '')
-                  .map((p) => `@inject(${p.split(': ')[1]}) ${p}`)
-                  .join(', ')})`,
-            )
-          : body(n, (d) => d)) +
-        '}\n',
-      {
-        main:
-          `import 'reflect-metadata';\nimport { container } from 'tsyringe';\n\n${allClasses(nodes)}\n` +
-          top(nodes)
-            .map((n) => `container.resolve(${n.name});\n`)
-            .join(''),
-      },
-    );
-
-const tsyringePlain: Template = (nodes) =>
-  perClass(
-    nodes,
-    (n) =>
-      `import type { ${[n.name, ...n.deps].map(iface).join(', ')} } from './tokens.ts';\n\nexport class ${n.name} implements ${iface(n.name)} {\n${body(n, iface)}}\n`,
-    {
-      tokens: tokens(nodes, '', (x) => `'${x}'`).trimStart(),
-      main:
-        `import 'reflect-metadata';\nimport { container, instanceCachingFactory } from 'tsyringe';\n\n${allClasses(nodes)}${tokenImportAll(nodes)}\n` +
-        nodes
-          .map(
-            (n) =>
-              `container.register<${iface(n.name)}>(${token(n.name)}, {\n  useFactory: instanceCachingFactory(\n    (c) => new ${n.name}(${n.deps.map((d) => `c.resolve<${iface(d)}>(${token(d)})`).join(', ')}),\n  ),\n});\n`,
-          )
-          .join('') +
-        top(nodes)
-          .map((n) => `container.resolve(${token(n.name)});\n`)
-          .join(''),
-    },
-  );
-
-const awilixPlain: Template = (nodes) =>
-  perClass(
-    nodes,
-    (n) =>
-      `${classImports(n).replace(/import \{/g, 'import type {')}\nexport class ${n.name} {\n${body(
-        n,
-        (d) => d,
-      )
-        .replace(/constructor\((.*)\)/, () =>
-          n.deps.length === 0
-            ? 'constructor()'
-            : `constructor({ ${n.deps.join(', ')} }: { ${n.deps.map((d) => `${d}: ${d}`).join('; ')} })`,
-        )
-        .replace(
-          /this\.d(\d) = d\d;/g,
-          (_, i: string) => `this.d${i} = ${n.deps[Number(i)]};`,
-        )}}\n`,
-    {
-      main:
-        `import { InjectionMode, asClass, createContainer } from 'awilix';\n\n${allClasses(nodes)}\n` +
-        `const container = createContainer({\n  injectionMode: InjectionMode.PROXY,\n  strict: true,\n});\ncontainer.register({\n` +
-        nodes
-          .map((n) => `  ${n.name}: asClass(${n.name}).singleton(),\n`)
-          .join('') +
-        '});\n' +
-        top(nodes)
-          .map((n) => `container.resolve('${n.name}');\n`)
-          .join(''),
-    },
-  );
-
-const needleDecorated: Template = (nodes) =>
-  perClass(
-    nodes,
-    (n) =>
-      `import { inject, injectable } from '@needle-di/core';\n${classImports(n)}\n@injectable()\nexport class ${n.name} {\n  readonly id = '${n.name}';\n` +
-      n.deps.map((d, i) => `  readonly d${i} = inject(${d});\n`).join('') +
-      '}\n',
-    {
-      main:
-        `import { Container } from '@needle-di/core';\n\n${allClasses(nodes)}\nconst container = new Container();\n` +
-        top(nodes)
-          .map((n) => `container.get(${n.name});\n`)
-          .join(''),
-    },
-  );
-
-const needlePlain: Template = (nodes) =>
-  perClass(
-    nodes,
-    (n) =>
-      `import type { ${[n.name, ...n.deps].map(iface).join(', ')} } from './tokens.ts';\n\nexport class ${n.name} implements ${iface(n.name)} {\n${body(n, iface)}}\n`,
-    {
-      tokens: tokens(
-        nodes,
-        "import { InjectionToken } from '@needle-di/core';",
-        (x) => `new InjectionToken<${iface(x)}>('${x}')`,
-      ),
-      main:
-        `import { Container, inject } from '@needle-di/core';\n\n${allClasses(nodes)}${allTokens(nodes)}\nconst container = new Container();\n` +
-        nodes
-          .map(
-            (n) =>
-              `container.bind({\n  provide: ${token(n.name)},\n  useFactory: () => new ${n.name}(${n.deps.map((d) => `inject(${token(d)})`).join(', ')}),\n});\n`,
-          )
-          .join('') +
-        top(nodes)
-          .map((n) => `container.get(${token(n.name)});\n`)
-          .join(''),
-    },
-  );
+const tsyringeDecorated = (explicit: boolean) =>
+  classVariant({
+    head: `import { ${explicit ? 'inject, ' : ''}singleton } from 'tsyringe';`,
+    decorator: '@singleton()',
+    inject: explicit,
+    mainImport:
+      "import 'reflect-metadata';\nimport { container } from 'tsyringe';",
+    setup: '',
+    resolve: (n) => `container.resolve(${n.name});\n`,
+  });
 
 const TEMPLATES: Record<string, Template> = {
   'nexusdi/plain': nexusdi(false),
   'nexusdi/decorated': nexusdi(true),
-  'inversify/plain': inversifyPlain,
+  'inversify/plain': factoryVariant({
+    tokenImport: "import type { ServiceIdentifier } from 'inversify';",
+    tokenOf: (x) => `Symbol.for('${x}') as ServiceIdentifier<${iface(x)}>`,
+    mainImport: "import { Container } from 'inversify';",
+    withTypes: true,
+    setup: 'const container = new Container();\n',
+    register: (n) =>
+      `container\n  .bind(${token(n.name)})\n  .toResolvedValue(\n    (${n.deps.map((d, i) => `d${i}: ${iface(d)}`).join(', ')}) => new ${n.name}(${n.deps.map((_, i) => `d${i}`).join(', ')}),\n    [${n.deps.map(token).join(', ')}],\n  )\n  .inSingletonScope();\n`,
+    resolve: (n) => `container.get(${token(n.name)});\n`,
+  }),
+  // inversify's documented form names every dependency with @inject, so
+  // its two decorated variants share one template; the profile differs.
   'inversify/decorated': inversifyDecorated,
   'inversify/decorated-explicit': inversifyDecorated,
-  'tsyringe/plain': tsyringePlain,
+  'tsyringe/plain': factoryVariant({
+    tokenImport: '',
+    tokenOf: (x) => `'${x}'`,
+    mainImport:
+      "import 'reflect-metadata';\nimport { container, instanceCachingFactory } from 'tsyringe';",
+    withTypes: true,
+    setup: '',
+    register: (n) =>
+      `container.register<${iface(n.name)}>(${token(n.name)}, {\n  useFactory: instanceCachingFactory(\n    (c) => new ${n.name}(${n.deps.map((d) => `c.resolve<${iface(d)}>(${token(d)})`).join(', ')}),\n  ),\n});\n`,
+    resolve: (n) => `container.resolve(${token(n.name)});\n`,
+  }),
   'tsyringe/decorated': tsyringeDecorated(false),
   'tsyringe/decorated-explicit': tsyringeDecorated(true),
-  'awilix/plain': awilixPlain,
-  'needle-di/plain': needlePlain,
-  'needle-di/decorated': needleDecorated,
+  'awilix/plain': (nodes) =>
+    files(
+      nodes,
+      (n) =>
+        `${classImports(n, 'import type')}\nexport class ${n.name} {\n${body(
+          n,
+          (d) => d,
+        )
+          .replace(/constructor\((.*)\)/, () =>
+            n.deps.length === 0
+              ? 'constructor()'
+              : `constructor({ ${n.deps.join(', ')} }: { ${n.deps.map((d) => `${d}: ${d}`).join('; ')} })`,
+          )
+          .replace(
+            /this\.d(\d) = d\d;/g,
+            (_, i: string) => `this.d${i} = ${n.deps[Number(i)]};`,
+          )}}\n`,
+      {
+        main: `import { InjectionMode, asClass, createContainer } from 'awilix';\n\n${allClasses(nodes)}\nconst container = createContainer({\n  injectionMode: InjectionMode.PROXY,\n  strict: true,\n});\ncontainer.register({\n${each(
+          nodes,
+          (n) => `  ${n.name}: asClass(${n.name}).singleton(),\n`,
+        )}});\n${each(top(nodes), (n) => `container.resolve('${n.name}');\n`)}`,
+      },
+    ),
+  'needle-di/plain': factoryVariant({
+    tokenImport: "import { InjectionToken } from '@needle-di/core';",
+    tokenOf: (x) => `new InjectionToken<${iface(x)}>('${x}')`,
+    mainImport: "import { Container, inject } from '@needle-di/core';",
+    withTypes: false,
+    setup: 'const container = new Container();\n',
+    register: (n) =>
+      `container.bind({\n  provide: ${token(n.name)},\n  useFactory: () => new ${n.name}(${n.deps.map((d) => `inject(${token(d)})`).join(', ')}),\n});\n`,
+    resolve: (n) => `container.get(${token(n.name)});\n`,
+  }),
+  'needle-di/decorated': (nodes) =>
+    files(
+      nodes,
+      (n) =>
+        `import { inject, injectable } from '@needle-di/core';\n${classImports(n)}\n@injectable()\nexport class ${n.name} {\n  readonly id = '${n.name}';\n${n.deps
+          .map((d, i) => `  readonly d${i} = inject(${d});\n`)
+          .join('')}}\n`,
+      {
+        main: `import { Container } from '@needle-di/core';\n\n${allClasses(nodes)}\nconst container = new Container();\n${each(
+          top(nodes),
+          (n) => `container.get(${n.name});\n`,
+        )}`,
+      },
+    ),
 };
 
 /** Writes scale-200 for a library-variant into `outDir` and returns the file paths. */

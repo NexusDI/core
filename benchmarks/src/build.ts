@@ -13,13 +13,7 @@
  * libraries (NexusDI stays in, for the ratios) and writes under tmp/.
  */
 import { execFileSync, spawnSync } from 'node:child_process';
-import {
-  existsSync,
-  mkdirSync,
-  readFileSync,
-  rmSync,
-  writeFileSync,
-} from 'node:fs';
+import { mkdirSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
 import { cpus, totalmem, type } from 'node:os';
 import { join } from 'node:path';
 
@@ -36,10 +30,9 @@ import {
 } from '@nexusdi/toolchain-matrix/recipes';
 
 import { headlineOf, planRounds } from './build-rounds.ts';
-import { ROOT, makeCell, prepareConsumer } from './consumer.ts';
+import { ROOT, prepareConsumer } from './consumer.ts';
 import {
   BENCHMARKS,
-  FIXTURES,
   configsFor,
   readLibraries,
   type Library,
@@ -54,11 +47,18 @@ import {
   type BuildMeasure,
   type Design,
   type LibraryId,
-  type MatrixFile,
   type Outcome,
   type Runner,
   type Variant,
 } from './schema.ts';
+import {
+  argValue,
+  fixtureCell,
+  onlyArg,
+  readMatrix,
+  seedArg,
+  selectLibraries,
+} from './cli.ts';
 
 export type Fixture = 'meridian-8' | 'scale-200';
 
@@ -84,16 +84,6 @@ interface Staged {
   dir: string;
   step: Command;
   outDir: string;
-}
-
-/** The matrix outcome of every cell, from the committed file or a local run. */
-function readMatrix(): MatrixFile {
-  for (const where of ['results', 'tmp']) {
-    const path = join(BENCHMARKS, where, 'matrix.json');
-    if (existsSync(path))
-      return JSON.parse(readFileSync(path, 'utf8')) as MatrixFile;
-  }
-  throw new Error('no matrix.json: run the matrix first');
 }
 
 /** Empties the build output and every tool cache before a cold build. */
@@ -133,19 +123,18 @@ function stage(
   for (const cell of matrix.cells) {
     const library = libraries.find((l) => l.id === cell.library);
     if (library === undefined || cell.outcome === 'compile-error') continue;
-    const spec = library.variants[cell.variant];
-    if (spec === undefined) continue;
+    if (library.variants[cell.variant] === undefined) continue;
     const toolchain = toolchains.find((t) => t.id === cell.toolchain);
     if (toolchain === undefined) continue;
-    const cellDir = makeCell(
+    const { cellDir, profile } = fixtureCell(
       dir,
       `build-${fixture}-${cell.library}-${cell.variant}-${cell.toolchain}`,
-      join(FIXTURES, cell.library, `${cell.variant}.ts`),
-      spec.profile,
+      library,
+      cell.variant,
     );
     if (fixture === 'scale-200')
       generateScale(cell.library, cell.variant, join(cellDir, 'src'));
-    const configs = configsFor(spec.profile, cell.toolchain);
+    const configs = configsFor(profile, cell.toolchain);
     const step = buildCommand(cell.toolchain, cellDir, 'src/main.ts', configs);
     if (step === null) {
       rmSync(cellDir, { recursive: true, force: true });
@@ -171,10 +160,7 @@ export function timeBuilds(opts: {
   seed: number;
   only?: LibraryId[];
 }): BuildSamples {
-  const libraries = readLibraries().libraries.filter(
-    (l) =>
-      opts.only === undefined || l.id === 'nexusdi' || opts.only.includes(l.id),
-  );
+  const libraries = selectLibraries(opts.only, 'nexusdi');
   const dir = prepareConsumer({ libraries: libraries.map((l) => l.id) });
   try {
     const cells = stage(dir, opts.fixture, libraries);
@@ -327,22 +313,12 @@ export function mergeBuilds(
   };
 }
 
-function arg(name: string): string | undefined {
-  return process.argv
-    .find((a) => a.startsWith(`--${name}=`))
-    ?.slice(name.length + 3);
-}
-
 if (import.meta.main) {
   const quick = process.argv.includes('--quick');
-  const only = arg('only')
-    ?.split(',')
-    .filter((id): id is LibraryId =>
-      (LIBRARIES as readonly string[]).includes(id),
-    );
+  const only = onlyArg();
   const where = quick || only !== undefined ? 'tmp' : 'results';
   const rounds = quick ? 3 : 30;
-  const seed = Number(arg('seed') ?? Math.floor(Math.random() * 2 ** 31));
+  const seed = seedArg();
   const merge = process.argv.indexOf('--merge');
   let file: BuildFile;
   if (merge !== -1) {
@@ -354,11 +330,11 @@ if (import.meta.main) {
     const [m8, s200] = a.fixture === 'meridian-8' ? [a, b] : [b, a];
     file = mergeBuilds(m8, s200);
   } else {
-    const fixture = arg('fixture') as Fixture | undefined;
+    const fixture = argValue('fixture') as Fixture | undefined;
     if (fixture !== undefined) {
       const samples = timeBuilds({ fixture, rounds, seed, only });
       const out =
-        arg('out') ?? join(BENCHMARKS, 'tmp', `build-${fixture}.json`);
+        argValue('out') ?? join(BENCHMARKS, 'tmp', `build-${fixture}.json`);
       mkdirSync(join(out, '..'), { recursive: true });
       writeFileSync(out, JSON.stringify(samples) + '\n');
       console.log(`Wrote ${out}`);

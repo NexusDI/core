@@ -18,18 +18,13 @@ export const LIBRARIES = [
 ] as const;
 export type LibraryId = (typeof LIBRARIES)[number];
 
-export const VARIANTS = ['plain', 'decorated', 'decorated-explicit'] as const;
+const VARIANTS = ['plain', 'decorated', 'decorated-explicit'] as const;
 export type Variant = (typeof VARIANTS)[number];
 
-export const PROFILES = [
-  'none',
-  'standard',
-  'legacy-metadata',
-  'legacy',
-] as const;
+const PROFILES = ['none', 'standard', 'legacy-metadata', 'legacy'] as const;
 export type Profile = (typeof PROFILES)[number];
 
-export const OUTCOMES = [
+const OUTCOMES = [
   'pass',
   'compile-error',
   'runtime-error',
@@ -47,7 +42,7 @@ export const PROBES = [
 ] as const;
 export type Probe = (typeof PROBES)[number];
 
-export const DETECTED_AT = [
+const DETECTED_AT = [
   'typecheck',
   'create',
   'first-resolve',
@@ -56,7 +51,7 @@ export const DETECTED_AT = [
 ] as const;
 export type DetectedAt = (typeof DETECTED_AT)[number];
 
-export const SCENARIOS = [
+const SCENARIOS = [
   'cold-start',
   'ready',
   'resolve-singleton',
@@ -236,7 +231,7 @@ export interface BuildFile {
 export type Kind = 'matrix' | 'probes' | 'size' | 'timings' | 'build';
 
 /** The published minimum design (spec 14.4). A quick run is below it. */
-export const MINIMUM = { measured: 1000, coldStart: 1000, rounds: 30 } as const;
+const MINIMUM = { measured: 1000, coldStart: 1000, rounds: 30 } as const;
 
 export class SchemaError extends Error {}
 

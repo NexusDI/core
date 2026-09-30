@@ -10,14 +10,7 @@
  *   node src/size.ts --only=a,b   those libraries, written to tmp/
  */
 import { spawnSync } from 'node:child_process';
-import {
-  existsSync,
-  mkdirSync,
-  readdirSync,
-  readFileSync,
-  rmSync,
-  writeFileSync,
-} from 'node:fs';
+import { readdirSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
 import { dirname, join } from 'node:path';
 import { gzipSync } from 'node:zlib';
 
@@ -28,21 +21,12 @@ import { rollup, VERSION as rollupVersion } from 'rollup';
 
 import { compile } from '@nexusdi/toolchain-matrix/recipes';
 
-import { makeCell, prepareConsumer } from './consumer.ts';
 import { countEmit } from './emit.ts';
-import {
-  BENCHMARKS,
-  FIXTURES,
-  configsFor,
-  readLibraries,
-  type Library,
-} from './libraries.ts';
+import { FIXTURES, configsFor, type Library } from './libraries.ts';
 import { versionsOf } from './matrix.ts';
 import { classify } from './outcome.ts';
 import { countImports, generateScale } from './scale.ts';
 import {
-  LIBRARIES,
-  validate,
   type EmitRow,
   type LibraryId,
   type SizeFile,
@@ -50,6 +34,14 @@ import {
   type Variant,
 } from './schema.ts';
 import { bundleRunner, sizeEntry } from './size-entry.ts';
+import {
+  fixtureCell,
+  onlyArg,
+  selectLibraries,
+  variantsOf,
+  withConsumer,
+  writeResult,
+} from './cli.ts';
 
 type Bundler = 'esbuild' | 'rollup';
 
@@ -129,19 +121,17 @@ async function sizesOf(
   lib: Library,
   variant: Variant,
 ): Promise<SizeRow[]> {
-  const spec = lib.variants[variant];
-  if (spec === undefined) throw new Error(`${lib.id} has no ${variant}`);
-  const cellDir = makeCell(
+  const { cellDir, profile } = fixtureCell(
     dir,
     `size-${lib.id}-${variant}`,
-    join(FIXTURES, lib.id, `${variant}.ts`),
-    spec.profile,
+    lib,
+    variant,
   );
   const modulePath = compile(
     'tsc',
     cellDir,
     'src/main.ts',
-    configsFor(spec.profile, 'tsc'),
+    configsFor(profile, 'tsc'),
   );
   const entry = join(cellDir, 'size-entry.mjs');
   writeFileSync(entry, sizeEntry(modulePath));
@@ -172,16 +162,14 @@ function emitted(dir: string): Array<{ path: string; text: string }> {
 }
 
 function emitOf(dir: string, lib: Library, variant: Variant): EmitRow {
-  const spec = lib.variants[variant];
-  if (spec === undefined) throw new Error(`${lib.id} has no ${variant}`);
-  const cellDir = makeCell(
+  const { cellDir, profile } = fixtureCell(
     dir,
     `emit-${lib.id}-${variant}`,
-    join(FIXTURES, lib.id, `${variant}.ts`),
-    spec.profile,
+    lib,
+    variant,
   );
   const sources = generateScale(lib.id, variant, join(cellDir, 'src'));
-  const configs = configsFor(spec.profile, 'tsc');
+  const configs = configsFor(profile, 'tsc');
   const main = compile('tsc', cellDir, 'src/main.ts', configs);
   const outDir = join(cellDir, dirname(main));
   const counts = countEmit(
@@ -199,17 +187,12 @@ function emitOf(dir: string, lib: Library, variant: Variant): EmitRow {
 }
 
 export async function runSize(opts: { only?: LibraryId[] }): Promise<SizeFile> {
-  const libraries = readLibraries()
-    .libraries.filter(
-      (l) => opts.only === undefined || opts.only.includes(l.id),
-    )
-    .sort((a, b) => a.id.localeCompare(b.id));
-  const dir = prepareConsumer({ libraries: libraries.map((l) => l.id) });
+  const libraries = selectLibraries(opts.only);
   const sizes: SizeRow[] = [];
   const emit: EmitRow[] = [];
-  try {
+  await withConsumer(libraries, async (dir) => {
     for (const lib of libraries)
-      for (const variant of (Object.keys(lib.variants) as Variant[]).sort()) {
+      for (const variant of variantsOf(lib)) {
         for (const row of await sizesOf(dir, lib, variant)) {
           sizes.push(row);
           console.log(
@@ -222,9 +205,7 @@ export async function runSize(opts: { only?: LibraryId[] }): Promise<SizeFile> {
           `  ${lib.id} ${variant} scale-200: ${row.emittedBytes} B, ${row.decorateCalls} __decorate, ${row.metadataCalls} __metadata`,
         );
       }
-  } finally {
-    rmSync(dir, { recursive: true, force: true });
-  }
+  });
   return {
     schema: 1,
     versions: {
@@ -237,25 +218,6 @@ export async function runSize(opts: { only?: LibraryId[] }): Promise<SizeFile> {
 }
 
 if (import.meta.main) {
-  const check = process.argv.includes('--check');
-  const onlyArg = process.argv.find((a) => a.startsWith('--only='));
-  const only = onlyArg
-    ?.slice('--only='.length)
-    .split(',')
-    .filter((id): id is LibraryId =>
-      (LIBRARIES as readonly string[]).includes(id),
-    );
-  const file = await runSize({ only });
-  const where = only === undefined ? 'results' : 'tmp';
-  validate('size', file, where);
-  mkdirSync(join(BENCHMARKS, where), { recursive: true });
-  const out = join(BENCHMARKS, where, 'size.json');
-  const text = JSON.stringify(file, null, 2) + '\n';
-  const committed = existsSync(out) ? readFileSync(out, 'utf8') : '';
-  writeFileSync(out, text);
-  console.log(`Wrote ${out}`);
-  if (check && committed !== text) {
-    console.error('size.json changed. Commit the file the run wrote.');
-    process.exit(1);
-  }
+  const only = onlyArg();
+  writeResult('size', await runSize({ only }), only);
 }
