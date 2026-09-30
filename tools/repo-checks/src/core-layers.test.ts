@@ -5,6 +5,7 @@ import { workspaceRoot } from '@nx/devkit';
 import { describe, expect, it } from 'vitest';
 
 import {
+  importsOf,
   layerViolations,
   nodeViolations,
   type SourceFileText,
@@ -42,6 +43,31 @@ function everyPackageSources(): SourceFileText[] {
       return existsSync(src) ? sourcesUnder(src, LIBS) : [];
     });
 }
+
+describe('importsOf', () => {
+  it('reads every way a file names a module, marking the type-only ones', () => {
+    expect(
+      importsOf({
+        path: 'x.ts',
+        source: [
+          "import { a } from './a.js';",
+          "import type { B } from '@acme/b';",
+          "export { c } from './c.js';",
+          "const d = import('@acme/d');",
+          "type E = typeof import('@acme/e');",
+          "declare module '@acme/f' {}",
+        ].join('\n'),
+      }),
+    ).toEqual([
+      { specifier: './a.js', typeOnly: false },
+      { specifier: '@acme/b', typeOnly: true },
+      { specifier: './c.js', typeOnly: false },
+      { specifier: '@acme/d', typeOnly: false },
+      { specifier: '@acme/e', typeOnly: true },
+      { specifier: '@acme/f', typeOnly: true },
+    ]);
+  });
+});
 
 describe('layerViolations', () => {
   it('accepts an import into a lower layer', () => {

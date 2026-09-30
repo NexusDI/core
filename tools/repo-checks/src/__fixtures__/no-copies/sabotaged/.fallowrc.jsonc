@@ -1,0 +1,10 @@
+{
+  "duplicates": {
+    "ignore": [
+      "libs/*/src/describe.ts",
+      "libs/{core,errors}/test-support/**",
+      "**/describe.ts",
+      "libs/core/src/describe.ts",
+    ],
+  },
+}

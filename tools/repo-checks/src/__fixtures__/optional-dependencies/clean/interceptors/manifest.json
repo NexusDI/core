@@ -1,0 +1,21 @@
+{
+  "name": "@acme/interceptors",
+  "exports": {
+    ".": {
+      "@nexusdi/source": "./src/index.ts",
+      "default": "./dist/index.js"
+    },
+    "./devtools": {
+      "@nexusdi/source": "./src/devtools/index.ts"
+    }
+  },
+  "peerDependencies": {
+    "@acme/core": "1.0.0",
+    "@acme/devtools": "1.0.0"
+  },
+  "peerDependenciesMeta": {
+    "@acme/devtools": {
+      "optional": true
+    }
+  }
+}

@@ -15,52 +15,85 @@ import { importsOf, type SourceFileText } from './core-layers.js';
 
 const TEST = /\.(test|spec|test-d|browser\.test)\.ts$/;
 
-/** Every non-test `.ts` file under `dir`, with `path` relative to `dir`. */
-export function sourcesOf(dir: string): SourceFileText[] {
-  return readdirSync(dir, { recursive: true, withFileTypes: true })
-    .filter(
-      (entry) =>
-        entry.isFile() && entry.name.endsWith('.ts') && !TEST.test(entry.name),
-    )
-    .map((entry) => join(entry.parentPath, entry.name))
-    .map((file) => ({
-      path: relative(dir, file).split(sep).join(posix.sep),
-      source: readFileSync(file, 'utf8'),
-    }));
+/**
+ * Every file under `dir`, sorted, forward-slashed and relative to `root`;
+ * none when `dir` does not exist.
+ */
+export function filesUnder(dir: string, root = dir): string[] {
+  if (!existsSync(dir)) return [];
+  const found: string[] = [];
+  for (const entry of readdirSync(dir, {
+    recursive: true,
+    withFileTypes: true,
+  }))
+    if (entry.isFile())
+      found.push(
+        relative(root, join(entry.parentPath, entry.name))
+          .split(sep)
+          .join(posix.sep),
+      );
+  return found.sort();
 }
 
-/** A package under libs/: its manifest's name and exports, and its sources. */
+/** Every non-test `.ts` file under `dir`, with `path` relative to `dir`. */
+export function sourcesOf(dir: string): SourceFileText[] {
+  return filesUnder(dir)
+    .filter((path) => path.endsWith('.ts') && !TEST.test(path))
+    .map((path) => ({ path, source: readFileSync(join(dir, path), 'utf8') }));
+}
+
+/** A package under libs/: what its manifest declares, and its sources. */
 export interface LibPackage {
   /** The folder under libs/, such as `core`. */
   readonly dir: string;
   readonly name: string;
   readonly exports: unknown;
+  readonly dependencies: Readonly<Record<string, string>>;
+  readonly peerDependencies: Readonly<Record<string, string>>;
+  /** The peers `peerDependenciesMeta` marks optional. */
+  readonly optionalPeers: readonly string[];
   /** Every non-test `.ts` file under its src/, none when it has no src/. */
   readonly files: readonly SourceFileText[];
 }
 
+interface Manifest {
+  readonly name: string;
+  readonly exports?: unknown;
+  readonly dependencies?: Record<string, string>;
+  readonly peerDependencies?: Record<string, string>;
+  readonly peerDependenciesMeta?: Record<string, { optional?: boolean }>;
+}
+
 /**
  * Every folder of `libs` that holds a package.json, read on each call, so a
- * package another branch adds is checked without an edit here.
+ * package another branch adds is checked without an edit here. A fixture
+ * passes another `manifestFile`, since nx reads every package.json in the
+ * workspace as a project.
  */
-export function libPackages(libs: string): LibPackage[] {
+export function libPackages(
+  libs: string,
+  manifestFile = 'package.json',
+): LibPackage[] {
   return readdirSync(libs, { withFileTypes: true })
     .filter(
       (entry) =>
-        entry.isDirectory() &&
-        existsSync(join(libs, entry.name, 'package.json')),
+        entry.isDirectory() && existsSync(join(libs, entry.name, manifestFile)),
     )
     .sort((a, b) => a.name.localeCompare(b.name))
     .map(({ name: dir }) => {
       const manifest = JSON.parse(
-        readFileSync(join(libs, dir, 'package.json'), 'utf8'),
-      ) as { name: string; exports?: unknown };
-      const src = join(libs, dir, 'src');
+        readFileSync(join(libs, dir, manifestFile), 'utf8'),
+      ) as Manifest;
       return {
         dir,
         name: manifest.name,
         exports: manifest.exports,
-        files: existsSync(src) ? sourcesOf(src) : [],
+        dependencies: manifest.dependencies ?? {},
+        peerDependencies: manifest.peerDependencies ?? {},
+        optionalPeers: Object.entries(manifest.peerDependenciesMeta ?? {})
+          .filter(([, meta]) => meta.optional === true)
+          .map(([peer]) => peer),
+        files: sourcesOf(join(libs, dir, 'src')),
       };
     });
 }
@@ -134,6 +167,55 @@ export function ownSubpathModules(exports: unknown): string[] {
   return rules;
 }
 
+/** One step of a walk: a module it reaches, or an import it cannot resolve. */
+export type WalkStep =
+  | { readonly kind: 'module'; readonly path: string; readonly chain: string }
+  | {
+      readonly kind: 'unresolved';
+      readonly path: string;
+      readonly specifier: string;
+    };
+
+/**
+ * The modules `entry` reaches through value imports, breadth first, each
+ * with the chain that reaches it (`index.ts > feature.ts`), and each
+ * relative import the walk cannot resolve. The walk does not descend into a
+ * module `stop` matches. Paths are relative to src/.
+ */
+export function* walkEntry(
+  files: readonly SourceFileText[],
+  entry: string,
+  stop: (path: string) => boolean = () => false,
+): Generator<WalkStep> {
+  const byPath = new Map(files.map((file) => [file.path, file]));
+  const paths = new Set(byPath.keys());
+  const parent = new Map<string, string | null>([[entry, null]]);
+  const queue = [entry];
+  const chainOf = (path: string): string => {
+    const chain: string[] = [];
+    for (let at: string | null = path; at !== null; at = parent.get(at) ?? null)
+      chain.unshift(at);
+    return chain.join(' > ');
+  };
+  for (let path = queue.shift(); path !== undefined; path = queue.shift()) {
+    const file = byPath.get(path);
+    if (file === undefined) continue;
+    yield { kind: 'module', path, chain: chainOf(path) };
+    if (stop(path)) continue;
+    for (const { specifier, typeOnly } of importsOf(file)) {
+      if (typeOnly || !specifier.startsWith('.')) continue;
+      const target = resolveRelative(path, specifier, paths);
+      if (target === null) {
+        yield { kind: 'unresolved', path, specifier };
+        continue;
+      }
+      if (parent.has(target)) continue;
+      parent.set(target, path);
+      queue.push(target);
+    }
+  }
+}
+
 /**
  * Each module of `forbidden` that `entry` reaches through value imports,
  * with the chain that reaches it, and each relative import the walk cannot
@@ -144,41 +226,20 @@ export function entryGraphViolations(
   forbidden: readonly string[] = ownSubpathModules(undefined),
   entry = 'index.ts',
 ): string[] {
-  const byPath = new Map(files.map((file) => [file.path, file]));
-  const paths = new Set(byPath.keys());
-  const parent = new Map<string, string | null>([[entry, null]]);
-  const queue = [entry];
-  const found: string[] = byPath.has(entry)
-    ? []
-    : [`src/${entry} is missing, so the main entry cannot be walked`];
-  const chainOf = (path: string): string => {
-    const chain: string[] = [];
-    for (let at: string | null = path; at !== null; at = parent.get(at) ?? null)
-      chain.unshift(at);
-    return chain.join(' > ');
-  };
-  for (let path = queue.shift(); path !== undefined; path = queue.shift()) {
-    if (forbidden.some((rule) => matches(rule, path))) {
+  if (!files.some((file) => file.path === entry))
+    return [`src/${entry} is missing, so the main entry cannot be walked`];
+  const isForbidden = (path: string) =>
+    forbidden.some((rule) => matches(rule, path));
+  const found: string[] = [];
+  for (const step of walkEntry(files, entry, isForbidden)) {
+    if (step.kind === 'unresolved')
       found.push(
-        `${entry} reaches ${path} (${chainOf(path)}), and the main entry may not import the package text or devtools module`,
+        `${step.path} imports ${step.specifier}, which resolves to no file under src/`,
       );
-      continue;
-    }
-    const file = byPath.get(path);
-    if (file === undefined) continue;
-    for (const { specifier, typeOnly } of importsOf(file)) {
-      if (typeOnly || !specifier.startsWith('.')) continue;
-      const target = resolveRelative(path, specifier, paths);
-      if (target === null) {
-        found.push(
-          `${path} imports ${specifier}, which resolves to no file under src/`,
-        );
-        continue;
-      }
-      if (parent.has(target)) continue;
-      parent.set(target, path);
-      queue.push(target);
-    }
+    else if (isForbidden(step.path))
+      found.push(
+        `${entry} reaches ${step.path} (${step.chain}), and the main entry may not import the package text or devtools module`,
+      );
   }
   return found;
 }

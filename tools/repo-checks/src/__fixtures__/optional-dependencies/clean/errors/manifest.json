@@ -1,0 +1,12 @@
+{
+  "name": "@acme/errors",
+  "exports": {
+    ".": {
+      "@nexusdi/source": "./src/index.ts",
+      "default": "./dist/index.js"
+    }
+  },
+  "peerDependencies": {
+    "@acme/core": "1.0.0"
+  }
+}

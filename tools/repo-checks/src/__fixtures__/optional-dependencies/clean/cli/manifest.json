@@ -1,0 +1,13 @@
+{
+  "name": "@acme/cli",
+  "bin": {
+    "acme": "./dist/main.js"
+  },
+  "exports": {
+    "./package.json": "./package.json"
+  },
+  "peerDependencies": {
+    "@acme/core": "1.0.0",
+    "@acme/devtools": "1.0.0"
+  }
+}

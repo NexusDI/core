@@ -7,17 +7,62 @@ import { describe, expect, it } from 'vitest';
 
 import {
   entryGraphViolations,
+  filesUnder,
   libPackages,
   mainEntryOf,
   ownSubpathModules,
   resolveRelative,
   sourcesOf,
+  walkEntry,
 } from './entry-graph.js';
 
 const FIXTURES = join(import.meta.dirname, '__fixtures__', 'entry-graph');
 const LIBS = join(workspaceRoot, 'libs');
 
 const fixture = (name: string) => sourcesOf(join(FIXTURES, name));
+
+describe('filesUnder', () => {
+  it('lists every file, tests included, sorted and relative to the root', () => {
+    expect(filesUnder(join(FIXTURES, 'clean', 'devtools'), FIXTURES)).toEqual([
+      'clean/devtools/notes.ts',
+    ]);
+    expect(filesUnder(join(FIXTURES, 'clean'))).toEqual([
+      'devtools/notes.ts',
+      'feature.ts',
+      'index.ts',
+      'shared.ts',
+      'text.ts',
+    ]);
+  });
+
+  it('lists nothing for a folder that does not exist', () => {
+    expect(filesUnder(join(FIXTURES, 'missing'))).toEqual([]);
+  });
+});
+
+describe('walkEntry', () => {
+  it('yields each module the entry reaches by value, with its chain, and stops where told', () => {
+    expect([
+      ...walkEntry(
+        fixture('sabotaged/text-file'),
+        'index.ts',
+        (path) => path === 'feature.ts',
+      ),
+    ]).toEqual([
+      { kind: 'module', path: 'index.ts', chain: 'index.ts' },
+      { kind: 'module', path: 'feature.ts', chain: 'index.ts > feature.ts' },
+    ]);
+  });
+
+  it('yields an import it cannot resolve', () => {
+    expect([...walkEntry(fixture('sabotaged/unresolved'), 'index.ts')]).toEqual(
+      [
+        { kind: 'module', path: 'index.ts', chain: 'index.ts' },
+        { kind: 'unresolved', path: 'index.ts', specifier: './feature.js' },
+      ],
+    );
+  });
+});
 
 describe('sourcesOf', () => {
   it('reads every .ts file but tests, with paths relative to the folder', () => {

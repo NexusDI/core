@@ -1,4 +1,5 @@
 import { defineConfig } from 'vite';
+import { configDefaults } from 'vitest/config';
 
 // Test-only config: tools/repo-checks holds workspace invariants, not shipped
 // code. Nx infers a project's `test` target from a project-local
@@ -18,6 +19,8 @@ export default defineConfig(() => ({
     globals: true,
     environment: 'node',
     include: ['src/**/*.{test,spec}.{js,mjs,cjs,ts,mts,cts,jsx,tsx}'],
+    // A fixture's test file is data a check reads, and holds no suite.
+    exclude: [...configDefaults.exclude, 'src/__fixtures__/**'],
     reporters: ['default'],
     // The project graph is slower than a unit test.
     testTimeout: 120_000,

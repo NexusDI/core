@@ -1,0 +1,8 @@
+{
+  "name": "@acme/broken",
+  "exports": {
+    ".": {
+      "default": "./dist/index.js"
+    }
+  }
+}

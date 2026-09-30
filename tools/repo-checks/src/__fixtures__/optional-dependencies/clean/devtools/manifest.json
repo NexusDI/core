@@ -1,0 +1,15 @@
+{
+  "name": "@acme/devtools",
+  "exports": {
+    ".": {
+      "@nexusdi/source": "./src/index.ts",
+      "default": "./dist/index.js"
+    }
+  },
+  "dependencies": {
+    "@acme/errors": "1.0.0"
+  },
+  "peerDependencies": {
+    "@acme/core": "1.0.0"
+  }
+}

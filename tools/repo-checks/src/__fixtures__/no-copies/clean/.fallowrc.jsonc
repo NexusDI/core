@@ -1,0 +1,13 @@
+{
+  "duplicates": {
+    "ignore": [
+      // Config and tests: no package logic.
+      "**/build.ts",
+      "**/*.test.*",
+      // One package only.
+      "libs/core/src/describe.ts",
+      // Allowlisted by the test.
+      "libs/*/test-support/error-cases.ts",
+    ],
+  },
+}

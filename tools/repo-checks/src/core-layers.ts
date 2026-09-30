@@ -89,7 +89,10 @@ export interface ImportOf {
   readonly typeOnly: boolean;
 }
 
-/** Every import, export-from and import() in a file. */
+/**
+ * Every module a file names: import, export-from, import(), an import type
+ * and a `declare module` block.
+ */
 export function importsOf(file: SourceFileText): ImportOf[] {
   const source = ts.createSourceFile(
     file.path,
@@ -117,13 +120,22 @@ export function importsOf(file: SourceFileText): ImportOf[] {
     ) {
       found.push({ specifier: node.arguments[0].text, typeOnly: false });
     }
+    // `typeof import('x')` in a type, and `declare module 'x'`.
+    if (
+      ts.isImportTypeNode(node) &&
+      ts.isLiteralTypeNode(node.argument) &&
+      ts.isStringLiteral(node.argument.literal)
+    )
+      found.push({ specifier: node.argument.literal.text, typeOnly: true });
+    if (ts.isModuleDeclaration(node) && ts.isStringLiteral(node.name))
+      found.push({ specifier: node.name.text, typeOnly: true });
     ts.forEachChild(node, visit);
   };
   visit(source);
   return found;
 }
 
-/** Every module specifier a file names in an import, export-from or import(). */
+/** The specifier of every module `importsOf` reads in a file. */
 export function specifiersOf(file: SourceFileText): string[] {
   return importsOf(file).map((found) => found.specifier);
 }
