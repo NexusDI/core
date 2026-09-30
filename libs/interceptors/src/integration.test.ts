@@ -1,9 +1,9 @@
 import { defineModule, Nexus, provide, Token } from '@nexusdi/core';
-import { errors, explain } from '@nexusdi/errors';
+import { errors } from '@nexusdi/errors';
 import { createTestingContainer } from '@nexusdi/testing';
 import { describe, expect, it } from 'vitest';
 
-import { findCode, rejected, thrown } from '../test-support/catch.js';
+import { findCode, rejected } from '../test-support/catch.js';
 import {
   interceptor,
   interceptors,
@@ -12,6 +12,7 @@ import {
   type Interceptor,
   type Next,
 } from './index.js';
+import { interceptorsText } from './text.js';
 
 interface IGreeter {
   greet(name: string): string;
@@ -66,12 +67,12 @@ describe('integration', () => {
     expect(findCode(error, 'NEXUS_OVERRIDE_UNUSED')).toBeDefined();
   });
 
-  it('gets the full text of a check-time error from errors()', async () => {
+  it('gets the full text of a check-time error from errors() with interceptorsText', async () => {
     const TYPO = new Token<Interceptor>('Typo');
     const error = await rejected(
       Nexus.create(App, {
         plugins: [
-          errors(),
+          errors({ text: [interceptorsText] }),
           interceptors({
             register: [interceptor(SHOUT, { useClass: ShoutInterceptor })],
             global: [TYPO],
@@ -84,16 +85,31 @@ describe('integration', () => {
     );
   });
 
-  it('gets the full text of an error raised outside a container from explain()', () => {
-    const error = findCode(
-      thrown(() => interceptors({ register: [] })),
-      'NEXUS_INTERCEPTOR_INVALID',
+  it('reports every bad interceptors() option at create, with the pack text', async () => {
+    const plugin = interceptors({ register: [], global: 'x' } as never);
+    const error = await rejected(
+      Nexus.create(App, {
+        plugins: [errors({ text: [interceptorsText] }), plugin],
+      }),
     );
-    expect(error?.message).toBe(
+    expect(
+      (error as { errors: { message: string }[] }).errors.map(
+        (inner) => inner.message,
+      ),
+    ).toEqual([
+      '[NEXUS_INTERCEPTOR_INVALID] interceptors(): register must list an interceptor.',
+      '[NEXUS_INTERCEPTOR_INVALID] interceptors(): global must be an array.',
+    ]);
+  });
+
+  it("keeps core's one line for an interceptor error without the pack", async () => {
+    const error = await rejected(
+      Nexus.create(App, {
+        plugins: [errors(), interceptors({ register: [] })],
+      }),
+    );
+    expect(findCode(error, 'NEXUS_INTERCEPTOR_INVALID')?.message).toBe(
       '[NEXUS_INTERCEPTOR_INVALID] reason=options detail=register-empty. https://nexus.js.org/errors/NEXUS_INTERCEPTOR_INVALID',
-    );
-    expect(explain(error as never)?.message).toBe(
-      'interceptors(): register must list an interceptor.',
     );
   });
 

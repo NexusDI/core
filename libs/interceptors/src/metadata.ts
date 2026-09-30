@@ -1,7 +1,11 @@
 import { Token } from '@nexusdi/core';
 
-import { keyName } from './names.js';
 import type { InterceptorToken } from './types.js';
+
+/** A method key as errors print it. */
+export function keyName(key: PropertyKey): string {
+  return typeof key === 'symbol' ? `[${key.toString()}]` : String(key);
+}
 
 /** Any class, abstract or not; core's Class type, which its entry does not export. */
 export type AnyClass = abstract new (...args: never) => unknown;

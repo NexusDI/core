@@ -1,22 +1,16 @@
 import './polyfill/symbol-metadata.js';
 
-import { invalid } from './interceptor-error.js';
+import { describeValue, isForeign } from '@nexusdi/core';
+
+import { invalidAt } from './interceptor-error.js';
 import {
   EXCLUDED_KEYS,
   isInterceptorToken,
+  keyName,
   recordClass,
   recordMethod,
 } from './metadata.js';
-import { keyName } from './names.js';
 import type { InterceptorToken } from './types.js';
-
-/** A value as an error names it, without calling its own toString. */
-const describe = (value: unknown): string =>
-  typeof value === 'object' && value !== null
-    ? 'an object'
-    : typeof value === 'symbol'
-      ? value.toString()
-      : String(value);
 
 type Context = ClassDecoratorContext | ClassMethodDecoratorContext;
 
@@ -33,8 +27,15 @@ export function UseInterceptors(
   ...tokens: InterceptorToken[]
 ): (target: unknown, context: AnyContext) => void {
   for (const token of tokens) {
-    if (!isInterceptorToken(token))
-      throw invalid('declaration', { detail: [describe(token as unknown)] });
+    if (isInterceptorToken(token)) continue;
+    const received = isForeign(token)
+      ? `${describeValue(token)} from another copy of @nexusdi/core`
+      : describeValue(token);
+    throw invalidAt(
+      'declaration',
+      { detail: [received] },
+      `@UseInterceptors received ${received}, which is not a token.`,
+    );
   }
   return (_target, context: Context) => {
     if (
@@ -42,21 +43,43 @@ export function UseInterceptors(
       context === null ||
       typeof (context as { kind?: unknown }).kind !== 'string'
     ) {
-      throw invalid('legacy-decorators');
+      throw invalidAt(
+        'legacy-decorators',
+        {},
+        '@UseInterceptors is a standard decorator, and ran as a legacy one.\n  Fix: remove experimentalDecorators from tsconfig, or use static interceptors.',
+      );
     }
     if (context.kind === 'class') {
       recordClass(context.metadata, tokens);
       return;
     }
-    if (context.kind !== 'method')
-      throw invalid('bad-target', {
-        detail: [String((context as { kind: string }).kind)],
-      });
+    if (context.kind !== 'method') {
+      const kind = String((context as { kind: string }).kind);
+      throw invalidAt(
+        'bad-target',
+        { detail: [kind] },
+        `@UseInterceptors goes on a class or a method, and was placed on a ${kind}.`,
+      );
+    }
     const method = keyName(context.name);
-    if (context.private) throw invalid('private-method', { method });
-    if (context.static) throw invalid('static-method', { method });
+    if (context.private)
+      throw invalidAt(
+        'private-method',
+        { method },
+        `@UseInterceptors cannot wrap the private method ${method}.`,
+      );
+    if (context.static)
+      throw invalidAt(
+        'static-method',
+        { method },
+        `@UseInterceptors cannot wrap the static method ${method}.`,
+      );
     if (EXCLUDED_KEYS.has(context.name))
-      throw invalid('bad-target', { method });
+      throw invalidAt(
+        'bad-target',
+        { method },
+        `${method} is never intercepted, since the container calls it.`,
+      );
     recordMethod(context.metadata, context.name, tokens);
   };
 }

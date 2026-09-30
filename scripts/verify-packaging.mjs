@@ -72,6 +72,7 @@ const { errors } = require('@nexusdi/errors');
 const { Inject, Injectable, Module } = require('@nexusdi/decorators');
 const { defineContract, federation } = require('@nexusdi/federation');
 const { federationText } = require('@nexusdi/federation/text');
+const { interceptorsText } = require('@nexusdi/interceptors/text');
 
 const REACTOR = new Token('ReactorCore');
 class FusionReactor {
@@ -95,6 +96,8 @@ const Engineering = defineModule({
     throw new Error('require(esm): @nexusdi/core/text has no coreText');
   if (typeof federationText !== 'object' || federationText === null)
     throw new Error('require(esm): @nexusdi/federation/text has no federationText');
+  if (typeof interceptorsText !== 'object' || interceptorsText === null)
+    throw new Error('require(esm): @nexusdi/interceptors/text has no interceptorsText');
   const ship = await Nexus.create(Engineering, {
     plugins: [errors()],
   });
@@ -229,6 +232,7 @@ import { devtools, graph, trace } from '@nexusdi/devtools';
 import type { NexusGraph, TraceEvent } from '@nexusdi/devtools';
 import { interceptor, interceptors } from '@nexusdi/interceptors';
 import type { Interceptor } from '@nexusdi/interceptors';
+import { interceptorsText } from '@nexusdi/interceptors/text';
 import { ContractVersionError, defineContract, federation } from '@nexusdi/federation';
 import type { Contract } from '@nexusdi/federation';
 import { federationText } from '@nexusdi/federation/text';
@@ -327,6 +331,21 @@ function check(ok: boolean, what: string): void {
     },
   );
   check(shouting.get(GREETING).say() === 'HI', '@nexusdi/interceptors interceptors()');
+  const LOST = new Token<Interceptor>('Lost');
+  const refused = await Nexus.create(defineModule({ name: 'Quiet' }), {
+    plugins: [
+      errors({ text: [interceptorsText] }),
+      interceptors({
+        register: [interceptor(SHOUT, { useValue: { intercept: (_c, next) => next() } })],
+        global: [LOST],
+      }),
+    ],
+  }).catch((caught: unknown) => caught as BlueprintError);
+  check(
+    refused?.errors[0]?.message ===
+      '[NEXUS_INTERCEPTOR_MISSING] a global entry or binding uses the interceptor Lost, which is not registered.\n  Fix: add Lost to interceptors({ register }).',
+    '@nexusdi/interceptors/text words a missing interceptor',
+  );
 }
 {
   await using fake = await createTestingContainer(Meridian)

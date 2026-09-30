@@ -1,19 +1,24 @@
-import { isNexusError, NexusError, Token } from '@nexusdi/core';
+import { isNexusError, NexusError } from '@nexusdi/core';
 import { describe, expect, it } from 'vitest';
 
 import {
+  errorOf,
   InterceptorError,
-  invalid,
-  lifetime,
-  missing,
+  invalidAt,
   notReady,
-  shared,
+  sharedAtBuild,
+  unchecked,
 } from './interceptor-error.js';
-import { keyName, nameOf } from './names.js';
+import { keyName } from './metadata.js';
 
 describe('InterceptorError', () => {
-  it('carries the code and every field', () => {
-    const error = missing(new Token('Audit'), 'PaymentService', 'charge');
+  it('carries the code and every field of a fault', () => {
+    const error = errorOf({
+      code: 'NEXUS_INTERCEPTOR_MISSING',
+      token: 'Audit',
+      target: 'PaymentService',
+      method: 'charge',
+    });
     expect(error).toBeInstanceOf(InterceptorError);
     expect(error).toBeInstanceOf(NexusError);
     expect(isNexusError(error, 'NEXUS_INTERCEPTOR_MISSING')).toBe(true);
@@ -28,39 +33,51 @@ describe('InterceptorError', () => {
     });
   });
 
-  it("writes core's one line of fields and the docs link", () => {
+  it("writes core's one line of fields and the docs link for a fault", () => {
     expect(
-      missing(new Token('Audit'), 'PaymentService', 'charge').message,
-    ).toBe(
-      '[NEXUS_INTERCEPTOR_MISSING] token=Audit target=PaymentService method=charge. https://nexus.js.org/errors/NEXUS_INTERCEPTOR_MISSING',
-    );
-    expect(
-      invalid('options', { detail: ['not-array', 'global'] }).message,
+      errorOf({
+        code: 'NEXUS_INTERCEPTOR_INVALID',
+        reason: 'options',
+        detail: ['not-array', 'global'],
+      }).message,
     ).toBe(
       '[NEXUS_INTERCEPTOR_INVALID] reason=options detail=not-array,global. https://nexus.js.org/errors/NEXUS_INTERCEPTOR_INVALID',
     );
   });
 
-  it('builds each code', () => {
-    expect(invalid('options').code).toBe('NEXUS_INTERCEPTOR_INVALID');
-    expect(invalid('options').reason).toBe('options');
-    expect(lifetime(new Token('Audit'), 'scoped').code).toBe(
-      'NEXUS_INTERCEPTOR_LIFETIME',
-    );
-    expect(notReady('PaymentService', 'charge', 'disposed')).toMatchObject({
+  it('writes the text of an error thrown where no container formats it', () => {
+    expect(notReady('PaymentService', 'charge', 'building')).toMatchObject({
       code: 'NEXUS_INTERCEPTOR_NOT_READY',
-      state: 'disposed',
+      state: 'building',
+      message:
+        '[NEXUS_INTERCEPTOR_NOT_READY] PaymentService.charge was called before its interceptors were built.\n  Fix: call it from onInit, or inject it with lazy().',
     });
-    expect(shared().code).toBe('NEXUS_INTERCEPTORS_SHARED');
+    expect(notReady('PaymentService', 'charge', 'disposed').message).toBe(
+      '[NEXUS_INTERCEPTOR_NOT_READY] PaymentService.charge was called after its container was disposed.',
+    );
+    expect(unchecked('PaymentService')).toMatchObject({
+      code: 'NEXUS_INTERCEPTORS_UNCHECKED',
+      target: 'PaymentService',
+    });
+    expect(unchecked('PaymentService').message).toMatch(
+      /^\[NEXUS_INTERCEPTORS_UNCHECKED\] PaymentService was built from a provider that no compile\.check/,
+    );
+    expect(sharedAtBuild().message).toBe(
+      '[NEXUS_INTERCEPTORS_SHARED] this interceptors() plugin is in use by a running container or an unfinished create.\n  Fix: call interceptors() once per container.',
+    );
+    expect(
+      invalidAt('static-method', { method: 'charge' }, 'the text.'),
+    ).toMatchObject({
+      code: 'NEXUS_INTERCEPTOR_INVALID',
+      reason: 'static-method',
+      method: 'charge',
+      message: '[NEXUS_INTERCEPTOR_INVALID] the text.',
+    });
   });
 });
 
-describe('nameOf', () => {
-  it('names a token by its description and a class by its name', () => {
-    class AuditInterceptor {}
-    expect(nameOf(new Token('Audit'))).toBe('Audit');
-    expect(nameOf(AuditInterceptor)).toBe('AuditInterceptor');
-    expect(nameOf(class {})).toBe('(anonymous class)');
+describe('keyName', () => {
+  it('writes a symbol key in brackets and a string key as is', () => {
     expect(keyName(Symbol('run'))).toBe('[Symbol(run)]');
     expect(keyName('charge')).toBe('charge');
   });

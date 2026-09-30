@@ -1,9 +1,12 @@
-import type { BlueprintView, NexusError, ProviderView } from '@nexusdi/core';
+import {
+  displayName,
+  type BlueprintView,
+  type ProviderView,
+} from '@nexusdi/core';
 
 import { bindingsFor } from './chain.js';
-import { invalid, lifetime, missing } from './interceptor-error.js';
-import { declarationsOf, type AnyClass } from './metadata.js';
-import { keyName, nameOf } from './names.js';
+import type { Fault } from './interceptor-error.js';
+import { declarationsOf, keyName, type AnyClass } from './metadata.js';
 import type { NormalOptions } from './options.js';
 import { findMethod } from './proxy.js';
 
@@ -44,7 +47,7 @@ export function reach(
  */
 function checkSupport(
   view: BlueprintView,
-  report: (error: NexusError) => void,
+  faults: Fault[],
   config: NormalOptions,
   byId: ReadonlyMap<string, ProviderView>,
   ownModuleId: string,
@@ -76,37 +79,37 @@ function checkSupport(
       else if (!reported.has(root.token)) {
         // The contributors of one multi token are one root.
         reported.add(root.token);
-        report(
-          invalid('unexempted-dep', {
-            token: byId.get(from)?.name ?? null,
-            target: root.name,
-            detail: names(
-              reach(
-                view,
-                [...roots.keys()].filter(
-                  (at) => byId.get(at)?.token === root.token,
-                ),
+        faults.push({
+          code: 'NEXUS_INTERCEPTOR_INVALID',
+          reason: 'unexempted-dep',
+          token: byId.get(from)?.name ?? null,
+          target: root.name,
+          detail: names(
+            reach(
+              view,
+              [...roots.keys()].filter(
+                (at) => byId.get(at)?.token === root.token,
               ),
             ),
-          }),
-        );
+          ),
+        });
       }
     }
     for (const token of config.exempt)
       if (!listed.has(token))
-        report(
-          invalid('unused-exempt', {
-            target: nameOf(token),
-            detail: [...roots.keys()]
-              .filter((id) =>
-                [...reach(view, [id])].some((at) => {
-                  const p = byId.get(at);
-                  return p !== undefined && p.token === view.canonical(token);
-                }),
-              )
-              .map((id) => byId.get(id)?.name ?? id),
-          }),
-        );
+        faults.push({
+          code: 'NEXUS_INTERCEPTOR_INVALID',
+          reason: 'unused-exempt',
+          target: displayName(token),
+          detail: [...roots.keys()]
+            .filter((id) =>
+              [...reach(view, [id])].some((at) => {
+                const p = byId.get(at);
+                return p !== undefined && p.token === view.canonical(token);
+              }),
+            )
+            .map((id) => byId.get(id)?.name ?? id),
+        });
   }
 
   for (const provider of view.providers) {
@@ -122,26 +125,37 @@ function checkSupport(
       if (target.implementation !== null)
         classLists.push(declarationsOf(target.implementation).classTokens);
       if (classLists.some((list) => list.includes(entry.token)))
-        report(
-          invalid('self-intercept', {
-            token: nameOf(entry.token),
-            target: target.name,
-          }),
-        );
+        faults.push({
+          code: 'NEXUS_INTERCEPTOR_INVALID',
+          reason: 'self-intercept',
+          token: displayName(entry.token),
+          target: target.name,
+        });
     }
   }
 }
 
+const missing = (
+  token: unknown,
+  target: string | null,
+  method: string | null,
+): Fault => ({
+  code: 'NEXUS_INTERCEPTOR_MISSING',
+  token: displayName(token),
+  target,
+  method,
+});
+
 /**
- * The plugin's compile checks (spec 5.4). Adds errors to core's
- * BlueprintError; never removes one.
+ * The plugin's compile checks (spec 5.4): the faults the check hook reports
+ * next to core's own errors.
  */
 export function checkBlueprint(
   view: BlueprintView,
-  report: (error: NexusError) => void,
   config: NormalOptions,
   ownModuleId: string | undefined,
-): void {
+): Fault[] {
+  const faults: Fault[] = [];
   const registered = config.registered.map((entry) => entry.token);
   const checked = new Set<AnyClass>();
 
@@ -151,7 +165,11 @@ export function checkBlueprint(
         isOneOf(provider, registered) &&
         (provider.lifetime === 'scoped' || provider.lifetime === 'transient')
       )
-        report(lifetime(provider.written, provider.lifetime));
+        faults.push({
+          code: 'NEXUS_INTERCEPTOR_LIFETIME',
+          token: displayName(provider.written),
+          detail: [provider.lifetime],
+        });
       continue;
     }
     const cls = provider.implementation;
@@ -159,41 +177,49 @@ export function checkBlueprint(
     checked.add(cls);
     const declarations = declarationsOf(cls);
     for (const problem of declarations.problems)
-      report(
-        invalid(problem.reason, {
-          target: problem.target,
-          detail: problem.key === undefined ? [] : [problem.key],
-        }),
-      );
+      faults.push({
+        code: 'NEXUS_INTERCEPTOR_INVALID',
+        reason: problem.reason,
+        target: problem.target,
+        detail: problem.key === undefined ? [] : [problem.key],
+      });
     for (const token of declarations.classTokens)
-      if (!registered.includes(token)) report(missing(token, cls.name, null));
+      if (!registered.includes(token))
+        faults.push(missing(token, cls.name, null));
     for (const [key, tokens] of declarations.methods) {
       const method = keyName(key);
       if (findMethod(cls.prototype as object, key) === undefined)
-        report(invalid('unknown-method', { target: cls.name, method }));
+        faults.push({
+          code: 'NEXUS_INTERCEPTOR_INVALID',
+          reason: 'unknown-method',
+          target: cls.name,
+          method,
+        });
       for (const token of tokens)
         if (!registered.includes(token))
-          report(missing(token, cls.name, method));
+          faults.push(missing(token, cls.name, method));
     }
   }
 
   for (const entry of config.global)
-    if (!registered.includes(entry.use)) report(missing(entry.use, null, null));
+    if (!registered.includes(entry.use))
+      faults.push(missing(entry.use, null, null));
   for (const binding of config.bindings) {
     for (const token of binding.class)
-      if (!registered.includes(token)) report(missing(token, null, null));
+      if (!registered.includes(token)) faults.push(missing(token, null, null));
     for (const [key, tokens] of binding.methods)
       for (const token of tokens)
         if (!registered.includes(token))
-          report(missing(token, null, keyName(key)));
+          faults.push(missing(token, null, keyName(key)));
   }
 
   if (ownModuleId !== undefined)
     checkSupport(
       view,
-      report,
+      faults,
       config,
       new Map(view.providers.map((p) => [p.id, p])),
       ownModuleId,
     );
+  return faults;
 }

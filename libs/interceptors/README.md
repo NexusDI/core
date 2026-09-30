@@ -106,7 +106,72 @@ The chain runs global entries first, then bindings, then class lists, then metho
 - An async method's caller sees a synchronous throw from an interceptor as a rejection. `tap(next, { value, error })` observes sync and async results alike.
 - A method called before the interceptors are built (a constructor calling a dependency's method) or after the container is disposed throws `NEXUS_INTERCEPTOR_NOT_READY`.
 - Call `interceptors()` once per container. A `create` with a plugin object that a running container holds fails with `NEXUS_INTERCEPTORS_SHARED`, and of two overlapping creates with one plugin object, the second to build fails with it. A plugin object whose create failed, or whose container is disposed, can be used again.
-- Errors carry core's one-line message. Register `errors()` from `@nexusdi/errors` for the full text and fix line, or pass a caught error to its `explain()`.
+- Bad `interceptors()` options fail `create` with `NEXUS_INTERCEPTOR_INVALID`, one error per fault, in the same `BlueprintError` as the graph's other errors.
+
+## Error text
+
+The errors `create` reports, and the ones a wrapped method throws once the container runs, carry a one-line message: their fields and a link to their docs page. The full text and fix line live in `interceptorsText` at `@nexusdi/interceptors/text`. Pass it to `errors()` from `@nexusdi/errors`:
+
+<!-- #region text -->
+
+```ts @import.meta.vitest
+import { Nexus, Token, defineModule, provide } from '@nexusdi/core';
+import { errors } from '@nexusdi/errors';
+import { interceptor, interceptors } from '@nexusdi/interceptors';
+import type { CallContext, Interceptor, Next } from '@nexusdi/interceptors';
+import { interceptorsText } from '@nexusdi/interceptors/text';
+
+interface IScanner {
+  sweep(sector: string): string;
+}
+const SCANNER = new Token<IScanner>('Scanner');
+const TRACE = new Token<Interceptor>('Trace');
+const AUDIT = new Token<Interceptor>('Audit');
+
+class Scanner implements IScanner {
+  sweep(sector: string): string {
+    return `sector ${sector} clear`;
+  }
+}
+
+class TraceInterceptor implements Interceptor {
+  intercept(_call: CallContext, next: Next) {
+    return next();
+  }
+}
+
+const Sensors = defineModule({
+  name: 'Sensors',
+  providers: [provide(SCANNER, { useClass: Scanner })],
+  exports: [SCANNER],
+});
+
+const messageWith = async (text: boolean) => {
+  try {
+    await Nexus.create(Sensors, {
+      plugins: [
+        errors(text ? { text: [interceptorsText] } : undefined),
+        interceptors({
+          register: [interceptor(TRACE, { useClass: TraceInterceptor })],
+          global: [AUDIT],
+        }),
+      ],
+    });
+  } catch (error) {
+    return (error as { errors: Error[] }).errors[0]?.message.split('\n');
+  }
+  return undefined;
+};
+
+const thin = await messageWith(false);
+thin; // -> ['[NEXUS_INTERCEPTOR_MISSING] token=Audit. https://nexus.js.org/errors/NEXUS_INTERCEPTOR_MISSING']
+const full = await messageWith(true);
+full; // -> ['[NEXUS_INTERCEPTOR_MISSING] a global entry or binding uses the interceptor Audit, which is not registered.', '  Fix: add Audit to interceptors({ register }).']
+```
+
+<!-- #endregion text -->
+
+Nothing in the main entry imports `@nexusdi/interceptors/text`, so an app that leaves the pack out carries none of its bytes. The errors thrown where no container formats them (a `@UseInterceptors` fault, a call before the interceptors are built or after disposal, and a fault in the plugin's `construct` hook) carry their full text without the pack.
 
 ## License
 

@@ -1,8 +1,16 @@
-import type { ProviderView } from '@nexusdi/core';
+import {
+  displayName,
+  type PluginContext,
+  type ProviderView,
+} from '@nexusdi/core';
 
-import { invalid, missing, notReady } from './interceptor-error.js';
-import { EXCLUDED_KEYS } from './metadata.js';
-import { keyName, nameOf } from './names.js';
+import {
+  errorOf,
+  invalidAt,
+  notReady,
+  type Fault,
+} from './interceptor-error.js';
+import { EXCLUDED_KEYS, keyName } from './metadata.js';
 import type { CallContext, Interceptor, InterceptorToken } from './types.js';
 
 /** A method as the proxy reads it off an instance. */
@@ -11,11 +19,24 @@ export type Method = (...args: never[]) => unknown;
 /**
  * One container's view of the registered interceptors. `instances` is set
  * when the registry is built; `disposed` when the registry is disposed.
+ * `context` is the container's plugin context from setup on.
  */
 export interface Session {
   instances: ReadonlyMap<unknown, Interceptor> | undefined;
   disposed: boolean;
+  context: PluginContext | undefined;
 }
+
+/**
+ * A call-time fault as an error. From setup on, the container formats it,
+ * so it carries interceptorsText's words when errors() has the pack.
+ */
+const callFault = (session: Session, fault: Fault): Error => {
+  const context = session.context;
+  return context === undefined
+    ? errorOf(fault)
+    : context.format(errorOf(fault));
+};
 
 export interface ProxyEnv {
   readonly session: Session;
@@ -88,7 +109,12 @@ function wrap(
       resolved = chain.map((token) => {
         const found = instances.get(token);
         if (found === undefined)
-          throw missing(token, provider.name, keyName(key));
+          throw callFault(session, {
+            code: 'NEXUS_INTERCEPTOR_MISSING',
+            token: displayName(token),
+            target: provider.name,
+            method: keyName(key),
+          });
         return found;
       });
       resolvedFor = instances;
@@ -106,8 +132,10 @@ function wrap(
       });
       return interceptor.intercept(context, (next) => {
         if (next !== undefined && !Array.isArray(next))
-          throw invalid('bad-next', {
-            token: nameOf(chain[index]),
+          throw callFault(session, {
+            code: 'NEXUS_INTERCEPTOR_INVALID',
+            reason: 'bad-next',
+            token: displayName(chain[index]),
             target: provider.name,
             method: keyName(key),
           });
@@ -192,11 +220,14 @@ export function interceptedProxy<T extends object>(
   let shadow: object = raw;
   if (locked.length > 0 && typeof raw === 'function') {
     const intercepted = locked.find((key) => chainOf(key).length > 0);
-    if (intercepted !== undefined)
-      throw invalid('bad-target', {
-        target: provider.name,
-        method: keyName(intercepted),
-      });
+    if (intercepted !== undefined) {
+      const method = keyName(intercepted);
+      throw invalidAt(
+        'bad-target',
+        { target: provider.name, method },
+        `${provider.name} is a frozen function, so its method ${method} cannot be wrapped.`,
+      );
+    }
   } else if (locked.length > 0) {
     shadow = Object.create(
       Object.getPrototypeOf(raw) as object | null,

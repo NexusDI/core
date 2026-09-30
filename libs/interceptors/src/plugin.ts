@@ -1,5 +1,6 @@
 import {
   defineModule,
+  displayName,
   Nexus,
   NEXUS_PLUGIN_API,
   provide,
@@ -14,10 +15,9 @@ import {
 
 import { bindingsFor, chainFor } from './chain.js';
 import { checkBlueprint, reach } from './check.js';
-import { invalid, shared } from './interceptor-error.js';
-import { declarationsOf, type Declarations } from './metadata.js';
-import { keyName, nameOf } from './names.js';
-import { normalizeOptions, type NormalOptions } from './options.js';
+import { errorOf, invalidAt, sharedAtBuild } from './interceptor-error.js';
+import { declarationsOf, keyName, type Declarations } from './metadata.js';
+import { parseOptions, type NormalOptions } from './options.js';
 import { findMethod, interceptedProxy, type Session } from './proxy.js';
 import type {
   Interceptor,
@@ -86,6 +86,7 @@ const close = (session: ContainerSession | undefined): void => {
   if (session === undefined) return;
   session.disposed = session.closed = true;
   session.instances = undefined;
+  session.context = undefined;
 };
 
 /** Whether two compiles say the same about every provider. */
@@ -123,9 +124,22 @@ interface ProviderPlan {
  * The interceptors plugin (spec section 5). Registers every interceptor in
  * one module with a private registry factory that core builds before any
  * onInit, and wraps class and factory instances that have interceptors.
+ * Bad options make every hook but compile.check a no-op; the check reports
+ * each fault (spec section 2.5.12 of the extension principle).
  */
 export function interceptors(options: InterceptorsOptions): NexusPlugin {
-  const config = normalizeOptions(options);
+  const parsed = parseOptions(options);
+  if (Array.isArray(parsed))
+    return {
+      name: 'nexus:interceptors',
+      apiVersion: NEXUS_PLUGIN_API,
+      compile: {
+        check(_view: BlueprintView, report: (error: NexusError) => void) {
+          for (const fault of parsed) report(errorOf(fault));
+        },
+      },
+    };
+  const config = parsed;
   const tokens = config.registered.map((entry) => entry.token);
   const REGISTRY = new Token<unknown>('interceptors registry');
   const GUARD = new Token<object>('interceptors guard');
@@ -146,8 +160,14 @@ export function interceptors(options: InterceptorsOptions): NexusPlugin {
       if (
         typeof (instance as { intercept?: unknown } | null)?.intercept !==
         'function'
-      )
-        throw invalid('no-intercept', { token: nameOf(token) });
+      ) {
+        const name = displayName(token);
+        throw invalidAt(
+          'no-intercept',
+          { token: name },
+          `the interceptor ${name} has no intercept(call, next) method.`,
+        );
+      }
       map.set(token, instance as Interceptor);
     });
     return map;
@@ -230,13 +250,14 @@ export function interceptors(options: InterceptorsOptions): NexusPlugin {
     let session = state.sessions.get(container);
     if (session !== undefined) return session;
     const live = state.live;
-    if (live !== undefined && isLive(live)) throw shared();
+    if (live !== undefined && isLive(live)) throw sharedAtBuild();
     session = {
       container,
       candidates: state.pending.filter((p) => p.count > 0),
       matched: false,
       instances: undefined,
       disposed: false,
+      context: undefined,
       started: false,
       closed: false,
     };
@@ -275,7 +296,7 @@ export function interceptors(options: InterceptorsOptions): NexusPlugin {
   ): CompiledProvider => {
     if (session.matched) {
       const entry = session.candidates[0]?.compiled.get(provider.id);
-      if (!agrees(entry, provider)) throw shared();
+      if (!agrees(entry, provider)) throw sharedAtBuild();
       return entry;
     }
     const kept: PendingCompile[] = [];
@@ -288,11 +309,11 @@ export function interceptors(options: InterceptorsOptions): NexusPlugin {
         (found.own !== entry.own ||
           (config.global.length > 0 && found.support !== entry.support))
       )
-        throw shared();
+        throw sharedAtBuild();
       found = entry;
       kept.push(candidate);
     }
-    if (found === undefined) throw shared();
+    if (found === undefined) throw sharedAtBuild();
     if (kept.length === 1) claim(session, kept[0] as PendingCompile);
     session.candidates = kept;
     return found;
@@ -332,16 +353,9 @@ export function interceptors(options: InterceptorsOptions): NexusPlugin {
         const own = view.modules.find(
           (m) => m.definition === module || m.replaced === module,
         );
-        let failed = !view.complete;
-        checkBlueprint(
-          view,
-          (error) => {
-            failed = true;
-            report(error);
-          },
-          config,
-          own?.id,
-        );
+        const faults = checkBlueprint(view, config, own?.id);
+        for (const fault of faults) report(errorOf(fault));
+        const failed = !view.complete || faults.length > 0;
         if (view.phase === 'check' || failed || own === undefined) return;
         const live = state.live;
         const compiled = compileOf(view, own.id);
@@ -373,7 +387,7 @@ export function interceptors(options: InterceptorsOptions): NexusPlugin {
         // A live container holds the plugin object. Failing here, before
         // any build, leaves its session alone (spec R9).
         if (live !== undefined && isLive(live)) {
-          report(shared());
+          report(errorOf({ code: 'NEXUS_INTERCEPTORS_SHARED' }));
           return;
         }
         const same = state.pending.find((p) =>
@@ -426,11 +440,14 @@ export function interceptors(options: InterceptorsOptions): NexusPlugin {
         return undefined;
       for (const binding of plan.bindings) {
         for (const key of binding.methods.keys()) {
-          if (findMethod(instance, key) === undefined)
-            throw invalid('unknown-method', {
-              target: provider.name,
-              method: keyName(key),
-            });
+          if (findMethod(instance, key) === undefined) {
+            const method = keyName(key);
+            throw invalidAt(
+              'unknown-method',
+              { target: provider.name, method },
+              `${provider.name} has a binding for ${method}, which is not a method of the instance its provider built.\n  Fix: correct the method name in interceptors({ bindings }).`,
+            );
+          }
         }
       }
       return interceptedProxy(instance, provider, scope, {
