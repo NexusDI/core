@@ -344,6 +344,14 @@ describe('formatThrown', () => {
     );
   });
 
+  it('passes a frozen BlueprintError a check reports through, inside the aggregate', async () => {
+    const raised = Object.freeze(
+      new BlueprintError([new BerthLockedError({ berth: 'B7' })]),
+    );
+    const error = await checkedWith(() => raised, nearBerth);
+    expect(error).toBe(raised);
+  });
+
   it('passes the failed compile its view, and a runtime error the current one', async () => {
     const views: (BlueprintView | undefined)[] = [];
     const plugins = [

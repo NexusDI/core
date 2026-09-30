@@ -71,7 +71,7 @@ export function formatThrown(
     if (error instanceof BlueprintError) {
       for (const inner of error.errors)
         formatThrown(plugins, () => scope, inner);
-      error.message = blueprintMessage(error.errors);
+      Reflect.set(error, 'message', blueprintMessage(error.errors));
     }
     for (const hook of plugins.formatError) {
       let text: unknown;
