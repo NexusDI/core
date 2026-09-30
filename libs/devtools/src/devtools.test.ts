@@ -1,8 +1,19 @@
-import { describe, expect, it } from 'vitest';
+import { describe, expect, it, vi } from 'vitest';
 
-import { Nexus, Token, defineModule, provide } from '@nexusdi/core';
+import {
+  Nexus,
+  Token,
+  defineModule,
+  provide,
+  type ErrorTextPack,
+} from '@nexusdi/core';
 import { errors } from '@nexusdi/errors';
 
+import { rejected, thrown } from '../test-support/catch.js';
+import {
+  reactorCheck,
+  reactorText,
+} from '../test-support/third-party-codes.js';
 import { devtools, graph, inspect, type TraceEvent } from './index.js';
 
 const CHARTS = new Token<string>('Charts');
@@ -12,6 +23,21 @@ const Tactical = defineModule({
   exports: [CHARTS],
 });
 const Science = defineModule({ name: 'Science' });
+const Broken = defineModule({
+  name: 'Broken',
+  providers: [provide(CHARTS, { useValue: 'x', lifetime: 'scoped' } as never)],
+});
+
+const REACTOR_MESSAGE =
+  '[ACME_REACTOR_OFFLINE] the aft reactor is offline.\n' +
+  '  Fix: start it before the container compiles.';
+
+/** A caller's translation of one core code. */
+const swedish = {
+  NEXUS_INVALID_PROVIDER: (error) => ({
+    message: `${error.module}.providers[${error.index}] är ogiltig.`,
+  }),
+} satisfies ErrorTextPack;
 
 describe('graph', () => {
   it('describes each container a reused devtools() is registered in', async () => {
@@ -110,6 +136,40 @@ describe('inspect', () => {
       }),
     );
   });
+
+  it("formats another package's code, raised from a check hook, with options.text", () => {
+    expect(
+      thrown(() =>
+        inspect(Science, { plugins: [reactorCheck], text: [reactorText] }),
+      ),
+    ).toMatchObject({ errors: [{ message: REACTOR_MESSAGE }] });
+  });
+
+  it("lets a caller's translation plugin word a core code ahead of its own formatter", () => {
+    expect(
+      thrown(() => inspect(Broken, { plugins: [errors({ text: [swedish] })] })),
+    ).toMatchObject({
+      errors: [
+        {
+          message: '[NEXUS_INVALID_PROVIDER] Broken.providers[0] är ogiltig.',
+        },
+      ],
+    });
+  });
+
+  it('passes options.text to no one but its own formatter', () => {
+    const check = vi.spyOn(Nexus, 'check');
+    try {
+      inspect(Science, { text: [reactorText], load: [Tactical] });
+      expect(check).toHaveBeenCalledOnce();
+      expect(Object.keys(check.mock.calls[0]?.[1] ?? {}).sort()).toEqual([
+        'load',
+        'plugins',
+      ]);
+    } finally {
+      check.mockRestore();
+    }
+  });
 });
 
 describe('devtools', () => {
@@ -127,6 +187,16 @@ describe('devtools', () => {
     expect(error?.errors[0]?.message).toBe(
       '[NEXUS_INVALID_PROVIDER] Broken.providers[0] sets a lifetime on useValue; a value has none.',
     );
+  });
+
+  it("formats another package's code, raised from a check hook, with options.text", async () => {
+    expect(
+      await rejected(
+        Nexus.create(Science, {
+          plugins: [reactorCheck, devtools({ text: [reactorText] })],
+        }),
+      ),
+    ).toMatchObject({ errors: [{ message: REACTOR_MESSAGE }] });
   });
 
   it('registers observe only when options.trace is set', async () => {

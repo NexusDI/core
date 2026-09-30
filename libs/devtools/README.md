@@ -64,9 +64,21 @@ events.map((event) => event.type); // -> ['compile', 'construct', 'construct']
 
 A factory's `async` in `graph()` says whether its last build returned a thenable.
 
+## Text packs
+
+`devtools({ text })` and `inspect(root, { text })` take the text packs `errors({ text })` takes, and read them in the same order: your packs in array order, then core's pack. Pass the pack of each package whose codes you want worded:
+
+```ts
+import { federationText } from '@nexusdi/federation/text';
+
+const plugins = dev ? [devtools({ text: [federationText] })] : [];
+```
+
 ## Inspect
 
 `inspect(root)` compiles the graph `Nexus.check` compiles and builds nothing, for a CLI or a CI job. It takes the root forms `Nexus.check` takes: a module, a provider array, or `{ providers, imports, exports }`. Every provider's `async` in its graph is `null`, since nothing ran.
+
+`inspect()` passes `options.plugins` to `Nexus.check` and adds its own formatter after them, so an `errors()` or `devtools()` in your plugins words an error first. `options.text` goes to that formatter and never to `Nexus.check`.
 
 <!-- #region inspect -->
 

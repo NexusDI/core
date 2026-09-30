@@ -1,5 +1,6 @@
 import {
   NEXUS_PLUGIN_API,
+  type ErrorTextPack,
   type Nexus,
   type NexusPlugin,
   type PluginContext,
@@ -16,6 +17,8 @@ const CONTEXTS = new WeakMap<Nexus, PluginContext>();
 export interface DevtoolsOptions {
   /** Receives every lifecycle event, as trace() does. */
   readonly trace?: (event: TraceEvent) => void;
+  /** Text packs, ahead of core's own. An earlier pack wins for the same code. */
+  readonly text?: readonly ErrorTextPack[];
 }
 
 /** graph(), the trace and @nexusdi/errors' messages for development. */
@@ -27,7 +30,7 @@ export function devtools(options: DevtoolsOptions = {}): NexusPlugin {
       CONTEXTS.set(context.container, context);
     },
     ...(options.trace === undefined ? {} : { observe: options.trace }),
-    formatError: (error, view) => explain(error, { view }),
+    formatError: (error, view) => explain(error, { view, text: options.text }),
   };
 }
 
