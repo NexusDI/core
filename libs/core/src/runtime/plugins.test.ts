@@ -242,6 +242,26 @@ describe('PluginContext.format', () => {
     expect(calls).toEqual([error]);
   });
 
+  it('formats an error after the container is disposed', async () => {
+    let context: PluginContext | undefined;
+    const ship = await Nexus.create(Root, {
+      plugins: [
+        plugin('raiser', {
+          setup: (c: PluginContext) => {
+            context = c;
+          },
+        }),
+        formatter(),
+      ],
+    });
+    await ship[Symbol.asyncDispose]();
+    const error = missingDeps();
+    expect(context?.format(error)).toBe(error);
+    expect(error.message).toBe(
+      '[NEXUS_MISSING_DEPS] The warp drive needs deps.\n  Fix: List them.',
+    );
+  });
+
   it('returns a value that is not a NexusError as is', async () => {
     const context = await contextWith(formatter());
     const thrown = new Error('coolant leak');
