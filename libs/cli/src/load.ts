@@ -8,22 +8,21 @@ import { importFile, resolveFrom } from './resolve.js';
 
 let registered = false;
 
-interface TsxApi {
-  register(): unknown;
-}
-
 /**
  * For a TypeScript entry, registers tsx from the entry's own project, once.
  * No fallback to this package's location: the project picks its loader.
- * register() and not tsImport(): tsImport() namespaces module URLs, which
- * would load a second @nexusdi/core beside the one devtools uses.
+ *
+ * Imports `tsx/esm`, which registers tsx's hooks when it loads, as
+ * `node --import tsx/esm` does. The `./esm` export has a single target, so
+ * require resolution finds the ESM file. `tsx/esm/api` has import and
+ * require targets, and require resolution picks the CJS build, whose
+ * register() cannot find its hooks file on Node 22.
  */
 export async function prepareLoader(ref: EntryRef): Promise<void> {
   if (registered || entryKind(ref) !== 'ts') return;
-  const file = resolveFrom('tsx/esm/api', ref.path);
+  const file = resolveFrom('tsx/esm', ref.path);
   if (file === null) return;
-  const api = await importFile<TsxApi | { default: TsxApi }>(file);
-  ('register' in api ? api : api.default).register();
+  await importFile<unknown>(file);
   registered = true;
 }
 
