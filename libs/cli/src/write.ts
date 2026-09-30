@@ -1,6 +1,8 @@
+import { statSync } from 'node:fs';
 import { writeFile } from 'node:fs/promises';
 
 import { CliError } from './cli-error.js';
+import type { EntryRef } from './entry.js';
 
 /** The part of a writable stream the CLI uses; process.stdout satisfies it. */
 export interface Output {
@@ -27,6 +29,33 @@ export function writeTo(
         : resolve(),
     );
   });
+}
+
+/** The file's device and inode, or null when it does not exist. */
+function identity(path: string): string | null {
+  const stat = statSync(path, { throwIfNoEntry: false, bigint: true });
+  return stat === undefined ? null : `${stat.dev}:${stat.ino}`;
+}
+
+/**
+ * Throws CliError 2 when --out is one of the run's input files. Compares
+ * device and inode, so another spelling of the path on a case-insensitive
+ * volume, or a link to the file, counts as the same file.
+ */
+export function checkOut(
+  out: string | null,
+  inputs: readonly EntryRef[],
+): void {
+  if (out === null) return;
+  const target = identity(out);
+  if (target === null) return;
+  const input = inputs.find((ref) => identity(ref.path) === target);
+  if (input !== undefined)
+    throw new CliError(
+      2,
+      `--out ${out} is ${input.shown}, an input to this run.`,
+      'Pass another --out file.',
+    );
 }
 
 export async function emit(

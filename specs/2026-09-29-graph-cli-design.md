@@ -186,9 +186,11 @@ command or install line that fixes it.
 A user runs `npx nexusdi graph src/app.module.ts` with no flags and no build. The CLI
 tries, in order:
 
-1. `tsx`, resolved from the entry file's directory. When found, the CLI calls `register()`
-   from `tsx/esm/api` once, then imports the entry and `@nexusdi/devtools` through the
-   ordinary loader. tsx reads the project's `tsconfig.json` (paths, `.js` specifiers
+1. `tsx`, resolved from the entry file's directory. When found, the CLI imports `tsx/esm`
+   once, which registers tsx's hooks as `node --import tsx/esm` does, then imports the
+   entry and `@nexusdi/devtools` through the ordinary loader. Resolving `tsx/esm/api`
+   with `createRequire` would pick its CommonJS build, whose `register()` cannot find its
+   hooks file on Node 22. tsx reads the project's `tsconfig.json` (paths, `.js` specifiers
    that name `.ts` files) and lowers standard decorators, so a `@nexusdi/decorators` app
    loads as it does under `tsx` itself.
 2. A direct `import()` of the entry. A loader the user registered by starting the CLI
@@ -212,7 +214,10 @@ The CLI resolves tsx from the entry's directory only, with no fallback to its ow
 location: the loader for a project's code is the project's choice, and a user who wants
 no tsx gets none.
 
-The CLI calls `register()`. tsx's `tsImport()` loads the import graph under a namespaced
+A `.cts` entry needs Node 24: on Node 22, a CommonJS file that tsx's hooks load fails
+inside Node's CommonJS translator, under `node --import tsx` as well.
+
+The CLI registers tsx globally. tsx's `tsImport()` loads the import graph under a namespaced
 URL, which would give the entry its own copy of `@nexusdi/core`, and core would reject
 every module as `NEXUS_INVALID_MODULE` with `otherCopy` set (core spec, the package
 split). A test pins this with a TypeScript fixture.
@@ -304,6 +309,9 @@ files, so a committed graph diffs cleanly in review.
   `style=dashed` for `optional` and `alias`, `style=dotted` for `lazy`, `style=bold` for
   `all`; Mermaid uses `-. optional .->`, `-. lazy .->`, `== all ==>` and `-- alias -->`.
 - Module imports are not drawn in this view; the modules view draws them.
+- Core lists its built-in `REQUEST` provider (id `request`) in every graph. Both views
+  leave it out, and out of the modules view's provider count, unless a provider depends
+  on it.
 
 ### 5.2 The modules view
 

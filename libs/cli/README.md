@@ -29,7 +29,7 @@ The entry is `path#export`, or `path` for the default export (`path#default` nam
 
 ## TypeScript
 
-A `.ts` entry needs no build and no flags. When the project has `tsx` installed, `nexusdi` loads the entry through it, with the project's `tsconfig.json`. Without tsx, Node 22.18 and later load TypeScript that only needs its types removed and whose imports name `.ts` files. Anything else asks for `npm i -D tsx`.
+A `.ts` entry needs no build and no flags. When the project has `tsx` installed, `nexusdi` loads the entry through it, with the project's `tsconfig.json`. Without tsx, Node 22.18 and later load TypeScript that only needs its types removed and whose imports name `.ts` files. Anything else asks for `npm i -D tsx`. A `.cts` entry needs Node 24.
 
 ## SVG and PNG
 

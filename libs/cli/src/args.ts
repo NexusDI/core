@@ -131,13 +131,5 @@ export function parseCommand(argv: readonly string[], cwd: string): Command {
         `${flag} ${ref.shown}: ${flag} takes a module file, and a .json file holds no exports.`,
         `Pass the .ts or .js file that exports it: ${flag} src/file.ts#Export`,
       );
-  const inputs = [entry, ...load, ...(plugins === null ? [] : [plugins])];
-  const overwritten = inputs.find((ref) => ref.path === out);
-  if (overwritten !== undefined)
-    throw new CliError(
-      2,
-      `--out ${values.out} is ${overwritten.shown}, an input to this run.`,
-      'Pass another --out file.',
-    );
   return { kind: 'graph', entry, format, out, view, load, plugins };
 }

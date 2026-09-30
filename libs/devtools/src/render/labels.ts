@@ -44,14 +44,16 @@ const REQUEST_ID = 'request';
  * only when a provider depends on it.
  */
 export function drawnProviders(graph: NexusGraph): GraphProvider[] {
-  const targets = new Set(graph.edges.map((e) => e.to));
-  return graph.providers.filter(
-    (p) => p.id !== REQUEST_ID || targets.has(REQUEST_ID),
-  );
+  const used = graph.edges.some((e) => e.to === REQUEST_ID);
+  return graph.providers.filter((p) => used || p.id !== REQUEST_ID);
 }
 
-export function providerCount(graph: NexusGraph, moduleId: string): string {
-  const count = membersOf(graph, moduleId).length;
+/** `drawn` is drawnProviders(graph), computed once per render. */
+export function providerCount(
+  drawn: readonly GraphProvider[],
+  moduleId: string,
+): string {
+  const count = membersOf(drawn, moduleId).length;
   return `${count} provider${count === 1 ? '' : 's'}`;
 }
 
@@ -62,8 +64,8 @@ export function exportedIds(graph: NexusGraph): Set<string> {
 
 /** The drawn providers of one module, in graph order. */
 export function membersOf(
-  graph: NexusGraph,
+  drawn: readonly GraphProvider[],
   moduleId: string,
 ): GraphProvider[] {
-  return drawnProviders(graph).filter((p) => p.module === moduleId);
+  return drawn.filter((p) => p.module === moduleId);
 }

@@ -53,11 +53,12 @@ export function toMermaid(
   options: RenderOptions = {},
 ): string {
   const lines = ['flowchart LR'];
+  const drawn = drawnProviders(graph);
   const bold: string[] = [];
   if (options.view === 'modules') {
     for (const m of graph.modules) {
       lines.push(
-        `  ${m.id}[${label([moduleTitle(m), providerCount(graph, m.id)])}]`,
+        `  ${m.id}[${label([moduleTitle(m), providerCount(drawn, m.id)])}]`,
       );
       if (m.global) bold.push(m.id);
     }
@@ -65,7 +66,7 @@ export function toMermaid(
       for (const to of m.imports) lines.push(`  ${m.id} --> ${to}`);
   } else {
     for (const m of graph.modules) {
-      const members = membersOf(graph, m.id);
+      const members = membersOf(drawn, m.id);
       if (members.length === 0) continue;
       lines.push(`  subgraph ${m.id}[${label([moduleTitle(m)])}]`);
       for (const p of members) {
@@ -78,9 +79,7 @@ export function toMermaid(
     for (const e of graph.edges)
       lines.push(`  ${e.from} ${EDGE[e.kind]} ${e.to}`);
     const exported = exportedIds(graph);
-    const marked = drawnProviders(graph)
-      .filter((p) => exported.has(p.id))
-      .map((p) => p.id);
+    const marked = drawn.filter((p) => exported.has(p.id)).map((p) => p.id);
     if (marked.length > 0)
       lines.push(
         '  classDef exported stroke-width:3px',

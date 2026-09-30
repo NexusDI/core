@@ -27,10 +27,10 @@ function unwrap<T extends object>(module: T | { default: T }, key: string): T {
 }
 
 /**
- * Imports the optional peers `format` needs. A missing peer throws CliError 3
- * naming every missing one in one install line; a peer that resolves but
- * throws on import (its platform binary left out by --omit=optional) throws
- * CliError 3 with a reinstall line.
+ * Imports the optional peers `format` needs. When any is missing, or
+ * resolves but throws on import (its platform binary left out by
+ * --omit=optional), throws one CliError 3 that names every such peer and
+ * gives one install line for all of them.
  */
 async function peers(
   load: typeof importPeer,
@@ -38,29 +38,37 @@ async function peers(
   format: Format,
   fromFile: string,
 ): Promise<object[]> {
-  const modules = await Promise.all(
-    names.map(async (name) => {
-      try {
-        return await load<object>(name, fromFile);
-      } catch (error) {
-        throw new CliError(
-          3,
-          `--format ${format} needs ${name}, which is installed but failed to load: ${
-            (error as Error).message
-          }`,
-          `Reinstall it: npm i -D ${name}`,
-        );
-      }
-    }),
+  const settled = await Promise.allSettled(
+    names.map((name) => load<object>(name, fromFile)),
   );
-  const missing = names.filter((_, i) => modules[i] === null);
-  if (missing.length > 0)
+  const modules: object[] = [];
+  const failed: string[] = [];
+  const problems: string[] = [];
+  let broken = false;
+  for (const [i, result] of settled.entries()) {
+    const name = names[i] as string;
+    if (result.status === 'rejected') {
+      broken = true;
+      failed.push(name);
+      problems.push(
+        `${name}, which is installed but failed to load (${
+          (result.reason as Error).message
+        })`,
+      );
+    } else if (result.value === null) {
+      failed.push(name);
+      problems.push(name);
+    } else modules.push(result.value);
+  }
+  if (failed.length > 0)
     throw new CliError(
       3,
-      `--format ${format} needs ${missing.join(' and ')}.`,
-      `Install ${missing.length === 1 ? 'it' : 'them'}: npm i -D ${missing.join(' ')}`,
+      `--format ${format} needs ${problems.join(' and ')}.`,
+      `${broken ? 'Reinstall' : 'Install'} ${
+        failed.length === 1 ? 'it' : 'them'
+      }: npm i -D ${failed.join(' ')}`,
     );
-  return modules as object[];
+  return modules;
 }
 
 async function svgOf(dot: string, viz: Viz): Promise<string> {
