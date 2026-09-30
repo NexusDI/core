@@ -33,7 +33,7 @@ describe('pairedRatio', () => {
     const rand = mulberry32(3);
     const a = Array.from({ length: 1000 }, () => 100 + rand() * 10);
     const b = a.map((x) => x / (1.1 + (rand() - 0.5) * 0.02));
-    const r = pairedRatio(a, b, 9);
+    const r = pairedRatio(a, b, 9, 2000);
     expect(r.low).toBeLessThanOrEqual(r.median);
     expect(r.high).toBeGreaterThanOrEqual(r.median);
     expect(r.low).toBeGreaterThan(1.09);
