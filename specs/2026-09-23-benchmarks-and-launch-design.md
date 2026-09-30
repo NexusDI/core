@@ -1735,7 +1735,7 @@ Core spec §17.3 and D19 require a benchmark that bounds the cost of the hook si
 plugin registered.
 
 The constant. `libs/core/src/definitions/hook-sites.ts` exports
-`export const HOOK_SITES: boolean = true;`. Every hook site guards itself with it: the
+`export const HOOK_SITES = true as boolean;`, so TypeScript does not narrow it to `true`. Every hook site guards itself with it: the
 tracer's `now` and `emit`, the `canon` lookup in `get()` and `has()`, `applyConstruct`,
 the `formatError` paths, the compile hooks (`module`, `provider`, `check`), plugin
 `modules`, `setup`, `dispose`, the view builds, and `registerPlugins`. The file sits in
@@ -1743,8 +1743,10 @@ the `formatError` paths, the compile hooks (`module`, `provider`, `check`), plug
 does not export it, and a test holds that.
 
 Bundle cost. esbuild inlines an imported `const` primitive when it bundles with
-`--minify`, and then drops `true &&`. The size report bundles that way, so its figure does
-not change. A Node user who runs core's `dist` without a bundler reads one immutable
+`--minify`, and then drops `true &&`. The size report bundles that way, so the guards add
+no bytes. Two changes the benchmark led to do: `root` became a data property set after the
+state object exists, and the tracer's sink loop moved into its own function so `emit`
+inlines. Core's size report goes from 18,317 to 18,328 bytes gzipped (+11). A Node user who runs core's `dist` without a bundler reads one immutable
 module binding per site, which V8 treats as a constant once optimised.
 
 The two builds. `libs/core/bench/build.mjs` bundles `libs/core/src/index.ts` twice with
@@ -1770,12 +1772,15 @@ The operations, per graph size:
   transient tokens.
 - `createScope`: 1,000 `createScope()` calls, each followed by its disposal.
 
-The sampler. Two long-lived worker processes, `on` and `off`, forked with
-`node --expose-gc`. One round asks each worker for one sample of one operation, in the
-Williams order of `bench-kit` (for two workers, alternating `on, off` and `off, on`), with
-`gc()` before each sample outside the timed region. 20 warm-up rounds, then 200 measured
-rounds per operation and graph size. The six results each get the paired ratio
-(`on / off` per round), its median and a 10,000-resample block-bootstrap 95% interval.
+The sampler. Each operation and graph size runs in 10 fresh pairs of worker processes,
+`on` and `off`, forked with `node --expose-gc`. One round asks each worker of the pair for
+one sample, in the Williams order of `bench-kit` (for two workers, alternating `on, off`
+and `off, on`), with `gc()` before each sample outside the timed region. Each pair runs 20
+warm-up rounds and 20 measured rounds, 200 measured rounds in all. One pair alone reports a
+tight interval around an offset that a process restart moves by several percent, so the
+pairs carry that noise into the result. The six results each get the paired ratio
+(`on / off` per round), its median and a 10,000-resample 95% interval from
+`clusteredRatio`, which resamples whole pairs of processes.
 
 The verdict, per result, checked in this order:
 
