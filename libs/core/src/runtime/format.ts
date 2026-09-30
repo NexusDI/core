@@ -55,36 +55,41 @@ export function formatThrown(
   error: unknown,
 ): unknown {
   if (
-    !(HOOK_SITES && plugins.formatError.length > 0) ||
-    !(error instanceof NexusError) ||
-    FORMATTED.has(error) ||
-    USER_THROWN.has(error) ||
-    ownsText(error)
-  )
-    return error;
-  FORMATTED.add(error);
-  const scope =
-    error instanceof BlueprintError ? (failedView(error) ?? view()) : view();
-  if (error instanceof BlueprintError) {
-    for (const inner of error.errors) formatThrown(plugins, () => scope, inner);
-    error.message = blueprintMessage(error.errors);
-  }
-  for (const hook of plugins.formatError) {
-    let text: unknown;
-    try {
-      text = hook.call(error, scope);
-    } catch {
+    HOOK_SITES &&
+    plugins.formatError.length > 0 &&
+    error instanceof NexusError &&
+    !FORMATTED.has(error) &&
+    !USER_THROWN.has(error) &&
+    !ownsText(error)
+  ) {
+    FORMATTED.add(error);
+    const scope =
+      error instanceof BlueprintError ? (failedView(error) ?? view()) : view();
+    if (error instanceof BlueprintError) {
+      for (const inner of error.errors)
+        formatThrown(plugins, () => scope, inner);
+      error.message = blueprintMessage(error.errors);
+    }
+    for (const hook of plugins.formatError) {
+      let text: unknown;
+      try {
+        text = hook.call(error, scope);
+      } catch {
+        return error;
+      }
+      if (text === undefined) continue;
+      if (!isText(text)) return error;
+      if (
+        text.nearMisses !== undefined &&
+        error instanceof MissingProviderError
+      )
+        Object.defineProperty(error, 'nearMisses', {
+          value: text.nearMisses,
+          enumerable: true,
+        });
+      error.message = layoutText(error.code, text);
       return error;
     }
-    if (text === undefined) continue;
-    if (!isText(text)) return error;
-    if (text.nearMisses !== undefined && error instanceof MissingProviderError)
-      Object.defineProperty(error, 'nearMisses', {
-        value: text.nearMisses,
-        enumerable: true,
-      });
-    error.message = layoutText(error.code, text);
-    return error;
   }
   return error;
 }
@@ -116,13 +121,15 @@ export function guardAsync<T>(
   state: RootState,
   promise: Promise<T>,
 ): Promise<T> {
-  if (!(HOOK_SITES && state.plugins.formatError.length > 0)) return promise;
-  let guarded = GUARDED.get(promise) as Promise<T> | undefined;
-  if (guarded === undefined) {
-    guarded = promise.then(undefined, (error: unknown) => {
-      throw formatFor(state, error);
-    });
-    GUARDED.set(promise, guarded);
+  if (HOOK_SITES && state.plugins.formatError.length > 0) {
+    let guarded = GUARDED.get(promise) as Promise<T> | undefined;
+    if (guarded === undefined) {
+      guarded = promise.then(undefined, (error: unknown) => {
+        throw formatFor(state, error);
+      });
+      GUARDED.set(promise, guarded);
+    }
+    return guarded;
   }
-  return guarded;
+  return promise;
 }

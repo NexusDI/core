@@ -9,11 +9,8 @@ for (const size of [50, 2000]) {
   const { providers, lookups } = makeGraph(core, size);
   ops[`create-${size}`] = {
     gc: true,
-    run: async () => {
-      const ship = await core.Nexus.create(providers);
-      await ship[Symbol.asyncDispose]();
-      return ship;
-    },
+    run: () => core.Nexus.create(providers),
+    teardown: (ship) => ship[Symbol.asyncDispose](),
   };
   ops[`get-${size}`] = {
     gc: true,
