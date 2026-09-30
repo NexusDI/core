@@ -3,7 +3,7 @@ import { join } from 'node:path';
 import { workspaceRoot } from '@nx/devkit';
 import { describe, expect, it } from 'vitest';
 
-import { libPackages, sourcesOf } from './entry-graph.js';
+import { libDirs, libPackages, sourcesOf } from './entry-graph.js';
 import {
   declaredCodes,
   instanceofClasses,
@@ -122,7 +122,10 @@ describe('instanceofClasses', () => {
 
 describe('textPlacement', () => {
   it('accepts pack text for reported and formatted codes and inline text elsewhere', () => {
-    expect(textPlacement(fixture('clean'), EMPTY).violations).toEqual([]);
+    const result = textPlacement(fixture('clean'), EMPTY);
+    expect(result.violations).toEqual([]);
+    expect(result.scanned.reports).toBeGreaterThan(0);
+    expect(result.scanned.formats).toBeGreaterThan(0);
   });
 
   it('reports a declared code with neither a pack entry nor an inline raise site', () => {
@@ -296,18 +299,28 @@ describe('textPlacement', () => {
   });
 
   const packages = libPackages(LIBS);
+  const live = packages.map((pkg) => textPlacement(pkg, POLICY));
 
-  it.each(packages.map((pkg) => [pkg.name, pkg] as const))(
+  it('scans every package in libs/, with files, codes, pack entries and reports to check', () => {
+    const scanned = live.map((result) => result.scanned);
+    const total = (key: keyof (typeof scanned)[number]) =>
+      scanned.reduce((sum, each) => sum + each[key], 0);
+    expect(packages).toHaveLength(libDirs(LIBS).length);
+    expect(total('files')).toBeGreaterThan(0);
+    expect(total('codes')).toBeGreaterThan(0);
+    expect(total('packEntries')).toBeGreaterThan(0);
+    expect(total('reports')).toBeGreaterThan(0);
+  });
+
+  it.each(packages.map((pkg, index) => [pkg.name, index] as const))(
     'holds for %s',
-    (_, pkg) => {
-      expect(textPlacement(pkg, POLICY).violations).toEqual([]);
+    (_, index) => {
+      expect(live[index]?.violations).toEqual([]);
     },
   );
 
   it('uses every policy entry for a package in libs/', () => {
-    const used = new Set(
-      packages.flatMap((pkg) => [...textPlacement(pkg, POLICY).used]),
-    );
+    const used = new Set(live.flatMap((result) => [...result.used]));
     const present = new Set(packages.map((pkg) => pkg.name));
     const entries = [
       ...POLICY.inlineText,

@@ -80,6 +80,17 @@ export interface TextPlacement {
   readonly violations: readonly string[];
   /** The policy entries this package needed. */
   readonly used: ReadonlySet<PolicyEntry>;
+  /** What the check found to hold the rule against. */
+  readonly scanned: {
+    readonly files: number;
+    /** Codes the package declares in `NexusErrorByCode`. */
+    readonly codes: number;
+    readonly packEntries: number;
+    /** `report(x)` calls in check hooks. */
+    readonly reports: number;
+    /** `format(x)` calls on a plugin context. */
+    readonly formats: number;
+  };
 }
 
 /** Whether a raise site passes `text`, or passes options the check cannot read. */
@@ -1159,7 +1170,8 @@ export function textPlacement(
       return site.text === 'inline' && site.code !== null ? [site.code] : [];
     }),
   );
-  for (const code of declaredCodes(pkg.files)) {
+  const declared = declaredCodes(pkg.files);
+  for (const code of declared) {
     if (packed.has(code) || inline.has(code)) continue;
     excuse(
       mine(policy.engineRendered).find((entry) => entry.code === code),
@@ -1209,5 +1221,17 @@ export function textPlacement(
   }
   for (const { node, argument, message } of untraced)
     excuse(siteAllowance(node, argument), message);
-  return { violations, used };
+  const count = (verb: Handoff['verb']) =>
+    handoffs.filter((handoff) => handoff.verb === verb).length;
+  return {
+    violations,
+    used,
+    scanned: {
+      files: pkg.files.length,
+      codes: declared.length,
+      packEntries: packed.size,
+      reports: count('reports'),
+      formats: count('formats'),
+    },
+  };
 }
