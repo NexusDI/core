@@ -9,7 +9,7 @@ import { importsOf, type SourceFileText } from './core-layers.js';
  * A package's text pack and its devtools notes are subpath entries of their
  * own, and the main entry must not reach them: an unbundled or CDN import of
  * the main entry would load them otherwise. The walk follows every relative
- * import, export-from and import() from src/index.ts. It skips a declaration
+ * import, export-from and import() from the `.` export's source file. It skips a declaration
  * that brings in types only, since the compiler erases it.
  */
 
@@ -59,6 +59,18 @@ function sourceOf(entry: unknown): string | undefined {
   return typeof source === 'string' ? source : undefined;
 }
 
+/** A source path from package.json, relative to src/. */
+function underSrc(source: string): string {
+  return posix.normalize(source).replace(/^src\//, '');
+}
+
+/** The main entry's source file, relative to src/: the `.` export's `@nexusdi/source`. */
+export function mainEntryOf(exports: unknown): string | undefined {
+  if (typeof exports !== 'object' || exports === null) return undefined;
+  const source = sourceOf((exports as Record<string, unknown>)['.']);
+  return source === undefined ? undefined : underSrc(source);
+}
+
 /**
  * The modules under src/ the main entry may not reach: `text.ts`, `text/`
  * and `devtools/` by convention, and the source module of a `./text` or
@@ -70,7 +82,7 @@ export function ownSubpathModules(exports: unknown): string[] {
   for (const subpath of ['./text', './devtools']) {
     const source = sourceOf((exports as Record<string, unknown>)[subpath]);
     if (source === undefined) continue;
-    const path = posix.normalize(source).replace(/^src\//, '');
+    const path = underSrc(source);
     const rule = path.endsWith('/index.ts')
       ? path.slice(0, -'index.ts'.length)
       : path;
@@ -80,21 +92,22 @@ export function ownSubpathModules(exports: unknown): string[] {
 }
 
 /**
- * Each module of `forbidden` that `index.ts` reaches through value imports,
+ * Each module of `forbidden` that `entry` reaches through value imports,
  * with the chain that reaches it, and each relative import the walk cannot
  * resolve. Paths are relative to src/.
  */
 export function entryGraphViolations(
   files: readonly SourceFileText[],
   forbidden: readonly string[] = ownSubpathModules(undefined),
+  entry = 'index.ts',
 ): string[] {
   const byPath = new Map(files.map((file) => [file.path, file]));
   const paths = new Set(byPath.keys());
-  const parent = new Map<string, string | null>([['index.ts', null]]);
-  const queue = ['index.ts'];
-  const found: string[] = byPath.has('index.ts')
+  const parent = new Map<string, string | null>([[entry, null]]);
+  const queue = [entry];
+  const found: string[] = byPath.has(entry)
     ? []
-    : ['src/index.ts is missing, so the main entry cannot be walked'];
+    : [`src/${entry} is missing, so the main entry cannot be walked`];
   const chainOf = (path: string): string => {
     const chain: string[] = [];
     for (let at: string | null = path; at !== null; at = parent.get(at) ?? null)
@@ -104,7 +117,7 @@ export function entryGraphViolations(
   for (let path = queue.shift(); path !== undefined; path = queue.shift()) {
     if (forbidden.some((rule) => matches(rule, path))) {
       found.push(
-        `index.ts reaches ${path} (${chainOf(path)}), and the main entry may not import the package text or devtools module`,
+        `${entry} reaches ${path} (${chainOf(path)}), and the main entry may not import the package text or devtools module`,
       );
       continue;
     }

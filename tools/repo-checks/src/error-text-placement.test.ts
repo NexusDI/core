@@ -1,4 +1,4 @@
-import { existsSync, readdirSync } from 'node:fs';
+import { existsSync, readdirSync, readFileSync } from 'node:fs';
 import { join } from 'node:path';
 
 import { workspaceRoot } from '@nx/devkit';
@@ -48,8 +48,24 @@ const POLICY: TextPolicy = {
         "the engine renders the aggregate from each inner error's pack text (spec section 2.5.3)",
     },
   ],
-  // report() and .format() arguments the check cannot trace to a raise site.
-  opaqueSites: [],
+  // Sites the check cannot trace: report() and format() arguments, check
+  // members, report and format handed on.
+  opaqueSites: [
+    {
+      package: '@nexusdi/core',
+      file: 'blueprint/hooks.ts',
+      argument: 'Object.freeze([])',
+      reason:
+        "NO_COMPILE_HOOKS: core's empty list of registered check hooks, which is no hook",
+    },
+    {
+      package: '@nexusdi/core',
+      file: 'runtime/plugins.ts',
+      argument: '[] as PluginHook<never>[]',
+      reason:
+        "the list core collects each plugin's check hook into, which is no hook",
+    },
+  ],
 };
 
 const EMPTY: TextPolicy = {
@@ -141,7 +157,34 @@ describe('textPlacement', () => {
     expect(
       textPlacement(fixture('sabotaged/report-passed-on'), EMPTY).violations,
     ).toEqual([
-      'plugin.ts:17 passes report on as a value, and the check cannot follow it; call report where the hook is written',
+      'plugin.ts:17 passes report on as a value, and the check cannot follow it; call report where it is bound, or allowlist the site with a reason',
+    ]);
+  });
+
+  it('follows a check hook the plugin names by reference', () => {
+    expect(
+      textPlacement(fixture('sabotaged/hook-by-name'), EMPTY).violations,
+    ).toEqual([
+      'plugin.ts:10 reports ACME_CACHE_MISS, built with inline text at errors.ts:9; reported and formatted errors take their text from the pack',
+    ]);
+  });
+
+  it('fails closed on a check hook it cannot trace or whose report it cannot name', () => {
+    expect(
+      textPlacement(fixture('sabotaged/hook-untraceable'), EMPTY).violations,
+    ).toEqual([
+      'plugin.ts:9 sets check to makeCheck(), which is neither a function written there nor a package-local function; write the hook as one, or allowlist the site with a reason',
+      'plugin.ts:16 takes report as ...args, which the check cannot follow; name the second parameter, or allowlist the site with a reason',
+    ]);
+  });
+
+  it('follows format through a destructured binding and an element access', () => {
+    expect(
+      textPlacement(fixture('sabotaged/format-unbound'), EMPTY).violations,
+    ).toEqual([
+      'plugin.ts:21 formats ACME_CACHE_MISS, built with inline text at plugin.ts:21; reported and formatted errors take their text from the pack',
+      'plugin.ts:22 formats ACME_CACHE_MISS, built with inline text at plugin.ts:22; reported and formatted errors take their text from the pack',
+      'plugin.ts:15 passes format on as a value, and the check cannot follow it; call format where it is bound, or allowlist the site with a reason',
     ]);
   });
 
@@ -198,7 +241,11 @@ describe('textPlacement', () => {
   const packages = readdirSync(LIBS)
     .filter((dir) => existsSync(join(LIBS, dir, 'src')))
     .map((dir) => ({
-      name: `@nexusdi/${dir}`,
+      name: (
+        JSON.parse(readFileSync(join(LIBS, dir, 'package.json'), 'utf8')) as {
+          name: string;
+        }
+      ).name,
       files: sourcesOf(join(LIBS, dir, 'src')),
     }));
 

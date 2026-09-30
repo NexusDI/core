@@ -6,6 +6,7 @@ import { describe, expect, it } from 'vitest';
 
 import {
   entryGraphViolations,
+  mainEntryOf,
   ownSubpathModules,
   resolveRelative,
   sourcesOf,
@@ -41,6 +42,19 @@ describe('resolveRelative', () => {
 
   it('returns null for a file that is not there', () => {
     expect(resolveRelative('index.ts', './missing.js', paths)).toBeNull();
+  });
+});
+
+describe('mainEntryOf', () => {
+  it('reads the source of the . export, relative to src/', () => {
+    expect(mainEntryOf({ '.': { '@nexusdi/source': './src/main.ts' } })).toBe(
+      'main.ts',
+    );
+  });
+
+  it('returns undefined for a package with no . source', () => {
+    expect(mainEntryOf({ './text': './src/text.ts' })).toBeUndefined();
+    expect(mainEntryOf(undefined)).toBeUndefined();
   });
 });
 
@@ -93,18 +107,39 @@ describe('entryGraphViolations', () => {
     ]);
   });
 
+  it('walks from the entry it is given', () => {
+    expect(
+      entryGraphViolations(
+        fixture('sabotaged/text-file'),
+        undefined,
+        'feature.ts',
+      ),
+    ).toEqual([
+      'feature.ts reaches text.ts (feature.ts > text.ts), and the main entry may not import the package text or devtools module',
+    ]);
+  });
+
+  it('reports a main entry whose file is missing', () => {
+    expect(
+      entryGraphViolations(fixture('clean'), undefined, 'main.ts'),
+    ).toEqual(['src/main.ts is missing, so the main entry cannot be walked']);
+  });
+
   const packages = readdirSync(LIBS).filter((dir) =>
-    existsSync(join(LIBS, dir, 'src', 'index.ts')),
+    existsSync(join(LIBS, dir, 'package.json')),
   );
 
   it.each(packages)('holds for libs/%s', (dir) => {
     const manifest = JSON.parse(
       readFileSync(join(LIBS, dir, 'package.json'), 'utf8'),
-    ) as { exports?: unknown };
+    ) as { exports?: Record<string, unknown> };
+    const entry = mainEntryOf(manifest.exports);
+    expect(entry, `libs/${dir} exports . without a source file`).toBeDefined();
     expect(
       entryGraphViolations(
         sourcesOf(join(LIBS, dir, 'src')),
         ownSubpathModules(manifest.exports),
+        entry,
       ),
     ).toEqual([]);
   });
