@@ -15,6 +15,9 @@ export default defineConfig(() => ({
     environment: 'node',
     include: ['src/**/*.test.ts'],
     reporters: ['default'],
+    // The sampler tests fork workers and the bootstrap tests resample
+    // thousands of times; under a parallel nx run both outlast 5 s.
+    testTimeout: 30_000,
     coverage: {
       reportsDirectory: './test-output/vitest/coverage',
       provider: 'v8' as const,
