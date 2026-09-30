@@ -1839,17 +1839,19 @@ noisy runner whose median is under the bound does not fail an unrelated pull req
 Ruling: the benchmark runs as `nx run @nexusdi/core:bench-dispatch`, and a
 `dispatch` job in `benchmarks.yml` runs it on pull requests that touch `libs/core/src/**`.
 A `fail` fails the job. This is a timing gate on a pull request, which section 4.8 rules
-out for the cross-library timings, so it is reported as an owner decision.
+out for the cross-library timings, so it went to the owner, who accepted it as built on
+2026-09-30 (D2).
 
-### 14.7 Rulings that need the owner
+### 14.7 Owner rulings
 
 1. K14 gates pull requests that touch `libs/core/src/**` (section 14.6). Section 4.8 said
    no timing gates a pull request. The gate compares two builds of one commit, interleaved
    in one job, so machine drift divides out. An `inconclusive` case is extended once and
    then fails when its median is above 1.03, which makes the gate stricter than the first
-   ruling, where every `inconclusive` run passed. Without the
-   gate, a hook site that costs more than 3% reaches `main` and is found at the RC
-   checklist.
+   ruling, where every `inconclusive` run passed. Without the gate, a hook site that
+   costs more than 3% reaches `main` and is found at the RC checklist. Accepted on
+   2026-09-30 (D2): the gate stays as built, the stricter `inconclusive` rule included
+   (extend once, then fail when the median is above 1.03).
 
 ### 14.8 Plugin API gaps
 
