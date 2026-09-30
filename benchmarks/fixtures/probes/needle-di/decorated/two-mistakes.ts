@@ -9,8 +9,9 @@
 // started", "Injection" and "Tokens".
 // Departures: initializer injection, which the Injection page documents.
 // The page recommends constructor parameter properties, and Node's type
-// stripping rejects them in the node-strip-types cell. needle-di documents singletons only, so the transient and
-// scoped sections are not-applicable (libraries.json).
+// stripping rejects them in the node-strip-types cell. needle-di documents
+// singletons only, so the transient and scoped sections are not-applicable
+// (libraries.json).
 import { Container, InjectionToken, inject, injectable } from '@needle-di/core';
 
 interface INavCharts {

@@ -5,9 +5,9 @@
 // Docs: https://inversify.io/docs/introduction/getting-started/ (8.2.3), read 2026-09-30.
 // The page imports no polyfill itself: @inversifyjs/container imports
 // reflect-metadata/lite.
-// Departures: fields for dependencies, because
-// Node's type stripping rejects parameter properties and node-strip-types
-// is a cell. Every binding sets its scope, since InversifyJS defaults to
+// Departures: fields for dependencies, because Node's type stripping
+// rejects parameter properties and node-strip-types is a cell.
+// Every binding sets its scope, since InversifyJS defaults to
 // transient (spec 4.3 rule 1). ready() builds the container, so each call
 // starts empty. InversifyJS documents no per-request child container, so
 // the scoped section is not-applicable (libraries.json).

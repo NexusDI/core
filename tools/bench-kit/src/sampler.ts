@@ -134,8 +134,9 @@ export async function interleave(
   if (shared !== undefined) for (const w of workers) out[w.id].batch = shared;
   const rounds = opts.warmup + opts.measured;
   for (let round = 0; round < rounds; round++) {
-    // The measured rounds start again at the first row, so a warm-up count
-    // that is not a multiple of the row count leaves their balance intact.
+    // The measured rounds start again at the first row, which keeps the
+    // warm-up count out of their balance. The balance is exact when the
+    // measured count is a multiple of the row count.
     const row = round < opts.warmup ? round : round - opts.warmup;
     for (const index of orderFor(row, workers.length, opts.seed)) {
       const w = workers[index];
