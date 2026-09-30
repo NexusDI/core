@@ -3,7 +3,7 @@ import { errors } from '@nexusdi/errors';
 import { createTestingContainer } from '@nexusdi/testing';
 import { describe, expect, it } from 'vitest';
 
-import { findCode, rejected } from '../test-support/catch.js';
+import { findCode, rejected, thrown } from '../test-support/catch.js';
 import {
   interceptor,
   interceptors,
@@ -110,6 +110,29 @@ describe('integration', () => {
     );
     expect(findCode(error, 'NEXUS_INTERCEPTOR_INVALID')?.message).toBe(
       '[NEXUS_INTERCEPTOR_INVALID] reason=options detail=register-empty. https://nexus.js.org/errors/NEXUS_INTERCEPTOR_INVALID',
+    );
+  });
+
+  it('words a call-time fault through errors() once the container runs', async () => {
+    await using ship = await Nexus.create(App, {
+      plugins: [
+        errors({ text: [interceptorsText] }),
+        interceptors({
+          register: [
+            interceptor(SHOUT, {
+              useValue: { intercept: (_call, next) => next('ada' as never) },
+            }),
+          ],
+        }),
+      ],
+    });
+    expect(
+      findCode(
+        thrown(() => ship.get(GREETER).greet('ada')),
+        'NEXUS_INTERCEPTOR_INVALID',
+      )?.message,
+    ).toBe(
+      '[NEXUS_INTERCEPTOR_INVALID] Shout passed next() arguments that are not an array, in Greeter.greet.',
     );
   });
 

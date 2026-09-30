@@ -1,7 +1,15 @@
-import { defineModule, lazy, Nexus, provide, Token } from '@nexusdi/core';
+import {
+  defineModule,
+  lazy,
+  Nexus,
+  provide,
+  Token,
+  type NexusPlugin,
+  type ProviderView,
+} from '@nexusdi/core';
 import { describe, expect, it } from 'vitest';
 
-import { findCode, rejected } from '../test-support/catch.js';
+import { findCode, rejected, thrown } from '../test-support/catch.js';
 import { interceptor } from './options.js';
 import { interceptors } from './plugin.js';
 import type { CallContext, Interceptor, Next } from './types.js';
@@ -420,102 +428,129 @@ describe('session lifecycle', () => {
     await ship[Symbol.asyncDispose]();
   });
 
-  it('still wraps every service after a failed create left a compile that agrees on every id', async () => {
+  it('wraps every service of a create after a failed compile of the same graph', async () => {
     const plugin = logging();
-    const TUNING = new Token<{ gain: number }>('Tuning');
-    const Radio = defineModule({
-      name: 'Radio',
-      options: TUNING,
-      schema: {
-        '~standard': {
-          version: 1,
-          vendor: 'test',
-          validate: () => ({ issues: [{ message: 'no gain' }] }),
-        },
-      },
+    const App = defineModule({
+      name: 'App',
+      imports: [StoreModule, JournalModule],
+      exports: [STORE, JOURNAL],
     });
-    const imports = [StoreModule, JournalModule];
-    // The same graph with one more module at the end: every provider of
-    // the next create has the same id, token and module in this compile.
-    await rejected(
-      Nexus.create(
-        defineModule({
-          name: 'App',
-          imports: [...imports, Radio.forRoot({ gain: 1 })],
-          exports: [STORE, JOURNAL],
-        }),
-        { plugins: [plugin] },
-      ),
-    );
-    await using ship = await Nexus.create(
-      defineModule({ name: 'App', imports, exports: [STORE, JOURNAL] }),
-      { plugins: [plugin] },
-    );
+    const veto = {
+      name: 'veto',
+      apiVersion: 1,
+      compile: {
+        check: (_view: unknown, report: (error: never) => void) =>
+          report(new Error('vetoed') as never),
+      },
+    };
+    await rejected(Nexus.create(App, { plugins: [plugin, veto] }));
+    await using ship = await Nexus.create(App, { plugins: [plugin] });
     expect(ship.get(STORE).flush()).toBe('flushed');
     expect(ship.get(JOURNAL).lines).toEqual(['Store.flush']);
   });
 
-  it('runs declared interceptors after a failed create left a stale compile, with no global entries', async () => {
-    const CLOCK = new Token<object>('Clock');
-    const calls: string[] = [];
-    const plugin = interceptors({
-      register: [
-        interceptor(LOG, {
-          useValue: {
-            intercept: (call: CallContext, next: Next) => (
-              calls.push(String(call.method)),
-              next()
-            ),
-          },
-        }),
-      ],
-    });
-    class Audited {
-      static interceptors = { class: [LOG] };
-      run() {
-        return 'ran';
-      }
-    }
-    const TUNING = new Token<{ gain: number }>('Tuning');
-    const Radio = defineModule({
-      name: 'Radio',
-      options: TUNING,
-      schema: {
-        '~standard': {
-          version: 1,
-          vendor: 'test',
-          validate: () => ({ issues: [{ message: 'no gain' }] }),
-        },
-      },
-    });
-    const AUDITED = new Token<Audited>('Audited');
-    await rejected(
-      Nexus.create(
-        defineModule({
-          name: 'App',
-          providers: [
-            provide(CLOCK, { useValue: {} }),
-            provide(AUDITED, { useClass: Audited }),
-          ],
-          imports: [Radio.forRoot({ gain: 1 })],
-          exports: [AUDITED],
-        }),
-        { plugins: [plugin] },
-      ),
-    );
+  it('wraps a lazy singleton first built after a load', async () => {
+    const LATE = new Token<IStore>('LateStore');
     await using ship = await Nexus.create(
       defineModule({
         name: 'App',
-        providers: [
-          provide(CLOCK, { useValue: {} }),
-          provide(AUDITED, { useClass: Audited }),
-        ],
-        exports: [AUDITED],
+        imports: [JournalModule],
+        providers: [provide(STORE, { useClass: Store, eager: false })],
+        exports: [STORE, JOURNAL],
       }),
-      { plugins: [plugin] },
+      { plugins: [logging()] },
     );
-    expect(ship.get(AUDITED).run()).toBe('ran');
-    expect(calls).toEqual(['run']);
+    await ship.load(
+      defineModule({
+        name: 'Late',
+        providers: [provide(LATE, { useClass: Store })],
+        exports: [LATE],
+      }),
+    );
+    ship.get(STORE).flush();
+    expect(ship.get(JOURNAL).lines).toEqual(['Store.flush']);
+  });
+
+  it('wraps a scoped service a scope opened before a load builds after it', async () => {
+    const SCOPED = new Token<IStore>('ScopedStore');
+    await using ship = await Nexus.create(
+      defineModule({
+        name: 'App',
+        imports: [JournalModule],
+        providers: [provide(SCOPED, { useClass: Store, lifetime: 'scoped' })],
+        exports: [SCOPED, JOURNAL],
+      }),
+      { plugins: [logging()] },
+    );
+    await using scope = await ship.createScope();
+    await ship.load(defineModule({ name: 'Late' }));
+    scope.get(SCOPED).flush();
+    expect(ship.get(JOURNAL).lines).toEqual(['ScopedStore.flush']);
+  });
+
+  it('wraps services when the container is not an instance of this copy of core', async () => {
+    // A second copy of @nexusdi/core builds a Nexus that fails instanceof
+    // against this copy's class. The plugin takes the container the hooks
+    // name as it is, so it still finds the session.
+    const plugin = logging();
+    const stand = new WeakMap<object, object>();
+    const foreign = (container: object): object => {
+      let other = stand.get(container);
+      if (other === undefined) {
+        other = { has: (token: never) => (container as Nexus).has(token) };
+        stand.set(container, other);
+      }
+      return other;
+    };
+    const renamed: NexusPlugin = {
+      ...plugin,
+      construct: (instance, provider, scope, container) =>
+        plugin.construct?.(
+          instance,
+          provider,
+          scope,
+          foreign(container) as Nexus,
+        ),
+      setup: (context) =>
+        plugin.setup?.(
+          Object.create(context, {
+            container: { value: foreign(context.container) },
+          }) as typeof context,
+        ),
+    };
+    const ship = await Nexus.create(
+      defineModule({
+        name: 'App',
+        imports: [StoreModule, JournalModule],
+        exports: [STORE, JOURNAL],
+      }),
+      { plugins: [renamed] },
+    );
+    expect(foreign(ship)).not.toBeInstanceOf(Nexus);
+    const store = ship.get(STORE);
+    expect(store.flush()).toBe('flushed');
+    expect(ship.get(JOURNAL).lines).toEqual(['Store.flush']);
+    await ship[Symbol.asyncDispose]();
+    expect(
+      findCode(
+        thrown(() => store.flush()),
+        'NEXUS_INTERCEPTOR_NOT_READY',
+      ),
+    ).toMatchObject({ state: 'disposed' });
+  });
+
+  it('throws UNCHECKED for a provider view no compile.check of the plugin saw', () => {
+    const plugin = logging();
+    const view = {
+      id: 'p1',
+      name: 'Stray',
+      module: 'm1',
+      kind: 'class',
+    } as unknown as ProviderView;
+    const error = thrown(() => plugin.construct?.({}, view, null, {} as Nexus));
+    expect(findCode(error, 'NEXUS_INTERCEPTORS_UNCHECKED')).toMatchObject({
+      target: 'Stray',
+    });
   });
 
   it("builds a disposing container's scope without the session of the container that claimed the plugin object", async () => {
