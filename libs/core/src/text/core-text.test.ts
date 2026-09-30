@@ -67,6 +67,27 @@ describe('coreText', () => {
     );
   });
 
+  it("returns the error's own near misses for an error built without a lookup, given a view", () => {
+    const own: NearMiss = { kind: 'not-imported', module: 'Science' };
+    const calls: unknown[][] = [];
+    const text = coreText.NEXUS_MISSING_PROVIDER(
+      new MissingProviderError({
+        token: 'NavCharts',
+        requester: null,
+        module: 'Meridian',
+        entry: null,
+        nearMisses: [own],
+      }),
+      view,
+      kit(calls),
+    );
+    expect(calls).toEqual([]);
+    expect(text.nearMisses).toEqual([own]);
+    expect(text.message).toContain(
+      'NavCharts is exported by Science, which Meridian does not import.',
+    );
+  });
+
   it('names the second copy of core for a value another copy made', () => {
     const text = coreText.NEXUS_INVALID_MODULE(
       new InvalidModuleError({
