@@ -53,7 +53,7 @@ export interface TraceEventByType {
   dispose: { disposed: number; errors: number; durationMs: number };
 }
 
-/** A typed lifecycle event. `TraceEvent` alone is the union of every type. */
+/** A trace event. `TraceEvent` alone is the union of every type. */
 export type TraceEvent<
   K extends keyof TraceEventByType = keyof TraceEventByType,
 > = {

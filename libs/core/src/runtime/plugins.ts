@@ -55,7 +55,7 @@ export interface PluginContext {
   builtAsync(providerId: string): boolean | null;
   /** `error` with this container's formatError text, as core formats an error it raises. A plugin that raises after setup throws `context.format(error)`. */
   format<E>(error: E): E;
-  /** Hands the event `make` builds to every observe hook, in plugin order. Without an observer, `make` never runs. An exception an observer throws reaches the caller of emit. */
+  /** Hands the event `make` builds to every observe hook, in plugin order. Without an observer, `make` never runs. An exception an observer throws reaches the caller of emit. After the container is disposed, emit still reaches every observer. */
   emit(
     make: () => TraceEvent<
       Extract<keyof TraceEventByType, `${string}/${string}`>

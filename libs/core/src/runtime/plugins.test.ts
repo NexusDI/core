@@ -327,6 +327,35 @@ describe('PluginContext.emit', () => {
         },
       }),
     );
-    expect(() => reportMiss(context, 'warp-core')).toThrow(leak);
+    let thrown: unknown;
+    try {
+      reportMiss(context, 'warp-core');
+    } catch (error) {
+      thrown = error;
+    }
+    expect(thrown).toBe(leak);
+  });
+
+  it('hands the event to every observe hook after the container is disposed', async () => {
+    const seen: string[] = [];
+    let context: PluginContext | undefined;
+    const ship = await Nexus.create(Root, {
+      plugins: [
+        plugin('cache', {
+          setup: (c: PluginContext) => {
+            context = c;
+          },
+        }),
+        plugin('observer', {
+          observe: (event: { type: string; key?: string }) => {
+            if (event.type === '@acme/cache/miss') seen.push(`${event.key}`);
+          },
+        }),
+      ],
+    });
+    await ship[Symbol.asyncDispose]();
+    if (context === undefined) throw new Error('setup did not run');
+    reportMiss(context, 'warp-core');
+    expect(seen).toEqual(['warp-core']);
   });
 });
