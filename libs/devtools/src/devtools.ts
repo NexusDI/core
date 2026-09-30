@@ -27,7 +27,7 @@ export function devtools(options: DevtoolsOptions = {}): NexusPlugin {
       CONTEXTS.set(context.container, context);
     },
     ...(options.trace === undefined ? {} : { observe: options.trace }),
-    formatError: (error, view) => explain(error, view),
+    formatError: (error, view) => explain(error, { view }),
   };
 }
 

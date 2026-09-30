@@ -29,7 +29,7 @@ export function inspect<const R = UninferredRoot>(
         name: 'nexus:inspect',
         apiVersion: NEXUS_PLUGIN_API,
         compile: { check: (view) => void (last = view) },
-        formatError: (error, view) => explain(error, view),
+        formatError: (error, view) => explain(error, { view }),
       },
       ...(options.plugins ?? []),
     ],
