@@ -1,5 +1,6 @@
 import type { NexusGraph } from '../graph.js';
 import {
+  drawnProviders,
   exportedIds,
   membersOf,
   moduleTitle,
@@ -51,12 +52,13 @@ function label(lines: readonly string[]): string {
 /** The graph as Graphviz DOT. Pure and deterministic. */
 export function toDot(graph: NexusGraph, options: RenderOptions = {}): string {
   const lines = [...HEADER];
+  const drawn = drawnProviders(graph);
   if (options.view === 'modules') {
     for (const m of graph.modules)
       lines.push(
         `  ${quote(m.id)} [label=${label([
           moduleTitle(m),
-          providerCount(graph, m.id),
+          providerCount(drawn, m.id),
         ])}, shape=box${m.global ? ', style=bold' : ''}];`,
       );
     for (const m of graph.modules)
@@ -65,7 +67,7 @@ export function toDot(graph: NexusGraph, options: RenderOptions = {}): string {
   } else {
     const exported = exportedIds(graph);
     for (const m of graph.modules) {
-      const members = membersOf(graph, m.id);
+      const members = membersOf(drawn, m.id);
       if (members.length === 0) continue;
       lines.push(
         `  subgraph ${quote(`cluster_${m.id}`)} {`,

@@ -3,7 +3,7 @@ import { CliError, formatCliError } from './cli-error.js';
 import { graphFor } from './graph.js';
 import { render } from './render.js';
 import { cliVersion } from './version.js';
-import { emit, writeTo, type Output } from './write.js';
+import { checkOut, emit, writeTo, type Output } from './write.js';
 
 export interface Io {
   readonly stdout: Output;
@@ -51,6 +51,11 @@ export async function main(argv: readonly string[], io: Io): Promise<number> {
         'PNG is binary, and stdout is a terminal.',
         'Pass --out graph.png, or pipe the output.',
       );
+    checkOut(command.out, [
+      command.entry,
+      ...command.load,
+      ...(command.plugins === null ? [] : [command.plugins]),
+    ]);
     const { graph, devtools, from } = await graphFor(command, io.cwd, version);
     const data = await render(
       graph,
