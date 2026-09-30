@@ -93,7 +93,8 @@ The chain runs global entries first, then bindings, then class lists, then metho
 
 ## What to know
 
-- `get()` returns a proxy of an intercepted service. Methods run with `this` set to the service itself, so private fields work, and a call from one method to another on `this` skips interceptors.
+- `get()` returns a proxy of an intercepted service. Methods run with `this` set to the service itself, so private fields work.
+- Self calls are not intercepted. As with NestJS's proxy-based enhancers, interceptors wrap the service from the outside, so a call from one method to another on `this` goes to the service itself and skips interceptors. To intercept it, call the method through the injected token, or move it to another service.
 - With `global` entries, list in `exempt` every service your interceptors depend on outside `providers`, lazy deps included: `interceptors({ global: [LOG], exempt: [JOURNAL] })`. Global entries skip each exempt service and every provider it reaches, so an interceptor never intercepts a service it calls. `create` fails with `NEXUS_INTERCEPTOR_INVALID` and names every provider that would be skipped until each one is listed, and fails for an `exempt` entry no interceptor depends on. Declarations and bindings still apply to exempt services.
 - A class list or binding that names an interceptor on a service that interceptor depends on fails `create`, since each call the interceptor makes into it would run the interceptor again. A method list there is not checked, so keep it to methods the interceptor never calls.
 - `static interceptors` and `@UseInterceptors` name methods on the class or its prototype chain. An arrow-function field is not one, and `create` reports it as `NEXUS_INTERCEPTOR_INVALID`.
@@ -104,7 +105,7 @@ The chain runs global entries first, then bindings, then class lists, then metho
 - `next(args)` replaces the arguments. Not calling `next()` returns your value in place of the method's.
 - An async method's caller sees a synchronous throw from an interceptor as a rejection. `tap(next, { value, error })` observes sync and async results alike.
 - A method called before the interceptors are built (a constructor calling a dependency's method) or after the container is disposed throws `NEXUS_INTERCEPTOR_NOT_READY`.
-- Call `interceptors()` once per container. A second `create` with the same plugin object, while the first container runs or is still being created, fails with `NEXUS_INTERCEPTORS_SHARED`.
+- Call `interceptors()` once per container. A `create` with a plugin object that a running container holds fails with `NEXUS_INTERCEPTORS_SHARED`, and of two overlapping creates with one plugin object, the second to build fails with it. A plugin object whose create failed, or whose container is disposed, can be used again.
 - Errors carry core's one-line message. Register `errors()` from `@nexusdi/errors` for the full text and fix line, or pass a caught error to its `explain()`.
 
 ## License

@@ -243,4 +243,149 @@ describe('session lifecycle', () => {
     );
     expect(ship).toBeDefined();
   });
+
+  it('frees the plugin object when another plugin fails the compile, in either order', async () => {
+    class LintError extends Error {
+      readonly code = 'NEXUS_TEST_LINT';
+    }
+    const veto = {
+      name: 'veto',
+      apiVersion: 1,
+      compile: {
+        check: (_view: unknown, report: (error: never) => void) =>
+          report(new LintError('lint') as never),
+      },
+    };
+    for (const order of ['before', 'after'] as const) {
+      const plugin = logging();
+      await rejected(
+        Nexus.create(
+          defineModule({ name: 'Vetoed', imports: [JournalModule] }),
+          { plugins: order === 'before' ? [veto, plugin] : [plugin, veto] },
+        ),
+      );
+      await using ship = await Nexus.create(
+        defineModule({
+          name: 'App',
+          imports: [StoreModule, JournalModule],
+          exports: [STORE, JOURNAL],
+        }),
+        { plugins: [plugin] },
+      );
+      expect(ship.get(STORE).flush()).toBe('flushed');
+      expect(ship.get(JOURNAL).lines).toEqual(['Store.flush']);
+    }
+  });
+
+  it('frees the plugin object when a module options schema rejects before any build', async () => {
+    const plugin = logging();
+    const TUNING = new Token<{ gain: number }>('Tuning');
+    const Radio = defineModule({
+      name: 'Radio',
+      options: TUNING,
+      schema: {
+        '~standard': {
+          version: 1,
+          vendor: 'test',
+          validate: () => ({ issues: [{ message: 'no gain' }] }),
+        },
+      },
+    });
+    const error = await rejected(
+      Nexus.create(
+        defineModule({
+          name: 'Tuned',
+          imports: [Radio.forRoot({ gain: 1 }), JournalModule],
+        }),
+        { plugins: [plugin] },
+      ),
+    );
+    expect(findCode(error, 'NEXUS_INVALID_MODULE_OPTIONS')).toBeDefined();
+    // A different graph: the stale compile cannot match it.
+    await using ship = await Nexus.create(
+      defineModule({
+        name: 'App',
+        imports: [StoreModule, JournalModule],
+        exports: [STORE, JOURNAL],
+      }),
+      { plugins: [plugin] },
+    );
+    expect(ship.get(STORE).flush()).toBe('flushed');
+    expect(ship.get(JOURNAL).lines).toEqual(['Store.flush']);
+  });
+
+  it('lets the second of two overlapping creates run when the first fails before any build', async () => {
+    const plugin = logging();
+    const TUNING = new Token<{ gain: number }>('Tuning');
+    const Radio = defineModule({
+      name: 'Radio',
+      options: TUNING,
+      schema: {
+        '~standard': {
+          version: 1,
+          vendor: 'test',
+          validate: async () => ({ issues: [{ message: 'no gain' }] }),
+        },
+      },
+    });
+    const [a, b] = await Promise.allSettled([
+      Nexus.create(
+        defineModule({
+          name: 'Tuned',
+          imports: [Radio.forRoot({ gain: 1 }), JournalModule],
+        }),
+        { plugins: [plugin] },
+      ),
+      Nexus.create(
+        defineModule({
+          name: 'App',
+          imports: [StoreModule, JournalModule],
+          exports: [STORE, JOURNAL],
+        }),
+        { plugins: [plugin] },
+      ),
+    ]);
+    expect(a.status).toBe('rejected');
+    expect(b.status).toBe('fulfilled');
+    await using ship = (b as PromiseFulfilledResult<Nexus>).value;
+    expect(ship.get(STORE).flush()).toBe('flushed');
+    expect(ship.get(JOURNAL).lines).toEqual(['Store.flush']);
+  });
+
+  it('keeps a disposing container on its own session while a new one claims the plugin object', async () => {
+    const plugin = logging();
+    let next: Promise<Nexus> | undefined;
+    const App = defineModule({
+      name: 'App',
+      imports: [StoreModule, JournalModule],
+      exports: [STORE, JOURNAL],
+    });
+    const flushed: string[] = [];
+    class Closer {
+      static deps = [STORE] as const;
+      constructor(private readonly store: IStore) {}
+      async [Symbol.asyncDispose]() {
+        next ??= Nexus.create(App, { plugins: [plugin] });
+        await next;
+        flushed.push(this.store.flush());
+      }
+    }
+    const first = await Nexus.create(
+      defineModule({
+        name: 'First',
+        imports: [StoreModule, JournalModule],
+        providers: [Closer],
+        exports: [JOURNAL],
+      }),
+      { plugins: [plugin] },
+    );
+    const journal = first.get(JOURNAL);
+    await first[Symbol.asyncDispose]();
+    expect(flushed).toEqual(['flushed']);
+    expect(journal.lines).toEqual(['Store.flush']);
+    if (next === undefined) throw new Error('the disposer did not run');
+    await using second = await next;
+    expect(second.get(STORE).flush()).toBe('flushed');
+    expect(second.get(JOURNAL).lines).toEqual(['Store.flush']);
+  });
 });
