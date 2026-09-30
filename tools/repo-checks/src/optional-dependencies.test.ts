@@ -23,7 +23,8 @@ const FIXTURES = join(
 const LIBS = join(workspaceRoot, 'libs');
 
 /**
- * The packages spec section 1.6 lets a package require. An entry for a
+ * The optional packages (errors, devtools, node) spec section 1.6 lets a
+ * package require. An entry for a
  * package absent from libs/ is ignored, so cli's entry (PR #61) waits here
  * until it lands. An entry for a present package that nothing uses fails
  * the live test, so the list cannot go stale.
@@ -52,7 +53,7 @@ const fixture = (name: string) =>
   libPackages(join(FIXTURES, name), 'manifest.json');
 
 describe('optionalDependencies', () => {
-  it('accepts type-only and subpath imports of an optional peer and the allowed requirements', () => {
+  it('accepts type-only and subpath imports of an optional peer, a required sibling that is no optional package, and the allowed requirements', () => {
     const result = optionalDependencies(
       fixture('clean'),
       FIXTURE_ALLOWLIST,
@@ -64,12 +65,12 @@ describe('optionalDependencies', () => {
     );
   });
 
-  it('reports a required package no allowance names', () => {
+  it('reports a required optional package no allowance names', () => {
     expect(
       optionalDependencies(fixture('clean'), [], '@acme').violations,
     ).toEqual([
-      '@acme/cli package.json requires @acme/devtools in peerDependencies; a package requires only @acme/core and names every other package as an optional peer',
-      '@acme/devtools package.json requires @acme/errors in dependencies; a package requires only @acme/core and names every other package as an optional peer',
+      '@acme/cli package.json requires @acme/devtools in peerDependencies; @acme/devtools is an optional package, so name it as an optional peer',
+      '@acme/devtools package.json requires @acme/errors in dependencies; @acme/errors is an optional package, so name it as an optional peer',
     ]);
   });
 
@@ -84,8 +85,8 @@ describe('optionalDependencies', () => {
       "@acme/cache lookup.ts:6 calls import('@acme/devtools'); name the package in import type or from a subpath entry the application imports",
       '@acme/cache lookup.ts:8 calls import(`@acme/${name}`); name the package in import type or from a subpath entry the application imports',
       '@acme/cache feature.ts imports @acme/devtools by value, an optional peer, and the main entry reaches it (index.ts > feature.ts); import it as a type or from a subpath entry',
-      '@acme/store package.json requires @acme/errors in dependencies; a package requires only @acme/core and names every other package as an optional peer',
-      '@acme/store package.json requires @acme/testing in peerDependencies; a package requires only @acme/core and names every other package as an optional peer',
+      '@acme/store package.json requires @acme/errors in dependencies; @acme/errors is an optional package, so name it as an optional peer',
+      '@acme/store package.json requires @acme/node in peerDependencies; @acme/node is an optional package, so name it as an optional peer',
     ]);
   });
 

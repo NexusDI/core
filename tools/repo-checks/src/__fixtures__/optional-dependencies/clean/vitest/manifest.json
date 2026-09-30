@@ -1,16 +1,13 @@
 {
-  "name": "@acme/store",
+  "name": "@acme/vitest",
   "exports": {
     ".": {
       "@nexusdi/source": "./src/index.ts",
       "default": "./dist/index.js"
     }
   },
-  "dependencies": {
-    "@acme/errors": "1.0.0"
-  },
   "peerDependencies": {
     "@acme/core": "1.0.0",
-    "@acme/node": "1.0.0"
+    "@acme/testing": "1.0.0"
   }
 }

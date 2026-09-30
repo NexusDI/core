@@ -9,10 +9,11 @@ import { allNodes, at, parse, unwrap } from './error-codes.js';
  * P5: optional dependencies point one way and degrade by construction (spec
  * section 1.6).
  *
- * A package requires the scope's core package and nothing else of the
- * scope: its manifest names every other package of the scope as an optional
- * peer, unless an allowance names the pair. Over each package's non-test
- * sources the check fails on:
+ * A package names an optional package of the scope (errors, devtools and
+ * node, spec sections 1.6 and 2.5.8) only as an optional peer, unless an
+ * allowance names the pair. It may require any other package of the scope,
+ * as @nexusdi/vitest requires @nexusdi/testing (integrations spec 8.3).
+ * Over each package's non-test sources the check fails on:
  *
  * - an import of a package of the scope, types included, that the manifest
  *   names in neither `dependencies` nor `peerDependencies`;
@@ -46,6 +47,9 @@ export interface OptionalDependencies {
     readonly mainEntries: number;
   };
 }
+
+/** The packages of the scope an application opts into (spec section 1.6). */
+const OPTIONAL_PACKAGES = ['errors', 'devtools', 'node'];
 
 /** The package a specifier names: `@scope/name` of `@scope/name/sub`. */
 const packageOf = (specifier: string): string =>
@@ -88,7 +92,9 @@ export function optionalDependencies(
   scope = '@nexusdi',
 ): OptionalDependencies {
   const prefix = `${scope}/`;
-  const core = `${scope}/core`;
+  const optionalPackages = new Set(
+    OPTIONAL_PACKAGES.map((name) => `${scope}/${name}`),
+  );
   const violations: string[] = [];
   const used = new Set<string>();
   const scanned = { files: 0, imports: 0, mainEntries: 0 };
@@ -99,7 +105,7 @@ export function optionalDependencies(
     const files = pkg.files;
     scanned.files += files.length;
 
-    // The manifest requires only core.
+    // The manifest requires no optional package.
     const optional = new Set(pkg.optionalPeers);
     for (const [field, required] of [
       ['dependencies', Object.keys(pkg.dependencies)],
@@ -109,7 +115,7 @@ export function optionalDependencies(
       ],
     ] as const)
       for (const dependency of required) {
-        if (!dependency.startsWith(prefix) || dependency === core) continue;
+        if (!optionalPackages.has(dependency)) continue;
         if (
           allowlist.some(
             (entry) =>
@@ -119,7 +125,7 @@ export function optionalDependencies(
           used.add(`${pkg.name} ${dependency}`);
         else
           report(
-            `package.json requires ${dependency} in ${field}; a package requires only ${core} and names every other package as an optional peer`,
+            `package.json requires ${dependency} in ${field}; ${dependency} is an optional package, so name it as an optional peer`,
           );
       }
 
