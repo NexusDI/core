@@ -52,6 +52,35 @@
           "cwd": "benchmarks",
           "command": "node src/timings/orchestrator.ts"
         }
+      },
+      "check": {
+        "executor": "nx:run-commands",
+        "cache": false,
+        "options": {
+          "cwd": "benchmarks",
+          "parallel": false,
+          "commands": [
+            "node src/matrix.ts --check",
+            "node src/probes.ts --check",
+            "node src/size.ts --check",
+            "vitest run --config vite.config.ts src/matrix-consistency.test.ts"
+          ]
+        }
+      },
+      "bench": {
+        "executor": "nx:run-commands",
+        "cache": false,
+        "options": {
+          "cwd": "benchmarks",
+          "parallel": false,
+          "commands": [
+            "node src/matrix.ts",
+            "node src/probes.ts",
+            "node src/size.ts",
+            "node src/build.ts",
+            "node src/timings/orchestrator.ts"
+          ]
+        }
       }
     }
   }

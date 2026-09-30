@@ -1,0 +1,1484 @@
+{
+  "schema": 1,
+  "versions": {
+    "core": "0.3.2",
+    "libraries": {
+      "nexusdi": "0.3.2",
+      "inversify": "8.2.3",
+      "tsyringe": "4.10.0",
+      "awilix": "13.0.5",
+      "needle-di": "1.2.1"
+    },
+    "toolchains": {
+      "tsc": "6.0.3",
+      "tsgo": "7.0.2",
+      "esbuild": "0.28.2",
+      "swc": "1.16.2",
+      "babel": "8.0.6",
+      "vite": "8.3.0",
+      "vite8+babel-plugin": "8.3.0",
+      "bun": "1.4.2",
+      "deno": "2.9.6",
+      "node-strip-types": "24.20.0"
+    },
+    "node": "24.20.0"
+  },
+  "cells": [
+    {
+      "library": "awilix",
+      "variant": "plain",
+      "toolchain": "babel",
+      "profile": "none",
+      "sections": {
+        "singleton": "pass",
+        "transient": "pass",
+        "scoped": "pass"
+      },
+      "outcome": "pass",
+      "polyfill": null
+    },
+    {
+      "library": "awilix",
+      "variant": "plain",
+      "toolchain": "bun",
+      "profile": "none",
+      "sections": {
+        "singleton": "pass",
+        "transient": "pass",
+        "scoped": "pass"
+      },
+      "outcome": "pass",
+      "polyfill": null
+    },
+    {
+      "library": "awilix",
+      "variant": "plain",
+      "toolchain": "deno",
+      "profile": "none",
+      "sections": {
+        "singleton": "pass",
+        "transient": "pass",
+        "scoped": "pass"
+      },
+      "outcome": "pass",
+      "polyfill": null
+    },
+    {
+      "library": "awilix",
+      "variant": "plain",
+      "toolchain": "esbuild",
+      "profile": "none",
+      "sections": {
+        "singleton": "pass",
+        "transient": "pass",
+        "scoped": "pass"
+      },
+      "outcome": "pass",
+      "polyfill": null
+    },
+    {
+      "library": "awilix",
+      "variant": "plain",
+      "toolchain": "node-strip-types",
+      "profile": "none",
+      "sections": {
+        "singleton": "pass",
+        "transient": "pass",
+        "scoped": "pass"
+      },
+      "outcome": "pass",
+      "polyfill": null
+    },
+    {
+      "library": "awilix",
+      "variant": "plain",
+      "toolchain": "swc",
+      "profile": "none",
+      "sections": {
+        "singleton": "pass",
+        "transient": "pass",
+        "scoped": "pass"
+      },
+      "outcome": "pass",
+      "polyfill": null
+    },
+    {
+      "library": "awilix",
+      "variant": "plain",
+      "toolchain": "tsc",
+      "profile": "none",
+      "sections": {
+        "singleton": "pass",
+        "transient": "pass",
+        "scoped": "pass"
+      },
+      "outcome": "pass",
+      "polyfill": null
+    },
+    {
+      "library": "awilix",
+      "variant": "plain",
+      "toolchain": "tsgo",
+      "profile": "none",
+      "sections": {
+        "singleton": "pass",
+        "transient": "pass",
+        "scoped": "pass"
+      },
+      "outcome": "pass",
+      "polyfill": null
+    },
+    {
+      "library": "awilix",
+      "variant": "plain",
+      "toolchain": "vite",
+      "profile": "none",
+      "sections": {
+        "singleton": "pass",
+        "transient": "pass",
+        "scoped": "pass"
+      },
+      "outcome": "pass",
+      "polyfill": null
+    },
+    {
+      "library": "awilix",
+      "variant": "plain",
+      "toolchain": "vite8+babel-plugin",
+      "profile": "none",
+      "sections": {
+        "singleton": "pass",
+        "transient": "pass",
+        "scoped": "pass"
+      },
+      "outcome": "pass",
+      "polyfill": null
+    },
+    {
+      "library": "inversify",
+      "variant": "decorated",
+      "toolchain": "babel",
+      "profile": "legacy-metadata",
+      "sections": {
+        "singleton": "pass",
+        "transient": "pass",
+        "scoped": "not-applicable"
+      },
+      "outcome": "pass",
+      "polyfill": "reflect-metadata@0.2.2"
+    },
+    {
+      "library": "inversify",
+      "variant": "decorated",
+      "toolchain": "bun",
+      "profile": "legacy-metadata",
+      "sections": {
+        "singleton": "pass",
+        "transient": "pass",
+        "scoped": "not-applicable"
+      },
+      "outcome": "pass",
+      "polyfill": "reflect-metadata@0.2.2"
+    },
+    {
+      "library": "inversify",
+      "variant": "decorated",
+      "toolchain": "deno",
+      "profile": "legacy-metadata",
+      "sections": {
+        "singleton": "pass",
+        "transient": "pass",
+        "scoped": "not-applicable"
+      },
+      "outcome": "pass",
+      "polyfill": "reflect-metadata@0.2.2",
+      "note": "Warning experimentalDecorators compiler option is deprecated and may be removed at any time"
+    },
+    {
+      "library": "inversify",
+      "variant": "decorated",
+      "toolchain": "esbuild",
+      "profile": "legacy-metadata",
+      "sections": {
+        "singleton": "pass",
+        "transient": "pass",
+        "scoped": "not-applicable"
+      },
+      "outcome": "pass",
+      "polyfill": "reflect-metadata@0.2.2"
+    },
+    {
+      "library": "inversify",
+      "variant": "decorated",
+      "toolchain": "node-strip-types",
+      "profile": "legacy-metadata",
+      "sections": {
+        "singleton": "compile-error",
+        "transient": "compile-error",
+        "scoped": "compile-error"
+      },
+      "outcome": "compile-error",
+      "polyfill": "reflect-metadata@0.2.2",
+      "message": "SyntaxError: Invalid or unexpected token",
+      "documented": "https://nodejs.org/api/typescript.html#type-stripping"
+    },
+    {
+      "library": "inversify",
+      "variant": "decorated",
+      "toolchain": "swc",
+      "profile": "legacy-metadata",
+      "sections": {
+        "singleton": "pass",
+        "transient": "pass",
+        "scoped": "not-applicable"
+      },
+      "outcome": "pass",
+      "polyfill": "reflect-metadata@0.2.2"
+    },
+    {
+      "library": "inversify",
+      "variant": "decorated",
+      "toolchain": "tsc",
+      "profile": "legacy-metadata",
+      "sections": {
+        "singleton": "pass",
+        "transient": "pass",
+        "scoped": "not-applicable"
+      },
+      "outcome": "pass",
+      "polyfill": "reflect-metadata@0.2.2"
+    },
+    {
+      "library": "inversify",
+      "variant": "decorated",
+      "toolchain": "tsgo",
+      "profile": "legacy-metadata",
+      "sections": {
+        "singleton": "pass",
+        "transient": "pass",
+        "scoped": "not-applicable"
+      },
+      "outcome": "pass",
+      "polyfill": "reflect-metadata@0.2.2"
+    },
+    {
+      "library": "inversify",
+      "variant": "decorated",
+      "toolchain": "vite",
+      "profile": "legacy-metadata",
+      "sections": {
+        "singleton": "pass",
+        "transient": "pass",
+        "scoped": "not-applicable"
+      },
+      "outcome": "pass",
+      "polyfill": "reflect-metadata@0.2.2"
+    },
+    {
+      "library": "inversify",
+      "variant": "decorated",
+      "toolchain": "vite8+babel-plugin",
+      "profile": "legacy-metadata",
+      "sections": {
+        "singleton": "pass",
+        "transient": "pass",
+        "scoped": "not-applicable"
+      },
+      "outcome": "pass",
+      "polyfill": "reflect-metadata@0.2.2"
+    },
+    {
+      "library": "inversify",
+      "variant": "decorated-explicit",
+      "toolchain": "babel",
+      "profile": "legacy",
+      "sections": {
+        "singleton": "compile-error",
+        "transient": "compile-error",
+        "scoped": "compile-error"
+      },
+      "outcome": "compile-error",
+      "polyfill": "reflect-metadata@0.2.2",
+      "message": "SyntaxError: Invalid or unexpected token"
+    },
+    {
+      "library": "inversify",
+      "variant": "decorated-explicit",
+      "toolchain": "bun",
+      "profile": "legacy",
+      "sections": {
+        "singleton": "pass",
+        "transient": "pass",
+        "scoped": "not-applicable"
+      },
+      "outcome": "pass",
+      "polyfill": "reflect-metadata@0.2.2"
+    },
+    {
+      "library": "inversify",
+      "variant": "decorated-explicit",
+      "toolchain": "deno",
+      "profile": "legacy",
+      "sections": {
+        "singleton": "pass",
+        "transient": "pass",
+        "scoped": "not-applicable"
+      },
+      "outcome": "pass",
+      "polyfill": "reflect-metadata@0.2.2",
+      "note": "Warning experimentalDecorators compiler option is deprecated and may be removed at any time"
+    },
+    {
+      "library": "inversify",
+      "variant": "decorated-explicit",
+      "toolchain": "esbuild",
+      "profile": "legacy",
+      "sections": {
+        "singleton": "pass",
+        "transient": "pass",
+        "scoped": "not-applicable"
+      },
+      "outcome": "pass",
+      "polyfill": "reflect-metadata@0.2.2"
+    },
+    {
+      "library": "inversify",
+      "variant": "decorated-explicit",
+      "toolchain": "node-strip-types",
+      "profile": "legacy",
+      "sections": {
+        "singleton": "compile-error",
+        "transient": "compile-error",
+        "scoped": "compile-error"
+      },
+      "outcome": "compile-error",
+      "polyfill": "reflect-metadata@0.2.2",
+      "message": "SyntaxError: Invalid or unexpected token",
+      "documented": "https://nodejs.org/api/typescript.html#type-stripping"
+    },
+    {
+      "library": "inversify",
+      "variant": "decorated-explicit",
+      "toolchain": "swc",
+      "profile": "legacy",
+      "sections": {
+        "singleton": "pass",
+        "transient": "pass",
+        "scoped": "not-applicable"
+      },
+      "outcome": "pass",
+      "polyfill": "reflect-metadata@0.2.2"
+    },
+    {
+      "library": "inversify",
+      "variant": "decorated-explicit",
+      "toolchain": "tsc",
+      "profile": "legacy",
+      "sections": {
+        "singleton": "pass",
+        "transient": "pass",
+        "scoped": "not-applicable"
+      },
+      "outcome": "pass",
+      "polyfill": "reflect-metadata@0.2.2"
+    },
+    {
+      "library": "inversify",
+      "variant": "decorated-explicit",
+      "toolchain": "tsgo",
+      "profile": "legacy",
+      "sections": {
+        "singleton": "pass",
+        "transient": "pass",
+        "scoped": "not-applicable"
+      },
+      "outcome": "pass",
+      "polyfill": "reflect-metadata@0.2.2"
+    },
+    {
+      "library": "inversify",
+      "variant": "decorated-explicit",
+      "toolchain": "vite",
+      "profile": "legacy",
+      "sections": {
+        "singleton": "pass",
+        "transient": "pass",
+        "scoped": "not-applicable"
+      },
+      "outcome": "pass",
+      "polyfill": "reflect-metadata@0.2.2"
+    },
+    {
+      "library": "inversify",
+      "variant": "decorated-explicit",
+      "toolchain": "vite8+babel-plugin",
+      "profile": "legacy",
+      "sections": {
+        "singleton": "compile-error",
+        "transient": "compile-error",
+        "scoped": "compile-error"
+      },
+      "outcome": "compile-error",
+      "polyfill": "reflect-metadata@0.2.2",
+      "message": "error during build: Build failed with 7 errors: [PARSE_ERROR] Decorators are not valid here."
+    },
+    {
+      "library": "inversify",
+      "variant": "plain",
+      "toolchain": "babel",
+      "profile": "none",
+      "sections": {
+        "singleton": "pass",
+        "transient": "pass",
+        "scoped": "not-applicable"
+      },
+      "outcome": "pass",
+      "polyfill": "reflect-metadata@0.2.2"
+    },
+    {
+      "library": "inversify",
+      "variant": "plain",
+      "toolchain": "bun",
+      "profile": "none",
+      "sections": {
+        "singleton": "pass",
+        "transient": "pass",
+        "scoped": "not-applicable"
+      },
+      "outcome": "pass",
+      "polyfill": "reflect-metadata@0.2.2"
+    },
+    {
+      "library": "inversify",
+      "variant": "plain",
+      "toolchain": "deno",
+      "profile": "none",
+      "sections": {
+        "singleton": "pass",
+        "transient": "pass",
+        "scoped": "not-applicable"
+      },
+      "outcome": "pass",
+      "polyfill": "reflect-metadata@0.2.2"
+    },
+    {
+      "library": "inversify",
+      "variant": "plain",
+      "toolchain": "esbuild",
+      "profile": "none",
+      "sections": {
+        "singleton": "pass",
+        "transient": "pass",
+        "scoped": "not-applicable"
+      },
+      "outcome": "pass",
+      "polyfill": "reflect-metadata@0.2.2"
+    },
+    {
+      "library": "inversify",
+      "variant": "plain",
+      "toolchain": "node-strip-types",
+      "profile": "none",
+      "sections": {
+        "singleton": "pass",
+        "transient": "pass",
+        "scoped": "not-applicable"
+      },
+      "outcome": "pass",
+      "polyfill": "reflect-metadata@0.2.2"
+    },
+    {
+      "library": "inversify",
+      "variant": "plain",
+      "toolchain": "swc",
+      "profile": "none",
+      "sections": {
+        "singleton": "pass",
+        "transient": "pass",
+        "scoped": "not-applicable"
+      },
+      "outcome": "pass",
+      "polyfill": "reflect-metadata@0.2.2"
+    },
+    {
+      "library": "inversify",
+      "variant": "plain",
+      "toolchain": "tsc",
+      "profile": "none",
+      "sections": {
+        "singleton": "pass",
+        "transient": "pass",
+        "scoped": "not-applicable"
+      },
+      "outcome": "pass",
+      "polyfill": "reflect-metadata@0.2.2"
+    },
+    {
+      "library": "inversify",
+      "variant": "plain",
+      "toolchain": "tsgo",
+      "profile": "none",
+      "sections": {
+        "singleton": "pass",
+        "transient": "pass",
+        "scoped": "not-applicable"
+      },
+      "outcome": "pass",
+      "polyfill": "reflect-metadata@0.2.2"
+    },
+    {
+      "library": "inversify",
+      "variant": "plain",
+      "toolchain": "vite",
+      "profile": "none",
+      "sections": {
+        "singleton": "pass",
+        "transient": "pass",
+        "scoped": "not-applicable"
+      },
+      "outcome": "pass",
+      "polyfill": "reflect-metadata@0.2.2"
+    },
+    {
+      "library": "inversify",
+      "variant": "plain",
+      "toolchain": "vite8+babel-plugin",
+      "profile": "none",
+      "sections": {
+        "singleton": "pass",
+        "transient": "pass",
+        "scoped": "not-applicable"
+      },
+      "outcome": "pass",
+      "polyfill": "reflect-metadata@0.2.2"
+    },
+    {
+      "library": "needle-di",
+      "variant": "decorated",
+      "toolchain": "babel",
+      "profile": "standard",
+      "sections": {
+        "singleton": "pass",
+        "transient": "not-applicable",
+        "scoped": "not-applicable"
+      },
+      "outcome": "pass",
+      "polyfill": null
+    },
+    {
+      "library": "needle-di",
+      "variant": "decorated",
+      "toolchain": "bun",
+      "profile": "standard",
+      "sections": {
+        "singleton": "pass",
+        "transient": "not-applicable",
+        "scoped": "not-applicable"
+      },
+      "outcome": "pass",
+      "polyfill": null
+    },
+    {
+      "library": "needle-di",
+      "variant": "decorated",
+      "toolchain": "deno",
+      "profile": "standard",
+      "sections": {
+        "singleton": "pass",
+        "transient": "not-applicable",
+        "scoped": "not-applicable"
+      },
+      "outcome": "pass",
+      "polyfill": null
+    },
+    {
+      "library": "needle-di",
+      "variant": "decorated",
+      "toolchain": "esbuild",
+      "profile": "standard",
+      "sections": {
+        "singleton": "pass",
+        "transient": "not-applicable",
+        "scoped": "not-applicable"
+      },
+      "outcome": "pass",
+      "polyfill": null
+    },
+    {
+      "library": "needle-di",
+      "variant": "decorated",
+      "toolchain": "node-strip-types",
+      "profile": "standard",
+      "sections": {
+        "singleton": "compile-error",
+        "transient": "compile-error",
+        "scoped": "compile-error"
+      },
+      "outcome": "compile-error",
+      "polyfill": null,
+      "message": "SyntaxError: Invalid or unexpected token",
+      "documented": "https://nodejs.org/api/typescript.html#type-stripping"
+    },
+    {
+      "library": "needle-di",
+      "variant": "decorated",
+      "toolchain": "swc",
+      "profile": "standard",
+      "sections": {
+        "singleton": "pass",
+        "transient": "not-applicable",
+        "scoped": "not-applicable"
+      },
+      "outcome": "pass",
+      "polyfill": null
+    },
+    {
+      "library": "needle-di",
+      "variant": "decorated",
+      "toolchain": "tsc",
+      "profile": "standard",
+      "sections": {
+        "singleton": "pass",
+        "transient": "not-applicable",
+        "scoped": "not-applicable"
+      },
+      "outcome": "pass",
+      "polyfill": null
+    },
+    {
+      "library": "needle-di",
+      "variant": "decorated",
+      "toolchain": "tsgo",
+      "profile": "standard",
+      "sections": {
+        "singleton": "pass",
+        "transient": "not-applicable",
+        "scoped": "not-applicable"
+      },
+      "outcome": "pass",
+      "polyfill": null
+    },
+    {
+      "library": "needle-di",
+      "variant": "decorated",
+      "toolchain": "vite",
+      "profile": "standard",
+      "sections": {
+        "singleton": "compile-error",
+        "transient": "compile-error",
+        "scoped": "compile-error"
+      },
+      "outcome": "compile-error",
+      "polyfill": null,
+      "message": "SyntaxError: Invalid or unexpected token",
+      "documented": "https://vite.dev/guide/migration"
+    },
+    {
+      "library": "needle-di",
+      "variant": "decorated",
+      "toolchain": "vite8+babel-plugin",
+      "profile": "standard",
+      "sections": {
+        "singleton": "pass",
+        "transient": "not-applicable",
+        "scoped": "not-applicable"
+      },
+      "outcome": "pass",
+      "polyfill": null
+    },
+    {
+      "library": "needle-di",
+      "variant": "plain",
+      "toolchain": "babel",
+      "profile": "none",
+      "sections": {
+        "singleton": "pass",
+        "transient": "not-applicable",
+        "scoped": "not-applicable"
+      },
+      "outcome": "pass",
+      "polyfill": null
+    },
+    {
+      "library": "needle-di",
+      "variant": "plain",
+      "toolchain": "bun",
+      "profile": "none",
+      "sections": {
+        "singleton": "pass",
+        "transient": "not-applicable",
+        "scoped": "not-applicable"
+      },
+      "outcome": "pass",
+      "polyfill": null
+    },
+    {
+      "library": "needle-di",
+      "variant": "plain",
+      "toolchain": "deno",
+      "profile": "none",
+      "sections": {
+        "singleton": "pass",
+        "transient": "not-applicable",
+        "scoped": "not-applicable"
+      },
+      "outcome": "pass",
+      "polyfill": null
+    },
+    {
+      "library": "needle-di",
+      "variant": "plain",
+      "toolchain": "esbuild",
+      "profile": "none",
+      "sections": {
+        "singleton": "pass",
+        "transient": "not-applicable",
+        "scoped": "not-applicable"
+      },
+      "outcome": "pass",
+      "polyfill": null
+    },
+    {
+      "library": "needle-di",
+      "variant": "plain",
+      "toolchain": "node-strip-types",
+      "profile": "none",
+      "sections": {
+        "singleton": "pass",
+        "transient": "not-applicable",
+        "scoped": "not-applicable"
+      },
+      "outcome": "pass",
+      "polyfill": null
+    },
+    {
+      "library": "needle-di",
+      "variant": "plain",
+      "toolchain": "swc",
+      "profile": "none",
+      "sections": {
+        "singleton": "pass",
+        "transient": "not-applicable",
+        "scoped": "not-applicable"
+      },
+      "outcome": "pass",
+      "polyfill": null
+    },
+    {
+      "library": "needle-di",
+      "variant": "plain",
+      "toolchain": "tsc",
+      "profile": "none",
+      "sections": {
+        "singleton": "pass",
+        "transient": "not-applicable",
+        "scoped": "not-applicable"
+      },
+      "outcome": "pass",
+      "polyfill": null
+    },
+    {
+      "library": "needle-di",
+      "variant": "plain",
+      "toolchain": "tsgo",
+      "profile": "none",
+      "sections": {
+        "singleton": "pass",
+        "transient": "not-applicable",
+        "scoped": "not-applicable"
+      },
+      "outcome": "pass",
+      "polyfill": null
+    },
+    {
+      "library": "needle-di",
+      "variant": "plain",
+      "toolchain": "vite",
+      "profile": "none",
+      "sections": {
+        "singleton": "pass",
+        "transient": "not-applicable",
+        "scoped": "not-applicable"
+      },
+      "outcome": "pass",
+      "polyfill": null
+    },
+    {
+      "library": "needle-di",
+      "variant": "plain",
+      "toolchain": "vite8+babel-plugin",
+      "profile": "none",
+      "sections": {
+        "singleton": "pass",
+        "transient": "not-applicable",
+        "scoped": "not-applicable"
+      },
+      "outcome": "pass",
+      "polyfill": null
+    },
+    {
+      "library": "nexusdi",
+      "variant": "decorated",
+      "toolchain": "babel",
+      "profile": "standard",
+      "sections": {
+        "singleton": "pass",
+        "transient": "pass",
+        "scoped": "pass"
+      },
+      "outcome": "pass",
+      "polyfill": null
+    },
+    {
+      "library": "nexusdi",
+      "variant": "decorated",
+      "toolchain": "bun",
+      "profile": "standard",
+      "sections": {
+        "singleton": "pass",
+        "transient": "pass",
+        "scoped": "pass"
+      },
+      "outcome": "pass",
+      "polyfill": null
+    },
+    {
+      "library": "nexusdi",
+      "variant": "decorated",
+      "toolchain": "deno",
+      "profile": "standard",
+      "sections": {
+        "singleton": "pass",
+        "transient": "pass",
+        "scoped": "pass"
+      },
+      "outcome": "pass",
+      "polyfill": null
+    },
+    {
+      "library": "nexusdi",
+      "variant": "decorated",
+      "toolchain": "esbuild",
+      "profile": "standard",
+      "sections": {
+        "singleton": "pass",
+        "transient": "pass",
+        "scoped": "pass"
+      },
+      "outcome": "pass",
+      "polyfill": null
+    },
+    {
+      "library": "nexusdi",
+      "variant": "decorated",
+      "toolchain": "node-strip-types",
+      "profile": "standard",
+      "sections": {
+        "singleton": "compile-error",
+        "transient": "compile-error",
+        "scoped": "compile-error"
+      },
+      "outcome": "compile-error",
+      "polyfill": null,
+      "message": "SyntaxError: Invalid or unexpected token",
+      "documented": "https://nodejs.org/api/typescript.html#type-stripping"
+    },
+    {
+      "library": "nexusdi",
+      "variant": "decorated",
+      "toolchain": "swc",
+      "profile": "standard",
+      "sections": {
+        "singleton": "pass",
+        "transient": "pass",
+        "scoped": "pass"
+      },
+      "outcome": "pass",
+      "polyfill": null
+    },
+    {
+      "library": "nexusdi",
+      "variant": "decorated",
+      "toolchain": "tsc",
+      "profile": "standard",
+      "sections": {
+        "singleton": "pass",
+        "transient": "pass",
+        "scoped": "pass"
+      },
+      "outcome": "pass",
+      "polyfill": null
+    },
+    {
+      "library": "nexusdi",
+      "variant": "decorated",
+      "toolchain": "tsgo",
+      "profile": "standard",
+      "sections": {
+        "singleton": "pass",
+        "transient": "pass",
+        "scoped": "pass"
+      },
+      "outcome": "pass",
+      "polyfill": null
+    },
+    {
+      "library": "nexusdi",
+      "variant": "decorated",
+      "toolchain": "vite",
+      "profile": "standard",
+      "sections": {
+        "singleton": "compile-error",
+        "transient": "compile-error",
+        "scoped": "compile-error"
+      },
+      "outcome": "compile-error",
+      "polyfill": null,
+      "message": "SyntaxError: Invalid or unexpected token",
+      "documented": "https://vite.dev/guide/migration"
+    },
+    {
+      "library": "nexusdi",
+      "variant": "decorated",
+      "toolchain": "vite8+babel-plugin",
+      "profile": "standard",
+      "sections": {
+        "singleton": "pass",
+        "transient": "pass",
+        "scoped": "pass"
+      },
+      "outcome": "pass",
+      "polyfill": null
+    },
+    {
+      "library": "nexusdi",
+      "variant": "plain",
+      "toolchain": "babel",
+      "profile": "none",
+      "sections": {
+        "singleton": "pass",
+        "transient": "pass",
+        "scoped": "pass"
+      },
+      "outcome": "pass",
+      "polyfill": null
+    },
+    {
+      "library": "nexusdi",
+      "variant": "plain",
+      "toolchain": "bun",
+      "profile": "none",
+      "sections": {
+        "singleton": "pass",
+        "transient": "pass",
+        "scoped": "pass"
+      },
+      "outcome": "pass",
+      "polyfill": null
+    },
+    {
+      "library": "nexusdi",
+      "variant": "plain",
+      "toolchain": "deno",
+      "profile": "none",
+      "sections": {
+        "singleton": "pass",
+        "transient": "pass",
+        "scoped": "pass"
+      },
+      "outcome": "pass",
+      "polyfill": null
+    },
+    {
+      "library": "nexusdi",
+      "variant": "plain",
+      "toolchain": "esbuild",
+      "profile": "none",
+      "sections": {
+        "singleton": "pass",
+        "transient": "pass",
+        "scoped": "pass"
+      },
+      "outcome": "pass",
+      "polyfill": null
+    },
+    {
+      "library": "nexusdi",
+      "variant": "plain",
+      "toolchain": "node-strip-types",
+      "profile": "none",
+      "sections": {
+        "singleton": "pass",
+        "transient": "pass",
+        "scoped": "pass"
+      },
+      "outcome": "pass",
+      "polyfill": null
+    },
+    {
+      "library": "nexusdi",
+      "variant": "plain",
+      "toolchain": "swc",
+      "profile": "none",
+      "sections": {
+        "singleton": "pass",
+        "transient": "pass",
+        "scoped": "pass"
+      },
+      "outcome": "pass",
+      "polyfill": null
+    },
+    {
+      "library": "nexusdi",
+      "variant": "plain",
+      "toolchain": "tsc",
+      "profile": "none",
+      "sections": {
+        "singleton": "pass",
+        "transient": "pass",
+        "scoped": "pass"
+      },
+      "outcome": "pass",
+      "polyfill": null
+    },
+    {
+      "library": "nexusdi",
+      "variant": "plain",
+      "toolchain": "tsgo",
+      "profile": "none",
+      "sections": {
+        "singleton": "pass",
+        "transient": "pass",
+        "scoped": "pass"
+      },
+      "outcome": "pass",
+      "polyfill": null
+    },
+    {
+      "library": "nexusdi",
+      "variant": "plain",
+      "toolchain": "vite",
+      "profile": "none",
+      "sections": {
+        "singleton": "pass",
+        "transient": "pass",
+        "scoped": "pass"
+      },
+      "outcome": "pass",
+      "polyfill": null
+    },
+    {
+      "library": "nexusdi",
+      "variant": "plain",
+      "toolchain": "vite8+babel-plugin",
+      "profile": "none",
+      "sections": {
+        "singleton": "pass",
+        "transient": "pass",
+        "scoped": "pass"
+      },
+      "outcome": "pass",
+      "polyfill": null
+    },
+    {
+      "library": "tsyringe",
+      "variant": "decorated",
+      "toolchain": "babel",
+      "profile": "legacy-metadata",
+      "sections": {
+        "singleton": "pass",
+        "transient": "pass",
+        "scoped": "pass"
+      },
+      "outcome": "pass",
+      "polyfill": "reflect-metadata@0.2.2"
+    },
+    {
+      "library": "tsyringe",
+      "variant": "decorated",
+      "toolchain": "bun",
+      "profile": "legacy-metadata",
+      "sections": {
+        "singleton": "pass",
+        "transient": "pass",
+        "scoped": "pass"
+      },
+      "outcome": "pass",
+      "polyfill": "reflect-metadata@0.2.2"
+    },
+    {
+      "library": "tsyringe",
+      "variant": "decorated",
+      "toolchain": "deno",
+      "profile": "legacy-metadata",
+      "sections": {
+        "singleton": "pass",
+        "transient": "pass",
+        "scoped": "pass"
+      },
+      "outcome": "pass",
+      "polyfill": "reflect-metadata@0.2.2",
+      "note": "Warning experimentalDecorators compiler option is deprecated and may be removed at any time"
+    },
+    {
+      "library": "tsyringe",
+      "variant": "decorated",
+      "toolchain": "esbuild",
+      "profile": "legacy-metadata",
+      "sections": {
+        "singleton": "runtime-error",
+        "transient": "runtime-error",
+        "scoped": "runtime-error"
+      },
+      "outcome": "runtime-error",
+      "polyfill": "reflect-metadata@0.2.2",
+      "message": "Error: TypeInfo not known for \"QuantumComputer\"",
+      "documented": "https://esbuild.github.io/content-types/#typescript-caveats"
+    },
+    {
+      "library": "tsyringe",
+      "variant": "decorated",
+      "toolchain": "node-strip-types",
+      "profile": "legacy-metadata",
+      "sections": {
+        "singleton": "compile-error",
+        "transient": "compile-error",
+        "scoped": "compile-error"
+      },
+      "outcome": "compile-error",
+      "polyfill": "reflect-metadata@0.2.2",
+      "message": "SyntaxError: Invalid or unexpected token",
+      "documented": "https://nodejs.org/api/typescript.html#type-stripping"
+    },
+    {
+      "library": "tsyringe",
+      "variant": "decorated",
+      "toolchain": "swc",
+      "profile": "legacy-metadata",
+      "sections": {
+        "singleton": "pass",
+        "transient": "pass",
+        "scoped": "pass"
+      },
+      "outcome": "pass",
+      "polyfill": "reflect-metadata@0.2.2"
+    },
+    {
+      "library": "tsyringe",
+      "variant": "decorated",
+      "toolchain": "tsc",
+      "profile": "legacy-metadata",
+      "sections": {
+        "singleton": "pass",
+        "transient": "pass",
+        "scoped": "pass"
+      },
+      "outcome": "pass",
+      "polyfill": "reflect-metadata@0.2.2"
+    },
+    {
+      "library": "tsyringe",
+      "variant": "decorated",
+      "toolchain": "tsgo",
+      "profile": "legacy-metadata",
+      "sections": {
+        "singleton": "pass",
+        "transient": "pass",
+        "scoped": "pass"
+      },
+      "outcome": "pass",
+      "polyfill": "reflect-metadata@0.2.2"
+    },
+    {
+      "library": "tsyringe",
+      "variant": "decorated",
+      "toolchain": "vite",
+      "profile": "legacy-metadata",
+      "sections": {
+        "singleton": "pass",
+        "transient": "pass",
+        "scoped": "pass"
+      },
+      "outcome": "pass",
+      "polyfill": "reflect-metadata@0.2.2"
+    },
+    {
+      "library": "tsyringe",
+      "variant": "decorated",
+      "toolchain": "vite8+babel-plugin",
+      "profile": "legacy-metadata",
+      "sections": {
+        "singleton": "pass",
+        "transient": "pass",
+        "scoped": "pass"
+      },
+      "outcome": "pass",
+      "polyfill": "reflect-metadata@0.2.2"
+    },
+    {
+      "library": "tsyringe",
+      "variant": "decorated-explicit",
+      "toolchain": "babel",
+      "profile": "legacy",
+      "sections": {
+        "singleton": "compile-error",
+        "transient": "compile-error",
+        "scoped": "compile-error"
+      },
+      "outcome": "compile-error",
+      "polyfill": "reflect-metadata@0.2.2",
+      "message": "SyntaxError: Invalid or unexpected token"
+    },
+    {
+      "library": "tsyringe",
+      "variant": "decorated-explicit",
+      "toolchain": "bun",
+      "profile": "legacy",
+      "sections": {
+        "singleton": "pass",
+        "transient": "pass",
+        "scoped": "pass"
+      },
+      "outcome": "pass",
+      "polyfill": "reflect-metadata@0.2.2"
+    },
+    {
+      "library": "tsyringe",
+      "variant": "decorated-explicit",
+      "toolchain": "deno",
+      "profile": "legacy",
+      "sections": {
+        "singleton": "pass",
+        "transient": "pass",
+        "scoped": "pass"
+      },
+      "outcome": "pass",
+      "polyfill": "reflect-metadata@0.2.2",
+      "note": "Warning experimentalDecorators compiler option is deprecated and may be removed at any time"
+    },
+    {
+      "library": "tsyringe",
+      "variant": "decorated-explicit",
+      "toolchain": "esbuild",
+      "profile": "legacy",
+      "sections": {
+        "singleton": "pass",
+        "transient": "pass",
+        "scoped": "pass"
+      },
+      "outcome": "pass",
+      "polyfill": "reflect-metadata@0.2.2"
+    },
+    {
+      "library": "tsyringe",
+      "variant": "decorated-explicit",
+      "toolchain": "node-strip-types",
+      "profile": "legacy",
+      "sections": {
+        "singleton": "compile-error",
+        "transient": "compile-error",
+        "scoped": "compile-error"
+      },
+      "outcome": "compile-error",
+      "polyfill": "reflect-metadata@0.2.2",
+      "message": "SyntaxError: Invalid or unexpected token",
+      "documented": "https://nodejs.org/api/typescript.html#type-stripping"
+    },
+    {
+      "library": "tsyringe",
+      "variant": "decorated-explicit",
+      "toolchain": "swc",
+      "profile": "legacy",
+      "sections": {
+        "singleton": "pass",
+        "transient": "pass",
+        "scoped": "pass"
+      },
+      "outcome": "pass",
+      "polyfill": "reflect-metadata@0.2.2"
+    },
+    {
+      "library": "tsyringe",
+      "variant": "decorated-explicit",
+      "toolchain": "tsc",
+      "profile": "legacy",
+      "sections": {
+        "singleton": "pass",
+        "transient": "pass",
+        "scoped": "pass"
+      },
+      "outcome": "pass",
+      "polyfill": "reflect-metadata@0.2.2"
+    },
+    {
+      "library": "tsyringe",
+      "variant": "decorated-explicit",
+      "toolchain": "tsgo",
+      "profile": "legacy",
+      "sections": {
+        "singleton": "pass",
+        "transient": "pass",
+        "scoped": "pass"
+      },
+      "outcome": "pass",
+      "polyfill": "reflect-metadata@0.2.2"
+    },
+    {
+      "library": "tsyringe",
+      "variant": "decorated-explicit",
+      "toolchain": "vite",
+      "profile": "legacy",
+      "sections": {
+        "singleton": "pass",
+        "transient": "pass",
+        "scoped": "pass"
+      },
+      "outcome": "pass",
+      "polyfill": "reflect-metadata@0.2.2"
+    },
+    {
+      "library": "tsyringe",
+      "variant": "decorated-explicit",
+      "toolchain": "vite8+babel-plugin",
+      "profile": "legacy",
+      "sections": {
+        "singleton": "compile-error",
+        "transient": "compile-error",
+        "scoped": "compile-error"
+      },
+      "outcome": "compile-error",
+      "polyfill": "reflect-metadata@0.2.2",
+      "message": "error during build: Build failed with 8 errors: [PARSE_ERROR] Decorators are not valid here."
+    },
+    {
+      "library": "tsyringe",
+      "variant": "plain",
+      "toolchain": "babel",
+      "profile": "none",
+      "sections": {
+        "singleton": "pass",
+        "transient": "pass",
+        "scoped": "pass"
+      },
+      "outcome": "pass",
+      "polyfill": "reflect-metadata@0.2.2"
+    },
+    {
+      "library": "tsyringe",
+      "variant": "plain",
+      "toolchain": "bun",
+      "profile": "none",
+      "sections": {
+        "singleton": "pass",
+        "transient": "pass",
+        "scoped": "pass"
+      },
+      "outcome": "pass",
+      "polyfill": "reflect-metadata@0.2.2"
+    },
+    {
+      "library": "tsyringe",
+      "variant": "plain",
+      "toolchain": "deno",
+      "profile": "none",
+      "sections": {
+        "singleton": "pass",
+        "transient": "pass",
+        "scoped": "pass"
+      },
+      "outcome": "pass",
+      "polyfill": "reflect-metadata@0.2.2"
+    },
+    {
+      "library": "tsyringe",
+      "variant": "plain",
+      "toolchain": "esbuild",
+      "profile": "none",
+      "sections": {
+        "singleton": "pass",
+        "transient": "pass",
+        "scoped": "pass"
+      },
+      "outcome": "pass",
+      "polyfill": "reflect-metadata@0.2.2"
+    },
+    {
+      "library": "tsyringe",
+      "variant": "plain",
+      "toolchain": "node-strip-types",
+      "profile": "none",
+      "sections": {
+        "singleton": "pass",
+        "transient": "pass",
+        "scoped": "pass"
+      },
+      "outcome": "pass",
+      "polyfill": "reflect-metadata@0.2.2"
+    },
+    {
+      "library": "tsyringe",
+      "variant": "plain",
+      "toolchain": "swc",
+      "profile": "none",
+      "sections": {
+        "singleton": "pass",
+        "transient": "pass",
+        "scoped": "pass"
+      },
+      "outcome": "pass",
+      "polyfill": "reflect-metadata@0.2.2"
+    },
+    {
+      "library": "tsyringe",
+      "variant": "plain",
+      "toolchain": "tsc",
+      "profile": "none",
+      "sections": {
+        "singleton": "pass",
+        "transient": "pass",
+        "scoped": "pass"
+      },
+      "outcome": "pass",
+      "polyfill": "reflect-metadata@0.2.2"
+    },
+    {
+      "library": "tsyringe",
+      "variant": "plain",
+      "toolchain": "tsgo",
+      "profile": "none",
+      "sections": {
+        "singleton": "pass",
+        "transient": "pass",
+        "scoped": "pass"
+      },
+      "outcome": "pass",
+      "polyfill": "reflect-metadata@0.2.2"
+    },
+    {
+      "library": "tsyringe",
+      "variant": "plain",
+      "toolchain": "vite",
+      "profile": "none",
+      "sections": {
+        "singleton": "pass",
+        "transient": "pass",
+        "scoped": "pass"
+      },
+      "outcome": "pass",
+      "polyfill": "reflect-metadata@0.2.2"
+    },
+    {
+      "library": "tsyringe",
+      "variant": "plain",
+      "toolchain": "vite8+babel-plugin",
+      "profile": "none",
+      "sections": {
+        "singleton": "pass",
+        "transient": "pass",
+        "scoped": "pass"
+      },
+      "outcome": "pass",
+      "polyfill": "reflect-metadata@0.2.2"
+    }
+  ]
+}

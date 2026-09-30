@@ -1,0 +1,408 @@
+{
+  "schema": 1,
+  "versions": {
+    "core": "0.3.2",
+    "libraries": {
+      "nexusdi": "0.3.2",
+      "inversify": "8.2.3",
+      "tsyringe": "4.10.0",
+      "awilix": "13.0.5",
+      "needle-di": "1.2.1"
+    },
+    "toolchains": {
+      "tsc": "6.0.3",
+      "tsgo": "7.0.2",
+      "esbuild": "0.28.2",
+      "swc": "1.16.2",
+      "babel": "8.0.6",
+      "vite": "8.3.0",
+      "vite8+babel-plugin": "8.3.0",
+      "bun": "1.4.2",
+      "deno": "2.9.6",
+      "node-strip-types": "24.20.0"
+    },
+    "node": "24.20.0"
+  },
+  "probes": [
+    {
+      "library": "awilix",
+      "variant": "plain",
+      "probe": "captive-scoped",
+      "detectedAt": "first-resolve",
+      "message": "AwilixResolutionError: Could not resolve 'flightLog'. Dependency 'flightLog' has a shorter lifetime than its ancestor: 'bridge'"
+    },
+    {
+      "library": "awilix",
+      "variant": "plain",
+      "probe": "cycle",
+      "detectedAt": "first-resolve",
+      "message": "AwilixResolutionError: Could not resolve 'shield'. Cyclic dependencies detected."
+    },
+    {
+      "library": "awilix",
+      "variant": "plain",
+      "probe": "missing-provider",
+      "detectedAt": "first-resolve",
+      "message": "AwilixResolutionError: Could not resolve 'charts'."
+    },
+    {
+      "library": "awilix",
+      "variant": "plain",
+      "probe": "two-mistakes",
+      "detectedAt": "first-resolve",
+      "reported": 1,
+      "message": "AwilixResolutionError: Could not resolve 'charts'."
+    },
+    {
+      "library": "awilix",
+      "variant": "plain",
+      "probe": "wrong-dep-type",
+      "detectedAt": "typecheck",
+      "message": "src/main.ts - error TS2322: Type 'PowerRouter' is not assignable to type 'FusionReactor'."
+    },
+    {
+      "library": "inversify",
+      "variant": "decorated",
+      "probe": "captive-scoped",
+      "detectedAt": "not-applicable"
+    },
+    {
+      "library": "inversify",
+      "variant": "decorated",
+      "probe": "cycle",
+      "detectedAt": "first-resolve",
+      "message": "Error: Circular dependency found: Bridge -> ShieldGrid -> PowerRouter -> ShieldGrid"
+    },
+    {
+      "library": "inversify",
+      "variant": "decorated",
+      "probe": "missing-provider",
+      "detectedAt": "first-resolve",
+      "message": "Error: No bindings found for service: \"Symbol(NavCharts)\"."
+    },
+    {
+      "library": "inversify",
+      "variant": "decorated",
+      "probe": "two-mistakes",
+      "detectedAt": "first-resolve",
+      "reported": 1,
+      "message": "Error: No bindings found for service: \"Symbol(NavCharts)\"."
+    },
+    {
+      "library": "inversify",
+      "variant": "decorated",
+      "probe": "wrong-dep-type",
+      "detectedAt": "never"
+    },
+    {
+      "library": "inversify",
+      "variant": "decorated-explicit",
+      "probe": "captive-scoped",
+      "detectedAt": "not-applicable"
+    },
+    {
+      "library": "inversify",
+      "variant": "decorated-explicit",
+      "probe": "cycle",
+      "detectedAt": "first-resolve",
+      "message": "Error: Circular dependency found: Bridge -> ShieldGrid -> PowerRouter -> ShieldGrid"
+    },
+    {
+      "library": "inversify",
+      "variant": "decorated-explicit",
+      "probe": "missing-provider",
+      "detectedAt": "first-resolve",
+      "message": "Error: No bindings found for service: \"Symbol(NavCharts)\"."
+    },
+    {
+      "library": "inversify",
+      "variant": "decorated-explicit",
+      "probe": "two-mistakes",
+      "detectedAt": "first-resolve",
+      "reported": 1,
+      "message": "Error: No bindings found for service: \"Symbol(NavCharts)\"."
+    },
+    {
+      "library": "inversify",
+      "variant": "decorated-explicit",
+      "probe": "wrong-dep-type",
+      "detectedAt": "never"
+    },
+    {
+      "library": "inversify",
+      "variant": "plain",
+      "probe": "captive-scoped",
+      "detectedAt": "not-applicable"
+    },
+    {
+      "library": "inversify",
+      "variant": "plain",
+      "probe": "cycle",
+      "detectedAt": "first-resolve",
+      "message": "Error: Circular dependency found: Symbol(Bridge) -> Symbol(ShieldGrid) -> Symbol(PowerRouter) -> Symbol(ShieldGrid)"
+    },
+    {
+      "library": "inversify",
+      "variant": "plain",
+      "probe": "missing-provider",
+      "detectedAt": "first-resolve",
+      "message": "Error: No bindings found for service: \"Symbol(NavCharts)\"."
+    },
+    {
+      "library": "inversify",
+      "variant": "plain",
+      "probe": "two-mistakes",
+      "detectedAt": "first-resolve",
+      "reported": 1,
+      "message": "Error: No bindings found for service: \"Symbol(NavCharts)\"."
+    },
+    {
+      "library": "inversify",
+      "variant": "plain",
+      "probe": "wrong-dep-type",
+      "detectedAt": "never"
+    },
+    {
+      "library": "needle-di",
+      "variant": "decorated",
+      "probe": "captive-scoped",
+      "detectedAt": "not-applicable"
+    },
+    {
+      "library": "needle-di",
+      "variant": "decorated",
+      "probe": "cycle",
+      "detectedAt": "first-resolve",
+      "message": "Error: Detected circular dependency: Bridge -> ShieldGrid -> PowerRouter -> ShieldGrid. Please change your dependency graph or use lazy injection instead."
+    },
+    {
+      "library": "needle-di",
+      "variant": "decorated",
+      "probe": "missing-provider",
+      "detectedAt": "first-resolve",
+      "message": "Error: No provider(s) found for InjectionToken \"NavCharts\""
+    },
+    {
+      "library": "needle-di",
+      "variant": "decorated",
+      "probe": "two-mistakes",
+      "detectedAt": "first-resolve",
+      "reported": 1,
+      "message": "Error: No provider(s) found for InjectionToken \"NavCharts\""
+    },
+    {
+      "library": "needle-di",
+      "variant": "decorated",
+      "probe": "wrong-dep-type",
+      "detectedAt": "never"
+    },
+    {
+      "library": "needle-di",
+      "variant": "plain",
+      "probe": "captive-scoped",
+      "detectedAt": "not-applicable"
+    },
+    {
+      "library": "needle-di",
+      "variant": "plain",
+      "probe": "cycle",
+      "detectedAt": "first-resolve",
+      "message": "Error: Detected circular dependency: InjectionToken \"Bridge\" -> InjectionToken \"ShieldGrid\" -> InjectionToken \"PowerRouter\" -> InjectionToken \"ShieldGrid\". Please change your dependency graph or use lazy injection instead."
+    },
+    {
+      "library": "needle-di",
+      "variant": "plain",
+      "probe": "missing-provider",
+      "detectedAt": "first-resolve",
+      "message": "Error: No provider(s) found for InjectionToken \"NavCharts\""
+    },
+    {
+      "library": "needle-di",
+      "variant": "plain",
+      "probe": "two-mistakes",
+      "detectedAt": "first-resolve",
+      "reported": 1,
+      "message": "Error: No provider(s) found for InjectionToken \"NavCharts\""
+    },
+    {
+      "library": "needle-di",
+      "variant": "plain",
+      "probe": "wrong-dep-type",
+      "detectedAt": "typecheck",
+      "message": "src/main.ts - error TS2345: Argument of type 'IPowerRouter' is not assignable to parameter of type 'IReactorCore'."
+    },
+    {
+      "library": "nexusdi",
+      "variant": "decorated",
+      "probe": "captive-scoped",
+      "detectedAt": "create",
+      "message": "LifetimeError: [NEXUS_LIFETIME_VIOLATION] path=Bridge,FlightLog lifetimes=singleton,scoped. https://nexus.js.org/errors/NEXUS_LIFETIME_VIOLATION"
+    },
+    {
+      "library": "nexusdi",
+      "variant": "decorated",
+      "probe": "cycle",
+      "detectedAt": "create",
+      "message": "CircularDependencyError: [NEXUS_CIRCULAR_DEPENDENCY] path=PowerRouter,ShieldGrid,PowerRouter. https://nexus.js.org/errors/NEXUS_CIRCULAR_DEPENDENCY"
+    },
+    {
+      "library": "nexusdi",
+      "variant": "decorated",
+      "probe": "missing-provider",
+      "detectedAt": "create",
+      "message": "MissingProviderError: [NEXUS_MISSING_PROVIDER] token=NavCharts requester=Bridge module=Meridian. https://nexus.js.org/errors/NEXUS_MISSING_PROVIDER"
+    },
+    {
+      "library": "nexusdi",
+      "variant": "decorated",
+      "probe": "two-mistakes",
+      "detectedAt": "create",
+      "reported": 2,
+      "message": "MissingProviderError: [NEXUS_MISSING_PROVIDER] token=NavCharts requester=Bridge module=Meridian. https://nexus.js.org/errors/NEXUS_MISSING_PROVIDER"
+    },
+    {
+      "library": "nexusdi",
+      "variant": "decorated",
+      "probe": "wrong-dep-type",
+      "detectedAt": "typecheck",
+      "message": "src/main.ts - error TS2322: Type 'Token<IPowerRouter>' is not assignable to type 'DepFor<IReactorCore>'."
+    },
+    {
+      "library": "nexusdi",
+      "variant": "plain",
+      "probe": "captive-scoped",
+      "detectedAt": "create",
+      "message": "LifetimeError: [NEXUS_LIFETIME_VIOLATION] path=Bridge,FlightLog lifetimes=singleton,scoped. https://nexus.js.org/errors/NEXUS_LIFETIME_VIOLATION"
+    },
+    {
+      "library": "nexusdi",
+      "variant": "plain",
+      "probe": "cycle",
+      "detectedAt": "create",
+      "message": "CircularDependencyError: [NEXUS_CIRCULAR_DEPENDENCY] path=PowerRouter,ShieldGrid,PowerRouter. https://nexus.js.org/errors/NEXUS_CIRCULAR_DEPENDENCY"
+    },
+    {
+      "library": "nexusdi",
+      "variant": "plain",
+      "probe": "missing-provider",
+      "detectedAt": "create",
+      "message": "MissingProviderError: [NEXUS_MISSING_PROVIDER] token=NavCharts requester=Bridge module=Meridian. https://nexus.js.org/errors/NEXUS_MISSING_PROVIDER"
+    },
+    {
+      "library": "nexusdi",
+      "variant": "plain",
+      "probe": "two-mistakes",
+      "detectedAt": "create",
+      "reported": 2,
+      "message": "MissingProviderError: [NEXUS_MISSING_PROVIDER] token=NavCharts requester=Bridge module=Meridian. https://nexus.js.org/errors/NEXUS_MISSING_PROVIDER"
+    },
+    {
+      "library": "nexusdi",
+      "variant": "plain",
+      "probe": "wrong-dep-type",
+      "detectedAt": "typecheck",
+      "message": "src/main.ts - error TS2769: No overload matches this call."
+    },
+    {
+      "library": "tsyringe",
+      "variant": "decorated",
+      "probe": "captive-scoped",
+      "detectedAt": "never"
+    },
+    {
+      "library": "tsyringe",
+      "variant": "decorated",
+      "probe": "cycle",
+      "detectedAt": "never"
+    },
+    {
+      "library": "tsyringe",
+      "variant": "decorated",
+      "probe": "missing-provider",
+      "detectedAt": "first-resolve",
+      "message": "Error: Cannot inject the dependency \"charts\" at position #1 of \"Bridge\" constructor. Reason: Attempted to resolve unregistered dependency token: \"NavCharts\""
+    },
+    {
+      "library": "tsyringe",
+      "variant": "decorated",
+      "probe": "two-mistakes",
+      "detectedAt": "first-resolve",
+      "reported": 1,
+      "message": "Error: Cannot inject the dependency \"charts\" at position #1 of \"Bridge\" constructor. Reason: Attempted to resolve unregistered dependency token: \"NavCharts\""
+    },
+    {
+      "library": "tsyringe",
+      "variant": "decorated",
+      "probe": "wrong-dep-type",
+      "detectedAt": "never"
+    },
+    {
+      "library": "tsyringe",
+      "variant": "decorated-explicit",
+      "probe": "captive-scoped",
+      "detectedAt": "never"
+    },
+    {
+      "library": "tsyringe",
+      "variant": "decorated-explicit",
+      "probe": "cycle",
+      "detectedAt": "never"
+    },
+    {
+      "library": "tsyringe",
+      "variant": "decorated-explicit",
+      "probe": "missing-provider",
+      "detectedAt": "first-resolve",
+      "message": "Error: Cannot inject the dependency \"charts\" at position #1 of \"Bridge\" constructor. Reason: Attempted to resolve unregistered dependency token: \"NavCharts\""
+    },
+    {
+      "library": "tsyringe",
+      "variant": "decorated-explicit",
+      "probe": "two-mistakes",
+      "detectedAt": "first-resolve",
+      "reported": 1,
+      "message": "Error: Cannot inject the dependency \"charts\" at position #1 of \"Bridge\" constructor. Reason: Attempted to resolve unregistered dependency token: \"NavCharts\""
+    },
+    {
+      "library": "tsyringe",
+      "variant": "decorated-explicit",
+      "probe": "wrong-dep-type",
+      "detectedAt": "never"
+    },
+    {
+      "library": "tsyringe",
+      "variant": "plain",
+      "probe": "captive-scoped",
+      "detectedAt": "never"
+    },
+    {
+      "library": "tsyringe",
+      "variant": "plain",
+      "probe": "cycle",
+      "detectedAt": "first-resolve",
+      "message": "RangeError: Maximum call stack size exceeded"
+    },
+    {
+      "library": "tsyringe",
+      "variant": "plain",
+      "probe": "missing-provider",
+      "detectedAt": "first-resolve",
+      "message": "Error: Attempted to resolve unregistered dependency token: \"NavCharts\""
+    },
+    {
+      "library": "tsyringe",
+      "variant": "plain",
+      "probe": "two-mistakes",
+      "detectedAt": "first-resolve",
+      "reported": 1,
+      "message": "Error: Attempted to resolve unregistered dependency token: \"NavCharts\""
+    },
+    {
+      "library": "tsyringe",
+      "variant": "plain",
+      "probe": "wrong-dep-type",
+      "detectedAt": "typecheck",
+      "message": "src/main.ts - error TS2345: Argument of type 'IPowerRouter' is not assignable to parameter of type 'IReactorCore'."
+    }
+  ]
+}
