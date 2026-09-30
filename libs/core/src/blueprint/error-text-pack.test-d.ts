@@ -19,11 +19,10 @@ describe('ErrorTextPack', () => {
   });
 
   it('rejects an entry for a code no package added', () => {
-    const pack = {
+    void ({
       // @ts-expect-error: ACME_UNKNOWN is not a key of NexusErrorByCode
       ACME_UNKNOWN: () => undefined,
-    } satisfies ErrorTextPack;
-    expectTypeOf(pack).not.toBeNever();
+    } satisfies ErrorTextPack);
   });
 
   it('passes an entry the class of its code', () => {

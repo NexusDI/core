@@ -31,13 +31,18 @@ export function ownsText(error: Error): boolean {
 export class NexusError<C extends string = string> extends Error {
   declare readonly code: C;
 
+  /**
+   * `docs` is the base url the one-line message links to, `DOCS_URL`
+   * when absent. `errorBase` passes it; a direct subclass leaves it out.
+   */
   constructor(
     code: C,
     name: string,
     fields: ErrorFields,
     options?: NexusErrorOptions,
+    docs?: string,
   ) {
-    super(`[${code}] ${options?.text ?? lineOf(code, fields)}`, options);
+    super(`[${code}] ${options?.text ?? lineOf(code, fields, docs)}`, options);
     for (const [key, value] of Object.entries(fields))
       if (key !== 'code') (this as Record<string, unknown>)[key] = value;
     for (const [key, value] of Object.entries(options?.hidden ?? {}))
@@ -54,11 +59,14 @@ export class NexusError<C extends string = string> extends Error {
 /**
  * The base a thin error class extends: `class X extends errorBase<'CODE',
  * XFields>('CODE', 'X') {}`. `code` may be a function of the fields for a
- * class that carries several codes.
+ * class that carries several codes. `docs` is the base url the one-line
+ * message links to, followed by the code: `DOCS_URL` when absent, which
+ * first-party packages keep; a third-party package passes its own.
  */
 export function errorBase<C extends string, F extends ErrorFields>(
   code: C | ((fields: F) => C),
   name: string,
+  docs?: string,
 ): new (
   fields: F,
   options?: NexusErrorOptions,
@@ -70,6 +78,7 @@ export function errorBase<C extends string, F extends ErrorFields>(
         name,
         fields,
         options,
+        docs,
       );
     }
   } as never;

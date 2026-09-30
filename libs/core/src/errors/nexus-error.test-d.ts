@@ -30,6 +30,21 @@ describe('errorBase', () => {
     errorBase<'NEXUS_TEST_C', { cause: string }>('NEXUS_TEST_C', 'C');
   });
 
+  it('takes a docs base url as an optional third argument', () => {
+    errorBase<'ACME_DOCS', { store: string }>(
+      'ACME_DOCS',
+      'DocsError',
+      'https://acme.dev/errors/',
+    );
+    errorBase<'ACME_DOCS', { code: 'ACME_DOCS'; store: string }>(
+      (fields) => fields.code,
+      'DocsError',
+      'https://acme.dev/errors/',
+    );
+    // @ts-expect-error the docs base url is a string
+    errorBase<'ACME_DOCS', { store: string }>('ACME_DOCS', 'DocsError', 1);
+  });
+
   it('makes a package error assignable to NexusError', () => {
     class P extends errorBase<'NEXUS_TEST_P', { contract: string }>(
       'NEXUS_TEST_P',

@@ -1,7 +1,9 @@
 import { describe, expect, it } from 'vitest';
 
 import { errorCases } from '../../test-support/error-cases.js';
+import { AcmeCacheStoreError } from '../../test-support/third-party-codes.js';
 import {
+  DOCS_URL,
   errorBase,
   isNexusError,
   MissingProviderError,
@@ -223,6 +225,36 @@ describe('errorBase', () => {
     expect(Object.keys(error)).toEqual(['side']);
     expect(error.message).toBe(
       '[NEXUS_TEST_TWO] side=port. https://nexus.js.org/errors/NEXUS_TEST_TWO',
+    );
+  });
+
+  it('links the message to the docs base url a package passes', () => {
+    const error = new AcmeCacheStoreError({
+      store: 'redis',
+      module: 'Cache',
+    });
+    expect(error.message).toBe(
+      '[ACME_CACHE_STORE] store=redis module=Cache. https://acme.dev/errors/ACME_CACHE_STORE',
+    );
+  });
+
+  it('links the message to DOCS_URL when a package passes no docs base url', () => {
+    class ContractError extends errorBase<
+      'NEXUS_TEST_CONTRACT',
+      { contract: string }
+    >('NEXUS_TEST_CONTRACT', 'ContractError') {}
+    expect(new ContractError({ contract: 'bank/Auth' }).message).toBe(
+      `[NEXUS_TEST_CONTRACT] contract=bank/Auth. ${DOCS_URL}NEXUS_TEST_CONTRACT`,
+    );
+  });
+
+  it('links the message to the docs base url for a class with several codes', () => {
+    class PairError extends errorBase<
+      'ACME_ONE' | 'ACME_TWO',
+      { code: 'ACME_ONE' | 'ACME_TWO'; side: string }
+    >((fields) => fields.code, 'PairError', 'https://acme.dev/errors/') {}
+    expect(new PairError({ code: 'ACME_TWO', side: 'port' }).message).toBe(
+      '[ACME_TWO] side=port. https://acme.dev/errors/ACME_TWO',
     );
   });
 });

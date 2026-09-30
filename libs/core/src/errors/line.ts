@@ -24,10 +24,10 @@ function oneLine(value: string): string {
 /**
  * Core's message body: the fields that are strings, numbers or non-empty
  * string arrays, as key=value pairs in field order, then the code's docs
- * link. A line break inside a value is escaped. No text per code, so the
- * bundle carries none.
+ * link under `docs`. A line break inside a value is escaped. No text per
+ * code, so the bundle carries none.
  */
-export function lineOf(code: string, fields: object): string {
+export function lineOf(code: string, fields: object, docs = DOCS_URL): string {
   const parts: string[] = [];
   for (const [key, value] of Object.entries(fields)) {
     if (key === 'code') continue;
@@ -41,7 +41,7 @@ export function lineOf(code: string, fields: object): string {
       parts.push(`${key}=${oneLine(value.join(','))}`);
   }
   const head = parts.length === 0 ? '' : `${parts.join(' ')}. `;
-  return `${head}${DOCS_URL}${code}`;
+  return `${head}${docs}${code}`;
 }
 
 /** The parts of a formatted message, as a formatError hook returns them. */
