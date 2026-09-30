@@ -198,6 +198,24 @@ describe('textPlacement', () => {
     ]);
   });
 
+  it('follows the plugin context through a setter and assignment patterns, and fails closed where a holder escapes', () => {
+    expect(
+      textPlacement(fixture('sabotaged/context-holders'), EMPTY).violations,
+    ).toEqual([
+      'plugin.ts:7 formats ACME_CACHE_MISS, built with inline text at plugin.ts:7; reported and formatted errors take their text from the pack',
+      'plugin.ts:23 formats ACME_CACHE_MISS, built with inline text at plugin.ts:23; reported and formatted errors take their text from the pack',
+      'plugin.ts:27 formats ACME_CACHE_MISS, built with inline text at plugin.ts:27; reported and formatted errors take their text from the pack',
+      'plugin.ts:19 passes the plugin context on as a value, and the check cannot follow it to its format calls; keep it in a binding or property the check can trace, or allowlist the site with a reason',
+      'plugin.ts:20 passes the plugin context on as a value, and the check cannot follow it to its format calls; keep it in a binding or property the check can trace, or allowlist the site with a reason',
+    ]);
+  });
+
+  it('tells a property that holds the plugin context from another of the same name', () => {
+    expect(textPlacement(fixture('context-field'), EMPTY).violations).toEqual(
+      [],
+    );
+  });
+
   it('lets an inline-text allowance cover its codes', () => {
     const allowance = {
       package: '@acme/cache',

@@ -1,3 +1,5 @@
+import { dirname, join } from 'node:path';
+
 import ts from 'typescript';
 
 import type { SourceFileText } from './core-layers.js';
@@ -526,16 +528,41 @@ function pluginHook(
   };
 }
 
+const LIB_DIR = dirname(ts.getDefaultLibFilePath({}));
+const LIB = 'lib.es2022.d.ts';
+const libFiles = new Map<string, ts.SourceFile | undefined>();
+
+/** A default lib file, parsed once and shared by every package's checker. */
+function libFile(name: string): ts.SourceFile | undefined {
+  if (!libFiles.has(name)) {
+    const text = ts.sys.readFile(name);
+    libFiles.set(
+      name,
+      text === undefined
+        ? undefined
+        : ts.createSourceFile(name, text, ts.ScriptTarget.ESNext, true),
+    );
+  }
+  return libFiles.get(name);
+}
+
 /**
- * A type checker over one package's sources. It resolves local bindings and
- * relative imports, and nothing outside the package.
+ * A type checker over one package's sources and the es2022 lib. It
+ * resolves local bindings, relative imports and lib types, and nothing
+ * outside the package: another package's types are unresolved.
  */
 function checkerOf(sources: Sources): ts.TypeChecker {
   const host: ts.CompilerHost = {
-    getSourceFile: (name) => sources.get(name),
-    fileExists: (name) => sources.has(name),
-    readFile: (name) => sources.get(name)?.text,
-    getDefaultLibFileName: () => 'lib.d.ts',
+    getSourceFile: (name) =>
+      name.startsWith(LIB_DIR) ? libFile(name) : sources.get(name),
+    fileExists: (name) =>
+      name.startsWith(LIB_DIR) ? ts.sys.fileExists(name) : sources.has(name),
+    readFile: (name) =>
+      name.startsWith(LIB_DIR)
+        ? ts.sys.readFile(name)
+        : sources.get(name)?.text,
+    getDefaultLibFileName: () => join(LIB_DIR, LIB),
+    getDefaultLibLocation: () => LIB_DIR,
     writeFile: () => undefined,
     getCurrentDirectory: () => '',
     getCanonicalFileName: (name) => name,
@@ -546,9 +573,10 @@ function checkerOf(sources: Sources): ts.TypeChecker {
     .createProgram({
       rootNames: [...sources.keys()],
       options: {
-        noLib: true,
+        lib: [LIB],
         noEmit: true,
         types: [],
+        target: ts.ScriptTarget.ES2022,
         module: ts.ModuleKind.ESNext,
         moduleResolution: ts.ModuleResolutionKind.Bundler,
       },
@@ -582,7 +610,7 @@ const ASSIGNS = new Set([
   ts.SyntaxKind.AmpersandAmpersandEqualsToken,
 ]);
 
-/** Operators that read a context and yield something else. */
+/** Operators that read a value and yield something else. */
 const TESTS = new Set([
   ts.SyntaxKind.EqualsEqualsEqualsToken,
   ts.SyntaxKind.ExclamationEqualsEqualsToken,
@@ -625,98 +653,280 @@ function memberName(expr: ts.Expression): string | undefined {
 }
 
 /**
+ * True when `node` sits in the target of a destructuring assignment, such
+ * as `k` in `({ k } = h)`: a write, never a read.
+ */
+function inAssignmentPattern(node: ts.Node): boolean {
+  let at = node;
+  while (
+    ts.isObjectLiteralExpression(at.parent) ||
+    ts.isArrayLiteralExpression(at.parent) ||
+    ts.isPropertyAssignment(at.parent) ||
+    ts.isShorthandPropertyAssignment(at.parent) ||
+    ts.isSpreadAssignment(at.parent) ||
+    ts.isSpreadElement(at.parent) ||
+    ts.isParenthesizedExpression(at.parent)
+  ) {
+    if (ts.isPropertyAssignment(at.parent) && at.parent.name === at)
+      return false;
+    at = at.parent;
+  }
+  const parent = at.parent;
+  return (
+    (ts.isBinaryExpression(parent) &&
+      parent.left === at &&
+      ASSIGNS.has(parent.operatorToken.kind)) ||
+    ((ts.isForOfStatement(parent) || ts.isForInStatement(parent)) &&
+      parent.initializer === at)
+  );
+}
+
+/** What a tracked declaration holds: a context, or an object holding one. */
+type Held = 'context' | 'holder';
+
+/**
  * Follows the contexts that `seeds` (setup hooks' first parameters) receive
- * through the package: into bindings assigned from them, destructures of
- * them, object properties that hold them, and the parameters of
- * package-local functions they are passed to. A property that holds a
- * context is tracked by name, so every read of that name counts as one.
+ * through the package. A context, or an object that holds one (a holder),
+ * may be read, tested, bound, destructured, assigned, put in an object
+ * literal property or passed to a package-local function. The check tracks
+ * each by the declarations of the bindings and properties that hold it, so
+ * a property read counts only when the checker resolves it to one of them,
+ * or when a write it could not resolve used the same name. A holder may
+ * also go to any place whose type declares its tracked properties in the
+ * package. Every other use escapes.
  */
 function contextFlow(
   sources: Sources,
   seeds: readonly ts.ParameterDeclaration[],
 ): ContextFlow {
   const checker = checkerOf(sources);
-  const symbols = new Set<ts.Symbol>();
-  const props = new Set<string>();
+  const held = new Map<ts.Node, Held>();
+  /** Property names written where the checker resolved no property. */
+  const names = new Map<string, Held>();
   const members = new Set<
     ts.PropertyAccessExpression | ts.ElementAccessExpression
   >();
   const patterns = new Set<ts.ObjectBindingPattern>();
   const escapes = new Set<ts.Node>();
+  const local = (node: ts.Node) =>
+    sources.get(node.getSourceFile().fileName) === node.getSourceFile();
   const resolved = (symbol: ts.Symbol | undefined) =>
     symbol !== undefined && symbol.flags & ts.SymbolFlags.Alias
       ? checker.getAliasedSymbol(symbol)
       : symbol;
-  const bind = (name: ts.BindingName, site: ts.Node): void => {
+  const heldBy = (symbol: ts.Symbol | undefined): Held | undefined => {
+    for (const declaration of symbol?.declarations ?? []) {
+      const kind = held.get(declaration);
+      if (kind !== undefined) return kind;
+    }
+    return undefined;
+  };
+  const track = (symbol: ts.Symbol | undefined, kind: Held, site: ts.Node) => {
+    const declarations = symbol?.declarations ?? [];
+    if (declarations.length === 0 || !declarations.every(local))
+      return void escapes.add(site);
+    for (const declaration of declarations)
+      if (held.get(declaration) !== 'context') held.set(declaration, kind);
+  };
+  /** The tracked properties of `type`, each with what it holds. */
+  const trackedProperties = (type: ts.Type): [string, Held][] => {
+    const found = new Map<string, Held>();
+    const types = type.isUnion() ? type.types : [type];
+    for (const each of types)
+      for (const property of each.getProperties()) {
+        const kind = heldBy(property) ?? names.get(property.name);
+        if (kind !== undefined) found.set(property.name, kind);
+      }
+    return [...found];
+  };
+  /**
+   * Moves a holder of type `from` to a place of type `to`: each tracked
+   * property must exist on `to`, declared in the package.
+   */
+  const transfer = (from: ts.Type, to: ts.Type | undefined, site: ts.Node) => {
+    for (const [name, kind] of trackedProperties(from)) {
+      const target =
+        to === undefined || to.flags & (ts.TypeFlags.Any | ts.TypeFlags.Unknown)
+          ? undefined
+          : checker.getNonNullableType(to).getProperty(name);
+      track(target, kind, site);
+    }
+  };
+  /** Binds `name` to a value of kind `kind` and type `type`. */
+  const bind = (
+    name: ts.BindingName,
+    kind: Held,
+    type: ts.Type,
+    site: ts.Node,
+  ): void => {
     if (ts.isIdentifier(name)) {
       const symbol = resolved(checker.getSymbolAtLocation(name));
-      if (symbol !== undefined) symbols.add(symbol);
+      track(symbol, kind, site);
+      if (kind === 'holder')
+        transfer(type, checker.getTypeAtLocation(name), site);
       return;
     }
-    if (ts.isArrayBindingPattern(name)) {
-      escapes.add(site);
-      return;
-    }
-    patterns.add(name);
+    if (ts.isArrayBindingPattern(name)) return void escapes.add(site);
+    if (kind === 'context') patterns.add(name);
     for (const element of name.elements) {
-      if (element.dotDotDotToken !== undefined) bind(element.name, site);
-      else if (
-        nameOf(element.propertyName ?? (element.name as ts.Identifier)) ===
-        undefined
-      )
+      const key = nameOf(
+        element.propertyName ?? (element.name as ts.Identifier),
+      );
+      if (element.dotDotDotToken !== undefined) {
+        bind(element.name, kind, checker.getTypeAtLocation(element.name), site);
+        continue;
+      }
+      if (key === undefined) {
         escapes.add(element);
+        continue;
+      }
+      if (kind === 'context') continue;
+      const property = checker.getNonNullableType(type).getProperty(key);
+      const inner = property && (heldBy(property) ?? names.get(key));
+      if (property !== undefined && inner !== undefined)
+        bind(
+          element.name,
+          inner,
+          checker.getTypeOfSymbolAtLocation(property, element),
+          element,
+        );
     }
   };
-  const isReference = (node: ts.Node): node is ts.Expression => {
-    if (!ts.isIdentifier(node)) {
-      const name = ts.isExpression(node) ? memberName(node) : undefined;
-      return name !== undefined && props.has(name);
+  /** An assignment of a value of kind `kind` and type `type` to `target`. */
+  const assign = (
+    target: ts.Expression,
+    kind: Held,
+    type: ts.Type,
+    site: ts.Node,
+  ): void => {
+    target = unwrap(target);
+    if (ts.isIdentifier(target)) {
+      track(resolved(checker.getSymbolAtLocation(target)), kind, site);
+      if (kind === 'holder')
+        transfer(type, checker.getTypeAtLocation(target), site);
+      return;
     }
-    const parent = node.parent;
-    if (
-      isNameOnly(node) ||
-      ts.isImportClause(parent) ||
-      ts.isImportSpecifier(parent) ||
-      ts.isNamespaceImport(parent)
-    )
-      return false;
-    const symbol = ts.isShorthandPropertyAssignment(parent)
-      ? checker.getShorthandAssignmentValueSymbol(parent)
-      : checker.getSymbolAtLocation(node);
-    const target = resolved(symbol);
-    return target !== undefined && symbols.has(target);
+    const name = memberName(target);
+    if (name !== undefined) {
+      const key = ts.isPropertyAccessExpression(target)
+        ? target.name
+        : (target as ts.ElementAccessExpression).argumentExpression;
+      const symbol = resolved(checker.getSymbolAtLocation(key));
+      if (symbol === undefined) {
+        if (names.get(name) !== 'context') names.set(name, kind);
+        return;
+      }
+      const setter = symbol.declarations?.find(ts.isSetAccessorDeclaration);
+      const [parameter] = setter?.parameters ?? [];
+      if (setter !== undefined && parameter !== undefined && local(setter))
+        return bind(parameter.name, kind, type, site);
+      if (symbol.flags & ts.SymbolFlags.Accessor) return void escapes.add(site);
+      track(symbol, kind, site);
+      if (kind === 'holder')
+        transfer(type, checker.getTypeOfSymbolAtLocation(symbol, key), site);
+      return;
+    }
+    // A destructuring assignment of a holder: ({ a: k } = h).
+    if (kind === 'holder' && ts.isObjectLiteralExpression(target)) {
+      for (const element of target.properties) {
+        if (ts.isSpreadAssignment(element)) {
+          escapes.add(element);
+          continue;
+        }
+        const key = nameOf(element.name);
+        if (key === undefined) {
+          escapes.add(element);
+          continue;
+        }
+        const property = checker.getNonNullableType(type).getProperty(key);
+        const inner = property && (heldBy(property) ?? names.get(key));
+        if (property === undefined || inner === undefined) continue;
+        const value = checker.getTypeOfSymbolAtLocation(property, element);
+        if (ts.isShorthandPropertyAssignment(element))
+          track(
+            resolved(checker.getShorthandAssignmentValueSymbol(element)),
+            inner,
+            element,
+          );
+        else if (ts.isPropertyAssignment(element))
+          assign(element.initializer, inner, value, element);
+        else escapes.add(element);
+      }
+      return;
+    }
+    escapes.add(site);
   };
-  const follow = (reference: ts.Expression): void => {
+  /** What `node` holds, when it reads a tracked binding, property or literal. */
+  const reference = (node: ts.Node): Held | undefined => {
+    if (ts.isObjectLiteralExpression(node))
+      return !inAssignmentPattern(node) &&
+        node.properties.some((property) => held.has(property))
+        ? 'holder'
+        : undefined;
+    let symbol: ts.Symbol | undefined;
+    let name: string | undefined;
+    if (ts.isIdentifier(node)) {
+      const parent = node.parent;
+      if (
+        isNameOnly(node) ||
+        ts.isImportClause(parent) ||
+        ts.isImportSpecifier(parent) ||
+        ts.isNamespaceImport(parent) ||
+        (!ts.isShorthandPropertyAssignment(parent) &&
+          (parent as ts.NamedDeclaration).name === node) ||
+        inAssignmentPattern(node)
+      )
+        return undefined;
+      symbol = resolved(
+        ts.isShorthandPropertyAssignment(parent)
+          ? checker.getShorthandAssignmentValueSymbol(parent)
+          : checker.getSymbolAtLocation(node),
+      );
+      if (symbol === undefined) return undefined;
+    } else if (
+      ts.isPropertyAccessExpression(node) ||
+      ts.isElementAccessExpression(node)
+    ) {
+      name = memberName(node);
+      if (name === undefined || inAssignmentPattern(node)) return undefined;
+      const key = ts.isPropertyAccessExpression(node)
+        ? node.name
+        : node.argumentExpression;
+      symbol = resolved(checker.getSymbolAtLocation(key));
+    } else return undefined;
+    const kind =
+      heldBy(symbol) ?? (name === undefined ? undefined : names.get(name));
+    if (kind !== undefined) return kind;
+    if (symbol === undefined) return undefined;
+    if (!(symbol.flags & (ts.SymbolFlags.Variable | ts.SymbolFlags.Property)))
+      return undefined;
+    return trackedProperties(checker.getTypeAtLocation(node)).length > 0
+      ? 'holder'
+      : undefined;
+  };
+  const follow = (reference: ts.Expression, kind: Held): void => {
     const expr = carrierOf(reference);
     const parent = expr.parent;
+    const type = checker.getTypeAtLocation(expr);
     if (
       (ts.isPropertyAccessExpression(parent) ||
         ts.isElementAccessExpression(parent)) &&
       parent.expression === expr
     ) {
       if (memberName(parent) === undefined) escapes.add(parent);
-      else members.add(parent);
+      else if (kind === 'context') members.add(parent);
       return;
     }
     if (ts.isVariableDeclaration(parent) && parent.initializer === expr)
-      return bind(parent.name, parent);
+      return bind(parent.name, kind, type, parent);
     if (ts.isBinaryExpression(parent)) {
-      const kind = parent.operatorToken.kind;
-      if (parent.left === expr && ASSIGNS.has(kind)) return;
-      if (parent.right === expr && ASSIGNS.has(kind)) {
-        const target = unwrap(parent.left);
-        const symbol = ts.isIdentifier(target)
-          ? resolved(checker.getSymbolAtLocation(target))
-          : undefined;
-        const name = memberName(target);
-        if (symbol !== undefined) symbols.add(symbol);
-        else if (name !== undefined) props.add(name);
-        else escapes.add(expr);
-        return;
-      }
+      const operator = parent.operatorToken.kind;
+      if (parent.left === expr && ASSIGNS.has(operator)) return;
+      if (parent.right === expr && ASSIGNS.has(operator))
+        return assign(parent.left, kind, type, expr);
       if (
-        TESTS.has(kind) ||
-        (kind === ts.SyntaxKind.CommaToken && parent.left === expr)
+        TESTS.has(operator) ||
+        (operator === ts.SyntaxKind.CommaToken && parent.left === expr)
       )
         return;
     }
@@ -734,16 +944,14 @@ function contextFlow(
         parent.condition === expr)
     )
       return;
-    if (ts.isShorthandPropertyAssignment(parent)) {
-      props.add(parent.name.text);
+    // Into an object literal property: the literal becomes a holder.
+    if (
+      (ts.isShorthandPropertyAssignment(parent) ||
+        (ts.isPropertyAssignment(parent) && parent.initializer === expr)) &&
+      nameOf(parent.name) !== undefined
+    ) {
+      if (held.get(parent) !== 'context') held.set(parent, kind);
       return;
-    }
-    if (ts.isPropertyAssignment(parent) && parent.initializer === expr) {
-      const name = nameOf(parent.name);
-      if (name !== undefined) {
-        props.add(name);
-        return;
-      }
     }
     if (ts.isCallExpression(parent) && parent.arguments.includes(expr)) {
       const index = parent.arguments.indexOf(expr);
@@ -755,27 +963,24 @@ function contextFlow(
         parameter.dotDotDotToken === undefined &&
         !parent.arguments.slice(0, index).some(ts.isSpreadElement)
       )
-        return bind(parameter.name, expr);
+        return bind(parameter.name, kind, type, expr);
+      // A holder may go where the parameter's type declares its tracked
+      // properties in the package, as a WeakMap's value type does.
+      if (kind === 'holder')
+        return transfer(type, checker.getContextualType(expr), expr);
     }
     escapes.add(expr);
   };
 
-  for (const seed of seeds) bind(seed.name, seed);
+  for (const seed of seeds)
+    bind(seed.name, 'context', checker.getTypeAtLocation(seed), seed);
   const nodes = allNodes(sources).map(([, node]) => node);
   let known = -1;
-  while (known !== symbols.size + props.size) {
-    known = symbols.size + props.size;
+  while (known !== held.size + names.size) {
+    known = held.size + names.size;
     for (const node of nodes) {
-      if (
-        ts.isBindingElement(node) &&
-        ts.isObjectBindingPattern(node.parent) &&
-        node.dotDotDotToken === undefined &&
-        props.has(
-          nameOf(node.propertyName ?? (node.name as ts.Identifier)) ?? '',
-        )
-      )
-        bind(node.name, node);
-      if (isReference(node)) follow(node);
+      const kind = reference(node);
+      if (kind !== undefined) follow(node as ts.Expression, kind);
     }
   }
   return {
