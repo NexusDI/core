@@ -43,7 +43,10 @@ if (import.meta.main) {
       `No ${PREFIX} tag at or above ${FLOOR}: the run uses the workspace's libs/.`,
     );
   } else {
-    git('checkout', tag, '--', 'libs/');
+    // restore deletes the files the tag does not have, so no newer source
+    // compiles beside the released one. It leaves the index alone, so the
+    // results commit never picks up libs/.
+    git('restore', '--source', tag, '--worktree', '--', 'libs/');
     console.log(`libs/ checked out at ${tag}.`);
   }
 }

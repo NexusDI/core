@@ -19,4 +19,9 @@ describe('newestTag', () => {
       ]),
     ).toBe('@nexusdi/core@0.4.1');
   });
+  it('picks rc.10 over rc.9', () => {
+    expect(
+      newestTag(['@nexusdi/core@0.4.0-rc.9', '@nexusdi/core@0.4.0-rc.10']),
+    ).toBe('@nexusdi/core@0.4.0-rc.10');
+  });
 });
