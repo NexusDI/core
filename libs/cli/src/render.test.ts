@@ -51,6 +51,31 @@ describe('render', () => {
     ).rejects.toMatchObject({
       exitCode: 3,
       message: '--format png needs @resvg/resvg-js.',
+      fix: 'Install it: npm i -D @resvg/resvg-js',
+    });
+  });
+
+  it('names both png peers in one install line when both are missing', async () => {
+    await expect(
+      render(GRAPH, 'png', 'providers', DEVTOOLS, '/p/a.ts', none),
+    ).rejects.toMatchObject({
+      exitCode: 3,
+      message: '--format png needs @viz-js/viz and @resvg/resvg-js.',
+      fix: 'Install them: npm i -D @viz-js/viz @resvg/resvg-js',
+    });
+  });
+
+  it('exits 3 with a reinstall line when a peer fails to load', async () => {
+    const broken = async () => {
+      throw new Error('no binding for this platform');
+    };
+    await expect(
+      render(GRAPH, 'svg', 'providers', DEVTOOLS, '/p/a.ts', broken),
+    ).rejects.toMatchObject({
+      exitCode: 3,
+      message:
+        '--format svg needs @viz-js/viz, which is installed but failed to load: no binding for this platform',
+      fix: 'Reinstall it: npm i -D @viz-js/viz',
     });
   });
 

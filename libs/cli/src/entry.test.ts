@@ -14,6 +14,18 @@ describe('parseEntryRef', () => {
     });
   });
 
+  it('reads a # inside the path as part of the path', () => {
+    expect(parseEntryRef('d#x/app.module.js', CWD)).toMatchObject({
+      path: '/work/app/d#x/app.module.js',
+      exportName: null,
+    });
+    expect(parseEntryRef('d#x.module.js', CWD).exportName).toBeNull();
+    expect(parseEntryRef('d#x/app.module.js#Meridian', CWD)).toMatchObject({
+      path: '/work/app/d#x/app.module.js',
+      exportName: 'Meridian',
+    });
+  });
+
   it('takes the default export when there is no #', () => {
     expect(parseEntryRef('src/app.js', CWD).exportName).toBeNull();
   });

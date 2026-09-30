@@ -22,8 +22,20 @@ const KINDS: Readonly<Record<string, 'ts' | 'js' | 'json'>> = {
   '.json': 'json',
 };
 
-export function parseEntryRef(value: string, cwd: string): EntryRef {
+/**
+ * The index of the `#` that starts the export name, or -1. A `#` inside the
+ * path (`d#x/app.module.ts`) is part of the path: the split needs no path
+ * separator after it and a loadable extension before it.
+ */
+function exportHash(value: string): number {
   const hash = value.lastIndexOf('#');
+  if (hash === -1 || /[\\/]/.test(value.slice(hash + 1))) return -1;
+  const file = value.slice(0, hash);
+  return file === '' || Object.hasOwn(KINDS, extname(file)) ? hash : -1;
+}
+
+export function parseEntryRef(value: string, cwd: string): EntryRef {
+  const hash = exportHash(value);
   const file = hash === -1 ? value : value.slice(0, hash);
   const exportName = hash === -1 ? null : value.slice(hash + 1);
   if (file === '')
