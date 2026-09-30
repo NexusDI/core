@@ -76,7 +76,7 @@ await using ship = await Nexus.create(Billing, {
 | P3 module system               | Interceptors are providers in a module the plugin contributes. Their deps come from its `imports` and from global modules, under core's encapsulation rules.                               |
 | P4 forRoot config              | `interceptors({ register, providers, imports, global, bindings, exempt })` is the one configuration call, validated when it is called.                                                     |
 | P5 developer-friendly          | Missing interceptors show in the same `BlueprintError` as wiring errors; `@nexusdi/testing` overrides an interceptor like any provider; `tap()` covers sync and async methods in one call. |
-| P6 lightweight                 | Core gains 0 bytes. The package measures 3,612 B gzip (section 8). Its error text lives in `@nexusdi/errors`, so `errors()` grows by 1,206 B for every app (owner decision O5).            |
+| P6 lightweight                 | Core gains 0 bytes. The package measures 3,701 B gzip (section 8). Its error text lives in `@nexusdi/errors`, so `errors()` grows by 1,305 B for every app (owner decision O5).            |
 | P7 class and factory providers | Interceptors can be class, factory or value providers. Class and factory services are intercepted.                                                                                         |
 | P8 async core                  | Async methods keep their promise contract; interceptors are built at `create`.                                                                                                             |
 | P9 TS 7                        | Standard decorators only; the static form needs no decorator at all.                                                                                                                       |
@@ -234,12 +234,14 @@ Each entry gives the architect's proposal, the challenge, and the final call.
   plugin keeps them per session.
 - A session closes when the plugin's `dispose` hook runs, or, for a `create` that fails
   after compile, when core disposes the plugin's guard provider with the rest of the
-  failed build (section 6). A compile that fails opens no session. One gap remains: a
-  plugin listed after `interceptors()` whose own `compile.check` fails the compile, or a
-  module options schema that rejects before the first build level, leaves the session
-  open, and the next `create` with that plugin object reports
-  `NEXUS_INTERCEPTORS_SHARED`. Calling `interceptors()` again gives a fresh plugin. G1
-  removes this limit too.
+  failed build (section 6). A compile that core's passes or this plugin's checks fail
+  opens no session. One gap remains: when another plugin's `compile.check` fails the
+  compile (in either plugin order), or a module options schema rejects before the first
+  build level, the session stays open, and the next `create` with that plugin object
+  reports `NEXUS_INTERCEPTORS_SHARED`. A check hook cannot see other plugins' reports,
+  and the `construct` hook cannot tell containers apart, so no plugin-side fix exists.
+  Calling `interceptors()` again gives a fresh plugin. G1, or a core hook that reports
+  the compile outcome, removes this limit (owner decision O1).
 
 ### R10. No per-call context token
 
@@ -269,7 +271,10 @@ Each entry gives the architect's proposal, the challenge, and the final call.
   named them.
 - The skip is never inferred silently (final review I4). A root is a provider outside the
   plugin's module, other than a value provider, that a provider inside it depends on
-  directly. With `global` entries, `compile.check` requires every root in
+  directly. The contributors of one `MultiToken` an `all()` dep names count as one
+  root, listed by the multi token. Tokens compare through `view.canonical`, so a
+  `tokenKey` plugin does not hide a match. With `global` entries, `compile.check`
+  requires every root in
   `interceptors({ exempt })` and reports `reason: 'unexempted-dep'` for each one
   missing, with `detail` listing every provider the exemption would skip. An `exempt`
   token that is not a root reports `reason: 'unused-exempt'`, with `detail` naming the
@@ -403,7 +408,7 @@ export interface InterceptorsOptions {
   readonly global?: readonly (InterceptorToken | GlobalEntry)[];
   readonly bindings?: readonly InterceptorBinding[];
   /** Services outside `providers` the interceptors depend on; global entries skip them (R11). */
-  readonly exempt?: readonly InjectionToken<unknown>[];
+  readonly exempt?: readonly (InjectionToken<unknown> | MultiToken<unknown>)[];
 }
 
 /** A class that implements Interceptor and declares its deps like any provider. */
@@ -551,10 +556,11 @@ I1). A wrapped method called after the hook throws `NEXUS_INTERCEPTOR_NOT_READY`
 interceptor, is worse than a clear error. The session drops its interceptor map, so a
 kept plugin object holds no disposed instances.
 
-Core runs `dispose` hooks only for a container `create` returned. For a `create` that
-fails after compile, core disposes what it built, the guard included, and the guard's
-disposer closes the session. A `setup` hook marks the session started, so the guard does
-nothing for a container `create` returned.
+Core runs a plugin's `dispose` hook only after the build succeeded and that plugin's
+setup step ran, including when a later plugin's setup fails. For a `create` whose build
+fails, core disposes what it built, the guard included, and the guard's disposer closes
+the session. The plugin's `setup` hook marks the session started, so from then on the
+guard does nothing and the `dispose` hook closes the session. Closing twice is harmless.
 
 ## 7. Testing
 
@@ -584,7 +590,7 @@ nothing for a container `create` returned.
 ## 8. Bundle cost
 
 - Core: 0 bytes. No core file changes.
-- `@nexusdi/interceptors`: 3,612 B gzip for the plugin, the proxy and `tap`, measured
+- `@nexusdi/interceptors`: 3,701 B gzip for the plugin, the proxy and `tap`, measured
   by `scripts/size-report.mjs` over `examples/size/src/interceptors.ts` with the method
   of core section 12.4. The first cut measured 3,752 B, of which about 0.9 KB was
   inline error text. Moving that text to `@nexusdi/errors` (R13) removed it; the session
@@ -592,7 +598,7 @@ nothing for a container `create` returned.
   The draft's 1.4 to 1.9 KB estimate did not count the compile checks or the frozen
   object path.
 - `@nexusdi/errors` carries the interceptor text: its figure goes from 4,338 B to
-  5,544 B gzip, and an app that registers `errors()` or `devtools()` pays the 1,206 B
+  5,643 B gzip, and an app that registers `errors()` or `devtools()` pays the 1,305 B
   whether or not it installs this package. This is owner decision O5.
 - Runtime: a proxied instance costs one `get` trap per property read and one `Map`
   lookup per method read. An unintercepted provider costs one `construct` call at build
@@ -683,7 +689,7 @@ the class, and a method that calls `this.other()` skips `other`'s interceptors.
 O5. Interceptor error text lives in `@nexusdi/errors` (R13, section 8). What: this
 package's errors carry core's one line, and `errors()` writes their full text. Why: it
 is how core and `@nexusdi/errors` already split, and it takes the text out of this
-package's bundle. Consequence: `errors()` and `devtools()` grow by 1,206 B gzip for apps
+package's bundle. Consequence: `errors()` and `devtools()` grow by 1,305 B gzip for apps
 that never install this package. The other option is a `@nexusdi/interceptors/errors`
 entry with its own `formatError` plugin, which keeps `errors()` at its size and asks the
 user to register a second plugin for full text.

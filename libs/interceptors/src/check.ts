@@ -1,9 +1,4 @@
-import type {
-  InjectionToken,
-  BlueprintView,
-  NexusError,
-  ProviderView,
-} from '@nexusdi/core';
+import type { BlueprintView, NexusError, ProviderView } from '@nexusdi/core';
 
 import { bindingsFor } from './chain.js';
 import { invalid, lifetime, missing } from './interceptor-error.js';
@@ -68,22 +63,34 @@ function checkSupport(
         !roots.has(edge.to)
       )
         roots.set(edge.to, edge.from);
-    const listed = new Set<InjectionToken<unknown>>();
+    const listed = new Set<unknown>();
+    const reported = new Set<unknown>();
     for (const [id, from] of roots) {
       const root = byId.get(id);
       if (root === undefined) continue;
+      // A tokenKey plugin keys a token, so compare canonical tokens.
       const hit = config.exempt.find(
-        (token) => token === root.token || token === root.written,
+        (token) => view.canonical(token) === root.token,
       );
       if (hit !== undefined) listed.add(hit);
-      else
+      else if (!reported.has(root.token)) {
+        // The contributors of one multi token are one root.
+        reported.add(root.token);
         report(
           invalid('unexempted-dep', {
             token: byId.get(from)?.name ?? null,
             target: root.name,
-            detail: names(reach(view, [id])),
+            detail: names(
+              reach(
+                view,
+                [...roots.keys()].filter(
+                  (at) => byId.get(at)?.token === root.token,
+                ),
+              ),
+            ),
           }),
         );
+      }
     }
     for (const token of config.exempt)
       if (!listed.has(token))
@@ -94,7 +101,7 @@ function checkSupport(
               .filter((id) =>
                 [...reach(view, [id])].some((at) => {
                   const p = byId.get(at);
-                  return p !== undefined && isOneOf(p, [token]);
+                  return p !== undefined && p.token === view.canonical(token);
                 }),
               )
               .map((id) => byId.get(id)?.name ?? id),
