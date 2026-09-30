@@ -34,7 +34,8 @@ import type {
  * and each load, leads to it, and so does every scope of the container.
  */
 interface ContainerSession extends Session {
-  readonly container: Nexus;
+  /** The container whose first build opened the session; unset once the session closes. */
+  container: Nexus | undefined;
   /** The container finished create: the plugin's dispose hook closes the session. */
   started: boolean;
   /** No container holds the session. */
@@ -70,13 +71,6 @@ interface CompiledProvider {
   plan?: ProviderPlan;
 }
 
-/** Ends a session: calls through its proxies throw NOT_READY. */
-const close = (session: ContainerSession): void => {
-  session.disposed = session.closed = true;
-  session.instances = undefined;
-  session.context = undefined;
-};
-
 const NO_DECLARATIONS: Declarations = Object.freeze({
   classTokens: [],
   methods: new Map(),
@@ -107,7 +101,7 @@ export function interceptors(options: InterceptorsOptions): NexusPlugin {
   const tokens = config.registered.map((entry) => entry.token);
   const REGISTRY = new Token<unknown>('interceptors registry');
   const GUARD = new Token<object>('interceptors guard');
-  /** The session of the one live container, or of the last one. */
+  /** The session of the one live container, until the session closes. */
   let live: ContainerSession | undefined;
   /** Sessions whose container finished create and is not closed yet. */
   const started = new Set<ContainerSession>();
@@ -157,13 +151,25 @@ export function interceptors(options: InterceptorsOptions): NexusPlugin {
    * once disposal starts, and core closes a container whose create failed.
    */
   const isLive = (session: ContainerSession | undefined): boolean => {
-    if (session === undefined || session.closed) return false;
+    if (session?.container === undefined) return false;
     try {
       session.container.has(GUARD);
       return true;
     } catch {
       return false;
     }
+  };
+
+  /**
+   * Ends a session: calls through its proxies throw NOT_READY. The plugin
+   * then holds no instance, context or container of it.
+   */
+  const close = (session: ContainerSession): void => {
+    session.disposed = session.closed = true;
+    session.instances = undefined;
+    session.context = undefined;
+    session.container = undefined;
+    if (live === session) live = undefined;
   };
 
   /** A disposer that closes the session when its container never finished create. */
