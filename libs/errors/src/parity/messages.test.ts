@@ -17,12 +17,12 @@ import { rejected, thrown } from '../../test-support/catch.js';
 import { errorCases } from '../../test-support/error-cases.js';
 import { messageScenarios } from '../../test-support/message-scenarios.js';
 import { errors, explain } from '../index.js';
-import { layout } from '../layout.js';
+import { layoutText } from '@nexusdi/core/text';
 
 /** The message errors() writes for `error`, from explain() alone. */
 function render(error: NexusError): string {
   const text = explain(error);
-  return text === undefined ? error.message : layout(error.code, text);
+  return text === undefined ? error.message : layoutText(error.code, text);
 }
 
 describe('NexusError', () => {

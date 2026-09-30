@@ -2,18 +2,26 @@ import type {
   BlueprintError,
   BlueprintView,
   ErrorText,
-  MissingProviderError,
+  ErrorTextKit,
+  ErrorTextPack,
   NexusError,
+  NexusErrorByCode,
 } from '@nexusdi/core';
+import { coreText, layoutText } from '@nexusdi/core/text';
 
-import { BUILDERS } from './builders.js';
-import { layout } from './layout.js';
-import { nearMissesOf, type MissingLookup } from './near-misses.js';
+import { nearMissesOf } from './near-misses.js';
+
+/** One pack entry, called with the error of any code. */
+type AnyEntry = (
+  error: NexusError,
+  view: BlueprintView | undefined,
+  kit: ErrorTextKit,
+) => ErrorText | undefined;
 
 /** Revision 1's full message for `error`, or its own message for a code explain() does not know. */
 function render(error: NexusError, view: BlueprintView | undefined): string {
   const text = explain(error, view);
-  return text === undefined ? error.message : layout(error.code, text);
+  return text === undefined ? error.message : layoutText(error.code, text);
 }
 
 /** Revision 1's aggregate text, with each inner error rendered and indented. */
@@ -30,11 +38,19 @@ function blueprintText(
   };
 }
 
+/** The kit a pack reads near misses through: a search of `view`, or none without one. */
+function kitFor(view: BlueprintView | undefined): ErrorTextKit {
+  return {
+    nearMisses: (token, moduleId) =>
+      view === undefined ? [] : nearMissesOf({ token, moduleId }, view),
+  };
+}
+
 /**
- * Revision 1's text for any NexusError core raised, or undefined for a code
- * another package owns (those carry their own text). With a view, a
- * MissingProviderError core raised also gets its near misses. One built
- * without core's lookup keeps the near misses it carries.
+ * Revision 1's text for any NexusError core raised, from core's text pack,
+ * or undefined for a code another package owns (those carry their own
+ * text). With a view, a MissingProviderError core raised also gets its
+ * near misses.
  */
 export function explain(
   error: NexusError,
@@ -42,23 +58,9 @@ export function explain(
 ): ErrorText | undefined {
   if (error.code === 'NEXUS_BLUEPRINT_INVALID')
     return blueprintText(error as BlueprintError, view);
-  const build = BUILDERS[error.code as keyof typeof BUILDERS];
-  if (build === undefined) return undefined;
-  const lookup = (error as { lookup?: MissingLookup | null }).lookup;
-  if (
-    error.code !== 'NEXUS_MISSING_PROVIDER' ||
-    view === undefined ||
-    lookup === undefined ||
-    lookup === null
-  )
-    return build(error as never, view);
-  const nearMisses = nearMissesOf(lookup, view);
-  return {
-    ...BUILDERS.NEXUS_MISSING_PROVIDER(
-      error as MissingProviderError,
-      view,
-      nearMisses,
-    ),
-    nearMisses,
-  };
+  const pack: ErrorTextPack = coreText;
+  if (!Object.hasOwn(pack, error.code)) return undefined;
+  const entry = pack[error.code as keyof NexusErrorByCode] as
+    AnyEntry | undefined;
+  return entry?.(error, view, kitFor(view));
 }

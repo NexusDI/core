@@ -13,7 +13,7 @@ import {
 
 import { rejected } from '../test-support/catch.js';
 import { errors, explain } from './index.js';
-import { layout } from './layout.js';
+import { layoutText } from '@nexusdi/core/text';
 
 interface NavCharts {
   plot(): string;
@@ -52,7 +52,9 @@ describe('explain', () => {
     )) as BlueprintError;
     const text = explain(plain);
     expect(text).toBeDefined();
-    expect(layout(plain.code, text ?? { message: '' })).toBe(formatted.message);
+    expect(layoutText(plain.code, text ?? { message: '' })).toBe(
+      formatted.message,
+    );
     expect(formatted.message.split('\n')).toHaveLength(4);
   });
 
