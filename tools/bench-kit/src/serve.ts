@@ -12,7 +12,7 @@ export interface Operation {
 type Message = {
   type: 'calibrate' | 'sample' | 'heap';
   op: string;
-  /** A batch size the orchestrator fixed, in place of this worker's calibration. */
+  /** A batch size the orchestrator fixed. It overrides this worker's calibration. */
   batch?: number;
 };
 
