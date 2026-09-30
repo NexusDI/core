@@ -6,10 +6,10 @@ The extension principle (section 1), the audit (section 3) and the ruled fixes (
 rulings. Part 2 was built from the architect's design A and the tech lead's amendments.
 
 Amends the core 0.4 spec (`specs/2026-09-23-core-0.4-design.md`) sections D15, 3.10.1,
-3.10.2, 3.10.6, 9, 9.1, 10 and 12.1, and records P1-P5 there. Replaces owner decision O5
-of the interceptors spec (`specs/2026-09-29-interceptors-design.md` on
-`feat/rfc-17-interceptors`). Amends the react spec sections 14 and 15 and the
-integrations spec sections 3.6 and 3.7 (section 5.2).
+3.10.2, 3.10.3, 3.10.4, 3.10.6, 9, 9.1, 10 and 12.1, and records P1-P5 there. Replaces
+owner decision O5 of the interceptors spec (`specs/2026-09-29-interceptors-design.md` on
+`feat/rfc-17-interceptors`) and amends its R9 (V15). Amends the react spec sections 14
+and 15 and the integrations spec sections 3.6 and 3.7 (section 5.2).
 
 Packages that change: `@nexusdi/core`, `@nexusdi/errors`, `@nexusdi/devtools`,
 `@nexusdi/testing` (V7), `@nexusdi/federation` (V10), `@nexusdi/interceptors` (PR #62)
@@ -574,7 +574,7 @@ the shape structurally with no import at all.
 
 Each graph provider also gains `internal: boolean` (V4). `graphOf` sets it for core's
 request provider by `p.token === REQUEST`, and the renderers hide an internal provider
-unless a drawn provider depends on it. No annotator can set it in 0.4 (section 4.13).
+unless a drawn provider depends on it. No annotator can set it in 0.4 (section 4.14).
 
 #### 2.6.5 CLI
 
@@ -1023,7 +1023,58 @@ Section 2.5.11 lists `GraphAnnotator` and `GraphNote` under plugin API 1, with t
 and V7 additions if the owner approves them. `plugin-api-1.test-d.ts` (P3) covers each
 entry. Bytes: 0 B. Placement: this spec.
 
-### 4.13 Rejected and deferred
+### 4.13 V15. Construct receives the check view's providers
+
+PR #62 keeps pending compiles and matches a container to one by provider id, token and
+module. A compile that passes interceptors' check and then fails (another plugin's check,
+or module options validation before the first build) stays pending. It can later fail an
+unrelated `create` with a false `NEXUS_INTERCEPTORS_SHARED`, and a compile that never
+builds holds its tokens for the plugin's lifetime. No core hook today tells a plugin which
+compile a `construct` call belongs to.
+
+Guarantee, added to core spec 3.10.3 and 3.10.4:
+
+> When a compile succeeds, the `provider` that `construct` receives is the same
+> `ProviderView` object that the compile's `compile.check` hooks received in
+> `view.providers`. Core keeps these objects for as long as the blueprint lives.
+
+Core change: `PROVIDER_VIEWS` moves from `runtime/build.ts` to `blueprint/views.ts`, which
+gains `adoptView(bp, view)`. It fills `PROVIDER_VIEWS` from `view.providers`. `compile()`
+calls it on the frozen blueprint when it built a check view. `compile()` is the only
+blueprint producer, and every `applyConstruct` call reads `providerViewIn`, so each
+construct site gets the check's objects. The records and `rewrittenBy` are the ones the
+blueprint holds, so each view's fields are unchanged. No type changes.
+
+Memory: with a check hook registered, the blueprint keeps one frozen view per provider and
+a map of them, also for providers it never constructs. The blueprint already holds one
+record per provider, so the order is the same. The rest of the check view (modules, edges,
+`visible`) is freed. A failed compile keeps nothing.
+
+Plugin API: `NEXUS_PLUGIN_API` stays 1. The guarantee narrows behaviour that API 1 already
+allowed, since core spec 3.10 promised nothing about view identity, and no release has
+published API 1. It is a P3 contribution point: a third party can key a `WeakMap` on the
+check's provider views the same way. A core runtime test asserts the identity for
+`create` and `load`, since `plugin-api-1.test-d.ts` checks types only.
+
+Interceptors (PR #62) then deletes `PendingCompile`, `state.pending`, `candidates`,
+`matched`, `sameCompile`, `agrees`, `claim`, the candidate loop of `compiledFor` and the
+`load` matching block. `compile.check` writes `WeakMap<ProviderView, CompiledProvider>`
+(merged with `plans`), and `construct` reads it by `provider`. `sessionFor` reports
+`NEXUS_INTERCEPTORS_SHARED` only while another container is live. The interceptors spec
+drops R9's "Remaining limits" bullet and rewrites its pending-compile bullet. Both limits
+go away.
+
+Bytes, measured on `feat/core-0.4` at f73c46c: core fixture +42 B (18,435 to 18,477),
+full export surface +42 B. Placement: core, before rc.0 (section 5.1).
+
+Rejected: `VIEWS.set(bp, view)` in `adoptView` (+4 B). It would pin every module and edge
+view for the blueprint's lifetime and make `blueprint()` return the check's object, which
+no plugin needs and no guarantee would cover. A `compile.done(view, ok)` hook (+34 B)
+misses failures after compile and still ties no build to a compile. A numeric compile id
+on views and blueprints (+33 B) fixes the false error only, since a number cannot key a
+`WeakMap`.
+
+### 4.14 Rejected and deferred
 
 - V4, `GraphNote.internal`: deferred. It gives a note a second meaning as a visibility
   flag and makes `label` optional. Accepted debt: interceptors' registry and guard stay
@@ -1044,30 +1095,33 @@ In dependency order:
 
 1. V7: export `displayName`, `describeValue` and `isForeign` from core; delete testing's
    `describe.ts`. V8 on PR #62 waits for this.
-2. V1: widen `NexusErrorCode`, and change `nexus-error.test-d.ts`.
-3. Text-pack steps 1 and 2 (section 2.7): `@nexusdi/core/text`, `ErrorTextPack`,
+2. V15: `adoptView` and the construct identity test. PR #62's session rewrite waits for
+   this.
+3. V1: widen `NexusErrorCode`, and change `nexus-error.test-d.ts`.
+4. Text-pack steps 1 and 2 (section 2.7): `@nexusdi/core/text`, `ErrorTextPack`,
    `ErrorTextKit`, `PluginContext.format`, the `errorBase` docs argument.
-4. V2: `TraceEventByType`, `TraceEvent<K>` and `PluginContext.emit`. It edits
-   `pluginContext()` after step 3 adds `format`. Only if the owner approves.
-5. Text-pack step 3 with V3: the errors engine and the `REQUEST` filter.
-6. V10, text-pack step 4: `@nexusdi/federation/text`. It needs `ErrorTextPack` and the
+5. V2: `TraceEventByType`, `TraceEvent<K>` and `PluginContext.emit`. It edits
+   `pluginContext()` after step 4 adds `format`. Only if the owner approves.
+6. Text-pack step 3 with V3: the errors engine and the `REQUEST` filter.
+7. V10, text-pack step 4: `@nexusdi/federation/text`. It needs `ErrorTextPack` and the
    engine for its test.
-7. Text-pack step 5: devtools `text` and `annotate`, `inspect()` ordering.
-8. Text-pack step 6 with V9: repo-checks, the extended 2.5.1 test and testing's
+8. Text-pack step 5: devtools `text` and `annotate`, `inspect()` ordering.
+9. Text-pack step 6 with V9: repo-checks, the extended 2.5.1 test and testing's
    allowlist entry.
-9. The principle's tests: the P1 and P5 repo-checks, the P3 grep, the P4 grep, the P2
-   type tests and `plugin-api-1.test-d.ts` with every point of section 2.5.11 that is
-   merged by then.
-10. Text-pack step 7: the `nearMisses` write-back, after PR #63.
-11. Text-pack step 8: the core spec edits, including P1-P5.
+10. The principle's tests: the P1 and P5 repo-checks, the P3 grep, the P4 grep, the P2
+    type tests and `plugin-api-1.test-d.ts` with every point of section 2.5.11 that is
+    merged by then.
+11. Text-pack step 7: the `nearMisses` write-back, after PR #63.
+12. Text-pack step 8: the core spec edits, including P1-P5.
 
 ### 5.2 RFC PRs and specs
 
 - PR #61 (cli, devtools renderers), before merge: V4 accepted part, then V5 (`parseGraph`
   validates `internal`), then V6. The follow-up adds T10's `--text` and `--annotate` and
   T9's `notes` rendering.
-- PR #62 (interceptors), on rebase: V8 after V7 merges, and the six text-pack steps of
-  section 2.7.
+- PR #62 (interceptors), on rebase: V8 after V7 merges, V15's session rewrite after V15
+  merges, and the six text-pack steps of section 2.7.
+- Interceptors spec: V15 in R9 (the pending-compile bullet, and "Remaining limits" goes).
 - `feat/rfc-21-benchmarks`: none. Out of scope (section 1.1).
 - React spec: V11 in sections 14 and 15.
 - Integrations spec: V12 in sections 3.6 and 3.7. Section 3.7 keeps the guarded copies
@@ -1084,7 +1138,7 @@ where the fixture includes core.
 
 | Package                        | Today (`feat/core-0.4`) | PR #62 as is | Text packs         | Ruled fixes (delta)                                             |
 | ------------------------------ | ----------------------- | ------------ | ------------------ | --------------------------------------------------------------- |
-| `@nexusdi/core` (full fixture) | 18,297                  | 18,297       | est. 18,337 (+40)  | +8 measured (V2); V1, V7 0 B                                    |
+| `@nexusdi/core` (full fixture) | 18,297                  | 18,297       | est. 18,337 (+40)  | +8 measured (V2); +42 measured (V15); V1, V7 0 B                |
 | `@nexusdi/core/text`           | n/a                     | n/a          | ~3,714, via errors | 0                                                               |
 | `@nexusdi/errors`              | 4,342                   | 5,645        | 4,416              | +4 measured (V3)                                                |
 | `@nexusdi/devtools`            | 4,691                   | 6,032        | est. 4,830         | +12 measured on a fixture with core (V2); +10 est. (V4); V5 0 B |
@@ -1102,7 +1156,8 @@ The interceptors figure includes the inline sites of section 2.5.12 and the
 
 Outside the fixtures:
 
-- `@nexusdi/core` full export surface: +38 B measured with V2 and V7 (18,687 to 18,725).
+- `@nexusdi/core` full export surface: +38 B measured with V2 and V7 (18,687 to 18,725),
+  and +42 B measured with V15.
 - `@nexusdi/devtools` full export surface: +868 B measured (V5), moved out of cli.
 - `@nexusdi/react` (spec): 0 B in production, about 300 B est. in development (V11).
 - Each integrations adapter (spec): est. -20 B (V12).
@@ -1124,6 +1179,8 @@ Outside the fixtures:
   `PluginContext.emit(make)` (V2, if approved).
 - Adds `displayName`, `describeValue` and `isForeign` to the main entry (V7, if
   approved).
+- Guarantees that `construct` receives the `ProviderView` objects of the compile's check
+  view (V15). Behaviour only, no signature change.
 
 `@nexusdi/errors`:
 
