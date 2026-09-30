@@ -21,6 +21,7 @@ const recorder = (log: string[], name: string): Interceptor => ({
 const session = (entries: [Token<Interceptor>, Interceptor][]): Session => ({
   instances: new Map(entries),
   disposed: false,
+  context: undefined,
 });
 
 class Payments {
@@ -180,6 +181,23 @@ describe('interceptedProxy', () => {
     });
   });
 
+  it("formats a call-time fault through the container's plugin context from setup on", () => {
+    const formatted: unknown[] = [];
+    const running = session([
+      [A, { intercept: (_call, next) => next('5' as never) }],
+    ]);
+    running.context = {
+      format: <E>(error: E): E => (formatted.push(error), error),
+    } as unknown as Session['context'];
+    const proxy = interceptedProxy(new Payments(), provider, null, {
+      session: running,
+      chain: () => [A],
+    });
+    const error = thrown(() => proxy.charge(1));
+    expect(formatted).toEqual([error]);
+    expect(error).toMatchObject({ reason: 'bad-next' });
+  });
+
   it('passes the context and lets next() replace the arguments', () => {
     let seen: CallContext | undefined;
     const doubler: Interceptor = {
@@ -247,7 +265,11 @@ describe('interceptedProxy', () => {
   });
 
   it('throws NOT_READY while building and after disposal', () => {
-    const building: Session = { instances: undefined, disposed: false };
+    const building: Session = {
+      instances: undefined,
+      disposed: false,
+      context: undefined,
+    };
     const proxy = interceptedProxy(new Payments(), provider, null, {
       session: building,
       chain: () => [A],

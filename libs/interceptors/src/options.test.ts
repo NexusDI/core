@@ -1,8 +1,8 @@
 import { Token } from '@nexusdi/core';
 import { describe, expect, it } from 'vitest';
 
-import { findCode, thrown } from '../test-support/catch.js';
-import { interceptor, normalizeOptions } from './options.js';
+import type { Fault } from './interceptor-error.js';
+import { interceptor, parseOptions, type NormalOptions } from './options.js';
 import type { CallContext, Interceptor, Next } from './types.js';
 
 const AUDIT = new Token<Interceptor>('Audit');
@@ -14,10 +14,22 @@ class LoggingInterceptor implements Interceptor {
   }
 }
 
-const invalidReason = (fn: () => unknown) =>
-  findCode(thrown(fn), 'NEXUS_INTERCEPTOR_INVALID')?.reason;
+/** The options, or a thrown error naming the faults. */
+const normalizeOptions = (options: unknown): NormalOptions => {
+  const parsed = parseOptions(options);
+  if (Array.isArray(parsed)) throw new Error(JSON.stringify(parsed));
+  return parsed;
+};
 
-describe('normalizeOptions', () => {
+/** Every fault of `options`; empty when they are valid. */
+const faultsOf = (options: unknown): Fault[] => {
+  const parsed = parseOptions(options);
+  return Array.isArray(parsed) ? parsed : [];
+};
+
+const invalidReason = (options: unknown) => faultsOf(options)[0]?.reason;
+
+describe('parseOptions', () => {
   it('registers classes and interceptor() entries', () => {
     const audit = interceptor(AUDIT, { useClass: LoggingInterceptor });
     const options = normalizeOptions({ register: [LoggingInterceptor, audit] });
@@ -44,67 +56,49 @@ describe('normalizeOptions', () => {
     expect(options.bindings[0]?.methods.get('charge')).toEqual([AUDIT]);
   });
 
-  it('rejects bad options with reason options', () => {
-    expect(invalidReason(() => normalizeOptions(undefined))).toBe('options');
-    expect(invalidReason(() => normalizeOptions({}))).toBe('options');
-    expect(invalidReason(() => normalizeOptions({ register: [] }))).toBe(
-      'options',
-    );
-    expect(invalidReason(() => normalizeOptions({ register: [{}] }))).toBe(
-      'options',
-    );
-    expect(
-      invalidReason(() =>
-        normalizeOptions({
-          register: [LoggingInterceptor, LoggingInterceptor],
-        }),
-      ),
-    ).toBe('options');
-    expect(
-      invalidReason(() =>
-        normalizeOptions({ register: [LoggingInterceptor], global: ['x'] }),
-      ),
-    ).toBe('options');
-    expect(
-      invalidReason(() =>
-        normalizeOptions({
-          register: [LoggingInterceptor],
-          global: [{ use: AUDIT, when: 1 }],
-        }),
-      ),
-    ).toBe('options');
-    expect(
-      invalidReason(() =>
-        normalizeOptions({
-          register: [LoggingInterceptor],
-          bindings: [{ token: 'x' }],
-        }),
-      ),
-    ).toBe('options');
-    expect(
-      invalidReason(() =>
-        normalizeOptions({
-          register: [LoggingInterceptor],
-          bindings: [{ token: PAYMENTS, class: 'x' }],
-        }),
-      ),
-    ).toBe('options');
+  it('turns bad options into faults with reason options', () => {
+    const register = [LoggingInterceptor];
+    for (const options of [
+      undefined,
+      {},
+      { register: [] },
+      { register: [{}] },
+      { register: [LoggingInterceptor, LoggingInterceptor] },
+      { register, global: ['x'] },
+      { register, global: [{ use: AUDIT, when: 1 }] },
+      { register, bindings: [{ token: 'x' }] },
+      { register, bindings: [{ token: PAYMENTS, class: 'x' }] },
+    ])
+      expect(invalidReason(options)).toBe('options');
   });
 
   it('names the rule each bad option breaks in detail', () => {
-    const detail = (options: unknown) =>
-      findCode(
-        thrown(() => normalizeOptions(options)),
-        'NEXUS_INTERCEPTOR_INVALID',
-      )?.detail;
+    const detail = (options: unknown) => faultsOf(options)[0]?.detail;
     const register = [LoggingInterceptor];
     expect(detail(undefined)).toEqual(['not-object']);
     expect(detail({ register: [] })).toEqual(['register-empty']);
     expect(detail({ register, global: 'x' })).toEqual(['not-array', 'global']);
-    expect(detail({ register, exempt: ['x'] })).toEqual(['exempt-entry', 'x']);
+    expect(detail({ register, exempt: ['x'] })).toEqual([
+      'exempt-entry',
+      'the string "x"',
+    ]);
     expect(
       detail({ register, bindings: [{ token: PAYMENTS, method: {} }] }),
     ).toEqual(['binding-map', 'method']);
+  });
+
+  it('collects every fault of the options', () => {
+    expect(
+      faultsOf({
+        register: 'x',
+        global: [1],
+        exempt: [null],
+      }).map((fault) => fault.detail),
+    ).toEqual([
+      ['not-array', 'register'],
+      ['global-entry', 'the number 1'],
+      ['exempt-entry', 'null'],
+    ]);
   });
 
   it('keeps exempt tokens', () => {
@@ -116,21 +110,24 @@ describe('normalizeOptions', () => {
 
   it('rejects a forged entry that interceptor() did not make', () => {
     expect(
-      invalidReason(() =>
-        normalizeOptions({
-          register: [{ token: AUDIT, provider: LoggingInterceptor }],
-        }),
-      ),
+      invalidReason({
+        register: [{ token: AUDIT, provider: LoggingInterceptor }],
+      }),
     ).toBe('options');
   });
 });
 
 describe('interceptor', () => {
-  it('rejects a token that is not a Token or a class', () => {
-    expect(
-      invalidReason(() =>
-        interceptor('Audit' as never, { useClass: LoggingInterceptor }),
-      ),
-    ).toBe('options');
+  it('turns a token that is not a Token or a class into a fault of the options that register it', () => {
+    const entry = interceptor('Audit' as never, {
+      useClass: LoggingInterceptor,
+    });
+    expect(faultsOf({ register: [entry] })).toEqual([
+      {
+        code: 'NEXUS_INTERCEPTOR_INVALID',
+        reason: 'options',
+        detail: ['interceptor-token', 'the string "Audit"'],
+      },
+    ]);
   });
 });
