@@ -519,14 +519,15 @@ versions keep first-party packs, core and the engine at one version.
 
 #### 2.5.12 Interceptors under this rule
 
-| Sites                                  | Where raised                       | Text                                  |
-| -------------------------------------- | ---------------------------------- | ------------------------------------- |
-| 6 in `use-interceptors.ts`             | decorator evaluation               | inline                                |
-| 3 in `options.ts`, and `interceptor()` | moved to `compile.check`           | pack                                  |
-| 9 in `check.ts`, `plugin.ts:170`       | `compile.check`                    | pack                                  |
-| `NOT_READY` in `proxy.ts` (2)          | before `setup` or after disposal   | inline                                |
-| `missing`, `bad-next`, `bad-target`    | method call after `setup`          | pack, thrown through `context.format` |
-| `no-intercept`, `unknown-method` (2)   | `construct` hook, wrapped as cause | inline                                |
+| Sites                                                              | Where raised                                 | Text                                     |
+| ------------------------------------------------------------------ | -------------------------------------------- | ---------------------------------------- |
+| 6 in `use-interceptors.ts`                                         | decorator evaluation                         | inline                                   |
+| 3 in `options.ts`, and `interceptor()`                             | moved to `compile.check`                     | pack                                     |
+| 9 in `check.ts`, `plugin.ts:170`                                   | `compile.check`                              | pack                                     |
+| `NOT_READY` in `proxy.ts` (2)                                      | before `setup` or after disposal             | inline                                   |
+| `missing`, `bad-next`                                              | method call after `setup`                    | pack, thrown through `context.format`    |
+| `missing`, `bad-next`                                              | method call before `setup`, as from `onInit` | inline, the pack's words from one module |
+| `no-intercept`, `unknown-method` (2), frozen-function `bad-target` | `construct` hook, wrapped as cause           | inline                                   |
 
 Options validation moves into `compile.check`. `interceptors(options)` parses its options
 into either a config or a list of faults. With faults, its `compile`, `construct` and
