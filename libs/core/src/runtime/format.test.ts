@@ -313,6 +313,37 @@ describe('formatThrown', () => {
     expect(Object.hasOwn(error, 'nearMisses')).toBe(false);
   });
 
+  class BerthLockedError extends errorBase<
+    'ACME_BERTH_LOCKED',
+    { berth: string }
+  >('ACME_BERTH_LOCKED', 'BerthLockedError', DOCKING_DOCS) {}
+
+  it('formats an error whose nearMisses is hidden and keeps its list', async () => {
+    const raised = new BerthLockedError(
+      { berth: 'B7' },
+      { hidden: { nearMisses: [] } },
+    );
+    const error = await checkedWith(() => raised, nearBerth);
+    expect(error).toBe(raised);
+    expect(error.message).toBe('[ACME_BERTH_LOCKED] no berth.');
+    expect((error as unknown as { nearMisses: unknown }).nearMisses).toEqual(
+      [],
+    );
+  });
+
+  it('passes a frozen error through with its own line', async () => {
+    const raised = Object.freeze(
+      new BerthLockedError({ berth: 'B7', nearMisses: [] } as never),
+    );
+    const line = raised.message;
+    const error = await checkedWith(() => raised, nearBerth);
+    expect(error).toBe(raised);
+    expect(error.message).toBe(line);
+    expect((error as unknown as { nearMisses: unknown }).nearMisses).toEqual(
+      [],
+    );
+  });
+
   it('passes the failed compile its view, and a runtime error the current one', async () => {
     const views: (BlueprintView | undefined)[] = [];
     const plugins = [

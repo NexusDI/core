@@ -48,7 +48,9 @@ function isText(value: unknown): value is ErrorText {
  * error built with its own text, or one fromUserCode marked, is never
  * formatted. The code prefix and
  * every field but nearMisses stay core's. nearMisses takes the text's list
- * when the error has an own nearMisses field, whatever its class.
+ * when the error has an own nearMisses field, whatever its class. A field
+ * or message the error locked (hidden, frozen) keeps its value, and the
+ * caller still gets the error itself.
  */
 export function formatThrown(
   plugins: Pick<PluginSet, 'formatError'>,
@@ -81,11 +83,11 @@ export function formatThrown(
       if (text === undefined) continue;
       if (!isText(text)) return error;
       if (text.nearMisses !== undefined && Object.hasOwn(error, 'nearMisses'))
-        Object.defineProperty(error, 'nearMisses', {
+        Reflect.defineProperty(error, 'nearMisses', {
           value: text.nearMisses,
           enumerable: true,
         });
-      error.message = layoutText(error.code, text);
+      Reflect.set(error, 'message', layoutText(error.code, text));
       return error;
     }
   }
