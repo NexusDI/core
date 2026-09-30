@@ -36,7 +36,8 @@
         "lifetime": "singleton",
         "kind": "factory",
         "eager": true,
-        "async": true
+        "async": true,
+        "notes": []
       },
       {
         "id": "p1",
@@ -45,7 +46,8 @@
         "lifetime": "scoped",
         "kind": "factory",
         "eager": true,
-        "async": false
+        "async": false,
+        "notes": []
       },
       {
         "id": "p2",
@@ -54,7 +56,8 @@
         "lifetime": "singleton",
         "kind": "class",
         "eager": true,
-        "async": false
+        "async": false,
+        "notes": []
       },
       {
         "id": "p3",
@@ -63,7 +66,8 @@
         "lifetime": "singleton",
         "kind": "class",
         "eager": true,
-        "async": false
+        "async": false,
+        "notes": []
       },
       {
         "id": "p4",
@@ -72,7 +76,8 @@
         "lifetime": "singleton",
         "kind": "class",
         "eager": true,
-        "async": false
+        "async": false,
+        "notes": []
       },
       {
         "id": "p5",
@@ -81,7 +86,8 @@
         "lifetime": "singleton",
         "kind": "class",
         "eager": true,
-        "async": false
+        "async": false,
+        "notes": []
       },
       {
         "id": "p6",
@@ -90,7 +96,8 @@
         "lifetime": "singleton",
         "kind": "class",
         "eager": true,
-        "async": false
+        "async": false,
+        "notes": []
       },
       {
         "id": "request",
@@ -99,7 +106,8 @@
         "lifetime": "scoped",
         "kind": "value",
         "eager": true,
-        "async": false
+        "async": false,
+        "notes": []
       }
     ],
     "edges": [
