@@ -9,37 +9,30 @@
  *   node src/probes.ts --only=a,b   those libraries, written to tmp/
  */
 import { spawnSync } from 'node:child_process';
-import {
-  existsSync,
-  mkdirSync,
-  readFileSync,
-  rmSync,
-  writeFileSync,
-} from 'node:fs';
+import { existsSync, rmSync } from 'node:fs';
 import { join } from 'node:path';
 
 import { compile, outputOf } from '@nexusdi/toolchain-matrix/recipes';
 
 import { countReported, detectedAt } from './detect.ts';
-import { makeCell, prepareConsumer } from './consumer.ts';
-import {
-  BENCHMARKS,
-  FIXTURES,
-  configsFor,
-  readLibraries,
-  type Library,
-} from './libraries.ts';
+import { makeCell } from './consumer.ts';
+import { FIXTURES, configsFor, type Library } from './libraries.ts';
 import { versionsOf } from './matrix.ts';
 import {
-  LIBRARIES,
   PROBES,
-  validate,
   type LibraryId,
   type ProbeRow,
   type ProbesFile,
   type Variant,
 } from './schema.ts';
 import { firstLine, stripPaths } from './text.ts';
+import {
+  onlyArg,
+  selectLibraries,
+  variantsOf,
+  withConsumer,
+  writeResult,
+} from './cli.ts';
 
 /**
  * The two mistakes of two-mistakes, as every library's error names them:
@@ -125,16 +118,11 @@ function runProbe(
 }
 
 export function runProbes(opts: { only?: LibraryId[] }): ProbesFile {
-  const libraries = readLibraries()
-    .libraries.filter(
-      (l) => opts.only === undefined || opts.only.includes(l.id),
-    )
-    .sort((a, b) => a.id.localeCompare(b.id));
-  const dir = prepareConsumer({ libraries: libraries.map((l) => l.id) });
+  const libraries = selectLibraries(opts.only);
   const probes: ProbeRow[] = [];
-  try {
+  withConsumer(libraries, (dir) => {
     for (const lib of libraries)
-      for (const variant of (Object.keys(lib.variants) as Variant[]).sort())
+      for (const variant of variantsOf(lib))
         for (const probe of [...PROBES].sort()) {
           const row =
             probe === 'captive-scoped' && lib.notApplicable.scoped !== undefined
@@ -152,32 +140,11 @@ export function runProbes(opts: { only?: LibraryId[] }): ProbesFile {
             }${row.message === undefined ? '' : `: ${row.message}`}`,
           );
         }
-  } finally {
-    rmSync(dir, { recursive: true, force: true });
-  }
+  });
   return { schema: 1, versions: versionsOf(), probes };
 }
 
 if (import.meta.main) {
-  const check = process.argv.includes('--check');
-  const onlyArg = process.argv.find((a) => a.startsWith('--only='));
-  const only = onlyArg
-    ?.slice('--only='.length)
-    .split(',')
-    .filter((id): id is LibraryId =>
-      (LIBRARIES as readonly string[]).includes(id),
-    );
-  const file = runProbes({ only });
-  const where = only === undefined ? 'results' : 'tmp';
-  validate('probes', file, where);
-  mkdirSync(join(BENCHMARKS, where), { recursive: true });
-  const out = join(BENCHMARKS, where, 'probes.json');
-  const text = JSON.stringify(file, null, 2) + '\n';
-  const committed = existsSync(out) ? readFileSync(out, 'utf8') : '';
-  writeFileSync(out, text);
-  console.log(`Wrote ${out}`);
-  if (check && committed !== text) {
-    console.error('probes.json changed. Commit the file the run wrote.');
-    process.exit(1);
-  }
+  const only = onlyArg();
+  writeResult('probes', runProbes({ only }), only);
 }

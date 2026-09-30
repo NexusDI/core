@@ -8,13 +8,7 @@
  *   node src/timings/orchestrator.ts --quick     10 warm-up, 50 measured, under tmp/
  *   node src/timings/orchestrator.ts --only=a,b  those libraries and NexusDI, under tmp/
  */
-import {
-  existsSync,
-  mkdirSync,
-  readFileSync,
-  rmSync,
-  writeFileSync,
-} from 'node:fs';
+import { mkdirSync, rmSync, writeFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { gzipSync } from 'node:zlib';
 
@@ -29,17 +23,10 @@ import {
 import { compile } from '@nexusdi/toolchain-matrix/recipes';
 
 import { gitSha, runnerInfo } from '../build.ts';
-import { makeCell, prepareConsumer } from '../consumer.ts';
-import {
-  BENCHMARKS,
-  FIXTURES,
-  configsFor,
-  readLibraries,
-  type Library,
-} from '../libraries.ts';
+import { prepareConsumer } from '../consumer.ts';
+import { BENCHMARKS, configsFor, type Library } from '../libraries.ts';
 import { versionsOf } from '../matrix.ts';
 import {
-  LIBRARIES,
   validate,
   type Design,
   type LibraryId,
@@ -51,6 +38,14 @@ import {
 } from '../schema.ts';
 import { coldStart } from './cold-start.ts';
 import { checkFloor } from './floor.ts';
+import {
+  fixtureCell,
+  onlyArg,
+  readMatrix,
+  seedArg,
+  selectLibraries,
+  variantsOf,
+} from '../cli.ts';
 
 type Lifetime = 'singleton' | 'transient' | 'scoped';
 
@@ -196,65 +191,36 @@ function passing(
   ).map(([scenario]) => scenario);
 }
 
-function readMatrix(): MatrixFile {
-  for (const where of ['results', 'tmp']) {
-    const path = join(BENCHMARKS, where, 'matrix.json');
-    if (existsSync(path))
-      return JSON.parse(readFileSync(path, 'utf8')) as MatrixFile;
-  }
-  throw new Error('no matrix.json: run the matrix first');
-}
-
 if (import.meta.main) {
   const quick = process.argv.includes('--quick');
-  const onlyArg = process.argv.find((a) => a.startsWith('--only='));
-  const only = onlyArg
-    ?.slice('--only='.length)
-    .split(',')
-    .filter((id): id is LibraryId =>
-      (LIBRARIES as readonly string[]).includes(id),
-    );
-  const seedArg = process.argv.find((a) => a.startsWith('--seed='));
-  const seed = Number(
-    seedArg?.slice('--seed='.length) ?? Math.floor(Math.random() * 2 ** 31),
-  );
+  const only = onlyArg();
+  const seed = seedArg();
   const where = quick || only !== undefined ? 'tmp' : 'results';
   const startedAt = new Date().toISOString();
 
   const matrix = readMatrix();
-  const libraries = readLibraries()
-    .libraries.filter(
-      (l) => only === undefined || l.id === 'nexusdi' || only.includes(l.id),
-    )
-    .sort((a, b) => a.id.localeCompare(b.id));
+  const libraries = selectLibraries(only, 'nexusdi');
   const dir = prepareConsumer({ libraries: libraries.map((l) => l.id) });
   try {
     const fixtures: Array<TimingFixture & { documented: boolean }> = [];
     for (const lib of libraries)
-      for (const [variant, spec] of Object.entries(lib.variants) as Array<
-        [Variant, NonNullable<Library['variants'][Variant]>]
-      >) {
-        const cellDir = makeCell(
+      for (const variant of variantsOf(lib)) {
+        const { cellDir, profile } = fixtureCell(
           dir,
           `timings-${lib.id}-${variant}`,
-          join(FIXTURES, lib.id, `${variant}.ts`),
-          spec.profile,
+          lib,
+          variant,
         );
         const module = join(
           cellDir,
-          compile(
-            'tsc',
-            cellDir,
-            'src/main.ts',
-            configsFor(spec.profile, 'tsc'),
-          ),
+          compile('tsc', cellDir, 'src/main.ts', configsFor(profile, 'tsc')),
         );
         fixtures.push({
           library: lib.id,
           variant,
           module,
           scenarios: passing(matrix, lib, variant),
-          documented: spec.documented === true,
+          documented: lib.variants[variant]?.documented === true,
         });
       }
 

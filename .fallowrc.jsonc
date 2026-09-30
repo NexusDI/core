@@ -82,6 +82,8 @@
     // toolchains through CLI flags; the src/*.ts writers and core's
     // dispatch benchmark run by path from nx targets. Nothing imports them.
     "benchmarks/fixtures/**/*.{ts,mjs}",
+    "benchmarks/src/{matrix,probes,size,build,competitor-releases,release-core,open-results-pr}.ts",
+    "benchmarks/src/timings/{orchestrator.ts,worker.mjs,cold-child.mjs}",
     "libs/core/bench/*.mjs",
   ],
 
@@ -213,6 +215,15 @@
     // links the package, and libs/errors/package.json, as a published
     // package, carries no devDependencies.
     "@nexusdi/testing",
+    // The competitor libraries and their polyfill, which the benchmark
+    // fixtures import. benchmarks/src/consumer.ts installs the pins from
+    // benchmarks/libraries.json into the throwaway consumer the fixtures
+    // build in, never into the workspace.
+    "@needle-di/core",
+    "awilix",
+    "inversify",
+    "reflect-metadata",
+    "tsyringe",
     // libs/core/bench/build.mjs bundles core with esbuild from the root
     // manifest. libs/core/package.json, as a published package, carries no
     // devDependencies.

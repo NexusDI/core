@@ -8,13 +8,7 @@
  *   node src/matrix.ts --only=a,b   those libraries, written to tmp/
  */
 import { spawnSync } from 'node:child_process';
-import {
-  existsSync,
-  mkdirSync,
-  readFileSync,
-  rmSync,
-  writeFileSync,
-} from 'node:fs';
+import { readFileSync, rmSync } from 'node:fs';
 import { join } from 'node:path';
 import { stripVTControlCharacters } from 'node:util';
 
@@ -24,25 +18,26 @@ import {
   runCommand,
 } from '@nexusdi/toolchain-matrix/recipes';
 
-import { coreVersion, makeCell, prepareConsumer } from './consumer.ts';
+import { coreVersion } from './consumer.ts';
 import { checkSnippets } from './snippets.ts';
 import { firstLine, stripPaths } from './text.ts';
-import {
-  BENCHMARKS,
-  FIXTURES,
-  configsFor,
-  readLibraries,
-} from './libraries.ts';
+import { FIXTURES, configsFor, readLibraries } from './libraries.ts';
 import { classify } from './outcome.ts';
 import {
-  LIBRARIES,
-  validate,
   type LibraryId,
   type MatrixCell,
   type MatrixFile,
   type Variant,
   type Versions,
 } from './schema.ts';
+import {
+  fixtureCell,
+  onlyArg,
+  selectLibraries,
+  variantsOf,
+  withConsumer,
+  writeResult,
+} from './cli.ts';
 
 const golden = JSON.parse(
   readFileSync(join(FIXTURES, 'golden.json'), 'utf8'),
@@ -102,14 +97,11 @@ function runOne(
   variant: Variant,
   toolchain: ReturnType<typeof readToolchains>[number],
 ): MatrixCell {
-  const spec = lib.variants[variant];
-  if (spec === undefined) throw new Error(`${lib.id} has no ${variant}`);
-  const profile = spec.profile;
-  const cellDir = makeCell(
+  const { cellDir, profile } = fixtureCell(
     dir,
     `${lib.id}-${variant}-${toolchain.id}`,
-    join(FIXTURES, lib.id, `${variant}.ts`),
-    profile,
+    lib,
+    variant,
   );
   const configs = configsFor(profile, toolchain.id);
 
@@ -162,24 +154,15 @@ function runOne(
   return cell;
 }
 
-export function runMatrix(opts: {
-  check: boolean;
-  only?: LibraryId[];
-}): MatrixFile {
-  const libraries = readLibraries()
-    .libraries.filter(
-      (l) => opts.only === undefined || opts.only.includes(l.id),
-    )
-    .sort((a, b) => a.id.localeCompare(b.id));
+export function runMatrix(opts: { only?: LibraryId[] }): MatrixFile {
+  const libraries = selectLibraries(opts.only);
   const toolchains = [...readToolchains()].sort((a, b) =>
     a.id.localeCompare(b.id),
   );
-  const dir = prepareConsumer({ libraries: libraries.map((l) => l.id) });
   const cells: MatrixCell[] = [];
-  try {
-    for (const lib of libraries) {
-      const variants = (Object.keys(lib.variants) as Variant[]).sort();
-      for (const variant of variants)
+  withConsumer(libraries, (dir) => {
+    for (const lib of libraries)
+      for (const variant of variantsOf(lib))
         for (const toolchain of toolchains) {
           const cell = runOne(dir, lib, variant, toolchain);
           cells.push(cell);
@@ -189,7 +172,6 @@ export function runMatrix(opts: {
             }`,
           );
         }
-    }
     const snippets = checkSnippets(dir, libraries);
     for (const s of snippets)
       console.log(
@@ -199,32 +181,11 @@ export function runMatrix(opts: {
       );
     if (snippets.some((s) => !s.ok))
       throw new Error('a snippets file failed its check');
-  } finally {
-    rmSync(dir, { recursive: true, force: true });
-  }
+  });
   return { schema: 1, versions: versionsOf(), cells };
 }
 
 if (import.meta.main) {
-  const check = process.argv.includes('--check');
-  const onlyArg = process.argv.find((a) => a.startsWith('--only='));
-  const only = onlyArg
-    ?.slice('--only='.length)
-    .split(',')
-    .filter((id): id is LibraryId =>
-      (LIBRARIES as readonly string[]).includes(id),
-    );
-  const file = runMatrix({ check, only });
-  const where = only === undefined ? 'results' : 'tmp';
-  validate('matrix', file, where);
-  const out = join(BENCHMARKS, where, 'matrix.json');
-  mkdirSync(join(BENCHMARKS, where), { recursive: true });
-  const text = JSON.stringify(file, null, 2) + '\n';
-  const committed = existsSync(out) ? readFileSync(out, 'utf8') : '';
-  writeFileSync(out, text);
-  console.log(`Wrote ${out}`);
-  if (check && committed !== text) {
-    console.error('matrix.json changed. Commit the file the run wrote.');
-    process.exit(1);
-  }
+  const only = onlyArg();
+  writeResult('matrix', runMatrix({ only }), only);
 }
