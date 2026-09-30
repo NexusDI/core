@@ -54,6 +54,53 @@ describe('interleave', () => {
       w.close();
     }
   });
+  it('runs every worker at the largest calibrated batch when the batch is shared', async () => {
+    const workers = [
+      forkWorker('fast', script, ['50']),
+      forkWorker('slow', script, ['600']),
+    ];
+    try {
+      const own = await Promise.all(workers.map((w) => w.calibrate('sized')));
+      expect(own[0]).toBeGreaterThan(own[1]);
+      const out = await interleave(workers, 'sized', {
+        warmup: 0,
+        measured: 2,
+        seed: 1,
+        sharedBatch: true,
+      });
+      expect(out.fast.batch).toBe(out.slow.batch);
+      expect(out.slow.batch).toBeGreaterThanOrEqual(own[0]);
+      expect((await workers[1].sample('sized', 3)).batch).toBe(3);
+    } finally {
+      for (const w of workers) w.close();
+    }
+  });
+  it('runs teardown after the timer stops', async () => {
+    const w = forkWorker('a', script);
+    try {
+      const out = await interleave([w], 'teardown', {
+        warmup: 0,
+        measured: 3,
+        seed: 1,
+      });
+      expect(out.a.batch).toBe(1);
+      for (const ns of out.a.measured) expect(ns).toBeLessThan(3_000_000);
+    } finally {
+      w.close();
+    }
+  });
+  it('fails a call whose reply answers another request', async () => {
+    const w = forkWorker('lib', script);
+    try {
+      await expect(
+        interleave([w], 'stray', { warmup: 0, measured: 1, seed: 1 }),
+      ).rejects.toThrow(
+        'lib stray calibration: expected calibrated for stray, got sample for other',
+      );
+    } finally {
+      w.close();
+    }
+  });
   it('reports the heap one operation leaves allocated', async () => {
     const w = forkWorker('a', script);
     try {

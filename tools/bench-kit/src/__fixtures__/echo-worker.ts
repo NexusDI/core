@@ -5,9 +5,16 @@ import { serveSamples } from '../serve.ts';
  * operation once and calibration settles on a batch of 1.
  */
 function slow(): void {
-  const end = process.hrtime.bigint() + 21_000_000n;
+  busy(21_000);
+}
+
+function busy(us: number): void {
+  const end = process.hrtime.bigint() + BigInt(us) * 1000n;
   while (process.hrtime.bigint() < end);
 }
+
+/** Microseconds per `sized` call, from argv, so two workers calibrate apart. */
+const sizedUs = Number(process.argv[2] ?? 100);
 
 let n = 0;
 serveSamples({
@@ -33,6 +40,23 @@ serveSamples({
     },
   },
   async: { run: async () => 1 },
+  sized: { run: () => busy(sizedUs) },
+  // 1.1 ms per call fixes the batch at 1; the 3 ms teardown must stay
+  // outside the sample.
+  teardown: {
+    run: () => {
+      busy(1100);
+      return 1;
+    },
+    teardown: () => busy(3000),
+  },
+  // Sends a message nobody asked for before each result.
+  stray: {
+    run: () => {
+      process.send?.({ type: 'sample', op: 'other', ns: 1, batch: 1 });
+      return 1;
+    },
+  },
   // Keeps an 8 KiB buffer per call alive, so the heap grows by it.
   keep: {
     setup: () => [] as unknown[],
