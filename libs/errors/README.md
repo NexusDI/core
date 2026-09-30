@@ -62,9 +62,22 @@ message.split('\n'); // -> ["[NEXUS_MISSING_PROVIDER] ShipComputer (module Engin
 
 <!-- #endregion errors -->
 
+## Text from other packages
+
+Core's text ships with `errors()`. A package that raises its own codes publishes their text as a pack at its `./text` entry. Pass the packs you use to `errors()`:
+
+```ts
+import { errors } from '@nexusdi/errors';
+import { federationText } from '@nexusdi/federation/text';
+
+const plugins = [errors({ text: [federationText] })];
+```
+
+`errors()` reads your packs in array order, then core's pack, and the first entry that returns text for a code decides. A pack listed earlier overrides a later one for the same code, so a translation of core's text works by listing it first. A code no pack covers keeps the one-line message its package wrote.
+
 ## Explaining an error later
 
-`explain(error)` returns the full text for an error caught in a container without the plugin, such as one in a log or a test. Without the container's graph, it has no near misses to suggest.
+`explain(error, { view, text })` returns the full text for an error caught in a container without the plugin, such as one in a log or a test. It reads `text` in the same order `errors()` does. Without the container's `view`, it has no near misses to suggest.
 
 <!-- #region explain -->
 
@@ -104,7 +117,7 @@ text?.split('\n'); // -> ['ShipComputer (module Engineering) depends on NavChart
 
 <!-- #endregion explain -->
 
-`explain()` returns `undefined` for a code that another package owns, since that package's errors carry their own text.
+`explain()` returns `undefined` for a code no pack covers.
 
 ## License
 

@@ -1,6 +1,11 @@
-import { Token, type BlueprintView, type NearMiss } from '@nexusdi/core';
+import {
+  REQUEST,
+  Token,
+  type BlueprintView,
+  type NearMiss,
+} from '@nexusdi/core';
 
-/** What a MissingProviderError looked up, which core records on the error. */
+/** What an error looked up: the token and the module that could not see it. */
 export interface MissingLookup {
   readonly token: unknown;
   readonly moduleId: string;
@@ -17,7 +22,7 @@ export function nearMissesOf(
   view: BlueprintView,
 ): NearMiss[] {
   const modules = new Map(view.modules.map((m) => [m.id, m]));
-  const providers = view.providers.filter((p) => p.id !== 'request');
+  const providers = view.providers.filter((p) => p.token !== REQUEST);
   const misses: NearMiss[] = [];
 
   const owners = new Set<string>();

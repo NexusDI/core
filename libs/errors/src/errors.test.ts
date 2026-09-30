@@ -1,7 +1,18 @@
 import { describe, expect, it } from 'vitest';
 
-import { Nexus, Token, defineModule, provide } from '@nexusdi/core';
+import {
+  Nexus,
+  Token,
+  defineModule,
+  provide,
+  type NexusPlugin,
+} from '@nexusdi/core';
 
+import { rejected } from '../test-support/catch.js';
+import {
+  DockingBayError,
+  dockingText,
+} from '../test-support/third-party-codes.js';
 import { errors } from './index.js';
 
 interface NavCharts {
@@ -26,6 +37,53 @@ const Meridian = defineModule({
 });
 
 describe('errors', () => {
+  const Hangar = defineModule({ name: 'Hangar' });
+  const Fleet = defineModule({ name: 'Fleet', imports: [Hangar, Tactical] });
+
+  /** A check hook that reports Hangar's missing docking bay, looked up as NavCharts. */
+  const docking: NexusPlugin = {
+    name: 'docking',
+    apiVersion: 1,
+    compile: {
+      check: (view, report) => {
+        const hangar = view.modules.find((m) => m.name === 'Hangar')?.id;
+        report(
+          new DockingBayError(
+            { bay: 'NavCharts', module: 'Hangar' },
+            { hidden: { lookup: { token: NAV_CHARTS, moduleId: hangar } } },
+          ),
+        );
+      },
+    },
+  };
+
+  it("formats another package's code, raised from a check hook, with the packs it is given", async () => {
+    const error = await rejected(
+      Nexus.create(Fleet, {
+        plugins: [docking, errors({ text: [dockingText] })],
+      }),
+    );
+    expect(error).toMatchObject({
+      errors: [
+        {
+          code: 'ACME_DOCKING_BAY',
+          message:
+            '[ACME_DOCKING_BAY] Hangar asked for the NavCharts bay, which no module provides.\n' +
+            '  Fix: provide it: provide(DOCKING_BAY, { useClass: ShuttleBay }).',
+        },
+      ],
+    });
+  });
+
+  it("leaves another package's code on its own line without its pack", async () => {
+    const error = (await rejected(
+      Nexus.create(Fleet, { plugins: [docking, errors()] }),
+    )) as { errors: Error[] };
+    expect(error.errors[0]?.message).toBe(
+      '[ACME_DOCKING_BAY] bay=NavCharts module=Hangar. https://acme.dev/errors/ACME_DOCKING_BAY',
+    );
+  });
+
   it('writes revision 1 text and fills nearMisses', async () => {
     const error = await Nexus.create(Meridian, { plugins: [errors()] }).then(
       () => undefined,

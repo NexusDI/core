@@ -1,2 +1,2 @@
-export { errors } from './errors.js';
-export { explain } from './explain.js';
+export { errors, type ErrorsOptions } from './errors.js';
+export { explain, type ExplainOptions } from './explain.js';
