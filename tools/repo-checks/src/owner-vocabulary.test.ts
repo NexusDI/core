@@ -134,6 +134,32 @@ describe('ownerVocabulary', () => {
       "@acme/cache codes.ts:7 tests a code by its text with error['code'].slice; test the error through what its owner exports",
       '@acme/cache codes.ts:9 tests a code by its text with value.startsWith; test the error through what its owner exports',
       "@acme/cache codes.ts:11 writes the code prefix '^NEXUS_'; test the error through what its owner exports",
+      '@acme/cache codes.ts:13 writes the code prefix /^NEXUS_/; test the error through what its owner exports',
+    ]);
+  });
+
+  it('lets an allowance cover one code passed to isNexusError as its second argument', () => {
+    const allowance = {
+      code: 'NEXUS_DISPOSED',
+      packages: ['@acme/cache'],
+      reason: 'fixture',
+    };
+    const result = ownerVocabulary(fixture('sabotaged/allowance-call'), [
+      allowance,
+    ]);
+    expect(result.violations).toEqual([
+      '@acme/cache status.ts:9 names NEXUS_DISPOSED, a code @acme/core declares; its allowance covers one equality check, and status.ts:4 holds it',
+      '@acme/cache status.ts:12 names NEXUS_DISPOSED, a code @acme/core declares; read it through what the owner exports',
+    ]);
+    expect(result.used).toContain('@acme/cache NEXUS_DISPOSED');
+  });
+
+  it('reports a code more than one package declares', () => {
+    expect(
+      ownerVocabulary(fixture('sabotaged/redeclared-code'), []).violations,
+    ).toEqual([
+      '@acme/core errors.ts:20 declares NEXUS_DISPOSED, which @acme/core and @acme/cache declare; one package declares each code',
+      '@acme/cache errors.ts:8 declares NEXUS_DISPOSED, which @acme/core and @acme/cache declare; one package declares each code',
     ]);
   });
 

@@ -9,3 +9,5 @@ export const familyOf = (error: { readonly code: string }): string =>
 export const named = (value: string): boolean => value.startsWith('NEXUS_');
 
 export const PATTERN = new RegExp('^NEXUS_');
+
+export const PREFIX = /^NEXUS_/;

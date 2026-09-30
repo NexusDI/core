@@ -16,10 +16,11 @@ import {
  * A package reads another package's codes and brands only through what the
  * owner exports. The check reads each package's non-test sources and fails
  * on (a) a string literal or name equal to a code another package declares
- * in `NexusErrorByCode`, (b) `Symbol.for('nexusdi.<name>')` on a key another
- * package defines, and (c) a prefix test on a code: a method call on a
- * `code` value, a pattern test of one, or a code prefix such as `'NEXUS_'`
- * written anywhere.
+ * in `NexusErrorByCode`, or a code two packages declare, (b)
+ * `Symbol.for('nexusdi.<name>')` on a key another package defines, and (c)
+ * a prefix test on a code: a method call on a `code` value, a pattern test
+ * of one, or a code prefix such as `'NEXUS_'` or `/^NEXUS_/` written
+ * anywhere.
  *
  * A package defines a key when it binds the key to an exported top-level
  * const. A key two packages call with no single definer fails in both. A
@@ -52,6 +53,8 @@ export interface OwnerVocabulary {
 const BRAND_KEY = /^nexusdi\./;
 /** A code fragment: `NEXUS_`, `^NEXUS_` or a partial code ending in `_`. */
 const CODE_PREFIX = /^\^?NEXUS_(?:[A-Z0-9_]*_)?$/;
+/** A pattern anchored on a code prefix, such as `/^NEXUS_/`. */
+const PREFIX_PATTERN = /^\/\^NEXUS_/;
 
 interface Parsed {
   readonly name: string;
@@ -121,7 +124,8 @@ function isCode(expr: ts.Expression): boolean {
 
 /** A string, template head or pattern that holds a code prefix. */
 function isPrefixLiteral(node: ts.Node): boolean {
-  if (ts.isRegularExpressionLiteral(node)) return node.text.includes('NEXUS_');
+  if (ts.isRegularExpressionLiteral(node))
+    return PREFIX_PATTERN.test(node.text);
   return (
     (ts.isStringLiteralLike(node) || ts.isTemplateHead(node)) &&
     CODE_PREFIX.test(node.text)
@@ -149,8 +153,21 @@ function isPrefixTest(call: ts.CallExpression): boolean {
   );
 }
 
+/**
+ * True when a code literal is one side of `===`, `!==`, `==` or `!=`, or the
+ * second argument of `isNexusError(value, code)`.
+ */
 function isEquality(node: ts.Node): boolean {
   const parent = node.parent;
+  if (ts.isCallExpression(parent)) {
+    const callee = parent.expression;
+    const name = ts.isIdentifier(callee)
+      ? callee.text
+      : ts.isPropertyAccessExpression(callee)
+        ? callee.name.text
+        : undefined;
+    return name === 'isNexusError' && parent.arguments[1] === node;
+  }
   if (!ts.isBinaryExpression(parent)) return false;
   const kind = parent.operatorToken.kind;
   return (
@@ -219,6 +236,24 @@ export function ownerVocabulary(
     const tested = new Set<ts.Node>();
     const where = (node: ts.Node) => `${name} ${at(node)}`;
     for (const [, node] of allNodes(sources)) {
+      // (a) A code more than one package declares.
+      if (
+        ts.isInterfaceDeclaration(node) &&
+        node.name.text === 'NexusErrorByCode'
+      )
+        for (const member of node.members) {
+          const code =
+            member.name !== undefined &&
+            (ts.isIdentifier(member.name) || ts.isStringLiteral(member.name))
+              ? member.name.text
+              : undefined;
+          const owners = code === undefined ? undefined : codes.get(code);
+          if (owners !== undefined && owners.length > 1)
+            violations.push(
+              `${where(member)} declares ${code}, which ${list(owners)} declare; one package declares each code`,
+            );
+        }
+
       // (a) A code another package declares.
       if (ts.isStringLiteralLike(node) || ts.isIdentifier(node)) {
         const owners = codes.get(node.text);
