@@ -78,9 +78,9 @@ interface RaiseSite {
   readonly text: TextOption;
 }
 
-type Sources = ReadonlyMap<string, ts.SourceFile>;
+export type Sources = ReadonlyMap<string, ts.SourceFile>;
 
-function parse(files: readonly SourceFileText[]): Sources {
+export function parse(files: readonly SourceFileText[]): Sources {
   return new Map(
     files.map((file) => [
       file.path,
@@ -100,13 +100,13 @@ function nodesOf(root: ts.Node): ts.Node[] {
   return found;
 }
 
-function allNodes(sources: Sources): [ts.SourceFile, ts.Node][] {
+export function allNodes(sources: Sources): [ts.SourceFile, ts.Node][] {
   return [...sources.values()].flatMap((sf) =>
     nodesOf(sf).map((node): [ts.SourceFile, ts.Node] => [sf, node]),
   );
 }
 
-function at(node: ts.Node): string {
+export function at(node: ts.Node): string {
   const sf = node.getSourceFile();
   const { line } = sf.getLineAndCharacterOfPosition(node.getStart());
   return `${sf.fileName}:${line + 1}`;
@@ -120,7 +120,7 @@ function nameOf(name: ts.PropertyName | undefined): string | undefined {
 }
 
 /** `expr` without parentheses, `as`, `satisfies` and `!`. */
-function unwrap(expr: ts.Expression): ts.Expression {
+export function unwrap(expr: ts.Expression): ts.Expression {
   while (
     ts.isParenthesizedExpression(expr) ||
     ts.isAsExpression(expr) ||

@@ -1,4 +1,4 @@
-import { readdirSync, readFileSync } from 'node:fs';
+import { existsSync, readdirSync, readFileSync } from 'node:fs';
 import { join, posix, relative, sep } from 'node:path';
 
 import { importsOf, type SourceFileText } from './core-layers.js';
@@ -27,6 +27,42 @@ export function sourcesOf(dir: string): SourceFileText[] {
       path: relative(dir, file).split(sep).join(posix.sep),
       source: readFileSync(file, 'utf8'),
     }));
+}
+
+/** A package under libs/: its manifest's name and exports, and its sources. */
+export interface LibPackage {
+  /** The folder under libs/, such as `core`. */
+  readonly dir: string;
+  readonly name: string;
+  readonly exports: unknown;
+  /** Every non-test `.ts` file under its src/, none when it has no src/. */
+  readonly files: readonly SourceFileText[];
+}
+
+/**
+ * Every folder of `libs` that holds a package.json, read on each call, so a
+ * package another branch adds is checked without an edit here.
+ */
+export function libPackages(libs: string): LibPackage[] {
+  return readdirSync(libs, { withFileTypes: true })
+    .filter(
+      (entry) =>
+        entry.isDirectory() &&
+        existsSync(join(libs, entry.name, 'package.json')),
+    )
+    .sort((a, b) => a.name.localeCompare(b.name))
+    .map(({ name: dir }) => {
+      const manifest = JSON.parse(
+        readFileSync(join(libs, dir, 'package.json'), 'utf8'),
+      ) as { name: string; exports?: unknown };
+      const src = join(libs, dir, 'src');
+      return {
+        dir,
+        name: manifest.name,
+        exports: manifest.exports,
+        files: existsSync(src) ? sourcesOf(src) : [],
+      };
+    });
 }
 
 /** The module a relative specifier names among `paths`, or null. */

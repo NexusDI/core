@@ -1,4 +1,5 @@
-import { existsSync, readdirSync, readFileSync } from 'node:fs';
+import { mkdirSync, mkdtempSync, writeFileSync } from 'node:fs';
+import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 
 import { workspaceRoot } from '@nx/devkit';
@@ -6,6 +7,7 @@ import { describe, expect, it } from 'vitest';
 
 import {
   entryGraphViolations,
+  libPackages,
   mainEntryOf,
   ownSubpathModules,
   resolveRelative,
@@ -22,6 +24,38 @@ describe('sourcesOf', () => {
     const paths = sourcesOf(join(LIBS, 'errors', 'src')).map((f) => f.path);
     expect(paths).toContain('index.ts');
     expect(paths.filter((path) => path.includes('.test'))).toEqual([]);
+  });
+});
+
+describe('libPackages', () => {
+  it('reads each package folder, with no sources for a package without src/', () => {
+    const libs = mkdtempSync(join(tmpdir(), 'lib-packages-'));
+    mkdirSync(join(libs, 'cache', 'src'), { recursive: true });
+    writeFileSync(
+      join(libs, 'cache', 'package.json'),
+      JSON.stringify({ name: '@acme/cache', exports: { './text': './x' } }),
+    );
+    writeFileSync(join(libs, 'cache', 'src', 'index.ts'), 'export {};\n');
+    mkdirSync(join(libs, 'types'));
+    writeFileSync(
+      join(libs, 'types', 'package.json'),
+      JSON.stringify({ name: '@acme/types' }),
+    );
+    mkdirSync(join(libs, 'scratch'));
+    expect(
+      libPackages(libs).map(({ name, exports, files }) => ({
+        name,
+        exports,
+        files: files.map((file) => file.path),
+      })),
+    ).toEqual([
+      {
+        name: '@acme/cache',
+        exports: { './text': './x' },
+        files: ['index.ts'],
+      },
+      { name: '@acme/types', exports: undefined, files: [] },
+    ]);
   });
 });
 
@@ -131,22 +165,14 @@ describe('entryGraphViolations', () => {
     ).toEqual(['src/main.ts is missing, so the main entry cannot be walked']);
   });
 
-  const packages = readdirSync(LIBS).filter((dir) =>
-    existsSync(join(LIBS, dir, 'package.json')),
+  it.each(libPackages(LIBS).map((pkg) => [pkg.dir, pkg] as const))(
+    'holds for libs/%s',
+    (_, pkg) => {
+      const entry = mainEntryOf(pkg.exports);
+      if (entry === null) return;
+      expect(
+        entryGraphViolations(pkg.files, ownSubpathModules(pkg.exports), entry),
+      ).toEqual([]);
+    },
   );
-
-  it.each(packages)('holds for libs/%s', (dir) => {
-    const manifest = JSON.parse(
-      readFileSync(join(LIBS, dir, 'package.json'), 'utf8'),
-    ) as { exports?: Record<string, unknown> };
-    const entry = mainEntryOf(manifest.exports);
-    if (entry === null) return;
-    expect(
-      entryGraphViolations(
-        sourcesOf(join(LIBS, dir, 'src')),
-        ownSubpathModules(manifest.exports),
-        entry,
-      ),
-    ).toEqual([]);
-  });
 });

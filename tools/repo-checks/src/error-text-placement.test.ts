@@ -1,10 +1,9 @@
-import { existsSync, readdirSync, readFileSync } from 'node:fs';
 import { join } from 'node:path';
 
 import { workspaceRoot } from '@nx/devkit';
 import { describe, expect, it } from 'vitest';
 
-import { sourcesOf } from './entry-graph.js';
+import { libPackages, sourcesOf } from './entry-graph.js';
 import {
   declaredCodes,
   instanceofClasses,
@@ -231,16 +230,7 @@ describe('textPlacement', () => {
     ).toHaveLength(1);
   });
 
-  const packages = readdirSync(LIBS)
-    .filter((dir) => existsSync(join(LIBS, dir, 'src')))
-    .map((dir) => ({
-      name: (
-        JSON.parse(readFileSync(join(LIBS, dir, 'package.json'), 'utf8')) as {
-          name: string;
-        }
-      ).name,
-      files: sourcesOf(join(LIBS, dir, 'src')),
-    }));
+  const packages = libPackages(LIBS);
 
   it.each(packages.map((pkg) => [pkg.name, pkg] as const))(
     'holds for %s',
