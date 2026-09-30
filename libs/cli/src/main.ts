@@ -1,6 +1,6 @@
 import { parseCommand } from './args.js';
 import { CliError, formatCliError } from './cli-error.js';
-import { graphFor } from './graph.js';
+import { requireCore } from './devtools.js';
 import { render } from './render.js';
 import { cliVersion } from './version.js';
 import { checkOut, emit, writeTo, type Output } from './write.js';
@@ -56,6 +56,9 @@ export async function main(argv: readonly string[], io: Io): Promise<number> {
       ...command.load,
       ...(command.plugins === null ? [] : [command.plugins]),
     ]);
+    requireCore(version);
+    // graph.js imports @nexusdi/core, so it loads after the presence check.
+    const { graphFor } = await import('./graph.js');
     const { graph, devtools, from } = await graphFor(command, io.cwd, version);
     const data = await render(
       graph,

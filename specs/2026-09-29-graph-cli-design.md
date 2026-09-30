@@ -155,6 +155,11 @@ does not look at their shape. `parseGraph` throws `NEXUS_DEVTOOLS_GRAPH_INVALID`
 NexusError `parseGraph` throws and prints `<file>: ` before devtools' message, which ends
 in its Fix line.
 
+The CLI classifies errors with `isNexusError` from its own `@nexusdi/core`, a declared
+peer (extension-principle spec, V6). `main.ts` checks that core resolves, exit 3 when it
+does not, and only then imports `graph.js`, the one module that loads core. `--help` and
+`--version` run without core.
+
 ### 3.2 Import side effects
 
 The CLI imports the entry file, which runs its top-level code. The docs tell users to
@@ -171,7 +176,7 @@ user code cannot keep the process alive. An entry that throws while it is import
 | 0    | The graph was written.                                                                                                                                                                                                                                 |
 | 1    | `Nexus.check` threw a `BlueprintError`. The CLI prints its message (the `@nexusdi/errors` text) to stderr and writes no output.                                                                                                                        |
 | 2    | The invocation or the input is wrong: an unknown flag or format, a missing file or export, an entry that threw on import, a bad JSON graph, PNG to a terminal, an unwritable `--out`. Any error the CLI did not classify also exits 2, with its stack. |
-| 3    | The environment lacks something: no TypeScript loader for a `.ts` entry, `@nexusdi/devtools` not installed or at another version, `@viz-js/viz` or `@resvg/resvg-js` missing for SVG or PNG.                                                           |
+| 3    | The environment lacks something: `@nexusdi/core` not installed next to the CLI, no TypeScript loader for a `.ts` entry, `@nexusdi/devtools` not installed or at another version, `@viz-js/viz` or `@resvg/resvg-js` missing for SVG or PNG.            |
 
 Code 1 is the one CI keys on: `nexusdi graph src/meridian.module.ts#Meridian -f json -o graph.json`
 fails the job exactly when the graph is invalid, and uploads the graph when it is not.
@@ -333,8 +338,7 @@ Display names come from user code, so the renderers escape them:
   quoted, so a hand-written id cannot break out either.
 - Mermaid: Mermaid reads a bare node name as syntax, and a hand-written JSON graph can
   carry any id, so `toMermaid` writes no graph id. It names the i-th module `m<i>` and
-  the i-th provider `p<i>`, and an id that no entry has `u<n>`. A live graph's names
-  match core's ids until `load()` adds modules. Labels are double-quoted, and `"`, `#`, `<`,
+  the i-th provider `p<i>`, and an id that no entry has `u<n>`. Labels are double-quoted, and `"`, `#`, `<`,
   `>`, `&` and `` ` `` become the entity codes `#quot;`, `#35;`, `#lt;`, `#gt;`, `#amp;`
   and `#96;`, so a name cannot close the label, inject markup or turn the label into a
   Markdown string. A newline or carriage return in a name becomes a space.

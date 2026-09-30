@@ -1,4 +1,5 @@
 import { readFileSync } from 'node:fs';
+import { fileURLToPath } from 'node:url';
 
 import type { inspect, parseGraph, toDot, toMermaid } from '@nexusdi/devtools';
 
@@ -38,4 +39,19 @@ export async function loadDevtools(
       `Install it: npm i -D @nexusdi/devtools@${version}`,
     );
   return importFile<DevtoolsApi>(entry);
+}
+
+/**
+ * Throws CliError 3 when this package cannot resolve @nexusdi/core, its
+ * peer. graph.js imports core, so main checks this before it loads graph.js.
+ * Presence only: the CLI uses its copy for isNexusError, whose brand works
+ * across copies.
+ */
+export function requireCore(version: string): void {
+  if (resolveFrom('@nexusdi/core', fileURLToPath(import.meta.url)) === null)
+    throw new CliError(
+      3,
+      `@nexusdi/core ${version} is required next to @nexusdi/cli ${version}; found none.`,
+      `Install it: npm i -D @nexusdi/core@${version}`,
+    );
 }
