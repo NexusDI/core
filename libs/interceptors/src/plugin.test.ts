@@ -129,6 +129,33 @@ describe('interceptors()', () => {
     expect(seen).toEqual(['ping']);
   });
 
+  it('intercepts a symbol-keyed method a declaration names', async () => {
+    const RUN = Symbol('run');
+    class Engine {
+      static interceptors = { methods: { [RUN]: [AUDIT] } };
+      [RUN](): string {
+        return 'running';
+      }
+      idle(): string {
+        return 'idle';
+      }
+    }
+    await using ship = await Nexus.create(
+      defineModule({
+        name: 'App',
+        imports: [LedgerModule],
+        providers: [Engine],
+        exports: [LEDGER],
+      }),
+      { plugins: [plugin()] },
+    );
+    const engine = ship.get(Engine);
+    expect(engine[RUN]()).toBe('running');
+    expect(engine.idle()).toBe('idle');
+    expect(engine).toBeInstanceOf(Engine);
+    expect(ship.get(LEDGER).lines).toEqual(['Engine.Symbol(run)']);
+  });
+
   it('leaves a service with no interceptors unproxied', async () => {
     class Plain {
       ping() {
@@ -375,6 +402,7 @@ describe('interceptors()', () => {
             imports: [LedgerModule],
             register: [interceptor(AUDIT, { useClass: AuditInterceptor })],
             global: [AUDIT],
+            exempt: [LEDGER],
           }),
         ],
       },
@@ -443,6 +471,7 @@ describe('interceptors()', () => {
             imports: [JournalModule],
             register: [interceptor(LOG, { useClass: LogInterceptor })],
             global: [LOG],
+            exempt: [JOURNAL],
           }),
         ],
       },

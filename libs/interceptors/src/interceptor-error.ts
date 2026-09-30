@@ -18,7 +18,11 @@ export type InvalidReason =
   | 'static-method'
   | 'bad-target'
   | 'legacy-decorators'
-  | 'no-intercept';
+  | 'no-intercept'
+  | 'bad-next'
+  | 'unexempted-dep'
+  | 'unused-exempt'
+  | 'self-intercept';
 
 interface InterceptorFields {
   readonly code: InterceptorErrorCode;
@@ -32,92 +36,62 @@ interface InterceptorFields {
   readonly method: string | null;
   /** For NEXUS_INTERCEPTOR_NOT_READY: whether the container is still building or disposed. */
   readonly state: 'building' | 'disposed' | null;
+  /** What else the fault names: the option at fault, the value received, or the providers a global entry would skip. */
+  readonly detail: readonly string[];
 }
 
-/** A fault in how interceptors are declared, registered or called. */
+/**
+ * A fault in how interceptors are declared, registered or called. Its
+ * message is core's one line of fields; `errors()` from @nexusdi/errors
+ * writes the full text.
+ */
 export class InterceptorError extends errorBase<
   InterceptorErrorCode,
   InterceptorFields
 >((fields) => fields.code, 'InterceptorError') {}
 
-const EMPTY = {
-  reason: null,
-  token: null,
-  target: null,
-  method: null,
-  state: null,
-};
+type Given = Partial<Omit<InterceptorFields, 'code'>>;
 
-export function invalid(
+const raise = (code: InterceptorErrorCode, fields: Given): InterceptorError =>
+  new InterceptorError({
+    code,
+    reason: null,
+    token: null,
+    target: null,
+    method: null,
+    state: null,
+    detail: [],
+    ...fields,
+  });
+
+export const invalid = (
   reason: InvalidReason,
-  fields: Partial<Pick<InterceptorFields, 'token' | 'target' | 'method'>>,
-  text: string,
-): InterceptorError {
-  return new InterceptorError(
-    { ...EMPTY, ...fields, code: 'NEXUS_INTERCEPTOR_INVALID', reason },
-    { text },
-  );
-}
+  fields: Given = {},
+): InterceptorError =>
+  raise('NEXUS_INTERCEPTOR_INVALID', { ...fields, reason });
 
-export function missing(
+export const missing = (
   token: unknown,
   target: string | null,
   method: string | null,
-): InterceptorError {
-  const name = nameOf(token);
-  const where =
-    target === null
-      ? 'a global entry or binding'
-      : method === null
-        ? target
-        : `${target}.${method}`;
-  return new InterceptorError(
-    {
-      ...EMPTY,
-      code: 'NEXUS_INTERCEPTOR_MISSING',
-      token: name,
-      target,
-      method,
-    },
-    {
-      text: `${where} uses the interceptor ${name}, which is not registered.\n  Fix: add ${name} to interceptors({ register }).`,
-    },
-  );
-}
+): InterceptorError =>
+  raise('NEXUS_INTERCEPTOR_MISSING', { token: nameOf(token), target, method });
 
-export function lifetime(token: unknown, found: string): InterceptorError {
-  const name = nameOf(token);
-  return new InterceptorError(
-    { ...EMPTY, code: 'NEXUS_INTERCEPTOR_LIFETIME', token: name },
-    {
-      text: `the interceptor ${name} is ${found}, and interceptors are singletons.\n  Fix: remove its lifetime option, and read request data from call.instance or nodeScopes().current().`,
-    },
-  );
-}
+export const lifetime = (token: unknown, found: string): InterceptorError =>
+  raise('NEXUS_INTERCEPTOR_LIFETIME', {
+    token: nameOf(token),
+    detail: [found],
+  });
 
-export function notReady(
+export const notReady = (
   target: string,
   method: string,
   state: 'building' | 'disposed',
-): InterceptorError {
-  const text =
-    state === 'building'
-      ? `${target}.${method} was called before its interceptors were built.\n  Fix: call it from onInit, or inject lazy() of the service in the constructor that calls it.`
-      : `${target}.${method} was called after its container was disposed.`;
-  return new InterceptorError(
-    { ...EMPTY, code: 'NEXUS_INTERCEPTOR_NOT_READY', target, method, state },
-    { text },
-  );
-}
+): InterceptorError =>
+  raise('NEXUS_INTERCEPTOR_NOT_READY', { target, method, state });
 
-export function shared(): InterceptorError {
-  return new InterceptorError(
-    { ...EMPTY, code: 'NEXUS_INTERCEPTORS_SHARED' },
-    {
-      text: 'this interceptors() plugin is already registered in a container that is not disposed.\n  Fix: call interceptors() once per container.',
-    },
-  );
-}
+export const shared = (): InterceptorError =>
+  raise('NEXUS_INTERCEPTORS_SHARED', {});
 
 declare module '@nexusdi/core' {
   interface NexusErrorByCode {

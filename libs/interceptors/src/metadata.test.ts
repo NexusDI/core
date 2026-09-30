@@ -15,17 +15,31 @@ describe('parseMap', () => {
       class: [A],
       methods: { charge: [B], [run]: [C] },
     });
-    expect(parsed?.class).toEqual([A]);
-    expect(parsed?.methods.get('charge')).toEqual([B]);
-    expect(parsed?.methods.get(run)).toEqual([C]);
+    expect(parsed).toEqual({
+      class: [A],
+      methods: new Map<string | symbol, unknown>([
+        ['charge', [B]],
+        [run, [C]],
+      ]),
+    });
   });
 
-  it('rejects a malformed map', () => {
-    expect(parseMap(null)).toBeUndefined();
-    expect(parseMap([A])).toBeUndefined();
-    expect(parseMap({ class: A })).toBeUndefined();
-    expect(parseMap({ class: ['A'] })).toBeUndefined();
-    expect(parseMap({ methods: { charge: B } })).toBeUndefined();
+  it('names the key at fault in a malformed map', () => {
+    expect(parseMap(null)).toBe('class');
+    expect(parseMap([A])).toBe('class');
+    expect(parseMap({ class: A })).toBe('class');
+    expect(parseMap({ class: ['A'] })).toBe('class');
+    expect(parseMap({ methods: 'charge' })).toBe('methods');
+    expect(parseMap({ methods: { charge: B } })).toBe('methods.charge');
+  });
+
+  it('names an unknown key, such as a misspelt methods', () => {
+    expect(parseMap({ method: { charge: [B] } })).toBe('method');
+    expect(parseMap({ token: A, class: [B] })).toBe('token');
+    expect(parseMap({ token: A, class: [B] }, ['token'])).toEqual({
+      class: [B],
+      methods: new Map(),
+    });
   });
 });
 
@@ -73,7 +87,7 @@ describe('declarationsOf', () => {
       static interceptors = { class: 'A' };
     }
     expect(declarationsOf(Broken).problems).toEqual([
-      { reason: 'declaration', target: 'Broken' },
+      { reason: 'declaration', target: 'Broken', key: 'class' },
     ]);
   });
 

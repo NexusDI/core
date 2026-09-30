@@ -1,8 +1,9 @@
 import { defineModule, Nexus, provide, Token } from '@nexusdi/core';
+import { errors, explain } from '@nexusdi/errors';
 import { createTestingContainer } from '@nexusdi/testing';
 import { describe, expect, it } from 'vitest';
 
-import { findCode, rejected } from '../test-support/catch.js';
+import { findCode, rejected, thrown } from '../test-support/catch.js';
 import {
   interceptor,
   interceptors,
@@ -63,6 +64,37 @@ describe('integration', () => {
         .create({ plugins: [plugin()] }),
     );
     expect(findCode(error, 'NEXUS_OVERRIDE_UNUSED')).toBeDefined();
+  });
+
+  it('gets the full text of a check-time error from errors()', async () => {
+    const TYPO = new Token<Interceptor>('Typo');
+    const error = await rejected(
+      Nexus.create(App, {
+        plugins: [
+          errors(),
+          interceptors({
+            register: [interceptor(SHOUT, { useClass: ShoutInterceptor })],
+            global: [TYPO],
+          }),
+        ],
+      }),
+    );
+    expect(findCode(error, 'NEXUS_INTERCEPTOR_MISSING')?.message).toBe(
+      '[NEXUS_INTERCEPTOR_MISSING] a global entry or binding uses the interceptor Typo, which is not registered.\n  Fix: add Typo to interceptors({ register }).',
+    );
+  });
+
+  it('gets the full text of an error raised outside a container from explain()', () => {
+    const error = findCode(
+      thrown(() => interceptors({ register: [] })),
+      'NEXUS_INTERCEPTOR_INVALID',
+    );
+    expect(error?.message).toBe(
+      '[NEXUS_INTERCEPTOR_INVALID] reason=options detail=register-empty. https://nexus.js.org/errors/NEXUS_INTERCEPTOR_INVALID',
+    );
+    expect(explain(error as never)?.message).toBe(
+      'interceptors(): register must list an interceptor.',
+    );
   });
 
   it('leaves a decorated class inert without the plugin', async () => {

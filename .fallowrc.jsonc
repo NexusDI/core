@@ -223,8 +223,10 @@
     "@nexusdi/testing",
     // libs/federation/src/text.test.ts and the federation README's doctest
     // import @nexusdi/errors to format a contract mismatch through
-    // federationText. The workspace links the package, and
-    // libs/federation/package.json, as a published package, carries no
+    // federationText, and libs/interceptors' tests and README doctest import
+    // it to format interceptor errors through interceptorsText. The workspace
+    // links the package, and libs/federation/package.json and
+    // libs/interceptors/package.json, as published packages, carry no
     // devDependencies.
     "@nexusdi/errors",
     // The competitor libraries and their polyfill, which the benchmark

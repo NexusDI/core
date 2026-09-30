@@ -24,15 +24,26 @@ describe('InterceptorError', () => {
       target: 'PaymentService',
       method: 'charge',
       state: null,
+      detail: [],
     });
-    expect(error.message).toContain('interceptors({ register })');
+  });
+
+  it("writes core's one line of fields and the docs link", () => {
+    expect(
+      missing(new Token('Audit'), 'PaymentService', 'charge').message,
+    ).toBe(
+      '[NEXUS_INTERCEPTOR_MISSING] token=Audit target=PaymentService method=charge. https://nexus.js.org/errors/NEXUS_INTERCEPTOR_MISSING',
+    );
+    expect(
+      invalid('options', { detail: ['not-array', 'global'] }).message,
+    ).toBe(
+      '[NEXUS_INTERCEPTOR_INVALID] reason=options detail=not-array,global. https://nexus.js.org/errors/NEXUS_INTERCEPTOR_INVALID',
+    );
   });
 
   it('builds each code', () => {
-    expect(invalid('options', {}, 'bad').code).toBe(
-      'NEXUS_INTERCEPTOR_INVALID',
-    );
-    expect(invalid('options', {}, 'bad').reason).toBe('options');
+    expect(invalid('options').code).toBe('NEXUS_INTERCEPTOR_INVALID');
+    expect(invalid('options').reason).toBe('options');
     expect(lifetime(new Token('Audit'), 'scoped').code).toBe(
       'NEXUS_INTERCEPTOR_LIFETIME',
     );
