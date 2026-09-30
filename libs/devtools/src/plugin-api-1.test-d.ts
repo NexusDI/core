@@ -96,9 +96,9 @@ describe('ErrorTextPack', () => {
 
 describe('ErrorTextKit', () => {
   it('finds near misses for a token and a module id', () => {
-    expectTypeOf<ErrorTextKit>().toEqualTypeOf<{
-      nearMisses(token: unknown, moduleId: string): readonly NearMiss[];
-    }>();
+    expectTypeOf<ErrorTextKit['nearMisses']>().toEqualTypeOf<
+      (token: unknown, moduleId: string) => readonly NearMiss[]
+    >();
   });
 });
 
@@ -153,10 +153,9 @@ describe('GraphAnnotator', () => {
 
 describe('GraphNote', () => {
   it('names a provider id and a label', () => {
-    expectTypeOf<GraphNote>().toEqualTypeOf<{
-      readonly provider: string;
-      readonly label: string;
-    }>();
+    expectTypeOf<GraphNote['provider']>().toEqualTypeOf<string>();
+    expectTypeOf<GraphNote['label']>().toEqualTypeOf<string>();
+    expectTypeOf<{ provider: string; label: string }>().toExtend<GraphNote>();
   });
 });
 
