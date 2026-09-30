@@ -33,7 +33,8 @@ export class NexusError<C extends string = string> extends Error {
 
   /**
    * `docs` is the base url the one-line message links to, `DOCS_URL`
-   * when absent. `errorBase` passes it; a direct subclass leaves it out.
+   * when absent. `errorBase` passes it; a direct subclass may pass its own
+   * or leave it out.
    */
   constructor(
     code: C,
