@@ -90,6 +90,7 @@ export const FIXTURE: NexusGraph = {
 export const ESCAPE_FIXTURE: NexusGraph = {
   modules: [
     { id: 'm0', name: 'Bay "7"', global: false, imports: [], exports: [] },
+    { id: 'm1', name: '`md`', global: false, imports: [], exports: [] },
   ],
   providers: [
     {
@@ -98,6 +99,46 @@ export const ESCAPE_FIXTURE: NexusGraph = {
       module: 'm0',
       lifetime: 'singleton',
       kind: 'class',
+      eager: true,
+      async: null,
+      implementation: null,
+    },
+    {
+      id: 'p1',
+      token: '`**bold** md`\rnext',
+      module: 'm1',
+      lifetime: 'singleton',
+      kind: 'value',
+      eager: false,
+      async: null,
+      implementation: null,
+    },
+  ],
+  edges: [],
+};
+
+/** A graph with core's built-in REQUEST provider and nothing that depends on it. */
+export const WITH_REQUEST: NexusGraph = {
+  modules: [
+    { id: 'm0', name: 'Meridian', global: false, imports: [], exports: [] },
+  ],
+  providers: [
+    {
+      id: 'p0',
+      token: 'ShipComputer',
+      module: 'm0',
+      lifetime: 'singleton',
+      kind: 'class',
+      eager: true,
+      async: null,
+      implementation: null,
+    },
+    {
+      id: 'request',
+      token: 'REQUEST',
+      module: 'm0',
+      lifetime: 'scoped',
+      kind: 'value',
       eager: true,
       async: null,
       implementation: null,

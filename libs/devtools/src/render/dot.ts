@@ -37,7 +37,7 @@ function escape(text: string): string {
   return text
     .replace(/\\/g, '\\\\')
     .replace(/"/g, '\\"')
-    .replace(/\r?\n/g, '\\n');
+    .replace(/\r\n|\r|\n/g, '\\n');
 }
 
 function quote(text: string): string {

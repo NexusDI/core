@@ -36,8 +36,22 @@ export function moduleTitle(module: GraphModule): string {
   return module.global ? `${module.name} (global)` : module.name;
 }
 
+/** The id core gives its built-in REQUEST provider, which every graph lists. */
+const REQUEST_ID = 'request';
+
+/**
+ * The providers the renderers draw: every one but REQUEST, which appears
+ * only when a provider depends on it.
+ */
+export function drawnProviders(graph: NexusGraph): GraphProvider[] {
+  const targets = new Set(graph.edges.map((e) => e.to));
+  return graph.providers.filter(
+    (p) => p.id !== REQUEST_ID || targets.has(REQUEST_ID),
+  );
+}
+
 export function providerCount(graph: NexusGraph, moduleId: string): string {
-  const count = graph.providers.filter((p) => p.module === moduleId).length;
+  const count = membersOf(graph, moduleId).length;
   return `${count} provider${count === 1 ? '' : 's'}`;
 }
 
@@ -46,10 +60,10 @@ export function exportedIds(graph: NexusGraph): Set<string> {
   return new Set(graph.modules.flatMap((m) => m.exports));
 }
 
-/** The providers of one module, in graph order. */
+/** The drawn providers of one module, in graph order. */
 export function membersOf(
   graph: NexusGraph,
   moduleId: string,
 ): GraphProvider[] {
-  return graph.providers.filter((p) => p.module === moduleId);
+  return drawnProviders(graph).filter((p) => p.module === moduleId);
 }
