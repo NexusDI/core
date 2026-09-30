@@ -131,6 +131,7 @@ export function parseGraph(value: unknown): NexusGraph {
     if (implementation !== null && typeof implementation !== 'string')
       wrongType(`${path}.implementation`);
     const internal = boolean(p, 'internal', path);
+    const notes = strings(p, 'notes', path);
     return {
       id,
       token,
@@ -139,6 +140,7 @@ export function parseGraph(value: unknown): NexusGraph {
       kind,
       eager,
       async,
+      notes,
       implementation,
       internal,
     };
