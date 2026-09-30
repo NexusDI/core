@@ -34,12 +34,12 @@ const ALL_CODES = [
   'NEXUS_PLUGIN_FAILED',
 ] as const satisfies readonly NexusErrorCode[];
 
-// A compile error here means a core code is missing from ALL_CODES.
-// ACME_CACHE_STORE is the third-party code test-support/third-party-codes.ts
-// adds to NexusErrorByCode, so it is a NexusErrorCode in this program.
+// A compile error here means a core code is missing from ALL_CODES. Core's
+// codes start with NEXUS_; the Extract drops codes other packages add to
+// NexusErrorByCode, such as test-support/third-party-codes.ts's.
 type Unlisted = Exclude<
-  NexusErrorCode,
-  (typeof ALL_CODES)[number] | 'ACME_CACHE_STORE'
+  Extract<NexusErrorCode, `NEXUS_${string}`>,
+  (typeof ALL_CODES)[number]
 >;
 const everyCodeListed: [Unlisted] extends [never] ? true : false = true;
 

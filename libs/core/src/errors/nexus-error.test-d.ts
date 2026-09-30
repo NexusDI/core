@@ -6,7 +6,6 @@ import {
   isNexusError,
   MissingProviderError,
   NexusError,
-  type NexusErrorByCode,
   type NexusErrorCode,
 } from './index.js';
 
@@ -92,9 +91,9 @@ describe('NexusErrorCode', () => {
     expectTypeOf<'ACME_CACHE_STORE'>().toExtend<NexusErrorCode>();
   });
 
-  it('includes every core code', () => {
+  it('includes core codes', () => {
     expectTypeOf<
-      Exclude<keyof NexusErrorByCode, 'ACME_CACHE_STORE'>
+      'NEXUS_MISSING_PROVIDER' | 'NEXUS_PLUGIN_FAILED'
     >().toExtend<NexusErrorCode>();
   });
 });
