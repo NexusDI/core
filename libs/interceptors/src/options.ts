@@ -28,8 +28,8 @@ import type {
   InterceptorToken,
 } from './types.js';
 
-/** The entries interceptor() made, each with its fault when its token was bad. */
-const ENTRIES = new WeakMap<object, Fault | undefined>();
+/** The entries interceptor() made: each one's registration, or its fault when its token was bad. */
+const ENTRIES = new WeakMap<object, Registered | Fault>();
 
 /** A value as an error names it, without calling its own toString. */
 const shown = (value: unknown): string =>
@@ -67,13 +67,20 @@ export function interceptor(
     token instanceof Token || typeof token === 'function'
       ? undefined
       : bad('interceptor-token', shown(token));
+  const provider =
+    fault === undefined
+      ? (provide(token as never, definition as never) as Provider<Interceptor>)
+      : undefined;
   const entry: InterceptorEntry = Object.freeze({
     token: token as InterceptorToken,
-    provider: (fault === undefined
-      ? provide(token as never, definition as never)
-      : undefined) as Provider<Interceptor>,
+    provider,
   });
-  ENTRIES.set(entry, fault);
+  ENTRIES.set(
+    entry,
+    provider === undefined
+      ? (fault as Fault)
+      : { token: token as InterceptorToken, provider },
+  );
   return entry;
 }
 
@@ -134,12 +141,12 @@ export function parseOptions(options: unknown): NormalOptions | Fault[] {
       element !== null &&
       ENTRIES.has(element)
     ) {
-      const fault = ENTRIES.get(element);
-      if (fault !== undefined) {
-        faults.push(fault);
+      const made = ENTRIES.get(element) as Registered | Fault;
+      if ('code' in made) {
+        faults.push(made);
         continue;
       }
-      entry = element as InterceptorEntry;
+      entry = made;
     } else {
       faults.push(bad('register-entry', shown(element)));
       continue;

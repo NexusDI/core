@@ -76,7 +76,12 @@ export type InterceptorClass = Ctor &
 /** An interceptor bound to a token by interceptor(). */
 export interface InterceptorEntry {
   readonly token: InterceptorToken;
-  readonly provider: Provider<Interceptor>;
+  /**
+   * The interceptor's provider. Unset when interceptor() rejected the
+   * token: the entry then only carries that fault, which the plugin's
+   * compile.check reports for the options that register it.
+   */
+  readonly provider: Provider<Interceptor> | undefined;
 }
 
 /** A token `exempt` takes: an injection token, or a multi token for `all()` deps. */
