@@ -6,14 +6,16 @@
  * pin change changes matrix.json's versions) or on a tag run. Otherwise it
  * commits nothing: the workflow's artifacts keep that run's files.
  *
- * Run by benchmarks.yml with GH_TOKEN and IS_TAG set.
+ * Run by benchmarks.yml with GH_TOKEN and IS_TAG set, in a job that has
+ * write access and never runs `npm ci`, so it imports node builtins only.
+ * The checkout keeps no credentials; the push alone authenticates, through
+ * gh's credential helper.
  */
 import { execFileSync } from 'node:child_process';
-import { readdirSync } from 'node:fs';
+import { readdirSync, readFileSync } from 'node:fs';
 import { join } from 'node:path';
 
-import { gitSha, runnerInfo } from './build.ts';
-import { ROOT } from './consumer.ts';
+const ROOT = join(import.meta.dirname, '..', '..');
 
 const git = (...args: string[]) =>
   execFileSync('git', args, { cwd: ROOT, encoding: 'utf8' }).trim();
@@ -22,9 +24,19 @@ const DETERMINISTIC = ['matrix.json', 'probes.json', 'size.json'].map(
   (f) => `benchmarks/results/${f}`,
 );
 
+interface TimingsHead {
+  runner: {
+    cpu: string;
+    cores: number;
+    memoryGb: number;
+    hosted: boolean;
+  };
+  versions: { node: string };
+}
+
 if (import.meta.main) {
   const isTag = process.env.IS_TAG === 'true';
-  const sha = gitSha();
+  const sha = git('rev-parse', '--short=7', 'HEAD');
   const date = new Date().toISOString().slice(0, 10);
   const changed = git('status', '--porcelain', '--', ...DETERMINISTIC) !== '';
   if (!changed && !isTag) {
@@ -51,17 +63,28 @@ if (import.meta.main) {
   if (isTag) git('add', '--', 'benchmarks/results/raw');
   const title = `chore(benchmarks): results ${date} ${sha}`;
   git('commit', '-m', title);
-  git('push', 'origin', branch);
-  const runner = runnerInfo();
-  const timing = readdirSync(join(ROOT, 'benchmarks', 'results', 'timings'))
-    .sort()
-    .at(-1);
+  git(
+    '-c',
+    'credential.helper=',
+    '-c',
+    'credential.helper=!gh auth git-credential',
+    'push',
+    'origin',
+    branch,
+  );
+  const dir = join(ROOT, 'benchmarks', 'results', 'timings');
+  const timing = readdirSync(dir).sort().at(-1);
+  if (timing === undefined) throw new Error('no timing file to report');
+  // The runner that measured the timings, which is not this job's.
+  const { runner, versions } = JSON.parse(
+    readFileSync(join(dir, timing), 'utf8'),
+  ) as TimingsHead;
   const body = [
     `Benchmark results from ${sha}${isTag ? ', a tag run' : ''}.`,
     '',
     `- Runner: ${runner.cpu}, ${runner.cores} cores, ${runner.memoryGb} GB, ${runner.hosted ? 'GitHub-hosted' : 'self-hosted'}`,
-    `- Node: ${process.versions.node}`,
-    `- Timing file: benchmarks/results/timings/${timing ?? '(none)'}`,
+    `- Node: ${versions.node}`,
+    `- Timing file: benchmarks/results/timings/${timing}`,
     `- Deterministic files changed: ${changed ? 'yes' : 'no'}`,
   ].join('\n');
   execFileSync(
