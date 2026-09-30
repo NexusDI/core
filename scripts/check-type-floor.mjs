@@ -1,11 +1,14 @@
 #!/usr/bin/env node
 /**
- * Type-checks the source and the *.test-d.ts files of @nexusdi/core and
- * @nexusdi/decorators with the oldest TypeScript the packages support (5.4,
- * for NoInfer) and with TypeScript 7, the Go compiler. Vitest's typecheck
- * mode runs the same files on the workspace's TypeScript; this covers the two
- * ends of the range. The decorators config reads core through its
- * @nexusdi/source condition, so it needs no build.
+ * Type-checks the source and the *.test-d.ts files of @nexusdi/core,
+ * @nexusdi/decorators and @nexusdi/devtools with the oldest TypeScript the
+ * packages support (5.4, for NoInfer) and with TypeScript 7, the Go compiler.
+ * Vitest's typecheck mode runs the same files on the workspace's TypeScript;
+ * this covers the two ends of the range. devtools holds
+ * plugin-api-1.test-d.ts, the third-party plugin that uses every plugin API 1
+ * contribution point. The decorators and devtools configs read core and
+ * @nexusdi/errors through their @nexusdi/source condition, so they need no
+ * build.
  */
 import { execFileSync } from 'node:child_process';
 import { resolve } from 'node:path';
@@ -14,6 +17,7 @@ const ROOT = resolve(import.meta.dirname, '..');
 const PROJECTS = [
   ['@nexusdi/core', 'libs/core/tsconfig.floor.json'],
   ['@nexusdi/decorators', 'libs/decorators/tsconfig.floor.json'],
+  ['@nexusdi/devtools', 'libs/devtools/tsconfig.floor.json'],
 ];
 const COMPILERS = [
   ['TypeScript 5.4', 'typescript@5.4.5'],
