@@ -44,6 +44,12 @@
       "types": "./dist/index.d.ts",
       "import": "./dist/index.js",
       "default": "./dist/index.js"
+    },
+    "./text": {
+      "@nexusdi/source": "./src/text/index.ts",
+      "types": "./dist/text/index.d.ts",
+      "import": "./dist/text/index.js",
+      "default": "./dist/text/index.js"
     }
   },
   "files": [

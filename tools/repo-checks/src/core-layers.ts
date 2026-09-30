@@ -7,7 +7,12 @@ import ts from 'typescript';
  *
  * Each layer imports only from the layers below it. The disposal polyfill
  * is named on its own, because only the runtime needs it. A root file
- * (index.ts) may import any layer.
+ * (index.ts) may import any layer but text/.
+ *
+ * text/ is core's error text, published at @nexusdi/core/text. It sits
+ * outside the main entry: no layer and no root file imports it. It reads
+ * describeThrown and layoutText from errors/, and only types from
+ * blueprint/views.ts and definitions/ (spec section 12.1).
  */
 
 export interface SourceFileText {
@@ -32,7 +37,18 @@ const ALLOWED: Readonly<Record<string, readonly string[]>> = {
     'polyfill/symbol-dispose.ts',
   ],
   polyfill: [],
+  text: ['text/', 'errors/', 'blueprint/views.ts', 'definitions/'],
 };
+
+/** The rules of each layer that it may import types from and nothing else. */
+const TYPES_ONLY: Readonly<Record<string, readonly string[]>> = {
+  text: ['blueprint/views.ts', 'definitions/'],
+};
+
+/** True when `target` matches `rule`: a folder prefix, or one file. */
+function matches(rule: string, target: string): boolean {
+  return rule.endsWith('/') ? target.startsWith(rule) : target === rule;
+}
 
 /** The layer a file belongs to: its first directory, or null for a root file. */
 function layerOf(path: string): string | null {
@@ -40,22 +56,58 @@ function layerOf(path: string): string | null {
   return slash === -1 ? null : path.slice(0, slash);
 }
 
-/** Every module specifier a file names in an import, export-from or import(). */
-export function specifiersOf(file: SourceFileText): string[] {
+/** True when an import or export-from brings in types only. */
+function isTypeOnly(
+  node: ts.ImportDeclaration | ts.ExportDeclaration,
+): boolean {
+  if (ts.isExportDeclaration(node)) {
+    if (node.isTypeOnly) return true;
+    const clause = node.exportClause;
+    return (
+      clause !== undefined &&
+      ts.isNamedExports(clause) &&
+      clause.elements.length > 0 &&
+      clause.elements.every((element) => element.isTypeOnly)
+    );
+  }
+  const clause = node.importClause;
+  if (clause === undefined) return false;
+  if (clause.isTypeOnly) return true;
+  const bindings = clause.namedBindings;
+  return (
+    clause.name === undefined &&
+    bindings !== undefined &&
+    ts.isNamedImports(bindings) &&
+    bindings.elements.length > 0 &&
+    bindings.elements.every((element) => element.isTypeOnly)
+  );
+}
+
+/** A module specifier a file names, and whether it brings in types only. */
+interface ImportOf {
+  readonly specifier: string;
+  readonly typeOnly: boolean;
+}
+
+/** Every import, export-from and import() in a file. */
+function importsOf(file: SourceFileText): ImportOf[] {
   const source = ts.createSourceFile(
     file.path,
     file.source,
     ts.ScriptTarget.ESNext,
     true,
   );
-  const found: string[] = [];
+  const found: ImportOf[] = [];
   const visit = (node: ts.Node): void => {
     if (
       (ts.isImportDeclaration(node) || ts.isExportDeclaration(node)) &&
       node.moduleSpecifier &&
       ts.isStringLiteral(node.moduleSpecifier)
     ) {
-      found.push(node.moduleSpecifier.text);
+      found.push({
+        specifier: node.moduleSpecifier.text,
+        typeOnly: isTypeOnly(node),
+      });
     }
     if (
       ts.isCallExpression(node) &&
@@ -63,12 +115,17 @@ export function specifiersOf(file: SourceFileText): string[] {
       node.arguments[0] &&
       ts.isStringLiteral(node.arguments[0])
     ) {
-      found.push(node.arguments[0].text);
+      found.push({ specifier: node.arguments[0].text, typeOnly: false });
     }
     ts.forEachChild(node, visit);
   };
   visit(source);
   return found;
+}
+
+/** Every module specifier a file names in an import, export-from or import(). */
+export function specifiersOf(file: SourceFileText): string[] {
+  return importsOf(file).map((found) => found.specifier);
 }
 
 /** The target path under src, with `.js` mapped back to `.ts`. */
@@ -81,8 +138,17 @@ export function layerViolations(files: readonly SourceFileText[]): string[] {
   const found: string[] = [];
   for (const file of files) {
     const layer = layerOf(file.path);
-    // A root file (index.ts) may import any layer.
-    if (layer === null) continue;
+    if (layer === null) {
+      // A root file (index.ts) may import any layer but text/.
+      for (const specifier of specifiersOf(file)) {
+        const target = targetOf(file.path, specifier);
+        if (target?.startsWith('text/'))
+          found.push(
+            `${file.path} imports ${target}, and the main entry may not reach text/`,
+          );
+      }
+      continue;
+    }
     const allowed = ALLOWED[layer];
     if (allowed === undefined) {
       found.push(`${file.path} sits in ${layer}/, which is not a known layer`);
@@ -91,14 +157,21 @@ export function layerViolations(files: readonly SourceFileText[]): string[] {
     for (const specifier of specifiersOf(file)) {
       const target = targetOf(file.path, specifier);
       if (target === null) continue;
-      const ok = allowed.some((rule) =>
-        rule.endsWith('/') ? target.startsWith(rule) : target === rule,
-      );
-      if (!ok) {
+      if (!allowed.some((rule) => matches(rule, target))) {
         found.push(
           `${file.path} imports ${target}, and ${layer}/ may import only ${allowed.join(', ')}`,
         );
       }
+    }
+    const typesOnly = TYPES_ONLY[layer] ?? [];
+    for (const { specifier, typeOnly } of importsOf(file)) {
+      if (typeOnly) continue;
+      const target = targetOf(file.path, specifier);
+      if (target === null || !typesOnly.some((rule) => matches(rule, target)))
+        continue;
+      found.push(
+        `${file.path} imports values from ${target}, and ${layer}/ may import only types from ${typesOnly.join(', ')}`,
+      );
     }
   }
   return found;

@@ -92,6 +92,78 @@ describe('layerViolations', () => {
     ]);
   });
 
+  it('accepts text/ importing errors/ and types from blueprint/views.ts and definitions/', () => {
+    expect(
+      layerViolations([
+        {
+          path: 'text/core-text.ts',
+          source: [
+            "import { describeThrown } from '../errors/describe-thrown.js';",
+            "import type { ErrorTextPack } from '../blueprint/views.js';",
+            "import { type Class } from '../definitions/types.js';",
+            "export { coreText } from './core-text.js';",
+          ].join('\n'),
+        },
+      ]),
+    ).toEqual([]);
+  });
+
+  it('reports a value import from blueprint/views.ts or definitions/ in text/', () => {
+    expect(
+      layerViolations([
+        {
+          path: 'text/core-text.ts',
+          source: [
+            "import { type ErrorTextPack, bindView } from '../blueprint/views.js';",
+            "import { Token } from '../definitions/token.js';",
+          ].join('\n'),
+        },
+      ]),
+    ).toEqual([
+      'text/core-text.ts imports values from blueprint/views.ts, and text/ may import only types from blueprint/views.ts, definitions/',
+      'text/core-text.ts imports values from definitions/token.ts, and text/ may import only types from blueprint/views.ts, definitions/',
+    ]);
+  });
+
+  it('reports text/ importing another part of blueprint/', () => {
+    expect(
+      layerViolations([
+        {
+          path: 'text/core-text.ts',
+          source: "import type { Blueprint } from '../blueprint/blueprint.js';",
+        },
+      ]),
+    ).toEqual([
+      'text/core-text.ts imports blueprint/blueprint.ts, and text/ may import only text/, errors/, blueprint/views.ts, definitions/',
+    ]);
+  });
+
+  it('reports a runtime file that imports text/', () => {
+    expect(
+      layerViolations([
+        {
+          path: 'runtime/x.ts',
+          source: "import { coreText } from '../text/index.js';",
+        },
+      ]),
+    ).toEqual([
+      'runtime/x.ts imports text/index.ts, and runtime/ may import only runtime/, blueprint/, definitions/, errors/, polyfill/symbol-dispose.ts',
+    ]);
+  });
+
+  it('reports a root file that imports text/', () => {
+    expect(
+      layerViolations([
+        {
+          path: 'index.ts',
+          source: "export { coreText } from './text/index.js';",
+        },
+      ]),
+    ).toEqual([
+      'index.ts imports text/index.ts, and the main entry may not reach text/',
+    ]);
+  });
+
   it('holds for the current libs/core source', () => {
     expect(layerViolations(sources())).toEqual([]);
   });
