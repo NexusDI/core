@@ -315,10 +315,13 @@ and `useService` runs it when the container has that plugin:
 - The result is cached per token for the current blueprint, so the check is one `Map`
   lookup after the first render of each token.
 
-Decision (R4): register `react()` in development and in tests, beside `devtools()`, and
-leave it out of production builds. The check guards against a coding mistake that shows
-on the first render in development, so production gains nothing from it, and core builds
-the blueprint views only when a plugin asks for them (core §3.10.1).
+Decision (R4): the app registers `react()` in development and in tests, beside
+`devtools()`, and leaves it out of production builds. The app decides how it detects
+that, by whatever means its own toolchain gives it; `react()` and the rest of the package
+read no environment variable and guard on nothing themselves. The check guards against a
+coding mistake that shows on the first render in development, so production gains nothing
+from it, and core builds the blueprint views only when a plugin asks for them (core
+§3.10.1).
 
 Consequences for users:
 
@@ -372,11 +375,14 @@ the shell did not load it.
 import { devtools } from '@nexusdi/devtools';
 import { react } from '@nexusdi/react';
 
-const dev = process.env.NODE_ENV !== 'production';
 export const shipReady = Nexus.create(Meridian, {
-  plugins: dev ? [devtools(), react()] : [],
+  plugins: dev ? [devtools(), react()] : [], // dev: the app's own check, true in development and in tests
 });
 ```
+
+`dev` is the app's own check, computed however its toolchain gives it (`process.env.NODE_ENV`,
+`import.meta.env.DEV`, or a build flag). `@nexusdi/react` reads no environment variable and
+does not guard on `NODE_ENV` itself: the app decides when `react()` is registered.
 
 The plugin is `{ name: 'nexusdi-react', apiVersion: 1, setup }`. `setup(context)` records
 `context` in a module-level `WeakMap` keyed by `context.container`. `useService` looks
@@ -1206,7 +1212,8 @@ R3. The provider disposes only with `dispose`.
 
 R4. The transient check lives in the optional `react()` plugin.
 
-- Ruling (amended): register `react()` in development and tests (section 4.2). It is
+- Ruling (amended): the app registers `react()` in development and tests (section 4.2),
+  by its own check; the package guards on nothing, `NODE_ENV` included. It is
   released in rc.0 and needs K1, K2 and K3 in core, which section 18 puts in core 0.4.
   R16 gives the rule if one of them is late. For `{ module: ref }`, `react()` resolves
   `ref` with core's `moduleDefinitionOf` and checks the module whose `definition` or
