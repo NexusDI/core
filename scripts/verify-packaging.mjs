@@ -70,6 +70,7 @@ const { nodeScopes } = require('@nexusdi/node');
 const { errors } = require('@nexusdi/errors');
 const { Inject, Injectable, Module } = require('@nexusdi/decorators');
 const { defineContract, federation } = require('@nexusdi/federation');
+const { federationText } = require('@nexusdi/federation/text');
 
 const REACTOR = new Token('ReactorCore');
 class FusionReactor {
@@ -91,6 +92,8 @@ const Engineering = defineModule({
 (async () => {
   if (typeof coreText !== 'object' || coreText === null)
     throw new Error('require(esm): @nexusdi/core/text has no coreText');
+  if (typeof federationText !== 'object' || federationText === null)
+    throw new Error('require(esm): @nexusdi/federation/text has no federationText');
   const ship = await Nexus.create(Engineering, {
     plugins: [errors()],
   });
@@ -225,6 +228,7 @@ import { devtools, graph, trace } from '@nexusdi/devtools';
 import type { NexusGraph, TraceEvent } from '@nexusdi/devtools';
 import { ContractVersionError, defineContract, federation } from '@nexusdi/federation';
 import type { Contract } from '@nexusdi/federation';
+import { federationText } from '@nexusdi/federation/text';
 
 declare module '@nexusdi/core' {
   interface NexusRequest {
@@ -377,6 +381,13 @@ function check(ok: boolean, what: string): void {
     .load(defineModule({ name: 'Transfers', providers: [Transfers] }))
     .catch((caught: unknown) => caught as BlueprintError);
   check(refused?.errors[0] instanceof ContractVersionError, '@nexusdi/federation reports a newer minor');
+  const mismatch = refused?.errors[0];
+  check(
+    mismatch !== undefined &&
+      explain(mismatch, { text: [federationText] })?.message ===
+        'bank/Auth is needed at 2.4.0, and the provider has 2.3.0.',
+    '@nexusdi/federation/text explains a contract mismatch',
+  );
 }
 
 const errorClasses = [

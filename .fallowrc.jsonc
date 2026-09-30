@@ -215,6 +215,12 @@
     // links the package, and libs/errors/package.json, as a published
     // package, carries no devDependencies.
     "@nexusdi/testing",
+    // libs/federation/src/text.test.ts and the federation README's doctest
+    // import @nexusdi/errors to format a contract mismatch through
+    // federationText. The workspace links the package, and
+    // libs/federation/package.json, as a published package, carries no
+    // devDependencies.
+    "@nexusdi/errors",
     // The competitor libraries and their polyfill, which the benchmark
     // fixtures import. benchmarks/src/consumer.ts installs the pins from
     // benchmarks/libraries.json into the throwaway consumer the fixtures
