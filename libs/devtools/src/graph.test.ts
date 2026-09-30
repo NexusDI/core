@@ -3,7 +3,8 @@ import { describe, expect, it } from 'vitest';
 import { Nexus, Token, defineModule, lazy, provide } from '@nexusdi/core';
 
 import { rejected } from '../test-support/catch.js';
-import { devtools, graph } from './index.js';
+import { fuelLineNotes } from '../test-support/third-party-annotator.js';
+import { devtools, graph, inspect, type GraphAnnotator } from './index.js';
 
 class ReactorCore {}
 class ShipComputer {
@@ -12,6 +13,34 @@ class ShipComputer {
 class SubspaceLink {}
 const NAV_CHARTS = new Token<{ plot(): string }>('NavCharts');
 const COMPUTER = new Token<ShipComputer>('Computer');
+
+const Bridge = defineModule({
+  name: 'Bridge',
+  providers: [
+    ReactorCore,
+    provide(ShipComputer, { deps: [ReactorCore] }),
+    provide(NAV_CHARTS, { useFactory: () => ({ plot: () => 'x' }) }),
+  ],
+});
+/** Two notes for the reactor, in reverse id order, and one for an id the view lacks. */
+const shielding: GraphAnnotator = (view) => [
+  { provider: view.providers[1]?.id ?? '', label: 'shielded' },
+  { provider: view.providers[0]?.id ?? '', label: 'shielded' },
+  { provider: view.providers[0]?.id ?? '', label: 'hull breach sensor' },
+  { provider: 'p404', label: 'lost in the nebula' },
+];
+/** A second annotator; its notes follow the first one's. */
+const crew: GraphAnnotator = (view) => [
+  { provider: view.providers[0]?.id ?? '', label: 'crewed by engineering' },
+];
+const notesOf = (providers: { token: string; notes: string[] }[]) =>
+  Object.fromEntries(providers.map((p) => [p.token, p.notes]));
+const BRIDGE_NOTES = {
+  ReactorCore: ['shielded', 'hull breach sensor', 'crewed by engineering'],
+  ShipComputer: ['shielded'],
+  NavCharts: ['fed from the fuel line'],
+  REQUEST: [],
+};
 
 describe('graph', () => {
   it('returns the compiled graph as plain JSON', async () => {
@@ -62,6 +91,7 @@ describe('graph', () => {
           kind: 'class',
           eager: true,
           async: false,
+          notes: [],
         },
         {
           id: 'p1',
@@ -71,6 +101,7 @@ describe('graph', () => {
           kind: 'class',
           eager: true,
           async: false,
+          notes: [],
         },
         {
           id: 'p2',
@@ -80,6 +111,7 @@ describe('graph', () => {
           kind: 'factory',
           eager: true,
           async: true,
+          notes: [],
         },
         {
           id: 'p3',
@@ -89,6 +121,7 @@ describe('graph', () => {
           kind: 'alias',
           eager: true,
           async: null,
+          notes: [],
         },
         {
           id: 'p4',
@@ -98,6 +131,7 @@ describe('graph', () => {
           kind: 'class',
           eager: true,
           async: false,
+          notes: [],
         },
         {
           id: 'request',
@@ -107,6 +141,7 @@ describe('graph', () => {
           kind: 'value',
           eager: true,
           async: false,
+          notes: [],
         },
       ],
       edges: [
@@ -230,5 +265,21 @@ describe('graph', () => {
       expect.objectContaining({ code: 'NEXUS_ASYNC_TRANSIENT' }),
     );
     expect(asyncOf(ship)).toBe(true);
+  });
+
+  it("lists each provider's notes in annotator order, then note order, and drops a note for an unknown id", async () => {
+    const ship = await Nexus.create(Bridge, {
+      plugins: [devtools({ annotate: [shielding, crew, fuelLineNotes] })],
+    });
+    expect(notesOf(graph(ship).providers)).toEqual(BRIDGE_NOTES);
+  });
+});
+
+describe('inspect', () => {
+  it("lists each provider's notes from options.annotate", () => {
+    const view = inspect(Bridge, {
+      annotate: [shielding, crew, fuelLineNotes],
+    });
+    expect(notesOf(view.providers)).toEqual(BRIDGE_NOTES);
   });
 });

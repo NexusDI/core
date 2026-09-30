@@ -74,6 +74,41 @@ import { federationText } from '@nexusdi/federation/text';
 const plugins = dev ? [devtools({ text: [federationText] })] : [];
 ```
 
+## Notes
+
+`devtools({ annotate })` and `inspect(root, { annotate })` take graph annotators. A `GraphAnnotator` reads the container's `BlueprintView` and returns `GraphNote`s, each a provider id and a label. Every provider in the graph has `notes`: the labels for its id, in annotator order, then in the order each annotator returned them. A provider no note names has `notes: []`, and a note for an id the view lacks is dropped. An annotator can match the shape with no import from `@nexusdi/devtools`.
+
+<!-- #region annotate -->
+
+```ts @import.meta.vitest
+import { Nexus, Token, defineModule, provide } from '@nexusdi/core';
+import type { BlueprintView } from '@nexusdi/core';
+import { devtools, graph } from '@nexusdi/devtools';
+
+interface IReactorCore {
+  readonly output: number;
+}
+const REACTOR = new Token<IReactorCore>('ReactorCore');
+class FusionReactor implements IReactorCore {
+  readonly output = 1.21;
+}
+const shielded = (view: BlueprintView) =>
+  view.providers
+    .filter((p) => p.kind === 'class')
+    .map((p) => ({ provider: p.id, label: 'shielded' }));
+
+await using ship = await Nexus.create(
+  defineModule({
+    name: 'Engineering',
+    providers: [provide(REACTOR, { useClass: FusionReactor })],
+  }),
+  { plugins: [devtools({ annotate: [shielded] })] },
+);
+graph(ship).providers[0]?.notes; // -> ['shielded']
+```
+
+<!-- #endregion annotate -->
+
 ## Inspect
 
 `inspect(root)` compiles the graph `Nexus.check` compiles and builds nothing, for a CLI or a CI job. It takes the root forms `Nexus.check` takes: a module, a provider array, or `{ providers, imports, exports }`. Every provider's `async` in its graph is `null`, since nothing ran.

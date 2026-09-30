@@ -157,10 +157,14 @@ describe('inspect', () => {
     });
   });
 
-  it('passes options.text to no one but its own formatter', () => {
+  it('keeps options.text and options.annotate out of Nexus.check', () => {
     const check = vi.spyOn(Nexus, 'check');
     try {
-      inspect(Science, { text: [reactorText], load: [Tactical] });
+      inspect(Science, {
+        text: [reactorText],
+        annotate: [() => []],
+        load: [Tactical],
+      });
       expect(check).toHaveBeenCalledOnce();
       expect(Object.keys(check.mock.calls[0]?.[1] ?? {}).sort()).toEqual([
         'load',

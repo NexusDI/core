@@ -1,5 +1,19 @@
 import type { BlueprintView } from '@nexusdi/core';
 
+/** A line of text a plugin attaches to one provider in the graph. */
+export interface GraphNote {
+  /** A provider id from the view ('p3'). */
+  readonly provider: string;
+  readonly label: string;
+}
+
+/**
+ * Reads the view and returns notes for its providers, for `devtools({ annotate })`
+ * and `inspect(root, { annotate })`. A package can match the shape with no
+ * import from @nexusdi/devtools.
+ */
+export type GraphAnnotator = (view: BlueprintView) => readonly GraphNote[];
+
 /** The compiled graph as plain JSON. The docs playground renders it; the graph CLI reads it. */
 export interface NexusGraph {
   modules: Array<{
@@ -29,6 +43,11 @@ export interface NexusGraph {
      * graph: null.
      */
     async: boolean | null;
+    /**
+     * The annotators' labels for this provider, in annotator order, then in
+     * the order each annotator returned them. Empty when none names it.
+     */
+    notes: string[];
   }>;
   edges: Array<{
     from: string;
@@ -38,12 +57,32 @@ export interface NexusGraph {
 }
 
 /**
+ * Runs `annotate` over `view` and groups the labels by provider id. An id the
+ * view lacks keeps its entry here, and graphOf never reads it.
+ */
+export function notesOf(
+  view: BlueprintView,
+  annotate: readonly GraphAnnotator[] = [],
+): Map<string, string[]> {
+  const notes = new Map<string, string[]>();
+  for (const annotator of annotate)
+    for (const note of annotator(view)) {
+      const labels = notes.get(note.provider);
+      if (labels === undefined) notes.set(note.provider, [note.label]);
+      else labels.push(note.label);
+    }
+  return notes;
+}
+
+/**
  * The graph of `view`. `asyncOf` answers a factory's `async`; null reports
  * every provider's `async` as null, for a graph nothing was built from.
+ * `notes` maps a provider id to its labels, as notesOf builds it.
  */
 export function graphOf(
   view: BlueprintView,
   asyncOf: ((providerId: string) => boolean | null) | null,
+  notes: ReadonlyMap<string, readonly string[]>,
 ): NexusGraph {
   return {
     modules: view.modules.map((m) => ({
@@ -68,6 +107,7 @@ export function graphOf(
             : p.kind === 'alias'
               ? null
               : false,
+      notes: [...(notes.get(p.id) ?? [])],
     })),
     edges: view.edges.map((e) => ({ from: e.from, to: e.to, kind: e.kind })),
   };
