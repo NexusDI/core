@@ -88,6 +88,13 @@
       "file": "apps/docs/tools/deploy/deploy-config.mjs",
       "exports": ["readDeployConfig"],
     },
+    // DOCS_YML_PATHS is the copy of docs.yml's push paths that docs-ci-job's
+    // test compares with docs.yml. It loads the module through a computed
+    // dynamic import, which fallow does not follow.
+    {
+      "file": "apps/docs/tools/deploy/docs-changed.mjs",
+      "exports": ["DOCS_YML_PATHS"],
+    },
   ],
 
   // Every workspace project's own eslint.config.mjs spreads a preset from
