@@ -2,17 +2,19 @@ import type { DocsPage } from './site';
 
 const PROSE_BUDGET = 1200;
 
-// A removed comment can join the text around it into a new one, as in
-// `<!<!---- x -->-- y -->`, so the removal repeats until the text is stable.
-// An opener with no closer is dropped last, so no `<!--` remains.
+// Each `<!--` drops the text up to the next `-->`. An opener with no `-->`
+// after it drops only itself. A plain scan from left to right.
 function withoutHtmlComments(text: string): string {
-  let current = text;
-  let previous: string;
-  do {
-    previous = current;
-    current = current.replace(/<!--.*?-->/gs, '');
-  } while (current !== previous);
-  return current.replace(/<!--/g, '');
+  let kept = '';
+  let at = 0;
+  for (;;) {
+    const open = text.indexOf('<!--', at);
+    if (open === -1) return kept + text.slice(at);
+    kept += text.slice(at, open);
+    const close = text.indexOf('-->', open + 4);
+    if (close === -1) return kept + text.slice(open + 4);
+    at = close + 3;
+  }
 }
 
 /**
