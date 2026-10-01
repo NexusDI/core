@@ -50,7 +50,11 @@
       // breaking change.
       "adjustSemverBumpsForZeroMajorVersion": true,
       "versionPrefix": "",
-      "updateDependents": "always"
+      "updateDependents": "always",
+      // @nx/js's version actions, extended to pin the repo URLs in each
+      // package's README to the new release tag in the same step that
+      // writes package.json, so the release commit carries both.
+      "versionActions": "./tools/release/version-actions.mjs"
     },
     "projects": ["libs/*"],
     "conventionalCommits": {

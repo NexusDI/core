@@ -7,9 +7,16 @@
     ".": {
       "types": "./lib.d.mts",
       "default": "./lib.mjs"
+    },
+    "./version-actions": {
+      "types": "./version-actions.d.mts",
+      "default": "./version-actions.mjs"
     }
   },
   "dependencies": {
     "jsonc-parser": "^3.3.1"
+  },
+  "devDependencies": {
+    "@nx/js": "23.1.1"
   }
 }

@@ -12,19 +12,23 @@
  *     are resolved. Settles the manifests and the lockfile the same way.
  *
  * Settling: every libs/*\/package.json keeps the line's own version and
- * in-workspace pins, and package-lock.json is regenerated from the result.
+ * in-workspace pins, every README keeps its repo URLs pinned to the line's
+ * version, and package-lock.json is regenerated from the result.
  */
 import { execFileSync } from 'node:child_process';
 import {
   appendFileSync,
   existsSync,
+  mkdtempSync,
   readdirSync,
   readFileSync,
+  rmSync,
   writeFileSync,
 } from 'node:fs';
+import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 
-import { mergeManifests, restoreWorkspacePins } from './lib.mjs';
+import { mergeManifests, restoreWorkspacePins, settleReadme } from './lib.mjs';
 
 const run = (cmd, args) =>
   execFileSync(cmd, args, {
@@ -49,11 +53,17 @@ const summary = (text) => {
     appendFileSync(process.env.GITHUB_STEP_SUMMARY, `${text}\n`);
 };
 
-const manifests = () =>
+const inLibs = (file) =>
   readdirSync('libs', { withFileTypes: true })
     .filter((entry) => entry.isDirectory())
-    .map((entry) => join('libs', entry.name, 'package.json'))
-    .filter((path) => existsSync(path));
+    .map((entry) => join('libs', entry.name, file));
+const manifests = () =>
+  inLibs('package.json').filter((path) => existsSync(path));
+
+// core carries the line's version, and a fixed group gives every package the
+// same one.
+const lineVersion = () =>
+  JSON.parse(run('git', ['show', 'HEAD:libs/core/package.json'])).version;
 
 /** A key both sides may change without it being a conflict: the restore puts it back. */
 const restorable = (key, names) =>
@@ -78,11 +88,7 @@ function settleManifests() {
     .filter((manifest) => manifest.private !== true)
     .map((manifest) => manifest.name ?? '');
   const conflicted = new Set(unmerged());
-  // core carries the line's version, and a fixed group gives every package
-  // the same one.
-  const lineVersion = JSON.parse(
-    run('git', ['show', 'HEAD:libs/core/package.json']),
-  ).version;
+  const version = lineVersion();
   const unresolved = [];
 
   for (const path of paths) {
@@ -112,12 +118,58 @@ function settleManifests() {
         current,
         oursText === null ? null : JSON.parse(oursText),
         names,
-        lineVersion,
+        version,
       ),
     );
     run('git', ['add', path]);
   }
   return unresolved;
+}
+
+/** `git merge-file -p` over three texts: the merge, or null on a conflict. */
+function mergeFile(base, ours, theirs) {
+  const dir = mkdtempSync(join(tmpdir(), 'sync-readme-'));
+  try {
+    for (const [name, text] of Object.entries({ base, ours, theirs }))
+      writeFileSync(join(dir, name), text);
+    return tryRun('git', [
+      'merge-file',
+      '-p',
+      ...['ours', 'base', 'theirs'].map((name) => join(dir, name)),
+    ]);
+  } finally {
+    rmSync(dir, { recursive: true, force: true });
+  }
+}
+
+/**
+ * Pins the repo URLs in every README to the line's version (lib.mjs
+ * settleReadme). main's release commits pin main's version, which a clean
+ * merge brings in too, so every README is settled on every sync. A README
+ * whose conflict is more than the version stays unmerged for a person.
+ */
+function settleReadmes() {
+  const version = lineVersion();
+  const conflicted = new Set(unmerged());
+  const paths = new Set(
+    ['README.md', ...inLibs('README.md')].filter(
+      (path) => existsSync(path) || conflicted.has(path),
+    ),
+  );
+  for (const path of paths) {
+    const stages = conflicted.has(path)
+      ? [1, 2, 3].map((n) => stage(`${n}:${path}`))
+      : null;
+    const text = settleReadme({
+      current: stages === null ? readFileSync(path, 'utf8') : '',
+      stages,
+      lineVersion: version,
+      merge3: mergeFile,
+    });
+    if (text === null) continue;
+    writeFileSync(path, text);
+    run('git', ['add', path]);
+  }
 }
 
 function regenerateLockfile() {
@@ -147,8 +199,9 @@ function merge(branch) {
   tryRun('git', ['merge', '--no-ff', '--no-commit', 'origin/main']);
 
   const unresolved = settleManifests();
-  // Settled manifests are staged, and the lockfile is regenerated below, so
-  // whatever else is still unmerged needs a person.
+  settleReadmes();
+  // Settled manifests and READMEs are staged, and the lockfile is
+  // regenerated below, so whatever else is still unmerged needs a person.
   const others = unmerged().filter(
     (path) =>
       path !== 'package-lock.json' &&
@@ -190,6 +243,7 @@ function merge(branch) {
 
 function restore() {
   const unresolved = settleManifests();
+  settleReadmes();
   if (unresolved.length > 0) {
     console.error(
       `Resolve these manifests by hand first: ${unresolved.join(', ')}`,
@@ -202,7 +256,7 @@ function restore() {
     console.error(`Still unmerged: ${left.join(', ')}`);
     process.exit(1);
   }
-  console.log('Manifests and lockfile settled. Commit the merge.');
+  console.log('Manifests, READMEs and lockfile settled. Commit the merge.');
 }
 
 const [command, branch] = process.argv.slice(2);

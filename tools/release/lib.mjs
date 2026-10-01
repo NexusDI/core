@@ -5,8 +5,13 @@
  * every rule can be tested without a repository or a registry.
  */
 
-/** The tag every release carries. nx interpolates only {version} for a fixed group. */
-const TAG_PREFIX = '@nexusdi/core@';
+/**
+ * The tag every release carries, before its version: nx.json's
+ * releaseTag.pattern without `{version}`. nx interpolates only {version} for
+ * a fixed group.
+ */
+export const RELEASE_TAG_PREFIX = '@nexusdi/core@';
+const TAG_PREFIX = RELEASE_TAG_PREFIX;
 
 /** Each event and the kinds of ref it runs on (spec section 6.1). */
 export const EVENTS = {
@@ -640,4 +645,61 @@ export function stagedProblems({ manifest, repoVersion, files, read }) {
     }
   }
   return problems;
+}
+
+const REPO = 'NexusDI/core';
+
+/**
+ * The URL of a path in the repository at a release tag. `raw` serves the
+ * file itself, for README images. `tree` and `blob` are the folder and file
+ * pages, in the form GitHub's own UI links a tag with.
+ */
+export function repoUrlFor({ kind, version, path }) {
+  const ref = `${RELEASE_TAG_PREFIX}${version}`;
+  return kind === 'raw'
+    ? `https://raw.githubusercontent.com/${REPO}/refs/tags/${ref}/${path}`
+    : `https://github.com/${REPO}/${kind}/${ref}/${path}`;
+}
+
+const escape = (text) => text.replace(/[.*+?^${}()|[\]\\/]/g, '\\$&');
+
+/**
+ * repoUrlFor's URLs up to the version, which the first group captures. The
+ * version runs to the next `/`, and stops at whatever ends a URL in markdown
+ * or HTML.
+ */
+const PINNED_URL = new RegExp(
+  `(https://(?:raw\\.githubusercontent\\.com/${escape(REPO)}/refs/tags/|github\\.com/${escape(REPO)}/(?:tree|blob)/)${escape(RELEASE_TAG_PREFIX)})[^/\\s)"'<>]+/`,
+  'g',
+);
+
+/**
+ * `text` with every repoUrlFor URL moved to `version`. Any other URL stays as
+ * written: the logo and LICENSE links on main, a branch URL, or a tag URL in
+ * a form repoUrlFor does not produce, which the README check reports.
+ */
+export function pinRepoUrls(text, version) {
+  return text.replace(PINNED_URL, (_, head) => `${head}${version}/`);
+}
+
+/**
+ * A README after a sync merges main into a release line, with every pinned
+ * repo URL at the line's version. main's release commits pin main's version,
+ * and the line keeps its own, as it does in package.json.
+ *
+ * `stages` holds the base, ours and theirs texts of a README git left
+ * conflicted (null for a side that lacks the file), or is null for one it
+ * merged. `current` is the working-tree text. `merge3(base, ours, theirs)`
+ * returns the merged text, or null while the three still conflict. Each
+ * stage is pinned before the merge, so a conflict over the version alone
+ * goes away. Returns the text to write, or null for a conflict a person
+ * resolves.
+ */
+export function settleReadme({ current, stages, lineVersion, merge3 }) {
+  if (stages === null) return pinRepoUrls(current, lineVersion);
+  const [base, ours, theirs] = stages.map((text) =>
+    text === null ? null : pinRepoUrls(text, lineVersion),
+  );
+  if (ours === null || theirs === null) return null;
+  return merge3(base ?? '', ours, theirs);
 }

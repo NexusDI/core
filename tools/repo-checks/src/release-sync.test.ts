@@ -1,6 +1,15 @@
+import { execFileSync } from 'node:child_process';
+import { mkdtempSync, rmSync, writeFileSync } from 'node:fs';
+import { tmpdir } from 'node:os';
+import { join } from 'node:path';
+
 import { describe, expect, it } from 'vitest';
 
-import { mergeManifests, restoreWorkspacePins } from '@nexusdi/release';
+import {
+  mergeManifests,
+  restoreWorkspacePins,
+  settleReadme,
+} from '@nexusdi/release';
 
 /**
  * A sync merges main into release/X.Y (release spec section 5.3). main's
@@ -111,5 +120,100 @@ describe('mergeManifests', () => {
       result: { a: 1 },
       conflicts: [],
     });
+  });
+});
+
+describe('settleReadme', () => {
+  /** The three-way merge sync.mjs runs, `git merge-file -p`, on temp files. */
+  function merge3(base: string, ours: string, theirs: string): string | null {
+    const dir = mkdtempSync(join(tmpdir(), 'settle-readme-'));
+    try {
+      const files = { base, ours, theirs };
+      for (const [name, text] of Object.entries(files))
+        writeFileSync(join(dir, name), text);
+      return execFileSync(
+        'git',
+        ['merge-file', '-p', 'ours', 'base', 'theirs'],
+        { cwd: dir, encoding: 'utf8', stdio: ['ignore', 'pipe', 'ignore'] },
+      );
+    } catch {
+      return null;
+    } finally {
+      rmSync(dir, { recursive: true, force: true });
+    }
+  }
+
+  const TREE = 'https://github.com/NexusDI/core/tree/@nexusdi/core@';
+  const readme = (version: string, intro = 'Intro.') =>
+    `# @nexusdi/errors\n\n${intro}\n\n- [Examples](${TREE}${version}/libs/errors/docs)\n`;
+
+  it('resolves a conflict where both sides changed only the pinned version', () => {
+    const stages: [string, string, string] = [
+      readme('0.3.2'),
+      readme('0.4.0-rc.1'),
+      readme('0.3.3'),
+    ];
+    expect(
+      settleReadme({
+        current: '<<<<<<< conflict markers',
+        stages,
+        lineVersion: '0.4.0-rc.1',
+        merge3,
+      }),
+    ).toBe(readme('0.4.0-rc.1'));
+  });
+
+  it("keeps main's text change and the line's version", () => {
+    const stages: [string, string, string] = [
+      readme('0.3.2'),
+      readme('0.4.0-rc.1'),
+      readme('0.3.3', 'A clearer intro.'),
+    ];
+    expect(
+      settleReadme({
+        current: '',
+        stages,
+        lineVersion: '0.4.0-rc.1',
+        merge3,
+      }),
+    ).toBe(readme('0.4.0-rc.1', 'A clearer intro.'));
+  });
+
+  it('leaves a real text conflict for a person', () => {
+    const stages: [string, string, string] = [
+      readme('0.3.2'),
+      readme('0.4.0-rc.1', 'The line says this.'),
+      readme('0.3.3', 'main says that.'),
+    ];
+    expect(
+      settleReadme({
+        current: '',
+        stages,
+        lineVersion: '0.4.0-rc.1',
+        merge3,
+      }),
+    ).toBeNull();
+  });
+
+  it('leaves a README one side deleted for a person', () => {
+    expect(
+      settleReadme({
+        current: '',
+        stages: [readme('0.3.2'), null, readme('0.3.3')],
+        lineVersion: '0.4.0-rc.1',
+        merge3,
+      }),
+    ).toBeNull();
+  });
+
+  it("re-pins a README git merged cleanly from main's version to the line's", () => {
+    expect(
+      settleReadme({
+        current: readme('0.4.1'),
+        stages: null,
+        lineVersion: '0.5.0-rc.2',
+        merge3,
+      }),
+    ).toBe(readme('0.5.0-rc.2'));
   });
 });
