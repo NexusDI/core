@@ -141,6 +141,8 @@ The red-team review (section 10) added three lab results on the publish and push
 - L11. `nx run @lab/errors:nx-release-publish --tag=next --dryRun` ignored the dry-run flag, ran core's publish through `dependsOn`, and sent a real `PUT` to the npm registry. The registry rejected it with 404 because the lab had no credentials. Nobody uses `nx run <project>:nx-release-publish` for a dry run.
 - L12. `nx release changelog 0.4.2 --git-commit --git-tag --git-push --git-push-args="HEAD:refs/heads/next HEAD:refs/heads/main" --dry-run` printed `git push --follow-tags --no-verify --atomic origin HEAD:refs/heads/next HEAD:refs/heads/main`. The `version` and `changelog` subcommands accept `--git-push-args`. Top-level `nx release` rejects it. One atomic push can move the version branch, fast-forward `main` and add the tag together.
 
+- L13. `nx release version 0.4.0-rc.3` staged the manifests without committing. `nx release changelog 0.4.0-rc.3 --git-commit --git-tag --git-push --git-push-args="HEAD:refs/heads/next" --dry-run` then printed one commit `chore(release): publish 0.4.0-rc.3` holding the staged manifests and the changelogs, the tag `@lab/core@0.4.0-rc.3`, and `git push --follow-tags --no-verify --atomic origin HEAD:refs/heads/next`. The two-subcommand sequence the workflow uses produces the same commit and tag as top-level `nx release`.
+
 Two source reads complete the picture. `@nx/js` 23.1.1 `release-publish.impl.js` runs `npm view <pkg> versions dist-tags` before publishing: a version that already has the requested tag is skipped, and a version that exists without it gets `npm dist-tag add`. A re-run of `nx release publish --tag T` is idempotent. nx `release.js` orders the steps as version, changelog, commit, tag, one atomic push, GitHub release, publish. A rejected push throws before any GitHub release exists.
 
 npm rejects dist-tags that parse as semver ranges: "Tags that can be interpreted as valid semver ranges will be rejected. For example, `v1.4` cannot be used as a tag" [22]. `0.3.x` is a range. `release-0.3` is not.
@@ -320,3 +322,144 @@ Ref: any of the three patterns. It finishes a release whose tag is on the remote
 ### 5.10 Concurrency
 
 `release.yml` uses `concurrency: { group: release, cancel-in-progress: false }`. GitHub keeps one pending run and cancels older pending ones, so two dispatches never interleave. The atomic push protects against `main` moving through a merged pull request.
+
+## 6. `release.yml` changes
+
+### 6.1 Inputs and refs
+
+The free-text `specifier` and `preid` inputs go away. The workflow computes every version from the branch and the tags.
+
+| `event`  | Allowed refs                   | Version                                         | npm dist-tag                                 |
+| -------- | ------------------------------ | ----------------------------------------------- | -------------------------------------------- |
+| `rc`     | `release/X.Y`                  | `X.Y.0-rc.0`, then `X.Y.0-rc.<max+1>`           | `next`; `latest` for packages with no stable |
+| `stable` | `release/X.Y`                  | `X.Y.0`                                         | `latest`, then `next` moved to it            |
+| `patch`  | `main`, `X.Y.x`                | conventional commits, no preid, must be a patch | `latest` on `main`, `release-X.Y` on `X.Y.x` |
+| `sync`   | `release/X.Y`                  | none                                            | none                                         |
+| `resume` | `main`, `release/X.Y`, `X.Y.x` | the newest reachable tag                        | by the same rule as the original event       |
+
+A post-1.0 minor (1.1.0) is cut through `release/1.1` with `event=stable`, possibly with no rc. `patch` on `main` refuses anything but a patch bump, so a `feat` commit on `main` after 1.0 cannot publish a minor by accident. The owner can relax this later (section 12).
+
+### 6.2 Job settings
+
+```yaml
+on:
+  workflow_dispatch:
+    inputs:
+      event:
+        type: choice
+        options: [rc, stable, patch, sync, resume]
+      dry-run:
+        type: boolean
+        default: true
+
+permissions:
+  contents: write # release commit, tags, GitHub releases, sync branch
+  pull-requests: write # sync pull request
+  id-token: write # npm OIDC
+  actions: write # dispatch docs.yml
+
+concurrency:
+  group: release
+  cancel-in-progress: false
+
+jobs:
+  release:
+    runs-on: ubuntu-latest
+    # npm's trusted publisher names this environment, and the environment's
+    # branch policy admits main, release/* and [0-9]*.x only. RELEASE_SSH_KEY
+    # lives in it.
+    environment: release
+    env:
+      HUSKY: '0'
+      NX_NO_CLOUD: 'true'
+      NX_DAEMON: 'false'
+```
+
+### 6.3 Steps
+
+1. Checkout over SSH with `RELEASE_SSH_KEY`, `fetch-depth: 0`, `filter: tree:0` (unchanged).
+2. Setup Node and the npm >= 11.5.1 check (unchanged).
+3. `npm ci`, Playwright install (unchanged).
+4. `node tools/release/plan.mjs`: reads `event`, `GITHUB_REF_NAME`, local and remote tags and `npm view` for every package, and writes `version`, `dist_tag`, `push_refs` and `line` to `GITHUB_OUTPUT`. It runs the checks of section 5.1 and fails with one sentence per broken check. Unit tests in `tools/repo-checks` cover the ref and event table, `sort -V` ordering past rc.9, the line guard and the 1.0 case.
+5. For `sync`: the merge script of 5.3 and `gh pr create`, then stop.
+6. For `resume`: the steps of 5.8, then stop.
+7. Verify gate and packaging check (unchanged; the `release-verify-gate.test.ts` invariant still holds).
+8. Configure git (unchanged).
+9. For `stable`: create `X.(Y-1).x` if absent.
+10. `npx nx release version "$VERSION"` (plus `--dry-run`). For `patch` the plan step first runs `nx release version --dry-run` with no specifier, reads the proposed version, rejects anything but a patch of the line, and passes that version explicitly from here on. The changelog subcommand needs an explicit version.
+11. `npx nx release changelog "$VERSION" --git-commit --git-tag --git-push --git-push-args="$PUSH_REFS"` (plus `--dry-run`). `PUSH_REFS` is `HEAD:refs/heads/<branch>` for every event and adds `HEAD:refs/heads/main` for `stable`.
+12. For `stable`: `gh release edit "$TAG" --latest`. For `patch` on `X.Y.x`: `--latest=false`, then `--latest` on the newest stable tag.
+13. `npx nx release publish --tag "$DIST_TAG"` (skipped on dry run).
+14. Dist-tag reconcile (5.2 step 6, 5.4 step 8). Non-fatal, prints commands on failure.
+15. For `stable`: commit the archive pin to `main` and push through the deploy key.
+16. `gh workflow run docs.yml --ref main` (unchanged).
+17. For `stable`: `git push origin --delete release/X.Y`.
+
+The dry run prints the plan step's outputs, the nx version and changelog previews, and the dist-tag each package would get. It never calls `nx run <project>:nx-release-publish` (L11).
+
+### 6.4 Copies of the workflow
+
+`release.yml` runs from the dispatched ref, so `main`, every `release/X.Y` and every `X.Y.x` carry the same file. The file lands on `main` first, `release/0.4` receives it through a sync, and `X.Y.x` inherits it from `main` at creation. A repo-check holds `tools/release/plan.mjs`'s event table against the workflow's `choice` options.
+
+## 7. Docs changes
+
+### 7.1 `docs.yml`
+
+The workflow keeps running on `main` only, because the `github-pages` environment admits `main` only and one deployment replaces the whole site.
+
+1. Root: in `final` and `retired`, the newest stable `@nexusdi/core@X.Y.Z` tag across all tags (or `root.sha`), built in a worktree with its own `npm ci`. This is today's step, unchanged.
+2. `/next/`: the highest `release/*` branch from `git ls-remote --heads origin 'refs/heads/release/*'` that is ahead of `main`. With none, `main` itself. Built in a worktree with its own `npm ci`, `DOCS_BASE_PATH=/next` and `DOCS_CHANNEL=next`. The step prints the branch and SHA it used.
+3. Archives: `apps/docs/archives.json` lists pinned lines, `{ "line": "0.3", "kind": "snapshot", ... }` first, then `{ "line": "0.4", "tag": "@nexusdi/core@0.4.3" }` once 0.5 is stable. The stable job updates the pin. This replaces the hard-coded `docs-snapshot-0.3` handling with the libraries repo's archive model, and `/v0.3/` keeps its retention rule.
+4. The concurrency group `pages` stays, so a docs run started by a version-branch push and one started by a release queue behind each other.
+
+### 7.2 `docs-next.yml` (new, on every `release/*` branch)
+
+```yaml
+on:
+  push:
+    branches: ['release/**']
+    paths: [same list as docs.yml]
+permissions:
+  actions: write
+jobs:
+  dispatch:
+    runs-on: ubuntu-latest
+    steps:
+      - run: gh workflow run docs.yml --ref main
+        env:
+          GH_TOKEN: ${{ github.token }}
+          GH_REPO: ${{ github.repository }}
+```
+
+A `workflow_dispatch` created with the job token starts a run [15]. The deploy key's release pushes to `release/X.Y` trigger this workflow too, so `release.yml`'s own docs dispatch is a second trigger that the `pages` concurrency group absorbs.
+
+### 7.3 Checks and spec
+
+- `docs-trigger.ts`: keep the `main` and no-tags rules. Add a rule that `docs-next.yml` exists, triggers on `release/**` with the same paths, and only dispatches `docs.yml` on `main`.
+- `deploy-config.mjs`: `rc` and `final` stay. The modes describe what the root shows; the `/next/` source moves out of the mode and into step 7.1.2.
+- Docs spec §15.1 and §15.3 say `/next/` builds from `main`. This spec changes that to "the active `release/*` branch, else `main`". The owner amends the docs spec in the same pull request as `docs.yml`.
+
+## 8. `RELEASING.md` changes
+
+1. Replace "Cutting a release" and "Release candidates" with the event table of 6.1 and the runbook of section 5. Remove the `patch` graduation advice (L4 shows it publishes 0.3.3 from the 0.4 branch) and the claim that an empty specifier continues an rc series (L3 shows it publishes a stable).
+2. Correct "each package still gets its own `{projectName}@{version}` tag ... and GitHub release". A fixed group gets one tag, `@nexusdi/core@X.Y.Z`, and one GitHub release (L1, L9).
+3. Trusted publisher table: environment `release`, "Allow npm dist-tag" on. Add the new-package bootstrap of section 9 step 6.
+4. "Repository setup": add the two new rulesets, the `release` environment and the advanced CodeQL workflow. Record that `RELEASE_SSH_KEY` is an environment secret.
+5. "The docs site redeploys after a publish": add `docs-next.yml`.
+6. "If a release fails": the partial-failure table of 5.9 and `event=resume`.
+7. A "Branches" section: the table of 4.1 and the sync procedure.
+
+## 9. Migration from today
+
+Order matters. Each step leaves every release path working or explicitly blocked.
+
+1. Pull request on `main`: `release.yml` (events, plan script, `environment: release`, `HUSKY=0`, concurrency), `tools/release/plan.mjs` and its tests, `ci.yml` push branches `main`, `release/**`, `[0-9]*.x`, a `codeql.yml` advanced setup on the same branches, `docs.yml` (7.1), `docs-next.yml`, `docs-trigger.ts`, `archives.json`, `.gitattributes`, the hook change of 4.6 and the `RELEASING.md` rewrite. `main` stays on its current nx config (independent, one package), because `main` only releases 0.3.x until promotion. The tag pattern on `main` is already `@nexusdi/core@{version}` in effect: `{projectName}` resolves to `@nexusdi/core` for an independent group.
+2. GitHub settings (owner): create the `release` environment and move `RELEASE_SSH_KEY` into it; add the "Release branches" and "Maintenance branches" rulesets; switch CodeQL from default setup to the advanced workflow.
+3. npm (owner): add environment `release` and the dist-tag permission to `@nexusdi/core`'s trusted publisher. Step 1 must be on `main` first, or a 0.3.3 hotfix would fail OIDC.
+4. Rename `feat/core-0.4` to `release/0.4` in GitHub. PR #60 closes because its head branch was renamed; that is the intended end of #60, since `main` receives 0.4 by the stable fast-forward. #61 and #62 retarget to `release/0.4`. PR #60 lists 100 commits because the API caps the list; the branch is 268 commits ahead. Local worktrees: `git branch -m feat/core-0.4 release/0.4 && git branch -u origin/release/0.4`, and the same for any branch based on it that tracks the old name.
+5. Sync `release/0.4` with `main` (first `event=sync`), then a pull request on `release/0.4` with the nx.json change of 4.4. The sync brings `release.yml` and the rest of step 1.
+6. Bootstrap the packages that are not on npm (six today, eight if #61 and #62 land before rc.0). For each one the owner publishes a placeholder locally: `npm publish --access public --no-provenance --tag bootstrap --otp=<code>` at version `0.0.0-bootstrap.0`, checks `npm view <pkg> dist-tags`, configures the trusted publisher as in step 3, and deprecates the placeholder with `npm deprecate`. rc.0's reconcile step then points `latest` at the rc for every package with no stable version.
+7. Decide whether #61 and #62 land before rc.0. The fixed group publishes every package under `libs/`, so a package merged after rc.0 first appears at its rc.N.
+8. Dependabot PRs #41 to #59 stay on `main` as 0.3 maintenance and reach `release/0.4` through syncs.
+9. Docs: a pull request on `main` sets `deploy.json` to `rc` just before rc.0. `/next/` then builds from `release/0.4`.
+10. `event=rc` with `dry-run: true` on `release/0.4`. Check the version `0.4.0-rc.0`, the tag `@nexusdi/core@0.4.0-rc.0`, one GitHub prerelease and the dist-tag per package. Then the real run.
