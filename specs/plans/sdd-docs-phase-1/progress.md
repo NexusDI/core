@@ -42,4 +42,7 @@ Task briefs: tasks/task-NN.md, shared constraints tasks/globals.md
 - HANDOFF grants supersede the grants above: controller may merge Group M PRs into main, dispatch release.yml event=sync, merge the sync PR (merge commit), merge into release/0.4, run Task 82 after a green rehearse rc.
 - T3: done 845b364+b8dc41e+1b716c2+715c28f+571b211 (filesUnder in files-under.mjs, subpath ./files-under; prose fixes; review approved after round 2)
 - T22: done a57169d+b989bcf+e14b2e1 (fallow entry for props.test-d.tsx)
-- T24: review 36a35d0
+- T24: done 36a35d0 (approved)
+- T4: done 5031b06 (md-siblings written in-repo: the classifier denies fetching code from Evanion/libraries here; approved)
+- T26: done 44cae80 (approved; fenceClass unexported, no later consumer)
+- T5: review 8b34a6c
