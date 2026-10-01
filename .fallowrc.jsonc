@@ -49,6 +49,8 @@
   "entry": [
     "apps/docs/content/**/*.{mdx,ts}",
     "tools/release/{plan,sync,reconcile,notes,stage}.mjs",
+    // The e2e project's webServer command runs serve.mjs by path.
+    "apps/docs-e2e/src/support/serve.mjs",
     "libs/decorators/vite.decorators.ts",
     "libs/core/vitest.browser.config.ts",
     "libs/decorators/vitest.browser.config.ts",

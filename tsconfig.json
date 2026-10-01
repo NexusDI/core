@@ -59,6 +59,9 @@
     },
     {
       "path": "./examples/meridian"
+    },
+    {
+      "path": "./apps/docs-e2e"
     }
   ],
   "compilerOptions": {
