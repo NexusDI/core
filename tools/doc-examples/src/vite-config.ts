@@ -55,11 +55,18 @@ export function docExamples(options: { preamble?: string } = {}) {
 }
 
 /**
- * The files doc examples are collected from.
+ * The files doc examples are collected from: the package's sources, its
+ * README, and the region files under `docs/` that the docs site imports.
+ * A glob that matches nothing collects nothing, so a package without a
+ * `docs/` folder needs no other config.
  *
  * Specs are excluded: a file matching both `include` and `includeSource` is
  * collected twice.
  */
 export function docExampleSources(extension = 'ts'): string[] {
-  return [`src/**/!(*.spec|*.test|*.test-d).${extension}`, 'README.md'];
+  return [
+    `src/**/!(*.spec|*.test|*.test-d).${extension}`,
+    'README.md',
+    'docs/**/*.md',
+  ];
 }
