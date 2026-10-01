@@ -83,4 +83,6 @@ Task briefs: tasks/task-NN.md, shared constraints tasks/globals.md
 - T15: done a70d8ca+7cafc3b (approved; chromium e2e 7/7 locally, firefox/webkit not available here). CI installs only chromium and runs no e2e: the task that adds the e2e job (79/80) must install chromium firefox webkit.
 - T16: done ceb7256 (approved; vitest include gains content/)
 - CI fix: 8e335c5 meridian type-check test timeout 60 s (5.7 s on CI vs 5 s default).
-- T17: done 8f10fc8 (+ lint fix pending; approved). .nexus-release has no CSS: amendment added to task-23.md.
+- T17: done 8f10fc8+6af2518 (approved). .nexus-release has no CSS: amendment added to task-23.md.
+- T18: done 3920f80+56c342b (listing/diagram loaders, components and tests written in this repo per owner; review fixes: Mermaid error handling, aria-labelledby, IO fallback, caption quotes rejected, ~~~ fences; approved). Mermaid colour leak check moved to Task 45 brief.
+- T23: impl
