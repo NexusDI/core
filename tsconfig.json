@@ -50,6 +50,9 @@
     },
     {
       "path": "./benchmarks"
+    },
+    {
+      "path": "./tools/readme-assets"
     }
   ],
   "compilerOptions": {

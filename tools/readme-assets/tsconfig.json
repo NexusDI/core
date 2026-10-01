@@ -1,0 +1,26 @@
+{
+  "extends": "../../tsconfig.base.json",
+  "compilerOptions": {
+    "module": "esnext",
+    "moduleResolution": "bundler",
+    "types": ["node", "vitest/globals"],
+    "outDir": "dist",
+    // `nx run readme-assets:generate` runs src/generate.ts on Node 24
+    // without a build: Node strips erasable types only, and it resolves
+    // sibling imports by their .ts names.
+    "erasableSyntaxOnly": true,
+    "allowImportingTsExtensions": true
+  },
+  "include": ["src/**/*.ts"],
+  "references": [
+    {
+      "path": "../../libs/devtools"
+    },
+    {
+      "path": "../../libs/core"
+    },
+    {
+      "path": "../../libs/cli"
+    }
+  ]
+}

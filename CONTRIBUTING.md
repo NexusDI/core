@@ -80,6 +80,7 @@ own):
 - **doc-examples**: Changes to `tools/doc-examples`
 - **bench-kit**: Changes to `tools/bench-kit`
 - **benchmarks**: Changes to `benchmarks/` and the benchmark workflow
+- **readme-assets**: Changes to `tools/readme-assets` and the README graph it writes
 
 The list is enforced. `commitlint.config.js` carries it as the `scope-enum`
 rule, and the commit-msg hook rejects anything outside it. It is a static list

@@ -1,0 +1,29 @@
+{
+  "name": "@nexusdi/readme-assets",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "devDependencies": {
+    "@nexusdi/cli": "*",
+    "@nexusdi/core": "*",
+    "@nexusdi/devtools": "*"
+  },
+  "nx": {
+    "targets": {
+      "generate": {
+        "executor": "nx:run-commands",
+        "dependsOn": [
+          "^build"
+        ],
+        "options": {
+          "command": "node tools/readme-assets/src/generate.ts"
+        }
+      },
+      "test": {
+        "dependsOn": [
+          "^build"
+        ]
+      }
+    }
+  }
+}
