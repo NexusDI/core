@@ -50,7 +50,8 @@ function site({
   };
   const chunk = (name, text) => write(`_next/static/chunks/${name}`, text);
 
-  chunk('shared.js', noise(50_000));
+  chunk('shared.js', noise(5_000));
+  chunk('theme.js', noise(50_000));
   chunk('tokens.js', noise(contentBytes));
   chunk('island.js', `const mark="${ISLAND_MARK}";${noise(islandBytes)}`);
   chunk(
@@ -59,16 +60,18 @@ function site({
   );
   chunk('playground.js', noise(toolBytes));
 
-  write('index.html', page(['shared.js', 'background.js']));
+  write('index.html', page(['shared.js', 'theme.js', 'background.js']));
   write(
     'tokens/index.html',
-    page(['shared.js', 'tokens.js', 'island.js', 'background.js']),
+    page(['shared.js', 'theme.js', 'tokens.js', 'island.js', 'background.js']),
   );
   write(
     'playground/index.html',
-    page(['shared.js', 'playground.js', 'background.js']),
+    page(['shared.js', 'theme.js', 'playground.js', 'background.js']),
   );
-  write('404.html', page(['shared.js']));
+  // The error pages skip the theme chunk, as in the real export.
+  write('404/index.html', page(['shared.js']));
+  write('_not-found/index.html', page(['shared.js']));
   return out;
 }
 
