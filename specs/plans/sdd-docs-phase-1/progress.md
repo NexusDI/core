@@ -79,4 +79,6 @@ Task briefs: tasks/task-NN.md, shared constraints tasks/globals.md
 ## After the sync (PR #82, 4e9095f on release/0.4)
 - feat/docs-phase-1 rebased onto origin/release/0.4 (922f2a2): conflicts in apps/docs package.json, tsconfig.json, mdx-components.js, package-lock.json resolved by keeping both sides; lint/typecheck/test of docs, repo-checks, doc-examples, meridian-ui, meridian green; fallow clean; sync:check clean. Force-pushed with lease.
 - Draft PR #84 (feat/docs-phase-1 -> release/0.4) opened for CI on every task. Known flaky: tools/bench-kit/src/sampler.test.ts "runs teardown after the timer stops" (rerun CI if it alone fails).
-- T15: impl
+- CI fixes on #84: 05a91b4 (fallow ignores unresolved imports of generated/benchmark-data.json and dist/styles.css: absent on a clean checkout), 5e6ac99+dea0dcb (prose budget strips html comments with a scan; CodeQL).
+- T15: done a70d8ca+7cafc3b (approved; chromium e2e 7/7 locally, firefox/webkit not available here). CI installs only chromium and runs no e2e: the task that adds the e2e job (79/80) must install chromium firefox webkit.
+- T16: impl
