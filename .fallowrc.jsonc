@@ -12,7 +12,13 @@
   // Nextra loads every page and `_meta.ts` under apps/docs/content by file
   // convention, never through an import, so the reachability walk reports
   // the whole content tree as unused without this.
-  "entry": ["apps/docs/content/**/*.{mdx,ts}"],
+  //
+  // .github/workflows/release.yml runs the release scripts by path with
+  // `node`, which no import reaches.
+  "entry": [
+    "apps/docs/content/**/*.{mdx,ts}",
+    "tools/release/{plan,sync,reconcile,notes}.mjs",
+  ],
 
   // `react-router typegen` writes +types/*.d.ts files that examples/react-ssr
   // reaches only through tsconfig.app.json's `rootDirs` (app merged with
