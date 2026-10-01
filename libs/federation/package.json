@@ -1,11 +1,14 @@
 {
   "name": "@nexusdi/federation",
   "version": "0.4.0-rc.0",
-  "description": "Keyed, versioned contract tokens for NexusDI shells and remotes, as a plugin.",
+  "description": "Share NexusDI tokens between a micro-frontend shell and its remotes through versioned contracts.",
   "keywords": [
-    "dependency injection",
-    "di",
     "nexusdi",
+    "dependency injection",
+    "micro-frontends",
+    "module federation",
+    "contracts",
+    "versioning",
     "typescript"
   ],
   "homepage": "https://github.com/NexusDI/core#readme",

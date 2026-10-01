@@ -15,7 +15,7 @@ import {
   type ReadmeInput,
   type Rule,
 } from './npm-readmes.js';
-import { PACKAGES, type Package } from './npm-readmes-data.js';
+import { PACKAGES, SPECS, type Package } from './npm-readmes-data.js';
 
 const FIXTURES = join(import.meta.dirname, '__fixtures__', 'npm-readmes');
 const PASS = join(FIXTURES, 'pass');
@@ -206,14 +206,19 @@ describe('the banned patterns', () => {
 });
 
 /**
- * The READMEs in libs/ and the root. These fail until the README rewrite
- * is merged. Each failure names the rule, and the line where it has one.
+ * The READMEs in libs/ and the root, and the package.json fields npm search
+ * shows beside them. Each failure names the rule, and the line where it has one.
  */
 describe('published READMEs', () => {
   const manifest = (name: Package) =>
     JSON.parse(
       readFileSync(join(workspaceRoot, 'libs', name, 'package.json'), 'utf8'),
-    ) as { version: string; peerDependencies?: Record<string, string> };
+    ) as {
+      version: string;
+      description?: string;
+      keywords?: string[];
+      peerDependencies?: Record<string, string>;
+    };
 
   function workspaceInput(name: Name): ReadmeInput {
     const pkg = name === 'root' ? 'core' : name;
@@ -230,6 +235,25 @@ describe('published READMEs', () => {
       expect(
         readmeFaults(workspaceInput(name)).map(
           (fault) => `[${fault.rule}] ${fault.message}`,
+        ),
+      ).toEqual([]);
+    },
+  );
+
+  // npm search lists the description, so it repeats the README tagline.
+  it.each(PACKAGES)('describes %s in package.json with its tagline', (pkg) => {
+    expect(manifest(pkg).description).toBe(SPECS[pkg].tagline);
+  });
+
+  it.each(PACKAGES)(
+    'lists searchable keywords for %s with no banned word',
+    (pkg) => {
+      const keywords = manifest(pkg).keywords ?? [];
+      expect(keywords).toContain('nexusdi');
+      expect(keywords).toContain('dependency injection');
+      expect(
+        keywords.filter((k) =>
+          /\b(native|lightweight|reflect-metadata)\b/i.test(k),
         ),
       ).toEqual([]);
     },

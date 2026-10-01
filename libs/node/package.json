@@ -1,11 +1,13 @@
 {
   "name": "@nexusdi/node",
   "version": "0.4.0-rc.0",
-  "description": "The AsyncLocalStorage ambient scope for NexusDI on Node.",
+  "description": "Find the current request's NexusDI scope anywhere in a Node call chain, through AsyncLocalStorage.",
   "keywords": [
-    "dependency injection",
-    "di",
     "nexusdi",
+    "dependency injection",
+    "asynclocalstorage",
+    "request scope",
+    "node",
     "typescript"
   ],
   "homepage": "https://github.com/NexusDI/core#readme",

@@ -1,14 +1,16 @@
 {
   "name": "@nexusdi/cli",
   "version": "0.4.0-rc.0",
-  "description": "The nexusdi command: graph a NexusDI app as Mermaid, DOT, JSON, SVG or PNG.",
+  "description": "Draw a NexusDI app's dependency graph from the terminal as Mermaid, DOT, JSON, SVG or PNG.",
   "keywords": [
-    "dependency injection",
-    "di",
     "nexusdi",
-    "typescript",
+    "dependency injection",
     "cli",
-    "graph"
+    "dependency graph",
+    "mermaid",
+    "graphviz",
+    "svg",
+    "typescript"
   ],
   "homepage": "https://github.com/NexusDI/core#readme",
   "bugs": {

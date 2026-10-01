@@ -1,22 +1,18 @@
 {
   "name": "@nexusdi/core",
   "version": "0.4.0-rc.0",
-  "description": "A compiled, sealed dependency injection container for TypeScript: typed provide() definitions, module encapsulation, scopes and ordered shutdown.",
+  "description": "NestJS-style modules and async startup for any TypeScript app, checked before it runs, with no compiler flags.",
   "keywords": [
+    "nexusdi",
     "dependency injection",
     "di",
-    "inversion of control",
     "ioc",
-    "typescript",
-    "service container",
-    "dependency injection container",
-    "nodejs",
-    "javascript",
-    "modular",
-    "lightweight",
-    "provider",
-    "service",
-    "module"
+    "inversion of control",
+    "container",
+    "modules",
+    "nestjs",
+    "async",
+    "typescript"
   ],
   "homepage": "https://github.com/NexusDI/core#readme",
   "bugs": {
