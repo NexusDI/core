@@ -12,17 +12,17 @@ Draw a NexusDI app's dependency graph from the terminal as Mermaid, DOT, JSON, S
 - Exits 1 on an invalid graph, so CI can gate on it.
 - Draws the providers view or the modules view.
 
-<img src="https://raw.githubusercontent.com/NexusDI/core/release/0.4/libs/devtools/assets/graph.svg" alt="NexusDI graph of the Meridian app: Bridge provides Helm and ShipLog; Engineering provides ShipComputer, Reactor and the async NavCharts factory." width="720">
+<img src="https://raw.githubusercontent.com/NexusDI/core/release/0.4/libs/devtools/assets/graph.svg" alt="NexusDI graph of the Meridian app: in Bridge, Helm depends on ShipLog and on ShipComputer, which Engineering exports; ShipComputer depends on Reactor and the NavCharts factory." width="720">
 
 ## Install
 
-> 0.4 is a release candidate on the npm `next` tag. Install every @nexusdi package from `next` so their versions match.
+> 0.4 is a release candidate on the npm `next` tag. Install every @nexusdi package from `next` so their versions match. Without `@next`, npm installs core 0.3 and stops with a peer conflict.
 
 ```bash
 npm install -D @nexusdi/cli@next @nexusdi/devtools@next @nexusdi/core@next
 ```
 
-SVG needs `@viz-js/viz`, and PNG needs `@resvg/resvg-js` as well.
+SVG needs `@viz-js/viz`, PNG also needs `@resvg/resvg-js`, and a `.ts` entry on Node before 22.18 needs `tsx`.
 
 ## Usage
 
@@ -33,7 +33,7 @@ npx nexusdi graph src/app.module.ts#AppModule --view modules
 npx nexusdi graph src/app.module.ts#AppModule -f json -o graph.json
 ```
 
-The last line exits 1 when the graph is invalid, so a CI job can run it.
+Every command exits 1 when the graph is invalid. The last one also saves the graph as JSON for the CI job to keep.
 
 ## Options
 
@@ -41,7 +41,7 @@ The last line exits 1 when the graph is invalid, so a CI job can run it.
 | ------------------------- | -------------------------------------------------------------------------------------------- |
 | `-f, --format <format>`   | `mermaid`, `dot`, `json`, `svg` or `png`. Default: from `--out`'s extension, else `mermaid`. |
 | `-o, --out <file>`        | Write to a file. Default: stdout.                                                            |
-| `--view <view>`           | `providers` (grouped by module) or `modules` (the import graph).                             |
+| `--view <view>`           | `providers` (grouped by module) or `modules` (the import graph). Default: `providers`.       |
 | `--load <path#export>`    | A module to compile after the root, as `load()` would. Repeatable.                           |
 | `--plugins <path#export>` | An exported array of plugins, such as `[federation()]`.                                      |
 
