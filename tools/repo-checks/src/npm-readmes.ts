@@ -196,13 +196,33 @@ function keepLines(
   });
 }
 
+/**
+ * Removes every HTML comment, keeping the line breaks it held. An unclosed
+ * comment runs to the end of the text, as it does in a browser. It scans with
+ * indexOf so no `<!--` survives a pass, which a single regex replace allows.
+ */
+function withoutComments(text: string): string {
+  let out = '';
+  let from = 0;
+  for (;;) {
+    const open = text.indexOf('<!--', from);
+    if (open === -1) return out + text.slice(from);
+    const close = text.indexOf('-->', open + 4);
+    const end = close === -1 ? text.length : close + 3;
+    out +=
+      text.slice(from, open) +
+      '\n'.repeat(text.slice(open, end).split('\n').length - 1);
+    from = end;
+  }
+}
+
 /** The README's prose, line for line. See the file comment for what goes. */
 export function proseOf(source: string): string {
   const parsed = parse(source);
   let text = parsed.lines
     .map((line, i) => (parsed.fenced[i] ? '' : line))
     .join('\n');
-  text = keepLines(text, /<!--[\s\S]*?-->/g, '');
+  text = withoutComments(text);
   text = keepLines(text, /(`+)[^`\n]*?\1/g, '');
   text = keepLines(text, /!\[[^\]]*\]\([^)]*\)/g, '');
   text = keepLines(text, /\[([^\]]*)\]\([^)]*\)/g, (label) => label ?? '');
@@ -641,10 +661,9 @@ function checkImages(
   parsed: Parsed,
   faults: Fault[],
 ): void {
-  const text = parsed.lines
-    .map((line, i) => (parsed.fenced[i] ? '' : line))
-    .join('\n')
-    .replace(/<!--[\s\S]*?-->/g, '');
+  const text = withoutComments(
+    parsed.lines.map((line, i) => (parsed.fenced[i] ? '' : line)).join('\n'),
+  );
   const images: { alt: string; src: string }[] = [
     ...[...text.matchAll(/<img\b[^>]*>/g)].map(([tag]) => ({
       alt: /\balt="([^"]*)"/.exec(tag)?.[1] ?? '',
