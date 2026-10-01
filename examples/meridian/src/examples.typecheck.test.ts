@@ -56,7 +56,8 @@ function blocks(): Map<string, string> {
   return out;
 }
 
-describe('the examples files', () => {
+// One TypeScript program over every block takes about 6 s on a CI runner.
+describe('the examples files', { timeout: 60_000 }, () => {
   it('type-check, each block as a module of its own', () => {
     const files = blocks();
     const host = ts.createCompilerHost(OPTIONS);
