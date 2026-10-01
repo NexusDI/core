@@ -1,51 +1,63 @@
 # @nexusdi/node
 
-`nodeScopes()` binds a NexusDI scope to the async context of a request on Node, so code deep in the call chain finds it.
+[![npm](https://img.shields.io/npm/v/@nexusdi/node/next)](https://www.npmjs.com/package/@nexusdi/node) [![license](https://img.shields.io/npm/l/@nexusdi/node)](https://github.com/NexusDI/core/blob/main/LICENSE)
+
+Find the current request's NexusDI scope anywhere in a Node call chain, through AsyncLocalStorage.
+
+`nodeScopes()` binds a [NexusDI](https://www.npmjs.com/package/@nexusdi/core) scope to the async context of a request. A logger or a repository deep in the call chain finds the request's scope with no extra parameter.
+
+- `run(scope, fn)` makes `scope` current for everything `fn` awaits.
+- `current()` returns that scope, or `undefined` outside a run.
+- One `nodeScopes()` serves every container in the process.
+- `@nexusdi/node` is the one NexusDI package that imports `node:` modules.
+
+## Install
+
+> 0.4 is a release candidate on the npm `next` tag. Install every @nexusdi package from `next` so their versions match.
 
 ```bash
-npm install @nexusdi/node @nexusdi/core
+npm install @nexusdi/node@next @nexusdi/core@next
 ```
 
-The version of `@nexusdi/node` must equal the version of `@nexusdi/core`.
+## Usage
 
-## Node
-
-`nodeScopes()` returns a `run` and a `current` over one `AsyncLocalStorage`. `run(scope, fn)` makes `scope` the current scope of everything `fn` awaits, and `current()` returns it, or `undefined` outside a run. It registers with no container, so one `nodeScopes()` serves every container of the process.
-
-<!-- #region node -->
+<!-- #region current-scope -->
 
 ```ts @import.meta.vitest
-import { Nexus, REQUEST, Token, defineModule, provide } from '@nexusdi/core';
+import { Nexus, Token, provide } from '@nexusdi/core';
 import { nodeScopes } from '@nexusdi/node';
 
-const MISSION = new Token<string>('Mission');
-const Tactical = defineModule({
-  name: 'Tactical',
-  providers: [
-    provide(MISSION, {
-      useFactory: (request) => request.mission,
-      deps: [REQUEST],
-      lifetime: 'scoped',
-    }),
-  ],
-});
-await using ship = await Nexus.create(Tactical);
+interface IShipLog {
+  readonly lines: string[];
+}
+class ShipLog implements IShipLog {
+  readonly lines: string[] = [];
+}
+const SHIP_LOG = new Token<IShipLog>('ShipLog');
 const scopes = nodeScopes();
 
-async function dispatch() {
+// Deep in the call chain, with no scope parameter.
+async function record(line: string) {
   await Promise.resolve();
-  return scopes.current()?.get(MISSION);
+  scopes.current()?.get(SHIP_LOG).lines.push(line);
 }
 
-await using shuttle = await ship.createScope({
-  request: { mission: 'survey-7' },
-});
-const mission = await scopes.run(shuttle, () => dispatch()); // -> 'survey-7'
+await using ship = await Nexus.create([
+  provide(SHIP_LOG, { useClass: ShipLog, lifetime: 'scoped' }),
+]);
+await using shuttle = await ship.createScope();
+await scopes.run(shuttle, () => record('survey-7 launched'));
+shuttle.get(SHIP_LOG).lines; // -> ['survey-7 launched']
+scopes.current(); // -> undefined
 ```
 
-<!-- #endregion node -->
+<!-- #endregion current-scope -->
 
-`@nexusdi/node` is the only NexusDI package that imports a `node:` module.
+## Documentation
+
+- [Documentation](https://nexus.js.org/next/)
+- [Examples](https://github.com/NexusDI/core/tree/release/0.4/libs/node/docs)
+- [NexusDI on GitHub](https://github.com/NexusDI/core)
 
 ## License
 
