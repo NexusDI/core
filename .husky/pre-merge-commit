@@ -1,10 +1,14 @@
 #!/usr/bin/env sh
-# Refuse to write a merge commit.
+# Refuse to write a merge commit, except on a sync/* branch.
 #
-# If `main` is protected by a rebase-only ruleset, GitHub cannot
-# rebase-merge a branch whose history contains one. A branch assembled with
-# `git merge` has to be rebuilt before it can land, and rebuilding means
-# re-resolving every conflict already resolved once.
+# main and the X.Y.x maintenance lines are rebase-only, and GitHub cannot
+# rebase-merge a branch whose history contains a merge commit. A branch
+# assembled with `git merge` has to be rebuilt before it can land, and
+# rebuilding means re-resolving every conflict already resolved once.
+#
+# A sync/X.Y-<sha> branch carries one merge of main into release/X.Y, and its
+# pull request merges with a merge commit (RELEASING.md, "Branches"). That
+# merge is the branch's whole purpose, so the hook lets it through.
 #
 # This fires only when a merge would create a commit. A fast-forward writes
 # none and is untouched, so `git pull` on an unchanged branch still works.
@@ -13,22 +17,24 @@
 #
 #   git cherry-pick <sha>...
 #   git rebase --onto <here> <their-base> <their-branch>
-#
-# If you genuinely need the merge commit, say so out loud:
-#
-#   git merge --no-verify <branch>
+
+case "$(git symbolic-ref --quiet --short HEAD)" in
+  sync/*) exit 0 ;;
+esac
 
 cat >&2 <<'MESSAGE'
 
   A merge commit was refused.
 
-  If main is rebase-only, GitHub will not rebase-merge a branch that contains
-  a merge commit. Replay the work instead so the branch stays linear:
+  main and the X.Y.x lines are rebase-only, and GitHub will not rebase-merge a
+  branch that contains a merge commit. Replay the work instead so the branch
+  stays linear:
 
       git cherry-pick <sha>...
       git rebase --onto <here> <their-base> <their-branch>
 
-  Deliberate exception: git merge --no-verify <branch>
+  Syncing main into a release/X.Y line: do it on a sync/X.Y-<sha> branch
+  (RELEASING.md, "Branches").
 
 MESSAGE
 
