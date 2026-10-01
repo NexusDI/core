@@ -44,7 +44,7 @@ export function preamblePath(packageDir) {
  * the block the README shows and nothing more.
  *
  * A block that writes its own imports takes them over the preamble's, which is
- * the rule the doctest run already follows. Prepending here as well would
+ * the rule the doctest run already follows. The preamble added here as well would
  * declare the same binding twice and the fence would fail to compile.
  */
 export function withPreamble(preamble, code) {
