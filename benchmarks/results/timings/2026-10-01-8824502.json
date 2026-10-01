@@ -1,0 +1,939 @@
+{
+  "schema": 1,
+  "sha": "8824502",
+  "startedAt": "2026-10-01T16:31:53.310Z",
+  "versions": {
+    "core": "0.4.0-rc.0",
+    "libraries": {
+      "nexusdi": "0.4.0-rc.0",
+      "inversify": "8.2.3",
+      "tsyringe": "4.10.0",
+      "awilix": "13.0.5",
+      "needle-di": "1.2.1"
+    },
+    "toolchains": {
+      "tsc": "6.0.3",
+      "tsgo": "7.0.2",
+      "esbuild": "0.28.2",
+      "swc": "1.16.2",
+      "babel": "8.0.6",
+      "vite": "8.3.0",
+      "vite8+babel-plugin": "8.3.0",
+      "bun": "1.4.2",
+      "deno": "2.9.6",
+      "node-strip-types": "24.20.0"
+    },
+    "node": "24.20.0"
+  },
+  "runner": {
+    "os": "Linux",
+    "cpu": "INTEL(R) XEON(R) PLATINUM 8573C",
+    "cores": 4,
+    "memoryGb": 16,
+    "hosted": true
+  },
+  "seed": 36891702544,
+  "design": {
+    "cold-start": {
+      "order": "williams",
+      "warmup": 20,
+      "measured": 1000,
+      "bootstrap": {
+        "resamples": 10000,
+        "block": 10,
+        "prng": "mulberry32"
+      }
+    },
+    "in-process": {
+      "order": "williams",
+      "warmup": 100,
+      "measured": 1000,
+      "bootstrap": {
+        "resamples": 10000,
+        "block": 10,
+        "prng": "mulberry32"
+      }
+    }
+  },
+  "results": [
+    {
+      "scenario": "cold-start",
+      "library": "awilix",
+      "variant": "plain",
+      "toolchain": "tsc",
+      "batch": 1,
+      "stats": {
+        "median": 43571172.5,
+        "mad": 1172255,
+        "p5": 41290879.9,
+        "p95": 47380582.75,
+        "iterations": 1000,
+        "noisy": false
+      },
+      "childNow": {
+        "median": 40.6974765,
+        "mad": 1.129172999999998,
+        "p5": 38.48511045,
+        "p95": 44.44913755,
+        "iterations": 1000,
+        "noisy": false
+      },
+      "vsNexus": {
+        "median": 1.2149574141927122,
+        "low": 1.2073547694892979,
+        "high": 1.2210153198713432,
+        "pairs": 1000
+      }
+    },
+    {
+      "scenario": "cold-start",
+      "library": "inversify",
+      "variant": "decorated",
+      "toolchain": "tsc",
+      "batch": 1,
+      "stats": {
+        "median": 81786429,
+        "mad": 1941553,
+        "p5": 77616984.1,
+        "p95": 87730481.65,
+        "iterations": 1000,
+        "noisy": false
+      },
+      "childNow": {
+        "median": 78.960716,
+        "mad": 1.9423190000000048,
+        "p5": 74.86021665,
+        "p95": 84.76531349999999,
+        "iterations": 1000,
+        "noisy": false
+      },
+      "vsNexus": {
+        "median": 0.6487236275430995,
+        "low": 0.6459177291649003,
+        "high": 0.6527430588707319,
+        "pairs": 1000
+      }
+    },
+    {
+      "scenario": "cold-start",
+      "library": "needle-di",
+      "variant": "decorated",
+      "toolchain": "tsc",
+      "batch": 1,
+      "stats": {
+        "median": 27665105.5,
+        "mad": 1004585,
+        "p5": 25566798.25,
+        "p95": 31233350.45,
+        "iterations": 1000,
+        "noisy": false
+      },
+      "childNow": {
+        "median": 24.771569,
+        "mad": 0.9579074999999992,
+        "p5": 22.78867175,
+        "p95": 28.0762473,
+        "iterations": 1000,
+        "noisy": false
+      },
+      "vsNexus": {
+        "median": 1.9194835435710966,
+        "low": 1.9096119188613432,
+        "high": 1.9310385557768566,
+        "pairs": 1000
+      }
+    },
+    {
+      "scenario": "cold-start",
+      "library": "nexusdi",
+      "variant": "plain",
+      "toolchain": "tsc",
+      "batch": 1,
+      "stats": {
+        "median": 53139374,
+        "mad": 2014886,
+        "p5": 49523890.2,
+        "p95": 58407572.5,
+        "iterations": 1000,
+        "noisy": false
+      },
+      "childNow": {
+        "median": 50.276983,
+        "mad": 1.9610449999999986,
+        "p5": 46.7105268,
+        "p95": 55.360248750000004,
+        "iterations": 1000,
+        "noisy": false
+      }
+    },
+    {
+      "scenario": "cold-start",
+      "library": "tsyringe",
+      "variant": "decorated",
+      "toolchain": "tsc",
+      "batch": 1,
+      "stats": {
+        "median": 34023753,
+        "mad": 1306959.5,
+        "p5": 31791552.9,
+        "p95": 38297987.5,
+        "iterations": 1000,
+        "noisy": false
+      },
+      "childNow": {
+        "median": 31.129339,
+        "mad": 1.2533255000000025,
+        "p5": 28.998968650000002,
+        "p95": 35.36876495,
+        "iterations": 1000,
+        "noisy": false
+      },
+      "vsNexus": {
+        "median": 1.5547771432809387,
+        "low": 1.5423436402902295,
+        "high": 1.5618582208168603,
+        "pairs": 1000
+      }
+    },
+    {
+      "scenario": "ready",
+      "library": "awilix",
+      "variant": "plain",
+      "toolchain": "tsc",
+      "batch": 16,
+      "stats": {
+        "median": 61526.96875,
+        "mad": 2958.25,
+        "p5": 57261.165625,
+        "p95": 78129.928125,
+        "iterations": 1000,
+        "noisy": false
+      },
+      "heapBytes": 44763.5,
+      "vsNexus": {
+        "median": 2.468542876480341,
+        "low": 2.4436492566575727,
+        "high": 2.486538674857388,
+        "pairs": 1000
+      }
+    },
+    {
+      "scenario": "ready",
+      "library": "inversify",
+      "variant": "decorated",
+      "toolchain": "tsc",
+      "batch": 8,
+      "stats": {
+        "median": 165415.75,
+        "mad": 5469.5,
+        "p5": 157159.125,
+        "p95": 190785.54999999996,
+        "iterations": 1000,
+        "noisy": false
+      },
+      "heapBytes": 120689,
+      "vsNexus": {
+        "median": 0.9166793985677153,
+        "low": 0.9109127589999615,
+        "high": 0.9221701352732581,
+        "pairs": 1000
+      }
+    },
+    {
+      "scenario": "ready",
+      "library": "inversify",
+      "variant": "decorated-explicit",
+      "toolchain": "tsc",
+      "batch": 8,
+      "stats": {
+        "median": 162859.6875,
+        "mad": 5030.125,
+        "p5": 155186.49375,
+        "p95": 188593.9,
+        "iterations": 1000,
+        "noisy": false
+      },
+      "heapBytes": 120029,
+      "vsNexus": {
+        "median": 0.9292965014584769,
+        "low": 0.9212790235620997,
+        "high": 0.9340303468397326,
+        "pairs": 1000
+      }
+    },
+    {
+      "scenario": "ready",
+      "library": "inversify",
+      "variant": "plain",
+      "toolchain": "tsc",
+      "batch": 8,
+      "stats": {
+        "median": 174354.5,
+        "mad": 9150.5,
+        "p5": 159009.3375,
+        "p95": 204164.73124999998,
+        "iterations": 1000,
+        "noisy": true
+      },
+      "heapBytes": 121146,
+      "vsNexus": {
+        "median": 0.8834298154095135,
+        "low": 0.869920790074471,
+        "high": 0.8932891135793781,
+        "pairs": 1000
+      }
+    },
+    {
+      "scenario": "ready",
+      "library": "needle-di",
+      "variant": "decorated",
+      "toolchain": "tsc",
+      "batch": 128,
+      "stats": {
+        "median": 12930.3515625,
+        "mad": 638.015625,
+        "p5": 11868.5203125,
+        "p95": 15517.910546874997,
+        "iterations": 1000,
+        "noisy": false
+      },
+      "heapBytes": 13513.375,
+      "vsNexus": {
+        "median": 11.736098731023068,
+        "low": 11.63488389099492,
+        "high": 11.8520940845555,
+        "pairs": 1000
+      }
+    },
+    {
+      "scenario": "ready",
+      "library": "needle-di",
+      "variant": "plain",
+      "toolchain": "tsc",
+      "batch": 128,
+      "stats": {
+        "median": 10851.2578125,
+        "mad": 589.265625,
+        "p5": 9934.190234375,
+        "p95": 13102.262890625,
+        "iterations": 1000,
+        "noisy": true
+      },
+      "heapBytes": 10349.9375,
+      "vsNexus": {
+        "median": 13.990290552425112,
+        "low": 13.85648614446457,
+        "high": 14.09253426685847,
+        "pairs": 1000
+      }
+    },
+    {
+      "scenario": "ready",
+      "library": "nexusdi",
+      "variant": "decorated",
+      "toolchain": "tsc",
+      "batch": 8,
+      "stats": {
+        "median": 158007.9375,
+        "mad": 12505.125,
+        "p5": 135231.56875,
+        "p95": 224321.34999999998,
+        "iterations": 1000,
+        "noisy": true
+      },
+      "heapBytes": 143683
+    },
+    {
+      "scenario": "ready",
+      "library": "nexusdi",
+      "variant": "plain",
+      "toolchain": "tsc",
+      "batch": 8,
+      "stats": {
+        "median": 151559.3125,
+        "mad": 9085.4375,
+        "p5": 134287.46875,
+        "p95": 214683.1125,
+        "iterations": 1000,
+        "noisy": true
+      },
+      "heapBytes": 142949
+    },
+    {
+      "scenario": "ready",
+      "library": "tsyringe",
+      "variant": "decorated",
+      "toolchain": "tsc",
+      "batch": 256,
+      "stats": {
+        "median": 2544.05078125,
+        "mad": 311.125,
+        "p5": 2065.73515625,
+        "p95": 3253.113671875,
+        "iterations": 1000,
+        "noisy": true
+      },
+      "heapBytes": 4987.96875,
+      "vsNexus": {
+        "median": 61.60777268411675,
+        "low": 60.497172907649286,
+        "high": 62.6424434234542,
+        "pairs": 1000
+      }
+    },
+    {
+      "scenario": "ready",
+      "library": "tsyringe",
+      "variant": "decorated-explicit",
+      "toolchain": "tsc",
+      "batch": 256,
+      "stats": {
+        "median": 2624.177734375,
+        "mad": 294.232421875,
+        "p5": 2151.5408203125,
+        "p95": 3257.9935546875,
+        "iterations": 1000,
+        "noisy": true
+      },
+      "heapBytes": 4992.40625,
+      "vsNexus": {
+        "median": 59.93799195134262,
+        "low": 59.306228337453504,
+        "high": 60.772648398088414,
+        "pairs": 1000
+      }
+    },
+    {
+      "scenario": "ready",
+      "library": "tsyringe",
+      "variant": "plain",
+      "toolchain": "tsc",
+      "batch": 128,
+      "stats": {
+        "median": 5065.58203125,
+        "mad": 255.1796875,
+        "p5": 4655.90859375,
+        "p95": 6260.2234375,
+        "iterations": 1000,
+        "noisy": true
+      },
+      "heapBytes": 8957.1875,
+      "vsNexus": {
+        "median": 29.891634870904404,
+        "low": 29.617544950951135,
+        "high": 30.182560053509643,
+        "pairs": 1000
+      }
+    },
+    {
+      "scenario": "resolve-singleton",
+      "library": "awilix",
+      "variant": "plain",
+      "toolchain": "tsc",
+      "batch": 8192,
+      "stats": {
+        "median": 42.2921142578125,
+        "mad": 1.70306396484375,
+        "p5": 38.428277587890626,
+        "p95": 48.77037963867187,
+        "iterations": 1000,
+        "noisy": false
+      },
+      "vsNexus": {
+        "median": 1.1158729839027408,
+        "low": 1.1056141353501499,
+        "high": 1.123812252552615,
+        "pairs": 1000
+      }
+    },
+    {
+      "scenario": "resolve-singleton",
+      "library": "inversify",
+      "variant": "decorated",
+      "toolchain": "tsc",
+      "batch": 16384,
+      "stats": {
+        "median": 33.297149658203125,
+        "mad": 1.13555908203125,
+        "p5": 31.48267822265625,
+        "p95": 37.68631591796874,
+        "iterations": 1000,
+        "noisy": false
+      },
+      "vsNexus": {
+        "median": 1.4194422108631435,
+        "low": 1.4141396804016004,
+        "high": 1.423107848278273,
+        "pairs": 1000
+      }
+    },
+    {
+      "scenario": "resolve-singleton",
+      "library": "inversify",
+      "variant": "decorated-explicit",
+      "toolchain": "tsc",
+      "batch": 2048,
+      "stats": {
+        "median": 34.79345703125,
+        "mad": 0.761474609375,
+        "p5": 33.6649658203125,
+        "p95": 45.677905273437496,
+        "iterations": 1000,
+        "noisy": false
+      },
+      "vsNexus": {
+        "median": 1.3404194707723103,
+        "low": 1.3362601466412003,
+        "high": 1.3436710201200142,
+        "pairs": 1000
+      }
+    },
+    {
+      "scenario": "resolve-singleton",
+      "library": "inversify",
+      "variant": "plain",
+      "toolchain": "tsc",
+      "batch": 16384,
+      "stats": {
+        "median": 36.646484375,
+        "mad": 1.323486328125,
+        "p5": 34.45552062988281,
+        "p95": 41.1224609375,
+        "iterations": 1000,
+        "noisy": false
+      },
+      "vsNexus": {
+        "median": 1.294804783112694,
+        "low": 1.290320031579696,
+        "high": 1.3006242941065294,
+        "pairs": 1000
+      }
+    },
+    {
+      "scenario": "resolve-singleton",
+      "library": "needle-di",
+      "variant": "decorated",
+      "toolchain": "tsc",
+      "batch": 4096,
+      "stats": {
+        "median": 36.338134765625,
+        "mad": 1.5684814453125,
+        "p5": 33.80870361328125,
+        "p95": 43.209155273437496,
+        "iterations": 1000,
+        "noisy": false
+      },
+      "vsNexus": {
+        "median": 1.2917278813433746,
+        "low": 1.2851181185682918,
+        "high": 1.2981366901920386,
+        "pairs": 1000
+      }
+    },
+    {
+      "scenario": "resolve-singleton",
+      "library": "needle-di",
+      "variant": "plain",
+      "toolchain": "tsc",
+      "batch": 4096,
+      "stats": {
+        "median": 34.095703125,
+        "mad": 1.2633056640625,
+        "p5": 32.196630859375,
+        "p95": 40.27178955078125,
+        "iterations": 1000,
+        "noisy": false
+      },
+      "vsNexus": {
+        "median": 1.3728635310956512,
+        "low": 1.368911441759124,
+        "high": 1.3781849559829737,
+        "pairs": 1000
+      }
+    },
+    {
+      "scenario": "resolve-singleton",
+      "library": "nexusdi",
+      "variant": "decorated",
+      "toolchain": "tsc",
+      "batch": 8192,
+      "stats": {
+        "median": 48.3780517578125,
+        "mad": 1.2320556640625,
+        "p5": 46.410308837890625,
+        "p95": 55.8756103515625,
+        "iterations": 1000,
+        "noisy": false
+      }
+    },
+    {
+      "scenario": "resolve-singleton",
+      "library": "nexusdi",
+      "variant": "plain",
+      "toolchain": "tsc",
+      "batch": 4096,
+      "stats": {
+        "median": 46.6907958984375,
+        "mad": 1.3216552734375,
+        "p5": 44.8260986328125,
+        "p95": 54.278857421875,
+        "iterations": 1000,
+        "noisy": false
+      }
+    },
+    {
+      "scenario": "resolve-singleton",
+      "library": "tsyringe",
+      "variant": "decorated",
+      "toolchain": "tsc",
+      "batch": 8192,
+      "stats": {
+        "median": 72.976806640625,
+        "mad": 2.48065185546875,
+        "p5": 68.08165893554687,
+        "p95": 84.13209228515625,
+        "iterations": 1000,
+        "noisy": false
+      },
+      "vsNexus": {
+        "median": 0.6436646779414079,
+        "low": 0.6402170574513814,
+        "high": 0.647200618783029,
+        "pairs": 1000
+      }
+    },
+    {
+      "scenario": "resolve-singleton",
+      "library": "tsyringe",
+      "variant": "decorated-explicit",
+      "toolchain": "tsc",
+      "batch": 8192,
+      "stats": {
+        "median": 66.9765625,
+        "mad": 2.24078369140625,
+        "p5": 62.58744506835937,
+        "p95": 77.26703491210937,
+        "iterations": 1000,
+        "noisy": false
+      },
+      "vsNexus": {
+        "median": 0.7027440432873198,
+        "low": 0.6988843407499983,
+        "high": 0.7073635453254155,
+        "pairs": 1000
+      }
+    },
+    {
+      "scenario": "resolve-singleton",
+      "library": "tsyringe",
+      "variant": "plain",
+      "toolchain": "tsc",
+      "batch": 2048,
+      "stats": {
+        "median": 86.208984375,
+        "mad": 3.528076171875,
+        "p5": 79.879931640625,
+        "p95": 104.392822265625,
+        "iterations": 1000,
+        "noisy": false
+      },
+      "vsNexus": {
+        "median": 0.547022498983138,
+        "low": 0.5425968807161805,
+        "high": 0.5495229938539592,
+        "pairs": 1000
+      }
+    },
+    {
+      "scenario": "resolve-transient",
+      "library": "awilix",
+      "variant": "plain",
+      "toolchain": "tsc",
+      "batch": 8192,
+      "stats": {
+        "median": 130.63763427734375,
+        "mad": 7.06201171875,
+        "p5": 121.66500854492188,
+        "p95": 153.46588134765625,
+        "iterations": 1000,
+        "noisy": true
+      },
+      "vsNexus": {
+        "median": 0.963599747729731,
+        "low": 0.9596949764823814,
+        "high": 0.9669207077053636,
+        "pairs": 1000
+      }
+    },
+    {
+      "scenario": "resolve-transient",
+      "library": "inversify",
+      "variant": "decorated",
+      "toolchain": "tsc",
+      "batch": 16384,
+      "stats": {
+        "median": 66.284423828125,
+        "mad": 1.12493896484375,
+        "p5": 64.07583618164062,
+        "p95": 75.24583129882812,
+        "iterations": 1000,
+        "noisy": false
+      },
+      "vsNexus": {
+        "median": 1.8746273244751241,
+        "low": 1.8689035758532981,
+        "high": 1.8799578402784936,
+        "pairs": 1000
+      }
+    },
+    {
+      "scenario": "resolve-transient",
+      "library": "inversify",
+      "variant": "decorated-explicit",
+      "toolchain": "tsc",
+      "batch": 16384,
+      "stats": {
+        "median": 67.029541015625,
+        "mad": 1.214202880859375,
+        "p5": 64.68279113769532,
+        "p95": 77.15162353515625,
+        "iterations": 1000,
+        "noisy": false
+      },
+      "vsNexus": {
+        "median": 1.854462954275443,
+        "low": 1.8499112775015534,
+        "high": 1.85874417454905,
+        "pairs": 1000
+      }
+    },
+    {
+      "scenario": "resolve-transient",
+      "library": "inversify",
+      "variant": "plain",
+      "toolchain": "tsc",
+      "batch": 16384,
+      "stats": {
+        "median": 66.31439208984375,
+        "mad": 1.185302734375,
+        "p5": 63.48311767578125,
+        "p95": 75.39139404296876,
+        "iterations": 1000,
+        "noisy": false
+      },
+      "vsNexus": {
+        "median": 1.8711367744239968,
+        "low": 1.8652386809267991,
+        "high": 1.8782407167512534,
+        "pairs": 1000
+      }
+    },
+    {
+      "scenario": "resolve-transient",
+      "library": "nexusdi",
+      "variant": "decorated",
+      "toolchain": "tsc",
+      "batch": 4096,
+      "stats": {
+        "median": 120.848876953125,
+        "mad": 3.90234375,
+        "p5": 113.16181640625,
+        "p95": 137.222705078125,
+        "iterations": 1000,
+        "noisy": false
+      }
+    },
+    {
+      "scenario": "resolve-transient",
+      "library": "nexusdi",
+      "variant": "plain",
+      "toolchain": "tsc",
+      "batch": 8192,
+      "stats": {
+        "median": 124.1812744140625,
+        "mad": 2.49566650390625,
+        "p5": 120.18038940429688,
+        "p95": 141.90051879882813,
+        "iterations": 1000,
+        "noisy": false
+      }
+    },
+    {
+      "scenario": "resolve-transient",
+      "library": "tsyringe",
+      "variant": "decorated",
+      "toolchain": "tsc",
+      "batch": 4096,
+      "stats": {
+        "median": 192.6221923828125,
+        "mad": 15.5062255859375,
+        "p5": 167.1656494140625,
+        "p95": 224.142626953125,
+        "iterations": 1000,
+        "noisy": true
+      },
+      "vsNexus": {
+        "median": 0.6799021014367714,
+        "low": 0.6732858216701125,
+        "high": 0.6844435793605246,
+        "pairs": 1000
+      }
+    },
+    {
+      "scenario": "resolve-transient",
+      "library": "tsyringe",
+      "variant": "decorated-explicit",
+      "toolchain": "tsc",
+      "batch": 4096,
+      "stats": {
+        "median": 181.826904296875,
+        "mad": 14.9920654296875,
+        "p5": 156.157275390625,
+        "p95": 211.37379150390626,
+        "iterations": 1000,
+        "noisy": true
+      },
+      "vsNexus": {
+        "median": 0.7212458024426296,
+        "low": 0.714140295625415,
+        "high": 0.7250667263591931,
+        "pairs": 1000
+      }
+    },
+    {
+      "scenario": "resolve-transient",
+      "library": "tsyringe",
+      "variant": "plain",
+      "toolchain": "tsc",
+      "batch": 4096,
+      "stats": {
+        "median": 154.3104248046875,
+        "mad": 5.517578125,
+        "p5": 143.06903076171875,
+        "p95": 175.76488037109374,
+        "iterations": 1000,
+        "noisy": false
+      },
+      "vsNexus": {
+        "median": 0.8119033942366629,
+        "low": 0.8093765998427487,
+        "high": 0.8144482776543355,
+        "pairs": 1000
+      }
+    },
+    {
+      "scenario": "scope-cycle",
+      "library": "awilix",
+      "variant": "plain",
+      "toolchain": "tsc",
+      "batch": 256,
+      "stats": {
+        "median": 4064.458984375,
+        "mad": 159.2265625,
+        "p5": 3868.3951171875,
+        "p95": 5086.8908203125,
+        "iterations": 1000,
+        "noisy": false
+      },
+      "vsNexus": {
+        "median": 1.9060599173768686,
+        "low": 1.8599939866858999,
+        "high": 1.9381305423428443,
+        "pairs": 1000
+      }
+    },
+    {
+      "scenario": "scope-cycle",
+      "library": "nexusdi",
+      "variant": "decorated",
+      "toolchain": "tsc",
+      "batch": 128,
+      "stats": {
+        "median": 8215.9765625,
+        "mad": 471.22265625,
+        "p5": 6350.58046875,
+        "p95": 9770.147265624999,
+        "iterations": 1000,
+        "noisy": true
+      }
+    },
+    {
+      "scenario": "scope-cycle",
+      "library": "nexusdi",
+      "variant": "plain",
+      "toolchain": "tsc",
+      "batch": 128,
+      "stats": {
+        "median": 7925.34375,
+        "mad": 796.6484375,
+        "p5": 6398.590234375,
+        "p95": 9649.872265625,
+        "iterations": 1000,
+        "noisy": true
+      }
+    },
+    {
+      "scenario": "scope-cycle",
+      "library": "tsyringe",
+      "variant": "decorated",
+      "toolchain": "tsc",
+      "batch": 256,
+      "stats": {
+        "median": 3421.57421875,
+        "mad": 179.400390625,
+        "p5": 3189.901171875,
+        "p95": 4463.2693359375,
+        "iterations": 1000,
+        "noisy": true
+      },
+      "vsNexus": {
+        "median": 2.2074312284769375,
+        "low": 2.1514909323854723,
+        "high": 2.2798350444187885,
+        "pairs": 1000
+      }
+    },
+    {
+      "scenario": "scope-cycle",
+      "library": "tsyringe",
+      "variant": "decorated-explicit",
+      "toolchain": "tsc",
+      "batch": 128,
+      "stats": {
+        "median": 4060.87109375,
+        "mad": 162.38671875,
+        "p5": 3827.726953125,
+        "p95": 5199.43515625,
+        "iterations": 1000,
+        "noisy": false
+      },
+      "vsNexus": {
+        "median": 1.9244102788910276,
+        "low": 1.8861850233992405,
+        "high": 1.9491320977449746,
+        "pairs": 1000
+      }
+    },
+    {
+      "scenario": "scope-cycle",
+      "library": "tsyringe",
+      "variant": "plain",
+      "toolchain": "tsc",
+      "batch": 256,
+      "stats": {
+        "median": 3813.962890625,
+        "mad": 201.462890625,
+        "p5": 3489.39921875,
+        "p95": 4563.058984374999,
+        "iterations": 1000,
+        "noisy": true
+      },
+      "vsNexus": {
+        "median": 2.041017658595897,
+        "low": 2.0094344512112854,
+        "high": 2.0719735381714837,
+        "pairs": 1000
+      }
+    }
+  ]
+}
