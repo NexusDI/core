@@ -88,4 +88,5 @@ Task briefs: tasks/task-NN.md, shared constraints tasks/globals.md
 - T23: done 99e217e+1d90bed (html:root ground gradient outranks Nextra's inline html background; surface scan in both themes, any colour-function alpha; .nexus-release HUD strip; approved after fix)
 - CI fix 9e9b132: fallow ignores @nexusdi/meridian-ui/styles.css (dist absent on a clean checkout).
 - T25: done c6cc9be (approved; floor allowance 13 pages)
-- T27: impl
+- T27: done 0666aad (approved; loadReferenceExpander/loadBehaviours/loadDeclarations dropped, no later user; loadRegionExpander/loadMdSiblings/loadRegions held for Tasks 30-32 in fallow ignoreExports)
+- T28: impl
