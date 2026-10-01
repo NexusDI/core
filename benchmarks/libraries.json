@@ -53,7 +53,7 @@
           "verifiedAgainst": "8.2.3"
         },
         {
-          "claim": "new ContainerModule((options) => ...) groups bindings, and container.load(...modules) loads them",
+          "claim": "new ContainerModule((options) => ...) groups bindings, and container.load(...modules) loads them; a ContainerModule has no imports or exports, so every binding is visible everywhere",
           "source": "https://inversify.io/docs/api/container-module/",
           "verifiedAgainst": "8.2.3",
           "form": "module"
@@ -75,6 +75,11 @@
           "source": "https://inversify.io/docs/api/container/#getasync",
           "verifiedAgainst": "8.2.3",
           "form": "async-factory"
+        },
+        {
+          "claim": "Container's jitless option defaults to true; false enables JIT resolution for better performance where unsafe-eval is permitted",
+          "source": "https://inversify.io/docs/api/container/#jitless",
+          "verifiedAgainst": "8.2.3"
         }
       ]
     },

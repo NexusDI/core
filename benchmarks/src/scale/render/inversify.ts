@@ -34,6 +34,10 @@ const header = (graph: ScaleGraph) =>
 // https://inversify.io/docs/api/binding-syntax/#toresolvedvalue and
 // https://inversify.io/docs/api/container/#getasync, read 2026-10-01.
 // Every binding is a singleton, since InversifyJS defaults to transient.
+// new Container() keeps the getting-started default jitless: true; the
+// docs offer jitless: false for speed where unsafe-eval is allowed.
+// A ContainerModule has no imports or exports, so the container is flat
+// and every binding is visible everywhere.
 // Departures: fields for dependencies, because Node's type stripping
 // rejects parameter properties.
 `;
@@ -56,7 +60,6 @@ const refs = (): Refs => ({ ids: new Set(), types: new Set() });
 
 /** The ids and types the classes and bindings of `own` use. */
 function refsOf(
-  graph: ScaleGraph,
   own: readonly ScaleProvider[],
   opts: { classes: boolean; bindings: boolean },
 ): Refs {
@@ -203,7 +206,7 @@ function moduleFile(graph: ScaleGraph, k: number): string {
   ])}
 ${moduleBody(
   own,
-  importsOf(graph, refsOf(graph, own, { classes: true, bindings: true }), here),
+  importsOf(graph, refsOf(own, { classes: true, bindings: true }), here),
   (p) => classOf(graph, p),
 )}export const ${moduleConst(m.name)} = new ContainerModule(
   (options: ContainerModuleLoadOptions) => {
@@ -216,7 +219,7 @@ ${own.map((p) => bindingOf(graph, p, 'options.bind', '    ')).join('')}  },
 function classFile(graph: ScaleGraph, p: ScaleProvider): string {
   const imports = importsOf(
     graph,
-    refsOf(graph, [p], { classes: true, bindings: false }),
+    refsOf([p], { classes: true, bindings: false }),
     (q) => q.index === p.index,
   );
   return `${inversifyImport(decorators([p]))}${counterImport(
@@ -234,7 +237,7 @@ function appFile(graph: ScaleGraph): string {
   // The table names every provider; with one class per file the bindings
   // sit here too, as scale-200's main.ts holds them.
   const r = split
-    ? refsOf(graph, providers, { classes: false, bindings: true })
+    ? refsOf(providers, { classes: false, bindings: true })
     : { ids: new Set(providers.map((p) => p.index)), types: new Set<number>() };
   const moduleConsts = new Map(
     split ? [] : modules.map((m) => [`${m.name}.ts`, [moduleConst(m.name)]]),

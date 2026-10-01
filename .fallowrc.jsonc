@@ -117,6 +117,10 @@
     "benchmarks/src/{matrix,probes,size,build,competitor-releases,release-core,open-results-pr}.ts",
     "benchmarks/src/timings/{orchestrator.ts,worker.mjs,cold-child.mjs}",
     "benchmarks/src/scale/verify-child.mjs",
+    // The check target runs the *.cell.test.ts files through
+    // vitest.cells.config.ts, a config the vitest plugin never reads.
+    "benchmarks/vitest.cells.config.ts",
+    "benchmarks/src/**/*.cell.test.ts",
     "libs/core/bench/*.mjs",
   ],
 

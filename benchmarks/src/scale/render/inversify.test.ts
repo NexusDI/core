@@ -1,13 +1,7 @@
-import { readFileSync } from 'node:fs';
+import { describe, expect, it } from 'vitest';
 
-import { beforeAll, describe, expect, it } from 'vitest';
-
-import { readLibraries } from '../../libraries.ts';
-import { scaleCell } from '../cells.ts';
-import { SHAPES } from '../config.ts';
 import { graphOf } from '../shapes.ts';
 import { six } from '../six.ts';
-import { testConsumer } from '../test-consumer.ts';
 import { renderInversify } from './inversify.ts';
 
 describe('renderInversify', () => {
@@ -28,6 +22,10 @@ describe('renderInversify', () => {
       // https://inversify.io/docs/api/binding-syntax/#toresolvedvalue and
       // https://inversify.io/docs/api/container/#getasync, read 2026-10-01.
       // Every binding is a singleton, since InversifyJS defaults to transient.
+      // new Container() keeps the getting-started default jitless: true; the
+      // docs offer jitless: false for speed where unsafe-eval is allowed.
+      // A ContainerModule has no imports or exports, so the container is flat
+      // and every binding is visible everywhere.
       // Departures: fields for dependencies, because Node's type stripping
       // rejects parameter properties.
       import { Container, type ServiceIdentifier } from 'inversify';
@@ -204,29 +202,4 @@ describe('renderInversify', () => {
       );
     }
   });
-});
-
-describe('InversifyJS decorated scale cells', () => {
-  const inversify = readLibraries().libraries.find((l) => l.id === 'inversify');
-  if (inversify === undefined) throw new Error('libraries.json lost inversify');
-  let dir = '';
-  // Installs inversify at its pin with the harness extras on first use.
-  beforeAll(() => {
-    dir = testConsumer('render-inversify', ['inversify']);
-  }, 600_000);
-
-  for (const shape of SHAPES)
-    it(`passes ${shape} at n = 50 through compile, bundle and verify`, async () => {
-      const result = await scaleCell(
-        dir,
-        inversify,
-        'decorated',
-        graphOf(shape, 50),
-      );
-      expect(result.message).toBeUndefined();
-      expect(result.outcome).toBe('pass');
-      expect(readFileSync(result.bundle ?? '', 'utf8')).toMatch(
-        /from ["']inversify["']/,
-      );
-    }, 120_000);
 });
