@@ -140,8 +140,8 @@ Every `rc`, `stable` and `patch` run checks:
 
 - The line is ahead of the newest stable on `main`, and `X.Y.0` is not tagged
   yet.
-- Every package has the line's newest rc on npm. If one is missing, finish
-  that rc with `event=resume` first.
+- Every package the newest rc tag holds has that rc on npm. If one is
+  missing, finish that rc with `event=resume` first.
 
 `stable` also checks:
 

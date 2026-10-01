@@ -304,10 +304,12 @@ jobs:
             echo "Dry run: would delete $GITHUB_REF_NAME once main contains it after the push."
             exit 0
           fi
-          git fetch --quiet origin main "$GITHUB_REF_NAME"
           if ! git ls-remote --exit-code --heads origin "refs/heads/$GITHUB_REF_NAME" >/dev/null; then
             echo "$GITHUB_REF_NAME is already gone."
-          elif ! git merge-base --is-ancestor "origin/$GITHUB_REF_NAME" origin/main; then
+            exit 0
+          fi
+          git fetch --quiet origin main "$GITHUB_REF_NAME"
+          if ! git merge-base --is-ancestor "origin/$GITHUB_REF_NAME" origin/main; then
             echo "::warning::$GITHUB_REF_NAME has commits main lacks, so it stays. Sync or delete it by hand."
           else
             git push origin --delete "$GITHUB_REF_NAME"
