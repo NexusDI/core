@@ -39,13 +39,24 @@ const PACKED = [
 /**
  * Packages a profile or the harness needs beside the libraries and
  * toolchains. The consumer is a Node 24 app, so it has Node's types, as
- * awilix's declarations need.
+ * awilix's declarations need. Scale cells compile with importHelpers, so
+ * the consumer has tslib at the harness's own pin.
  */
 const EXTRA = [
   'reflect-metadata@0.2.2',
   'babel-plugin-transform-typescript-metadata@0.4.0',
   '@types/node@24.19.0',
+  `tslib@${tslibVersion()}`,
 ];
+
+/** The tslib pin of benchmarks/package.json. */
+export function tslibVersion(): string {
+  return (
+    JSON.parse(readFileSync(join(BENCHMARKS, 'package.json'), 'utf8')) as {
+      devDependencies: Record<string, string>;
+    }
+  ).devDependencies.tslib;
+}
 
 /** The version of @nexusdi/core the consumer installs. */
 export function coreVersion(): string {
@@ -124,9 +135,15 @@ export function makeCell(
   source: string,
   profile: Profile,
 ): string {
+  const cellDir = emptyCell(dir, name, profile);
+  copyFileSync(source, join(cellDir, 'src', 'main.ts'));
+  return cellDir;
+}
+
+/** A cell as makeCell builds it, with src/ left empty for the caller. */
+export function emptyCell(dir: string, name: string, profile: Profile): string {
   const cellDir = join(dir, 'cells', name.replace(/[^a-z0-9-]+/gi, '-'));
   mkdirSync(join(cellDir, 'src'), { recursive: true });
-  copyFileSync(source, join(cellDir, 'src', 'main.ts'));
   cpSync(join(dir, 'config'), join(cellDir, 'config'), { recursive: true });
   copyFileSync(
     join(dir, 'config', profile, 'tsconfig.json'),
