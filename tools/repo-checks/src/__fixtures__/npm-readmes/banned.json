@@ -1,0 +1,22 @@
+{
+  "raw": [
+    { "name": "native", "hit": "Runs on native ESM.", "miss": "Runs on NativeScript." },
+    { "name": "reflect-metadata", "hit": "No `reflect-metadata` import.", "miss": "No reflect metadata import." },
+    { "name": "error code", "hit": "Throws `NEXUS_MISSING_PROVIDER`.", "miss": "Throws Nexus_missing." },
+    { "name": "emoji", "hit": "Fast 🚀", "miss": "Fast ->" },
+    { "name": "size figure", "hit": "Weighs 4.2 kb.", "miss": "Weighs a few KB-sized chunks." },
+    { "name": "lightweight", "hit": "A Lightweight container.", "miss": "A light container." }
+  ],
+  "prose": [
+    { "name": "dash", "hit": "Fast — and checked.", "miss": "Fast `—` and checked." },
+    { "name": "dash", "hit": "Pages 1–5.", "miss": "```text\nPages 1–5.\n```" },
+    { "name": "bold", "hit": "A **bold** claim.", "miss": "The `**` operator." },
+    { "name": "bold", "hit": "<p><strong>Fast.</strong></p>", "miss": "<p>Fast.</p>" },
+    { "name": "not X but Y", "hit": "It is not slow but fast.", "miss": "It is not slow. But it is old." },
+    { "name": "rather than", "hit": "Use tokens rather than classes.", "miss": "<img src=\"https://example.com/a.svg\" alt=\"tokens rather than classes\">" },
+    { "name": "rather than", "hit": "Use tokens instead of classes.", "miss": "[a guide](https://example.com/instead of)" },
+    { "name": "filler", "hit": "Notably, it is fast.", "miss": "The `notably` flag." },
+    { "name": "metaphor verb", "hit": "The release lands on Friday.", "miss": "Shuttles reach the islands." },
+    { "name": "metaphor verb", "hit": "Validation costs nothing.", "miss": "<!-- validation costs nothing -->" }
+  ]
+}
