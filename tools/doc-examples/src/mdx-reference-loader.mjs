@@ -32,21 +32,21 @@ import { readRegion } from './regions.mjs';
  * build.
  *
  * Nextra injects the `Popup` component only for a fence whose meta is exactly
- * `twoslash`, so every fence here is emitted as `ts twoslash` and nothing else,
- * and the example's `file=`/`region=` is consumed by the loader that runs next.
+ * `twoslash`, so every fence here is emitted as `ts twoslash` and nothing else.
+ * The loader that runs next consumes the example's `file=` and `region=`.
  *
  * The signature fence holds the declaration the package published, printed
  * from its own `.d.ts` and given the imports it names. The `signature` fences
  * this replaces were hand-written and could not simply be re-tagged: a
  * `function` declaration with no implementation is a type error and Twoslash
  * refuses it, while a printed one carries `declare` and compiles.
- * `declarations.mjs` carries why this is printed and not queried.
+ * `declarations.mjs` carries why this is printed and never queried.
  *
  * A reference that does not resolve fails the build. The region loader
  * already throws on a missing file or region, so `next build` fails and
  * never deploys a page with an empty code block. The same rule applied to a
- * symbol is what makes "every heading names a real export" a structural
- * guarantee, not a test's opinion.
+ * symbol makes "every heading names a real export" a structural
+ * guarantee that no test's opinion has to supply.
  */
 
 const DIRECTIVE =
@@ -106,8 +106,8 @@ function kindSlug(kind) {
 /**
  * The block tags as one prose line.
  *
- * Prose and not a fence, because this is the half of an entry the search index
- * can reach: every `<pre>` on the site carries `data-pagefind-ignore`, so a
+ * Prose, because this is the half of an entry the search index
+ * can reach, which a fence would hide: every `<pre>` on the site carries `data-pagefind-ignore`, so a
  * parameter named only inside the signature is a name no search finds.
  */
 function tagLine(tags) {
@@ -127,9 +127,9 @@ function tagLine(tags) {
  * The fence holding the declaration the package published.
  *
  * Wrapped in an element of its own, because this is the one fence on the site
- * that should wrap and never scroll: a signature is a shape a reader reads
- * left to right once, not a program they follow down the page, and the longest
- * one here is 154 characters.
+ * that should wrap and never scroll. A reader takes in a signature left to
+ * right once and does not follow it down the page like a program, and the
+ * longest one here is 154 characters.
  *
  * An import line stays on one line. A prettier-wrapped multi-line `import`
  * inside a fence fails with a misleading "Cannot use import statement outside a
@@ -150,7 +150,7 @@ function signatureFence(reference, prefix) {
     ...signature.prelude,
   ].filter(Boolean);
 
-  // The imports and the private types are compilation context and not the
+  // The imports and the private types are compilation context and add nothing to the
   // entry's content, so they are cut from what the reader sees. A merging
   // declaration is wrapped in a module block for the reason `declarations.mjs`
   // gives, and the two lines of wrapper are cut as well, so the fence shows the
@@ -227,8 +227,8 @@ function readBehaviours(root, reference, file) {
  *
  * The owning segment is dropped along with everything above it, because the
  * reader is on that export's entry and has just read its name in the heading.
- * What sits below it is kept, and its first level is kept as structure rather
- * than folded into the sentence: `diffMatrix > a widening > reports an added
+ * What sits below it is kept, and its first level is kept as structure and
+ * stays out of the sentence: `diffMatrix > a widening > reports an added
  * allow branch as granted` states the condition the sentence holds under, and
  * the suite writes several sentences under each condition. So `a widening`
  * labels its own sentences in the rail, which is the one thing a test reporter
@@ -236,9 +236,9 @@ function readBehaviours(root, reference, file) {
  *
  * The sentences the suite states under the export's own name, with nothing
  * between, are a group too, labelled with that name. They used to render flush
- * at the top of the block under no label at all, which put them beside the
- * labelled groups and made them read as belonging to nowhere; the `describe`
- * they sit under is the export's own, so that is what the rail calls them.
+ * at the top of the block under no label at all, beside the labelled groups,
+ * and read as belonging to nowhere. The `describe` they sit under is the
+ * export's own, so that is what the rail calls them.
  *
  * A level below the first is joined with the interpunct the rest of an entry
  * joins with, because a third level of indent in a rail this narrow reads as a
@@ -273,25 +273,25 @@ export function statedBy(behaviours, name) {
 /**
  * What the tests state about this export.
  *
- * Prose and not a fence. Every `<pre>` on the site carries
- * `data-pagefind-ignore`, so a sentence inside one is a sentence no search
- * reaches, and these sentences are the most searchable thing on the entry: a
+ * Prose, because every `<pre>` on the site carries
+ * `data-pagefind-ignore` and a sentence inside one is a sentence no search
+ * reaches. These sentences are the most searchable thing on the entry: a
  * reader looking for the export that refuses an unknown key is looking for
  * words a test wrote.
  *
- * Shaped like the suite and not like a test report. What a reporter is good at
- * is making a nesting legible, saying how many cases sit in it, and showing a
- * reader the case behind a line they pick, and all of that is here: the
+ * Shaped like the suite, which differs from a test report. A reporter makes a
+ * nesting legible, says how many cases sit in it and shows a reader the case
+ * behind a line they pick, and all of that is here: the
  * conditions the suite wrote label their own sentences in the rail, the count
  * says how dense the export's catalogue is before the reader has read a line of
- * it, and the pane beside the rail carries the case. What a reporter is built
- * on is status, and none of that transfers. Every sentence here comes from a
+ * it, and the pane beside the rail carries the case. A reporter is also built
+ * on status, and none of that transfers. Every sentence here comes from a
  * suite that passes, so a tick on each line would carry no information, and a
  * green tick reads as "verified", which is the one thing this block may not
  * claim. The honesty argument is made in the prose, and markup that
  * contradicted it would undo it.
  *
- * The pane shows the case verbatim and never a reading of it. A summary of what
+ * The pane shows the case verbatim and offers no reading of it. A summary of what
  * a test asserts is this loader's opinion about a suite it did not write, and
  * decision A of `docs/specs/2026-09-21-docs-api-reference.md` is that the entry
  * reports what the suite states and infers nothing. The source is the answer a
@@ -303,11 +303,11 @@ export function statedBy(behaviours, name) {
  * are in the pane. `libs/acl/SECURITY.md` is the other kind of claim: a person
  * wrote each of its rows and chose its tier.
  *
- * An export with nothing stated says so, in a block of its own shape. Not a
- * blank, not an empty list, not a hidden block: an absent catalogue on a page
- * built for a sceptic is the hardest thing on the page for the project to
- * publish honestly. It says no test states a behaviour under this name, which is
- * narrower than untested, because a name with no `describe` of its own can
+ * An export with nothing stated says so, in a block of its own shape. A blank,
+ * an empty list or a hidden block would leave the page silent, and an absent
+ * catalogue on a page built for a sceptic is the hardest thing on the page for
+ * the project to publish honestly. The block says no test states a behaviour
+ * under this name, which is narrower than untested, because a name with no `describe` of its own can
  * still be exercised by every case in the file.
  */
 function statedBlock(reference, behaviours, library, prefix) {
@@ -340,10 +340,10 @@ function statedBlock(reference, behaviours, library, prefix) {
     '</div>',
     '',
     // The rail and the pane, as one client component. Its rows arrive as
-    // props, not children it reads off the page, because a static export
-    // prerenders a client component's markup and Pagefind indexes what that
-    // prerender wrote, so the sentences reach the index either way and props
-    // are the shape the keyboard needs.
+    // props, and the component reads no children off the page, because a
+    // static export prerenders a client component's markup and Pagefind indexes
+    // what that prerender wrote, so the sentences reach the index either way
+    // and props are the shape the keyboard needs.
     `<BehaviourCatalogue library="${library}" name="${reference.name}" ` +
       `groups={${JSON.stringify(groups)}} />`,
     '',
@@ -385,10 +385,11 @@ function head(reference, prefix) {
 /**
  * The example fence, filled from the named region of the package's README.
  *
- * Resolved here, and not left as a `file=`/`region=` reference for the
- * region loader to fill on a later pass. Turbopack runs the `*.mdx` loaders in
- * the reverse of the order they are listed, so a fence this emits for another
- * loader arrives after that loader has already run and reaches the page empty.
+ * Resolved here. A `file=`/`region=` reference left for the region loader to
+ * fill on a later pass would arrive too late. Turbopack runs the `*.mdx`
+ * loaders in the reverse of the order they are listed, so a fence this emits
+ * for another loader arrives after that loader has already run and reaches the
+ * page empty.
  * The region reader is a module either loader can call, so calling it is the
  * fix that does not depend on which way round the chain runs.
  *
@@ -441,16 +442,6 @@ function foot(root, reference, behaviours, example, file, prefix) {
 }
 
 /**
- * Expands every reference directive in an MDX source.
- *
- * Textual for the reason `expandRegions` is textual: a directive is a line and
- * its replacement is lines, so a full parse of the document would return
- * nothing the line scan does not already return.
- *
- * `read` is the declaration reader, taken as an argument so a test can drive
- * the expansion without a built package behind it.
- */
-/**
  * The class prefix every emitted element carries (docs spec §14.1, change 3).
  * It has no default, so a caller that forgets it fails at load time.
  */
@@ -462,6 +453,16 @@ function assertClassPrefix(prefix) {
   }
 }
 
+/**
+ * Expands every reference directive in an MDX source.
+ *
+ * Textual for the reason `expandRegions` is textual: a directive is a line and
+ * its replacement is lines, so a full parse of the document would return
+ * nothing the line scan does not already return.
+ *
+ * `read` is the declaration reader, taken as an argument so a test can drive
+ * the expansion without a built package behind it.
+ */
 export function expandReferences(source, root, file, options) {
   const {
     classPrefix: prefix,
@@ -474,7 +475,7 @@ export function expandReferences(source, root, file, options) {
   let fence = null;
   // The entry whose fences have not been emitted yet.
   let open = null;
-  // One read per package, not one per entry: `/acl/api/` holds 107
+  // One read per package for all its entries: `/acl/api/` holds 107
   // entries and every one of them asks the same file the same question.
   const behaviours = new Map();
 
@@ -487,7 +488,7 @@ export function expandReferences(source, root, file, options) {
 
   const close = () => {
     if (!open) return;
-    // Trailing blank lines belong after the entry, not inside it.
+    // Trailing blank lines belong after the entry and stay out of it.
     while (out.length > 0 && out[out.length - 1].trim() === '') out.pop();
     out.push(
       ...foot(

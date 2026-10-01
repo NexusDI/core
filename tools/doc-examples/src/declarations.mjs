@@ -12,9 +12,8 @@ import ts from 'typescript';
  * while reading as authoritative.
  *
  * Declarations are read from the package's `dist/`, through the `types`
- * condition of its own `exports` map, and not from `src/` through the
- * `@nexusdi/source` condition the workspace sets. The docs app already made
- * that choice for itself. `apps/docs/tsconfig.json` sets `customConditions:
+ * condition of its own `exports` map. The `@nexusdi/source` condition the
+ * workspace sets would point at `src/`, and the docs app already declined it. `apps/docs/tsconfig.json` sets `customConditions:
  * []`, with a comment saying the site documents the published surface, and a
  * reference page documenting something a reader cannot install is worse than
  * one that cannot link to a line of source. `nx.json` orders the libraries'
@@ -69,8 +68,8 @@ export function resolveAlias(symbol, checker) {
  * `export { x } from './x.js'` puts it on the `ExportDeclaration` two levels
  * above the specifier. An author writes the tag above the line either way.
  *
- * The prose returned is the comment of the block the tag sits in, not the
- * symbol's documentation. A re-export tagged `@internal` whose target carries a
+ * The prose returned is the comment of the block the tag sits in, which may
+ * differ from the symbol's documentation. A re-export tagged `@internal` whose target carries a
  * long docblock about what the function does has still said nothing about why
  * it is not public API, and that sentence is the one being asked for.
  */
@@ -174,7 +173,7 @@ function programOf(root, specifier) {
 /**
  * What an export is, from the kind of its first declaration.
  *
- * An error is its own kind, not a class, which the repository's own
+ * An error is its own kind and no class, which the repository's own
  * export lists settle: 38 classes whose name ends `Error` against 4 that do
  * not, and every documented package carries an `errors.mdx`. A `const` holding
  * a function is a function, because what a reader does with it is call it.
@@ -244,12 +243,12 @@ function exportsOfSpecifier(root, specifier) {
 /**
  * The declaration the package published, as source a Twoslash fence compiles.
  *
- * Printed from the `.d.ts`, not queried through Twoslash's `^?`. A
+ * Printed from the `.d.ts`, with no query through Twoslash's `^?`. A
  * query renders as an overlay inside the `<pre>`, which cannot wrap: the
  * `hydratePolicy` signature is 154 characters on one line and the overlay
  * clips it. Printing also answers the two cases a query cannot. `^?` over an
  * interface's own name returns the name, so an interface entry would show its
- * identity and not its fields, and a query reports no constructor at all, so a
+ * identity and none of its fields, and a query reports no constructor at all, so a
  * reader asking what to pass `new InvalidConditionError(...)` would get
  * nothing.
  *
@@ -257,15 +256,15 @@ function exportsOfSpecifier(root, specifier) {
  * compile, so the names it mentions are intersected with the entry point's own
  * export list and imported. A type parameter is not an export, so `Sub` and
  * `Keys` fall out without being reasoned about. A declaration naming a type the
- * package does not publish fails `next build`, which is the right direction: a
- * reference entry a reader cannot type out is a reference entry that is wrong.
+ * package does not publish fails `next build`, which is the right outcome: a
+ * reference entry a reader cannot type out is wrong.
  *
  * `merges` decides whether the entry's own name carries its docblock.
  * Twoslash compiles the fence, so it answers about the symbol the fence
  * declares, and a redeclared symbol has no docblock because the comment
  * stayed in the source that was printed from. A reader hovering the name gets
- * a type and nothing else, which is the opposite of what a Twoslash fence is
- * for. Declaring the same name inside `declare module '<specifier>'` merges
+ * a type and nothing else, which defeats the purpose of a Twoslash fence.
+ * Declaring the same name inside `declare module '<specifier>'` merges
  * with the published symbol and does not shadow it, so the hover answers for
  * the package and carries its documentation.
  *
@@ -311,14 +310,14 @@ function declarationOf(context, resolved, name, kind) {
   /**
    * Where each name the declaration mentions has to come from.
    *
-   * Three answers and they are not interchangeable. A name the documented
+   * There are three answers, and each applies to a different kind of name. A name the documented
    * entry point exports is imported from it. A name only the package root
    * exports is imported from there, which is what a second entry point needs:
    * `@nexusdi/core/testing` declares `assertAllowed(decision: Decision)` and
    * publishes no `Decision` of its own. A name the package declares and
    * publishes nowhere is printed into the fence above the cut, because a fence
-   * that leaves it unbound does not fail; it silently binds to whatever
-   * global has that name, and `Cond`'s `node: Node` bound to the DOM's `Node`
+   * that leaves it unbound does not fail; it silently binds to the
+   * global of that name, and `Cond`'s `node: Node` bound to the DOM's `Node`
    * for as long as the entry existed.
    */
   const place = (each, from) => {

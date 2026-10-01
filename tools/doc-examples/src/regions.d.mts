@@ -2,7 +2,7 @@
  * Types for `regions.mjs`.
  *
  * That module is plain JavaScript because `apps/docs/next.config.ts` imports
- * it, and Nx loads that config under Node's native type stripping while
+ * it, and Nx loads that config under Node's built-in type stripping while
  * building the project graph. A TypeScript import there fails to load.
  */
 
