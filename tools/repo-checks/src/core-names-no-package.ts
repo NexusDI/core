@@ -1,7 +1,12 @@
 import ts from 'typescript';
 
-import { importsOf, type SourceFileText } from './core-layers.js';
-import { allNodes, at, parse, type Sources } from './error-codes.js';
+import {
+  importsOf,
+  parse,
+  type Sources,
+  type SourceFileText,
+} from './core-layers.js';
+import { allNodes, at } from './error-codes.js';
 
 /**
  * P3's grep of core (spec section 1.4): core names no other package and no
@@ -65,17 +70,18 @@ export function coreNamesNoPackage(
   const violations: string[] = [];
   let modules = 0;
   let strings = 0;
+  const sources = parse(files);
 
-  for (const file of files)
-    for (const { specifier } of importsOf(file)) {
+  for (const [path, source] of sources)
+    for (const { specifier } of importsOf(source)) {
       modules++;
       if (specifier.startsWith(`${scope}/`) && specifier !== self)
         violations.push(
-          `${file.path} imports ${specifier}; core names no other package`,
+          `${path} imports ${specifier}; core names no other package`,
         );
     }
 
-  for (const [, node] of allNodes(parse(files))) {
+  for (const [, node] of allNodes(sources)) {
     if (isPluginName(node))
       violations.push(
         `${at(node)} writes the plugin name '${node.text}'; core names no plugin`,

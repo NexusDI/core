@@ -7,8 +7,8 @@ import {
   coreNamesNoPackage,
   pluginNameLiterals,
 } from './core-names-no-package.js';
+import { parse } from './core-layers.js';
 import { sourcesOf } from './entry-graph.js';
-import { parse } from './error-codes.js';
 
 // The fixtures name packages under '@acme/', a scope nothing resolves. A
 // '@nexusdi/errors' specifier would make the project graph read the

@@ -1,12 +1,11 @@
 import ts from 'typescript';
 
+import { parse, type Sources } from './core-layers.js';
 import {
   allNodes,
   at,
   declaredCodes,
   type PackageFiles,
-  parse,
-  type Sources,
   unwrap,
 } from './error-codes.js';
 
@@ -179,11 +178,11 @@ function isEquality(node: ts.Node): boolean {
 }
 
 /** Each package that declares a code, by code. */
-function codeOwners(packages: readonly PackageFiles[]): Map<string, string[]> {
+function codeOwners(parsed: readonly Parsed[]): Map<string, string[]> {
   const owners = new Map<string, string[]>();
-  for (const pkg of packages)
-    for (const code of declaredCodes(pkg.files))
-      owners.set(code, [...(owners.get(code) ?? []), pkg.name]);
+  for (const { name, sources } of parsed)
+    for (const code of declaredCodes(sources))
+      owners.set(code, [...(owners.get(code) ?? []), name]);
   return owners;
 }
 
@@ -225,7 +224,7 @@ export function ownerVocabulary(
     name: pkg.name,
     sources: parse(pkg.files),
   }));
-  const codes = codeOwners(packages);
+  const codes = codeOwners(parsed);
   const brands = brandOwners(parsed);
   const violations: string[] = [];
   const used = new Set<string>();

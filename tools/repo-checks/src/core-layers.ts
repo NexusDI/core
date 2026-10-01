@@ -90,16 +90,31 @@ export interface ImportOf {
 }
 
 /**
- * Every module a file names: import, export-from, import(), an import type
- * and a `declare module` block.
+ * One file's syntax tree, with parent links, named by its path. A check
+ * parses each file once and hands the tree to every reader.
  */
-export function importsOf(file: SourceFileText): ImportOf[] {
-  const source = ts.createSourceFile(
+export function parseFile(file: SourceFileText): ts.SourceFile {
+  return ts.createSourceFile(
     file.path,
     file.source,
     ts.ScriptTarget.ESNext,
     true,
   );
+}
+
+/** Each file's syntax tree, by its path. */
+export type Sources = ReadonlyMap<string, ts.SourceFile>;
+
+/** Each file of `files` parsed once, by its path. */
+export function parse(files: readonly SourceFileText[]): Sources {
+  return new Map(files.map((file) => [file.path, parseFile(file)]));
+}
+
+/**
+ * Every module a file names: import, export-from, import(), an import type
+ * and a `declare module` block.
+ */
+export function importsOf(source: ts.SourceFile): ImportOf[] {
   const found: ImportOf[] = [];
   const visit = (node: ts.Node): void => {
     if (
@@ -136,8 +151,8 @@ export function importsOf(file: SourceFileText): ImportOf[] {
 }
 
 /** The specifier of every module `importsOf` reads in a file. */
-export function specifiersOf(file: SourceFileText): string[] {
-  return importsOf(file).map((found) => found.specifier);
+export function specifiersOf(source: ts.SourceFile): string[] {
+  return importsOf(source).map((found) => found.specifier);
 }
 
 /** The module a relative specifier names among `paths`, or null. */
@@ -178,10 +193,11 @@ export function layerViolations(files: readonly SourceFileText[]): string[] {
   const found: string[] = [];
   const paths = new Set(files.map((file) => file.path));
   for (const file of files) {
+    const imports = importsOf(parseFile(file));
     const layer = layerOf(file.path);
     if (layer === null) {
       // A root file (index.ts) may import any layer but text/.
-      for (const specifier of specifiersOf(file)) {
+      for (const { specifier } of imports) {
         const target = targetOf(file.path, specifier, paths);
         if (target?.startsWith('text/'))
           found.push(
@@ -195,7 +211,7 @@ export function layerViolations(files: readonly SourceFileText[]): string[] {
       found.push(`${file.path} sits in ${layer}/, which is not a known layer`);
       continue;
     }
-    for (const specifier of specifiersOf(file)) {
+    for (const { specifier } of imports) {
       const target = targetOf(file.path, specifier, paths);
       if (target === null) continue;
       if (!allowed.some((rule) => matches(rule, target))) {
@@ -205,7 +221,7 @@ export function layerViolations(files: readonly SourceFileText[]): string[] {
       }
     }
     const typesOnly = TYPES_ONLY[layer] ?? [];
-    for (const { specifier, typeOnly } of importsOf(file)) {
+    for (const { specifier, typeOnly } of imports) {
       if (typeOnly) continue;
       const target = targetOf(file.path, specifier, paths);
       if (target === null || !typesOnly.some((rule) => matches(rule, target)))
@@ -222,16 +238,11 @@ export function nodeViolations(files: readonly SourceFileText[]): string[] {
   const found: string[] = [];
   for (const file of files) {
     if (file.path.startsWith('node/src/')) continue;
-    for (const specifier of specifiersOf(file)) {
+    const source = parseFile(file);
+    for (const specifier of specifiersOf(source)) {
       if (specifier.startsWith('node:'))
         found.push(`${file.path} references '${specifier}'; only node/ may`);
     }
-    const source = ts.createSourceFile(
-      file.path,
-      file.source,
-      ts.ScriptTarget.ESNext,
-      true,
-    );
     let reported = false;
     const visit = (node: ts.Node): void => {
       if (reported) return;

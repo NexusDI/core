@@ -1,9 +1,9 @@
 import ts from 'typescript';
 
-import { importsOf } from './core-layers.js';
+import { importsOf, parse } from './core-layers.js';
 import { pluginNameLiterals } from './core-names-no-package.js';
 import { type LibPackage, mainEntryOf, walkEntry } from './entry-graph.js';
-import { allNodes, at, parse, unwrap } from './error-codes.js';
+import { allNodes, at, unwrap } from './error-codes.js';
 
 /**
  * P5: optional dependencies point one way and degrade by construction (spec
@@ -145,7 +145,9 @@ export function optionalDependencies(
     ]);
     const sources = parse(files);
     for (const file of files) {
-      for (const { specifier } of importsOf(file)) {
+      const sf = sources.get(file.path);
+      if (sf === undefined) continue;
+      for (const { specifier } of importsOf(sf)) {
         if (!specifier.startsWith(prefix)) continue;
         scanned.imports++;
         if (!declared.has(packageOf(specifier)))
@@ -153,8 +155,6 @@ export function optionalDependencies(
             `${file.path} imports ${packageOf(specifier)}, which package.json names in neither dependencies nor peerDependencies`,
           );
       }
-      const sf = sources.get(file.path);
-      if (sf === undefined) continue;
       const single = new Map([[file.path, sf]]);
       for (const node of pluginNameLiterals(single))
         if (!isOwnName(node))
@@ -172,16 +172,15 @@ export function optionalDependencies(
 
     // No module the main entry reaches imports an optional peer by value.
     if (main === null) continue;
-    const byPath = new Map(files.map((file) => [file.path, file]));
-    if (!byPath.has(main)) {
+    if (!sources.has(main)) {
       report(`src/${main} is missing, so the main entry cannot be walked`);
       continue;
     }
     scanned.mainEntries++;
-    for (const step of walkEntry(files, main)) {
-      const file = byPath.get(step.path);
-      if (step.kind !== 'module' || file === undefined) continue;
-      for (const { specifier, typeOnly } of importsOf(file))
+    for (const step of walkEntry(sources, main)) {
+      const source = sources.get(step.path);
+      if (step.kind !== 'module' || source === undefined) continue;
+      for (const { specifier, typeOnly } of importsOf(source))
         if (!typeOnly && optional.has(packageOf(specifier)))
           report(
             `${step.path} imports ${packageOf(specifier)} by value, an optional peer, and the main entry reaches it (${step.chain}); import it as a type or from a subpath entry`,

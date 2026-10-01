@@ -3,7 +3,7 @@ import { readdirSync, readFileSync } from 'node:fs';
 import { join, posix, relative, sep } from 'node:path';
 import { describe, expect, it } from 'vitest';
 
-import { specifiersOf, type SourceFileText } from './core-layers.js';
+import { parseFile, specifiersOf, type SourceFileText } from './core-layers.js';
 
 const libs = readdirSync(join(workspaceRoot, 'libs')).filter(
   (dir) => dir !== 'core',
@@ -27,7 +27,7 @@ function importViolations(
   const allowed = coreEntriesOf(dir);
   const found: string[] = [];
   for (const file of files) {
-    for (const specifier of specifiersOf(file)) {
+    for (const specifier of specifiersOf(parseFile(file))) {
       if (specifier.startsWith('@nexusdi/core') && !allowed.includes(specifier))
         found.push(`${file.path} imports ${specifier}`);
       if (

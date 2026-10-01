@@ -3,14 +3,10 @@ import { join } from 'node:path';
 import { workspaceRoot } from '@nx/devkit';
 import { describe, expect, it } from 'vitest';
 
+import { parse } from './core-layers.js';
 import { libDirs, libPackages, sourcesOf } from './entry-graph.js';
-import {
-  declaredCodes,
-  instanceofClasses,
-  packCodes,
-  textPlacement,
-  type TextPolicy,
-} from './error-codes.js';
+import { declaredCodes, instanceofClasses, packCodes } from './error-codes.js';
+import { textPlacement, type TextPolicy } from './error-text-placement.js';
 
 // The fixtures import errorBase from '@acme/nexusdi-core', a module nothing
 // resolves. An import of '@nexusdi/core' would make the project graph read
@@ -69,7 +65,7 @@ const fixture = (name: string) => ({
 
 describe('declaredCodes', () => {
   it('reads each NexusErrorByCode augmentation', () => {
-    expect(declaredCodes(fixture('clean').files)).toEqual([
+    expect(declaredCodes(parse(fixture('clean').files))).toEqual([
       'ACME_CACHE_MISS',
       'ACME_STORE_FULL',
       'ACME_STORE_LOCKED',
@@ -81,7 +77,7 @@ describe('declaredCodes', () => {
 describe('packCodes', () => {
   it('reads the keys of the pack in text.ts', () => {
     const { files, exports } = fixture('clean');
-    expect(packCodes(files, exports)).toEqual([
+    expect(packCodes(parse(files), exports)).toEqual([
       'ACME_CACHE_MISS',
       'ACME_STORE_FULL',
       'ACME_STORE_LOCKED',
@@ -101,20 +97,22 @@ describe('packCodes', () => {
       },
     ];
     expect(
-      packCodes(files, {
+      packCodes(parse(files), {
         './text': { '@nexusdi/source': './src/packs/index.ts' },
       }),
     ).toEqual(['ACME_CACHE_MISS']);
   });
 
   it('reads no pack from a text.ts that no ./text export names', () => {
-    expect(packCodes(fixture('clean').files, {})).toEqual([]);
+    expect(packCodes(parse(fixture('clean').files), {})).toEqual([]);
   });
 });
 
 describe('instanceofClasses', () => {
   it('finds each engine-rendered class tested with instanceof in @nexusdi/errors', () => {
-    const engine = instanceofClasses(sourcesOf(join(LIBS, 'errors', 'src')));
+    const engine = instanceofClasses(
+      parse(sourcesOf(join(LIBS, 'errors', 'src'))),
+    );
     for (const entry of POLICY.engineRendered)
       expect(engine).toContain(entry.errorClass);
   });
@@ -334,7 +332,9 @@ describe('textPlacement', () => {
     for (const entry of POLICY.engineRendered) {
       const pkg = packages.find((p) => p.name === entry.package);
       if (pkg === undefined) continue;
-      expect(packCodes(pkg.files, pkg.exports)).not.toContain(entry.code);
+      expect(packCodes(parse(pkg.files), pkg.exports)).not.toContain(
+        entry.code,
+      );
     }
   });
 });

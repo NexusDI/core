@@ -7,6 +7,7 @@ import {
   importsOf,
   layerViolations,
   nodeViolations,
+  parseFile,
   type SourceFileText,
 } from './core-layers.js';
 import { libDirs, sourcesOf } from './entry-graph.js';
@@ -24,17 +25,19 @@ function everyPackageSources(): SourceFileText[] {
 describe('importsOf', () => {
   it('reads every way a file names a module, marking the type-only ones', () => {
     expect(
-      importsOf({
-        path: 'x.ts',
-        source: [
-          "import { a } from './a.js';",
-          "import type { B } from '@acme/b';",
-          "export { c } from './c.js';",
-          "const d = import('@acme/d');",
-          "type E = typeof import('@acme/e');",
-          "declare module '@acme/f' {}",
-        ].join('\n'),
-      }),
+      importsOf(
+        parseFile({
+          path: 'x.ts',
+          source: [
+            "import { a } from './a.js';",
+            "import type { B } from '@acme/b';",
+            "export { c } from './c.js';",
+            "const d = import('@acme/d');",
+            "type E = typeof import('@acme/e');",
+            "declare module '@acme/f' {}",
+          ].join('\n'),
+        }),
+      ),
     ).toEqual([
       { specifier: './a.js', typeOnly: false },
       { specifier: '@acme/b', typeOnly: true },

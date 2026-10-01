@@ -4,7 +4,9 @@ import { join, posix, relative, sep } from 'node:path';
 import {
   importsOf,
   matches,
+  parse,
   resolveRelative,
+  type Sources,
   type SourceFileText,
 } from './core-layers.js';
 
@@ -186,15 +188,15 @@ export type WalkStep =
  * The modules `entry` reaches through value imports, breadth first, each
  * with the chain that reaches it (`index.ts > feature.ts`), and each
  * relative import the walk cannot resolve. The walk does not descend into a
- * module `stop` matches. Paths are relative to src/.
+ * module `stop` matches. `sources` holds each file's syntax tree by its
+ * path relative to src/.
  */
 export function* walkEntry(
-  files: readonly SourceFileText[],
+  sources: Sources,
   entry: string,
   stop: (path: string) => boolean = () => false,
 ): Generator<WalkStep> {
-  const byPath = new Map(files.map((file) => [file.path, file]));
-  const paths = new Set(byPath.keys());
+  const paths = new Set(sources.keys());
   const parent = new Map<string, string | null>([[entry, null]]);
   const queue = [entry];
   const chainOf = (path: string): string => {
@@ -204,11 +206,11 @@ export function* walkEntry(
     return chain.join(' > ');
   };
   for (let path = queue.shift(); path !== undefined; path = queue.shift()) {
-    const file = byPath.get(path);
-    if (file === undefined) continue;
+    const source = sources.get(path);
+    if (source === undefined) continue;
     yield { kind: 'module', path, chain: chainOf(path) };
     if (stop(path)) continue;
-    for (const { specifier, typeOnly } of importsOf(file)) {
+    for (const { specifier, typeOnly } of importsOf(source)) {
       if (typeOnly || !specifier.startsWith('.')) continue;
       const target = resolveRelative(path, specifier, paths);
       if (target === null) {
@@ -237,7 +239,7 @@ export function entryGraphViolations(
   const isForbidden = (path: string) =>
     forbidden.some((rule) => matches(rule, path));
   const found: string[] = [];
-  for (const step of walkEntry(files, entry, isForbidden)) {
+  for (const step of walkEntry(parse(files), entry, isForbidden)) {
     if (step.kind === 'unresolved')
       found.push(
         `${step.path} imports ${step.specifier}, which resolves to no file under src/`,

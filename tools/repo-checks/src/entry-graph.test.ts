@@ -5,7 +5,7 @@ import { join } from 'node:path';
 import { workspaceRoot } from '@nx/devkit';
 import { describe, expect, it } from 'vitest';
 
-import { resolveRelative } from './core-layers.js';
+import { parse, resolveRelative } from './core-layers.js';
 import {
   entryGraphViolations,
   filesUnder,
@@ -44,7 +44,7 @@ describe('walkEntry', () => {
   it('yields each module the entry reaches by value, with its chain, and stops where told', () => {
     expect([
       ...walkEntry(
-        fixture('sabotaged/text-file'),
+        parse(fixture('sabotaged/text-file')),
         'index.ts',
         (path) => path === 'feature.ts',
       ),
@@ -55,12 +55,12 @@ describe('walkEntry', () => {
   });
 
   it('yields an import it cannot resolve', () => {
-    expect([...walkEntry(fixture('sabotaged/unresolved'), 'index.ts')]).toEqual(
-      [
-        { kind: 'module', path: 'index.ts', chain: 'index.ts' },
-        { kind: 'unresolved', path: 'index.ts', specifier: './feature.js' },
-      ],
-    );
+    expect([
+      ...walkEntry(parse(fixture('sabotaged/unresolved')), 'index.ts'),
+    ]).toEqual([
+      { kind: 'module', path: 'index.ts', chain: 'index.ts' },
+      { kind: 'unresolved', path: 'index.ts', specifier: './feature.js' },
+    ]);
   });
 });
 
