@@ -9,7 +9,7 @@ NestJS-style @Injectable, @Inject and @Module for NexusDI, with standard decorat
 - `@Injectable({ deps })` lists a constructor's tokens.
 - `@Inject(TOKEN)` fills an `accessor` field.
 - `@Module({ providers, exports })` turns a class into a module.
-- Decorators compile under tsc, TypeScript 7, esbuild, SWC, Babel, Bun, Deno and Vite with its Babel plugin.
+- Runs under tsc, TypeScript 7, esbuild, SWC, Babel, Bun, Deno and Vite with its Babel plugin.
 - Vite on its own and Node's type stripping cannot run them.
 
 ## Install
