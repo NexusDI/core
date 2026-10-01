@@ -58,4 +58,12 @@ Task briefs: tasks/task-NN.md, shared constraints tasks/globals.md
 - T10: done 21f5708+9aeb791 (unknown base commit -> touched=true; approved). Watch the first CI run: rc and final builds share one checkout.
 - T76: done 4532ad4 (approved). Pre-sync, repo-checks docs-trigger.test.ts fails on feat (docs.yml lacks benchmarks/**); T10's docs.yml change fixes it after the sync.
 - All pre-sync feat tasks are done. feat waits for the sync.
-- T11: impl
+- T11: done 2efaa11 (approved)
+- T12: done 358572d (form + labels only per TL; triads fixed)
+- T13: PR #80 (fix/docs-pipeline -> main) opened. Final opus review fixes: noindex check in any attribute order (the real r1 archive failed the final check), CodeQL polynomial regexes (preamble, {@link}), MODE via env, GH_TOKEN on the snapshot step only: c1f75e1 8335be2 8a64b57 33af5d2 9379d55. Next: CI + re-review, rebase-merge, release.yml event=sync on release/0.4 (expect a ci.yml conflict: keep both job lists).
+
+## Owner items
+- Commit 0578605 on PR #80 keeps its `Claude Sonnet 5` co-author trailer.
+- T4's md-siblings module was written in this repo; the plan's copy from Evanion/libraries was not made.
+- After PR #80: create the labels rc-feedback and rc-blocker; add `docs` to the required checks of the main and release rulesets; pin the 0.4 RC feedback Discussion and fill DISCUSSION_URL in #74; decide #66 and #59 (see preflight).
+- Spec patch §14.3/§14.6 region roots on spec/docs-site is still open (planning edit).
