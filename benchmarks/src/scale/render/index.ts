@@ -2,11 +2,13 @@
 import type { LibraryId, Variant } from '../../schema.ts';
 import { renderInversify } from './inversify.ts';
 import { renderNexusdi } from './nexusdi.ts';
+import { renderTsyringe } from './tsyringe.ts';
 import type { Renderer } from './shared.ts';
 
 const RENDERERS: Readonly<Partial<Record<string, Renderer>>> = {
   'nexusdi/plain': renderNexusdi,
   'inversify/decorated': renderInversify,
+  'tsyringe/decorated': renderTsyringe,
 };
 
 export function rendererFor(library: LibraryId, variant: Variant): Renderer {
