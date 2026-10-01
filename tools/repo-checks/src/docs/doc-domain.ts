@@ -1,4 +1,4 @@
-import { ratchet } from './allowance';
+import { ratchetFindings } from './allowance';
 import { isPreFinalPost, type DocsPage } from './site';
 
 /**
@@ -41,26 +41,11 @@ export function checkDomain(
   const counts = Object.fromEntries(
     [...hits].map(([slug, found]) => [slug, found.length]),
   );
-  const { over, slack, stale } = ratchet(counts, allowance);
-  const findings: string[] = [];
-
-  for (const line of over) {
-    const slug = line.split(': ')[0] as string;
-    const found = [...new Set(hits.get(slug))].sort();
-    findings.push(
-      `${slug}: ${counts[slug]} names from the 0.3 site in fences (${found.join(', ')}), allowance ${allowance[slug] ?? 0}. Set the example on the Starship Meridian (spec section 7), or mark a Migration page domainExempt.`,
-    );
-  }
-  for (const line of slack) {
-    findings.push(
-      `doc-domain-allowance.json: ${line}. Lower the entry to the count, and remove it at zero.`,
-    );
-  }
-  for (const slug of stale) {
-    findings.push(
-      `doc-domain-allowance.json: ${slug} has no page. Remove the entry.`,
-    );
-  }
-
-  return findings.sort();
+  return ratchetFindings(
+    'doc-domain-allowance.json',
+    counts,
+    allowance,
+    (slug, count, limit) =>
+      `${slug}: ${count} names from the 0.3 site in fences (${[...new Set(hits.get(slug))].sort().join(', ')}), allowance ${limit}. Set the example on the Starship Meridian (spec section 7), or mark a Migration page domainExempt.`,
+  ).sort();
 }

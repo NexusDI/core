@@ -27,7 +27,8 @@ describe('doc-domain fixtures', () => {
     const tokens = (await tree('sabotaged')).find(
       (page) => page.slug === 'tokens',
     );
-    expect(domainHits(tokens!).sort()).toEqual([
+    if (!tokens) throw new Error('the sabotaged tree has no tokens page');
+    expect(domainHits(tokens).sort()).toEqual([
       '@Service',
       'AppModule',
       'DynamicModule',

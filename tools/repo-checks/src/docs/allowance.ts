@@ -52,3 +52,27 @@ export function waits(
       .sort(),
   };
 }
+
+/**
+ * The findings for a ratchet: one line per count above its entry, per entry
+ * above its count and per entry with no page. `describeOver` words the first.
+ */
+export function ratchetFindings(
+  file: string,
+  counts: Record<string, number>,
+  allowance: Record<string, number>,
+  describeOver: (slug: string, count: number, limit: number) => string,
+): string[] {
+  const { over, slack, stale } = ratchet(counts, allowance);
+  return [
+    ...over.map((line) => {
+      const slug = line.split(': ')[0] as string;
+      return describeOver(slug, counts[slug] as number, allowance[slug] ?? 0);
+    }),
+    ...slack.map(
+      (line) =>
+        `${file}: ${line}. Lower the entry to the count, and remove it at zero.`,
+    ),
+    ...stale.map((slug) => `${file}: ${slug} has no page. Remove the entry.`),
+  ];
+}
