@@ -1,0 +1,22 @@
+---
+title: NexusDI compared
+kind: contract
+description: The NexusDI bundle is 19 kB gzipped.
+---
+
+# NexusDI compared
+
+The NexusDI bundle is 19.0 kB with esbuild, and a cold start takes 43 ms.
+
+| Library   | Variant   | Startup          |
+| --------- | --------- | ---------------- |
+| NexusDI   | plain     | 12%              |
+| tsyringe  | decorated | from the harness |
+| awilix    | plain     | from the harness |
+| needle-di | decorated | from the harness |
+
+<Figure of="size.nexusdi.plain.esbuild.brotli" />
+
+<Figure of={path} />
+
+<ProbeTable run="2020-01-01-0000000" />
