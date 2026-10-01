@@ -233,8 +233,8 @@ describe('SEC-003 a polluted Object.prototype (CWE-1321)', () => {
     }
   });
 
-  // Reactor has no metadata at all in the case above, so readInjectable(cls)
-  // is undefined and Object.prototype is never consulted, hardened or not.
+  // Reactor has no metadata at all in the case above, so
+  // injectableIn(metadataOf(cls)) is undefined and Object.prototype is never consulted, hardened or not.
   // These two exercise the actual own-key read: metadata exists, but the
   // key under test is one only Object.prototype supplies.
   it('resolves a singleton when its own metadata has no lifetime, while Object.prototype carries one', async () => {

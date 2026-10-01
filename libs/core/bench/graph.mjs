@@ -30,8 +30,7 @@ export function makeGraph(core, size) {
 }
 
 /**
- * The tech lead's realistic app (perf report section 1.4): one global
- * Config module exporting a Config token by useValue, `features` feature
+ * A realistic multi-module app: one global Config module exporting a Config token by useValue, `features` feature
  * modules of `perFeature` providers each, interface-first (Token +
  * useClass). Feature f imports the up-to-`imports` previous features.
  * Provider p of a feature depends on Config, on the feature's own previous

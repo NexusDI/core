@@ -1,6 +1,6 @@
 /**
  * K14 (core spec 17.3): create, 10,000 get() and 1,000 createScope over 50
- * and 2,000 providers (one module), and over the tech lead's realistic
+ * and 2,000 providers (one module), and over a realistic
  * multi-module app (301 providers, 32 modules, size label `modules`), no
  * plugin, hook sites on against compiled out.
  *

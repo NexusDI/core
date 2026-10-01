@@ -25,8 +25,10 @@ export function blueprintMessage(errors: readonly NexusError[]): string {
 }
 
 /**
- * Every error one compilation found, in pass order. The visibility errors
- * (NEXUS_AMBIGUOUS_PROVIDER, then NEXUS_INVALID_EXPORT) follow module walk
+ * Every error one compilation found, in pass order. The walk reports an
+ * export entry that names no token or no imported module first, in module
+ * order. The visibility errors follow (NEXUS_AMBIGUOUS_PROVIDER, then
+ * NEXUS_INVALID_EXPORT for a token the module cannot see), in module walk
  * order. Nothing was built.
  */
 export class BlueprintError extends Base {
