@@ -32,7 +32,11 @@
     // a package bumped alone would make the published set uninstallable.
     "projectsRelationship": "fixed",
     "releaseTag": {
-      "pattern": "{projectName}@{version}"
+      // A fixed group gets one tag per release, and nx interpolates only
+      // {version} and {releaseGroupName} into it. The literal name keeps the
+      // existing @nexusdi/core@X.Y.Z tags, benchmarks.yml's tag trigger and
+      // the docs root lookup working.
+      "pattern": "@nexusdi/core@{version}"
     },
     "version": {
       "conventionalCommits": true,
@@ -58,10 +62,22 @@
       }
     },
     "changelog": {
-      "workspaceChangelog": false,
+      // One GitHub release per version, made from the workspace changelog.
+      // Per-project releases would all target the one tag and overwrite
+      // each other. Each package still gets its own CHANGELOG.md.
+      "workspaceChangelog": {
+        "createRelease": "github",
+        "file": false,
+        "renderOptions": {
+          "authors": true,
+          "applyUsernameToAuthors": true,
+          "commitReferences": true,
+          "versionTitleDate": false
+        }
+      },
       "automaticFromRef": true,
       "projectChangelogs": {
-        "createRelease": "github",
+        "createRelease": false,
         "renderOptions": {
           "authors": true,
           "applyUsernameToAuthors": true,
