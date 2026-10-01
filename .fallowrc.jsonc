@@ -131,7 +131,15 @@
   // file, never through the rootDirs remap). `nx run-many -t typegen` is
   // still run ahead of fallow in CI so the files exist for tsc, but this is
   // the actual fix for fallow's own resolution.
-  "ignoreUnresolvedImports": ["**/+types/*"],
+  //
+  // Two imports name files a build step writes and git ignores, so a clean
+  // checkout lacks them. benchmark-data.json comes from the docs
+  // benchmark-data target, and styles.css comes from the meridian-ui build.
+  "ignoreUnresolvedImports": [
+    "**/+types/*",
+    "**/generated/benchmark-data.json",
+    "**/dist/styles.css",
+  ],
 
   // Guard fixtures: trees the docs guards read as data through computed
   // paths, and near-copies of each other by design.
