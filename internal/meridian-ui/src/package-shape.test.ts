@@ -38,4 +38,10 @@ describe('the @nexusdi/meridian-ui manifest', () => {
     expect(root['@nexusdi/source']).toBe('./src/index.ts');
     expect(root['import']).toBe('./dist/index.js');
   });
+
+  it('publishes the tokens entry without React', () => {
+    const tokens = manifest.exports['./tokens'] as Record<string, string>;
+    expect(tokens['@nexusdi/source']).toBe('./src/tokens/index.ts');
+    expect(tokens['import']).toBe('./dist/tokens/index.js');
+  });
 });

@@ -51,6 +51,7 @@ export default defineConfig(() => ({
     lib: {
       entry: {
         index: 'src/index.ts',
+        'tokens/index': 'src/tokens/index.ts',
       },
       name: '@nexusdi/meridian-ui',
       formats: ['es' as const],
