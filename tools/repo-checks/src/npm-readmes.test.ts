@@ -187,6 +187,19 @@ describe('repo URLs', () => {
     ).toEqual(['images', 'repo-urls']);
   });
 
+  it('reports a repo URL in a case pinRepoUrls does not rewrite', () => {
+    const base = fixture('errors');
+    const source = base.source.replace(
+      'https://github.com/NexusDI/core/tree/@nexusdi/core@0.4.0-rc.1/',
+      'https://github.com/nexusdi/core/tree/@nexusdi/core@0.4.0-rc.1/',
+    );
+    expect(source).not.toBe(base.source);
+    expect(rulesOf({ ...base, source })).toEqual([
+      'documentation',
+      'repo-urls',
+    ]);
+  });
+
   it('rejects an Examples link on the release branch', () => {
     const base = fixture('errors');
     const source = base.source.replace(
