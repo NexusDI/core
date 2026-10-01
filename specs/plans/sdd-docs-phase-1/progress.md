@@ -36,5 +36,10 @@ Task briefs: tasks/task-NN.md, shared constraints tasks/globals.md
 - T19: done a9044cd (review approved; trailer amended)
 - T20: done 7700809
 - T21: done e14ba62 (approved). D5: ground colour roles renamed --meridian-ground-0/2 (collided with spacing --meridian-space-N); briefs 18/22/23 amended.
-- T3: fix: move filesUnder to own module+subpath, prose fixes incl. "native" in Task 2 d.mts.
-- T22: review a57169d+b989bcf (opus reviewer)
+
+## Cloud session (2026-10-01, controller per HANDOFF.md)
+- Env: repo needs Node 24.20.0; installed at /opt/node24 (prefix PATH). Worktrees moved to /home/user/wt/{docs-phase-1,docs-phase-1-release} (nested under the repo, nx resolved the parent checkout's tsconfig). Task briefs regenerated in tasks/ (plan line ranges + amendments); spec.md copied here.
+- HANDOFF grants supersede the grants above: controller may merge Group M PRs into main, dispatch release.yml event=sync, merge the sync PR (merge commit), merge into release/0.4, run Task 82 after a green rehearse rc.
+- T3: done 845b364+b8dc41e+1b716c2+715c28f+571b211 (filesUnder in files-under.mjs, subpath ./files-under; prose fixes; review approved after round 2)
+- T22: done a57169d+b989bcf+e14b2e1 (fallow entry for props.test-d.tsx)
+- T24: review 36a35d0
