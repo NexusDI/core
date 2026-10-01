@@ -1,6 +1,6 @@
 {
   "name": "@nexusdi/errors",
-  "version": "0.3.2",
+  "version": "0.4.0-rc.0",
   "description": "Revision-1-quality error messages, fix lines and near-miss suggestions for NexusDI, as a plugin.",
   "keywords": [
     "dependency injection",
@@ -45,7 +45,7 @@
     "CHANGELOG.md"
   ],
   "peerDependencies": {
-    "@nexusdi/core": "0.3.2"
+    "@nexusdi/core": "0.4.0-rc.0"
   },
   "publishConfig": {
     "access": "public",

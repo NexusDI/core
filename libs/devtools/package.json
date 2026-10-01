@@ -1,6 +1,6 @@
 {
   "name": "@nexusdi/devtools",
-  "version": "0.3.2",
+  "version": "0.4.0-rc.0",
   "description": "graph(), inspect() and trace() for NexusDI, with @nexusdi/errors' messages, as a plugin.",
   "keywords": [
     "dependency injection",
@@ -45,10 +45,10 @@
     "CHANGELOG.md"
   ],
   "dependencies": {
-    "@nexusdi/errors": "0.3.2"
+    "@nexusdi/errors": "0.4.0-rc.0"
   },
   "peerDependencies": {
-    "@nexusdi/core": "0.3.2"
+    "@nexusdi/core": "0.4.0-rc.0"
   },
   "publishConfig": {
     "access": "public",

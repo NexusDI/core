@@ -1,6 +1,6 @@
 {
   "name": "@nexusdi/core",
-  "version": "0.3.2",
+  "version": "0.4.0-rc.0",
   "description": "A compiled, sealed dependency injection container for TypeScript: typed provide() definitions, module encapsulation, scopes and ordered shutdown.",
   "keywords": [
     "dependency injection",

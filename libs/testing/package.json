@@ -1,6 +1,6 @@
 {
   "name": "@nexusdi/testing",
-  "version": "0.3.2",
+  "version": "0.4.0-rc.0",
   "description": "A container with replacements for testing NexusDI module graphs, built on the plugin API.",
   "keywords": [
     "dependency injection",
@@ -45,7 +45,7 @@
     "CHANGELOG.md"
   ],
   "peerDependencies": {
-    "@nexusdi/core": "0.3.2"
+    "@nexusdi/core": "0.4.0-rc.0"
   },
   "publishConfig": {
     "access": "public",
