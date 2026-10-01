@@ -108,6 +108,10 @@ describe('docs.yml', () => {
     expect([...order].sort((a, b) => a - b)).toEqual(order);
   });
 
+  it('passes the mode to run steps through env', () => {
+    expect(source).not.toMatch(/run:.*\$\{\{\s*(steps|needs)\./);
+  });
+
   it('smoke-tests after the deploy', () => {
     expect(workflow.jobs.smoke.needs).toEqual(['build', 'deploy']);
     expect(source).toContain(
