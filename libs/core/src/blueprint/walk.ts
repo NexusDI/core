@@ -23,7 +23,12 @@ import {
   type TokenKey,
 } from './blueprint.js';
 import { keyShape } from './hooks.js';
-import { normalizeProvider, optionsShape, tokenOfEntry } from './records.js';
+import {
+  normalizeProvider,
+  optionsShape,
+  providerRecord,
+  tokenOfEntry,
+} from './records.js';
 import { sameToken, type Canonicalizer } from './views.js';
 
 export interface WalkInput {
@@ -103,13 +108,9 @@ export function walk(input: WalkInput, errors: NexusError[]): WalkResult {
           (duplicates ??= new Map()).set(id, errors.length);
         else plain.add(shape.token);
       }
-      records.push({
-        ...shape,
-        id,
-        index,
-        module: node.id,
-        name: displayName(written.token),
-      });
+      records.push(
+        providerRecord(shape, id, index, node.id, displayName(written.token)),
+      );
       node.providers.push(id);
     };
 

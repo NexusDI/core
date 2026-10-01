@@ -213,7 +213,8 @@ function generate(random: () => number, graph: number): Generated {
     if (m.exportTokens.includes(ghost)) flags.unimported = true;
   }
 
-  return { input: { modules, records, pinned }, flags };
+  const providers = new Map(records.map((r) => [r.id, r]));
+  return { input: { modules, records, providers, pinned }, flags };
 }
 
 interface IReading {
