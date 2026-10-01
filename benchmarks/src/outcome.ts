@@ -48,3 +48,42 @@ export function classify(
     ? { sections, outcome }
     : { sections, outcome, message };
 }
+
+const SCALE_CHECKS = ['digest', 'shared', 'built', 'kinds'] as const;
+
+/**
+ * The outcome of one scale cell from the line verify-child.mjs printed
+ * (scale spec section 5). A scale graph holds singletons only, so the line
+ * is classify's singleton section and the other two are not applicable: a
+ * load failure, a build error and a thrown error rank as the matrix ranks
+ * them. A wrong-instance names the checks that failed.
+ */
+export function classifyScale(
+  printed: Record<string, unknown> | null,
+  buildError: string | null,
+  expectedDigest: string,
+): { outcome: Outcome; message?: string } {
+  const want = {
+    digest: expectedDigest,
+    shared: true,
+    built: true,
+    kinds: true,
+  };
+  const sections =
+    printed === null || 'load' in printed
+      ? printed
+      : {
+          singleton: printed,
+          transient: 'not-applicable',
+          scoped: 'not-applicable',
+        };
+  const { outcome, message } = classify(sections, buildError, {
+    singleton: want,
+    transient: null,
+    scoped: null,
+  });
+  if (outcome !== 'wrong-instance')
+    return message === undefined ? { outcome } : { outcome, message };
+  const failed = SCALE_CHECKS.filter((k) => printed?.[k] !== want[k]);
+  return { outcome, message: failed.join(', ') };
+}

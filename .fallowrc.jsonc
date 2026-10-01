@@ -116,6 +116,7 @@
     "benchmarks/fixtures/**/*.{ts,mjs}",
     "benchmarks/src/{matrix,probes,size,build,competitor-releases,release-core,open-results-pr}.ts",
     "benchmarks/src/timings/{orchestrator.ts,worker.mjs,cold-child.mjs}",
+    "benchmarks/src/scale/verify-child.mjs",
     "libs/core/bench/*.mjs",
   ],
 

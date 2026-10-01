@@ -236,3 +236,17 @@ export function describeGraph(graph: ScaleGraph): GraphDescriptor {
     targetClosure: closureSize(providers, graph.target),
   };
 }
+
+/**
+ * The digest verify-child.mjs prints for an app that builds this graph: the
+ * SHA-256 of the sorted lines `<id>(<d0.id>,<d1.id>,...)`, one per provider.
+ * Dependency order counts, so a renderer that swaps two constructor
+ * arguments changes it.
+ */
+export function expectedDigest(graph: ScaleGraph): string {
+  const { providers } = graph;
+  const lines = providers
+    .map((p) => `${p.name}(${p.deps.map((d) => providers[d].name).join(',')})`)
+    .sort();
+  return createHash('sha256').update(lines.join('\n')).digest('hex');
+}
