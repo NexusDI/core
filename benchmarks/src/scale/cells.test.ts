@@ -11,6 +11,7 @@ import {
   scaleCell,
   stageCell,
 } from './cells.ts';
+import { SHAPES } from './config.ts';
 import { graphOf } from './shapes.ts';
 import { six } from './six.ts';
 
@@ -57,17 +58,27 @@ describe('pool', () => {
   });
 });
 
+function nexusdi() {
+  const lib = readLibraries().libraries.find((l) => l.id === 'nexusdi');
+  if (lib === undefined) throw new Error('libraries.json lost nexusdi');
+  return lib;
+}
+
 describe('runCell', () => {
-  it('passes the NexusDI plain cell through compile, bundle and verify', async () => {
-    const nexusdi = readLibraries().libraries.find((l) => l.id === 'nexusdi');
-    if (nexusdi === undefined) throw new Error('libraries.json lost nexusdi');
-    const result = await scaleCell(DIR, nexusdi, 'plain', graphOf('mixed', 50));
-    expect(result.outcome).toBe('pass');
-    expect(result.message).toBeUndefined();
-    expect(readFileSync(result.bundle ?? '', 'utf8')).toMatch(
-      /from ["']@nexusdi\/core["']/,
-    );
-  }, 120_000);
+  for (const shape of SHAPES)
+    it(`passes the NexusDI plain ${shape} cell at n = 50 through compile, bundle and verify`, async () => {
+      const result = await scaleCell(
+        DIR,
+        nexusdi(),
+        'plain',
+        graphOf(shape, 50),
+      );
+      expect(result.outcome).toBe('pass');
+      expect(result.message).toBeUndefined();
+      expect(readFileSync(result.bundle ?? '', 'utf8')).toMatch(
+        /from ["']@nexusdi\/core["']/,
+      );
+    }, 120_000);
 
   it('records a failing compile as compile-error with the cell path stripped', async () => {
     const result = await runCell(

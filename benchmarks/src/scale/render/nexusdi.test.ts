@@ -37,8 +37,10 @@ function writeApp(name: string, graph: ScaleGraph): string {
 }
 
 /**
- * tsc --noEmit under the plain profile, against the workspace core's
- * source. Returns the diagnostics, empty when the app type-checks.
+ * tsc --noEmit with strict options and the workspace core's source
+ * (customConditions), so a render error shows up without a build of core.
+ * cells.test.ts runs the same shapes through the real profile and tsc
+ * build. Returns the diagnostics, empty when the app type-checks.
  */
 function typecheck(dir: string): string {
   writeFileSync(
@@ -202,7 +204,7 @@ describe('renderNexusdi', () => {
         name: 'm0',
         providers: [
           provide(TP0, { useValue: { id: 'p0' } }),
-          provide(TP1, { useClass: P1 }),
+          provide(TP1, { useClass: P1, lifetime: 'singleton' }),
           provide(TP2, {
             useFactory: (d0: IP0, d1: IP1): IP2 => {
               const made = new P2(d0, d1);
@@ -270,9 +272,9 @@ describe('renderNexusdi', () => {
         name: 'm1',
         imports: [M0],
         providers: [
-          provide(TP3, { useClass: P3 }),
-          provide(TP4, { useClass: P4 }),
-          provide(TP5, { useClass: P5 }),
+          provide(TP3, { useClass: P3, lifetime: 'singleton' }),
+          provide(TP4, { useClass: P4, lifetime: 'singleton' }),
+          provide(TP5, { useClass: P5, lifetime: 'singleton' }),
         ],
         exports: [TP4, TP5],
       });
