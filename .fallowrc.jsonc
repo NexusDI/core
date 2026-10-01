@@ -132,13 +132,15 @@
   // still run ahead of fallow in CI so the files exist for tsc, but this is
   // the actual fix for fallow's own resolution.
   //
-  // Two imports name files a build step writes and git ignores, so a clean
+  // These imports name files a build step writes and git ignores, so a clean
   // checkout lacks them. benchmark-data.json comes from the docs
-  // benchmark-data target, and styles.css comes from the meridian-ui build.
+  // benchmark-data target. styles.css comes from the meridian-ui build, which
+  // the docs import through the package export @nexusdi/meridian-ui/styles.css.
   "ignoreUnresolvedImports": [
     "**/+types/*",
     "**/generated/benchmark-data.json",
     "**/dist/styles.css",
+    "@nexusdi/meridian-ui/styles.css",
   ],
 
   // Guard fixtures: trees the docs guards read as data through computed
