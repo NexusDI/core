@@ -63,6 +63,7 @@ Task briefs: tasks/task-NN.md, shared constraints tasks/globals.md
 - T13: PR #80 merged by the owner. Sync pending (see Owner items). PR #80 (fix/docs-pipeline -> main) opened. Final opus review fixes: noindex check in any attribute order (the real r1 archive failed the final check), CodeQL polynomial regexes (preamble, {@link}), MODE via env, GH_TOKEN on the snapshot step only: c1f75e1 8335be2 8a64b57 33af5d2 9379d55. 68e6178 (CodeQL {@link} regex). CI all green, mergeable clean at 68e6178. The merge into main was refused by the session's permission classifier; waiting on the owner to merge #80 (rebase). Then: release.yml event=sync on release/0.4 (expect a ci.yml conflict: keep both job lists).
 
 ## Owner items
+- PR #84 (feat/docs-phase-1 -> release/0.4): merge after Task 81 and the final review; draft until then.
 - PR #80 merged into main by the owner (main 37aeb64).
 - Sync main -> release/0.4: `git merge-tree` shows one conflict, .github/workflows/ci.yml (both sides append jobs; keep both). release.yml event=sync would stop on it. This session's hand sync (sync/0.4-37aeb64xxxxx branch, merge, push, PR) was refused by the permission classifier. Needs the owner (or a permission rule) before Tasks 15-82.
 - T4's md-siblings module was written in this repo; the plan's copy from Evanion/libraries was not made.
@@ -74,3 +75,8 @@ Task briefs: tasks/task-NN.md, shared constraints tasks/globals.md
 - After the owner reports the sync merged: rebase feat/docs-phase-1 onto release/0.4, continue Tasks 15-82, open PRs, leave them green, list each under Owner items for the local session to merge.
 - Task 18: write the copied modules in this repo, as in Task 4.
 - Commit 0578605's trailer stays as is.
+
+## After the sync (PR #82, 4e9095f on release/0.4)
+- feat/docs-phase-1 rebased onto origin/release/0.4 (922f2a2): conflicts in apps/docs package.json, tsconfig.json, mdx-components.js, package-lock.json resolved by keeping both sides; lint/typecheck/test of docs, repo-checks, doc-examples, meridian-ui, meridian green; fallow clean; sync:check clean. Force-pushed with lease.
+- Draft PR #84 (feat/docs-phase-1 -> release/0.4) opened for CI on every task. Known flaky: tools/bench-kit/src/sampler.test.ts "runs teardown after the timer stops" (rerun CI if it alone fails).
+- T15: impl
