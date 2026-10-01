@@ -18,7 +18,7 @@ import { join } from 'node:path';
 
 import { parse as parseJsonc } from 'jsonc-parser';
 
-import { planRelease } from './lib.mjs';
+import { nextRcVersion, planRelease, refKind } from './lib.mjs';
 
 const env = process.env;
 const event = env.EVENT ?? '';
@@ -82,8 +82,9 @@ function requiredChecks() {
       'api',
       `repos/${repo}/rules/branches/${encodeURIComponent(ref)}`,
       '--paginate',
+      '--slurp',
     ]),
-  );
+  ).flat();
   const required = rules
     .filter((rule) => rule.type === 'required_status_checks')
     .flatMap((rule) => rule.parameters.required_status_checks);
@@ -164,6 +165,29 @@ async function main() {
   const mutating = ['rc', 'stable', 'patch'].includes(event);
   const tagsMergedHead = gitTags('--merged', 'HEAD');
 
+  // The packages the line's newest rc tag holds. A package added after it
+  // never had that rc.
+  let lastRcPackages;
+  const kind = refKind(ref);
+  if (event === 'rc' && kind.kind === 'release') {
+    const next = Number(nextRcVersion(kind.line, gitTags()).split('-rc.')[1]);
+    if (next > 0) {
+      const lastRcTag = `@nexusdi/core@${kind.line}.0-rc.${next - 1}`;
+      lastRcPackages = lines(
+        run('git', ['ls-tree', '--name-only', `${lastRcTag}:libs`]),
+      ).flatMap((dir) => {
+        try {
+          const manifest = JSON.parse(
+            run('git', ['show', `${lastRcTag}:libs/${dir}/package.json`]),
+          );
+          return manifest.private === true ? [] : [manifest.name];
+        } catch {
+          return [];
+        }
+      });
+    }
+  }
+
   const facts = {
     event,
     ref,
@@ -188,6 +212,7 @@ async function main() {
     proposed: event === 'patch' ? await proposedPatch() : null,
     // Looked up below for resume, once the plan names the tag.
     releaseExists: false,
+    lastRcPackages,
   };
 
   const plan = planRelease(facts);

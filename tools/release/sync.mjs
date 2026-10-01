@@ -75,6 +75,11 @@ function settleManifests() {
     (path) => JSON.parse(readFileSync(path, 'utf8')).name ?? '',
   );
   const conflicted = new Set(unmerged());
+  // core carries the line's version, and a fixed group gives every package
+  // the same one.
+  const lineVersion = JSON.parse(
+    run('git', ['show', 'HEAD:libs/core/package.json']),
+  ).version;
   const unresolved = [];
 
   for (const path of paths) {
@@ -97,9 +102,16 @@ function settleManifests() {
       }
       writeJson(path, merged.result);
     }
-    if (oursText === null) continue;
     const current = JSON.parse(readFileSync(path, 'utf8'));
-    writeJson(path, restoreWorkspacePins(current, JSON.parse(oursText), names));
+    writeJson(
+      path,
+      restoreWorkspacePins(
+        current,
+        oursText === null ? null : JSON.parse(oursText),
+        names,
+        lineVersion,
+      ),
+    );
     run('git', ['add', path]);
   }
   return unresolved;

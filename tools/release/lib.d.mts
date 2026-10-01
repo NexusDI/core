@@ -24,6 +24,8 @@ export interface PlanFacts {
   requiredChecks: { context: string; conclusion: string }[];
   proposed: { versions: string[]; current: string } | null;
   releaseExists: boolean;
+  /** The packages the line's last rc tag holds; all of them when omitted. */
+  lastRcPackages?: string[];
 }
 
 export interface Plan {
@@ -50,8 +52,9 @@ export function reconcileCommands(input: {
 }): { name: string; version: string; tag: string }[];
 export function restoreWorkspacePins<T extends object>(
   merged: T,
-  ours: object,
+  ours: object | null,
   names: string[],
+  lineVersion: string,
 ): T;
 export function mergeManifests(
   base: object | undefined,

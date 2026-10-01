@@ -196,6 +196,15 @@ export function planRelease(facts) {
         `${tag} is not on origin. Nothing was released, so dispatch the original event again.`,
       );
     }
+    const distTag = distTagFor({ kind: ref.kind, line: ref.line, version });
+    for (const pkg of facts.packages) {
+      const current = pkg.distTags[distTag];
+      if (current && compareVersions(current, version) > 0) {
+        blockers.push(
+          `${distTag} already points at ${pkg.name}@${current}, newer than ${version}. A resume never moves a dist-tag back.`,
+        );
+      }
+    }
     const stableTail = ref.kind === 'release' && isStable(version);
     Object.assign(outputs, {
       version,
@@ -239,7 +248,10 @@ export function planRelease(facts) {
       ),
     );
     if (lastRc) {
-      for (const pkg of facts.packages) {
+      // A package added to the line after its last rc never had that rc,
+      // and resume could not publish it from the rc's tag either.
+      const held = facts.lastRcPackages ?? facts.packages.map((p) => p.name);
+      for (const pkg of facts.packages.filter((p) => held.includes(p.name))) {
         if (!pkg.versions.includes(lastRc)) {
           blockers.push(
             `${pkg.name}@${lastRc} is not on npm. Finish that release with event=resume before cutting the next rc.`,
@@ -312,7 +324,15 @@ export function planRelease(facts) {
 
   const tag = `${TAG_PREFIX}${version}`;
   const pushRefs = [`HEAD:refs/heads/${facts.ref}`];
-  if (facts.event === 'stable') pushRefs.push('HEAD:refs/heads/main');
+  if (facts.event === 'stable') {
+    pushRefs.push('HEAD:refs/heads/main');
+    // The old line's maintenance branch starts at main's head before main
+    // moves, in the same atomic push, so a rejected push leaves no branch
+    // behind at a stale commit.
+    if (!facts.remoteHeads.includes(outputs.maint_branch)) {
+      pushRefs.push(`${facts.mainSha}:refs/heads/${outputs.maint_branch}`);
+    }
+  }
 
   if (
     facts.release.relationship === 'fixed' &&
@@ -384,7 +404,10 @@ export function reconcileCommands({ packages, version, distTag, resume }) {
         moves.push({ name: pkg.name, version, tag });
       }
     };
-    if (resume) add(distTag);
+    const current = pkg.distTags[distTag];
+    if (resume && (!current || compareVersions(current, version) < 0)) {
+      add(distTag);
+    }
     if (!isStable(version) && !pkg.versions.some(isStable)) add('latest');
     if (
       distTag === 'latest' &&
@@ -406,18 +429,17 @@ const DEPENDENCY_FIELDS = [
 
 /**
  * A merged libs/*\/package.json with the line's own version and in-workspace
- * pins put back. main's release commits move both to main's version, and the
- * line keeps its own.
+ * pins. main's release commits move both to main's version, and the line
+ * keeps its own. `ours` is the line's copy of the manifest, or null for a
+ * package only main has; a pin ours lacks takes the line's version.
  */
-export function restoreWorkspacePins(merged, ours, names) {
+export function restoreWorkspacePins(merged, ours, names, lineVersion) {
   const result = structuredClone(merged);
-  if (ours.version !== undefined) result.version = ours.version;
+  result.version = ours?.version ?? lineVersion;
   for (const field of DEPENDENCY_FIELDS) {
     for (const name of names) {
-      const pin = ours[field]?.[name];
-      if (pin !== undefined && result[field]?.[name] !== undefined) {
-        result[field][name] = pin;
-      }
+      if (result[field]?.[name] === undefined) continue;
+      result[field][name] = ours?.[field]?.[name] ?? lineVersion;
     }
   }
   return result;

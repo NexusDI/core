@@ -28,7 +28,7 @@ describe('restoreWorkspacePins', () => {
       description: 'from the line',
     };
 
-    expect(restoreWorkspacePins(merged, ours, NAMES)).toEqual({
+    expect(restoreWorkspacePins(merged, ours, NAMES, '0.4.0-rc.1')).toEqual({
       name: '@nexusdi/errors',
       version: '0.4.0-rc.1',
       dependencies: { '@nexusdi/core': '0.4.0-rc.1', tslib: '^2.8.1' },
@@ -37,15 +37,28 @@ describe('restoreWorkspacePins', () => {
     });
   });
 
-  it('leaves a workspace dependency the line does not have', () => {
+  it('pins a workspace dependency only main added to the line version', () => {
     const merged = {
       version: '0.3.3',
       devDependencies: { '@nexusdi/core': '0.3.3' },
     };
     const ours = { version: '0.4.0' };
-    expect(restoreWorkspacePins(merged, ours, NAMES)).toEqual({
+    expect(restoreWorkspacePins(merged, ours, NAMES, '0.4.0')).toEqual({
       version: '0.4.0',
-      devDependencies: { '@nexusdi/core': '0.3.3' },
+      devDependencies: { '@nexusdi/core': '0.4.0' },
+    });
+  });
+
+  it('gives a manifest only main has the line version and pins', () => {
+    const merged = {
+      name: '@nexusdi/errors',
+      version: '0.3.3',
+      dependencies: { '@nexusdi/core': '0.3.3', tslib: '^2.8.1' },
+    };
+    expect(restoreWorkspacePins(merged, null, NAMES, '0.4.0-rc.1')).toEqual({
+      name: '@nexusdi/errors',
+      version: '0.4.0-rc.1',
+      dependencies: { '@nexusdi/core': '0.4.0-rc.1', tslib: '^2.8.1' },
     });
   });
 });

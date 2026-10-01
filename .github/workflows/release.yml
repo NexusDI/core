@@ -184,24 +184,16 @@ jobs:
         if: inputs.event != 'sync'
         run: npm run verify:packaging
 
-      # The old line's maintenance branch starts at main's head before main
-      # moves to the new line.
-      - name: Create the maintenance branch
-        if: steps.plan.outputs.stable_tail == 'true' && steps.plan.outputs.maint_branch != ''
+      # stable creates the old line's maintenance branch inside its atomic
+      # push (the plan adds it to push_refs). A resume after a stable whose
+      # push landed only reports a missing one, since main has moved on.
+      - name: Check the maintenance branch
+        if: inputs.event == 'resume' && steps.plan.outputs.stable_tail == 'true' && steps.plan.outputs.maint_branch != ''
         env:
           MAINT: ${{ steps.plan.outputs.maint_branch }}
-          MAIN_SHA: ${{ steps.plan.outputs.main_sha }}
         run: |
-          if git ls-remote --exit-code --heads origin "refs/heads/$MAINT" >/dev/null; then
-            echo "$MAINT already exists."
-          elif [ "$DRY_RUN" = "true" ]; then
-            echo "Dry run: would create $MAINT at $MAIN_SHA."
-          elif [ "$EVENT" = "resume" ]; then
-            # main already moved to the new line, so its old head is the
-            # previous line's newest tag.
+          if ! git ls-remote --exit-code --heads origin "refs/heads/$MAINT" >/dev/null; then
             echo "::warning::$MAINT does not exist. Create it from the newest tag of its line by hand (RELEASING.md)."
-          else
-            git push origin "$MAIN_SHA:refs/heads/$MAINT"
           fi
 
       - name: Version
@@ -307,13 +299,16 @@ jobs:
       - name: Delete the release branch
         if: steps.plan.outputs.stable_tail == 'true'
         run: |
-          git fetch --quiet origin main
+          if [ "$DRY_RUN" = "true" ]; then
+            # The dry run pushed nothing, so main does not contain the line yet.
+            echo "Dry run: would delete $GITHUB_REF_NAME once main contains it after the push."
+            exit 0
+          fi
+          git fetch --quiet origin main "$GITHUB_REF_NAME"
           if ! git ls-remote --exit-code --heads origin "refs/heads/$GITHUB_REF_NAME" >/dev/null; then
             echo "$GITHUB_REF_NAME is already gone."
           elif ! git merge-base --is-ancestor "origin/$GITHUB_REF_NAME" origin/main; then
             echo "::warning::$GITHUB_REF_NAME has commits main lacks, so it stays. Sync or delete it by hand."
-          elif [ "$DRY_RUN" = "true" ]; then
-            echo "Dry run: would delete $GITHUB_REF_NAME."
           else
             git push origin --delete "$GITHUB_REF_NAME"
           fi

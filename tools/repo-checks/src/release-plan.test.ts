@@ -172,6 +172,28 @@ describe('planRelease, rc', () => {
     );
   });
 
+  it('leaves out of the resume check a package the last rc did not hold', () => {
+    const history = tags('0.3.2', '0.4.0-rc.0');
+    const plan = planRelease(
+      facts({
+        tagsAll: history,
+        tagsMergedHead: history,
+        remoteTags: history,
+        packages: [
+          {
+            name: '@nexusdi/core',
+            versions: ['0.3.2', '0.4.0-rc.0'],
+            distTags: {},
+          },
+          { name: '@nexusdi/cli', versions: [], distTags: {} },
+        ],
+        lastRcPackages: ['@nexusdi/core'],
+      }),
+    );
+    expect(plan.outputs.version).toBe('0.4.0-rc.1');
+    expect(plan.blockers).toEqual([]);
+  });
+
   it('blocks an rc for a line main already released', () => {
     const history = tags('0.3.2', '0.4.0');
     const plan = planRelease(
@@ -240,11 +262,21 @@ describe('planRelease, stable', () => {
     expect(plan.outputs).toMatchObject({
       version: '0.4.0',
       dist_tag: 'latest',
-      push_refs: 'HEAD:refs/heads/release/0.4 HEAD:refs/heads/main',
+      push_refs:
+        'HEAD:refs/heads/release/0.4 HEAD:refs/heads/main c6b88516d87d195589d6523ecd8a6fb9640cb3c4:refs/heads/0.3.x',
       maint_branch: '0.3.x',
       github_latest: 'true',
       stable_tail: 'true',
     });
+  });
+
+  it('leaves an existing maintenance branch out of the push', () => {
+    const plan = planRelease(
+      stableFacts({ remoteHeads: ['main', 'release/0.4', '0.3.x'] }),
+    );
+    expect(plan.outputs.push_refs).toBe(
+      'HEAD:refs/heads/release/0.4 HEAD:refs/heads/main',
+    );
   });
 
   it('names 0.N.x as the maintenance branch of 1.0', () => {
@@ -410,6 +442,30 @@ describe('planRelease, resume', () => {
     });
   });
 
+  it('blocks a resume whose dist-tag already points at a newer version', () => {
+    const history = tags('0.3.2', '0.4.0');
+    const plan = planRelease(
+      facts({
+        event: 'resume',
+        tagsAll: [...history, tag('0.4.1')],
+        tagsMergedHead: history,
+        remoteTags: [...history, tag('0.4.1')],
+        requiredChecks: [],
+        packages: [
+          {
+            name: '@nexusdi/core',
+            versions: ['0.4.0', '0.4.1'],
+            distTags: { latest: '0.4.1' },
+          },
+        ],
+      }),
+    );
+    expect(plan.outputs.version).toBe('0.4.0');
+    expect(plan.blockers.join('\n')).toMatch(
+      /latest already points at @nexusdi\/core@0\.4\.1/,
+    );
+  });
+
   it('refuses a tag that never reached the remote', () => {
     const history = tags('0.3.2', '0.4.0-rc.0');
     const plan = planRelease(
@@ -476,6 +532,23 @@ describe('reconcileCommands', () => {
         ],
       }),
     ).toEqual([{ name: '@nexusdi/core', version: '0.3.3', tag: 'latest' }]);
+  });
+
+  it('on resume never moves a dist-tag back to an older version', () => {
+    expect(
+      reconcileCommands({
+        version: '0.4.0',
+        distTag: 'latest',
+        resume: true,
+        packages: [
+          {
+            name: '@nexusdi/core',
+            versions: ['0.4.0', '0.4.1'],
+            distTags: { latest: '0.4.1' },
+          },
+        ],
+      }),
+    ).toEqual([]);
   });
 });
 
