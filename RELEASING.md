@@ -391,21 +391,19 @@ which GitHub grants on `main`, `release/*` and `[0-9]*.x` only.
 ### Bootstrapping a new package
 
 npm only lets you configure a trusted publisher for a package that exists.
-A new package under `libs/` gets a placeholder version published by hand
-first. The placeholder version, `0.0.0-bootstrap.0`, exists only in a
-temporary copy of the packed package. `libs/<pkg>/package.json` keeps the
-group's version, and nothing about the placeholder is committed.
+A new package under `libs/` gets a placeholder published by hand first: a
+manifest with no code at version `0.0.0-bootstrap.0`, written to a temporary
+directory. Nothing about the placeholder is committed.
 
 From a maintainer's machine, logged in to npm with 2FA:
 
 ```sh
-npx nx build <pkg>
-npm run verify:packaging
-tmp="$(mktemp -d)"
-(cd libs/<pkg> && npm pack --pack-destination "$tmp")
-tar -xzf "$tmp"/*.tgz -C "$tmp"
-cd "$tmp/package"
-npm pkg set version=0.0.0-bootstrap.0
+tmp="$(mktemp -d)" && cd "$tmp"
+npm init -y --scope=@nexusdi >/dev/null
+npm pkg set name=@nexusdi/<pkg> version=0.0.0-bootstrap.0 license=MIT \
+  description="Placeholder. Install a released version." \
+  repository.type=git repository.url=git+https://github.com/NexusDI/core.git
+npm pkg delete main scripts keywords author
 npm publish --access public --no-provenance --tag bootstrap --otp=<code>
 npm view @nexusdi/<pkg> dist-tags
 ```
@@ -414,13 +412,12 @@ Then configure the trusted publisher as in the table above, and deprecate the
 placeholder:
 
 ```sh
-npm deprecate @nexusdi/<pkg>@0.0.0-bootstrap.0 "Bootstrap placeholder. Install a released version."
-rm -rf "$tmp"
+npm deprecate @nexusdi/<pkg>@0.0.0-bootstrap.0 "Bootstrap placeholder. Install a released version." --otp=<code>
+cd - && rm -rf "$tmp"
 ```
 
-`--no-provenance` overrides `publishConfig.provenance: true`, which fails
-outside CI with "Automatic provenance generation not supported for provider:
-null". `--otp` avoids npm's browser auth flow, which redacts the auth URL to
+`--no-provenance` stops npm from attempting provenance, which fails outside
+CI with "Automatic provenance generation not supported for provider: null". `--otp` avoids npm's browser auth flow, which redacts the auth URL to
 `***` when stdout is not a TTY. npm may point `latest` at the placeholder,
 since every package has a `latest`; `npm view` shows it. The next rc's
 reconcile step moves `latest` to the rc, because the package has no stable
