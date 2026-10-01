@@ -14,6 +14,9 @@ export default defineConfig(() => ({
     globals: true,
     environment: 'node',
     include: ['src/**/*.test.ts'],
+    // Cell tests install competitor pins over the network; the check
+    // target runs them through vitest.cells.config.ts.
+    exclude: ['src/**/*.cell.test.ts'],
     reporters: ['default'],
     coverage: {
       reportsDirectory: './test-output/vitest/coverage',

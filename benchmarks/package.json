@@ -64,7 +64,8 @@
             "node src/matrix.ts --check",
             "node src/probes.ts --check",
             "node src/size.ts --check",
-            "vitest run --config vite.config.ts src/matrix-consistency.test.ts"
+            "vitest run --config vite.config.ts src/matrix-consistency.test.ts",
+            "vitest run --config vitest.cells.config.ts"
           ]
         }
       },
