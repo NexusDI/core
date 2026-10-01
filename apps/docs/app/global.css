@@ -1,0 +1,5 @@
+/* The navbar carries the theme switch on every page, so the sidebar's copy is
+   hidden and a docs page shows one. */
+.nextra-sidebar-footer > [title='Change theme'] {
+  display: none;
+}

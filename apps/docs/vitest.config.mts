@@ -19,7 +19,10 @@ export default defineConfig({
     watch: false,
     globals: true,
     environment: 'jsdom',
-    include: ['{app,components}/**/*.test.{ts,tsx}', 'tools/**/*.test.mjs'],
+    include: [
+      '{app,components,content}/**/*.test.{ts,tsx}',
+      'tools/**/*.test.mjs',
+    ],
     reporters: ['default'],
   },
 });
