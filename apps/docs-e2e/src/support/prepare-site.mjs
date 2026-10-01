@@ -9,8 +9,8 @@ export const SITE = join(root, 'apps', 'docs-e2e', '.site');
  * Builds the /next/ site with the script the deploy runs (docs spec §15.3)
  * and lays it out as GitHub Pages serves it during the RC: the export under
  * `next/`, and a root `404.html` whose script sends a missing `/next/...`
- * path to the new site's own 404 page (spec §15.5). Task 80 lays the same
- * build out with `assemble()` in rc mode.
+ * path to the new site's own 404 page (spec §15.5). The deploy lays the
+ * same build out with `assemble()` in rc mode.
  */
 export async function prepareSite() {
   rmSync(SITE, { recursive: true, force: true });

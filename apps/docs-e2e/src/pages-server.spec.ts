@@ -33,4 +33,9 @@ test.describe('the GitHub Pages stand-in', () => {
     expect(response.status()).toBe(404);
     expect(await response.text()).toContain('/next/404.html');
   });
+
+  test('answers a malformed escape with 400', async ({ request }) => {
+    const response = await request.get('/next/%E0%A4%A');
+    expect(response.status()).toBe(400);
+  });
 });

@@ -1,6 +1,6 @@
 import { createReadStream, existsSync, readFileSync, statSync } from 'node:fs';
 import { createServer } from 'node:http';
-import { extname, join, normalize } from 'node:path';
+import { extname, join, normalize, sep } from 'node:path';
 
 const TYPES = {
   '.html': 'text/html; charset=utf-8',
@@ -34,12 +34,18 @@ export function createPagesServer(root) {
 
   return createServer((request, response) => {
     const url = new URL(request.url ?? '/', 'http://localhost');
-    const path = normalize(decodeURIComponent(url.pathname));
-    const target = join(root, path);
-
     response.setHeader('Access-Control-Allow-Origin', '*');
 
-    if (!target.startsWith(root)) {
+    let path;
+    try {
+      path = normalize(decodeURIComponent(url.pathname));
+    } catch {
+      response.writeHead(400).end();
+      return;
+    }
+    const target = join(root, path);
+
+    if (target !== root && !target.startsWith(root + sep)) {
       response.writeHead(403).end();
       return;
     }
