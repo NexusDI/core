@@ -88,11 +88,15 @@ export function mdxProse(text) {
       if (at % 2 === 1) return part;
 
       return part
-        .replace(
-          /\{@(?:link|linkcode|linkplain)[ \t]+([^}|\s]+)[ \t]*\|?([^}]*)\}/g,
-          (_, target, label) =>
-            label.trim() === '' ? `\`${target}\`` : label.trim(),
-        )
+        .replace(/\{@(?:link|linkcode|linkplain)\s([^}]*)\}/g, (_, inner) => {
+          const text = inner.trim();
+          const end = text.search(/[\s|]/);
+          const target = end === -1 ? text : text.slice(0, end);
+          const label = (end === -1 ? '' : text.slice(end))
+            .replace(/^\s*\|/, '')
+            .trim();
+          return label === '' ? `\`${target}\`` : label;
+        })
         .replace(/[{}<]/g, (character) => `\\${character}`);
     })
     .join('');

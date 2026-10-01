@@ -75,3 +75,6 @@ export default function mdxReferenceLoader(
   },
   source: string,
 ): string;
+
+/** Prose made safe for MDX: link tags become their label, braces are escaped. */
+export function mdxProse(text: string): string;
