@@ -79,8 +79,8 @@ describe('the snapshot overlay', () => {
     expect(page).toContain("useBaseUrl('/img/logo-white.svg')");
   });
 
-  it('holds the RC post as a draft until Phase 2', () => {
-    expect(text('blog/2026-10-01-0-4-release-candidate.md')).toMatch(
+  it('publishes the RC post', () => {
+    expect(text('blog/2026-10-01-0-4-release-candidate.md')).not.toMatch(
       /^draft: true$/m,
     );
   });
@@ -116,7 +116,14 @@ describe('newestPublishedPost', () => {
   });
 
   it('finds nothing while the only RC post is a draft', () => {
-    expect(newestPublishedPost(join(snapshot, 'blog'))).toBeNull();
+    expect(newestPublishedPost(join(fixtures, 'draft'))).toBeNull();
+  });
+
+  it('finds the RC post the overlay publishes', () => {
+    expect(newestPublishedPost(join(snapshot, 'blog'))).toEqual({
+      file: '2026-10-01-0-4-release-candidate.md',
+      permalink: '/blog/2026/10/01/0-4-release-candidate',
+    });
   });
 
   it('finds the newest published RC post and its date permalink', () => {
@@ -132,7 +139,7 @@ describe('announcementBar', () => {
     expect(announcementBar(null)).toBeUndefined();
   });
 
-  it('links the post and the upgrade guide', () => {
+  it('links the post', () => {
     const bar = announcementBar({
       file: '2026-10-01-0-4-release-candidate.md',
       permalink: '/blog/2026/10/01/0-4-release-candidate',
@@ -141,7 +148,7 @@ describe('announcementBar', () => {
       id: 'rc-2026-10-01-0-4-release-candidate',
       isCloseable: true,
       content:
-        'NexusDI 0.4 is in release candidate. Read the <a href="/blog/2026/10/01/0-4-release-candidate">announcement</a>, or the <a href="/next/upgrade/">upgrade guide</a>.',
+        'NexusDI 0.4 is in release candidate. Read the <a href="/blog/2026/10/01/0-4-release-candidate">announcement</a>.',
     });
   });
 });
