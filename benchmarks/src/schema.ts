@@ -7,7 +7,10 @@
  */
 import type { PairedRatio, Stats } from '@nexusdi/bench-kit';
 
-export type { PairedRatio, Stats };
+import { ROUNDS, SHAPES, type Shape } from './scale/config.ts';
+import { PROVIDER_KINDS, type ProviderKind } from './scale/graph.ts';
+
+export type { PairedRatio, Stats, Shape };
 
 export const LIBRARIES = [
   'nexusdi',
@@ -228,7 +231,174 @@ export interface BuildFile {
   >;
 }
 
-export type Kind = 'matrix' | 'probes' | 'size' | 'timings' | 'build';
+/** One generated graph as results/scale.json records it (scale spec 3.1). */
+export interface ScaleGraphRow {
+  shape: Shape;
+  size: number;
+  /** The first 12 hex digits of the SHA-256 of the canonical graph. */
+  hash: string;
+  providers: number;
+  edges: number;
+  modules: number;
+  maxDepth: number;
+  /** Rounded to 0.01. */
+  meanFanOut: number;
+  maxFanOut: number;
+  maxFanIn: number;
+  kinds: Record<ProviderKind, number>;
+  target: number;
+  targetClosure: number;
+}
+
+/** The outcome of one library-variant on one graph. */
+export interface ScaleCell {
+  library: LibraryId;
+  variant: Variant;
+  shape: Shape;
+  size: number;
+  outcome: Outcome;
+  /** The failure, or for not-applicable the reason from libraries.json. */
+  message?: string;
+}
+
+/** Bundle bytes of one `mixed` cell, core D12's esbuild flags (scale spec 6.3). */
+export interface ScaleSizeRow {
+  library: LibraryId;
+  variant: Variant;
+  shape: 'mixed';
+  size: number;
+  /** Bytes. */
+  minified: number;
+  /** Bytes, zlib level 9. */
+  gzip: number;
+}
+
+/** (bytes at 5,000 - bytes at 1,000) / 4,000: the marginal bytes of one provider. */
+export interface ScalePerProvider {
+  library: LibraryId;
+  variant: Variant;
+  shape: 'mixed';
+  bytes: 'minified' | 'gzip';
+  /** Rounded to 0.01. */
+  perProvider: number;
+}
+
+/** results/scale.json: no timestamp, sorted, reproducible byte for byte. */
+export interface ScaleFile {
+  schema: 1;
+  versions: Versions & { bundlers: { esbuild: string }; tslib: string };
+  graphSeed: number;
+  /** Sorted by shape in SHAPES order, then size. */
+  graphs: ScaleGraphRow[];
+  /** Sorted by library, variant, shape (SHAPES order), size. */
+  cells: ScaleCell[];
+  /** Sorted by library, variant, size. */
+  sizes: ScaleSizeRow[];
+  /** Sorted by library, variant, then minified before gzip. */
+  perProvider: ScalePerProvider[];
+}
+
+export const SCALE_METRICS = [
+  'load',
+  'create',
+  'first-get',
+  'rest',
+  'first-resolve',
+  'ready',
+  'startup',
+  'heap-ready',
+  'get-cycle',
+] as const;
+export type ScaleMetric = (typeof SCALE_METRICS)[number];
+
+/**
+ * The metrics published with a paired ratio against NexusDI plain. The
+ * phases are not: NexusDI builds its singletons in create and the others
+ * on get, so a ratio on one phase compares different work (ruling 3).
+ */
+export const SCALE_RATIO_METRICS: readonly ScaleMetric[] = [
+  'first-resolve',
+  'ready',
+  'startup',
+  'heap-ready',
+  'get-cycle',
+];
+
+export interface ScaleTimingRow {
+  metric: ScaleMetric;
+  library: LibraryId;
+  variant: Variant;
+  shape: Shape;
+  size: number;
+  toolchain: 'tsc';
+  /** bytes for heap-ready, ns for every other metric. */
+  unit: 'ns' | 'bytes';
+  /** Operations per sample: 1 for fresh-process metrics. */
+  batch: number;
+  stats: Stats;
+  /** Competitor rows of SCALE_RATIO_METRICS only. */
+  vsNexus?: PairedRatio;
+}
+
+/** The local growth exponent between two adjacent sizes (scale spec 6.4). */
+export interface ScaleGrowth {
+  metric: 'startup' | 'ready';
+  library: LibraryId;
+  variant: Variant;
+  shape: Shape;
+  from: number;
+  to: number;
+  exponent: number;
+  low: number;
+  high: number;
+}
+
+export interface ScaleMarginal {
+  metric: 'startup' | 'heap-ready';
+  library: LibraryId;
+  variant: Variant;
+  shape: Shape;
+  /** ns or bytes per provider between 1,000 and 5,000. */
+  perProvider: number;
+}
+
+/** results/scale/<date>-<sha7>.json */
+export interface ScaleTimingsFile {
+  schema: 1;
+  sha: string;
+  /** ISO 8601. */
+  startedAt: string;
+  versions: Versions;
+  runner: Runner;
+  seed: number;
+  graphSeed: number;
+  /**
+   * The core the run packed (scale spec 14 item 5): the ref passed to
+   * release-core.ts --ref, or 'workspace', and the git tree SHA of
+   * libs/core. A core fix need not change the version string, so the
+   * version alone cannot tell two runs apart.
+   */
+  coreRef: { ref: string; tree: string };
+  /** Shape, size and hash of every graph timed, matching scale.json. */
+  graphs: Array<{ shape: Shape; size: number; hash: string }>;
+  /** One fresh-process design per shape, so each records its own round count. */
+  design: {
+    'fresh-process': Partial<Record<Shape, Design>>;
+    'steady-get': Design;
+  };
+  results: ScaleTimingRow[];
+  growth: ScaleGrowth[];
+  marginal: ScaleMarginal[];
+}
+
+export type Kind =
+  | 'matrix'
+  | 'probes'
+  | 'size'
+  | 'timings'
+  | 'build'
+  | 'scale'
+  | 'scale-timings';
 
 /** The published minimum design (spec 14.4). A quick run is below it. */
 const MINIMUM = { measured: 1000, coldStart: 1000, rounds: 30 } as const;
@@ -460,19 +630,148 @@ const build = obj({
   ),
 });
 
-const CHECKS: Record<Kind, Check> = { matrix, probes, size, timings, build };
+const shape = oneOf(...SHAPES);
 
-/** The design entries a published file must meet, with the minimum each needs. */
-function minimums(kind: Kind): Array<[key: string, least: number]> {
+const scale = obj({
+  schema: literal(1),
+  versions: (v, at) => {
+    versions(v, at);
+    obj({ bundlers: obj({ esbuild: str }), tslib: str })(v, at);
+  },
+  graphSeed: num,
+  graphs: arr(
+    obj({
+      shape,
+      size: num,
+      hash: str,
+      providers: num,
+      edges: num,
+      modules: num,
+      maxDepth: num,
+      meanFanOut: num,
+      maxFanOut: num,
+      maxFanIn: num,
+      kinds: obj(Object.fromEntries(PROVIDER_KINDS.map((k) => [k, num]))),
+      target: num,
+      targetClosure: num,
+    }),
+  ),
+  cells: arr(
+    obj({ library, variant, shape, size: num, outcome, message: opt(str) }),
+  ),
+  sizes: arr(
+    obj({
+      library,
+      variant,
+      shape: literal('mixed'),
+      size: num,
+      minified: num,
+      gzip: num,
+    }),
+  ),
+  perProvider: arr(
+    obj({
+      library,
+      variant,
+      shape: literal('mixed'),
+      bytes: oneOf('minified', 'gzip'),
+      perProvider: num,
+    }),
+  ),
+});
+
+const scaleTimingRow: Check = (v, at) => {
+  obj({
+    metric: oneOf(...SCALE_METRICS),
+    library,
+    variant,
+    shape,
+    size: num,
+    toolchain: literal('tsc'),
+    unit: oneOf('ns', 'bytes'),
+    batch: num,
+    stats,
+    vsNexus: opt(pairedRatio),
+  })(v, at);
+  const row = v as ScaleTimingRow;
+  literal(row.metric === 'heap-ready' ? 'bytes' : 'ns')(row.unit, `${at}.unit`);
+  if (row.vsNexus !== undefined && !SCALE_RATIO_METRICS.includes(row.metric))
+    fail(`${at}.vsNexus`, `no paired ratio on ${row.metric}`);
+};
+
+const scaleTimings = obj({
+  schema: literal(1),
+  sha: str,
+  startedAt: str,
+  versions,
+  runner,
+  seed: num,
+  graphSeed: num,
+  coreRef: obj({ ref: str, tree: str }),
+  graphs: arr(obj({ shape, size: num, hash: str })),
+  design: obj({
+    'fresh-process': record(design, SHAPES),
+    'steady-get': design,
+  }),
+  results: arr(scaleTimingRow),
+  growth: arr(
+    obj({
+      metric: oneOf('startup', 'ready'),
+      library,
+      variant,
+      shape,
+      from: num,
+      to: num,
+      exponent: num,
+      low: num,
+      high: num,
+    }),
+  ),
+  marginal: arr(
+    obj({
+      metric: oneOf('startup', 'heap-ready'),
+      library,
+      variant,
+      shape,
+      perProvider: num,
+    }),
+  ),
+});
+
+const CHECKS: Record<Kind, Check> = {
+  matrix,
+  probes,
+  size,
+  timings,
+  build,
+  scale,
+  'scale-timings': scaleTimings,
+};
+
+/**
+ * The design entries a published file must meet, by their path under
+ * `design`, with the minimum each needs. A scale run's `mixed` block meets
+ * the published minimum; the secondary shapes run fewer rounds and print
+ * their count (scale spec ruling 1 and section 14).
+ */
+function minimums(kind: Kind): Array<[path: string[], least: number]> {
   if (kind === 'timings')
     return [
-      ['in-process', MINIMUM.measured],
-      ['cold-start', MINIMUM.coldStart],
+      [['in-process'], MINIMUM.measured],
+      [['cold-start'], MINIMUM.coldStart],
     ];
   if (kind === 'build')
     return [
-      ['meridian-8', MINIMUM.rounds],
-      ['scale-200', MINIMUM.rounds],
+      [['meridian-8'], MINIMUM.rounds],
+      [['scale-200'], MINIMUM.rounds],
+    ];
+  if (kind === 'scale-timings')
+    return [
+      ...SHAPES.map((s): [string[], number] => [
+        ['fresh-process', s],
+        ROUNDS[s],
+      ]),
+      [['steady-get'], MINIMUM.measured],
     ];
   return [];
 }
@@ -489,8 +788,15 @@ export function validate(
 ): void {
   CHECKS[kind](value, kind);
   if (where !== 'results') return;
-  const designs = (value as { design: Record<string, Design> }).design;
-  for (const [key, least] of minimums(kind))
-    if (designs[key].measured < least)
-      fail(`${kind}.design.${key}.measured`, `at least ${least}`);
+  const designs = (value as { design?: unknown }).design;
+  for (const [path, least] of minimums(kind)) {
+    const at = `${kind}.design.${path.join('.')}`;
+    const entry = path.reduce<unknown>(
+      (o, k) => (o as Record<string, unknown> | undefined)?.[k],
+      designs,
+    ) as Design | undefined;
+    if (entry === undefined) fail(at, `a design of at least ${least} measured`);
+    else if (entry.measured < least)
+      fail(`${at}.measured`, `at least ${least}`);
+  }
 }
