@@ -26,6 +26,7 @@ import {
 } from './hooks.js';
 import { computeLevels } from './levels.js';
 import { checkLifetimes } from './lifetimes.js';
+import { providerRecord } from './records.js';
 import { cyclePath, findCycles, successorsOf } from './tarjan.js';
 import {
   adoptView,
@@ -92,18 +93,20 @@ function checkNewGlobals(walked: WalkResult, previous: Blueprint): void {
 
 /** The built-in REQUEST provider: scoped, visible in every module. */
 function requestRecord(index: number, rootId: string): ProviderRecord {
-  return {
-    id: REQUEST_ID,
+  return providerRecord(
+    {
+      kind: 'value',
+      token: REQUEST,
+      lifetime: 'scoped',
+      eager: true,
+      deps: [],
+      props: [],
+    },
+    REQUEST_ID,
     index,
-    kind: 'value',
-    token: REQUEST,
-    module: rootId,
-    name: 'REQUEST',
-    lifetime: 'scoped',
-    eager: true,
-    deps: [],
-    props: [],
-  };
+    rootId,
+    'REQUEST',
+  );
 }
 
 /**
@@ -161,13 +164,15 @@ export function compile(input: CompileInput): Blueprint {
     ...rejectDuplicates(rewritten?.records ?? walked.records, walked, errors),
     requestRecord(walked.records.length, root),
   ];
+  // id → record, in index order.
+  const providers = new Map<string, ProviderRecord>();
+  for (const record of records) providers.set(record.id, record);
   const rewrittenBy = rewritten?.rewrittenBy ?? NO_ENTRIES;
   const pinned = new Map<TokenKey, readonly string[]>([
     [REQUEST, [REQUEST_ID]],
   ]);
   if (rewritten !== undefined)
     for (const [token, ids] of rewritten.pinned) pinned.set(token, ids);
-  const providers = new Map(records.map((r) => [r.id, r]));
   const nameOf = (id: string): string => providers.get(id)?.name ?? id;
   errors.push(...walked.exportErrors);
 
@@ -176,6 +181,7 @@ export function compile(input: CompileInput): Blueprint {
     {
       modules: walked.modules,
       records,
+      providers,
       pinned,
     },
     errors,
@@ -194,10 +200,7 @@ export function compile(input: CompileInput): Blueprint {
 
   // Pass 4: cycles, ignoring lazy edges.
   const strong = successorsOf(bound.edges, (kind) => kind !== 'lazy');
-  for (const component of findCycles(
-    records.map((r) => r.id),
-    strong,
-  )) {
+  for (const component of findCycles([...providers.keys()], strong)) {
     const path = cyclePath(
       component,
       strong,

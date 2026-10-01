@@ -10,6 +10,8 @@ import { isCyclic, strongComponents } from './tarjan.js';
 export interface VisibilityInput {
   readonly modules: readonly ModuleNode[];
   readonly records: readonly ProviderRecord[];
+  /** The same records by id. The pass sorts provider ids by their record's `index`. */
+  readonly providers: ReadonlyMap<string, ProviderRecord>;
   /** Tokens bound to fixed providers in every module: REQUEST, and MultiTokens a compile.provider hook pins. */
   readonly pinned: ReadonlyMap<TokenKey, readonly string[]>;
 }
@@ -47,10 +49,10 @@ export function computeVisibility(
   input: VisibilityInput,
   errors: NexusError[],
 ): Visibility {
-  const { modules, records, pinned } = input;
-  const rank = new Map(records.map((r) => [r.id, r.index]));
+  const { modules, records, providers, pinned } = input;
+  const rank = (id: string): number => providers.get(id)?.index ?? 0;
   const sorted = (ids: readonly string[]): string[] =>
-    [...new Set(ids)].sort((a, b) => (rank.get(a) ?? 0) - (rank.get(b) ?? 0));
+    [...new Set(ids)].sort((a, b) => rank(a) - rank(b));
   const indexOf = new Map(modules.map((m, i) => [m.id, i]));
   const toIndex = (ids: readonly string[]): number[] =>
     ids.flatMap((id) => indexOf.get(id) ?? []);

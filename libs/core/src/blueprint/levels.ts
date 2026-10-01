@@ -86,16 +86,18 @@ function levelFunction(
   };
 }
 
+/**
+ * The `needed` ids by level. Each level lists its ids in index order, the
+ * order `providers` iterates in.
+ */
 function group(
-  ids: readonly string[],
+  providers: ReadonlyMap<string, ProviderRecord>,
+  needed: ReadonlySet<string>,
   levelOf: (id: string) => number,
-  rank: (id: string) => number,
 ): string[][] {
   const levels: string[][] = [];
-  for (const id of [...ids].sort((a, b) => rank(a) - rank(b))) {
-    const level = levelOf(id);
-    (levels[level] ??= []).push(id);
-  }
+  for (const id of providers.keys())
+    if (needed.has(id)) (levels[levelOf(id)] ??= []).push(id);
   return Array.from(levels, (level) => level ?? []);
 }
 
@@ -122,7 +124,7 @@ function collectReached(
   strong: ReadonlyMap<string, readonly string[]>,
   isMember: Member,
   isSeed: Member,
-): string[] {
+): Set<string> {
   const needed = new Set<string>();
   const seen = new Set<string>();
   const stack: string[] = [];
@@ -153,12 +155,12 @@ function collectReached(
     }
   }
 
-  return [...needed];
+  return needed;
 }
 
 /**
- * `stillDeferred` is the deferred set of the blueprint a load compiles
- * against. A singleton in it keeps no level, even when a new eager provider
+ * `providers` iterates in index order, as compile builds it. `stillDeferred`
+ * is the deferred set of the blueprint a load compiles against. A singleton in it keeps no level, even when a new eager provider
  * needs it: the root may already hold it, or build it at any request, so it
  * builds on demand in every later blueprint of that root (spec §6.6).
  */
@@ -167,7 +169,6 @@ export function computeLevels(
   strong: ReadonlyMap<string, readonly string[]>,
   stillDeferred?: ReadonlySet<string>,
 ): Levels {
-  const rank = (id: string): number => providers.get(id)?.index ?? 0;
   const isSingleton: Member = (r) => r.lifetime === 'singleton';
   const isScoped: Member = (r) =>
     r.lifetime === 'scoped' && r.id !== REQUEST_ID;
@@ -189,18 +190,22 @@ export function computeLevels(
     (r) => r.kind === 'factory' && r.eager,
   );
 
-  const levelled = new Set([...singletons, ...scoped]);
   const deferred = new Set<string>();
   for (const record of providers.values())
-    if (!record.eager && !levelled.has(record.id)) deferred.add(record.id);
+    if (!record.eager && !singletons.has(record.id) && !scoped.has(record.id))
+      deferred.add(record.id);
 
   return {
     deferred,
     singleton: group(
+      providers,
       singletons,
       levelFunction(providers, strong, isSingleton),
-      rank,
     ),
-    scoped: group(scoped, levelFunction(providers, strong, isScoped), rank),
+    scoped: group(
+      providers,
+      scoped,
+      levelFunction(providers, strong, isScoped),
+    ),
   };
 }
