@@ -4,8 +4,7 @@
  * package's new version to its package.json, this pins the repo URLs in its
  * README to the new release tag in the same tree (lib.mjs pinRepoUrls). nx
  * stages the tree's changes, so the release commit, and the tag on it, carry
- * READMEs that name that tag. The root README copies core's top part, so it
- * moves with core.
+ * READMEs that name that tag.
  */
 import { createRequire } from 'node:module';
 import { posix } from 'node:path';
@@ -19,20 +18,14 @@ const { default: JsVersionActions, afterAllProjectsVersioned } = createRequire(
   import.meta.url,
 )('@nx/js/src/release/version-actions');
 
-/** The READMEs whose repo URLs carry the version of the project at `root`. */
-function readmesOf(root) {
-  const own = posix.join(root, 'README.md');
-  return root === 'libs/core' ? [own, 'README.md'] : [own];
-}
-
 export default class NexusVersionActions extends JsVersionActions {
   async updateProjectVersion(tree, newVersion) {
     const logs = await super.updateProjectVersion(tree, newVersion);
-    for (const path of readmesOf(this.projectGraphNode.data.root)) {
-      if (!tree.exists(path)) continue;
-      const before = tree.read(path, 'utf-8');
-      const after = pinRepoUrls(before, newVersion);
-      if (after === before) continue;
+    const path = posix.join(this.projectGraphNode.data.root, 'README.md');
+    if (!tree.exists(path)) return logs;
+    const before = tree.read(path, 'utf-8');
+    const after = pinRepoUrls(before, newVersion);
+    if (after !== before) {
       tree.write(path, after);
       logs.push(`Pinned repo URLs in ${path} to ${newVersion}`);
     }

@@ -160,7 +160,7 @@ describe("nx's version step", () => {
     );
   });
 
-  it("pins the root README with core's, since the root copies core's", async () => {
+  it("pins core's README and leaves the root README, which has no tag URL", async () => {
     const { tree, actions } = actionsFor('libs/core', {
       'libs/core/README.md': examples('0.4.0-rc.0', 'core'),
       'README.md': examples('0.4.0-rc.0', 'core'),
@@ -171,7 +171,7 @@ describe("nx's version step", () => {
       examples('0.4.0-rc.1', 'core'),
     );
     expect(tree.read('README.md', 'utf-8')).toBe(
-      examples('0.4.0-rc.1', 'core'),
+      examples('0.4.0-rc.0', 'core'),
     );
   });
 
