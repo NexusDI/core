@@ -53,6 +53,9 @@
     },
     {
       "path": "./tools/readme-assets"
+    },
+    {
+      "path": "./internal/meridian-ui"
     }
   ],
   "compilerOptions": {

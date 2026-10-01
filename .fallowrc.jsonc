@@ -7,6 +7,9 @@
   // scripts/verify-packaging.mjs and an external consumer's own code ever
   // reach it. This makes its exports and re-export surface reachability
   // roots, so they are not reported as unused.
+  // @nexusdi/meridian-ui is consumed by apps/docs through its built dist, and
+  // visual-check.html renders every component. An export the docs app does not
+  // import yet is still part of the design system.
   "publicPackages": [
     "@nexusdi/core",
     "@nexusdi/errors",
@@ -17,6 +20,7 @@
     "@nexusdi/federation",
     "@nexusdi/interceptors",
     "@nexusdi/cli",
+    "@nexusdi/meridian-ui",
   ],
 
   // Nextra loads every page and `_meta.ts` under apps/docs/content by file
@@ -275,6 +279,13 @@
     // a published package, carries no devDependencies, and bench-kit is
     // private and never published, so it cannot go there either way.
     "@nexusdi/bench-kit",
+    // internal/meridian-ui/eslint.config.mjs imports @nx/eslint-plugin and
+    // internal/meridian-ui/vite.config.ts imports vite-plugin-dts. The
+    // workspace links both from the root manifest, and
+    // internal/meridian-ui/package.json, like the published libs, carries no
+    // devDependencies.
+    "@nx/eslint-plugin",
+    "vite-plugin-dts",
   ],
 
   // definitions/standard-schema.ts declares `StandardSchemaV1` twice on

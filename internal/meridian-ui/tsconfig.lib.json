@@ -1,0 +1,37 @@
+{
+  "extends": "../../tsconfig.base.json",
+  "compilerOptions": {
+    // `dist` belongs to the vite build, which empties it and writes the
+    // published declarations through vite-plugin-dts. tsc runs over this config
+    // only to type-check, so its emit goes to a throwaway directory: two
+    // producers writing one directory race whenever `build` and `typecheck` are
+    // scheduled together.
+    "outDir": "out-tsc/lib",
+    "types": ["node", "vite/client"],
+    "rootDir": "src",
+    "jsx": "react-jsx",
+    "module": "esnext",
+    "moduleResolution": "bundler",
+    "tsBuildInfoFile": "out-tsc/lib/tsconfig.lib.tsbuildinfo",
+    "ignoreDeprecations": "6.0"
+  },
+  "exclude": [
+    "out-tsc",
+    "dist",
+    "**/*.spec.ts",
+    "**/*.test.ts",
+    "**/*.spec.tsx",
+    "**/*.test.tsx",
+    "vite.config.ts",
+    "vitest.config.ts",
+    "src/**/*.test.ts",
+    "src/**/*.spec.ts",
+    "src/**/*.test.tsx",
+    "src/**/*.spec.tsx",
+    "src/**/*.test-d.ts",
+    "src/**/*.test-d.tsx",
+    "src/test-setup.ts",
+    "eslint.config.mjs"
+  ],
+  "include": ["src/**/*.ts", "src/**/*.tsx"]
+}
