@@ -1,13 +1,16 @@
 {
   "name": "@nexusdi/decorators",
   "version": "0.4.0-rc.0",
-  "description": "Standard decorators for NexusDI: @Injectable, @Inject and @Module.",
+  "description": "NestJS-style @Injectable, @Inject and @Module for NexusDI, with standard decorators and no compiler flags.",
   "keywords": [
-    "dependency injection",
-    "di",
     "nexusdi",
-    "typescript",
-    "decorators"
+    "dependency injection",
+    "decorators",
+    "standard decorators",
+    "tc39",
+    "injectable",
+    "nestjs",
+    "typescript"
   ],
   "homepage": "https://github.com/NexusDI/core#readme",
   "bugs": {

@@ -1,11 +1,15 @@
 {
   "name": "@nexusdi/devtools",
   "version": "0.4.0-rc.0",
-  "description": "graph(), inspect() and trace() for NexusDI, with @nexusdi/errors' messages, as a plugin.",
+  "description": "Draw your NexusDI module graph and follow every instance the container builds.",
   "keywords": [
-    "dependency injection",
-    "di",
     "nexusdi",
+    "dependency injection",
+    "dependency graph",
+    "devtools",
+    "mermaid",
+    "graphviz",
+    "tracing",
     "typescript"
   ],
   "homepage": "https://github.com/NexusDI/core#readme",

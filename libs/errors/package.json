@@ -1,11 +1,13 @@
 {
   "name": "@nexusdi/errors",
   "version": "0.4.0-rc.0",
-  "description": "Revision-1-quality error messages, fix lines and near-miss suggestions for NexusDI, as a plugin.",
+  "description": "Every NexusDI error explained, with the fix and the provider you probably meant.",
   "keywords": [
-    "dependency injection",
-    "di",
     "nexusdi",
+    "dependency injection",
+    "error messages",
+    "diagnostics",
+    "debugging",
     "typescript"
   ],
   "homepage": "https://github.com/NexusDI/core#readme",

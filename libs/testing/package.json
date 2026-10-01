@@ -1,11 +1,15 @@
 {
   "name": "@nexusdi/testing",
   "version": "0.4.0-rc.0",
-  "description": "A container with replacements for testing NexusDI module graphs, built on the plugin API.",
+  "description": "Build your real NexusDI module graph in tests, with the providers you name replaced.",
   "keywords": [
-    "dependency injection",
-    "di",
     "nexusdi",
+    "dependency injection",
+    "testing",
+    "test container",
+    "mocks",
+    "overrides",
+    "vitest",
     "typescript"
   ],
   "homepage": "https://github.com/NexusDI/core#readme",
