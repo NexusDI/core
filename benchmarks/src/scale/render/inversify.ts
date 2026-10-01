@@ -23,6 +23,7 @@ import {
   ownOf,
   perClass,
   token,
+  tokenTable,
   valueLiteral,
   type Files,
 } from './shared.ts';
@@ -257,9 +258,7 @@ ${counterImport(split && factories ? ['__scaleBuilt', 'built'] : ['built'])}${im
     () => false,
     moduleConsts,
   )}
-const T: readonly ServiceIdentifier[] = [
-${providers.map((p) => `  ${idOf(p)},\n`).join('')}];
-
+${tokenTable('ServiceIdentifier', providers.map(idOf))}
 export const scale = {
   count: ${providers.length},
   entries: [${graph.entries.join(', ')}],

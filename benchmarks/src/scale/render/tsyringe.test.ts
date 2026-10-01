@@ -41,12 +41,12 @@ describe('renderTsyringe', () => {
       import { P3, P4, P5 } from './m1.ts';
 
       const T: readonly InjectionToken[] = [
-        'p0',
-        P1,
-        'p2',
-        P3,
-        P4,
-        P5,
+        'p0' as InjectionToken,
+        P1 as InjectionToken,
+        'p2' as InjectionToken,
+        P3 as InjectionToken,
+        P4 as InjectionToken,
+        P5 as InjectionToken,
       ];
 
       export const scale = {

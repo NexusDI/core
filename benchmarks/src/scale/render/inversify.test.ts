@@ -36,12 +36,12 @@ describe('renderInversify', () => {
       import { TP0, TP2 } from './tokens.ts';
 
       const T: readonly ServiceIdentifier[] = [
-        TP0,
-        P1,
-        TP2,
-        P3,
-        P4,
-        P5,
+        TP0 as ServiceIdentifier,
+        P1 as ServiceIdentifier,
+        TP2 as ServiceIdentifier,
+        P3 as ServiceIdentifier,
+        P4 as ServiceIdentifier,
+        P5 as ServiceIdentifier,
       ];
 
       export const scale = {
