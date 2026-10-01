@@ -1,23 +1,40 @@
 # @nexusdi/cli
 
-`nexusdi graph` draws a NexusDI app's dependency graph from its root module file. It checks the graph with `Nexus.check` and builds nothing, so no constructor runs.
+[![npm](https://img.shields.io/npm/v/@nexusdi/cli/next)](https://www.npmjs.com/package/@nexusdi/cli) [![license](https://img.shields.io/npm/l/@nexusdi/cli)](https://github.com/NexusDI/core/blob/main/LICENSE)
+
+Draw a NexusDI app's dependency graph from the terminal as Mermaid, DOT, JSON, SVG or PNG.
+
+`nexusdi graph` reads the file that defines your [NexusDI](https://www.npmjs.com/package/@nexusdi/core) root module and checks the graph without building it. Put the picture in a pull request, and let CI fail when a provider goes missing.
+
+- No constructor runs: `Nexus.check` compiles the graph only.
+- A `.ts` entry loads through tsx or Node's type stripping.
+- Exits 1 on an invalid graph, so CI can gate on it.
+- Draws the providers view or the modules view.
+
+<img src="https://raw.githubusercontent.com/NexusDI/core/release/0.4/libs/devtools/assets/graph.svg" alt="NexusDI graph of the Meridian app: module Bridge holds Helm and ShipLog and imports module Engineering, which holds ShipComputer, Reactor and the async NavCharts factory and exports ShipComputer" width="720">
+
+## Install
+
+> 0.4 is a release candidate on the npm `next` tag. Install every @nexusdi package from `next` so their versions match.
 
 ```bash
-npm install -D @nexusdi/cli @nexusdi/devtools
+npm install -D @nexusdi/cli@next @nexusdi/devtools@next @nexusdi/core@next
 ```
 
-`@nexusdi/cli`, `@nexusdi/devtools` and `@nexusdi/core` must share one version.
+SVG needs `@viz-js/viz`, and PNG needs `@resvg/resvg-js` as well.
 
-## Graph
+## Usage
 
 ```bash
-npx nexusdi graph src/meridian.module.ts#Meridian
-npx nexusdi graph src/meridian.module.ts#Meridian -o docs/graph.svg
-npx nexusdi graph src/meridian.module.ts#Meridian --view modules -f dot
-npx nexusdi graph src/meridian.module.ts#Meridian --load src/science.module.ts#Science
+npx nexusdi graph src/app.module.ts#AppModule
+npx nexusdi graph src/app.module.ts#AppModule -o graph.svg
+npx nexusdi graph src/app.module.ts#AppModule --view modules
+npx nexusdi graph src/app.module.ts#AppModule -f json -o graph.json
 ```
 
-The entry is `path#export`, or `path` for the default export (`path#default` names it too). A `#` inside the path stays part of the path, as in `d#x/app.module.ts`. Point it at the file that defines the root module; `nexusdi` imports that file, so a file that starts the app starts it. A `.json` file written with `JSON.stringify(graph(ship))` from a running app works as an entry too. The project's `@nexusdi/devtools` checks it with `parseGraph`, and a file that is not a graph exits 2 with devtools' `NEXUS_DEVTOOLS_GRAPH_INVALID` text.
+The last line exits 1 when the graph is invalid, so a CI job can run it.
+
+## Options
 
 | Option                    | Meaning                                                                                      |
 | ------------------------- | -------------------------------------------------------------------------------------------- |
@@ -27,27 +44,12 @@ The entry is `path#export`, or `path` for the default export (`path#default` nam
 | `--load <path#export>`    | A module to compile after the root, as `load()` would. Repeatable.                           |
 | `--plugins <path#export>` | An exported array of plugins, such as `[federation()]`.                                      |
 
-## TypeScript
+## Documentation
 
-A `.ts` entry needs no build and no flags. When the project has `tsx` installed, `nexusdi` loads the entry through it, with the project's `tsconfig.json`. Without tsx, Node 22.18 and later load TypeScript that only needs its types removed and whose imports name `.ts` files. Anything else asks for `npm i -D tsx`. A `.cts` entry needs Node 24.
+- [Documentation](https://nexus.js.org/next/)
+- [Examples](https://github.com/NexusDI/core/tree/release/0.4/libs/cli/docs)
+- [NexusDI on GitHub](https://github.com/NexusDI/core)
 
-## SVG and PNG
+## License
 
-Mermaid, DOT and JSON need nothing else. SVG needs `@viz-js/viz` (Graphviz as WebAssembly), and PNG needs `@resvg/resvg-js` as well:
-
-```bash
-npm install -D @viz-js/viz @resvg/resvg-js
-```
-
-With Graphviz installed, `nexusdi graph src/meridian.module.ts -f dot | dot -Tpng > graph.png` needs neither.
-
-## Exit codes
-
-| Code | Meaning                                                                                              |
-| ---- | ---------------------------------------------------------------------------------------------------- |
-| 0    | The graph was written.                                                                               |
-| 1    | The graph is invalid. stderr holds the `BlueprintError` text.                                        |
-| 2    | The command or its input is wrong, such as a `.json` entry that is not a graph.                      |
-| 3    | Something is missing: `@nexusdi/core`, `@nexusdi/devtools`, tsx, `@viz-js/viz` or `@resvg/resvg-js`. |
-
-A CI job can run `nexusdi graph src/meridian.module.ts -f json -o graph.json`: it fails exactly when the graph is invalid.
+MIT
