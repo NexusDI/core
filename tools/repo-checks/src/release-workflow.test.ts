@@ -72,6 +72,17 @@ describe('release.yml', () => {
     expect(runs.join('\n')).not.toMatch(/nx-release-publish/);
   });
 
+  it('publishes every project, so nx runs stage-publish before each publish', () => {
+    // A project or group filter, or --exclude-task-dependencies, makes nx
+    // skip the stage-publish dependency, and the executor then publishes
+    // whatever tmp/publish/<projectRoot> holds from an earlier run.
+    const publish = runs.filter((run) => run.includes('nx release publish'));
+    expect(publish).toHaveLength(1);
+    expect(publish[0]).not.toMatch(
+      /--projects|\s-p\s|--groups|\s-g\s|--exclude-task-dependencies/,
+    );
+  });
+
   it('names the remote of the atomic push, or nx reads the first refspec as one', () => {
     const changelog = runs.filter((run) =>
       run.includes('nx release changelog'),

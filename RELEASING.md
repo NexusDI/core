@@ -322,6 +322,12 @@ declaration and source maps, so Go to Definition and
 `npm run verify:packaging` packs the staged copies and fails on a leftover
 condition or on any path the manifest or a map names that the tarball lacks.
 
+nx skips the `stage-publish` dependency when `nx release publish` gets
+`--projects`, `--groups` or `--exclude-task-dependencies`, and then publishes
+whatever `tmp/publish` holds from an earlier run. Run
+`nx run-many -t stage-publish` first in that case. `release.yml` passes none
+of them, and `tools/repo-checks` holds it to that.
+
 ## Verifying a release worked
 
 ```bash

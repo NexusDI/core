@@ -11,20 +11,23 @@
  * the project root.
  *
  * It fails when stagedProblems finds anything wrong with the staged copy.
+ * The staged manifest is made from libs/x/package.json, so the version check
+ * has nothing to compare here; scripts/verify-packaging.mjs holds the packed
+ * version against the repo's.
  */
 import { execFileSync } from 'node:child_process';
 import {
   mkdirSync,
   mkdtempSync,
-  readdirSync,
   readFileSync,
   rmSync,
   writeFileSync,
 } from 'node:fs';
 import { tmpdir } from 'node:os';
-import { join, relative, resolve, sep } from 'node:path';
+import { join, relative, resolve } from 'node:path';
 
 import { PUBLISH_ROOT, publishManifest, stagedProblems } from './lib.mjs';
+import { packageFiles } from './package-files.mjs';
 
 const ROOT = resolve(import.meta.dirname, '../..');
 const projectRoot = process.argv[2];
@@ -55,24 +58,17 @@ try {
     { stdio: 'inherit' },
   );
 
-  const repoManifest = JSON.parse(
-    readFileSync(join(source, 'package.json'), 'utf8'),
+  const manifest = publishManifest(
+    JSON.parse(readFileSync(join(source, 'package.json'), 'utf8')),
   );
-  const manifest = publishManifest(repoManifest);
   writeFileSync(
     join(target, 'package.json'),
     `${JSON.stringify(manifest, null, 2)}\n`,
   );
 
-  const files = readdirSync(target, { recursive: true, withFileTypes: true })
-    .filter((entry) => entry.isFile())
-    .map((entry) =>
-      relative(target, join(entry.parentPath, entry.name)).split(sep).join('/'),
-    );
   const problems = stagedProblems({
     manifest,
-    repoVersion: repoManifest.version,
-    files,
+    files: packageFiles(target),
     read: (path) => readFileSync(join(target, path), 'utf8'),
   });
   if (problems.length) {

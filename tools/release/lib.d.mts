@@ -75,7 +75,7 @@ export function stagedProblems(input: {
     module?: string;
     sideEffects?: boolean | string[];
   };
-  repoVersion: string;
+  repoVersion?: string;
   files: string[];
   read: (path: string) => string;
 }): string[];
