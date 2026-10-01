@@ -174,7 +174,7 @@ The name for 1.0 is `release/1.0`, and the maintenance branch that its stable cr
 ### 4.3 Environment and npm
 
 - New GitHub environment `release`. Deployment branch policy: `main`, `release/*`, `[0-9]*.x`. The `RELEASE_SSH_KEY` secret moves from repository secrets into this environment, so a workflow on any other ref never receives the key. The unused `Main` environment can be deleted.
-- Every npm trusted publisher: organization `NexusDI`, repository `core`, workflow `release.yml`, environment `release`, allowed action `npm publish`, and the "Allow npm dist-tag" permission enabled. npm then refuses OIDC publishes from any job outside the `release` environment, which GitHub only grants on the three branch patterns.
+- Every npm trusted publisher: organization `NexusDI`, repository `core`, workflow `release.yml`, environment `release`, allowed action `npm publish`, and the "Allow npm dist-tag" permission enabled. Staged publishing (`npm stage publish` plus 2FA approval) deferred (owner decision, 2026-10-01). Revisit if npm changes the defaults or the threat model changes. npm then refuses OIDC publishes from any job outside the `release` environment, which GitHub only grants on the three branch patterns.
 
 ### 4.4 nx.json (release section, on `release/0.4`)
 
