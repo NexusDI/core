@@ -14,6 +14,8 @@ Draw your NexusDI module graph and follow every instance the container builds.
 
 <img src="https://raw.githubusercontent.com/NexusDI/core/release/0.4/libs/devtools/assets/graph.svg" alt="NexusDI graph of the Meridian app: Bridge imports Engineering" width="720">
 
+Drawn with `npx nexusdi graph src/meridian.module.ts#Bridge -f svg`.
+
 ## Install
 
 > 0.4 is a release candidate on the npm `next` tag. Install every @nexusdi package from `next` so their versions match.

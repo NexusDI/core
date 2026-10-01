@@ -14,6 +14,8 @@ Draw your NexusDI module graph and follow every instance the container builds.
 
 <img src="https://raw.githubusercontent.com/NexusDI/core/release/0.4/libs/devtools/assets/graph.svg" alt="NexusDI graph of the Meridian app: in Bridge, Helm depends on ShipLog and on ShipComputer, which Engineering exports; ShipComputer depends on Reactor and the NavCharts factory." width="720">
 
+Drawn with `npx nexusdi graph src/meridian.module.ts#Bridge -f svg` from [@nexusdi/cli](https://www.npmjs.com/package/@nexusdi/cli).
+
 ## Install
 
 > 0.4 is a release candidate on the npm `next` tag. Install every @nexusdi package from `next` so their versions match. Without `@next`, npm installs core 0.3 and stops with a peer conflict.
@@ -35,9 +37,7 @@ interface INavCharts {
 }
 const NAV_CHARTS = new Token<INavCharts>('NavCharts');
 class StarCharts implements INavCharts {
-  plot(to: string) {
-    return `course to ${to}`;
-  }
+  plot = (to: string) => `course to ${to}`;
 }
 const Navigation = defineModule({
   name: 'Navigation',
