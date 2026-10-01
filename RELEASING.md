@@ -379,7 +379,7 @@ Settings, Trusted Publisher:
 | Repository         | `core`        |
 | Workflow filename  | `release.yml` |
 | Environment        | `release`     |
-| Allowed actions    | `npm publish` |
+| Allow npm publish  | on            |
 | Allow npm dist-tag | on            |
 
 npm matches the workflow by file name. Renaming `release.yml` breaks
@@ -387,6 +387,10 @@ publishing until every trusted publisher is updated. Do not pick a stage-only
 action: `nx release publish` runs a plain `npm publish`. With the environment
 set, npm refuses a publish from any job outside the `release` environment,
 which GitHub grants on `main`, `release/*` and `[0-9]*.x` only.
+
+Staged publishing (`npm stage publish` plus 2FA approval) is deferred
+(owner decision, 2026-10-01). Revisit if npm changes the defaults or the
+threat model changes.
 
 ### Bootstrapping a new package
 
