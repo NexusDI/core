@@ -24,9 +24,15 @@ afterAll(() => rmSync(dir, { recursive: true, force: true }));
 const graphFile = join(dir, 'graph.json');
 writeFileSync(graphFile, JSON.stringify(six()));
 
-const verify = (brk?: string, bundle = FAKE) =>
+// six() with p5 taking p4's deps, so the two sinks differ in id alone.
+const twinSinks = six();
+twinSinks.providers[5].deps = [2, 3];
+const twinFile = join(dir, 'twin-sinks.json');
+writeFileSync(twinFile, JSON.stringify(twinSinks));
+
+const verify = (brk?: string, bundle = FAKE, model = graphFile) =>
   JSON.parse(
-    execFileSync(process.execPath, [CHILD, bundle, graphFile], {
+    execFileSync(process.execPath, [CHILD, bundle, model], {
       encoding: 'utf8',
       env: { ...process.env, FAKE_BREAK: brk ?? '' },
     }),
@@ -63,6 +69,7 @@ describe('verify-child.mjs', () => {
       shared: true,
       built: true,
       kinds: true,
+      ids: true,
     });
     expect(classifyScale(out, null, expected)).toEqual({ outcome: 'pass' });
   });
@@ -87,6 +94,7 @@ describe('verify-child.mjs', () => {
       shared: true,
       built: false,
       kinds: true,
+      ids: true,
     });
     expect(classifyScale(out, null, expected)).toEqual({
       outcome: 'wrong-instance',
@@ -97,6 +105,7 @@ describe('verify-child.mjs', () => {
     const out = verify('transient-sink');
     expect(out.digest).toBe(expected);
     expect(out.shared).toBe(false);
+    expect(out.built).toBe(false);
     expect(classifyScale(out, null, expected).outcome).toBe('wrong-instance');
   });
   it('reports kinds: false for a factory rendered as a class', () => {
@@ -106,12 +115,42 @@ describe('verify-child.mjs', () => {
       shared: true,
       built: true,
       kinds: false,
+      ids: true,
     });
     expect(classifyScale(out, null, expected)).toEqual({
       outcome: 'wrong-instance',
       message: 'kinds',
     });
   });
+  it('reports ids: false for two sinks with the same deps swapped', () => {
+    const out = verify('swap-sinks', FAKE, twinFile);
+    const twin = expectedDigest(twinSinks);
+    expect(out).toEqual({
+      digest: twin,
+      shared: true,
+      built: true,
+      kinds: true,
+      ids: false,
+    });
+    expect(classifyScale(out, null, twin)).toEqual({
+      outcome: 'wrong-instance',
+      message: 'ids',
+    });
+  });
+  it.each([
+    ['count', /count: app declares 7 providers, the model 6/],
+    ['target', /target: app targets 5, the model 4/],
+    ['entries', /entries: app declares \[4\], the model \[4,5\]/],
+  ])(
+    'calls an app whose %s differs from the model a wrong-instance',
+    (field, message) => {
+      const out = verify(`declare-${field}`);
+      expect(classifyScale(out, null, expected)).toEqual({
+        outcome: 'wrong-instance',
+        message: expect.stringMatching(message),
+      });
+    },
+  );
   it('reports kinds: false for a value that constructs', () => {
     expect(verify('value-as-factory').kinds).toBe(false);
   });
