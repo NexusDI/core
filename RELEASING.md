@@ -180,19 +180,18 @@ On `release/X.Y`, the version is `X.Y.0`. Before dispatching:
 
 The run then:
 
-1. Creates the maintenance branch for the old line (`0.3.x` for 0.4.0) at
-   `main`'s head, unless it exists.
-2. Runs the verify gate.
-3. Runs `nx release version X.Y.0`.
-4. Runs `nx release changelog X.Y.0 ... --git-remote origin --git-push-args="HEAD:refs/heads/release/X.Y HEAD:refs/heads/main"`.
-   The atomic push moves `release/X.Y`, fast-forwards `main` and adds the tag,
-   or changes nothing. If `main` moved after the plan step, GitHub rejects the
-   push: run a sync and dispatch stable again.
-5. Marks the GitHub release latest.
-6. Publishes with `--tag latest`.
-7. Moves `next` up to `X.Y.0` for every package whose `next` is lower.
-8. Dispatches `docs.yml` on `main`.
-9. Deletes `release/X.Y` when it is an ancestor of `main`. Its tags stay.
+1. Runs the verify gate.
+2. Runs `nx release version X.Y.0`.
+3. Runs `nx release changelog X.Y.0 ... --git-remote origin --git-push-args="HEAD:refs/heads/release/X.Y HEAD:refs/heads/main <main sha>:refs/heads/0.3.x"`.
+   The atomic push moves `release/X.Y`, fast-forwards `main`, creates the old
+   line's maintenance branch at `main`'s previous head (left out when it
+   exists) and adds the tag, or changes nothing. If `main` moved after the
+   plan step, the push is rejected: run a sync and dispatch stable again.
+4. Marks the GitHub release latest.
+5. Publishes with `--tag latest`.
+6. Moves `next` up to `X.Y.0` for every package whose `next` is lower.
+7. Dispatches `docs.yml` on `main`.
+8. Deletes `release/X.Y` when it is an ancestor of `main`. Its tags stay.
    Otherwise it warns and keeps the branch.
 
 The stable changelog starts at the newest stable tag reachable from the
@@ -230,7 +229,8 @@ the release ran on and picks the newest release tag of that line reachable
 from the branch: any rc or stable on `release/X.Y`, the newest stable of the
 line on `X.Y.x`, the newest stable on `main`. If the tag is not on origin,
 nothing was released, and the run tells you to dispatch the original event
-again.
+again. If the event's dist-tag already points at a newer version of any
+package, the plan blocks: a resume never moves a dist-tag back.
 
 1. Checks out the tag detached and runs `npm ci`, so the build matches the
    tag's lockfile.
@@ -243,8 +243,8 @@ again.
 5. Reconciles dist-tags, including the event's own dist-tag.
 6. Dispatches `docs.yml` on `main`.
 7. For a stable on `release/X.Y`, deletes the branch when it is an ancestor of
-   `main`. If the maintenance branch for the old line is missing, it warns;
-   create it from the old line's newest tag:
+   `main`. If the maintenance branch for the old line is missing, it warns.
+   Create it by hand from the old line's newest tag:
    `git push origin "$(git rev-parse '@nexusdi/core@0.3.3^{commit}'):refs/heads/0.3.x"`.
 
 `rc` refuses to start while the newest rc is missing on npm, so a failed rc
@@ -282,7 +282,8 @@ not:
 - It points `latest` at an rc for every package with no stable version, so a
   bootstrap placeholder never stays the default install.
 - It moves `next` up to a new `latest` when `next` is lower.
-- On `resume` it also sets the event's own dist-tag, in case the failed step
+- On `resume` it also sets the event's own dist-tag when that tag is missing or
+  lower, in case the failed step
   was the publish.
 
 `npm dist-tag add` does no OIDC exchange of its own, so the reconcile script
