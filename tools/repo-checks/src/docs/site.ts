@@ -2,7 +2,7 @@ import { existsSync, readFileSync } from 'node:fs';
 import { join, relative, sep } from 'node:path';
 import { pathToFileURL } from 'node:url';
 
-import { filesUnder } from '@nexusdi/doc-examples/behaviours';
+import { filesUnder } from '@nexusdi/doc-examples/files-under';
 import { workspaceRoot } from '@nx/devkit';
 import remarkMdx from 'remark-mdx';
 import remarkParse from 'remark-parse';

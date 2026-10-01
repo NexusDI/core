@@ -39,12 +39,6 @@ export interface Behaviours {
   states: Map<string, Map<string, Stated>>;
 }
 
-export declare function filesUnder(
-  dir: string,
-  keep: (name: string) => boolean,
-  skipDir?: (dir: string) => boolean,
-): string[];
-
 export declare function testFilesOf(packageRoot: string): string[];
 export declare function chainsOf(path: string): Chain[];
 export declare function behavioursOf(packageRoot: string): Behaviours;
