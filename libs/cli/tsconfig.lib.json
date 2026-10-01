@@ -12,8 +12,8 @@
     "forceConsistentCasingInFileNames": true,
     "types": ["node"],
     "lib": ["es2022"],
-    "sourceMap": false,
-    "declarationMap": false,
+    "sourceMap": true,
+    "declarationMap": true,
     "ignoreDeprecations": "6.0"
   },
   "include": ["src/**/*.ts"],

@@ -509,3 +509,132 @@ export function changelogSection(text, version) {
     .join('\n')
     .trim();
 }
+
+/**
+ * Where tools/release/stage.mjs writes the copy of each package that
+ * `nx release publish` publishes, relative to the workspace root. The root
+ * tmp/ is gitignored and lies outside every project's root.
+ */
+export const PUBLISH_ROOT = 'tmp/publish';
+
+/** The exports condition the workspace resolves to TypeScript source. */
+const SOURCE_CONDITION = '@nexusdi/source';
+
+/** The files npm must find in every published package. */
+const REQUIRED_FILES = ['README.md', 'LICENSE', 'CHANGELOG.md'];
+
+/** An exports value without the source condition, at any depth. */
+function withoutSourceCondition(value) {
+  if (!isPlainObject(value)) return value;
+  return Object.fromEntries(
+    Object.entries(value)
+      .filter(([key]) => key !== SOURCE_CONDITION)
+      .map(([key, nested]) => [key, withoutSourceCondition(nested)]),
+  );
+}
+
+/**
+ * The manifest npm publishes, made from the repo's libs/x/package.json. The
+ * repo lists the source condition and `./src/` sideEffects for the
+ * workspace's own resolution. A consumer resolves neither, so both go; every
+ * other field is copied unchanged.
+ */
+export function publishManifest(manifest) {
+  const out = structuredClone(manifest);
+  if (out.exports !== undefined)
+    out.exports = withoutSourceCondition(out.exports);
+  if (Array.isArray(out.sideEffects))
+    out.sideEffects = out.sideEffects.filter(
+      (entry) => !entry.startsWith('./src/'),
+    );
+  return out;
+}
+
+/** Every string target under an exports value. */
+function exportTargets(value) {
+  if (typeof value === 'string') return [value];
+  if (isPlainObject(value)) return Object.values(value).flatMap(exportTargets);
+  return [];
+}
+
+/** The keys of an object at any depth. */
+function keysDeep(value) {
+  if (Array.isArray(value)) return value.flatMap(keysDeep);
+  if (!isPlainObject(value)) return [];
+  return Object.entries(value).flatMap(([key, nested]) => [
+    key,
+    ...keysDeep(nested),
+  ]);
+}
+
+/** A package-relative posix path, from `from`'s directory plus `ref`. */
+function resolveIn(from, ref) {
+  const parts = [];
+  const dir = from.includes('/') ? from.slice(0, from.lastIndexOf('/')) : '';
+  for (const part of `${dir}/${ref}`.split('/')) {
+    if (part === '' || part === '.') continue;
+    if (part === '..') parts.pop();
+    else parts.push(part);
+  }
+  return parts.join('/');
+}
+
+/**
+ * What is wrong with a package as npm will publish it. `files` lists the
+ * package's files relative to its root, `read` returns one file's text, and
+ * `repoVersion` is the version in libs/x/package.json. An empty list means
+ * the package is complete: its manifest carries no source condition, every
+ * path the manifest names is shipped, every source map's sources are
+ * shipped, and every sourceMappingURL names a shipped map.
+ */
+export function stagedProblems({ manifest, repoVersion, files, read }) {
+  const shipped = new Set(files);
+  const problems = [];
+  const name = manifest.name;
+
+  if (keysDeep(manifest).includes(SOURCE_CONDITION))
+    problems.push(`${name}: package.json still carries ${SOURCE_CONDITION}`);
+  if (manifest.version !== repoVersion)
+    problems.push(
+      `${name}: staged version ${manifest.version} differs from the repo's ${repoVersion}`,
+    );
+  for (const file of REQUIRED_FILES)
+    if (!shipped.has(file)) problems.push(`${name}: ${file} is not shipped`);
+
+  const named = [
+    ...exportTargets(manifest.exports),
+    ...exportTargets(manifest.bin),
+    ...[manifest.types, manifest.main, manifest.module].filter(Boolean),
+    ...(Array.isArray(manifest.sideEffects) ? manifest.sideEffects : []),
+  ];
+  for (const target of new Set(named)) {
+    // A pattern names no single file.
+    if (target.includes('*')) continue;
+    if (!shipped.has(resolveIn('', target)))
+      problems.push(
+        `${name}: package.json names ${target}, which is not shipped`,
+      );
+  }
+
+  for (const file of files) {
+    if (file.endsWith('.map')) {
+      const { sources = [] } = JSON.parse(read(file));
+      for (const ref of sources) {
+        const target = resolveIn(file, ref);
+        if (!shipped.has(target))
+          problems.push(
+            `${name}: ${file} maps to ${target}, which is not shipped`,
+          );
+      }
+    } else if (/\.(?:[cm]?js|d\.[cm]?ts)$/.test(file)) {
+      const url = /\/\/# sourceMappingURL=(\S+)\s*$/.exec(read(file))?.[1];
+      if (url === undefined || url.startsWith('data:')) continue;
+      const target = resolveIn(file, url);
+      if (!shipped.has(target))
+        problems.push(
+          `${name}: ${file} points at ${target}, which is not shipped`,
+        );
+    }
+  }
+  return problems;
+}

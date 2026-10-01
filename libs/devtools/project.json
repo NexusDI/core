@@ -3,6 +3,7 @@
   "name": "@nexusdi/devtools",
   "targets": {
     "lint": { "options": { "args": ["--max-warnings=0"] } },
-    "test": { "dependsOn": ["^build", "build"] }
+    "test": { "dependsOn": ["^build", "build"] },
+    "stage-publish": {}
   }
 }

@@ -168,6 +168,26 @@
       "cache": true,
       "dependsOn": ["^build"],
       "inputs": ["production", "^production"]
+    },
+    // Copies the packed package to tmp/publish/{projectRoot} with the
+    // workspace-only @nexusdi/source condition and ./src/ sideEffects
+    // stripped from its package.json (tools/release/stage.mjs). Uncached, so
+    // a staged manifest always comes from the current libs/x/package.json.
+    "stage-publish": {
+      "executor": "nx:run-commands",
+      "dependsOn": ["build"],
+      "cache": false,
+      "options": {
+        "command": "node tools/release/stage.mjs {projectRoot}"
+      }
+    },
+    // `nx release publish` publishes the staged copy. Versioning still
+    // writes libs/x/package.json, which stage-publish copies afterwards.
+    "nx-release-publish": {
+      "dependsOn": ["stage-publish"],
+      "options": {
+        "packageRoot": "tmp/publish/{projectRoot}"
+      }
     }
   },
   "generators": {

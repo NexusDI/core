@@ -18,8 +18,8 @@
     // esnext.decorators types Symbol.metadata. Core's declarations, which
     // this package's declarations import, use both.
     "lib": ["es2022", "esnext.decorators", "esnext.disposable"],
-    "sourceMap": false,
-    "declarationMap": false,
+    "sourceMap": true,
+    "declarationMap": true,
     "ignoreDeprecations": "6.0"
   },
   "include": ["src/**/*.ts"],

@@ -308,6 +308,20 @@ pin never matches the next version, so `preserveMatchingDependencyRanges`
 never preserves it, and nx rewrites it during the version step of the same
 run. A sync keeps the line's own pins (see "Sync").
 
+## What npm receives
+
+`nx release publish` publishes the staged copy in `tmp/publish/libs/<name>`.
+The `nx-release-publish` target depends on `stage-publish`, which builds the
+package, extracts its `npm pack` tarball there and rewrites the extracted
+`package.json` (`tools/release/stage.mjs`). The rewrite drops the
+`@nexusdi/source` exports condition and the `./src/` `sideEffects` entries.
+The workspace resolves source through both, and a consumer resolves neither,
+so they stay in `libs/<name>/package.json`. Each package ships `src` with
+declaration and source maps, so Go to Definition and
+`node --enable-source-maps` stack traces open the TypeScript source.
+`npm run verify:packaging` packs the staged copies and fails on a leftover
+condition or on any path the manifest or a map names that the tarball lacks.
+
 ## Verifying a release worked
 
 ```bash
@@ -315,6 +329,7 @@ npm view @nexusdi/core version
 npm view @nexusdi/core dist-tags
 npm view @nexusdi/core dist.attestations   # non-null means provenance is there
 npm view @nexusdi/core repository          # should point at NexusDI/core
+npm view @nexusdi/core exports             # should list no @nexusdi/source
 ```
 
 `dist.attestations` returning `null` means the package published without

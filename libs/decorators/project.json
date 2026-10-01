@@ -13,6 +13,7 @@
       }
     },
     "test": { "dependsOn": ["^build", "build", "test-browser"] },
-    "lint": { "options": { "args": ["--max-warnings=0"] } }
+    "lint": { "options": { "args": ["--max-warnings=0"] } },
+    "stage-publish": {}
   }
 }
