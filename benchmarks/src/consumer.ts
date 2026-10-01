@@ -42,7 +42,7 @@ const PACKED = [
  * awilix's declarations need. Scale cells compile with importHelpers, so
  * the consumer has tslib at the harness's own pin.
  */
-const EXTRA = [
+export const EXTRA = [
   'reflect-metadata@0.2.2',
   'babel-plugin-transform-typescript-metadata@0.4.0',
   '@types/node@24.19.0',

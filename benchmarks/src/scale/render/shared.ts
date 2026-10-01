@@ -34,7 +34,7 @@ export const perClass = (graph: ScaleGraph) => PER_CLASS.includes(graph.shape);
  * counter.ts: the counter every class constructor and factory body calls
  * last. One array increment per construction, identical in every library.
  */
-export function counterFile(count: number): string {
+function counterFile(count: number): string {
   return `const counts = new Uint32Array(${count});
 const kinds: (string | undefined)[] = new Array<string | undefined>(${count});
 
@@ -53,7 +53,8 @@ export function __scaleBuilt(index: number, kind: string): void {
  * constructor order, and a constructor that assigns them. With `report`,
  * the constructor ends with the counter call; a factory's product class
  * leaves it to the factory body. `head` goes before the id, for static
- * members.
+ * members. `decorate` prefixes each constructor parameter, for parameter
+ * decorators.
  */
 export function classBody(
   graph: ScaleGraph,
@@ -62,13 +63,16 @@ export function classBody(
     param: (dep: ScaleProvider) => string;
     report: boolean;
     head?: string;
+    decorate?: (dep: ScaleProvider) => string;
   },
 ): string {
   const deps = p.deps.map((d) => graph.providers[d]);
   const fields = deps
     .map((d, i) => `  readonly d${i}: ${opts.param(d)};\n`)
     .join('');
-  const params = deps.map((d, i) => `d${i}: ${opts.param(d)}`).join(', ');
+  const params = deps
+    .map((d, i) => `${opts.decorate?.(d) ?? ''}d${i}: ${opts.param(d)}`)
+    .join(', ');
   const sets = deps.map((_, i) => `    this.d${i} = d${i};\n`).join('');
   const report = opts.report
     ? `    __scaleBuilt(${p.index}, '${p.kind}');\n`
@@ -82,6 +86,19 @@ export function classBody(
 
 export const isAsync = (p: ScaleProvider) => p.kind === 'async-factory';
 
+/** Every provider but a value constructs something. */
+export const builds = (p: ScaleProvider) => p.kind !== 'value';
+
+/** The graph has a sync or async factory provider. */
+export const hasFactories = (graph: ScaleGraph) =>
+  graph.providers.some(
+    (p) => p.kind === 'factory' || p.kind === 'async-factory',
+  );
+
+/** The providers module `k` declares, in index order. */
+export const ownOf = (graph: ScaleGraph, k: number) =>
+  graph.providers.filter((p) => p.module === k);
+
 /**
  * The statements of a factory provider's body, one per line, each
  * prefixed with `indent`: an async factory awaits once before it
@@ -90,7 +107,7 @@ export const isAsync = (p: ScaleProvider) => p.kind === 'async-factory';
  * caller binds `d0`, `d1`, ... in its library's factory form and supplies
  * the braces.
  */
-export function factoryBody(p: ScaleProvider, indent: string): string {
+function factoryBody(p: ScaleProvider, indent: string): string {
   const args = p.deps.map((_, i) => `d${i}`).join(', ');
   return [
     ...(isAsync(p) ? ['await Promise.resolve();'] : []),
@@ -102,8 +119,82 @@ export function factoryBody(p: ScaleProvider, indent: string): string {
     .join('');
 }
 
+/**
+ * A factory provider's arrow function, for libraries whose factory takes
+ * its resolved dependencies as parameters: `d0`, `d1`, ... typed by
+ * `param`, returning `product` (a Promise of it when async), with the
+ * body of factoryBody. `indent` is the indent of the closing brace.
+ */
+export function factoryFunction(
+  graph: ScaleGraph,
+  p: ScaleProvider,
+  opts: {
+    param: (dep: ScaleProvider) => string;
+    product: string;
+    indent: string;
+  },
+): string {
+  const params = p.deps
+    .map((d, i) => `d${i}: ${opts.param(graph.providers[d])}`)
+    .join(', ');
+  const returns = isAsync(p) ? `Promise<${opts.product}>` : opts.product;
+  return `${isAsync(p) ? 'async ' : ''}(${params}): ${returns} => {
+${factoryBody(p, `${opts.indent}  `)}${opts.indent}}`;
+}
+
 /** A value provider's object, built at load in every library. */
 export const valueLiteral = (p: ScaleProvider) => `{ id: '${p.name}' }`;
+
+/** An import of `names` from the construction counter, if any. */
+export const counterImport = (names: readonly string[]) =>
+  names.length === 0
+    ? ''
+    : `import { ${names.join(', ')} } from './counter.ts';\n`;
+
+/**
+ * The head of a module file after its library import: the counter import
+ * when the module constructs anything, then `imports`, then a blank line
+ * and the module's classes, one per paragraph.
+ */
+export function moduleBody(
+  own: readonly ScaleProvider[],
+  imports: string,
+  classOf: (p: ScaleProvider) => string,
+): string {
+  return `${counterImport(own.some(builds) ? ['__scaleBuilt'] : [])}${imports}
+${own
+  .filter(builds)
+  .map((p) => `${classOf(p)}\n`)
+  .join('')}`;
+}
+
+/**
+ * A renderer's files: counter.ts, app.ts, tokens.ts when the library has
+ * one, and one file per class (wide, deep) or per module (the others).
+ */
+export function layout(
+  graph: ScaleGraph,
+  parts: {
+    app: string;
+    tokens?: string;
+    classFile: (p: ScaleProvider) => string;
+    moduleFile: (k: number) => string;
+  },
+): Files {
+  const files: Files = {
+    'counter.ts': counterFile(graph.providers.length),
+    ...(parts.tokens === undefined ? {} : { 'tokens.ts': parts.tokens }),
+    'app.ts': parts.app,
+  };
+  if (perClass(graph))
+    for (const p of graph.providers.filter(builds))
+      files[`${p.name}.ts`] = parts.classFile(p);
+  else
+    graph.modules.forEach((m, k) => {
+      files[`${m.name}.ts`] = parts.moduleFile(k);
+    });
+  return files;
+}
 
 /** `{ a, b, type C }` style import lists, one name per line. */
 export function importList(names: readonly string[], from: string): string {
