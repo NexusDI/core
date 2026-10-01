@@ -308,6 +308,9 @@
       // compile. Each package's tests reach only their own test-support, so
       // the two copies cannot share one module.
       "libs/*/test-support/security.ts",
+      // The dense visibility pass, kept as the oracle the sparse pass in
+      // libs/core/src/blueprint/visibility.ts is tested against.
+      "libs/core/test-support/visibility-oracle.ts",
       "tools/repo-checks/src/__fixtures__/**",
       // Meridian-8 once per library and variant: each fixture is one
       // self-contained file a toolchain builds alone (benchmarks spec 4.1),
