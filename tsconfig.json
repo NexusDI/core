@@ -56,6 +56,9 @@
     },
     {
       "path": "./internal/meridian-ui"
+    },
+    {
+      "path": "./examples/meridian"
     }
   ],
   "compilerOptions": {

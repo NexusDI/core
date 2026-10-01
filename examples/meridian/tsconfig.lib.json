@@ -1,0 +1,56 @@
+{
+  "extends": "../../tsconfig.base.json",
+  "compilerOptions": {
+    "rootDir": "src",
+    "outDir": "dist",
+    "tsBuildInfoFile": "dist/tsconfig.lib.tsbuildinfo",
+    "emitDeclarationOnly": true,
+    "forceConsistentCasingInFileNames": true,
+    "importHelpers": true,
+    "types": ["node"]
+  },
+  "include": ["src/**/*.ts"],
+  "references": [
+    {
+      "path": "../../libs/testing/tsconfig.lib.json"
+    },
+    {
+      "path": "../../libs/node/tsconfig.lib.json"
+    },
+    {
+      "path": "../../libs/interceptors/tsconfig.lib.json"
+    },
+    {
+      "path": "../../libs/federation/tsconfig.lib.json"
+    },
+    {
+      "path": "../../libs/errors/tsconfig.lib.json"
+    },
+    {
+      "path": "../../libs/devtools/tsconfig.lib.json"
+    },
+    {
+      "path": "../../libs/decorators/tsconfig.lib.json"
+    },
+    {
+      "path": "../../libs/core/tsconfig.lib.json"
+    },
+    {
+      "path": "../../tools/doc-examples"
+    }
+  ],
+  "exclude": [
+    "vite.config.ts",
+    "vite.config.mts",
+    "vitest.config.ts",
+    "vitest.config.mts",
+    "src/**/*.test.ts",
+    "src/**/*.spec.ts",
+    "src/**/*.test.tsx",
+    "src/**/*.spec.tsx",
+    "src/**/*.test.js",
+    "src/**/*.spec.js",
+    "src/**/*.test.jsx",
+    "src/**/*.spec.jsx"
+  ]
+}

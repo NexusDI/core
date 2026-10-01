@@ -28,9 +28,9 @@
   // the whole content tree as unused without this.
   //
   // libs/decorators/vite.decorators.ts is imported by the decorators,
-  // devtools and interceptors vite.config.ts files. fallow treats a vite
-  // config as an entry point of its own and does not trace its imports, so
-  // the file needs an entry.
+  // devtools, interceptors and meridian vite.config.ts files. fallow treats
+  // a vite config as an entry point of its own and does not trace its
+  // imports, so the file needs an entry.
   //
   // libs/core/test-support/nexus-request.ts has no importer. It augments
   // NexusRequest with `declare module '../src/index.js'`, and
@@ -201,6 +201,14 @@
   // this workspace imports them directly, so fallow's static import tracing
   // cannot see the consumer and reports them as unused.
   "ignoreDependencies": [
+    // examples/meridian lists every package its example blocks import. The
+    // blocks live in .md files under src/, which fallow does not read, so
+    // these four report as unused until a page task adds a block that
+    // imports them.
+    "@nexusdi/federation",
+    "@nexusdi/interceptors",
+    "@nexusdi/node",
+    "valibot",
     // Optional peers of @nexusdi/cli. The cli's image tests spawn the built
     // bin, which resolves them by path from the user's project
     // (libs/cli/src/resolve.ts), so no import statement names either one.
