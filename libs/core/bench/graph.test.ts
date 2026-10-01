@@ -24,7 +24,7 @@ describe('makeGraph', () => {
 });
 
 describe('makeModularGraph', () => {
-  it("builds the tech lead's realistic app: 32 modules, 301 providers", () => {
+  it('builds the realistic multi-module app: 32 modules, 301 providers', () => {
     const { root: rootUnknown, lookups } = makeModularGraph(core);
     const root = rootUnknown as ModuleDefinition;
     // 1 Config module + 30 feature modules.
