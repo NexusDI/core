@@ -19,11 +19,11 @@ function kebab(name: string): string {
 }
 
 /**
- * The two ground roles (`space0`, `space2`) take a `ground-` property, not
- * the generic `kebab(role)` mapping. The spacing scale already holds
- * `--meridian-space-1` through `--meridian-space-8`; a role named `space2`
- * would otherwise render as `--meridian-space-2` too, and both declarations
- * target `:root`, so one would silently win over the other.
+ * The two ground roles (`space0`, `space2`) render as `--meridian-ground-0`
+ * and `--meridian-ground-2`. The spacing scale holds `--meridian-space-1`
+ * through `--meridian-space-8`. The generic `kebab(role)` mapping would render
+ * `space2` as `--meridian-space-2` as well, and both declarations target
+ * `:root`, so one would silently override the other.
  */
 const GROUND_PROPERTY: Partial<Record<string, string>> = {
   space0: '--meridian-ground-0',
