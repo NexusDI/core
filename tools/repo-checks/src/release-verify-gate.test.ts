@@ -8,8 +8,8 @@ import { describe, expect, it } from 'vitest';
  * The invariant: the release gate is not weaker than the pull request gate.
  *
  * `.github/workflows/ci.yml` runs `nx run-many` over a fixed target list on
- * every pull request. `.github/workflows/release.yml` runs the same list before
- * anything is versioned or published, scoped to the release's blast radius. A
+ * every pull request. `.github/workflows/release.yml` runs the same list over
+ * every project before anything is versioned or published. A
  * target present in CI and absent from the release step means a package can be
  * published having passed less than the pull request that introduced it, and
  * nothing goes red: the release step succeeds, having run one target fewer.
@@ -17,12 +17,12 @@ import { describe, expect, it } from 'vitest';
  * Both lists are written by hand in shell, in two files that have no reason to
  * be edited together, so they are held against each other here.
  *
- * The scope is checked as well as the targets, for the one narrowing that
- * would be invisible. `release.yml` is `workflow_dispatch` on `main`, where
- * an affected comparison has the same commit on both sides: the affected set
- * is empty, every task is skipped, and the step reports success having
- * verified nothing. The release step's project list comes from the resolve
- * step that also drives `nx release`, and this asserts it stays that way.
+ * The scope is checked as well as the targets, for the narrowings that would
+ * be invisible. `release.yml` is `workflow_dispatch`, where an affected
+ * comparison has the same commit on both sides: the affected set is empty,
+ * every task is skipped, and the step reports success having verified
+ * nothing. A release publishes every package under libs/, so a project filter
+ * would leave some of them unverified.
  */
 
 const workflows = join(workspaceRoot, '.github', 'workflows');
@@ -91,15 +91,11 @@ describe('the release verify gate', () => {
     ).toEqual([]);
   });
 
-  it('scopes itself to the projects the same run releases', () => {
-    expect(release.step.run).toContain('--projects');
-
-    // The resolve step owns the release set. Reading its output is what keeps
-    // the set that is verified in step with the set that is versioned and
-    // published.
-    expect(Object.values(release.step.env ?? {}).join('\n')).toContain(
-      'steps.projects.outputs.',
-    );
+  it('runs over every project, since every release publishes every package', () => {
+    expect(
+      release.step.run,
+      'a release publishes every package under libs/',
+    ).not.toMatch(/--projects|\s-p\s/);
 
     expect(
       release.step.run,
