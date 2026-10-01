@@ -1,0 +1,1235 @@
+{
+  "schema": 1,
+  "versions": {
+    "core": "0.4.0-rc.0",
+    "libraries": {
+      "nexusdi": "0.4.0-rc.0",
+      "inversify": "8.2.3",
+      "tsyringe": "4.10.0",
+      "awilix": "13.0.5",
+      "needle-di": "1.2.1"
+    },
+    "toolchains": {
+      "tsc": "6.0.3",
+      "tsgo": "7.0.2",
+      "esbuild": "0.28.2",
+      "swc": "1.16.2",
+      "babel": "8.0.6",
+      "vite": "8.3.0",
+      "vite8+babel-plugin": "8.3.0",
+      "bun": "1.4.2",
+      "deno": "2.9.6",
+      "node-strip-types": "24.20.0"
+    },
+    "node": "24.20.0",
+    "bundlers": {
+      "esbuild": "0.28.2"
+    },
+    "tslib": "2.8.1"
+  },
+  "graphSeed": 20261001,
+  "graphs": [
+    {
+      "shape": "mixed",
+      "size": 50,
+      "hash": "868ff8f30086",
+      "providers": 50,
+      "edges": 101,
+      "modules": 5,
+      "maxDepth": 10,
+      "meanFanOut": 2.02,
+      "maxFanOut": 4,
+      "maxFanIn": 18,
+      "kinds": {
+        "class": 42,
+        "factory": 5,
+        "async-factory": 0,
+        "value": 3
+      },
+      "target": 48,
+      "targetClosure": 16
+    },
+    {
+      "shape": "mixed",
+      "size": 200,
+      "hash": "e9e0741a34d7",
+      "providers": 200,
+      "edges": 357,
+      "modules": 20,
+      "maxDepth": 11,
+      "meanFanOut": 1.79,
+      "maxFanOut": 4,
+      "maxFanIn": 43,
+      "kinds": {
+        "class": 170,
+        "factory": 20,
+        "async-factory": 0,
+        "value": 10
+      },
+      "target": 177,
+      "targetClosure": 27
+    },
+    {
+      "shape": "mixed",
+      "size": 1000,
+      "hash": "dc0a808a1c32",
+      "providers": 1000,
+      "edges": 1799,
+      "modules": 103,
+      "maxDepth": 12,
+      "meanFanOut": 1.8,
+      "maxFanOut": 4,
+      "maxFanIn": 209,
+      "kinds": {
+        "class": 850,
+        "factory": 100,
+        "async-factory": 0,
+        "value": 50
+      },
+      "target": 684,
+      "targetClosure": 31
+    },
+    {
+      "shape": "mixed",
+      "size": 5000,
+      "hash": "7690f0bd862b",
+      "providers": 5000,
+      "edges": 9156,
+      "modules": 497,
+      "maxDepth": 19,
+      "meanFanOut": 1.83,
+      "maxFanOut": 4,
+      "maxFanIn": 984,
+      "kinds": {
+        "class": 4250,
+        "factory": 500,
+        "async-factory": 0,
+        "value": 250
+      },
+      "target": 4296,
+      "targetClosure": 42
+    },
+    {
+      "shape": "wide",
+      "size": 50,
+      "hash": "f8b42741a272",
+      "providers": 50,
+      "edges": 80,
+      "modules": 1,
+      "maxDepth": 1,
+      "meanFanOut": 1.6,
+      "maxFanOut": 2,
+      "maxFanIn": 10,
+      "kinds": {
+        "class": 50,
+        "factory": 0,
+        "async-factory": 0,
+        "value": 0
+      },
+      "target": 10,
+      "targetClosure": 3
+    },
+    {
+      "shape": "wide",
+      "size": 200,
+      "hash": "90df99d9279c",
+      "providers": 200,
+      "edges": 320,
+      "modules": 1,
+      "maxDepth": 1,
+      "meanFanOut": 1.6,
+      "maxFanOut": 2,
+      "maxFanIn": 15,
+      "kinds": {
+        "class": 200,
+        "factory": 0,
+        "async-factory": 0,
+        "value": 0
+      },
+      "target": 40,
+      "targetClosure": 3
+    },
+    {
+      "shape": "wide",
+      "size": 1000,
+      "hash": "939ca26eb015",
+      "providers": 1000,
+      "edges": 1600,
+      "modules": 1,
+      "maxDepth": 1,
+      "meanFanOut": 1.6,
+      "maxFanOut": 2,
+      "maxFanIn": 19,
+      "kinds": {
+        "class": 1000,
+        "factory": 0,
+        "async-factory": 0,
+        "value": 0
+      },
+      "target": 200,
+      "targetClosure": 3
+    },
+    {
+      "shape": "wide",
+      "size": 5000,
+      "hash": "39f1234937b6",
+      "providers": 5000,
+      "edges": 8000,
+      "modules": 1,
+      "maxDepth": 1,
+      "meanFanOut": 1.6,
+      "maxFanOut": 2,
+      "maxFanIn": 21,
+      "kinds": {
+        "class": 5000,
+        "factory": 0,
+        "async-factory": 0,
+        "value": 0
+      },
+      "target": 1000,
+      "targetClosure": 3
+    },
+    {
+      "shape": "deep",
+      "size": 50,
+      "hash": "b699102e63db",
+      "providers": 50,
+      "edges": 77,
+      "modules": 1,
+      "maxDepth": 49,
+      "meanFanOut": 1.54,
+      "maxFanOut": 2,
+      "maxFanIn": 4,
+      "kinds": {
+        "class": 50,
+        "factory": 0,
+        "async-factory": 0,
+        "value": 0
+      },
+      "target": 49,
+      "targetClosure": 50
+    },
+    {
+      "shape": "deep",
+      "size": 200,
+      "hash": "51192d61165d",
+      "providers": 200,
+      "edges": 309,
+      "modules": 1,
+      "maxDepth": 99,
+      "meanFanOut": 1.55,
+      "maxFanOut": 2,
+      "maxFanIn": 6,
+      "kinds": {
+        "class": 200,
+        "factory": 0,
+        "async-factory": 0,
+        "value": 0
+      },
+      "target": 99,
+      "targetClosure": 100
+    },
+    {
+      "shape": "deep",
+      "size": 1000,
+      "hash": "52f6eba9dafb",
+      "providers": 1000,
+      "edges": 1579,
+      "modules": 1,
+      "maxDepth": 99,
+      "meanFanOut": 1.58,
+      "maxFanOut": 2,
+      "maxFanIn": 8,
+      "kinds": {
+        "class": 1000,
+        "factory": 0,
+        "async-factory": 0,
+        "value": 0
+      },
+      "target": 99,
+      "targetClosure": 100
+    },
+    {
+      "shape": "deep",
+      "size": 5000,
+      "hash": "c2318eb9e719",
+      "providers": 5000,
+      "edges": 7877,
+      "modules": 1,
+      "maxDepth": 99,
+      "meanFanOut": 1.58,
+      "maxFanOut": 2,
+      "maxFanIn": 8,
+      "kinds": {
+        "class": 5000,
+        "factory": 0,
+        "async-factory": 0,
+        "value": 0
+      },
+      "target": 99,
+      "targetClosure": 100
+    },
+    {
+      "shape": "modular",
+      "size": 50,
+      "hash": "c40c06b1d07d",
+      "providers": 50,
+      "edges": 76,
+      "modules": 5,
+      "maxDepth": 13,
+      "meanFanOut": 1.52,
+      "maxFanOut": 2,
+      "maxFanIn": 9,
+      "kinds": {
+        "class": 50,
+        "factory": 0,
+        "async-factory": 0,
+        "value": 0
+      },
+      "target": 49,
+      "targetClosure": 21
+    },
+    {
+      "shape": "modular",
+      "size": 200,
+      "hash": "354dcd425810",
+      "providers": 200,
+      "edges": 312,
+      "modules": 20,
+      "maxDepth": 19,
+      "meanFanOut": 1.56,
+      "maxFanOut": 2,
+      "maxFanIn": 14,
+      "kinds": {
+        "class": 200,
+        "factory": 0,
+        "async-factory": 0,
+        "value": 0
+      },
+      "target": 199,
+      "targetClosure": 47
+    },
+    {
+      "shape": "modular",
+      "size": 1000,
+      "hash": "0477fd9a8552",
+      "providers": 1000,
+      "edges": 1614,
+      "modules": 100,
+      "maxDepth": 32,
+      "meanFanOut": 1.61,
+      "maxFanOut": 2,
+      "maxFanIn": 21,
+      "kinds": {
+        "class": 1000,
+        "factory": 0,
+        "async-factory": 0,
+        "value": 0
+      },
+      "target": 877,
+      "targetClosure": 78
+    },
+    {
+      "shape": "modular",
+      "size": 5000,
+      "hash": "a4cf51a0b4ea",
+      "providers": 5000,
+      "edges": 7997,
+      "modules": 500,
+      "maxDepth": 46,
+      "meanFanOut": 1.6,
+      "maxFanOut": 2,
+      "maxFanIn": 28,
+      "kinds": {
+        "class": 5000,
+        "factory": 0,
+        "async-factory": 0,
+        "value": 0
+      },
+      "target": 4379,
+      "targetClosure": 205
+    },
+    {
+      "shape": "mixed-async",
+      "size": 50,
+      "hash": "ab964e4f3c49",
+      "providers": 50,
+      "edges": 101,
+      "modules": 5,
+      "maxDepth": 10,
+      "meanFanOut": 2.02,
+      "maxFanOut": 4,
+      "maxFanIn": 18,
+      "kinds": {
+        "class": 42,
+        "factory": 2,
+        "async-factory": 3,
+        "value": 3
+      },
+      "target": 48,
+      "targetClosure": 16
+    },
+    {
+      "shape": "mixed-async",
+      "size": 200,
+      "hash": "926edb1318b3",
+      "providers": 200,
+      "edges": 357,
+      "modules": 20,
+      "maxDepth": 11,
+      "meanFanOut": 1.79,
+      "maxFanOut": 4,
+      "maxFanIn": 43,
+      "kinds": {
+        "class": 170,
+        "factory": 8,
+        "async-factory": 12,
+        "value": 10
+      },
+      "target": 177,
+      "targetClosure": 27
+    },
+    {
+      "shape": "mixed-async",
+      "size": 1000,
+      "hash": "7cc8accc5c8e",
+      "providers": 1000,
+      "edges": 1799,
+      "modules": 103,
+      "maxDepth": 12,
+      "meanFanOut": 1.8,
+      "maxFanOut": 4,
+      "maxFanIn": 209,
+      "kinds": {
+        "class": 850,
+        "factory": 51,
+        "async-factory": 49,
+        "value": 50
+      },
+      "target": 684,
+      "targetClosure": 31
+    },
+    {
+      "shape": "mixed-async",
+      "size": 5000,
+      "hash": "8731cafb4eda",
+      "providers": 5000,
+      "edges": 9156,
+      "modules": 497,
+      "maxDepth": 19,
+      "meanFanOut": 1.83,
+      "maxFanOut": 4,
+      "maxFanIn": 984,
+      "kinds": {
+        "class": 4250,
+        "factory": 235,
+        "async-factory": 265,
+        "value": 250
+      },
+      "target": 4296,
+      "targetClosure": 42
+    }
+  ],
+  "cells": [
+    {
+      "library": "awilix",
+      "variant": "plain",
+      "shape": "mixed",
+      "size": 50,
+      "outcome": "pass"
+    },
+    {
+      "library": "awilix",
+      "variant": "plain",
+      "shape": "mixed",
+      "size": 200,
+      "outcome": "pass"
+    },
+    {
+      "library": "awilix",
+      "variant": "plain",
+      "shape": "mixed",
+      "size": 1000,
+      "outcome": "pass"
+    },
+    {
+      "library": "awilix",
+      "variant": "plain",
+      "shape": "mixed",
+      "size": 5000,
+      "outcome": "pass"
+    },
+    {
+      "library": "awilix",
+      "variant": "plain",
+      "shape": "wide",
+      "size": 50,
+      "outcome": "pass"
+    },
+    {
+      "library": "awilix",
+      "variant": "plain",
+      "shape": "wide",
+      "size": 200,
+      "outcome": "pass"
+    },
+    {
+      "library": "awilix",
+      "variant": "plain",
+      "shape": "wide",
+      "size": 1000,
+      "outcome": "pass"
+    },
+    {
+      "library": "awilix",
+      "variant": "plain",
+      "shape": "deep",
+      "size": 50,
+      "outcome": "pass"
+    },
+    {
+      "library": "awilix",
+      "variant": "plain",
+      "shape": "deep",
+      "size": 200,
+      "outcome": "pass"
+    },
+    {
+      "library": "awilix",
+      "variant": "plain",
+      "shape": "deep",
+      "size": 1000,
+      "outcome": "pass"
+    },
+    {
+      "library": "awilix",
+      "variant": "plain",
+      "shape": "modular",
+      "size": 50,
+      "outcome": "pass"
+    },
+    {
+      "library": "awilix",
+      "variant": "plain",
+      "shape": "modular",
+      "size": 200,
+      "outcome": "pass"
+    },
+    {
+      "library": "awilix",
+      "variant": "plain",
+      "shape": "modular",
+      "size": 1000,
+      "outcome": "pass"
+    },
+    {
+      "library": "awilix",
+      "variant": "plain",
+      "shape": "mixed-async",
+      "size": 50,
+      "outcome": "not-applicable",
+      "message": "awilix 13.0.5 resolves synchronously, and its README sends asynchronous init to awilix-manager (https://github.com/jeffijoe/awilix#ecosystem)."
+    },
+    {
+      "library": "awilix",
+      "variant": "plain",
+      "shape": "mixed-async",
+      "size": 200,
+      "outcome": "not-applicable",
+      "message": "awilix 13.0.5 resolves synchronously, and its README sends asynchronous init to awilix-manager (https://github.com/jeffijoe/awilix#ecosystem)."
+    },
+    {
+      "library": "awilix",
+      "variant": "plain",
+      "shape": "mixed-async",
+      "size": 1000,
+      "outcome": "not-applicable",
+      "message": "awilix 13.0.5 resolves synchronously, and its README sends asynchronous init to awilix-manager (https://github.com/jeffijoe/awilix#ecosystem)."
+    },
+    {
+      "library": "inversify",
+      "variant": "decorated",
+      "shape": "mixed",
+      "size": 50,
+      "outcome": "pass"
+    },
+    {
+      "library": "inversify",
+      "variant": "decorated",
+      "shape": "mixed",
+      "size": 200,
+      "outcome": "pass"
+    },
+    {
+      "library": "inversify",
+      "variant": "decorated",
+      "shape": "mixed",
+      "size": 1000,
+      "outcome": "pass"
+    },
+    {
+      "library": "inversify",
+      "variant": "decorated",
+      "shape": "mixed",
+      "size": 5000,
+      "outcome": "pass"
+    },
+    {
+      "library": "inversify",
+      "variant": "decorated",
+      "shape": "wide",
+      "size": 50,
+      "outcome": "pass"
+    },
+    {
+      "library": "inversify",
+      "variant": "decorated",
+      "shape": "wide",
+      "size": 200,
+      "outcome": "pass"
+    },
+    {
+      "library": "inversify",
+      "variant": "decorated",
+      "shape": "wide",
+      "size": 1000,
+      "outcome": "pass"
+    },
+    {
+      "library": "inversify",
+      "variant": "decorated",
+      "shape": "deep",
+      "size": 50,
+      "outcome": "pass"
+    },
+    {
+      "library": "inversify",
+      "variant": "decorated",
+      "shape": "deep",
+      "size": 200,
+      "outcome": "pass"
+    },
+    {
+      "library": "inversify",
+      "variant": "decorated",
+      "shape": "deep",
+      "size": 1000,
+      "outcome": "pass"
+    },
+    {
+      "library": "inversify",
+      "variant": "decorated",
+      "shape": "modular",
+      "size": 50,
+      "outcome": "pass"
+    },
+    {
+      "library": "inversify",
+      "variant": "decorated",
+      "shape": "modular",
+      "size": 200,
+      "outcome": "pass"
+    },
+    {
+      "library": "inversify",
+      "variant": "decorated",
+      "shape": "modular",
+      "size": 1000,
+      "outcome": "pass"
+    },
+    {
+      "library": "inversify",
+      "variant": "decorated",
+      "shape": "mixed-async",
+      "size": 50,
+      "outcome": "pass"
+    },
+    {
+      "library": "inversify",
+      "variant": "decorated",
+      "shape": "mixed-async",
+      "size": 200,
+      "outcome": "pass"
+    },
+    {
+      "library": "inversify",
+      "variant": "decorated",
+      "shape": "mixed-async",
+      "size": 1000,
+      "outcome": "pass"
+    },
+    {
+      "library": "needle-di",
+      "variant": "decorated",
+      "shape": "mixed",
+      "size": 50,
+      "outcome": "pass"
+    },
+    {
+      "library": "needle-di",
+      "variant": "decorated",
+      "shape": "mixed",
+      "size": 200,
+      "outcome": "pass"
+    },
+    {
+      "library": "needle-di",
+      "variant": "decorated",
+      "shape": "mixed",
+      "size": 1000,
+      "outcome": "pass"
+    },
+    {
+      "library": "needle-di",
+      "variant": "decorated",
+      "shape": "mixed",
+      "size": 5000,
+      "outcome": "pass"
+    },
+    {
+      "library": "needle-di",
+      "variant": "decorated",
+      "shape": "wide",
+      "size": 50,
+      "outcome": "pass"
+    },
+    {
+      "library": "needle-di",
+      "variant": "decorated",
+      "shape": "wide",
+      "size": 200,
+      "outcome": "pass"
+    },
+    {
+      "library": "needle-di",
+      "variant": "decorated",
+      "shape": "wide",
+      "size": 1000,
+      "outcome": "pass"
+    },
+    {
+      "library": "needle-di",
+      "variant": "decorated",
+      "shape": "deep",
+      "size": 50,
+      "outcome": "pass"
+    },
+    {
+      "library": "needle-di",
+      "variant": "decorated",
+      "shape": "deep",
+      "size": 200,
+      "outcome": "pass"
+    },
+    {
+      "library": "needle-di",
+      "variant": "decorated",
+      "shape": "deep",
+      "size": 1000,
+      "outcome": "pass"
+    },
+    {
+      "library": "needle-di",
+      "variant": "decorated",
+      "shape": "modular",
+      "size": 50,
+      "outcome": "pass"
+    },
+    {
+      "library": "needle-di",
+      "variant": "decorated",
+      "shape": "modular",
+      "size": 200,
+      "outcome": "pass"
+    },
+    {
+      "library": "needle-di",
+      "variant": "decorated",
+      "shape": "modular",
+      "size": 1000,
+      "outcome": "pass"
+    },
+    {
+      "library": "needle-di",
+      "variant": "decorated",
+      "shape": "mixed-async",
+      "size": 50,
+      "outcome": "pass"
+    },
+    {
+      "library": "needle-di",
+      "variant": "decorated",
+      "shape": "mixed-async",
+      "size": 200,
+      "outcome": "pass"
+    },
+    {
+      "library": "needle-di",
+      "variant": "decorated",
+      "shape": "mixed-async",
+      "size": 1000,
+      "outcome": "pass"
+    },
+    {
+      "library": "nexusdi",
+      "variant": "plain",
+      "shape": "mixed",
+      "size": 50,
+      "outcome": "pass"
+    },
+    {
+      "library": "nexusdi",
+      "variant": "plain",
+      "shape": "mixed",
+      "size": 200,
+      "outcome": "pass"
+    },
+    {
+      "library": "nexusdi",
+      "variant": "plain",
+      "shape": "mixed",
+      "size": 1000,
+      "outcome": "pass"
+    },
+    {
+      "library": "nexusdi",
+      "variant": "plain",
+      "shape": "mixed",
+      "size": 5000,
+      "outcome": "pass"
+    },
+    {
+      "library": "nexusdi",
+      "variant": "plain",
+      "shape": "wide",
+      "size": 50,
+      "outcome": "pass"
+    },
+    {
+      "library": "nexusdi",
+      "variant": "plain",
+      "shape": "wide",
+      "size": 200,
+      "outcome": "pass"
+    },
+    {
+      "library": "nexusdi",
+      "variant": "plain",
+      "shape": "wide",
+      "size": 1000,
+      "outcome": "pass"
+    },
+    {
+      "library": "nexusdi",
+      "variant": "plain",
+      "shape": "deep",
+      "size": 50,
+      "outcome": "pass"
+    },
+    {
+      "library": "nexusdi",
+      "variant": "plain",
+      "shape": "deep",
+      "size": 200,
+      "outcome": "pass"
+    },
+    {
+      "library": "nexusdi",
+      "variant": "plain",
+      "shape": "deep",
+      "size": 1000,
+      "outcome": "pass"
+    },
+    {
+      "library": "nexusdi",
+      "variant": "plain",
+      "shape": "modular",
+      "size": 50,
+      "outcome": "pass"
+    },
+    {
+      "library": "nexusdi",
+      "variant": "plain",
+      "shape": "modular",
+      "size": 200,
+      "outcome": "pass"
+    },
+    {
+      "library": "nexusdi",
+      "variant": "plain",
+      "shape": "modular",
+      "size": 1000,
+      "outcome": "pass"
+    },
+    {
+      "library": "nexusdi",
+      "variant": "plain",
+      "shape": "mixed-async",
+      "size": 50,
+      "outcome": "pass"
+    },
+    {
+      "library": "nexusdi",
+      "variant": "plain",
+      "shape": "mixed-async",
+      "size": 200,
+      "outcome": "pass"
+    },
+    {
+      "library": "nexusdi",
+      "variant": "plain",
+      "shape": "mixed-async",
+      "size": 1000,
+      "outcome": "pass"
+    },
+    {
+      "library": "tsyringe",
+      "variant": "decorated",
+      "shape": "mixed",
+      "size": 50,
+      "outcome": "pass"
+    },
+    {
+      "library": "tsyringe",
+      "variant": "decorated",
+      "shape": "mixed",
+      "size": 200,
+      "outcome": "pass"
+    },
+    {
+      "library": "tsyringe",
+      "variant": "decorated",
+      "shape": "mixed",
+      "size": 1000,
+      "outcome": "pass"
+    },
+    {
+      "library": "tsyringe",
+      "variant": "decorated",
+      "shape": "mixed",
+      "size": 5000,
+      "outcome": "pass"
+    },
+    {
+      "library": "tsyringe",
+      "variant": "decorated",
+      "shape": "wide",
+      "size": 50,
+      "outcome": "pass"
+    },
+    {
+      "library": "tsyringe",
+      "variant": "decorated",
+      "shape": "wide",
+      "size": 200,
+      "outcome": "pass"
+    },
+    {
+      "library": "tsyringe",
+      "variant": "decorated",
+      "shape": "wide",
+      "size": 1000,
+      "outcome": "pass"
+    },
+    {
+      "library": "tsyringe",
+      "variant": "decorated",
+      "shape": "deep",
+      "size": 50,
+      "outcome": "pass"
+    },
+    {
+      "library": "tsyringe",
+      "variant": "decorated",
+      "shape": "deep",
+      "size": 200,
+      "outcome": "pass"
+    },
+    {
+      "library": "tsyringe",
+      "variant": "decorated",
+      "shape": "deep",
+      "size": 1000,
+      "outcome": "pass"
+    },
+    {
+      "library": "tsyringe",
+      "variant": "decorated",
+      "shape": "modular",
+      "size": 50,
+      "outcome": "pass"
+    },
+    {
+      "library": "tsyringe",
+      "variant": "decorated",
+      "shape": "modular",
+      "size": 200,
+      "outcome": "pass"
+    },
+    {
+      "library": "tsyringe",
+      "variant": "decorated",
+      "shape": "modular",
+      "size": 1000,
+      "outcome": "pass"
+    },
+    {
+      "library": "tsyringe",
+      "variant": "decorated",
+      "shape": "mixed-async",
+      "size": 50,
+      "outcome": "not-applicable",
+      "message": "tsyringe 4.10.0 declares no async resolution: resolve() returns the instance and the README documents no async provider."
+    },
+    {
+      "library": "tsyringe",
+      "variant": "decorated",
+      "shape": "mixed-async",
+      "size": 200,
+      "outcome": "not-applicable",
+      "message": "tsyringe 4.10.0 declares no async resolution: resolve() returns the instance and the README documents no async provider."
+    },
+    {
+      "library": "tsyringe",
+      "variant": "decorated",
+      "shape": "mixed-async",
+      "size": 1000,
+      "outcome": "not-applicable",
+      "message": "tsyringe 4.10.0 declares no async resolution: resolve() returns the instance and the README documents no async provider."
+    }
+  ],
+  "sizes": [
+    {
+      "library": "awilix",
+      "variant": "plain",
+      "shape": "mixed",
+      "size": 50,
+      "minified": 15087,
+      "gzip": 5043
+    },
+    {
+      "library": "awilix",
+      "variant": "plain",
+      "shape": "mixed",
+      "size": 200,
+      "minified": 33288,
+      "gzip": 8578
+    },
+    {
+      "library": "awilix",
+      "variant": "plain",
+      "shape": "mixed",
+      "size": 1000,
+      "minified": 130981,
+      "gzip": 25950
+    },
+    {
+      "library": "awilix",
+      "variant": "plain",
+      "shape": "mixed",
+      "size": 5000,
+      "minified": 653813,
+      "gzip": 111342
+    },
+    {
+      "library": "inversify",
+      "variant": "decorated",
+      "shape": "mixed",
+      "size": 50,
+      "minified": 100425,
+      "gzip": 23504
+    },
+    {
+      "library": "inversify",
+      "variant": "decorated",
+      "shape": "mixed",
+      "size": 200,
+      "minified": 128072,
+      "gzip": 28129
+    },
+    {
+      "library": "inversify",
+      "variant": "decorated",
+      "shape": "mixed",
+      "size": 1000,
+      "minified": 277482,
+      "gzip": 51363
+    },
+    {
+      "library": "inversify",
+      "variant": "decorated",
+      "shape": "mixed",
+      "size": 5000,
+      "minified": 1047309,
+      "gzip": 169226
+    },
+    {
+      "library": "needle-di",
+      "variant": "decorated",
+      "shape": "mixed",
+      "size": 50,
+      "minified": 26555,
+      "gzip": 4571
+    },
+    {
+      "library": "needle-di",
+      "variant": "decorated",
+      "shape": "mixed",
+      "size": 200,
+      "minified": 80873,
+      "gzip": 7746
+    },
+    {
+      "library": "needle-di",
+      "variant": "decorated",
+      "shape": "mixed",
+      "size": 1000,
+      "minified": 370951,
+      "gzip": 24362
+    },
+    {
+      "library": "needle-di",
+      "variant": "decorated",
+      "shape": "mixed",
+      "size": 5000,
+      "minified": 1838553,
+      "gzip": 104871
+    },
+    {
+      "library": "nexusdi",
+      "variant": "plain",
+      "shape": "mixed",
+      "size": 50,
+      "minified": 64756,
+      "gzip": 20345
+    },
+    {
+      "library": "nexusdi",
+      "variant": "plain",
+      "shape": "mixed",
+      "size": 200,
+      "minified": 90083,
+      "gzip": 24832
+    },
+    {
+      "library": "nexusdi",
+      "variant": "plain",
+      "shape": "mixed",
+      "size": 1000,
+      "minified": 226485,
+      "gzip": 47062
+    },
+    {
+      "library": "nexusdi",
+      "variant": "plain",
+      "shape": "mixed",
+      "size": 5000,
+      "minified": 941603,
+      "gzip": 158469
+    },
+    {
+      "library": "tsyringe",
+      "variant": "decorated",
+      "shape": "mixed",
+      "size": 50,
+      "minified": 37220,
+      "gzip": 11026
+    },
+    {
+      "library": "tsyringe",
+      "variant": "decorated",
+      "shape": "mixed",
+      "size": 200,
+      "minified": 58039,
+      "gzip": 14693
+    },
+    {
+      "library": "tsyringe",
+      "variant": "decorated",
+      "shape": "mixed",
+      "size": 1000,
+      "minified": 171775,
+      "gzip": 33488
+    },
+    {
+      "library": "tsyringe",
+      "variant": "decorated",
+      "shape": "mixed",
+      "size": 5000,
+      "minified": 763670,
+      "gzip": 126559
+    }
+  ],
+  "perProvider": [
+    {
+      "library": "awilix",
+      "variant": "plain",
+      "shape": "mixed",
+      "bytes": "minified",
+      "perProvider": 130.71
+    },
+    {
+      "library": "awilix",
+      "variant": "plain",
+      "shape": "mixed",
+      "bytes": "gzip",
+      "perProvider": 21.35
+    },
+    {
+      "library": "inversify",
+      "variant": "decorated",
+      "shape": "mixed",
+      "bytes": "minified",
+      "perProvider": 192.46
+    },
+    {
+      "library": "inversify",
+      "variant": "decorated",
+      "shape": "mixed",
+      "bytes": "gzip",
+      "perProvider": 29.47
+    },
+    {
+      "library": "needle-di",
+      "variant": "decorated",
+      "shape": "mixed",
+      "bytes": "minified",
+      "perProvider": 366.9
+    },
+    {
+      "library": "needle-di",
+      "variant": "decorated",
+      "shape": "mixed",
+      "bytes": "gzip",
+      "perProvider": 20.13
+    },
+    {
+      "library": "nexusdi",
+      "variant": "plain",
+      "shape": "mixed",
+      "bytes": "minified",
+      "perProvider": 178.78
+    },
+    {
+      "library": "nexusdi",
+      "variant": "plain",
+      "shape": "mixed",
+      "bytes": "gzip",
+      "perProvider": 27.85
+    },
+    {
+      "library": "tsyringe",
+      "variant": "decorated",
+      "shape": "mixed",
+      "bytes": "minified",
+      "perProvider": 147.97
+    },
+    {
+      "library": "tsyringe",
+      "variant": "decorated",
+      "shape": "mixed",
+      "bytes": "gzip",
+      "perProvider": 23.27
+    }
+  ]
+}

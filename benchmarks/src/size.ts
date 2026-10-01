@@ -219,5 +219,5 @@ export async function runSize(opts: { only?: LibraryId[] }): Promise<SizeFile> {
 
 if (import.meta.main) {
   const only = onlyArg();
-  writeResult('size', await runSize({ only }), only);
+  writeResult('size', await runSize({ only }), only !== undefined);
 }

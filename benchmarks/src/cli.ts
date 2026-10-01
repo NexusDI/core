@@ -1,7 +1,8 @@
 /**
- * What every results writer shares: its --only and --check flags, the
- * libraries and variants it walks, the consumer it builds in, and how it
- * writes a deterministic file.
+ * What every results writer shares: its --only and --check flags (and the
+ * scale suite's --sizes and --shapes), the libraries and variants it
+ * walks, the consumer it builds in, and how it writes a deterministic
+ * file.
  */
 import {
   existsSync,
@@ -13,6 +14,7 @@ import {
 import { join } from 'node:path';
 
 import { makeCell, prepareConsumer } from './consumer.ts';
+import { SHAPES, SIZES, type Shape, type Size } from './scale/config.ts';
 import {
   BENCHMARKS,
   FIXTURES,
@@ -48,6 +50,37 @@ export function onlyArg(argv = process.argv): LibraryId[] | undefined {
     .filter((id): id is LibraryId =>
       (LIBRARIES as readonly string[]).includes(id),
     );
+}
+
+/**
+ * The comma-separated values of --name, each checked against `known`, or
+ * undefined when the flag is absent. An unknown value throws: a typo would
+ * otherwise run an empty suite and write an empty file.
+ */
+function listArg<T extends string | number>(
+  name: string,
+  known: readonly T[],
+  parse: (raw: string) => T,
+  argv: readonly string[],
+): T[] | undefined {
+  const raw = argValue(name, argv as string[]);
+  if (raw === undefined) return undefined;
+  return raw.split(',').map((x) => {
+    const value = parse(x);
+    if (!known.includes(value))
+      throw new Error(`--${name}: ${x} is not one of ${known.join(', ')}`);
+    return value;
+  });
+}
+
+/** The scale sizes --sizes=50,200 names, or undefined for all. */
+export function sizesArg(argv = process.argv): Size[] | undefined {
+  return listArg<Size>('sizes', SIZES, (x) => Number(x) as Size, argv);
+}
+
+/** The scale shapes --shapes=mixed,wide names, or undefined for all. */
+export function shapesArg(argv = process.argv): Shape[] | undefined {
+  return listArg<Shape>('shapes', SHAPES, (x) => x as Shape, argv);
 }
 
 /** The libraries a run covers, sorted by id; `keep` stays in whatever --only says. */
@@ -107,23 +140,28 @@ export function withConsumer<T>(
 
 /**
  * Validates and writes a deterministic results file: under results/ for a
- * full run, under tmp/ for an --only run. With --check, exits 1 when the
- * file differs from the one it replaced.
+ * full run, under tmp/ for a partial one (--only, or the scale suite's
+ * --sizes or --shapes). With --check, exits 1 when the file differs from
+ * the one it replaced. `root` and `check` default to benchmarks/ and the
+ * --check flag; tests pass their own.
  */
 export function writeResult(
-  kind: 'matrix' | 'probes' | 'size',
+  kind: 'matrix' | 'probes' | 'size' | 'scale',
   file: unknown,
-  only: readonly LibraryId[] | undefined,
+  partial: boolean,
+  opts: { root?: string; check?: boolean } = {},
 ): void {
-  const where = only === undefined ? 'results' : 'tmp';
+  const where = partial ? 'tmp' : 'results';
+  const root = opts.root ?? BENCHMARKS;
   validate(kind, file, where);
-  mkdirSync(join(BENCHMARKS, where), { recursive: true });
-  const out = join(BENCHMARKS, where, `${kind}.json`);
+  mkdirSync(join(root, where), { recursive: true });
+  const out = join(root, where, `${kind}.json`);
   const text = JSON.stringify(file, null, 2) + '\n';
   const committed = existsSync(out) ? readFileSync(out, 'utf8') : '';
   writeFileSync(out, text);
   console.log(`Wrote ${out}`);
-  if (process.argv.includes('--check') && committed !== text) {
+  const check = opts.check ?? process.argv.includes('--check');
+  if (check && committed !== text) {
     console.error(`${kind}.json changed. Commit the file the run wrote.`);
     process.exit(1);
   }
