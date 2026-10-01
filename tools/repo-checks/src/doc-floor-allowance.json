@@ -1,0 +1,15 @@
+{
+  "getting-started": "Phase 1 writes it in its page task.",
+  "api-errors": "Phase 1 writes it after the code pages.",
+  "api": "Phase 2 writes the API reference from core's docblocks.",
+  "providers": "Phase 1 writes the Concepts band in teaching order.",
+  "lifetimes": "Phase 1 writes the Concepts band in teaching order.",
+  "modules": "Phase 1 writes the Concepts band in teaching order.",
+  "configurable-modules": "Phase 1 writes the Concepts band in teaching order.",
+  "scopes": "Phase 1 writes the Concepts band in teaching order.",
+  "lifecycle": "Phase 1 writes the Concepts band in teaching order.",
+  "lazy": "Phase 1 writes the Concepts band in teaching order.",
+  "multi-providers": "Phase 1 writes the Concepts band in teaching order.",
+  "errors": "Phase 1 writes the Concepts band in teaching order.",
+  "introspection": "Phase 1 writes the Concepts band in teaching order."
+}
