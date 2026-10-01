@@ -40,17 +40,16 @@ A `file=… region=…` fence is empty in the MDX. The region loader fills it at
 
 ### The prose and the fence under it describe the same code
 
-A region was written for a test and appears on a page whose sentences were written separately, so the two drift and nothing fails. Read each fence and the paragraph introducing it as one claim, and check the claim. Look for three mismatches:
+A region was written for a test and appears on a page whose sentences were written separately, so the two drift and nothing fails. Read each fence and the paragraph introducing it as one claim, and check the claim. Look for two mismatches:
 
-- The prose names an option or a value the fence does not contain. An example is a sentence about `Comms.forRoot({ frequency: 1420 })` above a region that configures a different frequency.
-- The prose names a lifetime, a module or a token the fence does not. An example is a paragraph about `scoped` over a region that registers a `transient`.
+- The prose names an option, a value, a lifetime, a module or a token the fence does not contain. An example is a sentence about `Comms.forRoot({ frequency: 1420 })` above a region that configures a different frequency, or a paragraph about `scoped` over a region that registers a `transient`.
 - The prose promises behaviour the fence omits. An example is a sentence that says `onInit` finishes before `create` resolves, above a region with no `onInit`.
 
 When they disagree, say which one you believe and why. The fence is usually right, because it executes.
 
 ### A claim about behaviour is checked against `libs/core/src`
 
-A sentence naming an ordering, a count, an error code or a lifetime is a claim the source settles, and most of them have no fence to disagree with: "disposed in reverse creation order", "every singleton is built at `create`", "`has()` returns `false` for a private token". Open the source and count. Grep the identifier. A prose-only paragraph keeps a stale claim longest, because every guard in the repository reads fences.
+A sentence naming an ordering, a count, an error code or a lifetime is a claim the source settles, and most of them have no fence to disagree with: "disposed in reverse creation order", "every singleton is built at `create`", "`has()` returns `false` for a private token". Open the source and count. Grep the identifier. A stale claim stays longest in a prose-only paragraph, because every guard in the repository reads fences.
 
 ### After a breaking change, sweep for the removed feature's residue
 

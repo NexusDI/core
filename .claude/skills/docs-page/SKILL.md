@@ -7,15 +7,14 @@ description: Use when writing or changing a page in apps/docs or a mission brief
 
 ## Where the rules live
 
-`apps/docs/libraries-pin.json` names the commit of Evanion/libraries this site follows and the documents it follows there. Read its `sha` and fetch each document at `https://raw.githubusercontent.com/Evanion/libraries/<sha>/<path>`. Three of them divide the writing rules by subject:
+`apps/docs/libraries-pin.json` names the commit of Evanion/libraries this site follows and the documents it follows there. Read its `sha` and fetch each document at `https://raw.githubusercontent.com/Evanion/libraries/<sha>/<path>`. Two of them divide the writing rules by subject:
 
-- `docs/specs/2026-09-16-documentation-standard.md` decides structure: which page a thing belongs on, how a section stands alone, how support fades.
+- `docs/specs/2026-09-16-documentation-standard.md` decides structure: which page a thing belongs on, how a section stands alone, how support fades. `docs/specs/2026-09-16-diagrams.md` decides how a diagram is authored, and where it and the standard disagree, it wins.
 - `docs/specs/2026-09-20-public-documentation-guidance.md` decides sentences: person, tense, mood, paragraph and list length, terminology, notices, the refused words. Read it before writing prose.
-- `docs/specs/2026-09-16-diagrams.md` decides how a diagram is authored. Where it and the standard disagree, it wins.
 
 The pin names the others, and the reviewer agent (`.claude/agents/docs-reviewer.md`) lists what each covers.
 
-`specs/2026-09-23-docs-site-design.md` is this site's spec. Section 3 amends the standard with the `concept` and `post` kinds, section 4 holds the inventory and the teaching order, section 5 the anatomy of each page kind, and section 7 the Starship Meridian. Read the sections that bear on the page you are touching. Do not work from a summary of them, and copy no part of them into anything else: a copy goes stale in the direction that reads as authoritative.
+`specs/2026-09-23-docs-site-design.md` is this site's spec. Section 3 amends the standard with the `concept` and `post` kinds, section 4 holds the inventory and the teaching order, section 5 the anatomy of each page kind, and section 7 the Starship Meridian. Read the sections that bear on the page you are touching. Do not work from a summary of them, and copy no part of them into anything else: a copy goes stale, and a stale copy looks authoritative.
 
 This file holds the procedure and the traps, and nothing the specs hold.
 
@@ -69,7 +68,7 @@ A `ts file=… region=…` block has no body in the `.mdx`; the region loader fi
 
 ### `twoslash` is the only other word a region fence may carry
 
-`rehype-twoslash-popup` injects the `Popup` import when a fence's meta is exactly `twoslash`. The region loader strips the `file=… region=…` pair before Nextra reads the info string, so `ts twoslash file=libs/core/README.md region=quick-start` reaches rehype as plain `twoslash`. Any other word (`copy`, `filename=`, `showLineNumbers`) survives the loader and blocks the import, and MDX throws `Expected component Popup to be defined` at render. `doc-twoslash.test.ts` asserts the post-expansion meta.
+`rehype-twoslash-popup` injects the `Popup` import when a fence's meta is exactly `twoslash`. The region loader strips the `file=… region=…` pair before Nextra reads the info string, so `ts twoslash file=libs/core/README.md region=quick-start` reaches rehype as plain `twoslash`. Any other word (`copy`, `filename=`, `showLineNumbers`) stays in the info string after the loader runs and blocks the import, and MDX throws `Expected component Popup to be defined` at render. `doc-twoslash.test.ts` asserts the post-expansion meta.
 
 ### A `^?` query is the last line of its fence
 
@@ -87,21 +86,21 @@ Twoslash throws on an error the fence does not declare and says nothing when a d
 
 A guard fails the page without one. Nothing fails when a diagram describes a flow the code no longer has, so no fact lives only in a diagram.
 
-### A link written as `/next/…` breaks at the swap.
+### Links under `/next/`
 
-Write root-relative links such as `/scopes/`. Next adds the base path on the `/next/` build and adds nothing on the root build after 0.4.0 final. `doc-links.test.ts` fails a hard-coded `/next/`.
+A link written as `/next/…` breaks at the swap. Write root-relative links such as `/scopes/`. Next adds the base path on the `/next/` build and adds nothing on the root build after 0.4.0 final. `doc-links.test.ts` fails a hard-coded `/next/`.
 
-### Console fixtures and seed JavaScript are built from `libs/core/dist`.
+### Console fixtures and the built core
 
-`docs:console-fixtures` and `docs:playground-types` run the seeds against the built core. After an engine change, rebuild core before you read a console or trust a fixture.
+Console fixtures and seed JavaScript are built from `libs/core/dist`. `docs:console-fixtures` and `docs:playground-types` run the seeds against the built core. After an engine change, rebuild core before you read a console or trust a fixture.
 
 ### A `mission.ts` edit that changes an objective raises `version`
 
 The progress store keys every attempt by mission version. An objective edited without a version bump mixes attempts from two definitions in a reader's figures.
 
-### A new decoy that passes its objective means the check is too weak.
+### A decoy that passes
 
-Strengthen the check and keep the decoy. The `academy-missions` guard fails the mission until the decoy fails.
+A new decoy that passes its objective means the check is too weak. Strengthen the check and keep the decoy. The `academy-missions` guard fails the mission until the decoy fails.
 
 ## Committing
 
