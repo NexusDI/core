@@ -1,0 +1,97 @@
+{
+  "schema": 1,
+  "versions": {
+    "core": "0.4.0-rc.0",
+    "libraries": {
+      "nexusdi": "0.4.0-rc.0",
+      "inversify": "8.2.3",
+      "tsyringe": "4.10.0",
+      "awilix": "13.0.5",
+      "needle-di": "1.2.1"
+    },
+    "toolchains": { "tsc": "6.0.3", "esbuild": "0.28.2" },
+    "node": "24.20.0"
+  },
+  "cells": [
+    {
+      "library": "needle-di",
+      "variant": "decorated",
+      "toolchain": "esbuild",
+      "profile": "standard",
+      "sections": {
+        "singleton": "pass",
+        "transient": "not-applicable",
+        "scoped": "not-applicable"
+      },
+      "outcome": "pass",
+      "polyfill": null
+    },
+    {
+      "library": "needle-di",
+      "variant": "decorated",
+      "toolchain": "tsc",
+      "profile": "standard",
+      "sections": {
+        "singleton": "pass",
+        "transient": "not-applicable",
+        "scoped": "not-applicable"
+      },
+      "outcome": "pass",
+      "polyfill": null
+    },
+    {
+      "library": "nexusdi",
+      "variant": "plain",
+      "toolchain": "esbuild",
+      "profile": "none",
+      "sections": {
+        "singleton": "pass",
+        "transient": "pass",
+        "scoped": "pass"
+      },
+      "outcome": "pass",
+      "polyfill": null
+    },
+    {
+      "library": "nexusdi",
+      "variant": "plain",
+      "toolchain": "tsc",
+      "profile": "none",
+      "sections": {
+        "singleton": "pass",
+        "transient": "pass",
+        "scoped": "pass"
+      },
+      "outcome": "pass",
+      "polyfill": null
+    },
+    {
+      "library": "tsyringe",
+      "variant": "decorated",
+      "toolchain": "esbuild",
+      "profile": "legacy-metadata",
+      "sections": {
+        "singleton": "wrong-instance",
+        "transient": "wrong-instance",
+        "scoped": "wrong-instance"
+      },
+      "outcome": "wrong-instance",
+      "polyfill": "metadata-polyfill@1.0.0",
+      "message": "bridge.computer is undefined",
+      "documented": "https://esbuild.github.io/content-types/#no-type-system"
+    },
+    {
+      "library": "tsyringe",
+      "variant": "decorated",
+      "toolchain": "tsc",
+      "profile": "legacy-metadata",
+      "sections": {
+        "singleton": "pass",
+        "transient": "pass",
+        "scoped": "pass"
+      },
+      "outcome": "pass",
+      "polyfill": "metadata-polyfill@1.0.0"
+    }
+  ]
+}

@@ -11,9 +11,18 @@
       "type:app"
     ],
     "targets": {
+      "benchmark-data": {
+        "executor": "nx:run-commands",
+        "cache": false,
+        "options": {
+          "cwd": "{projectRoot}",
+          "command": "node tools/benchmark-data.mjs"
+        }
+      },
       "build": {
         "dependsOn": [
-          "^build"
+          "^build",
+          "benchmark-data"
         ],
         "inputs": [
           "default",
@@ -42,7 +51,8 @@
       "typecheck": {
         "cache": true,
         "dependsOn": [
-          "^build"
+          "^build",
+          "benchmark-data"
         ],
         "inputs": [
           "default",

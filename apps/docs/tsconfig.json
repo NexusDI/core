@@ -55,6 +55,9 @@
   ],
   "references": [
     {
+      "path": "../../benchmarks"
+    },
+    {
       "path": "../../tools/doc-examples"
     }
   ]

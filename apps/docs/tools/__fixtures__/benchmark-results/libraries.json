@@ -1,0 +1,47 @@
+{
+  "libraries": [
+    {
+      "id": "nexusdi",
+      "package": "@nexusdi/core",
+      "version": "workspace",
+      "docs": "https://github.com/NexusDI/core#readme",
+      "read": "2026-09-30",
+      "polyfill": null,
+      "documentedToolchains": "any",
+      "variants": { "plain": { "profile": "none", "documented": true } },
+      "notApplicable": {},
+      "claims": []
+    },
+    {
+      "id": "tsyringe",
+      "package": "tsyringe",
+      "version": "4.10.0",
+      "docs": "https://github.com/microsoft/tsyringe#readme",
+      "read": "2026-09-30",
+      "polyfill": "metadata-polyfill@1.0.0",
+      "documentedToolchains": ["tsc"],
+      "variants": {
+        "decorated": { "profile": "legacy-metadata", "documented": true }
+      },
+      "notApplicable": {},
+      "claims": []
+    },
+    {
+      "id": "needle-di",
+      "package": "@needle-di/core",
+      "version": "1.2.1",
+      "docs": "https://needle-di.io",
+      "read": "2026-09-30",
+      "polyfill": null,
+      "documentedToolchains": "any",
+      "variants": {
+        "decorated": { "profile": "standard", "documented": true }
+      },
+      "notApplicable": {
+        "transient": "needle-di documents singletons only.",
+        "scoped": "needle-di documents singletons only."
+      },
+      "claims": []
+    }
+  ]
+}

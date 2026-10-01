@@ -1,0 +1,68 @@
+{
+  "schema": 1,
+  "versions": {
+    "core": "0.4.0-rc.0",
+    "libraries": {
+      "nexusdi": "0.4.0-rc.0",
+      "inversify": "8.2.3",
+      "tsyringe": "4.10.0",
+      "awilix": "13.0.5",
+      "needle-di": "1.2.1"
+    },
+    "toolchains": { "tsc": "6.0.3", "esbuild": "0.28.2" },
+    "node": "24.20.0"
+  },
+  "probes": [
+    {
+      "library": "needle-di",
+      "variant": "decorated",
+      "probe": "captive-scoped",
+      "detectedAt": "not-applicable"
+    },
+    {
+      "library": "needle-di",
+      "variant": "decorated",
+      "probe": "cycle",
+      "detectedAt": "first-resolve",
+      "message": "Circular dependency"
+    },
+    {
+      "library": "nexusdi",
+      "variant": "plain",
+      "probe": "cycle",
+      "detectedAt": "create"
+    },
+    {
+      "library": "nexusdi",
+      "variant": "plain",
+      "probe": "two-mistakes",
+      "detectedAt": "create",
+      "reported": 2
+    },
+    {
+      "library": "nexusdi",
+      "variant": "plain",
+      "probe": "wrong-dep-type",
+      "detectedAt": "typecheck"
+    },
+    {
+      "library": "tsyringe",
+      "variant": "decorated",
+      "probe": "cycle",
+      "detectedAt": "first-resolve"
+    },
+    {
+      "library": "tsyringe",
+      "variant": "decorated",
+      "probe": "two-mistakes",
+      "detectedAt": "first-resolve",
+      "reported": 1
+    },
+    {
+      "library": "tsyringe",
+      "variant": "decorated",
+      "probe": "wrong-dep-type",
+      "detectedAt": "never"
+    }
+  ]
+}
