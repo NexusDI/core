@@ -2,14 +2,12 @@ import {
   REQUEST,
   Token,
   type BlueprintView,
+  type MissingProviderError,
   type NearMiss,
 } from '@nexusdi/core';
 
-/** What an error looked up: the token and the module that could not see it. */
-export interface MissingLookup {
-  readonly token: unknown;
-  readonly moduleId: string;
-}
+/** What a MissingProviderError looked up: the token and the module that could not see it. */
+type MissingLookup = NonNullable<MissingProviderError['lookup']>;
 
 /**
  * Where a token exists that `lookup.moduleId` cannot see: a module that
