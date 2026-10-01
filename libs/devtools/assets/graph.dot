@@ -1,5 +1,6 @@
 digraph nexus {
   rankdir=LR;
+  graph [fontname="Helvetica"];
   node [fontname="Helvetica"];
   edge [fontname="Helvetica"];
   subgraph "cluster_m0" {

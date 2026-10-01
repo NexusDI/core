@@ -12,12 +12,12 @@
 <g id="clust1" class="cluster">
 <title>cluster_m0</title>
 <polygon fill="none" stroke="black" points="8,-185 8,-268 254.35,-268 254.35,-185 8,-185"/>
-<text xml:space="preserve" text-anchor="middle" x="131.18" y="-251.4" font-family="Times,serif" font-size="14.00">Bridge</text>
+<text xml:space="preserve" text-anchor="middle" x="131.18" y="-251.4" font-family="Helvetica,sans-Serif" font-size="14.00">Bridge</text>
 </g>
 <g id="clust2" class="cluster">
 <title>cluster_m1</title>
 <polygon fill="none" stroke="black" points="133.14,-8 133.14,-177 435.07,-177 435.07,-8 133.14,-8"/>
-<text xml:space="preserve" text-anchor="middle" x="284.1" y="-160.4" font-family="Times,serif" font-size="14.00">Engineering</text>
+<text xml:space="preserve" text-anchor="middle" x="284.1" y="-160.4" font-family="Helvetica,sans-Serif" font-size="14.00">Engineering</text>
 </g>
 <!-- p0 -->
 <g id="node1" class="node">
