@@ -1,6 +1,8 @@
 /**
  * K14 (core spec 17.3): create, 10,000 get() and 1,000 createScope over 50
- * and 2,000 providers, no plugin, hook sites on against compiled out.
+ * and 2,000 providers (one module), and over the tech lead's realistic
+ * multi-module app (301 providers, 32 modules, size label `modules`), no
+ * plugin, hook sites on against compiled out.
  *
  * Each operation runs in 10 fresh pairs of worker processes, 20 measured
  * rounds per pair. One pair alone reports a tight interval around an
@@ -63,7 +65,7 @@ async function measure(name, samples, from, to) {
 }
 
 const results = [];
-for (const size of [50, 2000]) {
+for (const size of [50, 2000, 'modules']) {
   for (const op of ['create', 'get', 'createScope']) {
     const name = `${op}-${size}`;
     const s = await measure(name, { on: [], off: [], batches: [] }, 0, pairs);
