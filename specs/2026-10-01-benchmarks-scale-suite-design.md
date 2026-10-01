@@ -921,3 +921,12 @@ example a stack overflow on `deep`) is recorded with its outcome; that is a scal
    `benchmarks/results/README.md` between generated markers: the startup and gzip-bytes
    table per size and library for `mixed`, links to the SVG charts and to `scale.md`.
    `--check` covers it.
+5. Core ref. Profiling found NexusDI's visibility pass grows with modules × tokens (a
+   300-provider, 32-module app: 7.6 ms warm, 26.5 ms cold), which a single-module shape
+   hides. `mixed`, `mixed-async` and `modular` carry real cross-module imports and exports
+   at every size, so the suite exposes it. A fix may change `libs/core` without changing
+   its version string, so `results/scale/<date>-<sha7>.json` records `coreRef`: the ref
+   passed to `release-core.ts --ref` (or `workspace`) and the git tree SHA of `libs/core`
+   that was packed. `render.ts` prints both in the caption. The suite can measure two
+   cores by running `release-core.ts --ref <ref>` before each run; results from two refs
+   live in two files.
