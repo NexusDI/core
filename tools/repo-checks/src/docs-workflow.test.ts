@@ -16,16 +16,23 @@ const source = readFileSync(
 const workflow = parse(source) as {
   on: {
     push: { branches: string[]; tags?: string[] };
-    workflow_dispatch: unknown;
+    workflow_dispatch: {
+      inputs?: Record<
+        string,
+        { type?: string; default?: string; options?: string[] }
+      >;
+    };
   };
   permissions: Record<string, string>;
   concurrency: { group: string; 'cancel-in-progress': boolean };
   jobs: Record<
     string,
     {
+      if?: string;
       needs?: string | string[];
       environment?: unknown;
       permissions?: Record<string, string>;
+      outputs?: Record<string, string>;
       steps: {
         id?: string;
         name?: string;
@@ -92,7 +99,7 @@ describe('docs.yml', () => {
 
   it('runs the budget check, the assembly and the artifact check in that order', () => {
     const order = [
-      'check-budgets.mjs',
+      'build-site.mjs',
       'assemble.mjs',
       'check-artifact.mjs',
       'upload-pages-artifact',
@@ -113,7 +120,7 @@ describe('docs.yml', () => {
       'node apps/docs/tools/deploy/archives.mjs apps/docs/archives.json',
     );
     expect(validate).toBeGreaterThan(-1);
-    expect(validate).toBeLessThan(source.indexOf('nx build @nexusdi/docs'));
+    expect(validate).toBeLessThan(source.indexOf('build-site.mjs'));
   });
 
   it('picks the /next/ source before the /next/ build, under the same condition', () => {
@@ -135,18 +142,66 @@ describe('docs.yml', () => {
       (step) => step.name === 'Build the /next/ site',
     );
     expect(build?.env).toMatchObject({
-      DOCS_BASE_PATH: '/next',
-      DOCS_CHANNEL: 'next',
       NEXT_IS_MAIN: '${{ steps.next.outputs.is_main }}',
       NEXT_SHA: '${{ steps.next.outputs.sha }}',
     });
     expect(build?.run).toContain(
       'git worktree add --detach build/next-src "$NEXT_SHA"',
     );
-    expect(build?.run).toContain('cd build/next-src && npm ci');
+    expect(build?.run).toContain('(cd build/next-src && npm ci)');
     expect(build?.run).toContain(
-      'mv build/next-src/apps/docs/out build/next-out',
+      'node apps/docs/tools/deploy/build-site.mjs next --tree build/next-src --out build/next-out',
     );
+    expect(build?.run).toContain(
+      'node apps/docs/tools/deploy/build-site.mjs next --tree . --out build/next-out',
+    );
+  });
+
+  it('builds the root from the release tag with the blog from main', () => {
+    const build = workflow.jobs.build.steps.find(
+      (step) => step.name === 'Build the root site from the release',
+    );
+    expect(build?.run).toContain(
+      'node apps/docs/tools/deploy/build-site.mjs root --tree build/root-src --main . --out build/root-out',
+    );
+    // The copy lives in build-site.mjs, which fails with the fix when main
+    // has no blog (docs spec decision 35).
+    expect(source).not.toContain('cp -R apps/docs/content/blog');
+  });
+
+  it('rehearses a mode by hand without deploying it', () => {
+    expect(workflow.on.workflow_dispatch.inputs?.rehearse).toEqual({
+      description:
+        'Build and check this mode without deploying it. none deploys the mode deploy.json names.',
+      type: 'choice',
+      default: 'none',
+      options: ['none', 'rc', 'final'],
+    });
+    const mode = workflow.jobs.build.steps.find((step) => step.id === 'mode');
+    expect(mode?.env).toEqual({
+      CONFIG_MODE: '${{ steps.config.outputs.mode }}',
+      REHEARSE: '${{ inputs.rehearse }}',
+    });
+    expect(workflow.jobs.build.outputs).toEqual({
+      mode: '${{ steps.mode.outputs.mode }}',
+      rehearse: '${{ steps.mode.outputs.rehearse }}',
+    });
+    expect(workflow.jobs.deploy.if).toBe(
+      "needs.build.outputs.rehearse == 'false'",
+    );
+    expect(workflow.jobs.smoke.if).toBe(
+      "needs.build.outputs.rehearse == 'false'",
+    );
+  });
+
+  it('reads the mode from the mode step only', () => {
+    // Every step after the mode step decides on the rehearsed or deployed
+    // mode, never on deploy.json's alone.
+    const steps = workflow.jobs.build.steps;
+    const at = steps.findIndex((step) => step.id === 'mode');
+    for (const step of steps.slice(at + 1)) {
+      expect(JSON.stringify(step)).not.toContain('steps.config.outputs.mode');
+    }
   });
 
   it('passes the /next/ source to run scripts through env only', () => {
