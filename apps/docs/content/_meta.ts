@@ -15,6 +15,10 @@ const meta: MetaRecord = {
     title: 'Tokens',
     theme: { layout: 'full', toc: false },
   },
+  // The navbar's Blog entry, hidden until the posts migrate at 0.4.0 final
+  // (spec §4.1). The folder exists on every branch so the final root build
+  // finds it (spec decision 35).
+  blog: { title: 'Blog', type: 'page', display: 'hidden' },
 };
 
 export default meta;
