@@ -148,16 +148,23 @@ describe.each(SIZES)('mixed at %i', (n) => {
     expect(g.modules[0].exports).toEqual(expect.arrayContaining([0, 1, 2]));
   });
   it('imports core in every other module, plus one or two lower-tier modules', () => {
-    g.modules.slice(1).forEach((mod) => {
+    g.modules.forEach((mod, k) => {
+      if (k === 0) return;
       expect(mod.imports[0]).toBe(0);
       const others = mod.imports.slice(1);
       expect(others.length).toBeLessThanOrEqual(2);
       expect(new Set(mod.imports).size).toBe(mod.imports.length);
       for (const i of others) expect(g.modules[i].tier).toBeLessThan(mod.tier);
-      if (mod.tier > 0)
-        expect(
-          mod.imports.some((i) => g.modules[i].tier === mod.tier - 1),
-        ).toBe(true);
+      // Core satisfies tier 0 for every tier-1 module, so the check looks
+      // past it: whenever a non-core module sits below this one, one of the
+      // imports is a non-core module from the tier just below.
+      const lowerNonCore = g.modules
+        .slice(1, k)
+        .some((other) => other.tier < mod.tier);
+      if (lowerNonCore)
+        expect(others.some((i) => g.modules[i].tier === mod.tier - 1)).toBe(
+          true,
+        );
     });
   });
   it('exports the last ceil(size/4) providers of each module', () => {
@@ -182,6 +189,19 @@ describe.each(SIZES)('mixed at %i', (n) => {
   it.runIf(n >= 1000)('has a mean fan-out within 0.15 of 1.9', () => {
     expect(Math.abs(meanFanOut(g) - 1.9)).toBeLessThanOrEqual(0.15);
   });
+  // Values take no deps, so the 1.9 of the dep-count distribution holds
+  // over classes and factories alone.
+  it.runIf(n >= 200)(
+    'has a class and factory mean fan-out within 0.05 of 1.9',
+    () => {
+      const takers = g.providers.filter(
+        (p) => p.kind === 'class' || p.kind === 'factory',
+      );
+      const mean =
+        takers.reduce((sum, p) => sum + p.deps.length, 0) / takers.length;
+      expect(Math.abs(mean - 1.9)).toBeLessThanOrEqual(0.05);
+    },
+  );
   it('gives the same hash for the same seed and another for another seed', () => {
     expect(hash(mixed(n))).toBe(d.hash);
     expect(hash(mixed(n, GRAPH_SEED + 1))).not.toBe(d.hash);
