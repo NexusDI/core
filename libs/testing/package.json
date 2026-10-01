@@ -9,7 +9,7 @@
     "test container",
     "mocks",
     "overrides",
-    "vitest",
+    "unit testing",
     "typescript"
   ],
   "homepage": "https://github.com/NexusDI/core#readme",
