@@ -37,8 +37,12 @@
   // never matches `*.test-d.ts`; those files run through the separate
   // `test.typecheck.include` glob the plugin does not read. A glob here
   // covers every current and future one.
+  //
+  // .github/workflows/release.yml runs the release scripts by path with
+  // `node`, which no import reaches.
   "entry": [
     "apps/docs/content/**/*.{mdx,ts}",
+    "tools/release/{plan,sync,reconcile,notes}.mjs",
     "libs/decorators/vite.decorators.ts",
     "libs/core/vitest.browser.config.ts",
     "libs/decorators/vitest.browser.config.ts",

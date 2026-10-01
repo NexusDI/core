@@ -18,11 +18,11 @@ import { describe, expect, it } from 'vitest';
  * be edited together, so they are held against each other here.
  *
  * The scope is checked as well as the targets, for the narrowings that would
- * be invisible. `release.yml` is `workflow_dispatch` on `main`, where an
- * affected comparison has the same commit on both sides: the affected set is
- * empty, every task is skipped, and the step reports success having verified
- * nothing. nx.json's release group is fixed, so every release publishes every
- * package, and a project filter would leave some of them unverified.
+ * be invisible. `release.yml` is `workflow_dispatch`, where an affected
+ * comparison has the same commit on both sides: the affected set is empty,
+ * every task is skipped, and the step reports success having verified
+ * nothing. A release publishes every package under libs/, so a project filter
+ * would leave some of them unverified.
  */
 
 const workflows = join(workspaceRoot, '.github', 'workflows');
@@ -94,7 +94,7 @@ describe('the release verify gate', () => {
   it('runs over every project, since every release publishes every package', () => {
     expect(
       release.step.run,
-      'a fixed release group publishes every package',
+      'a release publishes every package under libs/',
     ).not.toMatch(/--projects|\s-p\s/);
 
     expect(

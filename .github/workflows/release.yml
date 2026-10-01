@@ -1,75 +1,99 @@
 name: Release
 
-# Manual trigger rather than publish-on-push. Releasing is the one thing in
-# this repo that cannot be undone -- npm versions are immutable and tags are
-# public -- so it stays a deliberate act.
+# Every release event is a dispatch of this file (RELEASING.md). The same file
+# sits on main, on every release/X.Y and on every X.Y.x, and the event decides
+# what runs:
+#
+#   rc      release/X.Y   X.Y.0-rc.N, npm next
+#   stable  release/X.Y   X.Y.0, npm latest; fast-forwards main in the same push
+#   patch   main, X.Y.x   the patch conventional commits propose; latest or release-X.Y
+#   sync    release/X.Y   opens a pull request merging main into the line
+#   resume  any of those  finishes a release whose tag reached origin
+#
+# tools/release/lib.mjs makes every decision; tools/repo-checks holds its
+# event table against the choice options below. Releasing cannot be undone
+# (npm versions are immutable and tags are public), so a person dispatches
+# every run, dry run first.
 on:
   workflow_dispatch:
     inputs:
+      event:
+        description: 'Release event (RELEASING.md lists which branch each runs on)'
+        type: choice
+        options: [rc, stable, patch, sync, resume]
       dry-run:
-        description: 'Dry run'
+        description: 'Dry run: print the plan, version, changelog and dist-tags, change nothing'
         type: boolean
         default: true
-      specifier:
-        description: >-
-          Version specifier. Empty infers the bump from conventional commits
-          (the normal path). Otherwise one of patch, minor, major, premajor,
-          preminor, prepatch, prerelease, or an exact version (e.g. 1.2.3 or
-          1.2.3-rc.0). See RELEASING.md's "Release candidates" section for
-          the rc.0 -> rc.N -> stable flow.
-        type: string
-        default: ''
-      preid:
-        description: >-
-          Prerelease identifier. Only takes effect when specifier is one of
-          premajor/preminor/prepatch/prerelease.
-        type: string
-        default: 'rc'
 
 permissions:
-  contents: write # create tags and GitHub releases
-  id-token: write # mint the OIDC token npm exchanges for publish rights
-  actions: write # dispatch docs.yml after a publish
+  contents: write # release commit, tags, GitHub releases, sync branch
+  pull-requests: write # the sync pull request
+  id-token: write # npm OIDC for publish and dist-tag moves
+  actions: write # dispatch docs.yml
+  checks: read # the plan reads the required checks on the commit it releases
+
+# GitHub keeps one pending run and cancels older pending ones, so two
+# dispatches never interleave.
+concurrency:
+  group: release
+  cancel-in-progress: false
 
 jobs:
   release:
     runs-on: ubuntu-latest
+    # npm's trusted publisher names this environment, and its deployment
+    # branch policy admits main, release/* and [0-9]*.x only. RELEASE_SSH_KEY
+    # lives in it, so a run on any other ref gets neither the key nor npm.
+    environment: release
+    env:
+      HUSKY: '0'
+      NX_NO_CLOUD: 'true'
+      NX_DAEMON: 'false'
+      EVENT: ${{ inputs.event }}
+      DRY_RUN: ${{ inputs.dry-run }}
     steps:
+      # actions/checkout falls back to the job token when ssh-key is empty, and
+      # that token cannot push past the rulesets. A dry run would then pass
+      # having proved nothing about the real run's push.
+      - name: Require the release deploy key
+        env:
+          KEY: ${{ secrets.RELEASE_SSH_KEY }}
+        run: |
+          if [ -z "$KEY" ]; then
+            echo "::error::RELEASE_SSH_KEY is not set in the release environment. See RELEASING.md, \"Repository setup\"."
+            exit 1
+          fi
+
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
-          # nx release reads the full history to infer versions from
-          # conventional commits, and needs the tags to know where to start.
+          # The plan reads every tag, and nx reads the history since the last
+          # one.
           fetch-depth: 0
           filter: tree:0
-          # Check out over SSH with a write deploy key rather than the default
-          # GITHUB_TOKEN.
-          #
-          # `nx release` pushes the version-bump commit and the tags straight to
-          # main (it is forced on by changelog.projectChangelogs.createRelease:
-          # "github" -- see nx's release.js, shouldPush). The main ruleset
-          # requires a reviewed pull request, and github-actions[bot] cannot be
-          # granted a bypass on a personal repository: the API rejects an
-          # Integration bypass actor outside an organisation. A deploy key can
-          # bypass, so the push authenticates as one.
-          #
-          # This key is git-write, this repo only. It cannot publish to npm --
-          # that stays credential-free OIDC below -- and it cannot change repo
-          # settings. Revoking it is deleting the deploy key. See RELEASING.md
-          # for how it and the ruleset bypass entry are set up.
+          # Pushes authenticate as a write deploy key, the one actor every
+          # ruleset in this repository lets bypass its pull request and
+          # status check rules. It is git-write on this repository only; it
+          # cannot publish to npm or change settings. RELEASING.md covers
+          # rotating it.
           ssh-key: ${{ secrets.RELEASE_SSH_KEY }}
+
+      # The release commit and the sync merge both need an
+      # identity.
+      - name: Configure git
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
 
       - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
         with:
           node-version-file: .nvmrc
           registry-url: 'https://registry.npmjs.org'
-          # Deliberately no dependency cache. npm's guidance is that release
-          # builds should not restore one, so what gets published is built
-          # from exactly what the lockfile resolves to.
+          # No dependency cache: what gets published is built from exactly
+          # what the lockfile resolves to.
 
       # Trusted publishing needs npm >= 11.5.1. Below that the CLI does not
-      # attempt the OIDC exchange at all and fails with an opaque auth error,
-      # so check explicitly rather than letting a runner image change break a
-      # release in a way that is hard to read.
+      # attempt the OIDC exchange and fails with an opaque auth error.
       - name: Check npm supports trusted publishing
         run: |
           required=11.5.1
@@ -82,133 +106,217 @@ jobs:
 
       - run: npm ci
 
-      # core's test target depends on test-browser (regression R20), which
-      # runs in Chromium through Playwright.
-      - run: npx playwright install --with-deps chromium
+      - name: Plan
+        id: plan
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: node tools/release/plan.mjs
+
+      - name: Merge main into a sync branch
+        id: sync
+        if: inputs.event == 'sync' && steps.plan.outputs.up_to_date != 'true'
+        env:
+          BRANCH: ${{ steps.plan.outputs.sync_branch }}
+        run: |
+          set -euo pipefail
+          if node tools/release/sync.mjs merge "$BRANCH"; then
+            echo "merged=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "merged=false" >> "$GITHUB_OUTPUT"
+          fi
+          if [ "$DRY_RUN" = "true" ]; then
+            echo "Dry run: would push $BRANCH and open its pull request."
+            git log --oneline -1
+            git diff --stat HEAD~1 HEAD || true
+          else
+            # The deploy key pushes, so ci.yml and codeql.yml run on the
+            # branch and report the required checks on its head.
+            git push origin "HEAD:refs/heads/$BRANCH"
+          fi
+
+      - name: Open the sync pull request
+        if: steps.sync.outputs.merged == 'true' && !inputs.dry-run
+        env:
+          GH_TOKEN: ${{ github.token }}
+          BRANCH: ${{ steps.plan.outputs.sync_branch }}
+          MAIN_SHA: ${{ steps.plan.outputs.main_sha }}
+        run: |
+          gh pr create --base "$GITHUB_REF_NAME" --head "$BRANCH" \
+            --title "chore(repo): sync main into $GITHUB_REF_NAME" \
+            --body "Merges main at $MAIN_SHA into $GITHUB_REF_NAME. Merge with a merge commit (RELEASING.md, \"Branches\")."
+
+      - name: Stop after a sync that needs a hand merge
+        if: steps.sync.outputs.merged == 'false'
+        run: exit 1
+
+      # The later steps run these scripts. A resume checks out a tag that may
+      # predate them, so they run from a copy taken here.
+      - name: Keep the release scripts
+        run: cp -R tools/release "$RUNNER_TEMP/release"
+
+      # A resume rebuilds and publishes exactly what the tag holds, with the
+      # dependencies the tag's lockfile resolves.
+      - name: Check out the tag to resume
+        if: inputs.event == 'resume'
+        env:
+          TAG: ${{ steps.plan.outputs.tag }}
+        run: |
+          git checkout --detach "$TAG"
+          npm ci
+
+      # core's test target depends on test-browser, which runs in Chromium.
+      - name: Install Chromium
+        if: inputs.event != 'sync'
+        run: npx playwright install --with-deps chromium
 
       - name: Verify
-        # Same target list as CI. The release gate must not be weaker than
-        # the pull request gate, and
+        if: inputs.event != 'sync'
+        # The target list CI runs, over every project.
         # tools/repo-checks/src/release-verify-gate.test.ts holds the two
-        # target lists against each other.
-        #
-        # Over every project. nx.json's release group is fixed, so every
-        # release versions and publishes all the packages under libs/, and
-        # the gate covers the whole workspace they are built from.
-        #
-        # Never `--affected`. This workflow is workflow_dispatch on main,
-        # where an affected comparison has the same commit on both sides, so
-        # the affected set is empty and a gate scoped to it reports success
-        # having verified nothing.
+        # lists against each other. A fixed release group publishes every
+        # package, so no project filter applies, and `--affected` on a
+        # dispatch compares a commit with itself and verifies nothing.
         run: npx nx run-many -t lint test build typecheck
 
-      # Catches problems that only exist once the package is packed --
-      # notably emitted .d.ts files that a nodenext consumer cannot resolve.
-      # Everything inside the workspace resolves from source, so nothing
-      # above sees these.
+      # Problems that exist only once a package is packed, such as emitted
+      # .d.ts files a nodenext consumer cannot resolve.
       - name: Verify packaging
+        if: inputs.event != 'sync'
         run: npm run verify:packaging
 
-      # `nx release` commits the version bumps and tags them, so it needs an
-      # identity.
-      - name: Configure git
-        run: |
-          git config user.name "github-actions[bot]"
-          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-
-      - name: Version, changelog and tag
-        id: version
-        # Inputs reach the script as environment variables. A `${{ }}`
-        # interpolation is substituted into the script text before the shell
-        # sees it, so a dispatch input containing shell syntax would run as
-        # part of this step.
+      # stable creates the old line's maintenance branch inside its atomic
+      # push (the plan adds it to push_refs). A resume after a stable whose
+      # push landed only reports a missing one, since main has moved on.
+      - name: Check the maintenance branch
+        if: inputs.event == 'resume' && steps.plan.outputs.stable_tail == 'true' && steps.plan.outputs.maint_branch != ''
         env:
-          DRY_RUN: ${{ inputs.dry-run }}
-          SPECIFIER: ${{ inputs.specifier }}
-          PREID: ${{ inputs.preid }}
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        # `nx release` publishes on its own unless told not to, so this step
-        # passes --skip-publish -- without it, the Publish step below would
-        # publish the same version a second time.
-        #
-        # --preid only accompanies an explicit pre* specifier. Passed
-        # unconditionally it would also apply during conventional-commits
-        # auto mode (empty SPECIFIER), turning an ordinary release into a
-        # prerelease -- nx's own --preid description: "This will only be
-        # applied in the case that the specifier argument has been set to
-        # `prerelease` OR when conventional commits are enabled, in which
-        # case it will modify the resolved specifier ... e.g. minor ->
-        # preminor." Continuing an existing rc series (specifier=prerelease
-        # or empty with the current version already a prerelease) needs no
-        # --preid either: `semver.inc` carries the existing identifier
-        # forward on its own (verified: rc.0 -> rc.1 with no --preid).
+          MAINT: ${{ steps.plan.outputs.maint_branch }}
         run: |
-          args=(--skip-publish)
-          if [ -n "$SPECIFIER" ]; then args+=("$SPECIFIER"); fi
-          case "$SPECIFIER" in
-            premajor|preminor|prepatch|prerelease) args+=(--preid "$PREID") ;;
-          esac
-          if [ "$DRY_RUN" = "true" ]; then args+=(--dry-run); fi
-          echo "Running: nx release ${args[*]}"
-          npx nx release "${args[@]}"
-
-      - name: Resolve npm dist-tag
-        id: tag
-        # nx release publish does not pick a dist-tag by itself: unset
-        # --tag falls through to npm's own default of "latest" regardless
-        # of the version's shape (@nx/js/src/utils/npm-config.js,
-        # getNpmTag). A prerelease version therefore has to be tagged
-        # "next" explicitly, or it becomes the default install for
-        # everyone. Read back the version the previous step just wrote
-        # rather than re-deriving it, so this can never disagree with what
-        # was actually versioned.
-        #
-        # One tag serves every package: the release group is fixed, so all
-        # of them carry core's version, and nx release publish --tag applies
-        # one value across the whole invocation.
-        run: |
-          version=$(node -p "require('./libs/core/package.json').version")
-          # A semver prerelease is a hyphen after the X.Y.Z core and before
-          # any +build metadata -- e.g. 0.4.0-rc.0, not 0.4.0 or
-          # 0.4.0+20260101. A plain string match, not a semver library: the
-          # version was just written by nx release itself, so it is
-          # guaranteed well-formed.
-          if [[ "$version" == *-* ]]; then
-            tag=next
-          else
-            tag=latest
+          if ! git ls-remote --exit-code --heads origin "refs/heads/$MAINT" >/dev/null; then
+            echo "::warning::$MAINT does not exist. Create it from the newest tag of its line by hand (RELEASING.md)."
           fi
-          echo "version=$version" >> "$GITHUB_OUTPUT"
-          echo "tag=$tag" >> "$GITHUB_OUTPUT"
-          echo "Resolved $version -> dist-tag $tag"
+
+      - name: Version
+        if: inputs.event == 'rc' || inputs.event == 'stable' || inputs.event == 'patch'
+        env:
+          VERSION: ${{ steps.plan.outputs.version }}
+        run: |
+          args=("$VERSION")
+          if [ "$DRY_RUN" = "true" ]; then args+=(--dry-run); fi
+          echo "Running: nx release version ${args[*]}"
+          npx nx release version "${args[@]}"
+
+      - name: Changelog, commit, tag and push
+        if: inputs.event == 'rc' || inputs.event == 'stable' || inputs.event == 'patch'
+        env:
+          VERSION: ${{ steps.plan.outputs.version }}
+          PUSH_REFS: ${{ steps.plan.outputs.push_refs }}
+          # The GitHub release, and the author lookup of the changelog
+          # renderer, which runs in a dry run too.
+          GITHUB_TOKEN: ${{ github.token }}
+        # One atomic push carries the release commit, every branch update and
+        # the tag, or changes nothing. For stable that moves release/X.Y and
+        # fast-forwards main together. nx places --git-push-args straight
+        # after `git push --atomic`, so the remote has to be named or the
+        # first refspec is read as one.
+        run: |
+          args=("$VERSION" --git-commit --git-tag --git-push --git-remote origin "--git-push-args=$PUSH_REFS")
+          if [ "$DRY_RUN" = "true" ]; then args+=(--dry-run); fi
+          echo "Running: nx release changelog ${args[*]}"
+          npx nx release changelog "${args[@]}"
+
+      - name: Create the missing GitHub release
+        if: inputs.event == 'resume' && steps.plan.outputs.release_exists == 'false'
+        env:
+          GH_TOKEN: ${{ github.token }}
+          TAG: ${{ steps.plan.outputs.tag }}
+          VERSION: ${{ steps.plan.outputs.version }}
+          LATEST: ${{ steps.plan.outputs.github_latest }}
+        run: |
+          node "$RUNNER_TEMP/release/notes.mjs" "$VERSION" > "$RUNNER_TEMP/notes.md"
+          args=("$TAG" --verify-tag --title "$TAG" --notes-file "$RUNNER_TEMP/notes.md" "--latest=$LATEST")
+          if [[ "$VERSION" == *-* ]]; then args+=(--prerelease); fi
+          if [ "$DRY_RUN" = "true" ]; then
+            echo "Dry run: would run gh release create ${args[*]}"
+            cat "$RUNNER_TEMP/notes.md"
+          else
+            gh release create "${args[@]}"
+          fi
+
+      # nx creates releases with make_latest: legacy, and GitHub does not
+      # document whether date or version wins. Set it explicitly.
+      - name: Set the latest GitHub release
+        if: steps.plan.outputs.version != '' && !contains(steps.plan.outputs.version, '-')
+        env:
+          GH_TOKEN: ${{ github.token }}
+          TAG: ${{ steps.plan.outputs.tag }}
+          LATEST: ${{ steps.plan.outputs.github_latest }}
+          FIXUP: ${{ steps.plan.outputs.latest_fixup_tag }}
+        run: |
+          if [ "$DRY_RUN" = "true" ]; then
+            echo "Dry run: would mark $TAG latest=$LATEST${FIXUP:+, then $FIXUP latest}."
+            exit 0
+          fi
+          gh release edit "$TAG" "--latest=$LATEST"
+          if [ -n "$FIXUP" ]; then gh release edit "$FIXUP" --latest; fi
 
       - name: Publish to npm
-        if: ${{ !inputs.dry-run }}
+        if: inputs.event != 'sync' && steps.plan.outputs.all_published != 'true'
         env:
-          TAG: ${{ steps.tag.outputs.tag }}
-          # No NODE_AUTH_TOKEN and no NPM_TOKEN, deliberately.
-          #
-          # The npm CLI detects the GitHub Actions OIDC environment and
-          # exchanges the id-token granted above for short-lived publish
-          # rights, scoped to this repository and this workflow filename.
-          # There is no long-lived credential in this repo for anyone to
-          # steal.
-          #
-          # Renaming this file breaks publishing until the trusted publisher
-          # config on npmjs.com is updated -- npm matches it by filename.
-          #
-          # Provenance is automatic under trusted publishing, so neither
-          # NPM_CONFIG_PROVENANCE nor --provenance is needed.
+          DIST_TAG: ${{ steps.plan.outputs.dist_tag }}
+          # No NODE_AUTH_TOKEN and no NPM_TOKEN. The npm CLI exchanges the
+          # job's OIDC token for short-lived publish rights, which npm grants
+          # only to release.yml in the release environment. Renaming this
+          # file breaks publishing until the trusted publishers are updated.
+          # Provenance is automatic under trusted publishing.
+        # Never `nx run <project>:nx-release-publish`: it ignores --dryRun and
+        # sends a real publish (release spec L11).
         run: |
-          echo "Running: nx release publish --tag $TAG"
-          npx nx release publish --tag "$TAG"
+          if [ "$DRY_RUN" = "true" ]; then
+            echo "Dry run: would run nx release publish --tag $DIST_TAG"
+            exit 0
+          fi
+          echo "Running: nx release publish --tag $DIST_TAG"
+          npx nx release publish --tag "$DIST_TAG"
 
+      - name: Reconcile npm dist-tags
+        if: inputs.event != 'sync'
+        env:
+          VERSION: ${{ steps.plan.outputs.version }}
+          DIST_TAG: ${{ steps.plan.outputs.dist_tag }}
+          RESUME: ${{ inputs.event == 'resume' }}
+        run: node "$RUNNER_TEMP/release/reconcile.mjs"
+
+      # GitHub Pages admits main only, so docs.yml runs there and reads the
+      # new tag. A dispatch with the job token starts a run.
       - name: Redeploy the docs site
-        # docs.yml no longer triggers on a release tag push: GitHub Pages'
-        # default environment protection rule allows only the default
-        # branch, and a tag push isn't one. Dispatch it from main, now that
-        # the release tag it reads exists.
-        if: ${{ !inputs.dry-run }}
+        if: inputs.event != 'sync' && !inputs.dry-run
         env:
           GH_TOKEN: ${{ github.token }}
         run: gh workflow run docs.yml --ref main
+
+      # main now equals the line, and the line's tags stay reachable from it.
+      - name: Delete the release branch
+        if: steps.plan.outputs.stable_tail == 'true'
+        run: |
+          if [ "$DRY_RUN" = "true" ]; then
+            # The dry run pushed nothing, so main does not contain the line yet.
+            echo "Dry run: would delete $GITHUB_REF_NAME once main contains it after the push."
+            exit 0
+          fi
+          if ! git ls-remote --exit-code --heads origin "refs/heads/$GITHUB_REF_NAME" >/dev/null; then
+            echo "$GITHUB_REF_NAME is already gone."
+            exit 0
+          fi
+          git fetch --quiet origin main "$GITHUB_REF_NAME"
+          if ! git merge-base --is-ancestor "origin/$GITHUB_REF_NAME" origin/main; then
+            echo "::warning::$GITHUB_REF_NAME has commits main lacks, so it stays. Sync or delete it by hand."
+          else
+            git push origin --delete "$GITHUB_REF_NAME"
+          fi
+
+      - name: Fail a dry run the real run would refuse
+        if: always() && inputs.dry-run && steps.plan.outputs.blocked != ''
+        run: |
+          echo "::error::The plan found blockers (listed in the Plan step and the summary). The real run would stop before changing anything."
+          exit 1

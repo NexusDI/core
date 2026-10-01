@@ -1,0 +1,27 @@
+name: Docs next
+on:
+  push:
+    branches: ['release/**', 'main']
+    paths:
+      - 'apps/docs/**'
+      - 'libs/**'
+      - 'examples/meridian/**'
+      - 'tools/doc-examples/**'
+      - 'package.json'
+      - 'package-lock.json'
+      - '.github/workflows/docs.yml'
+      - 'README.md'
+  workflow_dispatch:
+permissions:
+  actions: write
+  contents: write
+jobs:
+  dispatch:
+    runs-on: ubuntu-latest
+    permissions:
+      pages: write
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - run: gh workflow run docs.yml --ref "$GITHUB_REF_NAME"
+        env:
+          GH_TOKEN: ${{ github.token }}
