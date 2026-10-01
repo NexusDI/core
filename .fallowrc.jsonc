@@ -215,13 +215,6 @@
       "file": "apps/docs/tools/deploy/docs-changed.mjs",
       "exports": ["DOCS_YML_PATHS"],
     },
-    // Tasks 31 and 32 import the region reader and the md siblings reader
-    // through these getters; nothing imports them yet. Drop each name once its
-    // guard lands.
-    {
-      "file": "tools/repo-checks/src/docs/loaders.ts",
-      "exports": ["loadMdSiblings", "loadRegions"],
-    },
   ],
 
   // Every workspace project's own eslint.config.mjs spreads a preset from
