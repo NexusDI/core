@@ -84,7 +84,10 @@ async function exchange(name) {
   });
   if (!id.ok) throw new Error(`GitHub refused an ID token (${id.status})`);
   const { value } = await id.json();
-  const escaped = name.replace('/', '%2f');
+  // npm's escaped form of a scoped name: @scope%2fname.
+  const escaped = name.startsWith('@')
+    ? `@${encodeURIComponent(name.slice(1))}`
+    : encodeURIComponent(name);
   const response = await fetch(
     `${REGISTRY}/-/npm/v1/oidc/token/exchange/package/${escaped}`,
     {

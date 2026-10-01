@@ -560,6 +560,12 @@ describe('changelogSection', () => {
     expect(changelogSection(text, '0.3.1')).toBeNull();
   });
 
+  it('reads a linked heading with a date', () => {
+    const text =
+      '## [0.4.0-rc.1](https://x) (2026-10-02)\n\n- c\n\n## 0.4.0-rc.0\n';
+    expect(changelogSection(text, '0.4.0-rc.1')).toBe('- c');
+  });
+
   it('does not match 0.3.3 against 0.3.30', () => {
     expect(changelogSection('## 0.3.30\n\n- x\n', '0.3.3')).toBeNull();
   });
