@@ -14,7 +14,7 @@ Draw your NexusDI module graph and follow every instance the container builds.
 
 <img src="https://raw.githubusercontent.com/NexusDI/core/release/0.4/libs/devtools/assets/graph.svg" alt="NexusDI graph of the Meridian app: in Bridge, Helm depends on ShipLog and on ShipComputer, which Engineering exports; ShipComputer depends on Reactor and the NavCharts factory." width="720">
 
-Drawn with `npx nexusdi graph src/meridian.module.ts#Bridge -f svg` from [@nexusdi/cli](https://www.npmjs.com/package/@nexusdi/cli).
+Drawn with `npx nexusdi graph src/app.module.ts#AppModule -o graph.svg` from [@nexusdi/cli](https://www.npmjs.com/package/@nexusdi/cli).
 
 ## Install
 
