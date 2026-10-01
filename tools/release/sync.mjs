@@ -30,24 +30,30 @@ import { join } from 'node:path';
 
 import { mergeManifests, restoreWorkspacePins, settleReadme } from './lib.mjs';
 
+/** A command's stdout as written, or null when the command fails. */
+const output = (cmd, args) => {
+  try {
+    return execFileSync(cmd, args, {
+      encoding: 'utf8',
+      stdio: ['ignore', 'pipe', 'inherit'],
+    });
+  } catch {
+    return null;
+  }
+};
 const run = (cmd, args) =>
   execFileSync(cmd, args, {
     encoding: 'utf8',
     stdio: ['ignore', 'pipe', 'inherit'],
   }).trim();
-const tryRun = (cmd, args) => {
-  try {
-    return run(cmd, args);
-  } catch {
-    return null;
-  }
-};
+const tryRun = (cmd, args) => output(cmd, args)?.trim() ?? null;
 const lines = (text) => (text ?? '').split('\n').filter(Boolean);
 const unmerged = () =>
   lines(run('git', ['diff', '--name-only', '--diff-filter=U']));
 const writeJson = (path, value) =>
   writeFileSync(path, `${JSON.stringify(value, null, 2)}\n`);
-const stage = (path) => tryRun('git', ['show', `:${path}`]);
+// A file's text keeps its final newline, so output() and not tryRun().
+const stage = (path) => output('git', ['show', `:${path}`]);
 const summary = (text) => {
   if (process.env.GITHUB_STEP_SUMMARY)
     appendFileSync(process.env.GITHUB_STEP_SUMMARY, `${text}\n`);
@@ -132,7 +138,7 @@ function mergeFile(base, ours, theirs) {
   try {
     for (const [name, text] of Object.entries({ base, ours, theirs }))
       writeFileSync(join(dir, name), text);
-    return tryRun('git', [
+    return output('git', [
       'merge-file',
       '-p',
       ...['ours', 'base', 'theirs'].map((name) => join(dir, name)),

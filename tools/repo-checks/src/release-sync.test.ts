@@ -1,8 +1,15 @@
 import { execFileSync } from 'node:child_process';
-import { mkdtempSync, rmSync, writeFileSync } from 'node:fs';
+import {
+  mkdirSync,
+  mkdtempSync,
+  readFileSync,
+  rmSync,
+  writeFileSync,
+} from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 
+import { workspaceRoot } from '@nx/devkit';
 import { describe, expect, it } from 'vitest';
 
 import {
@@ -215,5 +222,68 @@ describe('settleReadme', () => {
         merge3,
       }),
     ).toBe(readme('0.5.0-rc.2'));
+  });
+});
+
+describe('sync.mjs restore', () => {
+  it('writes a README whose conflict was the version alone with its trailing newline', () => {
+    const dir = mkdtempSync(join(tmpdir(), 'sync-restore-'));
+    const git = (...args: string[]) =>
+      execFileSync('git', args, {
+        cwd: dir,
+        encoding: 'utf8',
+        stdio: ['ignore', 'pipe', 'pipe'],
+      });
+    const write = (path: string, text: string) => {
+      mkdirSync(join(dir, path, '..'), { recursive: true });
+      writeFileSync(join(dir, path), text);
+    };
+    const TREE = 'https://github.com/NexusDI/core/tree/@nexusdi/core@';
+    const readme = (version: string) =>
+      `# @nexusdi/core\n\n- [Examples](${TREE}${version}/libs/core/docs)\n`;
+    const manifest = (version: string) =>
+      `${JSON.stringify({ name: '@nexusdi/core', version }, null, 2)}\n`;
+    try {
+      git('init', '-q', '-b', 'main');
+      git('config', 'user.email', 'sync@example.com');
+      git('config', 'user.name', 'sync');
+      git('config', 'commit.gpgsign', 'false');
+      git('config', 'core.hooksPath', '/dev/null');
+      write(
+        'package.json',
+        `${JSON.stringify({ name: 'root', private: true, workspaces: ['libs/*'] })}\n`,
+      );
+      write('libs/core/package.json', manifest('0.3.2'));
+      write('libs/core/README.md', readme('0.3.2'));
+      git('add', '-A');
+      git('commit', '-qm', 'base');
+      git('switch', '-qc', 'release/0.4');
+      write('libs/core/package.json', manifest('0.4.0-rc.1'));
+      write('libs/core/README.md', readme('0.4.0-rc.1'));
+      git('commit', '-qam', 'rc.1');
+      git('switch', '-q', 'main');
+      write('libs/core/README.md', readme('0.3.3'));
+      git('commit', '-qam', '0.3.3');
+      git('switch', '-q', 'release/0.4');
+      expect(() => git('merge', '--no-ff', '--no-commit', 'main')).toThrow();
+
+      execFileSync(
+        'node',
+        [join(workspaceRoot, 'tools/release/sync.mjs'), 'restore'],
+        // restore regenerates the lockfile, which needs no registry here.
+        {
+          cwd: dir,
+          stdio: 'ignore',
+          env: { ...process.env, npm_config_offline: 'true' },
+        },
+      );
+
+      expect(readFileSync(join(dir, 'libs/core/README.md'), 'utf8')).toBe(
+        readme('0.4.0-rc.1'),
+      );
+      expect(git('diff', '--name-only', '--diff-filter=U')).toBe('');
+    } finally {
+      rmSync(dir, { recursive: true, force: true });
+    }
   });
 });
