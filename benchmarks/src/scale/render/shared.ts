@@ -56,7 +56,9 @@ export function __scaleBuilt(index: number, kind: string): void {
  * members. `decorate` prefixes each constructor parameter, for parameter
  * decorators. `params` replaces the parameter list, for a library that
  * passes its dependencies in one object; the constructor still assigns
- * `d0`, `d1`, ... from bindings of those names.
+ * `d0`, `d1`, ... from bindings of those names. `initializer` gives each
+ * field an initializer, for a library that injects into fields: the
+ * constructor then takes no parameters and only reports.
  */
 export function classBody(
   graph: ScaleGraph,
@@ -67,20 +69,29 @@ export function classBody(
     head?: string;
     decorate?: (dep: ScaleProvider) => string;
     params?: string;
+    initializer?: (dep: ScaleProvider) => string;
   },
 ): string {
   const deps = p.deps.map((d) => graph.providers[d]);
+  const init = opts.initializer;
   const fields = deps
-    .map((d, i) => `  readonly d${i}: ${opts.param(d)};\n`)
+    .map((d, i) =>
+      init === undefined
+        ? `  readonly d${i}: ${opts.param(d)};\n`
+        : `  readonly d${i} = ${init(d)};\n`,
+    )
     .join('');
   const params =
-    deps.length === 0
+    init !== undefined || deps.length === 0
       ? ''
       : (opts.params ??
         deps
           .map((d, i) => `${opts.decorate?.(d) ?? ''}d${i}: ${opts.param(d)}`)
           .join(', '));
-  const sets = deps.map((_, i) => `    this.d${i} = d${i};\n`).join('');
+  const sets =
+    init === undefined
+      ? deps.map((_, i) => `    this.d${i} = d${i};\n`).join('')
+      : '';
   const report = opts.report
     ? `    __scaleBuilt(${p.index}, '${p.kind}');\n`
     : '';
@@ -207,4 +218,17 @@ export function layout(
 export function importList(names: readonly string[], from: string): string {
   if (names.length === 0) return '';
   return `import {\n${names.map((n) => `  ${n},\n`).join('')}} from '${from}';\n`;
+}
+
+/**
+ * The token table, `const T: readonly <type>[] = [...]`, one id per line.
+ * Each id is cast to the element type: without the casts tsc reduces the
+ * literal's thousands of distinct class and token types to one union and
+ * fails with TS2590 at n = 5,000. The casts erase, so every library emits
+ * the same plain array literal.
+ */
+export function tokenTable(type: string, ids: readonly string[]): string {
+  return `const T: readonly ${type}[] = [\n${ids
+    .map((id) => `  ${id} as ${type},\n`)
+    .join('')}];\n`;
 }

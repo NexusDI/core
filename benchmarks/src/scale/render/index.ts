@@ -2,6 +2,7 @@
 import type { LibraryId, Variant } from '../../schema.ts';
 import { renderAwilix } from './awilix.ts';
 import { renderInversify } from './inversify.ts';
+import { renderNeedleDi } from './needle-di.ts';
 import { renderNexusdi } from './nexusdi.ts';
 import { renderTsyringe } from './tsyringe.ts';
 import type { Renderer } from './shared.ts';
@@ -11,6 +12,7 @@ const RENDERERS: Readonly<Partial<Record<string, Renderer>>> = {
   'inversify/decorated': renderInversify,
   'tsyringe/decorated': renderTsyringe,
   'awilix/plain': renderAwilix,
+  'needle-di/decorated': renderNeedleDi,
 };
 
 export function rendererFor(library: LibraryId, variant: Variant): Renderer {
