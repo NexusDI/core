@@ -1,0 +1,41 @@
+name: 0.4 RC feedback
+description: Report a problem you met while trying a NexusDI 0.4 release candidate from the npm next dist-tag.
+title: '[RC feedback]: '
+labels: [rc-feedback, needs-triage]
+projects: ['NexusDI/3']
+body:
+  - type: markdown
+    attributes:
+      value: The 0.4 release candidates are on npm under the next dist-tag. https://nexus.js.org/next/release-candidate/ says how to install one and what a report needs.
+  - type: textarea
+    attributes:
+      label: Versions
+      description: The output of `npm ls @nexusdi/core` and `node --version`. Name any other @nexusdi package you installed.
+      render: text
+    validations:
+      required: true
+  - type: textarea
+    attributes:
+      label: What happened
+      description: What you expected and what you saw.
+    validations:
+      required: true
+  - type: textarea
+    attributes:
+      label: Error code and message
+      description: The code (`NEXUS_...`) and the whole message, if an error was thrown.
+      render: text
+  - type: textarea
+    attributes:
+      label: Minimal reproduction
+      description: The smallest program that shows the problem, or a link to a repository.
+      render: ts
+  - type: dropdown
+    attributes:
+      label: Does this block your upgrade from 0.3?
+      options:
+        - 'Yes'
+        - 'No'
+        - I am not upgrading from 0.3
+    validations:
+      required: true

@@ -9,6 +9,7 @@ export interface AssembleInput {
   probe?: string;
 }
 export function assemble(input: AssembleInput): { files: number };
+export function codePages(nextOut: string): string[];
 export function rootNotFoundScript(): string;
 export function stubHtml(target: string): string;
 export function siteFiles(dir: string): string[];

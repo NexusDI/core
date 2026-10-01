@@ -1,7 +1,8 @@
-import { existsSync, readdirSync, readFileSync } from 'node:fs';
+import { existsSync, readFileSync } from 'node:fs';
 import { join, relative, sep } from 'node:path';
 import { pathToFileURL } from 'node:url';
 
+import { filesUnder } from '@nexusdi/doc-examples/files-under';
 import { workspaceRoot } from '@nx/devkit';
 import remarkMdx from 'remark-mdx';
 import remarkParse from 'remark-parse';
@@ -127,13 +128,7 @@ export function stripFences(text: string): string {
 }
 
 function contentFiles(dir: string): string[] {
-  return readdirSync(dir, { withFileTypes: true })
-    .flatMap((entry) => {
-      const path = join(dir, entry.name);
-      if (entry.isDirectory()) return contentFiles(path);
-      return /\.mdx?$/.test(entry.name) ? [path] : [];
-    })
-    .sort();
+  return filesUnder(dir, (name) => /\.mdx?$/.test(name));
 }
 
 function splitFrontmatter(source: string): {

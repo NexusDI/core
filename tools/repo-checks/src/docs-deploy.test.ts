@@ -1,5 +1,5 @@
 import { execFileSync } from 'node:child_process';
-import { readFileSync } from 'node:fs';
+import { existsSync, readFileSync } from 'node:fs';
 import { join } from 'node:path';
 
 import { workspaceRoot } from '@nx/devkit';
@@ -19,6 +19,7 @@ const context = (over: Partial<DeployContext> = {}): DeployContext => ({
   today: new Date('2027-02-01'),
   newestStableTag: '@nexusdi/core@0.4.0',
   v050Date: null,
+  hasBlog: true,
   isAncestor: () => true,
   ...over,
 });
@@ -83,6 +84,36 @@ describe('docs-deploy fixtures', () => {
     ).toEqual([]);
   });
 
+  it('fails final mode when the tree has no blog to copy', () => {
+    expect(
+      checkDeploy(
+        read(join(dir, 'sabotaged/retention-due/deploy.json')),
+        context({ today: new Date('2027-02-01'), hasBlog: false }),
+      ),
+    ).toEqual([
+      'apps/docs/deploy.json: mode "final" builds the root with apps/docs/content/blog from main, and this tree has no apps/docs/content/blog/index.mdx. Keep the blog index (docs spec decision 35).',
+    ]);
+  });
+
+  it('fails retired mode when the tree has no blog to copy', () => {
+    const retired = {
+      ...(read(join(dir, 'sabotaged/retention-due/deploy.json')) as object),
+      mode: 'retired',
+    };
+    expect(checkDeploy(retired, context({ hasBlog: false }))).toEqual([
+      'apps/docs/deploy.json: mode "retired" builds the root with apps/docs/content/blog from main, and this tree has no apps/docs/content/blog/index.mdx. Keep the blog index (docs spec decision 35).',
+    ]);
+  });
+
+  it('passes rc mode with no blog, because rc builds no root', () => {
+    const rc = {
+      ...(read(join(dir, 'sabotaged/retention-due/deploy.json')) as object),
+      mode: 'rc',
+      finalDate: null,
+    };
+    expect(checkDeploy(rc, context({ hasBlog: false }))).toEqual([]);
+  });
+
   it('fails a root.sha that does not descend from the release tag', () => {
     expect(
       checkDeploy(
@@ -141,6 +172,7 @@ describe('docs-deploy on apps/docs', () => {
         today: new Date(),
         newestStableTag: stable,
         v050Date: v050,
+        hasBlog: existsSync(join(DOCS, 'content/blog/index.mdx')),
         isAncestor: (ancestor, descendant) =>
           git(['merge-base', '--is-ancestor', ancestor, descendant]) !== null,
       }),

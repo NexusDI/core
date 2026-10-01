@@ -14,6 +14,8 @@ export interface DeployContext {
   today: Date;
   newestStableTag: string | null;
   v050Date: string | null;
+  /** Whether the tree holds apps/docs/content/blog/index.mdx (spec decision 35). */
+  hasBlog: boolean;
   isAncestor(ancestor: string, descendant: string): boolean;
 }
 
@@ -52,6 +54,15 @@ export function checkDeploy(config: unknown, context: DeployContext): string[] {
     finalDate: string | null;
   };
   const findings: string[] = [];
+
+  if (
+    (valid.mode === 'final' || valid.mode === 'retired') &&
+    !context.hasBlog
+  ) {
+    findings.push(
+      `${FILE}: mode "${valid.mode}" builds the root with apps/docs/content/blog from main, and this tree has no apps/docs/content/blog/index.mdx. Keep the blog index (docs spec decision 35).`,
+    );
+  }
 
   if (
     valid.mode === 'final' &&
