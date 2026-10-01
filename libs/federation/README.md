@@ -87,12 +87,16 @@ A dependent's contract version must have the provider's major, and a minor no ne
 
 ## Error text
 
-`NEXUS_CONTRACT_VERSION` carries a one-line message: its fields and a link to its docs page. The full text, with the versions that would fix the pair, lives in `federationText` at `@nexusdi/federation/text`. Pass it to `errors()` from `@nexusdi/errors`:
+`NEXUS_CONTRACT_VERSION` carries a one-line message: its fields and a link to its docs page. The full text, with the versions that would fix the pair, lives in `federationText` at `@nexusdi/federation/text`. Pass it to `errors()` from `@nexusdi/errors`, which this section installs beside the two packages above:
+
+```bash
+npm install @nexusdi/errors
+```
 
 <!-- #region text -->
 
 ```ts @import.meta.vitest
-import { Nexus, defineModule, provide } from '@nexusdi/core';
+import { Nexus, Token, defineModule, provide } from '@nexusdi/core';
 import { errors } from '@nexusdi/errors';
 import { defineContract, federation } from '@nexusdi/federation';
 import { federationText } from '@nexusdi/federation/text';
@@ -100,15 +104,22 @@ import { federationText } from '@nexusdi/federation/text';
 interface IAuth {
   user(): string;
 }
+interface ITransfers {
+  sender(): string;
+}
 
 const AUTH = defineContract({ key: 'bank', version: '2.3.0' }).token<IAuth>(
   'Auth',
 );
-class Transfers {
+const TRANSFERS = new Token<ITransfers>('Transfers');
+class Transfers implements ITransfers {
   static deps = [
     defineContract({ key: 'bank', version: '2.4.0' }).token<IAuth>('Auth'),
   ] as const;
-  constructor(readonly auth: IAuth) {}
+  constructor(private readonly auth: IAuth) {}
+  sender() {
+    return this.auth.user();
+  }
 }
 const graph = defineModule({
   name: 'Root',
@@ -119,13 +130,16 @@ const graph = defineModule({
       exports: [AUTH],
       global: true,
     }),
-    defineModule({ name: 'Transfers', providers: [Transfers] }),
+    defineModule({
+      name: 'Transfers',
+      providers: [provide(TRANSFERS, { useClass: Transfers })],
+    }),
   ],
 });
 
-const messageWith = (plugins: Parameters<typeof Nexus.check>[1]) => {
+const messageWith = (options: Parameters<typeof Nexus.check>[1]) => {
   try {
-    Nexus.check(graph, plugins);
+    Nexus.check(graph, options);
   } catch (error) {
     return (error as { errors: Error[] }).errors[0]?.message.split('\n');
   }
