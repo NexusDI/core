@@ -63,4 +63,21 @@ describe('markListings', () => {
     expect(out).toContain('  <Listing mark="elided">\n\n');
     expect(out).toContain(`  ${fence}\n\n  </Listing>\n`);
   });
+
+  it('treats a one-line triple-backtick span as text, not an opener', () => {
+    const source = `${fence}ts no-run${fence}\nplain text\n`;
+    expect(markListings(source)).toBe(source);
+  });
+
+  it('ignores a line indented four spaces as a fence', () => {
+    const source = `    ${fence}ts no-run\n    code\n    ${fence}\n`;
+    expect(markListings(source)).toBe(source);
+  });
+
+  it('wraps a tilde fence and keeps a backtick fence inside it as content', () => {
+    const source = `~~~md no-run\n${fence}ts\ninner();\n${fence}\n~~~\n`;
+    expect(markListings(source)).toBe(
+      `<Listing mark="no-run">\n\n${source}\n</Listing>\n`,
+    );
+  });
 });

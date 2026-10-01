@@ -20,6 +20,7 @@ interface DiagramProps {
  */
 export default function Diagram({ chart, caption }: Readonly<DiagramProps>) {
   const id = `nexus-diagram-${useId().replaceAll(/[^\w-]/g, '')}`;
+  const captionId = `${id}-caption`;
   const figure = useRef<HTMLElement>(null);
   const [svg, setSvg] = useState<string | null>(null);
 
@@ -29,6 +30,16 @@ export default function Diagram({ chart, caption }: Readonly<DiagramProps>) {
     let cancelled = false;
 
     const draw = async () => {
+      try {
+        await render();
+      } catch {
+        // The figure keeps its caption. Mermaid leaves an error element in
+        // the document when a render fails.
+        document.getElementById(`d${id}`)?.remove();
+      }
+    };
+
+    const render = async () => {
       const { default: mermaid } = await import('mermaid');
       mermaid.initialize({
         startOnLoad: false,
@@ -39,6 +50,13 @@ export default function Diagram({ chart, caption }: Readonly<DiagramProps>) {
       const drawn = await mermaid.render(id, `${chart}\n${accentClass}`);
       if (!cancelled) setSvg(recolour(drawn.svg));
     };
+
+    if (typeof IntersectionObserver === 'undefined') {
+      void draw();
+      return () => {
+        cancelled = true;
+      };
+    }
 
     const observer = new IntersectionObserver((entries) => {
       if (!entries.some((entry) => entry.isIntersecting)) return;
@@ -60,7 +78,7 @@ export default function Diagram({ chart, caption }: Readonly<DiagramProps>) {
     >
       <div
         role="img"
-        aria-label={caption}
+        aria-labelledby={captionId}
         style={{
           minBlockSize: 'var(--meridian-space-8)',
           overflowX: 'auto',
@@ -73,6 +91,7 @@ export default function Diagram({ chart, caption }: Readonly<DiagramProps>) {
         dangerouslySetInnerHTML={svg ? { __html: svg } : undefined}
       />
       <figcaption
+        id={captionId}
         style={{
           marginBlockStart: 'var(--meridian-space-3)',
           color: 'var(--meridian-text-secondary)',

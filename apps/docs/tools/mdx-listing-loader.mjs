@@ -34,7 +34,12 @@ const TAGS = [
   'elided',
 ];
 
-const FENCE = /^(\s*)(`{3,})(.*)$/;
+/**
+ * A fence line: up to three spaces of indent, then three or more backticks or
+ * tildes. CommonMark gives a backtick fence no backtick in its info string,
+ * so a one-line triple-backtick span is no opener.
+ */
+const FENCE = /^( {0,3})(`{3,}(?!.*`)|~{3,})(.*)$/;
 
 /** The first exemption tag among the words of a fence's info string. */
 function tagOf(info) {
@@ -44,8 +49,9 @@ function tagOf(info) {
 /**
  * Wraps every tagged fence of an MDX source in `<Listing mark="…">`.
  *
- * A fence opened with N backticks closes on a line of at least N backticks
- * and nothing else, so a shorter fence inside a longer one is body text.
+ * A fence opened with N backticks or tildes closes on a line of at least N of
+ * the same character and nothing else, so a shorter fence, or a fence of the
+ * other character, inside it is body text.
  */
 export function markListings(source) {
   const out = [];
@@ -67,7 +73,10 @@ export function markListings(source) {
 
     out.push(line);
     const closes =
-      marker && !marker[3].trim() && marker[2].length >= open.ticks.length;
+      marker &&
+      !marker[3].trim() &&
+      marker[2][0] === open.ticks[0] &&
+      marker[2].length >= open.ticks.length;
     if (!closes) continue;
 
     if (open.mark) {

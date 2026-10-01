@@ -81,6 +81,11 @@ describe('diagrams', () => {
     ).toThrow(/caption/);
   });
 
+  it('throws when a caption holds a quote or a backslash', () => {
+    const source = `# T\n\n${fence}mermaid caption="The \\"ship\\" flies."\nflowchart TD\n${fence}\n`;
+    expect(() => expandDiagrams(source)).toThrow(/line 3.*quote/);
+  });
+
   it('turns every sentinel colour in an SVG into its property', () => {
     const hexes = Object.values(sentinel);
     expect(new Set(hexes.map((hex) => hex.toLowerCase())).size).toBe(

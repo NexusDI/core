@@ -54,7 +54,13 @@ export function expandDiagrams(source, file = 'MDX source') {
       continue;
     }
 
-    const caption = info.match(CAPTION)?.[1].trim();
+    const found = info.match(CAPTION);
+    if (found && /["\\]/.test(info.replace(CAPTION, ''))) {
+      throw new Error(
+        `${file}: the caption of the mermaid fence at line ${index + 1} contains a quote or a backslash. Reword it without one.`,
+      );
+    }
+    const caption = found?.[1].trim();
     if (!caption) {
       throw new Error(
         `${file}: the mermaid fence at line ${index + 1} has no caption. Write caption="…" stating what the diagram shows.`,
