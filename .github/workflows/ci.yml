@@ -2,8 +2,20 @@ name: CI
 
 on:
   push:
+    # Every branch a ruleset protects: the stable line, the release/X.Y
+    # prerelease lines and the X.Y.x maintenance lines. The release workflow
+    # requires the four ruleset checks green on the exact commit it releases,
+    # and only a push run produces them for that commit.
+    #
+    # sync/** too: the release workflow opens a sync pull request with the
+    # job token, and GitHub starts no pull_request run for a pull request the
+    # job token opened. The deploy key's push of the sync branch does start
+    # this run, and its checks report on the pull request's head commit.
     branches:
       - main
+      - 'release/**'
+      - '[0-9]*.x'
+      - 'sync/**'
   pull_request:
 
 permissions:

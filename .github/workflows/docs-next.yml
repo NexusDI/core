@@ -1,0 +1,34 @@
+name: Docs next
+
+# /next/ builds from the highest release branch ahead of main (release spec
+# §7.2; docs spec §15, amended 2026-10-01). GitHub Pages deploys from main
+# only, so a push here asks docs.yml to run on main, and docs.yml picks this
+# branch up as the /next/ source. A dispatch made with the job token starts a
+# run, and docs.yml's `pages` concurrency group queues it behind any running
+# deploy.
+on:
+  push:
+    branches: ['release/**']
+    paths:
+      # tools/repo-checks/src/docs/docs-trigger.ts holds this list equal to
+      # docs.yml's.
+      - 'apps/docs/**'
+      - 'libs/**'
+      - 'internal/**'
+      - 'examples/meridian/**'
+      - 'tools/doc-examples/**'
+      - 'package.json'
+      - 'package-lock.json'
+      - '.github/workflows/docs.yml'
+
+permissions:
+  actions: write # gh workflow run creates a workflow_dispatch event
+
+jobs:
+  dispatch:
+    runs-on: ubuntu-latest
+    steps:
+      - run: gh workflow run docs.yml --ref main
+        env:
+          GH_TOKEN: ${{ github.token }}
+          GH_REPO: ${{ github.repository }}

@@ -2,6 +2,10 @@ name: Docs
 
 # Builds and deploys nexus.js.org (docs spec §15.3). apps/docs/deploy.json
 # holds the mode, and the mode decides which sites the artifact holds.
+# apps/docs/archives.json lists the /v{line}/ archives. /next/ builds from the
+# highest release branch ahead of main, else main (docs spec §15, amended
+# 2026-10-01). A push to a release branch reaches this workflow through
+# docs-next.yml, because Pages deploys from main only.
 on:
   push:
     branches: [main]
@@ -54,23 +58,50 @@ jobs:
         id: config
         run: node apps/docs/tools/deploy/deploy-config.mjs apps/docs/deploy.json
 
+      - name: Validate archives.json
+        run: node apps/docs/tools/deploy/archives.mjs apps/docs/archives.json
+
       - name: Require a snapshot revision
         if: steps.config.outputs.revision == '0'
         run: |
           echo "apps/docs/deploy.json records no snapshot yet. Run docs-snapshot.yml and merge its pull request." >&2
           exit 1
 
+      # Prints and records the branch and commit /next/ builds from: the
+      # highest release/X.Y ahead of main, else main (docs spec §15, amended
+      # 2026-10-01).
+      - name: Pick the /next/ source
+        id: next
+        if: steps.config.outputs.mode != 'snapshot-only'
+        run: node apps/docs/tools/deploy/next-source.mjs
+
+      # Main builds in this checkout. A release branch builds in its own
+      # worktree with its own install, because its lockfile and build can
+      # differ from main's. Blog posts merge to main, and a release branch
+      # holds them only after its next sync, so main's blog replaces the
+      # branch's, as in the root build below.
       - name: Build the /next/ site
         if: steps.config.outputs.mode != 'snapshot-only'
         env:
           DOCS_BASE_PATH: /next
           DOCS_CHANNEL: next
+          NEXT_IS_MAIN: ${{ steps.next.outputs.is_main }}
+          NEXT_SHA: ${{ steps.next.outputs.sha }}
         run: |
-          npx nx build @nexusdi/docs
-          npm --prefix apps/docs run postbuild
-          node apps/docs/tools/check-budgets.mjs
+          set -euo pipefail
           mkdir -p build
-          mv apps/docs/out build/next-out
+          if [ "$NEXT_IS_MAIN" = true ]; then
+            npx nx build @nexusdi/docs
+            npm --prefix apps/docs run postbuild
+            node apps/docs/tools/check-budgets.mjs
+            mv apps/docs/out build/next-out
+          else
+            git worktree add --detach build/next-src "$NEXT_SHA"
+            rm -rf build/next-src/apps/docs/content/blog
+            cp -R apps/docs/content/blog build/next-src/apps/docs/content/blog
+            (cd build/next-src && npm ci && npx nx build @nexusdi/docs && npm --prefix apps/docs run postbuild && node apps/docs/tools/check-budgets.mjs)
+            mv build/next-src/apps/docs/out build/next-out
+          fi
 
       - name: Build the root site from the release
         if: steps.config.outputs.mode == 'final' || steps.config.outputs.mode == 'retired'

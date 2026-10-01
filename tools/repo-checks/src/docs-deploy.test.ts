@@ -5,7 +5,11 @@ import { join } from 'node:path';
 import { workspaceRoot } from '@nx/devkit';
 import { describe, expect, it } from 'vitest';
 
-import { checkDeploy, type DeployContext } from './docs/docs-deploy';
+import {
+  checkArchives,
+  checkDeploy,
+  type DeployContext,
+} from './docs/docs-deploy';
 import { DOCS, FIXTURES } from './docs/paths';
 
 const dir = join(FIXTURES, 'docs-deploy');
@@ -91,6 +95,28 @@ describe('docs-deploy fixtures', () => {
   });
 });
 
+describe('docs-deploy archives fixtures', () => {
+  const deployConfig = read(join(dir, 'clean/deploy.json'));
+
+  it('passes the clean fixture', () => {
+    expect(
+      checkArchives(read(join(dir, 'clean/archives.json')), deployConfig),
+    ).toEqual([]);
+  });
+
+  it('fails a prerelease pin and lines out of order', () => {
+    expect(
+      checkArchives(
+        read(join(dir, 'sabotaged/archive-out-of-order/archives.json')),
+        deployConfig,
+      ),
+    ).toEqual([
+      'apps/docs/archives.json: archives[0].tag must be "@nexusdi/core@0.4.N"; found "@nexusdi/core@0.4.0-rc.2".',
+      'apps/docs/archives.json: archives[1].line "0.3" must come after "0.4". Lines are ascending and unique.',
+    ]);
+  });
+});
+
 function git(args: string[]): string | null {
   try {
     return execFileSync('git', args, {
@@ -118,6 +144,15 @@ describe('docs-deploy on apps/docs', () => {
         isAncestor: (ancestor, descendant) =>
           git(['merge-base', '--is-ancestor', ancestor, descendant]) !== null,
       }),
+    ).toEqual([]);
+  });
+
+  it('holds for the committed archives.json', () => {
+    expect(
+      checkArchives(
+        read(join(DOCS, 'archives.json')),
+        read(join(DOCS, 'deploy.json')),
+      ),
     ).toEqual([]);
   });
 });

@@ -1,0 +1,15 @@
+{
+  "name": "@nexusdi/release",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "exports": {
+    ".": {
+      "types": "./lib.d.mts",
+      "default": "./lib.mjs"
+    }
+  },
+  "dependencies": {
+    "jsonc-parser": "^3.3.1"
+  }
+}

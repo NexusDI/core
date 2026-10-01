@@ -1,0 +1,54 @@
+name: CodeQL
+
+# Advanced setup. Default setup scans the default branch and branches GitHub
+# counts as protected, and it never ran on pull requests into feat/core-0.4.
+# Every ruleset in this repository carries a code_scanning rule, so every
+# branch a ruleset covers needs results: main, the release/X.Y prerelease
+# lines and the X.Y.x maintenance lines. RELEASING.md lists the rulesets.
+on:
+  push:
+    # sync/** for the same reason as in ci.yml: a sync pull request opened
+    # with the job token gets no pull_request run.
+    branches:
+      - main
+      - 'release/**'
+      - '[0-9]*.x'
+      - 'sync/**'
+  pull_request:
+    branches:
+      - main
+      - 'release/**'
+      - '[0-9]*.x'
+  schedule:
+    - cron: '27 4 * * 1'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  analyze:
+    name: analyze (${{ matrix.language }})
+    runs-on: ubuntu-latest
+    permissions:
+      actions: read # read the workflow files the actions language scans
+      contents: read
+      security-events: write # upload the SARIF results
+    strategy:
+      fail-fast: false
+      matrix:
+        # The two languages default setup scanned. Neither needs a build.
+        language: [actions, javascript-typescript]
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          filter: tree:0
+
+      - uses: github/codeql-action/init@2892aa5e19bbd11bc0cff5427e3b750a04d9e3c2 # v4.38.2
+        with:
+          languages: ${{ matrix.language }}
+          build-mode: none
+
+      - uses: github/codeql-action/analyze@2892aa5e19bbd11bc0cff5427e3b750a04d9e3c2 # v4.38.2
+        with:
+          category: /language:${{ matrix.language }}
