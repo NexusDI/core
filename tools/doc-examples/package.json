@@ -6,6 +6,14 @@
   "main": "./src/index.ts",
   "exports": {
     ".": "./src/index.ts",
-    "./claims": "./src/expect-comments.ts"
+    "./claims": "./src/expect-comments.ts",
+    "./preamble": "./src/preamble.mjs",
+    "./regions": "./src/regions.mjs",
+    "./mdx-region-loader": "./src/mdx-region-loader.mjs",
+    "./declarations": "./src/declarations.mjs",
+    "./behaviours": "./src/behaviours.mjs",
+    "./files-under": "./src/files-under.mjs",
+    "./mdx-reference-loader": "./src/mdx-reference-loader.mjs",
+    "./md-siblings": "./src/md-siblings.mjs"
   }
 }

@@ -8,7 +8,12 @@ import { pathToFileURL } from 'node:url';
 export function smokeTargets(mode, origin) {
   const targets = ['/', '/blog/rss.xml'];
   if (mode !== 'snapshot-only')
-    targets.push('/next/', '/next/getting-started.md');
+    targets.push(
+      '/next/',
+      '/next/getting-started.md',
+      // The link every rc error message ends with (docs spec §15.5).
+      '/errors/NEXUS_MISSING_PROVIDER/',
+    );
   if (mode === 'final' || mode === 'retired')
     targets.push('/getting-started.md');
   if (mode === 'final') targets.push('/v0.3/');

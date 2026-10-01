@@ -11,7 +11,12 @@ import { dirname, join } from 'node:path';
 
 import { beforeEach, describe, expect, it } from 'vitest';
 
-import { assemble, rootNotFoundScript, stubHtml } from './assemble.mjs';
+import {
+  assemble,
+  codePages,
+  rootNotFoundScript,
+  stubHtml,
+} from './assemble.mjs';
 
 let work;
 
@@ -54,6 +59,8 @@ function inputs() {
       'index.html': page('next'),
       '404.html': page('next not found'),
       'getting-started.md': '# Getting started',
+      'errors/NEXUS_MISSING_PROVIDER/index.html': page('missing provider'),
+      'errors/index.html': page('errors'),
     }),
     rootOut: tree('root-out', {
       'index.html': page('release'),
@@ -114,6 +121,30 @@ describe('assemble in rc mode', () => {
     );
   });
 
+  it('writes a root stub for every code page, pointing under /next/', () => {
+    const input = inputs();
+    assemble({ ...input, mode: 'rc' });
+    expect(read(input.site, 'errors/NEXUS_MISSING_PROVIDER/index.html')).toBe(
+      stubHtml('/next/errors/NEXUS_MISSING_PROVIDER/'),
+    );
+    expect(existsSync(join(input.site, 'errors/index.html'))).toBe(false);
+  });
+
+  it('keeps a snapshot file already at a code stub path', () => {
+    const input = inputs();
+    mkdirSync(join(input.snapshotRoot, 'errors/NEXUS_MISSING_PROVIDER'), {
+      recursive: true,
+    });
+    writeFileSync(
+      join(input.snapshotRoot, 'errors/NEXUS_MISSING_PROVIDER/index.html'),
+      page('0.3 errors'),
+    );
+    assemble({ ...input, mode: 'rc' });
+    expect(read(input.site, 'errors/NEXUS_MISSING_PROVIDER/index.html')).toBe(
+      page('0.3 errors'),
+    );
+  });
+
   it('removes a CNAME the builds left below the root', () => {
     const input = inputs();
     writeFileSync(join(input.nextOut, 'CNAME'), 'nexus.js.org');
@@ -122,7 +153,25 @@ describe('assemble in rc mode', () => {
   });
 });
 
+describe('codePages', () => {
+  it('lists the code folders of a /next/ build and nothing else', () => {
+    expect(codePages(inputs().nextOut)).toEqual(['NEXUS_MISSING_PROVIDER']);
+  });
+
+  it('reads a build with no errors folder as no code page', () => {
+    expect(codePages(tree('bare', { 'index.html': page('bare') }))).toEqual([]);
+  });
+});
+
 describe('assemble in final mode', () => {
+  it('writes no code stub, because the root build holds the code pages', () => {
+    const input = inputs();
+    assemble({ ...input, mode: 'final' });
+    expect(existsSync(join(input.site, 'errors/NEXUS_MISSING_PROVIDER'))).toBe(
+      false,
+    );
+  });
+
   it('puts the release build at the root and the archive under v0.3/', () => {
     const input = inputs();
     assemble({ ...input, mode: 'final' });

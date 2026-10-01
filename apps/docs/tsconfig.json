@@ -52,5 +52,10 @@
     ".next",
     "eslint.config.mjs",
     "snapshot"
+  ],
+  "references": [
+    {
+      "path": "../../tools/doc-examples"
+    }
   ]
 }

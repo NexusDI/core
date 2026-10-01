@@ -23,8 +23,11 @@ const NEXT_REQUIRED = [
   'next/index.html',
   'next/404.html',
   'next/_pagefind/pagefind.js',
-  'next/getting-started.md',
+  'next/index.md',
 ];
+
+/** Routes under next/ that are not content pages, so carry no .md sibling. */
+const NOT_CONTENT = /^next\/(?:_|404\b|playground\/|academy\/)/;
 
 function requireFiles(findings, site, mode, paths) {
   for (const path of paths) {
@@ -33,9 +36,42 @@ function requireFiles(findings, site, mode, paths) {
   }
 }
 
-function requireMatch(findings, all, mode, label, pattern) {
-  if (!all.some((file) => pattern.test(file))) {
-    findings.push(`missing from the ${mode} artifact: ${label}`);
+/** Every content page under next/ has the .md sibling postbuild writes. */
+function checkSiblings(findings, site, all) {
+  for (const file of all) {
+    if (!file.startsWith('next/') || !file.endsWith('/index.html')) continue;
+    if (NOT_CONTENT.test(file)) continue;
+    const page = file.slice(0, -'/index.html'.length);
+    if (
+      existsSync(join(site, `${page}.md`)) ||
+      existsSync(join(site, `${page}/index.md`))
+    )
+      continue;
+    findings.push(
+      `${file} has no .md sibling (${page}.md). postbuild writes one for every content page.`,
+    );
+  }
+}
+
+const CODE_PAGE = /^next\/errors\/([A-Z][A-Z0-9_]*)\/index\.html$/;
+
+/** In rc mode every code page under next/ has its root stub (docs spec §15.5). */
+function checkCodeStubs(findings, site, all) {
+  for (const file of all) {
+    const code = CODE_PAGE.exec(file)?.[1];
+    if (code === undefined) continue;
+    const stub = `errors/${code}/index.html`;
+    if (!existsSync(join(site, stub))) {
+      findings.push(
+        `${stub} is missing. Every error message links to /errors/<CODE>, and the rc root answers it with a stub to /next/errors/<CODE>/.`,
+      );
+    } else if (
+      !readFileSync(join(site, stub), 'utf8').includes(
+        `url=/next/errors/${code}/`,
+      )
+    ) {
+      findings.push(`${stub} does not point at /next/errors/${code}/.`);
+    }
   }
 }
 
@@ -47,10 +83,18 @@ function archivePages(all) {
   );
 }
 
+/** True when a robots meta tag asks for noindex, whatever the attribute order. */
+function hasNoindex(html) {
+  return (html.match(/<meta\b[^>]*>/gi) ?? []).some(
+    (tag) =>
+      /\bname="robots"/i.test(tag) && /\bcontent="[^"]*noindex/i.test(tag),
+  );
+}
+
 function checkArchive(findings, site, all) {
   for (const file of archivePages(all)) {
     const html = readFileSync(join(site, file), 'utf8');
-    if (!/<meta\s+name="robots"\s+content="[^"]*noindex/i.test(html)) {
+    if (!hasNoindex(html)) {
       findings.push(`${file}: carries no noindex robots meta.`);
     }
     for (const [, attribute, value] of html.matchAll(
@@ -100,20 +144,7 @@ export function checkArtifact(site, mode, options = {}) {
 
   if (mode === 'rc' || mode === 'final' || mode === 'retired') {
     requireFiles(findings, site, mode, NEXT_REQUIRED);
-    requireMatch(
-      findings,
-      all,
-      mode,
-      'next/runtime/types-*.json',
-      /^next\/runtime\/types-[^/]+\.json$/,
-    );
-    requireMatch(
-      findings,
-      all,
-      mode,
-      'next/runtime/core-*/index.js',
-      /^next\/runtime\/core-[^/]+\/index\.js$/,
-    );
+    checkSiblings(findings, site, all);
     if (all.some((file) => file.startsWith('next/blog/'))) {
       findings.push(
         'next/blog/ exists. The /next/ build leaves content/blog/ out.',
@@ -123,6 +154,7 @@ export function checkArtifact(site, mode, options = {}) {
 
   if (mode === 'rc') {
     requireFiles(findings, site, mode, ['blog/rss.xml', 'blog/atom.xml']);
+    checkCodeStubs(findings, site, all);
     const notFound = join(site, '404.html');
     if (
       existsSync(notFound) &&

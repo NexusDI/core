@@ -2,6 +2,9 @@
   "name": "@nexusdi/docs",
   "version": "0.0.0",
   "private": true,
+  "scripts": {
+    "postbuild": "node tools/md-siblings.mjs && node tools/blog-feed.mjs && node tools/pagefind.mjs"
+  },
   "nx": {
     "tags": [
       "scope:docs",
@@ -27,6 +30,15 @@
           "{projectRoot}/out"
         ]
       },
+      "check-budgets": {
+        "command": "node tools/check-budgets.mjs",
+        "options": {
+          "cwd": "{projectRoot}"
+        },
+        "dependsOn": [
+          "build"
+        ]
+      },
       "typecheck": {
         "cache": true,
         "dependsOn": [
@@ -47,6 +59,7 @@
     }
   },
   "dependencies": {
+    "@nexusdi/doc-examples": "*",
     "next": "16.3.4",
     "nextra": "4.6.1",
     "nextra-theme-docs": "4.6.1",
@@ -56,6 +69,8 @@
   "devDependencies": {
     "@nx/eslint-plugin": "23.1.1",
     "eslint-config-next": "16.3.4",
-    "typescript": "6.0.3"
+    "pagefind": "^1.5.2",
+    "typescript": "6.0.3",
+    "yaml": "^2.9.0"
   }
 }
