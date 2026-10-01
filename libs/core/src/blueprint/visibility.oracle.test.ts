@@ -8,13 +8,14 @@ import {
 import { provide } from '../definitions/provide.js';
 import { REQUEST } from '../definitions/request.js';
 import { MultiToken, Token, displayName } from '../definitions/token.js';
-import type { NexusError } from '../errors/index.js';
+import { AmbiguousProviderError, type NexusError } from '../errors/index.js';
 import {
   REQUEST_ID,
   type ModuleNode,
   type ProviderRecord,
   type TokenKey,
 } from './blueprint.js';
+import { isCyclic, strongComponents } from './tarjan.js';
 import { computeVisibility, type VisibilityInput } from './visibility.js';
 import { walk } from './walk.js';
 
@@ -37,6 +38,8 @@ interface Shapes {
   reexport: number;
   global: number;
   globalReexport: number;
+  cycle: number;
+  cyclicAmbiguous: number;
   pinnedMulti: number;
   orphan: number;
   unimported: number;
@@ -74,12 +77,45 @@ function generate(random: () => number, graph: number): Generated {
   const ghost = new Token<IReading>(`G${graph}.Ghost`);
   const exportable: TokenKey[] = [...plain, ...multi, ghost, REQUEST];
 
+  /**
+   * A global module that imports and re-exports two modules, each of which
+   * imports a provider module and exports the token by name. Each importer
+   * sees the global's exports, so the re-export closes a cycle. Two
+   * providers make the token ambiguous in every module of the cycle; one
+   * provider, or a MultiToken, resolves.
+   */
+  const cycle = (later: readonly ModuleDefinition[]): ModuleDefinition => {
+    const token = (chance(0.75) ? pick(plain) : pick(multi)) ?? REQUEST;
+    const source = (name: string): ModuleDefinition =>
+      defineModule({
+        name: `G${graph}.${name}`,
+        providers: [provide(token as Token<IReading>, { useClass: Reading })],
+        exports: [token],
+      });
+    const first = source('Source1');
+    const second = chance(0.7) ? source('Source2') : first;
+    const member = (name: string, from: ModuleDefinition): ModuleDefinition =>
+      defineModule({
+        name: `G${graph}.${name}`,
+        imports: [from, ...later.filter(() => chance(0.2))],
+        exports: [token],
+      });
+    const members = [member('K1', first), member('K2', second)];
+    return defineModule({
+      name: `G${graph}.Ring`,
+      global: true,
+      imports: members,
+      exports: members,
+    });
+  };
+
   const count = 2 + Math.floor(random() * 8);
   const definitions: ModuleDefinition[] = [];
   for (let i = count - 1; i >= 0; i--) {
     const later = definitions.slice(); // modules i + 1 .. count - 1
     const imports = later.filter(() => chance(0.4));
     const global = i > 0 && chance(0.2);
+    if (i === 0 && chance(0.4)) imports.push(cycle(later));
     const providers: unknown[] = [];
     const provided = new Set<TokenKey>();
     for (const token of plain)
@@ -202,6 +238,55 @@ function shadows(input: VisibilityInput, result: VisibilityResult): boolean {
 }
 
 /**
+ * Token display name → names of the modules whose lookup of it sits in a
+ * cycle. Builds each token's graph by the successor rule of the pass: node
+ * 2i is module i's lookup, node 2i + 1 its export.
+ */
+function cyclicLookups(input: VisibilityInput): Map<string, Set<string>> {
+  const { modules, records, pinned } = input;
+  const indexOf = new Map(modules.map((m, i) => [m.id, i]));
+  const toIndex = (ids: readonly string[]): number[] =>
+    ids.flatMap((id) => indexOf.get(id) ?? []);
+  const globals = modules.filter((m) => m.global).map((m) => m.id);
+  const sources = modules.map((m) =>
+    toIndex([
+      ...m.imports,
+      ...globals.filter((g) => g !== m.id && !m.imports.includes(g)),
+    ]),
+  );
+  const found = new Map<string, Set<string>>();
+  for (const token of new Set(records.map((r) => r.token))) {
+    if (pinned.has(token)) continue;
+    const owns = new Set(
+      records.filter((r) => r.token === token).map((r) => r.module),
+    );
+    const successors = (node: number): readonly number[] => {
+      const m = modules[node >> 1];
+      if (m === undefined) return [];
+      if (node % 2 === 1) {
+        const next = toIndex(m.exportModules).map((c) => 2 * c + 1);
+        return m.exportTokens.includes(token) ? [node - 1, ...next] : next;
+      }
+      if (!(token instanceof MultiToken) && owns.has(m.id)) return [];
+      return (sources[node >> 1] ?? []).map((s) => 2 * s + 1);
+    };
+    const names = new Set<string>();
+    const visit = strongComponents(
+      2 * modules.length,
+      successors,
+      (members) => {
+        if (!isCyclic(members, successors)) return;
+        for (const member of members)
+          if (member % 2 === 0) names.add(modules[member >> 1]?.name ?? '');
+      },
+    );
+    for (let node = 0; node < 2 * modules.length; node++) visit(node);
+    if (names.size > 0) found.set(displayName(token), names);
+  }
+  return found;
+}
+
+/**
  * A structure two results compare by. Tokens become display names, which
  * are unique per graph. A module with an empty map or set is left out, so
  * the comparison does not depend on whether a pass stores empty entries.
@@ -244,6 +329,8 @@ describe('computeVisibility against the dense oracle', () => {
       reexport: 0,
       global: 0,
       globalReexport: 0,
+      cycle: 0,
+      cyclicAmbiguous: 0,
       pinnedMulti: 0,
       orphan: 0,
       unimported: 0,
@@ -271,6 +358,16 @@ describe('computeVisibility against the dense oracle', () => {
       if (expectedErrors.some((e) => e.code === 'NEXUS_INVALID_EXPORT'))
         shapes.invalidExport++;
       if (shadows(input, computeVisibilityOracle(input, []))) shapes.shadowed++;
+      const cyclic = cyclicLookups(input);
+      if (cyclic.size > 0) shapes.cycle++;
+      if (
+        expectedErrors.some(
+          (e) =>
+            e instanceof AmbiguousProviderError &&
+            cyclic.get(e.token)?.has(e.module) === true,
+        )
+      )
+        shapes.cyclicAmbiguous++;
     }
     // Each shape the generator aims for shows up in a fair share of graphs.
     for (const [shape, seen] of Object.entries(shapes))
