@@ -1,6 +1,6 @@
 /**
  * Named regions in a markdown file or a TypeScript source, so the docs app can
- * render the same example the package ships rather than a copy of it.
+ * render the same example the package holds, with no copy to drift.
  *
  * In markdown a region is a pair of HTML comments around a fenced code block:
  *
@@ -11,9 +11,9 @@
  *     <!-- #endregion quick-start -->
  *
  * HTML comments because GitHub and npm render markdown and drop them, so the
- * README a reader sees is unmarked. The markers sit outside the fence rather
- * than inside it so that the extracted text is code, with no marker lines to
- * strip and no marker visible in the README's own rendering.
+ * README a reader sees is unmarked. The markers sit outside the fence, so the
+ * extracted text is code with no marker lines to strip and no marker visible
+ * in the README's own rendering.
  *
  * In a `.ts` or `.tsx` source a region is a pair of line comments, and the code
  * between them is the example:
@@ -37,8 +37,8 @@
  *     <button disabled={!mayOrder}>Place the order</button>
  *     {/* #endregion checkout-gate *\/}
  *
- * The extracted block is executed, because the file it comes from is executed —
- * the docs app inherits that guarantee rather than adding one.
+ * The extracted block is executed, because the file it comes from is executed.
+ * The docs app inherits that guarantee.
  */
 
 const REGION = /<!--\s*#region\s+([\w-]+)\s*-->/;
@@ -74,7 +74,8 @@ export function parseRegions(source, file) {
  * The region body, with the indentation its enclosing block gave it removed.
  *
  * A type-level claim sits inside a `describe` or an `it`, so the lines carry
- * two or four spaces that belong to the test file and not to the example. The
+ * two or four spaces that belong to the test file and are no part of the
+ * example. The
  * blank lines the markers usually stand apart from go with them.
  */
 function body(lines) {
@@ -101,7 +102,7 @@ function sourceLang(file) {
  * while one is already open, a close that matches nothing or the wrong
  * region, a region defined twice, and a region still open at the end of the
  * file. The messages are identical between the two parsers, so each check
- * lives here once instead of twice.
+ * lives here once.
  */
 function assertNotOpening(open, name, file, index) {
   if (open) {
@@ -183,10 +184,9 @@ function parseSourceRegions(source, file) {
 /**
  * Every named region in a markdown source.
  *
- * A region must contain exactly one fenced block. Anything else — prose
- * between the markers, two blocks, none — is an error rather than a
- * best-effort extraction, because the failure it prevents is a docs page
- * quietly rendering the wrong thing.
+ * A region must contain exactly one fenced block. Anything else (prose
+ * between the markers, two blocks, none) is an error. A best-effort
+ * extraction would let a docs page quietly render the wrong thing.
  */
 function parseMarkdownRegions(source, file) {
   const lines = source.split('\n');

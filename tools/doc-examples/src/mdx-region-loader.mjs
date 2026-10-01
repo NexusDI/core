@@ -11,9 +11,8 @@ import { readRegion } from './regions.mjs';
  *     ```ts file=libs/urn/README.md region=basic-usage
  *     ```
  *
- * Paths are workspace-root relative, which survives a page being moved
- * between directories — a docs page's own depth is not something an example
- * reference should depend on.
+ * Paths are workspace-root relative, so a page can move between directories
+ * and keep its references. A docs page's own depth plays no part in them.
  *
  * Whatever else the info string carries is kept and handed to Shiki, so a
  * region block can also be a Twoslash block:
@@ -25,15 +24,15 @@ import { readRegion } from './regions.mjs';
  * `twoslash` (nextra/dist/server/rehype-plugins/rehype-twoslash-popup.js).
  * This strips `file=` and `region=` before Nextra reads the info string, so
  * the fence above arrives there as plain `twoslash` and its hovers work. Any
- * word this does not consume survives, blocks the import, and makes the page
- * throw on a `Popup` it never imported — so `twoslash` is the only other meta
- * a region block may carry.
+ * word this does not consume stays in the info string, blocks the import, and
+ * makes the page throw on a `Popup` it never imported. So `twoslash` is the
+ * only other meta a region block may carry.
  *
  * A Twoslash block gets the README's own preamble in front of it, behind a
  * `// ---cut---` the reader never sees. `preamble.mjs` carries why.
  *
- * A webpack loader rather than the remark plugin the demo-apps spec called
- * for. Nextra hands `mdxOptions.remarkPlugins` straight to unified, which
+ * This is a webpack loader, where the demo-apps spec called for a remark
+ * plugin. Nextra hands `mdxOptions.remarkPlugins` straight to unified, which
  * requires plugin *functions*, while Next 16 requires every loader option to
  * be serializable and rejects a config carrying one. A loader is the only
  * position that satisfies both: its module path and its `{ root }` option are
@@ -41,14 +40,14 @@ import { readRegion } from './regions.mjs';
  * hook is needed. It is ordered before Nextra's own loader, so what Nextra
  * compiles already has the regions in it.
  *
- * Not `remark-code-import`: last published 2023-05-06, still on
+ * `remark-code-import` was ruled out: last published 2023-05-06, still on
  * `unist-util-visit@^4` against this repo's MDX 3 / unified 11 stack, and it
  * addresses snippets by line range. Line numbers drift silently when the
  * source file is edited above them, which is the failure this exists to
  * remove.
  *
- * A missing file or region throws, so `next build` fails rather than deploying a
- * page with an empty code block where an example should be.
+ * A missing file or region throws, so `next build` fails. A page with an empty
+ * code block where an example should be never deploys.
  */
 
 const REFERENCE = /(?:^|\s)file=(\S+)\s+region=([\w-]+)/;
@@ -56,15 +55,15 @@ const REFERENCE = /(?:^|\s)file=(\S+)\s+region=([\w-]+)/;
 /**
  * Expands every region reference in an MDX source.
  *
- * Textual rather than AST-based: a reference lives in a fence info string, and
- * the replacement is the fence's body, so the fence scan already finds what
- * parsing the document would find.
+ * This is a textual scan with no AST: a reference lives in a fence info string,
+ * and the replacement is the fence's body, so the fence scan already finds
+ * what parsing the document would find.
  */
 export function expandRegions(source, root, file) {
   const out = [];
   let fence = null;
   // Set while inside a block whose body came from a region, so the author's
-  // own placeholder lines are dropped rather than appended to it.
+  // own placeholder lines are dropped and never appended to it.
   let replacing = false;
 
   for (const line of source.split('\n')) {

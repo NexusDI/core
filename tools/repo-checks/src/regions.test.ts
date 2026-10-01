@@ -3,9 +3,10 @@ import { describe, expect, it } from 'vitest';
 import { RegionError, parseRegions, readRegion } from '@nexusdi/doc-examples';
 
 /**
- * Named regions are what the docs app renders instead of its own copy of an
- * example. Every malformed case throws, because the alternative is a docs page
- * quietly rendering something other than what the README ships.
+ * Named regions are the examples the docs app renders from the README, with no
+ * copy of its own. Every malformed case throws, because a silent fallback
+ * would let a docs page quietly render something other than what the README
+ * holds.
  */
 
 const fence = '```';

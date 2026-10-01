@@ -12,16 +12,16 @@ import { join } from 'node:path';
  * that resolves under one resolves under the other.
  *
  * The file sits beside the README it serves, because the README's directory is
- * all either side knows — the doctest run has `import.meta.dirname` of the
- * package's `vite.config.ts`, the loader has a `file=` path pointing at the
+ * all either side knows. The doctest run has `import.meta.dirname` of the
+ * package's `vite.config.ts` and the loader has a `file=` path pointing at the
  * README.
  *
  *     // libs/urn/doc-examples.preamble.ts
  *     import { URN } from '@nexusdi/core';
  *
- * A `.ts` file rather than a string in a config or a field in `package.json`:
- * the contents are TypeScript, and an editor resolves the specifier and the
- * names in it like any other source.
+ * It is a `.ts` file because the contents are TypeScript, and an editor
+ * resolves the specifier and the names in it like any other source. A string
+ * in a config or a field in `package.json` would get none of that.
  */
 export const PREAMBLE_FILE = 'doc-examples.preamble.ts';
 
