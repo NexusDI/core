@@ -6,8 +6,9 @@ import { DOCS } from './paths';
 /**
  * `docs-deploy` (spec §14.3): deploy.json matches its schema, a root re-cut
  * descends from the release tag, and the /v0.3/ retention of §15.7 retires
- * the archive on time. It replaces the libraries `docs-archive` guard: this
- * site keeps one archive before 1.0, so the retention check is the whole job.
+ * the archive on time. It also holds archives.json, the list of /v{line}/
+ * archives (release spec §7.1.3), to its schema, in the place of the
+ * libraries `docs-archive` guard.
  */
 export interface DeployContext {
   today: Date;
@@ -17,20 +18,24 @@ export interface DeployContext {
 }
 
 type ValidateDeployConfig = (config: unknown) => string[];
+type ValidateArchives = (archives: unknown, deployConfig: unknown) => string[];
 type RetentionEnded = (input: {
   finalDate: string | null;
   v050Date: string | null;
   today: Date;
 }) => boolean;
 
-// The docs app owns the validator and the retention rule, and docs.yml runs
-// the validator's CLI from there. A computed dynamic import loads both
+// The docs app owns the validators and the retention rule, and docs.yml runs
+// the validators' CLIs from there. A computed dynamic import loads both
 // modules without a static import, so Nx records no
 // @nexusdi/repo-checks -> @nexusdi/docs dependency and tsc never compiles the
 // docs app's files into this project.
 const { validateDeployConfig } = (await import(
   pathToFileURL(join(DOCS, 'tools/deploy/deploy-config.mjs')).href
 )) as { validateDeployConfig: ValidateDeployConfig };
+const { validateArchives } = (await import(
+  pathToFileURL(join(DOCS, 'tools/deploy/archives.mjs')).href
+)) as { validateArchives: ValidateArchives };
 const { retentionEnded } = (await import(
   pathToFileURL(join(DOCS, 'tools/deploy/retention.mjs')).href
 )) as { retentionEnded: RetentionEnded };
@@ -75,4 +80,18 @@ export function checkDeploy(config: unknown, context: DeployContext): string[] {
   }
 
   return findings;
+}
+
+/**
+ * archives.json lists the /v{line}/ archives in ascending order. Line 0.3
+ * reads its assets from deploy.json's snapshot block, so the check reads both
+ * files.
+ */
+export function checkArchives(
+  archives: unknown,
+  deployConfig: unknown,
+): string[] {
+  return validateArchives(archives, deployConfig).map(
+    (finding) => `apps/docs/archives.json: ${finding}`,
+  );
 }

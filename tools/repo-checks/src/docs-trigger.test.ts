@@ -5,7 +5,7 @@ import { createProjectGraphAsync, workspaceRoot } from '@nx/devkit';
 import { describe, expect, it } from 'vitest';
 import { parse } from 'yaml';
 
-import { checkTrigger, covers } from './docs/docs-trigger';
+import { checkNextTrigger, checkTrigger, covers } from './docs/docs-trigger';
 import { FIXTURES } from './docs/paths';
 
 const read = (name: string) =>
@@ -38,6 +38,39 @@ describe('docs-trigger fixtures', () => {
   });
 });
 
+const DOCS_PATHS = (read('clean.yml') as { on: { push: { paths: string[] } } })
+  .on.push.paths;
+
+describe('docs-next trigger fixtures', () => {
+  it('passes a workflow that only dispatches docs.yml on main', () => {
+    expect(checkNextTrigger(read('next-clean.yml'), DOCS_PATHS)).toEqual([]);
+  });
+
+  it('fails extra branches, events, paths, permissions and steps', () => {
+    expect(checkNextTrigger(read('next-sabotaged.yml'), DOCS_PATHS)).toEqual([
+      "docs-next.yml: jobs.dispatch runs a step other than 'gh workflow run docs.yml --ref main'. The job holds actions: write, so it runs nothing else.",
+      'docs-next.yml: jobs.dispatch sets its own permissions. The workflow grants actions: write at the top level and nothing else.',
+      'docs-next.yml: jobs.dispatch uses actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1. The dispatch needs no checkout and no action.',
+      "docs-next.yml: no step runs 'gh workflow run docs.yml --ref main'.",
+      "docs-next.yml: on.push.branches must be exactly ['release/**']; found ['release/**', 'main'].",
+      "docs-next.yml: on.push.paths lacks 'internal/**', which docs.yml lists. A change there on a release branch would leave /next/ stale.",
+      "docs-next.yml: on.push.paths lists 'README.md', which docs.yml does not. The two lists are the same.",
+      'docs-next.yml: on.workflow_dispatch is set. The workflow runs on release branch pushes only.',
+      'docs-next.yml: permissions must be exactly { actions: write }; found { actions: write, contents: write }.',
+    ]);
+  });
+
+  it('fails a workflow with no dispatch step', () => {
+    const workflow = read('next-clean.yml') as {
+      jobs: { dispatch: { steps: unknown[] } };
+    };
+    workflow.jobs.dispatch.steps = [];
+    expect(checkNextTrigger(workflow, DOCS_PATHS)).toEqual([
+      "docs-next.yml: no step runs 'gh workflow run docs.yml --ref main'.",
+    ]);
+  });
+});
+
 describe('docs-trigger on .github/workflows/docs.yml', () => {
   it('covers every released project and every project the site builds from', async () => {
     const graph = await createProjectGraphAsync({ exitOnError: false });
@@ -59,5 +92,19 @@ describe('docs-trigger on .github/workflows/docs.yml', () => {
       checkTrigger(workflow, roots),
       'Add each missing path to on.push.paths in .github/workflows/docs.yml.',
     ).toEqual([]);
+  });
+});
+
+describe('docs-trigger on .github/workflows/docs-next.yml', () => {
+  it('dispatches docs.yml on main for every path docs.yml watches', () => {
+    const load = (name: string) =>
+      parse(
+        readFileSync(join(workspaceRoot, '.github/workflows', name), 'utf8'),
+      ) as unknown;
+    const docs = load('docs.yml') as { on: { push: { paths: string[] } } };
+
+    expect(checkNextTrigger(load('docs-next.yml'), docs.on.push.paths)).toEqual(
+      [],
+    );
   });
 });

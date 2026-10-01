@@ -26,7 +26,15 @@ const workflow = parse(source) as {
       needs?: string | string[];
       environment?: unknown;
       permissions?: Record<string, string>;
-      steps: { uses?: string; run?: string; with?: Record<string, unknown> }[];
+      steps: {
+        id?: string;
+        name?: string;
+        if?: string;
+        uses?: string;
+        run?: string;
+        env?: Record<string, string>;
+        with?: Record<string, unknown>;
+      }[];
     }
   >;
 };
@@ -98,5 +106,54 @@ describe('docs.yml', () => {
     expect(source).toContain(
       'node apps/docs/tools/deploy/smoke.mjs https://nexus.js.org',
     );
+  });
+
+  it('validates archives.json before building anything', () => {
+    const validate = source.indexOf(
+      'node apps/docs/tools/deploy/archives.mjs apps/docs/archives.json',
+    );
+    expect(validate).toBeGreaterThan(-1);
+    expect(validate).toBeLessThan(source.indexOf('nx build @nexusdi/docs'));
+  });
+
+  it('picks the /next/ source before the /next/ build, under the same condition', () => {
+    const steps = workflow.jobs.build.steps;
+    const pick = steps.findIndex((step) => step.id === 'next');
+    const build = steps.findIndex(
+      (step) => step.name === 'Build the /next/ site',
+    );
+    expect(steps[pick]?.run).toBe(
+      'node apps/docs/tools/deploy/next-source.mjs',
+    );
+    expect(pick).toBeGreaterThan(-1);
+    expect(build).toBeGreaterThan(pick);
+    expect(steps[pick]?.if).toBe(steps[build]?.if);
+  });
+
+  it('builds /next/ from a release branch in its own worktree with its own install', () => {
+    const build = workflow.jobs.build.steps.find(
+      (step) => step.name === 'Build the /next/ site',
+    );
+    expect(build?.env).toMatchObject({
+      DOCS_BASE_PATH: '/next',
+      DOCS_CHANNEL: 'next',
+      NEXT_IS_MAIN: '${{ steps.next.outputs.is_main }}',
+      NEXT_SHA: '${{ steps.next.outputs.sha }}',
+    });
+    expect(build?.run).toContain(
+      'git worktree add --detach build/next-src "$NEXT_SHA"',
+    );
+    expect(build?.run).toContain('cd build/next-src && npm ci');
+    expect(build?.run).toContain(
+      'mv build/next-src/apps/docs/out build/next-out',
+    );
+  });
+
+  it('passes the /next/ source to run scripts through env only', () => {
+    // The branch name and commit come from the remote, so no run script
+    // expands them as a template.
+    for (const step of workflow.jobs.build.steps) {
+      expect(step.run ?? '').not.toContain('steps.next.outputs');
+    }
   });
 });
