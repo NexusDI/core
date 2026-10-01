@@ -271,6 +271,7 @@ jobs:
         env:
           GH_TOKEN: ${{ github.token }}
           IS_TAG: ${{ github.ref_type == 'tag' }}
+          REF_NAME: ${{ github.ref_name }}
         run: node benchmarks/src/open-results-pr.ts
 
   competitor-releases:

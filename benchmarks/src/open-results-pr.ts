@@ -6,7 +6,9 @@
  * pin change changes matrix.json's versions) or on a tag run. Otherwise it
  * commits nothing: the workflow's artifacts keep that run's files.
  *
- * Run by benchmarks.yml with GH_TOKEN and IS_TAG set, in a job that has
+ * The pull request targets the branch the run measured (resultsBase).
+ *
+ * Run by benchmarks.yml with GH_TOKEN, IS_TAG and REF_NAME set, in a job that has
  * write access and never runs `npm ci`, so it imports node builtins only.
  * The checkout keeps no credentials; the push alone authenticates, through
  * gh's credential helper.
@@ -34,8 +36,52 @@ interface TimingsHead {
   versions: { node: string };
 }
 
+/**
+ * The base branch of the results pull request. A branch run targets its own
+ * branch. A tag has no branch, so a tag run reads it from the tag and the
+ * remote branches that contain the tagged commit, after RELEASING.md's
+ * events: an rc is tagged on release/X.Y, a stable release fast-forwards
+ * main to its tag, and a patch is tagged on main or on X.Y.x.
+ */
+export function resultsBase(
+  isTag: boolean,
+  refName: string,
+  containing: readonly string[],
+): string {
+  if (!isTag) return refName;
+  const version = /@(\d+)\.(\d+)\.\d+(-[^@]+)?$/.exec(refName);
+  if (version === null) throw new Error(`not a release tag: ${refName}`);
+  const [, major, minor, prerelease] = version;
+  const candidates =
+    prerelease === undefined
+      ? ['main', `${major}.${minor}.x`]
+      : [`release/${major}.${minor}`];
+  const base = candidates.find((b) => containing.includes(b));
+  if (base === undefined) {
+    const found = containing.join(', ') || 'none';
+    throw new Error(
+      `${refName} is on none of ${candidates.join(', ')}. Branches that contain it: ${found}`,
+    );
+  }
+  return base;
+}
+
 if (import.meta.main) {
   const isTag = process.env.IS_TAG === 'true';
+  const refName = process.env.REF_NAME;
+  if (!refName) throw new Error('REF_NAME is not set');
+  // The results job checks out with fetch-depth 0, which fetches every
+  // branch into refs/remotes/origin.
+  const containing = git(
+    'branch',
+    '--remotes',
+    '--contains',
+    'HEAD',
+    '--format=%(refname:lstrip=3)',
+  )
+    .split('\n')
+    .filter(Boolean);
+  const base = resultsBase(isTag, refName, containing);
   const sha = git('rev-parse', '--short=7', 'HEAD');
   const date = new Date().toISOString().slice(0, 10);
   const changed = git('status', '--porcelain', '--', ...DETERMINISTIC) !== '';
@@ -93,7 +139,7 @@ if (import.meta.main) {
       'pr',
       'create',
       '--base',
-      'main',
+      base,
       '--head',
       branch,
       '--title',
