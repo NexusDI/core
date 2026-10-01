@@ -49,5 +49,5 @@ export function preamblePath(packageDir) {
  */
 export function withPreamble(preamble, code) {
   if (!preamble || /^import[\s{]/m.test(code)) return code;
-  return `${preamble.replace(/\n*$/, '\n')}// ---cut---\n${code}`;
+  return `${preamble.trimEnd()}\n// ---cut---\n${code}`;
 }
