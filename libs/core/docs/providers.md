@@ -85,7 +85,7 @@ ship.get(STATUS); // -> 'Meridian at 1.21 GW'
 
 <!-- #endregion provider-literals -->
 
-## Startup cost
+## Built on first use
 
 A singleton with `eager: false` builds on its first `get()`.
 
