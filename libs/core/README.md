@@ -12,25 +12,6 @@
 
 NexusDI assembles a TypeScript app from modules that teams own and tests can replace. It validates the whole module graph before it builds anything, so a missing provider or a cycle fails at startup in one error. No runtime dependencies.
 
-## Features
-
-- Modules with private providers, exports, `forRoot()` and `forRootAsync()`.
-- Class, value, factory and alias providers on typed `Token<T>` interfaces.
-- Async factories finish at startup, and `get()` stays synchronous.
-- One startup error lists every missing provider and cycle.
-- Request scopes, and disposal in reverse creation order.
-- Runs under tsc, TypeScript 7, esbuild, SWC, Babel, Vite, Bun, Deno and Node's type stripping.
-
-## Install
-
-> 0.4 is a release candidate on the npm `next` tag. Install every @nexusdi package from `next` so their versions match. `npm install @nexusdi/core` without `@next` installs the 0.3 line.
-
-```bash
-npm install @nexusdi/core@next
-```
-
-The package is ESM, and needs Node 22.12 or later and TypeScript 5.4 or later.
-
 ## Quick start
 
 A class lists the classes its constructor takes in `static deps`, and `Nexus.create` takes the classes.
@@ -58,6 +39,25 @@ app.get(UserService).greet('Ada'); // -> '[app] hello Ada'
 ```
 
 <!-- #endregion quick-start -->
+
+## Features
+
+- Modules with private providers, exports, `forRoot()` and `forRootAsync()`.
+- Class, value, factory and alias providers on typed `Token<T>` interfaces.
+- Async factories finish at startup, and `get()` stays synchronous.
+- One startup error lists every missing provider and cycle.
+- Request scopes, and disposal in reverse creation order.
+- Runs under tsc, TypeScript 7, esbuild, SWC, Babel, Vite, Bun, Deno and Node's type stripping.
+
+## Install
+
+> 0.4 is a release candidate on the npm `next` tag. Install every @nexusdi package from `next` so their versions match. `npm install @nexusdi/core` without `@next` installs the 0.3 line.
+
+```bash
+npm install @nexusdi/core@next
+```
+
+The package is ESM, and needs Node 22.12 or later and TypeScript 5.4 or later.
 
 ## Checked at startup
 

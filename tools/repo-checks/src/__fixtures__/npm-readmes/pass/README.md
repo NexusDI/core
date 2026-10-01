@@ -12,26 +12,6 @@
 
 NexusDI validates the whole module graph before it builds anything, so a missing provider or a cycle fails at startup in one error. No runtime dependencies.
 
-## Features
-
-- Modules with `forRoot` and `forRootAsync`, as in NestJS.
-- Class, value and factory providers on `Token<T>`.
-- Async startup, then a synchronous `get()`.
-- One startup error lists every missing provider and cycle.
-- Runs under tsc, TypeScript 7, esbuild, SWC, Babel, Vite, Bun, Deno and Node's type stripping.
-
-## Install
-
-> 0.4 is a release candidate on the npm `next` tag. Install every @nexusdi package from `next` so their versions match.
-
-`npm install @nexusdi/core` without `@next` installs the 0.3 line.
-
-```bash
-npm install @nexusdi/core@next
-```
-
-Node 22.12 or later, TypeScript 5.4 or later, ESM.
-
 ## Quick start
 
 <!-- #region quick-start -->
@@ -57,6 +37,26 @@ app.get(UserService).greet('Ada'); // -> '[app] hello Ada'
 ```
 
 <!-- #endregion quick-start -->
+
+## Features
+
+- Modules with `forRoot` and `forRootAsync`, as in NestJS.
+- Class, value and factory providers on `Token<T>`.
+- Async startup, then a synchronous `get()`.
+- One startup error lists every missing provider and cycle.
+- Runs under tsc, TypeScript 7, esbuild, SWC, Babel, Vite, Bun, Deno and Node's type stripping.
+
+## Install
+
+> 0.4 is a release candidate on the npm `next` tag. Install every @nexusdi package from `next` so their versions match.
+
+`npm install @nexusdi/core` without `@next` installs the 0.3 line.
+
+```bash
+npm install @nexusdi/core@next
+```
+
+Node 22.12 or later, TypeScript 5.4 or later, ESM.
 
 ## Packages
 
