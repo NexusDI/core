@@ -11,7 +11,7 @@ Draw your NexusDI module graph and follow every instance the container builds.
 - `inspect()` compiles a module graph and builds nothing.
 - `trace()` reports each lifecycle event as it happens.
 
-<img src="https://raw.githubusercontent.com/NexusDI/core/release/0.4/libs/devtools/assets/graph.svg" alt="NexusDI graph of the Meridian app: module Bridge holds Helm and ShipLog and imports module Engineering, which holds ShipComputer, Reactor and the async NavCharts factory and exports ShipComputer" width="720">
+<img src="https://raw.githubusercontent.com/NexusDI/core/release/0.4/libs/devtools/assets/graph.svg" alt="NexusDI graph of the Meridian app: Bridge provides Helm and ShipLog; Engineering provides ShipComputer, Reactor and the async NavCharts factory." width="720">
 
 ## Install
 
