@@ -30,6 +30,8 @@ const EDGE: Record<GraphEdge['kind'], string> = {
 const HEADER = [
   'digraph nexus {',
   '  rankdir=LR;',
+  // Without it Graphviz draws cluster labels in Times.
+  '  graph [fontname="Helvetica"];',
   '  node [fontname="Helvetica"];',
   '  edge [fontname="Helvetica"];',
 ];

@@ -14,6 +14,7 @@ describe('toDot', () => {
     expect(toDot(FIXTURE)).toBe(
       String.raw`digraph nexus {
   rankdir=LR;
+  graph [fontname="Helvetica"];
   node [fontname="Helvetica"];
   edge [fontname="Helvetica"];
   subgraph "cluster_m0" {
@@ -44,6 +45,7 @@ describe('toDot', () => {
     expect(toDot(FIXTURE, { view: 'modules' })).toBe(
       String.raw`digraph nexus {
   rankdir=LR;
+  graph [fontname="Helvetica"];
   node [fontname="Helvetica"];
   edge [fontname="Helvetica"];
   "m0" [label="Meridian\n3 providers", shape=box];
