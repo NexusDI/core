@@ -1,0 +1,2418 @@
+{
+  "schema": 1,
+  "sha": "8824502",
+  "startedAt": "2026-10-01T17:11:06.722Z",
+  "versions": {
+    "core": "0.4.0-rc.0",
+    "libraries": {
+      "nexusdi": "0.4.0-rc.0",
+      "inversify": "8.2.3",
+      "tsyringe": "4.10.0",
+      "awilix": "13.0.5",
+      "needle-di": "1.2.1"
+    },
+    "toolchains": {
+      "tsc": "6.0.3",
+      "tsgo": "7.0.2",
+      "esbuild": "0.28.2",
+      "swc": "1.16.2",
+      "babel": "8.0.6",
+      "vite": "8.3.0",
+      "vite8+babel-plugin": "8.3.0",
+      "bun": "1.4.2",
+      "deno": "2.9.6",
+      "node-strip-types": "24.20.0"
+    },
+    "node": "24.20.0"
+  },
+  "runner": {
+    "os": "Linux",
+    "cpu": "AMD EPYC 7763 64-Core Processor",
+    "cores": 4,
+    "memoryGb": 16,
+    "hosted": true
+  },
+  "seed": 36891702544,
+  "design": {
+    "meridian-8": {
+      "order": "williams",
+      "warmup": 1,
+      "measured": 30,
+      "bootstrap": {
+        "resamples": 10000,
+        "block": 4,
+        "prng": "mulberry32"
+      }
+    },
+    "scale-200": {
+      "order": "williams",
+      "warmup": 1,
+      "measured": 30,
+      "bootstrap": {
+        "resamples": 10000,
+        "block": 4,
+        "prng": "mulberry32"
+      }
+    }
+  },
+  "build": {
+    "nexusdi": {
+      "decorated": {
+        "babel": {
+          "median": 2058.9319295,
+          "mad": 39.53827449999994,
+          "p5": 2016.138222,
+          "p95": 2121.2926508,
+          "iterations": 30,
+          "noisy": false,
+          "outcome": "pass",
+          "headline": false,
+          "meridian-8": {
+            "median": 565.8173085000001,
+            "mad": 2.550399499999969,
+            "p5": 559.1929157,
+            "p95": 570.9320942,
+            "iterations": 30,
+            "noisy": false
+          }
+        },
+        "bun": {
+          "median": 264.9372445,
+          "mad": 1.922164500000008,
+          "p5": 261.52359905000003,
+          "p95": 269.65894095,
+          "iterations": 30,
+          "noisy": false,
+          "outcome": "pass",
+          "headline": false,
+          "meridian-8": {
+            "median": 253.549205,
+            "mad": 1.8327519999999993,
+            "p5": 250.42750265,
+            "p95": 260.29385685,
+            "iterations": 30,
+            "noisy": false
+          }
+        },
+        "esbuild": {
+          "median": 270.0433,
+          "mad": 2.278219999999976,
+          "p5": 265.68975915,
+          "p95": 274.56229045,
+          "iterations": 30,
+          "noisy": false,
+          "outcome": "pass",
+          "headline": false,
+          "meridian-8": {
+            "median": 252.37827249999998,
+            "mad": 1.973212999999987,
+            "p5": 247.68182725,
+            "p95": 256.55042785,
+            "iterations": 30,
+            "noisy": false
+          }
+        },
+        "swc": {
+          "median": 508.63649050000004,
+          "mad": 3.8479659999999853,
+          "p5": 499.25741455,
+          "p95": 519.96059055,
+          "iterations": 30,
+          "noisy": false,
+          "outcome": "pass",
+          "headline": false,
+          "meridian-8": {
+            "median": 386.1061295,
+            "mad": 4.324408500000004,
+            "p5": 380.73657205,
+            "p95": 396.53582385,
+            "iterations": 30,
+            "noisy": false
+          }
+        },
+        "tsc": {
+          "median": 3064.3182335,
+          "mad": 10.178612499999872,
+          "p5": 3034.5104718,
+          "p95": 3087.2590301,
+          "iterations": 30,
+          "noisy": false,
+          "outcome": "pass",
+          "headline": false,
+          "meridian-8": {
+            "median": 2171.524663,
+            "mad": 7.973811500000238,
+            "p5": 2154.66973465,
+            "p95": 2199.7796899,
+            "iterations": 30,
+            "noisy": false
+          }
+        },
+        "tsgo": {
+          "median": 560.672752,
+          "mad": 11.422476999999958,
+          "p5": 534.1270424,
+          "p95": 574.43414875,
+          "iterations": 30,
+          "noisy": false,
+          "outcome": "pass",
+          "headline": false,
+          "meridian-8": {
+            "median": 443.90211850000003,
+            "mad": 2.7174525000000074,
+            "p5": 436.84553645,
+            "p95": 465.8797556,
+            "iterations": 30,
+            "noisy": false
+          }
+        },
+        "vite8+babel-plugin": {
+          "median": 2327.2169845,
+          "mad": 10.766697000000022,
+          "p5": 2302.2862959500003,
+          "p95": 2351.3026401499997,
+          "iterations": 30,
+          "noisy": false,
+          "outcome": "pass",
+          "headline": false,
+          "meridian-8": {
+            "median": 670.5676510000001,
+            "mad": 6.366768000000093,
+            "p5": 658.5565148000001,
+            "p95": 682.34452575,
+            "iterations": 30,
+            "noisy": false
+          }
+        }
+      },
+      "plain": {
+        "babel": {
+          "median": 862.5188685,
+          "mad": 6.528228999999953,
+          "p5": 854.99728495,
+          "p95": 874.841509,
+          "iterations": 30,
+          "noisy": false,
+          "outcome": "pass",
+          "headline": false,
+          "meridian-8": {
+            "median": 496.862327,
+            "mad": 3.452826000000016,
+            "p5": 490.98859500000003,
+            "p95": 502.2886339,
+            "iterations": 30,
+            "noisy": false
+          }
+        },
+        "bun": {
+          "median": 263.9390345,
+          "mad": 2.979501499999998,
+          "p5": 259.22981345,
+          "p95": 269.0111822,
+          "iterations": 30,
+          "noisy": false,
+          "outcome": "pass",
+          "headline": true,
+          "meridian-8": {
+            "median": 252.8604285,
+            "mad": 1.2531529999999975,
+            "p5": 249.79168525,
+            "p95": 255.606126,
+            "iterations": 30,
+            "noisy": false
+          }
+        },
+        "esbuild": {
+          "median": 267.2459295,
+          "mad": 2.4135279999999852,
+          "p5": 263.57142500000003,
+          "p95": 272.37278469999995,
+          "iterations": 30,
+          "noisy": false,
+          "outcome": "pass",
+          "headline": false,
+          "meridian-8": {
+            "median": 251.79880300000002,
+            "mad": 1.5578014999999965,
+            "p5": 248.6011015,
+            "p95": 255.428476,
+            "iterations": 30,
+            "noisy": false
+          }
+        },
+        "swc": {
+          "median": 465.2302945,
+          "mad": 1.8454214999999863,
+          "p5": 459.96152815,
+          "p95": 474.71686040000003,
+          "iterations": 30,
+          "noisy": false,
+          "outcome": "pass",
+          "headline": false,
+          "meridian-8": {
+            "median": 385.337351,
+            "mad": 3.513111000000009,
+            "p5": 380.81568725,
+            "p95": 396.9086186,
+            "iterations": 30,
+            "noisy": false
+          }
+        },
+        "tsc": {
+          "median": 2871.605023,
+          "mad": 17.7822749999998,
+          "p5": 2833.684984,
+          "p95": 2912.2505088000003,
+          "iterations": 30,
+          "noisy": false,
+          "outcome": "pass",
+          "headline": false,
+          "meridian-8": {
+            "median": 2150.475799,
+            "mad": 8.458665499999825,
+            "p5": 2127.660824,
+            "p95": 2168.82156145,
+            "iterations": 30,
+            "noisy": false
+          }
+        },
+        "tsgo": {
+          "median": 518.876136,
+          "mad": 11.62686450000001,
+          "p5": 496.0131184,
+          "p95": 538.8085195,
+          "iterations": 30,
+          "noisy": false,
+          "outcome": "pass",
+          "headline": false,
+          "meridian-8": {
+            "median": 459.9097845,
+            "mad": 6.268171500000022,
+            "p5": 451.2179717,
+            "p95": 478.71819175,
+            "iterations": 30,
+            "noisy": false
+          }
+        },
+        "vite": {
+          "median": 465.1705545,
+          "mad": 3.8958100000000115,
+          "p5": 457.375736,
+          "p95": 474.77717515,
+          "iterations": 30,
+          "noisy": false,
+          "outcome": "pass",
+          "headline": false,
+          "meridian-8": {
+            "median": 439.25344299999995,
+            "mad": 4.946688999999992,
+            "p5": 431.1919068,
+            "p95": 451.6271377,
+            "iterations": 30,
+            "noisy": false
+          }
+        },
+        "vite8+babel-plugin": {
+          "median": 1036.080557,
+          "mad": 5.954398500000025,
+          "p5": 1025.44334855,
+          "p95": 1051.2325148,
+          "iterations": 30,
+          "noisy": false,
+          "outcome": "pass",
+          "headline": false,
+          "meridian-8": {
+            "median": 593.0929805000001,
+            "mad": 4.901215000000093,
+            "p5": 583.88851655,
+            "p95": 602.8227245,
+            "iterations": 30,
+            "noisy": false
+          }
+        }
+      }
+    },
+    "inversify": {
+      "decorated": {
+        "babel": {
+          "median": 1066.1632319999999,
+          "mad": 5.905712499999822,
+          "p5": 1054.39593195,
+          "p95": 1078.91170855,
+          "iterations": 30,
+          "noisy": false,
+          "vsNexus": {
+            "median": 0.8088394208012164,
+            "low": 0.8067072506427363,
+            "high": 0.8128050833768097,
+            "pairs": 30
+          },
+          "outcome": "pass",
+          "headline": false,
+          "meridian-8": {
+            "median": 517.2271905,
+            "mad": 2.3705224999999928,
+            "p5": 510.38923035000005,
+            "p95": 521.5644902,
+            "iterations": 30,
+            "noisy": false,
+            "vsNexus": {
+              "median": 0.9615625308148871,
+              "low": 0.9550630452281839,
+              "high": 0.9661164076520259,
+              "pairs": 30
+            }
+          }
+        },
+        "bun": {
+          "median": 264.732444,
+          "mad": 1.8584500000000048,
+          "p5": 260.00765635,
+          "p95": 268.43096195,
+          "iterations": 30,
+          "noisy": false,
+          "vsNexus": {
+            "median": 1.0010253852178228,
+            "low": 0.9891117942797296,
+            "high": 1.00383935017347,
+            "pairs": 30
+          },
+          "outcome": "pass",
+          "headline": false,
+          "meridian-8": {
+            "median": 253.345151,
+            "mad": 2.069968500000016,
+            "p5": 250.20899745,
+            "p95": 260.18369225,
+            "iterations": 30,
+            "noisy": false,
+            "vsNexus": {
+              "median": 0.999580028585213,
+              "low": 0.990260985351944,
+              "high": 1.0037796190113095,
+              "pairs": 30
+            }
+          }
+        },
+        "esbuild": {
+          "median": 269.172885,
+          "mad": 2.052373000000017,
+          "p5": 265.6708101,
+          "p95": 273.97486825,
+          "iterations": 30,
+          "noisy": false,
+          "vsNexus": {
+            "median": 0.9924601854617552,
+            "low": 0.9867879749048858,
+            "high": 1.003068896191681,
+            "pairs": 30
+          },
+          "outcome": "pass",
+          "headline": false,
+          "meridian-8": {
+            "median": 251.1250755,
+            "mad": 1.7495999999999867,
+            "p5": 248.01732835,
+            "p95": 257.3977702,
+            "iterations": 30,
+            "noisy": false,
+            "vsNexus": {
+              "median": 1.002107526040366,
+              "low": 0.9952020774621662,
+              "high": 1.0082426282311023,
+              "pairs": 30
+            }
+          }
+        },
+        "swc": {
+          "median": 471.9958315,
+          "mad": 2.7532039999999824,
+          "p5": 467.67647745000005,
+          "p95": 480.406038,
+          "iterations": 30,
+          "noisy": false,
+          "vsNexus": {
+            "median": 0.985538594964767,
+            "low": 0.9806572765871784,
+            "high": 0.988993852599533,
+            "pairs": 30
+          },
+          "outcome": "pass",
+          "headline": false,
+          "meridian-8": {
+            "median": 388.2151205,
+            "mad": 4.080252999999999,
+            "p5": 378.83674635,
+            "p95": 397.41781485,
+            "iterations": 30,
+            "noisy": false,
+            "vsNexus": {
+              "median": 1.0076072615035563,
+              "low": 0.9902966039750958,
+              "high": 1.0104556933426483,
+              "pairs": 30
+            }
+          }
+        },
+        "tsc": {
+          "median": 2646.6153919999997,
+          "mad": 17.16944450000028,
+          "p5": 2606.1672988,
+          "p95": 2674.2740955,
+          "iterations": 30,
+          "noisy": false,
+          "vsNexus": {
+            "median": 1.0840054222756417,
+            "low": 1.0809871518023295,
+            "high": 1.089315128528611,
+            "pairs": 30
+          },
+          "outcome": "pass",
+          "headline": false,
+          "meridian-8": {
+            "median": 2140.990952,
+            "mad": 6.786162000000104,
+            "p5": 2122.1659594499997,
+            "p95": 2165.16473745,
+            "iterations": 30,
+            "noisy": false,
+            "vsNexus": {
+              "median": 1.0043272379869523,
+              "low": 1.0014071955497148,
+              "high": 1.0069684663901044,
+              "pairs": 30
+            }
+          }
+        },
+        "tsgo": {
+          "median": 518.340258,
+          "mad": 4.34837349999998,
+          "p5": 511.5233809,
+          "p95": 530.2676673,
+          "iterations": 30,
+          "noisy": false,
+          "vsNexus": {
+            "median": 1.0025922099521738,
+            "low": 0.9876934550285894,
+            "high": 1.0129528587446395,
+            "pairs": 30
+          },
+          "outcome": "pass",
+          "headline": true,
+          "meridian-8": {
+            "median": 457.2213935,
+            "mad": 3.617290999999966,
+            "p5": 451.62733325,
+            "p95": 469.4813989,
+            "iterations": 30,
+            "noisy": false,
+            "vsNexus": {
+              "median": 1.0060366899674977,
+              "low": 0.9987136463811439,
+              "high": 1.0206592183446443,
+              "pairs": 30
+            }
+          }
+        },
+        "vite": {
+          "median": 470.059673,
+          "mad": 2.824941999999993,
+          "p5": 462.57806825,
+          "p95": 476.2987994,
+          "iterations": 30,
+          "noisy": false,
+          "vsNexus": {
+            "median": 0.9902429920784226,
+            "low": 0.983230666585826,
+            "high": 0.9942530310360085,
+            "pairs": 30
+          },
+          "outcome": "pass",
+          "headline": false,
+          "meridian-8": {
+            "median": 437.3987915,
+            "mad": 4.867287000000005,
+            "p5": 431.2237002,
+            "p95": 450.85488795000003,
+            "iterations": 30,
+            "noisy": false,
+            "vsNexus": {
+              "median": 1.0046710279649371,
+              "low": 0.9944287357252618,
+              "high": 1.014074816022375,
+              "pairs": 30
+            }
+          }
+        },
+        "vite8+babel-plugin": {
+          "median": 1279.550852,
+          "mad": 8.00316050000015,
+          "p5": 1263.4516039,
+          "p95": 1302.9431521,
+          "iterations": 30,
+          "noisy": false,
+          "vsNexus": {
+            "median": 0.8093208831950546,
+            "low": 0.8036465493782121,
+            "high": 0.8136943400177018,
+            "pairs": 30
+          },
+          "outcome": "pass",
+          "headline": false,
+          "meridian-8": {
+            "median": 619.5430825,
+            "mad": 5.673667999999964,
+            "p5": 610.87552395,
+            "p95": 632.55146035,
+            "iterations": 30,
+            "noisy": false,
+            "vsNexus": {
+              "median": 0.9531258532125051,
+              "low": 0.9501478638913292,
+              "high": 0.9604202149268706,
+              "pairs": 30
+            }
+          }
+        }
+      },
+      "decorated-explicit": {
+        "bun": {
+          "median": 264.7524765,
+          "mad": 2.238449000000003,
+          "p5": 260.92822565,
+          "p95": 270.53326405,
+          "iterations": 30,
+          "noisy": false,
+          "vsNexus": {
+            "median": 0.9997125228560482,
+            "low": 0.9866325790726411,
+            "high": 1.0054123883066792,
+            "pairs": 30
+          },
+          "outcome": "pass",
+          "headline": false,
+          "meridian-8": {
+            "median": 253.2943785,
+            "mad": 1.2519179999999892,
+            "p5": 249.98134775,
+            "p95": 256.31330765,
+            "iterations": 30,
+            "noisy": false,
+            "vsNexus": {
+              "median": 0.9973230045499009,
+              "low": 0.9923942018162762,
+              "high": 1.003473388915329,
+              "pairs": 30
+            }
+          }
+        },
+        "esbuild": {
+          "median": 268.231621,
+          "mad": 2.176795999999996,
+          "p5": 264.439528,
+          "p95": 272.874644,
+          "iterations": 30,
+          "noisy": false,
+          "vsNexus": {
+            "median": 0.9954669519103859,
+            "low": 0.9911241910872134,
+            "high": 1.001736077429511,
+            "pairs": 30
+          },
+          "outcome": "pass",
+          "headline": false,
+          "meridian-8": {
+            "median": 251.647704,
+            "mad": 1.328699499999999,
+            "p5": 248.2023763,
+            "p95": 255.93656345,
+            "iterations": 30,
+            "noisy": false,
+            "vsNexus": {
+              "median": 1.0023928474269115,
+              "low": 0.9912802222691846,
+              "high": 1.006101505288682,
+              "pairs": 30
+            }
+          }
+        },
+        "swc": {
+          "median": 470.876507,
+          "mad": 2.984941499999991,
+          "p5": 463.4190169,
+          "p95": 482.38427385,
+          "iterations": 30,
+          "noisy": false,
+          "vsNexus": {
+            "median": 0.9895654597159992,
+            "low": 0.9822090415390226,
+            "high": 0.9943780162146183,
+            "pairs": 30
+          },
+          "outcome": "pass",
+          "headline": false,
+          "meridian-8": {
+            "median": 388.4274785,
+            "mad": 5.289195500000005,
+            "p5": 380.71831825,
+            "p95": 398.0987895,
+            "iterations": 30,
+            "noisy": false,
+            "vsNexus": {
+              "median": 0.9936058323481096,
+              "low": 0.987319053049378,
+              "high": 1.0039198114558097,
+              "pairs": 30
+            }
+          }
+        },
+        "tsc": {
+          "median": 2632.840704,
+          "mad": 15.812857999999778,
+          "p5": 2575.908702,
+          "p95": 2672.56806175,
+          "iterations": 30,
+          "noisy": false,
+          "vsNexus": {
+            "median": 1.0915464266893888,
+            "low": 1.088384713479638,
+            "high": 1.0948137302086014,
+            "pairs": 30
+          },
+          "outcome": "pass",
+          "headline": false,
+          "meridian-8": {
+            "median": 2145.4703250000002,
+            "mad": 12.946888500000114,
+            "p5": 2122.40658845,
+            "p95": 2165.67939955,
+            "iterations": 30,
+            "noisy": false,
+            "vsNexus": {
+              "median": 1.001885002289749,
+              "low": 0.9977412741424482,
+              "high": 1.0042292605182506,
+              "pairs": 30
+            }
+          }
+        },
+        "tsgo": {
+          "median": 516.785519,
+          "mad": 3.4896135000000186,
+          "p5": 508.94158275,
+          "p95": 523.71547355,
+          "iterations": 30,
+          "noisy": false,
+          "vsNexus": {
+            "median": 1.0069561753564469,
+            "low": 0.9935299267709056,
+            "high": 1.0193139496024635,
+            "pairs": 30
+          },
+          "outcome": "pass",
+          "headline": false,
+          "meridian-8": {
+            "median": 461.262566,
+            "mad": 4.393807500000008,
+            "p5": 453.1429232,
+            "p95": 475.14653434999997,
+            "iterations": 30,
+            "noisy": false,
+            "vsNexus": {
+              "median": 1.0011266415645939,
+              "low": 0.9895357525960145,
+              "high": 1.0086730491427403,
+              "pairs": 30
+            }
+          }
+        },
+        "vite": {
+          "median": 469.4787515,
+          "mad": 3.5253789999999867,
+          "p5": 461.1265521,
+          "p95": 479.48617955,
+          "iterations": 30,
+          "noisy": false,
+          "vsNexus": {
+            "median": 0.990440570698012,
+            "low": 0.9837224017378149,
+            "high": 0.9976510342741347,
+            "pairs": 30
+          },
+          "outcome": "pass",
+          "headline": false,
+          "meridian-8": {
+            "median": 436.57725800000003,
+            "mad": 3.4823680000000365,
+            "p5": 431.90259335,
+            "p95": 452.50443924999996,
+            "iterations": 30,
+            "noisy": false,
+            "vsNexus": {
+              "median": 1.00220899905157,
+              "low": 0.9984458834385034,
+              "high": 1.0127360052809906,
+              "pairs": 30
+            }
+          }
+        }
+      },
+      "plain": {
+        "babel": {
+          "median": 864.827275,
+          "mad": 4.06813649999998,
+          "p5": 854.61112095,
+          "p95": 873.1333086000001,
+          "iterations": 30,
+          "noisy": false,
+          "vsNexus": {
+            "median": 1.000425884902108,
+            "low": 0.9949821028559832,
+            "high": 1.0032790773023514,
+            "pairs": 30
+          },
+          "outcome": "pass",
+          "headline": false,
+          "meridian-8": {
+            "median": 492.82599849999997,
+            "mad": 1.76276900000002,
+            "p5": 487.8550503,
+            "p95": 498.0906558,
+            "iterations": 30,
+            "noisy": false,
+            "vsNexus": {
+              "median": 1.0058306560309735,
+              "low": 1.0000434652403454,
+              "high": 1.0098813865932188,
+              "pairs": 30
+            }
+          }
+        },
+        "bun": {
+          "median": 261.772781,
+          "mad": 1.7662329999999997,
+          "p5": 258.4104989,
+          "p95": 267.78871305,
+          "iterations": 30,
+          "noisy": false,
+          "vsNexus": {
+            "median": 1.0089992156839664,
+            "low": 0.9971264184982119,
+            "high": 1.0156653065103924,
+            "pairs": 30
+          },
+          "outcome": "pass",
+          "headline": false,
+          "meridian-8": {
+            "median": 254.082235,
+            "mad": 2.475290000000001,
+            "p5": 249.225394,
+            "p95": 257.3702753,
+            "iterations": 30,
+            "noisy": false,
+            "vsNexus": {
+              "median": 0.9927247448814054,
+              "low": 0.988550513026641,
+              "high": 1.0027657936267929,
+              "pairs": 30
+            }
+          }
+        },
+        "esbuild": {
+          "median": 266.571322,
+          "mad": 1.1919619999999895,
+          "p5": 262.4654069,
+          "p95": 271.5456769,
+          "iterations": 30,
+          "noisy": false,
+          "vsNexus": {
+            "median": 1.002864359611583,
+            "low": 0.998311512161677,
+            "high": 1.0080693396861544,
+            "pairs": 30
+          },
+          "outcome": "pass",
+          "headline": false,
+          "meridian-8": {
+            "median": 252.440944,
+            "mad": 1.8928615000000093,
+            "p5": 248.56750075,
+            "p95": 257.1626482,
+            "iterations": 30,
+            "noisy": false,
+            "vsNexus": {
+              "median": 0.9964707679458276,
+              "low": 0.9945069670064753,
+              "high": 1.0025065334015761,
+              "pairs": 30
+            }
+          }
+        },
+        "swc": {
+          "median": 466.304477,
+          "mad": 4.024474000000026,
+          "p5": 458.0656818,
+          "p95": 477.9791058,
+          "iterations": 30,
+          "noisy": false,
+          "vsNexus": {
+            "median": 1.0014979300097924,
+            "low": 0.9908102256880595,
+            "high": 1.006757562805447,
+            "pairs": 30
+          },
+          "outcome": "pass",
+          "headline": false,
+          "meridian-8": {
+            "median": 385.36406750000003,
+            "mad": 2.884085500000026,
+            "p5": 381.46951144999997,
+            "p95": 393.84944205,
+            "iterations": 30,
+            "noisy": false,
+            "vsNexus": {
+              "median": 1.0003527313530531,
+              "low": 0.9906306673126704,
+              "high": 1.0144477997182082,
+              "pairs": 30
+            }
+          }
+        },
+        "tsc": {
+          "median": 2919.5998824999997,
+          "mad": 11.915067500000305,
+          "p5": 2881.0978332,
+          "p95": 2945.17651055,
+          "iterations": 30,
+          "noisy": false,
+          "vsNexus": {
+            "median": 0.9841450189932017,
+            "low": 0.9796185005825565,
+            "high": 0.9884498671768301,
+            "pairs": 30
+          },
+          "outcome": "pass",
+          "headline": false,
+          "meridian-8": {
+            "median": 2135.4965355000004,
+            "mad": 8.221616499999982,
+            "p5": 2120.5603167500003,
+            "p95": 2157.51337045,
+            "iterations": 30,
+            "noisy": false,
+            "vsNexus": {
+              "median": 1.0074368736168247,
+              "low": 1.0042152314174375,
+              "high": 1.0111190107597925,
+              "pairs": 30
+            }
+          }
+        },
+        "tsgo": {
+          "median": 529.777007,
+          "mad": 5.8438469999999825,
+          "p5": 506.5697175,
+          "p95": 540.787098,
+          "iterations": 30,
+          "noisy": false,
+          "vsNexus": {
+            "median": 0.9907006440679089,
+            "low": 0.9651025525492289,
+            "high": 0.9991307321022551,
+            "pairs": 30
+          },
+          "outcome": "pass",
+          "headline": false,
+          "meridian-8": {
+            "median": 460.931006,
+            "mad": 5.121442500000029,
+            "p5": 453.90419735,
+            "p95": 483.28145344999996,
+            "iterations": 30,
+            "noisy": false,
+            "vsNexus": {
+              "median": 0.9964239006923089,
+              "low": 0.9839019183744081,
+              "high": 1.0072950276622863,
+              "pairs": 30
+            }
+          }
+        },
+        "vite": {
+          "median": 462.0993085,
+          "mad": 4.603657499999997,
+          "p5": 454.7795863,
+          "p95": 470.89481145,
+          "iterations": 30,
+          "noisy": false,
+          "vsNexus": {
+            "median": 1.0060201634690067,
+            "low": 0.9980128526406589,
+            "high": 1.012553474730825,
+            "pairs": 30
+          },
+          "outcome": "pass",
+          "headline": false,
+          "meridian-8": {
+            "median": 436.518836,
+            "mad": 4.060230499999989,
+            "p5": 429.17866085,
+            "p95": 445.5500048,
+            "iterations": 30,
+            "noisy": false,
+            "vsNexus": {
+              "median": 1.0076117025600309,
+              "low": 0.9985851295969007,
+              "high": 1.0144984992663262,
+              "pairs": 30
+            }
+          }
+        },
+        "vite8+babel-plugin": {
+          "median": 1044.7541784999999,
+          "mad": 8.172908999999777,
+          "p5": 1032.24551895,
+          "p95": 1075.7251513,
+          "iterations": 30,
+          "noisy": false,
+          "vsNexus": {
+            "median": 0.9898834204038115,
+            "low": 0.984432474409147,
+            "high": 0.996009129846714,
+            "pairs": 30
+          },
+          "outcome": "pass",
+          "headline": false,
+          "meridian-8": {
+            "median": 591.9454900000001,
+            "mad": 3.541050000000041,
+            "p5": 584.1705958499999,
+            "p95": 598.3487255,
+            "iterations": 30,
+            "noisy": false,
+            "vsNexus": {
+              "median": 1.001132239150658,
+              "low": 0.9972880447012163,
+              "high": 1.0088028763292678,
+              "pairs": 30
+            }
+          }
+        }
+      }
+    },
+    "tsyringe": {
+      "decorated": {
+        "babel": {
+          "median": 997.515564,
+          "mad": 4.98890449999999,
+          "p5": 986.28638245,
+          "p95": 1007.5401679,
+          "iterations": 30,
+          "noisy": false,
+          "vsNexus": {
+            "median": 0.868684077117611,
+            "low": 0.8658314809465837,
+            "high": 0.8705121911767881,
+            "pairs": 30
+          },
+          "outcome": "pass",
+          "headline": false,
+          "meridian-8": {
+            "median": 514.950295,
+            "mad": 2.3366755000000126,
+            "p5": 511.27659915,
+            "p95": 524.1953529,
+            "iterations": 30,
+            "noisy": false,
+            "vsNexus": {
+              "median": 0.96422707551724,
+              "low": 0.9587315695659021,
+              "high": 0.9685331371107431,
+              "pairs": 30
+            }
+          }
+        },
+        "bun": {
+          "median": 263.61422300000004,
+          "mad": 1.4866615000000252,
+          "p5": 260.8674369,
+          "p95": 270.41341040000003,
+          "iterations": 30,
+          "noisy": false,
+          "vsNexus": {
+            "median": 0.9996277011626487,
+            "low": 0.9932189483235517,
+            "high": 1.0054058542799185,
+            "pairs": 30
+          },
+          "outcome": "pass",
+          "headline": false,
+          "meridian-8": {
+            "median": 253.110365,
+            "mad": 2.091461499999994,
+            "p5": 248.9793515,
+            "p95": 258.37714295,
+            "iterations": 30,
+            "noisy": false,
+            "vsNexus": {
+              "median": 0.9994594939012398,
+              "low": 0.9943535978959739,
+              "high": 1.0038618763647278,
+              "pairs": 30
+            }
+          }
+        },
+        "esbuild": {
+          "median": 267.28438800000004,
+          "mad": 1.7219070000000443,
+          "p5": 262.64587005,
+          "p95": 271.37046929999997,
+          "iterations": 30,
+          "noisy": false,
+          "vsNexus": {
+            "median": 1.0013300482672784,
+            "low": 0.994060091285643,
+            "high": 1.0051174504883995,
+            "pairs": 30
+          },
+          "outcome": "runtime-error",
+          "headline": false,
+          "meridian-8": {
+            "median": 252.6335245,
+            "mad": 1.615294999999989,
+            "p5": 248.82269665,
+            "p95": 257.5460586,
+            "iterations": 30,
+            "noisy": false,
+            "vsNexus": {
+              "median": 0.9974971969188188,
+              "low": 0.9858715161351332,
+              "high": 1.0039527189100697,
+              "pairs": 30
+            }
+          }
+        },
+        "swc": {
+          "median": 471.101352,
+          "mad": 3.2244505000000174,
+          "p5": 465.36002824999997,
+          "p95": 481.07849619999996,
+          "iterations": 30,
+          "noisy": false,
+          "vsNexus": {
+            "median": 0.9954112869494056,
+            "low": 0.9861970868620582,
+            "high": 0.9966566332218125,
+            "pairs": 30
+          },
+          "outcome": "pass",
+          "headline": false,
+          "meridian-8": {
+            "median": 386.569339,
+            "mad": 2.510902999999985,
+            "p5": 382.31118695,
+            "p95": 393.5303692,
+            "iterations": 30,
+            "noisy": false,
+            "vsNexus": {
+              "median": 0.9985911336745414,
+              "low": 0.9968083279763063,
+              "high": 1.004491816952041,
+              "pairs": 30
+            }
+          }
+        },
+        "tsc": {
+          "median": 2456.6889025,
+          "mad": 18.82155950000015,
+          "p5": 2409.4285816,
+          "p95": 2500.73502145,
+          "iterations": 30,
+          "noisy": false,
+          "vsNexus": {
+            "median": 1.1670110476574198,
+            "low": 1.1583682287386847,
+            "high": 1.1772035467249822,
+            "pairs": 30
+          },
+          "outcome": "pass",
+          "headline": false,
+          "meridian-8": {
+            "median": 2073.59453,
+            "mad": 9.253531000000066,
+            "p5": 2050.65320285,
+            "p95": 2103.2361283,
+            "iterations": 30,
+            "noisy": false,
+            "vsNexus": {
+              "median": 1.0376960587545554,
+              "low": 1.0345036250529596,
+              "high": 1.0393472913109927,
+              "pairs": 30
+            }
+          }
+        },
+        "tsgo": {
+          "median": 485.92409499999997,
+          "mad": 7.112032500000026,
+          "p5": 477.44799085,
+          "p95": 505.43991145,
+          "iterations": 30,
+          "noisy": false,
+          "vsNexus": {
+            "median": 1.0617889805633753,
+            "low": 1.0519227105335343,
+            "high": 1.0658088301499993,
+            "pairs": 30
+          },
+          "outcome": "pass",
+          "headline": true,
+          "meridian-8": {
+            "median": 453.8827925,
+            "mad": 2.331808499999994,
+            "p5": 444.0940337,
+            "p95": 465.21026925,
+            "iterations": 30,
+            "noisy": false,
+            "vsNexus": {
+              "median": 1.0172356685455148,
+              "low": 1.0074858226994066,
+              "high": 1.027625323017709,
+              "pairs": 30
+            }
+          }
+        },
+        "vite": {
+          "median": 469.5340235,
+          "mad": 3.7691944999999976,
+          "p5": 460.21470925,
+          "p95": 477.7611123,
+          "iterations": 30,
+          "noisy": false,
+          "vsNexus": {
+            "median": 0.9904047199159046,
+            "low": 0.9861641975150619,
+            "high": 0.9953448091729371,
+            "pairs": 30
+          },
+          "outcome": "pass",
+          "headline": false,
+          "meridian-8": {
+            "median": 437.909031,
+            "mad": 4.639462000000037,
+            "p5": 432.4563879,
+            "p95": 447.2896294,
+            "iterations": 30,
+            "noisy": false,
+            "vsNexus": {
+              "median": 1.002100917671749,
+              "low": 0.9950049414152404,
+              "high": 1.007314905067378,
+              "pairs": 30
+            }
+          }
+        },
+        "vite8+babel-plugin": {
+          "median": 1169.682128,
+          "mad": 5.671787999999992,
+          "p5": 1155.49303925,
+          "p95": 1182.5133013500001,
+          "iterations": 30,
+          "noisy": false,
+          "vsNexus": {
+            "median": 0.8829429444046526,
+            "low": 0.8813068939468625,
+            "high": 0.8891822898120305,
+            "pairs": 30
+          },
+          "outcome": "pass",
+          "headline": false,
+          "meridian-8": {
+            "median": 616.632456,
+            "mad": 4.200910000000022,
+            "p5": 608.08123125,
+            "p95": 628.1937147,
+            "iterations": 30,
+            "noisy": false,
+            "vsNexus": {
+              "median": 0.9603751727509795,
+              "low": 0.955334027836948,
+              "high": 0.9634167251762281,
+              "pairs": 30
+            }
+          }
+        }
+      },
+      "decorated-explicit": {
+        "bun": {
+          "median": 264.81624750000003,
+          "mad": 1.538139000000001,
+          "p5": 260.6571827,
+          "p95": 270.20737545,
+          "iterations": 30,
+          "noisy": false,
+          "vsNexus": {
+            "median": 0.9982781142220485,
+            "low": 0.9870908101887292,
+            "high": 1.010180098385027,
+            "pairs": 30
+          },
+          "outcome": "pass",
+          "headline": false,
+          "meridian-8": {
+            "median": 251.8482585,
+            "mad": 1.9057015000000064,
+            "p5": 248.15054565,
+            "p95": 256.50273604999995,
+            "iterations": 30,
+            "noisy": false,
+            "vsNexus": {
+              "median": 0.9999370107906923,
+              "low": 0.9970765932569876,
+              "high": 1.0045892543052812,
+              "pairs": 30
+            }
+          }
+        },
+        "esbuild": {
+          "median": 268.646115,
+          "mad": 1.3168629999999837,
+          "p5": 265.5960017,
+          "p95": 271.1792845,
+          "iterations": 30,
+          "noisy": false,
+          "vsNexus": {
+            "median": 0.9961752661918621,
+            "low": 0.9869005325052876,
+            "high": 1.0048580554831705,
+            "pairs": 30
+          },
+          "outcome": "pass",
+          "headline": false,
+          "meridian-8": {
+            "median": 251.9370255,
+            "mad": 0.8852949999999993,
+            "p5": 249.1336768,
+            "p95": 256.91840075,
+            "iterations": 30,
+            "noisy": false,
+            "vsNexus": {
+              "median": 0.9973502678211972,
+              "low": 0.9941789532150505,
+              "high": 1.0032208931905096,
+              "pairs": 30
+            }
+          }
+        },
+        "swc": {
+          "median": 471.81876150000005,
+          "mad": 2.909483999999992,
+          "p5": 462.8871168,
+          "p95": 482.34768025,
+          "iterations": 30,
+          "noisy": false,
+          "vsNexus": {
+            "median": 0.9858983999475117,
+            "low": 0.9809188530118378,
+            "high": 0.9950721486222707,
+            "pairs": 30
+          },
+          "outcome": "pass",
+          "headline": false,
+          "meridian-8": {
+            "median": 387.3183015,
+            "mad": 4.268504500000034,
+            "p5": 379.96527025,
+            "p95": 397.74704875,
+            "iterations": 30,
+            "noisy": false,
+            "vsNexus": {
+              "median": 0.9935645985289832,
+              "low": 0.9878531996021929,
+              "high": 1.0034860407644344,
+              "pairs": 30
+            }
+          }
+        },
+        "tsc": {
+          "median": 2512.0070835,
+          "mad": 13.390855999999985,
+          "p5": 2478.867886,
+          "p95": 2544.53814075,
+          "iterations": 30,
+          "noisy": false,
+          "vsNexus": {
+            "median": 1.143186099600082,
+            "low": 1.134380417485671,
+            "high": 1.1483170211271563,
+            "pairs": 30
+          },
+          "outcome": "pass",
+          "headline": false,
+          "meridian-8": {
+            "median": 2074.30923,
+            "mad": 6.195281499999737,
+            "p5": 2065.4435722499998,
+            "p95": 2103.43373795,
+            "iterations": 30,
+            "noisy": false,
+            "vsNexus": {
+              "median": 1.0364415739525934,
+              "low": 1.0326047549974975,
+              "high": 1.0389160583398755,
+              "pairs": 30
+            }
+          }
+        },
+        "tsgo": {
+          "median": 489.8277795,
+          "mad": 4.66663650000001,
+          "p5": 477.3705234,
+          "p95": 507.23321530000004,
+          "iterations": 30,
+          "noisy": false,
+          "vsNexus": {
+            "median": 1.0656275632520535,
+            "low": 1.0375313700002942,
+            "high": 1.074460061642569,
+            "pairs": 30
+          },
+          "outcome": "pass",
+          "headline": false,
+          "meridian-8": {
+            "median": 458.09113,
+            "mad": 7.190958499999994,
+            "p5": 445.40144325,
+            "p95": 475.80560195,
+            "iterations": 30,
+            "noisy": false,
+            "vsNexus": {
+              "median": 1.0104617892302434,
+              "low": 1.0021257168116444,
+              "high": 1.0214416116667797,
+              "pairs": 30
+            }
+          }
+        },
+        "vite": {
+          "median": 466.79481,
+          "mad": 4.304864999999978,
+          "p5": 459.1085658,
+          "p95": 478.43944135,
+          "iterations": 30,
+          "noisy": false,
+          "vsNexus": {
+            "median": 0.9930764272608466,
+            "low": 0.9910168526370148,
+            "high": 1.0089144570157447,
+            "pairs": 30
+          },
+          "outcome": "pass",
+          "headline": false,
+          "meridian-8": {
+            "median": 436.862986,
+            "mad": 4.357804999999956,
+            "p5": 428.5725494,
+            "p95": 447.91176690000003,
+            "iterations": 30,
+            "noisy": false,
+            "vsNexus": {
+              "median": 1.0074302443991778,
+              "low": 1.0032310209105963,
+              "high": 1.0086302627063435,
+              "pairs": 30
+            }
+          }
+        }
+      },
+      "plain": {
+        "babel": {
+          "median": 874.6609455,
+          "mad": 4.372719999999958,
+          "p5": 863.0502788,
+          "p95": 883.6391653,
+          "iterations": 30,
+          "noisy": false,
+          "vsNexus": {
+            "median": 0.9883683657101451,
+            "low": 0.9839194280602506,
+            "high": 0.9954823612874453,
+            "pairs": 30
+          },
+          "outcome": "pass",
+          "headline": false,
+          "meridian-8": {
+            "median": 496.06437500000004,
+            "mad": 2.1268764999999803,
+            "p5": 492.44702085,
+            "p95": 501.6454764,
+            "iterations": 30,
+            "noisy": false,
+            "vsNexus": {
+              "median": 1.000071802771211,
+              "low": 0.996378924139614,
+              "high": 1.0014202807118362,
+              "pairs": 30
+            }
+          }
+        },
+        "bun": {
+          "median": 263.012597,
+          "mad": 1.7474325000000022,
+          "p5": 259.11007965,
+          "p95": 268.63060809999996,
+          "iterations": 30,
+          "noisy": false,
+          "vsNexus": {
+            "median": 1.0014567423681422,
+            "low": 0.9974388204282307,
+            "high": 1.010897041835583,
+            "pairs": 30
+          },
+          "outcome": "pass",
+          "headline": false,
+          "meridian-8": {
+            "median": 253.201155,
+            "mad": 1.210857500000003,
+            "p5": 248.87141865,
+            "p95": 255.9282841,
+            "iterations": 30,
+            "noisy": false,
+            "vsNexus": {
+              "median": 0.9978901045255957,
+              "low": 0.9943971676036569,
+              "high": 1.0018277238021684,
+              "pairs": 30
+            }
+          }
+        },
+        "esbuild": {
+          "median": 267.1474225,
+          "mad": 2.229192499999982,
+          "p5": 263.25532495,
+          "p95": 271.33248635,
+          "iterations": 30,
+          "noisy": false,
+          "vsNexus": {
+            "median": 1.0017937190737864,
+            "low": 0.9961354160793701,
+            "high": 1.0117806950019794,
+            "pairs": 30
+          },
+          "outcome": "pass",
+          "headline": false,
+          "meridian-8": {
+            "median": 251.734463,
+            "mad": 1.8943359999999956,
+            "p5": 248.5703173,
+            "p95": 256.30943495,
+            "iterations": 30,
+            "noisy": false,
+            "vsNexus": {
+              "median": 1.0005888704601125,
+              "low": 0.9990173982047834,
+              "high": 1.0071219013063677,
+              "pairs": 30
+            }
+          }
+        },
+        "swc": {
+          "median": 463.9157205,
+          "mad": 2.4063054999999736,
+          "p5": 458.5619861,
+          "p95": 471.3498615,
+          "iterations": 30,
+          "noisy": false,
+          "vsNexus": {
+            "median": 1.0020808431504502,
+            "low": 0.9970130284731307,
+            "high": 1.0091832483997372,
+            "pairs": 30
+          },
+          "outcome": "pass",
+          "headline": false,
+          "meridian-8": {
+            "median": 386.117584,
+            "mad": 3.0664034999999785,
+            "p5": 379.7030302,
+            "p95": 394.46422195,
+            "iterations": 30,
+            "noisy": false,
+            "vsNexus": {
+              "median": 1.0007746530020327,
+              "low": 0.9919528798745239,
+              "high": 1.0074899201484935,
+              "pairs": 30
+            }
+          }
+        },
+        "tsc": {
+          "median": 2451.7200414999998,
+          "mad": 16.31826799999999,
+          "p5": 2430.5358775,
+          "p95": 2544.09192115,
+          "iterations": 30,
+          "noisy": false,
+          "vsNexus": {
+            "median": 1.1644286926142904,
+            "low": 1.1579568484079583,
+            "high": 1.1774690812175865,
+            "pairs": 30
+          },
+          "outcome": "pass",
+          "headline": false,
+          "meridian-8": {
+            "median": 2076.830649,
+            "mad": 13.125133000000005,
+            "p5": 2058.8391440500004,
+            "p95": 2101.3787676499996,
+            "iterations": 30,
+            "noisy": false,
+            "vsNexus": {
+              "median": 1.0318971905919423,
+              "low": 1.0291456733729618,
+              "high": 1.042736328962094,
+              "pairs": 30
+            }
+          }
+        },
+        "tsgo": {
+          "median": 501.25497299999995,
+          "mad": 4.685322500000012,
+          "p5": 490.74607285,
+          "p95": 516.61103975,
+          "iterations": 30,
+          "noisy": false,
+          "vsNexus": {
+            "median": 1.0360379753287596,
+            "low": 1.0313514415160716,
+            "high": 1.0393559179947989,
+            "pairs": 30
+          },
+          "outcome": "pass",
+          "headline": false,
+          "meridian-8": {
+            "median": 461.57938049999996,
+            "mad": 7.164858000000038,
+            "p5": 437.7691267,
+            "p95": 475.1860942,
+            "iterations": 30,
+            "noisy": false,
+            "vsNexus": {
+              "median": 1.0091743978783105,
+              "low": 0.9894732208813294,
+              "high": 1.0142923305479419,
+              "pairs": 30
+            }
+          }
+        },
+        "vite": {
+          "median": 460.853701,
+          "mad": 2.8304965000000095,
+          "p5": 452.99790385,
+          "p95": 469.358783,
+          "iterations": 30,
+          "noisy": false,
+          "vsNexus": {
+            "median": 1.0088392632021868,
+            "low": 1.002332168945571,
+            "high": 1.0180991393664296,
+            "pairs": 30
+          },
+          "outcome": "pass",
+          "headline": false,
+          "meridian-8": {
+            "median": 437.13680750000003,
+            "mad": 4.277435499999996,
+            "p5": 430.22366835,
+            "p95": 446.74972405,
+            "iterations": 30,
+            "noisy": false,
+            "vsNexus": {
+              "median": 1.0048557017488018,
+              "low": 0.9997721195514673,
+              "high": 1.008585314172284,
+              "pairs": 30
+            }
+          }
+        },
+        "vite8+babel-plugin": {
+          "median": 1046.39103,
+          "mad": 10.506122000000005,
+          "p5": 1026.1603281,
+          "p95": 1066.65749925,
+          "iterations": 30,
+          "noisy": false,
+          "vsNexus": {
+            "median": 0.9897269976916638,
+            "low": 0.9830935434664605,
+            "high": 0.9959698808440449,
+            "pairs": 30
+          },
+          "outcome": "pass",
+          "headline": false,
+          "meridian-8": {
+            "median": 597.765229,
+            "mad": 3.7660984999999982,
+            "p5": 588.24788535,
+            "p95": 608.9374386,
+            "iterations": 30,
+            "noisy": false,
+            "vsNexus": {
+              "median": 0.9885267567017856,
+              "low": 0.9862774276332733,
+              "high": 0.997705881036456,
+              "pairs": 30
+            }
+          }
+        }
+      }
+    },
+    "awilix": {
+      "plain": {
+        "babel": {
+          "median": 810.029188,
+          "mad": 6.306017999999995,
+          "p5": 799.56370675,
+          "p95": 819.57196395,
+          "iterations": 30,
+          "noisy": false,
+          "vsNexus": {
+            "median": 1.0698291508632884,
+            "low": 1.0618131379588496,
+            "high": 1.0759836665649964,
+            "pairs": 30
+          },
+          "outcome": "pass",
+          "headline": false,
+          "meridian-8": {
+            "median": 493.385933,
+            "mad": 2.7613005000000044,
+            "p5": 488.06488425,
+            "p95": 502.228029,
+            "iterations": 30,
+            "noisy": false,
+            "vsNexus": {
+              "median": 1.0090079364782023,
+              "low": 1.0013311892116565,
+              "high": 1.0113050249059345,
+              "pairs": 30
+            }
+          }
+        },
+        "bun": {
+          "median": 260.568723,
+          "mad": 2.391104499999983,
+          "p5": 255.6532675,
+          "p95": 266.06971914999997,
+          "iterations": 30,
+          "noisy": false,
+          "vsNexus": {
+            "median": 1.01731528307017,
+            "low": 1.0021191942093746,
+            "high": 1.0212134221018931,
+            "pairs": 30
+          },
+          "outcome": "pass",
+          "headline": true,
+          "meridian-8": {
+            "median": 253.480552,
+            "mad": 1.8342109999999963,
+            "p5": 250.0324187,
+            "p95": 258.37323925,
+            "iterations": 30,
+            "noisy": false,
+            "vsNexus": {
+              "median": 0.9999197330676435,
+              "low": 0.9954472753442231,
+              "high": 1.0019051092093703,
+              "pairs": 30
+            }
+          }
+        },
+        "esbuild": {
+          "median": 265.515847,
+          "mad": 1.800816999999995,
+          "p5": 261.1167646,
+          "p95": 269.54491695,
+          "iterations": 30,
+          "noisy": false,
+          "vsNexus": {
+            "median": 1.0124894784479495,
+            "low": 1.0014767802917766,
+            "high": 1.0185784604392176,
+            "pairs": 30
+          },
+          "outcome": "pass",
+          "headline": false,
+          "meridian-8": {
+            "median": 251.721164,
+            "mad": 1.9858999999999867,
+            "p5": 248.051686,
+            "p95": 258.47432979999996,
+            "iterations": 30,
+            "noisy": false,
+            "vsNexus": {
+              "median": 0.9964495135830977,
+              "low": 0.9933619949436993,
+              "high": 1.0017210766796023,
+              "pairs": 30
+            }
+          }
+        },
+        "swc": {
+          "median": 463.69029,
+          "mad": 2.2088410000000067,
+          "p5": 456.05847775,
+          "p95": 469.14165694999997,
+          "iterations": 30,
+          "noisy": false,
+          "vsNexus": {
+            "median": 1.0026067534604366,
+            "low": 0.9987745551031102,
+            "high": 1.0086237732395429,
+            "pairs": 30
+          },
+          "outcome": "pass",
+          "headline": false,
+          "meridian-8": {
+            "median": 385.2958805,
+            "mad": 2.5452134999999885,
+            "p5": 381.4403683,
+            "p95": 396.9777435,
+            "iterations": 30,
+            "noisy": false,
+            "vsNexus": {
+              "median": 1.0004678617597575,
+              "low": 0.9977343224082664,
+              "high": 1.0049183170046283,
+              "pairs": 30
+            }
+          }
+        },
+        "tsc": {
+          "median": 2483.5036205,
+          "mad": 16.150801499999716,
+          "p5": 2432.00711635,
+          "p95": 2516.74447225,
+          "iterations": 30,
+          "noisy": false,
+          "vsNexus": {
+            "median": 1.1556813153909828,
+            "low": 1.146794057825468,
+            "high": 1.1626519538754376,
+            "pairs": 30
+          },
+          "outcome": "pass",
+          "headline": false,
+          "meridian-8": {
+            "median": 2083.5573885,
+            "mad": 13.329817000000048,
+            "p5": 2052.96053,
+            "p95": 2117.8440529,
+            "iterations": 30,
+            "noisy": false,
+            "vsNexus": {
+              "median": 1.0349281221070217,
+              "low": 1.0277977594781458,
+              "high": 1.0390219790898922,
+              "pairs": 30
+            }
+          }
+        },
+        "tsgo": {
+          "median": 494.944911,
+          "mad": 2.49023200000002,
+          "p5": 483.5316782,
+          "p95": 500.92474205,
+          "iterations": 30,
+          "noisy": false,
+          "vsNexus": {
+            "median": 1.0504828935287605,
+            "low": 1.0329267164381144,
+            "high": 1.065817439161323,
+            "pairs": 30
+          },
+          "outcome": "pass",
+          "headline": false,
+          "meridian-8": {
+            "median": 449.66945250000003,
+            "mad": 4.301532000000009,
+            "p5": 443.7205384,
+            "p95": 470.07163514999996,
+            "iterations": 30,
+            "noisy": false,
+            "vsNexus": {
+              "median": 1.023726453345862,
+              "low": 1.009988983308585,
+              "high": 1.0313063010081536,
+              "pairs": 30
+            }
+          }
+        },
+        "vite": {
+          "median": 458.9924325,
+          "mad": 5.002249000000006,
+          "p5": 450.50703,
+          "p95": 466.24601465,
+          "iterations": 30,
+          "noisy": false,
+          "vsNexus": {
+            "median": 1.0121632154265021,
+            "low": 1.0055574560444183,
+            "high": 1.0268976846179512,
+            "pairs": 30
+          },
+          "outcome": "pass",
+          "headline": false,
+          "meridian-8": {
+            "median": 437.7791965,
+            "mad": 2.561913500000003,
+            "p5": 429.64845084999996,
+            "p95": 445.72607055000003,
+            "iterations": 30,
+            "noisy": false,
+            "vsNexus": {
+              "median": 1.0028167842512992,
+              "low": 0.9998045713506407,
+              "high": 1.0145750577078068,
+              "pairs": 30
+            }
+          }
+        },
+        "vite8+babel-plugin": {
+          "median": 980.9864455,
+          "mad": 3.9753734999999892,
+          "p5": 972.84140445,
+          "p95": 991.3846486,
+          "iterations": 30,
+          "noisy": false,
+          "vsNexus": {
+            "median": 1.056983498914921,
+            "low": 1.0523966250942962,
+            "high": 1.0589486453560086,
+            "pairs": 30
+          },
+          "outcome": "pass",
+          "headline": false,
+          "meridian-8": {
+            "median": 590.0635705,
+            "mad": 5.199253000000056,
+            "p5": 581.4097829,
+            "p95": 598.0158693000001,
+            "iterations": 30,
+            "noisy": false,
+            "vsNexus": {
+              "median": 1.0076182519111447,
+              "low": 0.9987172705660005,
+              "high": 1.0130938489272119,
+              "pairs": 30
+            }
+          }
+        }
+      }
+    },
+    "needle-di": {
+      "decorated": {
+        "babel": {
+          "median": 1942.707168,
+          "mad": 8.555676500000004,
+          "p5": 1915.4766788,
+          "p95": 1955.39444615,
+          "iterations": 30,
+          "noisy": false,
+          "vsNexus": {
+            "median": 0.4453957939352192,
+            "low": 0.44416068936060626,
+            "high": 0.4474749992511266,
+            "pairs": 30
+          },
+          "outcome": "pass",
+          "headline": false,
+          "meridian-8": {
+            "median": 538.953486,
+            "mad": 1.8555225000000064,
+            "p5": 533.3675081,
+            "p95": 546.7495449,
+            "iterations": 30,
+            "noisy": false,
+            "vsNexus": {
+              "median": 0.9203068410214785,
+              "low": 0.9184266906798708,
+              "high": 0.9213142442980554,
+              "pairs": 30
+            }
+          }
+        },
+        "bun": {
+          "median": 263.187154,
+          "mad": 2.1717255000000364,
+          "p5": 260.161609,
+          "p95": 269.50546205,
+          "iterations": 30,
+          "noisy": false,
+          "vsNexus": {
+            "median": 0.997534097808673,
+            "low": 0.9915272438287238,
+            "high": 1.0053267826341905,
+            "pairs": 30
+          },
+          "outcome": "pass",
+          "headline": true,
+          "meridian-8": {
+            "median": 253.187714,
+            "mad": 1.9224229999999949,
+            "p5": 250.36005515,
+            "p95": 268.29312365,
+            "iterations": 30,
+            "noisy": false,
+            "vsNexus": {
+              "median": 0.9967308469175942,
+              "low": 0.9907086653666249,
+              "high": 1.0016914765286837,
+              "pairs": 30
+            }
+          }
+        },
+        "esbuild": {
+          "median": 268.294028,
+          "mad": 2.7928509999999847,
+          "p5": 261.98336275,
+          "p95": 273.46409759999995,
+          "iterations": 30,
+          "noisy": false,
+          "vsNexus": {
+            "median": 0.9998647092640467,
+            "low": 0.9880227018558042,
+            "high": 1.0062065917423415,
+            "pairs": 30
+          },
+          "outcome": "pass",
+          "headline": false,
+          "meridian-8": {
+            "median": 252.3094035,
+            "mad": 1.4299839999999904,
+            "p5": 248.64455220000002,
+            "p95": 256.7391562,
+            "iterations": 30,
+            "noisy": false,
+            "vsNexus": {
+              "median": 0.9974634378117369,
+              "low": 0.988339571048892,
+              "high": 1.0065317021001035,
+              "pairs": 30
+            }
+          }
+        },
+        "swc": {
+          "median": 503.7291015,
+          "mad": 3.5152325000000246,
+          "p5": 498.4730179,
+          "p95": 515.7905208,
+          "iterations": 30,
+          "noisy": false,
+          "vsNexus": {
+            "median": 0.9207370704858362,
+            "low": 0.9106458236551033,
+            "high": 0.9322029345121761,
+            "pairs": 30
+          },
+          "outcome": "pass",
+          "headline": false,
+          "meridian-8": {
+            "median": 389.225883,
+            "mad": 4.513526500000012,
+            "p5": 379.66674524999996,
+            "p95": 399.93249234999996,
+            "iterations": 30,
+            "noisy": false,
+            "vsNexus": {
+              "median": 0.9941244738318171,
+              "low": 0.9862368612209887,
+              "high": 1.0073264087245795,
+              "pairs": 30
+            }
+          }
+        },
+        "tsc": {
+          "median": 2510.4036855000004,
+          "mad": 13.911849999999959,
+          "p5": 2480.98434585,
+          "p95": 2617.6229955,
+          "iterations": 30,
+          "noisy": false,
+          "vsNexus": {
+            "median": 1.1387313302538011,
+            "low": 1.1325091073068518,
+            "high": 1.147463384557205,
+            "pairs": 30
+          },
+          "outcome": "pass",
+          "headline": false,
+          "meridian-8": {
+            "median": 2067.436425,
+            "mad": 7.112857500000018,
+            "p5": 2049.2166799,
+            "p95": 2084.8509858499997,
+            "iterations": 30,
+            "noisy": false,
+            "vsNexus": {
+              "median": 1.0419740067179142,
+              "low": 1.0376807777039918,
+              "high": 1.0439334241855573,
+              "pairs": 30
+            }
+          }
+        },
+        "tsgo": {
+          "median": 494.728854,
+          "mad": 4.536907499999984,
+          "p5": 487.2755038,
+          "p95": 521.7103235000001,
+          "iterations": 30,
+          "noisy": false,
+          "vsNexus": {
+            "median": 1.0453121131526721,
+            "low": 1.0288115749014946,
+            "high": 1.0535800766611794,
+            "pairs": 30
+          },
+          "outcome": "pass",
+          "headline": false,
+          "meridian-8": {
+            "median": 462.395715,
+            "mad": 6.656133000000011,
+            "p5": 447.5886684,
+            "p95": 472.01716365000004,
+            "iterations": 30,
+            "noisy": false,
+            "vsNexus": {
+              "median": 1.0030078567451772,
+              "low": 0.9893719465201841,
+              "high": 1.0177545984385121,
+              "pairs": 30
+            }
+          }
+        },
+        "vite8+babel-plugin": {
+          "median": 2253.8179885,
+          "mad": 24.042755499999885,
+          "p5": 2214.5658101,
+          "p95": 2294.01105315,
+          "iterations": 30,
+          "noisy": false,
+          "vsNexus": {
+            "median": 0.4582939254821377,
+            "low": 0.45712923330519095,
+            "high": 0.46079559229887573,
+            "pairs": 30
+          },
+          "outcome": "pass",
+          "headline": false,
+          "meridian-8": {
+            "median": 638.8084085,
+            "mad": 3.6338625000000206,
+            "p5": 629.84516515,
+            "p95": 650.44140655,
+            "iterations": 30,
+            "noisy": false,
+            "vsNexus": {
+              "median": 0.9276922015503868,
+              "low": 0.9198933037970978,
+              "high": 0.9337937806211494,
+              "pairs": 30
+            }
+          }
+        }
+      },
+      "plain": {
+        "babel": {
+          "median": 853.1739359999999,
+          "mad": 4.624894500000096,
+          "p5": 845.9597762999999,
+          "p95": 861.1735295499999,
+          "iterations": 30,
+          "noisy": false,
+          "vsNexus": {
+            "median": 1.0117150469066216,
+            "low": 1.007570356918292,
+            "high": 1.0161012944903165,
+            "pairs": 30
+          },
+          "outcome": "pass",
+          "headline": false,
+          "meridian-8": {
+            "median": 491.2983345,
+            "mad": 1.9288960000000088,
+            "p5": 485.50504265,
+            "p95": 496.27556599999997,
+            "iterations": 30,
+            "noisy": false,
+            "vsNexus": {
+              "median": 1.013404960895012,
+              "low": 1.0082932248648544,
+              "high": 1.016079106807342,
+              "pairs": 30
+            }
+          }
+        },
+        "bun": {
+          "median": 262.33081749999997,
+          "mad": 2.0582430000000045,
+          "p5": 259.1478264,
+          "p95": 267.65387015,
+          "iterations": 30,
+          "noisy": false,
+          "vsNexus": {
+            "median": 1.0042585234381907,
+            "low": 0.999868018998299,
+            "high": 1.0091151763587982,
+            "pairs": 30
+          },
+          "outcome": "pass",
+          "headline": false,
+          "meridian-8": {
+            "median": 252.9227805,
+            "mad": 1.830078499999999,
+            "p5": 249.7046285,
+            "p95": 256.59812535000003,
+            "iterations": 30,
+            "noisy": false,
+            "vsNexus": {
+              "median": 1.0021543481094624,
+              "low": 0.9938812951705018,
+              "high": 1.0094690414202798,
+              "pairs": 30
+            }
+          }
+        },
+        "esbuild": {
+          "median": 265.75118150000003,
+          "mad": 1.9961574999999812,
+          "p5": 262.81022655,
+          "p95": 270.58924245000003,
+          "iterations": 30,
+          "noisy": false,
+          "vsNexus": {
+            "median": 1.004480878518966,
+            "low": 1.000054171235792,
+            "high": 1.010044395127926,
+            "pairs": 30
+          },
+          "outcome": "pass",
+          "headline": false,
+          "meridian-8": {
+            "median": 252.04507949999999,
+            "mad": 1.5899364999999932,
+            "p5": 248.16045555,
+            "p95": 257.99257435,
+            "iterations": 30,
+            "noisy": false,
+            "vsNexus": {
+              "median": 0.9969281734754871,
+              "low": 0.9935547323174296,
+              "high": 1.0027795463522475,
+              "pairs": 30
+            }
+          }
+        },
+        "swc": {
+          "median": 466.204433,
+          "mad": 2.538451000000009,
+          "p5": 460.1176392,
+          "p95": 474.4151939,
+          "iterations": 30,
+          "noisy": false,
+          "vsNexus": {
+            "median": 0.9990591854296114,
+            "low": 0.994912121886607,
+            "high": 1.0026338003881958,
+            "pairs": 30
+          },
+          "outcome": "pass",
+          "headline": false,
+          "meridian-8": {
+            "median": 384.6587495,
+            "mad": 2.9053514999999948,
+            "p5": 379.3791129,
+            "p95": 393.0206381,
+            "iterations": 30,
+            "noisy": false,
+            "vsNexus": {
+              "median": 1.0037204717457222,
+              "low": 0.9956338021972391,
+              "high": 1.011841266527119,
+              "pairs": 30
+            }
+          }
+        },
+        "tsc": {
+          "median": 2500.515672,
+          "mad": 6.671529999999848,
+          "p5": 2482.8512652,
+          "p95": 2553.03654315,
+          "iterations": 30,
+          "noisy": false,
+          "vsNexus": {
+            "median": 1.1462774381244611,
+            "low": 1.1435141551022803,
+            "high": 1.1504220586245095,
+            "pairs": 30
+          },
+          "outcome": "pass",
+          "headline": false,
+          "meridian-8": {
+            "median": 2063.335496,
+            "mad": 12.510160999999925,
+            "p5": 2044.9186679499999,
+            "p95": 2089.1843167499997,
+            "iterations": 30,
+            "noisy": false,
+            "vsNexus": {
+              "median": 1.0411071392447957,
+              "low": 1.0379013436182225,
+              "high": 1.043904938395117,
+              "pairs": 30
+            }
+          }
+        },
+        "tsgo": {
+          "median": 524.1566695,
+          "mad": 6.191169000000002,
+          "p5": 511.14669105,
+          "p95": 549.7690698,
+          "iterations": 30,
+          "noisy": false,
+          "vsNexus": {
+            "median": 0.9823173908094803,
+            "low": 0.9749885137107626,
+            "high": 0.9891518137712397,
+            "pairs": 30
+          },
+          "outcome": "pass",
+          "headline": false,
+          "meridian-8": {
+            "median": 462.139925,
+            "mad": 5.094102499999991,
+            "p5": 444.293833,
+            "p95": 468.7748959,
+            "iterations": 30,
+            "noisy": false,
+            "vsNexus": {
+              "median": 1.0074275234352295,
+              "low": 0.998855738105265,
+              "high": 1.0161032837485313,
+              "pairs": 30
+            }
+          }
+        },
+        "vite": {
+          "median": 461.785967,
+          "mad": 4.097650000000044,
+          "p5": 453.05984385,
+          "p95": 470.6718094,
+          "iterations": 30,
+          "noisy": false,
+          "vsNexus": {
+            "median": 1.005116623880924,
+            "low": 0.9970262639871587,
+            "high": 1.0158303114622667,
+            "pairs": 30
+          },
+          "outcome": "pass",
+          "headline": false,
+          "meridian-8": {
+            "median": 438.46961899999997,
+            "mad": 3.494512000000043,
+            "p5": 432.01675215,
+            "p95": 445.43060675,
+            "iterations": 30,
+            "noisy": false,
+            "vsNexus": {
+              "median": 1.0018046218457366,
+              "low": 1.0003314293147563,
+              "high": 1.010958470467433,
+              "pairs": 30
+            }
+          }
+        },
+        "vite8+babel-plugin": {
+          "median": 1025.596501,
+          "mad": 6.187546999999995,
+          "p5": 1014.5355926,
+          "p95": 1045.1429534,
+          "iterations": 30,
+          "noisy": false,
+          "vsNexus": {
+            "median": 1.0083505875688905,
+            "low": 1.0038368277840308,
+            "high": 1.0123094990417665,
+            "pairs": 30
+          },
+          "outcome": "pass",
+          "headline": false,
+          "meridian-8": {
+            "median": 584.2483115,
+            "mad": 3.175083499999971,
+            "p5": 579.0676433,
+            "p95": 597.4468734999999,
+            "iterations": 30,
+            "noisy": false,
+            "vsNexus": {
+              "median": 1.0074135492516796,
+              "low": 1.0047226349720146,
+              "high": 1.0215355760371259,
+              "pairs": 30
+            }
+          }
+        }
+      }
+    }
+  },
+  "headline": {
+    "nexusdi": {
+      "variant": "plain",
+      "toolchain": "bun"
+    },
+    "inversify": {
+      "variant": "decorated",
+      "toolchain": "tsgo",
+      "vsNexus": {
+        "median": 0.5090888560042346,
+        "low": 0.5046384996218845,
+        "high": 0.5131438755356328,
+        "pairs": 30
+      }
+    },
+    "tsyringe": {
+      "variant": "decorated",
+      "toolchain": "tsgo",
+      "vsNexus": {
+        "median": 0.5401011477675062,
+        "low": 0.5315081966184889,
+        "high": 0.5448122325614385,
+        "pairs": 30
+      }
+    },
+    "awilix": {
+      "variant": "plain",
+      "toolchain": "bun",
+      "vsNexus": {
+        "median": 1.01731528307017,
+        "low": 1.0021191942093746,
+        "high": 1.0212134221018931,
+        "pairs": 30
+      }
+    },
+    "needle-di": {
+      "variant": "decorated",
+      "toolchain": "bun",
+      "vsNexus": {
+        "median": 0.997534097808673,
+        "low": 0.9915272438287238,
+        "high": 1.0053267826341905,
+        "pairs": 30
+      }
+    }
+  }
+}
