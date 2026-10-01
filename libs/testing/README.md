@@ -14,7 +14,7 @@ Build your real NexusDI module graph in tests, with the providers you name repla
 
 ## Install
 
-> 0.4 is a release candidate on the npm `next` tag. Install every @nexusdi package from `next` so their versions match.
+> 0.4 is a release candidate on the npm `next` tag. Install every @nexusdi package from `next` so their versions match. Without `@next`, npm installs core 0.3 and stops with a peer conflict.
 
 ```bash
 npm install -D @nexusdi/testing@next @nexusdi/core@next
@@ -47,7 +47,7 @@ const Engineering = defineModule({
 const fakeCharts: INavCharts = { plot: () => 'loopback' };
 await using ship = await createTestingContainer(Engineering)
   .override(NAV_CHARTS, { useValue: fakeCharts })
-  .create({ onInit: false });
+  .create();
 ship.get(NAV_CHARTS).plot('anywhere'); // -> 'loopback'
 ```
 
