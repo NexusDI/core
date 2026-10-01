@@ -37,15 +37,20 @@ const nextFiles = {
   'next/index.html': page('next'),
   'next/404.html': page('next not found'),
   'next/_pagefind/pagefind.js': 'export {}',
-  'next/getting-started.md': '# Getting started',
-  'next/runtime/types-0123abcd.json': '{}',
-  'next/runtime/core-0123abcd/index.js': 'export {}',
+  'next/index.md': '# NexusDI',
+  'next/tokens/index.html': page('tokens'),
+  'next/tokens.md': '# Tokens',
+  'next/errors/NEXUS_MISSING_PROVIDER/index.html': page('missing provider'),
+  'next/errors/NEXUS_MISSING_PROVIDER.md': '# NEXUS_MISSING_PROVIDER',
 };
 
 const rc = () => ({
   ...snapshotOnly(),
   '404.html': page('0.3 not found', rootNotFoundScript()),
   ...nextFiles,
+  'errors/NEXUS_MISSING_PROVIDER/index.html': stubHtml(
+    '/next/errors/NEXUS_MISSING_PROVIDER/',
+  ),
 });
 
 const final = () => ({
@@ -107,7 +112,7 @@ describe('checkArtifact fails when a required file is missing', () => {
         'next/index.html',
         'next/404.html',
         'next/_pagefind/pagefind.js',
-        'next/getting-started.md',
+        'next/index.md',
         'blog/rss.xml',
         'blog/atom.xml',
       ],
@@ -136,25 +141,42 @@ describe('checkArtifact fails when a required file is missing', () => {
       });
     }
   }
-
-  it('fails rc without a declarations JSON', () => {
-    const site = artifact(rc());
-    rmSync(join(site, 'next/runtime/types-0123abcd.json'));
-    expect(checkArtifact(site, 'rc')).toContain(
-      'missing from the rc artifact: next/runtime/types-*.json',
-    );
-  });
-
-  it('fails rc without a core runtime copy', () => {
-    const site = artifact(rc());
-    rmSync(join(site, 'next/runtime/core-0123abcd'), { recursive: true });
-    expect(checkArtifact(site, 'rc')).toContain(
-      'missing from the rc artifact: next/runtime/core-*/index.js',
-    );
-  });
 });
 
 describe('checkArtifact rules beyond presence', () => {
+  it('fails a /next/ page with no .md sibling', () => {
+    const site = artifact(rc());
+    rmSync(join(site, 'next/tokens.md'));
+    expect(checkArtifact(site, 'rc')).toContain(
+      'next/tokens/index.html has no .md sibling (next/tokens.md). postbuild writes one for every content page.',
+    );
+  });
+
+  it('accepts a sibling written inside the page folder', () => {
+    const site = artifact(rc());
+    rmSync(join(site, 'next/tokens.md'));
+    writeFileSync(join(site, 'next/tokens/index.md'), '# Tokens');
+    expect(checkArtifact(site, 'rc')).toEqual([]);
+  });
+
+  it('fails an rc code page with no root stub', () => {
+    const site = artifact(rc());
+    rmSync(join(site, 'errors'), { recursive: true });
+    expect(checkArtifact(site, 'rc')).toContain(
+      'errors/NEXUS_MISSING_PROVIDER/index.html is missing. Every error message links to /errors/<CODE>, and the rc root answers it with a stub to /next/errors/<CODE>/.',
+    );
+  });
+
+  it('fails an rc root stub that points somewhere else', () => {
+    const site = artifact({
+      ...rc(),
+      'errors/NEXUS_MISSING_PROVIDER/index.html': stubHtml('/upgrade/'),
+    });
+    expect(checkArtifact(site, 'rc')).toContain(
+      'errors/NEXUS_MISSING_PROVIDER/index.html does not point at /next/errors/NEXUS_MISSING_PROVIDER/.',
+    );
+  });
+
   it('fails a CNAME that names another domain', () => {
     const site = artifact({ ...snapshotOnly(), CNAME: 'example.com\n' });
     expect(checkArtifact(site, 'snapshot-only')).toContain(
@@ -240,7 +262,7 @@ describe('siteCounts', () => {
   it('counts the root, next/ and v0.3/ apart', () => {
     expect(siteCounts(artifact(final()))).toEqual({
       root: 8,
-      next: 6,
+      next: 8,
       'v0.3': 2,
     });
   });
