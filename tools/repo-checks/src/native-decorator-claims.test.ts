@@ -1,4 +1,4 @@
-import { readdirSync, readFileSync } from 'node:fs';
+import { existsSync, readdirSync, readFileSync } from 'node:fs';
 import { join, relative } from 'node:path';
 
 import { workspaceRoot } from '@nx/devkit';
@@ -12,7 +12,7 @@ import {
 
 const CUTOFF = '2026-09-23';
 
-/** Every `README.md` in the workspace. */
+/** Every `README.md` in the workspace, and each package's `docs/*.md` region file. */
 function readmeFiles(): string[] {
   function walk(dir: string): string[] {
     return readdirSync(dir, { withFileTypes: true }).flatMap((entry) => {
@@ -29,7 +29,18 @@ function readmeFiles(): string[] {
     });
   }
 
-  return walk(workspaceRoot);
+  const libs = join(workspaceRoot, 'libs');
+  const regionFiles = readdirSync(libs, { withFileTypes: true })
+    .filter((entry) => entry.isDirectory())
+    .map((entry) => join(libs, entry.name, 'docs'))
+    .filter((docs) => existsSync(docs))
+    .flatMap((docs) =>
+      readdirSync(docs)
+        .filter((name) => name.endsWith('.md'))
+        .map((name) => join(docs, name)),
+    );
+
+  return [...walk(workspaceRoot), ...regionFiles];
 }
 
 /** Every page under the docs snapshot, `docs/` and `blog/` included. */
@@ -47,7 +58,7 @@ function snapshotPages(): string[] {
   return walk(root);
 }
 
-/** Every README and docs snapshot page, read and made relative to the workspace root. */
+/** Every README, region file and docs snapshot page, read and made relative to the workspace root. */
 function pages(): { file: string; source: string }[] {
   return [...readmeFiles(), ...snapshotPages()].map((path) => ({
     file: relative(workspaceRoot, path),
@@ -159,7 +170,7 @@ describe('claimsIn', () => {
   });
 });
 
-describe('every readme and docs snapshot page', () => {
+describe('every readme, region file and docs snapshot page', () => {
   it('carries no claim of native decorators', () => {
     const claims = claimsIn(pages(), CUTOFF);
 
