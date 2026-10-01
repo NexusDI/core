@@ -7,6 +7,8 @@ import { parsePage, readSite } from './docs/site';
 
 const tree = (name: string) =>
   readSite(join(FIXTURES, 'doc-prose', name, 'content'));
+const EM = String.fromCharCode(0x2014);
+const EN = String.fromCharCode(0x2013);
 const at =
   'tools/repo-checks/src/__fixtures__/docs/doc-prose/sabotaged/content/tokens.mdx';
 
@@ -18,8 +20,8 @@ describe('doc-refused-words fixtures', () => {
   it('fails a refused word and both dashes in prose', () => {
     expect(checkRefusedWords(tree('sabotaged'))).toEqual([
       `${at}:8: "Simply" -- cut it; the sentence states the step without it`,
-      `${at}:8: "—" -- write two sentences, or put a short aside in parentheses`,
-      `${at}:9: "–" -- write "to" in a range, or a hyphen in a compound`,
+      `${at}:8: "${EM}" -- write two sentences, or put a short aside in parentheses`,
+      `${at}:9: "${EN}" -- write "to" in a range, or a hyphen in a compound`,
     ]);
   });
 });

@@ -23,11 +23,11 @@ const REFUSED: readonly Refusal[] = [
     instead: 'cut it and keep the fact that follows',
   },
   {
-    pattern: /—/,
+    pattern: new RegExp(String.fromCharCode(0x2014)),
     instead: 'write two sentences, or put a short aside in parentheses',
   },
   {
-    pattern: /–/,
+    pattern: new RegExp(String.fromCharCode(0x2013)),
     instead: 'write "to" in a range, or a hyphen in a compound',
   },
   {
