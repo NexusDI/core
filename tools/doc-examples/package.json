@@ -9,6 +9,9 @@
     "./claims": "./src/expect-comments.ts",
     "./preamble": "./src/preamble.mjs",
     "./regions": "./src/regions.mjs",
-    "./mdx-region-loader": "./src/mdx-region-loader.mjs"
+    "./mdx-region-loader": "./src/mdx-region-loader.mjs",
+    "./declarations": "./src/declarations.mjs",
+    "./behaviours": "./src/behaviours.mjs",
+    "./mdx-reference-loader": "./src/mdx-reference-loader.mjs"
   }
 }
