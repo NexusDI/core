@@ -1,0 +1,13 @@
+{
+  "archives": [
+    {
+      "line": "0.3",
+      "kind": "snapshot"
+    },
+    {
+      "line": "0.4",
+      "kind": "tag",
+      "tag": "@nexusdi/core@0.4.3"
+    }
+  ]
+}
