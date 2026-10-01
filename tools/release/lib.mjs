@@ -108,12 +108,12 @@ function newest(versions) {
 
 /** X.Y.0-rc.0 for a new line, else one past the highest rc of the line. */
 export function nextRcVersion(line, tags) {
+  const prefix = `${line}.0-rc.`;
   const rcs = tagVersions(tags)
-    .map((version) =>
-      new RegExp(`^${line.replace('.', '\\.')}\\.0-rc\\.(\\d+)$`).exec(version),
-    )
-    .filter(Boolean)
-    .map((match) => Number(match[1]));
+    .filter((version) => version.startsWith(prefix))
+    .map((version) => version.slice(prefix.length))
+    .filter((n) => /^\d+$/.test(n))
+    .map(Number);
   return rcs.length === 0
     ? `${line}.0-rc.0`
     : `${line}.0-rc.${Math.max(...rcs) + 1}`;
@@ -492,10 +492,15 @@ export function mergeManifests(base, ours, theirs, path = []) {
 /** One version's section of a package CHANGELOG.md, without its heading. */
 export function changelogSection(text, version) {
   const lines = text.split('\n');
-  const escaped = version.replace(/[.+]/g, '\\$&');
-  const start = lines.findIndex((line) =>
-    new RegExp(`^## \\[?${escaped}\\]?(?:\\s|\\(|$)`).test(line),
-  );
+  // A heading is "## 0.3.3", "## [0.3.3]" or "## 0.3.3 (date)". Compared as
+  // text, so no character of the version is read as a pattern.
+  const start = lines.findIndex((line) => {
+    if (!line.startsWith('## ')) return false;
+    const heading = line.slice(3).replace(/^\[/, '');
+    if (!heading.startsWith(version)) return false;
+    const rest = heading.slice(version.length);
+    return rest === '' || rest === ']' || /^[\]\s(]/.test(rest);
+  });
   if (start === -1) return null;
   let end = lines.findIndex((line, i) => i > start && /^## /.test(line));
   if (end === -1) end = lines.length;
