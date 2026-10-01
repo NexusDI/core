@@ -10,11 +10,11 @@ Every NexusDI error explained, with the fix and the provider you probably meant.
 - Each message names the missing token and the class that asked.
 - A fix line names the change that makes the graph valid.
 - Near misses name the module that already has the token.
-- `explain(error)` words an error caught without the plugin.
+- `explain(error)` gives an error caught without the plugin the same text.
 
 ## Install
 
-> 0.4 is a release candidate on the npm `next` tag. Install every @nexusdi package from `next` so their versions match.
+> 0.4 is a release candidate on the npm `next` tag. Install every @nexusdi package from `next` so their versions match. Without `@next`, npm installs core 0.3 and stops with a peer conflict.
 
 ```bash
 npm install @nexusdi/errors@next @nexusdi/core@next
@@ -48,7 +48,7 @@ const fail = (error: { errors: Error[] }) => error.errors[0]?.message ?? '';
 const plugins = [errors()];
 const before = await Nexus.create(App).then(() => '', fail);
 const after = await Nexus.create(App, { plugins }).then(() => '', fail);
-before.split(' ').slice(1, 4); // -> ['token=NavCharts', 'requester=Helm', 'module=Bridge.']
+before.split(' ').slice(1, 4).join(' '); // -> 'token=NavCharts requester=Helm module=Bridge.'
 after.split('\n').slice(1); // -> ['  NavCharts is provided in Tactical, which does not export it.', "  Fix: add NavCharts to Tactical's exports and import Tactical into Bridge."]
 ```
 
