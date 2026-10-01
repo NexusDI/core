@@ -107,7 +107,9 @@ export function wide(size: number, seed = GRAPH_SEED): ScaleGraph {
  * ⌈n/100⌉ chains of equal length (the last takes the remainder), laid out
  * one after another. Each provider after a chain's head takes its
  * predecessor and, with probability 0.6, one more distinct earlier provider
- * of its chain. The mean fan-out matches `wide`, so the two differ in depth.
+ * of its chain. Heads take no deps and second providers no extra, so the
+ * mean fan-out sits below 1.6: 1.54 to 1.58 by size, within 0.05 of `wide`
+ * at n >= 1,000. The two shapes differ mainly in depth.
  */
 export function deep(size: number, seed = GRAPH_SEED): ScaleGraph {
   const rand = mulberry32(streamSeed('deep', size, seed));
@@ -266,8 +268,8 @@ const MODULE_EXPORTS = 3;
  * n/10 modules of 10 classes. Module k > 0 imports one or two distinct
  * modules below it and every module exports its last 3 providers. Each
  * provider takes 1 dep (P 0.4) or 2 (P 0.6), each from its own module's
- * earlier providers or its imports' exports with even odds, so the mean
- * fan-out matches `wide` and `deep`.
+ * earlier providers or its imports' exports with even odds. The mean fan-out
+ * is 1.52 to 1.61 by size, within 0.02 of `wide`'s 1.6 at n >= 1,000.
  */
 export function modular(size: number, seed = GRAPH_SEED): ScaleGraph {
   if (size % MODULE_SIZE !== 0)
