@@ -224,8 +224,9 @@ function exportsOf(moduleSymbol, checker) {
  *
  * Every caller of `programOf` goes on to ask the same two questions: which
  * source file the declaration parses to, and which symbol that file's own
- * module is. Resolving both here once keeps the two call sites, one reading
- * a second entry point's exports and one reading a named export, in step.
+ * module is. This helper resolves both once, so the two call sites, one reading
+ * a second entry point's exports and one reading a named export, stay in
+ * step.
  */
 function moduleOf(root, specifier) {
   const built = programOf(root, specifier);
@@ -246,7 +247,7 @@ function exportsOfSpecifier(root, specifier) {
  * Printed from the `.d.ts`, with no query through Twoslash's `^?`. A
  * query renders as an overlay inside the `<pre>`, which cannot wrap: the
  * `hydratePolicy` signature is 154 characters on one line and the overlay
- * clips it. Printing also answers the two cases a query cannot. `^?` over an
+ * clips it. The printed form also answers the two cases a query cannot. `^?` over an
  * interface's own name returns the name, so an interface entry would show its
  * identity and none of its fields, and a query reports no constructor at all, so a
  * reader asking what to pass `new InvalidConditionError(...)` would get
@@ -264,7 +265,7 @@ function exportsOfSpecifier(root, specifier) {
  * declares, and a redeclared symbol has no docblock because the comment
  * stayed in the source that was printed from. A reader hovering the name gets
  * a type and nothing else, which defeats the purpose of a Twoslash fence.
- * Declaring the same name inside `declare module '<specifier>'` merges
+ * A name declared again inside `declare module '<specifier>'` merges
  * with the published symbol and does not shadow it, so the hover answers for
  * the package and carries its documentation.
  *

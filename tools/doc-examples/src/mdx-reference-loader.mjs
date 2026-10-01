@@ -291,10 +291,10 @@ export function statedBy(behaviours, name) {
  * claim. The honesty argument is made in the prose, and markup that
  * contradicted it would undo it.
  *
- * The pane shows the case verbatim and offers no reading of it. A summary of what
- * a test asserts is this loader's opinion about a suite it did not write, and
- * decision A of `docs/specs/2026-09-21-docs-api-reference.md` is that the entry
- * reports what the suite states and infers nothing. The source is the answer a
+ * The pane shows the case verbatim and offers no reading of it. A summary of
+ * what a test asserts is this loader's opinion about a suite it did not write,
+ * and the docs site design (`specs/2026-09-23-docs-site-design.md`) has the
+ * entry report what the suite states and infer nothing. The source is the answer a
  * reader can argue with.
  *
  * The heading says `state` and the line at the foot says what that leaves open.
@@ -390,7 +390,7 @@ function head(reference, prefix) {
  * loaders in the reverse of the order they are listed, so a fence this emits
  * for another loader arrives after that loader has already run and reaches the
  * page empty.
- * The region reader is a module either loader can call, so calling it is the
+ * The region reader is a module either loader can call, so a call to it is the
  * fix that does not depend on which way round the chain runs.
  *
  * The README's preamble goes in front of the region behind a `// ---cut---`
