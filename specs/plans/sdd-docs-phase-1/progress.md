@@ -45,4 +45,8 @@ Task briefs: tasks/task-NN.md, shared constraints tasks/globals.md
 - T24: done 36a35d0 (approved)
 - T4: done 5031b06 (md-siblings written in-repo: the classifier denies fetching code from Evanion/libraries here; approved)
 - T26: done 44cae80 (approved; fenceClass unexported, no later consumer)
-- T5: review 8b34a6c
+- T5: done 8b34a6c+dd2b681 (shared from page-kind scripts; NOT_PAGES skips 404/_not-found, real build failed without it; approved)
+- T29: done 9b69f33+335cfad (dash patterns built from char codes: prettier turns \u escapes into literal dashes; approved)
+- T6: done 56b3ee9 (approved; postbuild needs the build's DOCS_CHANNEL, Task 7 passes it)
+- T33: review ca375a6
+- T7: impl
