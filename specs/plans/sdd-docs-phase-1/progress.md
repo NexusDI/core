@@ -48,5 +48,9 @@ Task briefs: tasks/task-NN.md, shared constraints tasks/globals.md
 - T5: done 8b34a6c+dd2b681 (shared from page-kind scripts; NOT_PAGES skips 404/_not-found, real build failed without it; approved)
 - T29: done 9b69f33+335cfad (dash patterns built from char codes: prettier turns \u escapes into literal dashes; approved)
 - T6: done 56b3ee9 (approved; postbuild needs the build's DOCS_CHANNEL, Task 7 passes it)
-- T33: review ca375a6
-- T7: impl
+- T33: done ca375a6 (approved)
+- T7: done ce7c11a+07c832c ("Add the blog before setting final"; approved; actionlint not run locally, CI runs it)
+- T35: done 21de2f5+723133d (prose fixes; trap headings without periods, sentences kept for the pin test; approved)
+- T8: done 5147ed6 (approved)
+- T74: review 08e33cd (WORKSPACE/OUTPUT/gitCommit/FAMILIES unexported for fallow)
+- T9: impl
