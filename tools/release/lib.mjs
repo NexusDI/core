@@ -582,7 +582,8 @@ function resolveIn(from, ref) {
 /**
  * What is wrong with a package as npm will publish it. `files` lists the
  * package's files relative to its root, `read` returns one file's text, and
- * `repoVersion` is the version in libs/x/package.json. An empty list means
+ * `repoVersion`, when given, is the version in libs/x/package.json the
+ * packed manifest must carry. An empty list means
  * the package is complete: its manifest carries no source condition, every
  * path the manifest names is shipped, every source map's sources are
  * shipped, and every sourceMappingURL names a shipped map.
@@ -594,7 +595,7 @@ export function stagedProblems({ manifest, repoVersion, files, read }) {
 
   if (keysDeep(manifest).includes(SOURCE_CONDITION))
     problems.push(`${name}: package.json still carries ${SOURCE_CONDITION}`);
-  if (manifest.version !== repoVersion)
+  if (repoVersion !== undefined && manifest.version !== repoVersion)
     problems.push(
       `${name}: staged version ${manifest.version} differs from the repo's ${repoVersion}`,
     );
@@ -608,8 +609,8 @@ export function stagedProblems({ manifest, repoVersion, files, read }) {
     ...(Array.isArray(manifest.sideEffects) ? manifest.sideEffects : []),
   ];
   for (const target of new Set(named)) {
-    // A pattern names no single file.
-    if (target.includes('*')) continue;
+    // A pattern or a folder export names no single file.
+    if (target.includes('*') || target.endsWith('/')) continue;
     if (!shipped.has(resolveIn('', target)))
       problems.push(
         `${name}: package.json names ${target}, which is not shipped`,
@@ -618,9 +619,11 @@ export function stagedProblems({ manifest, repoVersion, files, read }) {
 
   for (const file of files) {
     if (file.endsWith('.map')) {
-      const { sources = [] } = JSON.parse(read(file));
+      const { sourceRoot = '', sources = [] } = JSON.parse(read(file));
+      const root =
+        sourceRoot && !sourceRoot.endsWith('/') ? `${sourceRoot}/` : sourceRoot;
       for (const ref of sources) {
-        const target = resolveIn(file, ref);
+        const target = resolveIn(file, `${root}${ref}`);
         if (!shipped.has(target))
           problems.push(
             `${name}: ${file} maps to ${target}, which is not shipped`,

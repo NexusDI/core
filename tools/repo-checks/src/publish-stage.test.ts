@@ -182,6 +182,38 @@ describe('stagedProblems', () => {
     ]);
   });
 
+  it('resolves map sources against the map sourceRoot', () => {
+    const problems = stagedProblems({
+      manifest,
+      ...staged({
+        ...complete,
+        'dist/index.d.ts.map': JSON.stringify({
+          sourceRoot: '../src/',
+          sources: ['index.ts'],
+        }),
+      }),
+    });
+    expect(problems).toEqual([]);
+  });
+
+  it('skips a folder export, which names no single file', () => {
+    expect(
+      stagedProblems({
+        manifest: { ...manifest, exports: { './dist/': './dist/' } },
+        ...staged(complete),
+      }),
+    ).toEqual([]);
+  });
+
+  it('skips the version check when no repo version is given', () => {
+    expect(
+      stagedProblems({
+        manifest: { ...manifest, version: '9.9.9' },
+        ...staged(complete),
+      }),
+    ).toEqual([]);
+  });
+
   it('reports a missing README, LICENSE or CHANGELOG', () => {
     const rest = without(complete, 'LICENSE');
     expect(

@@ -26,8 +26,9 @@ import {
 } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { createRequire } from 'node:module';
-import { join, relative, resolve, sep } from 'node:path';
+import { join, resolve } from 'node:path';
 import { PUBLISH_ROOT, stagedProblems } from '@nexusdi/release';
+import { packageFiles } from '../tools/release/package-files.mjs';
 import { nodeResolve } from '@rollup/plugin-node-resolve';
 import * as esbuild from 'esbuild';
 import { rollup } from 'rollup';
@@ -239,22 +240,27 @@ function goToDefinition(cwd, text, position) {
       child.kill();
       reject(new Error('tsserver gave no definition within 60s'));
     }, 60_000);
-    let output = '';
-    child.stdout.setEncoding('utf8');
+    // tsserver frames each message as a Content-Length header, a blank line
+    // and that many bytes of JSON. A chunk can end anywhere in a message.
+    let buffer = Buffer.alloc(0);
     child.stdout.on('data', (chunk) => {
-      output += chunk;
-      const response = output
-        .split(/Content-Length: \d+\r?\n\r?\n/)
-        .map((message) => message.trim())
-        .filter((message) => message.startsWith('{') && message.endsWith('}'))
-        .map((message) => JSON.parse(message))
-        .find(
-          (message) => message.type === 'response' && message.request_seq === 2,
+      buffer = Buffer.concat([buffer, chunk]);
+      for (;;) {
+        const header = /^Content-Length: (\d+)\r?\n\r?\n/.exec(
+          buffer.toString('latin1', 0, Math.min(buffer.length, 64)),
         );
-      if (response === undefined) return;
-      clearTimeout(timer);
-      child.kill();
-      resolveFile(response.body?.[0]?.file ?? null);
+        if (header === null) return;
+        const start = header[0].length;
+        const end = start + Number(header[1]);
+        if (buffer.length < end) return;
+        const message = JSON.parse(buffer.toString('utf8', start, end));
+        buffer = buffer.subarray(end);
+        if (message.type !== 'response' || message.request_seq !== 2) continue;
+        clearTimeout(timer);
+        child.kill();
+        resolveFile(message.body?.[0]?.file ?? null);
+        return;
+      }
     });
     child.on('error', reject);
     for (const [seq, command, args] of [
@@ -919,19 +925,12 @@ export default defineModule({
   // must be in it.
   const problems = LIBS.flatMap(([libDir, name]) => {
     const pkgRoot = join(dir, 'node_modules', ...name.split('/'));
-    const files = readdirSync(pkgRoot, { recursive: true, withFileTypes: true })
-      .filter((entry) => entry.isFile())
-      .map((entry) =>
-        relative(pkgRoot, join(entry.parentPath, entry.name))
-          .split(sep)
-          .join('/'),
-      );
     return stagedProblems({
       manifest: packedManifest(name),
       repoVersion: JSON.parse(
         readFileSync(join(ROOT, libDir, 'package.json'), 'utf8'),
       ).version,
-      files,
+      files: packageFiles(pkgRoot),
       read: (path) => readFileSync(join(pkgRoot, path), 'utf8'),
     });
   });
@@ -951,7 +950,7 @@ export default defineModule({
   );
   if (!/node_modules\/@nexusdi\/core\/src\/.+\.ts$/.test(definition ?? ''))
     throw new Error(
-      `Go to Definition on Nexus resolved to ${definition ?? 'nothing'}, not the shipped src`,
+      `Go to Definition on Nexus resolved to ${definition ?? 'nothing'}, outside node_modules/@nexusdi/core/src`,
     );
   console.log(
     `  ✓ Go to Definition on Nexus opens ${definition.slice(definition.lastIndexOf('node_modules/'))}`,
