@@ -89,7 +89,7 @@ export function mdxProse(text) {
 
       return part
         .replace(
-          /\{@(?:link|linkcode|linkplain)\s+([^}|\s]+)\s*(?:\|\s*)?([^}]*)\}/g,
+          /\{@(?:link|linkcode|linkplain)[ \t]+([^}|\s]+)[ \t]*\|?([^}]*)\}/g,
           (_, target, label) =>
             label.trim() === '' ? `\`${target}\`` : label.trim(),
         )
