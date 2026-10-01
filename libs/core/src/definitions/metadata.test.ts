@@ -5,8 +5,9 @@ import { describe, expect, it } from 'vitest';
 import {
   declareClass,
   declareProperty,
-  readInjectable,
-  readProps,
+  injectableIn,
+  metadataOf,
+  propsIn,
 } from './metadata.js';
 import { Token } from './token.js';
 
@@ -23,11 +24,14 @@ function decorate<T extends object>(
   return metadata;
 }
 
+const readInjectable = (cls: unknown) => injectableIn(metadataOf(cls));
+const readProps = (cls: unknown) => propsIn(metadataOf(cls));
+
 const REACTOR = new Token<string>('ReactorCore');
 const A = new Token<string>('A');
 const B = new Token<string>('B');
 
-describe('readInjectable', () => {
+describe('injectableIn', () => {
   it('reads nothing from a class without metadata', () => {
     expect(readInjectable(class Plain {})).toBeUndefined();
   });
@@ -81,7 +85,7 @@ describe('declareProperty', () => {
   });
 });
 
-describe('readProps', () => {
+describe('propsIn', () => {
   it('returns the parent properties first, then the subclass properties', () => {
     class Parent {}
     class Child extends Parent {}
