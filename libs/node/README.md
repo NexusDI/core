@@ -10,11 +10,11 @@ Find the current request's NexusDI scope anywhere in a Node call chain, through 
 - `run(scope, fn)` makes `scope` current for everything `fn` awaits.
 - `current()` returns that scope, or `undefined` outside a run.
 - One `nodeScopes()` serves every container in the process.
-- `@nexusdi/node` is the one NexusDI package that imports `node:` modules.
+- Core imports no `node:` module; this package holds the Node-only part.
 
 ## Install
 
-> 0.4 is a release candidate on the npm `next` tag. Install every @nexusdi package from `next` so their versions match.
+> 0.4 is a release candidate on the npm `next` tag. Install every @nexusdi package from `next` so their versions match. Without `@next`, npm installs core 0.3 and stops with a peer conflict.
 
 ```bash
 npm install @nexusdi/node@next @nexusdi/core@next
