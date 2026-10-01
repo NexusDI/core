@@ -191,10 +191,12 @@ files:
 Each class has `readonly id = '<name>'` and one field per dependency, `d0`, `d1`, ..., in
 constructor order, assigned in the constructor. Factories return `new <Class>(...)` of a
 class shaped the same way. A value is `{ id: '<name>' }`. Fields are declared explicitly,
-with no parameter properties, as section 4.2 of the launch spec requires. Every class
-constructor and factory body ends with `__scaleBuilt(<index>, '<kind>')`, a counter the
-adapter exports (section 5). The call is identical in every library and does one array
-increment per construction.
+with no parameter properties, as section 4.2 of the launch spec requires. The constructor
+of every class provider and the body of every factory end with
+`__scaleBuilt(<index>, '<kind>')`, a counter the adapter exports (section 5). The class a
+factory returns does not call it: the factory body reports, so every non-value provider
+counts exactly one construction. The call is identical in every library and does one
+array increment per construction.
 
 ### 4.2 The five documented variants
 
@@ -254,7 +256,7 @@ export interface ScaleApp<H = unknown> {
   /** Library modules this app imports, for the child to load first. */
   readonly packages: readonly string[];
   /** Constructions per provider index, and the kind each construction reported. */
-  readonly built: { readonly counts: Uint32Array; readonly kinds: readonly string[] };
+  readonly built: { readonly counts: Uint32Array; readonly kinds: readonly (string | undefined)[] };
   create(): H | Promise<H>;
   /** Synchronous get by provider index, through a token table built at load. */
   get(handle: H, index: number): unknown;
@@ -832,7 +834,9 @@ benchmarks/package.json            (changed: tslib devDependency, targets)
     `importHelpers`, the round counts per shape and that relative claims come from
     `mixed`. Add to `CONTRIBUTING.md`'s Benchmarks heading that a renderer change is
     reviewed like a fixture change: a person reads the generated `app.ts` at n = 50
-    beside the cited page.
+    beside the cited page, and checks that every async factory body is `async` and
+    awaits before it constructs, and that every value uses the library's value form
+    with no factory call.
 
 ## 12. Open questions for the owner
 

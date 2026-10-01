@@ -49,14 +49,16 @@ export function classify(
     : { sections, outcome, message };
 }
 
-const SCALE_CHECKS = ['digest', 'shared', 'built', 'kinds'] as const;
+const SCALE_CHECKS = ['digest', 'shared', 'built', 'kinds', 'ids'] as const;
 
 /**
  * The outcome of one scale cell from the line verify-child.mjs printed
  * (scale spec section 5). A scale graph holds singletons only, so the line
  * is classify's singleton section and the other two are not applicable: a
  * load failure, a build error and a thrown error rank as the matrix ranks
- * them. A wrong-instance names the checks that failed.
+ * them. A wrong-instance names the checks that failed. An app that declares
+ * another count, target or entries than the model is a wrong-instance too:
+ * the harness renderer is at fault, not the library.
  */
 export function classifyScale(
   printed: Record<string, unknown> | null,
@@ -68,7 +70,10 @@ export function classifyScale(
     shared: true,
     built: true,
     kinds: true,
+    ids: true,
   };
+  if (buildError === null && printed !== null && 'declared' in printed)
+    return { outcome: 'wrong-instance', message: String(printed.declared) };
   const sections =
     printed === null || 'load' in printed
       ? printed

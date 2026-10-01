@@ -5,8 +5,10 @@
  *
  *   node verify-child.mjs <bundle.mjs> <graph.json>
  *
- * and prints one JSON line: `{ digest, shared, built, kinds }`, `{ error }`
- * when create or a get throws, or `{ load }` when the bundle fails to import.
+ * and prints one JSON line: `{ digest, shared, built, kinds, ids }`,
+ * `{ declared }` when the app's count, target or entries differ from the
+ * model, `{ error }` when create or a get throws, or `{ load }` when the
+ * bundle fails to import.
  * outcome.ts's classifyScale turns the line into an outcome.
  */
 import { createHash } from 'node:crypto';
@@ -22,6 +24,7 @@ const print = (line) => console.log(JSON.stringify(line));
 let scale;
 try {
   ({ scale } = await import(pathToFileURL(bundle).href));
+  if (scale === undefined) throw new Error('the bundle exports no scale app');
 } catch (error) {
   print({ load: `${error.name}: ${error.message}` });
   process.exit(0);
@@ -56,16 +59,34 @@ async function resolveAll(get) {
   return instances;
 }
 
-try {
-  // A renderer that declares another graph than the model is broken before
-  // any instance exists; the error names the field.
-  if (scale.count !== n)
-    throw new Error(`app declares ${scale.count} providers, the model ${n}`);
-  if (scale.target !== graph.target)
-    throw new Error(`app targets ${scale.target}, the model ${graph.target}`);
-  if (scale.entries.join() !== graph.entries.join())
-    throw new Error('app entries differ from the model');
+// An app that declares another graph than the model is a harness renderer
+// bug, so the child reports it apart from anything the library threw.
+const declared = [
+  [
+    'count',
+    scale.count,
+    n,
+    `app declares ${scale.count} providers, the model ${n}`,
+  ],
+  [
+    'target',
+    scale.target,
+    graph.target,
+    `app targets ${scale.target}, the model ${graph.target}`,
+  ],
+  [
+    'entries',
+    JSON.stringify(scale.entries),
+    JSON.stringify(graph.entries),
+    `app declares ${JSON.stringify(scale.entries)}, the model ${JSON.stringify(graph.entries)}`,
+  ],
+].find(([, app, model]) => app !== model);
+if (declared !== undefined) {
+  print({ declared: `${declared[0]}: ${declared[3]}` });
+  process.exit(0);
+}
 
+try {
   const handle = await scale.create();
   const get = scale.getAsync
     ? (i) => scale.getAsync(handle, i)
@@ -88,7 +109,10 @@ try {
       ? counts[i] === 0 && reported[i] === undefined
       : reported[i] === p.kind,
   );
-  print({ digest: digestOf(first), shared, built, kinds });
+  // The digest is a multiset, so two providers with the same deps could
+  // swap places unseen; each get(i) must return provider i itself.
+  const ids = providers.every((p, i) => first[i]?.id === p.name);
+  print({ digest: digestOf(first), shared, built, kinds, ids });
 } catch (error) {
   print({ error: `${error.name}: ${error.message}` });
 }

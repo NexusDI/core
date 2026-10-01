@@ -52,8 +52,9 @@ class P4 {
 }
 class P5 {
   id = 'p5';
-  constructor(d0) {
+  constructor(d0, d1) {
     this.d0 = d0;
+    if (d1 !== undefined) this.d1 = d1;
     __scaleBuilt(5, 'class');
   }
 }
@@ -75,8 +76,12 @@ const REGISTRY = [
   [factory, [0, 1], true],
   [(d0) => new P3(d0), [1], true],
   [(d0, d1) => new P4(d0, d1), brk === 'swap' ? [3, 2] : [2, 3], true],
-  [(d0) => new P5(d0), [3], brk !== 'transient-sink'],
+  brk === 'swap-sinks'
+    ? [(d0, d1) => new P5(d0, d1), [2, 3], true]
+    : [(d0) => new P5(d0), [3], brk !== 'transient-sink'],
 ];
+// The token table: swap-sinks points p4's and p5's slots at each other.
+const T = brk === 'swap-sinks' ? [0, 1, 2, 3, 5, 4] : [0, 1, 2, 3, 4, 5];
 
 class Container {
   cache = new Map();
@@ -90,9 +95,9 @@ class Container {
 }
 
 export const scale = {
-  count: 6,
-  entries: [4, 5],
-  target: 4,
+  count: brk === 'declare-count' ? 7 : 6,
+  entries: brk === 'declare-entries' ? [4] : [4, 5],
+  target: brk === 'declare-target' ? 5 : 4,
   packages: [],
   built: { counts, kinds },
   create() {
@@ -101,9 +106,9 @@ export const scale = {
   },
   get(handle, index) {
     if (brk === 'async') throw new Error('get called where getAsync exists');
-    return handle.get(index);
+    return handle.get(T[index]);
   },
   ...(brk === 'async'
-    ? { getAsync: async (handle, index) => handle.get(index) }
+    ? { getAsync: async (handle, index) => handle.get(T[index]) }
     : {}),
 };

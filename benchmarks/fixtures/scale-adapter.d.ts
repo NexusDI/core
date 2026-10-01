@@ -15,7 +15,7 @@ export interface ScaleApp<H = unknown> {
    */
   readonly built: {
     readonly counts: Uint32Array;
-    readonly kinds: readonly string[];
+    readonly kinds: readonly (string | undefined)[];
   };
   create(): H | Promise<H>;
   /** Synchronous get by provider index, through a token table built at load. */
