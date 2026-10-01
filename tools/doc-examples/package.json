@@ -13,6 +13,7 @@
     "./declarations": "./src/declarations.mjs",
     "./behaviours": "./src/behaviours.mjs",
     "./files-under": "./src/files-under.mjs",
-    "./mdx-reference-loader": "./src/mdx-reference-loader.mjs"
+    "./mdx-reference-loader": "./src/mdx-reference-loader.mjs",
+    "./md-siblings": "./src/md-siblings.mjs"
   }
 }

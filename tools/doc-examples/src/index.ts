@@ -27,3 +27,4 @@ export {
 export type { ExportKind, Reference } from './declarations.mjs';
 export { expandReferences } from './mdx-reference-loader.mjs';
 export type { ExpandReferencesOptions } from './mdx-reference-loader.mjs';
+export { mdSiblings } from './md-siblings.mjs';
