@@ -164,8 +164,6 @@ jobs:
     runs-on: ubuntu-latest
     permissions:
       contents: read
-    env:
-      GH_TOKEN: ${{ github.token }}
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
@@ -204,6 +202,7 @@ jobs:
       - name: Download and verify the snapshot
         if: steps.changed.outputs.touched == 'true'
         env:
+          GH_TOKEN: ${{ github.token }}
           ROOT_ASSET: ${{ steps.config.outputs.root_asset }}
           ROOT_SHA256: ${{ steps.config.outputs.root_sha256 }}
           ARCHIVE_ASSET: ${{ steps.config.outputs.archive_asset }}
