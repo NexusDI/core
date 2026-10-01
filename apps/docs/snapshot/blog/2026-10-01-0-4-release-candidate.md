@@ -7,9 +7,11 @@ description: The first release candidate of NexusDI 0.4 is on npm under the next
 
 NexusDI gives any TypeScript app NestJS-style modules and async startup. It checks the whole graph before the app runs, and it needs no compiler flags.
 
+NexusDI reports missing providers, cycles and scope mistakes when the container is created. In our [benchmark](/blog/2026/10/01/0-4-release-candidate#startup-checks) it reported both seeded mistakes. The other four libraries report missing providers and cycles at the first resolve, and each reported one.
+
 The first release candidate of 0.4 is on npm. We count release candidates from zero, so it is `0.4.0-rc.0`. All nine `@nexusdi/*` packages are on the `next` dist-tag. `latest` for `@nexusdi/core` stays on 0.3.2 until 0.4.0 final, so `npm i @nexusdi/core` still installs 0.3.
 
-The RC feedback window is four weeks. Try it on a real project and tell us what you find.
+The RC feedback window runs until 29 October 2026. Try it on a real project and tell us what you find.
 
 <!--truncate-->
 
@@ -147,6 +149,10 @@ npx nexusdi graph src/meridian.module.ts#Meridian -o graph.svg
 
 The repository has a benchmark harness in [`benchmarks/`](https://github.com/NexusDI/core/tree/release/0.4/benchmarks). It builds one eight-provider graph in NexusDI, InversifyJS, tsyringe, awilix and needle-di, each written the way its own documentation shows. It records which toolchains run each fixture, when each library reports a wiring mistake, the bundle size and the timings. These figures come from the run on the rc.0 commit, `8824502`, on Node 24.20.0.
 
+### Startup checks
+
+NexusDI reports missing providers, cycles and scope mistakes when the container is created. It reported both seeded mistakes. The other libraries report missing providers and cycles at the first resolve, and each reported one.
+
 When each library reports a wiring mistake, without decorators:
 
 | Library            | Missing provider | Cycle         | Scoped provider in a singleton | Mistakes reported, of two |
@@ -159,9 +165,30 @@ When each library reports a wiring mistake, without decorators:
 
 InversifyJS and needle-di document no per-request scope, so the scoped probe does not apply to them.
 
+### Features
+
+This table compares what each library's documentation describes. "No" means the documentation does not describe the feature.
+
+| Feature                                    | NexusDI | awilix                            | InversifyJS                                  | needle-di                               | tsyringe                          |
+| ------------------------------------------ | ------- | --------------------------------- | -------------------------------------------- | --------------------------------------- | --------------------------------- |
+| Whole graph validated at create            | Yes     | No                                | No                                           | No                                      | No                                |
+| Modules with private providers and exports | Yes     | No                                | No, `ContainerModule` groups bindings        | No                                      | No                                |
+| Async factories with a synchronous `get()` | Yes     | No                                | No, async bindings need `getAsync()`         | No, async providers need `getAsync()`   | No                                |
+| Per-request scopes                         | Yes     | Yes, `createScope()`              | No, request scope is one resolution          | No, child containers override providers | Yes, child containers             |
+| Disposal in reverse creation order         | Yes     | `dispose()`, order not documented | Deactivation on unbind, order not documented | No                                      | `dispose()`, order not documented |
+| Plugin API                                 | Yes     | No                                | Yes, `container.register()`                  | No                                      | Resolution hooks                  |
+
+Sources: [NexusDI](https://github.com/NexusDI/core/blob/release/0.4/libs/core/README.md), [awilix](https://github.com/jeffijoe/awilix#readme), InversifyJS [container API](https://inversify.io/docs/api/container/), [scopes](https://inversify.io/docs/fundamentals/binding/) and [deactivation](https://inversify.io/docs/fundamentals/lifecycle/deactivation/), needle-di [async injection](https://needle-di.io/advanced/async-injection) and [child containers](https://needle-di.io/advanced/child-containers), [tsyringe](https://github.com/microsoft/tsyringe#readme).
+
+### Toolchains
+
 Without decorators, NexusDI ran under all ten toolchains in the matrix: tsc, TypeScript 7, esbuild, SWC, Babel, Vite, Vite with its Babel plugin, Bun, Deno and Node's type stripping.
 
-Timings, as the median of 1,000 samples on a 4-core GitHub-hosted runner, without decorators. Ready is the time to create a container and resolve every singleton once.
+### Timings and size
+
+<!-- PENDING: owner decides after profiling -->
+
+Timings, as the median of 1,000 samples on a 4-core GitHub-hosted runner, without decorators. Ready is the time to create a container and resolve every singleton once. NexusDI's Ready time includes validating the whole module graph, which the other libraries do not do at create.
 
 | Library     | Ready  | `get()` of a singleton |
 | ----------- | ------ | ---------------------- |
@@ -173,16 +200,23 @@ Timings, as the median of 1,000 samples on a 4-core GitHub-hosted runner, withou
 
 `@nexusdi/core` is 18.6 kB minified and gzipped in a two-service app, measured with esbuild and gzip level 9, the method of the size report in CI. It has no runtime dependencies.
 
+<!-- /PENDING -->
+
+### Method
+
 The NexusDI maintainer wrote and ran the harness. `benchmarks/libraries.json` pins each library's version and links the documentation each fixture follows. `npx nx run benchmarks:bench` reruns the suite. Absolute times differ by machine.
 
 ## What is not ready yet
 
 - The 0.4 documentation at [nexus.js.org/next/](https://nexus.js.org/next/) is not live yet, and the rest of this site documents 0.3. Until the new docs are up, the [package READMEs](https://github.com/NexusDI/core/tree/release/0.4/libs) document 0.4.
-- The migration guide from 0.3 and the codemod are not available yet. Both are planned for the RC window, and we will post here when they are out.
+- The migration guide from 0.3 is not available yet. It is planned for the RC window. 0.4 changes the 0.3 API. `providers` still accepts provider objects in the 0.3 shape, `{ token, ... }`, and other 0.3 code needs changes that the guide will list.
+- The codemod is not available yet. It is planned for the RC window.
 
-  0.4 changes the 0.3 API. `providers` still accepts provider objects in the 0.3 shape, `{ token, ... }`, and other 0.3 code needs changes that the migration guide will list.
+We will post here when the guide and the codemod are out.
 
 ## Feedback
+
+The feedback window closes on 29 October 2026.
 
 - Questions, API feedback and your experience moving from 0.3 go in the [rc.0 feedback discussion](DISCUSSION_URL).
 - Bugs go in a GitHub issue, with the [bug report template](https://github.com/NexusDI/core/issues/new?template=01-bug.yml).
