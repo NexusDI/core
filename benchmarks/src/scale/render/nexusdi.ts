@@ -8,14 +8,18 @@
  */
 import type { ScaleGraph, ScaleProvider } from '../graph.ts';
 import {
+  builds,
   classBody,
   className,
-  counterFile,
-  factoryBody,
+  counterImport,
+  factoryFunction,
+  hasFactories,
   iface,
   importList,
-  isAsync,
+  layout,
+  moduleBody,
   moduleConst,
+  ownOf,
   perClass,
   token,
   valueLiteral,
@@ -41,8 +45,6 @@ function tokensFile(graph: ScaleGraph): string {
   return `import { Token } from '@nexusdi/core';\n\n${lines.join('')}`;
 }
 
-const builds = (p: ScaleProvider) => p.kind !== 'value';
-
 /** The class of a class provider, or the product class of a factory. */
 function classOf(graph: ScaleGraph, p: ScaleProvider): string {
   const deps = p.deps.map((d) => token(graph.providers[d]));
@@ -63,13 +65,10 @@ function binding(graph: ScaleGraph, p: ScaleProvider): string {
     return `    provide(${token(p)}, { useClass: ${className(p)}, lifetime: 'singleton' }),\n`;
   if (p.kind === 'value')
     return `    provide(${token(p)}, { useValue: ${valueLiteral(p)} }),\n`;
-  const deps = p.deps.map((d) => graph.providers[d]);
-  const params = deps.map((d, i) => `d${i}: ${iface(d)}`).join(', ');
-  const returns = isAsync(p) ? `Promise<${iface(p)}>` : iface(p);
+  const deps = p.deps.map((d) => token(graph.providers[d]));
   return `    provide(${token(p)}, {
-      useFactory: ${isAsync(p) ? 'async ' : ''}(${params}): ${returns} => {
-${factoryBody(p, '        ')}      },
-${deps.length > 0 ? `      deps: [${deps.map(token).join(', ')}],\n` : ''}    }),\n`;
+      useFactory: ${factoryFunction(graph, p, { param: iface, product: iface(p), indent: '      ' })},
+${deps.length > 0 ? `      deps: [${deps.join(', ')}],\n` : ''}    }),\n`;
 }
 
 /**
@@ -109,11 +108,6 @@ function tokensImport(
   return importList(names, './tokens.ts');
 }
 
-const counterImport = (names: string[]) =>
-  names.length === 0
-    ? ''
-    : `import { ${names.join(', ')} } from './counter.ts';\n`;
-
 /** The providers array of a defineModule call. */
 const providersOf = (graph: ScaleGraph, own: readonly ScaleProvider[]) =>
   `  providers: [\n${own.map((p) => binding(graph, p)).join('')}  ],\n`;
@@ -121,7 +115,7 @@ const providersOf = (graph: ScaleGraph, own: readonly ScaleProvider[]) =>
 /** One file per module: its classes and its defineModule. */
 function moduleFile(graph: ScaleGraph, k: number): string {
   const m = graph.modules[k];
-  const own = graph.providers.filter((p) => p.module === k);
+  const own = ownOf(graph, k);
   const imports = m.imports
     .map((i) => {
       const name = graph.modules[i].name;
@@ -131,11 +125,11 @@ function moduleFile(graph: ScaleGraph, k: number): string {
   const exports = m.exports.map((e) => token(graph.providers[e]));
   return `import { defineModule, provide } from '@nexusdi/core';
 
-${counterImport(own.some(builds) ? ['__scaleBuilt'] : [])}${imports}${tokensImport(graph, own, { classes: true, bindings: true })}
-${own
-  .filter(builds)
-  .map((p) => `${classOf(graph, p)}\n`)
-  .join('')}export const ${moduleConst(m.name)} = defineModule({
+${moduleBody(
+  own,
+  `${imports}${tokensImport(graph, own, { classes: true, bindings: true })}`,
+  (p) => classOf(graph, p),
+)}export const ${moduleConst(m.name)} = defineModule({
   name: '${m.name}',
 ${m.imports.length > 0 ? `  imports: [${m.imports.map((i) => moduleConst(graph.modules[i].name)).join(', ')}],\n` : ''}${providersOf(graph, own)}${exports.length > 0 ? `  exports: [${exports.join(', ')}],\n` : ''}});
 `;
@@ -153,9 +147,7 @@ function appFile(graph: ScaleGraph): string {
   const split = perClass(graph);
   const entries = new Set(graph.entries);
   const allEntries = providers.every((p) => entries.has(p.index));
-  const factories = providers.some(
-    (p) => p.kind === 'factory' || p.kind === 'async-factory',
-  );
+  const factories = hasFactories(graph);
   const core = [
     'Nexus',
     'Token',
@@ -184,10 +176,7 @@ function appFile(graph: ScaleGraph): string {
           (m, k) =>
             `const ${moduleConst(m.name)} = defineModule({
   name: '${m.name}',
-${providersOf(
-  graph,
-  providers.filter((p) => p.module === k),
-)}  exports: [${m.exports.map((e) => token(providers[e])).join(', ')}],
+${providersOf(graph, ownOf(graph, k))}  exports: [${m.exports.map((e) => token(providers[e])).join(', ')}],
 });\n\n`,
         )
         .join('')
@@ -231,17 +220,10 @@ export const scale = {
 }
 
 export function renderNexusdi(graph: ScaleGraph): Files {
-  const files: Files = {
-    'counter.ts': counterFile(graph.providers.length),
-    'tokens.ts': tokensFile(graph),
-    'app.ts': appFile(graph),
-  };
-  if (perClass(graph))
-    for (const p of graph.providers.filter(builds))
-      files[`${p.name}.ts`] = classFile(graph, p);
-  else
-    graph.modules.forEach((m, k) => {
-      files[`${m.name}.ts`] = moduleFile(graph, k);
-    });
-  return files;
+  return layout(graph, {
+    app: appFile(graph),
+    tokens: tokensFile(graph),
+    classFile: (p) => classFile(graph, p),
+    moduleFile: (k) => moduleFile(graph, k),
+  });
 }
