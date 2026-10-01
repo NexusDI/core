@@ -76,6 +76,14 @@
     "tools/readme-assets/src/meridian.module.ts",
     "tools/readme-assets/src/generate.ts",
 
+    // internal/meridian-ui's generate-tokens nx target runs this by path
+    // through jiti, not by import. It writes tokens.generated.css, which no
+    // import reaches yet either; styles.css (a later task) imports it, and
+    // tokens-generated.test.ts reads it by path to compare it against
+    // renderTokensCss().
+    "internal/meridian-ui/tools/generate-tokens.ts",
+    "internal/meridian-ui/src/tokens.generated.css",
+
     // Built and run by examples/toolchain-matrix/scripts/run-matrix.mjs in a
     // throwaway consumer; nothing in the workspace imports them. The vite
     // configs are passed to vite by --config, a CLI argument fallow's

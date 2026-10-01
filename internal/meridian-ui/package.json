@@ -37,6 +37,9 @@
           "^build",
           "build"
         ]
+      },
+      "generate-tokens": {
+        "command": "npx jiti internal/meridian-ui/tools/generate-tokens.ts"
       }
     }
   }

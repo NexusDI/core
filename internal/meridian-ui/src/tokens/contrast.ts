@@ -14,7 +14,7 @@ function channel(value: number): number {
 }
 
 /** The red, green and blue components of a `#rrggbb` colour, 0 to 255. */
-function channels(hex: string): [number, number, number] {
+export function channels(hex: string): [number, number, number] {
   const match = /^#([0-9a-f]{6})$/i.exec(hex);
 
   if (!match?.[1]) {
