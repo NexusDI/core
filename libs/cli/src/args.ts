@@ -1,5 +1,5 @@
 import { extname, resolve } from 'node:path';
-import { parseArgs } from 'node:util';
+import { parseArgs, type ParseArgsConfig } from 'node:util';
 
 import { CliError } from './cli-error.js';
 import { entryKind, parseEntryRef, type EntryRef } from './entry.js';
@@ -33,6 +33,17 @@ const BY_EXTENSION: Readonly<Record<string, Format>> = {
   '.png': 'png',
 };
 
+/** The flags `nexusdi` accepts, as node:util's parseArgs reads them. */
+export const OPTIONS = {
+  format: { type: 'string', short: 'f' },
+  out: { type: 'string', short: 'o' },
+  view: { type: 'string' },
+  load: { type: 'string', multiple: true },
+  plugins: { type: 'string' },
+  help: { type: 'boolean', short: 'h' },
+  version: { type: 'boolean', short: 'v' },
+} as const satisfies ParseArgsConfig['options'];
+
 const HELP_FIX = 'Run nexusdi --help for the options.';
 
 function isOneOf<T extends string>(
@@ -62,15 +73,7 @@ export function parseCommand(argv: readonly string[], cwd: string): Command {
       args: [...argv],
       allowPositionals: true,
       strict: true,
-      options: {
-        format: { type: 'string', short: 'f' },
-        out: { type: 'string', short: 'o' },
-        view: { type: 'string' },
-        load: { type: 'string', multiple: true },
-        plugins: { type: 'string' },
-        help: { type: 'boolean', short: 'h' },
-        version: { type: 'boolean', short: 'v' },
-      },
+      options: OPTIONS,
     });
   } catch (error) {
     throw new CliError(2, (error as Error).message, HELP_FIX);
