@@ -37,6 +37,35 @@ describe('interfaceFirstHits', () => {
   });
 });
 
+describe('interfaceFirstHits shapes', () => {
+  it('reads a generic provide and a typed or asserted deps list', () => {
+    expect(interfaceFirstHits('provide<IReactor>(FusionReactor, {});')).toEqual(
+      ['provide(FusionReactor'],
+    );
+    expect(
+      interfaceFirstHits(
+        'static readonly deps: readonly Token[] = [Foo];\nconst d = { deps: <const>[Bar] };',
+      ),
+    ).toEqual(['deps entry Foo', 'deps entry Bar']);
+  });
+
+  it('ignores comments and reads nested deps entries whole', () => {
+    expect(
+      interfaceFirstHits(
+        '// provide(FusionReactor)\n/* token: shipComputer */\nconst d = { deps: [all(A), [B], // Foo\n C] };',
+      ),
+    ).toEqual(['deps entry [B]']);
+  });
+
+  it('keeps member access and new Token as findings', () => {
+    expect(
+      interfaceFirstHits(
+        'provide(Tokens.REACTOR, {}); provide(new Token("x"), {});',
+      ),
+    ).toEqual(['provide(Tokens.REACTOR', 'provide(new']);
+  });
+});
+
 describe('doc-interface-first fixtures', () => {
   it('passes a clean tree, getting-started included', async () => {
     expect(checkInterfaceFirst(await tree('clean'))).toEqual([]);
@@ -51,11 +80,6 @@ describe('doc-interface-first fixtures', () => {
 
 describe('doc-interface-first on apps/docs', () => {
   it('holds after region expansion', async () => {
-    expect(
-      checkInterfaceFirst(
-        await readExpandedSite(CONTENT),
-        readAllowance<Record<string, number>>(ALLOWANCE),
-      ),
-    ).toEqual([]);
+    expect(checkInterfaceFirst(await readExpandedSite(CONTENT))).toEqual([]);
   });
 });
