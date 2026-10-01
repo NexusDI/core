@@ -17,6 +17,7 @@ on:
       - 'internal/**'
       - 'examples/meridian/**'
       - 'tools/doc-examples/**'
+      - 'benchmarks/**'
       - 'package.json'
       - 'package-lock.json'
       - '.github/workflows/docs.yml'
