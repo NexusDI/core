@@ -89,4 +89,5 @@ Task briefs: tasks/task-NN.md, shared constraints tasks/globals.md
 - CI fix 9e9b132: fallow ignores @nexusdi/meridian-ui/styles.css (dist absent on a clean checkout).
 - T25: done c6cc9be (approved; floor allowance 13 pages)
 - T27: done 0666aad (approved; loadReferenceExpander/loadBehaviours/loadDeclarations dropped, no later user; loadRegionExpander/loadMdSiblings/loadRegions held for Tasks 30-32 in fallow ignoreExports)
-- T28: impl
+- T28: done e54d867 (approved; also checks hrefs that components, app/ and _meta.ts emit; /release-candidate/ allowed until Task 59, brief amended)
+- T30: impl
