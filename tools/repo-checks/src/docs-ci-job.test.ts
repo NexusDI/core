@@ -22,12 +22,14 @@ const job = (
       {
         if?: string;
         permissions?: Record<string, string>;
+        env?: Record<string, string>;
         steps: {
           id?: string;
           name?: string;
           if?: string;
           uses?: string;
           run?: string;
+          env?: Record<string, string>;
           with?: Record<string, unknown>;
         }[];
       }
@@ -78,6 +80,15 @@ describe('ci.yml docs job', () => {
     for (const step of steps.slice(filter + 1)) {
       expect(step.if).toBe("steps.changed.outputs.touched == 'true'");
     }
+  });
+
+  it('gives gh its token in the snapshot download step only', () => {
+    expect(job?.env).toBeUndefined();
+    const holders = (job?.steps ?? []).filter((step) => step.env?.['GH_TOKEN']);
+    expect(holders.map((step) => step.name)).toEqual([
+      'Download and verify the snapshot',
+    ]);
+    expect(holders[0]?.run).toContain('gh release download');
   });
 
   it('builds /next/ and the root with the deploy script, then checks rc and final', () => {
