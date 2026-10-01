@@ -81,4 +81,6 @@ Task briefs: tasks/task-NN.md, shared constraints tasks/globals.md
 - Draft PR #84 (feat/docs-phase-1 -> release/0.4) opened for CI on every task. Known flaky: tools/bench-kit/src/sampler.test.ts "runs teardown after the timer stops" (rerun CI if it alone fails).
 - CI fixes on #84: 05a91b4 (fallow ignores unresolved imports of generated/benchmark-data.json and dist/styles.css: absent on a clean checkout), 5e6ac99+dea0dcb (prose budget strips html comments with a scan; CodeQL).
 - T15: done a70d8ca+7cafc3b (approved; chromium e2e 7/7 locally, firefox/webkit not available here). CI installs only chromium and runs no e2e: the task that adds the e2e job (79/80) must install chromium firefox webkit.
-- T16: impl
+- T16: done ceb7256 (approved; vitest include gains content/)
+- CI fix: 8e335c5 meridian type-check test timeout 60 s (5.7 s on CI vs 5 s default).
+- T17: done 8f10fc8 (+ lint fix pending; approved). .nexus-release has no CSS: amendment added to task-23.md.
