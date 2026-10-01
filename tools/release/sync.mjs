@@ -87,13 +87,28 @@ const restorable = (key, names) =>
  */
 function settleManifests() {
   const paths = manifests();
+  const conflicted = new Set(unmerged());
   // Only published packages carry the line's version. A private package's
-  // pin is whatever its manifest says, and the merge keeps it.
+  // pin is whatever its manifest says, and the merge keeps it. A conflicted
+  // manifest still has git's conflict markers in the working tree, so this
+  // reads the line's own copy (stage 2, "ours") instead, falling back to
+  // main's (stage 3) or the base (stage 1) if ours is the side that's gone.
   const names = paths
-    .map((path) => JSON.parse(readFileSync(path, 'utf8')))
+    .map((path) => {
+      if (!conflicted.has(path)) return JSON.parse(readFileSync(path, 'utf8'));
+      for (const n of [2, 3, 1]) {
+        const text = stage(`${n}:${path}`);
+        if (text === null) continue;
+        try {
+          return JSON.parse(text);
+        } catch {
+          // Not valid JSON at this stage either; try the next one.
+        }
+      }
+      return {};
+    })
     .filter((manifest) => manifest.private !== true)
     .map((manifest) => manifest.name ?? '');
-  const conflicted = new Set(unmerged());
   const version = lineVersion();
   const unresolved = [];
 

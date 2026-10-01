@@ -286,4 +286,114 @@ describe('sync.mjs restore', () => {
       rmSync(dir, { recursive: true, force: true });
     }
   });
+
+  /**
+   * A sync branch is `git merge --no-commit`, so a conflicted
+   * libs/*\/package.json sits in the working tree with conflict markers
+   * until settleManifests resolves or reports it. Both sides bumping
+   * `version` is the ordinary case: main cut a 0.3.x patch during the
+   * line's RC.
+   */
+  function initSyncRepo(
+    dir: string,
+    mainPackageJson: (base: object) => object,
+    linePackageJson: (base: object) => object = (base) => ({
+      ...base,
+      version: '0.4.0-rc.1',
+    }),
+  ) {
+    const git = (...args: string[]) =>
+      execFileSync('git', args, {
+        cwd: dir,
+        encoding: 'utf8',
+        stdio: ['ignore', 'pipe', 'pipe'],
+      });
+    const write = (path: string, text: string) => {
+      mkdirSync(join(dir, path, '..'), { recursive: true });
+      writeFileSync(join(dir, path), text);
+    };
+    const writeJson = (path: string, value: object) =>
+      write(path, `${JSON.stringify(value, null, 2)}\n`);
+    const base = { name: '@nexusdi/core', version: '0.3.2' };
+    git('init', '-q', '-b', 'main');
+    git('config', 'user.email', 'sync@example.com');
+    git('config', 'user.name', 'sync');
+    git('config', 'commit.gpgsign', 'false');
+    git('config', 'core.hooksPath', '/dev/null');
+    write(
+      'package.json',
+      `${JSON.stringify({ name: 'root', private: true, workspaces: ['libs/*'] })}\n`,
+    );
+    writeJson('libs/core/package.json', base);
+    git('add', '-A');
+    git('commit', '-qm', 'base');
+    git('switch', '-qc', 'release/0.4');
+    writeJson('libs/core/package.json', linePackageJson(base));
+    git('commit', '-qam', 'rc.1');
+    git('switch', '-q', 'main');
+    writeJson('libs/core/package.json', mainPackageJson(base));
+    git('commit', '-qam', '0.3.3');
+    git('switch', '-q', 'release/0.4');
+    expect(() => git('merge', '--no-ff', '--no-commit', 'main')).toThrow();
+    return git;
+  }
+
+  it('settles a libs/*/package.json conflict where both sides only bumped version', () => {
+    const dir = mkdtempSync(join(tmpdir(), 'sync-restore-'));
+    try {
+      const git = initSyncRepo(dir, (base) => ({ ...base, version: '0.3.3' }));
+
+      execFileSync(
+        'node',
+        [join(workspaceRoot, 'tools/release/sync.mjs'), 'restore'],
+        {
+          cwd: dir,
+          stdio: 'pipe',
+          env: { ...process.env, npm_config_offline: 'true' },
+        },
+      );
+
+      expect(
+        JSON.parse(readFileSync(join(dir, 'libs/core/package.json'), 'utf8')),
+      ).toEqual({ name: '@nexusdi/core', version: '0.4.0-rc.1' });
+      expect(git('diff', '--name-only', '--diff-filter=U')).toBe('');
+    } finally {
+      rmSync(dir, { recursive: true, force: true });
+    }
+  });
+
+  it('leaves a libs/*/package.json conflict that changes more than version for a person', () => {
+    const dir = mkdtempSync(join(tmpdir(), 'sync-restore-'));
+    try {
+      const git = initSyncRepo(
+        dir,
+        (base) => ({ ...base, version: '0.3.3', description: 'from main' }),
+        (base) => ({
+          ...base,
+          version: '0.4.0-rc.1',
+          description: 'from the line',
+        }),
+      );
+
+      expect(() =>
+        execFileSync(
+          'node',
+          [join(workspaceRoot, 'tools/release/sync.mjs'), 'restore'],
+          {
+            cwd: dir,
+            stdio: 'pipe',
+            env: { ...process.env, npm_config_offline: 'true' },
+          },
+        ),
+      ).toThrow();
+
+      // The conflict is reported, not silently resolved: the manifest is
+      // still unmerged with its conflict markers intact.
+      expect(git('diff', '--name-only', '--diff-filter=U')).toContain(
+        'libs/core/package.json',
+      );
+    } finally {
+      rmSync(dir, { recursive: true, force: true });
+    }
+  });
 });
