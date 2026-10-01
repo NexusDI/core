@@ -1,3 +1,4 @@
+import { Notice } from '@nexusdi/meridian-ui';
 import { useMDXComponents as getThemeComponents } from 'nextra-theme-docs';
 
 import Diagram from './components/diagram/Diagram';
@@ -23,6 +24,8 @@ export function useMDXComponents(components) {
     ...themeComponents,
     ...components,
     PostList,
+    // The four notice labels (spec §5.1). doc-notices holds the budget.
+    Notice,
     // Not tags an author writes: `tools/mdx-diagram-loader.mjs` rewrites a
     // mermaid fence into `<Diagram>`, and `tools/mdx-listing-loader.mjs` wraps
     // a fence carrying an exemption tag in `<Listing>`.

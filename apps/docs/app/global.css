@@ -1,3 +1,167 @@
+@import 'tailwindcss';
+@import '@nexusdi/meridian-ui/styles.css';
+
+/*
+ * next-themes writes the theme onto <html> as a class. Tailwind's dark:
+ * variant follows that class and ignores the system setting.
+ */
+@custom-variant dark (&:where(.dark, .dark *));
+
+/*
+ * The Meridian tokens on a Nextra site (spec §8.6). Three surfaces:
+ * 1. --nextra-bg and the primary hue arrive through <Head> props from
+ *    app/meridian-theme.ts.
+ * 2. Tailwind's gray, neutral and slate steps map onto the Meridian palette
+ *    below, one lightness ladder for both themes: 50 is the lightest value,
+ *    950 the darkest.
+ * 3. Headings take the display family, scoped to the article.
+ */
+:root {
+  --x-font-sans: var(--meridian-font-body);
+  --x-font-mono: var(--meridian-font-mono);
+}
+
+:root {
+  --x-color-gray-50: var(--meridian-palette-light-space-0);
+  --x-color-gray-100: var(--meridian-palette-light-space-2);
+  --x-color-gray-200: var(--meridian-palette-light-rule);
+  --x-color-gray-300: var(--meridian-palette-dark-text-secondary);
+  --x-color-gray-400: var(--meridian-palette-dark-text-tertiary);
+  --x-color-gray-500: var(--meridian-palette-light-control-border);
+  --x-color-gray-600: var(--meridian-palette-light-text-tertiary);
+  --x-color-gray-700: var(--meridian-palette-light-text-secondary);
+  --x-color-gray-800: var(--meridian-palette-dark-rule);
+  --x-color-gray-900: var(--meridian-palette-light-text);
+  --x-color-gray-950: var(--meridian-palette-dark-space-0);
+
+  --x-color-neutral-50: var(--meridian-palette-light-space-0);
+  --x-color-neutral-100: var(--meridian-palette-light-space-2);
+  --x-color-neutral-200: var(--meridian-palette-light-rule);
+  --x-color-neutral-300: var(--meridian-palette-dark-text-secondary);
+  --x-color-neutral-400: var(--meridian-palette-dark-text-tertiary);
+  --x-color-neutral-500: var(--meridian-palette-light-control-border);
+  --x-color-neutral-600: var(--meridian-palette-light-text-tertiary);
+  --x-color-neutral-700: var(--meridian-palette-light-text-secondary);
+  --x-color-neutral-800: var(--meridian-palette-dark-rule);
+  --x-color-neutral-900: var(--meridian-palette-light-text);
+  --x-color-neutral-950: var(--meridian-palette-dark-space-0);
+
+  --x-color-slate-50: var(--meridian-palette-light-space-0);
+  --x-color-slate-100: var(--meridian-palette-light-space-2);
+  --x-color-slate-200: var(--meridian-palette-light-rule);
+  --x-color-slate-300: var(--meridian-palette-dark-text-secondary);
+  --x-color-slate-400: var(--meridian-palette-dark-text-tertiary);
+  --x-color-slate-500: var(--meridian-palette-light-control-border);
+  --x-color-slate-600: var(--meridian-palette-light-text-tertiary);
+  --x-color-slate-700: var(--meridian-palette-light-text-secondary);
+  --x-color-slate-800: var(--meridian-palette-dark-rule);
+  --x-color-slate-900: var(--meridian-palette-light-text);
+  --x-color-slate-950: var(--meridian-palette-dark-space-0);
+}
+
+/*
+ * The ground paints on html. body stays transparent in both themes, so the
+ * fixed background canvas at z-index -1 shows between html and the surfaces.
+ * The selector outranks the theme's body rule, which sets --nextra-bg.
+ * --meridian-ground-0 and -2 switch with the theme class.
+ */
+html {
+  background: linear-gradient(
+      180deg,
+      var(--meridian-ground-0),
+      var(--meridian-ground-2)
+    )
+    fixed;
+  color: var(--meridian-text);
+}
+
+html body {
+  background: transparent;
+  font-family: var(--meridian-font-body);
+}
+
+/*
+ * The reading surfaces. No text renders on the canvas: the chrome and the
+ * article each sit on the hull (spec §8.2). surfaces.spec.ts fails on any
+ * text node whose nearest painted ancestor is under 0.86 alpha.
+ */
+.nextra-navbar,
+.nextra-skip-nav,
+.nextra-sidebar,
+.nextra-toc,
+.nextra-footer,
+footer,
+article {
+  background-color: var(--meridian-hull);
+  backdrop-filter: blur(12px);
+}
+
+article {
+  border-radius: var(--meridian-radius-panel);
+  box-shadow: var(--meridian-elevation-glass);
+}
+
+article :where(h1, h2, h3, h4):not([class*='meridian-']) {
+  font-family: var(--meridian-font-display);
+}
+
+article h1:not([class*='meridian-']) {
+  letter-spacing: var(--meridian-tracking-display);
+}
+
+/* Focus: a 2px ring at 2px offset, cyan in dark mode, its ink in light mode. */
+:focus-visible {
+  outline: 2px solid var(--meridian-focus);
+  outline-offset: 2px;
+}
+
+a,
+button,
+summary {
+  transition:
+    color var(--meridian-motion-interaction) var(--meridian-motion-curve),
+    background-color var(--meridian-motion-interaction)
+      var(--meridian-motion-curve);
+}
+
+::view-transition-group(*),
+::view-transition-old(*),
+::view-transition-new(*) {
+  animation-duration: var(--meridian-motion-console);
+  animation-timing-function: var(--meridian-motion-curve);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  ::view-transition-group(*),
+  ::view-transition-old(*),
+  ::view-transition-new(*) {
+    animation: none;
+  }
+}
+
+/*
+ * The release notice above a page's H1 (ReleaseNotice, spec §5.1): a HUD
+ * strip on the hull with a cyan edge and a mono micro label.
+ */
+.nexus-release {
+  margin-block: 0 var(--meridian-space-5);
+  padding: var(--meridian-space-2) var(--meridian-space-4);
+  border-inline-start: 2px solid var(--meridian-signal-cyan);
+  border-radius: var(--meridian-radius-chip);
+  background: var(--meridian-hull);
+  color: var(--meridian-text-secondary);
+  font-family: var(--meridian-font-mono);
+  font-size: var(--meridian-text-micro);
+  line-height: var(--meridian-leading-micro);
+  letter-spacing: var(--meridian-tracking-micro);
+}
+
+.nexus-release a {
+  color: var(--meridian-signal-cyan);
+  text-decoration: underline;
+  text-underline-offset: 2px;
+}
+
 /* The navbar carries the theme switch on every page, so the sidebar's copy is
    hidden and a docs page shows one. */
 .nextra-sidebar-footer > [title='Change theme'] {

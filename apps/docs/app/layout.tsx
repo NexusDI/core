@@ -5,6 +5,7 @@ import { IBM_Plex_Mono, IBM_Plex_Sans, Space_Grotesk } from 'next/font/google';
 import { Head } from 'nextra/components';
 import 'nextra-theme-docs/style.css';
 import './global.css';
+import { meridianBackground, meridianColor } from './meridian-theme';
 
 /**
  * The three families spec §8.3 names, self-hosted: `next/font` downloads the
@@ -56,7 +57,7 @@ export default function RootLayout({ children }: { children: ReactNode }) {
       dir="ltr"
       suppressHydrationWarning
     >
-      <Head />
+      <Head backgroundColor={meridianBackground} color={meridianColor} />
       <body>
         <ThemeProvider
           attribute="class"
