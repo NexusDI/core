@@ -83,10 +83,18 @@ function archivePages(all) {
   );
 }
 
+/** True when a robots meta tag asks for noindex, whatever the attribute order. */
+function hasNoindex(html) {
+  return (html.match(/<meta\b[^>]*>/gi) ?? []).some(
+    (tag) =>
+      /\bname="robots"/i.test(tag) && /\bcontent="[^"]*noindex/i.test(tag),
+  );
+}
+
 function checkArchive(findings, site, all) {
   for (const file of archivePages(all)) {
     const html = readFileSync(join(site, file), 'utf8');
-    if (!/<meta\s+name="robots"\s+content="[^"]*noindex/i.test(html)) {
+    if (!hasNoindex(html)) {
       findings.push(`${file}: carries no noindex robots meta.`);
     }
     for (const [, attribute, value] of html.matchAll(
