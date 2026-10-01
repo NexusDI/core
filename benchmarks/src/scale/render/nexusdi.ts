@@ -22,6 +22,7 @@ import {
   ownOf,
   perClass,
   token,
+  tokenTable,
   valueLiteral,
   type Files,
 } from './shared.ts';
@@ -155,7 +156,6 @@ function appFile(graph: ScaleGraph): string {
     ...(split ? ['provide'] : []),
     ...(allEntries ? [] : ['type LookupOptions']),
   ];
-  const T = providers.map((p) => `  ${token(p)},\n`).join('');
   // With one class per file, the module's definition sits here, as
   // scale-200's main.ts holds it.
   const sources = split
@@ -203,9 +203,7 @@ ${definitions}const App = defineModule({
   imports: [${graph.rootImports.map((i) => moduleConst(modules[i].name)).join(', ')}],
 });
 
-const T: readonly Token<unknown>[] = [
-${T}];
-${lookups}
+${tokenTable('Token<unknown>', providers.map(token))}${lookups}
 export const scale = {
   count: ${providers.length},
   entries: [${graph.entries.join(', ')}],

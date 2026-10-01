@@ -23,6 +23,7 @@ import {
   moduleConst,
   ownOf,
   perClass,
+  tokenTable,
   valueLiteral,
   type Files,
 } from './shared.ts';
@@ -222,9 +223,10 @@ function appFile(graph: ScaleGraph): string {
   return `${header(graph)}import 'reflect-metadata';
 ${lineOf(['container', 'type DependencyContainer', 'type InjectionToken'], 'tsyringe')}
 ${counterImport(['built'])}${appImports(graph)}
-const T: readonly InjectionToken[] = [
-${providers.map((p) => `  ${p.kind === 'class' ? className(p) : tokenOf(p)},\n`).join('')}];
-
+${tokenTable(
+  'InjectionToken',
+  providers.map((p) => (p.kind === 'class' ? className(p) : tokenOf(p))),
+)}
 export const scale = {
   count: ${providers.length},
   entries: [${graph.entries.join(', ')}],

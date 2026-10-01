@@ -126,12 +126,12 @@ describe('renderNexusdi', () => {
       });
 
       const T: readonly Token<unknown>[] = [
-        TP0,
-        TP1,
-        TP2,
-        TP3,
-        TP4,
-        TP5,
+        TP0 as Token<unknown>,
+        TP1 as Token<unknown>,
+        TP2 as Token<unknown>,
+        TP3 as Token<unknown>,
+        TP4 as Token<unknown>,
+        TP5 as Token<unknown>,
       ];
 
       // The root sees the exports of the modules it imports. Every other
