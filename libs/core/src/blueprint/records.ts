@@ -311,7 +311,10 @@ function depsOf(list: readonly unknown[], at: At): DepEntry[] | null {
   return deps;
 }
 
-/** The property injections `metadata` declares, or null after reporting a bad one. */
+/**
+ * The property injections `metadata` declares, or null after reporting a
+ * bad one.
+ */
 function propsOf(
   metadata: MetadataRecord | undefined,
   at: At,

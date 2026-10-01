@@ -15,7 +15,7 @@ import {
   type RecordShape,
   type TokenKey,
 } from './blueprint.js';
-import { normalizeProvider } from './records.js';
+import { normalizeProvider, providerRecord } from './records.js';
 import {
   providerView,
   sameToken,
@@ -396,25 +396,30 @@ export function rewriteProviders(
         : keepLifetime
           ? (record.lifetime ?? shape.lifetime)
           : shape.lifetime;
-    out.push({
-      ...shape,
-      token: record.token,
-      // The listing stays the module's: the entry replaces the implementation.
-      written: record.written,
-      id: record.id,
-      index: record.index,
-      module: record.module,
-      name: record.name,
-      lifetime,
-      // eager is kept as lifetime is, unless the entry sets one. A value,
-      // an alias or a transient builds nothing to defer, so it stays eager.
-      eager:
-        lifetime === null || lifetime === 'transient'
-          ? true
-          : setsOption(rewrite.with, 'eager')
-            ? shape.eager
-            : record.eager,
-    });
+    out.push(
+      providerRecord(
+        {
+          ...shape,
+          token: record.token,
+          // The listing stays the module's: the entry replaces the
+          // implementation.
+          written: record.written,
+          lifetime,
+          // eager is kept as lifetime is, unless the entry sets one. A value,
+          // an alias or a transient builds nothing to defer, so it stays eager.
+          eager:
+            lifetime === null || lifetime === 'transient'
+              ? true
+              : setsOption(rewrite.with, 'eager')
+                ? shape.eager
+                : record.eager,
+        },
+        record.id,
+        record.index,
+        record.module,
+        record.name,
+      ),
+    );
     rewrittenBy.set(record.id, chosen.plugin);
     if (
       Object.hasOwn(rewrite, 'pin') &&
