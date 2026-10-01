@@ -85,4 +85,5 @@ Task briefs: tasks/task-NN.md, shared constraints tasks/globals.md
 - CI fix: 8e335c5 meridian type-check test timeout 60 s (5.7 s on CI vs 5 s default).
 - T17: done 8f10fc8+6af2518 (approved). .nexus-release has no CSS: amendment added to task-23.md.
 - T18: done 3920f80+56c342b (listing/diagram loaders, components and tests written in this repo per owner; review fixes: Mermaid error handling, aria-labelledby, IO fallback, caption quotes rejected, ~~~ fences; approved). Mermaid colour leak check moved to Task 45 brief.
-- T23: impl
+- T23: done 99e217e+1d90bed (html:root ground gradient outranks Nextra's inline html background; surface scan in both themes, any colour-function alpha; .nexus-release HUD strip; approved after fix)
+- T25: impl
