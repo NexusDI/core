@@ -4,7 +4,7 @@
  */
 import { mulberry32 } from '@nexusdi/bench-kit';
 
-import { GRAPH_SEED, streamSeed } from './config.ts';
+import { GRAPH_SEED, streamSeed, type Shape } from './config.ts';
 import {
   assemble,
   padName,
@@ -312,3 +312,11 @@ export function modular(size: number, seed = GRAPH_SEED): ScaleGraph {
   }
   return assemble('modular', size, seed, providers, modules);
 }
+
+const SHAPE_BUILDERS: Readonly<
+  Record<Shape, (size: number, seed?: number) => ScaleGraph>
+> = { wide, deep, mixed, 'mixed-async': mixedAsync, modular };
+
+/** The graph of `shape` at `size`. */
+export const graphOf = (shape: Shape, size: number, seed = GRAPH_SEED) =>
+  SHAPE_BUILDERS[shape](size, seed);
