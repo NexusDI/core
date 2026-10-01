@@ -102,9 +102,10 @@ describe('renderNexusdi', () => {
   it('renders app.ts for the six-provider graph', () => {
     expect(files['app.ts']).toMatchInlineSnapshot(`
       "// Scale app: mixed at 6 providers, NexusDI plain.
-      // Docs: https://github.com/NexusDI/core#readme
-      // (Interfaces and tokens, Providers, Modules), read 2026-09-30. An async
-      // factory is \`useFactory: async\`, which Nexus.create awaits.
+      // Docs: https://github.com/NexusDI/core/tree/main/libs/core#interfaces-and-tokens,
+      // https://github.com/NexusDI/core/tree/main/libs/core#providers and
+      // https://github.com/NexusDI/core/tree/main/libs/core#modules, read 2026-09-30.
+      // An async factory is \`useFactory: async\`, which Nexus.create awaits.
       // Departures: none.
       import { Nexus, Token, defineModule, type LookupOptions } from '@nexusdi/core';
 
@@ -345,6 +346,24 @@ describe('renderNexusdi', () => {
       expect(names).toContain('p49.ts');
     }
   });
+
+  it('renders wide and deep as one root module holding every provider', () => {
+    for (const shape of ['wide', 'deep'] as const) {
+      const app = renderNexusdi(graphOf(shape, 50))['app.ts'];
+      expect(app).toContain(`const App = defineModule({
+  name: 'App',
+  providers: [
+    provide(TP00, { useClass: P00, lifetime: 'singleton' }),`);
+      expect(app).not.toMatch(/\bM0\b|exports:|imports:|LookupOptions/);
+    }
+  });
+
+  // tsc reduces a literal of ~1,000 distinct token types to a union and
+  // fails with TS2590, in the token table and in a module's exports.
+  it('type-checks wide at n = 1,100', () => {
+    const dir = writeApp('wide-1100', graphOf('wide', 1100));
+    expect(typecheck(dir)).toBe('');
+  }, 120_000);
 
   it('passes { module } to get for non-entries only', async () => {
     const graph = graphOf('mixed', 50);

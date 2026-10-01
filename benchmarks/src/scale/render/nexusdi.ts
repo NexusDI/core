@@ -27,13 +27,14 @@ import {
   type Files,
 } from './shared.ts';
 
-const DOCS = 'https://github.com/NexusDI/core#readme';
+const DOCS = 'https://github.com/NexusDI/core/tree/main/libs/core';
 
 const header = (graph: ScaleGraph) =>
   `// Scale app: ${graph.shape} at ${graph.size} providers, NexusDI plain.
-// Docs: ${DOCS}
-// (Interfaces and tokens, Providers, Modules), read 2026-09-30. An async
-// factory is \`useFactory: async\`, which Nexus.create awaits.
+// Docs: ${DOCS}#interfaces-and-tokens,
+// ${DOCS}#providers and
+// ${DOCS}#modules, read 2026-09-30.
+// An async factory is \`useFactory: async\`, which Nexus.create awaits.
 // Departures: none.
 `;
 
@@ -156,8 +157,9 @@ function appFile(graph: ScaleGraph): string {
     ...(split ? ['provide'] : []),
     ...(allEntries ? [] : ['type LookupOptions']),
   ];
-  // With one class per file, the module's definition sits here, as
-  // scale-200's main.ts holds it.
+  // With one class per file, the root module holds every provider, as
+  // scale-200's main.ts and the Meridian-8 fixture do. Every provider is
+  // then an entry, so no module needs exports.
   const sources = split
     ? `${providers
         .filter(builds)
@@ -170,17 +172,6 @@ function appFile(graph: ScaleGraph): string {
           (m) => `import { ${moduleConst(m.name)} } from './${m.name}.ts';\n`,
         )
         .join('')}${importList(providers.map(token), './tokens.ts')}`;
-  const definitions = split
-    ? modules
-        .map(
-          (m, k) =>
-            `const ${moduleConst(m.name)} = defineModule({
-  name: '${m.name}',
-${providersOf(graph, ownOf(graph, k))}  exports: [${m.exports.map((e) => token(providers[e])).join(', ')}],
-});\n\n`,
-        )
-        .join('')
-    : '';
   const lookups = allEntries
     ? ''
     : `
@@ -198,10 +189,13 @@ ${providers
   return `${header(graph)}import { ${core.join(', ')} } from '@nexusdi/core';
 
 ${counterImport(split && factories ? ['__scaleBuilt', 'built'] : ['built'])}${sources}
-${definitions}const App = defineModule({
+const App = defineModule({
   name: 'App',
-  imports: [${graph.rootImports.map((i) => moduleConst(modules[i].name)).join(', ')}],
-});
+${
+  split
+    ? providersOf(graph, providers)
+    : `  imports: [${graph.rootImports.map((i) => moduleConst(modules[i].name)).join(', ')}],\n`
+}});
 
 ${tokenTable('Token<unknown>', providers.map(token))}${lookups}
 export const scale = {
