@@ -38,7 +38,7 @@ const DISPLAY: Record<string, Record<string, string>> = {
     babel: 'Babel',
     bun: 'Bun',
     deno: 'Deno',
-    vite: 'Vite on its own',
+    vite: 'Plain Vite',
     'node-strip-types': "Node's type stripping",
     'vite8+babel-plugin': 'Vite with its Babel plugin',
   },
@@ -146,8 +146,9 @@ describe('libs/decorators README', () => {
     );
   });
 
-  it('names every toolchain whose decorated cell fails in one bullet that says it cannot run them', () => {
-    const cannot = bullets.find((b) => b.includes('cannot run them')) ?? '';
+  it('names every toolchain whose decorated cell fails in one bullet that says it cannot run these decorators', () => {
+    const cannot =
+      bullets.find((b) => b.includes('cannot run these decorators')) ?? '';
     expect(cannot).not.toBe('');
     for (const cell of matrix.filter(
       (c) => c.variant === 'decorated' && c.result !== 'pass',
