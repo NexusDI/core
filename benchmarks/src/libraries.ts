@@ -15,7 +15,18 @@ export interface Claim {
   source: string;
   /** The version the claim was checked against; libraries-claims holds it to the pin. */
   verifiedAgainst: string;
+  /** The scale renderer form the claim backs (scale spec 4.2), if any. */
+  form?: 'module' | 'async-factory';
 }
+
+/**
+ * How a scale renderer expresses a graph module (scale spec 4.3):
+ * NexusDI modules, InversifyJS ContainerModules, one tsyringe @registry
+ * class, or a plain register<Module>(container) function where the
+ * library has no module unit.
+ */
+export type ModuleForm =
+  'modules' | 'container-modules' | 'registry' | 'registration-functions';
 
 export interface Library {
   id: LibraryId;
@@ -31,8 +42,13 @@ export interface Library {
   variants: Partial<
     Record<Variant, { profile: Profile; documented?: boolean }>
   >;
-  /** Lifetime to the reason the library has none. */
-  notApplicable: Partial<Record<'transient' | 'scoped', string>>;
+  moduleForm: ModuleForm;
+  /** Why the module form departs from the docs; set for registration functions. */
+  moduleNote?: string;
+  /** Lifetime or async factory, to the reason the library has none. */
+  notApplicable: Partial<
+    Record<'transient' | 'scoped' | 'async-factory', string>
+  >;
   claims: Claim[];
 }
 
