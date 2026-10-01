@@ -27,6 +27,7 @@ describe('smokeTargets', () => {
       'https://nexus.js.org/blog/rss.xml',
       'https://nexus.js.org/next/',
       'https://nexus.js.org/next/getting-started.md',
+      'https://nexus.js.org/errors/NEXUS_MISSING_PROVIDER/',
     ]);
   });
 
@@ -36,6 +37,7 @@ describe('smokeTargets', () => {
       'https://nexus.js.org/blog/rss.xml',
       'https://nexus.js.org/next/',
       'https://nexus.js.org/next/getting-started.md',
+      'https://nexus.js.org/errors/NEXUS_MISSING_PROVIDER/',
       'https://nexus.js.org/getting-started.md',
       'https://nexus.js.org/v0.3/',
     ]);
