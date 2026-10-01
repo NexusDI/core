@@ -20,12 +20,12 @@ describe('renderNeedleDi', () => {
       // Docs: https://needle-di.io (1.2.1), pages Injection, Tokens, Providers,
       // Binding and Async injection, read 2026-10-01.
       // needle-di documents singletons only, so no lifetime is set.
-      // A sync factory injects with inject(); an async factory takes the
-      // container and awaits container.getAsync per dependency, since inject()
-      // throws for an async provider and its context ends at the first await.
-      // For the same reason a sync factory whose closure holds an async provider
-      // is bound async: true, as the Async injection page requires for indirect
-      // async dependencies; it does no other await.
+      // A factory injects its dependencies with inject(). inject() throws for an
+      // async provider, also an indirect one, and works only before the first
+      // await, so a factory whose closure holds an async provider is bound
+      // async: true, injects its other dependencies first and then awaits
+      // container.getAsync for each dependency that reaches one. A sync factory
+      // bound this way does no other await.
       // Departures: initializer injection, which the Injection page documents;
       // it recommends constructor parameter properties, which Node's type
       // stripping rejects.
@@ -169,9 +169,9 @@ describe('renderNeedleDi', () => {
     expect(rendered['m0.ts']).toContain(`    {
       provide: TP2,
       async: true,
-      useFactory: async (c: Container): Promise<P2> => {
-        const d0 = await c.getAsync(TP0);
-        const d1 = await c.getAsync(P1);
+      useFactory: async (): Promise<P2> => {
+        const d0 = inject(TP0);
+        const d1 = inject(P1);
         await Promise.resolve();
         const made = new P2(d0, d1);
         __scaleBuilt(2, 'async-factory');
@@ -189,14 +189,16 @@ describe('renderNeedleDi', () => {
     graph.providers[2].kind = 'async-factory';
     // p5 reaches the async p2 through the class p4.
     graph.providers[5].kind = 'factory';
-    graph.providers[5].deps = [4];
+    graph.providers[5].deps = [4, 3];
     const m1 = renderNeedleDi(graph)['m1.ts'];
+    // p3 reaches no async provider, so inject() takes it before the await.
     expect(m1).toContain(`    {
       provide: TP5,
       async: true,
       useFactory: async (c: Container): Promise<P5> => {
+        const d1 = inject(P3);
         const d0 = await c.getAsync(P4);
-        const made = new P5(d0);
+        const made = new P5(d0, d1);
         __scaleBuilt(5, 'factory');
         return made;
       },

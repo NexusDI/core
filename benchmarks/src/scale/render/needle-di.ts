@@ -35,12 +35,12 @@ const header = (graph: ScaleGraph) =>
 // Docs: https://needle-di.io (1.2.1), pages Injection, Tokens, Providers,
 // Binding and Async injection, read 2026-10-01.
 // needle-di documents singletons only, so no lifetime is set.
-// A sync factory injects with inject(); an async factory takes the
-// container and awaits container.getAsync per dependency, since inject()
-// throws for an async provider and its context ends at the first await.
-// For the same reason a sync factory whose closure holds an async provider
-// is bound async: true, as the Async injection page requires for indirect
-// async dependencies; it does no other await.
+// A factory injects its dependencies with inject(). inject() throws for an
+// async provider, also an indirect one, and works only before the first
+// await, so a factory whose closure holds an async provider is bound
+// async: true, injects its other dependencies first and then awaits
+// container.getAsync for each dependency that reaches one. A sync factory
+// bound this way does no other await.
 // Departures: initializer injection, which the Injection page documents;
 // it recommends constructor parameter properties, which Node's type
 // stripping rejects.${
@@ -75,19 +75,18 @@ function lineOf(names: readonly string[], from: string, type = false): string {
 }
 
 /**
- * The factories needle-di must bind async: every async factory, and a
- * sync factory whose closure holds one. needle-di constructs a sync
- * factory synchronously, so an inject() anywhere below it throws on an
- * async provider; only a class gets getAsync's retry.
+ * The providers whose closure holds an async factory, themselves
+ * included. needle-di constructs a sync factory synchronously, so an
+ * inject() anywhere below it throws on an async provider and only a class
+ * gets getAsync's retry: every factory in this set is bound async, and a
+ * dependency in it is awaited with getAsync.
  */
-function asyncProviders(graph: ScaleGraph): Set<number> {
+function asyncClosures(graph: ScaleGraph): Set<number> {
   const reaches = new Set<number>();
   for (const p of graph.providers)
     if (p.kind === 'async-factory' || p.deps.some((d) => reaches.has(d)))
       reaches.add(p.index);
-  return new Set(
-    [...reaches].filter((i) => graph.providers[i].kind !== 'class'),
-  );
+  return reaches;
 }
 
 /** A class provider's class, or a factory's product class. */
@@ -114,13 +113,26 @@ function entryOf(
     return `    { provide: ${token(p)}, useValue: ${valueLiteral(p)} },\n`;
   const deps = p.deps.map((d) => graph.providers[d]);
   if (async.has(p.index)) {
-    const binds = deps
-      .map((d, i) => `        const d${i} = await c.getAsync(${idOf(d)});\n`)
-      .join('');
+    // inject() works only before the first await, so dependencies with no
+    // async closure come first; the others are awaited in order.
+    const injected = deps
+      .map((d, i) => [d, i] as const)
+      .filter(([d]) => !async.has(d.index));
+    const awaited = deps
+      .map((d, i) => [d, i] as const)
+      .filter(([d]) => async.has(d.index));
+    const binds = [
+      ...injected.map(
+        ([d, i]) => `        const d${i} = inject(${idOf(d)});\n`,
+      ),
+      ...awaited.map(
+        ([d, i]) => `        const d${i} = await c.getAsync(${idOf(d)});\n`,
+      ),
+    ].join('');
     return `    {
       provide: ${token(p)},
       async: true,
-      useFactory: async (${deps.length > 0 ? 'c: Container' : ''}): Promise<${className(p)}> => {
+      useFactory: async (${awaited.length > 0 ? 'c: Container' : ''}): Promise<${className(p)}> => {
 ${binds}${factoryBody(p, '        ')}      },
     },\n`;
   }
@@ -189,9 +201,7 @@ function needleNames(
   const bound = own.filter((p) => p.kind !== 'class');
   const injects =
     classes.some((p) => p.deps.length > 0) ||
-    bound.some(
-      (p) => p.kind !== 'value' && !async.has(p.index) && p.deps.length > 0,
-    );
+    bound.some((p) => p.deps.some((d) => !async.has(d)));
   return [
     ...(bound.length > 0 ? ['type Container'] : []),
     ...(injects ? ['inject'] : []),
@@ -310,7 +320,7 @@ ${
 export function renderNeedleDi(graph: ScaleGraph): Files {
   if (perClass(graph) && graph.providers.some((p) => p.kind !== 'class'))
     throw new Error(`${graph.shape} renders classes only`);
-  const async = asyncProviders(graph);
+  const async = asyncClosures(graph);
   const tokens = tokensFile(graph);
   return layout(graph, {
     app: appFile(graph, async),
