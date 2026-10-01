@@ -5,18 +5,18 @@
 
 Draw your NexusDI module graph and follow every instance the container builds.
 
-`devtools()` is a plugin for [NexusDI](https://www.npmjs.com/package/@nexusdi/core) that hands you the compiled module graph and words each error with its fix. Register it in development to see which module provides each token and what the container built.
+`devtools()` is a plugin for [NexusDI](https://www.npmjs.com/package/@nexusdi/core) that returns the compiled module graph and adds a fix line to each error. Register it in development to see which module provides each token and what the container built.
 
 - `graph()` returns the module graph as plain JSON.
-- `toMermaid()` and `toDot()` draw it, in Node or a browser.
+- `toMermaid()` and `toDot()` turn it into Mermaid or DOT text.
 - `inspect()` compiles a module graph and builds nothing.
 - `trace()` reports each lifecycle event as it happens.
 
-<img src="https://raw.githubusercontent.com/NexusDI/core/release/0.4/libs/devtools/assets/graph.svg" alt="NexusDI graph of the Meridian app: Bridge provides Helm and ShipLog; Engineering provides ShipComputer, Reactor and the async NavCharts factory." width="720">
+<img src="https://raw.githubusercontent.com/NexusDI/core/release/0.4/libs/devtools/assets/graph.svg" alt="NexusDI graph of the Meridian app: in Bridge, Helm depends on ShipLog and on ShipComputer, which Engineering exports; ShipComputer depends on Reactor and the NavCharts factory." width="720">
 
 ## Install
 
-> 0.4 is a release candidate on the npm `next` tag. Install every @nexusdi package from `next` so their versions match.
+> 0.4 is a release candidate on the npm `next` tag. Install every @nexusdi package from `next` so their versions match. Without `@next`, npm installs core 0.3 and stops with a peer conflict.
 
 ```bash
 npm install @nexusdi/devtools@next @nexusdi/core@next
@@ -45,15 +45,14 @@ const Navigation = defineModule({
 });
 
 await using ship = await Nexus.create(Navigation, { plugins: [devtools()] });
-graph(ship).modules.map((module) => module.name); // -> ['Navigation']
-toMermaid(graph(ship)).split('\n')[2]; // -> '    p0["NavCharts<br/>StarCharts"]'
+toMermaid(graph(ship)).trim().split('\n'); // -> ['flowchart LR', '  subgraph m0["Navigation"]', '    p0["NavCharts<br/>StarCharts"]', '  end']
 ```
 
 <!-- #endregion devtools -->
 
 ## Trace
 
-`trace(fn)` is a plugin that hands every lifecycle event to `fn`.
+`trace(fn)` is a plugin that passes every lifecycle event to `fn`.
 
 <!-- #region trace -->
 
