@@ -88,7 +88,7 @@ export function mdxProse(text) {
       if (at % 2 === 1) return part;
 
       return part
-        .replace(/\{@(?:link|linkcode|linkplain)\s([^}]*)\}/g, (_, inner) => {
+        .replace(/\{@(?:link|linkcode|linkplain)\s([^{}]*)\}/g, (_, inner) => {
           const text = inner.trim();
           const end = text.search(/[\s|]/);
           const target = end === -1 ? text : text.slice(0, end);
