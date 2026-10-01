@@ -23,6 +23,9 @@ Rules that override the plan text:
   characters. Put error codes in the body, never in the subject.
 - Run `npx fallow dupes` and the touched projects' lint, typecheck and test
   before reporting DONE. The repo's CI runs fallow (dupes and dead code).
+- CI runs fallow on a clean checkout: no build output (dist/, apps/docs/generated/,
+  .next/, out/). Run `npx fallow dead-code --fail-on-issues --no-cache` once with
+  those moved aside (to /tmp/claude-0/), then put them back.
 - Fix triads (rule of three) and other writing-rule breaks in any prose the
   plan hands you verbatim.
 - The plan says no git or nx command carries the env prefix; add it.
