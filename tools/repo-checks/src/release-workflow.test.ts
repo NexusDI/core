@@ -79,7 +79,7 @@ describe('release.yml', () => {
     const publish = runs.filter((run) => run.includes('nx release publish'));
     expect(publish).toHaveLength(1);
     expect(publish[0]).not.toMatch(
-      /--projects|\s-p\s|--groups|\s-g\s|--exclude-task-dependencies/,
+      /--projects?\b|--groups?\b|(^|\s)-[pg](\s|=|$)|--exclude-?task-?dependencies/im,
     );
   });
 
