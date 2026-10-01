@@ -1,5 +1,5 @@
 {
-  "mode": "rc",
+  "mode": "snapshot-only",
   "root": {
     "tag": null,
     "sha": null,
