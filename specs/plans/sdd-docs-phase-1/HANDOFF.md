@@ -44,6 +44,19 @@ Never do any of these:
 
 Record anything that needs the owner in progress.md under "Owner items", and carry on with other tasks.
 
+## Cloud environment notes (verified by a smoke test on 2026-10-01)
+
+- GitHub GraphQL is blocked here. `gh pr create`, `gh pr merge`, `gh pr checks`, `gh pr list` and `gh pr view` all fail with 403. Use REST through `gh api`, or the GitHub MCP tools:
+  - open a PR: `gh api -X POST repos/NexusDI/core/pulls -f title=... -f head=<branch> -f base=<base> -f body=...`
+  - see the checks: `gh api repos/NexusDI/core/commits/<sha>/check-runs --jq '.check_runs[] | [.name,.status,.conclusion] | @tsv'`
+  - see the mergeable state: `gh api repos/NexusDI/core/pulls/<n> --jq '.mergeable_state'`
+  - merge: `gh api -X PUT repos/NexusDI/core/pulls/<n>/merge -f merge_method=rebase`. Use `merge_method=merge` for the sync PR.
+  - dispatch a workflow: `gh api -X POST repos/NexusDI/core/actions/workflows/docs.yml/dispatches -f ref=main -f 'inputs[rehearse]=rc'`
+  - follow a run: `gh api repos/NexusDI/core/actions/runs?branch=<branch>&per_page=5`
+  - `gh auth status` reports the token as invalid even though REST works. Ignore that.
+- Node here is 22.22, and the repo's .nvmrc pins 24. Check .nvmrc and use that version when one is available (nvm, fnm, or `npx -y -p node@24 node`). If none is, run on 22.22, which engines allows, and record in progress.md any test that differs between 22 and 24. CI on GitHub uses .nvmrc and is the authority.
+- To wait for CI, poll the REST check-runs endpoint every few minutes. Don't spin in a tight loop.
+
 ## Rules
 
 - Prefix nx and git commands with NX_NO_CLOUD=true NX_DAEMON=false.
