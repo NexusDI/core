@@ -1,177 +1,63 @@
 # @nexusdi/interceptors
 
-`@nexusdi/interceptors` runs code around the methods of services a NexusDI container builds: logging, metrics, validation, caching. An interceptor is a provider with an `intercept(call, next)` method. You register interceptors once, in the `interceptors()` plugin, and attach them globally, per token, per class or per method.
+[![npm](https://img.shields.io/npm/v/@nexusdi/interceptors/next)](https://www.npmjs.com/package/@nexusdi/interceptors) [![license](https://img.shields.io/npm/l/@nexusdi/interceptors)](https://github.com/NexusDI/core/blob/main/LICENSE)
+
+Wrap NexusDI service methods with logging, metrics, validation or caching.
+
+`interceptors()` is a plugin for [NexusDI](https://www.npmjs.com/package/@nexusdi/core) that runs your code around the methods of the services a container builds. Write an audit log or a timer once, and attach it where you need it.
+
+- An interceptor is a provider with an `intercept(call, next)` method.
+- Attach one globally, per token, per class or per method.
+- Interceptors get their own dependencies from the container.
+- `tap(next, { value, error })` observes sync and async results alike.
+
+## Install
+
+> 0.4 is a release candidate on the npm `next` tag. Install every @nexusdi package from `next` so their versions match.
 
 ```bash
-npm install @nexusdi/interceptors @nexusdi/core
+npm install @nexusdi/interceptors@next @nexusdi/core@next
 ```
 
-The version of `@nexusdi/interceptors` must equal the version of `@nexusdi/core`.
+## Usage
 
-## Intercept a method
-
-<!-- #region intercept -->
+<!-- #region call-order -->
 
 ```ts @import.meta.vitest
-import { Nexus, Token, defineModule, provide } from '@nexusdi/core';
+import { Nexus, Token, provide } from '@nexusdi/core';
 import { interceptor, interceptors, tap } from '@nexusdi/interceptors';
-import type { CallContext, Interceptor } from '@nexusdi/interceptors';
-import type { InterceptorMap, Next } from '@nexusdi/interceptors';
-
-interface IFlightLog {
-  readonly entries: string[];
-}
+import type { Interceptor } from '@nexusdi/interceptors';
 interface INavigator {
-  plot(target: string): Promise<string>;
+  plot(to: string): string;
 }
-const FLIGHT_LOG = new Token<IFlightLog>('FlightLog');
+class Navigator implements INavigator {
+  plot = (to: string) => `course to ${to}`;
+}
 const NAVIGATOR = new Token<INavigator>('Navigator');
 const AUDIT = new Token<Interceptor>('Audit');
-
-class FlightLog implements IFlightLog {
-  readonly entries: string[] = [];
-}
-
-class AuditInterceptor implements Interceptor {
-  static deps = [FLIGHT_LOG] as const;
-  constructor(private readonly log: IFlightLog) {}
-
-  intercept(call: CallContext, next: Next) {
-    return tap(next, {
-      value: () =>
-        this.log.entries.push(`${call.provider.name}.${String(call.method)}`),
-    });
-  }
-}
-
-class Navigator implements INavigator {
-  static interceptors = {
-    methods: { plot: [AUDIT] },
-  } satisfies InterceptorMap<Navigator>;
-
-  async plot(target: string): Promise<string> {
-    return `course to ${target}`;
-  }
-}
-
-const Logs = defineModule({
-  name: 'Logs',
-  providers: [provide(FLIGHT_LOG, { useClass: FlightLog })],
-  exports: [FLIGHT_LOG],
-});
-
-await using ship = await Nexus.create(
-  defineModule({
-    name: 'Bridge',
-    imports: [Logs],
-    providers: [provide(NAVIGATOR, { useClass: Navigator })],
-    exports: [NAVIGATOR, FLIGHT_LOG],
-  }),
-  {
-    plugins: [
-      interceptors({
-        imports: [Logs],
-        register: [interceptor(AUDIT, { useClass: AuditInterceptor })],
-      }),
-    ],
+const log: string[] = [];
+const audit = interceptor(AUDIT, {
+  useValue: {
+    intercept: (call, next) => {
+      log.push(`call ${String(call.method)}`);
+      return tap(next, { value: (course) => log.push(`got ${course}`) });
+    },
   },
-);
-
-const course = await ship.get(NAVIGATOR).plot('Kepler-442b'); // -> 'course to Kepler-442b'
-ship.get(FLIGHT_LOG).entries; // -> ['Navigator.plot']
-```
-
-<!-- #endregion intercept -->
-
-## Attach interceptors
-
-- On a class you own: `static interceptors = { class: [...], methods: { name: [...] } }`, or `@UseInterceptors(...)` on the class or a method.
-- On a token whose provider you cannot edit, or a factory: `interceptors({ bindings: [{ token, class, methods }] })`.
-- Everywhere: `interceptors({ global: [TOKEN, { use: TOKEN, when }] })`. `when({ provider, method })` returns false to skip a method. It runs on the first read of each method, so an error it throws reaches the code that read the method.
-
-The chain runs global entries first, then bindings, then class lists, then method lists. A token that appears twice runs once, at its outermost position.
-
-## What to know
-
-- `get()` returns a proxy of an intercepted service. Methods run with `this` set to the service itself, so private fields work.
-- Self calls are not intercepted. As with NestJS's proxy-based enhancers, interceptors wrap the service from the outside, so a call from one method to another on `this` goes to the service itself and skips interceptors. To intercept it, call the method through the injected token, or move it to another service.
-- With `global` entries, list in `exempt` every service your interceptors depend on outside `providers`, lazy deps included: `interceptors({ global: [LOG], exempt: [JOURNAL] })`. Global entries skip each exempt service and every provider it reaches, so an interceptor never intercepts a service it calls. `create` fails with `NEXUS_INTERCEPTOR_INVALID` and names every provider that would be skipped until each one is listed, and fails for an `exempt` entry no interceptor depends on. Declarations and bindings still apply to exempt services.
-- A class list or binding that names an interceptor on a service that interceptor depends on fails `create`, since each call the interceptor makes into it would run the interceptor again. A method list there is not checked, so keep it to methods the interceptor never calls.
-- `static interceptors` and `@UseInterceptors` name methods on the class or its prototype chain. An arrow-function field is not one, and `create` reports it as `NEXUS_INTERCEPTOR_INVALID`.
-- With the plugin installed, `static interceptors` is reserved for these declarations. A class that uses the name for anything else, or misspells a key such as `method`, fails `create`.
-- `svc.constructor` is the class itself, and a field that holds a class returns it as is, so `new svc.constructor()` works.
-- A method that reads a private field of another instance passed as an argument (`other.#id`), or brand-checks one with `#id in other`, throws a `TypeError` when that argument is a proxy. Compare through a public getter.
-- Interceptors are singletons. A scoped or transient interceptor fails at `create` with `NEXUS_INTERCEPTOR_LIFETIME`.
-- `next(args)` replaces the arguments. Not calling `next()` returns your value in place of the method's.
-- An async method's caller sees a synchronous throw from an interceptor as a rejection. `tap(next, { value, error })` observes sync and async results alike.
-- A method called before the interceptors are built (a constructor calling a dependency's method) or after the container is disposed throws `NEXUS_INTERCEPTOR_NOT_READY`.
-- Call `interceptors()` once per container. A `create` with a plugin object that a running container holds fails with `NEXUS_INTERCEPTORS_SHARED`, and of two overlapping creates with one plugin object, the second to build fails with it. A plugin object whose create failed, or whose container is disposed, can be used again.
-- Bad `interceptors()` options fail `create` with `NEXUS_INTERCEPTOR_INVALID`, one error per fault, in the same `BlueprintError` as the graph's other errors.
-
-## Error text
-
-The errors `create` reports, and the ones a wrapped method throws once the container runs, carry a one-line message: their fields and a link to their docs page. The full text and fix line live in `interceptorsText` at `@nexusdi/interceptors/text`. Pass it to `errors()` from `@nexusdi/errors`:
-
-<!-- #region text -->
-
-```ts @import.meta.vitest
-import { Nexus, Token, defineModule, provide } from '@nexusdi/core';
-import { errors } from '@nexusdi/errors';
-import { interceptor, interceptors } from '@nexusdi/interceptors';
-import type { CallContext, Interceptor, Next } from '@nexusdi/interceptors';
-import { interceptorsText } from '@nexusdi/interceptors/text';
-
-interface IScanner {
-  sweep(sector: string): string;
-}
-const SCANNER = new Token<IScanner>('Scanner');
-const TRACE = new Token<Interceptor>('Trace');
-const AUDIT = new Token<Interceptor>('Audit');
-
-class Scanner implements IScanner {
-  sweep(sector: string): string {
-    return `sector ${sector} clear`;
-  }
-}
-
-class TraceInterceptor implements Interceptor {
-  intercept(_call: CallContext, next: Next) {
-    return next();
-  }
-}
-
-const Sensors = defineModule({
-  name: 'Sensors',
-  providers: [provide(SCANNER, { useClass: Scanner })],
-  exports: [SCANNER],
 });
-
-const messageWith = async (text: boolean) => {
-  try {
-    await Nexus.create(Sensors, {
-      plugins: [
-        errors(text ? { text: [interceptorsText] } : undefined),
-        interceptors({
-          register: [interceptor(TRACE, { useClass: TraceInterceptor })],
-          global: [AUDIT],
-        }),
-      ],
-    });
-  } catch (error) {
-    return (error as { errors: Error[] }).errors[0]?.message.split('\n');
-  }
-  return undefined;
-};
-
-const thin = await messageWith(false);
-thin; // -> ['[NEXUS_INTERCEPTOR_MISSING] token=Audit. https://nexus.js.org/errors/NEXUS_INTERCEPTOR_MISSING']
-const full = await messageWith(true);
-full; // -> ['[NEXUS_INTERCEPTOR_MISSING] a global entry or binding uses the interceptor Audit, which is not registered.', '  Fix: add Audit to interceptors({ register }).']
+const plugins = [interceptors({ register: [audit], global: [AUDIT] })];
+const providers = [provide(NAVIGATOR, { useClass: Navigator })];
+await using ship = await Nexus.create(providers, { plugins });
+ship.get(NAVIGATOR).plot('Vega'); // -> 'course to Vega'
+log; // -> ['call plot', 'got course to Vega']
 ```
 
-<!-- #endregion text -->
+<!-- #endregion call-order -->
 
-Nothing in the main entry imports `@nexusdi/interceptors/text`, so an app that leaves the pack out carries none of its bytes. The errors thrown where no container formats them (a `@UseInterceptors` fault, a call before the interceptors are built or after disposal, and a fault in the plugin's `construct` hook) carry their full text without the pack.
+## Documentation
+
+- [Documentation](https://nexus.js.org/next/)
+- [Examples](https://github.com/NexusDI/core/tree/release/0.4/libs/interceptors/docs)
+- [NexusDI on GitHub](https://github.com/NexusDI/core)
 
 ## License
 
