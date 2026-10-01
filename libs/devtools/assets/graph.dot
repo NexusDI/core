@@ -1,0 +1,20 @@
+digraph nexus {
+  rankdir=LR;
+  node [fontname="Helvetica"];
+  edge [fontname="Helvetica"];
+  subgraph "cluster_m0" {
+    label="Bridge";
+    "p0" [label="ShipLog\nCaptainsLog", shape=box];
+    "p1" [label="Helm\nBridgeHelm", shape=box];
+  }
+  subgraph "cluster_m1" {
+    label="Engineering";
+    "p2" [label="Reactor\nFusionReactor", shape=box];
+    "p3" [label="NavCharts\nfactory", shape=hexagon];
+    "p4" [label="ShipComputer\nMainComputer", shape=box, peripheries=2];
+  }
+  "p1" -> "p4";
+  "p1" -> "p0";
+  "p4" -> "p2";
+  "p4" -> "p3";
+}

@@ -67,6 +67,10 @@
     // the fixtures are imported by the spawned bin, never by a static import.
     "libs/cli/src/bin.ts",
     "libs/cli/test-fixtures/**",
+    // The README graph: the nexusdi bin imports the fixture app by path,
+    // and the generate target runs generate.ts by path.
+    "tools/readme-assets/src/meridian.module.ts",
+    "tools/readme-assets/src/generate.ts",
 
     // Built and run by examples/toolchain-matrix/scripts/run-matrix.mjs in a
     // throwaway consumer; nothing in the workspace imports them. The vite
@@ -180,6 +184,9 @@
     // (libs/cli/src/resolve.ts), so no import statement names either one.
     "@viz-js/viz",
     "@resvg/resvg-js",
+    // tools/readme-assets runs the nexusdi bin it reads from
+    // @nexusdi/cli's package.json, so no import statement names the cli.
+    "@nexusdi/cli",
     "@swc-node/register",
     "@swc/helpers",
     "eslint-config-prettier",

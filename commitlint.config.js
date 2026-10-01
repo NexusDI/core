@@ -71,6 +71,8 @@ module.exports = {
         // so neither versions a package.
         'bench-kit',
         'benchmarks',
+        // The README graph generator. Not under release.projects either.
+        'readme-assets',
       ],
     ],
     'type-case': [2, 'always', 'lower-case'],
