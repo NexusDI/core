@@ -1,8 +1,10 @@
 #!/usr/bin/env node
 /**
- * Packs every published package, installs the tarballs into a throwaway
- * project outside the workspace, and checks that a consumer can import them
- * and see their types.
+ * Stages every published package as `nx release publish` does (the
+ * stage-publish target, tools/release/stage.mjs), packs the staged copies,
+ * installs the tarballs into a throwaway project outside the workspace, and
+ * checks that a consumer can import them and see their types, and that Go to
+ * Definition and a source-mapped stack trace reach the shipped src.
  *
  * Nothing inside the repo can tell whether the package resolves as published.
  * tsconfig.base.json sets `customConditions: ["@nexusdi/source"]`, so every
@@ -14,7 +16,7 @@
  * `await using`. The declarations carry `/// <reference lib="esnext.disposable"
  * />`, which is what lets that consumer compile without a `lib` change.
  */
-import { execFileSync } from 'node:child_process';
+import { execFileSync, spawn } from 'node:child_process';
 import {
   mkdtempSync,
   readdirSync,
@@ -24,7 +26,8 @@ import {
 } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { createRequire } from 'node:module';
-import { join, resolve } from 'node:path';
+import { join, relative, resolve, sep } from 'node:path';
+import { PUBLISH_ROOT, stagedProblems } from '@nexusdi/release';
 import { nodeResolve } from '@rollup/plugin-node-resolve';
 import * as esbuild from 'esbuild';
 import { rollup } from 'rollup';
@@ -178,12 +181,16 @@ function hasTopLevelAwait(ts, fileName, text) {
 
 /**
  * Throws unless an exports entry, named by `where`, lists `conditions` as
- * the spec requires: @nexusdi/source first, then types, import and default,
- * and no require condition.
+ * the spec requires: types, import and default, and no require condition.
+ * The repo's manifest also lists @nexusdi/source first, so node's default
+ * conditions never select source in the workspace; the published manifest
+ * lists it nowhere (tools/release/stage.mjs strips it).
  */
-function checkEntry(where, conditions) {
-  if (conditions[0] !== '@nexusdi/source')
+function checkEntry(where, conditions, { source }) {
+  if (source && conditions[0] !== '@nexusdi/source')
     throw new Error(`${where} must list @nexusdi/source first`);
+  if (!source && conditions.includes('@nexusdi/source'))
+    throw new Error(`${where} publishes the workspace-only @nexusdi/source`);
   if (!conditions.includes('types') || !conditions.includes('import'))
     throw new Error(`${where} lost its types or import condition`);
   if (!conditions.includes('default'))
@@ -194,6 +201,70 @@ function checkEntry(where, conditions) {
     throw new Error(
       `${where} has a require condition; the package is ESM only (spec section 12)`,
     );
+}
+
+/**
+ * The file tsserver opens for Go to Definition at `position` (1-based line
+ * and offset) in a consumer file holding `text`, or null when it finds none.
+ * tsserver answers once the project has loaded, so stdin stays open until
+ * the definition response arrives.
+ */
+function goToDefinition(cwd, text, position) {
+  const file = join(cwd, 'goto.ts');
+  writeFileSync(file, text);
+  writeFileSync(
+    join(cwd, 'tsconfig.json'),
+    JSON.stringify({
+      compilerOptions: {
+        strict: true,
+        target: 'es2022',
+        module: 'nodenext',
+        moduleResolution: 'nodenext',
+        types: [],
+        noEmit: true,
+      },
+      files: ['goto.ts'],
+    }),
+  );
+  const tsserver = createRequire(join(cwd, 'package.json')).resolve(
+    'typescript/lib/tsserver.js',
+  );
+  return new Promise((resolveFile, reject) => {
+    const child = spawn(
+      'node',
+      [tsserver, '--disableAutomaticTypingAcquisition'],
+      { cwd, stdio: ['pipe', 'pipe', 'inherit'] },
+    );
+    const timer = setTimeout(() => {
+      child.kill();
+      reject(new Error('tsserver gave no definition within 60s'));
+    }, 60_000);
+    let output = '';
+    child.stdout.setEncoding('utf8');
+    child.stdout.on('data', (chunk) => {
+      output += chunk;
+      const response = output
+        .split(/Content-Length: \d+\r?\n\r?\n/)
+        .map((message) => message.trim())
+        .filter((message) => message.startsWith('{') && message.endsWith('}'))
+        .map((message) => JSON.parse(message))
+        .find(
+          (message) => message.type === 'response' && message.request_seq === 2,
+        );
+      if (response === undefined) return;
+      clearTimeout(timer);
+      child.kill();
+      resolveFile(response.body?.[0]?.file ?? null);
+    });
+    child.on('error', reject);
+    for (const [seq, command, args] of [
+      [1, 'open', { file }],
+      [2, 'definition', { file, ...position }],
+    ])
+      child.stdin.write(
+        `${JSON.stringify({ seq, type: 'request', command, arguments: args })}\n`,
+      );
+  });
 }
 
 /** Names every public export, so tsc fails on one that stopped being exported. */
@@ -585,14 +656,20 @@ try {
   for (const [libDir] of LIBS)
     rmSync(join(ROOT, libDir, 'dist'), { recursive: true, force: true });
 
-  console.log('Building libraries…');
+  // stage-publish builds each package and copies it, as npm packs it, to
+  // tmp/publish/<projectRoot> with the workspace-only manifest fields
+  // stripped. `nx release publish` publishes that copy, so it is what this
+  // script packs.
+  console.log('Building and staging libraries…');
+  for (const [libDir] of LIBS)
+    rmSync(join(ROOT, PUBLISH_ROOT, libDir), { recursive: true, force: true });
   run(
     'npx',
     [
       'nx',
       'run-many',
       '-t',
-      'build',
+      'stage-publish',
       '-p',
       ...LIBS.map(([, name]) => name),
       '--skip-nx-cache',
@@ -602,7 +679,11 @@ try {
 
   console.log(`Packing into ${dir}`);
   for (const [libDir] of LIBS)
-    run('npm', ['pack', '--pack-destination', dir], join(ROOT, libDir));
+    run(
+      'npm',
+      ['pack', '--pack-destination', dir],
+      join(ROOT, PUBLISH_ROOT, libDir),
+    );
   const tarballs = readdirSync(dir).filter((f) => f.endsWith('.tgz'));
   if (tarballs.length !== LIBS.length)
     throw new Error(
@@ -809,20 +890,92 @@ export default defineModule({
     );
   console.log('  ✓ @nexusdi/core publishes no ./testing entry');
 
-  // The @nexusdi/source condition must come first in every entry of every
-  // package, so node's default conditions never select source.
-  for (const [, name] of LIBS) {
-    const manifest = packedManifest(name);
-    if (manifest.exports?.['.'] === undefined && manifest.bin === undefined)
-      throw new Error(`${name} has no "." entry in its exports map`);
-    for (const [entry, target] of Object.entries(manifest.exports)) {
-      if (entry === './package.json') continue;
-      checkEntry(`${name} exports["${entry}"]`, Object.keys(target));
+  // The repo's manifests list @nexusdi/source first in every entry; the
+  // published ones do not list it at all.
+  for (const [libDir, name] of LIBS) {
+    const repoManifest = JSON.parse(
+      readFileSync(join(ROOT, libDir, 'package.json'), 'utf8'),
+    );
+    for (const [source, manifest] of [
+      [true, repoManifest],
+      [false, packedManifest(name)],
+    ]) {
+      if (manifest.exports?.['.'] === undefined && manifest.bin === undefined)
+        throw new Error(`${name} has no "." entry in its exports map`);
+      for (const [entry, target] of Object.entries(manifest.exports)) {
+        if (entry === './package.json') continue;
+        checkEntry(`${name} exports["${entry}"]`, Object.keys(target), {
+          source,
+        });
+      }
     }
   }
   console.log(
-    '  ✓ every entry lists @nexusdi/source first, keeps types, import and default, and has no require condition',
+    '  ✓ every repo entry lists @nexusdi/source first, no published entry lists it, and each keeps types, import and default with no require condition',
   );
+
+  // The installed package is the tarball's contents. Every path its
+  // manifest names, every source a .map names and every sourceMappingURL
+  // must be in it.
+  const problems = LIBS.flatMap(([libDir, name]) => {
+    const pkgRoot = join(dir, 'node_modules', ...name.split('/'));
+    const files = readdirSync(pkgRoot, { recursive: true, withFileTypes: true })
+      .filter((entry) => entry.isFile())
+      .map((entry) =>
+        relative(pkgRoot, join(entry.parentPath, entry.name))
+          .split(sep)
+          .join('/'),
+      );
+    return stagedProblems({
+      manifest: packedManifest(name),
+      repoVersion: JSON.parse(
+        readFileSync(join(ROOT, libDir, 'package.json'), 'utf8'),
+      ).version,
+      files,
+      read: (path) => readFileSync(join(pkgRoot, path), 'utf8'),
+    });
+  });
+  if (problems.length) throw new Error(problems.join('\n'));
+  console.log(
+    '  ✓ every path a published manifest, .map or sourceMappingURL names is in its tarball',
+  );
+
+  // The declaration maps lead an editor into the shipped TypeScript source.
+  // tsserver, which editors run, maps a .d.ts location through its .d.ts.map;
+  // the plain language service API does not.
+  console.log('Asking tsserver for Go to Definition…');
+  const definition = await goToDefinition(
+    dir,
+    "import { Nexus } from '@nexusdi/core';\nNexus;\n",
+    { line: 2, offset: 1 },
+  );
+  if (!/node_modules\/@nexusdi\/core\/src\/.+\.ts$/.test(definition ?? ''))
+    throw new Error(
+      `Go to Definition on Nexus resolved to ${definition ?? 'nothing'}, not the shipped src`,
+    );
+  console.log(
+    `  ✓ Go to Definition on Nexus opens ${definition.slice(definition.lastIndexOf('node_modules/'))}`,
+  );
+
+  // The source maps lead a stack trace into the same src.
+  console.log('Throwing from core under --enable-source-maps…');
+  writeFileSync(
+    join(dir, 'trace.mjs'),
+    `import { Nexus, Token, defineModule } from '@nexusdi/core';
+const ship = await Nexus.create(defineModule({ name: 'Empty' }));
+try {
+  ship.get(new Token('Missing'));
+} catch (error) {
+  console.log(error.stack);
+}
+`,
+  );
+  const stack = run('node', ['--enable-source-maps', 'trace.mjs'], dir);
+  if (!/node_modules\/@nexusdi\/core\/src\/[^:]+\.ts:\d+:\d+/.test(stack))
+    throw new Error(
+      `the stack trace has no frame in the shipped src:\n${stack}`,
+    );
+  console.log('  ✓ a stack trace from core maps to its shipped .ts source');
 
   console.log('\nPackaging verified.');
 } catch (error) {

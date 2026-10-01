@@ -62,3 +62,20 @@ export function mergeManifests(
   theirs: object,
 ): { result: Record<string, unknown>; conflicts: string[] };
 export function changelogSection(text: string, version: string): string | null;
+export const PUBLISH_ROOT: string;
+export function publishManifest<T extends object>(manifest: T): T;
+export function stagedProblems(input: {
+  manifest: {
+    name?: string;
+    version?: string;
+    exports?: unknown;
+    bin?: unknown;
+    types?: string;
+    main?: string;
+    module?: string;
+    sideEffects?: boolean | string[];
+  };
+  repoVersion: string;
+  files: string[];
+  read: (path: string) => string;
+}): string[];

@@ -16,8 +16,8 @@
     // esnext.disposable types Symbol.asyncDispose and AsyncDisposable, which
     // the public declarations use. esnext.decorators types Symbol.metadata.
     "lib": ["es2022", "esnext.decorators", "esnext.disposable"],
-    "sourceMap": false,
-    "declarationMap": false,
+    "sourceMap": true,
+    "declarationMap": true,
     "ignoreDeprecations": "6.0"
   },
   "include": ["src/**/*.ts"],
