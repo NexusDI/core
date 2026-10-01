@@ -79,3 +79,16 @@ export function stagedProblems(input: {
   files: string[];
   read: (path: string) => string;
 }): string[];
+export const RELEASE_TAG_PREFIX: string;
+export function repoUrlFor(input: {
+  kind: 'raw' | 'tree' | 'blob';
+  version: string;
+  path: string;
+}): string;
+export function pinRepoUrls(text: string, version: string): string;
+export function settleReadme(input: {
+  current: string;
+  stages: [string | null, string | null, string | null] | null;
+  lineVersion: string;
+  merge3: (base: string, ours: string, theirs: string) => string | null;
+}): string | null;

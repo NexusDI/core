@@ -52,7 +52,9 @@ stable. Dependabot updates on `main` travel the same way.
 2. The job creates `sync/X.Y-<first 12 characters of main's sha>` from
    `release/X.Y` and merges `origin/main` into it.
 3. The job then restores the line's own `version` and `@nexusdi/*` pins in
-   every `libs/*/package.json`, regenerates `package-lock.json` and commits.
+   every `libs/*/package.json`, pins the repo URLs in every README to the
+   line's version (see "README repo URLs"), regenerates `package-lock.json`
+   and commits.
    `libs/*/CHANGELOG.md` merges with the union driver (`.gitattributes`), so
    the sections from both sides stay.
 4. The job pushes the branch with the deploy key and opens a pull request into
@@ -122,6 +124,18 @@ sorts what it finds into two kinds:
   blockers in the plan step and the job summary, prints the rest of the
   preview, and then fails at its last step. A dry run that passes means the
   real run would start.
+
+### README repo URLs
+
+Each package README links its images and its examples folder at the release
+tag of its own `package.json` version, for example
+`https://github.com/NexusDI/core/tree/@nexusdi/core@0.4.0-rc.1/libs/core/docs`
+(the README check in `tools/repo-checks/src/npm-readmes.ts` holds the form).
+`nx release version` runs `tools/release/version-actions.mjs`, which moves
+those URLs to the new tag in the same step that writes `package.json`, so the
+release commit and its tag carry READMEs that name that tag. The dry run
+prints the README diffs beside the manifest diffs. A sync moves them back to
+the line's version, as it does with `package.json`.
 
 ### Preconditions
 

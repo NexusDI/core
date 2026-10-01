@@ -1,3 +1,7 @@
+import { readFileSync } from 'node:fs';
+import { join } from 'node:path';
+
+import { parseJson, workspaceRoot } from '@nx/devkit';
 import { describe, expect, it } from 'vitest';
 
 import {
@@ -9,6 +13,7 @@ import {
   planRelease,
   reconcileCommands,
   refKind,
+  RELEASE_TAG_PREFIX,
   type PlanFacts,
 } from '@nexusdi/release';
 
@@ -204,6 +209,17 @@ describe('planRelease, rc', () => {
       }),
     );
     expect(plan.blockers.join('\n')).toMatch(/0\.4\.0 is already tagged/);
+  });
+
+  it("uses the tag prefix of nx.json's releaseTag.pattern", () => {
+    const nxJson = parseJson<{
+      release?: { releaseTag?: { pattern?: string } };
+    }>(readFileSync(join(workspaceRoot, 'nx.json'), 'utf-8'), {
+      expectComments: true,
+    });
+    expect(nxJson.release?.releaseTag?.pattern).toBe(
+      `${RELEASE_TAG_PREFIX}{version}`,
+    );
   });
 
   it('blocks a fixed group whose tag pattern holds {projectName} (L1)', () => {
