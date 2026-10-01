@@ -160,9 +160,10 @@ function collectReached(
 
 /**
  * `providers` iterates in index order, as compile builds it. `stillDeferred`
- * is the deferred set of the blueprint a load compiles against. A singleton in it keeps no level, even when a new eager provider
- * needs it: the root may already hold it, or build it at any request, so it
- * builds on demand in every later blueprint of that root (spec §6.6).
+ * is the deferred set of the blueprint a load compiles against. A singleton
+ * in it keeps no level, even when a new eager provider needs it: the root
+ * may already hold it, or build it at any request, so it builds on demand in
+ * every later blueprint of that root (spec §6.6).
  */
 export function computeLevels(
   providers: ReadonlyMap<string, ProviderRecord>,
