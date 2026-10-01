@@ -541,6 +541,8 @@ function checkTop(input: ReadmeInput, parsed: Parsed, faults: Fault[]): void {
         message: `does not show the graph image (<img src=".../${GRAPH_IMAGE}" alt="..." width="720">) under the bullet list`,
       });
   }
+  // One caption may follow the graph image to say how it was drawn.
+  if (graph && rest[0]?.lines.join(' ').startsWith('Drawn with ')) rest.shift();
   if (rest.length > 0)
     faults.push({
       rule: 'hero',
@@ -805,7 +807,7 @@ function checkRootCopy(input: ReadmeInput, faults: Fault[]): void {
     faults.push({
       rule: 'root-copy',
       message:
-        'cannot compare the shared part: core needs "## Checked at startup" after Quick start, and the root needs "## Packages" after it',
+        'cannot compare the shared part: core needs "## Checked at startup" after Install, and the root needs "## Packages" after it',
     });
     return;
   }
@@ -817,7 +819,7 @@ function checkRootCopy(input: ReadmeInput, faults: Fault[]): void {
     const line = a.findIndex((l, i) => b[i] !== l);
     faults.push({
       rule: 'root-copy',
-      message: `differs from core's README from the hero through Quick start, first at line ${(line === -1 ? a.length : line) + 1}`,
+      message: `differs from core's README from the hero through Install, first at line ${(line === -1 ? a.length : line) + 1}`,
     });
   }
 }

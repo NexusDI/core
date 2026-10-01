@@ -153,9 +153,9 @@ export const LIMITS: Readonly<Record<Kind, KindLimits>> = {
  */
 export const HEADINGS: Readonly<Record<Kind, readonly (string | null)[]>> = {
   core: [
+    'Quick start',
     'Features',
     'Install',
-    'Quick start',
     'Checked at startup',
     'Modules and interfaces',
     'Configurable modules',
@@ -167,9 +167,9 @@ export const HEADINGS: Readonly<Record<Kind, readonly (string | null)[]>> = {
   'sub-package': ['Install', 'Usage', null, 'Documentation', 'License'],
   cli: ['Install', 'Usage', 'Options', 'Documentation', 'License'],
   root: [
+    'Quick start',
     'Features',
     'Install',
-    'Quick start',
     'Packages',
     'Examples',
     'Contributing',
