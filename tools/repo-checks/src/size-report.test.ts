@@ -66,16 +66,16 @@ describe('measurePackages', () => {
     );
   });
 
+  afterEach(() => {
+    rmSync(dir, { recursive: true, force: true });
+  });
+
   it("reports core's own pack as `core/text`, and core itself under no package name", async () => {
     writeFileSync(join(dir, 'core-text.ts'), 'console.log(1, "core text");\n');
     const core = (await measure(dir, dir, 'core.ts', false)) as number;
     const text = (await measure(dir, dir, 'core-text.ts', false)) as number;
     const packages = await measurePackages(dir, dir, ['core'], core, false);
     expect(packages).toEqual({ 'core/text': text - core });
-  });
-
-  afterEach(() => {
-    rmSync(dir, { recursive: true, force: true });
   });
 
   it('reports a `<dir>-text.ts` fixture under `<dir>/text`, minus core', async () => {
