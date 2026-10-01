@@ -1,31 +1,64 @@
 # The NexusDI documentation site
 
-Status: approved design; implementation pending. Revised after an independent review of
-`8f36641` and the owner's decisions on it. The owner approved every decision in section 2.
-The owner then resolved every open question, and section 2 records each answer as a
-decision. Section 20 holds nothing open.
-Packages: `apps/docs` (new, `@nexusdi/docs`, private), `apps/docs-e2e` (new, Playwright),
+Status: approved design, refreshed on 2026-10-01 against the code published as
+`@nexusdi/core@0.4.0-rc.0` (tag on `release/0.4` at `8824502`). The owner approved every
+decision in section 2 and resolved every open question of the earlier revisions. The
+refresh rewrites the inventory, the phases and the deploy sections to match rc.0. Where
+an earlier revision of this spec, or another spec, disagrees with the code at the rc.0 tag,
+the code wins, and section 21 lists each case. Section 20 lists the owner steps phase 1
+waits for; no owner decision is open.
+Packages: `apps/docs` (exists, `@nexusdi/docs`, private), `apps/docs-e2e` (new, Playwright),
 `internal/meridian-ui` (new, private), `examples/meridian` (new, private),
-`tools/doc-examples` (copied from the libraries repo), `tools/repo-checks` (extended). No
+`tools/doc-examples` (the libraries copy, extended), `tools/repo-checks` (extended). No
 published package changes.
+What exists at rc.0, on `main` and `release/0.4` alike: the `apps/docs` scaffold (Next 16,
+Nextra 4.6.1, `content/index.mdx` and `content/tokens.mdx`, the channel filter, the
+`[[...mdxPath]]` route), the snapshot overlay in `apps/docs/snapshot/`, the deploy tools in
+`apps/docs/tools/deploy/` (`deploy-config`, `archives`, `next-source`, `assemble`,
+`check-artifact`, `snapshot-assets`, `record-snapshot`, `retention`, `smoke`),
+`deploy.json`, `archives.json`, `libraries-pin.json`, `docs.yml`, `docs-next.yml`,
+`docs-snapshot.yml`, the `docs-deploy`, `docs-trigger`, `docs-workflow` and
+`docs-snapshot-workflow` checks, and the shared site reader in
+`tools/repo-checks/src/docs/`. `main` deploys in `snapshot-only` mode (PR #71 reverted an
+early switch to `rc`, because `apps/docs` had no `postbuild` script and no
+`tools/check-budgets.mjs`).
 Depends on:
 
-- `specs/2026-09-23-core-0.4-design.md` on `plan/core-0.4-engine` at `ab6a3e8`, revision 2,
-  the API this site teaches: §0 the package split (D9) and the plugin API (D19, D20), §3
-  the public API and the Meridian names, §8.2 disposal and the `dispose:instance` event, §9
-  the error catalogue and core's one-line messages (D15, D21), §10 `graph(ship)` and trace
-  events from `@nexusdi/devtools`, §11 the testing API, §13 the migration guide outline, the
-  codemod and its `TODO_CODES` and `NOTE_CODES`, §14 the release plan and its rc.0
-  checklist. Revision 2 specifies both ways to declare a provider's deps that section 7.5
-  teaches: `static deps = [TOKEN] as const` on a plain class (D2, D17), and object-literal
-  providers `{ token, useValue | useClass | useFactory | useExisting, deps?, lifetime? }`.
-- `specs/2026-09-23-benchmarks-and-launch-design.md` on `spec/benchmarks-launch` at
-  `85af1c1`: §4.7 the metrics, §4.9 the results schema, §4.11 how the docs read the results,
-  §9 the guards, §12 its amendments to this spec. Every size and time figure on the site
-  comes from its results files (section 4.6).
-- `specs/2026-09-23-integrations-design.md` §3.9: the adapters' request scope created on
-  first use and their `di.load(Module)` middleware, which `/react-router-ssr/` and `/load/`
-  teach (section 5.6).
+- The code at the `@nexusdi/core@0.4.0-rc.0` tag: `libs/*/src/index.ts`, each package's
+  `exports` map and README, and `libs/core/src/errors/line.ts` (`DOCS_URL`). Nine packages
+  publish at rc.0: `@nexusdi/core` (entries `.` and `./text`), `@nexusdi/decorators`,
+  `@nexusdi/testing`, `@nexusdi/node`, `@nexusdi/errors`, `@nexusdi/devtools`,
+  `@nexusdi/federation` (`.` and `./text`), `@nexusdi/interceptors` (`.` and `./text`) and
+  `@nexusdi/cli` (the `nexusdi` bin, no library export). No codemod package, no
+  `@nexusdi/react` and no framework adapter publishes at rc.0.
+- `specs/2026-09-23-core-0.4-design.md` on `plan/core-0.4-engine` at `5a7f76e`, revision 2,
+  the API this site teaches: §0 the decisions (D1 the provider list, D8 classes as tokens on
+  the first docs page, D10 `scope.extend()`, D11 `eager: false`, D15 and D21 the errors,
+  D19 and D20 the plugin API and the ambient scope), §3 the public API, §8.2 disposal and
+  the `dispose:instance` event, §9 the error catalogue and core's one-line messages, §10
+  `graph(ship)` and trace events from `@nexusdi/devtools`, §11 the testing API, §13 the
+  migration guide outline, §14 the release plan and its rc.0 checklist. Section 7.5 teaches
+  both ways to declare a provider's deps: `static deps = [TOKEN] as const` on a plain class
+  (D2), and object-literal providers `{ token, useValue | useClass | useFactory |
+useExisting, deps?, lifetime? }`.
+- `specs/2026-09-30-extension-principle-design.md` on `spec/package-owned-errors` at
+  `34421a8`: §1 the extension principle and its five rules for plugin authors, §2 text packs
+  (`errors({ text })`, `explain()`, the `./text` entries) and §2.5.7, which makes
+  nexus.js.org host a page per first-party error code at `/errors/<CODE>`.
+- `specs/2026-09-29-interceptors-design.md` and `specs/2026-09-29-graph-cli-design.md` at the
+  rc.0 tag: §10 of the interceptors spec (the docs page states the three identity rules of
+  R6 and the lifetime rule of R2) and §3 of the CLI spec (the command, the exit codes).
+- `specs/2026-10-01-release-branch-workflow-design.md` on `spec/release-workflow` at
+  `aaae949`: §7 the docs changes (`/next/` from the highest release branch ahead of `main`,
+  `docs-next.yml`, `archives.json`) and the runbook of §5, which `RELEASING.md` at the rc.0
+  tag carries.
+- `specs/2026-09-23-benchmarks-and-launch-design.md` at the rc.0 tag: §4.9 the results
+  schema, §4.11 how the docs read the results, §5 the comparison pages, §9 the guards, §12
+  its amendments to this spec and §14 its reconciliation with core revision 2. Every size
+  and time figure on the site comes from its results files (section 4.6).
+- `specs/2026-09-23-integrations-design.md` on `spec/integrations` §3.9 and
+  `specs/2026-09-24-react-design.md` on `spec/react`: the adapter and React pages. Neither
+  package exists at rc.0, so their pages wait for their release (section 18.4).
 - `chore/tooling-upgrade`: Nx 23, TypeScript 6.0.3, Vitest 4, nodenext ESM, the
   `@nexusdi/source` condition, `tools/repo-checks`, SHA-pinned CI actions. It deletes
   `docs/` and `.github/workflows/deploy-docs.yml` from the tree.
@@ -130,12 +163,13 @@ places.
     furniture. A sentence that states a rule uses NexusDI's own terms. No humour and no
     idioms (public guidance decision 16).
 12. The navigation order is Start, Concepts, Guides, Migration, API, Academy and
-    Playground. The blog sits outside the teaching path (section 4).
+    Playground. The blog sits outside the teaching path (section 4). The Academy and the
+    Playground join the navbar in the phase that builds them (section 18).
 13. A concept page uses layout B, the sticky ship console: a narrow prose column and a
     console panel on the right that follows the section in view. On narrow screens the
     console collapses into inline specimens. The prose and fences teach the concept
     completely without the console (standard §5, the two-layer rule; section 10).
-14. The console, the Playground and the Academy share one runtime: TypeScript 6.0.3 with
+14. The console, the Playground and the Academy share one runtime, built in phase 2: TypeScript 6.0.3 with
     `@typescript/vfs` in a Web Worker, emitted JavaScript running in an
     `<iframe sandbox="allow-scripts">` without `allow-same-origin`, an import map pointing
     at the workspace-built `@nexusdi/core`, a typed `postMessage` protocol and a
@@ -146,7 +180,8 @@ places.
     (section 12). The graph view redraws on every run, and Mermaid draws a static picture
     from about 500 kB of JavaScript.
 16. The Academy at `/academy/` is nine missions that build the Meridian, one concept each,
-    with the ship's code carried forward. Missions 1 to 3 use guided cards (option C);
+    with the ship's code carried forward. The missions arrive after 0.4.0 final (core spec
+    D18), in phase 4. Missions 1 to 3 use guided cards (option C);
     later missions use the briefing strip (option B). Every mission stays unlocked
     (section 13).
 17. Academy progress lives in IndexedDB behind a small internal wrapper with no
@@ -156,18 +191,24 @@ places.
 18. During the RC the Pages deploy combines a build of the 0.3 Docusaurus site at the root
     with the new site under `/next/`. CI builds the 0.3 snapshot from `6d5e4f3` plus a
     small overlay and stores it as a release asset. At 0.4.0 final the deploy swaps: the
-    root builds from the newest `@nexusdi/core@*` release tag, `/next/` keeps building
-    from `main` (released-by-default decision 1), and the snapshot moves to `/v0.3/` with
+    root builds from the newest `@nexusdi/core@*` release tag, `/next/` builds from the
+    highest `release/X.Y` branch ahead of `main`, else from `main` (released-by-default
+    decision 1, amended 2026-10-01 by the release spec), and the snapshot moves to `/v0.3/` with
     a deprecation banner for six months or until 0.5.0, whichever is later. No other
     archive exists before 1.0 (section 15).
-19. Delivery runs in two phases. Phase 1 runs beside the engine work: the app shell,
-    `meridian-ui`, the background, `doc-examples`, the guards, the deploy pipeline and the
-    playground runtime. Phase 2 starts once the 0.4 API passes review: the content, the
-    API reference and the missions (section 18).
+19. Delivery runs in four phases, refreshed on 2026-10-01 because rc.0 published before any
+    phase 1 work merged. Phase 1 puts `/next/` live on nexus.js.org during the RC window:
+    the build pipeline the `rc` deploy runs, the shell, `meridian-ui` without the animated
+    background, the region loader, the core guards and the pages section 18.1 lists, the
+    error code pages included. Phase 2, inside the RC window, adds the runtime, the ship
+    console, the Playground, the API reference, the benchmark pages and the remaining
+    guides. Phase 3, at 0.4.0 final, migrates the blog posts and swaps the root. Phase 4,
+    after final, builds the Academy (section 18).
 20. The landing page is the site's overview page and demonstrates the product with a live
     specimen: the Meridian graph coming online as the container initialises
-    (section 5.2).
-21. During the RC the blog lives only on the 0.3 site at the root. The RC announcement
+    (section 5.2). The specimen arrives with the runtime in phase 2; the phase 1 landing
+    page runs the same program as an executed region.
+21. During the RC the blog posts live only on the 0.3 site at the root. The RC announcement
     (core spec §14, rc.0 checklist item 1) and later RC updates are published there
     through the snapshot overlay, and an announcement bar on every 0.3 page links to the
     post and to `/next/upgrade/`. `/next/` has no blog (section 6).
@@ -175,7 +216,10 @@ places.
     included, and every old post URL and the old feed URLs keep resolving. A migrated post
     keeps its text and gains a header naming the version it describes, with a link to the
     upgrade guide. Posts dated before 0.4.0 are exempt from the fence, domain and
-    refused-word guards; posts from 0.4.0 on follow every rule (section 6).
+    refused-word guards; posts from 0.4.0 on follow every rule (section 6). The blog index,
+    its feeds and `content/blog/` itself exist on `main` and on every release branch from
+    phase 1 on, so the root build of `final` mode always finds the blog it copies (decision
+    35).
 23. The docs app composes its layouts from `@evanion/widget` 0.1.0 and
     `@evanion/react-widget` 0.3.0: the ship console's panels, the Academy's guided and
     briefing modes, the progress dashboard and data-driven views such as the next-mission
@@ -185,8 +229,10 @@ places.
     `<ViewTransition>`. Under `prefers-reduced-motion`, and in a browser without the API,
     the change is an instant swap. `@evanion/react-widget` needs no change for it
     (section 10.5).
-25. The standard gains two NexusDI amendments, both accepted: a `concept` page kind and a
-    `post` page kind with the `blog/` folder (section 3).
+25. The standard gains three NexusDI amendments: a `concept` page kind, a `post` page kind
+    with the `blog/` folder (both accepted), and a `code` page kind with the `errors/`
+    folder (A3, added by the refresh because the published error messages fix those URLs;
+    section 3.3).
 26. The site answers the evaluator and the migrator directly: a comparison page, a runtime
     matrix, a bundler page and a custom-scope-context page for evaluators; a list of
     silent behaviour changes, the CHANGELOG link and a 0.3 support policy for migrators
@@ -209,12 +255,68 @@ places.
     concrete class is bound in exactly one provider, consumers declare their deps as
     tokens against interface-typed constructor parameters, and no concrete class depends
     directly on another. Overrides are the recurring payoff: a module swap, a test override
-    and a configurable module that picks an implementation (section 7.3).
+    and a configurable module that picks an implementation (section 7.3). The one exception
+    is the first docs page, `/getting-started/`, which uses classes as their own tokens
+    (core spec D8, decision 31).
+31. `/getting-started/` binds classes as their own tokens: `FusionReactor`, and
+    `QuantumComputer` with `static deps = [FusionReactor] as const`, passed to
+    `Nexus.create([FusionReactor, QuantumComputer])`. Interfaces, `Token<T>` and
+    `provide(TOKEN, { useClass })` start on `/tokens/`, with one sentence on why a test or an
+    environment swap wants them (core spec D1, D8). Every later page is interface-first.
+32. Every first-party error code has a page at `/errors/<CODE>/`, because every NexusDI
+    error message ends with `https://nexus.js.org/errors/<CODE>` (`DOCS_URL` in
+    `libs/core/src/errors/line.ts`, extension spec §2.5.7). A code page shows the smallest
+    program that raises the code, core's one-line message, the full text, the fix and, for a
+    package with a text pack, the `errors({ text })` line that wires the pack. During the RC
+    the root serves a redirect stub at each `/errors/<CODE>/` that points at
+    `/next/errors/<CODE>/` (section 15.5).
+33. Phase 1 pages are kinesthetic without the in-browser runtime. Every region is a whole
+    program a reader can save and run with `npx tsx`, in the project `/getting-started/`
+    sets up. Every claimed value is printed by the program and asserted by the examples
+    test. Each section that teaches a mechanism has the reader run it, break it with one
+    edit, read the code the container reports, and fix it; a second region proves the
+    broken variant's code. The console and the Playground add the in-browser form in
+    phase 2, and the regions stay.
+34. The site documents every package rc.0 publishes: `/interceptors/` for
+    `@nexusdi/interceptors`, `/graph-cli/` for `@nexusdi/cli` and the `parseGraph` of
+    `@nexusdi/devtools`, `/error-text/` for text packs and `errors({ text })`,
+    `/write-a-plugin/` for plugin authors under the extension principle, and
+    `/release-candidate/` for trying 0.4 from the npm `next` dist-tag and reporting
+    problems.
+35. `apps/docs/content/blog/` exists on `main` and on every release branch from phase 1 on,
+    holding the blog index (`<PostList />`) and its `_meta.ts`, and the `postbuild` step
+    writes the feeds. The `final` root build copies `content/blog/` from `main` and fails
+    with a clear message when it is missing, and the `docs-deploy` check refuses `final` and
+    `retired` without it. The posts migrate in phase 3.
+36. One build script, `apps/docs/tools/deploy/build-site.mjs`, builds the `/next/` site and
+    the root site for both `docs.yml` and the CI `docs` job. The CI job builds the tree of
+    every pull request and push that touches the docs inputs, assembles an `rc` and a
+    `final` artifact from it with the recorded snapshot assets, and runs the artifact check
+    on each. `docs.yml` takes a `rehearse` dispatch input that builds and checks a mode with
+    no deploy (section 15.3).
+37. `apps/docs/deploy.json` takes effect from `main`, because `docs.yml` runs on `main`
+    only. During an RC window, `rc` is set on `main` (release spec §9 step 9). `final` is
+    set on `release/X.Y` before the stable release (release spec §5.4, `RELEASING.md`), and
+    reaches `main` in the same push that tags `X.Y.0`. A release branch's copy is inert until
+    then, and every sync carries `main`'s copy to the branch.
+38. Phase 1 carries the benchmark pages `/comparison/` and `/benchmark-method/`, the data step
+    `docs:benchmark-data`, the components they render (`<Figure>`, `<MeasuredWith>`,
+    `<PerformanceTable>`, `<ToolchainGrid>`, `<ProbeTable>`), the `doc-benchmark-figures`
+    guard and the landing page's bundle-size `<Figure>`. The data step fails when the
+    results' core `major.minor` differs from `libs/core/package.json`, so a 0.4 page never
+    shows figures measured on 0.3. The four `/vs-*/` pages, the charts and `<Benefits>` follow in
+    phase 2, by the benchmarks spec's T-21 date.
+39. The RC feedback issue form lives on `main`, because GitHub offers only the issue forms on
+    the default branch. The RC announcement post carries no codemod section while
+    `@nexusdi/codemod` is unpublished, and it publishes in the pull request that switches the
+    deploy to `rc`, because it sends readers to `/next/`.
+40. `/vs-inversify/`'s SEO title is "NexusDI vs InversifyJS: DI with no compiler flags". This
+    amends benchmarks spec §5.1, whose title named a metadata library; the site names none.
 
 ## 3. Amendments to the libraries standard
 
 The standard was written for small packages on a multi-package site. NexusDI is one
-package with more teaching material, and two of its needs fall outside the standard's
+package with more teaching material, and three of its needs fall outside the standard's
 closed vocabulary. Each amendment is recorded here, so the reviewer reads it beside the
 standard.
 
@@ -252,6 +354,26 @@ standard's page kinds. The amendment:
   is not maintained against the current API.
 - Posts dated before 0.4.0 are also exempt from the domain and refused-word guards.
 
+### 3.3 A3, the `code` kind and the `errors/` folder (added by the refresh)
+
+Every error NexusDI raises ends its message with `https://nexus.js.org/errors/<CODE>`, and
+every first-party package keeps that base (`DOCS_URL`, extension spec §2.5.7). The URL
+scheme is fixed by published code, so the site serves it:
+
+- `content/errors/` is a folder, the second exception to decision 18. `errors/index.mdx`
+  is the Errors concept page at `/errors/`, and `errors/<CODE>.mdx` is the page of one code
+  at `/errors/<CODE>/`, spelled as the code. `content/errors/_meta.ts` lists `index` and
+  every code with `display: 'hidden'`, so the codes stay out of the sidebar; `/api-errors/`
+  lists them in one table.
+- A `code` page is a lookup page: no prerequisites box, no control, at least one executed
+  region (the smallest program that raises the code), and the fix. Its frontmatter names
+  the `package` and the `errorClass`.
+- The `doc-error-codes` guard holds the folder to the published codes: every key of
+  `NexusErrorByCode` that a package under `libs/` declares has a page, and every page names
+  a declared code (section 14.3).
+- A third-party package passes its own docs base to `errorBase`, so this folder never
+  holds a code that no first-party package declares.
+
 ## 4. Information architecture and page inventory
 
 ### 4.1 Navigation
@@ -266,16 +388,19 @@ Playground and, from 0.4.0 final, Blog. Search, the theme switch and the GitHub 
 follow them. Academy and Playground are full-screen tools in an `app/(tool)` route group,
 the pattern the libraries repo uses for `/matrix-explorer/`, so neither renders the docs
 chrome. Blog is a Nextra `type: 'page'` entry, so it appears in the navbar and stays out
-of the sidebar.
+of the sidebar. Each navbar entry appears in the phase that builds its target: Docs in
+phase 1, Playground in phase 2, Blog in phase 3 and Academy in phase 4.
 
 URLs are flat. Standard decision 18 puts a separator at every level and a folder at none,
 so `content/tokens.mdx` is served at `/tokens/`, and the Concepts band exists only in
-`_meta.ts`. `content/blog/` is the one folder (amendment A2).
+`_meta.ts`. `content/blog/` (amendment A2) and `content/errors/` (amendment A3) are the two
+folders.
 
 The content routes render through `app/(site)/[[...mdxPath]]/page.tsx`, an optional
 catch-all, so `/` is `content/index.mdx` like every other page.
 
-During the RC every path in this section except the blog sits under `/next/` (section 15).
+During the RC every path in this section except the blog sits under `/next/`, and the root
+answers `/errors/<CODE>/` with a redirect stub to `/next/errors/<CODE>/` (section 15).
 
 ### 4.2 Page kinds
 
@@ -291,7 +416,13 @@ Every page declares its kind in frontmatter (`kind: concept`). The guards read t
 | `platform`  | platform guide          | at least 1            | no         | lookup   |
 | `contract`  | format or contract page | at least 1, or a link | no         | lookup   |
 | `reference` | API reference (`api`)   | 1 per callable export | no         | lookup   |
+| `code`      | amendment A3            | at least 1            | no         | lookup   |
 | `post`      | amendment A2            | none; code `elided`   | no         | none     |
+
+The control of a `tutorial` or `concept` page is the ship console (section 10), which
+arrives in phase 2. Until then the control of each H2 section is the run, break and fix
+exercise of decision 33, and G4 waits for the console (section 14.3). `/api-errors/` is a
+`reference` page with no callable export: one table that links every code page.
 
 Tool routes (`/playground/`, `/academy/` and its children) are not content pages. The
 libraries repo treats `/matrix-explorer/` the same way.
@@ -300,82 +431,102 @@ libraries repo treats `/matrix-explorer/` the same way.
 
 "Requires" is the prerequisites box (standard §2), which names the one or two pages
 immediately before. Lookup pages carry no box and link to the page that teaches a concept.
-"Control" names what the console shows (section 10) or the specimen the page mounts.
+"Control" names what the console shows from phase 2 (section 10) or the specimen the page
+mounts. "Phase" is the delivery phase of section 18; "R" marks a page that waits for its
+package's first release.
 
-| #   | Path                     | Title                                                                | Kind        | Introduces                                                                                                                                                                     | Requires                         | Control                                              |
-| --- | ------------------------ | -------------------------------------------------------------------- | ----------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ | -------------------------------- | ---------------------------------------------------- |
-| 1   | `/`                      | NexusDI                                                              | `overview`  | what NexusDI is, when to use it and when to skip it, bundle size and dependency count                                                                                          | none                             | `MeridianOnline` specimen                            |
-| 2   | `/getting-started/`      | Getting started                                                      | `tutorial`  | install, the TypeScript settings, one interface and its token, `provide(TOKEN, { useClass, deps })`, one module, `Nexus.create`, `get`, `await using`                          | none                             | console: graph of the first ship                     |
-| 3   | `/tokens/`               | Tokens and interfaces                                                | `concept`   | a typed `Token<T>` per interface, identity comparison, `useValue`, why the docs bind interfaces                                                                                | Getting started                  | console: graph                                       |
-| 4   | `/providers/`            | Providers                                                            | `concept`   | `static deps = [TOKEN] as const` as the primary form, `useClass` with `deps` for a class the reader cannot edit, `useFactory` sync and async, `useExisting`, `optional()`, defaults and rest parameters | Tokens and interfaces            | console: graph and a `NAV_CHARTS` specimen           |
-| 5   | `/lifetimes/`            | Lifetimes                                                            | `concept`   | `singleton` and `transient`                                                                                                                                                    | Providers, Tokens and interfaces | console: trace replay of two drones                  |
-| 6   | `/modules/`              | Modules                                                              | `concept`   | `defineModule`, `imports`, `exports`, encapsulation, `global: true`, `has()`, `get(T, { module })`, a module swap                                                              | Lifetimes, Providers             | console: graph with module visibility, then the swap |
-| 7   | `/configurable-modules/` | Configurable modules                                                 | `concept`   | `options`, `forRoot(value)`, `forRootAsync({ deps?, useFactory })`, `schema`, an option that picks the implementation                                                          | Modules, Lifetimes               | console: the chosen link and a frequency check       |
-| 8   | `/scopes/`               | Scopes and REQUEST                                                   | `concept`   | `createScope`, `scoped`, `REQUEST`, the captive rule                                                                                                                           | Configurable modules, Modules    | console: trace replay of two shuttles                |
-| 9   | `/lifecycle/`            | Lifecycle and disposal                                               | `concept`   | `onInit`, `Symbol.asyncDispose`, disposal order, `SuppressedError`                                                                                                             | Scopes and REQUEST               | console: replay of startup and scram                 |
-| 10  | `/lazy/`                 | Lazy edges and cycles                                                | `concept`   | `lazy()`, `NEXUS_CIRCULAR_DEPENDENCY`, `NEXUS_NOT_READY`                                                                                                                       | Lifecycle and disposal           | console: the cycle ring, then the lazy fix           |
-| 11  | `/multi-providers/`      | Multi-providers                                                      | `concept`   | `MultiToken`, `all()`, multi-token visibility                                                                                                                                  | Lazy edges and cycles            | console: graph of the `DIAGNOSTICS` fan-in           |
-| 12  | `/errors/`               | Errors                                                               | `concept`   | `NexusError`, codes, one `BlueprintError` for every compile error, `ProviderError.cause`, core's one-line message, the full text `errors()` from `@nexusdi/errors` restores    | Multi-providers                  | console: the error view of a broken Meridian, with and without `errors()` |
-| 13  | `/introspection/`        | Introspection and trace                                              | `concept`   | `devtools()` from `@nexusdi/devtools`, `graph()`, the `trace(fn)` callback                                                                                                     | Errors                           | `MeridianOnline` and a full trace replay             |
-| 14  | `/node-request-scopes/`  | Scope an HTTP request in Node                                        | `platform`  | `nodeScopes()` from `@nexusdi/node`, passed as the `scopes` option to `Nexus.create`, `scopes.run(shuttle, fn)`, `scopes.current()`                                            | none; links to Scopes            | none: the unit is a running server                   |
-| 15  | `/react-router-ssr/`     | React Router server rendering                                        | `platform`  | the `@nexusdi/react-router` wiring over `examples/react-ssr`: the request scope an adapter creates on first use, and `di.load(Feature)` as route middleware for a lazy section | none; links to Scopes            | none: the unit is a running server                   |
-| 16  | `/testing/`              | How do I replace a provider in a test?                               | `question`  | `createTestingContainer`, `override(TOKEN, { useClass })`, `overrideModule`                                                                                                    | none                             | console: a test run with `FakeReactor`               |
-| 17  | `/load/`                 | How do I add a module after startup?                                 | `question`  | `ship.load(Module)`, why it is named for lazily loaded sections, and the `di.load(Feature)` route middleware for code-split sections                                           | none                             | console: trace replay of a load                      |
-| 18  | `/decorators/`           | How do I write providers with decorators?                            | `question`  | `@Injectable`, `@Inject` on an `accessor`, `@Module`, all from `@nexusdi/decorators`                                                                                           | none                             | console: graph                                       |
-| 19  | `/legacy-decorators/`    | How do I use NexusDI in a project that keeps experimentalDecorators? | `question`  | `NEXUS_LEGACY_DECORATORS` and the `provide()` path                                                                                                                             | none                             | none                                                 |
-| 20  | `/scope-context/`        | How do I scope requests outside Node?                                | `question`  | a custom object that satisfies the structural `scopes` option, for Deno, Bun, Workers and the browser                                                                          | none                             | console: a scope context run                         |
-| 21  | `/bundlers/`             | How do I use NexusDI in a browser bundle?                            | `question`  | bundler settings, `keepNames`, the polyfills in `sideEffects`, decorator transforms                                                                                            | none                             | none                                                 |
-| 22  | `/schemas/`              | Which schema libraries can validate module options?                  | `question`  | valibot in the examples; zod and ArkType through Standard Schema                                                                                                               | none                             | console: a failed validation                         |
-| 23  | `/runtimes/`             | Where NexusDI runs                                                   | `contract`  | the runtime matrix with the evidence for each row                                                                                                                              | none                             | none                                                 |
-| 24  | `/comparison/`           | NexusDI compared with tsyringe, InversifyJS, TypeDI and NestJS       | `contract`  | the differences; why NexusDI needs no compiler flags or a metadata-emitting decorator runtime; bundle size, startup, resolve time and build time, each from the benchmark harness | none                             | none                                                 |
-| 25  | `/plugins/`              | How do I register a plugin?                                          | `question`  | `Nexus.create(root, { plugins: [...] })`, registration order, `errors()` and `devtools()` as the first-party examples, that `devtools()` includes `errors()`                   | none                             | console: an error, first with no plugin, then with `errors()` registered |
-| 26  | `/upgrade/`              | How do I upgrade from 0.3 to 0.4?                                    | `question`  | core spec §13.1 steps 1 to 9, the CHANGELOG link, the support-policy link                                                                                                      | none                             | none                                                 |
-| 27  | `/upgrade-api-map/`      | 0.3 to 0.4 API map                                                   | `contract`  | one H2 per 0.3 API, from core spec §13.1's table                                                                                                                               | none                             | none                                                 |
-| 28  | `/upgrade-behaviour/`    | Behaviour that changes without a compile error                       | `contract`  | the silent behaviour changes, one H2 each                                                                                                                                      | none                             | none                                                 |
-| 29  | `/codemod/`              | How do I run the 0.4 codemod?                                        | `question`  | the CLI, the report, one H2 per TODO and note code                                                                                                                             | none                             | none                                                 |
-| 30  | `/encapsulation/`        | Why does a provider stop resolving after upgrading to 0.4?           | `question`  | module encapsulation, seen from 0.3 code                                                                                                                                       | none                             | console: `NEXUS_NOT_VISIBLE`, then the fix           |
-| 31  | `/set-removed/`          | Where did `set()` go?                                                | `question`  | why 0.4 has no `set()`, how `load(Module)` differs, and what each 0.3 `set()` call becomes                                                                                     | none                             | none                                                 |
-| 32  | `/support-policy/`       | 0.3 support policy                                                   | `contract`  | the 0.3.x support policy and its dates                                                                                                                                         | none                             | none                                                 |
-| 33  | `/api/`                  | `@nexusdi/core`                                                      | `reference` | one H2 per export of `.`, error classes excepted, the `plugins` option of `Nexus.create` included                                                                             | none                             | none                                                 |
-| 34  | `/api-testing/`          | `@nexusdi/testing`                                                   | `reference` | one H2 per export of `.`                                                                                                                                                       | none                             | none                                                 |
-| 35  | `/api-node/`             | `@nexusdi/node`                                                      | `reference` | one H2 per export of `.`                                                                                                                                                       | none                             | none                                                 |
-| 36  | `/api-errors/`           | Error reference                                                      | `reference` | one H2 per error class, one H3 per code                                                                                                                                        | none                             | none                                                 |
-| 37  | `/api-decorators/`       | `@nexusdi/decorators`                                                 | `reference` | one H2 per export of `.`                                                                                                                                                       | none                             | none                                                 |
-| 38  | `/api-devtools/`         | `@nexusdi/devtools`                                                   | `reference` | one H2 per export of `.`                                                                                                                                                       | none                             | none                                                 |
-| 39  | `/api-federation/`       | `@nexusdi/federation`                                                 | `reference` | one H2 per export of `.`                                                                                                                                                       | none                             | none                                                 |
-| 40  | `/api-errors-package/`   | `@nexusdi/errors`                                                     | `reference` | one H2 per export of `.`: `errors()`, `explain(error)`                                                                                                                          | none                             | none                                                 |
-| 41  | `/api-react/`            | `@nexusdi/react`                                                      | `reference` | one H2 per export of `.`                                                                                                                                                       | none                             | none                                                 |
+| #   | Path                     | Title                                                                | Kind        | Introduces                                                                                                                                                                                              | Requires                         | Control (phase 2)                                    | Phase |
+| --- | ------------------------ | -------------------------------------------------------------------- | ----------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | -------------------------------- | ---------------------------------------------------- | ----- |
+| 1   | `/`                      | NexusDI                                                              | `overview`  | what NexusDI is, when to reach for it and when to skip it, the dependency count; the bundle size figure arrives with the benchmark components                                                           | none                             | `MeridianOnline` specimen                            | 1     |
+| 2   | `/getting-started/`      | Getting started                                                      | `tutorial`  | install from `next`, the ESM-only note, the TypeScript settings, classes as tokens with `static deps`, `Nexus.create([...])`, `get`, `await using`, `devtools()` in development                         | none                             | console: graph of the first ship                     | 1     |
+| 3   | `/tokens/`               | Tokens and interfaces                                                | `concept`   | a typed `Token<T>` per interface, `provide(TOKEN, { useClass })`, identity comparison, `useValue`, why the docs bind interfaces                                                                         | Getting started                  | console: graph                                       | 1     |
+| 4   | `/providers/`            | Providers                                                            | `concept`   | `static deps = [TOKEN] as const` as the primary form, `useClass` with `deps` for a class the reader cannot edit, `useFactory` sync and async, `useExisting`, `optional()`, defaults and rest parameters | Tokens and interfaces            | console: graph and a `NAV_CHARTS` specimen           | 1     |
+| 5   | `/lifetimes/`            | Lifetimes                                                            | `concept`   | `singleton`, `transient`, and `eager: false` for a singleton built at its first `get()`                                                                                                                 | Providers, Tokens and interfaces | console: trace replay of two drones                  | 1     |
+| 6   | `/modules/`              | Modules                                                              | `concept`   | `defineModule`, `imports`, `exports`, encapsulation, `global: true`, `has()`, `get(T, { module })`, a module swap                                                                                       | Lifetimes, Providers             | console: graph with module visibility, then the swap | 1     |
+| 7   | `/configurable-modules/` | Configurable modules                                                 | `concept`   | `options`, `forRoot(value)`, `forRootAsync({ deps?, useFactory })`, `schema`, an option that picks the implementation                                                                                   | Modules, Lifetimes               | console: the chosen link and a frequency check       | 1     |
+| 8   | `/scopes/`               | Scopes and REQUEST                                                   | `concept`   | `createScope`, `scoped`, `REQUEST`, the captive rule                                                                                                                                                    | Configurable modules, Modules    | console: trace replay of two shuttles                | 1     |
+| 9   | `/lifecycle/`            | Lifecycle and disposal                                               | `concept`   | `onInit`, `Symbol.asyncDispose`, disposal order, several disposal errors in one rejection                                                                                                               | Scopes and REQUEST               | console: replay of startup and scram                 | 1     |
+| 10  | `/lazy/`                 | Lazy edges and cycles                                                | `concept`   | `lazy()`, `NEXUS_CIRCULAR_DEPENDENCY`, `NEXUS_NOT_READY`                                                                                                                                                | Lifecycle and disposal           | console: the cycle ring, then the lazy fix           | 1     |
+| 11  | `/multi-providers/`      | Multi-providers                                                      | `concept`   | `MultiToken`, `all()`, multi-token visibility                                                                                                                                                           | Lazy edges and cycles            | console: graph of the `DIAGNOSTICS` fan-in           | 1     |
+| 12  | `/errors/`               | Errors                                                               | `concept`   | `NexusError`, codes, `isNexusError`, one `BlueprintError` for every compile error, `ProviderError.cause`, core's one-line message and its link, the full text `errors()` restores                       | Multi-providers                  | console: the error view, with and without `errors()` | 1     |
+| 13  | `/introspection/`        | Introspection and trace                                              | `concept`   | `devtools()`, `graph()`, the `trace(fn)` callback, `inspect()`, `toMermaid()` and `toDot()`                                                                                                             | Errors                           | `MeridianOnline` and a full trace replay             | 1     |
+| 14  | `/plugins/`              | How do I register a plugin?                                          | `question`  | `Nexus.create(root, { plugins: [...] })`, registration order, the first-party plugins, `devtools()` in development only                                                                                 | none                             | console: an error without and with `errors()`        | 1     |
+| 15  | `/testing/`              | How do I replace a provider in a test?                               | `question`  | `createTestingContainer`, `override(TOKEN, { useClass })`, `overrideModule`, `create({ onInit })`                                                                                                       | none                             | console: a test run with `FakeReactor`               | 1     |
+| 16  | `/node-request-scopes/`  | Scope an HTTP request in Node                                        | `platform`  | `nodeScopes()` from `@nexusdi/node`, `scopes.run(shuttle, fn)`, `scopes.current()`                                                                                                                      | none; links to Scopes            | none: the unit is a running server                   | 1     |
+| 17  | `/load/`                 | How do I add a module after startup?                                 | `question`  | `ship.load(Module)`, why it is named for lazily loaded sections, `scope.extend()`, why 0.4 has no `set()`                                                                                               | none                             | console: trace replay of a load                      | 1     |
+| 18  | `/decorators/`           | How do I write providers with decorators?                            | `question`  | `@Injectable`, `@Inject` on an `accessor`, `@Module`, all from `@nexusdi/decorators`, the toolchains that compile them                                                                                  | none                             | console: graph                                       | 1     |
+| 19  | `/legacy-decorators/`    | How do I use NexusDI in a project that keeps experimentalDecorators? | `question`  | `NEXUS_LEGACY_DECORATORS` and the `provide()` path                                                                                                                                                      | none                             | none                                                 | 1     |
+| 20  | `/interceptors/`         | How do I run code around a service's methods?                        | `question`  | `@nexusdi/interceptors`: `interceptors()`, `interceptor()`, `static interceptors`, `@UseInterceptors`, `tap`, the three identity rules and the singleton rule, `interceptorsText`                       | none                             | console: a call through the chain                    | 1     |
+| 21  | `/graph-cli/`            | How do I draw my app's dependency graph?                             | `question`  | the `nexusdi graph` command from `@nexusdi/cli`, its formats, views and exit codes, `parseGraph` from `@nexusdi/devtools`                                                                               | none                             | none                                                 | 1     |
+| 22  | `/error-text/`           | How do I get the full text of every error?                           | `question`  | `errors({ text })`, the `./text` packs, pack order and translation, `explain()`, `devtools({ text })`                                                                                                   | none                             | none                                                 | 1     |
+| 23  | `/write-a-plugin/`       | How do I write a NexusDI plugin?                                     | `question`  | the extension principle, the plugin object and its hooks, an own error with `errorBase` and its pack, an own trace event, a graph annotator, `NEXUS_PLUGIN_API`                                         | none                             | none                                                 | 1     |
+| 24  | `/federation/`           | How do I share tokens between a shell and its remotes?               | `question`  | `defineContract`, `federation()`, `NEXUS_CONTRACT_VERSION`, `federationText`                                                                                                                            | none                             | none                                                 | 2     |
+| 25  | `/scope-context/`        | How do I scope requests outside Node?                                | `question`  | a custom object with `run` and `current` over the platform's async context, for Deno, Bun, Workers and the browser                                                                                      | none                             | console: a scope context run                         | 2     |
+| 26  | `/bundlers/`             | How do I use NexusDI in a browser bundle?                            | `question`  | bundler settings, `keepNames`, the polyfills in `sideEffects`, decorator transforms                                                                                                                     | none                             | none                                                 | 2     |
+| 27  | `/schemas/`              | Which schema libraries can validate module options?                  | `question`  | valibot in the examples; zod and ArkType through Standard Schema                                                                                                                                        | none                             | console: a failed validation                         | 2     |
+| 28  | `/runtimes/`             | Where NexusDI runs                                                   | `contract`  | the runtime matrix with the evidence for each row                                                                                                                                                       | none                             | none                                                 | 2     |
+| 29  | `/comparison/`           | NexusDI compared with InversifyJS, tsyringe, awilix and needle-di    | `contract`  | benchmarks spec §5: one row per library, the measured benefits, why NexusDI needs no compiler flags                                                                                                     | none                             | none                                                 | 1     |
+| 30  | `/vs-<library>/`         | four pages, one per competitor (benchmarks spec §5.1)                | `contract`  | benchmarks spec §5.2                                                                                                                                                                                    | none                             | none                                                 | 2     |
+| 31  | `/benchmark-method/`     | How NexusDI's benchmarks are measured                                | `contract`  | benchmarks spec §4.12 and §12                                                                                                                                                                           | none                             | none                                                 | 1     |
+| 32  | `/react-router-ssr/`     | React Router server rendering                                        | `platform`  | the `@nexusdi/react-router` wiring over `examples/react-ssr` (integrations spec §3.9)                                                                                                                   | none; links to Scopes            | none: the unit is a running server                   | R     |
+| 33  | `/release-candidate/`    | How do I try the 0.4 release candidate?                              | `question`  | what an RC is, installing every package from `next`, checking the version, what decides 0.4.0 final, reporting a problem                                                                                | none                             | none                                                 | 1     |
+| 34  | `/upgrade/`              | How do I upgrade from 0.3 to 0.4?                                    | `question`  | core spec §13.1 sections 2 to 10, the behaviour that changes without a compile error, the CHANGELOG link, the support-policy link                                                                       | none                             | none                                                 | 1     |
+| 35  | `/support-policy/`       | 0.3 support policy                                                   | `contract`  | the 0.3.x support policy and its dates                                                                                                                                                                  | none                             | none                                                 | 1     |
+| 36  | `/upgrade-api-map/`      | 0.3 to 0.4 API map                                                   | `contract`  | one H2 per 0.3 API, from core spec §13.1's table, fences from the codemod fixtures                                                                                                                      | none                             | none                                                 | R     |
+| 37  | `/upgrade-behaviour/`    | Behaviour that changes without a compile error                       | `contract`  | the silent behaviour changes, one H2 each, taken over from the `/upgrade/` section                                                                                                                      | none                             | none                                                 | 2     |
+| 38  | `/codemod/`              | How do I run the 0.4 codemod?                                        | `question`  | the CLI, the report, one H2 per TODO and note code                                                                                                                                                      | none                             | none                                                 | R     |
+| 39  | `/encapsulation/`        | Why does a provider stop resolving after upgrading to 0.4?           | `question`  | module encapsulation, seen from 0.3 code                                                                                                                                                                | none                             | console: `NEXUS_NOT_VISIBLE`, then the fix           | 2     |
+| 40  | `/set-removed/`          | Where did `set()` go?                                                | `question`  | why 0.4 has no `set()`, how `load(Module)` differs, and what each 0.3 `set()` call becomes                                                                                                              | none                             | none                                                 | R     |
+| 41  | `/api-errors/`           | Error codes                                                          | `reference` | one table row per first-party code, linking its code page                                                                                                                                               | none                             | none                                                 | 1     |
+| 42  | `/errors/<CODE>/`        | one page per first-party code, 40 at rc.0                            | `code`      | amendment A3: the smallest program that raises the code, the one-line message, the full text, the fix                                                                                                   | none                             | none                                                 | 1     |
+| 43  | `/api/`                  | `@nexusdi/core`                                                      | `reference` | one H2 per export of `.` and of `./text`, error classes excepted, the `plugins` option of `Nexus.create` included                                                                                       | none                             | none                                                 | 2     |
+| 44  | `/api-testing/`          | `@nexusdi/testing`                                                   | `reference` | one H2 per export of `.`                                                                                                                                                                                | none                             | none                                                 | 2     |
+| 45  | `/api-node/`             | `@nexusdi/node`                                                      | `reference` | one H2 per export of `.`                                                                                                                                                                                | none                             | none                                                 | 2     |
+| 46  | `/api-decorators/`       | `@nexusdi/decorators`                                                | `reference` | one H2 per export of `.`                                                                                                                                                                                | none                             | none                                                 | 2     |
+| 47  | `/api-devtools/`         | `@nexusdi/devtools`                                                  | `reference` | one H2 per export of `.`                                                                                                                                                                                | none                             | none                                                 | 2     |
+| 48  | `/api-federation/`       | `@nexusdi/federation`                                                | `reference` | one H2 per export of `.` and of `./text`                                                                                                                                                                | none                             | none                                                 | 2     |
+| 49  | `/api-errors-package/`   | `@nexusdi/errors`                                                    | `reference` | one H2 per export of `.`: `errors()`, `explain()`                                                                                                                                                       | none                             | none                                                 | 2     |
+| 50  | `/api-interceptors/`     | `@nexusdi/interceptors`                                              | `reference` | one H2 per export of `.` and of `./text`                                                                                                                                                                | none                             | none                                                 | 2     |
+| 51  | `/api-react/`            | `@nexusdi/react`                                                     | `reference` | one H2 per export of `.`                                                                                                                                                                                | none                             | none                                                 | R     |
 
-Pages 14 to 25 are the Guides band, 26 to 32 the Migration band and 33 to 41 the API band.
+Pages 14 to 32 are the Guides band, 33 to 40 the Migration band and 41 to 51 the API band.
+`@nexusdi/cli` exports no library entry, so it has no API page; `/graph-cli/` documents its
+command.
 
 The blog, on the new site from 0.4.0 final:
 
-| #   | Path                                       | What it is                                                           |
-| --- | ------------------------------------------ | -------------------------------------------------------------------- |
-| B1  | `/blog/`                                   | The post index                                                       |
-| B2  | `/blog/first-release/`                     | "Tabula Rasa", migrated, 0.1.0                                       |
-| B3  | `/blog/standard-decorators-simpler-modules/` | "The jump to lightspeed", migrated, 0.2                            |
-| B4  | `/blog/0-4-release-candidate/`             | The RC announcement, migrated from the snapshot, plus any RC updates |
+| #   | Path                                         | What it is                                                           |
+| --- | -------------------------------------------- | -------------------------------------------------------------------- |
+| B1  | `/blog/`                                     | The post index, on `main` from phase 1 with no posts                 |
+| B2  | `/blog/first-release/`                       | "Tabula Rasa", migrated, 0.1.0                                       |
+| B3  | `/blog/standard-decorators-simpler-modules/` | "The jump to lightspeed", migrated, 0.2                              |
+| B4  | `/blog/0-4-release-candidate/`               | The RC announcement, migrated from the snapshot, plus any RC updates |
+| B5  | `/blog/<launch-slug>/`                       | The launch post (benchmarks spec §6)                                 |
 
 Tool routes:
 
-| #   | Path                  | What it is                                                        |
-| --- | --------------------- | ----------------------------------------------------------------- |
-| T1  | `/playground/`        | The full-screen Playground, seeded by `?seed=<id>` (section 11)   |
-| T2  | `/academy/`           | The mission list and the next-mission recommendation (section 13) |
-| T3  | `/academy/[mission]/` | One route per mission, nine in all (section 13.1)                 |
-| T4  | `/academy/progress/`  | Progress, stats, storage state, export and reset (section 13.7)   |
+| #   | Path                  | What it is                                                        | Phase |
+| --- | --------------------- | ----------------------------------------------------------------- | ----- |
+| T1  | `/playground/`        | The full-screen Playground, seeded by `?seed=<id>` (section 11)   | 2     |
+| T2  | `/academy/`           | The mission list and the next-mission recommendation (section 13) | 4     |
+| T3  | `/academy/[mission]/` | One route per mission, nine in all (section 13.1)                 | 4     |
+| T4  | `/academy/progress/`  | Progress, stats, storage state, export and reset (section 13.7)   | 4     |
 
-Counts: 41 documentation pages (2 Start, 11 Concepts, 12 Guides, 7 Migration, 9 API), 12
-tool routes (the Playground, the Academy index, 9 missions and the progress page), and at
-final a blog of an index and at least three posts.
+Counts: 51 inventory rows. Phase 1 holds 27 documentation pages (2 Start, 11 Concepts, 10
+Guides, 3 Migration, 1 API) and the 40 code pages. Phase 2 adds 21 pages (rows 24 to 31,
+37, 39 and 43 to 50, with row 30 holding the four `/vs-*/` pages). Five rows wait for a
+package release (R). The tool routes are 12 (the Playground, the Academy index, 9 missions and the
+progress page), and at final the blog holds an index and at least four posts.
 
-Four notes on the inventory.
+Notes on the inventory.
 
-The Migration band splits core spec §13.1. `/upgrade/` walks the steps, links to
-`libs/core/CHANGELOG.md` and links to `/support-policy/`, which states decision 27's policy
-with its dates: the 0.4.0 release date, the end of the six months, and whether 0.5.0 has
-been released.
+The Migration band splits core spec §13.1. `/upgrade/` walks sections 2 to 10 of that
+outline, links to `libs/core/CHANGELOG.md` and links to `/support-policy/`, which states
+decision 27's policy with its dates: the 0.4.0 release date, the end of the six months,
+and whether 0.5.0 has been released. rc.0 publishes no codemod, so `/upgrade/` leaves out
+section 1 of the outline (run the codemod) until `@nexusdi/codemod` publishes, and the
+pages that cite the codemod's fixtures (`/upgrade-api-map/`, `/codemod/`, `/set-removed/`)
+wait for it. Until `/upgrade-behaviour/` exists, `/upgrade/` carries its list as one H2.
 
 `/set-removed/`, "Where did `set()` go?", is a question page with five H2s, in this order:
 
@@ -398,28 +549,32 @@ been released.
    leaves a TODO with the code `set-after-startup` (core spec §13.2) at that call, which
    `/codemod/` explains under its own H2.
 
-The domain applies to the 0.4 code on the page, and the 0.3 code comes from the codemod's
+Until the codemod publishes, `/load/` answers items 1, 2 and 4 in one H2. The domain
+applies to the 0.4 code on the page, and the 0.3 code comes from the codemod's
 `container-bootstrap` fixtures, as on `/upgrade-api-map/`.
 
 `/load/` states the name's reason in one sentence: `load()` is named for sections of an
 application that are loaded lazily, as in
-`await ship.load((await import('./survey.js')).SurveyModule)`.
+`await ship.load((await import('./survey.js')).SurveyModule)`. It also teaches
+`scope.extend()` (core spec D10): a scope created before a `load()` sees the old graph
+until `await shuttle.extend()` moves it to the new one.
 `/upgrade-api-map/` holds the mapping table as one H2 per 0.3 API, so a reader who searches
 a 0.3 name reaches an anchor. It has about 45 entries and runs past the 1,200-word budget.
 G8 reports and does not fail (standard §4), and the page is recorded in
 `doc-prose-budget.json`. `/upgrade-behaviour/` is the single list of changes that compile
-and behave differently: a class-typed parameter 0.3.1 left `undefined` is now injected
-(the codemod note `undecorated-param-injected`), every singleton is built at `create`,
-`onInit` runs inside `create`, `has()` answers for visibility and returns `false` for a
-private token or a module class, two `forRoot()` calls build two module instances, one token
-provided in two modules builds two singletons, a factory's result is disposed with the
-container, and error messages start with their code (the TODO `error-message-match`).
+and behave differently: a class-typed parameter 0.3.1 left `undefined` is now injected,
+every singleton is built at `create` (and `eager: false` restores the build at first
+`get()`, core spec D11), `onInit` runs inside `create`, `has()` answers for visibility and
+returns `false` for a private token or a module class, two `forRoot()` calls build two
+module instances, one token provided in two modules builds two singletons, a factory's
+result is disposed with the container, and error messages start with their code.
 
-`/api-errors/` carries one H3 per `NexusErrorCode` member, so every code has a stable
-anchor, for example `/api-errors/#nexus_missing_provider`. Core spec §9 promises that the
-docs link each code to a page that explains it, and these anchors are those links.
-`NEXUS_PROMISE_TOKEN` has no runtime class, so it sits under an H2 for the type-level
-messages of `provide()`.
+`/api-errors/` is one table with a row per first-party code: the code linked to its page
+at `/errors/<CODE>/`, the package, the class and when the code is raised. Core spec §9
+promises that the docs link each code to a page that explains it, and the published
+messages link to `https://nexus.js.org/errors/<CODE>` (amendment A3), so the code pages are
+those links. `NEXUS_PROMISE_TOKEN` is a type-level message of `provide()` with no runtime
+class and no URL, so `/providers/` explains it where it teaches `useFactory`.
 
 The evaluator pages state facts with their evidence. `/runtimes/` gives each runtime
 (Node 22.12 and 24, a CommonJS project on Node through `require()`, Chromium, Firefox, Safari
@@ -434,12 +589,10 @@ time, resolve time and build time. Its H2 "Why NexusDI needs no compiler flags" 
 site's answer to that question, and it cites the same measurements, since dropping
 `experimentalDecorators` and `emitDecoratorMetadata`, and needing no metadata-emitting
 decorator runtime, is what the build time and bundle figures measure. The benchmarks spec
-§5 extends the page and adds one
-`/vs-<library>/` page per competitor, all under section 4.6's rule. The build time figures
-render from the harness's `build` family, for example
-`<Figure of="build.nexusdi.plain.tsc-6.median" />`.
-
-`/decorators/` and the API reference are required for rc.0 (section 18.2).
+§5 extends the page and adds one `/vs-<library>/` page per competitor, all under section
+4.6's rule. The build time figures render from the harness's `build` family. No page title
+or description names a metadata library: the owner's writing rules hold for the SEO titles
+of benchmarks spec §5.1 too (section 21).
 
 ### 4.4 Teaching order and fading
 
@@ -448,22 +601,23 @@ page N carries a short reminder on page N+1, a shorter one on N+2 and none from 
 (standard decision 2). The reminder is a clause or a parenthesis. It never repeats the
 explanation and never links away.
 
-| Concept                                                     | Introduced on          | Short reminder on       | Shorter reminder on     |
-| ----------------------------------------------------------- | ---------------------- | ----------------------- | ----------------------- |
-| `Nexus.create`, `get`, `provide(TOKEN, { useClass, deps })` | Getting started        | Tokens and interfaces   | Providers               |
-| an interface and its `Token<T>`, `useValue`                 | Tokens and interfaces  | Providers               | Lifetimes               |
-| the other provider forms, `static deps`, `optional()`       | Providers              | Lifetimes               | Modules                 |
-| `singleton`, `transient`                                    | Lifetimes              | Modules                 | Configurable modules    |
-| `defineModule`, `exports`, `has()`                          | Modules                | Configurable modules    | Scopes and REQUEST      |
-| `forRoot()`, `options`                                       | Configurable modules   | Scopes and REQUEST      | Lifecycle and disposal  |
-| `createScope`, `scoped`, `REQUEST`                          | Scopes and REQUEST     | Lifecycle and disposal  | Lazy edges and cycles   |
-| `onInit`, disposal order                                    | Lifecycle and disposal | Lazy edges and cycles   | Multi-providers         |
-| `lazy()`                                                    | Lazy edges and cycles  | Multi-providers         | Errors                  |
-| `MultiToken`, `all()`                                       | Multi-providers        | Errors                  | Introspection and trace |
-| error codes, `BlueprintError`                               | Errors                 | Introspection and trace | none                    |
+| Concept                                                                  | Introduced on          | Short reminder on       | Shorter reminder on     |
+| ------------------------------------------------------------------------ | ---------------------- | ----------------------- | ----------------------- |
+| `Nexus.create([...])`, `get`, `static deps`, `await using`               | Getting started        | Tokens and interfaces   | Providers               |
+| an interface, its `Token<T>`, `provide(TOKEN, { useClass })`, `useValue` | Tokens and interfaces  | Providers               | Lifetimes               |
+| the other provider forms, `deps` on `provide()`, `optional()`            | Providers              | Lifetimes               | Modules                 |
+| `singleton`, `transient`, `eager: false`                                 | Lifetimes              | Modules                 | Configurable modules    |
+| `defineModule`, `exports`, `has()`                                       | Modules                | Configurable modules    | Scopes and REQUEST      |
+| `forRoot()`, `options`                                                   | Configurable modules   | Scopes and REQUEST      | Lifecycle and disposal  |
+| `createScope`, `scoped`, `REQUEST`                                       | Scopes and REQUEST     | Lifecycle and disposal  | Lazy edges and cycles   |
+| `onInit`, disposal order                                                 | Lifecycle and disposal | Lazy edges and cycles   | Multi-providers         |
+| `lazy()`                                                                 | Lazy edges and cycles  | Multi-providers         | Errors                  |
+| `MultiToken`, `all()`                                                    | Multi-providers        | Errors                  | Introspection and trace |
+| error codes, `BlueprintError`                                            | Errors                 | Introspection and trace | none                    |
 
-The example code follows the same order. The Getting started page binds one interface to one class
-before the Tokens and interfaces page explains why, and every later page repeats the shape.
+The example code follows the same order. The Getting started page binds two classes as their
+own tokens (decision 31), the Tokens and interfaces page puts an interface and a token in
+front of each, and every later page repeats that shape.
 `ScoutDrone` takes only `COMPUTER` until the Scopes page, where `MISSION` joins its deps.
 Section 7.2 lists every place the docs' ship differs from core spec §3.4.
 
@@ -476,17 +630,17 @@ Core spec promises nine things the docs will say. Each has a page and a heading,
 `apps/docs/commitments.json` holds the same table, which the `doc-commitments` guard
 checks for the heading (section 14.3).
 
-| Core spec line | Commitment                                                                            | Page and H2                                                                |
-| -------------- | ------------------------------------------------------------------------------------- | -------------------------------------------------------------------------- |
-| 254            | A class with default or rest parameters needs `provide(C, { deps })` or `@Injectable` | `/providers/`, "A class whose constructor has defaults or rest parameters" |
-| 393            | Call `forRoot()` once and import the result                                           | `/configurable-modules/`, "Call `forRoot()` once and share the module"     |
-| 466            | Resolve disposable transients inside a scope                                          | `/lifecycle/`, "A disposable transient belongs in a scope"                 |
-| 818            | The `esnext.disposable` lib reference adds the disposable globals                     | `/getting-started/`, "TypeScript settings for NexusDI"                     |
-| 1034           | A scoped factory runs once in every scope; on-demand work goes in a scoped class      | `/scopes/`, "A scoped factory runs in every shuttle"                       |
-| 1110           | A factory hands ownership of its result to the container                              | `/lifecycle/`, "A factory's result belongs to the container"               |
-| 1203           | Each error code links to a page that explains it                                      | `/api-errors/`, one H3 per code                                            |
-| 1239           | Minifiers rename classes; use `Token` descriptions or `keepNames`                     | `/introspection/`, "Display names after minification", and `/bundlers/`    |
-| 1301           | An untracked disposable transient is a leak; use a scope                              | `/lifecycle/`, "A disposable transient belongs in a scope"                 |
+| Core spec line | Commitment                                                                            | Page and H2                                                                   |
+| -------------- | ------------------------------------------------------------------------------------- | ----------------------------------------------------------------------------- |
+| 254            | A class with default or rest parameters needs `provide(C, { deps })` or `@Injectable` | `/providers/`, "A class whose constructor has defaults or rest parameters"    |
+| 393            | Call `forRoot()` once and import the result                                           | `/configurable-modules/`, "Call `forRoot()` once and share the module"        |
+| 466            | Resolve disposable transients inside a scope                                          | `/lifecycle/`, "A disposable transient belongs in a scope"                    |
+| 818            | The `esnext.disposable` lib reference adds the disposable globals                     | `/getting-started/`, "TypeScript settings for NexusDI"                        |
+| 1034           | A scoped factory runs once in every scope; on-demand work goes in a scoped class      | `/scopes/`, "A scoped factory runs in every shuttle"                          |
+| 1110           | A factory hands ownership of its result to the container                              | `/lifecycle/`, "A factory's result belongs to the container"                  |
+| 1203           | Each error code links to a page that explains it                                      | `/errors/<CODE>/`, one page per code (amendment A3), listed on `/api-errors/` |
+| 1239           | Minifiers rename classes; use `Token` descriptions or `keepNames`                     | `/introspection/`, "Display names after minification", and `/bundlers/`       |
+| 1301           | An untracked disposable transient is a leak; use a scope                              | `/lifecycle/`, "A disposable transient belongs in a scope"                    |
 
 Line numbers are at `b5ab435`. The guard keys on the headings, so a later edit to the core
 spec moves nothing here.
@@ -527,6 +681,14 @@ dependency count, 0, is a count and no size or time, so `docs:package-facts` sti
 from `libs/core/package.json`.
 
 `doc-benchmark-figures` (section 14.3) enforces the rule on every page.
+
+Phase 1 renders figures on `/comparison/`, `/benchmark-method/` and the landing page
+(decision 38), with `docs:benchmark-data`, `<Figure>`, `<MeasuredWith>`,
+`<PerformanceTable>`, `<ToolchainGrid>`, `<ProbeTable>` and `doc-benchmark-figures`. The
+charts arrive in phase 2 with the `/vs-*/` pages. `benchmarks/results/` at the rc.0 tag
+holds `size.json`, `matrix.json` and `probes.json`; `release/0.4` has them measured on
+`0.4.0-rc.0` and still lacks timings and `build.json`. The rc.0 tag run (pull request #73
+into `release/0.4`) adds both; phase 1 builds from them once the owner merges it.
 
 ## 5. Page anatomy per page type
 
@@ -570,10 +732,12 @@ Meridian tokens through the sentinel mechanism in the libraries repo's
 
 Every page on `/next/` carries a release notice above its H1. The notice reads the newest
 stable `@nexusdi/core@*` tag and the newest RC tag at build time, on the pattern of the
-libraries repo's `release-state.ts`, and hard-codes no version. During the RC it reads
-"This page documents `@nexusdi/core` 0.4.0-rc.2. The documentation for 0.3.1, the current
-release, is at nexus.js.org." After final, `/next/` pages say they document `main` ahead
-of the newest release, and root pages carry no notice.
+libraries repo's `release-state.ts`, and hard-codes no version. `/next/` builds from the
+head of `release/X.Y`, which can hold changes the newest RC lacks, so during the RC it
+reads "This page documents the 0.4 release candidates. The newest on npm is
+`@nexusdi/core` 0.4.0-rc.0. The documentation for 0.3.2, the current release, is at
+nexus.js.org." and links `/release-candidate/`. After final, `/next/` pages say they
+document the line ahead of the newest release, and root pages carry no notice.
 
 ### 5.2 Overview: the landing page
 
@@ -581,7 +745,9 @@ The landing page is `content/index.mdx`, rendered with `theme: { layout: 'full',
 sidebar: false, toc: false }` in `_meta.ts`. It is a content page, so it gets a `.md`
 sibling, Pagefind indexing and every guard, and it follows the standard's overview rules:
 what NexusDI is in two sentences, one executed region, when to reach for it, when not to,
-and links to Getting started, Concepts, the upgrade guide and the API reference.
+and links to Getting started, Concepts, the release candidate page, the upgrade guide and
+the error codes. Items 2 and 3 below arrive in phase 2; the phase 1 page shows the
+dependency count and runs the region of item 3 as a plain executed region.
 
 The proposal, top to bottom. Items marked [design pass] are placeholders for the visual
 design pass.
@@ -610,7 +776,8 @@ design pass.
    mistakes until runtime, a server that needs per-request values, resources that must
    shut down in dependency order, and tests that replace one service without rebuilding
    the graph. A line says NexusDI needs no metadata-emitting decorator runtime and no
-   compiler flag, with a link to `/comparison/`. [design pass: layout as cards]
+   compiler flag, with a link to `/comparison/` once that page exists (phase 2). [design
+   pass: layout as cards]
 5. "When to skip it": a script with a handful of objects, and a framework with its own
    container (NestJS, Angular), where NexusDI adds a second container beside the first.
 6. Links to the four entry pages. [design pass: card treatment]
@@ -620,16 +787,19 @@ section as standard decision 20 and G6 require.
 
 ### 5.3 Tutorial: Getting started
 
-`/getting-started/` assumes nothing beyond the overview. It shows the install command
-(`npm install @nexusdi/core@next` during the RC) and, in the same section, the ESM-only
-note of section 5.3.1, then the TypeScript settings the reader needs
-(TypeScript 5.4 or later, no `experimentalDecorators`, and what the `esnext.disposable` lib
-reference adds), and one path that works end to end: the `IReactorCore` and
-`IShipComputer` interfaces, their tokens `REACTOR` and `COMPUTER`,
-`provide(REACTOR, { useClass: FusionReactor })`,
-`provide(COMPUTER, { useClass: QuantumComputer, deps: [REACTOR] })`, one `defineModule`,
-`Nexus.create`, a `get(COMPUTER)` and `await using`. Every step is an executed region. The page mounts one inline console whose
-seed is the finished path.
+`/getting-started/` assumes nothing beyond the overview. It shows the install commands
+(`npm install @nexusdi/core@next` during the RC, and `npm install -D typescript tsx` for
+running the examples) and, in the same section, the ESM-only note of section 5.3.1, then
+the TypeScript settings the reader needs (TypeScript 5.4 or later, no
+`experimentalDecorators`, and what the `esnext.disposable` lib reference adds), and one
+path that works end to end with classes as their own tokens (core spec D8, decision 31):
+`FusionReactor`, `QuantumComputer` with `static deps = [FusionReactor] as const`,
+`Nexus.create([FusionReactor, QuantumComputer])`, a `get(QuantumComputer)` and
+`await using`. The reader then breaks it (drops `FusionReactor` from the list and reads
+`NEXUS_BLUEPRINT_INVALID` with its `NEXUS_MISSING_PROVIDER`), and registers `devtools()`
+from `@nexusdi/devtools` in development to read the full message with its fix (core spec
+D15, D19). Every step is an executed region. From phase 2 the page mounts one inline
+console whose seed is the finished path.
 
 #### 5.3.1 The ESM-only note
 
@@ -662,7 +832,9 @@ top-level `await`. The row names the CI job that runs the check.
 
 ### 5.4 Concept page
 
-A concept page uses layout B (section 10). Its `_meta.ts` entry sets
+From phase 2 a concept page uses layout B (section 10). In phase 1 it uses Nextra's default
+layout with its table of contents, and each H2 section ends with the run, break and fix
+exercise of decision 33 where phase 2 adds its `<ConsoleView>`. Its `_meta.ts` entry sets
 `theme: { layout: 'full', toc: false }`, and its frontmatter sets `console: true`.
 `app/(site)/[[...mdxPath]]/page.tsx` reads `metadata.console` and renders the page's MDX
 inside a two-column grid: the prose column at the `measure` token's width, and the sticky
@@ -676,9 +848,9 @@ The shape:
    state what it does.
 2. The prerequisites box.
 3. H2 sections, each teaching one facet in prose, an executed region and, where the shape
-   needs it, a captioned `mermaid` fence. Each H2 section carries one `<ConsoleView>`
-   whose `caption` says what the view shows, or a `<ConsoleExempt reason="…" />`
-   (amendment A1).
+   needs it, a captioned `mermaid` fence. From phase 2 each H2 section carries one
+   `<ConsoleView>` whose `caption` says what the view shows, or a
+   `<ConsoleExempt reason="…" />` (amendment A1).
 4. Up to two notices, one of which may be a Ship note.
 
 A concept page ends when its last H2 ends. It carries no recap and no "next steps" prose.
@@ -704,7 +876,9 @@ console.
 adapter's `di.load(Feature)` route middleware, placed in front of that section's handlers,
 and both state that the adapter creates the request scope on the first use in a request.
 A request that resolves nothing never opens a scope. `/load/` shows `ship.load(Module)`
-first, then the middleware that wraps it.
+first, then the middleware that wraps it. rc.0 publishes no adapter, so the phase 1
+`/load/` page teaches `ship.load(Module)` and `scope.extend()` alone, and gains the
+middleware when the adapters publish (row 32 of section 4.3).
 
 ### 5.7 Contract page
 
@@ -717,7 +891,8 @@ each entry states its evidence beside it.
 
 ### 5.8 Reference page
 
-The nine API pages follow `2026-09-21-docs-api-reference.md`: one `## \`symbol\`` heading
+The package API pages (rows 43 to 51 of section 4.3, phase 2) follow
+`2026-09-21-docs-api-reference.md`: one `## \`symbol\`` heading
 per export, and under it one directive the reference loader expands:
 
 ```md
@@ -740,6 +915,26 @@ filename prefix `api`, following `2026-09-21-reference-page-budget.md` decision 
 spec is still proposed in the libraries repo, so this site adopts the exemption on its own
 authority and records it in G8.
 
+### 5.8a Code page
+
+A code page (amendment A3) is `content/errors/<CODE>.mdx`. Its H1 is the code. The first
+sentence says what raises the code and when: at `create`, at `load()`, at `createScope()`,
+at a `get()`, at disposal or when a decorator runs. Its H2 sections, in order:
+
+1. "Reproduce `<CODE>`": one executed region, the smallest Meridian program that raises the
+   code, which prints core's one-line message and the full text as claims, and a "Try it"
+   sentence: run it, apply the fix, run it again.
+2. "Fix `<CODE>`": the change, with an executed region of the fixed program where it helps.
+3. "Full text of `<CODE>` with `errors()`", on the page of a code whose text lives in a
+   package's text pack: the message with and without the pack, and the
+   `errors({ text: [<pack>] })` line from that package's `./text` entry. A code whose
+   package raises it with inline text (at decorator time, before the plugin is set up, or
+   one of the testing override codes) replaces this section with one sentence that says so.
+4. "Fields of `<ErrorClass>`": a list of the error's fields and what each holds.
+
+A code page is exempt from G8 and from the domain guard's ratchet. It follows every other
+rule.
+
 ### 5.9 Blog post
 
 Section 6.
@@ -755,8 +950,17 @@ the site name, a link back to the docs, the theme switch and the background paus
 
 ### 6.1 During the RC
 
-The blog stays on the 0.3 site at the root. `/next/` has no blog, and the new site's build
-leaves `content/blog/` out whenever it builds for `/next/`.
+The blog posts stay on the 0.3 site at the root. `/next/` has no blog, and the new site's
+build leaves `content/blog/` out whenever it builds for `/next/` (`keepRoute` in
+`app/(site)/[[...mdxPath]]/static-params.ts`).
+
+`content/blog/` itself exists on `main` and on every release branch from phase 1 on: its
+`_meta.ts`, `authors.ts` and `index.mdx` with `<PostList />`, and no post until phase 3.
+`postbuild` writes the two feeds from it on the `release` channel, empty until the posts
+migrate. The `final` root build copies `content/blog/` from `main` into the release tag's
+tree (section 15.3), so the copy has a source on the day `final` first runs, and the
+`docs-deploy` check refuses `final` and `retired` when `content/blog/index.mdx` is
+missing (decision 35).
 
 The RC announcement is a Docusaurus Markdown post in `apps/docs/snapshot/blog/`, on
 `main`. The snapshot workflow copies it into the 0.3 site's `blog/` directory before it
@@ -767,14 +971,17 @@ the newest RC post and one to `/next/upgrade/`.
 
 The post covers what core spec §14's rc.0 checklist item 1 lists: what changed and why, the
 codemod, how to install `@nexusdi/core@next`, the feedback channel, and the timeline to
-0.4.0 final. The outline adds the 0.3 support policy of decision 27: `latest` stays on
+0.4.0 final. rc.0 publishes no codemod package, so the post carries no codemod section,
+and `/release-candidate/` names none; the codemod gets its own post and its pages when the
+package publishes (section 18.4). The post links the RC feedback form and the Discussions
+index, and it publishes with the switch to `rc` (decision 39). The outline adds the 0.3 support policy of decision 27: `latest` stays on
 0.3.x until final, and 0.3.x receives security, crash and data-loss fixes until the
 `/v0.3/` retention ends.
 
 ### 6.2 From 0.4.0 final
 
-The blog moves to `content/blog/` on the new site, entered from the navbar and outside the
-sidebar. `content/_meta.ts` lists it as `blog: { type: 'page', title: 'Blog' }`, and
+The posts move into `content/blog/` on the new site (phase 3), entered from the navbar and
+outside the sidebar. `content/_meta.ts` lists it as `blog: { type: 'page', title: 'Blog' }`, and
 `content/blog/_meta.ts` sets `theme: { sidebar: false, toc: true, pagination: false }` for
 every post.
 
@@ -838,8 +1045,14 @@ already writes its examples in these names, so the docs and the spec share one v
 ### 7.1 Canonical vocabulary
 
 An example draws from this list and invents no neighbour. The code lives in
-`examples/meridian`: `src/ship/` holds the finished ship, and `src/pages/<slug>/` holds
-each page's code at the stage that page teaches.
+`examples/meridian`: `src/pages/<slug>.md` holds each page's regions at the stage that page
+teaches, `src/errors/<CODE>.md` holds each code page's regions, and `src/ship/` holds the
+finished ship (phase 2, for the console seeds). Each region is a fenced
+`ts @import.meta.vitest` block between `<!-- #region name -->` markers, a whole program with
+its own imports, run as a test by the `docExamples()` wiring `libs/core/README.md` uses and
+compiled by a type-check test. A claimed value is bound on a `const` line with a
+`// -> value` comment and printed on the next line, so the reader who runs the file sees
+what the comment states (decision 33).
 
 Each service is an interface, a typed token named for the role, and one concrete class
 bound to the token in one provider. A token's description is the role's name, so `graph()`
@@ -849,8 +1062,8 @@ and the trace show `ReactorCore` and `ShipComputer` whatever class fills the rol
 | ------------------- | ---------------------------------------------------------- | ------------------------------------- | ---------------- | ------------------------------------------------------------------------------------------------------------------- |
 | `IReactorCore`      | `REACTOR = new Token<IReactorCore>('ReactorCore')`         | `FusionReactor`                       | singleton        | `Engineering`, no deps                                                                                              |
 | `IShipComputer`     | `COMPUTER`, described `'ShipComputer'`                     | `QuantumComputer`                     | singleton        | `Engineering`, `[REACTOR]`                                                                                          |
-| `IPowerRouter`      | `POWER_ROUTER`, described `'PowerRouter'`                  | `PlasmaRouter`                        | singleton        | `Engineering`, `[lazy(SHIELDS)]`                                                                                    |
-| `IShieldGrid`       | `SHIELDS`, described `'ShieldGrid'`                        | `DeflectorGrid`                       | singleton        | `Engineering`, `[POWER_ROUTER]`                                                                                     |
+| `IPowerRouter`      | `POWER_ROUTER`, described `'PowerRouter'`                  | `PlasmaRouter`                        | singleton        | `Engineering`, `[lazy(SHIELD_GRID)]`                                                                                |
+| `IShieldGrid`       | `SHIELD_GRID`, described `'ShieldGrid'`                    | `DeflectorGrid`                       | singleton        | `Engineering`, `[POWER_ROUTER]`                                                                                     |
 | `ISubspaceLink`     | `SUBSPACE_LINK = new Token<ISubspaceLink>('SubspaceLink')` | `SubspaceRelay` or `LaserLink`        | singleton        | `Comms`, chosen by the `transport` option (section 7.3)                                                             |
 | `INavCharts`        | `NAV_CHARTS: Token<INavCharts>`                            | an async factory                      | singleton        | `Tactical`, `provide(NAV_CHARTS, { useFactory: async (link) => StarCharts.download(link), deps: [SUBSPACE_LINK] })` |
 | `ISurveyDrone`      | `DRONE`, described `'SurveyDrone'`                         | `ScoutDrone`                          | transient        | `Tactical`, `[COMPUTER]`, and `[COMPUTER, MISSION]` from the Scopes page on                                         |
@@ -880,8 +1093,9 @@ The finished ship in `src/ship/` differs from core spec §3.4 in five places, ea
 teaching reason:
 
 1. Every service is bound through an interface token (section 7.3). Core §3.4 uses classes
-   as their own tokens. That form is valid NexusDI, and the Tokens and interfaces page
-   states it in prose and shows no example of it.
+   as their own tokens. That form is valid NexusDI: `/getting-started/` uses it for its two
+   classes (decision 31), and the Tokens and interfaces page states it in prose and moves
+   to interfaces.
 2. `ScoutDrone` takes only `COMPUTER` on the pages before Scopes, so the Lifetimes page
    teaches a transient before a scope exists.
 3. The diagnostics panel lives in `Meridian`, and `Tactical` exports `DIAGNOSTICS`, so the
@@ -903,7 +1117,7 @@ teaching reason:
 ### 7.3 The interface-first rule
 
 Every example in the docs, in a post from 0.4.0 on, in a Playground seed and in an Academy
-mission follows four rules:
+mission follows four rules, `/getting-started/` excepted (decision 31):
 
 1. Each service has an interface and a typed token: `interface IReactorCore` with
    `REACTOR = new Token<IReactorCore>('ReactorCore')`, `NAV_CHARTS: Token<INavCharts>`,
@@ -981,15 +1195,15 @@ say so where a reader from another container would look for it.
 
 | Concept page            | The Meridian example                                                                                                                                                                        | What the console shows                                                                              |
 | ----------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | --------------------------------------------------------------------------------------------------- |
-| Getting started         | `IReactorCore` bound to `FusionReactor`, and `QuantumComputer` taking it through `deps: [REACTOR]`.                                                                                         | The two-node graph.                                                                                 |
+| Getting started         | `FusionReactor` and `QuantumComputer` as their own tokens, `QuantumComputer` taking the reactor through `static deps = [FusionReactor] as const`.                                           | The two-node graph.                                                                                 |
 | Tokens and interfaces   | `NAV_CHARTS` types the `INavCharts` interface and gets a `useValue`. Two tokens described `'NavCharts'` stay distinct. A `FakeReactor` value shows that a consumer sees only the interface. | The graph with every node named by its token.                                                       |
-| Providers               | `QuantumComputer`'s `static deps`, `useClass` with an explicit `deps` override, `NAV_CHARTS` by an async factory over `SUBSPACE_LINK`, an alias, an optional `SUBSPACE_LINK`.                | The graph with each provider kind marked, and the plotted course from `NAV_CHARTS`.                 |
+| Providers               | `QuantumComputer`'s `static deps`, `useClass` with an explicit `deps` override, `NAV_CHARTS` by an async factory over `SUBSPACE_LINK`, an alias, an optional `SUBSPACE_LINK`.               | The graph with each provider kind marked, and the plotted course from `NAV_CHARTS`.                 |
 | Lifetimes               | Two `get(DRONE)` calls launch two `ScoutDrone`s that share one `COMPUTER`.                                                                                                                  | A trace replay: two `construct` events for the drone, one for the computer.                         |
 | Modules                 | `Engineering` exports `COMPUTER` and keeps `POWER_ROUTER` private. `Tactical` imports `Engineering`. `SimulatorEngineering` takes `Engineering`'s place.                                    | The graph grouped by module, `NEXUS_NOT_VISIBLE` on a private token, then the swapped reactor.      |
-| Configurable modules    | `Comms.forRoot({ frequency: 1420, transport: 'laser' })`, a `forRootAsync({ deps, useFactory })` variant, and a schema that rejects a negative frequency.                                    | The chosen `LaserLink`, then the schema's issues.                                                   |
+| Configurable modules    | `Comms.forRoot({ frequency: 1420, transport: 'laser' })`, a `forRootAsync({ deps, useFactory })` variant, and a schema that rejects a negative frequency.                                   | The chosen `LaserLink`, then the schema's issues.                                                   |
 | Scopes and REQUEST      | Two shuttles with two missions, each with its own `FLIGHT_LOG`, sharing the ship's `COMPUTER`.                                                                                              | A trace replay with lanes `s0` and `s1`.                                                            |
 | Lifecycle and disposal  | `QuantumComputer.onInit()` runs a self-test. `await using` ends in a reactor scram, after the computer shuts down.                                                                          | A replay of `init` events and of the `dispose:instance` events in order.                            |
-| Lazy edges and cycles   | `SHIELDS` and `POWER_ROUTER` form a cycle. `lazy(SHIELDS)` breaks it.                                                                                                                       | The cycle drawn as a ring with `NEXUS_CIRCULAR_DEPENDENCY`, then the graph with a dotted lazy edge. |
+| Lazy edges and cycles   | `SHIELD_GRID` and `POWER_ROUTER` form a cycle. `lazy(SHIELD_GRID)` breaks it.                                                                                                               | The cycle drawn as a ring with `NEXUS_CIRCULAR_DEPENDENCY`, then the graph with a dotted lazy edge. |
 | Multi-providers         | `Engineering` and `Tactical` contribute to `DIAGNOSTICS`, and `DIAGNOSTICS_PANEL` in `Meridian` reads `all()`.                                                                              | The fan-in of `all` edges into the panel.                                                           |
 | Errors                  | A Meridian with a missing export, a cycle and a captive `MISSION`.                                                                                                                          | The error view: every error in one list, the cycle drawn as a ring.                                 |
 | Introspection and trace | The full Meridian.                                                                                                                                                                          | `MeridianOnline` and a full trace replay, with the `graph()` JSON beside it.                        |
@@ -1006,8 +1220,10 @@ pattern matches none of them: `IReactorCore`, `IShipComputer`, `IPowerRouter`,
 `IDiagnosticsPanel`. The guard's fixture test asserts that list passes and that
 `IUserService` fails. The same list holds
 the 0.3 API names that 0.4 removes: `@Service`, `@Provider`, `DynamicModule`,
-`createChildContainer`, `TokenType`, `ContainerException`, `NoProvider`, `configAsync`,
-`forRoot` and `new Nexus()`. The Migration band and pre-0.4.0 posts are exempt, because both
+`createChildContainer`, `TokenType`, `ContainerException`, `NoProvider`, `configAsync`
+and `new Nexus()`. `forRoot` is not on the list: 0.4 names its own configurable-module
+method `forRoot()` (core spec D4), so the 0.3 `DynamicModule.forRoot(config)` form is
+caught by `DynamicModule`. The Migration band and pre-0.4.0 posts are exempt, because both
 name 0.3 code on purpose.
 
 ## 8. Visual identity and tokens
@@ -1154,6 +1370,9 @@ repo binds `--baize-*`.
 
 ## 9. Background module
 
+Phase 2. Phase 1 paints the static ground gradient of section 8.5 in both themes and
+mounts no canvas.
+
 The background is a nebula of soft cyan, magenta and violet clouds that drift and swell
 very slowly, with a field of stars that also drifts. It sits behind every page as
 decoration and carries no information.
@@ -1221,6 +1440,9 @@ Playwright trace (section 17). CI cannot observe GPU time, so the GPU row is a s
 design limits the review holds.
 
 ## 10. Ship console
+
+Phase 2. Phase 1 concept pages carry the run, break and fix exercise of decision 33 in each
+H2 section.
 
 The ship console is the control on a concept page: the live graph, a specimen or a trace
 replay for the section in view, with an "Edit this in the Playground" link.
@@ -1323,6 +1545,8 @@ markup in the page's HTML. The console island, which does the section tracking, 
 the widget rendering and the trace replay, is limited to 35 kB gzipped (section 16.2).
 
 ## 11. Playground runtime
+
+Phase 2.
 
 One runtime serves the console, the Playground and the Academy. It lives in
 `apps/docs/components/runtime/`, and each surface mounts it with a different frame.
@@ -1647,6 +1871,10 @@ test (the libraries interactive-examples spec §6).
 
 ## 12. Graph and trace views
 
+Phase 2. The views read `NexusGraph` and `TraceEvent` exactly as `@nexusdi/devtools` exports
+them at the rc.0 tag, with the provider fields `notes`, `implementation` and `internal`,
+and the event types the `TraceEventByType` interface lists.
+
 Both views render `@nexusdi/devtools`'s own data: `NexusGraph` from `graph(ship)` and
 `TraceEvent`s from the `trace(fn)` plugin (core spec §10). They live in
 `apps/docs/components/graph/` as React components over pure layout and replay functions
@@ -1736,6 +1964,8 @@ result.
 
 ## 13. Academy
 
+Phase 4, after 0.4.0 final (core spec D18).
+
 The Academy at `/academy/` is a sequence of missions that build the Starship Meridian, one
 concept each. The reader writes the ship's code in the editor and runs the checks, and the
 ship's code carries forward into the next mission.
@@ -1755,7 +1985,7 @@ use the briefing strip (layout B). Every mission stays unlocked.
 | 5   | `05-open-channel`      | Open channel      | Configurable modules   | `Comms.forRoot({ frequency: 1420, transport: 'laser' })` binds `SUBSPACE_LINK` to a `LaserLink`; the schema rejects a negative frequency                                                                 | "Comms accepted frequency -3."                                                             | B      |
 | 6   | `06-shuttle-launch`    | Shuttle launch    | Scopes and REQUEST     | each shuttle reads its own `MISSION`; each shuttle keeps one `FLIGHT_LOG` of its own; no singleton holds a `MISSION`                                                                                     | "FlightLog was built once for two shuttles."                                               | B      |
 | 7   | `07-scram-drill`       | Scram drill       | Lifecycle and disposal | `QuantumComputer.onInit` finishes its self-test before `create` resolves; the trace shows the reactor disposed once, after the computer, with `FusionReactor` and with `FakeReactor` overridden in       | "The reactor scrammed before the computer shut down."                                      | B      |
-| 8   | `08-power-loop`        | Power loop        | Lazy edges and cycles  | the ship starts with `SHIELDS` and `POWER_ROUTER` both bound; `divert()` on the router reaches the grid                                                                                                  | "ShieldGrid and PowerRouter each waited for the other."                                    | B      |
+| 8   | `08-power-loop`        | Power loop        | Lazy edges and cycles  | the ship starts with `SHIELD_GRID` and `POWER_ROUTER` both bound; `divert()` on the router reaches the grid                                                                                              | "ShieldGrid and PowerRouter each waited for the other."                                    | B      |
 | 9   | `09-diagnostics-sweep` | Diagnostics sweep | Multi-providers        | `Engineering` and `Tactical` each contribute a diagnostic; `Tactical` exports `DIAGNOSTICS`; `DIAGNOSTICS_PANEL` in `Meridian` receives both                                                             | "DiagnosticsPanel saw one diagnostic of two."                                              | B      |
 
 Every mission's seed and solution follow the interface-first rule (section 7.3). Mission 1
@@ -1994,10 +2224,21 @@ Four changes:
 `libs/core` and `examples/meridian` wire `docExamples()` into their Vitest configs, so
 their README and source regions run as tests and `// -> value` claims become assertions.
 
+At the rc.0 tag, `main` and `release/0.4` hold the first part of the copy (`expect-comments.ts`,
+`vite-plugin.ts`, `vite-config.ts`, `index.ts`). Phase 1 copies the rest onto `main`
+(`regions.mjs`, `preamble.mjs`, `mdx-region-loader.mjs`, `declarations.mjs`,
+`behaviours.mjs`, `mdx-reference-loader.mjs`, `md-siblings.mjs`), because `postbuild`
+writes the `.md` siblings through them on every branch that builds the site.
+`examples/meridian` passes `includeSource: ['src/**/*.md']`, so its examples files run, and
+a type-check test compiles every block of them with the compiler options of section 11.3.
+
 ### 14.2 Loaders and build steps
 
 `apps/docs/next.config.ts` registers the loader chain under `turbopack.rules['*.mdx']`, in
-the libraries order, which Turbopack runs in reverse:
+the libraries order, which Turbopack runs in reverse. Phase 1 registers loaders 1, 2, 4 and
+5; the reference loader expands nothing until the API pages of phase 2 add their
+directives. The twoslash prelude (3) arrives with the runtime's compiler options in phase 2,
+and until then no page carries a `twoslash` fence:
 
 1. `@nexusdi/doc-examples/mdx-reference-loader` with `{ root, classPrefix: 'nexus' }`
 2. `@nexusdi/doc-examples/mdx-region-loader` with `{ root }`
@@ -2020,15 +2261,18 @@ Nextra's `search: { codeblocks: false }`.
 The docs app's Nx targets run the generated inputs before `next build`, each cached on its
 inputs:
 
-| Target                  | Script                       | Writes                                                                                                                                       |
-| ----------------------- | ---------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------- |
+Every target in this table arrives in phase 2 (`academy-runtime` in phase 4). Phase 1's
+`build` depends on `^build` alone.
+
+| Target                  | Script                       | Writes                                                                                                                                                                                                             |
+| ----------------------- | ---------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
 | `docs:runtime-assets`   | `tools/runtime-assets.mjs`   | `public/runtime/core-<hash>/`, `testing-<hash>/`, `errors-<hash>/` and `devtools-<hash>/` from the matching `libs/*/dist`, plus `harness.js`, `harness-testing.js`, `boot.js`, and `public/runtime/valibot-1.5.0/` |
-| `docs:playground-types` | `tools/playground-types.mjs` | `public/runtime/types-<hash>.json` and each seed's emitted JavaScript                                                                        |
-| `docs:console-fixtures` | `tools/console-fixtures.mjs` | `components/console/fixtures/<seed>.json`                                                                                                    |
-| `docs:academy-runtime`  | `tools/academy-runtime.mjs`  | `public/academy-runtime/<id>-<hash>.js`                                                                                                      |
-| `docs:behaviour-data`   | `tools/behaviour-data.mjs`   | the per-export behaviour JSON the reference loader reads                                                                                     |
-| `docs:package-facts`    | `tools/package-facts.mjs`    | the landing page's dependency count                                                                                                          |
-| `docs:benchmark-data`   | `tools/benchmark-data.mjs`   | `generated/benchmark-data.json`, validated from `benchmarks/results/` (section 4.6)                                                          |
+| `docs:playground-types` | `tools/playground-types.mjs` | `public/runtime/types-<hash>.json` and each seed's emitted JavaScript                                                                                                                                              |
+| `docs:console-fixtures` | `tools/console-fixtures.mjs` | `components/console/fixtures/<seed>.json`                                                                                                                                                                          |
+| `docs:academy-runtime`  | `tools/academy-runtime.mjs`  | `public/academy-runtime/<id>-<hash>.js`                                                                                                                                                                            |
+| `docs:behaviour-data`   | `tools/behaviour-data.mjs`   | the per-export behaviour JSON the reference loader reads                                                                                                                                                           |
+| `docs:package-facts`    | `tools/package-facts.mjs`    | the landing page's dependency count                                                                                                                                                                                |
+| `docs:benchmark-data`   | `tools/benchmark-data.mjs`   | `generated/benchmark-data.json`, validated from `benchmarks/results/` (section 4.6)                                                                                                                                |
 
 Every generated path is gitignored. `docs:build` depends on `^build` and on all seven.
 
@@ -2037,48 +2281,63 @@ Every generated path is gitignored. `docs:build` depends on `^build` and on all 
 writes the blog feeds when the build includes the blog, and Pagefind indexes the HTML into
 `out/_pagefind`. The docs workflow runs `postbuild` as its own step, because Nx calls
 `next build` directly and npm's lifecycle never fires (the libraries `docs.yml` records the
-same).
+same). `tools/check-budgets.mjs` runs after `postbuild` on every site the deploy builds
+(section 16.2). Both are phase 1's first work, because `docs.yml` calls them in `rc` mode
+and `final` mode, and PR #71 reverted `rc` for want of them.
 
 ### 14.3 Guards
 
 Each guard lives in `tools/repo-checks/src` and follows the libraries shape: read the
 content tree, hold it against something derived, fail with a message naming the file and
 the fix. Phase 1 adds the guards before most pages exist. G2, G4, G10 and G11 each record
-the roles, pages and exports Phase 1 has not written in an allowance file, and every entry
-leaves as its page or test arrives. The ratchet files of G3, G9 and G10 are ported with the
+the roles, pages and exports not yet written in an allowance file, and every entry leaves
+as its page or test arrives. The ratchet files of G3, G9 and G10 are ported with the
 libraries' slack and hygiene tests: a count that falls must be lowered in the file, and an
-entry no longer needed fails. By rc.0 every allowance is empty except G8's, which lists the
-pages whose length the reviewer accepted.
+entry no longer needed fails. By 0.4.0 final every allowance is empty except G8's, which
+lists the pages whose length the reviewer accepted.
 
-| Guard                     | Libraries source                      | Rule here                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                     |
-| ------------------------- | ------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| G1 `doc-navigation`       | `docs-navigation`, G1 half            | Every page under `content/` is a `_meta.ts` key and every key is a page. Every page has exactly one `# ` heading and a valid `kind`. `requires` names the one or two pages immediately before it in `_meta.ts`, of a teaching kind.                                                                                                                                                                                                                                                                                                                                           |
-| G2 `doc-floor`            | `doc-floor`                           | `index` (`overview`), `getting-started` (`tutorial`) and `api` (`reference`) exist, and every slug in `navigation.ts`'s named concept list exists with `kind: concept`.                                                                                                                                                                                                                                                                                                                                                                                                       |
-| G3 `doc-fence`            | `doc-fence`                           | Every fence is `file=… region=…`, `twoslash`, a shell language, `mermaid`, or carries one of the five tags. Per page, `no-run` and `anti-example` together never outnumber the executed fences. `post` pages are skipped.                                                                                                                                                                                                                                                                                                                                                     |
-| G4 `doc-control`          | `doc-control`                         | `getting-started` mounts a `ConsoleView`. Every H2 section of a `concept` page mounts one `ConsoleView` or one `ConsoleExempt` with a non-empty `reason`. Every `ConsoleView` has a non-empty `caption`.                                                                                                                                                                                                                                                                                                                                                                      |
-| G5 `doc-exports`          | `doc-exports`                         | Every `import … from '@nexusdi/…'` in a fence resolves through the package's `exports` map under `@nexusdi/source`, and every bound name is exported there. A `signature` fence's `##` heading names an export. An `@nexusdi/…` reference in a `mermaid` fence names an export. Pre-0.4.0 posts are skipped.                                                                                                                                                                                                                                                                  |
-| G6 `doc-specimen`         | `doc-specimen`                        | Every operable component under `components/specimens/` is registered in `mdx-components` and mounted on a content page besides `index`. No component name is hard-coded.                                                                                                                                                                                                                                                                                                                                                                                                      |
-| G7 `doc-links`            | `doc-links`                           | Every root-relative link names a content page or an app route, the dynamic `/academy/[mission]/` included, checked against the mission list. A link that hard-codes `/next/` fails, because Next adds the base path. A link to a NexusDI README on GitHub fails, because the site documents what the README covers.                                                                                                                                                                                                                                                           |
-| G8 `doc-prose-budget`     | `doc-prose-budget`                    | 1,200 words of prose a page, reported and not failed. Pages whose slug starts with `api` are exempt.                                                                                                                                                                                                                                                                                                                                                                                                                                                                          |
-| G9 `doc-domain`           | `doc-domain`                          | No fence, after region expansion, names a noun from section 7.7. Pages with `domainExempt` in frontmatter and pre-0.4.0 posts are skipped. Ratchet file ported.                                                                                                                                                                                                                                                                                                                                                                                                               |
-| G10 `doc-export-coverage` | `doc-export-coverage`                 | Every export of `@nexusdi/core`, `@nexusdi/testing`, `@nexusdi/node`, `@nexusdi/decorators`, `@nexusdi/errors`, `@nexusdi/devtools`, `@nexusdi/federation` and `@nexusdi/react` has a `##` heading on that package's `api*` page, and every callable one appears in an executable fence. Every `NexusErrorCode` member has an `###` on `api-errors`. Every code in `@nexusdi/codemod`'s `TODO_CODES` and `NOTE_CODES` has an `##` on `codemod`, read from the lists themselves. Phase 1 allowance and ratchet file.                                                          |
-| G11 `doc-behaviour`       | `doc-behaviour`                       | Every non-error callable export has a `describe` naming it in its own package's tests, under the matching `libs/*`. Phase 1 allowance.                                                                                                                                                                                                                                                                                                                                                                                                                                       |
-| `doc-refused-words`       | `doc-refused-words`                   | The libraries list, plus the em dash and the en dash in prose. Pre-0.4.0 posts are skipped.                                                                                                                                                                                                                                                                                                                                                                                                                                                                                   |
-| `doc-antithesis`          | `doc-antithesis`                      | Unchanged.                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                    |
-| `doc-figures`             | `doc-figures`                         | The libraries list, plus `lands`, `bites`, `earns` and `pays` in prose, which have no literal use on this site.                                                                                                                                                                                                                                                                                                                                                                                                                                                               |
-| `doc-notices`             | new                                   | Notice labels are `Note`, `Exception`, `Warning` and `Ship note`. At most two a page, and no two adjacent.                                                                                                                                                                                                                                                                                                                                                                                                                                                                    |
-| `doc-interface-first`     | new                                   | In every fence and region outside the Migration band and pre-0.4.0 posts, and in every seed and mission file: the first argument of `provide()`, the `token` of an object-literal provider, and every entry of `deps`, `static deps` and `@Injectable` deps is a SCREAMING_CASE token or a modifier over one; `useClass` names a class. In `examples/meridian`, a test builds each seed and page program and asserts that each concrete class appears in exactly one provider and that every constructor parameter of a bound class is typed with an interface (section 7.3). |
-| `doc-benchmark-figures`   | new, from benchmarks spec §9, widened | On every content page except pre-0.4.0 posts, no prose and no table cell outside a component states a number followed by a size or time unit (`B`, `bytes`, `kB`, `KB`, `MB`, `ns`, `µs`, `ms`, `s`) or a `%`. Every `<Figure of>` path and every `run` names data that exists.                                                                                                                                                                                                                                                                                               |
-| `doc-twoslash`            | `doc-twoslash`, adapted               | Every `twoslash` fence compiles with the prelude of section 14.2, and every declared `@errors` code is still produced.                                                                                                                                                                                                                                                                                                                                                                                                                                                        |
-| `doc-regions`             | `doc-regions`, adapted                | Every cited file and region exists, in a `libs/*/README.md`, `examples/meridian` or the codemod fixtures, seed and mission regions included.                                                                                                                                                                                                                                                                                                                                                                                                                                  |
-| `doc-md-siblings`         | `doc-md-siblings`, adapted            | Every `.md` sibling carries each cited region's code and each reference entry's expansion, posts included.                                                                                                                                                                                                                                                                                                                                                                                                                                                                    |
-| `diagram-captions`        | `diagram-captions`                    | Unchanged.                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                    |
-| `doc-reference`           | `doc-reference`, adapted              | The reference loader against each package's built declarations: `@nexusdi/core`, `@nexusdi/testing`, `@nexusdi/node`, `@nexusdi/decorators`, `@nexusdi/errors`, `@nexusdi/devtools`, `@nexusdi/federation` and `@nexusdi/react`.                                                                                                                                                                                                                                                                                                                                            |
-| `docs-trigger`            | `docs-trigger`, adapted               | `docs.yml`'s path filter covers `libs/**`, `internal/**`, `examples/meridian/**` and `tools/doc-examples/**`.                                                                                                                                                                                                                                                                                                                                                                                                                                                                 |
-| `doc-commitments`         | new                                   | Every heading in `apps/docs/commitments.json` exists on its page (section 4.5).                                                                                                                                                                                                                                                                                                                                                                                                                                                                                               |
-| `doc-seeds`               | new                                   | Section 11.9.                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                 |
-| `academy-missions`        | new                                   | Section 14.4.                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                 |
-| `docs-deploy`             | new, replaces `docs-archive`          | `apps/docs/deploy.json` matches its schema, and the `/v0.3/` retention check of section 15.7. The libraries `docs-archive` guard checks archives for superseded majors; this site keeps one archive and no other before 1.0, so the retention check takes its place.                                                                                                                                                                                                                                                                                                          |
+Phase 1 builds the guards the `/next/` pages need: G1, G2, G3, G5, G7, G8, G9,
+`doc-refused-words`, `doc-antithesis`, `doc-figures`, `doc-notices`, `doc-interface-first`,
+`doc-regions`, `doc-md-siblings`, `diagram-captions`, `doc-commitments`, `doc-error-codes`
+`doc-benchmark-figures` and the workflow checks (`docs-trigger`, `docs-deploy`,
+`docs-ci-job`, `workflow-release-latest`). Phase 2 adds G4, G6, G10, G11, `doc-twoslash`,
+`doc-reference` and `doc-seeds`, each with the feature it holds.
+Phase 4 adds `academy-missions`. G1 and G2 read the `errors/` folder of amendment A3: G1
+holds `content/errors/_meta.ts` to the folder like `content/_meta.ts`, and G2's named
+concept list includes `errors` (the folder's `index.mdx`).
+
+| Guard                     | Libraries source                      | Rule here                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                        |
+| ------------------------- | ------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| G1 `doc-navigation`       | `docs-navigation`, G1 half            | Every page under `content/` is a `_meta.ts` key and every key is a page. Every page has exactly one `# ` heading and a valid `kind`. `requires` names the one or two pages immediately before it in `_meta.ts`, of a teaching kind.                                                                                                                                                                                                                                                                                                                                              |
+| G2 `doc-floor`            | `doc-floor`                           | `index` (`overview`), `getting-started` (`tutorial`) and `api-errors` (`reference`) exist, `api` (`reference`) from phase 2 through the allowance file, and every slug in `navigation.ts`'s named concept list exists with `kind: concept`.                                                                                                                                                                                                                                                                                                                                      |
+| G3 `doc-fence`            | `doc-fence`                           | Every fence is `file=… region=…`, `twoslash`, a shell language, `mermaid`, or carries one of the five tags. Per page, `no-run` and `anti-example` together never outnumber the executed fences. `post` pages are skipped.                                                                                                                                                                                                                                                                                                                                                        |
+| G4 `doc-control`          | `doc-control`                         | `getting-started` mounts a `ConsoleView`. Every H2 section of a `concept` page mounts one `ConsoleView` or one `ConsoleExempt` with a non-empty `reason`. Every `ConsoleView` has a non-empty `caption`.                                                                                                                                                                                                                                                                                                                                                                         |
+| G5 `doc-exports`          | `doc-exports`                         | Every `import … from '@nexusdi/…'` in a fence resolves through the package's `exports` map under `@nexusdi/source`, and every bound name is exported there. A `signature` fence's `##` heading names an export. An `@nexusdi/…` reference in a `mermaid` fence names an export. Pre-0.4.0 posts are skipped.                                                                                                                                                                                                                                                                     |
+| G6 `doc-specimen`         | `doc-specimen`                        | Every operable component under `components/specimens/` is registered in `mdx-components` and mounted on a content page besides `index`. No component name is hard-coded.                                                                                                                                                                                                                                                                                                                                                                                                         |
+| G7 `doc-links`            | `doc-links`                           | Every root-relative link names a content page or an app route, the dynamic `/academy/[mission]/` included, checked against the mission list. A link that hard-codes `/next/` fails, because Next adds the base path. A link to a NexusDI README on GitHub fails, because the site documents what the README covers.                                                                                                                                                                                                                                                              |
+| G8 `doc-prose-budget`     | `doc-prose-budget`                    | 1,200 words of prose a page, reported and not failed. Pages whose slug starts with `api` are exempt.                                                                                                                                                                                                                                                                                                                                                                                                                                                                             |
+| G9 `doc-domain`           | `doc-domain`                          | No fence, after region expansion, names a noun from section 7.7. Pages with `domainExempt` in frontmatter and pre-0.4.0 posts are skipped. Ratchet file ported.                                                                                                                                                                                                                                                                                                                                                                                                                  |
+| G10 `doc-export-coverage` | `doc-export-coverage`                 | Every export of `@nexusdi/core`, `@nexusdi/testing`, `@nexusdi/node`, `@nexusdi/decorators`, `@nexusdi/errors`, `@nexusdi/devtools`, `@nexusdi/federation` and `@nexusdi/interceptors` (and each later package under `libs/` with a library entry, `@nexusdi/react` when it publishes) has a `##` heading on that package's `api*` page, and every callable one appears in an executable fence. Every code in `@nexusdi/codemod`'s `TODO_CODES` and `NOTE_CODES` has an `##` on `codemod`, read from the lists themselves, once that package exists. Allowance and ratchet file. |
+| G11 `doc-behaviour`       | `doc-behaviour`                       | Every non-error callable export has a `describe` naming it in its own package's tests, under the matching `libs/*`. Phase 1 allowance.                                                                                                                                                                                                                                                                                                                                                                                                                                           |
+| `doc-refused-words`       | `doc-refused-words`                   | The libraries list, plus the em dash and the en dash in prose. Pre-0.4.0 posts are skipped.                                                                                                                                                                                                                                                                                                                                                                                                                                                                                      |
+| `doc-antithesis`          | `doc-antithesis`                      | Unchanged.                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                       |
+| `doc-figures`             | `doc-figures`                         | The libraries list, plus `lands`, `bites`, `earns` and `pays` in prose, which have no literal use on this site.                                                                                                                                                                                                                                                                                                                                                                                                                                                                  |
+| `doc-notices`             | new                                   | Notice labels are `Note`, `Exception`, `Warning` and `Ship note`. At most two a page, and no two adjacent.                                                                                                                                                                                                                                                                                                                                                                                                                                                                       |
+| `doc-interface-first`     | new                                   | In every fence and region outside the Migration band and pre-0.4.0 posts, and in every seed and mission file: the first argument of `provide()`, the `token` of an object-literal provider, and every entry of `deps`, `static deps` and `@Injectable` deps is a SCREAMING_CASE token or a modifier over one; `useClass` names a class. In `examples/meridian`, a test builds each seed and page program and asserts that each concrete class appears in exactly one provider and that every constructor parameter of a bound class is typed with an interface (section 7.3).    |
+| `doc-benchmark-figures`   | new, from benchmarks spec §9, widened | On every content page except pre-0.4.0 posts, no prose and no table cell outside a component states a number followed by a size or time unit (`B`, `bytes`, `kB`, `KB`, `MB`, `ns`, `µs`, `ms`, `s`) or a `%`. Every `<Figure of>` path and every `run` names data that exists.                                                                                                                                                                                                                                                                                                  |
+| `doc-twoslash`            | `doc-twoslash`, adapted               | Every `twoslash` fence compiles with the prelude of section 14.2, and every declared `@errors` code is still produced.                                                                                                                                                                                                                                                                                                                                                                                                                                                           |
+| `doc-regions`             | `doc-regions`, adapted                | Every cited file and region exists, in a `libs/*/README.md`, `examples/meridian` or the codemod fixtures, seed and mission regions included.                                                                                                                                                                                                                                                                                                                                                                                                                                     |
+| `doc-md-siblings`         | `doc-md-siblings`, adapted            | Every `.md` sibling carries each cited region's code and each reference entry's expansion, posts included.                                                                                                                                                                                                                                                                                                                                                                                                                                                                       |
+| `diagram-captions`        | `diagram-captions`                    | Unchanged.                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                       |
+| `doc-reference`           | `doc-reference`, adapted              | The reference loader against each package's built declarations: `@nexusdi/core`, `@nexusdi/testing`, `@nexusdi/node`, `@nexusdi/decorators`, `@nexusdi/errors`, `@nexusdi/devtools`, `@nexusdi/federation` and `@nexusdi/interceptors`, and `@nexusdi/react` when it publishes.                                                                                                                                                                                                                                                                                                  |
+| `docs-trigger`            | `docs-trigger`, adapted               | `docs.yml`'s path filter covers `libs/**`, `internal/**`, `examples/meridian/**` and `tools/doc-examples/**`; `docs-next.yml` dispatches `docs.yml` on `main` for the same paths (release spec §7.3).                                                                                                                                                                                                                                                                                                                                                                            |
+| `doc-commitments`         | new                                   | Every heading in `apps/docs/commitments.json` exists on its page (section 4.5).                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                  |
+| `doc-seeds`               | new                                   | Section 11.9.                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                    |
+| `academy-missions`        | new                                   | Section 14.4.                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                    |
+| `docs-deploy`             | new, replaces `docs-archive`          | `apps/docs/deploy.json` matches its schema, and the `/v0.3/` retention check of section 15.7. The libraries `docs-archive` guard checks archives for superseded majors; this site keeps one archive and no other before 1.0, so the retention check takes its place. `archives.json` matches its schema. `final` and `retired` need `apps/docs/content/blog/index.mdx` (decision 35).                                                                                                                                                                                            |
+| `doc-error-codes`         | new                                   | Every key of `NexusErrorByCode` that a package under `libs/` declares has a page at `content/errors/<CODE>.mdx` with `kind: code` and the matching `package`, every code page names a declared code, and `/api-errors/` links every code page (amendment A3).                                                                                                                                                                                                                                                                                                                    |
+| `docs-ci-job`             | new                                   | `ci.yml`'s `docs` job runs `build-site.mjs` for `/next/` and the root, assembles `rc` and `final`, runs `check-artifact.mjs` on each, and its path list equals `docs.yml`'s plus the docs workflows (section 15.3).                                                                                                                                                                                                                                                                                                                                                              |
+| `workflow-release-latest` | new                                   | Every `gh release create` in `.github/workflows/*.yml` sets `--latest` explicitly, directly or through the argument array it expands, because GitHub marks a release created without it as the repository's latest.                                                                                                                                                                                                                                                                                                                                                              |
 
 Two libraries tools are not ported: the `/testing` statistics section and its
 `testing-data` target (`apps/docs/tools/test-statistics.mjs`). The behaviour lists on the
@@ -2168,19 +2427,19 @@ adds four:
 Each new project starts from its official generator, and lint, format and type generation
 are wired before its second file exists:
 
-| Project                | Generator                                                                                              |
-| ---------------------- | ------------------------------------------------------------------------------------------------------ |
-| `apps/docs`            | `npx create-next-app@16`, then Nextra 4 added per its installation guide, which publishes no generator |
-| `apps/docs-e2e`        | `npx nx g @nx/playwright:configuration`                                                                |
-| `internal/meridian-ui` | `npx nx g @nx/react:library internal/meridian-ui --bundler=vite`                                       |
-| `examples/meridian`    | `npx nx g @nx/js:library examples/meridian --bundler=none --unitTestRunner=vitest`                     |
+| Project                | Generator                                                                                          |
+| ---------------------- | -------------------------------------------------------------------------------------------------- |
+| `apps/docs`            | exists at the rc.0 tag (`npx nx g @nx/next:application`, then Nextra 4 per its installation guide) |
+| `apps/docs-e2e`        | `npx nx g @nx/playwright:configuration`                                                            |
+| `internal/meridian-ui` | `npx nx g @nx/react:library internal/meridian-ui --bundler=vite`                                   |
+| `examples/meridian`    | `npx nx g @nx/js:library examples/meridian --bundler=none --unitTestRunner=vitest`                 |
 
 `tools/doc-examples` is a copy, so no generator applies to it.
 
-The root `package.json` adds `apps/*` and `internal/*` to `workspaces`, and
-`tsconfig.json` adds the new projects to `references`. `commitlint.config.js` adds the
-scopes `docs`, `docs-e2e`, `meridian-ui`, `example-meridian` and `doc-examples`, which
-`commitlint-scope-enum.test.ts` requires. `nx.json`'s `release.projects` stays `libs/*`, so
+The root `package.json` lists `apps/*` and `internal/*` in `workspaces`, and
+`tsconfig.json` adds the new projects to `references`. `commitlint.config.js` holds the
+scopes `docs`, `docs-e2e`, `meridian-ui`, `meridian` and `doc-examples`, which
+`docs-scopes.test.ts` requires; all of it exists at the rc.0 tag. `nx.json`'s `release.projects` stays `libs/*`, so
 none of these projects is versioned or published.
 
 `apps/docs/package.json` pins `@evanion/widget` 0.1.0 and `@evanion/react-widget` 0.3.0
@@ -2223,8 +2482,8 @@ the snapshot's identity:
 
 | Mode            | Root of the artifact                                       | Under `/next/`                    | Under `/v0.3/`                    | When                                      |
 | --------------- | ---------------------------------------------------------- | --------------------------------- | --------------------------------- | ----------------------------------------- |
-| `snapshot-only` | the 0.3 snapshot, root variant                             | nothing                           | nothing                           | Phase 1, until just before rc.0           |
-| `rc`            | the 0.3 snapshot, root variant, with the RC posts          | the new site from `next`, no blog | nothing                           | from just before rc.0 to 0.4.0 final      |
+| `snapshot-only` | the 0.3 snapshot, root variant                             | nothing                           | nothing                           | until phase 1 makes `/next/` buildable    |
+| `rc`            | the 0.3 snapshot, root variant, with the RC posts          | the new site from `next`, no blog | nothing                           | from the end of phase 1 to 0.4.0 final    |
 | `final`         | the new site from the newest stable release, with the blog | the new site from `next`, no blog | the 0.3 snapshot, archive variant | from 0.4.0 final until the retention ends |
 | `retired`       | as `final`                                                 | as `final`                        | redirect stubs to `/upgrade/`     | after the retention ends                  |
 
@@ -2234,9 +2493,26 @@ spec `specs/2026-10-01-release-branch-workflow-design.md` §7). Prereleases ship
 `release/X.Y`, so `/next/` documents the line in prerelease and returns to `main` once that
 line is stable.
 
+In `rc` mode the root also answers `/errors/<CODE>/` for every code page the `/next/` build
+holds, with a redirect stub to `/next/errors/<CODE>/` (section 15.5), so the link at the end
+of every rc error message reaches its page.
+
 A mode change is a one-line pull request, so the swap is reviewed and recorded like any
-other change. `snapshot-only` exists so Phase 1 proves the snapshot pipeline in production
-and restores a working deploy once `chore/tooling-upgrade` removes `deploy-docs.yml`.
+other change. `snapshot-only` exists so the snapshot pipeline runs in production before the
+new site can build, and restores a working deploy once `chore/tooling-upgrade` removes
+`deploy-docs.yml`.
+
+Which branch's `deploy.json` takes effect (decision 37): `docs.yml` runs on `main` only and
+reads `main`'s copy. The switch to `rc` is a pull request on `main` (release spec §9 step
+9), and it waits for a green `rc` rehearsal of `docs.yml` (section 15.3). rc.0 published on
+2026-10-01 while `main` stayed in `snapshot-only`: PR #71 reverted the first switch,
+because the `/next/` build called a `postbuild` script and a budget checker that did not
+exist yet. The switch to `final` is a pull request on `release/X.Y` before the stable
+release (release spec §5.4, `RELEASING.md` "stable"), whose plan step refuses to start
+until the branch's `deploy.json` is in `final` or `retired`. The stable release
+fast-forwards `main` to that commit in the same push that creates the `X.Y.0` tag, and the
+docs dispatch that follows reads `final` and finds the tag. Until then a release branch's
+copy has no effect, and each sync brings `main`'s copy to it.
 
 ### 15.2 The 0.3 snapshot
 
@@ -2285,10 +2561,18 @@ snapshot has to last until the retention ends. The docs deploy downloads the ass
 `chore/tooling-upgrade`:
 
 - Triggers: `push` to `main` with a `paths` filter (`apps/docs/**`, `libs/**`,
-  `internal/**`, `examples/meridian/**`, `tools/doc-examples/**`, `benchmarks/results/**`,
-  `package.json`, `package-lock.json`, `.github/workflows/docs.yml`), and
-  `workflow_dispatch`. `docs-trigger.test.ts` holds the filter against the release projects
-  and the docs project's inputs.
+  `internal/**`, `examples/meridian/**`, `tools/doc-examples/**`, `package.json`,
+  `package-lock.json`, `.github/workflows/docs.yml`, and `benchmarks/**`, which joins in
+  phase 1 with `docs:benchmark-data`), and `workflow_dispatch`. `docs-trigger.test.ts` holds the
+  filter against the release projects and the docs project's inputs, and holds
+  `docs-next.yml`'s list equal to it.
+- `workflow_dispatch` takes one input, `rehearse`, a choice of `none` (the default), `rc`
+  and `final`. With `rc` or `final` the build job builds, assembles and checks the artifact
+  for that mode in place of `deploy.json`'s, and the `deploy` and `smoke` jobs do not run.
+  A rehearsal deploys nothing, so it gates a mode switch: the pull request that sets `rc`
+  on `main` merges only after a green `rehearse: rc` run on `main`. A `final` rehearsal
+  needs a stable tag that holds `apps/docs`, so it runs from 0.4.0 on; before that, the CI
+  `docs` job below covers the `final` layout.
 - No tag trigger. The `github-pages` environment's default protection accepts deployments
   from the default branch only, so a run started by a tag push could not deploy. A release
   redeploys the site by dispatch: after a publish that is not a dry run, `release.yml` runs
@@ -2296,7 +2580,8 @@ snapshot has to last until the retention ends. The docs deploy downloads the ass
   permissions. The dispatched run builds from `main` and, in `final` and `retired` modes,
   resolves the root's content from the newest release tag (step 3 below), so the tag the
   release just pushed is the one it finds.
-- Permissions: `contents: read`, `pages: write`, `id-token: write`.
+- Permissions: `contents: read` for the workflow and the build job; `pages: write` and
+  `id-token: write` for the deploy job alone.
 - Concurrency: group `pages`, `cancel-in-progress: false`.
 - Every action pinned by commit SHA with the version in a comment, the pins the libraries
   workflow and `ci.yml` already use: `actions/checkout@3d3c42e5…` (v7.0.1),
@@ -2308,19 +2593,27 @@ snapshot has to last until the retention ends. The docs deploy downloads the ass
 
 The build job:
 
-1. Reads `deploy.json`. `snapshot-only` skips steps 2 and 3.
+1. Reads `deploy.json`, or the `rehearse` input. `snapshot-only` skips steps 2 and 3.
 2. Picks the `/next/` source: the highest `release/X.Y` branch from
    `git ls-remote --heads origin 'refs/heads/release/*'` that is ahead of `main`, else
-   `main`, and prints the branch and commit. Builds the `/next/` site from it with
-   `DOCS_BASE_PATH=/next` and `DOCS_CHANNEL=next`, which leaves `content/blog/` out:
-   `npx nx build docs`, then `npm run postbuild` in `apps/docs`. A release branch builds in
-   a worktree with its own `npm ci`. A push to `release/**` dispatches this workflow on
-   `main` through `docs-next.yml`, because Pages deploys from `main` only.
+   `main`, and prints the branch and commit (`next-source.mjs`). A release branch builds in
+   a worktree with its own `npm ci`. `node apps/docs/tools/deploy/build-site.mjs next
+<tree>` builds the `/next/` site in that tree with `DOCS_BASE_PATH=/next` and
+   `DOCS_CHANNEL=next`, which leaves `content/blog/` out: `npx nx build @nexusdi/docs`,
+   `npm --prefix apps/docs run postbuild`, then `node apps/docs/tools/check-budgets.mjs`.
+   Nothing is copied into the tree from `main` (main's commit `4300fa5`). A push to
+   `release/**` dispatches this workflow on `main` through `docs-next.yml`, because Pages
+   deploys from `main` only.
 3. In `final` and `retired`, builds the root site. It resolves the newest `@nexusdi/core@*`
    tag without a prerelease suffix, or `root.sha` when `deploy.json` sets one (section
-   15.6), checks it out into a second worktree, copies `apps/docs/content/blog/` and
-   `benchmarks/results/` from
-   `main` into it, and builds there with an empty base path and `DOCS_CHANNEL=release`.
+   15.6), and checks it out into a second worktree with its own `npm ci`. `build-site.mjs
+root <tree> <main>` copies `apps/docs/content/blog/` from `main` into it and stops with
+   "final mode builds the root with the blog from main, and main has no
+   apps/docs/content/blog. Land the blog before setting final (docs spec section 6)." when
+   `main` has none. It copies `benchmarks/results/` from `main` when `main` has it, so the
+   root shows the newest results; without it the tag's own results stay. It then builds
+   with an empty base path and `DOCS_CHANNEL=release`, runs `postbuild` and the budget
+   check.
 4. Downloads and verifies the snapshot variant the mode needs.
 5. Assembles `site/` per the mode table, writes `CNAME` (`nexus.js.org`) and `.nojekyll`
    at its root, writes the redirect stubs (section 15.6) and the root `404.html`
@@ -2330,6 +2623,24 @@ The build job:
 
 The deploy job runs `deploy-pages` in the `github-pages` environment, as today, and a
 `smoke` job follows it (section 17.3).
+
+The CI `docs` job in `ci.yml` catches a broken deploy before it merges, in every mode. It
+runs on every pull request and on every push to `main`, `release/**`, `[0-9]*.x` and
+`sync/**`. A first step lists the changed paths against the base (`git diff --name-only`)
+and stops the job green when none falls under `docs.yml`'s path list or the docs
+workflows (`.github/workflows/docs*.yml`, `.github/workflows/ci.yml`); the job therefore
+always reports, so the owner can make it a required check (section 20). Otherwise it:
+
+1. Builds the checked-out tree as `/next/` with `build-site.mjs next .`.
+2. Builds the same tree as the root with `build-site.mjs root <copy> .`, the tree acting
+   as both the release tag and `main`. This is the build that failed for want of
+   `content/blog/` on `main`, and the job fails the same way.
+3. Downloads and verifies the snapshot assets `deploy.json` records.
+4. Assembles an `rc` artifact and a `final` artifact and runs `check-artifact.mjs` on each.
+
+`docs.yml` and the job call the same `build-site.mjs`, `assemble.mjs` and
+`check-artifact.mjs`, so the two cannot drift, and `docs-ci-job.test.ts` holds the job's
+path list equal to `docs.yml`'s.
 
 ### 15.4 The base path and search
 
@@ -2357,15 +2668,26 @@ path starts with `/next/`, it replaces the location with `/next/404.html`, the n
 404 page. A reader without JavaScript sees the 0.3 404 page, whose announcement bar links
 to `/next/upgrade/`. In `final` and `retired` the root `404.html` is the new site's.
 
+Every error rc.0 raises links to `https://nexus.js.org/errors/<CODE>`, which the 0.3
+snapshot does not hold. So in `rc` mode the assembly step also writes, for each
+`next/errors/<CODE>/index.html` of the `/next/` build, a redirect stub at
+`errors/<CODE>/index.html` that points at `/next/errors/<CODE>/`. GitHub Pages answers
+`/errors/<CODE>` (no trailing slash) with a redirect to the directory, so the link in the
+message reaches the stub. In `final` and `retired` the root build holds the code pages
+itself.
+
 The "Check deploy artefacts" step fails the deploy when any of these fails:
 
 - `CNAME` exists once, at the root, and reads `nexus.js.org`. No `CNAME` exists below the
   root.
 - `.nojekyll`, `index.html` and `404.html` exist at the root.
-- In `rc` mode: `next/index.html`, `next/404.html`, `next/_pagefind/pagefind.js`,
-  `next/getting-started.md`, `next/runtime/types-*.json` and one
-  `next/runtime/core-*/index.js` exist; no `next/blog/` exists; the snapshot contains no
-  `next/` directory of its own; the root `404.html` carries the `/next/` script.
+- In `rc` mode: `next/index.html`, `next/404.html`, `next/_pagefind/pagefind.js` and
+  `next/index.md` exist, and every content page under `next/` has its `.md` sibling; no
+  `next/blog/` exists; the snapshot contains no `next/` directory of its own; the root
+  `404.html` carries the `/next/` script; every `next/errors/<CODE>/index.html` has its root
+  stub. From phase 2, `next/runtime/types-*.json` and one `next/runtime/core-*/index.js`
+  exist too; the rule joins with the runtime, because a check for files no build writes
+  fails every deploy.
 - In `final` mode: everything in the `rc` list under `next/`, plus `blog/atom.xml`,
   `blog/rss.xml`, `blog/index.html` and a page for every post; `v0.3/index.html` exists;
   every HTML file under `v0.3/` carries `noindex`; every `href` and `src` in it starts with
@@ -2482,7 +2804,8 @@ Every page and both tools meet WCAG 2.2 AA.
 
 `apps/docs/tools/check-budgets.mjs` runs after the build. It reads the script tags of each
 exported HTML file, gzips every chunk the page references, and fails the build when a page
-exceeds its row. The Playwright suite measures the three Web Vitals on the landing page, a
+exceeds its row. Phase 1 pages fall under the content row only; the island, background and
+tool rows bind from phase 2, when those bundles exist and carry their marker strings. The Playwright suite measures the three Web Vitals on the landing page, a
 concept page and the Playground with CPU throttled four times through the Chrome DevTools
 Protocol, and fails over budget.
 
@@ -2538,7 +2861,10 @@ three must fail the guard.
 
 `apps/docs-e2e` runs Playwright against `out/` served under `/next/` by a static server
 that mimics GitHub Pages (trailing slashes, no rewrites, the root `404.html`), in Chromium,
-Firefox and WebKit.
+Firefox and WebKit. Phase 1 runs the Search, 404, `.md` sibling, robots and accessibility
+items below, plus one more: in an assembled `rc` artifact, `/errors/NEXUS_MISSING_PROVIDER`
+redirects to `/next/errors/NEXUS_MISSING_PROVIDER/`. The Playground, Console, Academy,
+Background and Contrast items join with their features.
 
 - Playground: `?seed=` loads the seed; no worker request goes out before the first
   interaction; an edit that breaks a type draws a squiggle; Run shows the console output,
@@ -2580,6 +2906,8 @@ mode `/blog/rss.xml`. It fails on any status other than 200 and on served HTML c
 
 ### 17.4 Visual checks
 
+Phase 2.
+
 Playwright's `toHaveScreenshot` covers the landing page, Getting started, one concept page
 at 1440px and 390px, the API page, the Playground, both Academy layouts, the progress page
 and a migrated post, in both themes. `?background=frozen` renders the background's seeded
@@ -2590,78 +2918,85 @@ merges.
 
 ## 18. Delivery phases
 
-### 18.1 Phase 1: now, beside the engine
+rc.0 published on 2026-10-01 with `apps/docs` still the scaffold of the earlier phase 1 and
+`main` deploying in `snapshot-only` mode. The phases below replace the earlier two. Each
+names the branch that receives its work, because `docs.yml` runs from `main` while `/next/`
+builds from `release/0.4` (section 15.3).
 
-In this order:
+### 18.1 Phase 1: `/next/` live during the RC window
 
-1. Workspace wiring and the four scaffolds (section 14.8), the libraries pin
-   (section 14.5), and the `doc-examples` copy with its tests.
-2. `meridian-ui`: tokens, generator, components, the background module and their tests.
-3. The `apps/docs` shell: Nextra, the remap, fonts, the base path, the release notice, the
-   `(tool)` group, the console grid in `[[...mdxPath]]/page.tsx`, the widget composition,
-   `.md` siblings and Pagefind.
-4. The guards, with Phase 1 allowances (section 14.3).
-5. The deploy pipeline: `docs-snapshot.yml` run once, then `docs.yml` in `snapshot-only`
-   mode, so nexus.js.org deploys from the new pipeline as soon as `chore/tooling-upgrade`
-   merges.
-6. The runtime: worker, sandbox, harness, protocol, stack mapping, kill switch, editor,
-   seed registry, console fixtures, and the graph, trace and error views. It builds against
-   core spec §10's types with fixture JSON until the engine emits `graph()` and trace
-   events, then against each engine build.
-7. The Playground route and the Academy shell (store, layouts, progress page, the mission
-   guard) with one fixture mission.
+Phase 1 ends when nexus.js.org deploys in `rc` mode, `/next/` serves the pages below from
+`release/0.4`, `/errors/<CODE>` reaches its code page from the root, the root's
+announcement bar links the RC post and `/next/upgrade/`, and the smoke job passes. In this
+order:
 
-Phase 1 settles four points by experiment before anything depends on them:
+1. On `main` (then a sync carries it to `release/0.4`): the build pipeline the `rc` and
+   `final` deploys call. The rest of the `doc-examples` copy (regions, preamble, the region
+   and reference loaders, `md-siblings`); `tools/md-siblings.mjs`, `tools/pagefind.mjs` and
+   the `postbuild` script; `tools/check-budgets.mjs`; the blog index and its feeds
+   (decision 35); `build-site.mjs`, shared by `docs.yml` and the CI `docs` job; the
+   `rehearse` input; the `rc` stubs for `/errors/<CODE>/` and the artifact rules of section
+   15.5; the `docs-deploy` blog rule; the `docs-ci-job` and `workflow-release-latest`
+   checks; `benchmarks/**` in the docs path filter; the RC feedback issue form and
+   the RC post without its codemod section (decision 39).
+2. On `release/0.4`: `apps/docs-e2e` with the GitHub Pages server; the shell (fonts, the
+   Nextra remap onto `meridian-ui` tokens, the release notice, `noindex` on `/next/`, the
+   listing and diagram loaders); `internal/meridian-ui` tokens, the contrast test, the
+   stateless components and the static ground; `examples/meridian` with its doctest and
+   type-check tests; the phase 1 guards of section 14.3; the ported reviewer agent and
+   `docs-page` skill; `docs:benchmark-data` and the benchmark components of decision 38.
+3. On `release/0.4`: the pages. Start (`/`, `/getting-started/`), the eleven Concepts, the
+   Guides `/plugins/`, `/testing/`, `/node-request-scopes/`, `/load/`, `/decorators/`,
+   `/legacy-decorators/`, `/interceptors/`, `/graph-cli/`, `/error-text/` and
+   `/write-a-plugin/`, the Migration pages `/release-candidate/`, `/upgrade/` and
+   `/support-policy/`, `/api-errors/`, the 40 code pages, and `/comparison/` and
+   `/benchmark-method/` with the landing page's bundle-size figure (decision 38). The
+   owner merges the rc.0 benchmark results (pull request #73) into `release/0.4` first.
+4. The switch: a green CI `docs` job on `release/0.4`, a green `rehearse: rc` run of
+   `docs.yml` on `main`, then the pull request on `main` that sets `deploy.json` to `rc`
+   and publishes the RC post, then the deploy's smoke job. The owner then dispatches
+   `docs-snapshot.yml` and merges its pull request, so snapshot revision 2 carries the post
+   and the announcement bar.
 
-- `new Worker(new URL('./ts.worker.ts', import.meta.url))` with the TypeScript bundle works
-  under Turbopack with `output: 'export'` and `basePath: '/next'`. The fallback is the
-  classic worker of section 11.2.
-- The sandbox probe the review ran passes again through Cloudflare against the deployed
-  site, in Chromium, Firefox and WebKit.
-- React 19.3.0's `<ViewTransition>` animates a console view change under Next 16's static
-  export. The fallback is in section 10.5.
-- Search under `basePath: '/next'` returns links that resolve, anchors included.
+Phase 1 settles one point by experiment before anything depends on it: search under
+`basePath: '/next'` returns links that resolve, anchors included. The experiments on the
+worker, the sandbox, `<ViewTransition>`, `<Widgets>` and IndexedDB move to the phases that
+use them.
 
-A failed experiment reopens its section of this spec before implementation continues.
+### 18.2 Phase 2: the RC window, before 0.4.0 final
 
-Phase 1 ends when nexus.js.org deploys from `docs.yml`, the guards pass on their fixtures,
-and the Playground runs a seed against the current engine build.
+- The runtime (section 11), the ship console (section 10), the graph, trace and error views
+  (section 12), the Playground route and the `MeridianOnline` specimen, with their
+  experiments (the worker under Turbopack and `/next`, the sandbox probe through
+  Cloudflare, `<ViewTransition>` and `<Widgets>` under the static export), and the
+  `next/runtime/` artifact rules.
+- The background module (section 9) and its pause switch.
+- The API reference pages (rows 43 to 50) with `docs:behaviour-data`.
+- The Guides `/federation/`, `/scope-context/`, `/bundlers/`, `/schemas/` and `/runtimes/`,
+  the Migration pages `/upgrade-behaviour/` and `/encapsulation/`.
+- The four `/vs-*/` pages, the charts (`<SizeChart>`, `<TimingChart>`, `<BuildChart>`,
+  `<BuildGrid>`) and `<Benefits>`, the chart colour roles, `docs:package-facts` and the
+  benchmarks spec's remaining guards (decision 38).
+- The phase 2 guards of section 14.3, the visual checks of section 17.4 and the remaining
+  end-to-end items of section 17.3.
 
-### 18.2 Phase 2: after the 0.4 API passes review
+### 18.3 Phase 3: 0.4.0 final
 
-Content waits for the review because every region runs against the API. The order: Start,
-then Concepts in teaching order, then Migration (its fences cite the codemod fixtures), the
-API reference (it needs core's docblocks), the RC post in the snapshot overlay, the Guides
-and the missions.
+- The blog migration of section 6.2 onto `main`: the posts, their `legacyUrl` stubs and
+  the `final` artifact rule for each post page. The CLI path of `assemble.mjs` and
+  `check-artifact.mjs` passes the posts it reads from `content/blog/`.
+- The pull request on `release/0.4` that sets `deploy.json` to `final` with `finalDate`,
+  before the stable release (section 15.1).
+- The launch post of the benchmarks spec.
 
-Required for rc.0:
+### 18.4 Phase 4 and the pages that wait for a release
 
-- Start and Concepts, complete.
-- Migration, all seven pages, `/support-policy/` and `/set-removed/` included.
-- The API reference: `/api/`, `/api-testing/`, `/api-node/` and `/api-errors/`. The other
-  five package pages (`/api-decorators/`, `/api-devtools/`, `/api-federation/`,
-  `/api-errors-package/`, `/api-react/`) ship within the RC window, with the plugin and
-  package guide pages below.
-- Guides: `/testing/`, `/node-request-scopes/`, `/decorators/` and `/legacy-decorators/`.
-  `container.set()` in tests is the most common 0.3 pattern the RC breaks.
-  `createChildContainer` was the 0.3 answer for per-request state on a server. Every 0.3
-  project enabled `experimentalDecorators`, and `/upgrade/` step 2 links to
-  `/legacy-decorators/`. A 0.3 project written with decorators looks for `/decorators/`
-  first.
-- The Playground, because every concept page links to it.
-- The RC announcement in the snapshot overlay (core spec §14, rc.0 checklist item 1), with
-  the announcement bar.
-- `deploy.json` in `rc` mode, deployed before the rc.0 release commit (section 15.9).
-
-Within the RC window, before 0.4.0 final:
-
-- `/react-router-ssr/`, `/load/`, `/scope-context/`, `/bundlers/`, `/schemas/`,
-  `/runtimes/`, `/comparison/` and `/plugins/`.
-- `/api-decorators/`, `/api-devtools/`, `/api-federation/`, `/api-errors-package/` and
-  `/api-react/`.
-- The Academy, all nine missions. The Academy entry stays out of the navbar until missions
-  1 to 4 pass the mission guard. Later missions join as each one passes it.
-- The blog migration, ready to deploy with the swap.
+- After 0.4.0 final: the Academy (section 13) and its progress store, the mission guard and
+  the Academy end-to-end items.
+- When `@nexusdi/codemod` publishes: `/codemod/`, `/upgrade-api-map/`, `/set-removed/`,
+  and the codemod step at the top of `/upgrade/` and on `/release-candidate/`.
+- When `@nexusdi/react` and the adapters publish: `/react-router-ssr/`, `/api-react/`, the
+  `di.load(Feature)` middleware on `/load/`, and their rows in G10 and `doc-reference`.
 
 ## 19. Out of scope
 
@@ -2675,22 +3010,121 @@ Within the RC window, before 0.4.0 final:
 - Missions for Errors, Introspection and trace, and testing.
 - Per-tag blog pages, comments and a newsletter.
 - The libraries `/testing` statistics section (section 14.3).
-- Translations.
+- Translations of the site. A text pack that translates error messages is in scope on
+  `/error-text/`.
 - Analytics of any kind.
 - `llms.txt` (standard decision 14).
 - A service worker or an offline mode.
 - Any archive other than `/v0.3/` before 1.0.
-- Documentation for interceptors (#17), a third-party plugin discovery registry (issue
-  #19's registry proposal, dropped for 0.4 per core spec §0), the graph CLI (#18) and
-  benchmarks (#21). Each feature's own spec adds its pages. The plugin API itself and the
-  first-party plugin packages are in scope: `/plugins/` and the package reference pages
-  (section 4.3).
+- A third-party plugin discovery registry (issue #19's registry proposal, dropped for 0.4 per
+  core spec §0). `/write-a-plugin/` names the npm keyword `nexusdi-plugin`, which a later
+  registry page can read. Interceptors (#17), the graph CLI (#18) and benchmarks (#21) are
+  in scope since the refresh (sections 4.3 and 18).
 - Nested scopes, which 0.4 does not have (core spec §3.6).
 - PixiJS, Sandpack, Monaco and Mermaid-rendered graph views.
 - Replacing `nextra-theme-docs` with a custom shell (baize-ui spec §7, step 3).
 - Any change to `@evanion/react-widget` or to core for the docs' sake.
 
-## 20. Open questions
+## 20. Owner steps
 
-None. The benchmarks spec adopts this spec's token names and adds the `build` family, which
-resolves the two items the previous revision held.
+No owner decision is open. The docs team decided the earlier questions, recorded in
+decisions 38 to 40 and in section 21, item 21. Phase 1 waits for these owner steps, and each
+plan task that reaches one stops until the owner has done it:
+
+1. Merging into `main`: the phase 1 pipeline, and the switch to `rc` with the RC post.
+2. Merging into `release/0.4`: the `sync` pull request, the rc.0 benchmark results (pull
+   request #73) and phase 1 itself. Dispatching the release workflow's `sync` event.
+3. Dispatching `docs-snapshot.yml` after the switch, and merging the pull request that
+   records snapshot revision 2.
+4. GitHub settings: the labels `rc-feedback` and `rc-blocker`; the pinned "0.4 RC feedback"
+   Discussion, created before the RC post publishes; the CI `docs` job as a required status
+   check on `main` and `release/*`.
+
+## 21. Where the code at rc.0 overrides an earlier spec
+
+The refresh checked every API name, package, export, URL and deploy step against the code at
+the `@nexusdi/core@0.4.0-rc.0` tag. Each case below follows the code.
+
+1. Error URLs. Earlier revisions linked each code to an anchor on `/api-errors/`. Core's
+   messages link to `https://nexus.js.org/errors/<CODE>` (`DOCS_URL`), so each code has its
+   own page (amendment A3), and the root serves stubs during the RC.
+2. The first docs page. Section 5.3 bound interfaces on `/getting-started/`; core spec D8
+   and the README bind classes as their own tokens there (decision 31).
+3. Packages. rc.0 publishes `@nexusdi/interceptors` and `@nexusdi/cli`, which the earlier
+   inventory left out of scope, and no `@nexusdi/codemod`, `@nexusdi/react` or adapter,
+   which it documented. The inventory follows (section 4.3).
+4. Entries. `@nexusdi/core`, `@nexusdi/federation` and `@nexusdi/interceptors` each export a
+   `./text` entry (`coreText`, `federationText`, `interceptorsText`). The extension spec §7
+   also lists `@nexusdi/interceptors/devtools` with `interceptorNotes`; rc.0 has no such
+   entry, and the site documents none.
+5. CLI flags. The extension spec §7 says `@nexusdi/cli` adds `--text` and `--annotate`.
+   `libs/cli/src/args.ts` at rc.0 accepts `-f`, `-o`, `--view`, `--load`, `--plugins`, `-h`
+   and `-v` only, and `/graph-cli/` documents those.
+6. Ambient scope. Section 4.3 row 14 passed `nodeScopes()` "as the `scopes` option to
+   `Nexus.create`". `CreateOptions` at rc.0 holds `plugins` only, and `nodeScopes()`
+   registers with no container (core spec D20), so `/node-request-scopes/` teaches
+   `scopes.run()` and `scopes.current()` alone.
+7. Token names. Section 7.1 named the shield token `SHIELDS`; the benchmarks spec §12 and
+   core's README use `SHIELD_GRID`, and so does the site.
+8. The deny list. Section 7.7 listed `forRoot` as a removed 0.3 name; 0.4 has `forRoot()`
+   (core spec D4), so the guard drops it.
+9. `NexusErrorCode`. Earlier revisions counted core's codes; at rc.0 `NexusErrorCode` is
+   `keyof NexusErrorByCode`, open to every package, and 40 first-party codes exist: 28 in
+   core, 1 in decorators, 2 in devtools, 1 in federation, 6 in interceptors and 2 in testing.
+10. Permissions. Section 15.3 gave the workflow `pages: write` and `id-token: write`;
+    `docs.yml` grants them to the deploy job alone, which is tighter, and the spec follows.
+11. The `/next/` blog copy. `docs.yml` on `release/0.4` copied `content/blog/` from `main`
+    into the `/next/` worktree, which the `next` channel never renders and which failed
+    because `main` has no blog; `main`'s `4300fa5` removed the copy, and the spec records
+    that nothing is copied into the `/next/` tree.
+12. Async factories. `provide()` rejects an async factory with `eager: false` or with
+    `lifetime: 'transient'` at the type level (`libs/core/src/definitions/provide.ts`), so
+    `/lifetimes/` shows those two as `fails-type-check` fences.
+13. The graph JSON. `NexusGraph` providers carry `notes`, `implementation` and `internal`,
+    and `graph()` lists core's `REQUEST` as an internal provider; the views and the
+    examples read them (section 12).
+14. Error text placement. Errors raised where no container formats them carry their own
+    full text and ignore every pack: `NEXUS_LEGACY_DECORATORS`, both `NEXUS_DEVTOOLS_*`,
+    `NEXUS_INTERCEPTOR_NOT_READY`, `NEXUS_INTERCEPTORS_UNCHECKED`, both `NEXUS_OVERRIDE_*`,
+    and `NEXUS_INTERCEPTORS_SHARED` when the plugin's `construct` hook raises it for two
+    overlapping `create` calls (`libs/interceptors/src/plugin.ts`). Their code pages say so
+    (section 5.8a).
+15. Wrapped codes. A schema failure and a thunk called before its target is ready reject
+    `Nexus.create` with `NEXUS_PROVIDER_FAILED`; `NEXUS_INVALID_MODULE_OPTIONS` and
+    `NEXUS_NOT_READY` sit in `error.cause` (`libs/core/src/errors/provider-error.ts`). A thunk
+    called from `onInit` also throws `NEXUS_NOT_READY` when its target starts on a later
+    level (`libs/core/src/runtime/lazy.ts`). The code pages and `/errors/` read `cause`.
+16. Plugin names. Two plugins with one name raise `NEXUS_PLUGIN_INVALID` with reason
+    `duplicate-name` (`libs/core/src/runtime/plugins.ts`). `NEXUS_PLUGIN_CONFLICT` is two
+    `compile.module` or `compile.provider` hooks that rewrite one definition
+    (`libs/core/src/blueprint/hooks.ts`). `/plugins/` and both code pages follow.
+17. `load()` errors. `ship.load()` of a global module throws `NEXUS_LOAD_GLOBAL_MODULE`
+    directly, outside a `BlueprintError` (`libs/core/src/blueprint/compile.ts`), and a
+    `setup` failure rejects `create` with `NEXUS_PLUGIN_FAILED` directly.
+18. Disposal failures. `dispose()` reports several failures as a `SuppressedError` chain
+    (`error` the last failure, `suppressed` the chain before it), with `NexusSuppressedError`
+    where the runtime lacks the class (`libs/core/src/runtime/dispose.ts`). `/lifecycle/`
+    teaches the chain.
+19. Unexported contributions. A multi-token contribution in a module that does not export
+    the token is left out of `all()` in other modules, with no error. `/multi-providers/`
+    shows it.
+20. `override()`. `OverrideDefinition` takes `useClass` or `useValue`
+    (`libs/core/src/definitions/provide.ts`), and `override()` takes `useFactory` through a
+    second overload (`libs/testing/src/index.ts`). No form takes `useExisting`. `/testing/`
+    says so.
+21. Cause text. With `errors()` registered, the `NEXUS_PROVIDER_FAILED` text embeds the
+    one-line message of a `NEXUS_INVALID_MODULE_OPTIONS` cause, so the schema issues stay
+    out of it (`libs/core/src/text/core-text.ts`). `/configurable-modules/` reads
+    `error.cause.issues`, and the `NEXUS_INVALID_MODULE_OPTIONS` code page shows
+    `explain(error.cause)`. Whether core formats a Nexus error in `cause` with its own pack
+    text is a core change for a later RC; the pages change with it.
+22. Benchmark results. `benchmarks/results/` at the rc.0 tag was measured on core 0.3.2;
+    `release/0.4` now holds `0.4.0-rc.0` sizes, matrix and probes, and no timings or
+    `build.json` until pull request #73 merges. `docs:benchmark-data` refuses results whose
+    core `major.minor` differs from `libs/core/package.json` (decision 38). The docs path
+    filter covers `benchmarks/**`, because the data step imports `benchmarks/src/schema.ts`.
+23. GitHub releases. `nx release` creates the GitHub release of every rc, stable and patch
+    through `createRelease: "github"` in `nx.json`, with no `gh release create`, and
+    `release.yml` then sets `--latest` with `gh release edit`. An rc is a prerelease and
+    never becomes latest. `workflow-release-latest` covers the `gh release create` calls,
+    `docs-snapshot.yml`'s and `release.yml`'s.
