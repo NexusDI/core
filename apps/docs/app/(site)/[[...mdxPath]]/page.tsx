@@ -1,19 +1,26 @@
 import { generateStaticParamsFor, importPage } from 'nextra/pages';
 
+import ReleaseNotice from '../../../components/ReleaseNotice';
 import { useMDXComponents as getMDXComponents } from '../../../mdx-components';
-import { readChannel } from '../../channel';
+import { readBasePath, readChannel } from '../../channel';
+import {
+  inCandidacy,
+  readReleaseState,
+  releaseNotice,
+  type ReleaseState,
+} from '../../release-state';
+import { pageMetadata } from './page-metadata';
 import { keepRoute } from './static-params';
+
+/** `output: 'export'` renders only listed routes; nothing is rendered on demand. */
+export const dynamicParams = false;
 
 const listPages = generateStaticParamsFor('mdxPath');
 
-// `output: 'export'` has no server, so a route missing from
-// generateStaticParams must not render at request time either.
-export const dynamicParams = false;
-
 /**
- * One route per MDX file under `content/`, the root included: the segment is
- * an optional catch-all, so `/` is `content/index.mdx` like every other page
- * (spec §4.1). The `/next/` build drops `blog/` (spec §6.1).
+ * One route per MDX file under `content/`, the landing page included (an
+ * optional catch-all, so `/` is `content/index.mdx`). The `/next/` build leaves
+ * the blog out (spec §6.1).
  */
 export async function generateStaticParams() {
   const channel = readChannel();
@@ -29,14 +36,11 @@ interface PageProps {
 export async function generateMetadata(props: PageProps) {
   const params = await props.params;
   const { metadata } = await importPage(params.mdxPath);
-  return metadata;
+  return pageMetadata(metadata, params.mdxPath, readChannel(), readBasePath());
 }
 
-/**
- * The theme's page frame: table of contents, breadcrumbs, the
- * `data-pagefind-body` region and the previous and next links. Every page
- * renders inside it unchanged (spec §5.4).
- */
+let state: ReleaseState | undefined;
+
 const Wrapper = getMDXComponents().wrapper;
 
 export default async function Page(props: PageProps) {
@@ -48,8 +52,14 @@ export default async function Page(props: PageProps) {
     sourceCode,
   } = await importPage(params.mdxPath);
 
+  state ??= readReleaseState(process.cwd());
+  const notice = releaseNotice(state, readChannel());
+
   return (
     <Wrapper toc={toc} metadata={metadata} sourceCode={sourceCode}>
+      {notice ? (
+        <ReleaseNotice text={notice} candidate={inCandidacy(state)} />
+      ) : null}
       <MDXContent {...props} params={params} />
     </Wrapper>
   );
