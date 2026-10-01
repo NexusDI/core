@@ -9,7 +9,10 @@ import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 
 import type { Reference } from '@nexusdi/doc-examples/declarations';
-import { expandReferences } from '@nexusdi/doc-examples/mdx-reference-loader';
+import {
+  expandReferences,
+  mdxProse,
+} from '@nexusdi/doc-examples/mdx-reference-loader';
 import { workspaceRoot } from '@nx/devkit';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 
@@ -121,5 +124,20 @@ describe('the reference loader source', () => {
       'utf8',
     );
     expect(source).not.toMatch(/docs-api-entry|baize-kind-/);
+  });
+});
+
+describe('mdxProse link tags', () => {
+  it('turns a link into its label or its target', () => {
+    expect(mdxProse('{@link Foo}')).toBe('`Foo`');
+    expect(mdxProse('{@link Foo | the foo}')).toBe('the foo');
+    expect(mdxProse('{@linkcode Foo bar}')).toBe('bar');
+  });
+
+  it('reads an unclosed link on long input in linear time', () => {
+    const input = '{@link ' + '\t'.repeat(50000);
+    const start = performance.now();
+    expect(mdxProse(input)).toBe('\\' + input);
+    expect(performance.now() - start).toBeLessThan(200);
   });
 });
