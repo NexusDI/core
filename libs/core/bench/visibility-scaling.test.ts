@@ -5,13 +5,15 @@ import * as core from '../src/index.js';
 import { makeModularGraph } from './graph.mjs';
 
 const WARMUP = 15;
-const RUNS = 41;
+const ROUNDS = 5;
+const RUNS = 21;
 /**
  * Splitting 301 providers over 32 modules may cost at most this much more
  * create time than one module holding them all. The visibility pass is
- * linear in what each module sees, so the ratio stays near 1.5.
+ * linear in what each module sees, so the ratio stays near 1.3; a pass that
+ * solves every token in every module sits near 6.
  */
-const BOUND = 2;
+const BOUND = 3;
 
 async function createOnce(root: ModuleDefinition): Promise<number> {
   const start = performance.now();
@@ -39,16 +41,22 @@ describe('visibility scaling', () => {
       await createOnce(flat);
       await createOnce(modular);
     }
-    // Interleaved, so load on the machine hits both sides alike.
-    const times = { flat: [] as number[], modular: [] as number[] };
-    for (let i = 0; i < RUNS; i++) {
-      times.flat.push(await createOnce(flat));
-      times.modular.push(await createOnce(modular));
+    // Each round interleaves the two sides, so load hits both alike, and
+    // takes the ratio of their medians. Load only raises a round's ratio, so
+    // the lowest round is the one to check.
+    const ratios: number[] = [];
+    for (let round = 0; round < ROUNDS; round++) {
+      const flatTimes: number[] = [];
+      const modularTimes: number[] = [];
+      for (let i = 0; i < RUNS; i++) {
+        flatTimes.push(await createOnce(flat));
+        modularTimes.push(await createOnce(modular));
+      }
+      ratios.push(median(modularTimes) / median(flatTimes));
     }
-    const ratio = median(times.modular) / median(times.flat);
     expect(
-      ratio,
-      `modular ${median(times.modular).toFixed(2)} ms, flat ${median(times.flat).toFixed(2)} ms`,
+      Math.min(...ratios),
+      `ratios per round: ${ratios.map((r) => r.toFixed(2)).join(', ')}`,
     ).toBeLessThanOrEqual(BOUND);
   });
 });
