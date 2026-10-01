@@ -14,7 +14,7 @@ Wrap NexusDI service methods with logging, metrics, validation or caching.
 
 ## Install
 
-> 0.4 is a release candidate on the npm `next` tag. Install every @nexusdi package from `next` so their versions match.
+> 0.4 is a release candidate on the npm `next` tag. Install every @nexusdi package from `next` so their versions match. Without `@next`, npm installs core 0.3 and stops with a peer conflict.
 
 ```bash
 npm install @nexusdi/interceptors@next @nexusdi/core@next
