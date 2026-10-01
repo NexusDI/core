@@ -52,5 +52,10 @@ Task briefs: tasks/task-NN.md, shared constraints tasks/globals.md
 - T7: done ce7c11a+07c832c ("Add the blog before setting final"; approved; actionlint not run locally, CI runs it)
 - T35: done 21de2f5+723133d (prose fixes; trap headings without periods, sentences kept for the pin test; approved)
 - T8: done 5147ed6 (approved)
-- T74: review 08e33cd (WORKSPACE/OUTPUT/gitCommit/FAMILIES unexported for fallow)
-- T9: impl
+- T74: done 08e33cd (WORKSPACE/OUTPUT/gitCommit/FAMILIES unexported for fallow, no later importer; approved)
+- T9: done b81c18e+d721907 (retired case tested; approved)
+- T75: done 82c3674 (apps/docs depends on @nexusdi/meridian-ui; tags after ...components pre-sync; approved, real build passes)
+- T10: done 21f5708+9aeb791 (unknown base commit -> touched=true; approved). Watch the first CI run: rc and final builds share one checkout.
+- T76: done 4532ad4 (approved). Pre-sync, repo-checks docs-trigger.test.ts fails on feat (docs.yml lacks benchmarks/**); T10's docs.yml change fixes it after the sync.
+- All pre-sync feat tasks are done. feat waits for the sync.
+- T11: impl
