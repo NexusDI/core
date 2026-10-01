@@ -2,6 +2,9 @@
   "name": "@nexusdi/docs",
   "version": "0.0.0",
   "private": true,
+  "scripts": {
+    "postbuild": "node tools/md-siblings.mjs"
+  },
   "nx": {
     "tags": [
       "scope:docs",
@@ -47,6 +50,7 @@
     }
   },
   "dependencies": {
+    "@nexusdi/doc-examples": "*",
     "next": "16.3.4",
     "nextra": "4.6.1",
     "nextra-theme-docs": "4.6.1",
