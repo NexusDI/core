@@ -437,7 +437,7 @@ A `workflow_dispatch` created with the job token starts a run [15]. The deploy k
 
 - `docs-trigger.ts`: keep the `main` and no-tags rules. Add a rule that `docs-next.yml` exists, triggers on `release/**` with the same paths, and only dispatches `docs.yml` on `main`.
 - `deploy-config.mjs`: `rc` and `final` stay. The modes describe what the root shows; the `/next/` source moves out of the mode and into step 7.1.2.
-- Docs spec §15.1 and §15.3 say `/next/` builds from `main`. This spec changes that to "the active `release/*` branch, else `main`". The owner amends the docs spec in the same pull request as `docs.yml`.
+- Docs spec §15.1 and §15.3 say `/next/` builds from `main`. This spec changes that to "the active `release/*` branch, else `main`". The owner amends the docs spec in the same pull request as `docs.yml`. Specs live only on `spec/*` branches, so the amendment is commit 5a1f082 on `spec/docs-site`, approved 2026-10-01.
 
 ## 8. `RELEASING.md` changes
 
