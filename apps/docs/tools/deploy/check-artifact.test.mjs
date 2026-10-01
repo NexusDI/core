@@ -230,6 +230,20 @@ describe('checkArtifact rules beyond presence', () => {
     ).toContain('v0.3/docs/index.html: carries no noindex robots meta.');
   });
 
+  it('accepts a robots meta with other attributes around name and content', () => {
+    const site = artifact({
+      ...final(),
+      'v0.3/docs/index.html': page(
+        'docs',
+        '<meta data-rh="true" name="robots" content="noindex, nofollow">' +
+          '<meta content="noindex" data-rh="true" name="robots">',
+      ),
+    });
+    expect(
+      checkArtifact(site, 'final', { posts: ['0-4-release-candidate'] }),
+    ).toEqual([]);
+  });
+
   it('fails a v0.3 link that leaves the archive', () => {
     const site = artifact({
       ...final(),
