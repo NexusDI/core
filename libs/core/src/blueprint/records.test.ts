@@ -109,6 +109,32 @@ describe('normalizeProvider', () => {
     expect(calls).toEqual([[target, 'plotted']]);
   });
 
+  it.each([
+    ['a bare class', (cls: Ctor) => cls],
+    ['provide(C)', (cls: Ctor) => rawProvide(cls)],
+    ['useClass: C', (cls: Ctor) => rawProvide(NAV_CHARTS, { useClass: cls })],
+    [
+      'useClass: C with deps',
+      (cls: Ctor) => rawProvide(NAV_CHARTS, { useClass: cls, deps: [] }),
+    ],
+  ])('runs the Symbol.metadata getter of %s once', (_label, entryOf) => {
+    class Bridge {}
+    const metadata = Object.create(null) as DecoratorMetadataObject;
+    declareClass(metadata, { lifetime: 'scoped' });
+    declareProperty(metadata, 'charts', optional(NAV_CHARTS));
+    let reads = 0;
+    Object.defineProperty(Bridge, Symbol.metadata, {
+      get: () => {
+        reads++;
+        return metadata;
+      },
+    });
+    const { shape, errors } = normalize(entryOf(Bridge));
+    expect(errors).toEqual([]);
+    expect(shape?.props).toHaveLength(1);
+    expect(reads).toBe(1);
+  });
+
   it('uses explicit provide() options and ignores metadata', () => {
     expect(
       normalize(

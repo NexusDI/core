@@ -28,44 +28,54 @@ export interface PropMetadata {
   readonly set: (target: object, value: unknown) => void;
 }
 
-type MetadataRecord = Record<PropertyKey, unknown>;
+export type MetadataRecord = Record<PropertyKey, unknown>;
 
-function metadataOf(cls: unknown): MetadataRecord | undefined {
+const OBJECT_PROTOTYPE = Object.prototype as MetadataRecord;
+
+/**
+ * The class's own metadata object, or undefined when it has none or it is
+ * Object.prototype. A getter on `C[Symbol.metadata]` runs once per call. The
+ * compiler calls it once per provider entry and passes the result to
+ * injectableIn and propsIn.
+ */
+export function metadataOf(cls: unknown): MetadataRecord | undefined {
   const key = (Symbol as { metadata?: symbol }).metadata;
   if (key === undefined || typeof cls !== 'function') return undefined;
   const value = (cls as unknown as Record<symbol, unknown>)[key];
-  return typeof value === 'object' && value !== null
+  return typeof value === 'object' &&
+    value !== null &&
+    value !== OBJECT_PROTOTYPE
     ? (value as MetadataRecord)
     : undefined;
 }
 
-/** The class's metadata objects, own first, stopping before Object.prototype. */
-function* metadataChain(cls: unknown): Generator<MetadataRecord> {
-  let metadata: MetadataRecord | null | undefined = metadataOf(cls);
-  while (
-    metadata !== null &&
-    metadata !== undefined &&
-    metadata !== (Object.prototype as MetadataRecord)
-  ) {
-    yield metadata;
-    metadata = Object.getPrototypeOf(metadata) as MetadataRecord | null;
-  }
+/** The next metadata object up the chain; undefined past its last one. */
+function parentOf(metadata: MetadataRecord): MetadataRecord | undefined {
+  const parent = Object.getPrototypeOf(metadata) as MetadataRecord | null;
+  return parent === null || parent === OBJECT_PROTOTYPE ? undefined : parent;
 }
 
-export function readInjectable(cls: unknown): InjectableMetadata | undefined {
-  for (const metadata of metadataChain(cls)) {
-    if (Object.hasOwn(metadata, INJECTABLE))
-      return metadata[INJECTABLE] as InjectableMetadata;
-  }
+/**
+ * The nearest @Injectable entry on `metadata` and the metadata objects it
+ * inherits from, stopping before Object.prototype.
+ */
+export function injectableIn(
+  metadata: MetadataRecord | undefined,
+): InjectableMetadata | undefined {
+  for (let m = metadata; m !== undefined; m = parentOf(m))
+    if (Object.hasOwn(m, INJECTABLE))
+      return m[INJECTABLE] as InjectableMetadata;
   return undefined;
 }
 
-export function readProps(cls: unknown): PropMetadata[] {
+/**
+ * Every @Inject entry on `metadata` and the metadata objects it inherits
+ * from, parents first, stopping before Object.prototype.
+ */
+export function propsIn(metadata: MetadataRecord | undefined): PropMetadata[] {
   const levels: (readonly PropMetadata[])[] = [];
-  for (const metadata of metadataChain(cls)) {
-    if (Object.hasOwn(metadata, PROPS))
-      levels.unshift(metadata[PROPS] as PropMetadata[]);
-  }
+  for (let m = metadata; m !== undefined; m = parentOf(m))
+    if (Object.hasOwn(m, PROPS)) levels.unshift(m[PROPS] as PropMetadata[]);
   return levels.flat();
 }
 
