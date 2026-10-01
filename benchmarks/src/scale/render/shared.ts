@@ -54,7 +54,9 @@ export function __scaleBuilt(index: number, kind: string): void {
  * the constructor ends with the counter call; a factory's product class
  * leaves it to the factory body. `head` goes before the id, for static
  * members. `decorate` prefixes each constructor parameter, for parameter
- * decorators.
+ * decorators. `params` replaces the parameter list, for a library that
+ * passes its dependencies in one object; the constructor still assigns
+ * `d0`, `d1`, ... from bindings of those names.
  */
 export function classBody(
   graph: ScaleGraph,
@@ -64,15 +66,20 @@ export function classBody(
     report: boolean;
     head?: string;
     decorate?: (dep: ScaleProvider) => string;
+    params?: string;
   },
 ): string {
   const deps = p.deps.map((d) => graph.providers[d]);
   const fields = deps
     .map((d, i) => `  readonly d${i}: ${opts.param(d)};\n`)
     .join('');
-  const params = deps
-    .map((d, i) => `${opts.decorate?.(d) ?? ''}d${i}: ${opts.param(d)}`)
-    .join(', ');
+  const params =
+    deps.length === 0
+      ? ''
+      : (opts.params ??
+        deps
+          .map((d, i) => `${opts.decorate?.(d) ?? ''}d${i}: ${opts.param(d)}`)
+          .join(', '));
   const sets = deps.map((_, i) => `    this.d${i} = d${i};\n`).join('');
   const report = opts.report
     ? `    __scaleBuilt(${p.index}, '${p.kind}');\n`
