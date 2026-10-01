@@ -110,7 +110,8 @@ function requestRecord(index: number, rootId: string): ProviderRecord {
  * Compiles definitions into a frozen Blueprint, or throws one BlueprintError
  * holding every error in pass order. Constructs nothing and calls no user code.
  * Each pass collects errors and continues; a pass skips what an earlier error
- * broke, so one missing token produces one error.
+ * broke, so one missing token produces one error. Pass 2 reports by module
+ * walk order, then token order (see computeVisibility).
  */
 export function compile(input: CompileInput): Blueprint {
   const errors: NexusError[] = [];

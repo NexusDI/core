@@ -1,7 +1,10 @@
 import { describe, expect, it } from 'vitest';
 
 import { compileErrors, idOf, visible } from '../../test-support/compile.js';
-import { defineModule } from '../definitions/define-module.js';
+import {
+  defineModule,
+  type ModuleDefinition,
+} from '../definitions/define-module.js';
 import { provide } from '../definitions/provide.js';
 import { REQUEST } from '../definitions/request.js';
 import { MultiToken, Token } from '../definitions/token.js';
@@ -311,6 +314,48 @@ describe('compile', () => {
       }),
     );
     expect(errors.map((e) => e.code)).not.toContain('NEXUS_INVALID_EXPORT');
+  });
+
+  it('reports pass 2 errors by module walk order, then token first-seen order, then the export checks', () => {
+    const FREQUENCY = new Token<number>('Frequency');
+    const CHANNEL = new Token<number>('Channel');
+    const source = (name: string): ModuleDefinition =>
+      defineModule({
+        name,
+        providers: [provide(LOGGER, { useValue: name })],
+        exports: [LOGGER],
+      });
+    // Mid sees Logger from X and Y, and exports it. Root looks Logger up
+    // through Mid, but Mid comes after Root in walk order.
+    const Mid = defineModule({
+      name: 'Mid',
+      imports: [source('X'), source('Y')],
+      exports: [LOGGER, ShieldGrid],
+    });
+    const radio = (name: string): ModuleDefinition =>
+      defineModule({
+        name,
+        providers: [
+          provide(FREQUENCY, { useValue: 1 }),
+          provide(CHANNEL, { useValue: 2 }),
+        ],
+        exports: [FREQUENCY, CHANNEL],
+      });
+    const errors = compileErrors(
+      defineModule({
+        name: 'Root',
+        imports: [Mid, radio('P'), radio('Q')],
+        exports: [ReactorCore],
+      }),
+    );
+    expect(errors).toHaveLength(5);
+    expect(errors).toMatchObject([
+      { code: 'NEXUS_AMBIGUOUS_PROVIDER', module: 'Root', token: 'Frequency' },
+      { code: 'NEXUS_AMBIGUOUS_PROVIDER', module: 'Root', token: 'Channel' },
+      { code: 'NEXUS_AMBIGUOUS_PROVIDER', module: 'Mid', token: 'Logger' },
+      { code: 'NEXUS_INVALID_EXPORT', module: 'Root', token: 'ReactorCore' },
+      { code: 'NEXUS_INVALID_EXPORT', module: 'Mid', token: 'ShieldGrid' },
+    ]);
   });
 
   it('lists provider ids and module ids in moduleExports', () => {

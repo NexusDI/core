@@ -24,7 +24,11 @@ export function blueprintMessage(errors: readonly NexusError[]): string {
   ].join('\n');
 }
 
-/** Every error one compilation found, in pass order. Nothing was built. */
+/**
+ * Every error one compilation found, in pass order. The visibility errors
+ * (NEXUS_AMBIGUOUS_PROVIDER, then NEXUS_INVALID_EXPORT) follow module walk
+ * order. Nothing was built.
+ */
 export class BlueprintError extends Base {
   constructor(errors: readonly NexusError[]) {
     super({ errors });
