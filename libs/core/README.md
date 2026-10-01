@@ -185,7 +185,7 @@ ship.get(SUBSPACE_LINK).frequency; // -> 1420
 - [Documentation](https://nexus.js.org/next/)
 - [Examples](https://github.com/NexusDI/core/tree/release/0.4/libs/core/docs)
 - [NexusDI on GitHub](https://github.com/NexusDI/core)
-- [0.4 RC feedback](https://github.com/NexusDI/core/discussions)
+- [Discussions](https://github.com/NexusDI/core/discussions)
 
 ## When you do not need a container
 
