@@ -12,8 +12,22 @@
         "plain": { "profile": "none", "documented": true },
         "decorated": { "profile": "standard" }
       },
+      "moduleForm": "modules",
       "notApplicable": {},
-      "claims": []
+      "claims": [
+        {
+          "claim": "defineModule({ name, imports, providers, exports }) declares a module; it sees its own providers and the exports of the modules it imports",
+          "source": "https://github.com/NexusDI/core/tree/main/libs/core#modules",
+          "verifiedAgainst": "workspace",
+          "form": "module"
+        },
+        {
+          "claim": "Nexus.create awaits every async useFactory, so get() stays synchronous after startup",
+          "source": "https://github.com/NexusDI/core/tree/main/libs/core#interfaces-and-tokens",
+          "verifiedAgainst": "workspace",
+          "form": "async-factory"
+        }
+      ]
     },
     {
       "id": "inversify",
@@ -28,6 +42,7 @@
         "decorated": { "profile": "legacy-metadata", "documented": true },
         "decorated-explicit": { "profile": "legacy" }
       },
+      "moduleForm": "container-modules",
       "notApplicable": {
         "scoped": "inRequestScope is one instance per resolution graph, and the docs present no per-request child container."
       },
@@ -36,6 +51,30 @@
           "claim": "reads design:paramtypes only where no @inject token is given",
           "source": "https://inversify.io/docs/api/decorator/#inject",
           "verifiedAgainst": "8.2.3"
+        },
+        {
+          "claim": "new ContainerModule((options) => ...) groups bindings, and container.load(...modules) loads them",
+          "source": "https://inversify.io/docs/api/container-module/",
+          "verifiedAgainst": "8.2.3",
+          "form": "module"
+        },
+        {
+          "claim": "container.load is synchronous and loadAsync is its async counterpart",
+          "source": "https://inversify.io/docs/api/container/#load",
+          "verifiedAgainst": "8.2.3",
+          "form": "module"
+        },
+        {
+          "claim": "toResolvedValue(factory, [ids]) takes a factory that receives the resolved services and may return a Promise",
+          "source": "https://inversify.io/docs/api/binding-syntax/#toresolvedvalue",
+          "verifiedAgainst": "8.2.3",
+          "form": "async-factory"
+        },
+        {
+          "claim": "getAsync resolves a service whose binding builds asynchronously",
+          "source": "https://inversify.io/docs/api/container/#getasync",
+          "verifiedAgainst": "8.2.3",
+          "form": "async-factory"
         }
       ]
     },
@@ -52,12 +91,21 @@
         "decorated": { "profile": "legacy-metadata", "documented": true },
         "decorated-explicit": { "profile": "legacy" }
       },
-      "notApplicable": {},
+      "moduleForm": "registry",
+      "notApplicable": {
+        "async-factory": "tsyringe 4.10.0 declares no async resolution: resolve() returns the instance and the README documents no async provider."
+      },
       "claims": [
         {
           "claim": "throws 'tsyringe requires a reflect polyfill.' at import without one",
           "source": "https://github.com/microsoft/tsyringe#installation",
           "verifiedAgainst": "4.10.0"
+        },
+        {
+          "claim": "@registry([...]) on a class registers its providers when the class's module is imported",
+          "source": "https://github.com/microsoft/tsyringe#registry",
+          "verifiedAgainst": "4.10.0",
+          "form": "module"
         }
       ]
     },
@@ -69,13 +117,25 @@
       "read": "2026-09-30",
       "polyfill": null,
       "documentedToolchains": "any",
-      "variants": { "plain": { "profile": "none", "documented": true } },
-      "notApplicable": {},
+      "variants": {
+        "plain": { "profile": "none", "documented": true }
+      },
+      "moduleForm": "registration-functions",
+      "moduleNote": "awilix documents no module unit. Each graph module is a register<Module>(container) function making one documented container.register({...}) call; the function is plain code the README neither shows nor forbids.",
+      "notApplicable": {
+        "async-factory": "awilix 13.0.5 resolves synchronously, and its README sends asynchronous init to awilix-manager (https://github.com/jeffijoe/awilix#ecosystem)."
+      },
       "claims": [
         {
           "claim": "CLASSIC injection mode breaks under minification",
           "source": "https://github.com/jeffijoe/awilix#injection-modes",
           "verifiedAgainst": "13.0.5"
+        },
+        {
+          "claim": "container.register({...}) registers many resolvers in one call",
+          "source": "https://github.com/jeffijoe/awilix#containerregister",
+          "verifiedAgainst": "13.0.5",
+          "form": "module"
         }
       ]
     },
@@ -91,11 +151,26 @@
         "plain": { "profile": "none" },
         "decorated": { "profile": "standard", "documented": true }
       },
+      "moduleForm": "registration-functions",
+      "moduleNote": "needle-di documents no module unit. Each graph module is a register<Module>(container) function making one documented container.bindAll(...) call; the function is plain code the docs neither show nor forbid.",
       "notApplicable": {
         "transient": "needle-di documents singletons only.",
         "scoped": "needle-di documents singletons only."
       },
-      "claims": []
+      "claims": [
+        {
+          "claim": "container.bindAll(...) binds any number of providers in one call",
+          "source": "https://needle-di.io/concepts/binding.html#binding-multiple-providers",
+          "verifiedAgainst": "1.2.1",
+          "form": "module"
+        },
+        {
+          "claim": "{ provide, async: true, useFactory: async () => ... } registers an async factory, resolved with container.getAsync",
+          "source": "https://needle-di.io/advanced/async-injection.html#async-factory-providers",
+          "verifiedAgainst": "1.2.1",
+          "form": "async-factory"
+        }
+      ]
     }
   ]
 }
