@@ -57,8 +57,8 @@ const REFERENCE = /(?:^|\s)file=(\S+)\s+region=([\w-]+)/;
  * Expands every region reference in an MDX source.
  *
  * Textual rather than AST-based: a reference lives in a fence info string, and
- * the replacement is the fence's body, so parsing the document buys nothing
- * that the fence scan does not already give.
+ * the replacement is the fence's body, so the fence scan already finds what
+ * parsing the document would find.
  */
 export function expandRegions(source, root, file) {
   const out = [];
