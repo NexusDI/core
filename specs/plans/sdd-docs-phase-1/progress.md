@@ -65,7 +65,12 @@ Task briefs: tasks/task-NN.md, shared constraints tasks/globals.md
 ## Owner items
 - PR #80 merged into main by the owner (main 37aeb64).
 - Sync main -> release/0.4: `git merge-tree` shows one conflict, .github/workflows/ci.yml (both sides append jobs; keep both). release.yml event=sync would stop on it. This session's hand sync (sync/0.4-37aeb64xxxxx branch, merge, push, PR) was refused by the permission classifier. Needs the owner (or a permission rule) before Tasks 15-82.
-- Commit 0578605 on PR #80 keeps its `Claude Sonnet 5` co-author trailer.
 - T4's md-siblings module was written in this repo; the plan's copy from Evanion/libraries was not made.
 - After PR #80: create the labels rc-feedback and rc-blocker; add `docs` to the required checks of the main and release rulesets; pin the 0.4 RC feedback Discussion and fill DISCUSSION_URL in #74; decide #66 and #59 (see preflight).
 - Spec patch §14.3/§14.6 region roots on spec/docs-site is still open (planning edit).
+
+## Owner instructions (2026-10-01, after PR #80)
+- The local session does the main -> release/0.4 sync and every merge from here on. This session does no merges, syncs or branch creation.
+- After the owner reports the sync merged: rebase feat/docs-phase-1 onto release/0.4, continue Tasks 15-82, open PRs, leave them green, list each under Owner items for the local session to merge.
+- Task 18: write the copied modules in this repo, as in Task 4.
+- Commit 0578605's trailer stays as is.
