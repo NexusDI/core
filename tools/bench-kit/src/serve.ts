@@ -29,17 +29,29 @@ async function timeBatch(op: Operation, state: unknown, batch: number) {
     sink = r instanceof Promise ? await r : r;
     if (results !== undefined) results[i] = sink;
   }
-  const ns = Number(process.hrtime.bigint() - start);
-  return { ns, sink, results };
+  const stop = process.hrtime.bigint();
+  const ns = Number(stop - start);
+  return { ns, stop, sink, results };
 }
 
+/**
+ * Also returns the hrtime instant before each teardown call, so a caller can
+ * prove teardown ran after a given instant by comparison instead of by an
+ * elapsed-time threshold, which a preempted CI runner can blow past either
+ * side of.
+ */
 async function release(
   op: Operation,
   state: unknown,
   results: unknown[] | undefined,
-) {
+): Promise<bigint[]> {
+  const marks: bigint[] = [];
   if (results !== undefined)
-    for (const r of results) await op.teardown?.(r, state);
+    for (const r of results) {
+      marks.push(process.hrtime.bigint());
+      await op.teardown?.(r, state);
+    }
+  return marks;
 }
 
 /** Serves samples to the orchestrator over the fork IPC channel. The timing runs here, so the round trip is outside it. */
@@ -88,14 +100,22 @@ export function serveSamples(ops: Record<string, Operation>): void {
         process.send?.({ type: 'heap', op: m.op, bytes, sink: typeof sink });
         return;
       }
-      const { ns, sink, results } = await timeBatch(op, state, batch);
-      await release(op, state, results);
+      const { ns, stop, sink, results } = await timeBatch(op, state, batch);
+      const teardownMarks = await release(op, state, results);
       process.send?.({
         type: 'sample',
         op: m.op,
         ns,
         batch,
         sink: typeof sink,
+        // Only present when the op has a teardown, so an op without one pays
+        // nothing extra for a check it has no use for.
+        ...(op.teardown === undefined
+          ? {}
+          : {
+              timerStoppedAt: stop.toString(),
+              teardownStartedAt: teardownMarks[0]?.toString(),
+            }),
       });
     } catch (error) {
       process.send?.({

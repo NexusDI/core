@@ -5,8 +5,21 @@ import { orderFor } from './order.ts';
 export interface Worker {
   readonly id: string;
   calibrate(op: string): Promise<number>;
-  /** One batch of `op`, at `batch` when given, else at the calibrated size. */
-  sample(op: string, batch?: number): Promise<{ ns: number; batch: number }>;
+  /**
+   * One batch of `op`, at `batch` when given, else at the calibrated size.
+   * `timerStoppedAt`/`teardownStartedAt` are hrtime instants present only
+   * when `op` has a teardown; comparing them proves teardown ran after
+   * timing stopped without comparing elapsed durations.
+   */
+  sample(
+    op: string,
+    batch?: number,
+  ): Promise<{
+    ns: number;
+    batch: number;
+    timerStoppedAt?: bigint;
+    teardownStartedAt?: bigint;
+  }>;
   /** Heap bytes one operation leaves allocated, over one batch after gc(). */
   heap(op: string): Promise<number>;
   close(): void;
@@ -14,7 +27,13 @@ export interface Worker {
 
 type Reply = { op: string } & (
   | { type: 'calibrated'; batch: number }
-  | { type: 'sample'; ns: number; batch: number }
+  | {
+      type: 'sample';
+      ns: number;
+      batch: number;
+      timerStoppedAt?: string;
+      teardownStartedAt?: string;
+    }
   | { type: 'heap'; bytes: number }
   | { type: 'error'; message: string }
 );
@@ -85,7 +104,16 @@ export function forkWorker(
     async sample(op, batch) {
       const r = await call({ type: 'sample', op, batch });
       if (r.type !== 'sample') throw new Error(`unexpected reply ${r.type}`);
-      return { ns: r.ns / r.batch, batch: r.batch };
+      return {
+        ns: r.ns / r.batch,
+        batch: r.batch,
+        timerStoppedAt:
+          r.timerStoppedAt === undefined ? undefined : BigInt(r.timerStoppedAt),
+        teardownStartedAt:
+          r.teardownStartedAt === undefined
+            ? undefined
+            : BigInt(r.teardownStartedAt),
+      };
     },
     async heap(op) {
       const r = await call({ type: 'heap', op });
