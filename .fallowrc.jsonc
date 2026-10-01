@@ -105,6 +105,9 @@
     "eslint-plugin-react",
     "eslint-plugin-react-hooks",
     "jiti",
+    // apps/docs/tools/pagefind.mjs runs the pagefind CLI through
+    // `npx pagefind`, which fallow's import tracing cannot see.
+    "pagefind",
     "typescript-eslint",
     // Consumed by both the root eslint.config.mjs and
     // libs/core/eslint.config.mjs's `**/*.json` block
