@@ -96,6 +96,20 @@ describe('runCell', () => {
   }, 120_000);
 });
 
+describe('scaleCell', () => {
+  it('records an async graph as not-applicable for a library with no async resolution', async () => {
+    for (const lib of readLibraries().libraries) {
+      const reason = lib.notApplicable['async-factory'];
+      if (reason === undefined) continue;
+      const variant = lib.id === 'awilix' ? 'plain' : 'decorated';
+      // No cell is staged, so DIR holds no installed library.
+      await expect(
+        scaleCell(DIR, lib, variant, graphOf('mixed-async', 50)),
+      ).resolves.toEqual({ outcome: 'not-applicable', message: reason });
+    }
+  });
+});
+
 describe('bundleCell', () => {
   it('holds one __decorate for a decorated two-module cell', async () => {
     const tag =

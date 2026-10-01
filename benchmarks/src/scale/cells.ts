@@ -21,7 +21,7 @@ import type { Outcome, Profile, Variant } from '../schema.ts';
 import { firstLine, stripPaths } from '../text.ts';
 import { expectedDigest, type ScaleGraph } from './graph.ts';
 import { rendererFor } from './render/index.ts';
-import type { Files } from './render/shared.ts';
+import { isAsync, type Files } from './render/shared.ts';
 
 const run = promisify(execFile);
 const VERIFY_CHILD = join(import.meta.dirname, 'verify-child.mjs');
@@ -174,7 +174,8 @@ async function verifyCell(
 export interface CellResult {
   outcome: Outcome;
   message?: string;
-  cellDir: string;
+  /** Absent when the cell is not applicable, since nothing is staged. */
+  cellDir?: string;
   /** The verified bundle, for the timed children. Absent on a compile error. */
   bundle?: string;
 }
@@ -205,8 +206,13 @@ export async function runCell(
   return { outcome, cellDir, bundle };
 }
 
-/** The scale cell of a library-variant on a graph, rendered by its renderer. */
-export function scaleCell(
+/**
+ * The scale cell of a library-variant on a graph, rendered by its
+ * renderer. A graph with async factories is not-applicable, with the
+ * libraries.json reason, for a library that resolves synchronously only
+ * (scale spec ruling 7): no emulation is rendered.
+ */
+export async function scaleCell(
   dir: string,
   lib: Library,
   variant: Variant,
@@ -214,6 +220,9 @@ export function scaleCell(
 ): Promise<CellResult> {
   const spec = lib.variants[variant];
   if (spec === undefined) throw new Error(`${lib.id} has no ${variant}`);
+  const noAsync = lib.notApplicable['async-factory'];
+  if (noAsync !== undefined && graph.providers.some(isAsync))
+    return { outcome: 'not-applicable', message: noAsync };
   return runCell(
     dir,
     `scale-${lib.id}-${variant}-${graph.shape}-${graph.size}`,

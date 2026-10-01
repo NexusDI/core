@@ -107,7 +107,7 @@ export const ownOf = (graph: ScaleGraph, k: number) =>
  * caller binds `d0`, `d1`, ... in its library's factory form and supplies
  * the braces.
  */
-function factoryBody(p: ScaleProvider, indent: string): string {
+export function factoryBody(p: ScaleProvider, indent: string): string {
   const args = p.deps.map((_, i) => `d${i}`).join(', ');
   return [
     ...(isAsync(p) ? ['await Promise.resolve();'] : []),
