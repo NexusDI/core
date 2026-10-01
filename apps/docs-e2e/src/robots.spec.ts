@@ -25,7 +25,10 @@ test('a /next/ page carries the release notice above its heading', async ({
 
   const noticeBox = await notice.boundingBox();
   const headingBox = await page.locator('article h1').boundingBox();
-  expect(noticeBox!.y).toBeLessThan(headingBox!.y);
+  if (!noticeBox || !headingBox) {
+    throw new Error('the notice or the heading has no box');
+  }
+  expect(noticeBox.y).toBeLessThan(headingBox.y);
 });
 
 test('the content of a /next/ page sits in the search index region', async ({
