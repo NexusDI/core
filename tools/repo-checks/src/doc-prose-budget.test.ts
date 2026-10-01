@@ -18,6 +18,12 @@ describe('doc-prose-budget fixtures', () => {
     ).toBe(3);
   });
 
+  it('leaves no comment opener behind when removing a comment joins one', () => {
+    expect(proseWords('one <!<!---- x -->-- y --> two')).toBe(2);
+    expect(proseWords('one <!-- two')).toBe(2);
+    expect(proseWords('one <!-- x --> two')).toBe(2);
+  });
+
   it('reports a page over 1,200 words and exempts a page whose slug starts with api', () => {
     expect(checkProseBudget(pages(), {}).over).toEqual([
       'upgrade-api-map: 1260 words of prose against a budget of 1200. Cut it or split it, or record the reviewer’s acceptance in doc-prose-budget.json.',

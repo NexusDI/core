@@ -2,18 +2,32 @@ import type { DocsPage } from './site';
 
 const PROSE_BUDGET = 1200;
 
+// A removed comment can join the text around it into a new one, as in
+// `<!<!---- x -->-- y -->`, so the removal repeats until the text is stable.
+// An opener with no closer is dropped last, so no `<!--` remains.
+function withoutHtmlComments(text: string): string {
+  let current = text;
+  let previous: string;
+  do {
+    previous = current;
+    current = current.replace(/<!--.*?-->/gs, '');
+  } while (current !== previous);
+  return current.replace(/<!--/g, '');
+}
+
 /**
  * Words of prose in an MDX source. Ported from the libraries'
  * `doc-prose-budget.ts`: frontmatter, fences, imports, comments, link targets,
  * tags, headings, table rows and list markers go before the count.
  */
 export function proseWords(source: string): number {
-  const prose = source
-    .replace(/^---\n.*?\n---\n/s, '')
-    .replace(/^(\s*)(`{3,})[^\n]*\n.*?^\s*\2[^\n]*$/gms, '')
-    .replace(/^(import|export)\s[^\n]*$/gm, '')
-    .replace(/\{\/\*.*?\*\/\}/gs, '')
-    .replace(/<!--.*?-->/gs, '')
+  const prose = withoutHtmlComments(
+    source
+      .replace(/^---\n.*?\n---\n/s, '')
+      .replace(/^(\s*)(`{3,})[^\n]*\n.*?^\s*\2[^\n]*$/gms, '')
+      .replace(/^(import|export)\s[^\n]*$/gm, '')
+      .replace(/\{\/\*.*?\*\/\}/gs, ''),
+  )
     .replace(/\]\([^)]*\)/g, ']')
     .replace(/<[^>]+>/g, ' ')
     .replace(/^#{1,6}\s[^\n]*$/gm, '')
