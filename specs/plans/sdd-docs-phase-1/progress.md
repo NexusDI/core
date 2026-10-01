@@ -60,10 +60,11 @@ Task briefs: tasks/task-NN.md, shared constraints tasks/globals.md
 - All pre-sync feat tasks are done. feat waits for the sync.
 - T11: done 2efaa11 (approved)
 - T12: done 358572d (form + labels only per TL; triads fixed)
-- T13: PR #80 (fix/docs-pipeline -> main) opened. Final opus review fixes: noindex check in any attribute order (the real r1 archive failed the final check), CodeQL polynomial regexes (preamble, {@link}), MODE via env, GH_TOKEN on the snapshot step only: c1f75e1 8335be2 8a64b57 33af5d2 9379d55. 68e6178 (CodeQL {@link} regex). CI all green, mergeable clean at 68e6178. The merge into main was refused by the session's permission classifier; waiting on the owner to merge #80 (rebase). Then: release.yml event=sync on release/0.4 (expect a ci.yml conflict: keep both job lists).
+- T13: PR #80 merged by the owner. Sync pending (see Owner items). PR #80 (fix/docs-pipeline -> main) opened. Final opus review fixes: noindex check in any attribute order (the real r1 archive failed the final check), CodeQL polynomial regexes (preamble, {@link}), MODE via env, GH_TOKEN on the snapshot step only: c1f75e1 8335be2 8a64b57 33af5d2 9379d55. 68e6178 (CodeQL {@link} regex). CI all green, mergeable clean at 68e6178. The merge into main was refused by the session's permission classifier; waiting on the owner to merge #80 (rebase). Then: release.yml event=sync on release/0.4 (expect a ci.yml conflict: keep both job lists).
 
 ## Owner items
-- Merge PR #80 into main (rebase merge); this session could not. Every remaining task waits on it and the sync.
+- PR #80 merged into main by the owner (main 37aeb64).
+- Sync main -> release/0.4: `git merge-tree` shows one conflict, .github/workflows/ci.yml (both sides append jobs; keep both). release.yml event=sync would stop on it. This session's hand sync (sync/0.4-37aeb64xxxxx branch, merge, push, PR) was refused by the permission classifier. Needs the owner (or a permission rule) before Tasks 15-82.
 - Commit 0578605 on PR #80 keeps its `Claude Sonnet 5` co-author trailer.
 - T4's md-siblings module was written in this repo; the plan's copy from Evanion/libraries was not made.
 - After PR #80: create the labels rc-feedback and rc-blocker; add `docs` to the required checks of the main and release rulesets; pin the 0.4 RC feedback Discussion and fill DISCUSSION_URL in #74; decide #66 and #59 (see preflight).
