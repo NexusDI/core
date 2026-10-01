@@ -40,6 +40,7 @@
     "components/**/*.ts",
     "components/**/*.tsx",
     "tools/**/*.mjs",
+    "generated/*.json",
     "next-env.d.ts",
     ".next/types/**/*.ts",
     "mdx-components.js",
@@ -59,6 +60,9 @@
     },
     {
       "path": "../../tools/doc-examples"
+    },
+    {
+      "path": "../../internal/meridian-ui"
     }
   ]
 }

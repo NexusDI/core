@@ -1,6 +1,13 @@
 import { useMDXComponents as getThemeComponents } from 'nextra-theme-docs';
 
 import { PostList } from './components/blog/PostList';
+import {
+  Figure,
+  MeasuredWith,
+  PerformanceTable,
+  ProbeTable,
+  ToolchainGrid,
+} from './components/benchmarks';
 
 const themeComponents = getThemeComponents();
 
@@ -14,5 +21,12 @@ export function useMDXComponents(components) {
     ...themeComponents,
     ...components,
     PostList,
+    // The benchmark figures and tables (docs spec section 4.6). Each reads
+    // generated/benchmark-data.json; doc-benchmark-figures holds the paths.
+    Figure,
+    MeasuredWith,
+    PerformanceTable,
+    ProbeTable,
+    ToolchainGrid,
   };
 }
