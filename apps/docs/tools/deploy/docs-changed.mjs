@@ -41,22 +41,30 @@ const ZERO = /^0+$/;
 
 if (import.meta.url === pathToFileURL(process.argv[1] ?? '').href) {
   const base = process.argv[2] ?? '';
+  let touched = true;
+  let note = '';
   // A new branch has no base to diff against, so the job checks everything.
-  const touched =
-    base === '' || ZERO.test(base)
-      ? true
-      : touches(
-          PATHS,
-          execFileSync('git', ['diff', '--name-only', base, 'HEAD'], {
-            encoding: 'utf8',
-          })
-            .split('\n')
-            .filter(Boolean),
-        );
+  if (base !== '' && !ZERO.test(base)) {
+    try {
+      touched = touches(
+        PATHS,
+        execFileSync('git', ['diff', '--name-only', base, 'HEAD'], {
+          encoding: 'utf8',
+          stdio: ['ignore', 'pipe', 'ignore'],
+        })
+          .split('\n')
+          .filter(Boolean),
+      );
+    } catch {
+      // A force-push can leave the old tip out of the clone.
+      note = 'the base commit is not in the clone; ';
+    }
+  }
   console.log(
-    touched
-      ? 'this change touches a docs input; the docs job builds and checks the site'
-      : 'this change touches no docs input; the docs job ends here',
+    note +
+      (touched
+        ? 'this change touches a docs input; the docs job builds and checks the site'
+        : 'this change touches no docs input; the docs job ends here'),
   );
   if (process.env.GITHUB_OUTPUT)
     appendFileSync(process.env.GITHUB_OUTPUT, `touched=${touched}\n`);

@@ -1,4 +1,10 @@
 // @vitest-environment node
+import { spawnSync } from 'node:child_process';
+import { mkdtempSync, readFileSync } from 'node:fs';
+import { tmpdir } from 'node:os';
+import { join } from 'node:path';
+import { fileURLToPath } from 'node:url';
+
 import { describe, expect, it } from 'vitest';
 
 import { EXTRA_PATHS, PATHS, touches } from './docs-changed.mjs';
@@ -26,5 +32,22 @@ describe('touches', () => {
       false,
     );
     expect(touches(PATHS, ['apps/docs-e2e/src/home.spec.ts'])).toBe(false);
+  });
+});
+
+describe('the command line', () => {
+  it('reports a touched change when the base commit is missing', () => {
+    const dir = mkdtempSync(join(tmpdir(), 'docs-changed-'));
+    const output = join(dir, 'out');
+    const script = fileURLToPath(
+      new URL('./docs-changed.mjs', import.meta.url),
+    );
+    const run = spawnSync('node', [script, 'f'.repeat(40)], {
+      encoding: 'utf8',
+      env: { ...process.env, GITHUB_OUTPUT: output },
+    });
+    expect(run.status).toBe(0);
+    expect(run.stdout).toContain('the base commit is not in the clone');
+    expect(readFileSync(output, 'utf8')).toBe('touched=true\n');
   });
 });
