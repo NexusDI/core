@@ -9,12 +9,12 @@ Share NexusDI tokens between a micro-frontend shell and its remotes through vers
 
 - `defineContract({ key, version })` makes keyed, versioned tokens.
 - Every bundled copy of a contract token finds one provider.
-- A remote built against a newer minor fails at `load()`.
+- A remote built against an older minor of the contract still binds.
 - Version checks follow the rule of npm's `^` range.
 
 ## Install
 
-> 0.4 is a release candidate on the npm `next` tag. Install every @nexusdi package from `next` so their versions match.
+> 0.4 is a release candidate on the npm `next` tag. Install every @nexusdi package from `next` so their versions match. Without `@next`, npm installs core 0.3 and stops with a peer conflict.
 
 ```bash
 npm install @nexusdi/federation@next @nexusdi/core@next
@@ -34,8 +34,8 @@ interface IAuth {
 class CrewAuth implements IAuth {
   user = () => 'ada';
 }
-const shellBank = defineContract({ key: 'bank', version: '2.3.0' });
-const remoteBank = defineContract({ key: 'bank', version: '2.1.0' });
+const shellBank = defineContract({ key: 'crew', version: '2.3.0' });
+const remoteBank = defineContract({ key: 'crew', version: '2.1.0' });
 const AUTH: Token<IAuth> = shellBank.token('Auth');
 const Shell = defineModule({
   name: 'Shell',
@@ -58,8 +58,8 @@ import { defineContract, federation } from '@nexusdi/federation';
 interface IAuth {
   user(): string;
 }
-const shell = defineContract({ key: 'bank', version: '2.3.0' });
-const newer = defineContract({ key: 'bank', version: '2.4.0' });
+const shell = defineContract({ key: 'crew', version: '2.3.0' });
+const newer = defineContract({ key: 'crew', version: '2.4.0' });
 class Transfers {
   static deps = [newer.token<IAuth>('Auth')] as const;
   constructor(readonly auth: IAuth) {}
@@ -74,7 +74,7 @@ const Shell = defineModule({
 const plugins = [federation()];
 const listed = (error: BlueprintError) => error.errors;
 const errors = await Nexus.create(Shell, { plugins }).then(() => [], listed);
-errors.map((error) => ({ ...error })); // -> [{ contract: 'bank/Auth', required: '2.4.0', provided: '2.3.0' }]
+errors.map((error) => ({ ...error })); // -> [{ contract: 'crew/Auth', required: '2.4.0', provided: '2.3.0' }]
 ```
 
 <!-- #endregion version-check -->
