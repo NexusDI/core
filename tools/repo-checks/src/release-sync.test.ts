@@ -375,7 +375,8 @@ describe('sync.mjs restore', () => {
         }),
       );
 
-      expect(() =>
+      let failure: (Error & { stderr?: Buffer }) | null = null;
+      try {
         execFileSync(
           'node',
           [join(workspaceRoot, 'tools/release/sync.mjs'), 'restore'],
@@ -384,14 +385,105 @@ describe('sync.mjs restore', () => {
             stdio: 'pipe',
             env: { ...process.env, npm_config_offline: 'true' },
           },
-        ),
-      ).toThrow();
+        );
+      } catch (error) {
+        failure = error as Error & { stderr?: Buffer };
+      }
+
+      // Pins down which failure happened: a crash before settleManifests
+      // reaches the per-path handling throws too, and asserting only
+      // toThrow() would pass for that wrong reason as well.
+      expect(failure).not.toBeNull();
+      const stderr = failure?.stderr?.toString() ?? '';
+      expect(stderr).toContain(
+        'Resolve these manifests by hand first: libs/core/package.json (description)',
+      );
+      expect(stderr).not.toContain('SyntaxError');
 
       // The conflict is reported, not silently resolved: the manifest is
       // still unmerged with its conflict markers intact.
+      expect(
+        readFileSync(join(dir, 'libs/core/package.json'), 'utf8'),
+      ).toContain('<<<<<<<');
       expect(git('diff', '--name-only', '--diff-filter=U')).toContain(
         'libs/core/package.json',
       );
+    } finally {
+      rmSync(dir, { recursive: true, force: true });
+    }
+  });
+
+  it('settles a workspace pin to a package whose own manifest is mid-conflict', () => {
+    const dir = mkdtempSync(join(tmpdir(), 'sync-restore-'));
+    const git = (...args: string[]) =>
+      execFileSync('git', args, {
+        cwd: dir,
+        encoding: 'utf8',
+        stdio: ['ignore', 'pipe', 'pipe'],
+      });
+    const write = (path: string, text: string) => {
+      mkdirSync(join(dir, path, '..'), { recursive: true });
+      writeFileSync(join(dir, path), text);
+    };
+    const writeJson = (path: string, value: object) =>
+      write(path, `${JSON.stringify(value, null, 2)}\n`);
+    const manifests = (version: string) => ({
+      core: { name: '@nexusdi/core', version },
+      errors: {
+        name: '@nexusdi/errors',
+        version,
+        dependencies: { '@nexusdi/core': version },
+      },
+    });
+    try {
+      git('init', '-q', '-b', 'main');
+      git('config', 'user.email', 'sync@example.com');
+      git('config', 'user.name', 'sync');
+      git('config', 'commit.gpgsign', 'false');
+      git('config', 'core.hooksPath', '/dev/null');
+      write(
+        'package.json',
+        `${JSON.stringify({ name: 'root', private: true, workspaces: ['libs/*'] })}\n`,
+      );
+      const base = manifests('0.3.2');
+      writeJson('libs/core/package.json', base.core);
+      writeJson('libs/errors/package.json', base.errors);
+      git('add', '-A');
+      git('commit', '-qm', 'base');
+      git('switch', '-qc', 'release/0.4');
+      const line = manifests('0.4.0-rc.1');
+      writeJson('libs/core/package.json', line.core);
+      writeJson('libs/errors/package.json', line.errors);
+      git('commit', '-qam', 'rc.1');
+      git('switch', '-q', 'main');
+      const theirs = manifests('0.3.3');
+      writeJson('libs/core/package.json', theirs.core);
+      writeJson('libs/errors/package.json', theirs.errors);
+      git('commit', '-qam', '0.3.3');
+      git('switch', '-q', 'release/0.4');
+      expect(() => git('merge', '--no-ff', '--no-commit', 'main')).toThrow();
+
+      // Both libs/*/package.json are conflicted here: settleManifests must
+      // read @nexusdi/core's name off a git stage, not the conflict-marked
+      // working copy, to classify errors' dependency pin as restorable.
+      execFileSync(
+        'node',
+        [join(workspaceRoot, 'tools/release/sync.mjs'), 'restore'],
+        {
+          cwd: dir,
+          stdio: 'pipe',
+          env: { ...process.env, npm_config_offline: 'true' },
+        },
+      );
+
+      expect(
+        JSON.parse(readFileSync(join(dir, 'libs/errors/package.json'), 'utf8')),
+      ).toEqual({
+        name: '@nexusdi/errors',
+        version: '0.4.0-rc.1',
+        dependencies: { '@nexusdi/core': '0.4.0-rc.1' },
+      });
+      expect(git('diff', '--name-only', '--diff-filter=U')).toBe('');
     } finally {
       rmSync(dir, { recursive: true, force: true });
     }
