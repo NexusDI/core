@@ -98,8 +98,11 @@ describe('interleave', () => {
       // CI runner can stretch any duration, but it cannot reorder two
       // statements this process executed one after the other.
       for (let i = 0; i < 3; i++) {
-        const { batch: sampleBatch, timerStoppedAt, teardownStartedAt } =
-          await w.sample('teardown', batch);
+        const {
+          batch: sampleBatch,
+          timerStoppedAt,
+          teardownStartedAt,
+        } = await w.sample('teardown', batch);
         expect(sampleBatch).toBe(1);
         if (timerStoppedAt === undefined || teardownStartedAt === undefined)
           throw new Error('expected ordering markers on a teardown sample');
