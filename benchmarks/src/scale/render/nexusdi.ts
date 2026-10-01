@@ -11,11 +11,14 @@ import {
   classBody,
   className,
   counterFile,
+  factoryBody,
   iface,
   importList,
+  isAsync,
   moduleConst,
   perClass,
   token,
+  valueLiteral,
   type Files,
 } from './shared.ts';
 
@@ -57,20 +60,15 @@ function classOf(graph: ScaleGraph, p: ScaleProvider): string {
 /** The provide() entry of one provider, indented for a providers array. */
 function binding(graph: ScaleGraph, p: ScaleProvider): string {
   if (p.kind === 'class')
-    return `    provide(${token(p)}, { useClass: ${className(p)} }),\n`;
+    return `    provide(${token(p)}, { useClass: ${className(p)}, lifetime: 'singleton' }),\n`;
   if (p.kind === 'value')
-    return `    provide(${token(p)}, { useValue: { id: '${p.name}' } }),\n`;
+    return `    provide(${token(p)}, { useValue: ${valueLiteral(p)} }),\n`;
   const deps = p.deps.map((d) => graph.providers[d]);
   const params = deps.map((d, i) => `d${i}: ${iface(d)}`).join(', ');
-  const args = deps.map((_, i) => `d${i}`).join(', ');
-  const async = p.kind === 'async-factory';
-  const returns = async ? `Promise<${iface(p)}>` : iface(p);
+  const returns = isAsync(p) ? `Promise<${iface(p)}>` : iface(p);
   return `    provide(${token(p)}, {
-      useFactory: ${async ? 'async ' : ''}(${params}): ${returns} => {
-${async ? '        await Promise.resolve();\n' : ''}        const made = new ${className(p)}(${args});
-        __scaleBuilt(${p.index}, '${p.kind}');
-        return made;
-      },
+      useFactory: ${isAsync(p) ? 'async ' : ''}(${params}): ${returns} => {
+${factoryBody(p, '        ')}      },
 ${deps.length > 0 ? `      deps: [${deps.map(token).join(', ')}],\n` : ''}    }),\n`;
 }
 

@@ -1,6 +1,9 @@
 /**
  * What every scale renderer shares (scale spec section 4.1): identifier
- * names, the construction counter, the class body and the file layout.
+ * names, the construction counter, the class body, the factory body, the
+ * value literal and the file layout. Every library's renderer builds its
+ * classes, factories and values from these, so each provider does the same
+ * work in every library.
  */
 import type { Shape } from '../config.ts';
 import type { ScaleGraph, ScaleProvider } from '../graph.ts';
@@ -76,6 +79,31 @@ export function classBody(
       : `  constructor(${params}) {\n${sets}${report}  }\n`;
   return `${opts.head ?? ''}  readonly id = '${p.name}';\n${fields}${ctor}`;
 }
+
+export const isAsync = (p: ScaleProvider) => p.kind === 'async-factory';
+
+/**
+ * The statements of a factory provider's body, one per line, each
+ * prefixed with `indent`: an async factory awaits once before it
+ * constructs, then the body builds the product class from its parameters
+ * `d0`, `d1`, ..., reports the construction and returns the product. The
+ * caller binds `d0`, `d1`, ... in its library's factory form and supplies
+ * the braces.
+ */
+export function factoryBody(p: ScaleProvider, indent: string): string {
+  const args = p.deps.map((_, i) => `d${i}`).join(', ');
+  return [
+    ...(isAsync(p) ? ['await Promise.resolve();'] : []),
+    `const made = new ${className(p)}(${args});`,
+    `__scaleBuilt(${p.index}, '${p.kind}');`,
+    'return made;',
+  ]
+    .map((line) => `${indent}${line}\n`)
+    .join('');
+}
+
+/** A value provider's object, built at load in every library. */
+export const valueLiteral = (p: ScaleProvider) => `{ id: '${p.name}' }`;
 
 /** `{ a, b, type C }` style import lists, one name per line. */
 export function importList(names: readonly string[], from: string): string {
