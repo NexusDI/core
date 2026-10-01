@@ -116,12 +116,23 @@
   },
   {
     "rule": "repo-urls",
-    "why": "a source link uses main during the RC",
+    "why": "a source link uses main",
     "name": "errors",
     "replace": [
       [
         "## Explain\n\n",
         "## Explain\n\nSee [the source](https://github.com/NexusDI/core/blob/main/libs/errors/src/index.ts).\n\n"
+      ]
+    ]
+  },
+  {
+    "rule": "repo-urls",
+    "why": "a source link names a release tag other than package.json's version",
+    "name": "errors",
+    "replace": [
+      [
+        "## Explain\n\n",
+        "## Explain\n\nSee [the source](https://github.com/NexusDI/core/blob/@nexusdi/core@0.4.0-rc.0/libs/errors/src/index.ts).\n\n"
       ]
     ]
   },

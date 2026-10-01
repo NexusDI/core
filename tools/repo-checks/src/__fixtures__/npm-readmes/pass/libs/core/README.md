@@ -115,7 +115,7 @@ options.callsign; // -> 'Meridian'
 ## Documentation
 
 - [Documentation](https://nexus.js.org/next/)
-- [Examples](https://github.com/NexusDI/core/tree/release/0.4/libs/core/docs)
+- [Examples](https://github.com/NexusDI/core/tree/@nexusdi/core@0.4.0-rc.1/libs/core/docs)
 - [NexusDI on GitHub](https://github.com/NexusDI/core)
 - [0.4 RC feedback](https://github.com/NexusDI/core/discussions)
 

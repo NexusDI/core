@@ -12,7 +12,7 @@ Draw your NexusDI module graph and follow every instance the container builds.
 - `inspect()` lists every instance the container built.
 - `trace()` reports each lifecycle event.
 
-<img src="https://raw.githubusercontent.com/NexusDI/core/release/0.4/libs/devtools/assets/graph.svg" alt="NexusDI graph of the Meridian app: Bridge imports Engineering" width="720">
+<img src="https://raw.githubusercontent.com/NexusDI/core/refs/tags/@nexusdi/core@0.4.0-rc.1/libs/devtools/assets/graph.svg" alt="NexusDI graph of the Meridian app: Bridge imports Engineering" width="720">
 
 Drawn with `npx nexusdi graph src/meridian.module.ts#Bridge -f svg`.
 
@@ -49,7 +49,7 @@ app.get(NAV_CHARTS).plot('Vega'); // -> 'Vega'
 ## Documentation
 
 - [Documentation](https://nexus.js.org/next/)
-- [Examples](https://github.com/NexusDI/core/tree/release/0.4/libs/devtools/docs)
+- [Examples](https://github.com/NexusDI/core/tree/@nexusdi/core@0.4.0-rc.1/libs/devtools/docs)
 - [NexusDI on GitHub](https://github.com/NexusDI/core)
 
 ## License

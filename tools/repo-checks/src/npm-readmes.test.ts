@@ -4,6 +4,8 @@ import { join } from 'node:path';
 import { workspaceRoot } from '@nx/devkit';
 import { describe, expect, it } from 'vitest';
 
+import { pinRepoUrls } from '@nexusdi/release';
+
 import {
   BANNED,
   BANNED_PROSE,
@@ -11,7 +13,6 @@ import {
   bannedRaw,
   proseOf,
   readmeFaults,
-  repoRef,
   type ReadmeInput,
   type Rule,
 } from './npm-readmes.js';
@@ -156,14 +157,62 @@ describe('readmeFaults', () => {
   });
 });
 
-describe('repoRef', () => {
-  it('names the release branch while the version is a prerelease', () => {
-    expect(repoRef('0.4.0-rc.1')).toBe('release/0.4');
+describe('repo URLs', () => {
+  const GRAPH =
+    'https://raw.githubusercontent.com/NexusDI/core/refs/tags/@nexusdi/core@0.4.0-rc.1/libs/devtools/assets/graph.svg';
+
+  function withGraph(src: string): ReadmeInput {
+    const base = fixture('devtools');
+    expect(base.source).toContain(GRAPH);
+    return { ...base, source: base.source.replace(GRAPH, src) };
+  }
+
+  it('rejects a graph image on the release branch', () => {
+    expect(
+      rulesOf(
+        withGraph(
+          'https://raw.githubusercontent.com/NexusDI/core/release/0.4/libs/devtools/assets/graph.svg',
+        ),
+      ),
+    ).toEqual(['images', 'repo-urls']);
   });
 
-  it('names main for a final version', () => {
-    expect(repoRef('0.4.0')).toBe('main');
+  it('rejects a raw image URL that leaves out refs/tags/', () => {
+    expect(
+      rulesOf(
+        withGraph(
+          'https://raw.githubusercontent.com/NexusDI/core/@nexusdi/core@0.4.0-rc.1/libs/devtools/assets/graph.svg',
+        ),
+      ),
+    ).toEqual(['images', 'repo-urls']);
   });
+
+  it('rejects an Examples link on the release branch', () => {
+    const base = fixture('errors');
+    const source = base.source.replace(
+      'tree/@nexusdi/core@0.4.0-rc.1/',
+      'tree/release/0.4/',
+    );
+    expect(source).not.toBe(base.source);
+    expect(rulesOf({ ...base, source })).toEqual([
+      'documentation',
+      'repo-urls',
+    ]);
+  });
+
+  it.each(['devtools', 'cli', 'errors', 'core'] as const)(
+    'passes %s at the next version once its URLs are pinned to it',
+    (name) => {
+      const base = fixture(name, '0.4.0-rc.2');
+      expect(rulesOf(base)).toContain('repo-urls');
+      expect(
+        readmeFaults({
+          ...base,
+          source: pinRepoUrls(base.source, '0.4.0-rc.2'),
+        }),
+      ).toEqual([]);
+    },
+  );
 });
 
 describe('proseOf', () => {
