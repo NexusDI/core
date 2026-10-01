@@ -77,7 +77,7 @@ describe('buildPlan for the root', () => {
   it('stops with the fix when main has no blog', () => {
     const main = checkout({ blog: false });
     expect(() => buildPlan('root', { tree: checkout(), main })).toThrow(
-      'final mode builds the root with the blog from main, and main has no apps/docs/content/blog. Land the blog before setting final (docs spec section 6).',
+      'final mode builds the root with the blog from main, and main has no apps/docs/content/blog. Add the blog before setting final (docs spec section 6).',
     );
   });
 });
