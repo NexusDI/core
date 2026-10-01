@@ -71,9 +71,12 @@ const restorable = (key, names) =>
  */
 function settleManifests() {
   const paths = manifests();
-  const names = paths.map(
-    (path) => JSON.parse(readFileSync(path, 'utf8')).name ?? '',
-  );
+  // Only published packages carry the line's version. A private package's
+  // pin is whatever its manifest says, and the merge keeps it.
+  const names = paths
+    .map((path) => JSON.parse(readFileSync(path, 'utf8')))
+    .filter((manifest) => manifest.private !== true)
+    .map((manifest) => manifest.name ?? '');
   const conflicted = new Set(unmerged());
   // core carries the line's version, and a fixed group gives every package
   // the same one.
