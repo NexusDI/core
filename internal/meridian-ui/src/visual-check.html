@@ -1,0 +1,129 @@
+<!doctype html>
+<html lang="en" class="dark">
+  <head>
+    <meta charset="utf-8" />
+    <title>Meridian visual check</title>
+    <link rel="stylesheet" href="../dist/styles.css" />
+    <style>
+      body {
+        margin: 0;
+        padding: 2rem;
+        font-family: var(--meridian-font-body);
+        background: linear-gradient(
+          var(--meridian-ground-0),
+          var(--meridian-ground-2)
+        );
+        color: var(--meridian-text);
+      }
+      .grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fill, minmax(12rem, 1fr));
+        gap: 1rem;
+      }
+      .swatch {
+        padding: 1rem;
+        border-radius: var(--meridian-radius-control);
+        background: var(--meridian-hull);
+      }
+      .swatch span {
+        display: block;
+        block-size: 2rem;
+        margin-block-end: 0.5rem;
+        border-radius: var(--meridian-radius-chip);
+      }
+    </style>
+  </head>
+  <body>
+    <h1>Meridian tokens</h1>
+    <div class="grid" id="swatches"></div>
+    <h2>Components</h2>
+    <div class="meridian-panel">Panel</div>
+    <div class="meridian-panel meridian-panel--raised">Raised panel</div>
+    <aside role="note" class="meridian-notice meridian-notice--note">
+      <p class="meridian-notice__label">Note</p>
+      <div class="meridian-notice__body">
+        A scoped provider is built once per scope.
+      </div>
+    </aside>
+    <aside role="note" class="meridian-notice meridian-notice--exception">
+      <p class="meridian-notice__label">Exception</p>
+      <div class="meridian-notice__body">Exception body.</div>
+    </aside>
+    <aside role="note" class="meridian-notice meridian-notice--warning">
+      <p class="meridian-notice__label">Warning</p>
+      <div class="meridian-notice__body">Warning body.</div>
+    </aside>
+    <aside role="note" class="meridian-notice meridian-notice--ship">
+      <p class="meridian-notice__label">Ship note</p>
+      <div class="meridian-notice__body">
+        The shuttle keeps its own flight log.
+      </div>
+    </aside>
+    <section class="meridian-console" aria-label="Console">
+      <header class="meridian-console__head">
+        <p class="meridian-console__title">Scopes and REQUEST</p>
+        <div class="meridian-console__tabs">
+          <span>graph</span><span>trace</span>
+        </div>
+        <div class="meridian-console__actions"><span>Run</span></div>
+      </header>
+      <div class="meridian-console__body">console body</div>
+    </section>
+    <p>
+      <span
+        aria-hidden="true"
+        class="meridian-marker meridian-marker--corner"
+      ></span>
+      <span
+        aria-hidden="true"
+        class="meridian-marker meridian-marker--tick"
+      ></span>
+      <span
+        aria-hidden="true"
+        class="meridian-marker meridian-marker--lifetime meridian-lifetime-singleton"
+      ></span>
+      <span
+        aria-hidden="true"
+        class="meridian-marker meridian-marker--lifetime meridian-lifetime-scoped"
+      ></span>
+      <span
+        aria-hidden="true"
+        class="meridian-marker meridian-marker--lifetime meridian-lifetime-transient"
+      ></span>
+      <span
+        aria-hidden="true"
+        class="meridian-marker meridian-marker--lifetime meridian-lifetime-none"
+      ></span>
+    </p>
+    <p>
+      <button type="button" id="theme">Switch theme</button>
+    </p>
+    <script type="module">
+      const roles = [
+        'ground-0',
+        'ground-2',
+        'rule',
+        'control-border',
+        'text',
+        'text-secondary',
+        'text-tertiary',
+        'signal-cyan',
+        'signal-magenta',
+        'signal-amber',
+        'status-pass',
+        'status-fail',
+        'nebula-violet',
+      ];
+      const host = document.getElementById('swatches');
+      for (const role of roles) {
+        const cell = document.createElement('div');
+        cell.className = 'swatch';
+        cell.innerHTML = `<span style="background: var(--meridian-${role})"></span><code>--meridian-${role}</code>`;
+        host.append(cell);
+      }
+      document.getElementById('theme').addEventListener('click', () => {
+        document.documentElement.classList.toggle('dark');
+      });
+    </script>
+  </body>
+</html>

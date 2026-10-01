@@ -20,7 +20,8 @@
       "types": "./dist/tokens/index.d.ts",
       "import": "./dist/tokens/index.js",
       "default": "./dist/tokens/index.js"
-    }
+    },
+    "./styles.css": "./dist/styles.css"
   },
   "files": [
     "dist",
@@ -29,6 +30,9 @@
   ],
   "peerDependencies": {
     "react": "^19.0.0"
+  },
+  "devDependencies": {
+    "@testing-library/react": "16.3.0"
   },
   "nx": {
     "targets": {

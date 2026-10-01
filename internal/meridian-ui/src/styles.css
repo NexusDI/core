@@ -1,0 +1,140 @@
+/*
+ * The Meridian component classes: the `@nexusdi/meridian-ui/styles.css` entry.
+ * The app imports it once. Every rule reads `--meridian-*` properties and
+ * carries no literal colour; `styles.test.ts` holds that.
+ */
+@import './tokens.generated.css';
+
+.meridian-panel {
+  background: var(--meridian-hull);
+  backdrop-filter: blur(12px);
+  border-radius: var(--meridian-radius-panel);
+  box-shadow: var(--meridian-elevation-glass);
+  color: var(--meridian-text);
+  padding: var(--meridian-space-5);
+}
+
+.meridian-panel--raised {
+  background: var(--meridian-hull-raised);
+  box-shadow: var(--meridian-elevation-raised);
+}
+
+.meridian-notice {
+  margin-block: var(--meridian-space-5);
+  padding: var(--meridian-space-4) var(--meridian-space-5);
+  border-inline-start: 2px solid var(--meridian-control-border);
+  border-radius: var(--meridian-radius-chip);
+  background: var(--meridian-hull-raised);
+  color: var(--meridian-text);
+  font-size: var(--meridian-text-small);
+  line-height: var(--meridian-leading-small);
+}
+
+.meridian-notice__label {
+  margin: 0 0 var(--meridian-space-2);
+  font-family: var(--meridian-font-mono);
+  font-size: var(--meridian-text-micro);
+  letter-spacing: var(--meridian-tracking-micro);
+  text-transform: uppercase;
+  color: var(--meridian-text-secondary);
+}
+
+.meridian-notice--warning {
+  border-inline-start-color: var(--meridian-signal-amber);
+}
+
+.meridian-notice--exception {
+  border-inline-start-color: var(--meridian-signal-magenta);
+}
+
+.meridian-notice--ship {
+  border-inline-start-color: var(--meridian-signal-cyan);
+}
+
+.meridian-console {
+  display: grid;
+  grid-template-rows: auto 1fr;
+  background: var(--meridian-hull-raised);
+  border-radius: var(--meridian-radius-panel);
+  box-shadow: var(--meridian-elevation-raised);
+  color: var(--meridian-text);
+  overflow: hidden;
+}
+
+.meridian-console__head {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--meridian-space-3);
+  padding: var(--meridian-space-3) var(--meridian-space-4);
+  border-block-end: 1px solid var(--meridian-rule);
+}
+
+.meridian-console__title {
+  margin: 0;
+  font-family: var(--meridian-font-mono);
+  font-size: var(--meridian-text-micro);
+  letter-spacing: var(--meridian-tracking-micro);
+  text-transform: uppercase;
+  color: var(--meridian-text-secondary);
+}
+
+.meridian-console__tabs {
+  display: flex;
+  gap: var(--meridian-space-2);
+}
+
+.meridian-console__actions {
+  display: flex;
+  gap: var(--meridian-space-2);
+  margin-inline-start: auto;
+}
+
+.meridian-console__body {
+  padding: var(--meridian-space-4);
+  font-family: var(--meridian-font-mono);
+  font-size: var(--meridian-text-code);
+  line-height: var(--meridian-leading-code);
+  font-variant-numeric: tabular-nums;
+}
+
+.meridian-marker {
+  display: inline-block;
+  border-radius: var(--meridian-radius-marker);
+}
+
+.meridian-marker--corner {
+  inline-size: var(--meridian-space-3);
+  block-size: var(--meridian-space-3);
+  border-block-start: 1px solid var(--meridian-signal-cyan);
+  border-inline-start: 1px solid var(--meridian-signal-cyan);
+}
+
+.meridian-marker--tick {
+  inline-size: var(--meridian-space-5);
+  block-size: 1px;
+  background: var(--meridian-rule);
+}
+
+.meridian-marker--lifetime {
+  inline-size: var(--meridian-space-2);
+  block-size: var(--meridian-space-2);
+  transform: rotate(45deg);
+  border: 1px solid currentColor;
+}
+
+.meridian-lifetime-singleton {
+  color: var(--meridian-lifetime-singleton);
+}
+
+.meridian-lifetime-scoped {
+  color: var(--meridian-lifetime-scoped);
+}
+
+.meridian-lifetime-transient {
+  color: var(--meridian-lifetime-transient);
+}
+
+.meridian-lifetime-none {
+  color: var(--meridian-lifetime-none);
+}
