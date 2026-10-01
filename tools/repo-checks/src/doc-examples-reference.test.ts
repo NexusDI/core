@@ -140,4 +140,11 @@ describe('mdxProse link tags', () => {
     expect(mdxProse(input)).toBe('\\' + input);
     expect(performance.now() - start).toBeLessThan(200);
   });
+
+  it('reads repeated unclosed link starts in linear time', () => {
+    const input = '{@link ' + '{@link |'.repeat(20000);
+    const start = performance.now();
+    mdxProse(input);
+    expect(performance.now() - start).toBeLessThan(200);
+  });
 });
