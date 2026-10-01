@@ -131,7 +131,8 @@ function parse(source: string): Parsed {
   lines.forEach((line, i) => {
     if (open === null) {
       const m = /^(`{3,}|~{3,})(.*)$/.exec(line);
-      if (m) open = { start: i, marker: m[1] as string, info: m[2]!.trim() };
+      if (m)
+        open = { start: i, marker: m[1] as string, info: (m[2] ?? '').trim() };
     } else if (line.trim() === open.marker) {
       fences.push({
         start: open.start,
