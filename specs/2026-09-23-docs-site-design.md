@@ -2224,9 +2224,15 @@ the snapshot's identity:
 | Mode            | Root of the artifact                                       | Under `/next/`                    | Under `/v0.3/`                    | When                                      |
 | --------------- | ---------------------------------------------------------- | --------------------------------- | --------------------------------- | ----------------------------------------- |
 | `snapshot-only` | the 0.3 snapshot, root variant                             | nothing                           | nothing                           | Phase 1, until just before rc.0           |
-| `rc`            | the 0.3 snapshot, root variant, with the RC posts          | the new site from `main`, no blog | nothing                           | from just before rc.0 to 0.4.0 final      |
-| `final`         | the new site from the newest stable release, with the blog | the new site from `main`, no blog | the 0.3 snapshot, archive variant | from 0.4.0 final until the retention ends |
+| `rc`            | the 0.3 snapshot, root variant, with the RC posts          | the new site from `next`, no blog | nothing                           | from just before rc.0 to 0.4.0 final      |
+| `final`         | the new site from the newest stable release, with the blog | the new site from `next`, no blog | the 0.3 snapshot, archive variant | from 0.4.0 final until the retention ends |
 | `retired`       | as `final`                                                 | as `final`                        | redirect stubs to `/upgrade/`     | after the retention ends                  |
+
+`next` in the table is the highest `release/X.Y` branch that is ahead of `main`, or `main`
+when no release branch is. This amends the original "from `main`" (2026-10-01, release
+spec `specs/2026-10-01-release-branch-workflow-design.md` §7). Prereleases ship from
+`release/X.Y`, so `/next/` documents the line in prerelease and returns to `main` once that
+line is stable.
 
 A mode change is a one-line pull request, so the swap is reviewed and recorded like any
 other change. `snapshot-only` exists so Phase 1 proves the snapshot pipeline in production
@@ -2303,9 +2309,13 @@ snapshot has to last until the retention ends. The docs deploy downloads the ass
 The build job:
 
 1. Reads `deploy.json`. `snapshot-only` skips steps 2 and 3.
-2. Builds the `/next/` site from the checked-out `main` with `DOCS_BASE_PATH=/next` and
-   `DOCS_CHANNEL=next`, which leaves `content/blog/` out: `npx nx build docs`, then
-   `npm run postbuild` in `apps/docs`.
+2. Picks the `/next/` source: the highest `release/X.Y` branch from
+   `git ls-remote --heads origin 'refs/heads/release/*'` that is ahead of `main`, else
+   `main`, and prints the branch and commit. Builds the `/next/` site from it with
+   `DOCS_BASE_PATH=/next` and `DOCS_CHANNEL=next`, which leaves `content/blog/` out:
+   `npx nx build docs`, then `npm run postbuild` in `apps/docs`. A release branch builds in
+   a worktree with its own `npm ci`. A push to `release/**` dispatches this workflow on
+   `main` through `docs-next.yml`, because Pages deploys from `main` only.
 3. In `final` and `retired`, builds the root site. It resolves the newest `@nexusdi/core@*`
    tag without a prerelease suffix, or `root.sha` when `deploy.json` sets one (section
    15.6), checks it out into a second worktree, copies `apps/docs/content/blog/` and
@@ -2376,8 +2386,9 @@ check (section 17.3) is what guards against the zone rewriting the deployed HTML
 At 0.4.0 final a pull request sets `mode: "final"` and `finalDate` to the release date.
 Core spec §14 owns the 0.4.0 final checklist, and that pull request belongs on it.
 
-From then on the root builds from the newest stable release tag, and `/next/` from `main`
-(released-by-default decision 1). A documentation fix merged after a release reaches
+From then on the root builds from the newest stable release tag, and `/next/` from the
+active `release/X.Y` branch ahead of `main`, else `main` (released-by-default decision 1,
+amended 2026-10-01 in section 15.1). A documentation fix merged after a release reaches
 `/next/` at once and the root at the next release. When a fix cannot wait, a pull request
 sets `root.sha` to a commit that descends from the release tag, with a non-empty `reason`,
 on the libraries re-cut pattern (released-by-default decision 7). `docs-deploy.test.ts`
