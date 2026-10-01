@@ -95,6 +95,16 @@ describe('docs-deploy fixtures', () => {
     ]);
   });
 
+  it('fails retired mode when the tree has no blog to copy', () => {
+    const retired = {
+      ...(read(join(dir, 'sabotaged/retention-due/deploy.json')) as object),
+      mode: 'retired',
+    };
+    expect(checkDeploy(retired, context({ hasBlog: false }))).toEqual([
+      'apps/docs/deploy.json: mode "retired" builds the root with apps/docs/content/blog from main, and this tree has no apps/docs/content/blog/index.mdx. Keep the blog index (docs spec decision 35).',
+    ]);
+  });
+
   it('passes rc mode with no blog, because rc builds no root', () => {
     const rc = {
       ...(read(join(dir, 'sabotaged/retention-due/deploy.json')) as object),
