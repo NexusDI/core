@@ -83,6 +83,9 @@
     // renderTokensCss().
     "internal/meridian-ui/tools/generate-tokens.ts",
     "internal/meridian-ui/src/tokens.generated.css",
+    // Every *.test-d.tsx file under internal/meridian-ui/src is vitest's
+    // type-only test file, like the libs entries above but in .tsx format.
+    "internal/meridian-ui/src/**/*.test-d.tsx",
 
     // Built and run by examples/toolchain-matrix/scripts/run-matrix.mjs in a
     // throwaway consumer; nothing in the workspace imports them. The vite
