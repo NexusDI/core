@@ -90,4 +90,5 @@ Task briefs: tasks/task-NN.md, shared constraints tasks/globals.md
 - T25: done c6cc9be (approved; floor allowance 13 pages)
 - T27: done 0666aad (approved; loadReferenceExpander/loadBehaviours/loadDeclarations dropped, no later user; loadRegionExpander/loadMdSiblings/loadRegions held for Tasks 30-32 in fallow ignoreExports)
 - T28: done e54d867 (approved; also checks hrefs that components, app/ and _meta.ts emit; /release-candidate/ allowed until Task 59, brief amended)
-- T30: impl
+- T30: done b17bf30+840f740 (approved; shared ratchetFindings helper in docs/allowance.ts for doc-fence and doc-domain, dupes 1.8%; later guards with an allowance ratchet reuse it)
+- T31: impl
