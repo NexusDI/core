@@ -92,13 +92,19 @@ describe('interleave', () => {
   it('runs teardown after the timer stops', async () => {
     const w = forkWorker('a', script);
     try {
-      const out = await interleave([w], 'teardown', {
-        warmup: 0,
-        measured: 3,
-        seed: 1,
-      });
-      expect(out.a.batch).toBe(1);
-      for (const ns of out.a.measured) expect(ns).toBeLessThan(3_000_000);
+      const batch = await w.calibrate('teardown');
+      expect(batch).toBe(1);
+      // Compares hrtime instants instead of elapsed wall time: a preempted
+      // CI runner can stretch any duration, but it cannot reorder two
+      // statements this process executed one after the other.
+      for (let i = 0; i < 3; i++) {
+        const { batch: sampleBatch, timerStoppedAt, teardownStartedAt } =
+          await w.sample('teardown', batch);
+        expect(sampleBatch).toBe(1);
+        if (timerStoppedAt === undefined || teardownStartedAt === undefined)
+          throw new Error('expected ordering markers on a teardown sample');
+        expect(teardownStartedAt > timerStoppedAt).toBe(true);
+      }
     } finally {
       w.close();
     }
