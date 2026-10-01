@@ -82,7 +82,7 @@ errors.map((error) => ({ ...error })); // -> [{ contract: 'crew/Auth', required:
 ## Documentation
 
 - [Documentation](https://nexus.js.org/next/)
-- [Examples](https://github.com/NexusDI/core/tree/release/0.4/libs/federation/docs)
+- [Examples](https://github.com/NexusDI/core/tree/@nexusdi/core@0.4.0-rc.0/libs/federation/docs)
 - [NexusDI on GitHub](https://github.com/NexusDI/core)
 
 ## License

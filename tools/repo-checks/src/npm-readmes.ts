@@ -1,3 +1,5 @@
+import { repoUrlFor } from '@nexusdi/release';
+
 import {
   GRAPH_IMAGE,
   HEADINGS,
@@ -273,14 +275,6 @@ function isPrerelease(version: string): boolean {
 
 function majorMinor(version: string): string {
   return version.split('.').slice(0, 2).join('.');
-}
-
-/**
- * The git ref every repo URL uses: `release/<major.minor>` while the
- * version is a prerelease, `main` after.
- */
-export function repoRef(version: string): string {
-  return isPrerelease(version) ? `release/${majorMinor(version)}` : 'main';
 }
 
 function kindOf(name: Package | 'root'): Kind {
@@ -617,7 +611,7 @@ function checkDocumentation(
   const folder = `libs/${pkg}/docs`;
   const expected = [
     `[Documentation](${isPrerelease(input.version) ? 'https://nexus.js.org/next/' : 'https://nexus.js.org/'})`,
-    `[Examples](${GITHUB}/tree/${repoRef(input.version)}/${folder})`,
+    `[Examples](${repoUrlFor({ kind: 'tree', version: input.version, path: folder })})`,
     `[NexusDI on GitHub](${GITHUB})`,
   ];
   const extra = pkg === 'core' ? 1 : 0;
@@ -636,25 +630,35 @@ function checkDocumentation(
     });
 }
 
+/**
+ * Every repo URL but the logo and the LICENSE link names the release tag of
+ * package.json's version, in repoUrlFor's form. A branch goes away
+ * (release/X.Y at promotion) or lacks the file (main during an RC); a tag
+ * holds the README's own files for good. The release's version step moves
+ * the URLs to each new tag (tools/release/version-actions.mjs).
+ */
 function checkRepoUrls(input: ReadmeInput, faults: Fault[]): void {
-  const ref = repoRef(input.version);
   const urls = input.source.matchAll(
-    /https:\/\/(github\.com\/NexusDI\/core\/(?:tree|blob)\/|raw\.githubusercontent\.com\/NexusDI\/core\/)([^\s)"'<>]*)/gi,
+    /https:\/\/(?:github\.com\/NexusDI\/core\/(tree|blob)\/|raw\.githubusercontent\.com\/NexusDI\/core\/)[^\s)"'<>]*/gi,
   );
-  for (const [url, , rest] of urls) {
+  for (const [url, kind] of urls) {
     if (url === LOGO || url === LICENSE_LINK) continue;
-    const path = rest ?? '';
-    if (path.startsWith(`${ref}/`) || path.startsWith(`refs/heads/${ref}/`))
-      continue;
+    const prefix = repoUrlFor({
+      kind: kind === 'tree' || kind === 'blob' ? kind : 'raw',
+      version: input.version,
+      path: '',
+    });
+    if (url.startsWith(prefix)) continue;
     faults.push({
       rule: 'repo-urls',
-      message: `${url} does not use the ref ${ref}`,
+      message: `${url} must use ${prefix}; the release's version step keeps it in step (tools/release/version-actions.mjs)`,
     });
   }
 }
 
+/** A raw URL the README may show: the logo on main, or a file at a release tag. */
 const RAW_FILE =
-  /^https:\/\/raw\.githubusercontent\.com\/NexusDI\/core\/(?:refs\/(?:heads|tags)\/)?(?:main|release\/\d+\.\d+|@nexusdi\/core@[^/]+)\/(.+)$/;
+  /^https:\/\/raw\.githubusercontent\.com\/NexusDI\/core\/(?:main|refs\/tags\/@nexusdi\/core@[^/]+)\/(.+)$/;
 
 function checkImages(
   input: ReadmeInput,

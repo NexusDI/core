@@ -12,7 +12,7 @@ Draw a NexusDI app's dependency graph from the terminal as Mermaid, DOT, JSON, S
 - Exits 1 on an invalid graph, so CI can gate on it.
 - Draws the providers view or the modules view.
 
-<img src="https://raw.githubusercontent.com/NexusDI/core/release/0.4/libs/devtools/assets/graph.svg" alt="NexusDI graph of the Meridian app: in Bridge, Helm depends on ShipLog and on ShipComputer, which Engineering exports; ShipComputer depends on Reactor and the NavCharts factory." width="720">
+<img src="https://raw.githubusercontent.com/NexusDI/core/refs/tags/@nexusdi/core@0.4.0-rc.0/libs/devtools/assets/graph.svg" alt="NexusDI graph of the Meridian app: in Bridge, Helm depends on ShipLog and on ShipComputer, which Engineering exports; ShipComputer depends on Reactor and the NavCharts factory." width="720">
 
 ## Install
 
@@ -48,7 +48,7 @@ Every command exits 1 when the graph is invalid. The last one also saves the gra
 ## Documentation
 
 - [Documentation](https://nexus.js.org/next/)
-- [Examples](https://github.com/NexusDI/core/tree/release/0.4/libs/cli/docs)
+- [Examples](https://github.com/NexusDI/core/tree/@nexusdi/core@0.4.0-rc.0/libs/cli/docs)
 - [NexusDI on GitHub](https://github.com/NexusDI/core)
 
 ## License

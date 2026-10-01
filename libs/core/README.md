@@ -183,7 +183,7 @@ ship.get(SUBSPACE_LINK).frequency; // -> 1420
 ## Documentation
 
 - [Documentation](https://nexus.js.org/next/)
-- [Examples](https://github.com/NexusDI/core/tree/release/0.4/libs/core/docs)
+- [Examples](https://github.com/NexusDI/core/tree/@nexusdi/core@0.4.0-rc.0/libs/core/docs)
 - [NexusDI on GitHub](https://github.com/NexusDI/core)
 - [Discussions](https://github.com/NexusDI/core/discussions)
 

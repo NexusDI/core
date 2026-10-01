@@ -82,7 +82,7 @@ ship.get(HELM).callsign; // -> 'Meridian'
 ## Documentation
 
 - [Documentation](https://nexus.js.org/next/)
-- [Examples](https://github.com/NexusDI/core/tree/release/0.4/libs/decorators/docs)
+- [Examples](https://github.com/NexusDI/core/tree/@nexusdi/core@0.4.0-rc.0/libs/decorators/docs)
 - [NexusDI on GitHub](https://github.com/NexusDI/core)
 
 ## License
