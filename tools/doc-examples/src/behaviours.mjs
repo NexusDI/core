@@ -1,20 +1,22 @@
-import { readFileSync, readdirSync } from 'node:fs';
+import { readFileSync } from 'node:fs';
 import { join } from 'node:path';
 
 import ts from 'typescript';
+
+import { filesUnder } from './files-under.mjs';
 
 /**
  * What a package's tests state, read from their sources.
  *
  * A reference entry lists the sentences the suite carries about the export it
- * heads, and attribution comes from a stated name, never a guess: a case
- * belongs to an export when a `describe` in its chain spells that name
- * exactly. So this reads chains, not references and not coverage. `ruleId`'s
- * lines are executed by 19 of `@nexusdi/core`'s test files and named by 3, and
- * only the `describe` says what the author meant the case to be about.
+ * heads. Attribution comes from a stated name: a case belongs to an export when
+ * a `describe` in its chain spells that name exactly. So this reads chains and
+ * ignores references and coverage. `ruleId`'s lines are executed by 19 of
+ * `@nexusdi/core`'s test files and named by 3, and only the `describe` says
+ * what the author meant the case to be about.
  *
- * Read from the sources, not from a run. The reference pages build without
- * running a test: `next build` expands a directive, and a 20-second sweep
+ * This reads the sources and never runs a test. The reference pages build
+ * without a run: `next build` expands a directive, and a 20-second sweep
  * behind a page's rebuild would add nothing. `doc-behaviour-run.test.ts` holds
  * what this reads against what a run reports, so a sentence on the page is a
  * sentence that ran.
@@ -31,36 +33,14 @@ const TEST_FILE = /\.(test|spec)\.tsx?$/;
 const SECURITY = join('src', 'security');
 
 /**
- * Every file under a directory tree that `keep` accepts, sorted.
- *
- * Shared with `tools/repo-checks/src/docs/site.ts`, which walks the docs
- * content tree the same way: a `readdirSync` read with file types, a
- * recursive descent into each subdirectory, and a sort of the names that
- * survive. `keep` takes a file's own name and decides whether it survives.
- * `skipDir`, when given, takes a directory's full path and decides whether
- * the walk enters it at all.
- */
-export function filesUnder(dir, keep, skipDir) {
-  return readdirSync(dir, { withFileTypes: true })
-    .flatMap((entry) => {
-      const path = join(dir, entry.name);
-      if (entry.isDirectory()) {
-        return skipDir?.(path) ? [] : filesUnder(path, keep, skipDir);
-      }
-      return keep(entry.name) ? [path] : [];
-    })
-    .sort();
-}
-
-/**
  * Every test source under a package, with the adversarial suite left out.
  *
  * `libs/acl/src/security` names its blocks after register entries, `SEC-007 a
  * narrowed write never carries a prototype setter (CWE-1321)`, and
  * `security-register.test.ts` holds the register, the suite and the published
  * page together on that identifier while `SECURITY.md`'s tier decides what a
- * test there may claim. Those titles are a register's language and not a
- * sentence about an export, so nothing here reads them.
+ * test there may claim. Those titles are a register's language and say nothing
+ * about an export, so nothing here reads them.
  */
 export function testFilesOf(packageRoot) {
   const security = join(packageRoot, SECURITY);
@@ -78,7 +58,7 @@ const CASES = new Set(['it', 'test']);
 /** Modifiers that mean the runner never gets to the case. */
 const UNRUN = new Set(['skip', 'todo']);
 
-/** Modifiers that mean the title is computed per row, not written literally. */
+/** Modifiers that mean the title is computed per row, with no literal. */
 const SEEDED = new Set(['each', 'for']);
 
 /**
@@ -155,7 +135,7 @@ function dedent(text) {
 /**
  * What a case does, as the author wrote it.
  *
- * The body of the callback and not the whole call, because the call's first
+ * The body of the callback without the call around it, because the call's first
  * argument is the title and the pane showing this already has the title as its
  * heading. A reader who opened a sentence wants the assertions under it, and a
  * repeated title is the one line there that says nothing.
@@ -182,8 +162,8 @@ function bodyOf(node, seeded) {
     ts.isBlock(callback.body)
   ) {
     const text = callback.body.getText(source);
-    // The braces are the callback's, not the case's, and the pane draws its own
-    // frame around what it shows.
+    // The braces belong to the callback, and the pane draws its own frame
+    // around what it shows.
     return dedent(text.slice(1, -1));
   }
 
@@ -201,13 +181,13 @@ function lineOf(node) {
  *
  * A generated case carries no sentence of its own. 450 of `@nexusdi/core`'s
  * cases are `it.each` seeds titled `seed %i` under
- * `an overlay that matches nothing changes no decision`, and that `describe` is
+ * `an overlay that matches nothing changes no decision`. That `describe` is
  * already the statement the seeds are about, so the chain stops there and the
  * seeds collapse into it. A case whose own title is computed collapses the same
- * way, for the same reason.
+ * way.
  *
  * A `describe` with a computed title states nothing a reader can be shown, so
- * its cases are dropped; none of them gets attached to a title nobody wrote. A
+ * its cases are dropped, so none of them attaches to a title nobody wrote. A
  * skipped case is dropped because the page may only carry a sentence a run
  * produces.
  *
@@ -278,12 +258,11 @@ const keyOf = (each) =>
 /**
  * What a package's tests state, keyed by the name each `describe` spells.
  *
- * Keyed by every `describe` title, not by the package's export names, because
- * nothing here asks a compiler what a package exports. The reference
- * loader knows which export it is rendering and asks for that name, so the data
+ * Keyed by every `describe` title, because nothing here asks a compiler what
+ * a package exports. The reference loader knows which export it is rendering and asks for that name, so the data
  * states what each block is about and the page decides whose entry it belongs
  * on. A case under `describe('hydratePolicy') > describe('canFields')` states
- * something about both and is keyed under both, which is what puts it on both
+ * something about both and is keyed under both, so it appears on both
  * entries.
  */
 export function behavioursOf(packageRoot) {
