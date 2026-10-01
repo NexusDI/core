@@ -2,7 +2,6 @@ import { join } from 'node:path';
 
 import { describe, expect, it } from 'vitest';
 
-import { readAllowance } from './docs/allowance';
 import {
   checkInterfaceFirst,
   interfaceFirstHits,
@@ -11,10 +10,6 @@ import { readExpandedSite } from './docs/loaders';
 import { CONTENT, FIXTURES } from './docs/paths';
 import { readSite } from './docs/site';
 
-const ALLOWANCE = join(
-  import.meta.dirname,
-  'doc-interface-first-allowance.json',
-);
 const tree = (name: string) =>
   readSite(join(FIXTURES, 'doc-interface-first', name, 'content'));
 const at =
@@ -49,19 +44,7 @@ describe('doc-interface-first fixtures', () => {
 
   it('fails each class binding outside a skipped fence', async () => {
     expect(checkInterfaceFirst(await tree('sabotaged'))).toEqual([
-      `${at}:8: binds a class where an interface token belongs (provide(FusionReactor, token: shipComputer, deps entry FusionReactor). Fences with a hit: 1, allowance 0. Give the service an interface and a Token<IFoo>, bind the class with useClass, and list tokens in deps (spec section 7.3).`,
-    ]);
-  });
-
-  it('passes the sabotaged tree inside its allowance, and fails a stale one', async () => {
-    expect(
-      checkInterfaceFirst(await tree('sabotaged'), { providers: 1 }),
-    ).toEqual([]);
-    expect(
-      checkInterfaceFirst(await tree('clean'), { providers: 1, gone: 1 }),
-    ).toEqual([
-      'doc-interface-first-allowance.json: gone has no page. Remove the entry.',
-      'doc-interface-first-allowance.json: providers: 0, allowance 1. Lower the entry to the count, and remove it at zero.',
+      `${at}:8: binds a class where an interface token belongs (provide(FusionReactor, token: shipComputer, deps entry FusionReactor). Give the service an interface and a Token<IFoo>, bind the class with useClass, and list tokens in deps (spec section 7.3).`,
     ]);
   });
 });
