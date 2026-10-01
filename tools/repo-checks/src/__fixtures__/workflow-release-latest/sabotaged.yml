@@ -1,0 +1,13 @@
+on: workflow_dispatch
+jobs:
+  publish:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Upload the snapshot
+        run: |
+          gh release create docs-snapshot-0.3 --target "$SHA" \
+            --title "Docs snapshot 0.3"
+      - name: Create from an array
+        run: |
+          args=("$TAG" --verify-tag)
+          gh release create "${args[@]}"
