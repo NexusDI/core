@@ -24,7 +24,7 @@ describe('makeGraph', () => {
 });
 
 describe('makeModularGraph', () => {
-  it('builds the tech lead\'s realistic app: 32 modules, 301 providers', () => {
+  it("builds the tech lead's realistic app: 32 modules, 301 providers", () => {
     const { root: rootUnknown, lookups } = makeModularGraph(core);
     const root = rootUnknown as ModuleDefinition;
     // 1 Config module + 30 feature modules.
@@ -33,10 +33,7 @@ describe('makeModularGraph', () => {
       (m) => m.name !== 'Config',
     );
     expect(features).toHaveLength(30);
-    const providerCount = features.reduce(
-      (n, m) => n + m.providers.length,
-      0,
-    );
+    const providerCount = features.reduce((n, m) => n + m.providers.length, 0);
     expect(providerCount).toBe(300);
     // Config contributes the 301st provider.
     const configModule = (root.imports as ModuleDefinition[]).find(
