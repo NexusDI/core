@@ -62,10 +62,11 @@
 /*
  * The ground paints on html. body stays transparent in both themes, so the
  * fixed background canvas at z-index -1 shows between html and the surfaces.
- * The selector outranks the theme's body rule, which sets --nextra-bg.
+ * <Head> inlines `html{background:rgb(var(--nextra-bg))}` after this sheet,
+ * so `html:root` raises the specificity to win over it.
  * --meridian-ground-0 and -2 switch with the theme class.
  */
-html {
+html:root {
   background: linear-gradient(
       180deg,
       var(--meridian-ground-0),
