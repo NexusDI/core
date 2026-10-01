@@ -24,5 +24,19 @@
     "color": "C2E0C6",
     "description": "Low priority / nice to have"
   },
-  { "name": "bug", "color": "D73A4A", "description": "Bug or regression" }
+  {
+    "name": "bug",
+    "color": "D73A4A",
+    "description": "Bug or regression"
+  },
+  {
+    "name": "rc-feedback",
+    "color": "0E8A16",
+    "description": "Feedback on a release candidate"
+  },
+  {
+    "name": "rc-blocker",
+    "color": "B60205",
+    "description": "Must be fixed before the stable release"
+  }
 ]
