@@ -77,9 +77,8 @@ jobs:
 
       # Main builds in this checkout. A release branch builds in its own
       # worktree with its own install, because its lockfile and build can
-      # differ from main's. Blog posts merge to main, and a release branch
-      # holds them only after its next sync, so main's blog replaces the
-      # branch's, as in the root build below.
+      # differ from main's. The next channel has no blog (docs spec §6), so
+      # nothing is copied in from main.
       - name: Build the /next/ site
         if: steps.config.outputs.mode != 'snapshot-only'
         env:
@@ -97,8 +96,6 @@ jobs:
             mv apps/docs/out build/next-out
           else
             git worktree add --detach build/next-src "$NEXT_SHA"
-            rm -rf build/next-src/apps/docs/content/blog
-            cp -R apps/docs/content/blog build/next-src/apps/docs/content/blog
             (cd build/next-src && npm ci && npx nx build @nexusdi/docs && npm --prefix apps/docs run postbuild && node apps/docs/tools/check-budgets.mjs)
             mv build/next-src/apps/docs/out build/next-out
           fi
