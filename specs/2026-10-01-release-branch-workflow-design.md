@@ -463,3 +463,109 @@ Order matters. Each step leaves every release path working or explicitly blocked
 8. Dependabot PRs #41 to #59 stay on `main` as 0.3 maintenance and reach `release/0.4` through syncs.
 9. Docs: a pull request on `main` sets `deploy.json` to `rc` just before rc.0. `/next/` then builds from `release/0.4`.
 10. `event=rc` with `dry-run: true` on `release/0.4`. Check the version `0.4.0-rc.0`, the tag `@nexusdi/core@0.4.0-rc.0`, one GitHub prerelease and the dist-tag per package. Then the real run.
+
+## 10. Red-team walkthrough
+
+An architect pass proposed three workflows (section 11). A tech-lead pass walked each one through rc.0, rc.N, a 0.3.x hotfix during the RC, 0.4.0, 0.4.1 and 0.5.0-rc.0, and checked 1.0.0-rc.0. The chosen workflow is the architect's option A with the amendments below. Each row names the failure the walk found and the part of this spec that prevents it.
+
+| Step            | Failure found                                                                                                                                   | Severity | Prevented by                                                                       |
+| --------------- | ----------------------------------------------------------------------------------------------------------------------------------------------- | -------- | ---------------------------------------------------------------------------------- |
+| rc.0            | The `{projectName}@{version}` pattern writes a literal `{projectName}@0.4.0-rc.0` tag, and rc.1 resolves 0.3.2 again (L1).                      | blocker  | Literal pattern `@nexusdi/core@{version}` (4.4), before rc.0.                      |
+| rc.0            | Per-project GitHub releases target one tag and overwrite each other (L9).                                                                       | major    | One workspace-level GitHub release (4.4).                                          |
+| rc.0            | A per-package `--projects` publish loop fails on a fixed group (L10).                                                                           | blocker  | One group publish with `--tag next`, then a dist-tag reconcile (5.2).              |
+| rc.0            | Six packages do not exist on npm, so no trusted publisher can be configured for them.                                                           | blocker  | Placeholder bootstrap (9.6).                                                       |
+| rc.0            | A placeholder holding `latest` would make `npm i @nexusdi/<new>` install it.                                                                    | major    | Reconcile points `latest` at the rc for every package with no stable (5.2 step 6). |
+| rc.0            | Adding `environment: release` to the trusted publisher before `main`'s workflow uses it breaks a 0.3.x hotfix.                                  | major    | Migration order (9.1 before 9.3).                                                  |
+| rc.N            | `prerelease` without preid gives `0.3.3-0`; an empty specifier gives stable `0.4.0` (L3).                                                       | blocker  | rc versions are explicit (5.2 step 1).                                             |
+| rc.N            | A re-dispatch after a failed publish would compute rc.N+1 and skip rc.N on npm.                                                                 | major    | `rc` refuses while the newest rc is unpublished; `resume` finishes it (5.1, 5.8).  |
+| rc.N            | rc.10 sorts below rc.9 lexically.                                                                                                               | minor    | `sort -V`, with a unit test (6.3 step 4).                                          |
+| rc.N            | Two dispatches interleave.                                                                                                                      | minor    | `concurrency: release` (5.10).                                                     |
+| 0.3.3 during RC | A cherry-picked fix gets a new SHA and appears twice in the 0.4.0 changelog.                                                                    | minor    | Sync by merge (5.3): the original commit becomes reachable from 0.3.3.             |
+| 0.3.3 during RC | Nothing runs CI, CodeQL or Dependabot on `release/0.4` pushes.                                                                                  | major    | `ci.yml` and `codeql.yml` on `release/**` and `[0-9]*.x`; Dependabot through sync. |
+| 0.3.3 during RC | A conflict the auto-merge cannot resolve has no landing path: `release/*` rebase-only refuses a merge commit.                                   | blocker  | Sync pull requests with the merge method allowed on `release/*` (4.2, 5.3).        |
+| 0.4.0           | `patch` from rc.N gives 0.3.3 (L4).                                                                                                             | blocker  | Stable version is explicit (5.4 step 4).                                           |
+| 0.4.0           | A rebase-merge of the version branch strands every rc tag and the stable tag; the next fix on `main` proposes 0.4.0 again (L8).                 | blocker  | Promotion by atomic fast-forward push, no rewritten commits (5.4 step 5).          |
+| 0.4.0           | Fast-forwarding `main` before tagging leaves 0.4 code on `main` at 0.3.3; a `patch` in that window would publish 0.4 code as 0.3.4 to `latest`. | blocker  | Commit, tag and both branch updates in one atomic push (L12, 5.4 step 5).          |
+| 0.4.0           | The verify gate omits `workflows` and `format`; a bypassing push could turn `main` red and block every strict-check PR.                         | major    | Stable requires the four required checks green on the exact SHA (5.1).             |
+| 0.4.0           | `main` moves between plan and push.                                                                                                             | minor    | The atomic push is rejected and nothing changes; sync, then dispatch again.        |
+| 0.4.0           | The push event's docs run builds the root from the newest stable tag before 0.4.0 exists.                                                       | major    | The tag travels in the same push; `final` lands on `release/0.4` beforehand (5.4). |
+| 0.4.0           | Union-less changelog merges drop the 0.3.3 section.                                                                                             | minor    | `merge=union` on `libs/*/CHANGELOG.md` (4.5).                                      |
+| 0.4.0           | Moving `next` to 0.4.0 needs OIDC dist-tag rights.                                                                                              | major    | The 2026-09-30 permission (4.3); non-fatal step that prints commands.              |
+| 0.4.0           | The husky hook refuses the sync merge locally and in CI.                                                                                        | minor    | `HUSKY=0` in CI; the hooks allow merges on `sync/*` (4.6).                         |
+| 0.4.1           | none. L7 gives 0.4.1; the line guard refuses a 0.5.0 from `main`.                                                                               | none     | Line guard (5.1).                                                                  |
+| 0.3.4           | A `0.3.x` dist-tag is a semver range and npm rejects it [22].                                                                                   | blocker  | Dist-tag `release-0.3` (5.6).                                                      |
+| 0.3.4           | `make_latest: legacy` may mark 0.3.4 as the repository's latest release.                                                                        | major    | `gh release edit` fix-up (5.6 step 4).                                             |
+| 0.3.4           | `0.3.x` runs its own copy of `release.yml`.                                                                                                     | major    | The workflow lands on `main` before `0.3.x` is cut (9.1).                          |
+| 0.5.0-rc.0      | The docs only know the 0.3 snapshot as an archive; no `/v0.4/` path exists.                                                                     | major    | `archives.json` pins (7.1.3), before 0.4.0.                                        |
+| 0.5.0-rc.0      | `/next/` built from `main` would show 0.4 docs during the 0.5 RC.                                                                               | major    | `/next/` from the active `release/*` branch (7.1.2).                               |
+| 1.0.0-rc.0      | No relative specifier reaches 1.0.0-rc.0 under the zero-major remap (L5).                                                                       | blocker  | Version from the branch name `release/1.0` (5.2).                                  |
+| Migration       | Renaming `feat/core-0.4` closes PR #60 and leaves local worktrees tracking a missing branch.                                                    | minor    | #60 closing is intended; `git branch -m` and `-u` per worktree (9.4).              |
+
+A lab experiment during the red-team pass ran `nx run <project>:nx-release-publish --dryRun`, which sent a real publish request; the registry rejected it for missing credentials (L11). The workflow never uses that command, and section 6.3 says so.
+
+## 11. Rejected options
+
+- Long-lived `next` as the default branch, with `main` as a fast-forward-only pointer (semantic-release style). Making `next` the default moves the `~DEFAULT_BRANCH` ruleset off `main`. Security updates and CodeQL default setup follow the default branch, so the stable line loses them. A hotfix on `0.3.x` either stops `main` from being an ancestor of `next` or leaves `main` behind the published `latest`. `main` stops being the working trunk the libraries repo uses.
+- Promotion by rebase-merging the version branch into `main` (PR #60 as it stands). GitHub's rebase-merge rewrites every commit [9], so the rc tags and any stable tag cut on the branch become unreachable from `main` (L8). With a hotfix on `main`, the rebase conflicts on every rc release commit. A manual rebase that drops those commits rewrites about 268 commits per minor, needs force-push rights on `release/*`, and leaves rc provenance pointing at commits `main` never contains.
+- Cutting the stable on `main` after a rebase-merge. `main` holds 0.4 code at 0.3 versions between the merge and the release, and a `patch` run in that window publishes breaking code as 0.3.4.
+- Trunk with prerelease tags on `main` (React, Vite, Nx). The owner's rule excludes it, and changesets documents why: prereleases on the default branch block stable fixes [7].
+- `releaseTag.checkAllBranchesWhen`. Explicit versions make it unnecessary, and an all-branches lookup lets `0.3.x` tags into 0.4 changelogs.
+- `releaseTag.pattern: "v{version}"`, nx's fixed default. It hides every existing `@nexusdi/core@*` tag, so the first run would fall back to the version on disk and build a changelog from the first commit, and `benchmarks.yml` and the docs root lookup would need new patterns.
+- Cherry-picking `main` fixes into the version branch. Each fix appears twice in the stable changelog, and promotion still needs `main` merged in.
+- A Dependabot `target-branch` entry per version branch. It needs a config edit for every line, and syncs already carry `main`'s updates.
+- A `0.3.x` npm dist-tag. npm rejects semver ranges as tag names [22].
+- Per-package publishing through `nx release publish --projects` (L10) or `nx run <project>:nx-release-publish` (L11).
+
+## 12. Owner decisions
+
+GitHub settings and branch operations, in migration order:
+
+1. Create the `release` environment with deployment branches `main`, `release/*`, `[0-9]*.x`, and move `RELEASE_SSH_KEY` into it. Delete the unused `Main` environment.
+2. Create the "Release branches" ruleset (`release/*`, merge and rebase allowed) and the "Maintenance branches" ruleset (`[0-9]*.x`, rebase only), both with the four strict required checks, CodeQL and `DeployKey` bypass.
+3. Switch CodeQL from default setup to the advanced `codeql.yml` workflow.
+4. Keep `main` as the default branch.
+5. On npm, add environment `release` and the "Allow npm dist-tag" permission to `@nexusdi/core`'s trusted publisher, after the new `release.yml` is on `main`.
+6. Rename `feat/core-0.4` to `release/0.4`. This closes PR #60 and retargets #61 and #62.
+7. Publish the placeholder for each new package from a local machine, configure its trusted publisher, and deprecate the placeholder.
+
+Policy choices:
+
+8. Whether #61 and #62 land before rc.0.
+9. After 1.0, whether `main` may publish a minor from conventional commits. This spec says no: minors go through `release/X.Y`.
+10. The maintenance dist-tag name. This spec uses `release-X.Y`.
+11. The docs spec §15 amendment: `/next/` builds from the active `release/*` branch.
+
+## 13. Unverified, and how to check before rc.0
+
+1. The deploy key pushing `HEAD:release/X.Y HEAD:main` plus a tag atomically under both rulesets. L12 printed the command only. Check in a throwaway GitHub repository with copies of both rulesets and a bypassing deploy key: push once with `main` as an ancestor, then once after moving `main`, and confirm the second push changes no ref.
+2. OIDC `npm dist-tag add` with the 2026-09-30 permission, from a non-default branch in the `release` environment. Check with a probe tag on `@nexusdi/core@0.3.2`, added and removed by a scratch dispatch.
+3. Trusted publishing with `environment: release` from a branch dispatch. Check by publishing one bootstrapped package's placeholder through `event=resume`, or a probe version of a scratch package configured the same way.
+4. `make_latest: legacy` ordering for a backport. The `gh release edit` fix-up makes the answer non-blocking.
+5. Whether the registry sets `latest` on a new package first published with `--tag bootstrap`. The bootstrap step reads `npm view <pkg> dist-tags` and the reconcile step corrects either outcome.
+6. The `/next/` worktree build time inside `docs.yml` with its own `npm ci`. Check with a build-only run of the new `docs.yml` on a branch.
+7. Whether CodeQL default setup treats a ruleset-protected branch as protected. Moot once the advanced workflow lands.
+
+## References
+
+1. Angular, branches and versioning: https://github.com/angular/angular/blob/main/contributing-docs/branches-and-versioning.md
+2. TypeScript release process: https://github.com/microsoft/TypeScript-wiki/blob/main/TypeScript's-Release-Process.md
+3. React versioning policy: https://react.dev/community/versioning-policy
+4. Vite releases: https://vite.dev/releases
+5. Nx, manage releases: https://nx.dev/docs/features/manage-releases
+6. semantic-release workflow configuration: https://semantic-release.gitbook.io/semantic-release/usage/workflow-configuration
+7. changesets prereleases: https://github.com/changesets/changesets/blob/main/docs/prereleases.md
+8. release-please customizing: https://github.com/googleapis/release-please/blob/main/docs/customizing.md
+9. GitHub, about merge methods: https://docs.github.com/en/repositories/configuring-branches-and-merges-in-your-repository/configuring-pull-request-merges/about-merge-methods-on-github
+10. GitHub, available rules for rulesets: https://docs.github.com/en/repositories/configuring-branches-and-merges-in-your-repository/managing-rulesets/available-rules-for-rulesets
+11. GitHub, renaming a branch: https://docs.github.com/en/repositories/configuring-branches-and-merges-in-your-repository/managing-branches-in-your-repository/renaming-a-branch
+12. Dependabot options, target-branch: https://docs.github.com/en/code-security/dependabot/working-with-dependabot/dependabot-options-reference#target-branch
+13. GitHub, code scanning setup types: https://docs.github.com/en/code-security/concepts/code-scanning/setup-types
+14. GitHub REST, create a release: https://docs.github.com/en/rest/releases/releases#create-a-release
+15. GitHub, GITHUB_TOKEN: https://docs.github.com/en/actions/concepts/security/github_token
+16. GitHub Pages custom workflows: https://docs.github.com/en/pages/getting-started-with-github-pages/using-custom-workflows-with-github-pages
+17. npm trusted publishers: https://docs.npmjs.com/trusted-publishers
+18. setup-npm-trusted-publish: https://github.com/azu/setup-npm-trusted-publish
+19. npm dist-tag (v10): https://docs.npmjs.com/cli/v10/commands/npm-dist-tag
+20. GitHub changelog, opt-in dist-tag permissions for npm trusted publishing: https://github.blog/changelog/2026-09-30-opt-in-dist-tag-permissions-for-npm-trusted-publishing/
+21. Nx, nx.json reference: https://nx.dev/docs/reference/nx-json
+22. npm dist-tag (v11): https://docs.npmjs.com/cli/v11/commands/npm-dist-tag
