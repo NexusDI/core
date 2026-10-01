@@ -1,5 +1,7 @@
 import { useMDXComponents as getThemeComponents } from 'nextra-theme-docs';
 
+import Diagram from './components/diagram/Diagram';
+import Listing from './components/listing/Listing';
 import { PostList } from './components/blog/PostList';
 import {
   Figure,
@@ -21,6 +23,11 @@ export function useMDXComponents(components) {
     ...themeComponents,
     ...components,
     PostList,
+    // Not tags an author writes: `tools/mdx-diagram-loader.mjs` rewrites a
+    // mermaid fence into `<Diagram>`, and `tools/mdx-listing-loader.mjs` wraps
+    // a fence carrying an exemption tag in `<Listing>`.
+    Diagram,
+    Listing,
     // The benchmark figures and tables (docs spec section 4.6). Each reads
     // generated/benchmark-data.json; doc-benchmark-figures holds the paths.
     Figure,

@@ -165,6 +165,17 @@
   // yet, so nothing imports the names today. Drop each name once a guard
   // imports it.
   "ignoreExports": [
+    // The default export of each is the Turbopack loader. next.config.ts
+    // reaches it by file path through tools/loader-chain.mjs, which no
+    // import edge shows to fallow.
+    {
+      "file": "apps/docs/tools/mdx-diagram-loader.mjs",
+      "exports": ["default"],
+    },
+    {
+      "file": "apps/docs/tools/mdx-listing-loader.mjs",
+      "exports": ["default"],
+    },
     {
       "file": "tools/repo-checks/src/docs/paths.ts",
       "exports": ["CONTENT"],
