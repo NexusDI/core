@@ -176,6 +176,8 @@ export interface CellResult {
   message?: string;
   /** Absent when the cell is not applicable, since nothing is staged. */
   cellDir?: string;
+  /** tsc's app.js, relative to cellDir. Absent on a compile error. */
+  modulePath?: string;
   /** The verified bundle, for the timed children. Absent on a compile error. */
   bundle?: string;
 }
@@ -194,16 +196,19 @@ export async function runCell(
     message: stripPaths(message, cellDir),
     cellDir,
   });
+  let modulePath: string;
   let bundle: string;
   try {
-    bundle = await bundleCell(cellDir, await compileCell(cellDir, profile));
+    modulePath = await compileCell(cellDir, profile);
+    bundle = await bundleCell(cellDir, modulePath);
   } catch (e) {
     if (e instanceof CompileError) return failed('compile-error', e.message);
     throw e;
   }
   const { outcome, message } = await verifyCell(cellDir, bundle, graph);
-  if (message !== undefined) return { ...failed(outcome, message), bundle };
-  return { outcome, cellDir, bundle };
+  if (message !== undefined)
+    return { ...failed(outcome, message), modulePath, bundle };
+  return { outcome, cellDir, modulePath, bundle };
 }
 
 /**

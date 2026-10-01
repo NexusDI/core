@@ -187,5 +187,5 @@ export function runMatrix(opts: { only?: LibraryId[] }): MatrixFile {
 
 if (import.meta.main) {
   const only = onlyArg();
-  writeResult('matrix', runMatrix({ only }), only);
+  writeResult('matrix', runMatrix({ only }), only !== undefined);
 }

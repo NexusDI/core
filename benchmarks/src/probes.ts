@@ -146,5 +146,5 @@ export function runProbes(opts: { only?: LibraryId[] }): ProbesFile {
 
 if (import.meta.main) {
   const only = onlyArg();
-  writeResult('probes', runProbes({ only }), only);
+  writeResult('probes', runProbes({ only }), only !== undefined);
 }
