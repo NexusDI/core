@@ -1,0 +1,4 @@
+# A sync merges main into release/X.Y (RELEASING.md, "Branches"). Both sides
+# add a section to the top of each package changelog, and the union driver
+# keeps both, so a 0.3.3 section from main survives in the 0.4 changelogs.
+libs/*/CHANGELOG.md merge=union
