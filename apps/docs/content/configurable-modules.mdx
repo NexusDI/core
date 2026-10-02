@@ -1,0 +1,84 @@
+---
+title: Configurable modules
+kind: concept
+description: A NexusDI configurable module declares an options token, and each import supplies the options with forRoot() or forRootAsync().
+requires: [modules, lifetimes]
+---
+
+# Configurable modules
+
+A NexusDI configurable module declares an options token, and each import of the module supplies those options through `forRoot()` or `forRootAsync()`. The module's providers depend on the options token like any other token, so one module definition serves every configuration.
+
+## Declare options with `defineModule({ options })`
+
+`defineModule({ options })` names the token that holds a module's options. The module's providers list that token in their deps, and the importer passes the value with `Comms.forRoot(value)`. `forRoot()` returns a module, so it goes in `imports` where the plain module would go.
+
+```ts file=examples/meridian/src/pages/configurable-modules.md region=for-root
+
+```
+
+`SubspaceRelay` declares `static deps = [COMMS_OPTIONS] as const`, and NexusDI hands it the value `forRoot()` received. The type of that value comes from the token, so `Comms.forRoot({ frequency: '1420', transport: 'relay' })` fails to compile: `tsc` reports `Type 'string' is not assignable to type 'number'` on the `frequency` line.
+
+Try it: save the region as `comms.ts` and run `npx tsx comms.ts`. It prints `relay on 1420`. Change the import to `Comms` with no `forRoot()` call and run it again. `tsc` accepts the change, and `Nexus.create` rejects with `NEXUS_BLUEPRINT_INVALID`. Node prints that error and exits, because the program has no `try` block. Its one inner error is [NEXUS_MODULE_OPTIONS_MISSING](/errors/NEXUS_MODULE_OPTIONS_MISSING/) with `module=Comms`. This region catches the error and prints the inner codes:
+
+```ts file=examples/meridian/src/pages/configurable-modules.md region=missing-for-root
+
+```
+
+Prints `[ 'NEXUS_MODULE_OPTIONS_MISSING' ]`. Put the `forRoot()` call back into the first program and it prints `relay on 1420` again.
+
+## Pick an implementation with a `forRoot()` option
+
+An option of a NexusDI configurable module can choose which class fills a token. `Comms` binds `SUBSPACE_LINK` in one factory over `COMMS_OPTIONS`, and the factory builds a `LaserLink` or a `SubspaceRelay` from the `transport` option. Each class is built in exactly that one provider, and every consumer depends on the `ISubspaceLink` interface alone.
+
+```ts file=examples/meridian/src/pages/configurable-modules.md region=pick-implementation
+
+```
+
+Try it: save the region as `transport.ts`, run it, and read `laser on 1420`. Change `transport: 'laser'` to `transport: 'relay'` and run it again. The output is `relay on 1420`, and no consumer of `SUBSPACE_LINK` changed.
+
+<Notice kind="ship">
+  The Meridian's comms officer picks the laser link for a clear line of sight
+  and the subspace relay for everything else. The module reads that choice from
+  its options.
+</Notice>
+
+## Compute options at startup with `forRootAsync()`
+
+`forRootAsync({ useFactory, deps })` computes a NexusDI module's options while `Nexus.create` runs. The factory may return a promise, and `Nexus.create` awaits it before it builds the module's providers. The factory's `deps` resolve where the module's own providers resolve: from the module's imports and from global modules.
+
+```ts file=examples/meridian/src/pages/configurable-modules.md region=for-root-async
+
+```
+
+`Engineering` is a global module here, so the `COMPUTER` token in the factory's deps is visible inside `Comms`. The factory reads the frequency from the computer, and `SubspaceRelay` receives `{ frequency: 1701, transport: 'relay' }`.
+
+Try it: save the region as `async-comms.ts` and run it. It prints `relay on 1701`. Remove `global: true` from `Engineering` and run it again. `Nexus.create` rejects with `NEXUS_BLUEPRINT_INVALID`, and its one inner error is [NEXUS_MISSING_PROVIDER](/errors/NEXUS_MISSING_PROVIDER/) with `token=ShipComputer requester=CommsOptions module=Comms`: the options factory resolves its deps inside `Comms`, which no longer sees `COMPUTER`. Put `global: true` back and it prints `relay on 1701` again.
+
+## Validate options with a NexusDI `schema`
+
+A `schema` on a NexusDI configurable module validates every options value before any provider receives it. NexusDI accepts any Standard Schema validator. The examples use valibot 1.5.0, whose schemas implement Standard Schema, so NexusDI validates them with no valibot-specific code.
+
+```ts file=examples/meridian/src/pages/configurable-modules.md region=schema
+
+```
+
+The schema rejects a frequency of `-5`. `Nexus.create` rejects with [NEXUS_PROVIDER_FAILED](/errors/NEXUS_PROVIDER_FAILED/) for the options, and its `cause` is [NEXUS_INVALID_MODULE_OPTIONS](/errors/NEXUS_INVALID_MODULE_OPTIONS/) with the schema's issues. `SubspaceRelay` is never built with the bad value.
+
+Try it: install valibot with `npm install valibot@1.5.0`, save the region as `schema.ts` and run it. It prints the codes and `Invalid value: Expected >=1 but received -5`. Change `-5` to `1420` and run it again. `Nexus.create` resolves, so the first two lines print `null` and the third prints `[]`.
+
+## Call `forRoot()` once and share the module
+
+Each `forRoot()` or `forRootAsync()` call creates a new NexusDI module instance with its own providers. Call it once and keep the result in a constant. Import that constant everywhere the configured module is needed. Two modules that import the same constant share one module instance, so they share its singletons.
+
+```ts file=examples/meridian/src/pages/configurable-modules.md region=for-root-once
+
+```
+
+`Tactical` and `Bridge` both import `ShipComms`, and both receive the same `SubspaceRelay`. Two separate `forRoot()` calls build two module instances, and each builds its own relay:
+
+```ts file=examples/meridian/src/pages/configurable-modules.md region=for-root-twice
+
+```
+
+Try it: save the first region as `shared.ts` and run it. It prints `true`. Replace `ShipComms` in `Bridge`'s imports with a second `Comms.forRoot({ frequency: 1420, transport: 'relay' })` call and run it again. It prints `false`, because the ship now holds two links. Put `ShipComms` back and it prints `true` again.
