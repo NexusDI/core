@@ -63,6 +63,7 @@ Task briefs: tasks/task-NN.md, shared constraints tasks/globals.md
 - T13: PR #80 merged by the owner. Sync pending (see Owner items). PR #80 (fix/docs-pipeline -> main) opened. Final opus review fixes: noindex check in any attribute order (the real r1 archive failed the final check), CodeQL polynomial regexes (preamble, {@link}), MODE via env, GH_TOKEN on the snapshot step only: c1f75e1 8335be2 8a64b57 33af5d2 9379d55. 68e6178 (CodeQL {@link} regex). CI all green, mergeable clean at 68e6178. The merge into main was refused by the session's permission classifier; waiting on the owner to merge #80 (rebase). Then: release.yml event=sync on release/0.4 (expect a ci.yml conflict: keep both job lists).
 
 ## Owner items
+- Run the docs e2e in all three engines locally (`npx playwright install --with-deps chromium firefox webkit && npx nx e2e @nexusdi/docs-e2e`): this container has only chromium 1194, and no CI workflow runs docs-e2e. E3 (search.spec.ts) and the T80 rc specs passed in chromium only.
 - /benchmark-method/ links issues/new/choose; switch it to ?template=04-benchmark-setup.yml once that template lands (benchmarks spec §14.1). The Nx cache under /home/user/core/.nx/cache reached 23 GB and filled the session disk; it was cleared.
 - Follow-up (interceptors): the call-time NEXUS_INTERCEPTOR_MISSING throw in libs/interceptors/src/proxy.ts (about lines 115-130) is unreachable from any container path (T71 probes: load, scope extend, scope calls, a proxy across containers, a shared plugin object). It reuses a user-visible code for a defensive guard; consider an internal assertion. The docs say compile time only.
 - At 0.4.0 final: fill the dates on /support-policy/ (0.4.0 final date, six months later, whether 0.5.0 is out); add this to the stable checklist.
@@ -142,4 +143,5 @@ Task briefs: tasks/task-NN.md, shared constraints tasks/globals.md
 - T73: done eec4e11+1d608af (40 rows match code pages and libs; arrival clause per row from code pages; approved after fix)
 - T77: done c9bbe9f+512c295 (method claims checked against harness; check rewrites matrix.json so restore checks out both files; issue link to /issues/new/choose until 04-benchmark-setup exists; approved with minors fixed)
 - T78: done 11cdcf1+(fix) (claims match libraries.json, fixtures, results and npm; figures only via components; doc-links allowance now empty; InversifyJS flags taken from the fixture header, site blocked by proxy; approved after fix)
-- T79: impl
+- T79: done e3ee28b (E3 passed in chromium only; Nextra links only Pagefind sub-results, so the page-result case searches an intro phrase; locator is getByRole(option).and(a[href]); firefox/webkit not available here)
+- T80: impl
