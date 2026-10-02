@@ -3,7 +3,11 @@ import { join } from 'node:path';
 import { workspaceRoot } from '@nx/devkit';
 import { describe, expect, it } from 'vitest';
 
-import { checkRegions, regionRoots } from './docs/doc-regions';
+import {
+  checkRegions,
+  regionRoots,
+  wiresDocExamples,
+} from './docs/doc-regions';
 import { loadRegions } from './docs/loaders';
 import { CONTENT, FIXTURES } from './docs/paths';
 import { readSite } from './docs/site';
@@ -25,6 +29,17 @@ describe('region roots', () => {
     expect(roots).toContain('libs/core/README.md');
     expect(roots).toContain('libs/core/docs/**/*.md');
     expect(roots.some((root) => root.startsWith('libs/codemod/'))).toBe(false);
+  });
+});
+
+describe('wiresDocExamples', () => {
+  it('reads calls and skips comments', () => {
+    expect(wiresDocExamples('docExamples();\ndocExampleSources();')).toBe(true);
+    expect(
+      wiresDocExamples(
+        '// docExampleSources()\n/* docExamples( */\ndocExamples();',
+      ),
+    ).toBe(false);
   });
 });
 

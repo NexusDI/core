@@ -35,6 +35,19 @@ describe('diagram-captions fixtures', () => {
   });
 });
 
+describe('diagram-captions quotes', () => {
+  it('fails a caption the loader rejects for a quote or a backslash', () => {
+    const message =
+      'apps/docs/content/lifecycle.mdx:3: the caption of a mermaid fence contains a quote or a backslash. Reword it without one.';
+    expect(
+      checkCaptions([
+        page('```mermaid caption="He said "x" now"\ngraph TD; A-->B\n```'),
+        page('```mermaid caption="Ok" \\x\ngraph TD; A-->B\n```'),
+      ]),
+    ).toEqual([message, message]);
+  });
+});
+
 describe('diagram-captions on apps/docs', () => {
   it('holds', () => {
     expect(checkCaptions(readSite(CONTENT))).toEqual([]);

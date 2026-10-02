@@ -8,7 +8,10 @@ import type { DocsPage } from './site';
 const REFERENCE = /(?:^|\s)file=(\S+)\s+region=([\w-]+)/;
 
 /** A package wires its doc examples when its Vite config calls both helpers. */
-function wiresDocExamples(config: string): boolean {
+export function wiresDocExamples(source: string): boolean {
+  const config = source
+    .replace(/\/\*[\s\S]*?\*\//g, '')
+    .replace(/\/\/.*$/gm, '');
   return /\bdocExamples\(/.test(config) && /\bdocExampleSources\(/.test(config);
 }
 
