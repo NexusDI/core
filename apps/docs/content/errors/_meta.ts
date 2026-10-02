@@ -99,6 +99,15 @@ const meta: MetaRecord = {
     title: 'NEXUS_DEVTOOLS_GRAPH_INVALID',
     display: 'hidden',
   },
+  NEXUS_CONTRACT_VERSION: {
+    title: 'NEXUS_CONTRACT_VERSION',
+    display: 'hidden',
+  },
+  NEXUS_OVERRIDE_UNUSED: { title: 'NEXUS_OVERRIDE_UNUSED', display: 'hidden' },
+  NEXUS_OVERRIDE_EXPORTS: {
+    title: 'NEXUS_OVERRIDE_EXPORTS',
+    display: 'hidden',
+  },
 };
 
 export default meta;

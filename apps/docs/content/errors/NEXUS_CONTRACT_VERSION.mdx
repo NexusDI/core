@@ -1,0 +1,50 @@
+---
+title: NEXUS_CONTRACT_VERSION
+kind: code
+description: A dependent needs a version of a federation contract that the contract's provider does not satisfy.
+package: '@nexusdi/federation'
+errorClass: ContractVersionError
+---
+
+# NEXUS_CONTRACT_VERSION
+
+`federation()` reports `NEXUS_CONTRACT_VERSION` when a dependent was built against a version of a contract that its provider's version does not satisfy. The check looks at every dependency whose provider and consumer both come from `defineContract()`, and it runs as part of compiling the module graph, before any constructor runs. `Nexus.create` and `ship.load()` reject with [NEXUS_BLUEPRINT_INVALID](/errors/NEXUS_BLUEPRINT_INVALID/) holding it, and `Nexus.check` throws that error. No call raises `NEXUS_CONTRACT_VERSION` bare.
+
+The rule is the one of npm's `^` range. The majors must match. At major 1 and above, the dependent needs a minor no newer than the provider's, and on the same minor a patch no newer than the provider's. At major 0 the minors must match as well, because a minor is a breaking change there. Each mismatch is reported once per check, however many dependents share it.
+
+## Reproduce `NEXUS_CONTRACT_VERSION`
+
+The shell provides `meridian/ReactorCore` from version 2.3.0 of its contracts package, and a remote's `QuantumComputer` was built against 2.4.0. Without a text pack, the message is a one-line message that starts with the code and ends with the address of this page.
+
+```ts file=examples/meridian/src/errors/NEXUS_CONTRACT_VERSION.md region=reproduce
+
+```
+
+Try it: run `npm install @nexusdi/core@next @nexusdi/federation@next`, save the region as `contract.ts` and run `npx tsx contract.ts`. It prints the one-line message: `[NEXUS_CONTRACT_VERSION] contract=meridian/ReactorCore required=2.4.0 provided=2.3.0.` and the address of this page. Then change the shell's version to `'2.5.0'` and run it again. A newer minor satisfies the dependent, the container builds, and the region prints `undefined` because there is no error to read. Change it to `'3.0.0'` and the message returns with `provided=3.0.0`, because a new major is a breaking change. Change it back to `'2.3.0'` and the first message prints again.
+
+## Full text of `NEXUS_CONTRACT_VERSION` with `errors()`
+
+`NEXUS_CONTRACT_VERSION` carries its full text and fix line when `federationText` from `@nexusdi/federation/text` is passed to `errors()` from `@nexusdi/errors`, as `errors({ text: [federationText] })` in the plugins of `Nexus.create`. `devtools({ text: [federationText] })` words the error the same way. The main entry of `@nexusdi/federation` never imports the pack, so an app that leaves it out includes none of its bytes.
+
+```ts file=examples/meridian/src/errors/NEXUS_CONTRACT_VERSION.md region=full-text
+
+```
+
+Try it: run `npm install @nexusdi/errors@next`, save the region as `full.ts` and run `npx tsx full.ts`. It prints the two-line message with its `Fix:` line: `[NEXUS_CONTRACT_VERSION] meridian/ReactorCore is needed at 2.4.0, and the provider has 2.3.0.` and `Fix: build the provider against 2.4.0 or a newer 2.x, or build the dependent against 2.3.0.`
+
+## Fix `NEXUS_CONTRACT_VERSION`
+
+`NEXUS_CONTRACT_VERSION` goes away when the provider's contract version satisfies every dependent. Build the provider against the version the error names in `required`, or a newer minor of the same major. A dependent built against an older version of the contract works as well, so rebuilding it against the version in `provided` clears the error too. At major 0, only a newer patch of the same minor satisfies.
+
+```ts file=examples/meridian/src/errors/NEXUS_CONTRACT_VERSION.md region=fix
+
+```
+
+Try it: save the region as `fixed.ts` and run `npx tsx fixed.ts`. It prints `1.21`. Change the shell's version to `'2.3.0'` and run it again. `npx tsc` accepts the file, and `npx tsx fixed.ts` throws an uncaught `BlueprintError` and prints a stack trace headed `BlueprintError: [NEXUS_BLUEPRINT_INVALID] 1 error.`, whose message goes on with the line `[NEXUS_CONTRACT_VERSION] contract=meridian/ReactorCore required=2.4.0 provided=2.3.0.` Change it back to `'2.4.0'` and the program prints `1.21` again.
+
+## Fields of `ContractVersionError`
+
+- `code`: `'NEXUS_CONTRACT_VERSION'`.
+- `contract`: the contract key and token name, such as `'meridian/ReactorCore'`.
+- `required`: the version the dependent was built against, as the string `defineContract` received, such as `'2.4.0'`.
+- `provided`: the version the provider was built against, in the same form.

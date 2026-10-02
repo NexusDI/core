@@ -1,0 +1,38 @@
+---
+title: NEXUS_OVERRIDE_EXPORTS
+kind: code
+description: A module stub passed to overrideModule() does not export every token the module it replaces exports.
+package: '@nexusdi/testing'
+errorClass: OverrideError
+---
+
+# NEXUS_OVERRIDE_EXPORTS
+
+`createTestingContainer(root).create()` reports `NEXUS_OVERRIDE_EXPORTS` when a stub passed to `overrideModule(module, stub)` does not export every token and module that `module` exports. A module that imports the original would lose a dependency it relies on, so the testing container stops before it builds anything. `create()` rejects with [NEXUS_BLUEPRINT_INVALID](/errors/NEXUS_BLUEPRINT_INVALID/) holding the error, and no call raises `NEXUS_OVERRIDE_EXPORTS` bare. A `ship.load()` that brings in a stubbed module rejects the same way when the stub lacks exports, which is how a lazy override reports it.
+
+## Reproduce `NEXUS_OVERRIDE_EXPORTS`
+
+`SimulatorEngineering` provides `REACTOR` and forgets to export it. `@nexusdi/testing` writes this message itself, so it carries its full text and fix line with no text pack, and `errors({ text })` leaves it as written.
+
+```ts file=examples/meridian/src/errors/NEXUS_OVERRIDE_EXPORTS.md region=reproduce
+
+```
+
+Try it: run `npm install @nexusdi/core@next` and `npm install -D @nexusdi/testing@next`, save the region as `stub.ts` and run `npx tsx stub.ts`. It prints the two-line message with its `Fix:` line: `[NEXUS_OVERRIDE_EXPORTS] the stub for Engineering does not export ReactorCore, which Engineering exports.` and `Fix: add them to the stub's exports.` Then add `exports: [REACTOR]` to `SimulatorEngineering` and run it again. The container builds, and the region prints `undefined` because there is no error to read.
+
+## Fix `NEXUS_OVERRIDE_EXPORTS`
+
+`NEXUS_OVERRIDE_EXPORTS` goes away when the stub exports everything the error lists in `missing`. Provide a test double for each token in the stub, and list each in its `exports`. The list can name modules as well as tokens, because a module that re-exports another module needs the stub to re-export it too.
+
+```ts file=examples/meridian/src/errors/NEXUS_OVERRIDE_EXPORTS.md region=fix
+
+```
+
+Try it: save the region as `fixed.ts` and run `npx tsx fixed.ts`. It prints `0`, the output of the simulated reactor. Delete `exports: [REACTOR]` from `SimulatorEngineering` and run it again. `npx tsc` accepts the file, and `npx tsx fixed.ts` throws an uncaught `BlueprintError` and prints a stack trace headed `BlueprintError: [NEXUS_BLUEPRINT_INVALID] 1 error.` Put the export back and the program prints `0` again.
+
+## Fields of `OverrideError`
+
+- `code`: `'NEXUS_OVERRIDE_EXPORTS'` or `'NEXUS_OVERRIDE_UNUSED'`.
+- `token`: `null` for `NEXUS_OVERRIDE_EXPORTS`.
+- `module`: the name of the module the stub replaces, such as `'Engineering'`.
+- `missing`: the names of the exports of that module that the stub lacks, as an array of strings such as `['ReactorCore']`. A re-exported module appears under its module name.

@@ -1,11 +1,8 @@
 {
-  "NEXUS_CONTRACT_VERSION": "Phase 1 writes it in its code page task.",
   "NEXUS_INTERCEPTORS_SHARED": "Phase 1 writes it in its code page task.",
   "NEXUS_INTERCEPTORS_UNCHECKED": "Phase 1 writes it in its code page task.",
   "NEXUS_INTERCEPTOR_INVALID": "Phase 1 writes it in its code page task.",
   "NEXUS_INTERCEPTOR_LIFETIME": "Phase 1 writes it in its code page task.",
   "NEXUS_INTERCEPTOR_MISSING": "Phase 1 writes it in its code page task.",
-  "NEXUS_INTERCEPTOR_NOT_READY": "Phase 1 writes it in its code page task.",
-  "NEXUS_OVERRIDE_EXPORTS": "Phase 1 writes it in its code page task.",
-  "NEXUS_OVERRIDE_UNUSED": "Phase 1 writes it in its code page task."
+  "NEXUS_INTERCEPTOR_NOT_READY": "Phase 1 writes it in its code page task."
 }

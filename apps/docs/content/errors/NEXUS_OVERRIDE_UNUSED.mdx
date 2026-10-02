@@ -1,0 +1,38 @@
+---
+title: NEXUS_OVERRIDE_UNUSED
+kind: code
+description: A testing container override names a token or module that nothing in the module graph uses.
+package: '@nexusdi/testing'
+errorClass: OverrideError
+---
+
+# NEXUS_OVERRIDE_UNUSED
+
+`createTestingContainer(root).create()` reports `NEXUS_OVERRIDE_UNUSED` when an `override(TOKEN, ...)` call names a token that no provider in the module graph binds, or an `overrideModule(module, stub)` call names a module that the graph never imports. The testing container runs the full compiler, so an override that replaces nothing fails the test at `create` and the test never runs against a graph it does not describe. `create()` rejects with [NEXUS_BLUEPRINT_INVALID](/errors/NEXUS_BLUEPRINT_INVALID/) holding the error, and no call raises `NEXUS_OVERRIDE_UNUSED` bare. The check runs at `create()` only. An `overrideModule(module, stub, { lazy: true })` call is exempt, because a later `ship.load()` may bring the module in.
+
+## Reproduce `NEXUS_OVERRIDE_UNUSED`
+
+The test overrides `NAV_CHARTS`, and the module under test provides only `REACTOR`. `@nexusdi/testing` writes this message itself, so it carries its full text and fix line with no text pack, and `errors({ text })` leaves it as written.
+
+```ts file=examples/meridian/src/errors/NEXUS_OVERRIDE_UNUSED.md region=reproduce
+
+```
+
+Try it: run `npm install @nexusdi/core@next` and `npm install -D @nexusdi/testing@next`, save the region as `override.ts` and run `npx tsx override.ts`. It prints the two-line message with its `Fix:` line: `[NEXUS_OVERRIDE_UNUSED] override(NavCharts) matched no provider in the module graph.` and `Fix: remove the override, or import the module that provides NavCharts.` Then add `provide(NAV_CHARTS, { useValue: fakeCharts })` to the providers of `Engineering` and run it again. The override replaces that provider, the container builds, and the region prints `undefined` because there is no error to read.
+
+## Fix `NEXUS_OVERRIDE_UNUSED`
+
+`NEXUS_OVERRIDE_UNUSED` goes away when the root passed to `createTestingContainer` imports the module that provides the overridden token, or when the test drops the override. An override for a module that a later `ship.load()` adds belongs on `overrideModule(module, stub, { lazy: true })`.
+
+```ts file=examples/meridian/src/errors/NEXUS_OVERRIDE_UNUSED.md region=fix
+
+```
+
+Try it: save the region as `fixed.ts` and run `npx tsx fixed.ts`. It prints `loopback course to Kepler-442b`. Change `imports: [Tactical]` in `Meridian` to `imports: []` and run it again. `npx tsc` accepts the file, and `npx tsx fixed.ts` throws an uncaught `BlueprintError` and prints a stack trace headed `BlueprintError: [NEXUS_BLUEPRINT_INVALID] 1 error.` Put the import back and the program prints `loopback course to Kepler-442b` again.
+
+## Fields of `OverrideError`
+
+- `code`: `'NEXUS_OVERRIDE_UNUSED'` or `'NEXUS_OVERRIDE_EXPORTS'`.
+- `token`: for `NEXUS_OVERRIDE_UNUSED`, the name of the unused override: the token's name, such as `'NavCharts'`, or the module's name for an unused `overrideModule()`, such as `'Comms'`. `null` for `NEXUS_OVERRIDE_EXPORTS`.
+- `module`: `null` for `NEXUS_OVERRIDE_UNUSED`.
+- `missing`: an empty array for `NEXUS_OVERRIDE_UNUSED`.
