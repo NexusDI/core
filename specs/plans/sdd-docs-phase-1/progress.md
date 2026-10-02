@@ -138,4 +138,5 @@ Task briefs: tasks/task-NN.md, shared constraints tasks/globals.md
 - T70: done d2dcb3c+93ce88d (all three only inside BLUEPRINT_INVALID via compile.check; ^ rule with patch and major-0 minors; unused override token=module name; approved with minors fixed)
 - T71: done 44f6a8c+0230f6e (per-reason arrival table; bad-target also at build; call-time MISSING unreachable, /interceptors/ sentence corrected; AUDIT token interface-first; approved after fix)
 - T72: done 411e413+9001641 (NOT_READY disposed/building with building region; SHARED check and overlapping-create sites; UNCHECKED construct only; short tables to prose; approved after fix)
-- T73: impl
+- T73: done eec4e11+1d608af (40 rows match code pages and libs; arrival clause per row from code pages; approved after fix)
+- T77: impl
