@@ -63,6 +63,7 @@ Task briefs: tasks/task-NN.md, shared constraints tasks/globals.md
 - T13: PR #80 merged by the owner. Sync pending (see Owner items). PR #80 (fix/docs-pipeline -> main) opened. Final opus review fixes: noindex check in any attribute order (the real r1 archive failed the final check), CodeQL polynomial regexes (preamble, {@link}), MODE via env, GH_TOKEN on the snapshot step only: c1f75e1 8335be2 8a64b57 33af5d2 9379d55. 68e6178 (CodeQL {@link} regex). CI all green, mergeable clean at 68e6178. The merge into main was refused by the session's permission classifier; waiting on the owner to merge #80 (rebase). Then: release.yml event=sync on release/0.4 (expect a ci.yml conflict: keep both job lists).
 
 ## Owner items
+- At 0.4.0 final: fill the dates on /support-policy/ (0.4.0 final date, six months later, whether 0.5.0 is out); add this to the stable checklist.
 - npm dist-tags (seen 2026-10-02): @nexusdi/core latest 0.3.2, next 0.4.0-rc.0. @nexusdi/testing, devtools, decorators, interceptors and federation have latest = next = 0.4.0-rc.0, so a plain `npm install` of them gets the RC. The release-candidate page describes this as the rule for packages with no stable release; confirm it is intended.
 - /release-candidate/ names the pinned "0.4 RC feedback" Discussion and links only /discussions until the owner creates it; give its URL to update the page.
 - PR #84 (feat/docs-phase-1 -> release/0.4): merge after Task 81 and the final review; draft until then.
@@ -124,4 +125,5 @@ Task briefs: tasks/task-NN.md, shared constraints tasks/globals.md
 - T58: done 18abfec+cd6146d (setup receives PluginContext; dispose only after setup; P1/P5 restated in full; approved after fix)
 - T59: done 20dd399 (form link to 04-rc-feedback.yml on main; dist-tags checked on npm; two final conditions, no codemod claim; approved)
 - T60: done f6e0c75+eb7a144+fc0973d (0.3 field injection, remaining 0.3 exports table, @Optional vs optional(), devtools step for graph(); approved after fixes)
-- T61: impl
+- T61: done 8e686e1+52e186d (scope and end date attributed to the maintainers, RELEASING.md for mechanics; dupes unchanged at 699 lines; approved after fix)
+- T62: impl
