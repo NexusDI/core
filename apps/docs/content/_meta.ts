@@ -44,6 +44,8 @@ const meta: MetaRecord = {
   'release-candidate': { title: 'How do I try the 0.4 release candidate?' },
   upgrade: { title: 'How do I upgrade from 0.3 to 0.4?' },
   'support-policy': { title: '0.3 support policy' },
+  '-- api': { type: 'separator', title: 'API' },
+  'api-errors': { title: 'Error codes' },
   docs: { title: 'Docs', type: 'page', href: '/getting-started/' },
   // The navbar's Blog entry, hidden until the posts migrate at 0.4.0 final
   // (spec §4.1). The folder exists on every branch so the final root build
