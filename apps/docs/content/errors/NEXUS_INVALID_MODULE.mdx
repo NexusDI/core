@@ -8,11 +8,11 @@ errorClass: InvalidModuleError
 
 # NEXUS_INVALID_MODULE
 
-`NEXUS_INVALID_MODULE` means a value used as a module is not a definition from `defineModule()`, a `forRoot()` instance or a class declared with `@Module`. `Nexus.create` reports it inside [NEXUS_BLUEPRINT_INVALID](/errors/NEXUS_BLUEPRINT_INVALID/) for an entry in `imports`, `load()` and the `module` option of `get()` throw it directly, and so does `defineModule()` for a config that is no object with a name. `Nexus.create` throws it directly for a root object with keys a root does not take. The `module` option also raises it for a real module that is not part of the graph.
+`NEXUS_INVALID_MODULE` means a value used as a module is neither a definition from `defineModule()`, which includes a `forRoot()` instance, nor a class declared with `@Module`. `Nexus.create` reports it inside [NEXUS_BLUEPRINT_INVALID](/errors/NEXUS_BLUEPRINT_INVALID/) for an entry in `imports`, `load()` and the `module` option of `get()` throw it directly, and so does `defineModule()` for a config that is no object with a name. `Nexus.create` throws it directly for a root object with keys a root does not take. The `module` option also raises it for a real module that is not part of the graph.
 
 ## Reproduce `NEXUS_INVALID_MODULE`
 
-The region lists the provider class `FusionReactor` under `imports` of `Meridian`. Without a plugin, core prints the one-line message: the code, the fields as `key=value` pairs and the address of this page. With `errors()` from `@nexusdi/errors` registered (`npm install @nexusdi/errors@next`), the same error carries the full text and its fix.
+The region lists the provider class `FusionReactor` under `imports` of `Meridian`. Without a plugin, core prints a one-line message that starts with the code and ends with the address of this page. With `errors()` from `@nexusdi/errors` registered (`npm install @nexusdi/errors@next`), the same error carries the full text and its fix.
 
 ```ts file=examples/meridian/src/errors/NEXUS_INVALID_MODULE.md region=reproduce
 

@@ -20,7 +20,7 @@ provide(REACTOR, { useValue: { output: 1.21 }, lifetime: 'transient' });
 // Type '"transient"' is not assignable to type '"NEXUS_INVALID_PROVIDER: useValue and useExisting take no lifetime. Remove lifetime"'.
 ```
 
-Core checks every entry again at `create`, for JavaScript callers and for lists TypeScript cannot see. The region reads its provider list from configuration at run time, and the entry sets a lifetime on a value. Without a plugin, core prints the one-line message: the code, the fields as `key=value` pairs and the address of this page. With `errors()` from `@nexusdi/errors` registered (`npm install @nexusdi/errors@next`), the same error carries the full text and its fix.
+Core checks every entry again at `create`, for JavaScript callers and for lists TypeScript cannot see. The region reads its provider list from configuration at run time, and the entry sets a lifetime on a value. Without a plugin, core prints a one-line message that starts with the code and ends with the address of this page. With `errors()` from `@nexusdi/errors` registered (`npm install @nexusdi/errors@next`), the same error carries the full text and its fix.
 
 ```ts file=examples/meridian/src/errors/NEXUS_INVALID_PROVIDER.md region=reproduce
 
@@ -30,7 +30,7 @@ Try it: save the region as `error.ts` and run `npx tsx error.ts`. It prints the 
 
 ## Fix `NEXUS_INVALID_PROVIDER`
 
-`NEXUS_INVALID_PROVIDER` is fixed by correcting the entry the error names with `module` and `index`, as its `reason` says. A value takes no lifetime, because the container never builds it. Write entries with `provide()`, which TypeScript checks. A `deps` list that holds a value that is not a token has the reason `bad-dep`, not [NEXUS_INVALID_TOKEN](/errors/NEXUS_INVALID_TOKEN/).
+`NEXUS_INVALID_PROVIDER` is fixed by correcting the entry the error names with `module` and `index`, as its `reason` says. A value takes no lifetime, because the container never builds it. Write entries with `provide()`, which TypeScript checks. A `deps` list that holds a value that is not a token has the reason `bad-dep`; see [NEXUS_INVALID_TOKEN](/errors/NEXUS_INVALID_TOKEN/) for the values that are no token.
 
 ```ts file=examples/meridian/src/errors/NEXUS_INVALID_PROVIDER.md region=fix
 
