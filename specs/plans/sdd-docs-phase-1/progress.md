@@ -131,4 +131,5 @@ Task briefs: tasks/task-NN.md, shared constraints tasks/globals.md
 - T64: done e5ce249+(walk wording fix) (all four codes only inside BLUEPRINT_INVALID; lazy and REQUEST edges trigger LIFETIME_VIOLATION; defineModule cannot loop; approved)
 - T65: done 9eb418b+7290618+(order fix) (LOAD_GLOBAL_MODULE also for a module importing a new global; valibot and errors installs; path differs at startup vs get chain; approved after fix)
 - T66: done db50ea4+(fix) (full throw-site lists per code; invisible startup dep is MISSING_PROVIDER inside BLUEPRINT_INVALID; "array of two strings" wording also fixed on T63 pages; approved after fix)
-- T67: impl
+- T67: done c9f6876+ab29e92 (DISPOSED adds has(), scope extend() and in-flight load/createScope; extend() rejects with REQUEST_MISSING; LIFETIME_VIOLATION inside BLUEPRINT_INVALID; approved after fix)
+- T68: impl
