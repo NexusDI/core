@@ -103,4 +103,5 @@ Task briefs: tasks/task-NN.md, shared constraints tasks/globals.md
 - T40: done 66164f1+527e9f8 (TS2769 location and runtime codes exact; async try-it added; approved)
 - T41: done 6453399+3025642 (missing-export region fixed: Tactical exports DRONE, codes corrected; create vs get codes stated; approved). Removed empty libs/libs/* left by a fallow move-aside.
 - T42: done 1d2d28e+3b1ae5f+4e04d7d (fix steps, real tsc error, factory deps scope stated exactly; approved)
-- T43: impl
+- T43: done 4804379+114cae3 (captive region restructured, codes corrected, factories output corrected; approved)
+- T44: impl
