@@ -110,4 +110,5 @@ Task briefs: tasks/task-NN.md, shared constraints tasks/globals.md
 - CI fix b8ac2e7: multi-providers try-it had a template literal in inline code (prerender failed in CI's docs and main jobs).
 - T47: done ec94ef7 (errors() fills nearMisses: plan claim corrected with a Tactical module; messages checked against real runs; approved)
 - T48: done 71cb8cf+fe4a718 (inspect region imports Engineering so the module view draws; untracked row and trace order exact; approved)
-- T49: impl
+- T49: done 881afcf+650e684 (devtools trace only with a trace callback; fix steps and production try-it; triads removed; approved)
+- T50: impl
