@@ -24,7 +24,7 @@ Try it: save the region as `unit.ts` and run `npx tsx unit.ts`. It prints `ShipC
 
 ## Replace a provider with `override()` from `@nexusdi/testing`
 
-`override(REACTOR, { useClass: FakeReactor })` replaces every provider of `REACTOR` in the graph. `QuantumComputer` stays as it is and receives the fake through its `REACTOR` dependency, because its `deps` name the token. `override()` takes a `useClass` or `useValue` definition, typed as `provide()` types it. A `useFactory` definition with `deps` works as well.
+`override(REACTOR, { useClass: FakeReactor })` replaces every provider of `REACTOR` in the graph. `QuantumComputer` stays as it is and receives the fake through its `REACTOR` dependency, because its `deps` name the token. `override()` takes a `useClass` or `useValue` definition, typed as `provide()` types it. A `useFactory` definition with `deps` works as well. No form takes `useExisting`.
 
 ```ts file=examples/meridian/src/pages/testing.md region=override-reactor
 
@@ -53,6 +53,8 @@ An override that matches no provider fails as well. `create()` rejects with `NEX
 ```
 
 Try it: run the `override-unused` region and read the message it prints. Then add `provide(NAV_CHARTS, { useValue: fakeCharts })` to the providers of `Engineering` and run it again. The override now matches a provider, `create()` resolves, and the region prints `undefined` because there is no error to read.
+
+An `overrideModule()` for a module the graph never imports fails the same way: `create()` rejects with `NEXUS_BLUEPRINT_INVALID` holding `NEXUS_OVERRIDE_UNUSED`, and the message names the module, such as `override(Comms) matched no provider in the module graph.` Pass `{ lazy: true }` as the third argument and `create()` no longer reports it, because a later `ship.load()` may bring the module in.
 
 ## Replace a module with `overrideModule()` from `@nexusdi/testing`
 
