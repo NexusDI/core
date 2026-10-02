@@ -1,0 +1,23 @@
+---
+title: 0.3 support policy
+kind: contract
+description: How long NexusDI 0.3 receives fixes after 0.4.0 final, which fixes it receives, and where they are published.
+---
+
+# 0.3 support policy
+
+The NexusDI 0.3 support policy states which fixes the 0.3 line receives once 0.4 is released, and for how long. The release process in [RELEASING.md](https://github.com/NexusDI/core/blob/main/RELEASING.md) carries out each rule below.
+
+## NexusDI 0.3 during the 0.4 release candidate
+
+Until 0.4.0 final, `latest` on npm stays on 0.3.x for `@nexusdi/core`, so `npm install @nexusdi/core` installs 0.3. The 0.4 release candidates publish under the `next` dist-tag ([How do I try the 0.4 release candidate?](/release-candidate/)). A fix to 0.3 in this period is released from `main` as a 0.3 patch under `latest`.
+
+## NexusDI 0.3 after 0.4.0 final
+
+At 0.4.0 final, `latest` moves to 0.4.0, and a `0.3.x` branch holds the 0.3 line. That branch receives fixes for security issues and for defects that crash the program or lose data. It receives no features and no other fixes. Each 0.3 patch publishes under the npm dist-tag `release-0.3`, so `npm install @nexusdi/core@release-0.3` installs the newest one, and `latest` stays on 0.4.
+
+## End of NexusDI 0.3 support
+
+The 0.3 line receives fixes until six months after 0.4.0 final, or until 0.5.0 is released, whichever is later. After that, 0.3 receives nothing. The 0.3 documentation stays at `/v0.3/` for the same period.
+
+When 0.4.0 final is released, this page names the date of 0.4.0 final and the date six months later. It also says whether 0.5.0 has been released.
