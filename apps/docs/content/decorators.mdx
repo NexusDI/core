@@ -14,7 +14,7 @@ npm install @nexusdi/decorators@next
 
 ## Toolchains that compile `@nexusdi/decorators`
 
-Standard decorators need a toolchain that compiles them: `tsc`, TypeScript 7, esbuild, SWC, Babel, Bun, Deno, and Vite with its Babel plugin. Vite on its own and Node's type stripping cannot run them, and `tsx`, which the [Getting started](/getting-started/) project uses, compiles them through esbuild. Leave `experimentalDecorators` out of `tsconfig.json`: the `tsconfig.json` from [Getting started](/getting-started/) already compiles these decorators, and `npx tsx` and `npx tsc` need no other setting. A project that must keep that flag for another library uses `static deps`, `provide()` and `defineModule()`, as [the page on experimentalDecorators](/legacy-decorators/) shows.
+Standard decorators need a toolchain that compiles them: `tsc`, TypeScript 7, esbuild, SWC, Babel, Bun, Deno, and Vite with its Babel plugin. Vite 8 on its own and Node's type stripping cannot run them, and `tsx` compiles them through esbuild. Leave `experimentalDecorators` out of `tsconfig.json`: the `tsconfig.json` from [Getting started](/getting-started/) already compiles these decorators, and `npx tsx` and `npx tsc` need no other setting. A project that must keep that flag for another library uses `static deps` and `defineModule()`, as [the page on experimentalDecorators](/legacy-decorators/) shows.
 
 ## Declare a class's deps with `@Injectable`
 
