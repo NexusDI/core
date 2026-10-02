@@ -17,7 +17,7 @@ A NexusDI `MultiToken` collects one contribution from each `provide()` call that
 
 ```
 
-Try it: save the region as `diagnostics.ts` and run `npx tsx diagnostics.ts`. It prints `[ 'reactor', 'hull' ]`. Add a third `provide(DIAGNOSTICS, { useValue: { system: 'shields', check: () => false } })` after the hull one and run it again: it prints `[ 'reactor', 'hull', 'shields' ]`. Delete that line and the array loses `shields` again. Then add `const DRONE_COUNT = new Token<number>('DroneCount');` (import `Token`), `provide(DRONE_COUNT, { useValue: 3 })` and `provide(DIAGNOSTICS, { useFactory: (n: number) => ({ system: `drone${n}`, check: () => true }), deps: [DRONE_COUNT] })` to the list: the array gains `drone3`.
+Try it: save the region as `diagnostics.ts` and run `npx tsx diagnostics.ts`. It prints `[ 'reactor', 'hull' ]`. Add a third `provide(DIAGNOSTICS, { useValue: { system: 'shields', check: () => false } })` after the hull one and run it again: it prints `[ 'reactor', 'hull', 'shields' ]`. Delete that line and the array loses `shields` again. Then add `const DRONE_COUNT = new Token<number>('DroneCount');` (import `Token`), `provide(DRONE_COUNT, { useValue: 3 })` and `provide(DIAGNOSTICS, { useFactory: (n: number) => ({ system: 'drone' + n, check: () => true }), deps: [DRONE_COUNT] })` to the list: the array gains `drone3`.
 
 ## Depend on every contribution with `all()`
 
