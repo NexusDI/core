@@ -22,7 +22,10 @@ class FusionReactor implements IReactorCore {
 }
 class QuantumComputer implements IShipComputer {
   static deps = [REACTOR] as const;
-  constructor(private readonly reactor: IReactorCore) {}
+  private readonly reactor: IReactorCore;
+  constructor(reactor: IReactorCore) {
+    this.reactor = reactor;
+  }
   status() {
     return `online at ${this.reactor.output} GW`;
   }

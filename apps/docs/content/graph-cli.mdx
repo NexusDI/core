@@ -48,7 +48,7 @@ Try it:
 `-f` or `--format` picks `mermaid`, `dot`, `json`, `svg` or `png`. Without it, the command reads the format from the extension of `-o` or `--out`, and writes Mermaid to stdout when neither is given. `--view modules` draws the module import graph, one node per module:
 
 ```bash
-npx nexusdi graph src/meridian.module.ts#Meridian -o docs/graph.mmd
+npx nexusdi graph src/meridian.module.ts#Meridian -o graph.mmd
 npx nexusdi graph src/meridian.module.ts#Meridian --view modules -f dot
 ```
 
@@ -60,7 +60,7 @@ SVG needs `@viz-js/viz` (Graphviz as WebAssembly), and PNG needs `@resvg/resvg-j
 
 ```bash
 npm install -D @viz-js/viz @resvg/resvg-js
-npx nexusdi graph src/meridian.module.ts#Meridian -o docs/graph.svg
+npx nexusdi graph src/meridian.module.ts#Meridian -o graph.svg
 ```
 
 ## Add loaded modules and plugins to `nexusdi graph`
