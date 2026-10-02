@@ -27,7 +27,7 @@ Try it: save the region as `dev.ts` and run `npx tsx dev.ts`. It prints `1.21`. 
 
 ```
 
-`graph()` throws [NEXUS_DEVTOOLS_UNREGISTERED](/errors/NEXUS_DEVTOOLS_UNREGISTERED/) for a container created without `devtools()`. Ids such as `p0` are stable for one set of definitions; compare them, and never parse them. A provider with `internal: true`, such as core's `REQUEST`, is plumbing every graph lists.
+`graph()` throws [NEXUS_DEVTOOLS_UNREGISTERED](/errors/NEXUS_DEVTOOLS_UNREGISTERED/) for a container created without `devtools()`. Ids such as `p0` are stable for one set of definitions; compare them as whole strings. A provider with `internal: true`, such as core's `REQUEST`, is an internal provider that every graph lists.
 
 Try it: save the region as `graph.ts` and run it. It prints the module names `[ 'Meridian', 'Engineering' ]`, the `ShipComputer` provider with `lifetime: 'singleton'`, `kind: 'class'` and `implementation: 'QuantumComputer'`, and `[ 'required' ]` for the one edge. Change `{ plugins: [devtools()] }` to `{ plugins: [] }` and run it again: `graph(ship)` throws `DevtoolsError: [NEXUS_DEVTOOLS_UNREGISTERED]`, and its message ends with the fix, `Nexus.create(Root, { plugins: [devtools()] })`. Put `devtools()` back and the first output returns.
 
@@ -57,7 +57,7 @@ Try it: save the region as `trace.ts` and run it. It prints the eight types in t
 
 ## Check a graph with `inspect()` and draw it with `toMermaid()`
 
-`inspect(root)` compiles a NexusDI graph with `Nexus.check` and builds nothing, so no constructor runs. It takes the root forms `Nexus.create` takes and returns the same JSON as `graph()`, with every provider's `async` set to `null`, since nothing ran. It throws the `BlueprintError` that `Nexus.check` throws. `toMermaid(graph)` and `toDot(graph)` draw a graph as Mermaid or Graphviz DOT text. Neither reads from Node, so both run in a browser too.
+`inspect(root)` compiles a NexusDI graph with `Nexus.check` and builds nothing, so no constructor runs. It takes the root forms `Nexus.create` takes and returns the same JSON as `graph()`, with every provider's `async` set to `null`, since nothing ran. It throws the `BlueprintError` that `Nexus.check` throws. `toMermaid(graph)` and `toDot(graph)` draw a graph as Mermaid or Graphviz DOT text. Neither imports a Node module, so both run in a browser too.
 
 ```ts file=examples/meridian/src/pages/introspection.md region=inspect
 
