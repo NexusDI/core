@@ -73,6 +73,20 @@ describe('doc-error-codes fixtures', () => {
   });
 });
 
+describe('doc-error-codes allowance', () => {
+  it('fails an entry for a code no package declares', () => {
+    expect(
+      checkErrorCodes({
+        pages: tree('clean'),
+        codes: fixtureCodes(),
+        allowance: { NEXUS_GONE: 'Phase 1 writes it.' },
+      }),
+    ).toEqual([
+      "doc-error-codes-allowance.json: 'NEXUS_GONE' is declared by no package. Remove the entry.",
+    ]);
+  });
+});
+
 describe('doc-error-codes on apps/docs', () => {
   it('holds', () => {
     expect(

@@ -78,6 +78,11 @@ export function checkErrorCodes(input: {
     findings.push(
       `doc-error-codes-allowance.json: '${code}' exists now. Remove the entry.`,
     );
+  for (const code of Object.keys(allowance))
+    if (!codes.has(code))
+      findings.push(
+        `doc-error-codes-allowance.json: '${code}' is declared by no package. Remove the entry.`,
+      );
 
   return findings.sort();
 }
