@@ -63,6 +63,8 @@ Task briefs: tasks/task-NN.md, shared constraints tasks/globals.md
 - T13: PR #80 merged by the owner. Sync pending (see Owner items). PR #80 (fix/docs-pipeline -> main) opened. Final opus review fixes: noindex check in any attribute order (the real r1 archive failed the final check), CodeQL polynomial regexes (preamble, {@link}), MODE via env, GH_TOKEN on the snapshot step only: c1f75e1 8335be2 8a64b57 33af5d2 9379d55. 68e6178 (CodeQL {@link} regex). CI all green, mergeable clean at 68e6178. The merge into main was refused by the session's permission classifier; waiting on the owner to merge #80 (rebase). Then: release.yml event=sync on release/0.4 (expect a ci.yml conflict: keep both job lists).
 
 ## Owner items
+- npm dist-tags (seen 2026-10-02): @nexusdi/core latest 0.3.2, next 0.4.0-rc.0. @nexusdi/testing, devtools, decorators, interceptors and federation have latest = next = 0.4.0-rc.0, so a plain `npm install` of them gets the RC. Check whether that is intended for packages new in 0.4.
+- /release-candidate/ names the pinned "0.4 RC feedback" Discussion and links only /discussions until the owner creates it; give its URL to update the page.
 - PR #84 (feat/docs-phase-1 -> release/0.4): merge after Task 81 and the final review; draft until then.
 - PR #80 merged into main by the owner (main 37aeb64).
 - Sync main -> release/0.4: `git merge-tree` shows one conflict, .github/workflows/ci.yml (both sides append jobs; keep both). release.yml event=sync would stop on it. This session's hand sync (sync/0.4-37aeb64xxxxx branch, merge, push, PR) was refused by the permission classifier. Needs the owner (or a permission rule) before Tasks 15-82.
@@ -120,4 +122,4 @@ Task briefs: tasks/task-NN.md, shared constraints tasks/globals.md
 - T56: done fd8d160+9a2cbf4 (exit codes 1/2/3 stated; region uses a plain field so Node type stripping runs it without tsx; -o paths in cwd; approved after fix)
 - T57: done 3553e9e+a42b67d (.ts files as elsewhere; packs named exactly; installs added; approved after fix)
 - T58: done 18abfec+cd6146d (setup receives PluginContext; dispose only after setup; P1/P5 restated in full; approved after fix)
-- T59: impl
+- T59: review 20dd399
