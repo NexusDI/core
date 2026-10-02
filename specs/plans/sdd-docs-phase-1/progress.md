@@ -112,4 +112,5 @@ Task briefs: tasks/task-NN.md, shared constraints tasks/globals.md
 - T48: done 71cb8cf+fe4a718 (inspect region imports Engineering so the module view draws; untracked row and trace order exact; approved)
 - T49: done 881afcf+650e684 (devtools trace only with a trace callback; fix steps and production try-it; triads removed; approved)
 - T50: done bb42048+36f56e4 (override codes wrapped in BLUEPRINT_INVALID; unused overrideModule and lazy; no useExisting form; approved)
-- T51: impl
+- T51: done d552eff+35d9d69 (fix steps incl. the server's await using break; approved)
+- T52: impl
