@@ -18,7 +18,7 @@ The region exports `PowerRouter` from `Engineering`, which provides only `Reacto
 
 ```
 
-Try it: save the region as `error.ts` and run `npx tsx error.ts`. It prints the one-line message of the inner error, then the full text as two lines. The first line says that `Engineering` exports `PowerRouter`, which it neither provides nor sees through an import, and the second line is the `Fix:` line. Then save the fix region below as `fixed.ts` and run `npx tsx fixed.ts`. It prints `0.605`.
+Try it: save the region as `error.ts` and run `npx tsx error.ts`. It prints the one-line message of the inner error, then the full text as an array of two strings. The first line says that `Engineering` exports `PowerRouter`, which it neither provides nor sees through an import, and the second line is the `Fix:` line. Then save the fix region below as `fixed.ts` and run `npx tsx fixed.ts`. It prints `0.605`.
 
 ## Fix `NEXUS_INVALID_EXPORT`
 

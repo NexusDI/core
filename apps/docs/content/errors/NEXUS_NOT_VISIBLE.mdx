@@ -8,7 +8,7 @@ errorClass: NotVisibleError
 
 # NEXUS_NOT_VISIBLE
 
-`NEXUS_NOT_VISIBLE` means a lookup asked for a token that some module provides and the lookup module cannot see. `get()` on the root, which resolves only what the root module sees, and `get()` on a scope throw it directly. So does `resolve()` for a required or lazy entry, while an `optional` entry gives `undefined`. `validate()` reports it inside [NEXUS_BLUEPRINT_INVALID](/errors/NEXUS_BLUEPRINT_INVALID/). A provider whose own dependency is invisible fails at startup with [NEXUS_MISSING_PROVIDER](/errors/NEXUS_MISSING_PROVIDER/) instead, which lists the module that keeps the token private.
+`NEXUS_NOT_VISIBLE` means a lookup asked for a token that some module provides and the lookup module cannot see. `get()` on the root, which resolves only what the root module sees, and `get()` on a scope throw it directly. So does `resolve()` for a required or lazy entry, while an `optional` entry gives `undefined`. `validate()` reports it inside [NEXUS_BLUEPRINT_INVALID](/errors/NEXUS_BLUEPRINT_INVALID/). When a provider's own dependency is invisible, `Nexus.create` reports [NEXUS_MISSING_PROVIDER](/errors/NEXUS_MISSING_PROVIDER/) inside [NEXUS_BLUEPRINT_INVALID](/errors/NEXUS_BLUEPRINT_INVALID/). With `errors()` registered, its `nearMisses` name the module that keeps the token private.
 
 ## Reproduce `NEXUS_NOT_VISIBLE`
 
@@ -18,7 +18,7 @@ The region provides `SubspaceLink` in `Comms`, which exports nothing, and asks t
 
 ```
 
-Try it: save the region as `error.ts` and run `npx tsx error.ts`. It prints the one-line message, then the full text as two lines. The `owners` field names `Comms`. Then save the fix region below as `fixed.ts` and run `npx tsx fixed.ts`. It prints `1420`.
+Try it: save the region as `error.ts` and run `npx tsx error.ts`. It prints the one-line message, then the full text as an array of two strings. The `owners` field names `Comms`. Then save the fix region below as `fixed.ts` and run `npx tsx fixed.ts`. It prints `1420`.
 
 ## Fix `NEXUS_NOT_VISIBLE`
 
