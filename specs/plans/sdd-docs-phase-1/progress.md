@@ -107,4 +107,5 @@ Task briefs: tasks/task-NN.md, shared constraints tasks/globals.md
 - T44: done 3c3d529+7b3dfae (try-it outcomes corrected; dispose-failures region prints a lone failure without crashing; approved after fix)
 - T45: done 574381d+e6f6d9c (second diagram per spec; palette recolour handles alpha sentinels and Mermaid default literals, browser-checked in both themes; approved)
 - T46: done 11bfd59+a76870f (lazy-on-MultiToken claim removed: only all() is accepted; factory contributions stated and shown; cross-module order stated; approved after fix)
-- T47: impl
+- CI fix b8ac2e7: multi-providers try-it had a template literal in inline code (prerender failed in CI's docs and main jobs).
+- T47: review ec94ef7

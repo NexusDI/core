@@ -10,3 +10,5 @@
 - Decision 33: the reader runs, breaks and fixes what the page teaches. The plan's text sometimes stops after the break; when it does, add the fix step (what to change back, what then prints) and say what the reader sees when the broken program runs.
 - The plan's prose has rule-of-three lists; rewrite each as two items or four.
 - Carry out every break and fix step the page asks for in a scratch copy of its region (under /tmp/claude-0/), and write down what really happens: the line tsc flags, the error code, the output.
+- Rebuild the /next site after every change to page text, review fixes included. MDX treats a backtick inside inline code as the end of the span: never put a template literal in inline code (a page failed to prerender that way).
+- Never revert or restore a file you did not change in this task; report it instead.
