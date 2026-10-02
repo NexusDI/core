@@ -18,7 +18,7 @@ errorClass: InterceptorError
 
 ```
 
-Try it: run `npm install @nexusdi/core@next @nexusdi/interceptors@next`, save the region as `missing.ts` and run `npx tsx missing.ts`. It prints the one-line message: `[NEXUS_INTERCEPTOR_MISSING] token=Audit.` and the address of this page. Change `global: [AUDIT]` to `global: [TRACE]` and run it again. The container builds, and the region prints `undefined` because there is no error to read. Change it back and the message returns.
+Try it: run `npm install @nexusdi/core@next @nexusdi/interceptors@next`, save the region as `missing.ts` and run `npx tsx missing.ts`. It prints the one-line message: `[NEXUS_INTERCEPTOR_MISSING] token=Audit.` and the address of this page. Change `global: [AUDIT]` to `global: [TRACE]`, delete the `AUDIT` declaration and run it again. The container builds, and the region prints `undefined` because there is no error to read. Put the declaration back and the message returns.
 
 ## Full text of `NEXUS_INTERCEPTOR_MISSING` with `errors()`
 
@@ -38,9 +38,9 @@ Try it: run `npm install @nexusdi/errors@next`, save the region as `full.ts` and
 
 ```
 
-The fix region differs from the reproduce region in two ways. It declares and registers `AuditInterceptor` and lists both tokens in `global`. It then keeps the container, calls `output()` through it and prints what the interceptors saw.
+The fix region differs from the reproduce region in two ways. It registers `AuditInterceptor`, which it declares, and lists both tokens in `global`. It then calls `output()` on the container it keeps and prints what the interceptors saw.
 
-Try it: save the region as `fixed.ts` and run `npx tsx fixed.ts`. It prints `1.21` and `[ 'trace', 'audit' ]`. Delete the line `interceptor(AUDIT, { useClass: AuditInterceptor }),` from the `register` list and run it again. `npx tsc` accepts the file, and `npx tsx fixed.ts` throws an uncaught `BlueprintError` and prints a stack trace headed `BlueprintError: [NEXUS_BLUEPRINT_INVALID] 1 error.`, whose message goes on with the line `[NEXUS_INTERCEPTOR_MISSING] token=Audit.` and the address of this page. Put the line back and the program prints its two lines again.
+Try it: save the region as `fixed.ts` and run `npx tsx fixed.ts`. It prints `1.21` and `[ 'trace', 'audit' ]`. Delete the line `interceptor(AUDIT, { useClass: AuditInterceptor }),` from the `register` list and the `AuditInterceptor` class, and run it again. `npx tsc` accepts the file, and `npx tsx fixed.ts` throws an uncaught `BlueprintError` and prints a stack trace headed `BlueprintError: [NEXUS_BLUEPRINT_INVALID] 1 error.`, whose message goes on with the line `[NEXUS_INTERCEPTOR_MISSING] token=Audit.` and the address of this page. Put the line and the class back and the program prints its two lines again.
 
 [How do I run code around a service's methods?](/interceptors/) shows each way to attach an interceptor.
 

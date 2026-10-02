@@ -40,7 +40,7 @@ Try it: run `npm install @nexusdi/errors@next`, save the region as `full.ts` and
 
 ```
 
-The fix region differs from the reproduce region in the `lifetime` line, which it leaves out, and in what follows: it keeps the container, calls `output()` through it and prints what the interceptor saw.
+The fix region differs from the reproduce region in the `lifetime` line, which it leaves out, and in what follows: it calls `output()` on the container it keeps and prints what the interceptor saw.
 
 Try it: save the region as `fixed.ts` and run `npx tsx fixed.ts`. It prints `1.21` and `[ 'ReactorCore in root' ]`. Add `lifetime: 'transient'` to the registration and run it again. `npx tsc` accepts the file, and `npx tsx fixed.ts` throws an uncaught `BlueprintError` and prints a stack trace headed `BlueprintError: [NEXUS_BLUEPRINT_INVALID] 1 error.`, whose message goes on with the line `[NEXUS_INTERCEPTOR_LIFETIME] token=Audit detail=transient.` and the address of this page. Remove the line and the program prints its two lines again.
 

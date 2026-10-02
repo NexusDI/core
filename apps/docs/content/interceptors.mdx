@@ -110,7 +110,7 @@ Try it: save the region as `lifetime.ts` and run `npx tsx lifetime.ts`. It print
 
 ## Full text of the NexusDI interceptor errors
 
-The errors `create` reports through the plugin's checks, and the bad-argument and missing-interceptor faults a wrapped method raises after setup, carry a one-line message with a link to their page. [NEXUS_INTERCEPTOR_NOT_READY](/errors/NEXUS_INTERCEPTOR_NOT_READY/) carries its own full text, and `errors()` packs do not change it. A method called after its container is disposed throws NOT_READY. So does one called from a constructor before its interceptors are built, which `create` reports as [NEXUS_PROVIDER_FAILED](/errors/NEXUS_PROVIDER_FAILED/) with that code as its `cause`. The full text and fix lines live in `interceptorsText` at `@nexusdi/interceptors/text`. Pass it to `errors()`, as the lifetime region does:
+The errors `create` reports through the plugin's checks, and the bad-argument fault a wrapped method raises after setup, carry a one-line message with a link to their page. [NEXUS_INTERCEPTOR_NOT_READY](/errors/NEXUS_INTERCEPTOR_NOT_READY/) carries its own full text, and `errors()` packs do not change it. A method called after its container is disposed throws NOT_READY. So does one called from a constructor before its interceptors are built, which `create` reports as [NEXUS_PROVIDER_FAILED](/errors/NEXUS_PROVIDER_FAILED/) with that code as its `cause`. The full text and fix lines live in `interceptorsText` at `@nexusdi/interceptors/text`. Pass it to `errors()`, as the lifetime region does:
 
 ```ts no-run
 import { errors } from '@nexusdi/errors';
