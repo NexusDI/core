@@ -59,13 +59,15 @@ Try it: run `npx tsx ship.ts`. The terminal prints `ShipComputer online. Reactor
 
 `Nexus.create` checks the whole graph before it builds anything. When a class depends on a class the container was not given, `create` rejects with `NEXUS_BLUEPRINT_INVALID`, and its `errors` array holds one error for each problem.
 
-Try it: delete `FusionReactor` from the array passed to `Nexus.create` and run `ship.ts` again. This program does the same and prints what the rejection holds:
+Try it: delete `FusionReactor` from the array passed to `Nexus.create` and run `ship.ts` again. The run stops with an uncaught `NEXUS_BLUEPRINT_INVALID` error that lists `NEXUS_MISSING_PROVIDER`. This program breaks the ship the same way and reads the `errors` array of the rejection:
 
 ```ts file=examples/meridian/src/pages/getting-started.md region=missing-reactor
 
 ```
 
 The one error inside is [`NEXUS_MISSING_PROVIDER`](/errors/NEXUS_MISSING_PROVIDER/). Core writes a short message: the code with the error's fields as `key=value` pairs, then a link to the code's page. The `module=root` field names the module the array became: `Nexus.create` compiles a list of classes as an unnamed root module.
+
+Fix the ship: put `FusionReactor` back in the array and run `ship.ts` again. The status line prints.
 
 ## Get full error messages from `devtools()`
 
