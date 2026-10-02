@@ -235,6 +235,11 @@ await using ship = await Nexus.create(defineModule({ name: 'Meridian' }));
 const error = await ship.load(Science).catch((caught: unknown) => caught);
 const message = error instanceof Error ? error.message : ''; // -> '[NEXUS_LOAD_GLOBAL_MODULE] module=Science. https://nexus.js.org/errors/NEXUS_LOAD_GLOBAL_MODULE'
 console.log(message);
+const fields = isNexusError(error, 'NEXUS_LOAD_GLOBAL_MODULE') ? error : null;
+const code = fields?.code; // -> 'NEXUS_LOAD_GLOBAL_MODULE'
+console.log(code);
+const named = fields?.module; // -> 'Science'
+console.log(named);
 ```
 
 <!-- #endregion load-global -->

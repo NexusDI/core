@@ -40,6 +40,8 @@ Try it: add `provide(NAV_CHARTS, { useFactory: () => ({ plot: (to: string) => to
 
 ```
 
+Try it: add `imports: [Survey]` to the root module, `defineModule({ name: 'Meridian', imports: [Survey] })`, and run the region again. It still prints `1`: the root already imports `Survey`, so every `load(Survey)` returns at once.
+
 ```ts file=examples/meridian/src/pages/load.md region=load-in-order
 
 ```
@@ -56,7 +58,7 @@ Try it: delete the `await shuttle.extend();` line and run the region. The region
 
 ## `ship.load()` refuses a global module
 
-A global module makes its exports visible to every module, so a global module new to the graph would change what every existing module sees. `load()` rejects it with [NEXUS_LOAD_GLOBAL_MODULE](/errors/NEXUS_LOAD_GLOBAL_MODULE/), which arrives as thrown: its `code` is `NEXUS_LOAD_GLOBAL_MODULE` and its `module` property names `Science`. Import a global module from the root module before `Nexus.create`, or load it without `global: true`.
+A global module makes its exports visible to every module, so a global module new to the graph would change what every existing module sees. `load()` rejects it with [NEXUS_LOAD_GLOBAL_MODULE](/errors/NEXUS_LOAD_GLOBAL_MODULE/), which `load()` throws directly, outside a `NEXUS_BLUEPRINT_INVALID` error. Its `code` is `NEXUS_LOAD_GLOBAL_MODULE` and its `module` property is `Science`. Import a global module from the root module before `Nexus.create`, or load it without `global: true`.
 
 ```ts file=examples/meridian/src/pages/load.md region=load-global
 
