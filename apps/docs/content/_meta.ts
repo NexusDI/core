@@ -37,6 +37,7 @@ const meta: MetaRecord = {
       'How do I use NexusDI in a project that keeps experimentalDecorators?',
   },
   interceptors: { title: 'Interceptors' },
+  'graph-cli': { title: 'Graph CLI' },
   docs: { title: 'Docs', type: 'page', href: '/getting-started/' },
   // The navbar's Blog entry, hidden until the posts migrate at 0.4.0 final
   // (spec §4.1). The folder exists on every branch so the final root build
