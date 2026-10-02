@@ -1,5 +1,4 @@
 {
   "api-errors": "Phase 1 writes it after the code pages.",
-  "api": "Phase 2 writes the API reference from core's docblocks.",
-  "introspection": "Phase 1 writes the Concepts band in teaching order."
+  "api": "Phase 2 writes the API reference from core's docblocks."
 }
