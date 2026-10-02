@@ -1,0 +1,41 @@
+---
+title: NEXUS_MISSING_DEPS
+kind: code
+description: A class with constructor parameters is bound without a deps list.
+package: '@nexusdi/core'
+errorClass: MissingDepsError
+---
+
+# NEXUS_MISSING_DEPS
+
+`NEXUS_MISSING_DEPS` means a class whose constructor takes parameters is bound with no `deps` from either the class or the binding. NexusDI has no type information to read at run time, so the class has to say what to pass. `Nexus.create` reports it inside [NEXUS_BLUEPRINT_INVALID](/errors/NEXUS_BLUEPRINT_INVALID/).
+
+## Reproduce `NEXUS_MISSING_DEPS`
+
+The region binds `SurveyDrone` to `ScoutDrone`, whose constructor takes the ship computer and declares no deps. Without a plugin, core prints a one-line message that starts with the code and ends with the address of this page. With `errors()` from `@nexusdi/errors` registered (`npm install @nexusdi/errors@next`), the same error carries the full text and its fix.
+
+```ts file=examples/meridian/src/errors/NEXUS_MISSING_DEPS.md region=reproduce
+
+```
+
+Try it: save the region as `error.ts` and run `npx tsx error.ts`. It prints the one-line message, then the full text as an array of two lines. The `arity` field is the number of constructor parameters the compiler counted. Then save the fix region below as `fixed.ts` and run `npx tsx fixed.ts`. It prints `scan with computer online`.
+
+## Fix `NEXUS_MISSING_DEPS`
+
+`NEXUS_MISSING_DEPS` is fixed by declaring the deps. Write `static deps = [COMPUTER] as const` on the class, or `deps: [COMPUTER]` on the binding for a class you cannot edit. A class listed bare in `providers` can also use `@Injectable({ deps })` from `@nexusdi/decorators`. The compiler reads `constructor.length`, which counts the parameters before the first default or rest parameter, so a class whose parameters all have defaults builds with no deps.
+
+```ts file=examples/meridian/src/errors/NEXUS_MISSING_DEPS.md region=fix
+
+```
+
+Try it: delete the `static deps = [COMPUTER] as const;` line from `ScoutDrone` in `fixed.ts` and run it again. `tsc` reports nothing, because the type checker cannot see the missing list. `Nexus.create` rejects with a `BlueprintError` whose message lists `[NEXUS_MISSING_DEPS] token=SurveyDrone module=Tactical arity=1 useClass=ScoutDrone.` Put the line back and the program prints `scan with computer online` again.
+
+## Fields of `MissingDepsError`
+
+`MissingDepsError` carries these fields:
+
+- `token`: the display name of the token the class is bound to.
+- `module`: the module of the binding.
+- `arity`: the number of constructor parameters, read from `constructor.length`.
+- `useClass`: the class a `useClass` binding names, or `null` when the class is its own token.
+- `bare`: `true` for a class listed bare in `providers`, which reads `@Injectable`.

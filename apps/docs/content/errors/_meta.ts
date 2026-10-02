@@ -40,6 +40,22 @@ const meta: MetaRecord = {
     title: 'NEXUS_INVALID_MODULE',
     display: 'hidden',
   },
+  NEXUS_MISSING_DEPS: {
+    title: 'NEXUS_MISSING_DEPS',
+    display: 'hidden',
+  },
+  NEXUS_CIRCULAR_DEPENDENCY: {
+    title: 'NEXUS_CIRCULAR_DEPENDENCY',
+    display: 'hidden',
+  },
+  NEXUS_LIFETIME_VIOLATION: {
+    title: 'NEXUS_LIFETIME_VIOLATION',
+    display: 'hidden',
+  },
+  NEXUS_MODULE_IMPORT_CYCLE: {
+    title: 'NEXUS_MODULE_IMPORT_CYCLE',
+    display: 'hidden',
+  },
 };
 
 export default meta;

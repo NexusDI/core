@@ -1,0 +1,37 @@
+---
+title: NEXUS_MODULE_IMPORT_CYCLE
+kind: code
+description: Modules import each other in a loop.
+package: '@nexusdi/core'
+errorClass: ModuleImportCycleError
+---
+
+# NEXUS_MODULE_IMPORT_CYCLE
+
+`NEXUS_MODULE_IMPORT_CYCLE` means modules import each other in a loop. `Nexus.create` reports it inside [NEXUS_BLUEPRINT_INVALID](/errors/NEXUS_BLUEPRINT_INVALID/). The imports of a `defineModule` module exist before it does, so a loop only appears with module classes from `@Module` or `declareModuleClass`, which can name an import that is declared later.
+
+## Reproduce `NEXUS_MODULE_IMPORT_CYCLE`
+
+The region declares `Engineering` importing `Tactical` and `Tactical` importing `Engineering`. Without a plugin, core prints a one-line message that starts with the code and ends with the address of this page. With `errors()` from `@nexusdi/errors` registered (`npm install @nexusdi/errors@next`), the same error carries the full text and its fix.
+
+```ts file=examples/meridian/src/errors/NEXUS_MODULE_IMPORT_CYCLE.md region=reproduce
+
+```
+
+Try it: save the region as `error.ts` and run `npx tsx error.ts`. It prints the one-line message, then the full text as an array of two lines. The `path` field lists the modules around the loop. Then save the fix region below as `fixed.ts` and run `npx tsx fixed.ts`. It prints `online`.
+
+## Fix `NEXUS_MODULE_IMPORT_CYCLE`
+
+`NEXUS_MODULE_IMPORT_CYCLE` is fixed by moving the providers both modules need into a third module that both import. Here `Core` provides `COMPUTER`, and `Engineering` and `Tactical` import `Core`.
+
+```ts file=examples/meridian/src/errors/NEXUS_MODULE_IMPORT_CYCLE.md region=fix
+
+```
+
+Try it: the fix region has no loop left to break by deleting a line. To bring the error back, run the reproduce region again: its two module classes import each other, and the program prints the one-line message with `path=Engineering,Tactical,Engineering`. Move the shared providers into `Core` as the fix region does and the program prints `online`.
+
+## Fields of `ModuleImportCycleError`
+
+`ModuleImportCycleError` has one field:
+
+- `path`: the module names around the loop, ending with the first one again.
