@@ -1,7 +1,6 @@
 {
   "api-errors": "Phase 1 writes it after the code pages.",
   "api": "Phase 2 writes the API reference from core's docblocks.",
-  "providers": "Phase 1 writes the Concepts band in teaching order.",
   "lifetimes": "Phase 1 writes the Concepts band in teaching order.",
   "modules": "Phase 1 writes the Concepts band in teaching order.",
   "configurable-modules": "Phase 1 writes the Concepts band in teaching order.",

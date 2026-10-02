@@ -1,0 +1,84 @@
+---
+title: Providers
+kind: concept
+description: A NexusDI provider tells the container how to build a token, from a class, a value, a factory or another token.
+requires: [tokens]
+---
+
+# Providers
+
+A NexusDI provider tells the container how to build the value behind a token (an interface name from the previous page). `provide(TOKEN, options)` writes one, and its options pick the form: `useClass`, `useValue`, `useFactory` or `useExisting`.
+
+## Declare a class's deps with `static deps`
+
+`static deps` is the list of tokens a class's constructor takes, in parameter order, written on the class itself. `provide(COMPUTER, { useClass: QuantumComputer })` reads that list, so the provider needs no `deps` option. TypeScript checks the list against the constructor where the class is declared, so a token whose type does not fit its parameter fails to compile. Every example in these docs uses this form for the classes it owns.
+
+```ts file=examples/meridian/src/pages/providers.md region=static-deps
+
+```
+
+A class whose constructor takes parameters and declares no deps cannot be built. `Nexus.create` rejects with `NEXUS_BLUEPRINT_INVALID`, and the error it carries is [`NEXUS_MISSING_DEPS`](/errors/NEXUS_MISSING_DEPS/), with the number of parameters it found:
+
+```ts file=examples/meridian/src/pages/providers.md region=missing-deps
+
+```
+
+Try it: save the first program as `providers.ts` and run `npx tsx providers.ts`. The terminal prints `Reactor output 1.21 GW.` Then delete the `static deps` line and run it again. `npx tsc` reports nothing, because the class declares no list to check, and the run ends with an uncaught `NEXUS_BLUEPRINT_INVALID` error whose second line names `token=ShipComputer` and `arity=1`. Put the line back and the program prints `Reactor output 1.21 GW.` again.
+
+## Pass `deps` to `provide()` for a class you cannot edit
+
+`provide(TOKEN, { useClass, deps })` lists the deps on the provider, for a class whose source you do not own, such as a class from a package. The `deps` option has the same type check as `static deps`, and when a class carries both, the `deps` option wins.
+
+```ts file=examples/meridian/src/pages/providers.md region=explicit-deps
+
+```
+
+Try it: change `deps: [REACTOR]` to `deps: []` and run `npx tsc`. TypeScript rejects the `provide(COMPUTER, ...)` call, because `VendorComputer` takes one parameter and the list holds none. Run the file anyway and `status()` throws a `TypeError`, because `reactor` is `undefined`. Change the list back to `[REACTOR]` and `npx tsc` reports nothing.
+
+## Build a value with a NexusDI `useFactory` provider
+
+`useFactory` builds the value with a function, and its `deps` list the tokens the function takes as arguments. `provide()` types each argument from its token, so `link` below is an `ISubspaceLink` with no annotation. A factory may be `async`: `Nexus.create` awaits it, so `NAV_CHARTS` exists before the first `get()`, and `get()` stays synchronous.
+
+```ts file=examples/meridian/src/pages/providers.md region=factories
+
+```
+
+Try it: run the program and read `course to Kepler-442b on 1420`. Change the frequency value to `1701` and run it again. The line ends `on 1701`, because the factory reads the link the container built from that value. Change it back to `1420` and the first line returns.
+
+## Alias one NexusDI token to another with `useExisting`
+
+`useExisting` makes a token resolve to whatever another token resolves to. The alias builds nothing of its own, so both tokens return the same instance.
+
+```ts file=examples/meridian/src/pages/providers.md region=alias
+
+```
+
+Try it: run the program and read `true`. Replace `useExisting: COMPUTER` with `useClass: QuantumComputer` and run it again. `shared` prints `false`, because the second provider builds a second computer. Put `useExisting: COMPUTER` back and it prints `true`.
+
+## Mark a dependency as optional with `optional()`
+
+`optional(TOKEN)` in a deps list resolves to `undefined` when no visible provider exists for the token, where a plain token would fail `Nexus.create`. The constructor parameter takes `T | undefined`, and TypeScript checks the class against it.
+
+```ts file=examples/meridian/src/pages/providers.md region=optional
+
+```
+
+Try it: delete `optional(` and its closing parenthesis, leaving `static deps = [SUBSPACE_LINK] as const`. `npx tsc` flags the `optional` import on the first line, now unused. Run the program: `Nexus.create` rejects with `NEXUS_BLUEPRINT_INVALID`, and the error it carries is [`NEXUS_MISSING_PROVIDER`](/errors/NEXUS_MISSING_PROVIDER/) for `SubspaceLink`, requested by `DiagnosticsPanel`. Put `optional(SUBSPACE_LINK)` back and the program prints `all systems nominal, held aboard` again.
+
+## A class whose constructor has defaults or rest parameters
+
+NexusDI decides whether a class without deps can be built from the class's `length`, the count of constructor parameters before the first one with a default or a rest parameter. A class whose parameters all have defaults reports a `length` of `0`, so `Nexus.create` builds it with no arguments, and each parameter takes its default. Here `QuantumComputer` runs on its backup cell while `REACTOR` goes unused:
+
+```ts file=examples/meridian/src/pages/providers.md region=defaults
+
+```
+
+A class with default or rest parameters therefore declares its deps with `static deps` or with the `deps` option of `provide()`, and `@Injectable` from `@nexusdi/decorators` does the same. With `static deps = [REACTOR] as const`, the container passes the bound reactor:
+
+```ts file=examples/meridian/src/pages/providers.md region=defaults-fixed
+
+```
+
+Try it: run the first of the two programs and read `0.2`. Add the `static deps = [REACTOR] as const` line and run it again. The output moves to `1.21`. Delete the line and it returns to `0.2`.
+
+<Notice kind="note">`providers` also takes plain objects in the 0.3 shape, `{ token, useClass, deps }`, checked by the same rules. The [upgrade guide](/upgrade/) covers them.</Notice>
