@@ -105,4 +105,5 @@ Task briefs: tasks/task-NN.md, shared constraints tasks/globals.md
 - T42: done 1d2d28e+3b1ae5f+4e04d7d (fix steps, real tsc error, factory deps scope stated exactly; approved)
 - T43: done 4804379+114cae3 (captive region restructured, codes corrected, factories output corrected; approved)
 - T44: done 3c3d529+7b3dfae (try-it outcomes corrected; dispose-failures region prints a lone failure without crashing; approved after fix)
-- T45: impl
+- T45: done 574381d+e6f6d9c (second diagram per spec; palette recolour handles alpha sentinels and Mermaid default literals, browser-checked in both themes; approved)
+- T46: impl
