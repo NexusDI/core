@@ -18,7 +18,7 @@ errorClass: DevtoolsError
 
 ```
 
-Try it: run `npm install @nexusdi/devtools@next`, save the region as `parse.ts` and run `npx tsx parse.ts`. It prints three lines: the path `providers[0].token`, then the message, `[NEXUS_DEVTOOLS_GRAPH_INVALID] not a NexusGraph: providers[0].token is missing or has the wrong type.`, then the fix line, which starts `Fix: pass JSON.parse of the text that`.
+Try it: run `npm install @nexusdi/core@next` and `npm install -D @nexusdi/devtools@next`, save the region as `parse.ts` and run `npx tsx parse.ts`. It prints the path, `providers[0].token`, then the two-line message: `[NEXUS_DEVTOOLS_GRAPH_INVALID] not a NexusGraph: providers[0].token is missing or has the wrong type.` and its `Fix:` line, which starts `Fix: pass JSON.parse of the text that`.
 
 ## Fix `NEXUS_DEVTOOLS_GRAPH_INVALID`
 
@@ -28,9 +28,9 @@ Try it: run `npm install @nexusdi/devtools@next`, save the region as `parse.ts` 
 
 ```
 
-Try it: save the region as `fixed.ts` and run `npx tsx fixed.ts`. It prints `ReactorCore`. Change `JSON.parse(text)` to `JSON.parse(text.replace('"token"', '"tokens"'))` and run it again. `npx tsc` accepts the file, and `npx tsx fixed.ts` throws an uncaught `DevtoolsError` whose first line is `DevtoolsError: [NEXUS_DEVTOOLS_GRAPH_INVALID] not a NexusGraph: providers[0].token is missing or has the wrong type.` and whose last line is `path: 'providers[0].token'`. Change the call back and the program prints `ReactorCore` again.
+Try it: save the region as `fixed.ts` and run `npx tsx fixed.ts`. It prints `ReactorCore`. Change `JSON.parse(text)` to `JSON.parse(text.replace('"token"', '"tokens"'))` and run it again. `npx tsc` accepts the file, and `npx tsx fixed.ts` throws an uncaught `DevtoolsError` and prints a stack trace headed `DevtoolsError: [NEXUS_DEVTOOLS_GRAPH_INVALID] not a NexusGraph: providers[0].token is missing or has the wrong type.` The error object ends with `path: 'providers[0].token'`. Change the call back and the program prints `ReactorCore` again.
 
 ## Fields of `DevtoolsError`
 
 - `code`: `'NEXUS_DEVTOOLS_GRAPH_INVALID'` or `'NEXUS_DEVTOOLS_UNREGISTERED'`.
-- `path`: the first field that failed, such as `'providers[3].module'`. `parseGraph` checks the modules first, then the providers, the edges and the `imports` and `exports` of each module, so the first failure in that order wins. `'(root)'` names a value that is no object, and a top-level name such as `'modules'` names a missing list. A message that ends `is missing or has the wrong type` covers a missing field or a field of the wrong type, and a message that ends `which no module has` covers an id that points at nothing, such as `providers[0].module`. A repeated id fails at the second entry, such as `'modules[1].id'`. `null` for [NEXUS_DEVTOOLS_UNREGISTERED](/errors/NEXUS_DEVTOOLS_UNREGISTERED/).
+- `path`: the first field that failed, such as `'providers[3].module'`. `parseGraph` checks the modules first, including the types of their `imports` and `exports`, then the providers, then the edges, then the ids that each module's `imports` and `exports` name, so the first failure in that order wins. `'(root)'` names a value that is no object, and a top-level name such as `'modules'` names a missing list. A message that ends `is missing or has the wrong type` covers a missing field or a field of the wrong type, and a message that ends `which no module has` covers an id that points at nothing, such as `providers[0].module`. An id that two entries use fails at the second one, such as `'modules[1].id'`, and the message names the path of the first owner. Module ids and provider ids share one namespace. An edge that points at nothing ends `which no provider has`, and an `exports` entry that points at nothing ends `which no module or provider has`. `null` for [NEXUS_DEVTOOLS_UNREGISTERED](/errors/NEXUS_DEVTOOLS_UNREGISTERED/).

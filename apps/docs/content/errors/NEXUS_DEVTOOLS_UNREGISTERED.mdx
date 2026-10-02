@@ -18,7 +18,7 @@ errorClass: DevtoolsError
 
 ```
 
-Try it: run `npm install @nexusdi/devtools@next`, save the region as `graph.ts` and run `npx tsx graph.ts`. It prints three lines: `NEXUS_DEVTOOLS_UNREGISTERED`, then the message, `[NEXUS_DEVTOOLS_UNREGISTERED] graph() reads the container through devtools(), and this container was created without it.`, then the fix line, `Fix: register devtools() in Nexus.create's plugins: Nexus.create(Root, { plugins: [devtools()] }).`
+Try it: run `npm install @nexusdi/core@next` and `npm install -D @nexusdi/devtools@next`, save the region as `graph.ts` and run `npx tsx graph.ts`. It prints the code, `NEXUS_DEVTOOLS_UNREGISTERED`, then the two-line message: `[NEXUS_DEVTOOLS_UNREGISTERED] graph() reads the container through devtools(), and this container was created without it.` and its `Fix:` line, `Fix: register devtools() in Nexus.create's plugins: Nexus.create(Root, { plugins: [devtools()] }).`
 
 ## Fix `NEXUS_DEVTOOLS_UNREGISTERED`
 
@@ -28,7 +28,7 @@ Try it: run `npm install @nexusdi/devtools@next`, save the region as `graph.ts` 
 
 ```
 
-Try it: save the region as `fixed.ts` and run `npx tsx fixed.ts`. It prints `[ 'ReactorCore' ]`, the token of the one provider the module declares. The filter drops the internal providers that every graph lists. Delete `, { plugins: [devtools()] }` from the `Nexus.create` call and run it again. `npx tsc` accepts the file, and `npx tsx fixed.ts` throws an uncaught `DevtoolsError` whose first line is `DevtoolsError: [NEXUS_DEVTOOLS_UNREGISTERED] graph() reads the container through devtools(), and this container was created without it.` Put the options back and the program prints `[ 'ReactorCore' ]` again.
+Try it: save the region as `fixed.ts` and run `npx tsx fixed.ts`. It prints `[ 'ReactorCore' ]`, the token of the one provider the module declares. The filter drops the internal providers that every graph lists. Change `{ plugins: [devtools()] }` to `{ plugins: [] }` and run it again. `npx tsc` accepts the file, and `npx tsx fixed.ts` throws an uncaught `DevtoolsError` and prints a stack trace headed `DevtoolsError: [NEXUS_DEVTOOLS_UNREGISTERED] graph() reads the container through devtools(), and this container was created without it.` Put `devtools()` back and the program prints `[ 'ReactorCore' ]` again.
 
 ## Fields of `DevtoolsError`
 
