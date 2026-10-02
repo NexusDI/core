@@ -133,4 +133,5 @@ Task briefs: tasks/task-NN.md, shared constraints tasks/globals.md
 - T66: done db50ea4+(fix) (full throw-site lists per code; invisible startup dep is MISSING_PROVIDER inside BLUEPRINT_INVALID; "array of two strings" wording also fixed on T63 pages; approved after fix)
 - T67: done c9f6876+ab29e92 (DISPOSED adds has(), scope extend() and in-flight load/createScope; extend() rejects with REQUEST_MISSING; LIFETIME_VIOLATION inside BLUEPRINT_INVALID; approved after fix)
 - T68: done 46a1baf+08d9593 (INVALID/VERSION/CONFLICT only inside BLUEPRINT_INVALID; FAILED four sites incl. tokenKey bare from container and scope calls; per-page fix regions; approved after fix)
-- T69: impl
+- T69: done fdf482b+82232bc (all three thrown bare; exact tsconfig for TS1238; parseGraph check order; stack-trace wording; approved after fix)
+- T70: impl
