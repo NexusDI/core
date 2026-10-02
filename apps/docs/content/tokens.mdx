@@ -1,18 +1,51 @@
 ---
-title: Tokens
+title: Tokens and interfaces
 kind: concept
+description: A NexusDI Token<T> names an interface the container provides, and NexusDI compares tokens by identity.
 requires: [getting-started]
-description: A NexusDI token names a dependency, and NexusDI compares tokens by identity.
 ---
 
-# Tokens
+# Tokens and interfaces
 
-A NexusDI token names a dependency the container can provide. NexusDI accepts two kinds of token: a class, and a `Token<T>` for a value with no class of its own.
-
-## Use a class as a NexusDI token
-
-A class is its own NexusDI token. The container resolves a class token to an instance of that class, so the class name in a deps tuple names both the dependency and its type.
+A NexusDI token names a dependency the container can provide. A class is its own token, as the classes on the Getting started page were, and a `Token<T>` names a dependency whose type is an interface, which has no runtime value of its own.
 
 ## Name an interface with a NexusDI `Token<T>`
 
-A `Token<T>` names a dependency whose type is an interface, which has no runtime value. `Token` takes a required description, and NexusDI shows that description in errors, in `graph()` and in trace events. Two tokens with the same description stay distinct, because NexusDI compares tokens by identity.
+A `Token<T>` gives an interface a runtime name the container can look up. `new Token<INavCharts>('NavCharts')` carries the type `INavCharts`, so `get(NAV_CHARTS)` returns an `INavCharts`, and `provide(NAV_CHARTS, ...)` accepts only something that fits it. The description, `'NavCharts'`, is the name NexusDI prints in error messages and in `graph()`. `Token` requires it.
+
+`provide(NAV_CHARTS, { useValue })` binds the token to a value the container hands out as it is. `Nexus.create` takes a list of `provide()` entries as readily as a list of classes (the short form from the Getting started page):
+
+```ts file=examples/meridian/src/pages/tokens.md region=interface-token
+
+```
+
+Try it: save the program as `tokens.ts` and run `npx tsx tokens.ts`. The terminal prints `course to Kepler-442b`. Then change `starCharts` so that `plot` returns a number. `npx tsc` rejects the `provide()` call, because the value no longer fits `INavCharts`. Change `plot` back to return a string and `npx tsc` reports nothing.
+
+## NexusDI compares tokens by identity
+
+NexusDI compares two tokens with `===`, so a token is the object `new Token()` returned, and its description takes no part in the lookup. Two tokens with the same description are two different tokens. A program shares a token by importing the one object, usually from a module file that declares it beside its interface.
+
+```ts file=examples/meridian/src/pages/tokens.md region=identity
+
+```
+
+`has()` answers `false` for `BACKUP_CHARTS`, and `get(BACKUP_CHARTS)` throws [`NEXUS_MISSING_PROVIDER`](/errors/NEXUS_MISSING_PROVIDER/), even though both tokens print as `NavCharts`.
+
+Try it: in `tokens.ts`, declare a second `new Token<INavCharts>('NavCharts')` and ask the container for it with `get()`. Run the file: the run stops with an uncaught `NEXUS_MISSING_PROVIDER` error. Read the code the error carries. Then ask for `NAV_CHARTS`, the token the `provide()` call used, and the course prints again.
+
+## Bind interfaces with NexusDI tokens to swap an implementation
+
+A consumer that depends on an interface token never names the class behind it, so the binding can change without touching the consumer. `QuantumComputer` declares `static deps = [REACTOR] as const` and takes an `IReactorCore`. A real `FusionReactor` and a test value fit the same token, and `QuantumComputer` builds over either:
+
+```ts file=examples/meridian/src/pages/tokens.md region=swap-reactor
+
+```
+
+The rest of these docs binds every service this way: an interface, a token named for its role, and a class bound to that token. The Modules page swaps a whole module on the same principle, and `@nexusdi/testing` replaces one binding in a real graph.
+
+<Notice kind="ship">
+  A fake reactor at zero output lets the ship's computer run its self-test in
+  the dock, with the fusion core cold.
+</Notice>
+
+Try it: add a `SimulatedReactor` class with `readonly output = 0.75` and call `statusWith(new SimulatedReactor())`. `QuantumComputer` prints `Reactor output 0.75 GW.`, and its code stays as it is.
