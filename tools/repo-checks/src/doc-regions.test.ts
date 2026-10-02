@@ -92,6 +92,33 @@ describe('doc-regions fixtures', () => {
   });
 });
 
+describe('doc-regions path escapes', () => {
+  it('rejects a path that climbs out of a root with `..`', () => {
+    const fence = (path: string) =>
+      ({
+        line: 3,
+        meta: `ts file=${path} region=x`,
+      }) as never;
+    const page = (path: string) =>
+      ({ file: 'p.mdx', fences: [fence(path)] }) as never;
+    const findings = checkRegions({
+      pages: [
+        page('examples/meridian/../../apps/docs/x.ts'),
+        page('examples/meridian/src/../src/a.ts'),
+      ],
+      root: ROOT,
+      roots: ['examples/meridian/'],
+      readRegion: () => {
+        throw new Error('unreachable');
+      },
+    });
+    expect(findings).toHaveLength(2);
+    for (const finding of findings) {
+      expect(finding).toContain('is outside the region roots');
+    }
+  });
+});
+
 describe('doc-regions on apps/docs', () => {
   it('holds', async () => {
     const { readRegion } = await loadRegions();

@@ -1,5 +1,5 @@
 import { existsSync, readFileSync, readdirSync } from 'node:fs';
-import { join, matchesGlob } from 'node:path';
+import { join, matchesGlob, posix } from 'node:path';
 
 import { docExampleSources } from '@nexusdi/doc-examples';
 
@@ -44,8 +44,11 @@ export function regionRoots(root: string): string[] {
 }
 
 function inRoots(path: string, roots: readonly string[]): boolean {
+  // A `..` segment can climb out of a root the prefix test still accepts.
+  if (path.split('/').includes('..')) return false;
+  const clean = posix.normalize(path);
   return roots.some((entry) =>
-    entry.endsWith('/') ? path.startsWith(entry) : matchesGlob(path, entry),
+    entry.endsWith('/') ? clean.startsWith(entry) : matchesGlob(clean, entry),
   );
 }
 
