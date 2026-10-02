@@ -1,0 +1,93 @@
+---
+title: Scopes and REQUEST
+kind: concept
+description: A NexusDI scope is a child container for one unit of work, and REQUEST resolves to the request the scope was created with.
+requires: [configurable-modules, modules]
+---
+
+# Scopes and REQUEST
+
+A NexusDI scope is a child container for one unit of work, such as a server request. `ship.createScope({ request })` creates it, every provider with `lifetime: 'scoped'` gets one instance per scope, and singletons stay shared with the root container (a `forRoot()` module from the previous page works inside a scope as it does at the root).
+
+## Create a scope with `createScope()`
+
+`ship.createScope({ request })` returns a NexusDI scope, and the scope builds its own instance of each scoped provider. The built-in `REQUEST` token resolves to the `request` object the scope was created with. Declare the request's shape once in your project, by augmenting `NexusRequest` in a `.d.ts` file, and every factory over `REQUEST` is typed with it:
+
+```ts no-run
+// request.d.ts
+import '@nexusdi/core';
+
+declare module '@nexusdi/core' {
+  interface NexusRequest {
+    mission: { id: string; target: string };
+  }
+}
+```
+
+The examples on this page assume that file. With it in place, `request.mission` in the `MISSION` factory is typed, and `createScope()` rejects a request without a mission at compile time.
+
+```ts file=examples/meridian/src/pages/scopes.md region=two-shuttles
+
+```
+
+Each scope has an id, `s0` and `s1` here. Both scopes build their own `MISSION` from their own request and their own `FLIGHT_LOG` from that mission. Inside one scope, `get(FLIGHT_LOG)` returns the same instance every time. Both flight logs hold the same `COMPUTER`, because a singleton is shared by the root container and every scope. `await using` disposes each scope at the end of its block.
+
+<Notice kind="ship">
+  Each shuttle launched from the Meridian's bay keeps its own flight log for its
+  own mission, and every shuttle reads from the ship's one computer.
+</Notice>
+
+Try it: save `request.d.ts` and the region as `shuttles.ts` in one folder, and run `npx tsx shuttles.ts`. It prints the two scope ids and the two missions. Add a third `createScope()` call with the mission `survey-9`, bind it as `third`, and print `third.get(FLIGHT_LOG).mission.id`, `third.id` and whether that flight log is the first scope's. It prints `survey-9`, `s2` and `false`: a third scope gets a third flight log. Delete `mission` from the second scope's request and `tsc` reports `Property 'mission' is missing in type '{}' but required in type 'NexusRequest'` on the `request` line of that call.
+
+## Resolve `REQUEST` only inside a NexusDI scope
+
+The root container has no request, so NexusDI refuses to build a scoped provider there. `ship.get(MISSION)` on the root throws [NEXUS_SCOPE_REQUIRED](/errors/NEXUS_SCOPE_REQUIRED/), and the fix is to resolve the token from a scope.
+
+```ts file=examples/meridian/src/pages/scopes.md region=scope-required
+
+```
+
+Try it: save the region as `root-get.ts` and run it. It prints `NEXUS_SCOPE_REQUIRED`. Add this after the `catch` block:
+
+```ts no-run
+await using shuttle = await ship.createScope({
+  request: { mission: { id: 'survey-7', target: 'Kepler-442b' } },
+});
+console.log(shuttle.get(MISSION));
+```
+
+The program now prints `NEXUS_SCOPE_REQUIRED` and then `{ id: 'survey-7', target: 'Kepler-442b' }`, because the scope has a request to build the mission from.
+
+## A singleton cannot depend on a scoped provider in NexusDI
+
+A singleton lasts as long as the container, longer than any scope, so a singleton that depended on a scoped provider would keep the first scope's instance for the life of the container. NexusDI checks lifetimes when it compiles the graph: a singleton whose deps reach a scoped provider or `REQUEST` is a [NEXUS_LIFETIME_VIOLATION](/errors/NEXUS_LIFETIME_VIOLATION/). `Nexus.create` rejects with `NEXUS_BLUEPRINT_INVALID`, and this code sits in its `errors` list. No constructor has run by then. This is the captive rule.
+
+```ts file=examples/meridian/src/pages/scopes.md region=captive
+
+```
+
+The error's `path` names the providers from the singleton to the scoped provider, here `ShipComputer` and `Mission`. The fix is to give the consumer `lifetime: 'scoped'`, or to move the scoped value into a method argument.
+
+Try it: save the region as `captive.ts` and run it. It prints `[ 'NEXUS_LIFETIME_VIOLATION' ]` and `[ 'ShipComputer', 'Mission' ]`. Add `lifetime: 'scoped'` to the `COMPUTER` provider and run it again. `Nexus.create` resolves, so the program prints `[]` twice, and each shuttle gets its own computer.
+
+## A scoped factory runs in every shuttle
+
+`createScope()` builds every scoped factory before it returns, so a NexusDI scoped factory runs once per scope even when the request never asks for its token. A scoped class builds on its first `get()` in the scope. Put on-demand work, such as a per-request database transaction, in a scoped class, and keep scoped factories cheap.
+
+```ts file=examples/meridian/src/pages/scopes.md region=scoped-factory-runs
+
+```
+
+Right after `createScope()` the log holds `mission survey-7`: the `MISSION` factory ran. The flight log appears only after `shuttle.get(FLIGHT_LOG)`.
+
+Try it: save the region as `factories.ts` and run it. It prints `[ 'mission survey-7' ]` and then `[ 'mission survey-7', 'flight log for survey-7' ]`. Remove the `shuttle.get(FLIGHT_LOG)` line and run it again. Both lines print `[ 'mission survey-7' ]`: the factory runs at `createScope()` whether the shuttle uses it or not, and the flight log is never built. Put the line back and the second line holds both entries again.
+
+## Give a transient the scope's `MISSION`
+
+A transient or scoped provider may depend on scoped providers, and NexusDI builds it inside the scope that resolves it. From this page on, `ScoutDrone` declares `static deps = [COMPUTER, MISSION] as const`: each drone reads the mission of the shuttle that launched it and the ship's shared computer.
+
+```ts file=examples/meridian/src/pages/scopes.md region=drone-with-mission
+
+```
+
+Try it: save the region as `drone.ts` and run it. It prints `survey-7: course to Kepler-442b`. Delete `lifetime: 'transient'` from the `DRONE` provider, which makes it a singleton, and run it again. `Nexus.create` rejects with `NEXUS_BLUEPRINT_INVALID`, and Node prints the error and exits, because the program has no `try` block. Its one inner error is `NEXUS_LIFETIME_VIOLATION` with `path=SurveyDrone,Mission lifetimes=singleton,scoped`: a singleton drone would capture one shuttle's mission. Put `lifetime: 'transient'` back and it prints `survey-7: course to Kepler-442b` again.
