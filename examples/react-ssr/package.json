@@ -7,7 +7,7 @@
   "dependencies": {
     "@nexusdi/core": "*",
     "@react-router/node": "^7.18.4",
-    "@react-router/serve": "^7.18.4",
+    "@react-router/serve": "^8.4.0",
     "class-variance-authority": "^0.7.1",
     "clsx": "^2.1.1",
     "isbot": "^4.4.0",
