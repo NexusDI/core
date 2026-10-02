@@ -120,6 +120,18 @@ const meta: MetaRecord = {
     title: 'NEXUS_INTERCEPTOR_LIFETIME',
     display: 'hidden',
   },
+  NEXUS_INTERCEPTOR_NOT_READY: {
+    title: 'NEXUS_INTERCEPTOR_NOT_READY',
+    display: 'hidden',
+  },
+  NEXUS_INTERCEPTORS_SHARED: {
+    title: 'NEXUS_INTERCEPTORS_SHARED',
+    display: 'hidden',
+  },
+  NEXUS_INTERCEPTORS_UNCHECKED: {
+    title: 'NEXUS_INTERCEPTORS_UNCHECKED',
+    display: 'hidden',
+  },
 };
 
 export default meta;

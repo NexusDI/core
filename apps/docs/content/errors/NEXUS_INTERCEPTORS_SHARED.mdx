@@ -1,0 +1,72 @@
+---
+title: NEXUS_INTERCEPTORS_SHARED
+kind: code
+description: One interceptors() plugin object was passed to a second container while another container still holds it.
+package: '@nexusdi/interceptors'
+errorClass: InterceptorError
+---
+
+# NEXUS_INTERCEPTORS_SHARED
+
+`NEXUS_INTERCEPTORS_SHARED` means a second `Nexus.create` received an `interceptors()` plugin object that another container still holds. The plugin object keeps the interceptor instances of one container, so each container needs its own `interceptors()` call. A plugin object whose container is disposed, or whose `create` failed, can be used again.
+
+Where the error arrives depends on when the second `create` meets the first container:
+
+| The second `create`                                               | How the error arrives                                                                                                                                                                                                              |
+| ----------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Compiles while the first container is running                     | It rejects with [NEXUS_BLUEPRINT_INVALID](/errors/NEXUS_BLUEPRINT_INVALID/), and its `errors` list holds this error with core's one-line message.                                                                                  |
+| Overlaps the first `create`, so both compile before either builds | It rejects with [NEXUS_PROVIDER_FAILED](/errors/NEXUS_PROVIDER_FAILED/). Its `cause` is a [NEXUS_PLUGIN_FAILED](/errors/NEXUS_PLUGIN_FAILED/) for the `construct` hook, and that error's `cause` is this error with its full text. |
+
+`Nexus.check` reports nothing for this code, even with the plugin object of a running container.
+
+## Reproduce `NEXUS_INTERCEPTORS_SHARED`
+
+The second `Nexus.create` reports `NEXUS_INTERCEPTORS_SHARED` when it receives the plugin object that `ship` still holds. Without a text pack, the message is one line that holds the code and the address of this page.
+
+```ts file=examples/meridian/src/errors/NEXUS_INTERCEPTORS_SHARED.md region=reproduce
+
+```
+
+Try it: run `npm install @nexusdi/core@next @nexusdi/interceptors@next`, save the region as `shared.ts` and run `npx tsx shared.ts`. It prints the one-line message: `[NEXUS_INTERCEPTORS_SHARED]` and the address of this page. Replace `shared` in the second `Nexus.create` with a new `interceptors({ ... })` call that has the same `register` and `global` options and run it again. Both containers build, and the region prints `undefined` because there is no error to read. Put `shared` back and the message returns.
+
+The overlapping case needs two `create` calls in flight at once, as `Promise.allSettled` starts them here. The first fulfils and the second rejects.
+
+```ts file=examples/meridian/src/errors/NEXUS_INTERCEPTORS_SHARED.md region=overlap
+
+```
+
+Try it: save the region as `overlap.ts` and run `npx tsx overlap.ts`. It prints the three codes `NEXUS_PROVIDER_FAILED`, `NEXUS_PLUGIN_FAILED` and `NEXUS_INTERCEPTORS_SHARED` as an array, then the message of the last as an array of two lines: `[NEXUS_INTERCEPTORS_SHARED] this interceptors() plugin is in use by a running container or an unfinished create.` and `  Fix: call interceptors() once per container.`
+
+## Full text of `NEXUS_INTERCEPTORS_SHARED` with `errors()`
+
+`NEXUS_INTERCEPTORS_SHARED` carries its full text and fix line in the `errors` list when `interceptorsText` from `@nexusdi/interceptors/text` is passed to `errors()` from `@nexusdi/errors`, as `errors({ text: [interceptorsText] })` in the plugins of `Nexus.create`. `devtools({ text: [interceptorsText] })` words the error the same way.
+
+```ts file=examples/meridian/src/errors/NEXUS_INTERCEPTORS_SHARED.md region=full-text
+
+```
+
+Try it: run `npm install @nexusdi/errors@next`, save the region as `full.ts` and run `npx tsx full.ts`. It prints an array of two lines: `[NEXUS_INTERCEPTORS_SHARED] this interceptors() plugin is in use by a running container or an unfinished create.` and `  Fix: call interceptors() once per container.`
+
+## Fix `NEXUS_INTERCEPTORS_SHARED`
+
+`NEXUS_INTERCEPTORS_SHARED` goes away when every container receives its own `interceptors()` object. Write a function that returns the plugins list and call it once per `Nexus.create`, or dispose the first container before the second one is created.
+
+```ts file=examples/meridian/src/errors/NEXUS_INTERCEPTORS_SHARED.md region=fix
+
+```
+
+The fix region differs from the reproduce region in the `plugins` function, which builds a new `interceptors()` object for each call, and in what follows: it keeps both containers and prints the output of each.
+
+Try it: save the region as `fixed.ts` and run `npx tsx fixed.ts`. It prints `[ 1.21, 1.21 ]`. Add the line `const once = plugins();` above the first `Nexus.create` and pass `once` as the `plugins` option of both calls. `npx tsc` accepts the file, and `npx tsx fixed.ts` throws an uncaught `BlueprintError` and prints a stack trace headed `BlueprintError: [NEXUS_BLUEPRINT_INVALID] 1 error.`, whose message goes on with the line `[NEXUS_INTERCEPTORS_SHARED]` and the address of this page. Remove the line and pass `plugins()` again, and the program prints its line again.
+
+[How do I run code around a service's methods?](/interceptors/) covers the plugin's options.
+
+## Fields of `InterceptorError`
+
+- `code`: `'NEXUS_INTERCEPTORS_SHARED'`.
+- `reason`: `null` for this code.
+- `token`: `null` for this code.
+- `target`: `null` for this code.
+- `method`: `null` for this code.
+- `state`: `null` for this code.
+- `detail`: an empty list for this code.

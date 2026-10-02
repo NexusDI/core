@@ -1,0 +1,54 @@
+---
+title: NEXUS_INTERCEPTORS_UNCHECKED
+kind: code
+description: The interceptors() plugin was asked to wrap an instance whose provider no compile of that plugin checked.
+package: '@nexusdi/interceptors'
+errorClass: InterceptorError
+---
+
+# NEXUS_INTERCEPTORS_UNCHECKED
+
+The `construct` hook of an `interceptors()` plugin throws `NEXUS_INTERCEPTORS_UNCHECKED` when it receives a provider that no `compile.check` of that plugin recorded. The plugin decides each service's interceptors while it checks the graph, so it refuses to wrap an instance it has no record of. A container that calls the plugin's hooks in order never raises it. It appears when a wrapper plugin keeps the `compile` hook from seeing the graph, by dropping the hook or by handing it copies of the provider views, or when code outside the container calls `construct` by hand.
+
+How the error arrives depends on the caller of the hook:
+
+| The caller of `construct`  | How the error arrives                                                                                                                                                                                                            |
+| -------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| The container              | `Nexus.create` rejects with [NEXUS_PROVIDER_FAILED](/errors/NEXUS_PROVIDER_FAILED/). Its `cause` is a [NEXUS_PLUGIN_FAILED](/errors/NEXUS_PLUGIN_FAILED/) whose `hook` is `'construct'`, and that error's `cause` is this error. |
+| Code outside the container | The call throws this error.                                                                                                                                                                                                      |
+
+`@nexusdi/interceptors` raises this error inside a hook, where no container formats it, so the message carries its full text with a text pack or without one. When several providers fail the same way, the provider error reports one of them and lists the others in `alsoFailed`.
+
+## Reproduce `NEXUS_INTERCEPTORS_UNCHECKED`
+
+The region wraps the plugin in an object that keeps its modules and `construct` hook and replaces its `compile` hook with an empty one, so no check of the plugin sees a provider. `Nexus.create` then builds `ReactorCore` through `construct` and rejects.
+
+```ts file=examples/meridian/src/errors/NEXUS_INTERCEPTORS_UNCHECKED.md region=reproduce
+
+```
+
+Try it: run `npm install @nexusdi/core@next @nexusdi/interceptors@next`, save the region as `unchecked.ts` and run `npx tsx unchecked.ts`. It prints the three codes `NEXUS_PROVIDER_FAILED`, `NEXUS_PLUGIN_FAILED` and `NEXUS_INTERCEPTORS_UNCHECKED` as an array, then `construct`, then an array of two lines: `[NEXUS_INTERCEPTORS_UNCHECKED] ReactorCore was built from a provider that no compile.check of this interceptors() plugin saw, so its interceptors are unknown.` and `  Fix: install @nexusdi/interceptors at the version of @nexusdi/core, and let only the container call the plugin's hooks.` Then run the fix region.
+
+## Fix `NEXUS_INTERCEPTORS_UNCHECKED`
+
+`NEXUS_INTERCEPTORS_UNCHECKED` goes away when the container alone calls the plugin's hooks. Pass the plugin to `Nexus.create` as `interceptors()` returned it, and keep one copy of `@nexusdi/interceptors` at the version of `@nexusdi/core`. `npm ls @nexusdi/interceptors` lists every copy.
+
+```ts file=examples/meridian/src/errors/NEXUS_INTERCEPTORS_UNCHECKED.md region=fix
+
+```
+
+The fix region differs from the reproduce region in the plugin list, which holds `real` itself, and in what follows: it keeps the container and prints the output of `ReactorCore`.
+
+Try it: save the region as `fixed.ts` and run `npx tsx fixed.ts`. It prints `1.21`. Change `plugins: [real]` to `plugins: [{ ...real, compile: {} }]` and run it again. `npx tsc` accepts the file, and `npx tsx fixed.ts` throws an uncaught `ProviderError` and prints a stack trace headed `ProviderError: [NEXUS_PROVIDER_FAILED] token=ReactorCore module=Engineering path=ReactorCore.` and the address of this page, which nests the `PluginError` and the `InterceptorError: [NEXUS_INTERCEPTORS_UNCHECKED]` message as its causes. Change it back and the program prints `1.21` again.
+
+[How do I run code around a service's methods?](/interceptors/) covers the plugin's options.
+
+## Fields of `InterceptorError`
+
+- `code`: `'NEXUS_INTERCEPTORS_UNCHECKED'`.
+- `reason`: `null` for this code.
+- `token`: `null` for this code.
+- `target`: the name of the provider whose instance the hook received.
+- `method`: `null` for this code.
+- `state`: `null` for this code.
+- `detail`: an empty list for this code.

@@ -1,0 +1,55 @@
+---
+title: NEXUS_INTERCEPTOR_NOT_READY
+kind: code
+description: An intercepted method was called before the interceptors were built or after the container was disposed.
+package: '@nexusdi/interceptors'
+errorClass: InterceptorError
+---
+
+# NEXUS_INTERCEPTOR_NOT_READY
+
+`NEXUS_INTERCEPTOR_NOT_READY` means a method of an intercepted service was called while its container holds no interceptors to run. The `state` field names the case. `'building'` means the plugin has not built the interceptors yet, which happens when a constructor or factory calls a method of one of its dependencies during `create`. `'disposed'` means the container is already disposed, which happens when code keeps a service past `ship[Symbol.asyncDispose]()`, or past a `create` that failed and disposed what it had built.
+
+The error is raised at the call, and how it arrives depends on the call:
+
+| The call                                                      | `state`      | How the error arrives                                                                                             |
+| ------------------------------------------------------------- | ------------ | ----------------------------------------------------------------------------------------------------------------- |
+| A method that is not async, after disposal                    | `'disposed'` | The call throws it.                                                                                               |
+| An async method, after disposal                               | `'disposed'` | The call returns a promise that rejects with it.                                                                  |
+| A method called from a constructor or factory during `create` | `'building'` | `Nexus.create` rejects with [NEXUS_PROVIDER_FAILED](/errors/NEXUS_PROVIDER_FAILED/), whose `cause` is this error. |
+
+`@nexusdi/interceptors` raises this error where no container formats it, so the message carries its full text with a text pack or without one. The message for `'building'` ends with a fix line: `Fix: call it from onInit, or inject it with lazy().`
+
+## Reproduce `NEXUS_INTERCEPTOR_NOT_READY`
+
+The region disposes `ship` and then calls `output()`, which throws, and `diagnose()`, an async method that returns a rejected promise.
+
+```ts file=examples/meridian/src/errors/NEXUS_INTERCEPTOR_NOT_READY.md region=reproduce
+
+```
+
+Try it: run `npm install @nexusdi/core@next @nexusdi/interceptors@next`, save the region as `not-ready.ts` and run `npx tsx not-ready.ts`. It prints three lines: `disposed`, the message `[NEXUS_INTERCEPTOR_NOT_READY] ReactorCore.output was called after its container was disposed.` and the code `NEXUS_INTERCEPTOR_NOT_READY` of the rejected promise. Delete the line `await ship[Symbol.asyncDispose]();` and run it again. Both calls succeed, so it prints `undefined`, `undefined` and `null`. Put the line back and the three lines return.
+
+## Fix `NEXUS_INTERCEPTOR_NOT_READY`
+
+`NEXUS_INTERCEPTOR_NOT_READY` goes away when every intercepted call runs while the container is open. With `state: 'disposed'`, keep the container open with `await using` for as long as the code calls its services. With `state: 'building'`, move the call out of the constructor into `onInit`, or inject the dependency with `lazy()` and call the thunk from a method later.
+
+```ts file=examples/meridian/src/errors/NEXUS_INTERCEPTOR_NOT_READY.md region=fix
+
+```
+
+The fix region differs from the reproduce region in how the container ends. It declares `ship` with `await using`, which disposes it when the program ends, and it calls both methods first.
+
+Try it: save the region as `fixed.ts` and run `npx tsx fixed.ts`. It prints `1.21` and `nominal`. Add the line `await ship[Symbol.asyncDispose]();` above the line `const output = reactor.output();` and run it again. `npx tsc` accepts the file, and `npx tsx fixed.ts` throws an uncaught `InterceptorError` and prints a stack trace headed `InterceptorError: [NEXUS_INTERCEPTOR_NOT_READY] ReactorCore.output was called after its container was disposed.` Remove the line and the program prints its two lines again.
+
+[How do I run code around a service's methods?](/interceptors/) covers the container's lifetime, and [Lazy edges and cycles](/lazy/) covers `lazy()`.
+
+## Fields of `InterceptorError`
+
+- `code`: `'NEXUS_INTERCEPTOR_NOT_READY'`.
+- `reason`: `null` for this code.
+- `token`: `null` for this code.
+- `target`: the name of the intercepted provider.
+- `method`: the name of the method that was called.
+- `state`: `'building'` before the interceptors are built, `'disposed'` after disposal.
+- `detail`: an empty list for this code.
