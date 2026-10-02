@@ -5,6 +5,7 @@ Spec: origin/spec/docs-site @ 6667eca, specs/2026-09-23-docs-site-design.md (cop
 Task briefs: tasks/task-NN.md, shared constraints tasks/globals.md
 
 ## Grants from the user (controller brief, 2026-10-01)
+
 - Merge into release/0.4 allowed when CI green and review clean.
 - Sync main->release/0.4 (sync PR, merge commit) allowed; docs.yml rehearse=rc and docs-snapshot.yml dispatch allowed.
 - PR #73 may be merged when green.
@@ -12,16 +13,21 @@ Task briefs: tasks/task-NN.md, shared constraints tasks/globals.md
 - Never: npm publish, release.yml real dispatch? (sync event via release.yml is the plan's route; user said "never dispatch release.yml") -> see decisions.
 
 ## Worktrees
+
 - Group M: .claude/worktrees/docs-phase-1, branch fix/docs-pipeline from origin/main @ 7646ad4
 
 ## Decisions
+
 - D1 Sync route: user forbids dispatching release.yml; do the sync by hand per RELEASING.md "Sync" (sync/0.4-<sha12> branch, merge commit, PR into release/0.4). Details in preflight.md.
 
 ## Side items
+
 - PR #73: rebased, all checks green, build.json core 0.4.0-rc.0 matches libs/core; rebase-merged into release/0.4 at 18:53Z.
 
 ## Tasks
+
 (status: todo | impl | review | fix | done <sha> | blocked <why>)
+
 - T1: done (no commits; baseline green, 4300fa5+3d956dd on main, mode snapshot-only)
 - Preflight done (preflight.md). Pre-sync tasks on feat: 19,20,21,22,24,26,29,33,35,74,75,76. Rest need the sync.
 - Worktree feat: .claude/worktrees/docs-phase-1-release, branch feat/docs-phase-1 from origin/release/0.4 (pre-sync; rebase after sync).
@@ -38,6 +44,7 @@ Task briefs: tasks/task-NN.md, shared constraints tasks/globals.md
 - T21: done e14ba62 (approved). D5: ground colour roles renamed --meridian-ground-0/2 (collided with spacing --meridian-space-N); briefs 18/22/23 amended.
 
 ## Cloud session (2026-10-01, controller per HANDOFF.md)
+
 - Env: repo needs Node 24.20.0; installed at /opt/node24 (prefix PATH). Worktrees moved to /home/user/wt/{docs-phase-1,docs-phase-1-release} (nested under the repo, nx resolved the parent checkout's tsconfig). Task briefs regenerated in tasks/ (plan line ranges + amendments); spec.md copied here.
 - HANDOFF grants supersede the grants above: controller may merge Group M PRs into main, dispatch release.yml event=sync, merge the sync PR (merge commit), merge into release/0.4, run Task 82 after a green rehearse rc.
 - T3: done 845b364+b8dc41e+1b716c2+715c28f+571b211 (filesUnder in files-under.mjs, subpath ./files-under; prose fixes; review approved after round 2)
@@ -63,6 +70,7 @@ Task briefs: tasks/task-NN.md, shared constraints tasks/globals.md
 - T13: PR #80 merged by the owner. Sync pending (see Owner items). PR #80 (fix/docs-pipeline -> main) opened. Final opus review fixes: noindex check in any attribute order (the real r1 archive failed the final check), CodeQL polynomial regexes (preamble, {@link}), MODE via env, GH_TOKEN on the snapshot step only: c1f75e1 8335be2 8a64b57 33af5d2 9379d55. 68e6178 (CodeQL {@link} regex). CI all green, mergeable clean at 68e6178. The merge into main was refused by the session's permission classifier; waiting on the owner to merge #80 (rebase). Then: release.yml event=sync on release/0.4 (expect a ci.yml conflict: keep both job lists).
 
 ## Owner items
+
 - Consider `--skip-nx-cache` in build-site.mjs COMMANDS on main: a deploy build reads git tags (app/release-state.ts) and the tag tree's libs/core/package.json, which are no Nx inputs, so a cache hit could replay a stale out/ (final review, finding 1 follow-up; the meridian inputs gap itself is fixed on feat/docs-phase-1).
 - RC conditions mismatch: /release-candidate/ lists two conditions for 0.4.0 final, while the snapshot blog post (apps/docs/snapshot/blog/2026-10-01-0-4-release-candidate.md:37, a D2 file this work leaves alone) adds a third (codemod run on one external codebase) and /upgrade/ says no codemod is published. Decide which story holds and align the blog or the page.
 - The labels rc-blocker and rc-feedback used by /release-candidate/ and .github/ISSUE_TEMPLATE/04-rc-feedback.yml do not exist yet; GitHub drops them from filed issues until created.
@@ -80,12 +88,14 @@ Task briefs: tasks/task-NN.md, shared constraints tasks/globals.md
 - Spec patch §14.3/§14.6 region roots on spec/docs-site is still open (planning edit).
 
 ## Owner instructions (2026-10-01, after PR #80)
+
 - The local session does the main -> release/0.4 sync and every merge from here on. This session does no merges, syncs or branch creation.
 - After the owner reports the sync merged: rebase feat/docs-phase-1 onto release/0.4, continue Tasks 15-82, open PRs, leave them green, list each under Owner items for the local session to merge.
 - Task 18: write the copied modules in this repo, as in Task 4.
 - Commit 0578605's trailer stays as is.
 
 ## After the sync (PR #82, 4e9095f on release/0.4)
+
 - feat/docs-phase-1 rebased onto origin/release/0.4 (922f2a2): conflicts in apps/docs package.json, tsconfig.json, mdx-components.js, package-lock.json resolved by keeping both sides; lint/typecheck/test of docs, repo-checks, doc-examples, meridian-ui, meridian green; fallow clean; sync:check clean. Force-pushed with lease.
 - Draft PR #84 (feat/docs-phase-1 -> release/0.4) opened for CI on every task. Known flaky: tools/bench-kit/src/sampler.test.ts "runs teardown after the timer stops" (rerun CI if it alone fails).
 - CI fixes on #84: 05a91b4 (fallow ignores unresolved imports of generated/benchmark-data.json and dist/styles.css: absent on a clean checkout), 5e6ac99+dea0dcb (prose budget strips html comments with a scan; CodeQL).
@@ -157,3 +167,13 @@ Task briefs: tasks/task-NN.md, shared constraints tasks/globals.md
 - PRs merged: #80 (Group M), #82 (main -> release/0.4 sync), #84 (phase 1 into release/0.4, merge 717e34f). Open: none.
 - /next/ status: not live yet (rc rehearsal green; the deploy happens when PR A switches deploy.json to rc on main). nexus.js.org is blocked by this container's egress proxy, so the curl check must run elsewhere.
 - Owner items: see "Owner items" above (PR #84 merge, T82 branch for PR A, three-engine e2e run, RC Discussion and labels, RC conditions vs blog, dist-tags, deploy-build cache, interceptor guard follow-up, support-policy dates at final, benchmark issue template link).
+
+## Front page concepts
+
+Branch concept/frontpage (from release/0.4 at 717e34f), commits 9e5ab6f..990dd61, pushed; no PR.
+
+- Research: specs/2026-10-02-frontpage-research.md. This environment's network policy blocked direct fetches of the studied sites, so the findings rest on search summaries and mark the unverified pages.
+- Concepts: concepts/frontpage/concept-a.html (pixel-art), concept-b.html (cel-shaded), concept-c.html (pre-flight console blueprint). Each is one static file with inline SVG, CSS and JS, no network requests, light and dark, mobile at 375px, an interactive hero showing power-up in dependency order and the Nexus.check failure naming the missing system with launch blocked.
+- One opus critique pass across the three (frontpage-critique.md next to this file), then one fix pass per concept. Shared corrections: install `npm i @nexusdi/core@next`, links to /next/, Nexus.check shown synchronous with the real BlueprintError and NEXUS_MISSING_PROVIDER output, comparison rows corrected (NestJS standalone apps, partial graph check at bootstrap; InversifyJS constructor injection), small-container wording that the docs comparison backs.
+- Recommendation (concepts/frontpage/README.md): build on B, with C's pointer labels and per-section pass and fail list and A's deck-by-deck caption.
+- Owner items: confirm the NestJS and InversifyJS comparison rows against pinned versions and date the table; B's arrow labels need a spacing pass on phones; the headline in B uses the Impact system stack with a sans fallback.
