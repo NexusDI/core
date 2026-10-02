@@ -127,4 +127,5 @@ Task briefs: tasks/task-NN.md, shared constraints tasks/globals.md
 - T60: done f6e0c75+eb7a144+fc0973d (0.3 field injection, remaining 0.3 exports table, @Optional vs optional(), devtools step for graph(); approved after fixes)
 - T61: done 8e686e1+52e186d (scope and end date attributed to the maintainers, RELEASING.md for mechanics; dupes unchanged at 699 lines; approved after fix)
 - T62: done 01e3717+565d386 (validate() wraps MISSING_PROVIDER in BLUEPRINT_INVALID, get/resolve throw it bare, NOT_VISIBLE for an invisible provider; AMBIGUOUS try-it rewritten to print 1701; approved after fix)
-- T63: impl
+- T63: done 584f9f9+84ec9f5 (bad deps entry is INVALID_PROVIDER bad-dep; INVALID_MODULE thrown bare by defineModule/create/load/get module; TS2769 named; triads fixed; approved after fix)
+- T64: impl
