@@ -1,0 +1,51 @@
+---
+title: NexusDI compared with InversifyJS, tsyringe, awilix and needle-di
+kind: contract
+description: NexusDI and four dependency injection containers measured on one eight-provider graph for size, speed, toolchain support and wiring-mistake detection.
+---
+
+# NexusDI compared with InversifyJS, tsyringe, awilix and needle-di
+
+NexusDI is compared here with four dependency injection containers for TypeScript, each built from the same eight-provider graph by the benchmark harness in `benchmarks/`. Every figure and outcome on this page renders from the harness's results files at build time, and [How NexusDI's benchmarks are measured](/benchmark-method/) states the method behind each one.
+
+## Performance of NexusDI and the four containers
+
+The performance table shows each library in the variant its own documentation teaches. Bundle size is the esbuild bundle, minified and gzipped. Startup is a cold start of a fresh Node process, resolve is one transient resolve on a ready container, and build time is the library's fastest passing build of a 200-class graph under a toolchain its documentation names. Focus or hover a figure for its spread and, on another library's row, the paired ratio to NexusDI with its interval. A ratio below 1 means NexusDI took less time, and an interval that contains 1 is no measured difference.
+
+<PerformanceTable />
+
+## NexusDI and the four containers under each toolchain
+
+The toolchain matrix builds every variant of every library under each toolchain cell and runs the result. A cell that does not pass keeps its first error line in a tooltip and links the toolchain's own page when that page documents the limitation.
+
+<ToolchainGrid />
+
+## When NexusDI and the four containers report a wiring mistake
+
+The probe table adds one mistake at a time to the graph and shows where each library reports it. `Nexus.create` compiles the whole module graph before it builds any provider, so a mistake it finds fails container creation, and one error lists every problem it found ([Errors](/errors/)).
+
+<ProbeTable />
+
+## Why NexusDI needs no compiler flags
+
+A NexusDI class lists its dependencies as tokens in `static deps`, and TypeScript checks that list against the constructor. The container reads the list at run time, so no build step has to emit decorator metadata, and the NexusDI `plain` row of the toolchain matrix above shows the result under each toolchain. InversifyJS's [getting-started page](https://inversify.io/docs/introduction/getting-started/) and tsyringe's [README](https://github.com/microsoft/tsyringe#readme) set `experimentalDecorators` and `emitDecoratorMetadata` for their decorated setups, and their `decorated` rows show which toolchains build those setups. [awilix](https://github.com/jeffijoe/awilix#readme) and [needle-di](https://needle-di.io) document setups that use no decorator metadata.
+
+## TypeDI, NestJS and NexusDI
+
+TypeDI is left out of the measurements: its last release, 0.10.0, was published on 2021-01-15 ([npm](https://www.npmjs.com/package/typedi)). NestJS is a framework with its own container, and [When to skip NexusDI](/#when-to-skip-nexusdi) explains why NexusDI would add a second container beside it.
+
+## Break and fix a NexusDI benchmark figure
+
+The `<Figure>` component renders one result inline in a sentence, and the docs build fails on a path the results do not hold. In `apps/docs/content/index.mdx`, change the figure's path from `size.nexusdi.plain.esbuild.gzip` to `size.nexusdi.plain.esbuild.brotli`, and run the guard:
+
+```sh
+npx nx test @nexusdi/repo-checks -- doc-benchmark-figures
+```
+
+The guard fails and names the key the results lack. Type a size with its unit into a sentence on the same page, and the guard fails on that sentence too, because a figure in prose comes only from the harness. Restore the path and delete the sentence, and the guard passes.
+
+## How the NexusDI comparison was measured
+
+The NexusDI maintainer wrote the harness and measured these results, and has an interest in them. Each library's fixture follows its own documentation, and [How NexusDI's benchmarks are measured](/benchmark-method/) lists what was pinned, what was tested, what was left out, and how to report a fixture that departs from a library's documentation.
+
+<MeasuredWith />

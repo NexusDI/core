@@ -40,6 +40,9 @@ const meta: MetaRecord = {
   'graph-cli': { title: 'Graph CLI' },
   'error-text': { title: 'Full error text' },
   'write-a-plugin': { title: 'Write a plugin' },
+  comparison: {
+    title: 'NexusDI compared with InversifyJS, tsyringe, awilix and needle-di',
+  },
   'benchmark-method': { title: "How NexusDI's benchmarks are measured" },
   '-- migration': { type: 'separator', title: 'Migration' },
   'release-candidate': { title: 'How do I try the 0.4 release candidate?' },
