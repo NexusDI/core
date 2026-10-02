@@ -4,8 +4,5 @@
   "/comparison/": "Phase 1 writes it in its page task.",
   "/errors/NEXUS_INTERCEPTORS_SHARED/": "Phase 1 writes it in its code page task.",
   "/errors/NEXUS_INTERCEPTORS_UNCHECKED/": "Phase 1 writes it in its code page task.",
-  "/errors/NEXUS_INTERCEPTOR_INVALID/": "Phase 1 writes it in its code page task.",
-  "/errors/NEXUS_INTERCEPTOR_LIFETIME/": "Phase 1 writes it in its code page task.",
-  "/errors/NEXUS_INTERCEPTOR_MISSING/": "Phase 1 writes it in its code page task.",
   "/errors/NEXUS_INTERCEPTOR_NOT_READY/": "Phase 1 writes it in its code page task."
 }

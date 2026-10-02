@@ -108,6 +108,18 @@ const meta: MetaRecord = {
     title: 'NEXUS_OVERRIDE_EXPORTS',
     display: 'hidden',
   },
+  NEXUS_INTERCEPTOR_INVALID: {
+    title: 'NEXUS_INTERCEPTOR_INVALID',
+    display: 'hidden',
+  },
+  NEXUS_INTERCEPTOR_MISSING: {
+    title: 'NEXUS_INTERCEPTOR_MISSING',
+    display: 'hidden',
+  },
+  NEXUS_INTERCEPTOR_LIFETIME: {
+    title: 'NEXUS_INTERCEPTOR_LIFETIME',
+    display: 'hidden',
+  },
 };
 
 export default meta;

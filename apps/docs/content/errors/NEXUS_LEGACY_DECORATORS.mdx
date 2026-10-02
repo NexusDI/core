@@ -8,7 +8,7 @@ errorClass: LegacyDecoratorsError
 
 # NEXUS_LEGACY_DECORATORS
 
-Every decorator that `@nexusdi/decorators` exports throws `NEXUS_LEGACY_DECORATORS` when TypeScript calls it as a legacy decorator, which it does when `tsconfig.json` sets `experimentalDecorators`. `@Injectable` and `@Module` fail on a class, and `@Inject` fails on an accessor. The decorators are standard (TC39) decorators, and each one checks the arguments it receives before it records anything. The check runs when the decorator is applied, so the error ends the import of the module that declares the class. It is thrown bare, because no container exists yet, and [NEXUS_BLUEPRINT_INVALID](/errors/NEXUS_BLUEPRINT_INVALID/) never wraps it. `@UseInterceptors` from `@nexusdi/interceptors` reports the same flag as NEXUS_INTERCEPTOR_INVALID with the reason `legacy-decorators`.
+Every decorator that `@nexusdi/decorators` exports throws `NEXUS_LEGACY_DECORATORS` when TypeScript calls it as a legacy decorator, which it does when `tsconfig.json` sets `experimentalDecorators`. `@Injectable` and `@Module` fail on a class, and `@Inject` fails on an accessor. The decorators are standard (TC39) decorators, and each one checks the arguments it receives before it records anything. The check runs when the decorator is applied, so the error ends the import of the module that declares the class. It is thrown bare, because no container exists yet, and [NEXUS_BLUEPRINT_INVALID](/errors/NEXUS_BLUEPRINT_INVALID/) never wraps it. `@UseInterceptors` from `@nexusdi/interceptors` reports the same flag as [NEXUS_INTERCEPTOR_INVALID](/errors/NEXUS_INTERCEPTOR_INVALID/) with the reason `legacy-decorators`.
 
 ## Reproduce `NEXUS_LEGACY_DECORATORS`
 

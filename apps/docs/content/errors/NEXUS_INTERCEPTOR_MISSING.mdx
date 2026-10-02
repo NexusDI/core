@@ -1,0 +1,55 @@
+---
+title: NEXUS_INTERCEPTOR_MISSING
+kind: code
+description: A global entry, binding or declaration names an interceptor token that interceptors({ register }) does not list.
+package: '@nexusdi/interceptors'
+errorClass: InterceptorError
+---
+
+# NEXUS_INTERCEPTOR_MISSING
+
+`@nexusdi/interceptors` reports `NEXUS_INTERCEPTOR_MISSING` when a global entry, a binding, a `static interceptors` declaration or a `@UseInterceptors` call names an interceptor token that `interceptors({ register })` does not list. The plugin's check finds it while the graph compiles, before any constructor runs. `Nexus.create` and `ship.load()` reject with [NEXUS_BLUEPRINT_INVALID](/errors/NEXUS_BLUEPRINT_INVALID/) holding one error for each unregistered use, and `Nexus.check` throws that error. A token is compared by identity, so a second `new Token('Audit')` is another token, and the message prints the same name for both.
+
+## Reproduce `NEXUS_INTERCEPTOR_MISSING`
+
+`interceptors()` reports `NEXUS_INTERCEPTOR_MISSING` when `global` names `AUDIT` and `register` lists only `TRACE`. Without a text pack, the message is one line that starts with the code and ends with the address of this page.
+
+```ts file=examples/meridian/src/errors/NEXUS_INTERCEPTOR_MISSING.md region=reproduce
+
+```
+
+Try it: run `npm install @nexusdi/core@next @nexusdi/interceptors@next`, save the region as `missing.ts` and run `npx tsx missing.ts`. It prints the one-line message: `[NEXUS_INTERCEPTOR_MISSING] token=Audit.` and the address of this page. Change `global: [AUDIT]` to `global: [TRACE]` and run it again. The container builds, and the region prints `undefined` because there is no error to read. Change it back and the message returns.
+
+## Full text of `NEXUS_INTERCEPTOR_MISSING` with `errors()`
+
+`NEXUS_INTERCEPTOR_MISSING` carries its full text and fix line when `interceptorsText` from `@nexusdi/interceptors/text` is passed to `errors()` from `@nexusdi/errors`, as `errors({ text: [interceptorsText] })` in the plugins of `Nexus.create`. `devtools({ text: [interceptorsText] })` words the error the same way. The text names the place that uses the token: a class, a method of a class, a binding's method, or a global entry or binding.
+
+```ts file=examples/meridian/src/errors/NEXUS_INTERCEPTOR_MISSING.md region=full-text
+
+```
+
+Try it: run `npm install @nexusdi/errors@next`, save the region as `full.ts` and run `npx tsx full.ts`. It prints the two-line message with its `Fix:` line: `[NEXUS_INTERCEPTOR_MISSING] a global entry or binding uses the interceptor Audit, which is not registered.` and `Fix: add Audit to interceptors({ register }).`
+
+## Fix `NEXUS_INTERCEPTOR_MISSING`
+
+`NEXUS_INTERCEPTOR_MISSING` goes away when every interceptor token a declaration names is in `interceptors({ register })`. Register the token with `interceptor(TOKEN, { useClass })`, or register an interceptor class that is its own token. When the token is a typo, correct the declaration.
+
+```ts file=examples/meridian/src/errors/NEXUS_INTERCEPTOR_MISSING.md region=fix
+
+```
+
+The fix region differs from the reproduce region in two ways. It declares and registers `AuditInterceptor` and lists both tokens in `global`. It then keeps the container, calls `output()` through it and prints what the interceptors saw.
+
+Try it: save the region as `fixed.ts` and run `npx tsx fixed.ts`. It prints `1.21` and `[ 'trace', 'audit' ]`. Delete the line `interceptor(AUDIT, { useClass: AuditInterceptor }),` from the `register` list and run it again. `npx tsc` accepts the file, and `npx tsx fixed.ts` throws an uncaught `BlueprintError` and prints a stack trace headed `BlueprintError: [NEXUS_BLUEPRINT_INVALID] 1 error.`, whose message goes on with the line `[NEXUS_INTERCEPTOR_MISSING] token=Audit.` and the address of this page. Put the line back and the program prints its two lines again.
+
+[How do I run code around a service's methods?](/interceptors/) shows each way to attach an interceptor.
+
+## Fields of `InterceptorError`
+
+- `code`: `'NEXUS_INTERCEPTOR_MISSING'`.
+- `reason`: `null` for this code.
+- `token`: the name of the interceptor token that is not registered.
+- `target`: the name of the class whose declaration names the token, or `null` for a global entry or a binding.
+- `method`: the method name when a method list names the token, or `null` for a class list, a global entry or a binding's class list. A binding's method list sets it, and `target` stays `null`.
+- `state`: `null` for this code.
+- `detail`: an empty list for this code.
