@@ -90,9 +90,13 @@ function rgba(hex: string): RegExp {
   );
 }
 
-/** A hex or `rgb()` colour that is not part of an HTML entity or an id. */
+/**
+ * A hex or `rgb()` colour in a colour context: after a colon, an equals sign,
+ * a quote, a parenthesis or a comma, so a word such as `#add` in label text
+ * or an id stays.
+ */
 const LITERAL =
-  /(?<!&)#(?:[0-9a-f]{8}|[0-9a-f]{6}|[0-9a-f]{3})\b|rgba?\([^)]*\)/gi;
+  /(?<=[:="(,]\s*)#(?:[0-9a-f]{8}|[0-9a-f]{6}|[0-9a-f]{3})(?![\w-])|rgba?\([^)]*\)/gi;
 
 /**
  * Replaces every sentinel colour in a rendered SVG with its property, and

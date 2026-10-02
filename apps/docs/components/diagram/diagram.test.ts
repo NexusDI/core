@@ -113,6 +113,7 @@ describe('diagrams', () => {
         'filter:drop-shadow( 1px 2px 2px rgba(185,185,185,1));',
         'flood-color="#000000"',
         'a &#160; b url(#nexus-diagram-x-gradient)',
+        '<span>Call #add or #bed-1</span> id="#add"',
       ].join(' '),
     );
     expect(out).toContain(
@@ -122,6 +123,7 @@ describe('diagrams', () => {
     expect(out).toContain('flood-color="currentColor"');
     expect(out).not.toMatch(/#[0-9a-f]{6}|rgba?\(/i);
     expect(out).toContain('&#160;');
+    expect(out).toContain('<span>Call #add or #bed-1</span>');
     expect(out).toContain('url(#nexus-diagram-x-gradient)');
   });
 
