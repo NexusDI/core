@@ -47,8 +47,8 @@
         --sky2: #0b1b38;
         --grain: 0.1;
         --disp:
-          Impact, Haettenschweiler, 'Arial Narrow Bold', 'Arial Black',
-          system-ui, sans-serif;
+          Impact, Haettenschweiler, 'Arial Narrow', 'Arial Black', system-ui,
+          sans-serif;
         --body:
           system-ui, -apple-system, 'Segoe UI', Roboto, 'Helvetica Neue', Arial,
           sans-serif;
@@ -87,6 +87,7 @@
         font-family: var(--body);
         font-size: 16px;
         line-height: 1.55;
+        font-synthesis: none;
         overflow-x: hidden;
         min-width: 320px;
         background:
@@ -150,7 +151,26 @@
       :focus-visible {
         outline: 3px solid var(--gold);
         outline-offset: 3px;
-        box-shadow: 0 0 0 6px var(--line);
+        box-shadow: 0 0 0 9px var(--line);
+      }
+      :root[data-theme='light'] :focus-visible {
+        outline-color: #1b57b8;
+        box-shadow: 0 0 0 9px #fff;
+      }
+      .skip {
+        position: absolute;
+        left: 8px;
+        top: -60px;
+        z-index: 60;
+        background: var(--gold);
+        color: #1b1409;
+        font-weight: 800;
+        padding: 8px 14px;
+        border: 3px solid var(--line);
+        border-radius: 99px;
+      }
+      .skip:focus {
+        top: 8px;
       }
       .sr {
         position: absolute;
@@ -206,9 +226,10 @@
 
       /* buttons: bevelled pills */
       .btn {
-        font-family: var(--disp);
-        font-weight: 900;
-        font-size: 17px;
+        font-family: var(--body);
+        font-synthesis: none;
+        font-weight: 800;
+        font-size: 16px;
         text-transform: uppercase;
         letter-spacing: 0.04em;
         text-decoration: none;
@@ -296,9 +317,9 @@
         background: var(--line);
         color: #f2f7fb;
         padding: 6px 12px;
-        font-family: var(--disp);
-        font-weight: 900;
-        font-size: 17px;
+        font-family: var(--body);
+        font-weight: 800;
+        font-size: 16px;
         letter-spacing: 0.06em;
         text-transform: uppercase;
         border-radius: 11px 11px 0 0;
@@ -392,6 +413,7 @@
         padding: 8px 14px 12px;
       }
       .hudhead {
+        flex-wrap: wrap;
         display: flex;
         align-items: baseline;
         gap: 10px;
@@ -399,7 +421,14 @@
         margin-bottom: 6px;
       }
       .hudhead .disp {
-        font-size: 18px;
+        font-family: var(--body);
+        font-weight: 800;
+        font-size: 17px;
+        white-space: nowrap;
+        text-shadow: var(--o2);
+      }
+      .hudv {
+        white-space: nowrap;
       }
       .hudv {
         font-family: var(--mono);
@@ -440,7 +469,7 @@
         font-family: var(--body);
         font-weight: 800;
         font-size: 12px;
-        letter-spacing: 0.08em;
+        letter-spacing: 0.02em;
         text-transform: uppercase;
         color: var(--dim);
         margin-top: 4px;
@@ -514,8 +543,8 @@
         font-size: 28px;
       }
       .ncard .mid {
-        font-family: var(--disp);
-        font-weight: 900;
+        font-family: var(--body);
+        font-weight: 800;
         font-size: 20px;
         line-height: 1.05;
         color: #fff;
@@ -595,7 +624,8 @@
         border-bottom: 3px solid var(--line);
         line-height: 1.3;
       }
-      .hint .pan {
+      .hint .pan,
+      .legendwrap {
         display: none;
       }
       .scroller {
@@ -632,8 +662,8 @@
       .strip .msg .at {
         display: inline;
         margin-right: 8px;
-        font-family: var(--disp);
-        font-weight: 900;
+        font-family: var(--body);
+        font-weight: 800;
         letter-spacing: 0.04em;
         font-size: 18px;
         text-transform: uppercase;
@@ -742,7 +772,7 @@
       }
       .below {
         display: grid;
-        grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+        grid-template-columns: minmax(0, 1fr);
         gap: 18px;
         margin-top: 22px;
         align-items: start;
@@ -791,7 +821,8 @@
       }
       .conduit-list button .st {
         margin-left: auto;
-        font-family: var(--disp);
+        font-family: var(--body);
+        font-weight: 800;
         letter-spacing: 0.05em;
         font-size: 14px;
         color: var(--green);
@@ -870,10 +901,11 @@
       .cmp thead th {
         background: var(--line);
         color: #f2f7fb;
-        font-family: var(--disp);
+        font-family: var(--body);
+        font-weight: 800;
         text-transform: uppercase;
         letter-spacing: 0.05em;
-        font-size: 16px;
+        font-size: 15px;
       }
       .cmp td.us,
       .cmp th.us {
@@ -950,9 +982,10 @@
       }
       .cart b {
         display: block;
-        font-family: var(--disp);
-        font-size: 19px;
-        letter-spacing: 0.03em;
+        font-family: var(--body);
+        font-weight: 800;
+        font-size: 18px;
+        letter-spacing: 0.01em;
         text-transform: none;
         word-break: break-all;
       }
@@ -1003,11 +1036,11 @@
 
       /* the ship drawing */
       #ship text {
-        font-family: var(--disp);
-        font-weight: 900;
+        font-family: var(--body);
+        font-weight: 800;
       }
       #ship .lbl {
-        font-size: 18px;
+        font-size: 21px;
         fill: #fff;
         letter-spacing: 0.3px;
       }
@@ -1015,6 +1048,8 @@
         fill: #15110e;
       }
       #ship .rname {
+        font-family: var(--disp);
+        font-weight: 900;
         font-size: 25px;
         fill: #fff3b0;
         stroke: #15110e;
@@ -1028,7 +1063,7 @@
         opacity: 0.8;
       }
       #ship .poptxt {
-        font-size: 17px;
+        font-size: 19px;
         fill: #fff;
       }
       #ship .machlit,
@@ -1241,8 +1276,19 @@
       }
 
       @media (max-width: 1180px) {
+        .pair {
+          grid-template-columns: minmax(0, 1fr) 340px;
+        }
+        .term pre {
+          font-size: 12px;
+        }
+        .ncard {
+          padding: 6px 6px 8px;
+        }
+      }
+      @media (max-width: 980px) {
         #ship {
-          min-width: 880px;
+          min-width: 720px;
         }
         .hero {
           display: flex;
@@ -1259,37 +1305,45 @@
         .frame {
           order: 2;
         }
-        .term.pf {
+        .hud {
           order: 3;
         }
-        .hud {
+        .term.pf {
           order: 4;
         }
         .below {
           order: 5;
           margin-top: 0;
         }
-        .hint .pan {
-          display: inline;
+        .legendwrap {
+          display: block;
         }
-        .scrollwrap .panbadge {
-          display: flex;
+        h1 {
+          text-shadow:
+            var(--o2),
+            2px 3px 0 var(--line);
         }
       }
       .scrollwrap {
         position: relative;
       }
+      .frame.canpan .hint .pan {
+        display: inline;
+      }
+      .frame.canpan .panbadge {
+        display: flex;
+      }
       .panbadge {
         display: none;
         position: absolute;
         right: 8px;
-        top: 50%;
-        transform: translateY(-50%);
+        bottom: 8px;
         align-items: center;
         gap: 6px;
         background: var(--line);
         color: #fff;
-        font-family: var(--disp);
+        font-family: var(--body);
+        font-weight: 800;
         font-size: 14px;
         letter-spacing: 0.05em;
         text-transform: uppercase;
@@ -1305,7 +1359,7 @@
       }
       @keyframes nudge {
         to {
-          transform: translate(-8px, -50%);
+          transform: translateX(-8px);
         }
       }
       @media (max-width: 900px) {
@@ -1318,6 +1372,13 @@
         }
       }
       @media (max-width: 640px) {
+        .hud .split,
+        .hud .ncard:not(.bp) {
+          display: none;
+        }
+        .hud .cards {
+          grid-template-columns: 1.4fr 1fr;
+        }
         header.top {
           gap: 6px;
           padding: 6px 0;
@@ -1752,6 +1813,7 @@
         </symbol>
       </defs>
     </svg>
+    <a class="skip" href="#top">Skip to content</a>
     <div class="wrap">
       <header class="top">
         <a class="brand disp" href="#top" aria-label="NexusDI home">NexusDI</a>
@@ -1786,8 +1848,7 @@
             class="btn small tog"
             id="theme"
             type="button"
-            aria-pressed="false"
-            aria-label="Light theme"
+            aria-label="Switch to light theme"
           >
             <svg
               class="ico"
@@ -1854,7 +1915,8 @@
                   ><b class="mk2" id="mk2"></b>
                 </div>
                 <div class="sn r">
-                  <span class="big" id="pctOff">0%</span><small>Pending</small>
+                  <span class="big" id="pctOff">0%</span
+                  ><small id="offlbl">Pending</small>
                 </div>
               </div>
               <div class="cards">
@@ -1896,8 +1958,8 @@
                 </button>
               </div>
               <p class="hint">
-                Tap a plug on the ship to unplug a conduit. Each plug is a
-                dependency.
+                Section = module. Machine = provider. Conduit = dependency.
+                Hatch = export. Click or tap a plug to unplug it.
                 <span class="pan">Swipe the ship sideways to pan.</span>
               </p>
               <div class="scrollwrap">
@@ -1946,7 +2008,9 @@
 <span class="k">import</span> { errors } <span class="k">from</span> <span class="s">'@nexusdi/errors'</span>;
 <span class="k">import</span> { Meridian } <span class="k">from</span> <span class="s">'./meridian.js'</span>;
 
-<span class="f">Nexus</span>.<span class="f">check</span>(Meridian, { plugins: [<span class="f">errors</span>()] }); <span class="c">// CI runs this</span>
+<span class="f">Nexus</span>.<span class="f">check</span>(Meridian, {
+  plugins: [<span class="f">errors</span>()],
+}); <span class="c">// CI runs this</span>
 console.<span class="f">log</span>(<span class="s">'pre-flight ok'</span>);</pre>
               <pre
                 class="out"
@@ -1957,7 +2021,7 @@ console.<span class="f">log</span>(<span class="s">'pre-flight ok'</span>);</pre
           </div>
 
           <div class="below">
-            <div>
+            <div class="legendwrap">
               <ul class="legend" aria-label="Legend">
                 <li><b>Section</b> = module</li>
                 <li><b>Machine</b> = provider</li>
@@ -2391,8 +2455,8 @@ console.<span class="f">log</span>(<span class="s">'pre-flight ok'</span>);</pre
           );
         }
         function plate(cx, cy, t, dot, cw, bad, cond) {
-          cw = cw || 10;
-          var w = f(t.length * cw + 32),
+          cw = (cw || 10) * 1.2;
+          var w = f(t.length * cw + 30),
             h = 26,
             x = cx - w / 2,
             y = cy - h / 2;
@@ -2604,50 +2668,56 @@ console.<span class="f">log</span>(<span class="s">'pre-flight ok'</span>);</pre
           return g + '<g class="' + cls + '">' + l + '</g>';
         }
         function hatchDoor(x, y) {
-          var g =
-            '<circle cx="' +
-            x +
-            '" cy="' +
-            y +
-            '" r="25" fill="#15110e"/><circle cx="' +
-            x +
-            '" cy="' +
-            y +
-            '" r="22" fill="none" stroke="#ffd23a" stroke-width="5" stroke-dasharray="9 9"/>';
-          g += Ec(x, y, 20, 20, '#9aa7b8', '#5d6a7e', { s: 4, w: 3.4 });
-          g += Ec(x, y, 12.5, 12.5, '#c6d0dc', '#8593a8', {
-            s: 2.4,
-            w: 2.6,
+          var g = Ec(x, y, 22, 22, '#aab6c6', '#667389', { s: 4, w: 3.6 });
+          g += Ec(x, y, 14, 14, '#c9d3df', '#8896ab', {
+            s: 2.6,
+            w: 2.8,
             h: false,
           });
-          g +=
-            '<path d="M' +
-            x +
-            ' ' +
-            (y - 12) +
-            'V' +
-            (y + 12) +
-            'M' +
-            (x - 12) +
-            ' ' +
-            y +
-            'H' +
-            (x + 12) +
-            '" stroke="' +
-            INK +
-            '" stroke-width="3" stroke-linecap="round"/>';
-          g += Ec(x, y, 4.5, 4.5, '#ffd23a', false, { w: 2.2 });
           for (var i = 0; i < 6; i++) {
-            var a = (i / 6) * 6.283 + 0.3;
+            var a = (i / 6) * 6.283 + 0.5;
             g +=
               '<circle cx="' +
-              f(x + Math.cos(a) * 16.5) +
+              f(x + Math.cos(a) * 18) +
               '" cy="' +
-              f(y + Math.sin(a) * 16.5) +
-              '" r="1.7" fill="' +
+              f(y + Math.sin(a) * 18) +
+              '" r="2" fill="#667389" stroke="' +
               INK +
-              '"/>';
+              '" stroke-width="1.4"/>';
           }
+          g += line(
+            'M' +
+              (x - 11) +
+              ' ' +
+              y +
+              'H' +
+              (x + 11) +
+              'M' +
+              x +
+              ' ' +
+              (y - 11) +
+              'V' +
+              (y + 11) +
+              'M' +
+              (x - 8) +
+              ' ' +
+              (y - 8) +
+              'L' +
+              (x + 8) +
+              ' ' +
+              (y + 8) +
+              'M' +
+              (x + 8) +
+              ' ' +
+              (y - 8) +
+              'L' +
+              (x - 8) +
+              ' ' +
+              (y + 8),
+            3.4,
+            INK,
+          );
+          g += Ec(x, y, 5, 5, '#ffd23a', false, { w: 2.4 });
           return g;
         }
         function socket(x, y) {
@@ -2795,6 +2865,8 @@ console.<span class="f">log</span>(<span class="s">'pre-flight ok'</span>);</pre
             xb: 500,
             yb: 240,
             xm: 440,
+            tx: 440,
+            ty: 278,
             col: '#ff8a1f',
             colS: '#c2570b',
             dot: '#ff8a1f',
@@ -2810,6 +2882,8 @@ console.<span class="f">log</span>(<span class="s">'pre-flight ok'</span>);</pre
             xb: 500,
             yb: 392,
             xm: 440,
+            tx: 440,
+            ty: 430,
             col: '#ff8a1f',
             colS: '#c2570b',
             dot: '#ff8a1f',
@@ -2825,6 +2899,8 @@ console.<span class="f">log</span>(<span class="s">'pre-flight ok'</span>);</pre
             xb: 890,
             yb: 258,
             xm: 830,
+            tx: 830,
+            ty: 326,
             col: '#31c5f0',
             colS: '#177fa6',
             dot: '#31c5f0',
@@ -2840,6 +2916,8 @@ console.<span class="f">log</span>(<span class="s">'pre-flight ok'</span>);</pre
             xb: 890,
             yb: 414,
             xm: 830,
+            tx: 826,
+            ty: 452,
             jog: 800,
             col: '#58d86a',
             colS: '#2b9a3c',
@@ -3137,22 +3215,22 @@ console.<span class="f">log</span>(<span class="s">'pre-flight ok'</span>);</pre
           /* label plate */
           g +=
             '<g class="okonly">' +
-            plate(xm, yb - 36, c.token, c.dot, 10.4, false, true) +
+            plate(xm, yb - 36, c.token, c.dot, 8.8, false, true) +
             '</g><g class="cutonly">' +
-            plate(xm, yb - 36, c.token, c.dot, 9.4, true) +
+            plate(xm, yb - 36, c.token, c.dot, 8.8, true) +
             '</g>';
           g +=
             '<rect class="fring" x="' +
-            (xm - 56) +
+            (xm - 62) +
             '" y="' +
-            (yb - 56) +
-            '" width="112" height="104" rx="14" fill="none" stroke="#ffd23a" stroke-width="4"/><rect class="fring" x="' +
-            (xm - 60) +
-            '" y="' +
-            (yb - 60) +
-            '" width="120" height="112" rx="16" fill="none" stroke="' +
+            (yb - 62) +
+            '" width="124" height="116" rx="18" fill="none" stroke="' +
             INK +
-            '" stroke-width="3"/>';
+            '" stroke-width="9"/><rect class="fring" x="' +
+            (xm - 58) +
+            '" y="' +
+            (yb - 58) +
+            '" width="116" height="108" rx="15" fill="none" stroke="#ffd23a" stroke-width="5"/>';
           return g + '</g>';
         }
 
@@ -3849,6 +3927,11 @@ console.<span class="f">log</span>(<span class="s">'pre-flight ok'</span>);</pre
           });
           /* walking doors on the corridor ends */
           HT +=
+            '<g>' +
+            plate(336, 207, 'export', '#ffd23a', 9) +
+            line('M366 214L376 224', 3.4, INK) +
+            '</g>';
+          HT +=
             Rc(372, 314, 16, 22, '#3b2a22', '#241812', { r: 2, w: 3 }) +
             Rc(882, 314, 16, 22, '#3b2a22', '#241812', { r: 2, w: 3 });
 
@@ -3863,7 +3946,7 @@ console.<span class="f">log</span>(<span class="s">'pre-flight ok'</span>);</pre
               '<g class="atag" id="at-' +
               c.id +
               '">' +
-              plate(p.tag[0], p.tag[1], 'NEEDS ' + c.token, '#fff', 9.4, true) +
+              plate(c.tx, c.ty, 'NEEDS ' + c.token, '#fff', 8.4, true) +
               '</g>';
             TOP +=
               '<g class="wi" id="wi-' +
@@ -4219,6 +4302,7 @@ console.<span class="f">log</span>(<span class="s">'pre-flight ok'</span>);</pre
           var redShare = bad ? Math.max(12, 100 - pct) : 100 - pct;
           $('#pctOn').textContent = 100 - redShare + '%';
           $('#pctOff').textContent = redShare + '%';
+          $('#offlbl').textContent = bad ? 'Fault' : 'Pending';
           $('#nMod').textContent = nm;
           $('#nPro').textContent = np;
           $('#fb').style.width = 100 - redShare + '%';
@@ -4262,7 +4346,7 @@ console.<span class="f">log</span>(<span class="s">'pre-flight ok'</span>);</pre
                 to = e.mod.name,
                 from = byId[e.con.from].name;
               h +=
-                '\n<span class="err hl">[<a href="https://nexus.js.org/next/errors/NEXUS_MISSING_PROVIDER/">NEXUS_MISSING_PROVIDER</a>] ' +
+                '<span class="err hl">[<a href="https://nexus.js.org/next/errors/NEXUS_MISSING_PROVIDER/">NEXUS_MISSING_PROVIDER</a>] ' +
                 e.chip[1] +
                 ' (module ' +
                 to +
@@ -4337,7 +4421,7 @@ console.<span class="f">log</span>(<span class="s">'pre-flight ok'</span>);</pre
                 sfx('on');
               });
               render();
-              await sleep(260);
+              await sleep(200);
               if (my !== token) return;
             }
             group.forEach(function (m) {
@@ -4346,7 +4430,7 @@ console.<span class="f">log</span>(<span class="s">'pre-flight ok'</span>);</pre
             });
             setMeter(Math.round((done / MODS.length) * 8));
             render();
-            await sleep(320);
+            await sleep(240);
             if (my !== token) return;
           }
           setMeter(8);
@@ -4382,9 +4466,7 @@ console.<span class="f">log</span>(<span class="s">'pre-flight ok'</span>);</pre
             statusEl.classList.add('bad');
             statusEl.setAttribute('role', 'alert');
             msg.innerHTML =
-              '<span class="at">Red alert: ' +
-              titles.join(' and ') +
-              '</span>' +
+              '<span class="at">Red alert.</span> ' +
               parts.join('; ') +
               '. ' +
               (errs.length > 1
@@ -4458,7 +4540,16 @@ console.<span class="f">log</span>(<span class="s">'pre-flight ok'</span>);</pre
               byId[c.from].name +
               ' to ' +
               byId[c.to].name +
-              '</span><span class="st">PLUGGED</span>';
+              '</span> <span class="st">PLUGGED</span>';
+            b.setAttribute(
+              'aria-label',
+              'Conduit ' +
+                c.token +
+                ' from ' +
+                byId[c.from].name +
+                ' to ' +
+                byId[c.to].name,
+            );
             b.addEventListener('click', function () {
               toggle(c.id);
             });
@@ -4735,9 +4826,12 @@ console.<span class="f">log</span>(<span class="s">'pre-flight ok'</span>);</pre
           function paint() {
             var d = cur() === 'dark';
             lbl.textContent = d ? 'Light' : 'Dark';
-            btn.setAttribute('aria-label', d ? 'Light theme' : 'Dark theme');
-            btn.setAttribute('aria-pressed', d ? 'false' : 'true');
+            btn.setAttribute(
+              'aria-label',
+              d ? 'Switch to light theme' : 'Switch to dark theme',
+            );
             useHref($('#themeuse'), d ? 'i-sun' : 'i-moon');
+            btn.removeAttribute('aria-pressed');
           }
           btn.addEventListener('click', function () {
             var n = cur() === 'dark' ? 'light' : 'dark';
@@ -4787,6 +4881,15 @@ console.<span class="f">log</span>(<span class="s">'pre-flight ok'</span>);</pre
         });
         powered = true;
         recheck();
+        function canPan() {
+          var s = $('#scroller');
+          $('#frame').classList.toggle(
+            'canpan',
+            s.scrollWidth > s.clientWidth + 4,
+          );
+        }
+        canPan();
+        window.addEventListener('resize', canPan);
         $('#scroller').addEventListener(
           'scroll',
           function () {
