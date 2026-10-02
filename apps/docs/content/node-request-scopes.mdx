@@ -62,7 +62,7 @@ Try it: run the region. It prints `[ 'survey-7', 'survey-8' ]`, although both ha
 
 ## Wire `nodeScopes()` into a `node:http` server
 
-The server reads the mission from the request, calls `dispatch`, and writes the reply. `dispatch` and the container come from the first region. A server keeps its container for the life of the process, so the container is a `const` there: `await using` at the top level of a module disposes the container as soon as the module finishes loading.
+The server reads the mission from the request and calls `dispatch`, and the reply goes back as the response body. `dispatch` and the container come from the first region. A server keeps its container for the life of the process, so the container is a `const` there: `await using` at the top level of a module disposes the container as soon as the module finishes loading.
 
 ```ts no-run
 import { createServer } from 'node:http';
@@ -77,4 +77,4 @@ createServer(async (req, res) => {
 
 Try it: in `dispatch.ts`, change `await using ship` to `const ship`, add these lines at the end, and run it. The terminal prints `survey-7: arrived` once, from the region's own call, and the process keeps running. Open `http://localhost:3000/?mission=survey-9`. The page shows `survey-9: arrived`. Stop the server with Ctrl-C.
 
-Leave `await using ship` in place and the container disposes when the module finishes loading: the first request throws [NEXUS_DISPOSED](/errors/NEXUS_DISPOSED/) in the terminal and the process exits without a reply. Change it back to `const ship` to fix it.
+To see the failure, change `const ship` back to `await using ship` and restart the server. The container disposes when the module finishes loading, so the first request throws [NEXUS_DISPOSED](/errors/NEXUS_DISPOSED/) in the terminal and the process exits without a reply. Change it to `const ship` again to fix it.
