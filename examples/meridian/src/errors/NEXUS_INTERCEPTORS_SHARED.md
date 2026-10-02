@@ -37,7 +37,7 @@ const shared = interceptors({
   register: [interceptor(AUDIT, { useClass: AuditInterceptor })],
   global: [AUDIT],
 });
-await using ship = await Nexus.create(Engineering, { plugins: [shared] });
+await using _ship = await Nexus.create(Engineering, { plugins: [shared] });
 const error = await Nexus.create(Engineering, { plugins: [shared] }).catch(
   (caught: unknown) => caught,
 );
@@ -89,14 +89,15 @@ const [first, second] = await Promise.allSettled([
   Nexus.create(Engineering, { plugins: [shared] }),
   Nexus.create(Engineering, { plugins: [shared] }),
 ]);
-await using ship = first.status === 'fulfilled' ? first.value : undefined;
+await using _ship = first.status === 'fulfilled' ? first.value : undefined;
 const failed = second.status === 'rejected' ? second.reason : undefined;
 if (!isNexusError(failed, 'NEXUS_PROVIDER_FAILED')) throw failed;
-const plugin = failed.cause;
-if (!isNexusError(plugin, 'NEXUS_PLUGIN_FAILED')) throw failed;
-const inner = plugin.cause;
+const pluginError = failed.cause;
+if (!isNexusError(pluginError, 'NEXUS_PLUGIN_FAILED')) throw failed;
+const inner = pluginError.cause;
+// the code of an error, or null
 const codeOf = (e: unknown) => (isNexusError(e) ? e.code : null);
-const codes = [failed, plugin, inner].map(codeOf); // -> ['NEXUS_PROVIDER_FAILED', 'NEXUS_PLUGIN_FAILED', 'NEXUS_INTERCEPTORS_SHARED']
+const codes = [failed, pluginError, inner].map(codeOf); // -> ['NEXUS_PROVIDER_FAILED', 'NEXUS_PLUGIN_FAILED', 'NEXUS_INTERCEPTORS_SHARED']
 console.log(codes);
 const lines = isNexusError(inner) ? inner.message.split('\n') : null; // -> ['[NEXUS_INTERCEPTORS_SHARED] this interceptors() plugin is in use by a running container or an unfinished create.', '  Fix: call interceptors() once per container.']
 console.log(lines);
@@ -141,7 +142,7 @@ const shared = interceptors({
   global: [AUDIT],
 });
 const plugins = [errors({ text: [interceptorsText] }), shared];
-await using ship = await Nexus.create(Engineering, { plugins });
+await using _ship = await Nexus.create(Engineering, { plugins });
 const error = await Nexus.create(Engineering, { plugins }).catch(
   (caught: unknown) => caught,
 );

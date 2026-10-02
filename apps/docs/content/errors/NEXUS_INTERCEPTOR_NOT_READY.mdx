@@ -10,13 +10,7 @@ errorClass: InterceptorError
 
 `NEXUS_INTERCEPTOR_NOT_READY` means a method of an intercepted service was called while its container holds no interceptors to run. The `state` field names the case. `'building'` means the plugin has not built the interceptors yet, which happens when a constructor or factory calls a method of one of its dependencies during `create`. `'disposed'` means the container is already disposed, which happens when code keeps a service past `ship[Symbol.asyncDispose]()`, or past a `create` that failed and disposed what it had built.
 
-The error is raised at the call, and how it arrives depends on the call:
-
-| The call                                                      | `state`      | How the error arrives                                                                                             |
-| ------------------------------------------------------------- | ------------ | ----------------------------------------------------------------------------------------------------------------- |
-| A method that is not async, after disposal                    | `'disposed'` | The call throws it.                                                                                               |
-| An async method, after disposal                               | `'disposed'` | The call returns a promise that rejects with it.                                                                  |
-| A method called from a constructor or factory during `create` | `'building'` | `Nexus.create` rejects with [NEXUS_PROVIDER_FAILED](/errors/NEXUS_PROVIDER_FAILED/), whose `cause` is this error. |
+The error is raised at the call, and how it arrives depends on the call. A method declared without `async` throws it after disposal. An async method returns a promise that rejects with it after disposal. A method called from a constructor or factory during `create` fails the build: `Nexus.create` rejects with [NEXUS_PROVIDER_FAILED](/errors/NEXUS_PROVIDER_FAILED/), whose `cause` is this error with `state: 'building'`.
 
 `@nexusdi/interceptors` raises this error where no container formats it, so the message carries its full text with a text pack or without one. The message for `'building'` ends with a fix line: `Fix: call it from onInit, or inject it with lazy().`
 
@@ -28,7 +22,15 @@ The region disposes `ship` and then calls `output()`, which throws, and `diagnos
 
 ```
 
-Try it: run `npm install @nexusdi/core@next @nexusdi/interceptors@next`, save the region as `not-ready.ts` and run `npx tsx not-ready.ts`. It prints three lines: `disposed`, the message `[NEXUS_INTERCEPTOR_NOT_READY] ReactorCore.output was called after its container was disposed.` and the code `NEXUS_INTERCEPTOR_NOT_READY` of the rejected promise. Delete the line `await ship[Symbol.asyncDispose]();` and run it again. Both calls succeed, so it prints `undefined`, `undefined` and `null`. Put the line back and the three lines return.
+Try it: run `npm install @nexusdi/core@next @nexusdi/interceptors@next`, save the region as `not-ready.ts` and run `npx tsx not-ready.ts`. It prints the state `disposed`, then the message `[NEXUS_INTERCEPTOR_NOT_READY] ReactorCore.output was called after its container was disposed.`, then the code `NEXUS_INTERCEPTOR_NOT_READY` of the rejected promise. Delete the line `await ship[Symbol.asyncDispose]();` and run it again. Both calls succeed, so each of the three claims has nothing to read: it prints `undefined` twice and then `null`. Put the line back and the first output returns.
+
+The building case needs a constructor that calls a dependency. In this region `PowerLog` calls `reactor.output()` in its constructor, before the plugin has built the interceptors.
+
+```ts file=examples/meridian/src/errors/NEXUS_INTERCEPTOR_NOT_READY.md region=building
+
+```
+
+Try it: save the region as `building.ts` and run `npx tsx building.ts`. It prints the chain of codes as an array, `[ 'NEXUS_PROVIDER_FAILED', 'NEXUS_INTERCEPTOR_NOT_READY' ]`, then the message of the cause as an array of two lines: `[NEXUS_INTERCEPTOR_NOT_READY] ReactorCore.output was called before its interceptors were built.` and `  Fix: call it from onInit, or inject it with lazy().`
 
 ## Fix `NEXUS_INTERCEPTOR_NOT_READY`
 
@@ -38,7 +40,15 @@ Try it: run `npm install @nexusdi/core@next @nexusdi/interceptors@next`, save th
 
 ```
 
-The fix region differs from the reproduce region in how the container ends. It declares `ship` with `await using`, which disposes it when the program ends, and it calls both methods first.
+The building case is fixed by moving the call into `onInit`, which runs once the interceptors are built.
+
+```ts file=examples/meridian/src/errors/NEXUS_INTERCEPTOR_NOT_READY.md region=building-fix
+
+```
+
+Try it: save the region as `building-fixed.ts` and run `npx tsx building-fixed.ts`. It prints `1.21`. Change the constructor to `constructor(private readonly reactor: IReactorCore) { this.reactor.output(); }` and run it again. `npx tsc` accepts the file, and `npx tsx building-fixed.ts` throws an uncaught `ProviderError` and prints a stack trace headed `ProviderError: [NEXUS_PROVIDER_FAILED] token=PowerLog module=Engineering path=PowerLog.` and the address of this page, whose `[cause]` is the `InterceptorError` for `ReactorCore.output`. Put the constructor back and it prints `1.21` again.
+
+The disposed case is fixed by keeping the container open. The next region differs from the reproduce region in how the container ends. It declares `ship` with `await using`, which disposes it when the program ends, and it calls both methods first.
 
 Try it: save the region as `fixed.ts` and run `npx tsx fixed.ts`. It prints `1.21` and `nominal`. Add the line `await ship[Symbol.asyncDispose]();` above the line `const output = reactor.output();` and run it again. `npx tsc` accepts the file, and `npx tsx fixed.ts` throws an uncaught `InterceptorError` and prints a stack trace headed `InterceptorError: [NEXUS_INTERCEPTOR_NOT_READY] ReactorCore.output was called after its container was disposed.` Remove the line and the program prints its two lines again.
 

@@ -44,14 +44,17 @@ const error = await Nexus.create(Engineering, { plugins: [wrapped] }).catch(
   (caught: unknown) => caught,
 );
 if (!isNexusError(error, 'NEXUS_PROVIDER_FAILED')) throw error;
-const plugin = error.cause;
-if (!isNexusError(plugin, 'NEXUS_PLUGIN_FAILED')) throw error;
-const inner = plugin.cause;
+const pluginError = error.cause;
+if (!isNexusError(pluginError, 'NEXUS_PLUGIN_FAILED')) throw error;
+const inner = pluginError.cause;
+// the code of an error, or null
 const codeOf = (e: unknown) => (isNexusError(e) ? e.code : null);
-const codes = [error, plugin, inner].map(codeOf); // -> ['NEXUS_PROVIDER_FAILED', 'NEXUS_PLUGIN_FAILED', 'NEXUS_INTERCEPTORS_UNCHECKED']
+const codes = [error, pluginError, inner].map(codeOf); // -> ['NEXUS_PROVIDER_FAILED', 'NEXUS_PLUGIN_FAILED', 'NEXUS_INTERCEPTORS_UNCHECKED']
 console.log(codes);
-const hook = plugin.hook; // -> 'construct'
+const hook = pluginError.hook; // -> 'construct'
 console.log(hook);
+const also = error.alsoFailed.map((other) => other.token); // -> ['Audit', 'interceptors guard']
+console.log(also);
 const lines = isNexusError(inner) ? inner.message.split('\n') : null; // -> ['[NEXUS_INTERCEPTORS_UNCHECKED] ReactorCore was built from a provider that no compile.check of this interceptors() plugin saw, so its interceptors are unknown.', "  Fix: install @nexusdi/interceptors at the version of @nexusdi/core, and let only the container call the plugin's hooks."]
 console.log(lines);
 ```
