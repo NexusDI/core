@@ -92,4 +92,5 @@ Task briefs: tasks/task-NN.md, shared constraints tasks/globals.md
 - T28: done e54d867 (approved; also checks hrefs that components, app/ and _meta.ts emit; /release-candidate/ allowed until Task 59, brief amended)
 - T30: done b17bf30+840f740 (approved; shared ratchetFindings helper in docs/allowance.ts for doc-fence and doc-domain, dupes 1.8%; later guards with an allowance ratchet reuse it)
 - T31: done 326decc+ce0bbce+521dcaa (no allowance, as the plan; comments stripped, provide<T>(, typed deps, bracket-depth deps entries; review fixes verified by the controller with an uncached run: 726 tests)
-- T32: impl
+- T32: done 3249b86+d59a4ae (D3 regionRoots from the tree; captions guard uses the loader's quote/backslash rule; wiring check strips comments; approved)
+- T34: impl
