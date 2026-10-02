@@ -20,11 +20,11 @@ The page is the ship's pre-flight console: a blueprint schematic with hand-lette
 A breaker bank and couplings on the hull control the conduits, and the decks light in dependency order.
 The launch key stays locked while the checklist shows the failing line that names the missing system.
 
-## Concept D: game UI Meridian (`concept-d.html`)
+## Concept D: cel-shaded Meridian cutaway (`concept-d.html`)
 
-Concept A restyled in the graphical style of the owner's reference (`reference/chess-hud.jpg`): a navy vignette, pixel display type, raised slate cards with hard shadows, bevelled blue, red and yellow pills, and an optional CRT screen.
-A ship status card shows a striped boot bar, module and provider counts and a Blueprint VALID card, and hit popups mark each section coming online.
-Cutting a conduit flips the card to INVALID, sounds the red alert naming the broken link, and keeps the big yellow LAUNCH locked until the conduit is restored.
+A detailed side-on cutaway of the Starship Meridian in Borderlands-style cel shading: uneven ink outlines, flat fills with hatched shadows and light grunge, with pixel work kept to small accents. Decks, ladders, hatches, crew and labelled machines map sections to modules, machines to providers, pipes to dependencies and hatches to exports.
+The game-UI chrome comes from the owner's reference (`reference/chess-hud.jpg`): bevelled pills, raised panels, a striped boot bar, stat cards, hit popups and an optional CRT screen. The schematic and `preflight.ts` sit side by side above the fold.
+Cutting a conduit throws sparks, leaves a dangling cable and darkens the machine that needed it. `preflight.ts` prints the failure next to the ship, Blueprint turns INVALID, and LAUNCH stays locked until the plug goes back.
 
 ## Recommendation
 
@@ -32,6 +32,6 @@ Build on concept B. It is the most fun and the most visual, it reads as a sales 
 
 On a phone, B's arrow labels sit tight against the conduits and need a spacing pass in the build.
 
-Concept D is the owner's pick of direction after the first three. On a phone its ship labels render at about 7 to 8px, so the build needs a stacked ship layout there.
+Concept D is the owner's pick of direction. On a phone its ship sits in a frame that pans sideways, with labels at about 12px. Check the display face on a machine that has Impact before the build.
 
 Before publishing, confirm the comparison rows against the NestJS and InversifyJS versions you check, and date the table.
