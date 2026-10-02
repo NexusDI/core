@@ -51,6 +51,8 @@ const charts = provide(NAV_CHARTS, {
 // provider is built during create or createScope, so it cannot be eager: false. ..." | undefined'
 ```
 
+Try it: in the `eager: false` program, replace the `useClass` option with `useFactory: async () => new StarCharts()` and run `npx tsc`. TypeScript reports TS2769 on the `provide(` call, and the last overload's message holds the `NEXUS_LAZY_ASYNC` text above. Remove `async` and `npx tsc` reports nothing, and the program prints the same three lines as before. Dropping `eager: false` also clears the error.
+
 A JavaScript factory that returns a promise at that first `get()` makes `get()` throw [`NEXUS_LAZY_ASYNC`](/errors/NEXUS_LAZY_ASYNC/). A transient factory must also return synchronously: a JavaScript one that returns a promise makes `get()` throw [`NEXUS_ASYNC_TRANSIENT`](/errors/NEXUS_ASYNC_TRANSIENT/), and TypeScript names that code when the factory is `async`.
 
 Try it: run the `eager: false` program. It prints `[]`, then `course to Kepler-442b`, then `[ 'charts loaded' ]`. Delete `eager: false` and run it again. `beforeGet` now prints `[ 'charts loaded' ]`, because `Nexus.create` built the charts before the first `get()`. Put `eager: false` back and `beforeGet` prints `[]` again.
