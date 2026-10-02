@@ -17,7 +17,7 @@ NexusDI 0.4 needs Node 22.12 or later and TypeScript 5.4 or later, and it is pub
 
 ```bash
 npm install @nexusdi/core@next
-npm install -D @nexusdi/testing@next @nexusdi/devtools@next
+npm install -D @nexusdi/testing@next @nexusdi/errors@next @nexusdi/devtools@next
 ```
 
 `@nexusdi/decorators` holds the decorators of a project that keeps them: `@Injectable` and `@Inject` for providers, `@Module` for modules. `@nexusdi/testing` holds the testing container. `@nexusdi/errors` and `@nexusdi/devtools` word every error in full. `@nexusdi/node` holds `nodeScopes()`, which binds a scope to one Node request.
@@ -71,6 +71,17 @@ class QuantumComputer {
 
 Try it: save the region as `services.ts` and run `npx tsx services.ts`. It prints `Reactor output 1.21 GW, no link.` Swap the two entries of `static deps` and `npx tsc` reports TS2769 on the `provide(COMPUTER, ...)` call, because the tuple no longer matches the constructor. Swap them back.
 
+0.3 also injected a plain field marked `@Inject`. 0.4 has no plain-field injection:
+
+```ts no-run
+@Service()
+class QuantumComputer {
+  @Inject(REACTOR) reactor!: IReactorCore;
+}
+```
+
+Move that dependency into `static deps` as a constructor parameter. A project that keeps decorators can instead write `@Inject(REACTOR) accessor reactor!: IReactorCore;` with `@Inject` from `@nexusdi/decorators`, which accepts `accessor` fields only. The container sets an `accessor` field after the constructor returns and before `onInit`.
+
 ## Replace `@Module` classes and `DynamicModule` with `defineModule()`
 
 `defineModule({ name, providers, imports, exports })` declares a module. A configurable module names an options token with `options`, and the importer passes the options with `forRoot(value)` or `forRootAsync({ useFactory, deps })`. `Mod.config(value)` becomes `Mod.forRoot(value)`, and `Mod.configAsync(fn)` becomes `Mod.forRootAsync({ useFactory: fn })`.
@@ -89,6 +100,8 @@ container.set(Comms.config({ frequency: 1420 }));
 
 Try it: save the region as `modules.ts` and run `npx tsx modules.ts`. It prints `1420`. Replace `Comms.forRoot({ frequency: 1420 })` with `Comms.forRootAsync({ useFactory: () => ({ frequency: 1421 }) })` and it prints `1421`. Replace it with the bare `Comms` and `Nexus.create` rejects with `NEXUS_BLUEPRINT_INVALID`, which holds `NEXUS_MODULE_OPTIONS_MISSING` for `module=Comms`, because the module declares an options token and no importer supplied the options. Put the `forRoot` call back.
 
+The 0.3 static `DynamicModule.forRoot(config)` took a module config and returned a runtime module class. A 0.4 `forRoot(options)` takes the options of one configurable module, which is a different meaning under the same name, so check each 0.3 `forRoot` call site. `DynamicModule.forRoot({ providers })` becomes `defineModule({ name, providers })`.
+
 0.4 enforces module encapsulation, and this is the change most likely to stop a provider from resolving after the upgrade. A module sees its own providers, the exports of the modules it imports, and the exports of every global module. 0.3 read no `exports`, so a 0.3 graph that worked through one flat map fails until each module exports what its importers use:
 
 ```ts file=examples/meridian/src/pages/upgrade.md region=module-exports
@@ -99,7 +112,7 @@ Try it: save the region as `exports.ts` and run `npx tsx exports.ts`. It prints 
 
 ## Start the NexusDI container with `Nexus.create`
 
-`new Nexus()` followed by `set()` calls becomes one `await Nexus.create(...)`. Its root is a module, or an array of providers. The container is sealed once `create` resolves. A provider registered after startup becomes a module that `ship.load()` adds ([How do I add a module after startup?](/load/)).
+`new Nexus()` followed by `set()` calls becomes one `await Nexus.create(...)`. Its root is a module, or an array of providers (a plain `{ providers, imports, exports }` object also works). The container is sealed once `create` resolves. A provider registered after startup becomes a module that `ship.load()` adds ([How do I add a module after startup?](/load/)).
 
 ```ts no-run
 const container = new Nexus();
@@ -190,6 +203,21 @@ try {
 
 Try it: save the region as `codes.ts` and run `npx tsx codes.ts`. It prints `true`, `NEXUS_MISSING_PROVIDER` and the full first line, `[NEXUS_MISSING_PROVIDER] ShipComputer (module root) depends on NavCharts, but no provider of NavCharts is visible in root.` Delete the `plugins: [errors()],` option and run it again. The last line becomes core's one-line message, `[NEXUS_MISSING_PROVIDER] token=NavCharts requester=ShipComputer module=root.` followed by the link to the code's page. The code and the class stay the same. Put the option back.
 
+## Replace the rest of the 0.3 API
+
+These 0.3 exports and members have no entry in the steps above:
+
+| 0.3                                                                                   | 0.4                                                                                                                                                                                                                                              |
+| ------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| `container.resolve(Class)`                                                            | `ship.resolve(deps)` takes a deps tuple or map and returns the resolved values. It builds no class, and `resolve(Class)` throws `NEXUS_INVALID_TOKEN`. Provide the class with `provide(Class, { lifetime: 'transient' })` and call `get(Class)`. |
+| `container.list()`, `container.clear()`                                               | `list()` is gone, and `graph(ship)` from `@nexusdi/devtools` reports the graph. `clear()` is gone: dispose the ship with `await using` or `[Symbol.asyncDispose]()`.                                                                             |
+| `@Service`, `@Provider`                                                               | `static deps` with `provide()`, or `@Injectable` from `@nexusdi/decorators`.                                                                                                                                                                     |
+| `isToken`, `isService`, `isModuleClass` and the other guards                          | No 0.4 form. Core exports `isNexusError` and `isForeign`.                                                                                                                                                                                        |
+| `getMetadata`, `setMetadata`, `METADATA_KEYS`, `SYMBOL_METADATA`                      | No 0.4 form: core keeps no public metadata store.                                                                                                                                                                                                |
+| `import Nexus from '@nexusdi/core'`                                                   | The named export `import { Nexus } from '@nexusdi/core'`. 0.4 has no default export.                                                                                                                                                             |
+| `Token.create(id)`, `Token.createUnique()`, `token.equals(other)`, `token.toSymbol()` | `new Token<T>(description)` makes each token, `===` compares two, and `toSymbol()` is gone.                                                                                                                                                      |
+| `IContainer`, `ModuleProvider`                                                        | The `Nexus` type, and `ProviderEntry`.                                                                                                                                                                                                           |
+
 ## NexusDI 0.4 behaviour that changes without a compile error
 
 These changes compile in a 0.3 project and behave differently under 0.4:
@@ -202,6 +230,7 @@ These changes compile in a 0.3 project and behave differently under 0.4:
 6. One token provided in two modules builds two singletons, one for each module.
 7. 0.3 disposed nothing. 0.4 disposes every instance it owns, a factory's result included, when the container is disposed.
 8. Every error message starts with its code in brackets, such as `[NEXUS_MISSING_PROVIDER]`.
+9. `@Optional` still threw `NoProvider` in 0.3 when no provider existed. `optional()` in 0.4 resolves to `undefined`.
 
 ```ts file=examples/meridian/src/pages/upgrade.md region=has-visibility
 
