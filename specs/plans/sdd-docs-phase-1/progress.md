@@ -141,4 +141,5 @@ Task briefs: tasks/task-NN.md, shared constraints tasks/globals.md
 - T72: done 411e413+9001641 (NOT_READY disposed/building with building region; SHARED check and overlapping-create sites; UNCHECKED construct only; short tables to prose; approved after fix)
 - T73: done eec4e11+1d608af (40 rows match code pages and libs; arrival clause per row from code pages; approved after fix)
 - T77: done c9bbe9f+512c295 (method claims checked against harness; check rewrites matrix.json so restore checks out both files; issue link to /issues/new/choose until 04-benchmark-setup exists; approved with minors fixed)
-- T78: impl
+- T78: done 11cdcf1+(fix) (claims match libraries.json, fixtures, results and npm; figures only via components; doc-links allowance now empty; InversifyJS flags taken from the fixture header, site blocked by proxy; approved after fix)
+- T79: impl
