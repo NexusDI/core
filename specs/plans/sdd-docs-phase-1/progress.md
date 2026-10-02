@@ -114,4 +114,5 @@ Task briefs: tasks/task-NN.md, shared constraints tasks/globals.md
 - T50: done bb42048+36f56e4 (override codes wrapped in BLUEPRINT_INVALID; unused overrideModule and lazy; no useExisting form; approved)
 - T51: done d552eff+35d9d69 (fix steps incl. the server's await using break; approved)
 - T52: done be4dbb5+404557d (load-twice region rewritten; LOAD_GLOBAL_MODULE thrown directly, code and module printed; approved)
-- T53: impl
+- T53: done bb00c76+660fd5d (BLUEPRINT_INVALID wraps MISSING_DEPS; toolchain claims checked against toolchain-matrix; approved)
+- T54: impl
