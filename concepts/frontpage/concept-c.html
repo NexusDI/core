@@ -1,0 +1,2900 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>NexusDI | Pre-flight console</title>
+    <meta
+      name="description"
+      content="NexusDI is a typed dependency injection library for TypeScript. Wiring mistakes fail CI before a user hits them."
+    />
+    <style>
+      :root {
+        --bg: #f3efe3;
+        --bg2: #ebe5d3;
+        --line: #1d4a7a;
+        --dim: #5d7590;
+        --text: #14283d;
+        --lit: #0b7a52;
+        --warn: #8a5600;
+        --alert: #b3201a;
+        --alertbg: rgba(179, 32, 26, 0.13);
+        --grid: rgba(29, 74, 122, 0.1);
+        --grid2: rgba(29, 74, 122, 0.2);
+        --shadow: rgba(20, 40, 61, 0.25);
+        --hand:
+          'Segoe Print', 'Bradley Hand', 'Chalkboard SE', 'Marker Felt',
+          'Comic Sans MS', cursive;
+        --mono:
+          ui-monospace, SFMono-Regular, Menlo, Consolas, 'Liberation Mono',
+          monospace;
+        --sans:
+          'Arial Narrow', 'Helvetica Neue', Arial, 'Liberation Sans', sans-serif;
+        color-scheme: light;
+      }
+      @media (prefers-color-scheme: dark) {
+        :root:not([data-theme='light']) {
+          --bg: #0a2744;
+          --bg2: #0d3157;
+          --line: #8fdcff;
+          --dim: #86afd0;
+          --text: #d9f0ff;
+          --lit: #6dffc8;
+          --warn: #ffcf5a;
+          --alert: #ff8080;
+          --alertbg: rgba(255, 90, 90, 0.2);
+          --grid: rgba(143, 220, 255, 0.08);
+          --grid2: rgba(143, 220, 255, 0.18);
+          --shadow: rgba(0, 0, 0, 0.45);
+          color-scheme: dark;
+        }
+      }
+      :root[data-theme='dark'] {
+        --bg: #0a2744;
+        --bg2: #0d3157;
+        --line: #8fdcff;
+        --dim: #86afd0;
+        --text: #d9f0ff;
+        --lit: #6dffc8;
+        --warn: #ffcf5a;
+        --alert: #ff8080;
+        --alertbg: rgba(255, 90, 90, 0.2);
+        --grid: rgba(143, 220, 255, 0.08);
+        --grid2: rgba(143, 220, 255, 0.18);
+        --shadow: rgba(0, 0, 0, 0.45);
+        color-scheme: dark;
+      }
+      * {
+        box-sizing: border-box;
+      }
+      html {
+        scroll-behavior: smooth;
+      }
+      body {
+        margin: 0;
+        background: var(--bg);
+        color: var(--text);
+        font: 16px/1.5 var(--sans);
+        background-image:
+          linear-gradient(var(--grid) 1px, transparent 1px),
+          linear-gradient(90deg, var(--grid) 1px, transparent 1px);
+        background-size: 24px 24px;
+        overflow-x: hidden;
+      }
+      a {
+        color: inherit;
+      }
+      :focus-visible {
+        outline: 3px solid var(--warn);
+        outline-offset: 3px;
+        border-radius: 3px;
+      }
+      .wrap {
+        max-width: 1240px;
+        margin: 0 auto;
+        padding: 0 16px;
+      }
+      .mono {
+        font-family: var(--mono);
+      }
+      .hand {
+        font-family: var(--hand);
+      }
+      .sr {
+        position: absolute;
+        width: 1px;
+        height: 1px;
+        overflow: hidden;
+        clip: rect(0 0 0 0);
+        white-space: nowrap;
+      }
+
+      /* top bar */
+      .top {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 12px;
+        padding: 14px 0;
+      }
+      .brand {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        font-weight: 800;
+        letter-spacing: 0.06em;
+        text-transform: uppercase;
+        text-decoration: none;
+      }
+      .brand svg {
+        width: 30px;
+        height: 30px;
+      }
+      .tools {
+        display: flex;
+        gap: 8px;
+        align-items: center;
+      }
+      .chip {
+        font: 600 14px var(--mono);
+        border: 2px solid var(--line);
+        background: transparent;
+        color: var(--text);
+        padding: 6px 12px;
+        border-radius: 4px;
+        cursor: pointer;
+        text-decoration: none;
+        display: inline-flex;
+        gap: 8px;
+        align-items: center;
+        min-height: 40px;
+      }
+      .chip:hover {
+        background: var(--grid2);
+      }
+
+      /* hero */
+      .hero {
+        display: grid;
+        gap: 18px;
+        padding: 12px 0 8px;
+      }
+      .stamp {
+        font: 700 12px var(--mono);
+        letter-spacing: 0.14em;
+        text-transform: uppercase;
+        color: var(--dim);
+        display: flex;
+        flex-wrap: wrap;
+        gap: 6px 14px;
+      }
+      h1 {
+        font: 800 clamp(2.1rem, 6.2vw, 4.6rem)/1.02 var(--sans);
+        margin: 0;
+        letter-spacing: -0.01em;
+        max-width: 18ch;
+        text-wrap: balance;
+      }
+      h1 .circ {
+        position: relative;
+        display: inline-block;
+        white-space: nowrap;
+      }
+      h1 .circ svg {
+        position: absolute;
+        left: -12%;
+        top: -20%;
+        width: 124%;
+        height: 140%;
+        overflow: visible;
+        pointer-events: none;
+      }
+      h1 .circ path {
+        fill: none;
+        stroke: var(--alert);
+        stroke-width: 3;
+        stroke-linecap: round;
+        stroke-dasharray: 400;
+        stroke-dashoffset: 400;
+        animation: draw 1.4s 0.4s ease-out forwards;
+      }
+      @keyframes draw {
+        to {
+          stroke-dashoffset: 0;
+        }
+      }
+      .sub {
+        font-size: clamp(1rem, 2.2vw, 1.25rem);
+        max-width: 56ch;
+        margin: 0;
+        color: var(--text);
+      }
+      .cta {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 12px;
+        align-items: center;
+      }
+      .btn {
+        font: 800 16px var(--sans);
+        letter-spacing: 0.06em;
+        text-transform: uppercase;
+        padding: 13px 22px;
+        border: 3px solid var(--line);
+        border-radius: 4px;
+        text-decoration: none;
+        cursor: pointer;
+        display: inline-flex;
+        align-items: center;
+        gap: 10px;
+        min-height: 48px;
+        background: transparent;
+        color: var(--text);
+        box-shadow: 4px 4px 0 var(--line);
+        transition:
+          transform 0.12s,
+          box-shadow 0.12s;
+      }
+      .btn:hover {
+        transform: translate(2px, 2px);
+        box-shadow: 2px 2px 0 var(--line);
+      }
+      .btn:active {
+        transform: translate(4px, 4px);
+        box-shadow: 0 0 0 var(--line);
+      }
+      .btn.primary {
+        background: var(--line);
+        color: var(--bg);
+      }
+      .install {
+        display: flex;
+        align-items: stretch;
+        border: 2px dashed var(--line);
+        border-radius: 4px;
+        max-width: 100%;
+        background: var(--bg2);
+      }
+      .install code {
+        font: 600 15px var(--mono);
+        padding: 11px 14px;
+        white-space: nowrap;
+        overflow-x: auto;
+      }
+      .install code i {
+        color: var(--dim);
+        font-style: normal;
+      }
+      .install button {
+        font: 700 13px var(--mono);
+        border: 0;
+        border-left: 2px dashed var(--line);
+        background: transparent;
+        color: var(--text);
+        padding: 0 14px;
+        cursor: pointer;
+        min-width: 84px;
+      }
+      .install button:hover {
+        background: var(--grid2);
+      }
+
+      /* console */
+      .console {
+        margin-top: 18px;
+        border: 3px solid var(--line);
+        border-radius: 10px;
+        background: var(--bg);
+        position: relative;
+        box-shadow: 8px 8px 0 var(--shadow);
+      }
+      .console::before,
+      .console::after {
+        content: '';
+        position: absolute;
+        width: 10px;
+        height: 10px;
+        border-radius: 50%;
+        border: 2px solid var(--line);
+        top: 8px;
+      }
+      .console::before {
+        left: 8px;
+      }
+      .console::after {
+        right: 8px;
+      }
+      .cgrid {
+        display: grid;
+        gap: 0;
+        grid-template-columns: 1fr;
+      }
+      @media (min-width: 980px) {
+        .cgrid {
+          grid-template-columns: minmax(0, 1.75fr) minmax(0, 1fr);
+        }
+      }
+      .plate {
+        padding: 22px 18px 16px;
+        border-bottom: 2px solid var(--line);
+      }
+      @media (min-width: 980px) {
+        .plate.side {
+          border-left: 2px solid var(--line);
+        }
+      }
+      .plate h2 {
+        font: 800 13px var(--mono);
+        letter-spacing: 0.14em;
+        text-transform: uppercase;
+        margin: 0 0 10px;
+        color: var(--dim);
+        display: flex;
+        justify-content: space-between;
+        gap: 8px;
+      }
+      .sbar {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 8px;
+        margin-bottom: 8px;
+        align-items: center;
+      }
+      .sbar .cap {
+        font: 13px var(--mono);
+        color: var(--dim);
+        margin-left: auto;
+        min-height: 1.4em;
+      }
+      #ship {
+        width: 100%;
+        height: auto;
+        display: block;
+        touch-action: manipulation;
+      }
+      .legend {
+        display: none;
+        list-style: none;
+        margin: 8px 0 0;
+        padding: 0;
+        font: 15px var(--hand);
+        gap: 4px 14px;
+        flex-wrap: wrap;
+      }
+      .tall .legend {
+        display: flex;
+      }
+      .legend b {
+        font-weight: 400;
+        border-bottom: 2px solid var(--line);
+      }
+
+      /* ship svg classes */
+      .hull {
+        fill: none;
+        stroke: var(--line);
+        stroke-width: 2.5;
+      }
+      .hull2 {
+        fill: none;
+        stroke: var(--line);
+        stroke-width: 1;
+        stroke-dasharray: 3 5;
+        opacity: 0.7;
+      }
+      .sec rect.body {
+        fill: var(--bg);
+        stroke: var(--dim);
+        stroke-width: 2.5;
+        transition:
+          fill 0.4s,
+          stroke 0.4s;
+      }
+      .sec text {
+        fill: var(--text);
+      }
+      .sec .name {
+        font: 800 14px var(--sans);
+        letter-spacing: 0.08em;
+        text-transform: uppercase;
+      }
+      .sec .deck {
+        font: 11px var(--mono);
+        fill: var(--dim);
+      }
+      .sec .sys {
+        font: 600 11.5px var(--mono);
+      }
+      .sec .pip {
+        fill: none;
+        stroke: var(--dim);
+        stroke-width: 1.6;
+      }
+      .sec .stat {
+        font: 800 12px var(--mono);
+        letter-spacing: 0.08em;
+      }
+      .sec .det {
+        font: 600 11px var(--mono);
+      }
+      .sec .lamp {
+        fill: var(--dim);
+        stroke: var(--dim);
+      }
+      .sec .alertico {
+        display: none;
+      }
+      .sec.off text.sys,
+      .sec.off .name {
+        fill: var(--dim);
+      }
+      .sec.powering rect.body {
+        stroke: var(--warn);
+        fill: color-mix(in srgb, var(--warn) 12%, var(--bg));
+      }
+      .sec.powering .lamp {
+        fill: var(--warn);
+        stroke: var(--warn);
+        animation: blink 0.5s steps(2) infinite;
+      }
+      .sec.powering .stat {
+        fill: var(--warn);
+      }
+      .sec.online rect.body {
+        stroke: var(--lit);
+        fill: color-mix(in srgb, var(--lit) 10%, var(--bg));
+      }
+      .sec.online .lamp {
+        fill: var(--lit);
+        stroke: var(--lit);
+      }
+      .sec.online .stat {
+        fill: var(--lit);
+      }
+      .sec.online .pip {
+        stroke: var(--lit);
+      }
+      .sec.standby rect.body {
+        stroke: var(--warn);
+        stroke-dasharray: 6 4;
+      }
+      .sec.standby .stat,
+      .sec.standby .det {
+        fill: var(--warn);
+      }
+      .sec.alert rect.body {
+        stroke: var(--alert);
+        fill: var(--alertbg);
+        stroke-width: 3.5;
+        animation: alertpulse 0.9s ease-in-out infinite;
+      }
+      .sec.alert .stat,
+      .sec.alert .det {
+        fill: var(--alert);
+      }
+      .sec.alert .lamp {
+        fill: var(--alert);
+        stroke: var(--alert);
+      }
+      .sec.alert .alertico {
+        display: block;
+      }
+      .sec.alert .pip {
+        stroke: var(--alert);
+      }
+      @keyframes blink {
+        50% {
+          opacity: 0.25;
+        }
+      }
+      @keyframes alertpulse {
+        50% {
+          stroke-width: 6;
+          filter: drop-shadow(0 0 6px var(--alert));
+        }
+      }
+      .cond {
+        cursor: pointer;
+      }
+      .cond .base {
+        fill: none;
+        stroke: var(--dim);
+        stroke-width: 5;
+        stroke-linecap: round;
+        stroke-linejoin: round;
+      }
+      .cond .flow {
+        fill: none;
+        stroke: var(--lit);
+        stroke-width: 2.5;
+        stroke-dasharray: 3 9;
+        stroke-linecap: round;
+        opacity: 0;
+        animation: flow 1s linear infinite;
+      }
+      .cond.live .flow {
+        opacity: 1;
+      }
+      .cond.live .base {
+        stroke: color-mix(in srgb, var(--lit) 45%, var(--bg));
+      }
+      .cond.cut .base {
+        stroke: var(--alert);
+        stroke-width: 4;
+      }
+      @keyframes flow {
+        to {
+          stroke-dashoffset: -12;
+        }
+      }
+      .cond .cpl {
+        fill: var(--bg);
+        stroke: var(--line);
+        stroke-width: 2.5;
+      }
+      .cond .cplx {
+        stroke: var(--line);
+        stroke-width: 2.5;
+        stroke-linecap: round;
+      }
+      .cond.cut .cpl {
+        stroke: var(--alert);
+      }
+      .cond .tok {
+        font: 700 10.5px var(--mono);
+        fill: var(--text);
+        paint-order: stroke;
+        stroke: var(--bg);
+        stroke-width: 5;
+        stroke-linejoin: round;
+        text-anchor: middle;
+      }
+      .cond .spark {
+        display: none;
+        stroke: var(--alert);
+        stroke-width: 2.5;
+        stroke-linecap: round;
+      }
+      .cond.cut .spark {
+        display: block;
+        animation: blink 0.45s steps(2) infinite;
+      }
+      .cond:hover .cpl {
+        fill: var(--grid2);
+      }
+      .cond:focus-visible {
+        outline: none;
+      }
+      .cond:focus-visible .focusring {
+        stroke: var(--warn);
+        stroke-width: 3.5;
+      }
+      .focusring {
+        fill: none;
+        stroke: transparent;
+      }
+      .hatch {
+        fill: var(--bg);
+        stroke: var(--line);
+        stroke-width: 2;
+      }
+      .note {
+        font: 15px var(--hand);
+        fill: var(--text);
+      }
+      .noteline {
+        fill: none;
+        stroke: var(--text);
+        stroke-width: 1.4;
+        stroke-linecap: round;
+        opacity: 0.8;
+      }
+      .tag {
+        font: 700 11px var(--mono);
+        letter-spacing: 0.2em;
+        fill: var(--dim);
+      }
+      #ship.go .shipg {
+        animation: launch 1.6s ease-in-out;
+      }
+      @keyframes launch {
+        0% {
+          transform: translateX(0);
+        }
+        35% {
+          transform: translateX(-14px);
+        }
+        100% {
+          transform: translateX(0);
+        }
+      }
+      #ship.go .glow {
+        animation: flash 1.6s;
+      }
+      @keyframes flash {
+        50% {
+          opacity: 1;
+        }
+      }
+      .tall #ship.go .shipg {
+        animation-name: launchy;
+      }
+      @keyframes launchy {
+        35% {
+          transform: translateY(10px);
+        }
+      }
+
+      /* side plate: terminal + checklist */
+      .term {
+        background: #061a30;
+        color: #d9f0ff;
+        border: 2px solid var(--line);
+        border-radius: 6px;
+        font: 13px/1.55 var(--mono);
+        padding: 12px;
+        overflow: hidden;
+      }
+      :root[data-theme='light'] .term,
+      :root:not([data-theme='dark']) .term {
+        --tc: #d9f0ff;
+      }
+      @media (prefers-color-scheme: light) {
+        :root:not([data-theme='dark']) .term {
+          background: #14283d;
+        }
+      }
+      :root[data-theme='light'] .term {
+        background: #14283d;
+      }
+      .term .c {
+        color: #86afd0;
+      }
+      .term .k {
+        color: #ffcf5a;
+      }
+      .term .s {
+        color: #8ff0c4;
+      }
+      .term pre {
+        margin: 0;
+        white-space: pre-wrap;
+        word-break: break-word;
+        font: inherit;
+      }
+      .term .out {
+        margin-top: 8px;
+        border-top: 1px dashed #3f6a8f;
+        padding-top: 8px;
+        min-height: 6.6em;
+      }
+      .term .bad {
+        color: #ff9a9a;
+      }
+      .term .ok {
+        color: #8ff0c4;
+      }
+      .check {
+        list-style: none;
+        margin: 14px 0 0;
+        padding: 0;
+        display: grid;
+        gap: 6px;
+        font: 600 13px var(--mono);
+      }
+      .check li {
+        display: grid;
+        grid-template-columns: 22px 1fr;
+        gap: 6px;
+        align-items: start;
+        padding: 5px 8px;
+        border: 1.5px solid var(--dim);
+        border-radius: 4px;
+      }
+      .check li.ok {
+        border-color: var(--lit);
+      }
+      .check li.ok .mk {
+        color: var(--lit);
+      }
+      .check li.bad {
+        border-color: var(--alert);
+        background: var(--alertbg);
+        color: var(--text);
+      }
+      .check li.bad .mk {
+        color: var(--alert);
+      }
+      .check li.wait {
+        opacity: 0.6;
+      }
+      .check .mk {
+        font-weight: 800;
+        text-align: center;
+      }
+
+      .keybox {
+        margin-top: 14px;
+        display: flex;
+        gap: 14px;
+        align-items: center;
+      }
+      .launch {
+        flex: none;
+        width: 92px;
+        height: 92px;
+        border-radius: 50%;
+        border: 3px solid var(--line);
+        background: var(--bg2);
+        padding: 0;
+        cursor: pointer;
+        position: relative;
+        color: var(--text);
+        box-shadow:
+          inset 0 0 0 5px var(--bg),
+          inset 0 0 0 7px var(--dim);
+      }
+      .launch svg {
+        width: 100%;
+        height: 100%;
+      }
+      .launch .keyg {
+        transform-origin: 46px 46px;
+        transition: transform 0.5s cubic-bezier(0.3, 1.6, 0.5, 1);
+      }
+      .launch[aria-disabled='false'] .keyg {
+        transform: rotate(90deg);
+      }
+      .launch[aria-disabled='true'] {
+        color: var(--alert);
+      }
+      .launch.shake {
+        animation: shake 0.4s;
+      }
+      @keyframes shake {
+        20% {
+          transform: translateX(-5px) rotate(-4deg);
+        }
+        40% {
+          transform: translateX(5px) rotate(4deg);
+        }
+        60% {
+          transform: translateX(-4px);
+        }
+        80% {
+          transform: translateX(3px);
+        }
+      }
+      .lstat {
+        font: 800 14px var(--mono);
+        line-height: 1.35;
+        letter-spacing: 0.04em;
+      }
+      .lstat small {
+        display: block;
+        font: 600 12px var(--mono);
+        color: var(--dim);
+        letter-spacing: 0;
+        margin-top: 3px;
+      }
+      .lstat.clear {
+        color: var(--lit);
+      }
+      .lstat.blocked {
+        color: var(--alert);
+      }
+
+      /* bottom panel */
+      .panel {
+        display: grid;
+        gap: 0;
+        grid-template-columns: 1fr;
+        border-top: 0;
+      }
+      @media (min-width: 760px) {
+        .panel {
+          grid-template-columns: 1fr 1fr;
+        }
+      }
+      @media (min-width: 1100px) {
+        .panel {
+          grid-template-columns: 1fr 1.15fr 1fr;
+        }
+      }
+      .panel .plate {
+        border-bottom: 0;
+      }
+      .panel .plate + .plate {
+        border-top: 2px solid var(--line);
+      }
+      @media (min-width: 760px) {
+        .panel .plate + .plate {
+          border-top: 0;
+          border-left: 2px solid var(--line);
+        }
+      }
+      @media (min-width: 760px) and (max-width: 1099px) {
+        .panel .plate:nth-child(3) {
+          grid-column: 1/-1;
+          border-left: 0;
+          border-top: 2px solid var(--line);
+        }
+      }
+      .consolehead {
+        border-top: 2px solid var(--line);
+      }
+      .breakers {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 14px 16px;
+      }
+      .brk {
+        background: none;
+        border: 0;
+        padding: 0;
+        cursor: pointer;
+        display: grid;
+        justify-items: center;
+        gap: 6px;
+        color: var(--text);
+        font: 700 11px var(--mono);
+        width: 74px;
+      }
+      .brk .slot {
+        width: 34px;
+        height: 64px;
+        border: 2.5px solid var(--line);
+        border-radius: 7px;
+        background: var(--bg2);
+        position: relative;
+        box-shadow: inset 0 3px 0 var(--shadow);
+      }
+      .brk .lever {
+        position: absolute;
+        left: 50%;
+        width: 14px;
+        height: 30px;
+        margin-left: -7px;
+        background: var(--line);
+        border-radius: 5px;
+        top: 4px;
+        transition: top 0.18s cubic-bezier(0.3, 1.6, 0.5, 1);
+      }
+      .brk .lever::after {
+        content: '';
+        position: absolute;
+        left: 3px;
+        right: 3px;
+        top: 3px;
+        height: 4px;
+        background: var(--bg);
+        border-radius: 2px;
+      }
+      .brk[aria-checked='false'] .lever {
+        top: 27px;
+        background: var(--alert);
+      }
+      .brk .st {
+        font-weight: 800;
+      }
+      .brk[aria-checked='true'] .st {
+        color: var(--lit);
+      }
+      .brk[aria-checked='false'] .st {
+        color: var(--alert);
+      }
+      .brk small {
+        font-weight: 600;
+        color: var(--dim);
+        text-align: center;
+        line-height: 1.2;
+      }
+      #bay {
+        width: 100%;
+        height: auto;
+        display: block;
+        touch-action: none;
+      }
+      .jack {
+        fill: var(--bg2);
+        stroke: var(--line);
+        stroke-width: 3;
+      }
+      .jackin {
+        fill: var(--line);
+      }
+      .cable {
+        fill: none;
+        stroke: var(--line);
+        stroke-width: 5;
+        stroke-linecap: round;
+      }
+      .cable.cut {
+        stroke: var(--alert);
+      }
+      .plug {
+        cursor: grab;
+      }
+      .plug:active {
+        cursor: grabbing;
+      }
+      .plug rect.hit {
+        fill: transparent;
+        stroke: none !important;
+      }
+      .plug rect {
+        fill: var(--bg);
+        stroke: var(--line);
+        stroke-width: 3;
+      }
+      .plug.cut rect {
+        stroke: var(--alert);
+      }
+      .plug:focus-visible {
+        outline: none;
+      }
+      .plug:focus-visible rect {
+        stroke: var(--warn);
+        stroke-width: 4;
+      }
+      .plug .pin {
+        stroke: var(--line);
+        stroke-width: 3;
+        stroke-linecap: round;
+      }
+      .bayl {
+        font: 700 10.5px var(--mono);
+        fill: var(--text);
+      }
+      .bayh {
+        font: 13px var(--hand);
+        fill: var(--dim);
+      }
+      .gauges {
+        display: grid;
+        grid-template-columns: repeat(3, 1fr);
+        gap: 6px;
+      }
+      .gauge {
+        text-align: center;
+      }
+      .gauge svg {
+        width: 100%;
+        height: auto;
+        display: block;
+      }
+      .gauge .arc {
+        fill: none;
+        stroke: var(--dim);
+        stroke-width: 4;
+        stroke-linecap: round;
+      }
+      .gauge .redz {
+        fill: none;
+        stroke: var(--alert);
+        stroke-width: 4;
+        stroke-linecap: round;
+      }
+      .gauge .tick {
+        stroke: var(--dim);
+        stroke-width: 2;
+      }
+      .gauge .needle {
+        stroke: var(--text);
+        stroke-width: 3;
+        stroke-linecap: round;
+      }
+      .gauge .hub {
+        fill: var(--bg);
+        stroke: var(--text);
+        stroke-width: 3;
+      }
+      .gauge .ng {
+        transform-origin: 60px 64px;
+        transition: transform 1.3s cubic-bezier(0.3, 1.5, 0.5, 1);
+      }
+      .gauge .gl {
+        font: 800 11px var(--mono);
+        letter-spacing: 0.06em;
+      }
+      .gauge .gv {
+        font: 600 12px var(--mono);
+        color: var(--dim);
+      }
+
+      /* sections */
+      section.band {
+        padding: 56px 0 8px;
+      }
+      .band h2 {
+        font: 800 clamp(1.5rem, 3.6vw, 2.4rem)/1.1 var(--sans);
+        margin: 0 0 6px;
+        text-transform: uppercase;
+        letter-spacing: 0.02em;
+      }
+      .band .kick {
+        font: 700 12px var(--mono);
+        letter-spacing: 0.16em;
+        color: var(--dim);
+        text-transform: uppercase;
+        margin-bottom: 6px;
+      }
+      .why {
+        display: grid;
+        gap: 22px 28px;
+        grid-template-columns: 1fr;
+        margin-top: 22px;
+      }
+      @media (min-width: 640px) {
+        .why {
+          grid-template-columns: 1fr 1fr;
+        }
+      }
+      @media (min-width: 1000px) {
+        .why {
+          grid-template-columns: repeat(4, 1fr);
+        }
+      }
+      .wi {
+        display: grid;
+        gap: 8px;
+        align-content: start;
+        border-top: 3px solid var(--line);
+        padding-top: 12px;
+        position: relative;
+      }
+      .wi .no {
+        font: 800 12px var(--mono);
+        color: var(--dim);
+        letter-spacing: 0.14em;
+      }
+      .wi svg {
+        width: 100%;
+        max-width: 220px;
+        height: auto;
+        display: block;
+      }
+      .wi svg * {
+        vector-effect: non-scaling-stroke;
+      }
+      .wi p {
+        margin: 0;
+        font-size: 1.08rem;
+        line-height: 1.3;
+        font-weight: 700;
+      }
+      .wi .ln {
+        fill: none;
+        stroke: var(--line);
+        stroke-width: 2.5;
+        stroke-linecap: round;
+        stroke-linejoin: round;
+      }
+      .wi .lit {
+        fill: none;
+        stroke: var(--lit);
+        stroke-width: 3;
+        stroke-linecap: round;
+        stroke-linejoin: round;
+      }
+      .wi .red {
+        fill: none;
+        stroke: var(--alert);
+        stroke-width: 3;
+        stroke-linecap: round;
+      }
+      .wi .fl {
+        fill: var(--bg2);
+        stroke: var(--line);
+        stroke-width: 2.5;
+      }
+      .wi .tx {
+        font: 700 11px var(--mono);
+        fill: var(--text);
+      }
+      .wi .hd {
+        font: 14px var(--hand);
+        fill: var(--dim);
+      }
+
+      .spec {
+        margin-top: 22px;
+        border: 3px solid var(--line);
+        background: var(--bg);
+        box-shadow: 6px 6px 0 var(--shadow);
+        overflow: hidden;
+      }
+      .spec table {
+        width: 100%;
+        border-collapse: collapse;
+        table-layout: fixed;
+      }
+      .spec th,
+      .spec td {
+        padding: 10px 8px;
+        border: 1.5px solid var(--line);
+        text-align: left;
+        vertical-align: top;
+        font-size: 0.95rem;
+        line-height: 1.25;
+      }
+      .spec thead th {
+        font: 800 12px var(--mono);
+        letter-spacing: 0.1em;
+        text-transform: uppercase;
+        background: var(--bg2);
+      }
+      .spec thead th.me {
+        background: var(--line);
+        color: var(--bg);
+      }
+      .spec tbody th {
+        font-weight: 700;
+        width: 34%;
+      }
+      .spec td.y {
+        color: var(--lit);
+        font-weight: 800;
+      }
+      .spec td.n {
+        color: var(--alert);
+        font-weight: 700;
+      }
+      .spec td.p {
+        color: var(--warn);
+        font-weight: 700;
+      }
+      .spec .ic {
+        font-family: var(--mono);
+        margin-right: 4px;
+      }
+      .spec td.me {
+        background: color-mix(in srgb, var(--lit) 8%, var(--bg));
+      }
+      .spec-foot {
+        display: flex;
+        flex-wrap: wrap;
+        justify-content: space-between;
+        gap: 6px 18px;
+        padding: 10px 12px;
+        font: 13px var(--mono);
+        border-top: 3px solid var(--line);
+        background: var(--bg2);
+      }
+      .small {
+        margin: 14px 0 0;
+        font: 700 1.05rem var(--sans);
+      }
+      .small span {
+        display: inline-block;
+        border-bottom: 3px double var(--lit);
+      }
+
+      .bom {
+        list-style: none;
+        margin: 22px 0 0;
+        padding: 0;
+        display: grid;
+        gap: 0 36px;
+        grid-template-columns: 1fr;
+      }
+      @media (min-width: 760px) {
+        .bom {
+          grid-template-columns: 1fr 1fr;
+        }
+      }
+      @media (min-width: 1100px) {
+        .bom {
+          grid-template-columns: 1fr 1fr 1fr;
+        }
+      }
+      .bom li {
+        display: grid;
+        grid-template-columns: 44px 1fr;
+        gap: 12px;
+        align-items: center;
+        padding: 12px 0;
+        border-bottom: 1.5px dashed var(--dim);
+      }
+      .bom .bal {
+        width: 40px;
+        height: 40px;
+        border: 2.5px solid var(--line);
+        border-radius: 50%;
+        display: grid;
+        place-items: center;
+        font: 800 14px var(--mono);
+        position: relative;
+        background: var(--bg);
+      }
+      .bom .bal::after {
+        content: '';
+        position: absolute;
+        left: 100%;
+        top: 50%;
+        width: 8px;
+        border-top: 2.5px solid var(--line);
+      }
+      .bom code {
+        font: 700 14px var(--mono);
+        display: block;
+        word-break: break-all;
+      }
+      .bom .part {
+        font: 13px var(--hand);
+        color: var(--dim);
+        display: block;
+        line-height: 1.1;
+      }
+      .bom span.l {
+        display: block;
+        line-height: 1.25;
+        font-size: 0.95rem;
+      }
+
+      .final {
+        margin: 64px 0 40px;
+        border: 3px solid var(--line);
+        padding: 28px 20px;
+        display: grid;
+        gap: 16px;
+        justify-items: start;
+        position: relative;
+        background: var(--bg2);
+        box-shadow: 8px 8px 0 var(--shadow);
+      }
+      .final h2 {
+        font: 800 clamp(1.6rem, 4.2vw, 2.8rem)/1.05 var(--sans);
+        margin: 0;
+        max-width: 22ch;
+      }
+      .titleblock {
+        position: absolute;
+        right: -3px;
+        bottom: -3px;
+        border: 3px solid var(--line);
+        background: var(--bg);
+        font: 700 10px var(--mono);
+        letter-spacing: 0.1em;
+        padding: 4px 8px;
+        display: none;
+      }
+      @media (min-width: 760px) {
+        .titleblock {
+          display: block;
+        }
+      }
+      footer {
+        padding: 18px 0 36px;
+        font: 13px var(--mono);
+        color: var(--dim);
+        display: flex;
+        gap: 10px 22px;
+        flex-wrap: wrap;
+        justify-content: space-between;
+      }
+
+      @media (prefers-reduced-motion: reduce) {
+        *,
+        *::before,
+        *::after {
+          animation: none !important;
+          transition: none !important;
+          scroll-behavior: auto !important;
+        }
+        h1 .circ path {
+          stroke-dashoffset: 0;
+        }
+      }
+      @media (max-width: 480px) {
+        .plate {
+          padding: 20px 12px 14px;
+        }
+        .install code {
+          font-size: 14px;
+        }
+        .btn {
+          padding: 12px 16px;
+        }
+        .sbar .cap {
+          margin-left: 0;
+          flex-basis: 100%;
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <div class="wrap">
+      <header class="top">
+        <a class="brand" href="#top" aria-label="NexusDI">
+          <svg viewBox="0 0 80 80" aria-hidden="true">
+            <g
+              stroke="currentColor"
+              stroke-width="4"
+              stroke-linecap="round"
+              fill="none"
+            >
+              <line x1="40" y1="40" x2="40" y2="12" />
+              <line x1="40" y1="40" x2="66" y2="55" />
+              <line x1="40" y1="40" x2="14" y2="55" />
+              <polygon points="40,28 53,35 53,49 40,56 27,49 27,35" />
+            </g>
+            <g fill="currentColor">
+              <circle cx="40" cy="10" r="6" />
+              <circle cx="66" cy="55" r="6" />
+              <circle cx="14" cy="55" r="6" />
+            </g>
+          </svg>
+          NexusDI
+        </a>
+        <div class="tools">
+          <a class="chip" href="https://github.com/NexusDI/core">GitHub</a>
+          <button
+            class="chip"
+            id="theme"
+            type="button"
+            aria-label="Switch colour theme"
+          >
+            <span id="themeico" aria-hidden="true">◐</span
+            ><span id="themelab">Theme</span>
+          </button>
+        </div>
+      </header>
+
+      <main id="top">
+        <div class="hero">
+          <div class="stamp">
+            <span>Starship Meridian</span><span>Pre-flight console</span
+            ><span>Sheet 1 of 1</span>
+          </div>
+          <h1>
+            Wiring mistakes
+            <span class="circ"
+              >fail CI<svg
+                viewBox="0 0 200 60"
+                preserveAspectRatio="none"
+                aria-hidden="true"
+              >
+                <path
+                  d="M20 30 C20 6 170 2 188 26 C200 46 120 58 60 54 C12 50 6 30 30 14"
+                /></svg
+            ></span>
+            before a user hits them.
+          </h1>
+          <p class="sub">
+            NexusDI is a typed dependency injection library for TypeScript, with
+            modules, async startup and a pre-flight check for your wiring.
+            Unplug a conduit below and see.
+          </p>
+          <div class="cta">
+            <a class="btn primary" href="https://github.com/NexusDI/core#readme"
+              >Get started <span aria-hidden="true">→</span></a
+            >
+            <a class="btn" href="https://github.com/NexusDI/core">GitHub</a>
+            <div class="install">
+              <code><i>$</i> npm i @nexusdi/core</code
+              ><button
+                type="button"
+                id="copy"
+                aria-label="Copy install command"
+              >
+                Copy
+              </button>
+            </div>
+          </div>
+        </div>
+
+        <div class="console" id="console">
+          <div class="cgrid">
+            <div class="plate">
+              <h2>
+                <span>Fig. 1 Starship Meridian</span
+                ><span id="sheetstate">All systems lit</span>
+              </h2>
+              <div class="sbar">
+                <button class="chip" id="replay" type="button">
+                  ▶ Replay power-up
+                </button>
+                <button class="chip" id="reset" type="button">
+                  ↺ Reset plugs
+                </button>
+                <span class="cap" id="cap" aria-live="polite"></span>
+              </div>
+              <svg
+                id="ship"
+                role="group"
+                aria-label="Schematic of Starship Meridian with four sections. Conduits between sections can be unplugged."
+              ></svg>
+              <ul class="legend hand" aria-label="Legend">
+                <li><b>section</b> = module</li>
+                <li><b>system</b> = provider</li>
+                <li><b>conduit</b> = dependency</li>
+                <li><b>hatch</b> = export</li>
+              </ul>
+            </div>
+            <div class="plate side">
+              <h2><span>Pre-flight</span><span>Nexus.check</span></h2>
+              <div class="term" aria-label="Terminal">
+                <pre><span class="k">import</span> { Nexus } <span class="k">from</span> <span class="s">'@nexusdi/core'</span>;
+
+<span class="c">// before any constructor runs</span>
+<span class="k">await</span> Nexus.check(Meridian);</pre>
+                <div class="out"><pre id="out" aria-live="polite"></pre></div>
+              </div>
+              <ul
+                class="check"
+                id="check"
+                aria-label="Pre-flight checklist"
+              ></ul>
+              <div class="keybox">
+                <button
+                  class="launch"
+                  id="launch"
+                  type="button"
+                  aria-disabled="false"
+                  aria-describedby="lstat"
+                  aria-label="Launch key"
+                >
+                  <svg viewBox="0 0 92 92" aria-hidden="true">
+                    <g
+                      class="keyg"
+                      fill="none"
+                      stroke="currentColor"
+                      stroke-width="4"
+                      stroke-linecap="round"
+                      stroke-linejoin="round"
+                    >
+                      <circle cx="46" cy="30" r="12" />
+                      <circle cx="46" cy="30" r="3.5" fill="currentColor" />
+                      <path d="M46 42 V70 M46 54 H56 M46 63 H54" />
+                    </g>
+                    <g id="lockico" fill="currentColor">
+                      <rect x="36" y="72" width="20" height="12" rx="2" />
+                      <path
+                        d="M40 72 v-4 a6 6 0 0 1 12 0 v4"
+                        fill="none"
+                        stroke="currentColor"
+                        stroke-width="3"
+                      />
+                    </g>
+                  </svg>
+                </button>
+                <div class="lstat" id="lstat" aria-live="polite"></div>
+              </div>
+            </div>
+          </div>
+
+          <div class="panel consolehead">
+            <div class="plate">
+              <h2><span>Breaker bank</span><span>flip to cut</span></h2>
+              <div class="breakers" id="breakers"></div>
+            </div>
+            <div class="plate">
+              <h2><span>Patch bay</span><span>drag a plug out</span></h2>
+              <svg
+                id="bay"
+                viewBox="0 0 330 214"
+                role="group"
+                aria-label="Patch bay with four cables. Drag a plug away from its jack to unplug it, or press Enter on it."
+              ></svg>
+            </div>
+            <div class="plate">
+              <h2><span>Gauges</span><span>sweep on power-up</span></h2>
+              <div class="gauges" id="gauges"></div>
+            </div>
+          </div>
+        </div>
+      </main>
+
+      <section class="band" aria-labelledby="why">
+        <div class="kick">Sheet 2 / Reasons</div>
+        <h2 id="why">Why it flies</h2>
+        <div class="why">
+          <div class="wi">
+            <span class="no">01</span>
+            <svg viewBox="0 0 220 120" aria-hidden="true">
+              <rect class="fl" x="14" y="18" width="70" height="54" rx="4" />
+              <rect class="fl" x="136" y="18" width="70" height="54" rx="4" />
+              <path class="red" d="M84 45 H104 M118 45 H136" />
+              <path class="red" d="M100 36 l14 18 M114 36 l-14 18" />
+              <text class="tx" x="14" y="92">Tactical</text>
+              <text class="tx" x="136" y="92">Engineering</text>
+              <text class="hd" x="62" y="112">ReactorCore?</text>
+            </svg>
+            <p>CI names the missing system, before runtime.</p>
+          </div>
+          <div class="wi">
+            <span class="no">02</span>
+            <svg viewBox="0 0 220 120" aria-hidden="true">
+              <rect class="fl" x="20" y="78" width="180" height="26" rx="4" />
+              <rect class="fl" x="40" y="46" width="140" height="26" rx="4" />
+              <rect class="fl" x="64" y="14" width="92" height="26" rx="4" />
+              <path class="lit" d="M28 91 h40 M48 59 h30 M72 27 h20" />
+              <text class="tx" x="86" y="95">1</text>
+              <text class="tx" x="106" y="63">2</text>
+              <text class="tx" x="130" y="31">3</text>
+            </svg>
+            <p>Async startup runs in dependency order.</p>
+          </div>
+          <div class="wi">
+            <span class="no">03</span>
+            <svg viewBox="0 0 220 120" aria-hidden="true">
+              <rect class="fl" x="14" y="16" width="100" height="88" rx="4" />
+              <rect class="fl" x="106" y="46" width="18" height="30" rx="2" />
+              <path class="ln" d="M110 54 h10 M110 62 h10 M110 70 h10" />
+              <path class="lit" d="M124 61 H190" />
+              <path class="ln" d="M180 52 l12 9 l-12 9" />
+              <text class="hd" x="26" y="42">module</text>
+              <text class="hd" x="124" y="40">hatch</text>
+            </svg>
+            <p>A module shares only what it exports.</p>
+          </div>
+          <div class="wi">
+            <span class="no">04</span>
+            <svg viewBox="0 0 220 120" aria-hidden="true">
+              <circle class="fl" cx="110" cy="58" r="30" />
+              <circle class="ln" cx="110" cy="58" r="10" />
+              <path
+                class="ln"
+                d="M110 20 v10 M110 86 v10 M72 58 h10 M138 58 h10 M83 31 l7 7 M130 78 l7 7 M137 31 l-7 7 M90 78 l-7 7"
+              />
+              <path class="red" d="M168 16 l32 32 M200 16 l-32 32" />
+              <text class="hd" x="150" y="76">tsconfig flags</text>
+            </svg>
+            <p>No compiler flags to set.</p>
+          </div>
+        </div>
+      </section>
+
+      <section class="band" aria-labelledby="spec">
+        <div class="kick">Sheet 3 / Spec sheet</div>
+        <h2 id="spec">Against the big containers</h2>
+        <div class="spec">
+          <table>
+            <thead>
+              <tr>
+                <th scope="col">Feature</th>
+                <th scope="col" class="me">NexusDI</th>
+                <th scope="col">NestJS</th>
+                <th scope="col">Inversify</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr>
+                <th scope="row">Missing provider found</th>
+                <td class="y me">
+                  <span class="ic" aria-hidden="true">✓</span>Before any
+                  constructor runs
+                </td>
+                <td class="p">
+                  <span class="ic" aria-hidden="true">~</span>At app bootstrap
+                </td>
+                <td class="p">
+                  <span class="ic" aria-hidden="true">~</span>When resolved
+                </td>
+              </tr>
+              <tr>
+                <th scope="row">Modules with exports</th>
+                <td class="y me">
+                  <span class="ic" aria-hidden="true">✓</span>Yes
+                </td>
+                <td class="y">
+                  <span class="ic" aria-hidden="true">✓</span>Yes
+                </td>
+                <td class="n">
+                  <span class="ic" aria-hidden="true">✗</span>No exports
+                </td>
+              </tr>
+              <tr>
+                <th scope="row">Async startup in dependency order</th>
+                <td class="y me">
+                  <span class="ic" aria-hidden="true">✓</span>Yes
+                </td>
+                <td class="y">
+                  <span class="ic" aria-hidden="true">✓</span>Yes
+                </td>
+                <td class="p">
+                  <span class="ic" aria-hidden="true">~</span>Async get
+                </td>
+              </tr>
+              <tr>
+                <th scope="row">Works without decorators</th>
+                <td class="y me">
+                  <span class="ic" aria-hidden="true">✓</span>Yes
+                </td>
+                <td class="n">
+                  <span class="ic" aria-hidden="true">✗</span>No
+                </td>
+                <td class="n">
+                  <span class="ic" aria-hidden="true">✗</span>No
+                </td>
+              </tr>
+            </tbody>
+          </table>
+          <div class="spec-foot">
+            <span>From public docs. Check versions on the full comparison.</span
+            ><span>✓ yes &nbsp; ~ partly &nbsp; ✗ no</span>
+          </div>
+        </div>
+        <p class="small">
+          <span>On features, it matches the small containers too.</span>
+        </p>
+      </section>
+
+      <section class="band" aria-labelledby="parts">
+        <div class="kick">Sheet 4 / Parts list</div>
+        <h2 id="parts">Bolt on what you need</h2>
+        <ol class="bom">
+          <li>
+            <span class="bal">1</span
+            ><span
+              ><code>@nexusdi/core</code><span class="part">hull</span
+              ><span class="l"
+                >Modules, async startup and Nexus.check.</span
+              ></span
+            >
+          </li>
+          <li>
+            <span class="bal">2</span
+            ><span
+              ><code>@nexusdi/decorators</code><span class="part">labels</span
+              ><span class="l">@Injectable, @Inject and @Module.</span></span
+            >
+          </li>
+          <li>
+            <span class="bal">3</span
+            ><span
+              ><code>@nexusdi/testing</code><span class="part">simulator</span
+              ><span class="l"
+                >Your real graph, with providers swapped.</span
+              ></span
+            >
+          </li>
+          <li>
+            <span class="bal">4</span
+            ><span
+              ><code>@nexusdi/node</code><span class="part">intercom</span
+              ><span class="l"
+                >Request scope anywhere in a call chain.</span
+              ></span
+            >
+          </li>
+          <li>
+            <span class="bal">5</span
+            ><span
+              ><code>@nexusdi/devtools</code><span class="part">scanner</span
+              ><span class="l"
+                >Draw the graph, follow every instance.</span
+              ></span
+            >
+          </li>
+          <li>
+            <span class="bal">6</span
+            ><span
+              ><code>@nexusdi/errors</code><span class="part">manual</span
+              ><span class="l">Every error explained, with the fix.</span></span
+            >
+          </li>
+          <li>
+            <span class="bal">7</span
+            ><span
+              ><code>@nexusdi/federation</code
+              ><span class="part">docking ports</span
+              ><span class="l">Share tokens across micro-frontends.</span></span
+            >
+          </li>
+          <li>
+            <span class="bal">8</span
+            ><span
+              ><code>@nexusdi/interceptors</code
+              ><span class="part">filters</span
+              ><span class="l"
+                >Logging, metrics, validation, caching.</span
+              ></span
+            >
+          </li>
+          <li>
+            <span class="bal">9</span
+            ><span
+              ><code>@nexusdi/cli</code><span class="part">plotter</span
+              ><span class="l"
+                >Draw the graph as Mermaid, DOT or SVG.</span
+              ></span
+            >
+          </li>
+        </ol>
+      </section>
+
+      <section class="final" aria-labelledby="go">
+        <h2 id="go">Run the pre-flight check on your own ship.</h2>
+        <div class="cta">
+          <a class="btn primary" href="https://github.com/NexusDI/core#readme"
+            >Get started <span aria-hidden="true">→</span></a
+          >
+          <a class="btn" href="https://github.com/NexusDI/core">GitHub</a>
+        </div>
+        <span class="titleblock" aria-hidden="true"
+          >DWG NX-0.4 · REV C · APPROVED FOR LAUNCH</span
+        >
+      </section>
+
+      <footer>
+        <span>NexusDI. Typed dependency injection for TypeScript.</span
+        ><span>MIT licensed</span>
+      </footer>
+    </div>
+
+    <script>
+      (function () {
+        'use strict';
+        var NS = 'http://www.w3.org/2000/svg';
+        var $ = function (id) {
+          return document.getElementById(id);
+        };
+        var reduce = window.matchMedia('(prefers-reduced-motion: reduce)');
+
+        /* theme */
+        var root = document.documentElement;
+        function curTheme() {
+          var t = root.getAttribute('data-theme');
+          if (t) return t;
+          return window.matchMedia('(prefers-color-scheme: dark)').matches
+            ? 'dark'
+            : 'light';
+        }
+        function paintTheme() {
+          var d = curTheme() === 'dark';
+          $('themeico').textContent = d ? '☾' : '☀';
+          $('themelab').textContent = d ? 'Dark' : 'Light';
+        }
+        try {
+          var st = localStorage.getItem('nx-theme');
+          if (st === 'light' || st === 'dark')
+            root.setAttribute('data-theme', st);
+        } catch (e) {}
+        $('theme').addEventListener('click', function () {
+          var n = curTheme() === 'dark' ? 'light' : 'dark';
+          root.setAttribute('data-theme', n);
+          try {
+            localStorage.setItem('nx-theme', n);
+          } catch (e) {}
+          paintTheme();
+        });
+        paintTheme();
+
+        /* copy */
+        $('copy').addEventListener('click', function () {
+          var b = this,
+            txt = 'npm i @nexusdi/core';
+          function done(ok) {
+            b.textContent = ok ? 'Copied' : 'Press Ctrl+C';
+            setTimeout(function () {
+              b.textContent = 'Copy';
+            }, 1800);
+          }
+          function fallback() {
+            var t = document.createElement('textarea');
+            t.value = txt;
+            t.style.position = 'fixed';
+            t.style.opacity = '0';
+            document.body.appendChild(t);
+            t.select();
+            var ok = false;
+            try {
+              ok = document.execCommand('copy');
+            } catch (e) {}
+            document.body.removeChild(t);
+            done(ok);
+          }
+          if (navigator.clipboard && navigator.clipboard.writeText) {
+            navigator.clipboard.writeText(txt).then(function () {
+              done(true);
+            }, fallback);
+          } else fallback();
+        });
+
+        /* model */
+        var SECS = [
+          {
+            id: 'eng',
+            name: 'Engineering',
+            mod: 'Engineering',
+            deck: 1,
+            sys: ['ReactorCore', 'Coolant'],
+          },
+          {
+            id: 'tac',
+            name: 'Tactical',
+            mod: 'Tactical',
+            deck: 2,
+            sys: ['ShieldGrid', 'Phasers'],
+          },
+          {
+            id: 'com',
+            name: 'Comms',
+            mod: 'Comms',
+            deck: 2,
+            sys: ['Transponder', 'Array'],
+          },
+          {
+            id: 'bri',
+            name: 'Bridge',
+            mod: 'Bridge',
+            deck: 3,
+            sys: ['Navigation', 'Helm'],
+          },
+        ];
+        var SEC = {};
+        SECS.forEach(function (s) {
+          SEC[s.id] = s;
+        });
+        /* conduit: from provides token, to's system consumer needs it */
+        var CONDS = [
+          {
+            id: 'c1',
+            from: 'eng',
+            to: 'tac',
+            token: 'ReactorCore',
+            user: 'ShieldGrid',
+          },
+          {
+            id: 'c2',
+            from: 'eng',
+            to: 'com',
+            token: 'ReactorCore',
+            user: 'Transponder',
+          },
+          {
+            id: 'c3',
+            from: 'tac',
+            to: 'bri',
+            token: 'ShieldGrid',
+            user: 'Helm',
+          },
+          {
+            id: 'c4',
+            from: 'com',
+            to: 'bri',
+            token: 'Transponder',
+            user: 'Navigation',
+          },
+        ];
+        var plugged = { c1: true, c2: true, c3: true, c4: true };
+        var powered = { eng: true, tac: true, com: true, bri: true };
+        var powering = {};
+        var busy = false,
+          timers = [],
+          launched = false;
+
+        function missingFor(sid) {
+          return CONDS.filter(function (c) {
+            return c.to === sid && !plugged[c.id];
+          });
+        }
+        function secState(sid) {
+          if (powering[sid]) return 'powering';
+          if (!powered[sid]) return 'off';
+          if (missingFor(sid).length) return 'alert';
+          var up = CONDS.filter(function (c) {
+            return c.to === sid;
+          });
+          for (var i = 0; i < up.length; i++) {
+            var s = secState(up[i].from);
+            if (s === 'alert' || s === 'standby') return 'standby';
+          }
+          return 'online';
+        }
+        function allFailures() {
+          var f = [];
+          CONDS.forEach(function (c) {
+            if (!plugged[c.id]) f.push(c);
+          });
+          return f;
+        }
+        function launchOK() {
+          return (
+            !busy &&
+            allFailures().length === 0 &&
+            SECS.every(function (s) {
+              return powered[s.id];
+            })
+          );
+        }
+
+        /* layouts */
+        var LAYOUTS = {
+          wide: {
+            vb: [960, 460],
+            hull: 'M20,140 L250,20 H560 Q820,20 940,230 Q820,440 560,440 H250 L20,320 Z',
+            inner: 'M60,170 L260,60 M60,290 L260,400',
+            r: {
+              eng: [40, 150, 190, 140],
+              tac: [320, 40, 200, 130],
+              com: [320, 270, 200, 130],
+              bri: [640, 150, 200, 140],
+            },
+            p: {
+              c1: 'M230,205 H275 V105 H320',
+              c2: 'M230,235 H275 V335 H320',
+              c3: 'M520,105 H590 V195 H640',
+              c4: 'M520,335 H590 V245 H640',
+            },
+          },
+          tall: {
+            vb: [360, 700],
+            hull: 'M180,10 Q340,70 342,200 L346,560 L300,690 H60 L14,560 L18,200 Q20,70 180,10 Z',
+            inner: 'M40,230 V540 M320,230 V540',
+            r: {
+              bri: [90, 86, 180, 130],
+              tac: [28, 270, 146, 130],
+              com: [188, 270, 146, 130],
+              eng: [90, 500, 180, 130],
+            },
+            p: {
+              c1: 'M130,500 V450 H100 V400',
+              c2: 'M230,500 V450 H260 V400',
+              c3: 'M100,270 V240 H130 V216',
+              c4: 'M260,270 V240 H230 V216',
+            },
+          },
+        };
+        var layoutKey = null,
+          els = {};
+
+        function el(tag, attrs, parent) {
+          var e = document.createElementNS(NS, tag);
+          if (attrs) for (var k in attrs) e.setAttribute(k, attrs[k]);
+          if (parent) parent.appendChild(e);
+          return e;
+        }
+        function txt(parent, attrs, s) {
+          var t = el('text', attrs, parent);
+          t.textContent = s;
+          return t;
+        }
+
+        function buildShip(key) {
+          layoutKey = key;
+          var L = LAYOUTS[key],
+            svg = $('ship');
+          svg.innerHTML = '';
+          els = { sec: {}, cond: {} };
+          svg.setAttribute('viewBox', '0 0 ' + L.vb[0] + ' ' + L.vb[1]);
+          $('console').classList.toggle('tall', key === 'tall');
+          var g = el('g', { class: 'shipg' }, svg);
+          el('path', { class: 'hull', d: L.hull }, g);
+          el('path', { class: 'hull2', d: L.inner }, g);
+          if (key === 'wide') {
+            el('path', { class: 'hull', d: 'M20,185 H4 V275 H20' }, g);
+            txt(g, { x: 330, y: 427, class: 'tag' }, 'S.S. MERIDIAN  NX-0.4');
+          } else {
+            el('path', { class: 'hull', d: 'M110,690 v12 M250,690 v12' }, g);
+            txt(
+              g,
+              { x: 180, y: 668, class: 'tag', 'text-anchor': 'middle' },
+              'S.S. MERIDIAN',
+            );
+          }
+          /* conduits first (under sections) */
+          CONDS.forEach(function (c) {
+            var cg = el(
+              'g',
+              {
+                class: 'cond',
+                id: 'cond-' + c.id,
+                role: 'switch',
+                tabindex: 0,
+              },
+              g,
+            );
+            var base = el(
+              'path',
+              { class: 'base', d: L.p[c.id], pathLength: 100 },
+              cg,
+            );
+            var flow = el('path', { class: 'flow', d: L.p[c.id] }, cg);
+            var len = base.getTotalLength();
+            var m = base.getPointAtLength(len / 2),
+              a = base.getPointAtLength(len * 0.44),
+              b = base.getPointAtLength(len * 0.56);
+            /* arrow head at end */
+            var e = base.getPointAtLength(len),
+              e2 = base.getPointAtLength(len - 8);
+            var ang = (Math.atan2(e.y - e2.y, e.x - e2.x) * 180) / Math.PI;
+            el(
+              'path',
+              {
+                d: 'M-9,-7 L2,0 L-9,7 Z',
+                fill: 'var(--text)',
+                transform:
+                  'translate(' + e.x + ',' + e.y + ') rotate(' + ang + ')',
+              },
+              cg,
+            );
+            /* hatch at start */
+            var s = base.getPointAtLength(0),
+              s2 = base.getPointAtLength(6);
+            var sa = (Math.atan2(s2.y - s.y, s2.x - s.x) * 180) / Math.PI;
+            var hg = el(
+              'g',
+              {
+                transform:
+                  'translate(' + s.x + ',' + s.y + ') rotate(' + sa + ')',
+              },
+              cg,
+            );
+            el(
+              'rect',
+              { class: 'hatch', x: -6, y: -10, width: 12, height: 20, rx: 2 },
+              hg,
+            );
+            el(
+              'path',
+              {
+                d: 'M-3,-6 L3,6 M3,-6 L-3,6',
+                stroke: 'var(--line)',
+                'stroke-width': 1.5,
+              },
+              hg,
+            );
+            /* sparks */
+            var sp = el('g', { class: 'spark' }, cg);
+            [a, b].forEach(function (p, i) {
+              var d = i ? -1 : 1;
+              el(
+                'path',
+                {
+                  class: 'spark',
+                  d:
+                    'M' +
+                    (p.x - 5) +
+                    ',' +
+                    (p.y - 5) +
+                    ' l10,10 M' +
+                    (p.x + 5) +
+                    ',' +
+                    (p.y - 5) +
+                    ' l-10,10',
+                },
+                sp,
+              );
+            });
+            el('circle', { class: 'cpl', cx: m.x, cy: m.y, r: 12 }, cg);
+            var plugGlyph = el(
+              'path',
+              {
+                class: 'cplx',
+                d:
+                  'M' +
+                  (m.x - 5) +
+                  ',' +
+                  m.y +
+                  ' h10 M' +
+                  m.x +
+                  ',' +
+                  (m.y - 5) +
+                  ' v10',
+              },
+              cg,
+            );
+            el('circle', { class: 'focusring', cx: m.x, cy: m.y, r: 19 }, cg);
+            el('circle', { cx: m.x, cy: m.y, r: 24, fill: 'transparent' }, cg);
+            var tt = txt(cg, { class: 'tok', x: m.x, y: m.y - 20 }, c.token);
+            if (key === 'tall') {
+              tt.setAttribute('x', m.x + 18);
+              tt.setAttribute('y', m.y + 4);
+              tt.style.textAnchor = 'start';
+            }
+            cg.addEventListener('click', function () {
+              toggle(c.id);
+            });
+            cg.addEventListener('keydown', function (ev) {
+              if (ev.key === 'Enter' || ev.key === ' ') {
+                ev.preventDefault();
+                toggle(c.id);
+              }
+            });
+            els.cond[c.id] = { g: cg, base: base, len: len };
+            base.setAttribute('data-len', len);
+          });
+          /* sections */
+          SECS.forEach(function (s) {
+            var r = L.r[s.id],
+              x = r[0],
+              y = r[1],
+              w = r[2],
+              h = r[3];
+            var sg = el(
+              'g',
+              {
+                class: 'sec off',
+                id: 'sec-' + s.id,
+                role: 'group',
+                'aria-label': s.name + ' module',
+              },
+              g,
+            );
+            el(
+              'rect',
+              { class: 'body', x: x, y: y, width: w, height: h, rx: 8 },
+              sg,
+            );
+            txt(sg, { class: 'name', x: x + 12, y: y + 24 }, s.name);
+            txt(
+              sg,
+              { class: 'deck', x: x + w - 10, y: y + 24, 'text-anchor': 'end' },
+              'D' + s.deck,
+            );
+            el(
+              'path',
+              {
+                d: 'M' + (x + 10) + ',' + (y + 33) + ' H' + (x + w - 10),
+                stroke: 'var(--dim)',
+                'stroke-width': 1,
+                'stroke-dasharray': '3 3',
+              },
+              sg,
+            );
+            s.sys.forEach(function (n, i) {
+              var yy = y + 54 + i * 21;
+              el(
+                'rect',
+                {
+                  class: 'pip',
+                  x: x + 12,
+                  y: yy - 10,
+                  width: 11,
+                  height: 11,
+                  rx: 2,
+                },
+                sg,
+              );
+              txt(sg, { class: 'sys', x: x + 30, y: yy }, n);
+            });
+            el(
+              'circle',
+              { class: 'lamp', cx: x + 17, cy: y + h - 26, r: 5 },
+              sg,
+            );
+            var ai = el(
+              'g',
+              {
+                class: 'alertico',
+                transform:
+                  'translate(' + (x + w - 26) + ',' + (y + h - 40) + ')',
+              },
+              sg,
+            );
+            el(
+              'path',
+              {
+                d: 'M12,2 L23,22 H1 Z',
+                fill: 'var(--bg)',
+                stroke: 'var(--alert)',
+                'stroke-width': 2.5,
+                'stroke-linejoin': 'round',
+              },
+              ai,
+            );
+            el(
+              'path',
+              {
+                d: 'M12,9 V15 M12,18.5 V19',
+                stroke: 'var(--alert)',
+                'stroke-width': 2.5,
+                'stroke-linecap': 'round',
+              },
+              ai,
+            );
+            var stat = txt(sg, { class: 'stat', x: x + 30, y: y + h - 22 }, '');
+            var det = txt(sg, { class: 'det', x: x + 12, y: y + h - 8 }, '');
+            els.sec[s.id] = { g: sg, stat: stat, det: det };
+          });
+          /* annotations */
+          if (key === 'wide') {
+            var n = el('g', { class: 'notes' }, g);
+            txt(
+              n,
+              { class: 'note', x: 36, y: 62, transform: 'rotate(-3 36 62)' },
+              'click a coupling to unplug it',
+            );
+            el(
+              'path',
+              {
+                class: 'noteline',
+                d: 'M150,74 C190,95 225,120 258,142 M248,132 l11,11 l-2,-15',
+              },
+              n,
+            );
+            txt(n, { class: 'note', x: 640, y: 62 }, 'section = module');
+            el(
+              'path',
+              {
+                class: 'noteline',
+                d: 'M634,56 C600,44 565,46 530,54 M541,46 l-12,8 l13,5',
+              },
+              n,
+            );
+            txt(n, { class: 'note', x: 646, y: 104 }, 'hatch = export');
+            el(
+              'path',
+              {
+                class: 'noteline',
+                d: 'M640,100 C610,92 560,88 532,102 M542,93 l-11,9 l14,3',
+              },
+              n,
+            );
+            txt(n, { class: 'note', x: 600, y: 370 }, 'conduit = dependency');
+            el(
+              'path',
+              {
+                class: 'noteline',
+                d: 'M640,356 C640,330 610,310 596,298 M606,300 l-11,-3 l2,12',
+              },
+              n,
+            );
+            txt(
+              n,
+              { class: 'note', x: 50, y: 316, transform: 'rotate(-2 50 316)' },
+              'system = provider',
+            );
+            el(
+              'path',
+              {
+                class: 'noteline',
+                d: 'M70,302 C70,290 82,282 92,276 M84,276 l9,-2 l-2,10',
+              },
+              n,
+            );
+          }
+          update(true);
+        }
+
+        function setStat(sid, state) {
+          var e = els.sec[sid],
+            s = SEC[sid],
+            miss = missingFor(sid),
+            st = e.stat,
+            d = e.det;
+          var cls = 'sec ' + state;
+          e.g.setAttribute('class', cls);
+          var label,
+            det = '';
+          if (state === 'off') {
+            label = 'OFF';
+            det = '';
+          } else if (state === 'powering') {
+            label = 'POWERING DECK ' + s.deck;
+            det = '';
+          } else if (state === 'online') {
+            label = '✓ ONLINE';
+            det = '';
+          } else if (state === 'standby') {
+            label = 'STANDBY';
+            det = 'waiting on upstream';
+          } else {
+            label = 'RED ALERT';
+            det =
+              miss
+                .map(function (c) {
+                  return c.token;
+                })
+                .join(', ') + ' missing';
+          }
+          st.textContent = label;
+          d.textContent = det;
+          e.g.setAttribute(
+            'aria-label',
+            s.name +
+              ' module, ' +
+              label.replace('✓ ', '').toLowerCase() +
+              (det ? ', ' + det : ''),
+          );
+        }
+
+        var DASH = null;
+        function update(first) {
+          SECS.forEach(function (s) {
+            setStat(s.id, secState(s.id));
+          });
+          CONDS.forEach(function (c) {
+            var e = els.cond[c.id],
+              on = plugged[c.id];
+            var live = on && powered[c.from] && !powering[c.from];
+            e.g.setAttribute(
+              'class',
+              'cond' + (on ? '' : ' cut') + (live ? ' live' : ''),
+            );
+            e.g.setAttribute('aria-checked', on ? 'true' : 'false');
+            e.g.setAttribute(
+              'aria-label',
+              c.token +
+                ' conduit from ' +
+                SEC[c.from].name +
+                ' to ' +
+                SEC[c.to].name +
+                ', ' +
+                (on
+                  ? 'plugged. Press to unplug.'
+                  : 'unplugged. Press to replug.'),
+            );
+            e.base.setAttribute('stroke-dasharray', on ? '' : '43 14 43 200');
+            e.base.style.strokeDasharray = on ? '' : '43 14 43 200';
+            var cx = e.g.querySelector('.cplx'),
+              m = e.base.getPointAtLength(e.len / 2);
+            cx.setAttribute(
+              'd',
+              on
+                ? 'M' +
+                    (m.x - 5) +
+                    ',' +
+                    m.y +
+                    ' h10 M' +
+                    m.x +
+                    ',' +
+                    (m.y - 5) +
+                    ' v10'
+                : 'M' +
+                    (m.x - 4) +
+                    ',' +
+                    (m.y - 4) +
+                    ' l8,8 M' +
+                    (m.x + 4) +
+                    ',' +
+                    (m.y - 4) +
+                    ' l-8,8',
+            );
+          });
+          renderBay();
+          renderGauges();
+          renderTerm();
+        }
+
+        /* breakers */
+        function buildBreakers() {
+          var box = $('breakers');
+          box.innerHTML = '';
+          CONDS.forEach(function (c, i) {
+            var b = document.createElement('button');
+            b.type = 'button';
+            b.className = 'brk';
+            b.setAttribute('role', 'switch');
+            b.id = 'brk-' + c.id;
+            b.innerHTML =
+              '<span class="slot"><span class="lever"></span></span><span class="st"></span><small>' +
+              c.token +
+              '<br>' +
+              SEC[c.from].name.slice(0, 3) +
+              ' → ' +
+              SEC[c.to].name.slice(0, 3) +
+              '</small>';
+            b.addEventListener('click', function () {
+              toggle(c.id);
+            });
+            box.appendChild(b);
+          });
+        }
+        function renderBreakers() {
+          CONDS.forEach(function (c) {
+            var b = $('brk-' + c.id),
+              on = plugged[c.id];
+            b.setAttribute('aria-checked', on ? 'true' : 'false');
+            b.setAttribute(
+              'aria-label',
+              'Breaker for ' +
+                c.token +
+                ' conduit, ' +
+                SEC[c.from].name +
+                ' to ' +
+                SEC[c.to].name +
+                ', ' +
+                (on ? 'on' : 'off'),
+            );
+            b.querySelector('.st').textContent = on ? 'ON' : 'OFF';
+          });
+        }
+
+        /* patch bay */
+        var bay = $('bay'),
+          bayEls = {},
+          bayPos = {};
+        var BAYY = [34, 84, 134, 184],
+          JL = 34,
+          JR = 296;
+        function buildBay() {
+          bay.innerHTML = '';
+          txt(bay, { class: 'bayh', x: JR - 98, y: 14 }, 'plug me back in');
+          CONDS.forEach(function (c, i) {
+            var y = BAYY[i];
+            txt(
+              bay,
+              { class: 'bayl', x: JL - 14, y: y - 17 },
+              c.id.toUpperCase() + '  ' + c.token,
+            );
+            var cable = el('path', { class: 'cable', d: '' }, bay);
+            el('circle', { class: 'jack', cx: JL, cy: y, r: 13 }, bay);
+            el('circle', { class: 'jackin', cx: JL, cy: y, r: 4 }, bay);
+            el('circle', { class: 'jack', cx: JR, cy: y, r: 13 }, bay);
+            el('circle', { class: 'jackin', cx: JR, cy: y, r: 4 }, bay);
+            var plug = el(
+              'g',
+              { class: 'plug', tabindex: 0, role: 'switch' },
+              bay,
+            );
+            el('rect', { x: -15, y: -11, width: 30, height: 22, rx: 5 }, plug);
+            el(
+              'path',
+              { class: 'pin', d: 'M-7,-5 v10 M0,-5 v10 M7,-5 v10' },
+              plug,
+            );
+            el(
+              'rect',
+              { class: 'hit', x: -24, y: -30, width: 48, height: 60, rx: 10 },
+              plug,
+            );
+            bayPos[c.id] = { x: JR, y: y };
+            bayEls[c.id] = { cable: cable, plug: plug, y: y };
+            wirePlug(c, plug, y);
+          });
+        }
+        function pt(ev) {
+          var p = bay.createSVGPoint();
+          p.x = ev.clientX;
+          p.y = ev.clientY;
+          return p.matrixTransform(bay.getScreenCTM().inverse());
+        }
+        function wirePlug(c, plug, y) {
+          var down = null,
+            moved = false;
+          plug.addEventListener('pointerdown', function (ev) {
+            ev.preventDefault();
+            plug.setPointerCapture(ev.pointerId);
+            var p = pt(ev);
+            down = { x: p.x, y: p.y };
+            moved = false;
+            plug.style.cursor = 'grabbing';
+          });
+          plug.addEventListener('pointermove', function (ev) {
+            if (!down) return;
+            var p = pt(ev);
+            if (Math.abs(p.x - down.x) + Math.abs(p.y - down.y) > 6)
+              moved = true;
+            if (moved) {
+              bayPos[c.id] = {
+                x: Math.max(JL + 30, Math.min(320, p.x)),
+                y: Math.max(14, Math.min(204, p.y)),
+              };
+              drawCable(c.id, true);
+            }
+          });
+          function end(ev) {
+            if (!down) return;
+            var was = moved;
+            down = null;
+            plug.style.cursor = '';
+            if (was) {
+              var q = bayPos[c.id],
+                near = Math.hypot(q.x - JR, q.y - y) < 44;
+              var want = near;
+              if (want !== plugged[c.id]) toggle(c.id, q);
+              else {
+                if (!want) bayPos[c.id] = q;
+                else bayPos[c.id] = { x: JR, y: y };
+                drawCable(c.id);
+              }
+            } else toggle(c.id);
+          }
+          plug.addEventListener('pointerup', end);
+          plug.addEventListener('pointercancel', function () {
+            down = null;
+            drawCable(c.id);
+          });
+          plug.addEventListener('keydown', function (ev) {
+            if (ev.key === 'Enter' || ev.key === ' ') {
+              ev.preventDefault();
+              toggle(c.id);
+            }
+          });
+        }
+        function drawCable(id, dragging) {
+          var e = bayEls[id],
+            c = CONDS.filter(function (k) {
+              return k.id === id;
+            })[0],
+            on = plugged[id] && !dragging,
+            y = e.y;
+          var p = on ? { x: JR, y: y } : bayPos[id];
+          if (
+            !on &&
+            !dragging &&
+            plugged[id] === false &&
+            Math.abs(p.x - JR) < 2 &&
+            Math.abs(p.y - y) < 2
+          )
+            p = bayPos[id] = { x: 236, y: y + 26 };
+          var sag = on ? 26 : Math.max(18, Math.abs(p.x - JL) * 0.18);
+          var d =
+            'M' +
+            JL +
+            ',' +
+            y +
+            ' C' +
+            (JL + 60) +
+            ',' +
+            (y + sag + 10) +
+            ' ' +
+            (p.x - 60) +
+            ',' +
+            (p.y + sag + 10) +
+            ' ' +
+            (p.x - 12) +
+            ',' +
+            p.y;
+          e.cable.setAttribute('d', d);
+          e.cable.setAttribute('class', 'cable' + (plugged[id] ? '' : ' cut'));
+          e.plug.setAttribute('class', 'plug' + (plugged[id] ? '' : ' cut'));
+          e.plug.setAttribute(
+            'transform',
+            'translate(' + p.x + ',' + p.y + ')',
+          );
+          e.plug.setAttribute('aria-checked', plugged[id] ? 'true' : 'false');
+          e.plug.setAttribute(
+            'aria-label',
+            c.token +
+              ' cable, ' +
+              (plugged[id]
+                ? 'plugged. Press to unplug.'
+                : 'unplugged. Press to replug.'),
+          );
+        }
+        function renderBay() {
+          CONDS.forEach(function (c) {
+            drawCable(c.id);
+          });
+        }
+
+        /* gauges */
+        var GA = [
+          { id: 'eng', l: 'REACTOR', u: '%', v: 88 },
+          { id: 'tac', l: 'SHIELDS', u: '%', v: 100 },
+          { id: 'com', l: 'SIGNAL', u: 'dB', v: 76 },
+        ];
+        function arcPath(r, a0, a1) {
+          function P(a) {
+            var t = ((a - 90) * Math.PI) / 180;
+            return (
+              (60 + r * Math.cos(t)).toFixed(1) +
+              ',' +
+              (64 + r * Math.sin(t)).toFixed(1)
+            );
+          }
+          return 'M' + P(a0) + ' A' + r + ',' + r + ' 0 0 1 ' + P(a1);
+        }
+        function buildGauges() {
+          var box = $('gauges');
+          box.innerHTML = '';
+          GA.forEach(function (g) {
+            var d = document.createElement('div');
+            d.className = 'gauge';
+            var ticks = '';
+            for (var i = 0; i <= 8; i++) {
+              var a = -90 + i * 22.5,
+                t = (a * Math.PI) / 180;
+              ticks +=
+                '<line class="tick" x1="' +
+                (60 + 40 * Math.sin(t)).toFixed(1) +
+                '" y1="' +
+                (64 - 40 * Math.cos(t)).toFixed(1) +
+                '" x2="' +
+                (60 + 46 * Math.sin(t)).toFixed(1) +
+                '" y2="' +
+                (64 - 46 * Math.cos(t)).toFixed(1) +
+                '"/>';
+            }
+            d.innerHTML =
+              '<svg viewBox="0 0 120 84" role="img" aria-label="' +
+              g.l +
+              ' gauge"><path class="arc" d="' +
+              arcPath(54, -90, 90) +
+              '"/><path class="redz" d="' +
+              arcPath(54, -90, -60) +
+              '"/>' +
+              ticks +
+              '<g class="ng" id="ng-' +
+              g.id +
+              '" style="transform:rotate(-90deg)"><line class="needle" x1="60" y1="64" x2="60" y2="22"/></g><circle class="hub" cx="60" cy="64" r="6"/></svg><div class="gl">' +
+              g.l +
+              '</div><div class="gv" id="gv-' +
+              g.id +
+              '">0</div>';
+            box.appendChild(d);
+          });
+        }
+        function renderGauges() {
+          GA.forEach(function (g) {
+            var s = secState(g.id),
+              v = 0;
+            if (s === 'online' || s === 'standby') v = g.v;
+            else if (s === 'powering') v = Math.round(g.v * 0.55);
+            $('ng-' + g.id).style.transform =
+              'rotate(' + (-90 + v * 1.8) + 'deg)';
+            $('gv-' + g.id).textContent = s === 'alert' ? 'FAULT' : v + g.u;
+          });
+        }
+
+        /* terminal, checklist, launch */
+        function renderTerm() {
+          var fails = allFailures(),
+            out = $('out');
+          var chk = $('check');
+          chk.innerHTML = '';
+          var okAll = true;
+          SECS.forEach(function (s) {
+            var li = document.createElement('li'),
+              m = missingFor(s.id),
+              st = secState(s.id);
+            var mk, cls, msg;
+            if (!powered[s.id] || powering[s.id]) {
+              cls = 'wait';
+              mk = '…';
+              msg = s.name + ': waiting for power';
+            } else if (m.length) {
+              cls = 'bad';
+              mk = '✗';
+              msg =
+                s.name +
+                ': ' +
+                m
+                  .map(function (c) {
+                    return c.user + ' needs ' + c.token + ', none visible';
+                  })
+                  .join('; ');
+              okAll = false;
+            } else {
+              cls = 'ok';
+              mk = '✓';
+              msg =
+                s.name +
+                ': wired' +
+                (st === 'standby' ? ' (upstream fault)' : '');
+            }
+            li.className = cls;
+            li.innerHTML =
+              '<span class="mk" aria-hidden="true">' +
+              mk +
+              '</span><span></span>';
+            li.lastChild.textContent =
+              (cls === 'bad' ? 'FAIL ' : cls === 'ok' ? 'PASS ' : 'WAIT ') +
+              msg;
+            chk.appendChild(li);
+          });
+          if (busy) {
+            out.innerHTML =
+              '<span class="c">powering up, deck by deck...</span>';
+          } else if (!fails.length) {
+            out.innerHTML =
+              '<span class="ok">✓ Meridian: 4 modules, 8 providers, no errors</span>\n<span class="c">exit code 0</span>';
+          } else {
+            var lines = fails.map(function (c) {
+              return (
+                '<span class="bad">✗ [NEXUS_MISSING_PROVIDER] ' +
+                c.user +
+                ' (module ' +
+                SEC[c.to].mod +
+                ') depends on ' +
+                c.token +
+                ', but no provider of ' +
+                c.token +
+                ' is visible in ' +
+                SEC[c.to].mod +
+                '.</span>'
+              );
+            });
+            out.innerHTML =
+              lines.join('\n') + '\n<span class="c">exit code 1</span>';
+          }
+          /* launch */
+          var L = $('launch'),
+            ls = $('lstat'),
+            ok = launchOK();
+          L.setAttribute('aria-disabled', ok ? 'false' : 'true');
+          $('lockico').style.display = ok ? 'none' : '';
+          if (busy) {
+            ls.className = 'lstat';
+            ls.innerHTML =
+              'LOCKED<small>Powering up. Wait for all decks.</small>';
+          } else if (!ok) {
+            var f = fails[0];
+            ls.className = 'lstat blocked';
+            ls.innerHTML = '✗ LAUNCH BLOCKED<small></small>';
+            ls.querySelector('small').textContent =
+              SEC[f.to].name +
+              ' is missing ' +
+              f.token +
+              (fails.length > 1
+                ? ' (and ' + (fails.length - 1) + ' more)'
+                : '') +
+              '. Replug to unlock.';
+          } else {
+            ls.className = 'lstat clear';
+            ls.innerHTML =
+              '✓ LAUNCH CLEAR<small>Nexus.check passed. Turn the key.</small>';
+          }
+          $('sheetstate').textContent = busy
+            ? 'Powering up'
+            : fails.length
+              ? 'RED ALERT'
+              : 'All systems lit';
+          renderBreakers();
+        }
+
+        /* actions */
+        var capEl = $('cap');
+        function cap(s) {
+          capEl.textContent = s;
+        }
+        function toggle(id, dropPos) {
+          if (busy) stopPower();
+          plugged[id] = !plugged[id];
+          var c = CONDS.filter(function (k) {
+              return k.id === id;
+            })[0],
+            y = bayEls[id].y;
+          if (!plugged[id]) {
+            bayPos[id] = dropPos || { x: 226 + Math.random() * 20, y: y + 28 };
+          } else bayPos[id] = { x: JR, y: y };
+          launched = false;
+          $('ship').classList.remove('go');
+          update();
+          if (!plugged[id])
+            cap(
+              'RED ALERT. ' + SEC[c.to].name + ' cannot find ' + c.token + '.',
+            );
+          else
+            cap(
+              allFailures().length
+                ? 'Replugged ' + c.token + '. Still failing.'
+                : 'All conduits plugged. Launch clear.',
+            );
+        }
+        function stopPower() {
+          timers.forEach(clearTimeout);
+          timers = [];
+          busy = false;
+          powering = {};
+          SECS.forEach(function (s) {
+            powered[s.id] = true;
+          });
+        }
+        function powerUp() {
+          stopPower();
+          launched = false;
+          $('ship').classList.remove('go');
+          var decks = [['eng'], ['tac', 'com'], ['bri']];
+          if (reduce.matches) {
+            update();
+            cap(
+              'Power-up order: Engineering, then Tactical and Comms, then Bridge.',
+            );
+            return;
+          }
+          busy = true;
+          powered = {};
+          SECS.forEach(function (s) {
+            powered[s.id] = false;
+          });
+          powering = {};
+          update();
+          cap('Deck 1: Engineering');
+          var t = 350;
+          decks.forEach(function (ids, i) {
+            timers.push(
+              setTimeout(function () {
+                ids.forEach(function (x) {
+                  powering[x] = true;
+                });
+                cap(
+                  'Deck ' +
+                    (i + 1) +
+                    ': ' +
+                    ids
+                      .map(function (x) {
+                        return SEC[x].name;
+                      })
+                      .join(' and ') +
+                    ' powering',
+                );
+                update();
+              }, t),
+            );
+            timers.push(
+              setTimeout(function () {
+                ids.forEach(function (x) {
+                  powering[x] = false;
+                  delete powering[x];
+                  powered[x] = true;
+                });
+                update();
+              }, t + 900),
+            );
+            t += 1000;
+          });
+          timers.push(
+            setTimeout(function () {
+              busy = false;
+              timers = [];
+              update();
+              cap(
+                allFailures().length
+                  ? 'Power-up done. Pre-flight check failing.'
+                  : 'All decks lit in dependency order.',
+              );
+            }, t + 100),
+          );
+        }
+        $('replay').addEventListener('click', powerUp);
+        $('reset').addEventListener('click', function () {
+          stopPower();
+          CONDS.forEach(function (c) {
+            plugged[c.id] = true;
+            bayPos[c.id] = { x: JR, y: bayEls[c.id].y };
+          });
+          launched = false;
+          $('ship').classList.remove('go');
+          update();
+          cap('All plugs reset.');
+        });
+        $('launch').addEventListener('click', function () {
+          var b = this;
+          if (!launchOK()) {
+            b.classList.remove('shake');
+            void b.offsetWidth;
+            b.classList.add('shake');
+            var f = allFailures();
+            cap(
+              busy
+                ? 'Still powering up.'
+                : 'Launch locked. ' +
+                    SEC[f[0].to].name +
+                    ' is missing ' +
+                    f[0].token +
+                    '.',
+            );
+            return;
+          }
+          launched = true;
+          $('ship').classList.remove('go');
+          void $('ship').getBoundingClientRect();
+          $('ship').classList.add('go');
+          cap('Meridian away. Every conduit was checked first.');
+        });
+
+        /* layout switch */
+        var mq = window.matchMedia('(max-width: 700px)');
+        function pickLayout() {
+          var k = mq.matches ? 'tall' : 'wide';
+          if (k !== layoutKey) buildShip(k);
+        }
+        if (mq.addEventListener) mq.addEventListener('change', pickLayout);
+        else mq.addListener(pickLayout);
+
+        buildBreakers();
+        buildBay();
+        buildGauges();
+        pickLayout();
+        /* first paint shows lit ship; sweep gauges in once */
+        (function () {
+          GA.forEach(function (g) {
+            $('ng-' + g.id).style.transform = 'rotate(-90deg)';
+          });
+          requestAnimationFrame(function () {
+            requestAnimationFrame(function () {
+              renderGauges();
+            });
+          });
+        })();
+        window.__nx = { toggle: toggle, powerUp: powerUp };
+      })();
+    </script>
+  </body>
+</html>
