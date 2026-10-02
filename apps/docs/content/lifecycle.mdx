@@ -48,7 +48,7 @@ NexusDI disposes every instance even when one disposer throws. When several disp
 
 The shield grid was built after the reactor, so it is disposed first, and its failure ends up in `suppressed`.
 
-Try it: save the region as `failures.ts` and run it. Remove the `throw` line from `DeflectorGrid` and run it again. The rejection is now the reactor's `Error` alone, with no chain: the program prints `Error`, and then stops with `TypeError: Cannot read properties of undefined (reading 'message')` on the `chain.error.message` line, because a lone `Error` has no `error` field. Put the `throw` back and the program prints `SuppressedError`, `control rods jammed` and `emitters stuck` again.
+Try it: save the region as `failures.ts` and run it. Remove the `throw` line from `DeflectorGrid` and run it again. The rejection is now the reactor's plain `Error` with no chain, and the program prints `Error` and `control rods jammed`. Put the `throw` back and the program prints the three lines of the chain again.
 
 ## A disposable transient belongs in a scope
 

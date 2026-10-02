@@ -131,11 +131,14 @@ const error = await ship[Symbol.asyncDispose]().catch(
 );
 const name = error instanceof Error ? error.name : null; // -> 'SuppressedError'
 console.log(name);
-const chain = error as { error: Error; suppressed: Error };
-const last = chain.error.message; // -> 'control rods jammed'
-console.log(last);
-const earlier = chain.suppressed.message; // -> 'emitters stuck'
-console.log(earlier);
+if (error instanceof Error && 'error' in error && 'suppressed' in error) {
+  const last = (error.error as Error).message; // -> 'control rods jammed'
+  console.log(last);
+  const earlier = (error.suppressed as Error).message; // -> 'emitters stuck'
+  console.log(earlier);
+} else if (error instanceof Error) {
+  console.log(error.message);
+}
 ```
 
 <!-- #endregion dispose-failures -->
