@@ -14,7 +14,7 @@ npm install @nexusdi/interceptors@next
 
 ## Write a NexusDI interceptor and attach it to a method
 
-An interceptor implements `Interceptor` and declares its deps like any class provider. `intercept` receives a `CallContext` (the instance, the provider, the method name, the arguments, the `async` flag and the scope) and `next`, which runs the rest of the chain and the method. `interceptors({ register })` registers the interceptor under a token with `interceptor(token, { useClass })`, and `imports` names the modules its own deps come from. A class attaches it with a `static interceptors` map, checked by `satisfies InterceptorMap<T>`:
+An interceptor implements `Interceptor` and declares its deps like any class provider. `intercept` receives a `CallContext` (the instance, the provider, the method name, the arguments, the `async` flag and the scope) and `next`, which runs the rest of the chain and the method. `interceptors({ register })` registers the interceptor under a token with `interceptor(token, { useClass })`, and `imports` names the modules its own deps come from. The container stores a proxy of each instance that has interceptors, so a call through `get()` or an injected dependency runs the chain, and a call on `this` inside a method does not. A class attaches it with a `static interceptors` map, checked by `satisfies InterceptorMap<T>`:
 
 ```ts file=examples/meridian/src/pages/interceptors.md region=audit
 
@@ -67,7 +67,7 @@ The chain of a method runs the global entries first, then the bindings, then the
 
 ## Apply a NexusDI interceptor to every service with `global`
 
-`global` attaches an interceptor to the methods of every service the container builds. An entry `{ use, when }` skips a method where `when({ provider, method })` returns false; it runs once per provider and method. A global interceptor must never intercept a service it calls, so `exempt` lists every service the interceptors depend on outside the plugin's own `providers`. Global entries skip an exempt service and every provider it reaches:
+`global` attaches an interceptor to the methods of every service the container builds. An entry `{ use, when }` skips a method where `when({ provider, method })` returns false; it runs once per provider and method. A global interceptor must never intercept a service it calls, so `exempt` lists every service the interceptors directly depend on outside the plugin's own `providers`. Global entries skip an exempt service and every provider it reaches:
 
 ```ts file=examples/meridian/src/pages/interceptors.md region=global
 
@@ -110,7 +110,7 @@ Try it: save the region as `lifetime.ts` and run `npx tsx lifetime.ts`. It print
 
 ## Full text of the NexusDI interceptor errors
 
-The errors `create` reports for the plugin, and the ones a wrapped method throws once the container runs, carry a one-line message with a link to their page. A method called after its container is disposed throws [NEXUS_INTERCEPTOR_NOT_READY](/errors/NEXUS_INTERCEPTOR_NOT_READY/). So does one called from a constructor before its interceptors are built, which `create` reports as [NEXUS_PROVIDER_FAILED](/errors/NEXUS_PROVIDER_FAILED/) with that code as its `cause`. The full text and fix lines live in `interceptorsText` at `@nexusdi/interceptors/text`. Pass it to `errors()`, as the lifetime region does:
+The errors `create` reports through the plugin's checks, and the bad-argument and missing-interceptor faults a wrapped method raises after setup, carry a one-line message with a link to their page. [NEXUS_INTERCEPTOR_NOT_READY](/errors/NEXUS_INTERCEPTOR_NOT_READY/) carries its own full text, and so does [NEXUS_INTERCEPTORS_SHARED](/errors/NEXUS_INTERCEPTORS_SHARED/) when the plugin raises it for two overlapping `create` calls: `errors()` packs do not change either. A method called after its container is disposed throws NOT_READY. So does one called from a constructor before its interceptors are built, which `create` reports as [NEXUS_PROVIDER_FAILED](/errors/NEXUS_PROVIDER_FAILED/) with that code as its `cause`. The full text and fix lines live in `interceptorsText` at `@nexusdi/interceptors/text`. Pass it to `errors()`, as the lifetime region does:
 
 ```ts no-run
 import { errors } from '@nexusdi/errors';
