@@ -6,7 +6,7 @@ description: Pass NexusDI plugins to Nexus.create in the plugins option, in the 
 
 # How do I register a plugin?
 
-`Nexus.create(root, { plugins })` registers plugins for one container. A NexusDI plugin is a plain object that carries a `name` and the plugin API version it was written for, and sets any hooks it uses. The first-party packages `@nexusdi/errors`, `@nexusdi/devtools`, `@nexusdi/interceptors` and `@nexusdi/federation` each export a function that returns one.
+`Nexus.create(root, { plugins })` registers plugins for one container. A NexusDI plugin is a plain object with a `name` and the plugin API version it was written for. It sets the hooks it uses as functions on that object. The first-party packages `@nexusdi/errors`, `@nexusdi/devtools`, `@nexusdi/interceptors` and `@nexusdi/federation` each export a function that returns one.
 
 ## Register `errors()` with `Nexus.create`
 
@@ -36,7 +36,7 @@ Try it:
 
 ## Register `devtools()` in development
 
-`devtools()` from `@nexusdi/devtools` enables `graph()` for a container, passes lifecycle events to its `trace` option, and includes the errors engine, so a container with `devtools()` needs no `errors()` beside it. Register it in development only, because a production container needs neither the graph nor the trace:
+`devtools()` from `@nexusdi/devtools` enables `graph()` and the `trace` option for a container, and it includes the errors engine, so a container with `devtools()` needs no `errors()` beside it. Register it in development only, because a production container uses no graph or trace:
 
 ```ts file=examples/meridian/src/pages/plugins.md region=development-only
 
