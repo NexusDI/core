@@ -1,0 +1,37 @@
+---
+title: NEXUS_REQUEST_MISSING
+kind: code
+description: createScope() received no request while providers depend on REQUEST.
+package: '@nexusdi/core'
+errorClass: RequestMissingError
+---
+
+# NEXUS_REQUEST_MISSING
+
+`NEXUS_REQUEST_MISSING` means `ship.createScope()` received no `request` while scoped providers depend on `REQUEST`. `createScope` returns a promise, so the call rejects. `scope.extend()` throws it directly too, when a module loaded later adds a `REQUEST` dependent and the scope has no request.
+
+## Reproduce `NEXUS_REQUEST_MISSING`
+
+The region builds `Mission` from `REQUEST` and creates a scope with no request. Without a plugin, core prints a one-line message that starts with the code and ends with the address of this page. With `errors()` from `@nexusdi/errors` registered (`npm install @nexusdi/errors@next`), the same error carries the full text and its fix.
+
+```ts file=examples/meridian/src/errors/NEXUS_REQUEST_MISSING.md region=reproduce
+
+```
+
+Try it: save the region as `error.ts` and run `npx tsx error.ts`. It prints the one-line message, then the full text as an array of two strings. The `dependents` field names `Mission`. The regions read `request.mission`, so save the `request.d.ts` file from [Scopes and REQUEST](/scopes/) beside them and `tsc` agrees. Then save the fix region below as `fixed.ts` and run `npx tsx fixed.ts`. It prints `survey-7`.
+
+## Fix `NEXUS_REQUEST_MISSING`
+
+`NEXUS_REQUEST_MISSING` is fixed by passing the request: `ship.createScope({ request })`. The `NexusRequest` interface, which your project augments, declares its shape.
+
+```ts file=examples/meridian/src/errors/NEXUS_REQUEST_MISSING.md region=fix
+
+```
+
+Try it: in `fixed.ts`, replace the whole `ship.createScope({ ... })` call with `ship.createScope()` and run it again. `tsc` accepts the call. `tsx` throws an uncaught `RequestMissingError` that starts with `[NEXUS_REQUEST_MISSING] dependents=Mission.`. Put the request back and the program prints `survey-7` again.
+
+## Fields of `RequestMissingError`
+
+`RequestMissingError` has one field:
+
+- `dependents`: the names of the providers that depend on `REQUEST`. For `extend()`, only the providers the load added.

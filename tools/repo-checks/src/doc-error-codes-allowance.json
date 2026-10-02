@@ -2,7 +2,6 @@
   "NEXUS_CONTRACT_VERSION": "Phase 1 writes it in its code page task.",
   "NEXUS_DEVTOOLS_GRAPH_INVALID": "Phase 1 writes it in its code page task.",
   "NEXUS_DEVTOOLS_UNREGISTERED": "Phase 1 writes it in its code page task.",
-  "NEXUS_DISPOSED": "Phase 1 writes it in its code page task.",
   "NEXUS_INTERCEPTORS_SHARED": "Phase 1 writes it in its code page task.",
   "NEXUS_INTERCEPTORS_UNCHECKED": "Phase 1 writes it in its code page task.",
   "NEXUS_INTERCEPTOR_INVALID": "Phase 1 writes it in its code page task.",
@@ -10,13 +9,10 @@
   "NEXUS_INTERCEPTOR_MISSING": "Phase 1 writes it in its code page task.",
   "NEXUS_INTERCEPTOR_NOT_READY": "Phase 1 writes it in its code page task.",
   "NEXUS_LEGACY_DECORATORS": "Phase 1 writes it in its code page task.",
-  "NEXUS_LOADED_AFTER_SCOPE": "Phase 1 writes it in its code page task.",
   "NEXUS_OVERRIDE_EXPORTS": "Phase 1 writes it in its code page task.",
   "NEXUS_OVERRIDE_UNUSED": "Phase 1 writes it in its code page task.",
   "NEXUS_PLUGIN_CONFLICT": "Phase 1 writes it in its code page task.",
   "NEXUS_PLUGIN_FAILED": "Phase 1 writes it in its code page task.",
   "NEXUS_PLUGIN_INVALID": "Phase 1 writes it in its code page task.",
-  "NEXUS_PLUGIN_VERSION": "Phase 1 writes it in its code page task.",
-  "NEXUS_REQUEST_MISSING": "Phase 1 writes it in its code page task.",
-  "NEXUS_SCOPE_REQUIRED": "Phase 1 writes it in its code page task."
+  "NEXUS_PLUGIN_VERSION": "Phase 1 writes it in its code page task."
 }

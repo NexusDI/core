@@ -76,6 +76,13 @@ const meta: MetaRecord = {
   NEXUS_ASYNC_TRANSIENT: { title: 'NEXUS_ASYNC_TRANSIENT', display: 'hidden' },
   NEXUS_LAZY_ASYNC: { title: 'NEXUS_LAZY_ASYNC', display: 'hidden' },
   NEXUS_NOT_VISIBLE: { title: 'NEXUS_NOT_VISIBLE', display: 'hidden' },
+  NEXUS_SCOPE_REQUIRED: { title: 'NEXUS_SCOPE_REQUIRED', display: 'hidden' },
+  NEXUS_REQUEST_MISSING: { title: 'NEXUS_REQUEST_MISSING', display: 'hidden' },
+  NEXUS_LOADED_AFTER_SCOPE: {
+    title: 'NEXUS_LOADED_AFTER_SCOPE',
+    display: 'hidden',
+  },
+  NEXUS_DISPOSED: { title: 'NEXUS_DISPOSED', display: 'hidden' },
 };
 
 export default meta;

@@ -1,0 +1,39 @@
+---
+title: NEXUS_SCOPE_REQUIRED
+kind: code
+description: A scoped provider or REQUEST was resolved from the root container.
+package: '@nexusdi/core'
+errorClass: ScopeRequiredError
+---
+
+# NEXUS_SCOPE_REQUIRED
+
+`NEXUS_SCOPE_REQUIRED` means code asked the root container for a scoped provider or for `REQUEST`. The root has no scope, so `get()` throws it directly. So does `resolve()`, which throws for a `lazy()` entry to a scoped provider when `resolve()` runs. A transient provider that depends on a scoped one raises it too, and `path` then lists the transient first, as in `path=Briefing,FlightLog`. A singleton that depends on a scoped provider fails earlier: `Nexus.create` reports [NEXUS_LIFETIME_VIOLATION](/errors/NEXUS_LIFETIME_VIOLATION/).
+
+## Reproduce `NEXUS_SCOPE_REQUIRED`
+
+The region binds `FlightLog` as scoped and asks the root for it. Without a plugin, core prints a one-line message that starts with the code and ends with the address of this page. With `errors()` from `@nexusdi/errors` registered (`npm install @nexusdi/errors@next`), the same error carries the full text and its fix.
+
+```ts file=examples/meridian/src/errors/NEXUS_SCOPE_REQUIRED.md region=reproduce
+
+```
+
+Try it: save the region as `error.ts` and run `npx tsx error.ts`. It prints the one-line message, then the full text as an array of two strings. The second string shows how to create a scope. The regions read `request.mission`, so save the `request.d.ts` file from [Scopes and REQUEST](/scopes/) beside them and `tsc` agrees. Then save the fix region below as `fixed.ts` and run `npx tsx fixed.ts`. It prints `Kepler-442b`.
+
+## Fix `NEXUS_SCOPE_REQUIRED`
+
+`NEXUS_SCOPE_REQUIRED` is fixed by resolving scoped providers from a scope. [Scopes and REQUEST](/scopes/) covers scopes.
+
+```ts file=examples/meridian/src/errors/NEXUS_SCOPE_REQUIRED.md region=fix
+
+```
+
+Try it: in `fixed.ts`, change `shuttle.get(FLIGHT_LOG)` to `ship.get(FLIGHT_LOG)` and run it again. `tsc` accepts the change, because the types accept `get()` on a root and on a scope alike. `tsx` throws an uncaught `ScopeRequiredError` that starts with `[NEXUS_SCOPE_REQUIRED] token=FlightLog path=FlightLog.`. Change the call back and the program prints `Kepler-442b` again.
+
+## Fields of `ScopeRequiredError`
+
+`ScopeRequiredError` carries these fields:
+
+- `token`: the display name of the scoped provider, or `REQUEST`.
+- `path`: the providers from the token asked for to the scoped one it reaches.
+- `entry`: the deps entry of `resolve()` this error is about, such as `deps.s` for the key `s` of an object, or `null` for `get()`.
