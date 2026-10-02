@@ -10,7 +10,7 @@ NexusDI is compared here with four dependency injection containers for TypeScrip
 
 ## Performance of NexusDI and the four containers
 
-The performance table shows each library in the variant its own documentation teaches. Bundle size is the esbuild bundle, minified and gzipped. Startup is a cold start of a fresh Node process, resolve is one transient resolve on a ready container, and build time is the library's fastest passing build of a 200-class graph under a toolchain its documentation names. Focus or hover a figure for its spread and, on another library's row, the paired ratio to NexusDI with its interval. A ratio below 1 means NexusDI took less time, and an interval that contains 1 is no measured difference.
+The performance table shows each library in the variant its own documentation teaches. Bundle size is the esbuild bundle, minified and gzipped, and startup is a cold start of a fresh Node process. Resolve is one transient resolve on a ready container, and build time is the library's fastest passing build of a 200-class graph under a toolchain its documentation names. Focus or hover a figure for its spread and, on another library's row, the paired ratio to NexusDI with its interval. A ratio below 1 means NexusDI took less time, and an interval that contains 1 is no measured difference.
 
 <PerformanceTable />
 
@@ -30,13 +30,13 @@ The probe table adds one mistake at a time to the graph and shows where each lib
 
 A NexusDI class lists its dependencies as tokens in `static deps`, and TypeScript checks that list against the constructor. The container reads the list at run time, so no build step has to emit decorator metadata, and the NexusDI `plain` row of the toolchain matrix above shows the result under each toolchain. InversifyJS's [getting-started page](https://inversify.io/docs/introduction/getting-started/) and tsyringe's [README](https://github.com/microsoft/tsyringe#readme) set `experimentalDecorators` and `emitDecoratorMetadata` for their decorated setups, and their `decorated` rows show which toolchains build those setups. [awilix](https://github.com/jeffijoe/awilix#readme) and [needle-di](https://needle-di.io) document setups that use no decorator metadata.
 
-## TypeDI, NestJS and NexusDI
+## TypeDI and NestJS compared with NexusDI
 
 TypeDI is left out of the measurements: its last release, 0.10.0, was published on 2021-01-15 ([npm](https://www.npmjs.com/package/typedi)). NestJS is a framework with its own container, and [When to skip NexusDI](/#when-to-skip-nexusdi) explains why NexusDI would add a second container beside it.
 
 ## Break and fix a NexusDI benchmark figure
 
-The `<Figure>` component renders one result inline in a sentence, and the docs build fails on a path the results do not hold. In `apps/docs/content/index.mdx`, change the figure's path from `size.nexusdi.plain.esbuild.gzip` to `size.nexusdi.plain.esbuild.brotli`, and run the guard:
+The `<Figure>` component renders one result inline in a sentence, and the `doc-benchmark-figures` guard fails on a path the results do not hold. In `apps/docs/content/index.mdx`, change the figure's path from `size.nexusdi.plain.esbuild.gzip` to `size.nexusdi.plain.esbuild.brotli`, and run the guard:
 
 ```sh
 npx nx test @nexusdi/repo-checks -- doc-benchmark-figures
