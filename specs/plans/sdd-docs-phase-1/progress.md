@@ -123,4 +123,5 @@ Task briefs: tasks/task-NN.md, shared constraints tasks/globals.md
 - T57: done 3553e9e+a42b67d (.ts files as elsewhere; packs named exactly; installs added; approved after fix)
 - T58: done 18abfec+cd6146d (setup receives PluginContext; dispose only after setup; P1/P5 restated in full; approved after fix)
 - T59: done 20dd399 (form link to 04-rc-feedback.yml on main; dist-tags checked on npm; two final conditions, no codemod claim; approved)
-- T60: impl
+- T60: done f6e0c75+eb7a144+fc0973d (0.3 field injection, remaining 0.3 exports table, @Optional vs optional(), devtools step for graph(); approved after fixes)
+- T61: impl
