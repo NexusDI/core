@@ -27,6 +27,7 @@
         "inputs": [
           "default",
           "^production",
+          "{workspaceRoot}/examples/meridian/src/**/*",
           {
             "env": "DOCS_BASE_PATH"
           },
