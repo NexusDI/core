@@ -37,7 +37,7 @@ Each scope has an id, `s0` and `s1` here. Both scopes build their own `MISSION` 
   own mission, and every shuttle reads from the ship's one computer.
 </Notice>
 
-Try it: save `request.d.ts` and the region as `shuttles.ts` in one folder, and run `npx tsx shuttles.ts`. It prints the two scope ids and the two missions. Add a third `createScope()` call with the mission `survey-9`, bind it as `third`, and print `third.get(FLIGHT_LOG).mission.id`, `third.id` and whether that flight log is the first scope's. It prints `survey-9`, `s2` and `false`: a third scope gets a third flight log. Delete `mission` from the second scope's request and `tsc` reports `Property 'mission' is missing in type '{}' but required in type 'NexusRequest'` on the `request` line of that call.
+Try it: save `request.d.ts` and the region as `shuttles.ts` in one folder, and run `npx tsx shuttles.ts`. It prints the two scope ids and the two missions. Add a third `createScope()` call with the mission `survey-9`, bind it as `third`, and print `third.id` and `third.get(FLIGHT_LOG).mission.id`. It prints `s2` and `survey-9`. Compare that flight log with the first scope's and it prints `false`: a third scope gets a third flight log. Delete `mission` from the second scope's request and `tsc` reports `Property 'mission' is missing in type '{}' but required in type 'NexusRequest'` on the `request` line of that call.
 
 ## Resolve `REQUEST` only inside a NexusDI scope
 
@@ -68,7 +68,7 @@ A singleton lasts as long as the container, longer than any scope, so a singleto
 
 The error's `path` names the providers from the singleton to the scoped provider, here `ShipComputer` and `Mission`. The fix is to give the consumer `lifetime: 'scoped'`, or to move the scoped value into a method argument.
 
-Try it: save the region as `captive.ts` and run it. It prints `[ 'NEXUS_LIFETIME_VIOLATION' ]` and `[ 'ShipComputer', 'Mission' ]`. Add `lifetime: 'scoped'` to the `COMPUTER` provider and run it again. `Nexus.create` resolves, so the program prints `[]` twice, and each shuttle gets its own computer.
+Try it: save the region as `captive.ts` and run it. It prints `[ 'NEXUS_LIFETIME_VIOLATION' ]` and `[ 'ShipComputer', 'Mission' ]`. Add `lifetime: 'scoped'` to the `COMPUTER` provider and run it again. `Nexus.create` resolves, so the program prints `[]` twice. A scoped `COMPUTER` is built once per scope.
 
 ## A scoped factory runs in every shuttle
 
