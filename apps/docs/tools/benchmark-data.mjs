@@ -243,8 +243,10 @@ export function buildBenchmarkData({
 /**
  * The commit that holds `path` as the working tree has it, or null when the
  * file is new or edited (a local run). The results link points at it.
+ * `build-site.mjs` copies main's results into the tag tree, where git sees
+ * them as changed, so it sets BENCHMARK_COMMITS_FROM to main's checkout.
  */
-function gitCommit(root) {
+export function gitCommit(root) {
   return (path) => {
     try {
       const git = (...args) =>
@@ -267,7 +269,7 @@ export function readBenchmarkData(root = WORKSPACE) {
     coreVersion: JSON.parse(
       readFileSync(join(root, 'libs/core/package.json'), 'utf8'),
     ).version,
-    commitOf: gitCommit(root),
+    commitOf: gitCommit(process.env.BENCHMARK_COMMITS_FROM || root),
   });
 }
 

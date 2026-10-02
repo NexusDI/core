@@ -1,8 +1,10 @@
 // @vitest-environment node
+import { execFileSync } from 'node:child_process';
 import {
   cpSync,
   mkdtempSync,
   readFileSync,
+  mkdirSync,
   rmSync,
   writeFileSync,
 } from 'node:fs';
@@ -11,7 +13,11 @@ import { join } from 'node:path';
 
 import { afterEach, describe, expect, it } from 'vitest';
 
-import { buildBenchmarkData, readBenchmarkData } from './benchmark-data.mjs';
+import {
+  buildBenchmarkData,
+  gitCommit,
+  readBenchmarkData,
+} from './benchmark-data.mjs';
 import { lookup, unitOf } from './benchmark-path.mjs';
 
 const FIXTURE = join(import.meta.dirname, '__fixtures__/benchmark-results');
@@ -152,5 +158,28 @@ describe('the workspace results', () => {
     expect(typeof lookup(data, 'size.nexusdi.plain.esbuild.gzip').value).toBe(
       'number',
     );
+  });
+});
+
+describe('gitCommit', () => {
+  it('names the commit of a clean file and answers null for an edited one', () => {
+    const dir = mkdtempSync(join(tmpdir(), 'benchmark-git-'));
+    copies.push(dir);
+    const git = (...args) =>
+      execFileSync(
+        'git',
+        ['-c', 'user.name=t', '-c', 'user.email=t@t', ...args],
+        { cwd: dir, encoding: 'utf8' },
+      ).trim();
+    git('init', '-q');
+    mkdirSync(join(dir, 'benchmarks/results'), { recursive: true });
+    const path = 'benchmarks/results/size.json';
+    writeFileSync(join(dir, path), '{}\n');
+    git('add', '.');
+    git('commit', '-q', '-m', 'results');
+    const head = git('rev-parse', 'HEAD');
+    expect(gitCommit(dir)(path)).toBe(head);
+    writeFileSync(join(dir, path), '{"edited":true}\n');
+    expect(gitCommit(dir)(path)).toBeNull();
   });
 });
