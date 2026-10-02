@@ -13,13 +13,13 @@ A NexusDI token names a dependency the container can provide. A class is its own
 
 A `Token<T>` gives an interface a runtime name the container can look up. `new Token<INavCharts>('NavCharts')` carries the type `INavCharts`, so `get(NAV_CHARTS)` returns an `INavCharts`, and `provide(NAV_CHARTS, ...)` accepts only something that fits it. The description, `'NavCharts'`, is the name NexusDI prints in error messages and in `graph()`. `Token` requires it.
 
-`provide(NAV_CHARTS, { useValue })` binds the token to a value the container hands out as it is. `Nexus.create` takes a list of `provide()` entries as readily as a list of classes (the short form from the Getting started page):
+`provide(NAV_CHARTS, { useValue })` binds the token to a value the container hands out as it is. `Nexus.create` takes a list of `provide()` entries as well as a list of classes (the short form from the Getting started page):
 
 ```ts file=examples/meridian/src/pages/tokens.md region=interface-token
 
 ```
 
-Try it: save the program as `tokens.ts` and run `npx tsx tokens.ts`. The terminal prints `course to Kepler-442b`. Then change `starCharts` so that `plot` returns a number. `npx tsc` rejects the `provide()` call, because the value no longer fits `INavCharts`. Change `plot` back to return a string and `npx tsc` reports nothing.
+Try it: save the program as `tokens.ts` and run `npx tsx tokens.ts`. The terminal prints `course to Kepler-442b`. Then change `starCharts` so that `plot` returns a number. `npx tsc` rejects `starCharts`, because it no longer fits `INavCharts`. Change `plot` back to return a string and `npx tsc` reports nothing.
 
 ## NexusDI compares tokens by identity
 
