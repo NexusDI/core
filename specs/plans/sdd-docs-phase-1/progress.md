@@ -119,4 +119,5 @@ Task briefs: tasks/task-NN.md, shared constraints tasks/globals.md
 - T55: done 297d7da+cdbc16c+1a286a5 (compile-time codes wrapped; NOT_READY full text; proxy and exempt exact; unverified SHARED-overlap clause dropped; approved)
 - T56: done fd8d160+9a2cbf4 (exit codes 1/2/3 stated; region uses a plain field so Node type stripping runs it without tsx; -o paths in cwd; approved after fix)
 - T57: done 3553e9e+a42b67d (.ts files as elsewhere; packs named exactly; installs added; approved after fix)
-- T58: impl
+- T58: done 18abfec+cd6146d (setup receives PluginContext; dispose only after setup; P1/P5 restated in full; approved after fix)
+- T59: impl
