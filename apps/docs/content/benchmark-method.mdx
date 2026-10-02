@@ -16,7 +16,7 @@ Each class carries a `kind` field with its role name. The scenario script prints
 
 ## The variants each library is written in for the NexusDI benchmarks
 
-Each library appears in the variants its own documentation teaches, and each fixture's header comment cites the page, the version and the date it follows, with every departure and its reason. NexusDI has `plain` (tokens and `static deps`) and `decorated` (standard decorators). InversifyJS and tsyringe have `plain` and two decorated variants: `decorated` uses legacy decorators with decorator metadata, and `decorated-explicit` uses legacy decorators with explicit tokens. awilix has `plain`, and needle-di has `plain` and `decorated`. That makes eleven library variants.
+Each library appears in the variants its own documentation teaches, and each fixture's header comment cites the documentation page and the date it was read, and lists every departure with its reason. NexusDI has `plain` (tokens and `static deps`) and `decorated` (standard decorators). InversifyJS and tsyringe have `plain` and two decorated variants: `decorated` uses legacy decorators with decorator metadata, and `decorated-explicit` uses legacy decorators with explicit tokens. awilix has `plain`, and needle-di has `plain` and `decorated`. That makes eleven library variants.
 
 `benchmarks/libraries.json` pins each library's version and marks one variant per library as the one its documentation teaches. The performance table on [NexusDI compared](/comparison/) shows that variant. The same file lists the toolchains each library's documentation names, and records the reason for every lifetime a library lacks.
 
@@ -34,7 +34,7 @@ Five probes each add one mistake to Meridian-8 and record where the library repo
 
 ## How the NexusDI benchmarks measure size, startup and build time
 
-Bundle size starts from each variant's `tsc` output. esbuild and Rollup bundle it for the browser, minified, and gzip runs at its highest level. The record keeps the gzip size of the decorator metadata polyfill on its own, and runs every minified bundle through the scenario, because minification renames classes. The same file holds emit counts for the generated large graph: output bytes, metadata and decorate calls, and the imports that stay in the emitted code. The results are in `benchmarks/results/size.json`.
+Bundle size starts from each variant's `tsc` output. esbuild and Rollup bundle it for the browser, minified, and gzip runs at its highest level. The record keeps the gzip size of the decorator metadata polyfill on its own, and runs every minified bundle through the scenario, because minification renames classes. The same file holds emit counts for the generated large graph: output bytes, metadata calls, decorate calls and kept imports. The results are in `benchmarks/results/size.json`.
 
 Timings run on Node 24, on each variant's `tsc` build, for the scenarios whose matrix section passes. Five scenarios run: `cold-start`, `ready`, `resolve-singleton`, `resolve-transient` and `scope-cycle`. `ready` creates a container and resolves every singleton once, so each library does the same work before the clock stops.
 
@@ -50,7 +50,7 @@ Build time is the wall time of a cold build of every variant under every cell wi
 
 The NexusDI maintainer wrote the harness and measured the results, and has an interest in them. The runs use GitHub-hosted runners, and each results file records the runner's CPU and every pinned version, Node included.
 
-The harness covers Meridian-8 and the generated build graph under every toolchain cell. It does not time Bun, Deno or a browser at run time, incremental or watch builds, editor type checks, graphs larger than eight providers at run time, async factories, or any framework integration.
+The harness covers Meridian-8 and the generated build graph under every toolchain cell. It does not time Bun or Deno at run time, or a browser. It leaves out incremental and watch builds, editor type checks, graphs larger than eight providers at run time, async factories and framework integrations.
 
 A maintainer or user who finds a fixture that departs from a library's documentation can [open an issue](https://github.com/NexusDI/core/issues/new/choose) with the library, the fixture path, the documentation URL that shows the correct setup and the expected outcome. An accepted correction is merged and rerun, and the pages update from the new results.
 
@@ -58,7 +58,7 @@ A maintainer or user who finds a fixture that departs from a library's documenta
 
 ## Rerun the NexusDI benchmarks
 
-Every deterministic results file rebuilds byte for byte. Clone the release branch and run the check, which rebuilds the matrix, the probes and the sizes and compares each with the committed file:
+Every deterministic results file rebuilds byte for byte. Clone the release branch and run the check, which rebuilds each one and compares it with the committed file:
 
 ```sh
 git clone --branch release/0.4 https://github.com/NexusDI/core.git
@@ -67,7 +67,7 @@ npm ci
 npx nx run @nexusdi/benchmarks:check
 ```
 
-The check packs the libraries and builds every cell, so it takes several minutes, and it exits 0. Now break a fixture: in `benchmarks/fixtures/nexusdi/plain.ts`, change `readonly kind = 'ReactorCore'` on `FusionReactor` to `readonly kind = 'Reactor'`, and run the check again. The scenario's output no longer matches `golden.json`, so the rebuilt `matrix.json` differs from the committed one. The check prints `matrix.json changed. Commit the file the run wrote.` and exits 1 after the matrix step, before it reaches the probes and the sizes.
+The check packs the libraries and builds every cell, so it takes several minutes, and it exits 0. Now break a fixture: in `benchmarks/fixtures/nexusdi/plain.ts`, change `readonly kind = 'ReactorCore'` on `FusionReactor` to `readonly kind = 'Reactor'`, and run the check again. The `tsc` and `tsgo` cells fail the type check with TS2416, and the other cells print a `kind` that differs from `golden.json`, so the rebuilt `matrix.json` differs from the committed one. The check prints `matrix.json changed. Commit the file the run wrote.` and exits 1 after the matrix step, before it reaches the probes and the sizes.
 
 The failed run has already overwritten `benchmarks/results/matrix.json` with the broken result. Restore both files with `git checkout benchmarks/fixtures/nexusdi/plain.ts benchmarks/results/matrix.json` and run the check again. It exits 0.
 
