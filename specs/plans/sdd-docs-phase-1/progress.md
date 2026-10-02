@@ -95,4 +95,5 @@ Task briefs: tasks/task-NN.md, shared constraints tasks/globals.md
 - T32: done 3249b86+d59a4ae (D3 regionRoots from the tree; captions guard uses the loader's quote/backslash rule; wiring check strips comments; approved)
 - T34: done d7b414d+9fd68d4 (codesByPackage over the existing AST declaredCodes; 40 codes allowed until Tasks 62-73; undeclared allowance keys reported; approved)
 - Groups A-E done. Group P (pages) starts.
-- T36: impl
+- T36: done 72b9bc6+7208c89 (plan text verbatim; added the dependency count; decorator settings sentence made exact; approved)
+- T37: impl
