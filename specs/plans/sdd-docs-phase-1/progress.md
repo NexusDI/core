@@ -136,4 +136,5 @@ Task briefs: tasks/task-NN.md, shared constraints tasks/globals.md
 - T68: done 46a1baf+08d9593 (INVALID/VERSION/CONFLICT only inside BLUEPRINT_INVALID; FAILED four sites incl. tokenKey bare from container and scope calls; per-page fix regions; approved after fix)
 - T69: done fdf482b+82232bc (all three thrown bare; exact tsconfig for TS1238; parseGraph check order; stack-trace wording; approved after fix)
 - T70: done d2dcb3c+93ce88d (all three only inside BLUEPRINT_INVALID via compile.check; ^ rule with patch and major-0 minors; unused override token=module name; approved with minors fixed)
-- T71: impl
+- T71: done 44f6a8c+0230f6e (per-reason arrival table; bad-target also at build; call-time MISSING unreachable, /interceptors/ sentence corrected; AUDIT token interface-first; approved after fix)
+- T72: impl
