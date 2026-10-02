@@ -227,9 +227,9 @@
         text-transform: uppercase;
         letter-spacing: 0.015em;
         margin: 8px 0 14px;
-        font-size: clamp(38px, 7.2vw, 88px);
-        line-height: 0.95;
-        max-width: 15ch;
+        font-size: clamp(36px, 5vw, 64px);
+        line-height: 0.98;
+        max-width: 22ch;
         transform: rotate(-1.2deg);
         transform-origin: left bottom;
       }
@@ -243,7 +243,7 @@
         text-shadow: 3px 3px 0 var(--ink);
       }
       .hero-sub {
-        max-width: 44ch;
+        max-width: 56ch;
         font-size: 19px;
         font-weight: 600;
         margin: 0 0 18px;
@@ -302,6 +302,34 @@
         width: 18px;
         height: 18px;
       }
+      .inst {
+        display: flex;
+        flex-direction: column;
+        gap: 8px;
+        max-width: 100%;
+      }
+      .inst .rc {
+        display: flex;
+        flex-wrap: wrap;
+        align-items: center;
+        gap: 6px 10px;
+        font-weight: 800;
+        font-size: 14px;
+        color: var(--muted);
+      }
+      .final .inst .rc {
+        color: #1b1030;
+      }
+      .stamp {
+        font: 400 14px var(--disp);
+        letter-spacing: 0.08em;
+        background: var(--pop);
+        color: #fff;
+        border: 3px solid var(--ink);
+        padding: 0 8px;
+        transform: rotate(-3deg);
+        white-space: nowrap;
+      }
 
       .deck {
         display: grid;
@@ -334,51 +362,15 @@
         height: auto;
         overflow: visible;
       }
-      .stage .corner {
-        position: absolute;
-        left: 10px;
-        top: 10px;
-        z-index: 2;
-        font: 400 14px var(--disp);
-        letter-spacing: 0.1em;
-        text-transform: uppercase;
-        background: var(--yellow);
-        color: #1b1030;
-        border: 3px solid var(--ink);
-        padding: 2px 10px;
-        transform: rotate(-2deg);
-      }
-
-      .legend {
-        display: flex;
-        flex-wrap: wrap;
-        gap: 8px 16px;
-        margin: 16px 4px 0;
-        padding: 0;
-        list-style: none;
-        font-weight: 800;
-        font-size: 15px;
-      }
-      .legend li {
-        display: flex;
-        align-items: center;
-        gap: 8px;
-      }
-      .legend svg {
-        width: 30px;
-        height: 30px;
-        flex: none;
-      }
-
       .controls {
         display: grid;
-        grid-template-columns: 1fr 1fr;
+        grid-template-columns: repeat(2, minmax(0, 1fr));
         gap: 12px;
         margin-top: 18px;
       }
       @media (min-width: 700px) {
         .controls {
-          grid-template-columns: repeat(4, 1fr);
+          grid-template-columns: repeat(4, minmax(0, 1fr));
         }
       }
       .plug {
@@ -418,11 +410,22 @@
         align-items: center;
         gap: 6px;
       }
+      @media (max-width: 520px) {
+        .plug b {
+          font-size: 15px;
+          letter-spacing: 0.02em;
+          gap: 4px;
+        }
+        .plug {
+          padding: 8px;
+        }
+      }
       .plug b svg {
         width: 20px;
         height: 20px;
       }
       .plug small {
+        overflow-wrap: anywhere;
         font-weight: 700;
         font-size: 13px;
         color: var(--muted);
@@ -472,6 +475,12 @@
           -2px -2px 0 #1b1030,
           2px -2px 0 #1b1030,
           -2px 2px 0 #1b1030;
+      }
+      .btn.launch[aria-disabled='true'][data-busy] {
+        --bb: var(--yellow);
+        color: #1b1030;
+        cursor: progress;
+        text-shadow: none;
       }
       .btn.launch.shake {
         animation: shake 0.4s;
@@ -544,7 +553,61 @@
       }
       .term .out {
         border-top: 3px dashed #5b4a8f;
-        min-height: 182px;
+        min-height: 214px;
+      }
+      .term .out a {
+        color: inherit;
+      }
+      .term .ex {
+        display: block;
+      }
+      .term .one {
+        display: block;
+        background: #4a1a3c;
+        box-shadow: -8px 0 0 #4a1a3c;
+        outline: 2px dashed #ffe14a;
+        outline-offset: 1px;
+      }
+      .term .roll {
+        list-style: none;
+        margin: 0;
+        padding: 10px 14px 12px;
+        border-top: 3px dashed #5b4a8f;
+        display: grid;
+        grid-template-columns: 1fr;
+        gap: 4px;
+        font: 600 14px/1.4 var(--mono);
+      }
+      .term .roll li {
+        display: flex;
+        align-items: baseline;
+        gap: 4px;
+      }
+      .term .roll .tag {
+        min-width: 52px;
+        text-align: center;
+        flex: none;
+      }
+      .term .roll .pass .tag {
+        background: #6dffb0;
+      }
+      .term .roll .fail {
+        color: #ff8a93;
+      }
+      .term .roll .fail .tag {
+        background: #ff6b78;
+      }
+      .term .roll .wait {
+        color: #9a8bc4;
+      }
+      .term .roll .wait .tag {
+        background: #9a8bc4;
+      }
+      .term .hint {
+        margin: 0;
+        padding: 0 14px 12px;
+        font: 600 13px/1.4 var(--body);
+        color: #ffe14a;
       }
       .term .out.ping {
         animation: ping 0.5s steps(3);
@@ -924,6 +987,37 @@
           transform: scale(0.7) rotate(20deg);
         }
       }
+      .note .nbox {
+        fill: #fffaf0;
+        stroke: #1b1030;
+        stroke-width: 3;
+      }
+      .note .ntxt {
+        font-weight: 900;
+        fill: #1b1030;
+        text-anchor: middle;
+      }
+      .note .narr {
+        fill: none;
+        stroke: #1b1030;
+        stroke-width: 4;
+        stroke-linecap: round;
+        stroke-linejoin: round;
+      }
+      .note .narr.halo {
+        stroke: #fff;
+        stroke-width: 9;
+      }
+      .note .nhead {
+        fill: #1b1030;
+        stroke: #fff;
+        stroke-width: 2.5;
+        paint-order: stroke;
+        stroke-linejoin: round;
+      }
+      .note {
+        pointer-events: none;
+      }
       .conduit .pill {
         fill: #fffaf0;
         stroke: #1b1030;
@@ -1084,13 +1178,15 @@
         }
       }
       .pnl svg.art {
-        position: absolute;
-        right: 10px;
-        top: 10px;
-        width: 34%;
-        max-width: 200px;
+        align-self: flex-end;
+        width: 40%;
+        max-width: 190px;
         height: auto;
-        max-height: 55%;
+        margin-bottom: auto;
+        position: relative;
+      }
+      .pnl:nth-child(1) svg.art {
+        max-width: 260px;
       }
       .pnl .sfxw {
         font: 400 clamp(34px, 5vw, 54px)/0.9 var(--disp);
@@ -1151,7 +1247,7 @@
       }
       .vs .row {
         display: grid;
-        grid-template-columns: minmax(0, 1fr) repeat(3, minmax(54px, 92px));
+        grid-template-columns: minmax(0, 1fr) repeat(3, minmax(96px, 120px));
         align-items: center;
         border-top: 4px solid var(--line);
       }
@@ -1184,6 +1280,17 @@
         font-weight: 800;
         font-size: 16px;
         line-height: 1.3;
+      }
+      .vs .q small {
+        display: block;
+        margin-top: 2px;
+        font-weight: 600;
+        font-size: 13px;
+        color: var(--muted);
+        line-height: 1.3;
+      }
+      #vsrows {
+        display: contents;
       }
       .vs .cell {
         display: flex;
@@ -1232,14 +1339,22 @@
           font-size: 14.5px;
         }
         .vs .row {
-          grid-template-columns: minmax(0, 1fr) repeat(3, 56px);
+          grid-template-columns: minmax(0, 1fr) repeat(3, 62px);
+        }
+        .vs .q small {
+          font-size: 11.5px;
         }
         .vs .row > * {
           padding: 8px 4px;
         }
         .vs .head {
-          font-size: 10.5px;
+          font-size: 10px;
           letter-spacing: 0;
+          padding: 0;
+        }
+        .vs .head > * {
+          padding: 8px 0;
+          overflow: hidden;
         }
         .vs .cell {
           font-size: 10px;
@@ -1278,6 +1393,7 @@
         filter: drop-shadow(4px 4px 0 var(--line));
       }
       .part .nm {
+        text-decoration: none;
         font: 700 14.5px var(--mono);
         background: #1b1030;
         color: #ffd23a;
@@ -1289,6 +1405,15 @@
         font-weight: 700;
         font-size: 15.5px;
         line-height: 1.3;
+      }
+      .part .req {
+        font: 400 12px var(--disp);
+        letter-spacing: 0.1em;
+        text-transform: uppercase;
+        color: var(--muted);
+      }
+      .part.core .req {
+        color: var(--pop);
       }
       .part.core .nm {
         background: var(--pop);
@@ -1441,7 +1566,7 @@
           <span>NexusDI</span>
         </a>
         <nav class="links" aria-label="Main">
-          <a class="l" href="https://nexus.js.org">Docs</a>
+          <a class="l" href="https://nexus.js.org/next/">Docs</a>
           <a class="l" href="https://github.com/NexusDI/core">GitHub</a>
           <button
             class="theme"
@@ -1463,12 +1588,12 @@
             Wiring mistakes <mark>fail CI</mark> before a user hits them.
           </h1>
           <p class="hero-sub">
-            NexusDI builds your TypeScript app from modules and checks the whole
-            graph before anything runs. Pull a conduit on the ship below and
-            see.
+            NexusDI is dependency injection for TypeScript. It builds your app
+            from modules and checks the whole graph before anything runs. Pull a
+            conduit on the ship below and see.
           </p>
           <div class="hero-row">
-            <a class="btn" href="https://nexus.js.org"
+            <a class="btn" href="https://nexus.js.org/next/getting-started/"
               >Get started
               <svg
                 viewBox="0 0 24 24"
@@ -1482,109 +1607,39 @@
                 <path d="M4 12h15M13 5l7 7-7 7" /></svg
             ></a>
             <a class="btn alt" href="https://github.com/NexusDI/core">GitHub</a>
-            <div class="install">
-              <code><i>$</i> npm i @nexusdi/core</code
-              ><button type="button" data-copy="npm i @nexusdi/core">
-                <svg
-                  viewBox="0 0 24 24"
-                  fill="none"
-                  stroke="#1b1030"
-                  stroke-width="3"
-                  stroke-linejoin="round"
-                  aria-hidden="true"
-                >
-                  <rect x="8" y="8" width="12" height="13" rx="2" />
-                  <path d="M16 8V4H5v13h3" /></svg
-                ><span>Copy</span>
-              </button>
+            <div class="inst">
+              <div class="install">
+                <code><i>$</i> npm i @nexusdi/core@next</code
+                ><button type="button" data-copy="npm i @nexusdi/core@next">
+                  <svg
+                    viewBox="0 0 24 24"
+                    fill="none"
+                    stroke="#1b1030"
+                    stroke-width="3"
+                    stroke-linejoin="round"
+                    aria-hidden="true"
+                  >
+                    <rect x="8" y="8" width="12" height="13" rx="2" />
+                    <path d="M16 8V4H5v13h3" /></svg
+                  ><span>Copy</span>
+                </button>
+              </div>
+              <div class="rc">
+                <span class="stamp">0.4.0-rc.0</span
+                ><span>0.4 is a release candidate on the npm next tag.</span>
+              </div>
             </div>
           </div>
 
           <div class="deck">
             <div>
               <div class="stage" id="stage">
-                <span class="corner">Starship Meridian, cutaway</span>
                 <svg
                   id="ship"
                   role="img"
-                  aria-label="Cutaway cartoon of the Starship Meridian with four sections: Engineering, Tactical, Comms and Bridge, joined by four conduits."
+                  aria-label="Cutaway cartoon of the Starship Meridian with four sections, Engineering, Tactical, Comms and Bridge, joined by four conduits. A section is a module, a system inside it is a provider, a conduit is a dependency and a hatch is an export."
                 ></svg>
               </div>
-              <ul class="legend" aria-label="What the parts mean">
-                <li>
-                  <svg viewBox="0 0 30 30" aria-hidden="true">
-                    <rect
-                      x="3"
-                      y="5"
-                      width="24"
-                      height="20"
-                      rx="5"
-                      fill="#8a63ff"
-                      stroke="#1b1030"
-                      stroke-width="3"
-                    /></svg
-                  >Section is a module
-                </li>
-                <li>
-                  <svg viewBox="0 0 30 30" aria-hidden="true">
-                    <circle
-                      cx="15"
-                      cy="15"
-                      r="10"
-                      fill="#ffb21f"
-                      stroke="#1b1030"
-                      stroke-width="3"
-                    />
-                    <circle
-                      cx="15"
-                      cy="15"
-                      r="4"
-                      fill="#fff6b0"
-                      stroke="#1b1030"
-                      stroke-width="2"
-                    /></svg
-                  >System is a provider
-                </li>
-                <li>
-                  <svg viewBox="0 0 30 30" aria-hidden="true">
-                    <path
-                      d="M2 15h26"
-                      stroke="#1b1030"
-                      stroke-width="10"
-                      stroke-linecap="round"
-                    />
-                    <path
-                      d="M2 15h26"
-                      stroke="#ffe14a"
-                      stroke-width="4"
-                      stroke-linecap="round"
-                    /></svg
-                  >Conduit is a dependency
-                </li>
-                <li>
-                  <svg viewBox="0 0 30 30" aria-hidden="true">
-                    <circle
-                      cx="15"
-                      cy="15"
-                      r="11"
-                      fill="#cfd3e8"
-                      stroke="#1b1030"
-                      stroke-width="3"
-                    />
-                    <path
-                      d="M15 6v18M6 15h18"
-                      stroke="#1b1030"
-                      stroke-width="3"
-                      stroke-linecap="round"
-                    /></svg
-                  >Hatch is an export
-                </li>
-              </ul>
-              <div
-                class="controls"
-                role="group"
-                aria-label="Conduits. Unplug one to run the pre-flight check."
-              ></div>
               <div class="actions">
                 <button class="btn alt" type="button" id="replay">
                   <svg
@@ -1621,6 +1676,11 @@
                   ><span id="launch-txt">Launch</span>
                 </button>
               </div>
+              <div
+                class="controls"
+                role="group"
+                aria-label="Conduits. Unplug one to run the pre-flight check."
+              ></div>
             </div>
 
             <div class="side">
@@ -1629,10 +1689,25 @@
                   <i></i><i></i><i></i><span>preflight.ts</span>
                 </div>
                 <pre><span class="k">import</span> { Nexus } <span class="k">from</span> <span class="s">'@nexusdi/core'</span>;
-<span class="k">import</span> { Meridian } <span class="k">from</span> <span class="s">'./meridian.module'</span>;
+<span class="k">import</span> { errors } <span class="k">from</span> <span class="s">'@nexusdi/errors'</span>;
+<span class="k">import</span> { Meridian } <span class="k">from</span> <span class="s">'./meridian.js'</span>;
 
-Nexus.<span class="f">check</span>(Meridian); <span class="c">// CI runs this</span></pre>
-                <pre class="out" id="out" aria-label="Pre-flight output"></pre>
+Nexus.<span class="f">check</span>(Meridian, { plugins: [<span class="f">errors</span>()] }); <span class="c">// CI runs this</span>
+console.<span class="f">log</span>(<span class="s">'pre-flight ok'</span>);</pre>
+                <pre
+                  class="out"
+                  id="out"
+                  role="group"
+                  aria-label="Pre-flight output"
+                ></pre>
+                <p class="hint" id="hint" hidden>
+                  The highlighted line is the one to read. It names the fix.
+                </p>
+                <ul
+                  class="roll"
+                  id="roll"
+                  aria-label="Result for each section"
+                ></ul>
               </div>
               <div
                 class="status"
@@ -1728,8 +1803,8 @@ Nexus.<span class="f">check</span>(Meridian); <span class="c">// CI runs this</s
                   />
                 </g>
               </svg>
-              <div class="sfxw">Tiny</div>
-              <p>No runtime dependencies. Bring the container, nothing else.</p>
+              <div class="sfxw">Zero deps</div>
+              <p>No runtime dependencies.</p>
             </div>
           </div>
         </div>
@@ -1745,19 +1820,22 @@ Nexus.<span class="f">check</span>(Meridian); <span class="c">// CI runs this</s
               <div role="columnheader">Nest</div>
               <div role="columnheader">Inversify</div>
             </div>
-            <div id="vsrows"></div>
+            <div id="vsrows" role="rowgroup"></div>
           </div>
           <div class="vs-note">
             <p>
-              Next to the small containers it matches on features. Its fight is
-              with the large ones.
+              Up against tsyringe, awilix and needle-di? See the full
+              comparison.
             </p>
-            <a class="btn alt" href="https://nexus.js.org"
+            <a class="btn alt" href="https://nexus.js.org/next/comparison/"
               >See the full comparison</a
             >
             <small
-              >Marks come from each project's public docs. Check them for your
-              version. Nest means the container inside NestJS.</small
+              >InversifyJS 8.2.3, measured by the NexusDI benchmark harness.
+              NestJS from its documentation on
+              <a href="https://docs.nestjs.com/providers">providers</a> and
+              <a href="https://docs.nestjs.com/modules">modules</a>. Read
+              2026-09-30. Nest means the container inside NestJS.</small
             >
           </div>
         </div>
@@ -1775,7 +1853,9 @@ Nexus.<span class="f">check</span>(Meridian); <span class="c">// CI runs this</s
           <div class="final">
             <h2>Check the graph. Then launch.</h2>
             <div class="hero-row">
-              <a class="btn alt" href="https://nexus.js.org"
+              <a
+                class="btn alt"
+                href="https://nexus.js.org/next/getting-started/"
                 >Get started
                 <svg
                   viewBox="0 0 24 24"
@@ -1791,21 +1871,26 @@ Nexus.<span class="f">check</span>(Meridian); <span class="c">// CI runs this</s
               <a class="btn alt" href="https://github.com/NexusDI/core"
                 >GitHub</a
               >
-              <div class="install">
-                <code><i>$</i> npm i @nexusdi/core</code
-                ><button type="button" data-copy="npm i @nexusdi/core">
-                  <svg
-                    viewBox="0 0 24 24"
-                    fill="none"
-                    stroke="#1b1030"
-                    stroke-width="3"
-                    stroke-linejoin="round"
-                    aria-hidden="true"
-                  >
-                    <rect x="8" y="8" width="12" height="13" rx="2" />
-                    <path d="M16 8V4H5v13h3" /></svg
-                  ><span>Copy</span>
-                </button>
+              <div class="inst">
+                <div class="install">
+                  <code><i>$</i> npm i @nexusdi/core@next</code
+                  ><button type="button" data-copy="npm i @nexusdi/core@next">
+                    <svg
+                      viewBox="0 0 24 24"
+                      fill="none"
+                      stroke="#1b1030"
+                      stroke-width="3"
+                      stroke-linejoin="round"
+                      aria-hidden="true"
+                    >
+                      <rect x="8" y="8" width="12" height="13" rx="2" />
+                      <path d="M16 8V4H5v13h3" /></svg
+                    ><span>Copy</span>
+                  </button>
+                </div>
+                <div class="rc">
+                  <span>0.4 is a release candidate on the npm next tag.</span>
+                </div>
               </div>
             </div>
             <svg class="deco" viewBox="0 0 300 120" aria-hidden="true">
@@ -1835,8 +1920,8 @@ Nexus.<span class="f">check</span>(Meridian); <span class="c">// CI runs this</s
 
     <footer>
       <div class="wrap">
-        NexusDI. MIT licensed. Starship Meridian is the crew you meet in the
-        docs.
+        NexusDI. MIT licensed. The Starship Meridian is the ship you build in
+        the docs.
       </div>
     </footer>
 
@@ -1930,7 +2015,7 @@ Nexus.<span class="f">check</span>(Meridian); <span class="c">// CI runs this</s
             name: 'ENGINEERING',
             mod: 'Engineering',
             sys: [
-              ['reactor', 'Reactor'],
+              ['reactor', 'ReactorCore'],
               ['coolant', 'Coolant'],
             ],
             sfx: 'VROOM!',
@@ -1939,7 +2024,7 @@ Nexus.<span class="f">check</span>(Meridian); <span class="c">// CI runs this</s
             name: 'TACTICAL',
             mod: 'Tactical',
             sys: [
-              ['shields', 'Shields'],
+              ['shields', 'ShieldGrid'],
               ['phasers', 'Phasers'],
             ],
             sfx: 'ZAP!',
@@ -1958,35 +2043,78 @@ Nexus.<span class="f">check</span>(Meridian); <span class="c">// CI runs this</s
             mod: 'Bridge',
             sys: [
               ['charts', 'Charts'],
-              ['computer', 'Computer'],
+              ['computer', 'Helm'],
             ],
             sfx: 'PING!',
           },
         };
         var ROOM_IDS = ['eng', 'tac', 'comms', 'bridge'];
         var CONDUITS = {
-          c1: { from: 'eng', to: 'tac', token: 'Reactor', by: 'Shields' },
-          c2: { from: 'eng', to: 'comms', token: 'Reactor', by: 'Antenna' },
-          c3: { from: 'tac', to: 'bridge', token: 'Shields', by: 'Computer' },
+          c1: {
+            from: 'eng',
+            to: 'tac',
+            token: 'ReactorCore',
+            by: 'ShieldGrid',
+          },
+          c2: { from: 'eng', to: 'comms', token: 'ReactorCore', by: 'Antenna' },
+          c3: { from: 'tac', to: 'bridge', token: 'ShieldGrid', by: 'Helm' },
           c4: { from: 'comms', to: 'bridge', token: 'Antenna', by: 'Charts' },
         };
         var C_IDS = ['c1', 'c2', 'c3', 'c4'];
         var LAYOUTS = {
           wide: {
-            vb: '-45 0 1010 450',
+            vb: '-45 -34 1010 484',
             tall: false,
             rooms: {
               eng: [70, 140, 200, 200],
-              tac: [340, 95, 250, 135],
-              comms: [340, 250, 250, 135],
-              bridge: [660, 160, 170, 160],
+              tac: [360, 95, 250, 135],
+              comms: [360, 250, 250, 135],
+              bridge: [700, 160, 160, 160],
             },
             cond: {
-              c1: [270, 190, 340, 190],
-              c2: [270, 305, 340, 305],
-              c3: [590, 190, 660, 190],
-              c4: [590, 305, 660, 305],
+              c1: [270, 190, 360, 190],
+              c2: [270, 305, 360, 305],
+              c3: [610, 190, 700, 190],
+              c4: [610, 305, 700, 305],
             },
+            pill: { c1: -30, c2: 30, c3: -30, c4: 30 },
+            notes: [
+              {
+                t: ['Section = module'],
+                x: 150,
+                y: -28,
+                from: [255, -2],
+                to: [258, 137],
+                bend: 8,
+              },
+              {
+                t: ['System = provider'],
+                x: 440,
+                y: -28,
+                from: [548, -2],
+                to: [548, 148],
+                bend: -8,
+              },
+              {
+                t: ['Hatch =', 'export'],
+                x: 280,
+                y: 232,
+                w: 70,
+                from: [296, 232],
+                to: [279, 200],
+                bend: 0,
+              },
+              {
+                t: ['Conduit =', 'dependency'],
+                fs: 12,
+                x: 614,
+                y: 232,
+                w: 82,
+                from: [655, 232],
+                to: [655, 201],
+                bend: 0,
+              },
+            ],
             hull: 'M40 150L70 80L640 70Q850 80 935 240Q850 400 640 410L70 400L40 330Z',
             fins: [
               'M190 78L250 18H340L370 76Z',
@@ -2005,7 +2133,7 @@ Nexus.<span class="f">check</span>(Meridian); <span class="c">// CI runs this</s
             ],
           },
           tall: {
-            vb: '-40 0 440 730',
+            vb: '-40 -40 440 770',
             tall: true,
             rooms: {
               eng: [95, 500, 170, 125],
@@ -2019,6 +2147,42 @@ Nexus.<span class="f">check</span>(Meridian); <span class="c">// CI runs this</s
               c3: [150, 300, 150, 240],
               c4: [250, 300, 250, 240],
             },
+            pill: { c1: -1, c2: 1, c3: -1, c4: 1 },
+            notes: [
+              {
+                t: ['Section = module'],
+                x: -34,
+                y: -34,
+                from: [40, -8],
+                to: [97, 106],
+                bend: 10,
+              },
+              {
+                t: ['System = provider'],
+                x: 262,
+                y: -34,
+                from: [320, -8],
+                to: [233, 159],
+                bend: -12,
+              },
+              {
+                t: ['Hatch = export'],
+                x: 128,
+                y: 458,
+                from: [142, 483],
+                to: [122, 495],
+                bend: 0,
+              },
+              {
+                t: ['Conduit =', 'dependency'],
+                x: 166,
+                y: 252,
+                w: 72,
+                from: [166, 272],
+                to: [160, 272],
+                bend: 0,
+              },
+            ],
             hull: 'M180 8Q305 50 336 200L346 300V470L336 590L300 640H60L24 590L14 470V300L24 200Q55 50 180 8Z',
             fins: [
               'M16 420L-26 500V590L20 560Z',
@@ -2036,7 +2200,12 @@ Nexus.<span class="f">check</span>(Meridian); <span class="c">// CI runs this</s
         var layoutName = null,
           L = null;
         var plugged = { c1: true, c2: true, c3: true, c4: true };
-        var on = { eng: false, tac: false, comms: false, bridge: false };
+        var on = { eng: true, tac: true, comms: true, bridge: true };
+        var powering = false,
+          deckLine = '';
+        function lit(id) {
+          return !powering || on[id];
+        }
         var surgeT = {};
         var runId = 0,
           launching = false;
@@ -2256,7 +2425,9 @@ Nexus.<span class="f">check</span>(Meridian); <span class="c">// CI runs this</s
               cx +
               '" y="' +
               (h - 9) +
-              '">' +
+              '"' +
+              (L.tall ? ' style="font-size:11px"' : '') +
+              '>' +
               d.sys[i][1] +
               '</text>';
           }
@@ -2454,14 +2625,21 @@ Nexus.<span class="f">check</span>(Meridian); <span class="c">// CI runs this</s
             '<polygon class="spark" points="' +
             burstPts(mx, my, 17, 7, 6) +
             '"/></g>';
-          var px = tall ? mx + 38 : mx,
-            py = tall ? my : my - 30;
+          var pw = Math.round(c.token.length * (tall ? 6.1 : 6.9) + 12),
+            px = tall ? x1 + L.pill[id] * (13 + pw / 2) : mx,
+            py = tall ? my : my + L.pill[id];
           s +=
             '<g transform="translate(' +
             px +
             ' ' +
             py +
-            ')"><rect class="pill" x="-31" y="-12" width="62" height="24" rx="12"/><text class="pillt" y="4.5">' +
+            ')"><rect class="pill" x="' +
+            -pw / 2 +
+            '" y="-12" width="' +
+            pw +
+            '" height="24" rx="12"/><text class="pillt" y="4.5"' +
+            (tall ? ' style="font-size:11px"' : '') +
+            '>' +
             c.token +
             '</text></g>';
           s +=
@@ -2484,6 +2662,98 @@ Nexus.<span class="f">check</span>(Meridian); <span class="c">// CI runs this</s
             y +
             ')"><circle class="wheel" r="13"/><path class="wheel-s" d="M0 -13A13 13 0 0 1 0 13A6 13 0 0 0 0 -13Z" stroke="none"/><circle class="wheel" r="13" fill="none"/><path class="spk" d="M0-8V8M-8 0H8"/><circle r="3" fill="#1b1030"/></g>'
           );
+        }
+
+        function buildNote(n) {
+          var fs = n.fs || (L.tall ? 11.5 : 14),
+            lh = fs + 3,
+            maxc = 0;
+          n.t.forEach(function (l) {
+            maxc = Math.max(maxc, l.length);
+          });
+          var w = n.w || Math.round(maxc * fs * 0.64 + 14),
+            h = n.t.length * lh + 10,
+            cx = n.x + w / 2,
+            cy = n.y + h / 2;
+          var s =
+            '<g class="note" aria-hidden="true"><rect class="nbox" x="' +
+            n.x +
+            '" y="' +
+            n.y +
+            '" width="' +
+            w +
+            '" height="' +
+            h +
+            '" rx="6" transform="rotate(-2 ' +
+            cx +
+            ' ' +
+            cy +
+            ')"/>';
+          n.t.forEach(function (l, i) {
+            s +=
+              '<text class="ntxt" x="' +
+              cx +
+              '" y="' +
+              (n.y + 5 + lh * (i + 1) - 4) +
+              '" style="font-size:' +
+              fs +
+              'px">' +
+              l +
+              '</text>';
+          });
+          var fx = n.from[0],
+            fy = n.from[1],
+            tx = n.to[0],
+            ty = n.to[1],
+            dx = tx - fx,
+            dy = ty - fy,
+            dist = Math.sqrt(dx * dx + dy * dy),
+            nx = -dy / dist,
+            ny = dx / dist,
+            qx = (fx + tx) / 2 + nx * (n.bend || 0),
+            qy = (fy + ty) / 2 + ny * (n.bend || 0),
+            ex = tx - qx,
+            ey = ty - qy,
+            el = Math.sqrt(ex * ex + ey * ey),
+            ux = ex / el,
+            uy = ey / el,
+            hl = Math.min(13, dist * 0.9),
+            bx = tx - ux * hl,
+            by = ty - uy * hl;
+          var d =
+            'M' +
+            fx +
+            ' ' +
+            fy +
+            'Q' +
+            qx +
+            ' ' +
+            qy +
+            ' ' +
+            (tx - ux * hl * 0.5) +
+            ' ' +
+            (ty - uy * hl * 0.5);
+          var head =
+            tx +
+            ',' +
+            ty +
+            ' ' +
+            (bx - uy * hl * 0.55) +
+            ',' +
+            (by + ux * hl * 0.55) +
+            ' ' +
+            (bx + uy * hl * 0.55) +
+            ',' +
+            (by - ux * hl * 0.55);
+          s +=
+            '<path class="narr halo" d="' +
+            d +
+            '"/><path class="narr" d="' +
+            d +
+            '"/><polygon class="nhead" points="' +
+            head +
+            '"/></g>';
+          return s;
         }
 
         function buildShip(name) {
@@ -2536,12 +2806,13 @@ Nexus.<span class="f">check</span>(Meridian); <span class="c">// CI runs this</s
           for (i = 0; i < C_IDS.length; i++)
             s += buildConduit(C_IDS[i], L.cond[C_IDS[i]]);
           for (i = 0; i < C_IDS.length; i++) s += buildHatch(L.cond[C_IDS[i]]);
+          for (i = 0; i < L.notes.length; i++) s += buildNote(L.notes[i]);
           /* alert fx */
           for (i = 0; i < ROOM_IDS.length; i++) {
             var id = ROOM_IDS[i],
               r = L.rooms[id],
               w = r[2],
-              bw = Math.min(w - 18, 150);
+              bw = Math.min(w - 10, 170);
             s +=
               '<g class="fx" id="fx-' +
               id +
@@ -2574,7 +2845,9 @@ Nexus.<span class="f">check</span>(Meridian); <span class="c">// CI runs this</s
               (bw - 10) +
               ' 36H44L30 50L32 36H10Q0 36 0 26V10Q0 0 10 0Z"/><text class="bubt" x="' +
               bw / 2 +
-              '" y="23" id="bt-' +
+              '" y="23" style="font-size:' +
+              (L.tall ? 11 : 12.5) +
+              'px" id="bt-' +
               id +
               '"></text></g>';
             s += '</g>';
@@ -2676,6 +2949,7 @@ Nexus.<span class="f">check</span>(Meridian); <span class="c">// CI runs this</s
             if (!plugged[id]) {
               var c = CONDUITS[id];
               e.push({
+                cid: id,
                 code: 'NEXUS_MISSING_PROVIDER',
                 token: c.token,
                 by: c.by,
@@ -2720,8 +2994,8 @@ Nexus.<span class="f">check</span>(Meridian); <span class="c">// CI runs this</s
             var g = refs.room[id],
               alert = !!am[id];
             g.classList.toggle('alert', alert);
-            g.classList.toggle('on', !alert && on[id]);
-            g.classList.toggle('off', !alert && !on[id]);
+            g.classList.toggle('on', !alert && lit(id));
+            g.classList.toggle('off', !alert && !lit(id));
             var fx = refs.fx[id];
             var was = fx.classList.contains('show');
             fx.classList.toggle('show', alert);
@@ -2737,7 +3011,7 @@ Nexus.<span class="f">check</span>(Meridian); <span class="c">// CI runs this</s
             var c = CONDUITS[id],
               g = refs.cd[id];
             g.classList.toggle('open', !plugged[id]);
-            g.classList.toggle('live', plugged[id] && on[c.from]);
+            g.classList.toggle('live', plugged[id] && lit(c.from));
             var b = btns[id];
             b.setAttribute('aria-pressed', plugged[id] ? 'false' : 'true');
             b.querySelector('.st').textContent = plugged[id]
@@ -2749,11 +3023,17 @@ Nexus.<span class="f">check</span>(Meridian); <span class="c">// CI runs this</s
             h = '';
           h += '<span class="c">$ npm run preflight</span>\n';
           if (blocked) {
+            h +=
+              '<span class="bad">[NEXUS_BLUEPRINT_INVALID] the module graph has ' +
+              errs.length +
+              (errs.length > 1 ? ' errors' : ' error') +
+              '; nothing was built.</span>';
             errs.forEach(function (e) {
+              var c = CONDUITS[e.cid];
               h +=
-                '<span class="bad"><span class="tag">FAIL</span>[' +
+                '<span class="bad one">  <a href="https://nexus.js.org/errors/NEXUS_MISSING_PROVIDER/">[' +
                 e.code +
-                '] ' +
+                ']</a> ' +
                 e.by +
                 ' (module ' +
                 e.mod +
@@ -2763,14 +3043,54 @@ Nexus.<span class="f">check</span>(Meridian); <span class="c">// CI runs this</s
                 e.token +
                 ' is visible in ' +
                 e.mod +
-                '.</span>\n';
+                '.</span><span class="bad ex">      ' +
+                e.token +
+                ' is exported by ' +
+                ROOMS[c.from].mod +
+                ', which ' +
+                e.mod +
+                ' does not import.\n      Fix: import ' +
+                ROOMS[c.from].mod +
+                ' into ' +
+                e.mod +
+                '.</span>';
             });
-            h += '<span class="bad">exit 1. Launch blocked.</span>';
+            h += '<span class="bad">exit 1</span>';
+          } else if (powering) {
+            h +=
+              '<span class="c">Powering up. The check runs when every deck is lit.</span>';
           } else {
             h +=
-              '<span class="good"><span class="tag">PASS</span>Nexus.check(Meridian) found no wiring mistakes.</span>\n<span class="good">exit 0. Clear to launch.</span>';
+              '<span class="good">pre-flight ok</span>\n<span class="good">exit 0</span>';
           }
           out.innerHTML = h;
+          document.getElementById('hint').hidden = !blocked;
+          var am2 = alertMap(),
+            rh = '';
+          ROOM_IDS.forEach(function (id) {
+            if (am2[id])
+              rh +=
+                '<li class="fail"><span class="tag">FAIL</span>' +
+                ROOMS[id].mod +
+                ' is missing ' +
+                am2[id]
+                  .map(function (e) {
+                    return e.token;
+                  })
+                  .join(' and ') +
+                '</li>';
+            else if (lit(id))
+              rh +=
+                '<li class="pass"><span class="tag">PASS</span>' +
+                ROOMS[id].mod +
+                '</li>';
+            else
+              rh +=
+                '<li class="wait"><span class="tag">WAIT</span>' +
+                ROOMS[id].mod +
+                '</li>';
+          });
+          document.getElementById('roll').innerHTML = rh;
           var sig = errs
             .map(function (e) {
               return e.token + e.mod;
@@ -2789,13 +3109,11 @@ Nexus.<span class="f">check</span>(Meridian); <span class="c">// CI runs this</s
           if (blocked) {
             var e0 = errs[0];
             txt =
-              'RED ALERT in ' +
+              'RED ALERT: ' +
               e0.mod +
-              '. ' +
-              e0.by +
-              ' needs ' +
+              ' (module) is missing ' +
               e0.token +
-              ' and the conduit is unplugged.' +
+              ' (provider).' +
               (errs.length > 1
                 ? ' ' +
                   (errs.length - 1) +
@@ -2803,26 +3121,36 @@ Nexus.<span class="f">check</span>(Meridian); <span class="c">// CI runs this</s
                   (errs.length > 2 ? 's' : '') +
                   ' flagged.'
                 : '') +
-              ' Launch blocked.';
+              ' Launch blocked.' +
+              (powering && deckLine ? ' ' + deckLine : '');
             ico =
               '<svg viewBox="0 0 34 34" aria-hidden="true"><polygon points="' +
               burstPts(17, 17, 16, 10, 8) +
               '" fill="#ffe14a" stroke="#1b1030" stroke-width="2.5" stroke-linejoin="round"/><path d="M17 9V19" stroke="#d0101f" stroke-width="3.5" stroke-linecap="round"/><circle cx="17" cy="24" r="2.2" fill="#d0101f"/></svg>';
           } else {
-            txt = launching
-              ? 'Launching. All systems go.'
-              : 'ALL CLEAR. Every conduit is plugged and the check passes. Launch is open.';
+            txt = powering
+              ? 'POWERING UP. ' + deckLine + ' Launch waits for the check.'
+              : launching
+                ? 'Launching. All systems go.'
+                : 'ALL CLEAR. Every conduit is plugged and the check passes. Launch is open.';
             ico =
               '<svg viewBox="0 0 34 34" aria-hidden="true"><circle cx="17" cy="17" r="14" fill="#6dffb0" stroke="#1b1030" stroke-width="3"/><path d="M10 17l5 5 9-11" fill="none" stroke="#1b1030" stroke-width="3.5" stroke-linecap="round" stroke-linejoin="round"/></svg>';
           }
           st.classList.toggle('bad', blocked);
           st.innerHTML = ico + '<span>' + txt + '</span>';
           /* launch */
-          var lb = document.getElementById('launch');
-          lb.setAttribute('aria-disabled', blocked ? 'true' : 'false');
+          var lb = document.getElementById('launch'),
+            busy = !blocked && (powering || launching);
+          lb.setAttribute('aria-disabled', blocked || busy ? 'true' : 'false');
+          if (busy) lb.setAttribute('data-busy', '1');
+          else lb.removeAttribute('data-busy');
           document.getElementById('launch-txt').textContent = blocked
             ? 'Launch blocked'
-            : 'Launch';
+            : powering
+              ? 'Powering up'
+              : launching
+                ? 'Launching'
+                : 'Launch';
           document.getElementById('launch-ico').innerHTML = blocked
             ? '<rect x="5" y="11" width="14" height="10" rx="2"/><path d="M8 11V8a4 4 0 0 1 8 0v3"/>'
             : '<path d="M12 3c4 3 5 8 3 13H9c-2-5-1-10 3-13zM9 16l-3 4M15 16l3 4"/>';
@@ -2852,10 +3180,17 @@ Nexus.<span class="f">check</span>(Meridian); <span class="c">// CI runs this</s
             setTimeout(r, PRM ? Math.min(ms, 90) : ms);
           });
         }
+        function nameList(a) {
+          return a.length < 2
+            ? a.join('')
+            : a.slice(0, -1).join(', ') + ' and ' + a[a.length - 1];
+        }
         async function powerUp() {
           var me = ++runId,
             lvl = levels(),
             maxL = 0;
+          powering = true;
+          deckLine = 'Deck 0. Checking the decks.';
           ROOM_IDS.forEach(function (r) {
             on[r] = false;
             maxL = Math.max(maxL, lvl[r]);
@@ -2864,21 +3199,55 @@ Nexus.<span class="f">check</span>(Meridian); <span class="c">// CI runs this</s
           await sleep(350);
           for (var l = 0; l <= maxL; l++) {
             var group = ROOM_IDS.filter(function (r) {
-              return lvl[r] === l;
+                return lvl[r] === l && !alertMap()[r];
+              }),
+              names = group.map(function (r) {
+                return ROOMS[r].mod;
+              }),
+              after = [];
+            C_IDS.forEach(function (id) {
+              var c = CONDUITS[id],
+                n = ROOMS[c.from].mod;
+              if (group.indexOf(c.to) > -1 && after.indexOf(n) < 0)
+                after.push(n);
             });
+            if (group.length) {
+              deckLine =
+                'Deck ' +
+                (l + 1) +
+                '. ' +
+                nameList(names) +
+                ' starting' +
+                (after.length ? ', after ' + nameList(after) : '') +
+                '.';
+              render();
+            }
             for (var i = 0; i < group.length; i++) {
               if (me !== runId) return false;
               var r = group[i];
-              if (!alertMap()[r]) {
-                on[r] = true;
-                render();
-                surge(r);
-              }
+              on[r] = true;
+              render();
+              surge(r);
               await sleep(260);
+            }
+            if (group.length) {
+              deckLine =
+                'Deck ' +
+                (l + 1) +
+                '. ' +
+                nameList(names) +
+                (group.length > 1 ? ' are online' : ' is online') +
+                (after.length ? ', after ' + nameList(after) : '') +
+                '.';
+              render();
             }
             await sleep(520);
           }
-          return me === runId;
+          if (me !== runId) return false;
+          powering = false;
+          deckLine = '';
+          render();
+          return true;
         }
         document
           .getElementById('replay')
@@ -2887,7 +3256,7 @@ Nexus.<span class="f">check</span>(Meridian); <span class="c">// CI runs this</s
           });
         var lb = document.getElementById('launch');
         lb.addEventListener('click', async function () {
-          if (launching) return;
+          if (launching || powering) return;
           if (errors().length) {
             lb.classList.remove('shake');
             void lb.offsetWidth;
@@ -2916,7 +3285,6 @@ Nexus.<span class="f">check</span>(Meridian); <span class="c">// CI runs this</s
         if (mq.addEventListener) mq.addEventListener('change', pick);
         else mq.addListener(pick);
         pick();
-        setTimeout(powerUp, 700);
 
         /* why/compare/parts */
         var MARK = {
@@ -2926,26 +3294,53 @@ Nexus.<span class="f">check</span>(Meridian); <span class="c">// CI runs this</s
         };
         var VS = [
           [
-            'Checks the whole graph before anything is built',
+            'Missing provider found before any constructor runs',
+            'Nest: at bootstrap, while it builds. Inversify: at first resolve.',
+            'yes',
+            'part',
+            'no',
+          ],
+          [
+            'Every missing provider in one error',
+            'Nest and Inversify report the first one.',
             'yes',
             'no',
             'no',
           ],
-          ['One error lists every missing provider', 'yes', 'no', 'no'],
-          ['Modules with private providers and exports', 'yes', 'yes', 'no'],
-          ['Runs without a web framework', 'yes', 'no', 'yes'],
-          ['No compiler flags for constructor injection', 'yes', 'no', 'part'],
+          [
+            'Modules with private providers and exports',
+            'Inversify container modules have no exports.',
+            'yes',
+            'yes',
+            'no',
+          ],
+          [
+            'Async factories finish at startup',
+            'Inversify resolves them with getAsync.',
+            'yes',
+            'yes',
+            'part',
+          ],
+          [
+            'Constructor injection with no compiler flags',
+            'Nest needs decorator flags. So does the decorated Inversify setup.',
+            'yes',
+            'no',
+            'part',
+          ],
         ];
         document.getElementById('vsrows').innerHTML = VS.map(function (r) {
           return (
             '<div class="row" role="row"><div class="q" role="rowheader">' +
             r[0] +
-            '</div>' +
-            [1, 2, 3]
+            '<small>' +
+            r[1] +
+            '</small></div>' +
+            [2, 3, 4]
               .map(function (i) {
                 return (
                   '<div class="cell' +
-                  (i === 1 ? ' us' : '') +
+                  (i === 2 ? ' us' : '') +
                   '" role="cell">' +
                   MARK[r[i]] +
                   '</div>'
@@ -3015,7 +3410,7 @@ Nexus.<span class="f">check</span>(Meridian); <span class="c">// CI runs this</s
           ],
           [
             'devtools',
-            'Draw the module graph live.',
+            'Draw the module graph and follow each instance.',
             HEX(
               '#c7a8ff',
               '#7b3fe4',
@@ -3056,8 +3451,12 @@ Nexus.<span class="f">check</span>(Meridian); <span class="c">// CI runs this</s
             (p[0] === 'core' ? ' core' : '') +
             '">' +
             p[2] +
-            '<span class="nm">@nexusdi/' +
+            '<a class="nm" href="https://www.npmjs.com/package/@nexusdi/' +
             p[0] +
+            '">@nexusdi/' +
+            p[0] +
+            '</a><span class="req">' +
+            (p[0] === 'core' ? 'The one you need' : 'Optional') +
             '</span><p>' +
             p[1] +
             '</p></li>'
