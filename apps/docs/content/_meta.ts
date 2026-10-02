@@ -32,6 +32,10 @@ const meta: MetaRecord = {
   'node-request-scopes': { title: 'Scope an HTTP request in Node' },
   load: { title: 'How do I add a module after startup?' },
   decorators: { title: 'How do I write providers with decorators?' },
+  'legacy-decorators': {
+    title:
+      'How do I use NexusDI in a project that keeps experimentalDecorators?',
+  },
   docs: { title: 'Docs', type: 'page', href: '/getting-started/' },
   // The navbar's Blog entry, hidden until the posts migrate at 0.4.0 final
   // (spec §4.1). The folder exists on every branch so the final root build
