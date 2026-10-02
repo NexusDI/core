@@ -234,6 +234,7 @@
         margin-bottom: 28px;
       }
       .bridge {
+        max-width: 760px;
         display: grid;
         grid-template-columns: minmax(0, 1.5fr) minmax(0, 1fr);
         gap: 24px;
@@ -691,7 +692,7 @@
         background: var(--red);
         color: #fff;
       }
-      .conduit-list svg {
+      .conduit-list svg:not(.pxw) {
         width: 20px;
         height: 20px;
         flex: none;
@@ -1053,7 +1054,7 @@
         text-align: center;
         padding: 50px 16px 70px;
       }
-      .final svg {
+      .final > svg {
         max-width: 100%;
         height: auto;
         margin: 0 auto 22px;
@@ -1275,7 +1276,7 @@
         background: linear-gradient(#69a8ff 0%, #2f80ed 48%, #1d5fc0 100%);
         color: #fff;
       }
-      .btn.tog svg {
+      .themebtn svg {
         width: 18px;
         height: 18px;
         fill: currentColor;
@@ -1975,6 +1976,153 @@
           transition: none;
         }
       }
+
+      /* ===== round 2 fixes ===== */
+      @media (max-width: 600px) {
+        :root[data-theme='light'] table tbody th {
+          color: #eaf3f8;
+        }
+      }
+      :root[data-theme='light'] .btn:not(.primary):not(.tog) .pxw .sh {
+        fill: rgba(0, 0, 0, 0.4);
+      }
+      .ncard.bp .pxw .sh {
+        fill: rgba(0, 0, 0, 0.4);
+      }
+      .sn small .pxt,
+      .ncard small .pxt,
+      .ncard em .pxt,
+      .hudv .pxt,
+      .conduit-list .st .pxt {
+        --s: 2px;
+      }
+      .sn small .pxw,
+      .ncard small .pxw,
+      .ncard em .pxw,
+      .conduit-list .st .pxw {
+        margin-right: 6px;
+      }
+      .ncard.bp.ok em .pxt,
+      .ncard.bp.bad em .pxt {
+        --pxsh: rgba(0, 0, 0, 0.35);
+      }
+      .conduit-list .st {
+        padding: 4px 8px;
+        line-height: 0;
+        --pxsh: rgba(0, 0, 0, 0.35);
+      }
+      .conduit-list {
+        margin-top: 14px;
+      }
+      .shipcol .hint {
+        margin-top: 18px;
+      }
+      .cart.core > div {
+        color: #fff3c4;
+      }
+      .cart.core span,
+      .cart.core b a {
+        color: #fff3c4;
+        opacity: 1;
+      }
+      .final .btn .pxt {
+        --s: 2px;
+      }
+      :root[data-theme='light'] {
+        --pxsh: #bcd7ea;
+      }
+      :root[data-theme='light'] h1.pxh .pxw .sh {
+        fill: #bcd7ea;
+      }
+      :root[data-theme='light'] .mk.p {
+        color: #8a5a00;
+      }
+      :root[data-theme='light'] .btn.tog {
+        background: linear-gradient(#e3eef6, #d5e3ee);
+        color: #33475a;
+        --pxsh: transparent;
+      }
+      :root[data-theme='light'] .btn.tog[aria-pressed='true'] {
+        background: linear-gradient(#69a8ff 0%, #2f80ed 48%, #1d5fc0 100%);
+        color: #fff;
+      }
+      :root[data-theme='light'] .btn.tog[aria-pressed='true'] .pxw .sh {
+        fill: rgba(0, 0, 0, 0.3);
+      }
+      @media (max-width: 940px) {
+        .lead {
+          display: contents;
+        }
+        .lead > h1 {
+          order: 1;
+          margin: 4px 0 0;
+        }
+        .lead > .lede {
+          order: 2;
+          margin: 0;
+        }
+        .lead > .cta {
+          order: 3;
+          margin: 0;
+        }
+        .lead > .hero-install {
+          order: 4;
+          margin: 0;
+        }
+        .lead > .rc {
+          order: 5;
+          margin: 0;
+        }
+        .shipcol {
+          order: 6;
+        }
+        .lead > .hud {
+          order: 7;
+          margin-top: 0;
+        }
+        .herogrid {
+          gap: 16px;
+        }
+      }
+      @media (max-width: 600px) {
+        header.top {
+          flex-wrap: nowrap;
+          gap: 6px;
+          padding: 10px 0;
+        }
+        header.top > .btn.small:nth-of-type(3) {
+          display: none;
+        }
+        .toggles {
+          width: auto;
+          flex-wrap: nowrap;
+          gap: 5px;
+        }
+        .toggles .btn {
+          flex: none;
+          padding: 5px 8px 8px;
+          min-width: 40px;
+        }
+        header.top > .btn.small {
+          padding: 5px 9px 8px;
+        }
+        .brand {
+          margin-right: auto;
+        }
+        .brand svg {
+          width: 56px;
+          height: auto;
+        }
+        .shipcol .controls .btn {
+          width: 100%;
+        }
+        .conduit-list .nm {
+          font-size: 12px;
+        }
+        #ship {
+          margin: 0;
+        }
+      }
     </style>
   </head>
   <body>
@@ -2100,11 +2248,11 @@
                   <div class="splitnums">
                     <div class="sn l">
                       <span class="big cb" id="pctOn" data-px="100"></span>
-                      <small>Online</small>
+                      <small data-px="Online"></small>
                     </div>
                     <div class="sn r">
                       <span class="big cr" id="pctOff" data-px="0"></span>
-                      <small>Pending</small>
+                      <small data-px="Pending"></small>
                     </div>
                   </div>
                   <div
@@ -2122,17 +2270,17 @@
                 </div>
                 <div class="cards">
                   <div class="ncard">
-                    <small>Modules</small>
+                    <small data-px="Modules"></small>
                     <span class="big" id="nMod" data-px="4"></span>
-                    <em id="nModOf">of 4 decks</em>
+                    <em id="nModOf" data-px="of 4 decks"></em>
                   </div>
                   <div class="ncard">
-                    <small>Providers</small>
+                    <small data-px="Providers"></small>
                     <span class="big" id="nPro" data-px="8"></span>
-                    <em>of 8 systems</em>
+                    <em data-px="of 8 systems"></em>
                   </div>
                   <div class="ncard bp ok" id="bp">
-                    <small>Blueprint</small>
+                    <small data-px="Blueprint"></small>
                     <span class="mid" id="bpv" data-px="Valid"></span>
                     <em id="bpn">Nexus.check passes</em>
                   </div>
@@ -2206,6 +2354,11 @@
                   Replay power-up
                 </button>
               </div>
+              <p class="hint">
+                Pick a conduit on the ship, or use the buttons. Each plug is a
+                dependency.
+              </p>
+              <ul class="conduit-list" id="clist" aria-label="Conduits"></ul>
             </div>
           </div>
           <div class="bridge">
@@ -2229,13 +2382,6 @@ console.<span class="f">log</span>(<span class="s">'pre-flight ok'</span>);</pre
                   aria-live="polite"
                 ><span class="c">$ npm run preflight</span></pre>
               </div>
-            </div>
-            <div>
-              <p class="hint">
-                Pick a conduit on the ship, or use the buttons. Each plug is a
-                dependency.
-              </p>
-              <ul class="conduit-list" id="clist" aria-label="Conduits"></ul>
             </div>
           </div>
         </section>
@@ -2345,7 +2491,8 @@ console.<span class="f">log</span>(<span class="s">'pre-flight ok'</span>);</pre
   name: <span class="s">'Bridge'</span>,
   imports: [Tactical], <span class="c">// remove this line and Nexus.check fails</span>
   providers: [<span class="f">provide</span>(HELM, { useClass: Helm })],
-});</pre>
+});
+<span class="k">export const</span> Meridian = <span class="f">defineModule</span>({ name: <span class="s">'Meridian'</span>, imports: [Bridge] });</pre>
           </div>
         </section>
 
@@ -2369,6 +2516,7 @@ console.<span class="f">log</span>(<span class="s">'pre-flight ok'</span>);</pre
             <a
               class="btn primary"
               href="https://nexus.js.org/next/getting-started/"
+              data-px="Get started"
               >Get started</a
             >
             <a
@@ -3119,6 +3267,17 @@ console.<span class="f">log</span>(<span class="s">'pre-flight ok'</span>);</pre
           $('#ship').innerHTML = s;
         }
         buildShip();
+        (function () {
+          var mq = window.matchMedia('(max-width: 600px)');
+          function vb() {
+            $('#ship').setAttribute(
+              'viewBox',
+              mq.matches ? '-1 -3 197 106' : '-12 0 212 104',
+            );
+          }
+          vb();
+          mq.addEventListener && mq.addEventListener('change', vb);
+        })();
         /* nose and engineering extras tied to power */
         var elRoom = {},
           elChip = {},
@@ -3158,17 +3317,17 @@ console.<span class="f">log</span>(<span class="s">'pre-flight ok'</span>);</pre
           }, 1300);
         }
         var MS = {
-          reactor: ['+12MS', 'b'],
-          grid: ['AWAIT 41MS', 'y'],
-          shields: ['+7MS', 'b'],
-          sensors: ['+5MS', 'b'],
-          antenna: ['+9MS', 'b'],
-          relay: ['AWAIT 63MS', 'y'],
-          helm: ['+4MS', 'b'],
-          comp: ['+6MS', 'b'],
+          reactor: ['ONLINE', 'b'],
+          grid: ['WAIT', 'y'],
+          shields: ['ONLINE', 'b'],
+          sensors: ['ONLINE', 'b'],
+          antenna: ['ONLINE', 'b'],
+          relay: ['WAIT', 'y'],
+          helm: ['ONLINE', 'b'],
+          comp: ['ONLINE', 'b'],
         };
         function chipPos(m, i) {
-          return [m.x + 4 + (W_ - 8) / 2, m.y + 12 + i * 11 - 2];
+          return [m.x + (i ? 39 : 14), m.y - 6];
         }
 
         /* ---------- audio (off by default, synthesized) ---------- */
@@ -3377,9 +3536,7 @@ console.<span class="f">log</span>(<span class="s">'pre-flight ok'</span>);</pre
               })[0],
               isCut = !!cut[c.id];
             b.setAttribute('aria-pressed', isCut ? 'true' : 'false');
-            b.querySelector('.st').textContent = isCut
-              ? 'UNPLUGGED'
-              : 'PLUGGED';
+            setPx(b.querySelector('.st'), isCut ? 'UNPLUGGED' : 'PLUGGED');
           });
         }
 
@@ -3406,10 +3563,13 @@ console.<span class="f">log</span>(<span class="s">'pre-flight ok'</span>);</pre
           bp.classList.toggle('ok', !bad);
           bp.classList.toggle('bad', bad);
           setPx($('#bpv'), bad ? 'Invalid' : 'Valid');
-          $('#bpn').textContent = bad
-            ? errCount() +
-              (alerts.length > 1 ? ' errors found' : ' error found')
-            : 'Nexus.check passes';
+          setPx(
+            $('#bpn'),
+            bad
+              ? errCount() +
+                  (alerts.length > 1 ? ' errors found' : ' error found')
+              : 'Nexus.check passes',
+          );
           $('#bp').setAttribute(
             'aria-label',
             'Blueprint ' + (bad ? 'invalid' : 'valid'),
@@ -3453,7 +3613,7 @@ console.<span class="f">log</span>(<span class="s">'pre-flight ok'</span>);</pre
               to = e.mod.name,
               from = byId[e.con.from].name;
             h +=
-              '\n<span class="err hl">  [<a href="https://nexus.js.org/errors/NEXUS_MISSING_PROVIDER/">NEXUS_MISSING_PROVIDER</a>] ' +
+              '\n<span class="err hl">  [<a href="https://nexus.js.org/next/errors/NEXUS_MISSING_PROVIDER/">NEXUS_MISSING_PROVIDER</a>] ' +
               e.chip[1] +
               ' (module ' +
               to +
@@ -3706,13 +3866,7 @@ console.<span class="f">log</span>(<span class="s">'pre-flight ok'</span>);</pre
           void g.getBoundingClientRect();
           g.classList.add('go');
           sfx('go');
-          outEl.innerHTML += type(
-            [
-              'Nexus.create(Meridian): started 4 modules, 8 providers',
-              'Meridian is away.',
-            ],
-            'okc',
-          );
+          outEl.innerHTML += type(['Meridian is away.'], 'okc');
           say('Launched. Every conduit was checked before the engines lit.');
           setTimeout(function () {
             g.classList.remove('go');
