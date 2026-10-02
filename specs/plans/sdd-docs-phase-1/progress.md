@@ -106,4 +106,5 @@ Task briefs: tasks/task-NN.md, shared constraints tasks/globals.md
 - T43: done 4804379+114cae3 (captive region restructured, codes corrected, factories output corrected; approved)
 - T44: done 3c3d529+7b3dfae (try-it outcomes corrected; dispose-failures region prints a lone failure without crashing; approved after fix)
 - T45: done 574381d+e6f6d9c (second diagram per spec; palette recolour handles alpha sentinels and Mermaid default literals, browser-checked in both themes; approved)
-- T46: impl
+- T46: done 11bfd59+a76870f (lazy-on-MultiToken claim removed: only all() is accepted; factory contributions stated and shown; cross-module order stated; approved after fix)
+- T47: impl
