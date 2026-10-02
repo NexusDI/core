@@ -45,7 +45,7 @@ Try it: save the region as `transport.ts`, run it, and read `laser on 1420`. Cha
 
 ## Compute options at startup with `forRootAsync()`
 
-`forRootAsync({ useFactory, deps })` computes a NexusDI module's options while `Nexus.create` runs. The factory may return a promise, and `Nexus.create` awaits it before it builds the module's providers. The factory's `deps` resolve where the module's own providers resolve: from the module's imports and from global modules.
+`forRootAsync({ useFactory, deps })` computes a NexusDI module's options while `Nexus.create` runs. The factory may return a promise, and `Nexus.create` awaits it before it builds the module's providers. The factory's `deps` resolve inside the module: from its own providers, from the exports of its imports and from global modules.
 
 ```ts file=examples/meridian/src/pages/configurable-modules.md region=for-root-async
 
