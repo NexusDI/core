@@ -7,17 +7,17 @@ requires: [lazy]
 
 # Multi-providers
 
-A NexusDI `MultiToken` collects one contribution from each `provide()` call that names it, and resolves to an array of them. Several modules can contribute to one multi-token, and a consumer reads every contribution it can see through `all()` (a `lazy()` edge, from the previous page, works on any token, a multi-token included).
+A NexusDI `MultiToken` collects one contribution from each `provide()` call that names it, and resolves to an array of them. Several modules can contribute to one multi-token, and a consumer reads every contribution it can see through `all()`. `all()` is the only modifier a multi-token takes in a deps list: `lazy()`, `optional()` and a bare `MultiToken` each make `Nexus.create` reject with `NEXUS_BLUEPRINT_INVALID`, wrapping `NEXUS_INVALID_PROVIDER`.
 
 ## Collect contributions with a NexusDI `MultiToken`
 
-`new MultiToken<Diagnostic>('Diagnostics')` names a list of `Diagnostic` contributions. Each `provide(DIAGNOSTICS, ...)` adds one entry, either a class, as `ReactorDiagnostic` is below, or a value, as the hull check is. `ship.get(DIAGNOSTICS)` returns the entries as an array, in the order the providers are listed.
+`new MultiToken<Diagnostic>('Diagnostics')` names a list of `Diagnostic` contributions. Each `provide(DIAGNOSTICS, ...)` adds one entry, a class, as `ReactorDiagnostic` is below, or a value, as the hull check is, and a factory when the entry needs deps. `ship.get(DIAGNOSTICS)` returns the entries as an array, in the order the providers are listed. Across modules, a module's own entries come first, then those of its imports in import order.
 
 ```ts file=examples/meridian/src/pages/multi-providers.md region=multi-token
 
 ```
 
-Try it: save the region as `diagnostics.ts` and run `npx tsx diagnostics.ts`. It prints `[ 'reactor', 'hull' ]`. Add a third `provide(DIAGNOSTICS, { useValue: { system: 'shields', check: () => false } })` after the hull one and run it again: it prints `[ 'reactor', 'hull', 'shields' ]`. Delete that line and the array loses `shields` again.
+Try it: save the region as `diagnostics.ts` and run `npx tsx diagnostics.ts`. It prints `[ 'reactor', 'hull' ]`. Add a third `provide(DIAGNOSTICS, { useValue: { system: 'shields', check: () => false } })` after the hull one and run it again: it prints `[ 'reactor', 'hull', 'shields' ]`. Delete that line and the array loses `shields` again. Then add `const DRONE_COUNT = new Token<number>('DroneCount');` (import `Token`), `provide(DRONE_COUNT, { useValue: 3 })` and `provide(DIAGNOSTICS, { useFactory: (n: number) => ({ system: `drone${n}`, check: () => true }), deps: [DRONE_COUNT] })` to the list: the array gains `drone3`.
 
 ## Depend on every contribution with `all()`
 
