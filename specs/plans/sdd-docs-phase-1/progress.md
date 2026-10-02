@@ -132,4 +132,5 @@ Task briefs: tasks/task-NN.md, shared constraints tasks/globals.md
 - T65: done 9eb418b+7290618+(order fix) (LOAD_GLOBAL_MODULE also for a module importing a new global; valibot and errors installs; path differs at startup vs get chain; approved after fix)
 - T66: done db50ea4+(fix) (full throw-site lists per code; invisible startup dep is MISSING_PROVIDER inside BLUEPRINT_INVALID; "array of two strings" wording also fixed on T63 pages; approved after fix)
 - T67: done c9f6876+ab29e92 (DISPOSED adds has(), scope extend() and in-flight load/createScope; extend() rejects with REQUEST_MISSING; LIFETIME_VIOLATION inside BLUEPRINT_INVALID; approved after fix)
-- T68: impl
+- T68: done 46a1baf+08d9593 (INVALID/VERSION/CONFLICT only inside BLUEPRINT_INVALID; FAILED four sites incl. tokenKey bare from container and scope calls; per-page fix regions; approved after fix)
+- T69: impl
