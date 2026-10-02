@@ -79,13 +79,39 @@ function rgb(hex: string): string {
   return `rgb(${r}, ${g}, ${b})`;
 }
 
-/** Replaces every sentinel colour in a rendered SVG with its property. */
+/** The `rgba(r, g, b, a)` spelling of a `#rrggbb` colour, with its alpha captured. */
+function rgba(hex: string): RegExp {
+  const [r, g, b] = [1, 3, 5].map((at) =>
+    Number.parseInt(hex.slice(at, at + 2), 16),
+  );
+  return new RegExp(
+    String.raw`rgba\(\s*${r},\s*${g},\s*${b},\s*([\d.]+)\s*\)`,
+    'g',
+  );
+}
+
+/** A hex or `rgb()` colour that is not part of an HTML entity or an id. */
+const LITERAL =
+  /(?<!&)#(?:[0-9a-f]{8}|[0-9a-f]{6}|[0-9a-f]{3})\b|rgba?\([^)]*\)/gi;
+
+/**
+ * Replaces every sentinel colour in a rendered SVG with its property, and
+ * every colour literal that is left (Mermaid writes a few fixed defaults of
+ * its own, such as the arrowhead fill and the shadow colours) with
+ * `currentColor`. Mermaid also writes a sentinel with an alpha, for the edge
+ * label background, and that one becomes the property mixed to the same alpha.
+ */
 export function recolour(svg: string): string {
   let out = svg;
   for (const [role, hex] of Object.entries(sentinel)) {
     const value = property[role as keyof typeof sentinel];
     out = out.replaceAll(new RegExp(hex, 'gi'), value);
     out = out.replaceAll(rgb(hex), value);
+    out = out.replaceAll(
+      rgba(hex),
+      (_, alpha: string) =>
+        `color-mix(in srgb, ${value} ${Number.parseFloat(alpha) * 100}%, transparent)`,
+    );
   }
-  return out;
+  return out.replaceAll(LITERAL, 'currentColor');
 }

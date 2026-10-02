@@ -22,6 +22,7 @@ const meta: MetaRecord = {
   'configurable-modules': { title: 'Configurable modules' },
   scopes: { title: 'Scopes and REQUEST' },
   lifecycle: { title: 'Lifecycle and disposal' },
+  lazy: { title: 'Lazy edges and cycles' },
   docs: { title: 'Docs', type: 'page', href: '/getting-started/' },
   // The navbar's Blog entry, hidden until the posts migrate at 0.4.0 final
   // (spec §4.1). The folder exists on every branch so the final root build

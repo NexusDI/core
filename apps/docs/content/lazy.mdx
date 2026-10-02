@@ -1,0 +1,56 @@
+---
+title: Lazy edges and cycles
+kind: concept
+description: A NexusDI lazy() dependency is a thunk that resolves its token after startup, and it is the only way to express a dependency cycle.
+requires: [lifecycle]
+---
+
+# Lazy edges and cycles
+
+A NexusDI `lazy()` dependency hands a constructor a thunk that returns the token's instance when it is called, after startup. `lazy()` is the only way to express a dependency cycle: every other cycle fails when `Nexus.create` compiles the graph, before any constructor runs, and before any `onInit` from the previous page.
+
+## NexusDI reports a cycle as `NEXUS_CIRCULAR_DEPENDENCY`
+
+NexusDI compiles the whole graph before it builds anything, so a cycle of required dependencies never reaches a constructor. `Nexus.create` rejects with `NEXUS_BLUEPRINT_INVALID`, and the inner [NEXUS_CIRCULAR_DEPENDENCY](/errors/NEXUS_CIRCULAR_DEPENDENCY/) carries the cycle as its `path`. `PlasmaRouter` needs the shield grid to divert power, and `DeflectorGrid` needs the power router to draw it:
+
+```mermaid caption="POWER_ROUTER depends on SHIELD_GRID, and SHIELD_GRID depends on POWER_ROUTER: a ring with no lazy edge."
+flowchart LR
+  PowerRouter:::accent -->|required| ShieldGrid
+  ShieldGrid -->|required| PowerRouter
+```
+
+```ts file=examples/meridian/src/pages/lazy.md region=cycle
+
+```
+
+The path starts and ends at the same provider: `PowerRouter -> ShieldGrid -> PowerRouter`.
+
+Try it: save the region as `cycle.ts` and run `npx tsx cycle.ts`. It prints `[ 'NEXUS_CIRCULAR_DEPENDENCY' ]` and then the ring. Import `lazy` from `@nexusdi/core`, change `PlasmaRouter`'s deps to `[lazy(SHIELD_GRID)] as const`, its parameter to `private readonly shields: () => IShieldGrid` and its method to `return this.shields().draw();`, as the next section does. Run it again: `Nexus.create` resolves, so the program prints `[]` and an empty line. If you change only the deps, `npx tsc --noEmit` flags the `provide(POWER_ROUTER, ...)` call, because the constructor still expects an `IShieldGrid`. Undo those edits and the program prints the code and the ring again.
+
+## Break a cycle with `lazy()`
+
+`lazy(SHIELD_GRID)` in a deps list turns that edge into a thunk, and NexusDI leaves lazy edges out of its cycle check. The constructor receives a function with no arguments that returns the instance. Call the thunk in a method, once `Nexus.create` has resolved. The dotted edge in the diagram is the lazy one.
+
+```mermaid caption="POWER_ROUTER reaches SHIELD_GRID through a lazy edge, so the required edge from SHIELD_GRID back to POWER_ROUTER no longer closes a ring."
+flowchart LR
+  PowerRouter:::accent -.->|lazy| ShieldGrid
+  ShieldGrid -->|required| PowerRouter
+```
+
+```ts file=examples/meridian/src/pages/lazy.md region=lazy-fix
+
+```
+
+Try it: save the region as `lazy.ts` and run it. It prints `0.4`. Mark the other edge lazy too: change `DeflectorGrid`'s deps to `[lazy(POWER_ROUTER)] as const` and its parameter to `readonly router: () => IPowerRouter`. Run it again: it still prints `0.4`, since one lazy edge is enough and two are allowed. Change `DeflectorGrid` back to the plain edge when you are done.
+
+## Call a NexusDI thunk after startup
+
+A `lazy()` thunk resolves only once its target is ready: built, with its `onInit` finished. A thunk called inside the constructor runs before the target exists, and NexusDI throws [NEXUS_NOT_READY](/errors/NEXUS_NOT_READY/) with the `owner` that called it and the `target` it asked for. `Nexus.create` reports the failure as [NEXUS_PROVIDER_FAILED](/errors/NEXUS_PROVIDER_FAILED/) with `NEXUS_NOT_READY` as its `cause`.
+
+```ts file=examples/meridian/src/pages/lazy.md region=not-ready
+
+```
+
+The owner's `onInit` is too early as well. NexusDI calls `onInit` level by level, dependencies first, and a lazy edge does not order the levels, so `PlasmaRouter`'s `onInit` runs before `DeflectorGrid` is ready and throws the same code. Fix it by calling the thunk in a method that runs after `Nexus.create` resolves, as `divert()` does in the previous section.
+
+Try it: save the region as `not-ready.ts` and run it. It prints `NEXUS_PROVIDER_FAILED` and then `NEXUS_NOT_READY`. Keep the thunk in a field (`private readonly shields: () => IShieldGrid`) and call it in an `onInit()` method that sets `this.reserve`. Run it again: it prints the same two codes, because `onInit` still runs before `DeflectorGrid` is ready. Now replace `onInit()` with a `divert()` method that returns `this.shields().draw()`, add `divert(): number;` to `IPowerRouter`, and end the program with `await using ship = await Nexus.create(...)` and `console.log(ship.get(POWER_ROUTER).divert());`. It prints `0.4`. Put the call back in the constructor and the two codes return.

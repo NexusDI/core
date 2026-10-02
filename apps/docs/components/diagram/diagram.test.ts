@@ -99,7 +99,30 @@ describe('diagrams', () => {
     const out = recolour(`${svg} fill="#123456"`);
     for (const value of Object.values(property)) expect(out).toContain(value);
     for (const hex of hexes) expect(out.toLowerCase()).not.toContain(hex);
-    expect(out).toContain('fill="#123456"');
+    expect(out).not.toContain('#123456');
+  });
+
+  it('mixes a sentinel with an alpha and neutralises the colours Mermaid fixes', () => {
+    const [r, g, b] = [1, 3, 5].map((at) =>
+      Number.parseInt(sentinel.page.slice(at, at + 2), 16),
+    );
+    const out = recolour(
+      [
+        `.labelBkg{background-color:rgba(${r}, ${g}, ${b}, 0.5);}`,
+        '.arrowheadPath{fill:#fef5f4;}',
+        'filter:drop-shadow( 1px 2px 2px rgba(185,185,185,1));',
+        'flood-color="#000000"',
+        'a &#160; b url(#nexus-diagram-x-gradient)',
+      ].join(' '),
+    );
+    expect(out).toContain(
+      'background-color:color-mix(in srgb, var(--meridian-ground-0) 50%, transparent);',
+    );
+    expect(out).toContain('.arrowheadPath{fill:currentColor;}');
+    expect(out).toContain('flood-color="currentColor"');
+    expect(out).not.toMatch(/#[0-9a-f]{6}|rgba?\(/i);
+    expect(out).toContain('&#160;');
+    expect(out).toContain('url(#nexus-diagram-x-gradient)');
   });
 
   it('binds the sentinels to the Meridian properties', () => {
