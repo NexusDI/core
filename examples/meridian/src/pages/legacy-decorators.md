@@ -104,3 +104,42 @@ console.log(status);
 ```
 
 <!-- #endregion class-from-package -->
+
+<!-- #region deps-missing -->
+
+```ts @import.meta.vitest
+import { Nexus, Token, isNexusError, provide } from '@nexusdi/core';
+
+interface IReactorCore {
+  readonly output: number;
+}
+interface IShipComputer {
+  status(): string;
+}
+const REACTOR = new Token<IReactorCore>('ReactorCore');
+const COMPUTER = new Token<IShipComputer>('ShipComputer');
+
+class FusionReactor implements IReactorCore {
+  readonly output = 1.21;
+}
+// No static deps and no deps option: nothing says what the constructor takes.
+class VendorComputer implements IShipComputer {
+  constructor(private readonly reactor: IReactorCore) {}
+  status() {
+    return `VendorComputer online. Reactor output ${this.reactor.output} GW.`;
+  }
+}
+
+const error = await Nexus.create([
+  provide(REACTOR, { useClass: FusionReactor }),
+  provide(COMPUTER, { useClass: VendorComputer }),
+]).catch((caught: unknown) => caught);
+const code = isNexusError(error) ? error.code : ''; // -> 'NEXUS_BLUEPRINT_INVALID'
+const errors = isNexusError(error, 'NEXUS_BLUEPRINT_INVALID')
+  ? error.errors
+  : [];
+const inner = errors.map((item) => item.code); // -> ['NEXUS_MISSING_DEPS']
+console.log(code, inner);
+```
+
+<!-- #endregion deps-missing -->

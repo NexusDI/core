@@ -6,7 +6,7 @@ description: Under experimentalDecorators the NexusDI decorators throw NEXUS_LEG
 
 # How do I use NexusDI in a project that keeps experimentalDecorators?
 
-Declare deps with `static deps` and bind tokens with `provide()`, and collect the bindings in `defineModule()`. None of them is a decorator, so they work under every compiler flag, `experimentalDecorators` and `emitDecoratorMetadata` included. A project that keeps the flag for another library uses NexusDI this way and leaves `@nexusdi/decorators` out.
+Declare deps with `static deps` or at the `provide()` binding. Neither is a decorator, so both work under every compiler flag, `experimentalDecorators` included. NexusDI never reads `emitDecoratorMetadata`: it reads no type a compiler emits, so a class lists its deps in `static deps` or at the binding. A project that keeps the flag for another library uses NexusDI this way and leaves `@nexusdi/decorators` out.
 
 ## `@nexusdi/decorators` throws `NEXUS_LEGACY_DECORATORS` under the flag
 
@@ -16,9 +16,18 @@ The NexusDI decorators are standard (TC39) decorators. With `experimentalDecorat
 
 ```
 
-Try it: save the region as `legacy.ts` and run `npx tsx legacy.ts`. It prints the message and its fix line.
+Try it: save the region as `legacy.ts` and run `npx tsx legacy.ts`. It prints an array of two lines: the message and its fix line.
 
-In a project that sets the flag, `tsc` stops first. It reports TS1238 on a decorated class (`@Injectable` or `@Module`) and says the runtime invokes the decorator with 1 argument where it expects 2, and TS1240 on an `@Inject` accessor. Run the file anyway and the same error is thrown when the class is defined. Two fixes exist. Remove `experimentalDecorators` from `tsconfig.json` if no other library needs it, and the decorators compile as written. If the flag stays, drop the decorators from the NexusDI classes and use the two sections below.
+In a project that sets the flag, `tsc` stops first. It reports TS1238 on a decorated class (`@Injectable` or `@Module`) and says the runtime invokes the decorator with 1 argument where it expects 2, and TS1240 on an `@Inject` accessor. Run the file anyway and the same error is thrown when the class is defined. Two fixes exist. Remove `experimentalDecorators` from `tsconfig.json` if no other library needs it, and the decorators compile as written. If the flag stays, drop the NexusDI decorators and write what each one recorded by hand:
+
+| Decorator                         | Without decorators                                                               |
+| --------------------------------- | -------------------------------------------------------------------------------- |
+| `@Injectable({ deps })`           | `static deps` on the class, or `deps` on the binding                             |
+| `@Injectable({ lifetime })`       | `lifetime` on the binding: `provide(TOKEN, { useClass, lifetime: 'transient' })` |
+| `@Module({ providers, exports })` | `defineModule({ name, providers, exports })`                                     |
+| `@Inject(TOKEN)` on an accessor   | a constructor parameter listed in `deps`, or a `useFactory` provider with `deps` |
+
+A class may carry another library's legacy decorators and `static deps` together: NexusDI reads only `static deps`. The flag belongs to one `tsconfig.json`, so classes that use the NexusDI decorators can live in a package whose `tsconfig.json` leaves it out. The two sections below show the decorator-free forms.
 
 ## Wire NexusDI without decorators
 
@@ -38,4 +47,8 @@ A class from another package carries no `static deps`, and its source is out of 
 
 ```
 
-Try it: save the region as `vendor.ts` and run `npx tsx vendor.ts`. It prints `VendorComputer online. Reactor output 1.21 GW.` Delete `deps: [REACTOR]` from the binding and run it again. `Nexus.create` rejects with [NEXUS_BLUEPRINT_INVALID](/errors/NEXUS_BLUEPRINT_INVALID/), whose `errors` list holds [NEXUS_MISSING_DEPS](/errors/NEXUS_MISSING_DEPS/), because nothing says what the constructor takes. Put `deps: [REACTOR]` back and the status line returns.
+Try it: save the region as `vendor.ts` and run `npx tsx vendor.ts`. It prints `VendorComputer online. Reactor output 1.21 GW.` Delete `deps: [REACTOR]` from the binding and run it again. `Nexus.create` rejects with [NEXUS_BLUEPRINT_INVALID](/errors/NEXUS_BLUEPRINT_INVALID/), whose `errors` list holds [NEXUS_MISSING_DEPS](/errors/NEXUS_MISSING_DEPS/), because nothing says what the constructor takes. The region below catches the rejection and prints both codes. Put `deps: [REACTOR]` back and the status line returns.
+
+```ts file=examples/meridian/src/pages/legacy-decorators.md region=deps-missing
+
+```
