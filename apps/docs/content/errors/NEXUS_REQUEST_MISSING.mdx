@@ -8,7 +8,7 @@ errorClass: RequestMissingError
 
 # NEXUS_REQUEST_MISSING
 
-`NEXUS_REQUEST_MISSING` means `ship.createScope()` received no `request` while scoped providers depend on `REQUEST`. `createScope` returns a promise, so the call rejects. `scope.extend()` throws it directly too, when a module loaded later adds a `REQUEST` dependent and the scope has no request.
+`NEXUS_REQUEST_MISSING` means `ship.createScope()` received no `request` while scoped providers depend on `REQUEST`. `createScope` returns a promise, so the call rejects. `scope.extend()` rejects with it too, when a module loaded later adds a `REQUEST` dependent and the scope has no request.
 
 ## Reproduce `NEXUS_REQUEST_MISSING`
 

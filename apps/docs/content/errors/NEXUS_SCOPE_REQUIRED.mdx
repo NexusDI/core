@@ -8,7 +8,7 @@ errorClass: ScopeRequiredError
 
 # NEXUS_SCOPE_REQUIRED
 
-`NEXUS_SCOPE_REQUIRED` means code asked the root container for a scoped provider or for `REQUEST`. The root has no scope, so `get()` throws it directly. So does `resolve()`, which throws for a `lazy()` entry to a scoped provider when `resolve()` runs. A transient provider that depends on a scoped one raises it too, and `path` then lists the transient first, as in `path=Briefing,FlightLog`. A singleton that depends on a scoped provider fails earlier: `Nexus.create` reports [NEXUS_LIFETIME_VIOLATION](/errors/NEXUS_LIFETIME_VIOLATION/).
+`NEXUS_SCOPE_REQUIRED` means code asked the root container for a scoped provider or for `REQUEST`. The root has no scope, so `get()` throws it directly. So does `resolve()`, which throws for a `lazy()` entry when `resolve()` runs, if the target is a scoped provider, `REQUEST` or an alias to either. A transient provider that depends on a scoped one raises it too, and `path` then lists the transient first, as in `path=Briefing,FlightLog`. A `lazy()` thunk to such a transient throws when called, with `entry` set to `null`. A singleton that depends on a scoped provider fails earlier: `Nexus.create` reports [NEXUS_LIFETIME_VIOLATION](/errors/NEXUS_LIFETIME_VIOLATION/) inside [NEXUS_BLUEPRINT_INVALID](/errors/NEXUS_BLUEPRINT_INVALID/).
 
 ## Reproduce `NEXUS_SCOPE_REQUIRED`
 
@@ -36,4 +36,4 @@ Try it: in `fixed.ts`, change `shuttle.get(FLIGHT_LOG)` to `ship.get(FLIGHT_LOG)
 
 - `token`: the display name of the scoped provider, or `REQUEST`.
 - `path`: the providers from the token asked for to the scoped one it reaches.
-- `entry`: the deps entry of `resolve()` this error is about, such as `deps.s` for the key `s` of an object, or `null` for `get()`.
+- `entry`: the deps entry of `resolve()` this error is about, `deps.<key>` for the key of an object, such as `deps.s`, or `deps[0]` for a tuple, and `null` for `get()` or a thunk call.

@@ -36,4 +36,4 @@ Try it: delete the `await shuttle.extend();` line from `fixed.ts` and run it aga
 
 - `token`: the display name of the token asked for.
 - `module`: the module that provides it.
-- `entry`: the deps entry of `resolve()` this error is about, such as `deps.charts` for the key `charts` of an object, or `null` for `get()`.
+- `entry`: the deps entry of `resolve()` this error is about, `deps.<key>` for the key of an object, such as `deps.charts`, or `deps[0]` for a tuple, and `null` for `get()`.
