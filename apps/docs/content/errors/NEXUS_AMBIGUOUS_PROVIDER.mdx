@@ -28,7 +28,7 @@ Try it: save the region as `error.ts` and run `npx tsx error.ts`. The one-line m
 
 ```
 
-Try it: in `error.ts`, add `providers: [provide(SUBSPACE_LINK, { useClass: LaserLink })]` to `Tactical`. `Nexus.create` then resolves, and `get(SUBSPACE_LINK).frequency` is `1701`, because the provider in `Tactical` shadows both imports. Remove the line and the error returns.
+Try it: in `error.ts`, add `providers: [provide(SUBSPACE_LINK, { useClass: LaserLink })]` to `Tactical`. Then replace everything from the `thin` line down with `await using ship = await Nexus.create(Tactical);` and `console.log(ship.get(SUBSPACE_LINK).frequency);`. `Nexus.create` resolves and the program prints `1701`, because the provider in `Tactical` shadows both imports. Take the `providers` line out again and the error returns.
 
 ## Fields of `AmbiguousProviderError`
 

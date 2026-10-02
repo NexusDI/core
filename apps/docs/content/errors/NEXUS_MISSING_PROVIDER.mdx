@@ -8,7 +8,7 @@ errorClass: MissingProviderError
 
 # NEXUS_MISSING_PROVIDER
 
-`NEXUS_MISSING_PROVIDER` means a provider depends on a token that no module visible to it provides. `Nexus.create` reports it inside [NEXUS_BLUEPRINT_INVALID](/errors/NEXUS_BLUEPRINT_INVALID/) before any constructor runs, and so does `validate()`. `get()` and `resolve()` throw it directly for a token that no module visible to the lookup provides.
+`NEXUS_MISSING_PROVIDER` means a provider depends on a token that no module visible to it provides. `Nexus.create` reports it inside [NEXUS_BLUEPRINT_INVALID](/errors/NEXUS_BLUEPRINT_INVALID/) before any constructor runs, and so does `validate()`. `get()` and `resolve()` throw it directly for a token that no module in the graph provides. A token that some module provides but the lookup cannot see raises [NEXUS_NOT_VISIBLE](/errors/NEXUS_NOT_VISIBLE/) instead.
 
 ## Reproduce `NEXUS_MISSING_PROVIDER`
 
