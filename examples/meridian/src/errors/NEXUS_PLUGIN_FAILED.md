@@ -18,9 +18,6 @@ const REACTOR = new Token<IReactorCore>('ReactorCore');
 class FusionReactor implements IReactorCore {
   readonly output = 1.21;
 }
-class SimulatedReactor implements IReactorCore {
-  readonly output = 0;
-}
 const providers = [provide(REACTOR, { useClass: FusionReactor })];
 
 // The setup hook throws, so create rejects.

@@ -12,7 +12,7 @@ errorClass: PluginError
 
 - A `setup` hook that throws or rejects makes `Nexus.create` reject with `NEXUS_PLUGIN_FAILED` bare, after disposing what it built. `disposalErrors` holds what that disposal threw.
 - A hook under `compile` that throws or returns the wrong type, and a `tokenKey` hook that throws during a compile, is reported inside [NEXUS_BLUEPRINT_INVALID](/errors/NEXUS_BLUEPRINT_INVALID/). `Nexus.create` and `load()` reject with it and `Nexus.check` throws it.
-- A `tokenKey` hook that throws for a token it meets in `get()` or `has()` makes that call throw `NEXUS_PLUGIN_FAILED` bare.
+- A `tokenKey` hook that throws for a token it meets makes the call throw `NEXUS_PLUGIN_FAILED` bare. That holds for `get()`, `has()`, `resolve()` and `validate()` on the container, and for the same calls on a scope, which has no `validate()`.
 - A `construct` hook that throws, or returns a thenable, makes the build fail with [NEXUS_PROVIDER_FAILED](/errors/NEXUS_PROVIDER_FAILED/). `NEXUS_PLUGIN_FAILED` is its `cause`, and the hook's own error is the `cause` of that.
 
 A throw from an `observe` or a `dispose` hook does not use this code.

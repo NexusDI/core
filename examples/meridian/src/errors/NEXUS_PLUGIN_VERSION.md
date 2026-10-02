@@ -5,7 +5,7 @@ Regions for `apps/docs/content/errors/NEXUS_PLUGIN_VERSION.mdx`. Every block run
 <!-- #region reproduce -->
 
 ```ts @import.meta.vitest
-import { NEXUS_PLUGIN_API, Nexus, Token, isNexusError } from '@nexusdi/core';
+import { Nexus, Token, isNexusError } from '@nexusdi/core';
 import { provide } from '@nexusdi/core';
 import type { NexusPlugin } from '@nexusdi/core';
 import { errors } from '@nexusdi/errors';
@@ -17,9 +17,6 @@ const REACTOR = new Token<IReactorCore>('ReactorCore');
 
 class FusionReactor implements IReactorCore {
   readonly output = 1.21;
-}
-class SimulatedReactor implements IReactorCore {
-  readonly output = 0;
 }
 const providers = [provide(REACTOR, { useClass: FusionReactor })];
 
