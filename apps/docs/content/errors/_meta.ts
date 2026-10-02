@@ -87,6 +87,18 @@ const meta: MetaRecord = {
   NEXUS_PLUGIN_VERSION: { title: 'NEXUS_PLUGIN_VERSION', display: 'hidden' },
   NEXUS_PLUGIN_CONFLICT: { title: 'NEXUS_PLUGIN_CONFLICT', display: 'hidden' },
   NEXUS_PLUGIN_FAILED: { title: 'NEXUS_PLUGIN_FAILED', display: 'hidden' },
+  NEXUS_LEGACY_DECORATORS: {
+    title: 'NEXUS_LEGACY_DECORATORS',
+    display: 'hidden',
+  },
+  NEXUS_DEVTOOLS_UNREGISTERED: {
+    title: 'NEXUS_DEVTOOLS_UNREGISTERED',
+    display: 'hidden',
+  },
+  NEXUS_DEVTOOLS_GRAPH_INVALID: {
+    title: 'NEXUS_DEVTOOLS_GRAPH_INVALID',
+    display: 'hidden',
+  },
 };
 
 export default meta;
