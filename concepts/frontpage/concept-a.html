@@ -192,7 +192,7 @@
 
       /* hero */
       .hero {
-        padding: 18px 0 40px;
+        padding: 6px 0 40px;
       }
       .eyebrow {
         display: inline-flex;
@@ -207,7 +207,7 @@
         text-transform: uppercase;
       }
       h1 {
-        font-size: clamp(32px, 5.4vw, 60px);
+        font-size: clamp(30px, 4vw, 52px);
         line-height: 1;
         margin: 16px 0 14px;
         font-weight: 900;
@@ -225,7 +225,25 @@
         display: flex;
         gap: 16px;
         flex-wrap: wrap;
-        margin-bottom: 34px;
+        margin-bottom: 20px;
+      }
+      .lead h1,
+      .lead .lede,
+      .lead .rc,
+      .hint,
+      .cmpnote,
+      .fine {
+        background: var(--bg);
+      }
+      .rc {
+        margin-top: 10px;
+      }
+      .herogrid {
+        display: grid;
+        grid-template-columns: minmax(0, 5fr) minmax(0, 6fr);
+        gap: 28px;
+        align-items: start;
+        margin-bottom: 28px;
       }
       .bridge {
         display: grid;
@@ -234,9 +252,18 @@
         align-items: start;
       }
       @media (max-width: 940px) {
-        .bridge {
+        .bridge,
+        .herogrid {
           grid-template-columns: minmax(0, 1fr);
         }
+      }
+      .hero-install {
+        margin-bottom: 16px;
+      }
+      .hero-install code {
+        font-size: 15px;
+        flex-basis: 220px;
+        padding: 8px 12px;
       }
       .frame {
         border: 4px solid var(--ink);
@@ -544,7 +571,7 @@
 
       /* status / dialog */
       .status {
-        margin-top: 20px;
+        margin-top: 16px;
         border: 4px solid var(--ink);
         background: var(--panel);
         box-shadow: 6px 6px 0 var(--shadow);
@@ -629,7 +656,7 @@
         display: flex;
         flex-wrap: wrap;
         gap: 12px;
-        margin-top: 20px;
+        margin-top: 16px;
       }
       .conduit-list {
         margin: 18px 0 0;
@@ -725,6 +752,13 @@
       }
       .term .err {
         color: #ff8a96;
+      }
+      .term .hl {
+        background: rgba(255, 138, 150, 0.2);
+        outline: 2px solid rgba(255, 138, 150, 0.2);
+      }
+      .term a {
+        color: inherit;
       }
       .term .okc {
         color: #6be675;
@@ -947,7 +981,7 @@
         color: #ffb43b;
         font-style: normal;
       }
-      #copied {
+      .copied {
         font-size: 13px;
         color: var(--green);
         font-weight: 800;
@@ -1047,6 +1081,33 @@
         color: var(--dim);
       }
 
+      .cart b a {
+        text-decoration: underline;
+        text-decoration-thickness: 2px;
+      }
+      @media (max-width: 600px) {
+        header.top {
+          flex-wrap: nowrap;
+          gap: 8px;
+        }
+        header.top .btn.small {
+          padding: 6px 10px;
+        }
+        .themebtn #themelbl {
+          position: absolute;
+          width: 1px;
+          height: 1px;
+          overflow: hidden;
+          clip: rect(0 0 0 0);
+        }
+        .brand svg {
+          width: 88px;
+          height: auto;
+        }
+        h1 {
+          text-shadow: 2px 2px 0 var(--amber);
+        }
+      }
       .sr {
         position: absolute;
         width: 1px;
@@ -1088,6 +1149,7 @@
             height="28"
           ></svg
         ></a>
+        <a class="btn small" href="https://nexus.js.org/next/">Docs</a>
         <a class="btn small" href="https://github.com/NexusDI/core">GitHub</a>
         <button
           class="btn small themebtn"
@@ -1104,21 +1166,39 @@
 
       <main id="top">
         <section class="hero" aria-labelledby="h1">
-          <span class="eyebrow">Starship Meridian / pre-flight</span>
-          <h1 id="h1">Wiring mistakes fail CI before a user hits them.</h1>
-          <p class="lede">
-            NexusDI is a dependency injection container for TypeScript with
-            modules and async startup. It checks the whole graph before launch.
-          </p>
-          <div class="cta">
-            <a class="btn primary" href="https://github.com/NexusDI/core#readme"
-              >Get started</a
-            >
-            <a class="btn" href="https://github.com/NexusDI/core">GitHub</a>
-          </div>
-
-          <div class="bridge">
-            <div>
+          <div class="herogrid">
+            <div class="lead">
+              <span class="eyebrow">Starship Meridian / pre-flight</span>
+              <h1 id="h1">Wiring mistakes fail CI before a user hits them.</h1>
+              <p class="lede">
+                NexusDI is a dependency injection container for TypeScript with
+                modules and async startup. It checks the whole graph before
+                launch.
+              </p>
+              <div class="cta">
+                <a
+                  class="btn primary"
+                  href="https://nexus.js.org/next/getting-started/"
+                  >Get started</a
+                >
+                <a class="btn" href="https://github.com/NexusDI/core">GitHub</a>
+              </div>
+              <div class="install hero-install">
+                <code
+                  ><i>$</i>
+                  <span class="cmd">npm i @nexusdi/core@next</span></code
+                >
+                <button class="btn small primary copy" type="button">
+                  Copy
+                </button>
+                <span class="copied" role="status"></span>
+              </div>
+              <p class="fine rc">
+                Version 0.4.0-rc.0. 0.4 is a release candidate on the npm next
+                tag.
+              </p>
+            </div>
+            <div class="shipcol">
               <div class="frame">
                 <div class="titlebar">
                   <span>Starship Meridian</span
@@ -1180,7 +1260,8 @@
                 </button>
               </div>
             </div>
-
+          </div>
+          <div class="bridge">
             <div>
               <div class="term">
                 <div class="titlebar">
@@ -1190,16 +1271,19 @@
                   ></span>
                 </div>
                 <pre><span class="k">import</span> { Nexus } <span class="k">from</span> <span class="s">'@nexusdi/core'</span>;
+<span class="k">import</span> { errors } <span class="k">from</span> <span class="s">'@nexusdi/errors'</span>;
 <span class="k">import</span> { Meridian } <span class="k">from</span> <span class="s">'./meridian.js'</span>;
 
-<span class="c">// runs in CI, before any constructor</span>
-<span class="k">await</span> Nexus.<span class="f">check</span>(Meridian);</pre>
+<span class="f">Nexus</span>.<span class="f">check</span>(Meridian, { plugins: [<span class="f">errors</span>()] }); <span class="c">// CI runs this</span>
+console.<span class="f">log</span>(<span class="s">'pre-flight ok'</span>);</pre>
                 <pre
                   class="out"
                   id="out"
                   aria-live="polite"
-                ><span class="c">$ node preflight.ts</span></pre>
+                ><span class="c">$ npm run preflight</span></pre>
               </div>
+            </div>
+            <div>
               <p class="hint">
                 Pick a conduit on the ship, or use the buttons. Each plug is a
                 dependency.
@@ -1242,13 +1326,15 @@
           <div class="cmpnote">
             <svg id="eq" class="pix" viewBox="0 0 8 8" aria-hidden="true"></svg
             ><span
-              >Next to the small containers, NexusDI matches them feature for
-              feature.</span
+              >Up against tsyringe, awilix and needle-di?
+              <a href="https://nexus.js.org/next/comparison/"
+                >See the full comparison.</a
+              ></span
             >
           </div>
           <p class="fine">
-            Based on each project's public documentation. Check the version you
-            use.
+            InversifyJS 8.2.3, measured by the NexusDI benchmark harness. NestJS
+            from its documentation. Read 2026-09-30.
           </p>
         </section>
 
@@ -1258,10 +1344,15 @@
             <h2 id="in-h" class="sr">Install</h2>
           </div>
           <div class="install">
-            <code><i>$</i> <span id="cmd">npm i @nexusdi/core</span></code>
-            <button class="btn primary" id="copy" type="button">Copy</button>
-            <span id="copied" role="status"></span>
+            <code
+              ><i>$</i> <span class="cmd">npm i @nexusdi/core@next</span></code
+            >
+            <button class="btn primary copy" type="button">Copy</button>
+            <span class="copied" role="status"></span>
           </div>
+          <p class="fine rc">
+            Version 0.4.0-rc.0. 0.4 is a release candidate on the npm next tag.
+          </p>
         </section>
 
         <section class="sec" aria-labelledby="pk-h">
@@ -1281,7 +1372,9 @@
           ></svg>
           <h2 id="fin-h" class="sr">Ready for launch</h2>
           <div class="cta">
-            <a class="btn primary" href="https://github.com/NexusDI/core#readme"
+            <a
+              class="btn primary"
+              href="https://nexus.js.org/next/getting-started/"
               >Get started</a
             >
             <a class="btn" href="https://github.com/NexusDI/core">GitHub</a>
@@ -1700,7 +1793,7 @@
         })();
         iconInto($('#okic'), 'ok', 'var(--green)', 'var(--green)');
         iconInto($('#klic'), 'klaxon', '#fff', '#fff');
-        iconInto($('#eq'), 'eq', 'var(--green)', 'var(--green)');
+        iconInto($('#eq'), 'chip', 'var(--ink)', 'var(--amber)');
 
         /* ---------- ship ---------- */
         var NSV = 'http://www.w3.org/2000/svg';
@@ -1723,7 +1816,7 @@
             x: 64,
             y: 8,
             chips: [
-              ['shields', 'Shields'],
+              ['shields', 'ShieldGrid'],
               ['sensors', 'Sensors'],
             ],
           },
@@ -1774,7 +1867,7 @@
             id: 'tc-brdg',
             from: 'tact',
             to: 'brdg',
-            token: 'Shields',
+            token: 'ShieldGrid',
             by: 'helm',
             y: 37,
           },
@@ -1928,9 +2021,9 @@
                 '">' +
                 rect(cx, cy, W_ - 8, 9, 'bg') +
                 '<path class="tx" d="' +
-                P(ch[1], cx + 2, cy + 2) +
+                P(ch[1], cx + 1, cy + 2) +
                 '"/>' +
-                rect(cx + W_ - 8 - 4, cy + 3, 2, 3, 'lm') +
+                rect(cx + W_ - 8 - 3, cy + 3, 2, 3, 'lm') +
                 '<path class="bang" fill="#fff" d="' +
                 P('!', cx + W_ - 8 - 6, cy + 2) +
                 '"/></g>';
@@ -2144,37 +2237,49 @@
           return s;
         }
         function showOut(errs) {
-          var base = '<span class="c">$ node preflight.ts</span>';
+          var base = '<span class="c">$ npm run preflight</span>';
           if (!errs.length) {
             outEl.innerHTML =
               base +
-              type(
-                [
-                  'ok  Meridian: 4 modules, 8 providers, 4 conduits checked',
-                  'exit 0',
-                ],
-                'okc',
-              );
-          } else {
-            outEl.innerHTML =
-              base +
-              type(
-                errs.map(function (e) {
-                  return e.text;
-                }),
-                'err',
-              ) +
-              type(
-                [
-                  'exit 1  (' +
-                    errs.length +
-                    ' wiring ' +
-                    (errs.length > 1 ? 'errors' : 'error') +
-                    ')',
-                ],
-                'err',
-              );
+              '\n<span class="okc">pre-flight ok</span>\n<span class="okc">exit 0</span>';
+            return;
           }
+          var h =
+            base +
+            '\n<span class="err">[NEXUS_BLUEPRINT_INVALID] the module graph has ' +
+            errs.length +
+            (errs.length > 1 ? ' errors' : ' error') +
+            '; nothing was built.</span>';
+          errs.forEach(function (e) {
+            var t = e.con.token,
+              to = e.mod.name,
+              from = byId[e.con.from].name;
+            h +=
+              '\n<span class="err hl">  [<a href="https://nexus.js.org/errors/NEXUS_MISSING_PROVIDER/">NEXUS_MISSING_PROVIDER</a>] ' +
+              e.chip[1] +
+              ' (module ' +
+              to +
+              ') depends on ' +
+              t +
+              ', but no provider of ' +
+              t +
+              ' is visible in ' +
+              to +
+              '.</span>' +
+              '\n<span class="err">      ' +
+              t +
+              ' is exported by ' +
+              from +
+              ', which ' +
+              to +
+              ' does not import.</span>' +
+              '\n<span class="err">      Fix: import ' +
+              from +
+              ' into ' +
+              to +
+              '.</span>';
+          });
+          outEl.innerHTML = h + '\n<span class="err">exit 1</span>';
         }
 
         async function powerUp() {
@@ -2188,15 +2293,15 @@
           var lv = levels(),
             done = 0,
             total = MODS.length;
-          say('<strong>Power-up.</strong> Waking decks in dependency order.');
-          await sleep(300);
+          say('Power-up. Waking decks in dependency order.');
+          await sleep(100);
           if (my !== token) return;
           for (var i = 0; i < lv.length; i++) {
             var group = lv[i];
             say(
-              '<strong>Deck ' +
+              'Deck ' +
                 (i + 1) +
-                '.</strong> ' +
+                '. ' +
                 group
                   .map(function (m) {
                     return m.name;
@@ -2223,7 +2328,7 @@
                 e.classList.add('just');
               });
               render();
-              await sleep(320);
+              await sleep(120);
               if (my !== token) return;
             }
             group.forEach(function (m) {
@@ -2232,15 +2337,13 @@
             });
             setMeter(Math.round((done / total) * 8));
             render();
-            await sleep(380);
+            await sleep(140);
             if (my !== token) return;
           }
           setMeter(8);
           booting = false;
           powered = true;
-          say(
-            '<strong>All decks online.</strong> Wiring checked. Ready to launch.',
-          );
+          say('All decks online. Wiring checked. Ready to launch.');
           render();
         }
 
@@ -2253,11 +2356,22 @@
             booting = false;
             /* keep what was lit; mark blocked */
             var first = errs[0];
-            var names = errs
-              .map(function (e) {
-                return e.chip[1] + ' needs ' + e.con.token;
-              })
-              .join('; ');
+            var seen = {},
+              titles = [];
+            errs.forEach(function (e) {
+              if (!seen[e.mod.id]) {
+                seen[e.mod.id] = 1;
+                titles.push(e.mod.name.toUpperCase());
+              }
+            });
+            var parts = errs.map(function (e) {
+              return (
+                e.mod.name +
+                ' (module) is missing ' +
+                e.con.token +
+                ' (provider)'
+              );
+            });
             statusEl.innerHTML =
               '<div class="row"><svg class="icon klaxon pix" viewBox="0 0 8 8" aria-hidden="true">' +
               '<path d="' +
@@ -2266,20 +2380,15 @@
               iconPath('klaxon', 'o') +
               '" fill="#fff"/></svg>' +
               '<div class="msg"><span class="dialog-title">RED ALERT: ' +
-              first.mod.name.toUpperCase() +
+              titles.join(' AND ') +
               '</span>' +
-              '<span class="why2">Missing system: <strong>' +
-              first.con.token +
-              '</strong>. ' +
+              '<span class="why2">' +
+              parts.join('; ') +
+              '. ' +
               (errs.length > 1
-                ? names + '.'
-                : first.chip[1] +
-                  ' in ' +
-                  first.mod.name +
-                  ' needs ' +
-                  first.con.token +
-                  ', and the conduit is unplugged.') +
-              ' Launch blocked.</span></div>' +
+                ? ''
+                : first.chip[1] + ' needs it, and the conduit is unplugged. ') +
+              'Launch blocked.</span></div>' +
               '<button class="btn small" type="button" id="fixit">Replug</button></div>';
             statusEl.classList.add('bad');
             $('#fixit').addEventListener('click', function () {
@@ -2295,9 +2404,7 @@
             render();
             if (!powered && !booting) powerUp();
             else if (powered)
-              say(
-                '<strong>Check passed.</strong> All conduits plugged. Ready to launch.',
-              );
+              say('Check passed. All conduits plugged. Ready to launch.');
           }
         }
         function restoreStatus() {
@@ -2378,7 +2485,7 @@
                 'err',
               );
             } else if (booting) {
-              say('<strong>Hold on.</strong> Power-up is still running.');
+              say('Hold on. Power-up is still running.');
             }
             return;
           }
@@ -2393,9 +2500,7 @@
             ],
             'okc',
           );
-          say(
-            '<strong>Launched.</strong> Every conduit was checked before the engines lit.',
-          );
+          say('Launched. Every conduit was checked before the engines lit.');
           setTimeout(function () {
             g.classList.remove('go');
           }, 1800);
@@ -2450,30 +2555,35 @@
         }
         var ROWS = [
           [
-            'Private providers, explicit exports',
-            ['y'],
-            ['y'],
-            ['p', 'container modules'],
-          ],
-          [
-            'Whole graph checked before anything runs',
+            'Missing provider found before any constructor runs',
             ['y', 'Nexus.check'],
-            ['p', 'at bootstrap'],
-            ['n', 'at resolve time'],
+            ['p', 'at bootstrap, while it builds'],
+            ['n', 'at first resolve'],
           ],
           [
             'Every missing provider in one error',
             ['y'],
-            ['n', 'one at a time'],
-            ['n'],
+            ['n', 'the first one'],
+            ['n', 'the first one'],
+          ],
+          [
+            'Modules with private providers and exports',
+            ['y'],
+            ['y'],
+            ['n', 'container modules have no exports'],
           ],
           [
             'Async factories finish at startup',
             ['y'],
             ['y'],
-            ['p', 'async resolve'],
+            ['p', 'resolved with getAsync'],
           ],
-          ['No compiler flags needed', ['y'], ['n', 'decorator flags'], ['p']],
+          [
+            'Constructor injection with no compiler flags',
+            ['y'],
+            ['n', 'needs decorator flags'],
+            ['p', 'its decorated setup needs flags'],
+          ],
         ];
         $('#cmpbody').innerHTML = ROWS.map(function (r) {
           return (
@@ -2554,45 +2664,50 @@
             iconPath(p[0], 'o') +
             '" fill="' +
             p[3] +
-            '"/></svg><div><b>@nexusdi/' +
+            '"/></svg><div><b><a href="https://www.npmjs.com/package/@nexusdi/' +
             p[1] +
-            '</b><span>' +
+            '">@nexusdi/' +
+            p[1] +
+            '</a></b><span>' +
             p[2] +
             '</span><em class="tag" style="font-style:normal">' +
-            (p[4] ? 'core' : 'optional') +
+            (p[4] ? 'required' : 'optional') +
             '</em></div></div></li>'
           );
         }).join('');
 
         /* ---------- copy ---------- */
-        $('#copy').addEventListener('click', function () {
-          var t = $('#cmd').textContent,
-            c = $('#copied');
-          function ok() {
-            c.textContent = 'COPIED!';
-            setTimeout(function () {
-              c.textContent = '';
-            }, 2000);
-          }
-          function fb() {
-            var a = document.createElement('textarea');
-            a.value = t;
-            a.setAttribute('readonly', '');
-            a.style.position = 'fixed';
-            a.style.opacity = '0';
-            document.body.appendChild(a);
-            a.select();
-            try {
-              document.execCommand('copy');
-              ok();
-            } catch (e) {
-              c.textContent = 'Press Ctrl+C';
+        document.querySelectorAll('button.copy').forEach(function (btn) {
+          btn.addEventListener('click', function () {
+            var box = btn.parentNode,
+              t = $('.cmd', box).textContent,
+              c = $('.copied', box);
+            function ok() {
+              c.textContent = 'COPIED!';
+              setTimeout(function () {
+                c.textContent = '';
+              }, 2000);
             }
-            document.body.removeChild(a);
-          }
-          if (navigator.clipboard && navigator.clipboard.writeText)
-            navigator.clipboard.writeText(t).then(ok, fb);
-          else fb();
+            function fb() {
+              var a = document.createElement('textarea');
+              a.value = t;
+              a.setAttribute('readonly', '');
+              a.style.position = 'fixed';
+              a.style.opacity = '0';
+              document.body.appendChild(a);
+              a.select();
+              try {
+                document.execCommand('copy');
+                ok();
+              } catch (e) {
+                c.textContent = 'Press Ctrl+C';
+              }
+              document.body.removeChild(a);
+            }
+            if (navigator.clipboard && navigator.clipboard.writeText)
+              navigator.clipboard.writeText(t).then(ok, fb);
+            else fb();
+          });
         });
 
         /* ---------- theme ---------- */
@@ -2633,16 +2748,15 @@
           paint();
         })();
 
-        /* ---------- boot ---------- */
-        render();
-        outEl.innerHTML =
-          '<span class="c">$ node preflight.ts</span><span class="cursor"></span>';
-        setTimeout(
-          function () {
-            recheck();
-          },
-          reduce.matches ? 0 : 500,
-        );
+        /* ---------- boot: paint the lit state, power-up runs on replay ---------- */
+        MODS.forEach(function (m) {
+          lit[m.id] = true;
+          m.chips.forEach(function (c) {
+            litChip[c[0]] = true;
+          });
+        });
+        powered = true;
+        recheck();
       })();
     </script>
   </body>
