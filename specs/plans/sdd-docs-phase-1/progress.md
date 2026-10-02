@@ -130,4 +130,5 @@ Task briefs: tasks/task-NN.md, shared constraints tasks/globals.md
 - T63: done 584f9f9+84ec9f5 (bad deps entry is INVALID_PROVIDER bad-dep; INVALID_MODULE thrown bare by defineModule/create/load/get module; TS2769 named; triads fixed; approved after fix)
 - T64: done e5ce249+(walk wording fix) (all four codes only inside BLUEPRINT_INVALID; lazy and REQUEST edges trigger LIFETIME_VIOLATION; defineModule cannot loop; approved)
 - T65: done 9eb418b+7290618+(order fix) (LOAD_GLOBAL_MODULE also for a module importing a new global; valibot and errors installs; path differs at startup vs get chain; approved after fix)
-- T66: impl
+- T66: done db50ea4+(fix) (full throw-site lists per code; invisible startup dep is MISSING_PROVIDER inside BLUEPRINT_INVALID; "array of two strings" wording also fixed on T63 pages; approved after fix)
+- T67: impl
