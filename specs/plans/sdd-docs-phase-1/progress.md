@@ -126,4 +126,5 @@ Task briefs: tasks/task-NN.md, shared constraints tasks/globals.md
 - T59: done 20dd399 (form link to 04-rc-feedback.yml on main; dist-tags checked on npm; two final conditions, no codemod claim; approved)
 - T60: done f6e0c75+eb7a144+fc0973d (0.3 field injection, remaining 0.3 exports table, @Optional vs optional(), devtools step for graph(); approved after fixes)
 - T61: done 8e686e1+52e186d (scope and end date attributed to the maintainers, RELEASING.md for mechanics; dupes unchanged at 699 lines; approved after fix)
-- T62: impl
+- T62: done 01e3717+565d386 (validate() wraps MISSING_PROVIDER in BLUEPRINT_INVALID, get/resolve throw it bare, NOT_VISIBLE for an invisible provider; AMBIGUOUS try-it rewritten to print 1701; approved after fix)
+- T63: impl
