@@ -255,6 +255,11 @@
         max-width: 100%;
         background: var(--bg2);
       }
+      .rc {
+        font: 600 12px var(--mono);
+        color: var(--dim);
+        flex-basis: 100%;
+      }
       .install code {
         font: 600 15px var(--mono);
         padding: 11px 14px;
@@ -662,11 +667,21 @@
         word-break: break-word;
         font: inherit;
       }
+      .term .cmd {
+        margin-top: 8px;
+      }
+      .term .one {
+        background: rgba(255, 154, 154, 0.18);
+        outline: 1px solid #ff9a9a;
+      }
+      .term a {
+        color: inherit;
+      }
       .term .out {
         margin-top: 8px;
         border-top: 1px dashed #3f6a8f;
         padding-top: 8px;
-        min-height: 6.6em;
+        min-height: 9em;
       }
       .term .bad {
         color: #ff9a9a;
@@ -784,41 +799,8 @@
         color: var(--alert);
       }
 
-      /* bottom panel */
       .panel {
-        display: grid;
-        gap: 0;
-        grid-template-columns: 1fr;
-        border-top: 0;
-      }
-      @media (min-width: 760px) {
-        .panel {
-          grid-template-columns: 1fr 1fr;
-        }
-      }
-      @media (min-width: 1100px) {
-        .panel {
-          grid-template-columns: 1fr 1.15fr 1fr;
-        }
-      }
-      .panel .plate {
-        border-bottom: 0;
-      }
-      .panel .plate + .plate {
         border-top: 2px solid var(--line);
-      }
-      @media (min-width: 760px) {
-        .panel .plate + .plate {
-          border-top: 0;
-          border-left: 2px solid var(--line);
-        }
-      }
-      @media (min-width: 760px) and (max-width: 1099px) {
-        .panel .plate:nth-child(3) {
-          grid-column: 1/-1;
-          border-left: 0;
-          border-top: 2px solid var(--line);
-        }
       }
       .consolehead {
         border-top: 2px solid var(--line);
@@ -889,119 +871,6 @@
         text-align: center;
         line-height: 1.2;
       }
-      #bay {
-        width: 100%;
-        height: auto;
-        display: block;
-        touch-action: none;
-      }
-      .jack {
-        fill: var(--bg2);
-        stroke: var(--line);
-        stroke-width: 3;
-      }
-      .jackin {
-        fill: var(--line);
-      }
-      .cable {
-        fill: none;
-        stroke: var(--line);
-        stroke-width: 5;
-        stroke-linecap: round;
-      }
-      .cable.cut {
-        stroke: var(--alert);
-      }
-      .plug {
-        cursor: grab;
-      }
-      .plug:active {
-        cursor: grabbing;
-      }
-      .plug rect.hit {
-        fill: transparent;
-        stroke: none !important;
-      }
-      .plug rect {
-        fill: var(--bg);
-        stroke: var(--line);
-        stroke-width: 3;
-      }
-      .plug.cut rect {
-        stroke: var(--alert);
-      }
-      .plug:focus-visible {
-        outline: none;
-      }
-      .plug:focus-visible rect {
-        stroke: var(--warn);
-        stroke-width: 4;
-      }
-      .plug .pin {
-        stroke: var(--line);
-        stroke-width: 3;
-        stroke-linecap: round;
-      }
-      .bayl {
-        font: 700 10.5px var(--mono);
-        fill: var(--text);
-      }
-      .bayh {
-        font: 13px var(--hand);
-        fill: var(--dim);
-      }
-      .gauges {
-        display: grid;
-        grid-template-columns: repeat(3, 1fr);
-        gap: 6px;
-      }
-      .gauge {
-        text-align: center;
-      }
-      .gauge svg {
-        width: 100%;
-        height: auto;
-        display: block;
-      }
-      .gauge .arc {
-        fill: none;
-        stroke: var(--dim);
-        stroke-width: 4;
-        stroke-linecap: round;
-      }
-      .gauge .redz {
-        fill: none;
-        stroke: var(--alert);
-        stroke-width: 4;
-        stroke-linecap: round;
-      }
-      .gauge .tick {
-        stroke: var(--dim);
-        stroke-width: 2;
-      }
-      .gauge .needle {
-        stroke: var(--text);
-        stroke-width: 3;
-        stroke-linecap: round;
-      }
-      .gauge .hub {
-        fill: var(--bg);
-        stroke: var(--text);
-        stroke-width: 3;
-      }
-      .gauge .ng {
-        transform-origin: 60px 64px;
-        transition: transform 1.3s cubic-bezier(0.3, 1.5, 0.5, 1);
-      }
-      .gauge .gl {
-        font: 800 11px var(--mono);
-        letter-spacing: 0.06em;
-      }
-      .gauge .gv {
-        font: 600 12px var(--mono);
-        color: var(--dim);
-      }
-
       /* sections */
       section.band {
         padding: 56px 0 8px;
@@ -1108,6 +977,42 @@
         width: 100%;
         border-collapse: collapse;
         table-layout: fixed;
+        overflow-wrap: anywhere;
+      }
+      @media (max-width: 640px) {
+        .spec table,
+        .spec tbody,
+        .spec tr,
+        .spec td,
+        .spec th {
+          display: block;
+          width: auto !important;
+        }
+        .spec thead {
+          position: absolute;
+          width: 1px;
+          height: 1px;
+          overflow: hidden;
+          clip: rect(0 0 0 0);
+        }
+        .spec tr {
+          border-bottom: 3px solid var(--line);
+        }
+        .spec tbody th {
+          background: var(--bg2);
+        }
+        .spec td {
+          display: grid;
+          grid-template-columns: 76px auto 1fr;
+          gap: 8px;
+        }
+        .spec td::before {
+          content: attr(data-label);
+          font: 800 11px var(--mono);
+          letter-spacing: 0.08em;
+          text-transform: uppercase;
+          color: var(--text);
+        }
       }
       .spec th,
       .spec td {
@@ -1215,6 +1120,9 @@
         width: 8px;
         border-top: 2.5px solid var(--line);
       }
+      .bom code a {
+        text-decoration-thickness: 1px;
+      }
       .bom code {
         font: 700 14px var(--mono);
         display: block;
@@ -1287,6 +1195,12 @@
         }
       }
       @media (max-width: 480px) {
+        #themelab {
+          display: none;
+        }
+        .tools .chip {
+          padding: 6px 10px;
+        }
         .plate {
           padding: 20px 12px 14px;
         }
@@ -1328,6 +1242,7 @@
           NexusDI
         </a>
         <div class="tools">
+          <a class="chip" href="https://nexus.js.org/next/">Docs</a>
           <a class="chip" href="https://github.com/NexusDI/core">GitHub</a>
           <button
             class="chip"
@@ -1367,12 +1282,14 @@
             Unplug a conduit below and see.
           </p>
           <div class="cta">
-            <a class="btn primary" href="https://github.com/NexusDI/core#readme"
+            <a
+              class="btn primary"
+              href="https://nexus.js.org/next/getting-started/"
               >Get started <span aria-hidden="true">→</span></a
             >
             <a class="btn" href="https://github.com/NexusDI/core">GitHub</a>
             <div class="install">
-              <code><i>$</i> npm i @nexusdi/core</code
+              <code><i>$</i> npm i @nexusdi/core@next</code
               ><button
                 type="button"
                 id="copy"
@@ -1381,6 +1298,9 @@
                 Copy
               </button>
             </div>
+            <span class="rc"
+              >0.4.0-rc.0. 0.4 is a release candidate on the npm next tag.</span
+            >
           </div>
         </div>
 
@@ -1416,9 +1336,14 @@
               <h2><span>Pre-flight</span><span>Nexus.check</span></h2>
               <div class="term" aria-label="Terminal">
                 <pre><span class="k">import</span> { Nexus } <span class="k">from</span> <span class="s">'@nexusdi/core'</span>;
+<span class="k">import</span> { errors } <span class="k">from</span> <span class="s">'@nexusdi/errors'</span>;
+<span class="k">import</span> { Meridian } <span class="k">from</span> <span class="s">'./meridian.js'</span>;
 
-<span class="c">// before any constructor runs</span>
-<span class="k">await</span> Nexus.check(Meridian);</pre>
+Nexus.check(Meridian, { plugins: [errors()] }); <span class="c">// CI runs this</span>
+console.log(<span class="s">'pre-flight ok'</span>);</pre>
+                <div class="cmd mono">
+                  <span class="c">$</span> npm run preflight
+                </div>
                 <div class="out"><pre id="out" aria-live="polite"></pre></div>
               </div>
               <ul
@@ -1469,19 +1394,6 @@
               <h2><span>Breaker bank</span><span>flip to cut</span></h2>
               <div class="breakers" id="breakers"></div>
             </div>
-            <div class="plate">
-              <h2><span>Patch bay</span><span>drag a plug out</span></h2>
-              <svg
-                id="bay"
-                viewBox="0 0 330 214"
-                role="group"
-                aria-label="Patch bay with four cables. Drag a plug away from its jack to unplug it, or press Enter on it."
-              ></svg>
-            </div>
-            <div class="plate">
-              <h2><span>Gauges</span><span>sweep on power-up</span></h2>
-              <div class="gauges" id="gauges"></div>
-            </div>
           </div>
         </div>
       </main>
@@ -1501,7 +1413,7 @@
               <text class="tx" x="136" y="92">Engineering</text>
               <text class="hd" x="62" y="112">ReactorCore?</text>
             </svg>
-            <p>CI names the missing system, before runtime.</p>
+            <p>CI names the missing system before you deploy.</p>
           </div>
           <div class="wi">
             <span class="no">02</span>
@@ -1561,63 +1473,92 @@
             </thead>
             <tbody>
               <tr>
-                <th scope="row">Missing provider found</th>
-                <td class="y me">
-                  <span class="ic" aria-hidden="true">✓</span>Before any
-                  constructor runs
+                <th scope="row">
+                  Missing provider found before any constructor runs
+                </th>
+                <td class="y me" data-label="NexusDI">
+                  <span class="ic" aria-hidden="true">✓</span>Yes, with
+                  Nexus.check
                 </td>
-                <td class="p">
-                  <span class="ic" aria-hidden="true">~</span>At app bootstrap
+                <td class="p" data-label="NestJS">
+                  <span class="ic" aria-hidden="true">~</span>Partly: at
+                  bootstrap, while it builds
                 </td>
-                <td class="p">
-                  <span class="ic" aria-hidden="true">~</span>When resolved
-                </td>
-              </tr>
-              <tr>
-                <th scope="row">Modules with exports</th>
-                <td class="y me">
-                  <span class="ic" aria-hidden="true">✓</span>Yes
-                </td>
-                <td class="y">
-                  <span class="ic" aria-hidden="true">✓</span>Yes
-                </td>
-                <td class="n">
-                  <span class="ic" aria-hidden="true">✗</span>No exports
+                <td class="n" data-label="Inversify">
+                  <span class="ic" aria-hidden="true">✗</span>No: at first
+                  resolve
                 </td>
               </tr>
               <tr>
-                <th scope="row">Async startup in dependency order</th>
-                <td class="y me">
+                <th scope="row">Every missing provider in one error</th>
+                <td class="y me" data-label="NexusDI">
                   <span class="ic" aria-hidden="true">✓</span>Yes
                 </td>
-                <td class="y">
-                  <span class="ic" aria-hidden="true">✓</span>Yes
+                <td class="n" data-label="NestJS">
+                  <span class="ic" aria-hidden="true">✗</span>No: the first one
                 </td>
-                <td class="p">
-                  <span class="ic" aria-hidden="true">~</span>Async get
+                <td class="n" data-label="Inversify">
+                  <span class="ic" aria-hidden="true">✗</span>No: the first one
                 </td>
               </tr>
               <tr>
-                <th scope="row">Works without decorators</th>
-                <td class="y me">
+                <th scope="row">Modules with private providers and exports</th>
+                <td class="y me" data-label="NexusDI">
                   <span class="ic" aria-hidden="true">✓</span>Yes
                 </td>
-                <td class="n">
-                  <span class="ic" aria-hidden="true">✗</span>No
+                <td class="y" data-label="NestJS">
+                  <span class="ic" aria-hidden="true">✓</span>Yes
                 </td>
-                <td class="n">
-                  <span class="ic" aria-hidden="true">✗</span>No
+                <td class="n" data-label="Inversify">
+                  <span class="ic" aria-hidden="true">✗</span>No: container
+                  modules have no exports
+                </td>
+              </tr>
+              <tr>
+                <th scope="row">Async factories finish at startup</th>
+                <td class="y me" data-label="NexusDI">
+                  <span class="ic" aria-hidden="true">✓</span>Yes
+                </td>
+                <td class="y" data-label="NestJS">
+                  <span class="ic" aria-hidden="true">✓</span>Yes
+                </td>
+                <td class="p" data-label="Inversify">
+                  <span class="ic" aria-hidden="true">~</span>Partly: resolved
+                  with getAsync
+                </td>
+              </tr>
+              <tr>
+                <th scope="row">
+                  Constructor injection with no compiler flags
+                </th>
+                <td class="y me" data-label="NexusDI">
+                  <span class="ic" aria-hidden="true">✓</span>Yes
+                </td>
+                <td class="n" data-label="NestJS">
+                  <span class="ic" aria-hidden="true">✗</span>No: needs
+                  decorator flags
+                </td>
+                <td class="p" data-label="Inversify">
+                  <span class="ic" aria-hidden="true">~</span>Partly: its
+                  decorated setup needs flags
                 </td>
               </tr>
             </tbody>
           </table>
           <div class="spec-foot">
-            <span>From public docs. Check versions on the full comparison.</span
+            <span
+              >InversifyJS 8.2.3, measured by the NexusDI benchmark harness.
+              NestJS from its documentation. Read 2026-09-30.</span
             ><span>✓ yes &nbsp; ~ partly &nbsp; ✗ no</span>
           </div>
         </div>
         <p class="small">
-          <span>On features, it matches the small containers too.</span>
+          <span
+            >Up against tsyringe, awilix and needle-di? See
+            <a href="https://nexus.js.org/next/comparison/"
+              >the full comparison</a
+            >.</span
+          >
         </p>
       </section>
 
@@ -1628,7 +1569,11 @@
           <li>
             <span class="bal">1</span
             ><span
-              ><code>@nexusdi/core</code><span class="part">hull</span
+              ><code
+                ><a href="https://www.npmjs.com/package/@nexusdi/core"
+                  >@nexusdi/core</a
+                ></code
+              ><span class="part">hull. The one you need.</span
               ><span class="l"
                 >Modules, async startup and Nexus.check.</span
               ></span
@@ -1637,14 +1582,22 @@
           <li>
             <span class="bal">2</span
             ><span
-              ><code>@nexusdi/decorators</code><span class="part">labels</span
+              ><code
+                ><a href="https://www.npmjs.com/package/@nexusdi/decorators"
+                  >@nexusdi/decorators</a
+                ></code
+              ><span class="part">labels, optional</span
               ><span class="l">@Injectable, @Inject and @Module.</span></span
             >
           </li>
           <li>
             <span class="bal">3</span
             ><span
-              ><code>@nexusdi/testing</code><span class="part">simulator</span
+              ><code
+                ><a href="https://www.npmjs.com/package/@nexusdi/testing"
+                  >@nexusdi/testing</a
+                ></code
+              ><span class="part">simulator, optional</span
               ><span class="l"
                 >Your real graph, with providers swapped.</span
               ></span
@@ -1653,7 +1606,11 @@
           <li>
             <span class="bal">4</span
             ><span
-              ><code>@nexusdi/node</code><span class="part">intercom</span
+              ><code
+                ><a href="https://www.npmjs.com/package/@nexusdi/node"
+                  >@nexusdi/node</a
+                ></code
+              ><span class="part">intercom, optional</span
               ><span class="l"
                 >Request scope anywhere in a call chain.</span
               ></span
@@ -1662,7 +1619,11 @@
           <li>
             <span class="bal">5</span
             ><span
-              ><code>@nexusdi/devtools</code><span class="part">scanner</span
+              ><code
+                ><a href="https://www.npmjs.com/package/@nexusdi/devtools"
+                  >@nexusdi/devtools</a
+                ></code
+              ><span class="part">scanner, optional</span
               ><span class="l"
                 >Draw the graph, follow every instance.</span
               ></span
@@ -1671,23 +1632,33 @@
           <li>
             <span class="bal">6</span
             ><span
-              ><code>@nexusdi/errors</code><span class="part">manual</span
+              ><code
+                ><a href="https://www.npmjs.com/package/@nexusdi/errors"
+                  >@nexusdi/errors</a
+                ></code
+              ><span class="part">manual, optional</span
               ><span class="l">Every error explained, with the fix.</span></span
             >
           </li>
           <li>
             <span class="bal">7</span
             ><span
-              ><code>@nexusdi/federation</code
-              ><span class="part">docking ports</span
+              ><code
+                ><a href="https://www.npmjs.com/package/@nexusdi/federation"
+                  >@nexusdi/federation</a
+                ></code
+              ><span class="part">docking ports, optional</span
               ><span class="l">Share tokens across micro-frontends.</span></span
             >
           </li>
           <li>
             <span class="bal">8</span
             ><span
-              ><code>@nexusdi/interceptors</code
-              ><span class="part">filters</span
+              ><code
+                ><a href="https://www.npmjs.com/package/@nexusdi/interceptors"
+                  >@nexusdi/interceptors</a
+                ></code
+              ><span class="part">filters, optional</span
               ><span class="l"
                 >Logging, metrics, validation, caching.</span
               ></span
@@ -1696,7 +1667,11 @@
           <li>
             <span class="bal">9</span
             ><span
-              ><code>@nexusdi/cli</code><span class="part">plotter</span
+              ><code
+                ><a href="https://www.npmjs.com/package/@nexusdi/cli"
+                  >@nexusdi/cli</a
+                ></code
+              ><span class="part">plotter, optional</span
               ><span class="l"
                 >Draw the graph as Mermaid, DOT or SVG.</span
               ></span
@@ -1708,7 +1683,9 @@
       <section class="final" aria-labelledby="go">
         <h2 id="go">Run the pre-flight check on your own ship.</h2>
         <div class="cta">
-          <a class="btn primary" href="https://github.com/NexusDI/core#readme"
+          <a
+            class="btn primary"
+            href="https://nexus.js.org/next/getting-started/"
             >Get started <span aria-hidden="true">→</span></a
           >
           <a class="btn" href="https://github.com/NexusDI/core">GitHub</a>
@@ -1765,7 +1742,7 @@
         /* copy */
         $('copy').addEventListener('click', function () {
           var b = this,
-            txt = 'npm i @nexusdi/core';
+            txt = 'npm i @nexusdi/core@next';
           function done(ok) {
             b.textContent = ok ? 'Copied' : 'Press Ctrl+C';
             setTimeout(function () {
@@ -2195,14 +2172,14 @@
             var n = el('g', { class: 'notes' }, g);
             txt(
               n,
-              { class: 'note', x: 36, y: 62, transform: 'rotate(-3 36 62)' },
+              { class: 'note', x: 36, y: 50, transform: 'rotate(-3 36 50)' },
               'click a coupling to unplug it',
             );
             el(
               'path',
               {
                 class: 'noteline',
-                d: 'M150,74 C190,95 225,120 258,142 M248,132 l11,11 l-2,-15',
+                d: 'M150,62 C190,88 225,118 258,142 M248,132 l11,11 l-2,-15',
               },
               n,
             );
@@ -2345,8 +2322,6 @@
                     ' l-8,8',
             );
           });
-          renderBay();
-          renderGauges();
           renderTerm();
         }
 
@@ -2391,234 +2366,6 @@
                 (on ? 'on' : 'off'),
             );
             b.querySelector('.st').textContent = on ? 'ON' : 'OFF';
-          });
-        }
-
-        /* patch bay */
-        var bay = $('bay'),
-          bayEls = {},
-          bayPos = {};
-        var BAYY = [34, 84, 134, 184],
-          JL = 34,
-          JR = 296;
-        function buildBay() {
-          bay.innerHTML = '';
-          txt(bay, { class: 'bayh', x: JR - 98, y: 14 }, 'plug me back in');
-          CONDS.forEach(function (c, i) {
-            var y = BAYY[i];
-            txt(
-              bay,
-              { class: 'bayl', x: JL - 14, y: y - 17 },
-              c.id.toUpperCase() + '  ' + c.token,
-            );
-            var cable = el('path', { class: 'cable', d: '' }, bay);
-            el('circle', { class: 'jack', cx: JL, cy: y, r: 13 }, bay);
-            el('circle', { class: 'jackin', cx: JL, cy: y, r: 4 }, bay);
-            el('circle', { class: 'jack', cx: JR, cy: y, r: 13 }, bay);
-            el('circle', { class: 'jackin', cx: JR, cy: y, r: 4 }, bay);
-            var plug = el(
-              'g',
-              { class: 'plug', tabindex: 0, role: 'switch' },
-              bay,
-            );
-            el('rect', { x: -15, y: -11, width: 30, height: 22, rx: 5 }, plug);
-            el(
-              'path',
-              { class: 'pin', d: 'M-7,-5 v10 M0,-5 v10 M7,-5 v10' },
-              plug,
-            );
-            el(
-              'rect',
-              { class: 'hit', x: -24, y: -30, width: 48, height: 60, rx: 10 },
-              plug,
-            );
-            bayPos[c.id] = { x: JR, y: y };
-            bayEls[c.id] = { cable: cable, plug: plug, y: y };
-            wirePlug(c, plug, y);
-          });
-        }
-        function pt(ev) {
-          var p = bay.createSVGPoint();
-          p.x = ev.clientX;
-          p.y = ev.clientY;
-          return p.matrixTransform(bay.getScreenCTM().inverse());
-        }
-        function wirePlug(c, plug, y) {
-          var down = null,
-            moved = false;
-          plug.addEventListener('pointerdown', function (ev) {
-            ev.preventDefault();
-            plug.setPointerCapture(ev.pointerId);
-            var p = pt(ev);
-            down = { x: p.x, y: p.y };
-            moved = false;
-            plug.style.cursor = 'grabbing';
-          });
-          plug.addEventListener('pointermove', function (ev) {
-            if (!down) return;
-            var p = pt(ev);
-            if (Math.abs(p.x - down.x) + Math.abs(p.y - down.y) > 6)
-              moved = true;
-            if (moved) {
-              bayPos[c.id] = {
-                x: Math.max(JL + 30, Math.min(320, p.x)),
-                y: Math.max(14, Math.min(204, p.y)),
-              };
-              drawCable(c.id, true);
-            }
-          });
-          function end(ev) {
-            if (!down) return;
-            var was = moved;
-            down = null;
-            plug.style.cursor = '';
-            if (was) {
-              var q = bayPos[c.id],
-                near = Math.hypot(q.x - JR, q.y - y) < 44;
-              var want = near;
-              if (want !== plugged[c.id]) toggle(c.id, q);
-              else {
-                if (!want) bayPos[c.id] = q;
-                else bayPos[c.id] = { x: JR, y: y };
-                drawCable(c.id);
-              }
-            } else toggle(c.id);
-          }
-          plug.addEventListener('pointerup', end);
-          plug.addEventListener('pointercancel', function () {
-            down = null;
-            drawCable(c.id);
-          });
-          plug.addEventListener('keydown', function (ev) {
-            if (ev.key === 'Enter' || ev.key === ' ') {
-              ev.preventDefault();
-              toggle(c.id);
-            }
-          });
-        }
-        function drawCable(id, dragging) {
-          var e = bayEls[id],
-            c = CONDS.filter(function (k) {
-              return k.id === id;
-            })[0],
-            on = plugged[id] && !dragging,
-            y = e.y;
-          var p = on ? { x: JR, y: y } : bayPos[id];
-          if (
-            !on &&
-            !dragging &&
-            plugged[id] === false &&
-            Math.abs(p.x - JR) < 2 &&
-            Math.abs(p.y - y) < 2
-          )
-            p = bayPos[id] = { x: 236, y: y + 26 };
-          var sag = on ? 26 : Math.max(18, Math.abs(p.x - JL) * 0.18);
-          var d =
-            'M' +
-            JL +
-            ',' +
-            y +
-            ' C' +
-            (JL + 60) +
-            ',' +
-            (y + sag + 10) +
-            ' ' +
-            (p.x - 60) +
-            ',' +
-            (p.y + sag + 10) +
-            ' ' +
-            (p.x - 12) +
-            ',' +
-            p.y;
-          e.cable.setAttribute('d', d);
-          e.cable.setAttribute('class', 'cable' + (plugged[id] ? '' : ' cut'));
-          e.plug.setAttribute('class', 'plug' + (plugged[id] ? '' : ' cut'));
-          e.plug.setAttribute(
-            'transform',
-            'translate(' + p.x + ',' + p.y + ')',
-          );
-          e.plug.setAttribute('aria-checked', plugged[id] ? 'true' : 'false');
-          e.plug.setAttribute(
-            'aria-label',
-            c.token +
-              ' cable, ' +
-              (plugged[id]
-                ? 'plugged. Press to unplug.'
-                : 'unplugged. Press to replug.'),
-          );
-        }
-        function renderBay() {
-          CONDS.forEach(function (c) {
-            drawCable(c.id);
-          });
-        }
-
-        /* gauges */
-        var GA = [
-          { id: 'eng', l: 'REACTOR', u: '%', v: 88 },
-          { id: 'tac', l: 'SHIELDS', u: '%', v: 100 },
-          { id: 'com', l: 'SIGNAL', u: 'dB', v: 76 },
-        ];
-        function arcPath(r, a0, a1) {
-          function P(a) {
-            var t = ((a - 90) * Math.PI) / 180;
-            return (
-              (60 + r * Math.cos(t)).toFixed(1) +
-              ',' +
-              (64 + r * Math.sin(t)).toFixed(1)
-            );
-          }
-          return 'M' + P(a0) + ' A' + r + ',' + r + ' 0 0 1 ' + P(a1);
-        }
-        function buildGauges() {
-          var box = $('gauges');
-          box.innerHTML = '';
-          GA.forEach(function (g) {
-            var d = document.createElement('div');
-            d.className = 'gauge';
-            var ticks = '';
-            for (var i = 0; i <= 8; i++) {
-              var a = -90 + i * 22.5,
-                t = (a * Math.PI) / 180;
-              ticks +=
-                '<line class="tick" x1="' +
-                (60 + 40 * Math.sin(t)).toFixed(1) +
-                '" y1="' +
-                (64 - 40 * Math.cos(t)).toFixed(1) +
-                '" x2="' +
-                (60 + 46 * Math.sin(t)).toFixed(1) +
-                '" y2="' +
-                (64 - 46 * Math.cos(t)).toFixed(1) +
-                '"/>';
-            }
-            d.innerHTML =
-              '<svg viewBox="0 0 120 84" role="img" aria-label="' +
-              g.l +
-              ' gauge"><path class="arc" d="' +
-              arcPath(54, -90, 90) +
-              '"/><path class="redz" d="' +
-              arcPath(54, -90, -60) +
-              '"/>' +
-              ticks +
-              '<g class="ng" id="ng-' +
-              g.id +
-              '" style="transform:rotate(-90deg)"><line class="needle" x1="60" y1="64" x2="60" y2="22"/></g><circle class="hub" cx="60" cy="64" r="6"/></svg><div class="gl">' +
-              g.l +
-              '</div><div class="gv" id="gv-' +
-              g.id +
-              '">0</div>';
-            box.appendChild(d);
-          });
-        }
-        function renderGauges() {
-          GA.forEach(function (g) {
-            var s = secState(g.id),
-              v = 0;
-            if (s === 'online' || s === 'standby') v = g.v;
-            else if (s === 'powering') v = Math.round(g.v * 0.55);
-            $('ng-' + g.id).style.transform =
-              'rotate(' + (-90 + v * 1.8) + 'deg)';
-            $('gv-' + g.id).textContent = s === 'alert' ? 'FAULT' : v + g.u;
           });
         }
 
@@ -2673,11 +2420,11 @@
               '<span class="c">powering up, deck by deck...</span>';
           } else if (!fails.length) {
             out.innerHTML =
-              '<span class="ok">✓ Meridian: 4 modules, 8 providers, no errors</span>\n<span class="c">exit code 0</span>';
+              '<span class="ok">pre-flight ok</span>\n<span class="c">exit 0</span>';
           } else {
             var lines = fails.map(function (c) {
               return (
-                '<span class="bad">✗ [NEXUS_MISSING_PROVIDER] ' +
+                '  <span class="one bad">[<a href="https://nexus.js.org/errors/NEXUS_MISSING_PROVIDER/">NEXUS_MISSING_PROVIDER</a>] ' +
                 c.user +
                 ' (module ' +
                 SEC[c.to].mod +
@@ -2687,11 +2434,26 @@
                 c.token +
                 ' is visible in ' +
                 SEC[c.to].mod +
+                '.</span>\n      <span class="bad">' +
+                c.token +
+                ' is exported by ' +
+                SEC[c.from].mod +
+                ', which ' +
+                SEC[c.to].mod +
+                ' does not import.\n      Fix: import ' +
+                SEC[c.from].mod +
+                ' into ' +
+                SEC[c.to].mod +
                 '.</span>'
               );
             });
             out.innerHTML =
-              lines.join('\n') + '\n<span class="c">exit code 1</span>';
+              '<span class="bad">[NEXUS_BLUEPRINT_INVALID] the module graph has ' +
+              fails.length +
+              (fails.length > 1 ? ' errors' : ' error') +
+              '; nothing was built.</span>\n' +
+              lines.join('\n') +
+              '\n<span class="c">exit 1</span>';
           }
           /* launch */
           var L = $('launch'),
@@ -2709,8 +2471,9 @@
             ls.innerHTML = '✗ LAUNCH BLOCKED<small></small>';
             ls.querySelector('small').textContent =
               SEC[f.to].name +
-              ' is missing ' +
+              ' (module) is missing ' +
               f.token +
+              ' (provider)' +
               (fails.length > 1
                 ? ' (and ' + (fails.length - 1) + ' more)'
                 : '') +
@@ -2733,22 +2496,22 @@
         function cap(s) {
           capEl.textContent = s;
         }
-        function toggle(id, dropPos) {
+        function toggle(id) {
           if (busy) stopPower();
           plugged[id] = !plugged[id];
           var c = CONDS.filter(function (k) {
-              return k.id === id;
-            })[0],
-            y = bayEls[id].y;
-          if (!plugged[id]) {
-            bayPos[id] = dropPos || { x: 226 + Math.random() * 20, y: y + 28 };
-          } else bayPos[id] = { x: JR, y: y };
+            return k.id === id;
+          })[0];
           launched = false;
           $('ship').classList.remove('go');
           update();
           if (!plugged[id])
             cap(
-              'RED ALERT. ' + SEC[c.to].name + ' cannot find ' + c.token + '.',
+              'RED ALERT: ' +
+                SEC[c.to].name +
+                ' (module) is missing ' +
+                c.token +
+                ' (provider). Launch blocked.',
             );
           else
             cap(
@@ -2837,7 +2600,6 @@
           stopPower();
           CONDS.forEach(function (c) {
             plugged[c.id] = true;
-            bayPos[c.id] = { x: JR, y: bayEls[c.id].y };
           });
           launched = false;
           $('ship').classList.remove('go');
@@ -2854,11 +2616,11 @@
             cap(
               busy
                 ? 'Still powering up.'
-                : 'Launch locked. ' +
+                : 'RED ALERT: ' +
                     SEC[f[0].to].name +
-                    ' is missing ' +
+                    ' (module) is missing ' +
                     f[0].token +
-                    '.',
+                    ' (provider). Launch blocked.',
             );
             return;
           }
@@ -2879,20 +2641,7 @@
         else mq.addListener(pickLayout);
 
         buildBreakers();
-        buildBay();
-        buildGauges();
         pickLayout();
-        /* first paint shows lit ship; sweep gauges in once */
-        (function () {
-          GA.forEach(function (g) {
-            $('ng-' + g.id).style.transform = 'rotate(-90deg)';
-          });
-          requestAnimationFrame(function () {
-            requestAnimationFrame(function () {
-              renderGauges();
-            });
-          });
-        })();
         window.__nx = { toggle: toggle, powerUp: powerUp };
       })();
     </script>
