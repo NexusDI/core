@@ -1,0 +1,15 @@
+{
+  "name": "@nexusdi/docs-e2e",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "nx": {
+    "implicitDependencies": [
+      "@nexusdi/docs"
+    ]
+  },
+  "devDependencies": {
+    "@nx/devkit": "23.1.1",
+    "eslint-plugin-playwright": "^1.6.2"
+  }
+}

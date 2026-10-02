@@ -1,0 +1,20 @@
+---
+title: Providers
+kind: concept
+---
+
+# Providers
+
+```ts no-run
+const ship = await Nexus.create([
+  provide(FusionReactor, { useClass: FusionReactor }),
+  { token: shipComputer, useClass: QuantumComputer },
+]);
+class QuantumComputer {
+  static deps = [FusionReactor] as const;
+}
+```
+
+```ts anti-example
+provide(FusionReactor, { deps: [ShipComputer] });
+```

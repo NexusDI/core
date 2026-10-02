@@ -1,0 +1,78 @@
+{
+  "schema": 1,
+  "versions": {
+    "core": "0.4.0-rc.0",
+    "libraries": {
+      "nexusdi": "0.4.0-rc.0",
+      "inversify": "8.2.3",
+      "tsyringe": "4.10.0",
+      "awilix": "13.0.5",
+      "needle-di": "1.2.1"
+    },
+    "toolchains": { "tsc": "6.0.3", "esbuild": "0.28.2" },
+    "node": "24.20.0",
+    "bundlers": { "esbuild": "0.28.2", "rollup": "4.63.4" }
+  },
+  "sizes": [
+    {
+      "library": "needle-di",
+      "variant": "decorated",
+      "bundler": "esbuild",
+      "minified": 9100,
+      "gzip": 3400,
+      "polyfillGzip": 0,
+      "runs": "pass"
+    },
+    {
+      "library": "nexusdi",
+      "variant": "plain",
+      "bundler": "esbuild",
+      "minified": 57482,
+      "gzip": 18991,
+      "polyfillGzip": 0,
+      "runs": "pass"
+    },
+    {
+      "library": "nexusdi",
+      "variant": "plain",
+      "bundler": "rollup",
+      "minified": 58000,
+      "gzip": 19100,
+      "polyfillGzip": 0,
+      "runs": "pass"
+    },
+    {
+      "library": "tsyringe",
+      "variant": "decorated",
+      "bundler": "esbuild",
+      "minified": 31000,
+      "gzip": 9800,
+      "polyfillGzip": 2900,
+      "runs": "pass"
+    }
+  ],
+  "emit": [
+    {
+      "library": "nexusdi",
+      "variant": "plain",
+      "fixture": "scale-200",
+      "toolchain": "tsc",
+      "emittedBytes": 80000,
+      "metadataCalls": 0,
+      "decorateCalls": 0,
+      "importsInSource": 400,
+      "importsKept": 200
+    },
+    {
+      "library": "tsyringe",
+      "variant": "decorated",
+      "fixture": "scale-200",
+      "toolchain": "tsc",
+      "emittedBytes": 120000,
+      "metadataCalls": 200,
+      "decorateCalls": 200,
+      "importsInSource": 400,
+      "importsKept": 400
+    }
+  ]
+}

@@ -53,8 +53,15 @@ export function buildPlan(kind, { tree, main }) {
             ? [{ from: join(main, RESULTS), to: join(tree, RESULTS) }]
             : []),
         ];
+  const copiesResults = copies.some((copy) => copy.to === join(tree, RESULTS));
   return {
-    env: { DOCS_BASE_PATH: '', DOCS_CHANNEL: 'release' },
+    // The copied results are untracked in the tree, so the tree cannot name
+    // the commit that holds them; main's checkout can.
+    env: {
+      DOCS_BASE_PATH: '',
+      DOCS_CHANNEL: 'release',
+      ...(copiesResults ? { BENCHMARK_COMMITS_FROM: main } : {}),
+    },
     copies,
     commands: COMMANDS,
   };

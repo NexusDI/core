@@ -1,0 +1,39 @@
+---
+title: NEXUS_AMBIGUOUS_PROVIDER
+kind: code
+description: A module imports two modules that export different providers of one token.
+package: '@nexusdi/core'
+errorClass: AmbiguousProviderError
+---
+
+# NEXUS_AMBIGUOUS_PROVIDER
+
+`NEXUS_AMBIGUOUS_PROVIDER` means a module imports two or more modules that each export their own provider of one token, so the module cannot tell which one to use. `Nexus.create` reports it inside [NEXUS_BLUEPRINT_INVALID](/errors/NEXUS_BLUEPRINT_INVALID/).
+
+## Reproduce `NEXUS_AMBIGUOUS_PROVIDER`
+
+The region has `Comms` export a `SubspaceRelay` and `Lasers` export a `LaserLink`, both under `SubspaceLink`, and `Tactical` imports both. Without a plugin, core prints a one-line message that starts with the code and ends with the address of this page. With `errors()` from `@nexusdi/errors` registered (`npm install @nexusdi/errors@next`), the same error carries the full text and its fix.
+
+```ts file=examples/meridian/src/errors/NEXUS_AMBIGUOUS_PROVIDER.md region=reproduce
+
+```
+
+Try it: save the region as `error.ts` and run `npx tsx error.ts`. The one-line message ends its fields with `candidates=Comms,Lasers`, which names both modules. The full text adds the two ways out. Then save the fix region below as `fixed.ts` and run `npx tsx fixed.ts`. It prints `1701`.
+
+## Fix `NEXUS_AMBIGUOUS_PROVIDER`
+
+`NEXUS_AMBIGUOUS_PROVIDER` is fixed by leaving one provider of the token visible to the importing module: export the token from one of the modules only, or provide the token in the importing module, which shadows the imports. To pick an implementation by configuration, give one configurable module a factory that chooses between them (see [Configurable modules](/configurable-modules/)). Here `Tactical` imports `Lasers` alone.
+
+```ts file=examples/meridian/src/errors/NEXUS_AMBIGUOUS_PROVIDER.md region=fix
+
+```
+
+Try it: in `error.ts`, add `providers: [provide(SUBSPACE_LINK, { useClass: LaserLink })]` to `Tactical`. Then replace everything from the `thin` line down with `await using ship = await Nexus.create(Tactical);` and `console.log(ship.get(SUBSPACE_LINK).frequency);`. `Nexus.create` resolves and the program prints `1701`, because the provider in `Tactical` shadows both imports. Take the `providers` line out again and the error returns.
+
+## Fields of `AmbiguousProviderError`
+
+`AmbiguousProviderError` carries these fields:
+
+- `token`: the display name of the token.
+- `module`: the module that sees several providers.
+- `candidates`: the names of the imported modules that export a provider of the token.

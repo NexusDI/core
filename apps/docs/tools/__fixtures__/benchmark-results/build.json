@@ -1,0 +1,159 @@
+{
+  "schema": 1,
+  "sha": "2222222",
+  "startedAt": "2026-10-01T04:00:00.000Z",
+  "versions": {
+    "core": "0.4.0-rc.0",
+    "libraries": {
+      "nexusdi": "0.4.0-rc.0",
+      "inversify": "8.2.3",
+      "tsyringe": "4.10.0",
+      "awilix": "13.0.5",
+      "needle-di": "1.2.1"
+    },
+    "toolchains": { "tsc": "6.0.3", "esbuild": "0.28.2" },
+    "node": "24.20.0"
+  },
+  "runner": {
+    "os": "Linux",
+    "cpu": "Fixture CPU",
+    "cores": 4,
+    "memoryGb": 16,
+    "hosted": true
+  },
+  "seed": 7,
+  "design": {
+    "meridian-8": {
+      "order": "williams",
+      "warmup": 1,
+      "measured": 30,
+      "bootstrap": { "resamples": 10000, "block": 4, "prng": "mulberry32" }
+    },
+    "scale-200": {
+      "order": "williams",
+      "warmup": 1,
+      "measured": 30,
+      "bootstrap": { "resamples": 10000, "block": 4, "prng": "mulberry32" }
+    }
+  },
+  "build": {
+    "nexusdi": {
+      "plain": {
+        "esbuild": {
+          "median": 410,
+          "mad": 20,
+          "p5": 380,
+          "p95": 450,
+          "iterations": 30,
+          "noisy": false,
+          "outcome": "pass",
+          "headline": true,
+          "meridian-8": {
+            "median": 90,
+            "mad": 4,
+            "p5": 85,
+            "p95": 99,
+            "iterations": 30,
+            "noisy": false
+          }
+        },
+        "tsc": {
+          "median": 2100,
+          "mad": 20,
+          "p5": 2000,
+          "p95": 2300,
+          "iterations": 30,
+          "noisy": false,
+          "outcome": "pass",
+          "headline": false,
+          "meridian-8": {
+            "median": 900,
+            "mad": 4,
+            "p5": 895,
+            "p95": 909,
+            "iterations": 30,
+            "noisy": false
+          }
+        }
+      }
+    },
+    "tsyringe": {
+      "decorated": {
+        "esbuild": {
+          "median": 420,
+          "mad": 20,
+          "p5": 390,
+          "p95": 460,
+          "iterations": 30,
+          "noisy": false,
+          "outcome": "wrong-instance",
+          "headline": false,
+          "vsNexus": { "median": 0.98, "low": 0.95, "high": 1.01, "pairs": 30 },
+          "meridian-8": {
+            "median": 92,
+            "mad": 4,
+            "p5": 87,
+            "p95": 101,
+            "iterations": 30,
+            "noisy": false
+          }
+        },
+        "tsc": {
+          "median": 4200,
+          "mad": 20,
+          "p5": 4000,
+          "p95": 4500,
+          "iterations": 30,
+          "noisy": false,
+          "outcome": "pass",
+          "headline": true,
+          "vsNexus": { "median": 0.5, "low": 0.48, "high": 0.52, "pairs": 30 },
+          "meridian-8": {
+            "median": 1000,
+            "mad": 4,
+            "p5": 995,
+            "p95": 1009,
+            "iterations": 30,
+            "noisy": false
+          }
+        }
+      }
+    },
+    "needle-di": {
+      "decorated": {
+        "esbuild": {
+          "median": 400,
+          "mad": 20,
+          "p5": 370,
+          "p95": 440,
+          "iterations": 30,
+          "noisy": false,
+          "outcome": "pass",
+          "headline": true,
+          "vsNexus": { "median": 1.02, "low": 0.99, "high": 1.05, "pairs": 30 },
+          "meridian-8": {
+            "median": 88,
+            "mad": 4,
+            "p5": 83,
+            "p95": 97,
+            "iterations": 30,
+            "noisy": false
+          }
+        }
+      }
+    }
+  },
+  "headline": {
+    "nexusdi": { "variant": "plain", "toolchain": "esbuild" },
+    "tsyringe": {
+      "variant": "decorated",
+      "toolchain": "tsc",
+      "vsNexus": { "median": 0.5, "low": 0.48, "high": 0.52, "pairs": 30 }
+    },
+    "needle-di": {
+      "variant": "decorated",
+      "toolchain": "esbuild",
+      "vsNexus": { "median": 1.02, "low": 0.99, "high": 1.05, "pairs": 30 }
+    }
+  }
+}

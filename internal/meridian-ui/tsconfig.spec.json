@@ -1,0 +1,36 @@
+{
+  "extends": "../../tsconfig.base.json",
+  "compilerOptions": {
+    "outDir": "./out-tsc/vitest",
+    "lib": ["es2022", "dom", "dom.iterable"],
+    "types": [
+      "vitest/globals",
+      "vitest/importMeta",
+      "vite/client",
+      "node",
+      "vitest"
+    ],
+    "jsx": "react-jsx",
+    "module": "esnext",
+    "moduleResolution": "bundler",
+    "ignoreDeprecations": "6.0",
+    "rootDir": "."
+  },
+  // The sources are compiled here rather than reached through a reference to
+  // tsconfig.lib.json. A reference resolves a relative import to that project's
+  // declaration output, so every type-check of the tests would need some other
+  // target to have emitted it first; compiling the sources checks the tests
+  // against the real types and needs nothing built.
+  //
+  // `tools/` is in because the token generator is the only producer of
+  // src/tokens.generated.css and a type error in it would otherwise surface as a
+  // failing generation run rather than as a failing typecheck.
+  "include": [
+    "src/**/*.ts",
+    "src/**/*.tsx",
+    "tools/**/*.ts",
+    "vite.config.ts",
+    "vitest.config.ts",
+    "src/**/*.d.ts"
+  ]
+}

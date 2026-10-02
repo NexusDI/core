@@ -1,0 +1,39 @@
+---
+title: NEXUS_LOADED_AFTER_SCOPE
+kind: code
+description: A scope was asked for a token from a module loaded after the scope was created.
+package: '@nexusdi/core'
+errorClass: LoadedAfterScopeError
+---
+
+# NEXUS_LOADED_AFTER_SCOPE
+
+`NEXUS_LOADED_AFTER_SCOPE` means a scope was asked for a token from a module that `ship.load()` added after the scope was created. A scope resolves against the graph current at its creation. `get()` on the scope throws it directly, and so does `resolve()`, also for a `lazy()` entry.
+
+## Reproduce `NEXUS_LOADED_AFTER_SCOPE`
+
+The region creates a shuttle, loads `Survey`, and asks the shuttle for `NavCharts`. Without a plugin, core prints a one-line message that starts with the code and ends with the address of this page. With `errors()` from `@nexusdi/errors` registered (`npm install @nexusdi/errors@next`), the same error carries the full text and its fix.
+
+```ts file=examples/meridian/src/errors/NEXUS_LOADED_AFTER_SCOPE.md region=reproduce
+
+```
+
+Try it: save the region as `error.ts` and run `npx tsx error.ts`. It prints the one-line message, then the full text as an array of two strings. The `module` field names `Survey`. Then save the fix region below as `fixed.ts` and run `npx tsx fixed.ts`. It prints `course to Kepler-442b`.
+
+## Fix `NEXUS_LOADED_AFTER_SCOPE`
+
+`NEXUS_LOADED_AFTER_SCOPE` is fixed by calling `await scope.extend()` after `load()`, which moves the scope to the current graph and builds the scoped factories the loaded modules add, or by creating a new scope. `extend()` throws [NEXUS_REQUEST_MISSING](/errors/NEXUS_REQUEST_MISSING/) when a loaded module adds a `REQUEST` dependent and the scope has no request. [Scopes and REQUEST](/scopes/) covers scopes.
+
+```ts file=examples/meridian/src/errors/NEXUS_LOADED_AFTER_SCOPE.md region=fix
+
+```
+
+Try it: delete the `await shuttle.extend();` line from `fixed.ts` and run it again. `tsc` accepts the file. `tsx` throws an uncaught `LoadedAfterScopeError` that starts with `[NEXUS_LOADED_AFTER_SCOPE] token=NavCharts module=Survey.`. Put the line back and the program prints `course to Kepler-442b` again.
+
+## Fields of `LoadedAfterScopeError`
+
+`LoadedAfterScopeError` carries these fields:
+
+- `token`: the display name of the token asked for.
+- `module`: the module that provides it.
+- `entry`: the deps entry of `resolve()` this error is about, `deps.<key>` for the key of an object, such as `deps.charts`, or `deps[0]` for a tuple, and `null` for `get()`.

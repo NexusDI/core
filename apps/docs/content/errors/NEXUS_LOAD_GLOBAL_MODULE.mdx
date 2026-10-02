@@ -1,0 +1,39 @@
+---
+title: NEXUS_LOAD_GLOBAL_MODULE
+kind: code
+description: ship.load() received a global module, or a module that imports one the graph lacks.
+package: '@nexusdi/core'
+errorClass: LoadError
+---
+
+# NEXUS_LOAD_GLOBAL_MODULE
+
+`NEXUS_LOAD_GLOBAL_MODULE` means `ship.load()` received a module defined with `global: true`, or a module that imports a global module the graph does not hold yet. Every module's view of the global modules is computed at `create`, so a global module can join the graph only at startup. `load()` rejects with it directly. `Nexus.check` with the `load` option reports it inside [NEXUS_BLUEPRINT_INVALID](/errors/NEXUS_BLUEPRINT_INVALID/).
+
+## Reproduce `NEXUS_LOAD_GLOBAL_MODULE`
+
+The region loads `Navigation`, a global module, after startup. Without a plugin, core prints a one-line message that starts with the code and ends with the address of this page. With `errors()` from `@nexusdi/errors` registered (`npm install @nexusdi/errors@next`), the same error carries the full text and its fix.
+
+```ts file=examples/meridian/src/errors/NEXUS_LOAD_GLOBAL_MODULE.md region=reproduce
+
+```
+
+Try it: save the region as `error.ts` and run `npx tsx error.ts`. `load()` rejects, and the container keeps running. It prints the one-line message, then the full text. Then save the fix region below as `fixed.ts` and run `npx tsx fixed.ts`. It prints `course to Kepler-442b`.
+
+## Fix `NEXUS_LOAD_GLOBAL_MODULE`
+
+`NEXUS_LOAD_GLOBAL_MODULE` is fixed by importing the global module from the root module at startup, or by loading modules that are not global and import no global module the graph lacks. Here `Navigation` is a plain module, and `load()` adds it.
+
+```ts file=examples/meridian/src/errors/NEXUS_LOAD_GLOBAL_MODULE.md region=fix
+
+```
+
+Try it: add `global: true,` under `name: 'Navigation',` in `fixed.ts` and run it again. `ship.load(Navigation)` rejects with a `LoadError` for `Navigation`, and nothing after it runs. Remove the line and the program prints `course to Kepler-442b` again.
+
+The same error appears for a plain module that imports a new global module. With `global: true` on `Navigation` as above, define `const Wrapper = defineModule({ name: 'Wrapper', imports: [Navigation] });` after it and load `Wrapper` in place of `Navigation`. `load()` rejects with a `LoadError` whose `module` is `Navigation`, the global module, and `Wrapper` is not added.
+
+## Fields of `LoadError`
+
+`LoadError` has one field:
+
+- `module`: the name of the global module that `load()` found missing from the graph: the module passed to it, or one that module imports.

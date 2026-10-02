@@ -1,0 +1,41 @@
+---
+title: NEXUS_MISSING_PROVIDER
+kind: code
+description: A provider depends on a token that no module visible to it provides.
+package: '@nexusdi/core'
+errorClass: MissingProviderError
+---
+
+# NEXUS_MISSING_PROVIDER
+
+`NEXUS_MISSING_PROVIDER` means a provider depends on a token that no module visible to it provides. `Nexus.create` reports it inside [NEXUS_BLUEPRINT_INVALID](/errors/NEXUS_BLUEPRINT_INVALID/) before any constructor runs, and so does `validate()`. `get()` and `resolve()` throw it directly for a token that no module in the graph provides. A token that some module provides but the lookup cannot see raises [NEXUS_NOT_VISIBLE](/errors/NEXUS_NOT_VISIBLE/) instead.
+
+## Reproduce `NEXUS_MISSING_PROVIDER`
+
+The region provides `NavCharts` in `Tactical` and never exports it, so `ShipComputer` in `Engineering` cannot see it. Without a plugin, core prints a one-line message that starts with the code and ends with the address of this page. With `errors()` from `@nexusdi/errors` registered (`npm install @nexusdi/errors@next`), the same error carries the full text and its fix. The full text also names where the token exists: `errors()` searches the graph for near misses.
+
+```ts file=examples/meridian/src/errors/NEXUS_MISSING_PROVIDER.md region=reproduce
+
+```
+
+Try it: save the region as `error.ts` and run `npx tsx error.ts`. It prints the one-line message, then the full text. The second line of the full text says that `Tactical` provides `NavCharts` and does not export it. Then save the fix region below as `fixed.ts` and run `npx tsx fixed.ts`. It prints `course to Kepler-442b`.
+
+## Fix `NEXUS_MISSING_PROVIDER`
+
+`NEXUS_MISSING_PROVIDER` is fixed by making a provider of the token visible to the module that asks for it: provide the token in that module, or export it from a module and import that module. Here `Tactical` exports `NAV_CHARTS` and `Engineering` imports `Tactical`.
+
+```ts file=examples/meridian/src/errors/NEXUS_MISSING_PROVIDER.md region=fix
+
+```
+
+Try it: delete the `exports: [NAV_CHARTS],` line from `Tactical` in `fixed.ts` and run it again. `Nexus.create` rejects with a `BlueprintError` that holds one `NEXUS_MISSING_PROVIDER` error for `NavCharts`, because `Engineering` imports `Tactical` and sees nothing of it. Put the line back and the program prints `course to Kepler-442b` again.
+
+## Fields of `MissingProviderError`
+
+`MissingProviderError` carries these fields:
+
+- `token`: the display name of the token nobody provides.
+- `requester`: the provider whose deps named the token, or `null` for a lookup from `get()`, `resolve()` or `validate()`.
+- `module`: the module the lookup ran in.
+- `entry`: the deps entry of `resolve()` or `validate()` this error is about, or `null`.
+- `nearMisses`: the places the token exists that the module cannot see. Each has a `module` and a `kind`: `not-exported` for a module that keeps the token private, and `not-imported` or `same-description` for the other places the search looks. The list is empty unless `errors()` is registered, because the search lives in `@nexusdi/errors`.

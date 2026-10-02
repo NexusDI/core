@@ -1,0 +1,18 @@
+---
+title: Providers
+kind: concept
+---
+
+# Providers
+
+```ts no-run
+const ship = await Nexus.create([
+  provide(REACTOR, { useClass: FusionReactor }),
+  provide(DRONE, { useClass: ScoutDrone, deps: [COMPUTER, lazy(SHIELD_GRID)] }),
+  { token: NAV_CHARTS, useValue: charts },
+]);
+class QuantumComputer {
+  static deps = [REACTOR, remote.token<IAuth>('Auth')] as const;
+}
+const log = 'provide(FusionReactor, {}) is the 0.3 shape';
+```

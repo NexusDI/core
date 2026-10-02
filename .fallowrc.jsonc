@@ -7,6 +7,9 @@
   // scripts/verify-packaging.mjs and an external consumer's own code ever
   // reach it. This makes its exports and re-export surface reachability
   // roots, so they are not reported as unused.
+  // @nexusdi/meridian-ui is consumed by apps/docs through its built dist, and
+  // visual-check.html renders every component. An export the docs app does not
+  // import yet is still part of the design system.
   "publicPackages": [
     "@nexusdi/core",
     "@nexusdi/errors",
@@ -17,6 +20,7 @@
     "@nexusdi/federation",
     "@nexusdi/interceptors",
     "@nexusdi/cli",
+    "@nexusdi/meridian-ui",
   ],
 
   // Nextra loads every page and `_meta.ts` under apps/docs/content by file
@@ -24,9 +28,9 @@
   // the whole content tree as unused without this.
   //
   // libs/decorators/vite.decorators.ts is imported by the decorators,
-  // devtools and interceptors vite.config.ts files. fallow treats a vite
-  // config as an entry point of its own and does not trace its imports, so
-  // the file needs an entry.
+  // devtools, interceptors and meridian vite.config.ts files. fallow treats
+  // a vite config as an entry point of its own and does not trace its
+  // imports, so the file needs an entry.
   //
   // libs/core/test-support/nexus-request.ts has no importer. It augments
   // NexusRequest with `declare module '../src/index.js'`, and
@@ -45,6 +49,8 @@
   "entry": [
     "apps/docs/content/**/*.{mdx,ts}",
     "tools/release/{plan,sync,reconcile,notes,stage}.mjs",
+    // The e2e project's webServer command runs serve.mjs by path.
+    "apps/docs-e2e/src/support/serve.mjs",
     "libs/decorators/vite.decorators.ts",
     "libs/core/vitest.browser.config.ts",
     "libs/decorators/vitest.browser.config.ts",
@@ -71,6 +77,17 @@
     // and the generate target runs generate.ts by path.
     "tools/readme-assets/src/meridian.module.ts",
     "tools/readme-assets/src/generate.ts",
+
+    // internal/meridian-ui's generate-tokens nx target runs this by path
+    // through jiti, not by import. It writes tokens.generated.css, which no
+    // import reaches it either: styles.css imports it with a CSS @import,
+    // which fallow does not trace, and tokens-generated.test.ts reads it by path to compare it against
+    // renderTokensCss().
+    "internal/meridian-ui/tools/generate-tokens.ts",
+    "internal/meridian-ui/src/tokens.generated.css",
+    // Every *.test-d.tsx file under internal/meridian-ui/src is vitest's
+    // type-only test file, like the libs entries above but in .tsx format.
+    "internal/meridian-ui/src/**/*.test-d.tsx",
 
     // Built and run by examples/toolchain-matrix/scripts/run-matrix.mjs in a
     // throwaway consumer; nothing in the workspace imports them. The vite
@@ -114,7 +131,17 @@
   // file, never through the rootDirs remap). `nx run-many -t typegen` is
   // still run ahead of fallow in CI so the files exist for tsc, but this is
   // the actual fix for fallow's own resolution.
-  "ignoreUnresolvedImports": ["**/+types/*"],
+  //
+  // These imports name files a build step writes and git ignores, so a clean
+  // checkout lacks them. benchmark-data.json comes from the docs
+  // benchmark-data target. styles.css comes from the meridian-ui build, which
+  // the docs import through the package export @nexusdi/meridian-ui/styles.css.
+  "ignoreUnresolvedImports": [
+    "**/+types/*",
+    "**/generated/benchmark-data.json",
+    "**/dist/styles.css",
+    "@nexusdi/meridian-ui/styles.css",
+  ],
 
   // Guard fixtures: trees the docs guards read as data through computed
   // paths, and near-copies of each other by design.
@@ -140,6 +167,17 @@
   // yet, so nothing imports the names today. Drop each name once a guard
   // imports it.
   "ignoreExports": [
+    // The default export of each is the Turbopack loader. next.config.ts
+    // reaches it by file path through tools/loader-chain.mjs, which no
+    // import edge shows to fallow.
+    {
+      "file": "apps/docs/tools/mdx-diagram-loader.mjs",
+      "exports": ["default"],
+    },
+    {
+      "file": "apps/docs/tools/mdx-listing-loader.mjs",
+      "exports": ["default"],
+    },
     {
       "file": "tools/repo-checks/src/docs/paths.ts",
       "exports": ["CONTENT"],
@@ -186,6 +224,19 @@
   // this workspace imports them directly, so fallow's static import tracing
   // cannot see the consumer and reports them as unused.
   "ignoreDependencies": [
+    // apps/docs/app/layout.tsx hands next/font/local relative paths into
+    // node_modules for the woff2 files. No import statement names these
+    // packages, so fallow reports them as unused.
+    "@fontsource-variable/space-grotesk",
+    "@fontsource/ibm-plex-mono",
+    "@fontsource/ibm-plex-sans",
+    // examples/meridian lists every package its example blocks import. The
+    // blocks live in .md files under src/, which fallow does not read, so
+    // these four report as unused because fallow does not read .md files.
+    "@nexusdi/federation",
+    "@nexusdi/interceptors",
+    "@nexusdi/node",
+    "valibot",
     // Optional peers of @nexusdi/cli. The cli's image tests spawn the built
     // bin, which resolves them by path from the user's project
     // (libs/cli/src/resolve.ts), so no import statement names either one.
@@ -275,6 +326,13 @@
     // a published package, carries no devDependencies, and bench-kit is
     // private and never published, so it cannot go there either way.
     "@nexusdi/bench-kit",
+    // internal/meridian-ui/eslint.config.mjs imports @nx/eslint-plugin and
+    // internal/meridian-ui/vite.config.ts imports vite-plugin-dts. The
+    // workspace links both from the root manifest, and
+    // internal/meridian-ui/package.json declares only the dependencies it
+    // needs at runtime and in its tests (@testing-library/react), not these.
+    "@nx/eslint-plugin",
+    "vite-plugin-dts",
   ],
 
   // definitions/standard-schema.ts declares `StandardSchemaV1` twice on

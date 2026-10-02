@@ -1,0 +1,19 @@
+---
+title: NexusDI compared
+kind: contract
+description: NexusDI and four containers measured on one eight-provider graph.
+---
+
+# NexusDI compared
+
+The NexusDI bundle is <Figure of="size.nexusdi.plain.esbuild.gzip" /> with esbuild, measured on Meridian-8 with 1,000 iterations on Node 24.
+
+The `<Figure>` component takes a path.
+
+<PerformanceTable />
+
+<MeasuredWith run="2026-09-28-1111111" />
+
+```sh
+npx nx run @nexusdi/benchmarks:bench  # about 300 ms per cell
+```

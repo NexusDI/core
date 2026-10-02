@@ -53,6 +53,15 @@
     },
     {
       "path": "./tools/readme-assets"
+    },
+    {
+      "path": "./internal/meridian-ui"
+    },
+    {
+      "path": "./examples/meridian"
+    },
+    {
+      "path": "./apps/docs-e2e"
     }
   ],
   "compilerOptions": {

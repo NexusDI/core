@@ -1,0 +1,37 @@
+---
+title: NEXUS_CIRCULAR_DEPENDENCY
+kind: code
+description: Providers depend on each other in a cycle with no lazy() edge.
+package: '@nexusdi/core'
+errorClass: CircularDependencyError
+---
+
+# NEXUS_CIRCULAR_DEPENDENCY
+
+`NEXUS_CIRCULAR_DEPENDENCY` means providers depend on each other in a cycle and no edge of the cycle is a `lazy()` dependency, so no provider in it can be built first. `Nexus.create` reports it inside [NEXUS_BLUEPRINT_INVALID](/errors/NEXUS_BLUEPRINT_INVALID/).
+
+## Reproduce `NEXUS_CIRCULAR_DEPENDENCY`
+
+The region has `PlasmaRouter`, bound to `PowerRouter`, depend on `ShieldGrid`, and `DeflectorGrid`, bound to `ShieldGrid`, depend on `PowerRouter`. Without a plugin, core prints a one-line message that starts with the code and ends with the address of this page. With `errors()` from `@nexusdi/errors` registered (`npm install @nexusdi/errors@next`), the same error carries the full text and its fix.
+
+```ts file=examples/meridian/src/errors/NEXUS_CIRCULAR_DEPENDENCY.md region=reproduce
+
+```
+
+Try it: save the region as `error.ts` and run `npx tsx error.ts`. It prints the one-line message, then the full text as an array of two lines. The `path` field lists the cycle from its first provider back to it. Then save the fix region below as `fixed.ts` and run `npx tsx fixed.ts`. It prints `0.4`.
+
+## Fix `NEXUS_CIRCULAR_DEPENDENCY`
+
+`NEXUS_CIRCULAR_DEPENDENCY` is fixed by wrapping one edge of the cycle in `lazy()`. The dependency then receives a function that returns the instance, and the method calls it after startup. Here `PlasmaRouter` takes `lazy(SHIELD_GRID)`. [Lazy edges and cycles](/lazy/) covers the rule.
+
+```ts file=examples/meridian/src/errors/NEXUS_CIRCULAR_DEPENDENCY.md region=fix
+
+```
+
+Try it: change `lazy(SHIELD_GRID)` in the deps of `PlasmaRouter` back to `SHIELD_GRID` in `fixed.ts` and run it again. `tsc` flags the `provide(POWER_ROUTER, ...)` call, because the constructor still expects a function. `Nexus.create` rejects with a `BlueprintError` whose message lists `[NEXUS_CIRCULAR_DEPENDENCY] path=PowerRouter,ShieldGrid,PowerRouter.` Restore `lazy(SHIELD_GRID)` and the program prints `0.4` again.
+
+## Fields of `CircularDependencyError`
+
+`CircularDependencyError` has one field:
+
+- `path`: the display names along the cycle, ending with the first one again.

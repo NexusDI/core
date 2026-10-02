@@ -976,6 +976,84 @@ try {
     );
   console.log('  ✓ a stack trace from core maps to its shipped .ts source');
 
+  // @nexusdi/meridian-ui is private and never installed by a consumer, so it
+  // gets no install check. Its packed entry is still read, because the React
+  // allowlist is the package's one promise and a bundler can reintroduce an
+  // import the source does not show. src/react-imports.test.ts holds the
+  // same literal and compares the two. The stage-publish run above covers
+  // libs/ only, so the package builds here, from sources (vite empties dist).
+  console.log('Building and packing @nexusdi/meridian-ui…');
+  const meridianAllowed = {
+    react: ['createElement', 'Fragment'],
+    'react/jsx-runtime': ['jsx', 'jsxs', 'jsxDEV', 'Fragment'],
+  };
+  run(
+    'npx',
+    ['nx', 'run', '@nexusdi/meridian-ui:build', '--skip-nx-cache'],
+    ROOT,
+  );
+  const meridianDir = mkdtempSync(join(tmpdir(), 'nexusdi-meridian-'));
+  try {
+    run(
+      'npm',
+      ['pack', '--pack-destination', meridianDir],
+      join(ROOT, 'internal/meridian-ui'),
+    );
+    const meridianTarball = readdirSync(meridianDir).find((f) =>
+      f.endsWith('.tgz'),
+    );
+    if (!meridianTarball)
+      throw new Error('npm pack wrote no @nexusdi/meridian-ui tarball');
+    run('tar', ['-xzf', meridianTarball], meridianDir);
+    const meridianEntry = readFileSync(
+      join(meridianDir, 'package', 'dist', 'index.js'),
+      'utf8',
+    );
+    const meridianOffenders = [];
+    for (const match of meridianEntry.matchAll(
+      /import\s*(?:\{([^}]*)\}|(\*\s+as\s+\w+|\w+))\s*from\s*["']([^"']+)["']/g,
+    )) {
+      const module = match[3];
+      if (!/^react(?:$|\/|-dom)/.test(module)) continue;
+      const allowed = meridianAllowed[module];
+      if (!allowed) {
+        meridianOffenders.push(`${module} (whole module)`);
+        continue;
+      }
+      const specifiers = (match[1] ?? '')
+        .split(',')
+        .map((specifier) =>
+          specifier
+            .trim()
+            .split(/\s+as\s+/)[0]
+            .trim(),
+        )
+        .filter(Boolean);
+      for (const specifier of specifiers) {
+        if (!allowed.includes(specifier)) {
+          meridianOffenders.push(`${specifier} from ${module}`);
+        }
+      }
+    }
+    if (meridianOffenders.length) {
+      throw new Error(
+        '@nexusdi/meridian-ui dist/index.js imports React APIs outside its ' +
+          'allowlist: ' +
+          meridianOffenders.join(', ') +
+          '. The package is stateless: it imports no hook and no context.',
+      );
+    }
+    if (/(?:from|import)\s*["'][^"']+\.css["']/.test(meridianEntry)) {
+      throw new Error(
+        '@nexusdi/meridian-ui dist/index.js imports a stylesheet. The docs app ' +
+          'imports @nexusdi/meridian-ui/styles.css once in global.css.',
+      );
+    }
+  } finally {
+    rmSync(meridianDir, { recursive: true, force: true });
+  }
+  console.log('  ✓ meridian-ui imports only createElement-level React APIs');
+
   console.log('\nPackaging verified.');
 } catch (error) {
   failed = true;

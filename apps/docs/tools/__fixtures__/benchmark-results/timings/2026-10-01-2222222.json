@@ -1,0 +1,135 @@
+{
+  "schema": 1,
+  "sha": "2222222",
+  "startedAt": "2026-10-01T04:00:00.000Z",
+  "versions": {
+    "core": "0.4.0-rc.0",
+    "libraries": {
+      "nexusdi": "0.4.0-rc.0",
+      "inversify": "8.2.3",
+      "tsyringe": "4.10.0",
+      "awilix": "13.0.5",
+      "needle-di": "1.2.1"
+    },
+    "toolchains": { "tsc": "6.0.3", "esbuild": "0.28.2" },
+    "node": "24.20.0"
+  },
+  "runner": {
+    "os": "Linux",
+    "cpu": "Fixture CPU",
+    "cores": 4,
+    "memoryGb": 16,
+    "hosted": true
+  },
+  "seed": 7,
+  "design": {
+    "cold-start": {
+      "order": "williams",
+      "warmup": 100,
+      "measured": 1000,
+      "bootstrap": { "resamples": 10000, "block": 10, "prng": "mulberry32" }
+    },
+    "in-process": {
+      "order": "williams",
+      "warmup": 100,
+      "measured": 1000,
+      "bootstrap": { "resamples": 10000, "block": 10, "prng": "mulberry32" }
+    }
+  },
+  "results": [
+    {
+      "scenario": "cold-start",
+      "library": "needle-di",
+      "variant": "decorated",
+      "toolchain": "tsc",
+      "batch": 1,
+      "stats": {
+        "median": 41000000,
+        "mad": 900000,
+        "p5": 39000000,
+        "p95": 45000000,
+        "iterations": 1000,
+        "noisy": false
+      },
+      "vsNexus": { "median": 1.05, "low": 1.03, "high": 1.07, "pairs": 1000 }
+    },
+    {
+      "scenario": "cold-start",
+      "library": "nexusdi",
+      "variant": "plain",
+      "toolchain": "tsc",
+      "batch": 1,
+      "stats": {
+        "median": 43000000,
+        "mad": 1000000,
+        "p5": 41000000,
+        "p95": 47000000,
+        "iterations": 1000,
+        "noisy": false
+      }
+    },
+    {
+      "scenario": "cold-start",
+      "library": "tsyringe",
+      "variant": "decorated",
+      "toolchain": "tsc",
+      "batch": 1,
+      "stats": {
+        "median": 52000000,
+        "mad": 1100000,
+        "p5": 50000000,
+        "p95": 56000000,
+        "iterations": 1000,
+        "noisy": false
+      },
+      "vsNexus": { "median": 0.83, "low": 0.82, "high": 0.84, "pairs": 1000 }
+    },
+    {
+      "scenario": "ready",
+      "library": "nexusdi",
+      "variant": "plain",
+      "toolchain": "tsc",
+      "batch": 64,
+      "stats": {
+        "median": 21000,
+        "mad": 3000,
+        "p5": 18000,
+        "p95": 26000,
+        "iterations": 1000,
+        "noisy": true
+      },
+      "heapBytes": 5200
+    },
+    {
+      "scenario": "resolve-transient",
+      "library": "nexusdi",
+      "variant": "plain",
+      "toolchain": "tsc",
+      "batch": 4096,
+      "stats": {
+        "median": 180,
+        "mad": 4,
+        "p5": 170,
+        "p95": 195,
+        "iterations": 1000,
+        "noisy": false
+      }
+    },
+    {
+      "scenario": "resolve-transient",
+      "library": "tsyringe",
+      "variant": "decorated",
+      "toolchain": "tsc",
+      "batch": 2048,
+      "stats": {
+        "median": 640,
+        "mad": 40,
+        "p5": 590,
+        "p95": 720,
+        "iterations": 1000,
+        "noisy": true
+      },
+      "vsNexus": { "median": 0.28, "low": 0.27, "high": 0.29, "pairs": 1000 }
+    }
+  ]
+}

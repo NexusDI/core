@@ -1,0 +1,57 @@
+---
+title: NEXUS_INTERCEPTOR_LIFETIME
+kind: code
+description: An interceptor was registered with a scoped or transient lifetime, and interceptors are singletons.
+package: '@nexusdi/interceptors'
+errorClass: InterceptorError
+---
+
+# NEXUS_INTERCEPTOR_LIFETIME
+
+`@nexusdi/interceptors` reports `NEXUS_INTERCEPTOR_LIFETIME` when an interceptor is registered with the lifetime `scoped` or `transient`. The plugin builds every interceptor once, with the container, and every intercepted call of every scope runs through that one instance. The plugin's check finds it while the graph compiles, before any constructor runs. `Nexus.create` and `ship.load()` reject with [NEXUS_BLUEPRINT_INVALID](/errors/NEXUS_BLUEPRINT_INVALID/) holding it, and `Nexus.check` throws that error.
+
+## Reproduce `NEXUS_INTERCEPTOR_LIFETIME`
+
+`interceptors()` reports `NEXUS_INTERCEPTOR_LIFETIME` for `AUDIT` registered with `lifetime: 'transient'`. Without a text pack, the message is one line that starts with the code and ends with the address of this page.
+
+```ts file=examples/meridian/src/errors/NEXUS_INTERCEPTOR_LIFETIME.md region=reproduce
+
+```
+
+A `scoped` interceptor makes core report [NEXUS_LIFETIME_VIOLATION](/errors/NEXUS_LIFETIME_VIOLATION/) as well, for the singleton registry that would capture it. It comes first in the `errors` list, and `NEXUS_INTERCEPTOR_LIFETIME` follows it. A `transient` interceptor reports this code alone.
+
+Try it: run `npm install @nexusdi/core@next @nexusdi/interceptors@next`, save the region as `lifetime.ts` and run `npx tsx lifetime.ts`. It prints the one-line message: `[NEXUS_INTERCEPTOR_LIFETIME] token=Audit detail=transient.` and the address of this page. Change `'transient'` to `'scoped'` and run it again. The region prints the first error of the list, which is now the one of core: `[NEXUS_LIFETIME_VIOLATION] path=interceptors registry,Audit lifetimes=singleton,scoped.` and its address. Delete the `lifetime` line and run it again. The container builds, and the region prints `undefined` because there is no error to read. Put `lifetime: 'transient'` back and the first message returns.
+
+## Full text of `NEXUS_INTERCEPTOR_LIFETIME` with `errors()`
+
+`NEXUS_INTERCEPTOR_LIFETIME` carries its full text and fix line when `interceptorsText` from `@nexusdi/interceptors/text` is passed to `errors()` from `@nexusdi/errors`, as `errors({ text: [interceptorsText] })` in the plugins of `Nexus.create`. `devtools({ text: [interceptorsText] })` words the error the same way.
+
+```ts file=examples/meridian/src/errors/NEXUS_INTERCEPTOR_LIFETIME.md region=full-text
+
+```
+
+Try it: run `npm install @nexusdi/errors@next`, save the region as `full.ts` and run `npx tsx full.ts`. It prints the two-line message with its `Fix:` line: `[NEXUS_INTERCEPTOR_LIFETIME] the interceptor Audit is transient, and interceptors are singletons.` and `Fix: remove its lifetime, and read request data from call.instance.`
+
+## Fix `NEXUS_INTERCEPTOR_LIFETIME`
+
+`NEXUS_INTERCEPTOR_LIFETIME` goes away when the interceptor's registration names no lifetime, or names `singleton`. An interceptor that needs data from one request reads it from the call: `call.instance` is the service the call runs on, and `call.scope` is the id of the scope that built it, or `null` at the root.
+
+```ts file=examples/meridian/src/errors/NEXUS_INTERCEPTOR_LIFETIME.md region=fix
+
+```
+
+The fix region differs from the reproduce region in the `lifetime` line, which it leaves out, and in what follows: it calls `output()` on the container it keeps and prints what the interceptor saw.
+
+Try it: save the region as `fixed.ts` and run `npx tsx fixed.ts`. It prints `1.21` and `[ 'ReactorCore in root' ]`. Add `lifetime: 'transient'` to the registration and run it again. `npx tsc` accepts the file, and `npx tsx fixed.ts` throws an uncaught `BlueprintError` and prints a stack trace headed `BlueprintError: [NEXUS_BLUEPRINT_INVALID] 1 error.`, whose message goes on with the line `[NEXUS_INTERCEPTOR_LIFETIME] token=Audit detail=transient.` and the address of this page. Remove the line and the program prints its two lines again.
+
+[How do I run code around a service's methods?](/interceptors/) covers the singleton rule.
+
+## Fields of `InterceptorError`
+
+- `code`: `'NEXUS_INTERCEPTOR_LIFETIME'`.
+- `reason`: `null` for this code.
+- `token`: the interceptor token's name.
+- `target`: `null` for this code.
+- `method`: `null` for this code.
+- `state`: `null` for this code.
+- `detail`: the lifetime found, `['transient']` or `['scoped']`.

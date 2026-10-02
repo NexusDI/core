@@ -1,0 +1,20 @@
+{
+  "name": "@nexusdi/meridian",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "dependencies": {
+    "@nexusdi/core": "*",
+    "@nexusdi/decorators": "*",
+    "@nexusdi/devtools": "*",
+    "@nexusdi/errors": "*",
+    "@nexusdi/federation": "*",
+    "@nexusdi/interceptors": "*",
+    "@nexusdi/node": "*",
+    "@nexusdi/testing": "*",
+    "valibot": "1.5.0"
+  },
+  "devDependencies": {
+    "@nexusdi/doc-examples": "*"
+  }
+}

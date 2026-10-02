@@ -67,6 +67,11 @@ describe('buildPlan for the root', () => {
       from: join(main, 'benchmarks/results'),
       to: join(tree, 'benchmarks/results'),
     });
+    expect(buildPlan('root', { tree, main }).env).toEqual({
+      DOCS_BASE_PATH: '',
+      DOCS_CHANNEL: 'release',
+      BENCHMARK_COMMITS_FROM: main,
+    });
   });
 
   it('copies nothing when the tree is main', () => {

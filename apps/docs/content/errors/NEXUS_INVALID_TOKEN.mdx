@@ -1,0 +1,47 @@
+---
+title: NEXUS_INVALID_TOKEN
+kind: code
+description: A value used as a token is not a class or a token (`Token` or `MultiToken`), or a Token has no description.
+package: '@nexusdi/core'
+errorClass: InvalidTokenError
+---
+
+# NEXUS_INVALID_TOKEN
+
+`NEXUS_INVALID_TOKEN` means a value used as a token is not a class or a token (`Token` or `MultiToken`), or a `Token` was created without a description. `new Token('')` throws it at once, `get()` and `resolve()` throw it for a value that is no token, and `Nexus.create` reports it inside [NEXUS_BLUEPRINT_INVALID](/errors/NEXUS_BLUEPRINT_INVALID/) for a `providers` entry whose token is not a token. `validate()` reports it the same way for a bad `deps` entry. A bad entry in the `deps` of a provider raises [NEXUS_INVALID_PROVIDER](/errors/NEXUS_INVALID_PROVIDER/) with the reason `bad-dep`.
+
+## Reproduce `NEXUS_INVALID_TOKEN`
+
+The region creates a `Token` with an empty description. No container exists yet, so core writes the full text itself, and the message is the same with or without `errors()`.
+
+```ts file=examples/meridian/src/errors/NEXUS_INVALID_TOKEN.md region=reproduce
+
+```
+
+Try it: save the region as `error.ts` and run `npx tsx error.ts`. It prints one line that says the empty string is not a token description. Then run the second region, which passes a 0.3 symbol token to `get()`. It registers `errors()`, so it prints the full text: the symbol `Symbol(ReactorCore)` is not a token, and a token is a class or a token (`Token` or `MultiToken`).
+
+```ts file=examples/meridian/src/errors/NEXUS_INVALID_TOKEN.md region=reproduce-symbol
+
+```
+
+Then save the fix region below as `fixed.ts` and run `npx tsx fixed.ts`. It prints `1.21`.
+
+## Fix `NEXUS_INVALID_TOKEN`
+
+`NEXUS_INVALID_TOKEN` is fixed by naming every dependency with a class or a token (`Token` or `MultiToken`), and by giving each `Token` a non-empty description. The description is the name that errors and `graph()` show. A 0.3 symbol token becomes `new Token<T>(description)`.
+
+```ts file=examples/meridian/src/errors/NEXUS_INVALID_TOKEN.md region=fix
+
+```
+
+## Fields of `InvalidTokenError`
+
+`InvalidTokenError` carries these fields:
+
+- `received`: a description of the value, such as `the symbol Symbol(ReactorCore)`.
+- `entry`: the deps entry of `resolve()` or `validate()` this error is about, or `null`.
+- `module`: the module whose `providers` holds the value, or `null` outside compilation.
+- `index`: the index of that providers entry, or `null` outside compilation.
+- `reason`: `bad-description`, `not-a-deps-value`, `bad-modifier`, `bare-multi-token`, `alias-target`, or `null` for a value that is none of the token kinds.
+- `detail`: the values the reason names.
+- `otherCopy`: `true` when another copy of `@nexusdi/core` made the value.

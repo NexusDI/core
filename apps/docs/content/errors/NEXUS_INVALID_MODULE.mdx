@@ -1,0 +1,37 @@
+---
+title: NEXUS_INVALID_MODULE
+kind: code
+description: A value used as a module is not a defineModule() definition or an @Module class.
+package: '@nexusdi/core'
+errorClass: InvalidModuleError
+---
+
+# NEXUS_INVALID_MODULE
+
+`NEXUS_INVALID_MODULE` means a value used as a module is neither a definition from `defineModule()`, which includes a `forRoot()` instance, nor a class declared with `@Module`. `Nexus.create` reports it inside [NEXUS_BLUEPRINT_INVALID](/errors/NEXUS_BLUEPRINT_INVALID/) for an entry in `imports`, `load()` and the `module` option of `get()` throw it directly, and so does `defineModule()` for a config that is no object with a name. `Nexus.create` throws it directly for a root object with keys a root does not take. The `module` option also raises it for a real module that is not part of the graph.
+
+## Reproduce `NEXUS_INVALID_MODULE`
+
+The region lists the provider class `FusionReactor` under `imports` of `Meridian`. Without a plugin, core prints a one-line message that starts with the code and ends with the address of this page. With `errors()` from `@nexusdi/errors` registered (`npm install @nexusdi/errors@next`), the same error carries the full text and its fix.
+
+```ts file=examples/meridian/src/errors/NEXUS_INVALID_MODULE.md region=reproduce
+
+```
+
+Try it: save the region as `error.ts` and run `npx tsx error.ts`. It prints the one-line message, whose `path` names the module whose `imports` held the value, then the full text as an array of two strings: the function `FusionReactor` is not a module, and the `Fix:` line. Then save the fix region below as `fixed.ts` and run `npx tsx fixed.ts`. It prints `1.21`.
+
+## Fix `NEXUS_INVALID_MODULE`
+
+`NEXUS_INVALID_MODULE` is fixed by importing modules only. A provider class goes in a module's `providers`, and the root imports that module. Here `Engineering` provides and exports `REACTOR`.
+
+```ts file=examples/meridian/src/errors/NEXUS_INVALID_MODULE.md region=fix
+
+```
+
+## Fields of `InvalidModuleError`
+
+`InvalidModuleError` carries these fields:
+
+- `received`: a description of the value, such as `the function FusionReactor`.
+- `path`: the import path that reached the value, empty outside the walk.
+- `otherCopy`: `true` when another copy of `@nexusdi/core` made the value. In module federation, list `@nexusdi/core` in `shared` with `singleton: true`.

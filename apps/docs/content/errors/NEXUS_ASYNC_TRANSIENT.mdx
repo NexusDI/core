@@ -1,0 +1,49 @@
+---
+title: NEXUS_ASYNC_TRANSIENT
+kind: code
+description: A transient factory returned a promise when the container built it.
+package: '@nexusdi/core'
+errorClass: AsyncTransientError
+---
+
+# NEXUS_ASYNC_TRANSIENT
+
+`NEXUS_ASYNC_TRANSIENT` means a factory with `lifetime: 'transient'` returned a promise when the container built it. A transient builds at each request and `get()` is synchronous, so it cannot wait. `get()`, `resolve()`, the `get()` of a scope and a `lazy()` thunk throw it directly. When a provider that builds at `create` depends on the transient, `create` rejects with [NEXUS_PROVIDER_FAILED](/errors/NEXUS_PROVIDER_FAILED/) and this error is its `cause`.
+
+## Reproduce `NEXUS_ASYNC_TRANSIENT`
+
+TypeScript rejects an async transient factory where you write it. It reports TS2769 on the `provide(` call, and the error for the factory overload names this code:
+
+```ts fails-type-check
+provide(DRONE, {
+  useFactory: async () => ({ serial: 7 }),
+  lifetime: 'transient',
+});
+// TS2769: No overload matches this call. The error for the factory overload ends with:
+// Type '"transient"' is not assignable to type '"singleton" | "scoped" | "NEXUS_ASYNC_TRANSIENT: get() is synchronous, so a transient factory cannot be async. Use lifetime: 'scoped', or make the token a function type and provide () => Promise<T>" | undefined'.
+```
+
+The error reaches run time when the types cannot see the promise, as with a JavaScript helper whose typings are wrong. The region uses such a helper. Without a plugin, core prints a one-line message that starts with the code and ends with the address of this page. With `errors()` from `@nexusdi/errors` registered (`npm install @nexusdi/errors@next`), the same error carries the full text and its fix.
+
+```ts file=examples/meridian/src/errors/NEXUS_ASYNC_TRANSIENT.md region=reproduce
+
+```
+
+Try it: save the region as `error.ts` and run `npx tsx error.ts`. It prints the one-line message, then the full text as an array of two strings. Then save the fix region below as `fixed.ts` and run `npx tsx fixed.ts`. It prints `7`.
+
+## Fix `NEXUS_ASYNC_TRANSIENT`
+
+`NEXUS_ASYNC_TRANSIENT` is fixed by giving the factory a lifetime that the container builds ahead of `get()`: `singleton`, built at `create`, or `scoped`, built at `createScope`. Here the drone is scoped, and the program asks a scope for it. To start async work on every call, make the token a function type and provide `() => Promise<T>`.
+
+```ts file=examples/meridian/src/errors/NEXUS_ASYNC_TRANSIENT.md region=fix
+
+```
+
+Try it: in `fixed.ts`, change `lifetime: 'scoped'` to `lifetime: 'transient'` and run it again. `tsc` reports TS2769 on the `provide(` call, with the message shown above. `tsx` skips the type check, and `shuttle.get(DRONE)` throws an uncaught `AsyncTransientError` that starts with `[NEXUS_ASYNC_TRANSIENT] token=SurveyDrone module=Tactical.`. Put `'scoped'` back and the program prints `7` again.
+
+## Fields of `AsyncTransientError`
+
+`AsyncTransientError` carries these fields:
+
+- `token`: the display name of the transient provider.
+- `module`: its module.

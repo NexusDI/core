@@ -1,0 +1,45 @@
+---
+title: NEXUS_PLUGIN_CONFLICT
+kind: code
+description: Two plugins rewrite the same module or provider.
+package: '@nexusdi/core'
+errorClass: PluginError
+---
+
+# NEXUS_PLUGIN_CONFLICT
+
+`NEXUS_PLUGIN_CONFLICT` means two plugins both rewrite the same module or provider through their `compile.module` or `compile.provider` hooks. The first plugin to return a rewrite wins, and each later plugin that also returns one adds a conflict with the first. A hook that returns `undefined` takes no part. The conflict is reported inside [NEXUS_BLUEPRINT_INVALID](/errors/NEXUS_BLUEPRINT_INVALID/): `Nexus.create` and `load()` reject with it and `Nexus.check` throws it. No call raises `NEXUS_PLUGIN_CONFLICT` bare. The `target` field names the module or the provider.
+
+## Reproduce `NEXUS_PLUGIN_CONFLICT`
+
+The region registers two plugins that each replace the `ReactorCore` provider. Without a plugin, core prints a one-line message that starts with the code and ends with the address of this page. With `errors()` from `@nexusdi/errors` registered (`npm install @nexusdi/errors@next`), the same error carries the full text.
+
+```ts file=examples/meridian/src/errors/NEXUS_PLUGIN_CONFLICT.md region=reproduce
+
+```
+
+Try it: save the region as `error.ts` and run `npx tsx error.ts`. It prints the one-line message, then `[ 'acme:simulator', 'acme:mock' ]`, the `plugins` field, then the full text, `[NEXUS_PLUGIN_CONFLICT] acme:simulator and acme:mock both rewrite ReactorCore; one plugin may rewrite a module or a provider.`, with no fix line. Then save the fix region below as `fixed.ts` and run `npx tsx fixed.ts`. It prints `0 1`: the output of the simulated reactor, then the number of `construct` events the second plugin saw.
+
+## Fix `NEXUS_PLUGIN_CONFLICT`
+
+`NEXUS_PLUGIN_CONFLICT` is fixed by letting one plugin rewrite the definition. When both rewrites are needed, combine them in that plugin. The other plugin keeps its other hooks. [How do I register a plugin?](/plugins/) covers registration.
+
+```ts file=examples/meridian/src/errors/NEXUS_PLUGIN_CONFLICT.md region=fix
+
+```
+
+Try it: in `fixed.ts`, give `mock` the `compile` member of `simulator` as well, and run it again. `tsc` accepts the file. `tsx` throws an uncaught `BlueprintError` whose second line is `[NEXUS_PLUGIN_CONFLICT] plugins=acme:simulator,acme:mock target=ReactorCore.` followed by the address of this page. Remove the copy and the program prints `0 1` again.
+
+## Fields of `PluginError`
+
+`PluginError` carries the fields of all four plugin codes. A field the code does not use is `null` or empty.
+
+- `plugin`: the plugin's name, or its position such as `plugins[0]` when it has no name or is not an object. It is `plugins` when the option is not an array. `null` for `NEXUS_PLUGIN_CONFLICT`.
+- `reason`: for `NEXUS_PLUGIN_INVALID`: `not-an-array`, `not-an-object`, `no-name`, `duplicate-name`, `bad-hook`, `bad-compile`, `bad-modules` or `bad-on-init`. `null` for the other codes.
+- `detail`: for `NEXUS_PLUGIN_INVALID`: an array of strings that names the value (`not-an-array`, `not-an-object` and `bad-on-init`) or the hook key (`bad-hook`). Empty for every other reason and code.
+- `apiVersion`: for `NEXUS_PLUGIN_VERSION`: the version the plugin declares, as a string such as `'2'`, or `'undefined'` when it declares none.
+- `supported`: for `NEXUS_PLUGIN_VERSION`: the plugin API versions this core supports, as an array of numbers. It holds `[1]` in 0.4.
+- `plugins`: for `NEXUS_PLUGIN_CONFLICT`: the names of the first plugin that rewrote the definition and the later one that rewrote it again.
+- `target`: for `NEXUS_PLUGIN_CONFLICT`: the name of the module or provider both rewrite.
+- `hook`: for `NEXUS_PLUGIN_FAILED`: the hook that failed, one of `setup`, `tokenKey`, `construct`, `compile.module`, `compile.provider` and `compile.check`.
+- `disposalErrors`: for `NEXUS_PLUGIN_FAILED`: the errors thrown while disposing what `create` had built, as an array. It is empty unless a `setup` failure closed the container.

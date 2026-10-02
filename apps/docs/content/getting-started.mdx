@@ -1,0 +1,86 @@
+---
+title: Getting started
+kind: tutorial
+description: Install the NexusDI release candidate, build a two-class ship with Nexus.create, break it and read the error.
+---
+
+# Getting started
+
+This tutorial installs NexusDI and builds a container with two classes, then breaks the container on purpose and reads the error it reports. Each step is a program you save and run.
+
+## Install NexusDI 0.4
+
+NexusDI 0.4 is a release candidate on the npm `next` dist-tag. Create a project and install `@nexusdi/core@next`. Add TypeScript and the Node types. Then add `tsx`, which runs a TypeScript file with no build step:
+
+```bash
+mkdir meridian && cd meridian
+npm init -y
+npm pkg set type=module
+npm install @nexusdi/core@next
+npm install -D typescript tsx @types/node
+```
+
+`@nexusdi/core` is published as ES modules only. A CommonJS project on Node 22.12 or later can `require()` it.
+
+## TypeScript settings for NexusDI
+
+NexusDI needs TypeScript 5.4 or later and no `experimentalDecorators` or `emitDecoratorMetadata` setting. Leave both off: the core API uses no decorators, and the optional `@nexusdi/decorators` package uses standard decorators. The package's type declarations reference TypeScript's `esnext.disposable` library, which adds `Symbol.asyncDispose` and `AsyncDisposable` to your program, so `await using` compiles with `lib: ["es2022"]`.
+
+Create `tsconfig.json`:
+
+```json no-run
+{
+  "compilerOptions": {
+    "target": "es2022",
+    "module": "nodenext",
+    "strict": true,
+    "noEmit": true,
+    "lib": ["es2022"],
+    "types": ["node"]
+  }
+}
+```
+
+`npx tsc` type-checks the project, and `npx tsx <file>.ts` runs one file.
+
+## Build a first ship with `Nexus.create`
+
+`Nexus.create` takes the classes of your program, checks how they depend on each other and builds them. A class lists the classes its constructor takes in `static deps`, and TypeScript checks that list against the constructor. `get()` then returns the instance, and `await using` disposes the container when the block ends.
+
+Save this as `ship.ts`:
+
+```ts file=examples/meridian/src/pages/getting-started.md region=first-ship
+
+```
+
+Try it: run `npx tsx ship.ts`. The terminal prints `ShipComputer online. Reactor output 1.21 GW.` Change `output` to `2.5` and run it again. The status line follows the reactor, because NexusDI passed the `FusionReactor` it built into the `QuantumComputer` constructor.
+
+## Break the ship and read the `Nexus.create` error
+
+`Nexus.create` checks the whole graph before it builds anything. When a class depends on a class the container was not given, `create` rejects with `NEXUS_BLUEPRINT_INVALID`, and its `errors` array holds one error for each problem.
+
+Try it: delete `FusionReactor` from the array passed to `Nexus.create` and run `ship.ts` again. The run stops with an uncaught `NEXUS_BLUEPRINT_INVALID` error that lists `NEXUS_MISSING_PROVIDER`. This program breaks the ship the same way and reads the `errors` array of the rejection:
+
+```ts file=examples/meridian/src/pages/getting-started.md region=missing-reactor
+
+```
+
+The one error inside is [`NEXUS_MISSING_PROVIDER`](/errors/NEXUS_MISSING_PROVIDER/). Core writes a short message: the code with the error's fields as `key=value` pairs, then a link to the code's page. The `module=root` field names the module the array became: `Nexus.create` compiles a list of classes as an unnamed root module.
+
+Fix the ship: put `FusionReactor` back in the array and run `ship.ts` again. The status line prints.
+
+## Get full error messages from `devtools()`
+
+`devtools()` from `@nexusdi/devtools` is a plugin that words every error in full, with a fix line, and adds the graph and trace tools the Introspection page teaches. Install it at the same version as core:
+
+```bash
+npm install -D @nexusdi/devtools@next
+```
+
+Register it in development. A production build leaves it out and keeps core's short messages:
+
+```ts file=examples/meridian/src/pages/getting-started.md region=devtools-message
+
+```
+
+Try it: save the program as `errors.ts` and run `npx tsx errors.ts`. The terminal prints the full message and its fix line. Run it again as `NODE_ENV=production npx tsx errors.ts`: the plugin list is empty, and the same error prints core's short message. Every later page of these docs builds on this project.

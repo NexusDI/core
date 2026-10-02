@@ -1,0 +1,38 @@
+---
+title: NEXUS_DUPLICATE_PROVIDER
+kind: code
+description: One module provides the same token twice.
+package: '@nexusdi/core'
+errorClass: DuplicateProviderError
+---
+
+# NEXUS_DUPLICATE_PROVIDER
+
+`NEXUS_DUPLICATE_PROVIDER` means one module lists two providers for the same `Token` or class. `Nexus.create` reports it inside [NEXUS_BLUEPRINT_INVALID](/errors/NEXUS_BLUEPRINT_INVALID/), because the container would not know which provider a lookup means.
+
+## Reproduce `NEXUS_DUPLICATE_PROVIDER`
+
+The region binds `ReactorCore` to `FusionReactor` and again to `SimulatedReactor` in `Engineering`. Without a plugin, core prints a one-line message that starts with the code and ends with the address of this page. With `errors()` from `@nexusdi/errors` registered (`npm install @nexusdi/errors@next`), the same error carries the full text and its fix.
+
+```ts file=examples/meridian/src/errors/NEXUS_DUPLICATE_PROVIDER.md region=reproduce
+
+```
+
+Try it: save the region as `error.ts` and run `npx tsx error.ts`. It prints the one-line message, then the full text, which names `Engineering` as the module that provides `ReactorCore` twice. Then save the fix region below as `fixed.ts` and run `npx tsx fixed.ts`. It prints `[ 'reactor', 'hull' ]`.
+
+## Fix `NEXUS_DUPLICATE_PROVIDER`
+
+`NEXUS_DUPLICATE_PROVIDER` is fixed by keeping one provider of the token in the module. To swap the implementation, put the second provider in a second module, such as a `SimulatorEngineering` that the root imports where it imported `Engineering` (see [Modules](/modules/)). To collect several values, use a `MultiToken`, which takes one contribution per `provide()` call and resolves to an array:
+
+```ts file=examples/meridian/src/errors/NEXUS_DUPLICATE_PROVIDER.md region=fix
+
+```
+
+Try it: in `fixed.ts`, change `MultiToken<Diagnostic>` to `Token<Diagnostic>` and import `Token` in place of `MultiToken`. `tsc` flags the `.map` call with `Property 'map' does not exist on type 'Diagnostic'` and the `check` parameter as implicitly `any` (TS7006), and run anyway, `Nexus.create` rejects with `NEXUS_DUPLICATE_PROVIDER` for `Diagnostics`. Change both back and it prints `[ 'reactor', 'hull' ]`.
+
+## Fields of `DuplicateProviderError`
+
+`DuplicateProviderError` carries these fields:
+
+- `token`: the display name of the token provided twice.
+- `module`: the module that provides it twice.

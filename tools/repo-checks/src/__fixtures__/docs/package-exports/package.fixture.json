@@ -1,0 +1,7 @@
+{
+  "name": "@fixture/pkg",
+  "exports": {
+    "./package.json": "./package.json",
+    ".": { "@nexusdi/source": "./src/index.ts", "default": "./dist/index.js" }
+  }
+}

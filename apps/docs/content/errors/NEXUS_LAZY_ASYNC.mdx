@@ -1,0 +1,46 @@
+---
+title: NEXUS_LAZY_ASYNC
+kind: code
+description: An eager false provider returned a promise when its first get() built it.
+package: '@nexusdi/core'
+errorClass: LazyAsyncError
+---
+
+# NEXUS_LAZY_ASYNC
+
+`NEXUS_LAZY_ASYNC` means a provider with `eager: false` was built on demand, and its factory returned a promise, or the `onInit` of its singleton instance did. `get()` cannot wait for a promise, so it throws. `get()`, `resolve()`, the `get()` of a scope for a scoped factory and a `lazy()` thunk throw it directly, also when the request reaches the provider through the dependencies of another `eager: false` provider. The container stores nothing, so the next request builds again and throws again.
+
+## Reproduce `NEXUS_LAZY_ASYNC`
+
+TypeScript rejects `eager: false` on an async factory and on a class whose `onInit` returns a promise. It reports TS2769 on the `provide(` call, and the error for the matching overload names this code:
+
+```ts fails-type-check
+provide(NAV_CHARTS, { useFactory: async () => charts, eager: false });
+// TS2769: No overload matches this call. The error for the factory overload ends with:
+// Type 'false' is not assignable to type 'true | "NEXUS_LAZY_ASYNC: an async provider is built during create or createScope, so it cannot be eager: false. Remove eager: false, or make the token a function type and provide () => Promise<T>" | undefined'.
+```
+
+The error reaches run time when the types cannot see the promise. The region uses a JavaScript helper whose typings say it returns charts. Without a plugin, core prints a one-line message that starts with the code and ends with the address of this page. With `errors()` from `@nexusdi/errors` registered (`npm install @nexusdi/errors@next`), the same error carries the full text and its fix.
+
+```ts file=examples/meridian/src/errors/NEXUS_LAZY_ASYNC.md region=reproduce
+
+```
+
+Try it: save the region as `error.ts` and run `npx tsx error.ts`. It prints the one-line message, then the full text as an array of two strings. Then save the fix region below as `fixed.ts` and run `npx tsx fixed.ts`. It prints `course to Kepler-442b`.
+
+## Fix `NEXUS_LAZY_ASYNC`
+
+`NEXUS_LAZY_ASYNC` is fixed by removing `eager: false` from an async provider, so `create` awaits it. Alternatively, make the token a function type and provide `() => Promise<T>`.
+
+```ts file=examples/meridian/src/errors/NEXUS_LAZY_ASYNC.md region=fix
+
+```
+
+Try it: in `fixed.ts`, add `eager: false` to the options of `provide(NAV_CHARTS, ...)` and run it again. `tsc` reports TS2769 on the `provide(` call, with the message shown above. `tsx` skips the type check, and `ship.get(NAV_CHARTS)` throws an uncaught `LazyAsyncError` that starts with `[NEXUS_LAZY_ASYNC] token=NavCharts module=Tactical.`. Remove `eager: false` and the program prints `course to Kepler-442b` again.
+
+## Fields of `LazyAsyncError`
+
+`LazyAsyncError` carries these fields:
+
+- `token`: the display name of the provider.
+- `module`: its module.

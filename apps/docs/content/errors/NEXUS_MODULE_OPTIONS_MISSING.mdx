@@ -1,0 +1,38 @@
+---
+title: NEXUS_MODULE_OPTIONS_MISSING
+kind: code
+description: A configurable module was imported without forRoot() or forRootAsync().
+package: '@nexusdi/core'
+errorClass: ModuleOptionsError
+---
+
+# NEXUS_MODULE_OPTIONS_MISSING
+
+`NEXUS_MODULE_OPTIONS_MISSING` means a configurable module, one defined with `options`, was imported as it is, without `forRoot()` or `forRootAsync()`, so its options token has no value. `Nexus.create` reports it inside [NEXUS_BLUEPRINT_INVALID](/errors/NEXUS_BLUEPRINT_INVALID/).
+
+## Reproduce `NEXUS_MODULE_OPTIONS_MISSING`
+
+The region defines `Comms` with the options token `COMMS_OPTIONS` and imports `Comms` bare into `Meridian`. Without a plugin, core prints a one-line message that starts with the code and ends with the address of this page. With `errors()` from `@nexusdi/errors` registered (`npm install @nexusdi/errors@next`), the same error carries the full text and its fix.
+
+```ts file=examples/meridian/src/errors/NEXUS_MODULE_OPTIONS_MISSING.md region=reproduce
+
+```
+
+Try it: save the region as `error.ts` and run `npx tsx error.ts`. It prints the one-line message, then the full text. The `Fix:` line of the full text names `forRoot()` and `forRootAsync()`. Then save the fix region below as `fixed.ts` and run `npx tsx fixed.ts`. It prints `1420`.
+
+## Fix `NEXUS_MODULE_OPTIONS_MISSING`
+
+`NEXUS_MODULE_OPTIONS_MISSING` is fixed by importing the module through `forRoot(options)`, or `forRootAsync({ useFactory, deps })` for options computed at startup. Call either once and import the result: each call makes a new module instance. [Configurable modules](/configurable-modules/) covers both.
+
+```ts file=examples/meridian/src/errors/NEXUS_MODULE_OPTIONS_MISSING.md region=fix
+
+```
+
+Try it: in `fixed.ts`, replace `Comms.forRoot({ frequency: 1420 })` with `Comms` and run it again. `Nexus.create` rejects with a `BlueprintError` that holds one `NEXUS_MODULE_OPTIONS_MISSING` error for `Comms`. Put `.forRoot({ frequency: 1420 })` back and the program prints `1420` again.
+
+## Fields of `ModuleOptionsError`
+
+`ModuleOptionsError` carries these fields for this code:
+
+- `module`: the configurable module imported without options.
+- `issues`: empty for this code. [NEXUS_INVALID_MODULE_OPTIONS](/errors/NEXUS_INVALID_MODULE_OPTIONS/) uses the same class and fills it.

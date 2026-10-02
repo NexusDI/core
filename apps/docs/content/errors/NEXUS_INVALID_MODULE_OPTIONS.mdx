@@ -1,0 +1,38 @@
+---
+title: NEXUS_INVALID_MODULE_OPTIONS
+kind: code
+description: A configurable module's options failed its schema.
+package: '@nexusdi/core'
+errorClass: ModuleOptionsError
+---
+
+# NEXUS_INVALID_MODULE_OPTIONS
+
+`NEXUS_INVALID_MODULE_OPTIONS` means the options a configurable module received failed the module's `schema`, a Standard Schema validator such as a valibot or zod schema. Core validates the options when it builds them, so `Nexus.create` rejects with [NEXUS_PROVIDER_FAILED](/errors/NEXUS_PROVIDER_FAILED/) for the options token, and this error is its `cause`.
+
+## Reproduce `NEXUS_INVALID_MODULE_OPTIONS`
+
+The region gives `Comms` a valibot schema that requires a positive integer frequency, and imports `Comms.forRoot({ frequency: -5 })`. The one-line message of the cause names the module, and the schema's issues are in its `issues` field. `explain()` from `@nexusdi/errors` writes the full text with each issue and its path.
+
+```ts file=examples/meridian/src/errors/NEXUS_INVALID_MODULE_OPTIONS.md region=reproduce
+
+```
+
+Try it: install the packages with `npm install valibot@1.5.0 @nexusdi/errors@next`, save the region as `error.ts` and run `npx tsx error.ts`. It prints the one-line message of the cause, then the full text, which names the failing path, `frequency`. Then save the fix region below as `fixed.ts` and run `npx tsx fixed.ts`. It prints `1420`.
+
+## Fix `NEXUS_INVALID_MODULE_OPTIONS`
+
+`NEXUS_INVALID_MODULE_OPTIONS` is fixed by passing options the schema accepts. The issues name each failing path and the schema's message for it.
+
+```ts file=examples/meridian/src/errors/NEXUS_INVALID_MODULE_OPTIONS.md region=fix
+
+```
+
+Try it: change `1420` to `-5` in `fixed.ts` and run it again. `Nexus.create` rejects with a `ProviderError` for `CommsOptions` in `Comms`, and its `cause` is the `NEXUS_INVALID_MODULE_OPTIONS` error. Change it back to `1420` and the program prints `1420` again.
+
+## Fields of `ModuleOptionsError`
+
+`ModuleOptionsError` carries these fields for this code:
+
+- `module`: the configurable module whose options failed.
+- `issues`: the schema's issues, each with a `message` and an optional `path`, in the Standard Schema shape.

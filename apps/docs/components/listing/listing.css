@@ -1,0 +1,25 @@
+/*
+ * The label above a fence that no test ran. Every rule reads `--meridian-*`
+ * properties, so the theme switch recolours it with no re-render.
+ */
+.nexus-listing {
+  margin-block: var(--meridian-space-5);
+}
+
+.nexus-listing__label {
+  display: inline-block;
+  margin: 0 0 var(--meridian-space-2);
+  padding: var(--meridian-space-1) var(--meridian-space-3);
+  border: 1px solid var(--meridian-rule);
+  border-radius: var(--meridian-radius-chip);
+  background: var(--meridian-hull);
+  font-family: var(--meridian-font-mono);
+  font-size: var(--meridian-text-micro);
+  letter-spacing: var(--meridian-tracking-micro);
+  text-transform: uppercase;
+  color: var(--meridian-text-secondary);
+}
+
+.nexus-listing > pre {
+  margin-block-start: 0;
+}

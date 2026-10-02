@@ -1,0 +1,60 @@
+---
+title: NEXUS_LEGACY_DECORATORS
+kind: code
+description: A decorator from @nexusdi/decorators ran under experimentalDecorators, which calls it with the legacy argument shape.
+package: '@nexusdi/decorators'
+errorClass: LegacyDecoratorsError
+---
+
+# NEXUS_LEGACY_DECORATORS
+
+Every decorator that `@nexusdi/decorators` exports throws `NEXUS_LEGACY_DECORATORS` when TypeScript calls it as a legacy decorator, which it does when `tsconfig.json` sets `experimentalDecorators`. `@Injectable` and `@Module` fail on a class, and `@Inject` fails on an accessor. The decorators are standard (TC39) decorators, and each one checks the arguments it receives before it records anything. The check runs when the decorator is applied, so the error ends the import of the module that declares the class. It is thrown bare, because no container exists yet, and [NEXUS_BLUEPRINT_INVALID](/errors/NEXUS_BLUEPRINT_INVALID/) never wraps it. `@UseInterceptors` from `@nexusdi/interceptors` reports the same flag as [NEXUS_INTERCEPTOR_INVALID](/errors/NEXUS_INTERCEPTOR_INVALID/) with the reason `legacy-decorators`.
+
+## Reproduce `NEXUS_LEGACY_DECORATORS`
+
+`@Injectable` throws `NEXUS_LEGACY_DECORATORS` when it receives the class alone, the call TypeScript emits for a class decorator under `experimentalDecorators`. The region makes that call by hand, so it runs under any compiler setting. `@nexusdi/decorators` writes this message itself, so it carries its full text and fix line with no text pack and no `errors()` plugin.
+
+```ts file=examples/meridian/src/errors/NEXUS_LEGACY_DECORATORS.md region=reproduce
+
+```
+
+Try it: run `npm install @nexusdi/core@next @nexusdi/decorators@next`, save the region as `legacy.ts` and run `npx tsx legacy.ts`. It prints the code, `NEXUS_LEGACY_DECORATORS`, then the two-line message: `[NEXUS_LEGACY_DECORATORS] @Injectable was called as a legacy decorator, and NexusDI's decorators are standard (TC39) decorators.` and its `Fix:` line.
+
+The second region declares a class with a real `@Injectable`:
+
+```ts file=examples/meridian/src/errors/NEXUS_LEGACY_DECORATORS.md region=decorated
+
+```
+
+Try it: save the region as `decorated.ts` and run `npx tsx decorated.ts` with the `tsconfig.json` from [Getting started](/getting-started/). It prints `1.21`. Add the flag to the `compilerOptions`:
+
+```json no-run
+{
+  "compilerOptions": {
+    "target": "es2022",
+    "module": "nodenext",
+    "strict": true,
+    "noEmit": true,
+    "lib": ["es2022"],
+    "types": ["node"],
+    "experimentalDecorators": true
+  }
+}
+```
+
+`npx tsc` now reports TS1238 on the `@Injectable` line, and says the runtime will invoke the decorator with 1 arguments where it expects 2. `npx tsx decorated.ts` throws an uncaught `LegacyDecoratorsError` and prints a stack trace headed `LegacyDecoratorsError: [NEXUS_LEGACY_DECORATORS] @Injectable was called as a legacy decorator`, with no `1.21`. Remove the flag and the program prints `1.21` again.
+
+## Fix `NEXUS_LEGACY_DECORATORS`
+
+`NEXUS_LEGACY_DECORATORS` has two fixes. Remove `experimentalDecorators` from `tsconfig.json`, so TypeScript compiles every decorator as a standard decorator, as the last step above shows. When the project keeps the flag for another library, declare the class without decorators: `static deps` on the class and `provide()` in the list passed to `Nexus.create`, or in a module, work under every compiler setting.
+
+```ts file=examples/meridian/src/errors/NEXUS_LEGACY_DECORATORS.md region=fix
+
+```
+
+Try it: save the region as `fixed.ts`, set `"experimentalDecorators": true` in `tsconfig.json` and run `npx tsx fixed.ts`. `npx tsc` reports nothing, and the program prints `1.21`. [How do I use NexusDI in a project that keeps experimentalDecorators?](/legacy-decorators/) covers the second fix in full.
+
+## Fields of `LegacyDecoratorsError`
+
+- `code`: `'NEXUS_LEGACY_DECORATORS'`.
+- `decorator`: the name of the decorator that received the legacy call, without the `@`, such as `'Injectable'` for `@Injectable`.

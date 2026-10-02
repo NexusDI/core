@@ -1,0 +1,37 @@
+---
+title: NEXUS_DISPOSED
+kind: code
+description: A container or scope, or a lazy thunk, was used after disposal started.
+package: '@nexusdi/core'
+errorClass: DisposedError
+---
+
+# NEXUS_DISPOSED
+
+`NEXUS_DISPOSED` means code called a method of a container or a scope, or a `lazy()` thunk, after its disposal started. On the root container, `get()`, `has()`, `resolve()`, `validate()`, `createScope()` and `load()` throw it, with `target=container`. A `load()` or `createScope()` still running when disposal starts rejects with it too. A scope throws it from `get()`, `has()` and `resolve()`, and its `extend()` rejects with it. It reports `target=scope` once the scope is disposed and `target=container` while its container is disposing. A thunk reports `target=instance` when it is called after the instance it reaches was disposed, either from a later disposer or after disposal finished. A factory that calls another, disposed container or scope while `Nexus.create` runs sees the error as the `cause` of [NEXUS_PROVIDER_FAILED](/errors/NEXUS_PROVIDER_FAILED/).
+
+## Reproduce `NEXUS_DISPOSED`
+
+The region disposes the container and then calls `get()`. Without a plugin, core prints a one-line message that starts with the code and ends with the address of this page. With `errors()` from `@nexusdi/errors` registered (`npm install @nexusdi/errors@next`), the same error carries the full text and its fix.
+
+```ts file=examples/meridian/src/errors/NEXUS_DISPOSED.md region=reproduce
+
+```
+
+Try it: save the region as `error.ts` and run `npx tsx error.ts`. It prints the one-line message, then the full text, `[NEXUS_DISPOSED] the container is disposed or disposing.`, with no fix line. The `target` field says whether the disposed object is a `container` or a `scope`, or an `instance` that a `lazy()` target names. Then save the fix region below as `fixed.ts` and run `npx tsx fixed.ts`. It prints `1.21`.
+
+## Fix `NEXUS_DISPOSED`
+
+`NEXUS_DISPOSED` is fixed by keeping every use of a container inside its lifetime. `await using` disposes the container when its block ends, so every call inside the block runs while the container is open.
+
+```ts file=examples/meridian/src/errors/NEXUS_DISPOSED.md region=fix
+
+```
+
+Try it: in `runVoyage` of `fixed.ts`, add the line `await ship[Symbol.asyncDispose]();` before the `return`, and run it again. `tsc` accepts the file. `tsx` throws an uncaught `DisposedError` that starts with `[NEXUS_DISPOSED] target=container.`. Delete the line and the program prints `1.21` again.
+
+## Fields of `DisposedError`
+
+`DisposedError` has one field:
+
+- `target`: `container` or `scope` for the disposed object, and `instance` for a `lazy()` target.

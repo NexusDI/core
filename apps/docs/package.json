@@ -11,13 +11,23 @@
       "type:app"
     ],
     "targets": {
+      "benchmark-data": {
+        "executor": "nx:run-commands",
+        "cache": false,
+        "options": {
+          "cwd": "{projectRoot}",
+          "command": "node tools/benchmark-data.mjs"
+        }
+      },
       "build": {
         "dependsOn": [
-          "^build"
+          "^build",
+          "benchmark-data"
         ],
         "inputs": [
           "default",
           "^production",
+          "{workspaceRoot}/examples/meridian/src/**/*",
           {
             "env": "DOCS_BASE_PATH"
           },
@@ -42,7 +52,8 @@
       "typecheck": {
         "cache": true,
         "dependsOn": [
-          "^build"
+          "^build",
+          "benchmark-data"
         ],
         "inputs": [
           "default",
@@ -60,16 +71,25 @@
   },
   "dependencies": {
     "@nexusdi/doc-examples": "*",
+    "@nexusdi/meridian-ui": "*",
+    "mermaid": "^11.17.2",
     "next": "16.3.4",
+    "next-themes": "0.4.6",
     "nextra": "4.6.1",
     "nextra-theme-docs": "4.6.1",
     "react": "19.3.0",
     "react-dom": "19.3.0"
   },
   "devDependencies": {
+    "@fontsource-variable/space-grotesk": "5.3.0",
+    "@fontsource/ibm-plex-mono": "5.3.0",
+    "@fontsource/ibm-plex-sans": "5.3.0",
     "@nx/eslint-plugin": "23.1.1",
+    "@tailwindcss/postcss": "^4.3.3",
+    "@testing-library/react": "16.3.0",
     "eslint-config-next": "16.3.4",
     "pagefind": "^1.5.2",
+    "tailwindcss": "^4.3.3",
     "typescript": "6.0.3",
     "yaml": "^2.9.0"
   }

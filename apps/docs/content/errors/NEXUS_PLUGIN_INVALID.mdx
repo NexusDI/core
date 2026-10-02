@@ -1,0 +1,45 @@
+---
+title: NEXUS_PLUGIN_INVALID
+kind: code
+description: A plugin passed to Nexus.create is malformed.
+package: '@nexusdi/core'
+errorClass: PluginError
+---
+
+# NEXUS_PLUGIN_INVALID
+
+`NEXUS_PLUGIN_INVALID` means a plugin passed to `Nexus.create` or `Nexus.check` is malformed: `plugins` is not an array, an entry is not an object, a plugin has no name or the name of an earlier plugin, or a hook has the wrong type. Core validates every plugin before it compiles anything and reports each fault inside [NEXUS_BLUEPRINT_INVALID](/errors/NEXUS_BLUEPRINT_INVALID/). `Nexus.create` rejects with that error and `Nexus.check` throws it. No call raises `NEXUS_PLUGIN_INVALID` bare, and the `reason` field says which fault it is.
+
+## Reproduce `NEXUS_PLUGIN_INVALID`
+
+The region registers a plugin with an empty name. Without a plugin, core prints a one-line message that starts with the code and ends with the address of this page. With `errors()` from `@nexusdi/errors` registered (`npm install @nexusdi/errors@next`), the same error carries the full text. The full text counts positions with `errors()` included, so it names `plugins[1]`.
+
+```ts file=examples/meridian/src/errors/NEXUS_PLUGIN_INVALID.md region=reproduce
+
+```
+
+Try it: save the region as `error.ts` and run `npx tsx error.ts`. It prints three lines: the one-line message, which names `plugins[0]`, then `no-name`, the `reason` field, then the full text, `[NEXUS_PLUGIN_INVALID] plugins[1] has no name; set name to a non-empty string.`, with no fix line. Then save the fix region below as `fixed.ts` and run `npx tsx fixed.ts`. It prints `1.21 1`: the reactor output, then the number of `construct` events the plugin saw.
+
+## Fix `NEXUS_PLUGIN_INVALID`
+
+`NEXUS_PLUGIN_INVALID` is fixed by correcting the plugin the `reason` names. A plugin is an object with a unique, non-empty `name` and the `apiVersion` it was written for. Every hook is optional and has the documented type. A `compile` member is an object of hook functions, and `modules` is an array. `onInit` takes only the value `false`. [How do I register a plugin?](/plugins/) covers registration.
+
+```ts file=examples/meridian/src/errors/NEXUS_PLUGIN_INVALID.md region=fix
+
+```
+
+Try it: in `fixed.ts`, change `'acme:cache'` to `''` and run it again. `tsc` accepts the file, because `name` is a string. `tsx` throws an uncaught `BlueprintError` whose second line is `[NEXUS_PLUGIN_INVALID] plugin=plugins[0] reason=no-name.` followed by the address of this page. Change the name back and the program prints `1.21 1` again.
+
+## Fields of `PluginError`
+
+`PluginError` carries the fields of all four plugin codes. A field the code does not use is `null` or empty.
+
+- `plugin`: the plugin's name, or its position such as `plugins[0]` when it has no name or is not an object. It is `plugins` when the option is not an array. `null` for `NEXUS_PLUGIN_CONFLICT`.
+- `reason`: for `NEXUS_PLUGIN_INVALID`: `not-an-array`, `not-an-object`, `no-name`, `duplicate-name`, `bad-hook`, `bad-compile`, `bad-modules` or `bad-on-init`. `null` for the other codes.
+- `detail`: for `NEXUS_PLUGIN_INVALID`: an array of strings that names the value (`not-an-array`, `not-an-object` and `bad-on-init`) or the hook key (`bad-hook`). Empty for every other reason and code.
+- `apiVersion`: for `NEXUS_PLUGIN_VERSION`: the version the plugin declares, as a string such as `'2'`, or `'undefined'` when it declares none.
+- `supported`: for `NEXUS_PLUGIN_VERSION`: the plugin API versions this core supports, as an array of numbers. It holds `[1]` in 0.4.
+- `plugins`: for `NEXUS_PLUGIN_CONFLICT`: the names of the first plugin that rewrote the definition and the later one that rewrote it again.
+- `target`: for `NEXUS_PLUGIN_CONFLICT`: the name of the module or provider both rewrite.
+- `hook`: for `NEXUS_PLUGIN_FAILED`: the hook that failed, one of `setup`, `tokenKey`, `construct`, `compile.module`, `compile.provider` and `compile.check`.
+- `disposalErrors`: for `NEXUS_PLUGIN_FAILED`: the errors thrown while disposing what `create` had built, as an array. It is empty unless a `setup` failure closed the container.

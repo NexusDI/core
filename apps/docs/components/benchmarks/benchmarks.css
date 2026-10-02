@@ -1,0 +1,137 @@
+/*
+ * The benchmark components. Every rule reads `--meridian-*` properties, so
+ * the theme switch recolours the tables with no re-render.
+ */
+.nexus-bench {
+  margin-block: var(--meridian-space-5);
+  overflow-x: auto;
+}
+
+.nexus-bench__label {
+  display: flex;
+  align-items: center;
+  gap: var(--meridian-space-3);
+  margin: 0 0 var(--meridian-space-3);
+  font-family: var(--meridian-font-mono);
+  font-size: var(--meridian-text-micro);
+  letter-spacing: var(--meridian-tracking-micro);
+  text-transform: uppercase;
+  color: var(--meridian-text-secondary);
+}
+
+.nexus-bench__table {
+  inline-size: 100%;
+  border-collapse: collapse;
+  font-size: var(--meridian-text-small);
+  line-height: var(--meridian-leading-small);
+}
+
+.nexus-bench__table caption {
+  caption-side: bottom;
+  padding-block-start: var(--meridian-space-3);
+  text-align: start;
+  color: var(--meridian-text-secondary);
+}
+
+.nexus-bench__table th,
+.nexus-bench__table td {
+  padding: var(--meridian-space-3);
+  border-block-end: 1px solid var(--meridian-rule);
+  text-align: start;
+  vertical-align: top;
+}
+
+.nexus-bench__table thead th {
+  font-family: var(--meridian-font-mono);
+  font-size: var(--meridian-text-micro);
+  letter-spacing: var(--meridian-tracking-micro);
+  text-transform: uppercase;
+  color: var(--meridian-text-secondary);
+}
+
+.nexus-bench__figure,
+.nexus-bench__table td {
+  font-family: var(--meridian-font-mono);
+  font-variant-numeric: tabular-nums;
+}
+
+.nexus-bench__variant,
+.nexus-bench__missing {
+  color: var(--meridian-text-secondary);
+}
+
+.nexus-bench__noisy {
+  margin-inline-start: var(--meridian-space-3);
+  font-size: var(--meridian-text-micro);
+  text-transform: uppercase;
+  color: var(--meridian-signal-amber);
+}
+
+.nexus-bench__outcome--pass {
+  color: var(--meridian-status-pass);
+}
+
+.nexus-bench__outcome--compile-error,
+.nexus-bench__outcome--runtime-error,
+.nexus-bench__outcome--wrong-instance,
+.nexus-bench__detected--never {
+  color: var(--meridian-status-fail);
+}
+
+.nexus-bench__detail {
+  position: relative;
+}
+
+.nexus-bench__detail > [tabindex] {
+  border-block-end: 1px dotted var(--meridian-control-border);
+}
+
+.nexus-bench__detail > [tabindex]:focus-visible {
+  outline: 2px solid var(--meridian-focus);
+}
+
+.nexus-bench__tooltip {
+  display: none;
+  position: absolute;
+  inset-block-start: 100%;
+  inset-inline-start: 0;
+  z-index: 1;
+  min-inline-size: 16rem;
+  padding: var(--meridian-space-3);
+  border-radius: var(--meridian-radius-chip);
+  background: var(--meridian-hull-raised);
+  box-shadow: var(--meridian-elevation-raised);
+  color: var(--meridian-text);
+}
+
+.nexus-bench__tooltip > span {
+  display: block;
+}
+
+.nexus-bench__detail:hover > .nexus-bench__tooltip,
+.nexus-bench__detail:focus-within > .nexus-bench__tooltip {
+  display: block;
+}
+
+.nexus-bench__facts {
+  display: grid;
+  grid-template-columns: max-content 1fr;
+  gap: var(--meridian-space-3) var(--meridian-space-5);
+  margin: 0;
+  font-size: var(--meridian-text-small);
+}
+
+.nexus-bench__facts dt {
+  font-family: var(--meridian-font-mono);
+  font-size: var(--meridian-text-micro);
+  letter-spacing: var(--meridian-tracking-micro);
+  text-transform: uppercase;
+  color: var(--meridian-text-secondary);
+}
+
+.nexus-bench__facts dd {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--meridian-space-3);
+  margin: 0;
+}

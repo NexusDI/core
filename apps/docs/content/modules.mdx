@@ -1,0 +1,65 @@
+---
+title: Modules
+kind: concept
+description: A NexusDI module groups providers, keeps them private unless it exports them, and imports the exports of other modules.
+requires: [lifetimes, providers]
+---
+
+# Modules
+
+A NexusDI module groups providers under a name and shares only the tokens it exports. `defineModule({ name, providers, imports, exports })` declares one, and from this page on `Nexus.create` takes the program's root module. The lifetimes and provider forms of earlier pages stay the same inside a module.
+
+## Share a NexusDI provider with `exports` and `imports`
+
+A NexusDI module sees its own providers and the exports of the modules it imports, and nothing else. `Engineering` below provides a power router and a computer, both built on a reactor, and exports only `COMPUTER`. `Meridian` imports `Engineering`, so the root container resolves `COMPUTER`. `POWER_ROUTER` stays private: `has()` answers `false` for it, and `get(POWER_ROUTER, { module: Engineering })` resolves it as code inside `Engineering` would.
+
+```ts file=examples/meridian/src/pages/modules.md region=exports
+
+```
+
+`has(token)` answers whether `get(token)` would find a visible provider, and never builds anything. The `{ module }` option of `get()` and `has()` resolves as if the call came from inside that module, which suits tests and debugging sessions.
+
+Try it: save the program as `modules.ts` and run `npx tsx modules.ts`. It prints `ShipComputer online on 0.605 GW.`, then `false`, then `0.605`. Add `POWER_ROUTER` to the `exports` of `Engineering` and run it again. `routerVisible` prints `true`, and the other two lines stay the same. Remove it again and `routerVisible` prints `false`.
+
+## NexusDI reports a private token with `NEXUS_NOT_VISIBLE`
+
+`get()` throws [`NEXUS_NOT_VISIBLE`](/errors/NEXUS_NOT_VISIBLE/) when a provider for the token exists but the caller cannot see it, and the message names the modules that own it:
+
+```ts file=examples/meridian/src/pages/modules.md region=not-visible
+
+```
+
+The same rule holds between modules, and `Nexus.create` checks the dependencies of every provider before it builds anything. A dependency on a token that another module keeps private is reported as `NEXUS_MISSING_PROVIDER`, inside `NEXUS_BLUEPRINT_INVALID`. `NEXUS_NOT_VISIBLE` comes from a `get()` of a token that a module owns and does not export. `Tactical` below imports `Engineering`, which keeps `REACTOR` to itself, so the drone in `Tactical` has no visible reactor. `create` rejects with [`NEXUS_BLUEPRINT_INVALID`](/errors/NEXUS_BLUEPRINT_INVALID/), and the first entry of its `errors` list is [`NEXUS_MISSING_PROVIDER`](/errors/NEXUS_MISSING_PROVIDER/):
+
+```ts file=examples/meridian/src/pages/modules.md region=missing-export
+
+```
+
+Try it: run the second program. It prints the `NEXUS_MISSING_PROVIDER` message above. Add `exports: [REACTOR]` to `Engineering` and run it again. `create` resolves and the program prints `range 12.1`, the range the drone takes from the reactor. Remove the export and the message returns.
+
+## Provide to every NexusDI module with `global: true`
+
+`global: true` makes a module's exports visible to every module in the graph, with no import. The module itself still has to be in the graph, through one import anywhere. `Tactical` below names no import, and its drone still reaches the reactor `Engineering` exports:
+
+```ts file=examples/meridian/src/pages/modules.md region=global
+
+```
+
+A global module suits a provider that most modules need and no module owns, such as configuration. Every other provider belongs behind an explicit import, because the import is what shows a reader where a dependency comes from.
+
+Try it: run the program and it prints `12.1`. Remove `global: true` from `Engineering` and run it again. `create` rejects with `NEXUS_BLUEPRINT_INVALID`, and its `errors` list holds one `NEXUS_MISSING_PROVIDER` for `ReactorCore`, requested by `SurveyDrone` in `Tactical`. The program has no `try` block, so Node prints that error and exits. Put `global: true` back and it prints `12.1` again.
+
+## Swap a NexusDI module that exports the same tokens
+
+A module that exports the same tokens as another can take its place, and no consumer changes. `SimulatorEngineering` binds `REACTOR` to a `SimulatedReactor` and exports `COMPUTER` like `Engineering` does, so a `Meridian` that imports it builds with the same `QuantumComputer` code:
+
+```ts file=examples/meridian/src/pages/modules.md region=swap
+
+```
+
+<Notice kind="ship">
+  The simulator deck runs the ship's computer against a reactor that produces no
+  power, so the crew trains with the fusion core offline.
+</Notice>
+
+Try it: run the program. It prints `Reactor output 1.21 GW.` and then `Reactor output 0 GW.`. Remove `COMPUTER` from the `exports` of `SimulatorEngineering` and run it again. `create` still resolves, because no provider depends on `COMPUTER` and the dependency check has nothing to report. Only `get(COMPUTER)` for the simulator ship throws `NEXUS_NOT_VISIBLE`, because `Meridian` can no longer see its computer. The first line still prints. Restore the export and both lines print again. A swap works only when the replacement exports every token the original did.

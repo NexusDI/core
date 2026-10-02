@@ -1,0 +1,103 @@
+[
+  {
+    "line": 254,
+    "commitment": "A class with default or rest parameters needs `provide(C, { deps })` or `@Injectable`.",
+    "targets": [
+      {
+        "page": "providers",
+        "heading": "A class whose constructor has defaults or rest parameters",
+        "level": 2
+      }
+    ]
+  },
+  {
+    "line": 393,
+    "commitment": "Call `forRoot()` once and import the result.",
+    "targets": [
+      {
+        "page": "configurable-modules",
+        "heading": "Call `forRoot()` once and share the module",
+        "level": 2
+      }
+    ]
+  },
+  {
+    "line": 466,
+    "commitment": "Resolve disposable transients inside a scope.",
+    "targets": [
+      {
+        "page": "lifecycle",
+        "heading": "Dispose a NexusDI transient inside a scope",
+        "level": 2
+      }
+    ]
+  },
+  {
+    "line": 818,
+    "commitment": "The `esnext.disposable` lib reference adds the disposable globals.",
+    "targets": [
+      {
+        "page": "getting-started",
+        "heading": "TypeScript settings for NexusDI",
+        "level": 2
+      }
+    ]
+  },
+  {
+    "line": 1034,
+    "commitment": "A scoped factory runs once in every scope; on-demand work goes in a scoped class.",
+    "targets": [
+      {
+        "page": "scopes",
+        "heading": "A NexusDI scoped factory runs in every `createScope()`",
+        "level": 2
+      }
+    ]
+  },
+  {
+    "line": 1110,
+    "commitment": "A factory hands ownership of its result to the container.",
+    "targets": [
+      {
+        "page": "lifecycle",
+        "heading": "NexusDI owns what a `useFactory` returns",
+        "level": 2
+      }
+    ]
+  },
+  {
+    "line": 1203,
+    "commitment": "Each error code links to a page that explains it.",
+    "targets": [
+      {
+        "page": "api-errors",
+        "heading": null,
+        "level": 3,
+        "coveredBy": "doc-error-codes: one page per code under errors/, listed on api-errors"
+      }
+    ]
+  },
+  {
+    "line": 1239,
+    "commitment": "Minifiers rename classes; use `Token` descriptions or `keepNames`.",
+    "targets": [
+      {
+        "page": "introspection",
+        "heading": "Display names after minification",
+        "level": 2
+      },
+      { "page": "bundlers", "heading": null, "level": 2 }
+    ]
+  },
+  {
+    "line": 1301,
+    "commitment": "An untracked disposable transient is a leak; use a scope.",
+    "targets": [
+      {
+        "page": "lifecycle",
+        "heading": "Dispose a NexusDI transient inside a scope",
+        "level": 2
+      }
+    ]
+  }
+]
