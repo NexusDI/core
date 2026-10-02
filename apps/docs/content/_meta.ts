@@ -38,6 +38,7 @@ const meta: MetaRecord = {
   },
   interceptors: { title: 'Interceptors' },
   'graph-cli': { title: 'Graph CLI' },
+  'error-text': { title: 'Full error text' },
   docs: { title: 'Docs', type: 'page', href: '/getting-started/' },
   // The navbar's Blog entry, hidden until the posts migrate at 0.4.0 final
   // (spec §4.1). The folder exists on every branch so the final root build
