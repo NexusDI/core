@@ -224,6 +224,12 @@
   // this workspace imports them directly, so fallow's static import tracing
   // cannot see the consumer and reports them as unused.
   "ignoreDependencies": [
+    // apps/docs/app/layout.tsx hands next/font/local relative paths into
+    // node_modules for the woff2 files. No import statement names these
+    // packages, so fallow reports them as unused.
+    "@fontsource-variable/space-grotesk",
+    "@fontsource/ibm-plex-mono",
+    "@fontsource/ibm-plex-sans",
     // examples/meridian lists every package its example blocks import. The
     // blocks live in .md files under src/, which fallow does not read, so
     // these four report as unused until a page task adds a block that
