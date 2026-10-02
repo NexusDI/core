@@ -14,7 +14,7 @@ npm install @nexusdi/errors@next
 
 ## Pass each NexusDI package's text pack to `errors()`
 
-A NexusDI text pack holds the text for the codes one package raises. A package whose errors a container words publishes its pack at its `./text` entry: `interceptorsText` at `@nexusdi/interceptors/text` and `federationText` at `@nexusdi/federation/text`. Core's pack, `coreText` at `@nexusdi/core/text`, is part of every `errors()`, so core's codes need no pack in the list. A code no pack covers keeps its one-line message:
+A NexusDI text pack holds the text for the codes one package raises. Two packages export a `./text` entry next to core's own text: `@nexusdi/interceptors` with `interceptorsText` at `@nexusdi/interceptors/text`, and `@nexusdi/federation` with `federationText` at `@nexusdi/federation/text`. Core's pack, `coreText` at `@nexusdi/core/text`, is part of every `errors()`, so core's codes need no pack in the list. A code no pack covers keeps its one-line message:
 
 ```ts file=examples/meridian/src/pages/error-text.md region=package-pack
 
@@ -29,7 +29,7 @@ const plugins = development ? [devtools({ text })] : [errors({ text })];
 
 Try it:
 
-1. Run `npm install @nexusdi/interceptors@next`, save the region as `text.mts`, and run `npx tsx text.mts`. The first line is the one-line message, the next two the full text.
+1. Run `npm install @nexusdi/interceptors@next`, save the region as `text.ts`, and run `npx tsx text.ts`. The first line is the one-line message, the next two the full text.
 2. Change `errors({ text: [interceptorsText] })` in the second call to `errors()` and run again. Both messages are now the one-line form, with the link to [NEXUS_INTERCEPTOR_MISSING](/errors/NEXUS_INTERCEPTOR_MISSING/).
 3. Put `{ text: [interceptorsText] }` back and run again. The full text with its `Fix:` line prints once more.
 
@@ -45,8 +45,8 @@ An entry reads the error's fields, such as `requester` and `token`. An entry tha
 
 Try it:
 
-1. Save the region as `translate.mts` and run `npx tsx translate.mts`. The message and its `Fix:` line print in Swedish.
-2. Change `error.requester` to `error.requestor` in the `message` line. `npx tsc --noEmit` flags the line with `Property 'requestor' does not exist on type 'MissingProviderError'. Did you mean 'requester'?`, and `npx tsx translate.mts` still runs and prints `undefined i Engineering` where the requester belongs.
+1. Save the region as `translate.ts` and run `npx tsx translate.ts`. The message and its `Fix:` line print in Swedish.
+2. Change `error.requester` to `error.requestor` in the `message` line. `npx tsc --noEmit` flags the line with `Property 'requestor' does not exist on type 'MissingProviderError'. Did you mean 'requester'?`, and `npx tsx translate.ts` still runs and prints `undefined i Engineering` where the requester belongs.
 3. Change it back to `error.requester`. The line prints `ShipComputer i Engineering` again.
 4. Change `errors({ text: [swedish] })` to `errors()`. The message is core's English text, and the `Fix:` line reads `provide NavCharts in Engineering or in a module Engineering imports.`
 
@@ -70,7 +70,7 @@ Try it: in the `explain` region, import `errors` from `@nexusdi/errors` and pass
 
 ```
 
-Try it: change `devtools({ text })` to `devtools()` and `inspect(Engineering, { text, plugins: [audit()] })` to `inspect(Engineering, { plugins: [audit()] })`. Both lines print the one-line form, `[NEXUS_INTERCEPTOR_MISSING] token=Audit.` and the link. Restore `text` in both and the full sentence returns.
+Try it: run `npm install @nexusdi/devtools@next`, then change `devtools({ text })` to `devtools()` and `inspect(Engineering, { text, plugins: [audit()] })` to `inspect(Engineering, { plugins: [audit()] })`. Both lines print the one-line form, `[NEXUS_INTERCEPTOR_MISSING] token=Audit.` and the link. Restore `text` in both and the full sentence returns.
 
 `nexusdi graph` from `@nexusdi/cli` takes no packs of its own. It reads the `--plugins` array, so a list that holds `errors({ text })` words the errors the command prints ([graph CLI](/graph-cli/)).
 
@@ -82,4 +82,4 @@ Some errors are raised where no container formats them, and their package writes
 
 ```
 
-Try it: in the `own-text` region, import `errors` from `@nexusdi/errors`, pass `{ plugins: [errors()] }` to `create()`, and run it. The message of [NEXUS_OVERRIDE_UNUSED](/errors/NEXUS_OVERRIDE_UNUSED/) is the same two lines as before. A pack with a `NEXUS_OVERRIDE_UNUSED` entry in `errors({ text })` leaves them unchanged too.
+Try it: run `npm install @nexusdi/testing@next`, run the `own-text` region, then import `errors` from `@nexusdi/errors`, pass `{ plugins: [errors()] }` to `create()`, and run it. The message of [NEXUS_OVERRIDE_UNUSED](/errors/NEXUS_OVERRIDE_UNUSED/) is the same two lines as before. A pack with a `NEXUS_OVERRIDE_UNUSED` entry in `errors({ text })` leaves them unchanged too.
