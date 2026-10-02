@@ -1,0 +1,52 @@
+---
+title: NEXUS_PLUGIN_FAILED
+kind: code
+description: A plugin's hook threw.
+package: '@nexusdi/core'
+errorClass: PluginError
+---
+
+# NEXUS_PLUGIN_FAILED
+
+`NEXUS_PLUGIN_FAILED` means a plugin's hook threw, or returned a value of the wrong type. The hook's error is its `cause`, and the `hook` field names the hook. Where the error surfaces depends on the hook:
+
+- A `setup` hook that throws or rejects makes `Nexus.create` reject with `NEXUS_PLUGIN_FAILED` bare, after disposing what it built. `disposalErrors` holds what that disposal threw.
+- A hook under `compile` that throws or returns the wrong type, and a `tokenKey` hook that throws during a compile, is reported inside [NEXUS_BLUEPRINT_INVALID](/errors/NEXUS_BLUEPRINT_INVALID/). `Nexus.create` and `load()` reject with it and `Nexus.check` throws it.
+- A `tokenKey` hook that throws for a token it meets in `get()` or `has()` makes that call throw `NEXUS_PLUGIN_FAILED` bare.
+- A `construct` hook that throws, or returns a thenable, makes the build fail with [NEXUS_PROVIDER_FAILED](/errors/NEXUS_PROVIDER_FAILED/). `NEXUS_PLUGIN_FAILED` is its `cause`, and the hook's own error is the `cause` of that.
+
+A throw from an `observe` or a `dispose` hook does not use this code.
+
+## Reproduce `NEXUS_PLUGIN_FAILED`
+
+The region registers a plugin whose `setup` hook throws. Without a plugin, core prints a one-line message that starts with the code and ends with the address of this page. With `errors()` from `@nexusdi/errors` registered (`npm install @nexusdi/errors@next`), the same error carries the full text.
+
+```ts file=examples/meridian/src/errors/NEXUS_PLUGIN_FAILED.md region=reproduce
+
+```
+
+Try it: save the region as `error.ts` and run `npx tsx error.ts`. It prints four lines: the one-line message, then `setup`, the `hook` field, then `Error: cache store offline`, the `cause` as a string, then the full text, `[NEXUS_PLUGIN_FAILED] the setup hook of acme:cache failed: Error: cache store offline`, with no fix line. Then save the fix region below as `fixed.ts` and run `npx tsx fixed.ts`. It prints `1.21 true`: the reactor output, then the flag that `setup` set.
+
+## Fix `NEXUS_PLUGIN_FAILED`
+
+`NEXUS_PLUGIN_FAILED` is fixed in the plugin: read `cause`, which holds the error the hook threw, and correct what it names. For a third-party plugin, report the error to its authors with the plugin name and the hook. [How do I register a plugin?](/plugins/) covers registration.
+
+```ts file=examples/meridian/src/errors/NEXUS_PLUGIN_FAILED.md region=fix
+
+```
+
+Try it: in `fixed.ts`, add the line `throw new Error('cache store offline');` after `online = true;` in `setup` and run it again. `tsc` accepts the file. `tsx` throws an uncaught `PluginError` that starts with `[NEXUS_PLUGIN_FAILED] plugin=acme:cache hook=setup.` Delete the line and the program prints `1.21 true` again.
+
+## Fields of `PluginError`
+
+`PluginError` carries the fields of all four plugin codes. A field the code does not use is `null` or empty.
+
+- `plugin`: the plugin's name, or its position such as `plugins[0]` when it has no name or is not an object. It is `plugins` when the option is not an array. `null` for `NEXUS_PLUGIN_CONFLICT`.
+- `reason`: for `NEXUS_PLUGIN_INVALID`: `not-an-array`, `not-an-object`, `no-name`, `duplicate-name`, `bad-hook`, `bad-compile`, `bad-modules` or `bad-on-init`. `null` for the other codes.
+- `detail`: for `NEXUS_PLUGIN_INVALID`: an array of strings that names the value (`not-an-array`, `not-an-object` and `bad-on-init`) or the hook key (`bad-hook`). Empty for every other reason and code.
+- `apiVersion`: for `NEXUS_PLUGIN_VERSION`: the version the plugin declares, as a string such as `'2'`, or `'undefined'` when it declares none.
+- `supported`: for `NEXUS_PLUGIN_VERSION`: the plugin API versions this core supports, as an array of numbers. It holds `[1]` in 0.4.
+- `plugins`: for `NEXUS_PLUGIN_CONFLICT`: the names of the first plugin that rewrote the definition and the later one that rewrote it again.
+- `target`: for `NEXUS_PLUGIN_CONFLICT`: the name of the module or provider both rewrite.
+- `hook`: for `NEXUS_PLUGIN_FAILED`: the hook that failed, one of `setup`, `tokenKey`, `construct`, `compile.module`, `compile.provider` and `compile.check`.
+- `disposalErrors`: for `NEXUS_PLUGIN_FAILED`: the errors thrown while disposing what `create` had built, as an array. It is empty unless a `setup` failure closed the container.

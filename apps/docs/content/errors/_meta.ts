@@ -83,6 +83,10 @@ const meta: MetaRecord = {
     display: 'hidden',
   },
   NEXUS_DISPOSED: { title: 'NEXUS_DISPOSED', display: 'hidden' },
+  NEXUS_PLUGIN_INVALID: { title: 'NEXUS_PLUGIN_INVALID', display: 'hidden' },
+  NEXUS_PLUGIN_VERSION: { title: 'NEXUS_PLUGIN_VERSION', display: 'hidden' },
+  NEXUS_PLUGIN_CONFLICT: { title: 'NEXUS_PLUGIN_CONFLICT', display: 'hidden' },
+  NEXUS_PLUGIN_FAILED: { title: 'NEXUS_PLUGIN_FAILED', display: 'hidden' },
 };
 
 export default meta;

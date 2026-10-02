@@ -10,9 +10,5 @@
   "NEXUS_INTERCEPTOR_NOT_READY": "Phase 1 writes it in its code page task.",
   "NEXUS_LEGACY_DECORATORS": "Phase 1 writes it in its code page task.",
   "NEXUS_OVERRIDE_EXPORTS": "Phase 1 writes it in its code page task.",
-  "NEXUS_OVERRIDE_UNUSED": "Phase 1 writes it in its code page task.",
-  "NEXUS_PLUGIN_CONFLICT": "Phase 1 writes it in its code page task.",
-  "NEXUS_PLUGIN_FAILED": "Phase 1 writes it in its code page task.",
-  "NEXUS_PLUGIN_INVALID": "Phase 1 writes it in its code page task.",
-  "NEXUS_PLUGIN_VERSION": "Phase 1 writes it in its code page task."
+  "NEXUS_OVERRIDE_UNUSED": "Phase 1 writes it in its code page task."
 }

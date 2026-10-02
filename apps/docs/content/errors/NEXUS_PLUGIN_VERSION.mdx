@@ -1,0 +1,45 @@
+---
+title: NEXUS_PLUGIN_VERSION
+kind: code
+description: A plugin was written for a plugin API this @nexusdi/core does not support.
+package: '@nexusdi/core'
+errorClass: PluginError
+---
+
+# NEXUS_PLUGIN_VERSION
+
+`NEXUS_PLUGIN_VERSION` means a plugin declares an `apiVersion` this `@nexusdi/core` does not support. A missing or non-numeric `apiVersion` counts as a version no core supports. Core checks every plugin's version before it compiles anything and reports a mismatch inside [NEXUS_BLUEPRINT_INVALID](/errors/NEXUS_BLUEPRINT_INVALID/). `Nexus.create` rejects with that error and `Nexus.check` throws it. No call raises `NEXUS_PLUGIN_VERSION` bare.
+
+## Reproduce `NEXUS_PLUGIN_VERSION`
+
+The region registers a plugin that declares plugin API 2. Without a plugin, core prints a one-line message that starts with the code and ends with the address of this page. With `errors()` from `@nexusdi/errors` registered (`npm install @nexusdi/errors@next`), the same error carries the full text.
+
+```ts file=examples/meridian/src/errors/NEXUS_PLUGIN_VERSION.md region=reproduce
+
+```
+
+Try it: save the region as `error.ts` and run `npx tsx error.ts`. It prints the one-line message, then `[ 1 ]`, the `supported` field, then an array of two strings: the full text, which names the version the plugin declares and the version this core supports, and the `Fix:` line. Then save the fix region below as `fixed.ts` and run `npx tsx fixed.ts`. It prints `1.21 1`.
+
+## Fix `NEXUS_PLUGIN_VERSION`
+
+`NEXUS_PLUGIN_VERSION` is fixed by installing the plugin version built for your `@nexusdi/core`. Every first-party package shares the version of `@nexusdi/core`. A plugin author sets `apiVersion: NEXUS_PLUGIN_API`, imported from `@nexusdi/core`. [How do I register a plugin?](/plugins/) covers registration.
+
+```ts file=examples/meridian/src/errors/NEXUS_PLUGIN_VERSION.md region=fix
+
+```
+
+Try it: in `fixed.ts`, change `NEXUS_PLUGIN_API` in the plugin to `2` and run it again. `tsc` accepts the file, because `apiVersion` is a number. `tsx` throws an uncaught `BlueprintError` whose second line is `[NEXUS_PLUGIN_VERSION] plugin=acme:cache apiVersion=2.` followed by the address of this page. Change it back and the program prints `1.21 1` again.
+
+## Fields of `PluginError`
+
+`PluginError` carries the fields of all four plugin codes. A field the code does not use is `null` or empty.
+
+- `plugin`: the plugin's name, or its position such as `plugins[0]` when it has no name or is not an object. It is `plugins` when the option is not an array. `null` for `NEXUS_PLUGIN_CONFLICT`.
+- `reason`: for `NEXUS_PLUGIN_INVALID`: `not-an-array`, `not-an-object`, `no-name`, `duplicate-name`, `bad-hook`, `bad-compile`, `bad-modules` or `bad-on-init`. `null` for the other codes.
+- `detail`: for `NEXUS_PLUGIN_INVALID`: an array of strings that names the value (`not-an-array`, `not-an-object` and `bad-on-init`) or the hook key (`bad-hook`). Empty for every other reason and code.
+- `apiVersion`: for `NEXUS_PLUGIN_VERSION`: the version the plugin declares, as a string such as `'2'`, or `'undefined'` when it declares none.
+- `supported`: for `NEXUS_PLUGIN_VERSION`: the plugin API versions this core supports, as an array of numbers. It holds `[1]` in 0.4.
+- `plugins`: for `NEXUS_PLUGIN_CONFLICT`: the names of the first plugin that rewrote the definition and the later one that rewrote it again.
+- `target`: for `NEXUS_PLUGIN_CONFLICT`: the name of the module or provider both rewrite.
+- `hook`: for `NEXUS_PLUGIN_FAILED`: the hook that failed, one of `setup`, `tokenKey`, `construct`, `compile.module`, `compile.provider` and `compile.check`.
+- `disposalErrors`: for `NEXUS_PLUGIN_FAILED`: the errors thrown while disposing what `create` had built, as an array. It is empty unless a `setup` failure closed the container.
