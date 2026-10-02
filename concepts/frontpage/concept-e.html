@@ -1,0 +1,4903 @@
+<!doctype html>
+<html lang="en" data-theme="dark">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>NexusDI: wiring mistakes fail CI</title>
+    <meta
+      name="description"
+      content="NexusDI is a dependency injection container for TypeScript with modules and async startup. It checks the whole graph before launch."
+    />
+    <script>
+      (function () {
+        var t = null;
+        try {
+          t = localStorage.getItem('nx-theme');
+        } catch (e) {}
+        if (!t)
+          t =
+            window.matchMedia &&
+            window.matchMedia('(prefers-color-scheme: light)').matches
+              ? 'light'
+              : 'dark';
+        document.documentElement.setAttribute('data-theme', t);
+      })();
+    </script>
+    <style>
+      :root {
+        --bg: #0b1d3a;
+        --bg2: #12345c;
+        --panel: #2c4c66;
+        --panel2: #385f7c;
+        --text: #f2f7fb;
+        --dim: #bfd2df;
+        --line: #0a0d12;
+        --gold: #ffc531;
+        --gold2: #d9930b;
+        --blue: #2f86ff;
+        --blue2: #1b57b8;
+        --red: #ff5148;
+        --red2: #b3231f;
+        --green: #55e07a;
+        --cyan: #52c7ff;
+        --violet: #b992ff;
+        --off: #1d3249;
+        --amberText: #ffc531;
+        --sky1: #1a3a6e;
+        --sky2: #0b1b38;
+        --grain: 0.1;
+        --disp:
+          Impact, Haettenschweiler, 'Arial Narrow', 'Arial Black', system-ui,
+          sans-serif;
+        --body:
+          system-ui, -apple-system, 'Segoe UI', Roboto, 'Helvetica Neue', Arial,
+          sans-serif;
+        --mono:
+          ui-monospace, 'SFMono-Regular', Menlo, Consolas, 'Liberation Mono',
+          'DejaVu Sans Mono', monospace;
+        --o2:
+          -2px -2px 0 var(--line), 2px -2px 0 var(--line),
+          -2px 2px 0 var(--line), 2px 2px 0 var(--line), 0 -2px 0 var(--line),
+          0 2px 0 var(--line), -2px 0 0 var(--line), 2px 0 0 var(--line);
+      }
+      :root[data-theme='light'] {
+        --bg: #cde4f3;
+        --bg2: #e6f2fa;
+        --panel: #fff8ea;
+        --panel2: #f1e6cb;
+        --text: #17130f;
+        --dim: #4a5763;
+        --line: #17130f;
+        --off: #d9cfb8;
+        --amberText: #8a5a00;
+        --sky1: #8fd0f0;
+        --sky2: #e8f6fc;
+        --grain: 0.12;
+        --red: #d92a21;
+      }
+      * {
+        box-sizing: border-box;
+      }
+      html {
+        scroll-behavior: smooth;
+      }
+      body {
+        margin: 0;
+        color: var(--text);
+        font-family: var(--body);
+        font-size: 16px;
+        line-height: 1.55;
+        font-synthesis: none;
+        overflow-x: hidden;
+        min-width: 320px;
+        background:
+          radial-gradient(
+            ellipse 80% 60% at 50% 20%,
+            var(--bg2),
+            transparent 70%
+          ),
+          radial-gradient(
+              circle at 1px 1px,
+              rgba(255, 255, 255, 0.07) 1.2px,
+              transparent 1.6px
+            )
+            0 0/14px 14px,
+          var(--bg);
+        background-attachment: fixed;
+      }
+      :root[data-theme='light'] body {
+        background:
+          radial-gradient(ellipse 80% 60% at 50% 15%, #f4fbff, transparent 70%),
+          radial-gradient(
+              circle at 1px 1px,
+              rgba(23, 19, 15, 0.1) 1.2px,
+              transparent 1.6px
+            )
+            0 0/14px 14px,
+          var(--bg);
+        background-attachment: fixed;
+      }
+      body::after {
+        content: '';
+        position: fixed;
+        inset: 0;
+        pointer-events: none;
+        z-index: 50;
+        opacity: var(--grain);
+        mix-blend-mode: multiply;
+        background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='220' height='220'><filter id='n'><feTurbulence type='fractalNoise' baseFrequency='.85' numOctaves='2' seed='4'/><feColorMatrix values='0 0 0 0 0  0 0 0 0 0  0 0 0 0 0  0 0 0 3.4 -1.55'/></filter><rect width='220' height='220' filter='url(%23n)'/></svg>");
+      }
+      body.crton::before {
+        content: '';
+        position: fixed;
+        inset: 0;
+        pointer-events: none;
+        z-index: 49;
+        background:
+          repeating-linear-gradient(
+            0deg,
+            rgba(0, 0, 0, 0.14) 0 1px,
+            transparent 1px 3px
+          ),
+          radial-gradient(
+            ellipse at center,
+            transparent 60%,
+            rgba(0, 0, 0, 0.35)
+          );
+      }
+      a {
+        color: inherit;
+      }
+      :focus-visible {
+        outline: 3px solid var(--gold);
+        outline-offset: 3px;
+        box-shadow: 0 0 0 9px var(--line);
+      }
+      :root[data-theme='light'] :focus-visible {
+        outline-color: #1b57b8;
+        box-shadow: 0 0 0 9px #fff;
+      }
+      .skip {
+        position: absolute;
+        left: 8px;
+        top: -60px;
+        z-index: 60;
+        background: var(--gold);
+        color: #1b1409;
+        font-weight: 800;
+        padding: 8px 14px;
+        border: 3px solid var(--line);
+        border-radius: 99px;
+      }
+      .skip:focus {
+        top: 8px;
+      }
+      .sr {
+        position: absolute;
+        width: 1px;
+        height: 1px;
+        overflow: hidden;
+        clip: rect(0 0 0 0);
+        white-space: nowrap;
+      }
+      .wrap {
+        max-width: 1240px;
+        margin: 0 auto;
+        padding: 0 16px;
+      }
+      .disp {
+        font-family: var(--disp);
+        font-weight: 900;
+        text-transform: uppercase;
+        letter-spacing: 0.02em;
+        color: var(--gold);
+        text-shadow:
+          var(--o2),
+          3px 5px 0 var(--line);
+      }
+      .ico {
+        width: 28px;
+        height: 28px;
+        flex: none;
+        --ic: var(--gold);
+        --inkc: var(--line);
+      }
+
+      /* header */
+      header.top {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        padding: 8px 0;
+        flex-wrap: wrap;
+      }
+      .brand {
+        margin-right: auto;
+        text-decoration: none;
+        font-size: 28px;
+        line-height: 1;
+        padding: 4px 2px;
+      }
+      .toggles {
+        display: flex;
+        gap: 8px;
+        flex-wrap: wrap;
+      }
+
+      /* buttons: bevelled pills */
+      .btn {
+        font-family: var(--body);
+        font-synthesis: none;
+        font-weight: 800;
+        font-size: 16px;
+        text-transform: uppercase;
+        letter-spacing: 0.04em;
+        text-decoration: none;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        gap: 8px;
+        padding: 8px 20px;
+        min-height: 44px;
+        border: 3px solid var(--line);
+        border-radius: 999px;
+        background: linear-gradient(var(--blue), var(--blue2));
+        color: #fff;
+        text-shadow: 0 2px 0 rgba(0, 0, 0, 0.55);
+        cursor: pointer;
+        box-shadow:
+          inset 0 3px 0 rgba(255, 255, 255, 0.4),
+          inset 0 -4px 0 rgba(0, 0, 0, 0.28),
+          0 4px 0 var(--line);
+        line-height: 1.1;
+        transition: transform 0.08s;
+      }
+      .btn:hover {
+        filter: brightness(1.1);
+      }
+      .btn:active {
+        transform: translateY(3px);
+        box-shadow:
+          inset 0 3px 0 rgba(255, 255, 255, 0.3),
+          inset 0 -4px 0 rgba(0, 0, 0, 0.28),
+          0 1px 0 var(--line);
+      }
+      .btn.gold {
+        background: linear-gradient(#ffd75a, var(--gold2));
+        color: #1b1409;
+        text-shadow: 0 1px 0 rgba(255, 255, 255, 0.5);
+      }
+      .btn.small {
+        min-height: 38px;
+        padding: 4px 14px;
+        font-size: 15px;
+      }
+      .btn.tog {
+        background: linear-gradient(#5a7186, #3c5266);
+      }
+      .btn.tog[aria-pressed='true'] {
+        background: linear-gradient(#ffd75a, var(--gold2));
+        color: #1b1409;
+        text-shadow: none;
+      }
+      :root[data-theme='light'] .btn.tog:not([aria-pressed='true']) {
+        background: linear-gradient(#e1ecf3, #b9cbd8);
+        color: #17130f;
+        text-shadow: none;
+      }
+      .btn[aria-disabled='true'] {
+        background: linear-gradient(#6b7782, #4c5660);
+        color: #d3dbe1;
+        text-shadow: none;
+        cursor: not-allowed;
+      }
+      .btn[aria-disabled='true']:hover {
+        filter: none;
+      }
+      .btn.big {
+        width: 100%;
+        min-height: 60px;
+        font-size: 24px;
+      }
+
+      /* panels */
+      .panel {
+        background: var(--panel);
+        border: 4px solid var(--line);
+        border-radius: 16px;
+        box-shadow:
+          inset 0 3px 0 rgba(255, 255, 255, 0.2),
+          inset 0 -3px 0 rgba(0, 0, 0, 0.18),
+          0 7px 0 var(--line);
+      }
+      .titlebar {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        background: var(--line);
+        color: #f2f7fb;
+        padding: 6px 12px;
+        font-family: var(--body);
+        font-weight: 800;
+        font-size: 16px;
+        letter-spacing: 0.06em;
+        text-transform: uppercase;
+        border-radius: 11px 11px 0 0;
+        min-height: 38px;
+      }
+      .titlebar .btn {
+        margin-left: auto;
+      }
+      .titlebar .btn.small {
+        min-height: 30px;
+        padding: 2px 12px;
+        font-size: 14px;
+        box-shadow:
+          inset 0 2px 0 rgba(255, 255, 255, 0.4),
+          inset 0 -3px 0 rgba(0, 0, 0, 0.28),
+          0 3px 0 #000;
+      }
+
+      /* hero */
+      .hero {
+        padding: 6px 0 36px;
+      }
+      .herotop {
+        display: grid;
+        grid-template-columns: minmax(0, 1.3fr) minmax(0, 1fr);
+        gap: 22px;
+        align-items: center;
+        margin-bottom: 14px;
+      }
+      h1 {
+        font-size: clamp(26px, 2.9vw, 36px);
+        line-height: 1.04;
+        margin: 0 0 8px;
+        max-width: 24ch;
+      }
+      .lede {
+        max-width: 58ch;
+        font-size: 15px;
+        line-height: 1.45;
+        margin: 0 0 10px;
+      }
+      .cta {
+        display: flex;
+        gap: 12px;
+        flex-wrap: wrap;
+        align-items: center;
+      }
+      .install {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        flex-wrap: wrap;
+      }
+      .hero .cta .btn:not(.small) {
+        min-height: 40px;
+        padding: 4px 18px;
+        font-size: 16px;
+      }
+      .install code {
+        font-family: var(--mono);
+        font-size: 14px;
+        background: #10161d;
+        color: #eaf3f8;
+        border: 3px solid var(--line);
+        border-radius: 12px;
+        padding: 5px 12px;
+        box-shadow: 0 4px 0 var(--line);
+        white-space: nowrap;
+      }
+      .install code i {
+        color: var(--gold);
+        font-style: normal;
+      }
+      .copied {
+        font-weight: 800;
+        font-size: 14px;
+        color: var(--green);
+        min-width: 0;
+      }
+      :root[data-theme='light'] .copied {
+        color: #14732d;
+      }
+      .fine {
+        font-size: 14px;
+        color: var(--dim);
+        margin: 10px 0 0;
+      }
+
+      /* HUD */
+      .hud {
+        padding: 8px 14px 12px;
+      }
+      .hudhead {
+        flex-wrap: wrap;
+        display: flex;
+        align-items: baseline;
+        gap: 10px;
+        justify-content: space-between;
+        margin-bottom: 6px;
+      }
+      .hudhead .disp {
+        font-family: var(--body);
+        font-weight: 800;
+        font-size: 17px;
+        white-space: nowrap;
+        text-shadow: var(--o2);
+      }
+      .hudv {
+        white-space: nowrap;
+      }
+      .hudv {
+        font-family: var(--mono);
+        font-size: 13px;
+        color: var(--dim);
+      }
+      .split {
+        display: grid;
+        grid-template-columns: auto minmax(0, 1fr) auto;
+        gap: 10px;
+        align-items: center;
+        margin-bottom: 8px;
+      }
+      .sn {
+        display: flex;
+        flex-direction: column;
+        line-height: 1;
+      }
+      .sn.r {
+        align-items: flex-end;
+      }
+      .big {
+        font-family: var(--disp);
+        font-weight: 900;
+        font-size: 34px;
+        color: #fff;
+        text-shadow:
+          var(--o2),
+          3px 4px 0 var(--line);
+        line-height: 1;
+        white-space: nowrap;
+      }
+      .sn.r .big {
+        color: #ffb3ae;
+      }
+      .sn small,
+      .ncard small {
+        font-family: var(--body);
+        font-weight: 800;
+        font-size: 12px;
+        letter-spacing: 0.02em;
+        text-transform: uppercase;
+        color: var(--dim);
+        margin-top: 4px;
+      }
+      .bar {
+        position: relative;
+        height: 24px;
+        border: 3px solid var(--line);
+        border-radius: 8px;
+        background: #1a2430;
+        overflow: hidden;
+        display: flex;
+        box-shadow: 0 3px 0 var(--line);
+      }
+      .bar .fb {
+        height: 100%;
+        background: repeating-linear-gradient(
+          -45deg,
+          #3b95ff 0 8px,
+          #1f66d6 8px 16px
+        );
+        transition: width 0.25s;
+      }
+      .bar .fr {
+        height: 100%;
+        background: repeating-linear-gradient(
+          -45deg,
+          #ff5148 0 8px,
+          #c1352e 8px 16px
+        );
+        flex: 1;
+      }
+      .bar .mk2 {
+        position: absolute;
+        top: -2px;
+        bottom: -2px;
+        width: 6px;
+        margin-left: -3px;
+        background: var(--gold);
+        border: 2px solid var(--line);
+        border-radius: 3px;
+        transition: left 0.25s;
+      }
+      .cards {
+        display: grid;
+        grid-template-columns: 1fr 1fr 1.35fr 1.2fr;
+        gap: 8px;
+      }
+      .ncard {
+        background: #20384d;
+        border: 3px solid var(--line);
+        border-radius: 12px;
+        padding: 6px 8px 8px;
+        display: flex;
+        flex-direction: column;
+        min-height: 66px;
+        box-shadow: 0 4px 0 var(--line);
+        min-width: 0;
+      }
+      :root[data-theme='light'] .ncard {
+        background: #fdf3da;
+      }
+      :root[data-theme='light'] .ncard small,
+      :root[data-theme='light'] .ncard em {
+        color: #4a5763;
+      }
+      :root[data-theme='light'] .big {
+        color: #fff;
+      }
+      .ncard .big {
+        font-size: 28px;
+      }
+      .ncard .mid {
+        font-family: var(--body);
+        font-weight: 800;
+        font-size: 20px;
+        line-height: 1.05;
+        color: #fff;
+        text-shadow: var(--o2);
+        text-transform: uppercase;
+      }
+      .ncard em {
+        font-style: normal;
+        font-size: 12px;
+        color: var(--dim);
+        line-height: 1.2;
+      }
+      .ncard.bp.ok {
+        background: repeating-linear-gradient(
+          -45deg,
+          #1d7a3c 0 10px,
+          #23924a 10px 20px
+        );
+      }
+      .ncard.bp.bad {
+        background: repeating-linear-gradient(
+          -45deg,
+          #b3231f 0 10px,
+          #d83a33 10px 20px
+        );
+      }
+      :root[data-theme='light'] .ncard.bp small,
+      :root[data-theme='light'] .ncard.bp em,
+      .ncard.bp small,
+      .ncard.bp em {
+        color: #fff;
+        text-shadow: 0 1px 0 rgba(0, 0, 0, 0.6);
+      }
+      .ncard.bp .mid {
+        display: flex;
+        align-items: center;
+        gap: 6px;
+      }
+      .ncard.bp .mid svg {
+        width: 22px;
+        height: 22px;
+      }
+      #launch {
+        width: 100%;
+        height: 100%;
+        min-height: 66px;
+        font-size: 19px;
+        padding: 4px 6px;
+        border-radius: 16px;
+      }
+
+      /* pair: ship + preflight */
+      .pair {
+        display: grid;
+        grid-template-columns: minmax(0, 830px) minmax(0, 1fr);
+        gap: 18px;
+        align-items: stretch;
+      }
+      .frame {
+        position: relative;
+        display: flex;
+        flex-direction: column;
+        min-width: 0;
+        overflow: hidden;
+      }
+      .frame.alert {
+        border-color: var(--line);
+        box-shadow:
+          inset 0 0 0 4px var(--red),
+          0 7px 0 var(--line);
+      }
+      .hint {
+        margin: 0;
+        padding: 3px 12px;
+        font-size: 13.5px;
+        background: var(--panel2);
+        border-bottom: 3px solid var(--line);
+        line-height: 1.3;
+      }
+      .hint .pan,
+      .legendwrap {
+        display: none;
+      }
+      .scroller {
+        overflow-x: auto;
+        overflow-y: hidden;
+        background: var(--sky2);
+        -webkit-overflow-scrolling: touch;
+      }
+      #ship {
+        display: block;
+        width: 100%;
+        height: auto;
+      }
+      .strip {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        padding: 8px 12px;
+        border-top: 3px solid var(--line);
+        background: var(--panel2);
+        min-height: 64px;
+      }
+      .strip .st-ico {
+        width: 30px;
+        height: 30px;
+        flex: none;
+      }
+      .strip .msg {
+        flex: 1;
+        font-size: 15px;
+        line-height: 1.3;
+        min-width: 0;
+      }
+      .strip .msg .at {
+        display: inline;
+        margin-right: 8px;
+        font-family: var(--body);
+        font-weight: 800;
+        letter-spacing: 0.04em;
+        font-size: 18px;
+        text-transform: uppercase;
+        color: #fff;
+        text-shadow: var(--o2);
+      }
+      .strip.bad {
+        background: repeating-linear-gradient(
+          -45deg,
+          #8f1d19 0 12px,
+          #a8231f 12px 24px
+        );
+        color: #fff;
+      }
+      .strip .okico {
+        display: block;
+      }
+      .strip .klico {
+        display: none;
+      }
+      .strip.bad .okico {
+        display: none;
+      }
+      .strip.bad .klico {
+        display: block;
+      }
+      .meter {
+        display: flex;
+        gap: 3px;
+      }
+      .meter i {
+        width: 8px;
+        height: 18px;
+        border: 2px solid var(--line);
+        border-radius: 2px;
+        background: #1a2430;
+      }
+      .meter i.on {
+        background: var(--green);
+      }
+      .strip.bad .meter {
+        display: none;
+      }
+      .term {
+        display: flex;
+        flex-direction: column;
+        min-width: 0;
+        overflow: hidden;
+        background: #10161d;
+        color: #eaf3f8;
+      }
+      .term pre {
+        margin: 0;
+        padding: 10px 14px;
+        font-family: var(--mono);
+        font-size: 13px;
+        line-height: 1.5;
+        white-space: pre-wrap;
+        overflow-wrap: anywhere;
+      }
+      .term pre.out {
+        border-top: 3px dashed #34465a;
+        flex: 1;
+        min-height: 150px;
+        background: #0a0f14;
+        border-radius: 0 0 11px 11px;
+      }
+      .term pre.out.flash {
+        animation: flash 0.7s;
+      }
+      @keyframes flash {
+        0% {
+          background: #5a1613;
+        }
+        100% {
+          background: #0a0f14;
+        }
+      }
+      .k {
+        color: #ff9bd0;
+      }
+      .s {
+        color: #ffd37a;
+      }
+      .f {
+        color: #7fd4ff;
+      }
+      .c {
+        color: #8aa0b3;
+      }
+      .okc {
+        color: #6dea8b;
+      }
+      .err {
+        color: #ff8d86;
+      }
+      .err.hl {
+        background: rgba(255, 81, 72, 0.22);
+        display: block;
+        border-left: 4px solid var(--red);
+        padding-left: 6px;
+        margin-left: -10px;
+      }
+      .term a {
+        color: inherit;
+      }
+      .below {
+        display: grid;
+        grid-template-columns: minmax(0, 1fr);
+        gap: 18px;
+        margin-top: 22px;
+        align-items: start;
+      }
+      .legend {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 6px 18px;
+        font-size: 14px;
+        color: var(--dim);
+        margin: 0 0 8px;
+        padding: 0;
+        list-style: none;
+      }
+      .legend b {
+        color: var(--text);
+        font-weight: 800;
+      }
+      .conduit-list {
+        list-style: none;
+        margin: 0;
+        padding: 0;
+        display: grid;
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+        gap: 10px;
+      }
+      .conduit-list button {
+        width: 100%;
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        font: inherit;
+        font-weight: 700;
+        font-size: 14px;
+        text-align: left;
+        color: var(--text);
+        background: var(--panel);
+        border: 3px solid var(--line);
+        border-radius: 12px;
+        padding: 6px 10px;
+        min-height: 44px;
+        cursor: pointer;
+        box-shadow:
+          inset 0 2px 0 rgba(255, 255, 255, 0.2),
+          0 4px 0 var(--line);
+      }
+      .conduit-list button .st {
+        margin-left: auto;
+        font-family: var(--body);
+        font-weight: 800;
+        letter-spacing: 0.05em;
+        font-size: 14px;
+        color: var(--green);
+        white-space: nowrap;
+      }
+      :root[data-theme='light'] .conduit-list button .st {
+        color: #14732d;
+      }
+      .conduit-list button[aria-pressed='true'] {
+        background: repeating-linear-gradient(
+          -45deg,
+          #8f1d19 0 10px,
+          #a8231f 10px 20px
+        );
+        color: #fff;
+      }
+      .conduit-list button[aria-pressed='true'] .st {
+        color: #fff;
+      }
+      .conduit-list .ico {
+        width: 22px;
+        height: 22px;
+      }
+
+      /* sections */
+      .sec {
+        padding: 34px 0 6px;
+      }
+      .sec h2 {
+        font-size: clamp(30px, 4vw, 44px);
+        margin: 0 0 18px;
+        line-height: 1;
+      }
+      .why {
+        display: grid;
+        grid-template-columns: repeat(4, minmax(0, 1fr));
+        gap: 16px;
+      }
+      .why > div {
+        padding: 14px 16px 16px;
+      }
+      .why .ico {
+        width: 44px;
+        height: 44px;
+      }
+      .why h3 {
+        font-family: var(--disp);
+        font-weight: 900;
+        font-size: 22px;
+        text-transform: uppercase;
+        margin: 8px 0 4px;
+        letter-spacing: 0.02em;
+        line-height: 1.05;
+      }
+      .why p {
+        margin: 0;
+        font-size: 15px;
+      }
+      .cmp {
+        overflow-x: auto;
+        padding: 0;
+      }
+      .cmp table {
+        border-collapse: collapse;
+        width: 100%;
+        min-width: 680px;
+      }
+      .cmp th,
+      .cmp td {
+        text-align: left;
+        padding: 10px 12px;
+        border-bottom: 3px solid var(--line);
+        vertical-align: top;
+        font-size: 15px;
+      }
+      .cmp thead th {
+        background: var(--line);
+        color: #f2f7fb;
+        font-family: var(--body);
+        font-weight: 800;
+        text-transform: uppercase;
+        letter-spacing: 0.05em;
+        font-size: 15px;
+      }
+      .cmp td.us,
+      .cmp th.us {
+        background: rgba(255, 197, 49, 0.14);
+      }
+      .cmp thead th.us {
+        background: var(--gold2);
+        color: #1b1409;
+      }
+      .cmp tbody tr:last-child th,
+      .cmp tbody tr:last-child td {
+        border-bottom: 0;
+      }
+      .unv {
+        font-family: var(--body);
+        font-size: 11px;
+        letter-spacing: 0.06em;
+        background: var(--gold);
+        color: #1b1409;
+        border-radius: 99px;
+        padding: 1px 7px;
+        margin-left: 4px;
+        white-space: nowrap;
+      }
+      .mk {
+        display: flex;
+        gap: 8px;
+        align-items: flex-start;
+        font-weight: 700;
+      }
+      .mk .ico {
+        width: 22px;
+        height: 22px;
+        margin-top: 1px;
+      }
+      .mk small {
+        display: block;
+        font-weight: 500;
+        font-size: 13px;
+        color: var(--dim);
+      }
+      .cmpnote {
+        margin-top: 16px;
+        display: flex;
+        gap: 10px;
+        align-items: center;
+        font-size: 15px;
+      }
+      .codecard {
+        margin-top: 18px;
+      }
+      .bay {
+        list-style: none;
+        margin: 0;
+        padding: 0;
+        display: grid;
+        grid-template-columns: repeat(3, minmax(0, 1fr));
+        gap: 16px;
+      }
+      .cart {
+        position: relative;
+        overflow: hidden;
+      }
+      .cart > div {
+        display: flex;
+        gap: 12px;
+        padding: 14px 14px 14px;
+        border-top: 10px solid var(--c);
+      }
+      .cart .ico {
+        width: 44px;
+        height: 44px;
+        --ic: var(--c);
+      }
+      .cart b {
+        display: block;
+        font-family: var(--body);
+        font-weight: 800;
+        font-size: 18px;
+        letter-spacing: 0.01em;
+        text-transform: none;
+        word-break: break-all;
+      }
+      .cart b a {
+        text-decoration: none;
+      }
+      .cart b a:hover {
+        text-decoration: underline;
+      }
+      .cart span.d {
+        display: block;
+        font-size: 15px;
+        margin: 2px 0 6px;
+      }
+      .tag {
+        display: inline-block;
+        font-style: normal;
+        font-size: 11px;
+        font-weight: 800;
+        letter-spacing: 0.08em;
+        text-transform: uppercase;
+        border: 2px solid var(--line);
+        border-radius: 99px;
+        padding: 0 8px;
+        background: var(--panel2);
+      }
+      .cart.core .tag {
+        background: var(--gold);
+        color: #1b1409;
+      }
+      .final {
+        text-align: center;
+        padding: 46px 0 28px;
+      }
+      .final h2 {
+        font-size: clamp(34px, 6vw, 60px);
+        margin: 0 0 20px;
+      }
+      .final .cta {
+        justify-content: center;
+      }
+      footer {
+        text-align: center;
+        padding: 18px 0 40px;
+        color: var(--dim);
+        font-size: 14px;
+      }
+
+      /* the ship drawing */
+      #ship text {
+        font-family: var(--body);
+        font-weight: 800;
+      }
+      #ship .lbl {
+        font-size: 21px;
+        fill: #fff;
+        letter-spacing: 0.3px;
+      }
+      #ship .lbl.dk {
+        fill: #15110e;
+      }
+      #ship .rname {
+        font-family: var(--disp);
+        font-weight: 900;
+        font-size: 25px;
+        fill: #fff3b0;
+        stroke: #15110e;
+        stroke-width: 6px;
+        paint-order: stroke;
+        stroke-linejoin: round;
+      }
+      #ship .stencil {
+        font-size: 17px;
+        fill: #15110e;
+        opacity: 0.8;
+      }
+      #ship .poptxt {
+        font-size: 19px;
+        fill: #fff;
+      }
+      #ship .machlit,
+      #ship .ml,
+      #ship .rl {
+        opacity: 0;
+        transition: opacity 0.25s;
+      }
+      #ship .mach.on .ml,
+      #ship .room.on .rl,
+      #ship .mach.on .machlit {
+        opacity: 1;
+      }
+      #ship .mach {
+        transition: filter 0.3s;
+      }
+      #ship .mach:not(.on) {
+        filter: brightness(0.55) saturate(0.55);
+      }
+      #ship .mach.bad {
+        filter: grayscale(1) brightness(0.38);
+      }
+      #ship .warn,
+      #ship .atag,
+      #ship .rim,
+      #ship .cutonly,
+      #ship .pop {
+        display: none;
+      }
+      #ship .mach.bad .warn {
+        display: block;
+      }
+      #ship .atag.show {
+        display: block;
+      }
+      #ship .room .rdim {
+        opacity: 0.55;
+        transition: opacity 0.3s;
+      }
+      #ship .room.on .rdim {
+        opacity: 0;
+      }
+      #ship .room:not(.on) .crew {
+        filter: brightness(0.6);
+      }
+      #ship .room.alert .rim {
+        display: block;
+      }
+      #ship .room.alert .rdim {
+        opacity: 0.25;
+      }
+      #ship .plug {
+        cursor: pointer;
+        outline: none;
+      }
+      #ship .plug .fring {
+        display: none;
+      }
+      #ship .plug:focus-visible .fring {
+        display: block;
+      }
+      #ship .plug:hover .hov {
+        opacity: 1;
+      }
+      #ship .plug .hov {
+        opacity: 0;
+        transition: opacity 0.15s;
+      }
+      #ship .plug.cut .okonly {
+        display: none;
+      }
+      #ship .plug.cut .cutonly {
+        display: block;
+      }
+      #ship .plug .flow {
+        opacity: 0;
+      }
+      #ship .plug.powered .flow {
+        opacity: 0.9;
+        animation: flow 1.2s linear infinite;
+      }
+      @keyframes flow {
+        to {
+          stroke-dashoffset: -28;
+        }
+      }
+      #ship .plug .pulse {
+        animation: pulse 1.8s ease-out infinite;
+        transform-box: fill-box;
+        transform-origin: center;
+      }
+      @keyframes pulse {
+        0% {
+          transform: scale(0.8);
+          opacity: 0.9;
+        }
+        100% {
+          transform: scale(1.5);
+          opacity: 0;
+        }
+      }
+      #ship .plug.cut .pulse {
+        animation: none;
+        opacity: 0;
+      }
+      #ship .spark {
+        animation: spark 0.35s steps(2) infinite;
+      }
+      #ship .spark.b {
+        animation-delay: 0.17s;
+      }
+      @keyframes spark {
+        50% {
+          opacity: 0.15;
+        }
+      }
+      #ship .dang {
+        animation: sway 1.6s ease-in-out infinite alternate;
+        transform-box: fill-box;
+        transform-origin: top center;
+      }
+      @keyframes sway {
+        from {
+          transform: rotate(-4deg);
+        }
+        to {
+          transform: rotate(5deg);
+        }
+      }
+      #ship .pop.go {
+        display: block;
+        animation: popup 1.2s ease-out forwards;
+      }
+      @keyframes popup {
+        0% {
+          opacity: 0;
+          transform: translateY(8px) scale(0.7);
+        }
+        15% {
+          opacity: 1;
+          transform: translateY(0) scale(1.1);
+        }
+        70% {
+          opacity: 1;
+        }
+        100% {
+          opacity: 0;
+          transform: translateY(-26px);
+        }
+      }
+      #ship .fx {
+        opacity: 0;
+        transition: opacity 0.3s;
+      }
+      #ship .fx.on {
+        opacity: 1;
+      }
+      #ship .wi {
+        display: none;
+      }
+      #ship .wi.show {
+        display: block;
+      }
+      #ship .star {
+        fill: #fff;
+        opacity: 0.8;
+      }
+      :root[data-theme='light'] #ship .star {
+        display: none;
+      }
+      #ship .pulsing {
+        animation: breathe 2.4s ease-in-out infinite;
+      }
+      @keyframes breathe {
+        50% {
+          opacity: 0.55;
+        }
+      }
+      #ship #klx .beam {
+        display: none;
+      }
+      #ship #klx.alarm .beam {
+        display: block;
+        animation: breathe 0.6s steps(2) infinite;
+      }
+      #ship .dishspin {
+        animation: sweep 3s linear infinite;
+        transform-box: fill-box;
+        transform-origin: center;
+      }
+      @keyframes sweep {
+        to {
+          transform: rotate(360deg);
+        }
+      }
+      #ship .go {
+        animation: go 1.8s ease-in forwards;
+      }
+      @keyframes go {
+        0% {
+          transform: translateX(0);
+        }
+        20% {
+          transform: translateX(-14px);
+        }
+        100% {
+          transform: translateX(900px);
+          opacity: 0;
+        }
+      }
+
+      @media (max-width: 1180px) {
+        .pair {
+          grid-template-columns: minmax(0, 1fr) 340px;
+        }
+        .term pre {
+          font-size: 12px;
+        }
+        .ncard {
+          padding: 6px 6px 8px;
+        }
+      }
+      @media (max-width: 980px) {
+        #ship {
+          min-width: 720px;
+        }
+        .hero {
+          display: flex;
+          flex-direction: column;
+          gap: 18px;
+        }
+        .herotop,
+        .pair {
+          display: contents;
+        }
+        .lead {
+          order: 1;
+        }
+        .frame {
+          order: 2;
+        }
+        .hud {
+          order: 3;
+        }
+        .term.pf {
+          order: 4;
+        }
+        .below {
+          order: 5;
+          margin-top: 0;
+        }
+        .legendwrap {
+          display: block;
+        }
+        h1 {
+          text-shadow:
+            var(--o2),
+            2px 3px 0 var(--line);
+        }
+      }
+      .scrollwrap {
+        position: relative;
+      }
+      .frame.canpan .hint .pan {
+        display: inline;
+      }
+      .frame.canpan .panbadge {
+        display: flex;
+      }
+      .panbadge {
+        display: none;
+        position: absolute;
+        right: 8px;
+        bottom: 8px;
+        align-items: center;
+        gap: 6px;
+        background: var(--line);
+        color: #fff;
+        font-family: var(--body);
+        font-weight: 800;
+        font-size: 14px;
+        letter-spacing: 0.05em;
+        text-transform: uppercase;
+        padding: 6px 12px;
+        border-radius: 99px;
+        border: 2px solid #fff;
+        pointer-events: none;
+        animation: nudge 1.4s ease-in-out infinite alternate;
+        transition: opacity 0.3s;
+      }
+      .panbadge.seen {
+        opacity: 0;
+      }
+      @keyframes nudge {
+        to {
+          transform: translateX(-8px);
+        }
+      }
+      @media (max-width: 900px) {
+        .why,
+        .bay {
+          grid-template-columns: repeat(2, minmax(0, 1fr));
+        }
+        .below {
+          grid-template-columns: minmax(0, 1fr);
+        }
+      }
+      @media (max-width: 640px) {
+        .hud .split,
+        .hud .ncard:not(.bp) {
+          display: none;
+        }
+        .hud .cards {
+          grid-template-columns: 1.4fr 1fr;
+        }
+        header.top {
+          gap: 6px;
+          padding: 6px 0;
+        }
+        .brand {
+          font-size: 22px;
+        }
+        .toggles {
+          flex-basis: 100%;
+          gap: 6px;
+        }
+        .btn.small {
+          min-height: 36px;
+          padding: 2px 11px;
+          font-size: 14px;
+        }
+        .titlebar {
+          font-size: 15px;
+        }
+        .strip {
+          flex-wrap: wrap;
+        }
+        .strip .msg {
+          flex: 1 1 calc(100% - 50px);
+        }
+        .strip #fixit {
+          margin-left: auto;
+        }
+        h1 {
+          font-size: 29px;
+        }
+        .why,
+        .bay,
+        .conduit-list {
+          grid-template-columns: minmax(0, 1fr);
+        }
+        .cards {
+          grid-template-columns: repeat(2, minmax(0, 1fr));
+        }
+        .hero-install code {
+          font-size: 14px;
+        }
+        /* comparison becomes stacked cards */
+        .cmp table,
+        .cmp thead,
+        .cmp tbody,
+        .cmp tr,
+        .cmp th,
+        .cmp td {
+          display: block;
+          min-width: 0;
+        }
+        .cmp thead {
+          position: absolute;
+          left: -9999px;
+        }
+        .cmp tr {
+          border-bottom: 4px solid var(--line);
+          padding: 6px 0;
+        }
+        .cmp th,
+        .cmp td {
+          border: 0;
+          padding: 4px 12px;
+        }
+        .cmp td::before {
+          content: attr(data-l);
+          display: block;
+          font-size: 12px;
+          letter-spacing: 0.06em;
+          text-transform: uppercase;
+          color: var(--dim);
+          font-weight: 800;
+        }
+      }
+      @media (prefers-reduced-motion: reduce) {
+        *,
+        *::before,
+        *::after {
+          animation: none !important;
+          transition: none !important;
+          scroll-behavior: auto !important;
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <svg
+      width="0"
+      height="0"
+      style="position: absolute"
+      aria-hidden="true"
+      focusable="false"
+    >
+      <defs>
+        <symbol id="i-shield" viewBox="0 0 32 32">
+          <path
+            d="M16 3 28 7v9c0 7-6 12-12 14C10 28 4 23 4 16V7z"
+            fill="var(--ic)"
+            stroke="var(--inkc)"
+            stroke-width="2.6"
+            stroke-linejoin="round"
+          />
+          <path
+            d="m10 16 4 4 8-9"
+            fill="none"
+            stroke="var(--inkc)"
+            stroke-width="3"
+            stroke-linecap="round"
+            stroke-linejoin="round"
+          />
+        </symbol>
+        <symbol id="i-hatch" viewBox="0 0 32 32">
+          <circle
+            cx="16"
+            cy="16"
+            r="12.5"
+            fill="var(--ic)"
+            stroke="var(--inkc)"
+            stroke-width="2.6"
+          />
+          <circle
+            cx="16"
+            cy="16"
+            r="5"
+            fill="none"
+            stroke="var(--inkc)"
+            stroke-width="2.4"
+          />
+          <path
+            d="M16 4v7M16 21v7M4 16h7M21 16h7"
+            stroke="var(--inkc)"
+            stroke-width="2.4"
+            stroke-linecap="round"
+          />
+        </symbol>
+        <symbol id="i-power" viewBox="0 0 32 32">
+          <path
+            d="M19 2 7 18h8l-2 12 12-17h-8z"
+            fill="var(--ic)"
+            stroke="var(--inkc)"
+            stroke-width="2.6"
+            stroke-linejoin="round"
+          />
+        </symbol>
+        <symbol id="i-chip" viewBox="0 0 32 32">
+          <path
+            d="M10 4v4M16 4v4M22 4v4M10 24v4M16 24v4M22 24v4M4 10h4M4 16h4M4 22h4M24 10h4M24 16h4M24 22h4"
+            stroke="var(--inkc)"
+            stroke-width="2.6"
+            stroke-linecap="round"
+          />
+          <rect
+            x="7"
+            y="7"
+            width="18"
+            height="18"
+            rx="3"
+            fill="var(--ic)"
+            stroke="var(--inkc)"
+            stroke-width="2.6"
+          />
+          <rect x="12" y="12" width="8" height="8" rx="1" fill="var(--inkc)" />
+        </symbol>
+        <symbol id="i-warn" viewBox="0 0 32 32">
+          <path
+            d="M16 3 30 28H2z"
+            fill="var(--ic)"
+            stroke="var(--inkc)"
+            stroke-width="2.6"
+            stroke-linejoin="round"
+          />
+          <path
+            d="M16 11v8"
+            stroke="var(--inkc)"
+            stroke-width="3.2"
+            stroke-linecap="round"
+          />
+          <circle cx="16" cy="23.3" r="1.9" fill="var(--inkc)" />
+        </symbol>
+        <symbol id="i-klaxon" viewBox="0 0 32 32">
+          <path
+            d="M8 24v-8a8 8 0 0 1 16 0v8z"
+            fill="var(--ic)"
+            stroke="var(--inkc)"
+            stroke-width="2.6"
+            stroke-linejoin="round"
+          />
+          <rect
+            x="5"
+            y="24"
+            width="22"
+            height="5"
+            rx="1.5"
+            fill="var(--inkc)"
+          />
+          <path
+            d="M16 2v4M4 8l3 3M28 8l-3 3M2 17h4M26 17h4"
+            stroke="var(--inkc)"
+            stroke-width="2.4"
+            stroke-linecap="round"
+          />
+          <path
+            d="M12 16a4 4 0 0 1 3-3"
+            fill="none"
+            stroke="#fff"
+            stroke-width="2"
+            stroke-linecap="round"
+          />
+        </symbol>
+        <symbol id="i-ok" viewBox="0 0 32 32">
+          <circle
+            cx="16"
+            cy="16"
+            r="13"
+            fill="var(--ic)"
+            stroke="var(--inkc)"
+            stroke-width="2.6"
+          />
+          <path
+            d="m9 16 5 5 9-10"
+            fill="none"
+            stroke="var(--inkc)"
+            stroke-width="3.4"
+            stroke-linecap="round"
+            stroke-linejoin="round"
+          />
+        </symbol>
+        <symbol id="i-no" viewBox="0 0 32 32">
+          <circle
+            cx="16"
+            cy="16"
+            r="13"
+            fill="var(--ic)"
+            stroke="var(--inkc)"
+            stroke-width="2.6"
+          />
+          <path
+            d="m10 10 12 12M22 10 10 22"
+            stroke="var(--inkc)"
+            stroke-width="3.4"
+            stroke-linecap="round"
+          />
+        </symbol>
+        <symbol id="i-part" viewBox="0 0 32 32">
+          <circle
+            cx="16"
+            cy="16"
+            r="13"
+            fill="var(--ic)"
+            stroke="var(--inkc)"
+            stroke-width="2.6"
+          />
+          <path
+            d="M9 16h14"
+            stroke="var(--inkc)"
+            stroke-width="3.6"
+            stroke-linecap="round"
+          />
+        </symbol>
+        <symbol id="i-sun" viewBox="0 0 32 32">
+          <circle
+            cx="16"
+            cy="16"
+            r="7"
+            fill="var(--ic)"
+            stroke="var(--inkc)"
+            stroke-width="2.4"
+          />
+          <path
+            d="M16 2v4M16 26v4M2 16h4M26 16h4M6 6l3 3M23 23l3 3M26 6l-3 3M9 23l-3 3"
+            stroke="var(--inkc)"
+            stroke-width="2.6"
+            stroke-linecap="round"
+          />
+        </symbol>
+        <symbol id="i-moon" viewBox="0 0 32 32">
+          <path
+            d="M22 4a12 12 0 1 0 6 20A10 10 0 0 1 22 4z"
+            fill="var(--ic)"
+            stroke="var(--inkc)"
+            stroke-width="2.6"
+            stroke-linejoin="round"
+          />
+        </symbol>
+        <symbol id="i-core" viewBox="0 0 32 32">
+          <path
+            d="M16 3 27 9.5v13L16 29 5 22.5v-13z"
+            fill="var(--ic)"
+            stroke="var(--inkc)"
+            stroke-width="2.6"
+            stroke-linejoin="round"
+          />
+          <circle cx="16" cy="16" r="4.5" fill="var(--inkc)" />
+        </symbol>
+        <symbol id="i-deco" viewBox="0 0 32 32">
+          <circle
+            cx="16"
+            cy="16"
+            r="13"
+            fill="var(--ic)"
+            stroke="var(--inkc)"
+            stroke-width="2.6"
+          />
+          <circle
+            cx="16"
+            cy="16"
+            r="4.5"
+            fill="none"
+            stroke="var(--inkc)"
+            stroke-width="2.6"
+          />
+          <path
+            d="M20.5 16v3a3 3 0 0 0 6 0v-3a10.5 10.5 0 1 0-4 8"
+            fill="none"
+            stroke="var(--inkc)"
+            stroke-width="2.6"
+            stroke-linecap="round"
+          />
+        </symbol>
+        <symbol id="i-test" viewBox="0 0 32 32">
+          <path
+            d="M12 3h8M13 3v10L5 27h22L19 13V3"
+            fill="var(--ic)"
+            stroke="var(--inkc)"
+            stroke-width="2.6"
+            stroke-linejoin="round"
+            stroke-linecap="round"
+          />
+          <path d="M9 21h14" stroke="var(--inkc)" stroke-width="2.6" />
+        </symbol>
+        <symbol id="i-node" viewBox="0 0 32 32">
+          <path
+            d="M16 3 27 9.5v13L16 29 5 22.5v-13z"
+            fill="var(--ic)"
+            stroke="var(--inkc)"
+            stroke-width="2.6"
+            stroke-linejoin="round"
+          />
+          <path
+            d="M12 21v-9l8 9v-9"
+            fill="none"
+            stroke="var(--inkc)"
+            stroke-width="3"
+            stroke-linecap="round"
+            stroke-linejoin="round"
+          />
+        </symbol>
+        <symbol id="i-dev" viewBox="0 0 32 32">
+          <circle
+            cx="13"
+            cy="13"
+            r="9"
+            fill="var(--ic)"
+            stroke="var(--inkc)"
+            stroke-width="2.6"
+          />
+          <path
+            d="m20 20 9 9"
+            stroke="var(--inkc)"
+            stroke-width="4.5"
+            stroke-linecap="round"
+          />
+          <path
+            d="M9 14h8M13 10v8"
+            stroke="var(--inkc)"
+            stroke-width="2.4"
+            stroke-linecap="round"
+          />
+        </symbol>
+        <symbol id="i-fed" viewBox="0 0 32 32">
+          <path
+            d="M9 9 23 9 16 24z"
+            fill="none"
+            stroke="var(--inkc)"
+            stroke-width="2.6"
+            stroke-linejoin="round"
+          />
+          <circle
+            cx="9"
+            cy="9"
+            r="5"
+            fill="var(--ic)"
+            stroke="var(--inkc)"
+            stroke-width="2.6"
+          />
+          <circle
+            cx="23"
+            cy="9"
+            r="5"
+            fill="var(--ic)"
+            stroke="var(--inkc)"
+            stroke-width="2.6"
+          />
+          <circle
+            cx="16"
+            cy="24"
+            r="5"
+            fill="var(--ic)"
+            stroke="var(--inkc)"
+            stroke-width="2.6"
+          />
+        </symbol>
+        <symbol id="i-int" viewBox="0 0 32 32">
+          <path
+            d="M3 5h26L19 16v10l-6 3V16z"
+            fill="var(--ic)"
+            stroke="var(--inkc)"
+            stroke-width="2.6"
+            stroke-linejoin="round"
+          />
+        </symbol>
+        <symbol id="i-cli" viewBox="0 0 32 32">
+          <rect
+            x="3"
+            y="5"
+            width="26"
+            height="22"
+            rx="4"
+            fill="var(--ic)"
+            stroke="var(--inkc)"
+            stroke-width="2.6"
+          />
+          <path
+            d="m9 12 5 4-5 4M16 21h7"
+            fill="none"
+            stroke="var(--inkc)"
+            stroke-width="3"
+            stroke-linecap="round"
+            stroke-linejoin="round"
+          />
+        </symbol>
+      </defs>
+    </svg>
+    <a class="skip" href="#top">Skip to content</a>
+    <div class="wrap">
+      <header class="top">
+        <a class="brand disp" href="#top" aria-label="NexusDI home">NexusDI</a>
+        <a class="btn small" href="https://nexus.js.org/next/">Docs</a>
+        <a class="btn small" href="https://github.com/NexusDI/core">GitHub</a>
+        <span class="toggles" role="group" aria-label="Display and sound">
+          <button
+            class="btn small tog"
+            id="crt"
+            type="button"
+            aria-pressed="false"
+          >
+            CRT
+          </button>
+          <button
+            class="btn small tog"
+            id="sfx"
+            type="button"
+            aria-pressed="false"
+          >
+            SFX
+          </button>
+          <button
+            class="btn small tog"
+            id="music"
+            type="button"
+            aria-pressed="false"
+          >
+            Music
+          </button>
+          <button
+            class="btn small tog"
+            id="theme"
+            type="button"
+            aria-label="Switch to light theme"
+          >
+            <svg
+              class="ico"
+              style="width: 20px; height: 20px; --ic: #fff"
+              aria-hidden="true"
+            >
+              <use id="themeuse" href="#i-sun" />
+            </svg>
+            <span id="themelbl">Light</span>
+          </button>
+        </span>
+      </header>
+
+      <main id="top">
+        <section class="hero" aria-labelledby="h1">
+          <div class="herotop">
+            <div class="lead">
+              <h1 id="h1" class="disp">
+                Wiring mistakes fail CI before a user hits them.
+              </h1>
+              <p class="lede">
+                NexusDI is a dependency injection container for TypeScript with
+                modules and async startup. It checks the whole graph before
+                launch.
+              </p>
+              <div class="cta">
+                <a
+                  class="btn gold"
+                  href="https://nexus.js.org/next/getting-started/"
+                  >Get started</a
+                >
+                <a class="btn" href="https://github.com/NexusDI/core">GitHub</a>
+                <div class="install hero-install">
+                  <code
+                    ><i>$</i>
+                    <span class="cmd">npm i @nexusdi/core@next</span></code
+                  >
+                  <button class="btn small gold copy" type="button">
+                    Copy
+                  </button>
+                  <span class="copied" role="status"></span>
+                </div>
+              </div>
+            </div>
+            <div class="hud panel" aria-label="Ship status">
+              <div class="hudhead">
+                <span class="disp">Ship status</span>
+                <span class="hudv">Meridian / 0.4.0-rc.0</span>
+              </div>
+              <div class="split">
+                <div class="sn l">
+                  <span class="big" id="pctOn">100%</span><small>Online</small>
+                </div>
+                <div
+                  class="bar"
+                  id="bar"
+                  role="progressbar"
+                  aria-label="Boot progress"
+                  aria-valuemin="0"
+                  aria-valuemax="100"
+                  aria-valuenow="100"
+                >
+                  <i class="fb" id="fb"></i><i class="fr" id="fr"></i
+                  ><b class="mk2" id="mk2"></b>
+                </div>
+                <div class="sn r">
+                  <span class="big" id="pctOff">0%</span
+                  ><small id="offlbl">Pending</small>
+                </div>
+              </div>
+              <div class="cards">
+                <div class="ncard">
+                  <small>Modules</small><span class="big" id="nMod">4</span
+                  ><em id="nModOf">of 4 decks</em>
+                </div>
+                <div class="ncard">
+                  <small>Providers</small><span class="big" id="nPro">8</span
+                  ><em>of 8 systems</em>
+                </div>
+                <div class="ncard bp ok" id="bp">
+                  <small>Blueprint</small>
+                  <span class="mid"
+                    ><svg class="ico" style="--ic: #fff" aria-hidden="true">
+                      <use id="bpico" href="#i-ok" /></svg
+                    ><span id="bpv">Valid</span></span
+                  >
+                  <em id="bpn">Nexus.check passes</em>
+                </div>
+                <button
+                  class="btn gold big"
+                  id="launch"
+                  type="button"
+                  aria-disabled="true"
+                >
+                  Launch
+                </button>
+              </div>
+            </div>
+          </div>
+
+          <div class="pair">
+            <div class="frame panel" id="frame">
+              <div class="titlebar">
+                <span>Starship Meridian</span>
+                <button class="btn small" id="replay" type="button">
+                  Replay power-up
+                </button>
+              </div>
+              <p class="hint">
+                Section = module. Machine = provider. Conduit = dependency.
+                Hatch = export. Click or tap a plug to unplug it.
+                <span class="pan">Swipe the ship sideways to pan.</span>
+              </p>
+              <div class="scrollwrap">
+                <div class="panbadge" id="panbadge" aria-hidden="true">
+                  &#9664; Pan &#9654;
+                </div>
+                <div
+                  class="scroller"
+                  id="scroller"
+                  tabindex="0"
+                  role="region"
+                  aria-label="Ship schematic, scrolls sideways on small screens"
+                >
+                  <svg
+                    id="ship"
+                    viewBox="0 58 1200 520"
+                    role="group"
+                    aria-label="Starship Meridian cutaway schematic. Four sections joined by four conduits. Each conduit has a plug you can unplug."
+                  ></svg>
+                </div>
+              </div>
+              <div class="strip" id="status" role="status" aria-live="polite">
+                <svg
+                  class="ico st-ico okico"
+                  style="--ic: var(--green)"
+                  aria-hidden="true"
+                >
+                  <use href="#i-ok" />
+                </svg>
+                <svg
+                  class="ico st-ico klico"
+                  style="--ic: #fff"
+                  aria-hidden="true"
+                >
+                  <use href="#i-klaxon" />
+                </svg>
+                <div class="msg" id="msg">Standing by.</div>
+                <div class="meter" id="meter" aria-hidden="true">
+                  <i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i>
+                </div>
+              </div>
+            </div>
+            <div class="term pf panel">
+              <div class="titlebar"><span>preflight.ts</span></div>
+              <pre><span class="k">import</span> { Nexus } <span class="k">from</span> <span class="s">'@nexusdi/core'</span>;
+<span class="k">import</span> { errors } <span class="k">from</span> <span class="s">'@nexusdi/errors'</span>;
+<span class="k">import</span> { Meridian } <span class="k">from</span> <span class="s">'./meridian.js'</span>;
+
+<span class="f">Nexus</span>.<span class="f">check</span>(Meridian, {
+  plugins: [<span class="f">errors</span>()],
+}); <span class="c">// CI runs this</span>
+console.<span class="f">log</span>(<span class="s">'pre-flight ok'</span>);</pre>
+              <pre
+                class="out"
+                id="out"
+                aria-live="polite"
+              ><span class="c">$ npm run preflight</span></pre>
+            </div>
+          </div>
+
+          <div class="below">
+            <div class="legendwrap">
+              <ul class="legend" aria-label="Legend">
+                <li><b>Section</b> = module</li>
+                <li><b>Machine</b> = provider</li>
+                <li><b>Conduit</b> = dependency</li>
+                <li><b>Hatch</b> = export</li>
+              </ul>
+            </div>
+            <ul class="conduit-list" id="clist" aria-label="Conduits"></ul>
+          </div>
+        </section>
+
+        <section class="sec" aria-labelledby="why-h">
+          <h2 id="why-h" class="disp">Why NexusDI</h2>
+          <div class="why" id="whygrid"></div>
+        </section>
+
+        <section class="sec" aria-labelledby="vs-h">
+          <h2 id="vs-h" class="disp">Versus</h2>
+          <div class="cmp panel">
+            <table>
+              <caption class="sr">
+                Feature comparison of NexusDI, the NestJS container and
+                InversifyJS
+              </caption>
+              <thead>
+                <tr>
+                  <th scope="col">Feature</th>
+                  <th scope="col" class="us">NexusDI</th>
+                  <th scope="col">
+                    NestJS container <span class="unv">unverified</span>
+                  </th>
+                  <th scope="col">InversifyJS</th>
+                </tr>
+              </thead>
+              <tbody id="cmpbody"></tbody>
+            </table>
+          </div>
+          <div class="cmpnote">
+            <svg class="ico" style="--ic: var(--green)" aria-hidden="true">
+              <use href="#i-ok" />
+            </svg>
+            <span
+              >Weighing tsyringe, awilix or needle-di too?
+              <a href="https://nexus.js.org/next/benchmark-method/"
+                >The docs explain how the benchmarks are measured.</a
+              ></span
+            >
+          </div>
+          <p class="fine">
+            InversifyJS 8.2.3, measured by the NexusDI benchmark harness. NestJS
+            from its documentation, and not re-checked for this page, so every
+            NestJS cell is marked unverified. Read 2026-09-30.
+          </p>
+        </section>
+
+        <section class="sec" aria-labelledby="in-h">
+          <h2 id="in-h" class="disp">Install</h2>
+          <div class="install">
+            <code
+              ><i>$</i> <span class="cmd">npm i @nexusdi/core@next</span></code
+            >
+            <button class="btn gold copy" type="button">Copy</button>
+            <span class="copied" role="status"></span>
+          </div>
+          <p class="fine rc">
+            Version 0.4.0-rc.0. 0.4 is a release candidate on the npm next tag.
+          </p>
+          <div class="term panel codecard">
+            <div class="titlebar"><span>meridian.ts</span></div>
+            <pre
+              style="border-radius: 0 0 11px 11px"
+            ><span class="k">import</span> { Token, defineModule, provide } <span class="k">from</span> <span class="s">'@nexusdi/core'</span>;
+
+<span class="c">// 1. Write the interface.</span>
+<span class="k">interface</span> <span class="f">IShieldGrid</span> {
+  raise(level: <span class="k">number</span>): <span class="k">void</span>;
+}
+<span class="c">// 2. Make a token for it.</span>
+<span class="k">const</span> SHIELDS = <span class="k">new</span> <span class="f">Token</span>&lt;<span class="f">IShieldGrid</span>&gt;(<span class="s">'ShieldGrid'</span>);
+
+<span class="c">// 3. Write the class.</span>
+<span class="k">class</span> <span class="f">ShieldGrid</span> <span class="k">implements</span> <span class="f">IShieldGrid</span> {
+  raise(level: <span class="k">number</span>) { <span class="c">/* ... */</span> }
+}
+<span class="k">interface</span> <span class="f">IHelm</span> {
+  engage(): <span class="k">void</span>;
+}
+<span class="k">const</span> HELM = <span class="k">new</span> <span class="f">Token</span>&lt;<span class="f">IHelm</span>&gt;(<span class="s">'Helm'</span>);
+<span class="k">class</span> <span class="f">Helm</span> <span class="k">implements</span> <span class="f">IHelm</span> {
+  <span class="k">static</span> deps = [SHIELDS] <span class="k">as const</span>;
+  <span class="k">constructor</span>(<span class="k">private</span> shields: <span class="f">IShieldGrid</span>) {}
+  engage() { <span class="k">this</span>.shields.<span class="f">raise</span>(3); }
+}
+
+<span class="c">// 4. Bind the token to the class, and export it.</span>
+<span class="k">const</span> Tactical = <span class="f">defineModule</span>({
+  name: <span class="s">'Tactical'</span>,
+  providers: [<span class="f">provide</span>(SHIELDS, { useClass: ShieldGrid })],
+  exports: [SHIELDS],
+});
+<span class="k">export const</span> Bridge = <span class="f">defineModule</span>({
+  name: <span class="s">'Bridge'</span>,
+  imports: [Tactical], <span class="c">// remove this line and Nexus.check fails</span>
+  providers: [<span class="f">provide</span>(HELM, { useClass: Helm })],
+});
+<span class="k">export const</span> Meridian = <span class="f">defineModule</span>({ name: <span class="s">'Meridian'</span>, imports: [Bridge] });</pre>
+          </div>
+        </section>
+
+        <section class="sec" aria-labelledby="pk-h">
+          <h2 id="pk-h" class="disp">Packages</h2>
+          <ul class="bay" id="bay"></ul>
+        </section>
+
+        <section class="final" aria-labelledby="fin-h">
+          <h2 id="fin-h" class="disp">Ready for launch?</h2>
+          <div class="cta">
+            <a
+              class="btn gold"
+              href="https://nexus.js.org/next/getting-started/"
+              >Get started</a
+            >
+            <a class="btn" href="https://github.com/NexusDI/core">GitHub</a>
+          </div>
+        </section>
+      </main>
+      <footer>NexusDI. MIT licensed. Built on the Starship Meridian.</footer>
+    </div>
+
+    <script>
+      (function () {
+        'use strict';
+        var $ = function (s, r) {
+          return (r || document).querySelector(s);
+        };
+        var reduce = window.matchMedia('(prefers-reduced-motion: reduce)');
+
+        /* =====================================================================
+     Ship drawing helpers: wobbly ink paths, one hard shadow tone with
+     hatching, light dither as an accent.
+     ===================================================================== */
+        var INK = '#15110e';
+        var uid = 0,
+          defs = [];
+        function f(n) {
+          return Math.round(n * 10) / 10;
+        }
+        function rnd(s) {
+          return function () {
+            s |= 0;
+            s = (s + 0x6d2b79f5) | 0;
+            var t = Math.imul(s ^ (s >>> 15), 1 | s);
+            t = (t + Math.imul(t ^ (t >>> 7), 61 | t)) ^ t;
+            return ((t ^ (t >>> 14)) >>> 0) / 4294967296;
+          };
+        }
+        /* wobbly rounded rect; step=true gives a pixel staircase corner */
+        function rr(x, y, w, h, r, seed, j, step) {
+          var R = rnd(seed || 7);
+          j = j == null ? 1.3 : j;
+          function J() {
+            return (R() - 0.5) * 2 * j;
+          }
+          function P(a, b) {
+            return f(a + J()) + ' ' + f(b + J());
+          }
+          r = Math.min(r, w / 2, h / 2);
+          var x2 = x + w,
+            y2 = y + h;
+          function cn(cx, cy, ax, ay, bx, by, hf) {
+            if (step) {
+              var mx = (ax + bx) / 2,
+                my = (ay + by) / 2;
+              return hf
+                ? 'L' +
+                    P(mx, ay) +
+                    'L' +
+                    P(mx, my) +
+                    'L' +
+                    P(bx, my) +
+                    'L' +
+                    P(bx, by)
+                : 'L' +
+                    P(ax, my) +
+                    'L' +
+                    P(mx, my) +
+                    'L' +
+                    P(mx, by) +
+                    'L' +
+                    P(bx, by);
+            }
+            return 'Q' + P(cx, cy) + ' ' + P(bx, by);
+          }
+          return (
+            'M' +
+            P(x + r, y) +
+            'L' +
+            P(x2 - r, y) +
+            cn(x2, y, x2 - r, y, x2, y + r, true) +
+            'L' +
+            P(x2, y2 - r) +
+            cn(x2, y2, x2, y2 - r, x2 - r, y2, false) +
+            'L' +
+            P(x + r, y2) +
+            cn(x, y2, x + r, y2, x, y2 - r, true) +
+            'L' +
+            P(x, y + r) +
+            cn(x, y, x, y + r, x + r, y, false) +
+            'Z'
+          );
+        }
+        function blob(pts) {
+          var n = pts.length;
+          function mid(a, b) {
+            return f((a[0] + b[0]) / 2) + ' ' + f((a[1] + b[1]) / 2);
+          }
+          var d = 'M' + mid(pts[n - 1], pts[0]);
+          for (var i = 0; i < n; i++)
+            d +=
+              'Q' +
+              f(pts[i][0]) +
+              ' ' +
+              f(pts[i][1]) +
+              ' ' +
+              mid(pts[i], pts[(i + 1) % n]);
+          return d + 'Z';
+        }
+        function circ(cx, cy, rx, ry, seed, n) {
+          n = n || 12;
+          var R = rnd(seed || 3),
+            pts = [];
+          for (var i = 0; i < n; i++) {
+            var a = (i / n) * Math.PI * 2,
+              k = 1 + (R() - 0.5) * 0.07;
+            pts.push([cx + Math.cos(a) * rx * k, cy + Math.sin(a) * ry * k]);
+          }
+          return blob(pts);
+        }
+        function poly(pts, seed, j) {
+          var R = rnd(seed || 5),
+            out = [];
+          j = j == null ? 1.4 : j;
+          for (var i = 0; i < pts.length; i++) {
+            var a = pts[i],
+              b = pts[(i + 1) % pts.length],
+              L = Math.hypot(b[0] - a[0], b[1] - a[1]);
+            out.push([a[0] + (R() - 0.5) * 2 * j, a[1] + (R() - 0.5) * 2 * j]);
+            if (L > 46)
+              out.push([
+                (a[0] + b[0]) / 2 + (R() - 0.5) * j * 1.6,
+                (a[1] + b[1]) / 2 + (R() - 0.5) * j * 1.6,
+              ]);
+          }
+          return (
+            'M' +
+            out
+              .map(function (p) {
+                return f(p[0]) + ' ' + f(p[1]);
+              })
+              .join('L') +
+            'Z'
+          );
+        }
+        function bz(p0, c1, c2, p1, n) {
+          var o = [];
+          for (var i = 1; i <= n; i++) {
+            var t = i / n,
+              u = 1 - t;
+            o.push([
+              u * u * u * p0[0] +
+                3 * u * u * t * c1[0] +
+                3 * u * t * t * c2[0] +
+                t * t * t * p1[0],
+              u * u * u * p0[1] +
+                3 * u * u * t * c1[1] +
+                3 * u * t * t * c2[1] +
+                t * t * t * p1[1],
+            ]);
+          }
+          return o;
+        }
+        /* shape: flat fill, one hard shadow crescent (offset subtraction)
+     with hatching, and an uneven double ink outline */
+        function S(d, fill, shade, o) {
+          o = o || {};
+          var s = '<path d="' + d + '" fill="' + fill + '"/>';
+          if (shade) {
+            var id = 'm' + ++uid,
+              k = o.s || 4;
+            defs.push(
+              '<mask id="' +
+                id +
+                '"><path d="' +
+                d +
+                '" fill="#fff"/><path d="' +
+                d +
+                '" transform="translate(' +
+                -k +
+                ' ' +
+                f(-k * 1.25) +
+                ')" fill="#000"/></mask>',
+            );
+            var h =
+              o.h === 'x'
+                ? 'url(#xh)'
+                : o.h === 'd'
+                  ? 'url(#dith)'
+                  : 'url(#hat)';
+            s +=
+              '<g mask="url(#' +
+              id +
+              ')"><path d="' +
+              d +
+              '" fill="' +
+              shade +
+              '"/>' +
+              (o.h === false ? '' : '<path d="' + d + '" fill="' + h + '"/>') +
+              '</g>';
+          }
+          var w = o.w == null ? 3.2 : o.w;
+          if (w) {
+            s +=
+              '<path d="' +
+              d +
+              '" fill="none" stroke="' +
+              INK +
+              '" stroke-width="' +
+              w +
+              '" stroke-linejoin="round"/>';
+            if (!o.flat) {
+              var R = rnd(++uid * 31 + 7);
+              s +=
+                '<path d="' +
+                d +
+                '" transform="translate(1.1 1.5)" fill="none" stroke="' +
+                INK +
+                '" stroke-width="' +
+                f(w * 0.75) +
+                '" stroke-linejoin="round" stroke-dasharray="' +
+                f(20 + R() * 50) +
+                ' ' +
+                f(8 + R() * 26) +
+                ' ' +
+                f(40 + R() * 60) +
+                ' ' +
+                f(10 + R() * 30) +
+                '"/>';
+            }
+          }
+          return s;
+        }
+        function Rc(x, y, w, h, fill, shade, o) {
+          o = o || {};
+          return S(
+            rr(
+              x,
+              y,
+              w,
+              h,
+              o.r == null ? 4 : o.r,
+              o.seed || (x * 7 + y * 13) | 0,
+              o.j,
+              o.step,
+            ),
+            fill,
+            shade,
+            o,
+          );
+        }
+        function Ec(cx, cy, rx, ry, fill, shade, o) {
+          return S(circ(cx, cy, rx, ry, (cx * 3 + cy) | 0), fill, shade, o);
+        }
+        function Pl(pts, fill, shade, o) {
+          return S(
+            poly(pts, (pts[0][0] * 5 + pts[0][1]) | 0, o && o.j),
+            fill,
+            shade,
+            o,
+          );
+        }
+        function line(d, w, col, extra) {
+          return (
+            '<path d="' +
+            d +
+            '" fill="none" stroke="' +
+            col +
+            '" stroke-width="' +
+            w +
+            '" stroke-linecap="round" stroke-linejoin="round"' +
+            (extra || '') +
+            '/>'
+          );
+        }
+        function pipe(d, w, col, colS) {
+          return (
+            line(d, w + 6, INK) +
+            line(d, w, col) +
+            '<path d="' +
+            d +
+            '" transform="translate(0 ' +
+            f(w * 0.28) +
+            ')" fill="none" stroke="' +
+            colS +
+            '" stroke-width="' +
+            f(w * 0.36) +
+            '"/>' +
+            '<path d="' +
+            d +
+            '" transform="translate(0 ' +
+            f(-w * 0.26) +
+            ')" fill="none" stroke="#fff" stroke-opacity=".55" stroke-width="' +
+            f(w * 0.16) +
+            '" stroke-linecap="round"/>'
+          );
+        }
+        function T(x, y, t, cls, cw, anchor) {
+          return (
+            '<text class="' +
+            cls +
+            '" x="' +
+            x +
+            '" y="' +
+            y +
+            '" text-anchor="' +
+            (anchor || 'middle') +
+            '" textLength="' +
+            f(t.length * cw) +
+            '" lengthAdjust="spacingAndGlyphs">' +
+            t +
+            '</text>'
+          );
+        }
+        function plate(cx, cy, t, dot, cw, bad, cond) {
+          cw = (cw || 10) * 1.2;
+          var w = f(t.length * cw + 30),
+            h = 26,
+            x = cx - w / 2,
+            y = cy - h / 2;
+          return (
+            '<g class="plate"><path d="' +
+            rr(x + 2.5, y + 3.5, w, h, 8, 5, 0.5) +
+            '" fill="#000" opacity=".5"/>' +
+            '<path d="' +
+            rr(x, y, w, h, 8, 9, 0.7) +
+            '" fill="' +
+            (bad ? '#c4261f' : cond ? dot : INK) +
+            '" stroke="' +
+            (cond && !bad ? INK : '#fff') +
+            '" stroke-opacity=".92" stroke-width="' +
+            (cond && !bad ? 3 : 1.7) +
+            '"/>' +
+            (cond && !bad
+              ? ''
+              : bad
+                ? '<path d="M' +
+                  f(x + 12) +
+                  ' ' +
+                  (cy - 8) +
+                  'L' +
+                  f(x + 20) +
+                  ' ' +
+                  (cy + 7) +
+                  'H' +
+                  f(x + 4) +
+                  'Z" fill="#ffd23a" stroke="#fff" stroke-width="1.2" stroke-linejoin="round"/><rect x="' +
+                  f(x + 11) +
+                  '" y="' +
+                  (cy - 3) +
+                  '" width="2" height="5" fill="#15110e"/>'
+                : '<circle cx="' +
+                  f(x + 13) +
+                  '" cy="' +
+                  cy +
+                  '" r="5.2" fill="' +
+                  dot +
+                  '" stroke="#fff" stroke-width="1.3"/>') +
+            (cond && !bad
+              ? T(cx, cy + 6.3, t, 'lbl dk', cw)
+              : T(f(x + 24 + (t.length * cw) / 2), cy + 6.3, t, 'lbl', cw)) +
+            '</g>'
+          );
+        }
+        function warnTri(cx, cy, k) {
+          k = k || 1;
+          return (
+            '<g transform="translate(' +
+            cx +
+            ' ' +
+            cy +
+            ') scale(' +
+            k +
+            ')"><path d="M0 -20 L22 16 H-22 Z" fill="#ffd23a" stroke="' +
+            INK +
+            '" stroke-width="4" stroke-linejoin="round"/>' +
+            '<rect x="-2.6" y="-8" width="5.2" height="13" rx="1.5" fill="' +
+            INK +
+            '"/><circle cy="10" r="3" fill="' +
+            INK +
+            '"/></g>'
+          );
+        }
+        function crew(x, y, s, suit, suitS, hat, o) {
+          o = o || {};
+          var g =
+            '<g class="crew" transform="translate(' +
+            x +
+            ' ' +
+            y +
+            ') scale(' +
+            (o.flip ? -s : s) +
+            ' ' +
+            s +
+            ')">';
+          g += S(rr(-9, -15, 8, 15, 3, 3, 0.4), '#38425a', '#262e42', {
+            s: 2,
+            w: 2.4,
+            h: false,
+          });
+          g += S(rr(1, -15, 8, 15, 3, 4, 0.4), '#38425a', '#262e42', {
+            s: 2,
+            w: 2.4,
+            h: false,
+          });
+          g += S(rr(-13, -33, 26, 21, 8, 5, 0.6), suit, suitS, {
+            s: 3,
+            w: 2.8,
+          });
+          g += S(rr(-17, -31, 7, 15, 3, 6, 0.4), suit, suitS, {
+            s: 2,
+            w: 2.4,
+            h: false,
+          });
+          g += S(rr(10, -31, 7, 15, 3, 7, 0.4), suit, suitS, {
+            s: 2,
+            w: 2.4,
+            h: false,
+          });
+          g += S(circ(0, -42, 9.5, 10, 8), '#f4cfa6', '#cf9468', {
+            s: 2.6,
+            w: 2.8,
+            h: false,
+          });
+          g += '<circle cx="4" cy="-42" r="1.7" fill="' + INK + '"/>';
+          if (hat === 'hard')
+            g +=
+              S(rr(-11, -55, 22, 10, 5, 9, 0.4), '#ffd23a', '#c99a12', {
+                s: 2,
+                w: 2.6,
+                h: false,
+              }) +
+              '<rect x="-13" y="-47" width="26" height="4" rx="2" fill="#ffd23a" stroke="' +
+              INK +
+              '" stroke-width="2"/>';
+          else if (hat === 'cap')
+            g +=
+              S(rr(-10, -54, 20, 9, 5, 9, 0.4), '#e8e8e8', '#9aa', {
+                s: 2,
+                w: 2.6,
+                h: false,
+              }) +
+              '<rect x="2" y="-47" width="12" height="3" rx="1.5" fill="#e8e8e8" stroke="' +
+              INK +
+              '" stroke-width="1.8"/>';
+          else if (hat === 'head')
+            g +=
+              '<path d="M-10 -44 C-10 -58 10 -58 10 -44" fill="none" stroke="' +
+              INK +
+              '" stroke-width="3.4"/><rect x="-13" y="-46" width="5" height="9" rx="2" fill="#ff7a1a" stroke="' +
+              INK +
+              '" stroke-width="2"/><path d="M-10 -37 Q-6 -31 2 -33" fill="none" stroke="' +
+              INK +
+              '" stroke-width="2.2"/>';
+          else if (hat === 'capn')
+            g +=
+              S(rr(-11, -55, 22, 10, 4, 9, 0.4), '#2a3f8f', '#1b2a66', {
+                s: 2,
+                w: 2.6,
+                h: false,
+              }) +
+              '<rect x="-12" y="-47" width="26" height="4" rx="2" fill="#15110e"/><circle cx="0" cy="-51" r="2.4" fill="#ffd23a"/>';
+          else
+            g += S(rr(-10, -54, 20, 10, 5, 9, 0.4), '#5a3b22', '#3a2412', {
+              s: 2,
+              w: 2.6,
+              h: false,
+            });
+          return g + '</g>';
+        }
+        /* readout screens: dark when off, lit graph when on */
+        function scr(x, y, w, h, kind, cls, col) {
+          col = col || '#7dffb0';
+          var g = Rc(x, y, w, h, '#0e1a22', false, { r: 3, w: 2.6, j: 0.5 });
+          var l =
+            '<rect x="' +
+            (x + 2) +
+            '" y="' +
+            (y + 2) +
+            '" width="' +
+            (w - 4) +
+            '" height="' +
+            (h - 4) +
+            '" rx="2" fill="#12404a"/>';
+          if (kind === 'bars') {
+            var n = Math.floor((w - 8) / 7);
+            for (var i = 0; i < n; i++) {
+              var bh = 4 + ((i * 37 + 11) % (h - 10));
+              l +=
+                '<rect x="' +
+                (x + 5 + i * 7) +
+                '" y="' +
+                (y + h - 4 - bh) +
+                '" width="4" height="' +
+                bh +
+                '" fill="' +
+                col +
+                '"/>';
+            }
+          } else if (kind === 'wave') {
+            var d = 'M' + (x + 4) + ' ' + (y + h / 2);
+            for (var k = 0; k < 8; k++)
+              d +=
+                'L' +
+                f(x + 4 + (k + 1) * ((w - 8) / 8)) +
+                ' ' +
+                f(
+                  y +
+                    h / 2 +
+                    (k % 2 ? -1 : 1) * (h / 4) * (((k * 5) % 3) / 2 + 0.3),
+                );
+            l += line(d, 2.2, col);
+          } else {
+            for (var q = 0; q < 3; q++)
+              l +=
+                '<rect x="' +
+                (x + 5) +
+                '" y="' +
+                (y + 5 + q * 6) +
+                '" width="' +
+                (w - 10 - q * 9) +
+                '" height="2.6" fill="' +
+                col +
+                '"/>';
+          }
+          return g + '<g class="' + cls + '">' + l + '</g>';
+        }
+        function hatchDoor(x, y) {
+          var g = Ec(x, y, 22, 22, '#aab6c6', '#667389', { s: 4, w: 3.6 });
+          g += Ec(x, y, 14, 14, '#c9d3df', '#8896ab', {
+            s: 2.6,
+            w: 2.8,
+            h: false,
+          });
+          for (var i = 0; i < 6; i++) {
+            var a = (i / 6) * 6.283 + 0.5;
+            g +=
+              '<circle cx="' +
+              f(x + Math.cos(a) * 18) +
+              '" cy="' +
+              f(y + Math.sin(a) * 18) +
+              '" r="2" fill="#667389" stroke="' +
+              INK +
+              '" stroke-width="1.4"/>';
+          }
+          g += line(
+            'M' +
+              (x - 11) +
+              ' ' +
+              y +
+              'H' +
+              (x + 11) +
+              'M' +
+              x +
+              ' ' +
+              (y - 11) +
+              'V' +
+              (y + 11) +
+              'M' +
+              (x - 8) +
+              ' ' +
+              (y - 8) +
+              'L' +
+              (x + 8) +
+              ' ' +
+              (y + 8) +
+              'M' +
+              (x + 8) +
+              ' ' +
+              (y - 8) +
+              'L' +
+              (x - 8) +
+              ' ' +
+              (y + 8),
+            3.4,
+            INK,
+          );
+          g += Ec(x, y, 5, 5, '#ffd23a', false, { w: 2.4 });
+          return g;
+        }
+        function socket(x, y) {
+          return (
+            Rc(x - 3, y - 17, 14, 34, '#9aa7b8', '#5d6a7e', {
+              r: 3,
+              s: 3,
+              w: 3,
+            }) +
+            Rc(x + 2, y - 9, 6, 18, '#0a0a0a', false, {
+              r: 2,
+              w: 0,
+              flat: true,
+            })
+          );
+        }
+        function ladder(x, y1, y2, w) {
+          var g =
+            line(
+              'M' +
+                x +
+                ' ' +
+                y1 +
+                'V' +
+                y2 +
+                'M' +
+                (x + w) +
+                ' ' +
+                y1 +
+                'V' +
+                y2,
+              6.5,
+              INK,
+            ) +
+            line(
+              'M' +
+                x +
+                ' ' +
+                y1 +
+                'V' +
+                y2 +
+                'M' +
+                (x + w) +
+                ' ' +
+                y1 +
+                'V' +
+                y2,
+              3,
+              '#c9d2dc',
+            );
+          for (var y = y1 + 8; y < y2; y += 13)
+            g +=
+              line('M' + x + ' ' + y + 'H' + (x + w), 4.6, INK) +
+              line('M' + x + ' ' + y + 'H' + (x + w), 2, '#aab6c4');
+          return g;
+        }
+        function floor(x, y, w) {
+          return (
+            Rc(x, y, w, 10, '#5b6280', '#3a405a', {
+              r: 2,
+              s: 2,
+              w: 2.6,
+              h: 'x',
+            }) +
+            '<path d="M' +
+            x +
+            ' ' +
+            (y + 5) +
+            'H' +
+            (x + w) +
+            '" stroke="#ffd23a" stroke-width="2" stroke-dasharray="8 10" opacity=".8"/>'
+          );
+        }
+        function mach(id, inner, cls) {
+          return (
+            '<g class="mach on" data-m="' +
+            id +
+            '"' +
+            (cls ? ' ' + cls : '') +
+            '>' +
+            inner +
+            '</g>'
+          );
+        }
+        function panelLines(x1, x2, y1, y2, step, col) {
+          var d = '';
+          for (var x = x1; x <= x2; x += step)
+            d += 'M' + x + ' ' + y1 + 'V' + y2;
+          return (
+            '<path d="' +
+            d +
+            '" stroke="' +
+            col +
+            '" stroke-width="2" opacity=".45" fill="none"/>'
+          );
+        }
+        function roomOpen(id, d, col, colS) {
+          return (
+            '<g class="room on" id="r-' +
+            id +
+            '">' +
+            S(d, col, colS, { s: 9, h: 'd', w: 4.6 }) +
+            '<path class="rdim" d="' +
+            d +
+            '" fill="#0a1020"/>'
+          );
+        }
+        function roomClose(d) {
+          return (
+            '<path class="rim" d="' +
+            d +
+            '" fill="none" stroke="#ff2a22" stroke-width="7" stroke-dasharray="14 8"/><path class="rim" d="' +
+            d +
+            '" fill="none" stroke="#fff" stroke-width="2" stroke-dasharray="14 8" stroke-dashoffset="-3" opacity=".7"/></g>'
+          );
+        }
+
+        /* ---------- geometry constants ---------- */
+        var ENGD = rr(128, 184, 252, 272, 10, 11, 1.1);
+        var TACTD = rr(500, 184, 270, 128, 8, 12, 1.1);
+        var COMMD = rr(500, 338, 270, 118, 8, 13, 1.1);
+        var BRDGD = poly(
+          [
+            [890, 192],
+            [982, 192],
+            [1048, 244],
+            [1062, 330],
+            [1050, 396],
+            [990, 448],
+            [890, 456],
+          ],
+          14,
+          1.2,
+        );
+
+        var CONS = [
+          {
+            id: 'eg-tact',
+            from: 'eng',
+            to: 'tact',
+            token: 'PowerGrid',
+            by: 'shields',
+            xa: 380,
+            ya: 240,
+            xb: 500,
+            yb: 240,
+            xm: 440,
+            tx: 440,
+            ty: 278,
+            col: '#ff8a1f',
+            colS: '#c2570b',
+            dot: '#ff8a1f',
+          },
+          {
+            id: 'eg-comm',
+            from: 'eng',
+            to: 'comm',
+            token: 'PowerGrid',
+            by: 'antenna',
+            xa: 380,
+            ya: 392,
+            xb: 500,
+            yb: 392,
+            xm: 440,
+            tx: 440,
+            ty: 430,
+            col: '#ff8a1f',
+            colS: '#c2570b',
+            dot: '#ff8a1f',
+          },
+          {
+            id: 'tc-brdg',
+            from: 'tact',
+            to: 'brdg',
+            token: 'ShieldGrid',
+            by: 'helm',
+            xa: 770,
+            ya: 258,
+            xb: 890,
+            yb: 258,
+            xm: 830,
+            tx: 830,
+            ty: 326,
+            col: '#31c5f0',
+            colS: '#177fa6',
+            dot: '#31c5f0',
+          },
+          {
+            id: 'cm-brdg',
+            from: 'comm',
+            to: 'brdg',
+            token: 'Antenna',
+            by: 'comp',
+            xa: 770,
+            ya: 400,
+            xb: 890,
+            yb: 414,
+            xm: 830,
+            tx: 826,
+            ty: 452,
+            jog: 800,
+            col: '#58d86a',
+            colS: '#2b9a3c',
+            dot: '#58d86a',
+          },
+        ];
+        /* chip names, popup anchor, alert tag anchor, warning icon */
+        var CHIPPOS = {
+          reactor: { pop: [185, 176], wi: [185, 330] },
+          grid: { pop: [335, 176], wi: [328, 380] },
+          shields: { pop: [585, 176], wi: [586, 252], tag: [586, 226] },
+          sensors: { pop: [727, 176], wi: [728, 246] },
+          antenna: { pop: [600, 334], wi: [604, 392], tag: [604, 376] },
+          relay: { pop: [727, 334], wi: [727, 420] },
+          helm: { pop: [990, 186], wi: [1008, 244], tag: [985, 280] },
+          comp: { pop: [990, 330], wi: [988, 380], tag: [988, 360] },
+        };
+
+        function conduit(c) {
+          var xm = c.xm,
+            yb = c.yb,
+            xa = c.xa,
+            ya = c.ya,
+            xb = c.xb,
+            col = c.col,
+            cs = c.colS;
+          var route =
+            'M' +
+            xa +
+            ' ' +
+            ya +
+            (c.jog ? 'H' + c.jog + 'V' + yb : '') +
+            'H' +
+            xb;
+          var L =
+            'M' +
+            xa +
+            ' ' +
+            ya +
+            (c.jog ? 'H' + c.jog + 'V' + yb : '') +
+            'H' +
+            (xm - 18);
+          var Rt = 'M' + (xm + 18) + ' ' + yb + 'H' + xb;
+          var cx0 = c.jog || xa + 14;
+          var g =
+            '<g class="plug" id="p-' +
+            c.id +
+            '" tabindex="0" role="button" aria-pressed="false">';
+          g +=
+            '<rect x="' +
+            (xm - 62) +
+            '" y="' +
+            (yb - 52) +
+            '" width="124" height="96" fill="#000" fill-opacity="0"/>';
+          g +=
+            '<rect class="hov" x="' +
+            (xm - 40) +
+            '" y="' +
+            (yb - 26) +
+            '" width="80" height="52" rx="12" fill="#ffd23a" fill-opacity=".25" stroke="#ffd23a" stroke-width="3" stroke-dasharray="7 5"/>';
+          /* intact */
+          g +=
+            '<g class="okonly">' + pipe(L, 16, col, cs) + pipe(Rt, 16, col, cs);
+          g +=
+            line('M' + cx0 + ' ' + (yb - 15) + 'H' + (xb - 6), 7, INK) +
+            line('M' + cx0 + ' ' + (yb - 15) + 'H' + (xb - 6), 3.4, '#ffd23a');
+          g +=
+            '<path class="flow" d="' +
+            route +
+            '" fill="none" stroke="#fff" stroke-width="3.4" stroke-linecap="round" stroke-dasharray="5 23"/>';
+          g += Rc(xm - 19, yb - 21, 38, 42, '#9aa7b8', '#5d6a7e', {
+            r: 6,
+            s: 4,
+            w: 3.6,
+          });
+          g +=
+            '<path d="M' +
+            (xm - 8) +
+            ' ' +
+            (yb - 20) +
+            'V' +
+            (yb + 20) +
+            'M' +
+            (xm + 8) +
+            ' ' +
+            (yb - 20) +
+            'V' +
+            (yb + 20) +
+            '" stroke="' +
+            INK +
+            '" stroke-width="3"/>';
+          g +=
+            '<circle cx="' +
+            xm +
+            '" cy="' +
+            (yb - 11) +
+            '" r="2.4" fill="' +
+            INK +
+            '"/><circle cx="' +
+            xm +
+            '" cy="' +
+            (yb + 11) +
+            '" r="2.4" fill="' +
+            INK +
+            '"/>';
+          g +=
+            '<path class="pulse" d="' +
+            circ(xm, yb, 30, 28, 4, 10) +
+            '" fill="none" stroke="#ffd23a" stroke-width="3.4"/>';
+          g += '</g>';
+          /* cut */
+          var Lc =
+            'M' +
+            xa +
+            ' ' +
+            ya +
+            (c.jog ? 'H' + c.jog + 'V' + yb : '') +
+            'H' +
+            (xm - 30);
+          var Rc2 = 'M' + (xm + 30) + ' ' + yb + 'H' + xb;
+          g +=
+            '<g class="cutonly">' +
+            pipe(Lc, 16, col, cs) +
+            pipe(Rc2, 16, col, cs);
+          /* plug head with pins */
+          g += Rc(xm - 31, yb - 14, 18, 28, '#9aa7b8', '#5d6a7e', {
+            r: 4,
+            s: 3,
+            w: 3,
+          });
+          g +=
+            Rc(xm - 13, yb - 9, 9, 5, '#ffd23a', false, { r: 1, w: 2 }) +
+            Rc(xm - 13, yb + 4, 9, 5, '#ffd23a', false, { r: 1, w: 2 });
+          /* open socket on the far side */
+          g += Rc(xm + 8, yb - 15, 22, 30, '#9aa7b8', '#5d6a7e', {
+            r: 4,
+            s: 3,
+            w: 3,
+          });
+          g += Rc(xm + 8, yb - 9, 10, 18, '#0a0a0a', false, {
+            r: 2,
+            w: 0,
+            flat: true,
+          });
+          g +=
+            '<path d="M' +
+            (xm + 12) +
+            ' ' +
+            (yb - 20) +
+            'q-6 -10 2 -16 q-2 8 8 6 q-6 4 -2 10z" fill="#2b2118" opacity=".8"/>';
+          /* dangling cable */
+          g +=
+            '<g class="dang">' +
+            line(
+              'M' +
+                (xm - 22) +
+                ' ' +
+                (yb + 14) +
+                'C' +
+                (xm - 24) +
+                ' ' +
+                (yb + 42) +
+                ' ' +
+                (xm - 42) +
+                ' ' +
+                (yb + 46) +
+                ' ' +
+                (xm - 36) +
+                ' ' +
+                (yb + 74),
+              9,
+              INK,
+            ) +
+            line(
+              'M' +
+                (xm - 22) +
+                ' ' +
+                (yb + 14) +
+                'C' +
+                (xm - 24) +
+                ' ' +
+                (yb + 42) +
+                ' ' +
+                (xm - 42) +
+                ' ' +
+                (yb + 46) +
+                ' ' +
+                (xm - 36) +
+                ' ' +
+                (yb + 74),
+              5,
+              col,
+            );
+          g +=
+            Rc(xm - 43, yb + 72, 14, 12, '#9aa7b8', false, { r: 2, w: 2.4 }) +
+            line(
+              'M' +
+                (xm - 40) +
+                ' ' +
+                (yb + 84) +
+                'l-4 8M' +
+                (xm - 36) +
+                ' ' +
+                (yb + 84) +
+                'l0 9M' +
+                (xm - 32) +
+                ' ' +
+                (yb + 84) +
+                'l4 8',
+              2.4,
+              '#ff9d3b',
+            ) +
+            '</g>';
+          /* the loose thin cable end */
+          g +=
+            line(
+              'M' + cx0 + ' ' + (yb - 15) + 'H' + (xm - 34) + 'q10 4 6 14',
+              7,
+              INK,
+            ) +
+            line(
+              'M' + cx0 + ' ' + (yb - 15) + 'H' + (xm - 34) + 'q10 4 6 14',
+              3.4,
+              '#ffd23a',
+            );
+          g +=
+            line('M' + (xm + 34) + ' ' + (yb - 15) + 'H' + (xb - 6), 7, INK) +
+            line(
+              'M' + (xm + 34) + ' ' + (yb - 15) + 'H' + (xb - 6),
+              3.4,
+              '#ffd23a',
+            );
+          /* sparks */
+          g +=
+            '<g transform="translate(' +
+            xm +
+            ' ' +
+            yb +
+            ') scale(1.4) translate(' +
+            -xm +
+            ' ' +
+            -yb +
+            ')"><circle cx="' +
+            xm +
+            '" cy="' +
+            yb +
+            '" r="22" fill="url(#gGlowY)"/><g class="spark">' +
+            line(
+              'M' + (xm - 4) + ' ' + (yb - 20) + 'l7 10 -9 2 8 12',
+              6.5,
+              INK,
+            ) +
+            line(
+              'M' + (xm - 4) + ' ' + (yb - 20) + 'l7 10 -9 2 8 12',
+              3,
+              '#fff36a',
+            ) +
+            '<circle cx="' +
+            (xm + 12) +
+            '" cy="' +
+            (yb - 26) +
+            '" r="2.6" fill="#fff36a" stroke="' +
+            INK +
+            '" stroke-width="1.5"/><circle cx="' +
+            (xm - 16) +
+            '" cy="' +
+            (yb - 22) +
+            '" r="2.2" fill="#ffb02a" stroke="' +
+            INK +
+            '" stroke-width="1.5"/></g>';
+          g +=
+            '<g class="spark b">' +
+            line(
+              'M' + (xm + 4) + ' ' + (yb + 8) + 'l-8 7 9 3 -7 11',
+              6.5,
+              INK,
+            ) +
+            line(
+              'M' + (xm + 4) + ' ' + (yb + 8) + 'l-8 7 9 3 -7 11',
+              3,
+              '#fff36a',
+            ) +
+            '<circle cx="' +
+            (xm + 18) +
+            '" cy="' +
+            (yb + 20) +
+            '" r="2.4" fill="#fff36a" stroke="' +
+            INK +
+            '" stroke-width="1.5"/><circle cx="' +
+            (xm - 14) +
+            '" cy="' +
+            (yb + 4) +
+            '" r="2" fill="#ffb02a"/></g></g>';
+          g += '</g>';
+          /* label plate */
+          g +=
+            '<g class="okonly">' +
+            plate(xm, yb - 36, c.token, c.dot, 8.8, false, true) +
+            '</g><g class="cutonly">' +
+            plate(xm, yb - 36, c.token, c.dot, 8.8, true) +
+            '</g>';
+          g +=
+            '<rect class="fring" x="' +
+            (xm - 62) +
+            '" y="' +
+            (yb - 62) +
+            '" width="124" height="116" rx="18" fill="none" stroke="' +
+            INK +
+            '" stroke-width="9"/><rect class="fring" x="' +
+            (xm - 58) +
+            '" y="' +
+            (yb - 58) +
+            '" width="116" height="108" rx="15" fill="none" stroke="#ffd23a" stroke-width="5"/>';
+          return g + '</g>';
+        }
+
+        function buildShip() {
+          uid = 0;
+          defs = [];
+          var B = '',
+            X = '',
+            H = '',
+            RM = '',
+            PL = '',
+            TOP = '';
+
+          /* ---------- backdrop ---------- */
+          B +=
+            '<rect x="0" y="40" width="1200" height="560" style="fill:url(#sky)"/>';
+          B +=
+            '<rect x="0" y="40" width="1200" height="560" fill="url(#ht)" opacity=".5"/>';
+          var R = rnd(42);
+          for (var i = 0; i < 46; i++) {
+            var sx = R() * 1200,
+              sy = 44 + R() * 170;
+            B +=
+              '<path d="M' +
+              f(sx) +
+              ' ' +
+              f(sy - 3.4) +
+              'l1 2.4 2.4 1 -2.4 1 -1 2.4 -1 -2.4 -2.4 -1 2.4 -1z" class="star"/>';
+          }
+          B +=
+            '<g opacity=".95">' +
+            Ec(1112, 108, 52, 52, '#a97bd8', '#6e47a6', {
+              s: 12,
+              h: 'x',
+              w: 4,
+            }) +
+            '<path d="M1058 112c30-14 72-16 104 4" fill="none" stroke="#ffd7a1" stroke-width="7" opacity=".8" stroke-linecap="round"/></g>';
+
+          /* ---------- exterior parts (behind hull) ---------- */
+          /* tail fins */
+          X += Pl(
+            [
+              [112, 170],
+              [104, 100],
+              [180, 96],
+              [264, 168],
+            ],
+            '#e6eaec',
+            '#98a8b8',
+            { s: 8, w: 4, h: 'x' },
+          );
+          X += Pl(
+            [
+              [122, 160],
+              [118, 122],
+              [150, 118],
+              [196, 160],
+            ],
+            '#ff8a1f',
+            '#c2570b',
+            { s: 4, w: 3 },
+          );
+          X +=
+            line('M144 96V70M158 96V62M172 96V74', 3, INK) +
+            '<circle cx="144" cy="68" r="3" fill="#ff4b43" stroke="' +
+            INK +
+            '" stroke-width="2"/><circle cx="158" cy="60" r="3" fill="#ffd23a" stroke="' +
+            INK +
+            '" stroke-width="2"/>';
+          X += Pl(
+            [
+              [112, 470],
+              [104, 540],
+              [180, 542],
+              [250, 476],
+            ],
+            '#e6eaec',
+            '#98a8b8',
+            { s: 8, w: 4, h: 'x' },
+          );
+          X += Pl(
+            [
+              [122, 478],
+              [118, 516],
+              [152, 520],
+              [196, 478],
+            ],
+            '#18b5a8',
+            '#0c7f7a',
+            { s: 4, w: 3 },
+          );
+          /* upper nacelle */
+          X +=
+            Rc(344, 156, 18, 20, '#7d8ca0', '#4b586b', { r: 2, s: 3, w: 3 }) +
+            Rc(556, 156, 18, 20, '#7d8ca0', '#4b586b', { r: 2, s: 3, w: 3 });
+          X += S(rr(300, 118, 330, 42, 20, 31, 1.2), '#e6eaec', '#98a8b8', {
+            s: 7,
+            h: 'x',
+            w: 4,
+          });
+          X +=
+            '<rect x="360" y="132" width="200" height="6" fill="#ff8a1f" stroke="' +
+            INK +
+            '" stroke-width="2"/>';
+          X += T(460, 154, 'MERIDIAN', 'stencil', 13);
+          X += Ec(626, 139, 10, 17, '#31c5f0', '#177fa6', {
+            s: 3,
+            w: 3.4,
+            h: false,
+          });
+          X +=
+            '<g class="fx" data-fx="tact"><ellipse cx="626" cy="139" rx="9" ry="15" fill="#c8f6ff"/></g>';
+          X +=
+            S(rr(292, 124, 22, 30, 8, 32, 0.8), '#2a3342', '#1a212c', {
+              s: 3,
+              w: 3,
+              h: false,
+            }) +
+            '<g class="fx" data-fx="eng"><ellipse cx="296" cy="139" rx="12" ry="12" fill="#52c7ff" opacity=".9"/></g>';
+          X += line('M322 128V150M332 128V150M342 128V150', 2.6, '#98a8b8');
+          /* lower nacelle */
+          X += Rc(296, 518, 18, 12, '#7d8ca0', false, { r: 2, w: 3 });
+          X += Rc(470, 484, 18, 12, '#7d8ca0', false, { r: 2, w: 3 });
+          X += S(rr(252, 492, 280, 38, 18, 33, 1.2), '#e6eaec', '#98a8b8', {
+            s: 7,
+            h: 'x',
+            w: 4,
+          });
+          X +=
+            '<rect x="300" y="506" width="170" height="6" fill="#18b5a8" stroke="' +
+            INK +
+            '" stroke-width="2"/>';
+          X += Ec(532, 511, 9, 15, '#31c5f0', '#177fa6', {
+            s: 3,
+            w: 3.4,
+            h: false,
+          });
+          X +=
+            '<g class="fx" data-fx="tact"><ellipse cx="532" cy="511" rx="8" ry="13" fill="#c8f6ff"/></g>';
+          X +=
+            '<g class="fx" data-fx="eng"><ellipse cx="254" cy="511" rx="12" ry="12" fill="#52c7ff" opacity=".9"/></g>';
+          /* main engine */
+          X += Pl(
+            [
+              [104, 268],
+              [60, 250],
+              [34, 266],
+              [34, 366],
+              [60, 382],
+              [104, 368],
+            ],
+            '#6b788c',
+            '#3e4859',
+            { s: 7, w: 4, h: 'x' },
+          );
+          X += Pl(
+            [
+              [48, 270],
+              [36, 280],
+              [36, 352],
+              [48, 362],
+            ],
+            '#1a1f29',
+            false,
+            { w: 3 },
+          );
+          X +=
+            '<path d="M62 262V372M78 258V376" stroke="' +
+            INK +
+            '" stroke-width="3"/>';
+          X +=
+            '<g class="fx" data-fx="eng"><path d="M36 282C20 290 8 304 2 316C8 328 20 342 36 350C30 338 30 294 36 282Z" fill="#ffb02a" stroke="' +
+            INK +
+            '" stroke-width="3.4" stroke-linejoin="round"/><path d="M36 296C26 302 20 310 16 316C20 322 26 330 36 336C32 326 32 306 36 296Z" fill="#fff3a0"/></g>';
+          /* sensor dish (Tactical) */
+          X +=
+            '<g data-m="sensors" class="mach on">' +
+            Rc(722, 130, 12, 50, '#7d8ca0', '#4b586b', { r: 2, s: 3, w: 3 });
+          X += S(
+            poly(
+              [
+                [692, 104],
+                [708, 138],
+                [746, 138],
+                [764, 104],
+                [750, 118],
+                [706, 118],
+              ],
+              51,
+              1,
+            ),
+            '#c3ccd8',
+            '#7d8ca0',
+            { s: 4, w: 3.4 },
+          );
+          X +=
+            line('M728 120V88', 3.4, INK) +
+            '<circle cx="728" cy="84" r="5.5" fill="#ffd23a" stroke="' +
+            INK +
+            '" stroke-width="3"/>';
+          X +=
+            '<g class="ml">' +
+            line('M706 80Q728 62 750 80', 3.4, '#9af1ff') +
+            line('M696 70Q728 46 760 70', 3.4, '#9af1ff') +
+            '</g></g>';
+          /* comms antenna array (below the belly) */
+          X +=
+            '<g data-m="antenna" class="mach on"><g transform="translate(12 0)">' +
+            Rc(584, 470, 12, 82, '#7d8ca0', '#4b586b', { r: 2, s: 3, w: 3 });
+          X +=
+            Rc(554, 522, 72, 9, '#c3ccd8', '#7d8ca0', {
+              r: 3,
+              s: 2,
+              w: 3,
+              h: false,
+            }) +
+            Rc(562, 538, 56, 8, '#c3ccd8', '#7d8ca0', {
+              r: 3,
+              s: 2,
+              w: 3,
+              h: false,
+            }) +
+            Rc(570, 553, 40, 8, '#c3ccd8', '#7d8ca0', {
+              r: 3,
+              s: 2,
+              w: 3,
+              h: false,
+            });
+          X +=
+            '<circle cx="590" cy="566" r="6" fill="#ffd23a" stroke="' +
+            INK +
+            '" stroke-width="3"/>';
+          X +=
+            '<g class="ml">' +
+            line('M636 520Q654 540 636 560', 3.4, '#ffd23a') +
+            line('M646 512Q672 540 646 568', 3.4, '#ffd23a') +
+            line('M544 520Q526 540 544 560', 3.4, '#ffd23a') +
+            line('M534 512Q508 540 534 568', 3.4, '#ffd23a') +
+            '</g></g></g>';
+
+          /* ---------- hull ---------- */
+          var outer = [
+            [84, 252],
+            [112, 168],
+            [480, 164],
+            [872, 160],
+          ]
+            .concat(bz([872, 160], [990, 158], [1070, 206], [1118, 256], 6))
+            .concat(bz([1118, 256], [1156, 292], [1156, 332], [1118, 368], 5))
+            .concat(bz([1118, 368], [1070, 418], [990, 482], [872, 480], 6))
+            .concat([
+              [480, 476],
+              [112, 472],
+              [84, 382],
+            ]);
+          var inner = [
+            [104, 258],
+            [126, 184],
+            [480, 180],
+            [872, 176],
+          ]
+            .concat(bz([872, 176], [975, 174], [1045, 214], [1092, 262], 6))
+            .concat(bz([1092, 262], [1116, 288], [1116, 336], [1092, 362], 5))
+            .concat(bz([1092, 362], [1045, 410], [975, 466], [872, 464], 6))
+            .concat([
+              [480, 460],
+              [126, 456],
+              [104, 374],
+            ]);
+          var hd = poly(outer.slice(), 77, 1.3),
+            idd = poly(inner.slice(), 78, 1);
+          H += S(hd, '#e6eaec', '#98a8b8', { s: 16, h: 'd', w: 5.4 });
+          H += '<path d="' + idd + '" fill="#262d42"/>';
+          H += '<path d="' + idd + '" fill="url(#hat)" opacity=".5"/>';
+          H +=
+            '<path d="M130 172L872 166M120 466L872 474" stroke="#ff8a1f" stroke-width="5" fill="none" stroke-linecap="round"/><path d="M130 172L872 166M120 466L872 474" stroke="' +
+            INK +
+            '" stroke-width="1.6" fill="none" transform="translate(0 4)" opacity=".6"/>';
+          for (var rv = 150; rv < 1080; rv += 46)
+            H +=
+              '<circle cx="' +
+              rv +
+              '" cy="' +
+              f(178 - (rv - 120) * 0.008) +
+              '" r="2.2" fill="#7d8ca0" stroke="' +
+              INK +
+              '" stroke-width="1.2"/><circle cx="' +
+              rv +
+              '" cy="' +
+              f(460 + (rv - 120) * 0.006) +
+              '" r="2.2" fill="#7d8ca0" stroke="' +
+              INK +
+              '" stroke-width="1.2"/>';
+          H +=
+            '<path d="M' +
+            idd.slice(1).replace(/Z/, '') +
+            'Z" fill="none" stroke="' +
+            INK +
+            '" stroke-width="4.4" stroke-linejoin="round"/>';
+          /* bow lights and registry */
+          H +=
+            '<g class="fx" data-fx="brdg"><circle cx="1134" cy="312" r="7" fill="#ffd23a" stroke="' +
+            INK +
+            '" stroke-width="3"/><circle cx="1120" cy="266" r="4" fill="#ff4b43"/><circle cx="1120" cy="358" r="4" fill="#58d86a"/></g><circle cx="1134" cy="312" r="7" fill="none" stroke="' +
+            INK +
+            '" stroke-width="3"/>';
+          H += line('M1154 312H1190', 3.4, INK);
+          /* corridor structure: shaft ladders, corridor lights */
+          H +=
+            '<rect x="380" y="312" width="510" height="26" fill="#1a2030"/>' +
+            '<path d="M392 318H878" stroke="#ffe08a" stroke-width="3" stroke-dasharray="26 22" opacity=".55"/>';
+          H +=
+            '<rect x="380" y="184" width="120" height="272" fill="#1d2335"/><rect x="770" y="184" width="120" height="272" fill="#1d2335"/>';
+          H += panelLines(392, 490, 188, 452, 14, '#3a4562');
+          H += ladder(466, 188, 452, 22);
+          H += crew(612, 336, 0.5, '#e24b6a', '#a02a44', 'cap', { flip: true });
+
+          /* ---------- ENGINEERING ---------- */
+          RM += roomOpen('eng', ENGD, '#f2a65a', '#c4742b');
+          RM += panelLines(150, 360, 190, 440, 38, '#c4742b');
+          RM += T(134, 213, 'ENGINEERING', 'rname', 14, 'start');
+          RM += pipe('M128 228H300', 12, '#7d8ca0', '#4b586b');
+          RM += pipe('M185 236V226H330V240H380', 11, '#ff8a1f', '#c2570b');
+          RM += pipe('M296 318V252H330', 9, '#ff8a1f', '#c2570b');
+          RM +=
+            '<g class="rl">' +
+            Ec(262, 298, 16, 16, '#fff7d6', false, { w: 3 }) +
+            '</g>' +
+            Ec(262, 298, 16, 16, '#d8d0b0', '#a89f80', {
+              s: 3,
+              w: 3,
+              h: false,
+            }) +
+            line('M262 298l8 -8', 3, '#e0261f') +
+            '<circle cx="262" cy="298" r="2.6" fill="' +
+            INK +
+            '"/>';
+          /* Reactor */
+          var cx = 185;
+          RM += mach(
+            'reactor',
+            S(rr(cx - 46, 412, 92, 34, 6, 21, 1), '#7d8ca0', '#4b586b', {
+              s: 4,
+              w: 3.2,
+            }) +
+              Rc(cx - 40, 232, 80, 20, '#8d9bb0', '#566378', {
+                r: 6,
+                s: 3,
+                w: 3,
+              }) +
+              S(rr(cx - 32, 250, 64, 164, 24, 23, 1.2), '#2e6a63', '#1d4742', {
+                s: 7,
+                w: 3.8,
+                h: 'd',
+              }) +
+              '<g class="ml"><ellipse cx="' +
+              cx +
+              '" cy="330" rx="62" ry="92" fill="url(#gGlow)"/><path d="' +
+              rr(cx - 26, 258, 52, 148, 20, 24, 0.8) +
+              '" fill="#8bffb4"/><path d="M' +
+              (cx - 12) +
+              ' 270V398" stroke="#fff" stroke-width="6" stroke-linecap="round" opacity=".8"/>' +
+              line(
+                'M' +
+                  (cx - 20) +
+                  ' 300l14 -12 -10 -2 16 -14M' +
+                  (cx + 4) +
+                  ' 380l12 -14 -10 -2 14 -12',
+                3.4,
+                '#fff',
+              ) +
+              '</g>' +
+              [0, 1, 2]
+                .map(function (i) {
+                  return Rc(
+                    cx - 38,
+                    292 + i * 38,
+                    76,
+                    14,
+                    '#ff9b2f',
+                    '#c2640f',
+                    { r: 6, s: 3, w: 3, h: false },
+                  );
+                })
+                .join('') +
+              plate(cx, 429, 'Reactor', '#8bffb4', 10),
+          );
+          /* PowerGrid cabinets */
+          var cab = '';
+          for (var ci = 0; ci < 3; ci++) {
+            var cxx = 282 + ci * 31;
+            cab += Rc(cxx, 318, 28, 128, '#566f8c', '#364a63', {
+              r: 4,
+              s: 4,
+              w: 3,
+            });
+            for (var cj = 0; cj < 3; cj++) {
+              cab +=
+                Rc(cxx + 4, 328 + cj * 15, 20, 11, '#1f2838', false, {
+                  r: 2,
+                  w: 2,
+                  flat: true,
+                }) +
+                '<circle cx="' +
+                (cxx + 19) +
+                '" cy="' +
+                (333.5 + cj * 15) +
+                '" r="2.6" fill="#35402f"/><circle class="ml" cx="' +
+                (cxx + 19) +
+                '" cy="' +
+                (333.5 + cj * 15) +
+                '" r="2.6" fill="' +
+                (cj === 1 ? '#ffd23a' : '#6dff8c') +
+                '"/>';
+            }
+            cab +=
+              '<path d="M' +
+              (cxx + 5) +
+              ' 412h18M' +
+              (cxx + 5) +
+              ' 418h18M' +
+              (cxx + 5) +
+              ' 424h18" stroke="' +
+              INK +
+              '" stroke-width="2" opacity=".6"/>';
+          }
+          RM += mach('grid', cab + plate(329, 303, 'PowerGrid', '#ffd23a', 10));
+          RM += crew(252, 446, 1, '#3b6fb6', '#244b82', 'hard');
+          RM += floor(128, 446, 252);
+          RM += roomClose(ENGD).replace(/$/, '');
+          /* ---------- TACTICAL ---------- */
+          RM += roomOpen('tact', TACTD, '#78c3ea', '#3f8fbf');
+          RM += panelLines(512, 760, 190, 300, 36, '#3f8fbf');
+          RM += T(508, 213, 'TACTICAL', 'rname', 14, 'start');
+          RM += pipe('M500 240H560V268', 8, '#ff8a1f', '#c2570b');
+          RM += pipe('M652 285H676V258H770', 9, '#31c5f0', '#177fa6');
+          RM += scr(668, 194, 88, 26, 'bars', 'rl');
+          var sh = Rc(520, 268, 134, 34, '#7d8ca0', '#4b586b', {
+            s: 4,
+            w: 3.2,
+          });
+          [545, 587, 629].forEach(function (x, i) {
+            sh += Pl(
+              [
+                [x - 10, 270],
+                [x + 10, 270],
+                [x + 4, 240],
+                [x - 4, 240],
+              ],
+              '#9aa7b8',
+              '#5d6a7e',
+              { s: 3, w: 2.8, h: false },
+            );
+            sh +=
+              Ec(x, 233, 8, 8, '#2d6a86', '#1c4458', {
+                s: 2,
+                w: 2.8,
+                h: false,
+              }) +
+              '<g class="ml"><circle cx="' +
+              x +
+              '" cy="233" r="13" fill="url(#gGlowC)"/><circle cx="' +
+              x +
+              '" cy="233" r="6.4" fill="#b8f6ff"/>' +
+              line(
+                'M' + (x - 14) + ' 224Q' + x + ' 210 ' + (x + 14) + ' 224',
+                3,
+                '#9af1ff',
+              ) +
+              '</g>';
+          });
+          RM += mach(
+            'shields',
+            sh + plate(587, 287, 'ShieldGrid', '#31c5f0', 10),
+          );
+          RM += mach(
+            'sensors',
+            Rc(692, 270, 74, 32, '#7d8ca0', '#4b586b', { s: 4, w: 3.2 }) +
+              Rc(723, 196, 10, 40, '#9aa7b8', '#5d6a7e', {
+                r: 2,
+                s: 2,
+                w: 2.6,
+                h: false,
+              }) +
+              S(circ(728, 246, 19, 19, 61), '#10202a', '#0a141b', {
+                s: 4,
+                w: 3.4,
+                h: false,
+              }) +
+              '<g class="ml"><circle cx="728" cy="246" r="15" fill="#0f4a3c"/><path d="M728 246L742 238" stroke="#7dffb0" stroke-width="3"/><circle cx="728" cy="246" r="9" fill="none" stroke="#7dffb0" stroke-width="1.6" opacity=".7"/><circle cx="736" cy="252" r="2.2" fill="#fff"/></g>' +
+              plate(727, 288, 'Sensors', '#7dffb0', 9.6),
+          );
+          RM += crew(668, 302, 0.95, '#2f5fb8', '#1d3f84', 'cap');
+          RM += floor(500, 302, 270);
+          RM += roomClose(TACTD);
+          /* ---------- COMMS ---------- */
+          RM += roomOpen('comm', COMMD, '#86d58f', '#4c9f5b');
+          RM += panelLines(512, 760, 342, 440, 36, '#4c9f5b');
+          RM += T(508, 365, 'COMMS', 'rname', 14, 'start');
+          RM += pipe('M500 392H576V414', 8, '#ff8a1f', '#c2570b');
+          RM += pipe('M652 430H672V400H770', 9, '#58d86a', '#2b9a3c');
+          RM += scr(668, 346, 88, 22, 'wave', 'rl', '#ffd23a');
+          RM += mach(
+            'antenna',
+            Rc(556, 414, 96, 32, '#7d8ca0', '#4b586b', { s: 4, w: 3.2 }) +
+              Rc(596, 384, 12, 32, '#9aa7b8', '#5d6a7e', {
+                r: 2,
+                s: 2,
+                w: 2.6,
+                h: false,
+              }) +
+              S(
+                poly(
+                  [
+                    [578, 372],
+                    [586, 388],
+                    [618, 388],
+                    [626, 372],
+                    [614, 380],
+                    [590, 380],
+                  ],
+                  62,
+                  0.8,
+                ),
+                '#c3ccd8',
+                '#7d8ca0',
+                { s: 3, w: 3 },
+              ) +
+              '<g class="ml">' +
+              line('M588 366Q602 355 616 366', 3.2, '#ffd23a') +
+              line('M580 360Q602 343 624 360', 3.2, '#ffd23a') +
+              '</g>' +
+              plate(604, 430, 'Antenna', '#58d86a', 10),
+          );
+          var rl = '';
+          for (var ri = 0; ri < 3; ri++) {
+            var rx = 684 + ri * 30;
+            rl += Rc(rx, 392, 27, 54, '#546a86', '#34475f', {
+              r: 3,
+              s: 3,
+              w: 3,
+            });
+            for (var rj = 0; rj < 4; rj++)
+              rl +=
+                Rc(rx + 4, 398 + rj * 11, 19, 7, '#1f2838', false, {
+                  r: 1,
+                  w: 1.6,
+                  flat: true,
+                }) +
+                '<circle class="ml" cx="' +
+                (rx + 20) +
+                '" cy="' +
+                (401.5 + rj * 11) +
+                '" r="2" fill="' +
+                ((ri + rj) % 2 ? '#ffd23a' : '#6dff8c') +
+                '"/>';
+          }
+          RM += mach('relay', rl + plate(714, 380, 'Relay', '#ffd23a', 10));
+          RM += crew(668, 446, 0.95, '#e8913a', '#a86018', 'head');
+          RM += floor(500, 446, 270);
+          RM += roomClose(COMMD);
+          /* ---------- BRIDGE ---------- */
+          RM += roomOpen('brdg', BRDGD, '#c09bf0', '#8c63c8');
+          RM += panelLines(902, 1040, 196, 320, 34, '#8c63c8');
+          RM += T(898, 222, 'BRIDGE', 'rname', 14, 'start');
+          RM += pipe('M890 258H944V290', 8, '#31c5f0', '#177fa6');
+          RM += pipe('M890 414H936', 8, '#58d86a', '#2b9a3c');
+          RM += Rc(890, 322, 160, 9, '#7d8ca0', '#4b586b', {
+            r: 2,
+            s: 2,
+            w: 3,
+            h: 'x',
+          });
+          RM += ladder(898, 331, 446, 20);
+          RM += mach(
+            'helm',
+            Pl(
+              [
+                [944, 316],
+                [944, 292],
+                [1000, 280],
+                [1050, 286],
+                [1050, 316],
+              ],
+              '#7d8ca0',
+              '#4b586b',
+              { s: 4, w: 3.2 },
+            ) +
+              scr(956, 286, 28, 12, 'bars', 'ml') +
+              scr(1006, 288, 28, 12, 'wave', 'ml') +
+              '<path d="M1022 270V286" stroke="' +
+              INK +
+              '" stroke-width="6" stroke-linecap="round"/>' +
+              Ec(1022, 262, 13, 13, '#c9863a', '#8d5a1f', {
+                s: 3,
+                w: 3.2,
+                h: false,
+              }) +
+              Ec(1022, 262, 4, 4, '#ffd23a', false, { w: 2.2 }) +
+              line(
+                'M1022 249V275M1009 262H1035M1013 253l18 18M1031 253l-18 18',
+                2.4,
+                INK,
+              ) +
+              '<path d="M964 286V270" stroke="' +
+              INK +
+              '" stroke-width="5" stroke-linecap="round"/><circle cx="964" cy="267" r="5" fill="#ff4b43" stroke="' +
+              INK +
+              '" stroke-width="2.6"/>' +
+              plate(996, 303, 'Helm', '#c09bf0', 10),
+          );
+          RM += crew(918, 316, 1, '#d8434d', '#9a252d', 'brown');
+          RM += mach(
+            'comp',
+            Rc(936, 338, 104, 108, '#6d7f97', '#43536a', {
+              r: 6,
+              s: 5,
+              w: 3.4,
+            }) +
+              scr(946, 346, 84, 42, 'text', 'ml') +
+              [962, 1014]
+                .map(function (x) {
+                  return (
+                    Ec(x, 406, 13, 13, '#c3ccd8', '#8593a8', {
+                      s: 3,
+                      w: 3,
+                      h: false,
+                    }) +
+                    '<g class="ml"><circle cx="' +
+                    x +
+                    '" cy="406" r="3" fill="#ff4b43"/></g>' +
+                    line(
+                      'M' + x + ' 394V418M' + (x - 12) + ' 406H' + (x + 12),
+                      2,
+                      INK,
+                    )
+                  );
+                })
+                .join('') +
+              '<path d="M946 424h84" stroke="' +
+              INK +
+              '" stroke-width="2" opacity=".5"/>' +
+              plate(988, 434, 'Computer', '#c09bf0', 10),
+          );
+          RM += floor(890, 446, 100);
+          RM += floor(890, 316, 150);
+          /* dome */
+          var dome =
+            'M892 196C888 138 916 102 946 100C980 100 998 140 994 196Z';
+          RM += Rc(914, 160, 30, 32, '#d8434d', '#9a252d', {
+            r: 5,
+            s: 3,
+            w: 3,
+          });
+          RM += crew(940, 192, 1.0, '#2a3f8f', '#1b2a66', 'capn');
+          RM += S(dome, 'rgba(180,230,255,.34)', 'rgba(100,170,220,.34)', {
+            s: 6,
+            w: 4.4,
+            h: 'x',
+          });
+          RM +=
+            '<path d="M906 178C906 148 922 122 942 114" fill="none" stroke="#fff" stroke-width="5" stroke-linecap="round" opacity=".75"/>';
+          RM += '<path class="rdim" d="' + dome + '" fill="#0a1020"/>';
+          RM +=
+            '<g class="fx" data-fx="brdg"><ellipse cx="944" cy="150" rx="60" ry="52" fill="url(#gGlowY)"/></g>';
+          RM +=
+            line('M946 100V74', 4, INK) +
+            line('M946 100V74', 1.6, '#c3ccd8') +
+            line('M932 86H960', 3.4, INK);
+          RM +=
+            '<g id="klx"><path class="beam" d="M946 70L892 48M946 70L1000 48M946 66V34" stroke="#ff2a22" stroke-width="5" stroke-linecap="round"/>' +
+            '<circle cx="946" cy="68" r="8" fill="#ff4b43" stroke="' +
+            INK +
+            '" stroke-width="3.4"/><circle cx="943" cy="65" r="2.4" fill="#fff"/></g>';
+          RM += roomClose(BRDGD);
+
+          /* hatches (exports) sit on the walls, above the rooms */
+          var HT = '';
+          [
+            [380, 240],
+            [380, 392],
+            [770, 258],
+            [770, 400],
+          ].forEach(function (p) {
+            HT += hatchDoor(p[0], p[1]);
+          });
+          [
+            [500, 240],
+            [500, 392],
+            [890, 258],
+            [890, 414],
+          ].forEach(function (p) {
+            HT += socket(p[0] - 5, p[1]);
+          });
+          /* walking doors on the corridor ends */
+          HT +=
+            '<g>' +
+            plate(336, 207, 'export', '#ffd23a', 9) +
+            line('M366 214L376 224', 3.4, INK) +
+            '</g>';
+          HT +=
+            Rc(372, 314, 16, 22, '#3b2a22', '#241812', { r: 2, w: 3 }) +
+            Rc(882, 314, 16, 22, '#3b2a22', '#241812', { r: 2, w: 3 });
+
+          CONS.forEach(function (c) {
+            PL += conduit(c);
+          });
+          PL += HT;
+          /* alert tags and warning icons */
+          CONS.forEach(function (c) {
+            var p = CHIPPOS[c.by];
+            TOP +=
+              '<g class="atag" id="at-' +
+              c.id +
+              '">' +
+              plate(c.tx, c.ty, 'NEEDS ' + c.token, '#fff', 8.4, true) +
+              '</g>';
+            TOP +=
+              '<g class="wi" id="wi-' +
+              c.by +
+              '">' +
+              warnTri(p.wi[0], p.wi[1], 1.15) +
+              '</g>';
+          });
+          TOP += '<g id="pops"></g>';
+
+          var statics =
+            '<linearGradient id="sky" x1="0" y1="0" x2="0" y2="1"><stop offset="0" style="stop-color:var(--sky1)"/><stop offset="1" style="stop-color:var(--sky2)"/></linearGradient>' +
+            '<pattern id="ht" width="9" height="9" patternUnits="userSpaceOnUse" patternTransform="rotate(30)"><circle cx="2.2" cy="2.2" r="1.5" fill="#15110e" opacity=".22"/></pattern>' +
+            '<pattern id="hat" width="7" height="7" patternUnits="userSpaceOnUse"><path d="M.6 6.6 4.2 1.4M4.8 7 6.9 3.9" stroke="#15110e" stroke-width="1.15" stroke-linecap="round" fill="none" opacity=".62"/></pattern>' +
+            '<pattern id="xh" width="7" height="7" patternUnits="userSpaceOnUse"><path d="M.6 6.6 4.2 1.4M4.8 7 6.9 3.9M0 2.4 3 4.8M3.8 .8 6.8 3.2" stroke="#15110e" stroke-width="1.1" stroke-linecap="round" fill="none" opacity=".6"/></pattern>' +
+            '<pattern id="dith" width="4" height="4" patternUnits="userSpaceOnUse" shape-rendering="crispEdges"><rect width="1.5" height="1.5" fill="#15110e" opacity=".5"/><rect x="2" y="2" width="1.5" height="1.5" fill="#15110e" opacity=".5"/></pattern>' +
+            '<radialGradient id="gGlow"><stop offset="0" stop-color="#8bffb4" stop-opacity=".85"/><stop offset="1" stop-color="#8bffb4" stop-opacity="0"/></radialGradient>' +
+            '<radialGradient id="gGlowC"><stop offset="0" stop-color="#9af1ff" stop-opacity=".9"/><stop offset="1" stop-color="#9af1ff" stop-opacity="0"/></radialGradient>' +
+            '<radialGradient id="gGlowY"><stop offset="0" stop-color="#ffe9a0" stop-opacity=".7"/><stop offset="1" stop-color="#ffe9a0" stop-opacity="0"/></radialGradient>' +
+            '<filter id="grain" x="0" y="0" width="100%" height="100%"><feTurbulence type="fractalNoise" baseFrequency=".8" numOctaves="2" seed="9"/><feColorMatrix values="0 0 0 0 0  0 0 0 0 0  0 0 0 0 0  0 0 0 3.6 -1.7"/></filter>';
+          var grain =
+            '<rect x="0" y="40" width="1200" height="560" filter="url(#grain)" opacity=".16" style="mix-blend-mode:multiply;pointer-events:none"/>';
+          $('#ship').innerHTML =
+            '<defs>' +
+            statics +
+            defs.join('') +
+            '</defs>' +
+            B +
+            '<g id="shipgrp"><g id="ext">' +
+            X +
+            '</g>' +
+            H +
+            RM +
+            PL +
+            TOP +
+            '</g>' +
+            grain;
+        }
+        buildShip();
+
+        /* =====================================================================
+     Simulation
+     ===================================================================== */
+        var MODS = [
+          {
+            id: 'eng',
+            name: 'Engineering',
+            chips: [
+              ['reactor', 'Reactor'],
+              ['grid', 'PowerGrid'],
+            ],
+          },
+          {
+            id: 'tact',
+            name: 'Tactical',
+            chips: [
+              ['shields', 'ShieldGrid'],
+              ['sensors', 'Sensors'],
+            ],
+          },
+          {
+            id: 'comm',
+            name: 'Comms',
+            chips: [
+              ['antenna', 'Antenna'],
+              ['relay', 'Relay'],
+            ],
+          },
+          {
+            id: 'brdg',
+            name: 'Bridge',
+            chips: [
+              ['helm', 'Helm'],
+              ['comp', 'Computer'],
+            ],
+          },
+        ];
+        var byId = {};
+        MODS.forEach(function (m) {
+          byId[m.id] = m;
+        });
+        var CON = CONS;
+        var svg = $('#ship');
+        var elRoom = {},
+          elChip = {},
+          elCon = {},
+          elTag = {},
+          elWi = {};
+        MODS.forEach(function (m) {
+          elRoom[m.id] = $('#r-' + m.id);
+          m.chips.forEach(function (c) {
+            elChip[c[0]] = svg.querySelectorAll('[data-m="' + c[0] + '"]');
+          });
+        });
+        CON.forEach(function (c) {
+          elCon[c.id] = $('#p-' + c.id);
+          elTag[c.id] = $('#at-' + c.id);
+          elWi[c.by] = $('#wi-' + c.by);
+        });
+        var elFx = {};
+        ['eng', 'tact', 'comm', 'brdg'].forEach(function (k) {
+          elFx[k] = svg.querySelectorAll('[data-fx="' + k + '"]');
+        });
+        function setCls(list, cls, on) {
+          if (list.length === undefined) list = [list];
+          for (var i = 0; i < list.length; i++)
+            list[i].classList.toggle(cls, !!on);
+        }
+
+        /* ---------- audio (off by default, synthesized) ---------- */
+        var AC = null,
+          sfxOn = false,
+          mTimer = 0,
+          mStep = 0;
+        function actx() {
+          if (!AC) {
+            var C = window.AudioContext || window.webkitAudioContext;
+            if (!C) return null;
+            try {
+              AC = new C();
+            } catch (e) {
+              return null;
+            }
+          }
+          if (AC.state === 'suspended') AC.resume();
+          return AC;
+        }
+        function tone(fq, d, type, vol, delay) {
+          var a = actx();
+          if (!a) return;
+          var t = a.currentTime + (delay || 0),
+            o = a.createOscillator(),
+            g = a.createGain();
+          o.type = type || 'square';
+          o.frequency.setValueAtTime(fq, t);
+          g.gain.setValueAtTime(vol || 0.05, t);
+          g.gain.exponentialRampToValueAtTime(0.0001, t + d);
+          o.connect(g);
+          g.connect(a.destination);
+          o.start(t);
+          o.stop(t + d + 0.02);
+        }
+        function sfx(kind) {
+          if (!sfxOn) return;
+          if (kind === 'on') tone(660, 0.09, 'square', 0.04);
+          if (kind === 'cut') {
+            tone(220, 0.25, 'sawtooth', 0.06);
+            tone(147, 0.3, 'sawtooth', 0.06, 0.12);
+            tone(220, 0.25, 'sawtooth', 0.06, 0.45);
+            tone(147, 0.3, 'sawtooth', 0.06, 0.57);
+          }
+          if (kind === 'fix') {
+            tone(523, 0.08, 'square', 0.04);
+            tone(784, 0.12, 'square', 0.04, 0.08);
+          }
+          if (kind === 'go')
+            [392, 523, 659, 784, 1046].forEach(function (fq, i) {
+              tone(fq, 0.12, 'square', 0.045, i * 0.09);
+            });
+        }
+        var SONG = [262, 330, 392, 330, 294, 349, 440, 349];
+        function musicTick() {
+          tone(SONG[mStep % SONG.length] / 2, 0.2, 'triangle', 0.035);
+          mStep++;
+        }
+
+        /* ---------- popups ---------- */
+        function popup(x, y, txt, kind) {
+          if (reduce.matches) return;
+          var w = txt.length * 10 + 24,
+            fill =
+              kind === 'r' ? '#c4261f' : kind === 'g' ? '#1d8a3a' : '#15110e';
+          var layer = $('#pops'),
+            id = 'pp' + Math.random().toString(36).slice(2, 7);
+          layer.insertAdjacentHTML(
+            'beforeend',
+            '<g id="' +
+              id +
+              '" transform="translate(' +
+              x +
+              ' ' +
+              y +
+              ')"><g class="pop go"><path d="' +
+              rr(-w / 2, -15, w, 28, 10, 5, 0.5) +
+              '" fill="' +
+              fill +
+              '" stroke="#fff" stroke-width="2.4"/>' +
+              T(0, 6, txt, 'poptxt', 10) +
+              '</g></g>',
+          );
+          setTimeout(function () {
+            var e = document.getElementById(id);
+            if (e) e.remove();
+          }, 1300);
+        }
+
+        /* ---------- state ---------- */
+        var cut = {},
+          lit = {},
+          litChip = {},
+          token = 0,
+          powered = false,
+          booting = false,
+          alerts = [];
+        var statusEl = $('#status'),
+          msg = $('#msg'),
+          outEl = $('#out'),
+          meter = $('#meter').children;
+
+        function sleep(ms) {
+          return new Promise(function (r) {
+            setTimeout(r, reduce.matches ? 0 : ms);
+          });
+        }
+        function setMeter(n) {
+          for (var i = 0; i < meter.length; i++)
+            meter[i].className = i < n ? 'on' : '';
+        }
+        function check() {
+          var errs = [];
+          CON.forEach(function (c) {
+            if (cut[c.id]) {
+              var m = byId[c.to],
+                ch = m.chips.filter(function (x) {
+                  return x[0] === c.by;
+                })[0];
+              errs.push({ con: c, mod: m, chip: ch });
+            }
+          });
+          return errs;
+        }
+        function levels() {
+          var lvl = {},
+            ch = true;
+          MODS.forEach(function (m) {
+            lvl[m.id] = 0;
+          });
+          while (ch) {
+            ch = false;
+            CON.forEach(function (c) {
+              if (lvl[c.to] < lvl[c.from] + 1) {
+                lvl[c.to] = lvl[c.from] + 1;
+                ch = true;
+              }
+            });
+          }
+          var out = [];
+          MODS.forEach(function (m) {
+            (out[lvl[m.id]] = out[lvl[m.id]] || []).push(m);
+          });
+          return out;
+        }
+        function useHref(el, id) {
+          el.setAttribute('href', '#' + id);
+        }
+
+        function render() {
+          MODS.forEach(function (m) {
+            var bad = alerts.some(function (e) {
+              return e.mod === m;
+            });
+            elRoom[m.id].classList.toggle('on', !!lit[m.id] && !bad);
+            elRoom[m.id].classList.toggle('alert', bad);
+            m.chips.forEach(function (c) {
+              var isBad = alerts.some(function (a) {
+                return a.chip === c;
+              });
+              setCls(elChip[c[0]], 'on', !!litChip[c[0]] && !isBad);
+              setCls(elChip[c[0]], 'bad', isBad);
+              if (elWi[c[0]]) elWi[c[0]].classList.toggle('show', isBad);
+            });
+            setCls(
+              elFx[m.id],
+              'on',
+              !!lit[m.id] &&
+                !alerts.some(function (e) {
+                  return e.mod === m;
+                }),
+            );
+          });
+          CON.forEach(function (c) {
+            var e = elCon[c.id],
+              isCut = !!cut[c.id];
+            e.classList.toggle('cut', isCut);
+            e.classList.toggle('powered', !isCut && !!lit[c.from]);
+            e.setAttribute('aria-pressed', isCut ? 'true' : 'false');
+            e.setAttribute(
+              'aria-label',
+              'Conduit ' +
+                c.token +
+                ' from ' +
+                byId[c.from].name +
+                ' to ' +
+                byId[c.to].name +
+                ', ' +
+                (isCut
+                  ? 'unplugged. Press to replug.'
+                  : 'plugged. Press to unplug.'),
+            );
+            elTag[c.id].classList.toggle('show', isCut);
+          });
+          $('#klx').classList.toggle('alarm', alerts.length > 0);
+          $('#frame').classList.toggle('alert', alerts.length > 0);
+          var launch = $('#launch'),
+            ready = powered && !alerts.length;
+          launch.setAttribute('aria-disabled', ready ? 'false' : 'true');
+          launch.textContent = alerts.length
+            ? 'Locked'
+            : booting
+              ? 'Wait'
+              : 'Launch';
+          launch.setAttribute(
+            'aria-label',
+            alerts.length
+              ? 'Launch blocked'
+              : booting
+                ? 'Launch waits for power-up'
+                : 'Launch',
+          );
+          stats();
+          document.querySelectorAll('#clist button').forEach(function (b) {
+            var isCut = !!cut[b.dataset.c];
+            b.setAttribute('aria-pressed', isCut ? 'true' : 'false');
+            b.querySelector('.st').textContent = isCut
+              ? 'UNPLUGGED'
+              : 'PLUGGED';
+          });
+        }
+        function stats() {
+          var nm = 0,
+            np = 0;
+          MODS.forEach(function (m) {
+            if (
+              lit[m.id] &&
+              !alerts.some(function (e) {
+                return e.mod === m;
+              })
+            )
+              nm++;
+            m.chips.forEach(function (c) {
+              if (
+                litChip[c[0]] &&
+                !alerts.some(function (e) {
+                  return e.chip === c;
+                })
+              )
+                np++;
+            });
+          });
+          var pct = Math.round((np / 8) * 100),
+            bad = alerts.length > 0;
+          /* a failing check shows its share of the bar in red, at least 12% wide */
+          var redShare = bad ? Math.max(12, 100 - pct) : 100 - pct;
+          $('#pctOn').textContent = 100 - redShare + '%';
+          $('#pctOff').textContent = redShare + '%';
+          $('#offlbl').textContent = bad ? 'Fault' : 'Pending';
+          $('#nMod').textContent = nm;
+          $('#nPro').textContent = np;
+          $('#fb').style.width = 100 - redShare + '%';
+          $('#mk2').style.left = 100 - redShare + '%';
+          $('#bar').setAttribute('aria-valuenow', 100 - redShare);
+          var bp = $('#bp');
+          bp.classList.toggle('ok', !bad);
+          bp.classList.toggle('bad', bad);
+          $('#bpv').textContent = bad ? 'Invalid' : 'Valid';
+          useHref($('#bpico'), bad ? 'i-warn' : 'i-ok');
+          $('#bpn').textContent = bad
+            ? alerts.length +
+              (alerts.length > 1 ? ' errors found' : ' error found')
+            : 'Nexus.check passes';
+          bp.setAttribute(
+            'aria-label',
+            'Blueprint ' + (bad ? 'invalid' : 'valid'),
+          );
+        }
+        function say(t) {
+          msg.textContent = t;
+        }
+        function esc(s) {
+          return s.replace(/&/g, '&amp;').replace(/</g, '&lt;');
+        }
+        function showOut(errs) {
+          var base = '<span class="c">$ npm run preflight</span>';
+          if (!errs.length) {
+            outEl.innerHTML =
+              base +
+              '\n<span class="okc">pre-flight ok</span>\n<span class="okc">exit 0</span>';
+          } else {
+            var h =
+              base +
+              '\n<span class="err">[NEXUS_BLUEPRINT_INVALID] the module graph has ' +
+              errs.length +
+              (errs.length > 1 ? ' errors' : ' error') +
+              '; nothing was built.</span>';
+            errs.forEach(function (e) {
+              var t = e.con.token,
+                to = e.mod.name,
+                from = byId[e.con.from].name;
+              h +=
+                '<span class="err hl">[<a href="https://nexus.js.org/next/errors/NEXUS_MISSING_PROVIDER/">NEXUS_MISSING_PROVIDER</a>] ' +
+                e.chip[1] +
+                ' (module ' +
+                to +
+                ') depends on ' +
+                t +
+                ', but no provider of ' +
+                t +
+                ' is visible in ' +
+                to +
+                '.</span>' +
+                '\n<span class="err">    ' +
+                t +
+                ' is exported by ' +
+                from +
+                ', which ' +
+                to +
+                ' does not import.</span>' +
+                '\n<span class="err">    Fix: import ' +
+                from +
+                ' into ' +
+                to +
+                '.</span>';
+            });
+            outEl.innerHTML = h + '\n<span class="err">exit 1</span>';
+          }
+          outEl.classList.remove('flash');
+          void outEl.offsetWidth;
+          if (!reduce.matches) outEl.classList.add('flash');
+        }
+
+        async function powerUp() {
+          var my = ++token;
+          booting = true;
+          powered = false;
+          lit = {};
+          litChip = {};
+          setMeter(0);
+          render();
+          var lv = levels(),
+            done = 0;
+          say('Power-up. Waking decks in dependency order.');
+          await sleep(120);
+          if (my !== token) return;
+          for (var i = 0; i < lv.length; i++) {
+            var group = lv[i];
+            say(
+              'Deck ' +
+                (i + 1) +
+                '. ' +
+                group
+                  .map(function (m) {
+                    return m.name;
+                  })
+                  .join(' and ') +
+                ' starting' +
+                (i
+                  ? ', after ' +
+                    lv[i - 1]
+                      .map(function (m) {
+                        return m.name;
+                      })
+                      .join(' and ')
+                  : '') +
+                '.',
+            );
+            for (var k = 0; k < 2; k++) {
+              group.forEach(function (m) {
+                var id = m.chips[k][0];
+                litChip[id] = true;
+                var p = CHIPPOS[id].pop;
+                popup(p[0], p[1], 'ONLINE', 'y');
+                sfx('on');
+              });
+              render();
+              await sleep(200);
+              if (my !== token) return;
+            }
+            group.forEach(function (m) {
+              lit[m.id] = true;
+              done++;
+            });
+            setMeter(Math.round((done / MODS.length) * 8));
+            render();
+            await sleep(240);
+            if (my !== token) return;
+          }
+          setMeter(8);
+          booting = false;
+          powered = true;
+          say('All decks online. Wiring checked. Ready to launch.');
+          render();
+        }
+
+        function recheck() {
+          var errs = check();
+          alerts = errs;
+          showOut(errs);
+          if (errs.length) {
+            token++;
+            booting = false;
+            var seen = {},
+              titles = [];
+            errs.forEach(function (e) {
+              if (!seen[e.mod.id]) {
+                seen[e.mod.id] = 1;
+                titles.push(e.mod.name.toUpperCase());
+              }
+            });
+            var parts = errs.map(function (e) {
+              return (
+                e.mod.name +
+                ' (module) is missing ' +
+                e.con.token +
+                ' (provider)'
+              );
+            });
+            statusEl.classList.add('bad');
+            statusEl.setAttribute('role', 'alert');
+            msg.innerHTML =
+              '<span class="at">Red alert.</span> ' +
+              parts.join('; ') +
+              '. ' +
+              (errs.length > 1
+                ? ''
+                : errs[0].chip[1] +
+                  ' needs it, and the conduit is unplugged. ') +
+              'Launch blocked.';
+            var fx = $('#fixit');
+            if (!fx) {
+              fx = document.createElement('button');
+              fx.type = 'button';
+              fx.id = 'fixit';
+              fx.className = 'btn small gold';
+              fx.textContent = 'Replug';
+              fx.addEventListener('click', function () {
+                check().forEach(function (e) {
+                  cut[e.con.id] = false;
+                });
+                sfx('fix');
+                recheck();
+              });
+              statusEl.appendChild(fx);
+            }
+            render();
+          } else {
+            var old = $('#fixit');
+            if (old) old.remove();
+            statusEl.classList.remove('bad');
+            statusEl.setAttribute('role', 'status');
+            var n = 0;
+            MODS.forEach(function (m) {
+              if (lit[m.id]) n++;
+            });
+            setMeter(Math.round((n / MODS.length) * 8));
+            render();
+            if (!powered && !booting) powerUp();
+            else if (powered)
+              say('Check passed. All conduits plugged. Ready to launch.');
+          }
+        }
+        function toggle(id) {
+          cut[id] = !cut[id];
+          var c = CON.filter(function (x) {
+            return x.id === id;
+          })[0];
+          popup(
+            c.xm,
+            c.yb - 70,
+            cut[id] ? 'LINK LOST' : 'LINKED',
+            cut[id] ? 'r' : 'g',
+          );
+          sfx(cut[id] ? 'cut' : 'fix');
+          recheck();
+        }
+
+        /* conduit list buttons */
+        (function () {
+          var ul = $('#clist');
+          CON.forEach(function (c) {
+            var li = document.createElement('li'),
+              b = document.createElement('button');
+            b.type = 'button';
+            b.dataset.c = c.id;
+            b.setAttribute('aria-pressed', 'false');
+            b.innerHTML =
+              '<svg class="ico" aria-hidden="true" style="--ic:' +
+              c.col +
+              '"><use href="#i-hatch"/></svg><span class="nm">' +
+              c.token +
+              ': ' +
+              byId[c.from].name +
+              ' to ' +
+              byId[c.to].name +
+              '</span> <span class="st">PLUGGED</span>';
+            b.setAttribute(
+              'aria-label',
+              'Conduit ' +
+                c.token +
+                ' from ' +
+                byId[c.from].name +
+                ' to ' +
+                byId[c.to].name,
+            );
+            b.addEventListener('click', function () {
+              toggle(c.id);
+            });
+            li.appendChild(b);
+            ul.appendChild(li);
+          });
+        })();
+        CON.forEach(function (c) {
+          var e = elCon[c.id];
+          e.addEventListener('click', function () {
+            toggle(c.id);
+          });
+          e.addEventListener('keydown', function (ev) {
+            if (ev.key === 'Enter' || ev.key === ' ') {
+              ev.preventDefault();
+              toggle(c.id);
+            }
+          });
+        });
+        $('#replay').addEventListener('click', function () {
+          if (alerts.length) {
+            statusEl.scrollIntoView({ block: 'nearest' });
+            return;
+          }
+          powerUp();
+        });
+        $('#launch').addEventListener('click', function () {
+          if (this.getAttribute('aria-disabled') === 'true') {
+            if (alerts.length)
+              outEl.innerHTML +=
+                '\n<span class="err">Launch refused. Fix the wiring first.</span>';
+            else if (booting) say('Hold on. Power-up is still running.');
+            return;
+          }
+          var g = $('#shipgrp');
+          g.classList.remove('go');
+          void g.getBoundingClientRect();
+          g.classList.add('go');
+          sfx('go');
+          outEl.innerHTML += '\n<span class="okc">Meridian is away.</span>';
+          say('Launched. Every conduit was checked before the engines lit.');
+          setTimeout(function () {
+            g.classList.remove('go');
+          }, 1900);
+        });
+
+        /* ---------- why strip ---------- */
+        function icon(id, color, cls) {
+          return (
+            '<svg class="ico' +
+            (cls ? ' ' + cls : '') +
+            '" aria-hidden="true" focusable="false" style="--ic:' +
+            color +
+            '"><use href="#' +
+            id +
+            '"/></svg>'
+          );
+        }
+        var WHY = [
+          [
+            'i-shield',
+            'Fails in CI',
+            'One error lists every missing provider.',
+            '#55e07a',
+          ],
+          [
+            'i-hatch',
+            'Modules with hatches',
+            'Private providers. Exports you choose.',
+            '#ffc531',
+          ],
+          [
+            'i-power',
+            'Async startup',
+            'Factories finish first. get() stays sync.',
+            '#ff8a1f',
+          ],
+          [
+            'i-chip',
+            'No compiler flags',
+            'tsc, esbuild, SWC, Vite, Bun, Deno.',
+            '#52c7ff',
+          ],
+        ];
+        $('#whygrid').innerHTML = WHY.map(function (w) {
+          return (
+            '<div class="panel">' +
+            icon(w[0], w[3]) +
+            '<h3>' +
+            w[1] +
+            '</h3><p>' +
+            w[2] +
+            '</p></div>'
+          );
+        }).join('');
+
+        /* ---------- compare ---------- */
+        function mk(k, note) {
+          var t = { y: 'Yes', p: 'Part', n: 'No' }[k],
+            ic = { y: 'i-ok', p: 'i-part', n: 'i-no' }[k],
+            col = { y: '#55e07a', p: '#ffc531', n: '#ff5148' }[k];
+          return (
+            '<span class="mk ' +
+            k +
+            '">' +
+            icon(ic, col) +
+            '<span>' +
+            t +
+            (note ? '<small>' + note + '</small>' : '') +
+            '</span></span>'
+          );
+        }
+        var ROWS = [
+          [
+            'Missing provider found before any constructor runs',
+            ['y', 'Nexus.check'],
+            ['p', 'at bootstrap, while it builds'],
+            ['n', 'at first resolve'],
+          ],
+          [
+            'Every missing provider in one error',
+            ['y'],
+            ['n', 'the first one'],
+            ['n', 'the first one'],
+          ],
+          [
+            'Modules with private providers and exports',
+            ['y'],
+            ['y'],
+            ['n', 'container modules have no exports'],
+          ],
+          [
+            'Async factories finish at startup',
+            ['y'],
+            ['y'],
+            ['p', 'resolved with getAsync'],
+          ],
+          [
+            'Constructor injection with no compiler flags',
+            ['y'],
+            ['n', 'needs decorator flags'],
+            ['p', 'its decorated setup needs flags'],
+          ],
+        ];
+        $('#cmpbody').innerHTML = ROWS.map(function (r) {
+          return (
+            '<tr><th scope="row">' +
+            r[0] +
+            '</th><td class="us" data-l="NexusDI">' +
+            mk(r[1][0], r[1][1]) +
+            '</td><td data-l="NestJS container (unverified)">' +
+            mk(r[2][0], r[2][1]) +
+            '</td><td data-l="InversifyJS">' +
+            mk(r[3][0], r[3][1]) +
+            '</td></tr>'
+          );
+        }).join('');
+
+        /* ---------- packages ---------- */
+        var PK = [
+          [
+            'core',
+            'i-core',
+            'Modules and async startup. The hull.',
+            '#ffc531',
+            1,
+          ],
+          [
+            'decorators',
+            'i-deco',
+            'Injectable, Inject and Module with no flags.',
+            '#b992ff',
+          ],
+          [
+            'errors',
+            'i-warn',
+            'Every error explained, with the fix.',
+            '#ff5148',
+          ],
+          [
+            'testing',
+            'i-test',
+            'Your real graph in tests, with swaps.',
+            '#55e07a',
+          ],
+          [
+            'node',
+            'i-node',
+            'Find the request scope anywhere in a call chain.',
+            '#52c7ff',
+          ],
+          [
+            'devtools',
+            'i-dev',
+            'Draw the module graph and follow instances.',
+            '#52c7ff',
+          ],
+          [
+            'federation',
+            'i-fed',
+            'Share tokens between shell and remotes.',
+            '#b992ff',
+          ],
+          [
+            'interceptors',
+            'i-int',
+            'Logging, metrics, caching on methods.',
+            '#ffc531',
+          ],
+          ['cli', 'i-cli', 'Draw the graph from the terminal.', '#55e07a'],
+        ];
+        $('#bay').innerHTML = PK.map(function (p) {
+          return (
+            '<li class="cart panel' +
+            (p[4] ? ' core' : '') +
+            '" style="--c:' +
+            p[3] +
+            '"><div>' +
+            icon(p[1], p[3]) +
+            '<div><b><a href="https://www.npmjs.com/package/@nexusdi/' +
+            p[0] +
+            '">@nexusdi/' +
+            p[0] +
+            '</a></b><span class="d">' +
+            p[2] +
+            '</span><em class="tag">' +
+            (p[4] ? 'required' : 'optional') +
+            '</em></div></div></li>'
+          );
+        }).join('');
+
+        /* ---------- copy ---------- */
+        document.querySelectorAll('button.copy').forEach(function (btn) {
+          btn.addEventListener('click', function () {
+            var box = btn.parentNode,
+              t = $('.cmd', box).textContent,
+              c = $('.copied', box);
+            function ok() {
+              c.textContent = 'Copied!';
+              setTimeout(function () {
+                c.textContent = '';
+              }, 2000);
+            }
+            function fb() {
+              var a = document.createElement('textarea');
+              a.value = t;
+              a.setAttribute('readonly', '');
+              a.style.position = 'fixed';
+              a.style.opacity = '0';
+              document.body.appendChild(a);
+              a.select();
+              try {
+                document.execCommand('copy');
+                ok();
+              } catch (e) {
+                c.textContent = 'Press Ctrl+C';
+              }
+              document.body.removeChild(a);
+            }
+            if (navigator.clipboard && navigator.clipboard.writeText)
+              navigator.clipboard.writeText(t).then(ok, fb);
+            else fb();
+          });
+        });
+
+        /* ---------- theme ---------- */
+        (function () {
+          var root = document.documentElement,
+            btn = $('#theme'),
+            lbl = $('#themelbl');
+          function cur() {
+            return root.getAttribute('data-theme') || 'dark';
+          }
+          function paint() {
+            var d = cur() === 'dark';
+            lbl.textContent = d ? 'Light' : 'Dark';
+            btn.setAttribute(
+              'aria-label',
+              d ? 'Switch to light theme' : 'Switch to dark theme',
+            );
+            useHref($('#themeuse'), d ? 'i-sun' : 'i-moon');
+            btn.removeAttribute('aria-pressed');
+          }
+          btn.addEventListener('click', function () {
+            var n = cur() === 'dark' ? 'light' : 'dark';
+            root.setAttribute('data-theme', n);
+            try {
+              localStorage.setItem('nx-theme', n);
+            } catch (e) {}
+            paint();
+          });
+          paint();
+        })();
+
+        /* ---------- CRT, SFX, MUSIC ---------- */
+        function bindToggle(id, fn) {
+          var b = $(id);
+          b.addEventListener('click', function () {
+            var on = b.getAttribute('aria-pressed') !== 'true';
+            b.setAttribute('aria-pressed', on ? 'true' : 'false');
+            fn(on);
+          });
+        }
+        bindToggle('#crt', function (on) {
+          document.body.classList.toggle('crton', on);
+        });
+        bindToggle('#sfx', function (on) {
+          sfxOn = on;
+          if (on) {
+            actx();
+            sfx('on');
+          }
+        });
+        bindToggle('#music', function (on) {
+          clearInterval(mTimer);
+          if (on) {
+            actx();
+            musicTick();
+            mTimer = setInterval(musicTick, 260);
+          }
+        });
+
+        /* ---------- boot: paint the lit state, power-up runs on replay ---------- */
+        MODS.forEach(function (m) {
+          lit[m.id] = true;
+          m.chips.forEach(function (c) {
+            litChip[c[0]] = true;
+          });
+        });
+        powered = true;
+        recheck();
+        function canPan() {
+          var s = $('#scroller');
+          $('#frame').classList.toggle(
+            'canpan',
+            s.scrollWidth > s.clientWidth + 4,
+          );
+        }
+        canPan();
+        window.addEventListener('resize', canPan);
+        $('#scroller').addEventListener(
+          'scroll',
+          function () {
+            $('#panbadge').classList.add('seen');
+          },
+          { passive: true },
+        );
+      })();
+    </script>
+  </body>
+</html>
