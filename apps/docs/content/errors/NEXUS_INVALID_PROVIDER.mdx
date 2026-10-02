@@ -1,0 +1,47 @@
+---
+title: NEXUS_INVALID_PROVIDER
+kind: code
+description: An entry in a module's providers list is malformed.
+package: '@nexusdi/core'
+errorClass: InvalidProviderError
+---
+
+# NEXUS_INVALID_PROVIDER
+
+`NEXUS_INVALID_PROVIDER` means an entry in a module's `providers` is malformed: a value with a lifetime, a module listed as a provider, an entry with no definition or with two, a `deps` list that is not an array, and the other reasons below. `Nexus.create` reports it inside [NEXUS_BLUEPRINT_INVALID](/errors/NEXUS_BLUEPRINT_INVALID/).
+
+## Reproduce `NEXUS_INVALID_PROVIDER`
+
+TypeScript rejects most malformed entries where you write them. It reports TS2769 on the `provide(` call, and the error for the overload that takes `useValue` names this code:
+
+```ts fails-type-check
+provide(REACTOR, { useValue: { output: 1.21 }, lifetime: 'transient' });
+// TS2769: No overload matches this call. The error for the useValue overload ends with:
+// Type '"transient"' is not assignable to type '"NEXUS_INVALID_PROVIDER: useValue and useExisting take no lifetime. Remove lifetime"'.
+```
+
+Core checks every entry again at `create`, for JavaScript callers and for lists TypeScript cannot see. The region reads its provider list from configuration at run time, and the entry sets a lifetime on a value. Without a plugin, core prints the one-line message: the code, the fields as `key=value` pairs and the address of this page. With `errors()` from `@nexusdi/errors` registered (`npm install @nexusdi/errors@next`), the same error carries the full text and its fix.
+
+```ts file=examples/meridian/src/errors/NEXUS_INVALID_PROVIDER.md region=reproduce
+
+```
+
+Try it: save the region as `error.ts` and run `npx tsx error.ts`. It prints the one-line message, whose `reason` is `value-with-lifetime`, then the full text as one line that says `Engineering.providers[0]` sets a lifetime on `useValue`. Then save the fix region below as `fixed.ts` and run `npx tsx fixed.ts`. It prints `1.21`.
+
+## Fix `NEXUS_INVALID_PROVIDER`
+
+`NEXUS_INVALID_PROVIDER` is fixed by correcting the entry the error names with `module` and `index`, as its `reason` says. A value takes no lifetime, because the container never builds it. Write entries with `provide()`, which TypeScript checks. A `deps` list that holds a value that is not a token has the reason `bad-dep`, not [NEXUS_INVALID_TOKEN](/errors/NEXUS_INVALID_TOKEN/).
+
+```ts file=examples/meridian/src/errors/NEXUS_INVALID_PROVIDER.md region=fix
+
+```
+
+## Fields of `InvalidProviderError`
+
+`InvalidProviderError` carries these fields:
+
+- `module`: the module whose `providers` holds the entry.
+- `index`: the position of the entry in that list.
+- `reason`: why the entry is malformed: `static-deps-throws`, `static-deps-not-array`, `deps-in-both`, `options-not-object`, `not-a-provider`, `class-throws`, `bad-dep`, `deps-not-array`, `bad-injectable-lifetime`, `is-a-module`, `options-throw`, `provides-request`, `no-definition`, `several-definitions`, `bad-lifetime`, `use-class-not-a-class`, `value-with-lifetime`, `factory-not-a-function`, `alias-with-lifetime`, `alias-to-multi-token`, `bad-eager` or `eager-not-deferrable`.
+- `detail`: the values the reason names, such as the module listed as a provider.
+- `otherCopy`: `true` when another copy of `@nexusdi/core` made the value the entry holds. Load one copy of `@nexusdi/core`.

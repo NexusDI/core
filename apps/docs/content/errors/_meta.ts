@@ -24,6 +24,22 @@ const meta: MetaRecord = {
     title: 'NEXUS_DUPLICATE_PROVIDER',
     display: 'hidden',
   },
+  NEXUS_INVALID_EXPORT: {
+    title: 'NEXUS_INVALID_EXPORT',
+    display: 'hidden',
+  },
+  NEXUS_INVALID_PROVIDER: {
+    title: 'NEXUS_INVALID_PROVIDER',
+    display: 'hidden',
+  },
+  NEXUS_INVALID_TOKEN: {
+    title: 'NEXUS_INVALID_TOKEN',
+    display: 'hidden',
+  },
+  NEXUS_INVALID_MODULE: {
+    title: 'NEXUS_INVALID_MODULE',
+    display: 'hidden',
+  },
 };
 
 export default meta;

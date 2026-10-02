@@ -1,0 +1,36 @@
+---
+title: NEXUS_INVALID_EXPORT
+kind: code
+description: A module exports a token it neither provides nor sees through an import.
+package: '@nexusdi/core'
+errorClass: InvalidExportError
+---
+
+# NEXUS_INVALID_EXPORT
+
+`NEXUS_INVALID_EXPORT` means a module lists a token in `exports` that it neither provides nor sees through an import, or a module it does not import. `Nexus.create` reports it inside [NEXUS_BLUEPRINT_INVALID](/errors/NEXUS_BLUEPRINT_INVALID/).
+
+## Reproduce `NEXUS_INVALID_EXPORT`
+
+The region exports `PowerRouter` from `Engineering`, which provides only `ReactorCore`. Without a plugin, core prints the one-line message: the code, the fields as `key=value` pairs and the address of this page. With `errors()` from `@nexusdi/errors` registered (`npm install @nexusdi/errors@next`), the same error carries the full text and its fix.
+
+```ts file=examples/meridian/src/errors/NEXUS_INVALID_EXPORT.md region=reproduce
+
+```
+
+Try it: save the region as `error.ts` and run `npx tsx error.ts`. It prints the one-line message of the inner error, then the full text as two lines. The first line says that `Engineering` exports `PowerRouter`, which it neither provides nor sees through an import, and the second line is the `Fix:` line. Then save the fix region below as `fixed.ts` and run `npx tsx fixed.ts`. It prints `0.605`.
+
+## Fix `NEXUS_INVALID_EXPORT`
+
+`NEXUS_INVALID_EXPORT` is fixed by exporting only what the module provides or imports. Either provide the token in the module or import the module that exports it; if the module should not export it at all, remove it from `exports`. Here `Engineering` gains a `PlasmaRouter` bound to `POWER_ROUTER`.
+
+```ts file=examples/meridian/src/errors/NEXUS_INVALID_EXPORT.md region=fix
+
+```
+
+## Fields of `InvalidExportError`
+
+`InvalidExportError` carries these fields:
+
+- `token`: the display name of the exported token or module.
+- `module`: the module whose `exports` lists it.
