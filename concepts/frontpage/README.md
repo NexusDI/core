@@ -20,10 +20,18 @@ The page is the ship's pre-flight console: a blueprint schematic with hand-lette
 A breaker bank and couplings on the hull control the conduits, and the decks light in dependency order.
 The launch key stays locked while the checklist shows the failing line that names the missing system.
 
+## Concept D: game UI Meridian (`concept-d.html`)
+
+Concept A restyled in the graphical style of the owner's reference (`reference/chess-hud.jpg`): a navy vignette, pixel display type, raised slate cards with hard shadows, bevelled blue, red and yellow pills, and an optional CRT screen.
+A ship status card shows a striped boot bar, module and provider counts and a Blueprint VALID card, and hit popups mark each section coming online.
+Cutting a conduit flips the card to INVALID, sounds the red alert naming the broken link, and keeps the big yellow LAUNCH locked until the conduit is restored.
+
 ## Recommendation
 
 Build on concept B. It is the most fun and the most visual, it reads as a sales page at a glance, and the red alert lands hardest on a phone. It also borrows C's labels that point at a section, a hatch and a conduit, C's per-section pass and fail list, and A's caption that names each deck as it powers up.
 
 On a phone, B's arrow labels sit tight against the conduits and need a spacing pass in the build.
+
+Concept D is the owner's pick of direction after the first three. On a phone its ship labels render at about 7 to 8px, so the build needs a stacked ship layout there.
 
 Before publishing, confirm the comparison rows against the NestJS and InversifyJS versions you check, and date the table.
