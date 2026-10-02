@@ -92,16 +92,20 @@
         min-width: 320px;
         background:
           radial-gradient(
+            ellipse 60% 45% at 88% 10%,
+            rgba(124, 88, 214, 0.24),
+            transparent 70%
+          ),
+          radial-gradient(
+            ellipse 55% 40% at 6% 80%,
+            rgba(44, 168, 196, 0.16),
+            transparent 70%
+          ),
+          radial-gradient(
             ellipse 80% 60% at 50% 20%,
             var(--bg2),
             transparent 70%
           ),
-          radial-gradient(
-              circle at 1px 1px,
-              rgba(255, 255, 255, 0.07) 1.2px,
-              transparent 1.6px
-            )
-            0 0/14px 14px,
           var(--bg);
         background-attachment: fixed;
       }
@@ -1227,13 +1231,6 @@
       #ship .wi.show {
         display: block;
       }
-      #ship .star {
-        fill: #fff;
-        opacity: 0.8;
-      }
-      :root[data-theme='light'] #ship .star {
-        display: none;
-      }
       #ship .pulsing {
         animation: breathe 2.4s ease-in-out infinite;
       }
@@ -1452,6 +1449,197 @@
           text-transform: uppercase;
           color: var(--dim);
           font-weight: 800;
+        }
+      }
+
+      /* page starfield, drawn behind everything */
+      #stars {
+        position: fixed;
+        inset: 0;
+        width: 100%;
+        height: 100%;
+        z-index: -1;
+        pointer-events: none;
+      }
+      :root[data-theme='light'] #stars,
+      :root[data-theme='light'] #ship .sg {
+        display: none;
+      }
+      .sf .s1,
+      .sf .s2,
+      .sf .s3 {
+        fill: none;
+        stroke-linecap: round;
+      }
+      .sf .s1 {
+        stroke: #cfe0ff;
+        stroke-width: 1;
+        opacity: 0.36;
+      }
+      .sf .s2 {
+        stroke: #e8f0ff;
+        stroke-width: 1.7;
+        opacity: 0.5;
+      }
+      .sf .s3 {
+        stroke: #fff;
+        stroke-width: 2.6;
+        opacity: 0.75;
+      }
+      .sf .sp {
+        fill: #fff;
+        opacity: 0.8;
+      }
+      .sf .tw {
+        animation: tw 3.4s ease-in-out infinite;
+      }
+      @keyframes tw {
+        0%,
+        100% {
+          opacity: 1;
+        }
+        50% {
+          opacity: 0.15;
+        }
+      }
+      :root:not([data-theme='light']) :is(.lede, .fine, .cmpnote, footer) {
+        text-shadow:
+          0 0 4px var(--bg),
+          0 0 9px var(--bg),
+          0 1px 0 var(--bg);
+      }
+      .crewlog {
+        margin: 6px 0 0;
+        font-size: 13px;
+        letter-spacing: 0.04em;
+      }
+      .toast {
+        position: fixed;
+        left: 50%;
+        bottom: 18px;
+        transform: translateX(-50%);
+        z-index: 70;
+        width: max-content;
+        max-width: calc(100vw - 32px);
+        background: var(--line);
+        color: #fff;
+        font-weight: 800;
+        font-size: 15px;
+        line-height: 1.3;
+        text-align: center;
+        padding: 10px 16px;
+        border: 3px solid #fff;
+        border-radius: 14px;
+        box-shadow: 0 5px 0 rgba(0, 0, 0, 0.45);
+        opacity: 0;
+        pointer-events: none;
+        transition: opacity 0.25s;
+      }
+      .toast.show {
+        opacity: 1;
+      }
+      #warp {
+        position: fixed;
+        inset: 0;
+        z-index: 45;
+        pointer-events: none;
+        opacity: 0;
+        color: #fff;
+      }
+      :root[data-theme='light'] #warp {
+        color: #2a5a8a;
+      }
+      #warp svg {
+        width: 100%;
+        height: 100%;
+        display: block;
+      }
+      #warp.go {
+        animation: warpfx 2.6s ease-in-out forwards;
+      }
+      @keyframes warpfx {
+        0% {
+          opacity: 0;
+          transform: scale(0.4);
+        }
+        25% {
+          opacity: 0.75;
+        }
+        70% {
+          opacity: 0.75;
+          transform: scale(1.3);
+        }
+        100% {
+          opacity: 0;
+          transform: scale(2);
+        }
+      }
+      #ship .stencil.st2 {
+        font-size: 13px;
+        opacity: 0.8;
+      }
+      #ship .btxt {
+        font-size: 20px;
+        fill: #15110e;
+      }
+      #ship .egg {
+        cursor: pointer;
+        outline: none;
+      }
+      #ship .egg .eggring {
+        display: none;
+      }
+      #ship .egg:focus-visible .eggring {
+        display: block;
+      }
+      #ship .mach.on .reel {
+        animation: sweep 5s linear infinite;
+        transform-box: fill-box;
+        transform-origin: center;
+      }
+      #ship .wst {
+        opacity: 0;
+        transition: opacity 0.3s;
+      }
+      #ship.warping .wst {
+        opacity: 1;
+      }
+      #ship.warping .wst rect {
+        animation: wstm 0.4s linear infinite;
+      }
+      @keyframes wstm {
+        to {
+          transform: translateX(-160px);
+        }
+      }
+      #ship .warp {
+        animation: warpship 2.6s cubic-bezier(0.55, 0, 0.35, 1) forwards;
+        transform-box: fill-box;
+        transform-origin: 0% 50%;
+      }
+      @keyframes warpship {
+        0% {
+          transform: none;
+        }
+        20% {
+          transform: translateX(-26px) scaleX(0.97);
+        }
+        55% {
+          transform: translateX(160px) scaleX(1.3);
+          opacity: 1;
+        }
+        100% {
+          transform: translateX(1500px) scaleX(4);
+          opacity: 0;
+        }
+      }
+      #ship .arrive {
+        animation: arrive 0.8s ease-out;
+      }
+      @keyframes arrive {
+        from {
+          transform: translateX(-280px);
+          opacity: 0;
         }
       }
       @media (prefers-reduced-motion: reduce) {
@@ -1813,6 +2001,9 @@
         </symbol>
       </defs>
     </svg>
+    <svg id="stars" class="sf" aria-hidden="true" focusable="false"></svg>
+    <div id="warp" aria-hidden="true"></div>
+    <div class="toast" id="toast" role="status" aria-live="polite"></div>
     <a class="skip" href="#top">Skip to content</a>
     <div class="wrap">
       <header class="top">
@@ -2148,9 +2339,11 @@ console.<span class="f">log</span>(<span class="s">'pre-flight ok'</span>);</pre
           </div>
         </section>
       </main>
-      <footer>NexusDI. MIT licensed. Built on the Starship Meridian.</footer>
+      <footer>
+        NexusDI. MIT licensed. Built on the Starship Meridian.
+        <p class="crewlog" id="crewlog">Crew log: 0/4 secrets found</p>
+      </footer>
     </div>
-
     <script>
       (function () {
         'use strict';
@@ -2158,14 +2351,10 @@ console.<span class="f">log</span>(<span class="s">'pre-flight ok'</span>);</pre
           return (r || document).querySelector(s);
         };
         var reduce = window.matchMedia('(prefers-reduced-motion: reduce)');
-
-        /* =====================================================================
-     Ship drawing helpers: wobbly ink paths, one hard shadow tone with
-     hatching, light dither as an accent.
-     ===================================================================== */
         var INK = '#15110e';
         var uid = 0,
-          defs = [];
+          defs = [],
+          legacy = false;
         function f(n) {
           return Math.round(n * 10) / 10;
         }
@@ -2178,8 +2367,61 @@ console.<span class="f">log</span>(<span class="s">'pre-flight ok'</span>);</pre
             return ((t ^ (t >>> 14)) >>> 0) / 4294967296;
           };
         }
-        /* wobbly rounded rect; step=true gives a pixel staircase corner */
+        /* rounded rect. The crew keeps its tiny hand-drawn wobble (legacy
+           mode); everything else is drawn with clean arcs. */
         function rr(x, y, w, h, r, seed, j, step) {
+          if (!legacy) {
+            r = Math.min(r, w / 2, h / 2);
+            var X2 = x + w,
+              Y2 = y + h;
+            return (
+              'M' +
+              f(x + r) +
+              ' ' +
+              y +
+              'H' +
+              f(X2 - r) +
+              'A' +
+              r +
+              ' ' +
+              r +
+              ' 0 0 1 ' +
+              X2 +
+              ' ' +
+              f(y + r) +
+              'V' +
+              f(Y2 - r) +
+              'A' +
+              r +
+              ' ' +
+              r +
+              ' 0 0 1 ' +
+              f(X2 - r) +
+              ' ' +
+              Y2 +
+              'H' +
+              f(x + r) +
+              'A' +
+              r +
+              ' ' +
+              r +
+              ' 0 0 1 ' +
+              x +
+              ' ' +
+              f(Y2 - r) +
+              'V' +
+              f(y + r) +
+              'A' +
+              r +
+              ' ' +
+              r +
+              ' 0 0 1 ' +
+              f(x + r) +
+              ' ' +
+              y +
+              'Z'
+            );
+          }
           var R = rnd(seed || 7);
           j = j == null ? 1.3 : j;
           function J() {
@@ -2191,28 +2433,7 @@ console.<span class="f">log</span>(<span class="s">'pre-flight ok'</span>);</pre
           r = Math.min(r, w / 2, h / 2);
           var x2 = x + w,
             y2 = y + h;
-          function cn(cx, cy, ax, ay, bx, by, hf) {
-            if (step) {
-              var mx = (ax + bx) / 2,
-                my = (ay + by) / 2;
-              return hf
-                ? 'L' +
-                    P(mx, ay) +
-                    'L' +
-                    P(mx, my) +
-                    'L' +
-                    P(bx, my) +
-                    'L' +
-                    P(bx, by)
-                : 'L' +
-                    P(ax, my) +
-                    'L' +
-                    P(mx, my) +
-                    'L' +
-                    P(mx, by) +
-                    'L' +
-                    P(bx, by);
-            }
+          function cn(cx, cy, ax, ay, bx, by) {
             return 'Q' + P(cx, cy) + ' ' + P(bx, by);
           }
           return (
@@ -2220,16 +2441,41 @@ console.<span class="f">log</span>(<span class="s">'pre-flight ok'</span>);</pre
             P(x + r, y) +
             'L' +
             P(x2 - r, y) +
-            cn(x2, y, x2 - r, y, x2, y + r, true) +
+            cn(x2, y, x2 - r, y, x2, y + r) +
             'L' +
             P(x2, y2 - r) +
-            cn(x2, y2, x2, y2 - r, x2 - r, y2, false) +
+            cn(x2, y2, x2, y2 - r, x2 - r, y2) +
             'L' +
             P(x + r, y2) +
-            cn(x, y2, x + r, y2, x, y2 - r, true) +
+            cn(x, y2, x + r, y2, x, y2 - r) +
             'L' +
             P(x, y + r) +
-            cn(x, y, x, y + r, x + r, y, false) +
+            cn(x, y, x, y + r, x + r, y) +
+            'Z'
+          );
+        }
+        function ell(cx, cy, rx, ry) {
+          return (
+            'M' +
+            f(cx - rx) +
+            ' ' +
+            cy +
+            'A' +
+            rx +
+            ' ' +
+            ry +
+            ' 0 1 0 ' +
+            f(cx + rx) +
+            ' ' +
+            cy +
+            'A' +
+            rx +
+            ' ' +
+            ry +
+            ' 0 1 0 ' +
+            f(cx - rx) +
+            ' ' +
+            cy +
             'Z'
           );
         }
@@ -2250,6 +2496,7 @@ console.<span class="f">log</span>(<span class="s">'pre-flight ok'</span>);</pre
           return d + 'Z';
         }
         function circ(cx, cy, rx, ry, seed, n) {
+          if (!legacy) return ell(cx, cy, rx, ry);
           n = n || 12;
           var R = rnd(seed || 3),
             pts = [];
@@ -2263,13 +2510,13 @@ console.<span class="f">log</span>(<span class="s">'pre-flight ok'</span>);</pre
         function poly(pts, seed, j) {
           var R = rnd(seed || 5),
             out = [];
-          j = j == null ? 1.4 : j;
+          j = legacy ? (j == null ? 1.4 : j) : 0;
           for (var i = 0; i < pts.length; i++) {
             var a = pts[i],
               b = pts[(i + 1) % pts.length],
               L = Math.hypot(b[0] - a[0], b[1] - a[1]);
             out.push([a[0] + (R() - 0.5) * 2 * j, a[1] + (R() - 0.5) * 2 * j]);
-            if (L > 46)
+            if (L > 46 && j)
               out.push([
                 (a[0] + b[0]) / 2 + (R() - 0.5) * j * 1.6,
                 (a[1] + b[1]) / 2 + (R() - 0.5) * j * 1.6,
@@ -2303,14 +2550,100 @@ console.<span class="f">log</span>(<span class="s">'pre-flight ok'</span>);</pre
           }
           return o;
         }
-        /* shape: flat fill, one hard shadow crescent (offset subtraction)
-     with hatching, and an uneven double ink outline */
+        /* One shape, drawn the way the crew is: weighted ink (a heavier edge
+           on the shadow side), flat fill, one hard cel-shadow crescent, a thin
+           rim highlight on the lit edge. Hatching only inside shadow, and only
+           where o.h asks for it. */
         function S(d, fill, shade, o) {
           o = o || {};
-          var s = '<path d="' + d + '" fill="' + fill + '"/>';
+          var s = '',
+            k = o.s || 4,
+            w = o.w == null ? 3.2 : o.w;
+          if (legacy) {
+            s = '<path d="' + d + '" fill="' + fill + '"/>';
+            if (shade) {
+              var id0 = 'm' + ++uid;
+              defs.push(
+                '<mask id="' +
+                  id0 +
+                  '"><path d="' +
+                  d +
+                  '" fill="#fff"/><path d="' +
+                  d +
+                  '" transform="translate(' +
+                  -k +
+                  ' ' +
+                  f(-k * 1.25) +
+                  ')" fill="#000"/></mask>',
+              );
+              var h0 =
+                o.h === 'x'
+                  ? 'url(#xh)'
+                  : o.h === 'd'
+                    ? 'url(#dith)'
+                    : 'url(#hat)';
+              s +=
+                '<g mask="url(#' +
+                id0 +
+                ')"><path d="' +
+                d +
+                '" fill="' +
+                shade +
+                '"/>' +
+                (o.h === false
+                  ? ''
+                  : '<path d="' + d + '" fill="' + h0 + '"/>') +
+                '</g>';
+            }
+            if (w) {
+              s +=
+                '<path d="' +
+                d +
+                '" fill="none" stroke="' +
+                INK +
+                '" stroke-width="' +
+                w +
+                '" stroke-linejoin="round"/>';
+              if (!o.flat) {
+                var R = rnd(++uid * 31 + 7);
+                s +=
+                  '<path d="' +
+                  d +
+                  '" transform="translate(1.1 1.5)" fill="none" stroke="' +
+                  INK +
+                  '" stroke-width="' +
+                  f(w * 0.75) +
+                  '" stroke-linejoin="round" stroke-dasharray="' +
+                  f(20 + R() * 50) +
+                  ' ' +
+                  f(8 + R() * 26) +
+                  ' ' +
+                  f(40 + R() * 60) +
+                  ' ' +
+                  f(10 + R() * 30) +
+                  '"/>';
+              }
+            }
+            return s;
+          }
+          if (w >= 3 && o.u !== false)
+            s +=
+              '<path d="' +
+              d +
+              '" transform="translate(' +
+              f(w * 0.28) +
+              ' ' +
+              f(w * 0.38) +
+              ')" fill="' +
+              INK +
+              '" stroke="' +
+              INK +
+              '" stroke-width="' +
+              w +
+              '" stroke-linejoin="round"/>';
+          s += '<path d="' + d + '" fill="' + fill + '"/>';
           if (shade) {
-            var id = 'm' + ++uid,
-              k = o.s || 4;
+            var id = 'm' + ++uid;
             defs.push(
               '<mask id="' +
                 id +
@@ -2324,12 +2657,6 @@ console.<span class="f">log</span>(<span class="s">'pre-flight ok'</span>);</pre
                 f(-k * 1.25) +
                 ')" fill="#000"/></mask>',
             );
-            var h =
-              o.h === 'x'
-                ? 'url(#xh)'
-                : o.h === 'd'
-                  ? 'url(#dith)'
-                  : 'url(#hat)';
             s +=
               '<g mask="url(#' +
               id +
@@ -2338,11 +2665,34 @@ console.<span class="f">log</span>(<span class="s">'pre-flight ok'</span>);</pre
               '" fill="' +
               shade +
               '"/>' +
-              (o.h === false ? '' : '<path d="' + d + '" fill="' + h + '"/>') +
+              (o.h
+                ? '<path d="' +
+                  d +
+                  '" fill="url(#' +
+                  (o.h === 'x' ? 'xl' : 'hl') +
+                  ')"/>'
+                : '') +
               '</g>';
+            if (o.rim !== false && k >= 3) {
+              var id2 = 'm' + ++uid;
+              defs.push(
+                '<mask id="' +
+                  id2 +
+                  '"><path d="' +
+                  d +
+                  '" fill="#fff"/><path d="' +
+                  d +
+                  '" transform="translate(1.7 2.1)" fill="#000"/></mask>',
+              );
+              s +=
+                '<g mask="url(#' +
+                id2 +
+                ')"><path d="' +
+                d +
+                '" fill="#fff" opacity=".42"/></g>';
+            }
           }
-          var w = o.w == null ? 3.2 : o.w;
-          if (w) {
+          if (w)
             s +=
               '<path d="' +
               d +
@@ -2351,56 +2701,17 @@ console.<span class="f">log</span>(<span class="s">'pre-flight ok'</span>);</pre
               '" stroke-width="' +
               w +
               '" stroke-linejoin="round"/>';
-            if (!o.flat) {
-              var R = rnd(++uid * 31 + 7);
-              s +=
-                '<path d="' +
-                d +
-                '" transform="translate(1.1 1.5)" fill="none" stroke="' +
-                INK +
-                '" stroke-width="' +
-                f(w * 0.75) +
-                '" stroke-linejoin="round" stroke-dasharray="' +
-                f(20 + R() * 50) +
-                ' ' +
-                f(8 + R() * 26) +
-                ' ' +
-                f(40 + R() * 60) +
-                ' ' +
-                f(10 + R() * 30) +
-                '"/>';
-            }
-          }
           return s;
         }
         function Rc(x, y, w, h, fill, shade, o) {
           o = o || {};
-          return S(
-            rr(
-              x,
-              y,
-              w,
-              h,
-              o.r == null ? 4 : o.r,
-              o.seed || (x * 7 + y * 13) | 0,
-              o.j,
-              o.step,
-            ),
-            fill,
-            shade,
-            o,
-          );
+          return S(rr(x, y, w, h, o.r == null ? 4 : o.r), fill, shade, o);
         }
         function Ec(cx, cy, rx, ry, fill, shade, o) {
-          return S(circ(cx, cy, rx, ry, (cx * 3 + cy) | 0), fill, shade, o);
+          return S(ell(cx, cy, rx, ry), fill, shade, o);
         }
         function Pl(pts, fill, shade, o) {
-          return S(
-            poly(pts, (pts[0][0] * 5 + pts[0][1]) | 0, o && o.j),
-            fill,
-            shade,
-            o,
-          );
+          return S(poly(pts), fill, shade, o);
         }
         function line(d, w, col, extra) {
           return (
@@ -2437,6 +2748,77 @@ console.<span class="f">log</span>(<span class="s">'pre-flight ok'</span>);</pre
             '" stroke-linecap="round"/>'
           );
         }
+        function bolt(x, y, r) {
+          r = r || 2.2;
+          return (
+            '<circle cx="' +
+            x +
+            '" cy="' +
+            y +
+            '" r="' +
+            r +
+            '" fill="#aab6c6" stroke="' +
+            INK +
+            '" stroke-width="1.3"/><circle cx="' +
+            f(x - r * 0.3) +
+            '" cy="' +
+            f(y - r * 0.3) +
+            '" r="' +
+            f(r * 0.35) +
+            '" fill="#fff" opacity=".85"/>'
+          );
+        }
+        function bolts(list, r) {
+          return list
+            .map(function (p) {
+              return bolt(p[0], p[1], r);
+            })
+            .join('');
+        }
+        function led(x, y, col, r) {
+          r = r || 2.4;
+          return (
+            '<circle cx="' +
+            x +
+            '" cy="' +
+            y +
+            '" r="' +
+            r +
+            '" fill="#35402f" stroke="' +
+            INK +
+            '" stroke-width="1"/><circle class="ml" cx="' +
+            x +
+            '" cy="' +
+            y +
+            '" r="' +
+            r +
+            '" fill="' +
+            col +
+            '"/>'
+          );
+        }
+        function hz(x, y, w, h) {
+          return (
+            '<rect x="' +
+            x +
+            '" y="' +
+            y +
+            '" width="' +
+            w +
+            '" height="' +
+            h +
+            '" fill="url(#hz)" stroke="' +
+            INK +
+            '" stroke-width="1.6"/>'
+          );
+        }
+        /* slats: n short horizontal lines */
+        function slats(x, y, w, n, gap, col, sw) {
+          var d = '';
+          for (var i = 0; i < n; i++)
+            d += 'M' + x + ' ' + f(y + i * gap) + 'h' + w;
+          return line(d, sw || 2, col || INK);
+        }
         function T(x, y, t, cls, cw, anchor) {
           return (
             '<text class="' +
@@ -2462,10 +2844,10 @@ console.<span class="f">log</span>(<span class="s">'pre-flight ok'</span>);</pre
             y = cy - h / 2;
           return (
             '<g class="plate"><path d="' +
-            rr(x + 2.5, y + 3.5, w, h, 8, 5, 0.5) +
+            rr(x + 2.5, y + 3.5, w, h, 8) +
             '" fill="#000" opacity=".5"/>' +
             '<path d="' +
-            rr(x, y, w, h, 8, 9, 0.7) +
+            rr(x, y, w, h, 8) +
             '" fill="' +
             (bad ? '#c4261f' : cond ? dot : INK) +
             '" stroke="' +
@@ -2525,6 +2907,7 @@ console.<span class="f">log</span>(<span class="s">'pre-flight ok'</span>);</pre
         }
         function crew(x, y, s, suit, suitS, hat, o) {
           o = o || {};
+          legacy = true;
           var g =
             '<g class="crew" transform="translate(' +
             x +
@@ -2608,26 +2991,143 @@ console.<span class="f">log</span>(<span class="s">'pre-flight ok'</span>);</pre
               w: 2.6,
               h: false,
             });
+          legacy = false;
           return g + '</g>';
         }
-        /* readout screens: dark when off, lit graph when on */
+
+        /* ---------- starfield (shared by the page and the ship's sky) ---------- */
+        function starsSVG(W, H, seed, n, area) {
+          var R = rnd(seed),
+            a = area || [0, 0, W, H],
+            d1 = '',
+            d2 = '',
+            d3 = '',
+            o = '',
+            i;
+          function X() {
+            return f(a[0] + R() * a[2]);
+          }
+          function Y() {
+            return f(a[1] + R() * a[3]);
+          }
+          for (i = 0; i < n; i++) d1 += 'M' + X() + ' ' + Y() + 'h.1';
+          for (i = 0; i < n * 0.4; i++) d2 += 'M' + X() + ' ' + Y() + 'h.1';
+          for (i = 0; i < n * 0.1; i++) d3 += 'M' + X() + ' ' + Y() + 'h.1';
+          o +=
+            '<path class="s1" d="' +
+            d1 +
+            '"/><path class="s2" d="' +
+            d2 +
+            '"/><path class="s3" d="' +
+            d3 +
+            '"/>';
+          var tint = ['#ffe6b0', '#bcd8ff', '#ffd0c0', '#d6c8ff'];
+          for (i = 0; i < Math.max(6, n * 0.05); i++) {
+            var x = X(),
+              y = Y(),
+              tw = i % 2 === 0;
+            o +=
+              '<circle cx="' +
+              x +
+              '" cy="' +
+              y +
+              '" r="' +
+              f(1.2 + R() * 0.9) +
+              '" fill="' +
+              tint[i % 4] +
+              '"' +
+              (tw
+                ? ' class="tw" style="animation-delay:-' +
+                  f(R() * 4) +
+                  's;animation-duration:' +
+                  f(2.4 + R() * 2.6) +
+                  's"'
+                : ' opacity=".85"') +
+              '/>';
+          }
+          for (i = 0; i < Math.max(4, n * 0.025); i++) {
+            var sx = X(),
+              sy = Y(),
+              z = f(4 + R() * 3);
+            o +=
+              '<path class="' +
+              (i % 2 ? 'tw sp' : 'sp') +
+              '" style="animation-delay:-' +
+              f(R() * 4) +
+              's" d="M' +
+              sx +
+              ' ' +
+              f(sy - z) +
+              'Q' +
+              sx +
+              ' ' +
+              sy +
+              ' ' +
+              f(+sx + z) +
+              ' ' +
+              sy +
+              'Q' +
+              sx +
+              ' ' +
+              sy +
+              ' ' +
+              sx +
+              ' ' +
+              f(+sy + z) +
+              'Q' +
+              sx +
+              ' ' +
+              sy +
+              ' ' +
+              f(sx - z) +
+              ' ' +
+              sy +
+              'Q' +
+              sx +
+              ' ' +
+              sy +
+              ' ' +
+              sx +
+              ' ' +
+              f(sy - z) +
+              'Z"/>';
+          }
+          return o;
+        }
+
+        /* readout screen: dark glass when off, lit trace when on */
         function scr(x, y, w, h, kind, cls, col) {
           col = col || '#7dffb0';
-          var g = Rc(x, y, w, h, '#0e1a22', false, { r: 3, w: 2.6, j: 0.5 });
+          var g = Rc(x, y, w, h, '#222b38', '#141a24', {
+            r: 3,
+            w: 2.6,
+            s: 2,
+            rim: false,
+          });
+          g +=
+            '<rect x="' +
+            (x + 2.5) +
+            '" y="' +
+            (y + 2.5) +
+            '" width="' +
+            (w - 5) +
+            '" height="' +
+            (h - 5) +
+            '" rx="2" fill="#0d2f38"/>';
           var l =
             '<rect x="' +
-            (x + 2) +
+            (x + 2.5) +
             '" y="' +
-            (y + 2) +
+            (y + 2.5) +
             '" width="' +
-            (w - 4) +
+            (w - 5) +
             '" height="' +
-            (h - 4) +
-            '" rx="2" fill="#12404a"/>';
+            (h - 5) +
+            '" rx="2" fill="#12505a"/>';
           if (kind === 'bars') {
             var n = Math.floor((w - 8) / 7);
             for (var i = 0; i < n; i++) {
-              var bh = 4 + ((i * 37 + 11) % (h - 10));
+              var bh = 3 + ((i * 37 + 11) % (h - 10));
               l +=
                 '<rect x="' +
                 (x + 5 + i * 7) +
@@ -2656,68 +3156,65 @@ console.<span class="f">log</span>(<span class="s">'pre-flight ok'</span>);</pre
             for (var q = 0; q < 3; q++)
               l +=
                 '<rect x="' +
-                (x + 5) +
+                (x + 6) +
                 '" y="' +
-                (y + 5 + q * 6) +
+                (y + 6 + q * 7) +
                 '" width="' +
-                (w - 10 - q * 9) +
-                '" height="2.6" fill="' +
+                (w - 12 - q * 12) +
+                '" height="2.8" rx="1" fill="' +
                 col +
                 '"/>';
           }
-          return g + '<g class="' + cls + '">' + l + '</g>';
+          /* glass glint */
+          var glint =
+            '<path d="M' +
+            (x + 4) +
+            ' ' +
+            (y + h - 4) +
+            'L' +
+            (x + 12) +
+            ' ' +
+            (y + 4) +
+            'H' +
+            (x + 18) +
+            'L' +
+            (x + 10) +
+            ' ' +
+            (y + h - 4) +
+            'Z" fill="#fff" opacity=".13"/>';
+          return g + '<g class="' + cls + '">' + l + '</g>' + glint;
         }
         function hatchDoor(x, y) {
-          var g = Ec(x, y, 22, 22, '#aab6c6', '#667389', { s: 4, w: 3.6 });
-          g += Ec(x, y, 14, 14, '#c9d3df', '#8896ab', {
-            s: 2.6,
-            w: 2.8,
-            h: false,
-          });
-          for (var i = 0; i < 6; i++) {
-            var a = (i / 6) * 6.283 + 0.5;
-            g +=
-              '<circle cx="' +
-              f(x + Math.cos(a) * 18) +
-              '" cy="' +
-              f(y + Math.sin(a) * 18) +
-              '" r="2" fill="#667389" stroke="' +
-              INK +
-              '" stroke-width="1.4"/>';
+          var g = Ec(x, y, 22, 22, '#aab6c6', '#667389', { s: 4, w: 3.8 });
+          g += Ec(x, y, 15.5, 15.5, '#c9d3df', '#8896ab', { s: 3, w: 2.4 });
+          for (var i = 0; i < 8; i++) {
+            var a = (i / 8) * 6.283 + 0.4;
+            g += bolt(
+              f(x + Math.cos(a) * 18.6),
+              f(y + Math.sin(a) * 18.6),
+              1.7,
+            );
           }
-          g += line(
-            'M' +
-              (x - 11) +
-              ' ' +
-              y +
-              'H' +
-              (x + 11) +
+          /* wheel spokes */
+          var sp = '';
+          for (var j = 0; j < 4; j++) {
+            var b = (j / 4) * 3.1416 + 0.3927;
+            sp +=
               'M' +
-              x +
+              f(x - Math.cos(b) * 12) +
               ' ' +
-              (y - 11) +
-              'V' +
-              (y + 11) +
-              'M' +
-              (x - 8) +
-              ' ' +
-              (y - 8) +
+              f(y - Math.sin(b) * 12) +
               'L' +
-              (x + 8) +
+              f(x + Math.cos(b) * 12) +
               ' ' +
-              (y + 8) +
-              'M' +
-              (x + 8) +
-              ' ' +
-              (y - 8) +
-              'L' +
-              (x - 8) +
-              ' ' +
-              (y + 8),
-            3.4,
-            INK,
-          );
-          g += Ec(x, y, 5, 5, '#ffd23a', false, { w: 2.4 });
+              f(y + Math.sin(b) * 12);
+          }
+          g += line(sp, 4.6, INK) + line(sp, 2, '#7d8ca0');
+          g += Ec(x, y, 5.4, 5.4, '#ffd23a', '#c99a12', {
+            s: 2,
+            w: 2.4,
+            rim: false,
+          });
           return g;
         }
         function socket(x, y) {
@@ -2727,69 +3224,51 @@ console.<span class="f">log</span>(<span class="s">'pre-flight ok'</span>);</pre
               s: 3,
               w: 3,
             }) +
-            Rc(x + 2, y - 9, 6, 18, '#0a0a0a', false, {
-              r: 2,
-              w: 0,
-              flat: true,
-            })
+            Rc(x + 2, y - 9, 6, 18, '#0a0a0a', false, { r: 2, w: 0 }) +
+            bolts(
+              [
+                [x + 1, y - 13],
+                [x + 1, y + 13],
+              ],
+              1.5,
+            )
           );
         }
         function ladder(x, y1, y2, w) {
-          var g =
-            line(
-              'M' +
-                x +
-                ' ' +
-                y1 +
-                'V' +
-                y2 +
-                'M' +
-                (x + w) +
-                ' ' +
-                y1 +
-                'V' +
-                y2,
-              6.5,
-              INK,
-            ) +
-            line(
-              'M' +
-                x +
-                ' ' +
-                y1 +
-                'V' +
-                y2 +
-                'M' +
-                (x + w) +
-                ' ' +
-                y1 +
-                'V' +
-                y2,
-              3,
-              '#c9d2dc',
-            );
+          var rails =
+            'M' + x + ' ' + y1 + 'V' + y2 + 'M' + (x + w) + ' ' + y1 + 'V' + y2;
+          var g = line(rails, 6.5, INK) + line(rails, 3, '#c9d2dc');
+          g += line(
+            'M' + (x - 1) + ' ' + y1 + 'V' + y2,
+            1,
+            '#fff',
+            ' opacity=".6"',
+          );
           for (var y = y1 + 8; y < y2; y += 13)
             g +=
-              line('M' + x + ' ' + y + 'H' + (x + w), 4.6, INK) +
-              line('M' + x + ' ' + y + 'H' + (x + w), 2, '#aab6c4');
+              line('M' + x + ' ' + y + 'H' + (x + w), 4.4, INK) +
+              line('M' + x + ' ' + y + 'H' + (x + w), 1.8, '#aab6c4');
           return g;
         }
+        /* deck plate with grating: the walkway the crew stands on */
         function floor(x, y, w) {
-          return (
-            Rc(x, y, w, 10, '#5b6280', '#3a405a', {
-              r: 2,
-              s: 2,
-              w: 2.6,
-              h: 'x',
-            }) +
-            '<path d="M' +
-            x +
-            ' ' +
-            (y + 5) +
-            'H' +
-            (x + w) +
-            '" stroke="#ffd23a" stroke-width="2" stroke-dasharray="8 10" opacity=".8"/>'
+          var g = Rc(x, y, w, 10, '#59607e', '#383e58', {
+            r: 2,
+            s: 2,
+            w: 2.6,
+            rim: false,
+          });
+          var d = '';
+          for (var i = x + 7; i < x + w - 4; i += 7)
+            d += 'M' + i + ' ' + (y + 4) + 'v4';
+          g += line(d, 1.6, INK, ' opacity=".7"');
+          g += line(
+            'M' + (x + 3) + ' ' + (y + 2.2) + 'H' + (x + w - 3),
+            1.2,
+            '#fff',
+            ' opacity=".45"',
           );
+          return g;
         }
         function mach(id, inner, cls) {
           return (
@@ -2802,24 +3281,92 @@ console.<span class="f">log</span>(<span class="s">'pre-flight ok'</span>);</pre
             '</g>'
           );
         }
+        /* wall panelling: thin seam with a catch-light beside it, riveted */
         function panelLines(x1, x2, y1, y2, step, col) {
-          var d = '';
-          for (var x = x1; x <= x2; x += step)
+          var d = '',
+            h = '',
+            b = '';
+          for (var x = x1; x <= x2; x += step) {
             d += 'M' + x + ' ' + y1 + 'V' + y2;
+            h += 'M' + (x + 2.4) + ' ' + y1 + 'V' + y2;
+            b += bolt(x + 5.5, y1 + 6, 1.4);
+          }
           return (
             '<path d="' +
             d +
             '" stroke="' +
             col +
-            '" stroke-width="2" opacity=".45" fill="none"/>'
+            '" stroke-width="2" opacity=".7" fill="none"/>' +
+            '<path d="' +
+            h +
+            '" stroke="#fff" stroke-width="1.2" opacity=".28" fill="none"/>'
           );
         }
-        function roomOpen(id, d, col, colS) {
+        /* ceiling light fixture; the glow only shows while the room is powered */
+        function lamp(x, y, span) {
+          span = span || 54;
+          return (
+            '<g class="rl"><path d="M' +
+            (x - 9) +
+            ' ' +
+            (y + 11) +
+            'L' +
+            (x + 9) +
+            ' ' +
+            (y + 11) +
+            'L' +
+            (x + span) +
+            ' ' +
+            (y + 112) +
+            'H' +
+            (x - span) +
+            'Z" fill="url(#gLamp)"/></g>' +
+            '<path d="M' +
+            (x - 14) +
+            ' ' +
+            y +
+            'H' +
+            (x + 14) +
+            'L' +
+            (x + 9) +
+            ' ' +
+            (y + 9) +
+            'H' +
+            (x - 9) +
+            'Z" fill="#46506a" stroke="' +
+            INK +
+            '" stroke-width="2.2" stroke-linejoin="round"/>' +
+            '<rect x="' +
+            (x - 8) +
+            '" y="' +
+            (y + 8.5) +
+            '" width="16" height="3.6" rx="1.8" fill="#6a5f3c" stroke="' +
+            INK +
+            '" stroke-width="1.4"/>' +
+            '<rect class="rl" x="' +
+            (x - 8) +
+            '" y="' +
+            (y + 8.5) +
+            '" width="16" height="3.6" rx="1.8" fill="#fff6c0"/>'
+          );
+        }
+        /* a room: base fill, clipped wall dressing (dims with the room), then
+           the dim layer. roomClose adds the red-alert rim. */
+        function roomOpen(id, d, col, colS, dress) {
+          var cid = 'cl-' + id;
+          defs.push(
+            '<clipPath id="' + cid + '"><path d="' + d + '"/></clipPath>',
+          );
           return (
             '<g class="room on" id="r-' +
             id +
             '">' +
-            S(d, col, colS, { s: 9, h: 'd', w: 4.6 }) +
+            S(d, col, colS, { s: 9, h: 1, w: 4.6 }) +
+            '<g clip-path="url(#' +
+            cid +
+            ')">' +
+            (dress || '') +
+            '</g>' +
             '<path class="rdim" d="' +
             d +
             '" fill="#0a1020"/>'
@@ -2834,25 +3381,65 @@ console.<span class="f">log</span>(<span class="s">'pre-flight ok'</span>);</pre
             '" fill="none" stroke="#fff" stroke-width="2" stroke-dasharray="14 8" stroke-dashoffset="-3" opacity=".7"/></g>'
           );
         }
-
-        /* ---------- geometry constants ---------- */
-        var ENGD = rr(128, 184, 252, 272, 10, 11, 1.1);
-        var TACTD = rr(500, 184, 270, 128, 8, 12, 1.1);
-        var COMMD = rr(500, 338, 270, 118, 8, 13, 1.1);
-        var BRDGD = poly(
-          [
-            [890, 192],
-            [982, 192],
-            [1048, 244],
-            [1062, 330],
-            [1050, 396],
-            [990, 448],
-            [890, 456],
-          ],
-          14,
-          1.2,
-        );
-
+        /* standard dressing: ceiling beam, wall seams, wainscot, a pipe run */
+        function dress(x, y, w, h, colS, o) {
+          o = o || {};
+          var g = '';
+          g +=
+            '<rect x="' +
+            x +
+            '" y="' +
+            y +
+            '" width="' +
+            w +
+            '" height="11" fill="' +
+            colS +
+            '" opacity=".85"/>';
+          g += line(
+            'M' + x + ' ' + (y + 11) + 'H' + (x + w),
+            2.2,
+            INK,
+            ' opacity=".8"',
+          );
+          g += line(
+            'M' + x + ' ' + (y + 13.5) + 'H' + (x + w),
+            1.1,
+            '#fff',
+            ' opacity=".3"',
+          );
+          g += panelLines(
+            x + 14,
+            x + w - 8,
+            y + 18,
+            y + h - 50,
+            o.step || 38,
+            colS,
+          );
+          /* wainscot band */
+          g +=
+            '<rect x="' +
+            x +
+            '" y="' +
+            (y + h - 44) +
+            '" width="' +
+            w +
+            '" height="34" fill="' +
+            colS +
+            '" opacity=".6"/>' +
+            line(
+              'M' + x + ' ' + (y + h - 44) + 'H' + (x + w),
+              2,
+              INK,
+              ' opacity=".7"',
+            ) +
+            line(
+              'M' + x + ' ' + (y + h - 41.5) + 'H' + (x + w),
+              1.1,
+              '#fff',
+              ' opacity=".3"',
+            );
+          return g;
+        }
         var CONS = [
           {
             id: 'eg-tact',
@@ -3009,20 +3596,15 @@ console.<span class="f">log</span>(<span class="s">'pre-flight ok'</span>);</pre
             '" stroke="' +
             INK +
             '" stroke-width="3"/>';
-          g +=
-            '<circle cx="' +
-            xm +
-            '" cy="' +
-            (yb - 11) +
-            '" r="2.4" fill="' +
-            INK +
-            '"/><circle cx="' +
-            xm +
-            '" cy="' +
-            (yb + 11) +
-            '" r="2.4" fill="' +
-            INK +
-            '"/>';
+          g += bolts(
+            [
+              [xm - 13, yb - 14],
+              [xm + 13, yb - 14],
+              [xm - 13, yb + 14],
+              [xm + 13, yb + 14],
+            ],
+            1.8,
+          );
           g +=
             '<path class="pulse" d="' +
             circ(xm, yb, 30, 28, 4, 10) +
@@ -3234,668 +3816,1124 @@ console.<span class="f">log</span>(<span class="s">'pre-flight ok'</span>);</pre
           return g + '</g>';
         }
 
+        /* ---------- geometry constants ---------- */
+        var ENGD = rr(128, 184, 252, 272, 10);
+        var TACTD = rr(500, 184, 270, 128, 8);
+        var COMMD = rr(500, 338, 270, 118, 8);
+        var BRDGD =
+          'M890 192H978C1016 196 1046 224 1056 266C1064 300 1064 360 1052 394C1040 424 1016 442 988 448L890 456Z';
+
+        function clamp(x, y, h) {
+          return Rc(x - 3.5, y - h / 2, 7, h, '#6b788c', '#46526a', {
+            r: 2,
+            s: 2,
+            w: 2,
+            rim: false,
+          });
+        }
+        function fxg(k, inner) {
+          return '<g class="fx" data-fx="' + k + '">' + inner + '</g>';
+        }
+        /* a lit window slit that wakes with its section */
+        function win(x, y) {
+          return (
+            '<rect x="' +
+            x +
+            '" y="' +
+            y +
+            '" width="10" height="6.4" rx="2.2" fill="#243049" stroke="' +
+            INK +
+            '" stroke-width="1.5"/>'
+          );
+        }
+        function winLit(x, y) {
+          return (
+            '<rect x="' +
+            (x + 1.2) +
+            '" y="' +
+            (y + 1.2) +
+            '" width="7.6" height="4" rx="1.6" fill="#ffe9a8"/>'
+          );
+        }
+
+        /* ---------- machines ---------- */
+        function reactorM(cx) {
+          var g = '';
+          g += pipe('M153 272H141V420', 8, '#31c5f0', '#177fa6');
+          g += pipe('M217 272H233V420', 8, '#31c5f0', '#177fa6');
+          g += S(
+            'M137 446L142 420C143 415 146 412 151 412H219C224 412 227 415 228 420L233 446Z',
+            '#7d8ca0',
+            '#4b586b',
+            { s: 4, w: 3.4 },
+          );
+          g += bolts(
+            [
+              [152, 422],
+              [218, 422],
+            ],
+            2,
+          );
+          g += Rc(160, 223, 50, 11, '#8d9bb0', '#566378', {
+            r: 3,
+            s: 2,
+            w: 2.6,
+          });
+          g += S(
+            'M146 254L150 238C151 234 153 232 157 232H213C217 232 219 234 220 238L224 254Z',
+            '#8d9bb0',
+            '#566378',
+            { s: 3, w: 3.2 },
+          );
+          g += S(rr(153, 250, 64, 164, 26), '#2e6a63', '#1d4742', {
+            s: 7,
+            w: 3.8,
+            h: 1,
+          });
+          g +=
+            '<g class="ml"><ellipse cx="' +
+            cx +
+            '" cy="332" rx="68" ry="98" fill="url(#gGlow)"/>' +
+            '<path d="' +
+            rr(160, 259, 50, 148, 22) +
+            '" fill="#8bffb4"/>' +
+            line('M176 276V398M185 270V404M194 276V398', 3.2, '#3fd488') +
+            '<circle cx="178" cy="304" r="2.8" fill="#e8fff0"/><circle cx="193" cy="352" r="2.4" fill="#e8fff0"/><circle cx="180" cy="384" r="3" fill="#e8fff0"/>' +
+            line(
+              'M168 312l14 -12 -10 -2 16 -14M191 386l12 -14 -10 -2 14 -12',
+              3.2,
+              '#fff',
+            ) +
+            '</g>';
+          g += line('M164 272V394', 3.6, '#fff', ' opacity=".28"');
+          [292, 330, 368].forEach(function (y) {
+            g += Rc(cx - 40, y, 80, 14, '#ff9b2f', '#c2640f', {
+              r: 7,
+              s: 3,
+              w: 3,
+            });
+            g += bolts(
+              [
+                [cx - 33, y + 7],
+                [cx + 33, y + 7],
+              ],
+              1.7,
+            );
+          });
+          /* pressure gauge on a coolant tap */
+          g += pipe('M217 298H246', 5, '#31c5f0', '#177fa6');
+          g +=
+            '<g class="ml"><circle cx="262" cy="298" r="23" fill="#fff7d6" opacity=".7"/></g>';
+          g += Ec(262, 298, 16.5, 16.5, '#8d9bb0', '#566378', { s: 3, w: 3.2 });
+          g += Ec(262, 298, 12, 12, '#f1ead0', '#cfc6a2', {
+            s: 2,
+            w: 1.6,
+            rim: false,
+          });
+          g += line(
+            'M253 304a10 10 0 0 1 -1.5 -6M254 292a10 10 0 0 1 8 -4M270 292a10 10 0 0 1 3 8',
+            1.6,
+            INK,
+          );
+          g +=
+            line('M262 298l8 -8', 2.6, '#e0261f') +
+            '<circle cx="262" cy="298" r="2.4" fill="' +
+            INK +
+            '"/>';
+          return g + plate(cx, 429, 'Reactor', '#8bffb4', 10);
+        }
+        function gridM() {
+          var g = '';
+          for (var ci = 0; ci < 3; ci++) {
+            var x = 282 + ci * 31;
+            g += S(rr(x, 318, 28, 128, 4), '#566f8c', '#364a63', {
+              s: 4,
+              w: 3.2,
+            });
+            g += slats(x + 6, 325, 16, 3, 4, INK, 1.5);
+            g += S(rr(x + 3.5, 340, 21, 98, 2), '#617c9c', '#3f566f', {
+              s: 2,
+              w: 1.8,
+              rim: false,
+            });
+            g += led(x + 9, 349, ci === 1 ? '#ffd23a' : '#6dff8c', 2.4);
+            g += led(x + 19, 349, ci === 2 ? '#ff7b6a' : '#6dff8c', 2.4);
+            g +=
+              led(x + 9, 358, '#6dff8c', 2.4) +
+              led(x + 19, 358, ci === 1 ? '#6dff8c' : '#ffd23a', 2.4);
+            g += Rc(x + 17.5, 388, 4.2, 18, '#c3ccd8', '#8593a8', {
+              r: 2,
+              s: 2,
+              w: 1.8,
+              rim: false,
+            });
+            g += hz(x + 3.5, 438, 21, 5);
+          }
+          return g + plate(329, 303, 'PowerGrid', '#ffd23a', 10);
+        }
+        function emitter(x) {
+          var g = S(
+            'M' +
+              (x - 14) +
+              ' 270L' +
+              (x - 7) +
+              ' 244C' +
+              (x - 7) +
+              ' 241 ' +
+              (x - 5) +
+              ' 240 ' +
+              (x - 3) +
+              ' 240H' +
+              (x + 3) +
+              'C' +
+              (x + 5) +
+              ' 240 ' +
+              (x + 7) +
+              ' 241 ' +
+              (x + 7) +
+              ' 244L' +
+              (x + 14) +
+              ' 270Z',
+            '#9aa7b8',
+            '#5d6a7e',
+            { s: 3, w: 3 },
+          );
+          [262, 255, 248].forEach(function (y) {
+            g += Ec(x, y, 7 + (y - 244) * 0.27 + 3, 3, '#d9923f', '#a2601a', {
+              s: 1.4,
+              w: 1.8,
+              rim: false,
+            });
+          });
+          g += Ec(x, 233, 8.5, 8.5, '#2d6a86', '#1c4458', {
+            s: 2,
+            w: 2.8,
+            rim: false,
+          });
+          g +=
+            '<circle cx="' +
+            (x - 3) +
+            '" cy="230" r="1.8" fill="#fff" opacity=".7"/>';
+          g +=
+            '<g class="ml"><circle cx="' +
+            x +
+            '" cy="233" r="14" fill="url(#gGlowC)"/><circle cx="' +
+            x +
+            '" cy="233" r="6.4" fill="#b8f6ff"/>' +
+            line(
+              'M' + (x - 15) + ' 226Q' + x + ' 212 ' + (x + 15) + ' 226',
+              3,
+              '#9af1ff',
+            ) +
+            '</g>';
+          return g;
+        }
+        function shieldsM() {
+          var g = Rc(520, 268, 134, 34, '#7d8ca0', '#4b586b', { s: 4, w: 3.2 });
+          g += bolts(
+            [
+              [528, 272],
+              [646, 272],
+              [587, 272],
+            ],
+            1.8,
+          );
+          [545, 587, 629].forEach(function (x) {
+            g += emitter(x);
+          });
+          return g + plate(587, 287, 'ShieldGrid', '#31c5f0', 10);
+        }
+        function sensorsM() {
+          var g = Rc(692, 270, 74, 32, '#7d8ca0', '#4b586b', { s: 4, w: 3.2 });
+          g += bolts(
+            [
+              [699, 274],
+              [759, 274],
+            ],
+            1.8,
+          );
+          g += Rc(716, 188, 24, 8, '#7d8ca0', '#4b586b', {
+            r: 2,
+            s: 2,
+            w: 2.6,
+            rim: false,
+          });
+          g += Rc(724, 195, 8, 34, '#9aa7b8', '#5d6a7e', {
+            r: 2,
+            s: 2,
+            w: 2.6,
+            rim: false,
+          });
+          g += Rc(702, 240, 12, 12, '#7d8ca0', '#4b586b', {
+            r: 3,
+            s: 2,
+            w: 2.4,
+            rim: false,
+          });
+          g += Rc(742, 240, 12, 12, '#7d8ca0', '#4b586b', {
+            r: 3,
+            s: 2,
+            w: 2.4,
+            rim: false,
+          });
+          g += Ec(728, 246, 21, 21, '#8d9bb0', '#566378', { s: 4, w: 3.4 });
+          g += Ec(728, 246, 16.5, 16.5, '#10202a', '#0a141b', {
+            s: 3,
+            w: 2.6,
+            rim: false,
+          });
+          g += bolts(
+            [
+              [728, 229.4],
+              [728, 262.6],
+              [711.4, 246],
+              [744.6, 246],
+            ],
+            1.5,
+          );
+          g +=
+            '<g class="ml"><circle cx="728" cy="246" r="15.4" fill="#0f4a3c"/>' +
+            '<circle cx="728" cy="246" r="10" fill="none" stroke="#7dffb0" stroke-width="1.4" opacity=".7"/>' +
+            '<circle cx="728" cy="246" r="5" fill="none" stroke="#7dffb0" stroke-width="1.2" opacity=".6"/>' +
+            '<path d="M728 246L741 238A15 15 0 0 1 743 250Z" fill="#7dffb0" opacity=".35"/>' +
+            line('M728 246L741 238', 2.6, '#7dffb0') +
+            '<circle cx="736" cy="252" r="2.2" fill="#fff"/><circle cx="720" cy="240" r="1.6" fill="#fff"/></g>';
+          g +=
+            '<path d="M716 238A15 15 0 0 1 727 232" fill="none" stroke="#fff" stroke-width="2.2" opacity=".35" stroke-linecap="round"/>';
+          return g + plate(727, 288, 'Sensors', '#7dffb0', 9.6);
+        }
+        function antennaM() {
+          var g = S(
+            'M556 446V426C556 419 560 414 567 414H641C648 414 652 419 652 426V446Z',
+            '#7d8ca0',
+            '#4b586b',
+            { s: 4, w: 3.2 },
+          );
+          g += bolts(
+            [
+              [564, 422],
+              [644, 422],
+            ],
+            1.8,
+          );
+          g += Rc(598, 402, 12, 14, '#9aa7b8', '#5d6a7e', {
+            r: 2,
+            s: 2,
+            w: 2.4,
+            rim: false,
+          });
+          g += S(
+            'M578 386C581 404 593 410 604 410C615 410 627 404 630 386Z',
+            '#c3ccd8',
+            '#7d8ca0',
+            { s: 4, w: 3 },
+          );
+          g += Ec(604, 386, 26, 6.5, '#dbe3ec', '#9aa7b8', {
+            s: 2,
+            w: 2.8,
+            rim: false,
+          });
+          g += Ec(604, 387, 21, 4, '#8b99ad', false, { w: 0 });
+          g += line('M582 385L604 364M626 385L604 364', 2.4, INK);
+          g += Rc(599.5, 358, 9, 8, '#ffd23a', '#c99a12', {
+            r: 3,
+            s: 2,
+            w: 2.4,
+            rim: false,
+          });
+          g +=
+            '<g class="ml">' +
+            line('M594 354Q604 346 614 354', 3.2, '#ffd23a') +
+            line('M586 349Q604 337 622 349', 3.2, '#ffd23a') +
+            '</g>';
+          return g + plate(604, 430, 'Antenna', '#58d86a', 10);
+        }
+        function relayM() {
+          var g = '';
+          for (var ri = 0; ri < 3; ri++) {
+            var x = 684 + ri * 30;
+            g += S(rr(x, 392, 27, 54, 3), '#546a86', '#34475f', { s: 3, w: 3 });
+            for (var rj = 0; rj < 3; rj++) {
+              g += S(
+                rr(x + 3.5, 398 + rj * 11.5, 20, 8.6, 1.6),
+                '#1f2838',
+                false,
+                { w: 1.6 },
+              );
+              g += led(
+                x + 19,
+                402.3 + rj * 11.5,
+                (ri + rj) % 2 ? '#ffd23a' : '#6dff8c',
+                2,
+              );
+              g += line(
+                'M' + (x + 6.5) + ' ' + (402.3 + rj * 11.5) + 'h7',
+                1.8,
+                '#46556e',
+              );
+            }
+            g += S(rr(x + 3.5, 433, 20, 9, 1.6), '#2d3a50', false, { w: 1.6 });
+            for (var jk = 0; jk < 4; jk++)
+              g +=
+                '<circle cx="' +
+                f(x + 7.4 + jk * 4.4) +
+                '" cy="437.5" r="1.4" fill="#0a0e14"/>';
+          }
+          /* patch cables between racks and one bundle to the floor */
+          function cab(d, col) {
+            return line(d, 5.4, INK) + line(d, 2.6, col);
+          }
+          g += cab('M703 438C705 449 713 449 715 438', '#ffd23a');
+          g += cab('M707 438C709 446 719 446 721 438', '#31c5f0');
+          g += cab('M733 438C735 449 743 449 745 438', '#6dff8c');
+          g += cab('M737 438C739 446 749 446 751 438', '#ff8a1f');
+          return g + plate(714, 380, 'Relay', '#ffd23a', 10);
+        }
+        function helmM() {
+          var g = '';
+          /* pilot seat behind the standing helmsman */
+          g += S(
+            'M893 316V276C893 268 897 266 901 266C905 266 908 269 908 276V316Z',
+            '#3a4766',
+            '#252f47',
+            { s: 3, w: 2.8 },
+          );
+          g += Rc(893, 300, 22, 9, '#c9863a', '#8d5a1f', {
+            r: 4,
+            s: 2,
+            w: 2.6,
+            rim: false,
+          });
+          /* console, display hood, yoke, throttle */
+          g += S(
+            'M944 316V300C944 294 948 292 954 292H1046C1048 292 1050 294 1050 296V316Z',
+            '#7d8ca0',
+            '#4b586b',
+            { s: 4, w: 3.2 },
+          );
+          g += bolts(
+            [
+              [951, 300],
+              [1043, 300],
+            ],
+            1.7,
+          );
+          g += S(
+            'M954 292L958 270C959 266 962 264 966 264H1006C1010 264 1013 266 1013 270L1016 292Z',
+            '#6b788c',
+            '#46526a',
+            { s: 3, w: 3 },
+          );
+          g += scr(963, 270, 44, 16, 'wave', 'ml');
+          g +=
+            line('M947 292L945 272', 4.8, INK) +
+            line('M947 292L945 272', 2, '#9aa7b8');
+          g += Ec(944.6, 268, 4.8, 4.8, '#ff4b43', '#b3231f', {
+            s: 2,
+            w: 2.4,
+            rim: false,
+          });
+          g +=
+            line('M1038 292V278', 5.6, INK) +
+            line('M1038 292V278', 2.4, '#9aa7b8');
+          g +=
+            line('M1027 262C1027 276 1049 276 1049 262', 5.6, INK) +
+            line('M1027 262C1027 276 1049 276 1049 262', 2.4, '#c3ccd8');
+          g += Rc(1023, 254, 7, 14, '#ff8a1f', '#c2570b', {
+            r: 3,
+            s: 2,
+            w: 2.4,
+            rim: false,
+          });
+          g += Rc(1046, 254, 7, 14, '#ff8a1f', '#c2570b', {
+            r: 3,
+            s: 2,
+            w: 2.4,
+            rim: false,
+          });
+          return g + plate(996, 308, 'Helm', '#c09bf0', 10);
+        }
+        function reel(x, y) {
+          var sp = '';
+          for (var i = 0; i < 3; i++) {
+            var a = (i / 3) * 6.283;
+            sp +=
+              'M' +
+              x +
+              ' ' +
+              y +
+              'L' +
+              f(x + Math.cos(a) * 8) +
+              ' ' +
+              f(y + Math.sin(a) * 8);
+          }
+          return (
+            '<g class="reel">' +
+            Ec(x, y, 10.5, 10.5, '#c3ccd8', '#8593a8', {
+              s: 2,
+              w: 2.4,
+              rim: false,
+            }) +
+            Ec(x, y, 7, 7, '#2a3342', false, { w: 0 }) +
+            line(sp, 3, '#c3ccd8') +
+            '<circle cx="' +
+            x +
+            '" cy="' +
+            y +
+            '" r="2.4" fill="#ffd23a" stroke="' +
+            INK +
+            '" stroke-width="1.4"/></g>'
+          );
+        }
+        function compM() {
+          var g = S(rr(936, 338, 104, 108, 6), '#6d7f97', '#43536a', {
+            s: 5,
+            w: 3.4,
+          });
+          g += slats(944, 343, 42, 2, 4, INK, 1.5);
+          g +=
+            led(1010, 344, '#ffd23a', 2.2) +
+            led(1019, 344, '#6dff8c', 2.2) +
+            led(1028, 344, '#ff7b6a', 2.2);
+          g += scr(946, 350, 84, 38, 'text', 'ml');
+          g +=
+            '<g id="c42" style="display:none"><rect x="949" y="353" width="78" height="32" rx="2" fill="#12505a"/>' +
+            '<text x="988" y="379" text-anchor="middle" font-size="27" fill="#7dffb0" textLength="40" lengthAdjust="spacingAndGlyphs">42</text></g>';
+          g += S(rr(944, 393, 88, 27, 5), '#1b2332', '#10151f', {
+            s: 2,
+            w: 2.4,
+            rim: false,
+          });
+          g += line('M962 395L982 413M994 413L1014 395', 1.6, '#9aa7b8');
+          g +=
+            '<circle cx="982" cy="413" r="2.2" fill="#9aa7b8"/><circle cx="994" cy="413" r="2.2" fill="#9aa7b8"/>';
+          g += reel(962, 406) + reel(1014, 406);
+          g += plate(988, 434, 'Computer', '#c09bf0', 10);
+          g +=
+            '<g class="egg" id="e-comp" tabindex="0" role="button" aria-label="Ship computer"><rect x="934" y="336" width="108" height="112" fill="#000" fill-opacity="0"/>' +
+            '<rect class="eggring" x="931" y="333" width="114" height="118" rx="9" fill="none" stroke="' +
+            INK +
+            '" stroke-width="7"/><rect class="eggring" x="934" y="336" width="108" height="112" rx="7" fill="none" stroke="#ffd23a" stroke-width="3.5"/></g>';
+          return g;
+        }
+        function duck(x, y) {
+          return (
+            '<g class="egg" id="e-duck" tabindex="0" role="button" aria-label="Rubber duck" transform="translate(' +
+            x +
+            ' ' +
+            y +
+            ')">' +
+            '<rect x="-16" y="-22" width="32" height="26" fill="#000" fill-opacity="0"/>' +
+            S(
+              'M-8 0C-12 0 -12 -7 -6 -8C-5 -13 1 -14 3 -10C5 -17 12 -15 11 -9C12 -5 10 0 4 0Z',
+              '#ffd23a',
+              '#e29a14',
+              { s: 2, w: 1.8, rim: false },
+            ) +
+            '<path d="M-6 -10C-12 -11 -14 -8 -9 -6C-7 -6 -6 -7 -6 -8Z" fill="#ff8a1f" stroke="' +
+            INK +
+            '" stroke-width="1.4" stroke-linejoin="round"/>' +
+            '<circle cx="-2" cy="-10" r="1.1" fill="' +
+            INK +
+            '"/>' +
+            '<rect class="eggring" x="-19" y="-25" width="38" height="32" rx="7" fill="none" stroke="' +
+            INK +
+            '" stroke-width="5"/><rect class="eggring" x="-17" y="-23" width="34" height="28" rx="6" fill="none" stroke="#ffd23a" stroke-width="2.6"/>' +
+            '</g>'
+          );
+        }
+
         function buildShip() {
           uid = 0;
           defs = [];
+          legacy = false;
           var B = '',
             X = '',
             H = '',
             RM = '',
             PL = '',
-            TOP = '';
+            TOP = '',
+            i;
 
-          /* ---------- backdrop ---------- */
+          /* ---------- backdrop: sky, nebula, stars, planet ---------- */
           B +=
             '<rect x="0" y="40" width="1200" height="560" style="fill:url(#sky)"/>';
           B +=
-            '<rect x="0" y="40" width="1200" height="560" fill="url(#ht)" opacity=".5"/>';
-          var R = rnd(42);
-          for (var i = 0; i < 46; i++) {
-            var sx = R() * 1200,
-              sy = 44 + R() * 170;
-            B +=
-              '<path d="M' +
-              f(sx) +
-              ' ' +
-              f(sy - 3.4) +
-              'l1 2.4 2.4 1 -2.4 1 -1 2.4 -1 -2.4 -2.4 -1 2.4 -1z" class="star"/>';
-          }
+            '<g class="sg sf"><ellipse cx="1010" cy="540" rx="440" ry="150" fill="url(#nebV)"/><ellipse cx="190" cy="120" rx="320" ry="110" fill="url(#nebT)"/>' +
+            starsSVG(1200, 560, 42, 260, [0, 44, 1200, 550]) +
+            '</g>';
           B +=
-            '<g opacity=".95">' +
-            Ec(1112, 108, 52, 52, '#a97bd8', '#6e47a6', {
-              s: 12,
-              h: 'x',
-              w: 4,
-            }) +
-            '<path d="M1058 112c30-14 72-16 104 4" fill="none" stroke="#ffd7a1" stroke-width="7" opacity=".8" stroke-linecap="round"/></g>';
+            '<g class="wst"><rect x="0" y="40" width="1360" height="560" fill="url(#wstp)"/></g>';
+          defs.push(
+            '<clipPath id="pcl"><circle cx="1112" cy="112" r="50"/></clipPath>',
+          );
+          B +=
+            '<g class="planet">' +
+            line(
+              'M1030 114A82 17 0 0 1 1194 114',
+              11,
+              INK,
+              ' transform="rotate(-16 1112 114)"',
+            ) +
+            line(
+              'M1030 114A82 17 0 0 1 1194 114',
+              6,
+              '#ffd7a1',
+              ' transform="rotate(-16 1112 114)"',
+            ) +
+            Ec(1112, 112, 50, 50, '#a97bd8', '#6e47a6', { s: 12, w: 4, h: 1 }) +
+            '<g clip-path="url(#pcl)"><path d="M1056 96Q1112 84 1170 100L1170 108Q1112 94 1056 108Z" fill="#c4a0ee"/><path d="M1056 124Q1112 112 1170 128L1170 134Q1112 120 1056 134Z" fill="#8a5fc2"/></g>' +
+            line(
+              'M1030 114A82 17 0 0 0 1194 114',
+              11,
+              INK,
+              ' transform="rotate(-16 1112 114)"',
+            ) +
+            line(
+              'M1030 114A82 17 0 0 0 1194 114',
+              6,
+              '#ffd7a1',
+              ' transform="rotate(-16 1112 114)"',
+            ) +
+            line(
+              'M1040 120A76 14 0 0 0 1182 118',
+              1.6,
+              '#fff',
+              ' opacity=".6" transform="rotate(-16 1112 114)"',
+            ) +
+            '</g>';
 
           /* ---------- exterior parts (behind hull) ---------- */
           /* tail fins */
-          X += Pl(
-            [
-              [112, 170],
-              [104, 100],
-              [180, 96],
-              [264, 168],
-            ],
+          X += S(
+            'M118 172C112 146 106 120 104 98C103 92 108 89 114 89L170 91C198 118 238 146 270 170Z',
             '#e6eaec',
             '#98a8b8',
-            { s: 8, w: 4, h: 'x' },
+            { s: 8, w: 4.4, h: 1 },
           );
-          X += Pl(
-            [
-              [122, 160],
-              [118, 122],
-              [150, 118],
-              [196, 160],
-            ],
+          X += S(
+            'M122 164C118 146 116 132 115 118L150 116C168 134 190 150 210 164Z',
             '#ff8a1f',
             '#c2570b',
-            { s: 4, w: 3 },
+            { s: 4, w: 2.6 },
           );
+          X += T(150, 152, 'NXD-04', 'stencil st2', 8.5);
+          X += bolts(
+            [
+              [132, 100],
+              [150, 100],
+              [168, 103],
+            ],
+            1.8,
+          );
+          X += line('M176 104C204 126 238 150 262 166', 1.6, '#98a8b8');
           X +=
-            line('M144 96V70M158 96V62M172 96V74', 3, INK) +
-            '<circle cx="144" cy="68" r="3" fill="#ff4b43" stroke="' +
+            line('M144 90V68M158 90V60M172 91V72', 3, INK) +
+            '<circle cx="144" cy="66" r="3" fill="#ff4b43" stroke="' +
             INK +
-            '" stroke-width="2"/><circle cx="158" cy="60" r="3" fill="#ffd23a" stroke="' +
+            '" stroke-width="2"/><circle cx="158" cy="58" r="3" fill="#ffd23a" stroke="' +
             INK +
             '" stroke-width="2"/>';
-          X += Pl(
-            [
-              [112, 470],
-              [104, 540],
-              [180, 542],
-              [250, 476],
-            ],
+          X += S(
+            'M118 468C112 494 106 520 104 540C103 546 108 549 114 549L170 547C198 520 238 494 266 470Z',
             '#e6eaec',
             '#98a8b8',
-            { s: 8, w: 4, h: 'x' },
+            { s: 8, w: 4.4, h: 1 },
           );
-          X += Pl(
-            [
-              [122, 478],
-              [118, 516],
-              [152, 520],
-              [196, 478],
-            ],
+          X += S(
+            'M122 476C118 494 116 508 115 520L150 522C168 504 190 490 210 476Z',
             '#18b5a8',
             '#0c7f7a',
-            { s: 4, w: 3 },
+            { s: 4, w: 2.6 },
           );
-          /* upper nacelle */
-          X +=
-            Rc(344, 156, 18, 20, '#7d8ca0', '#4b586b', { r: 2, s: 3, w: 3 }) +
-            Rc(556, 156, 18, 20, '#7d8ca0', '#4b586b', { r: 2, s: 3, w: 3 });
-          X += S(rr(300, 118, 330, 42, 20, 31, 1.2), '#e6eaec', '#98a8b8', {
-            s: 7,
-            h: 'x',
-            w: 4,
-          });
-          X +=
-            '<rect x="360" y="132" width="200" height="6" fill="#ff8a1f" stroke="' +
-            INK +
-            '" stroke-width="2"/>';
-          X += T(460, 154, 'MERIDIAN', 'stencil', 13);
-          X += Ec(626, 139, 10, 17, '#31c5f0', '#177fa6', {
-            s: 3,
-            w: 3.4,
-            h: false,
-          });
-          X +=
-            '<g class="fx" data-fx="tact"><ellipse cx="626" cy="139" rx="9" ry="15" fill="#c8f6ff"/></g>';
-          X +=
-            S(rr(292, 124, 22, 30, 8, 32, 0.8), '#2a3342', '#1a212c', {
-              s: 3,
-              w: 3,
-              h: false,
-            }) +
-            '<g class="fx" data-fx="eng"><ellipse cx="296" cy="139" rx="12" ry="12" fill="#52c7ff" opacity=".9"/></g>';
-          X += line('M322 128V150M332 128V150M342 128V150', 2.6, '#98a8b8');
-          /* lower nacelle */
-          X += Rc(296, 518, 18, 12, '#7d8ca0', false, { r: 2, w: 3 });
-          X += Rc(470, 484, 18, 12, '#7d8ca0', false, { r: 2, w: 3 });
-          X += S(rr(252, 492, 280, 38, 18, 33, 1.2), '#e6eaec', '#98a8b8', {
-            s: 7,
-            h: 'x',
-            w: 4,
-          });
-          X +=
-            '<rect x="300" y="506" width="170" height="6" fill="#18b5a8" stroke="' +
-            INK +
-            '" stroke-width="2"/>';
-          X += Ec(532, 511, 9, 15, '#31c5f0', '#177fa6', {
-            s: 3,
-            w: 3.4,
-            h: false,
-          });
-          X +=
-            '<g class="fx" data-fx="tact"><ellipse cx="532" cy="511" rx="8" ry="13" fill="#c8f6ff"/></g>';
-          X +=
-            '<g class="fx" data-fx="eng"><ellipse cx="254" cy="511" rx="12" ry="12" fill="#52c7ff" opacity=".9"/></g>';
-          /* main engine */
-          X += Pl(
+          X += bolts(
             [
-              [104, 268],
-              [60, 250],
-              [34, 266],
-              [34, 366],
-              [60, 382],
-              [104, 368],
+              [132, 538],
+              [150, 538],
+              [168, 536],
             ],
+            1.8,
+          );
+
+          /* upper nacelle on two pylons */
+          [353, 565].forEach(function (px) {
+            X += S(
+              'M' +
+                (px - 11) +
+                ' 156C' +
+                (px - 8) +
+                ' 164 ' +
+                (px - 8) +
+                ' 170 ' +
+                (px - 12) +
+                ' 178H' +
+                (px + 12) +
+                'C' +
+                (px + 8) +
+                ' 170 ' +
+                (px + 8) +
+                ' 164 ' +
+                (px + 11) +
+                ' 156Z',
+              '#7d8ca0',
+              '#4b586b',
+              { s: 3, w: 3 },
+            );
+          });
+          X += S(rr(298, 118, 340, 42, 21), '#e6eaec', '#98a8b8', {
+            s: 7,
+            h: 1,
+            w: 4.4,
+          });
+          X += line('M330 119.5H606', 2.2, '#fff', ' opacity=".7"');
+          X +=
+            '<path d="M348 126H590" stroke="' +
+            INK +
+            '" stroke-width="6.4" stroke-linecap="round"/><path d="M348 126H590" stroke="#ff8a1f" stroke-width="3.4" stroke-linecap="round"/>';
+          X += T(468, 150, 'MERIDIAN', 'stencil st2', 11);
+          X += line(
+            'M330 121V157M424 121V157M512 121V157M600 121V157',
+            1.5,
+            INK,
+            ' opacity=".5"',
+          );
+          X += bolts(
+            [
+              [338, 127],
+              [600, 127],
+            ],
+            1.7,
+          );
+          X += Ec(630, 139, 9, 16, '#31c5f0', '#177fa6', {
+            s: 3,
+            w: 3.2,
+            rim: false,
+          });
+          X +=
+            '<path d="M626 130C624 136 624 142 626 148" stroke="#fff" stroke-width="2" fill="none" stroke-linecap="round" opacity=".7"/>';
+          X += fxg(
+            'tact',
+            '<ellipse cx="630" cy="139" rx="8" ry="14" fill="#c8f6ff"/>',
+          );
+          X += S(rr(290, 122, 24, 34, 9), '#2a3342', '#1a212c', { s: 3, w: 3 });
+          X += slats(296, 132, 12, 4, 6, '#46526a', 2);
+          X += fxg(
+            'eng',
+            '<ellipse cx="292" cy="139" rx="12" ry="14" fill="#52c7ff" opacity=".9"/>',
+          );
+
+          /* lower nacelle */
+          [306, 478].forEach(function (px) {
+            X += S(
+              'M' +
+                (px - 10) +
+                ' 484C' +
+                (px - 8) +
+                ' 490 ' +
+                (px - 7) +
+                ' 494 ' +
+                (px - 10) +
+                ' 500H' +
+                (px + 10) +
+                'C' +
+                (px + 7) +
+                ' 494 ' +
+                (px + 8) +
+                ' 490 ' +
+                (px + 10) +
+                ' 484Z',
+              '#7d8ca0',
+              '#4b586b',
+              { s: 3, w: 3 },
+            );
+          });
+          X += S(rr(250, 492, 286, 38, 19), '#e6eaec', '#98a8b8', {
+            s: 7,
+            h: 1,
+            w: 4.4,
+          });
+          X += line('M282 493.5H508', 2.2, '#fff', ' opacity=".7"');
+          X +=
+            '<path d="M290 502H492" stroke="' +
+            INK +
+            '" stroke-width="6.4" stroke-linecap="round"/><path d="M290 502H492" stroke="#18b5a8" stroke-width="3.4" stroke-linecap="round"/>';
+          X += T(398, 524, 'NXD-0404', 'stencil st2', 9.5);
+          X += line(
+            'M284 495V528M360 495V528M440 495V528',
+            1.5,
+            INK,
+            ' opacity=".5"',
+          );
+          X += Ec(534, 511, 8, 14, '#31c5f0', '#177fa6', {
+            s: 3,
+            w: 3.2,
+            rim: false,
+          });
+          X += fxg(
+            'tact',
+            '<ellipse cx="534" cy="511" rx="7" ry="12" fill="#c8f6ff"/>',
+          );
+          X += fxg(
+            'eng',
+            '<ellipse cx="252" cy="511" rx="12" ry="14" fill="#52c7ff" opacity=".9"/>',
+          );
+
+          /* main engine bell */
+          X += S(
+            'M108 262C88 250 66 246 48 252C34 258 30 270 30 290V342C30 362 34 374 48 380C66 386 88 382 108 372Z',
             '#6b788c',
             '#3e4859',
-            { s: 7, w: 4, h: 'x' },
+            { s: 7, w: 4.4, h: 1 },
           );
-          X += Pl(
-            [
-              [48, 270],
-              [36, 280],
-              [36, 352],
-              [48, 362],
-            ],
-            '#1a1f29',
+          X += S(
+            'M44 264C35 274 33 286 33 298V334C33 346 35 358 44 368C50 340 50 292 44 264Z',
+            '#161b24',
             false,
-            { w: 3 },
+            { w: 2.8 },
           );
-          X +=
-            '<path d="M62 262V372M78 258V376" stroke="' +
-            INK +
-            '" stroke-width="3"/>';
-          X +=
-            '<g class="fx" data-fx="eng"><path d="M36 282C20 290 8 304 2 316C8 328 20 342 36 350C30 338 30 294 36 282Z" fill="#ffb02a" stroke="' +
-            INK +
-            '" stroke-width="3.4" stroke-linejoin="round"/><path d="M36 296C26 302 20 310 16 316C20 322 26 330 36 336C32 326 32 306 36 296Z" fill="#fff3a0"/></g>';
-          /* sensor dish (Tactical) */
+          X += line(
+            'M58 252C66 282 66 350 58 382M74 249C82 282 82 350 74 384',
+            2.6,
+            INK,
+            ' opacity=".8"',
+          );
+          X += line(
+            'M52 268C58 296 58 340 52 366',
+            1.4,
+            '#fff',
+            ' opacity=".3"',
+          );
+          X += fxg(
+            'eng',
+            '<path d="M36 280C20 290 8 304 2 316C8 328 20 342 36 352C30 338 30 294 36 280Z" fill="#ffb02a" stroke="' +
+              INK +
+              '" stroke-width="3.4" stroke-linejoin="round"/><path d="M36 296C26 302 20 310 16 316C20 322 26 330 36 336C32 326 32 306 36 296Z" fill="#fff3a0"/>',
+          );
+
+          /* sensor dish (Tactical) on a braced mast */
           X +=
             '<g data-m="sensors" class="mach on">' +
-            Rc(722, 130, 12, 50, '#7d8ca0', '#4b586b', { r: 2, s: 3, w: 3 });
-          X += S(
-            poly(
-              [
-                [692, 104],
-                [708, 138],
-                [746, 138],
-                [764, 104],
-                [750, 118],
-                [706, 118],
-              ],
-              51,
-              1,
-            ),
-            '#c3ccd8',
-            '#7d8ca0',
-            { s: 4, w: 3.4 },
-          );
-          X +=
-            line('M728 120V88', 3.4, INK) +
-            '<circle cx="728" cy="84" r="5.5" fill="#ffd23a" stroke="' +
-            INK +
-            '" stroke-width="3"/>';
-          X +=
+            S('M716 180L720 138H736L740 180Z', '#8d9bb0', '#566378', {
+              s: 3,
+              w: 3,
+            }) +
+            Rc(708, 174, 40, 8, '#7d8ca0', '#4b586b', {
+              r: 3,
+              s: 2,
+              w: 2.6,
+              rim: false,
+            }) +
+            line('M722 176L702 160M734 176L754 160', 2.4, INK) +
+            S(
+              'M690 104C694 132 712 144 728 144C744 144 762 132 766 104C752 120 742 124 728 124C714 124 704 120 690 104Z',
+              '#c3ccd8',
+              '#7d8ca0',
+              { s: 5, w: 3.4 },
+            ) +
+            Ec(728, 105, 38, 9, '#dbe3ec', '#9aa7b8', {
+              s: 2,
+              w: 3.2,
+              rim: false,
+            }) +
+            Ec(728, 106, 32, 6, '#8b99ad', false, { w: 0 }) +
+            line('M700 104L728 82M756 104L728 82', 2.6, INK) +
+            Ec(728, 80, 5.6, 5.6, '#ffd23a', '#c99a12', {
+              s: 2,
+              w: 2.8,
+              rim: false,
+            }) +
             '<g class="ml">' +
-            line('M706 80Q728 62 750 80', 3.4, '#9af1ff') +
-            line('M696 70Q728 46 760 70', 3.4, '#9af1ff') +
+            line('M708 78Q728 62 748 78', 3.4, '#9af1ff') +
+            line('M698 68Q728 46 758 68', 3.4, '#9af1ff') +
             '</g></g>';
-          /* comms antenna array (below the belly) */
+
+          /* comms antenna array (below the belly): lattice mast with yagi elements */
           X +=
             '<g data-m="antenna" class="mach on"><g transform="translate(12 0)">' +
-            Rc(584, 470, 12, 82, '#7d8ca0', '#4b586b', { r: 2, s: 3, w: 3 });
-          X +=
-            Rc(554, 522, 72, 9, '#c3ccd8', '#7d8ca0', {
+            Rc(584, 476, 36, 8, '#7d8ca0', '#4b586b', {
               r: 3,
               s: 2,
-              w: 3,
-              h: false,
+              w: 2.6,
+              rim: false,
             }) +
-            Rc(562, 538, 56, 8, '#c3ccd8', '#7d8ca0', {
-              r: 3,
+            line('M590 484V556M608 484V556', 3, INK) +
+            line(
+              'M590 490L608 510L590 530L608 550M608 490L590 510L608 530L590 550',
+              1.8,
+              INK,
+            ) +
+            Rc(554, 516, 72, 8, '#c3ccd8', '#7d8ca0', {
+              r: 4,
               s: 2,
-              w: 3,
-              h: false,
+              w: 2.8,
+              rim: false,
             }) +
-            Rc(570, 553, 40, 8, '#c3ccd8', '#7d8ca0', {
-              r: 3,
+            Rc(562, 532, 56, 7, '#c3ccd8', '#7d8ca0', {
+              r: 3.5,
               s: 2,
-              w: 3,
-              h: false,
-            });
-          X +=
-            '<circle cx="590" cy="566" r="6" fill="#ffd23a" stroke="' +
-            INK +
-            '" stroke-width="3"/>';
-          X +=
+              w: 2.8,
+              rim: false,
+            }) +
+            Rc(570, 547, 40, 7, '#c3ccd8', '#7d8ca0', {
+              r: 3.5,
+              s: 2,
+              w: 2.8,
+              rim: false,
+            }) +
+            Ec(599, 568, 6.2, 6.2, '#ffd23a', '#c99a12', {
+              s: 2,
+              w: 2.8,
+              rim: false,
+            }) +
             '<g class="ml">' +
             line('M636 520Q654 540 636 560', 3.4, '#ffd23a') +
             line('M646 512Q672 540 646 568', 3.4, '#ffd23a') +
-            line('M544 520Q526 540 544 560', 3.4, '#ffd23a') +
-            line('M534 512Q508 540 534 568', 3.4, '#ffd23a') +
+            line('M562 520Q544 540 562 560', 3.4, '#ffd23a') +
+            line('M552 512Q526 540 552 568', 3.4, '#ffd23a') +
             '</g></g></g>';
 
           /* ---------- hull ---------- */
-          var outer = [
-            [84, 252],
-            [112, 168],
-            [480, 164],
-            [872, 160],
-          ]
-            .concat(bz([872, 160], [990, 158], [1070, 206], [1118, 256], 6))
-            .concat(bz([1118, 256], [1156, 292], [1156, 332], [1118, 368], 5))
-            .concat(bz([1118, 368], [1070, 418], [990, 482], [872, 480], 6))
-            .concat([
-              [480, 476],
-              [112, 472],
-              [84, 382],
-            ]);
-          var inner = [
-            [104, 258],
-            [126, 184],
-            [480, 180],
-            [872, 176],
-          ]
-            .concat(bz([872, 176], [975, 174], [1045, 214], [1092, 262], 6))
-            .concat(bz([1092, 262], [1116, 288], [1116, 336], [1092, 362], 5))
-            .concat(bz([1092, 362], [1045, 410], [975, 466], [872, 464], 6))
-            .concat([
-              [480, 460],
-              [126, 456],
-              [104, 374],
-            ]);
-          var hd = poly(outer.slice(), 77, 1.3),
-            idd = poly(inner.slice(), 78, 1);
-          H += S(hd, '#e6eaec', '#98a8b8', { s: 16, h: 'd', w: 5.4 });
-          H += '<path d="' + idd + '" fill="#262d42"/>';
-          H += '<path d="' + idd + '" fill="url(#hat)" opacity=".5"/>';
+          var hd =
+            'M96 236C100 200 108 178 124 168L300 162C520 158 740 158 872 160C990 160 1070 204 1118 256C1152 292 1158 334 1122 372C1074 424 996 482 872 480C740 480 520 478 300 474L124 470C108 460 100 430 92 392C84 360 84 300 96 236Z';
+          var idd =
+            'M104 258C106 224 114 198 128 184L300 181C520 178 740 177 872 176C975 175 1045 214 1092 262C1116 288 1116 336 1092 362C1045 410 975 462 872 464C740 464 520 462 300 460L128 457C114 446 106 418 104 376C100 340 100 296 104 258Z';
+          H += S(hd, '#e6eaec', '#98a8b8', { s: 16, h: 1, w: 5.6 });
+          /* shell: seams, catch-light, window rows, orange stripe, hazard, rivets */
+          var sm = '';
+          for (i = 170; i < 870; i += 62)
+            sm += 'M' + i + ' 164V180M' + i + ' 462V476';
+          H += line(sm, 1.5, INK, ' opacity=".5"');
+          H += line(
+            'M134 168.5L300 164C520 160.6 740 160.6 872 162C975 162 1040 198 1086 240',
+            2.2,
+            '#fff',
+            ' opacity=".8"',
+          );
+          H += '<path d="' + idd + '" fill="#232a3e"/>';
           H +=
-            '<path d="M130 172L872 166M120 466L872 474" stroke="#ff8a1f" stroke-width="5" fill="none" stroke-linecap="round"/><path d="M130 172L872 166M120 466L872 474" stroke="' +
-            INK +
-            '" stroke-width="1.6" fill="none" transform="translate(0 4)" opacity=".6"/>';
-          for (var rv = 150; rv < 1080; rv += 46)
-            H +=
-              '<circle cx="' +
-              rv +
-              '" cy="' +
-              f(178 - (rv - 120) * 0.008) +
-              '" r="2.2" fill="#7d8ca0" stroke="' +
-              INK +
-              '" stroke-width="1.2"/><circle cx="' +
-              rv +
-              '" cy="' +
-              f(460 + (rv - 120) * 0.006) +
-              '" r="2.2" fill="#7d8ca0" stroke="' +
-              INK +
-              '" stroke-width="1.2"/>';
+            '<path d="M130 190H872" stroke="#2f3850" stroke-width="12" opacity=".7"/>';
           H +=
-            '<path d="M' +
-            idd.slice(1).replace(/Z/, '') +
-            'Z" fill="none" stroke="' +
+            '<path d="' +
+            idd +
+            '" fill="none" stroke="' +
             INK +
-            '" stroke-width="4.4" stroke-linejoin="round"/>';
-          /* bow lights and registry */
+            '" stroke-width="3.6" stroke-linejoin="round"/>';
           H +=
-            '<g class="fx" data-fx="brdg"><circle cx="1134" cy="312" r="7" fill="#ffd23a" stroke="' +
-            INK +
-            '" stroke-width="3"/><circle cx="1120" cy="266" r="4" fill="#ff4b43"/><circle cx="1120" cy="358" r="4" fill="#58d86a"/></g><circle cx="1134" cy="312" r="7" fill="none" stroke="' +
+            line('M118 468.5H860', 6.6, INK) +
+            line('M118 468.5H860', 3.4, '#ff8a1f');
+          H += hz(122, 463, 34, 9);
+          var wy = function (x) {
+            return f(173.5 - (x - 200) * 0.0085);
+          };
+          [
+            [158, 172, 186, 200, 214],
+            [520, 534, 548, 562, 576, 590],
+            [802, 816, 830, 844],
+          ].forEach(function (grp, gi) {
+            var k = ['eng', 'tact', 'brdg'][gi],
+              a = '',
+              b = '';
+            grp.forEach(function (x) {
+              a += win(x, wy(x) - 3.2);
+              b += winLit(x, wy(x) - 3.2);
+            });
+            H += a + fxg(k, b);
+          });
+          var rv = [];
+          for (i = 150; i < 1060; i += 46)
+            rv.push([i, f(473 + (i - 500) * 0.004)]);
+          H += bolts(rv, 1.7);
+          /* bow: seam, lights, probe */
+          H += line(
+            'M1132 280C1146 302 1146 326 1132 346',
+            1.6,
+            INK,
+            ' opacity=".5"',
+          );
+          H +=
+            fxg(
+              'brdg',
+              '<circle cx="1134" cy="312" r="7" fill="#ffd23a" stroke="' +
+                INK +
+                '" stroke-width="3"/><circle cx="1120" cy="266" r="4" fill="#ff4b43"/><circle cx="1120" cy="358" r="4" fill="#58d86a"/>',
+            ) +
+            '<circle cx="1134" cy="312" r="7" fill="none" stroke="' +
             INK +
             '" stroke-width="3"/>';
           H += line('M1154 312H1190', 3.4, INK);
-          /* corridor structure: shaft ladders, corridor lights */
+
+          /* bow observation portholes */
+          var ph = '',
+            phl = '';
+          [
+            [1086, 282],
+            [1094, 312],
+            [1086, 342],
+          ].forEach(function (p) {
+            ph += Ec(p[0], p[1], 8.5, 8.5, '#243049', '#161e30', {
+              s: 2,
+              w: 2.6,
+              rim: false,
+            });
+            phl +=
+              '<circle cx="' +
+              p[0] +
+              '" cy="' +
+              p[1] +
+              '" r="6" fill="#ffe9a8"/><path d="M' +
+              (p[0] - 4) +
+              ' ' +
+              (p[1] - 1) +
+              'Q' +
+              p[0] +
+              ' ' +
+              (p[1] - 6) +
+              ' ' +
+              (p[0] + 4) +
+              ' ' +
+              (p[1] - 3) +
+              '" stroke="#fff" stroke-width="1.6" fill="none" opacity=".8"/>';
+          });
+          H += ph + fxg('brdg', phl);
+
+          /* corridors: shafts, walkway, cable runs, lamps */
+          H += '<rect x="380" y="312" width="510" height="26" fill="#1a2030"/>';
           H +=
-            '<rect x="380" y="312" width="510" height="26" fill="#1a2030"/>' +
-            '<path d="M392 318H878" stroke="#ffe08a" stroke-width="3" stroke-dasharray="26 22" opacity=".55"/>';
+            '<rect x="380" y="312" width="510" height="5" fill="#2a3249"/><rect x="380" y="333" width="510" height="5" fill="#2a3249"/>';
+          H += line('M380 317H890M380 333H890', 1.4, INK);
+          var cl = '';
+          for (i = 410; i < 880; i += 58)
+            cl +=
+              '<rect x="' +
+              i +
+              '" y="313" width="22" height="3.2" rx="1.6" fill="#ffe9a8" stroke="' +
+              INK +
+              '" stroke-width="1.1"/>';
+          H += cl;
           H +=
             '<rect x="380" y="184" width="120" height="272" fill="#1d2335"/><rect x="770" y="184" width="120" height="272" fill="#1d2335"/>';
           H += panelLines(392, 490, 188, 452, 14, '#3a4562');
+          H += panelLines(782, 880, 188, 452, 14, '#3a4562');
           H += ladder(466, 188, 452, 22);
+          H +=
+            line('M388 190V450M876 190V450', 4.6, INK) +
+            line('M388 190V450M876 190V450', 2, '#5a6685');
+          for (i = 210; i < 450; i += 60)
+            H += clamp(388, i, 12) + clamp(876, i, 12);
           H += crew(612, 336, 0.5, '#e24b6a', '#a02a44', 'cap', { flip: true });
 
           /* ---------- ENGINEERING ---------- */
-          RM += roomOpen('eng', ENGD, '#f2a65a', '#c4742b');
-          RM += panelLines(150, 360, 190, 440, 38, '#c4742b');
+          var eg = dress(128, 184, 252, 272, '#c4742b');
+          eg += pipe('M128 228H300', 12, '#7d8ca0', '#4b586b');
+          eg += pipe('M185 236V226H330V240H380', 11, '#ff8a1f', '#c2570b');
+          eg += pipe('M296 318V252H330', 9, '#ff8a1f', '#c2570b');
+          [150, 200, 250].forEach(function (x) {
+            eg += clamp(x, 228, 22);
+          });
+          eg += clamp(250, 226, 20) + clamp(296, 290, 20);
+          eg += lamp(332, 187, 60);
+          eg += floor(128, 446, 252);
+          RM += roomOpen('eng', ENGD, '#f2a65a', '#c4742b', eg);
           RM += T(134, 213, 'ENGINEERING', 'rname', 14, 'start');
-          RM += pipe('M128 228H300', 12, '#7d8ca0', '#4b586b');
-          RM += pipe('M185 236V226H330V240H380', 11, '#ff8a1f', '#c2570b');
-          RM += pipe('M296 318V252H330', 9, '#ff8a1f', '#c2570b');
-          RM +=
-            '<g class="rl">' +
-            Ec(262, 298, 16, 16, '#fff7d6', false, { w: 3 }) +
-            '</g>' +
-            Ec(262, 298, 16, 16, '#d8d0b0', '#a89f80', {
-              s: 3,
-              w: 3,
-              h: false,
-            }) +
-            line('M262 298l8 -8', 3, '#e0261f') +
-            '<circle cx="262" cy="298" r="2.6" fill="' +
-            INK +
-            '"/>';
-          /* Reactor */
-          var cx = 185;
-          RM += mach(
-            'reactor',
-            S(rr(cx - 46, 412, 92, 34, 6, 21, 1), '#7d8ca0', '#4b586b', {
-              s: 4,
-              w: 3.2,
-            }) +
-              Rc(cx - 40, 232, 80, 20, '#8d9bb0', '#566378', {
-                r: 6,
-                s: 3,
-                w: 3,
-              }) +
-              S(rr(cx - 32, 250, 64, 164, 24, 23, 1.2), '#2e6a63', '#1d4742', {
-                s: 7,
-                w: 3.8,
-                h: 'd',
-              }) +
-              '<g class="ml"><ellipse cx="' +
-              cx +
-              '" cy="330" rx="62" ry="92" fill="url(#gGlow)"/><path d="' +
-              rr(cx - 26, 258, 52, 148, 20, 24, 0.8) +
-              '" fill="#8bffb4"/><path d="M' +
-              (cx - 12) +
-              ' 270V398" stroke="#fff" stroke-width="6" stroke-linecap="round" opacity=".8"/>' +
-              line(
-                'M' +
-                  (cx - 20) +
-                  ' 300l14 -12 -10 -2 16 -14M' +
-                  (cx + 4) +
-                  ' 380l12 -14 -10 -2 14 -12',
-                3.4,
-                '#fff',
-              ) +
-              '</g>' +
-              [0, 1, 2]
-                .map(function (i) {
-                  return Rc(
-                    cx - 38,
-                    292 + i * 38,
-                    76,
-                    14,
-                    '#ff9b2f',
-                    '#c2640f',
-                    { r: 6, s: 3, w: 3, h: false },
-                  );
-                })
-                .join('') +
-              plate(cx, 429, 'Reactor', '#8bffb4', 10),
-          );
-          /* PowerGrid cabinets */
-          var cab = '';
-          for (var ci = 0; ci < 3; ci++) {
-            var cxx = 282 + ci * 31;
-            cab += Rc(cxx, 318, 28, 128, '#566f8c', '#364a63', {
-              r: 4,
-              s: 4,
-              w: 3,
-            });
-            for (var cj = 0; cj < 3; cj++) {
-              cab +=
-                Rc(cxx + 4, 328 + cj * 15, 20, 11, '#1f2838', false, {
-                  r: 2,
-                  w: 2,
-                  flat: true,
-                }) +
-                '<circle cx="' +
-                (cxx + 19) +
-                '" cy="' +
-                (333.5 + cj * 15) +
-                '" r="2.6" fill="#35402f"/><circle class="ml" cx="' +
-                (cxx + 19) +
-                '" cy="' +
-                (333.5 + cj * 15) +
-                '" r="2.6" fill="' +
-                (cj === 1 ? '#ffd23a' : '#6dff8c') +
-                '"/>';
-            }
-            cab +=
-              '<path d="M' +
-              (cxx + 5) +
-              ' 412h18M' +
-              (cxx + 5) +
-              ' 418h18M' +
-              (cxx + 5) +
-              ' 424h18" stroke="' +
-              INK +
-              '" stroke-width="2" opacity=".6"/>';
-          }
-          RM += mach('grid', cab + plate(329, 303, 'PowerGrid', '#ffd23a', 10));
+          RM += mach('reactor', reactorM(185));
+          RM += mach('grid', gridM());
           RM += crew(252, 446, 1, '#3b6fb6', '#244b82', 'hard');
-          RM += floor(128, 446, 252);
-          RM += roomClose(ENGD).replace(/$/, '');
+          RM += roomClose(ENGD);
           /* ---------- TACTICAL ---------- */
-          RM += roomOpen('tact', TACTD, '#78c3ea', '#3f8fbf');
-          RM += panelLines(512, 760, 190, 300, 36, '#3f8fbf');
+          var tg = dress(500, 184, 270, 128, '#3f8fbf', { step: 36 });
+          tg += pipe('M500 240H560V268', 8, '#ff8a1f', '#c2570b');
+          tg += pipe('M652 285H676V258H770', 9, '#31c5f0', '#177fa6');
+          tg += clamp(540, 240, 18) + clamp(676, 268, 18) + clamp(730, 258, 18);
+          tg += lamp(640, 187, 56);
+          tg += scr(668, 194, 88, 26, 'bars', 'rl');
+          tg += floor(500, 302, 270);
+          RM += roomOpen('tact', TACTD, '#78c3ea', '#3f8fbf', tg);
           RM += T(508, 213, 'TACTICAL', 'rname', 14, 'start');
-          RM += pipe('M500 240H560V268', 8, '#ff8a1f', '#c2570b');
-          RM += pipe('M652 285H676V258H770', 9, '#31c5f0', '#177fa6');
-          RM += scr(668, 194, 88, 26, 'bars', 'rl');
-          var sh = Rc(520, 268, 134, 34, '#7d8ca0', '#4b586b', {
-            s: 4,
-            w: 3.2,
-          });
-          [545, 587, 629].forEach(function (x, i) {
-            sh += Pl(
-              [
-                [x - 10, 270],
-                [x + 10, 270],
-                [x + 4, 240],
-                [x - 4, 240],
-              ],
-              '#9aa7b8',
-              '#5d6a7e',
-              { s: 3, w: 2.8, h: false },
-            );
-            sh +=
-              Ec(x, 233, 8, 8, '#2d6a86', '#1c4458', {
-                s: 2,
-                w: 2.8,
-                h: false,
-              }) +
-              '<g class="ml"><circle cx="' +
-              x +
-              '" cy="233" r="13" fill="url(#gGlowC)"/><circle cx="' +
-              x +
-              '" cy="233" r="6.4" fill="#b8f6ff"/>' +
-              line(
-                'M' + (x - 14) + ' 224Q' + x + ' 210 ' + (x + 14) + ' 224',
-                3,
-                '#9af1ff',
-              ) +
-              '</g>';
-          });
-          RM += mach(
-            'shields',
-            sh + plate(587, 287, 'ShieldGrid', '#31c5f0', 10),
-          );
-          RM += mach(
-            'sensors',
-            Rc(692, 270, 74, 32, '#7d8ca0', '#4b586b', { s: 4, w: 3.2 }) +
-              Rc(723, 196, 10, 40, '#9aa7b8', '#5d6a7e', {
-                r: 2,
-                s: 2,
-                w: 2.6,
-                h: false,
-              }) +
-              S(circ(728, 246, 19, 19, 61), '#10202a', '#0a141b', {
-                s: 4,
-                w: 3.4,
-                h: false,
-              }) +
-              '<g class="ml"><circle cx="728" cy="246" r="15" fill="#0f4a3c"/><path d="M728 246L742 238" stroke="#7dffb0" stroke-width="3"/><circle cx="728" cy="246" r="9" fill="none" stroke="#7dffb0" stroke-width="1.6" opacity=".7"/><circle cx="736" cy="252" r="2.2" fill="#fff"/></g>' +
-              plate(727, 288, 'Sensors', '#7dffb0', 9.6),
-          );
+          RM += mach('shields', shieldsM());
+          RM += mach('sensors', sensorsM());
           RM += crew(668, 302, 0.95, '#2f5fb8', '#1d3f84', 'cap');
-          RM += floor(500, 302, 270);
           RM += roomClose(TACTD);
           /* ---------- COMMS ---------- */
-          RM += roomOpen('comm', COMMD, '#86d58f', '#4c9f5b');
-          RM += panelLines(512, 760, 342, 440, 36, '#4c9f5b');
+          var cg = dress(500, 338, 270, 118, '#4c9f5b', { step: 36 });
+          cg += pipe('M500 392H576V414', 8, '#ff8a1f', '#c2570b');
+          cg += pipe('M652 430H672V400H770', 9, '#58d86a', '#2b9a3c');
+          cg += clamp(540, 392, 18) + clamp(726, 400, 18);
+          cg += lamp(645, 341, 50);
+          cg += scr(668, 346, 88, 22, 'wave', 'rl', '#ffd23a');
+          cg += floor(500, 446, 270);
+          RM += roomOpen('comm', COMMD, '#86d58f', '#4c9f5b', cg);
           RM += T(508, 365, 'COMMS', 'rname', 14, 'start');
-          RM += pipe('M500 392H576V414', 8, '#ff8a1f', '#c2570b');
-          RM += pipe('M652 430H672V400H770', 9, '#58d86a', '#2b9a3c');
-          RM += scr(668, 346, 88, 22, 'wave', 'rl', '#ffd23a');
-          RM += mach(
-            'antenna',
-            Rc(556, 414, 96, 32, '#7d8ca0', '#4b586b', { s: 4, w: 3.2 }) +
-              Rc(596, 384, 12, 32, '#9aa7b8', '#5d6a7e', {
-                r: 2,
-                s: 2,
-                w: 2.6,
-                h: false,
-              }) +
-              S(
-                poly(
-                  [
-                    [578, 372],
-                    [586, 388],
-                    [618, 388],
-                    [626, 372],
-                    [614, 380],
-                    [590, 380],
-                  ],
-                  62,
-                  0.8,
-                ),
-                '#c3ccd8',
-                '#7d8ca0',
-                { s: 3, w: 3 },
-              ) +
-              '<g class="ml">' +
-              line('M588 366Q602 355 616 366', 3.2, '#ffd23a') +
-              line('M580 360Q602 343 624 360', 3.2, '#ffd23a') +
-              '</g>' +
-              plate(604, 430, 'Antenna', '#58d86a', 10),
-          );
-          var rl = '';
-          for (var ri = 0; ri < 3; ri++) {
-            var rx = 684 + ri * 30;
-            rl += Rc(rx, 392, 27, 54, '#546a86', '#34475f', {
-              r: 3,
-              s: 3,
-              w: 3,
-            });
-            for (var rj = 0; rj < 4; rj++)
-              rl +=
-                Rc(rx + 4, 398 + rj * 11, 19, 7, '#1f2838', false, {
-                  r: 1,
-                  w: 1.6,
-                  flat: true,
-                }) +
-                '<circle class="ml" cx="' +
-                (rx + 20) +
-                '" cy="' +
-                (401.5 + rj * 11) +
-                '" r="2" fill="' +
-                ((ri + rj) % 2 ? '#ffd23a' : '#6dff8c') +
-                '"/>';
-          }
-          RM += mach('relay', rl + plate(714, 380, 'Relay', '#ffd23a', 10));
+          RM += mach('antenna', antennaM());
+          RM += mach('relay', relayM());
           RM += crew(668, 446, 0.95, '#e8913a', '#a86018', 'head');
-          RM += floor(500, 446, 270);
           RM += roomClose(COMMD);
           /* ---------- BRIDGE ---------- */
-          RM += roomOpen('brdg', BRDGD, '#c09bf0', '#8c63c8');
-          RM += panelLines(902, 1040, 196, 320, 34, '#8c63c8');
-          RM += T(898, 222, 'BRIDGE', 'rname', 14, 'start');
-          RM += pipe('M890 258H944V290', 8, '#31c5f0', '#177fa6');
-          RM += pipe('M890 414H936', 8, '#58d86a', '#2b9a3c');
-          RM += Rc(890, 322, 160, 9, '#7d8ca0', '#4b586b', {
+          var bg = dress(890, 192, 172, 264, '#8c63c8', { step: 34 });
+          bg += pipe('M890 258H944V290', 8, '#31c5f0', '#177fa6');
+          bg += pipe('M890 414H936', 8, '#58d86a', '#2b9a3c');
+          bg += clamp(918, 258, 18);
+          bg += lamp(1018, 196, 44);
+          bg += Rc(890, 322, 160, 9, '#7d8ca0', '#4b586b', {
             r: 2,
             s: 2,
             w: 3,
-            h: 'x',
           });
-          RM += ladder(898, 331, 446, 20);
-          RM += mach(
-            'helm',
-            Pl(
-              [
-                [944, 316],
-                [944, 292],
-                [1000, 280],
-                [1050, 286],
-                [1050, 316],
-              ],
-              '#7d8ca0',
-              '#4b586b',
-              { s: 4, w: 3.2 },
-            ) +
-              scr(956, 286, 28, 12, 'bars', 'ml') +
-              scr(1006, 288, 28, 12, 'wave', 'ml') +
-              '<path d="M1022 270V286" stroke="' +
-              INK +
-              '" stroke-width="6" stroke-linecap="round"/>' +
-              Ec(1022, 262, 13, 13, '#c9863a', '#8d5a1f', {
-                s: 3,
-                w: 3.2,
-                h: false,
-              }) +
-              Ec(1022, 262, 4, 4, '#ffd23a', false, { w: 2.2 }) +
-              line(
-                'M1022 249V275M1009 262H1035M1013 253l18 18M1031 253l-18 18',
-                2.4,
-                INK,
-              ) +
-              '<path d="M964 286V270" stroke="' +
-              INK +
-              '" stroke-width="5" stroke-linecap="round"/><circle cx="964" cy="267" r="5" fill="#ff4b43" stroke="' +
-              INK +
-              '" stroke-width="2.6"/>' +
-              plate(996, 303, 'Helm', '#c09bf0', 10),
-          );
-          RM += crew(918, 316, 1, '#d8434d', '#9a252d', 'brown');
-          RM += mach(
-            'comp',
-            Rc(936, 338, 104, 108, '#6d7f97', '#43536a', {
-              r: 6,
-              s: 5,
-              w: 3.4,
-            }) +
-              scr(946, 346, 84, 42, 'text', 'ml') +
-              [962, 1014]
-                .map(function (x) {
-                  return (
-                    Ec(x, 406, 13, 13, '#c3ccd8', '#8593a8', {
-                      s: 3,
-                      w: 3,
-                      h: false,
-                    }) +
-                    '<g class="ml"><circle cx="' +
-                    x +
-                    '" cy="406" r="3" fill="#ff4b43"/></g>' +
-                    line(
-                      'M' + x + ' 394V418M' + (x - 12) + ' 406H' + (x + 12),
-                      2,
-                      INK,
-                    )
-                  );
-                })
-                .join('') +
-              '<path d="M946 424h84" stroke="' +
-              INK +
-              '" stroke-width="2" opacity=".5"/>' +
-              plate(988, 434, 'Computer', '#c09bf0', 10),
-          );
-          RM += floor(890, 446, 100);
-          RM += floor(890, 316, 150);
-          /* dome */
+          bg += ladder(898, 331, 446, 20);
+          bg += floor(890, 446, 100);
+          bg += floor(890, 316, 150);
+          RM += roomOpen('brdg', BRDGD, '#c09bf0', '#8c63c8', bg);
+          RM += T(898, 222, 'BRIDGE', 'rname', 14, 'start');
+          RM += mach('helm', helmM());
+          RM +=
+            '<g class="egg" id="e-red" tabindex="0" role="button" aria-label="Crew member in a red shirt">' +
+            crew(918, 316, 1, '#d8434d', '#9a252d', 'brown') +
+            '<rect x="896" y="258" width="46" height="60" fill="#000" fill-opacity="0"/>' +
+            '<rect class="eggring" x="893" y="255" width="52" height="66" rx="9" fill="none" stroke="' +
+            INK +
+            '" stroke-width="6"/><rect class="eggring" x="896" y="258" width="46" height="60" rx="7" fill="none" stroke="#ffd23a" stroke-width="3"/></g>';
+          RM += mach('comp', compM());
+          RM += duck(985, 264);
+          /* dome with ribs, base collar and captain's chair */
           var dome =
             'M892 196C888 138 916 102 946 100C980 100 998 140 994 196Z';
-          RM += Rc(914, 160, 30, 32, '#d8434d', '#9a252d', {
-            r: 5,
+          RM += S(
+            'M912 192V168C912 160 916 158 922 158H940C944 158 946 160 946 166V192Z',
+            '#d8434d',
+            '#9a252d',
+            { s: 3, w: 3 },
+          );
+          RM += crew(940, 192, 1.0, '#2a3f8f', '#1b2a66', 'capn');
+          RM += S(dome, 'rgba(190,236,255,.4)', 'rgba(110,175,225,.45)', {
+            s: 6,
+            w: 4.4,
+            u: false,
+          });
+          RM += line(
+            'M910 194C906 150 920 118 944 106M940 102C936 130 936 168 940 194M972 112C984 130 990 160 988 194',
+            1.8,
+            INK,
+            ' opacity=".55"',
+          );
+          RM +=
+            '<path d="M906 178C906 148 922 122 942 114" fill="none" stroke="#fff" stroke-width="5" stroke-linecap="round" opacity=".75"/>';
+          RM += S(rr(884, 190, 118, 10, 5), '#7d8ca0', '#4b586b', {
             s: 3,
             w: 3,
           });
-          RM += crew(940, 192, 1.0, '#2a3f8f', '#1b2a66', 'capn');
-          RM += S(dome, 'rgba(180,230,255,.34)', 'rgba(100,170,220,.34)', {
-            s: 6,
-            w: 4.4,
-            h: 'x',
-          });
-          RM +=
-            '<path d="M906 178C906 148 922 122 942 114" fill="none" stroke="#fff" stroke-width="5" stroke-linecap="round" opacity=".75"/>';
+          RM += bolts(
+            [
+              [896, 195],
+              [920, 195],
+              [968, 195],
+              [992, 195],
+            ],
+            1.6,
+          );
           RM += '<path class="rdim" d="' + dome + '" fill="#0a1020"/>';
-          RM +=
-            '<g class="fx" data-fx="brdg"><ellipse cx="944" cy="150" rx="60" ry="52" fill="url(#gGlowY)"/></g>';
+          RM += fxg(
+            'brdg',
+            '<ellipse cx="944" cy="150" rx="60" ry="52" fill="url(#gGlowY)"/>',
+          );
           RM +=
             line('M946 100V74', 4, INK) +
             line('M946 100V74', 1.6, '#c3ccd8') +
@@ -3925,15 +4963,21 @@ console.<span class="f">log</span>(<span class="s">'pre-flight ok'</span>);</pre
           ].forEach(function (p) {
             HT += socket(p[0] - 5, p[1]);
           });
-          /* walking doors on the corridor ends */
           HT +=
             '<g>' +
             plate(336, 207, 'export', '#ffd23a', 9) +
             line('M366 214L376 224', 3.4, INK) +
             '</g>';
-          HT +=
-            Rc(372, 314, 16, 22, '#3b2a22', '#241812', { r: 2, w: 3 }) +
-            Rc(882, 314, 16, 22, '#3b2a22', '#241812', { r: 2, w: 3 });
+          [372, 882].forEach(function (x) {
+            HT +=
+              S(rr(x, 313, 16, 24, 3), '#4a3a30', '#2a1e18', { s: 3, w: 3 }) +
+              Rc(x + 4, 317, 8, 6, '#243049', false, { r: 2, w: 1.4 }) +
+              '<circle cx="' +
+              (x + 12) +
+              '" cy="329" r="1.6" fill="#ffd23a" stroke="' +
+              INK +
+              '" stroke-width="1"/>';
+          });
 
           CONS.forEach(function (c) {
             PL += conduit(c);
@@ -3955,20 +4999,25 @@ console.<span class="f">log</span>(<span class="s">'pre-flight ok'</span>);</pre
               warnTri(p.wi[0], p.wi[1], 1.15) +
               '</g>';
           });
-          TOP += '<g id="pops"></g>';
+          TOP += '<g id="pops"></g><g id="bubbles" pointer-events="none"></g>';
 
           var statics =
             '<linearGradient id="sky" x1="0" y1="0" x2="0" y2="1"><stop offset="0" style="stop-color:var(--sky1)"/><stop offset="1" style="stop-color:var(--sky2)"/></linearGradient>' +
-            '<pattern id="ht" width="9" height="9" patternUnits="userSpaceOnUse" patternTransform="rotate(30)"><circle cx="2.2" cy="2.2" r="1.5" fill="#15110e" opacity=".22"/></pattern>' +
+            '<radialGradient id="nebV"><stop offset="0" stop-color="#8a5fd8" stop-opacity=".38"/><stop offset="1" stop-color="#8a5fd8" stop-opacity="0"/></radialGradient>' +
+            '<radialGradient id="nebT"><stop offset="0" stop-color="#2fb6c8" stop-opacity=".3"/><stop offset="1" stop-color="#2fb6c8" stop-opacity="0"/></radialGradient>' +
+            '<linearGradient id="gLamp" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#fff2b0" stop-opacity=".5"/><stop offset="1" stop-color="#fff2b0" stop-opacity="0"/></linearGradient>' +
+            '<pattern id="hl" width="8" height="8" patternUnits="userSpaceOnUse" patternTransform="rotate(-35)"><path d="M0 1H8" stroke="#15110e" stroke-width="1.1" opacity=".3"/></pattern>' +
+            '<pattern id="xl" width="8" height="8" patternUnits="userSpaceOnUse" patternTransform="rotate(-35)"><path d="M0 1H8M1 0V8" stroke="#15110e" stroke-width="1" opacity=".26"/></pattern>' +
+            '<pattern id="hz" width="10" height="10" patternUnits="userSpaceOnUse" patternTransform="rotate(45)"><rect width="10" height="10" fill="#ffd23a"/><rect width="5" height="10" fill="#15110e"/></pattern>' +
+            '<pattern id="wstp" width="160" height="150" patternUnits="userSpaceOnUse"><path style="stroke:var(--wst)" d="M10 20h80M60 55h60M20 90h110M90 120h50M120 38h30M6 140h60M110 100h36" stroke-width="2" stroke-linecap="round" opacity=".85"/></pattern>' +
             '<pattern id="hat" width="7" height="7" patternUnits="userSpaceOnUse"><path d="M.6 6.6 4.2 1.4M4.8 7 6.9 3.9" stroke="#15110e" stroke-width="1.15" stroke-linecap="round" fill="none" opacity=".62"/></pattern>' +
             '<pattern id="xh" width="7" height="7" patternUnits="userSpaceOnUse"><path d="M.6 6.6 4.2 1.4M4.8 7 6.9 3.9M0 2.4 3 4.8M3.8 .8 6.8 3.2" stroke="#15110e" stroke-width="1.1" stroke-linecap="round" fill="none" opacity=".6"/></pattern>' +
-            '<pattern id="dith" width="4" height="4" patternUnits="userSpaceOnUse" shape-rendering="crispEdges"><rect width="1.5" height="1.5" fill="#15110e" opacity=".5"/><rect x="2" y="2" width="1.5" height="1.5" fill="#15110e" opacity=".5"/></pattern>' +
             '<radialGradient id="gGlow"><stop offset="0" stop-color="#8bffb4" stop-opacity=".85"/><stop offset="1" stop-color="#8bffb4" stop-opacity="0"/></radialGradient>' +
             '<radialGradient id="gGlowC"><stop offset="0" stop-color="#9af1ff" stop-opacity=".9"/><stop offset="1" stop-color="#9af1ff" stop-opacity="0"/></radialGradient>' +
             '<radialGradient id="gGlowY"><stop offset="0" stop-color="#ffe9a0" stop-opacity=".7"/><stop offset="1" stop-color="#ffe9a0" stop-opacity="0"/></radialGradient>' +
             '<filter id="grain" x="0" y="0" width="100%" height="100%"><feTurbulence type="fractalNoise" baseFrequency=".8" numOctaves="2" seed="9"/><feColorMatrix values="0 0 0 0 0  0 0 0 0 0  0 0 0 0 0  0 0 0 3.6 -1.7"/></filter>';
           var grain =
-            '<rect x="0" y="40" width="1200" height="560" filter="url(#grain)" opacity=".16" style="mix-blend-mode:multiply;pointer-events:none"/>';
+            '<rect x="0" y="40" width="1200" height="560" filter="url(#grain)" opacity=".12" style="mix-blend-mode:multiply;pointer-events:none"/>';
           $('#ship').innerHTML =
             '<defs>' +
             statics +
@@ -4101,6 +5150,37 @@ console.<span class="f">log</span>(<span class="s">'pre-flight ok'</span>);</pre
           if (kind === 'fix') {
             tone(523, 0.08, 'square', 0.04);
             tone(784, 0.12, 'square', 0.04, 0.08);
+          }
+          if (kind === 'squeak') {
+            tone(1500, 0.07, 'square', 0.04);
+            tone(2100, 0.1, 'square', 0.035, 0.07);
+          }
+          if (kind === 'wah') {
+            tone(196, 0.2, 'triangle', 0.06);
+            tone(147, 0.38, 'triangle', 0.06, 0.2);
+          }
+          if (kind === 'blip') tone(880, 0.05, 'square', 0.03);
+          if (kind === 'answer')
+            [523, 659, 784].forEach(function (fq, i) {
+              tone(fq, 0.14, 'triangle', 0.05, i * 0.1);
+            });
+          if (kind === 'warp') {
+            var a = actx();
+            if (a) {
+              var t = a.currentTime,
+                o = a.createOscillator(),
+                g = a.createGain();
+              o.type = 'sawtooth';
+              o.frequency.setValueAtTime(120, t);
+              o.frequency.exponentialRampToValueAtTime(1400, t + 1.6);
+              g.gain.setValueAtTime(0.0001, t);
+              g.gain.exponentialRampToValueAtTime(0.05, t + 0.3);
+              g.gain.exponentialRampToValueAtTime(0.0001, t + 2);
+              o.connect(g);
+              g.connect(a.destination);
+              o.start(t);
+              o.stop(t + 2.1);
+            }
           }
           if (kind === 'go')
             [392, 523, 659, 784, 1046].forEach(function (fq, i) {
@@ -4871,6 +5951,233 @@ console.<span class="f">log</span>(<span class="s">'pre-flight ok'</span>);</pre
             mTimer = setInterval(musicTick, 260);
           }
         });
+
+        /* =====================================================================
+     Crew log: a few small secrets for the curious. Quiet, harmless, and
+     off the sales path. Sound only plays when SFX is on.
+     ===================================================================== */
+        var SECRETS = {
+          warp: 'Plaid speed',
+          red: 'Red shirt protocol',
+          answer: 'The answer is 42',
+          duck: 'Rubber duck debugging',
+        };
+        var found = {},
+          logEl = $('#crewlog'),
+          toastEl = $('#toast'),
+          toastT = 0;
+        try {
+          var sv = JSON.parse(localStorage.getItem('nx-secrets') || '{}');
+          Object.keys(SECRETS).forEach(function (k) {
+            if (sv[k]) found[k] = 1;
+          });
+        } catch (e) {}
+        function paintLog() {
+          var n = Object.keys(found).length;
+          logEl.textContent =
+            n === 4
+              ? 'Crew log: 4/4 secrets found. Full marks.'
+              : 'Crew log: ' + n + '/4 secrets found';
+        }
+        function toast(t) {
+          toastEl.textContent = t;
+          toastEl.classList.add('show');
+          clearTimeout(toastT);
+          toastT = setTimeout(function () {
+            toastEl.classList.remove('show');
+          }, 3800);
+        }
+        function unlock(k) {
+          if (found[k]) return false;
+          found[k] = 1;
+          try {
+            localStorage.setItem('nx-secrets', JSON.stringify(found));
+          } catch (e) {}
+          paintLog();
+          toast('Achievement unlocked: ' + SECRETS[k]);
+          return true;
+        }
+        paintLog();
+        var bubT = 0;
+        function bubble(x, y, lines) {
+          var cw = 10.5,
+            w =
+              Math.max.apply(
+                null,
+                lines.map(function (l) {
+                  return l.length;
+                }),
+              ) *
+                cw +
+              28,
+            h = lines.length * 26 + 14,
+            bx = Math.max(8, Math.min(1192 - w, x - w / 2)),
+            by = y - h - 14,
+            s =
+              '<path d="' +
+              rr(bx + 3, by + 4, w, h, 10) +
+              '" fill="#000" opacity=".4"/>' +
+              '<path d="' +
+              rr(bx, by, w, h, 10) +
+              '" fill="#fff" stroke="' +
+              INK +
+              '" stroke-width="3"/>' +
+              '<path d="M' +
+              (x - 9) +
+              ' ' +
+              (by + h - 1.5) +
+              'L' +
+              x +
+              ' ' +
+              (y - 2) +
+              'L' +
+              (x + 9) +
+              ' ' +
+              (by + h - 1.5) +
+              '" fill="#fff" stroke="' +
+              INK +
+              '" stroke-width="3" stroke-linejoin="round"/>' +
+              '<rect x="' +
+              (x - 7.5) +
+              '" y="' +
+              (by + h - 4) +
+              '" width="15" height="5" fill="#fff"/>';
+          lines.forEach(function (l, i) {
+            s += T(f(bx + w / 2), by + 26 + i * 26, l, 'btxt', cw);
+          });
+          $('#bubbles').innerHTML = s;
+          clearTimeout(bubT);
+          bubT = setTimeout(function () {
+            $('#bubbles').innerHTML = '';
+          }, 4200);
+        }
+        function bindEgg(sel, fn) {
+          var e = $(sel);
+          e.addEventListener('click', fn);
+          e.addEventListener('keydown', function (ev) {
+            if (ev.key === 'Enter' || ev.key === ' ') {
+              ev.preventDefault();
+              fn();
+            }
+          });
+        }
+        /* a crew member in a red shirt, during a red alert */
+        bindEgg('#e-red', function () {
+          if (alerts.length) {
+            bubble(918, 252, [
+              'Red alert, red shirt.',
+              'I see where this is going.',
+            ]);
+            unlock('red');
+            sfx('wah');
+          } else
+            bubble(918, 252, [
+              'Quiet shift so far.',
+              'Let us keep it that way.',
+            ]);
+        });
+        /* rubber duck on the helm display */
+        bindEgg('#e-duck', function () {
+          bubble(985, 246, ['Have you tried', 'explaining it to me?']);
+          unlock('duck');
+          sfx('squeak');
+        });
+        /* ask the ship computer five times */
+        var cc = 0,
+          ct = 0,
+          c42T = 0;
+        bindEgg('#e-comp', function () {
+          var now = Date.now();
+          cc = now - ct > 3000 ? 1 : cc + 1;
+          ct = now;
+          sfx('blip');
+          if (cc < 5) return;
+          cc = 0;
+          var c = $('#c42');
+          c.style.display = 'block';
+          clearTimeout(c42T);
+          c42T = setTimeout(function () {
+            c.style.display = 'none';
+          }, 5000);
+          sfx('answer');
+          if (!unlock('answer')) toast('Still 42. Do not panic.');
+        });
+        /* up up down down left right left right b a */
+        var KON = [
+            'ArrowUp',
+            'ArrowUp',
+            'ArrowDown',
+            'ArrowDown',
+            'ArrowLeft',
+            'ArrowRight',
+            'ArrowLeft',
+            'ArrowRight',
+            'b',
+            'a',
+          ],
+          kp = 0,
+          warping = false;
+        (function () {
+          var o = '',
+            R = rnd(5);
+          for (var i = 0; i < 90; i++) {
+            var a = R() * 6.283,
+              r0 = 10 + R() * 30,
+              r1 = r0 + 14 + R() * 60;
+            o +=
+              'M' +
+              f(Math.cos(a) * r0) +
+              ' ' +
+              f(Math.sin(a) * r0) +
+              'L' +
+              f(Math.cos(a) * r1) +
+              ' ' +
+              f(Math.sin(a) * r1);
+          }
+          $('#warp').innerHTML =
+            '<svg viewBox="-100 -100 200 200" preserveAspectRatio="xMidYMid slice" aria-hidden="true"><path d="' +
+            o +
+            '" stroke="currentColor" stroke-width=".5" stroke-linecap="round" fill="none"/></svg>';
+        })();
+        function warp() {
+          if (warping) return;
+          warping = true;
+          var g = $('#shipgrp'),
+            w = $('#warp');
+          if (!unlock('warp')) toast('Warp engaged. Hold on to something.');
+          sfx('warp');
+          svg.classList.add('warping');
+          w.classList.remove('go');
+          void w.offsetWidth;
+          w.classList.add('go');
+          g.classList.remove('go', 'arrive');
+          g.classList.add('warp');
+          setTimeout(
+            function () {
+              g.classList.remove('warp');
+              g.classList.add('arrive');
+              svg.classList.remove('warping');
+              w.classList.remove('go');
+              warping = false;
+              setTimeout(function () {
+                g.classList.remove('arrive');
+              }, 900);
+            },
+            reduce.matches ? 1800 : 2800,
+          );
+        }
+        document.addEventListener('keydown', function (ev) {
+          var k = ev.key && ev.key.length === 1 ? ev.key.toLowerCase() : ev.key;
+          if (k === KON[kp]) kp++;
+          else kp = k === KON[0] ? 1 : 0;
+          if (kp === KON.length) {
+            kp = 0;
+            warp();
+          }
+        });
+        /* the page starfield */
+        $('#stars').setAttribute('viewBox', '0 0 1600 1000');
+        $('#stars').innerHTML = starsSVG(1600, 1000, 11, 420);
 
         /* ---------- boot: paint the lit state, power-up runs on replay ---------- */
         MODS.forEach(function (m) {
