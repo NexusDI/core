@@ -98,4 +98,6 @@ Task briefs: tasks/task-NN.md, shared constraints tasks/globals.md
 - T36: done 72b9bc6+7208c89 (plan text verbatim; added the dependency count; decorator settings sentence made exact; approved)
 - T37: done c3b8107+c011d7f (triads rewritten; decorator settings sentence; tokens requires getting-started; fix step added per decision 33; approved after fix)
 - T38: done 6886613+dfe2986+9ddbf28 (try-it steps completed; tsc error location corrected; approved after fix)
-- T39: impl
+- T39: done 30ccc67 (error codes corrected to BLUEPRINT_INVALID wrapping; try-it outputs and fixes added; approved)
+- CI: main failed once at 9ddbf28 on next/font/google fetches (network); job re-run once. Fix in progress: next/font/local with pinned @fontsource packages.
+- T40: next
