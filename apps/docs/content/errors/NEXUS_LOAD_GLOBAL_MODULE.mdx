@@ -8,7 +8,7 @@ errorClass: LoadError
 
 # NEXUS_LOAD_GLOBAL_MODULE
 
-`NEXUS_LOAD_GLOBAL_MODULE` means `ship.load()` received a module defined with `global: true`, or a module that imports a global module the graph does not hold yet. Every module's view of the global modules is computed at `create`, so a global module can join the graph only at startup. `load()` rejects with it directly.
+`NEXUS_LOAD_GLOBAL_MODULE` means `ship.load()` received a module defined with `global: true`, or a module that imports a global module the graph does not hold yet. Every module's view of the global modules is computed at `create`, so a global module can join the graph only at startup. `load()` rejects with it directly. `Nexus.check` with the `load` option reports it inside [NEXUS_BLUEPRINT_INVALID](/errors/NEXUS_BLUEPRINT_INVALID/).
 
 ## Reproduce `NEXUS_LOAD_GLOBAL_MODULE`
 

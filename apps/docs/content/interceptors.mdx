@@ -14,7 +14,7 @@ npm install @nexusdi/interceptors@next
 
 ## Write a NexusDI interceptor and attach it to a method
 
-An interceptor implements `Interceptor` and declares its deps like any class provider. `intercept` receives a `CallContext` (the instance, the provider, the method name, the arguments, the `async` flag and the scope) and `next`, which runs the rest of the chain and the method. `interceptors({ register })` registers the interceptor under a token with `interceptor(token, { useClass })`, and `imports` names the modules its own deps come from. The container stores a proxy of each instance that has interceptors, so a call through `get()` or an injected dependency runs the chain, and a call on `this` inside a method does not. A class attaches it with a `static interceptors` map, checked by `satisfies InterceptorMap<T>`:
+An interceptor implements `Interceptor` and declares its deps like any class provider. `intercept` receives a `CallContext` (the instance, the provider, the method name, the arguments, the `async` flag and the scope) and `next`, which runs the rest of the chain and the method. `interceptors({ register })` registers the interceptor under a token with `interceptor(token, { useClass })`, and `imports` names the modules its own deps come from. The container stores a proxy of each instance that has interceptors, so a call through `get()` or an injected dependency runs the chain, and a call on `this` inside a method does not. A class attaches it with a `static interceptors` map, checked by `satisfies InterceptorMap<T>`. `methods` maps a method name to its interceptors, and `class` lists the interceptors for every method:
 
 ```ts file=examples/meridian/src/pages/interceptors.md region=audit
 
@@ -87,7 +87,7 @@ Try it: save the `global` region as `global.ts` and run `npx tsx global.ts`. It 
 
 1. `instanceof` holds for the proxy, and `get(T) === this` inside the class is false, because `this` is the service itself and `get()` returns its proxy.
 2. A method runs with `this` set to the service itself.
-3. Private fields such as `#serial` work, because the method sees the service and not the proxy.
+3. Private fields such as `#serial` work, because the method sees the service itself.
 4. A call from one method to another through `this` is not intercepted, because `this` is the service itself and bypasses the proxy. To intercept it, call the method through the injected token, or move the method to another service.
 
 ```ts file=examples/meridian/src/pages/interceptors.md region=identity

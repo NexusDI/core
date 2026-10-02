@@ -34,7 +34,7 @@ Try it: run `npm install @nexusdi/errors@next`, save the region as `full.ts` and
 
 ## Fix `NEXUS_CONTRACT_VERSION`
 
-`NEXUS_CONTRACT_VERSION` goes away when the provider's contract version satisfies every dependent. Build the provider against the version the error names in `required`, or a newer minor of the same major. Rebuilding the dependent against the version in `provided` clears the error too, since at major 1 and above an older dependent works with a newer provider. At major 0 the minors must match, and the provider's patch must be no older than the dependent's.
+`NEXUS_CONTRACT_VERSION` goes away when the provider's contract version satisfies every dependent. Build the provider against the version the error names in `required`, or, at major 1 and above, a newer minor of the same major. Rebuilding the dependent against the version in `provided` clears the error too, since at major 1 and above an older dependent works with a newer provider. At major 0 the minors must match, and the provider's patch must be no older than the dependent's.
 
 ```ts file=examples/meridian/src/errors/NEXUS_CONTRACT_VERSION.md region=fix
 

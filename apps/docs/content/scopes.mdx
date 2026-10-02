@@ -70,9 +70,9 @@ The error's `path` names the providers from the singleton to the scoped provider
 
 Try it: save the region as `captive.ts` and run it. It prints `[ 'NEXUS_LIFETIME_VIOLATION' ]` and `[ 'ShipComputer', 'Mission' ]`. Add `lifetime: 'scoped'` to the `COMPUTER` provider and run it again. `Nexus.create` resolves, so the program prints `[]` twice. A scoped `COMPUTER` is built once per scope.
 
-## A scoped factory runs in every shuttle
+## A NexusDI scoped factory runs in every `createScope()`
 
-`createScope()` builds every scoped factory before it returns, so a NexusDI scoped factory runs once per scope even when the request never asks for its token. A scoped class builds on its first `get()` in the scope. Put on-demand work, such as a per-request database transaction, in a scoped class, and keep scoped factories cheap.
+`createScope()` builds every eager scoped factory before it returns, so a NexusDI scoped factory runs once per scope even when the request never asks for its token. A scoped class, and a scoped factory declared with `eager: false`, builds on its first `get()` in the scope. Put on-demand work, such as a per-request database transaction, in a scoped class, and keep scoped factories cheap.
 
 ```ts file=examples/meridian/src/pages/scopes.md region=scoped-factory-runs
 

@@ -7,11 +7,11 @@ requires: [lazy]
 
 # Multi-providers
 
-A NexusDI `MultiToken` collects one contribution from each `provide()` call that names it, and resolves to an array of them. Several modules can contribute to one multi-token, and a consumer reads every contribution it can see through `all()`. `all()` is the only modifier a multi-token takes in a deps list: `lazy()`, `optional()` and a bare `MultiToken` each make `Nexus.create` reject with `NEXUS_BLUEPRINT_INVALID`, wrapping `NEXUS_INVALID_PROVIDER`.
+A NexusDI `MultiToken` collects one contribution from each `provide()` call that names it, and resolves to an array of them. Several modules can contribute to one multi-token, and a consumer reads every contribution it can see through `all()`. `all()` is the only modifier a multi-token takes in a deps list: `lazy()` and `optional()` each make `Nexus.create` reject with `NEXUS_BLUEPRINT_INVALID`, wrapping `NEXUS_INVALID_PROVIDER`, and so does a bare `MultiToken`.
 
 ## Collect contributions with a NexusDI `MultiToken`
 
-`new MultiToken<Diagnostic>('Diagnostics')` names a list of `Diagnostic` contributions. Each `provide(DIAGNOSTICS, ...)` adds one entry, a class, as `ReactorDiagnostic` is below, or a value, as the hull check is, and a factory when the entry needs deps. `ship.get(DIAGNOSTICS)` returns the entries as an array, in the order the providers are listed. Across modules, a module's own entries come first, then those of its imports in import order.
+`new MultiToken<Diagnostic>('Diagnostics')` names a list of `Diagnostic` contributions. Each `provide(DIAGNOSTICS, ...)` adds one entry, either a class, as `ReactorDiagnostic` is below, or a value, as the hull check is. An entry that needs deps uses a factory. `ship.get(DIAGNOSTICS)` returns the entries as an array, in the order the providers are listed. Across modules, a module's own entries come first, then those of its imports in import order.
 
 ```ts file=examples/meridian/src/pages/multi-providers.md region=multi-token
 

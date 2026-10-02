@@ -8,7 +8,7 @@ errorClass: ProviderError
 
 # NEXUS_PROVIDER_FAILED
 
-`NEXUS_PROVIDER_FAILED` means a constructor, a factory, an `onInit` or an options validation threw while the container built a provider. `Nexus.create` and `load()` reject with it after disposing what they had built, and `createScope` does the same. The first `get()` of an `eager: false` provider throws it. The original error is its `cause`.
+`NEXUS_PROVIDER_FAILED` means a constructor, a factory, an `onInit` or an options validation threw while the container built a provider. `Nexus.create` and `load()` reject with it after disposing what they had built, and `createScope` does the same. `scope.extend()` rejects with it too, after rolling back what it built. The first `get()` of an `eager: false` provider throws it. The original error is its `cause`.
 
 ## Reproduce `NEXUS_PROVIDER_FAILED`
 
@@ -36,6 +36,6 @@ Try it: in `fixed.ts`, replace `downloadCharts().catch(() => cachedCharts)` with
 
 - `token`: the display name of the provider that failed.
 - `module`: its module.
-- `path`: the providers being built when it failed. At `create`, `load()` and `createScope` it holds only the failing provider. A `get()` of an `eager: false` chain lists the whole chain, from the first requested provider to the failing one.
+- `path`: the providers being built when it failed. At `create`, `load()` and `createScope` it lists only the failing provider, unless the failure happened while building a transient or `eager: false` dependency, which the path then includes: a singleton `S` over a throwing transient factory `T` gives `['S', 'T']`. A `get()` of an `eager: false` chain lists the whole chain, from the first requested provider to the failing one.
 - `alsoFailed`: other providers of the same startup level that failed too. Each entry names the provider by `token` and `module` and holds its `cause`.
 - `disposalErrors`: errors thrown while disposing what the operation had built.

@@ -27,7 +27,7 @@
     "targets": [
       {
         "page": "lifecycle",
-        "heading": "A disposable transient belongs in a scope",
+        "heading": "Dispose a NexusDI transient inside a scope",
         "level": 2
       }
     ]
@@ -49,7 +49,7 @@
     "targets": [
       {
         "page": "scopes",
-        "heading": "A scoped factory runs in every shuttle",
+        "heading": "A NexusDI scoped factory runs in every `createScope()`",
         "level": 2
       }
     ]
@@ -60,7 +60,7 @@
     "targets": [
       {
         "page": "lifecycle",
-        "heading": "A factory's result belongs to the container",
+        "heading": "NexusDI owns what a `useFactory` returns",
         "level": 2
       }
     ]
@@ -95,7 +95,7 @@
     "targets": [
       {
         "page": "lifecycle",
-        "heading": "A disposable transient belongs in a scope",
+        "heading": "Dispose a NexusDI transient inside a scope",
         "level": 2
       }
     ]

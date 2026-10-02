@@ -12,7 +12,7 @@ errorClass: CircularDependencyError
 
 ## Reproduce `NEXUS_CIRCULAR_DEPENDENCY`
 
-The region has `PlasmaRouter` depend on `ShieldGrid` and `DeflectorGrid` depend on `PowerRouter`. Without a plugin, core prints a one-line message that starts with the code and ends with the address of this page. With `errors()` from `@nexusdi/errors` registered (`npm install @nexusdi/errors@next`), the same error carries the full text and its fix.
+The region has `PlasmaRouter`, bound to `PowerRouter`, depend on `ShieldGrid`, and `DeflectorGrid`, bound to `ShieldGrid`, depend on `PowerRouter`. Without a plugin, core prints a one-line message that starts with the code and ends with the address of this page. With `errors()` from `@nexusdi/errors` registered (`npm install @nexusdi/errors@next`), the same error carries the full text and its fix.
 
 ```ts file=examples/meridian/src/errors/NEXUS_CIRCULAR_DEPENDENCY.md region=reproduce
 

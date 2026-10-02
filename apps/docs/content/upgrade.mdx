@@ -102,7 +102,7 @@ Try it: save the region as `modules.ts` and run `npx tsx modules.ts`. It prints 
 
 The 0.3 static `DynamicModule.forRoot(config)` took a module config and returned a runtime module class. A 0.4 `forRoot(options)` takes the options of one configurable module, which is a different meaning under the same name, so check each 0.3 `forRoot` call site. `DynamicModule.forRoot({ providers })` becomes `defineModule({ name, providers })`.
 
-0.4 enforces module encapsulation, and this is the change most likely to stop a provider from resolving after the upgrade. A module sees its own providers, the exports of the modules it imports, and the exports of every global module. 0.3 read no `exports`, so a 0.3 graph that worked through one flat map fails until each module exports what its importers use:
+0.4 enforces module encapsulation, and this is the change most likely to stop a provider from resolving after the upgrade. A module sees its own providers and the exports of the modules it imports. It also sees the exports of every global module. 0.3 read no `exports`, so a 0.3 graph that worked through one flat map fails until each module exports what its importers use:
 
 ```ts file=examples/meridian/src/pages/upgrade.md region=module-exports
 
