@@ -13,6 +13,7 @@ const meta: MetaRecord = {
     title: 'NexusDI',
     theme: { layout: 'full', sidebar: false, toc: false },
   },
+  'getting-started': { title: 'Getting started' },
   '-- concepts': { type: 'separator', title: 'Concepts' },
   tokens: { title: 'Tokens' },
   docs: { title: 'Docs', type: 'page', href: '/getting-started/' },
