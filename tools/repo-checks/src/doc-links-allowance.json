@@ -1,5 +1,4 @@
 {
-  "/lifetimes/": "Phase 1 writes it in its page task.",
   "/modules/": "Phase 1 writes it in its page task.",
   "/configurable-modules/": "Phase 1 writes it in its page task.",
   "/scopes/": "Phase 1 writes it in its page task.",

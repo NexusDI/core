@@ -17,6 +17,7 @@ const meta: MetaRecord = {
   '-- concepts': { type: 'separator', title: 'Concepts' },
   tokens: { title: 'Tokens and interfaces' },
   providers: { title: 'Providers' },
+  lifetimes: { title: 'Lifetimes' },
   docs: { title: 'Docs', type: 'page', href: '/getting-started/' },
   // The navbar's Blog entry, hidden until the posts migrate at 0.4.0 final
   // (spec §4.1). The folder exists on every branch so the final root build
