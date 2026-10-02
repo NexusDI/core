@@ -11,7 +11,7 @@ A NexusDI module groups providers under a name and shares only the tokens it exp
 
 ## Share a NexusDI provider with `exports` and `imports`
 
-A NexusDI module sees its own providers and the exports of the modules it imports, and nothing else. `Engineering` below provides a reactor and two services built on it, a power router and a computer, and exports only `COMPUTER`. `Meridian` imports `Engineering`, so the root container resolves `COMPUTER`. `POWER_ROUTER` stays private: `has()` answers `false` for it, and `get(POWER_ROUTER, { module: Engineering })` resolves it as code inside `Engineering` would.
+A NexusDI module sees its own providers and the exports of the modules it imports, and nothing else. `Engineering` below provides a power router and a computer, both built on a reactor, and exports only `COMPUTER`. `Meridian` imports `Engineering`, so the root container resolves `COMPUTER`. `POWER_ROUTER` stays private: `has()` answers `false` for it, and `get(POWER_ROUTER, { module: Engineering })` resolves it as code inside `Engineering` would.
 
 ```ts file=examples/meridian/src/pages/modules.md region=exports
 
@@ -29,7 +29,7 @@ Try it: save the program as `modules.ts` and run `npx tsx modules.ts`. It prints
 
 ```
 
-The same rule holds between modules, and `Nexus.create` checks it before it builds anything. `Tactical` below imports `Engineering`, which keeps `REACTOR` to itself, so the drone in `Tactical` has no visible reactor. `create` rejects with [`NEXUS_BLUEPRINT_INVALID`](/errors/NEXUS_BLUEPRINT_INVALID/), and the first entry of its `errors` list is [`NEXUS_MISSING_PROVIDER`](/errors/NEXUS_MISSING_PROVIDER/):
+The same rule holds between modules, and `Nexus.create` checks the dependencies of every provider before it builds anything. A dependency on a token that another module keeps private is reported as `NEXUS_MISSING_PROVIDER`, inside `NEXUS_BLUEPRINT_INVALID`. `NEXUS_NOT_VISIBLE` comes from a `get()` of a token that a module owns and does not export. `Tactical` below imports `Engineering`, which keeps `REACTOR` to itself, so the drone in `Tactical` has no visible reactor. `create` rejects with [`NEXUS_BLUEPRINT_INVALID`](/errors/NEXUS_BLUEPRINT_INVALID/), and the first entry of its `errors` list is [`NEXUS_MISSING_PROVIDER`](/errors/NEXUS_MISSING_PROVIDER/):
 
 ```ts file=examples/meridian/src/pages/modules.md region=missing-export
 
@@ -62,4 +62,4 @@ A module that exports the same tokens as another can take its place, and no cons
   power, so the crew trains with the fusion core offline.
 </Notice>
 
-Try it: run the program. It prints `Reactor output 1.21 GW.` and then `Reactor output 0 GW.`. Remove `COMPUTER` from the `exports` of `SimulatorEngineering` and run it again. `create` still resolves, and `get(COMPUTER)` for the simulator ship throws `NEXUS_NOT_VISIBLE`, because `Meridian` can no longer see its computer. The first line still prints. Restore the export and both lines print again. A swap works only when the replacement exports every token the original did.
+Try it: run the program. It prints `Reactor output 1.21 GW.` and then `Reactor output 0 GW.`. Remove `COMPUTER` from the `exports` of `SimulatorEngineering` and run it again. `create` still resolves, because no provider depends on `COMPUTER` and the dependency check has nothing to report. Only `get(COMPUTER)` for the simulator ship throws `NEXUS_NOT_VISIBLE`, because `Meridian` can no longer see its computer. The first line still prints. Restore the export and both lines print again. A swap works only when the replacement exports every token the original did.
