@@ -8,13 +8,13 @@ errorClass: ContractVersionError
 
 # NEXUS_CONTRACT_VERSION
 
-`federation()` reports `NEXUS_CONTRACT_VERSION` when a dependent was built against a version of a contract that its provider's version does not satisfy. The check looks at every dependency whose provider and consumer both come from `defineContract()`, and it runs as part of compiling the module graph, before any constructor runs. `Nexus.create` and `ship.load()` reject with [NEXUS_BLUEPRINT_INVALID](/errors/NEXUS_BLUEPRINT_INVALID/) holding it, and `Nexus.check` throws that error. No call raises `NEXUS_CONTRACT_VERSION` bare.
+`federation()` reports `NEXUS_CONTRACT_VERSION` when a dependent was built against a version of a contract that its provider's version does not satisfy. The check looks at every dependency whose provider and consumer both come from `defineContract()`, and it runs as part of compiling the module graph, before any constructor runs. `Nexus.create` and `ship.load()` reject with [NEXUS_BLUEPRINT_INVALID](/errors/NEXUS_BLUEPRINT_INVALID/) holding it. `Nexus.check` throws that error. No call raises `NEXUS_CONTRACT_VERSION` bare.
 
-The rule is the one of npm's `^` range. The majors must match. At major 1 and above, the dependent needs a minor no newer than the provider's, and on the same minor a patch no newer than the provider's. At major 0 the minors must match as well, because a minor is a breaking change there. Each mismatch is reported once per check, however many dependents share it.
+The rule is the one of npm's `^` range. The majors must match. At major 1 and above, the dependent needs a minor no newer than the provider's, and on the same minor a patch no newer than the provider's. At major 0 the minors must match as well, because a minor is a breaking change there. A prerelease tag is ignored by the comparison. Each mismatch is reported once per check, however many dependents share it.
 
 ## Reproduce `NEXUS_CONTRACT_VERSION`
 
-The shell provides `meridian/ReactorCore` from version 2.3.0 of its contracts package, and a remote's `QuantumComputer` was built against 2.4.0. Without a text pack, the message is a one-line message that starts with the code and ends with the address of this page.
+The shell provides `meridian/ReactorCore` from version 2.3.0 of its contracts package, and a remote's `QuantumComputer` was built against 2.4.0. Without a text pack, the message is one line that starts with the code and ends with the address of this page.
 
 ```ts file=examples/meridian/src/errors/NEXUS_CONTRACT_VERSION.md region=reproduce
 
@@ -34,7 +34,7 @@ Try it: run `npm install @nexusdi/errors@next`, save the region as `full.ts` and
 
 ## Fix `NEXUS_CONTRACT_VERSION`
 
-`NEXUS_CONTRACT_VERSION` goes away when the provider's contract version satisfies every dependent. Build the provider against the version the error names in `required`, or a newer minor of the same major. A dependent built against an older version of the contract works as well, so rebuilding it against the version in `provided` clears the error too. At major 0, only a newer patch of the same minor satisfies.
+`NEXUS_CONTRACT_VERSION` goes away when the provider's contract version satisfies every dependent. Build the provider against the version the error names in `required`, or a newer minor of the same major. Rebuilding the dependent against the version in `provided` clears the error too, since at major 1 and above an older dependent works with a newer provider. At major 0 the minors must match, and the provider's patch must be no older than the dependent's.
 
 ```ts file=examples/meridian/src/errors/NEXUS_CONTRACT_VERSION.md region=fix
 

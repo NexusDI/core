@@ -40,6 +40,7 @@ const Meridian = defineModule({
     defineModule({
       name: 'Computers',
       providers: [provide(COMPUTER, { useClass: QuantumComputer })],
+      exports: [COMPUTER],
     }),
   ],
 });
@@ -95,6 +96,7 @@ const Meridian = defineModule({
     defineModule({
       name: 'Computers',
       providers: [provide(COMPUTER, { useClass: QuantumComputer })],
+      exports: [COMPUTER],
     }),
   ],
 });
@@ -151,7 +153,6 @@ const Meridian = defineModule({
       exports: [COMPUTER],
     }),
   ],
-  exports: [COMPUTER],
 });
 
 await using ship = await Nexus.create(Meridian, { plugins: [federation()] });
