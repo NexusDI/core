@@ -40,6 +40,7 @@ const meta: MetaRecord = {
   'graph-cli': { title: 'Graph CLI' },
   'error-text': { title: 'Full error text' },
   'write-a-plugin': { title: 'Write a plugin' },
+  'benchmark-method': { title: "How NexusDI's benchmarks are measured" },
   '-- migration': { type: 'separator', title: 'Migration' },
   'release-candidate': { title: 'How do I try the 0.4 release candidate?' },
   upgrade: { title: 'How do I upgrade from 0.3 to 0.4?' },

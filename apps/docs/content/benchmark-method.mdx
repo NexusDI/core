@@ -1,0 +1,74 @@
+---
+title: How NexusDI's benchmarks are measured
+kind: contract
+description: The graph, the variants, the toolchains, the probes and the sampling method behind every NexusDI benchmark figure, and how to rerun them.
+---
+
+# How NexusDI's benchmarks are measured
+
+The NexusDI benchmark harness in `benchmarks/` builds one service graph in five dependency injection containers and records what each toolchain and bundler does with it. Every figure on [NexusDI compared](/comparison/) comes from its results files in `benchmarks/results/`, and each section below states one part of the method with the file that holds its evidence.
+
+## The Meridian-8 graph the NexusDI benchmarks build
+
+Meridian-8 is eight providers from the Starship Meridian: `ReactorCore`, `ShipComputer`, `PowerRouter`, `ShieldGrid`, `NavCharts`, `Bridge`, `SurveyDrone` and `FlightLog`. `Bridge` takes three dependencies, `ShieldGrid` among them, and `ShieldGrid` reaches `ReactorCore` through `PowerRouter`, so the graph holds a chain three edges deep and a diamond on `ReactorCore`. `SurveyDrone` is transient, `FlightLog` is scoped, `NavCharts` is a value, and the other five are singletons.
+
+Each class carries a `kind` field with its role name. The scenario script prints those fields and compares them with `benchmarks/fixtures/golden.json`, so a minified bundle that renames every class prints the same output. The fixtures for the five libraries are in `benchmarks/fixtures/<library>/`.
+
+## The variants each library is written in for the NexusDI benchmarks
+
+Each library appears in the variants its own documentation teaches, and each fixture's header comment cites the page, the version and the date it follows, with every departure and its reason. NexusDI has `plain` (tokens and `static deps`) and `decorated` (standard decorators). InversifyJS and tsyringe have `plain` and two decorated variants: `decorated` uses legacy decorators with decorator metadata, and `decorated-explicit` uses legacy decorators with explicit tokens. awilix has `plain`, and needle-di has `plain` and `decorated`. That makes eleven library variants.
+
+`benchmarks/libraries.json` pins each library's version and marks one variant per library as the one its documentation teaches. The performance table on [NexusDI compared](/comparison/) shows that variant. The same file lists the toolchains each library's documentation names, and records the reason for every lifetime a library lacks.
+
+## The toolchain cells the NexusDI benchmarks run
+
+The matrix builds every variant under each toolchain cell of `examples/toolchain-matrix/toolchains.json`: `tsc`, the Go compiler `tsgo`, esbuild, SWC, Babel, Vite with Oxc, Vite with a Babel plugin, Bun, Deno, and Node's built-in type stripping. A decorator profile sets the compiler flags per cell. `none` has no decorators, `standard` uses TC39 decorators, `legacy-metadata` sets `experimentalDecorators` and `emitDecoratorMetadata`, and `legacy` sets `experimentalDecorators` alone. Each toolchain gets the flags its own documentation names. That file pins every toolchain version.
+
+## How the NexusDI benchmarks classify a broken build
+
+Each cell runs one section per lifetime and takes the worst section outcome. `pass` means the printed output equals `golden.json`. `compile-error` means the build failed or the runtime refused the module before the container started. `runtime-error` means a resolve or the process threw after the module loaded. `wrong-instance` means the scenario finished and printed a field that differs from `golden.json`, such as a missing dependency or a second instance of a singleton. `not-applicable` means the library has no such lifetime, with the reason in `libraries.json`. A failing cell keeps its first error line, and a cell whose toolchain documents the limitation links that page. The results are in `benchmarks/results/matrix.json`.
+
+## The wiring-mistake probes in the NexusDI benchmarks
+
+Five probes each add one mistake to Meridian-8 and record where the library reports it: at the type check, at container creation, at the first resolve, or never. Each probe is type-checked under strict mode, built with `tsc` and run. `missing-provider` never registers `NAV_CHARTS`. `cycle` makes `PowerRouter` and `ShieldGrid` depend on each other. `captive-scoped` gives the singleton `Bridge` the scoped `FlightLog`, and records `not-applicable` for a library with no scoped lifetime. `wrong-dep-type` wires `ShipComputer` to `PowerRouter` where it takes `ReactorCore`. `two-mistakes` combines the first two and records how many of them the first error names. The results are in `benchmarks/results/probes.json`.
+
+## How the NexusDI benchmarks measure size, startup and build time
+
+Bundle size starts from each variant's `tsc` output. esbuild and Rollup bundle it for the browser, minified, and gzip runs at its highest level. The record keeps the gzip size of the decorator metadata polyfill on its own, and runs every minified bundle through the scenario, because minification renames classes. The same file holds emit counts for the generated large graph: output bytes, metadata and decorate calls, and the imports that stay in the emitted code. The results are in `benchmarks/results/size.json`.
+
+Timings run on Node 24, on each variant's `tsc` build, for the scenarios whose matrix section passes. Five scenarios run: `cold-start`, `ready`, `resolve-singleton`, `resolve-transient` and `scope-cycle`. `ready` creates a container and resolves every singleton once, so each library does the same work before the clock stops.
+
+Each library and variant runs in its own worker process, so heaps and compiled code stay apart. Each worker calibrates a batch that takes at least one millisecond and reports the time per operation. One iteration takes one sample from every worker back to back, in an order that a balanced Latin square rotates, so no library always runs first or always follows the same neighbour. Every run uses fixed counts and has no early stop: one hundred warm-up iterations are excluded and one thousand are measured. The cold start spawns a fresh `node` process for each library's documented variant, with twenty warm-up rounds and one thousand measured. A median below two nanoseconds fails the run, because no container resolves that fast.
+
+Each figure is a median, published with its MAD and its 5th to 95th percentile range, and a figure whose MAD exceeds one twentieth of its median carries a noisy flag.
+
+A comparison is a paired ratio: in each iteration, NexusDI's time divided by the other library's time, then the median of those ratios. A bootstrap over blocks of consecutive iterations, ten thousand resamples drawn with a seeded generator, gives its interval at the 0.95 level, and an interval that contains 1 shows no measured difference. The results are in `benchmarks/results/timings/`, one file per published run, and `benchmarks/results/raw/` holds every sample of a run so the statistics can be recomputed.
+
+Build time is the wall time of a cold build of every variant under every cell with a build step, for Meridian-8 and for a generated graph of two hundred classes. One unmeasured build per cell runs first, and at least thirty interleaved rounds follow. Deno and Node's type stripping transpile at load, so they have no build time, and a build that failed to compile is not timed. A library's headline build time is its fastest passing build under a toolchain its documentation names. The results are in `benchmarks/results/build.json`.
+
+## What the NexusDI benchmarks disclose
+
+The NexusDI maintainer wrote the harness and measured the results, and has an interest in them. The runs use GitHub-hosted runners, and each results file records the runner's CPU and every pinned version, Node included.
+
+The harness covers Meridian-8 and the generated build graph under every toolchain cell. It does not time Bun, Deno or a browser at run time, incremental or watch builds, editor type checks, graphs larger than eight providers at run time, async factories, or any framework integration.
+
+A maintainer or user who finds a fixture that departs from a library's documentation can [open an issue](https://github.com/NexusDI/core/issues/new/choose) with the library, the fixture path, the documentation URL that shows the correct setup and the expected outcome. An accepted correction is merged and rerun, and the pages update from the new results.
+
+<MeasuredWith />
+
+## Rerun the NexusDI benchmarks
+
+Every deterministic results file rebuilds byte for byte. Clone the release branch and run the check, which rebuilds the matrix, the probes and the sizes and compares each with the committed file:
+
+```sh
+git clone --branch release/0.4 https://github.com/NexusDI/core.git
+cd core
+npm ci
+npx nx run @nexusdi/benchmarks:check
+```
+
+The check packs the libraries and builds every cell, so it takes several minutes, and it exits 0. Now break a fixture: in `benchmarks/fixtures/nexusdi/plain.ts`, change `readonly kind = 'ReactorCore'` on `FusionReactor` to `readonly kind = 'Reactor'`, and run the check again. The scenario's output no longer matches `golden.json`, so the rebuilt `matrix.json` differs from the committed one. The check prints `matrix.json changed. Commit the file the run wrote.` and exits 1 after the matrix step, before it reaches the probes and the sizes.
+
+The failed run has already overwritten `benchmarks/results/matrix.json` with the broken result. Restore both files with `git checkout benchmarks/fixtures/nexusdi/plain.ts benchmarks/results/matrix.json` and run the check again. It exits 0.
+
+`npx nx run @nexusdi/benchmarks:bench` runs the full harness, timings and builds included. Absolute times differ by machine, and the paired ratios should fall inside the published intervals.
