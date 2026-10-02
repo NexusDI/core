@@ -144,4 +144,5 @@ Task briefs: tasks/task-NN.md, shared constraints tasks/globals.md
 - T77: done c9bbe9f+512c295 (method claims checked against harness; check rewrites matrix.json so restore checks out both files; issue link to /issues/new/choose until 04-benchmark-setup exists; approved with minors fixed)
 - T78: done 11cdcf1+(fix) (claims match libraries.json, fixtures, results and npm; figures only via components; doc-links allowance now empty; InversifyJS flags taken from the fixture header, site blocked by proxy; approved after fix)
 - T79: done e3ee28b (E3 passed in chromium only; Nextra links only Pagefind sub-results, so the page-result case searches an intro phrase; locator is getByRole(option).and(a[href]); firefox/webkit not available here)
-- T80: impl
+- T80: done 913e327+(prettierignore) (25 specs pass in chromium only; assemble loaded by computed-URL import to avoid an Nx project reference to apps/docs (TS6310); SKIP_DOCS_BUILD escape hatch added; approved)
+- T81: impl
