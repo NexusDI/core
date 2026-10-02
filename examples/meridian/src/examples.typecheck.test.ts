@@ -60,6 +60,14 @@ function blocks(): Map<string, string> {
 describe('the examples files', { timeout: 60_000 }, () => {
   it('type-check, each block as a module of its own', () => {
     const files = blocks();
+    const marked = examplesFiles(SRC)
+      .map(
+        (file) =>
+          readFileSync(file, 'utf8').split('@import.meta.vitest').length - 1,
+      )
+      .reduce((sum, count) => sum + count, 0);
+    expect(marked).toBeGreaterThan(0);
+    expect(files.size).toBe(marked);
     const host = ts.createCompilerHost(OPTIONS);
     const read = host.getSourceFile.bind(host);
     host.getSourceFile = (name, language) => {
