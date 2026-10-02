@@ -116,4 +116,5 @@ Task briefs: tasks/task-NN.md, shared constraints tasks/globals.md
 - T52: done be4dbb5+404557d (load-twice region rewritten; LOAD_GLOBAL_MODULE thrown directly, code and module printed; approved)
 - T53: done bb00c76+660fd5d (BLUEPRINT_INVALID wraps MISSING_DEPS; toolchain claims checked against toolchain-matrix; approved)
 - T54: done 23fa83a+f52760b (TS1238/TS1240 and NEXUS_LEGACY_DECORATORS verified; emitDecoratorMetadata never read; decorator-free mapping; deps-missing region; approved after fix)
-- T55: impl
+- T55: done 297d7da+cdbc16c+1a286a5 (compile-time codes wrapped; NOT_READY full text; proxy and exempt exact; unverified SHARED-overlap clause dropped; approved)
+- T56: impl
