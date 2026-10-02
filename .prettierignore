@@ -34,3 +34,6 @@ apps/docs/snapshot/src
 # it byte for byte against the generator's own output, so prettier must not
 # touch it.
 internal/meridian-ui/src/tokens.generated.css
+# The docs-e2e site assembled for each run, and the docs build it copies.
+apps/docs-e2e/.site
+apps/docs-e2e/.next-out
