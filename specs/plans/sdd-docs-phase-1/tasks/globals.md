@@ -25,7 +25,9 @@ Rules that override the plan text:
   before reporting DONE. The repo's CI runs fallow (dupes and dead code).
 - CI runs fallow on a clean checkout: no build output (dist/, apps/docs/generated/,
   .next/, out/). Run `npx fallow dead-code --fail-on-issues --no-cache` once with
-  those moved aside (to /tmp/claude-0/), then put them back.
+  those moved aside (to /tmp/claude-0/), then put each back at its own path.
+  Check afterwards that no new directory appeared (an earlier run left empty
+  libs/libs/* behind, which broke repo-checks tests).
 - Fix triads (rule of three) and other writing-rule breaks in any prose the
   plan hands you verbatim.
 - The plan says no git or nx command carries the env prefix; add it.

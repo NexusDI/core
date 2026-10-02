@@ -101,4 +101,5 @@ Task briefs: tasks/task-NN.md, shared constraints tasks/globals.md
 - T39: done 30ccc67 (error codes corrected to BLUEPRINT_INVALID wrapping; try-it outputs and fixes added; approved)
 - CI: main failed once at 9ddbf28 on next/font/google fetches (network); job re-run once. Fixed in dbebe6a: next/font/local with pinned @fontsource 5.3.0 packages (latin woff2); the build passed with outbound proxies pointed at a dead port.
 - T40: done 66164f1+527e9f8 (TS2769 location and runtime codes exact; async try-it added; approved)
-- T41: impl
+- T41: done 6453399+3025642 (missing-export region fixed: Tactical exports DRONE, codes corrected; create vs get codes stated; approved). Removed empty libs/libs/* left by a fallow move-aside.
+- T42: impl
