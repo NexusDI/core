@@ -22,7 +22,7 @@ Try it: save the region as `error.ts` and run `npx tsx error.ts`. `thin.cause` h
 
 ## Fix `NEXUS_PROVIDER_FAILED`
 
-`NEXUS_PROVIDER_FAILED` is fixed by fixing the error in `cause`. When the failure is expected, such as a network call at startup, handle it inside the factory. Here the factory falls back to cached charts.
+`NEXUS_PROVIDER_FAILED` is fixed by correcting what `cause` reports. When the failure is expected, such as a network call at startup, handle it inside the factory. Here the factory falls back to cached charts.
 
 ```ts file=examples/meridian/src/errors/NEXUS_PROVIDER_FAILED.md region=fix
 
@@ -36,6 +36,6 @@ Try it: in `fixed.ts`, replace `downloadCharts().catch(() => cachedCharts)` with
 
 - `token`: the display name of the provider that failed.
 - `module`: its module.
-- `path`: the providers being built when it failed, from the first requested to the failing one.
+- `path`: the providers being built when it failed. At `create`, `load()` and `createScope` it holds only the failing provider. A `get()` of an `eager: false` chain lists the whole chain, from the first requested provider to the failing one.
 - `alsoFailed`: other providers of the same startup level that failed too. Each entry names the provider by `token` and `module` and holds its `cause`.
 - `disposalErrors`: errors thrown while disposing what the operation had built.
