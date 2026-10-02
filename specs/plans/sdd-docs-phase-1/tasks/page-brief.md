@@ -7,3 +7,5 @@
 - Examples after /getting-started/ are interface-first: `Token<IFoo>` with `provide(TOKEN, { useClass: Impl })`. Domain: the Starship Meridian.
 - Verify: `npx nx run-many -t lint,typecheck,test -p @nexusdi/meridian @nexusdi/repo-checks @nexusdi/docs --skip-nx-cache` (read the summary line), `DOCS_BASE_PATH=/next DOCS_CHANNEL=next npx nx build @nexusdi/docs` (check `uptime`), `npx nx sync:check`, `npx fallow dupes`, `npx fallow dead-code --fail-on-issues --no-cache`, prettier on changed files.
 - Read the built page at apps/docs/out/<slug>/index.html once: the regions expanded, the listings labelled, no raw `<!-- #region` or `file=` left.
+- Decision 33: the reader runs, breaks and fixes what the page teaches. The plan's text sometimes stops after the break; when it does, add the fix step (what to change back, what then prints) and say what the reader sees when the broken program runs.
+- The plan's prose has rule-of-three lists; rewrite each as two items or four.
