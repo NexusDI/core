@@ -80,8 +80,8 @@
 
     // internal/meridian-ui's generate-tokens nx target runs this by path
     // through jiti, not by import. It writes tokens.generated.css, which no
-    // import reaches yet either; styles.css (a later task) imports it, and
-    // tokens-generated.test.ts reads it by path to compare it against
+    // import reaches it either: styles.css imports it with a CSS @import,
+    // which fallow does not trace, and tokens-generated.test.ts reads it by path to compare it against
     // renderTokensCss().
     "internal/meridian-ui/tools/generate-tokens.ts",
     "internal/meridian-ui/src/tokens.generated.css",
@@ -232,8 +232,7 @@
     "@fontsource/ibm-plex-sans",
     // examples/meridian lists every package its example blocks import. The
     // blocks live in .md files under src/, which fallow does not read, so
-    // these four report as unused until a page task adds a block that
-    // imports them.
+    // these four report as unused because fallow does not read .md files.
     "@nexusdi/federation",
     "@nexusdi/interceptors",
     "@nexusdi/node",
@@ -330,8 +329,8 @@
     // internal/meridian-ui/eslint.config.mjs imports @nx/eslint-plugin and
     // internal/meridian-ui/vite.config.ts imports vite-plugin-dts. The
     // workspace links both from the root manifest, and
-    // internal/meridian-ui/package.json, like the published libs, carries no
-    // devDependencies.
+    // internal/meridian-ui/package.json declares only the dependencies it
+    // needs at runtime and in its tests (@testing-library/react), not these.
     "@nx/eslint-plugin",
     "vite-plugin-dts",
   ],
