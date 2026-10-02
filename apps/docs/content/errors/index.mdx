@@ -1,0 +1,75 @@
+---
+title: Errors
+kind: concept
+description: Every NexusDI error extends NexusError and carries a stable code, and Nexus.create reports every compile error at once in one BlueprintError.
+requires: [multi-providers]
+---
+
+# Errors
+
+Every NexusDI error extends `NexusError` and carries a stable `code`, such as `NEXUS_MISSING_PROVIDER`, plus the fields that describe the failure. `Nexus.create` compiles the whole graph first and reports every compile error at once. A `MultiToken` contribution that a module keeps private, from the previous page, is a valid design and raises no error.
+
+## Read a NexusDI error's `code` with `isNexusError()`
+
+`isNexusError(value, code?)` returns true for any error NexusDI raised, and narrows the value to the error class of the code you pass. It checks a brand that every copy of `@nexusdi/core` writes, so it also recognises an error from a second copy of the package, where `instanceof` fails. Codes are public API: NexusDI never renames or reuses one, and each has a page, listed on [the error codes](/api-errors/) page.
+
+## Read every compile error from one NexusDI `BlueprintError`
+
+`Nexus.create` reports every mistake it finds while it compiles the graph in one [NEXUS_BLUEPRINT_INVALID](/errors/NEXUS_BLUEPRINT_INVALID/) error, a `BlueprintError`. Its `errors` array holds one error per mistake, and NexusDI builds no instance while the list holds an error.
+
+```ts file=examples/meridian/src/pages/errors.md region=blueprint
+
+```
+
+The graph misses two providers, and the `BlueprintError` lists both: `ReactorCore` for the computer and `NavCharts` for the drone. A fix for one does not hide the other.
+
+Try it: save the region as `broken.ts` and run `npx tsx broken.ts`. It prints `NEXUS_BLUEPRINT_INVALID` and `[ 'ReactorCore', 'NavCharts' ]`. Add `provide(REACTOR, { useValue: { output: 1.21 } })` to the `providers` of `Engineering` and run it again: it prints `[ 'NavCharts' ]`. Delete that line and both tokens are back.
+
+## Read core's one-line NexusDI message
+
+Core writes a short message for each error: the code in brackets, then the string and number fields as `key=value` pairs and a link to the code's page on this site. The message of a `BlueprintError` starts with the error count and lists each inner message below it. The full text of each message lives in `@nexusdi/core/text`, which `errors()` loads, so an application that registers no plugin carries none of it.
+
+```ts file=examples/meridian/src/pages/errors.md region=one-line
+
+```
+
+The link ends in the code: `https://nexus.js.org/errors/NEXUS_MISSING_PROVIDER` opens [the page for that code](/errors/NEXUS_MISSING_PROVIDER/), which explains the failure and its fix.
+
+Try it: save the region as `one-line.ts` and run it. It prints the line above. Open the link it prints.
+
+## Get the full message with `errors()`
+
+`errors()` from `@nexusdi/errors` is a plugin that gives each NexusDI error its full message: a sentence, with hints and a `Fix:` line where the code has them. Register it in `Nexus.create(root, { plugins: [errors()] })`. `devtools()` from `@nexusdi/devtools` writes the same messages, so a development setup that registers `devtools()` needs nothing else.
+
+```ts file=examples/meridian/src/pages/errors.md region=full-text
+
+```
+
+`errors()` reads core's text from `@nexusdi/core/text`. Another package that raises its own codes publishes its text at its own `/text` entry, and [the text packs page](/error-text/) shows how to pass those packs to `errors()`.
+
+Try it: run `npm install @nexusdi/errors@next`, save the region as `full-text.ts` and run it. It prints the sentence and the `Fix:` line. Remove `{ plugins: [errors()] }` and run it again: it prints the one-line form from the previous section. Put the option back and the full text returns.
+
+## Read the `cause` of a NexusDI `ProviderError`
+
+A constructor, a factory, an `onInit` hook or an options validation that throws while NexusDI builds the provider fails `Nexus.create` with [NEXUS_PROVIDER_FAILED](/errors/NEXUS_PROVIDER_FAILED/), a `ProviderError`. Its `token` field names the provider, and its standard `cause` holds the error your code threw.
+
+```ts file=examples/meridian/src/pages/errors.md region=provider-failed
+
+```
+
+Try it: save the region as `failed.ts` and run it. It prints `NEXUS_PROVIDER_FAILED`, `NavCharts` and `chart archive unreachable`. Replace the `throw` line with `return { plot: (to: string) => 'course to ' + to };` and run it again: `Nexus.create` resolves, `error` holds the container, and the program prints `null`, `undefined` and `null`. Put the `throw` back to see the error again.
+
+## Log a NexusDI error with its fields
+
+A NexusDI error's fields are own enumerable properties, so `{ ...error, code: error.code }` holds exactly the fields and the code. Write `code` after the spread: TypeScript rejects a `code` key written before `...error`. Hand the error to your logger's error serializer and add the code as a key of its own, so a log search finds every occurrence of one code.
+
+```ts file=examples/meridian/src/pages/errors.md region=log-fields
+
+```
+
+<Notice kind="note">
+  `nearMisses` is empty unless `errors()` is registered, because the search for
+  a token that exists in a module the requester cannot see lives in that plugin.
+</Notice>
+
+Try it: save the region as `log.ts` and run it. It prints the fields as JSON, with `"nearMisses":[]`. Add `{ plugins: [errors()] }` as the second argument of `Nexus.create` (import `errors` from `@nexusdi/errors`) and run it again: `nearMisses` holds `{"kind":"not-exported","module":"Tactical"}` and the other fields are the same. Move `code: missing.code` before `...missing` and `tsc` flags it with `'code' is specified more than once, so this usage will be overwritten`. Put it back after the spread.
