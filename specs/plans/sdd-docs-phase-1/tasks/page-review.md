@@ -7,3 +7,4 @@ Read-only. Check, in this order:
 4. Guards: the page's own allowance entries are gone; repo-checks passes (`npx nx test @nexusdi/repo-checks --skip-nx-cache`).
 5. The built page (apps/docs/out/<slug>/index.html, already built by the implementer; rebuild only if missing): regions expanded, listings labelled, no raw region markers.
 Report: APPROVED or CHANGES_REQUIRED, findings as `[critical|important|minor] file:line: problem. Fix: ...`, at most 20 lines.
+6. Try-it steps: carry out each break and fix the page asks for, in a scratch copy of the region (not the worktree), and check the page's claim about what happens (which line tsc flags, which error code prints, what output appears).

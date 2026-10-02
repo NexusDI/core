@@ -9,3 +9,4 @@
 - Read the built page at apps/docs/out/<slug>/index.html once: the regions expanded, the listings labelled, no raw `<!-- #region` or `file=` left.
 - Decision 33: the reader runs, breaks and fixes what the page teaches. The plan's text sometimes stops after the break; when it does, add the fix step (what to change back, what then prints) and say what the reader sees when the broken program runs.
 - The plan's prose has rule-of-three lists; rewrite each as two items or four.
+- Carry out every break and fix step the page asks for in a scratch copy of its region (under /tmp/claude-0/), and write down what really happens: the line tsc flags, the error code, the output.

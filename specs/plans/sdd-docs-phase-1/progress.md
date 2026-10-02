@@ -97,4 +97,5 @@ Task briefs: tasks/task-NN.md, shared constraints tasks/globals.md
 - Groups A-E done. Group P (pages) starts.
 - T36: done 72b9bc6+7208c89 (plan text verbatim; added the dependency count; decorator settings sentence made exact; approved)
 - T37: done c3b8107+c011d7f (triads rewritten; decorator settings sentence; tokens requires getting-started; fix step added per decision 33; approved after fix)
-- T38: impl
+- T38: done 6886613+dfe2986+9ddbf28 (try-it steps completed; tsc error location corrected; approved after fix)
+- T39: impl
