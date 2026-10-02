@@ -63,6 +63,7 @@ Task briefs: tasks/task-NN.md, shared constraints tasks/globals.md
 - T13: PR #80 merged by the owner. Sync pending (see Owner items). PR #80 (fix/docs-pipeline -> main) opened. Final opus review fixes: noindex check in any attribute order (the real r1 archive failed the final check), CodeQL polynomial regexes (preamble, {@link}), MODE via env, GH_TOKEN on the snapshot step only: c1f75e1 8335be2 8a64b57 33af5d2 9379d55. 68e6178 (CodeQL {@link} regex). CI all green, mergeable clean at 68e6178. The merge into main was refused by the session's permission classifier; waiting on the owner to merge #80 (rebase). Then: release.yml event=sync on release/0.4 (expect a ci.yml conflict: keep both job lists).
 
 ## Owner items
+- /benchmark-method/ links issues/new/choose; switch it to ?template=04-benchmark-setup.yml once that template lands (benchmarks spec §14.1). The Nx cache under /home/user/core/.nx/cache reached 23 GB and filled the session disk; it was cleared.
 - Follow-up (interceptors): the call-time NEXUS_INTERCEPTOR_MISSING throw in libs/interceptors/src/proxy.ts (about lines 115-130) is unreachable from any container path (T71 probes: load, scope extend, scope calls, a proxy across containers, a shared plugin object). It reuses a user-visible code for a defensive guard; consider an internal assertion. The docs say compile time only.
 - At 0.4.0 final: fill the dates on /support-policy/ (0.4.0 final date, six months later, whether 0.5.0 is out); add this to the stable checklist.
 - npm dist-tags (seen 2026-10-02): @nexusdi/core latest 0.3.2, next 0.4.0-rc.0. @nexusdi/testing, devtools, decorators, interceptors and federation have latest = next = 0.4.0-rc.0, so a plain `npm install` of them gets the RC. The release-candidate page describes this as the rule for packages with no stable release; confirm it is intended.
@@ -139,4 +140,5 @@ Task briefs: tasks/task-NN.md, shared constraints tasks/globals.md
 - T71: done 44f6a8c+0230f6e (per-reason arrival table; bad-target also at build; call-time MISSING unreachable, /interceptors/ sentence corrected; AUDIT token interface-first; approved after fix)
 - T72: done 411e413+9001641 (NOT_READY disposed/building with building region; SHARED check and overlapping-create sites; UNCHECKED construct only; short tables to prose; approved after fix)
 - T73: done eec4e11+1d608af (40 rows match code pages and libs; arrival clause per row from code pages; approved after fix)
-- T77: impl
+- T77: done c9bbe9f+512c295 (method claims checked against harness; check rewrites matrix.json so restore checks out both files; issue link to /issues/new/choose until 04-benchmark-setup exists; approved with minors fixed)
+- T78: impl
