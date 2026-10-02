@@ -40,6 +40,8 @@ const meta: MetaRecord = {
   'graph-cli': { title: 'Graph CLI' },
   'error-text': { title: 'Full error text' },
   'write-a-plugin': { title: 'Write a plugin' },
+  '-- migration': { type: 'separator', title: 'Migration' },
+  'release-candidate': { title: 'How do I try the 0.4 release candidate?' },
   docs: { title: 'Docs', type: 'page', href: '/getting-started/' },
   // The navbar's Blog entry, hidden until the posts migrate at 0.4.0 final
   // (spec §4.1). The folder exists on every branch so the final root build
