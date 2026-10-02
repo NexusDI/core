@@ -1,0 +1,56 @@
+---
+title: How do I write providers with decorators?
+kind: question
+description: '@Injectable, @Inject and @Module from @nexusdi/decorators declare NexusDI classes and modules with standard decorators.'
+---
+
+# How do I write providers with decorators?
+
+Use `@Injectable({ deps })` and `@Inject(TOKEN)` to declare what a class needs, and `@Module({ ... })` to declare a module, all from `@nexusdi/decorators`. They are standard (TC39) decorators that write the definitions `static deps` and `defineModule()` write, so a decorated class and an undecorated one wire the same way. NexusDI reads no metadata a compiler emits: every dependency is a token the decorator names.
+
+```bash
+npm install @nexusdi/decorators@next
+```
+
+## Toolchains that compile `@nexusdi/decorators`
+
+Standard decorators need a toolchain that compiles them: `tsc`, TypeScript 7, esbuild, SWC, Babel, Bun, Deno, and Vite with its Babel plugin. Vite on its own and Node's type stripping cannot run them, and `tsx`, which the [Getting started](/getting-started/) project uses, compiles them through esbuild. Leave `experimentalDecorators` out of `tsconfig.json`: the `tsconfig.json` from [Getting started](/getting-started/) already compiles these decorators, and `npx tsx` and `npx tsc` need no other setting. A project that must keep that flag for another library uses `static deps`, `provide()` and `defineModule()`, as [the page on experimentalDecorators](/legacy-decorators/) shows.
+
+## Declare a class's deps with `@Injectable`
+
+`@Injectable({ deps: [REACTOR] })` records the constructor's dependency tokens on the class, and TypeScript checks the tuple against the constructor as it checks `static deps`. A `useClass` binding reads what `@Injectable` declared, so `provide(COMPUTER, { useClass: QuantumComputer })` needs no `deps` option. `@Injectable` also takes `lifetime`.
+
+```ts file=examples/meridian/src/pages/decorators.md region=injectable
+
+```
+
+Try it: save the region as `decorators.ts` and run `npx tsx decorators.ts`. The terminal prints `ShipComputer online. Reactor output 1.21 GW.` Change `deps: [REACTOR]` to `deps: [COMPUTER]`: `npx tsc` reports TS2322 on that line, because `COMPUTER` is not a `Token<IReactorCore>`. Change it back. Then delete the `@Injectable({ deps: [REACTOR] })` line and run `npx tsx decorators.ts` again. `Nexus.create` rejects with [NEXUS_BLUEPRINT_INVALID](/errors/NEXUS_BLUEPRINT_INVALID/), whose `errors` list holds [NEXUS_MISSING_DEPS](/errors/NEXUS_MISSING_DEPS/), because nothing declares what the constructor takes. The region below catches the rejection and prints that code:
+
+```ts file=examples/meridian/src/pages/decorators.md region=missing-deps
+
+```
+
+## Inject a property with `@Inject` on an `accessor`
+
+`@Inject(NAV_CHARTS) accessor charts!: INavCharts` fills the property when the container builds the class. A standard decorator decorates an `accessor`, so the field carries the `accessor` keyword and a definite-assignment `!`. `@Inject` takes the dependency modifiers as well: `@Inject(optional(SUBSPACE_LINK))` leaves the property `undefined` when nothing provides the token.
+
+```ts file=examples/meridian/src/pages/decorators.md region=inject-accessor
+
+```
+
+Try it: save the region as `accessor.ts` and run `npx tsx accessor.ts`. It prints `course to Kepler-442b` and `no link`. Add `provide(SUBSPACE_LINK, { useValue: { frequency: 1420 } })` to the array passed to `Nexus.create` and run it again: the second line is `1420 MHz`. Delete the line and it is `no link` again.
+
+## Declare a module with `@Module`
+
+`@Module({ providers, imports, exports })` turns a class into a NexusDI module, named after the class. `Nexus.create(Command)` takes the decorated class where it takes a `defineModule()` result, and module encapsulation applies unchanged: `Engineering` exports `COMPUTER` and keeps `REACTOR` private, so `ship.has(REACTOR)` is `false`. Save the region as `module.ts` and run `npx tsx module.ts`: it prints the status line and `false`. Add `REACTOR` to `exports` and run it again, and the last line is `true`.
+
+```ts file=examples/meridian/src/pages/decorators.md region=module-class
+
+```
+
+A `@Module` class cannot take options. A configurable module, with `forRoot()` and `forRootAsync()`, uses `defineModule()` ([Configurable modules](/configurable-modules/)), and a `@Module` class may import one.
+
+<Notice kind="ship">
+  The `Command` module is the Meridian's bridge deck: it imports engineering and
+  exposes only the ship's computer.
+</Notice>
