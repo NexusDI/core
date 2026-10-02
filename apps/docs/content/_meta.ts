@@ -26,6 +26,8 @@ const meta: MetaRecord = {
   'multi-providers': { title: 'Multi-providers' },
   errors: { title: 'Errors' },
   introspection: { title: 'Introspection and trace' },
+  '-- guides': { type: 'separator', title: 'Guides' },
+  plugins: { title: 'Register a plugin' },
   docs: { title: 'Docs', type: 'page', href: '/getting-started/' },
   // The navbar's Blog entry, hidden until the posts migrate at 0.4.0 final
   // (spec §4.1). The folder exists on every branch so the final root build
