@@ -1,0 +1,37 @@
+---
+title: NEXUS_BLUEPRINT_INVALID
+kind: code
+description: Nexus.create, Nexus.check, validate() or load() found errors in the module graph and built nothing.
+package: '@nexusdi/core'
+errorClass: BlueprintError
+---
+
+# NEXUS_BLUEPRINT_INVALID
+
+`NEXUS_BLUEPRINT_INVALID` is the error that `Nexus.create`, `Nexus.check`, `ship.validate()` and `ship.load()` throw when the compiler finds one or more errors in the module graph. It lists every wiring mistake it found at once, and no constructor has run.
+
+## Reproduce `NEXUS_BLUEPRINT_INVALID`
+
+The region binds `ShipComputer` to a class that needs `ReactorCore`, which no module provides, and binds `SurveyDrone` to a class whose constructor takes a parameter that no `deps` list names. `Nexus.create` rejects with one `BlueprintError` that holds both errors. Without a plugin, core prints a one-line message that starts with the code and ends with the address of this page. With `errors()` from `@nexusdi/errors` registered (`npm install @nexusdi/errors@next`), the same error carries the full text and its fix.
+
+```ts file=examples/meridian/src/errors/NEXUS_BLUEPRINT_INVALID.md region=reproduce
+
+```
+
+Try it: save the region as `error.ts` and run `npx tsx error.ts`. It prints three lists. The first holds the two inner codes, `NEXUS_MISSING_DEPS` and `NEXUS_MISSING_PROVIDER`. The second is core's message: a first line that counts the errors, then one indented line per inner error. The third is the full text that `errors()` writes, with a `Fix:` line under each inner error. Then save the fix region below as `fixed.ts` and run `npx tsx fixed.ts`. It prints `Reactor output 1.21 GW.`.
+
+## Fix `NEXUS_BLUEPRINT_INVALID`
+
+`NEXUS_BLUEPRINT_INVALID` is fixed by fixing each inner error. Read `error.errors`, open the page of each inner code, and apply its fix. Here `ReactorCore` gets a provider and `ScoutDrone` declares `static deps`.
+
+```ts file=examples/meridian/src/errors/NEXUS_BLUEPRINT_INVALID.md region=fix
+
+```
+
+Try it: delete the `provide(REACTOR, ...)` line from `Engineering` in `fixed.ts` and run it again. `Nexus.create` rejects with a `BlueprintError` that holds one error, `NEXUS_MISSING_PROVIDER` for `ReactorCore`, and the program ends with that error. The `static deps` on `ScoutDrone` stay fixed, so the other error does not return. Put the line back and the program prints `Reactor output 1.21 GW.` again.
+
+## Fields of `BlueprintError`
+
+`BlueprintError` has one field. Its `message` lists the inner errors, one per line.
+
+- `errors`: every error one compilation found, in pass order. Each is a `NexusError` with its own `code`, so `error.errors.map((inner) => inner.code)` lists the codes.
