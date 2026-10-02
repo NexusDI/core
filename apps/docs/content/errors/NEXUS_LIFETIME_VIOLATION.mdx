@@ -8,7 +8,7 @@ errorClass: LifetimeError
 
 # NEXUS_LIFETIME_VIOLATION
 
-`NEXUS_LIFETIME_VIOLATION` means a singleton depends, directly or through other providers, on a scoped provider or on `REQUEST`. A `lazy()` edge counts as well. A singleton lasts as long as the container, longer than any scope, so it would keep the first scope's value. `Nexus.create` reports it inside [NEXUS_BLUEPRINT_INVALID](/errors/NEXUS_BLUEPRINT_INVALID/).
+`NEXUS_LIFETIME_VIOLATION` means a singleton depends, directly or through transient providers or aliases, on a scoped provider or on `REQUEST`. A `lazy()` edge counts as well. A singleton lasts as long as the container, longer than any scope, so it would keep the first scope's value. `Nexus.create` reports it inside [NEXUS_BLUEPRINT_INVALID](/errors/NEXUS_BLUEPRINT_INVALID/).
 
 ## Reproduce `NEXUS_LIFETIME_VIOLATION`
 
