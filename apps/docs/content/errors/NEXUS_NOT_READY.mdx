@@ -1,0 +1,39 @@
+---
+title: NEXUS_NOT_READY
+kind: code
+description: A lazy() thunk ran before its target was ready.
+package: '@nexusdi/core'
+errorClass: NotReadyError
+---
+
+# NEXUS_NOT_READY
+
+`NEXUS_NOT_READY` means a function from a `lazy()` dependency ran before its target was ready, such as from the constructor of the class that holds it. At startup the construction fails, so `Nexus.create` rejects with [NEXUS_PROVIDER_FAILED](/errors/NEXUS_PROVIDER_FAILED/) and this error is its `cause`. After startup, a `get()` of an `eager: false` provider throws it directly when a thunk reaches a provider that is still building.
+
+## Reproduce `NEXUS_NOT_READY`
+
+The region calls the `lazy(SHIELD_GRID)` thunk inside the `PlasmaRouter` constructor, while `ShieldGrid` waits for the router. Core formats the cause when it raises it. Without a plugin, the cause carries a one-line message that starts with the code and ends with the address of this page. With `errors()` from `@nexusdi/errors` registered (`npm install @nexusdi/errors@next`), the cause carries the full text and its fix.
+
+```ts file=examples/meridian/src/errors/NEXUS_NOT_READY.md region=reproduce
+
+```
+
+Try it: save the region as `error.ts` and run `npx tsx error.ts`. It prints the one-line message, then the full text as two lines. The `owner` and `target` fields name the provider that called the thunk and the one it asked for. Then save the fix region below as `fixed.ts` and run `npx tsx fixed.ts`. It prints `0.4`.
+
+## Fix `NEXUS_NOT_READY`
+
+`NEXUS_NOT_READY` is fixed by calling the thunk from a method that runs after startup. A constructor runs too early, because the container has not built the target yet.
+
+```ts file=examples/meridian/src/errors/NEXUS_NOT_READY.md region=fix
+
+```
+
+Try it: in `fixed.ts`, change the `PlasmaRouter` constructor to `constructor(private readonly shields: () => IShieldGrid) { shields(); }` and run it again. `Nexus.create` rejects with a `ProviderError` for `PowerRouter` in `Engineering`, and its `cause` is the `NotReadyError` from the reproduce region. The uncaught error starts with `[NEXUS_PROVIDER_FAILED] token=PowerRouter module=Engineering path=PowerRouter.`. Remove the call from the constructor and the program prints `0.4` again.
+
+## Fields of `NotReadyError`
+
+`NotReadyError` carries these fields:
+
+- `owner`: the provider whose thunk ran.
+- `target`: the provider the thunk resolves.
+- `path`: empty unless the target is in the middle of its own build. Then it lists the providers being built, from the first frame of the target to the provider that called the thunk, and ends with the target's name. The rule is the same at startup and at `get()`. At startup the error sits inside a `ProviderError` whose own `path` holds only the failing provider. At `get()` it is thrown bare. The full text from `errors()` adds a `Runtime cycle` line when `path` is not empty.

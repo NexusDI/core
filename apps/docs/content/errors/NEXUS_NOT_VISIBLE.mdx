@@ -1,0 +1,39 @@
+---
+title: NEXUS_NOT_VISIBLE
+kind: code
+description: A lookup asked for a token that exists but is private to another module.
+package: '@nexusdi/core'
+errorClass: NotVisibleError
+---
+
+# NEXUS_NOT_VISIBLE
+
+`NEXUS_NOT_VISIBLE` means a lookup asked for a token that some module provides and the lookup module cannot see. `get()` on the root, which resolves only what the root module sees, and `get()` on a scope throw it directly. So does `resolve()` for a required or lazy entry, while an `optional` entry gives `undefined`. `validate()` reports it inside [NEXUS_BLUEPRINT_INVALID](/errors/NEXUS_BLUEPRINT_INVALID/). A provider whose own dependency is invisible fails at startup with [NEXUS_MISSING_PROVIDER](/errors/NEXUS_MISSING_PROVIDER/) instead, which lists the module that keeps the token private.
+
+## Reproduce `NEXUS_NOT_VISIBLE`
+
+The region provides `SubspaceLink` in `Comms`, which exports nothing, and asks the root for it. Without a plugin, core prints a one-line message that starts with the code and ends with the address of this page. With `errors()` from `@nexusdi/errors` registered (`npm install @nexusdi/errors@next`), the same error carries the full text and its fix.
+
+```ts file=examples/meridian/src/errors/NEXUS_NOT_VISIBLE.md region=reproduce
+
+```
+
+Try it: save the region as `error.ts` and run `npx tsx error.ts`. It prints the one-line message, then the full text as two lines. The `owners` field names `Comms`. Then save the fix region below as `fixed.ts` and run `npx tsx fixed.ts`. It prints `1420`.
+
+## Fix `NEXUS_NOT_VISIBLE`
+
+`NEXUS_NOT_VISIBLE` is fixed by exporting the token along a path from its module to the root module, or by asking inside the owning module with `ship.get(SUBSPACE_LINK, { module: Comms })`. [Modules](/modules/) covers encapsulation.
+
+```ts file=examples/meridian/src/errors/NEXUS_NOT_VISIBLE.md region=fix
+
+```
+
+Try it: delete the `exports: [SUBSPACE_LINK],` line from `Comms` in `fixed.ts` and run it again. `ship.get(SUBSPACE_LINK)` throws an uncaught `NotVisibleError` that starts with `[NEXUS_NOT_VISIBLE] token=SubspaceLink owners=Comms.`. Put the line back and the program prints `1420` again.
+
+## Fields of `NotVisibleError`
+
+`NotVisibleError` carries these fields:
+
+- `token`: the display name of the token.
+- `owners`: the modules that provide it.
+- `entry`: the deps entry of `resolve()` or `validate()` this error is about, such as `deps.v` for the key `v` of an object, or `null` for `get()`.

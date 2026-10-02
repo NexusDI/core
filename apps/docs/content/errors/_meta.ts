@@ -72,6 +72,10 @@ const meta: MetaRecord = {
     title: 'NEXUS_PROVIDER_FAILED',
     display: 'hidden',
   },
+  NEXUS_NOT_READY: { title: 'NEXUS_NOT_READY', display: 'hidden' },
+  NEXUS_ASYNC_TRANSIENT: { title: 'NEXUS_ASYNC_TRANSIENT', display: 'hidden' },
+  NEXUS_LAZY_ASYNC: { title: 'NEXUS_LAZY_ASYNC', display: 'hidden' },
+  NEXUS_NOT_VISIBLE: { title: 'NEXUS_NOT_VISIBLE', display: 'hidden' },
 };
 
 export default meta;

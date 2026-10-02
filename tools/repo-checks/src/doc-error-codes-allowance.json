@@ -1,5 +1,4 @@
 {
-  "NEXUS_ASYNC_TRANSIENT": "Phase 1 writes it in its code page task.",
   "NEXUS_CONTRACT_VERSION": "Phase 1 writes it in its code page task.",
   "NEXUS_DEVTOOLS_GRAPH_INVALID": "Phase 1 writes it in its code page task.",
   "NEXUS_DEVTOOLS_UNREGISTERED": "Phase 1 writes it in its code page task.",
@@ -10,11 +9,8 @@
   "NEXUS_INTERCEPTOR_LIFETIME": "Phase 1 writes it in its code page task.",
   "NEXUS_INTERCEPTOR_MISSING": "Phase 1 writes it in its code page task.",
   "NEXUS_INTERCEPTOR_NOT_READY": "Phase 1 writes it in its code page task.",
-  "NEXUS_LAZY_ASYNC": "Phase 1 writes it in its code page task.",
   "NEXUS_LEGACY_DECORATORS": "Phase 1 writes it in its code page task.",
   "NEXUS_LOADED_AFTER_SCOPE": "Phase 1 writes it in its code page task.",
-  "NEXUS_NOT_READY": "Phase 1 writes it in its code page task.",
-  "NEXUS_NOT_VISIBLE": "Phase 1 writes it in its code page task.",
   "NEXUS_OVERRIDE_EXPORTS": "Phase 1 writes it in its code page task.",
   "NEXUS_OVERRIDE_UNUSED": "Phase 1 writes it in its code page task.",
   "NEXUS_PLUGIN_CONFLICT": "Phase 1 writes it in its code page task.",
