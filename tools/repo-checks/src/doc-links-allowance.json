@@ -1,5 +1,4 @@
 {
-  "/interceptors/": "Phase 1 writes it in its page task.",
   "/graph-cli/": "Phase 1 writes it in its page task.",
   "/error-text/": "Phase 1 writes it in its page task.",
   "/write-a-plugin/": "Phase 1 writes it in its page task.",
