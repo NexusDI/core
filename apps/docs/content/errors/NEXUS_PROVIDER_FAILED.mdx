@@ -1,0 +1,41 @@
+---
+title: NEXUS_PROVIDER_FAILED
+kind: code
+description: A constructor, a factory, onInit or options validation threw while the container built a provider.
+package: '@nexusdi/core'
+errorClass: ProviderError
+---
+
+# NEXUS_PROVIDER_FAILED
+
+`NEXUS_PROVIDER_FAILED` means a constructor, a factory, an `onInit` or an options validation threw while the container built a provider. `Nexus.create` and `load()` reject with it after disposing what they had built, and `createScope` does the same. The first `get()` of an `eager: false` provider throws it. The original error is its `cause`.
+
+## Reproduce `NEXUS_PROVIDER_FAILED`
+
+The region binds `NavCharts` to an async factory that throws. Without a plugin, core prints a one-line message that starts with the code and ends with the address of this page. With `errors()` from `@nexusdi/errors` registered (`npm install @nexusdi/errors@next`), the same error carries the full text and its fix.
+
+```ts file=examples/meridian/src/errors/NEXUS_PROVIDER_FAILED.md region=reproduce
+
+```
+
+Try it: save the region as `error.ts` and run `npx tsx error.ts`. `thin.cause` holds the error the factory threw. It prints the one-line message, the cause and the full text. Then save the fix region below as `fixed.ts` and run `npx tsx fixed.ts`. It prints `cached course to Kepler-442b`.
+
+## Fix `NEXUS_PROVIDER_FAILED`
+
+`NEXUS_PROVIDER_FAILED` is fixed by fixing the error in `cause`. When the failure is expected, such as a network call at startup, handle it inside the factory. Here the factory falls back to cached charts.
+
+```ts file=examples/meridian/src/errors/NEXUS_PROVIDER_FAILED.md region=fix
+
+```
+
+Try it: in `fixed.ts`, replace `downloadCharts().catch(() => cachedCharts)` with `downloadCharts()` and run it again. `Nexus.create` rejects with a `ProviderError` for `NavCharts` in `Tactical`, and its `cause` is `Error: subspace link down`. Put the `.catch` back and the program prints `cached course to Kepler-442b` again.
+
+## Fields of `ProviderError`
+
+`ProviderError` carries these fields, and the standard `cause`:
+
+- `token`: the display name of the provider that failed.
+- `module`: its module.
+- `path`: the providers being built when it failed, from the first requested to the failing one.
+- `alsoFailed`: other providers of the same startup level that failed too. Each entry names the provider by `token` and `module` and holds its `cause`.
+- `disposalErrors`: errors thrown while disposing what the operation had built.

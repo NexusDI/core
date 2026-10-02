@@ -56,6 +56,22 @@ const meta: MetaRecord = {
     title: 'NEXUS_MODULE_IMPORT_CYCLE',
     display: 'hidden',
   },
+  NEXUS_MODULE_OPTIONS_MISSING: {
+    title: 'NEXUS_MODULE_OPTIONS_MISSING',
+    display: 'hidden',
+  },
+  NEXUS_LOAD_GLOBAL_MODULE: {
+    title: 'NEXUS_LOAD_GLOBAL_MODULE',
+    display: 'hidden',
+  },
+  NEXUS_INVALID_MODULE_OPTIONS: {
+    title: 'NEXUS_INVALID_MODULE_OPTIONS',
+    display: 'hidden',
+  },
+  NEXUS_PROVIDER_FAILED: {
+    title: 'NEXUS_PROVIDER_FAILED',
+    display: 'hidden',
+  },
 };
 
 export default meta;

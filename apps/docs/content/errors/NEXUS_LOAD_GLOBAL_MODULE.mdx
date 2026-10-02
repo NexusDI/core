@@ -1,0 +1,37 @@
+---
+title: NEXUS_LOAD_GLOBAL_MODULE
+kind: code
+description: ship.load() received a global module.
+package: '@nexusdi/core'
+errorClass: LoadError
+---
+
+# NEXUS_LOAD_GLOBAL_MODULE
+
+`NEXUS_LOAD_GLOBAL_MODULE` means `ship.load()` received a module defined with `global: true`. Every module's view of the global modules is computed at `create`, so a global module can join the graph only at startup. `load()` rejects with it directly.
+
+## Reproduce `NEXUS_LOAD_GLOBAL_MODULE`
+
+The region loads `Navigation`, a global module, after startup. Without a plugin, core prints a one-line message that starts with the code and ends with the address of this page. With `errors()` from `@nexusdi/errors` registered (`npm install @nexusdi/errors@next`), the same error carries the full text and its fix.
+
+```ts file=examples/meridian/src/errors/NEXUS_LOAD_GLOBAL_MODULE.md region=reproduce
+
+```
+
+Try it: save the region as `error.ts` and run `npx tsx error.ts`. `load()` rejects, and the container keeps running. It prints the one-line message, then the full text. Then save the fix region below as `fixed.ts` and run `npx tsx fixed.ts`. It prints `course to Kepler-442b`.
+
+## Fix `NEXUS_LOAD_GLOBAL_MODULE`
+
+`NEXUS_LOAD_GLOBAL_MODULE` is fixed by importing the global module from the root module at startup, or by loading a module without `global: true`. Here `Navigation` is a plain module, and `load()` adds it.
+
+```ts file=examples/meridian/src/errors/NEXUS_LOAD_GLOBAL_MODULE.md region=fix
+
+```
+
+Try it: add `global: true,` under `name: 'Navigation',` in `fixed.ts` and run it again. `ship.load(Navigation)` rejects with a `LoadError` for `Navigation`, and nothing after it runs. Remove the line and the program prints `course to Kepler-442b` again.
+
+## Fields of `LoadError`
+
+`LoadError` has one field:
+
+- `module`: the name of the global module passed to `load()`.

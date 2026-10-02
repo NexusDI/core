@@ -13,12 +13,9 @@
   "/errors/NEXUS_INTERCEPTOR_LIFETIME/": "Phase 1 writes it in its code page task.",
   "/errors/NEXUS_INTERCEPTOR_MISSING/": "Phase 1 writes it in its code page task.",
   "/errors/NEXUS_INTERCEPTOR_NOT_READY/": "Phase 1 writes it in its code page task.",
-  "/errors/NEXUS_INVALID_MODULE_OPTIONS/": "Phase 1 writes it in its code page task.",
   "/errors/NEXUS_LAZY_ASYNC/": "Phase 1 writes it in its code page task.",
   "/errors/NEXUS_LEGACY_DECORATORS/": "Phase 1 writes it in its code page task.",
   "/errors/NEXUS_LOADED_AFTER_SCOPE/": "Phase 1 writes it in its code page task.",
-  "/errors/NEXUS_LOAD_GLOBAL_MODULE/": "Phase 1 writes it in its code page task.",
-  "/errors/NEXUS_MODULE_OPTIONS_MISSING/": "Phase 1 writes it in its code page task.",
   "/errors/NEXUS_NOT_READY/": "Phase 1 writes it in its code page task.",
   "/errors/NEXUS_NOT_VISIBLE/": "Phase 1 writes it in its code page task.",
   "/errors/NEXUS_OVERRIDE_EXPORTS/": "Phase 1 writes it in its code page task.",
@@ -27,7 +24,6 @@
   "/errors/NEXUS_PLUGIN_FAILED/": "Phase 1 writes it in its code page task.",
   "/errors/NEXUS_PLUGIN_INVALID/": "Phase 1 writes it in its code page task.",
   "/errors/NEXUS_PLUGIN_VERSION/": "Phase 1 writes it in its code page task.",
-  "/errors/NEXUS_PROVIDER_FAILED/": "Phase 1 writes it in its code page task.",
   "/errors/NEXUS_REQUEST_MISSING/": "Phase 1 writes it in its code page task.",
   "/errors/NEXUS_SCOPE_REQUIRED/": "Phase 1 writes it in its code page task."
 }
