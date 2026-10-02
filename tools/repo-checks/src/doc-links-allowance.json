@@ -1,5 +1,4 @@
 {
-  "/lifecycle/": "Phase 1 writes it in its page task.",
   "/lazy/": "Phase 1 writes it in its page task.",
   "/multi-providers/": "Phase 1 writes it in its page task.",
   "/errors/": "Phase 1 writes it in its page task.",

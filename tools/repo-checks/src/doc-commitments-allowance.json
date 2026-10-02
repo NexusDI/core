@@ -1,5 +1,4 @@
 {
-  "lifecycle": "Phase 1 writes it in its page task.",
   "api-errors": "Phase 1 writes it after the code pages.",
   "introspection": "Phase 1 writes it in its page task.",
   "bundlers": "Phase 2 writes the Guides band within the RC window."
