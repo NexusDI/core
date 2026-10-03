@@ -4,15 +4,15 @@ Read on 2026-10-03. Every cell in the comparison table traces to a source below.
 
 Versions read:
 
-| Library | Version | Source read |
-| --- | --- | --- |
-| NexusDI | workspace, `release/0.4` | `libs/core/src/runtime/` |
-| InversifyJS | inversify 8.2.3, @inversifyjs/container 3.1.3, @inversifyjs/core 15.0.1, @inversifyjs/plugin-dispose 0.4.7 | npm tarballs |
-| tsyringe | 4.10.0 | npm tarball, README |
-| awilix | 13.0.5 | npm tarball, README |
-| needle-di | @needle-di/core 1.2.1 | npm tarball, https://needle-di.io/llms-full.txt |
-| TypeDI | 0.10.0 (latest on npm) | npm tarball |
-| NestJS | @nestjs/core 12.1.2 | npm tarball, https://docs.nestjs.com/fundamentals/lifecycle-events |
+| Library     | Version                                                                                                    | Source read                                                        |
+| ----------- | ---------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------ |
+| NexusDI     | workspace, `release/0.4`                                                                                   | `libs/core/src/runtime/`                                           |
+| InversifyJS | inversify 8.2.3, @inversifyjs/container 3.1.3, @inversifyjs/core 15.0.1, @inversifyjs/plugin-dispose 0.4.7 | npm tarballs                                                       |
+| tsyringe    | 4.10.0                                                                                                     | npm tarball, README                                                |
+| awilix      | 13.0.5                                                                                                     | npm tarball, README                                                |
+| needle-di   | @needle-di/core 1.2.1                                                                                      | npm tarball, https://needle-di.io/llms-full.txt                    |
+| TypeDI      | 0.10.0 (latest on npm)                                                                                     | npm tarball                                                        |
+| NestJS      | @nestjs/core 12.1.2                                                                                        | npm tarball, https://docs.nestjs.com/fundamentals/lifecycle-events |
 
 The benchmark harness pins inversify 8.2.3, tsyringe 4.10.0, awilix 13.0.5 and needle-di 1.2.1 (`benchmarks/libraries.json`). TypeDI and NestJS are not in the harness, so their versions are the latest on npm on the read date.
 
