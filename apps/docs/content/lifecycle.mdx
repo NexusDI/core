@@ -1,13 +1,13 @@
 ---
 title: Lifecycle and disposal
 kind: concept
-description: NexusDI runs onInit on every singleton during startup and disposes every instance it owns in reverse creation order.
+description: NexusDI disposes every instance it owns in reverse creation order, and a class may define an optional onInit hook for async startup work.
 requires: [scopes]
 ---
 
 # Lifecycle and disposal
 
-NexusDI runs each singleton's `onInit` method while `Nexus.create` starts the container, and it disposes every instance it owns, in reverse creation order, when the container is disposed. A scope from `createScope()` follows the same disposal rule for the instances it built.
+NexusDI disposes every instance it owns, in reverse creation order, when the container is disposed. A scope from `createScope()` follows the same disposal rule for the instances it built. A class with async startup work can also define an optional [`onInit`](#run-startup-work-in-oninit) hook, which `Nexus.create` runs during startup.
 
 ## Why NexusDI manages lifecycle and disposal
 
@@ -20,25 +20,13 @@ A service that holds a database pool or a file handle has to close it on every e
 
 Each rule on this page prevents one of those problems.
 
-- `onInit` runs in dependency order and finishes before the first `get()`, so no service runs against a dependency that is not ready.
 - Disposal runs in reverse creation order, so a service stops before the dependencies it uses and never runs after they close.
 - Every disposer runs and the failures are chained, so one pool that fails to close does not leave the other sockets open, and the error lists every failure.
 - A scope owns the transients it builds, so a per-request resource closes when its request ends.
 - The container disposes what a factory returns and leaves a `useValue` alone, so it closes only what it created.
+- A class that defines `onInit` has it run in dependency order, and it finishes before the first `get()`, so no service runs against a dependency that is not ready.
 
 [Lifecycle and disposal in NexusDI and six other containers](/comparison/#lifecycle-and-disposal-in-nexusdi-and-six-other-containers) shows which of these rules each of the other containers applies.
-
-## Run startup work in `onInit`
-
-`onInit` is an optional method on a class that NexusDI builds as a singleton. `Nexus.create` calls it after every singleton is built, dependencies first, and awaits it when it returns a promise. `create` resolves only when every `onInit` has finished, so the first `get()` sees initialised services.
-
-```ts file=examples/meridian/src/pages/lifecycle.md region=on-init
-
-```
-
-`QuantumComputer` is listed before `FusionReactor`, and the reactor still comes online first, because the computer depends on it. NexusDI calls `onInit` on singletons it builds, and never on a `useValue` object. A scoped or transient class does its setup in its constructor or in a factory.
-
-Try it: save the region as `startup.ts` and run `npx tsx startup.ts`. It prints an array of the two log entries. Replace the body of the reactor's `onInit` with `throw new Error('coolant low');` and run it again. `Nexus.create` rejects, and the process exits with a `ProviderError` that starts `[NEXUS_PROVIDER_FAILED] token=ReactorCore module=Engineering` and lists `[cause]: Error: coolant low`. The computer's `onInit` never runs, and nothing prints. Put the `log.push('reactor online');` line back and the program prints the array of two entries again.
 
 ## Dispose a NexusDI container with `await using`
 
@@ -92,3 +80,15 @@ NexusDI owns what a factory returns. When the container is disposed, NexusDI dis
 The main relay came from a factory and is closed with the container. The backup relay was passed with `useValue` and stays open.
 
 Try it: save the region as `ownership.ts` and run it. Change the `BACKUP_LINK` provider to `useFactory: () => backup` and run it again. The container now owns the backup relay and closes it too: the program prints `['backup relay closed', 'main relay closed']`, the later relay first. Change the provider back to `useValue: backup` and it prints `['main relay closed']` again.
+
+## Run startup work in `onInit`
+
+Most services need no startup hook. A class that has async startup work, such as opening a pool, can define `onInit`, an optional method on a class that NexusDI builds as a singleton. `Nexus.create` calls it after every singleton is built, dependencies first, and awaits it when it returns a promise. `create` resolves only when every `onInit` has finished, so the first `get()` sees initialised services.
+
+```ts file=examples/meridian/src/pages/lifecycle.md region=on-init
+
+```
+
+`QuantumComputer` is listed before `FusionReactor`, and the reactor still comes online first, because the computer depends on it. NexusDI calls `onInit` on singletons it builds, and never on a `useValue` object. A scoped or transient class does its setup in its constructor or in a factory.
+
+Try it: save the region as `startup.ts` and run `npx tsx startup.ts`. It prints an array of the two log entries. Replace the body of the reactor's `onInit` with `throw new Error('coolant low');` and run it again. `Nexus.create` rejects, and the process exits with a `ProviderError` that starts `[NEXUS_PROVIDER_FAILED] token=ReactorCore module=Engineering` and lists `[cause]: Error: coolant low`. The computer's `onInit` never runs, and nothing prints. Put the `log.push('reactor online');` line back and the program prints the array of two entries again.

@@ -78,7 +78,7 @@ Try it: run the region. It prints `true`. Change the override to `{ useClass: Tr
 
 ## Share a base builder across tests with `createTestingContainer`
 
-The builder `createTestingContainer` returns is immutable. Each `override()` returns a new builder and leaves the one it was called on unchanged, so one base builder serves every test in a file. `create({ onInit: false })` builds the graph and skips every `onInit` hook, for a test that must not start what an `onInit` starts.
+The builder `createTestingContainer` returns is immutable. Each `override()` returns a new builder and leaves the one it was called on unchanged, so one base builder serves every test in a file. `create({ onInit: false })` builds the graph and skips the `onInit` hook of every class that defines one ([what `onInit` is](/lifecycle/#run-startup-work-in-oninit)), for a test that must not start what a hook starts.
 
 ```ts file=examples/meridian/src/pages/testing.md region=shared-builder
 

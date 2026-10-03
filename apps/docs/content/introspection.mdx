@@ -51,9 +51,9 @@ Try it: save the region as `graph.ts` and run it. It prints the module names `[ 
 
 ```
 
-The computer has an `onInit`, so one `init` event follows the two `construct` events. Only the reactor has a disposer, so one `dispose:instance` event comes before `dispose`.
+Both classes are singletons, so two `construct` events come first. A class that defines [`onInit`](/lifecycle/#run-startup-work-in-oninit) adds an `init` event after its `construct`. Only the reactor has a disposer, so one `dispose:instance` event comes before `dispose`.
 
-Try it: save the region as `trace.ts` and run it. It prints the eight events' types in the order `compile`, `construct`, `construct`, `init`, `scope:create`, `scope:dispose`, `dispose:instance`, `dispose`. Add `[Symbol.dispose]() {}` to `QuantumComputer` and run it again: a second `dispose:instance` appears before `dispose`, and the computer's comes first, because NexusDI disposes in reverse order of construction. Delete that line and the list has one `dispose:instance` again.
+Try it: save the region as `trace.ts` and run it. It prints the seven events' types in the order `compile`, `construct`, `construct`, `scope:create`, `scope:dispose`, `dispose:instance`, `dispose`. Add `[Symbol.dispose]() {}` to `QuantumComputer` and run it again: a second `dispose:instance` appears before `dispose`, and the computer's comes first, because NexusDI disposes in reverse order of construction. Delete that line and the list has one `dispose:instance` again. Add `onInit() {}` to `QuantumComputer` and an `init` event follows the second `construct`.
 
 ## Check a graph with `inspect()` and draw it with `toMermaid()`
 

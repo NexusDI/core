@@ -44,7 +44,7 @@ The disposed case is fixed by keeping the container open. The `fix` region diffe
 
 Try it: save the region as `fixed.ts` and run `npx tsx fixed.ts`. It prints `1.21` and `nominal`. Add the line `await ship[Symbol.asyncDispose]();` above the line `const output = reactor.output();` and run it again. `npx tsc` accepts the file, and `npx tsx fixed.ts` throws an uncaught `InterceptorError` and prints a stack trace headed `InterceptorError: [NEXUS_INTERCEPTOR_NOT_READY] ReactorCore.output was called after its container was disposed.` Remove the line and the program prints its two lines again.
 
-The building case is fixed by moving the call into `onInit`, which runs once the interceptors are built.
+The building case is fixed by moving the call into `onInit`, an optional method a class may define, which runs once the interceptors are built (see [Lifecycle and disposal](/lifecycle/#run-startup-work-in-oninit)).
 
 ```ts file=examples/meridian/src/errors/NEXUS_INTERCEPTOR_NOT_READY.md region=building-fix
 

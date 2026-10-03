@@ -19,8 +19,7 @@ const DRONE = new Token<ISurveyDrone>('SurveyDrone');
 const log: string[] = [];
 class ScoutDrone implements ISurveyDrone {
   static deps = [NAV_CHARTS] as const;
-  constructor(private readonly charts: INavCharts) {}
-  onInit() {
+  constructor(private readonly charts: INavCharts) {
     log.push('drone online');
   }
   survey() {

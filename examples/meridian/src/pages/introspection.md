@@ -101,7 +101,6 @@ class FusionReactor implements IReactorCore {
 class QuantumComputer implements IShipComputer {
   static deps = [REACTOR] as const;
   constructor(readonly reactor: IReactorCore) {}
-  onInit() {}
 }
 
 const events: TraceEvent[] = [];
@@ -116,7 +115,7 @@ const ship = await Nexus.create(
   await using shuttle = await ship.createScope();
 }
 await ship[Symbol.asyncDispose]();
-const types = events.map((event) => event.type); // -> ['compile', 'construct', 'construct', 'init', 'scope:create', 'scope:dispose', 'dispose:instance', 'dispose']
+const types = events.map((event) => event.type); // -> ['compile', 'construct', 'construct', 'scope:create', 'scope:dispose', 'dispose:instance', 'dispose']
 console.log(types);
 ```
 

@@ -80,7 +80,7 @@ class QuantumComputer {
 }
 ```
 
-Move that dependency into `static deps` as a constructor parameter. A project that keeps decorators can instead write `@Inject(REACTOR) accessor reactor!: IReactorCore;` with `@Inject` from `@nexusdi/decorators`, which accepts `accessor` fields only. The container sets an `accessor` field after the constructor returns and before `onInit`.
+Move that dependency into `static deps` as a constructor parameter. A project that keeps decorators can instead write `@Inject(REACTOR) accessor reactor!: IReactorCore;` with `@Inject` from `@nexusdi/decorators`, which accepts `accessor` fields only. The container sets an `accessor` field after the constructor returns.
 
 ## Replace `@Module` classes and `DynamicModule` with `defineModule()`
 
@@ -224,7 +224,7 @@ These changes compile in a 0.3 project and behave differently under 0.4:
 
 1. A constructor parameter with no `@Inject` was `undefined` in 0.3, because 0.3 read emitted parameter types that nothing wrote. In 0.4 `static deps` lists every parameter, and each one is injected.
 2. Every singleton is built at `create`. `eager: false` restores first-use timing.
-3. 0.3 never called `onInit`. 0.4 calls it inside `create`, after every singleton is built.
+3. 0.3 never called `onInit`, the optional startup hook a class may define. 0.4 calls it inside `create`, after every singleton is built (see [Lifecycle and disposal](/lifecycle/#run-startup-work-in-oninit)).
 4. `has()` answers for visibility: it returns `false` for a token another module keeps private, and for a module class.
 5. Two `forRoot()` calls build two module instances. Call `forRoot()` once and import the result everywhere.
 6. One token provided in two modules builds two singletons, one for each module.
