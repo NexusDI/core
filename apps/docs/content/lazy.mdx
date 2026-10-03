@@ -73,7 +73,7 @@ Try it with a ring of three: save the fix region below as `ring-fixed.ts` and ru
 NexusDI could make every dependency lazy and never report a cycle. It does not, for four reasons.
 
 - A cycle fails `Nexus.check` in CI today. With lazy by default, the same graph would start, and the ring would show only at run time, when a call goes round it.
-- `onInit` runs in dependency order, and disposal runs in reverse creation order (see [Lifecycle and disposal](/lifecycle/)). A dependency built on its first call is built after its consumer, so NexusDI disposes it first and the consumer outlives it at shutdown.
+- `onInit` runs in dependency order, and disposal runs in reverse creation order (see [Lifecycle and disposal](/lifecycle/)). A dependency built on its first call is built after its consumer, so NexusDI disposes it first, and the consumer keeps running at shutdown after its dependency has closed.
 - `get()` is synchronous, and async factories finish during `create`. A provider that nothing builds at startup cannot wait for a promise, so a lazy edge to an async provider that is built on first use fails with [NEXUS_LAZY_ASYNC](/errors/NEXUS_LAZY_ASYNC/).
 - A cycle usually means two services share a responsibility. Moving that responsibility into a third provider removes the cycle. An explicit `lazy()` keeps each real exception visible in review.
 
