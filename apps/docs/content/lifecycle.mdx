@@ -9,6 +9,25 @@ requires: [scopes]
 
 NexusDI runs each singleton's `onInit` method while `Nexus.create` starts the container, and it disposes every instance it owns, in reverse creation order, when the container is disposed. A scope from `createScope()` follows the same disposal rule for the instances it built.
 
+## Why NexusDI manages lifecycle and disposal
+
+A service that holds a database pool or a file handle has to close it on every exit path, and in an order that keeps each service's dependencies open while it shuts down. Four situations show what goes wrong without that.
+
+- On SIGTERM, Kubernetes gives a pod 30 seconds by default (`terminationGracePeriodSeconds`) and then sends SIGKILL. A pool that nobody closed cuts in-flight queries off, and its connections stay open on the database server until the server times them out. A rolling deploy that repeats this can reach the database's connection limit.
+- In tests, an open server or pool keeps the process alive. Jest prints "Jest did not exit one second after the test run has completed", and Vitest reports "close timed out" because something prevents the main process from exiting. A resource that one test leaves open is still there in the next test.
+- In a dev server, each reload that builds a new container without disposing the old one leaves a second pool open beside the first.
+- In an out-of-order shutdown, the database pool closes first, and the service that flushes its buffer on shutdown then fails its last writes.
+
+Each rule on this page prevents one of those problems.
+
+- `onInit` runs in dependency order and finishes before the first `get()`, so no service runs against a dependency that is not ready.
+- Disposal runs in reverse creation order, so a service stops before the dependencies it uses and never runs after they close.
+- Every disposer runs and the failures are chained, so one pool that fails to close does not leave the other sockets open, and the error lists every failure.
+- A scope owns the transients it builds, so a per-request resource closes when its request ends.
+- The container disposes what a factory returns and leaves a `useValue` alone, so it closes only what it created.
+
+[Lifecycle and disposal in NexusDI and six other containers](/comparison/#lifecycle-and-disposal-in-nexusdi-and-six-other-containers) shows which of these rules each of the other containers applies.
+
 ## Run startup work in `onInit`
 
 `onInit` is an optional method on a class that NexusDI builds as a singleton. `Nexus.create` calls it after every singleton is built, dependencies first, and awaits it when it returns a promise. `create` resolves only when every `onInit` has finished, so the first `get()` sees initialised services.
