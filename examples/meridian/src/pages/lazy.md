@@ -100,6 +100,124 @@ console.log(draw);
 
 <!-- #endregion lazy-fix -->
 
+<!-- #region indirect-cycle -->
+
+```ts @import.meta.vitest
+import { Nexus, Token, defineModule } from '@nexusdi/core';
+import { isNexusError, provide } from '@nexusdi/core';
+
+interface INavComputer {
+  plot(): string;
+}
+interface IHelmControl {
+  steer(): string;
+}
+interface IThrusterBank {
+  burn(): string;
+}
+const NAV_COMPUTER = new Token<INavComputer>('NavComputer');
+const HELM_CONTROL = new Token<IHelmControl>('HelmControl');
+const THRUSTER_BANK = new Token<IThrusterBank>('ThrusterBank');
+
+class Astrogator implements INavComputer {
+  static deps = [HELM_CONTROL] as const;
+  constructor(private readonly helm: IHelmControl) {}
+  plot() {
+    return this.helm.steer();
+  }
+}
+class HelmStation implements IHelmControl {
+  static deps = [THRUSTER_BANK] as const;
+  constructor(private readonly thrusters: IThrusterBank) {}
+  steer() {
+    return this.thrusters.burn();
+  }
+}
+class IonThrusters implements IThrusterBank {
+  static deps = [NAV_COMPUTER] as const;
+  constructor(readonly nav: INavComputer) {}
+  burn() {
+    return 'course to Kepler-442b';
+  }
+}
+
+const Bridge = defineModule({
+  name: 'Bridge',
+  providers: [
+    provide(NAV_COMPUTER, { useClass: Astrogator }),
+    provide(HELM_CONTROL, { useClass: HelmStation }),
+    provide(THRUSTER_BANK, { useClass: IonThrusters }),
+  ],
+});
+
+const error = await Nexus.create(Bridge).catch((caught: unknown) => caught);
+const inner = isNexusError(error, 'NEXUS_BLUEPRINT_INVALID')
+  ? error.errors
+  : [];
+const cycle = inner[0];
+const ring = isNexusError(cycle, 'NEXUS_CIRCULAR_DEPENDENCY') ? cycle.path : [];
+const path = ring.join(' -> '); // -> 'NavComputer -> HelmControl -> ThrusterBank -> NavComputer'
+console.log(path);
+```
+
+<!-- #endregion indirect-cycle -->
+
+<!-- #region indirect-fix -->
+
+```ts @import.meta.vitest
+import { Nexus, Token, defineModule, lazy, provide } from '@nexusdi/core';
+
+interface INavComputer {
+  plot(): string;
+}
+interface IHelmControl {
+  steer(): string;
+}
+interface IThrusterBank {
+  burn(): string;
+}
+const NAV_COMPUTER = new Token<INavComputer>('NavComputer');
+const HELM_CONTROL = new Token<IHelmControl>('HelmControl');
+const THRUSTER_BANK = new Token<IThrusterBank>('ThrusterBank');
+
+class Astrogator implements INavComputer {
+  static deps = [HELM_CONTROL] as const;
+  constructor(private readonly helm: IHelmControl) {}
+  plot() {
+    return this.helm.steer();
+  }
+}
+class HelmStation implements IHelmControl {
+  static deps = [THRUSTER_BANK] as const;
+  constructor(private readonly thrusters: IThrusterBank) {}
+  steer() {
+    return this.thrusters.burn();
+  }
+}
+class IonThrusters implements IThrusterBank {
+  static deps = [lazy(NAV_COMPUTER)] as const;
+  constructor(readonly nav: () => INavComputer) {}
+  burn() {
+    return 'course to Kepler-442b';
+  }
+}
+
+await using ship = await Nexus.create(
+  defineModule({
+    name: 'Bridge',
+    providers: [
+      provide(NAV_COMPUTER, { useClass: Astrogator }),
+      provide(HELM_CONTROL, { useClass: HelmStation }),
+      provide(THRUSTER_BANK, { useClass: IonThrusters }),
+    ],
+  }),
+);
+const course = ship.get(NAV_COMPUTER).plot(); // -> 'course to Kepler-442b'
+console.log(course);
+```
+
+<!-- #endregion indirect-fix -->
+
 <!-- #region not-ready -->
 
 ```ts @import.meta.vitest
