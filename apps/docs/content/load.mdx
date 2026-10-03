@@ -6,7 +6,7 @@ description: ship.load(Module) adds a whole NexusDI module to a running containe
 
 # How do I add a module after startup?
 
-Call `await ship.load(Module)`. `load()` adds a whole module to a running NexusDI container: it validates the module against the live graph, builds the module's singletons, awaits their async factories, runs their `onInit`, and then publishes the new graph. `load()` is named for sections of an application that load lazily, such as a route whose code is split into its own bundle:
+Call `await ship.load(Module)`. `load()` adds a whole module to a running NexusDI container: it validates the module against the live graph, builds the module's singletons, awaits their async factories, runs the `onInit` hook of any class that defines one, and then publishes the new graph. `load()` is named for sections of an application that load lazily, such as a route whose code is split into its own bundle:
 
 ```ts no-run
 await ship.load((await import('./survey.js')).SurveyModule);
@@ -14,7 +14,7 @@ await ship.load((await import('./survey.js')).SurveyModule);
 
 ## Add a module with `ship.load()`
 
-`ship.load(Survey)` compiles `Survey` as a new import of the root module. Before the call the container does not see `DRONE`. After it, `NAV_CHARTS` has finished its async download and `ScoutDrone.onInit()` has run, so `get(DRONE)` is synchronous like every other `get()`.
+`ship.load(Survey)` compiles `Survey` as a new import of the root module. Before the call the container does not see `DRONE`. After it, `NAV_CHARTS` has finished its async download and `ScoutDrone` is built, so `get(DRONE)` is synchronous like every other `get()`.
 
 ```ts file=examples/meridian/src/pages/load.md region=load-module
 
