@@ -7,7 +7,7 @@ domainExempt: true
 
 # How do I upgrade from 0.3 to 0.4?
 
-Work through the steps below in order, and run `npx tsc` after each one: it lists the 0.3 code that remains. NexusDI 0.4 replaces the 0.3 API: `set()`, `DynamicModule`, symbol tokens, parameter decorators and `createChildContainer()` have no 0.4 form, and `Nexus.create` validates the whole module graph before it builds anything. Each step shows the 0.3 code, which does not compile against 0.4, and the 0.4 code that replaces it. The 0.4 release candidates publish no codemod, so every step is an edit you make by hand. The [changelog of `@nexusdi/core`](https://github.com/NexusDI/core/blob/main/libs/core/CHANGELOG.md) lists every change, and the [0.3 support policy](/support-policy/) says how long 0.3 receives fixes.
+Work through the steps below in order, and run `npx tsc` after each one: it lists the 0.3 code that remains. NexusDI 0.4 replaces the 0.3 API: `set()`, `DynamicModule`, symbol tokens, parameter decorators and `createChildContainer()` have no 0.4 form, and `Nexus.create` validates the whole module graph before it builds anything. Each step shows the 0.3 code, which does not compile against 0.4, and the 0.4 code that replaces it. The first 0.4 release candidates publish no upgrade command, so every step is an edit you make by hand. A `nexusdi upgrade` command in `@nexusdi/cli` is coming in a later RC. The [changelog of `@nexusdi/core`](https://github.com/NexusDI/core/blob/main/libs/core/CHANGELOG.md) lists every change, and the [0.3 support policy](/support-policy/) says how long 0.3 receives fixes.
 
 NexusDI 0.4 needs Node 22.12 or later and TypeScript 5.4 or later, and it is published as ES modules only. A CommonJS project on Node 22.12 or later can `require()` it.
 
