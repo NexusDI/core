@@ -12,7 +12,7 @@ Install every `@nexusdi/*` package from the npm `next` dist-tag: `npm install @n
 
 A NexusDI release candidate is a version published as a candidate for 0.4.0 final, so users can run it and report problems before final. Each RC is published under the npm dist-tag `next`. For `@nexusdi/core`, the `latest` dist-tag stays on 0.3.x until 0.4.0 final, so `npm install @nexusdi/core` keeps installing 0.3. A package that has never had a stable release, such as `@nexusdi/testing`, has its `latest` pointed at the newest RC as well.
 
-An RC may break the previous RC, and the release notes of each RC list every breaking change. For the move from 0.3, read the [upgrade guide](/upgrade/). Two conditions for 0.4.0 final are that four weeks have passed since the last RC with a breaking change, and that no issue labelled `rc-blocker` is open.
+An RC may break the previous RC, and the release notes of each RC list every breaking change. For the move from 0.3, read the [upgrade guide](/upgrade/). Three conditions for 0.4.0 final are that four weeks have passed since the last RC with a breaking change, that no issue labelled `rc-blocker` is open, and that the `nexusdi upgrade` command from `@nexusdi/cli` has run against at least one external codebase.
 
 ## Install the NexusDI release candidate
 
