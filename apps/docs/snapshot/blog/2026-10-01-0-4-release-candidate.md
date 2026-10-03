@@ -210,9 +210,17 @@ The NexusDI maintainer wrote and ran the harness. `benchmarks/libraries.json` pi
 
 - The 0.4 documentation at [nexus.js.org/next/](https://nexus.js.org/next/) is not live yet, and the rest of this site documents 0.3. Until the new docs are up, the [package READMEs](https://github.com/NexusDI/core/tree/release/0.4/libs) document 0.4.
 - The migration guide from 0.3 is not available yet. It is planned for the RC window. 0.4 changes the 0.3 API. `providers` still accepts provider objects in the 0.3 shape, `{ token, ... }`, and other 0.3 code needs changes that the guide will list.
-- The codemod is not available yet. It is planned for the RC window.
+- The upgrade command is not available yet. An `upgrade` command in `@nexusdi/cli` is coming in a later RC. It upgrades the `@nexusdi/*` packages and rewrites 0.3 code to the 0.4 API, and it works at the root of a monorepo too.
 
-We will post here when the guide and the codemod are out.
+We will post here when the guide and the upgrade command are out.
+
+## What 0.4.0 final needs
+
+We release 0.4.0 final when all of these hold:
+
+- Four weeks have passed since the last RC that contained a breaking change.
+- No issue labelled `rc-blocker` is open.
+- The `nexusdi upgrade` command from `@nexusdi/cli` has run against at least one external codebase.
 
 ## Feedback
 
