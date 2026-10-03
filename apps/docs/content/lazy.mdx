@@ -27,6 +27,25 @@ The path starts and ends at the same provider: `PowerRouter -> ShieldGrid -> Pow
 
 Try it: save the region as `cycle.ts` and run `npx tsx cycle.ts`. It prints `[ 'NEXUS_CIRCULAR_DEPENDENCY' ]` and then the ring. Import `lazy` from `@nexusdi/core`, change `PlasmaRouter`'s deps to `[lazy(SHIELD_GRID)] as const`, its parameter to `private readonly shields: () => IShieldGrid` and its method to `return this.shields().draw();`, as the next section does. Run it again: `Nexus.create` resolves, so the program prints `[]` and an empty line. If you change only the deps, `npx tsc --noEmit` flags the `provide(POWER_ROUTER, ...)` call, because the constructor still expects an `IShieldGrid`. Undo those edits and the program prints the code and the ring again.
 
+## NexusDI finds a cycle of any length
+
+NexusDI finds cycles with a strongly connected component search over the whole graph. It reports a self-dependency, a ring of three providers and a ring that crosses module boundaries the same way, and `path` lists the whole ring from its first provider back to it. `NavComputer` needs the helm, `HelmControl` needs the thrusters, and `ThrusterBank` needs the nav computer:
+
+```mermaid caption="NAV_COMPUTER depends on HELM_CONTROL, HELM_CONTROL on THRUSTER_BANK, and THRUSTER_BANK on NAV_COMPUTER: a ring of three with no lazy edge."
+flowchart LR
+  NavComputer:::accent -->|required| HelmControl
+  HelmControl -->|required| ThrusterBank
+  ThrusterBank -->|required| NavComputer
+```
+
+```ts file=examples/meridian/src/pages/lazy.md region=indirect-cycle
+
+```
+
+Try it: save the region as `ring.ts` and run `npx tsx ring.ts`. It prints `NavComputer -> HelmControl -> ThrusterBank -> NavComputer`.
+
+NexusDI reports one `NEXUS_CIRCULAR_DEPENDENCY` for each group of providers that reach each other, with one ring from that group as its `path`. When two rings share providers, one error covers both. A lazy edge on the part both rings share breaks both. A lazy edge on only one ring leaves the other, and the next run reports that one.
+
 ## Break a cycle with `lazy()`
 
 `lazy(SHIELD_GRID)` in a deps list turns that edge into a thunk, and NexusDI leaves lazy edges out of its cycle check. The constructor receives a function with no arguments that returns the instance. Call the thunk in a method, once `Nexus.create` has resolved. The dotted edge in the diagram is the lazy one.
@@ -42,6 +61,23 @@ flowchart LR
 ```
 
 Try it: save the region as `lazy.ts` and run it. It prints `0.4`. Mark the other edge lazy too: change `DeflectorGrid`'s deps to `[lazy(POWER_ROUTER)] as const` and its parameter to `readonly router: () => IPowerRouter`. Run it again: it still prints `0.4`, since one lazy edge is enough and two are allowed. Change `DeflectorGrid` back to the plain edge when you are done.
+
+Try it with a ring of three: save the fix region below as `ring-fixed.ts` and run it. `ThrusterBank` takes `lazy(NAV_COMPUTER)`, and the program prints `course to Kepler-442b`. Move the `lazy()` to another edge: make `Astrogator` take `[lazy(HELM_CONTROL)] as const` with a `() => IHelmControl` parameter and call `this.helm().steer()`, and change `IonThrusters` back to `[NAV_COMPUTER] as const` with an `INavComputer` parameter. It still prints `course to Kepler-442b`.
+
+```ts file=examples/meridian/src/pages/lazy.md region=indirect-fix
+
+```
+
+## Why NexusDI makes `lazy()` opt-in
+
+NexusDI could make every dependency lazy and never report a cycle. It does not, for four reasons.
+
+- A cycle fails `Nexus.check` in CI today. With lazy by default, the same graph would start, and the ring would show only at run time, when a call goes round it.
+- `onInit` runs in dependency order, and disposal runs in reverse creation order (see [Lifecycle and disposal](/lifecycle/)). A dependency built on its first call is built after its consumer, so NexusDI disposes it first and the consumer outlives it at shutdown.
+- `get()` is synchronous, and async factories finish during `create`. A provider that nothing builds at startup cannot wait for a promise, so a lazy edge to an async provider that is built on first use fails with [NEXUS_LAZY_ASYNC](/errors/NEXUS_LAZY_ASYNC/).
+- A cycle usually means two services share a responsibility. Moving that responsibility into a third provider removes the cycle. An explicit `lazy()` keeps each real exception visible in review.
+
+Other frameworks make the same choice. Spring Boot 2.6 [prohibits circular references by default](https://github.com/spring-projects/spring-boot/wiki/Spring-Boot-2.6-Release-Notes), and NestJS [needs `forwardRef()`](https://docs.nestjs.com/fundamentals/circular-dependency) on both sides of a circular dependency.
 
 ## Call a NexusDI thunk after startup
 
