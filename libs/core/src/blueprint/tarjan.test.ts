@@ -115,4 +115,115 @@ describe('compile', () => {
       { code: 'NEXUS_CIRCULAR_DEPENDENCY', path: ['Name', 'Name'] },
     ]);
   });
+
+  describe('rings of any length', () => {
+    const [A, B, C, D] = ['A', 'B', 'C', 'D'].map((n) => new Token<string>(n));
+    const node = (token: Token<string>, ...deps: unknown[]) =>
+      provide(token, {
+        useFactory: (...args: unknown[]) => String(args),
+        deps,
+      } as never);
+
+    it('reports a three-provider ring with the whole path', () => {
+      const Root = defineModule({
+        name: 'Root',
+        providers: [node(A, B), node(B, C), node(C, A)],
+      });
+      expect(compileErrors(Root)).toMatchObject([
+        { code: 'NEXUS_CIRCULAR_DEPENDENCY', path: ['A', 'B', 'C', 'A'] },
+      ]);
+    });
+
+    it('reports a ring that crosses module boundaries', () => {
+      const Drive = defineModule({
+        name: 'Drive',
+        providers: [node(C, A)],
+        exports: [C],
+      });
+      const Helm = defineModule({
+        name: 'Helm',
+        imports: [Drive],
+        providers: [node(B, C)],
+        exports: [B],
+      });
+      const Hull = defineModule({
+        name: 'Hull',
+        global: true,
+        imports: [Helm],
+        providers: [node(A, B)],
+        exports: [A],
+      });
+      const Root = defineModule({ name: 'Root', imports: [Hull] });
+      expect(compileErrors(Root)).toMatchObject([
+        { code: 'NEXUS_CIRCULAR_DEPENDENCY', path: ['A', 'B', 'C', 'A'] },
+      ]);
+    });
+
+    it('accepts a three-provider ring when any one edge is lazy', () => {
+      for (const lazyAt of [0, 1, 2]) {
+        const edge = (i: number, to: Token<string>) =>
+          i === lazyAt ? lazy(to) : to;
+        const Root = defineModule({
+          name: 'Root',
+          providers: [
+            node(A, edge(0, B)),
+            node(B, edge(1, C)),
+            node(C, edge(2, A)),
+          ],
+        });
+        expect(() => compile({ root: Root })).not.toThrow();
+      }
+    });
+
+    it('reports overlapping rings as one error per component', () => {
+      // A -> B -> A and A -> C -> D -> A share A.
+      const Root = defineModule({
+        name: 'Root',
+        providers: [node(A, B, C), node(B, A), node(C, D), node(D, A)],
+      });
+      expect(compileErrors(Root)).toMatchObject([
+        { code: 'NEXUS_CIRCULAR_DEPENDENCY', path: ['A', 'B', 'A'] },
+      ]);
+    });
+
+    it('keeps reporting a component while one overlapping ring has no lazy edge', () => {
+      const withLazy = (edgeFromA: 'B' | 'C') =>
+        defineModule({
+          name: 'Root',
+          providers: [
+            node(
+              A,
+              edgeFromA === 'B' ? lazy(B) : B,
+              edgeFromA === 'C' ? lazy(C) : C,
+            ),
+            node(B, A),
+            node(C, D),
+            node(D, A),
+          ],
+        });
+      // Lazy A -> B leaves A -> C -> D -> A.
+      expect(compileErrors(withLazy('B'))).toMatchObject([
+        { code: 'NEXUS_CIRCULAR_DEPENDENCY', path: ['A', 'C', 'D', 'A'] },
+      ]);
+      // Lazy A -> C leaves A -> B -> A.
+      expect(compileErrors(withLazy('C'))).toMatchObject([
+        { code: 'NEXUS_CIRCULAR_DEPENDENCY', path: ['A', 'B', 'A'] },
+      ]);
+    });
+
+    it('breaks both overlapping rings with one lazy edge on the shared part', () => {
+      // A -> E -> F -> A and A -> E -> G -> A share the edge A -> E.
+      const [E, F, G] = ['E', 'F', 'G'].map((n) => new Token<string>(n));
+      const Root = defineModule({
+        name: 'Root',
+        providers: [node(A, E), node(E, F, G), node(F, A), node(G, A)],
+      });
+      expect(compileErrors(Root)).toHaveLength(1);
+      const Fixed = defineModule({
+        name: 'Root',
+        providers: [node(A, lazy(E)), node(E, F, G), node(F, A), node(G, A)],
+      });
+      expect(() => compile({ root: Fixed })).not.toThrow();
+    });
+  });
 });
