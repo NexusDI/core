@@ -1,85 +1,44 @@
 ---
-title: How do I get the full text of every error?
-kind: question
-description: Register errors() from @nexusdi/errors with the text pack of each NexusDI package you use, and every error carries its full message and fix.
+title: Error Text Packs
+kind: concept
+description: Learn how to customize error messages and translate them into different languages using text packs.
 ---
 
-# How do I get the full text of every error?
+# Error Text Packs
 
-`errors({ text })` from `@nexusdi/errors` gives every NexusDI error its full message and fix line, for the codes of core and of each package whose text pack you pass. Without it, core writes a one-line message: the code and the error's fields, then the link to the code's page.
+By default, NexusDI provides concise, one-line error messages. While efficient for developers, these can be too terse for some environments. **Text Packs** allow you to replace these codes with full, human-readable explanations and suggested fixes.
 
-```bash
-npm install @nexusdi/errors@next
-```
+## How Text Packs Work
 
-## Pass each NexusDI package's text pack to `errors()`
+A text pack is a mapping of error codes to formatting functions. When the `@nexusdi/errors` plugin is registered, it reads these packs in order. The first pack that returns a message for a given code wins.
 
-A NexusDI text pack holds the text for the codes one package raises. Two packages export a `./text` entry next to core's own text: `@nexusdi/interceptors` with `interceptorsText` at `@nexusdi/interceptors/text`, and `@nexusdi/federation` with `federationText` at `@nexusdi/federation/text`. Core's pack, `coreText` at `@nexusdi/core/text`, is part of every `errors()`, so core's codes need no pack in the list. A code no pack covers keeps its one-line message:
+### Using Official Text Packs
+First-party packages provide their own text packs. To enable them, pass them to the `errors()` plugin:
 
 ```ts file=examples/meridian/src/pages/error-text.md region=package-pack
-
 ```
 
-Nothing in a package's main entry imports its `./text` entry, so an app that leaves a pack out carries none of it. Keep one list of packs and pass it to every plugin that writes text:
+## Customizing Error Messages
 
-```ts no-run
-const text = [interceptorsText, federationText];
-const plugins = development ? [devtools({ text })] : [errors({ text })];
-```
-
-Try it:
-
-1. Run `npm install @nexusdi/interceptors@next`, save the region as `text.ts`, and run `npx tsx text.ts`. The first line is the one-line message, the next two the full text.
-2. Change `errors({ text: [interceptorsText] })` in the second call to `errors()` and run again. Both messages are now the one-line form, with the link to [NEXUS_INTERCEPTOR_MISSING](/errors/NEXUS_INTERCEPTOR_MISSING/).
-3. Put `{ text: [interceptorsText] }` back and run again. The full text with its `Fix:` line prints once more.
-
-## NexusDI reads the packs in order: yours first, then core's
-
-`errors()` reads your packs in array order, then core's pack, and the first entry that returns text for a code decides. A pack listed earlier wins for the same code, so a pack that rewords core's text works by being in the list. This pack translates `NEXUS_MISSING_PROVIDER` into Swedish, and `satisfies ErrorTextPack` types each entry with the error class of its code:
+You can create your own text pack to reword core errors or provide translations. Because text packs are just functions, you can use the error's internal fields (like `requester` or `token`) to build dynamic messages.
 
 ```ts file=examples/meridian/src/pages/error-text.md region=translate
-
 ```
 
-An entry reads the error's fields, such as `requester` and `token`. An entry that returns `undefined` leaves the error to the next pack.
+### Implementation Rules:
+- **Type Safety:** Use the `satisfies ErrorTextPack` helper to ensure your pack matches the required error classes.
+- **Fallbacks:** If your function returns `undefined`, NexusDI simply moves to the next pack in the list.
 
-Try it:
+## Explaining Logged Errors
 
-1. Save the region as `translate.ts` and run `npx tsx translate.ts`. The message and its `Fix:` line print in Swedish.
-2. Change `error.requester` to `error.requestor` in the `message` line. `npx tsc --noEmit` flags the line with `Property 'requestor' does not exist on type 'MissingProviderError'. Did you mean 'requester'?`, and `npx tsx translate.ts` still runs and prints `undefined i Engineering` where the requester belongs.
-3. Change it back to `error.requester`. The line prints `ShipComputer i Engineering` again.
-4. Change `errors({ text: [swedish] })` to `errors()`. The message is core's English text, and the `Fix:` line reads `provide NavCharts in Engineering or in a module Engineering imports.`
-
-## Explain a logged NexusDI error with `explain()`
-
-`explain(error, { view, text })` returns the full text of an error caught in a container without `errors()`, such as one read back from a log or a test. It reads `text` in the order `errors()` does, and returns `undefined` for a code no pack covers:
+Sometimes you encounter an error in a log file where the `errors()` plugin wasn't active. You can use the `explain()` utility to retroactively apply a text pack to a logged error.
 
 ```ts file=examples/meridian/src/pages/error-text.md region=explain
-
 ```
 
-Without the container's `view`, `explain()` has no near misses to suggest. `errors()` passes the view, so a container with the plugin adds lines such as "NavCharts is provided in Tactical, which does not export it." when `Engineering` imports a `Tactical` module that provides `NavCharts` and leaves it out of its exports.
+## Integration with DevTools
 
-Try it: in the `explain` region, import `errors` from `@nexusdi/errors` and pass `{ plugins: [errors()] }` to `Nexus.create`. `logged` is now the full text, which starts `[NEXUS_MISSING_PROVIDER] ShipComputer (module Engineering) depends on NavCharts`, and `explain(inner)` prints the same text without the `[NEXUS_MISSING_PROVIDER]` prefix. Remove the option again and `logged` returns to the one-line form.
-
-## Pass the packs to `devtools()` and `inspect()`
-
-`devtools({ text })` and `inspect(root, { text })` from `@nexusdi/devtools` take the packs `errors({ text })` takes and read them in the same order. `inspect()` adds its own formatter after the plugins you pass, so an `errors()` in your plugins words an error first:
+The `@nexusdi/devtools` plugin also accepts text packs. This ensures that when you use `inspect()` or `graph()`, any errors reported are formatted using the same human-readable text as your production application.
 
 ```ts file=examples/meridian/src/pages/error-text.md region=devtools-and-inspect
-
 ```
-
-Try it: run `npm install @nexusdi/devtools@next`, then change `devtools({ text })` to `devtools()` and `inspect(Engineering, { text, plugins: [audit()] })` to `inspect(Engineering, { plugins: [audit()] })`. Both lines print the one-line form, `[NEXUS_INTERCEPTOR_MISSING] token=Audit.` and the link. Restore `text` in both and the full sentence returns.
-
-`nexusdi graph` from `@nexusdi/cli` takes no packs of its own. It reads the `--plugins` array, so a list that holds `errors({ text })` words the errors the command prints ([graph CLI](/graph-cli/)).
-
-## Errors that carry their own NexusDI text
-
-Some errors are raised where no container formats them, and their package writes the full text into the error itself: a `@UseInterceptors` fault at class definition, `NEXUS_LEGACY_DECORATORS`, `NEXUS_INTERCEPTOR_NOT_READY` for a call to an intercepted method before its interceptors exist, and the two override errors of `@nexusdi/testing`. Such an error reads the same with or without `errors()`, and a pack cannot replace its text:
-
-```ts file=examples/meridian/src/pages/error-text.md region=own-text
-
-```
-
-Try it: run `npm install @nexusdi/testing@next`, run the `own-text` region, then import `errors` from `@nexusdi/errors`, pass `{ plugins: [errors()] }` to `create()`, and run it. The message of [NEXUS_OVERRIDE_UNUSED](/errors/NEXUS_OVERRIDE_UNUSED/) is the same two lines as before. A pack with a `NEXUS_OVERRIDE_UNUSED` entry in `errors({ text })` leaves them unchanged too.

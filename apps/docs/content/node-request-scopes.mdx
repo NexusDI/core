@@ -1,24 +1,26 @@
 ---
-title: Scope an HTTP request in Node
+title: Scoping Node.js HTTP Requests
 kind: platform
-description: nodeScopes() from @nexusdi/node binds a NexusDI scope to the async context of one Node request.
+description: Bind a NexusDI scope to the async context of an incoming Node.js request.
 ---
 
-# Scope an HTTP request in Node
+# Scoping Node.js HTTP Requests
 
-`nodeScopes()` from `@nexusdi/node` binds a NexusDI scope to the async context of one request, so code deep in the call chain finds the request's scope without a parameter. It returns an object with `run(scope, fn)` and `current()` over one `AsyncLocalStorage`. The page links out to [Scopes and REQUEST](/scopes/) for the scopes themselves and to the [Node documentation for `node:http`](https://nodejs.org/api/http.html) for the server.
+In a web server, you often need a "request scope"—a set of dependencies that are created when a request arrives and destroyed when the response is sent. 
 
-The unit this page demonstrates is a running server. The server wiring below needs a listening socket, so it carries `no-run`. The request handling it calls is an executed region that runs with a fake request.
+The `@nexusdi/node` package provides `nodeScopes()`, which leverages Node's `AsyncLocalStorage` to bind a NexusDI scope to the current asynchronous execution context. This allows you to access the request's scope deep within your call chain without having to pass the scope object manually through every function.
 
-```bash
-npm install @nexusdi/node@next
+## Running Handlers in a Scope
+
+To use request scopes, you wrap your request handler in `scopes.run()`. This creates a new scope for the request and makes it available to everything that happens inside that function.
+
+```ts file=examples/meridian/src/pages/node-request-scopes.md region=dispatch
 ```
 
-## Run a request handler inside a scope with `nodeScopes()`
+### The `REQUEST` Token
+By using `nodeScopes()`, you can inject the `REQUEST` token into any scoped provider. This allows your services to access request-specific data (like user IDs or headers) directly.
 
-`scopes.run(shuttle, fn)` makes `shuttle` the current scope of everything `fn` awaits, and `scopes.current()` returns it from any function in that call chain. `dispatch(req)` creates one scope per request with the request's mission and runs the handler inside it, and `await using` disposes the scope when the handler settles. `logArrival()` takes no scope argument: it reads the scope from `scopes.current()` and resolves the scoped `FLIGHT_LOG`.
-
-`REQUEST` resolves to the object `createScope({ request })` received. The project declares that object's shape once, by augmenting `NexusRequest`, and the region relies on this declaration:
+To get full type safety, augment the `NexusRequest` interface:
 
 ```ts no-run
 declare module '@nexusdi/core' {
@@ -28,41 +30,22 @@ declare module '@nexusdi/core' {
 }
 ```
 
-```ts file=examples/meridian/src/pages/node-request-scopes.md region=dispatch
+## Accessing the Current Scope
 
-```
-
-`dispatch` returns `await scopes.run(...)`. The `await` keeps the scope open until the handler finishes: a bare `return` of the promise lets `await using` dispose the scope first, and the handler's next `get()` throws [NEXUS_DISPOSED](/errors/NEXUS_DISPOSED/).
-
-Try it:
-
-1. Save the region as `dispatch.ts` and run `npx tsx dispatch.ts`. It prints `survey-7: arrived`.
-2. Change `return await scopes.run(` to `return scopes.run(` and run it again. The handler throws `NEXUS_DISPOSED`, because the scope closed before `logArrival()` called `get()`.
-3. Put the `await` back and run it again. It prints `survey-7: arrived`.
-
-## `nodeScopes().current()` outside a run
-
-`current()` returns `undefined` outside a `run()`. A function that needs a scope checks for it and fails with its own message, as `logArrival()` does above.
-
-Try it: in the `dispatch` region, replace `return await scopes.run(shuttle, () => logArrival());` with `return logArrival();` and run it. The scope exists, but `logArrival()` runs outside `run()`, so `current()` returns `undefined` and the program throws `Error: called outside a request`. Restore the line to get `survey-7: arrived` back. Save the region below as `outside.ts` to see the `undefined` itself: it prints `undefined`.
+If you are in a function that was called inside a `run()` block, you can retrieve the current scope using `scopes.current()`.
 
 ```ts file=examples/meridian/src/pages/node-request-scopes.md region=outside-run
-
 ```
 
-## One `nodeScopes()` object serves every request
+If `current()` is called outside of a `run()` block, it returns `undefined`.
 
-`nodeScopes()` holds one `AsyncLocalStorage`, and each `run()` starts its own async context, so concurrent requests each see their own scope. The object registers with no container. Create it once per process and share it between every container and every handler.
+## Concurrency and Isolation
 
-```ts file=examples/meridian/src/pages/node-request-scopes.md region=two-requests
+Because `nodeScopes()` uses `AsyncLocalStorage`, it is completely safe for concurrent requests. Even if a thousand requests are being handled simultaneously, `scopes.current()` will always return the scope associated with the specific async chain of the current request.
 
-```
+## Integrating with `node:http`
 
-Try it: run the region. It prints `[ 'survey-7', 'survey-8' ]`, although both handlers wait on a timer at the same time.
-
-## Wire `nodeScopes()` into a `node:http` server
-
-The server reads the mission from the request and calls `dispatch`, and the reply goes back as the response body. `dispatch` and the container come from the first region. A server keeps its container for the life of the process, so the container is a `const` there: `await using` at the top level of a module disposes the container as soon as the module finishes loading.
+Integrating NexusDI scopes into a standard Node.js server is straightforward. You create a scope for every incoming request and execute your handler within that scope's context.
 
 ```ts no-run
 import { createServer } from 'node:http';
@@ -75,6 +58,4 @@ createServer(async (req, res) => {
 }).listen(3000);
 ```
 
-Try it: in `dispatch.ts`, change `await using ship` to `const ship`, add these lines at the end, and run it. The terminal prints `survey-7: arrived` once, from the region's own call, and the process keeps running. Open `http://localhost:3000/?mission=survey-9`. The page shows `survey-9: arrived`. Stop the server with Ctrl-C.
-
-To see the failure, change `const ship` back to `await using ship` and restart the server. The container disposes when the module finishes loading, so the first request throws [NEXUS_DISPOSED](/errors/NEXUS_DISPOSED/) in the terminal and the process exits without a reply. Change it to `const ship` again to fix it.
+By doing this, every request gets its own isolated set of scoped providers, which are automatically disposed of when the request settles.

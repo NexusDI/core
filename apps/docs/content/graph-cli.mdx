@@ -1,112 +1,63 @@
 ---
-title: How do I draw my app's dependency graph?
-kind: question
-description: Run nexusdi graph from @nexusdi/cli on the file that defines the root module to draw the graph as Mermaid, DOT, JSON, SVG or PNG.
+title: Visualizing Your Dependency Graph
+kind: guide
+description: Use the `nexusdi graph` CLI tool to export your dependency tree as Mermaid, DOT, or JSON.
 ---
 
-# How do I draw my app's dependency graph?
+# Visualizing Your Dependency Graph
 
-`nexusdi graph` from `@nexusdi/cli` draws a NexusDI app's dependency graph from the file that defines its root module. The command checks the graph with `Nexus.check` and builds nothing, so no constructor runs.
+Understanding the architecture of a large application is easier when you can see it. The `@nexusdi/cli` package provides a command-line tool that analyzes your root module and draws the resulting dependency graph.
+
+## Installation
+
+To use the graph tool, install the CLI and the devtools plugin as development dependencies:
 
 ```bash
 npm install -D @nexusdi/cli@next @nexusdi/devtools@next
 ```
 
-`@nexusdi/cli` and `@nexusdi/devtools` must have the same version as the project's `@nexusdi/core`. The command uses the project's own `@nexusdi/devtools`, and through it the project's `@nexusdi/core`.
+## Drawing the Graph
 
-## Draw a NexusDI module graph with `nexusdi graph`
-
-`nexusdi graph` takes an entry written `path#export`: the file that defines the root module and the name it exports. With no `#export` it takes the default export. The file exports the module, as `src/meridian.module.ts` does here:
-
-```ts no-run
-// src/meridian.module.ts: the Engineering and Meridian modules of the region below, exported.
-export { Engineering, Meridian };
-```
+The `nexusdi graph` command takes an entry point (the file defining your root module) and optionally a specific export.
 
 ```bash
 npx nexusdi graph src/meridian.module.ts#Meridian
 ```
 
-The command imports the entry file, so a file that starts the app starts it. Point the command at the file that defines the root module, and keep the `Nexus.create` call that starts the app in another file, such as `main.ts`.
+The command uses `Nexus.check` to validate the graph without instantiating any classes, making it safe to run in any environment.
 
-The default output is Mermaid, which GitHub and GitLab draw with nothing installed. `toMermaid` from `@nexusdi/devtools` writes the same text from a graph in your own code, and `inspect(root)` returns the graph `nexusdi graph` reads:
+### Export Formats and Views
 
-```ts file=examples/meridian/src/pages/graph-cli.md region=meridian-module
+You can customize the output and the level of detail:
 
-```
-
-Each provider shows its token and, where the names differ, the class bound to it. An exported provider has a heavy border.
-
-Try it:
-
-1. Save the region as `src/meridian.module.ts`, replace its last three lines with `export { Engineering, Meridian };`, and run `npx nexusdi graph src/meridian.module.ts#Meridian`.
-2. Delete the `provide(REACTOR, { useClass: FusionReactor })` line and run the command again. The graph is invalid, so the command prints the [NEXUS_BLUEPRINT_INVALID](/errors/NEXUS_BLUEPRINT_INVALID/) text to stderr and exits with code 1. The first line is `nexusdi: [NEXUS_BLUEPRINT_INVALID] the module graph has 1 error; nothing was built.`, and under it `NEXUS_MISSING_PROVIDER` says `ShipComputer` in module `Engineering` depends on `ReactorCore` with no visible provider.
-3. Put the provider back and run the command again. It prints the Mermaid text and exits with code 0.
-
-## Choose the format and the view of `nexusdi graph`
-
-`-f` or `--format` picks `mermaid`, `dot`, `json`, `svg` or `png`. Without it, the command reads the format from the extension of `-o` or `--out`, and writes Mermaid to stdout when neither is given. `--view modules` draws the module import graph, one node per module:
+- **Formats:** Use `-f` or `--format` to choose between `mermaid` (default), `dot`, `json`, `svg`, or `png`.
+- **Views:** Use `--view modules` to see the high-level module import graph instead of the individual providers.
 
 ```bash
-npx nexusdi graph src/meridian.module.ts#Meridian -o graph.mmd
-npx nexusdi graph src/meridian.module.ts#Meridian --view modules -f dot
+npx nexusdi graph src/meridian.module.ts#Meridian -o graph.svg --view modules
 ```
 
-```ts file=examples/meridian/src/pages/graph-cli.md region=modules-view
+## Advanced Analysis
 
-```
-
-SVG needs `@viz-js/viz` (Graphviz as WebAssembly), and PNG needs `@resvg/resvg-js` as well. Mermaid, DOT and JSON need nothing else. A format whose package is missing exits with code 3 and prints one install line, such as `npm i -D @viz-js/viz @resvg/resvg-js` for PNG.
-
-```bash
-npm install -D @viz-js/viz @resvg/resvg-js
-npx nexusdi graph src/meridian.module.ts#Meridian -o graph.svg
-```
-
-## Add loaded modules and plugins to `nexusdi graph`
-
-`--load path#export` compiles a module after the root, as `ship.load()` would, and repeats once per module. `--plugins path#export` names an exported array of plugins, the array you pass to `Nexus.create`, so a plugin that adds modules or checks shows in the graph:
+### Simulating Dynamic Loads
+If your app uses `ship.load()` to add modules at runtime, you can simulate this in the CLI using the `--load` flag:
 
 ```bash
 npx nexusdi graph src/meridian.module.ts#Meridian --load src/science.module.ts#Science
+```
+
+### Including Plugins
+If you use plugins that add modules or change the graph, you can pass them via the `--plugins` flag:
+
+```bash
 npx nexusdi graph src/meridian.module.ts#Meridian --plugins src/plugins.ts#plugins
 ```
 
-## Exit codes of `nexusdi graph`
+## CI/CD Integration
 
-`nexusdi graph` exits with one of four codes. For codes 2 and 3, the message on stderr starts with `nexusdi:` and ends with the command or install line that fixes it.
-
-| Code | Meaning                                                                                              |
-| ---- | ---------------------------------------------------------------------------------------------------- |
-| 0    | The graph was written.                                                                               |
-| 1    | The graph is invalid. stderr holds the `BlueprintError` text.                                        |
-| 2    | The command or its input is wrong, such as an unknown flag or a `.json` entry that is not a graph.   |
-| 3    | Something is missing: `@nexusdi/core`, `@nexusdi/devtools`, tsx, `@viz-js/viz` or `@resvg/resvg-js`. |
-
-A CI job runs the command and uploads the graph. The job fails on any nonzero code, and code 1 means the graph is invalid:
+The `nexusdi graph` command is ideal for CI pipelines. It exits with code `0` if the graph is valid and code `1` if there are wiring mistakes. By adding this to your pipeline, you can prevent broken dependency graphs from ever being merged into your main branch.
 
 ```bash
+# Fail the build if the graph is invalid
 npx nexusdi graph src/meridian.module.ts#Meridian -f json -o graph.json
 ```
-
-A `.ts` entry needs no build. When the project has `tsx` installed, the command loads the entry through it with the project's `tsconfig.json`. Without tsx, Node 22.18 and later load TypeScript that only needs its types removed and whose imports name `.ts` files.
-
-## Draw a running container's graph from JSON with `parseGraph`
-
-A `.json` file written with `JSON.stringify(graph(ship))` from a running app is an entry too. The command checks the file with `parseGraph` from `@nexusdi/devtools`, which reads a `NexusGraph` back from `JSON.parse` output and checks every field:
-
-```ts file=examples/meridian/src/pages/graph-cli.md region=parse-json
-
-```
-
-```bash
-npx nexusdi graph graph.json -f dot
-```
-
-A value that is not a `NexusGraph` throws `DevtoolsError` with the code `NEXUS_DEVTOOLS_GRAPH_INVALID`, and its `path` names the first bad field:
-
-```ts file=examples/meridian/src/pages/graph-cli.md region=parse-invalid
-
-```
-
-Try it: delete the `"module"` field of one provider in a saved `graph.json` and run `npx nexusdi graph graph.json`. The command exits with code 2 and prints `nexusdi: graph.json: [NEXUS_DEVTOOLS_GRAPH_INVALID] not a NexusGraph: providers[0].module is missing or has the wrong type.` ([NEXUS_DEVTOOLS_GRAPH_INVALID](/errors/NEXUS_DEVTOOLS_GRAPH_INVALID/)). Put the field back and run it again: it prints the DOT text and exits with code 0.
