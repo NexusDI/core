@@ -1,58 +1,51 @@
 ---
 title: Lifetimes
 kind: concept
-description: A NexusDI lifetime decides how many instances a provider builds and when it builds them.
+description: Control how many instances of a dependency are created and when they are instantiated.
 requires: [providers, tokens]
 ---
 
 # Lifetimes
 
-A NexusDI lifetime decides how many instances a provider builds: one for the container, or a new one for every `get()`. A provider sets it with the `lifetime` option of `provide()`, next to `useClass` or `useFactory` (the forms from the previous page).
+When a container resolves a token, it needs to know if it should return a shared instance or create a brand new one. This behavior is governed by the **Lifetime**.
 
-## NexusDI `singleton` and `transient` lifetimes
+Lifetimes allow you to balance memory usage against the need for fresh state, ensuring that your components get the exact behavior they expect.
 
-`singleton` is the default lifetime: the container builds the provider once, at `Nexus.create`, and every `get()` and every consumer receives that one instance. `lifetime: 'transient'` builds a new instance each time the container resolves the token, for every `get()` and for every consumer that depends on it. `QuantumComputer` below declares no lifetime, so it is a singleton. The two `get(DRONE)` calls launch two `ScoutDrone`s, and both receive the one `QuantumComputer`:
+## Singleton vs. Transient
+
+NexusDI provides two primary lifetimes for general use:
+
+### Singleton (The Default)
+A `singleton` is created exactly once for the entire lifetime of the container. Every component that depends on a singleton receives the same instance.
+
+### Transient
+A `transient` dependency is created every single time it is requested. If two different components depend on the same transient token, they will each receive their own unique instance.
 
 ```ts file=examples/meridian/src/pages/lifetimes.md region=transient
-
 ```
 
-The provider that is resolved sets the lifetime, and a consumer cannot change it. When `COMPUTER` itself is transient, each drone gets a computer of its own:
+By switching a provider to `lifetime: 'transient'`, you can transform a shared service into a private, per-consumer utility.
 
-```ts file=examples/meridian/src/pages/lifetimes.md region=transient-computer
+## Lazy Initialization with `eager: false`
 
-```
+By default, all singletons are created during the `Nexus.create` startup phase. This is what allows NexusDI to guarantee that no "Dependency Not Found" errors happen at runtime.
 
-Try it: save the first program as `lifetimes.ts` and run `npx tsx lifetimes.ts`. It prints `[ 1, 2 ]` and then `true`. Add `lifetime: 'transient'` to the `COMPUTER` provider and run it again. `npx tsc` reports nothing, `serials` still prints `[ 1, 2 ]`, and `sharedComputer` prints `false`, because each drone now holds its own computer. Remove the option again and `sharedComputer` prints `true`.
-
-<Notice kind="ship">
-  Every drone launched from the bay is a new drone, and every drone links to the
-  one ship's computer.
-</Notice>
-
-A third lifetime, `scoped`, builds one instance per scope, such as one per request. The Scopes and REQUEST page teaches it.
-
-## Build a NexusDI singleton on first use with `eager: false`
-
-`eager: false` on a singleton moves its build from `Nexus.create` to the first `get()` that asks for it, unless an eager provider depends on it, which builds it at `create` as before. It suits a client whose constructor opens a connection that a short-lived command may never use. The constructor below runs only when the program asks for the charts:
+However, some dependencies are expensive to create and might not be used in every execution path. By setting `eager: false`, you move the instantiation from startup to the first time the dependency is actually requested via `get()`.
 
 ```ts file=examples/meridian/src/pages/lifetimes.md region=eager-false
-
 ```
 
-`get()` is synchronous, so a provider built at its first `get()` cannot wait for a promise. TypeScript rejects `eager: false` on an async factory with TS2769 on the `provide(` call, and the message of the last overload names the rule:
+### The Async Constraint
 
-```ts fails-type-check
-const charts = provide(NAV_CHARTS, {
-  useFactory: async () => ({ plot: (target: string) => `course to ${target}` }),
-  eager: false,
-});
-// TS2769: Type 'false' is not assignable to type 'true | "NEXUS_LAZY_ASYNC: an async
-// provider is built during create or createScope, so it cannot be eager: false. ..." | undefined'
-```
+Because `get()` is designed to be synchronous for performance and predictability, lazy providers **cannot be asynchronous**. 
 
-Try it: in the `eager: false` program, replace the `useClass` option with `useFactory: async () => new StarCharts()` and run `npx tsc`. TypeScript reports TS2769 on the `provide(` call, and the last overload's message holds the `NEXUS_LAZY_ASYNC` text above. Remove `async` and `npx tsc` reports nothing, and the program prints the same three lines as before. Dropping `eager: false` also clears the error.
+If you have a provider that requires an `async` factory, it **must** be eager. This ensures the promise is resolved during startup, so that the subsequent `get()` call can return the value instantly.
 
-A JavaScript factory that returns a promise at that first `get()` makes `get()` throw [`NEXUS_LAZY_ASYNC`](/errors/NEXUS_LAZY_ASYNC/). A transient factory must also return synchronously: a JavaScript one that returns a promise makes `get()` throw [`NEXUS_ASYNC_TRANSIENT`](/errors/NEXUS_ASYNC_TRANSIENT/), and TypeScript names that code when the factory is `async`.
+## Summary of Lifetimes
 
-Try it: run the `eager: false` program. It prints `[]`, then `course to Kepler-442b`, then `[ 'charts loaded' ]`. Delete `eager: false` and run it again. `beforeGet` now prints `[ 'charts loaded' ]`, because `Nexus.create` built the charts before the first `get()`. Put `eager: false` back and `beforeGet` prints `[]` again.
+| Lifetime | When is it created? | How many instances? |
+| :--- | :--- | :--- |
+| **Singleton** | At startup (Eager) | One shared instance |
+| **Lazy Singleton** | On first `get()` | One shared instance |
+| **Transient** | On every `get()` | A new instance every time |
+| **Scoped** | On scope creation | One per scope (e.g., per request) |
