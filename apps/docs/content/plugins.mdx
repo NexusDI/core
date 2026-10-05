@@ -1,91 +1,47 @@
 ---
-title: How do I register a plugin?
-kind: question
-description: Pass NexusDI plugins to Nexus.create in the plugins option, in the order their hooks should run.
+title: NexusDI Plugins
+kind: concept
+description: Extend the core container with additional functionality like error formatting and devtools.
 ---
 
-# How do I register a plugin?
+# NexusDI Plugins
 
-`Nexus.create(root, { plugins })` registers plugins for one container. A NexusDI plugin is a plain object with a `name` and the plugin API version it was written for. It sets the hooks it uses as functions on that object. The first-party packages `@nexusdi/errors`, `@nexusdi/devtools`, `@nexusdi/interceptors` and `@nexusdi/federation` each export a function that returns one.
+The core of NexusDI is designed to be lean. To keep the bundle size small while providing powerful features, optional functionality is delivered via **Plugins**.
 
-## Register `errors()` with `Nexus.create`
+Plugins allow you to hook into the container's lifecycle, modify how errors are reported, or add entirely new capabilities like graph introspection and method interception.
 
-`errors()` from `@nexusdi/errors` gives NexusDI errors their full message with a fix line. Install it at the same version as `@nexusdi/core`:
+## Registering Plugins
 
-```bash
-npm install @nexusdi/errors@next
-```
-
-Pass the plugin in the `plugins` array of `Nexus.create`. This container is missing the `NavCharts` provider, so `Nexus.create` rejects, and `errors()` writes the message:
+Plugins are passed to the container during creation in the `plugins` array. The order of this array matters: plugins are executed in the order they are listed.
 
 ```ts file=examples/meridian/src/pages/plugins.md region=register
-
 ```
 
-Without a plugin, core writes a one-line message: the code and the error's fields, then the link to the code's page.
+## Official First-Party Plugins
 
-```ts file=examples/meridian/src/pages/plugins.md region=without-plugin
+NexusDI provides several official plugins to enhance your development experience:
 
-```
+| Package | Plugin | Purpose |
+| :--- | :--- | :--- |
+| `@nexusdi/errors` | `errors()` | Replaces short error codes with full human-readable messages and fix suggestions. |
+| `@nexusdi/devtools` | `devtools()` | Enables the `graph()` and `trace` tools for debugging your dependency tree. |
+| `@nexusdi/interceptors` | `interceptors()` | Enables method interception for cross-cutting concerns. |
+| `@nexusdi/federation` | `federation()` | Manages providers across multiple federated contracts. |
 
-Try it:
+## Plugin Execution Order
 
-1. Save the first region as `plugins.ts` and run `npx tsx plugins.ts`. The output is the full message and its `Fix:` line.
-2. Delete `errors()` from the `plugins` array and run the file again. The output is the one-line message, which ends with the link to [NEXUS_MISSING_PROVIDER](/errors/NEXUS_MISSING_PROVIDER/).
-3. Put `errors()` back.
+Some plugins provide similar functionality. For example, both `errors()` and a custom internal plugin might want to format error messages. 
 
-## Register `devtools()` in development
-
-`devtools()` from `@nexusdi/devtools` enables `graph()` and the `trace` option for a container, and it includes the errors engine, so a container with `devtools()` needs no `errors()` beside it. Register it in development only, because a production container uses no graph or trace:
-
-```ts file=examples/meridian/src/pages/plugins.md region=development-only
-
-```
-
-`graph(ship)` lists every provider of the container. The filter drops the providers marked `internal`, such as core's `REQUEST`.
-
-Try it: save the region as `dev.ts` and run `npx tsx dev.ts`. It prints `[ 'ReactorCore' ]`. Run it again with `NODE_ENV=production npx tsx dev.ts`: the container is created with no plugin, so `graph(ship)` throws [NEXUS_DEVTOOLS_UNREGISTERED](/errors/NEXUS_DEVTOOLS_UNREGISTERED/). Run it without `NODE_ENV` and the first output returns.
-
-## NexusDI plugin order: the first `formatError` decides
-
-NexusDI calls the hooks of the registered plugins in array order. For error text, the first plugin whose `formatError` hook returns text writes the message, and the plugins after it are not asked. This application plugin words one code, and `errors()` after it words the rest:
+NexusDI handles this using a "first-win" strategy: the first plugin in the array that returns a result for a specific hook (like `formatError`) wins, and subsequent plugins are ignored.
 
 ```ts file=examples/meridian/src/pages/plugins.md region=order
-
 ```
 
-Try it: save the region as `order.ts` and run it. It prints `[NEXUS_MISSING_PROVIDER] Bridge console: a provider is missing.` Swap the two entries of the `plugins` array and run it again. `errors()` now comes first and writes the message for `NEXUS_MISSING_PROVIDER`, so the output is the full message and its `Fix:` line, and `bridgeConsole` is never asked. Swap the entries back and the bridge console's line returns.
+## Plugin Validation
 
-## The first-party NexusDI plugins
+To ensure stability, `Nexus.create` validates all plugins before the graph is compiled. It will reject the startup process if:
+- Two plugins share the same `name`.
+- A plugin was written for an incompatible `apiVersion`.
+- A plugin hook throws a fatal error during registration.
 
-Each first-party package that extends the container exports a plugin, and the application writes the line that registers it.
-
-| Package                 | Plugin                                | What it adds                                                                              |
-| ----------------------- | ------------------------------------- | ----------------------------------------------------------------------------------------- |
-| `@nexusdi/errors`       | `errors({ text })`                    | full messages and fix lines, with the text packs you pass                                 |
-| `@nexusdi/devtools`     | `devtools({ text, annotate, trace })` | `graph()` and the trace callback, with the errors engine included                         |
-| `@nexusdi/interceptors` | `interceptors(options)`               | code around the methods of services ([interceptors](/interceptors/))                      |
-| `@nexusdi/federation`   | `federation()`                        | one provider for every copy of a contract token                                           |
-| `@nexusdi/testing`      | none to register                      | `createTestingContainer()` registers its own plugin ahead of yours ([testing](/testing/)) |
-
-Every package must be at the version of `@nexusdi/core`. Each one declares an exact peer dependency on core, so a package manager reports a mismatch at install.
-
-## NexusDI rejects a plugin it cannot register
-
-`Nexus.create` checks every plugin before it compiles the graph, and reports each fault as an error inside `NEXUS_BLUEPRINT_INVALID`. Two plugins with one `name` fail with `NEXUS_PLUGIN_INVALID`:
-
-```ts file=examples/meridian/src/pages/plugins.md region=twice
-
-```
-
-A plugin written for another plugin API version fails with `NEXUS_PLUGIN_VERSION`. `NEXUS_PLUGIN_API` is the version this `@nexusdi/core` supports:
-
-```ts file=examples/meridian/src/pages/plugins.md region=version
-
-```
-
-Try it: in the `version` region, set `apiVersion` to `NEXUS_PLUGIN_API` and run it. The plugin is valid, so `Nexus.create` resolves, and the file prints `1` and then `undefined`, because there is no error to read. Set it back to `2` and the `NEXUS_PLUGIN_VERSION` message returns.
-
-Try it: register `errors()` twice in the `plugins.ts` of the first region and run it. The container rejects with [NEXUS_PLUGIN_INVALID](/errors/NEXUS_PLUGIN_INVALID/), and the file prints `[NEXUS_PLUGIN_INVALID] nexus:errors has the name of an earlier plugin; each plugin needs its own name.` The plugin check runs before the graph compiles, so the missing provider is not reported. Remove the second `errors()` and the full missing-provider message returns. A hook that throws later fails with [NEXUS_PLUGIN_FAILED](/errors/NEXUS_PLUGIN_FAILED/), and two plugins that rewrite one module or provider fail with [NEXUS_PLUGIN_CONFLICT](/errors/NEXUS_PLUGIN_CONFLICT/).
-
-To write a plugin of your own, read [How do I write a NexusDI plugin?](/write-a-plugin/).
+This ensures that your plugin configuration is proven correct before your application starts processing data.

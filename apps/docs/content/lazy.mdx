@@ -1,92 +1,46 @@
 ---
-title: Lazy edges and cycles
+title: Lazy Dependencies and Cycles
 kind: concept
-description: A NexusDI lazy() dependency is a thunk that resolves its token after startup, and it is the only way to express a dependency cycle.
+description: Resolve circular dependencies and optimize startup using lazy thunks.
 requires: [lifecycle]
 ---
 
-# Lazy edges and cycles
+# Lazy Dependencies and Cycles
 
-A NexusDI `lazy()` dependency hands a constructor a thunk that returns the token's instance when it is called, after startup. `lazy()` is the only way to express a dependency cycle: every other cycle fails when `Nexus.create` compiles the graph, before any constructor runs, and before any `onInit` from the previous page.
+In a perfect world, every dependency graph is a Directed Acyclic Graph (DAG)—meaning there are no loops. However, in complex systems, you occasionally encounter **Circular Dependencies**, where Service A depends on Service B, and Service B depends back on Service A.
 
-## NexusDI reports a cycle as `NEXUS_CIRCULAR_DEPENDENCY`
+Because NexusDI validates the entire graph at startup to guarantee stability, it will detect these loops and reject the container with a `NEXUS_CIRCULAR_DEPENDENCY` error.
 
-NexusDI compiles the whole graph before it builds anything, so a cycle of required dependencies never reaches a constructor. `Nexus.create` rejects with `NEXUS_BLUEPRINT_INVALID`, and the inner [NEXUS_CIRCULAR_DEPENDENCY](/errors/NEXUS_CIRCULAR_DEPENDENCY/) carries the cycle as its `path`. `PlasmaRouter` needs the shield grid to divert power, and `DeflectorGrid` needs the power router to draw it:
+## Breaking Cycles with `lazy()`
 
-```mermaid caption="POWER_ROUTER depends on SHIELD_GRID, and SHIELD_GRID depends on POWER_ROUTER: a ring with no lazy edge."
-flowchart LR
-  PowerRouter:::accent -->|required| ShieldGrid
-  ShieldGrid -->|required| PowerRouter
-```
+When a cycle is unavoidable, you can break the loop using the `lazy()` wrapper. 
 
-```ts file=examples/meridian/src/pages/lazy.md region=cycle
+A `lazy()` dependency tells NexusDI: "Don't resolve this token during the initial build; instead, give me a function (a thunk) that I can call later to get the instance."
 
-```
-
-The path starts and ends at the same provider: `PowerRouter -> ShieldGrid -> PowerRouter`.
-
-Try it: save the region as `cycle.ts` and run `npx tsx cycle.ts`. It prints `[ 'NEXUS_CIRCULAR_DEPENDENCY' ]` and then the ring. Import `lazy` from `@nexusdi/core`, change `PlasmaRouter`'s deps to `[lazy(SHIELD_GRID)] as const`, its parameter to `private readonly shields: () => IShieldGrid` and its method to `return this.shields().draw();`, as the next section does. Run it again: `Nexus.create` resolves, so the program prints `[]` and an empty line. If you change only the deps, `npx tsc --noEmit` flags the `provide(POWER_ROUTER, ...)` call, because the constructor still expects an `IShieldGrid`. Undo those edits and the program prints the code and the ring again.
-
-## NexusDI finds a cycle of any length
-
-NexusDI finds cycles with a strongly connected component search over the whole graph. It reports a self-dependency, a ring of three providers and a ring that crosses module boundaries the same way, and `path` lists the whole ring from its first provider back to it. `NavComputer` needs the helm, `HelmControl` needs the thrusters, and `ThrusterBank` needs the nav computer:
-
-```mermaid caption="NAV_COMPUTER depends on HELM_CONTROL, HELM_CONTROL on THRUSTER_BANK, and THRUSTER_BANK on NAV_COMPUTER: a ring of three with no lazy edge."
-flowchart LR
-  NavComputer:::accent -->|required| HelmControl
-  HelmControl -->|required| ThrusterBank
-  ThrusterBank -->|required| NavComputer
-```
-
-```ts file=examples/meridian/src/pages/lazy.md region=indirect-cycle
-
-```
-
-Try it: save the region as `ring.ts` and run `npx tsx ring.ts`. It prints `NavComputer -> HelmControl -> ThrusterBank -> NavComputer`.
-
-NexusDI reports one `NEXUS_CIRCULAR_DEPENDENCY` for each group of providers that reach each other, with one ring from that group as its `path`. When two rings share providers, one error covers both. A lazy edge on the part both rings share breaks both. A lazy edge on only one ring leaves the other, and the next run reports that one.
-
-## Break a cycle with `lazy()`
-
-`lazy(SHIELD_GRID)` in a deps list turns that edge into a thunk, and NexusDI leaves lazy edges out of its cycle check. The constructor receives a function with no arguments that returns the instance. Call the thunk in a method, once `Nexus.create` has resolved. The dotted edge in the diagram is the lazy one.
-
-```mermaid caption="POWER_ROUTER reaches SHIELD_GRID through a lazy edge, so the required edge from SHIELD_GRID back to POWER_ROUTER no longer closes a ring."
+```mermaid caption="Breaking a cycle with a lazy edge."
 flowchart LR
   PowerRouter:::accent -.->|lazy| ShieldGrid
   ShieldGrid -->|required| PowerRouter
 ```
 
 ```ts file=examples/meridian/src/pages/lazy.md region=lazy-fix
-
 ```
 
-Try it: save the region as `lazy.ts` and run it. It prints `0.4`. Mark the other edge lazy too: change `DeflectorGrid`'s deps to `[lazy(POWER_ROUTER)] as const` and its parameter to `readonly router: () => IPowerRouter`. Run it again: it still prints `0.4`, since one lazy edge is enough and two are allowed. Change `DeflectorGrid` back to the plain edge when you are done.
+By making just one edge in the cycle lazy, you break the loop. The container can now finish starting up, and your code can resolve the dependency at runtime by calling the thunk.
 
-Try it with a ring of three: save the fix region below as `ring-fixed.ts` and run it. `ThrusterBank` takes `lazy(NAV_COMPUTER)`, and the program prints `course to Kepler-442b`. Move the `lazy()` to another edge: make `Astrogator` take `[lazy(HELM_CONTROL)] as const` with a `() => IHelmControl` parameter and call `this.helm().steer()`, and change `IonThrusters` back to `[NAV_COMPUTER] as const` with an `INavComputer` parameter. It still prints `course to Kepler-442b`.
+## Why `lazy()` is Opt-In
 
-```ts file=examples/meridian/src/pages/lazy.md region=indirect-fix
+You might wonder why NexusDI doesn't just make every dependency lazy by default. There are several critical reasons:
 
-```
+1. **CI Stability:** Required dependencies are checked in CI. Lazy dependencies can hide wiring errors that only appear at runtime.
+2. **Lifecycle Integrity:** `onInit` and disposal run in a specific order. A lazy dependency is created *after* its consumer, meaning it might be disposed of *before* the consumer is finished.
+3. **Synchronous Guarantees:** `get()` must be synchronous. Since async factories must be resolved at startup, a lazy edge to an async provider would be impossible to resolve synchronously on first use.
+4. **Architectural Health:** Cycles often signal that two services are too tightly coupled. Forcing an explicit `lazy()` call makes this architectural smell visible during code review.
 
-## Why NexusDI makes `lazy()` opt-in
+## The "Not Ready" State
 
-NexusDI could make every dependency lazy and never report a cycle. It does not, for four reasons.
+Because a `lazy()` thunk defers resolution, you cannot call it too early. 
 
-- A cycle fails `Nexus.check` in CI today. With lazy by default, the same graph would start, and the ring would show only at run time, when a call goes round it.
-- `onInit` runs in dependency order, and disposal runs in reverse creation order (see [Lifecycle and disposal](/lifecycle/)). A dependency built on its first call is built after its consumer, so NexusDI disposes it first, and the consumer keeps running at shutdown after its dependency has closed.
-- `get()` is synchronous, and async factories finish during `create`. A provider that nothing builds at startup cannot wait for a promise, so a lazy edge to an async provider that is built on first use fails with [NEXUS_LAZY_ASYNC](/errors/NEXUS_LAZY_ASYNC/).
-- A cycle usually means two services share a responsibility. Moving that responsibility into a third provider removes the cycle. An explicit `lazy()` keeps each real exception visible in review.
+If you call a lazy thunk inside a constructor or an `onInit()` method, the target service might not have been built yet. In this case, NexusDI throws `NEXUS_NOT_READY`.
 
-Other frameworks make the same choice. Spring Boot 2.6 [prohibits circular references by default](https://github.com/spring-projects/spring-boot/wiki/Spring-Boot-2.6-Release-Notes), and NestJS [needs `forwardRef()`](https://docs.nestjs.com/fundamentals/circular-dependency) on both sides of a circular dependency.
-
-## Call a NexusDI thunk after startup
-
-A `lazy()` thunk resolves only once its target is ready: built, with its `onInit` finished. A thunk called inside the constructor runs before the target exists, and NexusDI throws [NEXUS_NOT_READY](/errors/NEXUS_NOT_READY/) with the `owner` that called it and the `target` it asked for. `Nexus.create` reports the failure as [NEXUS_PROVIDER_FAILED](/errors/NEXUS_PROVIDER_FAILED/) with `NEXUS_NOT_READY` as its `cause`.
-
-```ts file=examples/meridian/src/pages/lazy.md region=not-ready
-
-```
-
-The owner's `onInit` is too early as well. NexusDI calls `onInit` level by level, dependencies first, and a lazy edge does not order the levels, so `PlasmaRouter`'s `onInit` runs before `DeflectorGrid` is ready and throws the same code. Fix it by calling the thunk in a method that runs after `Nexus.create` resolves, as `divert()` does in the previous section.
-
-Try it: save the region as `not-ready.ts` and run it. It prints `NEXUS_PROVIDER_FAILED` and then `NEXUS_NOT_READY`. Keep the thunk in a field (`private readonly shields: () => IShieldGrid`) and call it in an `onInit()` method that sets `this.reserve`. Change the class field `readonly reserve: number;` to `reserve = 0;`, because `tsc` reports TS2540 and TS2564 for a `readonly` field with no initialiser that `onInit()` assigns (the `IPowerRouter` interface keeps its `readonly`). Run it again: it prints the same two codes, because `onInit` still runs before `DeflectorGrid` is ready. Now replace `onInit()` with a `divert()` method that returns `this.shields().draw()`, add `divert(): number;` to `IPowerRouter`, and end the program with `await using ship = await Nexus.create(...)` and `console.log(ship.get(POWER_ROUTER).divert());`. It prints `0.4`. Put the call back in the constructor and the two codes return.
+**The Rule:** Always call lazy thunks within regular methods that are executed *after* `Nexus.create` has fully resolved.
