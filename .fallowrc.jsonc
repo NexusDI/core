@@ -88,6 +88,13 @@
       "file": "apps/docs/tools/deploy/deploy-config.mjs",
       "exports": ["readDeployConfig"],
     },
+    // DOCS_YML_PATHS is the copy of docs.yml's push paths that docs-ci-job's
+    // test compares with docs.yml. It loads the module through a computed
+    // dynamic import, which fallow does not follow.
+    {
+      "file": "apps/docs/tools/deploy/docs-changed.mjs",
+      "exports": ["DOCS_YML_PATHS"],
+    },
   ],
 
   // Every workspace project's own eslint.config.mjs spreads a preset from
@@ -105,6 +112,9 @@
     "eslint-plugin-react",
     "eslint-plugin-react-hooks",
     "jiti",
+    // apps/docs/tools/pagefind.mjs runs the pagefind CLI through
+    // `npx pagefind`, which fallow's import tracing cannot see.
+    "pagefind",
     "typescript-eslint",
     // Consumed by both the root eslint.config.mjs and
     // libs/core/eslint.config.mjs's `**/*.json` block

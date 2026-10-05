@@ -17,10 +17,17 @@ on:
       - 'internal/**'
       - 'examples/meridian/**'
       - 'tools/doc-examples/**'
+      - 'benchmarks/**'
       - 'package.json'
       - 'package-lock.json'
       - '.github/workflows/docs.yml'
   workflow_dispatch:
+    inputs:
+      rehearse:
+        description: Build and check this mode without deploying it. none deploys the mode deploy.json names.
+        type: choice
+        default: none
+        options: [none, rc, final]
 
 permissions:
   contents: read
@@ -35,7 +42,8 @@ jobs:
     permissions:
       contents: read
     outputs:
-      mode: ${{ steps.config.outputs.mode }}
+      mode: ${{ steps.mode.outputs.mode }}
+      rehearse: ${{ steps.mode.outputs.rehearse }}
     env:
       GH_TOKEN: ${{ github.token }}
     steps:
@@ -58,6 +66,24 @@ jobs:
         id: config
         run: node apps/docs/tools/deploy/deploy-config.mjs apps/docs/deploy.json
 
+      # A rehearsal builds, assembles and checks a mode with no deploy, so a
+      # mode switch merges only after its build passes (docs spec §15.3).
+      - name: Pick the mode
+        id: mode
+        env:
+          CONFIG_MODE: ${{ steps.config.outputs.mode }}
+          REHEARSE: ${{ inputs.rehearse }}
+        run: |
+          set -euo pipefail
+          if [ -n "${REHEARSE:-}" ] && [ "$REHEARSE" != none ]; then
+            mode="$REHEARSE"; rehearse=true
+          else
+            mode="$CONFIG_MODE"; rehearse=false
+          fi
+          echo "mode=$mode" >> "$GITHUB_OUTPUT"
+          echo "rehearse=$rehearse" >> "$GITHUB_OUTPUT"
+          echo "builds mode $mode (rehearsal: $rehearse)"
+
       - name: Validate archives.json
         run: node apps/docs/tools/deploy/archives.mjs apps/docs/archives.json
 
@@ -72,7 +98,7 @@ jobs:
       # 2026-10-01).
       - name: Pick the /next/ source
         id: next
-        if: steps.config.outputs.mode != 'snapshot-only'
+        if: steps.mode.outputs.mode != 'snapshot-only'
         run: node apps/docs/tools/deploy/next-source.mjs
 
       # Main builds in this checkout. A release branch builds in its own
@@ -80,28 +106,22 @@ jobs:
       # differ from main's. The next channel has no blog (docs spec §6), so
       # nothing is copied in from main.
       - name: Build the /next/ site
-        if: steps.config.outputs.mode != 'snapshot-only'
+        if: steps.mode.outputs.mode != 'snapshot-only'
         env:
-          DOCS_BASE_PATH: /next
-          DOCS_CHANNEL: next
           NEXT_IS_MAIN: ${{ steps.next.outputs.is_main }}
           NEXT_SHA: ${{ steps.next.outputs.sha }}
         run: |
           set -euo pipefail
-          mkdir -p build
           if [ "$NEXT_IS_MAIN" = true ]; then
-            npx nx build @nexusdi/docs
-            npm --prefix apps/docs run postbuild
-            node apps/docs/tools/check-budgets.mjs
-            mv apps/docs/out build/next-out
+            node apps/docs/tools/deploy/build-site.mjs next --tree . --out build/next-out
           else
             git worktree add --detach build/next-src "$NEXT_SHA"
-            (cd build/next-src && npm ci && npx nx build @nexusdi/docs && npm --prefix apps/docs run postbuild && node apps/docs/tools/check-budgets.mjs)
-            mv build/next-src/apps/docs/out build/next-out
+            (cd build/next-src && npm ci)
+            node apps/docs/tools/deploy/build-site.mjs next --tree build/next-src --out build/next-out
           fi
 
       - name: Build the root site from the release
-        if: steps.config.outputs.mode == 'final' || steps.config.outputs.mode == 'retired'
+        if: steps.mode.outputs.mode == 'final' || steps.mode.outputs.mode == 'retired'
         env:
           ROOT_SHA: ${{ steps.config.outputs.root_sha }}
         run: |
@@ -113,14 +133,12 @@ jobs:
           fi
           echo "root builds from ${ref}"
           git worktree add --detach build/root-src "$ref"
-          rm -rf build/root-src/apps/docs/content/blog
-          cp -R apps/docs/content/blog build/root-src/apps/docs/content/blog
-          (cd build/root-src && npm ci && DOCS_BASE_PATH='' DOCS_CHANNEL=release npx nx build @nexusdi/docs && npm --prefix apps/docs run postbuild)
-          mv build/root-src/apps/docs/out build/root-out
+          (cd build/root-src && npm ci)
+          node apps/docs/tools/deploy/build-site.mjs root --tree build/root-src --main . --out build/root-out
 
       - name: Download and verify the snapshot
         env:
-          MODE: ${{ steps.config.outputs.mode }}
+          MODE: ${{ steps.mode.outputs.mode }}
           ROOT_ASSET: ${{ steps.config.outputs.root_asset }}
           ROOT_SHA256: ${{ steps.config.outputs.root_sha256 }}
           ARCHIVE_ASSET: ${{ steps.config.outputs.archive_asset }}
@@ -139,7 +157,7 @@ jobs:
 
       - name: Assemble the site
         env:
-          DEPLOY_MODE: ${{ steps.config.outputs.mode }}
+          DEPLOY_MODE: ${{ steps.mode.outputs.mode }}
           SITE_DIR: site
           NEXT_OUT: build/next-out
           ROOT_OUT: build/root-out
@@ -148,7 +166,9 @@ jobs:
         run: node apps/docs/tools/deploy/assemble.mjs
 
       - name: Check deploy artefacts
-        run: node apps/docs/tools/deploy/check-artifact.mjs site "${{ steps.config.outputs.mode }}"
+        env:
+          MODE: ${{ steps.mode.outputs.mode }}
+        run: node apps/docs/tools/deploy/check-artifact.mjs site "$MODE"
 
       - uses: actions/upload-pages-artifact@fc324d3547104276b827a68afc52ff2a11cc49c9 # v5.0.0
         with:
@@ -157,6 +177,7 @@ jobs:
   deploy:
     needs: build
     runs-on: ubuntu-latest
+    if: needs.build.outputs.rehearse == 'false'
     permissions:
       pages: write # publish the Pages deployment
       id-token: write # Pages deployments are OIDC-authenticated
@@ -172,6 +193,7 @@ jobs:
   smoke:
     needs: [build, deploy]
     runs-on: ubuntu-latest
+    if: needs.build.outputs.rehearse == 'false'
     permissions:
       contents: read
     steps:
@@ -187,4 +209,6 @@ jobs:
         with:
           node-version-file: .nvmrc
 
-      - run: node apps/docs/tools/deploy/smoke.mjs https://nexus.js.org "${{ needs.build.outputs.mode }}"
+      - env:
+          MODE: ${{ needs.build.outputs.mode }}
+        run: node apps/docs/tools/deploy/smoke.mjs https://nexus.js.org "$MODE"

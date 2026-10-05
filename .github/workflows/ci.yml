@@ -153,3 +153,76 @@ jobs:
       - run: npm ci
 
       - run: npm run verify:packaging
+
+  # Builds this tree as the /next/ site and as the root site, the way docs.yml
+  # builds them, and checks an rc and a final artifact (docs spec §15.3). The
+  # rc switch that PR #71 reverted, and a final root build with no blog on
+  # main, both fail here before they merge. A change that touches no docs
+  # input ends the job after the diff, so the job always reports and the
+  # rulesets can require it.
+  docs:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          fetch-depth: 0
+
+      - name: List the docs inputs this change touches
+        id: changed
+        env:
+          BASE: ${{ github.event.pull_request.base.sha || github.event.before }}
+        run: node apps/docs/tools/deploy/docs-changed.mjs "$BASE"
+
+      - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
+        if: steps.changed.outputs.touched == 'true'
+        with:
+          node-version-file: .nvmrc
+          cache: 'npm'
+
+      - if: steps.changed.outputs.touched == 'true'
+        run: npm ci
+
+      - name: Build the /next/ site
+        if: steps.changed.outputs.touched == 'true'
+        run: node apps/docs/tools/deploy/build-site.mjs next --tree . --out build/next-out
+
+      # The tree stands in for both the release tag and main, so a tree with
+      # no blog fails as the first final deploy would.
+      - name: Build the root site
+        if: steps.changed.outputs.touched == 'true'
+        run: node apps/docs/tools/deploy/build-site.mjs root --tree . --main . --out build/root-out
+
+      - name: Read deploy.json
+        id: config
+        if: steps.changed.outputs.touched == 'true'
+        run: node apps/docs/tools/deploy/deploy-config.mjs apps/docs/deploy.json
+
+      - name: Download and verify the snapshot
+        if: steps.changed.outputs.touched == 'true'
+        env:
+          GH_TOKEN: ${{ github.token }}
+          ROOT_ASSET: ${{ steps.config.outputs.root_asset }}
+          ROOT_SHA256: ${{ steps.config.outputs.root_sha256 }}
+          ARCHIVE_ASSET: ${{ steps.config.outputs.archive_asset }}
+          ARCHIVE_SHA256: ${{ steps.config.outputs.archive_sha256 }}
+        run: |
+          set -euo pipefail
+          mkdir -p build/assets build/snapshot-root build/snapshot-archive
+          gh release download docs-snapshot-0.3 --pattern "$ROOT_ASSET" --pattern "$ARCHIVE_ASSET" --dir build/assets
+          node apps/docs/tools/deploy/snapshot-assets.mjs verify "build/assets/$ROOT_ASSET" "$ROOT_SHA256"
+          node apps/docs/tools/deploy/snapshot-assets.mjs verify "build/assets/$ARCHIVE_ASSET" "$ARCHIVE_SHA256"
+          tar -xzf "build/assets/$ROOT_ASSET" -C build/snapshot-root
+          tar -xzf "build/assets/$ARCHIVE_ASSET" -C build/snapshot-archive
+
+      - name: Assemble and check the rc and final artifacts
+        if: steps.changed.outputs.touched == 'true'
+        run: |
+          set -euo pipefail
+          export NEXT_OUT=build/next-out ROOT_OUT=build/root-out
+          export SNAPSHOT_ROOT=build/snapshot-root SNAPSHOT_ARCHIVE=build/snapshot-archive
+          DEPLOY_MODE=rc SITE_DIR=site-rc node apps/docs/tools/deploy/assemble.mjs
+          node apps/docs/tools/deploy/check-artifact.mjs site-rc rc
+          DEPLOY_MODE=final SITE_DIR=site-final node apps/docs/tools/deploy/assemble.mjs
+          node apps/docs/tools/deploy/check-artifact.mjs site-final final

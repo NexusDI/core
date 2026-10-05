@@ -1,0 +1,17 @@
+on: workflow_dispatch
+jobs:
+  publish:
+    runs-on: ubuntu-latest
+    steps:
+      - name: A continued call with the flag
+        run: |
+          gh release create docs-snapshot-0.3 --target "$SHA" \
+            --title "Docs snapshot 0.3" --latest=false
+      - name: An argument array that carries the flag
+        run: |
+          args=("$TAG" --verify-tag --title "$TAG" "--latest=$LATEST")
+          if [ "$DRY_RUN" = "true" ]; then
+            echo "Dry run: would run gh release create ${args[*]}"
+          else
+            gh release create "${args[@]}"
+          fi

@@ -91,6 +91,43 @@ function removeNestedCname(site) {
   }
 }
 
+const CODE = /^[A-Z][A-Z0-9_]*$/;
+
+/**
+ * The code pages of a /next/ build: one folder per error code under
+ * `errors/` (docs spec §3.3, amendment A3).
+ */
+export function codePages(nextOut) {
+  const dir = join(nextOut, 'errors');
+  if (!existsSync(dir)) return [];
+  return readdirSync(dir, { withFileTypes: true })
+    .filter(
+      (entry) =>
+        entry.isDirectory() &&
+        CODE.test(entry.name) &&
+        existsSync(join(dir, entry.name, 'index.html')),
+    )
+    .map((entry) => entry.name)
+    .sort();
+}
+
+/**
+ * Every NexusDI error message links to https://nexus.js.org/errors/<CODE>.
+ * During the RC the root is the 0.3 snapshot, so each link gets a stub that
+ * sends it to the code page under /next/ (docs spec §15.5). A file the
+ * snapshot already holds there stays, and the artifact check reports it.
+ */
+function codeStubs(site, nextOut) {
+  for (const code of codePages(nextOut)) {
+    write(
+      site,
+      `errors/${code}/index.html`,
+      stubHtml(`/next/errors/${code}/`),
+      { overwrite: false },
+    );
+  }
+}
+
 function pathOf(file) {
   return `/${file.replace(/index\.html$/, '')}`;
 }
@@ -132,6 +169,7 @@ export function assemble({
       }
       copyInto(nextOut, join(site, 'next'));
       injectNotFoundScript(site);
+      codeStubs(site, nextOut);
     }
   } else if (mode === 'final' || mode === 'retired') {
     copyInto(rootOut, site);
