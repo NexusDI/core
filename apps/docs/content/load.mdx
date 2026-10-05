@@ -1,71 +1,47 @@
 ---
-title: How do I add a module after startup?
-kind: question
-description: ship.load(Module) adds a whole NexusDI module to a running container after validating it against the live graph.
+title: Adding Modules After Startup
+kind: concept
+description: Use `ship.load()` to dynamically add new modules to a running container.
 ---
 
-# How do I add a module after startup?
+# Adding Modules After Startup
 
-Call `await ship.load(Module)`. `load()` adds a whole module to a running NexusDI container: it validates the module against the live graph, builds the module's singletons, awaits their async factories, runs their `onInit`, and then publishes the new graph. `load()` is named for sections of an application that load lazily, such as a route whose code is split into its own bundle:
+In many applications, you don't want to load every single provider at boot time. For example, a specific set of tools might only be needed when a user visits a certain route.
 
-```ts no-run
-await ship.load((await import('./survey.js')).SurveyModule);
-```
+**Dynamic Loading** allows you to add new modules to a running NexusDI container on demand.
 
-## Add a module with `ship.load()`
+## Using `ship.load()`
 
-`ship.load(Survey)` compiles `Survey` as a new import of the root module. Before the call the container does not see `DRONE`. After it, `NAV_CHARTS` has finished its async download and `ScoutDrone.onInit()` has run, so `get(DRONE)` is synchronous like every other `get()`.
+The `load()` method allows you to inject a new module into the existing container. This is particularly useful for code-splitting in frontend or Node.js applications.
 
 ```ts file=examples/meridian/src/pages/load.md region=load-module
-
 ```
 
-Try it: save the region as `load.ts` and run `npx tsx load.ts`. Its last line is `course to Kepler-442b`. Move the `const course = ship.get(DRONE).survey();` line above `await ship.load(Survey);` and run it again: `get()` throws [NEXUS_MISSING_PROVIDER](/errors/NEXUS_MISSING_PROVIDER/), because the container does not see `DRONE` before the load. Move the line back and the last line is `course to Kepler-442b` again.
+When you call `load()`, NexusDI performs three critical steps:
+1. **Validation:** It validates the new module against the current live graph to ensure no wiring mistakes are introduced.
+2. **Initialization:** It builds the new module's singletons and runs their `onInit` methods.
+3. **Publication:** It updates the container's internal registry so the new providers are now available via `get()`.
 
-## `ship.load()` validates before it builds
+## Validation and Safety
 
-`load()` runs the same compiler `Nexus.create` runs, against the graph the container already holds. A module with a wiring mistake rejects with [NEXUS_BLUEPRINT_INVALID](/errors/NEXUS_BLUEPRINT_INVALID/), and the container stays as it was. The error carries the compiler's findings in its `errors` list. Here `ScoutDrone` needs `NAV_CHARTS`, which nothing provides, so the list holds one `NEXUS_MISSING_PROVIDER`, and `ship.has(DRONE)` is still `false`.
+Dynamic loading does not bypass NexusDI's safety guarantees. If a module you try to load depends on a token that isn't provided by the root or any other loaded module, `load()` will reject with a `NEXUS_BLUEPRINT_INVALID` error.
 
-```ts file=examples/meridian/src/pages/load.md region=load-invalid
+This ensures that your application never enters a partially-broken state where some dependencies are missing.
 
-```
+## Updating Scopes with `scope.extend()`
 
-Try it: add `provide(NAV_CHARTS, { useFactory: () => ({ plot: (to: string) => to }) })` to the providers of `Survey` and run the region again. The load resolves, the `errors` list is empty, and the region prints `[]` and `true`. Delete the line and the region prints `['NEXUS_MISSING_PROVIDER']` and `false` again.
+Scopes are snapshots of the graph at the moment they were created. If you load a new module into the root container, existing scopes won't see those new providers by default.
 
-## `ship.load()` runs once per module and in call order
-
-`load()` does nothing for a module the root already imports, and a second `load()` of the same module does nothing either. Below, three calls load `Survey` and `ScoutDrone` is built once. Concurrent `load()` calls run one at a time, in call order: `Science` waits for `Survey`, although `Survey`'s factory is the slower one.
-
-```ts file=examples/meridian/src/pages/load.md region=load-twice
-
-```
-
-Try it: add `imports: [Survey]` to the root module, `defineModule({ name: 'Meridian', imports: [Survey] })`, and run the region again. It still prints `1`: the root already imports `Survey`, so every `load(Survey)` returns at once.
-
-```ts file=examples/meridian/src/pages/load.md region=load-in-order
-
-```
-
-## Move a scope to the loaded graph with `scope.extend()`
-
-A scope sees the graph as it was when the scope was created. A token that a later `load()` added throws [NEXUS_LOADED_AFTER_SCOPE](/errors/NEXUS_LOADED_AFTER_SCOPE/) in that scope. `await shuttle.extend()` moves the scope to the current graph and builds the scoped factories the loaded modules add. The instances the scope already built stay as they are.
+To bring a scope up to date with the latest graph, use `scope.extend()`.
 
 ```ts file=examples/meridian/src/pages/load.md region=extend-scope
-
 ```
 
-Try it: delete the `await shuttle.extend();` line and run the region. The region prints `NEXUS_LOADED_AFTER_SCOPE` for the first `get()`, and the final `get()` throws the same code and stops the program. Put the line back and the region prints `NEXUS_LOADED_AFTER_SCOPE` and then `Kepler-442b`.
+This allows a long-lived scope (like a user session) to gain access to features that were loaded dynamically after the session started.
 
-## `ship.load()` refuses a global module
+## Design Constraints
 
-A global module makes its exports visible to every module, so a global module new to the graph would change what every existing module sees. `load()` rejects it with [NEXUS_LOAD_GLOBAL_MODULE](/errors/NEXUS_LOAD_GLOBAL_MODULE/), which `load()` throws directly, outside a `NEXUS_BLUEPRINT_INVALID` error. Its `code` is `NEXUS_LOAD_GLOBAL_MODULE` and its `module` property is `Science`. Import a global module from the root module before `Nexus.create`, or load it without `global: true`.
+To maintain the integrity of the graph, NexusDI imposes a few restrictions on dynamic loading:
 
-```ts file=examples/meridian/src/pages/load.md region=load-global
-
-```
-
-Try it: delete the `global: true,` line and run the region again. The load resolves and the region prints an empty line and then `undefined` twice, because there is no error to show.
-
-## Why NexusDI 0.4 has no `set()`
-
-In 0.3, `set()` registered one provider into a mutable container at any time, before or after the first `get()`. `Nexus.create` in 0.4 validates the whole graph before it builds anything, so every provider is declared in a module, and the container is sealed once `create` resolves. `load()` keeps that guarantee: it takes a whole module and validates it against the live graph. A per-token `set()` after `create` would add a provider the compiler never validated. The [upgrade guide](/upgrade/) shows what each 0.3 `set()` call becomes.
+- **No Global Modules:** You cannot `load()` a module marked as `global: true`. Global modules must be declared in the root module at startup because they affect the visibility of every other module.
+- **Sealed Container:** Once a provider is registered, it cannot be changed. `load()` adds new providers but does not allow you to replace existing ones.

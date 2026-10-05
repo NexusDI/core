@@ -1,48 +1,40 @@
 ---
-title: Multi-providers
+title: Multi-Providers
 kind: concept
-description: A NexusDI MultiToken collects one contribution per provide() call, and all() resolves the contributions a module can see as an array.
+description: Collect multiple contributions for a single token and resolve them as an array.
 requires: [lazy]
 ---
 
-# Multi-providers
+# Multi-Providers
 
-A NexusDI `MultiToken` collects one contribution from each `provide()` call that names it, and resolves to an array of them. Several modules can contribute to one multi-token, and a consumer reads every contribution it can see through `all()`. `all()` is the only modifier a multi-token takes in a deps list: `lazy()` and `optional()` each make `Nexus.create` reject with `NEXUS_BLUEPRINT_INVALID`, wrapping `NEXUS_INVALID_PROVIDER`, and so does a bare `MultiToken`.
+In most cases, one token maps to one provider. However, some features require a collection of contributions from across the application—such as a list of all available diagnostics, a set of validation rules, or a collection of plugin handlers.
 
-## Collect contributions with a NexusDI `MultiToken`
+**Multi-Providers** allow multiple modules to contribute to a single token, which is then resolved as an array of all visible contributions.
 
-`new MultiToken<Diagnostic>('Diagnostics')` names a list of `Diagnostic` contributions. Each `provide(DIAGNOSTICS, ...)` adds one entry, either a class, as `ReactorDiagnostic` is below, or a value, as the hull check is. An entry that needs deps uses a factory. `ship.get(DIAGNOSTICS)` returns the entries as an array, in the order the providers are listed. Across modules, a module's own entries come first, then those of its imports in import order.
+## The `MultiToken`
+
+To create a multi-provider, use the `MultiToken` class. This tells NexusDI that this token is designed to collect multiple values rather than resolving to a single one.
 
 ```ts file=examples/meridian/src/pages/multi-providers.md region=multi-token
-
 ```
 
-Try it: save the region as `diagnostics.ts` and run `npx tsx diagnostics.ts`. It prints `[ 'reactor', 'hull' ]`. Add a third `provide(DIAGNOSTICS, { useValue: { system: 'shields', check: () => false } })` after the hull one and run it again: it prints `[ 'reactor', 'hull', 'shields' ]`. Delete that line and the array loses `shields` again. Then add `const DRONE_COUNT = new Token<number>('DroneCount');` (import `Token`), `provide(DRONE_COUNT, { useValue: 3 })` and `provide(DIAGNOSTICS, { useFactory: (n: number) => ({ system: 'drone' + n, check: () => true }), deps: [DRONE_COUNT] })` to the list: the array gains `drone3`.
+Any number of modules can call `provide(DIAGNOSTICS, ...)` to add their own contribution to the list.
 
-## Depend on every contribution with `all()`
+## Consuming Contributions with `all()`
 
-`all(DIAGNOSTICS)` in a deps list hands the constructor the array of contributions. Contributions can come from several modules: `Engineering` contributes the reactor diagnostic and `Tactical` the hull check, each module exports `DIAGNOSTICS`, and `StatusBoard` in `Meridian` reads both. The same panel takes `optional(SUBSPACE_LINK)`, which resolves to `undefined` while no module provides a link.
+Because a `MultiToken` represents a collection, you cannot use it as a standard dependency. Instead, you must use the `all()` modifier in your `static deps` list.
 
 ```ts file=examples/meridian/src/pages/multi-providers.md region=panel
-
 ```
 
-```mermaid caption="Engineering and Tactical each contribute to DIAGNOSTICS, and DiagnosticsPanel in Meridian reads both through all()."
-flowchart LR
-  ReactorDiagnostic -->|all| DiagnosticsPanel:::accent
-  hullDiagnostic -->|all| DiagnosticsPanel
-```
+`all(TOKEN)` tells NexusDI to resolve every visible contribution to that token and pass them to the constructor as an array.
 
-Try it: save the region as `panel.ts` and run it. It prints `reactor green, hull green`. Add a `Comms` module that provides and exports `SUBSPACE_LINK` with a `useValue` whose `send(report)` returns `'sent: ' + report`, import it into `Meridian`, and run it again: the panel prints `sent: reactor green, hull green`. Take `Comms` out of `Meridian`'s imports and the panel prints `reactor green, hull green` again.
+## Visibility and Encapsulation
 
-## Export a contribution to a NexusDI multi-token
+Multi-providers follow the same visibility rules as standard providers:
 
-A contribution to a NexusDI multi-token follows module visibility like any provider. `all()` in a module collects the module's own contributions and the contributions of the imported modules that export the multi-token. A module that contributes and does not export the token keeps its contribution private, and `all()` elsewhere leaves it out with no error.
+1. **Local Contributions:** A module always sees its own contributions.
+2. **Imported Contributions:** A module sees contributions from any imported module that explicitly exports the `MultiToken`.
+3. **Private Contributions:** If a module contributes to a `MultiToken` but does not export it, that contribution remains private to the module.
 
-```ts file=examples/meridian/src/pages/multi-providers.md region=unexported
-
-```
-
-`Tactical` contributes the hull check and has no `exports`, so the panel sees only the reactor. NexusDI reports nothing, because a private contribution is a valid design: the module can read its own entries.
-
-Try it: save the region as `private.ts` and run it. It prints `[ 'reactor' ]`. Add `exports: [DIAGNOSTICS]` to `Tactical` and run it again: it prints `[ 'reactor', 'hull' ]`. Remove `exports` from `Tactical` and it prints `[ 'reactor' ]` again, with no error either way.
+This allows you to have "internal" diagnostics that only the module itself can see, while sharing "public" diagnostics with the rest of the application.

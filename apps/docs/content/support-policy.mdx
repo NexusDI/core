@@ -1,23 +1,29 @@
 ---
-title: 0.3 support policy
+title: 0.3 Support Policy
 kind: contract
-description: How long NexusDI 0.3 receives fixes after 0.4.0 final, which fixes it receives, and where they are published.
+description: The timeline and scope of support for the NexusDI 0.3 line after the release of 0.4.
 ---
 
-# 0.3 support policy
+# 0.3 Support Policy
 
-The NexusDI 0.3 support policy states which fixes the 0.3 line receives once 0.4 is released, and for how long. The maintainers set the fix scope and the end date. [RELEASING.md](https://github.com/NexusDI/core/blob/main/RELEASING.md) describes the branch and dist-tag steps that publish each fix.
+With the release of NexusDI 0.4, the focus of the maintainers shifts to the new static-validation architecture. However, we provide a transition period for users who cannot immediately upgrade.
 
-## NexusDI 0.3 during the 0.4 release candidate
+## Support During the RC Phase
 
-Until 0.4.0 final, `latest` on npm stays on 0.3.x for `@nexusdi/core`, so `npm install @nexusdi/core` installs 0.3. The 0.4 release candidates publish under the `next` dist-tag ([How do I try the 0.4 release candidate?](/release-candidate/)). A fix to 0.3 in this period is released from `main` as a 0.3 patch under `latest`.
+Until 0.4.0 final is released, the `latest` tag on npm continues to point to the 0.3.x line. Any critical fixes for 0.3 during this period are released as patches under the `latest` tag.
 
-## NexusDI 0.3 after 0.4.0 final
+## Support After 0.4.0 Final
 
-At 0.4.0 final, `latest` moves to 0.4.0, and a `0.3.x` branch holds the 0.3 line. That branch receives fixes for security issues and for defects that crash the program or lose data. It receives only those fixes. Each 0.3 patch publishes under the npm dist-tag `release-0.3`, so `npm install @nexusdi/core@release-0.3` installs the newest one, and `latest` stays on 0.4.
+Once 0.4.0 is officially released, the 0.3 line moves to a dedicated maintenance branch.
 
-## End of NexusDI 0.3 support
+- **Fix Scope:** The 0.3 branch receives fixes only for security vulnerabilities and critical defects that cause the program to crash or lose data.
+- **Installation:** You can install the newest 0.3 patch using the `release-0.3` dist-tag:
+  ```bash
+  npm install @nexusdi/core@release-0.3
+  ```
 
-The 0.3 line receives fixes until six months after 0.4.0 final, or until 0.5.0 is released, whichever is later. After that, 0.3 receives nothing. The 0.3 documentation stays at `/v0.3/` for the same period.
+## End of Life (EOL)
 
-When 0.4.0 final is released, this page names the date of 0.4.0 final and the date six months later. It also says whether 0.5.0 has been released.
+Support for the 0.3 line ends six months after the release of 0.4.0 final, or when 0.5.0 is released—whichever comes first.
+
+After this date, the 0.3 line receives no further updates, and the 0.3 documentation is archived. We strongly recommend upgrading to 0.4 before this deadline to ensure your project remains secure and compatible with modern TypeScript versions.

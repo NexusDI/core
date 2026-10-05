@@ -1,75 +1,45 @@
 ---
-title: How do I try the 0.4 release candidate?
-kind: question
-description: Install NexusDI 0.4 release candidates from the npm next dist-tag, check the installed version, and report problems before 0.4.0 final.
+title: Trying the 0.4 Release Candidate
+kind: guide
+description: How to install and test the NexusDI 0.4 RC and report bugs before the final release.
 ---
 
-# How do I try the 0.4 release candidate?
+# Trying the 0.4 Release Candidate
 
-Install every `@nexusdi/*` package from the npm `next` dist-tag: `npm install @nexusdi/core@next`. NexusDI 0.4 is published as release candidates, versioned `0.4.0-rc.0`, `0.4.0-rc.1` and onward, so that 0.3 users and new users can run it and report problems before 0.4.0 final.
+NexusDI 0.4 introduces major changes to the container's architecture, moving toward static graph validation. To ensure stability, the 0.4 release is published as a series of Release Candidates (RCs) before the final 0.4.0 version is released.
 
-## What a NexusDI release candidate is
+## What is a Release Candidate?
 
-A NexusDI release candidate is a version published as a candidate for 0.4.0 final, so users can run it and report problems before final. Each RC is published under the npm dist-tag `next`. For `@nexusdi/core`, the `latest` dist-tag stays on 0.3.x until 0.4.0 final, so `npm install @nexusdi/core` keeps installing 0.3. A package that has never had a stable release, such as `@nexusdi/testing`, has its `latest` pointed at the newest RC as well.
+A Release Candidate is a version that is functionally complete but is being tested for final bugs. RCs are published under the npm `next` dist-tag.
 
-An RC may break the previous RC, and the release notes of each RC list every breaking change. For the move from 0.3, read the [upgrade guide](/upgrade/). Two conditions for 0.4.0 final are that four weeks have passed since the last RC with a breaking change, and that no issue labelled `rc-blocker` is open.
+While `latest` remains on the stable 0.3.x line, `next` points to the most recent RC. We encourage users to try the RC and report any issues to ensure the final release is as stable as possible.
 
-## Install the NexusDI release candidate
+## Installation
 
-Every `@nexusdi/*` package shares one version, and each package names the exact version of `@nexusdi/core` it needs as a peer dependency. Install each package you use from `next`, so the versions agree:
+All `@nexusdi/*` packages share the same version. To try the RC, install the core and any necessary plugins using the `next` tag:
 
 ```bash
 npm install @nexusdi/core@next
 npm install -D @nexusdi/testing@next @nexusdi/devtools@next
 ```
 
-A package installed without `@next` next to `@nexusdi/core@next` can resolve to a different version, and npm then reports the peer dependency mismatch.
+## Verifying Your Version
 
-Try it: run the commands in the project [Getting started](/getting-started/) sets up, then run the first ship from that page.
-
-## Check the installed NexusDI version
-
-`npm ls` prints the version each package resolved to, and `npm view` prints what each dist-tag points at:
+You can check which version of NexusDI you have installed using `npm ls`:
 
 ```bash
 npm ls @nexusdi/core
-npm view @nexusdi/core dist-tags
 ```
 
-The first command prints a line such as `@nexusdi/core@0.4.0-rc.0`. The second prints `latest` and `next`, and `next` names the newest RC.
+If you see a version like `0.4.0-rc.X`, you are running the release candidate.
 
-These pages are built from the 0.4 release branch, which can be ahead of the newest RC on npm. The notice at the top of each page names the version the page documents. When the notice names a version newer than the one `npm ls` prints, the page can describe a change that the next RC publishes.
+## Reporting Problems
 
-## Report a problem with the NexusDI release candidate
+If you encounter a bug or a regression in the RC, please report it via the [RC feedback form](https://github.com/NexusDI/core/issues/new?template=04-rc-feedback.yml).
 
-Post questions and general feedback in the "0.4 RC feedback" discussion under [GitHub Discussions](https://github.com/NexusDI/core/discussions). Report a bug with the [RC feedback form](https://github.com/NexusDI/core/issues/new?template=04-rc-feedback.yml), which asks for the items below. A maintainer labels each issue that must be fixed before final with `rc-blocker`.
+To help the maintainers fix the issue quickly, please include:
+1. The output of `npm ls @nexusdi/core` and `node --version`.
+2. The full error message, including the error code (e.g., `[NEXUS_MISSING_PROVIDER]`).
+3. A minimal reproduction program that triggers the failure.
 
-A report the maintainers can act on holds:
-
-1. The output of `npm ls @nexusdi/core` and of `node --version`.
-2. The error code and the whole message, which starts with the code.
-3. A minimal program that reproduces the problem.
-4. What you expected the program to do.
-
-The region below is a starting point for the program. It builds one module with the mistake, catches the error, and prints the code and every inner message. Replace the declarations with the smallest part of your app that fails.
-
-```ts file=examples/meridian/src/pages/release-candidate.md region=reproduction
-
-```
-
-Try it:
-
-1. Save the region as `repro.ts` and run `npx tsx repro.ts`. The first line is `NEXUS_BLUEPRINT_INVALID`, and the second is one inner message, `NEXUS_MISSING_PROVIDER`, with the link to the page for that code. `npx tsc --noEmit` reports no diagnostic, because the mistake is a missing provider that only the container sees.
-2. Add this class above `Engineering`, and add `provide(NAV_CHARTS, { useClass: StarCharts })` to `providers`:
-
-   ```ts no-run
-   class StarCharts implements INavCharts {
-     plot(to: string) {
-       return `course set for ${to}`;
-     }
-   }
-   ```
-
-   Run again. The module builds, so the program prints `null` and `[]`, and there is nothing to report.
-
-3. Delete the `provide(NAV_CHARTS, ...)` line again and run once more. The two lines from step 1 print again.
+The maintainers label critical bugs as `rc-blocker`. A bug with this label must be fixed before 0.4.0 final is released.
