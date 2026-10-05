@@ -3,88 +3,57 @@
 [![npm](https://img.shields.io/npm/v/@nexusdi/federation/next)](https://www.npmjs.com/package/@nexusdi/federation)
 [![license](https://img.shields.io/npm/l/@nexusdi/federation)](https://github.com/NexusDI/core/blob/main/LICENSE)
 
-Share NexusDI tokens between a micro-frontend shell and its remotes through versioned contracts.
+**Share dependency tokens across micro-frontend shells and remotes.**
 
-`federation()` is a plugin for [NexusDI](https://www.npmjs.com/package/@nexusdi/core) that binds every copy of a contract token to one provider. A shell and its remotes can each bundle the contracts package and still share one auth service.
+In a micro-frontend architecture, a "Shell" and its "Remotes" are often bundled separately. This typically means they each have their own copy of shared libraries, which leads to duplicate singleton instances (e.g., two different Auth services).
 
-- `defineContract({ key, version })` makes keyed, versioned tokens.
-- Every bundled copy of a contract token finds one provider.
-- A remote built against an older minor of the contract still binds.
-- Version checks follow the rule of npm's `^` range.
+`@nexusdi/federation` solves this by introducing **Versioned Contracts**. It allows different bundles to share a single provider for a token, provided they agree on the contract version.
 
-## Install
+## How it Works
 
-> 0.4 is a release candidate on the npm `next` tag. Install every @nexusdi package from `next` so their versions match. Without `@next`, npm installs core 0.3 and stops with a peer conflict.
+Instead of creating a standard `Token`, you define a `Contract`. A contract has a unique key and a semantic version.
+
+```ts
+const authContract = defineContract({ key: 'auth', version: '1.0.0' });
+const AUTH = authContract.token<IAuth>('Auth');
+```
+
+The `federation()` plugin ensures that every copy of this contract token across different bundles resolves to the same provider in the container.
+
+## Version Safety
+
+Federation isn't just about sharing; it's about safe sharing. NexusDI follows npm's `^` range rules for contract versions:
+- A remote built against version `1.1.0` can safely bind to a shell providing `1.2.0`.
+- A remote requiring `2.0.0` will fail to bind to a shell providing `1.0.0`, preventing runtime crashes due to breaking API changes.
+
+## Installation
 
 ```bash
 npm install @nexusdi/federation@next @nexusdi/core@next
 ```
 
-## Usage
-
-<!-- #region shared-token -->
+## Quick Example
 
 ```ts @import.meta.vitest
-import { Nexus, defineModule, provide, type Token } from '@nexusdi/core';
+import { Nexus, defineModule, provide } from '@nexusdi/core';
 import { defineContract, federation } from '@nexusdi/federation';
 
-interface IAuth {
-  user(): string;
-}
-class CrewAuth implements IAuth {
-  user = () => 'ada';
-}
-const shellBank = defineContract({ key: 'crew', version: '2.3.0' });
-const remoteBank = defineContract({ key: 'crew', version: '2.1.0' });
-const AUTH: Token<IAuth> = shellBank.token('Auth');
+const contract = defineContract({ key: 'crew', version: '1.0.0' });
+const AUTH = contract.token<IAuth>('Auth');
+
 const Shell = defineModule({
   name: 'Shell',
   providers: [provide(AUTH, { useClass: CrewAuth })],
 });
+
 await using shell = await Nexus.create(Shell, { plugins: [federation()] });
-shell.get(remoteBank.token<IAuth>('Auth')).user(); // -> 'ada'
+// Even if the token comes from a different bundle, it resolves to the same instance
+shell.get(AUTH).user(); 
 ```
-
-<!-- #endregion shared-token -->
-
-## Version checks
-
-<!-- #region version-check -->
-
-```ts @import.meta.vitest
-import { Nexus, defineModule, provide } from '@nexusdi/core';
-import type { BlueprintError } from '@nexusdi/core';
-import { defineContract, federation } from '@nexusdi/federation';
-interface IAuth {
-  user(): string;
-}
-const shell = defineContract({ key: 'crew', version: '2.3.0' });
-const newer = defineContract({ key: 'crew', version: '2.4.0' });
-class Transfers {
-  static deps = [newer.token<IAuth>('Auth')] as const;
-  constructor(readonly auth: IAuth) {}
-}
-const Shell = defineModule({
-  name: 'Shell',
-  providers: [
-    provide(shell.token<IAuth>('Auth'), { useValue: { user: () => 'ada' } }),
-    Transfers,
-  ],
-});
-const plugins = [federation()];
-const listed = (error: BlueprintError) => error.errors;
-const errors = await Nexus.create(Shell, { plugins }).then(() => [], listed);
-errors.map((error) => ({ ...error })); // -> [{ contract: 'crew/Auth', required: '2.4.0', provided: '2.3.0' }]
-```
-
-<!-- #endregion version-check -->
 
 ## Documentation
-
-- [Documentation](https://nexus.js.org/next/)
-- [Examples](https://github.com/NexusDI/core/tree/@nexusdi/core@0.4.0-rc.0/libs/federation/docs)
+- [Federation Guide](https://nexus.js.org/next/federation/)
 - [NexusDI on GitHub](https://github.com/NexusDI/core)
 
 ## License
-
 MIT
