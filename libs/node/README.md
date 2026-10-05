@@ -3,63 +3,54 @@
 [![npm](https://img.shields.io/npm/v/@nexusdi/node/next)](https://www.npmjs.com/package/@nexusdi/node)
 [![license](https://img.shields.io/npm/l/@nexusdi/node)](https://github.com/NexusDI/core/blob/main/LICENSE)
 
-Find the current request's NexusDI scope anywhere in a Node call chain, through AsyncLocalStorage.
+**Bind NexusDI scopes to the async context of Node.js requests.**
 
-`nodeScopes()` binds a [NexusDI](https://www.npmjs.com/package/@nexusdi/core) scope to the async context of a request. A logger or a repository deep in the call chain finds the request's scope with no extra parameter.
+In a server environment, you often need "request-scoped" dependencies—objects that are created when a request arrives and destroyed when the response is sent. 
 
-- `run(scope, fn)` makes `scope` current for everything `fn` awaits.
-- `current()` returns that scope, or `undefined` outside a run.
-- One `nodeScopes()` serves every container in the process.
-- Core imports no `node:` module; this package holds the Node-only part.
+`@nexusdi/node` provides the infrastructure to handle this without having to manually pass a scope object through every function in your call chain. It leverages Node's `AsyncLocalStorage` to make the current scope available anywhere in the asynchronous execution path.
 
-## Install
+## Core Features
 
-> 0.4 is a release candidate on the npm `next` tag. Install every @nexusdi package from `next` so their versions match. Without `@next`, npm installs core 0.3 and stops with a peer conflict.
+- **Automatic Context Tracking:** Use `scopes.run()` to bind a scope to the current async context.
+- **Transparent Access:** Retrieve the active scope anywhere using `scopes.current()`.
+- **Lean Core:** This package contains all Node-specific logic, keeping `@nexusdi/core` platform-agnostic.
+
+## Installation
 
 ```bash
 npm install @nexusdi/node@next @nexusdi/core@next
 ```
 
-## Usage
-
-<!-- #region current-scope -->
+## Quick Example
 
 ```ts @import.meta.vitest
 import { Nexus, Token, provide } from '@nexusdi/core';
 import { nodeScopes } from '@nexusdi/node';
 
-interface IShipLog {
-  readonly lines: string[];
-}
-class ShipLog implements IShipLog {
-  readonly lines: string[] = [];
-}
+interface IShipLog { readonly lines: string[]; }
+class ShipLog implements IShipLog { readonly lines: string[] = []; }
 const SHIP_LOG = new Token<IShipLog>('ShipLog');
 const scopes = nodeScopes();
 
-// Deep in the call chain, with no scope parameter.
+// This function is called deep in the app logic, with no scope parameter.
 async function record(line: string) {
-  await Promise.resolve();
+  await Promise.resolve(); // Simulate async work
   scopes.current()?.get(SHIP_LOG).lines.push(line);
 }
 
 await using ship = await Nexus.create([
   provide(SHIP_LOG, { useClass: ShipLog, lifetime: 'scoped' }),
 ]);
+
 await using shuttle = await ship.createScope();
 await scopes.run(shuttle, () => record('survey-7 launched'));
-shuttle.get(SHIP_LOG).lines; // -> ['survey-7 launched']
-scopes.current(); // -> undefined
+
+console.log(shuttle.get(SHIP_LOG).lines); // -> ['survey-7 launched']
 ```
 
-<!-- #endregion current-scope -->
-
 ## Documentation
-
-- [Documentation](https://nexus.js.org/next/)
-- [Examples](https://github.com/NexusDI/core/tree/@nexusdi/core@0.4.0-rc.0/libs/node/docs)
+- [Scopes and REQUEST Guide](https://nexus.js.org/next/scopes/)
 - [NexusDI on GitHub](https://github.com/NexusDI/core)
 
 ## License
-
 MIT

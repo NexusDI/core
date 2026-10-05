@@ -3,54 +3,50 @@
 [![npm](https://img.shields.io/npm/v/@nexusdi/cli/next)](https://www.npmjs.com/package/@nexusdi/cli)
 [![license](https://img.shields.io/npm/l/@nexusdi/cli)](https://github.com/NexusDI/core/blob/main/LICENSE)
 
-Draw a NexusDI app's dependency graph from the terminal as Mermaid, DOT, JSON, SVG or PNG.
+**Visualize your dependency graph from the terminal.**
 
-`nexusdi graph` reads the file that defines your [NexusDI](https://www.npmjs.com/package/@nexusdi/core) root module and checks the graph without building it. Put the picture in a pull request, and let CI fail when a provider goes missing.
+The `@nexusdi/cli` tool allows you to export your application's dependency tree as a visual diagram or a structured JSON file. This is invaluable for auditing your architecture, detecting unintended dependencies, and documenting your system.
 
-- No constructor runs: `Nexus.check` compiles the graph only.
-- A `.ts` entry loads through tsx or Node's type stripping.
-- Exits 1 on an invalid graph, so CI can gate on it.
-- Draws the providers view or the modules view.
+## Core Capabilities
 
-<img src="https://raw.githubusercontent.com/NexusDI/core/refs/tags/@nexusdi/core@0.4.0-rc.0/libs/devtools/assets/graph.svg" alt="NexusDI graph of the Meridian app: in Bridge, Helm depends on ShipLog and on ShipComputer, which Engineering exports; ShipComputer depends on Reactor and the NavCharts factory." width="720">
+- **Zero-Execution Analysis:** The CLI uses `Nexus.check` to analyze your graph without actually instantiating any classes. No constructors run, and no side effects occur.
+- **Multiple Formats:** Export your graph as Mermaid, DOT, JSON, SVG, or PNG.
+- **CI-Ready:** The command exits with code `1` if the graph is invalid, making it a perfect gate for your CI/CD pipeline.
 
-## Install
-
-> 0.4 is a release candidate on the npm `next` tag. Install every @nexusdi package from `next` so their versions match. Without `@next`, npm installs core 0.3 and stops with a peer conflict.
+## Installation
 
 ```bash
 npm install -D @nexusdi/cli@next @nexusdi/devtools@next @nexusdi/core@next
 ```
 
-SVG needs `@viz-js/viz`, PNG also needs `@resvg/resvg-js`, and a `.ts` entry on Node before 22.18 needs `tsx`.
-
 ## Usage
+
+To draw the graph of your root module:
 
 ```bash
 npx nexusdi graph src/app.module.ts#AppModule
-npx nexusdi graph src/app.module.ts#AppModule -o graph.svg
-npx nexusdi graph src/app.module.ts#AppModule --view modules
+```
+
+### Common Options
+
+| Flag | Purpose | Example |
+| :--- | :--- | :--- |
+| `-f, --format` | Choose output format (`svg`, `png`, `json`, etc.) | `-f svg` |
+| `-o, --out` | Save the output to a file | `-o graph.svg` |
+| `--view` | Switch between `providers` or `modules` view | `--view modules` |
+| `--load` | Simulate loading a module at runtime | `--load src/feature.ts#Feature` |
+
+## Integration Example
+
+Add this to your CI pipeline to prevent broken wiring from being merged:
+
+```bash
 npx nexusdi graph src/app.module.ts#AppModule -f json -o graph.json
 ```
 
-Every command exits 1 when the graph is invalid. The last one also saves the graph as JSON for the CI job to keep.
-
-## Options
-
-| Option                    | Meaning                                                                                      |
-| ------------------------- | -------------------------------------------------------------------------------------------- |
-| `-f, --format <format>`   | `mermaid`, `dot`, `json`, `svg` or `png`. Default: from `--out`'s extension, else `mermaid`. |
-| `-o, --out <file>`        | Write to a file. Default: stdout.                                                            |
-| `--view <view>`           | `providers` (grouped by module) or `modules` (the import graph). Default: `providers`.       |
-| `--load <path#export>`    | A module to compile after the root, as `load()` would. Repeatable.                           |
-| `--plugins <path#export>` | An exported array of plugins, such as `[federation()]`.                                      |
-
 ## Documentation
-
-- [Documentation](https://nexus.js.org/next/)
-- [Examples](https://github.com/NexusDI/core/tree/@nexusdi/core@0.4.0-rc.0/libs/cli/docs)
+- [Graph CLI Guide](https://nexus.js.org/next/graph-cli/)
 - [NexusDI on GitHub](https://github.com/NexusDI/core)
 
 ## License
-
 MIT

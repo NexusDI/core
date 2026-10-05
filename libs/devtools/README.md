@@ -3,87 +3,50 @@
 [![npm](https://img.shields.io/npm/v/@nexusdi/devtools/next)](https://www.npmjs.com/package/@nexusdi/devtools)
 [![license](https://img.shields.io/npm/l/@nexusdi/devtools)](https://github.com/NexusDI/core/blob/main/LICENSE)
 
-Draw your NexusDI module graph and follow every instance the container builds.
+**Introspect and trace your NexusDI container.**
 
-`devtools()` is a plugin for [NexusDI](https://www.npmjs.com/package/@nexusdi/core) that returns the compiled module graph and adds a fix line to each error. Register it in development to see which module provides each token and what the container built.
+`@nexusdi/devtools` is a development-only plugin that provides deep visibility into the internal state of your container. It allows you to see exactly how your dependencies are wired and how they are instantiated.
 
-- `graph()` returns the module graph as plain JSON.
-- `toMermaid()` and `toDot()` turn it into Mermaid or DOT text.
-- `inspect()` compiles a module graph and builds nothing.
-- `trace()` reports each lifecycle event as it happens.
+## Key Capabilities
 
-<img src="https://raw.githubusercontent.com/NexusDI/core/refs/tags/@nexusdi/core@0.4.0-rc.0/libs/devtools/assets/graph.svg" alt="NexusDI graph of the Meridian app: in Bridge, Helm depends on ShipLog and on ShipComputer, which Engineering exports; ShipComputer depends on Reactor and the NavCharts factory." width="720">
+### 1. Graph Introspection
+Retrieve the entire compiled module graph as JSON. You can use this to build visual diagrams or to programmatically verify your architecture.
 
-Drawn with `npx nexusdi graph src/app.module.ts#AppModule -o graph.svg` from [@nexusdi/cli](https://www.npmjs.com/package/@nexusdi/cli).
+### 2. Lifecycle Tracing
+Observe every event in the container's lifecycle in real-time. You can track:
+- When a provider is constructed.
+- When a singleton's `onInit` completes.
+- When a scope is created or disposed.
+- The exact order of instance disposal.
 
-## Install
+### 3. Error Formatting
+Includes the `@nexusdi/errors` engine to provide human-readable fix suggestions for wiring mistakes.
 
-> 0.4 is a release candidate on the npm `next` tag. Install every @nexusdi package from `next` so their versions match. Without `@next`, npm installs core 0.3 and stops with a peer conflict.
+## Installation
 
 ```bash
-npm install @nexusdi/devtools@next @nexusdi/core@next
+npm install -D @nexusdi/devtools@next @nexusdi/core@next
 ```
 
-## Usage
-
-<!-- #region devtools -->
+## Quick Example
 
 ```ts @import.meta.vitest
 import { Nexus, Token, defineModule, provide } from '@nexusdi/core';
 import { devtools, graph, toMermaid } from '@nexusdi/devtools';
 
-interface INavCharts {
-  plot(to: string): string;
-}
-const NAV_CHARTS = new Token<INavCharts>('NavCharts');
-class StarCharts implements INavCharts {
-  plot = (to: string) => `course to ${to}`;
-}
+const NAV_CHARTS = new Token<any>('NavCharts');
 const Navigation = defineModule({
   name: 'Navigation',
-  providers: [provide(NAV_CHARTS, { useClass: StarCharts })],
+  providers: [provide(NAV_CHARTS, { useClass: class StarCharts { plot = (to) => `to ${to}` } })],
 });
 
 await using ship = await Nexus.create(Navigation, { plugins: [devtools()] });
-toMermaid(graph(ship)).trim().split('\n'); // -> ['flowchart LR', '  subgraph m0["Navigation"]', '    p0["NavCharts<br/>StarCharts"]', '  end']
+console.log(toMermaid(graph(ship)));
 ```
-
-<!-- #endregion devtools -->
-
-## Trace
-
-`trace(fn)` is a plugin that passes every lifecycle event to `fn`.
-
-<!-- #region trace -->
-
-```ts @import.meta.vitest
-import { Nexus, Token, provide } from '@nexusdi/core';
-import { trace, type TraceEvent } from '@nexusdi/devtools';
-
-interface IReactor {
-  readonly output: number;
-}
-const REACTOR = new Token<IReactor>('Reactor');
-class FusionReactor implements IReactor {
-  readonly output = 42;
-}
-const events: TraceEvent[] = [];
-const plugins = [trace((event) => events.push(event))];
-await using ship = await Nexus.create(
-  [provide(REACTOR, { useClass: FusionReactor })],
-  { plugins },
-);
-events.map((event) => event.type); // -> ['compile', 'construct']
-```
-
-<!-- #endregion trace -->
 
 ## Documentation
-
-- [Documentation](https://nexus.js.org/next/)
-- [Examples](https://github.com/NexusDI/core/tree/@nexusdi/core@0.4.0-rc.0/libs/devtools/docs)
+- [Introspection Guide](https://nexus.js.org/next/introspection/)
 - [NexusDI on GitHub](https://github.com/NexusDI/core)
 
 ## License
-
 MIT
