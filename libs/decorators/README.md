@@ -3,35 +3,39 @@
 [![npm](https://img.shields.io/npm/v/@nexusdi/decorators/next)](https://www.npmjs.com/package/@nexusdi/decorators)
 [![license](https://img.shields.io/npm/l/@nexusdi/decorators)](https://github.com/NexusDI/core/blob/main/LICENSE)
 
-NestJS-style @Injectable, @Inject and @Module for NexusDI, with standard decorators and no compiler flags.
+**Declarative dependency injection for NexusDI.**
 
-`@nexusdi/decorators` lets [NexusDI](https://www.npmjs.com/package/@nexusdi/core) classes and modules declare their dependencies the way NestJS code does. Teams moving from NestJS keep the class shapes they know, and need no `experimentalDecorators`.
+`@nexusdi/decorators` provides a high-level, declarative syntax for defining dependencies and modules, mirroring the style of NestJS while remaining compatible with standard TypeScript decorators.
 
-- `@Injectable({ deps })` lists a constructor's tokens.
-- `@Inject(TOKEN)` fills an `accessor` field.
-- `@Module({ providers, exports })` turns a class into a module.
-- Runs under tsc, TypeScript 7, esbuild, SWC, Babel, Bun, Deno and Vite with its Babel plugin.
-- Plain Vite and Node's type stripping cannot run these decorators.
+## Why use decorators?
 
-## Install
+If you are migrating from NestJS or simply prefer a more visual way to declare dependencies, decorators remove the need for manual `static deps` arrays and `defineModule` calls.
 
-> 0.4 is a release candidate on the npm `next` tag. Install every @nexusdi package from `next` so their versions match. Without `@next`, npm installs core 0.3 and stops with a peer conflict.
+- **`@Injectable({ deps })`**: Declares a class's constructor dependencies.
+- **`@Inject(TOKEN)`**: Injects a dependency into a class `accessor` field.
+- **`@Module({ ... })`**: Turns a class into a NexusDI module.
+
+## Key Advantage: No Compiler Flags
+
+Unlike traditional metadata-based DI, `@nexusdi/decorators` are standard TC39 decorators. They do **not** require `experimentalDecorators` or `emitDecoratorMetadata` in your `tsconfig.json`.
+
+This means your code works out-of-the-box with:
+- **Vite / esbuild / SWC**
+- **Bun / Deno**
+- **Node.js Type Stripping**
+
+## Installation
 
 ```bash
 npm install @nexusdi/decorators@next @nexusdi/core@next
 ```
 
-## Usage
-
-<!-- #region injectable -->
+## Quick Example
 
 ```ts @import.meta.vitest
 import { Nexus, Token, provide } from '@nexusdi/core';
 import { Injectable, Module } from '@nexusdi/decorators';
 
-interface IBridge {
-  readonly callsign: string;
-}
 const CALLSIGN = new Token<string>('Callsign');
 const BRIDGE = new Token<IBridge>('Bridge');
 
@@ -49,42 +53,12 @@ class Bridge implements IBridge {
 class Command {}
 
 await using ship = await Nexus.create(Command);
-ship.get(BRIDGE).callsign; // -> 'Meridian'
+console.log(ship.get(BRIDGE).callsign); // -> 'Meridian'
 ```
-
-<!-- #endregion injectable -->
-
-## Field injection
-
-<!-- #region inject -->
-
-```ts @import.meta.vitest
-import { Nexus, Token, provide } from '@nexusdi/core';
-import { Inject } from '@nexusdi/decorators';
-
-interface IHelm {
-  readonly callsign: string;
-}
-const CALLSIGN = new Token<string>('Callsign');
-const HELM = new Token<IHelm>('Helm');
-class Helm implements IHelm {
-  @Inject(CALLSIGN) accessor callsign!: string;
-}
-await using ship = await Nexus.create([
-  provide(CALLSIGN, { useValue: 'Meridian' }),
-  provide(HELM, { useClass: Helm }),
-]);
-ship.get(HELM).callsign; // -> 'Meridian'
-```
-
-<!-- #endregion inject -->
 
 ## Documentation
-
-- [Documentation](https://nexus.js.org/next/)
-- [Examples](https://github.com/NexusDI/core/tree/@nexusdi/core@0.4.0-rc.0/libs/decorators/docs)
+- [Decorators Guide](https://nexus.js.org/next/decorators/)
 - [NexusDI on GitHub](https://github.com/NexusDI/core)
 
 ## License
-
 MIT

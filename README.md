@@ -1,7 +1,7 @@
 <div align="center">
   <img src="https://raw.githubusercontent.com/NexusDI/core/main/logo.svg" alt="NexusDI" width="120" height="120" />
   <h1>NexusDI</h1>
-  <p>NestJS-style modules and async startup for any TypeScript app, checked before it runs, with no compiler flags.</p>
+  <p>Static graph validation for TypeScript dependency injection. Zero runtime surprises, zero compiler flags.</p>
 
 [![npm](https://img.shields.io/npm/v/@nexusdi/core/next)](https://www.npmjs.com/package/@nexusdi/core)
 [![CI](https://img.shields.io/github/actions/workflow/status/NexusDI/core/ci.yml)](https://github.com/NexusDI/core/actions/workflows/ci.yml)
@@ -10,77 +10,68 @@
 
 </div>
 
-NexusDI assembles a TypeScript app from modules that teams own and tests can replace. It validates the whole module graph before it builds anything, so a missing provider or a cycle fails at startup in one error. No runtime dependencies.
+Dependency injection is a cornerstone of scalable architecture, but it often introduces a dangerous blind spot: you don't know if your application is wired correctly until the code actually runs.
 
-## Quick start
+**NexusDI changes this.** It assembles your TypeScript application from modules and validates the entire dependency graph *before* a single class is instantiated. If a provider is missing or a circular reference exists, NexusDI reports every mistake in a single error at startup.
 
-A class lists the classes its constructor takes in `static deps`, and `Nexus.create` takes the classes.
+## Why NexusDI?
 
-<!-- #region quick-start -->
+- **Static Validation:** Catch wiring mistakes at boot, not at 3 AM in production.
+- **Async-First:** Async factories are resolved at startup, so your `get()` calls remain synchronous and predictable.
+- **No Compiler Flags:** Works out-of-the-box with `tsc`, esbuild, SWC, Vite, Bun, and Deno. No `emitDecoratorMetadata` required.
+- **Bounded Contexts:** Use modules with private providers and explicit exports to enforce architectural boundaries.
+- **Resource Safety:** Automatic, reverse-order disposal of all instances using `AsyncDisposable`.
+
+## Quick Start
+
+NexusDI uses a simple, type-safe pattern for dependencies. A class declares its needs in `static deps`, and the container handles the rest.
 
 ```ts @import.meta.vitest
 import { Nexus } from '@nexusdi/core';
 
 class Logger {
-  log(line: string) {
-    return `[app] ${line}`;
-  }
+  log(line: string) { return `[app] ${line}`; }
 }
+
 class UserService {
   static deps = [Logger] as const;
   constructor(readonly logger: Logger) {}
-  greet(name: string) {
-    return this.logger.log(`hello ${name}`);
-  }
+  greet(name: string) { return this.logger.log(`hello ${name}`); }
 }
 
 const app = await Nexus.create([Logger, UserService]);
 app.get(UserService).greet('Ada'); // -> '[app] hello Ada'
 ```
 
-<!-- #endregion quick-start -->
+## The Ecosystem
 
-## Features
+NexusDI is a modular system. Start with `@nexusdi/core` and add capabilities as you need them:
 
-- Modules with private providers, exports, `forRoot()` and `forRootAsync()`.
-- Class, value, factory and alias providers on typed `Token<T>` interfaces.
-- Async factories finish at startup, and `get()` stays synchronous.
-- One startup error lists every missing provider and cycle.
-- Request scopes, and disposal in reverse creation order.
-- Runs under tsc, TypeScript 7, esbuild, SWC, Babel, Vite, Bun, Deno and Node's type stripping.
+| Package | Purpose |
+| :--- | :--- |
+| [`@nexusdi/decorators`](libs/decorators/README.md) | NestJS-style `@Injectable` and `@Module` decorators. |
+| [`@nexusdi/devtools`](libs/devtools/README.md) | Graph visualization and lifecycle tracing. |
+| [`@nexusdi/interceptors`](libs/interceptors/README.md) | Cross-cutting concerns (logging, caching, validation). |
+| [`@nexusdi/node`](libs/node/README.md) | Request-scoped containers for Node.js servers. |
+| [`@nexusdi/testing`](libs/testing/README.md) | Type-safe provider overrides for integration tests. |
+| [`@nexusdi/federation`](libs/federation/README.md) | Versioned contracts for micro-frontend architectures. |
+| [`@nexusdi/cli`](libs/cli/README.md) | Export your dependency graph as SVG, PNG, or Mermaid. |
 
-## Install
+## Installation
 
-> 0.4 is a release candidate on the npm `next` tag. Install every @nexusdi package from `next` so their versions match. `npm install @nexusdi/core` without `@next` installs the 0.3 line.
+> 0.4 is currently in Release Candidate. Install using the `next` tag to get the latest features.
 
 ```bash
 npm install @nexusdi/core@next
 ```
 
-The package is ESM, and needs Node 22.12 or later and TypeScript 5.4 or later.
+The package is ESM and requires Node 22.12+ and TypeScript 5.4+.
 
-## Packages
+## Documentation & Community
 
-| Package                                              | What it does                                                                                               |
-| ---------------------------------------------------- | ---------------------------------------------------------------------------------------------------------- |
-| [@nexusdi/decorators](libs/decorators/README.md)     | NestJS-style @Injectable, @Inject and @Module for NexusDI, with standard decorators and no compiler flags. |
-| [@nexusdi/devtools](libs/devtools/README.md)         | Draw your NexusDI module graph and follow every instance the container builds.                             |
-| [@nexusdi/errors](libs/errors/README.md)             | Every NexusDI error explained, with the fix and the provider you probably meant.                           |
-| [@nexusdi/federation](libs/federation/README.md)     | Share NexusDI tokens between a micro-frontend shell and its remotes through versioned contracts.           |
-| [@nexusdi/interceptors](libs/interceptors/README.md) | Wrap NexusDI service methods with logging, metrics, validation or caching.                                 |
-| [@nexusdi/node](libs/node/README.md)                 | Find the current request's NexusDI scope anywhere in a Node call chain, through AsyncLocalStorage.         |
-| [@nexusdi/testing](libs/testing/README.md)           | Build your real NexusDI module graph in tests, with the providers you name replaced.                       |
-| [@nexusdi/cli](libs/cli/README.md)                   | Draw a NexusDI app's dependency graph from the terminal as Mermaid, DOT, JSON, SVG or PNG.                 |
-
-## Examples
-
-- [Core examples](libs/core/docs); every package keeps its examples in `libs/<package>/docs`
-- [React Router integration](examples/react-ssr/)
-
-## Contributing
-
-Read the [Contributing Guide](CONTRIBUTING.md) before you open a pull request. Questions and 0.4 RC feedback go to [GitHub Discussions](https://github.com/NexusDI/core/discussions).
+- [Full Documentation](https://nexus.js.org/next/)
+- [Examples](https://github.com/NexusDI/core/tree/@nexusdi/core@0.4.0-rc.0/libs/core/docs)
+- [GitHub Discussions](https://github.com/NexusDI/core/discussions)
 
 ## License
-
 MIT
