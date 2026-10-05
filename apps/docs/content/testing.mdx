@@ -1,92 +1,47 @@
 ---
-title: How do I replace a provider in a test?
-kind: question
-description: createTestingContainer from @nexusdi/testing builds the real NexusDI module graph with chosen providers or modules replaced.
+title: Testing and Overrides
+kind: concept
+description: Replace production providers with fakes or stubs to isolate your components during testing.
 ---
 
-# How do I replace a provider in a test?
+# Testing and Overrides
 
-`createTestingContainer(root)` from `@nexusdi/testing` builds the real module graph with replacements: call `override(TOKEN, definition)` for each provider to replace, then `create()`. The testing container runs the full NexusDI compiler, so the test resolves every provider production resolves, apart from the ones it replaces.
+Testing a component that depends on a complex system (like a database or a remote API) is difficult if you have to set up the entire production environment just to run a single test.
 
-```bash
-npm install -D @nexusdi/testing@next
-```
+NexusDI provides a specialized testing utility that allows you to build your real production graph but "swap out" specific providers for fakes.
 
-## Test one class without a NexusDI container
+## Unit Testing without the Container
 
-A unit test of one class needs no NexusDI container. `QuantumComputer` takes an `IReactorCore` in its constructor, so the test passes a fake reactor to the constructor and calls the method.
+For simple unit tests, you don't need a NexusDI container at all. Since your classes take their dependencies in the constructor, you can simply pass a fake object that implements the required interface.
 
 ```ts file=examples/meridian/src/pages/testing.md region=unit-test
-
 ```
 
-Try it: save the region as `unit.ts` and run `npx tsx unit.ts`. It prints `ShipComputer online. Reactor output 0.5 GW.` Change the fake's `output` to `0.7` and run it again, and the printed line follows the fake.
+## Integration Testing with `createTestingContainer`
 
-## Replace a provider with `override()` from `@nexusdi/testing`
-
-`override(REACTOR, { useClass: FakeReactor })` replaces every provider of `REACTOR` in the graph. `QuantumComputer` stays as it is and receives the fake through its `REACTOR` dependency, because its `deps` name the token. `override()` takes a `useClass` or `useValue` definition, typed as `provide()` types it. A `useFactory` definition with `deps` works as well. No form takes `useExisting`.
+When you need to test how a component interacts with the rest of the system, use `createTestingContainer`. This utility builds the real module graph but allows you to `override` specific tokens.
 
 ```ts file=examples/meridian/src/pages/testing.md region=override-reactor
-
 ```
 
-Try it:
+The testing container is a full NexusDI container. It runs the same compiler and validation checks as production. If your override introduces a missing dependency or a circular reference, `create()` will reject just as it would in the real app.
 
-1. Save the region as `override.ts` and run `npx tsx override.ts`. It prints `ShipComputer online. Reactor output 0.5 GW.`
-2. Delete the `.override(REACTOR, { useClass: FakeReactor })` line and run it again. It prints `ShipComputer online. Reactor output 1.21 GW.`, the real reactor's output.
-3. Put the line back. Then change `FakeReactor` in the `override()` call to a class that has no `output` property and run `npx tsc --noEmit`. `tsc` flags the `override()` line and reports that property `output` is missing in the class and required in `IReactorCore`. Change it back and the error goes away.
+## Overriding Modules
 
-## `createTestingContainer` checks every override
-
-The NexusDI compiler validates an override like any other provider, so a replacement that breaks the graph fails at `create()` exactly as it would in production. `ChartedReactor` depends on `NAV_CHARTS`, which no module provides, and `create()` rejects with [NEXUS_BLUEPRINT_INVALID](/errors/NEXUS_BLUEPRINT_INVALID/) holding [NEXUS_MISSING_PROVIDER](/errors/NEXUS_MISSING_PROVIDER/).
-
-```ts file=examples/meridian/src/pages/testing.md region=override-breaks-graph
-
-```
-
-Try it: run the region. It prints `[ 'NEXUS_MISSING_PROVIDER' ]`. Add `provide(NAV_CHARTS, { useValue: { plot: (to) => to } })` to the providers of `Engineering` and run it again. `ChartedReactor` now has its dependency, `create()` resolves, and the region prints `[]`.
-
-An override that matches no provider fails as well. `create()` rejects with `NEXUS_BLUEPRINT_INVALID` holding [NEXUS_OVERRIDE_UNUSED](/errors/NEXUS_OVERRIDE_UNUSED/), so a test never runs against a replacement that changes nothing.
-
-```ts file=examples/meridian/src/pages/testing.md region=override-unused
-
-```
-
-Try it: run the `override-unused` region and read the message it prints. Then add `provide(NAV_CHARTS, { useValue: fakeCharts })` to the providers of `Engineering` and run it again. The override now matches a provider, `create()` resolves, and the region prints `undefined` because there is no error to read.
-
-An `overrideModule()` for a module the graph never imports fails the same way: `create()` rejects with `NEXUS_BLUEPRINT_INVALID` holding `NEXUS_OVERRIDE_UNUSED`, and the message names the module, such as `override(Comms) matched no provider in the module graph.` Pass `{ lazy: true }` as the third argument and `create()` no longer reports it, because a later `ship.load()` may bring the module in.
-
-## Replace a module with `overrideModule()` from `@nexusdi/testing`
-
-`overrideModule(Comms, CommsStub)` puts `CommsStub` wherever the graph imports `Comms`, including every `forRoot()` and `forRootAsync()` instance of it. The stub must export every token the original exports. Pass `{ lazy: true }` as the third argument when a later `ship.load()` brings the module in.
+In some cases, you need to replace an entire set of providers. You can use `overrideModule` to replace one module with a stub module.
 
 ```ts file=examples/meridian/src/pages/testing.md region=override-module
-
 ```
 
-Try it: delete `exports: [SUBSPACE_LINK]` from `CommsStub` and run the region. `create()` rejects with `NEXUS_BLUEPRINT_INVALID` holding [NEXUS_OVERRIDE_EXPORTS](/errors/NEXUS_OVERRIDE_EXPORTS/). The region does not catch it, so the process ends with that error, and the inner message reads `the stub for Comms does not export SubspaceLink, which Comms exports.` Put the export back and the region prints `loopback hail`.
+The stub module must export every token that the original module exported; otherwise, the container will reject the startup process with a `NEXUS_OVERRIDE_EXPORTS` error.
 
-## An override from `@nexusdi/testing` keeps the lifetime
+## Advanced Testing Patterns
 
-An override keeps the lifetime of the binding it replaces, unless the override sets a `lifetime` of its own. `DRONE` is transient in `Tactical`, so `TrainingDrone` is transient as well, and two `get(DRONE)` calls return two drones.
+### Preserving Lifetimes
+By default, an override preserves the lifetime of the original provider. If a provider was transient in production, your fake will also be transient. You can override this by explicitly setting a `lifetime` in the override definition.
 
-```ts file=examples/meridian/src/pages/testing.md region=override-lifetime
-
-```
-
-Try it: run the region. It prints `true`. Change the override to `{ useClass: TrainingDrone, lifetime: 'singleton' }` and run it again. Both `get(DRONE)` calls now return one drone, and the region prints `false`. Remove the `lifetime` and it prints `true` again.
-
-## Share a base builder across tests with `createTestingContainer`
-
-The builder `createTestingContainer` returns is immutable. Each `override()` returns a new builder and leaves the one it was called on unchanged, so one base builder serves every test in a file. `create({ onInit: false })` builds the graph and skips every `onInit` hook, for a test that must not start what an `onInit` starts.
+### Shared Base Builders
+To avoid repeating the same overrides across multiple tests, you can create a base builder. Because the builder is immutable, you can derive specific test configurations from a single base without them interfering with each other.
 
 ```ts file=examples/meridian/src/pages/testing.md region=shared-builder
-
 ```
-
-Try it: run the region. It prints `0`, then `0.5`, then `1.21`. The first container skipped `onInit`, and the third, built from the same `base` that the second one overrode, got the real reactor. Add the statement `base.override(REACTOR, { useClass: FakeReactor });` before the third container, and the third line is still `1.21`: `override()` returns a new builder and leaves `base` as it was.
-
-<Notice kind="ship">
-  The simulator bay keeps one base configuration of the Meridian, and each drill
-  swaps in the parts it tests.
-</Notice>
