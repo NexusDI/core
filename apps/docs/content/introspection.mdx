@@ -1,80 +1,54 @@
 ---
-title: Introspection and trace
+title: Introspection and Tracing
 kind: concept
-description: The devtools() plugin from @nexusdi/devtools reports the graph a NexusDI container compiled and every lifecycle event it runs.
+description: Use the devtools plugin to visualize your dependency graph and trace the container's lifecycle in real-time.
 requires: [errors]
 ---
 
-# Introspection and trace
+# Introspection and Tracing
 
-`@nexusdi/devtools` shows what a NexusDI container compiled and what it did. `graph(ship)` and `inspect(root)` return the module graph as plain JSON, and `toMermaid()` and `toDot()` draw that graph as text. `trace(fn)` hands every lifecycle event to a callback. An error code from the previous page, such as `NEXUS_MISSING_PROVIDER`, also gets its full message from `devtools()`.
+When working with a large dependency graph, it can be difficult to visualize how providers are connected or to understand exactly when an instance is being created. 
 
-## Register `devtools()` in development
+The `@nexusdi/devtools` plugin provides "introspection" tools that allow you to inspect the compiled graph as data or trace the container's execution as a stream of events.
 
-`devtools()` is the NexusDI plugin that enables `graph(ship)` for a container and formats its errors with `@nexusdi/errors`. Register it in development only, so a production container carries neither the graph nor the message text. Install it as a dev dependency with `npm install -D @nexusdi/devtools@next`.
+## Enabling DevTools
+
+DevTools is a plugin that should be registered in your development environment. In production, it is typically omitted to keep the bundle size minimal and prevent leaking internal architectural details.
 
 ```ts file=examples/meridian/src/pages/introspection.md region=register
-
 ```
 
-Try it: save the region as `dev.ts` and run `npx tsx dev.ts`. It prints `1.21`. Run it again with `NODE_ENV=production npx tsx dev.ts`: it prints `1.21` again, because the container works the same with no plugin registered. Calling `graph(ship)` in that second run would throw, which the next section shows.
+## Visualizing the Graph with `graph()`
 
-## Read a NexusDI container's graph with `graph()`
+The `graph(ship)` function returns the entire compiled dependency graph as a structured JSON object. This graph contains three key arrays:
 
-`graph(ship)` returns the graph a NexusDI container compiled, as plain JSON with three arrays. `modules` holds each module's `name`, whether it is `global`, and its `imports` and `exports`. `providers` holds each provider's `token` (the token's description or the class name), its `module`, `lifetime`, `kind` (`class`, `value`, `factory` or `alias`), `eager`, `async`, the annotators' `notes`, the `implementation` class name and `internal`. `edges` holds each dependency with its `kind`: `required`, `optional`, `lazy`, `all` or `alias`.
+- **Modules:** The names and visibility (global/private) of every module.
+- **Providers:** Details on every provider, including its token, lifetime (singleton/transient), and whether it is eager or async.
+- **Edges:** Every dependency link between providers, labeled by type (required, optional, lazy).
 
 ```ts file=examples/meridian/src/pages/introspection.md region=graph
-
 ```
 
-`graph()` throws [NEXUS_DEVTOOLS_UNREGISTERED](/errors/NEXUS_DEVTOOLS_UNREGISTERED/) for a container created without `devtools()`. Ids such as `p0` are stable for one set of definitions; compare them as whole strings. A provider with `internal: true`, such as core's `REQUEST`, is an internal provider that every graph lists.
+You can also use `toMermaid()` or `toDot()` to convert this JSON graph into text that can be rendered as a visual diagram using Mermaid.js or Graphviz.
 
-Try it: save the region as `graph.ts` and run it. It prints the module names `[ 'Meridian', 'Engineering' ]`, the `ShipComputer` provider with `lifetime: 'singleton'`, `kind: 'class'` and `implementation: 'QuantumComputer'`, and `[ 'required' ]` for the one edge. Change `{ plugins: [devtools()] }` to `{ plugins: [] }` and run it again: `graph(ship)` throws `DevtoolsError: [NEXUS_DEVTOOLS_UNREGISTERED]`, and its message ends with the fix, `Nexus.create(Root, { plugins: [devtools()] })`. Put `devtools()` back and the first output returns.
+## Real-time Tracing with `trace()`
 
-## Follow a NexusDI container with `trace()`
-
-`trace(fn)` is a NexusDI plugin that calls `fn` with every lifecycle event as it happens. `devtools({ trace: fn })` registers the same callback. Each event has a `type`:
-
-| `type`             | When NexusDI emits it                                       |
-| ------------------ | ----------------------------------------------------------- |
-| `compile`          | once per compile, at `create`, `load` or `Nexus.check`      |
-| `construct`        | for each instance built, with its token, lifetime and scope |
-| `init`             | for each singleton whose `onInit` finished                  |
-| `untracked`        | for a disposable instance that no container or scope owns   |
-| `scope:create`     | when `createScope()` finished building its scoped factories |
-| `scope:extend`     | when `scope.extend()` built what a later `load()` added     |
-| `scope:dispose`    | when a scope finished disposing                             |
-| `dispose:instance` | for each instance disposed, in disposal order               |
-| `dispose`          | when the container finished disposing                       |
+While the graph shows the *structure*, tracing shows the *behavior*. By passing a callback to the `trace` option of the devtools plugin, you can observe every lifecycle event as it happens.
 
 ```ts file=examples/meridian/src/pages/introspection.md region=trace
-
 ```
 
-The computer has an `onInit`, so one `init` event follows the two `construct` events. Only the reactor has a disposer, so one `dispose:instance` event comes before `dispose`.
+Common events include:
+- `construct`: When a new instance is built.
+- `init`: When a singleton's `onInit` method completes.
+- `scope:create` / `scope:dispose`: When child containers are created or destroyed.
+- `dispose:instance`: When a specific instance is cleaned up.
 
-Try it: save the region as `trace.ts` and run it. It prints the eight events' types in the order `compile`, `construct`, `construct`, `init`, `scope:create`, `scope:dispose`, `dispose:instance`, `dispose`. Add `[Symbol.dispose]() {}` to `QuantumComputer` and run it again: a second `dispose:instance` appears before `dispose`, and the computer's comes first, because NexusDI disposes in reverse order of construction. Delete that line and the list has one `dispose:instance` again.
+## Handling Minification
 
-## Check a graph with `inspect()` and draw it with `toMermaid()`
+In production, minifiers often rename classes to single letters (e.g., `FusionReactor` becomes `t`). This can make error messages and graphs unreadable.
 
-`inspect(root)` compiles a NexusDI graph with `Nexus.check` and builds nothing, so no constructor runs. It takes the root forms `Nexus.create` takes and returns the same JSON as `graph()`, with every provider's `async` set to `null`, since nothing ran. It throws the `BlueprintError` that `Nexus.check` throws. `toMermaid(graph)` and `toDot(graph)` draw a graph as Mermaid or Graphviz DOT text. Neither imports a Node module, so both run in a browser too.
-
-```ts file=examples/meridian/src/pages/introspection.md region=inspect
-
-```
-
-The `nexusdi graph` command draws the same text, plus SVG and PNG, from a shell: [How do I draw my app's dependency graph?](/graph-cli/)
-
-Try it: save the region as `draw.ts` and run it. It prints `0` for the constructors that ran, then the Mermaid text, which starts with `flowchart LR`, and the DOT text, which starts with `digraph nexus {`. Paste the Mermaid text into a Mermaid code block on GitHub to see the drawing. Pass `{ view: 'modules' }` as the second argument of `toMermaid` and run it again: the Mermaid text becomes `Meridian<br/>0 providers` and `Engineering<br/>2 providers` joined by one arrow, the module import. Remove the argument and the provider drawing returns.
-
-## Display names after minification
-
-NexusDI names a provider in errors, in `graph()` and in trace events by its token: the description of a `Token<T>`, or the name of a class used as its own token. A minifier renames classes, so a production bundle can show `t` where the source says `FusionReactor`. Give every token a description, as the interface-first examples do, or configure the bundler to keep class names (`keepNames` in esbuild).
+To prevent this, you should always provide a human-readable description when creating a `Token<T>`. NexusDI uses this description for all introspection and error reporting, ensuring that your logs remain meaningful regardless of minification.
 
 ```ts file=examples/meridian/src/pages/introspection.md region=minified-names
-
 ```
-
-The provider bound to `REACTOR` keeps the name `ReactorCore` whatever the class is called. The class registered as its own token shows the minified name.
-
-Try it: save the region as `names.ts` and run it. It prints `[ 'ReactorCore', 't' ]`. Rename the class constant `t` to `FusionReactor` in its declaration and in both places the providers list uses it, and run it again: it prints `[ 'ReactorCore', 'FusionReactor' ]`, so the second name follows the class and the first stays `ReactorCore`. Rename the constant back to `t` and the second name is `t` again.
