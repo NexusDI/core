@@ -5,15 +5,15 @@
 
 **Human-readable diagnostics for NexusDI wiring errors.**
 
-By default, NexusDI provides concise error codes (e.g., `[NEXUS_MISSING_PROVIDER]`). While useful for machines, these can be cryptic for developers.
+By default, NexusDI reports each wiring error with a short code. The code suits machines and reads as cryptic to developers.
 
-`@nexusdi/errors` is a plugin that transforms these codes into detailed, human-readable messages that explain exactly what went wrong and how to fix it.
+`@nexusdi/errors` is a plugin that turns these codes into detailed, human-readable messages that explain exactly what went wrong and how to fix it.
 
 ## Why use this plugin?
 
 When a container fails to start, the `errors()` plugin provides:
 
-- **Detailed Explanations:** Instead of just a code, you get a sentence explaining the missing dependency.
+- **Detailed Explanations:** You get a sentence, not only a code, explaining the missing dependency.
 - **Actionable Fixes:** Every error includes a `Fix:` line that tells you exactly which export or import to add.
 - **Near-Miss Analysis:** If a token is provided in another module but not exported, the plugin tells you exactly where it is found.
 

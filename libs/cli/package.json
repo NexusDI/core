@@ -1,7 +1,7 @@
 {
   "name": "@nexusdi/cli",
   "version": "0.4.0-rc.0",
-  "description": "Draw a NexusDI app's dependency graph from the terminal as Mermaid, DOT, JSON, SVG or PNG.",
+  "description": "Visualize your dependency graph from the terminal.",
   "keywords": [
     "nexusdi",
     "dependency injection",

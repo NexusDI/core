@@ -38,20 +38,20 @@ npm install @nexusdi/devtools@next @nexusdi/core@next
 import { Nexus, Token, defineModule, provide } from '@nexusdi/core';
 import { devtools, graph, toMermaid } from '@nexusdi/devtools';
 
-const NAV_CHARTS = new Token<any>('NavCharts');
+interface INavCharts {
+  plot(to: string): string;
+}
+class StarCharts implements INavCharts {
+  plot = (to: string) => `course to ${to}`;
+}
+const NAV_CHARTS = new Token<INavCharts>('NavCharts');
 const Navigation = defineModule({
   name: 'Navigation',
-  providers: [
-    provide(NAV_CHARTS, {
-      useClass: class StarCharts {
-        plot = (to) => `to ${to}`;
-      },
-    }),
-  ],
+  providers: [provide(NAV_CHARTS, { useClass: StarCharts })],
 });
 
 await using ship = await Nexus.create(Navigation, { plugins: [devtools()] });
-console.log(toMermaid(graph(ship)));
+toMermaid(graph(ship)).split('\n')[0]; // -> 'flowchart LR'
 ```
 
 ## Documentation

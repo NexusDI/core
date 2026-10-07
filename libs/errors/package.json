@@ -1,7 +1,7 @@
 {
   "name": "@nexusdi/errors",
   "version": "0.4.0-rc.0",
-  "description": "Every NexusDI error explained, with the fix and the provider you probably meant.",
+  "description": "Human-readable diagnostics for NexusDI wiring errors.",
   "keywords": [
     "nexusdi",
     "dependency injection",

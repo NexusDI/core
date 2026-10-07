@@ -1,7 +1,7 @@
 {
   "name": "@nexusdi/decorators",
   "version": "0.4.0-rc.0",
-  "description": "NestJS-style @Injectable, @Inject and @Module for NexusDI, with standard decorators and no compiler flags.",
+  "description": "Declarative dependency injection for NexusDI.",
   "keywords": [
     "nexusdi",
     "dependency injection",
