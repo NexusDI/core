@@ -1,7 +1,7 @@
 {
   "name": "@nexusdi/interceptors",
   "version": "0.4.0-rc.0",
-  "description": "Wrap NexusDI service methods with logging, metrics, validation or caching.",
+  "description": "Run cross-cutting logic around your service methods.",
   "keywords": [
     "nexusdi",
     "dependency injection",

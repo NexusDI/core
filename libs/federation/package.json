@@ -1,7 +1,7 @@
 {
   "name": "@nexusdi/federation",
   "version": "0.4.0-rc.0",
-  "description": "Share NexusDI tokens between a micro-frontend shell and its remotes through versioned contracts.",
+  "description": "Share dependency tokens across micro-frontend shells and remotes.",
   "keywords": [
     "nexusdi",
     "dependency injection",

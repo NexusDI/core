@@ -1,7 +1,7 @@
 {
   "name": "@nexusdi/core",
   "version": "0.4.0-rc.0",
-  "description": "NestJS-style modules and async startup for any TypeScript app, checked before it runs, with no compiler flags.",
+  "description": "The static-validation DI container for TypeScript.",
   "keywords": [
     "nexusdi",
     "dependency injection",

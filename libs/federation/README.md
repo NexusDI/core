@@ -11,15 +11,28 @@ In a micro-frontend architecture, a "Shell" and its "Remotes" are often bundled 
 
 ## How it Works
 
-Instead of creating a standard `Token`, you define a `Contract`. A contract has a unique key and a semantic version.
+You define a `Contract` where you would otherwise create a standard `Token`. A contract has a unique key and a semantic version.
 
-```ts
+```ts @import.meta.vitest
+import { Nexus, defineModule, provide } from '@nexusdi/core';
+import { defineContract, federation } from '@nexusdi/federation';
+
 interface IAuth {
   user(): string;
+}
+class CrewAuth implements IAuth {
+  user = () => 'ada';
 }
 
 const authContract = defineContract({ key: 'auth', version: '1.0.0' });
 const AUTH = authContract.token<IAuth>('Auth');
+const Shell = defineModule({
+  name: 'Shell',
+  providers: [provide(AUTH, { useClass: CrewAuth })],
+});
+
+await using shell = await Nexus.create(Shell, { plugins: [federation()] });
+shell.get(AUTH).user(); // -> 'ada'
 ```
 
 The `federation()` plugin ensures that every copy of this contract token across different bundles resolves to the same provider in the container.
