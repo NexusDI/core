@@ -20,6 +20,7 @@ The most common way to provide a dependency is by using a class. In NexusDI, a c
 To make a class "injectable," you define its constructor dependencies in a `static deps` array. This allows NexusDI to know exactly what to inject without needing runtime reflection.
 
 ```ts file=examples/meridian/src/pages/providers.md region=static-deps
+
 ```
 
 By declaring `static deps`, TypeScript can verify that the tokens you've listed actually match the types expected by the constructor.
@@ -31,6 +32,7 @@ If you forget to declare `static deps` for a class with constructor parameters, 
 If you are using a class from a third-party library, you cannot add `static deps` to its source code. In this case, you provide the dependencies explicitly within the `provide()` call:
 
 ```ts file=examples/meridian/src/pages/providers.md region=explicit-deps
+
 ```
 
 ## Advanced Provider Types
@@ -42,6 +44,7 @@ Sometimes a simple class instantiation isn't enough. NexusDI provides several ot
 Factories are used when the creation logic is complex or requires asynchronous setup. A factory is simply a function that returns the value for the token.
 
 ```ts file=examples/meridian/src/pages/providers.md region=factories
+
 ```
 
 Factories can be `async`. NexusDI awaits all async factories during the startup phase, meaning that by the time your app is "online," every dependency is already resolved and `get()` remains synchronous.
@@ -51,6 +54,7 @@ Factories can be `async`. NexusDI awaits all async factories during the startup 
 You may want multiple tokens to resolve to the same single instance. `useExisting` creates an alias, pointing one token to another.
 
 ```ts file=examples/meridian/src/pages/providers.md region=alias
+
 ```
 
 ### Optional Dependencies
@@ -58,6 +62,7 @@ You may want multiple tokens to resolve to the same single instance. `useExistin
 Not every dependency is required for a component to function. By wrapping a token in `optional()`, you tell NexusDI that it's okay if no provider exists for that token.
 
 ```ts file=examples/meridian/src/pages/providers.md region=optional
+
 ```
 
 If the provider is missing, the dependency will resolve to `undefined` instead of triggering a startup error.
@@ -67,6 +72,7 @@ If the provider is missing, the dependency will resolve to `undefined` instead o
 If your class uses default parameters in its constructor, NexusDI treats the class as having zero dependencies by default.
 
 ```ts file=examples/meridian/src/pages/providers.md region=defaults
+
 ```
 
 If you want the container to override those defaults and inject a specific dependency, you must explicitly declare it using `static deps` or the `deps` option in `provide()`.

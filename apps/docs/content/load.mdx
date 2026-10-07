@@ -15,9 +15,11 @@ In many applications, you don't want to load every single provider at boot time.
 The `load()` method allows you to inject a new module into the existing container. This is particularly useful for code-splitting in frontend or Node.js applications.
 
 ```ts file=examples/meridian/src/pages/load.md region=load-module
+
 ```
 
 When you call `load()`, NexusDI performs three critical steps:
+
 1. **Validation:** It validates the new module against the current live graph to ensure no wiring mistakes are introduced.
 2. **Initialization:** It builds the new module's singletons and runs their `onInit` methods.
 3. **Publication:** It updates the container's internal registry so the new providers are now available via `get()`.
@@ -35,6 +37,7 @@ Scopes are snapshots of the graph at the moment they were created. If you load a
 To bring a scope up to date with the latest graph, use `scope.extend()`.
 
 ```ts file=examples/meridian/src/pages/load.md region=extend-scope
+
 ```
 
 This allows a long-lived scope (like a user session) to gain access to features that were loaded dynamically after the session started.

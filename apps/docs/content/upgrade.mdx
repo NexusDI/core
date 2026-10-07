@@ -21,6 +21,7 @@ npm install -D @nexusdi/testing@next @nexusdi/errors@next @nexusdi/devtools@next
 ```
 
 ### TypeScript Update
+
 NexusDI 0.4 requires TypeScript 5.4+ and Node 22.12+. Most importantly, you must **disable** `experimentalDecorators` and `emitDecoratorMetadata` in your `tsconfig.json`. 0.4 uses standard TC39 decorators and does not read compiler-emitted metadata.
 
 ## 2. Replacing Symbol Tokens
@@ -28,13 +29,16 @@ NexusDI 0.4 requires TypeScript 5.4+ and Node 22.12+. Most importantly, you must
 0.3 allowed the use of Symbols or Strings as tokens. 0.4 requires a `Token<T>` for any value that isn't a class.
 
 **0.3 (Legacy):**
+
 ```ts
 const NAV_CHARTS = Symbol('NavCharts');
 container.set(NAV_CHARTS, { useValue: charts });
 ```
 
 **0.4 (Current):**
+
 ```ts file=examples/meridian/src/pages/upgrade.md region=tokens
+
 ```
 
 `Token<T>` provides both the runtime identity and the TypeScript type, making your dependencies type-safe.
@@ -44,6 +48,7 @@ container.set(NAV_CHARTS, { useValue: charts });
 The `@Service` and `@Inject` parameter decorators are replaced by a `static deps` array on the class. This makes dependencies explicit and verifiable.
 
 **0.3 (Legacy):**
+
 ```ts
 @Service()
 class QuantumComputer {
@@ -52,7 +57,9 @@ class QuantumComputer {
 ```
 
 **0.4 (Current):**
+
 ```ts file=examples/meridian/src/pages/upgrade.md region=services
+
 ```
 
 If you prefer decorators, you can use `@Injectable({ deps: [...] })` from the `@nexusdi/decorators` package.
@@ -65,6 +72,7 @@ If you prefer decorators, you can use `@Injectable({ deps: [...] })` from the `@
 **0.4 (Current):** Use `defineModule()` and `forRoot()` / `forRootAsync()`.
 
 ```ts file=examples/meridian/src/pages/upgrade.md region=modules
+
 ```
 
 ## 5. Bootstrapping the Container
@@ -72,6 +80,7 @@ If you prefer decorators, you can use `@Injectable({ deps: [...] })` from the `@
 The `new Nexus()` and `set()` pattern is replaced by a single, atomic `Nexus.create()` call. This is where the static graph validation happens.
 
 **0.3 (Legacy):**
+
 ```ts
 const container = new Nexus();
 container.set(REACTOR, { useClass: FusionReactor });
@@ -79,7 +88,9 @@ container.set(QuantumComputer);
 ```
 
 **0.4 (Current):**
+
 ```ts file=examples/meridian/src/pages/upgrade.md region=bootstrap
+
 ```
 
 ## 6. Lifetimes and Scopes
@@ -90,11 +101,11 @@ container.set(QuantumComputer);
 
 ## Summary of API Changes
 
-| 0.3 Concept | 0.4 Replacement |
-| :--- | :--- |
-| `container.set()` | `Nexus.create()` / `provide()` |
-| `DynamicModule` | `defineModule()` |
-| `createChildContainer()` | `createScope()` |
-| `@Service` | `static deps` / `@Injectable` |
-| `Symptom tokens` | `Token<T>` |
-| `container.resolve()` | `ship.resolve()` |
+| 0.3 Concept              | 0.4 Replacement                |
+| :----------------------- | :----------------------------- |
+| `container.set()`        | `Nexus.create()` / `provide()` |
+| `DynamicModule`          | `defineModule()`               |
+| `createChildContainer()` | `createScope()`                |
+| `@Service`               | `static deps` / `@Injectable`  |
+| `Symptom tokens`         | `Token<T>`                     |
+| `container.resolve()`    | `ship.resolve()`               |

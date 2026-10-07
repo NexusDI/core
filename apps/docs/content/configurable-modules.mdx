@@ -16,6 +16,7 @@ In a real-world application, you often need the same module to behave differentl
 To make a module configurable, you specify an `options` token in the `defineModule` call. This token acts as the "configuration slot" for the module.
 
 ```ts file=examples/meridian/src/pages/configurable-modules.md region=for-root
+
 ```
 
 The `forRoot(value)` method allows an importer to supply the required options. If a module declares an options token but is imported without a `forRoot` call, NexusDI will reject the startup process with a `NEXUS_MODULE_OPTIONS_MISSING` error.
@@ -27,6 +28,7 @@ Options aren't just for simple values; they can be used to determine which class
 By using a factory for a provider and reading the options token, you can switch implementations based on the configuration.
 
 ```ts file=examples/meridian/src/pages/configurable-modules.md region=pick-implementation
+
 ```
 
 This allows you to keep your components decoupled from the specific implementation, as they only depend on the interface.
@@ -36,6 +38,7 @@ This allows you to keep your components decoupled from the specific implementati
 Sometimes your configuration isn't known at compile time—it might need to be fetched from a database or an environment variable. `forRootAsync` allows you to compute your options during the container's startup phase.
 
 ```ts file=examples/meridian/src/pages/configurable-modules.md region=for-root-async
+
 ```
 
 The options factory can be `async`. NexusDI awaits these factories during `Nexus.create`, ensuring that all configuration is resolved before any providers are instantiated.
@@ -45,6 +48,7 @@ The options factory can be `async`. NexusDI awaits these factories during `Nexus
 To prevent your app from starting with invalid configuration, you can attach a `schema` to your module. NexusDI supports any Standard Schema validator (such as Valibot).
 
 ```ts file=examples/meridian/src/pages/configurable-modules.md region=schema
+
 ```
 
 If the options provided to `forRoot` fail the schema check, NexusDI rejects the startup process with a `NEXUS_INVALID_MODULE_OPTIONS` error, preventing the application from entering an unstable state.
@@ -54,4 +58,5 @@ If the options provided to `forRoot` fail the schema check, NexusDI rejects the 
 Every call to `forRoot()` or `forRootAsync()` creates a new instance of the module. If you want multiple parts of your app to share the same configured module (and thus share its singletons), you should call `forRoot` once and export the resulting module constant.
 
 ```ts file=examples/meridian/src/pages/configurable-modules.md region=for-root-once
+
 ```

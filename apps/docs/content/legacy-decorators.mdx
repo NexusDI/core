@@ -15,6 +15,7 @@ However, you can still use NexusDI by declaring your dependencies and modules ma
 The core of NexusDI does not use decorators. By using `static deps` on your classes and `provide()` in your module definitions, you can bypass the decorator system entirely.
 
 ```ts file=examples/meridian/src/pages/legacy-decorators.md region=without-decorators
+
 ```
 
 This approach works regardless of your compiler flags. TypeScript still verifies that the tokens in `static deps` match the constructor parameters, and the container resolves them normally.
@@ -24,6 +25,7 @@ This approach works regardless of your compiler flags. TypeScript still verifies
 If you are using a class from a third-party package that you cannot edit, you can declare its dependencies explicitly within the `provide()` call:
 
 ```ts file=examples/meridian/src/pages/legacy-decorators.md region=class-from-package
+
 ```
 
 The `deps` option takes precedence over any `static deps` the class might already have, allowing you to wire external classes without needing any decorators at all.

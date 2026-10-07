@@ -13,6 +13,7 @@ To provide an objective comparison of dependency injection containers, NexusDI u
 The benchmark builds a graph of eight providers: `ReactorCore`, `ShipComputer`, `PowerRouter`, `ShieldGrid`, `NavCharts`, `Bridge`, `SurveyDrone`, and `FlightLog`.
 
 This specific graph is used because it tests several critical DI patterns:
+
 - **Deep Chains:** `Bridge` $\rightarrow$ `ShieldGrid` $\rightarrow$ `PowerRouter` $\rightarrow$ `ReactorCore`.
 - **Diamonds:** Multiple paths leading back to `ReactorCore`.
 - **Mixed Lifetimes:** Includes Singletons, Transients, and Scoped providers.
@@ -21,6 +22,7 @@ This specific graph is used because it tests several critical DI patterns:
 ## Testing Across Toolchains
 
 Because different libraries require different compiler flags (like `emitDecoratorMetadata`), we test every library across a matrix of toolchains, including:
+
 - **Standard TS:** `tsc` and `tsgo`.
 - **Modern Bundlers:** esbuild, SWC, and Vite.
 - **Runtimes:** Bun, Deno, and Node.js (including native type stripping).
@@ -30,9 +32,11 @@ This ensures that our performance figures reflect real-world usage across differ
 ## Measuring Performance
 
 ### 1. Bundle Size
+
 We measure the final output bytes after esbuild minification and Gzip compression. This represents the actual cost to the end-user's browser or server.
 
 ### 2. Startup and Resolution
+
 - **Cold Start:** The time it takes to spawn a fresh Node process and initialize the container.
 - **Resolve Speed:** The time for a single transient resolution on a ready container.
 - **Build Time:** The wall time required to compile a 200-class graph.
@@ -42,12 +46,14 @@ To eliminate noise, we use a **balanced Latin square** rotation and a bootstrap 
 ## Wiring-Mistake Probes
 
 Performance isn't the only metric. We use "probes" to measure how libraries handle errors. We intentionally introduce mistakes (like circular dependencies or missing providers) and record:
+
 1. **When** the error is reported (Type check $\rightarrow$ Container creation $\rightarrow$ Resolution).
 2. **How** clearly the error is reported.
 
 ## Transparency and Reproducibility
 
 The maintainer of NexusDI wrote this harness. To ensure transparency:
+
 - All fixtures are open source in the `benchmarks/` directory.
 - All results are published as raw JSON files.
 - Any user can rerun the benchmarks locally using `npx nx run @nexusdi/benchmarks:bench`.

@@ -16,6 +16,7 @@ In most cases, one token maps to one provider. However, some features require a 
 To create a multi-provider, use the `MultiToken` class. This tells NexusDI that this token is designed to collect multiple values rather than resolving to a single one.
 
 ```ts file=examples/meridian/src/pages/multi-providers.md region=multi-token
+
 ```
 
 Any number of modules can call `provide(DIAGNOSTICS, ...)` to add their own contribution to the list.
@@ -25,6 +26,7 @@ Any number of modules can call `provide(DIAGNOSTICS, ...)` to add their own cont
 Because a `MultiToken` represents a collection, you cannot use it as a standard dependency. Instead, you must use the `all()` modifier in your `static deps` list.
 
 ```ts file=examples/meridian/src/pages/multi-providers.md region=panel
+
 ```
 
 `all(TOKEN)` tells NexusDI to resolve every visible contribution to that token and pass them to the constructor as an array.

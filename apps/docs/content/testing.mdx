@@ -15,6 +15,7 @@ NexusDI provides a specialized testing utility that allows you to build your rea
 For simple unit tests, you don't need a NexusDI container at all. Since your classes take their dependencies in the constructor, you can simply pass a fake object that implements the required interface.
 
 ```ts file=examples/meridian/src/pages/testing.md region=unit-test
+
 ```
 
 ## Integration Testing with `createTestingContainer`
@@ -22,6 +23,7 @@ For simple unit tests, you don't need a NexusDI container at all. Since your cla
 When you need to test how a component interacts with the rest of the system, use `createTestingContainer`. This utility builds the real module graph but allows you to `override` specific tokens.
 
 ```ts file=examples/meridian/src/pages/testing.md region=override-reactor
+
 ```
 
 The testing container is a full NexusDI container. It runs the same compiler and validation checks as production. If your override introduces a missing dependency or a circular reference, `create()` will reject just as it would in the real app.
@@ -31,6 +33,7 @@ The testing container is a full NexusDI container. It runs the same compiler and
 In some cases, you need to replace an entire set of providers. You can use `overrideModule` to replace one module with a stub module.
 
 ```ts file=examples/meridian/src/pages/testing.md region=override-module
+
 ```
 
 The stub module must export every token that the original module exported; otherwise, the container will reject the startup process with a `NEXUS_OVERRIDE_EXPORTS` error.
@@ -38,10 +41,13 @@ The stub module must export every token that the original module exported; other
 ## Advanced Testing Patterns
 
 ### Preserving Lifetimes
+
 By default, an override preserves the lifetime of the original provider. If a provider was transient in production, your fake will also be transient. You can override this by explicitly setting a `lifetime` in the override definition.
 
 ### Shared Base Builders
+
 To avoid repeating the same overrides across multiple tests, you can create a base builder. Because the builder is immutable, you can derive specific test configurations from a single base without them interfering with each other.
 
 ```ts file=examples/meridian/src/pages/testing.md region=shared-builder
+
 ```

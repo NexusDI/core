@@ -6,13 +6,13 @@ description: Use standard TC39 decorators to declare dependencies and modules wi
 
 # Writing Providers with Decorators
 
-While `static deps` and `defineModule()` are the foundation of NexusDI, you can use decorators to make your dependency declarations more readable and concise. 
+While `static deps` and `defineModule()` are the foundation of NexusDI, you can use decorators to make your dependency declarations more readable and concise.
 
 NexusDI provides a set of standard (TC39) decorators that act as syntactic sugar—they write the same `static deps` and `defineModule` definitions under the hood. This means a decorated class and an undecorated class wire exactly the same way.
 
 ## Tooling and Compatibility
 
-Because these are standard decorators, they require a toolchain that can compile them (such as `tsc`, esbuild, SWC, or Vite). 
+Because these are standard decorators, they require a toolchain that can compile them (such as `tsc`, esbuild, SWC, or Vite).
 
 **Important:** You must leave `experimentalDecorators` and `emitDecoratorMetadata` **disabled** in your `tsconfig.json`. NexusDI does not rely on compiler-emitted metadata; every dependency is explicitly named via a token in the decorator.
 
@@ -21,6 +21,7 @@ Because these are standard decorators, they require a toolchain that can compile
 The `@Injectable` decorator records a class's dependencies directly on the class definition. This replaces the need for a `static deps` array.
 
 ```ts file=examples/meridian/src/pages/decorators.md region=injectable
+
 ```
 
 TypeScript verifies the tokens you provide against the constructor parameters, ensuring type safety. If you omit the decorator and the class has constructor parameters, `Nexus.create` will reject with a `NEXUS_MISSING_DEPS` error during startup.
@@ -30,6 +31,7 @@ TypeScript verifies the tokens you provide against the constructor parameters, e
 Sometimes you need to inject a dependency into a class property rather than the constructor. You can achieve this using the `@Inject` decorator on a class `accessor`.
 
 ```ts file=examples/meridian/src/pages/decorators.md region=inject-accessor
+
 ```
 
 The `accessor` keyword is required because standard decorators operate on the accessor, and the `!` (definite assignment) tells TypeScript that NexusDI will fill the property during instantiation.
@@ -39,6 +41,7 @@ The `accessor` keyword is required because standard decorators operate on the ac
 You can turn a class into a NexusDI module using the `@Module` decorator. This names the module after the class and encapsulates its providers and exports.
 
 ```ts file=examples/meridian/src/pages/decorators.md region=module-class
+
 ```
 
 Module encapsulation rules apply exactly as they do with `defineModule()`: only tokens listed in `exports` are visible to modules that import this class.

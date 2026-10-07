@@ -6,7 +6,7 @@ description: Install NexusDI and build your first application to see how static 
 
 # Getting Started
 
-Most dependency injection containers are "optimistic"—they assume your wiring is correct and only tell you something is missing when your app crashes at runtime. 
+Most dependency injection containers are "optimistic"—they assume your wiring is correct and only tell you something is missing when your app crashes at runtime.
 
 NexusDI takes a different approach. It validates your entire dependency graph during startup. If a dependency is missing or a circular reference exists, NexusDI catches it immediately, ensuring that once your app starts, it stays running.
 
@@ -56,9 +56,11 @@ In NexusDI, a class declares its dependencies using a `static deps` property. Ty
 Save the following as `ship.ts`:
 
 ```ts file=examples/meridian/src/pages/getting-started.md region=first-ship
+
 ```
 
 Run it with:
+
 ```bash
 npx tsx ship.ts
 ```
@@ -67,19 +69,20 @@ You should see: `ShipComputer online. Reactor output 1.21 GW.`
 
 ## Experience Static Validation
 
-To see the power of NexusDI, let's intentionally break the wiring. 
+To see the power of NexusDI, let's intentionally break the wiring.
 
 If a class depends on a token that the container wasn't given, `Nexus.create` will reject the startup process with a `NEXUS_BLUEPRINT_INVALID` error. This prevents your app from starting in a broken state.
 
 **Try it:** Delete `FusionReactor` from the array passed to `Nexus.create` in `ship.ts` and run it again.
 
-Instead of a runtime `TypeError` later in the execution, you will receive a clear error listing `NEXUS_MISSING_PROVIDER`. 
+Instead of a runtime `TypeError` later in the execution, you will receive a clear error listing `NEXUS_MISSING_PROVIDER`.
 
 ## Improving Error Messages with DevTools
 
 While core provides concise error codes, the `@nexusdi/devtools` plugin transforms these into human-readable messages with suggested fixes.
 
 Install the devtools plugin:
+
 ```bash
 npm install -D @nexusdi/devtools@next
 ```
@@ -87,6 +90,7 @@ npm install -D @nexusdi/devtools@next
 Register the plugin in your application:
 
 ```ts file=examples/meridian/src/pages/getting-started.md region=devtools-message
+
 ```
 
 Now, when you run your program with an error, you'll see a full explanation and a direct path to the fix. Note that you can keep these tools in development and omit them in production to keep your bundle size minimal.

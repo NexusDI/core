@@ -40,13 +40,13 @@ NexusDI is "pessimistic." It validates the entire module graph during the `Nexus
 
 Managing resources (like database pools) is critical. NexusDI implements a strict reverse-creation order for disposal and uses `SuppressedError` to ensure every resource is closed, even if some failures occur.
 
-| Feature | NexusDI | InversifyJS | tsyringe | awilix | needle-di | TypeDI | NestJS |
-| :--- | :--- | :--- | :--- | :--- | :--- | :--- | :--- |
-| **Dependency-ordered `onInit`** | Yes | No | No | No | No | No | Yes |
-| **Reverse-order Disposal** | Yes | No | No | No | n/a | No | Yes |
-| **Reports all disposal failures**| Yes | No | No | No | n/a | No | Logged |
-| **Scopes own transients** | Yes | No | Yes | No | n/a | No | No |
-| **Disposes factory results** | Yes | Partial | No | Yes | n/a | Yes | Yes |
+| Feature                           | NexusDI | InversifyJS | tsyringe | awilix | needle-di | TypeDI | NestJS |
+| :-------------------------------- | :------ | :---------- | :------- | :----- | :-------- | :----- | :----- |
+| **Dependency-ordered `onInit`**   | Yes     | No          | No       | No     | No        | No     | Yes    |
+| **Reverse-order Disposal**        | Yes     | No          | No       | No     | n/a       | No     | Yes    |
+| **Reports all disposal failures** | Yes     | No          | No       | No     | n/a       | No     | Logged |
+| **Scopes own transients**         | Yes     | No          | Yes      | No     | n/a       | No     | No     |
+| **Disposes factory results**      | Yes     | Partial     | No       | Yes    | n/a       | Yes    | Yes    |
 
 ## Conclusion
 

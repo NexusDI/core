@@ -28,18 +28,23 @@ npm install @nexusdi/interceptors@next
 You can attach interceptors at different levels of granularity:
 
 ### 1. Method-Level
+
 Target a specific method within a class using a `static interceptors` map.
 
 ```ts file=examples/meridian/src/pages/interceptors.md region=audit
+
 ```
 
 ### 2. Class-Level
+
 Apply an interceptor to every method in a class by using the `class` key in the map.
 
 ### 3. Global-Level
+
 Apply logic to every single service in the container. This is ideal for global logging or security audits.
 
 ```ts file=examples/meridian/src/pages/interceptors.md region=global
+
 ```
 
 **Note:** Global interceptors must be "exempt" from the services they depend on to avoid infinite recursion (e.g., a logging interceptor should not intercept the `FlightLog` service it uses to write logs).
@@ -53,13 +58,15 @@ Interceptors give you full control over the method call:
 - **Observe Results:** Use the `tap()` helper to run logic after the method completes without altering the result.
 
 ```ts file=examples/meridian/src/pages/interceptors.md region=change-the-call
+
 ```
 
 ## The Proxy Pattern
 
-When you `get()` a service that has interceptors, NexusDI returns a **Proxy**. 
+When you `get()` a service that has interceptors, NexusDI returns a **Proxy**.
 
 It is important to understand that:
+
 1. Calls made through the proxy (e.g., `computer.status()`) are intercepted.
 2. Calls made via `this` inside the class (e.g., `this.status()`) **bypass the proxy** and are not intercepted.
 

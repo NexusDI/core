@@ -13,6 +13,7 @@ NexusDI is designed to be extended. Whether you need to add custom logging, inte
 To ensure that the ecosystem remains stable and maintainable, all NexusDI plugins follow the **Extension Principle**. This principle ensures that packages integrate through public contribution points rather than hacking into internal state.
 
 **Key Rules for Plugin Authors:**
+
 1. **Own your vocabulary:** Never rely on internal strings or hidden fields of other packages.
 2. **Open Types:** Use augmentable interfaces (like `NexusErrorByCode`) so other plugins can add their own types.
 3. **Public Hooks:** Only integrate via official plugin hooks or the `PluginContext`.
@@ -32,13 +33,13 @@ const myPlugin = {
 
 ### Common Hooks
 
-| Hook | Purpose |
-| :--- | :--- |
+| Hook            | Purpose                                                                  |
+| :-------------- | :----------------------------------------------------------------------- |
 | `compile.check` | Validate the graph and report custom errors before the container starts. |
-| `construct` | Wrap or observe instances as they are created. |
-| `observe` | Listen to every trace event emitted by the container. |
-| `formatError` | Provide custom human-readable text for specific error codes. |
-| `setup` | Perform one-time initialization after singletons are built. |
+| `construct`     | Wrap or observe instances as they are created.                           |
+| `observe`       | Listen to every trace event emitted by the container.                    |
+| `formatError`   | Provide custom human-readable text for specific error codes.             |
+| `setup`         | Perform one-time initialization after singletons are built.              |
 
 ## Reporting Custom Errors
 
@@ -49,6 +50,7 @@ If your plugin finds a problem with the module graph during `compile.check`, you
 3. **Report the Error:** Use the `report()` function provided by the `compile.check` context.
 
 ```ts file=examples/meridian/src/pages/write-a-plugin.md region=own-error
+
 ```
 
 ## Emitting Custom Trace Events
@@ -58,6 +60,7 @@ You can add your own events to the container's trace, which allows other plugins
 By augmenting the `TraceEventByType` interface, you can add type-safe events that you can emit from the `PluginContext`.
 
 ```ts file=examples/meridian/src/pages/write-a-plugin.md region=own-event
+
 ```
 
 ## Graph Annotation
@@ -65,6 +68,7 @@ By augmenting the `TraceEventByType` interface, you can add type-safe events tha
 If your plugin analyzes the graph, you can add "notes" to specific providers. These notes are then displayed in the `graph()` output of the devtools plugin.
 
 ```ts file=examples/meridian/src/pages/write-a-plugin.md region=annotate
+
 ```
 
 ## Versioning and Compatibility

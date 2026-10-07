@@ -16,12 +16,15 @@ Lifetimes allow you to balance memory usage against the need for fresh state, en
 NexusDI provides two primary lifetimes for general use:
 
 ### Singleton (The Default)
+
 A `singleton` is created exactly once for the entire lifetime of the container. Every component that depends on a singleton receives the same instance.
 
 ### Transient
+
 A `transient` dependency is created every single time it is requested. If two different components depend on the same transient token, they will each receive their own unique instance.
 
 ```ts file=examples/meridian/src/pages/lifetimes.md region=transient
+
 ```
 
 By switching a provider to `lifetime: 'transient'`, you can transform a shared service into a private, per-consumer utility.
@@ -33,19 +36,20 @@ By default, all singletons are created during the `Nexus.create` startup phase. 
 However, some dependencies are expensive to create and might not be used in every execution path. By setting `eager: false`, you move the instantiation from startup to the first time the dependency is actually requested via `get()`.
 
 ```ts file=examples/meridian/src/pages/lifetimes.md region=eager-false
+
 ```
 
 ### The Async Constraint
 
-Because `get()` is designed to be synchronous for performance and predictability, lazy providers **cannot be asynchronous**. 
+Because `get()` is designed to be synchronous for performance and predictability, lazy providers **cannot be asynchronous**.
 
 If you have a provider that requires an `async` factory, it **must** be eager. This ensures the promise is resolved during startup, so that the subsequent `get()` call can return the value instantly.
 
 ## Summary of Lifetimes
 
-| Lifetime | When is it created? | How many instances? |
-| :--- | :--- | :--- |
-| **Singleton** | At startup (Eager) | One shared instance |
-| **Lazy Singleton** | On first `get()` | One shared instance |
-| **Transient** | On every `get()` | A new instance every time |
-| **Scoped** | On scope creation | One per scope (e.g., per request) |
+| Lifetime           | When is it created? | How many instances?               |
+| :----------------- | :------------------ | :-------------------------------- |
+| **Singleton**      | At startup (Eager)  | One shared instance               |
+| **Lazy Singleton** | On first `get()`    | One shared instance               |
+| **Transient**      | On every `get()`    | A new instance every time         |
+| **Scoped**         | On scope creation   | One per scope (e.g., per request) |

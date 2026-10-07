@@ -13,12 +13,13 @@ As your application grows, putting every provider into a single global list beco
 
 ## Encapsulation and Visibility
 
-The primary purpose of a module is to control visibility. 
+The primary purpose of a module is to control visibility.
 
 - **Private Providers:** By default, everything provided inside a module is private. Only other providers within the same module can use them.
 - **Public Exports:** To make a provider available to other modules, you must list its token in the `exports` array.
 
 ```ts file=examples/meridian/src/pages/modules.md region=exports
+
 ```
 
 This pattern prevents "leaky abstractions." For example, a `DatabaseModule` might provide a `ConnectionPool` internally, but only export a `Repository` to the rest of the app. The rest of the app doesn't need to know the pool exists, and they cannot accidentally depend on it.
@@ -32,6 +33,7 @@ Modules interact through `imports`. If Module A imports Module B, Module A can s
 Some providers are truly universal (like configuration or logging) and are needed by almost every module. Instead of importing them everywhere, you can mark a module as `global: true`.
 
 ```ts file=examples/meridian/src/pages/modules.md region=global
+
 ```
 
 A global module's exports are visible to every module in the graph automatically, provided the global module is included in the graph at least once.
@@ -43,6 +45,7 @@ Because modules are defined by the tokens they export rather than the classes th
 This is incredibly powerful for testing. You can replace a `ProductionEngineeringModule` with a `SimulatorEngineeringModule` that exports the same `COMPUTER` token but uses a simulated reactor under the hood.
 
 ```ts file=examples/meridian/src/pages/modules.md region=swap
+
 ```
 
 The consuming code doesn't change; it just receives a different implementation of the same token.
