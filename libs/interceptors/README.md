@@ -56,7 +56,7 @@ const providers = [provide(NAVIGATOR, { useClass: Navigator })];
 await using ship = await Nexus.create(providers, { plugins });
 
 ship.get(NAVIGATOR).plot('Vega');
-console.log(log); // -> ['call plot', 'got course to Vega']
+log; // -> ['call plot', 'got course to Vega']
 ```
 
 ## Documentation
