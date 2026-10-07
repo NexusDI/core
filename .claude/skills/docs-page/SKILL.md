@@ -14,6 +14,8 @@ description: Use when writing or changing a page in apps/docs or a mission brief
 
 The pin names the others, and the reviewer agent (`.claude/agents/docs-reviewer.md`) lists what each covers.
 
+`docs/documentation-style-guide.md` is this repository's style guide, and it sets the shape of every page: Context → Concept → Detail. The page opens with the problem the reader has, then names the concept, then gives the API and the example. Titles state the purpose ("Identifying Dependencies with Tokens"), each section opens with a lead-in sentence, the simple case comes first, and the page ends with a next step. The owner decided on 2026-10-07 that the guide overrides the pinned documents on three points: a heading need not name NexusDI, a purpose title is allowed, and bold lead-ins are allowed. Every other rule of the pinned documents stands, and so do the repository rules the guide lists at its end.
+
 `specs/2026-09-23-docs-site-design.md` is this site's spec. Section 3 amends the standard with the `concept` and `post` kinds, section 4 holds the inventory and the teaching order, section 5 the anatomy of each page kind, and section 7 the Starship Meridian. Read the sections that bear on the page you are touching. Do not work from a summary of them, and copy no part of them into anything else: a copy goes stale, and a stale copy looks authoritative.
 
 This file holds the procedure and the traps, and nothing the specs hold.

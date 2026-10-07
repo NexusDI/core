@@ -96,11 +96,19 @@ a defect.
 
 ## Writing rules
 
+Docs pages, READMEs and blog posts follow `docs/documentation-style-guide.md`.
+A page runs Context → Concept → Detail: the problem the reader has, then the
+name and the idea that solve it, then the API and the example. Titles state
+the purpose ("Identifying Dependencies with Tokens"), each section opens with
+a lead-in sentence, the simple case comes before the edge cases, and each
+page ends with the next step. A heading does not have to name NexusDI.
+
 These apply to docs, specs, READMEs, blog posts, comments and commit prose.
 Each one is a defect to fix before sending:
 
 - em dashes (write two sentences, or parentheses for a short aside)
-- bold lead-ins on paragraphs (bold marks a term being defined)
+- bold lead-ins in specs, comments and commit prose (docs and READMEs may
+  use them)
 - antithesis in any form: "not X but Y", "X rather than Y", "instead of", and
   "X was never the question. Y was."
 - abstract or inanimate subjects: every sentence names who or what acts
@@ -121,6 +129,10 @@ Content rules:
   `Token<IReactorCore>`, `provide(REACTOR, { useClass: FusionReactor })`, and
   consumers that declare the token in `deps`. Never bind one concrete class
   straight to another.
+- Check every claim about behaviour against `libs/` before it is published.
+- Examples run as tests: a docs page cites a region of
+  `examples/meridian/src/pages/<slug>.md`, and every `ts` block in a README is
+  a doctest. At least one of them carries a `// ->` claim.
 - Posts lead with what NexusDI does for the reader. The design reasoning stays
   in the specs.
 
