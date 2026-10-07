@@ -22,6 +22,8 @@ The pinned documents:
 - `docs/specs/2026-09-13-versioned-docs.md` and `docs/specs/2026-09-13-released-by-default.md` decide which version of a page a reader gets.
 - `docs/specs/2026-09-12-baize-ui.md` is the design-system split `internal/meridian-ui` mirrors.
 
+This repository's style guide, `docs/documentation-style-guide.md`, sets the shape of a page: Context → Concept → Detail. The page opens with the problem the reader has, names the concept, then gives the API and the example. Titles state the purpose, each section opens with a lead-in sentence, the simple case comes before the edge cases, and the page ends with a next step. Flag a page that opens with a definition before the reader knows why they need it, and a page with no next step. On three points the guide overrides the pinned documents (owner decision, 2026-10-07): a heading need not name NexusDI, a purpose title such as "Identifying Dependencies with Tokens" is allowed, and bold lead-ins are allowed. Do not flag those.
+
 This repository adds its own spec, `specs/2026-09-23-docs-site-design.md`. Its section 3 holds two amendments to the standard: the `concept` page kind and the `post` page kind. Read them beside the standard. Its section 7 is the example domain, and its section 4 is the inventory and the teaching order. Check every claim about behaviour against `libs/core/src` and against `specs/2026-09-23-core-0.4-design.md` sections 3 to 11.
 
 Report findings. Edit no file and make no commit. The person who dispatched you decides what changes.
@@ -67,7 +69,7 @@ A concept introduced on one teaching page carries a short reminder on the next, 
 
 ### An H2 section stands on its own
 
-Retrieval hands an agent a section. No pronoun reaches back past its own heading, and each fact sits next to the sentence that uses it. On this one-package site the heading names NexusDI or the symbol the section covers, for example "Configure `Comms` with `with()`". Apply that to every H2, as standard section 5a states it.
+Retrieval hands an agent a section. No pronoun reaches back past its own heading, and each fact sits next to the sentence that uses it. The heading states what the section is for, for example "Sharing Configured Modules" or "Configure `Comms` with `with()`". It need not name NexusDI.
 
 ### Prose before the console
 
@@ -106,7 +108,7 @@ A term of art enters as the grammatical subject of its defining sentence, or as 
 ### Checks this site adds
 
 - Each section that teaches a mechanism has the reader run it, break it and fix it. The page says which file to save the region as, the command to run, the one edit that breaks it, the code or output the reader then sees, and the fix (spec decision 33). A second region proves the broken variant. A section that only describes is the finding.
-- Never the word "native", and no metadata library by name. Say what NexusDI reads: `static deps`, `provide()` deps or a decorator's deps. No antithesis in any form ("not X but Y", "X rather than Y", "instead of"), no em dash, no bold lead-in.
+- Never the word "native", and no metadata library by name. Say what NexusDI reads: `static deps`, `provide()` deps or a decorator's deps. No antithesis in any form ("not X but Y", "X rather than Y", "instead of") and no em dash. Bold lead-ins are allowed.
 - Every example after `/getting-started/` is interface-first: an interface, a `Token<IFoo>` and `useClass`, never a class bound as another class's dependency, including inside a factory, where `doc-interface-first` cannot see.
 - A `ConsoleView` caption states in words what its view shows. Read the caption, run the seed in your head against the region, and check that the caption is still true.
 - No sentence sends the reader to the console for a meaning the prose leaves out. "Watch the graph to see which module owns the token" in place of saying which module owns it is the failure.
