@@ -13,9 +13,11 @@ By default, NexusDI provides concise, one-line error messages. While efficient f
 A text pack is a mapping of error codes to formatting functions. When the `@nexusdi/errors` plugin is registered, it reads these packs in order. The first pack that returns a message for a given code wins.
 
 ### Using Official Text Packs
+
 First-party packages provide their own text packs. To enable them, pass them to the `errors()` plugin:
 
 ```ts file=examples/meridian/src/pages/error-text.md region=package-pack
+
 ```
 
 ## Customizing Error Messages
@@ -23,9 +25,11 @@ First-party packages provide their own text packs. To enable them, pass them to 
 You can create your own text pack to reword core errors or provide translations. Because text packs are just functions, you can use the error's internal fields (like `requester` or `token`) to build dynamic messages.
 
 ```ts file=examples/meridian/src/pages/error-text.md region=translate
+
 ```
 
 ### Implementation Rules:
+
 - **Type Safety:** Use the `satisfies ErrorTextPack` helper to ensure your pack matches the required error classes.
 - **Fallbacks:** If your function returns `undefined`, NexusDI simply moves to the next pack in the list.
 
@@ -34,6 +38,7 @@ You can create your own text pack to reword core errors or provide translations.
 Sometimes you encounter an error in a log file where the `errors()` plugin wasn't active. You can use the `explain()` utility to retroactively apply a text pack to a logged error.
 
 ```ts file=examples/meridian/src/pages/error-text.md region=explain
+
 ```
 
 ## Integration with DevTools
@@ -41,4 +46,5 @@ Sometimes you encounter an error in a log file where the `errors()` plugin wasn'
 The `@nexusdi/devtools` plugin also accepts text packs. This ensures that when you use `inspect()` or `graph()`, any errors reported are formatted using the same human-readable text as your production application.
 
 ```ts file=examples/meridian/src/pages/error-text.md region=devtools-and-inspect
+
 ```

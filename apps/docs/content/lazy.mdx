@@ -13,7 +13,7 @@ Because NexusDI validates the entire graph at startup to guarantee stability, it
 
 ## Breaking Cycles with `lazy()`
 
-When a cycle is unavoidable, you can break the loop using the `lazy()` wrapper. 
+When a cycle is unavoidable, you can break the loop using the `lazy()` wrapper.
 
 A `lazy()` dependency tells NexusDI: "Don't resolve this token during the initial build; instead, give me a function (a thunk) that I can call later to get the instance."
 
@@ -24,6 +24,7 @@ flowchart LR
 ```
 
 ```ts file=examples/meridian/src/pages/lazy.md region=lazy-fix
+
 ```
 
 By making just one edge in the cycle lazy, you break the loop. The container can now finish starting up, and your code can resolve the dependency at runtime by calling the thunk.
@@ -33,14 +34,14 @@ By making just one edge in the cycle lazy, you break the loop. The container can
 You might wonder why NexusDI doesn't just make every dependency lazy by default. There are several critical reasons:
 
 1. **CI Stability:** Required dependencies are checked in CI. Lazy dependencies can hide wiring errors that only appear at runtime.
-2. **Lifecycle Integrity:** `onInit` and disposal run in a specific order. A lazy dependency is created *after* its consumer, meaning it might be disposed of *before* the consumer is finished.
+2. **Lifecycle Integrity:** `onInit` and disposal run in a specific order. A lazy dependency is created _after_ its consumer, meaning it might be disposed of _before_ the consumer is finished.
 3. **Synchronous Guarantees:** `get()` must be synchronous. Since async factories must be resolved at startup, a lazy edge to an async provider would be impossible to resolve synchronously on first use.
 4. **Architectural Health:** Cycles often signal that two services are too tightly coupled. Forcing an explicit `lazy()` call makes this architectural smell visible during code review.
 
 ## The "Not Ready" State
 
-Because a `lazy()` thunk defers resolution, you cannot call it too early. 
+Because a `lazy()` thunk defers resolution, you cannot call it too early.
 
 If you call a lazy thunk inside a constructor or an `onInit()` method, the target service might not have been built yet. In this case, NexusDI throws `NEXUS_NOT_READY`.
 
-**The Rule:** Always call lazy thunks within regular methods that are executed *after* `Nexus.create` has fully resolved.
+**The Rule:** Always call lazy thunks within regular methods that are executed _after_ `Nexus.create` has fully resolved.

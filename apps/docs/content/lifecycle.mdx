@@ -7,17 +7,18 @@ requires: [scopes]
 
 # Lifecycle and Disposal
 
-Managing the lifecycle of a service—especially those that hold external resources like database pools, file handles, or network sockets—is critical for application stability. 
+Managing the lifecycle of a service—especially those that hold external resources like database pools, file handles, or network sockets—is critical for application stability.
 
 If resources aren't closed in the correct order, you risk leaking connections, hanging test processes, or crashing during a rolling deployment. NexusDI automates this through a strict lifecycle and disposal pipeline.
 
 ## The Startup Phase: `onInit`
 
-NexusDI doesn't just instantiate classes; it ensures they are fully initialized before they are used. 
+NexusDI doesn't just instantiate classes; it ensures they are fully initialized before they are used.
 
 Any singleton class can implement an optional `onInit` method. NexusDI calls this method after all singletons are built, but **before** the container is marked as ready. Crucially, these are called in dependency order: if Service A depends on Service B, Service B's `onInit` is guaranteed to finish before Service A's starts.
 
 ```ts file=examples/meridian/src/pages/lifecycle.md region=on-init
+
 ```
 
 This ensures that no service ever runs against a dependency that isn't yet ready.
@@ -29,15 +30,17 @@ To prevent resource leaks, NexusDI treats the container as an `AsyncDisposable`.
 **The Gold Rule of Disposal:** Instances are disposed in the **exact reverse order** of their creation.
 
 ```ts file=examples/meridian/src/pages/lifecycle.md region=dispose-order
+
 ```
 
-By following this order, NexusDI guarantees that a service is stopped *before* the dependencies it relies on are closed.
+By following this order, NexusDI guarantees that a service is stopped _before_ the dependencies it relies on are closed.
 
 ## Robust Error Handling during Disposal
 
 A single failing disposer should not stop other resources from being cleaned up. If multiple disposers throw errors, NexusDI collects them all into a `SuppressedError` chain. This ensures that every single socket and pool is attempted to be closed, and you receive a complete list of every failure that occurred.
 
 ```ts file=examples/meridian/src/pages/lifecycle.md region=dispose-failures
+
 ```
 
 ## Ownership and Disposal
@@ -48,6 +51,7 @@ NexusDI only disposes of what it actually created.
 - **Static Values:** If you use `useValue` to provide an existing object, NexusDI assumes you own that object and will **not** attempt to dispose of it.
 
 ```ts file=examples/meridian/src/pages/lifecycle.md region=factory-ownership
+
 ```
 
 ## Transient Disposal in Scopes

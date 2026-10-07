@@ -40,6 +40,7 @@ npx nexusdi graph src/meridian.module.ts#Meridian -o graph.svg --view modules
 ## Advanced Analysis
 
 ### Simulating Dynamic Loads
+
 If your app uses `ship.load()` to add modules at runtime, you can simulate this in the CLI using the `--load` flag:
 
 ```bash
@@ -47,6 +48,7 @@ npx nexusdi graph src/meridian.module.ts#Meridian --load src/science.module.ts#S
 ```
 
 ### Including Plugins
+
 If you use plugins that add modules or change the graph, you can pass them via the `--plugins` flag:
 
 ```bash

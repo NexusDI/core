@@ -7,7 +7,7 @@ requires: [configurable-modules, modules]
 
 # Scopes and the REQUEST Token
 
-Most applications have two types of state: **Global state** (like a database connection pool) and **Request state** (like the current user or a transaction ID). 
+Most applications have two types of state: **Global state** (like a database connection pool) and **Request state** (like the current user or a transaction ID).
 
 While singletons handle global state perfectly, using them for request-specific data is impossible in a concurrent environment. **Scopes** solve this by creating a temporary child container for a single unit of work.
 
@@ -16,6 +16,7 @@ While singletons handle global state perfectly, using them for request-specific 
 A scope is a short-lived container created from a root container. It inherits all the singletons from the root but maintains its own independent instances of any provider marked as `lifetime: 'scoped'`.
 
 ```ts file=examples/meridian/src/pages/scopes.md region=two-shuttles
+
 ```
 
 In the example above, each shuttle has its own `FLIGHT_LOG` (scoped), but both share the same `COMPUTER` (singleton). Once the unit of work is finished, the scope is disposed, and its scoped instances are cleaned up.
@@ -27,6 +28,7 @@ To make a scope useful, you need to pass external data (like an HTTP request) in
 When you call `createScope({ request })`, the object you pass as the request is bound to the `REQUEST` token for the duration of that scope.
 
 ### Typing your Request
+
 To get full TypeScript support, augment the `NexusRequest` interface in a `.d.ts` file:
 
 ```ts no-run
@@ -48,11 +50,13 @@ If a singleton (which lasts forever) depended on a scoped provider (which lasts 
 NexusDI prevents this at startup. If it detects a singleton reaching a scoped provider, it rejects with a `NEXUS_LIFETIME_VIOLATION`.
 
 ```ts file=examples/meridian/src/pages/scopes.md region=captive
+
 ```
 
 ## Scoped Execution Details
 
 ### Eager vs Lazy Scoped Providers
+
 - **Scoped Factories:** By default, these run immediately when `createScope()` is called.
 - **Scoped Classes:** These are created lazily on the first `get()` within the scope.
 

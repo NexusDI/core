@@ -6,7 +6,7 @@ description: Bind a NexusDI scope to the async context of an incoming Node.js re
 
 # Scoping Node.js HTTP Requests
 
-In a web server, you often need a "request scope"—a set of dependencies that are created when a request arrives and destroyed when the response is sent. 
+In a web server, you often need a "request scope"—a set of dependencies that are created when a request arrives and destroyed when the response is sent.
 
 The `@nexusdi/node` package provides `nodeScopes()`, which leverages Node's `AsyncLocalStorage` to bind a NexusDI scope to the current asynchronous execution context. This allows you to access the request's scope deep within your call chain without having to pass the scope object manually through every function.
 
@@ -15,9 +15,11 @@ The `@nexusdi/node` package provides `nodeScopes()`, which leverages Node's `Asy
 To use request scopes, you wrap your request handler in `scopes.run()`. This creates a new scope for the request and makes it available to everything that happens inside that function.
 
 ```ts file=examples/meridian/src/pages/node-request-scopes.md region=dispatch
+
 ```
 
 ### The `REQUEST` Token
+
 By using `nodeScopes()`, you can inject the `REQUEST` token into any scoped provider. This allows your services to access request-specific data (like user IDs or headers) directly.
 
 To get full type safety, augment the `NexusRequest` interface:
@@ -35,6 +37,7 @@ declare module '@nexusdi/core' {
 If you are in a function that was called inside a `run()` block, you can retrieve the current scope using `scopes.current()`.
 
 ```ts file=examples/meridian/src/pages/node-request-scopes.md region=outside-run
+
 ```
 
 If `current()` is called outside of a `run()` block, it returns `undefined`.

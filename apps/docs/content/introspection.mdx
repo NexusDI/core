@@ -7,7 +7,7 @@ requires: [errors]
 
 # Introspection and Tracing
 
-When working with a large dependency graph, it can be difficult to visualize how providers are connected or to understand exactly when an instance is being created. 
+When working with a large dependency graph, it can be difficult to visualize how providers are connected or to understand exactly when an instance is being created.
 
 The `@nexusdi/devtools` plugin provides "introspection" tools that allow you to inspect the compiled graph as data or trace the container's execution as a stream of events.
 
@@ -16,6 +16,7 @@ The `@nexusdi/devtools` plugin provides "introspection" tools that allow you to 
 DevTools is a plugin that should be registered in your development environment. In production, it is typically omitted to keep the bundle size minimal and prevent leaking internal architectural details.
 
 ```ts file=examples/meridian/src/pages/introspection.md region=register
+
 ```
 
 ## Visualizing the Graph with `graph()`
@@ -27,18 +28,21 @@ The `graph(ship)` function returns the entire compiled dependency graph as a str
 - **Edges:** Every dependency link between providers, labeled by type (required, optional, lazy).
 
 ```ts file=examples/meridian/src/pages/introspection.md region=graph
+
 ```
 
 You can also use `toMermaid()` or `toDot()` to convert this JSON graph into text that can be rendered as a visual diagram using Mermaid.js or Graphviz.
 
 ## Real-time Tracing with `trace()`
 
-While the graph shows the *structure*, tracing shows the *behavior*. By passing a callback to the `trace` option of the devtools plugin, you can observe every lifecycle event as it happens.
+While the graph shows the _structure_, tracing shows the _behavior_. By passing a callback to the `trace` option of the devtools plugin, you can observe every lifecycle event as it happens.
 
 ```ts file=examples/meridian/src/pages/introspection.md region=trace
+
 ```
 
 Common events include:
+
 - `construct`: When a new instance is built.
 - `init`: When a singleton's `onInit` method completes.
 - `scope:create` / `scope:dispose`: When child containers are created or destroyed.
@@ -51,4 +55,5 @@ In production, minifiers often rename classes to single letters (e.g., `FusionRe
 To prevent this, you should always provide a human-readable description when creating a `Token<T>`. NexusDI uses this description for all introspection and error reporting, ensuring that your logs remain meaningful regardless of minification.
 
 ```ts file=examples/meridian/src/pages/introspection.md region=minified-names
+
 ```

@@ -15,31 +15,34 @@ Plugins allow you to hook into the container's lifecycle, modify how errors are 
 Plugins are passed to the container during creation in the `plugins` array. The order of this array matters: plugins are executed in the order they are listed.
 
 ```ts file=examples/meridian/src/pages/plugins.md region=register
+
 ```
 
 ## Official First-Party Plugins
 
 NexusDI provides several official plugins to enhance your development experience:
 
-| Package | Plugin | Purpose |
-| :--- | :--- | :--- |
-| `@nexusdi/errors` | `errors()` | Replaces short error codes with full human-readable messages and fix suggestions. |
-| `@nexusdi/devtools` | `devtools()` | Enables the `graph()` and `trace` tools for debugging your dependency tree. |
-| `@nexusdi/interceptors` | `interceptors()` | Enables method interception for cross-cutting concerns. |
-| `@nexusdi/federation` | `federation()` | Manages providers across multiple federated contracts. |
+| Package                 | Plugin           | Purpose                                                                           |
+| :---------------------- | :--------------- | :-------------------------------------------------------------------------------- |
+| `@nexusdi/errors`       | `errors()`       | Replaces short error codes with full human-readable messages and fix suggestions. |
+| `@nexusdi/devtools`     | `devtools()`     | Enables the `graph()` and `trace` tools for debugging your dependency tree.       |
+| `@nexusdi/interceptors` | `interceptors()` | Enables method interception for cross-cutting concerns.                           |
+| `@nexusdi/federation`   | `federation()`   | Manages providers across multiple federated contracts.                            |
 
 ## Plugin Execution Order
 
-Some plugins provide similar functionality. For example, both `errors()` and a custom internal plugin might want to format error messages. 
+Some plugins provide similar functionality. For example, both `errors()` and a custom internal plugin might want to format error messages.
 
 NexusDI handles this using a "first-win" strategy: the first plugin in the array that returns a result for a specific hook (like `formatError`) wins, and subsequent plugins are ignored.
 
 ```ts file=examples/meridian/src/pages/plugins.md region=order
+
 ```
 
 ## Plugin Validation
 
 To ensure stability, `Nexus.create` validates all plugins before the graph is compiled. It will reject the startup process if:
+
 - Two plugins share the same `name`.
 - A plugin was written for an incompatible `apiVersion`.
 - A plugin hook throws a fatal error during registration.
