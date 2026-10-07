@@ -27,20 +27,30 @@ npm install -D @nexusdi/testing@next @nexusdi/core@next
 import { Token, defineModule, provide } from '@nexusdi/core';
 import { createTestingContainer } from '@nexusdi/testing';
 
+interface INavCharts {
+  plot(to: string): string;
+}
+
+class SubspaceCharts implements INavCharts {
+  plot(): string {
+    throw new Error('no subspace link in tests');
+  }
+}
+
 const NAV_CHARTS = new Token<INavCharts>('NavCharts');
 const Engineering = defineModule({
   name: 'Engineering',
-  providers: [provide(NAV_CHARTS, { useClass: RealCharts })],
+  providers: [provide(NAV_CHARTS, { useClass: SubspaceCharts })],
   exports: [NAV_CHARTS],
 });
 
-const fakeCharts = { plot: () => 'loopback' };
+const fakeCharts: INavCharts = { plot: () => 'loopback' };
 
 await using ship = await createTestingContainer(Engineering)
   .override(NAV_CHARTS, { useValue: fakeCharts })
   .create();
 
-console.log(ship.get(NAV_CHARTS).plot('anywhere')); // -> 'loopback'
+ship.get(NAV_CHARTS).plot('anywhere'); // -> 'loopback'
 ```
 
 ## Documentation
