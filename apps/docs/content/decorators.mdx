@@ -1,6 +1,6 @@
 ---
 title: Writing Providers with Decorators
-kind: concept
+kind: question
 description: Use standard TC39 decorators to declare dependencies and modules with a cleaner, more declarative syntax.
 ---
 
@@ -12,7 +12,7 @@ NexusDI provides a set of standard (TC39) decorators that act as syntactic sugar
 
 ## Tooling and Compatibility
 
-Because these are standard decorators, they require a toolchain that can compile them (such as `tsc`, esbuild, SWC, or Vite).
+Because these are standard decorators, they require a toolchain that can compile them: `tsc`, TypeScript 7, esbuild, SWC, Babel, Bun, Deno, or Vite with its Babel plugin. Plain Vite 8 and Node's type stripping cannot compile them.
 
 **Important:** You must leave `experimentalDecorators` and `emitDecoratorMetadata` **disabled** in your `tsconfig.json`. NexusDI does not rely on compiler-emitted metadata; every dependency is explicitly named via a token in the decorator.
 

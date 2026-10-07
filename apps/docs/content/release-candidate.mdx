@@ -1,6 +1,6 @@
 ---
 title: Trying the 0.4 Release Candidate
-kind: guide
+kind: question
 description: How to install and test the NexusDI 0.4 RC and report bugs before the final release.
 ---
 
@@ -12,7 +12,7 @@ NexusDI 0.4 introduces major changes to the container's architecture, moving tow
 
 A Release Candidate is a version that is functionally complete but is being tested for final bugs. RCs are published under the npm `next` dist-tag.
 
-While `latest` remains on the stable 0.3.x line, `next` points to the most recent RC. We encourage users to try the RC and report any issues to ensure the final release is as stable as possible.
+For `@nexusdi/core`, `latest` remains on the stable 0.3.x line until 0.4.0 final, and `next` points to the most recent RC. A package that has never had a stable release, such as `@nexusdi/testing`, has `latest` on the newest RC as well. We encourage users to try the RC and report any issues to ensure the final release is as stable as possible.
 
 ## Installation
 
@@ -44,3 +44,11 @@ To help the maintainers fix the issue quickly, please include:
 3. A minimal reproduction program that triggers the failure.
 
 The maintainers label critical bugs as `rc-blocker`. A bug with this label must be fixed before 0.4.0 final is released.
+
+## When 0.4.0 Final Is Released
+
+The maintainers release 0.4.0 final once all three conditions hold:
+
+1. Four weeks have passed since the last RC with a breaking change.
+2. No issue labelled `rc-blocker` is open.
+3. The `nexusdi upgrade` command from `@nexusdi/cli` has run against at least one external codebase.

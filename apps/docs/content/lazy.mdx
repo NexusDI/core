@@ -1,7 +1,7 @@
 ---
 title: Lazy Dependencies and Cycles
 kind: concept
-description: Resolve circular dependencies and optimize startup using lazy thunks.
+description: Resolve circular dependencies using lazy thunks.
 requires: [lifecycle]
 ---
 
@@ -9,7 +9,7 @@ requires: [lifecycle]
 
 In a perfect world, every dependency graph is a Directed Acyclic Graph (DAG)—meaning there are no loops. However, in complex systems, you occasionally encounter **Circular Dependencies**, where Service A depends on Service B, and Service B depends back on Service A.
 
-Because NexusDI validates the entire graph at startup to guarantee stability, it will detect these loops and reject the container with a `NEXUS_CIRCULAR_DEPENDENCY` error.
+Because NexusDI validates the entire graph at startup to guarantee stability, it will detect these loops and reject with `NEXUS_BLUEPRINT_INVALID`, whose `errors` list holds `NEXUS_CIRCULAR_DEPENDENCY`.
 
 ## Breaking Cycles with `lazy()`
 

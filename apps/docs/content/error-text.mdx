@@ -43,7 +43,7 @@ Sometimes you encounter an error in a log file where the `errors()` plugin wasn'
 
 ## Integration with DevTools
 
-The `@nexusdi/devtools` plugin also accepts text packs. This ensures that when you use `inspect()` or `graph()`, any errors reported are formatted using the same human-readable text as your production application.
+The `@nexusdi/devtools` plugin also accepts text packs. Pass them as `devtools({ text })` or `inspect(root, { text })`, and the errors that `devtools()` and `inspect()` report are formatted using the same human-readable text as your production application.
 
 ```ts file=examples/meridian/src/pages/error-text.md region=devtools-and-inspect
 

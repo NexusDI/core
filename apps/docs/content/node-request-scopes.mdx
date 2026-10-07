@@ -6,21 +6,23 @@ description: Bind a NexusDI scope to the async context of an incoming Node.js re
 
 # Scoping Node.js HTTP Requests
 
-In a web server, you often need a "request scope"—a set of dependencies that are created when a request arrives and destroyed when the response is sent.
+In a web server, you often need a "request scope": a set of dependencies that are created when a request arrives and disposed when its handler settles.
 
 The `@nexusdi/node` package provides `nodeScopes()`, which leverages Node's `AsyncLocalStorage` to bind a NexusDI scope to the current asynchronous execution context. This allows you to access the request's scope deep within your call chain without having to pass the scope object manually through every function.
 
 ## Running Handlers in a Scope
 
-To use request scopes, you wrap your request handler in `scopes.run()`. This creates a new scope for the request and makes it available to everything that happens inside that function.
+To use request scopes, you create a scope for each request with `ship.createScope()` and run your handler with `scopes.run(scope, fn)`. `run()` makes that scope the current scope of everything that happens inside the function.
 
 ```ts file=examples/meridian/src/pages/node-request-scopes.md region=dispatch
 
 ```
 
+`dispatch` returns `await scopes.run(...)`. The `await` keeps the scope open until the handler finishes. Without it, `await using` disposes the scope first, and the handler's next `get()` throws `NEXUS_DISPOSED`.
+
 ### The `REQUEST` Token
 
-By using `nodeScopes()`, you can inject the `REQUEST` token into any scoped provider. This allows your services to access request-specific data (like user IDs or headers) directly.
+`REQUEST` resolves to the object you pass to `createScope({ request })`. Any scoped provider can inject it to read request-specific data (like user IDs or headers) directly.
 
 To get full type safety, augment the `NexusRequest` interface:
 
@@ -48,7 +50,9 @@ Because `nodeScopes()` uses `AsyncLocalStorage`, it is completely safe for concu
 
 ## Integrating with `node:http`
 
-Integrating NexusDI scopes into a standard Node.js server is straightforward. You create a scope for every incoming request and execute your handler within that scope's context.
+Integrating NexusDI scopes into a standard Node.js server is straightforward. The server calls `dispatch` from the region above, which creates a scope for every incoming request and runs the handler in it.
+
+A server keeps its container for the life of the process, so declare it with `const ship`. With `await using ship` at the top level of a module, the container is disposed as soon as the module finishes loading, and the first request throws `NEXUS_DISPOSED`.
 
 ```ts no-run
 import { createServer } from 'node:http';

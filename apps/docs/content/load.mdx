@@ -26,7 +26,7 @@ When you call `load()`, NexusDI performs three critical steps:
 
 ## Validation and Safety
 
-Dynamic loading does not bypass NexusDI's safety guarantees. If a module you try to load depends on a token that isn't provided by the root or any other loaded module, `load()` will reject with a `NEXUS_BLUEPRINT_INVALID` error.
+Dynamic loading does not bypass NexusDI's safety guarantees. A loaded module sees its own providers, the exports of the modules it imports, and the exports of global modules. A provider in the root module is not visible to it unless one of those exports it. If the module depends on a token it cannot see, `load()` rejects with a `NEXUS_BLUEPRINT_INVALID` error.
 
 This ensures that your application never enters a partially-broken state where some dependencies are missing.
 

@@ -1,7 +1,7 @@
 ---
 title: Scopes and the REQUEST Token
 kind: concept
-description: Manage request-specific state and dependencies using child containers.
+description: Manage request-specific state and dependencies using scopes.
 requires: [configurable-modules, modules]
 ---
 
@@ -9,7 +9,7 @@ requires: [configurable-modules, modules]
 
 Most applications have two types of state: **Global state** (like a database connection pool) and **Request state** (like the current user or a transaction ID).
 
-While singletons handle global state perfectly, using them for request-specific data is impossible in a concurrent environment. **Scopes** solve this by creating a temporary child container for a single unit of work.
+While singletons handle global state perfectly, using them for request-specific data is impossible in a concurrent environment. **Scopes** solve this by creating a temporary scope for a single unit of work.
 
 ## What is a Scope?
 
@@ -47,7 +47,7 @@ One of the most important rules in NexusDI is that **a singleton cannot depend o
 
 If a singleton (which lasts forever) depended on a scoped provider (which lasts for one request), the singleton would "capture" the first request's instance and hold onto it forever. This is a **Captive Dependency**.
 
-NexusDI prevents this at startup. If it detects a singleton reaching a scoped provider, it rejects with a `NEXUS_LIFETIME_VIOLATION`.
+NexusDI prevents this at startup. If it detects a singleton reaching a scoped provider, `Nexus.create` rejects with `NEXUS_BLUEPRINT_INVALID`, whose `errors` list holds `NEXUS_LIFETIME_VIOLATION`.
 
 ```ts file=examples/meridian/src/pages/scopes.md region=captive
 

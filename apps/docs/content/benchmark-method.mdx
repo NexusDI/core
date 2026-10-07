@@ -6,7 +6,7 @@ description: A detailed look at the methodology, toolchains, and sampling used t
 
 # Understanding Benchmark Measurements
 
-To provide an objective comparison of dependency injection containers, NexusDI uses a rigorous benchmark harness. Instead of simple "hello world" examples, every figure is based on the **Meridian-8** graph—a realistic representation of a professional application.
+To provide an objective comparison of dependency injection containers, NexusDI uses a rigorous benchmark harness. Instead of simple "hello world" examples, every figure is based on the **Meridian-8** graph, which combines the DI patterns listed below.
 
 ## The Meridian-8 Graph
 
@@ -41,14 +41,14 @@ We measure the final output bytes after esbuild minification and Gzip compressio
 - **Resolve Speed:** The time for a single transient resolution on a ready container.
 - **Build Time:** The wall time required to compile a 200-class graph.
 
-To eliminate noise, we use a **balanced Latin square** rotation and a bootstrap method with 10,000 resamples. This ensures that results are statistically significant and not influenced by the order of execution.
+To reduce noise, we use a **balanced Latin square** rotation, so no library always runs first or always follows the same neighbour. A bootstrap with 10,000 resamples gives each paired ratio an interval at the 0.95 level, and an interval that contains 1 shows no measured difference.
 
 ## Wiring-Mistake Probes
 
 Performance isn't the only metric. We use "probes" to measure how libraries handle errors. We intentionally introduce mistakes (like circular dependencies or missing providers) and record:
 
 1. **When** the error is reported (Type check $\rightarrow$ Container creation $\rightarrow$ Resolution).
-2. **How** clearly the error is reported.
+2. **How many** mistakes the first error names, for the probe that makes two mistakes at once.
 
 ## Transparency and Reproducibility
 

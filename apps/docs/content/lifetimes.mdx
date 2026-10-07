@@ -31,7 +31,7 @@ By switching a provider to `lifetime: 'transient'`, you can transform a shared s
 
 ## Lazy Initialization with `eager: false`
 
-By default, all singletons are created during the `Nexus.create` startup phase. This is what allows NexusDI to guarantee that no "Dependency Not Found" errors happen at runtime.
+By default, all singletons are created during the `Nexus.create` startup phase, so a singleton whose constructor throws stops the app at startup. NexusDI checks the wiring of every provider, `eager: false` included, before it builds anything. `eager` only decides when an instance is built.
 
 However, some dependencies are expensive to create and might not be used in every execution path. By setting `eager: false`, you move the instantiation from startup to the first time the dependency is actually requested via `get()`.
 
@@ -47,9 +47,9 @@ If you have a provider that requires an `async` factory, it **must** be eager. T
 
 ## Summary of Lifetimes
 
-| Lifetime           | When is it created? | How many instances?               |
-| :----------------- | :------------------ | :-------------------------------- |
-| **Singleton**      | At startup (Eager)  | One shared instance               |
-| **Lazy Singleton** | On first `get()`    | One shared instance               |
-| **Transient**      | On every `get()`    | A new instance every time         |
-| **Scoped**         | On scope creation   | One per scope (e.g., per request) |
+| Lifetime           | When is it created?                                                | How many instances?               |
+| :----------------- | :----------------------------------------------------------------- | :-------------------------------- |
+| **Singleton**      | At startup (Eager)                                                 | One shared instance               |
+| **Lazy Singleton** | On first `get()`                                                   | One shared instance               |
+| **Transient**      | On every `get()`                                                   | A new instance every time         |
+| **Scoped**         | Factories on scope creation, classes on first `get()` in the scope | One per scope (e.g., per request) |

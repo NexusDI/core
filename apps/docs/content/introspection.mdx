@@ -35,7 +35,7 @@ You can also use `toMermaid()` or `toDot()` to convert this JSON graph into text
 
 ## Real-time Tracing with `trace()`
 
-While the graph shows the _structure_, tracing shows the _behavior_. By passing a callback to the `trace` option of the devtools plugin, you can observe every lifecycle event as it happens.
+While the graph shows the _structure_, tracing shows the _behavior_. By passing a callback to the `trace()` plugin from `@nexusdi/devtools` (or to the `trace` option of `devtools()`), you can observe every lifecycle event as it happens.
 
 ```ts file=examples/meridian/src/pages/introspection.md region=trace
 
@@ -45,7 +45,7 @@ Common events include:
 
 - `construct`: When a new instance is built.
 - `init`: When a singleton's `onInit` method completes.
-- `scope:create` / `scope:dispose`: When child containers are created or destroyed.
+- `scope:create` / `scope:dispose`: When scopes are created or disposed.
 - `dispose:instance`: When a specific instance is cleaned up.
 
 ## Handling Minification

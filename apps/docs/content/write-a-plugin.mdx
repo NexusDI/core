@@ -1,6 +1,6 @@
 ---
 title: Writing NexusDI Plugins
-kind: guide
+kind: question
 description: Learn how to extend the NexusDI container by creating your own plugins using the official extension principle.
 ---
 
@@ -23,7 +23,7 @@ To ensure that the ecosystem remains stable and maintainable, all NexusDI plugin
 
 A plugin is a plain JavaScript object that declares its `name` and the `apiVersion` it was written against. It then implements one or more optional hooks.
 
-```ts
+```ts no-run
 const myPlugin = {
   name: 'my-plugin',
   apiVersion: NEXUS_PLUGIN_API,
@@ -47,7 +47,7 @@ If your plugin finds a problem with the module graph during `compile.check`, you
 
 1. **Define the Error:** Use `errorBase()` to create a stable error class with a code and a link to your documentation.
 2. **Provide the Text:** Create a text pack that maps the error code to a human-readable message.
-3. **Report the Error:** Use the `report()` function provided by the `compile.check` context.
+3. **Report the Error:** Call `report()`, the second parameter of your `compile.check` hook.
 
 ```ts file=examples/meridian/src/pages/write-a-plugin.md region=own-error
 
@@ -65,7 +65,7 @@ By augmenting the `TraceEventByType` interface, you can add type-safe events tha
 
 ## Graph Annotation
 
-If your plugin analyzes the graph, you can add "notes" to specific providers. These notes are then displayed in the `graph()` output of the devtools plugin.
+If your package analyzes the graph, it can add "notes" to specific providers. Annotators are not a plugin hook: the application passes `GraphAnnotator` functions to `devtools({ annotate })`, and `graph()` lists the notes on each provider.
 
 ```ts file=examples/meridian/src/pages/write-a-plugin.md region=annotate
 
@@ -73,4 +73,4 @@ If your plugin analyzes the graph, you can add "notes" to specific providers. Th
 
 ## Versioning and Compatibility
 
-To prevent crashes, NexusDI checks the `apiVersion` of every plugin. If the core API changes in a way that breaks a plugin, the version is incremented. If a plugin's version doesn't match the current core, `Nexus.create` rejects the startup process with a `NEXUS_PLUGIN_VERSION` error.
+To prevent crashes, NexusDI checks the `apiVersion` of every plugin. If the core API changes in a way that breaks a plugin, the version is incremented. Core accepts every plugin API version it still supports. If a plugin's `apiVersion` is not one of them, `Nexus.create` rejects the startup process with a `NEXUS_PLUGIN_VERSION` error.
