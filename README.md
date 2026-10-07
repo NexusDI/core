@@ -54,9 +54,10 @@ NexusDI is a modular system. Start with `@nexusdi/core` and add capabilities as 
 | Package                                                | Purpose                                                |
 | :----------------------------------------------------- | :----------------------------------------------------- |
 | [`@nexusdi/decorators`](libs/decorators/README.md)     | NestJS-style `@Injectable` and `@Module` decorators.   |
+| [`@nexusdi/errors`](libs/errors/README.md)             | Full error messages with fix lines.                    |
 | [`@nexusdi/devtools`](libs/devtools/README.md)         | Graph visualization and lifecycle tracing.             |
 | [`@nexusdi/interceptors`](libs/interceptors/README.md) | Cross-cutting concerns (logging, caching, validation). |
-| [`@nexusdi/node`](libs/node/README.md)                 | Request-scoped containers for Node.js servers.         |
+| [`@nexusdi/node`](libs/node/README.md)                 | Request scopes for Node.js servers.                    |
 | [`@nexusdi/testing`](libs/testing/README.md)           | Type-safe provider overrides for integration tests.    |
 | [`@nexusdi/federation`](libs/federation/README.md)     | Versioned contracts for micro-frontend architectures.  |
 | [`@nexusdi/cli`](libs/cli/README.md)                   | Export your dependency graph as SVG, PNG, or Mermaid.  |
