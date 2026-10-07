@@ -30,7 +30,7 @@ Modules interact through `imports`. If Module A imports Module B, Module A can s
 
 ### Global Modules
 
-Some providers are truly universal (like configuration or logging) and are needed by almost every module. Instead of importing them everywhere, you can mark a module as `global: true`.
+Some providers are truly universal (like configuration or logging) and are needed by almost every module. You can mark a module as `global: true`.
 
 ```ts file=examples/meridian/src/pages/modules.md region=global
 
@@ -40,9 +40,9 @@ A global module's exports are visible to every module in the graph automatically
 
 ## Swapping Implementations
 
-Because modules are defined by the tokens they export rather than the classes they use, you can swap an entire module for another as long as the exported tokens remain the same.
+Because modules are defined by the tokens they export and not by the classes they use, you can swap an entire module for another as long as the exported tokens remain the same.
 
-This is incredibly powerful for testing. You can replace a `ProductionEngineeringModule` with a `SimulatorEngineeringModule` that exports the same `COMPUTER` token but uses a simulated reactor under the hood.
+This is incredibly powerful for testing. You can replace a `ProductionEngineeringModule` with a `SimulatorEngineeringModule` that exports the same `COMPUTER` token but uses a simulated reactor behind that token.
 
 ```ts file=examples/meridian/src/pages/modules.md region=swap
 

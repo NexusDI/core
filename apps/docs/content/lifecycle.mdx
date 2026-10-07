@@ -7,7 +7,7 @@ requires: [scopes]
 
 # Lifecycle and Disposal
 
-Managing the lifecycle of a service—especially those that hold external resources like database pools, file handles, or network sockets—is critical for application stability.
+Managing the lifecycle of a service is critical for application stability. This holds most for services with external resources such as database pools, file handles, or network sockets.
 
 If resources aren't closed in the correct order, you risk leaking connections, hanging test processes, or crashing during a rolling deployment. NexusDI automates this through a strict lifecycle and disposal pipeline.
 

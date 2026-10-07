@@ -32,7 +32,7 @@ You can customize the output and the level of detail:
 
 - **Formats:** Use `-f` or `--format` to choose between `mermaid` (default), `dot`, `json`, `svg`, or `png`.
 - **Output file:** Use `-o` or `--out` to write to a file. Without `-f`, the command infers the format from the file's extension (`.mmd`, `.dot`, `.json`, `.svg`, `.png`).
-- **Views:** Use `--view modules` to see the high-level module import graph instead of the individual providers.
+- **Views:** Use `--view modules` to see the high-level module import graph without the individual providers.
 
 ```bash
 npx nexusdi graph src/meridian.module.ts#Meridian -o graph.svg --view modules

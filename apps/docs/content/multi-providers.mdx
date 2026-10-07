@@ -7,13 +7,13 @@ requires: [lazy]
 
 # Multi-Providers
 
-In most cases, one token maps to one provider. However, some features require a collection of contributions from across the application—such as a list of all available diagnostics, a set of validation rules, or a collection of plugin handlers.
+In most cases, one token maps to one provider. However, some features require a collection of contributions from across the application, such as a list of all available diagnostics, a set of validation rules, or a collection of plugin handlers.
 
 **Multi-Providers** allow multiple modules to contribute to a single token, which is then resolved as an array of all visible contributions.
 
 ## The `MultiToken`
 
-To create a multi-provider, use the `MultiToken` class. This tells NexusDI that this token is designed to collect multiple values rather than resolving to a single one.
+To create a multi-provider, use the `MultiToken` class. This tells NexusDI that this token is designed to collect multiple values and not resolve to a single one.
 
 ```ts file=examples/meridian/src/pages/multi-providers.md region=multi-token
 

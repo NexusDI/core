@@ -60,4 +60,4 @@ NexusDI prevents this at startup. If it detects a singleton reaching a scoped pr
 - **Scoped Factories:** By default, these run immediately when `createScope()` is called.
 - **Scoped Classes:** These are created lazily on the first `get()` within the scope.
 
-If you have heavy work (like starting a DB transaction), put it in a scoped class rather than a factory to ensure it only runs if actually requested.
+If you have heavy work (like starting a DB transaction), put it in a scoped class, not a factory, to ensure it only runs if actually requested.

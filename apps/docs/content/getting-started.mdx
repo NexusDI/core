@@ -6,7 +6,7 @@ description: Install NexusDI and build your first application to see how static 
 
 # Getting Started
 
-Most dependency injection containers are "optimistic"—they assume your wiring is correct and only tell you something is missing when your app crashes at runtime.
+Most dependency injection containers are "optimistic". They assume your wiring is correct and only tell you something is missing when your app crashes at runtime.
 
 NexusDI takes a different approach. It validates your entire dependency graph during startup. If a dependency is missing or a circular reference exists, NexusDI catches it immediately, ensuring that once your app starts, it stays running.
 
@@ -28,7 +28,7 @@ npm install -D typescript tsx @types/node
 
 ## TypeScript Configuration
 
-NexusDI requires TypeScript 5.4 or later. To avoid conflicts with legacy DI patterns, ensure that `experimentalDecorators` and `emitDecoratorMetadata` are **disabled** in your settings.
+NexusDI requires TypeScript 5.4 or later. To avoid conflicts with legacy DI patterns, ensure that `experimentalDecorators` and `emitDecoratorMetadata` are **disabled** in your settings. The package's type declarations reference TypeScript's `esnext.disposable` library, which adds `Symbol.asyncDispose` and `AsyncDisposable` to your program, so `await using` compiles with `lib: ["es2022"]` and you add no entry for it.
 
 Create a `tsconfig.json` with the following configuration:
 
@@ -75,7 +75,7 @@ If a class depends on a token that the container wasn't given, `Nexus.create` wi
 
 **Try it:** Delete `FusionReactor` from the array passed to `Nexus.create` in `ship.ts` and run it again.
 
-Instead of a runtime `TypeError` later in the execution, you will receive a clear error listing `NEXUS_MISSING_PROVIDER`.
+You receive a clear error listing `NEXUS_MISSING_PROVIDER`.
 
 ## Improving Error Messages with DevTools
 
@@ -93,4 +93,4 @@ Register the plugin in your application:
 
 ```
 
-Now, when you run your program with an error, you'll see a full explanation and a direct path to the fix. Note that you can keep these tools in development and omit them in production to keep your bundle size minimal.
+Now, when you run your program with an error, you'll see a full explanation and a direct path to the fix. You can keep these tools in development and omit them in production to keep your bundle size minimal.
