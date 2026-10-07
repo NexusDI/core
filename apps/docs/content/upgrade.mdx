@@ -1,6 +1,6 @@
 ---
 title: Upgrading to 0.4
-kind: guide
+kind: question
 description: A step-by-step guide to migrating your project from NexusDI 0.3 to 0.4.
 domainExempt: true
 ---
@@ -22,7 +22,7 @@ npm install -D @nexusdi/testing@next @nexusdi/errors@next @nexusdi/devtools@next
 
 ### TypeScript Update
 
-NexusDI 0.4 requires TypeScript 5.4+ and Node 22.12+. Most importantly, you must **disable** `experimentalDecorators` and `emitDecoratorMetadata` in your `tsconfig.json`. 0.4 uses standard TC39 decorators and does not read compiler-emitted metadata.
+NexusDI 0.4 requires TypeScript 5.4+ and Node 22.12+. It does not read compiler-emitted metadata, so you can remove `experimentalDecorators` and `emitDecoratorMetadata` from your `tsconfig.json`. A project that needs the flag for another library can keep it: `static deps` and `provide()` work with the flag on. Only `@nexusdi/decorators` needs it off, because it uses standard TC39 decorators. See [Using NexusDI with experimentalDecorators](/legacy-decorators/).
 
 ## 2. Replacing Symbol Tokens
 
@@ -30,7 +30,7 @@ NexusDI 0.4 requires TypeScript 5.4+ and Node 22.12+. Most importantly, you must
 
 **0.3 (Legacy):**
 
-```ts
+```ts anti-example
 const NAV_CHARTS = Symbol('NavCharts');
 container.set(NAV_CHARTS, { useValue: charts });
 ```
@@ -49,7 +49,7 @@ The `@Service` and `@Inject` parameter decorators are replaced by a `static deps
 
 **0.3 (Legacy):**
 
-```ts
+```ts anti-example
 @Service()
 class QuantumComputer {
   constructor(@Inject(REACTOR) private reactor: IReactorCore) {}
@@ -68,7 +68,7 @@ If you prefer decorators, you can use `@Injectable({ deps: [...] })` from the `@
 
 `DynamicModule` and `@Module` classes are replaced by the `defineModule()` function. This allows for better type checking and a clearer distinction between the module definition and its configuration.
 
-**0.3 (Legacy):** la used `DynamicModule.forRoot()` or `@Module` classes.
+**0.3 (Legacy):** used `DynamicModule.forRoot()` or `@Module` classes.
 **0.4 (Current):** Use `defineModule()` and `forRoot()` / `forRootAsync()`.
 
 ```ts file=examples/meridian/src/pages/upgrade.md region=modules
@@ -81,7 +81,7 @@ The `new Nexus()` and `set()` pattern is replaced by a single, atomic `Nexus.cre
 
 **0.3 (Legacy):**
 
-```ts
+```ts anti-example
 const container = new Nexus();
 container.set(REACTOR, { useClass: FusionReactor });
 container.set(QuantumComputer);
@@ -101,11 +101,11 @@ container.set(QuantumComputer);
 
 ## Summary of API Changes
 
-| 0.3 Concept              | 0.4 Replacement                |
-| :----------------------- | :----------------------------- |
-| `container.set()`        | `Nexus.create()` / `provide()` |
-| `DynamicModule`          | `defineModule()`               |
-| `createChildContainer()` | `createScope()`                |
-| `@Service`               | `static deps` / `@Injectable`  |
-| `Symptom tokens`         | `Token<T>`                     |
-| `container.resolve()`    | `ship.resolve()`               |
+| 0.3 Concept                | 0.4 Replacement                                                                                                                                                       |
+| :------------------------- | :-------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `container.set()`          | `Nexus.create()` / `provide()`                                                                                                                                        |
+| `DynamicModule`            | `defineModule()`                                                                                                                                                      |
+| `createChildContainer()`   | `createScope()`                                                                                                                                                       |
+| `@Service`                 | `static deps` / `@Injectable`                                                                                                                                         |
+| Symbol tokens              | `Token<T>`                                                                                                                                                            |
+| `container.resolve(Class)` | `provide(Class, { lifetime: 'transient' })` and `ship.get(Class)`. `ship.resolve(deps)` takes a deps tuple or map, and `resolve(Class)` throws `NEXUS_INVALID_TOKEN`. |

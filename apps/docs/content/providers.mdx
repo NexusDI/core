@@ -25,7 +25,7 @@ To make a class "injectable," you define its constructor dependencies in a `stat
 
 By declaring `static deps`, TypeScript can verify that the tokens you've listed actually match the types expected by the constructor.
 
-If you forget to declare `static deps` for a class with constructor parameters, `Nexus.create` will fail with a `NEXUS_MISSING_DEPS` error, preventing a `TypeError` at runtime.
+If you forget to declare `static deps` for a class with constructor parameters, `Nexus.create` will fail with `NEXUS_BLUEPRINT_INVALID`, whose `errors` list holds `NEXUS_MISSING_DEPS`, preventing a `TypeError` at runtime.
 
 ### Providers for External Classes
 
@@ -69,7 +69,7 @@ If the provider is missing, the dependency will resolve to `undefined` instead o
 
 ## Handling Constructor Defaults
 
-If your class uses default parameters in its constructor, NexusDI treats the class as having zero dependencies by default.
+If your class has no `static deps`, NexusDI counts its constructor parameters with `cls.length`. That count stops at the first parameter with a default or a rest parameter. A class whose parameters all have defaults counts zero and builds with its defaults. `constructor(a: X, b = 1)` still counts one and fails with `NEXUS_MISSING_DEPS`.
 
 ```ts file=examples/meridian/src/pages/providers.md region=defaults
 

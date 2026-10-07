@@ -8,53 +8,58 @@ description: A complete list of error codes raised by NexusDI and its official p
 
 Every error raised by NexusDI carries a stable `code`. By default, these errors provide a concise one-line message and a link to the specific documentation page for that code. When the `@nexusdi/errors` or `@nexusdi/devtools` plugins are registered, these codes are expanded into full human-readable messages with suggested fixes.
 
-You can use the `isNexusError(error, code)` utility from `@nexusdi/core` to detect specific errors and narrow the error to its specific class.
+You can use the `isNexusError(error, code)` utility from `@nexusdi/core` to detect specific errors and narrow the error to its specific class. Check where the code arrives: most graph errors arrive inside the `errors` list of `NEXUS_BLUEPRINT_INVALID`, and an error raised while a provider is built arrives as the `cause` of `NEXUS_PROVIDER_FAILED`.
 
 ## Core Error Codes
 
 These errors are raised by `@nexusdi/core` during graph validation or container resolution.
 
-| Code                                                                    | Class                     | Description                                                                 |
-| :---------------------------------------------------------------------- | :------------------------ | :-------------------------------------------------------------------------- |
-| [`NEXUS_BLUEPRINT_INVALID`](/errors/NEXUS_BLUEPRINT_INVALID/)           | `BlueprintError`          | The module graph is invalid; see the `errors` array for specific issues.    |
-| [`NEXUS_MISSING_PROVIDER`](/errors/NEXUS_MISSING_PROVIDER/)             | `MissingProviderError`    | A dependency token has no visible provider.                                 |
-| [`NEXUS_AMBIGUOUS_PROVIDER`](/errors/NEXUS_AMBIGUOUS_PROVIDER/)         | `AmbiguousProviderError`  | Multiple modules export the same token, creating ambiguity.                 |
-| [`NEXUS_DUPLICATE_PROVIDER`](/errors/NEXUS_DUPLICATE_PROVIDER/)         | `DuplicateProviderError`  | A single module defines the same provider multiple times.                   |
-| [`NEXUS_INVALID_EXPORT`](/errors/NEXUS_INVALID_EXPORT/)                 | `InvalidExportError`      | A module attempts to export a token it does not provide or import.          |
-| [`NEXUS_INVALID_PROVIDER`](/errors/NEXUS_INVALID_PROVIDER/)             | `InvalidProviderError`    | A provider definition is malformed.                                         |
-| [`NEXUS_INVALID_TOKEN`](/errors/NEXUS_INVALID_TOKEN/)                   | `InvalidTokenError`       | A value is used as a token but is not a class or a `Token` instance.        |
-| [`NEXUS_INVALID_MODULE`](/errors/NEXUS_INVALID_MODULE/)                 | `InvalidModuleError`      | A value used as a module is not a `defineModule` result or `@Module` class. |
-| [`NEXUS_MISSING_DEPS`](/errors/NEXUS_MISSING_DEPS/)                     | `MissingDepsError`        | A class with constructor parameters is missing its `static deps` list.      |
-| [`NEXUS_CIRCULAR_DEPENDENCY`](/errors/NEXUS_CIRCULAR_DEPENDENCY/)       | `CircularDependencyError` | A dependency loop was detected with no `lazy()` edge to break it.           |
-| [`NEXUS_LIFETIME_VIOLATION`](/errors/NEXUS_LIFETIME_VIOLATION/)         | `LifetimeError`           | A singleton depends on a scoped provider (Captive Dependency).              |
-| [`NEXUS_MODULE_IMPORT_CYCLE`](/errors/NEXUS_MODULE_IMPORT_CYCLE/)       | `ModuleImportCycleError`  | Two or more modules import each other in a loop.                            |
-| [`NEXUS_MODULE_OPTIONS_MISSING`](/errors/NEXUS_MODULE_OPTIONS_MISSING/) | `ModuleOptionsError`      | A configurable module was imported without `forRoot` or `forRootAsync`.     |
-| [`NEXUS_LOAD_GLOBAL_MODULE`](/errors/NEXUS_LOAD_GLOBAL_MODULE/)         | `LoadError`               | A global module was passed to `load()` instead of the root.                 |
-| [`NEXUS_INVALID_MODULE_OPTIONS`](/errors/NEXUS_INVALID_MODULE_OPTIONS/) | `ModuleOptionsError`      | Module options failed the defined schema validation.                        |
-| [`NEXUS_PROVIDER_FAILED`](/errors/NEXUS_PROVIDER_FAILED/)               | `ProviderError`           | A constructor, factory, or `onInit` threw an error during instantiation.    |
-| [`NEXUS_NOT_READY`](/errors/NEXUS_NOT_READY/)                           | `NotReadyError`           | A `lazy()` thunk was called before the target provider was initialized.     |
-| [`NEXUS_ASYNC_TRANSIENT`](/errors/NEXUS_ASYNC_TRANSIENT/)               | `AsyncTransientError`     | A transient factory returned a promise (transients must be synchronous).    |
-| [`NEXUS_LAZY_ASYNC`](/errors/NEXUS_LAZY_ASYNC/)                         | `LazyAsyncError`          | An `eager: false` provider returned a promise on first use.                 |
-| [`NEXUS_NOT_VISIBLE`](/errors/NEXUS_NOT_VISIBLE/)                       | `NotVisibleError`         | The token exists, but the requesting module cannot see it.                  |
-| [`NEXUS_SCOPE_REQUIRED`](/errors/NEXUS_SCOPE_REQUIRED/)                 | `ScopeRequiredError`      | A scoped provider was requested from the root container.                    |
-| [`NEXUS_REQUEST_MISSING`](/errors/NEXUS_REQUEST_MISSING/)               | `RequestMissingError`     | `createScope` was called without a request object.                          |
-| [`NEXUS_LOADED_AFTER_SCOPE`](/errors/NEXUS_LOADED_AFTER_SCOPE/)         | `LoadedAfterScopeError`   | A token was loaded into the root after the current scope was created.       |
-| [`NEXUS_DISPOSED`](/errors/NEXUS_DISPOSED/)                             | `DisposedError`           | The container or scope was used after being disposed.                       |
+| Code                                                                    | Class                     | Description                                                                                                 |
+| :---------------------------------------------------------------------- | :------------------------ | :---------------------------------------------------------------------------------------------------------- |
+| [`NEXUS_BLUEPRINT_INVALID`](/errors/NEXUS_BLUEPRINT_INVALID/)           | `BlueprintError`          | The module graph is invalid; see the `errors` array for specific issues.                                    |
+| [`NEXUS_MISSING_PROVIDER`](/errors/NEXUS_MISSING_PROVIDER/)             | `MissingProviderError`    | A dependency token has no visible provider.                                                                 |
+| [`NEXUS_AMBIGUOUS_PROVIDER`](/errors/NEXUS_AMBIGUOUS_PROVIDER/)         | `AmbiguousProviderError`  | A module imports two or more modules that each export their own provider of the same token.                 |
+| [`NEXUS_DUPLICATE_PROVIDER`](/errors/NEXUS_DUPLICATE_PROVIDER/)         | `DuplicateProviderError`  | A single module defines the same provider multiple times.                                                   |
+| [`NEXUS_INVALID_EXPORT`](/errors/NEXUS_INVALID_EXPORT/)                 | `InvalidExportError`      | A module attempts to export a token it does not provide or import.                                          |
+| [`NEXUS_INVALID_PROVIDER`](/errors/NEXUS_INVALID_PROVIDER/)             | `InvalidProviderError`    | A provider definition is malformed.                                                                         |
+| [`NEXUS_INVALID_TOKEN`](/errors/NEXUS_INVALID_TOKEN/)                   | `InvalidTokenError`       | A value is used as a token but is not a class or a `Token` instance, or a `Token` has an empty description. |
+| [`NEXUS_INVALID_MODULE`](/errors/NEXUS_INVALID_MODULE/)                 | `InvalidModuleError`      | A value used as a module is not a `defineModule` result or `@Module` class.                                 |
+| [`NEXUS_MISSING_DEPS`](/errors/NEXUS_MISSING_DEPS/)                     | `MissingDepsError`        | A class with constructor parameters is missing its `static deps` list.                                      |
+| [`NEXUS_CIRCULAR_DEPENDENCY`](/errors/NEXUS_CIRCULAR_DEPENDENCY/)       | `CircularDependencyError` | A dependency loop was detected with no `lazy()` edge to break it.                                           |
+| [`NEXUS_LIFETIME_VIOLATION`](/errors/NEXUS_LIFETIME_VIOLATION/)         | `LifetimeError`           | A singleton depends on a scoped provider or on `REQUEST` (Captive Dependency).                              |
+| [`NEXUS_MODULE_IMPORT_CYCLE`](/errors/NEXUS_MODULE_IMPORT_CYCLE/)       | `ModuleImportCycleError`  | Two or more modules import each other in a loop.                                                            |
+| [`NEXUS_MODULE_OPTIONS_MISSING`](/errors/NEXUS_MODULE_OPTIONS_MISSING/) | `ModuleOptionsError`      | A configurable module was imported without `forRoot` or `forRootAsync`.                                     |
+| [`NEXUS_LOAD_GLOBAL_MODULE`](/errors/NEXUS_LOAD_GLOBAL_MODULE/)         | `LoadError`               | `load()` received a global module, or a module that imports a global module the graph lacks.                |
+| [`NEXUS_INVALID_MODULE_OPTIONS`](/errors/NEXUS_INVALID_MODULE_OPTIONS/) | `ModuleOptionsError`      | Module options failed the defined schema validation.                                                        |
+| [`NEXUS_PROVIDER_FAILED`](/errors/NEXUS_PROVIDER_FAILED/)               | `ProviderError`           | A constructor, factory, `onInit`, or options validation threw an error during instantiation.                |
+| [`NEXUS_NOT_READY`](/errors/NEXUS_NOT_READY/)                           | `NotReadyError`           | A `lazy()` thunk was called before the target provider was initialized.                                     |
+| [`NEXUS_ASYNC_TRANSIENT`](/errors/NEXUS_ASYNC_TRANSIENT/)               | `AsyncTransientError`     | A transient factory returned a promise (transients must be synchronous).                                    |
+| [`NEXUS_LAZY_ASYNC`](/errors/NEXUS_LAZY_ASYNC/)                         | `LazyAsyncError`          | An `eager: false` provider, or its `onInit`, returned a promise on first use.                               |
+| [`NEXUS_NOT_VISIBLE`](/errors/NEXUS_NOT_VISIBLE/)                       | `NotVisibleError`         | The token exists, but the requesting module cannot see it.                                                  |
+| [`NEXUS_SCOPE_REQUIRED`](/errors/NEXUS_SCOPE_REQUIRED/)                 | `ScopeRequiredError`      | A scoped provider was requested from the root container.                                                    |
+| [`NEXUS_REQUEST_MISSING`](/errors/NEXUS_REQUEST_MISSING/)               | `RequestMissingError`     | `createScope` was called without a request object while scoped providers depend on `REQUEST`.               |
+| [`NEXUS_LOADED_AFTER_SCOPE`](/errors/NEXUS_LOADED_AFTER_SCOPE/)         | `LoadedAfterScopeError`   | A token was loaded into the root after the current scope was created.                                       |
+| [`NEXUS_DISPOSED`](/errors/NEXUS_DISPOSED/)                             | `DisposedError`           | The container or scope was used after being disposed.                                                       |
+| [`NEXUS_PLUGIN_INVALID`](/errors/NEXUS_PLUGIN_INVALID/)                 | `PluginError`             | A plugin passed to `Nexus.create` or `Nexus.check` is malformed.                                            |
+| [`NEXUS_PLUGIN_VERSION`](/errors/NEXUS_PLUGIN_VERSION/)                 | `PluginError`             | A plugin declares a plugin API version this core does not support.                                          |
+| [`NEXUS_PLUGIN_CONFLICT`](/errors/NEXUS_PLUGIN_CONFLICT/)               | `PluginError`             | Two plugins rewrite the same module or provider.                                                            |
+| [`NEXUS_PLUGIN_FAILED`](/errors/NEXUS_PLUGIN_FAILED/)                   | `PluginError`             | A plugin hook threw or returned a value of the wrong type.                                                  |
 
-## Plugin Error Codes
+## Error Codes from Other Packages
 
-These errors are raised by official NexusDI plugins.
+These errors are raised by the other official NexusDI packages.
 
-| Package                 | Code                           | Description                                                    |
-| :---------------------- | :----------------------------- | :------------------------------------------------------------- |
-| `@nexusdi/interceptors` | `NEXUS_INTERCEPTOR_INVALID`    | Interceptor definition or call is malformed.                   |
-| `@nexusdi/interceptors` | `NEXUS_INTERCEPTOR_MISSING`    | A declared interceptor was not registered in the plugin.       |
-| `@nexusdi/interceptors` | `NEXUS_INTERCEPTOR_LIFETIME`   | An interceptor was marked as scoped or transient.              |
-| `@nexusdi/interceptors` | `NEXUS_INTERCEPTOR_NOT_READY`  | Interceptor called before build or after disposal.             |
-| `@nexusdi/interceptors` | `NEXUS_INTERCEPTORS_SHARED`    | An interceptors plugin object was used in multiple containers. |
-| `@nexusdi/interceptors` | `NEXUS_INTERCEPTORS_UNCHECKED` | An instance was wrapped without being checked by the compiler. |
-| `@nexusdi/testing`      | `NEXUS_OVERRIDE_UNUSED`        | An override was provided for a token that isn't in the graph.  |
-| `@nexusdi/testing`      | `NEXUS_OVERRIDE_EXPORTS`       | A module stub doesn't export everything the original did.      |
-| `@nexusdi/devtools`     | `NEXUS_DEVTOOLS_UNREGISTERED`  | `graph()` called on a container without the devtools plugin.   |
-| `@nexusdi/devtools`     | `NEXUS_DEVTOOLS_GRAPH_INVALID` | The provided JSON is not a valid `NexusGraph`.                 |
-| `@nexusdi/federation`   | `NEXUS_CONTRACT_VERSION`       | A contract version mismatch was detected.                      |
+| Package                 | Code                                                                    | Description                                                                                            |
+| :---------------------- | :---------------------------------------------------------------------- | :----------------------------------------------------------------------------------------------------- |
+| `@nexusdi/interceptors` | [`NEXUS_INTERCEPTOR_INVALID`](/errors/NEXUS_INTERCEPTOR_INVALID/)       | Interceptor definition or call is malformed.                                                           |
+| `@nexusdi/interceptors` | [`NEXUS_INTERCEPTOR_MISSING`](/errors/NEXUS_INTERCEPTOR_MISSING/)       | A declared interceptor was not registered in the plugin.                                               |
+| `@nexusdi/interceptors` | [`NEXUS_INTERCEPTOR_LIFETIME`](/errors/NEXUS_INTERCEPTOR_LIFETIME/)     | An interceptor was marked as scoped or transient.                                                      |
+| `@nexusdi/interceptors` | [`NEXUS_INTERCEPTOR_NOT_READY`](/errors/NEXUS_INTERCEPTOR_NOT_READY/)   | Interceptor called before build or after disposal.                                                     |
+| `@nexusdi/interceptors` | [`NEXUS_INTERCEPTORS_SHARED`](/errors/NEXUS_INTERCEPTORS_SHARED/)       | An interceptors plugin object was passed to a second container while another container still holds it. |
+| `@nexusdi/interceptors` | [`NEXUS_INTERCEPTORS_UNCHECKED`](/errors/NEXUS_INTERCEPTORS_UNCHECKED/) | An instance was wrapped without being checked by the compiler.                                         |
+| `@nexusdi/testing`      | [`NEXUS_OVERRIDE_UNUSED`](/errors/NEXUS_OVERRIDE_UNUSED/)               | An override names a token that no provider binds, or a module the graph never imports.                 |
+| `@nexusdi/testing`      | [`NEXUS_OVERRIDE_EXPORTS`](/errors/NEXUS_OVERRIDE_EXPORTS/)             | A module stub doesn't export everything the original did.                                              |
+| `@nexusdi/decorators`   | [`NEXUS_LEGACY_DECORATORS`](/errors/NEXUS_LEGACY_DECORATORS/)           | A decorator ran under `experimentalDecorators`.                                                        |
+| `@nexusdi/devtools`     | [`NEXUS_DEVTOOLS_UNREGISTERED`](/errors/NEXUS_DEVTOOLS_UNREGISTERED/)   | `graph()` called on a container without the devtools plugin.                                           |
+| `@nexusdi/devtools`     | [`NEXUS_DEVTOOLS_GRAPH_INVALID`](/errors/NEXUS_DEVTOOLS_GRAPH_INVALID/) | The provided JSON is not a valid `NexusGraph`.                                                         |
+| `@nexusdi/federation`   | [`NEXUS_CONTRACT_VERSION`](/errors/NEXUS_CONTRACT_VERSION/)             | A dependent needs a contract version its provider does not satisfy.                                    |

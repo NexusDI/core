@@ -19,7 +19,7 @@ To make a module configurable, you specify an `options` token in the `defineModu
 
 ```
 
-The `forRoot(value)` method allows an importer to supply the required options. If a module declares an options token but is imported without a `forRoot` call, NexusDI will reject the startup process with a `NEXUS_MODULE_OPTIONS_MISSING` error.
+The `forRoot(value)` method allows an importer to supply the required options. If a module declares an options token but is imported without a `forRoot` call, `Nexus.create` rejects with `NEXUS_BLUEPRINT_INVALID`, and its `errors` list holds `NEXUS_MODULE_OPTIONS_MISSING`.
 
 ## Dynamic Implementations
 
@@ -41,7 +41,7 @@ Sometimes your configuration isn't known at compile time—it might need to be f
 
 ```
 
-The options factory can be `async`. NexusDI awaits these factories during `Nexus.create`, ensuring that all configuration is resolved before any providers are instantiated.
+The options factory can be `async`. NexusDI awaits it during `Nexus.create`, before it builds the module's providers. The factory's own `deps` are built first, as `COMPUTER` is in the region above.
 
 ## Validating Options with Schemas
 
@@ -51,7 +51,7 @@ To prevent your app from starting with invalid configuration, you can attach a `
 
 ```
 
-If the options provided to `forRoot` fail the schema check, NexusDI rejects the startup process with a `NEXUS_INVALID_MODULE_OPTIONS` error, preventing the application from entering an unstable state.
+If the options provided to `forRoot` fail the schema check, `Nexus.create` rejects with `NEXUS_PROVIDER_FAILED`, whose `cause` is `NEXUS_INVALID_MODULE_OPTIONS`. The module's providers are never built with the bad value.
 
 ## Sharing Configured Modules
 

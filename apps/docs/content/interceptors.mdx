@@ -17,7 +17,7 @@ An interceptor is a provider that implements the `Interceptor` interface. Its co
 - **`call`**: A context object containing the service instance, the method name, the arguments, and the current scope.
 - **`next`**: A function that triggers the next interceptor in the chain, eventually calling the actual service method.
 
-To use them, you first register the interceptor plugin:
+To use them, you first install the interceptors package:
 
 ```bash
 npm install @nexusdi/interceptors@next
@@ -70,8 +70,8 @@ It is important to understand that:
 1. Calls made through the proxy (e.g., `computer.status()`) are intercepted.
 2. Calls made via `this` inside the class (e.g., `this.status()`) **bypass the proxy** and are not intercepted.
 
-If you need internal calls to be intercepted, you should inject the service's own token into the class and call the method through that injected instance.
+If you need an internal call to be intercepted, call the method through the token from outside the class, or move the method to another service and call it through that service's proxy. Do not inject the class's own token into the class: a class that depends on itself is a cycle, and `Nexus.create` rejects it.
 
 ## Interceptor Lifetimes
 
-Interceptors are always **Singletons**. Because they are registered in a global registry and shared across the entire container, they cannot be scoped or transient. If they need request-specific data, they should access it via `call.scope`.
+Interceptors are always **Singletons**. Each interceptor is built once per container. A scoped or transient interceptor makes `create` reject with `NEXUS_BLUEPRINT_INVALID`, which holds `NEXUS_INTERCEPTOR_LIFETIME`. If an interceptor needs request-specific data, it reads it from `call.scope` or `call.instance`.

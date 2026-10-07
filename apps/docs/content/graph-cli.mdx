@@ -1,6 +1,6 @@
 ---
 title: Visualizing Your Dependency Graph
-kind: guide
+kind: question
 description: Use the `nexusdi graph` CLI tool to export your dependency tree as Mermaid, DOT, or JSON.
 ---
 
@@ -24,17 +24,24 @@ The `nexusdi graph` command takes an entry point (the file defining your root mo
 npx nexusdi graph src/meridian.module.ts#Meridian
 ```
 
-The command uses `Nexus.check` to validate the graph without instantiating any classes, making it safe to run in any environment.
+The command imports the entry file and checks the graph with `inspect()` from `@nexusdi/devtools`, which runs no constructor. Importing the file still runs its top-level code, so a file that starts the app starts it. Point the command at the file that defines the root module, and keep the `Nexus.create` call that starts the app in another file, such as `main.ts`.
 
 ### Export Formats and Views
 
 You can customize the output and the level of detail:
 
 - **Formats:** Use `-f` or `--format` to choose between `mermaid` (default), `dot`, `json`, `svg`, or `png`.
+- **Output file:** Use `-o` or `--out` to write to a file. Without `-f`, the command infers the format from the file's extension (`.mmd`, `.dot`, `.json`, `.svg`, `.png`).
 - **Views:** Use `--view modules` to see the high-level module import graph instead of the individual providers.
 
 ```bash
 npx nexusdi graph src/meridian.module.ts#Meridian -o graph.svg --view modules
+```
+
+SVG needs `@viz-js/viz`, and PNG also needs `@resvg/resvg-js`. Mermaid, DOT and JSON need nothing else:
+
+```bash
+npm install -D @viz-js/viz @resvg/resvg-js
 ```
 
 ## Advanced Analysis
@@ -57,7 +64,7 @@ npx nexusdi graph src/meridian.module.ts#Meridian --plugins src/plugins.ts#plugi
 
 ## CI/CD Integration
 
-The `nexusdi graph` command is ideal for CI pipelines. It exits with code `0` if the graph is valid and code `1` if there are wiring mistakes. By adding this to your pipeline, you can prevent broken dependency graphs from ever being merged into your main branch.
+The `nexusdi graph` command is ideal for CI pipelines. It exits with code `0` if the graph is valid and code `1` if there are wiring mistakes. Code `2` means the arguments or an input file are wrong, and code `3` means a package the command needs is missing, such as `@nexusdi/devtools` or `@viz-js/viz`. By adding this to your pipeline, you can prevent broken dependency graphs from ever being merged into your main branch.
 
 ```bash
 # Fail the build if the graph is invalid
