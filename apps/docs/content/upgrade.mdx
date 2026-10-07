@@ -9,7 +9,7 @@ domainExempt: true
 
 NexusDI 0.4 introduces a fundamental shift in how the container works: it moves from a "lazy, optimistic" model to a "static, validated" model. NexusDI now validates the entire module graph before the first instance is ever created, so wiring errors surface at startup.
 
-Because of this shift, the 0.4 API is significantly different from 0.3. `set()`, `DynamicModule`, symbol tokens, parameter decorators and `createChildContainer()` have no 0.4 form. This guide provides a sequential path to migrate your project: work through the steps in order, and run `npx tsc` after each one, because it lists the 0.3 code that remains. Each step shows the 0.3 code, which does not compile against 0.4, and the 0.4 code that replaces it.
+Because of this shift, the 0.4 API is significantly different from 0.3. This guide provides a sequential path to migrate your project. `set()`, `DynamicModule`, symbol tokens, parameter decorators and `createChildContainer()` have no 0.4 form. Work through the steps in order, and run `npx tsc` after each one, because it lists the 0.3 code that remains. Each step shows the 0.3 code, which does not compile against 0.4, and the 0.4 code that replaces it.
 
 The 0.4 release candidates publish no codemod, so every step is an edit you make by hand. The [changelog of `@nexusdi/core`](https://github.com/NexusDI/core/blob/main/libs/core/CHANGELOG.md) lists every change, and the [0.3 support policy](/support-policy/) says how long 0.3 receives fixes.
 
@@ -31,9 +31,7 @@ Each package holds one feature:
 
 ### TypeScript Update
 
-NexusDI 0.4 requires TypeScript 5.4+ and Node 22.12+, and it is published as ES modules only. A CommonJS project on Node 22.12 or later can `require()` it.
-
-0.4 does not read compiler-emitted metadata, so you can remove `experimentalDecorators` and `emitDecoratorMetadata` from your `tsconfig.json`. A project that needs the flag for another library can keep it: `static deps` and `provide()` work with the flag on. Only `@nexusdi/decorators` needs it off, because it uses standard TC39 decorators. See [Using NexusDI with experimentalDecorators](/legacy-decorators/). For a project with no other use of the flags, the compiler options end up like this:
+NexusDI 0.4 requires TypeScript 5.4+ and Node 22.12+. It does not read compiler-emitted metadata, so you can remove `experimentalDecorators` and `emitDecoratorMetadata` from your `tsconfig.json`. A project that needs the flag for another library can keep it: `static deps` and `provide()` work with the flag on. Only `@nexusdi/decorators` needs it off, because it uses standard TC39 decorators. See [Using NexusDI with experimentalDecorators](/legacy-decorators/). NexusDI 0.4 is published as ES modules only, and a CommonJS project on Node 22.12 or later can `require()` it. For a project with no other use of the flags, the compiler options end up like this:
 
 ```json no-run
 {
@@ -68,17 +66,14 @@ container.set(NAV_CHARTS, { useValue: charts });
 
 ## 3. Moving to `static deps`
 
-The `@Service` and `@Inject` parameter decorators are replaced by a `static deps` array on the class. This makes dependencies explicit and verifiable: TypeScript checks the tuple against the constructor. `@Optional(X)` becomes `optional(X)` in the tuple.
+The `@Service` and `@Inject` parameter decorators are replaced by a `static deps` array on the class. This makes dependencies explicit and verifiable. TypeScript checks the tuple against the constructor. `@Optional(X)` becomes `optional(X)` in the tuple.
 
 **0.3 (Legacy):**
 
 ```ts anti-example
 @Service()
 class QuantumComputer {
-  constructor(
-    @Inject(REACTOR) private reactor: IReactorCore,
-    @Optional(SUBSPACE_LINK) private link?: ISubspaceLink,
-  ) {}
+  constructor(@Inject(REACTOR) private reactor: IReactorCore) {}
 }
 ```
 
@@ -88,7 +83,7 @@ class QuantumComputer {
 
 ```
 
-If you prefer decorators, you can use `@Injectable({ deps: [...] })` from the `@nexusdi/decorators` package ([Writing Providers with Decorators](/decorators/)).
+If you prefer decorators, you can use `@Injectable({ deps: [...] })` from the `@nexusdi/decorators` package. See [Writing Providers with Decorators](/decorators/).
 
 **Try it:** Save the region as `services.ts` and run `npx tsx services.ts`. It prints `Reactor output 1.21 GW, no link.` Swap the two entries of `static deps` and `npx tsc` reports TS2769 on the `provide(COMPUTER, ...)` call, because the tuple no longer matches the constructor. Swap them back.
 
@@ -111,7 +106,7 @@ Move that dependency into `static deps` as a constructor parameter. A project th
 
 `defineModule({ name, providers, imports, exports })` declares a module. A configurable module names an options token with `options`, and the importer passes the options with `forRoot(value)` or `forRootAsync({ useFactory, deps })`. `Mod.config(value)` becomes `Mod.forRoot(value)`, and `Mod.configAsync(fn)` becomes `Mod.forRootAsync({ useFactory: fn })`.
 
-**0.3 (Legacy):**
+**0.3 (Legacy):** used `DynamicModule.forRoot()` or `@Module` classes.
 
 ```ts anti-example
 @Module({ providers: [SubspaceRelay] })
@@ -121,7 +116,7 @@ class Comms extends DynamicModule<CommsOptions> {
 container.set(Comms.config({ frequency: 1420 }));
 ```
 
-**0.4 (Current):**
+**0.4 (Current):** Use `defineModule()` and `forRoot()` / `forRootAsync()`.
 
 ```ts file=examples/meridian/src/pages/upgrade.md region=modules
 
@@ -176,7 +171,7 @@ Provider objects in the 0.3 `{ token, useClass }` and `{ token, useValue }` shap
 
 ## 6. Lifetimes and Scopes
 
-- **Scopes:** `createChildContainer()` is replaced by `await ship.createScope({ request })`. A provider with `lifetime: 'scoped'` is built once per scope.
+- **Scopes:** `createChildContainer()` is replaced by `createScope({ request })`. Call it as `await ship.createScope({ request })`. A provider with `lifetime: 'scoped'` is built once per scope.
 - **Transients:** `singleton: false` is now `lifetime: 'transient'`. 0.3 ignored that flag and cached every instance.
 - **Eager Loading:** 0.3 built everything lazily. 0.4 builds all singletons at startup. Use `eager: false` to restore lazy initialization for expensive providers.
 
@@ -274,7 +269,8 @@ These 0.3 exports and members map to 0.4 as follows. The last six rows have no s
 | `container.set()`                                                                     | `Nexus.create()` / `provide()`                                                                                                                                                                                            |
 | `DynamicModule`                                                                       | `defineModule()`                                                                                                                                                                                                          |
 | `createChildContainer()`                                                              | `createScope()`                                                                                                                                                                                                           |
-| `@Service`, `@Provider`                                                               | `static deps` with `provide()`, or `@Injectable` from `@nexusdi/decorators`                                                                                                                                               |
+| `@Service`                                                                            | `static deps` / `@Injectable`                                                                                                                                                                                             |
+| `@Provider`                                                                           | `static deps` with `provide()`, or `@Injectable` from `@nexusdi/decorators`                                                                                                                                               |
 | Symbol tokens                                                                         | `Token<T>`                                                                                                                                                                                                                |
 | `container.resolve(Class)`                                                            | `provide(Class, { lifetime: 'transient' })` and `ship.get(Class)`. `ship.resolve(deps)` takes a deps tuple or map, and `resolve(Class)` throws `NEXUS_INVALID_TOKEN`.                                                     |
 | `container.list()`, `container.clear()`                                               | `list()` is gone: register `devtools()` in `Nexus.create`'s `plugins`, and `graph(ship)` from `@nexusdi/devtools` reports the graph. `clear()` is gone: dispose the ship with `await using` or `[Symbol.asyncDispose]()`. |

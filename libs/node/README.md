@@ -60,6 +60,7 @@ In a server, return `await scopes.run(...)` from the handler, so `await using` k
 
 ## Documentation
 
+- [Scopes and REQUEST Guide](https://nexus.js.org/next/scopes/)
 - [Scoping Node.js HTTP Requests](https://nexus.js.org/next/node-request-scopes/)
 - [Documentation](https://nexus.js.org/next/)
 - [Examples](https://github.com/NexusDI/core/tree/@nexusdi/core@0.4.0-rc.0/libs/node/docs)

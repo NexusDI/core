@@ -13,7 +13,7 @@ A provider is essentially a recipe. When the container encounters a token it nee
 
 ## The Default: Class Providers
 
-The most common way to provide a dependency is by using a class. `provide(COMPUTER, { useClass: QuantumComputer })` binds the class to the token, and `provide()`'s other options pick the other forms: `useValue`, `useFactory` and `useExisting`.
+The most common way to provide a dependency is by using a class. In NexusDI, a class can act as its own provider. `provide(COMPUTER, { useClass: QuantumComputer })` binds the class to the token, and `provide()`'s other options pick the other forms: `useValue`, `useFactory` and `useExisting`.
 
 ### Using `static deps`
 
@@ -25,7 +25,7 @@ To make a class "injectable," you define its constructor dependencies in a `stat
 
 By declaring `static deps`, TypeScript can verify that the tokens you've listed actually match the types expected by the constructor. `static deps` lists the tokens in parameter order, and `provide()` reads it, so the provider needs no `deps` option.
 
-If you forget to declare `static deps` for a class with constructor parameters, `Nexus.create` will fail with `NEXUS_BLUEPRINT_INVALID`, whose `errors` list holds [NEXUS_MISSING_DEPS](/errors/NEXUS_MISSING_DEPS/) with the number of parameters it found, preventing a `TypeError` at runtime:
+If you forget to declare `static deps` for a class with constructor parameters, `Nexus.create` will fail with `NEXUS_BLUEPRINT_INVALID`, whose `errors` list holds `NEXUS_MISSING_DEPS`, preventing a `TypeError` at runtime. The error carries the number of parameters it found. See [NEXUS_MISSING_DEPS](/errors/NEXUS_MISSING_DEPS/). This region shows it:
 
 ```ts file=examples/meridian/src/pages/providers.md region=missing-deps
 
@@ -81,7 +81,7 @@ Not every dependency is required for a component to function. By wrapping a toke
 
 ```
 
-If no visible provider exists, the dependency will resolve to `undefined` and triggers no startup error. The constructor parameter takes `T | undefined`, and TypeScript checks the class against it.
+If the provider is missing, the dependency will resolve to `undefined` and triggers no startup error. A provider that no visible module exports counts as missing. The constructor parameter takes `T | undefined`, and TypeScript checks the class against it.
 
 **Try it:** Delete `optional(` and its closing parenthesis, leaving `static deps = [SUBSPACE_LINK] as const`. `npx tsc` flags the `optional` import on the first line, now unused. Run the program: `Nexus.create` rejects with `NEXUS_BLUEPRINT_INVALID`, and the error it carries is [NEXUS_MISSING_PROVIDER](/errors/NEXUS_MISSING_PROVIDER/) for `SubspaceLink`, requested by `DiagnosticsPanel`. Put `optional(SUBSPACE_LINK)` back and the program prints `all systems nominal, held aboard` again.
 
@@ -93,7 +93,7 @@ If your class has no `static deps`, NexusDI counts its constructor parameters wi
 
 ```
 
-If you want the container to override those defaults and inject a specific dependency, you must explicitly declare it using `static deps` or the `deps` option in `provide()`, and `@Injectable` from `@nexusdi/decorators` does the same. With `static deps = [REACTOR] as const`, the container passes the bound reactor:
+If you want the container to override those defaults and inject a specific dependency, you must explicitly declare it using `static deps` or the `deps` option in `provide()`. `@Injectable` from `@nexusdi/decorators` does the same. With `static deps = [REACTOR] as const`, the container passes the bound reactor:
 
 ```ts file=examples/meridian/src/pages/providers.md region=defaults-fixed
 

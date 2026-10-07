@@ -26,7 +26,7 @@ npm install @nexusdi/node@next
 
 `dispatch(req)` creates one scope per request with the request's mission and runs the handler inside it. `logArrival()` takes no scope argument: it reads the scope from `scopes.current()` and resolves the scoped `FLIGHT_LOG`.
 
-`dispatch` returns `await scopes.run(...)`. The `await` keeps the scope open until the handler finishes. Without it, `await using` disposes the scope first, and the handler's next `get()` throws [NEXUS_DISPOSED](/errors/NEXUS_DISPOSED/).
+`dispatch` returns `await scopes.run(...)`. The `await` keeps the scope open until the handler finishes. Without it, `await using` disposes the scope first, and the handler's next `get()` throws `NEXUS_DISPOSED`. See [NEXUS_DISPOSED](/errors/NEXUS_DISPOSED/).
 
 **Try it:**
 
@@ -38,7 +38,7 @@ npm install @nexusdi/node@next
 
 `REQUEST` resolves to the object you pass to `createScope({ request })`. Any scoped provider can inject it to read request-specific data (like user IDs or headers) directly.
 
-To get full type safety, augment the `NexusRequest` interface. The `dispatch` region relies on this declaration:
+To get full type safety, augment the `NexusRequest` interface:
 
 ```ts no-run
 declare module '@nexusdi/core' {
@@ -47,6 +47,8 @@ declare module '@nexusdi/core' {
   }
 }
 ```
+
+The `dispatch` region relies on this declaration.
 
 ## Accessing the Current Scope
 
@@ -60,7 +62,7 @@ If you are in a function that was called inside a `run()` block, you can retriev
 
 ## Concurrency and Isolation
 
-Because `nodeScopes()` uses `AsyncLocalStorage`, it is completely safe for concurrent requests. Each `run()` starts its own async context, so `scopes.current()` always returns the scope associated with the async chain of the current request.
+Because `nodeScopes()` uses `AsyncLocalStorage`, it is completely safe for concurrent requests. Even if a thousand requests are being handled simultaneously, `scopes.current()` will always return the scope associated with the specific async chain of the current request. Each `run()` starts its own async context.
 
 The `nodeScopes()` object registers with no container. Create it once per process and share it between every container and every handler.
 
@@ -72,9 +74,9 @@ The `nodeScopes()` object registers with no container. Create it once per proces
 
 ## Integrating with `node:http`
 
-Integrating NexusDI scopes into a standard Node.js server is straightforward. The server reads the mission from the request and calls `dispatch` from the first region, which creates a scope for every incoming request and runs the handler in it. The reply goes back as the response body.
+Integrating NexusDI scopes into a standard Node.js server is straightforward. The server calls `dispatch` from the region above, which creates a scope for every incoming request and runs the handler in it. The server reads the mission from the request, and the reply goes back as the response body.
 
-A server keeps its container for the life of the process, so declare it with `const ship`. With `await using ship` at the top level of a module, the container is disposed as soon as the module finishes loading, and the first request throws [NEXUS_DISPOSED](/errors/NEXUS_DISPOSED/).
+A server keeps its container for the life of the process, so declare it with `const ship`. With `await using ship` at the top level of a module, the container is disposed as soon as the module finishes loading, and the first request throws `NEXUS_DISPOSED`.
 
 ```ts no-run
 import { createServer } from 'node:http';
@@ -87,6 +89,6 @@ createServer(async (req, res) => {
 }).listen(3000);
 ```
 
-By doing this, every request gets its own isolated set of scoped providers, which are automatically disposed of when the handler settles.
+By doing this, every request gets its own isolated set of scoped providers, which are automatically disposed of when the request settles.
 
 **Try it:** In `dispatch.ts`, change `await using ship` to `const ship`, add the server lines at the end, and run it. The terminal prints `survey-7: arrived` once, from the region's own call, and the process keeps running. Open `http://localhost:3000/?mission=survey-9`. The page shows `survey-9: arrived`. Stop the server with Ctrl-C. To see the failure, change `const ship` back to `await using ship` and restart the server: the first request throws `NEXUS_DISPOSED` in the terminal and the process exits without a reply. Change it to `const ship` again to fix it.

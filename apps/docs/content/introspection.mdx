@@ -25,9 +25,9 @@ DevTools is a plugin that should be registered in your development environment. 
 
 The `graph(ship)` function returns the entire compiled dependency graph as a structured JSON object. This graph contains three key arrays:
 
-- **Modules:** Each module's `name`, whether it is `global`, and its `imports` and `exports`.
-- **Providers:** Each provider's `token` (the token's description or the class name), its `module`, `lifetime`, `kind` (`class`, `value`, `factory` or `alias`), `eager`, `async`, the annotators' `notes`, the `implementation` class name and `internal`.
-- **Edges:** Every dependency link between providers, labeled by its `kind`: `required`, `optional`, `lazy`, `all` or `alias`.
+- **Modules:** The names and visibility (global/private) of every module. A module has a `name`, `global`, `imports` and `exports`.
+- **Providers:** Details on every provider, including its token, lifetime (singleton/transient), and whether it is eager or async. A provider has a `token` (the token's description or the class name), `module`, `lifetime`, `kind` (`class`, `value`, `factory` or `alias`), `eager`, `async`, the annotators' `notes`, the `implementation` class name and `internal`.
+- **Edges:** Every dependency link between providers, labeled by type (required, optional, lazy). The `kind` of an edge is `required`, `optional`, `lazy`, `all` or `alias`.
 
 ```ts file=examples/meridian/src/pages/introspection.md region=graph
 
@@ -41,7 +41,7 @@ The `graph(ship)` function returns the entire compiled dependency graph as a str
 
 `inspect(root)` compiles a graph with `Nexus.check` and builds nothing, so no constructor runs. It takes the root forms `Nexus.create` takes and returns the same JSON as `graph()`, with every provider's `async` set to `null`, since nothing ran. It throws the `BlueprintError` that `Nexus.check` throws.
 
-You can also use `toMermaid(graph)` or `toDot(graph)` to convert this JSON graph into text that can be rendered as a visual diagram using Mermaid.js or Graphviz. Neither imports a Node module, so both run in a browser too.
+You can also use `toMermaid()` or `toDot()` to convert this JSON graph into text that can be rendered as a visual diagram using Mermaid.js or Graphviz. Both take the graph, as in `toMermaid(graph)`. Neither imports a Node module, so both run in a browser too.
 
 ```ts file=examples/meridian/src/pages/introspection.md region=inspect
 
@@ -53,25 +53,29 @@ The `nexusdi graph` command draws the same text, plus SVG and PNG, from a shell:
 
 ## Real-time Tracing with `trace()`
 
-While the graph shows the _structure_, tracing shows the _behavior_. The region below registers `trace(fn)`, a plugin from `@nexusdi/devtools` that calls `fn` with every lifecycle event as it happens. `devtools({ trace: fn })` registers the same callback.
+While the graph shows the _structure_, tracing shows the _behavior_. By passing a callback to the `trace()` plugin from `@nexusdi/devtools` (or to the `trace` option of `devtools()`), you can observe every lifecycle event as it happens.
 
 ```ts file=examples/meridian/src/pages/introspection.md region=trace
 
 ```
 
-Each event has a `type`:
+Common events include:
 
-| `type`             | When NexusDI emits it                                       |
-| ------------------ | ----------------------------------------------------------- |
-| `compile`          | once per compile, at `create`, `load` or `Nexus.check`      |
-| `construct`        | for each instance built, with its token, lifetime and scope |
-| `init`             | for each singleton whose `onInit` finished                  |
-| `untracked`        | for a disposable instance that no container or scope owns   |
-| `scope:create`     | when `createScope()` finished building its scoped factories |
-| `scope:extend`     | when `scope.extend()` built what a later `load()` added     |
-| `scope:dispose`    | when a scope finished disposing                             |
-| `dispose:instance` | for each instance disposed, in disposal order               |
-| `dispose`          | when the container finished disposing                       |
+- `construct`: When a new instance is built.
+- `init`: When a singleton's `onInit` method completes.
+- `scope:create` / `scope:dispose`: When scopes are created or disposed.
+- `dispose:instance`: When a specific instance is cleaned up.
+
+Four more types exist:
+
+| `type`         | When NexusDI emits it                                     |
+| -------------- | --------------------------------------------------------- |
+| `compile`      | once per compile, at `create`, `load` or `Nexus.check`    |
+| `untracked`    | for a disposable instance that no container or scope owns |
+| `scope:extend` | when `scope.extend()` built what a later `load()` added   |
+| `dispose`      | when the container finished disposing                     |
+
+A `construct` event carries its token, lifetime and scope. `scope:create` fires when `createScope()` finished building its scoped factories, and `dispose:instance` fires for each instance in disposal order.
 
 The computer has an `onInit`, so one `init` event follows the two `construct` events. Only the reactor has a disposer, so one `dispose:instance` event comes before `dispose`.
 

@@ -8,7 +8,7 @@ description: A data-driven comparison of NexusDI against other popular TypeScrip
 
 When choosing a dependency injection container, the primary trade-offs are typically bundle size, startup performance, and the ability to detect wiring mistakes.
 
-NexusDI is compared here against four other TypeScript containers using a standardized benchmark harness. Every figure on this page is derived from actual measurements of the same eight-provider graph, rendered from the harness's results files at build time. [Understanding Benchmark Measurements](/benchmark-method/) states the method behind each one.
+NexusDI is compared here against four other TypeScript containers using a standardized benchmark harness. Every figure on this page is derived from actual measurements of the same eight-provider graph. The page renders each figure from the harness's results files at build time. [Understanding Benchmark Measurements](/benchmark-method/) states the method behind each one.
 
 ## Performance and Footprint
 
@@ -37,7 +37,7 @@ A cell that does not pass keeps its first error line in a tooltip and links the 
 
 Most containers are "optimistic". They assume the graph is correct and only fail at runtime when a missing dependency is requested. This can lead to crashes in production on rarely-used code paths.
 
-NexusDI is "pessimistic." It validates the entire module graph during the `Nexus.create` phase. If a dependency is missing, `Nexus.create` reports it before any constructor runs, and one error lists every problem it found ([Errors](/errors/)).
+NexusDI is "pessimistic." It validates the entire module graph during the `Nexus.create` phase. If a dependency is missing, `Nexus.create` reports it before any constructor runs. One error lists every problem it found ([Errors](/errors/)).
 
 The probe table adds one mistake at a time to the graph and shows where each library reports it.
 
@@ -47,7 +47,19 @@ The probe table adds one mistake at a time to the graph and shows where each lib
 
 Managing resources (like database pools) is critical. NexusDI implements a strict reverse-creation order for disposal and uses `SuppressedError` to ensure every resource is closed, even if some failures occur. [Lifecycle and Disposal](/lifecycle/) explains why each row matters.
 
-This section comes from reading each library's source and documentation, and the harness does not measure it. A cell says what the library does without extra plugins unless it names one.
+A cell says what the library does without extra plugins unless it names one.
+
+| Feature                           | NexusDI | InversifyJS                    | tsyringe | awilix             | needle-di | TypeDI | NestJS |
+| :-------------------------------- | :------ | :----------------------------- | :------- | :----------------- | :-------- | :----- | :----- |
+| **Dependency-ordered `onInit`**   | Yes     | Per instance, on first resolve | No       | No                 | No        | No     | Yes    |
+| **Reverse-order Disposal**        | Yes     | No                             | No       | No                 | n/a       | No     | Yes    |
+| **Reports all disposal failures** | Yes     | No                             | No       | No                 | n/a       | No     | Logged |
+| **Scopes own transients**         | Yes     | No                             | Yes      | No                 | n/a       | No     | No     |
+| **Disposes factory results**      | Yes     | Partial                        | No       | With `.disposer()` | n/a       | Yes    | Yes    |
+
+The harness does not measure this table: it is read from each library's source and documentation, and the notes are in `specs/2026-10-03-lifecycle-comparison-research.md`.
+
+The detailed version of the same comparison, row by row:
 
 |                                                     | NexusDI                                | InversifyJS                                               | tsyringe                                         | awilix                  | needle-di | TypeDI                      | NestJS                                    |
 | --------------------------------------------------- | -------------------------------------- | --------------------------------------------------------- | ------------------------------------------------ | ----------------------- | --------- | --------------------------- | ----------------------------------------- |
@@ -63,7 +75,7 @@ This section comes from reading each library's source and documentation, and the
 
 NestJS has the most complete startup story of the six. It awaits hooks module by module and by dependency depth inside a module, runs shutdown in the reverse order and logs every failure. Its hooks are provider methods, and a Nest application is not an `AsyncDisposable`. tsyringe disposes every disposable instance it builds, transients included. awilix awaits any promise a `.disposer()` returns, and a container disposes only its own cache, never its scopes. InversifyJS has `@postConstruct` and `@preDestroy`, and with its dispose plugin it supports `await using`. needle-di and TypeDI document no startup hook and no awaited disposal.
 
-Versions read on 2026-10-03: inversify 8.2.3 (with @inversifyjs/plugin-dispose 0.4.7), tsyringe 4.10.0, awilix 13.0.5, needle-di 1.2.1, TypeDI 0.10.0, @nestjs/core 12.1.2. Sources: the published packages' code, [InversifyJS container API](https://inversify.io/docs/api/container/), [tsyringe disposable instances](https://github.com/microsoft/tsyringe#disposable-instances), [awilix disposing](https://github.com/jeffijoe/awilix#disposing), [needle-di docs](https://needle-di.io/llms-full.txt) and [NestJS lifecycle events](https://docs.nestjs.com/fundamentals/lifecycle-events). The research notes are in `specs/2026-10-03-lifecycle-comparison-research.md` in the repository.
+Versions read on 2026-10-03: inversify 8.2.3 (with @inversifyjs/plugin-dispose 0.4.7), tsyringe 4.10.0, awilix 13.0.5, needle-di 1.2.1, TypeDI 0.10.0, @nestjs/core 12.1.2. Sources: the published packages' code, [InversifyJS container API](https://inversify.io/docs/api/container/), [tsyringe disposable instances](https://github.com/microsoft/tsyringe#disposable-instances), [awilix disposing](https://github.com/jeffijoe/awilix#disposing), [needle-di docs](https://needle-di.io/llms-full.txt) and [NestJS lifecycle events](https://docs.nestjs.com/fundamentals/lifecycle-events).
 
 ## Containers Left Out
 
@@ -71,7 +83,7 @@ TypeDI is left out of the measurements: its last release, 0.10.0, was published 
 
 ## Conclusion
 
-If you are building a large-scale application where reliability, startup speed, and toolchain flexibility are priorities, NexusDI's static validation and lightweight core make it a strong choice. For those already using the NestJS framework, its built-in container already wires your services, and NexusDI would add a second container beside it ([When to skip NexusDI](/#when-to-skip-nexusdi)).
+If you are building a large-scale application where reliability, startup speed, and toolchain flexibility are priorities, NexusDI's static validation and lightweight core make it a strong choice. For those already using the NestJS framework, its built-in container already wires your services, and NexusDI would add a second container beside it. See [When to skip NexusDI](/#when-to-skip-nexusdi).
 
 ## Break and Fix a Benchmark Figure
 

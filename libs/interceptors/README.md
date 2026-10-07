@@ -14,8 +14,8 @@
 
 ## Core Concepts
 
-- **The Interceptor:** A provider with an `intercept(call, next)` method. It can modify arguments, observe sync and async results alike using `tap()`, or short-circuit the call.
-- **Flexible Attachment:** Attach interceptors globally, per token, to a specific class, or to a single method. Interceptors get their own dependencies from the container.
+- **The Interceptor:** A provider with an `intercept(call, next)` method. It can modify arguments, observe results using `tap()`, or short-circuit the call. `tap()` observes sync and async results alike.
+- **Flexible Attachment:** Attach interceptors globally, to a specific class, or to a single method. You can also attach them per token. Interceptors get their own dependencies from the container.
 - **Proxy-Based:** Interceptors work via a transparent proxy. Calls through `get()` are intercepted; internal calls via `this` are not.
 
 ## Installation

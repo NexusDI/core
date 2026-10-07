@@ -7,9 +7,9 @@ requires: [scopes]
 
 # Lifecycle and Disposal
 
-Managing the lifecycle of a service is critical for application stability. This holds most for services with external resources such as database pools and file handles.
+Managing the lifecycle of a service is critical for application stability. This holds most for services with external resources such as database pools, file handles, or network sockets.
 
-If resources aren't closed in the correct order, you risk leaking connections or hanging test processes. NexusDI automates this through a strict lifecycle and disposal pipeline.
+If resources aren't closed in the correct order, you risk leaking connections, hanging test processes, or crashing during a rolling deployment. NexusDI automates this through a strict lifecycle and disposal pipeline.
 
 ## Why NexusDI Manages Lifecycle and Disposal
 
@@ -65,7 +65,7 @@ By following this order, NexusDI guarantees that a service is stopped _before_ t
 
 ## Robust Error Handling during Disposal
 
-A single failing disposer should not stop other resources from being cleaned up. If multiple disposers throw errors, NexusDI collects them all into a `SuppressedError` chain, built the way `DisposableStack` builds one. This ensures that every socket and pool gets its close call, and you receive a complete list of every failure that occurred.
+A single failing disposer should not stop other resources from being cleaned up. If multiple disposers throw errors, NexusDI collects them all into a `SuppressedError` chain. This ensures that every single socket and pool is attempted to be closed, and you receive a complete list of every failure that occurred. The chain is built the way `DisposableStack` builds one.
 
 ```ts file=examples/meridian/src/pages/lifecycle.md region=dispose-failures
 

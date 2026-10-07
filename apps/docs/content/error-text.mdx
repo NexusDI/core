@@ -6,7 +6,7 @@ description: Learn how to customize error messages and translate them into diffe
 
 # Error Text Packs
 
-By default, NexusDI provides concise, one-line error messages: the code and the error's fields, then the link to the code's page. While efficient for developers, these can be too terse for some environments. **Text Packs** allow you to replace these codes with full, human-readable explanations and suggested fixes.
+By default, NexusDI provides concise, one-line error messages. While efficient for developers, these can be too terse for some environments. **Text Packs** allow you to replace these codes with full, human-readable explanations and suggested fixes. A message holds the code and the error's fields, then the link to the code's page.
 
 `errors({ text })` from `@nexusdi/errors` reads the packs. Install it from the `next` tag:
 
@@ -16,11 +16,11 @@ npm install @nexusdi/errors@next
 
 ## How Text Packs Work
 
-A text pack is a mapping of error codes to formatting functions, and it holds the text for the codes one package raises. When the `@nexusdi/errors` plugin is registered, it reads your packs in array order, then core's pack. The first pack that returns a message for a given code wins, so a pack listed earlier wins for the same code, and a pack that rewords core's text works by being in the list.
+A text pack is a mapping of error codes to formatting functions. When the `@nexusdi/errors` plugin is registered, it reads these packs in order. The first pack that returns a message for a given code wins. A pack holds the text for the codes one package raises. The plugin reads your packs in array order, then core's pack. A pack listed earlier wins for the same code, and a pack that rewords core's text works by being in the list.
 
 ### Using Official Text Packs
 
-First-party packages provide their own text packs at a `./text` entry: `interceptorsText` at `@nexusdi/interceptors/text`, and `federationText` at `@nexusdi/federation/text`. Core's pack, `coreText` at `@nexusdi/core/text`, is part of every `errors()`, so core's codes need no pack in the list. A code no pack covers keeps its one-line message. To enable the other packs, pass them to the `errors()` plugin:
+First-party packages provide their own text packs. Each sits at a `./text` entry: `interceptorsText` at `@nexusdi/interceptors/text`, and `federationText` at `@nexusdi/federation/text`. Core's pack, `coreText` at `@nexusdi/core/text`, is part of every `errors()`, so core's codes need no pack in the list. A code no pack covers keeps its one-line message. To enable them, pass them to the `errors()` plugin:
 
 ```ts file=examples/meridian/src/pages/error-text.md region=package-pack
 
@@ -49,7 +49,7 @@ You can create your own text pack to reword core errors or provide translations.
 
 ### Implementation Rules:
 
-- **Type Safety:** Use the `satisfies ErrorTextPack` helper to type each entry with the error class of its code.
+- **Type Safety:** Use the `satisfies ErrorTextPack` helper to ensure your pack matches the required error classes. The helper types each entry with the error class of its code.
 - **Fallbacks:** If your function returns `undefined`, NexusDI moves to the next pack in the list.
 
 **Try it:**
@@ -61,7 +61,7 @@ You can create your own text pack to reword core errors or provide translations.
 
 ## Explaining Logged Errors
 
-Sometimes you encounter an error in a log file or a test where the `errors()` plugin wasn't active. You can use `explain(error, { view, text })` to apply the text packs after the fact. It reads `text` in the order `errors()` does, and returns `undefined` for a code no pack covers.
+Sometimes you encounter an error in a log file where the `errors()` plugin wasn't active. You can use the `explain()` utility to retroactively apply a text pack to a logged error. The same works in a test. `explain(error, { view, text })` reads `text` in the order `errors()` does, and returns `undefined` for a code no pack covers.
 
 ```ts file=examples/meridian/src/pages/error-text.md region=explain
 

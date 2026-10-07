@@ -12,7 +12,7 @@ Testing components that depend on complex services (like databases or APIs) is d
 ## Core Features
 
 - **Real Graph Validation:** Unlike simple mocks, `createTestingContainer` runs the full NexusDI compiler. If your override breaks the graph, the test fails at startup.
-- **Precision Overrides:** Replace a single provider with `override()`, or an entire module with `overrideModule(module, stub)`. An override keeps the lifetime of the binding it replaces.
+- **Precision Overrides:** Replace a single provider or an entire module. Use `override()` for a provider and `overrideModule(module, stub)` for a module. An override keeps the lifetime of the binding it replaces.
 - **Immutable Builders:** Every `.override()` call returns a new builder, allowing you to share a base configuration across many tests.
 
 ## Installation

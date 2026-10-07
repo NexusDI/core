@@ -22,12 +22,11 @@ The `load()` method allows you to inject a new module into the existing containe
 
 ```
 
-When you call `load()`, NexusDI performs four steps:
+When you call `load()`, NexusDI performs three critical steps:
 
 1. **Validation:** It validates the new module against the current live graph to ensure no wiring mistakes are introduced.
-2. **Construction:** It builds the new module's singletons and awaits their async factories.
-3. **Initialization:** It runs their `onInit` methods.
-4. **Publication:** It updates the container's internal registry so the new providers are now available via `get()`.
+2. **Initialization:** It builds the new module's singletons and runs their `onInit` methods. It awaits their async factories first.
+3. **Publication:** It updates the container's internal registry so the new providers are now available via `get()`.
 
 Before the call the container does not see `DRONE`. After it, `NAV_CHARTS` has finished its async download and `ScoutDrone.onInit()` has run, so `get(DRONE)` is synchronous like every other `get()`.
 
@@ -35,7 +34,7 @@ Before the call the container does not see `DRONE`. After it, `NAV_CHARTS` has f
 
 ## Validation and Safety
 
-Dynamic loading does not bypass NexusDI's safety guarantees. `load()` runs the same compiler `Nexus.create` runs, against the graph the container already holds. A loaded module sees its own providers, the exports of the modules it imports, and the exports of global modules. A provider in the root module is not visible to it unless one of those exports it. If the module depends on a token it cannot see, `load()` rejects with a [NEXUS_BLUEPRINT_INVALID](/errors/NEXUS_BLUEPRINT_INVALID/) error, and the container stays as it was.
+Dynamic loading does not bypass NexusDI's safety guarantees. `load()` runs the same compiler `Nexus.create` runs, against the graph the container already holds. A loaded module sees its own providers, the exports of the modules it imports, and the exports of global modules. A provider in the root module is not visible to it unless one of those exports it. If the module depends on a token it cannot see, `load()` rejects with a `NEXUS_BLUEPRINT_INVALID` error. The container stays as it was. See [NEXUS_BLUEPRINT_INVALID](/errors/NEXUS_BLUEPRINT_INVALID/).
 
 This ensures that your application never enters a partially-broken state where some dependencies are missing. Here `ScoutDrone` needs `NAV_CHARTS`, which nothing provides, so the `errors` list holds one `NEXUS_MISSING_PROVIDER`, and `ship.has(DRONE)` is still `false`:
 
@@ -63,9 +62,9 @@ Concurrent `load()` calls run one at a time, in call order. Here `Science` waits
 
 ## Updating Scopes with `scope.extend()`
 
-Scopes are snapshots of the graph at the moment they were created. If you load a new module into the root container, existing scopes won't see those new providers: a token that a later `load()` added throws [NEXUS_LOADED_AFTER_SCOPE](/errors/NEXUS_LOADED_AFTER_SCOPE/) in that scope.
+Scopes are snapshots of the graph at the moment they were created. If you load a new module into the root container, existing scopes won't see those new providers by default. A token that a later `load()` added throws [NEXUS_LOADED_AFTER_SCOPE](/errors/NEXUS_LOADED_AFTER_SCOPE/) in that scope.
 
-To bring a scope up to date with the latest graph, use `await scope.extend()`. It builds the scoped factories the loaded modules add, and the instances the scope already built stay as they are.
+To bring a scope up to date with the latest graph, use `scope.extend()`. Call it with `await`. It builds the scoped factories the loaded modules add, and the instances the scope already built stay as they are.
 
 ```ts file=examples/meridian/src/pages/load.md region=extend-scope
 
@@ -79,7 +78,7 @@ This allows a long-lived scope (like a user session) to gain access to features 
 
 To maintain the integrity of the graph, NexusDI imposes a few restrictions on dynamic loading:
 
-- **No Global Modules:** You cannot `load()` a module marked as `global: true`. A global module makes its exports visible to every module, so a global module new to the graph would change what every existing module sees. Import a global module from the root module before `Nexus.create`, or load it without `global: true`.
+- **No Global Modules:** You cannot `load()` a module marked as `global: true`. Global modules must be declared in the root module at startup because they affect the visibility of every other module. A global module makes its exports visible to every module, so a global module new to the graph would change what every existing module sees. Import a global module from the root module before `Nexus.create`, or load it without `global: true`.
 - **Sealed Container:** Once a provider is registered, it cannot be changed. `load()` adds new providers but does not allow you to replace existing ones.
 
 `load()` rejects a global module with [NEXUS_LOAD_GLOBAL_MODULE](/errors/NEXUS_LOAD_GLOBAL_MODULE/), which it throws directly, outside a `NEXUS_BLUEPRINT_INVALID` error. Its `module` property names the module, `Science` here:

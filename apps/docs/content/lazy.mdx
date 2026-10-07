@@ -80,14 +80,16 @@ The same fix works on a ring of three. `ThrusterBank` takes `lazy(NAV_COMPUTER)`
 
 **Try it:** Save the region as `ring-fixed.ts` and run it. It prints `course to Kepler-442b`. Move the `lazy()` to another edge: make `Astrogator` take `[lazy(HELM_CONTROL)] as const` with a `() => IHelmControl` parameter and call `this.helm().steer()`, and change `IonThrusters` back to `[NAV_COMPUTER] as const` with an `INavComputer` parameter. It still prints `course to Kepler-442b`.
 
-## Why NexusDI Makes `lazy()` Opt-In
+## Why `lazy()` is Opt-In
 
-You might wonder why NexusDI doesn't just make every dependency lazy by default. With lazy by default, the same graph would start, and the ring would show only at run time, when a call goes round it. There are four reasons NexusDI asks for an explicit `lazy()`:
+You might wonder why NexusDI doesn't just make every dependency lazy by default. There are several critical reasons:
 
-1. **CI Stability:** A cycle fails `Nexus.check` in CI today. Lazy dependencies would hide wiring errors that only appear at runtime.
-2. **Lifecycle Integrity:** `onInit` runs in dependency order, and disposal runs in reverse creation order (see [Lifecycle and Disposal](/lifecycle/)). A dependency built on its first call is built _after_ its consumer, so NexusDI disposes it first, and the consumer keeps running at shutdown after its dependency has closed.
-3. **Synchronous Guarantees:** `get()` is synchronous, and async factories finish during `create`. A provider that nothing builds at startup cannot wait for a promise, so a lazy edge to an async provider that is built on first use fails with [NEXUS_LAZY_ASYNC](/errors/NEXUS_LAZY_ASYNC/).
-4. **Architectural Health:** A cycle usually means two services share a responsibility. Moving that responsibility into a third provider removes the cycle, and an explicit `lazy()` keeps each real exception visible in code review.
+1. **CI Stability:** Required dependencies are checked in CI. Lazy dependencies can hide wiring errors that only appear at runtime.
+2. **Lifecycle Integrity:** `onInit` and disposal run in a specific order. A lazy dependency is created _after_ its consumer, meaning it might be disposed of _before_ the consumer is finished.
+3. **Synchronous Guarantees:** `get()` must be synchronous. Since async factories must be resolved at startup, a lazy edge to an async provider would be impossible to resolve synchronously on first use.
+4. **Architectural Health:** Cycles often signal that two services are too tightly coupled. Forcing an explicit `lazy()` call makes this architectural smell visible during code review.
+
+With lazy by default, the same graph would start, and the ring would show only at run time, when a call goes round it. A cycle fails `Nexus.check` in CI today. `onInit` runs in dependency order, and disposal runs in reverse creation order (see [Lifecycle and Disposal](/lifecycle/)). A dependency built on its first call is built _after_ its consumer, so NexusDI disposes it first, and the consumer keeps running at shutdown after its dependency has closed. A lazy edge to an async provider that is built on first use fails with [NEXUS_LAZY_ASYNC](/errors/NEXUS_LAZY_ASYNC/). A cycle usually means two services share a responsibility. Moving that responsibility into a third provider removes the cycle, and an explicit `lazy()` keeps each real exception visible in code review.
 
 Other frameworks make the same choice. Spring Boot 2.6 [prohibits circular references by default](https://github.com/spring-projects/spring-boot/wiki/Spring-Boot-2.6-Release-Notes), and NestJS [needs `forwardRef()`](https://docs.nestjs.com/fundamentals/circular-dependency) on both sides of a circular dependency.
 
@@ -95,13 +97,13 @@ Other frameworks make the same choice. Spring Boot 2.6 [prohibits circular refer
 
 Because a `lazy()` thunk defers resolution, you cannot call it too early. A thunk resolves only once its target is ready: built, with its `onInit` finished.
 
-If you call a lazy thunk inside a constructor, the target service has not been built yet, and NexusDI throws [NEXUS_NOT_READY](/errors/NEXUS_NOT_READY/) with the `owner` that called it and the `target` it asked for. `Nexus.create` reports the failure as [NEXUS_PROVIDER_FAILED](/errors/NEXUS_PROVIDER_FAILED/) with `NEXUS_NOT_READY` as its `cause`.
+If you call a lazy thunk inside a constructor or an `onInit()` method, the target service might not have been built yet. In this case, NexusDI throws `NEXUS_NOT_READY`. See [NEXUS_NOT_READY](/errors/NEXUS_NOT_READY/). The error names the `owner` that called the thunk and the `target` it asked for. `Nexus.create` reports the failure as [NEXUS_PROVIDER_FAILED](/errors/NEXUS_PROVIDER_FAILED/) with `NEXUS_NOT_READY` as its `cause`.
 
 ```ts file=examples/meridian/src/pages/lazy.md region=not-ready
 
 ```
 
-The owner's `onInit()` is too early as well. NexusDI calls `onInit` level by level, dependencies first, and a lazy edge does not order the levels, so `PlasmaRouter`'s `onInit` can run before `DeflectorGrid` is ready and throw the same code.
+NexusDI calls `onInit` level by level, dependencies first, and a lazy edge does not order the levels, so `PlasmaRouter`'s `onInit` can run before `DeflectorGrid` is ready and throw the same code.
 
 **The Rule:** Always call lazy thunks within regular methods that are executed _after_ `Nexus.create` has fully resolved.
 

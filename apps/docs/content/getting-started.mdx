@@ -28,7 +28,7 @@ npm install -D typescript tsx @types/node
 
 ## TypeScript Configuration
 
-NexusDI requires TypeScript 5.4 or later. Leave `experimentalDecorators` and `emitDecoratorMetadata` **off**: the core API uses no decorators, and the optional `@nexusdi/decorators` package uses standard decorators. (A project that needs the flag for another library can keep it, as [Using NexusDI with experimentalDecorators](/legacy-decorators/) shows.) The package's type declarations reference TypeScript's `esnext.disposable` library, which adds `Symbol.asyncDispose` and `AsyncDisposable` to your program, so `await using` compiles with `lib: ["es2022"]` and you add no entry for it.
+NexusDI requires TypeScript 5.4 or later. To avoid conflicts with legacy DI patterns, ensure that `experimentalDecorators` and `emitDecoratorMetadata` are **disabled** in your settings. The core API uses no decorators, and the optional `@nexusdi/decorators` package uses standard decorators. (A project that needs the flag for another library can keep it, as [Using NexusDI with experimentalDecorators](/legacy-decorators/) shows.) The package's type declarations reference TypeScript's `esnext.disposable` library, which adds `Symbol.asyncDispose` and `AsyncDisposable` to your program, so `await using` compiles with `lib: ["es2022"]` and you add no entry for it.
 
 Create a `tsconfig.json` with the following configuration:
 
@@ -77,7 +77,7 @@ If a class depends on a token that the container wasn't given, `Nexus.create` wi
 
 **Try it:** Delete `FusionReactor` from the array passed to `Nexus.create` in `ship.ts` and run it again.
 
-The run stops with an uncaught `NEXUS_BLUEPRINT_INVALID` error that lists `NEXUS_MISSING_PROVIDER`. `Nexus.create` checks the whole graph before it builds anything, and its `errors` array holds one error for each problem. This program breaks the ship the same way and reads the `errors` array of the rejection:
+You receive a clear error listing `NEXUS_MISSING_PROVIDER`. The run stops with an uncaught `NEXUS_BLUEPRINT_INVALID` error. `Nexus.create` checks the whole graph before it builds anything, and its `errors` array holds one error for each problem. This program breaks the ship the same way and reads the `errors` array of the rejection:
 
 ```ts file=examples/meridian/src/pages/getting-started.md region=missing-reactor
 
@@ -89,15 +89,15 @@ Fix the ship: put `FusionReactor` back in the array and run `ship.ts` again. The
 
 ## Improving Error Messages with DevTools
 
-While core provides concise error codes, the `@nexusdi/devtools` plugin transforms these into human-readable messages with suggested fixes. It also adds the graph and trace tools that [Introspection and Tracing](/introspection/) teaches.
+While core provides concise error codes, the `@nexusdi/devtools` plugin transforms these into human-readable messages with suggested fixes. It also adds the graph and trace tools that [Introspection and Tracing](/introspection/) teaches. Use the same version as core.
 
-Install the devtools plugin at the same version as core:
+Install the devtools plugin:
 
 ```bash
 npm install -D @nexusdi/devtools@next
 ```
 
-Register the plugin in development. The program below registers it only when `NODE_ENV` is not `production`, and it leaves `FusionReactor` out on purpose, so it is the broken ship from the previous section:
+Register the plugin in your application: the program below registers it only when `NODE_ENV` is not `production`, and it leaves `FusionReactor` out on purpose, so it is the broken ship from the previous section:
 
 ```ts file=examples/meridian/src/pages/getting-started.md region=devtools-message
 

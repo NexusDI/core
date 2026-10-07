@@ -10,14 +10,14 @@ With the release of NexusDI 0.4, the focus of the maintainers shifts to the new 
 
 ## Support During the RC Phase
 
-Until 0.4.0 final is released, the `latest` tag on npm continues to point to the 0.3.x line for `@nexusdi/core`, so `npm install @nexusdi/core` installs 0.3. The 0.4 release candidates publish under the `next` dist-tag ([Trying the 0.4 Release Candidate](/release-candidate/)). Any critical fixes for 0.3 during this period are released from `main` as patches under the `latest` tag.
+Until 0.4.0 final is released, the `latest` tag on npm continues to point to the 0.3.x line. Any critical fixes for 0.3 during this period are released as patches under the `latest` tag. For `@nexusdi/core`, `npm install @nexusdi/core` installs 0.3. The 0.4 release candidates publish under the `next` dist-tag ([Trying the 0.4 Release Candidate](/release-candidate/)). The patches are released from `main`.
 
 ## Support After 0.4.0 Final
 
-Once 0.4.0 is officially released, `latest` moves to 0.4.0, and the 0.3 line moves to a dedicated `0.3.x` maintenance branch.
+Once 0.4.0 is officially released, the 0.3 line moves to a dedicated maintenance branch. `latest` moves to 0.4.0, and the branch is `0.3.x`. Each 0.3 patch publishes under the `release-0.3` dist-tag, and `latest` stays on 0.4.
 
 - **Fix Scope:** The 0.3 branch receives fixes only for security vulnerabilities and critical defects that cause the program to crash or lose data.
-- **Installation:** Each 0.3 patch publishes under the `release-0.3` dist-tag, and `latest` stays on 0.4. You can install the newest 0.3 patch with:
+- **Installation:** You can install the newest 0.3 patch using the `release-0.3` dist-tag:
   ```bash
   npm install @nexusdi/core@release-0.3
   ```

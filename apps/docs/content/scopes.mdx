@@ -13,7 +13,7 @@ While singletons handle global state perfectly, using them for request-specific 
 
 ## What is a Scope?
 
-A scope is a short-lived container created from a root container with `ship.createScope({ request })`. It inherits all the singletons from the root but maintains its own independent instances of any provider marked as `lifetime: 'scoped'`. A `forRoot()` module works inside a scope as it does at the root.
+A scope is a short-lived container created from a root container. It inherits all the singletons from the root but maintains its own independent instances of any provider marked as `lifetime: 'scoped'`. Create one with `ship.createScope({ request })`. A `forRoot()` module works inside a scope as it does at the root.
 
 The examples on this page assume the `request.d.ts` file from [Typing your Request](#typing-your-request) below.
 
@@ -21,7 +21,7 @@ The examples on this page assume the `request.d.ts` file from [Typing your Reque
 
 ```
 
-In the example above, each shuttle has its own `FLIGHT_LOG` (scoped), but both share the same `COMPUTER` (singleton). Each scope has an id, `s0` and `s1` here, and inside one scope `get(FLIGHT_LOG)` returns the same instance every time. Once the unit of work is finished, the scope is disposed, and its scoped instances are cleaned up: `await using` disposes each scope at the end of its block.
+In the example above, each shuttle has its own `FLIGHT_LOG` (scoped), but both share the same `COMPUTER` (singleton). Each scope has an id, `s0` and `s1` here, and inside one scope `get(FLIGHT_LOG)` returns the same instance every time. Once the unit of work is finished, the scope is disposed, and its scoped instances are cleaned up. `await using` disposes each scope at the end of its block.
 
 <Notice kind="ship">
   Each shuttle launched from the Meridian's bay keeps its own flight log for its
@@ -38,7 +38,7 @@ When you call `createScope({ request })`, the object you pass as the request is 
 
 ### Typing your Request
 
-To get full TypeScript support, augment the `NexusRequest` interface in a `.d.ts` file. With it in place, `request.mission` in a factory over `REQUEST` is typed, and `createScope()` rejects a request without a mission at compile time.
+To get full TypeScript support, augment the `NexusRequest` interface in a `.d.ts` file:
 
 ```ts no-run
 // request.d.ts
@@ -50,6 +50,8 @@ declare module '@nexusdi/core' {
   }
 }
 ```
+
+With it in place, `request.mission` in a factory over `REQUEST` is typed, and `createScope()` rejects a request without a mission at compile time.
 
 ### Resolving Scoped Tokens from the Root
 
@@ -72,11 +74,11 @@ The program now prints `NEXUS_SCOPE_REQUIRED` and then `{ id: 'survey-7', target
 
 ## The Captive Dependency Rule
 
-One of the most important rules in NexusDI is that **a singleton cannot depend on a scoped provider** or on `REQUEST`.
+One of the most important rules in NexusDI is that **a singleton cannot depend on a scoped provider**. The same holds for `REQUEST`.
 
 If a singleton (which lasts forever) depended on a scoped provider (which lasts for one request), the singleton would "capture" the first request's instance and hold onto it forever. This is a **Captive Dependency**.
 
-NexusDI prevents this when it compiles the graph, before any constructor runs. If it detects a singleton reaching a scoped provider, `Nexus.create` rejects with `NEXUS_BLUEPRINT_INVALID`, whose `errors` list holds [NEXUS_LIFETIME_VIOLATION](/errors/NEXUS_LIFETIME_VIOLATION/).
+NexusDI prevents this at startup. It does so when it compiles the graph, before any constructor runs. If it detects a singleton reaching a scoped provider, `Nexus.create` rejects with `NEXUS_BLUEPRINT_INVALID`, whose `errors` list holds `NEXUS_LIFETIME_VIOLATION`. See [NEXUS_LIFETIME_VIOLATION](/errors/NEXUS_LIFETIME_VIOLATION/).
 
 ```ts file=examples/meridian/src/pages/scopes.md region=captive
 
@@ -90,7 +92,7 @@ The error's `path` names the providers from the singleton to the scoped provider
 
 ### Eager vs Lazy Scoped Providers
 
-- **Scoped Factories:** By default, these run immediately when `createScope()` is called, once per scope, even when the request never asks for their token.
+- **Scoped Factories:** By default, these run immediately when `createScope()` is called. Each runs once per scope, even when the request never asks for its token.
 - **Scoped Classes:** These are created lazily on the first `get()` within the scope. A scoped factory declared with `eager: false` behaves the same way.
 
 If you have heavy work (like starting a DB transaction), put it in a scoped class, not a factory, to ensure it only runs if actually requested. Keep scoped factories cheap.

@@ -20,7 +20,7 @@ Missing providers and circular dependencies are reported as a single `BlueprintE
 
 ### 2. Zero Compiler Flags
 
-By using `static deps` for dependency declaration, NexusDI eliminates the need for `emitDecoratorMetadata`. It runs under tsc, TypeScript 7, esbuild, SWC, Babel, Vite, Bun, Deno and Node's type stripping, with no custom plugins.
+By using `static deps` for dependency declaration, NexusDI eliminates the need for `emitDecoratorMetadata`. It works natively with any modern TypeScript toolchain (Vite, Bun, Deno, esbuild) without custom plugins. It also runs under tsc, TypeScript 7, SWC, Babel and Node's type stripping.
 
 ### 3. Async-First Startup
 
