@@ -20,6 +20,7 @@ If you are migrating from NestJS or simply prefer a more visual way to declare d
 Unlike traditional metadata-based DI, `@nexusdi/decorators` are standard TC39 decorators. They do **not** require `experimentalDecorators` or `emitDecoratorMetadata` in your `tsconfig.json`.
 
 This means your code works out-of-the-box with:
+
 - **Vite / esbuild / SWC**
 - **Bun / Deno**
 - **Node.js Type Stripping**
@@ -57,8 +58,10 @@ console.log(ship.get(BRIDGE).callsign); // -> 'Meridian'
 ```
 
 ## Documentation
+
 - [Decorators Guide](https://nexus.js.org/next/decorators/)
 - [NexusDI on GitHub](https://github.com/NexusDI/core)
 
 ## License
+
 MIT

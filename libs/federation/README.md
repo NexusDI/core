@@ -23,6 +23,7 @@ The `federation()` plugin ensures that every copy of this contract token across 
 ## Version Safety
 
 Federation isn't just about sharing; it's about safe sharing. NexusDI follows npm's `^` range rules for contract versions:
+
 - A remote built against version `1.1.0` can safely bind to a shell providing `1.2.0`.
 - A remote requiring `2.0.0` will fail to bind to a shell providing `1.0.0`, preventing runtime crashes due to breaking API changes.
 
@@ -48,12 +49,14 @@ const Shell = defineModule({
 
 await using shell = await Nexus.create(Shell, { plugins: [federation()] });
 // Even if the token comes from a different bundle, it resolves to the same instance
-shell.get(AUTH).user(); 
+shell.get(AUTH).user();
 ```
 
 ## Documentation
+
 - [Federation Guide](https://nexus.js.org/next/federation/)
 - [NexusDI on GitHub](https://github.com/NexusDI/core)
 
 ## License
+
 MIT

@@ -31,8 +31,12 @@ import { Nexus, Token, provide } from '@nexusdi/core';
 import { interceptor, interceptors, tap } from '@nexusdi/interceptors';
 import type { Interceptor } from '@nexusdi/interceptors';
 
-interface INavigator { plot(to: string): string; }
-class Navigator implements INavigator { plot = (to: string) => `course to ${to}`; }
+interface INavigator {
+  plot(to: string): string;
+}
+class Navigator implements INavigator {
+  plot = (to: string) => `course to ${to}`;
+}
 
 const NAVIGATOR = new Token<INavigator>('Navigator');
 const AUDIT = new Token<Interceptor>('Audit');
@@ -56,8 +60,10 @@ console.log(log); // -> ['call plot', 'got course to Vega']
 ```
 
 ## Documentation
+
 - [Detailed Interceptors Guide](https://nexus.js.org/next/interceptors/)
 - [NexusDI on GitHub](https://github.com/NexusDI/core)
 
 ## License
+
 MIT

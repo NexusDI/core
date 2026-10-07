@@ -15,15 +15,19 @@ NexusDI is a dependency injection container that prioritizes **predictability** 
 ## Core Value Propositions
 
 ### 1. No Runtime Wiring Errors
+
 Missing providers and circular dependencies are reported as a single `BlueprintError` during `Nexus.create`. Your application either starts fully wired or doesn't start at all.
 
 ### 2. Zero Compiler Flags
+
 By using `static deps` for dependency declaration, NexusDI eliminates the need for `emitDecoratorMetadata`. It works natively with any modern TypeScript toolchain (Vite, Bun, Deno, esbuild) without custom plugins.
 
 ### 3. Async-First Startup
+
 Async factories are awaited during the initialization phase. This means that once the container is created, all `get()` calls are synchronous, eliminating "async-leak" throughout your business logic.
 
 ### 4. Bounded Contexts
+
 Using `defineModule`, you can group providers into modules with private internal state and explicit public exports, enforcing strict architectural boundaries.
 
 ## Quick Start
@@ -32,13 +36,17 @@ Using `defineModule`, you can group providers into modules with private internal
 import { Nexus } from '@nexusdi/core';
 
 class Logger {
-  log(line: string) { return `[app] ${line}`; }
+  log(line: string) {
+    return `[app] ${line}`;
+  }
 }
 
 class UserService {
   static deps = [Logger] as const;
   constructor(readonly logger: Logger) {}
-  greet(name: string) { return this.logger.log(`hello ${name}`); }
+  greet(name: string) {
+    return this.logger.log(`hello ${name}`);
+  }
 }
 
 const app = await Nexus.create([Logger, UserService]);
@@ -56,14 +64,17 @@ npm install @nexusdi/core@next
 ## Ecosystem
 
 @nexusdi/core is the engine. You can extend it with official plugins:
+
 - **`@nexusdi/decorators`**: For NestJS-style `@Injectable` syntax.
 - **`@nexusdi/interceptors`**: For cross-cutting concerns.
 - **`@nexusdi/devtools`**: For graph visualization.
 - **`@nexusdi/testing`**: For type-safe provider overrides.
 
 ## Documentation
+
 - [Full Documentation](https://nexus.js.org/next/)
 - [GitHub Repository](https://github.com/NexusDI/core)
 
 ## License
+
 MIT

@@ -12,7 +12,7 @@
 
 Dependency injection is a cornerstone of scalable architecture, but it often introduces a dangerous blind spot: you don't know if your application is wired correctly until the code actually runs.
 
-**NexusDI changes this.** It assembles your TypeScript application from modules and validates the entire dependency graph *before* a single class is instantiated. If a provider is missing or a circular reference exists, NexusDI reports every mistake in a single error at startup.
+**NexusDI changes this.** It assembles your TypeScript application from modules and validates the entire dependency graph _before_ a single class is instantiated. If a provider is missing or a circular reference exists, NexusDI reports every mistake in a single error at startup.
 
 ## Why NexusDI?
 
@@ -30,13 +30,17 @@ NexusDI uses a simple, type-safe pattern for dependencies. A class declares its 
 import { Nexus } from '@nexusdi/core';
 
 class Logger {
-  log(line: string) { return `[app] ${line}`; }
+  log(line: string) {
+    return `[app] ${line}`;
+  }
 }
 
 class UserService {
   static deps = [Logger] as const;
   constructor(readonly logger: Logger) {}
-  greet(name: string) { return this.logger.log(`hello ${name}`); }
+  greet(name: string) {
+    return this.logger.log(`hello ${name}`);
+  }
 }
 
 const app = await Nexus.create([Logger, UserService]);
@@ -47,15 +51,15 @@ app.get(UserService).greet('Ada'); // -> '[app] hello Ada'
 
 NexusDI is a modular system. Start with `@nexusdi/core` and add capabilities as you need them:
 
-| Package | Purpose |
-| :--- | :--- |
-| [`@nexusdi/decorators`](libs/decorators/README.md) | NestJS-style `@Injectable` and `@Module` decorators. |
-| [`@nexusdi/devtools`](libs/devtools/README.md) | Graph visualization and lifecycle tracing. |
+| Package                                                | Purpose                                                |
+| :----------------------------------------------------- | :----------------------------------------------------- |
+| [`@nexusdi/decorators`](libs/decorators/README.md)     | NestJS-style `@Injectable` and `@Module` decorators.   |
+| [`@nexusdi/devtools`](libs/devtools/README.md)         | Graph visualization and lifecycle tracing.             |
 | [`@nexusdi/interceptors`](libs/interceptors/README.md) | Cross-cutting concerns (logging, caching, validation). |
-| [`@nexusdi/node`](libs/node/README.md) | Request-scoped containers for Node.js servers. |
-| [`@nexusdi/testing`](libs/testing/README.md) | Type-safe provider overrides for integration tests. |
-| [`@nexusdi/federation`](libs/federation/README.md) | Versioned contracts for micro-frontend architectures. |
-| [`@nexusdi/cli`](libs/cli/README.md) | Export your dependency graph as SVG, PNG, or Mermaid. |
+| [`@nexusdi/node`](libs/node/README.md)                 | Request-scoped containers for Node.js servers.         |
+| [`@nexusdi/testing`](libs/testing/README.md)           | Type-safe provider overrides for integration tests.    |
+| [`@nexusdi/federation`](libs/federation/README.md)     | Versioned contracts for micro-frontend architectures.  |
+| [`@nexusdi/cli`](libs/cli/README.md)                   | Export your dependency graph as SVG, PNG, or Mermaid.  |
 
 ## Installation
 
@@ -74,4 +78,5 @@ The package is ESM and requires Node 22.12+ and TypeScript 5.4+.
 - [GitHub Discussions](https://github.com/NexusDI/core/discussions)
 
 ## License
+
 MIT

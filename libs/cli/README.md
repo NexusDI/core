@@ -29,12 +29,12 @@ npx nexusdi graph src/app.module.ts#AppModule
 
 ### Common Options
 
-| Flag | Purpose | Example |
-| :--- | :--- | :--- |
-| `-f, --format` | Choose output format (`svg`, `png`, `json`, etc.) | `-f svg` |
-| `-o, --out` | Save the output to a file | `-o graph.svg` |
-| `--view` | Switch between `providers` or `modules` view | `--view modules` |
-| `--load` | Simulate loading a module at runtime | `--load src/feature.ts#Feature` |
+| Flag           | Purpose                                           | Example                         |
+| :------------- | :------------------------------------------------ | :------------------------------ |
+| `-f, --format` | Choose output format (`svg`, `png`, `json`, etc.) | `-f svg`                        |
+| `-o, --out`    | Save the output to a file                         | `-o graph.svg`                  |
+| `--view`       | Switch between `providers` or `modules` view      | `--view modules`                |
+| `--load`       | Simulate loading a module at runtime              | `--load src/feature.ts#Feature` |
 
 ## Integration Example
 
@@ -45,8 +45,10 @@ npx nexusdi graph src/app.module.ts#AppModule -f json -o graph.json
 ```
 
 ## Documentation
+
 - [Graph CLI Guide](https://nexus.js.org/next/graph-cli/)
 - [NexusDI on GitHub](https://github.com/NexusDI/core)
 
 ## License
+
 MIT
