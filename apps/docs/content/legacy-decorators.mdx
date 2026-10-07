@@ -8,7 +8,33 @@ description: How to use NexusDI in a project that must keep the legacy experimen
 
 NexusDI uses standard (TC39) decorators. If your project must keep `experimentalDecorators: true` in `tsconfig.json` because of another library, you cannot use `@nexusdi/decorators` directly, as they will throw a `NEXUS_LEGACY_DECORATORS` error.
 
-However, you can still use NexusDI by declaring your dependencies and modules manually.
+However, you can still use NexusDI by declaring your dependencies and modules manually. NexusDI never reads `emitDecoratorMetadata`: it reads no type a compiler emits, so a class lists its deps in `static deps` or at the binding.
+
+## Why the Decorators Throw Under the Flag
+
+With `experimentalDecorators` set, TypeScript calls a class decorator with the class alone, where a standard decorator receives a context object as well. Each NexusDI decorator checks for that context and throws [NEXUS_LEGACY_DECORATORS](/errors/NEXUS_LEGACY_DECORATORS/) when the class is defined, which happens when its file loads. The region makes the legacy call by hand:
+
+```ts file=examples/meridian/src/pages/legacy-decorators.md region=legacy-call
+
+```
+
+**Try it:** Save the region as `legacy.ts` and run `npx tsx legacy.ts`. It prints an array of two lines: the message and its fix line.
+
+In a project that sets the flag, `tsc` stops first. It reports TS1238 on a decorated class (`@Injectable` or `@Module`) and says the runtime invokes the decorator with 1 argument where it expects 2, and TS1240 on an `@Inject` accessor. Run the file anyway and the same error is thrown when the class is defined.
+
+There are two fixes:
+
+- **Drop the flag:** Remove `experimentalDecorators` from `tsconfig.json` if no other library needs it, and the decorators compile as written.
+- **Drop the decorators:** If the flag stays, leave `@nexusdi/decorators` out and write what each decorator recorded by hand.
+
+| Decorator                         | Without decorators                                                               |
+| --------------------------------- | -------------------------------------------------------------------------------- |
+| `@Injectable({ deps })`           | `static deps` on the class, or `deps` on the binding                             |
+| `@Injectable({ lifetime })`       | `lifetime` on the binding: `provide(TOKEN, { useClass, lifetime: 'transient' })` |
+| `@Module({ providers, exports })` | `defineModule({ name, providers, exports })`                                     |
+| `@Inject(TOKEN)` on an accessor   | a constructor parameter listed in `deps`, or a `useFactory` provider with `deps` |
+
+A class may carry another library's legacy decorators and `static deps` together: NexusDI reads only `static deps`. The flag belongs to one `tsconfig.json`, so classes that use the NexusDI decorators can live in a package whose `tsconfig.json` leaves it out.
 
 ## Using `static deps` and `provide()`
 
@@ -18,7 +44,9 @@ The core of NexusDI does not use decorators. By using `static deps` on your clas
 
 ```
 
-This approach works regardless of your compiler flags. TypeScript still verifies that the tokens in `static deps` match the constructor parameters, and the container resolves them normally.
+This approach works regardless of your compiler flags. TypeScript still verifies that the tokens in `static deps` match the constructor parameters at the `provide()` call, and the container resolves them normally.
+
+**Try it:** Save the region as `wire.ts` and run `npx tsx wire.ts`. It prints `ShipComputer online. Reactor output 1.21 GW.` Add `"experimentalDecorators": true` to the `compilerOptions` of your `tsconfig.json` and run it again: `npx tsc` reports nothing and the output does not change. Now change `static deps = [REACTOR] as const` to `[COMPUTER] as const`. `npx tsc` reports TS2769 on the `provide(COMPUTER, { useClass: QuantumComputer })` line, because `COMPUTER` is not a `Token<IReactorCore>`. Change it back.
 
 ## Handling External Classes
 
@@ -29,3 +57,11 @@ If you are using a class from a third-party package that you cannot edit, you ca
 ```
 
 The `deps` option takes precedence over any `static deps` the class might already have, allowing you to wire external classes without needing any decorators at all.
+
+Without the `deps` option, nothing says what the constructor takes, and `Nexus.create` rejects with [NEXUS_BLUEPRINT_INVALID](/errors/NEXUS_BLUEPRINT_INVALID/), whose `errors` list holds [NEXUS_MISSING_DEPS](/errors/NEXUS_MISSING_DEPS/). This region catches the rejection and prints both codes:
+
+```ts file=examples/meridian/src/pages/legacy-decorators.md region=deps-missing
+
+```
+
+**Try it:** Save the `class-from-package` region as `vendor.ts` and run `npx tsx vendor.ts`. It prints `VendorComputer online. Reactor output 1.21 GW.` Delete `deps: [REACTOR]` from the binding and run it again: `Nexus.create` rejects with the error above. Put `deps: [REACTOR]` back and the status line returns.

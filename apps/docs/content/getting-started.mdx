@@ -28,7 +28,7 @@ npm install -D typescript tsx @types/node
 
 ## TypeScript Configuration
 
-NexusDI requires TypeScript 5.4 or later. To avoid conflicts with legacy DI patterns, ensure that `experimentalDecorators` and `emitDecoratorMetadata` are **disabled** in your settings. The package's type declarations reference TypeScript's `esnext.disposable` library, which adds `Symbol.asyncDispose` and `AsyncDisposable` to your program, so `await using` compiles with `lib: ["es2022"]` and you add no entry for it.
+NexusDI requires TypeScript 5.4 or later. Leave `experimentalDecorators` and `emitDecoratorMetadata` **off**: the core API uses no decorators, and the optional `@nexusdi/decorators` package uses standard decorators. (A project that needs the flag for another library can keep it, as [Using NexusDI with experimentalDecorators](/legacy-decorators/) shows.) The package's type declarations reference TypeScript's `esnext.disposable` library, which adds `Symbol.asyncDispose` and `AsyncDisposable` to your program, so `await using` compiles with `lib: ["es2022"]` and you add no entry for it.
 
 Create a `tsconfig.json` with the following configuration:
 
@@ -51,7 +51,7 @@ You can now type-check your project with `npx tsc` and run files directly using 
 
 The simplest way to start a container is using `Nexus.create`. This function takes a list of classes, analyzes how they depend on each other, and instantiates them in the correct order.
 
-In NexusDI, a class declares its dependencies using a `static deps` property. TypeScript ensures this list matches the constructor parameters.
+In NexusDI, a class declares its dependencies using a `static deps` property. TypeScript ensures this list matches the constructor parameters. `get()` then returns the instance, and `await using` disposes the container when the block ends.
 
 Save the following as `ship.ts`:
 
@@ -67,6 +67,8 @@ npx tsx ship.ts
 
 You should see: `ShipComputer online. Reactor output 1.21 GW.`
 
+**Try it:** Change `output` to `2.5` and run it again. The status line follows the reactor, because NexusDI passed the `FusionReactor` it built into the `QuantumComputer` constructor.
+
 ## Experience Static Validation
 
 To see the power of NexusDI, let's intentionally break the wiring.
@@ -75,22 +77,32 @@ If a class depends on a token that the container wasn't given, `Nexus.create` wi
 
 **Try it:** Delete `FusionReactor` from the array passed to `Nexus.create` in `ship.ts` and run it again.
 
-You receive a clear error listing `NEXUS_MISSING_PROVIDER`.
+The run stops with an uncaught `NEXUS_BLUEPRINT_INVALID` error that lists `NEXUS_MISSING_PROVIDER`. `Nexus.create` checks the whole graph before it builds anything, and its `errors` array holds one error for each problem. This program breaks the ship the same way and reads the `errors` array of the rejection:
+
+```ts file=examples/meridian/src/pages/getting-started.md region=missing-reactor
+
+```
+
+The one error inside is [NEXUS_MISSING_PROVIDER](/errors/NEXUS_MISSING_PROVIDER/). Core writes a short message: the code with the error's fields as `key=value` pairs, then a link to the code's page. The `module=root` field names the module the array became: `Nexus.create` compiles a list of classes as an unnamed root module.
+
+Fix the ship: put `FusionReactor` back in the array and run `ship.ts` again. The status line prints.
 
 ## Improving Error Messages with DevTools
 
-While core provides concise error codes, the `@nexusdi/devtools` plugin transforms these into human-readable messages with suggested fixes.
+While core provides concise error codes, the `@nexusdi/devtools` plugin transforms these into human-readable messages with suggested fixes. It also adds the graph and trace tools that [Introspection and Tracing](/introspection/) teaches.
 
-Install the devtools plugin:
+Install the devtools plugin at the same version as core:
 
 ```bash
 npm install -D @nexusdi/devtools@next
 ```
 
-Register the plugin in your application:
+Register the plugin in development. The program below registers it only when `NODE_ENV` is not `production`, and it leaves `FusionReactor` out on purpose, so it is the broken ship from the previous section:
 
 ```ts file=examples/meridian/src/pages/getting-started.md region=devtools-message
 
 ```
 
 Now, when you run your program with an error, you'll see a full explanation and a direct path to the fix. You can keep these tools in development and omit them in production to keep your bundle size minimal.
+
+**Try it:** Save the program as `errors.ts` and run `npx tsx errors.ts`. The terminal prints the full message and its fix line. Run it again as `NODE_ENV=production npx tsx errors.ts`: the plugin list is empty, and the same error prints core's short message. Every later page of these docs builds on this project.

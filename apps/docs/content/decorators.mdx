@@ -8,13 +8,17 @@ description: Use standard TC39 decorators to declare dependencies and modules wi
 
 While `static deps` and `defineModule()` are the foundation of NexusDI, you can use decorators to make your dependency declarations more readable and concise.
 
-NexusDI provides a set of standard (TC39) decorators that act as syntactic sugar. They write the same `static deps` and `defineModule` definitions that you would write by hand. This means a decorated class and an undecorated class wire exactly the same way.
+NexusDI provides a set of standard (TC39) decorators that act as syntactic sugar. They write the same `static deps` and `defineModule` definitions that you would write by hand. This means a decorated class and an undecorated class wire exactly the same way. The decorators live in their own package:
+
+```bash
+npm install @nexusdi/decorators@next
+```
 
 ## Tooling and Compatibility
 
-Because these are standard decorators, they require a toolchain that can compile them: `tsc`, TypeScript 7, esbuild, SWC, Babel, Bun, Deno, or Vite with its Babel plugin. Plain Vite 8 and Node's type stripping cannot compile them.
+Because these are standard decorators, they require a toolchain that can compile them: `tsc`, TypeScript 7, esbuild, SWC, Babel, Bun, Deno, or Vite with its Babel plugin. Plain Vite 8 and Node's type stripping cannot compile them, and `tsx` compiles them through esbuild. The `tsconfig.json` from [Getting Started](/getting-started/) already compiles these decorators, and `npx tsx` and `npx tsc` need no other setting.
 
-**Important:** You must leave `experimentalDecorators` and `emitDecoratorMetadata` **disabled** in your `tsconfig.json`. NexusDI does not rely on compiler-emitted metadata; every dependency is explicitly named via a token in the decorator.
+**Important:** You must leave `experimentalDecorators` and `emitDecoratorMetadata` **disabled** in your `tsconfig.json`. NexusDI does not rely on compiler-emitted metadata; every dependency is explicitly named via a token in the decorator. A project that must keep `experimentalDecorators` for another library uses `static deps` and `defineModule()`, as [Using NexusDI with experimentalDecorators](/legacy-decorators/) shows.
 
 ## Declaring Dependencies with `@Injectable`
 
@@ -24,7 +28,15 @@ The `@Injectable` decorator records a class's dependencies directly on the class
 
 ```
 
-TypeScript verifies the tokens you provide against the constructor parameters, ensuring type safety. If you omit the decorator and the class has constructor parameters, `Nexus.create` will reject with a `NEXUS_MISSING_DEPS` error during startup.
+TypeScript verifies the tokens you provide against the constructor parameters, ensuring type safety. A `useClass` binding reads what `@Injectable` declared, so `provide(COMPUTER, { useClass: QuantumComputer })` needs no `deps` option. `@Injectable` also takes `lifetime`.
+
+If you omit the decorator and the class has constructor parameters, `Nexus.create` will reject with [NEXUS_BLUEPRINT_INVALID](/errors/NEXUS_BLUEPRINT_INVALID/), whose `errors` list holds [NEXUS_MISSING_DEPS](/errors/NEXUS_MISSING_DEPS/). This region catches the rejection and prints that code:
+
+```ts file=examples/meridian/src/pages/decorators.md region=missing-deps
+
+```
+
+**Try it:** Save the first region as `decorators.ts` and run `npx tsx decorators.ts`. The terminal prints `ShipComputer online. Reactor output 1.21 GW.` Change `deps: [REACTOR]` to `deps: [COMPUTER]`: `npx tsc` reports TS2322 on that line, because `COMPUTER` is not a `Token<IReactorCore>`. Change it back. Then delete the `@Injectable({ deps: [REACTOR] })` line and run `npx tsx decorators.ts` again: `Nexus.create` rejects with the error above.
 
 ## Property Injection with `@Inject`
 
@@ -34,7 +46,9 @@ Sometimes you need to inject a dependency into a class property and not the cons
 
 ```
 
-The `accessor` keyword is required because standard decorators operate on the accessor, and the `!` (definite assignment) tells TypeScript that NexusDI will fill the property during instantiation.
+The `accessor` keyword is required because standard decorators operate on the accessor, and the `!` (definite assignment) tells TypeScript that NexusDI will fill the property during instantiation. `@Inject` takes the dependency modifiers as well: `@Inject(optional(SUBSPACE_LINK))` leaves the property `undefined` when nothing provides the token, and `@Inject(lazy(TOKEN))` fills it with a thunk.
+
+**Try it:** Save the region as `accessor.ts` and run `npx tsx accessor.ts`. It prints `course to Kepler-442b` and `no link`. Add `provide(SUBSPACE_LINK, { useValue: { frequency: 1420 } })` to the array passed to `Nexus.create` and run it again: the second line is `1420 MHz`. Delete the line and it is `no link` again.
 
 ## Declarative Modules with `@Module`
 
@@ -44,6 +58,13 @@ You can turn a class into a NexusDI module using the `@Module` decorator. This n
 
 ```
 
-Module encapsulation rules apply exactly as they do with `defineModule()`: only tokens listed in `exports` are visible to modules that import this class.
+Module encapsulation rules apply exactly as they do with `defineModule()`: only tokens listed in `exports` are visible to modules that import this class. `Nexus.create(Command)` takes the decorated class where it takes a `defineModule()` result. `Engineering` exports `COMPUTER` and keeps `REACTOR` private, so `ship.has(REACTOR)` is `false`.
 
-**Note:** `@Module` classes are static. If you need a configurable module (e.g., one with `forRoot()` or `forRootAsync()`), you should continue using `defineModule()`.
+<Notice kind="ship">
+  The `Command` module is the Meridian's bridge deck: it imports engineering and
+  exposes only the ship's computer.
+</Notice>
+
+**Try it:** Save the region as `module.ts` and run `npx tsx module.ts`: it prints the status line and `false`. Add `REACTOR` to `exports` and run it again, and the last line is `true`.
+
+**Note:** `@Module` classes are static. If you need a configurable module (e.g., one with `forRoot()` or `forRootAsync()`), you should continue using `defineModule()` ([Configurable Modules](/configurable-modules/)). A `@Module` class may import a configurable module.

@@ -8,7 +8,11 @@ description: Replace production providers with fakes or stubs to isolate your co
 
 Testing a component that depends on a complex system (like a database or a remote API) is difficult if you have to set up the entire production environment just to run a single test.
 
-NexusDI provides a specialized testing utility that allows you to build your real production graph but "swap out" specific providers for fakes.
+NexusDI provides a specialized testing utility, `@nexusdi/testing`, that allows you to build your real production graph but "swap out" specific providers for fakes. Install it as a dev dependency:
+
+```bash
+npm install -D @nexusdi/testing@next
+```
 
 ## Unit Testing without the Container
 
@@ -18,36 +22,81 @@ For simple unit tests, you don't need a NexusDI container at all. Since your cla
 
 ```
 
+**Try it:** Save the region as `unit.ts` and run `npx tsx unit.ts`. It prints `ShipComputer online. Reactor output 0.5 GW.` Change the fake's `output` to `0.7` and run it again, and the printed line follows the fake.
+
 ## Integration Testing with `createTestingContainer`
 
-When you need to test how a component interacts with the rest of the system, use `createTestingContainer`. This utility builds the real module graph but allows you to `override` specific tokens.
+When you need to test how a component interacts with the rest of the system, use `createTestingContainer(root)`. This utility builds the real module graph but allows you to `override` specific tokens, then `create()` builds the container.
 
 ```ts file=examples/meridian/src/pages/testing.md region=override-reactor
 
 ```
 
-The testing container is a full NexusDI container. It runs the same compiler and validation checks as production. If your override introduces a missing dependency or a circular reference, `create()` will reject just as it would in the real app.
+`override(REACTOR, { useClass: FakeReactor })` replaces every provider of `REACTOR` in the graph. `QuantumComputer` stays as it is and receives the fake through its `REACTOR` dependency, because its `deps` name the token. `override()` takes a `useClass`, `useValue` or `useFactory` definition with `deps`, typed as `provide()` types it. No form takes `useExisting`.
+
+**Try it:**
+
+1. Save the region as `override.ts` and run `npx tsx override.ts`. It prints `ShipComputer online. Reactor output 0.5 GW.`
+2. Delete the `.override(REACTOR, { useClass: FakeReactor })` line and run it again. It prints `ShipComputer online. Reactor output 1.21 GW.`, the real reactor's output.
+3. Put the line back. Then change `FakeReactor` in the `override()` call to a class that has no `output` property and run `npx tsc --noEmit`. `tsc` flags the `override()` line and reports that property `output` is missing in the class and required in `IReactorCore`. Change it back and the error goes away.
+
+### Overrides Are Validated
+
+The testing container is a full NexusDI container. It runs the same compiler and validation checks as production. If your override introduces a missing dependency or a circular reference, `create()` will reject just as it would in the real app. `ChartedReactor` depends on `NAV_CHARTS`, which no module provides, and `create()` rejects with [NEXUS_BLUEPRINT_INVALID](/errors/NEXUS_BLUEPRINT_INVALID/) holding [NEXUS_MISSING_PROVIDER](/errors/NEXUS_MISSING_PROVIDER/):
+
+```ts file=examples/meridian/src/pages/testing.md region=override-breaks-graph
+
+```
+
+**Try it:** Run the region. It prints `[ 'NEXUS_MISSING_PROVIDER' ]`. Add `provide(NAV_CHARTS, { useValue: { plot: (to) => to } })` to the providers of `Engineering` and run it again. `ChartedReactor` now has its dependency, `create()` resolves, and the region prints `[]`.
+
+An override that matches no provider fails as well. `create()` rejects with `NEXUS_BLUEPRINT_INVALID` holding [NEXUS_OVERRIDE_UNUSED](/errors/NEXUS_OVERRIDE_UNUSED/), so a test never runs against a replacement that changes nothing.
+
+```ts file=examples/meridian/src/pages/testing.md region=override-unused
+
+```
+
+**Try it:** Run the region and read the message it prints. Then add `provide(NAV_CHARTS, { useValue: fakeCharts })` to the providers of `Engineering` and run it again. The override now matches a provider, `create()` resolves, and the region prints `undefined` because there is no error to read.
 
 ## Overriding Modules
 
-In some cases, you need to replace an entire set of providers. You can use `overrideModule` to replace one module with a stub module.
+In some cases, you need to replace an entire set of providers. You can use `overrideModule(Comms, CommsStub)` to replace one module with a stub module wherever the graph imports it, including every `forRoot()` and `forRootAsync()` instance of it.
 
 ```ts file=examples/meridian/src/pages/testing.md region=override-module
 
 ```
 
-The stub module must export every token that the original module exported; otherwise, the container will reject the startup process with a `NEXUS_OVERRIDE_EXPORTS` error.
+The stub module must export every token that the original module exported; otherwise, the container will reject the startup process with `NEXUS_BLUEPRINT_INVALID` holding [NEXUS_OVERRIDE_EXPORTS](/errors/NEXUS_OVERRIDE_EXPORTS/).
+
+**Try it:** Delete `exports: [SUBSPACE_LINK]` from `CommsStub` and run the region. The process ends with the error, and the inner message reads `the stub for Comms does not export SubspaceLink, which Comms exports.` Put the export back and the region prints `loopback hail`.
+
+An `overrideModule()` for a module the graph never imports fails with `NEXUS_OVERRIDE_UNUSED`, and the message names the module, such as `override(Comms) matched no provider in the module graph.` Pass `{ lazy: true }` as the third argument when a later `ship.load()` brings the module in, and `create()` no longer reports it.
 
 ## Advanced Testing Patterns
 
 ### Preserving Lifetimes
 
-By default, an override preserves the lifetime of the original provider. If a provider was transient in production, your fake will also be transient. You can override this by explicitly setting a `lifetime` in the override definition.
+By default, an override preserves the lifetime of the original provider. If a provider was transient in production, your fake will also be transient. You can override this by explicitly setting a `lifetime` in the override definition. `DRONE` is transient in `Tactical`, so `TrainingDrone` is transient as well, and two `get(DRONE)` calls return two drones:
+
+```ts file=examples/meridian/src/pages/testing.md region=override-lifetime
+
+```
+
+**Try it:** Run the region. It prints `true`. Change the override to `{ useClass: TrainingDrone, lifetime: 'singleton' }` and run it again. Both `get(DRONE)` calls now return one drone, and the region prints `false`. Remove the `lifetime` and it prints `true` again.
 
 ### Shared Base Builders
 
-To avoid repeating the same overrides across multiple tests, you can create a base builder. Because the builder is immutable, you can derive specific test configurations from a single base without them interfering with each other.
+To avoid repeating the same overrides across multiple tests, you can create a base builder. Because the builder is immutable, you can derive specific test configurations from a single base without them interfering with each other: each `override()` returns a new builder and leaves the one it was called on unchanged.
 
 ```ts file=examples/meridian/src/pages/testing.md region=shared-builder
 
 ```
+
+The first container in the region is built with `create({ onInit: false })`, which builds the graph and skips every `onInit` method, for a test that must not start what an `onInit` starts.
+
+**Try it:** Run the region. It prints `0`, then `0.5`, then `1.21`. The first container skipped `onInit`, and the third, built from the same `base` that the second one overrode, got the real reactor. Add the statement `base.override(REACTOR, { useClass: FakeReactor });` before the third container, and the third line is still `1.21`: `override()` returns a new builder and leaves `base` as it was.
+
+<Notice kind="ship">
+  The simulator bay keeps one base configuration of the Meridian, and each drill
+  swaps in the parts it tests.
+</Notice>
