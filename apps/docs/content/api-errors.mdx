@@ -8,7 +8,9 @@ description: A complete list of error codes raised by NexusDI and its official p
 
 Every error raised by NexusDI carries a stable `code`. By default, these errors provide a concise one-line message and a link to the specific documentation page for that code. When the `@nexusdi/errors` or `@nexusdi/devtools` plugins are registered, these codes are expanded into full human-readable messages with suggested fixes.
 
-You can use the `isNexusError(error, code)` utility from `@nexusdi/core` to detect specific errors and narrow the error to its specific class. Check where the code arrives: most graph errors arrive inside the `errors` list of `NEXUS_BLUEPRINT_INVALID`, and an error raised while a provider is built arrives as the `cause` of `NEXUS_PROVIDER_FAILED`.
+You can use the `isNexusError(error, code)` utility from `@nexusdi/core` to detect specific errors and narrow the error to its specific class. Check where the code arrives: most graph errors arrive inside the `errors` list of `NEXUS_BLUEPRINT_INVALID`, and an error raised while a provider is built arrives as the `cause` of `NEXUS_PROVIDER_FAILED`. [How Each Code Arrives](#how-each-code-arrives) at the end of this page lists the way for every code.
+
+A package that adds codes declares them in the `NexusErrorByCode` interface, and [Writing NexusDI Plugins](/write-a-plugin/) shows how.
 
 ## Core Error Codes
 
@@ -49,17 +51,30 @@ These errors are raised by `@nexusdi/core` during graph validation or container 
 
 These errors are raised by the other official NexusDI packages.
 
-| Package                 | Code                                                                    | Description                                                                                            |
-| :---------------------- | :---------------------------------------------------------------------- | :----------------------------------------------------------------------------------------------------- |
-| `@nexusdi/interceptors` | [`NEXUS_INTERCEPTOR_INVALID`](/errors/NEXUS_INTERCEPTOR_INVALID/)       | Interceptor definition or call is malformed.                                                           |
-| `@nexusdi/interceptors` | [`NEXUS_INTERCEPTOR_MISSING`](/errors/NEXUS_INTERCEPTOR_MISSING/)       | A declared interceptor was not registered in the plugin.                                               |
-| `@nexusdi/interceptors` | [`NEXUS_INTERCEPTOR_LIFETIME`](/errors/NEXUS_INTERCEPTOR_LIFETIME/)     | An interceptor was marked as scoped or transient.                                                      |
-| `@nexusdi/interceptors` | [`NEXUS_INTERCEPTOR_NOT_READY`](/errors/NEXUS_INTERCEPTOR_NOT_READY/)   | Interceptor called before build or after disposal.                                                     |
-| `@nexusdi/interceptors` | [`NEXUS_INTERCEPTORS_SHARED`](/errors/NEXUS_INTERCEPTORS_SHARED/)       | An interceptors plugin object was passed to a second container while another container still holds it. |
-| `@nexusdi/interceptors` | [`NEXUS_INTERCEPTORS_UNCHECKED`](/errors/NEXUS_INTERCEPTORS_UNCHECKED/) | An instance was wrapped without being checked by the compiler.                                         |
-| `@nexusdi/testing`      | [`NEXUS_OVERRIDE_UNUSED`](/errors/NEXUS_OVERRIDE_UNUSED/)               | An override names a token that no provider binds, or a module the graph never imports.                 |
-| `@nexusdi/testing`      | [`NEXUS_OVERRIDE_EXPORTS`](/errors/NEXUS_OVERRIDE_EXPORTS/)             | A module stub doesn't export everything the original did.                                              |
-| `@nexusdi/decorators`   | [`NEXUS_LEGACY_DECORATORS`](/errors/NEXUS_LEGACY_DECORATORS/)           | A decorator ran under `experimentalDecorators`.                                                        |
-| `@nexusdi/devtools`     | [`NEXUS_DEVTOOLS_UNREGISTERED`](/errors/NEXUS_DEVTOOLS_UNREGISTERED/)   | `graph()` called on a container without the devtools plugin.                                           |
-| `@nexusdi/devtools`     | [`NEXUS_DEVTOOLS_GRAPH_INVALID`](/errors/NEXUS_DEVTOOLS_GRAPH_INVALID/) | The provided JSON is not a valid `NexusGraph`.                                                         |
-| `@nexusdi/federation`   | [`NEXUS_CONTRACT_VERSION`](/errors/NEXUS_CONTRACT_VERSION/)             | A dependent needs a contract version its provider does not satisfy.                                    |
+| Package                 | Code                                                                    | Class                   | Description                                                                                            |
+| :---------------------- | :---------------------------------------------------------------------- | :---------------------- | :----------------------------------------------------------------------------------------------------- |
+| `@nexusdi/interceptors` | [`NEXUS_INTERCEPTOR_INVALID`](/errors/NEXUS_INTERCEPTOR_INVALID/)       | `InterceptorError`      | Interceptor definition or call is malformed.                                                           |
+| `@nexusdi/interceptors` | [`NEXUS_INTERCEPTOR_MISSING`](/errors/NEXUS_INTERCEPTOR_MISSING/)       | `InterceptorError`      | A declared interceptor was not registered in the plugin.                                               |
+| `@nexusdi/interceptors` | [`NEXUS_INTERCEPTOR_LIFETIME`](/errors/NEXUS_INTERCEPTOR_LIFETIME/)     | `InterceptorError`      | An interceptor was marked as scoped or transient.                                                      |
+| `@nexusdi/interceptors` | [`NEXUS_INTERCEPTOR_NOT_READY`](/errors/NEXUS_INTERCEPTOR_NOT_READY/)   | `InterceptorError`      | Interceptor called before build or after disposal.                                                     |
+| `@nexusdi/interceptors` | [`NEXUS_INTERCEPTORS_SHARED`](/errors/NEXUS_INTERCEPTORS_SHARED/)       | `InterceptorError`      | An interceptors plugin object was passed to a second container while another container still holds it. |
+| `@nexusdi/interceptors` | [`NEXUS_INTERCEPTORS_UNCHECKED`](/errors/NEXUS_INTERCEPTORS_UNCHECKED/) | `InterceptorError`      | An instance was wrapped without being checked by the compiler.                                         |
+| `@nexusdi/testing`      | [`NEXUS_OVERRIDE_UNUSED`](/errors/NEXUS_OVERRIDE_UNUSED/)               | `OverrideError`         | An override names a token that no provider binds, or a module the graph never imports.                 |
+| `@nexusdi/testing`      | [`NEXUS_OVERRIDE_EXPORTS`](/errors/NEXUS_OVERRIDE_EXPORTS/)             | `OverrideError`         | A module stub doesn't export everything the original did.                                              |
+| `@nexusdi/decorators`   | [`NEXUS_LEGACY_DECORATORS`](/errors/NEXUS_LEGACY_DECORATORS/)           | `LegacyDecoratorsError` | A decorator ran under `experimentalDecorators`.                                                        |
+| `@nexusdi/devtools`     | [`NEXUS_DEVTOOLS_UNREGISTERED`](/errors/NEXUS_DEVTOOLS_UNREGISTERED/)   | `DevtoolsError`         | `graph()` called on a container without the devtools plugin.                                           |
+| `@nexusdi/devtools`     | [`NEXUS_DEVTOOLS_GRAPH_INVALID`](/errors/NEXUS_DEVTOOLS_GRAPH_INVALID/) | `DevtoolsError`         | The provided JSON is not a valid `NexusGraph`.                                                         |
+| `@nexusdi/federation`   | [`NEXUS_CONTRACT_VERSION`](/errors/NEXUS_CONTRACT_VERSION/)             | `ContractVersionError`  | A dependent needs a contract version its provider does not satisfy.                                    |
+
+## How Each Code Arrives
+
+`isNexusError(e, code)` on the top-level error matches only a code that arrives bare. A code found inside `NEXUS_BLUEPRINT_INVALID` sits in that error's `errors` list, and a `cause` sits in the `cause` of `NEXUS_PROVIDER_FAILED`.
+
+- **Found inside `NEXUS_BLUEPRINT_INVALID`:** `NEXUS_AMBIGUOUS_PROVIDER`, `NEXUS_DUPLICATE_PROVIDER`, `NEXUS_INVALID_EXPORT`, `NEXUS_INVALID_PROVIDER`, `NEXUS_MISSING_DEPS`, `NEXUS_CIRCULAR_DEPENDENCY`, `NEXUS_LIFETIME_VIOLATION`, `NEXUS_MODULE_IMPORT_CYCLE`, `NEXUS_MODULE_OPTIONS_MISSING`, `NEXUS_PLUGIN_INVALID`, `NEXUS_PLUGIN_VERSION`, `NEXUS_PLUGIN_CONFLICT`, `NEXUS_CONTRACT_VERSION`, `NEXUS_INTERCEPTOR_MISSING`, `NEXUS_INTERCEPTOR_LIFETIME`, `NEXUS_OVERRIDE_UNUSED` and `NEXUS_OVERRIDE_EXPORTS`.
+- **`NEXUS_BLUEPRINT_INVALID` itself:** thrown by `Nexus.create`, `Nexus.check`, `validate()` and `load()`, with `errors` listing each problem.
+- **Bare or inside, by caller:** `get()` and `resolve()` throw `NEXUS_MISSING_PROVIDER` bare for a token no module provides, and `Nexus.create` and `validate()` report it inside `NEXUS_BLUEPRINT_INVALID`. `NEXUS_INVALID_TOKEN` follows the same split, and `new Token('')` throws it bare too. `load()`, `defineModule()` and the `module` option of `get()` throw `NEXUS_INVALID_MODULE` bare, and `Nexus.create` reports a bad `imports` entry inside `NEXUS_BLUEPRINT_INVALID`.
+- **As the `cause` of `NEXUS_PROVIDER_FAILED`:** `NEXUS_INVALID_MODULE_OPTIONS`, a `NEXUS_NOT_READY` raised while `Nexus.create` builds, and any error a constructor, a factory or an `onInit` throws.
+- **`NEXUS_PLUGIN_FAILED`:** a `setup` hook and a `tokenKey` hook met in a lookup throw it bare, a `compile` hook reports it inside `NEXUS_BLUEPRINT_INVALID`, and a `construct` hook makes it the `cause` of `NEXUS_PROVIDER_FAILED`. Its own `cause` holds the hook's error.
+- **`NEXUS_INTERCEPTOR_INVALID`:** the compile reports it inside `NEXUS_BLUEPRINT_INVALID`, `@UseInterceptors` throws it bare, and a build fault makes it the `cause` of `NEXUS_PROVIDER_FAILED`. Its `reason` names the rule.
+- **`NEXUS_INTERCEPTORS_SHARED`:** reported inside `NEXUS_BLUEPRINT_INVALID`, or the `cause` of `NEXUS_PROVIDER_FAILED` when two creates overlap.
+- **Thrown bare:** every other code, from the call that hits it: `NEXUS_LOAD_GLOBAL_MODULE` from `load()`, `NEXUS_NOT_VISIBLE` and `NEXUS_SCOPE_REQUIRED` from a lookup, `NEXUS_REQUEST_MISSING` from `createScope()`, `NEXUS_DISPOSED` after disposal started, and the devtools and decorators codes from the call that raised them.

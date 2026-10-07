@@ -54,7 +54,7 @@ The fix region differs from the reproduce region in the `plugins` function, whic
 
 Try it: save the region as `fixed.ts` and run `npx tsx fixed.ts`. It prints `[ 1.21, 1.21 ]`. Add the line `const once = plugins();` above the first `Nexus.create` and pass `once` as the `plugins` option of both calls. `npx tsc` accepts the file, and `npx tsx fixed.ts` throws an uncaught `BlueprintError` and prints a stack trace headed `BlueprintError: [NEXUS_BLUEPRINT_INVALID] 1 error.`, whose message goes on with the line `[NEXUS_INTERCEPTORS_SHARED]` and the address of this page. Remove the line and pass `plugins()` again, and the program prints its line again.
 
-[How do I run code around a service's methods?](/interceptors/) covers the plugin's options.
+[Method Interceptors](/interceptors/) covers the plugin's options.
 
 ## Fields of `InterceptorError`
 

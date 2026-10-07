@@ -42,7 +42,7 @@ The fix region differs from the reproduce region in two ways. It registers `Audi
 
 Try it: save the region as `fixed.ts` and run `npx tsx fixed.ts`. It prints `1.21` and `[ 'trace', 'audit' ]`. Delete the line `interceptor(AUDIT, { useClass: AuditInterceptor }),` from the `register` list and the `AuditInterceptor` class, and run it again. `npx tsc` accepts the file, and `npx tsx fixed.ts` throws an uncaught `BlueprintError` and prints a stack trace headed `BlueprintError: [NEXUS_BLUEPRINT_INVALID] 1 error.`, whose message goes on with the line `[NEXUS_INTERCEPTOR_MISSING] token=Audit.` and the address of this page. Put the line and the class back and the program prints its two lines again.
 
-[How do I run code around a service's methods?](/interceptors/) shows each way to attach an interceptor.
+[Method Interceptors](/interceptors/) shows each way to attach an interceptor.
 
 ## Fields of `InterceptorError`
 
