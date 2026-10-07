@@ -10,7 +10,7 @@
 
 </div>
 
-NexusDI is a dependency injection container that prioritizes **predictability** and **toolchain flexibility**. Unlike traditional containers that resolve dependencies lazily, NexusDI treats your application as a directed graph and validates it entirely during the startup phase.
+NexusDI is a dependency injection container that prioritizes **predictability** and **toolchain flexibility**. Where many containers find a missing dependency only when code first asks for it, NexusDI treats your application as a directed graph and validates it entirely during the startup phase.
 
 ## Core Value Propositions
 
@@ -63,12 +63,16 @@ npm install @nexusdi/core@next
 
 ## Ecosystem
 
-@nexusdi/core is the engine. You can extend it with official plugins:
+@nexusdi/core is the engine. You can extend it with official packages:
 
 - **`@nexusdi/decorators`**: For NestJS-style `@Injectable` syntax.
+- **`@nexusdi/errors`**: For full error messages with fix lines.
 - **`@nexusdi/interceptors`**: For cross-cutting concerns.
 - **`@nexusdi/devtools`**: For graph visualization.
 - **`@nexusdi/testing`**: For type-safe provider overrides.
+- **`@nexusdi/node`**: For request scopes in Node.js servers.
+- **`@nexusdi/federation`**: For versioned contracts across bundles.
+- **`@nexusdi/cli`**: For drawing the graph from the terminal.
 
 ## Documentation
 
