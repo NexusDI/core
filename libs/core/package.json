@@ -1,7 +1,7 @@
 {
   "name": "@nexusdi/core",
   "version": "0.4.0-rc.0",
-  "description": "The static-validation DI container for TypeScript.",
+  "description": "Eliminate runtime wiring errors with a static-validation DI container for TypeScript.",
   "keywords": [
     "nexusdi",
     "dependency injection",

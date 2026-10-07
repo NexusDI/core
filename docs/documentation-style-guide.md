@@ -49,3 +49,16 @@ The guide above sets structure and tone. These repository rules hold beside it, 
 - Examples run as tests. A docs page cites a region of `examples/meridian/src/pages/<slug>.md`, and every `ts` block in a package README is a doctest (`ts @import.meta.vitest`). At least one of them carries a `// ->` claim.
 
 Bold lead-ins on list items and paragraphs are allowed in the docs and the READMEs. A heading does not have to name NexusDI. The npm README structure is in `tools/repo-checks/src/npm-readmes.ts`.
+
+## npm READMEs: Problem → Solution → Proof → Deep Dive
+
+A README sells the value before the implementation.
+
+1. **The tagline** under the title leads with what the developer gains. It equals the `description` in the package's `package.json`.
+2. **The problem** opens the body: the specific friction a developer feels without the package.
+3. **The solution** introduces the package as the cure for that friction.
+4. **Key Features** holds the technical specs (ESM-only, Node and TypeScript versions, peer dependencies) after the reader knows the value.
+5. **The proof** is the Quick Example: a minimal doctest that shows the solution working.
+6. **The deep dive** is the Documentation section, which points to the guides for edge cases.
+
+Every technical detail gets a lead-in sentence that says its intent before the detail.

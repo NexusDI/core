@@ -3,15 +3,11 @@
 [![npm](https://img.shields.io/npm/v/@nexusdi/federation/next)](https://www.npmjs.com/package/@nexusdi/federation)
 [![license](https://img.shields.io/npm/l/@nexusdi/federation)](https://github.com/NexusDI/core/blob/main/LICENSE)
 
-**Share dependency tokens across micro-frontend shells and remotes.**
+**Unify dependency singleton instances across micro-frontend shells and remotes.**
 
-In a micro-frontend architecture, a "Shell" and its "Remotes" are often bundled separately. This typically means they each have their own copy of shared libraries, which leads to duplicate singleton instances (e.g., two different Auth services).
+Micro-frontend architectures often bundle shells and remotes separately, causing shared libraries to be duplicated. This leads to multiple instances of services that must be singletons (such as authentication or configuration providers), creating fragmented state and runtime bugs.
 
-`@nexusdi/federation` solves this by introducing **Versioned Contracts**. It allows different bundles to share a single provider for a token, provided they agree on the contract version.
-
-## How it Works
-
-You define a `Contract` where you would otherwise create a standard `Token`. A contract has a unique key and a semantic version.
+`@nexusdi/federation` solves this by introducing **Versioned Contracts**, allowing separate bundles to resolve the same provider if they agree on the contract version.
 
 ```ts @import.meta.vitest
 import { Nexus, defineModule, provide } from '@nexusdi/core';
@@ -35,14 +31,11 @@ await using shell = await Nexus.create(Shell, { plugins: [federation()] });
 shell.get(AUTH).user(); // -> 'ada'
 ```
 
-The `federation()` plugin ensures that every copy of this contract token across different bundles resolves to the same provider in the container.
+## Key Features
 
-## Version Safety
+**The federation plugin synchronizes tokens across bundles.** The `federation()` plugin ensures every copy of a contract token resolves to the same provider in the container.
 
-Federation isn't just about sharing; it's about safe sharing. NexusDI follows npm's `^` range rules for contract versions:
-
-- A remote built against version `1.1.0` can safely bind to a shell providing `1.2.0`.
-- A remote requiring `2.0.0` will fail to bind to a shell providing `1.0.0`, preventing runtime crashes due to breaking API changes.
+**Version safety prevents runtime crashes.** NexusDI applies npm `^` range rules to contracts so a remote requiring `1.1.0` can bind to a shell providing `1.2.0`, while a remote requiring `2.0.0` will fail to bind to `1.0.0`.
 
 ## Installation
 

@@ -1,7 +1,7 @@
 {
   "name": "@nexusdi/cli",
   "version": "0.4.0-rc.0",
-  "description": "Visualize your dependency graph from the terminal.",
+  "description": "Audit and visualize your application architecture from the terminal.",
   "keywords": [
     "nexusdi",
     "dependency injection",

@@ -3,28 +3,25 @@
 [![npm](https://img.shields.io/npm/v/@nexusdi/devtools/next)](https://www.npmjs.com/package/@nexusdi/devtools)
 [![license](https://img.shields.io/npm/l/@nexusdi/devtools)](https://github.com/NexusDI/core/blob/main/LICENSE)
 
-**Introspect and trace your NexusDI container.**
+**Gain total visibility into your dependency graph and container lifecycle.**
 
-`@nexusdi/devtools` is a plugin that provides deep visibility into the internal state of your container. It allows you to see exactly how your dependencies are wired and how they are instantiated.
+Debugging dependency injection often feels like a black box. When wiring fails or singletons instantiate in the wrong order, you are left guessing how the container resolved your dependencies or why a specific instance exists.
 
-## Key Capabilities
+`@nexusdi/devtools` provides the visibility needed to solve these issues. It transforms the opaque internal state of your NexusDI container into traceable events and exportable graphs.
 
-### 1. Graph Introspection
+## Key Features
 
-Retrieve the entire compiled module graph as JSON. You can use this to build visual diagrams or to programmatically verify your architecture. Get it with `graph(ship)`, or with `inspect(root)` without building anything. `toMermaid()` and `toDot()` draw it as Mermaid or Graphviz text.
+**Analyze the architectural layout of your application.**
+Graph introspection allows you to retrieve the compiled module graph as JSON via `graph(ship)` or `inspect(root)`. Use `toMermaid()` or `toDot()` to generate visual diagrams in Mermaid or Graphviz.
 
-### 2. Lifecycle Tracing
+**Monitor container activity in real-time.**
+Lifecycle tracing uses the `trace(fn)` plugin to intercept every container event. You can track provider construction, `onInit` completion, scope creation, and the exact order of disposal.
 
-Observe every event in the container's lifecycle in real-time. `trace(fn)` is a plugin that passes each event to `fn`. You can track:
+**Resolve wiring errors faster.**
+The package integrates the `@nexusdi/errors` engine to turn cryptic failures into human-readable fix suggestions.
 
-- When a provider is constructed.
-- When a singleton's `onInit` completes.
-- When a scope is created or disposed.
-- The exact order of instance disposal.
-
-### 3. Error Formatting
-
-Includes the `@nexusdi/errors` engine to provide human-readable fix suggestions for wiring mistakes.
+**Technical Specifications.**
+This package is ESM-only and requires matching `@next` versions across all @nexusdi dependencies to avoid peer conflict.
 
 ## Installation
 

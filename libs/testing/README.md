@@ -3,17 +3,20 @@
 [![npm](https://img.shields.io/npm/v/@nexusdi/testing/next)](https://www.npmjs.com/package/@nexusdi/testing)
 [![license](https://img.shields.io/npm/l/@nexusdi/testing)](https://github.com/NexusDI/core/blob/main/LICENSE)
 
-**Type-safe provider overrides for integration testing.**
+**Simplify integration tests with type-safe provider overrides.**
 
-Testing components that depend on complex services (like databases or APIs) is difficult if you have to set up the entire production environment.
+Integration testing often becomes a burden when components depend on complex services like databases or external APIs. Setting up a full production environment for every test is slow and fragile, while manually mocking every dependency leads to tests that pass even when the real application graph is broken.
 
-`@nexusdi/testing` allows you to build your real production module graph but "swap out" specific providers for fakes or stubs.
+`@nexusdi/testing` solves this by allowing you to instantiate your real production module graph and surgically swap specific providers for fakes or stubs.
 
-## Core Features
+## Key Features
 
-- **Real Graph Validation:** Unlike simple mocks, `createTestingContainer` runs the full NexusDI compiler. If your override breaks the graph, the test fails at startup.
-- **Precision Overrides:** Replace a single provider or an entire module. Use `override()` for a provider and `overrideModule(module, stub)` for a module. An override keeps the lifetime of the binding it replaces.
-- **Immutable Builders:** Every `.override()` call returns a new builder, allowing you to share a base configuration across many tests.
+The library provides high-fidelity simulation of your dependency graph.
+
+- **Real Graph Validation:** `createTestingContainer` runs the full NexusDI compiler to ensure overrides do not break the graph.
+- **Precision Overrides:** Replace single providers with `override()` or entire modules with `overrideModule(module, stub)`.
+- **Lifetime Preservation:** An override maintains the lifetime of the original binding it replaces.
+- **Immutable Builders:** Every `.override()` call returns a new builder for shared base configurations.
 
 ## Installation
 

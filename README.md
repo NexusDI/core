@@ -1,26 +1,28 @@
 <div align="center">
   <img src="https://raw.githubusercontent.com/NexusDI/core/main/logo.svg" alt="NexusDI" width="120" height="120" />
   <h1>NexusDI</h1>
-  <p>Static graph validation for TypeScript dependency injection. Zero runtime surprises, zero compiler flags.</p>
+  <p>Eliminate runtime crashes with static graph validation for TypeScript dependency injection.</p>
 
 [![npm](https://img.shields.io/npm/v/@nexusdi/core/next)](https://www.npmjs.com/package/@nexusdi/core)
 [![CI](https://img.shields.io/github/actions/workflow/status/NexusDI/core/ci.yml)](https://github.com/NexusDI/core/actions/workflows/ci.yml)
 [![provenance](https://img.shields.io/badge/provenance-npm-blue)](https://www.npmjs.com/package/@nexusdi/core#provenance)
 [![license](https://img.shields.io/npm/l/@nexusdi/core)](https://github.com/NexusDI/core/blob/main/LICENSE)
-
 </div>
 
-Dependency injection is a cornerstone of scalable architecture, but it often introduces a dangerous blind spot: you don't know if your application is wired correctly until the code actually runs.
+Dependency injection is a cornerstone of scalable architecture, but it often introduces a dangerous blind spot: you do not know if your application is wired correctly until the code actually runs. Missing providers or circular references often stay hidden until they trigger a production failure.
 
-**NexusDI changes this.** It assembles your TypeScript application from modules and validates the entire dependency graph _before_ a single class is instantiated. If a provider is missing or a circular reference exists, NexusDI reports every mistake in a single error at startup.
+NexusDI solves this by assembling your application from modules and validating the entire dependency graph before a single class is instantiated. If the graph is invalid, NexusDI reports every error in a single detailed message at startup.
 
-## Why NexusDI?
+## Key Features
 
-- **Static Validation:** Catch wiring mistakes at boot, not at 3 AM in production.
-- **Async-First:** Async factories are resolved at startup, so your `get()` calls remain synchronous and predictable.
-- **No Compiler Flags:** Works out-of-the-box with `tsc`, esbuild, SWC, Vite, Bun, and Deno. No `emitDecoratorMetadata` required.
-- **Bounded Contexts:** Use modules with private providers and explicit exports to enforce architectural boundaries.
-- **Resource Safety:** Automatic, reverse-order disposal of all instances using `AsyncDisposable`.
+NexusDI provides architectural safety and performance through these technical specifications:
+
+- **Static Validation:** Catch wiring mistakes at boot, before they reach production.
+- **Async-First Resolution:** Async factories resolve at startup so `get()` calls remain synchronous and predictable.
+- **Zero Compiler Flags:** Works with `tsc`, esbuild, SWC, Vite, Bun, and Deno without `emitDecoratorMetadata`.
+- **Bounded Contexts:** Modules use private providers and explicit exports to enforce architectural boundaries.
+- **Resource Safety:** Automatically disposes of instances in reverse-order using `AsyncDisposable`.
+- **Technical Spec:** ESM-only package requiring Node 22.12+ and TypeScript 5.4+.
 
 ## Quick Start
 
@@ -70,13 +72,13 @@ NexusDI is a modular system. Start with `@nexusdi/core` and add capabilities as 
 npm install @nexusdi/core@next
 ```
 
-The package is ESM and requires Node 22.12+ and TypeScript 5.4+.
-
 ## Examples and Contributing
 
 Every package keeps its examples in `libs/<package>/docs`, and [examples/react-ssr](examples/react-ssr/) shows a React Router integration. Read the [Contributing Guide](CONTRIBUTING.md) before you open a pull request.
 
 ## Documentation & Community
+
+Explore the full guide for advanced patterns, such as interface-first binding and custom providers.
 
 - [Full Documentation](https://nexus.js.org/next/)
 - [Examples](https://github.com/NexusDI/core/tree/@nexusdi/core@0.4.0-rc.0/libs/core/docs)

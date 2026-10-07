@@ -1,7 +1,7 @@
 {
   "name": "@nexusdi/testing",
   "version": "0.4.0-rc.0",
-  "description": "Type-safe provider overrides for integration testing.",
+  "description": "Simplify integration tests with type-safe provider overrides.",
   "keywords": [
     "nexusdi",
     "dependency injection",

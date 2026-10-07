@@ -1,7 +1,7 @@
 <div align="center">
   <img src="https://raw.githubusercontent.com/NexusDI/core/main/logo.svg" alt="NexusDI" width="120" height="120" />
   <h1>@nexusdi/core</h1>
-  <p>The static-validation DI container for TypeScript.</p>
+  <p>Eliminate runtime wiring errors with a static-validation DI container for TypeScript.</p>
 
 [![npm](https://img.shields.io/npm/v/@nexusdi/core/next)](https://www.npmjs.com/package/@nexusdi/core)
 [![CI](https://img.shields.io/github/actions/workflow/status/NexusDI/core/ci.yml)](https://github.com/NexusDI/core/actions/workflows/ci.yml)
@@ -10,25 +10,18 @@
 
 </div>
 
-NexusDI is a dependency injection container that prioritizes **predictability** and **toolchain flexibility**. Where many containers find a missing dependency only when code first asks for it, NexusDI treats your application as a directed graph and validates it entirely during the startup phase.
+Many dependency injection containers only discover missing providers or circular dependencies when the code first attempts to resolve them. This transforms architectural mistakes into unpredictable runtime crashes in production.
 
-## Core Value Propositions
+NexusDI solves this by treating your application as a directed graph, validating the entire wiring during the startup phase. If a dependency is missing, your application fails to start immediately with a comprehensive report.
 
-### 1. No Runtime Wiring Errors
+## Key Features
 
-Missing providers and circular dependencies are reported as a single `BlueprintError` during `Nexus.create`. Your application either starts fully wired or doesn't start at all.
+NexusDI prioritizes toolchain flexibility and predictable startup behavior.
 
-### 2. Zero Compiler Flags
-
-By using `static deps` for dependency declaration, NexusDI eliminates the need for `emitDecoratorMetadata`. It works natively with any modern TypeScript toolchain (Vite, Bun, Deno, esbuild) without custom plugins. It also runs under tsc, TypeScript 7, SWC, Babel and Node's type stripping.
-
-### 3. Async-First Startup
-
-Async factories are awaited during the initialization phase. This means that once the container is created, all `get()` calls are synchronous, eliminating "async-leak" throughout your business logic.
-
-### 4. Bounded Contexts
-
-Using `defineModule`, you can group providers into modules with private internal state and explicit public exports, enforcing strict architectural boundaries.
+- **Zero Compiler Flags**: Dependency declaration uses `static deps` and needs no `emitDecoratorMetadata`, so it works with Vite, Bun, Deno, esbuild, SWC, and Node's type stripping.
+- **Async-First Startup**: Async factories are awaited during initialization so that all `get()` calls remain synchronous.
+- **Bounded Contexts**: `defineModule` groups providers into modules with private state and explicit public exports.
+- **Technical Specs**: ESM-only; requires Node 22.12+ and TypeScript 5.4+.
 
 ## Quick Start
 
@@ -53,19 +46,11 @@ const app = await Nexus.create([Logger, UserService]);
 app.get(UserService).greet('Ada'); // -> '[app] hello Ada'
 ```
 
-## Installation
+## Validation at Startup
 
-> 0.4 is currently in Release Candidate.
+NexusDI validates the entire dependency graph before any constructor runs.
 
-```bash
-npm install @nexusdi/core@next
-```
-
-Install every @nexusdi package from `next` so their versions match. The package is ESM, and needs Node 22.12 or later and TypeScript 5.4 or later.
-
-## Checked at Startup
-
-`Nexus.create` rejects with one error that lists every provider the graph lacks, before any constructor runs.
+`Nexus.create` rejects with a single error listing every missing provider.
 
 ```ts @import.meta.vitest
 import { MissingProviderError, Nexus, Token } from '@nexusdi/core';
@@ -83,11 +68,11 @@ const errors = await Nexus.create([Comms]).then(() => [], listed);
 errors.map((e) => e instanceof MissingProviderError && e.token); // -> ['Callsign', 'Frequency']
 ```
 
-<!-- #endregion checked-at-startup -->
-
 ## Modules and Interfaces
 
-A module binds interface tokens to classes and factories, and exports what other modules may use.
+Interface-first binding decouples implementation from consumption.
+
+A module binds interface tokens to classes or factories and exports specific tokens for other modules to use.
 
 ```ts @import.meta.vitest
 import { Nexus, Token, defineModule, provide } from '@nexusdi/core';
@@ -122,11 +107,11 @@ ship.get(HELM).engage('Vega'); // -> 'to Vega'
 ship.has(NAV_CHARTS); // -> false
 ```
 
-<!-- #endregion modules-and-interfaces -->
-
 ## Configurable Modules
 
-A module declares an options token and takes its options through `forRoot()` or `forRootAsync()`.
+Modules can be parameterized to support different environments or settings.
+
+A module defines an options token and accepts configuration via `forRoot()` or `forRootAsync()`.
 
 ```ts @import.meta.vitest
 import { Nexus, Token, defineModule, provide } from '@nexusdi/core';
@@ -163,7 +148,15 @@ await using ship = await Nexus.create(
 ship.get(SUBSPACE_LINK).frequency; // -> 1420
 ```
 
-<!-- #endregion configurable-module -->
+## Installation
+
+> 0.4 is currently in Release Candidate.
+
+```bash
+npm install @nexusdi/core@next
+```
+
+Install every @nexusdi package from `next` so their versions match.
 
 ## Ecosystem
 
