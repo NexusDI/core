@@ -10,8 +10,6 @@
   "prose": [
     { "name": "dash", "hit": "Fast — and checked.", "miss": "Fast `—` and checked." },
     { "name": "dash", "hit": "Pages 1–5.", "miss": "```text\nPages 1–5.\n```" },
-    { "name": "bold", "hit": "A **bold** claim.", "miss": "The `**` operator." },
-    { "name": "bold", "hit": "<p><strong>Fast.</strong></p>", "miss": "<p>Fast.</p>" },
     { "name": "not X but Y", "hit": "It is not slow but fast.", "miss": "It is not slow. But it is old." },
     { "name": "rather than", "hit": "Use tokens rather than classes.", "miss": "<img src=\"https://example.com/a.svg\" alt=\"tokens rather than classes\">" },
     { "name": "rather than", "hit": "Use tokens instead of classes.", "miss": "[a guide](https://example.com/instead of)" },

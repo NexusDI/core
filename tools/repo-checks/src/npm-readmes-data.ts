@@ -1,8 +1,7 @@
 /**
- * What the npm README standard fixes per package: the kind, the tagline,
- * whether the install line uses -D, and the region names each package
- * carried at 0.4.0-rc.0. npm-readmes.ts holds the rules, this file the
- * values they compare against.
+ * What the npm README standard fixes per package: the kind, and whether the
+ * install line uses -D. npm-readmes.ts holds the rules, this file the values
+ * they compare against.
  */
 
 export type Kind = 'core' | 'sub-package' | 'cli' | 'root';
@@ -23,156 +22,69 @@ export type Package = (typeof PACKAGES)[number];
 
 export interface PackageSpec {
   readonly kind: Exclude<Kind, 'root'>;
-  /** The one line under the H1 (core: inside the hero). */
-  readonly tagline: string;
   /** The install line is `npm install -D ...`. */
   readonly dev: boolean;
-  /** Every region name the package's README carried at 0.4.0-rc.0. */
-  readonly regions: readonly string[];
 }
 
 export const SPECS: Readonly<Record<Package, PackageSpec>> = {
-  core: {
-    kind: 'core',
-    tagline:
-      'NestJS-style modules and async startup for any TypeScript app, checked before it runs, with no compiler flags.',
-    dev: false,
-    regions: [
-      'quick-start',
-      'interfaces-and-tokens',
-      'providers',
-      'provider-literals',
-      'modules',
-      'configurable-module',
-      'configurable-module-async',
-      'scopes',
-      'scope-extend',
-      'lifecycle',
-      'startup-cost',
-      'lazy',
-      'errors',
-      'error-message',
-      'plugins',
-      'plugin-canonical',
-    ],
-  },
-  decorators: {
-    kind: 'sub-package',
-    tagline:
-      'NestJS-style @Injectable, @Inject and @Module for NexusDI, with standard decorators and no compiler flags.',
-    dev: false,
-    regions: ['decorators'],
-  },
-  devtools: {
-    kind: 'sub-package',
-    tagline:
-      'Draw your NexusDI module graph and follow every instance the container builds.',
-    dev: false,
-    regions: ['graph', 'annotate', 'inspect', 'render', 'parse'],
-  },
-  errors: {
-    kind: 'sub-package',
-    tagline:
-      'Every NexusDI error explained, with the fix and the provider you probably meant.',
-    dev: false,
-    regions: ['errors', 'explain'],
-  },
-  federation: {
-    kind: 'sub-package',
-    tagline:
-      'Share NexusDI tokens between a micro-frontend shell and its remotes through versioned contracts.',
-    dev: false,
-    regions: ['contracts', 'text'],
-  },
-  interceptors: {
-    kind: 'sub-package',
-    tagline:
-      'Wrap NexusDI service methods with logging, metrics, validation or caching.',
-    dev: false,
-    regions: ['intercept', 'text'],
-  },
-  node: {
-    kind: 'sub-package',
-    tagline:
-      "Find the current request's NexusDI scope anywhere in a Node call chain, through AsyncLocalStorage.",
-    dev: false,
-    regions: ['node'],
-  },
-  testing: {
-    kind: 'sub-package',
-    tagline:
-      'Build your real NexusDI module graph in tests, with the providers you name replaced.',
-    dev: true,
-    regions: ['testing', 'override-lifetime', 'override-module'],
-  },
-  cli: {
-    kind: 'cli',
-    tagline:
-      "Draw a NexusDI app's dependency graph from the terminal as Mermaid, DOT, JSON, SVG or PNG.",
-    dev: true,
-    regions: [],
-  },
+  core: { kind: 'core', dev: false },
+  decorators: { kind: 'sub-package', dev: false },
+  devtools: { kind: 'sub-package', dev: false },
+  errors: { kind: 'sub-package', dev: false },
+  federation: { kind: 'sub-package', dev: false },
+  interceptors: { kind: 'sub-package', dev: false },
+  node: { kind: 'sub-package', dev: false },
+  testing: { kind: 'sub-package', dev: true },
+  cli: { kind: 'cli', dev: true },
 };
 
 export interface KindLimits {
   readonly maxLines: number;
-  /** Lines between the fences of the first example. */
-  readonly maxFirstExample: number;
-  /** Doctest blocks allowed in the README, or null when not counted. */
-  readonly doctests: readonly [min: number, max: number] | null;
-  /** Bullets the list under the ingress may hold. */
-  readonly bullets: readonly number[];
+  /**
+   * Whether the README must hold a doctest with a `// ->` claim. The cli
+   * shows a shell command, and the root's doctests are copies of core's.
+   */
+  readonly claim: boolean;
+  /** The H1 the README opens with: a markdown H1, or the hero's `<h1>`. */
+  readonly title: (pkg: Package) => string;
 }
 
 export const LIMITS: Readonly<Record<Kind, KindLimits>> = {
   core: {
     maxLines: 200,
-    maxFirstExample: 25,
-    doctests: [4, 4],
-    bullets: [5, 6],
+    claim: true,
+    title: () => '<h1>@nexusdi/core</h1>',
   },
   'sub-package': {
     maxLines: 90,
-    maxFirstExample: 25,
-    doctests: [1, 2],
-    bullets: [2, 4, 5],
+    claim: true,
+    title: (pkg) => `# @nexusdi/${pkg}`,
   },
-  cli: {
-    maxLines: 75,
-    maxFirstExample: 6,
-    doctests: [0, 0],
-    bullets: [2, 4, 5],
-  },
-  // The root copies core's Quick start, which core's doctest already runs.
-  root: { maxLines: 220, maxFirstExample: 25, doctests: null, bullets: [5, 6] },
+  cli: { maxLines: 75, claim: false, title: (pkg) => `# @nexusdi/${pkg}` },
+  root: { maxLines: 220, claim: false, title: () => '<h1>NexusDI</h1>' },
 };
 
 /**
- * The H2 headings of each kind, in order. A sub-package may add one H2
- * between Usage and Documentation; `null` marks that slot.
+ * The H2 headings each kind must hold, in this order. The README opens with
+ * at least one H2 of its own choosing before the first of them (the context
+ * and the concept), and may hold more anywhere before the documentation
+ * heading. The last two are always the documentation heading and License.
  */
-export const HEADINGS: Readonly<Record<Kind, readonly (string | null)[]>> = {
+export const HEADINGS: Readonly<Record<Kind, readonly string[]>> = {
   core: [
-    'Quick start',
-    'Features',
-    'Install',
-    'Checked at startup',
-    'Modules and interfaces',
-    'Configurable modules',
-    'Packages',
+    'Quick Start',
+    'Installation',
+    'Ecosystem',
     'Documentation',
-    'When you do not need a container',
     'License',
   ],
-  'sub-package': ['Install', 'Usage', null, 'Documentation', 'License'],
-  cli: ['Install', 'Usage', 'Options', 'Documentation', 'License'],
+  'sub-package': ['Installation', 'Quick Example', 'Documentation', 'License'],
+  cli: ['Installation', 'Usage', 'Documentation', 'License'],
   root: [
-    'Quick start',
-    'Features',
-    'Install',
-    'Packages',
-    'Examples',
-    'Contributing',
+    'Quick Start',
+    'The Ecosystem',
+    'Installation',
+    'Documentation & Community',
     'License',
   ],
 };
@@ -181,5 +93,11 @@ export const HEADINGS: Readonly<Record<Kind, readonly (string | null)[]>> = {
 export const LOGO =
   'https://raw.githubusercontent.com/NexusDI/core/main/logo.svg';
 
-/** The graph image devtools and cli show, relative to the repo root. */
-export const GRAPH_IMAGE = 'libs/devtools/assets/graph.svg';
+/** The docs site, by release channel. */
+export const DOCS_SITE = {
+  next: 'https://nexus.js.org/next/',
+  latest: 'https://nexus.js.org/',
+} as const;
+
+/** Where the docs site's pages live, relative to the repo root. */
+export const DOCS_CONTENT = 'apps/docs/content';

@@ -1,7 +1,9 @@
 import { repoUrlFor } from '@nexusdi/release';
 
+import { interfaceFirstHits } from './docs/doc-interface-first.js';
 import {
-  GRAPH_IMAGE,
+  DOCS_CONTENT,
+  DOCS_SITE,
   HEADINGS,
   LIMITS,
   LOGO,
@@ -16,6 +18,11 @@ import {
  * passed in, so each rule is tested against fixtures as well as against the
  * READMEs in libs/.
  *
+ * A README runs context, concept, detail (docs/documentation-style-guide.md):
+ * a title, the badges and a one-line tagline, a lead-in on the problem, one
+ * or more H2s of the README's own on what the package is, then the example,
+ * the install line, the documentation links and the licence.
+ *
  * Prose is the README with these removed: fenced blocks, inline code, HTML
  * comments, HTML tag attributes (alt text included), images and link
  * targets. Link text and table cells stay. Every removal keeps the line
@@ -28,8 +35,7 @@ export type Rule =
   | 'hero'
   | 'badges'
   | 'tagline'
-  | 'ingress'
-  | 'bullets'
+  | 'lead-in'
   | 'rc-notice'
   | 'install'
   | 'documentation'
@@ -37,8 +43,7 @@ export type Rule =
   | 'images'
   | 'license'
   | 'doctests'
-  | 'regions'
-  | 'root-copy'
+  | 'interface-first'
   | 'packages'
   | 'banned'
   | 'banned-prose';
@@ -58,7 +63,7 @@ export interface ReadmeInput {
   readonly peers: readonly string[];
   /** The package's `docs/*.md` region files. */
   readonly docs: readonly { readonly file: string; readonly source: string }[];
-  /** core's README, which the root README copies. Needed for `root`. */
+  /** core's README, whose doctests the root README copies. Needed for `root`. */
   readonly core?: string;
   /** Whether a path relative to the repository root exists. */
   readonly exists: (path: string) => boolean;
@@ -81,8 +86,7 @@ export const BANNED: readonly Pattern[] = [
 
 /** Checked against prose only. */
 export const BANNED_PROSE: readonly Pattern[] = [
-  { name: 'dash', pattern: /[\u2014\u2013]/ },
-  { name: 'bold', pattern: /\*\*|__\w|<(strong|b)>/ },
+  { name: 'dash', pattern: /[—–]/ },
   { name: 'not X but Y', pattern: /\bnot\b[^.!?\n]{0,60}\bbut\b/i },
   { name: 'rather than', pattern: /\b(rather than|instead of)\b/i },
   {
@@ -96,18 +100,14 @@ export const BANNED_PROSE: readonly Pattern[] = [
   },
 ];
 
-const CORE_LINK = '](https://www.npmjs.com/package/@nexusdi/core)';
-const GITHUB = 'https://github.com/NexusDI/core';
 const LICENSE_LINK = 'https://github.com/NexusDI/core/blob/main/LICENSE';
+/** The release candidate notice, in the words core's and the root's Installation use. */
 const RC_NOTICE =
-  /^> (\d+\.\d+) is a release candidate on the npm `next` tag\./;
+  /^> (\d+\.\d+) is (?:currently )?(?:in )?(?:a )?release candidate\b/i;
 const DOCTEST = 'ts @import.meta.vitest';
-/**
- * The toolchain bullet in core and decorators names every passing toolchain,
- * which takes more than 12 words. core-readme-claims.test.ts checks its list
- * against the toolchain matrix.
- */
-const TOOLCHAIN_BULLET = /^- Runs under /;
+const CLAIM = '// -> ';
+const BOLD_LINE = /^\*\*[^*]+\*\*$/;
+const HERO_TAGLINE = /^\s*<p>(.+)<\/p>\s*$/;
 
 interface Fence {
   /** 0-based line of the opening fence. */
@@ -229,7 +229,7 @@ export function proseOf(source: string): string {
   text = keepLines(text, /!\[[^\]]*\]\([^)]*\)/g, '');
   text = keepLines(text, /\[([^\]]*)\]\([^)]*\)/g, (label) => label ?? '');
   text = keepLines(text, /<https?:[^>\s]+>/g, '');
-  // A tag keeps its name, so the bold rule still sees <strong> and <b>.
+  // A tag keeps its name and loses its attributes, alt text included.
   text = keepLines(
     text,
     /<(\/?)([a-zA-Z][\w-]*)(?:\s[^>]*)?\/?>/g,
@@ -259,16 +259,6 @@ export function bannedRaw(source: string): string[] {
   return hits(source, BANNED);
 }
 
-/** Words a reader sees: link text and inline code count, URLs and tags do not. */
-function words(text: string): number {
-  return text
-    .replace(/!\[[^\]]*\]\([^)]*\)/g, ' ')
-    .replace(/\[([^\]]*)\]\([^)]*\)/g, '$1')
-    .replace(/<[^>]*>/g, ' ')
-    .split(/\s+/)
-    .filter((w) => w !== '').length;
-}
-
 function isPrerelease(version: string): boolean {
   return version.includes('-');
 }
@@ -285,7 +275,7 @@ function packageOf(name: Package | 'root'): Package {
   return name === 'root' ? 'core' : name;
 }
 
-/** The badge lines the hero holds, in order. */
+/** The badge lines the title block holds, in order. */
 function badgesFor(name: Package | 'root'): string[] {
   const pkg = packageOf(name);
   const npm = `[![npm](https://img.shields.io/npm/v/@nexusdi/${pkg}/next)](https://www.npmjs.com/package/@nexusdi/${pkg})`;
@@ -299,7 +289,7 @@ function badgesFor(name: Package | 'root'): string[] {
   ];
 }
 
-/** The one install line the README's Install block holds. */
+/** The one install line the README's Installation block holds. */
 function installLineFor(
   name: Package | 'root',
   version: string,
@@ -339,63 +329,84 @@ function paragraphs(
   return found;
 }
 
-function checkHeadings(parsed: Parsed, kind: Kind, faults: Fault[]): void {
-  const actual = headings(parsed, 2).map((h) => h.title);
-  const expected = HEADINGS[kind];
-  const optional = expected.indexOf(null);
-  const fits =
-    optional === -1
-      ? actual.length === expected.length &&
-        expected.every((title, i) => actual[i] === title)
-      : (actual.length === expected.length ||
-          actual.length === expected.length - 1) &&
-        expected.slice(0, optional).every((title, i) => actual[i] === title) &&
-        expected
-          .slice(optional + 1)
-          .reverse()
-          .every((title, i) => actual[actual.length - 1 - i] === title);
-  if (!fits)
-    faults.push({
-      rule: 'headings',
-      message: `H2 headings are [${actual.join(', ')}], expected [${expected
-        .map((t) => t ?? '<one optional H2>')
-        .join(', ')}]`,
-    });
-  const h1 = headings(parsed, 1);
-  const wantH1 = kind === 'sub-package' || kind === 'cli' ? 1 : 0;
-  if (h1.length !== wantH1)
-    faults.push({
-      rule: 'headings',
-      message: `has ${h1.length} markdown H1 heading(s), expected ${wantH1}`,
-    });
+/**
+ * The tagline a README shows under its title: the hero's `<p>` for core and
+ * the root, the bold line under the badges for the others. Undefined when the
+ * README has none where it belongs.
+ */
+export function taglineOf(
+  source: string,
+  name: Package | 'root',
+): string | undefined {
+  const parsed = parse(source);
+  const kind = kindOf(name);
+  if (kind === 'core' || kind === 'root') {
+    const close = parsed.lines.indexOf('</div>');
+    const hero = parsed.lines.slice(0, close === -1 ? 0 : close + 1);
+    for (const line of hero) {
+      const m = HERO_TAGLINE.exec(line);
+      if (m) return (m[1] as string).trim();
+    }
+    return undefined;
+  }
+  const firstH2 = headings(parsed, 2)[0]?.line ?? parsed.lines.length;
+  const tag = paragraphs(parsed.lines, 0, firstH2)[2]?.lines;
+  const line = tag?.length === 1 ? (tag[0] as string).trim() : '';
+  return BOLD_LINE.test(line) ? line.slice(2, -2).trim() : undefined;
 }
 
-function firstExample(parsed: Parsed, kind: Kind): Fence | undefined {
-  if (kind === 'cli') {
-    const usage = sectionRange(parsed, 'Usage');
-    return usage === null
-      ? undefined
-      : parsed.fences.find((f) => f.start >= usage.from && f.start < usage.to);
-  }
-  return parsed.fences.find((f) => /^(ts|typescript)\b/.test(f.info));
+/**
+ * The required H2s of the kind, in order, with the last two closing the
+ * README. Every other H2 sits before the documentation heading, and at least
+ * one opens the README before the first required H2.
+ */
+function checkHeadings(
+  input: ReadmeInput,
+  parsed: Parsed,
+  kind: Kind,
+  faults: Fault[],
+): void {
+  const actual = headings(parsed, 2).map((h) => h.title);
+  const required = HEADINGS[kind];
+  const positions = required.map((title) => actual.indexOf(title));
+  const missing = required.filter((_, i) => positions[i] === -1);
+  const ordered = positions.every(
+    (p, i) => i === 0 || p > (positions[i - 1] as number),
+  );
+  const closing = actual.slice(-2).join('|') === required.slice(-2).join('|');
+  const concept = (positions[0] ?? -1) > 0;
+  const twice = required.filter(
+    (title) => actual.filter((t) => t === title).length > 1,
+  );
+  if (missing.length > 0 || !ordered || !closing || !concept || twice.length)
+    faults.push({
+      rule: 'headings',
+      message: `H2 headings are [${actual.join(', ')}], expected at least one H2 of the README's own, then [${required.join(', ')}] in that order, ending with the last two${missing.length > 0 ? `; missing ${missing.join(', ')}` : ''}`,
+    });
+
+  const want = LIMITS[kind].title(packageOf(input.name));
+  const h1 = headings(parsed, 1);
+  if (want.startsWith('# ')) {
+    if (h1.length !== 1)
+      faults.push({
+        rule: 'headings',
+        message: `has ${h1.length} markdown H1 heading(s), expected 1`,
+      });
+  } else if (h1.length !== 0)
+    faults.push({
+      rule: 'headings',
+      message: `has ${h1.length} markdown H1 heading(s), expected none beside the hero's <h1>`,
+    });
 }
 
 function checkLength(parsed: Parsed, kind: Kind, faults: Fault[]): void {
-  const limits = LIMITS[kind];
+  const limit = LIMITS[kind].maxLines;
   const count =
     parsed.lines.at(-1) === '' ? parsed.lines.length - 1 : parsed.lines.length;
-  if (count > limits.maxLines)
+  if (count > limit)
     faults.push({
       rule: 'length',
-      message: `has ${count} lines, at most ${limits.maxLines} allowed`,
-    });
-  const example = firstExample(parsed, kind);
-  if (example === undefined)
-    faults.push({ rule: 'length', message: 'has no first example' });
-  else if (example.body.length > limits.maxFirstExample)
-    faults.push({
-      rule: 'length',
-      message: `first example (line ${example.start + 1}) has ${example.body.length} lines, at most ${limits.maxFirstExample} allowed`,
+      message: `has ${count} lines, at most ${limit} allowed`,
     });
 }
 
@@ -415,76 +426,12 @@ function checkBadges(
     });
 }
 
-function checkIngress(
-  kind: Kind,
-  ingress: string | undefined,
-  faults: Fault[],
-): void {
-  if (ingress === undefined) {
-    faults.push({ rule: 'ingress', message: 'has no ingress paragraph' });
-    return;
-  }
-  const count = words(ingress);
-  if (count > 40)
-    faults.push({
-      rule: 'ingress',
-      message: `ingress has ${count} words, at most 40 allowed`,
-    });
-  if (kind === 'core' || kind === 'root') {
-    for (const phrase of [
-      'validates the whole module graph',
-      'No runtime dependencies',
-    ])
-      if (!ingress.includes(phrase))
-        faults.push({
-          rule: 'ingress',
-          message: `ingress does not say "${phrase}"`,
-        });
-  } else if (!ingress.includes(CORE_LINK))
-    faults.push({
-      rule: 'ingress',
-      message: `ingress does not link [NexusDI]${CORE_LINK.slice(1)}`,
-    });
-}
-
-function checkBullets(
-  kind: Kind,
-  bullets: readonly string[] | undefined,
-  faults: Fault[],
-): void {
-  const allowed = LIMITS[kind].bullets;
-  if (bullets === undefined || bullets.length === 0) {
-    faults.push({ rule: 'bullets', message: 'has no bullet list' });
-    return;
-  }
-  const loose = bullets.filter((line) => !line.startsWith('- '));
-  if (loose.length > 0)
-    faults.push({
-      rule: 'bullets',
-      message: `bullet list holds lines that are not one-line bullets: ${loose.join(' | ')}`,
-    });
-  const items = bullets.filter((line) => line.startsWith('- '));
-  if (!allowed.includes(items.length))
-    faults.push({
-      rule: 'bullets',
-      message: `bullet list has ${items.length} items, expected ${allowed.join(' or ')}`,
-    });
-  for (const item of items) {
-    const count = words(item.slice(2));
-    if (count > 12 && !TOOLCHAIN_BULLET.test(item))
-      faults.push({
-        rule: 'bullets',
-        message: `bullet has ${count} words, at most 12 allowed: ${item}`,
-      });
-  }
-}
-
-/** Hero, badges, tagline, ingress, bullet list and graph image. */
+/** Title, badges, tagline and the lead-in before the first H2. */
 function checkTop(input: ReadmeInput, parsed: Parsed, faults: Fault[]): void {
   const kind = kindOf(input.name);
-  const pkg = packageOf(input.name);
-  const tagline = SPECS[pkg].tagline;
+  const title = LIMITS[kind].title(packageOf(input.name));
   const firstH2 = headings(parsed, 2)[0]?.line ?? parsed.lines.length;
+  const tagline = taglineOf(input.source, input.name);
 
   if (kind === 'core' || kind === 'root') {
     const close = parsed.lines.indexOf('</div>');
@@ -496,71 +443,82 @@ function checkTop(input: ReadmeInput, parsed: Parsed, faults: Fault[]): void {
       return;
     }
     const hero = parsed.lines.slice(0, close + 1);
-    if (!hero.some((l) => l.trim() === '<h1>NexusDI</h1>'))
-      faults.push({ rule: 'hero', message: 'hero has no <h1>NexusDI</h1>' });
+    if (!hero.some((l) => l.trim() === title))
+      faults.push({ rule: 'hero', message: `hero has no ${title}` });
     if (!hero.some((l) => l.includes(`src="${LOGO}"`)))
       faults.push({ rule: 'hero', message: `hero has no logo from ${LOGO}` });
-    if (!hero.some((l) => l.trim() === `<p>${tagline}</p>`))
+    if (tagline === undefined)
       faults.push({
         rule: 'tagline',
-        message: `hero has no <p>${tagline}</p>`,
+        message: 'hero has no <p> tagline on a line of its own',
       });
     checkBadges(
       input.name,
       hero.filter((l) => l.startsWith('[![')),
       faults,
     );
-    const after = paragraphs(parsed.lines, close + 1, firstH2);
-    if (after.length > 1)
+    if (paragraphs(parsed.lines, close + 1, firstH2).length === 0)
       faults.push({
-        rule: 'hero',
-        message: `holds ${after.length} paragraphs between the hero and the first H2, expected the ingress alone`,
+        rule: 'lead-in',
+        message: 'has no lead-in paragraph between the hero and the first H2',
       });
-    checkIngress(kind, after[0]?.lines.join('\n'), faults);
-    const features = sectionRange(parsed, 'Features');
-    const list =
-      features === null
-        ? undefined
-        : paragraphs(parsed.lines, features.from, features.to)[0]?.lines;
-    checkBullets(kind, list, faults);
     return;
   }
 
   const blocks = paragraphs(parsed.lines, 0, firstH2);
-  const [title, badges, tag, ingress, bullets, ...rest] = blocks;
-  if (title?.lines.join('\n') !== `# @nexusdi/${pkg}`)
+  const [heading, badges, , ...leadIn] = blocks;
+  if (heading?.lines.join('\n') !== title)
     faults.push({
       rule: 'hero',
-      message: `does not open with the H1 "# @nexusdi/${pkg}" on its own`,
+      message: `does not open with the H1 "${title}" on its own`,
     });
   checkBadges(input.name, badges?.lines ?? [], faults);
-  if (tag?.lines.join('\n') !== tagline)
+  if (tagline === undefined)
     faults.push({
       rule: 'tagline',
-      message: `tagline is "${tag?.lines.join(' ') ?? ''}", expected "${tagline}"`,
+      message:
+        'the paragraph under the badges is not a one-line bold tagline (**...**)',
     });
-  checkIngress(kind, ingress?.lines.join('\n'), faults);
-  checkBullets(kind, bullets?.lines, faults);
-  const graph = pkg === 'devtools' || pkg === 'cli';
-  const image = graph ? rest.shift() : undefined;
-  if (graph) {
-    const tagText = image?.lines.join(' ') ?? '';
-    if (
-      !/^<img\b/.test(tagText) ||
-      !tagText.includes(`/${GRAPH_IMAGE}"`) ||
-      !/\bwidth="720"/.test(tagText)
-    )
-      faults.push({
-        rule: 'images',
-        message: `does not show the graph image (<img src=".../${GRAPH_IMAGE}" alt="..." width="720">) under the bullet list`,
-      });
-  }
-  // One caption may follow the graph image to say how it was drawn.
-  if (graph && rest[0]?.lines.join(' ').startsWith('Drawn with ')) rest.shift();
-  if (rest.length > 0)
+  if (leadIn.length === 0)
     faults.push({
-      rule: 'hero',
-      message: `holds an extra paragraph at line ${(rest[0] as { line: number }).line + 1} before the first H2`,
+      rule: 'lead-in',
+      message: 'has no lead-in paragraph between the tagline and the first H2',
+    });
+}
+
+function checkRcNotice(
+  input: ReadmeInput,
+  parsed: Parsed,
+  kind: Kind,
+  faults: Fault[],
+): void {
+  const prerelease = isPrerelease(input.version);
+  const notices = parsed.lines
+    .map((line, i) => ({ line: i, m: RC_NOTICE.exec(line) }))
+    .filter((n) => !parsed.fenced[n.line] && n.m !== null);
+  if (!prerelease) {
+    if (notices.length > 0)
+      faults.push({
+        rule: 'rc-notice',
+        message: `carries the release candidate notice at line ${(notices[0] as { line: number }).line + 1}, and ${input.version} is not a prerelease`,
+      });
+    return;
+  }
+  for (const { line, m } of notices)
+    if (m?.[1] !== majorMinor(input.version))
+      faults.push({
+        rule: 'rc-notice',
+        message: `the notice at line ${line + 1} names ${m?.[1]}, and the package is ${majorMinor(input.version)}`,
+      });
+  if (kind !== 'core' && kind !== 'root') return;
+  const range = sectionRange(parsed, 'Installation');
+  if (
+    range !== null &&
+    !notices.some((n) => n.line >= range.from && n.line < range.to)
+  )
+    faults.push({
+      rule: 'rc-notice',
+      message: `Installation does not say "> ${majorMinor(input.version)} is currently in Release Candidate."`,
     });
 }
 
@@ -569,22 +527,8 @@ function checkInstall(
   parsed: Parsed,
   faults: Fault[],
 ): void {
-  const range = sectionRange(parsed, 'Install');
+  const range = sectionRange(parsed, 'Installation');
   if (range === null) return;
-  const prerelease = isPrerelease(input.version);
-  const opening = paragraphs(parsed.lines, range.from, range.to)[0]?.lines[0];
-  const notice = RC_NOTICE.exec(opening ?? '');
-  if (prerelease && notice?.[1] !== majorMinor(input.version))
-    faults.push({
-      rule: 'rc-notice',
-      message: `Install does not open with "> ${majorMinor(input.version)} is a release candidate on the npm \`next\` tag. ..."`,
-    });
-  if (!prerelease && parsed.lines.some((l) => RC_NOTICE.test(l)))
-    faults.push({
-      rule: 'rc-notice',
-      message: `carries the release candidate notice, and ${input.version} is not a prerelease`,
-    });
-
   const block = parsed.fences.find(
     (f) => f.start >= range.from && f.start < range.to && f.info === 'bash',
   );
@@ -593,49 +537,72 @@ function checkInstall(
   if (actual.length !== 1 || actual[0] !== expected)
     faults.push({
       rule: 'install',
-      message: `Install's bash block is [${actual.join(' | ')}], expected [${expected}]`,
+      message: `Installation's bash block is [${actual.join(' | ')}], expected [${expected}]`,
     });
 }
 
+/** The page source a docs site path names, or null when no page exists. */
+function docsPage(path: string, exists: (p: string) => boolean): string | null {
+  const slug = path.replace(/[#?].*$/, '').replace(/^\/+|\/+$/g, '');
+  const candidates =
+    slug === ''
+      ? [`${DOCS_CONTENT}/index.mdx`, `${DOCS_CONTENT}/index.md`]
+      : [
+          `${DOCS_CONTENT}/${slug}.mdx`,
+          `${DOCS_CONTENT}/${slug}.md`,
+          `${DOCS_CONTENT}/${slug}/index.mdx`,
+          `${DOCS_CONTENT}/${slug}/index.md`,
+        ];
+  return candidates.find((c) => exists(c)) ?? null;
+}
+
+/**
+ * The documentation H2 links into the docs site, and every docs site link in
+ * the README uses the release channel's base and names a page that exists.
+ */
 function checkDocumentation(
   input: ReadmeInput,
   parsed: Parsed,
+  kind: Kind,
   faults: Fault[],
 ): void {
-  const text = sectionText(parsed, 'Documentation');
-  if (text === null) return;
-  const pkg = packageOf(input.name);
-  const links = [...text.matchAll(/^- \[([^\]]+)\]\(([^)]+)\)/gm)].map(
-    (m) => `[${m[1]}](${m[2]})`,
-  );
-  const folder = `libs/${pkg}/docs`;
-  const expected = [
-    `[Documentation](${isPrerelease(input.version) ? 'https://nexus.js.org/next/' : 'https://nexus.js.org/'})`,
-    `[Examples](${repoUrlFor({ kind: 'tree', version: input.version, path: folder })})`,
-    `[NexusDI on GitHub](${GITHUB})`,
-  ];
-  const extra = pkg === 'core' ? 1 : 0;
-  if (
-    links.length !== expected.length + extra ||
-    expected.some((link, i) => links[i] !== link)
-  )
-    faults.push({
-      rule: 'documentation',
-      message: `Documentation links are\n${links.join('\n')}\nexpected\n${expected.join('\n')}${extra ? '\nand the 0.4 RC feedback Discussion' : ''}`,
-    });
-  if (!input.exists(folder))
-    faults.push({
-      rule: 'documentation',
-      message: `the Examples link names ${folder}, which does not exist`,
-    });
+  const base = isPrerelease(input.version) ? DOCS_SITE.next : DOCS_SITE.latest;
+  const docsHeading = HEADINGS[kind].at(-2) as string;
+  const text = sectionText(parsed, docsHeading);
+  if (text !== null) {
+    const links = [...text.matchAll(/^- \[[^\]]+\]\(([^)]+)\)/gm)].map(
+      (m) => m[1] as string,
+    );
+    if (!links.some((url) => url.startsWith(base)))
+      faults.push({
+        rule: 'documentation',
+        message: `${docsHeading} links no page under ${base}`,
+      });
+  }
+  const urls = input.source.matchAll(/https:\/\/nexus\.js\.org\/[^\s)"'<>]*/g);
+  for (const [url] of urls) {
+    if (!url.startsWith(base)) {
+      faults.push({
+        rule: 'documentation',
+        message: `${url} is not on ${base}, the docs of ${input.version}`,
+      });
+      continue;
+    }
+    if (docsPage(url.slice(base.length), input.exists) === null)
+      faults.push({
+        rule: 'documentation',
+        message: `${url} names no page under ${DOCS_CONTENT}`,
+      });
+  }
 }
 
 /**
  * Every repo URL but the logo and the LICENSE link names the release tag of
- * package.json's version, in repoUrlFor's form. A branch goes away
- * (release/X.Y at promotion) or lacks the file (main during an RC); a tag
- * holds the README's own files for good. The release's version step moves
- * the URLs to each new tag (tools/release/version-actions.mjs).
+ * package.json's version, in repoUrlFor's form, and a path the working tree
+ * holds. A branch goes away (release/X.Y at promotion) or lacks the file
+ * (main during an RC); a tag holds the README's own files for good. The
+ * release's version step moves the URLs to each new tag
+ * (tools/release/version-actions.mjs).
  */
 function checkRepoUrls(input: ReadmeInput, faults: Fault[]): void {
   const urls = input.source.matchAll(
@@ -648,11 +615,24 @@ function checkRepoUrls(input: ReadmeInput, faults: Fault[]): void {
       version: input.version,
       path: '',
     });
-    if (url.startsWith(prefix)) continue;
-    faults.push({
-      rule: 'repo-urls',
-      message: `${url} must use ${prefix}; the release's version step keeps it in step (tools/release/version-actions.mjs)`,
-    });
+    if (!url.startsWith(prefix)) {
+      faults.push({
+        rule: 'repo-urls',
+        message: `${url} must use ${prefix}; the release's version step keeps it in step (tools/release/version-actions.mjs)`,
+      });
+      continue;
+    }
+    // An image's file is the images rule's to check.
+    if (kind !== 'tree' && kind !== 'blob') continue;
+    const path = url
+      .slice(prefix.length)
+      .replace(/[#?].*$/, '')
+      .replace(/\/$/, '');
+    if (path !== '' && !input.exists(path))
+      faults.push({
+        rule: 'repo-urls',
+        message: `${url} names ${path}, which is not in the working tree`,
+      });
   }
 }
 
@@ -712,35 +692,12 @@ function checkLicense(parsed: Parsed, faults: Fault[]): void {
     });
 }
 
-/** Region markers, `// ->` claims, and no plain ts or mermaid block. */
-function doctestFaults(file: string, parsed: Parsed): Fault[] {
+/** A ts block that is no doctest, and a mermaid block npm prints as code. */
+function fenceFaults(file: string, parsed: Parsed): Fault[] {
   const faults: Fault[] = [];
-  const nonBlank = (from: number, step: 1 | -1): string => {
-    for (let i = from; i >= 0 && i < parsed.lines.length; i += step)
-      if ((parsed.lines[i] as string).trim() !== '')
-        return (parsed.lines[i] as string).trim();
-    return '';
-  };
   for (const fence of parsed.fences) {
     const at = `${file}:${fence.start + 1}`;
-    if (fence.info === DOCTEST) {
-      const open = /^<!-- #region (\S+) -->$/.exec(
-        nonBlank(fence.start - 1, -1),
-      );
-      const close = /^<!-- #endregion (\S+) -->$/.exec(
-        nonBlank(fence.end + 1, 1),
-      );
-      if (open === null || close === null || open[1] !== close[1])
-        faults.push({
-          rule: 'doctests',
-          message: `${at}: doctest is not inside matching <!-- #region name --> markers`,
-        });
-      if (!fence.body.some((line) => line.includes('// -> ')))
-        faults.push({
-          rule: 'doctests',
-          message: `${at}: doctest has no // -> claim`,
-        });
-    } else if (/^(ts|typescript)\b/.test(fence.info))
+    if (fence.info !== DOCTEST && /^(ts|typescript)\b/.test(fence.info))
       faults.push({
         rule: 'doctests',
         message: `${at}: a \`\`\`${fence.info} block is not a doctest; use \`\`\`${DOCTEST}`,
@@ -754,97 +711,137 @@ function doctestFaults(file: string, parsed: Parsed): Fault[] {
   return faults;
 }
 
+/**
+ * A `docs/*.md` region file: each doctest sits inside matching region
+ * markers and carries a `// ->` claim.
+ */
+function regionFileFaults(file: string, parsed: Parsed): Fault[] {
+  const faults = fenceFaults(file, parsed);
+  const nonBlank = (from: number, step: 1 | -1): string => {
+    for (let i = from; i >= 0 && i < parsed.lines.length; i += step)
+      if ((parsed.lines[i] as string).trim() !== '')
+        return (parsed.lines[i] as string).trim();
+    return '';
+  };
+  for (const fence of parsed.fences.filter((f) => f.info === DOCTEST)) {
+    const at = `${file}:${fence.start + 1}`;
+    const open = /^<!-- #region (\S+) -->$/.exec(nonBlank(fence.start - 1, -1));
+    const close = /^<!-- #endregion (\S+) -->$/.exec(
+      nonBlank(fence.end + 1, 1),
+    );
+    if (open === null || close === null || open[1] !== close[1])
+      faults.push({
+        rule: 'doctests',
+        message: `${at}: doctest is not inside matching <!-- #region name --> markers`,
+      });
+    if (!fence.body.some((line) => line.includes(CLAIM)))
+      faults.push({
+        rule: 'doctests',
+        message: `${at}: doctest has no // -> claim`,
+      });
+  }
+  return faults;
+}
+
+/**
+ * Every ts block runs as a doctest, and one of them claims a value with
+ * `// ->`. Nothing runs the root README, so each of its doctests is a copy of
+ * one in core's README, which runs.
+ */
 function checkDoctests(
   input: ReadmeInput,
   parsed: Parsed,
   faults: Fault[],
 ): void {
   const kind = kindOf(input.name);
-  faults.push(...doctestFaults('README.md', parsed));
+  faults.push(...fenceFaults('README.md', parsed));
   const doctests = parsed.fences.filter((f) => f.info === DOCTEST);
-  const range = LIMITS[kind].doctests;
+  if (kind === 'cli' && doctests.length > 0)
+    faults.push({
+      rule: 'doctests',
+      message: `holds ${doctests.length} doctest blocks, and nothing runs the cli README's doctests`,
+    });
   if (
-    range !== null &&
-    (doctests.length < range[0] || doctests.length > range[1])
+    LIMITS[kind].claim &&
+    !doctests.some((f) => f.body.some((line) => line.includes(CLAIM)))
   )
     faults.push({
       rule: 'doctests',
-      message: `has ${doctests.length} doctest blocks, expected ${range[0] === range[1] ? range[0] : `${range[0]} to ${range[1]}`}`,
+      message: 'has no doctest (```ts @import.meta.vitest) with a // -> claim',
     });
+  if (kind === 'root') {
+    const core = parse(input.core ?? '')
+      .fences.filter((f) => f.info === DOCTEST)
+      .map((f) => f.body.join('\n'));
+    for (const fence of doctests)
+      if (!core.includes(fence.body.join('\n')))
+        faults.push({
+          rule: 'doctests',
+          message: `README.md:${fence.start + 1}: the root README's doctest is not a copy of one in core's README, and nothing runs the root's`,
+        });
+  }
+  for (const doc of input.docs)
+    faults.push(...regionFileFaults(doc.file, parse(doc.source)));
+}
+
+/**
+ * Examples bind a `Token<IFoo>` with `provide(TOKEN, { useClass })` and list
+ * tokens in deps, never one class straight to another. core's first doctest
+ * is its Quick Start, which binds classes as their own tokens the way
+ * `/getting-started/` does (spec decision 31); the root copies core's.
+ */
+function checkInterfaceFirst(
+  input: ReadmeInput,
+  parsed: Parsed,
+  faults: Fault[],
+): void {
+  const kind = kindOf(input.name);
+  if (kind === 'root' || kind === 'cli') return;
+  const doctests = parsed.fences.filter((f) => f.info === DOCTEST);
+  const checked = kind === 'core' ? doctests.slice(1) : doctests;
+  for (const fence of checked) {
+    const body = fence.body.join('\n');
+    const found = [
+      ...interfaceFirstHits(body),
+      ...(/\bToken<\s*any\s*>/.test(body) ? ['Token<any>'] : []),
+    ];
+    if (found.length > 0)
+      faults.push({
+        rule: 'interface-first',
+        message: `README.md:${fence.start + 1}: binds a class where an interface token belongs (${found.join(', ')}). Give the service an interface and a Token<IFoo>, and bind the class with useClass.`,
+      });
+  }
   const first = doctests[0];
   if (
     kind === 'sub-package' &&
     first !== undefined &&
     !(
-      first.body.some((l) => l.includes('Token<')) &&
+      // A federation contract's token<IFoo>() is an interface token too.
+      first.body.some((l) => /\bToken<|\.token</.test(l)) &&
       first.body.some((l) => l.includes('provide('))
     )
   )
     faults.push({
-      rule: 'doctests',
+      rule: 'interface-first',
       message:
-        'the first doctest does not bind an interface token with Token< and provide(',
+        'the first doctest does not bind an interface token (Token< or a contract token<) with provide(',
     });
-  for (const doc of input.docs)
-    faults.push(...doctestFaults(doc.file, parse(doc.source)));
 }
 
-function regionNames(source: string): string[] {
-  return [...source.matchAll(/<!-- #region (\S+) -->/g)].map(
-    (m) => m[1] as string,
+/** Every `@nexusdi/*` package the README names is one this repo publishes. */
+function checkPackages(input: ReadmeInput, faults: Fault[]): void {
+  const known = new Set<string>(PACKAGES);
+  const named = new Set(
+    [...input.source.matchAll(/@nexusdi\/([a-z][a-z0-9-]*)/g)].map(
+      (m) => m[1] as string,
+    ),
   );
-}
-
-function checkRegions(input: ReadmeInput, faults: Fault[]): void {
-  if (input.name === 'root') return;
-  const found = new Set([
-    ...regionNames(input.source),
-    ...input.docs.flatMap((doc) => regionNames(doc.source)),
-  ]);
-  const missing = SPECS[input.name].regions.filter((r) => !found.has(r));
-  if (missing.length > 0)
-    faults.push({
-      rule: 'regions',
-      message: `README.md and docs/*.md drop the 0.4.0-rc.0 regions ${missing.join(', ')}`,
-    });
-}
-
-function checkPackages(parsed: Parsed, faults: Fault[]): void {
-  const text = sectionText(parsed, 'Packages');
-  if (text === null) return;
-  for (const pkg of PACKAGES) {
-    if (pkg === 'core') continue;
-    if (!text.includes(`@nexusdi/${pkg}`) || !text.includes(SPECS[pkg].tagline))
+  for (const name of named)
+    if (!known.has(name))
       faults.push({
         rule: 'packages',
-        message: `Packages does not list @nexusdi/${pkg} with its tagline`,
+        message: `names @nexusdi/${name}, which this repository does not publish`,
       });
-  }
-}
-
-function checkRootCopy(input: ReadmeInput, faults: Fault[]): void {
-  const core = input.core ?? '';
-  const coreEnd = core.indexOf('\n## Checked at startup\n');
-  const rootEnd = input.source.indexOf('\n## Packages\n');
-  if (coreEnd === -1 || rootEnd === -1) {
-    faults.push({
-      rule: 'root-copy',
-      message:
-        'cannot compare the shared part: core needs "## Checked at startup" after Install, and the root needs "## Packages" after it',
-    });
-    return;
-  }
-  const shared = core.slice(0, coreEnd);
-  const copy = input.source.slice(0, rootEnd);
-  if (shared !== copy) {
-    const a = shared.split('\n');
-    const b = copy.split('\n');
-    const line = a.findIndex((l, i) => b[i] !== l);
-    faults.push({
-      rule: 'root-copy',
-      message: `differs from core's README from the hero through Install, first at line ${(line === -1 ? a.length : line) + 1}`,
-    });
-  }
 }
 
 /** Every fault in one README against the npm README standard. */
@@ -852,18 +849,18 @@ export function readmeFaults(input: ReadmeInput): Fault[] {
   const parsed = parse(input.source);
   const kind = kindOf(input.name);
   const faults: Fault[] = [];
-  checkHeadings(parsed, kind, faults);
+  checkHeadings(input, parsed, kind, faults);
   checkLength(parsed, kind, faults);
   checkTop(input, parsed, faults);
+  checkRcNotice(input, parsed, kind, faults);
   checkInstall(input, parsed, faults);
-  if (kind !== 'root') checkDocumentation(input, parsed, faults);
+  checkDocumentation(input, parsed, kind, faults);
   checkRepoUrls(input, faults);
   checkImages(input, parsed, faults);
   checkLicense(parsed, faults);
   checkDoctests(input, parsed, faults);
-  checkRegions(input, faults);
-  if (kind === 'core' || kind === 'root') checkPackages(parsed, faults);
-  if (kind === 'root') checkRootCopy(input, faults);
+  checkInterfaceFirst(input, parsed, faults);
+  checkPackages(input, faults);
   for (const hit of bannedRaw(input.source))
     faults.push({ rule: 'banned', message: hit });
   for (const hit of bannedProse(input.source))

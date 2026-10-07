@@ -5,7 +5,7 @@
     "targets": [
       {
         "page": "providers",
-        "heading": "A class whose constructor has defaults or rest parameters",
+        "heading": "Handling Constructor Defaults",
         "level": 2
       }
     ]
@@ -16,7 +16,7 @@
     "targets": [
       {
         "page": "configurable-modules",
-        "heading": "Call `forRoot()` once and share the module",
+        "heading": "Sharing Configured Modules",
         "level": 2
       }
     ]
@@ -27,7 +27,7 @@
     "targets": [
       {
         "page": "lifecycle",
-        "heading": "Dispose a NexusDI transient inside a scope",
+        "heading": "Transient Disposal in Scopes",
         "level": 2
       }
     ]
@@ -38,7 +38,7 @@
     "targets": [
       {
         "page": "getting-started",
-        "heading": "TypeScript settings for NexusDI",
+        "heading": "TypeScript Configuration",
         "level": 2
       }
     ]
@@ -49,8 +49,8 @@
     "targets": [
       {
         "page": "scopes",
-        "heading": "A NexusDI scoped factory runs in every `createScope()`",
-        "level": 2
+        "heading": "Eager vs Lazy Scoped Providers",
+        "level": 3
       }
     ]
   },
@@ -60,7 +60,7 @@
     "targets": [
       {
         "page": "lifecycle",
-        "heading": "NexusDI owns what a `useFactory` returns",
+        "heading": "Ownership and Disposal",
         "level": 2
       }
     ]
@@ -83,7 +83,7 @@
     "targets": [
       {
         "page": "introspection",
-        "heading": "Display names after minification",
+        "heading": "Handling Minification",
         "level": 2
       },
       { "page": "bundlers", "heading": null, "level": 2 }
@@ -95,7 +95,7 @@
     "targets": [
       {
         "page": "lifecycle",
-        "heading": "Dispose a NexusDI transient inside a scope",
+        "heading": "Transient Disposal in Scopes",
         "level": 2
       }
     ]
