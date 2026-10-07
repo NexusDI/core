@@ -14,6 +14,10 @@ In a micro-frontend architecture, a "Shell" and its "Remotes" are often bundled 
 Instead of creating a standard `Token`, you define a `Contract`. A contract has a unique key and a semantic version.
 
 ```ts
+interface IAuth {
+  user(): string;
+}
+
 const authContract = defineContract({ key: 'auth', version: '1.0.0' });
 const AUTH = authContract.token<IAuth>('Auth');
 ```
@@ -39,8 +43,17 @@ npm install @nexusdi/federation@next @nexusdi/core@next
 import { Nexus, defineModule, provide } from '@nexusdi/core';
 import { defineContract, federation } from '@nexusdi/federation';
 
-const contract = defineContract({ key: 'crew', version: '1.0.0' });
-const AUTH = contract.token<IAuth>('Auth');
+interface IAuth {
+  user(): string;
+}
+
+class CrewAuth implements IAuth {
+  user = () => 'ada';
+}
+
+const shellContract = defineContract({ key: 'crew', version: '1.2.0' });
+const remoteContract = defineContract({ key: 'crew', version: '1.1.0' });
+const AUTH = shellContract.token<IAuth>('Auth');
 
 const Shell = defineModule({
   name: 'Shell',
@@ -48,13 +61,14 @@ const Shell = defineModule({
 });
 
 await using shell = await Nexus.create(Shell, { plugins: [federation()] });
-// Even if the token comes from a different bundle, it resolves to the same instance
-shell.get(AUTH).user();
+shell.get(AUTH).user(); // -> 'ada'
+// A copy of the token from a remote bundle resolves to the same provider
+shell.get(remoteContract.token<IAuth>('Auth')).user(); // -> 'ada'
 ```
 
 ## Documentation
 
-- [Federation Guide](https://nexus.js.org/next/federation/)
+- [Plugins Guide](https://nexus.js.org/next/plugins/)
 - [NexusDI on GitHub](https://github.com/NexusDI/core)
 
 ## License
