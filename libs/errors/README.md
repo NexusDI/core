@@ -3,20 +3,21 @@
 [![npm](https://img.shields.io/npm/v/@nexusdi/errors/next)](https://www.npmjs.com/package/@nexusdi/errors)
 [![license](https://img.shields.io/npm/l/@nexusdi/errors)](https://github.com/NexusDI/core/blob/main/LICENSE)
 
-**Human-readable diagnostics for NexusDI wiring errors.**
+**Debug your dependency graph instantly with actionable, human-readable diagnostics.**
 
-By default, NexusDI reports each wiring error with a short code. The code suits machines and reads as cryptic to developers.
+When a NexusDI container fails to start, you usually see a short error code. While efficient for machines, these codes are cryptic to developers and leave you guessing why a dependency is missing or where a binding failed.
 
-`@nexusdi/errors` is a plugin that turns these codes into detailed, human-readable messages that explain exactly what went wrong and how to fix it.
+`@nexusdi/errors` transforms these codes into detailed explanations. It analyzes your module graph to tell you exactly what went wrong and provides a specific "Fix" line to resolve the issue.
 
-## Why use this plugin?
+## Key Features
 
-When a container fails to start, the `errors()` plugin provides:
+The plugin provides diagnostic intelligence for complex wiring scenarios.
 
-- **Detailed Explanations:** You get a sentence, not only a code, explaining the missing dependency.
-- **Actionable Fixes:** Every error includes a `Fix:` line that tells you exactly which export or import to add.
-- **Near-Miss Analysis:** If a token is provided in another module but not exported, the plugin tells you exactly where it is found.
-- **Logged Errors:** `explain(error)` gives an error caught without the plugin the same text.
+- **Detailed Explanations:** Replaces short codes with full sentences describing the failure.
+- **Actionable Fixes:** Includes a `Fix:` line directing you to the specific export or import needed.
+- **Near-Miss Analysis:** Identifies tokens provided in other modules that were not exported.
+- **Manual Diagnosis:** The `explain(error)` function converts caught errors into readable text.
+- **Technical Spec:** ESM-only; requires `@nexusdi/core` (matching version).
 
 ## Installation
 
@@ -27,6 +28,8 @@ npm install @nexusdi/errors@next @nexusdi/core@next
 ```
 
 ## Quick Example
+
+The following example compares the standard core error message with the enriched output provided by the `errors()` plugin.
 
 ```ts @import.meta.vitest
 import { Nexus, Token, defineModule, provide } from '@nexusdi/core';
@@ -58,8 +61,6 @@ const result = await Nexus.create(App, { plugins }).then(() => '', fail);
 before.split(' ').slice(1, 4).join(' '); // -> 'token=NavCharts requester=Helm module=Bridge.'
 result.split('\n').slice(1); // -> ['  NavCharts is provided in Tactical, which does not export it.', "  Fix: add NavCharts to Tactical's exports and import Tactical into Bridge."]
 ```
-
-The first claim is core's one-line message, and the second is the text `errors()` adds under it.
 
 ## Documentation
 

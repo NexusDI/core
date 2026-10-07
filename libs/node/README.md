@@ -3,18 +3,20 @@
 [![npm](https://img.shields.io/npm/v/@nexusdi/node/next)](https://www.npmjs.com/package/@nexusdi/node)
 [![license](https://img.shields.io/npm/l/@nexusdi/node)](https://github.com/NexusDI/core/blob/main/LICENSE)
 
-**Bind NexusDI scopes to the async context of Node.js requests.**
+**Eliminate manual scope passing by binding NexusDI scopes to the Node.js async context.**
 
-In a server environment, you often need "request-scoped" dependencies: objects that are created when a request arrives and disposed when its handler settles.
+Server environments require request-scoped dependencies: objects created when a request arrives and disposed when it settles. Manually passing these scope objects through every function in a call chain creates brittle, cluttered code.
 
-`@nexusdi/node` provides the infrastructure to handle this without having to manually pass a scope object through every function in your call chain. It leverages Node's `AsyncLocalStorage` to make the current scope available anywhere in the asynchronous execution path.
+`@nexusdi/node` solves this by leveraging `AsyncLocalStorage`. It tracks the active scope across asynchronous execution paths, allowing your application logic to retrieve the current scope without explicit parameters.
 
-## Core Features
+## Key Features
 
-- **Automatic Context Tracking:** Use `scopes.run()` to bind a scope to the current async context.
-- **Transparent Access:** Retrieve the active scope anywhere using `scopes.current()`.
-- **One Per Process:** One `nodeScopes()` serves every container in the process. `current()` returns `undefined` outside a run.
-- **Lean Core:** This package contains all Node-specific logic, keeping `@nexusdi/core` platform-agnostic.
+The library provides specialized infrastructure for Node.js environments:
+
+- **Automatic Context Tracking:** `scopes.run()` binds a scope to the current async context.
+- **Transparent Access:** `scopes.current()` retrieves the active scope anywhere in the execution path.
+- **Single Process Instance:** One `nodeScopes()` instance serves every container in the process.
+- **Platform Isolation:** This package contains all Node-specific logic to keep `@nexusdi/core` platform-agnostic.
 
 ## Installation
 
@@ -25,6 +27,8 @@ npm install @nexusdi/node@next @nexusdi/core@next
 ```
 
 ## Quick Example
+
+The following example demonstrates how a deep function can access a scoped dependency without receiving the scope as an argument.
 
 ```ts @import.meta.vitest
 import { Nexus, Token, provide } from '@nexusdi/core';

@@ -1,7 +1,7 @@
 {
   "name": "@nexusdi/errors",
   "version": "0.4.0-rc.0",
-  "description": "Human-readable diagnostics for NexusDI wiring errors.",
+  "description": "Debug your dependency graph instantly with actionable, human-readable diagnostics.",
   "keywords": [
     "nexusdi",
     "dependency injection",

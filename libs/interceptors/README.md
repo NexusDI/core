@@ -3,20 +3,21 @@
 [![npm](https://img.shields.io/npm/v/@nexusdi/interceptors/next)](https://www.npmjs.com/package/@nexusdi/interceptors)
 [![license](https://img.shields.io/npm/l/@nexusdi/interceptors)](https://github.com/NexusDI/core/blob/main/LICENSE)
 
-**Run cross-cutting logic around your service methods.**
+**Decouple cross-cutting concerns from your business logic using transparent method wrappers.**
 
-`@nexusdi/interceptors` is a plugin for [NexusDI](https://www.npmjs.com/package/@nexusdi/core) that allows you to wrap service methods with interceptors. This is the ideal place for logic that doesn't belong in the business service itself, such as:
+Mixing audit logging, performance tracking, or input validation directly into your services creates bloated classes and violates the single-responsibility principle. When business logic is entangled with infrastructure concerns, services become harder to test and maintain.
 
-- **Audit Logging:** Record every call to a sensitive method.
-- **Performance Metrics:** Measure the execution time of specific services.
-- **Input Validation:** Validate request arguments before they reach the service.
-- **Result Caching:** Skip expensive method calls by returning a saved value.
+`@nexusdi/interceptors` solves this by providing a plugin for [NexusDI](https://www.npmjs.com/package/@nexusdi/core) that wraps service methods in a proxy layer. This allows you to inject logic (such as result caching or sensitive method auditing) without modifying the service implementation.
 
-## Core Concepts
+## Key Features
 
-- **The Interceptor:** A provider with an `intercept(call, next)` method. It can modify arguments, observe results using `tap()`, or short-circuit the call. `tap()` observes sync and async results alike.
-- **Flexible Attachment:** Attach interceptors globally, to a specific class, or to a single method. You can also attach them per token. Interceptors get their own dependencies from the container.
-- **Proxy-Based:** Interceptors work via a transparent proxy. Calls through `get()` are intercepted; internal calls via `this` are not.
+**Interceptors are defined as providers.** They must implement an `intercept(call, next)` method to modify arguments, short-circuit calls, or observe results via `tap()`.
+
+**Attachment is highly granular.** You can apply interceptors globally, to specific tokens, to an entire class, or to a single method.
+
+**Execution relies on transparent proxies.** All calls resolved through `get()` are intercepted, while internal calls via `this` remain direct.
+
+**Technical Specifications.** This package is ESM-only and requires matching `@next` versions for `@nexusdi/core` to avoid peer dependency conflicts.
 
 ## Installation
 

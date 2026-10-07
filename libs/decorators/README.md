@@ -3,29 +3,20 @@
 [![npm](https://img.shields.io/npm/v/@nexusdi/decorators/next)](https://www.npmjs.com/package/@nexusdi/decorators)
 [![license](https://img.shields.io/npm/l/@nexusdi/decorators)](https://github.com/NexusDI/core/blob/main/LICENSE)
 
-**Declarative dependency injection for NexusDI.**
+**Accelerate your development with a declarative, visual syntax for dependency injection.**
 
-`@nexusdi/decorators` provides a high-level, declarative syntax for defining dependencies and modules, mirroring the style of NestJS while remaining compatible with standard TypeScript decorators.
+Manual dependency lists in `static deps` can become tedious and visually disconnected from the constructor they support. `@nexusdi/decorators` solves this by providing a high-level, declarative syntax that mirrors the style of NestJS while remaining compatible with standard TypeScript decorators.
 
-## Why use decorators?
+## Key Features
 
-If you are migrating from NestJS or simply prefer a more visual way to declare dependencies, decorators move the dependency list from a `static deps` array into `@Injectable({ deps })`, and turn a class into a module in place of a `defineModule` call.
+These decorators utilize standard TC39 specifications to avoid restrictive compiler settings.
 
-- **`@Injectable({ deps })`**: Declares a class's constructor dependencies.
-- **`@Inject(TOKEN)`**: Injects a dependency into a class `accessor` field.
-- **`@Module({ ... })`**: Turns a class into a NexusDI module.
-
-## Key Advantage: No Compiler Flags
-
-Unlike traditional metadata-based DI, `@nexusdi/decorators` are standard TC39 decorators. They do **not** require `experimentalDecorators` or `emitDecoratorMetadata` in your `tsconfig.json`.
-
-This means your code compiles with:
-
-- **tsc / TypeScript 7 / esbuild / SWC / Babel**
-- **Bun / Deno**
-- **Vite with its Babel plugin**
-
-Plain Vite and Node's type stripping cannot run these decorators.
+- **Standard Decorators**: No `experimentalDecorators` or `emitDecoratorMetadata` required in `tsconfig.json`.
+- **Broad Compatibility**: Works with tsc, TypeScript 7, esbuild, SWC, Babel, Bun, Deno, and Vite with its Babel plugin. Plain Vite and Node's type stripping cannot run these decorators.
+- **Declarative Toolset**:
+  - **`@Injectable({ deps })`**: Defines constructor dependencies.
+  - **`@Inject(TOKEN)`**: Enables dependency injection via accessor fields.
+  - **`@Module({ ... })`**: Converts a class into a NexusDI module.
 
 ## Installation
 
