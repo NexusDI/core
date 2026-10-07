@@ -14,11 +14,13 @@
 
 ## Core Concepts
 
-- **The Interceptor:** A provider with an `intercept(call, next)` method. It can modify arguments, observe results using `tap()`, or short-circuit the call.
-- **Flexible Attachment:** Attach interceptors globally, to a specific class, or to a single method.
+- **The Interceptor:** A provider with an `intercept(call, next)` method. It can modify arguments, observe sync and async results alike using `tap()`, or short-circuit the call.
+- **Flexible Attachment:** Attach interceptors globally, per token, to a specific class, or to a single method. Interceptors get their own dependencies from the container.
 - **Proxy-Based:** Interceptors work via a transparent proxy. Calls through `get()` are intercepted; internal calls via `this` are not.
 
 ## Installation
+
+> 0.4 is a release candidate on the npm `next` tag. Install every @nexusdi package from `next` so their versions match. Without `@next`, npm installs core 0.3 and stops with a peer conflict.
 
 ```bash
 npm install @nexusdi/interceptors@next @nexusdi/core@next
@@ -62,6 +64,8 @@ log; // -> ['call plot', 'got course to Vega']
 ## Documentation
 
 - [Detailed Interceptors Guide](https://nexus.js.org/next/interceptors/)
+- [Documentation](https://nexus.js.org/next/)
+- [Examples](https://github.com/NexusDI/core/tree/@nexusdi/core@0.4.0-rc.0/libs/interceptors/docs)
 - [NexusDI on GitHub](https://github.com/NexusDI/core)
 
 ## License

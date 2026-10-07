@@ -15,6 +15,8 @@ The `@nexusdi/cli` tool allows you to export your application's dependency tree 
 
 ## Installation
 
+> 0.4 is a release candidate on the npm `next` tag. Install every @nexusdi package from `next` so their versions match. Without `@next`, npm installs core 0.3 and stops with a peer conflict.
+
 ```bash
 npm install -D @nexusdi/cli@next @nexusdi/devtools@next @nexusdi/core@next
 ```
@@ -30,7 +32,7 @@ npx nexusdi graph src/app.module.ts#AppModule --view modules
 npx nexusdi graph src/app.module.ts#AppModule -f json -o graph.json
 ```
 
-Every command exits 1 when the graph is invalid. Add the last one to your CI pipeline to prevent broken wiring from being merged.
+A `.ts` entry on Node before 22.18 needs `tsx` installed. Every command exits 1 when the graph is invalid. Add the last one to your CI pipeline to prevent broken wiring from being merged.
 
 ## Options
 
@@ -45,6 +47,8 @@ Every command exits 1 when the graph is invalid. Add the last one to your CI pip
 ## Documentation
 
 - [Graph CLI Guide](https://nexus.js.org/next/graph-cli/)
+- [Documentation](https://nexus.js.org/next/)
+- [Examples](https://github.com/NexusDI/core/tree/@nexusdi/core@0.4.0-rc.0/libs/cli/docs)
 - [NexusDI on GitHub](https://github.com/NexusDI/core)
 
 ## License

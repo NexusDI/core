@@ -16,7 +16,7 @@ Dependency injection is a cornerstone of scalable architecture, but it often int
 
 ## Why NexusDI?
 
-- **Static Validation:** Catch wiring mistakes at boot, not at 3 AM in production.
+- **Static Validation:** Catch wiring mistakes at boot, before they reach production.
 - **Async-First:** Async factories are resolved at startup, so your `get()` calls remain synchronous and predictable.
 - **No Compiler Flags:** Works out-of-the-box with `tsc`, esbuild, SWC, Vite, Bun, and Deno. No `emitDecoratorMetadata` required.
 - **Bounded Contexts:** Use modules with private providers and explicit exports to enforce architectural boundaries.
@@ -64,13 +64,17 @@ NexusDI is a modular system. Start with `@nexusdi/core` and add capabilities as 
 
 ## Installation
 
-> 0.4 is currently in Release Candidate. Install using the `next` tag to get the latest features.
+> 0.4 is currently in Release Candidate. Install every @nexusdi package from the `next` tag so their versions match. `npm install @nexusdi/core` without `@next` installs the 0.3 line.
 
 ```bash
 npm install @nexusdi/core@next
 ```
 
 The package is ESM and requires Node 22.12+ and TypeScript 5.4+.
+
+## Examples and Contributing
+
+Every package keeps its examples in `libs/<package>/docs`, and [examples/react-ssr](examples/react-ssr/) shows a React Router integration. Read the [Contributing Guide](CONTRIBUTING.md) before you open a pull request.
 
 ## Documentation & Community
 
