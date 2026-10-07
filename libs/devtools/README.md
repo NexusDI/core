@@ -5,7 +5,7 @@
 
 **Introspect and trace your NexusDI container.**
 
-`@nexusdi/devtools` is a development-only plugin that provides deep visibility into the internal state of your container. It allows you to see exactly how your dependencies are wired and how they are instantiated.
+`@nexusdi/devtools` is a plugin that provides deep visibility into the internal state of your container. It allows you to see exactly how your dependencies are wired and how they are instantiated.
 
 ## Key Capabilities
 
@@ -29,7 +29,7 @@ Includes the `@nexusdi/errors` engine to provide human-readable fix suggestions 
 ## Installation
 
 ```bash
-npm install -D @nexusdi/devtools@next @nexusdi/core@next
+npm install @nexusdi/devtools@next @nexusdi/core@next
 ```
 
 ## Quick Example
