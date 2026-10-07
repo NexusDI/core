@@ -18,6 +18,8 @@
   "entry": [
     "apps/docs/content/**/*.{mdx,ts}",
     "tools/release/{plan,sync,reconcile,notes}.mjs",
+    // Run by hand from the gemma-docs skill.
+    "tools/gemma-refactor.mjs",
   ],
 
   // `react-router typegen` writes +types/*.d.ts files that examples/react-ssr
