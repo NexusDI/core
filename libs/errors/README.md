@@ -12,6 +12,7 @@ By default, NexusDI provides concise error codes (e.g., `[NEXUS_MISSING_PROVIDER
 ## Why use this plugin?
 
 When a container fails to start, the `errors()` plugin provides:
+
 - **Detailed Explanations:** Instead of just a code, you get a sentence explaining the missing dependency.
 - **Actionable Fixes:** Every error includes a `Fix:` line that tells you exactly which export or import to add.
 - **Near-Miss Analysis:** If a token is provided in another module but not exported, the plugin tells you exactly where it is found.
@@ -42,15 +43,19 @@ const Bridge = defineModule({ name: 'Bridge', providers: [Helm] });
 const App = defineModule({ name: 'App', imports: [Bridge, Tactical] });
 
 const plugins = [errors()];
-const result = await Nexus.create(App, { plugins }).catch(e => e.errors[0].message);
-console.log(result); 
+const result = await Nexus.create(App, { plugins }).catch(
+  (e) => e.errors[0].message,
+);
+console.log(result);
 // -> "NavCharts is provided in Tactical, which does not export it. \nFix: add NavCharts to Tactical's exports..."
 ```
 
 ## Documentation
+
 - [Error Codes Reference](https://nexus.js.org/next/api-errors/)
 - [Error Text Packs Guide](https://nexus.js.org/next/error-text/)
 - [NexusDI on GitHub](https://github.com/NexusDI/core)
 
 ## License
+
 MIT

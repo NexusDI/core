@@ -44,8 +44,10 @@ console.log(ship.get(NAV_CHARTS).plot('anywhere')); // -> 'loopback'
 ```
 
 ## Documentation
+
 - [Testing Guide](https://nexus.js.org/next/testing/)
 - [NexusDI on GitHub](https://github.com/NexusDI/core)
 
 ## License
+
 MIT
