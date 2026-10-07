@@ -13,10 +13,11 @@ import {
   bannedRaw,
   proseOf,
   readmeFaults,
+  taglineOf,
   type ReadmeInput,
   type Rule,
 } from './npm-readmes.js';
-import { PACKAGES, SPECS, type Package } from './npm-readmes-data.js';
+import { PACKAGES, type Package } from './npm-readmes-data.js';
 
 const FIXTURES = join(import.meta.dirname, '__fixtures__', 'npm-readmes');
 const PASS = join(FIXTURES, 'pass');
@@ -120,8 +121,7 @@ describe('readmeFaults', () => {
       'hero',
       'badges',
       'tagline',
-      'ingress',
-      'bullets',
+      'lead-in',
       'rc-notice',
       'install',
       'documentation',
@@ -129,8 +129,7 @@ describe('readmeFaults', () => {
       'images',
       'license',
       'doctests',
-      'regions',
-      'root-copy',
+      'interface-first',
       'packages',
       'banned',
       'banned-prose',
@@ -144,16 +143,21 @@ describe('readmeFaults', () => {
     expect(rulesOf(fixture('errors', '0.4.0'))).toEqual([
       'documentation',
       'install',
+      'repo-urls',
+    ]);
+    expect(rulesOf(fixture('core', '0.4.0'))).toEqual([
+      'documentation',
+      'install',
       'rc-notice',
       'repo-urls',
     ]);
   });
 
-  it('asks the root README for the shared part of core', () => {
+  it("asks the root README's doctests to match core's, which runs them", () => {
     const root = fixture('root');
     expect(
-      rulesOf({ ...root, core: root.core?.replace('No runtime', 'Zero') }),
-    ).toEqual(['root-copy']);
+      rulesOf({ ...root, core: root.core?.replace("'Ada'", "'Bo'") }),
+    ).toEqual(['doctests']);
   });
 });
 
@@ -194,10 +198,7 @@ describe('repo URLs', () => {
       'https://github.com/nexusdi/core/tree/@nexusdi/core@0.4.0-rc.1/',
     );
     expect(source).not.toBe(base.source);
-    expect(rulesOf({ ...base, source })).toEqual([
-      'documentation',
-      'repo-urls',
-    ]);
+    expect(rulesOf({ ...base, source })).toEqual(['repo-urls']);
   });
 
   it('rejects an Examples link on the release branch', () => {
@@ -207,10 +208,7 @@ describe('repo URLs', () => {
       'tree/release/0.4/',
     );
     expect(source).not.toBe(base.source);
-    expect(rulesOf({ ...base, source })).toEqual([
-      'documentation',
-      'repo-urls',
-    ]);
+    expect(rulesOf({ ...base, source })).toEqual(['repo-urls']);
   });
 
   it.each(['devtools', 'cli', 'errors', 'core'] as const)(
@@ -304,7 +302,13 @@ describe('published READMEs', () => {
 
   // npm search lists the description, so it repeats the README tagline.
   it.each(PACKAGES)('describes %s in package.json with its tagline', (pkg) => {
-    expect(manifest(pkg).description).toBe(SPECS[pkg].tagline);
+    const readme = readFileSync(
+      join(workspaceRoot, 'libs', pkg, 'README.md'),
+      'utf8',
+    );
+    const tagline = taglineOf(readme, pkg);
+    expect(tagline).toBeDefined();
+    expect(manifest(pkg).description).toBe(tagline);
   });
 
   it.each(PACKAGES)(
