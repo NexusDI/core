@@ -8,33 +8,64 @@ description: Use `ship.load()` to dynamically add new modules to a running conta
 
 In many applications, you don't want to load every single provider at boot time. For example, a specific set of tools might only be needed when a user visits a certain route.
 
-**Dynamic Loading** allows you to add new modules to a running NexusDI container on demand.
+**Dynamic Loading** allows you to add new modules to a running NexusDI container on demand. `load()` is named for sections of an application that load lazily, such as a route whose code is split into its own bundle:
+
+```ts no-run
+await ship.load((await import('./survey.js')).SurveyModule);
+```
 
 ## Using `ship.load()`
 
-The `load()` method allows you to inject a new module into the existing container. This is particularly useful for code-splitting in frontend or Node.js applications.
+The `load()` method allows you to inject a new module into the existing container. This is particularly useful for code-splitting in frontend or Node.js applications. `ship.load(Survey)` compiles `Survey` as a new import of the root module.
 
 ```ts file=examples/meridian/src/pages/load.md region=load-module
 
 ```
 
-When you call `load()`, NexusDI performs three critical steps:
+When you call `load()`, NexusDI performs four steps:
 
 1. **Validation:** It validates the new module against the current live graph to ensure no wiring mistakes are introduced.
-2. **Initialization:** It builds the new module's singletons and runs their `onInit` methods.
-3. **Publication:** It updates the container's internal registry so the new providers are now available via `get()`.
+2. **Construction:** It builds the new module's singletons and awaits their async factories.
+3. **Initialization:** It runs their `onInit` methods.
+4. **Publication:** It updates the container's internal registry so the new providers are now available via `get()`.
+
+Before the call the container does not see `DRONE`. After it, `NAV_CHARTS` has finished its async download and `ScoutDrone.onInit()` has run, so `get(DRONE)` is synchronous like every other `get()`.
+
+**Try it:** Save the region as `load.ts` and run `npx tsx load.ts`. Its last line is `course to Kepler-442b`. Move the `const course = ship.get(DRONE).survey();` line above `await ship.load(Survey);` and run it again: `get()` throws [NEXUS_MISSING_PROVIDER](/errors/NEXUS_MISSING_PROVIDER/), because the container does not see `DRONE` before the load. Move the line back and the last line is `course to Kepler-442b` again.
 
 ## Validation and Safety
 
-Dynamic loading does not bypass NexusDI's safety guarantees. A loaded module sees its own providers, the exports of the modules it imports, and the exports of global modules. A provider in the root module is not visible to it unless one of those exports it. If the module depends on a token it cannot see, `load()` rejects with a `NEXUS_BLUEPRINT_INVALID` error.
+Dynamic loading does not bypass NexusDI's safety guarantees. `load()` runs the same compiler `Nexus.create` runs, against the graph the container already holds. A loaded module sees its own providers, the exports of the modules it imports, and the exports of global modules. A provider in the root module is not visible to it unless one of those exports it. If the module depends on a token it cannot see, `load()` rejects with a [NEXUS_BLUEPRINT_INVALID](/errors/NEXUS_BLUEPRINT_INVALID/) error, and the container stays as it was.
 
-This ensures that your application never enters a partially-broken state where some dependencies are missing.
+This ensures that your application never enters a partially-broken state where some dependencies are missing. Here `ScoutDrone` needs `NAV_CHARTS`, which nothing provides, so the `errors` list holds one `NEXUS_MISSING_PROVIDER`, and `ship.has(DRONE)` is still `false`:
+
+```ts file=examples/meridian/src/pages/load.md region=load-invalid
+
+```
+
+**Try it:** Add `provide(NAV_CHARTS, { useFactory: () => ({ plot: (to: string) => to }) })` to the providers of `Survey` and run the region again. The load resolves, the `errors` list is empty, and the region prints `[]` and `true`. Delete the line and the region prints `['NEXUS_MISSING_PROVIDER']` and `false` again.
+
+## Loading Once, in Call Order
+
+`load()` does nothing for a module the root already imports, and a second `load()` of the same module does nothing either. Below, three calls load `Survey` and `ScoutDrone` is built once.
+
+```ts file=examples/meridian/src/pages/load.md region=load-twice
+
+```
+
+**Try it:** Add `imports: [Survey]` to the root module, `defineModule({ name: 'Meridian', imports: [Survey] })`, and run the region again. It still prints `1`: the root already imports `Survey`, so every `load(Survey)` returns at once.
+
+Concurrent `load()` calls run one at a time, in call order. Here `Science` waits for `Survey`, although `Survey`'s factory is the slower one:
+
+```ts file=examples/meridian/src/pages/load.md region=load-in-order
+
+```
 
 ## Updating Scopes with `scope.extend()`
 
-Scopes are snapshots of the graph at the moment they were created. If you load a new module into the root container, existing scopes won't see those new providers by default.
+Scopes are snapshots of the graph at the moment they were created. If you load a new module into the root container, existing scopes won't see those new providers: a token that a later `load()` added throws [NEXUS_LOADED_AFTER_SCOPE](/errors/NEXUS_LOADED_AFTER_SCOPE/) in that scope.
 
-To bring a scope up to date with the latest graph, use `scope.extend()`.
+To bring a scope up to date with the latest graph, use `await scope.extend()`. It builds the scoped factories the loaded modules add, and the instances the scope already built stay as they are.
 
 ```ts file=examples/meridian/src/pages/load.md region=extend-scope
 
@@ -42,9 +73,30 @@ To bring a scope up to date with the latest graph, use `scope.extend()`.
 
 This allows a long-lived scope (like a user session) to gain access to features that were loaded dynamically after the session started.
 
+**Try it:** Delete the `await shuttle.extend();` line and run the region. The region prints `NEXUS_LOADED_AFTER_SCOPE` for the first `get()`, and the final `get()` throws the same code and stops the program. Put the line back and the region prints `NEXUS_LOADED_AFTER_SCOPE` and then `Kepler-442b`.
+
 ## Design Constraints
 
 To maintain the integrity of the graph, NexusDI imposes a few restrictions on dynamic loading:
 
-- **No Global Modules:** You cannot `load()` a module marked as `global: true`. Global modules must be declared in the root module at startup because they affect the visibility of every other module.
+- **No Global Modules:** You cannot `load()` a module marked as `global: true`. A global module makes its exports visible to every module, so a global module new to the graph would change what every existing module sees. Import a global module from the root module before `Nexus.create`, or load it without `global: true`.
 - **Sealed Container:** Once a provider is registered, it cannot be changed. `load()` adds new providers but does not allow you to replace existing ones.
+
+`load()` rejects a global module with [NEXUS_LOAD_GLOBAL_MODULE](/errors/NEXUS_LOAD_GLOBAL_MODULE/), which it throws directly, outside a `NEXUS_BLUEPRINT_INVALID` error. Its `module` property names the module, `Science` here:
+
+```ts file=examples/meridian/src/pages/load.md region=load-global
+
+```
+
+**Try it:** Delete the `global: true,` line and run the region again. The load resolves and the region prints an empty line and then `undefined` twice, because there is no error to show.
+
+### Why There Is No `set()`
+
+In 0.3, `set()` registered one provider into a mutable container at any time, before or after the first `get()`. `Nexus.create` in 0.4 validates the whole graph before it builds anything, so every provider is declared in a module, and the container is sealed once `create` resolves. `load()` keeps that guarantee: it takes a whole module and validates it against the live graph. A per-token `set()` after `create` would add a provider the compiler never validated. The [upgrade guide](/upgrade/) shows what each 0.3 `set()` call becomes.
+
+## Rules
+
+- On a compile error, the container stays as it was. When a build or an `onInit` fails during the load, NexusDI disposes what the load built.
+- `load()` of a module the root already imports, or a second `load()` of the same module, does nothing.
+- Concurrent `load()` calls run one at a time, in call order.
+- `get()` of a token from a module that is not loaded yet throws `NEXUS_MISSING_PROVIDER`.

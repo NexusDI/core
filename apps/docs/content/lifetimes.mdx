@@ -27,7 +27,26 @@ A `transient` dependency is created every single time it is requested. If two di
 
 ```
 
-By switching a provider to `lifetime: 'transient'`, you can transform a shared service into a private, per-consumer utility.
+`QuantumComputer` declares no lifetime, so it is a singleton. The two `get(DRONE)` calls launch two `ScoutDrone`s, and both receive the one `QuantumComputer`.
+
+By switching a provider to `lifetime: 'transient'`, you can transform a shared service into a private, per-consumer utility. A provider sets it with the `lifetime` option of `provide()`, next to `useClass` or `useFactory`.
+
+### The Provider Decides
+
+The provider that is resolved sets the lifetime, and a consumer cannot change it. When `COMPUTER` itself is transient, each drone gets a computer of its own:
+
+```ts file=examples/meridian/src/pages/lifetimes.md region=transient-computer
+
+```
+
+<Notice kind="ship">
+  Every drone launched from the bay is a new drone, and every drone links to the
+  one ship's computer.
+</Notice>
+
+**Try it:** Save the first program as `lifetimes.ts` and run `npx tsx lifetimes.ts`. It prints `[ 1, 2 ]` and then `true`. Add `lifetime: 'transient'` to the `COMPUTER` provider and run it again. `npx tsc` reports nothing, `serials` still prints `[ 1, 2 ]`, and `sharedComputer` prints `false`, because each drone now holds its own computer. Remove the option again and `sharedComputer` prints `true`.
+
+A third lifetime, `scoped`, builds one instance per scope, such as one per request. [Scopes and the REQUEST Token](/scopes/) teaches it.
 
 ## Lazy Initialization with `eager: false`
 
@@ -39,11 +58,28 @@ However, some dependencies are expensive to create and might not be used in ever
 
 ```
 
+An eager provider that depends on an `eager: false` provider still builds it at `create`. The option suits a client whose constructor opens a connection that a short-lived command may never use. `Nexus.create` refuses `eager: false` on a transient, a `useValue` and a `useExisting` provider with `NEXUS_INVALID_PROVIDER` inside `NEXUS_BLUEPRINT_INVALID`.
+
+**Try it:** Run the `eager: false` program. It prints `[]`, then `course to Kepler-442b`, then `[ 'charts loaded' ]`. Delete `eager: false` and run it again. `beforeGet` now prints `[ 'charts loaded' ]`, because `Nexus.create` built the charts before the first `get()`. Put `eager: false` back and `beforeGet` prints `[]` again.
+
 ### The Async Constraint
 
 Because `get()` is designed to be synchronous for performance and predictability, lazy providers **cannot be asynchronous**.
 
-If you have a provider that requires an `async` factory, it **must** be eager. This ensures the promise is resolved during startup, so that the subsequent `get()` call can return the value instantly.
+If you have a provider that requires an `async` factory, it **must** be eager. This ensures the promise is resolved during startup, so that the subsequent `get()` call can return the value instantly. TypeScript rejects `eager: false` on an async factory with TS2769 on the `provide(` call, and the message of the last overload names the rule:
+
+```ts fails-type-check
+const charts = provide(NAV_CHARTS, {
+  useFactory: async () => ({ plot: (target: string) => `course to ${target}` }),
+  eager: false,
+});
+// TS2769: Type 'false' is not assignable to type 'true | "NEXUS_LAZY_ASYNC: an async
+// provider is built during create or createScope, so it cannot be eager: false. ..." | undefined'
+```
+
+In JavaScript, a factory that returns a promise at that first `get()` makes `get()` throw [NEXUS_LAZY_ASYNC](/errors/NEXUS_LAZY_ASYNC/). A transient factory must also return synchronously: a JavaScript one that returns a promise makes `get()` throw [NEXUS_ASYNC_TRANSIENT](/errors/NEXUS_ASYNC_TRANSIENT/), and TypeScript names that code when the factory is `async`.
+
+**Try it:** In the `eager: false` program, replace the `useClass` option with `useFactory: async () => new StarCharts()` and run `npx tsc`. TypeScript reports TS2769 on the `provide(` call, and the last overload's message holds the `NEXUS_LAZY_ASYNC` text above. Remove `async` and `npx tsc` reports nothing. Dropping `eager: false` also clears the error.
 
 ## Summary of Lifetimes
 

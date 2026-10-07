@@ -19,17 +19,27 @@ To create a multi-provider, use the `MultiToken` class. This tells NexusDI that 
 
 ```
 
-Any number of modules can call `provide(DIAGNOSTICS, ...)` to add their own contribution to the list.
+Any number of modules can call `provide(DIAGNOSTICS, ...)` to add their own contribution to the list. A contribution is either a class, as `ReactorDiagnostic` is above, or a value, as the hull check is. A contribution that needs deps uses a factory. `ship.get(DIAGNOSTICS)` returns the contributions as an array, in the order the providers are listed. Across modules, a module's own contributions come first, then those of its imports in import order.
+
+**Try it:** Save the region as `diagnostics.ts` and run `npx tsx diagnostics.ts`. It prints `[ 'reactor', 'hull' ]`. Add a third `provide(DIAGNOSTICS, { useValue: { system: 'shields', check: () => false } })` after the hull one and run it again: it prints `[ 'reactor', 'hull', 'shields' ]`. Delete that line and the array loses `shields` again. Then add `const DRONE_COUNT = new Token<number>('DroneCount');` (import `Token`), `provide(DRONE_COUNT, { useValue: 3 })` and `provide(DIAGNOSTICS, { useFactory: (n: number) => ({ system: 'drone' + n, check: () => true }), deps: [DRONE_COUNT] })` to the list: the array gains `drone3`.
 
 ## Consuming Contributions with `all()`
 
-Because a `MultiToken` represents a collection, you cannot use it as a standard dependency. Instead, you must use the `all()` modifier in your `static deps` list.
+Because a `MultiToken` represents a collection, you cannot use it as a standard dependency. Instead, you must use the `all()` modifier in your `static deps` list. `all()` is the only modifier a multi-token takes: `lazy()` and `optional()` each make `Nexus.create` reject with `NEXUS_BLUEPRINT_INVALID`, wrapping `NEXUS_INVALID_PROVIDER`, and so does a bare `MultiToken`.
 
 ```ts file=examples/meridian/src/pages/multi-providers.md region=panel
 
 ```
 
-`all(TOKEN)` tells NexusDI to resolve every visible contribution to that token and pass them to the constructor as an array.
+`all(TOKEN)` tells NexusDI to resolve every visible contribution to that token and pass them to the constructor as an array. Here `Engineering` contributes the reactor diagnostic and `Tactical` the hull check, each module exports `DIAGNOSTICS`, and `StatusBoard` in `Meridian` reads both. The same panel takes `optional(SUBSPACE_LINK)`, which resolves to `undefined` while no module provides a link.
+
+```mermaid caption="Engineering and Tactical each contribute to DIAGNOSTICS, and DiagnosticsPanel in Meridian reads both through all()."
+flowchart LR
+  ReactorDiagnostic -->|all| DiagnosticsPanel:::accent
+  hullDiagnostic -->|all| DiagnosticsPanel
+```
+
+**Try it:** Save the region as `panel.ts` and run it. It prints `reactor green, hull green`. Add a `Comms` module that provides and exports `SUBSPACE_LINK` with a `useValue` whose `send(report)` returns `'sent: ' + report`, import it into `Meridian`, and run it again: the panel prints `sent: reactor green, hull green`. Take `Comms` out of `Meridian`'s imports and the panel prints `reactor green, hull green` again.
 
 ## Visibility and Encapsulation
 
@@ -39,4 +49,12 @@ Multi-providers follow the same visibility rules as standard providers:
 2. **Imported Contributions:** A module sees contributions from any imported module that explicitly exports the `MultiToken`.
 3. **Private Contributions:** If a module contributes to a `MultiToken` but does not export it, that contribution remains private to the module.
 
-This allows you to have "internal" diagnostics that only the module itself can see, while sharing "public" diagnostics with the rest of the application.
+This allows you to have "internal" diagnostics that only the module itself can see, while sharing "public" diagnostics with the rest of the application. `all()` elsewhere leaves a private contribution out with no error, because a private contribution is a valid design: the module can read its own entries.
+
+```ts file=examples/meridian/src/pages/multi-providers.md region=unexported
+
+```
+
+`Tactical` contributes the hull check and has no `exports`, so the panel sees only the reactor.
+
+**Try it:** Save the region as `private.ts` and run it. It prints `[ 'reactor' ]`. Add `exports: [DIAGNOSTICS]` to `Tactical` and run it again: it prints `[ 'reactor', 'hull' ]`. Remove `exports` from `Tactical` and it prints `[ 'reactor' ]` again, with no error either way.
