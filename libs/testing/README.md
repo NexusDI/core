@@ -12,10 +12,12 @@ Testing components that depend on complex services (like databases or APIs) is d
 ## Core Features
 
 - **Real Graph Validation:** Unlike simple mocks, `createTestingContainer` runs the full NexusDI compiler. If your override breaks the graph, the test fails at startup.
-- **Precision Overrides:** Replace a single provider or an entire module.
+- **Precision Overrides:** Replace a single provider with `override()`, or an entire module with `overrideModule(module, stub)`. An override keeps the lifetime of the binding it replaces.
 - **Immutable Builders:** Every `.override()` call returns a new builder, allowing you to share a base configuration across many tests.
 
 ## Installation
+
+> 0.4 is a release candidate on the npm `next` tag. Install every @nexusdi package from `next` so their versions match. Without `@next`, npm installs core 0.3 and stops with a peer conflict.
 
 ```bash
 npm install -D @nexusdi/testing@next @nexusdi/core@next
@@ -56,6 +58,8 @@ ship.get(NAV_CHARTS).plot('anywhere'); // -> 'loopback'
 ## Documentation
 
 - [Testing Guide](https://nexus.js.org/next/testing/)
+- [Documentation](https://nexus.js.org/next/)
+- [Examples](https://github.com/NexusDI/core/tree/@nexusdi/core@0.4.0-rc.0/libs/testing/docs)
 - [NexusDI on GitHub](https://github.com/NexusDI/core)
 
 ## License

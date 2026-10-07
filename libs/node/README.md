@@ -13,9 +13,12 @@ In a server environment, you often need "request-scoped" dependencies: objects t
 
 - **Automatic Context Tracking:** Use `scopes.run()` to bind a scope to the current async context.
 - **Transparent Access:** Retrieve the active scope anywhere using `scopes.current()`.
+- **One Per Process:** One `nodeScopes()` serves every container in the process. `current()` returns `undefined` outside a run.
 - **Lean Core:** This package contains all Node-specific logic, keeping `@nexusdi/core` platform-agnostic.
 
 ## Installation
+
+> 0.4 is a release candidate on the npm `next` tag. Install every @nexusdi package from `next` so their versions match. Without `@next`, npm installs core 0.3 and stops with a peer conflict.
 
 ```bash
 npm install @nexusdi/node@next @nexusdi/core@next
@@ -50,11 +53,16 @@ await using shuttle = await ship.createScope();
 await scopes.run(shuttle, () => record('survey-7 launched'));
 
 shuttle.get(SHIP_LOG).lines; // -> ['survey-7 launched']
+scopes.current(); // -> undefined
 ```
+
+In a server, return `await scopes.run(...)` from the handler, so `await using` keeps the scope open until the handler finishes. Declare the container with `const ship`: `await using` at the top level of a module disposes it as soon as the module finishes loading.
 
 ## Documentation
 
-- [Scopes and REQUEST Guide](https://nexus.js.org/next/scopes/)
+- [Scoping Node.js HTTP Requests](https://nexus.js.org/next/node-request-scopes/)
+- [Documentation](https://nexus.js.org/next/)
+- [Examples](https://github.com/NexusDI/core/tree/@nexusdi/core@0.4.0-rc.0/libs/node/docs)
 - [NexusDI on GitHub](https://github.com/NexusDI/core)
 
 ## License

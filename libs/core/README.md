@@ -20,7 +20,7 @@ Missing providers and circular dependencies are reported as a single `BlueprintE
 
 ### 2. Zero Compiler Flags
 
-By using `static deps` for dependency declaration, NexusDI eliminates the need for `emitDecoratorMetadata`. It works natively with any modern TypeScript toolchain (Vite, Bun, Deno, esbuild) without custom plugins.
+By using `static deps` for dependency declaration, NexusDI eliminates the need for `emitDecoratorMetadata`. It runs under tsc, TypeScript 7, esbuild, SWC, Babel, Vite, Bun, Deno and Node's type stripping, with no custom plugins.
 
 ### 3. Async-First Startup
 
@@ -61,6 +61,110 @@ app.get(UserService).greet('Ada'); // -> '[app] hello Ada'
 npm install @nexusdi/core@next
 ```
 
+Install every @nexusdi package from `next` so their versions match. The package is ESM, and needs Node 22.12 or later and TypeScript 5.4 or later.
+
+## Checked at Startup
+
+`Nexus.create` rejects with one error that lists every provider the graph lacks, before any constructor runs.
+
+```ts @import.meta.vitest
+import { MissingProviderError, Nexus, Token } from '@nexusdi/core';
+import type { BlueprintError } from '@nexusdi/core';
+
+const CALLSIGN = new Token<string>('Callsign');
+const FREQUENCY = new Token<number>('Frequency');
+class Comms {
+  static deps = [CALLSIGN, FREQUENCY] as const;
+  constructor(callsign: string, frequency: number) {}
+}
+
+const listed = (error: BlueprintError) => error.errors;
+const errors = await Nexus.create([Comms]).then(() => [], listed);
+errors.map((e) => e instanceof MissingProviderError && e.token); // -> ['Callsign', 'Frequency']
+```
+
+<!-- #endregion checked-at-startup -->
+
+## Modules and Interfaces
+
+A module binds interface tokens to classes and factories, and exports what other modules may use.
+
+```ts @import.meta.vitest
+import { Nexus, Token, defineModule, provide } from '@nexusdi/core';
+
+interface INavCharts {
+  plot(to: string): string;
+}
+interface IHelm {
+  engage(to: string): string;
+}
+const NAV_CHARTS = new Token<INavCharts>('NavCharts');
+const HELM = new Token<IHelm>('Helm');
+class Helm implements IHelm {
+  static deps = [NAV_CHARTS] as const;
+  constructor(private readonly charts: INavCharts) {}
+  engage(to: string) {
+    return this.charts.plot(to);
+  }
+}
+const charts = async (): Promise<INavCharts> => ({ plot: (to) => `to ${to}` });
+const Bridge = defineModule({
+  name: 'Bridge',
+  providers: [
+    provide(NAV_CHARTS, { useFactory: charts }),
+    provide(HELM, { useClass: Helm }),
+  ],
+  exports: [HELM],
+});
+const Meridian = defineModule({ name: 'Meridian', imports: [Bridge] });
+await using ship = await Nexus.create(Meridian);
+ship.get(HELM).engage('Vega'); // -> 'to Vega'
+ship.has(NAV_CHARTS); // -> false
+```
+
+<!-- #endregion modules-and-interfaces -->
+
+## Configurable Modules
+
+A module declares an options token and takes its options through `forRoot()` or `forRootAsync()`.
+
+```ts @import.meta.vitest
+import { Nexus, Token, defineModule, provide } from '@nexusdi/core';
+
+interface ICommsOptions {
+  readonly frequency: number;
+}
+interface ISubspaceLink {
+  readonly frequency: number;
+}
+const COMMS_OPTIONS = new Token<ICommsOptions>('CommsOptions');
+const SUBSPACE_LINK = new Token<ISubspaceLink>('SubspaceLink');
+class SubspaceRelay implements ISubspaceLink {
+  static deps = [COMMS_OPTIONS] as const;
+  readonly frequency: number;
+  constructor(options: ICommsOptions) {
+    this.frequency = options.frequency;
+  }
+}
+
+const Comms = defineModule({
+  name: 'Comms',
+  options: COMMS_OPTIONS,
+  providers: [provide(SUBSPACE_LINK, { useClass: SubspaceRelay })],
+  exports: [SUBSPACE_LINK],
+});
+
+await using ship = await Nexus.create(
+  defineModule({
+    name: 'Tactical',
+    imports: [Comms.forRoot({ frequency: 1420 })],
+  }),
+);
+ship.get(SUBSPACE_LINK).frequency; // -> 1420
+```
+
+<!-- #endregion configurable-module -->
+
 ## Ecosystem
 
 @nexusdi/core is the engine. You can extend it with official packages:
@@ -74,10 +178,16 @@ npm install @nexusdi/core@next
 - **`@nexusdi/federation`**: For versioned contracts across bundles.
 - **`@nexusdi/cli`**: For drawing the graph from the terminal.
 
+## When You Do Not Need a Container
+
+A single script or a small app whose objects you can build by hand in one file does not need a container: a few `new` calls in `main` are clearer. NexusDI helps when one graph serves several entry points, such as an API and a worker, or when several teams own sections of one app.
+
 ## Documentation
 
 - [Full Documentation](https://nexus.js.org/next/)
+- [Examples](https://github.com/NexusDI/core/tree/@nexusdi/core@0.4.0-rc.0/libs/core/docs)
 - [GitHub Repository](https://github.com/NexusDI/core)
+- [Discussions](https://github.com/NexusDI/core/discussions)
 
 ## License
 
