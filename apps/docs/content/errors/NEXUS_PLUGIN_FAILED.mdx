@@ -29,7 +29,7 @@ Try it: save the region as `error.ts` and run `npx tsx error.ts`. It prints four
 
 ## Fix `NEXUS_PLUGIN_FAILED`
 
-`NEXUS_PLUGIN_FAILED` is fixed in the plugin: read `cause`, which holds the error the hook threw, and correct what it names. For a third-party plugin, report the error to its authors with the plugin name and the hook. [How do I register a plugin?](/plugins/) covers registration.
+`NEXUS_PLUGIN_FAILED` is fixed in the plugin: read `cause`, which holds the error the hook threw, and correct what it names. For a third-party plugin, report the error to its authors with the plugin name and the hook. [NexusDI Plugins](/plugins/) covers registration.
 
 ```ts file=examples/meridian/src/errors/NEXUS_PLUGIN_FAILED.md region=fix
 

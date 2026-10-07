@@ -24,7 +24,7 @@ Try it: save the region as `error.ts` and run `npx tsx error.ts`. It prints the 
 
 ## Fix `NEXUS_CIRCULAR_DEPENDENCY`
 
-`NEXUS_CIRCULAR_DEPENDENCY` is fixed by wrapping one edge of the cycle in `lazy()`. The dependency then receives a function that returns the instance, and the method calls it after startup. Here `PlasmaRouter` takes `lazy(SHIELD_GRID)`. [Lazy edges and cycles](/lazy/) covers the rule.
+`NEXUS_CIRCULAR_DEPENDENCY` is fixed by wrapping one edge of the cycle in `lazy()`. The dependency then receives a function that returns the instance, and the method calls it after startup. Here `PlasmaRouter` takes `lazy(SHIELD_GRID)`. [Lazy Dependencies and Cycles](/lazy/) covers the rule.
 
 ```ts file=examples/meridian/src/errors/NEXUS_CIRCULAR_DEPENDENCY.md region=fix
 

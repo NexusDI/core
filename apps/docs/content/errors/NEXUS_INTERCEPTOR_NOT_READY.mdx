@@ -52,7 +52,7 @@ The building case is fixed by moving the call into `onInit`, which runs once the
 
 Try it: save the region as `building-fixed.ts` and run `npx tsx building-fixed.ts`. It prints `1.21`. Change the constructor to `constructor(private readonly reactor: IReactorCore) { this.reactor.output(); }` and run it again. `npx tsc` accepts the file, and `npx tsx building-fixed.ts` throws an uncaught `ProviderError` and prints a stack trace headed `ProviderError: [NEXUS_PROVIDER_FAILED] token=PowerLog module=Engineering path=PowerLog.` and the address of this page, whose `[cause]` is the `InterceptorError` for `ReactorCore.output`. Put the constructor back and it prints `1.21` again.
 
-[How do I run code around a service's methods?](/interceptors/) covers the container's lifetime, and [Lazy edges and cycles](/lazy/) covers `lazy()`.
+[Method Interceptors](/interceptors/) covers the container's lifetime, and [Lazy Dependencies and Cycles](/lazy/) covers `lazy()`.
 
 ## Fields of `InterceptorError`
 

@@ -73,7 +73,7 @@ A decorator fault surfaces when the class is defined. The decorator on a static 
 
 Try it: save the region as `define.ts` and run `npx tsx define.ts`. It prints `static-method` and `[NEXUS_INTERCEPTOR_INVALID] @UseInterceptors cannot wrap the static method refit.` Move `@UseInterceptors(AUDIT)` onto `output()` and run it again. The class is defined, and the region prints `undefined` twice. To see the legacy reason, move the decorator back and add `"experimentalDecorators": true` to `tsconfig.json`. `npx tsc` flags the decorator with TS1241, and `npx tsx define.ts` prints `legacy-decorators` and then a message of two lines: `[NEXUS_INTERCEPTOR_INVALID] @UseInterceptors is a standard decorator, and ran as a legacy one.` and `Fix: remove experimentalDecorators from tsconfig, or use static interceptors.` Remove the setting again. [NEXUS_LEGACY_DECORATORS](/errors/NEXUS_LEGACY_DECORATORS/) covers the same setting for the decorators in `@nexusdi/decorators`.
 
-[How do I run code around a service's methods?](/interceptors/) states each declaration rule with an example.
+[Method Interceptors](/interceptors/) states each declaration rule with an example.
 
 ## Fields of `InterceptorError`
 

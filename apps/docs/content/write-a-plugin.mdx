@@ -8,20 +8,23 @@ description: Learn how to extend the NexusDI container by creating your own plug
 
 NexusDI is designed to be extended. Whether you need to add custom logging, integrate with an external monitoring tool, or implement a specialized provider lookup, you can do so by writing a plugin.
 
+The first-party packages `@nexusdi/errors`, `@nexusdi/devtools`, `@nexusdi/testing`, `@nexusdi/federation` and `@nexusdi/interceptors` use only the API on this page, so a third-party plugin can do what they do.
+
 ## The Extension Principle
 
-To ensure that the ecosystem remains stable and maintainable, all NexusDI plugins follow the **Extension Principle**. This principle ensures that packages integrate through public contribution points and never reach into internal state.
+To ensure that the ecosystem remains stable and maintainable, all NexusDI plugins follow the **Extension Principle**. This principle ensures that packages integrate through public contribution points and never reach into internal state. A package that does not own a new error, event, graph note or package needs no change when one is added.
 
 **Key Rules for Plugin Authors:**
 
-1. **Own your vocabulary:** Never rely on internal strings or hidden fields of other packages.
-2. **Open Types:** Use augmentable interfaces (like `NexusErrorByCode`) so other plugins can add their own types.
-3. **Public Hooks:** Only integrate via official plugin hooks or the `PluginContext`.
+1. **Own your vocabulary:** A package reads another package's codes, event types, ids and hidden fields only through what that package exports. It never lists them in a table, a switch, a regex or a string compare.
+2. **Open Types:** A set that other packages extend is open in its type. `NexusErrorByCode` and `TraceEventByType` are interfaces a package augments, text packs and graph annotators are arguments the application passes, and code that branches on such a set handles a member it does not know.
+3. **Public Hooks:** Only integrate via public, versioned contribution points: a plugin hook, a `PluginContext` member, a view field or an options argument.
 4. **No Logic Duplication:** If two plugins need the same logic, the owner of that logic should export a helper.
+5. **One-Way Optional Dependencies:** An optional dependency points one way, and the application writes the wiring line. A package names an optional package only in a type import or from a subpath the application opts into, such as `./text`, does not look for a missing package at run time, and never looks a plugin up by name.
 
 ## The Plugin Object
 
-A plugin is a plain JavaScript object that declares its `name` and the `apiVersion` it was written against. It then implements one or more optional hooks.
+A plugin is a plain JavaScript object that declares its `name` and the `apiVersion` it was written against, `NEXUS_PLUGIN_API` from `@nexusdi/core`. It then implements one or more optional hooks. Core reads the hooks once, when `Nexus.create` registers the plugin.
 
 ```ts no-run
 const myPlugin = {
@@ -31,46 +34,102 @@ const myPlugin = {
 };
 ```
 
-### Common Hooks
+A package exports a function that returns the plugin, so the application passes options and registers one object per container. This plugin observes the trace and records each provider the container builds:
 
-| Hook            | Purpose                                                                  |
-| :-------------- | :----------------------------------------------------------------------- |
-| `compile.check` | Validate the graph and report custom errors before the container starts. |
-| `construct`     | Wrap or observe instances as they are created.                           |
-| `observe`       | Listen to every trace event emitted by the container.                    |
-| `formatError`   | Provide custom human-readable text for specific error codes.             |
-| `setup`         | Perform one-time initialization after singletons are built.              |
+```ts file=examples/meridian/src/pages/write-a-plugin.md region=observe
+
+```
+
+**Try it:**
+
+1. Save the region as `recorder.ts` and run `npx tsx recorder.ts`. It prints `[ 'built ReactorCore', 'built ShipComputer' ]`.
+2. Change `'construct'` to `'init'` and run again. It prints `[]`: an `init` event comes from an `onInit` method, and neither class has one. `npx tsc --noEmit` accepts the line, because `'init'` is a trace event type.
+3. Change `'init'` back to `'construct'` and the two lines return.
+
+### Hooks
+
+Every hook is optional:
+
+| Hook               | Purpose                                                                                                                   |
+| :----------------- | :------------------------------------------------------------------------------------------------------------------------ |
+| `modules`          | Adds modules to the root's imports, compiled like any import.                                                             |
+| `onInit`           | `false` skips `onInit` at `create` and `load`.                                                                            |
+| `tokenKey`         | Maps a token to the key every lookup uses; one key finds one provider.                                                    |
+| `compile.module`   | Replaces a module definition before the compiler validates it.                                                            |
+| `compile.provider` | Replaces or removes a provider before the compiler validates it.                                                          |
+| `compile.check`    | Validate the graph and report custom errors before the container starts.                                                  |
+| `construct`        | Wrap or observe instances as they are created; it may return a wrapper to store.                                          |
+| `observe`          | Listen to every trace event emitted by the container.                                                                     |
+| `formatError`      | Provide custom human-readable text for specific error codes.                                                              |
+| `setup`            | Runs once, in plugin order, after `create` has built the singletons, and receives a `PluginContext`.                      |
+| `dispose`          | Runs at container disposal, after every root-owned instance, in reverse plugin order, for plugins whose `setup` finished. |
 
 ## Reporting Custom Errors
 
-If your plugin finds a problem with the module graph during `compile.check`, you can report it as a formal NexusDI error.
+If your plugin finds a problem with the module graph during `compile.check(view, report)`, you can report it as a formal NexusDI error. `Nexus.create` adds it to the `NEXUS_BLUEPRINT_INVALID` it throws.
 
-1. **Define the Error:** Use `errorBase()` to create a stable error class with a code and a link to your documentation.
-2. **Provide the Text:** Create a text pack that maps the error code to a human-readable message.
+1. **Define the Error:** Use `errorBase(code, name, docsBase)` to create a stable error class. The third argument is the base URL of your docs: the one-line message links to it followed by the code. Add the code to `NexusErrorByCode`, so `isNexusError` narrows it and a text pack can name it.
+2. **Provide the Text:** Create a text pack that maps the error code to a human-readable message, typed with `satisfies ErrorTextPack` and published at the package's `./text` subpath. The application passes the pack to `errors({ text })`.
 3. **Report the Error:** Call `report()`, the second parameter of your `compile.check` hook.
 
 ```ts file=examples/meridian/src/pages/write-a-plugin.md region=own-error
 
 ```
 
+The pack and the error class are published in one package at one version, so the pack reads the fields of the class it was written with. Keep the codes of your package under a prefix of its own, such as `ACME_`.
+
+**Try it:**
+
+1. Run `npm install @nexusdi/errors@next`, save the region as `recorder-error.ts` and run `npx tsx recorder-error.ts`. The first line is the one-line message with the link, and the next two are the full text with its `Fix:` line.
+2. In the `recorderText` entry, change `error.module` to `error.target` in the `message` line. `npx tsc --noEmit` flags it with `Property 'target' does not exist on type 'RecorderTargetError'.`, and `npx tsx recorder-error.ts` still runs and prints `watches undefined` in the full text. Change it back to `error.module`.
+3. Change the plugin's option to `{ module: 'Engineering' }`. The graph holds that module, so `compile.check` reports nothing and `Nexus.create` resolves. The region then prints `undefined` twice, because it reads the message of an error that never happened. Change the option back to `'Tactical'` and the messages return.
+
 ## Emitting Custom Trace Events
 
 You can add your own events to the container's trace, which allows other plugins (and the `@nexusdi/devtools` plugin) to observe your plugin's behavior.
 
-By augmenting the `TraceEventByType` interface, you can add type-safe events that you can emit from the `PluginContext`.
+By augmenting the `TraceEventByType` interface with keys of the form `<package>/<event>`, you can add type-safe events that you emit with `context.emit(make)` from the `PluginContext` your `setup` hook receives. Every `observe` hook receives the event, and `make` runs only when an observer exists.
 
 ```ts file=examples/meridian/src/pages/write-a-plugin.md region=own-event
 
 ```
 
+**Try it:**
+
+1. Run `npm install @nexusdi/devtools@next`, save the region as `armed.ts` and run `npx tsx armed.ts`. It prints `[ 'compile', 'construct', 'acme-recorder/armed' ]`.
+2. Delete the `declare module '@nexusdi/core'` block. `npx tsc --noEmit` flags the `context.emit` line with `Type '{ type: string; providers: number; }' is not assignable to type 'never'.`, because no `TraceEventByType` key matches. `npx tsx armed.ts` still prints the same three types.
+3. Put the block back and the error goes away.
+
 ## Graph Annotation
 
-If your package analyzes the graph, it can add "notes" to specific providers. Annotators are not a plugin hook: the application passes `GraphAnnotator` functions to `devtools({ annotate })`, and `graph()` lists the notes on each provider.
+If your package analyzes the graph, it can add "notes" to specific providers. Annotators are not a plugin hook: the application passes `GraphAnnotator` functions to `devtools({ annotate })`, and `graph()` lists the notes on each provider. An annotator reads the container's `BlueprintView` and returns notes, each a provider id and a label. It matches the shape with no import from `@nexusdi/devtools`, so a package publishes one from a subpath and keeps devtools out of its dependencies.
 
 ```ts file=examples/meridian/src/pages/write-a-plugin.md region=annotate
 
 ```
 
+**Try it:**
+
+1. Run `npm install @nexusdi/devtools@next`, save the region as `notes.ts` and run `npx tsx notes.ts`. It prints `[ 'recorded' ]`.
+2. Change `'singleton'` to `'transient'`. `npx tsc --noEmit` accepts it, and the run prints `[]`, because `ReactorCore` is a singleton and no note matches it.
+3. Change it back to `'singleton'`, then change `label: 'recorded'` to `label: 42`. `npx tsc --noEmit` flags the `annotate` option with an error that ends with `Type 'number' is not assignable to type 'string'.`, and the run prints `[ 42 ]`. Restore `'recorded'` and the first output returns.
+
+## Comparing Tokens with `view.canonical()`
+
+With a `tokenKey` plugin registered, several tokens find one provider, and `ProviderView.token` holds the first of them the container met. A plugin compares a token it holds through `canonical()`, which the compile context and every `BlueprintView` carry:
+
+```ts file=examples/meridian/src/pages/write-a-plugin.md region=canonical
+
+```
+
+**Try it:**
+
+1. Save the region as `canonical.ts` and run `npx tsx canonical.ts`. It prints `true` and `relayed hail`.
+2. Change `plugins: [byDescription, linkProbe]` to `plugins: [linkProbe]`. `npx tsc --noEmit` accepts it. The run prints `false`, then throws [NEXUS_MISSING_PROVIDER](/errors/NEXUS_MISSING_PROVIDER/) for `comms/SubspaceLink` in module `Comms`, because the two tokens are now two keys.
+3. Put `byDescription` back and both lines return.
+
 ## Versioning and Compatibility
 
-To prevent crashes, NexusDI checks the `apiVersion` of every plugin. If the core API changes in a way that breaks a plugin, the version is incremented. Core accepts every plugin API version it still supports. If a plugin's `apiVersion` is not one of them, `Nexus.create` rejects the startup process with a `NEXUS_PLUGIN_VERSION` error.
+To prevent crashes, NexusDI checks the `apiVersion` of every plugin. `NEXUS_PLUGIN_API` is 1 in `@nexusdi/core` 0.4. A new optional member of a hook, a `PluginContext` member, an `ErrorTextKit` member, a `GraphNote` field or a `TraceEventByType` key keeps the version. If the core API changes in a way that breaks a plugin, the version is incremented. Core accepts every plugin API version it still supports. If a plugin's `apiVersion` is not one of them, `Nexus.create` rejects the startup process with [NEXUS_PLUGIN_VERSION](/errors/NEXUS_PLUGIN_VERSION/).
+
+Declare `@nexusdi/core` as a peer dependency, and add the npm keyword `nexusdi-plugin` to your `package.json` so a reader can find the package. [NexusDI Plugins](/plugins/) shows the application side.

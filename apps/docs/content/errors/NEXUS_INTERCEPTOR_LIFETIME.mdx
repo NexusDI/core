@@ -44,7 +44,7 @@ The fix region differs from the reproduce region in the `lifetime` line, which i
 
 Try it: save the region as `fixed.ts` and run `npx tsx fixed.ts`. It prints `1.21` and `[ 'ReactorCore in root' ]`. Add `lifetime: 'transient'` to the registration and run it again. `npx tsc` accepts the file, and `npx tsx fixed.ts` throws an uncaught `BlueprintError` and prints a stack trace headed `BlueprintError: [NEXUS_BLUEPRINT_INVALID] 1 error.`, whose message goes on with the line `[NEXUS_INTERCEPTOR_LIFETIME] token=Audit detail=transient.` and the address of this page. Remove the line and the program prints its two lines again.
 
-[How do I run code around a service's methods?](/interceptors/) covers the singleton rule.
+[Method Interceptors](/interceptors/) covers the singleton rule.
 
 ## Fields of `InterceptorError`
 

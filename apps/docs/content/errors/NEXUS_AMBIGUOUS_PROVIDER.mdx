@@ -22,7 +22,7 @@ Try it: save the region as `error.ts` and run `npx tsx error.ts`. The one-line m
 
 ## Fix `NEXUS_AMBIGUOUS_PROVIDER`
 
-`NEXUS_AMBIGUOUS_PROVIDER` is fixed by leaving one provider of the token visible to the importing module: export the token from one of the modules only, or provide the token in the importing module, which shadows the imports. To pick an implementation by configuration, give one configurable module a factory that chooses between them (see [Configurable modules](/configurable-modules/)). Here `Tactical` imports `Lasers` alone.
+`NEXUS_AMBIGUOUS_PROVIDER` is fixed by leaving one provider of the token visible to the importing module: export the token from one of the modules only, or provide the token in the importing module, which shadows the imports. To pick an implementation by configuration, give one configurable module a factory that chooses between them (see [Configurable Modules](/configurable-modules/)). Here `Tactical` imports `Lasers` alone.
 
 ```ts file=examples/meridian/src/errors/NEXUS_AMBIGUOUS_PROVIDER.md region=fix
 

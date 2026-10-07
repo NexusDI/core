@@ -36,7 +36,7 @@ The fix region differs from the reproduce region in the plugin list, which holds
 
 Try it: save the region as `fixed.ts` and run `npx tsx fixed.ts`. It prints `1.21`. Change `plugins: [real]` to `plugins: [{ ...real, compile: {} }]` and run it again. `npx tsc` accepts the file, and `npx tsx fixed.ts` throws an uncaught `ProviderError` and prints a stack trace headed `ProviderError: [NEXUS_PROVIDER_FAILED] token=ReactorCore module=Engineering path=ReactorCore.` and the address of this page, which nests the `PluginError` and the `InterceptorError: [NEXUS_INTERCEPTORS_UNCHECKED]` message as its causes. Change it back and the program prints `1.21` again.
 
-[How do I run code around a service's methods?](/interceptors/) covers the plugin's options.
+[Method Interceptors](/interceptors/) covers the plugin's options.
 
 ## Fields of `InterceptorError`
 

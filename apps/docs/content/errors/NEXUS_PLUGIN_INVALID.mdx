@@ -22,7 +22,7 @@ Try it: save the region as `error.ts` and run `npx tsx error.ts`. It prints thre
 
 ## Fix `NEXUS_PLUGIN_INVALID`
 
-`NEXUS_PLUGIN_INVALID` is fixed by correcting the plugin the `reason` names. A plugin is an object with a unique, non-empty `name` and the `apiVersion` it was written for. Every hook is optional and has the documented type. A `compile` member is an object of hook functions, and `modules` is an array. `onInit` takes only the value `false`. [How do I register a plugin?](/plugins/) covers registration.
+`NEXUS_PLUGIN_INVALID` is fixed by correcting the plugin the `reason` names. A plugin is an object with a unique, non-empty `name` and the `apiVersion` it was written for. Every hook is optional and has the documented type. A `compile` member is an object of hook functions, and `modules` is an array. `onInit` takes only the value `false`. [NexusDI Plugins](/plugins/) covers registration.
 
 ```ts file=examples/meridian/src/errors/NEXUS_PLUGIN_INVALID.md region=fix
 

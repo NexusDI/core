@@ -18,11 +18,11 @@ The region binds `FlightLog` as scoped and asks the root for it. Without a plugi
 
 ```
 
-Try it: save the region as `error.ts` and run `npx tsx error.ts`. It prints the one-line message, then the full text as an array of two strings. The second string shows how to create a scope. The regions read `request.mission`, so save the `request.d.ts` file from [Scopes and REQUEST](/scopes/) beside them and `tsc` agrees. Then save the fix region below as `fixed.ts` and run `npx tsx fixed.ts`. It prints `Kepler-442b`.
+Try it: save the region as `error.ts` and run `npx tsx error.ts`. It prints the one-line message, then the full text as an array of two strings. The second string shows how to create a scope. The regions read `request.mission`, so save the `request.d.ts` file from [Scopes and the REQUEST Token](/scopes/) beside them and `tsc` agrees. Then save the fix region below as `fixed.ts` and run `npx tsx fixed.ts`. It prints `Kepler-442b`.
 
 ## Fix `NEXUS_SCOPE_REQUIRED`
 
-`NEXUS_SCOPE_REQUIRED` is fixed by resolving scoped providers from a scope. [Scopes and REQUEST](/scopes/) covers scopes.
+`NEXUS_SCOPE_REQUIRED` is fixed by resolving scoped providers from a scope. [Scopes and the REQUEST Token](/scopes/) covers scopes.
 
 ```ts file=examples/meridian/src/errors/NEXUS_SCOPE_REQUIRED.md region=fix
 

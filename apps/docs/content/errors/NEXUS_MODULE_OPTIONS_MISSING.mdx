@@ -22,7 +22,7 @@ Try it: save the region as `error.ts` and run `npx tsx error.ts`. It prints the 
 
 ## Fix `NEXUS_MODULE_OPTIONS_MISSING`
 
-`NEXUS_MODULE_OPTIONS_MISSING` is fixed by importing the module through `forRoot(options)`, or `forRootAsync({ useFactory, deps })` for options computed at startup. Call either once and import the result: each call makes a new module instance. [Configurable modules](/configurable-modules/) covers both.
+`NEXUS_MODULE_OPTIONS_MISSING` is fixed by importing the module through `forRoot(options)`, or `forRootAsync({ useFactory, deps })` for options computed at startup. Call either once and import the result: each call makes a new module instance. [Configurable Modules](/configurable-modules/) covers both.
 
 ```ts file=examples/meridian/src/errors/NEXUS_MODULE_OPTIONS_MISSING.md region=fix
 

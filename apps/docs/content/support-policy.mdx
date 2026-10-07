@@ -6,18 +6,18 @@ description: The timeline and scope of support for the NexusDI 0.3 line after th
 
 # 0.3 Support Policy
 
-With the release of NexusDI 0.4, the focus of the maintainers shifts to the new static-validation architecture. However, we provide a transition period for users who cannot immediately upgrade.
+With the release of NexusDI 0.4, the focus of the maintainers shifts to the new static-validation architecture. However, we provide a transition period for users who cannot immediately upgrade. The maintainers set the fix scope and the end date. [RELEASING.md](https://github.com/NexusDI/core/blob/main/RELEASING.md) describes the branch and dist-tag steps that publish each fix.
 
 ## Support During the RC Phase
 
-Until 0.4.0 final is released, the `latest` tag on npm continues to point to the 0.3.x line. Any critical fixes for 0.3 during this period are released as patches under the `latest` tag.
+Until 0.4.0 final is released, the `latest` tag on npm continues to point to the 0.3.x line for `@nexusdi/core`, so `npm install @nexusdi/core` installs 0.3. The 0.4 release candidates publish under the `next` dist-tag ([Trying the 0.4 Release Candidate](/release-candidate/)). Any critical fixes for 0.3 during this period are released from `main` as patches under the `latest` tag.
 
 ## Support After 0.4.0 Final
 
-Once 0.4.0 is officially released, the 0.3 line moves to a dedicated maintenance branch.
+Once 0.4.0 is officially released, `latest` moves to 0.4.0, and the 0.3 line moves to a dedicated `0.3.x` maintenance branch.
 
 - **Fix Scope:** The 0.3 branch receives fixes only for security vulnerabilities and critical defects that cause the program to crash or lose data.
-- **Installation:** You can install the newest 0.3 patch using the `release-0.3` dist-tag:
+- **Installation:** Each 0.3 patch publishes under the `release-0.3` dist-tag, and `latest` stays on 0.4. You can install the newest 0.3 patch with:
   ```bash
   npm install @nexusdi/core@release-0.3
   ```
@@ -27,3 +27,5 @@ Once 0.4.0 is officially released, the 0.3 line moves to a dedicated maintenance
 Support for the 0.3 line ends six months after the release of 0.4.0 final, or when 0.5.0 is released, whichever is later.
 
 After this date, the 0.3 line receives no further updates. The 0.3 documentation stays at `/v0.3/` for the same period. We strongly recommend upgrading to 0.4 before this deadline, because 0.3 receives no fixes after it.
+
+When 0.4.0 final is released, this page names the date of 0.4.0 final and the date six months later. It also says whether 0.5.0 has been released.
