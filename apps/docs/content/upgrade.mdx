@@ -7,7 +7,7 @@ domainExempt: true
 
 # Upgrading to 0.4
 
-NexusDI 0.4 introduces a fundamental shift in how the container works: it moves from a "lazy, optimistic" model to a "static, validated" model. Instead of discovering wiring errors at runtime, NexusDI now validates the entire module graph before the first instance is ever created.
+NexusDI 0.4 introduces a fundamental shift in how the container works: it moves from a "lazy, optimistic" model to a "static, validated" model. NexusDI now validates the entire module graph before the first instance is ever created, so wiring errors surface at startup.
 
 Because of this shift, the 0.4 API is significantly different from 0.3. This guide provides a sequential path to migrate your project.
 

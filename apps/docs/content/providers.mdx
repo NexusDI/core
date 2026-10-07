@@ -41,7 +41,7 @@ Sometimes a simple class instantiation isn't enough. NexusDI provides several ot
 
 ### Factory Providers (`useFactory`)
 
-Factories are used when the creation logic is complex or requires asynchronous setup. A factory is simply a function that returns the value for the token.
+Factories are used when the creation logic is complex or requires asynchronous setup. A factory is a function that returns the value for the token.
 
 ```ts file=examples/meridian/src/pages/providers.md region=factories
 
@@ -65,11 +65,11 @@ Not every dependency is required for a component to function. By wrapping a toke
 
 ```
 
-If the provider is missing, the dependency will resolve to `undefined` instead of triggering a startup error.
+If the provider is missing, the dependency will resolve to `undefined` and triggers no startup error.
 
 ## Handling Constructor Defaults
 
-If your class has no `static deps`, NexusDI counts its constructor parameters with `cls.length`. That count stops at the first parameter with a default or a rest parameter. A class whose parameters all have defaults counts zero and builds with its defaults. `constructor(a: X, b = 1)` still counts one and fails with `NEXUS_MISSING_DEPS`.
+If your class has no `static deps`, NexusDI counts its constructor parameters with `cls.length`. That count stops at the first parameter with a default or a rest parameter. A class whose parameters all have defaults counts zero and builds with its defaults. A rest parameter follows the same rule as a default: `constructor(...rest: X[])` counts zero and builds with an empty `rest`. `constructor(a: X, b = 1)` still counts one and fails with `NEXUS_MISSING_DEPS`.
 
 ```ts file=examples/meridian/src/pages/providers.md region=defaults
 

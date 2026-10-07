@@ -52,7 +52,7 @@ Common events include:
 
 In production, minifiers often rename classes to single letters (e.g., `FusionReactor` becomes `t`). This can make error messages and graphs unreadable.
 
-To prevent this, you should always provide a human-readable description when creating a `Token<T>`. NexusDI uses this description for all introspection and error reporting, ensuring that your logs remain meaningful regardless of minification.
+To prevent this, you should always provide a human-readable description when creating a `Token<T>`. NexusDI uses this description for all introspection and error reporting, ensuring that your logs remain meaningful regardless of minification. To keep the class names too, configure the bundler to preserve them (`keepNames` in esbuild).
 
 ```ts file=examples/meridian/src/pages/introspection.md region=minified-names
 

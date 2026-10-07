@@ -6,7 +6,7 @@ description: A detailed look at the methodology, toolchains, and sampling used t
 
 # Understanding Benchmark Measurements
 
-To provide an objective comparison of dependency injection containers, NexusDI uses a rigorous benchmark harness. Instead of simple "hello world" examples, every figure is based on the **Meridian-8** graph, which combines the DI patterns listed below.
+To provide an objective comparison of dependency injection containers, NexusDI uses a rigorous benchmark harness. Every figure is based on the **Meridian-8** graph, which combines the DI patterns listed below.
 
 ## The Meridian-8 Graph
 
@@ -25,7 +25,7 @@ Because different libraries require different compiler flags (like `emitDecorato
 
 - **Standard TS:** `tsc` and `tsgo`.
 - **Modern Bundlers:** esbuild, SWC, and Vite.
-- **Runtimes:** Bun, Deno, and Node.js (including native type stripping).
+- **Runtimes:** Bun, Deno, and Node.js (including its built-in type stripping).
 
 This ensures that our performance figures reflect real-world usage across different build pipelines.
 

@@ -8,7 +8,7 @@ description: Use standard TC39 decorators to declare dependencies and modules wi
 
 While `static deps` and `defineModule()` are the foundation of NexusDI, you can use decorators to make your dependency declarations more readable and concise.
 
-NexusDI provides a set of standard (TC39) decorators that act as syntactic sugar—they write the same `static deps` and `defineModule` definitions under the hood. This means a decorated class and an undecorated class wire exactly the same way.
+NexusDI provides a set of standard (TC39) decorators that act as syntactic sugar. They write the same `static deps` and `defineModule` definitions that you would write by hand. This means a decorated class and an undecorated class wire exactly the same way.
 
 ## Tooling and Compatibility
 
@@ -28,7 +28,7 @@ TypeScript verifies the tokens you provide against the constructor parameters, e
 
 ## Property Injection with `@Inject`
 
-Sometimes you need to inject a dependency into a class property rather than the constructor. You can achieve this using the `@Inject` decorator on a class `accessor`.
+Sometimes you need to inject a dependency into a class property and not the constructor. You can achieve this using the `@Inject` decorator on a class `accessor`.
 
 ```ts file=examples/meridian/src/pages/decorators.md region=inject-accessor
 

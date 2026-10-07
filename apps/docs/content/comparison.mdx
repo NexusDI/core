@@ -30,7 +30,7 @@ NexusDI avoids this by using `static deps`. Because `static deps` needs no compi
 
 ## Wiring-Mistake Detection
 
-Most containers are "optimistic"—they assume the graph is correct and only fail at runtime when a missing dependency is requested. This can lead to crashes in production on rarely-used code paths.
+Most containers are "optimistic". They assume the graph is correct and only fail at runtime when a missing dependency is requested. This can lead to crashes in production on rarely-used code paths.
 
 NexusDI is "pessimistic." It validates the entire module graph during the `Nexus.create` phase. If a dependency is missing, `Nexus.create` reports it before any constructor runs.
 
