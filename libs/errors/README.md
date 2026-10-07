@@ -29,25 +29,29 @@ npm install @nexusdi/errors@next @nexusdi/core@next
 import { Nexus, Token, defineModule, provide } from '@nexusdi/core';
 import { errors } from '@nexusdi/errors';
 
-const NAV_CHARTS = new Token<any>('NavCharts');
+interface INavCharts {
+  plot(to: string): string;
+}
+class StarCharts implements INavCharts {
+  plot = (to: string) => `course to ${to}`;
+}
+const NAV_CHARTS = new Token<INavCharts>('NavCharts');
 class Helm {
   static deps = [NAV_CHARTS] as const;
-  constructor(readonly charts: any) {}
+  constructor(readonly charts: INavCharts) {}
 }
 
 const Tactical = defineModule({
   name: 'Tactical',
-  providers: [provide(NAV_CHARTS, { useValue: {} })],
+  providers: [provide(NAV_CHARTS, { useClass: StarCharts })],
 });
 const Bridge = defineModule({ name: 'Bridge', providers: [Helm] });
 const App = defineModule({ name: 'App', imports: [Bridge, Tactical] });
 
 const plugins = [errors()];
-const result = await Nexus.create(App, { plugins }).catch(
-  (e) => e.errors[0].message,
-);
-console.log(result);
-// -> "NavCharts is provided in Tactical, which does not export it. \nFix: add NavCharts to Tactical's exports..."
+const fail = (error: { errors: Error[] }) => error.errors[0]?.message ?? '';
+const result = await Nexus.create(App, { plugins }).then(() => '', fail);
+result.split('\n').slice(1); // -> ['  NavCharts is provided in Tactical, which does not export it.', "  Fix: add NavCharts to Tactical's exports and import Tactical into Bridge."]
 ```
 
 ## Documentation
