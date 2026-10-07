@@ -7,9 +7,28 @@ requires: [scopes]
 
 # Lifecycle and Disposal
 
-Managing the lifecycle of a service is critical for application stability. This holds most for services with external resources such as database pools, file handles, or network sockets.
+Managing the lifecycle of a service is critical for application stability. This holds most for services with external resources such as database pools and file handles.
 
-If resources aren't closed in the correct order, you risk leaking connections, hanging test processes, or crashing during a rolling deployment. NexusDI automates this through a strict lifecycle and disposal pipeline.
+If resources aren't closed in the correct order, you risk leaking connections or hanging test processes. NexusDI automates this through a strict lifecycle and disposal pipeline.
+
+## Why NexusDI Manages Lifecycle and Disposal
+
+A service that holds a database pool or a file handle has to close it on every exit path, and in an order that keeps each service's dependencies open while it shuts down. Four situations show what goes wrong without that.
+
+- **Rolling deploys:** On SIGTERM, Kubernetes gives a pod 30 seconds by default (`terminationGracePeriodSeconds`) and then sends SIGKILL. A pool that nobody closed cuts in-flight queries off, and its connections stay open on the database server until the server times them out. A rolling deploy that repeats this can reach the database's connection limit.
+- **Test runs:** An open server or pool keeps the process alive. Jest prints "Jest did not exit one second after the test run has completed", and Vitest reports "close timed out" because something prevents the main process from exiting. A resource that one test leaves open is still there in the next test.
+- **Dev servers:** Each reload that builds a new container without disposing the old one leaves a second pool open beside the first.
+- **Out-of-order shutdown:** The database pool closes first, and the service that flushes its buffer on shutdown then fails its last writes.
+
+Each rule on this page prevents one of those problems:
+
+- `onInit` runs in dependency order and finishes before the first `get()`, so no service runs against a dependency that is not ready.
+- Disposal runs in reverse creation order, so a service stops before the dependencies it uses and never runs after they close.
+- Every disposer runs and the failures are chained, so one pool that fails to close does not leave the other sockets open, and the error lists every failure.
+- A scope owns the transients it builds, so a per-request resource closes when its request ends.
+- The container disposes what a factory returns and leaves a `useValue` alone, so it closes only what it created.
+
+[Lifecycle and Disposal Comparison](/comparison/#lifecycle-and-disposal-comparison) shows which of these rules each of six other containers applies.
 
 ## The Startup Phase: `onInit`
 
@@ -21,11 +40,13 @@ Any singleton class can implement an optional `onInit` method. NexusDI calls thi
 
 ```
 
-This ensures that no service ever runs against a dependency that isn't yet ready.
+This ensures that no service ever runs against a dependency that isn't yet ready. `QuantumComputer` is listed before `FusionReactor`, and the reactor still comes online first, because the computer depends on it.
+
+**Try it:** Save the region as `startup.ts` and run `npx tsx startup.ts`. It prints an array of the two log entries. Replace the body of the reactor's `onInit` with `throw new Error('coolant low');` and run it again. `Nexus.create` rejects with a `ProviderError` that starts `[NEXUS_PROVIDER_FAILED] token=ReactorCore module=Engineering` and lists `[cause]: Error: coolant low`. The computer's `onInit` never runs, and nothing prints. Put the `log.push('reactor online');` line back and the program prints the two entries again.
 
 ## The Shutdown Phase: `AsyncDisposable`
 
-To prevent resource leaks, NexusDI treats the container as an `AsyncDisposable`. When the container is disposed, it shuts down every instance it owns.
+To prevent resource leaks, NexusDI treats the container as an `AsyncDisposable`. When the container is disposed, it shuts down every instance it owns. `await using ship = await Nexus.create(...)` disposes the container when the block ends, and `ship[Symbol.asyncDispose]()` disposes it by hand.
 
 **The Gold Rule of Disposal:** Instances are disposed in the **exact reverse order** of their creation.
 
@@ -33,15 +54,26 @@ To prevent resource leaks, NexusDI treats the container as an `AsyncDisposable`.
 
 ```
 
-By following this order, NexusDI guarantees that a service is stopped _before_ the dependencies it relies on are closed.
+By following this order, NexusDI guarantees that a service is stopped _before_ the dependencies it relies on are closed. The computer was built after the reactor, so it shuts down first, and the reactor scram runs last.
+
+<Notice kind="ship">
+  A reactor scram drops the control rods. The ship's computer logs off before
+  the scram, so it never runs without power.
+</Notice>
+
+**Try it:** Save the region as `scram.ts` and run it. Swap the order of the two `provide()` calls and run it again. It prints `true` and the same two lines in the same order: NexusDI orders disposal by creation, and creation follows the dependencies. Swap the calls back.
 
 ## Robust Error Handling during Disposal
 
-A single failing disposer should not stop other resources from being cleaned up. If multiple disposers throw errors, NexusDI collects them all into a `SuppressedError` chain. This ensures that every single socket and pool is attempted to be closed, and you receive a complete list of every failure that occurred.
+A single failing disposer should not stop other resources from being cleaned up. If multiple disposers throw errors, NexusDI collects them all into a `SuppressedError` chain, built the way `DisposableStack` builds one. This ensures that every socket and pool gets its close call, and you receive a complete list of every failure that occurred.
 
 ```ts file=examples/meridian/src/pages/lifecycle.md region=dispose-failures
 
 ```
+
+The shield grid was built after the reactor, so it is disposed first, and its failure ends up in `suppressed`.
+
+**Try it:** Save the region as `failures.ts` and run it. Remove the `throw` line from `DeflectorGrid` and run it again. The rejection is now the reactor's plain `Error` with no chain, and the program prints `Error` and `control rods jammed`. Put the `throw` back and the program prints the three lines of the chain again.
 
 ## Ownership and Disposal
 
@@ -54,8 +86,32 @@ NexusDI only disposes of what it actually created.
 
 ```
 
+The main relay came from a factory and is closed with the container. The backup relay was passed with `useValue` and stays open.
+
+**Try it:** Save the region as `ownership.ts` and run it. Change the `BACKUP_LINK` provider to `useFactory: () => backup` and run it again. The container now owns the backup relay and closes it too: the program prints `['backup relay closed', 'main relay closed']`, the later relay first. Change the provider back to `useValue: backup` and it prints `['main relay closed']` again.
+
 ## Transient Disposal in Scopes
 
 Singletons are disposed when the container is disposed. However, **transients** (which are created on every `get()`) have no permanent owner.
 
-To prevent memory leaks, you should resolve disposable transients within a **Scope**. The scope takes ownership of every transient it creates and disposes of them when the scope itself is destroyed.
+To prevent memory leaks, you should resolve disposable transients within a **Scope**. The scope takes ownership of every transient it creates and disposes of them when the scope itself is destroyed. A transient resolved from the root container is never disposed, and NexusDI reports it as an `untracked` trace event, which `trace()` from `@nexusdi/devtools` receives.
+
+```ts file=examples/meridian/src/pages/lifecycle.md region=transient-in-scope
+
+```
+
+The drone from `ship.get(DRONE)` appears in the `untracked` events and is never recalled. The drone from `shuttle.get(DRONE)` is recalled when the shuttle's block ends. The region needs `npm install -D @nexusdi/devtools@next`.
+
+**Try it:** Save the region as `drones.ts` and run it. Move the `ship.get(DRONE)` line inside the shuttle's block and change it to `shuttle.get(DRONE)`. Run it again. The first print is `[]` because no event is untracked, and the second is `['drone 2 recalled', 'drone 1 recalled']`: the shuttle recalls both drones, the later one first. Move the line back out of the block and the program prints the leak again.
+
+## Rules
+
+These are the guarantees the container keeps, for reference.
+
+- `onInit` runs on singletons only. NexusDI never calls it on a `useValue` object, and a scoped or transient class does its setup in its constructor or in a factory.
+- NexusDI awaits an `onInit` that returns a promise, and `Nexus.create` resolves only after every `onInit` has finished.
+- An `onInit` that throws rejects `Nexus.create` with `NEXUS_PROVIDER_FAILED`, the thrown error as its `cause`, and the `onInit` methods of later levels do not run.
+- NexusDI calls `Symbol.asyncDispose` or `Symbol.dispose` on every instance it built, once per instance.
+- A second call to `ship[Symbol.asyncDispose]()` returns the first call's promise, so two signal handlers can both call it.
+- In the `SuppressedError` chain, `error` holds the last failure and `suppressed` holds the chain before it. On a runtime without `SuppressedError`, NexusDI uses its own error class with the same name and fields.
+- A scope disposes the transients it built in reverse creation order when the scope is disposed.

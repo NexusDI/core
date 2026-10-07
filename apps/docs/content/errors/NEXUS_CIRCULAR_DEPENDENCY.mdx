@@ -10,7 +10,7 @@ errorClass: CircularDependencyError
 
 `NEXUS_CIRCULAR_DEPENDENCY` means providers depend on each other in a cycle and no edge of the cycle is a `lazy()` dependency, so no provider in it can be built first. `Nexus.create` reports it inside [NEXUS_BLUEPRINT_INVALID](/errors/NEXUS_BLUEPRINT_INVALID/).
 
-The error covers indirect cycles of any length, across modules too. [Why `lazy()` is opt-in](/lazy/#why-lazy-is-opt-in) says why NexusDI reports them.
+The error covers indirect cycles of any length, across modules too. [Why NexusDI makes `lazy()` opt-in](/lazy/#why-nexusdi-makes-lazy-opt-in) says why NexusDI reports them.
 
 ## Reproduce `NEXUS_CIRCULAR_DEPENDENCY`
 
