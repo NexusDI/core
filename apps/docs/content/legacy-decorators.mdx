@@ -44,7 +44,7 @@ The core of NexusDI does not use decorators. By using `static deps` on your clas
 
 ```
 
-This approach works regardless of your compiler flags. TypeScript still verifies that the tokens in `static deps` match the constructor parameters at the `provide()` call, and the container resolves them normally.
+This approach works regardless of your compiler flags. TypeScript still verifies that the tokens in `static deps` match the constructor parameters, and the container resolves them normally. TypeScript checks this at the `provide()` call.
 
 **Try it:** Save the region as `wire.ts` and run `npx tsx wire.ts`. It prints `ShipComputer online. Reactor output 1.21 GW.` Add `"experimentalDecorators": true` to the `compilerOptions` of your `tsconfig.json` and run it again: `npx tsc` reports nothing and the output does not change. Now change `static deps = [REACTOR] as const` to `[COMPUTER] as const`. `npx tsc` reports TS2769 on the `provide(COMPUTER, { useClass: QuantumComputer })` line, because `COMPUTER` is not a `Token<IReactorCore>`. Change it back.
 

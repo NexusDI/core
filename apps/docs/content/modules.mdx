@@ -68,7 +68,7 @@ A global module suits a provider that most modules need and no module owns, such
 
 Because modules are defined by the tokens they export and not by the classes they use, you can swap an entire module for another as long as the exported tokens remain the same.
 
-This is incredibly powerful for testing. You can replace `Engineering` with a `SimulatorEngineering` module that exports the same `COMPUTER` token but binds `REACTOR` to a `SimulatedReactor` behind it.
+This is incredibly powerful for testing. You can replace a `ProductionEngineeringModule` with a `SimulatorEngineeringModule` that exports the same `COMPUTER` token but uses a simulated reactor behind that token. In this page's example, `Engineering` is the module you replace, and `SimulatorEngineering` binds `REACTOR` to a `SimulatedReactor`.
 
 ```ts file=examples/meridian/src/pages/modules.md region=swap
 

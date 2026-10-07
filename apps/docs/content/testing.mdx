@@ -8,7 +8,7 @@ description: Replace production providers with fakes or stubs to isolate your co
 
 Testing a component that depends on a complex system (like a database or a remote API) is difficult if you have to set up the entire production environment just to run a single test.
 
-NexusDI provides a specialized testing utility, `@nexusdi/testing`, that allows you to build your real production graph but "swap out" specific providers for fakes. Install it as a dev dependency:
+NexusDI provides a specialized testing utility that allows you to build your real production graph but "swap out" specific providers for fakes. The utility is in `@nexusdi/testing`. Install it as a dev dependency:
 
 ```bash
 npm install -D @nexusdi/testing@next
@@ -26,7 +26,7 @@ For simple unit tests, you don't need a NexusDI container at all. Since your cla
 
 ## Integration Testing with `createTestingContainer`
 
-When you need to test how a component interacts with the rest of the system, use `createTestingContainer(root)`. This utility builds the real module graph but allows you to `override` specific tokens, then `create()` builds the container.
+When you need to test how a component interacts with the rest of the system, use `createTestingContainer`. This utility builds the real module graph but allows you to `override` specific tokens. It takes the root, as in `createTestingContainer(root)`, and `create()` builds the container.
 
 ```ts file=examples/meridian/src/pages/testing.md region=override-reactor
 
@@ -60,13 +60,13 @@ An override that matches no provider fails as well. `create()` rejects with `NEX
 
 ## Overriding Modules
 
-In some cases, you need to replace an entire set of providers. You can use `overrideModule(Comms, CommsStub)` to replace one module with a stub module wherever the graph imports it, including every `forRoot()` and `forRootAsync()` instance of it.
+In some cases, you need to replace an entire set of providers. You can use `overrideModule` to replace one module with a stub module. `overrideModule(Comms, CommsStub)` replaces the module wherever the graph imports it, including every `forRoot()` and `forRootAsync()` instance of it.
 
 ```ts file=examples/meridian/src/pages/testing.md region=override-module
 
 ```
 
-The stub module must export every token that the original module exported; otherwise, the container will reject the startup process with `NEXUS_BLUEPRINT_INVALID` holding [NEXUS_OVERRIDE_EXPORTS](/errors/NEXUS_OVERRIDE_EXPORTS/).
+The stub module must export every token that the original module exported; otherwise, the container will reject the startup process with a `NEXUS_OVERRIDE_EXPORTS` error. The rejection is `NEXUS_BLUEPRINT_INVALID` holding [NEXUS_OVERRIDE_EXPORTS](/errors/NEXUS_OVERRIDE_EXPORTS/).
 
 **Try it:** Delete `exports: [SUBSPACE_LINK]` from `CommsStub` and run the region. The process ends with the error, and the inner message reads `the stub for Comms does not export SubspaceLink, which Comms exports.` Put the export back and the region prints `loopback hail`.
 
@@ -86,7 +86,7 @@ By default, an override preserves the lifetime of the original provider. If a pr
 
 ### Shared Base Builders
 
-To avoid repeating the same overrides across multiple tests, you can create a base builder. Because the builder is immutable, you can derive specific test configurations from a single base without them interfering with each other: each `override()` returns a new builder and leaves the one it was called on unchanged.
+To avoid repeating the same overrides across multiple tests, you can create a base builder. Because the builder is immutable, you can derive specific test configurations from a single base without them interfering with each other. Each `override()` returns a new builder and leaves the one it was called on unchanged.
 
 ```ts file=examples/meridian/src/pages/testing.md region=shared-builder
 

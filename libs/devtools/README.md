@@ -11,11 +11,11 @@
 
 ### 1. Graph Introspection
 
-Retrieve the entire compiled module graph as JSON with `graph(ship)`, or with `inspect(root)` without building anything. `toMermaid()` and `toDot()` draw it as Mermaid or Graphviz text.
+Retrieve the entire compiled module graph as JSON. You can use this to build visual diagrams or to programmatically verify your architecture. Get it with `graph(ship)`, or with `inspect(root)` without building anything. `toMermaid()` and `toDot()` draw it as Mermaid or Graphviz text.
 
 ### 2. Lifecycle Tracing
 
-`trace(fn)` is a plugin that passes every lifecycle event to `fn` in real-time. You can track:
+Observe every event in the container's lifecycle in real-time. `trace(fn)` is a plugin that passes each event to `fn`. You can track:
 
 - When a provider is constructed.
 - When a singleton's `onInit` completes.
@@ -38,7 +38,8 @@ npm install @nexusdi/devtools@next @nexusdi/core@next
 
 ```ts @import.meta.vitest
 import { Nexus, Token, defineModule, provide } from '@nexusdi/core';
-import { devtools, graph, toMermaid, trace } from '@nexusdi/devtools';
+import { devtools, graph, toMermaid } from '@nexusdi/devtools';
+import { trace } from '@nexusdi/devtools';
 
 interface INavCharts {
   plot(to: string): string;

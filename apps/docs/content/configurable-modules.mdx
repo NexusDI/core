@@ -23,7 +23,7 @@ The `forRoot(value)` method allows an importer to supply the required options. `
 
 The type of that value comes from the token, so `Comms.forRoot({ frequency: '1420', transport: 'relay' })` fails to compile: `tsc` reports `Type 'string' is not assignable to type 'number'` on the `frequency` line.
 
-If a module declares an options token but is imported without a `forRoot` call, `Nexus.create` rejects with `NEXUS_BLUEPRINT_INVALID`, and its `errors` list holds [NEXUS_MODULE_OPTIONS_MISSING](/errors/NEXUS_MODULE_OPTIONS_MISSING/) with `module=Comms`. This region catches the error and prints the inner codes:
+If a module declares an options token but is imported without a `forRoot` call, `Nexus.create` rejects with `NEXUS_BLUEPRINT_INVALID`, and its `errors` list holds `NEXUS_MODULE_OPTIONS_MISSING`. The error carries `module=Comms`. See [NEXUS_MODULE_OPTIONS_MISSING](/errors/NEXUS_MODULE_OPTIONS_MISSING/). This region catches the error and prints the inner codes:
 
 ```ts file=examples/meridian/src/pages/configurable-modules.md region=missing-for-root
 
@@ -53,7 +53,7 @@ This allows you to keep your components decoupled from the specific implementati
 
 ## Asynchronous Configuration with `forRootAsync`
 
-Sometimes your configuration isn't known at compile time (it might need to be fetched from a database or an environment variable). `forRootAsync({ useFactory, deps })` allows you to compute your options during the container's startup phase.
+Sometimes your configuration isn't known at compile time (it might need to be fetched from a database or an environment variable). `forRootAsync` allows you to compute your options during the container's startup phase. The call takes `{ useFactory, deps }`.
 
 ```ts file=examples/meridian/src/pages/configurable-modules.md region=for-root-async
 
@@ -67,19 +67,19 @@ The factory's `deps` resolve inside the module: from its own providers, from the
 
 ## Validating Options with Schemas
 
-To prevent your app from starting with invalid configuration, you can attach a `schema` to your module. NexusDI supports any Standard Schema validator. The examples use valibot 1.5.0, whose schemas implement Standard Schema, so NexusDI validates them with no valibot-specific code.
+To prevent your app from starting with invalid configuration, you can attach a `schema` to your module. NexusDI supports any Standard Schema validator (such as Valibot). The examples use valibot 1.5.0, whose schemas implement Standard Schema, so NexusDI validates them with no valibot-specific code.
 
 ```ts file=examples/meridian/src/pages/configurable-modules.md region=schema
 
 ```
 
-If the options provided to `forRoot` fail the schema check, `Nexus.create` rejects with [NEXUS_PROVIDER_FAILED](/errors/NEXUS_PROVIDER_FAILED/), whose `cause` is [NEXUS_INVALID_MODULE_OPTIONS](/errors/NEXUS_INVALID_MODULE_OPTIONS/) with the schema's issues. The module's providers are never built with the bad value.
+If the options provided to `forRoot` fail the schema check, `Nexus.create` rejects with `NEXUS_PROVIDER_FAILED`, whose `cause` is `NEXUS_INVALID_MODULE_OPTIONS`. The module's providers are never built with the bad value. The cause carries the schema's issues. See [NEXUS_PROVIDER_FAILED](/errors/NEXUS_PROVIDER_FAILED/) and [NEXUS_INVALID_MODULE_OPTIONS](/errors/NEXUS_INVALID_MODULE_OPTIONS/).
 
 **Try it:** Install valibot with `npm install valibot@1.5.0`, save the region as `schema.ts` and run it. It prints the codes and `Invalid value: Expected >=1 but received -5`. Change `-5` to `1420` and run it again. `Nexus.create` resolves, so the first two lines print `null` and the third prints `[]`.
 
 ## Sharing Configured Modules
 
-Every call to `forRoot()` or `forRootAsync()` creates a new instance of the module with its own providers. If you want multiple parts of your app to share the same configured module (and thus share its singletons), you should call `forRoot` once and keep the resulting module in a constant. Import that constant everywhere the configured module is needed.
+Every call to `forRoot()` or `forRootAsync()` creates a new instance of the module. Each instance has its own providers. If you want multiple parts of your app to share the same configured module (and thus share its singletons), you should call `forRoot` once and export the resulting module constant. Import that constant everywhere the configured module is needed.
 
 ```ts file=examples/meridian/src/pages/configurable-modules.md region=for-root-once
 

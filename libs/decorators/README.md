@@ -39,7 +39,8 @@ npm install @nexusdi/decorators@next @nexusdi/core@next
 
 ```ts @import.meta.vitest
 import { Nexus, Token, provide } from '@nexusdi/core';
-import { Inject, Injectable, Module } from '@nexusdi/decorators';
+import { Injectable, Module } from '@nexusdi/decorators';
+import { Inject } from '@nexusdi/decorators';
 
 interface IBridge {
   readonly callsign: string;

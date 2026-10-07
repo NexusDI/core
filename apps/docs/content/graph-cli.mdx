@@ -20,7 +20,7 @@ npm install -D @nexusdi/cli@next @nexusdi/devtools@next
 
 ## Drawing the Graph
 
-The `nexusdi graph` command takes an entry written `path#export`: the file defining your root module and the name it exports. With no `#export` it takes the default export.
+The `nexusdi graph` command takes an entry point (the file defining your root module) and optionally a specific export. The entry is written `path#export`: the file and the name it exports. With no `#export` it takes the default export.
 
 ```bash
 npx nexusdi graph src/meridian.module.ts#Meridian
@@ -50,9 +50,10 @@ You can customize the output and the level of detail:
 
 - **Formats:** Use `-f` or `--format` to choose between `mermaid` (default), `dot`, `json`, `svg`, or `png`.
 - **Output file:** Use `-o` or `--out` to write to a file. Without `-f`, the command infers the format from the file's extension (`.mmd`, `.dot`, `.json`, `.svg`, `.png`). With neither, it writes Mermaid to stdout.
-- **Views:** `--view` defaults to `providers`. Use `--view modules` to see the high-level module import graph, one node per module, without the individual providers.
+- **Views:** Use `--view modules` to see the high-level module import graph without the individual providers. `--view` defaults to `providers`, and the `modules` view has one node per module.
 
 ```bash
+npx nexusdi graph src/meridian.module.ts#Meridian -o graph.svg --view modules
 npx nexusdi graph src/meridian.module.ts#Meridian -o graph.mmd
 npx nexusdi graph src/meridian.module.ts#Meridian --view modules -f dot
 ```
@@ -61,18 +62,20 @@ npx nexusdi graph src/meridian.module.ts#Meridian --view modules -f dot
 
 ```
 
-SVG needs `@viz-js/viz` (Graphviz as WebAssembly), and PNG also needs `@resvg/resvg-js`. Mermaid, DOT and JSON need nothing else. A format whose package is missing exits with code 3 and prints one install line, such as `npm i -D @viz-js/viz @resvg/resvg-js` for PNG.
+SVG needs `@viz-js/viz`, and PNG also needs `@resvg/resvg-js`. Mermaid, DOT and JSON need nothing else:
 
 ```bash
 npm install -D @viz-js/viz @resvg/resvg-js
 npx nexusdi graph src/meridian.module.ts#Meridian -o graph.svg
 ```
 
+`@viz-js/viz` runs Graphviz as WebAssembly. A format whose package is missing exits with code 3 and prints one install line, such as `npm i -D @viz-js/viz @resvg/resvg-js` for PNG.
+
 ## Advanced Analysis
 
 ### Simulating Dynamic Loads
 
-If your app uses `ship.load()` to add modules at runtime, you can simulate this in the CLI using the `--load path#export` flag. It compiles a module after the root, as `ship.load()` would, and repeats once per module:
+If your app uses `ship.load()` to add modules at runtime, you can simulate this in the CLI using the `--load` flag: it takes `path#export`, compiles a module after the root, as `ship.load()` would, and repeats once per module:
 
 ```bash
 npx nexusdi graph src/meridian.module.ts#Meridian --load src/science.module.ts#Science
@@ -80,7 +83,7 @@ npx nexusdi graph src/meridian.module.ts#Meridian --load src/science.module.ts#S
 
 ### Including Plugins
 
-If you use plugins that add modules or change the graph, you can pass them via the `--plugins path#export` flag. It names an exported array of plugins, the array you pass to `Nexus.create`:
+If you use plugins that add modules or change the graph, you can pass them via the `--plugins` flag: it takes `path#export` and names an exported array of plugins, the array you pass to `Nexus.create`:
 
 ```bash
 npx nexusdi graph src/meridian.module.ts#Meridian --plugins src/plugins.ts#plugins
@@ -108,7 +111,7 @@ A value that is not a `NexusGraph` throws `DevtoolsError` with the code [NEXUS_D
 
 ## CI/CD Integration
 
-The `nexusdi graph` command is ideal for CI pipelines. A CI job runs the command and uploads the graph, and the job fails on any nonzero exit code. By adding this to your pipeline, you can prevent broken dependency graphs from ever being merged into your main branch.
+The `nexusdi graph` command is ideal for CI pipelines. It exits with code `0` if the graph is valid and code `1` if there are wiring mistakes. Code `2` means the arguments or an input file are wrong, and code `3` means a package the command needs is missing, such as `@nexusdi/devtools` or `@viz-js/viz`. A CI job runs the command and uploads the graph, and the job fails on any nonzero exit code. By adding this to your pipeline, you can prevent broken dependency graphs from ever being merged into your main branch.
 
 ```bash
 # Fail the build if the graph is invalid

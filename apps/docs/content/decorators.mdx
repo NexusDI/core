@@ -16,7 +16,7 @@ npm install @nexusdi/decorators@next
 
 ## Tooling and Compatibility
 
-Because these are standard decorators, they require a toolchain that can compile them: `tsc`, TypeScript 7, esbuild, SWC, Babel, Bun, Deno, or Vite with its Babel plugin. Plain Vite 8 and Node's type stripping cannot compile them, and `tsx` compiles them through esbuild. The `tsconfig.json` from [Getting Started](/getting-started/) already compiles these decorators, and `npx tsx` and `npx tsc` need no other setting.
+Because these are standard decorators, they require a toolchain that can compile them: `tsc`, TypeScript 7, esbuild, SWC, Babel, Bun, Deno, or Vite with its Babel plugin. Plain Vite 8 and Node's type stripping cannot compile them. `tsx` compiles them through esbuild. The `tsconfig.json` from [Getting Started](/getting-started/) already compiles these decorators, and `npx tsx` and `npx tsc` need no other setting.
 
 **Important:** You must leave `experimentalDecorators` and `emitDecoratorMetadata` **disabled** in your `tsconfig.json`. NexusDI does not rely on compiler-emitted metadata; every dependency is explicitly named via a token in the decorator. A project that must keep `experimentalDecorators` for another library uses `static deps` and `defineModule()`, as [Using NexusDI with experimentalDecorators](/legacy-decorators/) shows.
 
@@ -30,7 +30,7 @@ The `@Injectable` decorator records a class's dependencies directly on the class
 
 TypeScript verifies the tokens you provide against the constructor parameters, ensuring type safety. A `useClass` binding reads what `@Injectable` declared, so `provide(COMPUTER, { useClass: QuantumComputer })` needs no `deps` option. `@Injectable` also takes `lifetime`.
 
-If you omit the decorator and the class has constructor parameters, `Nexus.create` will reject with [NEXUS_BLUEPRINT_INVALID](/errors/NEXUS_BLUEPRINT_INVALID/), whose `errors` list holds [NEXUS_MISSING_DEPS](/errors/NEXUS_MISSING_DEPS/). This region catches the rejection and prints that code:
+If you omit the decorator and the class has constructor parameters, `Nexus.create` will reject with a `NEXUS_MISSING_DEPS` error during startup. The rejection is [NEXUS_BLUEPRINT_INVALID](/errors/NEXUS_BLUEPRINT_INVALID/), whose `errors` list holds [NEXUS_MISSING_DEPS](/errors/NEXUS_MISSING_DEPS/). This region catches the rejection and prints that code:
 
 ```ts file=examples/meridian/src/pages/decorators.md region=missing-deps
 
@@ -67,4 +67,4 @@ Module encapsulation rules apply exactly as they do with `defineModule()`: only 
 
 **Try it:** Save the region as `module.ts` and run `npx tsx module.ts`: it prints the status line and `false`. Add `REACTOR` to `exports` and run it again, and the last line is `true`.
 
-**Note:** `@Module` classes are static. If you need a configurable module (e.g., one with `forRoot()` or `forRootAsync()`), you should continue using `defineModule()` ([Configurable Modules](/configurable-modules/)). A `@Module` class may import a configurable module.
+**Note:** `@Module` classes are static. If you need a configurable module (e.g., one with `forRoot()` or `forRootAsync()`), you should continue using `defineModule()`. See [Configurable Modules](/configurable-modules/). A `@Module` class may import a configurable module.

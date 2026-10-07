@@ -16,15 +16,15 @@ To ensure that the ecosystem remains stable and maintainable, all NexusDI plugin
 
 **Key Rules for Plugin Authors:**
 
-1. **Own your vocabulary:** A package reads another package's codes, event types, ids and hidden fields only through what that package exports. It never lists them in a table, a switch, a regex or a string compare.
-2. **Open Types:** A set that other packages extend is open in its type. `NexusErrorByCode` and `TraceEventByType` are interfaces a package augments, text packs and graph annotators are arguments the application passes, and code that branches on such a set handles a member it does not know.
-3. **Public Hooks:** Only integrate via public, versioned contribution points: a plugin hook, a `PluginContext` member, a view field or an options argument.
+1. **Own your vocabulary:** Never rely on internal strings or hidden fields of other packages. A package reads another package's codes, event types and ids only through what that package exports. It never lists them in a table, a switch, a regex or a string compare.
+2. **Open Types:** Use augmentable interfaces (like `NexusErrorByCode`) so other plugins can add their own types. A set that other packages extend is open in its type. `NexusErrorByCode` and `TraceEventByType` are interfaces a package augments, text packs and graph annotators are arguments the application passes, and code that branches on such a set handles a member it does not know.
+3. **Public Hooks:** Only integrate via official plugin hooks or the `PluginContext`. The public, versioned contribution points are a plugin hook, a `PluginContext` member, a view field and an options argument.
 4. **No Logic Duplication:** If two plugins need the same logic, the owner of that logic should export a helper.
 5. **One-Way Optional Dependencies:** An optional dependency points one way, and the application writes the wiring line. A package names an optional package only in a type import or from a subpath the application opts into, such as `./text`, does not look for a missing package at run time, and never looks a plugin up by name.
 
 ## The Plugin Object
 
-A plugin is a plain JavaScript object that declares its `name` and the `apiVersion` it was written against, `NEXUS_PLUGIN_API` from `@nexusdi/core`. It then implements one or more optional hooks. Core reads the hooks once, when `Nexus.create` registers the plugin.
+A plugin is a plain JavaScript object that declares its `name` and the `apiVersion` it was written against. The version is `NEXUS_PLUGIN_API` from `@nexusdi/core`. It then implements one or more optional hooks. Core reads the hooks once, when `Nexus.create` registers the plugin.
 
 ```ts no-run
 const myPlugin = {
@@ -46,30 +46,30 @@ A package exports a function that returns the plugin, so the application passes 
 2. Change `'construct'` to `'init'` and run again. It prints `[]`: an `init` event comes from an `onInit` method, and neither class has one. `npx tsc --noEmit` accepts the line, because `'init'` is a trace event type.
 3. Change `'init'` back to `'construct'` and the two lines return.
 
-### Hooks
+### Common Hooks
 
 Every hook is optional:
 
-| Hook               | Purpose                                                                                                                   |
-| :----------------- | :------------------------------------------------------------------------------------------------------------------------ |
-| `modules`          | Adds modules to the root's imports, compiled like any import.                                                             |
-| `onInit`           | `false` skips `onInit` at `create` and `load`.                                                                            |
-| `tokenKey`         | Maps a token to the key every lookup uses; one key finds one provider.                                                    |
-| `compile.module`   | Replaces a module definition before the compiler validates it.                                                            |
-| `compile.provider` | Replaces or removes a provider before the compiler validates it.                                                          |
-| `compile.check`    | Validate the graph and report custom errors before the container starts.                                                  |
-| `construct`        | Wrap or observe instances as they are created; it may return a wrapper to store.                                          |
-| `observe`          | Listen to every trace event emitted by the container.                                                                     |
-| `formatError`      | Provide custom human-readable text for specific error codes.                                                              |
-| `setup`            | Runs once, in plugin order, after `create` has built the singletons, and receives a `PluginContext`.                      |
-| `dispose`          | Runs at container disposal, after every root-owned instance, in reverse plugin order, for plugins whose `setup` finished. |
+| Hook               | Purpose                                                                                                                    |
+| :----------------- | :------------------------------------------------------------------------------------------------------------------------- |
+| `modules`          | Adds modules to the root's imports, compiled like any import.                                                              |
+| `onInit`           | `false` skips `onInit` at `create` and `load`.                                                                             |
+| `tokenKey`         | Maps a token to the key every lookup uses; one key finds one provider.                                                     |
+| `compile.module`   | Replaces a module definition before the compiler validates it.                                                             |
+| `compile.provider` | Replaces or removes a provider before the compiler validates it.                                                           |
+| `compile.check`    | Validate the graph and report custom errors before the container starts.                                                   |
+| `construct`        | Wrap or observe instances as they are created. It may return a wrapper to store.                                           |
+| `observe`          | Listen to every trace event emitted by the container.                                                                      |
+| `formatError`      | Provide custom human-readable text for specific error codes.                                                               |
+| `setup`            | Perform one-time initialization after singletons are built. It runs once, in plugin order, and receives a `PluginContext`. |
+| `dispose`          | Runs at container disposal, after every root-owned instance, in reverse plugin order, for plugins whose `setup` finished.  |
 
 ## Reporting Custom Errors
 
-If your plugin finds a problem with the module graph during `compile.check(view, report)`, you can report it as a formal NexusDI error. `Nexus.create` adds it to the `NEXUS_BLUEPRINT_INVALID` it throws.
+If your plugin finds a problem with the module graph during `compile.check`, you can report it as a formal NexusDI error. The call is `compile.check(view, report)`. `Nexus.create` adds the error to the `NEXUS_BLUEPRINT_INVALID` it throws.
 
-1. **Define the Error:** Use `errorBase(code, name, docsBase)` to create a stable error class. The third argument is the base URL of your docs: the one-line message links to it followed by the code. Add the code to `NexusErrorByCode`, so `isNexusError` narrows it and a text pack can name it.
-2. **Provide the Text:** Create a text pack that maps the error code to a human-readable message, typed with `satisfies ErrorTextPack` and published at the package's `./text` subpath. The application passes the pack to `errors({ text })`.
+1. **Define the Error:** Use `errorBase()` to create a stable error class with a code and a link to your documentation. The call is `errorBase(code, name, docsBase)`. The third argument is the base URL of your docs, and the one-line message links to it followed by the code. Add the code to `NexusErrorByCode`, so `isNexusError` narrows it and a text pack can name it.
+2. **Provide the Text:** Create a text pack that maps the error code to a human-readable message. Type it with `satisfies ErrorTextPack` and publish it at the package's `./text` subpath. The application passes the pack to `errors({ text })`.
 3. **Report the Error:** Call `report()`, the second parameter of your `compile.check` hook.
 
 ```ts file=examples/meridian/src/pages/write-a-plugin.md region=own-error
@@ -88,7 +88,7 @@ The pack and the error class are published in one package at one version, so the
 
 You can add your own events to the container's trace, which allows other plugins (and the `@nexusdi/devtools` plugin) to observe your plugin's behavior.
 
-By augmenting the `TraceEventByType` interface with keys of the form `<package>/<event>`, you can add type-safe events that you emit with `context.emit(make)` from the `PluginContext` your `setup` hook receives. Every `observe` hook receives the event, and `make` runs only when an observer exists.
+By augmenting the `TraceEventByType` interface, you can add type-safe events that you can emit from the `PluginContext`. Use keys of the form `<package>/<event>`. Emit with `context.emit(make)` from the `PluginContext` your `setup` hook receives. Every `observe` hook receives the event, and `make` runs only when an observer exists.
 
 ```ts file=examples/meridian/src/pages/write-a-plugin.md region=own-event
 
@@ -130,6 +130,6 @@ With a `tokenKey` plugin registered, several tokens find one provider, and `Prov
 
 ## Versioning and Compatibility
 
-To prevent crashes, NexusDI checks the `apiVersion` of every plugin. `NEXUS_PLUGIN_API` is 1 in `@nexusdi/core` 0.4. A new optional member of a hook, a `PluginContext` member, an `ErrorTextKit` member, a `GraphNote` field or a `TraceEventByType` key keeps the version. If the core API changes in a way that breaks a plugin, the version is incremented. Core accepts every plugin API version it still supports. If a plugin's `apiVersion` is not one of them, `Nexus.create` rejects the startup process with [NEXUS_PLUGIN_VERSION](/errors/NEXUS_PLUGIN_VERSION/).
+To prevent crashes, NexusDI checks the `apiVersion` of every plugin. `NEXUS_PLUGIN_API` is 1 in `@nexusdi/core` 0.4. A new optional member of a hook, a `PluginContext` member, an `ErrorTextKit` member, a `GraphNote` field or a `TraceEventByType` key keeps the version. If the core API changes in a way that breaks a plugin, the version is incremented. Core accepts every plugin API version it still supports. If a plugin's `apiVersion` is not one of them, `Nexus.create` rejects the startup process with a `NEXUS_PLUGIN_VERSION` error. See [NEXUS_PLUGIN_VERSION](/errors/NEXUS_PLUGIN_VERSION/).
 
 Declare `@nexusdi/core` as a peer dependency, and add the npm keyword `nexusdi-plugin` to your `package.json` so a reader can find the package. [NexusDI Plugins](/plugins/) shows the application side.

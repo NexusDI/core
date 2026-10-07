@@ -12,9 +12,9 @@ In any complex application, you'll find logic that needs to run across many diff
 
 ## How Interceptors Work
 
-An interceptor is a provider that implements the `Interceptor` interface and declares its deps like any class provider. Its core logic lives in the `intercept(call, next)` method:
+An interceptor is a provider that implements the `Interceptor` interface. It declares its deps like any class provider. Its core logic lives in the `intercept(call, next)` method:
 
-- **`call`**: A `CallContext` holding the service instance, the provider, the method name, the arguments, the `async` flag and the current scope.
+- **`call`**: A context object containing the service instance, the method name, the arguments, and the current scope. The object is a `CallContext`, which also holds the provider and the `async` flag.
 - **`next`**: A function that triggers the next interceptor in the chain, eventually calling the actual service method.
 
 To use them, you first install the interceptors package:
@@ -33,7 +33,7 @@ You can attach interceptors at different levels of granularity:
 
 ### 1. Method-Level
 
-Target a specific method within a class using a `static interceptors` map, checked by `satisfies InterceptorMap<T>`. `methods` maps a method name to its interceptors.
+Target a specific method within a class using a `static interceptors` map. The map is checked by `satisfies InterceptorMap<T>`. `methods` maps a method name to its interceptors.
 
 ```ts file=examples/meridian/src/pages/interceptors.md region=audit
 
@@ -50,21 +50,7 @@ Target a specific method within a class using a `static interceptors` map, check
 
 Apply an interceptor to every method in a class by using the `class` key in the map. The `tap` region below attaches `TIMING` with `class: [TIMING]`.
 
-### 3. Decorators and Bindings
-
-`@UseInterceptors(...tokens)` from `@nexusdi/interceptors` attaches interceptors to a class or one method with a standard decorator, for a project that already compiles decorators ([Writing Providers with Decorators](/decorators/)):
-
-```ts file=examples/meridian/src/pages/interceptors.md region=decorator
-
-```
-
-`bindings` attaches interceptors to a token whose provider you cannot edit, such as a factory or a class from a package:
-
-```ts file=examples/meridian/src/pages/interceptors.md region=binding
-
-```
-
-### 4. Global-Level
+### 3. Global-Level
 
 Apply logic to every single service in the container. This is ideal for global logging or security audits. An entry `{ use, when }` skips a method where `when({ provider, method })` returns false, and `when` runs once per provider and method.
 
@@ -80,6 +66,20 @@ Apply logic to every single service in the container. This is ideal for global l
 
 **Try it:** Save the `global` region as `global.ts` and run `npx tsx global.ts`. It prints `online at 1.21 GW` and `[ 'ShipComputer.status' ]`. Delete `exempt: [FLIGHT_LOG]` and run it again: `Nexus.create` rejects, and the uncaught error lists `NEXUS_INTERCEPTOR_INVALID` with `reason=unexempted-dep token=Audit target=FlightLog`. Put the entry back and the two lines return.
 
+### 4. Decorators and Bindings
+
+`@UseInterceptors(...tokens)` from `@nexusdi/interceptors` attaches interceptors to a class or one method with a standard decorator, for a project that already compiles decorators ([Writing Providers with Decorators](/decorators/)):
+
+```ts file=examples/meridian/src/pages/interceptors.md region=decorator
+
+```
+
+`bindings` attaches interceptors to a token whose provider you cannot edit, such as a factory or a class from a package:
+
+```ts file=examples/meridian/src/pages/interceptors.md region=binding
+
+```
+
 ### Chain Order
 
 The chain of a method runs the global entries first, then the bindings, then the class list, then the method list. A token that appears twice runs once, at its outermost position. In a list, the first interceptor is the outermost.
@@ -88,7 +88,7 @@ The chain of a method runs the global entries first, then the bindings, then the
 
 Interceptors give you full control over the method call:
 
-- **Modify Arguments:** Pass different arguments to `next(args)` to run the rest of the chain with a new input.
+- **Modify Arguments:** Pass different arguments to `next(args)` to alter the input. The rest of the chain runs with the new input.
 - **Short-circuit:** Return a value without calling `next()` to skip the method entirely (perfect for caching). An interceptor that calls `next()` twice runs the method twice.
 - **Observe Results:** Use the `tap()` helper to run logic after the method completes without altering the result.
 
@@ -133,7 +133,7 @@ If you need an internal call to be intercepted, call the method through the toke
 
 ## Interceptor Lifetimes
 
-Interceptors are always **Singletons**. Each interceptor is built once per container. A scoped or transient interceptor makes `create` reject with `NEXUS_BLUEPRINT_INVALID`, which holds `NEXUS_INTERCEPTOR_LIFETIME` and core's [NEXUS_LIFETIME_VIOLATION](/errors/NEXUS_LIFETIME_VIOLATION/) for the singleton registry that would capture it. If an interceptor needs request-specific data, it reads it from `call.scope` or `call.instance`.
+Interceptors are always **Singletons**. Each interceptor is built once per container. A scoped or transient interceptor makes `create` reject with `NEXUS_BLUEPRINT_INVALID`, which holds `NEXUS_INTERCEPTOR_LIFETIME`. A scoped interceptor also holds core's [NEXUS_LIFETIME_VIOLATION](/errors/NEXUS_LIFETIME_VIOLATION/) for the singleton registry that would capture it. If an interceptor needs request-specific data, it reads it from `call.scope` or `call.instance`.
 
 ```ts file=examples/meridian/src/pages/interceptors.md region=lifetime
 
