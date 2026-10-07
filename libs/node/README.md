@@ -5,7 +5,7 @@
 
 **Bind NexusDI scopes to the async context of Node.js requests.**
 
-In a server environment, you often need "request-scoped" dependencies—objects that are created when a request arrives and destroyed when the response is sent.
+In a server environment, you often need "request-scoped" dependencies: objects that are created when a request arrives and disposed when its handler settles.
 
 `@nexusdi/node` provides the infrastructure to handle this without having to manually pass a scope object through every function in your call chain. It leverages Node's `AsyncLocalStorage` to make the current scope available anywhere in the asynchronous execution path.
 
@@ -49,7 +49,7 @@ await using ship = await Nexus.create([
 await using shuttle = await ship.createScope();
 await scopes.run(shuttle, () => record('survey-7 launched'));
 
-console.log(shuttle.get(SHIP_LOG).lines); // -> ['survey-7 launched']
+shuttle.get(SHIP_LOG).lines; // -> ['survey-7 launched']
 ```
 
 ## Documentation
