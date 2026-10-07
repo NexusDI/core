@@ -3,30 +3,25 @@
 [![npm](https://img.shields.io/npm/v/@nexusdi/devtools/next)](https://www.npmjs.com/package/@nexusdi/devtools)
 [![license](https://img.shields.io/npm/l/@nexusdi/devtools)](https://github.com/NexusDI/core/blob/main/LICENSE)
 
-Draw your NexusDI module graph and follow every instance the container builds.
+**Introspect and trace your NexusDI container.**
 
-`devtools()` is a plugin for [NexusDI](https://www.npmjs.com/package/@nexusdi/core) that returns the compiled graph as JSON and draws it.
-
-- `graph()` returns the module graph as plain JSON.
-- `toMermaid()` and `toDot()` draw it.
-- `inspect()` lists every instance the container built.
-- `trace()` reports each lifecycle event.
+A developer debugging a wiring problem needs to see the graph the container compiled.
 
 <img src="https://raw.githubusercontent.com/NexusDI/core/refs/tags/@nexusdi/core@0.4.0-rc.1/libs/devtools/assets/graph.svg" alt="NexusDI graph of the Meridian app: Bridge imports Engineering" width="720">
 
-Drawn with `npx nexusdi graph src/meridian.module.ts#Bridge -f svg`.
+## Key Capabilities
 
-## Install
+### Graph Introspection
 
-> 0.4 is a release candidate on the npm `next` tag. Install every @nexusdi package from `next` so their versions match.
+`graph()` returns the compiled module graph as JSON.
+
+## Installation
 
 ```bash
 npm install @nexusdi/devtools@next @nexusdi/core@next
 ```
 
-## Usage
-
-<!-- #region devtools -->
+## Quick Example
 
 ```ts @import.meta.vitest
 import { Nexus, Token, defineModule, provide } from '@nexusdi/core';
@@ -35,20 +30,21 @@ import { devtools } from '@nexusdi/devtools';
 interface INavCharts {
   plot(to: string): string;
 }
+class StarCharts implements INavCharts {
+  plot = (to: string) => to;
+}
 const NAV_CHARTS = new Token<INavCharts>('NavCharts');
 const Bridge = defineModule({
   name: 'Bridge',
-  providers: [provide(NAV_CHARTS, { useFactory: () => ({ plot: (to: string) => to }) })],
+  providers: [provide(NAV_CHARTS, { useClass: StarCharts })],
 });
 const app = await Nexus.create(Bridge, { plugins: [devtools()] });
 app.get(NAV_CHARTS).plot('Vega'); // -> 'Vega'
 ```
 
-<!-- #endregion devtools -->
-
 ## Documentation
 
-- [Documentation](https://nexus.js.org/next/)
+- [Introspection Guide](https://nexus.js.org/next/introspection/)
 - [Examples](https://github.com/NexusDI/core/tree/@nexusdi/core@0.4.0-rc.1/libs/devtools/docs)
 - [NexusDI on GitHub](https://github.com/NexusDI/core)
 

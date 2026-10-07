@@ -36,8 +36,9 @@ export function interfaceFirstHits(code: string): string[] {
   );
   const hits: string[] = [];
 
+  // The first argument may be a call such as `contract.token<IAuth>('Auth')`.
   for (const [, first = ''] of text.matchAll(
-    /\bprovide(?:<[^>]*>)?\(\s*([^,\s)]+)/g,
+    /\bprovide(?:<[^>]*>)?\(\s*([^,\s()]+(?:\([^()]*\))?)/g,
   ))
     if (!isToken(first)) hits.push(`provide(${first}`);
   for (const [, token = ''] of text.matchAll(/\btoken:\s*([^,\s}]+)/g))

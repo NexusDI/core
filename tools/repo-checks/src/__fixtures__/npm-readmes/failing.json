@@ -1,18 +1,60 @@
 [
   {
     "rule": "headings",
-    "why": "a sub-package renames Usage",
+    "why": "a sub-package renames Quick Example",
     "name": "errors",
-    "replace": [["## Usage\n", "## Example\n"]]
+    "replace": [
+      [
+        "## Quick Example\n",
+        "## Example\n"
+      ]
+    ]
   },
   {
-    "rule": "length",
-    "why": "core's Quick start block runs past 25 lines",
+    "rule": "headings",
+    "why": "a sub-package drops its concept section",
+    "name": "errors",
+    "replace": [
+      [
+        "## Why use this plugin?\n\n",
+        ""
+      ]
+    ]
+  },
+  {
+    "rule": "headings",
+    "why": "core moves Ecosystem below Documentation",
     "name": "core",
     "replace": [
       [
-        "const app = await Nexus.create",
-        "// 1\n// 2\n// 3\n// 4\n// 5\n// 6\n// 7\n// 8\n// 9\nconst app = await Nexus.create"
+        "## Ecosystem\n\n- **`@nexusdi/decorators`**: NestJS-style `@Injectable`.\n- **`@nexusdi/devtools`**: Graph introspection.\n\n",
+        ""
+      ],
+      [
+        "## License\n",
+        "## Ecosystem\n\nTwo packages.\n\n## License\n"
+      ]
+    ]
+  },
+  {
+    "rule": "headings",
+    "why": "core adds a markdown H1 beside the hero",
+    "name": "core",
+    "replace": [
+      [
+        "## Core Value Propositions\n",
+        "# Core\n\n## Core Value Propositions\n"
+      ]
+    ]
+  },
+  {
+    "rule": "length",
+    "why": "a sub-package runs past 90 lines",
+    "name": "errors",
+    "replace": [
+      [
+        "`errors()` is a plugin that gives every error its full text.",
+        "`errors()` is a plugin that gives every error its full text.\nLine.\nLine.\nLine.\nLine.\nLine.\nLine.\nLine.\nLine.\nLine.\nLine.\nLine.\nLine.\nLine.\nLine.\nLine.\nLine.\nLine.\nLine.\nLine.\nLine.\nLine.\nLine.\nLine.\nLine.\nLine.\nLine.\nLine.\nLine.\nLine.\nLine.\nLine.\nLine.\nLine.\nLine.\nLine.\nLine.\nLine.\nLine.\nLine.\nLine.\nLine.\nLine.\nLine.\nLine.\nLine.\nLine.\nLine.\nLine.\nLine.\nLine.\nLine.\nLine.\nLine.\nLine.\nLine.\nLine.\nLine.\nLine.\nLine.\nLine."
       ]
     ]
   },
@@ -20,66 +62,100 @@
     "rule": "hero",
     "why": "a sub-package's H1 drops the package name",
     "name": "errors",
-    "replace": [["# @nexusdi/errors\n", "# Errors\n"]]
+    "replace": [
+      [
+        "# @nexusdi/errors\n",
+        "# Errors\n"
+      ]
+    ]
+  },
+  {
+    "rule": "hero",
+    "why": "core's hero names the project in place of the package",
+    "name": "core",
+    "replace": [
+      [
+        "<h1>@nexusdi/core</h1>",
+        "<h1>NexusDI</h1>"
+      ]
+    ]
   },
   {
     "rule": "badges",
     "why": "the npm badge shows latest",
     "name": "errors",
-    "replace": [["@nexusdi/errors/next)", "@nexusdi/errors)"]]
+    "replace": [
+      [
+        "@nexusdi/errors/next)",
+        "@nexusdi/errors)"
+      ]
+    ]
   },
   {
     "rule": "tagline",
-    "why": "the tagline differs from the table",
-    "name": "errors",
-    "replace": [["the provider you probably meant.", "the provider you meant."]]
-  },
-  {
-    "rule": "ingress",
-    "why": "the ingress drops the link to core",
+    "why": "a sub-package's tagline is not bold",
     "name": "errors",
     "replace": [
-      ["[NexusDI](https://www.npmjs.com/package/@nexusdi/core)", "NexusDI"]
+      [
+        "**Human-readable diagnostics for NexusDI wiring errors.**",
+        "Human-readable diagnostics for NexusDI wiring errors."
+      ]
     ]
   },
   {
-    "rule": "ingress",
-    "why": "core's ingress runs past 40 words",
+    "rule": "tagline",
+    "why": "core's hero drops its tagline",
     "name": "core",
     "replace": [
       [
-        "No runtime dependencies.",
-        "No runtime dependencies. It also reads every module, every provider, every import and every export, and then it checks each one of them twice over."
+        "  <p>The static-validation DI container for TypeScript.</p>\n",
+        ""
       ]
     ]
   },
   {
-    "rule": "bullets",
-    "why": "the bullet list holds three items",
+    "rule": "lead-in",
+    "why": "a sub-package goes from the tagline straight to its first H2",
     "name": "errors",
     "replace": [
       [
-        "- Each message ends with the line that fixes it.\n",
-        "- Each message ends with the line that fixes it.\n- A third bullet.\n"
+        "NexusDI reports a short error code by default. A developer reading a log needs the full sentence.\n\n`errors()` is a plugin that gives every error its full text.\n\n",
+        ""
       ]
     ]
   },
   {
-    "rule": "bullets",
-    "why": "a bullet runs past 12 words",
-    "name": "errors",
+    "rule": "lead-in",
+    "why": "core goes from the hero straight to its first H2",
+    "name": "core",
     "replace": [
       [
-        "- Each message ends with the line that fixes it.",
-        "- Each message ends with the one line of code that fixes it for you."
+        "A container that resolves dependencies on first use reports a wiring mistake when the code runs. NexusDI validates the whole module graph at startup.\n\n",
+        ""
       ]
     ]
   },
   {
     "rule": "rc-notice",
-    "why": "the notice names another release line",
-    "name": "errors",
-    "replace": [["> 0.4 is a release candidate", "> 0.5 is a release candidate"]]
+    "why": "core's notice names another release line",
+    "name": "core",
+    "replace": [
+      [
+        "> 0.4 is currently",
+        "> 0.3 is currently"
+      ]
+    ]
+  },
+  {
+    "rule": "rc-notice",
+    "why": "core's Installation drops the notice during the RC",
+    "name": "core",
+    "replace": [
+      [
+        "> 0.4 is currently in Release Candidate.\n\n",
+        ""
+      ]
+    ]
   },
   {
     "rule": "install",
@@ -87,8 +163,8 @@
     "name": "errors",
     "replace": [
       [
-        "npm install @nexusdi/errors@next @nexusdi/core@next",
-        "npm install @nexusdi/errors @nexusdi/core"
+        "npm install @nexusdi/errors@next",
+        "npm install @nexusdi/errors"
       ]
     ]
   },
@@ -98,19 +174,30 @@
     "name": "cli",
     "replace": [
       [
-        "npm install -D @nexusdi/cli@next @nexusdi/devtools@next @nexusdi/core@next",
-        "npm install -D @nexusdi/cli@next @nexusdi/core@next"
+        " @nexusdi/devtools@next",
+        ""
       ]
     ]
   },
   {
     "rule": "documentation",
-    "why": "the first link points at the 0.3 site during the RC",
+    "why": "the guide link points at the 0.3 site during the RC",
     "name": "errors",
     "replace": [
       [
-        "- [Documentation](https://nexus.js.org/next/)",
-        "- [Documentation](https://nexus.js.org/)"
+        "https://nexus.js.org/next/error-text/",
+        "https://nexus.js.org/error-text/"
+      ]
+    ]
+  },
+  {
+    "rule": "documentation",
+    "why": "the guide link names a page the site lacks",
+    "name": "errors",
+    "replace": [
+      [
+        "https://nexus.js.org/next/error-text/",
+        "https://nexus.js.org/next/error-txt/"
       ]
     ]
   },
@@ -120,8 +207,8 @@
     "name": "errors",
     "replace": [
       [
-        "## Explain\n\n",
-        "## Explain\n\nSee [the source](https://github.com/NexusDI/core/blob/main/libs/errors/src/index.ts).\n\n"
+        "tree/@nexusdi/core@0.4.0-rc.1/",
+        "tree/main/"
       ]
     ]
   },
@@ -131,8 +218,19 @@
     "name": "errors",
     "replace": [
       [
-        "## Explain\n\n",
-        "## Explain\n\nSee [the source](https://github.com/NexusDI/core/blob/@nexusdi/core@0.4.0-rc.0/libs/errors/src/index.ts).\n\n"
+        "@nexusdi/core@0.4.0-rc.1/",
+        "@nexusdi/core@0.4.0-rc.0/"
+      ]
+    ]
+  },
+  {
+    "rule": "repo-urls",
+    "why": "a source link names a folder the working tree lacks",
+    "name": "errors",
+    "replace": [
+      [
+        "libs/errors/docs)",
+        "libs/errors/samples)"
       ]
     ]
   },
@@ -151,16 +249,21 @@
     "rule": "images",
     "why": "an image names a file the working tree lacks",
     "name": "cli",
-    "replace": [["assets/graph.svg", "assets/graph.png"]]
+    "replace": [
+      [
+        "libs/devtools/assets/graph.svg",
+        "libs/cli/assets/graph.svg"
+      ]
+    ]
   },
   {
     "rule": "images",
     "why": "an image has a relative src",
-    "name": "errors",
+    "name": "devtools",
     "replace": [
       [
-        "## Explain\n\n",
-        "## Explain\n\n<img src=\"assets/explain.svg\" alt=\"The explain output\">\n\n"
+        "https://raw.githubusercontent.com/NexusDI/core/refs/tags/@nexusdi/core@0.4.0-rc.1/libs/devtools/assets/graph.svg",
+        "libs/devtools/assets/graph.svg"
       ]
     ]
   },
@@ -168,20 +271,46 @@
     "rule": "license",
     "why": "the License body is not MIT",
     "name": "errors",
-    "replace": [["## License\n\nMIT\n", "## License\n\nApache-2.0\n"]]
+    "replace": [
+      [
+        "## License\n\nMIT",
+        "## License\n\nISC"
+      ]
+    ]
   },
   {
     "rule": "doctests",
-    "why": "a plain ts block replaces a doctest",
+    "why": "a plain ts block replaces the doctest",
     "name": "errors",
-    "replace": [["```ts @import.meta.vitest", "```ts"]]
+    "replace": [
+      [
+        "```ts @import.meta.vitest",
+        "```ts"
+      ]
+    ]
+  },
+  {
+    "rule": "doctests",
+    "why": "the doctest drops its claim",
+    "name": "errors",
+    "replace": [
+      [
+        " // -> 'Vega'",
+        ""
+      ]
+    ]
   },
   {
     "rule": "doctests",
     "why": "a docs region file holds a doctest without a claim",
     "name": "errors",
     "file": "docs/examples.md",
-    "replace": [["sum; // -> 2", "sum;"]]
+    "replace": [
+      [
+        "sum; // -> 2",
+        "sum;"
+      ]
+    ]
   },
   {
     "rule": "doctests",
@@ -189,34 +318,63 @@
     "name": "errors",
     "replace": [
       [
-        "## Explain\n\n",
-        "## Explain\n\n```mermaid\ngraph LR\n  A --> B\n```\n\n"
+        "## Installation\n",
+        "```mermaid\ngraph LR\n```\n\n## Installation\n"
       ]
     ]
   },
   {
-    "rule": "regions",
-    "why": "an rc.0 region is renamed",
-    "name": "errors",
-    "replace": [
-      ["#region explain -->", "#region explained -->"],
-      ["#endregion explain -->", "#endregion explained -->"]
-    ]
-  },
-  {
-    "rule": "root-copy",
-    "why": "the root README rewords core's ingress",
-    "name": "root",
-    "replace": [["a cycle fails at startup", "a cycle stops startup"]]
-  },
-  {
-    "rule": "packages",
-    "why": "the root Packages table drops a package",
+    "rule": "doctests",
+    "why": "the root's doctest is no copy of core's",
     "name": "root",
     "replace": [
       [
-        "| [@nexusdi/node](https://www.npmjs.com/package/@nexusdi/node) | Find the current request's NexusDI scope anywhere in a Node call chain, through AsyncLocalStorage. |\n",
-        ""
+        "greet('Ada'); // -> '[app] hello Ada'",
+        "greet('Bo'); // -> '[app] hello Bo'"
+      ]
+    ]
+  },
+  {
+    "rule": "interface-first",
+    "why": "a sub-package registers the class as its own provider",
+    "name": "errors",
+    "replace": [
+      [
+        "providers: [provide(NAV_CHARTS, { useClass: StarCharts })]",
+        "providers: [StarCharts]"
+      ]
+    ]
+  },
+  {
+    "rule": "interface-first",
+    "why": "a sub-package types its token as any",
+    "name": "errors",
+    "replace": [
+      [
+        "new Token<INavCharts>('NavCharts')",
+        "new Token<any>('NavCharts')"
+      ]
+    ]
+  },
+  {
+    "rule": "interface-first",
+    "why": "core binds a class as the token of another",
+    "name": "core",
+    "replace": [
+      [
+        "provide(REACTOR, { useClass: Fusion }).token === REACTOR",
+        "provide(Fusion, { useClass: Fusion }).token === Fusion"
+      ]
+    ]
+  },
+  {
+    "rule": "packages",
+    "why": "the root names a package the repository does not publish",
+    "name": "root",
+    "replace": [
+      [
+        "[`@nexusdi/cli`](libs/cli/README.md)",
+        "[`@nexusdi/react`](libs/react/README.md)"
       ]
     ]
   },
@@ -224,12 +382,22 @@
     "rule": "banned",
     "why": "the prose mentions reflect-metadata",
     "name": "errors",
-    "replace": [["## Explain\n\n", "## Explain\n\nNo reflect-metadata.\n\n"]]
+    "replace": [
+      [
+        "`errors()` is a plugin that gives every error its full text.",
+        "`errors()` needs no reflect-metadata."
+      ]
+    ]
   },
   {
     "rule": "banned-prose",
-    "why": "the ingress uses rather than",
+    "why": "the lead-in uses rather than",
     "name": "errors",
-    "replace": [["its full text.", "its full text rather than a code."]]
+    "replace": [
+      [
+        "`errors()` is a plugin that gives every error its full text.",
+        "`errors()` prints sentences rather than codes."
+      ]
+    ]
   }
 ]
