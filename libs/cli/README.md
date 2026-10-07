@@ -9,7 +9,7 @@ The `@nexusdi/cli` tool allows you to export your application's dependency tree 
 
 ## Core Capabilities
 
-- **Zero-Execution Analysis:** The CLI uses `Nexus.check` to analyze your graph without actually instantiating any classes. No constructors run, and no side effects occur.
+- **Zero-Execution Analysis:** The CLI imports your entry file and analyzes the graph without instantiating any provider. Keep the `Nexus.create` call that starts your app out of that file, because its top-level code runs.
 - **Multiple Formats:** Export your graph as Mermaid, DOT, JSON, SVG, or PNG.
 - **CI-Ready:** The command exits with code `1` if the graph is invalid, making it a perfect gate for your CI/CD pipeline.
 
@@ -21,28 +21,26 @@ npm install -D @nexusdi/cli@next @nexusdi/devtools@next @nexusdi/core@next
 
 ## Usage
 
-To draw the graph of your root module:
+To draw the graph of your root module, save it as SVG, or draw the module import graph:
 
 ```bash
 npx nexusdi graph src/app.module.ts#AppModule
-```
-
-### Common Options
-
-| Flag           | Purpose                                           | Example                         |
-| :------------- | :------------------------------------------------ | :------------------------------ |
-| `-f, --format` | Choose output format (`svg`, `png`, `json`, etc.) | `-f svg`                        |
-| `-o, --out`    | Save the output to a file                         | `-o graph.svg`                  |
-| `--view`       | Switch between `providers` or `modules` view      | `--view modules`                |
-| `--load`       | Simulate loading a module at runtime              | `--load src/feature.ts#Feature` |
-
-## Integration Example
-
-Add this to your CI pipeline to prevent broken wiring from being merged:
-
-```bash
+npx nexusdi graph src/app.module.ts#AppModule -o graph.svg
+npx nexusdi graph src/app.module.ts#AppModule --view modules
 npx nexusdi graph src/app.module.ts#AppModule -f json -o graph.json
 ```
+
+Every command exits 1 when the graph is invalid. Add the last one to your CI pipeline to prevent broken wiring from being merged.
+
+## Options
+
+| Flag           | Purpose                                                                                                                                                                          | Example                            |
+| :------------- | :------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | :--------------------------------- |
+| `-f, --format` | Choose output format (`mermaid`, `dot`, `json`, `svg`, `png`). Default: from `--out`'s extension, else `mermaid`. SVG needs `@viz-js/viz`, and PNG also needs `@resvg/resvg-js`. | `-f svg`                           |
+| `-o, --out`    | Save the output to a file                                                                                                                                                        | `-o graph.svg`                     |
+| `--view`       | Switch between `providers` (default) or `modules` view                                                                                                                           | `--view modules`                   |
+| `--load`       | Simulate loading a module at runtime. Repeatable.                                                                                                                                | `--load src/feature.ts#Feature`    |
+| `--plugins`    | Pass the exported array of plugins your app gives `Nexus.create`                                                                                                                 | `--plugins src/plugins.ts#plugins` |
 
 ## Documentation
 
