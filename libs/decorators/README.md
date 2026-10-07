@@ -9,7 +9,7 @@
 
 ## Why use decorators?
 
-If you are migrating from NestJS or simply prefer a more visual way to declare dependencies, decorators remove the need for manual `static deps` arrays and `defineModule` calls.
+If you are migrating from NestJS or simply prefer a more visual way to declare dependencies, decorators move the dependency list from a `static deps` array into `@Injectable({ deps })`, and turn a class into a module in place of a `defineModule` call.
 
 - **`@Injectable({ deps })`**: Declares a class's constructor dependencies.
 - **`@Inject(TOKEN)`**: Injects a dependency into a class `accessor` field.
@@ -19,11 +19,13 @@ If you are migrating from NestJS or simply prefer a more visual way to declare d
 
 Unlike traditional metadata-based DI, `@nexusdi/decorators` are standard TC39 decorators. They do **not** require `experimentalDecorators` or `emitDecoratorMetadata` in your `tsconfig.json`.
 
-This means your code works out-of-the-box with:
+This means your code compiles with:
 
-- **Vite / esbuild / SWC**
+- **tsc / TypeScript 7 / esbuild / SWC / Babel**
 - **Bun / Deno**
-- **Node.js Type Stripping**
+- **Vite with its Babel plugin**
+
+Plain Vite and Node's type stripping cannot run these decorators.
 
 ## Installation
 
@@ -36,6 +38,10 @@ npm install @nexusdi/decorators@next @nexusdi/core@next
 ```ts @import.meta.vitest
 import { Nexus, Token, provide } from '@nexusdi/core';
 import { Injectable, Module } from '@nexusdi/decorators';
+
+interface IBridge {
+  readonly callsign: string;
+}
 
 const CALLSIGN = new Token<string>('Callsign');
 const BRIDGE = new Token<IBridge>('Bridge');
@@ -54,7 +60,7 @@ class Bridge implements IBridge {
 class Command {}
 
 await using ship = await Nexus.create(Command);
-console.log(ship.get(BRIDGE).callsign); // -> 'Meridian'
+ship.get(BRIDGE).callsign; // -> 'Meridian'
 ```
 
 ## Documentation
