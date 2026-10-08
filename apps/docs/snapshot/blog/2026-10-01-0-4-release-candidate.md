@@ -226,7 +226,7 @@ We release 0.4.0 final when all of these hold:
 
 The feedback window closes on 29 October 2026.
 
-- Questions, API feedback and your experience moving from 0.3 go in the [rc.0 feedback discussion](DISCUSSION_URL).
+- Questions, API feedback and your experience moving from 0.3 go in the [rc.0 feedback discussion](https://github.com/NexusDI/core/discussions/88).
 - Bugs go in a GitHub issue, with the [bug report template](https://github.com/NexusDI/core/issues/new?template=01-bug.yml).
 
 ## Links
