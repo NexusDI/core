@@ -121,8 +121,8 @@ describe('newestPublishedPost', () => {
 
   it('finds the RC post the overlay publishes', () => {
     expect(newestPublishedPost(join(snapshot, 'blog'))).toEqual({
-      file: '2026-10-01-0-4-release-candidate.md',
-      permalink: '/blog/2026/10/01/0-4-release-candidate',
+      file: '2026-10-08-0-4-0-rc-1.md',
+      permalink: '/blog/2026/10/08/0-4-0-rc-1',
     });
   });
 

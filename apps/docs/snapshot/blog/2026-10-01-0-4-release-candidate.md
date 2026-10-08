@@ -220,13 +220,13 @@ We release 0.4.0 final when all of these hold:
 
 - Four weeks have passed since the last RC that contained a breaking change.
 - No issue labelled `rc-blocker` is open.
-- The `nexusdi upgrade` command from `@nexusdi/cli` has run against at least one external codebase.
+- `nexusdi upgrade` from `@nexusdi/cli` converts our 0.3 test codebases with no hand edits, and each converted codebase type-checks and passes its tests. The test codebases are every code example from the 0.3 docs and the `0.3.x` examples, and a multi-package 0.3 app set up with npm workspaces, pnpm, Nx and Turborepo.
 
 ## Feedback
 
 The feedback window closes on 29 October 2026.
 
-- Questions, API feedback and your experience moving from 0.3 go in the [rc.0 feedback discussion](DISCUSSION_URL).
+- Questions, API feedback and your experience moving from 0.3 go in the [rc.0 feedback discussion](https://github.com/NexusDI/core/discussions/88).
 - Bugs go in a GitHub issue, with the [bug report template](https://github.com/NexusDI/core/issues/new?template=01-bug.yml).
 
 ## Links
