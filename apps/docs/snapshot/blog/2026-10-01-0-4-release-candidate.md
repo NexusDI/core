@@ -34,7 +34,7 @@ Post feedback in the "0.4 RC feedback" discussion on GitHub, or open an issue wi
 
 ## The road to 0.4.0 final
 
-0.4.0 final is released once four weeks pass after the last RC with a breaking change, no blocking issue is open, and the codemod has run against at least one external codebase.
+0.4.0 final is released once four weeks pass after the last RC with a breaking change, no blocking issue is open, and `nexusdi upgrade` converts our 0.3 test codebases with no hand edits.
 
 ## Support for 0.3
 

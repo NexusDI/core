@@ -81,7 +81,7 @@ Every package keeps its examples in `libs/<package>/docs`, and [examples/react-s
 Explore the full guide for advanced patterns, such as interface-first binding and custom providers.
 
 - [Full Documentation](https://nexus.js.org/next/)
-- [Examples](https://github.com/NexusDI/core/tree/@nexusdi/core@0.4.0-rc.0/libs/core/docs)
+- [Examples](libs/core/docs/)
 - [GitHub Discussions](https://github.com/NexusDI/core/discussions)
 
 ## License
