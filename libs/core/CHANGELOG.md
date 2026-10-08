@@ -1,3 +1,22 @@
+## 0.4.0-rc.1
+
+### 🩹 Fixes
+
+- **repo:** pin readme images and examples links to the release tag ([ecaf3cb95](https://github.com/NexusDI/core/commit/ecaf3cb95))
+- **repo:** publish a staged copy with no source condition, and map dist to src ([7f9e9b0e1](https://github.com/NexusDI/core/commit/7f9e9b0e1))
+
+### 🔥 Performance
+
+- **core:** build rewritten provider records with the shared record builder ([5827dd215](https://github.com/NexusDI/core/commit/5827dd215))
+- **core:** build provider records as one literal and drop the compile rank maps ([baf9e0921](https://github.com/NexusDI/core/commit/baf9e0921))
+- **core:** read class metadata once and build provider errors on failure only ([6a0798d23](https://github.com/NexusDI/core/commit/6a0798d23))
+- **core:** solve module visibility sparsely ([8d6d7c723](https://github.com/NexusDI/core/commit/8d6d7c723))
+
+### ❤️ Thank You
+
+- Claude Opus 5.5 (1M context)
+- Mikael Pettersson @Evanion
+
 ## 0.4.0-rc.0
 
 ### 🚀 Features

@@ -1,6 +1,6 @@
 {
   "name": "@nexusdi/federation",
-  "version": "0.4.0-rc.0",
+  "version": "0.4.0-rc.1",
   "description": "Unify dependency singleton instances across micro-frontend shells and remotes.",
   "keywords": [
     "nexusdi",
@@ -54,7 +54,7 @@
     "CHANGELOG.md"
   ],
   "peerDependencies": {
-    "@nexusdi/core": "0.4.0-rc.0"
+    "@nexusdi/core": "0.4.0-rc.1"
   },
   "publishConfig": {
     "access": "public",

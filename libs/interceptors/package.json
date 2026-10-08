@@ -1,6 +1,6 @@
 {
   "name": "@nexusdi/interceptors",
-  "version": "0.4.0-rc.0",
+  "version": "0.4.0-rc.1",
   "description": "Decouple cross-cutting concerns from your business logic using transparent method wrappers.",
   "keywords": [
     "nexusdi",
@@ -58,7 +58,7 @@
     "CHANGELOG.md"
   ],
   "peerDependencies": {
-    "@nexusdi/core": "0.4.0-rc.0"
+    "@nexusdi/core": "0.4.0-rc.1"
   },
   "publishConfig": {
     "access": "public",

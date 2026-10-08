@@ -66,7 +66,7 @@ log; // -> ['call plot', 'got course to Vega']
 
 - [Detailed Interceptors Guide](https://nexus.js.org/next/interceptors/)
 - [Documentation](https://nexus.js.org/next/)
-- [Examples](https://github.com/NexusDI/core/tree/@nexusdi/core@0.4.0-rc.0/libs/interceptors/docs)
+- [Examples](https://github.com/NexusDI/core/tree/@nexusdi/core@0.4.0-rc.1/libs/interceptors/docs)
 - [NexusDI on GitHub](https://github.com/NexusDI/core)
 
 ## License

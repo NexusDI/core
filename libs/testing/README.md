@@ -62,7 +62,7 @@ ship.get(NAV_CHARTS).plot('anywhere'); // -> 'loopback'
 
 - [Testing Guide](https://nexus.js.org/next/testing/)
 - [Documentation](https://nexus.js.org/next/)
-- [Examples](https://github.com/NexusDI/core/tree/@nexusdi/core@0.4.0-rc.0/libs/testing/docs)
+- [Examples](https://github.com/NexusDI/core/tree/@nexusdi/core@0.4.0-rc.1/libs/testing/docs)
 - [NexusDI on GitHub](https://github.com/NexusDI/core)
 
 ## License

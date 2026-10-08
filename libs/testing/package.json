@@ -1,6 +1,6 @@
 {
   "name": "@nexusdi/testing",
-  "version": "0.4.0-rc.0",
+  "version": "0.4.0-rc.1",
   "description": "Simplify integration tests with type-safe provider overrides.",
   "keywords": [
     "nexusdi",
@@ -49,7 +49,7 @@
     "CHANGELOG.md"
   ],
   "peerDependencies": {
-    "@nexusdi/core": "0.4.0-rc.0"
+    "@nexusdi/core": "0.4.0-rc.1"
   },
   "publishConfig": {
     "access": "public",

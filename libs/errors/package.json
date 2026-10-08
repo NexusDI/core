@@ -1,6 +1,6 @@
 {
   "name": "@nexusdi/errors",
-  "version": "0.4.0-rc.0",
+  "version": "0.4.0-rc.1",
   "description": "Debug your dependency graph instantly with actionable, human-readable diagnostics.",
   "keywords": [
     "nexusdi",
@@ -47,7 +47,7 @@
     "CHANGELOG.md"
   ],
   "peerDependencies": {
-    "@nexusdi/core": "0.4.0-rc.0"
+    "@nexusdi/core": "0.4.0-rc.1"
   },
   "publishConfig": {
     "access": "public",

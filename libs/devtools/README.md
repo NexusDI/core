@@ -63,7 +63,7 @@ events; // -> ['compile', 'construct']
 
 - [Introspection Guide](https://nexus.js.org/next/introspection/)
 - [Documentation](https://nexus.js.org/next/)
-- [Examples](https://github.com/NexusDI/core/tree/@nexusdi/core@0.4.0-rc.0/libs/devtools/docs)
+- [Examples](https://github.com/NexusDI/core/tree/@nexusdi/core@0.4.0-rc.1/libs/devtools/docs)
 - [NexusDI on GitHub](https://github.com/NexusDI/core)
 
 ## License

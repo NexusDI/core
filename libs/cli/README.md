@@ -52,7 +52,7 @@ A `.ts` entry on Node before 22.18 needs `tsx` installed. Every command exits 1 
 
 - [Graph CLI Guide](https://nexus.js.org/next/graph-cli/)
 - [Documentation](https://nexus.js.org/next/)
-- [Examples](https://github.com/NexusDI/core/tree/@nexusdi/core@0.4.0-rc.0/libs/cli/docs)
+- [Examples](https://github.com/NexusDI/core/tree/@nexusdi/core@0.4.0-rc.1/libs/cli/docs)
 - [NexusDI on GitHub](https://github.com/NexusDI/core)
 
 ## License

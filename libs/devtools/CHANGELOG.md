@@ -1,3 +1,20 @@
+## 0.4.0-rc.1
+
+### 🚀 Features
+
+- **readme-assets:** draw the readme graph from a meridian fixture app ([b10430b49](https://github.com/NexusDI/core/commit/b10430b49))
+
+### 🩹 Fixes
+
+- **repo:** pin readme images and examples links to the release tag ([ecaf3cb95](https://github.com/NexusDI/core/commit/ecaf3cb95))
+- **devtools:** draw dot cluster labels in the node font ([30a949e37](https://github.com/NexusDI/core/commit/30a949e37))
+- **repo:** publish a staged copy with no source condition, and map dist to src ([7f9e9b0e1](https://github.com/NexusDI/core/commit/7f9e9b0e1))
+
+### ❤️ Thank You
+
+- Claude Opus 5.5 (1M context)
+- Mikael Pettersson @Evanion
+
 ## 0.4.0-rc.0
 
 ### 🚀 Features

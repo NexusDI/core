@@ -178,7 +178,7 @@ A single script or a small app whose objects you can build by hand in one file d
 ## Documentation
 
 - [Full Documentation](https://nexus.js.org/next/)
-- [Examples](https://github.com/NexusDI/core/tree/@nexusdi/core@0.4.0-rc.0/libs/core/docs)
+- [Examples](https://github.com/NexusDI/core/tree/@nexusdi/core@0.4.0-rc.1/libs/core/docs)
 - [GitHub Repository](https://github.com/NexusDI/core)
 - [Discussions](https://github.com/NexusDI/core/discussions)
 

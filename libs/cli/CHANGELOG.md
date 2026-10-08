@@ -1,3 +1,19 @@
+## 0.4.0-rc.1
+
+### 🩹 Fixes
+
+- **repo:** pin readme images and examples links to the release tag ([ecaf3cb95](https://github.com/NexusDI/core/commit/ecaf3cb95))
+- **repo:** publish a staged copy with no source condition, and map dist to src ([7f9e9b0e1](https://github.com/NexusDI/core/commit/7f9e9b0e1))
+
+### 💅 Refactors
+
+- **cli:** export the option definitions the parser reads ([c62f22c72](https://github.com/NexusDI/core/commit/c62f22c72))
+
+### ❤️ Thank You
+
+- Claude Opus 5.5 (1M context)
+- Mikael Pettersson @Evanion
+
 ## 0.4.0-rc.0
 
 ### 🚀 Features

@@ -67,7 +67,7 @@ result.split('\n').slice(1); // -> ['  NavCharts is provided in Tactical, which 
 - [Error Codes Reference](https://nexus.js.org/next/api-errors/)
 - [Error Text Packs Guide](https://nexus.js.org/next/error-text/)
 - [Documentation](https://nexus.js.org/next/)
-- [Examples](https://github.com/NexusDI/core/tree/@nexusdi/core@0.4.0-rc.0/libs/errors/docs)
+- [Examples](https://github.com/NexusDI/core/tree/@nexusdi/core@0.4.0-rc.1/libs/errors/docs)
 - [NexusDI on GitHub](https://github.com/NexusDI/core)
 
 ## License
