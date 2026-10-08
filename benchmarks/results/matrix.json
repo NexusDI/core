@@ -1,9 +1,9 @@
 {
   "schema": 1,
   "versions": {
-    "core": "0.4.0-rc.0",
+    "core": "0.4.0-rc.1",
     "libraries": {
-      "nexusdi": "0.4.0-rc.0",
+      "nexusdi": "0.4.0-rc.1",
       "inversify": "8.2.3",
       "tsyringe": "4.10.0",
       "awilix": "13.0.5",
