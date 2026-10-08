@@ -84,4 +84,4 @@ The maintainers release 0.4.0 final once all three conditions hold:
 
 1. Four weeks have passed since the last RC with a breaking change.
 2. No issue labelled `rc-blocker` is open.
-3. The `nexusdi upgrade` command, planned for `@nexusdi/cli` in a later release candidate, has run against at least one external codebase.
+3. The `nexusdi upgrade` command, planned for `@nexusdi/cli` in a later release candidate, converts our 0.3 test codebases with no hand edits, and each converted codebase type-checks and passes its tests. The test codebases are every code example from the 0.3 docs and the `0.3.x` examples, and a multi-package 0.3 app set up with npm workspaces, pnpm, Nx and Turborepo.
