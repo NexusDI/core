@@ -146,19 +146,26 @@ describe('lookup', () => {
 });
 
 describe('the workspace results', () => {
-  it('validate and describe the core version on this branch', () => {
-    const core = JSON.parse(
-      readFileSync(
-        join(import.meta.dirname, '../../../libs/core/package.json'),
-        'utf8',
-      ),
-    ).version;
-    const data = readBenchmarkData();
-    expect(data.core).toBe(core);
-    expect(typeof lookup(data, 'size.nexusdi.plain.esbuild.gzip').value).toBe(
-      'number',
-    );
-  });
+  // readBenchmarkData runs `git log` per results file. The release job checks
+  // out with `filter: tree:0`, so each call fetches trees from origin and the
+  // test takes longer than vitest's 5 s default there.
+  it(
+    'validate and describe the core version on this branch',
+    { timeout: 60_000 },
+    () => {
+      const core = JSON.parse(
+        readFileSync(
+          join(import.meta.dirname, '../../../libs/core/package.json'),
+          'utf8',
+        ),
+      ).version;
+      const data = readBenchmarkData();
+      expect(data.core).toBe(core);
+      expect(typeof lookup(data, 'size.nexusdi.plain.esbuild.gzip').value).toBe(
+        'number',
+      );
+    },
+  );
 });
 
 describe('gitCommit', () => {
