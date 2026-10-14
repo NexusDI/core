@@ -3,10 +3,10 @@
 <desc>Median startup of two libraries on mixed graphs of 50 to 5,000 providers.</desc>
 <style>
 svg{--bg:#ffffff;--ink:#1a1a19;--muted:#5f5f5b;--grid:#e3e3e0;--c0:#0072B2;--c1:#E69F00;--c2:#009E73;--c3:#CC79A7;--c4:#D55E00}
-@media (prefers-color-scheme: dark){svg{--bg:#1a1a19;--ink:#ecece9;--muted:#a3a39e;--grid:#3a3a37;--c0:#56B4E9;--c1:#E69F00;--c2:#009E73;--c3:#CC79A7;--c4:#D55E00}}
+@media (prefers-color-scheme: dark){svg{--bg:#1a1a19;--ink:#ecece9;--muted:#a3a39e;--grid:#3a3a37;--c0:#308DCF;--c1:#C38603;--c2:#028964;--c3:#C976A4;--c4:#A84900}}
 .bg{fill:var(--bg)}text{fill:var(--ink)}.muted{fill:var(--muted)}
 .grid{stroke:var(--grid);stroke-width:1}.line{fill:none;stroke-width:2}.range{stroke-width:1.5;opacity:.55}
-.dot{stroke:var(--bg);stroke-width:2}.end-marker path{fill:none;stroke-width:2.5}
+.swatch{stroke-width:3}.leader{stroke-width:1;opacity:.7}.dot{stroke:var(--bg);stroke-width:2}.end-marker path{fill:none;stroke-width:2.5}
 .s0{stroke:var(--c0);color:var(--c0)}.dot.s0{fill:var(--c0)}
 .s1{stroke:var(--c1);color:var(--c1)}.dot.s1{fill:var(--c1)}
 .s2{stroke:var(--c2);color:var(--c2)}.dot.s2{fill:var(--c2)}
@@ -16,38 +16,40 @@ svg{--bg:#ffffff;--ink:#1a1a19;--muted:#5f5f5b;--grid:#e3e3e0;--c0:#0072B2;--c1:
 <rect class="bg" width="720" height="420"/>
 <line class="grid xtick" x1="72" y1="36" x2="72" y2="364"/>
 <text class="muted" x="72" y="382" text-anchor="middle">10</text>
-<line class="grid xtick" x1="248" y1="36" x2="248" y2="364"/>
-<text class="muted" x="248" y="382" text-anchor="middle">100</text>
-<line class="grid xtick" x1="424" y1="36" x2="424" y2="364"/>
-<text class="muted" x="424" y="382" text-anchor="middle">1,000</text>
-<line class="grid xtick" x1="600" y1="36" x2="600" y2="364"/>
-<text class="muted" x="600" y="382" text-anchor="middle">10,000</text>
-<line class="grid ytick" x1="72" y1="364" x2="600" y2="364"/>
+<line class="grid xtick" x1="242.67" y1="36" x2="242.67" y2="364"/>
+<text class="muted" x="242.67" y="382" text-anchor="middle">100</text>
+<line class="grid xtick" x1="413.33" y1="36" x2="413.33" y2="364"/>
+<text class="muted" x="413.33" y="382" text-anchor="middle">1,000</text>
+<line class="grid xtick" x1="584" y1="36" x2="584" y2="364"/>
+<text class="muted" x="584" y="382" text-anchor="middle">10,000</text>
+<line class="grid ytick" x1="72" y1="364" x2="584" y2="364"/>
 <text class="muted" x="64" y="368" text-anchor="end">1</text>
-<line class="grid ytick" x1="72" y1="200" x2="600" y2="200"/>
+<line class="grid ytick" x1="72" y1="200" x2="584" y2="200"/>
 <text class="muted" x="64" y="204" text-anchor="end">10</text>
-<line class="grid ytick" x1="72" y1="36" x2="600" y2="36"/>
+<line class="grid ytick" x1="72" y1="36" x2="584" y2="36"/>
 <text class="muted" x="64" y="40" text-anchor="end">100</text>
-<text class="muted" x="336" y="410" text-anchor="middle">providers</text>
+<text class="muted" x="328" y="410" text-anchor="middle">providers</text>
 <text class="muted" x="14" y="200" text-anchor="middle" transform="rotate(-90 14 200)">startup (ms)</text>
-<polyline class="line s0" data-series="nexusdi" points="195.02,265.26 300.98,249.37 424,207.5 547.02,121.75"/>
-<line class="range s0" data-series="nexusdi" data-n="50" x1="195.02" y1="272.77" x2="195.02" y2="252.28"/>
-<circle class="dot s0" data-series="nexusdi" data-n="50" cx="195.02" cy="265.26" r="4"/>
-<line class="range s0" data-series="nexusdi" data-n="200" x1="300.98" y1="256.87" x2="300.98" y2="236.38"/>
-<circle class="dot s0" data-series="nexusdi" data-n="200" cx="300.98" cy="249.37" r="4"/>
-<line class="range s0" data-series="nexusdi" data-n="1000" x1="424" y1="215.01" x2="424" y2="194.52"/>
-<circle class="dot s0" data-series="nexusdi" data-n="1000" cx="424" cy="207.5" r="4"/>
-<line class="range s0" data-series="nexusdi" data-n="5000" x1="547.02" y1="129.26" x2="547.02" y2="108.77"/>
-<circle class="dot s0" data-series="nexusdi" data-n="5000" cx="547.02" cy="121.75" r="4"/>
-<polyline class="line s2" data-series="tsyringe" points="195.02,285.75 300.98,274.77 424,249.37 547.02,176.04"/>
-<line class="range s2" data-series="tsyringe" data-n="50" x1="195.02" y1="293.26" x2="195.02" y2="272.77"/>
-<circle class="dot s2" data-series="tsyringe" data-n="50" cx="195.02" cy="285.75" r="4"/>
-<line class="range s2" data-series="tsyringe" data-n="200" x1="300.98" y1="282.28" x2="300.98" y2="261.79"/>
-<circle class="dot s2" data-series="tsyringe" data-n="200" cx="300.98" cy="274.77" r="4"/>
-<line class="range s2" data-series="tsyringe" data-n="1000" x1="424" y1="256.87" x2="424" y2="236.38"/>
-<circle class="dot s2" data-series="tsyringe" data-n="1000" cx="424" cy="249.37" r="4"/>
-<line class="range s2" data-series="tsyringe" data-n="5000" x1="547.02" y1="183.54" x2="547.02" y2="163.05"/>
-<circle class="dot s2" data-series="tsyringe" data-n="5000" cx="547.02" cy="176.04" r="4"/>
-<text class="end-label" x="557.02" y="125.75">NexusDI</text>
-<text class="end-label" x="557.02" y="180.04">tsyringe</text>
+<polyline class="line s0" data-series="nexusdi" points="191.29,265.26 294.04,249.37 413.33,207.5 532.62,121.75"/>
+<line class="range s0" data-series="nexusdi" data-n="50" x1="191.29" y1="272.77" x2="191.29" y2="252.28"/>
+<circle class="dot s0" data-series="nexusdi" data-n="50" cx="191.29" cy="265.26" r="4"/>
+<line class="range s0" data-series="nexusdi" data-n="200" x1="294.04" y1="256.87" x2="294.04" y2="236.38"/>
+<circle class="dot s0" data-series="nexusdi" data-n="200" cx="294.04" cy="249.37" r="4"/>
+<line class="range s0" data-series="nexusdi" data-n="1000" x1="413.33" y1="215.01" x2="413.33" y2="194.52"/>
+<circle class="dot s0" data-series="nexusdi" data-n="1000" cx="413.33" cy="207.5" r="4"/>
+<line class="range s0" data-series="nexusdi" data-n="5000" x1="532.62" y1="129.26" x2="532.62" y2="108.77"/>
+<circle class="dot s0" data-series="nexusdi" data-n="5000" cx="532.62" cy="121.75" r="4"/>
+<polyline class="line s2" data-series="tsyringe" points="191.29,285.75 294.04,274.77 413.33,249.37 532.62,176.04"/>
+<line class="range s2" data-series="tsyringe" data-n="50" x1="191.29" y1="293.26" x2="191.29" y2="272.77"/>
+<circle class="dot s2" data-series="tsyringe" data-n="50" cx="191.29" cy="285.75" r="4"/>
+<line class="range s2" data-series="tsyringe" data-n="200" x1="294.04" y1="282.28" x2="294.04" y2="261.79"/>
+<circle class="dot s2" data-series="tsyringe" data-n="200" cx="294.04" cy="274.77" r="4"/>
+<line class="range s2" data-series="tsyringe" data-n="1000" x1="413.33" y1="256.87" x2="413.33" y2="236.38"/>
+<circle class="dot s2" data-series="tsyringe" data-n="1000" cx="413.33" cy="249.37" r="4"/>
+<line class="range s2" data-series="tsyringe" data-n="5000" x1="532.62" y1="183.54" x2="532.62" y2="163.05"/>
+<circle class="dot s2" data-series="tsyringe" data-n="5000" cx="532.62" cy="176.04" r="4"/>
+<line class="swatch s0" data-series="nexusdi" x1="542.62" y1="121.75" x2="554.62" y2="121.75"/>
+<text class="end-label" x="558.62" y="125.75">NexusDI</text>
+<line class="swatch s2" data-series="tsyringe" x1="542.62" y1="176.04" x2="554.62" y2="176.04"/>
+<text class="end-label" x="558.62" y="180.04">tsyringe</text>
 </svg>
