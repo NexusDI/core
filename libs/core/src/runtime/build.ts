@@ -374,9 +374,12 @@ export async function buildInto(
       returned,
     );
     value = await pending;
-    // Yields once, so a level's builds all construct before any of them
-    // stores; construct hooks run after every sibling's constructor.
-  } else await 0;
+  }
+  // Every build yields once more before it stores, an async one after its
+  // await too, so a level's builds store in the order rc.0 gave them: a sync
+  // build ahead of an async sibling that settled at once. Construct hooks
+  // and disposal follow that order.
+  await 0;
   const resumed = tracer.now();
   // Only an options provider carries a schema. The check skips the
   // validation's microtask for every other provider.
