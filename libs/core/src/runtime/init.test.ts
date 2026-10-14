@@ -289,7 +289,6 @@ describe('runInit', () => {
         kind: 'create',
         scope: null,
         start: 0,
-        errors: undefined,
       },
     });
     expect(await rejected(runInit(root, bp, () => true))).toMatchObject({

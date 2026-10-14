@@ -338,7 +338,6 @@ async function extendScope(scope: ScopeState): Promise<void> {
     kind: 'extend',
     scope: scope.scopeId,
     start: tracer.now(),
-    errors: undefined,
   };
   const target = root.blueprint;
   const pending = scope.pendingExtend;
@@ -375,7 +374,6 @@ export async function openScope(
     kind: 'createScope',
     scope: null,
     start: root.tracer.now(),
-    errors: undefined,
   };
   let scope: ScopeState;
   try {

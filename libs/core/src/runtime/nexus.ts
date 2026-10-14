@@ -322,7 +322,6 @@ export async function createContainer(
       kind: 'create',
       scope: null,
       start: tracer.now(),
-      errors: undefined,
     };
     let module: unknown;
     let blueprint: Blueprint;
