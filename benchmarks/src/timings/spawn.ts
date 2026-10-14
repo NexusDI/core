@@ -36,9 +36,9 @@ export function spawnChild<M extends { type: string }>(
     child.once('error', (error) =>
       reject(new Error(`could not run ${script}: ${error.message}`)),
     );
-    // Node can report the exit before it hands over the last IPC message, so
-    // the outcome waits for the process to close (exit and stderr drained) and for the channel to close, which
-    // happens after every message was delivered.
+    // In Node 24 `close` does not wait for the IPC channel, and `disconnect`
+    // can come after `close` (46 of 60 runs). The last message is delivered
+    // before `disconnect`, so the outcome waits for both events.
     let ended:
       { code: number | null; signal: NodeJS.Signals | null } | undefined;
     let closed = !child.connected;

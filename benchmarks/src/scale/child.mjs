@@ -100,5 +100,7 @@ const total = scale.built.counts.reduce((sum, c) => sum + c, 0);
 if (total !== constructed)
   fail(`construction count ${total}, expected ${constructed}`);
 
-process.send({ type: 'sample', load, create, firstGet, rest, heapReady });
-process.disconnect();
+// Disconnecting before the message is flushed loses it.
+process.send({ type: 'sample', load, create, firstGet, rest, heapReady }, () =>
+  process.disconnect(),
+);

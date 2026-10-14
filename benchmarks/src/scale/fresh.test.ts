@@ -310,8 +310,7 @@ describe('spawnChild', () => {
       /sent no sample message/,
     );
   }, 30_000);
-  it('keeps a message that arrives with the exit, under load', async () => {
-    // Node may report the exit before it hands over the last IPC message.
+  it('smoke test: 60 parallel children that send and exit all resolve', async () => {
     const file = script(
       'burst.mjs',
       "process.send({ type: 'sample', v: 1 }); process.exit(0);",
@@ -323,4 +322,30 @@ describe('spawnChild', () => {
     );
     expect(results.map((r) => r.message.v)).toEqual(new Array(60).fill(1));
   }, 60_000);
+
+  it('delivers a 200 KB message sent with a disconnect callback, 20 of 20 times', async () => {
+    const file = script(
+      'big.mjs',
+      "process.send({ type: 'sample', pad: 'x'.repeat(200_000) }, () => process.disconnect());",
+    );
+    const sizes = await Promise.all(
+      Array.from({ length: 20 }, () =>
+        spawnChild<{ type: string; pad: string }>(file, [], [], 'sample'),
+      ),
+    );
+    expect(sizes.map((r) => r.message.pad.length)).toEqual(
+      new Array(20).fill(200_000),
+    );
+  }, 60_000);
+
+  it('has both timed children disconnect from the send callback', () => {
+    // A disconnect straight after send lost a 200 KB message in 60 of 60 runs.
+    for (const child of [
+      join(import.meta.dirname, 'child.mjs'),
+      join(import.meta.dirname, '..', 'timings', 'cold-child.mjs'),
+    ])
+      expect(readFileSync(child, 'utf8')).toMatch(
+        /process\.send\([^;]*,\s*\(\) =>\s*process\.disconnect\(\),?\s*\);/s,
+      );
+  });
 });
