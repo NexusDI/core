@@ -62,6 +62,9 @@
     },
     {
       "path": "./apps/docs-e2e"
+    },
+    {
+      "path": "./libs/express"
     }
   ],
   "compilerOptions": {

@@ -62,6 +62,7 @@ Package scopes:
 - **node**: Changes to the `@nexusdi/node` library
 - **devtools**: Changes to the `@nexusdi/devtools` library
 - **cli**: Changes to the `@nexusdi/cli` package
+- **express**: Changes to the `@nexusdi/express` library
 - **federation**: Changes to the `@nexusdi/federation` library
 
 Repository scopes (these are not projects and never bump a package on their
