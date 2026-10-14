@@ -728,6 +728,37 @@ describe('construct spans', () => {
     ).toMatchObject({ run: 1, level: 4 });
   });
 
+  it('gives a value and an alias the run that registered them', async () => {
+    const { events, plugin } = recordEvents();
+    const HULL = new Token<object>('Hull');
+    const ARMOR = new Token<object>('Armor');
+    const SHIELD = new Token<object>('Shield');
+    const DEFLECTOR = new Token<object>('Deflector');
+    await using ship = await Nexus.create(
+      [provide(HULL, { useValue: {} }), provide(ARMOR, { useExisting: HULL })],
+      { plugins: [plugin] },
+    );
+    await ship.load(
+      defineModule({
+        name: 'Defense',
+        providers: [
+          provide(SHIELD, { useValue: {} }),
+          provide(DEFLECTOR, { useExisting: SHIELD }),
+        ],
+      }),
+    );
+    expect(
+      only(events, 'construct').map((e) => [e.token, e.run, e.level]),
+    ).toEqual(
+      expect.arrayContaining([
+        ['Hull', 0, null],
+        ['Armor', 0, null],
+        ['Shield', 1, null],
+        ['Deflector', 1, null],
+      ]),
+    );
+  });
+
   it('reports scoped builds with the createScope run and scopedLevels index', async () => {
     const { events, plugin } = recordEvents();
     const SCANNER = new Token<object>('Scanner');
