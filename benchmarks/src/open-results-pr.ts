@@ -22,9 +22,59 @@ const ROOT = join(import.meta.dirname, '..', '..');
 const git = (...args: string[]) =>
   execFileSync('git', args, { cwd: ROOT, encoding: 'utf8' }).trim();
 
-const DETERMINISTIC = ['matrix.json', 'probes.json', 'size.json'].map(
-  (f) => `benchmarks/results/${f}`,
-);
+const RESULTS = 'benchmarks/results';
+
+const DETERMINISTIC = [
+  'matrix.json',
+  'probes.json',
+  'size.json',
+  'scale.json',
+].map((f) => `${RESULTS}/${f}`);
+
+/**
+ * What the results commit adds: the deterministic files, build.json, both
+ * timing directories, the rendered scale page with its charts, and the raw
+ * samples on a tag run. scale.json arrives with the deterministic artifact,
+ * scale/ and the rendered files with the merge job's.
+ */
+export function resultsPaths(isTag: boolean): string[] {
+  return [
+    ...DETERMINISTIC,
+    `${RESULTS}/build.json`,
+    `${RESULTS}/timings`,
+    `${RESULTS}/scale`,
+    `${RESULTS}/scale.md`,
+    `${RESULTS}/scale-startup.svg`,
+    `${RESULTS}/scale-bundle.svg`,
+    `${RESULTS}/README.md`,
+    ...(isTag ? [`${RESULTS}/raw`] : []),
+  ];
+}
+
+/** The pull request body's line naming the scale timing file. */
+export function scaleLine(file: string): string {
+  return `- Scale file: ${RESULTS}/scale/${file}`;
+}
+
+/**
+ * The file of `dir` whose run started last. Two runs of one day differ by
+ * their time, which the file name does not carry.
+ */
+export function newestByStartedAt(dir: string): string | undefined {
+  return readdirSync(dir)
+    .filter((f) => f.endsWith('.json'))
+    .map((f) => ({
+      f,
+      at: Date.parse(
+        (
+          JSON.parse(readFileSync(join(dir, f), 'utf8')) as {
+            startedAt: string;
+          }
+        ).startedAt,
+      ),
+    }))
+    .sort((a, b) => b.at - a.at)[0]?.f;
+}
 
 interface TimingsHead {
   runner: {
@@ -99,14 +149,7 @@ if (import.meta.main) {
     '41898282+github-actions[bot]@users.noreply.github.com',
   );
   git('switch', '-c', branch);
-  git(
-    'add',
-    '--',
-    ...DETERMINISTIC,
-    'benchmarks/results/build.json',
-    'benchmarks/results/timings',
-  );
-  if (isTag) git('add', '--', 'benchmarks/results/raw');
+  git('add', '--', ...resultsPaths(isTag));
   const title = `chore(benchmarks): results ${date} ${sha}`;
   git('commit', '-m', title);
   git(
@@ -125,12 +168,16 @@ if (import.meta.main) {
   const { runner, versions } = JSON.parse(
     readFileSync(join(dir, timing), 'utf8'),
   ) as TimingsHead;
+  const scaleFile = newestByStartedAt(
+    join(ROOT, 'benchmarks', 'results', 'scale'),
+  );
   const body = [
     `Benchmark results from ${sha}${isTag ? ', a tag run' : ''}.`,
     '',
     `- Runner: ${runner.cpu}, ${runner.cores} cores, ${runner.memoryGb} GB, ${runner.hosted ? 'GitHub-hosted' : 'self-hosted'}`,
     `- Node: ${versions.node}`,
     `- Timing file: benchmarks/results/timings/${timing}`,
+    ...(scaleFile === undefined ? [] : [scaleLine(scaleFile)]),
     `- Deterministic files changed: ${changed ? 'yes' : 'no'}`,
   ].join('\n');
   execFileSync(
