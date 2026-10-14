@@ -19,13 +19,16 @@ import {
   iface,
   layout,
   moduleBody,
-  moduleConst,
   ownOf,
   perClass,
   token,
   tokenTable,
   valueLiteral,
   type Files,
+  typeOf,
+  registerOf,
+  fileOf,
+  lineOf,
 } from './shared.ts';
 
 const PKG = '@needle-di/core';
@@ -56,24 +59,8 @@ const idOf = (p: ScaleProvider) =>
   p.kind === 'class' ? className(p) : token(p);
 
 /** The type dependants take: the class, a factory's product, or the value's interface. */
-const typeOf = (p: ScaleProvider) =>
-  p.kind === 'value' ? iface(p) : className(p);
-
 /** registerM0 for module m0. */
-const registerOf = (name: string) => `register${moduleConst(name)}`;
-
 /** The file that declares a provider's class. */
-const fileOf = (graph: ScaleGraph, p: ScaleProvider) =>
-  perClass(graph) ? `${p.name}.ts` : `${graph.modules[p.module].name}.ts`;
-
-function lineOf(names: readonly string[], from: string, type = false): string {
-  if (names.length === 0) return '';
-  const kw = type ? 'import type' : 'import';
-  const one = `${kw} { ${names.join(', ')} } from '${from}';\n`;
-  if (one.length <= 81) return one;
-  return `${kw} {\n${names.map((n) => `  ${n},\n`).join('')}} from '${from}';\n`;
-}
-
 /**
  * The providers whose closure holds an async factory, themselves
  * included. needle-di constructs a sync factory synchronously, so an

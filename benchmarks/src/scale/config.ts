@@ -34,7 +34,7 @@ export const ROUNDS: Readonly<Record<Shape, number>> = {
 };
 
 /** FNV-1a, 32 bits, over a string's UTF-16 code units. */
-export function hash32(text: string): number {
+function hash32(text: string): number {
   let h = 0x811c9dc5;
   for (let i = 0; i < text.length; i++) {
     h ^= text.charCodeAt(i);

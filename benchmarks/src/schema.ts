@@ -298,7 +298,7 @@ export interface ScaleFile {
   perProvider: ScalePerProvider[];
 }
 
-export const SCALE_METRICS = [
+const SCALE_METRICS = [
   'load',
   'create',
   'first-get',
