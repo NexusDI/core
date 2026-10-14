@@ -153,6 +153,16 @@ describe('readmeFaults', () => {
     ]);
   });
 
+  it('asks the install line for the framework peers a package requires', () => {
+    const errors = { ...fixture('errors'), externalPeers: ['express'] };
+    expect(rulesOf(errors)).toEqual(['install']);
+    const source = errors.source.replace(
+      'npm install @nexusdi/errors@next @nexusdi/core@next',
+      'npm install @nexusdi/errors@next @nexusdi/core@next express',
+    );
+    expect(rulesOf({ ...errors, source })).toEqual([]);
+  });
+
   it("asks the root README's doctests to match core's, which runs them", () => {
     const root = fixture('root');
     expect(
@@ -278,15 +288,28 @@ describe('published READMEs', () => {
       description?: string;
       keywords?: string[];
       peerDependencies?: Record<string, string>;
+      peerDependenciesMeta?: Record<string, { optional?: boolean }>;
     };
 
   function workspaceInput(name: Name): ReadmeInput {
     const pkg = name === 'root' ? 'core' : name;
-    const { version, peerDependencies = {} } = manifest(pkg);
+    const {
+      version,
+      peerDependencies = {},
+      peerDependenciesMeta = {},
+    } = manifest(pkg);
     const peers = Object.keys(peerDependencies)
       .filter((dep) => dep.startsWith('@nexusdi/'))
       .map((dep) => dep.slice('@nexusdi/'.length));
-    return inputFrom(workspaceRoot, name, version, peers);
+    const externalPeers = Object.keys(peerDependencies).filter(
+      (dep) =>
+        !dep.startsWith('@nexusdi/') &&
+        peerDependenciesMeta[dep]?.optional !== true,
+    );
+    return {
+      ...inputFrom(workspaceRoot, name, version, peers),
+      externalPeers,
+    };
   }
 
   it.each([...PACKAGES, 'root' as const])(
