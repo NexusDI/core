@@ -25,10 +25,11 @@ export function localExponent(
   lo: number,
   hi: number,
   seed: number,
+  resamples?: number,
 ): LocalExponent {
   if (!(hi > lo && lo > 0))
     throw new RangeError(`sizes must be increasing and positive: ${lo}, ${hi}`);
-  const r = pairedRatio(atHi, atLo, seed);
+  const r = pairedRatio(atHi, atLo, seed, resamples);
   const span = Math.log(hi / lo);
   return {
     exponent: Math.log(r.median) / span,
