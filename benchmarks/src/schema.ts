@@ -7,7 +7,7 @@
  */
 import type { PairedRatio, Stats } from '@nexusdi/bench-kit';
 
-import { ROUNDS, SHAPES, type Shape } from './scale/config.ts';
+import { SHAPES, type Shape } from './scale/config.ts';
 import { PROVIDER_KINDS, type ProviderKind } from './scale/graph.ts';
 
 export type { PairedRatio, Stats, Shape };
@@ -749,6 +749,19 @@ const CHECKS: Record<Kind, Check> = {
 };
 
 /**
+ * Published minimum of fresh-process rounds per shape (scale spec 14.3 and
+ * ruling 1). These are literals so that lowering a run's own `ROUNDS` cannot
+ * lower the minimum a published file must meet.
+ */
+export const SCALE_MINIMUM_ROUNDS: Readonly<Record<Shape, number>> = {
+  mixed: 1000,
+  wide: 200,
+  deep: 200,
+  modular: 200,
+  'mixed-async': 200,
+};
+
+/**
  * The design entries a published file must meet, by their path under
  * `design`, with the minimum each needs. A scale run's `mixed` block meets
  * the published minimum; the secondary shapes run fewer rounds and print
@@ -769,7 +782,7 @@ function minimums(kind: Kind): Array<[path: string[], least: number]> {
     return [
       ...SHAPES.map((s): [string[], number] => [
         ['fresh-process', s],
-        ROUNDS[s],
+        SCALE_MINIMUM_ROUNDS[s],
       ]),
       [['steady-get'], MINIMUM.measured],
     ];
