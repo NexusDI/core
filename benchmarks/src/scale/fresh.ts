@@ -47,6 +47,8 @@ export interface FreshRow {
   ready: number[];
   /** load + ready. */
   startup: number[];
+  /** The warm-up rounds' samples, in round order, for the raw file. No metric reads them. */
+  warmup: FreshSample[];
 }
 
 export interface FreshOptions {
@@ -85,6 +87,7 @@ export async function freshBlock(
     firstResolve: [],
     ready: [],
     startup: [],
+    warmup: [],
   }));
   const rounds = opts.warmup + opts.measured;
   for (let round = 0; round < rounds; round++)
@@ -106,7 +109,10 @@ export async function freshBlock(
           `${cell.library}/${cell.size} fresh-process block ${opts.block} round ${round}: ${(error as Error).message}`,
         );
       }
-      if (round < opts.warmup) continue;
+      if (round < opts.warmup) {
+        row.warmup.push(s);
+        continue;
+      }
       const ready = s.create + s.firstGet + s.rest;
       row.load.push(s.load);
       row.create.push(s.create);

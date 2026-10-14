@@ -46,6 +46,7 @@ function cell(
     ),
     ready,
     startup: p.load.map((l, i) => l + (ready[i] ?? 0)),
+    warmup: [],
   };
 }
 /** Every phase one constant per round. */
@@ -232,6 +233,17 @@ describe('toScaleRows', () => {
     expect(awilix?.batch).toBe(4);
     expect(awilix?.unit).toBe('ns');
     expect(awilix?.vsNexus?.median).toBe(2);
+  });
+});
+
+describe('warm-up samples', () => {
+  it('stay out of every row', () => {
+    const c = cell('nexusdi', 'plain', 50, flat([1, 2, 3]));
+    const base = toScaleRows(raw(block('mixed', [c])), 1);
+    c.warmup = [
+      { load: 1e12, create: 1e12, firstGet: 1e12, rest: 1e12, heapReady: 1e12 },
+    ];
+    expect(toScaleRows(raw(block('mixed', [c])), 1)).toEqual(base);
   });
 });
 
