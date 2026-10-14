@@ -28,8 +28,8 @@ function span(
 
 /**
  * The startup steps of a run, derived from its event spans (spec 7.2).
- * Static work is the value and alias providers and options schemas, which
- * carry no level; build runs from the first level build's start to the last
+ * Static work is the value and alias providers and options schemas: the
+ * construct events with lifetime null and no level. Build runs from the first level build's start to the last
  * one's end; setup runs from the last build or init end to the run's end.
  */
 export function stepsOf(run: Omit<ProfileRun, 'steps'>): ProfileStep[] {
@@ -37,7 +37,7 @@ export function stepsOf(run: Omit<ProfileRun, 'steps'>): ProfileStep[] {
     [b.startMs, b.startMs + b.durationMs] as const;
   const compile = run.compile === null ? [] : [ends(run.compile)];
   const statics = run.builds
-    .filter((b) => b.level === null && b.lifetime === null && b.parent === null)
+    .filter((b) => b.level === null && b.lifetime === null)
     .map(ends);
   const levelled = run.builds.filter((b) => b.level !== null).map(ends);
   const inits = run.inits.map(ends);
