@@ -1,52 +1,144 @@
-# NexusDI 0.4 framework integrations
+# NexusDI 0.4 framework integrations and edge runtimes
 
-Status: draft, revised with the owner's decisions on the first draft (`d9a9a7b`) and
-aligned with core revision 2 (`badf5ed`). Section 2.1 records the decisions, and section
-16 lists the items this spec raises for the core spec.
-Packages (all new, all published): `@nexusdi/hono`, `@nexusdi/express`, `@nexusdi/fastify`,
-`@nexusdi/react-router`, `@nexusdi/vitest`. `@nexusdi/react` also ships in 0.4, with its
-own spec (core spec §0, D18); this spec does not design it.
+Status: revision 3, 2026-10-14, refreshed against `0.4.0-rc.1` (`origin/release/0.4` at
+`cef5f39a`). Revision 2 (`1de86ff6` on `spec/integrations`, 2026-09-24) was aligned with
+core revision 2 and never implemented. Section 0 lists what revision 3 changed. Section
+2.1 keeps the owner's decisions on the first draft, section 2.2 records the decisions the
+architect settled in this revision, and section 20 holds the questions only the owner can
+answer.
+
+Packages (all new, all published):
+
+- `@nexusdi/hono`, `@nexusdi/express`, `@nexusdi/fastify`, `@nexusdi/react-router` and
+  `@nexusdi/vitest`, as in revision 2.
+- `@nexusdi/next`, proposed in section 10 and subject to owner question Q1.
+
+`@nexusdi/react` is released in 0.4 under its own spec (`specs/2026-09-24-react-design.md` on
+`spec/react` at `276f2780`, status "decided"). It does not exist in `libs/` on
+`release/0.4`. This spec does not design it, and section 14 places it in a demo app.
+
 Depends on:
 
-- `specs/2026-09-23-core-0.4-design.md`, revision 2, on `plan/core-0.4-engine` at
-  `badf5ed`. The adapters use only public API, and they are not plugins: none needs a
-  hook of core spec §3.10 (section 3.10 here checks each need). From `@nexusdi/core`:
-  `Nexus.create`, `createScope({ request })`, `REQUEST` and the `NexusRequest`
-  augmentation, `Scope.resolve`, `Scope.extend`, `Nexus.validate`, `Nexus.load`,
-  `DepsMap` and `ResolvedDeps`, `isNexusError` and `Symbol.asyncDispose`. From the
-  optional packages: `nodeScopes()` from `@nexusdi/node` for an ambient scope,
-  `createTestingContainer` from `@nexusdi/testing`, `errors()` from `@nexusdi/errors` and
-  `trace(fn)` from `@nexusdi/devtools` in development setups and tests.
-- `specs/2026-09-23-docs-site-design.md`, whose Guides band and rc.0 list this spec amends
-  (section 12).
-- The release setup on `main` at `ffea563`: `nx.json` `release` (independent projects,
-  `libs/*`, `versionPrefix: ""`, `updateDependents: "always"`), `release.yml` with the
-  `specifier` and `preid` inputs, `RELEASING.md`, `scripts/verify-packaging.mjs`.
+- The code on `release/0.4` at `cef5f39a`. Every core call this spec makes was checked
+  against `libs/core/src` there, and section 3.10 names the file for each. The core spec
+  (`specs/2026-09-23-core-0.4-design.md`, revision 2) is cited for intent; where it and the
+  code differ, the code wins.
+- `specs/2026-09-30-extension-principle-design.md` on `origin/spec/package-owned-errors`
+  (P1 to P5, rulings V12 and V13 on this spec).
+- `specs/2026-09-23-docs-site-design.md` on `spec/docs-site-amend` at `5a1f0826`, whose
+  Guides band this spec amends (section 15).
+- `RELEASING.md` and the `nexusdi-release` skill on `release/0.4`, for bootstrap and
+  dist-tags (section 12).
+- The vault notes "Demo apps" (2026-10-12), "Meridian", "Federation demo" and "ALS shim
+  prototype", and the research notes "Feature demand" and "Performance thresholds"
+  (2026-10-14).
 
-Measured on 2026-09-23 against the npm registry and each framework's source and primary
-docs:
+Measured on 2026-10-14 against the npm registry:
 
-| Package             | Latest | Other lines in use           | Node engines of the latest    |
-| ------------------- | ------ | ---------------------------- | ----------------------------- |
-| `hono`              | 4.13.8 | none                         | `>=16.9.0`                    |
-| `@hono/node-server` | 2.1.1  | 1.19.17 (`latest-1`)         | `>=20`                        |
-| `express`           | 5.2.1  | 4.22.3 (`latest-4`)          | `>=18`                        |
-| `@types/express`    | 5.0.6  | none                         | none                          |
-| `fastify`           | 5.12.5 | 4.29.1 (`four`)              | none declared; LTS.md: 20, 22 |
-| `fastify-plugin`    | 6.0.0  | 5.1.0                        | none                          |
-| `react-router`      | 8.4.0  | 7.18.4 (`version-7`)         | `>=22.22.0`                   |
-| `vitest`            | 5.0.1  | 4.1.11 (`V4`); repo on 4.1.9 | `^22.12.0 \|\| ^24 \|\| >=26` |
+| Package                           | Latest   | Other lines in use           | Node engines of the latest    |
+| --------------------------------- | -------- | ---------------------------- | ----------------------------- |
+| `hono`                            | 4.13.13  | none                         | `>=16.9.0`                    |
+| `@hono/node-server`               | 2.1.5    | 1.19.x (`latest-1`)          | `>=20`                        |
+| `express`                         | 5.3.0    | 4.22.x (`latest-4`)          | `>=18`                        |
+| `fastify`                         | 5.12.7   | 4.29.x (`four`)              | none declared; LTS.md: 20, 22 |
+| `fastify-plugin`                  | 6.0.1    | 5.1.0                        | none                          |
+| `react-router`                    | 8.4.0    | 7.18.4 (`version-7`)         | `>=22.22.0`                   |
+| `vitest`                          | 5.0.4    | 4.1.x (`V4`); repo on 4.1.9  | `^22.12.0 \|\| ^24 \|\| >=26` |
+| `next`                            | 16.4.1   | 15.5.28                      | `>=20.9.0`                    |
+| `wrangler`                        | 4.151.0  | none                         | `>=22.0.0`                    |
+| `@cloudflare/vitest-pool-workers` | 0.23.0   | none                         | peer `vitest ^4.1.0`          |
 
-Prior art: `examples/react-ssr` on `main`, which hand-rolls a React Router context and
-middleware around one global 0.3 container; `libs/nestjs-correlation-id` in the libraries
-repo, the owner's one framework package; `hono/context-storage`; `@fastify/request-context`;
-`@react-router/express`, whose request handler aborts the request signal on `res` close.
+Prior art: `examples/react-ssr` on `release/0.4`, which still hand-rolls a React Router
+context around one 0.4 container and stays on React Router 7.18.4;
+`libs/nestjs-correlation-id` in the libraries repo; `hono/context-storage`;
+`@fastify/request-context`; `@react-router/express`; `next-safe-action`, whose
+`export const action = client.action(fn)` form this spec's `di.action` follows;
+`@hono/tsyringe` (874 downloads a week) and `next-di`, the third-party answers the research
+found.
+
+## 0. Revision 3
+
+Revision 3 carries revision 2 onto `release/0.4` (the seven spec commits were
+cherry-picked, so `git log` keeps their history) and changes the following.
+
+API references checked against rc.1:
+
+1. `Nexus.validate(deps)`, `Nexus.resolve(deps)`, `Scope.resolve(deps)`,
+   `Scope.extend()`, `Nexus.load(module)`, `Nexus.createScope({ request })` and
+   `[Symbol.asyncDispose]()` exist with the signatures revision 2 used
+   (`runtime/nexus.ts:142-196`, `runtime/scope.ts:27-45`). No change to the adapters'
+   calls.
+2. `DepsMap`, `ResolvedDeps`, `Dep`, `Resolve`, `LookupOptions`, `Scope`, `REQUEST`,
+   `NexusRequest` and `isNexusError` are exported from `@nexusdi/core` (`index.ts`). No
+   change.
+3. `isNexusError(value, code?)` now takes an optional code and narrows to that code's
+   class (`errors/is-nexus-error.ts`). Section 3.6 uses that form for the one 503 case.
+4. `Nexus.check(root, { plugins, load })` is new: a static compile with no user code
+   (`runtime/nexus.ts:70-108`). Section 9.2 uses it for the startup check on edge
+   runtimes, where `inject` cannot validate before the first request.
+5. `Nexus.create` takes a module, a provider array or `{ providers, imports, exports }`
+   (`CheckedRoot`). The samples' `Nexus.create(Meridian, ...)` and
+   `Nexus.create([...])` both stand.
+6. Error fields are own enumerable properties, and `code`, `name` and the brand are own
+   non-enumerable ones (`errors/nexus-error.ts:31-60`). Revision 2's core item C1 is
+   settled by the code, and `{ code: err.code, ...err }` is the log record.
+7. `createScope` builds every scoped factory of the blueprint when the scope is created,
+   and builds scoped classes on first `get()` (`runtime/scope.ts:180-228`). Section 9.3
+   prices that per request.
+8. The trace events `scope:create`, `scope:extend` and `scope:dispose` exist with those
+   names (`runtime/trace.ts:34-47`), and `trace(fn)` is exported by `@nexusdi/devtools`.
+   The tests that count them stand.
+9. `@nexusdi/node` exports `nodeScopes()` and the type `NodeScopes`, with `run` and
+   `current` over one `AsyncLocalStorage`, and imports only `type { Scope }` from core
+   (`libs/node/src/index.ts`). No change to the structural `scopes` option.
+10. `createTestingContainer(root)` with `override`, `overrideModule` and
+    `create({ onInit })` exists in `@nexusdi/testing` (`libs/testing/src/index.ts`).
+    `@nexusdi/vitest` builds on it unchanged.
+
+Rules that arrived after revision 2:
+
+11. P1 (`tools/repo-checks/src/owner-vocabulary.test.ts`) refuses a string literal equal to
+    a core code in another package. Its allowlist already names the four server adapters
+    for one `NEXUS_DISPOSED` check, so section 3.6 shrinks the status table to that one
+    check (ruling V12). `@nexusdi/next` joins the allowlist entry.
+12. P4 (`tools/repo-checks/src/no-copies.test.ts`) refuses a copy of another package's
+    logic, with a named exception for the adapters' `request-scope.ts` and
+    `dispose-with-body.ts` (ruling V13, owner decision 2.1 item 2 kept). Section 3.7 keeps
+    the copies and adds their globs to the check's allowlist, which has no adapter entry
+    yet.
+13. `core-layers.ts` `nodeViolations` already refuses `node:` imports and `process` in
+    every package except `@nexusdi/node` and `@nexusdi/cli`. Every adapter falls under it
+    with no edit, so revision 2's "extend core's node-only rule to `libs/hono/src`" is
+    dropped.
+
+Release machinery that replaced revision 2's section 10:
+
+14. `RELEASING.md` now bootstraps a new package with a `0.0.0-bootstrap.0` placeholder
+    and a trusted publisher, and `tools/release/reconcile.mjs` points `latest` at the
+    newest RC of every package with no stable version. Revision 2's
+    `scripts/publish-released.mjs`, its dist-tag table and its `RELEASING.md` rewrite
+    are dropped (section 12).
+15. rc.0 and rc.1 were published without the adapters, so revision 2's "all five in rc.0"
+    cannot hold. Owner question Q2 sets the target RC.
+
+New scope, from the owner's 2026-10-14 decision to put adapters and edge runtimes in 0.4:
+
+16. Section 9 adds edge runtimes: Cloudflare Workers, Vercel Edge, Deno and Bun.
+17. `nexus()` takes a container or a function that builds one (section 3.1), so an edge
+    isolate builds its container once, on the first request, when its factories need I/O.
+18. The Hono adapter hands the dispose promise to `executionCtx.waitUntil` where the
+    platform has one (section 4.2).
+19. Section 10 proposes `@nexusdi/next` for App Router route handlers and server actions.
+20. Section 14 maps every adapter onto the demo apps plan, so each one runs in CI through
+    an example.
+21. Section 19 lists what this spec needs from core and checks each item against P1 to
+    P5.
 
 ## 1. Problem
 
 A 0.4 server user writes the same code in every framework. They create a scope per
 request, map the framework request into `NexusRequest`, hand the scope to handlers, and
-dispose it when the response is done. Core spec §3.6 shows the pattern with
+dispose it when the response is done. `/node-request-scopes/` shows the pattern with
 `await using` around `scopes.run(shuttle, () => dispatch(req))`.
 
 That pattern disposes the scope when `dispatch` returns. In three of the four server
@@ -64,9 +156,18 @@ frameworks the handler returns before the response body is written:
   (checked on Node 24.20.0 with an aborted `fetch`).
 
 So the hand-written version disposes scoped instances while a stream still reads them, or
-leaks a scope per aborted request. The 0.3 example does neither, because it has no scope:
-it keeps one global container in a React Router context, and `home.tsx` keeps request
-data in a module-level `let user`.
+leaks a scope per aborted request. Core adds each open scope to the container's set of
+scopes (`runtime/scope.ts:221`), so a leaked scope stays reachable until the container is
+disposed. The example app has neither problem only because it has no scope: it keeps one
+global container in a React Router context, and `home.tsx` keeps request data in a
+module-level `let user`.
+
+Edge runtimes add two problems. A Cloudflare Worker gets 10 ms of CPU per request on the
+Free plan, and a container that a handler builds on first use spends that budget: the
+probe in section 9.3 measured 5.18 ms for a cold first `Nexus.create` of 55 providers on
+a fast laptop. And no NexusDI page says how to scope a request on Workers or Deno Deploy;
+awilix's Cloudflare build failure (`jeffijoe/awilix#368`, 56 comments) shows users hit
+this wall with other containers.
 
 Tests repeat the same boilerplate. Every test file builds a testing container, overrides
 providers, and disposes the container, and a test that forgets `await using` leaks a
@@ -74,11 +175,11 @@ container into the next test.
 
 ## 2. Decisions
 
-1. Five packages, one per framework, each in `libs/<name>`. No shared runtime package
+1. One package per framework, each in `libs/<name>`. No shared runtime package
    (section 3.7).
 2. Every server adapter has one shape: `nexus(ship, options)` returns an object with the
-   framework's hook (`middleware` or `plugin`), `inject` and `scope`. The adapter never
-   creates or disposes the container. The user owns it.
+   framework's hook (`middleware`, `plugin`, or `route` and `action` for Next), `inject`
+   and `scope`. The adapter never creates or disposes a container the user passed in.
 3. A request gets at most one scope, created with `createScope({ request })` on the first
    `inject` or `di.scope()` call in that request, where `request` comes from a user
    function that maps the framework request to `NexusRequest`. The middleware creates no
@@ -88,52 +189,108 @@ container into the next test.
    still being written (section 3.4).
 5. Handlers receive dependencies through `inject({ name: Dep }, handler)`, a record of
    deps resolved from the request's scope and typed with core's `ResolvedDeps`. The record
-   is checked against the container when the route is defined, so a missing provider
-   fails at startup (section 3.3).
+   is checked against the container when the route is defined, or on the first request
+   when the container is built lazily (section 3.3).
 6. The ambient scope is opt-in: the user passes `scopes: nodeScopes()` from
-   `@nexusdi/node` (section 3.5).
+   `@nexusdi/node` (section 3.5). That holds on edge runtimes too (section 9.4).
 7. The adapters map only the errors they raise. A `NexusError` from scope creation or
-   `inject` is logged once with its code and fields, and becomes the framework's plain 500, or 503
-   while the container shuts down. No response body carries a code, a token name or a
-   message from core (section 3.6).
-8. Hono and React Router adapters use only web-standard APIs and import no `node:` module.
-   Express and Fastify adapters are Node-only.
+   `inject` is logged once with its code and fields, and becomes the framework's plain
+   500, or 503 while the container shuts down. No response body carries a code, a token
+   name or a message from core (section 3.6).
+8. The Hono, React Router and Next adapters use only web-standard APIs and import no
+   `node:` module. Express and Fastify adapters are Node-only.
 9. `@nexusdi/vitest` provides `test.extend` fixtures for a testing container and a scope,
    each disposed after its test.
-10. Each package is versioned independently by `nx release`, published as `0.4.0-rc.N`
-    with core, and pins `@nexusdi/core` exactly in `peerDependencies`.
-11. The Release workflow picks the dist-tag per package. A package with no stable version on
-    npm publishes every version with `latest`. A package with a stable version publishes a
-    prerelease with `next` and a stable version with `latest` (section 10.3).
-12. All five packages are in rc.0 (section 13).
+10. Each package is versioned with the release line by `nx release`, published as
+    `0.4.0-rc.N` with core, and pins `@nexusdi/core` exactly in `peerDependencies`.
+11. Dist-tags follow `RELEASING.md`: the reconcile step points `latest` at the newest RC of
+    a package with no stable version (section 12).
+12. Each adapter runs in CI through a demo app under `examples/` (section 14).
 
-### 2.1 Decisions settled after review
+### 2.1 Decisions the owner made on the first draft
 
-The owner decided these on the first draft. Each one is specified where the section
-reference points.
+The owner decided these on the first draft (`d9a9a7b`). Each one is specified where the
+section reference points. Items 6 and 7 changed status in revision 3, as noted.
 
-1. Core adds `Scope.resolve(deps)` and `Nexus.validate(deps)` (section 3.3).
+1. Core adds `Scope.resolve(deps)` and `Nexus.validate(deps)` (section 3.3). Done in
+   rc.0.
 2. No shared package. The body wrapper is copied, and a repo-check keeps the copies
-   identical (section 3.7).
+   identical (section 3.7). The extension principle kept this as P4's named exception.
 3. `@nexusdi/react-router` supports `^7.9.0` with `v8_middleware` and `^8.0.0`, and
-   `examples/react-ssr` moves to React Router 8 (sections 7.1 and 12.3).
+   `examples/react-ssr` moves to React Router 8 (sections 7.1 and 14).
 4. `@nexusdi/vitest` supports `^4.1.0` and `^5.0.0` (section 8.3).
-5. CI runs a leg per supported major of React Router and Vitest (section 11.4).
-6. The dist-tag is chosen per package in `release.yml`, with no npm token and no manual
-   tag step (section 10.3).
-7. All five adapters are in rc.0 (section 13).
+5. CI runs a leg per supported major of React Router and Vitest (section 13.4).
+6. The dist-tag is chosen per package, with no npm token and no manual tag step. The
+   release workflow on `release/0.4` meets this with `reconcile.mjs`; the one manual step
+   left is the owner's bootstrap of each new package name on npm, which the release spec
+   requires for every package (section 12).
+7. All five adapters are in rc.0. rc.0 and rc.1 were published without them, so owner question
+   Q2 replaces this item.
 8. Express stays in scope. The Express middleware list takes no new entries
    (`expressjs/expressjs.com#2375`), so launch material has no Express listing
-   (section 14).
+   (section 17).
 9. Adapters create the request scope on first use, and every adapter has `di.load(Module)`
    for lazily loaded sections (section 3.9).
 10. The spec follows core revision 2: the ambient scope comes from `nodeScopes()` in
-    `@nexusdi/node` (D20); the adapters use public API only and are checked against the
-    plugin hook set (D19, section 3.10); `di.load` calls `scope.extend()` (D10); examples
-    use `Nexus.create([...])` or modules, `static deps`, `forRoot` and class tokens on
-    first pages (D1, D2, D4, D8); logs carry `err.code` and the fields, and development
-    setups register `errors()` for full text (D15, D21); the size report covers each
-    adapter (section 11.6).
+    `@nexusdi/node`; the adapters use public API only (section 3.10); `di.load` calls
+    `scope.extend()`; examples use `Nexus.create([...])` or modules, `static deps`,
+    `forRoot` and class tokens on first pages; logs carry `err.code` and the fields, and
+    development setups register `errors()` for full text; the size report covers each
+    adapter (section 13.6).
+
+### 2.2 Decisions settled in revision 3
+
+The architect settled these. None removes or renames public API, none reverses an owner
+decision, and none moves a pillar. Each was checked against the pillars and P1 to P5.
+
+D1. `nexus()` takes `Nexus | (() => Promise<Nexus>)`. The function form builds the
+container on the first request that needs it, once per process or isolate, and shares the
+promise across concurrent first requests. A rejected build is dropped, so the next request
+retries, and the request that saw it gets a 503. Reason: an edge isolate whose factories
+do I/O cannot build at module scope (section 9.2). Users: an additive overload; the
+`Nexus` form is unchanged.
+
+D2. Edge runtimes get no package of their own. `@nexusdi/node` is the
+`AsyncLocalStorage` binding on every runtime that exposes `node:async_hooks`: Node, Bun,
+Deno, Workers with `nodejs_compat` and Vercel Edge. The structural `scopes` option
+covers a runtime without it. Reason: a second binding would copy `nodeScopes()` (P4),
+and every edge runtime in scope has a real `AsyncLocalStorage` (section 9.4). Users: one
+install line on every runtime; on Workers the package name says "node" while the code
+runs on workerd, which the edge guide states in its first paragraph.
+
+D3. The ALS shim prototype is not an edge mechanism. It exists for the Academy's browser
+sandbox, it needs the reader's code, core and node lowered to es2016 because an untransformed
+`await` drops the context, and lowering slowed core 2 to 3.5 times. Every edge runtime in
+scope provides `AsyncLocalStorage`, so the shim solves a problem these runtimes do not have.
+
+D4. Explicit scope passing stays the default on every runtime: `inject` and the framework
+slot (`c.var.nexus`) need no `AsyncLocalStorage`. The ambient scope stays opt-in.
+
+D5. The Hono adapter passes the dispose promise to `c.executionCtx.waitUntil` when the
+platform provides an execution context, so a Worker keeps running until scoped disposers
+finish. On Node, Bun and Deno, Hono's getter throws and the adapter skips the call
+(section 4.2). No option is added.
+
+D6. The demo app for the server adapters is one app, `examples/bridge-api`, with a Hono
+entry, an Express entry, a Fastify entry and a Workers entry over one module graph
+(section 14). It is the "Meridian app (Hono, backend)" of the demo apps plan.
+
+D7. Edge CI legs run the bridge API's Hono entry on workerd (through
+`@cloudflare/vitest-pool-workers`), Deno, Bun and Vercel's `edge-runtime` VM. Netlify Edge
+runs on Deno and gets a "not tested, runs on Deno" row in `/runtimes/` (section 9.8).
+
+D8. A repo-check, `edge-safe.test.ts`, refuses `eval(` and `new Function` in the packages
+that claim edge support, because Vercel Edge disables both. Core holds neither today
+(checked with grep on `cef5f39a`).
+
+D9. `@nexusdi/next`, if the owner approves Q1, disposes through Next's `after()`, which
+Next runs after the response finishes and also after an error. It holds no copy of the
+body wrapper. If the abort test of section 10.6 fails, it falls back to the body wrapper
+as the third copy under P4's exception.
+
+D10. Revision 2's core items are closed: C1 by the code (section 0 item 6), C2 by
+`reconcile.mjs` (section 12), and C3 named stale text in a core spec that is no longer the
+reference for rc.1.
 
 ## 3. Shared design
 
@@ -157,9 +314,21 @@ await di.scope(frameworkRequest); // the request's Scope, created on first use
 di.load(Feature); // a middleware that loads a module before the section's handlers
 ```
 
-`nexus` takes a live `Nexus`. The user creates it with `await Nexus.create(...)` and
-disposes it after the server has stopped accepting requests. A container passed in after
-disposal fails every request with 503 (section 3.6).
+`ship` is a live `Nexus` or a function that returns `Promise<Nexus>`:
+
+```ts
+type ContainerSource = Nexus | (() => Promise<Nexus>);
+```
+
+With a `Nexus`, the user creates it with `await Nexus.create(...)` and disposes it after
+the server has stopped accepting requests. A container passed in after disposal fails
+every request with 503 (section 3.6).
+
+With a function, the adapter calls it on the first request that resolves anything,
+keeps the promise for every later request, and drops a rejected promise so the next
+request calls the function again. The adapter does not dispose a container it got from
+the function either. On Node the guides use the `Nexus` form; the function form exists
+for edge isolates (section 9.2).
 
 The export is named `nexus` in every package, so the guides read the same across
 frameworks. `@nexusdi/vitest` differs because it has no request: it exports
@@ -167,8 +336,8 @@ frameworks. `@nexusdi/vitest` differs because it has no request: it exports
 
 ### 3.2 The request mapping
 
-`NexusRequest` is empty until the application augments it (core spec §4.5). The adapter
-cannot know its fields, so the user supplies the mapping:
+`NexusRequest` is empty until the application augments it. The adapter cannot know its
+fields, so the user supplies the mapping:
 
 ```ts
 type RequestOption<Input> = {} extends NexusRequest
@@ -178,7 +347,8 @@ type RequestOption<Input> = {} extends NexusRequest
 
 When the application's `NexusRequest` has a required field, `request` is required at the
 type level. When it has none, the adapter calls `createScope()` with no request, and core
-throws `NEXUS_REQUEST_MISSING` only if a provider needs `REQUEST`.
+throws `NEXUS_REQUEST_MISSING` only if a provider needs `REQUEST`
+(`runtime/scope.ts:342`).
 
 The guides tell users to map to domain values (`mission`, a user id, a locale) and to keep
 the framework's context object out of `NexusRequest`. A provider that receives Hono's `c`
@@ -196,25 +366,25 @@ inject<const D extends DepsMap, R>(
 ```
 
 `DepsMap` and `ResolvedDeps<D>` are core's types for a record of deps and its resolved
-values, beside `Dep` and `Resolve` (core spec §3.9 and §4.2).
-The adapters import them and define no deps type of their own. So `optional(T)` yields
-`T | undefined`, `lazy(T)` yields `() => T` and `all(M)` yields `T[]`. The handler
-destructures by name, which avoids the positional mistakes a tuple invites, and the
-framework arguments follow unchanged.
+values (`definitions/modifiers.ts`). The adapters import them and define no deps type of
+their own. So `optional(T)` yields `T | undefined`, `lazy(T)` yields `() => T` and
+`all(M)` yields `T[]`. The handler destructures by name, which avoids the positional
+mistakes a tuple invites, and the framework arguments follow unchanged.
 
 A route handler that calls `scope.get(X)` works too, through `di.scope(...)`. The guides
 show `inject` first and name `di.scope` as the way out for code that is not a handler.
 
 `inject` does two things:
 
-1. When called (at route definition), it checks every required and lazy entry against the
-   container and throws when one has no visible provider. So a wrong token fails when the
-   app starts, before the first request.
+1. It checks every required and lazy entry against the container and throws when one has
+   no visible provider. With a `Nexus`, the check runs when `inject` is called, at route
+   definition, so a wrong token fails when the app starts. With the function form, the
+   check runs once, after the first build, before the first resolve; a failure there is a
+   500 with the log line below, on every request until the process or isolate restarts.
 2. Per request, it gets the request's scope, which creates it on the first use in that
    request (section 3.9), resolves the record from it, then calls the handler.
 
-Step 1 is `ship.validate(deps)` and step 2 is `scope.resolve(deps)`, both core API
-(core spec §3.9):
+Step 1 is `ship.validate(deps)` and step 2 is `scope.resolve(deps)`:
 
 ```ts
 interface Scope {
@@ -229,12 +399,8 @@ interface Nexus {
 }
 ```
 
-`validate` throws one `BlueprintError` holding a `NEXUS_INVALID_TOKEN`,
-`NEXUS_NOT_VISIBLE` or `NEXUS_MISSING_PROVIDER` per failing entry. Every error `resolve`
-or `validate` raises for an entry carries `entry` (`deps.<key>`), and the adapters log it
-(section 3.6).
-
-When `validate` throws inside `inject`, the adapter logs one line per inner error, built
+`validate` throws one `BlueprintError` holding an error per failing entry, and builds
+nothing (`runtime/nexus.ts:160-171`). The adapter logs one line per inner error, built
 from `err.code` and the error's fields, then rethrows, so the app fails at startup:
 
 ```
@@ -242,9 +408,9 @@ from `err.code` and the error's fields, then rethrows, so the app fails at start
 ```
 
 Core's own message is one line of the code, the fields as `key=value` pairs and a docs
-link (core spec §0, D15). With `errors()` from `@nexusdi/errors` registered, the message
-holds revision 1's full text and near misses, and the adapter appends it to the line. So
-every development setup in this spec's samples registers `errors()`.
+link. With `errors()` from `@nexusdi/errors` registered, the message holds the full text
+and near misses, and the adapter appends it to the line. So every development setup in
+this spec's samples registers `errors()`.
 
 ### 3.4 Disposal
 
@@ -260,6 +426,7 @@ nothing:
 | React Router | the wrapped body stream ends, errors or cancels  | `request.signal` aborts                    |
 | Express      | `res` emits `close`                              | `res` emits `close`                        |
 | Fastify      | `reply.raw` emits `close`                        | `reply.raw` emits `close`                  |
+| Next         | Next runs the `after()` callback                 | Next runs the `after()` callback           |
 | Any          | a response with no body: at once, after `next()` | the signal fired before the middleware ran |
 
 Node's `http.ServerResponse` emits `close` after `finish` on a normal response and alone
@@ -268,33 +435,33 @@ on an abort, so one listener covers both cases for Express and Fastify.
 For Hono and React Router the adapter replaces the response with one whose body is a
 pass-through `ReadableStream` over the original body. The wrapper's `pull` reads the
 original reader; `done`, a read error and the consumer's `cancel` each dispose the scope.
-The new response keeps the original status and headers. A `null` body, a `HEAD` request and a 204 or
-304 dispose after `next()` returns.
+The new response keeps the original status and headers. A `null` body, a `HEAD` request
+and a 204 or 304 dispose after `next()` returns.
 
-Core makes scope disposal idempotent (core spec §3.6). The adapter also wraps the dispose
-call in a `once`, so its listeners call core one time per request. A disposal error is passed to `log` and
-never thrown, because the response has already been sent and a throw would become an
-unhandled rejection.
+Core makes scope disposal idempotent (`runtime/scope.ts:58`, `scope.disposal ??=`). The
+adapter also wraps the dispose call in a `once`, so its listeners call core one time per
+request. A disposal error is passed to `log` and never thrown, because the response has
+already been sent and a throw would become an unhandled rejection.
 
 `await using` appears in two places: in `@nexusdi/vitest`'s fixtures, and in the guides'
 server entry, where the user writes `await using ship = await Nexus.create(...)` around
 the server's lifetime. The request path cannot use it, because the scope outlives the
 middleware's frame.
 
-Core requires Node 22.12 (core spec §0, D13). Node 22 has `Symbol.asyncDispose` but no
-`await using` syntax (`SyntaxError` on 22.23.2). The adapters' sources use `await using` only in tests. The
-build targets ES2022, so TypeScript lowers any use in `src`.
+Core requires Node 22.12. Node 22 has `Symbol.asyncDispose` but no `await using` syntax.
+The adapters' sources use `await using` only in tests. The build targets ES2022, so
+TypeScript lowers any use in `src`.
 
 Shutdown order: the guides stop the server first (`server.close()`, Fastify's `close()`,
 which runs `onClose` after in-flight requests drain), then dispose the container. A
-request that arrives after disposal starts gets a 503.
+request that arrives after disposal starts gets a 503. An edge isolate has no shutdown
+hook, so the edge guide disposes no container (section 9.2).
 
 ### 3.5 Ambient scope
 
-Core has no ambient scope (core spec §0, D20). `@nexusdi/node` exports `nodeScopes()`, an
-object with `run(scope, fn)` and `current()` over one `AsyncLocalStorage`. It is not a
-plugin and is not passed to `Nexus.create` (core spec §7.3). An adapter takes it as the
-`scopes` option:
+Core has no ambient scope. `@nexusdi/node` exports `nodeScopes()`, an object with
+`run(scope, fn)` and `current()` over one `AsyncLocalStorage`. It is not a plugin and is
+not passed to `Nexus.create`. An adapter takes it as the `scopes` option:
 
 ```ts
 import { nodeScopes } from '@nexusdi/node';
@@ -307,16 +474,9 @@ scopes.current()?.get(FLIGHT_LOG);
 ```
 
 The option's type is structural, `{ run<R>(scope: Scope, fn: () => R): R }`, so
-`@nexusdi/hono` and `@nexusdi/react-router` import nothing from `@nexusdi/node` and stay
-free of `node:` imports. The user brings the package where the runtime has
-`AsyncLocalStorage`:
-
-- Node, Bun and Deno implement it through `node:async_hooks`.
-- Cloudflare Workers has it with `nodejs_compat` (on by default from compatibility date
-  2026-08-04) or `nodejs_als`.
-
-The runtime job (section 11.3) runs the Hono integration test with `scopes: nodeScopes()`
-on each runtime, and `/runtimes/` states the result.
+`@nexusdi/hono`, `@nexusdi/react-router` and `@nexusdi/next` import nothing from
+`@nexusdi/node` and stay free of `node:` imports. The user brings the package where the
+runtime has `AsyncLocalStorage`. Section 9.4 lists the runtimes and the evidence.
 
 With `scopes` set, the adapter runs the rest of the request inside
 `scopes.run(scope, ...)`. `run` needs a `Scope` and `current()` is synchronous, so an
@@ -330,31 +490,40 @@ that scope (section 3.9).
 ### 3.6 Error mapping
 
 The adapter catches a `NexusError`, recognised with `isNexusError(value)` so an error
-from a second copy of core also counts, from `createScope`, `scope.resolve`, `ship.load`
-or `scope.extend`. `createScope` now runs at the first `inject`, so its errors surface there.
-The adapter leaves every other error, and every `NexusError` a handler throws itself, to
-the framework's error pipeline.
+from a second copy of core also counts, from `createScope`, `scope.resolve`, `ship.load`,
+`scope.extend` or the function form's build. The adapter leaves every other error, and
+every `NexusError` a handler throws itself, to the framework's error pipeline.
 
-| Code raised in adapter code                                                                | Status | Log level |
-| ------------------------------------------------------------------------------------------ | ------ | --------- |
-| `NEXUS_DISPOSED` from `createScope`, `load` or `extend`                                    | 503    | warn      |
-| `NEXUS_BLUEPRINT_INVALID`, `NEXUS_PROVIDER_FAILED`, `NEXUS_LOAD_GLOBAL_MODULE` from `load` | 500    | error     |
-| `NEXUS_REQUEST_MISSING` from `createScope` or `extend`                                     | 500    | error     |
-| `NEXUS_PROVIDER_FAILED` from a scoped factory in `createScope` or `extend`                 | 500    | error     |
-| `NEXUS_MISSING_PROVIDER`, `NEXUS_NOT_VISIBLE`, `NEXUS_LOADED_AFTER_SCOPE` from `resolve`   | 500    | error     |
+The mapping follows ruling V12 of the extension principle, plus one case for the function
+form of section 3.1:
+
+- A rejection of the function form's build, whatever it holds: 503, log level error, and
+  the next request retries the build. The container does not exist yet, so the service
+  is unavailable, and the adapter reads no code to decide it.
+- `isNexusError(error, 'NEXUS_DISPOSED')`: 503, log level warn.
+- Any other `NexusError`, a third-party code from a plugin's `construct` hook included:
+  500, log level error.
+
+The one string literal is P1's allowlisted check (`owner-vocabulary.test.ts`, entry
+`NEXUS_DISPOSED`). Codes an adapter typically sees: `NEXUS_REQUEST_MISSING` and
+`NEXUS_PROVIDER_FAILED` from `createScope`, `NEXUS_MISSING_PROVIDER`, `NEXUS_NOT_VISIBLE`
+and `NEXUS_LOADED_AFTER_SCOPE` from `resolve`, and `NEXUS_BLUEPRINT_INVALID` from `load`.
+The adapter branches on none of them.
 
 The adapter logs the original error once through the `log` option, as `err.code` plus
-the error's fields (`entry`, `token`, `module` and the rest core spec §9 lists for the
-code), and `err.message`, which is core's one line or, with `errors()` registered, the
-full text. The default `log` writes `console.error(err.code, fields, err.message)`, and
-Fastify's writes `req.log.error({ code, ...fields }, message)`. Then it raises the framework's own error type with the status, the status text as
-its message (`Internal Server Error`, `Service Unavailable`) and the `NexusError` as
-`cause`. So the user's error handler can read `error.cause.code`, and the framework's
-default handler sends a body that contains nothing from core. The per-framework error type
-is in each package's section.
+the error's fields, which are its own enumerable properties, and `err.message`, which is
+core's one line or, with `errors()` registered, the full text. The default `log` writes
+`console.error(err.code, { ...err }, err.message)`, and Fastify's writes
+`req.log.error({ code: err.code, ...err }, err.message)`. Then it raises the framework's
+own error type with the status, the status text as its message (`Internal Server Error`,
+`Service Unavailable`) and the `NexusError` as `cause`. So the user's error handler can
+read `error.cause.code`, and the framework's default handler sends a body that contains
+nothing from core. The per-framework error type is in each package's section.
 
-A test per adapter sends a request that triggers `NEXUS_MISSING_PROVIDER` and asserts that
-the body contains neither `NEXUS_` nor the token's description.
+Each adapter's test sends a request that triggers `NEXUS_MISSING_PROVIDER` and asserts
+that the body contains neither `NEXUS_` nor the token's description. A second test throws
+a third-party `errorBase` code from a plugin's `construct` hook during `createScope` and
+asserts a 500 with no `NEXUS_` in the body.
 
 ### 3.7 Shared code
 
@@ -363,28 +532,32 @@ The code the adapters would share:
 1. Dep resolution, startup validation and scope extension: in core, as `resolve`,
    `validate` and `extend`.
 2. The body wrapper of section 3.4: used by Hono and React Router, about 40 lines.
-3. The status mapping of section 3.6: a function from a `NexusError` code to 500 or 503,
-   about 10 lines.
+3. The status rule of section 3.6: one `isNexusError` call, about 5 lines.
 4. The `RequestOption` type: 4 lines.
-5. The lazy scope handle and the `load` memo of section 3.9: used by all four server
-   adapters, about 50 lines.
+5. The lazy scope handle, the `load` memo of section 3.9 and the container source of
+   section 3.1: used by every server adapter, about 70 lines.
 
-The remainder does not justify another published package, with its own bootstrap and an
-exact pin in four dependents. A private workspace
-package does not work either, because the build is plain `tsc` and a published `dist`
-cannot import an unpublished package.
+The owner decided against a shared package (section 2.1 item 2), and the extension
+principle kept that as P4's named exception (ruling V13, "`@nexusdi/http`: rejected for
+0.4"). So items 2, 3 and 5 live in each adapter at `src/internal/`. The copies of
+`dispose-with-body.ts` and of `request-scope.ts` are byte-identical:
 
-So items 2, 3 and 5 live in each adapter at `src/internal/`. The two copies of
-`dispose-with-body.ts` and the four copies of `request-scope.ts` are byte-identical, and a
-repo-check, `tools/repo-checks/src/adapter-shared-copies.test.ts`, fails when copies of
-one file differ. The fallow duplicates gate ignores exactly those files, through
-`.fallowrc.jsonc`.
+- A repo-check, `tools/repo-checks/src/adapter-shared-copies.test.ts`, fails when two
+  copies of one file differ.
+- `.fallowrc.jsonc` `duplicates.ignore` gains `libs/*/src/internal/request-scope.ts` and
+  `libs/*/src/internal/dispose-with-body.ts`.
+- `no-copies.test.ts` `ALLOWLIST` gains the same two globs, with the reason "P4 exception:
+  the adapter copies (integrations spec 3.7, ruling V13)".
+
+With `@nexusdi/next` the counts are five copies of `request-scope.ts` and two of
+`dispose-with-body.ts` (D9). Adding an adapter never forces an edit in another adapter: a
+change to a shared file is a change to every copy in one commit, which the copies check
+enforces. `@nexusdi/http` can be published later with no user-visible change.
 
 ### 3.8 The example app
 
-Core spec §0 sets the example style (D1, D2, D4, D8). A first page, which for the
-adapters is each README's "Getting started", uses classes as tokens, `static deps` and
-`Nexus.create([...])`:
+A first page, which for the adapters is each README's "Getting started", uses classes as
+tokens, `static deps` and `Nexus.create([...])`:
 
 ```ts
 // README, Getting started of @nexusdi/hono
@@ -423,7 +596,7 @@ lists its constructor tokens in `static deps`, and a module binds the token with
 `provide(TOKEN, { useClass })` or, for async construction, `useFactory`. Configurable
 modules are imported through `forRoot` or `forRootAsync`. No handler, test or `inject`
 record after Getting started names a concrete class. The samples share one module, the
-bridge API:
+bridge API, whose names come from the Meridian vocabulary (docs spec §7.1):
 
 ```ts
 // bridge/contracts.ts
@@ -485,16 +658,19 @@ export const Meridian = defineModule({
 });
 ```
 
-`NAV_CHARTS` stays the async factory of core spec §3.4, typed by its interface:
+`NAV_CHARTS` stays the async factory, typed by its interface:
 `StarCharts.download(link)` resolves to a `StarCharts`, which implements `INavCharts`.
 `ShuttleFlightLog implements IFlightLog`. Both classes are imported only by the module
 that binds them. `FLIGHT_LOG` is scoped, so each request gets its own log, built from
-that request's `MISSION`. `Tactical` imports `Comms.forRoot({ frequency: 1420 })`, as in
-core spec §3.4.
+that request's `MISSION`. `Tactical` imports `Comms.forRoot({ frequency: 1420 })`.
 
-Each server adapter's sample exports `createBridge(ship: Nexus)`, which builds the app
-from a container. The server entry passes the production container, and a test passes a
-testing container with overrides. The test doubles implement the same interfaces:
+`StarCharts.download(link)` does I/O when the container is built. That is the case
+section 9.2 handles on Workers, where I/O at module scope fails.
+
+Each server adapter's sample exports `createBridge(ship: ContainerSource)`, which builds
+the app from a container. The server entry passes the production container, and a test
+passes a testing container with overrides. The test doubles implement the same
+interfaces:
 
 ```ts
 // test/doubles.ts
@@ -534,20 +710,25 @@ export const test = base.extend(
 ```
 
 `nexusFixtures` builds the container with `createTestingContainer` from
-`@nexusdi/testing` (section 8). `override(FLIGHT_LOG, ...)` keeps the provider's `scoped` lifetime (core spec §11), so the
-fake log is still one per request. Each adapter section ends with a route test built on
-these fixtures. Section 12.2 adds these names to the docs spec's vocabulary.
+`@nexusdi/testing` (section 8). `override(FLIGHT_LOG, ...)` keeps the provider's `scoped`
+lifetime, so the fake log is still one per request. Each adapter section ends with a
+route test built on these fixtures. Section 15.2 adds these names to the docs spec's
+vocabulary.
+
+The same code is the demo app `examples/bridge-api` (section 14). The docs cite regions of
+`examples/meridian/src/pages/<slug>.md`, the convention every docs page on `release/0.4`
+uses, and the demo app imports the same module files.
 
 ### 3.9 Lazy request scopes and `di.load`
 
-Core pins a scope to the blueprint that was current when the scope was created (core
-spec §7.1). A token from a module loaded after that throws `NEXUS_LOADED_AFTER_SCOPE`
-until `await scope.extend()` re-pins the scope (core spec §7.4).
-React Router 8 runs the root middleware before a lazy route's middleware. If the root
-middleware created the scope and the lazy route's middleware then called
-`ship.load(Navigation)`, the first request into that section would fail, and every
-later request would pass. Hono, Express and Fastify have the same order problem for any
-middleware registered after `di.middleware` that loads a module.
+Core pins a scope to the blueprint that was current when the scope was created. A token
+from a module loaded after that throws `NEXUS_LOADED_AFTER_SCOPE` until
+`await scope.extend()` re-pins the scope (`runtime/scope.ts:230-328`). React Router 8
+runs the root middleware before a lazy route's middleware. If the root middleware created
+the scope and the lazy route's middleware then called `ship.load(Navigation)`, the first
+request into that section would fail, and every later request would pass. Hono, Express
+and Fastify have the same order problem for any middleware registered after
+`di.middleware` that loads a module.
 
 The adapters use two rules. Without an ambient scope, the middleware creates no scope, so
 most requests into a lazy section never need an `extend()`. And `di.load` extends the
@@ -559,6 +740,8 @@ The middleware records the request, attaches a scope handle and registers dispos
 
 ```ts
 // src/internal/request-scope.ts, copied into each server adapter
+export type ContainerSource = Nexus | (() => Promise<Nexus>);
+
 export interface RequestScope {
   /** Creates the scope on the first call; every later call returns the same promise. */
   scope(): Promise<Scope>;
@@ -566,8 +749,21 @@ export interface RequestScope {
   readonly started: boolean;
 }
 
+/** One container per source: the Nexus itself, or the memoised build of the function. */
+export function containerOf(source: ContainerSource): () => Promise<Nexus> {
+  if (typeof source !== 'function') return () => Promise.resolve(source);
+  let pending: Promise<Nexus> | undefined;
+  return () => {
+    pending ??= source().catch((error: unknown) => {
+      pending = undefined; // the next request builds again
+      throw error;
+    });
+    return pending;
+  };
+}
+
 export function requestScope(
-  ship: Nexus,
+  container: () => Promise<Nexus>,
   request: () => NexusRequest | undefined | Promise<NexusRequest | undefined>,
 ): RequestScope & { close(): Promise<void> } {
   let pending: Promise<Scope> | undefined;
@@ -578,8 +774,8 @@ export function requestScope(
     },
     scope() {
       if (closed) return Promise.reject(requestFinished());
-      pending ??= Promise.resolve(request()).then((r) =>
-        ship.createScope({ request: r }),
+      pending ??= container().then(async (ship) =>
+        ship.createScope({ request: await request() }),
       );
       return pending;
     },
@@ -610,12 +806,12 @@ The framework slot holds the handle: `c.var.nexus`, `req.nexus` and `NEXUS_SCOPE
 `di.load(Module)` returns a middleware for the framework that:
 
 1. calls `await ship.load(Module)`. Core makes `load` idempotent and runs concurrent calls
-   one at a time (core spec §3.5). The adapter keeps one promise per module in a
-   `WeakMap` after a successful load, so later requests skip the call; a failed load is
-   not kept, and the next request tries again;
+   one at a time (`runtime/nexus.ts:173-180`). The adapter keeps one promise per module
+   in a `WeakMap` after a successful load, so later requests skip the call; a failed load
+   is not kept, and the next request tries again;
 2. when the request's handle has started, calls `await (await handle.scope()).extend()`.
    `extend()` returns at once when nothing was loaded since the scope's pin, and builds
-   the scoped factories the new module contributes otherwise (core spec §7.4);
+   the scoped factories the new module contributes otherwise;
 3. continues.
 
 A lazily loaded section registers `di.load(Feature)` in front of its handlers, and the
@@ -643,8 +839,8 @@ section.
 
 With `scopes` set, the middleware creates the scope at once (section 3.5), and step 2
 extends it, so the first request into a lazy section works in both modes. `extend()` keeps
-`scope.id` and every built instance, so the `AsyncLocalStorage` store that
-`scopes.run` set still holds the right scope (core spec §7.4, step 1).
+`scope.id` and every built instance, so the `AsyncLocalStorage` store that `scopes.run`
+set still holds the right scope.
 
 Each adapter's integration test adds these cases:
 
@@ -660,34 +856,32 @@ Each adapter's integration test adds these cases:
   the handler;
 - with `scopes: nodeScopes()`, a lazy section's first request succeeds: the observer
   sees one `scope:create`, one `scope:extend` naming `Feature`, and `scopes.current()`
-  returns the same scope before and after the extend.
+  returns the same scope before and after the extend;
+- with the function form, ten concurrent first requests call the function once, and a
+  function that rejects once is called again by the next request.
 
-### 3.10 The adapters against core's plugin API
+### 3.10 The adapters against core's public API
 
-Core spec §0, D19 says the adapters use core's public API and nothing else. Each need
-checked against that API and the hook set of core spec §3.10:
+The adapters use core's public API and nothing else. Each need, checked against rc.1:
 
-| Adapter need                                   | Core API used                                    | Plugin hook                                                     |
-| ---------------------------------------------- | ------------------------------------------------ | --------------------------------------------------------------- |
-| a scope per request, created on first use      | `ship.createScope({ request })`                  | none                                                            |
-| handler deps checked when the route is defined | `ship.validate(deps)`                            | none                                                            |
-| handler deps per request                       | `scope.resolve(deps)`                            | none                                                            |
-| lazily loaded sections                         | `ship.load(Module)`, `scope.extend()`            | none                                                            |
-| disposal when the response is done             | `scope[Symbol.asyncDispose]()`                   | none                                                            |
-| status mapping                                 | `isNexusError(value)`, `err.code`                | none                                                            |
-| structured log line                            | `err.code` and the error's fields (core spec §9) | none                                                            |
-| full error text in development                 | the user registers `errors()` or `devtools()`    | `formatError`, owned by `@nexusdi/errors`                       |
-| ambient scope                                  | `nodeScopes()` from `@nexusdi/node`              | none; core spec §7.3 says it is not a plugin                    |
-| tests observe scopes                           | `trace(fn)` from `@nexusdi/devtools`             | `observe`, owned by `@nexusdi/devtools`                         |
-| `@nexusdi/vitest` builds a testing container   | `createTestingContainer` from `@nexusdi/testing` | the `compile.*` and `onInit` hooks, owned by `@nexusdi/testing` |
+| Adapter need                                   | Core API used (file on `cef5f39a`)                                  | Plugin hook                                            |
+| ---------------------------------------------- | ------------------------------------------------------------------- | ------------------------------------------------------ |
+| a scope per request, created on first use      | `ship.createScope({ request })` (`runtime/nexus.ts:186`)            | none                                                   |
+| handler deps checked when the route is defined | `ship.validate(deps)` (`runtime/nexus.ts:165`)                      | none                                                   |
+| handler deps per request                       | `scope.resolve(deps)` (`runtime/scope.ts:37`)                       | none                                                   |
+| lazily loaded sections                         | `ship.load(Module)`, `scope.extend()` (`nexus.ts:178`, `scope.ts:42`) | none                                                 |
+| disposal when the response is done             | `scope[Symbol.asyncDispose]()` (`runtime/scope.ts:44`)              | none                                                   |
+| status mapping                                 | `isNexusError(value, code?)` (`errors/is-nexus-error.ts`)           | none                                                   |
+| structured log line                            | `err.code` and the own enumerable fields (`errors/nexus-error.ts`)  | none                                                   |
+| full error text in development                 | the user registers `errors()` or `devtools()`                       | `formatError`, owned by `@nexusdi/errors`              |
+| ambient scope                                  | `nodeScopes()` from `@nexusdi/node`                                 | none; not a plugin                                     |
+| a static startup check on edge                 | `Nexus.check(root, { load })` (`runtime/nexus.ts:70`)               | none                                                   |
+| tests observe scopes                           | `trace(fn)` from `@nexusdi/devtools`                                | `observe`, owned by core, used by `@nexusdi/devtools`  |
+| `@nexusdi/vitest` builds a testing container   | `createTestingContainer` from `@nexusdi/testing`                    | `compile.*` and `onInit`, used by `@nexusdi/testing`   |
 
 No adapter registers a plugin or implements a hook. An adapter wraps a container the user
-created, and every need above is a call on that container or its scopes. Core spec §3.10.8
-rejected acting hooks at scope creation, scope disposal and `load()`, and the adapters need
-none: they create, extend and dispose scopes themselves.
-
-One need is not fully specified by core: section 16 lists it with the other items for
-the core spec.
+created, and every need above is a call on that container or its scopes. Section 19 lists
+what the adapters and the edge work need beyond this table, which is no core API.
 
 ## 4. `@nexusdi/hono`
 
@@ -695,12 +889,11 @@ the core spec.
 
 ```ts
 // bridge/hono.ts
-import type { Nexus } from '@nexusdi/core';
-import { nexus } from '@nexusdi/hono';
+import { nexus, type ContainerSource } from '@nexusdi/hono';
 import { Hono } from 'hono';
 import { FLIGHT_LOG, NAV_CHARTS } from './contracts';
 
-export function createBridge(ship: Nexus) {
+export function createBridge(ship: ContainerSource) {
   const di = nexus(ship, {
     request: (c) => ({
       mission: {
@@ -721,7 +914,7 @@ export function createBridge(ship: Nexus) {
 ```
 
 ```ts
-// server.ts
+// server.ts, Node
 import { Nexus } from '@nexusdi/core';
 import { errors } from '@nexusdi/errors';
 import { serve } from '@hono/node-server';
@@ -739,14 +932,16 @@ await once(server, 'close'); // the container is disposed after the server stops
 
 The final `await once(server, 'close')` keeps the module's `await using` block open for
 the server's lifetime. Without it, the top-level block would end, and dispose the
-container, as soon as `serve` returns.
+container, as soon as `serve` returns. The Workers, Deno and Bun entries are in section
+9.2.
 
 Exports:
 
-- `nexus(ship, options): NexusHono`, where `NexusHono` is
+- `nexus(ship, options): NexusHono`, where `ship` is a `ContainerSource` and
+  `NexusHono` is
   `{ middleware: MiddlewareHandler<NexusEnv>; inject; scope(c: Context): Promise<Scope>; load(module): MiddlewareHandler & { inject } }`.
 - `type NexusEnv = { Variables: { nexus: RequestScope } }`.
-- `type RequestScope` (section 3.9).
+- `type RequestScope` and `type ContainerSource` (section 3.9).
 - `type NexusHonoOptions`: `request`, `scopes`, `log`.
 
 The middleware sets `c.var.nexus`. Hono merges the middleware's `Env` into a chained app
@@ -764,8 +959,8 @@ when the middleware has not run.
 
 ```ts
 createMiddleware<NexusEnv>(async (c, next) => {
-  const handle = requestScope(ship, () => options.request?.(c)); // section 3.9
-  const dispose = once(() => handle.close().catch(log));
+  const handle = requestScope(container, () => options.request?.(c)); // section 3.9
+  const dispose = once(() => keepAlive(c, handle.close().catch(log)));
   if (c.req.raw.signal.aborted) return void (await dispose());
   c.req.raw.signal.addEventListener('abort', dispose, { once: true });
   c.set('nexus', handle);
@@ -777,7 +972,21 @@ createMiddleware<NexusEnv>(async (c, next) => {
   }
   c.res = disposeWithBody(c.res, dispose, c.req.method);
 });
+
+/** Hands the disposal to the platform's waitUntil where one exists (D5). */
+function keepAlive(c: Context, done: Promise<void>): Promise<void> {
+  let ctx: { waitUntil(promise: Promise<unknown>): void } | undefined;
+  try {
+    ctx = c.executionCtx; // throws on Node, Bun and Deno: no execution context
+  } catch {
+    ctx = undefined;
+  }
+  ctx?.waitUntil(done);
+  return done;
+}
 ```
+
+`container` is `containerOf(ship)` from section 3.9, created once in `nexus()`.
 
 `di.load(Feature)` is a `MiddlewareHandler` that runs the steps of section 3.9: the
 memoised `ship.load(Feature)`, `extend()` when the request's scope has started, then
@@ -786,8 +995,9 @@ memoised `ship.load(Feature)`, `extend()` when the request's scope has started, 
 
 Hono's `next()` never throws. An error in a handler goes to `app.onError`, which sets
 `c.res` before `next()` resolves, so the wrapper also covers error responses.
-`@hono/node-server` 2.1.1 aborts `c.req.raw.signal` when the socket closes before the
-response finishes.
+`@hono/node-server` aborts `c.req.raw.signal` when the socket closes before the response
+finishes. On Workers, `request.signal` aborts on a client disconnect only with the
+`enable_request_signal` compatibility flag; section 9.7 covers the case without it.
 
 A WebSocket upgrade (`upgradeWebSocket`) returns a 101 with no body, so the scope is
 disposed when the upgrade completes. The guide states that a WebSocket handler must not
@@ -797,15 +1007,15 @@ hold scoped instances.
 
 The adapter throws `new HTTPException(status, { message: statusText, cause })` from
 `hono/http-exception`. Hono's default `onError` sends `err.getResponse()`, a text body
-with the status text. `log` defaults to `console.error(err.code, fields, err.message)`
+with the status text. `log` defaults to `console.error(err.code, { ...err }, err.message)`
 (section 3.6).
 
 ### 4.4 Runtimes
 
-The package imports `hono` and `@nexusdi/core` only, with no `node:` module. A repo-check
-extends core's node-only rule to `libs/hono/src`. Supported: Node 22.12 and later
-through `@hono/node-server`, Bun, Deno, and Cloudflare Workers. The `scopes` option needs
-`AsyncLocalStorage` and `@nexusdi/node` (section 3.5).
+The package imports `hono` and `@nexusdi/core` only, with no `node:` module, which
+`core-layers.ts` `nodeViolations` already enforces. Supported: Node 22.12 and later
+through `@hono/node-server`, Bun, Deno, Cloudflare Workers and Vercel Edge. Section 9
+gives the entry for each and the CI leg that tests it.
 
 ### 4.5 Peers
 
@@ -813,14 +1023,15 @@ through `@hono/node-server`, Bun, Deno, and Cloudflare Workers. The `scopes` opt
 "peerDependencies": { "@nexusdi/core": "0.4.0-rc.N", "hono": "^4.0.0" }
 ```
 
-`createMiddleware`, `c.var` and `HTTPException` exist from 4.0. The `adapter-peers` job
-(section 11.4) runs the integration test against `hono@4.0.0` and proves the floor.
+`createMiddleware`, `c.var`, `c.executionCtx` and `HTTPException` exist from 4.0. The
+`adapter-peers` job (section 13.4) runs the integration test against `hono@4.0.0` and
+proves the floor.
 
 ### 4.6 Tests
 
 - Unit, through `app.request()`: scope per request, `c.var.nexus`, `inject` resolution of
-  each modifier, the startup check, the error table of section 3.6, `di.scope` without the
-  middleware.
+  each modifier, the startup check, the error rule of section 3.6, `di.scope` without the
+  middleware, and `keepAlive` with a fake execution context.
 - Type tests (`*.test-d.ts`): `inject`'s record types, `c.var.nexus` after chaining,
   `request` required when `NexusRequest` has a required field.
 - Integration (`src/hono.e2e.test.ts`), a real `@hono/node-server` on port 0, with a
@@ -835,7 +1046,8 @@ through `@hono/node-server`, Bun, Deno, and Cloudflare Workers. The `scopes` opt
     no shared scoped instance;
   - `scopes: nodeScopes()` makes `scopes.current()` return the request's scope inside a
     service call.
-- The runtime job runs the same integration file on Bun, Deno and workerd (section 11.3).
+- The edge legs of section 9.8 run the demo app's suite on workerd, Deno, Bun and the
+  `edge-runtime` VM.
 
 ### 4.7 A route test with overrides
 
@@ -860,12 +1072,11 @@ test('plots the course with the fake charts', async ({ nexus }) => {
 
 ```ts
 // bridge/express.ts
-import type { Nexus } from '@nexusdi/core';
-import { nexus } from '@nexusdi/express';
+import { nexus, type ContainerSource } from '@nexusdi/express';
 import express from 'express';
 import { FLIGHT_LOG, NAV_CHARTS } from './contracts';
 
-export function createBridge(ship: Nexus) {
+export function createBridge(ship: ContainerSource) {
   const di = nexus(ship, {
     request: (req) => ({
       mission: {
@@ -933,8 +1144,8 @@ test('plots the course with the fake charts', async ({ nexus }) => {
 
 Exports: `nexus(ship, options): NexusExpress`
 (`{ middleware: RequestHandler; inject; scope(req: Request): Promise<Scope>; load(module): RequestHandler & { inject } }`),
-`RequestScope` and `NexusExpressOptions`. A section router registers `di.load(Feature)`
-first: `router.use(di.load(Navigation))`.
+`RequestScope`, `ContainerSource`, `NexusHttpError` and `NexusExpressOptions`. A section
+router registers `di.load(Feature)` first: `router.use(di.load(Navigation))`.
 
 `req.nexus` is typed through the global augmentation that `@types/express` supports:
 
@@ -956,7 +1167,7 @@ before the middleware included. `inject` and `di.scope(req)` read it and throw t
 
 ```ts
 async (req, res, next) => {
-  const handle = requestScope(ship, () => options.request?.(req)); // section 3.9
+  const handle = requestScope(container, () => options.request?.(req)); // section 3.9
   const dispose = once(() => handle.close().catch(log));
   if (res.closed) return void (await dispose());
   res.once('close', dispose);
@@ -975,11 +1186,11 @@ them the scope through `AsyncLocalStorage`.
 
 ### 5.3 Errors
 
-The adapter passes a `NexusHttpError` (exported) to `next`: an `Error` with `status` and
+The adapter passes a `NexusHttpError` to `next`: an `Error` with `status` and
 `statusCode` set to 500 or 503, `expose: false`, the status text as message and the
 `NexusError` as `cause`. Express's final handler sends the status text in production. In
 development it sends `err.stack`, which is the wrapper's stack and holds no core message.
-`log` defaults to `console.error(err.code, fields, err.message)` (section 3.6).
+`log` defaults to `console.error(err.code, { ...err }, err.message)` (section 3.6).
 
 ### 5.4 Runtime
 
@@ -1016,12 +1227,11 @@ declarations import from it and a JavaScript user needs none.
 
 ```ts
 // bridge/fastify.ts
-import type { Nexus } from '@nexusdi/core';
-import { nexus } from '@nexusdi/fastify';
+import { nexus, type ContainerSource } from '@nexusdi/fastify';
 import Fastify from 'fastify';
 import { FLIGHT_LOG, NAV_CHARTS } from './contracts';
 
-export async function createBridge(ship: Nexus) {
+export async function createBridge(ship: ContainerSource) {
   const di = nexus(ship, {
     request: (req) => ({
       mission: {
@@ -1081,15 +1291,15 @@ test('plots the course with the fake charts', async ({ nexus }) => {
 
 Exports: `nexus(ship, options): NexusFastify`
 (`{ plugin: FastifyPluginAsync; inject; scope(req: FastifyRequest): Promise<Scope>; load(module): onRequestHookHandler & { inject } }`),
-`RequestScope` and `NexusFastifyOptions`. A section plugin adds `di.load(Feature)` as its
-own `onRequest` hook, which runs after the app-level hook of `di.plugin`:
-`section.addHook('onRequest', di.load(Navigation))`.
+`RequestScope`, `ContainerSource`, `NexusHttpError` and `NexusFastifyOptions`. A section
+plugin adds `di.load(Feature)` as its own `onRequest` hook, which runs after the
+app-level hook of `di.plugin`: `section.addHook('onRequest', di.load(Navigation))`.
 
 The plugin is wrapped with `fastify-plugin` (`name: '@nexusdi/fastify'`,
 `fastify: '5.x'`), which sets `skip-override`, so the hook and the decoration apply to
-the whole app. A user who wants the
-scope only inside one encapsulated context registers `di.plugin` there with
-`{ encapsulate: true }`, an option the plugin passes to `fastify-plugin`.
+the whole app. A user who wants the scope only inside one encapsulated context registers
+`di.plugin` there with `{ encapsulate: true }`, an option the plugin passes to
+`fastify-plugin`.
 
 ```ts
 declare module 'fastify' {
@@ -1110,7 +1320,7 @@ lifecycle, the pattern `@fastify/request-context` uses:
 
 ```ts
 fastify.addHook('onRequest', (req, reply, done) => {
-  const handle = requestScope(ship, () => options.request?.(req)); // section 3.9
+  const handle = requestScope(container, () => options.request?.(req)); // section 3.9
   const dispose = once(() => handle.close().catch((e) => req.log.error(e)));
   if (reply.raw.closed) return void dispose();
   reply.raw.once('close', dispose);
@@ -1130,12 +1340,12 @@ in-flight requests drain.
 
 ### 6.3 Errors
 
-The adapter calls `done(error)` with a `NexusHttpError` (exported): `statusCode` 500 or
-503, the status text as message, no `code` property, and the `NexusError` as `cause`.
-Fastify's default handler serializes `code` when present, which is why the wrapper has
-none. `log` defaults to `req.log.error({ code, ...fields }, message)` (or
-`req.log.warn` for 503), so the log line carries Fastify's request id and core's fields
-as structured keys.
+The adapter calls `done(error)` with a `NexusHttpError`: `statusCode` 500 or 503, the
+status text as message, no `code` property, and the `NexusError` as `cause`. Fastify's
+default handler serializes `code` when present, which is why the wrapper has none. `log`
+defaults to `req.log.error({ code: err.code, ...err }, err.message)` (or `req.log.warn`
+for 503), so the log line carries Fastify's request id and core's fields as structured
+keys.
 
 ### 6.4 Runtime
 
@@ -1154,14 +1364,14 @@ list no Fastify floor; the `adapter-peers` job runs against `fastify@5.0.0` with
 
 ### 6.6 Tests
 
-- Unit through `fastify.inject()`: the scope per request, `inject`, the error table, and
+- Unit through `fastify.inject()`: the scope per request, `inject`, the error rule, and
   the `encapsulate` option.
 - Integration (`src/fastify.e2e.test.ts`), `listen({ port: 0 })`: a JSON response, a
   `reply.send(stream)` response, a client abort mid-stream (the case `onResponse`
   misses), a throwing handler, 50 concurrent requests counted through a `trace(fn)`
   plugin, `scopes: nodeScopes()`, the cases of section 3.9, `close()` after in-flight
-  requests with the container disposed in
-  `onClose`, and the no-leak body check including the absence of a `code` field.
+  requests with the container disposed in `onClose`, and the no-leak body check including
+  the absence of a `code` field.
 
 ## 7. `@nexusdi/react-router`
 
@@ -1172,8 +1382,8 @@ React Router 8, where middleware is always on. The middleware API is the same in
 (`createContext`, `RouterContextProvider`, the `middleware` route export). 7.x is still
 maintained on npm's `version-7` tag.
 
-`examples/react-ssr` runs 7.18.4 with `v8_middleware` today, and a dependabot branch
-moves it to 8.4.0. This spec moves the example to 8.x and to this adapter (section 12.3).
+`examples/react-ssr` runs 7.18.4 with `v8_middleware` on `release/0.4`. This spec moves
+the example to 8.x and to this adapter (section 14).
 
 ### 7.2 API
 
@@ -1272,7 +1482,7 @@ Exports:
   it with `createRoutesStub` and
   `new RouterContextProvider(new Map([[NEXUS_SCOPE, existingScope(scope)]]))`.
 - `existingScope(scope): RequestScope`, for tests.
-- `RequestScope` and `NexusRouterOptions`.
+- `RequestScope`, `ContainerSource` and `NexusRouterOptions`.
 
 A lazy route registers `di.load(Feature)` in its own `middleware` export and writes its
 loaders with the returned middleware's `inject`, as in section 3.9. Its first request
@@ -1283,13 +1493,14 @@ of the root module, needs neither.
 
 `inject` accepts any args object with a `context: Readonly<RouterContextProvider>`, so it
 wraps loaders, actions and other middleware, typed by the route's generated `Route`
-types. Components get data through `useLoaderData` and never see the container, because
-components also run in the browser.
+types. Components get data through `useLoaderData` and never see the server container,
+because components also run in the browser. `@nexusdi/react` gives components their own
+client container (react spec §9.1).
 
 React Router's Vite plugin removes the server-only route exports (`loader`, `action`,
-`middleware`) and the `.server` modules they import from the client build, so core and
-the container stay out of the browser bundle. The integration test asserts that the
-client build contains no `@nexusdi/core` module.
+`middleware`) and the `.server` modules they import from the client build, so the server
+container stays out of the browser bundle. The integration test asserts that the client
+build contains no module from `nexus.server.ts`.
 
 `import.meta.hot?.dispose` disposes the old container when Vite re-evaluates the module
 in development. Without it, each edit leaks a container.
@@ -1298,7 +1509,7 @@ in development. Without it, each edit leaks a container.
 
 ```ts
 async ({ request, context, params }, next) => {
-  const handle = requestScope(ship, () =>
+  const handle = requestScope(container, () =>
     options.request?.({ request, params }),
   );
   const dispose = once(() => handle.close().catch(log));
@@ -1327,14 +1538,15 @@ through the root middleware. `@react-router/express` and `react-router-serve` ab
 The adapter throws a `Response` with status 500 or 503 and the status text as body.
 React Router renders the nearest error boundary with that status. The `NexusError` goes to
 `log` only. A thrown `Response` has no `cause`, so the guide shows `handleError` in
-`entry.server.tsx` for users who want one log pipeline, and the adapter's `log` defaults to
-`console.error(err.code, fields, err.message)` (section 3.6).
+`entry.server.tsx` for users who want one log pipeline, and the adapter's `log` defaults
+to `console.error(err.code, { ...err }, err.message)` (section 3.6).
 
 ### 7.5 Runtimes
 
 The package uses web APIs only and imports no `node:` module. Tested on Node through
-`@react-router/node` and `react-router-serve`. React Router's own adapters for Workers,
-Deno and Bun take the same middleware; `/runtimes/` lists them as not tested.
+`@react-router/node` and `react-router-serve`. React Router's adapters for Workers, Deno
+and Bun take the same middleware; `/runtimes/` lists them as not tested, because the edge
+legs of section 9.8 cover Hono only.
 
 ### 7.6 Peers
 
@@ -1359,7 +1571,7 @@ React Router 8 itself requires Node 22.22, which npm reports from its own manife
   check of section 7.2.
 - The fixture app's `react-router.config.ts` sets `future.v8_middleware: true` when the
   installed React Router is 7.x, and nothing on 8.x. The `adapter-peers` job runs the
-  integration test on each supported line (section 11.4).
+  integration test on each supported line (section 13.4).
 
 ## 8. `@nexusdi/vitest`
 
@@ -1454,6 +1666,10 @@ The package has no ambient mode in 0.4. A fixture's `use()` does not wrap the te
 async context, so an ambient scope would need an `aroundEach` hook around
 `nodeScopes().run`. A later release can add it if users ask.
 
+The fixtures also run inside `@cloudflare/vitest-pool-workers`, whose peer is
+`vitest ^4.1.0`: the bridge API's workerd leg (section 9.8) uses them, which is the reason
+the workspace stays on Vitest 4 while `@nexusdi/vitest` also supports 5.
+
 ### 8.3 Peers
 
 ```json
@@ -1469,18 +1685,383 @@ code imports it too and must see the same copy.
 
 4.1 added `test.override` and the builder form of `test.extend`; the object form this
 package uses is the same in 4.1 and 5.0. The workspace runs 4.1.9, and CI runs the
-package's tests on each supported line (section 11.4).
+package's tests on each supported line (section 13.4).
 
 ### 8.4 Tests
 
 The package tests itself with its own fixtures: an override reaches `nexus`,
 `test.override` swaps the setup for a suite, the teardown disposes the scope before the
-container (asserted with the events of a `trace(fn)` plugin), a failing test still disposes, a disposal error
-fails the test (asserted through a nested Vitest run with `startVitest` and a fixture
-project), `containerScope: 'file'` shares one container across a file's tests, and
-`nexusRequest` reaches `REQUEST`. Type tests cover the fixture types in `test` callbacks.
+container (asserted with the events of a `trace(fn)` plugin), a failing test still
+disposes, a disposal error fails the test (asserted through a nested Vitest run with
+`startVitest` and a fixture project), `containerScope: 'file'` shares one container
+across a file's tests, and `nexusRequest` reaches `REQUEST`. Type tests cover the fixture
+types in `test` callbacks.
 
-## 9. Package layout and conventions
+## 9. Edge runtimes
+
+### 9.1 Targets
+
+Edge support means the Hono adapter, core, `@nexusdi/node` and `@nexusdi/errors` run on
+each runtime below, and a CI leg proves it with the bridge API's suite:
+
+| Runtime            | Entry                                     | `AsyncLocalStorage`                                    | Limits that touch NexusDI                       | CI leg                     |
+| ------------------ | ----------------------------------------- | ------------------------------------------------------ | ----------------------------------------------- | -------------------------- |
+| Cloudflare Workers | `export default app` (Hono's `fetch`)     | `node:async_hooks`, default from compat date 2026-08-04, else `nodejs_compat` | 10 ms CPU per request (Free), 1 s global scope, no I/O at global scope | workerd, pool-workers |
+| Vercel Edge        | `hono/vercel` `handle(app)`               | `node:async_hooks`, WinterCG subset                    | 1 MB gzip (Hobby), no `eval` or `new Function`   | `edge-runtime` VM          |
+| Deno and Deno Deploy | `Deno.serve(app.fetch)`                 | `node:async_hooks`                                     | none found                                      | Deno 2.9.6                 |
+| Bun                | `export default app` or `Bun.serve`       | `node:async_hooks`                                     | none found                                      | Bun 1.4.2                  |
+| Netlify Edge       | Deno, through `hono/netlify`              | `node:async_hooks` (Deno)                              | 50 ms CPU per request, 20 MB compressed         | none; runs on Deno         |
+
+The limits come from "Performance thresholds" (2026-10-14), each a vendor page. Vercel's
+own Edge page now recommends Node and says Next.js 16.3 no longer supports
+`runtime = 'edge'`, so Vercel Edge is a shrinking target and gets the lightest leg.
+
+The Bun and Deno versions come from `examples/toolchain-matrix/toolchains.json`, so the
+toolchain matrix and the edge legs test one pinned version of each runtime.
+
+### 9.2 One container per isolate
+
+An isolate (a Worker, a Deno Deploy instance, a Vercel Edge instance) evaluates the
+module once and serves many requests. The container belongs to the isolate. A request
+never builds one. Two forms:
+
+Module scope, when no factory does I/O while the container is built. The build runs in
+the global scope, which Workers bounds at 1 s, and uses no request CPU:
+
+```ts
+// src/worker.ts, the bridge API on Workers
+import { Nexus } from '@nexusdi/core';
+import { env } from 'cloudflare:workers';
+import { createBridge } from './bridge/hono';
+import { meridianFor } from './ship';
+
+const ship = await Nexus.create(meridianFor(env)); // reads bindings, does no I/O
+export default createBridge(ship);
+```
+
+First request, when a factory needs I/O, such as `NAV_CHARTS`, whose factory downloads
+the charts. Workers refuses I/O in the global scope: the probe of section 9.3 with a
+`fetch` in an async factory at module scope failed to start with
+`NEXUS_PROVIDER_FAILED`. So the entry passes the function form of section 3.1:
+
+```ts
+// src/worker.ts, with an I/O factory
+import { Nexus } from '@nexusdi/core';
+import { env } from 'cloudflare:workers';
+
+export default createBridge(() => Nexus.create(meridianFor(env)));
+```
+
+The adapter builds on the first request, shares the promise with every concurrent first
+request, and keeps it for the isolate's life. That first request spends the build time in its
+CPU budget (section 9.3).
+
+Rules the edge guide states:
+
+- `import { env } from 'cloudflare:workers'` reads bindings and secrets at module scope.
+  `Comms.forRoot({ frequency })` takes them there, and `forRootAsync` covers options that
+  need a binding call.
+- A singleton must not hold an I/O object (a socket, a stream, a `Response` body).
+  Workers refuses I/O on an object that another request's handler created, and a
+  singleton built in the first request is shared by every later one. Data a factory
+  fetched (the charts) is fine. A database client that opens a connection is `scoped`.
+- No container disposal. An isolate gets no shutdown signal, and the guide says so.
+- The startup check runs in CI: `Nexus.check(Meridian, { load: [Navigation] })` in a test
+  compiles the graph with no user code, so a wrong token fails the build before deploy.
+  `inject`'s own check runs on the first request (section 3.3).
+
+Deno, Bun and Vercel Edge allow I/O at module scope, so the module-scope form covers them,
+with `await using ship = ...` around `Deno.serve` where the process has a shutdown signal.
+
+### 9.3 The CPU budget
+
+Measured on 2026-10-14 on the owner's Mac (Node 24.20.0, core from `libs/core/src` at
+`cef5f39a`, bundled with esbuild): a graph of 50 singleton factories in a chain and 5
+scoped factories over `REQUEST`.
+
+| Step                                                  | Time       |
+| ----------------------------------------------------- | ---------- |
+| first `Nexus.create`, cold (includes JIT warm-up)     | 5.18 ms    |
+| `Nexus.create`, warm, mean of 100                     | 0.486 ms   |
+| `createScope` + `resolve` of 2 tokens + dispose, mean of 20,000 | 11.59 µs |
+| import of the full core bundle, median of 25 processes (research note) | 1.93 ms |
+
+Readings:
+
+- A cold build in the first request spends half of Workers' 10 ms Free budget on this
+  laptop, and edge CPUs are not faster. So the module-scope form is the default in the
+  guide, and the function form is the fallback for I/O factories.
+- The per-request cost is microseconds. `createScope` builds every scoped factory of the
+  blueprint (`runtime/scope.ts:180`), so it grows with the number of scoped factories,
+  and the guide tells edge users to keep request-time work in scoped classes, which core
+  builds on first `get()`.
+- Workers freezes timers during execution, so the CI leg on workerd cannot measure CPU.
+  The bridge API's benchmark (section 13.5) times the same graph on Node and records the
+  figures beside the Workers budget.
+
+### 9.4 Request scope on edge
+
+Three mechanisms were weighed:
+
+| Mechanism                                    | Works on                                           | Cost                                              | Decision         |
+| -------------------------------------------- | -------------------------------------------------- | ------------------------------------------------- | ---------------- |
+| Explicit passing: `inject`, `c.var.nexus`    | every runtime                                      | none                                              | default (D4)     |
+| `nodeScopes()` over `node:async_hooks`       | Node, Bun, Deno, Workers, Vercel Edge              | one `AsyncLocalStorage.run` per request           | opt-in `scopes`  |
+| The ALS shim prototype                       | browsers, with the app and core lowered to es2016  | 1.3 kB, 2 to 3.5 times slower core, no untransformed `await` | rejected (D3)  |
+| TC39 `AsyncContext`                          | no runtime provides it                             | none yet                                          | later            |
+
+Evidence for the second row, from the probe on 2026-10-14 (Hono 4.13.13, core and
+`@nexusdi/node` from source, three concurrent requests, each with a `setTimeout` between
+`scopes.run` and `scopes.current()`):
+
+- workerd through wrangler 4.151.0, compatibility date 2026-09-01, no flags: each request
+  read its own scope. With compatibility date 2025-06-01 and no flag, the Worker failed to
+  start with `No such module "node:async_hooks"`.
+- Bun 1.3.5 and Deno 1.46.3 (the local versions; CI runs the pinned 1.4.2 and 2.9.6):
+  each request read its own scope.
+- Vercel documents `async_hooks` as a supported module with the WinterCG subset of
+  `AsyncLocalStorage`. Not run locally; the `edge-runtime` leg tests it.
+
+Cloudflare's `AsyncLocalStorage` omits `enterWith()` and `disable()`, which
+`nodeScopes()` does not call, and does not carry the context through a custom thenable.
+`current()` inside a factory that returns a hand-written thenable may read `undefined` on
+Workers. `inject` does not depend on the context, so the guide recommends `inject` and
+states the thenable limit for `scopes.current()`.
+
+### 9.5 Which package owns the edge binding
+
+`@nexusdi/node` owns `AsyncLocalStorage`: `core-layers.ts` lets only `node/` and `cli/`
+import a `node:` module. Edge needs no new owner (D2):
+
+- P1: no package reads another's codes or brands for edge. The adapters keep their one
+  allowlisted `NEXUS_DISPOSED` check.
+- P2: the `scopes` option is open: any `{ run, current }` object fits, so a runtime with
+  no `node:async_hooks` passes its own, the case `/scope-context/` teaches.
+- P3: the adapters reach `@nexusdi/node` through the user's wiring line and the
+  structural option. Core names neither.
+- P4: no second copy of `nodeScopes()`.
+- P5: no adapter imports `@nexusdi/node`, detects it, or imports it dynamically. The edge
+  entry imports it when the user wants an ambient scope.
+
+`@nexusdi/node`'s `engines.node` of `>=22.12` is advisory: npm warns, and wrangler, Deno
+and Bun ignore it. The package changes no line for edge. Its README gains a "Runtimes"
+section listing section 9.1's rows.
+
+### 9.6 Bundling and size
+
+- ESM only. Core, the Hono adapter, `@nexusdi/node` and `@nexusdi/errors` publish
+  `"type": "module"` with an `exports` map and no CommonJS build.
+- No Node built-ins in core: `nodeViolations` refuses `node:` imports and `process` in
+  every package but `@nexusdi/node` and `@nexusdi/cli`. Core's one global read is
+  `globalThis.SuppressedError` (`runtime/dispose.ts:32`), which falls back when absent.
+- Nothing runs at import that Workers forbids in the global scope: core sets two symbols
+  in `polyfill/symbol-dispose.ts` and starts no timer, reads no clock and draws no random
+  number at import. The workerd leg imports every edge package at module scope, which
+  fails the leg if that changes.
+- No `eval` and no `new Function`, which Vercel Edge disables. `edge-safe.test.ts`
+  (D8) checks core, `@nexusdi/node`, `@nexusdi/errors`, `@nexusdi/hono`,
+  `@nexusdi/react-router` and `@nexusdi/next`.
+
+Size, measured with `wrangler deploy --dry-run --minify` on the probe Worker (Hono, core,
+`@nexusdi/node`, two providers): 80.08 KiB minified, 28.26 KiB gzip. Hono alone bundles to
+7.7 KB gzip with esbuild, so core, node and the app add about 20 KB gzip, in line with
+the research note's 18.4 KB for core's minimal import. Against the limits: 2.8 % of
+Vercel Edge Hobby's 1 MB gzip, and no figure that registers against Workers' 64 MiB
+uncompressed or Netlify's 20 MB. Size is not an edge constraint for NexusDI. The size
+report (section 13.6) gains a `hono-worker` fixture that bundles this entry with
+`--platform=neutral`, so a regression shows in every pull request.
+
+### 9.7 Disposal on edge
+
+- Workers: the body wrapper disposes at stream end, and `keepAlive` hands the promise to
+  `executionCtx.waitUntil`, so async disposers finish after the response (D5). A client
+  abort fires `request.signal` only with the `enable_request_signal` compatibility flag.
+  Without it, a streaming body that the runtime cancels disposes through the wrapper's
+  `cancel`. The guide sets the flag, and the workerd leg tests an abort with the flag and
+  without it; `/runtimes/` states what the second run shows.
+- Vercel Edge: `hono/vercel` passes no execution context, so `keepAlive` does nothing and
+  disposal runs in the response's own lifetime, which Vercel keeps open while the stream
+  is read. Disposers that do I/O after the response are the user's job through
+  `waitUntil` from `@vercel/functions`, which the guide names.
+- Deno, Bun and Netlify Edge: as on Node.
+
+### 9.8 CI
+
+A job, `adapter-runtimes`, runs `examples/bridge-api`'s suite on each runtime with
+`scopes: nodeScopes()` and without:
+
+| Leg         | Runner                                                                    | Covers                                                    |
+| ----------- | ------------------------------------------------------------------------- | --------------------------------------------------------- |
+| workerd     | `@cloudflare/vitest-pool-workers` 0.23, compat date 2026-09-01, `enable_request_signal` on and off | module-scope build, function-form build with a `fetch` factory, ambient scope, abort, `waitUntil` |
+| Deno        | Deno 2.9.6, `Deno.serve` on port 0                                        | module-scope build, ambient scope, abort                  |
+| Bun         | Bun 1.4.2, `Bun.serve` on port 0                                          | module-scope build, ambient scope, abort                  |
+| Vercel Edge | Vitest's `edge-runtime` environment (`@edge-runtime/vm`)                  | `app.request()`, ambient scope, no `eval` at runtime      |
+
+The workerd leg's `fetch` factory reaches a local mock with `fetchMock` from the pool, so
+the leg needs no network. `/runtimes/` gains a row per adapter per runtime, naming this
+job, and "not tested" for Netlify Edge and React Router on edge.
+
+## 10. Next.js
+
+### 10.1 Recommendation
+
+Ship `@nexusdi/next` in 0.4 with route handlers and server actions, on the Node runtime
+only, gated on one check in its first plan task. Owner question Q1 asks for the go-ahead,
+because the react spec's ruling R12 (with synthesis C13) said "no `@nexusdi/next`".
+
+Why now:
+
+- Users of four ecosystems ask for framework integration, and Next.js is one of them:
+  inversify #1352 (both bundles leak into the client), #752 and discussion #1576, and the
+  third-party `next-di` exists to fill the gap.
+- The adapter is small. It is the shared request scope of section 3.9 plus two wrappers,
+  and Next's `after()` gives a disposal signal that the other frameworks lack (D9).
+- `import 'server-only'` in the package entry turns the client-bundle leak of inversify
+  #1352 into a build error that names the import.
+
+What R12 decided stays: the client side is `@nexusdi/react` with `clientOnly`, server
+components keep the `cache()` plus `after()` recipe of react spec §10, and this package
+adds nothing for components.
+
+The gate: Next can evaluate one module in more than one server layer (react spec §9.3,
+W3, unverified on Next 16). If `nexus.server.ts` runs twice in one process, a route
+handler and a server action would see two containers. The first plan task builds the
+demo app, counts `Nexus.create` calls across a route handler and a server action through
+a `trace(fn)` plugin, and continues only on one call per process. If the count is two,
+the package moves to 0.5, and 0.4 publishes a guide page with the hand-written pattern.
+
+### 10.2 Scope
+
+| Case                                   | In 0.4 | How                                                                   |
+| -------------------------------------- | ------ | --------------------------------------------------------------------- |
+| Route handlers (`app/**/route.ts`)     | yes    | `di.route(deps, handler)`                                             |
+| Server actions (`'use server'`)        | yes    | `di.action(deps, fn)`                                                 |
+| A request scope per request            | yes    | one scope per route call or action call, created on first use         |
+| Server components                      | no     | react spec §10 recipe; a component has no frame the adapter can wrap  |
+| Proxy (Next 16's middleware)           | no     | it runs before routing and has no handler deps to resolve             |
+| `runtime = 'edge'`                     | no     | Next 16.3 dropped it; the package targets the Node runtime            |
+| Pages Router                           | no     | no demand found in the research                                       |
+| `di.load` for lazy sections            | no     | route files load per route already; a later release can add it        |
+
+### 10.3 API
+
+```ts
+// app/nexus.server.ts
+import 'server-only';
+import { Nexus } from '@nexusdi/core';
+import { errors } from '@nexusdi/errors';
+import { nexus } from '@nexusdi/next';
+import { headers } from 'next/headers';
+import { Meridian } from './ship/meridian';
+
+export const di = nexus(
+  () =>
+    Nexus.create(Meridian, {
+      plugins: process.env.NODE_ENV === 'development' ? [errors()] : [],
+    }),
+  {
+    request: async () => ({
+      mission: {
+        id: (await headers()).get('x-mission-id') ?? 'survey-7',
+        target: 'Kepler-442b',
+      },
+    }),
+  },
+);
+```
+
+```ts
+// app/course/[to]/route.ts
+import { FLIGHT_LOG, NAV_CHARTS } from '../../bridge/contracts';
+import { di } from '../../nexus.server';
+
+export const GET = di.route(
+  { charts: NAV_CHARTS, log: FLIGHT_LOG },
+  async ({ charts, log }, request, { params }) => {
+    const { to } = await params;
+    log.record(`plotting ${to}`);
+    return Response.json(charts.plot(to));
+  },
+);
+```
+
+```ts
+// app/actions.ts
+'use server';
+import { FLIGHT_LOG } from './bridge/contracts';
+import { di } from './nexus.server';
+
+export const recordEntry = di.action({ log: FLIGHT_LOG }, async ({ log }, entry: string) => {
+  log.record(entry);
+  return log.entries();
+});
+```
+
+The `request` mapping takes no argument and reads `headers()` and `cookies()` from
+`next/headers`, which work in route handlers and server actions alike. The guide uses the
+function form of `nexus()`, so `next build` evaluates the module without building the
+container, and a development reload rebuilds it once per module evaluation.
+
+Exports: `nexus(ship, options): NexusNext` with
+`{ route; action; scope(): Promise<Scope> }`, `RequestScope`, `ContainerSource` and
+`NexusNextOptions` (`request`, `scopes`, `log`). `di.scope()` works inside a `di.route`
+or `di.action` call and rejects elsewhere.
+
+### 10.4 Request flow
+
+```ts
+route: (deps, handler) => async (request, ctx) => {
+  const handle = requestScope(container, () => options.request?.());
+  after(() => handle.close().catch(log)); // runs after the response, errors included
+  const run = async () => handler(await resolveFrom(handle, deps), request, ctx);
+  return options.scopes
+    ? options.scopes.run(await mapErrors(handle.scope()), run)
+    : run();
+},
+action: (deps, fn) => async (...args) => {
+  const handle = requestScope(container, () => options.request?.());
+  after(() => handle.close().catch(log));
+  return fn(await resolveFrom(handle, deps), ...args);
+},
+```
+
+`after` comes from `next/server`, stable since 15.1. Next runs the callback after the
+response finishes, also when the handler throws or calls `notFound()` or `redirect()`.
+On self-hosted Node it needs no setup; on a platform adapter it needs that platform's
+`waitUntil`, which Next documents.
+
+A server action's return value is serialized into the RSC payload. A returned promise that
+reads a scoped instance later would read it after disposal only if Next streamed it after
+the response, which `after()` already waits for. The test of section 10.6 asserts it.
+
+### 10.5 Errors and peers
+
+The adapter throws a `NexusHttpError` with status 500 or 503 and no `code` property, as
+Express does. In a route handler, Next turns it into a 500 response with an empty body.
+In an action, Next sends the client a digest and no message in production. `log`
+defaults to `console.error(err.code, { ...err }, err.message)`.
+
+```json
+"peerDependencies": { "@nexusdi/core": "0.4.0-rc.N", "next": "^15.1.0 || ^16.0.0" },
+"dependencies": { "server-only": "^0.0.1" }
+```
+
+15.1 is the floor because `after()` became stable there, and `headers()` is async from 15.
+React 19 is Next's own peer, so this package names none.
+
+### 10.6 Tests
+
+- Unit: `di.route` and `di.action` with a stubbed `after` and `headers`.
+- Integration (`examples/next-bridge`, section 14): `next build` and `next start` on port
+  0, then a JSON route, a streaming route, an aborted streaming request, an action
+  posted through a test page, a throwing handler, and 50 concurrent requests, each
+  counted through `trace(fn)`. The gate test of section 10.1 counts `Nexus.create`. A
+  client-build check asserts no module from `nexus.server.ts` and no `@nexusdi/core` in
+  `.next/static`.
+- If the abort case shows `after()` waiting past the client's disconnect for longer than
+  `streamTimeout`, the adapter adds the body wrapper (D9).
+
+## 11. Package layout and conventions
 
 Each package is generated with
 `npx nx g @nx/js:library libs/<name> --bundler=tsc --unitTestRunner=vitest`, then aligned
@@ -1531,8 +2112,8 @@ libs/<name>/
     "CHANGELOG.md"
   ],
   "peerDependencies": { "@nexusdi/core": "0.4.0-rc.N", "hono": "^4.0.0" },
-  "devDependencies": { "@hono/node-server": "^2.1.1", "hono": "^4.13.8" },
-  "keywords": ["nexusdi", "dependency-injection", "hono", "hono-middleware"],
+  "devDependencies": { "@hono/node-server": "^2.1.5", "hono": "^4.13.13" },
+  "keywords": ["nexusdi", "dependency-injection", "hono", "hono-middleware", "cloudflare-workers"],
   "repository": {
     "type": "git",
     "url": "git+https://github.com/NexusDI/core.git",
@@ -1542,201 +2123,92 @@ libs/<name>/
 }
 ```
 
-The fields follow `libs/core` (exports with the `@nexusdi/source` condition first,
-`files`, `publishConfig`, ESM only, tsc build) and the libraries repo's
-`nestjs-correlation-id` (caret peers on a framework's major, caret dev dependencies, an
-optional peer in `peerDependenciesMeta`). `@nexusdi/core` is an exact pin, as in the
-libraries repo's adapter packages and core spec §12.2, and so is `@nexusdi/testing` in
-`@nexusdi/vitest`. No adapter depends on `@nexusdi/node`, `@nexusdi/errors` or
+The fields follow `libs/core` and the libraries repo's `nestjs-correlation-id` (caret
+peers on a framework's major, caret dev dependencies, an optional peer in
+`peerDependenciesMeta`). `@nexusdi/core` is an exact pin, and so is `@nexusdi/testing`
+in `@nexusdi/vitest`. No adapter depends on `@nexusdi/node`, `@nexusdi/errors` or
 `@nexusdi/devtools`: the user installs and registers those, and the adapters' tests list
 them as dev dependencies.
 
-The workspace wiring: the five folders under `libs/*` join `workspaces`, `tsconfig.json`
-`references` and `release.projects` without an edit, because both globs cover `libs/*`.
-`commitlint.config.js` adds the scopes `hono`, `express`, `fastify`, `react-router` and
-`vitest`, which `commitlint-scope-enum.test.ts` requires.
+The workspace wiring:
 
-Each README follows `nestjs-correlation-id`'s sections: badges, title, intro, Why,
-Install, Getting started, Typed handlers (`inject`), When the scope is disposed, Errors,
-Ambient scope (not in vitest), Requirements (a table of the peer ranges and Node), Change
-Log, Contributing, Author, License. It opens with the same RC info box as core's README
-until 0.4.0 final.
+- The packages under `libs/*` join `workspaces`, `tsconfig.json` `references` and
+  `release.projects` without an edit, because the globs cover `libs/*`.
+- `commitlint.config.js` adds the scopes `hono`, `express`, `fastify`, `react-router`,
+  `vitest` and `next`, which `commitlint-scope-enum.test.ts` requires, and the demo app
+  scopes `bridge-api` and `next-bridge`.
+- `.fallowrc.jsonc` `publicPackages` adds each package.
+- `owner-vocabulary.test.ts`'s `NEXUS_DISPOSED` entry adds `@nexusdi/next`.
+- `no-copies.test.ts` and `.fallowrc.jsonc` add the copy globs of section 3.7.
+- `scripts/verify-packaging.mjs` `LIBS` adds each package (section 13.1).
 
-Every README fence that is TypeScript runs as a doctest, through
-`docExamples()` from `tools/doc-examples` and the `ts @import.meta.vitest` fence marker,
-with `// -> value` claims turned into assertions. The server examples use each
-framework's in-process request API (`app.request()`, `fastify.inject()`, a port-0
-Express server and `fetch`, React Router's `createRequestHandler` with a `Request`), so a
-README fence runs without a network. `doc-twoslash` type-checks the same fences.
+Each README follows `docs/documentation-style-guide.md` and the npm README rule: a
+tagline, install, a minimal example, a docs link. The sections after that: Typed handlers
+(`inject`), When the scope is disposed, Errors, Ambient scope (not in vitest), Runtimes
+(hono only), Requirements (a table of the peer ranges and Node). Every TypeScript fence
+runs as a doctest through `docExamples()` and the `ts @import.meta.vitest` marker, with
+`// -> value` claims turned into assertions, using each framework's in-process request
+API (`app.request()`, `fastify.inject()`, a port-0 Express server and `fetch`, React
+Router's `createRequestHandler` with a `Request`). `doc-twoslash` type-checks the same
+fences.
 
-## 10. Release
+## 12. Release
 
-### 10.1 Versions and peers
+The release machinery on `release/0.4` covers new packages, so this spec adds no workflow
+step:
 
-Each package is an independent `nx release` project. The Release workflow's single
-`specifier` applies to every released project, so every run moves the adapters with core:
-`premajor --preid rc` takes all of them to `0.4.0-rc.0`, `prerelease` takes `0.4.0-rc.K`
-to `0.4.0-rc.K+1`, and `patch` takes them to `0.4.0` at final. The version numbers stay
-equal to core's.
+- Bootstrap: before a package's first RC, the owner runs
+  `.claude/skills/nexusdi-release/scripts/bootstrap.sh <pkg> <otp>`, sets the trusted
+  publisher with "Allow npm dist-tag" on, and deprecates the placeholder
+  (`RELEASING.md`, "Bootstrapping a new package"). One round covers all six package names.
+- Version on disk: a new package carries the release line's current version (`0.4.0-rc.1`
+  today) and pins `@nexusdi/core` at it, which npm workspaces link to `libs/core`. The
+  next `rc` run versions every project to `0.4.0-rc.2` together. `nx release --dry-run`
+  confirms that `peerDependencies` pins are rewritten before the first adapter merges, and
+  `adapter-core-peer.test.ts` fails when an adapter's `@nexusdi/core` or
+  `@nexusdi/testing` peer differs from that package's workspace version.
+- Dist-tags: an RC publishes under `next`, and `reconcile.mjs` then points `latest` at the
+  RC for every package with no stable version. So `npm i @nexusdi/hono` installs the RC
+  until 0.4.0, and core stays on `latest` 0.3.x until 0.4.0.
+- Install line: every README and guide shows `npm i @nexusdi/core@next @nexusdi/hono`,
+  because the adapter's exact core peer is an RC while core's `latest` is 0.3.x. Revision
+  2's npm 11.19.0 check stands: with core 0.3.x in `package.json`, installing the adapter
+  alone fails with `ERESOLVE`.
+- Final: an adapter with an open `rc-blocker` blocks 0.4.0, and every `adapter-peers`
+  and `adapter-runtimes` leg passes on the final commit.
 
-A new package has no release tag, and `fallbackCurrentVersionResolver: "disk"` makes nx
-read its base version from `package.json`. So each adapter, and `@nexusdi/codemod`, carries
-core's current version (`0.3.1`) on disk until rc.0, and pins `@nexusdi/core` at `0.3.1`,
-which npm workspaces link to `libs/core`. The rc.0 run versions them to `0.4.0-rc.0` with
-core. `0.0.0` would not work: the zero-major remap turns `premajor` into `preminor` and
-the result would be `0.1.0-rc.0`. No adapter is ever published at `0.3.1`.
+## 13. Verification
 
-`versionPrefix: ""` and `updateDependents: "always"` rewrite the exact `@nexusdi/core`
-pin in each adapter on every core release. Whether `nx release version` rewrites
-`peerDependencies` the way it rewrites `dependencies` is the first thing the
-implementation plan checks, with `nx release --dry-run`, before the first adapter merges.
-A repo-check, `adapter-core-peer.test.ts`, fails when an adapter's `@nexusdi/core` or
-`@nexusdi/testing` peer differs from that package's version in the workspace, so a missed
-rewrite fails CI before a publish.
+### 13.1 `verify-packaging`
 
-### 10.2 Bootstrap
-
-npm configures a trusted publisher only for a package that exists (`RELEASING.md`). The
-five adapters, like `@nexusdi/codemod` and core's six optional packages (core spec §14),
-are first versioned by the rc.0 run, and the publish step skips a package npm does not
-know (section 10.3). The owner then publishes
-each one by hand from its release tag:
-
-1. `git checkout '@nexusdi/<name>@0.4.0-rc.0'`.
-2. `npx nx build <name>` and `npm run verify:packaging`.
-3. From `libs/<name>`: `npm publish --access public --no-provenance --otp=<code>`. No
-   `--tag` is passed, so npm tags the version `latest`, which is also what the workflow
-   would choose for a package with no stable version.
-4. Configure the trusted publisher on npmjs.com (`NexusDI` / `core` / `release.yml` /
-   `npm publish`).
-
-The tag exists already, because the rc.0 run pushed it. From rc.1 on the workflow
-publishes every package with provenance. The bootstrap versions have no provenance
-attestation, as `RELEASING.md` already states for a manual publish.
-
-### 10.3 `release.yml`
-
-The "Resolve npm dist-tag" step and the "Publish to npm" step become one step that loops
-over the released packages, in dependency order: `@nexusdi/core` first, then core's
-optional packages and `@nexusdi/codemod`, then the adapters. So an adapter's exact
-`@nexusdi/core` and `@nexusdi/testing` peers are always on npm before the adapter.
-
-For each package, the step reads `name` and `version` from `libs/<dir>/package.json` and
-runs `npm view <name> versions --json`, which needs no token for a public package:
-
-| npm knows the package | Its versions include a stable one | Version being published | Result                                           |
-| --------------------- | --------------------------------- | ----------------------- | ------------------------------------------------ |
-| no (E404)             | n/a                               | any                     | skip, with a notice to bootstrap (10.2)          |
-| yes                   | any                               | already published       | skip, so a rerun is idempotent                   |
-| yes                   | no                                | any                     | `nx release publish --projects <p> --tag latest` |
-| yes                   | yes                               | prerelease              | `nx release publish --projects <p> --tag next`   |
-| yes                   | yes                               | stable                  | `nx release publish --projects <p> --tag latest` |
-
-A stable version is one with no `-` after `X.Y.Z`, the test the current step already
-applies to the version nx wrote. With `dry-run`, the step prints the table's decision for
-each package and publishes nothing.
-
-```yaml
-- name: Publish to npm
-  if: ${{ !inputs.dry-run }}
-  env:
-    PROJECTS: ${{ steps.projects.outputs.projects }}
-  run: node scripts/publish-released.mjs
-```
-
-`scripts/publish-released.mjs` holds the loop. It takes the resolved project list (empty
-means every project under `libs/*`), orders it by the workspace dependency graph, and
-applies the table. A repo-check test drives it against a stubbed `npm view` and a
-stubbed `nx`, one case per table row.
-
-What a user gets, checked with npm 11.19.0. A stand-in package with an exact prerelease
-peer (`react-router@8.0.0-pre.1`, while `latest` is 8.4.0) behaves like an adapter with
-its `@nexusdi/core@0.4.0-rc.N` peer while core's `latest` is 0.3.1:
-
-- In a project with no `@nexusdi/core`, `npm i @nexusdi/hono` installs the adapter's
-  `latest`, `0.4.0-rc.N`, and auto-installs the peer at exactly `0.4.0-rc.N` into the top
-  of `node_modules`. The version on `latest` does not matter for an exact spec. npm does
-  not add the peer to `package.json`.
-- In a project whose `package.json` has `@nexusdi/core` at 0.3.x, the same command fails
-  with `ERESOLVE`, naming both versions. The user upgrades core first.
-- `npm i @nexusdi/core@next @nexusdi/hono` resolves, because one Release run publishes
-  core on `next` and the adapter on `latest` at the same `0.4.0-rc.N`. This case was run
-  from a project that already had the older line installed.
-- At 0.4.0 final every package publishes a stable version with `latest`. After that the
-  adapters have a stable version, so their prereleases go to `next` like core's.
-
-Every README and guide therefore shows the install line with both packages, and the
-Getting started section says why. pnpm and Yarn were not checked. The explicit install
-line does not depend on a package manager installing peers.
-
-The `RELEASING.md` changes:
-
-- Replace the paragraph under "npm dist-tag" with:
-
-  > The publish step picks a dist-tag per package. A stable version publishes with
-  > `latest`. A prerelease publishes with `next` when npm already has a stable version of
-  > the package, and with `latest` when it has none, because the newest RC is then the
-  > version a user should get. `@nexusdi/core` has 0.3.1, so its RCs go to `next`. Each
-  > adapter's first version is an RC, so its RCs go to `latest` until 0.4.0. The step
-  > publishes `@nexusdi/core` first, so an adapter's exact core peer is always on npm.
-  > `scripts/publish-released.mjs` holds the rule.
-
-- Replace "1. Configure a trusted publisher for @nexusdi/core" with "1. Bootstrap a new
-  package", which lists the four steps of section 10.2, keeps the existing text on
-  `--no-provenance` and `--otp`, and says that the Release run skips a package npm does not
-  know yet and prints a notice naming it. The section also says that a new package
-  carries core's current version on disk and is versioned with core by the next run
-  (section 10.1).
-
-### 10.4 Final
-
-Core spec §14 lists three conditions for 0.4.0 final. They apply to the adapters too: an
-RC with a breaking change to any adapter restarts the four-week count, and an
-`rc-blocker` on an adapter blocks final. This spec adds a fourth condition: on the final
-commit, every `adapter-peers` and `adapter-runtimes` leg passes, and every adapter guide
-is live under `/next/`.
-
-## 11. Verification
-
-### 11.1 `verify-packaging`
-
-`scripts/verify-packaging.mjs` adds the five packages to `LIBS` beside core's packages,
-and their framework peers to the throwaway consumer's install (`hono`,
-`@hono/node-server`, `express`, `@types/express`, `fastify`, `react-router`, `vitest`).
-The consumer also installs the packed `@nexusdi/testing`, `@nexusdi/node` and
-`@nexusdi/errors`, and:
+`scripts/verify-packaging.mjs` adds the new packages to `LIBS`, and their framework peers
+to the throwaway consumer's install (`hono`, `@hono/node-server`, `express`,
+`@types/express`, `fastify`, `react-router`, `vitest`, `next`). The consumer also
+installs the packed `@nexusdi/testing`, `@nexusdi/node` and `@nexusdi/errors`, and:
 
 - imports every export of every adapter under `moduleResolution` `nodenext` and
   `bundler`, with `skipLibCheck: false`;
-- runs one request through each server adapter from the packed build (`app.request()`,
-  `fastify.inject()`, a port-0 Express server, React Router's `createRequestHandler`),
-  once with `errors()` registered and `scopes: nodeScopes()`;
+- runs one request through each server adapter from the packed build, once with
+  `errors()` registered and `scopes: nodeScopes()`;
 - asserts each adapter's `@nexusdi/*` peers equal the packed versions;
-- asserts that no adapter's packed `dist` imports a core path other than a package entry,
-  the rule core spec §0 sets for its own packages;
-- asserts that the packed `dist` of `@nexusdi/hono` and `@nexusdi/react-router` contains
-  no `node:` import;
+- asserts that no adapter's packed `dist` imports a core path other than a package entry;
+- asserts that the packed `dist` of `@nexusdi/hono`, `@nexusdi/react-router` and
+  `@nexusdi/next` contains no `node:` import;
 - runs the existing tslib check over the new packages.
 
-### 11.2 Type floor
+### 13.2 Type floor
 
-The `types-floor` job (engine plan Task 36) compiles each adapter's type tests with
-TypeScript 5.4 and with `tsgo`. A framework whose own declarations need a newer
-TypeScript raises that adapter's floor, and its README's Requirements table states it.
+`scripts/check-type-floor.mjs` compiles each adapter's type tests with TypeScript 5.4 and
+TypeScript 7. A framework whose own declarations need a newer TypeScript raises that
+adapter's floor, and its README's Requirements table states it.
 
-### 11.3 Runtimes
+### 13.3 Runtimes
 
-A CI job, `adapter-runtimes`, runs `libs/hono`'s integration test on Bun, Deno and
-workerd (through `@cloudflare/vitest-pool-workers` with `nodejs_compat`), with
-`scopes: nodeScopes()`. It reads the Bun and Deno versions from
-`examples/toolchain-matrix/toolchains.json`, so the toolchain matrix and this job test one
-pinned version of each runtime. `/runtimes/` gains a row per adapter per runtime, naming
-this job.
+Section 9.8. The toolchain matrix itself does not change: it proves that core compiles
+and runs under each TypeScript toolchain, and the adapters add no decorator or emit
+concern.
 
-The toolchain matrix itself does not change. It proves that core compiles and runs under
-each TypeScript toolchain, and the adapters add no decorator or emit concern.
-
-### 11.4 Peer ranges
+### 13.4 Peer ranges
 
 A CI job, `adapter-peers`, installs each leg's framework version over the workspace and
 runs that adapter's unit, type and integration tests:
@@ -1748,199 +2220,249 @@ runs that adapter's unit, type and integration tests:
 | `@nexusdi/fastify`      | `fastify@5.0.0` with `fastify-plugin@6.0.0`, latest 5.x with latest 6.x    |
 | `@nexusdi/react-router` | `react-router@7.9.0` and latest 7.x, both with `v8_middleware`; latest 8.x |
 | `@nexusdi/vitest`       | `vitest@4.1.0`, latest 4.x, latest 5.x                                     |
+| `@nexusdi/next`         | `next@15.1.0`, latest 15.x, latest 16.x                                    |
 
-The workspace pins React Router 8, after `examples/react-ssr` moves, and Vitest 4.1.9, so
-the `main` job covers one line of each and this job covers the rest. The floor legs prove
-the lower bound of each peer range, including the unverified Fastify floor of
-`fastify-plugin` 6.
+The workspace pins React Router 8 after `examples/react-ssr` moves, Vitest 4.1.9 and
+Next 16, so the main job covers one line of each and this job covers the rest.
 
-### 11.5 Benchmarks
+### 13.5 Benchmarks
 
-Benchmarks are #21 and out of scope for 0.4. Each adapter adds `createScope` per request
-that uses a scope and, for Hono and React Router, one stream hop per body chunk. The
-benchmark spec should measure each adapter against the bare framework on the same route;
-nothing here waits for it.
+The bridge API carries a benchmark script that times `Nexus.create` cold and warm and a
+request through each adapter against the bare framework on the same route, on Node. Its
+figures go into `/runtimes/` beside the Workers budget (section 9.3). The launch
+benchmarks spec owns any published comparison.
 
-### 11.6 Size report
+### 13.6 Size report
 
-The size report of core spec §12.4 covers the adapters. `examples/size` gains one sibling
-fixture per adapter: the two-service app of core spec §17.2 with the adapter's `nexus`,
-its middleware and one `inject` route, bundled with the method of core spec §0, D12
-(esbuild `--bundle --minify --format=esm`, gzip level 9). The framework is marked
-external, so the figure is the adapter's own weight plus core. `@nexusdi/vitest` gets no
-fixture, because nothing bundles a test helper.
+`examples/size` gains one fixture per server adapter: the two-service app with the
+adapter's `nexus`, its middleware and one `inject` route, bundled with esbuild
+`--bundle --minify --format=esm` and gzip level 9, the framework marked external. It also
+gains `hono-worker`, the Workers entry of section 9.2 bundled with `--platform=neutral`
+and Hono included, which is the figure an edge user compares with a size limit.
+`@nexusdi/vitest` gets no fixture, because nothing bundles a test helper. Adapter growth
+is reported and never fails the job; the threshold applies to core alone.
 
-The report comment lists each adapter beside core's packages, with the base size, the
-head size and the change. Adapter growth is reported and never fails the job, as core
-spec §12.4 item 5 rules for every package; the threshold applies to core alone. Each
-README's Requirements section reads its adapter's figure from `size.json` on `main`, so
-no README states a size by hand.
+## 14. Demo apps
 
-## 12. Docs changes
+The demo apps plan (2026-10-12) requires every package to run in a demo app in CI. The
+adapters map onto it like this:
 
-### 12.1 Inventory
+| Package                 | Demo app                          | What runs in CI                                                                 |
+| ----------------------- | --------------------------------- | ------------------------------------------------------------------------------- |
+| `@nexusdi/hono`         | `examples/bridge-api`, Hono entry | the route suite on Node, workerd, Deno, Bun and the `edge-runtime` VM           |
+| `@nexusdi/express`      | `examples/bridge-api`, Express entry | the same route suite on Node                                                 |
+| `@nexusdi/fastify`      | `examples/bridge-api`, Fastify entry | the same route suite on Node                                                 |
+| `@nexusdi/vitest`       | `examples/bridge-api`, `examples/react-ssr` | every test file of both apps uses `nexusFixtures`                       |
+| `@nexusdi/react-router` | `examples/react-ssr`              | build, serve, the deferred-data stream test and a lazy route first request     |
+| `@nexusdi/react`        | `examples/react-ssr`              | the client container, `ScopeProvider` and hydration (react spec §9.1)           |
+| `@nexusdi/next`         | `examples/next-bridge`            | `next build`, `next start`, route handlers, an action, the gate test of 10.1   |
+| `@nexusdi/node`         | `examples/bridge-api`             | `scopes: nodeScopes()` on Node and on every edge leg                           |
 
-The docs spec's inventory (§4.3) changes as follows.
+`examples/bridge-api` is the "Meridian app (Hono, backend)" of the plan (D6). One module
+graph (`Meridian`, `Tactical`, `BridgeApi`) serves four entries: `src/hono.ts`,
+`src/express.ts`, `src/fastify.ts` and `src/worker.ts`. One e2e suite runs against each
+server entry, so the three frameworks prove the same behaviour on the same routes. The
+plan's other rows for this app (interceptors on handlers, `errors()`, devtools in
+development, `createTestingContainer` in tests, `nexusdi graph` in CI) stay as the plan
+lists them. Its README leads with Hono.
 
-| #   | Path                                                                                 | Change                                                                                                                                                                                                                                                                               |
-| --- | ------------------------------------------------------------------------------------ | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
-| 14  | `/node-request-scopes/`                                                              | Teaches `nodeScopes()` from `@nexusdi/node` (`scopes.run`, `scopes.current()`) on a bare `node:http` server. Adds an H2 "With a framework" linking to the adapter pages and their `scopes` option.                                                                                   |
-| 15  | `/react-router-ssr/`                                                                 | Rewritten around `@nexusdi/react-router`: `nexus.server.ts`, the root middleware, `inject` in loaders, a lazy route with `di.load(Feature)` in its `middleware` export and `navigation.inject` in its loader, route tests with `NEXUS_SCOPE` and `existingScope`.                    |
-| 17  | `/load/`                                                                             | Adds an H2 "Load a module for a lazy route or section": why a scope created before `load` cannot see the module (`NEXUS_LOADED_AFTER_SCOPE`), `scope.extend()`, and the `di.load(Feature)` middleware in React Router, Hono, Express and Fastify, which extends the request's scope. |
-| 16  | `/testing/`                                                                          | Keeps `createTestingContainer`. Adds an H2 "With Vitest fixtures" that shows `nexusFixtures` and links to `/vitest/`.                                                                                                                                                                |
-| 20  | `/scope-context/`                                                                    | Adds that Hono on Workers, Deno and Bun takes `nodeScopes()` from `@nexusdi/node` through their `node:async_hooks`.                                                                                                                                                                  |
-| 23  | `/runtimes/`                                                                         | One row per adapter per runtime, from the `adapter-runtimes` job.                                                                                                                                                                                                                    |
-| new | `/hono/`                                                                             | Platform guide: "Scope a Hono request".                                                                                                                                                                                                                                              |
-| new | `/express/`                                                                          | Platform guide: "Scope an Express request".                                                                                                                                                                                                                                          |
-| new | `/fastify/`                                                                          | Platform guide: "Scope a Fastify request".                                                                                                                                                                                                                                           |
-| new | `/vitest/`                                                                           | Question page: "How do I get a container in every Vitest test?"                                                                                                                                                                                                                      |
-| new | `/api-hono/`, `/api-express/`, `/api-fastify/`, `/api-react-router/`, `/api-vitest/` | Reference pages, one H2 per export.                                                                                                                                                                                                                                                  |
+`examples/react-ssr` moves to React Router 8, to `@nexusdi/react-router` and
+`@nexusdi/react`, and to the Meridian domain:
 
-The counts become 43 documentation pages: 2 Start, 11 Concepts, 15 Guides, 6 Migration,
-9 API. React Router keeps its existing slug so the link from the Scopes page stands.
+- `di.middleware` and loaders with `di.inject` replace `containerContext` and
+  `containerMiddleware`;
+- a scoped provider built from `REQUEST` replaces the module-level `let user` in
+  `home.tsx`;
+- the users and logger domain, which the docs spec's §7.7 deny-lists, becomes the bridge
+  API's flight log and course plotting;
+- a lazy route loads a section module with `di.load`, and a test requests it first on a
+  fresh server (section 3.9);
+- the route tests move to `NEXUS_SCOPE` and `existingScope`.
+
+Keeping `react-ssr` in the set is owner question Q3. It gives the plan its non-federated
+frontend.
+
+`examples/next-bridge` is new, and exists only if Q1 is approved. It serves the bridge
+API through route handlers and records flight log entries through a server action. It
+imports the same module files as `bridge-api`.
+
+Every demo app runs in the `main` CI job against the workspace packages, through
+`nx affected`, and in the `adapter-peers` and `adapter-runtimes` jobs of section 13.
+
+## 15. Docs changes
+
+### 15.1 Inventory
+
+The docs spec's inventory (§4.3 on `spec/docs-site-amend`) and the live Guides band in
+`apps/docs/content/_meta.ts` change as follows.
+
+| #   | Path                                                       | Change                                                                                                                                                                                                                                            |
+| --- | ---------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| 14  | `/node-request-scopes/`                                    | Keeps `nodeScopes()` on a bare `node:http` server. Adds an H2 "With a framework" linking to the adapter pages and their `scopes` option. The docs spec row's "passed as the `scopes` option to `Nexus.create`" is wrong for rc.1 and is struck. |
+| 15  | `/react-router-ssr/`                                       | Rewritten around `@nexusdi/react-router` over `examples/react-ssr`: `nexus.server.ts`, the root middleware, `inject` in loaders, a lazy route with `di.load`, route tests with `NEXUS_SCOPE` and `existingScope`.                              |
+| 17  | `/load/`                                                   | Adds an H2 "Load a module for a lazy route or section": `NEXUS_LOADED_AFTER_SCOPE`, `scope.extend()`, and the `di.load(Feature)` middleware, which extends the request's scope.                                                                  |
+| 16  | `/testing/`                                                | Keeps `createTestingContainer`. Adds an H2 "With Vitest fixtures" that shows `nexusFixtures` and links to `/vitest/`.                                                                                                                            |
+| 20  | `/scope-context/`                                          | States that Workers, Deno, Bun and Vercel Edge take `nodeScopes()` through their `node:async_hooks`, and keeps the custom `{ run, current }` object for runtimes without it.                                                                     |
+| 23  | `/runtimes/`                                               | One row per adapter per runtime, from `adapter-runtimes`, with section 9.3's figures.                                                                                                                                                            |
+| new | `/hono/`                                                   | Platform guide: "Scope a Hono request".                                                                                                                                                                                                           |
+| new | `/express/`                                                | Platform guide: "Scope an Express request".                                                                                                                                                                                                       |
+| new | `/fastify/`                                                | Platform guide: "Scope a Fastify request".                                                                                                                                                                                                        |
+| new | `/edge/`                                                   | Platform guide: "Run on Cloudflare Workers and other edge runtimes": section 9.2's two forms, the CPU budget, the I/O rule for singletons, the ambient scope, the compatibility date and `enable_request_signal`.                                |
+| new | `/next/`                                                   | Platform guide: "Scope a Next.js route handler or server action" (only with Q1).                                                                                                                                                                 |
+| new | `/vitest/`                                                 | Question page: "How do I get a container in every Vitest test?"                                                                                                                                                                                   |
+| new | `/api-hono/`, `/api-express/`, `/api-fastify/`, `/api-react-router/`, `/api-vitest/`, `/api-next/` | Reference pages, one H2 per export.                                                                                                                                                         |
 
 Each platform guide has the same H2s: Install, Create the scope per request, Handlers
-with `inject`, When the scope is disposed, Errors, Ambient scope, Shutdown. The request
-handling is a doctested region in `examples/meridian/src/integrations/<framework>/`,
-which runs it through the framework's in-process request API (docs spec §5.6). Server
-startup code carries `no-run`.
+with `inject`, When the scope is disposed, Errors, Ambient scope, Shutdown. Each cites a
+region of `examples/meridian/src/pages/<slug>.md`, which runs it through the framework's
+in-process request API. Server startup code carries `no-run`. Each page follows the
+`docs-page` skill and runs Context, Concept, Detail.
 
-### 12.2 Guards and domain
+### 15.2 Guards and domain
 
 - G5 `doc-exports` resolves the new `@nexusdi/*` imports through each package's exports
   map with no change, since it reads the map.
-- G10 `doc-export-coverage` extends to the five adapters' `.` entries, beside core's
-  packages.
-- Every guide's server entry registers `errors()` in development, and every guide's first
-  code block follows core spec §0, D8: Getting started in a README uses a class token,
-  and the guides, which are later pages, are interface-first.
+- G10 `doc-export-coverage` extends to the new packages' `.` entries.
+- Every guide's server entry registers `errors()` in development. Getting started in a
+  README uses a class token, and the guides, which are later pages, are interface-first.
 - `doc-regions` adds `libs/<adapter>/README.md` as region sources.
-- `docs-trigger` needs no change; `libs/**` already covers the packages.
-- `examples/meridian` adds `hono`, `@hono/node-server`, `express`, `fastify` and
-  `react-router` as dev dependencies at the workspace versions.
+- `examples/meridian` adds `hono`, `@hono/node-server`, `express`, `fastify`,
+  `react-router` and `next` as dev dependencies at the workspace versions.
 
 The docs spec's §7.1 vocabulary gains two rows, and every guide uses them:
 
 - "A server app: the bridge API (`BridgeApi`), built by `createBridge(ship)`, with the
   route `GET /course/:to` and the header `x-mission-id`."
 - "Interface-first contracts: `INavCharts` behind `NAV_CHARTS`, still the async factory
-  in `Tactical` (`StarCharts.download(link)`); `IFlightLog` behind the scoped `FLIGHT_LOG`, bound in
-  `BridgeApi` with `useClass: ShuttleFlightLog`; the doubles `fakeCharts` and
-  `MemoryFlightLog`."
+  in `Tactical` (`StarCharts.download(link)`); `IFlightLog` behind the scoped
+  `FLIGHT_LOG`, bound in `BridgeApi` with `useClass: ShuttleFlightLog`; the doubles
+  `fakeCharts` and `MemoryFlightLog`."
 
-### 12.3 `examples/react-ssr`
+### 15.3 Delivery
 
-The engine plan's Task 38 moves the example to the 0.4 API with one container in a
-router context. The React Router adapter's plan then:
+The adapter guides, the edge guide and the API pages go live with the RC that carries the
+packages (Q2). `/runtimes/` gains its rows when `adapter-runtimes` first passes.
 
-- moves the example to React Router 8 and removes `future.v8_middleware`;
-- replaces `containerContext` and `containerMiddleware` with `di.middleware` and loaders
-  written with `di.inject`;
-- adds a scoped provider built from `REQUEST`, and deletes the module-level `let user`
-  in `home.tsx`, which shares one user across requests;
-- removes the `console.log` calls from the middleware;
-- makes the users section a lazy route that loads `UsersModule` with `di.load`, so the
-  example exercises the first-request case of section 3.9 in a test that requests the
-  users page first on a fresh server;
-- ports the route tests to `NEXUS_SCOPE` and `existingScope`.
-
-The codemod's end-to-end test takes the example's 0.3 state from git history (engine
-plan Task 38), so this change does not touch the codemod fixtures.
-
-### 12.4 Delivery
-
-All five packages are in rc.0, so the docs spec's rc.0 list (§18.2) gains `/hono/`,
-`/express/`, `/fastify/`, `/vitest/`, the five API pages, the Vitest H2 on `/testing/`,
-the framework H2 on `/node-request-scopes/`, and `/react-router-ssr/`, which moves from
-the RC window to rc.0. `/runtimes/` stays in the RC window; its adapter rows join it
-there.
-
-## 13. rc.0
-
-rc.0 carries all five adapters, on core's `resolve`, `validate` and `extend`, which core
-revision 2 puts in rc.0 (core spec §0, D10). `@nexusdi/react` targets rc.0 too, under its
-own spec (core spec §0, D18). The RC exists so
-users can report problems before the API is final, and an adapter published late in the
-window gets less of that feedback.
+## 16. Delivery
 
 The implementation order, each step reusing the one before it:
 
-1. Core's `resolve`, `validate` and `extend`, and the `@nexusdi/node`,
-   `@nexusdi/testing`, `@nexusdi/errors` and `@nexusdi/devtools` packages, from the core
-   plan.
-2. `@nexusdi/express`: the request scope handle, `di.load` with `extend`, the status
-   mapping, `inject`, the log line and `close` disposal.
-3. `@nexusdi/vitest`: independent of the server adapters.
-4. `@nexusdi/fastify`: Express's `close` disposal plus the plugin wrapper.
-5. `@nexusdi/hono`: the body wrapper and the `adapter-runtimes` job.
-6. `@nexusdi/react-router`: the second copy of the body wrapper, the copies check, the
-   move of `examples/react-ssr` to React Router 8, and the `/react-router-ssr/` rewrite.
+1. The shared files: `request-scope.ts` with `containerOf`, `status.ts` and the copies
+   check, built inside `@nexusdi/express`.
+2. `@nexusdi/express` and `@nexusdi/vitest`.
+3. `@nexusdi/fastify`: Express's `close` disposal plus the plugin wrapper.
+4. `@nexusdi/hono`: the body wrapper, `keepAlive`, `examples/bridge-api` with its four
+   entries, and the `adapter-runtimes` job.
+5. `@nexusdi/react-router`: the second copy of the body wrapper and the move of
+   `examples/react-ssr`, together with `@nexusdi/react`'s plan.
+6. `@nexusdi/next`, if Q1 is approved: the gate test first, then the package and
+   `examples/next-bridge`.
 
-The rc.0 checklist of core spec §14 gains:
+The release checklist gains:
 
-- the five adapters and their guides and API pages, section 12.4;
-- the bootstrap of the five adapters, section 10.2, beside core's new packages;
-- the size report comment listing each adapter, section 11.6;
-- `scripts/publish-released.mjs` and the `RELEASING.md` changes, section 10.3;
-- a passing `adapter-peers` and `adapter-runtimes` run on the release commit, section 11.
+- the bootstrap of each new package name (section 12);
+- the size report listing each adapter and `hono-worker` (section 13.6);
+- a passing `adapter-peers` and `adapter-runtimes` run on the release commit.
 
-## 14. Ecosystem listings
+## 17. Ecosystem listings
 
 Each listing links a stable version, so the pull requests are prepared during the RC and
 opened after 0.4.0 final.
 
-| Package                 | Listing                                                                                                                             | Process                                                                                                                                                                        |
-| ----------------------- | ----------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
-| `@nexusdi/hono`         | hono.dev "Third-party Middleware" (`https://hono.dev/docs/middleware/third-party`)                                                  | A pull request to the site's repository. The page states no criteria (unverified). The `honojs/middleware` monorepo is not a target, because it takes over the package.        |
-| `@nexusdi/fastify`      | `docs/Guides/Ecosystem.md`, Community section, in `fastify/fastify`                                                                 | A pull request with ``- [`@nexusdi/fastify`](url) description`` in alphabetical order, which `lint-ecosystem.js` checks. Needs docs and tests, which Write-Plugin.md requires. |
-| `@nexusdi/react-router` | reactrouter.com community resources                                                                                                 | Unverified whether a listing exists; the implementation plan checks at launch.                                                                                                 |
-| `@nexusdi/vitest`       | `awesome-vitest`                                                                                                                    | Unverified; the plan checks at launch.                                                                                                                                         |
-| all                     | npm keywords (`hono-middleware`, `fastify-plugin`, `express-middleware`, `react-router`, `vitest`) and the docs `/comparison/` page | In each `package.json`, and a `/comparison/` row on framework support.                                                                                                         |
+| Package                 | Listing                                                                                | Process                                                                                                                                                                        |
+| ----------------------- | -------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| `@nexusdi/hono`         | hono.dev "Third-party Middleware" (`https://hono.dev/docs/middleware/third-party`)     | A pull request to the site's repository. The page states no criteria (unverified). The `honojs/middleware` monorepo is not a target, because it takes over the package.        |
+| `@nexusdi/fastify`      | `docs/Guides/Ecosystem.md`, Community section, in `fastify/fastify`                    | A pull request with ``- [`@nexusdi/fastify`](url) description`` in alphabetical order, which `lint-ecosystem.js` checks. Needs docs and tests, which Write-Plugin.md requires. |
+| `@nexusdi/react-router` | reactrouter.com community resources                                                    | Unverified whether a listing exists; the implementation plan checks at launch.                                                                                                 |
+| `@nexusdi/vitest`       | `awesome-vitest`                                                                       | Unverified; the plan checks at launch.                                                                                                                                         |
+| `@nexusdi/hono` on Workers | Cloudflare's Workers framework guides                                               | Unverified whether third-party middleware is listed; the plan checks at launch.                                                                                                |
+| all                     | npm keywords and the docs `/comparison/` page                                          | In each `package.json`, and a `/comparison/` row on framework and edge support.                                                                                                |
 
 Express gets no listing. Its middleware page takes no new entries
 (`expressjs/expressjs.com#2375`), so `@nexusdi/express` reaches users through npm search,
-the docs and the launch post.
+the docs and the launch post. The launch post lists the packages with a link to each
+guide.
 
-The launch post (docs spec §6.2) lists the five packages with a link to each guide.
+## 18. Out of scope
 
-## 15. Out of scope
-
-- `@nexusdi/react`, which ships in 0.4 under its own spec (core spec §0, D18).
-- Adapters for other frameworks (NestJS, Koa, Elysia, h3, Next.js route handlers, Astro).
-  The shape of section 3.1 carries over to each.
+- `@nexusdi/react`, which is released in 0.4 under its own spec.
+- Adapters for other frameworks (NestJS, Koa, Elysia, h3, Astro). The shape of section
+  3.1 carries over to each.
+- Next.js server components, proxy, Pages Router and the edge runtime (section 10.2).
+- React Router on Workers, Deno or Bun as a tested setup.
 - WebSocket and server-sent-event connections that outlive a request's scope beyond the
   stream disposal of section 3.4.
 - An ambient scope in `@nexusdi/vitest`.
 - Owning the container inside an adapter, such as a Fastify plugin that calls
-  `Nexus.create` itself.
+  `Nexus.create` itself. The function form of section 3.1 calls the user's function and
+  stays outside this item.
 - Nested scopes, which core 0.4 does not have.
 - JSR publication for Deno users.
-- Benchmarks (#21).
+- Lazy scoped factories in core (section 19, item N4).
 
-## 16. Open questions
+## 19. What this spec needs from core
 
-The owner decided D1 to D6 of the first draft and the lazy request scope, and section 2.1
-records each answer. Core revision 2's `scope.extend()` settles the ambient-plus-`di.load`
-question of the previous revision (section 3.9). This spec has no open question of its
-own. It raises these items for the core spec:
+Nothing new is required from core for 0.4. Every adapter and edge need is met by rc.1's
+public API (section 3.10). The items below are what the spec touches, each checked
+against P1 to P5:
 
-C1. Error fields as own enumerable properties. The adapters log `err.code` plus the
-error's fields, and Fastify's logger serializes an object's enumerable keys (section
-3.6). Core spec §9 says the shared constructor "copies each own field onto the error",
-and does not say whether the copies are enumerable, or that the brand and `code` are the
-only other own keys. The adapters need one of the two stated: fields are own enumerable
-data properties and every other own key is non-enumerable, or `code` is enumerable too.
-Recommendation: the first, with a type-and-runtime test in core.
+| #   | Item                                                                                       | Where              | P1 to P5                                                                                         | Status            |
+| --- | ------------------------------------------------------------------------------------------ | ------------------ | ------------------------------------------------------------------------------------------------ | ----------------- |
+| N1  | `isNexusError(error, 'NEXUS_DISPOSED')` in each server adapter                              | adapters           | P1: the allowlisted equality; `@nexusdi/next` joins the entry                                     | exists            |
+| N2  | Copies of `request-scope.ts` and `dispose-with-body.ts`                                     | adapters           | P4: the named exception (V13); globs added to `no-copies.test.ts` and `.fallowrc.jsonc`           | spec change here  |
+| N3  | `edge-safe.test.ts`: no `eval(` or `new Function` in edge packages                          | `tools/repo-checks` | none touched: a repo-check names packages, which tools may                                      | new check         |
+| N4  | Lazy scoped factories: build a scoped factory on first `get()`                              | core               | none; internal to core. It would cut per-request CPU on edge when a graph has many scoped factories | 0.5 candidate     |
+| N5  | `Nexus.check` in the edge guide's CI test                                                   | core               | none; public API                                                                                 | exists            |
+| N6  | The structural `scopes` option                                                             | adapters           | P3 and P5: no import of `@nexusdi/node`; the user wires it                                       | exists            |
 
-C2. Dist-tags of core's new packages. Core spec §14 publishes every package's RCs on
-`next`. The owner's release rule (section 10.3) publishes a package with no stable version
-on npm with `latest`, and that covers `@nexusdi/decorators`, `@nexusdi/testing`,
-`@nexusdi/node`, `@nexusdi/errors`, `@nexusdi/devtools` and `@nexusdi/codemod` as well as
-the adapters. Recommendation: core spec §14 adopts the per-package rule, since
-`scripts/publish-released.mjs` applies it to every released project.
+N4 is no request for 0.4. `createScope` runs every scoped factory because "the runtime
+cannot tell a sync factory from an async one without calling it"
+(`runtime/scope.ts:180-186`), and section 9.3 measured 11.59 µs per request with five.
+The edge guide's advice (scoped classes for request-time work) covers 0.4. A core spec
+for 0.5 can weigh N4 against `get()` staying synchronous.
 
-C3. Stale references in core spec revision 2. §3.9 says "The integrations spec calls
-these types `Deps` and `Resolved<D>`"; this spec has used `DepsMap` and `ResolvedDeps<D>`
-since `47f8581`. §3.9 also cites "integrations spec, decision D1", which is now decision
-5 and section 3.3. §14's fourth final condition, that this spec call `nodeScopes()`, is
-met by this revision and can go.
+## 20. Owner questions
+
+Q1. Ship `@nexusdi/next` in 0.4?
+
+- What it does: a package with `di.route(deps, handler)` for App Router route handlers
+  and `di.action(deps, fn)` for server actions. Each call gets a request scope on first
+  use, typed deps checked at startup, and disposal through Next's `after()`. Its entry
+  imports `server-only`, so a client import fails the build.
+- The case: a Next 16 app that today creates `ship.createScope()` by hand in each route
+  and action, and leaks the scope when a stream outlives the handler. The inversify and
+  `next-di` threads show Next users asking for this.
+- User consequence: one more package to install for Next users, and a new guide page.
+  Nothing is removed or renamed. It reverses the react spec's ruling R12 ("no
+  `@nexusdi/next`"); the client side and the server-component recipe of R12 stay as they
+  are. Scope: Node runtime only, no server components, no proxy.
+- Recommendation: yes, gated. The first task runs the double-evaluation check of section
+  10.1. If Next evaluates `nexus.server.ts` twice in one process, the package moves to
+  0.5 and 0.4 publishes the guide page only.
+
+Q2. Which RC carries the adapters?
+
+- What it does: replaces the first draft's decision "all five adapters are in rc.0",
+  which rc.0 and rc.1 did not meet.
+- The case: the adapters, the edge guide and the demo apps are unbuilt on
+  `release/0.4`, and each needs a bootstrap on npm before its first publish.
+- User consequence: RC testers get the adapters later than planned. An adapter published
+  late in the RC window gets less feedback before 0.4.0.
+- Recommendation: all packages in rc.2, with `@nexusdi/next` allowed to follow in rc.3
+  if its gate is still open. 0.4.0 final waits until every adapter has been in at least
+  one RC with its demo app green, and adding a package does not restart the RC count,
+  because it breaks nothing.
+
+Q3. Keep `examples/react-ssr` in the demo app set?
+
+- What it does: the demo apps note leaves open whether this app stays. This spec moves
+  it to React Router 8, `@nexusdi/react-router`, `@nexusdi/react` and the Meridian
+  domain (section 14).
+- The case: without it, `@nexusdi/react-router` and `@nexusdi/react` have no demo app,
+  and the plan has no non-federated frontend.
+- User consequence: the 0.3-era users and logger example goes away and the app is
+  rewritten in Meridian names. Readers who followed the 0.3 example lose it; the
+  `/upgrade/` page and the codemod's test keep the 0.3 state in git history.
+- Recommendation: keep it and rewrite it as described. It also answers the plan's open
+  question about a non-federated frontend, and could host `@nexusdi/decorators` (the
+  vocabulary's `Bridge` class in a `Command` module), which the plan has no home for.
