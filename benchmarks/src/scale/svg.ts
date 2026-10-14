@@ -40,9 +40,17 @@ const H = 420;
 const M = { left: 72, right: 136, top: 36, bottom: 56 };
 const GAP = 15;
 
-/** Okabe-Ito hues, lightness-adjusted for the dark surface; one per library in schema order. */
-const LIGHT = ['#0072B2', '#E69F00', '#009E73', '#CC79A7', '#D55E00'];
-const DARK = ['#308DCF', '#C38603', '#028964', '#C976A4', '#A84900'];
+/**
+ * Okabe-Ito hues, one per library in schema order (blue, orange, pink,
+ * vermillion, green). The dark values keep each hue and chroma and move
+ * lightness into the dark band (OKLCH L 0.48 to 0.67), no lower than the light
+ * value where the band allows. Both pass the dataviz validator on adjacent
+ * pairs; the all-pairs check passes in light mode with a contrast warning on
+ * orange, and fails in dark mode for orange against vermillion, so the chart
+ * always carries direct labels, swatches and end markers.
+ */
+const LIGHT = ['#0072B2', '#E69F00', '#CC79A7', '#D55E00', '#009E73'];
+const DARK = ['#3390D2', '#C98300', '#C775A3', '#D55E00', '#23AB7F'];
 
 /** The powers of ten that bound [min, max]: 50 to 5,000 gives 10, 100, 1,000, 10,000. */
 export function decadeTicks(min: number, max: number): number[] {

@@ -2,8 +2,8 @@
 <title>Bundle size against providers, mixed</title>
 <desc>Gzip bytes of each library's bundle on mixed graphs of 50, 200, 1,000 and 5,000 providers.</desc>
 <style>
-svg{--bg:#ffffff;--ink:#1a1a19;--muted:#5f5f5b;--grid:#e3e3e0;--c0:#0072B2;--c1:#E69F00;--c2:#009E73;--c3:#CC79A7;--c4:#D55E00}
-@media (prefers-color-scheme: dark){svg{--bg:#1a1a19;--ink:#ecece9;--muted:#a3a39e;--grid:#3a3a37;--c0:#308DCF;--c1:#C38603;--c2:#028964;--c3:#C976A4;--c4:#A84900}}
+svg{--bg:#ffffff;--ink:#1a1a19;--muted:#5f5f5b;--grid:#e3e3e0;--c0:#0072B2;--c1:#E69F00;--c2:#CC79A7;--c3:#D55E00;--c4:#009E73}
+@media (prefers-color-scheme: dark){svg{--bg:#1a1a19;--ink:#ecece9;--muted:#a3a39e;--grid:#3a3a37;--c0:#3390D2;--c1:#C98300;--c2:#C775A3;--c3:#D55E00;--c4:#23AB7F}}
 .bg{fill:var(--bg)}text{fill:var(--ink)}.muted{fill:var(--muted)}
 .grid{stroke:var(--grid);stroke-width:1}.line{fill:none;stroke-width:2}.range{stroke-width:1.5;opacity:.55}
 .swatch{stroke-width:3}.leader{stroke-width:1;opacity:.7}.dot{stroke:var(--bg);stroke-width:2}.end-marker path{fill:none;stroke-width:2.5}
