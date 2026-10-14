@@ -567,6 +567,8 @@ which graph CLI spec section 4.3 makes the project's copy.
 ### 6.2 The report
 
 ```ts
+import type { Lifetime, RunKind } from '@nexusdi/core';
+
 export interface ProfileReport {
   readonly format: 'nexusdi-profile';
   readonly version: 1;
@@ -606,8 +608,12 @@ export interface ProfileReport {
 
 export interface ProfileRun {
   readonly id: number;
-  /** A RunKind; a kind from a newer core is kept as given. */
-  readonly kind: string;
+  /**
+   * Typed as core's RunKind. parseProfileReport accepts any string here, so
+   * a report from a newer core keeps a kind this union lacks, and a reader
+   * handles one with a default branch.
+   */
+  readonly kind: RunKind;
   readonly scope: string | null;
   /** null while the run is open. */
   readonly ok: boolean | null;
@@ -647,7 +653,8 @@ export interface ProfileBuild {
   readonly providerId: string;
   readonly token: string;
   readonly module: string;
-  readonly lifetime: string | null;
+  /** Core's Lifetime; parseProfileReport accepts any string, as for ProfileRun.kind. */
+  readonly lifetime: Lifetime | null;
   readonly scope: string | null;
   readonly async: boolean;
   readonly level: number | null;

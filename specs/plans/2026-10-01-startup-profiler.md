@@ -2158,7 +2158,7 @@ Files:
 Interfaces:
 
 - Consumes: the core events of Tasks 1 to 6, `PluginContext.blueprint()`, `EdgeView.ordersBuild` and `ProviderView.inline` (Task 7).
-- Produces in `report.ts`: `ProfileReport`, `ProfileRun`, `ProfileBuild`, `ProfileInit`, `ProfilePending`, `ProfileStep`, `CriticalPath`, `CpuProfile`, `CpuProfileNode`, `TraceFile`, all exported from the package. Spec 6.2's shapes, which include `ProfileReport.reportedMs: number` (the `performance.now()` at which `report()` ran, where a pending span ends), `graph.root: string` (the root module's name, for the Chrome file's frame URL), `graph.providers[].inline` and `graph.edges[].ordersBuild` (tech lead rulings 2 and 5).
+- Produces in `report.ts`: `ProfileReport`, `ProfileRun`, `ProfileBuild`, `ProfileInit`, `ProfilePending`, `ProfileStep`, `CriticalPath`, `CpuProfile`, `CpuProfileNode`, `TraceFile`, all exported from the package. Spec 6.2's shapes, which include `ProfileReport.reportedMs: number` (the `performance.now()` at which `report()` ran, where a pending span ends), `graph.root: string` (the root module's name, for the Chrome file's frame URL), `graph.providers[].inline` and `graph.edges[].ordersBuild` (tech lead rulings 2 and 5). `ProfileRun.kind` is core's `RunKind` and `ProfileBuild.lifetime` is core's `Lifetime | null`, so the event-type repo-check (PR #106) sees no compare against a bare string; `profile.ts` maps `compile.phase` to a kind explicitly.
 - Produces in `profile.ts`: `ProfileOptions`, `Profiler`, `profile(options?: ProfileOptions): Profiler`, and the internal `runOf(recording): ProfileRun`, which the live sink of Task 11 reads.
 - Produces in `steps.ts`: `stepsOf(run: Omit<ProfileRun, 'steps'>): ProfileStep[]` and `runLabel(run: Pick<ProfileRun, 'id' | 'kind' | 'scope'>): string`, the name the table and both trace files give a run.
 - Produces in `devtools-error.ts`: code `NEXUS_DEVTOOLS_PROFILE_REUSED`, `path: null`.
@@ -2574,7 +2574,11 @@ export interface TraceFile {
 ```ts
 import type { ProfileRun, ProfileStep } from './report.js';
 
-/** create, load 1, s3, s3 extend 4; a kind from a newer core keeps its name. */
+/**
+ * create, load 1, s3, s3 extend 4. A report that parseProfileReport read
+ * may come from a newer core and carry a kind outside RunKind; the last
+ * line names it as given.
+ */
 export function runLabel(
   run: Pick<ProfileRun, 'id' | 'kind' | 'scope'>,
 ): string {
@@ -2642,6 +2646,7 @@ import {
   type BlueprintView,
   type NexusPlugin,
   type PluginContext,
+  type RunKind,
   type TraceEvent,
 } from '@nexusdi/core';
 
@@ -2681,7 +2686,7 @@ export interface Profiler extends NexusPlugin {
 /** One run as the profiler accumulates it. */
 export interface Recording {
   readonly id: number;
-  kind: string;
+  kind: RunKind;
   scope: string | null;
   ok: boolean | null;
   startMs: number;
@@ -2747,7 +2752,7 @@ export function profile(options: ProfileOptions = {}): Profiler {
 
   const open = (
     id: number,
-    kind: string,
+    kind: RunKind,
     scope: string | null,
     startMs: number,
   ): Recording => {
@@ -2833,7 +2838,12 @@ export function profile(options: ProfileOptions = {}): Profiler {
           reused = true;
           return;
         }
-        open(event.run, event.phase, null, event.startMs).compile = {
+        open(
+          event.run,
+          event.phase === 'create' ? 'create' : 'load',
+          null,
+          event.startMs,
+        ).compile = {
           startMs: event.startMs,
           durationMs: event.durationMs,
           modules: event.modules,
@@ -3901,6 +3911,7 @@ const BUILD = shape({
   providerId: str,
   token: str,
   module: str,
+  // Any string, for the same reason as a run's kind.
   lifetime: orNull(str),
   scope: orNull(str),
   async: bool,
@@ -3926,6 +3937,7 @@ const INIT = shape({
 });
 const RUN = shape({
   id: num,
+  // Any string: a report from a newer core may carry a kind outside RunKind.
   kind: str,
   scope: orNull(str),
   ok: orNull(bool),
