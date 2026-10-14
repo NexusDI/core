@@ -1709,7 +1709,7 @@ describe('order and the in-flight set (spec 3.4)', () => {
 Run: `NX_NO_CLOUD=true NX_DAEMON=false npx nx test @nexusdi/core -- trace-events`
 Expected: PASS. A failure here is a defect in Tasks 2 to 6; fix it in the file that owns the event.
 
-- [ ] Step 3: The contract text. Replace the TSDoc on `TraceEventByType` with spec 5.1's first quote, preceded by its current first sentence, and add:
+- [ ] Step 3: The contract text. Replace the TSDoc on `TraceEventByType` with spec 5.1's first quote, preceded by its current first sentence. The quote binds core events only ("Every core event with `durationMs` also has `startMs`") and recommends that a package's own timed events carry `startMs` with the same meaning; keep both sentences verbatim. Then add:
 
 ```ts
  * @remarks
