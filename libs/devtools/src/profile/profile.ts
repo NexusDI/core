@@ -15,6 +15,7 @@ import type {
   ProfileReport,
   ProfileRun,
 } from './report.js';
+import { liveSink } from './live.js';
 import { stepsOf } from './steps.js';
 
 export interface ProfileOptions {
@@ -96,6 +97,10 @@ const REUSED_TEXT =
 
 export function profile(options: ProfileOptions = {}): Profiler {
   const scopes = options.scopes ?? false;
+  const live =
+    options.live === true
+      ? liveSink(options.trackGroup ?? 'NexusDI')
+      : undefined;
   const maxRuns = options.maxRuns ?? 1000;
   const runs = new Map<number, Recording>();
   // Builds with no run wait here for the build that ran them (spec 6.2).
@@ -291,6 +296,17 @@ export function profile(options: ProfileOptions = {}): Profiler {
         rec.durationMs = event.durationMs;
         rec.pending.clear();
         if (event.scope !== null) seenScopes.add(event.scope);
+        // A run's spans are drawn when it closes, so the critical-path colour
+        // is known (spec 6.5). An observe hook never throws (spec 6.3).
+        if (live !== undefined)
+          try {
+            live(
+              runOf(rec),
+              context === undefined ? null : graphOf(context.blueprint()),
+            );
+          } catch {
+            // The view or the sink failed; the app being measured does not.
+          }
         return;
       }
       case 'dispose':

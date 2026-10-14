@@ -1,4 +1,4 @@
-import { describe, expect, it } from 'vitest';
+import { afterEach, describe, expect, it, vi } from 'vitest';
 
 import {
   Nexus,
@@ -377,5 +377,29 @@ describe('profile', () => {
       dropped: 0,
       dispose: null,
     });
+  });
+});
+
+describe('profile live mode', () => {
+  afterEach(() => vi.unstubAllGlobals());
+
+  it('draws the run with console.timeStamp once create settles on Chromium 134', async () => {
+    vi.stubGlobal('navigator', {
+      userAgentData: { brands: [{ brand: 'Chromium', version: '134' }] },
+    });
+    // Node's console has no timeStamp to spy on, so the test stubs one.
+    const stamp = vi.fn();
+    vi.stubGlobal('console', { ...console, timeStamp: stamp });
+    const profiler = profile({ live: true });
+    await using ship = await Nexus.create(Engineering, { plugins: [profiler] });
+    void ship;
+    expect(stamp).toHaveBeenCalledWith(
+      'create',
+      expect.any(Number),
+      expect.any(Number),
+      'Runs',
+      'NexusDI',
+      'secondary-dark',
+    );
   });
 });
