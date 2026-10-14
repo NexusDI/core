@@ -15,22 +15,27 @@ import { serveSamples } from '@nexusdi/bench-kit';
 
 const { scale } = await import(pathToFileURL(process.argv[2]).href);
 
-const get =
-  typeof scale.getAsync === 'function'
-    ? (handle, index) => scale.getAsync(handle, index)
-    : (handle, index) => scale.get(handle, index);
+// get-cycle runs on `mixed` only (scale spec 6.2). An app that resolves
+// asynchronously would put a microtask turn in every run, so refuse it.
+if (typeof scale.getAsync === 'function') {
+  console.error(
+    'get-cycle needs synchronous resolution: this app has async providers (getAsync)',
+  );
+  process.exit(1);
+}
 
 serveSamples({
   'get-cycle': {
     async setup() {
-      const handle = await scale.create();
-      for (let i = 0; i < scale.count; i++) await get(handle, i);
+      let handle = scale.create();
+      if (typeof handle?.then === 'function') handle = await handle;
+      for (let i = 0; i < scale.count; i++) scale.get(handle, i);
       return { handle, next: 0 };
     },
     run(state) {
       const index = scale.entries[state.next];
       state.next = (state.next + 1) % scale.entries.length;
-      return get(state.handle, index);
+      return scale.get(state.handle, index);
     },
   },
 });
