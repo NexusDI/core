@@ -319,3 +319,47 @@ describe('compile failure with a throwing observer', () => {
     expect(error.code).toBe('NEXUS_PROVIDER_FAILED');
   });
 });
+
+describe('an observer throw on the closing run event of a success', () => {
+  const thrown = new Error('telemetry down');
+  const onRun = (fire: () => boolean) => ({
+    name: 'test:watcher',
+    apiVersion: 1,
+    observe(event: TraceEvent) {
+      if (event.type === 'run' && event.ok && fire()) throw thrown;
+    },
+  });
+
+  it('fails create and disposes the container it built', async () => {
+    const disposed: string[] = [];
+    class Airlock {
+      [Symbol.dispose]() {
+        disposed.push('Airlock');
+      }
+    }
+    const error = (await rejected(
+      Nexus.create([Airlock], { plugins: [onRun(() => true)] }),
+    )) as { code: string; cause: unknown };
+    expect(error.code).toBe('NEXUS_PROVIDER_FAILED');
+    expect(error.cause).toBe(thrown);
+    expect(disposed).toEqual(['Airlock']);
+  });
+
+  it('rejects load with the throw and keeps the loaded module', async () => {
+    let armed = false;
+    const ship = await Nexus.create(Engineering, {
+      plugins: [onRun(() => armed)],
+    });
+    const PROBE = new Token<object>('Probe');
+    const Science = defineModule({
+      name: 'Science',
+      providers: [provide(PROBE, { useValue: {} })],
+      exports: [PROBE],
+    });
+    armed = true;
+    expect(await rejected(ship.load(Science))).toBe(thrown);
+    armed = false;
+    expect(ship.has(PROBE)).toBe(true);
+    await ship[Symbol.asyncDispose]();
+  });
+});

@@ -8,7 +8,7 @@ import type { NexusRequest } from '../definitions/request.js';
 import type { InjectionToken, MultiToken } from '../definitions/token.js';
 import { BlueprintError, LoadError } from '../errors/index.js';
 import { isThenable } from './build.js';
-import { compileTraced } from './compile-traced.js';
+import { compileTraced, observerFailed } from './compile-traced.js';
 import { resolveDeps, validateDeps } from './deps.js';
 import { formatFor, formatThrown, guardAsync } from './format.js';
 import { loadModule } from './load.js';
@@ -363,7 +363,16 @@ export async function createContainer(
       run: trace,
     });
     await runSetup(state, plugins, state.handle, trace);
-    emitRun(tracer, trace);
+    try {
+      emitRun(tracer, trace);
+    } catch (traceError) {
+      // create returns no container, so nobody else would dispose it.
+      throw observerFailed(
+        traceError,
+        blueprint.modules.get(blueprint.root)?.name ?? '',
+        await abandonRoot(state),
+      );
+    }
     return state.handle;
   } catch (error) {
     throw formatThrown(
