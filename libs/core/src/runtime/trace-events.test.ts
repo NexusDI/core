@@ -867,9 +867,9 @@ describe('construct:failed', () => {
       [
         provide(LINK, {
           eager: false,
-          // The types refuse an async factory with eager: false; the cast
-          // reaches the runtime refusal this test reads.
-          useFactory: (async () => ({})) as () => object,
+          // A factory that may return a thenable passes the types, and the
+          // runtime refuses the thenable it returns.
+          useFactory: (): object | Promise<object> => Promise.resolve({}),
         }),
       ],
       { plugins: [plugin] },
