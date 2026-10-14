@@ -420,6 +420,34 @@ describe('validate scale-timings', () => {
         /scale-timings\.growth\[0\]/,
       );
     });
+    it('rejects a growth pair whose sizes are not neighbours in SIZES', () => {
+      const file = scaleTimings();
+      file.cells.push({
+        library: 'nexusdi',
+        variant: 'plain',
+        shape: 'mixed',
+        size: 200,
+        outcome: 'pass',
+      });
+      file.growth[0] = { ...file.growth[0], from: 200, to: 5000 };
+      expect(() => validate('scale-timings', file, 'tmp')).toThrow(
+        /scale-timings\.growth\[0\]\.to: expected 1000/,
+      );
+    });
+    it('rejects a growth pair that runs backwards or from the last size', () => {
+      const file = scaleTimings();
+      file.growth[0] = { ...file.growth[0], from: 5000, to: 1000 };
+      expect(() => validate('scale-timings', file, 'tmp')).toThrow(
+        /scale-timings\.growth\[0\]\.to/,
+      );
+    });
+    it('rejects a repeated cell', () => {
+      const file = scaleTimings();
+      file.cells.push({ ...file.cells[0] });
+      expect(() => validate('scale-timings', file, 'tmp')).toThrow(
+        /scale-timings\.cells\[5\]: expected a cell not listed before/,
+      );
+    });
     it('rejects a marginal figure whose 1,000 or 5,000 cell failed', () => {
       const file = scaleTimings();
       file.growth = [];
