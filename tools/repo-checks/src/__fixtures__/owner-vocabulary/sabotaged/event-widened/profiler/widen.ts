@@ -18,3 +18,14 @@ export const cast = (event: TraceEvent) => event.type as string;
 
 export const named = (event: TraceEvent, name: string): boolean =>
   event.type === name;
+
+export function opaque(event: TraceEvent): unknown {
+  const value: unknown = event.type;
+  return value;
+}
+
+export const loose = (event: TraceEvent) => event.type as any; // eslint-disable-line @typescript-eslint/no-explicit-any
+
+export const checked = (event: TraceEvent) => event.type satisfies unknown;
+
+export const text = (event: TraceEvent): string => String(event.type);

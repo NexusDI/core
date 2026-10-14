@@ -1,7 +1,13 @@
 import ts from 'typescript';
 
 import { parse, type Sources } from './core-layers.js';
-import { allNodes, at, declaredCodes, unwrap } from './error-codes.js';
+import {
+  allNodes,
+  at,
+  declaredCodes,
+  isEquality,
+  unwrap,
+} from './error-codes.js';
 import { type EventPackage, eventVocabulary } from './owner-events.js';
 
 /**
@@ -155,7 +161,7 @@ function isPrefixTest(call: ts.CallExpression): boolean {
  * True when a code literal is one side of `===`, `!==`, `==` or `!=`, or the
  * second argument of `isNexusError(value, code)`.
  */
-function isEquality(node: ts.Node): boolean {
+function isCodeCheck(node: ts.Node): boolean {
   const parent = node.parent;
   if (ts.isCallExpression(parent)) {
     const callee = parent.expression;
@@ -166,14 +172,7 @@ function isEquality(node: ts.Node): boolean {
         : undefined;
     return name === 'isNexusError' && parent.arguments[1] === node;
   }
-  if (!ts.isBinaryExpression(parent)) return false;
-  const kind = parent.operatorToken.kind;
-  return (
-    kind === ts.SyntaxKind.EqualsEqualsEqualsToken ||
-    kind === ts.SyntaxKind.ExclamationEqualsEqualsToken ||
-    kind === ts.SyntaxKind.EqualsEqualsToken ||
-    kind === ts.SyntaxKind.ExclamationEqualsToken
-  );
+  return ts.isBinaryExpression(parent) && isEquality(parent);
 }
 
 /** Each package that declares a code, by code. */
@@ -259,7 +258,7 @@ export function ownerVocabulary(
           const key = `${name} ${node.text}`;
           const allowed =
             ts.isStringLiteralLike(node) &&
-            isEquality(node) &&
+            isCodeCheck(node) &&
             allowlist.some(
               (entry) =>
                 entry.code === node.text && entry.packages.includes(name),
