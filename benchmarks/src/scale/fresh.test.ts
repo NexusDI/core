@@ -1,7 +1,8 @@
 import { orderFor } from '@nexusdi/bench-kit';
-import { mkdtempSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
+import { mkdirSync, mkdtempSync, rmSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
+import { pathToFileURL } from 'node:url';
 import { afterAll, describe, expect, it } from 'vitest';
 
 import { spawnChild } from '../timings/spawn.ts';
@@ -19,11 +20,10 @@ const FAKE = join(
   'fake-scale.mjs',
 );
 
-// A heap figure needs a body: without ballast it is a few KB of noise.
-process.env.FAKE_BALLAST = '1';
-
 const dir = mkdtempSync(join(tmpdir(), 'scale-fresh-'));
 afterAll(() => rmSync(dir, { recursive: true, force: true }));
+const EMPTY_PACKAGES = join(dir, 'packages.mjs');
+writeFileSync(EMPTY_PACKAGES, '');
 
 /** One graph file per cell, so a recorded spawn names its cell. */
 const cellsOf = (names: string[]): FreshCell[] =>
@@ -35,11 +35,19 @@ const cellsOf = (names: string[]): FreshCell[] =>
       size: 50 * 4 ** i,
       bundle: FAKE,
       graph,
-      packages: [],
+      packagesFile: EMPTY_PACKAGES,
     };
   });
 
 const opts = { block: 'mixed', warmup: 1, measured: 3, seed: 7 };
+const INFLATE = join(
+  import.meta.dirname,
+  '..',
+  '..',
+  'fixtures',
+  '__test__',
+  'inflate-code-space.mjs',
+);
 const PHASES = ['load', 'create', 'firstGet', 'rest', 'heapReady'] as const;
 
 describe('freshBlock', () => {
@@ -68,30 +76,16 @@ describe('freshBlock', () => {
     }
   }, 60_000);
 
-  it('keeps heap-ready within 1% when a large function compiles and runs hot', async () => {
-    const cells = cellsOf(['a']);
-    const heap = async (extra: Record<string, string>) => {
-      const saved = { ...process.env };
-      Object.assign(process.env, extra);
-      try {
-        const [row] = await freshBlock(cells, {
-          ...opts,
-          warmup: 0,
-          measured: 1,
-        });
-        return row?.heapReady[0] ?? NaN;
-      } finally {
-        for (const k of Object.keys(extra)) delete process.env[k];
-        Object.assign(process.env, saved);
-      }
-    };
-    const diag = join(dir, 'code-space');
-    const plain = await heap({});
-    const compiled = await heap({ FAKE_COMPILE: '1', FAKE_DIAG: diag });
-    // The premise: the compile did grow code_space in the child.
-    expect(Number(readFileSync(diag, 'utf8'))).toBeGreaterThan(0);
-    expect(plain).toBeGreaterThan(20_000_000);
-    expect(Math.abs(compiled - plain) / plain).toBeLessThan(0.01);
+  it('leaves the code spaces out of heap-ready', async () => {
+    // Every heap read after the base adds 512 MB to code_space.
+    const [row] = await freshBlock(cellsOf(['a']), {
+      ...opts,
+      warmup: 0,
+      measured: 1,
+      spawn: (script, args, execArgv, type, env) =>
+        spawnChild(script, args, [...execArgv, '--import', INFLATE], type, env),
+    });
+    expect(row?.heapReady[0]).toBeLessThan(1_000_000);
   }, 60_000);
 
   it('rejects when the counts fall short, naming cell, block and round', async () => {
@@ -105,28 +99,91 @@ describe('freshBlock', () => {
     }
   }, 60_000);
 
-  it('runs one block over every size, in orderFor order, and drops warm-up', async () => {
+  it('runs one block over every size in orderFor order', async () => {
     const cells = cellsOf(['a', 'b', 'c', 'd']);
     const seen: string[] = [];
     const rows = await freshBlock(cells, {
       ...opts,
-      warmup: 2,
+      warmup: 1,
       measured: 2,
-      spawn: (script, args, execArgv, env) => {
+      spawn: (script, args, execArgv, type, env) => {
         seen.push(args[1] ?? '');
-        return spawnChild(script, args, execArgv, env);
+        return spawnChild(script, args, execArgv, type, env);
       },
     });
     const expected: string[] = [];
-    for (let round = 0; round < 4; round++)
+    for (let round = 0; round < 3; round++)
       for (const i of orderFor(round, 4, opts.seed))
         expected.push(cells[i]?.graph ?? '');
     expect(seen).toEqual(expected);
     expect(rows.map((r) => [r.library, r.size])).toEqual(
       cells.map((c) => [c.library, c.size]),
     );
-    for (const row of rows) expect(row.startup).toHaveLength(2);
   }, 120_000);
+
+  it('holds exactly the rounds after warm-up in measured', async () => {
+    const cells = cellsOf(['a', 'b', 'c']);
+    let call = 0;
+    const rows = await freshBlock(cells, {
+      ...opts,
+      warmup: 2,
+      measured: 3,
+      // Each synthetic sample carries its round in every phase.
+      spawn: (() => {
+        const round = Math.floor(call++ / cells.length);
+        return Promise.resolve({
+          ns: 0,
+          message: {
+            type: 'sample' as const,
+            load: round,
+            create: round,
+            firstGet: round,
+            rest: round,
+            heapReady: round,
+          },
+        });
+      }) as unknown as typeof spawnChild,
+    });
+    for (const row of rows) {
+      expect(row.load).toEqual([2, 3, 4]);
+      expect(row.startup).toEqual([8, 12, 16]);
+    }
+  });
+
+  it('keeps a core import out of load', async () => {
+    // fake-lib stands in for a library whose import takes 250 ms. The cell's
+    // packages.mjs imports it untimed; the bundle imports it as well.
+    const lib = join(dir, 'cell', 'node_modules', 'fake-lib');
+    mkdirSync(lib, { recursive: true });
+    writeFileSync(
+      join(lib, 'package.json'),
+      '{"name":"fake-lib","type":"module","exports":"./index.js"}',
+    );
+    writeFileSync(
+      join(lib, 'index.js'),
+      'const t = Date.now();\nwhile (Date.now() - t < 250);\nexport const loaded = true;\n',
+    );
+    const bundle = join(dir, 'cell', 'bundle.mjs');
+    writeFileSync(
+      bundle,
+      `import 'fake-lib';\nexport { scale } from ${JSON.stringify(pathToFileURL(FAKE).href)};\n`,
+    );
+    const graph = join(dir, 'cell', 'graph.json');
+    writeFileSync(graph, JSON.stringify(six()));
+    const packagesFile = join(dir, 'cell', 'packages.mjs');
+    const run = async () => {
+      const [row] = await freshBlock(
+        [{ library: 'x', size: 6, bundle, graph, packagesFile }],
+        { ...opts, warmup: 0, measured: 1 },
+      );
+      return row?.load[0] ?? NaN;
+    };
+    writeFileSync(packagesFile, "import 'fake-lib';\n");
+    expect(await run()).toBeLessThan(100e6);
+    // Without the packages file the bundle's own import pays for it.
+    writeFileSync(packagesFile, '');
+    expect(await run()).toBeGreaterThan(250e6);
+  }, 60_000);
 
   it('rejects with the child stderr when it exits 1 before sending', async () => {
     const cells = cellsOf(['a']).map((c) => ({
@@ -161,10 +218,50 @@ describe('spawnChild', () => {
   it('resolves with the first message and the spawn-to-message time', async () => {
     const r = await spawnChild<{ type: string }>(
       CHILD,
-      [FAKE, cellsOf(['s'])[0]?.graph ?? ''],
+      [FAKE, cellsOf(['s'])[0]?.graph ?? '', EMPTY_PACKAGES],
       ['--expose-gc'],
+      'sample',
     );
     expect(r.message.type).toBe('sample');
     expect(r.ns).toBeGreaterThan(0);
+  }, 30_000);
+  const script = (name: string, body: string) => {
+    const file = join(dir, name);
+    writeFileSync(file, body);
+    return file;
+  };
+  it('ignores messages of another type', async () => {
+    const file = script(
+      'two.mjs',
+      "process.send({ type: 'noise' }); process.send({ type: 'sample', v: 1 }); process.disconnect();",
+    );
+    const r = await spawnChild<{ type: string; v?: number }>(
+      file,
+      [],
+      [],
+      'sample',
+    );
+    expect(r.message.v).toBe(1);
+  }, 30_000);
+  it('rejects a non-zero exit even after the message', async () => {
+    const file = script(
+      'late.mjs',
+      "process.send({ type: 'sample' }, () => { console.error('late'); process.exit(3); });",
+    );
+    await expect(spawnChild(file, [], [], 'sample')).rejects.toThrow(
+      /exited with code 3: late/,
+    );
+  }, 30_000);
+  it('names the signal when the child is killed', async () => {
+    const file = script('kill.mjs', "process.kill(process.pid, 'SIGKILL');");
+    await expect(spawnChild(file, [], [], 'sample')).rejects.toThrow(
+      /exited with signal SIGKILL/,
+    );
+  }, 30_000);
+  it('rejects when the child sends no message of the type', async () => {
+    const file = script('quiet.mjs', '');
+    await expect(spawnChild(file, [], [], 'sample')).rejects.toThrow(
+      /sent no sample message/,
+    );
   }, 30_000);
 });

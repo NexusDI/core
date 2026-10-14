@@ -2,20 +2,8 @@
  * A hand-written scale app over the six-provider graph of
  * src/scale/six.ts, shaped like a rendered app.ts (fixtures/scale-adapter.d.ts).
  * FAKE_BREAK selects one renderer fault for the verify-child and child tests.
- * FAKE_BALLAST makes create() retain about 40 MB of heap objects, so a
- * heap figure has a body for a percentage to compare. FAKE_COMPILE makes
- * create() compile a large function, run it hot and drop it, which grows
- * code_space while it lives,
- * and writes the growth to the file FAKE_DIAG names.
  */
-import { writeFileSync } from 'node:fs';
-import { getHeapSpaceStatistics } from 'node:v8';
-
 const brk = process.env.FAKE_BREAK;
-const retained = [];
-const codeSpace = () =>
-  getHeapSpaceStatistics().find((x) => x.space_name === 'code_space')
-    .space_used_size;
 
 const counts = new Uint32Array(6);
 const kinds = new Array(6);
@@ -114,19 +102,6 @@ export const scale = {
   built: { counts, kinds },
   create() {
     if (brk === 'throw') throw new Error('create broke');
-    if (process.env.FAKE_BALLAST)
-      retained.push(Array.from({ length: 1_500_000 }, (_, i) => ({ i })));
-    if (process.env.FAKE_COMPILE) {
-      const before = codeSpace();
-      const body = Array.from(
-        { length: 1000 },
-        (_, i) => `x = (x * ${i + 3} + ${i}) % 1000003; if (x & 1) x ^= ${i};`,
-      ).join('\n');
-      const big = new Function('n', `let x = n;\n${body}\nreturn x;`);
-      for (let i = 0; i < 20_000; i++) big(i);
-      if (process.env.FAKE_DIAG)
-        writeFileSync(process.env.FAKE_DIAG, String(codeSpace() - before));
-    }
     return new Container();
   },
   get(handle, index) {

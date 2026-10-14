@@ -19,8 +19,8 @@ export interface FreshCell {
   bundle: string;
   /** The cell's graph as JSON, for the child's construction count. */
   graph: string;
-  /** Library packages to import untimed first, polyfill first. */
-  packages: readonly string[];
+  /** The cell's `packages.mjs`, written by bundleCell: imports the library packages untimed. */
+  packagesFile: string;
 }
 
 /** What `child.mjs` sends: ns for the four phases, bytes for the heap. */
@@ -59,11 +59,12 @@ export interface FreshOptions {
   spawn?: typeof spawnChild;
 }
 
-// A cached compile or injected flags would change what a fresh process costs.
+// Any NODE_* or UV_* variable (compile cache, options, thread pool size)
+// would change what a fresh process costs.
 function cleanEnv(): NodeJS.ProcessEnv {
   const env = { ...process.env };
-  delete env.NODE_COMPILE_CACHE;
-  delete env.NODE_OPTIONS;
+  for (const key of Object.keys(env))
+    if (key.startsWith('NODE_') || key.startsWith('UV_')) delete env[key];
   return env;
 }
 
@@ -93,10 +94,11 @@ export async function freshBlock(
       if (cell === undefined || row === undefined) continue;
       let s: FreshSample;
       try {
-        ({ message: s } = await spawn<FreshSample>(
+        ({ message: s } = await spawn<FreshSample & { type: 'sample' }>(
           CHILD,
-          [cell.bundle, cell.graph, ...cell.packages],
+          [cell.bundle, cell.graph, cell.packagesFile],
           ['--expose-gc'],
+          'sample',
           env,
         ));
       } catch (error) {

@@ -32,6 +32,7 @@ async function spawnOnce(module: string): Promise<{ ns: number; ms: number }> {
     CHILD,
     [module],
     [],
+    'ready',
   );
   return { ns, ms: message.now };
 }
