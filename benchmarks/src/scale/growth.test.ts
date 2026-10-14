@@ -5,6 +5,8 @@ import { SIZES } from './config.ts';
 import { localExponent, marginalPerProvider } from './growth.ts';
 
 const ROUNDS = 200;
+// The default 10,000 resamples take seconds; the transform needs few.
+const RESAMPLES = 500;
 
 /** Per-round times for each size: f(n) times a noise factor shared by every size of the round. */
 function series(f: (n: number) => number, seed = 1): Map<number, number[]> {
@@ -20,15 +22,22 @@ describe('localExponent', () => {
     for (let i = 1; i < SIZES.length; i++) {
       const lo = SIZES[i - 1] ?? 0;
       const hi = SIZES[i] ?? 0;
-      const g = localExponent(at(t, lo), at(t, hi), lo, hi, 7);
+      const g = localExponent(at(t, lo), at(t, hi), lo, hi, 7, RESAMPLES);
       expect(g.exponent).toBeCloseTo(1.2, 9);
     }
   });
 
   it('shows a fixed cost as a low exponent at small sizes and a high one at large sizes', () => {
     const t = series((n) => 100_000 + 50 * n);
-    const small = localExponent(at(t, 50), at(t, 200), 50, 200, 7);
-    const large = localExponent(at(t, 1000), at(t, 5000), 1000, 5000, 7);
+    const small = localExponent(at(t, 50), at(t, 200), 50, 200, 7, RESAMPLES);
+    const large = localExponent(
+      at(t, 1000),
+      at(t, 5000),
+      1000,
+      5000,
+      7,
+      RESAMPLES,
+    );
     expect(small.exponent).toBeLessThan(0.1);
     // 350,000 / 150,000 over a size ratio of 5 is 0.526: the spec's "above
     // 0.7" cannot hold for this function at any fixed cost that also keeps
@@ -43,7 +52,7 @@ describe('localExponent', () => {
     const lo = series(f, 1);
     const hi = series(f, 2);
     const run = (seed: number) =>
-      localExponent(at(lo, 200), at(hi, 1000), 200, 1000, seed);
+      localExponent(at(lo, 200), at(hi, 1000), 200, 1000, seed, RESAMPLES);
     const a = run(3);
     expect(run(3)).toEqual(a);
     expect(a.low).toBeLessThanOrEqual(a.exponent);
