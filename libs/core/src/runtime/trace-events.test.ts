@@ -264,6 +264,47 @@ describe('compile failure with a throwing observer', () => {
     expect(error.code).toBe('NEXUS_BLUEPRINT_INVALID');
   });
 
+  it('throws the BlueprintError when the observer throws on every event', async () => {
+    const watcher = {
+      name: 'test:watcher',
+      apiVersion: 1,
+      observe() {
+        throw new Error('telemetry down');
+      },
+    };
+    class Bridge {
+      static deps = [REACTOR] as const;
+      constructor(readonly reactor: IReactorCore) {}
+    }
+    const error = (await rejected(
+      Nexus.create([Bridge], { plugins: [watcher] }),
+    )) as { code: string };
+    expect(error.code).toBe('NEXUS_BLUEPRINT_INVALID');
+  });
+
+  it('throws the LoadError of a load when the observer throws on every event', async () => {
+    // Armed after create, which would fail on its own events otherwise, and
+    // disarmed before disposal for the same reason.
+    let armed = false;
+    const watcher = {
+      name: 'test:watcher',
+      apiVersion: 1,
+      observe() {
+        if (armed) throw new Error('telemetry down');
+      },
+    };
+    const ship = await Nexus.create(defineModule({ name: 'Root' }), {
+      plugins: [watcher],
+    });
+    armed = true;
+    const error = (await rejected(
+      ship.load(defineModule({ name: 'Telemetry', global: true })),
+    )) as { code: string };
+    armed = false;
+    expect(error.code).toBe('NEXUS_LOAD_GLOBAL_MODULE');
+    await ship[Symbol.asyncDispose]();
+  });
+
   it('still reports an observer throw on a compile that passed', async () => {
     const watcher = {
       name: 'test:watcher',
