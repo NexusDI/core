@@ -295,6 +295,23 @@ describe('toScaleGrowth and toScaleMarginal', () => {
     expect(m.map((x) => x.metric).sort()).toEqual(['heap-ready', 'startup']);
   });
 
+  it('pairs only sizes that are adjacent, never across a missing one', () => {
+    // 200 failed: 50 and 1,000 are not neighbours, but 1,000 and 5,000 are.
+    const gap = raw(
+      block(
+        'mixed',
+        [50, 1000, 5000].map((n) =>
+          cell('nexusdi', 'plain', n, flat([1, 2, 3])),
+        ),
+      ),
+    );
+    expect(
+      toScaleGrowth(gap, 1)
+        .filter((x) => x.metric === 'startup')
+        .map((x) => [x.from, x.to]),
+    ).toEqual([[1000, 5000]]);
+  });
+
   it('skips a library-variant that lacks 1,000 or 5,000', () => {
     const short = raw(
       block('wide', [
@@ -317,8 +334,12 @@ describe('coreTree', () => {
   mkdirSync(join(dir, 'libs', 'core'), { recursive: true });
   writeFileSync(join(dir, '.gitignore'), 'dist\n');
   writeFileSync(join(dir, 'libs', 'core', 'a.ts'), 'export const a = 1;\n');
+  // Tracked although ignored, as a committed build artefact would be.
+  mkdirSync(join(dir, 'libs', 'core', 'dist'), { recursive: true });
+  writeFileSync(join(dir, 'libs', 'core', 'dist', 'kept.js'), 'kept');
   git('init', '-q');
   git('add', '.');
+  git('add', '-f', 'libs/core/dist/kept.js');
   git(
     '-c',
     'user.name=t',
@@ -343,7 +364,14 @@ describe('coreTree', () => {
     writeFileSync(join(dir, 'libs', 'core', 'dist', 'x.js'), 'x');
     expect(coreTree(dir)).toBe(before);
   });
+  it('keeps tracked files that .gitignore covers', () => {
+    // The committed tree has dist/kept.js; the scratch index must too.
+    writeFileSync(join(dir, 'libs', 'core', 'a.ts'), 'export const a = 1;\n');
+    expect(coreTree(dir)).toBe(git('rev-parse', 'HEAD:libs/core'));
+  });
   it('leaves the real index alone', () => {
+    writeFileSync(join(dir, 'libs', 'core', 'a.ts'), 'export const a = 3;\n');
+    coreTree(dir);
     expect(git('diff', '--cached', '--name-only')).toBe('');
     expect(git('status', '--porcelain')).toContain('libs/core/a.ts');
   });
