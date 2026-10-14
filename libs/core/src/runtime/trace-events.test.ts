@@ -1224,3 +1224,73 @@ describe('init from an on-demand build', () => {
     expect(log).toEqual(['built', 'init']);
   });
 });
+
+describe('order and the in-flight set (spec 3.4)', () => {
+  it('orders a run: compile, awaits, builds, inits, run', async () => {
+    const { events, plugin } = recordEvents();
+    const LINK = new Token<object>('SubspaceLink');
+    class Relay {
+      static deps = [LINK] as const;
+      constructor(readonly link: object) {}
+      async onInit() {
+        await sleep(1);
+      }
+    }
+    await using ship = await Nexus.create(
+      [provide(LINK, { useFactory: async () => ({}) }), Relay],
+      { plugins: [plugin] },
+    );
+    void ship;
+    expect(events.map((e) => e.type)).toEqual([
+      'compile',
+      'construct:await',
+      'construct',
+      'construct',
+      'init:await',
+      'init',
+      'run',
+    ]);
+  });
+
+  /** The :await events whose provider has no later end event in that run. */
+  function inFlight(events: readonly TraceEvent[]): string[] {
+    const open = new Map<string, string>();
+    for (const e of events) {
+      if (e.type === 'construct:await') open.set(`c ${e.providerId}`, e.token);
+      if (e.type === 'construct' || e.type === 'construct:failed')
+        open.delete(`c ${e.providerId}`);
+      if (e.type === 'init:await') open.set(`i ${e.providerId}`, e.token);
+      if (e.type === 'init' || e.type === 'init:failed')
+        open.delete(`i ${e.providerId}`);
+    }
+    return [...open.values()];
+  }
+
+  it('leaves a hung factory in the in-flight set with no run event', async () => {
+    const { events, plugin } = recordEvents();
+    const CHARTS = new Token<object>('NavCharts');
+    void Nexus.create(
+      [
+        provide(CHARTS, {
+          useFactory: () => new Promise<object>(() => undefined),
+        }),
+      ],
+      { plugins: [plugin] },
+    );
+    await sleep(10);
+    expect(inFlight(events)).toEqual(['NavCharts']);
+    expect(only(events, 'run')).toEqual([]);
+  });
+
+  it('leaves a hung onInit in the in-flight set', async () => {
+    const { events, plugin } = recordEvents();
+    class Router {
+      onInit() {
+        return new Promise<void>(() => undefined);
+      }
+    }
+    void Nexus.create([Router], { plugins: [plugin] });
+    await sleep(10);
+    expect(inFlight(events)).toEqual(['Router']);
+  });
+});

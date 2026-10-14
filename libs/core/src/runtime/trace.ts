@@ -40,6 +40,24 @@ interface BuildEventFields {
 /**
  * Each trace event type's fields (spec section 10.2). A package adds its own
  * by augmentation, keyed `<package>/<event>`.
+ *
+ * Core may add event types and fields in any minor release. An observer
+ * ignores what it does not know. These rules hold across a release line.
+ * Every core event with `durationMs` also has `startMs`, both in
+ * milliseconds of `performance.now()` in the realm that emitted it. The
+ * event's span is `[startMs, startMs + durationMs]` in wall time, and core
+ * hands the event to observers synchronously when that span ends. A package
+ * that adds a timed event of its own should give it `startMs` with the same
+ * meaning. Run ids are unique within one container, and `create` is run 0.
+ * A run that settles ends with exactly one `run` event, after every other
+ * event of that run. Level numbers, and which work `finishMs` covers beyond
+ * options validation and construct hooks, describe how core works today and
+ * may change in a minor release.
+ *
+ * @remarks
+ * Stable in plugin API 1: the event types and fields listed on /trace-events/.
+ * Evolving: level numbering, and which work `finishMs` covers beyond options
+ * validation and construct hooks. Both may change in a minor release.
  */
 export interface TraceEventByType {
   compile: {
