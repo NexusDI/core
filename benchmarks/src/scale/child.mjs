@@ -12,6 +12,7 @@
  * the reason on stderr.
  */
 import { readFileSync } from 'node:fs';
+import { setTimeout as sleep } from 'node:timers/promises';
 import { pathToFileURL } from 'node:url';
 import { getHeapSpaceStatistics } from 'node:v8';
 
@@ -38,8 +39,24 @@ const ns = () => process.hrtime.bigint();
 // Library import time is the cold-start figure, so it stays untimed.
 await import(pathToFileURL(packagesFile).href);
 
-collect();
-const base = retainedHeap(getHeapSpaceStatistics());
+/**
+ * A heap read once V8's background work (concurrent compile jobs) has
+ * finished: collect after a pause, until two reads in a row are equal, at
+ * most ten times. Both reads sit outside the timed phases.
+ */
+async function settledHeap() {
+  let last = -1;
+  for (let i = 0; i < 10; i++) {
+    await sleep(10);
+    collect();
+    const now = retainedHeap(getHeapSpaceStatistics());
+    if (now === last) return now;
+    last = now;
+  }
+  return last;
+}
+
+const base = await settledHeap();
 
 let t = ns();
 const { scale } = await import(pathToFileURL(bundle).href);
@@ -75,8 +92,7 @@ if (typeof scale.getAsync === 'function') {
   rest = Number(ns() - t);
 }
 
-collect();
-const heapReady = retainedHeap(getHeapSpaceStatistics()) - base;
+const heapReady = (await settledHeap()) - base;
 // The handle must still be reachable at the heap read above.
 globalThis.__scaleHandle = handle;
 

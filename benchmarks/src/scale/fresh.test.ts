@@ -57,17 +57,12 @@ const INFLATE = join(
 const PHASES = ['load', 'create', 'firstGet', 'rest', 'heapReady'] as const;
 
 describe('freshBlock', () => {
-  it('reports every phase once per measured round, the timed phases non-negative', async () => {
+  it('reports every phase, all non-negative, once per measured round', async () => {
     const [row] = await freshBlock(cellsOf(['a']), opts);
     expect(row?.library).toBe('a');
     for (const phase of PHASES) {
       expect(row?.[phase]).toHaveLength(3);
-      for (const v of row?.[phase] ?? []) {
-        // heap-ready is a difference of two heap reads; for a six-provider
-        // fake with nothing retained, collection noise can make it negative.
-        if (phase === 'heapReady') expect(Number.isFinite(v)).toBe(true);
-        else expect(v).toBeGreaterThanOrEqual(0);
-      }
+      for (const v of row?.[phase] ?? []) expect(v).toBeGreaterThanOrEqual(0);
     }
   }, 60_000);
 
@@ -243,6 +238,26 @@ describe('retainedHeap', () => {
       ]),
     ).toBe(321);
   });
+});
+
+describe('heap-ready under load', () => {
+  it('is never negative in 150 parallel children', async () => {
+    // V8's background compile jobs can still be running at the base read and
+    // finish before the last one, which makes the difference negative.
+    const graph = cellsOf(['x'])[0]?.graph ?? '';
+    const results = await Promise.all(
+      Array.from({ length: 150 }, () =>
+        spawnChild<{ type: string; heapReady: number }>(
+          CHILD,
+          [FAKE, graph, EMPTY_PACKAGES],
+          ['--expose-gc'],
+          'sample',
+        ),
+      ),
+    );
+    const heap = results.map((r) => r.message.heapReady);
+    expect(Math.min(...heap)).toBeGreaterThanOrEqual(0);
+  }, 120_000);
 });
 
 describe('spawnChild', () => {
