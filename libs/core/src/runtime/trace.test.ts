@@ -24,10 +24,11 @@ describe('Tracer', () => {
       type: 'dispose',
       disposed: 1,
       errors: 0,
+      startMs: 1,
       durationMs: 2,
     }));
     expect(events).toEqual([
-      { type: 'dispose', disposed: 1, errors: 0, durationMs: 2 },
+      { type: 'dispose', disposed: 1, errors: 0, startMs: 1, durationMs: 2 },
     ]);
   });
 });

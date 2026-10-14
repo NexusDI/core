@@ -13,6 +13,7 @@ export interface TraceEventByType {
     modules: number;
     providers: number;
     errors: number;
+    startMs: number;
     durationMs: number;
   };
   construct: {
@@ -23,6 +24,7 @@ export interface TraceEventByType {
     lifetime: Lifetime | null;
     scope: string | null;
     async: boolean;
+    startMs: number;
     durationMs: number;
   };
   untracked: {
@@ -30,18 +32,30 @@ export interface TraceEventByType {
     providerId: string;
     reason: 'root-transient' | 'singleton-thunk';
   };
-  init: { token: string; providerId: string; durationMs: number };
-  'scope:create': { scope: string; built: number; durationMs: number };
+  init: {
+    token: string;
+    providerId: string;
+    startMs: number;
+    durationMs: number;
+  };
+  'scope:create': {
+    scope: string;
+    built: number;
+    startMs: number;
+    durationMs: number;
+  };
   'scope:extend': {
     scope: string;
     modules: string[];
     built: number;
+    startMs: number;
     durationMs: number;
   };
   'scope:dispose': {
     scope: string;
     disposed: number;
     errors: number;
+    startMs: number;
     durationMs: number;
   };
   /** One per instance the container or a scope disposes, in disposal order. */
@@ -50,7 +64,12 @@ export interface TraceEventByType {
     providerId: string;
     scope: string | null;
   };
-  dispose: { disposed: number; errors: number; durationMs: number };
+  dispose: {
+    disposed: number;
+    errors: number;
+    startMs: number;
+    durationMs: number;
+  };
 }
 
 /** A trace event. `TraceEvent` alone is the union of every type. */

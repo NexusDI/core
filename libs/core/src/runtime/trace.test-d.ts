@@ -3,8 +3,8 @@ import { describe, expectTypeOf, it } from 'vitest';
 import '../../test-support/third-party-trace.js';
 import type { Lifetime, PluginContext, TraceEvent } from '../index.js';
 
-// TraceEvent as core declared it before TraceEventByType existed.
-type CoreTraceEvent =
+// TraceEvent as 0.4.0-rc.0 published it. Later releases add types and fields to it.
+type Rc0TraceEvent =
   | {
       type: 'compile';
       phase: 'create' | 'load' | 'check';
@@ -59,30 +59,49 @@ type AcmeMiss = {
   durationMs: number;
 };
 
+type Rc0Type = Rc0TraceEvent['type'];
+
 describe('TraceEvent', () => {
   it('includes an event a third party adds to TraceEventByType', () => {
-    expectTypeOf<TraceEvent['type']>().toEqualTypeOf<
-      CoreTraceEvent['type'] | '@acme/cache/miss'
-    >();
+    expectTypeOf<'@acme/cache/miss'>().toExtend<TraceEvent['type']>();
     expectTypeOf<TraceEvent<'@acme/cache/miss'>>().toExtend<AcmeMiss>();
     expectTypeOf<AcmeMiss>().toExtend<TraceEvent>();
   });
 
-  it('narrows to the compile member for TraceEvent<compile>', () => {
-    expectTypeOf<TraceEvent<'compile'>['type']>().toEqualTypeOf<'compile'>();
-    expectTypeOf<TraceEvent<'compile'>>().toExtend<
-      Extract<CoreTraceEvent, { type: 'compile' }>
-    >();
-    expectTypeOf<Extract<CoreTraceEvent, { type: 'compile' }>>().toExtend<
-      TraceEvent<'compile'>
-    >();
+  it('keeps every rc.0 event type', () => {
+    expectTypeOf<Rc0Type>().toExtend<TraceEvent['type']>();
   });
 
-  it("keeps core's union with no argument", () => {
+  it('keeps every rc.0 field with its rc.0 type', () => {
+    expectTypeOf<{ [K in Rc0Type]: TraceEvent<K> }>().toExtend<{
+      [K in Rc0Type]: Extract<Rc0TraceEvent, { type: K }>;
+    }>();
+  });
+
+  it('gives every core event with durationMs a startMs', () => {
+    // Only the third-party fixture lacks it: an augmentation is not bound to carry startMs.
     expectTypeOf<
-      Exclude<TraceEvent, { type: '@acme/cache/miss' }>
-    >().toExtend<CoreTraceEvent>();
-    expectTypeOf<CoreTraceEvent>().toExtend<TraceEvent>();
+      Exclude<
+        Extract<TraceEvent, { durationMs: number }>,
+        { startMs: number }
+      >['type']
+    >().toEqualTypeOf<'@acme/cache/miss'>();
+  });
+
+  it('gives every timed event a startMs', () => {
+    expectTypeOf<TraceEvent<'compile'>['startMs']>().toEqualTypeOf<number>();
+    expectTypeOf<TraceEvent<'construct'>['startMs']>().toEqualTypeOf<number>();
+    expectTypeOf<TraceEvent<'init'>['startMs']>().toEqualTypeOf<number>();
+    expectTypeOf<
+      TraceEvent<'scope:create'>['startMs']
+    >().toEqualTypeOf<number>();
+    expectTypeOf<
+      TraceEvent<'scope:extend'>['startMs']
+    >().toEqualTypeOf<number>();
+    expectTypeOf<
+      TraceEvent<'scope:dispose'>['startMs']
+    >().toEqualTypeOf<number>();
+    expectTypeOf<TraceEvent<'dispose'>['startMs']>().toEqualTypeOf<number>();
   });
 });
 

@@ -94,16 +94,21 @@ export function traceConstruct(
   start?: number,
 ): void {
   const tracer = container.root.tracer;
-  tracer.emit(() => ({
-    type: 'construct',
-    token: record.name,
-    providerId: record.id,
-    module: moduleName(bp, record),
-    lifetime: record.lifetime,
-    scope: container.scopeId,
-    async: isAsync,
-    durationMs: start === undefined ? 0 : tracer.now() - start,
-  }));
+  tracer.emit(() => {
+    // Value and alias providers have no start: their span is the emit instant.
+    const end = tracer.now();
+    return {
+      type: 'construct',
+      token: record.name,
+      providerId: record.id,
+      module: moduleName(bp, record),
+      lifetime: record.lifetime,
+      scope: container.scopeId,
+      async: isAsync,
+      startMs: start ?? end,
+      durationMs: start === undefined ? 0 : end - start,
+    };
+  });
 }
 
 /**
