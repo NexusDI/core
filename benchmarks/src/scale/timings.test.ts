@@ -9,6 +9,7 @@ import type { LibraryId, Outcome, Variant } from '../schema.ts';
 import type { Shape } from './config.ts';
 import { localExponent } from './growth.ts';
 import {
+  coreRefOf,
   coreTree,
   judgeCells,
   type CellVerdict,
@@ -541,5 +542,60 @@ describe('coreTree', () => {
     coreTree(dir);
     expect(git('diff', '--cached', '--name-only')).toBe('');
     expect(git('status', '--porcelain')).toContain('libs/core/a.ts');
+  });
+});
+
+describe('coreRefOf', () => {
+  const dir = mkdtempSync(join(tmpdir(), 'core-ref-of-'));
+  afterAll(() => rmSync(dir, { recursive: true, force: true }));
+  const git = (...args: string[]) =>
+    execFileSync(
+      'git',
+      ['-c', 'user.name=t', '-c', 'user.email=t@t', ...args],
+      { cwd: dir, encoding: 'utf8' },
+    ).trim();
+  mkdirSync(join(dir, 'libs', 'core'), { recursive: true });
+  writeFileSync(join(dir, 'libs', 'core', 'a.ts'), '1\n');
+  git('init', '-q');
+  git('add', '.');
+  git('commit', '-q', '-m', 'one');
+  git('tag', 'old');
+  writeFileSync(join(dir, 'libs', 'core', 'a.ts'), '2\n');
+  git('commit', '-qam', 'two');
+  git('tag', 'new');
+  const tree = git('rev-parse', 'HEAD:libs/core');
+
+  it('records a ref from the file whose libs/core is the one packed', () => {
+    expect(coreRefOf({ fromFile: 'new' }, dir)).toEqual({ ref: 'new', tree });
+  });
+  it('records workspace for a stale file whose ref has another tree', () => {
+    expect(coreRefOf({ fromFile: 'old' }, dir)).toEqual({
+      ref: 'workspace',
+      tree,
+    });
+  });
+  it('records workspace when the file names a ref git cannot resolve', () => {
+    expect(coreRefOf({ fromFile: 'gone' }, dir).ref).toBe('workspace');
+  });
+  it('records workspace with no flag and no file', () => {
+    expect(coreRefOf({}, dir).ref).toBe('workspace');
+  });
+  it('records a matching --core-ref', () => {
+    expect(coreRefOf({ explicit: 'new' }, dir).ref).toBe('new');
+  });
+  it('throws on a --core-ref whose tree differs: a false claim fails the run', () => {
+    expect(() => coreRefOf({ explicit: 'old', fromFile: 'new' }, dir)).toThrow(
+      /--core-ref old/,
+    );
+  });
+  it('throws on a --core-ref git cannot resolve', () => {
+    expect(() => coreRefOf({ explicit: 'gone' }, dir)).toThrow(
+      /--core-ref gone/,
+    );
+  });
+  it('takes the flag over the file', () => {
+    expect(coreRefOf({ explicit: 'new', fromFile: 'old' }, dir).ref).toBe(
+      'new',
+    );
   });
 });

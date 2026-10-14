@@ -364,6 +364,40 @@ function committedCells(): CellVerdict[] {
     : [];
 }
 
+/**
+ * The core ref a run records: `--core-ref`, else the file release-core.ts
+ * wrote. A ref counts only when its libs/core tree is the tree packed, so a
+ * stale file records `workspace`, and a wrong `--core-ref` fails the run
+ * (a false explicit claim must not reach a results file).
+ */
+export function coreRefOf(
+  from: { explicit?: string; fromFile?: string },
+  root = ROOT,
+): { ref: string; tree: string } {
+  const tree = coreTree(root);
+  const treeOf = (ref: string): string | undefined => {
+    try {
+      return execFileSync('git', ['rev-parse', `${ref}:libs/core`], {
+        cwd: root,
+        encoding: 'utf8',
+        stdio: ['ignore', 'pipe', 'ignore'],
+      }).trim();
+    } catch {
+      return undefined;
+    }
+  };
+  if (from.explicit !== undefined) {
+    if (treeOf(from.explicit) !== tree)
+      throw new Error(
+        `--core-ref ${from.explicit} is not the libs/core that was packed (tree ${tree})`,
+      );
+    return { ref: from.explicit, tree };
+  }
+  if (from.fromFile !== undefined && treeOf(from.fromFile) === tree)
+    return { ref: from.fromFile, tree };
+  return { ref: 'workspace', tree };
+}
+
 function design(warmup: number, measured: number): Design {
   return {
     order: 'williams',
@@ -573,10 +607,10 @@ if (import.meta.main) {
     runner: runnerInfo(),
     seed,
     graphSeed: GRAPH_SEED,
-    coreRef: {
-      ref: argValue('core-ref') ?? readCoreRef() ?? 'workspace',
-      tree: coreTree(),
-    },
+    coreRef: coreRefOf({
+      explicit: argValue('core-ref'),
+      fromFile: readCoreRef(),
+    }),
     graphs: graphs.map(({ shape, size, hash }) => ({ shape, size, hash })),
     cells: [...cells].sort(
       (a, b) =>
