@@ -88,7 +88,8 @@ describe('renderChart', () => {
     const [first, last] = [ticks[0] ?? NaN, ticks.at(-1) ?? NaN];
     expect(ticks).toHaveLength(4);
     // log10: 1 -> 4 over the ticks, 1,000 is at 3, two thirds of the way.
-    expect(x(1000)).toBeCloseTo(first + ((last - first) * 2) / 3, 6);
+    // Coordinates are written to 0.01, so compare to 0.05.
+    expect(x(1000)).toBeCloseTo(first + ((last - first) * 2) / 3, 1);
     expect(x(50)).toBeLessThan(x(1000));
   });
 
@@ -99,6 +100,74 @@ describe('renderChart', () => {
     );
     expect(labels).toEqual(['NexusDI', 'tsyringe']);
     expect(doc.querySelector('.legend')).toBeNull();
+  });
+
+  describe('end labels that converge', () => {
+    // Both lines end at the same height, so the second label is pushed down.
+    const converged: ChartInput = {
+      ...input,
+      series: [
+        { id: 'nexusdi', label: 'NexusDI', points: [pt(50, 4), pt(5000, 10)] },
+        {
+          id: 'tsyringe',
+          label: 'tsyringe',
+          points: [pt(50, 3), pt(5000, 10)],
+        },
+        { id: 'awilix', label: 'awilix', points: [pt(50, 2), pt(5000, 2)] },
+      ],
+    };
+    const doc = () => parse(renderChart(converged));
+
+    it('gives every label a 12 px swatch in its line colour', () => {
+      const d = doc();
+      const swatches = [...d.querySelectorAll('line.swatch')];
+      expect(swatches).toHaveLength(3);
+      for (const w of swatches)
+        expect(
+          Number(w.getAttribute('x2')) - Number(w.getAttribute('x1')),
+        ).toBe(12);
+      const cls = (sel: string) => d.querySelector(sel)?.getAttribute('class');
+      for (const id of ['nexusdi', 'tsyringe', 'awilix'])
+        expect(cls(`line.swatch[data-series="${id}"]`)).toContain(
+          cls(`polyline[data-series="${id}"]`)?.split(' ')[1],
+        );
+    });
+
+    it('draws a 1 px leader from the line end to a label that was pushed', () => {
+      const d = doc();
+      const leaders = [...d.querySelectorAll('line.leader')];
+      expect(leaders.map((l) => l.getAttribute('data-series'))).toEqual([
+        'tsyringe',
+      ]);
+      const end = d.querySelector(
+        'circle[data-series="tsyringe"][data-n="5000"]',
+      );
+      expect(leaders[0]?.getAttribute('x1')).toBe(end?.getAttribute('cx'));
+      expect(leaders[0]?.getAttribute('y1')).toBe(end?.getAttribute('cy'));
+      expect(Number(leaders[0]?.getAttribute('y2'))).toBeGreaterThan(
+        Number(end?.getAttribute('cy')),
+      );
+    });
+
+    it('draws no leader for labels that stay at their line end', () => {
+      const d = parse(renderChart(input));
+      expect(d.querySelectorAll('line.leader')).toHaveLength(0);
+      expect(d.querySelectorAll('line.swatch')).toHaveLength(2);
+    });
+  });
+
+  it('keeps a library colour whether it is alone or after NexusDI', () => {
+    const colour = (svg: string) =>
+      parse(svg)
+        .querySelector('polyline[data-series="tsyringe"]')
+        ?.getAttribute('class');
+    const [nexus, tsyringe] = input.series as [
+      ChartInput['series'][number],
+      ChartInput['series'][number],
+    ];
+    expect(colour(renderChart({ ...input, series: [tsyringe] }))).toBe(
+      colour(renderChart({ ...input, series: [nexus, tsyringe] })),
+    );
   });
 
   it('names the chart for screen readers and carries a dark-mode block', () => {

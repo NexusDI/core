@@ -2,7 +2,7 @@
  * The scale suite's chart writer (scale spec section 9): a log-log line
  * chart as a string. One line per library through its points, a p5 to p95
  * bar at each point, decade ticks on both axes, the line's name at its right
- * end (no legend box), Okabe-Ito colors with a lighter blue on dark, a
+ * end (no legend box), Okabe-Ito hues, lightness-adjusted for the dark surface, a
  * `<title>` and `<desc>` for screen readers, and a `prefers-color-scheme`
  * block so the chart reads on GitHub in both themes. A library that failed
  * above some size ends at its last passing size with a cross there. No
@@ -37,12 +37,12 @@ export interface ChartInput {
 
 const W = 720;
 const H = 420;
-const M = { left: 72, right: 120, top: 36, bottom: 56 };
+const M = { left: 72, right: 136, top: 36, bottom: 56 };
 const GAP = 15;
 
-/** Okabe-Ito, one per library in schema order; a lighter blue on dark. */
+/** Okabe-Ito hues, lightness-adjusted for the dark surface; one per library in schema order. */
 const LIGHT = ['#0072B2', '#E69F00', '#009E73', '#CC79A7', '#D55E00'];
-const DARK = ['#56B4E9', '#E69F00', '#009E73', '#CC79A7', '#D55E00'];
+const DARK = ['#308DCF', '#C38603', '#028964', '#C976A4', '#A84900'];
 
 /** The powers of ten that bound [min, max]: 50 to 5,000 gives 10, 100, 1,000, 10,000. */
 export function decadeTicks(min: number, max: number): number[] {
@@ -100,7 +100,7 @@ export function renderChart(input: ChartInput): string {
     `@media (prefers-color-scheme: dark){svg{--bg:#1a1a19;--ink:#ecece9;--muted:#a3a39e;--grid:#3a3a37;${DARK.map((c, i) => `--c${i}:${c}`).join(';')}}}`,
     '.bg{fill:var(--bg)}text{fill:var(--ink)}.muted{fill:var(--muted)}',
     '.grid{stroke:var(--grid);stroke-width:1}.line{fill:none;stroke-width:2}.range{stroke-width:1.5;opacity:.55}',
-    '.dot{stroke:var(--bg);stroke-width:2}.end-marker path{fill:none;stroke-width:2.5}',
+    '.swatch{stroke-width:3}.leader{stroke-width:1;opacity:.7}.dot{stroke:var(--bg);stroke-width:2}.end-marker path{fill:none;stroke-width:2.5}',
     ...LIGHT.map(
       (_, i) =>
         `.s${i}{stroke:var(--c${i});color:var(--c${i})}.dot.s${i}{fill:var(--c${i})}`,
@@ -124,7 +124,15 @@ export function renderChart(input: ChartInput): string {
     `<text class="muted" x="14" y="${num((M.top + H - M.bottom) / 2)}" text-anchor="middle" transform="rotate(-90 14 ${num((M.top + H - M.bottom) / 2)})">${esc(input.yLabel)}</text>`,
   );
 
-  const labels: Array<{ y: number; x: number; text: string; cls: string }> = [];
+  const labels: Array<{
+    id: string;
+    endX: number;
+    endY: number;
+    y: number;
+    x: number;
+    text: string;
+    cls: string;
+  }> = [];
   input.series.forEach((s, position) => {
     const cls = `s${colorIndex(s.id, position)}`;
     const id = esc(s.id);
@@ -149,6 +157,9 @@ export function renderChart(input: ChartInput): string {
       );
     }
     labels.push({
+      id,
+      endX: px(last.x),
+      endY: py(last.y),
       y: py(last.y),
       x: px(last.x) + (s.end === undefined ? 10 : 24),
       text: s.label,
@@ -162,10 +173,18 @@ export function renderChart(input: ChartInput): string {
     const above = placed[i - 1];
     if (above !== undefined && l.y - above.y < GAP) l.y = above.y + GAP;
   });
-  for (const l of labels)
+  // Each label has a 12 px swatch in its line's colour, and a 1 px leader
+  // from the line's end when the label was pushed off it.
+  for (const l of labels) {
+    if (l.y !== l.endY)
+      out.push(
+        `<line class="leader ${l.cls}" data-series="${l.id}" x1="${num(l.endX)}" y1="${num(l.endY)}" x2="${num(l.x)}" y2="${num(l.y)}"/>`,
+      );
     out.push(
-      `<text class="end-label" x="${num(l.x)}" y="${num(l.y + 4)}">${esc(l.text)}</text>`,
+      `<line class="swatch ${l.cls}" data-series="${l.id}" x1="${num(l.x)}" y1="${num(l.y)}" x2="${num(l.x + 12)}" y2="${num(l.y)}"/>`,
+      `<text class="end-label" x="${num(l.x + 16)}" y="${num(l.y + 4)}">${esc(l.text)}</text>`,
     );
+  }
   out.push('</svg>', '');
   return out.join('\n');
 }
