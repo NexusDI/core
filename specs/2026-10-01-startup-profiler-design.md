@@ -429,10 +429,11 @@ is the gate.
 This is the text as the docs page and the TSDoc will carry it:
 
 > Core may add event types and fields in any minor release. An observer ignores what it
-> does not know. These rules hold across a release line. Every event with `durationMs`
-> also has `startMs`, both in milliseconds of `performance.now()` in the realm that
-> emitted it. The event's span is `[startMs, startMs + durationMs]` in wall time, and core
-> hands the event to observers synchronously when that span ends. Run ids are unique
+> does not know. These rules hold across a release line. Every core event with
+> `durationMs` also has `startMs`, both in milliseconds of `performance.now()` in the realm
+> that emitted it. The event's span is `[startMs, startMs + durationMs]` in wall time, and
+> core hands the event to observers synchronously when that span ends. A package that adds
+> a timed event of its own should give it `startMs` with the same meaning. Run ids are unique
 > within one container, and `create` is run 0. A run that settles ends with exactly one
 > `run` event, after every other event of that run. Level numbers, and which work
 > `finishMs` covers beyond options validation and construct hooks, describe how core works

@@ -76,6 +76,7 @@ export function disposeScope(scope: ScopeState): Promise<void> {
           scope: scope.scopeId,
           disposed: report.disposed,
           errors: errors.length,
+          startMs: start,
           durationMs: tracer.now() - start,
         })),
       );
@@ -223,6 +224,7 @@ async function buildScope(scope: ScopeState): Promise<Scope> {
     type: 'scope:create',
     scope: scope.scopeId,
     built,
+    startMs: start,
     durationMs: tracer.now() - start,
   }));
   return scope.handle;
@@ -298,6 +300,7 @@ async function extendNow(scope: ScopeState, target: Blueprint): Promise<void> {
       .filter((m) => !known.has(m.definition))
       .map((m) => m.name),
     built: levelled,
+    startMs: start,
     durationMs: tracer.now() - start,
   }));
 }

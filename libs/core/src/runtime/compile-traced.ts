@@ -45,6 +45,7 @@ export function compileTraced(
           modules: 0,
           providers: 0,
           errors,
+          startMs: start,
           durationMs: tracer.now() - start,
         }));
       } catch (traceError) {
@@ -61,6 +62,7 @@ export function compileTraced(
       // The built-in REQUEST provider is not counted.
       providers: blueprint.providers.size - 1,
       errors: 0,
+      startMs: start,
       durationMs: tracer.now() - start,
     }));
   } catch (traceError) {
