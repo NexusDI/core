@@ -2,7 +2,8 @@
 
 Status: draft, 2026-10-01. The architect's proposal with the tech lead's rulings applied.
 The owner decisions in section 17 are open.
-Branch: `spec/startup-profiler`, cut from `origin/release/0.4` (0.4.0-rc.0, published).
+Branch: `spec/startup-profiler`, cut from `origin/release/0.4` at 0.4.0-rc.0 and rebased onto
+0.4.0-rc.1 (published 2026-10-08).
 Depends on:
 
 - 0.4.0-rc.0 on `release/0.4`: the `Tracer`, `observe`, `TraceEventByType`, `trace()` and
@@ -356,6 +357,11 @@ event 24 B, the `run` event 113 B, all `init` changes 163 B, wall `durationMs` p
 +673 B is +3.6%, over the 2% `coreGrowthPercent` of `scripts/size-compare.mjs`, so the pull
 request carries a `## Size` section. Owner item (a) 1.
 
+The table predates 0.4.0-rc.1. The rc.1 perf work (sparse visibility, provider records built
+as one literal) moved the same fixture to 18,516 B with the `gzip -9` command line, 26 B under
+rc.0. The deltas were measured on rc.0, and the profiler pull request's size report gives
+the figures against rc.1.
+
 The architect's prototype with an array observer measured a 200-provider create at -0.1%
 and +1.8% against base in two runs, inside the ±5% run-to-run noise of that machine. K14
 is the gate.
@@ -659,6 +665,10 @@ recording of a page shows the NexusDI track group with no file step.
 
 `DevtoolsError` gains two codes, declared in `NexusErrorByCode`. Both carry inline text,
 because no container formatter runs where they are thrown (extension principle 2.5.1).
+The `doc-error-codes` repo-check requires each code to have a page,
+`apps/docs/content/errors/<CODE>.mdx`, with its regions in
+`examples/meridian/src/errors/<CODE>.md`, an entry in `apps/docs/content/errors/_meta.ts` and a
+row on `/api-errors/`.
 
 | Code                             | Thrown by              | `path`                                                   | Fix line                                                      |
 | -------------------------------- | ---------------------- | -------------------------------------------------------- | ------------------------------------------------------------- |
@@ -1082,7 +1092,7 @@ The test asserts on DevTools' parsed model. No pixel comparison.
 - Triggers: a weekly schedule, `workflow_dispatch`, and pull requests that touch
   `libs/devtools/src/profile/**`.
 - Never a required check. A scheduled failure opens or updates one issue, as the
-  `competitor-releases` workflow does, and the issue records the Chrome build. Beta gives
+  `competitor-releases` job of `benchmarks.yml` does, and the issue records the Chrome build. Beta gives
   four to eight weeks of warning before stable carries a break.
 - One Ubuntu job of about 2 minutes a week.
 
@@ -1276,7 +1286,9 @@ devtools: `src/profile/{profile,live,report,steps,table,critical-path,chrome,per
 `vitest.trace.config.ts`, `test-fixtures/profile/*`, `project.json` (`test-trace`).
 
 CLI: `src/profile.ts` (command, anchors, `alignClocks`, timeout), `src/args.ts` (second
-command), `src/devtools.ts` (`DevtoolsApi`), `src/main.ts`, `test-fixtures/profile/*`.
+command), `src/devtools.ts` (`DevtoolsApi`), `src/main.ts`, `test-fixtures/profile/*`,
+`README.md` (its usage lines and options table, which `src/readme.test.ts` holds against
+`OPTIONS` in `src/args.ts`).
 
 Repo: `examples/size/src/devtools-profile.ts`, `.github/workflows/devtools-trace-canary.yml`,
 root `package.json` (`@paulirish/trace_engine`, exact pin).
@@ -1299,7 +1311,8 @@ root `package.json` (`@paulirish/trace_engine`, exact pin).
 - `step` events (68 B). devtools derives every step from event spans.
 - `compile.passes` (100 B), with `input.clock` and `Tracer.on`. Deferred until after
   perf-report items 1 and 5, which change visibility's share and merge cycles and levels
-  into one pass, so the pass names would change within a release of being published. Core
+  into one pass, so the pass names would change within a release of being published.
+  Item 1 (sparse visibility) is on `release/0.4` since 0.4.0-rc.1; item 5 is not. Core
   maintainers have the bench harness for pass times.
 - `init.module` (20 B). A consumer reads `module` from the `construct` with the same
   `providerId`.
