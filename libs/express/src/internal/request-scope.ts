@@ -203,14 +203,21 @@ export function defaultLog(error: unknown, context: LogContext): void {
  * Wraps the `log` option so a throw changes neither the response nor
  * disposal. The response may already be sent, and a throw from a close
  * listener becomes an unhandled rejection, so the guard writes both errors
- * with console.error and returns.
+ * with console.error and returns. A void return type accepts an async
+ * function, so the guard also catches a returned promise that rejects.
  */
 export function guardLog(log: NexusLog): NexusLog {
   return (error, context) => {
-    try {
-      log(error, context);
-    } catch (failure) {
+    const report = (failure: unknown) =>
       console.error(`[${context.adapter}] log threw:`, failure, error);
+    try {
+      const result: unknown = log(error, context);
+      if (
+        typeof (result as PromiseLike<unknown> | undefined)?.then === 'function'
+      )
+        Promise.resolve(result).catch(report);
+    } catch (failure) {
+      report(failure);
     }
   };
 }

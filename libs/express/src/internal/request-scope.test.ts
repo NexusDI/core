@@ -304,6 +304,22 @@ describe('guardLog', () => {
     );
     write.mockRestore();
   });
+
+  it("writes the original error and the log's error when an async log rejects", async () => {
+    const write = vi.spyOn(console, 'error').mockImplementation(() => {});
+    const failure = new Error('log sink offline');
+    const error = new Error('disposer failed');
+    const guarded = guardLog(() => Promise.reject(failure) as never);
+    guarded(error, { adapter: '@nexusdi/test', phase: 'dispose' });
+    await vi.waitFor(() =>
+      expect(write).toHaveBeenCalledExactlyOnceWith(
+        '[@nexusdi/test] log threw:',
+        failure,
+        error,
+      ),
+    );
+    write.mockRestore();
+  });
 });
 
 describe('validateFailure', () => {
