@@ -31,7 +31,7 @@ These were the open owner items in spec section 17. The owner approved every ite
 
 | Owner item                                                     | What it decides                                                                                                                                                 | Gated                                                                                                              | State               |
 | -------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------ | ------------------- |
-| (a) 1                                                          | core grows about +673 B gzip (+3.6%)                                                                                                                            | the merge only. Task 7 records the measured figure for the `## Size` section                                       | approved 2026-10-14 |
+| (a) 1                                                          | core grows about +742 B gzip (+4.0%), the size-pass design                                                                                                      | the merge only. Task 7 records the measured figure for the `## Size` section                                       | approved 2026-10-14 |
 | (b) 1                                                          | `init` fires for `eager: false` singletons with `onInit`                                                                                                        | Task 6, Steps 5 to 7                                                                                               | approved 2026-10-14 |
 | (b) 2                                                          | a compile failure keeps its error and drops the observer's throw                                                                                                | Task 3                                                                                                             | approved 2026-10-14 |
 | (c) 1                                                          | P1 wording for a compiler-checked compare on a trace event's `type` or fields (`event.type`, `RunKind`, `compile.phase`); error codes keep their allowance rule | the merge, and the final form of the `observe` dispatch in `profile.ts` (Task 8), which keeps the planned `switch` | approved 2026-10-14 |
@@ -93,9 +93,9 @@ libs/core/src/runtime/
   state.ts            RootState.nextRun, RunTrace, Run extends RunTrace
   build-levels.ts     buildOne(id, level)
   settle.ts           settleLevel passes the level; rollBack appends run errors and closes the run
-  build.ts            BuildSpan, Built fields, traceConstruct, traceFailed, construct:await,
-                      on-demand and transient spans, traceInit, traceInitFailed, on-demand init
-  startup.ts          StartupPlan.run/kind/start, run ids to the builds, the run's failure path
+  build.ts            traceBuild (all six build events), buildInto from call to store,
+                      validateOptions, on-demand and transient spans, on-demand init
+  startup.ts          StartupPlan.run, run ids to the builds, the run's failure path
   init.ts             init fields, init:await, init:failed
   compile-traced.ts   run and startMs on compile, the dropped observer throw on failure
   load.ts             the load run
@@ -868,33 +868,40 @@ Expected: PASS.
 
 ### Task 4: build spans, levels and `construct:await`
 
+Tasks 4 to 7 follow the size-pass design of 2026-10-14 (spec 3.6): one `traceBuild` emits every build event from one literal, and `buildInto` owns a level build from the call to the store. The reviewer's prototype is the reference for the code below.
+
 Files:
 
-- Modify: `libs/core/src/runtime/trace.ts`, `build-levels.ts`, `settle.ts`, `build.ts`, `startup.ts`, `scope.ts`, `init.ts` (its `buildOne` signature only)
+- Modify: `libs/core/src/runtime/trace.ts`, `build-levels.ts`, `settle.ts`, `build.ts`, `startup.ts`, `scope.ts`
 - Test: `trace-events.test.ts`, `trace.test-d.ts`
 
 Interfaces:
 
-- Consumes: `RunTrace`, `Run.id` (Task 2).
-- Produces in `trace.ts`: on `construct`, `run: number | null; level: number | null; parent: string | null; syncMs: number; awaitMs: number | null; finishMs: number`, and the `construct:await` member of spec 3.1.
-- Produces in `build-levels.ts`: `buildLevels(levels, include, buildOne: (id: string, level: number) => Promise<void>, afterLevel)`. `settleLevel(ids, build: (id: string, level: number) => Promise<void>, level = -1)`.
+- Consumes: `RunTrace`, `Run` (Task 2).
+- Produces in `trace.ts`: the internal `BuildEventFields` interface of spec 3.1, `construct: BuildEventFields` and `'construct:await': BuildEventFields`.
+- Produces in `build-levels.ts`: `buildLevels(levels, include, buildOne: (id: string, level: number) => Promise<void>, afterLevel)`. In `settle.ts`: `settleLevel(ids, build: (id: string, level: number) => Promise<void>, level = -1)`.
 - Produces in `build.ts`:
 
 ```ts
-/** What a construct or construct:failed event reports about one build's timing and place. */
-export interface BuildSpan {
-  /** tracer.now() at the constructor or factory call; 0 without an observer. */
-  readonly start: number;
-  readonly syncMs: number;
-  readonly awaitMs: number | null;
-  readonly run: number | null;
-  readonly level: number | null;
-}
-export interface Built extends BuildSpan {
-  readonly record: ProviderRecord;
-  readonly value: unknown;
-  readonly isAsync: boolean;
-}
+/** The trace events of one build or onInit call. Tasks 5 and 6 add the rest. */
+export type BuildEventType = 'construct' | 'construct:await';
+export function traceBuild(
+  type: BuildEventType,
+  container: ContainerState,
+  bp: Blueprint,
+  id: string,
+  run: Pick<RunTrace, 'id'> | undefined,
+  level: number | null,
+  isAsync: boolean,
+  start?: number,
+  returned?: number,
+  resumed?: number,
+): void;
+export function validateOptions(
+  record: ProviderRecord,
+  bp: Blueprint,
+  value: unknown,
+): Promise<{ readonly value: unknown }>;
 export function buildInto(
   container: ContainerState,
   bp: Blueprint,
@@ -902,28 +909,23 @@ export function buildInto(
   owner: Owner,
   run: RunTrace,
   level: number,
-): Promise<Built>;
-export function traceConstruct(
-  container: ContainerState,
-  bp: Blueprint,
-  record: ProviderRecord,
-  isAsync: boolean,
-  span: BuildSpan | undefined,
-  resumed: number,
-): void;
-export function store(
-  container: ContainerState,
-  bp: Blueprint,
-  record: ProviderRecord,
-  instance: unknown,
-  isAsync: boolean,
-  ready: boolean,
-  span: BuildSpan | undefined,
-  resumed: number,
-): void;
+): Promise<void>;
 ```
 
-- [ ] Step 1: Write the failing tests
+`traceConstruct`, `store`, `Built`, `buildSingleton` (startup.ts) and `buildScoped` (scope.ts) go.
+
+- [ ] Step 1: Write the failing tests. Add `spin` and `sleep` to the helpers at the top of `trace-events.test.ts`, and `lazy` from `../definitions/modifiers.js` to its imports:
+
+```ts
+/** Busy-waits `ms` on the clock, so a constructor takes a measurable time. */
+function spin(ms: number): void {
+  const end = performance.now() + ms;
+  while (performance.now() < end);
+}
+
+const sleep = (ms: number): Promise<void> =>
+  new Promise((resolve) => setTimeout(resolve, ms));
+```
 
 ```ts
 describe('construct spans', () => {
@@ -990,12 +992,17 @@ describe('construct spans', () => {
       }
     }
     const LOG = new Token<object>('Log');
+    // A plain dep on an eager: false singleton builds it in a level of its
+    // own (rc.1); lazy() keeps it on demand, inside Console's constructor.
     class Console {
-      static deps = [Gauge, LOG] as const;
+      static deps = [lazy(Gauge), LOG] as const;
+      readonly gauge: Gauge;
       constructor(
-        readonly gauge: Gauge,
+        gauge: () => Gauge,
         readonly log: object,
-      ) {}
+      ) {
+        this.gauge = gauge();
+      }
     }
     await using ship = await Nexus.create(
       [
@@ -1041,7 +1048,12 @@ describe('construct spans', () => {
       providers: [L0, L1, L2, L3],
       exports: [L3],
     });
-    await using ship = await Nexus.create(Core, { plugins: [plugin] });
+    // A root that imports Core, so the loaded module's import of Core is a
+    // module the root already holds.
+    await using ship = await Nexus.create(
+      defineModule({ name: 'Ship', imports: [Core] }),
+      { plugins: [plugin] },
+    );
     class Probe {
       static deps = [L3] as const;
       constructor(readonly d: L3) {}
@@ -1088,105 +1100,77 @@ describe('construct timing', () => {
       TraceEvent<'construct:await'>['syncMs']
     >().toEqualTypeOf<number>();
   });
+
+  it('gives construct:await the shape of construct', () => {
+    expectTypeOf<Omit<TraceEvent<'construct:await'>, 'type'>>().toEqualTypeOf<
+      Omit<TraceEvent<'construct'>, 'type'>
+    >();
+  });
 });
 ```
 
 - [ ] Step 2: Run them and see them fail
 
 Run: `NX_NO_CLOUD=true NX_DAEMON=false npx nx test @nexusdi/core -- trace-events trace.test-d`
-Expected: FAIL, the new fields are `undefined`.
+Expected: FAIL, the new fields are `undefined` and `construct:await` is no event type.
 
-- [ ] Step 3: Levels. `build-levels.ts`:
+- [ ] Step 3: Levels. `buildLevels` walks `levels.entries()` and calls `settleLevel(ids, buildOne, i)`. Add to its TSDoc: "`buildOne` receives the level's index into `levels`, skipped levels counted, which the construct and init events report." `settleLevel(ids, build, level = -1)` maps `ids.map((id) => build(id, level))`. `registerStatic`'s call passes no level.
 
-```ts
-export async function buildLevels(
-  levels: readonly (readonly string[])[],
-  include: (id: string) => boolean,
-  buildOne: (id: string, level: number) => Promise<void>,
-  afterLevel: (ids: readonly string[]) => void,
-): Promise<number> {
-  let built = 0;
-  for (let level = 0; level < levels.length; level++) {
-    const ids = (levels[level] ?? []).filter(include);
-    if (ids.length === 0) continue;
-    built += ids.length;
-    await settleLevel(ids, buildOne, level);
-    afterLevel(ids);
-  }
-  return built;
-}
-```
-
-Add to its TSDoc: "`buildOne` receives the level's index into `levels`, counted over skipped levels too, which the construct and init events report." `settle.ts`: `settleLevel(ids, build: (id: string, level: number) => Promise<void>, level = -1)` maps `ids.map((id) => build(id, level))`. `registerStatic`'s call passes no level.
-
-- [ ] Step 4: Types. Add the `construct` fields and the `construct:await` member of spec 3.1 to `trace.ts`, with their TSDoc lines.
+- [ ] Step 4: Types. In `trace.ts`, add `BuildEventFields` with spec 3.1's TSDoc above `TraceEventByType` (not exported), and set `construct: BuildEventFields;` and `'construct:await': BuildEventFields;` with their one-line TSDoc. `BuildEventFields` keeps every rc.0 field of `construct`, so the rc.0 type test still holds.
 
 - [ ] Step 5: `build.ts`
 
-Add `BuildSpan` and the new `Built` from Interfaces. Replace `traceConstruct` and `store`:
+`traceBuild` replaces `traceConstruct`. It builds the whole event inside `make`, so with no observer it reads no record and no clock:
 
 ```ts
 /**
- * The construct event of a build that stored its instance. `span` is
- * undefined for a value or alias provider, which reports a zero span at
- * emit time. A level build has no parent; an on-demand or transient build
- * names the build whose constructor or factory it ran inside, the frame
- * on top of the construction stack once its own frame popped.
+ * Emits one build event from one shape. Times are tracer.now() readings:
+ * `start` at the call, `returned` when it returned, `resumed` when the
+ * build resumed after its await. A value or alias provider passes no
+ * times and reports a zero span at the emit instant. `parent` is the frame
+ * on top of the construction stack at emit time: the build whose
+ * constructor or factory this one ran inside.
  */
-export function traceConstruct(
+export function traceBuild(
+  type: BuildEventType,
   container: ContainerState,
   bp: Blueprint,
-  record: ProviderRecord,
+  id: string,
+  run: Pick<RunTrace, 'id'> | undefined,
+  level: number | null,
   isAsync: boolean,
-  span: BuildSpan | undefined,
-  resumed: number,
+  start?: number,
+  returned?: number,
+  resumed?: number,
 ): void {
   const tracer = container.root.tracer;
   tracer.emit(() => {
+    const record = recordOf(bp, id);
     const end = tracer.now();
-    const start = span?.start ?? end;
+    const from = start ?? end;
+    const back = returned ?? end;
     return {
-      type: 'construct',
+      type,
       token: record.name,
-      providerId: record.id,
+      providerId: id,
       module: moduleName(bp, record),
       lifetime: record.lifetime,
       scope: container.scopeId,
       async: isAsync,
-      run: span === undefined ? (container.run?.id ?? null) : span.run,
-      level: span?.level ?? null,
-      parent:
-        span === undefined || span.level !== null
-          ? null
-          : (constructionStack.top()?.providerId ?? null),
-      startMs: start,
-      syncMs: span?.syncMs ?? 0,
-      awaitMs: span?.awaitMs ?? null,
-      finishMs: span === undefined ? 0 : end - resumed,
-      durationMs: end - start,
+      run: run?.id ?? null,
+      level,
+      parent: constructionStack.top()?.providerId ?? null,
+      startMs: from,
+      syncMs: back - from,
+      awaitMs: isAsync ? (resumed ?? end) - back : null,
+      finishMs: end - (resumed ?? end),
+      durationMs: end - from,
     };
   });
 }
-
-export function store(
-  container: ContainerState,
-  bp: Blueprint,
-  record: ProviderRecord,
-  instance: unknown,
-  isAsync: boolean,
-  ready: boolean,
-  span: BuildSpan | undefined,
-  resumed: number,
-): void {
-  container.slots.settle(record.id, instance);
-  if (ready) container.slots.markReady(record.id);
-  if (record.kind === 'factory')
-    container.root.asyncFlags.set(record.id, isAsync);
-  traceConstruct(container, bp, record, isAsync, span, resumed);
-}
 ```
 
-`buildInto`:
+Move `validateOptions` from `startup.ts` to `build.ts` and export it (its TSDoc now names `buildInto` as the guard against a thenable result). `buildInto` merges `buildSingleton` and `buildScoped` and settles the instance itself:
 
 ```ts
 export async function buildInto(
@@ -1196,45 +1180,69 @@ export async function buildInto(
   owner: Owner,
   run: RunTrace,
   level: number,
-): Promise<Built> {
+): Promise<void> {
   const record = recordOf(bp, id);
-  const tracer = container.root.tracer;
+  const { root } = container;
+  const tracer = root.tracer;
   const start = tracer.now();
+  let isAsync = false;
   let value = construct(record, { bp, container, owner });
   const returned = tracer.now();
-  const isAsync = record.kind === 'factory' && isThenable(value);
-  let awaitMs: number | null = null;
-  if (isAsync) {
+  if (record.kind === 'factory' && isThenable(value)) {
+    isAsync = true;
     const pending = Promise.resolve(value);
     container.slots.begin(id, pending);
-    tracer.emit(() => ({
-      type: 'construct:await',
-      token: record.name,
-      providerId: id,
-      module: moduleName(bp, record),
-      scope: container.scopeId,
-      run: run.id,
+    traceBuild(
+      'construct:await',
+      container,
+      bp,
+      id,
+      run,
       level,
-      startMs: start,
-      syncMs: returned - start,
-    }));
+      true,
+      start,
+      returned,
+    );
     value = await pending;
-    awaitMs = tracer.now() - returned;
+    // Yields once, so a level's builds all construct before any of them
+    // stores; construct hooks run after every sibling's constructor.
+  } else await 0;
+  const resumed = tracer.now();
+  // Only an options provider carries a schema. The check skips the
+  // validation's microtask for every other provider.
+  if (record.schema !== undefined) {
+    try {
+      value = (await validateOptions(record, bp, value)).value;
+    } catch (error) {
+      // The rollback disposes the rejected output with what was built.
+      adopt(owner, record, value);
+      throw error;
+    }
   }
-  return {
-    record,
-    value,
+  // After validation, so the schema checks the factory's own output and
+  // the runtime stores what the construct hooks return.
+  value = applyConstruct(container, owner, bp, record, value);
+  adopt(owner, record, value);
+  container.slots.settle(id, value);
+  // A root singleton is ready after its onInit, unless onInit is off.
+  if (container !== root || !root.initEnabled) container.slots.markReady(id);
+  if (record.kind === 'factory') root.asyncFlags.set(id, isAsync);
+  traceBuild(
+    'construct',
+    container,
+    bp,
+    id,
+    run,
+    level,
     isAsync,
     start,
-    syncMs: returned - start,
-    awaitMs,
-    run: run.id,
-    level,
-  };
+    returned,
+    resumed,
+  );
 }
 ```
 
-`buildOnDemand`, from `const start = ...` on:
+`buildOnDemand`: read `returned` after the `construct` call, and replace the `store` call. The `construct` event fires before `onInit`, as a level build's does (plan choice 4), and after `adopt`:
 
 ```ts
   const tracer = root.tracer;
@@ -1244,14 +1252,8 @@ export async function buildInto(
   if (record.kind === 'factory' && isThenable(built)) throw lazyAsync(built);
   const instance = applyConstruct(container, owner, ctx.bp, record, built);
   adopt(owner, record, instance);
-  // Allocated only when a plugin observes or wraps builds.
-  const span: BuildSpan | undefined =
-    HOOK_SITES && root.buildHooks
-      ? { start, syncMs: returned - start, awaitMs: null, run: run?.id ?? null, level: null }
-      : undefined;
-  // Reported before onInit, as a level build is (plan choice 4).
-  traceConstruct(container, ctx.bp, record, false, span, returned);
-  if ( /* the onInit condition, unchanged */ ) {
+  traceBuild('construct', container, ctx.bp, record.id, run, null, false, start, returned, returned);
+  if (/* the onInit condition, unchanged */) {
     // body unchanged
   }
   run?.touched.push(record.id);
@@ -1261,40 +1263,13 @@ export async function buildInto(
   return instance;
 ```
 
-`buildTransient`:
-
-```ts
-const start = HOOK_SITES && root.buildHooks ? root.tracer.now() : 0;
-const built = construct(record, ctx);
-const returned = HOOK_SITES && root.buildHooks ? root.tracer.now() : 0;
-// ... thenable branch and applyConstruct unchanged
-if (HOOK_SITES && root.buildHooks)
-  traceConstruct(
-    ctx.container,
-    ctx.bp,
-    record,
-    false,
-    { start, syncMs: returned - start, awaitMs: null, run: null, level: null },
-    returned,
-  );
-```
+`buildTransient` reads the clock once more after the call, inside the existing guard, and calls `traceBuild('construct', ctx.container, ctx.bp, record.id, undefined, null, false, start, returned, returned)` where it called `traceConstruct`.
 
 - [ ] Step 6: Callers
 
-`startup.ts`: `settleValue` calls `store(root, bp, record, value, false, true, undefined, 0)`; `registerStatic`'s alias line calls `traceConstruct(root, plan.bp, record, false, undefined, 0)`. `buildSingleton(root, bp, id, owner, run: RunTrace, level: number)`:
+`startup.ts`: `settleValue(root, bp, record, value, run: RunTrace)` settles and marks ready the value and calls `traceBuild('construct', root, bp, record.id, run, null, false)`; `registerStatic` passes `plan.run`, and its alias line calls `traceBuild('construct', root, plan.bp, record.id, plan.run, null, false)`. `startBlueprint`'s `buildOne` becomes `(id, level) => { touched.push(id); return buildInto(root, plan.bp, id, built, run, level); }`.
 
-```ts
-const built = await buildInto(root, bp, id, owner, run, level);
-const resumed = root.tracer.now();
-const { record, isAsync } = built;
-let { value } = built;
-// validateOptions and applyConstruct unchanged
-store(root, bp, record, value, isAsync, !root.initEnabled, built, resumed);
-```
-
-`startBlueprint`'s `buildOne` becomes `(id, level) => { touched.push(id); return buildSingleton(root, plan.bp, id, built, run, level); }`.
-
-`scope.ts`: `buildScoped(scope, bp, id, owner, run: RunTrace, level: number)` follows `buildSingleton` (read `resumed` after `buildInto`, pass `built, resumed` to `store`). `buildScope` passes `(id, level) => buildScoped(scope, scope.blueprint, id, scope, trace, level)`; `extendNow` passes `run` and `level`.
+`scope.ts`: `buildScope` passes `(id, level) => buildInto(scope, scope.blueprint, id, scope, trace, level)`; `extendNow` passes `(id, level) => { ...; return buildInto(scope, target, id, old ? scope : built, run, level); }`.
 
 `init.ts`: the `buildOne` callback takes `(id)` and stays valid under the wider signature.
 
@@ -1306,32 +1281,19 @@ Expected: PASS, including `test-bench`'s completeness test.
 Run: `NX_NO_CLOUD=true NX_DAEMON=false npx nx run @nexusdi/core:bench-dispatch`
 Expected: every case `pass`. An `inconclusive` case reruns once; a `fail` sends the task back to its last step.
 
-- [ ] Step 8: Commit with `feat(core): report each build's level, parent and sync, await and finish time`.
+- [ ] Step 8: Measure with `node scripts/size-report.mjs` and record the core figure in the ledger. Commit with `feat(core): report each build's level, parent and sync, await and finish time`.
 
 ### Task 5: `construct:failed`
 
 Files:
 
-- Modify: `libs/core/src/runtime/trace.ts`, `build.ts`, `startup.ts`, `scope.ts`
+- Modify: `libs/core/src/runtime/trace.ts`, `build.ts`, `compile-traced.ts`, `nexus.ts`, `load.ts`, `scope.ts`
 - Test: `trace-events.test.ts`
 
 Interfaces:
 
-- Consumes: `emitCollecting` and `RunTrace` (Task 2), `BuildSpan` (Task 4).
-- Produces: the `construct:failed` member of spec 3.1, and in `build.ts`:
-
-```ts
-/** construct:failed for a level or on-demand build; an observer's throw joins the run's errors (spec 3.5). */
-export function traceFailed(
-  container: ContainerState,
-  bp: Blueprint,
-  record: ProviderRecord,
-  isAsync: boolean,
-  start: number,
-  run: RunTrace | undefined,
-  level: number | null,
-): void;
-```
+- Consumes: `traceBuild` and `buildInto` (Task 4), `RunTrace`, `emitCollecting` (Task 2).
+- Produces: `'construct:failed': BuildEventFields` in `trace.ts`; `BuildEventType` gains `'construct:failed'`; `traceBuild`'s `run` widens to `Pick<RunTrace, 'id' | 'errors'> | undefined`. `RunTrace.errors` becomes optional (`errors?: unknown[]`), created on first use, and the run literals drop `errors: undefined`. `emitCollecting(tracer, errors: unknown[] | undefined, make)` rethrows when it has no list; `emitRun` calls it with its `errors`, and `compileTraced`'s failure branch passes `[]`.
 
 - [ ] Step 1: Write the failing tests
 
@@ -1417,6 +1379,19 @@ describe('construct:failed', () => {
     ]);
   });
 
+  it('reports an on-demand async factory with async true', async () => {
+    const { events, plugin } = recordEvents();
+    const LINK = new Token<object>('Link');
+    await using ship = await Nexus.create(
+      [provide(LINK, { eager: false, useFactory: async () => ({}) })],
+      { plugins: [plugin] },
+    );
+    expect(() => ship.get(LINK)).toThrow();
+    expect(only(events, 'construct:failed')).toMatchObject([
+      { token: 'Link', run: null, async: true },
+    ]);
+  });
+
   it("names the parent's failure only when a transient inside it throws", async () => {
     const { events, plugin } = recordEvents();
     const SPARK = new Token<object>('Spark');
@@ -1466,6 +1441,31 @@ describe('construct:failed', () => {
     expect(error.code).toBe('NEXUS_PROVIDER_FAILED');
     expect(error.disposalErrors).toEqual([thrown]);
   });
+
+  it('fails the build when an observer throws on construct:await', async () => {
+    const { events, plugin } = recordEvents();
+    const thrown = new Error('telemetry down');
+    const watcher = {
+      name: 'test:watcher',
+      apiVersion: 1,
+      observe(event: TraceEvent) {
+        if (event.type === 'construct:await') throw thrown;
+      },
+    };
+    const CHARTS = new Token<object>('NavCharts');
+    const error = (await rejected(
+      Nexus.create([provide(CHARTS, { useFactory: async () => ({}) })], {
+        plugins: [plugin, watcher],
+      }),
+    )) as { code: string; cause: unknown };
+    expect(error).toMatchObject({
+      code: 'NEXUS_PROVIDER_FAILED',
+      cause: thrown,
+    });
+    expect(only(events, 'construct:failed')).toMatchObject([
+      { token: 'NavCharts', async: true },
+    ]);
+  });
 });
 ```
 
@@ -1476,75 +1476,53 @@ Expected: FAIL, no `construct:failed` events.
 
 - [ ] Step 3: Implement
 
-Add the `construct:failed` member to `trace.ts`. In `build.ts`, add `traceFailed`:
+`trace.ts`: add `'construct:failed': BuildEventFields`, make `RunTrace.errors` optional, and let `emitCollecting` rethrow with no list:
 
 ```ts
-export function traceFailed(
-  container: ContainerState,
-  bp: Blueprint,
-  record: ProviderRecord,
-  isAsync: boolean,
-  start: number,
-  run: RunTrace | undefined,
-  level: number | null,
+export function emitCollecting(
+  tracer: Tracer,
+  errors: unknown[] | undefined,
+  make: () => TraceEvent,
 ): void {
-  const tracer = container.root.tracer;
-  emitCollecting(
-    tracer,
-    run === undefined ? undefined : (run.errors ??= []),
-    () => ({
-      type: 'construct:failed',
-      token: record.name,
-      providerId: record.id,
-      module: moduleName(bp, record),
-      lifetime: record.lifetime,
-      scope: container.scopeId,
-      async: isAsync,
-      run: run?.id ?? null,
-      level,
-      parent:
-        level === null ? (constructionStack.top()?.providerId ?? null) : null,
-      startMs: start,
-      durationMs: tracer.now() - start,
-    }),
-  );
+  try {
+    tracer.emit(make);
+  } catch (error) {
+    if (!errors) throw error;
+    errors.push(error);
+  }
 }
 ```
 
-`traceConstruct` and `traceFailed` share one field order; spec 3.6 asks that one shape builds both. Factor the eight common fields into `function buildFields(container, bp, record, isAsync, run, level, parent)` returning the object both spread, if the bundle comes out smaller; measure with Step 5 of Task 7 and keep the smaller form.
+`emitRun` ends with `emitCollecting(tracer, errors, make);`. `compileTraced`'s failure branch passes `[]`, which drops the throw as before. Drop `errors: undefined` from the run literals in `nexus.ts`, `load.ts` and `scope.ts`.
 
-In `buildInto`, wrap the call and the await:
+`build.ts`: `traceBuild` wraps its emit and keeps the operation's own error on a failure event (spec 3.5):
 
 ```ts
-let value: unknown;
 try {
-  value = construct(record, { bp, container, owner });
+  tracer.emit(() => {
+    /* unchanged */
+  });
 } catch (error) {
-  traceFailed(container, bp, record, false, start, run, level);
-  throw error;
+  if (!type.endsWith('failed')) throw error;
+  // The observer's throw joins the run's errors, or is dropped outside a run.
+  if (run) (run.errors ??= []).push(error);
 }
-// ...
-if (isAsync) {
-  // begin and construct:await unchanged
-  try {
-    value = await pending;
+```
+
+`buildInto` wraps everything from the call to `applyConstruct` in one `try`, so a throw from the call, the await, options validation, a construct hook, or an observer of `construct:await` emits `construct:failed`. `returned` and `resumed` become `let ... : number | undefined` declared before the `try`, so the event reports how far the build got:
+
+```ts
   } catch (error) {
-    traceFailed(container, bp, record, true, start, run, level);
+    traceBuild('construct:failed', container, bp, id, run, level, isAsync, start, returned, resumed);
     throw error;
   }
-  awaitMs = tracer.now() - returned;
-}
 ```
 
-`buildSingleton` and `buildScoped`: wrap everything between `buildInto` and `store` (options validation and `applyConstruct`) in `try { ... } catch (error) { traceFailed(container, bp, record, built.isAsync, built.start, run, level); throw error; }`, keeping the existing `adopt` in validation's catch. `async` means the factory returned a thenable, whatever failed after it (plan choice 5).
-
-`buildOnDemand`: wrap from `construct` to `applyConstruct` in `try/catch` that calls `traceFailed(container, ctx.bp, record, isAsync, start, run, null)` and rethrows, where `isAsync` is `record.kind === 'factory' && isThenable(built)`, set right after the `construct` call and `false` before it. A factory that returns a thenable on demand fails with `NEXUS_LAZY_ASYNC` and reports `async: true`. A `run` of `undefined` drops the observer's throw (plan choice 3).
-
-Add a test next to the on-demand case: `provide(LINK, { eager: false, useFactory: async () => ({}) })`, `expect(() => ship.get(LINK)).toThrow()`, then `expect(only(events, 'construct:failed')).toMatchObject([{ token: 'Link', run: null, async: true }])`.
+`buildOnDemand` wraps the call through `applyConstruct` the same way, with `isAsync = record.kind === 'factory' && isThenable(built)` set before the `NEXUS_LAZY_ASYNC` throw, so a factory that returns a thenable on demand reports `async: true` (plan choice 5). A `run` of `undefined` drops an observer's throw (plan choice 3).
 
 - [ ] Step 4: Run the core targets and the dispatch bench (as Task 4, Step 7)
 
-- [ ] Step 5: Commit with `feat(core): report a failed build with construct:failed`.
+- [ ] Step 5: Measure, record in the ledger, and commit with `feat(core): report a failed build with construct:failed`.
 
 ### Task 6: `init` fields, `init:await`, `init:failed` and on-demand `init`
 
@@ -1556,30 +1534,8 @@ Files:
 
 Interfaces:
 
-- Consumes: `RunTrace`, `emitCollecting` (Task 2), `buildLevels` level index (Task 4).
-- Produces: the `init`, `init:await` and `init:failed` members of spec 3.1. `runInit(root, bp, isNew, run: RunTrace)`. In `build.ts`:
-
-```ts
-export function traceInit(
-  root: RootState,
-  bp: Blueprint,
-  id: string,
-  run: number | null,
-  level: number | null,
-  isAsync: boolean,
-  start: number,
-  returned: number,
-): void;
-export function traceInitFailed(
-  root: RootState,
-  bp: Blueprint,
-  id: string,
-  run: RunTrace | undefined,
-  level: number | null,
-  isAsync: boolean,
-  start: number,
-): void;
-```
+- Consumes: `traceBuild` (Tasks 4 and 5), the level index of `buildLevels` (Task 4).
+- Produces: `init: BuildEventFields`, `'init:await': BuildEventFields` and `'init:failed': BuildEventFields` in `trace.ts`; `BuildEventType` gains the three init types; `runInit(root, bp, run: Pick<Run, 'id' | 'errors' | 'isNew'>)`.
 
 - [ ] Step 1: Write the failing tests for level `onInit`
 
@@ -1646,118 +1602,53 @@ describe('init', () => {
       onInit() {}
     }
     await ship.load(defineModule({ name: 'Science', providers: [Probe] }));
-    expect(only(events, 'init')).toMatchObject([{ token: 'Probe', run: 1 }]);
+    // FusionReactor's own onInit fires in run 0.
+    expect(
+      only(events, 'init').filter((e) => e.token === 'Probe'),
+    ).toMatchObject([{ token: 'Probe', run: 1 }]);
   });
 });
 ```
 
+`trace.test-d.ts`: assert `Omit<TraceEvent<'init'>, 'type'>` equals `Omit<TraceEvent<'construct'>, 'type'>`.
+
 - [ ] Step 2: Run them and see them fail
 
-Run: `NX_NO_CLOUD=true NX_DAEMON=false npx nx test @nexusdi/core -- trace-events`
+Run: `NX_NO_CLOUD=true NX_DAEMON=false npx nx test @nexusdi/core -- trace-events trace.test-d`
 Expected: FAIL.
 
 - [ ] Step 3: Implement for level builds
 
-Add the three members to `trace.ts`. In `build.ts`:
-
-```ts
-export function traceInit(
-  root: RootState,
-  bp: Blueprint,
-  id: string,
-  run: number | null,
-  level: number | null,
-  isAsync: boolean,
-  start: number,
-  returned: number,
-): void {
-  const tracer = root.tracer;
-  tracer.emit(() => {
-    const end = tracer.now();
-    return {
-      type: 'init',
-      token: bp.providers.get(id)?.name ?? id,
-      providerId: id,
-      run,
-      level,
-      async: isAsync,
-      startMs: start,
-      syncMs: returned - start,
-      awaitMs: isAsync ? end - returned : null,
-      durationMs: end - start,
-    };
-  });
-}
-
-export function traceInitFailed(
-  root: RootState,
-  bp: Blueprint,
-  id: string,
-  run: RunTrace | undefined,
-  level: number | null,
-  isAsync: boolean,
-  start: number,
-): void {
-  const tracer = root.tracer;
-  emitCollecting(
-    tracer,
-    run === undefined ? undefined : (run.errors ??= []),
-    () => ({
-      type: 'init:failed',
-      token: bp.providers.get(id)?.name ?? id,
-      providerId: id,
-      run: run?.id ?? null,
-      level,
-      async: isAsync,
-      startMs: start,
-      durationMs: tracer.now() - start,
-    }),
-  );
-}
-```
-
-`init.ts`, the `buildOne` body after the ownership guard:
+`trace.ts`: the three init members become `BuildEventFields`. `init.ts`: `runInit` takes the run, walks `run.isNew`, and its `buildOne` takes `(id, level)`. After the ownership guard:
 
 ```ts
 const tracer = root.tracer;
 const start = tracer.now();
-let result: unknown;
+let isAsync = false;
+let returned: number | undefined;
 try {
-  result = instance.onInit();
-} catch (error) {
-  traceInitFailed(root, bp, id, run, level, false, start);
-  throw error;
-}
-const returned = tracer.now();
-const isAsync = isThenable(result);
-if (isAsync)
-  tracer.emit(() => ({
-    type: 'init:await',
-    token: bp.providers.get(id)?.name ?? id,
-    providerId: id,
-    run: run.id,
-    level,
-    startMs: start,
-    syncMs: returned - start,
-  }));
-try {
+  const result = instance.onInit();
+  returned = tracer.now();
+  isAsync = isThenable(result);
+  if (isAsync)
+    traceBuild('init:await', root, bp, id, run, level, true, start, returned);
   // Awaited for a plain value too, as rc.0 awaited every onInit.
   await result;
 } catch (error) {
-  traceInitFailed(root, bp, id, run, level, isAsync, start);
+  traceBuild('init:failed', root, bp, id, run, level, isAsync, start, returned);
   throw error;
 }
-traceInit(root, bp, id, run.id, level, isAsync, start, returned);
+traceBuild('init', root, bp, id, run, level, isAsync, start, returned);
 ```
 
-`startBlueprint` calls `runInit(root, plan.bp, plan.isNew, run)`. The direct call in `init.test.ts` passes `{ id: 0, errors: undefined }`.
+An observer's throw on `init:await` fails the onInit and emits `init:failed` (spec 3.4). `startBlueprint` calls `runInit(root, plan.bp, run)`. The direct call in `init.test.ts` passes `{ id: 0, isNew: () => true }`.
 
 - [ ] Step 4: Run the core targets
 
 Run: `NX_NO_CLOUD=true NX_DAEMON=false npx nx run-many -t lint test build typecheck -p @nexusdi/core`
 Expected: PASS.
 
-- [ ] Step 5: Write the failing test for on-demand `onInit` (owner gate (b) 1)
+- [ ] Step 5: Write the failing tests for on-demand `onInit` (owner item (b) 1, approved)
 
 ```ts
 describe('init from an on-demand build', () => {
@@ -1812,33 +1703,11 @@ describe('init from an on-demand build', () => {
 });
 ```
 
-- [ ] Step 6: Implement. In `buildOnDemand`'s `onInit` branch:
+- [ ] Step 6: Implement. In `buildOnDemand`'s `onInit` branch, take `start = tracer.now()` before the call (the construct event already used the earlier one). On a throw, `traceBuild('init:failed', root, ctx.bp, record.id, run, null, false, start)` before the rethrow. After the call, `isAsync = isThenable(result)` and one `traceBuild(isAsync ? 'init:failed' : 'init', root, ctx.bp, record.id, run, null, isAsync, start, tracer.now())`; a thenable then throws `NEXUS_LAZY_ASYNC` as before, with `async: true` on its `init:failed` (plan choice 5).
 
-```ts
-    container.slots.settle(record.id, instance);
-    const initStart = root.tracer.now();
-    let result: unknown;
-    try {
-      result = (instance as { onInit(): unknown }).onInit();
-    } catch (error) {
-      container.slots.abandon(record.id);
-      traceInitFailed(root, ctx.bp, record.id, run, null, false, initStart);
-      throw /* unchanged */;
-    }
-    if (isThenable(result)) {
-      container.slots.abandon(record.id);
-      // async: true, since onInit returned a thenable (plan choice 5).
-      traceInitFailed(root, ctx.bp, record.id, run, null, true, initStart);
-      throw lazyAsync(result);
-    }
-    traceInit(root, ctx.bp, record.id, run?.id ?? null, null, false, initStart, root.tracer.now());
-```
+- [ ] Step 7: Fix the claims the new on-demand `init` changes. Run `NX_NO_CLOUD=true NX_DAEMON=false npx nx run-many -t test -p @nexusdi/core @nexusdi/devtools @nexusdi/meridian` and update each full event list that builds an `eager: false` singleton with `onInit` (insert `'init'` after its `construct`). No hand CHANGELOG entry: nx release writes it from the commit subject. The pull request body carries the sentence "`init` events now fire for `eager: false` singletons with `onInit`".
 
-Both calls take the run the same way as Task 5: `traceInitFailed` takes the `RunTrace` (or `undefined`), so it can collect an observer's throw, and `traceInit` takes `run?.id ?? null`.
-
-- [ ] Step 7: Fix the claims the new on-demand `init` changes. Run `NX_NO_CLOUD=true NX_DAEMON=false npx nx run-many -t test -p @nexusdi/core @nexusdi/devtools @nexusdi/meridian` and update each full event list that builds an `eager: false` singleton with `onInit` (insert `'init'` after its `construct`). Add a line under "Unreleased" in `libs/core/CHANGELOG.md` only if the release tooling reads hand entries there (check `nexusdi-release` skill); otherwise put the sentence "`init` events now fire for `eager: false` singletons with `onInit`" in the pull request body.
-
-- [ ] Step 8: Run the targets of Step 4 plus `@nexusdi/devtools @nexusdi/meridian`, then commit with `feat(core): report onInit with init:await, init:failed and on-demand init`.
+- [ ] Step 8: Run the targets of Step 4 plus `@nexusdi/devtools @nexusdi/meridian`, measure and record in the ledger, then commit with `feat(core): report onInit with init:await, init:failed and on-demand init`.
 
 ### Task 7: order, the in-flight set and the contract
 
@@ -1942,11 +1811,11 @@ Expected: PASS. A failure here is a defect in Tasks 2 to 6; fix it in the file t
  * validation and construct hooks. Both may change in a minor release.
 ```
 
-- [ ] Step 4: The third-party fragment. Append to `libs/devtools/src/plugin-api-1.test-d.ts`:
+- [ ] Step 4: The third-party fragment. Append to `libs/devtools/src/plugin-api-1.test-d.ts`. The six build events share one shape, so one branch reads all of them:
 
 ```ts
 describe('a third-party profiler (startup profiler spec 5.3)', () => {
-  it('reads every stable field of the run, build and init events', () => {
+  it('reads every stable field of the run and build events', () => {
     const rows: unknown[] = [];
     const plugin: NexusPlugin = {
       name: 'acme:profiler',
@@ -1964,6 +1833,11 @@ describe('a third-party profiler (startup profiler spec 5.3)', () => {
             ]);
             break;
           case 'construct':
+          case 'construct:await':
+          case 'construct:failed':
+          case 'init':
+          case 'init:await':
+          case 'init:failed':
             rows.push([
               event.run,
               event.level,
@@ -1972,35 +1846,13 @@ describe('a third-party profiler (startup profiler spec 5.3)', () => {
               event.providerId,
               event.module,
               event.lifetime,
+              event.scope,
               event.async,
               event.startMs,
               event.syncMs,
               event.awaitMs,
               event.finishMs,
               event.durationMs,
-            ]);
-            break;
-          case 'construct:await':
-          case 'init:await':
-            rows.push([event.run, event.level, event.startMs, event.syncMs]);
-            break;
-          case 'construct:failed':
-          case 'init:failed':
-            rows.push([
-              event.run,
-              event.level,
-              event.async,
-              event.startMs,
-              event.durationMs,
-            ]);
-            break;
-          case 'init':
-            rows.push([
-              event.run,
-              event.level,
-              event.async,
-              event.syncMs,
-              event.awaitMs,
             ]);
             break;
           case 'compile':
@@ -2043,7 +1895,7 @@ Tests first, in `views.test.ts`: a module with a class provider, a transient fac
 
 Commit with `feat(core): state on the view which edges order a build and which providers are inline`.
 
-- [ ] Step 6: Measure. Run `node scripts/size-report.mjs` and record core's gzip figure against rc.1 (18,515 B with zlib level 9) in the ledger for the pull request's `## Size` section. Owner gate (a) 1 expects about +673 B. If the shared-shape factoring of Task 5 saves bytes, keep it.
+- [ ] Step 6: Measure. Run `node scripts/size-report.mjs` and record core's gzip figure against rc.1 in the ledger for the pull request's `## Size` section. The owner approved about +742 B (owner item (a) 1); report the measured figure, and a moderate overshoot does not stop the work.
 
 Run: `NX_NO_CLOUD=true NX_DAEMON=false npx nx run-many -t lint test build typecheck -p @nexusdi/core @nexusdi/devtools && NX_NO_CLOUD=true NX_DAEMON=false npx nx run @nexusdi/core:bench-dispatch`
 Expected: PASS, every K14 case `pass`.
