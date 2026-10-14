@@ -1654,14 +1654,16 @@ describe('init', () => {
     await using ship = await Nexus.create([Reactor, Computer], {
       plugins: [plugin],
     });
+    void ship;
     const inits = only(events, 'init');
     expect(inits.map((e) => [e.token, e.run, e.level, e.async])).toEqual([
       ['Reactor', 0, 0, false],
       ['Computer', 0, 1, true],
     ]);
-    expect(inits[0]).toMatchObject({ awaitMs: null });
-    expect(inits[0]!.syncMs).toBeGreaterThanOrEqual(1.5);
-    expect(inits[1]!.awaitMs).toBeGreaterThanOrEqual(15);
+    const [reactor, computer] = inits;
+    expect(reactor).toMatchObject({ awaitMs: null });
+    expect(defined(reactor).syncMs).toBeGreaterThanOrEqual(1.5);
+    expect(defined(computer).awaitMs).toBeGreaterThanOrEqual(15);
     expect(only(events, 'init:await')).toMatchObject([
       { token: 'Computer', level: 1, run: 0 },
     ]);
@@ -1703,6 +1705,42 @@ describe('init', () => {
       only(events, 'init').filter((e) => e.token === 'Probe'),
     ).toMatchObject([{ token: 'Probe', run: 1 }]);
   });
+  it('fails the onInit when an observer throws on init:await', async () => {
+    const { events, plugin } = recordEvents();
+    const thrown = new Error('telemetry down');
+    const watcher = {
+      name: 'test:watcher',
+      apiVersion: 1,
+      observe(event: TraceEvent) {
+        if (event.type === 'init:await') throw thrown;
+      },
+    };
+    const unhandled: unknown[] = [];
+    const onUnhandled = (reason: unknown) => void unhandled.push(reason);
+    process.on('unhandledRejection', onUnhandled);
+    try {
+      class Reactor {
+        async onInit() {
+          await sleep(1);
+          throw new Error('scram');
+        }
+      }
+      const error = await rejected(
+        Nexus.create([Reactor], { plugins: [plugin, watcher] }),
+      );
+      expect(error).toMatchObject({
+        code: 'NEXUS_PROVIDER_FAILED',
+        cause: thrown,
+      });
+      await sleep(20);
+    } finally {
+      process.off('unhandledRejection', onUnhandled);
+    }
+    expect(only(events, 'init:failed')).toMatchObject([
+      { token: 'Reactor', async: true },
+    ]);
+    expect(unhandled).toEqual([]);
+  });
 });
 ```
 
@@ -1737,7 +1775,7 @@ try {
 traceBuild('init', root, bp, id, run, level, isAsync, start, returned);
 ```
 
-An observer's throw on `init:await` fails the onInit and emits `init:failed` (spec 3.4). `startBlueprint` calls `runInit(root, plan.bp, run)`. The direct call in `init.test.ts` passes `{ id: 0, isNew: () => true }`.
+An observer's throw on `init:await` fails the onInit and emits `init:failed` (spec 3.4); the catch around that emit calls `observeRejection(result)` (exported from `build.ts`) before it rethrows, so a later rejection of the unawaited thenable stays handled. `startBlueprint` calls `runInit(root, plan.bp, run)`. The direct call in `init.test.ts` passes `{ id: 0, isNew: () => true }`.
 
 - [ ] Step 4: Run the core targets
 
@@ -1786,7 +1824,11 @@ describe('init from an on-demand build', () => {
   it('emits init:failed with async: true for an on-demand onInit that returns a thenable', async () => {
     const { events, plugin } = recordEvents();
     class Sensor {
-      async onInit() {}
+      // An onInit that may return a thenable passes the types with
+      // eager: false, and the runtime refuses the thenable it returns.
+      onInit(): void | Promise<void> {
+        return Promise.resolve();
+      }
     }
     await using ship = await Nexus.create([provide(Sensor, { eager: false })], {
       plugins: [plugin],
@@ -1796,14 +1838,43 @@ describe('init from an on-demand build', () => {
       { token: 'Sensor', run: null, level: null, async: true },
     ]);
   });
+  it('keeps the one instance when an observer throws on its on-demand init event', async () => {
+    const thrown = new Error('telemetry down');
+    let armed = false;
+    const watcher = {
+      name: 'test:watcher',
+      apiVersion: 1,
+      observe(event: TraceEvent) {
+        if (armed && event.type === 'init') throw thrown;
+      },
+    };
+    const log: string[] = [];
+    class Sensor {
+      constructor() {
+        log.push('built');
+      }
+      onInit() {
+        log.push('init');
+      }
+    }
+    await using ship = await Nexus.create([provide(Sensor, { eager: false })], {
+      plugins: [watcher],
+    });
+    armed = true;
+    expect(() => ship.get(Sensor)).toThrow(thrown);
+    armed = false;
+    const sensor = ship.get(Sensor);
+    expect(ship.get(Sensor)).toBe(sensor);
+    expect(log).toEqual(['built', 'init']);
+  });
 });
 ```
 
-- [ ] Step 6: Implement. In `buildOnDemand`'s `onInit` branch, take `start = tracer.now()` before the call (the construct event already used the earlier one). On a throw, `traceBuild('init:failed', root, ctx.bp, record.id, run, null, false, start)` before the rethrow. After the call, `isAsync = isThenable(result)` and one `traceBuild(isAsync ? 'init:failed' : 'init', root, ctx.bp, record.id, run, null, isAsync, start, tracer.now())`; a thenable then throws `NEXUS_LAZY_ASYNC` as before, with `async: true` on its `init:failed` (plan choice 5).
+- [ ] Step 6: Implement. In `buildOnDemand`'s `onInit` branch, take `start = tracer.now()` before the call (the construct event already used the earlier one). On a throw, `traceBuild('init:failed', root, ctx.bp, record.id, run, null, false, start)` before the rethrow. After the call, `isAsync = isThenable(result)` and one `traceBuild(isAsync ? 'init:failed' : 'init', root, ctx.bp, record.id, run, null, isAsync, start, tracer.now())`; a thenable then throws `NEXUS_LAZY_ASYNC` as before, with `async: true` on its `init:failed` (plan choice 5). An observer's throw on that `init` event is held as Task 5 holds one on the `construct` event, so the build finishes before it reaches the caller. `start` becomes a `let` that the onInit branch reassigns. The thenable test gives `onInit` the return type `void | Promise<void>`, which the types accept with `eager: false`.
 
 - [ ] Step 7: Fix the claims the new on-demand `init` changes. Run `NX_NO_CLOUD=true NX_DAEMON=false npx nx run-many -t test -p @nexusdi/core @nexusdi/devtools @nexusdi/meridian` and update each full event list that builds an `eager: false` singleton with `onInit` (insert `'init'` after its `construct`). No hand CHANGELOG entry: nx release writes it from the commit subject. The pull request body carries the sentence "`init` events now fire for `eager: false` singletons with `onInit`".
 
-- [ ] Step 8: Run the targets of Step 4 plus `@nexusdi/devtools @nexusdi/meridian`, measure and record in the ledger, then commit with `feat(core): report onInit with init:await, init:failed and on-demand init`.
+- [ ] Step 8: Run the targets of Step 4 plus `@nexusdi/devtools @nexusdi/meridian`, measure and record in the ledger, then commit with `feat(core): report init calls with init:await, init:failed and on-demand init` (commitlint refuses the camelCase `onInit` in a subject).
 
 ### Task 7: order, the in-flight set and the contract
 
@@ -6311,7 +6382,7 @@ Expected: PASS; every K14 case `pass`.
 
 - [ ] Step 3: An independent opus reviewer reviews the whole branch against the spec and this plan's Review Focus. Fix rounds until it is satisfied.
 
-- [ ] Step 4: Push and open the pull request against `release/0.4`. The body carries: a `## Size` section with core's measured growth over rc.1 and the `devtools` and `devtools+profile` figures; the owner gates of this plan with their state; the behaviour notes (`init` for on-demand singletons; the compile-failure change); a "Trace changes for observers" section listing the new events (`run` closing every `create`, `load`, `createScope` and `extend()`; `construct:await` and `init:await` in async startups; `init` for `eager: false` singletons with `onInit`; `construct:failed` and `init:failed`), the two view fields `EdgeView.ordersBuild` and `ProviderView.inline`, and the advice to filter by `event.type` and assert subsequences, never a full event list; and the tech lead rulings of 2026-10-14. Put the same "Trace changes for observers" line in the release notes of the next rc.
+- [ ] Step 4: Push and open the pull request against `release/0.4`. The body carries: a `## Size` section with core's measured growth over rc.1 and the `devtools` and `devtools+profile` figures; the owner gates of this plan with their state; the behaviour notes (`init` for on-demand singletons; the compile-failure change); a "Trace changes for observers" section listing the new events (`run` closing every `create`, `load`, `createScope` and `extend()`; `construct:await` and `init:await` in async startups; `construct:failed` and `init:failed`), a separate line that the existing `init` event now also fires for an `eager: false` singleton with `onInit`, after its `construct`, which rc builds did not report, and that `init` carries the build-event fields (`run`, `level`, `module`, the sync and await split), the two view fields `EdgeView.ordersBuild` and `ProviderView.inline`, and the advice to filter by `event.type` and assert subsequences, never a full event list; and the tech lead rulings of 2026-10-14. Put the same "Trace changes for observers" line in the release notes of the next rc.
 
 ---
 

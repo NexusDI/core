@@ -307,9 +307,9 @@ The operation's own error always reaches the caller.
   `dispose:instance` there.
 - An observer's throw on `construct:await` or `init:await` is a failure of that build
   (section 3.4). The run fails with it as the cause, after its `:failed` event.
-- An observer's throw on the `construct` event of an on-demand build reaches the caller
-  of `get()` after the build finished: the instance is settled, its `onInit` ran, and the
-  next `get()` returns it.
+- An observer's throw on the `construct` or `init` event of an on-demand build reaches
+  the caller of `get()` after the build finished: the instance is settled, its `onInit`
+  ran, and the next `get()` returns it.
 - On a compile failure (`BlueprintError`, `LoadError`), `compileTraced` drops the
   observer's throw. Those errors have no list to hold it.
 - On a success path, an observer's throw on the closing `run` event rejects the call:

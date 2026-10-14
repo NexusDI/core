@@ -291,7 +291,9 @@ describe('runInit', () => {
         start: 0,
       },
     });
-    expect(await rejected(runInit(root, bp, () => true))).toMatchObject({
+    expect(
+      await rejected(runInit(root, bp, { id: 0, isNew: () => true })),
+    ).toMatchObject({
       code: 'NEXUS_DISPOSED',
     });
     expect(ran).toEqual(['reactor']);
