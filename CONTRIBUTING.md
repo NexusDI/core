@@ -215,7 +215,12 @@ A pull request that adds or changes a file under `benchmarks/fixtures/` needs a 
 - Every departure from the page is listed in the header with its reason.
 - A lifetime the library does not document is `not-applicable` in `libraries.json`, with the reason.
 
-`npx nx run @nexusdi/benchmarks:check` rebuilds the matrix, probe and size results and fails when they differ from the committed files. Each writer takes `--quick` or `--only=<library>` for a local run, which writes under `benchmarks/tmp/`.
+A pull request that changes a renderer under `benchmarks/src/scale/render/` is reviewed like a fixture change. A reviewer reads the generated `app.ts` at n = 50 beside the page it cites and confirms:
+
+- Every async factory body is `async` and awaits before it constructs.
+- Every value uses the library's value form, with no factory call.
+
+`npx nx run @nexusdi/benchmarks:check` rebuilds the matrix, probe, size and scale results and the scale page, and fails when they differ from the committed files. Each writer takes `--quick` or `--only=<library>` for a local run, which writes under `benchmarks/tmp/`.
 
 ## Getting Help
 

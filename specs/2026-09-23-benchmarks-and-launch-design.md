@@ -916,16 +916,30 @@ these statements:
 - What was tested: Meridian-8, eight providers, in the variants of section 4.3, under ten
   toolchain cells, with five probes, two bundlers and five timing scenarios on Node 24;
   cold builds of Meridian-8 and of the generated 200-class `scale-200` under eight
-  toolchain cells.
+  toolchain cells. The scale suite (`specs/2026-10-01-benchmarks-scale-suite-design.md`)
+  adds generated graphs of 50, 200, 1,000 and 5,000 providers in five shapes (`mixed`,
+  `wide`, `deep`, `modular` and `mixed-async`, the last with async factories), each
+  library in its documented variant: fresh-process startup, retained heap, steady `get()`
+  and bundle bytes.
 - What was not tested: timings on Bun, Deno or in a browser; incremental, watch-mode or
-  editor type-check time; runtime graphs larger than eight providers; async factories;
-  request scoping semantics beyond "one instance per scope"; memory beyond the heap
-  difference per `ready` operation; any framework integration.
+  editor type-check time; graphs larger than 5,000 providers; build time at 1,000 or
+  5,000 providers; async factories in tsyringe and awilix, whose documentation has no
+  async resolution; request scoping semantics beyond "one instance per scope"; memory
+  beyond the heap difference per `ready` operation and the retained heap of the scale
+  suite; any framework integration.
 - How it was sampled: each library-variant in its own worker process; every iteration
   samples all of them back to back in a balanced rotating order; 100 warm-up iterations
   excluded and 1,000 measured, 1,000 cold starts, and at least 30 build rounds; medians with
   MAD, p5 and p95; comparisons as paired ratios within an iteration with a bootstrap 95%
   interval. A comparison whose interval contains 1.0 is reported as no measured difference.
+- How the scale suite was sampled: each fresh-process sample runs in its own Node process,
+  one process per library, size and shape, in a balanced rotating order, after 10 warm-up
+  rounds. The measured rounds are 1,000 for `mixed` and 200 for `wide`, `deep`, `modular`
+  and `mixed-async`. Steady `get()` runs in one long-lived worker per library and size on
+  `mixed`, with 100 warm-up and 1,000 measured iterations. Every generated app is compiled
+  with `importHelpers: true` and `tslib`, so a library that uses decorators does not repeat
+  the compiler's helpers in each file. Relative claims come from `mixed`. The other four
+  shapes publish their round count and no README, docs page or post cites them.
 - How to rerun: `git clone`, `npm ci`, `npx nx run benchmarks:bench`, and the note that
   absolute times differ by machine while the paired ratios should fall inside the published
   intervals. `results/raw/` holds every sample of a tag run, so the statistics can be
