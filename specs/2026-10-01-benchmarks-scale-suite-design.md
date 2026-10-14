@@ -152,12 +152,16 @@ The realistic shape, in four tiers of modules:
   `clock` (a factory with no deps) and `logger` (a class taking `config`). Every other
   module imports `core` plus one or two modules from lower tiers, at least one from tier
   `t - 1` where one exists.
-- Each provider's kind: value 5%, factory 10%, class 85%. A value has no deps.
+- Each provider's kind: exactly `round(0.05 n)` values, `round(0.1 n)` factories and the
+  rest classes, hubs included (`config` is a value, `clock` a factory, `logger` a class),
+  with the other kinds shuffled over the remaining indexes, so every size holds the
+  stated shares. A value has no deps.
 - A class or factory takes `k` deps with `P(k)` = 0:10%, 1:30%, 2:30%, 3:20%, 4:10%
   (mean 1.9). Each dependency slot draws a hub with probability 0.25, an export of an
-  imported module with 0.25 and an earlier provider of its own module with 0.5. An
-  empty pool falls through to the next in that order; a provider whose pools are all
-  empty gets fewer deps.
+  imported module with 0.25 and an earlier provider of its own module with 0.5. A slot
+  skips a dependency the provider already has. An empty pool falls through to the next
+  in that order and wraps from the last back to the first; a provider whose pools are
+  all empty gets fewer deps.
 - A module exports its last `⌈size/4⌉` providers.
 
 All providers are singletons. Transient and scoped lifetimes stay with Meridian-8; at
@@ -181,9 +185,9 @@ figure measures each library's async machinery. `scale.json` records the async s
 The renderers in `src/scale/render/<library>.ts` turn a `ScaleGraph` into TypeScript
 files:
 
-- `wide`: one class per file, as `scale-200` does.
-- `mixed`, `mixed-async`: one file per module holding its classes, factories, values and
-  its module or registration code.
+- `wide`, `deep`: one class per file, as `scale-200` does.
+- `mixed`, `mixed-async`, `modular`: one file per module holding its classes, factories,
+  values and its module or registration code.
 - `tokens.ts` where the library's idiom uses tokens.
 - `app.ts`, which exports the `scale` adapter of section 4.4 and builds nothing at
   import.
@@ -205,13 +209,13 @@ uses, and the library's documentation (cited in a header comment of the generate
 `app.ts` and in `libraries.json`) for modules and async factories, which Meridian-8 does
 not use.
 
-| Library and variant      | Class providers                                                     | Factory and value providers                                              | Module form                                                                                   | Async factory                                    |
-| ------------------------ | ------------------------------------------------------------------- | ------------------------------------------------------------------------ | --------------------------------------------------------------------------------------------- | ------------------------------------------------ |
-| NexusDI `plain`          | `Token<IFoo>`, class `implements IFoo` with `static deps`, `provide(T, { useClass })` | `provide(T, { useFactory, deps })`, `provide(T, { useValue })`           | `defineModule({ name, imports, providers, exports })` per module, root `App` imports the sinks | `useFactory: async (...) => ...`, built in `create` |
-| InversifyJS `decorated`  | `@injectable()`, `@inject(Class)` per parameter, `bind(C).toSelf().inSingletonScope()` | `toResolvedValue(fn, [ids]).inSingletonScope()`, `toConstantValue`       | one `ContainerModule` per module, `container.load(...)` (synchronous in 8.2.3)                | `toResolvedValue(async fn)`, `getAsync`          |
-| tsyringe `decorated`     | `@singleton()`, constructor types (metadata), `@inject(token)` for tokens | `{ token, useFactory: instanceCachingFactory(...) }`, `{ token, useValue }` | one `@registry([...])` class per module file, registered at import                           | not applicable                                   |
-| awilix `plain`           | `asClass(C).singleton()`, PROXY cradle constructor, `strict: true`  | `asFunction(fn).singleton()`, `asValue`                                  | one `register<Module>(container)` function per module file, one `container.register({...})` each | not applicable                                   |
-| needle-di `decorated`    | `@injectable()`, `inject(Class)` fields, bound on first `get`      | `{ provide, useFactory }`, `{ provide, useValue }`                       | one `register<Module>(container)` function per module file, one `container.bindAll(...)` each | `{ provide, async: true, useFactory }`, `getAsync` |
+| Library and variant     | Class providers                                                                        | Factory and value providers                                                 | Module form                                                                                      | Async factory                                       |
+| ----------------------- | -------------------------------------------------------------------------------------- | --------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------ | --------------------------------------------------- |
+| NexusDI `plain`         | `Token<IFoo>`, class `implements IFoo` with `static deps`, `provide(T, { useClass })`  | `provide(T, { useFactory, deps })`, `provide(T, { useValue })`              | `defineModule({ name, imports, providers, exports })` per module, root `App` imports the sinks   | `useFactory: async (...) => ...`, built in `create` |
+| InversifyJS `decorated` | `@injectable()`, `@inject(Class)` per parameter, `bind(C).toSelf().inSingletonScope()` | `toResolvedValue(fn, [ids]).inSingletonScope()`, `toConstantValue`          | one `ContainerModule` per module, `container.load(...)` (synchronous in 8.2.3)                   | `toResolvedValue(async fn)`, `getAsync`             |
+| tsyringe `decorated`    | `@singleton()`, constructor types (metadata), `@inject(token)` for tokens              | `{ token, useFactory: instanceCachingFactory(...) }`, `{ token, useValue }` | one `@registry([...])` class per module file, registered at import                               | not applicable                                      |
+| awilix `plain`          | `asClass(C).singleton()`, PROXY cradle constructor, `strict: true`                     | `asFunction(fn).singleton()`, `asValue`                                     | one `register<Module>(container)` function per module file, one `container.register({...})` each | not applicable                                      |
+| needle-di `decorated`   | `@injectable()`, `inject(Class)` fields, bound on first `get`                          | `{ provide, useFactory }`, `{ provide, useValue }`                          | one `register<Module>(container)` function per module file, one `container.bindAll(...)` each    | `{ provide, async: true, useFactory }`, `getAsync`  |
 
 The API forms in this table were read from the packages at the pins (section 13). Task 6
 records each as a claim in `libraries.json` with its documentation URL.
@@ -256,7 +260,10 @@ export interface ScaleApp<H = unknown> {
   /** Library modules this app imports, for the child to load first. */
   readonly packages: readonly string[];
   /** Constructions per provider index, and the kind each construction reported. */
-  readonly built: { readonly counts: Uint32Array; readonly kinds: readonly (string | undefined)[] };
+  readonly built: {
+    readonly counts: Uint32Array;
+    readonly kinds: readonly (string | undefined)[];
+  };
   create(): H | Promise<H>;
   /** Synchronous get by provider index, through a token table built at load. */
   get(handle: H, index: number): unknown;
@@ -267,13 +274,13 @@ export interface ScaleApp<H = unknown> {
 
 `create` does what each library's documented setup does before the first `get`:
 
-| Library   | `create` does                                                                                                           |
-| --------- | ----------------------------------------------------------------------------------------------------------------------- |
-| NexusDI   | `await Nexus.create(App)`: compiles the blueprint (all validation passes) and builds every singleton (eager by default) |
-| InversifyJS | `new Container()`, then `load` of every `ContainerModule` (`wide`: one `bind` per provider)                            |
-| tsyringe  | nothing: `@singleton()` classes and `@registry` classes registered on the global container at load                     |
-| awilix    | `createContainer({ injectionMode: PROXY, strict: true })` and the `register<Module>` calls                               |
-| needle-di | `new Container()` and the `register<Module>` calls; `@injectable()` classes bind on first `get`                          |
+| Library     | `create` does                                                                                                           |
+| ----------- | ----------------------------------------------------------------------------------------------------------------------- |
+| NexusDI     | `await Nexus.create(App)`: compiles the blueprint (all validation passes) and builds every singleton (eager by default) |
+| InversifyJS | `new Container()`, then `load` of every `ContainerModule` (`wide`: one `bind` per provider)                             |
+| tsyringe    | nothing: `@singleton()` classes and `@registry` classes registered on the global container at load                      |
+| awilix      | `createContainer({ injectionMode: PROXY, strict: true })` and the `register<Module>` calls                              |
+| needle-di   | `new Container()` and the `register<Module>` calls; `@injectable()` classes bind on first `get`                         |
 
 Because NexusDI builds its singletons in `create` and the others build on `get`, `create`
 and `first-get` alone compare different work. The results page shows them as absolute
@@ -319,25 +326,33 @@ prove a form is the documented one.
 
 ### 6.1 Fresh-process metrics
 
-`src/scale/child.mjs` runs under `node --expose-gc`, one process per sample, with
-`NODE_COMPILE_CACHE` and `NODE_OPTIONS` cleared from its environment:
+`src/scale/child.mjs` runs under `node --expose-gc`, one process per sample, with every
+`NODE_*` and `UV_*` variable removed from its environment (compile cache, options and
+thread-pool size would each change what a fresh process does):
 
-1. Imports the library's `packages` (polyfill first), untimed. Library import time is
-   already the cold-start figure.
-2. `gc()` twice, reads the retained heap (`base`).
+1. Imports the cell's `packages.mjs`, untimed. `bundleCell` writes it beside the bundle
+   from the bundle's external imports, `reflect-metadata` first, so every package
+   resolves from the cell as the bundle's own imports do. Library import time is already
+   the cold-start figure.
+2. Reads the retained heap (`base`) once V8's background work has finished: pause 10 ms,
+   `gc()` twice, read, and repeat until two reads in a row are equal, at most ten times
+   (concurrent compile jobs still running at this read made `heap-ready` negative in 6
+   of 180 parallel runs). The array of indexes step 6 resolves is built before this read
+   from the model's provider count and target, so it sits in `base`.
 3. Times `await import(bundle)`: `load`.
 4. `gc()` twice. Times `create`: `create`.
 5. Times `get(target)`: `first-get`.
 6. Times resolving every other provider once, in index order: `rest`.
-7. `gc()` twice, reads the heap with the handle still referenced: `heap-ready` = heap −
-   `base`.
+7. Reads the heap the same settled way, with the handle still referenced: `heap-ready` =
+   heap − `base`.
 8. Checks, untimed, that `built.counts` sums to the number of non-value providers, and
    exits 1 when it does not.
-9. Sends `{ load, create, firstGet, rest, heapReady }` and exits.
+9. Sends `{ load, create, firstGet, rest, heapReady }` and disconnects from the send
+   callback (a disconnect straight after `send` lost a 200 KB message in 60 of 60 runs).
 
 Derived, per round before any median: `first-resolve` = `load` + `create` + `first-get`,
 the time until the target is usable; `ready` = `create` + `first-get` + `rest`;
-`startup` = `load` + `ready`. The `gc()` calls sit between timed phases, never inside one.
+`startup` = `load` + `ready`. The `gc()` calls and the settling pauses sit between timed phases, never inside one.
 Timers are `process.hrtime.bigint()` inside the child, so spawn and IPC are outside every
 figure.
 
@@ -369,7 +384,11 @@ provider. One operation, `get-cycle`, calls `get` on the next index of `entries`
 Cycling over all entries keeps one hot token from turning the figure into a single
 inline-cache hit; Meridian-8's `resolve-singleton` covers the hot token. The sampler,
 calibration, 100 warm-up and 1,000 measured iterations, the 2 ns floor and the sink are
-those of section 4.7 of the launch spec, through `interleave` and `serveSamples`.
+those of section 4.7 of the launch spec, through `interleave` and `serveSamples`. The
+workers of one size run with `sharedBatch`, so every library runs the largest batch any
+of them calibrated and amortises the per-batch costs over the same count. The worker
+exits 1 on an app that has `getAsync`: `get-cycle` runs on `mixed`, which has no async
+providers, and an async `get` would put a microtask turn in every run.
 
 ### 6.3 Bundle bytes
 
@@ -400,18 +419,18 @@ for `startup` and in bytes for `heap-ready`.
 
 ### 6.5 What each figure is
 
-| Metric          | Unit  | Source        | Paired ratio | Shapes                     |
-| --------------- | ----- | ------------- | ------------ | -------------------------- |
-| `load`          | ns    | fresh process | no           | all                        |
-| `create`        | ns    | fresh process | no           | all                        |
-| `first-get`     | ns    | fresh process | no           | all                        |
-| `rest`          | ns    | fresh process | no           | all                        |
-| `first-resolve` | ns    | fresh process | yes          | all                        |
-| `ready`         | ns    | fresh process | yes          | all                        |
-| `startup`       | ns    | fresh process | yes          | all; headline on `mixed`   |
-| `heap-ready`    | bytes | fresh process | yes          | all                        |
-| `get-cycle`     | ns    | worker        | yes          | `mixed`                    |
-| bundle bytes    | bytes | `scale.json`  | no           | `mixed`                    |
+| Metric          | Unit  | Source        | Paired ratio | Shapes                   |
+| --------------- | ----- | ------------- | ------------ | ------------------------ |
+| `load`          | ns    | fresh process | no           | all                      |
+| `create`        | ns    | fresh process | no           | all                      |
+| `first-get`     | ns    | fresh process | no           | all                      |
+| `rest`          | ns    | fresh process | no           | all                      |
+| `first-resolve` | ns    | fresh process | yes          | all                      |
+| `ready`         | ns    | fresh process | yes          | all                      |
+| `startup`       | ns    | fresh process | yes          | all; headline on `mixed` |
+| `heap-ready`    | bytes | fresh process | yes          | all                      |
+| `get-cycle`     | ns    | worker        | yes          | `mixed`                  |
+| bundle bytes    | bytes | `scale.json`  | no           | `mixed`                  |
 
 ## 7. Sampling
 
@@ -576,8 +595,15 @@ interface ScaleTimingsFile {
   runner: Runner;
   seed: number;
   graphSeed: number;
+  /**
+   * The ref release-core.ts restored, or 'workspace', and the git tree SHA of the
+   * libs/core that was packed. A ref counts only when its tree is the one packed.
+   */
+  coreRef: { ref: string; tree: string };
   /** Shape, size and hash of every graph timed, matching scale.json. */
   graphs: Array<{ shape: Shape; size: number; hash: string }>;
+  /** Every cell attempted, with `message` required when `outcome` is not `pass`. */
+  cells: ScaleCell[];
   /** One fresh-process design per shape, so each records its own round count. */
   design: { 'fresh-process': Record<Shape, Design>; 'steady-get': Design };
   results: ScaleTimingRow[];
@@ -590,6 +616,11 @@ interface ScaleTimingsFile {
 validators, and `minimums('scale-timings')`: `fresh-process.mixed` at least 1,000
 measured, `fresh-process.wide` and `fresh-process.mixed-async` at least 200, `steady-get`
 at least 1,000. `writeResult`'s `kind` union gains `'scale'`.
+
+`results`, `growth` and `marginal` hold entries for passing cells only, and a growth entry
+joins two neighbours in `SIZES`. Under `results/`, every NexusDI `plain` cell passes, and
+a competitor cell that does not pass is `not-applicable`, or a `runtime-error` or
+`compile-error` above n = 50 where the same library, variant and shape passes at 50.
 
 A reader cross-checks a timing file against `scale.json`: every `graphs[].hash` must
 equal the committed hash for that shape and size, or the page labels the run as made with
@@ -653,21 +684,20 @@ spec), which can link the page or read the file.
 
 1. `node src/scale/deterministic.ts --check`: generates every graph, renders and compiles
    every cell of section 8.1's coverage, verifies it, bundles `mixed` at the four sizes,
-   and fails when `scale.json` changed. Estimate: 39 compiles at 50 to 1,000 providers
-   (about 4 s each with `tsc`) and 5 at 5,000 (about 25 s each), run four at a time on the
-   runner's four cores: about 1.5 minutes.
+   and fails when `scale.json` changed. It compiles 69 cells at 50 to 1,000 providers and
+   5 at 5,000, run four at a time on the runner's four cores.
 2. `node src/scale/render.ts --check`.
 3. `node src/scale/timings.ts --quick --sizes=50 --shapes=mixed`: 3 warm-up and 10
    measured rounds, 200 steady iterations, written to `tmp/`, validated with
    `where: 'tmp'`. It proves the child, the worker and the writer run, and gates nothing
    on the figures. About 1 minute.
 
-`bench-check` grows by about 3 minutes. A NexusDI change that moves bundle bytes changes
+`bench-check` took 13 minutes 40 seconds on its first run with all five shapes. A NexusDI change that moves bundle bytes changes
 `scale.json`, and the pull request commits the regenerated file, as it does for
 `size.json` today.
 
-5,000-provider equivalence for `wide` and `mixed-async` stays out of the pull request
-job: 8 more 25-second compiles. The timing job verifies every cell it times, at every
+5,000-provider equivalence for `wide`, `deep`, `modular` and `mixed-async` stays out of
+the pull request job: 18 more 5,000-provider compiles. The timing job verifies every cell it times, at every
 size. It fails before sampling when a NexusDI cell does not pass, when a competitor cell
 fails at n = 50 or with an equivalence fault, or when a cell's outcome contradicts
 `scale.json`; a competitor cell that passes at n = 50 and fails at a larger size is
@@ -686,22 +716,23 @@ All sizes run in one job, so every point on a curve comes from one machine.
 
 Estimate for one full run on the rc.0 runner class. A round of five libraries at all four
 sizes takes about 2.4 s (spawns of about 60, 70, 100 and 250 ms by size); a `mixed-async`
-round of three about 1.4 s.
+round of three about 1.4 s. All five shapes run; `wide`, `deep` and `modular` each
+take the `wide` figure.
 
-| Step                                                            | Minutes  |
-| --------------------------------------------------------------- | -------- |
-| Render, compile, bundle and verify 52 cells, four at a time     | 5        |
-| `mixed` block, 1,010 rounds of 20 spawns                        | 40       |
-| `wide` block, 210 rounds of 20 spawns                           | 9        |
-| `mixed-async` block, 210 rounds of 12 spawns                    | 5        |
-| Steady `get()`, four sizes                                      | 2        |
-| Statistics and write                                            | 1        |
-| Total                                                           | about 62 |
+| Step                                                         | Minutes  |
+| ------------------------------------------------------------ | -------- |
+| Render, compile, bundle and verify 92 cells, four at a time  | 9        |
+| `mixed` block, 1,010 rounds of 20 spawns                     | 40       |
+| `wide`, `deep` and `modular` blocks, 210 rounds of 20 spawns | 27       |
+| `mixed-async` block, 210 rounds of 12 spawns                 | 5        |
+| Steady `get()`, four sizes                                   | 2        |
+| Statistics and write                                         | 1        |
+| Total                                                        | about 84 |
 
 The per-spawn figures start from rc.0's cold starts (27 to 82 ms) and add load and ready
 time grown from Meridian-8's in-process figures; the first run records the real duration
 in its pull request. The job runs in parallel with `build-scale-200` (39 minutes at rc.0),
-so the workflow's wall time moves from about 47 minutes to about 70.
+so the workflow's wall time moves from about 47 minutes to about 90.
 
 ### 10.3 `build-scale-200`
 
@@ -803,7 +834,7 @@ benchmarks/package.json            (changed: tslib devDependency, targets)
     `sizes`, `perProvider`; `--check` exits 1 on a changed file (reusing `writeResult`).
     Then run it, commit `results/scale.json`, and add it to `check`.
 13. `child.mjs`, `fresh.ts` and the spawn helper. Extract `spawnChild(script, args,
-    execArgv)` from `cold-start.ts`; `cold-start.test.ts` stays unchanged and green. Tests
+execArgv)` from `cold-start.ts`; `cold-start.test.ts` stays unchanged and green. Tests
     with `fake-scale.mjs`: every phase reported, all non-negative; `ready`,
     `first-resolve` and `startup` equal the sums of their phases per round; heap figures
     exclude code space (a fake that compiles a large function changes `code_space` and
