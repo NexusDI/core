@@ -2,7 +2,7 @@
 
 Status: draft, 2026-10-01. The architect's proposal with the tech lead's rulings applied,
 and the tech lead's rulings of 2026-10-14 (listed in the plan) applied on 2026-10-14.
-The owner decisions in section 17 are open.
+The owner approved every decision in section 17 on 2026-10-14.
 Branch: `spec/startup-profiler`, cut from `origin/release/0.4` at 0.4.0-rc.0 and rebased onto
 0.4.0-rc.1 (published 2026-10-08).
 Depends on:
@@ -1438,7 +1438,7 @@ root `package.json` (`@paulirish/trace_engine`, exact pin).
 
 ## 17. Decisions for the owner
 
-Each item carries the tech lead's recommendation. None is resolved.
+Each item carries the tech lead's recommendation. The owner approved every item on 2026-10-14.
 
 ### (a) Pillar trade-offs
 
@@ -1448,7 +1448,7 @@ Each item carries the tech lead's recommendation. None is resolved.
    measure these numbers from outside core. The cheaper option drops every `init` change,
    at +510 B, and the profiler then cannot see an async or hung `onInit`. Recommendation:
    approve +673 B. The ruling already cut 188 B from the proposal (steps, compile passes,
-   `init.module`) and added 81 B for the hung case and `finishMs`.
+   `init.module`) and added 81 B for the hung case and `finishMs`. Approved by the owner, 2026-10-14.
 
 ### (b) Removals, renames and semantic changes to public API
 
@@ -1458,14 +1458,14 @@ withdrawn, and the field keeps its rc.0 values. Two behaviour changes touch rc.0
 1. `init` events start firing for on-demand singletons (`eager: false` with `onInit`),
    which rc.0 builds without an event. A consumer that counts `init` events per container
    sees more of them. Recommendation: approve as a gap fix, with a CHANGELOG entry under the
-   next rc.
+   next rc. Approved by the owner, 2026-10-14.
 2. An observer that throws while core reports a compile failure. rc.0 throws a
    `ProviderError` that wraps the observer's exception, and the caller never sees the
    `BlueprintError` or `LoadError`. New behaviour: the compile error reaches the caller and
    the observer's throw is dropped. On runtime failures, the observer's throw goes into
    `ProviderError.disposalErrors`. Example: a telemetry plugin whose `observe` throws on
    `compile` events today turns a missing-provider error into "plugin failed", and the user
-   never sees `NEXUS_MISSING_PROVIDER`. Recommendation: approve.
+   never sees `NEXUS_MISSING_PROVIDER`. Recommendation: approve. Approved by the owner, 2026-10-14.
 
 ### (c) Conflicts with owner rules
 
@@ -1476,16 +1476,16 @@ withdrawn, and the field keeps its rc.0 values. Two behaviour changes touch rc.0
    never compares types, so `profile()` is the first first-party case. Recommendation: add
    to P1 "A discriminant compare against a union the owner exports, checked by the
    compiler, reads through the owner's export", and require a default branch for unknown
-   types (P2).
+   types (P2). Approved by the owner, 2026-10-14.
 2. Docs spec 4.6: every size and time figure on the site comes from the benchmark harness,
    and no page states one by hand. `/profiling/` has to show profiler output, which is full
    of milliseconds. A static code block with "NavCharts 21.8 ms" breaks the rule and the
    `doc-benchmark-figures` guard. The page console can run `profile()` on the Meridian
    specimen and print the table with the reader's own numbers. Recommendation: output with
    times appears only from an executed region or the console, the guard exempts executed
-   output, and prose states no times.
+   output, and prose states no times. Approved by the owner, 2026-10-14.
 3. The canary installs Chrome stable and beta unpinned, while the repo pins every tool
    through the lockfile. If that is an owner rule: the canary exists to catch a new Chrome
    breaking the undocumented layout, which a pinned Chrome cannot do. Recommendation: allow
    it for this non-required workflow only; the required pull-request path (layer 1) stays
-   fully pinned.
+   fully pinned. Approved by the owner, 2026-10-14.
