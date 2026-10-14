@@ -108,6 +108,7 @@ jobs:
       - run: npx nx run @nexusdi/benchmarks:matrix
       - run: npx nx run @nexusdi/benchmarks:probes
       - run: npx nx run @nexusdi/benchmarks:size
+      - run: npx nx run @nexusdi/benchmarks:scale
       - uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
         with:
           name: deterministic
@@ -204,10 +205,44 @@ jobs:
             benchmarks/results/timings/
             benchmarks/results/raw/
 
+  # The scale suite's fresh-process and steady-get timings (scale spec 10.2):
+  # one job, so every point on a curve comes from one machine.
+  scale-timings:
+    if: github.event_name != 'pull_request'
+    needs: deterministic
+    runs-on: ubuntu-24.04
+    timeout-minutes: 150
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          fetch-depth: 0
+          persist-credentials: false
+      - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
+        with:
+          node-version-file: .nvmrc
+          cache: npm
+      - run: npm ci
+      - name: Check out core at the newest release tag
+        env:
+          PUSHED_TAG: ${{ github.ref_type == 'tag' && github.ref_name || '' }}
+        run: node benchmarks/src/release-core.ts --ref "$PUSHED_TAG"
+      - uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # v8.0.1
+        with:
+          name: deterministic
+          path: benchmarks/results
+      - run: node benchmarks/src/scale/timings.ts --seed=${{ github.run_id }}
+      - uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        with:
+          name: scale-timings
+          path: |
+            benchmarks/results/scale/
+            benchmarks/results/raw/
+
   # Merges the measuring jobs' files without write access, since it runs
   # npm ci and repository scripts. The results job only commits and pushes.
   merge:
-    needs: [deterministic, build-meridian-8, build-scale-200, timings]
+    needs:
+      [deterministic, build-meridian-8, build-scale-200, timings, scale-timings]
     runs-on: ubuntu-24.04
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
@@ -241,7 +276,12 @@ jobs:
         with:
           name: timings
           path: benchmarks/results
+      - uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # v8.0.1
+        with:
+          name: scale-timings
+          path: benchmarks/results
       - run: node benchmarks/src/build.ts --merge benchmarks/tmp/build-meridian-8.json benchmarks/tmp/build-scale-200.json
+      - run: node benchmarks/src/scale/render.ts
       - uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
         with:
           name: results

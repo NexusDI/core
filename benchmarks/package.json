@@ -54,6 +54,30 @@
           "command": "node src/timings/orchestrator.ts"
         }
       },
+      "scale": {
+        "executor": "nx:run-commands",
+        "cache": false,
+        "options": {
+          "cwd": "benchmarks",
+          "command": "node src/scale/deterministic.ts"
+        }
+      },
+      "scale-timings": {
+        "executor": "nx:run-commands",
+        "cache": false,
+        "options": {
+          "cwd": "benchmarks",
+          "command": "node src/scale/timings.ts"
+        }
+      },
+      "scale-render": {
+        "executor": "nx:run-commands",
+        "cache": false,
+        "options": {
+          "cwd": "benchmarks",
+          "command": "node src/scale/render.ts"
+        }
+      },
       "check": {
         "executor": "nx:run-commands",
         "cache": false,
@@ -65,6 +89,8 @@
             "node src/probes.ts --check",
             "node src/size.ts --check",
             "node src/scale/deterministic.ts --check",
+            "node src/scale/render.ts --check",
+            "node src/scale/timings.ts --quick --sizes=50 --shapes=mixed",
             "vitest run --config vite.config.ts src/matrix-consistency.test.ts",
             "vitest run --config vitest.cells.config.ts"
           ]
@@ -81,7 +107,10 @@
             "node src/probes.ts",
             "node src/size.ts",
             "node src/build.ts",
-            "node src/timings/orchestrator.ts"
+            "node src/timings/orchestrator.ts",
+            "node src/scale/deterministic.ts",
+            "node src/scale/timings.ts",
+            "node src/scale/render.ts"
           ]
         }
       }
