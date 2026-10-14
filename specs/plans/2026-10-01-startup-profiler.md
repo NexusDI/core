@@ -3168,6 +3168,7 @@ Interfaces:
 ```ts
 import { describe, expect, it } from 'vitest';
 
+import { defined } from '../../test-support/defined.js';
 import { build, report } from '../../test-support/profile-fixture.js';
 import { criticalPath } from './critical-path.js';
 
@@ -3188,7 +3189,7 @@ describe('criticalPath', () => {
       ],
       [['c', 'b']],
     );
-    const path = criticalPath(r, 0)!;
+    const path = defined(criticalPath(r, 0) ?? undefined);
     expect(path.path.map((p) => [p.token, p.dependsOnPrevious])).toEqual([
       ['A', false],
       ['C', false],
@@ -3216,7 +3217,7 @@ describe('criticalPath', () => {
         ['t', 'a'],
       ],
     );
-    const graph = r.graph!;
+    const graph = defined(r.graph ?? undefined);
     const withTransient = {
       ...r,
       graph: {
@@ -3235,7 +3236,9 @@ describe('criticalPath', () => {
       },
     };
     expect(
-      criticalPath(withTransient, 0)!.path.map((p) => p.dependsOnPrevious),
+      defined(criticalPath(withTransient, 0) ?? undefined).path.map(
+        (p) => p.dependsOnPrevious,
+      ),
     ).toEqual([false, true]);
   });
 
@@ -3250,7 +3253,7 @@ describe('criticalPath', () => {
         awaitMs: 19,
       }),
     ]);
-    expect(criticalPath(r, 0)!.path[0]).toMatchObject({
+    expect(defined(criticalPath(r, 0) ?? undefined).path[0]).toMatchObject({
       token: 'NavCharts',
       lateMs: 4,
     });
@@ -3528,8 +3531,8 @@ function median(xs: readonly number[]): number {
   return s.length === 0
     ? 0
     : s.length % 2 === 1
-      ? s[mid]!
-      : (s[mid - 1]! + s[mid]!) / 2;
+      ? (s[mid] ?? 0)
+      : ((s[mid - 1] ?? 0) + (s[mid] ?? 0)) / 2;
 }
 
 /** Lines of padded columns; `right` marks the numeric ones. */
@@ -3543,7 +3546,7 @@ function columns(
   return rows.map((r) =>
     r
       .map((cell, i) =>
-        right[i] ? cell.padStart(widths[i]!) : cell.padEnd(widths[i]!),
+        right[i] ? cell.padStart(widths[i] ?? 0) : cell.padEnd(widths[i] ?? 0),
       )
       .join('  ')
       .trimEnd(),
@@ -3714,7 +3717,7 @@ export function profileTable(
           i === 0
             ? ''
             : p.dependsOnPrevious
-              ? `depends on ${path.path[i - 1]!.token}`
+              ? `depends on ${path.path[i - 1]?.token ?? ''}`
               : 'barrier: depends on nothing in the level before',
           p.lateMs !== null && p.lateMs > 0
             ? `started ${ms(p.lateMs)} ms late, behind sync siblings`
@@ -3740,7 +3743,7 @@ export function profileTable(
       `still awaiting: ${run.pending
         .map(
           (p) =>
-            `${p.token}${p.module === '' ? '' : ` (${p.module})`} ${p.what === 'construct' ? 'factory' : 'onInit'}, ${ms(cold.reportedMs - p.startMs)} ms`,
+            `${p.token} (${p.module}) ${p.what === 'construct' ? 'factory' : 'onInit'}, ${ms(cold.reportedMs - p.startMs)} ms`,
         )
         .join('; ')}`,
     );

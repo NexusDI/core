@@ -136,6 +136,16 @@ export interface CriticalPath {
     readonly dependsOnPrevious: boolean;
     /** Async providers only; null otherwise. */
     readonly lateMs: number | null;
+    /**
+     * Its latest-ending dependency built in this run, and how long before the
+     * previous path member's end that dependency ended. null when it has no
+     * such dependency, and on the first member.
+     */
+    readonly latestDep: {
+      readonly providerId: string;
+      readonly token: string;
+      readonly earlierMs: number;
+    } | null;
   }[];
   readonly waits: readonly {
     readonly providerId: string;
