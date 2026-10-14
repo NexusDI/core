@@ -378,9 +378,13 @@ describe('Nexus', () => {
         startBlueprint(root, {
           bp,
           isNew: () => true,
-          run: 0,
-          kind: 'create',
-          start: 0,
+          run: {
+            id: 0,
+            kind: 'create',
+            scope: null,
+            start: 0,
+            errors: undefined,
+          },
         }),
       ).rejects.toMatchObject({ code: 'NEXUS_PROVIDER_FAILED' });
       expect(root.ownership.claim(shared)).toBe(true);
@@ -410,9 +414,13 @@ describe('Nexus', () => {
       await startBlueprint(root, {
         bp: firstBp,
         isNew: () => true,
-        run: 0,
-        kind: 'create',
-        start: 0,
+        run: {
+          id: 0,
+          kind: 'create',
+          scope: null,
+          start: 0,
+          errors: undefined,
+        },
       });
       // `shared` is now registered as a useValue object by the first build,
       // which succeeded and is not being undone.
@@ -433,9 +441,13 @@ describe('Nexus', () => {
         startBlueprint(root, {
           bp: secondBp,
           isNew,
-          run: 1,
-          kind: 'load',
-          start: 0,
+          run: {
+            id: 1,
+            kind: 'load',
+            scope: null,
+            start: 0,
+            errors: undefined,
+          },
         }),
       ).rejects.toMatchObject({ code: 'NEXUS_PROVIDER_FAILED' });
       // The second build's registration of the same object is a no-op

@@ -18,10 +18,9 @@ import {
   type Owner,
   type RootState,
   type Run,
-  type RunTrace,
   type ScopeState,
 } from './state.js';
-import { emitRun, reportDisposal } from './trace.js';
+import { emitRun, reportDisposal, type RunTrace } from './trace.js';
 
 const ignore = (): void => undefined;
 
@@ -187,17 +186,10 @@ async function buildScoped(
  * hook holds the scope meanwhile, so a disposal of the scope stops the next
  * level, as a root disposal does.
  */
-async function buildScope(
-  scope: ScopeState,
-  run: number,
-  runStart: number,
-): Promise<Scope> {
+async function buildScope(scope: ScopeState, trace: RunTrace): Promise<Scope> {
   const { root } = scope;
   const tracer = root.tracer;
   const start = tracer.now();
-  // Observer throws from this run's failure-path events; the rollback adds
-  // them to its disposal errors.
-  const trace: RunTrace = { id: run, errors: undefined };
   let built = 0;
   try {
     built = await buildLevels(
@@ -217,7 +209,7 @@ async function buildScope(
     scope.disposal ??= Promise.resolve();
     throw await rollBack(
       scope,
-      { touched: [], owned: scope.owned, errors: trace.errors },
+      { ...trace, touched: [], owned: scope.owned },
       scope.blueprint,
       error,
       () =>
@@ -226,28 +218,25 @@ async function buildScope(
           : aborted
             ? scope.abortErrors
             : undefined,
-      (errors) =>
-        emitRun(
-          tracer,
-          run,
-          'createScope',
-          scope.scopeId,
-          runStart,
-          false,
-          errors,
-        ),
     );
   }
   root.scopes.add(scope);
-  tracer.emit(() => ({
-    type: 'scope:create',
-    scope: scope.scopeId,
-    built,
-    run,
-    startMs: start,
-    durationMs: tracer.now() - start,
-  }));
-  emitRun(tracer, run, 'createScope', scope.scopeId, runStart, true);
+  try {
+    tracer.emit(() => ({
+      type: 'scope:create',
+      scope: scope.scopeId,
+      built,
+      run: trace.id,
+      startMs: start,
+      durationMs: tracer.now() - start,
+    }));
+  } catch (error) {
+    // The call rejects with the observer's throw as in rc.0, and its run
+    // still closes once (spec 3.4).
+    emitRun(tracer, trace, []);
+    throw error;
+  }
+  emitRun(tracer, trace);
   return scope.handle;
 }
 
@@ -260,11 +249,13 @@ async function buildScope(
  * an older scoped class a new factory built on first use stays in its
  * slot, and so does a transient a get() built meanwhile.
  */
-async function extendNow(scope: ScopeState, target: Blueprint): Promise<void> {
+async function extendNow(
+  scope: ScopeState,
+  target: Blueprint,
+  trace: RunTrace,
+): Promise<void> {
   const { root } = scope;
   const tracer = root.tracer;
-  const id = root.nextRun++;
-  const runStart = tracer.now();
   const pinned = scope.blueprint;
   try {
     assertScopeOpen(scope);
@@ -275,11 +266,11 @@ async function extendNow(scope: ScopeState, target: Blueprint): Promise<void> {
       throw new RequestMissingError({ dependents });
   } catch (error) {
     // No list holds an observer's throw here (spec 3.5).
-    emitRun(tracer, id, 'extend', scope.scopeId, runStart, false);
+    emitRun(tracer, trace, []);
     throw error;
   }
   if (target === pinned) {
-    emitRun(tracer, id, 'extend', scope.scopeId, runStart, true);
+    emitRun(tracer, trace);
     return;
   }
 
@@ -290,8 +281,7 @@ async function extendNow(scope: ScopeState, target: Blueprint): Promise<void> {
   // A provider the delta adds that a request builds on first use while
   // extend() runs joins built and touched too (scope.run).
   const run: Run = {
-    id,
-    errors: undefined,
+    ...trace,
     isNew: (pid) => !pinned.providers.has(pid),
     owner: built,
     touched,
@@ -318,46 +308,71 @@ async function extendNow(scope: ScopeState, target: Blueprint): Promise<void> {
     scope.run = undefined;
     throw await rollBack(
       scope,
-      { touched, owned: built.owned, errors: run.errors },
+      { ...run, owned: built.owned },
       target,
       error,
       () => (root.disposing ? root.abortErrors : scope.abortErrors),
-      (errors) =>
-        emitRun(tracer, id, 'extend', scope.scopeId, runStart, false, errors),
     );
   }
   scope.run = undefined;
   scope.owned.push(...built.owned);
   scope.blueprint = target;
   const known = new Set([...pinned.modules.values()].map((m) => m.definition));
-  tracer.emit(() => ({
-    type: 'scope:extend',
-    scope: scope.scopeId,
-    modules: [...target.modules.values()]
-      .filter((m) => !known.has(m.definition))
-      .map((m) => m.name),
-    built: levelled,
-    run: id,
-    startMs: start,
-    durationMs: tracer.now() - start,
-  }));
-  emitRun(tracer, id, 'extend', scope.scopeId, runStart, true);
+  try {
+    tracer.emit(() => ({
+      type: 'scope:extend',
+      scope: scope.scopeId,
+      modules: [...target.modules.values()]
+        .filter((m) => !known.has(m.definition))
+        .map((m) => m.name),
+      built: levelled,
+      run: trace.id,
+      startMs: start,
+      durationMs: tracer.now() - start,
+    }));
+  } catch (error) {
+    // As for scope:create in buildScope.
+    emitRun(tracer, trace, []);
+    throw error;
+  }
+  emitRun(tracer, trace);
 }
 
 /**
  * Re-pins the scope to the root's current blueprint and builds the scoped
  * factories that later loads added (spec §7.4). Calls run one at a time; a
- * call for the blueprint an in-flight call targets shares its promise. The
+ * call for the blueprint an in-flight call targets waits for that call and
+ * ends its own run with the same outcome. The
  * work joins root.inflight, so root disposal waits for it. It is async so
  * a throw before the queue, such as NEXUS_DISPOSED, rejects the promise
  * guardAsync formats.
  */
 async function extendScope(scope: ScopeState): Promise<void> {
-  assertScopeOpen(scope);
-  const target = scope.root.blueprint;
-  if (scope.pendingExtend?.target === target)
-    return scope.pendingExtend.promise;
-  const promise = scope.extendQueue.then(() => extendNow(scope, target));
+  const { root } = scope;
+  const tracer = root.tracer;
+  // Every call is a run (spec 3.3), a closed scope's and a shared one's too.
+  const trace: RunTrace = {
+    id: root.nextRun++,
+    kind: 'extend',
+    scope: scope.scopeId,
+    start: tracer.now(),
+    errors: undefined,
+  };
+  const target = root.blueprint;
+  const pending = scope.pendingExtend;
+  try {
+    assertScopeOpen(scope);
+    if (pending?.target === target) await pending.promise;
+  } catch (error) {
+    // No list holds an observer's throw here (spec 3.5).
+    emitRun(tracer, trace, []);
+    throw error;
+  }
+  if (pending?.target === target) {
+    emitRun(tracer, trace);
+    return;
+  }
+  const promise = scope.extendQueue.then(() => extendNow(scope, target, trace));
   const settled = promise.then(ignore, ignore);
   scope.extendQueue = settled;
   scope.pendingExtend = { target, promise };
@@ -373,8 +388,13 @@ export async function openScope(
   root: RootState,
   options?: { readonly request?: NexusRequest },
 ): Promise<Scope> {
-  const id = root.nextRun++;
-  const start = root.tracer.now();
+  const trace: RunTrace = {
+    id: root.nextRun++,
+    kind: 'createScope',
+    scope: null,
+    start: root.tracer.now(),
+    errors: undefined,
+  };
   let scope: ScopeState;
   try {
     assertOpen(root);
@@ -395,7 +415,7 @@ export async function openScope(
     );
   } catch (error) {
     // No list holds an observer's throw here (spec 3.5).
-    emitRun(root.tracer, id, 'createScope', null, start, false);
+    emitRun(root.tracer, trace, []);
     throw error;
   }
   // A disposal or extend() a construct hook starts on the scope waits for
@@ -405,7 +425,8 @@ export async function openScope(
   scope.extendQueue = new Promise<void>((resolve) => {
     settle = resolve;
   });
-  const work = buildScope(scope, id, start);
+  trace.scope = scope.scopeId;
+  const work = buildScope(scope, trace);
   void work.then(settle, settle);
   track(root.inflight, work);
   return work;

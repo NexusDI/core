@@ -5,7 +5,7 @@ import { moduleName } from './build.js';
 import { disposeInReverse } from './dispose.js';
 import type { OwnedEntry } from './ownership.js';
 import type { ContainerState } from './state.js';
-import { reportDisposal } from './trace.js';
+import { emitRun, reportDisposal, type RunTrace } from './trace.js';
 
 /** Every failure of one build level, in declaration order. */
 export class LevelFailure extends Error {
@@ -108,21 +108,19 @@ export function toProviderError(
  * unchanged when `parkIn()` names a list, and the disposer errors wait
  * there for the disposal that aborted the run. Any other failure becomes
  * the ProviderError naming its first failure, with the disposer errors in
- * `disposalErrors`. `close` emits the run's closing event; it runs after
- * the disposal and before the error is built, so an observer's throw there
+ * `disposalErrors`. It emits the run's closing `run` event after the
+ * disposal and before the error is built, so an observer's throw there
  * joins the disposal errors.
  */
 export async function rollBack(
   container: ContainerState,
-  run: {
+  run: RunTrace & {
     readonly touched: readonly string[];
     readonly owned: OwnedEntry[];
-    readonly errors?: unknown[] | undefined;
   },
   bp: Blueprint,
   error: unknown,
   parkIn: () => unknown[] | undefined,
-  close: (errors: unknown[]) => void,
 ): Promise<unknown> {
   const { root } = container;
   for (const id of run.touched) container.slots.abandon(id);
@@ -132,7 +130,7 @@ export async function rollBack(
     reportDisposal(root.tracer, container.scopeId),
   );
   if (run.errors !== undefined) errors.push(...run.errors);
-  close(errors);
+  emitRun(root.tracer, run, errors);
   const parked = error instanceof DisposedError ? parkIn() : undefined;
   if (parked === undefined) return toProviderError(error, bp, errors);
   parked.push(...errors);

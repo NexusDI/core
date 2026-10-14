@@ -227,10 +227,10 @@ browser. The tier column refers to section 5.2.
 | ------------ | ----------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | -------------------------------------------- |
 | `run`        | `compile`, `construct*`, `init*`, `run`, `scope:create`, `scope:extend` | The run id. Unique within one container; `create` is run 0; `load`, `createScope` and `extend()` each take the next id from one counter on the root. `null` on `compile` for `Nexus.check`, and on builds no run scheduled (section 3.3).                                                                     | stable                                       |
 | `kind`       | `run`                                                                   | The operation: `create`, `load`, `createScope`, `extend`. A minor release may add a member.                                                                                                                                                                                                                   | stable (the union is open to core additions) |
-| `ok`         | `run`                                                                   | `true` when the operation settled with a value, `false` when it threw or was aborted by disposal.                                                                                                                                                                                                             | stable                                       |
+| `ok`         | `run`                                                                   | `true` when the operation settled with a value, `false` when it threw or was aborted by disposal. An `extend()` that shares an in-flight `extend()` to the same blueprint reports the shared work's outcome.                                                                                                  | stable                                       |
 | `level`      | `construct*`, `init*`                                                   | The index into the levels array of the blueprint the run built (section 3.3). `null` for on-demand, transient, value and alias builds.                                                                                                                                                                        | presence and type stable; numbering evolving |
 | `parent`     | `construct`, `construct:failed`                                         | The provider id whose constructor or factory this build ran inside, or `null`.                                                                                                                                                                                                                                | stable                                       |
-| `startMs`    | every event with `durationMs`, and both `:await` events                 | When the span began. For `construct*` and `init*`, the moment core called the constructor, factory or `onInit`. For `run`, the moment core knew an observer exists (right after plugin registration for `create`).                                                                                            | stable                                       |
+| `startMs`    | every event with `durationMs`, and both `:await` events                 | When the span began. For `construct*` and `init*`, the moment core called the constructor, factory or `onInit`. For `run`, the call: right after plugin registration for `create`, and the call itself for `load`, `createScope` and `extend()`, so the span includes time queued behind earlier calls.       | stable                                       |
 | `durationMs` | as in rc.0, plus the new events                                         | The wall span. The event's span is `[startMs, startMs + durationMs]`. For `construct`, the call to the store, with time queued behind level siblings included.                                                                                                                                                | stable                                       |
 | `syncMs`     | `construct`, `construct:await`, `init`, `init:await`                    | From the call until it returned. Nested builds and property injection run inside it.                                                                                                                                                                                                                          | stable                                       |
 | `awaitMs`    | `construct`, `init`                                                     | From that return until the returned promise settled. `null` when no thenable came back.                                                                                                                                                                                                                       | stable                                       |
@@ -322,8 +322,17 @@ The operation's own error always reaches the caller.
   errors. Rollback already puts observer throws from `dispose:instance` there.
 - On a compile failure (`BlueprintError`, `LoadError`), `compileTraced` drops the
   observer's throw. Those errors have no list to hold it.
-- On success paths nothing changes: an observer's throw reaches the caller as core spec
-  3.10.5 states.
+- On a success path, an observer's throw on the closing `run` event rejects the call:
+  - `create` returns no container, so core abandons the root (disposes what it built and
+    runs the started plugins' dispose hooks) and rejects with a `ProviderError` (token
+    `startup`) whose `cause` is the observer's throw and whose `disposalErrors` hold the
+    disposer errors.
+  - `load()` keeps the module it committed and rejects with the same `ProviderError`
+    shape, as a throw on its `compile` event does. A retry of that `load()` is a no-op
+    run with `ok: true`.
+  - `createScope` and `extend()` keep the scope they built or extended, and the
+    observer's throw reaches the caller as core spec 3.10.5 states. So does a throw on any
+    other event of a success path.
 - On an on-demand build outside any run (a `get()` after startup), core drops the
   observer's throw on `construct:failed` and `init:failed`, and `get()` throws its own
   error. No run holds a list for it. If the owner rejects item (b) 2, this case follows the
@@ -558,6 +567,8 @@ which graph CLI spec section 4.3 makes the project's copy.
 ### 6.2 The report
 
 ```ts
+import type { Lifetime, RunKind } from '@nexusdi/core';
+
 export interface ProfileReport {
   readonly format: 'nexusdi-profile';
   readonly version: 1;
@@ -597,8 +608,12 @@ export interface ProfileReport {
 
 export interface ProfileRun {
   readonly id: number;
-  /** A RunKind; a kind from a newer core is kept as given. */
-  readonly kind: string;
+  /**
+   * Typed as core's RunKind. parseProfileReport accepts any string here, so
+   * a report from a newer core keeps a kind this union lacks, and a reader
+   * handles one with a default branch.
+   */
+  readonly kind: RunKind;
   readonly scope: string | null;
   /** null while the run is open. */
   readonly ok: boolean | null;
@@ -638,7 +653,8 @@ export interface ProfileBuild {
   readonly providerId: string;
   readonly token: string;
   readonly module: string;
-  readonly lifetime: string | null;
+  /** Core's Lifetime; parseProfileReport accepts any string, as for ProfileRun.kind. */
+  readonly lifetime: Lifetime | null;
   readonly scope: string | null;
   readonly async: boolean;
   readonly level: number | null;
