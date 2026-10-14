@@ -7,6 +7,7 @@
  */
 import { execFile } from 'node:child_process';
 import { readFileSync, writeFileSync } from 'node:fs';
+import { builtinModules } from 'node:module';
 import { join } from 'node:path';
 import { promisify } from 'node:util';
 
@@ -113,15 +114,32 @@ const packagesExternal: Plugin = {
   },
 };
 
-/** Bundles the compiled app into one unminified ESM file; returns its path. */
+/**
+ * The bundle's external imports for the timed child, polyfill first: the
+ * child imports this one file untimed, so every library package resolves
+ * from the cell, as the bundle's own imports do.
+ */
+export function packagesSource(specifiers: readonly string[]): string {
+  const rank = (s: string) => (s === 'reflect-metadata' ? 0 : 1);
+  return [...new Set(specifiers)]
+    .sort((a, b) => rank(a) - rank(b))
+    .map((s) => `import '${s}';\n`)
+    .join('');
+}
+
+/**
+ * Bundles the compiled app into one unminified ESM file and writes
+ * `packages.mjs` beside it; returns the bundle's path.
+ */
 export async function bundleCell(
   cellDir: string,
   modulePath: string,
 ): Promise<string> {
   const outfile = join(cellDir, 'bundle.mjs');
   try {
-    await build({
+    const { metafile } = await build({
       entryPoints: [join(cellDir, modulePath)],
+      metafile: true,
       bundle: true,
       format: 'esm',
       platform: 'node',
@@ -129,6 +147,18 @@ export async function bundleCell(
       logLevel: 'silent',
       plugins: [packagesExternal],
     });
+    const builtin = new Set(builtinModules);
+    const external = Object.values(metafile.outputs).flatMap((o) =>
+      o.imports
+        .filter(
+          (i) =>
+            i.external === true &&
+            !i.path.startsWith('node:') &&
+            !builtin.has(i.path),
+        )
+        .map((i) => i.path),
+    );
+    writeFileSync(join(cellDir, 'packages.mjs'), packagesSource(external));
   } catch (e) {
     const err = e as { errors?: Array<{ text: string }>; message: string };
     throw new CompileError(err.errors?.[0]?.text ?? firstLine(err.message));

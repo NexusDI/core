@@ -1,4 +1,11 @@
-import { cpSync, mkdirSync, readFileSync, rmSync, symlinkSync } from 'node:fs';
+import {
+  cpSync,
+  mkdirSync,
+  readFileSync,
+  rmSync,
+  symlinkSync,
+  writeFileSync,
+} from 'node:fs';
 import { join } from 'node:path';
 import { afterAll, describe, expect, it } from 'vitest';
 
@@ -138,4 +145,21 @@ describe('bundleCell', () => {
     expect(text.match(/(?:var|function) __decorate\d*\b/g)).toHaveLength(1);
     expect(text).not.toMatch(/from ["']tslib["']/);
   }, 120_000);
+  it('writes packages.mjs beside the bundle, polyfill first, no builtins or tslib', async () => {
+    const cellDir = stageCell(
+      DIR,
+      'packages',
+      { 'app.ts': '' },
+      six(),
+      'legacy',
+    );
+    writeFileSync(
+      join(cellDir, 'app.js'),
+      "import 'b-lib';\nimport { readFileSync } from 'node:fs';\nimport 'tslib';\nimport 'reflect-metadata';\nexport const scale = { readFileSync };\n",
+    );
+    await bundleCell(cellDir, 'app.js');
+    expect(readFileSync(join(cellDir, 'packages.mjs'), 'utf8')).toBe(
+      "import 'reflect-metadata';\nimport 'b-lib';\n",
+    );
+  });
 });

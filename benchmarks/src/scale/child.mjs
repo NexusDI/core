@@ -3,9 +3,9 @@
  * JavaScript, never compiled, so every library's bundle meets the same code.
  * Run by fresh.ts, one process per sample:
  *
- *   node --expose-gc child.mjs <bundle.mjs> <graph.json> [package ...]
+ *   node --expose-gc child.mjs <bundle.mjs> <graph.json> <packages.mjs>
  *
- * Imports the packages untimed, reads the base heap, then times load,
+ * Imports the cell's packages.mjs untimed, reads the base heap, then times load,
  * create, first-get and rest with process.hrtime.bigint(), and reads the
  * retained heap with the handle still referenced. The gc() calls sit between
  * timed phases. Sends one `sample` message in ns and bytes, or exits 1 with
@@ -17,7 +17,7 @@ import { getHeapSpaceStatistics } from 'node:v8';
 
 import { retainedHeap } from './heap.mjs';
 
-const [bundle, graphPath, ...packages] = process.argv.slice(2);
+const [bundle, graphPath, packagesFile] = process.argv.slice(2);
 
 function fail(message) {
   console.error(message);
@@ -36,7 +36,7 @@ const collect = () => {
 const ns = () => process.hrtime.bigint();
 
 // Library import time is the cold-start figure, so it stays untimed.
-for (const spec of packages) await import(spec);
+await import(pathToFileURL(packagesFile).href);
 
 collect();
 const base = retainedHeap(getHeapSpaceStatistics());
@@ -46,14 +46,16 @@ const { scale } = await import(pathToFileURL(bundle).href);
 const load = Number(ns() - t);
 if (scale === undefined) fail('the bundle exports no scale app');
 
-collect();
-t = ns();
-const handle = await scale.create();
-const create = Number(ns() - t);
-
-collect();
+// The indices to resolve after the target, built before the timed phases.
 const others = [];
 for (let i = 0; i < scale.count; i++) if (i !== scale.target) others.push(i);
+
+collect();
+t = ns();
+let handle = scale.create();
+// A synchronous create pays no microtask turn.
+if (typeof handle?.then === 'function') handle = await handle;
+const create = Number(ns() - t);
 
 let firstGet;
 let rest;
