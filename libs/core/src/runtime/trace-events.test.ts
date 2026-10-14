@@ -17,6 +17,7 @@ const REACTOR = new Token<IReactorCore>('ReactorCore');
 const COMPUTER = new Token<IShipComputer>('ShipComputer');
 class FusionReactor implements IReactorCore {
   readonly output = 1.21;
+  onInit(): void {}
 }
 class QuantumComputer implements IShipComputer {
   static deps = [REACTOR] as const;
@@ -37,6 +38,14 @@ describe('startMs', () => {
     const before = performance.now();
     const ship = await Nexus.create(Engineering, { plugins: [plugin] });
     const shuttle = await ship.createScope();
+    class Probe {}
+    await ship.load(
+      defineModule({
+        name: 'Science',
+        providers: [provide(Probe, { lifetime: 'scoped' })],
+      }),
+    );
+    await shuttle.extend();
     await shuttle[Symbol.asyncDispose]();
     await ship[Symbol.asyncDispose]();
     const after = performance.now();
@@ -51,7 +60,9 @@ describe('startMs', () => {
       expect.arrayContaining([
         'compile',
         'construct',
+        'init',
         'scope:create',
+        'scope:extend',
         'scope:dispose',
         'dispose',
       ]),

@@ -78,6 +78,16 @@ describe('TraceEvent', () => {
     }>();
   });
 
+  it('gives every core event with durationMs a startMs', () => {
+    // Only the third-party fixture lacks it: an augmentation is not bound to carry startMs.
+    expectTypeOf<
+      Exclude<
+        Extract<TraceEvent, { durationMs: number }>,
+        { startMs: number }
+      >['type']
+    >().toEqualTypeOf<'@acme/cache/miss'>();
+  });
+
   it('gives every timed event a startMs', () => {
     expectTypeOf<TraceEvent<'compile'>['startMs']>().toEqualTypeOf<number>();
     expectTypeOf<TraceEvent<'construct'>['startMs']>().toEqualTypeOf<number>();
