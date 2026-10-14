@@ -20,6 +20,7 @@
     "@nexusdi/federation",
     "@nexusdi/interceptors",
     "@nexusdi/cli",
+    "@nexusdi/express",
     "@nexusdi/meridian-ui",
   ],
 
@@ -32,10 +33,10 @@
   // a vite config as an entry point of its own and does not trace its
   // imports, so the file needs an entry.
   //
-  // libs/core/test-support/nexus-request.ts has no importer. It augments
-  // NexusRequest with `declare module '../src/index.js'`, and
-  // request.test-d.ts reaches it through tsconfig.spec.json's
-  // `test-support/**` include, which fallow's resolver does not read.
+  // Each libs/*/test-support/nexus-request.ts has no importer. It augments
+  // NexusRequest with `declare module`, and the package's tests reach it
+  // through tsconfig.spec.json's `test-support/**` include, which fallow's
+  // resolver does not read.
   //
   // Every *.test-d.ts file under libs/core/src is vitest's own type-only
   // test file. fallow's vitest plugin derives entry points from
@@ -57,6 +58,7 @@
     // The test-trace target of @nexusdi/devtools runs this config by path.
     "libs/devtools/vitest.trace.config.ts",
     "libs/core/test-support/nexus-request.ts",
+    "libs/express/test-support/nexus-request.ts",
     "libs/core/src/**/*.test-d.ts",
     "libs/errors/src/**/*.test-d.ts",
     "libs/testing/src/**/*.test-d.ts",
@@ -65,6 +67,7 @@
     "libs/decorators/src/**/*.test-d.ts",
     "libs/federation/src/**/*.test-d.ts",
     "libs/interceptors/src/**/*.test-d.ts",
+    "libs/express/src/**/*.test-d.ts",
     // fallow's vitest plugin derives entry points from vite.config.ts's
     // test.include glob alone. Each vitest.browser.config.ts, the Chromium
     // project that runs R20, is a separate config file the plugin never
