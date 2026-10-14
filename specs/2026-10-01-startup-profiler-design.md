@@ -223,18 +223,18 @@ event, with the fraction the runtime gives. Browsers coarsen `performance.now()`
 100 µs on a page without cross-origin isolation), so a short provider can read 0 in a
 browser. The tier column refers to section 5.2.
 
-| Field        | On                                                                      | Meaning                                                                                                                                                                                                                                   | Tier                                         |
-| ------------ | ----------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | -------------------------------------------- |
-| `run`        | `compile`, `construct*`, `init*`, `run`, `scope:create`, `scope:extend` | The run id. Unique within one container; `create` is run 0; `load`, `createScope` and `extend()` each take the next id from one counter on the root. `null` on `compile` for `Nexus.check`, and on builds no run scheduled (section 3.3). | stable                                       |
-| `kind`       | `run`                                                                   | The operation: `create`, `load`, `createScope`, `extend`. A minor release may add a member.                                                                                                                                               | stable (the union is open to core additions) |
-| `ok`         | `run`                                                                   | `true` when the operation settled with a value, `false` when it threw or was aborted by disposal.                                                                                                                                         | stable                                       |
-| `level`      | `construct*`, `init*`                                                   | The index into the levels array of the blueprint the run built (section 3.3). `null` for on-demand, transient, value and alias builds.                                                                                                    | presence and type stable; numbering evolving |
-| `parent`     | `construct`, `construct:failed`                                         | The provider id whose constructor or factory this build ran inside, or `null`.                                                                                                                                                            | stable                                       |
-| `startMs`    | every event with `durationMs`, and both `:await` events                 | When the span began. For `construct*` and `init*`, the moment core called the constructor, factory or `onInit`. For `run`, the moment core knew an observer exists (right after plugin registration for `create`).                        | stable                                       |
-| `durationMs` | as in rc.0, plus the new events                                         | The wall span. The event's span is `[startMs, startMs + durationMs]`. For `construct`, the call to the store, with time queued behind level siblings included.                                                                            | stable                                       |
-| `syncMs`     | `construct`, `construct:await`, `init`, `init:await`                    | From the call until it returned. Nested builds and property injection run inside it.                                                                                                                                                      | stable                                       |
-| `awaitMs`    | `construct`, `init`                                                     | From that return until the returned promise settled. `null` when no thenable came back.                                                                                                                                                   | stable                                       |
-| `finishMs`   | `construct`                                                             | From the build resuming until the instance was stored. Today that covers options validation and `construct` hooks.                                                                                                                        | field stable; the work it covers evolving    |
+| Field        | On                                                                      | Meaning                                                                                                                                                                                                                                                                                                       | Tier                                         |
+| ------------ | ----------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | -------------------------------------------- |
+| `run`        | `compile`, `construct*`, `init*`, `run`, `scope:create`, `scope:extend` | The run id. Unique within one container; `create` is run 0; `load`, `createScope` and `extend()` each take the next id from one counter on the root. `null` on `compile` for `Nexus.check`, and on builds no run scheduled (section 3.3).                                                                     | stable                                       |
+| `kind`       | `run`                                                                   | The operation: `create`, `load`, `createScope`, `extend`. A minor release may add a member.                                                                                                                                                                                                                   | stable (the union is open to core additions) |
+| `ok`         | `run`                                                                   | `true` when the operation settled with a value, `false` when it threw or was aborted by disposal.                                                                                                                                                                                                             | stable                                       |
+| `level`      | `construct*`, `init*`                                                   | The index into the levels array of the blueprint the run built (section 3.3). `null` for on-demand, transient, value and alias builds.                                                                                                                                                                        | presence and type stable; numbering evolving |
+| `parent`     | `construct`, `construct:failed`                                         | The provider id whose constructor or factory this build ran inside, or `null`.                                                                                                                                                                                                                                | stable                                       |
+| `startMs`    | every event with `durationMs`, and both `:await` events                 | When the span began. For `construct*` and `init*`, the moment core called the constructor, factory or `onInit`. For `run`, the moment core knew an observer exists (right after plugin registration for `create`).                                                                                            | stable                                       |
+| `durationMs` | as in rc.0, plus the new events                                         | The wall span. The event's span is `[startMs, startMs + durationMs]`. For `construct`, the call to the store, with time queued behind level siblings included.                                                                                                                                                | stable                                       |
+| `syncMs`     | `construct`, `construct:await`, `init`, `init:await`                    | From the call until it returned. Nested builds and property injection run inside it.                                                                                                                                                                                                                          | stable                                       |
+| `awaitMs`    | `construct`, `init`                                                     | From that return until the returned promise settled. `null` when no thenable came back.                                                                                                                                                                                                                       | stable                                       |
+| `finishMs`   | `construct`                                                             | From the build resuming until the instance was stored. Today that covers options validation and `construct` hooks.                                                                                                                                                                                            | field stable; the work it covers evolving    |
 | `async`      | `construct`, `construct:failed`, `init`, `init:failed`                  | The call returned a thenable, on all four events. `construct`: as rc.0. `construct:failed`: the factory returned one, and then it rejected, an on-demand build refused it (`NEXUS_LAZY_ASYNC`), or a later step threw. `init:failed`: `onInit` returned one that rejected or that an on-demand build refused. | stable                                       |
 
 Derived values every consumer can compute, and that devtools uses:
@@ -776,7 +776,10 @@ const Engineering = defineModule({
   name: 'Engineering',
   providers: [
     provide(REACTOR_CORE, { useClass: FusionReactor }),
-    provide(SHIP_COMPUTER, { useClass: MainframeComputer, deps: [REACTOR_CORE] }),
+    provide(SHIP_COMPUTER, {
+      useClass: MainframeComputer,
+      deps: [REACTOR_CORE],
+    }),
   ],
   exports: [SHIP_COMPUTER],
 });
@@ -786,7 +789,8 @@ const Tactical = defineModule({
   imports: [Engineering],
   providers: [
     provide(NAV_CHARTS, {
-      useFactory: async (computer: IShipComputer) => StarCharts.download(computer),
+      useFactory: async (computer: IShipComputer) =>
+        StarCharts.download(computer),
       deps: [SHIP_COMPUTER],
     }),
   ],
@@ -1114,12 +1118,12 @@ emits `:await` events and no `:start` events.
 
 The graph command's four codes:
 
-| Code | Meaning                                                                                                                                                                                                                                                |
-| ---- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
-| 0    | The app started, every `load` succeeded, and the outputs were written. A missing CPU anchor or clock drift warns and keeps 0.                                                                                                                          |
-| 1    | The app failed to start: `create` or a `load` threw after it compiled (a `BlueprintError` included), or `--timeout` fired. The table and the requested files are still written with what was recorded, and the error text goes to stderr.             |
+| Code | Meaning                                                                                                                                                                                                                                                                                                                                                              |
+| ---- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| 0    | The app started, every `load` succeeded, and the outputs were written. A missing CPU anchor or clock drift warns and keeps 0.                                                                                                                                                                                                                                        |
+| 1    | The app failed to start: `create` or a `load` threw after it compiled (a `BlueprintError` included), or `--timeout` fired. The table and the requested files are still written with what was recorded, and the error text goes to stderr.                                                                                                                            |
 | 2    | The invocation or input is wrong: as graph, plus `--cpu` without `--chrome`; `--load`, `--plugins`, `--repeat` or `--cpu` with a `.json` entry; a `.json` file that `parseProfileReport` rejects (the CLI prints `<file>: ` before devtools' message); a `create` or `load` that threw before it compiled, such as `NEXUS_INVALID_MODULE` or `NEXUS_PLUGIN_INVALID`. |
-| 3    | The environment lacks something: as graph.                                                                                                                                                                                                             |
+| 3    | The environment lacks something: as graph.                                                                                                                                                                                                                                                                                                                           |
 
 Code 1 widens graph's "invalid graph" to "the app failed to start". An invalid graph is one
 way an app fails to start, so each code keeps its family. The CLI tells the two failures
@@ -1230,12 +1234,12 @@ TypeScript export. `nexusdi profile`'s flags and exit codes go on `/profiling/` 
 own H2, as `/graph-cli/` documents `nexusdi graph`, and the CLI README keeps the full options
 table.
 
-| Path              | Kind        | Band     | Content                                                                                                                                                                                                                                                                                                                                                       |
-| ----------------- | ----------- | -------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Path              | Kind        | Band     | Content                                                                                                                                                                                                                                                                                                                                                                                                                                           |
+| ----------------- | ----------- | -------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | `/profiling/`     | `question`  | Guides   | "How do I find out what slows or stalls startup?": `profile()` in an app, `nexusdi profile`, reading the table, barrier waits and the critical path, opening the Chrome and Perfetto files, `--cpu`, live mode, the warning that `--repeat` builds every provider again, and a stalled startup (`report().runs[n].pending` in an app, `--timeout` in the CLI), and an H2 for `nexusdi profile` with its synopsis, flags and the exit codes of 9.5 |
-| `/trace-events/`  | `contract`  | Guides   | the catalogue below                                                                                                                                                                                                                                                                                                                                           |
-| `/api-devtools/`  | `reference` | API      | docs spec page 38, planned within the RC window and absent on `release/0.4` today; one H2 per new export. If the page is still absent when the profiler's reference task runs, that task creates it with one H2 per export of `@nexusdi/devtools`, existing ones included, after `/api-errors/`                                                               |
-| `/introspection/` | `concept`   | Concepts | existing page; one paragraph in the trace section: events carry `startMs`, link to `/profiling/`                                                                                                                                                                                                                                                              |
+| `/trace-events/`  | `contract`  | Guides   | the catalogue below                                                                                                                                                                                                                                                                                                                                                                                                                               |
+| `/api-devtools/`  | `reference` | API      | docs spec page 38, planned within the RC window and absent on `release/0.4` today; one H2 per new export. If the page is still absent when the profiler's reference task runs, that task creates it with one H2 per export of `@nexusdi/devtools`, existing ones included, after `/api-errors/`                                                                                                                                                   |
+| `/introspection/` | `concept`   | Concepts | existing page; one paragraph in the trace section: events carry `startMs`, link to `/profiling/`                                                                                                                                                                                                                                                                                                                                                  |
 
 `/trace-events/` holds:
 
@@ -1263,13 +1267,13 @@ executed region or in the page console, and prose states no times. Owner item (c
 
 Everything `profile()` uses is public API of `@nexusdi/core`:
 
-| What `profile()` uses                                 | Public as                                          |
-| ----------------------------------------------------- | -------------------------------------------------- |
-| the events and their fields                           | `TraceEvent`, `TraceEventByType`, `RunKind`        |
-| the `observe` and `setup` hooks, `name`, `apiVersion` | `NexusPlugin`, `NEXUS_PLUGIN_API`                  |
-| the dependency graph for the critical path            | `PluginContext.blueprint()` (`edges`, `providers`) |
+| What `profile()` uses                                 | Public as                                           |
+| ----------------------------------------------------- | --------------------------------------------------- |
+| the events and their fields                           | `TraceEvent`, `TraceEventByType`, `RunKind`         |
+| the `observe` and `setup` hooks, `name`, `apiVersion` | `NexusPlugin`, `NEXUS_PLUGIN_API`                   |
+| the dependency graph for the critical path            | `PluginContext.blueprint()` (`edges`, `providers`)  |
 | which edges order a build, which providers are inline | `EdgeView.ordersBuild`, `ProviderView.inline` (3.7) |
-| `profileStartup`'s run                                | `Nexus.create`, `load`, `Symbol.asyncDispose`      |
+| `profileStartup`'s run                                | `Nexus.create`, `load`, `Symbol.asyncDispose`       |
 
 devtools reaches core through `@nexusdi/core` only, which the `package-imports` repo-check
 holds. A third-party package can build the same profiler, a span exporter for
@@ -1340,7 +1344,12 @@ function slowest(top: number): NexusPlugin & { rows(): readonly Build[] } {
 const probe = slowest(5);
 await using ship = await Nexus.create(Meridian, { plugins: [probe] });
 for (const b of probe.rows())
-  console.log(b.token, b.level, own(b).toFixed(1), b.awaitMs === null ? '' : 'async');
+  console.log(
+    b.token,
+    b.level,
+    own(b).toFixed(1),
+    b.awaitMs === null ? '' : 'async',
+  );
 ```
 
 ## 14. Spec amendments
