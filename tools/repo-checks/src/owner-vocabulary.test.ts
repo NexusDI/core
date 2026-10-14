@@ -173,19 +173,24 @@ describe('ownerVocabulary', () => {
   it('accepts compares, a switch with a default and typed literals on trace event types', () => {
     const result = ownerVocabulary(fixture('discriminant'), []);
     expect(result.violations).toEqual([]);
-    expect(result.scanned.events).toBe(5);
+    expect(result.scanned.events).toBe(7);
   });
 
-  it('reports a trace event type looked up in a table', () => {
+  it('reports a trace event type looked up in a string-keyed table, and a table that spells event types', () => {
+    const TABLE = 'an event type @acme/core declares, into';
+    const FILL = 'fill a table from the events at run time';
     expect(
       ownerVocabulary(fixture('sabotaged/event-table'), []).violations,
     ).toEqual([
-      `@acme/profiler table.ts:4 looks up event.type in WEIGHT; ${BRANCH}`,
-      `@acme/profiler table.ts:6 looks up event.type in WEIGHT; ${BRANCH}`,
-      `@acme/profiler table.ts:9 passes event.type to SLOW.includes; ${BRANCH}`,
-      `@acme/profiler table.ts:12 passes event.type to SEEN.has; ${BRANCH}`,
-      `@acme/profiler table.ts:17 passes type to COUNT.set; ${BRANCH}`,
-      `@acme/profiler table.ts:17 passes type to COUNT.get; ${BRANCH}`,
+      `@acme/profiler table.ts:3 writes 'scope:create', ${TABLE} an object literal; ${FILL}`,
+      `@acme/profiler table.ts:4 looks up event.type in WEIGHT, a table keyed by string; ${BRANCH}`,
+      `@acme/profiler table.ts:6 looks up event.type in WEIGHT, a table keyed by string; ${BRANCH}`,
+      `@acme/profiler table.ts:8 writes 'compile', ${TABLE} an array literal; ${FILL}`,
+      `@acme/profiler table.ts:8 writes 'construct', ${TABLE} an array literal; ${FILL}`,
+      `@acme/profiler table.ts:9 widens event.type to string; ${BRANCH}`,
+      `@acme/profiler table.ts:11 writes 'init', ${TABLE} an array literal; ${FILL}`,
+      `@acme/profiler table.ts:14 writes 'compile', ${TABLE} an object literal; ${FILL}`,
+      `@acme/profiler table.ts:15 writes 'run', ${TABLE} an object literal; ${FILL}`,
     ]);
   });
 
@@ -199,6 +204,10 @@ describe('ownerVocabulary', () => {
       `@acme/profiler widen.ts:13 widens type to string; ${BRANCH}`,
       `@acme/profiler widen.ts:17 widens event.type to string; ${BRANCH}`,
       "@acme/profiler widen.ts:20 compares event.type with name, which the compiler does not check against the owner's union; compare it with a literal of the union",
+      `@acme/profiler widen.ts:23 widens event.type to unknown; ${BRANCH}`,
+      `@acme/profiler widen.ts:27 widens event.type to any; ${BRANCH}`,
+      `@acme/profiler widen.ts:29 widens event.type to unknown; ${BRANCH}`,
+      `@acme/profiler widen.ts:31 widens event.type to any; ${BRANCH}`,
     ]);
   });
 
@@ -206,8 +215,8 @@ describe('ownerVocabulary', () => {
     expect(
       ownerVocabulary(fixture('sabotaged/event-regex'), []).violations,
     ).toEqual([
-      `@acme/profiler pattern.ts:4 passes event.type to /^scope:/.test; ${BRANCH}`,
-      `@acme/profiler pattern.ts:8 passes event.phase to PHASE.exec; ${BRANCH}`,
+      `@acme/profiler pattern.ts:4 widens event.type to string; ${BRANCH}`,
+      `@acme/profiler pattern.ts:8 widens event.phase to string; ${BRANCH}`,
     ]);
   });
 
@@ -224,6 +233,25 @@ describe('ownerVocabulary', () => {
     ]);
   });
 
+  it('reports a trace event type read through a literal that wraps it', () => {
+    expect(
+      ownerVocabulary(fixture('sabotaged/event-wrapped'), []).violations,
+    ).toEqual([
+      `@acme/profiler wrapped.ts:3 reads the text of event.type with [event.type].join; ${BRANCH}`,
+      `@acme/profiler wrapped.ts:6 widens event.type to any; ${BRANCH}`,
+      `@acme/profiler wrapped.ts:9 uses event.type as a key of an object typed {}; ${BRANCH}`,
+      `@acme/profiler wrapped.ts:13 reads the text of box.t with box.t.startsWith; ${BRANCH}`,
+    ]);
+  });
+
+  it("reports a read through a local alias of the owner's TraceEvent", () => {
+    expect(
+      ownerVocabulary(fixture('sabotaged/event-alias'), []).violations,
+    ).toEqual([
+      `@acme/profiler alias.ts:6 reads the text of event.type with event.type.startsWith; ${BRANCH}`,
+    ]);
+  });
+
   it('reports a switch on a trace event type or field with no default', () => {
     expect(
       ownerVocabulary(fixture('sabotaged/event-switch-no-default'), [])
@@ -234,16 +262,18 @@ describe('ownerVocabulary', () => {
     ]);
   });
 
-  it("reports a literal of another package's event type outside a typed compare", () => {
-    const NAMES =
-      "'@acme/shields/raise', an event type @acme/shields declares; compare a typed read with it, or pass it where the owner's union types the argument";
+  it("reports a literal of another package's event type in a table or outside a typed compare", () => {
+    const OWNER = "'@acme/shields/raise', an event type @acme/shields declares";
+    const NAMES = `${OWNER}; compare a typed read with it, or pass it where the owner's union types the argument`;
+    const FILL = 'fill a table from the events at run time';
     expect(
       ownerVocabulary(fixture('sabotaged/foreign-event-key'), []).violations,
     ).toEqual([
       `@acme/profiler keys.ts:4 names ${NAMES}`,
-      `@acme/profiler keys.ts:7 names ${NAMES}`,
-      `@acme/profiler keys.ts:10 names ${NAMES}`,
-      `@acme/profiler keys.ts:12 names ${NAMES}`,
+      `@acme/profiler keys.ts:7 writes ${OWNER}, into an object literal; ${FILL}`,
+      `@acme/profiler keys.ts:10 writes ${OWNER}, into an array literal; ${FILL}`,
+      `@acme/profiler keys.ts:12 writes ${OWNER}, into an array literal; ${FILL}`,
+      `@acme/profiler keys.ts:14 names ${NAMES}`,
     ]);
   });
 
@@ -251,7 +281,7 @@ describe('ownerVocabulary', () => {
     expect(
       ownerVocabulary(fixture('sabotaged/redeclared-event'), []).violations,
     ).toEqual([
-      '@acme/core trace.ts:5 declares event type init, which @acme/core and @acme/profiler declare; one package declares each event type',
+      '@acme/core trace.ts:10 declares event type init, which @acme/core and @acme/profiler declare; one package declares each event type',
       '@acme/profiler trace.ts:5 declares event type init, which @acme/core and @acme/profiler declare; one package declares each event type',
     ]);
   });

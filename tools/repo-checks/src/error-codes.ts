@@ -45,6 +45,17 @@ export function nameOf(name: ts.PropertyName | undefined): string | undefined {
   return undefined;
 }
 
+/** True for `===`, `!==`, `==` and `!=`. */
+export function isEquality(node: ts.BinaryExpression): boolean {
+  const kind = node.operatorToken.kind;
+  return (
+    kind === ts.SyntaxKind.EqualsEqualsEqualsToken ||
+    kind === ts.SyntaxKind.ExclamationEqualsEqualsToken ||
+    kind === ts.SyntaxKind.EqualsEqualsToken ||
+    kind === ts.SyntaxKind.ExclamationEqualsToken
+  );
+}
+
 /** `expr` without parentheses, `as`, `satisfies` and `!`. */
 export function unwrap(expr: ts.Expression): ts.Expression {
   while (

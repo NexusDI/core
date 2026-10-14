@@ -30,11 +30,6 @@ function libFile(name: string): ts.SourceFile | undefined {
   return libFiles.get(name);
 }
 
-/** True when `file` is one of TypeScript's default lib files. */
-export function isLibFile(file: ts.SourceFile): boolean {
-  return file.fileName.startsWith(LIB_DIR);
-}
-
 /**
  * A type checker over one package's sources and the es2022 lib. It
  * resolves local bindings, relative imports and lib types. A package
