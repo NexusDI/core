@@ -1220,9 +1220,12 @@ export async function buildInto(
       returned,
     );
     value = await pending;
-    // Yields once, so a level's builds all construct before any of them
-    // stores; construct hooks run after every sibling's constructor.
-  } else await 0;
+  }
+  // Every build yields once more before it stores, an async one after its
+  // await too, so a level's builds store in the order rc.0 gave them: a sync
+  // build ahead of an async sibling that settled at once. Construct hooks
+  // and disposal follow that order.
+  await 0;
   const resumed = tracer.now();
   // Only an options provider carries a schema. The check skips the
   // validation's microtask for every other provider.
@@ -1356,10 +1359,12 @@ describe('construct:failed', () => {
       'construct:failed',
       'run',
     ]);
-    expect(only(events, 'construct:failed')[0]).toMatchObject({
-      async: true,
-      level: 0,
-    });
+    expect(only(events, 'construct:failed')).toMatchObject([
+      {
+        async: true,
+        level: 0,
+      },
+    ]);
   });
 
   it('reports a failure after the factory returned, in options validation or a construct hook', async () => {
@@ -1399,7 +1404,14 @@ describe('construct:failed', () => {
     const { events, plugin } = recordEvents();
     const LINK = new Token<object>('Link');
     await using ship = await Nexus.create(
-      [provide(LINK, { eager: false, useFactory: async () => ({}) })],
+      [
+        provide(LINK, {
+          eager: false,
+          // The types refuse an async factory with eager: false; the cast
+          // reaches the runtime refusal this test reads.
+          useFactory: (async () => ({})) as () => object,
+        }),
+      ],
       { plugins: [plugin] },
     );
     expect(() => ship.get(LINK)).toThrow();
@@ -1420,7 +1432,7 @@ describe('construct:failed', () => {
         [
           provide(SPARK, {
             lifetime: 'transient',
-            useFactory: () => {
+            useFactory: (): object => {
               throw new Error('short');
             },
           }),
@@ -1482,6 +1494,72 @@ describe('construct:failed', () => {
       { token: 'NavCharts', async: true },
     ]);
   });
+  it('leaves no unhandled rejection when an observer throws on construct:await', async () => {
+    const watcher = {
+      name: 'test:watcher',
+      apiVersion: 1,
+      observe(event: TraceEvent) {
+        if (event.type === 'construct:await') throw new Error('telemetry down');
+      },
+    };
+    const unhandled: unknown[] = [];
+    const onUnhandled = (reason: unknown) => void unhandled.push(reason);
+    process.on('unhandledRejection', onUnhandled);
+    try {
+      const CHARTS = new Token<object>('NavCharts');
+      await rejected(
+        Nexus.create(
+          [
+            provide(CHARTS, {
+              useFactory: async () => {
+                await sleep(1);
+                throw new Error('no carrier');
+              },
+            }),
+          ],
+          { plugins: [watcher] },
+        ),
+      );
+      await sleep(20);
+    } finally {
+      process.off('unhandledRejection', onUnhandled);
+    }
+    expect(unhandled).toEqual([]);
+  });
+
+  it('keeps one on-demand instance when an observer throws on its construct event', async () => {
+    const thrown = new Error('telemetry down');
+    let armed = false;
+    const watcher = {
+      name: 'test:watcher',
+      apiVersion: 1,
+      observe(event: TraceEvent) {
+        if (armed && event.type === 'construct') throw thrown;
+      },
+    };
+    const log: string[] = [];
+    class Sensor {
+      constructor() {
+        log.push('built');
+      }
+      onInit() {
+        log.push('init');
+      }
+      [Symbol.dispose]() {
+        log.push('disposed');
+      }
+    }
+    const ship = await Nexus.create([provide(Sensor, { eager: false })], {
+      plugins: [watcher],
+    });
+    armed = true;
+    expect(() => ship.get(Sensor)).toThrow(thrown);
+    armed = false;
+    const sensor = ship.get(Sensor);
+    expect(ship.get(Sensor)).toBe(sensor);
+    await ship[Symbol.asyncDispose]();
+    expect(log).toEqual(['built', 'init', 'disposed']);
+  });
 });
 ```
 
@@ -1534,7 +1612,9 @@ try {
   }
 ```
 
-`buildOnDemand` wraps the call through `applyConstruct` the same way, with `isAsync = record.kind === 'factory' && isThenable(built)` set before the `NEXUS_LAZY_ASYNC` throw, so a factory that returns a thenable on demand reports `async: true` (plan choice 5). A `run` of `undefined` drops an observer's throw (plan choice 3).
+Inside that `try`, the `construct:await` emit sits in a `try` of its own whose catch calls `observeRejection(pending)` before it rethrows: after an observer's throw nothing awaits the thenable, and its later rejection must stay handled.
+
+`buildOnDemand` wraps the call through `applyConstruct` the same way, with `isAsync = record.kind === 'factory' && isThenable(built)` set before the `NEXUS_LAZY_ASYNC` throw, so a factory that returns a thenable on demand reports `async: true` (plan choice 5). A `run` of `undefined` drops an observer's throw (plan choice 3). It then settles the instance before its `construct` event, for every on-demand build (the onInit branch no longer settles on its own). An observer's throw on that `construct` event is held in a local, the build finishes (onInit, ready, async flag), and the throw then reaches the caller, so the slot keeps the one instance and the next `get()` returns it.
 
 - [ ] Step 4: Run the core targets and the dispatch bench (as Task 4, Step 7)
 
