@@ -2195,10 +2195,12 @@ import {
   Token,
   defineModule,
   isNexusError,
+  lazy,
   provide,
 } from '@nexusdi/core';
 
 import { rejected, thrown } from '../../test-support/catch.js';
+import { defined } from '../../test-support/defined.js';
 import { profile } from '../index.js';
 
 interface IReactorCore {
@@ -2229,6 +2231,7 @@ describe('profile', () => {
   it('records a create run as plain JSON with its builds, steps and graph', async () => {
     const profiler = profile();
     await using ship = await Nexus.create(Engineering, { plugins: [profiler] });
+    void ship;
     const report = profiler.report();
     expect(JSON.parse(JSON.stringify(report))).toEqual(report);
     expect(report).toMatchObject({
@@ -2238,11 +2241,13 @@ describe('profile', () => {
     });
     const [run] = report.runs;
     expect(run).toMatchObject({ id: 0, kind: 'create', ok: true, pending: [] });
-    expect(run!.builds.map((b) => [b.token, b.level, b.async])).toEqual([
-      ['ReactorCore', 0, false],
-      ['NavCharts', 1, true],
-    ]);
-    expect(run!.steps.map((s) => s.step)).toEqual([
+    expect(defined(run).builds.map((b) => [b.token, b.level, b.async])).toEqual(
+      [
+        ['ReactorCore', 0, false],
+        ['NavCharts', 1, true],
+      ],
+    );
+    expect(defined(run).steps.map((s) => s.step)).toEqual([
       'compile',
       'build',
       'setup',
@@ -2251,9 +2256,15 @@ describe('profile', () => {
     expect(report.graph?.edges).toEqual([
       { from: 'p1', to: 'p0', kind: 'required', ordersBuild: true },
     ]);
-    expect(report.graph?.providers.map((p) => p.inline)).toEqual([
-      false,
-      false,
+    // The view also lists core's built-in REQUEST provider; the report
+    // copies the view as it is.
+    expect(
+      report.graph?.providers
+        .filter((p) => p.token !== 'REQUEST')
+        .map((p) => [p.token, p.inline]),
+    ).toEqual([
+      ['ReactorCore', false],
+      ['NavCharts', false],
     ]);
   });
 
@@ -2289,7 +2300,7 @@ describe('profile', () => {
     await sleep(10);
     const [run] = profiler.report().runs;
     expect(run).toMatchObject({ ok: null, durationMs: null });
-    expect(run!.pending).toMatchObject([
+    expect(defined(run).pending).toMatchObject([
       { token: 'NavCharts', what: 'construct', level: 0 },
     ]);
   });
@@ -2298,12 +2309,16 @@ describe('profile', () => {
     const profiler = profile();
     class Gauge {}
     const LOG = new Token<object>('Log');
+    // lazy() keeps Gauge on demand, built inside Console's constructor.
     class Console {
-      static deps = [Gauge, LOG] as const;
+      static deps = [lazy(Gauge), LOG] as const;
+      readonly gauge: Gauge;
       constructor(
-        readonly gauge: Gauge,
+        gauge: () => Gauge,
         readonly log: object,
-      ) {}
+      ) {
+        this.gauge = gauge();
+      }
     }
     await using ship = await Nexus.create(
       [
@@ -2313,7 +2328,10 @@ describe('profile', () => {
       ],
       { plugins: [profiler] },
     );
-    const tokens = profiler.report().runs[0]!.builds.map((b) => b.token);
+    void ship;
+    const tokens = defined(profiler.report().runs[0]).builds.map(
+      (b) => b.token,
+    );
     expect(tokens).toEqual(expect.arrayContaining(['Gauge', 'Log', 'Console']));
   });
 
@@ -2324,7 +2342,7 @@ describe('profile', () => {
       plugins: [profiler],
     });
     ship.get(Gauge);
-    expect(profiler.report().runs[0]!.builds).toEqual([]);
+    expect(defined(profiler.report().runs[0]).builds).toEqual([]);
   });
 
   it('drops the oldest run past maxRuns', async () => {
@@ -2339,7 +2357,7 @@ describe('profile', () => {
 
   it('keeps an unknown run kind and ignores an unknown event type', () => {
     const profiler = profile();
-    const observe = profiler.observe!;
+    const observe = defined(profiler.observe);
     observe({ type: 'acme/cache/miss', key: 'k' } as never);
     observe({
       type: 'run',
@@ -2383,7 +2401,7 @@ describe('profile', () => {
 
   it('ignores a build for a run that already closed, and does not call it reuse', () => {
     const profiler = profile();
-    const observe = profiler.observe!;
+    const observe = defined(profiler.observe);
     observe({
       type: 'run',
       run: 0,
@@ -2436,55 +2454,58 @@ describe('profile', () => {
 ```ts
 import { describe, expect, it } from 'vitest';
 
+import { defined } from '../../test-support/defined.js';
 import { build, report } from '../../test-support/profile-fixture.js';
 import { stepsOf } from './steps.js';
 
 describe('stepsOf', () => {
   it('derives compile, static, build, init and setup from event spans', () => {
-    const run = report(
-      [
-        build({
-          providerId: 'v',
-          token: 'Config',
-          startMs: 2,
-          durationMs: 0,
-          level: null,
-          lifetime: null,
-        }),
-        build({ providerId: 'a', token: 'A', startMs: 3, durationMs: 4 }),
-        build({
-          providerId: 'b',
-          token: 'B',
-          startMs: 7,
-          durationMs: 2,
-          level: 1,
-        }),
-      ],
-      [],
-      {
-        compile: {
-          startMs: 0,
-          durationMs: 2,
-          modules: 1,
-          providers: 3,
-          errors: 0,
-        },
-        inits: [
-          {
+    const run = defined(
+      report(
+        [
+          build({
+            providerId: 'v',
+            token: 'Config',
+            startMs: 2,
+            durationMs: 0,
+            level: null,
+            lifetime: null,
+          }),
+          build({ providerId: 'a', token: 'A', startMs: 3, durationMs: 4 }),
+          build({
             providerId: 'b',
             token: 'B',
+            startMs: 7,
+            durationMs: 2,
             level: 1,
-            async: false,
-            startMs: 9,
-            syncMs: 1,
-            awaitMs: null,
-            durationMs: 1,
-            failed: false,
-          },
+          }),
         ],
-        durationMs: 12,
-      },
-    ).runs[0]!;
+        [],
+        {
+          compile: {
+            startMs: 0,
+            durationMs: 2,
+            modules: 1,
+            providers: 3,
+            errors: 0,
+          },
+          inits: [
+            {
+              providerId: 'b',
+              token: 'B',
+              level: 1,
+              async: false,
+              startMs: 9,
+              syncMs: 1,
+              awaitMs: null,
+              durationMs: 1,
+              failed: false,
+            },
+          ],
+          durationMs: 12,
+        },
+      ).runs[0],
+    );
     expect(stepsOf(run)).toEqual([
       { step: 'compile', startMs: 0, durationMs: 2 },
       { step: 'static', startMs: 2, durationMs: 0 },
@@ -2495,15 +2516,17 @@ describe('stepsOf', () => {
   });
 
   it('leaves out a step with no events, and setup while the run is open', () => {
-    const run = report(
-      [build({ providerId: 'a', token: 'A', startMs: 1, durationMs: 1 })],
-      [],
-      {
-        compile: null,
-        ok: null,
-        durationMs: null,
-      },
-    ).runs[0]!;
+    const run = defined(
+      report(
+        [build({ providerId: 'a', token: 'A', startMs: 1, durationMs: 1 })],
+        [],
+        {
+          compile: null,
+          ok: null,
+          durationMs: null,
+        },
+      ).runs[0],
+    );
     expect(stepsOf(run).map((s) => s.step)).toEqual(['build']);
   });
 });
@@ -2539,6 +2562,8 @@ describe('devtools runs in a browser', () => {
   });
 });
 ```
+
+The tests read a value that must exist through `defined()` from `libs/devtools/test-support/defined.ts`, as core's do. The graph test leaves out core's built-in `REQUEST` provider, which the view lists and the report copies as it is. The nested build reads `Gauge` through `lazy()`, so it stays on demand under rc.1.
 
 - [ ] Step 2: Run them and see them fail
 
@@ -2904,15 +2929,14 @@ export function profile(options: ProfileOptions = {}): Profiler {
       }
       case 'construct:await':
       case 'init:await': {
-        const scope = event.type === 'construct:await' ? event.scope : null;
-        if ((scope !== null && !scopes) || event.run === null) return;
+        if ((event.scope !== null && !scopes) || event.run === null) return;
         const what = event.type === 'construct:await' ? 'construct' : 'init';
-        forScope(event.run, scope, event.startMs).pending.set(
-          `${what} ${scope} ${event.providerId}`,
+        forScope(event.run, event.scope, event.startMs).pending.set(
+          `${what} ${event.scope} ${event.providerId}`,
           {
             providerId: event.providerId,
             token: event.token,
-            module: event.type === 'construct:await' ? event.module : '',
+            module: event.module,
             level: event.level,
             what,
             startMs: event.startMs,
@@ -2937,7 +2961,7 @@ export function profile(options: ProfileOptions = {}): Profiler {
           durationMs: event.durationMs,
           failed: done === null,
         });
-        rec.pending.delete(`init null ${event.providerId}`);
+        rec.pending.delete(`init ${event.scope} ${event.providerId}`);
         return;
       }
       case 'run': {
@@ -3031,6 +3055,8 @@ export type {
 Run: `NX_NO_CLOUD=true NX_DAEMON=false npx nx test @nexusdi/devtools -- profile steps no-node`
 Expected: PASS.
 
+`init:await` carries `module` and `scope` (spec 3.1), so the profiler reads both from the event; its pending key and the `init` delete key share the form `init <scope> <id>`.
+
 - [ ] Step 8: The code page (load the `docs-page` skill first). `examples/meridian/src/errors/NEXUS_DEVTOOLS_PROFILE_REUSED.md`, following `NEXUS_DEVTOOLS_GRAPH_INVALID.md`:
 
 ````md
@@ -3041,13 +3067,8 @@ Regions for `apps/docs/content/errors/NEXUS_DEVTOOLS_PROFILE_REUSED.mdx`. Every 
 <!-- #region reproduce -->
 
 ```ts @import.meta.vitest
-import {
-  Nexus,
-  Token,
-  defineModule,
-  isNexusError,
-  provide,
-} from '@nexusdi/core';
+import { Nexus, Token, defineModule, provide } from '@nexusdi/core';
+import { isNexusError } from '@nexusdi/core';
 import { profile } from '@nexusdi/devtools';
 
 interface IReactorCore {
@@ -3070,14 +3091,16 @@ await (
   await Nexus.create(Engineering, { plugins: [profiler] })
 )[Symbol.asyncDispose]();
 
-let code = '';
-try {
-  profiler.report();
-} catch (error) {
-  if (!isNexusError(error, 'NEXUS_DEVTOOLS_PROFILE_REUSED')) throw error;
-  code = error.code;
-}
-console.log(code); // -> 'NEXUS_DEVTOOLS_PROFILE_REUSED'
+const reused = (() => {
+  try {
+    return profiler.report();
+  } catch (error) {
+    return error;
+  }
+})();
+if (!isNexusError(reused, 'NEXUS_DEVTOOLS_PROFILE_REUSED')) throw reused;
+const code = reused.code; // -> 'NEXUS_DEVTOOLS_PROFILE_REUSED'
+console.log(code);
 ```
 
 <!-- #endregion reproduce -->
@@ -3100,19 +3123,22 @@ const Engineering = defineModule({
   providers: [provide(REACTOR, { useClass: FusionReactor })],
 });
 
-const runs: number[] = [];
-for (let i = 0; i < 2; i++) {
+async function profiled(): Promise<number> {
   const profiler = profile();
   await (
     await Nexus.create(Engineering, { plugins: [profiler] })
   )[Symbol.asyncDispose]();
-  runs.push(profiler.report().runs.length);
+  return profiler.report().runs.length;
 }
-console.log(runs); // -> [1, 1]
+
+const runs = [await profiled(), await profiled()]; // -> [1, 1]
+console.log(runs);
 ```
 
 <!-- #endregion fix -->
 ````
+
+The doc-examples transform reads a one-line `import` only, so a region splits an import that prettier would wrap; and a `// ->` claim sits on a declaration line, never on a `console.log` call.
 
 `apps/docs/content/errors/NEXUS_DEVTOOLS_PROFILE_REUSED.mdx`, with the frontmatter of the `GRAPH_INVALID` page (`kind: code`, `package: '@nexusdi/devtools'`, `errorClass: DevtoolsError`), a lead paragraph ("`report()` throws `NEXUS_DEVTOOLS_PROFILE_REUSED` when the `profile()` it belongs to was registered in a second `Nexus.create`. Trace events carry no container identity, so one profiler that hears two creates cannot keep their runs apart, and it stops recording at the second one. Neither create fails because of it."), `## Reproduce`, `## Fix` (one `profile()` per container) and `## Fields of DevtoolsError` sections citing the two regions, each with a Try-it line that names the printed value. Add the `_meta.ts` entry after `NEXUS_DEVTOOLS_GRAPH_INVALID` and a row in the devtools block of `api-errors.mdx`: ``| `@nexusdi/devtools` | [`NEXUS_DEVTOOLS_PROFILE_REUSED`](/errors/NEXUS_DEVTOOLS_PROFILE_REUSED/) | `DevtoolsError` | `report()` on a profiler that recorded a second container. |``. Update the `## Fields of DevtoolsError` lists on both existing devtools code pages to name the new code.
 
