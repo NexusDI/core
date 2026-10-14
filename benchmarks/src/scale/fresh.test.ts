@@ -168,7 +168,7 @@ describe('freshBlock', () => {
     );
     writeFileSync(
       join(lib, 'index.js'),
-      "import { appendFileSync } from 'node:fs';\nappendFileSync(process.env.FAKE_LOG, 'lib\\n');\n",
+      "import { appendFileSync } from 'node:fs';\nappendFileSync(process.env.FAKE_LOG, 'lib\\n');\nconst t = Date.now();\nwhile (Date.now() - t < 2000);\n",
     );
     const bundle = join(dir, 'cell', 'bundle.mjs');
     writeFileSync(
@@ -186,17 +186,24 @@ export const { scale } = await import(${JSON.stringify(pathToFileURL(FAKE).href)
     const order = async (packages: string) => {
       writeFileSync(log, '');
       writeFileSync(packagesFile, packages);
-      await freshBlock(
+      const [row] = await freshBlock(
         [{ library: 'x', size: 6, bundle, graph, packagesFile }],
         { ...opts, warmup: 0, measured: 1 },
       );
-      return readFileSync(log, 'utf8').trim().split('\n');
+      return {
+        order: readFileSync(log, 'utf8').trim().split('\n'),
+        load: row?.load[0] ?? NaN,
+      };
     };
     try {
       // The package is evaluated once, before the timed bundle import.
-      expect(await order("import 'fake-lib';\n")).toEqual(['lib', 'bundle']);
+      const withFile = await order("import 'fake-lib';\n");
+      expect(withFile.order).toEqual(['lib', 'bundle']);
+      // fake-lib takes 2 s to evaluate: a load under 1 s means the import
+      // sat outside the timed region, with a margin no scheduler eats.
+      expect(withFile.load).toBeLessThan(1e9);
       // Without packages.mjs the bundle's own import evaluates it.
-      expect(await order('')).toEqual(['bundle', 'lib']);
+      expect((await order('')).order).toEqual(['bundle', 'lib']);
     } finally {
       delete process.env.FAKE_LOG;
     }

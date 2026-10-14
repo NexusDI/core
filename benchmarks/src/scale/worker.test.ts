@@ -1,4 +1,5 @@
 import { forkWorker } from '@nexusdi/bench-kit';
+import { spawnSync } from 'node:child_process';
 import { mkdtempSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
@@ -58,6 +59,17 @@ describe('the get-cycle worker', () => {
     expect(cycle.length).toBeGreaterThan(4);
     cycle.forEach((index, i) => expect(index).toBe(i % 2 === 0 ? 4 : 5));
   }, 60_000);
+});
+
+describe('the get-cycle worker on an async app', () => {
+  it('exits 1 with a clear error', () => {
+    const r = spawnSync(process.execPath, [WORKER, FAKE], {
+      encoding: 'utf8',
+      env: { ...process.env, FAKE_BREAK: 'async' },
+    });
+    expect(r.status).toBe(1);
+    expect(r.stderr).toMatch(/get-cycle needs synchronous resolution/);
+  });
 });
 
 describe('checkFloor on get-cycle', () => {
