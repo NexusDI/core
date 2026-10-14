@@ -1,6 +1,7 @@
 import {
   cpSync,
   mkdirSync,
+  mkdtempSync,
   readFileSync,
   rmSync,
   symlinkSync,
@@ -25,9 +26,9 @@ import { six } from './six.ts';
 // A stand-in for the throwaway consumer: the profile configs and the
 // workspace's node_modules, which hold typescript, tslib and the built
 // @nexusdi/core. Under benchmarks/, so a bundle resolves its packages.
-const DIR = join(BENCHMARKS, 'tmp', 'cells-test');
-rmSync(DIR, { recursive: true, force: true });
-mkdirSync(DIR, { recursive: true });
+// Its own directory per run, so overlapping runs never delete each other's cells.
+mkdirSync(join(BENCHMARKS, 'tmp'), { recursive: true });
+const DIR = mkdtempSync(join(BENCHMARKS, 'tmp', 'cells-test-'));
 cpSync(join(FIXTURES, 'config'), join(DIR, 'config'), { recursive: true });
 symlinkSync(
   join(BENCHMARKS, '..', 'node_modules'),
