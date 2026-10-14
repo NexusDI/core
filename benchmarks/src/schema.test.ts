@@ -432,6 +432,33 @@ describe('validate scale-timings', () => {
         /scale-timings\.marginal\[0\]/,
       );
     });
+    it('rejects an equivalence fault in a competitor cell under results/', () => {
+      const file = scaleTimings();
+      file.cells.push({ ...skipped(1000), outcome: 'wrong-instance' });
+      expect(() => validate('scale-timings', file, 'results')).toThrow(
+        /scale-timings\.cells\[5\]/,
+      );
+      expect(() => validate('scale-timings', file, 'tmp')).not.toThrow();
+    });
+    it('rejects a competitor runtime-error at n = 50 under results/', () => {
+      const file = scaleTimings();
+      file.cells.push({ ...skipped(50), shape: 'wide' });
+      expect(() => validate('scale-timings', file, 'results')).toThrow(
+        /scale-timings\.cells\[5\]/,
+      );
+    });
+    it('rejects a competitor failure with no pass at n = 50 in the file', () => {
+      const file = scaleTimings();
+      file.cells.push({ ...skipped(1000), shape: 'wide' });
+      expect(() => validate('scale-timings', file, 'results')).toThrow(
+        /scale-timings\.cells\[5\]/,
+      );
+    });
+    it('accepts a compile-error at a larger size and a not-applicable cell', () => {
+      const file = scaleTimings();
+      file.cells.push({ ...skipped(5000), outcome: 'compile-error' });
+      expect(() => validate('scale-timings', file, 'results')).not.toThrow();
+    });
     it('requires every nexusdi plain cell to pass under results/ only', () => {
       const file = scaleTimings();
       file.growth = [];
