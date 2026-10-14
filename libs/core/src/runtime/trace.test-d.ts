@@ -115,6 +115,26 @@ describe('RunKind', () => {
   });
 });
 
+describe('construct timing', () => {
+  it('declares the split and the place of a build', () => {
+    expectTypeOf<TraceEvent<'construct'>['awaitMs']>().toEqualTypeOf<
+      number | null
+    >();
+    expectTypeOf<TraceEvent<'construct'>['level']>().toEqualTypeOf<
+      number | null
+    >();
+    expectTypeOf<
+      TraceEvent<'construct:await'>['syncMs']
+    >().toEqualTypeOf<number>();
+  });
+
+  it('gives construct:await the shape of construct', () => {
+    expectTypeOf<Omit<TraceEvent<'construct:await'>, 'type'>>().toEqualTypeOf<
+      Omit<TraceEvent<'construct'>, 'type'>
+    >();
+  });
+});
+
 describe('PluginContext.emit', () => {
   it('accepts an event keyed <package>/<event>', () => {
     expectTypeOf<PluginContext['emit']>()

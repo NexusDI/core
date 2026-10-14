@@ -457,3 +457,49 @@ describe('Nexus', () => {
     });
   });
 });
+
+describe('a level with async and sync builds', () => {
+  // An async factory that settles at once still stores after a sync
+  // sibling declared after it, as every build yields once before its store.
+  function level(log: string[]) {
+    const unit = (name: string) => ({
+      name,
+      [Symbol.dispose]: () => void log.push(`dispose ${name}`),
+    });
+    const A = new Token<{ name: string }>('A');
+    const C = new Token<{ name: string }>('C');
+    class B {
+      readonly name = 'B';
+      [Symbol.dispose]() {
+        log.push('dispose B');
+      }
+    }
+    return [
+      provide(A, { useFactory: async () => unit('A') }),
+      B,
+      provide(C, { useFactory: () => Promise.resolve(unit('C')) }),
+    ];
+  }
+
+  it('runs construct hooks in settle order: the sync build first', async () => {
+    const log: string[] = [];
+    const hooks = {
+      name: 'test:hooks',
+      apiVersion: 1,
+      construct(instance: unknown) {
+        log.push(`hook ${(instance as { name: string }).name}`);
+        return undefined;
+      },
+    };
+    const ship = await Nexus.create(level(log), { plugins: [hooks] });
+    expect(log).toEqual(['hook B', 'hook A', 'hook C']);
+    await ship[Symbol.asyncDispose]();
+  });
+
+  it('disposes in reverse of that order with no plugin', async () => {
+    const log: string[] = [];
+    const ship = await Nexus.create(level(log));
+    await ship[Symbol.asyncDispose]();
+    expect(log).toEqual(['dispose C', 'dispose A', 'dispose B']);
+  });
+});

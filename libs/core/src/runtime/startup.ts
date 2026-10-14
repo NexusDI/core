@@ -4,15 +4,7 @@ import {
   type ProviderRecord,
 } from '../blueprint/blueprint.js';
 import { unreachable } from '../definitions/unreachable.js';
-import { ModuleOptionsError } from '../errors/index.js';
-import {
-  adopt,
-  applyConstruct,
-  buildInto,
-  moduleName,
-  store,
-  traceConstruct,
-} from './build.js';
+import { buildInto, traceBuild, validateOptions } from './build.js';
 import { buildLevels } from './build-levels.js';
 import { runInit } from './init.js';
 import { rollBack, settleLevel } from './settle.js';
@@ -26,41 +18,18 @@ export interface StartupPlan {
   readonly run: RunTrace;
 }
 
-/**
- * Runs a configurable module's Standard Schema over its options and boxes
- * the output in `{ value }`. JavaScript's promise-resolution procedure
- * thenable-adopts an async function's return value whenever it has a `then`
- * method, no matter which branch produced it (the same hazard buildSingleton
- * guards a factory's result against below). A bare return here would hang
- * on a validated value with its own `then`; the box has none of its own, so
- * callers can always await the call safely and unwrap `.value` afterward.
- */
-async function validateOptions(
-  record: ProviderRecord,
-  bp: Blueprint,
-  value: unknown,
-): Promise<{ readonly value: unknown }> {
-  if (record.schema === undefined) return { value };
-  const result = await record.schema['~standard'].validate(value);
-  if (result.issues !== undefined) {
-    throw new ModuleOptionsError({
-      code: 'NEXUS_INVALID_MODULE_OPTIONS',
-      module: moduleName(bp, record),
-      issues: result.issues,
-    });
-  }
-  return { value: result.value };
-}
-
 /** Returns whether this call is the one that registered value as owned. */
 function settleValue(
   root: RootState,
   bp: Blueprint,
   record: ProviderRecord,
   value: unknown,
+  run: RunTrace,
 ): boolean {
   const added = root.ownership.registerValue(value);
-  store(root, bp, record, value, undefined, false, true);
+  root.slots.settle(record.id, value);
+  root.slots.markReady(record.id);
+  traceBuild('construct', root, bp, record.id, run, null, false);
   return added;
 }
 
@@ -80,11 +49,12 @@ async function registerStatic(
   const validated: string[] = [];
   for (const record of plan.bp.providers.values()) {
     if (!plan.isNew(record.id) || record.id === REQUEST_ID) continue;
-    if (record.kind === 'alias') traceConstruct(root, plan.bp, record, false);
+    if (record.kind === 'alias')
+      traceBuild('construct', root, plan.bp, record.id, plan.run, null, false);
     if (record.kind !== 'value') continue;
     touched.push(record.id);
     if (record.schema === undefined) {
-      if (settleValue(root, plan.bp, record, record.value))
+      if (settleValue(root, plan.bp, record, record.value, plan.run))
         registered.push(record.value);
     } else validated.push(record.id);
   }
@@ -92,38 +62,9 @@ async function registerStatic(
     const record = plan.bp.providers.get(id);
     if (record === undefined) unreachable();
     const { value } = await validateOptions(record, plan.bp, record.value);
-    if (settleValue(root, plan.bp, record, value)) registered.push(value);
+    if (settleValue(root, plan.bp, record, value, plan.run))
+      registered.push(value);
   });
-}
-
-/** Builds one singleton into the root's slots; `owner` takes the instance. */
-async function buildSingleton(
-  root: RootState,
-  bp: Blueprint,
-  id: string,
-  owner: Owner,
-): Promise<void> {
-  const built = await buildInto(root, bp, id, owner);
-  const { record, isAsync, start } = built;
-  let { value } = built;
-  // validateOptions runs only when the record carries a schema (set only on
-  // options providers, per optionsShape in blueprint/records.ts): a plain
-  // provider's constructed value never needs it, and skipping the call
-  // avoids an extra microtask tick for the common case.
-  if (record.schema !== undefined) {
-    try {
-      value = (await validateOptions(record, bp, value)).value;
-    } catch (error) {
-      // The rollback disposes the rejected output with what was built.
-      adopt(owner, record, value);
-      throw error;
-    }
-  }
-  // After validation, so the schema checks the factory's own output and
-  // the runtime stores what the construct hooks return.
-  value = applyConstruct(root, owner, bp, record, value);
-  adopt(owner, record, value);
-  store(root, bp, record, value, start, isAsync, !root.initEnabled);
 }
 
 /**
@@ -165,14 +106,14 @@ export async function startBlueprint(
     await buildLevels(
       plan.bp.singletonLevels,
       plan.isNew,
-      (id) => {
+      (id, level) => {
         touched.push(id);
-        return buildSingleton(root, plan.bp, id, built);
+        return buildInto(root, plan.bp, id, built, run, level);
       },
       () => assertOpen(root),
     );
     assertOpen(root);
-    // With onInit off (a plugin set onInit: false), buildSingleton already
+    // With onInit off (a plugin set onInit: false), buildInto already
     // marked each singleton ready.
     if (root.initEnabled) await runInit(root, plan.bp, plan.isNew);
     root.run = undefined;

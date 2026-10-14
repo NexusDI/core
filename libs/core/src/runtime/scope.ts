@@ -4,7 +4,7 @@ import type { NexusRequest } from '../definitions/request.js';
 import type { InjectionToken, MultiToken } from '../definitions/token.js';
 import { DisposedError, RequestMissingError } from '../errors/index.js';
 import { buildLevels } from './build-levels.js';
-import { adopt, applyConstruct, buildInto, store } from './build.js';
+import { buildInto } from './build.js';
 import { resolveDeps } from './deps.js';
 import { chainErrors, collectInto, disposeInReverse } from './dispose.js';
 import { formatFor, guardAsync } from './format.js';
@@ -162,24 +162,6 @@ class ScopeHandle implements Scope {
 }
 
 /**
- * Builds one scoped provider of `bp` into the scope's slots. `owner` takes
- * the instance and the transients built as its deps: the scope itself in
- * createScope, extend()'s own list in extend().
- */
-async function buildScoped(
-  scope: ScopeState,
-  bp: Blueprint,
-  id: string,
-  owner: Owner = scope,
-): Promise<void> {
-  const built = await buildInto(scope, bp, id, owner);
-  const { record, isAsync, start } = built;
-  const value = applyConstruct(scope, owner, bp, record, built.value);
-  adopt(owner, record, value);
-  store(scope, bp, record, value, start, isAsync, true);
-}
-
-/**
  * Builds every scoped factory and the scoped providers they depend on, level
  * by level. The runtime cannot tell a sync factory from an async one without
  * calling it, so every scoped factory runs here, once per scope. A construct
@@ -195,7 +177,7 @@ async function buildScope(scope: ScopeState, trace: RunTrace): Promise<Scope> {
     built = await buildLevels(
       scope.blueprint.scopedLevels,
       () => true,
-      (id) => buildScoped(scope, scope.blueprint, id),
+      (id, level) => buildInto(scope, scope.blueprint, id, scope, trace, level),
       () => assertScopeOpen(scope),
     );
     assertScopeOpen(scope);
@@ -297,10 +279,10 @@ async function extendNow(
       (id) =>
         !pinned.providers.has(id) ||
         (pinned.deferred.has(id) && !scope.slots.has(id)),
-      (id) => {
+      (id, level) => {
         const old = pinned.providers.has(id);
         if (!old) touched.push(id);
-        return buildScoped(scope, target, id, old ? scope : built);
+        return buildInto(scope, target, id, old ? scope : built, run, level);
       },
       () => assertScopeOpen(scope),
     );
