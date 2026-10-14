@@ -668,7 +668,10 @@ spec), which can link the page or read the file.
 
 5,000-provider equivalence for `wide` and `mixed-async` stays out of the pull request
 job: 8 more 25-second compiles. The timing job verifies every cell it times, at every
-size, and fails before sampling when one does not pass.
+size. It fails before sampling when a NexusDI cell does not pass, when a competitor cell
+fails at n = 50 or with an equivalence fault, or when a cell's outcome contradicts
+`scale.json`; a competitor cell that passes at n = 50 and fails at a larger size is
+skipped and recorded in `cells` with its outcome (section 14).
 
 ### 10.2 Schedule, dispatch and tags
 
@@ -813,19 +816,23 @@ benchmarks/package.json            (changed: tslib devDependency, targets)
     shared within a round, every local exponent is 1.2 to 1e-9; for `t = 100,000 + 50·n`
     the local exponents rise pair by pair, `b(50, 200)` = 0.051, `b(200, 1,000)` = 0.193
     and `b(1,000, 5,000)` = 0.526, each to 1e-9: the fixed cost reads as near-zero growth
-    at small sizes and approaches linear at large ones, the case a single fit would hide; the interval is identical for the same seed and contains the
-    point estimate; the marginal figure of a linear set equals its slope.
+    at small sizes and approaches linear at large ones, the case a single fit would hide;
+    the interval is identical for the same seed and contains the point estimate; the
+    marginal figure of a linear set equals its slope.
 16. `timings.ts`. Tests on `toScaleRows(raw, seed)`: pairs come from the same round,
     block and size; only NexusDI `plain` is the reference; `load`, `create`, `first-get`
     and `rest` carry no `vsNexus`; derived metrics are summed per round before the
-    median; `not-applicable` cells produce no rows. Then a `--quick` run locally, and the
-    first full run on dispatch records its duration in the PR description.
+    median; `not-applicable` cells and skipped cells produce no rows. Then a `--quick` run
+    locally, and the first full run on dispatch records its duration in the PR description.
 17. `svg.ts`. Tests: decade ticks for 50..5,000 are 10, 100, 1,000, 10,000; a point at
     n = 1,000 has the expected x; the output for a fixed two-library dataset matches a
     committed file; the SVG parses as XML.
 18. `render.ts` and `--check`. Tests: tables for a fixture input match a committed
     `scale.md`, round counts in the captions; a hash mismatch between the two inputs
-    fails `--check` with both hashes in the message.
+    fails `--check` with both hashes in the message. A skipped cell shows its outcome with
+    a footnote, the SVG line ends at the last passing size with an end marker, growth omits
+    pairs that touch a failed size, the caption counts the skipped cells, and `--check`
+    fails when `cells` disagree with `scale.json` at sizes both cover.
 19. Nx targets and CI. `package.json` targets of section 10.4; `benchmarks.yml`:
     `check` gains its commands, `scale-timings` job, `merge` needs and downloads it;
     `open-results-pr.ts` adds the paths. Test: `open-results-pr` lists the scale paths
