@@ -27,23 +27,18 @@ describe('localExponent', () => {
     }
   });
 
-  it('shows a fixed cost as a low exponent at small sizes and a high one at large sizes', () => {
+  it('reads a fixed cost as growth that rises pair by pair, in closed form', () => {
     const t = series((n) => 100_000 + 50 * n);
-    const small = localExponent(at(t, 50), at(t, 200), 50, 200, 7, RESAMPLES);
-    const large = localExponent(
-      at(t, 1000),
-      at(t, 5000),
-      1000,
-      5000,
-      7,
-      RESAMPLES,
-    );
-    expect(small.exponent).toBeLessThan(0.1);
-    // 350,000 / 150,000 over a size ratio of 5 is 0.526: the spec's "above
-    // 0.7" cannot hold for this function at any fixed cost that also keeps
-    // the small pair under 0.1.
-    expect(large.exponent).toBeGreaterThan(0.5);
-    expect(large.exponent).toBeGreaterThan(5 * small.exponent);
+    const b = (lo: number, hi: number) =>
+      localExponent(at(t, lo), at(t, hi), lo, hi, 7, RESAMPLES).exponent;
+    const small = b(50, 200);
+    const middle = b(200, 1000);
+    const large = b(1000, 5000);
+    expect(small).toBeCloseTo(Math.log(110000 / 102500) / Math.log(4), 9);
+    expect(middle).toBeCloseTo(Math.log(150000 / 110000) / Math.log(5), 9);
+    expect(large).toBeCloseTo(Math.log(350000 / 150000) / Math.log(5), 9);
+    expect(small).toBeLessThan(middle);
+    expect(middle).toBeLessThan(large);
   });
 
   it('gives the same interval for the same seed, around the point estimate', () => {
