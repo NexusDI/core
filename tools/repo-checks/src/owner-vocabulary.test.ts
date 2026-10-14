@@ -9,8 +9,10 @@ import {
   type VocabularyAllowance,
 } from './owner-vocabulary.js';
 
-// The fixtures import from '@acme/core' and '@acme/nexusdi-core', modules
-// nothing resolves, so the project graph reads no dependency from them.
+// The fixtures import from '@acme/core', '@acme/shields' and
+// '@acme/nexusdi-core'. Only the check's own programs resolve the first two,
+// through the `exports` the fixture helper gives each package, so the project
+// graph reads no dependency from them.
 const FIXTURES = join(import.meta.dirname, '__fixtures__', 'owner-vocabulary');
 const LIBS = join(workspaceRoot, 'libs');
 
@@ -42,17 +44,25 @@ const ALLOWLIST: readonly VocabularyAllowance[] = [
   },
 ];
 
+/** Each fixture package's main entry is its index.ts. */
+const exports = { '.': './index.ts' };
+
 /** The owner package, then each package folder of one scenario. */
 const fixture = (scenario: string) => {
   const dir = join(FIXTURES, scenario);
   return [
-    { name: '@acme/core', files: sourcesOf(join(FIXTURES, 'owner')) },
+    { name: '@acme/core', exports, files: sourcesOf(join(FIXTURES, 'owner')) },
     ...libDirs(dir).map((name) => ({
       name: `@acme/${name}`,
+      exports,
       files: sourcesOf(join(dir, name)),
     })),
   ];
 };
+
+/** The fix each trace event violation names. */
+const BRANCH =
+  "compare it with === against the owner's union, or switch on it with a default";
 
 describe('ownerVocabulary', () => {
   it('accepts a package that reads the owner vocabulary through its exports', () => {
@@ -160,6 +170,92 @@ describe('ownerVocabulary', () => {
     ]);
   });
 
+  it('accepts compares, a switch with a default and typed literals on trace event types', () => {
+    const result = ownerVocabulary(fixture('discriminant'), []);
+    expect(result.violations).toEqual([]);
+    expect(result.scanned.events).toBe(5);
+  });
+
+  it('reports a trace event type looked up in a table', () => {
+    expect(
+      ownerVocabulary(fixture('sabotaged/event-table'), []).violations,
+    ).toEqual([
+      `@acme/profiler table.ts:4 looks up event.type in WEIGHT; ${BRANCH}`,
+      `@acme/profiler table.ts:6 looks up event.type in WEIGHT; ${BRANCH}`,
+      `@acme/profiler table.ts:9 passes event.type to SLOW.includes; ${BRANCH}`,
+      `@acme/profiler table.ts:12 passes event.type to SEEN.has; ${BRANCH}`,
+      `@acme/profiler table.ts:17 passes type to COUNT.set; ${BRANCH}`,
+      `@acme/profiler table.ts:17 passes type to COUNT.get; ${BRANCH}`,
+    ]);
+  });
+
+  it('reports a trace event type or field widened to string', () => {
+    expect(
+      ownerVocabulary(fixture('sabotaged/event-widened'), []).violations,
+    ).toEqual([
+      `@acme/profiler widen.ts:4 widens event.type to string; ${BRANCH}`,
+      `@acme/profiler widen.ts:7 widens event.type to string; ${BRANCH}`,
+      `@acme/profiler widen.ts:10 widens event.phase to string; ${BRANCH}`,
+      `@acme/profiler widen.ts:13 widens type to string; ${BRANCH}`,
+      `@acme/profiler widen.ts:17 widens event.type to string; ${BRANCH}`,
+      "@acme/profiler widen.ts:20 compares event.type with name, which the compiler does not check against the owner's union; compare it with a literal of the union",
+    ]);
+  });
+
+  it('reports a trace event type or field tested with a pattern', () => {
+    expect(
+      ownerVocabulary(fixture('sabotaged/event-regex'), []).violations,
+    ).toEqual([
+      `@acme/profiler pattern.ts:4 passes event.type to /^scope:/.test; ${BRANCH}`,
+      `@acme/profiler pattern.ts:8 passes event.phase to PHASE.exec; ${BRANCH}`,
+    ]);
+  });
+
+  it('reports the text of a trace event type read or written into a string', () => {
+    expect(
+      ownerVocabulary(fixture('sabotaged/event-text'), []).violations,
+    ).toEqual([
+      `@acme/profiler text.ts:4 reads the text of event.type with event.type.startsWith; ${BRANCH}`,
+      `@acme/profiler text.ts:7 reads the text of event.type with event.type.split; ${BRANCH}`,
+      `@acme/profiler text.ts:9 reads the text of event.type with event.type.match; ${BRANCH}`,
+      `@acme/profiler text.ts:12 reads the text of event.type with event.type.includes; ${BRANCH}`,
+      `@acme/profiler text.ts:14 writes event.type into a template literal; ${BRANCH}`,
+      `@acme/profiler text.ts:16 joins event.type into a string with +; ${BRANCH}`,
+    ]);
+  });
+
+  it('reports a switch on a trace event type or field with no default', () => {
+    expect(
+      ownerVocabulary(fixture('sabotaged/event-switch-no-default'), [])
+        .violations,
+    ).toEqual([
+      '@acme/profiler switch.ts:4 switches on event.type with no default branch; add a default for an event type or value the owner adds later (P2)',
+      '@acme/profiler switch.ts:13 switches on event.phase with no default branch; add a default for an event type or value the owner adds later (P2)',
+    ]);
+  });
+
+  it("reports a literal of another package's event type outside a typed compare", () => {
+    const NAMES =
+      "'@acme/shields/raise', an event type @acme/shields declares; compare a typed read with it, or pass it where the owner's union types the argument";
+    expect(
+      ownerVocabulary(fixture('sabotaged/foreign-event-key'), []).violations,
+    ).toEqual([
+      `@acme/profiler keys.ts:4 names ${NAMES}`,
+      `@acme/profiler keys.ts:7 names ${NAMES}`,
+      `@acme/profiler keys.ts:10 names ${NAMES}`,
+      `@acme/profiler keys.ts:12 names ${NAMES}`,
+    ]);
+  });
+
+  it('reports an event type more than one package declares', () => {
+    expect(
+      ownerVocabulary(fixture('sabotaged/redeclared-event'), []).violations,
+    ).toEqual([
+      '@acme/core trace.ts:5 declares event type init, which @acme/core and @acme/profiler declare; one package declares each event type',
+      '@acme/profiler trace.ts:5 declares event type init, which @acme/core and @acme/profiler declare; one package declares each event type',
+    ]);
+  });
+
   const packages = libPackages(LIBS);
   const live = ownerVocabulary(packages, ALLOWLIST);
 
@@ -169,6 +265,7 @@ describe('ownerVocabulary', () => {
     expect(live.scanned.files).toBeGreaterThan(0);
     expect(live.scanned.codes).toBeGreaterThan(0);
     expect(live.scanned.brands).toBeGreaterThan(0);
+    expect(live.scanned.events).toBeGreaterThan(0);
   });
 
   it.each(packages.map((pkg) => [pkg.name] as const))(
