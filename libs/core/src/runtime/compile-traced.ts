@@ -48,7 +48,7 @@ export function compileTraced(
   } catch (error) {
     const errors = errorCount(error);
     if (errors !== undefined)
-      emitCollecting(tracer, undefined, () => ({
+      emitCollecting(tracer, [], () => ({
         type: 'compile',
         phase,
         run,
