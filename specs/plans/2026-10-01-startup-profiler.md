@@ -914,7 +914,7 @@ export function buildInto(
 
 `traceConstruct`, `store`, `Built`, `buildSingleton` (startup.ts) and `buildScoped` (scope.ts) go.
 
-- [ ] Step 1: Write the failing tests. Add `spin` and `sleep` to the helpers at the top of `trace-events.test.ts`, and `lazy` from `../definitions/modifiers.js` to its imports:
+- [ ] Step 1: Write the failing tests. Add `spin`, `sleep` and `defined` to the helpers at the top of `trace-events.test.ts`, and `lazy` from `../definitions/modifiers.js` to its imports. Lint forbids non-null assertions, so the tests read a value that must exist through `defined(value)`; TypeScript rejects an unused `await using` binding, so a test that never reads its container ends the create with `void ship;`. Tasks 5 to 7 write their tests the same way:
 
 ```ts
 /** Busy-waits `ms` on the clock, so a constructor takes a measurable time. */
@@ -925,6 +925,12 @@ function spin(ms: number): void {
 
 const sleep = (ms: number): Promise<void> =>
   new Promise((resolve) => setTimeout(resolve, ms));
+
+/** `value`, after the test checked that it exists. */
+function defined<T>(value: T | undefined): T {
+  expect(value).toBeDefined();
+  return value as T;
+}
 ```
 
 ```ts
@@ -932,6 +938,7 @@ describe('construct spans', () => {
   it('reports run, level, parent and the sync, await and finish split', async () => {
     const { events, plugin } = recordEvents();
     await using ship = await Nexus.create(Engineering, { plugins: [plugin] });
+    void ship;
     const builds = only(events, 'construct');
     expect(
       builds.map((b) => [b.token, b.run, b.level, b.parent, b.awaitMs]),
@@ -960,6 +967,7 @@ describe('construct spans', () => {
       ],
       { plugins: [plugin] },
     );
+    void ship;
     const waiting = only(events, 'construct:await');
     const done = only(events, 'construct');
     expect(waiting).toMatchObject([{ token: 'NavCharts', run: 0, level: 0 }]);
@@ -967,7 +975,10 @@ describe('construct spans', () => {
     expect(waiting[0]?.startMs).toBe(done[0]?.startMs);
     expect(waiting[0]?.syncMs).toBe(done[0]?.syncMs);
     expect(done[0]?.awaitMs).toBeGreaterThanOrEqual(15);
-    expect(events.indexOf(waiting[0]!)).toBeLessThan(events.indexOf(done[0]!));
+    const types = events.map((e) => e.type);
+    expect(types.indexOf('construct:await')).toBeLessThan(
+      types.indexOf('construct'),
+    );
   });
 
   it('shows a sync provider queued behind its level siblings', async () => {
@@ -979,7 +990,10 @@ describe('construct spans', () => {
       }
     }
     await using ship = await Nexus.create([Fast, Slow], { plugins: [plugin] });
-    const fast = only(events, 'construct').find((b) => b.token === 'Fast')!;
+    void ship;
+    const fast = defined(
+      only(events, 'construct').find((b) => b.token === 'Fast'),
+    );
     const own = fast.syncMs + fast.finishMs;
     expect(fast.durationMs - own).toBeGreaterThanOrEqual(4);
   });
@@ -1012,20 +1026,22 @@ describe('construct spans', () => {
       ],
       { plugins: [plugin] },
     );
+    void ship;
     const byToken = new Map(only(events, 'construct').map((b) => [b.token, b]));
-    const panel = byToken.get('Console')!;
+    const panel = defined(byToken.get('Console'));
+    const gauge = defined(byToken.get('Gauge'));
     expect(byToken.get('Gauge')).toMatchObject({
       run: 0,
       level: null,
       parent: panel.providerId,
     });
-    expect(byToken.get('Gauge')!.syncMs).toBeGreaterThanOrEqual(1.5);
+    expect(gauge.syncMs).toBeGreaterThanOrEqual(1.5);
     expect(byToken.get('Log')).toMatchObject({
       run: null,
       level: null,
       parent: panel.providerId,
     });
-    expect(panel.syncMs).toBeGreaterThanOrEqual(byToken.get('Gauge')!.syncMs);
+    expect(panel.syncMs).toBeGreaterThanOrEqual(gauge.syncMs);
   });
 
   it('numbers a loaded provider by the new blueprint levels', async () => {
