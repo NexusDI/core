@@ -381,6 +381,13 @@ export interface ScaleTimingsFile {
   coreRef: { ref: string; tree: string };
   /** Shape, size and hash of every graph timed, matching scale.json. */
   graphs: Array<{ shape: Shape; size: number; hash: string }>;
+  /**
+   * Every cell the run attempted, pass and not-applicable included. A
+   * competitor cell that passed at n = 50 and failed at a larger size is
+   * skipped: it has no rows here and its outcome and message are the record
+   * (scale spec 14). `message` is required when the outcome is not `pass`.
+   */
+  cells: ScaleCell[];
   /** One fresh-process design per shape, so each records its own round count. */
   design: {
     'fresh-process': Partial<Record<Shape, Design>>;
@@ -699,7 +706,45 @@ const scaleTimingRow: Check = (v, at) => {
     fail(`${at}.vsNexus`, `no paired ratio on ${row.metric}`);
 };
 
-const scaleTimings = obj({
+/** A timed cell: a message says why it did not pass. */
+const timedCell: Check = (v, at) => {
+  obj({ library, variant, shape, size: num, outcome, message: opt(str) })(
+    v,
+    at,
+  );
+  const cell = v as ScaleCell;
+  if (cell.outcome !== 'pass' && cell.message === undefined)
+    fail(`${at}.message`, `a reason for outcome ${cell.outcome}`);
+};
+
+/** The cells of a timing file, by library, variant, shape and size. */
+const cellKey = (c: {
+  library: string;
+  variant: string;
+  shape: string;
+  size: number;
+}) => `${c.library}/${c.variant} ${c.shape} ${c.size}`;
+
+/** Every row, growth pair and marginal figure rests on cells that passed. */
+function checkCellsBehindRows(file: ScaleTimingsFile): void {
+  const outcomes = new Map(file.cells.map((c) => [cellKey(c), c.outcome]));
+  const needs = (at: string, c: Parameters<typeof cellKey>[0]) => {
+    const got = outcomes.get(cellKey(c));
+    if (got !== 'pass')
+      fail(at, `a passing cell for ${cellKey(c)}, found ${got ?? 'none'}`);
+  };
+  file.results.forEach((r, i) => needs(`scale-timings.results[${i}]`, r));
+  file.growth.forEach((g, i) => {
+    needs(`scale-timings.growth[${i}]`, { ...g, size: g.from });
+    needs(`scale-timings.growth[${i}]`, { ...g, size: g.to });
+  });
+  file.marginal.forEach((m, i) => {
+    needs(`scale-timings.marginal[${i}]`, { ...m, size: 1000 });
+    needs(`scale-timings.marginal[${i}]`, { ...m, size: 5000 });
+  });
+}
+
+const scaleTimingsShape = obj({
   schema: literal(1),
   sha: str,
   startedAt: str,
@@ -709,6 +754,7 @@ const scaleTimings = obj({
   graphSeed: num,
   coreRef: obj({ ref: str, tree: str }),
   graphs: arr(obj({ shape, size: num, hash: str })),
+  cells: arr(timedCell),
   design: obj({
     'fresh-process': record(design, SHAPES),
     'steady-get': design,
@@ -737,6 +783,11 @@ const scaleTimings = obj({
     }),
   ),
 });
+
+const scaleTimings: Check = (v, at) => {
+  scaleTimingsShape(v, at);
+  checkCellsBehindRows(v as ScaleTimingsFile);
+};
 
 const CHECKS: Record<Kind, Check> = {
   matrix,
@@ -801,6 +852,19 @@ export function validate(
 ): void {
   CHECKS[kind](value, kind);
   if (where !== 'results') return;
+  if (kind === 'scale-timings')
+    (value as ScaleTimingsFile).cells.forEach((c, i) => {
+      // The reference must run: every ratio is NexusDI plain over a competitor.
+      if (
+        c.library === 'nexusdi' &&
+        c.variant === 'plain' &&
+        c.outcome !== 'pass'
+      )
+        fail(
+          `${kind}.cells[${i}]`,
+          `NexusDI plain to pass at ${c.shape} ${c.size}`,
+        );
+    });
   const designs = (value as { design?: unknown }).design;
   for (const [path, least] of minimums(kind)) {
     const at = `${kind}.design.${path.join('.')}`;

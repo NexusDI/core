@@ -152,6 +152,44 @@ const scaleTimings = (rounds: Partial<Record<string, number>> = {}) => ({
     tree: '4b825dc642cb6eb9a060e54bf8d69288fbee4904',
   },
   graphs: [{ shape: 'mixed', size: 50, hash: '0123456789ab' }],
+  cells: [
+    {
+      library: 'nexusdi',
+      variant: 'plain',
+      shape: 'mixed',
+      size: 50,
+      outcome: 'pass',
+    },
+    {
+      library: 'nexusdi',
+      variant: 'plain',
+      shape: 'mixed',
+      size: 1000,
+      outcome: 'pass',
+    },
+    {
+      library: 'nexusdi',
+      variant: 'plain',
+      shape: 'mixed',
+      size: 5000,
+      outcome: 'pass',
+    },
+    {
+      library: 'inversify',
+      variant: 'decorated',
+      shape: 'mixed',
+      size: 50,
+      outcome: 'pass',
+    },
+    {
+      library: 'tsyringe',
+      variant: 'decorated',
+      shape: 'mixed-async',
+      size: 50,
+      outcome: 'not-applicable',
+      message: 'no async resolution',
+    },
+  ] as Array<Record<string, unknown>>,
   design: {
     'fresh-process': Object.fromEntries(
       SHAPES.map((s) => [s, design(rounds[s] ?? (s === 'mixed' ? 1000 : 200))]),
@@ -328,5 +366,85 @@ describe('validate scale-timings', () => {
       /scale-timings\.design\.fresh-process\.wide/,
     );
     expect(() => validate('scale-timings', file, 'tmp')).not.toThrow();
+  });
+  describe('cells', () => {
+    const skipped = (size: number) => ({
+      library: 'inversify',
+      variant: 'decorated',
+      shape: 'mixed',
+      size,
+      outcome: 'runtime-error',
+      message: 'RangeError: Maximum call stack size exceeded',
+    });
+    it('requires the cells array', () => {
+      const file = scaleTimings() as { cells?: unknown };
+      delete file.cells;
+      expect(() => validate('scale-timings', file, 'results')).toThrow(
+        /scale-timings\.cells: expected an array/,
+      );
+    });
+    it('accepts a skipped competitor cell that has no rows', () => {
+      const file = scaleTimings();
+      file.cells.push(skipped(1000));
+      expect(() => validate('scale-timings', file, 'results')).not.toThrow();
+    });
+    it('requires a message on a cell that does not pass', () => {
+      const file = scaleTimings();
+      file.cells.push({ ...skipped(1000), message: undefined });
+      expect(() => validate('scale-timings', file, 'results')).toThrow(
+        /scale-timings\.cells\[5\]\.message/,
+      );
+    });
+    it('rejects a result row for a cell that did not pass', () => {
+      const file = scaleTimings();
+      file.cells[3] = { ...skipped(50) };
+      expect(() => validate('scale-timings', file, 'results')).toThrow(
+        /scale-timings\.results\[0\]: .*inversify\/decorated mixed 50/,
+      );
+    });
+    it('rejects a result row with no cell at all', () => {
+      const file = scaleTimings();
+      file.cells.splice(3, 1);
+      expect(() => validate('scale-timings', file, 'results')).toThrow(
+        /scale-timings\.results\[0\]/,
+      );
+    });
+    it('rejects a growth pair that touches a failed size', () => {
+      const file = scaleTimings();
+      file.cells[2] = {
+        ...file.cells[2],
+        outcome: 'runtime-error',
+        message: 'boom',
+      };
+      expect(() => validate('scale-timings', file, 'tmp')).toThrow(
+        /scale-timings\.growth\[0\]/,
+      );
+    });
+    it('rejects a marginal figure whose 1,000 or 5,000 cell failed', () => {
+      const file = scaleTimings();
+      file.growth = [];
+      file.cells[1] = {
+        ...file.cells[1],
+        outcome: 'runtime-error',
+        message: 'boom',
+      };
+      expect(() => validate('scale-timings', file, 'tmp')).toThrow(
+        /scale-timings\.marginal\[0\]/,
+      );
+    });
+    it('requires every nexusdi plain cell to pass under results/ only', () => {
+      const file = scaleTimings();
+      file.growth = [];
+      file.marginal = [];
+      file.cells[2] = {
+        ...file.cells[2],
+        outcome: 'runtime-error',
+        message: 'boom',
+      };
+      expect(() => validate('scale-timings', file, 'results')).toThrow(
+        /scale-timings\.cells\[2\]/,
+      );
+      expect(() => validate('scale-timings', file, 'tmp')).not.toThrow();
+    });
   });
 });

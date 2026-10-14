@@ -10,6 +10,8 @@ import type { Shape } from './config.ts';
 import { localExponent } from './growth.ts';
 import {
   coreTree,
+  judgeCells,
+  type CellVerdict,
   toScaleGrowth,
   toScaleMarginal,
   toScaleRows,
@@ -323,6 +325,171 @@ describe('toScaleGrowth and toScaleMarginal', () => {
     expect(
       toScaleGrowth(short, 1).filter((x) => x.metric === 'startup'),
     ).toHaveLength(1);
+  });
+});
+
+describe('judgeCells', () => {
+  const v = (
+    library: LibraryId,
+    variant: Variant,
+    shape: Shape,
+    size: number,
+    outcome: Outcome = 'pass',
+    message?: string,
+  ): CellVerdict => ({
+    library,
+    variant,
+    shape,
+    size,
+    outcome,
+    ...(message === undefined ? {} : { message }),
+  });
+  const base = [
+    v('nexusdi', 'plain', 'mixed', 50),
+    v('nexusdi', 'plain', 'mixed', 1000),
+    v('inversify', 'decorated', 'mixed', 50),
+  ];
+
+  it('keeps every cell and aborts on none when all pass', () => {
+    const r = judgeCells(base, []);
+    expect(r.abort).toBeUndefined();
+    expect(r.cells).toHaveLength(3);
+  });
+  it('skips and records a competitor that fails at scale after passing at 50', () => {
+    const cells = [
+      ...base,
+      v(
+        'inversify',
+        'decorated',
+        'mixed',
+        1000,
+        'runtime-error',
+        'RangeError: stack',
+      ),
+      v(
+        'inversify',
+        'decorated',
+        'mixed',
+        5000,
+        'compile-error',
+        'TS2589: too deep',
+      ),
+    ];
+    const r = judgeCells(cells, []);
+    expect(r.abort).toBeUndefined();
+    expect(
+      r.cells.filter((c) => c.outcome !== 'pass').map((c) => c.size),
+    ).toEqual([1000, 5000]);
+  });
+  it('aborts when a competitor fails at n = 50', () => {
+    const r = judgeCells(
+      [
+        ...base.slice(0, 2),
+        v(
+          'awilix',
+          'plain',
+          'mixed',
+          50,
+          'compile-error',
+          'TS2345: bad\n  at /x/y',
+        ),
+      ],
+      [],
+    );
+    expect(r.abort).toMatch(
+      /awilix\/plain mixed 50: compile-error \(TS2345: bad\)/,
+    );
+    expect(r.abort).not.toMatch(/\/x\/y/);
+  });
+  it('aborts on an equivalence fault at any size', () => {
+    const r = judgeCells(
+      [
+        ...base,
+        v('inversify', 'decorated', 'mixed', 1000, 'wrong-instance', 'built'),
+      ],
+      [],
+    );
+    expect(r.abort).toMatch(/inversify\/decorated mixed 1000: wrong-instance/);
+  });
+  it('aborts when a NexusDI plain cell fails at any size', () => {
+    const r = judgeCells(
+      [...base, v('nexusdi', 'plain', 'mixed', 5000, 'runtime-error', 'boom')],
+      [],
+    );
+    expect(r.abort).toMatch(/nexusdi\/plain mixed 5000: runtime-error/);
+  });
+  it('aborts when the competitor cell at 50 is unknown, as no run proves it passes', () => {
+    const r = judgeCells(
+      [
+        v('nexusdi', 'plain', 'mixed', 1000),
+        v('awilix', 'plain', 'mixed', 1000, 'runtime-error', 'boom'),
+      ],
+      [],
+    );
+    expect(r.abort).toMatch(/awilix\/plain mixed 1000/);
+  });
+  it('takes the committed scale.json as proof of a pass at 50', () => {
+    const r = judgeCells(
+      [
+        v('nexusdi', 'plain', 'mixed', 1000),
+        v('awilix', 'plain', 'mixed', 1000, 'runtime-error', 'boom'),
+      ],
+      [v('awilix', 'plain', 'mixed', 50)],
+    );
+    expect(r.abort).toBeUndefined();
+  });
+  it('aborts when a cell contradicts scale.json at a size both cover', () => {
+    const attemptedPass = judgeCells(base, [
+      v('inversify', 'decorated', 'mixed', 50, 'runtime-error', 'old'),
+    ]);
+    expect(attemptedPass.abort).toMatch(/scale\.json/);
+    const attemptedFail = judgeCells(
+      [
+        ...base,
+        v('inversify', 'decorated', 'mixed', 1000, 'runtime-error', 'boom'),
+      ],
+      [v('inversify', 'decorated', 'mixed', 1000)],
+    );
+    expect(attemptedFail.abort).toMatch(/scale\.json/);
+  });
+  it('accepts a skipped cell that scale.json also records as failing', () => {
+    const r = judgeCells(
+      [
+        ...base,
+        v('inversify', 'decorated', 'mixed', 1000, 'runtime-error', 'boom'),
+      ],
+      [v('inversify', 'decorated', 'mixed', 1000, 'runtime-error', 'boom')],
+    );
+    expect(r.abort).toBeUndefined();
+  });
+  it('lets not-applicable cells through', () => {
+    const r = judgeCells(
+      [
+        ...base,
+        v(
+          'tsyringe',
+          'decorated',
+          'mixed-async',
+          50,
+          'not-applicable',
+          'no async',
+        ),
+      ],
+      [],
+    );
+    expect(r.abort).toBeUndefined();
+  });
+  it('judges each shape on its own n = 50 cell', () => {
+    const r = judgeCells(
+      [
+        v('nexusdi', 'plain', 'wide', 50),
+        v('inversify', 'decorated', 'mixed', 50),
+        v('inversify', 'decorated', 'wide', 1000, 'runtime-error', 'boom'),
+        v('nexusdi', 'plain', 'wide', 1000),
+      ],
+      [],
+    );
+    expect(r.abort).toMatch(/inversify\/decorated wide 1000/);
   });
 });
 
