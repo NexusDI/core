@@ -76,10 +76,12 @@ come from `specs/2026-09-30-extension-principle-design.md` on
 - P1. The owner holds its vocabulary. A package reads another package's codes,
   event types, ids and hidden fields only through what the owner exports. No
   table, switch, regex or string compare over them, and no `Symbol.for` on
-  another package's key. A discriminant compare against a union the owner
-  exports, checked by the compiler, reads through the owner's export
-  (`event.type === 'construct'` against core's `TraceEvent`). Code that
-  branches that way handles an unknown member with a default branch (P2).
+  another package's key. A compare on a trace event's `type`, or on one of
+  its fields, against a union the owner exports and checked by the
+  compiler, reads through the owner's export (`event.type === 'construct'`
+  against core's `TraceEvent`). Code that branches that way handles an
+  unknown member with a default branch (P2). Error codes keep their own
+  rule: an equality check on a code needs an allowance.
 - P2. A set that others extend is open in its type (an augmentable interface or
   a registration argument), and code that branches on it handles an unknown
   member. A set only its owner adds to may stay a closed union.

@@ -69,10 +69,6 @@ describe('ownerVocabulary', () => {
     expect(ownerVocabulary(fixture('clean'), []).violations).toEqual([]);
   });
 
-  it('accepts a compiler-checked compare on a union the owner exports', () => {
-    expect(ownerVocabulary(fixture('discriminant'), []).violations).toEqual([]);
-  });
-
   it('reports a literal of a code another package declares', () => {
     expect(
       ownerVocabulary(fixture('sabotaged/foreign-code'), []).violations,
