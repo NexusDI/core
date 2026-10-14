@@ -67,7 +67,14 @@ function sweep(tmp: string, name: string, current: string): void {
   const gone = (entry: string) =>
     rmSync(join(tmp, entry), { recursive: true, force: true });
   for (const entry of readdirSync(tmp)) {
-    const old = () => Date.now() - statSync(join(tmp, entry)).mtimeMs > HOUR;
+    const old = () => {
+      try {
+        return Date.now() - statSync(join(tmp, entry)).mtimeMs > HOUR;
+      } catch {
+        // Another run deleted it since the listing.
+        return false;
+      }
+    };
     if (entry === name) gone(entry);
     else if (entry.startsWith(`${name}-install-`) && entry !== current)
       gone(entry);
