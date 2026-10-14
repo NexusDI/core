@@ -30,6 +30,8 @@ describe('criticalPath', () => {
     expect(path.boundMs).toBe(10);
     expect(path.barrierMs).toBe(2);
     expect(path.waits[0]).toMatchObject({ token: 'C', waitMs: 9 });
+    expect(path.path[1]?.latestDep).toMatchObject({ token: 'B', earlierMs: 9 });
+    expect(path.path[0]?.latestDep).toBeNull();
   });
 
   it('follows a dependency chain through a transient', () => {

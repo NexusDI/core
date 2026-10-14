@@ -65,14 +65,26 @@ export function criticalPathOf(run: ProfileRun, graph: Graph): CriticalPath {
     const members = levelled.filter((b) => b.level === level);
     const levelStart = Math.min(...members.map((b) => b.startMs));
     const last = members.reduce((a, b) => (endOf(b) > endOf(a) ? b : a));
+    const deps = depsOf(last.providerId);
+    const latest =
+      previous === undefined || deps.length === 0
+        ? undefined
+        : deps.reduce((a, b) => (endOf(b) > endOf(a) ? b : a));
     path.push({
       providerId: last.providerId,
       token: last.token,
       level,
       ownMs: ownMs(last),
-      dependsOnPrevious:
-        previous !== undefined && depsOf(last.providerId).includes(previous),
+      dependsOnPrevious: previous !== undefined && deps.includes(previous),
       lateMs: last.async ? last.startMs - levelStart : null,
+      latestDep:
+        latest === undefined || previous === undefined
+          ? null
+          : {
+              providerId: latest.providerId,
+              token: latest.token,
+              earlierMs: endOf(previous) - endOf(latest),
+            },
     });
     previous = last;
   }

@@ -62,9 +62,9 @@ export function profileTable(
   const status =
     run.ok === false ? ', failed' : run.ok === null ? ', still running' : '';
   lines.push(
-    `${runLabel(run)} ${ms(spanOf(run))} ms${status}` +
+    `${runLabel(run)} ${ms(spanOf(run))} ms${status}, cold` +
       (warmRuns.length > 0
-        ? `, cold; ${warmRuns.length} warm, median ${ms(median(warmRuns.map(spanOf)))} ms`
+        ? `; ${warmRuns.length} warm, median ${ms(median(warmRuns.map(spanOf)))} ms`
         : ''),
   );
 
@@ -193,16 +193,22 @@ export function profileTable(
           `level ${p.level}`,
           p.token,
           `${ms(p.ownMs)} ms`,
-          i === 0
-            ? ''
-            : p.dependsOnPrevious
-              ? `depends on ${path.path[i - 1]?.token ?? ''}`
-              : 'barrier: depends on nothing in the level before',
-          p.lateMs !== null && p.lateMs > 0
-            ? `started ${ms(p.lateMs)} ms late, behind sync siblings`
-            : '',
+          [
+            i === 0
+              ? ''
+              : p.dependsOnPrevious
+                ? `depends on ${path.path[i - 1]?.token ?? ''}`
+                : p.latestDep === null
+                  ? 'barrier: no dependency built in this run'
+                  : `barrier: depends on ${p.latestDep.token}, which ended ${ms(p.latestDep.earlierMs)} ms earlier`,
+            p.lateMs !== null && p.lateMs > 0
+              ? `started ${ms(p.lateMs)} ms late, behind sync siblings`
+              : '',
+          ]
+            .filter((note) => note !== '')
+            .join('; '),
         ]),
-        [false, false, true, false, false],
+        [false, false, true, false],
       ),
     );
     if (path.waits.length > 0)
