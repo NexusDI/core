@@ -306,14 +306,14 @@ describe('profile', () => {
     observe({
       type: 'run',
       run: 4,
-      kind: 'extend',
+      kind: 'fork',
       scope: 's0',
       ok: true,
       startMs: 0,
       durationMs: 3,
     } as never);
     expect(profiler.report().runs).toMatchObject([
-      { id: 4, kind: 'extend', scope: 's0' },
+      { id: 4, kind: 'fork', scope: 's0' },
     ]);
   });
 
