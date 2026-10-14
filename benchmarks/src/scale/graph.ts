@@ -114,7 +114,7 @@ export function assemble(
 }
 
 /** Providers reachable from `from` through deps, `from` included. */
-export function closureSize(
+function closureSize(
   providers: readonly ScaleProvider[],
   from: number,
 ): number {

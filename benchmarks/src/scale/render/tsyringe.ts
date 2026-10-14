@@ -26,6 +26,9 @@ import {
   tokenTable,
   valueLiteral,
   type Files,
+  typeOf,
+  fileOf,
+  lineOf,
 } from './shared.ts';
 
 const header = (graph: ScaleGraph) =>
@@ -49,20 +52,7 @@ const header = (graph: ScaleGraph) =>
 const tokenOf = (p: ScaleProvider) => `'${p.name}'`;
 
 /** The type dependants take: the class, a factory's product, or the value's interface. */
-const typeOf = (p: ScaleProvider) =>
-  p.kind === 'value' ? iface(p) : className(p);
-
 /** The file that declares a provider's class or value interface. */
-const fileOf = (graph: ScaleGraph, p: ScaleProvider) =>
-  perClass(graph) ? `${p.name}.ts` : `${graph.modules[p.module].name}.ts`;
-
-function lineOf(names: readonly string[], from: string): string {
-  if (names.length === 0) return '';
-  const one = `import { ${names.join(', ')} } from '${from}';\n`;
-  if (one.length <= 81) return one;
-  return `import {\n${names.map((n) => `  ${n},\n`).join('')}} from '${from}';\n`;
-}
-
 /**
  * The imports of the dependencies of `own` that `here` does not declare:
  * a class by name, a value's interface as a type, from its file.

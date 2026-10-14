@@ -23,12 +23,36 @@ export const token = (p: ScaleProvider) => `T${className(p)}`;
 /** m03 becomes M03: the constant that holds a module's definition. */
 export const moduleConst = (name: string) => name.toUpperCase();
 
+/** The type a dependant names for a provider: an interface for a value, else the class. */
+export const typeOf = (p: ScaleProvider) =>
+  p.kind === 'value' ? iface(p) : className(p);
+
+/** The function that registers one module's providers, for libraries without a module system. */
+export const registerOf = (name: string) => `register${moduleConst(name)}`;
+
 /**
  * Shapes rendered one class per file, as scale-200 is; the others render
  * one file per module.
  */
 const PER_CLASS: readonly Shape[] = ['wide', 'deep'];
 export const perClass = (graph: ScaleGraph) => PER_CLASS.includes(graph.shape);
+
+/** The file, relative to src/, that holds a provider. */
+export const fileOf = (graph: ScaleGraph, p: ScaleProvider) =>
+  perClass(graph) ? `${p.name}.ts` : `${graph.modules[p.module].name}.ts`;
+
+/** One import line, wrapped when it passes 80 columns; `type` makes it a type import. */
+export function lineOf(
+  names: readonly string[],
+  from: string,
+  type = false,
+): string {
+  if (names.length === 0) return '';
+  const kw = type ? 'import type' : 'import';
+  const one = `${kw} { ${names.join(', ')} } from '${from}';\n`;
+  if (one.length <= 81) return one;
+  return `${kw} {\n${names.map((n) => `  ${n},\n`).join('')}} from '${from}';\n`;
+}
 
 /**
  * counter.ts: the counter every class constructor and factory body calls

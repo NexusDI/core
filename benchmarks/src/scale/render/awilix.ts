@@ -20,11 +20,14 @@ import {
   isAsync,
   layout,
   moduleBody,
-  moduleConst,
   ownOf,
   perClass,
   valueLiteral,
   type Files,
+  typeOf,
+  registerOf,
+  fileOf,
+  lineOf,
 } from './shared.ts';
 
 const header = (graph: ScaleGraph) =>
@@ -44,24 +47,8 @@ ${
 }`;
 
 /** The type dependants take: the class, a factory's product, or the value's interface. */
-const typeOf = (p: ScaleProvider) =>
-  p.kind === 'value' ? iface(p) : className(p);
-
 /** registerM0 for module m0. */
-const registerOf = (name: string) => `register${moduleConst(name)}`;
-
 /** The file that declares a provider's class. */
-const fileOf = (graph: ScaleGraph, p: ScaleProvider) =>
-  perClass(graph) ? `${p.name}.ts` : `${graph.modules[p.module].name}.ts`;
-
-function lineOf(names: readonly string[], from: string, type = false): string {
-  if (names.length === 0) return '';
-  const kw = type ? 'import type' : 'import';
-  const one = `${kw} { ${names.join(', ')} } from '${from}';\n`;
-  if (one.length <= 81) return one;
-  return `${kw} {\n${names.map((n) => `  ${n},\n`).join('')}} from '${from}';\n`;
-}
-
 /**
  * The type imports a file needs for the dependencies of `own` that
  * `here` does not declare, plus `Cradle` when `cradle` is set: classes

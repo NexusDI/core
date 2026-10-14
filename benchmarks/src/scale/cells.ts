@@ -119,7 +119,7 @@ const packagesExternal: Plugin = {
  * child imports this one file untimed, so every library package resolves
  * from the cell, as the bundle's own imports do.
  */
-export function packagesSource(specifiers: readonly string[]): string {
+function packagesSource(specifiers: readonly string[]): string {
   const rank = (s: string) => (s === 'reflect-metadata' ? 0 : 1);
   return [...new Set(specifiers)]
     .sort((a, b) => rank(a) - rank(b))

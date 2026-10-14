@@ -116,7 +116,7 @@
     "benchmarks/fixtures/**/*.{ts,mjs}",
     "benchmarks/src/{matrix,probes,size,build,competitor-releases,release-core,open-results-pr}.ts",
     "benchmarks/src/timings/{orchestrator.ts,worker.mjs,cold-child.mjs}",
-    "benchmarks/src/scale/verify-child.mjs",
+    "benchmarks/src/scale/{verify-child,child,worker}.mjs",
     // The check target runs the *.cell.test.ts files through
     // vitest.cells.config.ts, a config the vitest plugin never reads.
     "benchmarks/vitest.cells.config.ts",
@@ -261,6 +261,10 @@
     // apps/docs/tools/pagefind.mjs runs the pagefind CLI through
     // `npx pagefind`, which fallow's import tracing cannot see.
     "pagefind",
+    // benchmarks/src/consumer.ts tslibVersion() reads the pin from
+    // benchmarks/package.json at runtime, and every scale cell installs it, so no
+    // import statement names it.
+    "tslib",
     "typescript-eslint",
     // Consumed by both the root eslint.config.mjs and
     // libs/core/eslint.config.mjs's `**/*.json` block
@@ -389,6 +393,11 @@
       // self-contained file a toolchain builds alone (benchmarks spec 4.1),
       // and the profile configs differ in one or two keys each.
       "benchmarks/fixtures/**",
+      // One renderer per library, each following that library's documented
+      // idiom for the same graph (scale spec 4.2). A reviewer reads each beside
+      // its docs page (CONTRIBUTING.md, Benchmarks), so the parallel shape is
+      // kept apart per library, and what is identical lives in render/shared.ts.
+      "benchmarks/src/scale/render/*.ts",
     ],
   },
 }

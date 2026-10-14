@@ -172,7 +172,7 @@ export function documentedVariant(lib: Library): Variant {
   return entry[0] as Variant;
 }
 
-export async function runScale(opts: {
+async function runScale(opts: {
   only?: Library['id'][];
   sizes?: readonly Size[];
   shapes?: readonly Shape[];

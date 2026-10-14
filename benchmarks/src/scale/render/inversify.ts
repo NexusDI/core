@@ -26,6 +26,9 @@ import {
   tokenTable,
   valueLiteral,
   type Files,
+  typeOf,
+  fileOf,
+  lineOf,
 } from './shared.ts';
 
 const header = (graph: ScaleGraph) =>
@@ -48,9 +51,6 @@ const idOf = (p: ScaleProvider) =>
   p.kind === 'class' ? className(p) : token(p);
 
 /** The type dependants take: the class, a factory's product, or the value's interface. */
-const typeOf = (p: ScaleProvider) =>
-  p.kind === 'value' ? iface(p) : className(p);
-
 /** Names a file refers to: providers whose id or type it uses. */
 interface Refs {
   ids: Set<number>;
@@ -120,17 +120,7 @@ function importsOf(
   return `${local}${lineOf(tokens, './tokens.ts')}`;
 }
 
-function lineOf(names: readonly string[], from: string): string {
-  if (names.length === 0) return '';
-  const one = `import { ${names.join(', ')} } from '${from}';\n`;
-  if (one.length <= 81) return one;
-  return `import {\n${names.map((n) => `  ${n},\n`).join('')}} from '${from}';\n`;
-}
-
 /** The file that declares a provider's class. */
-const fileOf = (graph: ScaleGraph, p: ScaleProvider) =>
-  perClass(graph) ? `${p.name}.ts` : `${graph.modules[p.module].name}.ts`;
-
 /** A class provider's class, or a factory's product class. */
 function classOf(graph: ScaleGraph, p: ScaleProvider): string {
   const bound = p.kind === 'class';
