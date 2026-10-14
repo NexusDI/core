@@ -811,8 +811,9 @@ benchmarks/package.json            (changed: tslib devDependency, targets)
     the cycle visits every entry in order; `checkFloor` fails a 1 ns median.
 15. `growth.ts`. Tests: for per-round times `t = 3·n^1.2` with multiplicative noise
     shared within a round, every local exponent is 1.2 to 1e-9; for `t = 100,000 + 50·n`
-    the exponent `b(50, 200)` is below 0.1 and `b(1,000, 5,000)` above 0.7, the case a
-    single fit would hide; the interval is identical for the same seed and contains the
+    the local exponents rise pair by pair, `b(50, 200)` = 0.051, `b(200, 1,000)` = 0.193
+    and `b(1,000, 5,000)` = 0.526, each to 1e-9: the fixed cost reads as near-zero growth
+    at small sizes and approaches linear at large ones, the case a single fit would hide; the interval is identical for the same seed and contains the
     point estimate; the marginal figure of a linear set equals its slope.
 16. `timings.ts`. Tests on `toScaleRows(raw, seed)`: pairs come from the same round,
     block and size; only NexusDI `plain` is the reference; `load`, `create`, `first-get`
