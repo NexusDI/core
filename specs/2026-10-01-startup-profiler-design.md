@@ -95,6 +95,34 @@ do not change.
 +/** The operation a run is. May gain a member in a minor release; handle an unknown kind. */
 +export type RunKind = 'create' | 'load' | 'createScope' | 'extend';
 +
++/**
++ * The fields of every build event: construct, construct:await and
++ * construct:failed for a constructor or factory, and init, init:await and
++ * init:failed for an onInit call. One literal in core builds all six.
++ */
++interface BuildEventFields {
++  token: string;
++  providerId: string;
++  module: string;
++  /** null for value and alias providers. */
++  lifetime: Lifetime | null;
++  scope: string | null;
++  /** Whether the call returned a thenable. */
++  async: boolean;
++  run: number | null;
++  level: number | null;
++  parent: string | null;
++  startMs: number;
++  /** From the call until it returned or threw, nested builds included. */
++  syncMs: number;
++  /** From that return until the thenable settled or the build failed; null when the call returned no thenable. */
++  awaitMs: number | null;
++  /** From the build resuming until the instance was stored or the build failed: options validation and construct hooks. 0 on init events. */
++  finishMs: number;
++  /** Wall time from the call to the event, time queued behind the level's other providers included. */
++  durationMs: number;
++}
++
  export interface TraceEventByType {
    compile: {
      phase: 'create' | 'load' | 'check';
@@ -106,91 +134,30 @@ do not change.
 +    startMs: number;
      durationMs: number;
    };
-   construct: {
-     token: string;
-     providerId: string;
-     module: string;
-     /** null for value and alias providers. */
-     lifetime: Lifetime | null;
-     scope: string | null;
-     async: boolean;
-+    run: number | null;
-+    level: number | null;
-+    parent: string | null;
-+    startMs: number;
-+    /** From the constructor or factory call until it returned, nested builds included. */
-+    syncMs: number;
-+    /** From that return until the returned promise settled; null when it returned no thenable. */
-+    awaitMs: number | null;
-+    /** From the build resuming until the instance was stored: options validation and construct hooks. */
-+    finishMs: number;
-+    /** Wall time from the call to the store, time queued behind the level's other providers included. */
-     durationMs: number;
-   };
+-  construct: {
+-    token: string;
+-    providerId: string;
+-    module: string;
+-    /** null for value and alias providers. */
+-    lifetime: Lifetime | null;
+-    scope: string | null;
+-    async: boolean;
+-    durationMs: number;
+-  };
++  /** A build stored its instance. */
++  construct: BuildEventFields;
 +  /** A factory returned a thenable; core now awaits it. The build ends with construct or construct:failed. */
-+  'construct:await': {
-+    token: string;
-+    providerId: string;
-+    module: string;
-+    scope: string | null;
-+    run: number | null;
-+    level: number | null;
-+    startMs: number;
-+    syncMs: number;
-+  };
-+  'construct:failed': {
-+    token: string;
-+    providerId: string;
-+    module: string;
-+    lifetime: Lifetime | null;
-+    scope: string | null;
-+    /**
-+     * Whether the constructor or factory returned a thenable. The failure came after it:
-+     * the thenable rejected, an on-demand build refused it (NEXUS_LAZY_ASYNC), or options
-+     * validation or a construct hook threw.
-+     */
-+    async: boolean;
-+    run: number | null;
-+    level: number | null;
-+    parent: string | null;
-+    startMs: number;
-+    durationMs: number;
-+  };
++  'construct:await': BuildEventFields;
++  /** A build failed between the constructor or factory call and the store. */
++  'construct:failed': BuildEventFields;
    untracked: { token: string; providerId: string; reason: 'root-transient' | 'singleton-thunk' };
 -  init: { token: string; providerId: string; durationMs: number };
-+  init: {
-+    token: string;
-+    providerId: string;
-+    run: number | null;
-+    level: number | null;
-+    /** Whether onInit returned a thenable. */
-+    async: boolean;
-+    startMs: number;
-+    /** From the onInit call until it returned. */
-+    syncMs: number;
-+    /** From that return until the promise settled; null when onInit returned no thenable. */
-+    awaitMs: number | null;
-+    durationMs: number;
-+  };
++  /** A singleton's onInit settled. */
++  init: BuildEventFields;
 +  /** onInit returned a thenable; core now awaits it. Ends with init or init:failed. */
-+  'init:await': {
-+    token: string;
-+    providerId: string;
-+    run: number | null;
-+    level: number | null;
-+    startMs: number;
-+    syncMs: number;
-+  };
-+  'init:failed': {
-+    token: string;
-+    providerId: string;
-+    run: number | null;
-+    level: number | null;
-+    /** Whether onInit returned a thenable: it rejected, or an on-demand build refused it (NEXUS_LAZY_ASYNC). */
-+    async: boolean;
-+    startMs: number;
-+    durationMs: number;
-+  };
++  'init:await': BuildEventFields;
++  /** onInit threw or rejected, or an on-demand build refused its thenable (NEXUS_LAZY_ASYNC). */
++  'init:failed': BuildEventFields;
 +  run: {
 +    run: number;
 +    kind: RunKind;
@@ -212,9 +179,22 @@ do not change.
  }
 ```
 
-`RunKind` is a new export of `@nexusdi/core`. No field is removed or renamed, and no
-existing field changes type or meaning. `construct.durationMs` keeps the rc.0 value: the
-wall span from the factory call to the store.
+`RunKind` is a new export of `@nexusdi/core`. `BuildEventFields` is not exported; plugins
+read it through `TraceEvent<'construct'>` and the other five types. No field is removed or
+renamed, and no existing field changes type or meaning. `construct.durationMs` keeps the
+rc.0 value: the wall span from the factory call to the store. `init` gains `module`,
+`lifetime`, `scope`, `parent` and `finishMs` from the shared shape at no byte cost, which
+replaces the rejected `init.module` of section 16.
+
+The six build events share one shape so core builds them from one literal (section 3.6).
+Each field means the same on every one of them, read up to the moment the event fires:
+
+- On an `:await` event the span ends at the emit, so `awaitMs` and `finishMs` read 0 or
+  close to it, and `durationMs` is about `syncMs`.
+- On a `:failed` event the times run to the failure: `syncMs` to the return or the throw,
+  `awaitMs` (async calls only) to the rejection or the resume, `finishMs` from the resume
+  to the throw, 0 when the build failed before it resumed.
+- On `init*`, `lifetime` is `'singleton'`, `scope` is `null` and `finishMs` is 0.
 
 ### 3.2 Fields
 
@@ -223,19 +203,19 @@ event, with the fraction the runtime gives. Browsers coarsen `performance.now()`
 100 µs on a page without cross-origin isolation), so a short provider can read 0 in a
 browser. The tier column refers to section 5.2.
 
-| Field        | On                                                                      | Meaning                                                                                                                                                                                                                                                                                                       | Tier                                         |
-| ------------ | ----------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | -------------------------------------------- |
-| `run`        | `compile`, `construct*`, `init*`, `run`, `scope:create`, `scope:extend` | The run id. Unique within one container; `create` is run 0; `load`, `createScope` and `extend()` each take the next id from one counter on the root. `null` on `compile` for `Nexus.check`, and on builds no run scheduled (section 3.3).                                                                     | stable                                       |
-| `kind`       | `run`                                                                   | The operation: `create`, `load`, `createScope`, `extend`. A minor release may add a member.                                                                                                                                                                                                                   | stable (the union is open to core additions) |
-| `ok`         | `run`                                                                   | `true` when the operation settled with a value, `false` when it threw or was aborted by disposal. An `extend()` that shares an in-flight `extend()` to the same blueprint reports the shared work's outcome.                                                                                                  | stable                                       |
-| `level`      | `construct*`, `init*`                                                   | The index into the levels array of the blueprint the run built (section 3.3). `null` for on-demand, transient, value and alias builds.                                                                                                                                                                        | presence and type stable; numbering evolving |
-| `parent`     | `construct`, `construct:failed`                                         | The provider id whose constructor or factory this build ran inside, or `null`.                                                                                                                                                                                                                                | stable                                       |
-| `startMs`    | every event with `durationMs`, and both `:await` events                 | When the span began. For `construct*` and `init*`, the moment core called the constructor, factory or `onInit`. For `run`, the call: right after plugin registration for `create`, and the call itself for `load`, `createScope` and `extend()`, so the span includes time queued behind earlier calls.       | stable                                       |
-| `durationMs` | as in rc.0, plus the new events                                         | The wall span. The event's span is `[startMs, startMs + durationMs]`. For `construct`, the call to the store, with time queued behind level siblings included.                                                                                                                                                | stable                                       |
-| `syncMs`     | `construct`, `construct:await`, `init`, `init:await`                    | From the call until it returned. Nested builds and property injection run inside it.                                                                                                                                                                                                                          | stable                                       |
-| `awaitMs`    | `construct`, `init`                                                     | From that return until the returned promise settled. `null` when no thenable came back.                                                                                                                                                                                                                       | stable                                       |
-| `finishMs`   | `construct`                                                             | From the build resuming until the instance was stored. Today that covers options validation and `construct` hooks.                                                                                                                                                                                            | field stable; the work it covers evolving    |
-| `async`      | `construct`, `construct:failed`, `init`, `init:failed`                  | The call returned a thenable, on all four events. `construct`: as rc.0. `construct:failed`: the factory returned one, and then it rejected, an on-demand build refused it (`NEXUS_LAZY_ASYNC`), or a later step threw. `init:failed`: `onInit` returned one that rejected or that an on-demand build refused. | stable                                       |
+| Field        | On                                                                      | Meaning                                                                                                                                                                                                                                                                                                         | Tier                                         |
+| ------------ | ----------------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | -------------------------------------------- |
+| `run`        | `compile`, `construct*`, `init*`, `run`, `scope:create`, `scope:extend` | The run id. Unique within one container; `create` is run 0; `load`, `createScope` and `extend()` each take the next id from one counter on the root. `null` on `compile` for `Nexus.check`, and on builds no run scheduled (section 3.3).                                                                       | stable                                       |
+| `kind`       | `run`                                                                   | The operation: `create`, `load`, `createScope`, `extend`. A minor release may add a member.                                                                                                                                                                                                                     | stable (the union is open to core additions) |
+| `ok`         | `run`                                                                   | `true` when the operation settled with a value, `false` when it threw or was aborted by disposal. An `extend()` that shares an in-flight `extend()` to the same blueprint reports the shared work's outcome.                                                                                                    | stable                                       |
+| `level`      | the six build events                                                    | The index into the levels array of the blueprint the run built (section 3.3). `null` for on-demand, transient, value and alias builds.                                                                                                                                                                          | presence and type stable; numbering evolving |
+| `parent`     | the six build events                                                    | The provider id whose constructor or factory this build ran inside, or `null`. Read from the construction stack when the event fires.                                                                                                                                                                           | stable                                       |
+| `startMs`    | every event with `durationMs`, and both `:await` events                 | When the span began. For `construct*` and `init*`, the moment core called the constructor, factory or `onInit`. For `run`, the call: right after plugin registration for `create`, and the call itself for `load`, `createScope` and `extend()`, so the span includes time queued behind earlier calls.         | stable                                       |
+| `durationMs` | as in rc.0, plus the new events                                         | The wall span. The event's span is `[startMs, startMs + durationMs]`. For `construct`, the call to the store, with time queued behind level siblings included.                                                                                                                                                  | stable                                       |
+| `syncMs`     | the six build events                                                    | From the call until it returned. Nested builds and property injection run inside it.                                                                                                                                                                                                                            | stable                                       |
+| `awaitMs`    | the six build events                                                    | From that return until the returned promise settled. `null` when no thenable came back.                                                                                                                                                                                                                         | stable                                       |
+| `finishMs`   | the six build events                                                    | From the build resuming until the instance was stored. Today that covers options validation and `construct` hooks.                                                                                                                                                                                              | field stable; the work it covers evolving    |
+| `async`      | the six build events                                                    | The call returned a thenable, on every build event. `construct`: as rc.0. `construct:failed`: the factory returned one, and then it rejected, an on-demand build refused it (`NEXUS_LAZY_ASYNC`), or a later step threw. `init:failed`: `onInit` returned one that rejected or that an on-demand build refused. | stable                                       |
 
 Derived values every consumer can compute, and that devtools uses:
 
@@ -262,8 +242,11 @@ A build gets its run this way:
   passes the level index to `buildOne(id, level)`.
 - An on-demand build of a provider new in the active run reads the container's active
   `Run` (`root.run?.id`, `scope.run?.id`) inside `make`.
-- Every other build carries `run: null`. A transient or nested build names its enclosing
-  build in `parent`, and its time is inside that build's `syncMs`.
+- A value or alias provider's `construct` carries the id of the run that registered it,
+  with `level: null` and a zero span at the emit.
+- Every other build carries `run: null`: a transient, and an on-demand build outside any
+  run. A transient or nested build names its enclosing build in `parent`, and its time is
+  inside that build's `syncMs`.
 
 What `level` indexes, per caller of `buildLevels`:
 
@@ -306,6 +289,8 @@ Which sites emit what:
 - `construct:failed` is emitted from level builds and on-demand builds. Transient builds
   on the `get()` path get no try/catch; a transient's failure shows through its parent's
   `construct:failed`.
+- An observer's throw on `construct:await` or `init:await` fails that build: core emits
+  the matching `:failed` event, and the build fails with the observer's throw.
 - `init` is emitted from `buildOnDemand` as well, with `level: null`, and `init:failed` on
   a throw there. rc.0 builds on-demand singletons with `onInit` and emits nothing.
 - On-demand and transient builds report a real `syncMs`. The transient path reads the clock
@@ -316,10 +301,12 @@ Which sites emit what:
 The operation's own error always reaches the caller.
 
 - On a runtime failure path (`construct:failed`, `init:failed`, and `run` with `ok: false`
-  after `create`, `load`, `createScope` or `extend()` failed), core emits through a
-  collecting emit. It catches an observer's throw and appends it to the run's rollback
-  errors. The thrown `ProviderError` carries it in `disposalErrors`, after the disposer
-  errors. Rollback already puts observer throws from `dispose:instance` there.
+  after `create`, `load`, `createScope` or `extend()` failed), core catches an observer's
+  throw and appends it to the run's errors. The thrown `ProviderError` carries it in
+  `disposalErrors`, after the disposer errors. Rollback already puts observer throws from
+  `dispose:instance` there.
+- An observer's throw on `construct:await` or `init:await` is a failure of that build
+  (section 3.4). The run fails with it as the cause, after its `:failed` event.
 - On a compile failure (`BlueprintError`, `LoadError`), `compileTraced` drops the
   observer's throw. Those errors have no list to hold it.
 - On a success path, an observer's throw on the closing `run` event rejects the call:
@@ -342,13 +329,28 @@ This changes rc.0 behaviour on compile failure. See owner item (b) 2.
 
 ### 3.6 Core implementation rules
 
-- `Built` (`libs/core/src/runtime/build.ts`) gains flat `syncMs`, `awaitMs`, `run` and
-  `level`. No per-build timing object and no `Ctx` field. `lookup.ts` allocates a `Ctx`
-  per `get()`, and K14's get-2000 case already sits near its bound.
-- Clock reads per level build with an observer: at the call, after it returns, after the
-  await (async only), on resume, and inside `make`. Each read is `tracer.now()`.
-- Every new event and field is built inside the `make` closure.
-- `traceConstruct` builds `construct` and `construct:failed` from one shape.
+- One function, `traceBuild(type, container, bp, id, run, level, isAsync, start?,
+returned?, resumed?)` in `libs/core/src/runtime/build.ts`, emits all six build events
+  from one literal. Inside `make` it looks up the record, reads the module name, the
+  parent from the construction stack and the end time, and computes `syncMs`, `awaitMs`,
+  `finishMs` and `durationMs` from the three times it received. A value or alias provider
+  passes no times. `traceConstruct`, `traceFailed`, `traceInit` and `traceInitFailed`
+  do not exist.
+- `buildInto` owns a level build from the call to the store, for root singletons and
+  scoped providers alike; `buildSingleton`, `buildScoped`, `Built` and `store` go. One
+  `try/catch` around the call, the await, options validation and construct hooks emits
+  `construct:failed` for any failure. `validateOptions` moves to `build.ts`.
+- No per-build timing object and no `Ctx` field. `lookup.ts` allocates a `Ctx` per
+  `get()`, and K14's get-2000 case already sits near its bound.
+- Clock reads per level build with an observer: at the call, after it returns, on resume,
+  and inside `make`. `awaitMs` is `resumed - returned`, computed in `make`. Each read is
+  `tracer.now()`.
+- `traceBuild` rethrows an observer's throw on a non-failure event, and on a `:failed`
+  event appends it to `run.errors`, or drops it outside a run. `RunTrace.errors` is
+  optional and created on first use.
+- `emitCollecting(tracer, errors, make)` appends an observer's throw to `errors`; with no
+  list it rethrows, as a success path does. A failure with no list to hold the throw,
+  such as `compileTraced`'s, passes `[]`.
 - No `input.clock` on `compile()`, no `Tracer.on` getter, no change to `SITE_CONDITIONS`.
 
 ### 3.7 Two view fields for build order
@@ -419,8 +421,15 @@ Marginal bytes inside this spec's set: the two `:await` events 75 B, `startMs` o
 event 24 B, the `run` event 113 B, all `init` changes 163 B, wall `durationMs` plus
 `finishMs` against the architect's queue-free `durationMs` 6 B.
 
-+673 B is +3.6%, over the 2% `coreGrowthPercent` of `scripts/size-compare.mjs`, so the pull
-request carries a `## Size` section. Owner item (a) 1.
+The implemented design (section 3.6, the size pass of 2026-10-14) measures 19,271 B against
+18,529 B for 0.4.0-rc.1 by the same method, +742 B (+4.0%). Its marginal bytes, each measured
+by removing one feature: the `:failed` events 56 B, on-demand `init` 32 B, the two `:await`
+events 26 B, the new fields of a level build's `init` event 21 B, the level index 21 B,
+`parent` 13 B, the transient path's extra clock read 10 B, `finishMs` 9 B, the two view
+fields 8 B.
+
++742 B is over the 2% `coreGrowthPercent` of `scripts/size-compare.mjs`, so the pull request
+carries a `## Size` section. The owner approved it on 2026-10-14 (owner item (a) 1).
 
 The table predates 0.4.0-rc.1. The rc.1 perf work (sparse visibility, provider records built
 as one literal) moved the same fixture to 18,516 B with the `gzip -9` command line, 26 B under
@@ -1216,7 +1225,8 @@ could move.
 
 ### 11.1 Core
 
-+673 B gzip, 18,541 to 19,214 (+3.6%). Section 4 has the breakdown. Every byte sits behind
++742 B gzip, 18,529 to 19,271 (+4.0%) against 0.4.0-rc.1, as designed; the pull request's
+size report gives the measured figure. Section 4 has the breakdown. Every byte sits behind
 the existing hook guards.
 
 ### 11.2 devtools
@@ -1382,10 +1392,10 @@ for (const b of probe.rows())
 ## 15. Files
 
 Core (`libs/core/src/runtime/`): `trace.ts` (types, `RunKind`, the `run` event helper, the
-collecting emit), `build.ts` (`Built` fields, `traceConstruct` with `failed`,
-`construct:await`, `init` from `buildOnDemand`, the transient clock read), `build-levels.ts`
-(level index), `startup.ts` (run id, resume time), `init.ts` (`syncMs`, `awaitMs`,
-`init:await`, `init:failed`), `scope.ts`, `load.ts`, `nexus.ts` (the create run),
+collecting emit), `build.ts` (`traceBuild`, `buildInto` from
+the call to the store, `validateOptions`, `init` from `buildOnDemand`, the transient clock
+read), `build-levels.ts` (level index), `startup.ts` (run id, value and alias events),
+`init.ts` (the init events through `traceBuild`), `scope.ts`, `load.ts`, `nexus.ts` (the create run),
 `compile-traced.ts` (`run`, `startMs`, the dropped observer throw on failure),
 `shutdown.ts` (`startMs`), `state.ts` (`nextRun`, `Run.id`), `trace.test-d.ts`; `index.ts`
 exports `RunKind`. Core (`libs/core/src/blueprint/`): `views.ts` (`EdgeView.ordersBuild`,
@@ -1425,8 +1435,8 @@ root `package.json` (`@paulirish/trace_engine`, exact pin).
   into one pass, so the pass names would change within a release of being published.
   Item 1 (sparse visibility) is on `release/0.4` since 0.4.0-rc.1; item 5 is not. Core
   maintainers have the bench harness for pass times.
-- `init.module` (20 B). A consumer reads `module` from the `construct` with the same
-  `providerId`.
+- `init.module` as a field of its own (20 B). The shared build-event shape of section 3.1
+  now carries `module` on `init` at no cost.
 - A queue-free `construct.durationMs`. It breaks the span rule for every sync provider in
   a wide level: the span would end before the provider was stored, and sibling spans on one
   level track would overlap at the wrong times. `finishMs` makes the queue derivable.
@@ -1473,7 +1483,8 @@ Each item carries the tech lead's recommendation. The owner approved every item 
    measure these numbers from outside core. The cheaper option drops every `init` change,
    at +510 B, and the profiler then cannot see an async or hung `onInit`. Recommendation:
    approve +673 B. The ruling already cut 188 B from the proposal (steps, compile passes,
-   `init.module`) and added 81 B for the hung case and `finishMs`. Approved by the owner, 2026-10-14.
+   `init.module`) and added 81 B for the hung case and `finishMs`. Approved by the owner, 2026-10-14, at about
+   +742 B, the implemented design of section 3.6.
 
 ### (b) Removals, renames and semantic changes to public API
 
