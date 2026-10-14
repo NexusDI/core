@@ -1,7 +1,8 @@
 import type { Blueprint } from '../blueprint/blueprint.js';
 import { isObject } from './ownership.js';
 import { buildLevels } from './build-levels.js';
-import { assertOpen, type RootState } from './state.js';
+import { isThenable, observeRejection, traceBuild } from './build.js';
+import { assertOpen, type RootState, type Run } from './state.js';
 
 interface Initializable {
   onInit(): unknown;
@@ -21,12 +22,12 @@ function hasOnInit(value: object): value is Initializable {
 export async function runInit(
   root: RootState,
   bp: Blueprint,
-  isNew: (id: string) => boolean,
+  run: Pick<Run, 'id' | 'errors' | 'isNew'>,
 ): Promise<void> {
   await buildLevels(
     bp.singletonLevels,
-    isNew,
-    async (id) => {
+    run.isNew,
+    async (id, level) => {
       const instance = root.slots.value(id);
       if (
         !isObject(instance) ||
@@ -36,14 +37,50 @@ export async function runInit(
         return;
       const tracer = root.tracer;
       const start = tracer.now();
-      await instance.onInit();
-      tracer.emit(() => ({
-        type: 'init',
-        token: bp.providers.get(id)?.name ?? id,
-        providerId: id,
-        startMs: start,
-        durationMs: tracer.now() - start,
-      }));
+      let isAsync = false;
+      let returned: number | undefined;
+      // A throw or rejection, or an observer's throw on init:await, ends
+      // the call with init:failed.
+      try {
+        const result = instance.onInit();
+        returned = tracer.now();
+        isAsync = isThenable(result);
+        if (isAsync) {
+          try {
+            traceBuild(
+              'init:await',
+              root,
+              bp,
+              id,
+              run,
+              level,
+              true,
+              start,
+              returned,
+            );
+          } catch (error) {
+            // Nothing awaits the thenable now; a later rejection stays handled.
+            observeRejection(result);
+            throw error;
+          }
+        }
+        // Awaited for a plain value too, as rc.0 awaited every onInit.
+        await result;
+      } catch (error) {
+        traceBuild(
+          'init:failed',
+          root,
+          bp,
+          id,
+          run,
+          level,
+          isAsync,
+          start,
+          returned,
+        );
+        throw error;
+      }
+      traceBuild('init', root, bp, id, run, level, isAsync, start, returned);
     },
     (ids) => {
       for (const id of ids) root.slots.markReady(id);

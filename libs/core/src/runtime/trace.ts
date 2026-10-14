@@ -7,9 +7,12 @@ import type { OwnedEntry } from './ownership.js';
 export type RunKind = 'create' | 'load' | 'createScope' | 'extend';
 
 /**
- * The fields of every build event. One literal in core builds them all.
- * Each field reads up to the moment its event fires, so on an :await event
- * awaitMs and finishMs are 0 or close to it.
+ * The fields of every build event: construct, construct:await and
+ * construct:failed for a constructor or factory, and init, init:await and
+ * init:failed for an onInit call. One literal in core builds all six. Each
+ * field reads up to the moment its event fires, so on an :await event
+ * awaitMs and finishMs are 0 or close to it. On the init events lifetime
+ * is 'singleton', scope is null and finishMs is 0.
  */
 interface BuildEventFields {
   token: string;
@@ -60,12 +63,12 @@ export interface TraceEventByType {
     providerId: string;
     reason: 'root-transient' | 'singleton-thunk';
   };
-  init: {
-    token: string;
-    providerId: string;
-    startMs: number;
-    durationMs: number;
-  };
+  /** A singleton's onInit settled. */
+  init: BuildEventFields;
+  /** onInit returned a thenable; core now awaits it. Ends with init or init:failed. */
+  'init:await': BuildEventFields;
+  /** onInit threw or rejected, or an on-demand build refused its thenable (NEXUS_LAZY_ASYNC). */
+  'init:failed': BuildEventFields;
   run: {
     run: number;
     kind: RunKind;

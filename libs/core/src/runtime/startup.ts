@@ -115,7 +115,7 @@ export async function startBlueprint(
     assertOpen(root);
     // With onInit off (a plugin set onInit: false), buildInto already
     // marked each singleton ready.
-    if (root.initEnabled) await runInit(root, plan.bp, plan.isNew);
+    if (root.initEnabled) await runInit(root, plan.bp, run);
     root.run = undefined;
     root.owned.push(...built.owned);
   } catch (error) {

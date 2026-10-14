@@ -88,9 +88,14 @@ export function adopt(
   }
 }
 
-/** The trace events of one build. */
+/** The trace events of one build or onInit call. */
 export type BuildEventType =
-  'construct' | 'construct:await' | 'construct:failed';
+  | 'construct'
+  | 'construct:await'
+  | 'construct:failed'
+  | 'init'
+  | 'init:await'
+  | 'init:failed';
 
 /**
  * Emits one build event from one shape. Times are tracer.now() readings:
@@ -146,7 +151,7 @@ export function traceBuild(
 }
 
 /** Observes a thenable nothing will await, so its rejection is never unhandled. */
-function observeRejection(value: unknown): void {
+export function observeRejection(value: unknown): void {
   Promise.resolve(value).catch(() => undefined);
 }
 
@@ -551,7 +556,7 @@ export function buildOnDemand(record: ProviderRecord, ctx: Ctx): unknown {
     });
   };
   const tracer = root.tracer;
-  const start = tracer.now();
+  let start = tracer.now();
   let isAsync = false;
   let returned: number | undefined;
   let instance: unknown;
@@ -606,11 +611,22 @@ export function buildOnDemand(record: ProviderRecord, ctx: Ctx): unknown {
     typeof (instance as { onInit?: unknown }).onInit === 'function' &&
     root.ownership.claimInit(instance)
   ) {
+    start = tracer.now();
     let result: unknown;
     try {
       result = (instance as { onInit(): unknown }).onInit();
     } catch (error) {
       container.slots.abandon(record.id);
+      traceBuild(
+        'init:failed',
+        root,
+        ctx.bp,
+        record.id,
+        run,
+        null,
+        false,
+        start,
+      );
       throw error instanceof NexusError
         ? fromUserCode(error)
         : buildFailed(ctx.bp, record, error, [
@@ -618,7 +634,26 @@ export function buildOnDemand(record: ProviderRecord, ctx: Ctx): unknown {
             record.name,
           ]);
     }
-    if (isThenable(result)) {
+    // A thenable fails the build with NEXUS_LAZY_ASYNC, so its event is
+    // init:failed with async: true (plan choice 5).
+    isAsync = isThenable(result);
+    try {
+      traceBuild(
+        isAsync ? 'init:failed' : 'init',
+        root,
+        ctx.bp,
+        record.id,
+        run,
+        null,
+        isAsync,
+        start,
+        tracer.now(),
+      );
+    } catch (error) {
+      // As for the construct event above.
+      traced ??= { error };
+    }
+    if (isAsync) {
       container.slots.abandon(record.id);
       throw lazyAsync(result);
     }

@@ -135,6 +135,20 @@ describe('construct timing', () => {
   });
 });
 
+describe('init timing', () => {
+  it('gives the init events the shape of construct', () => {
+    expectTypeOf<Omit<TraceEvent<'init'>, 'type'>>().toEqualTypeOf<
+      Omit<TraceEvent<'construct'>, 'type'>
+    >();
+    expectTypeOf<Omit<TraceEvent<'init:await'>, 'type'>>().toEqualTypeOf<
+      Omit<TraceEvent<'construct'>, 'type'>
+    >();
+    expectTypeOf<Omit<TraceEvent<'init:failed'>, 'type'>>().toEqualTypeOf<
+      Omit<TraceEvent<'construct'>, 'type'>
+    >();
+  });
+});
+
 describe('PluginContext.emit', () => {
   it('accepts an event keyed <package>/<event>', () => {
     expectTypeOf<PluginContext['emit']>()
