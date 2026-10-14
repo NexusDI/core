@@ -2,6 +2,7 @@ import {
   existsSync,
   mkdirSync,
   readdirSync,
+  utimesSync,
   rmSync,
   writeFileSync,
 } from 'node:fs';
@@ -9,7 +10,7 @@ import { join } from 'node:path';
 import { afterAll, describe, expect, it } from 'vitest';
 
 import { BENCHMARKS } from '../libraries.ts';
-import { testConsumer } from './test-consumer.ts';
+import { sharedInstallName, testConsumer } from './test-consumer.ts';
 
 const NAME = 'test-consumer-unit';
 const made: string[] = [];
@@ -73,5 +74,52 @@ describe('testConsumer', () => {
         (e.startsWith(`${NAME}-install-`) && !madeInstalls.has(e)),
     );
     expect(left).toEqual([]);
+  });
+
+  it('takes the install of a run that finished first when the rename fails', () => {
+    const shared = join(BENCHMARKS, 'tmp', sharedInstallName(NAME, ['awilix']));
+    rmSync(shared, { recursive: true, force: true });
+    // The installer plays the other run: it puts a whole install in place
+    // before this run's rename, so the rename fails and the catch path runs.
+    const racing = (dir: string) => {
+      mkdirSync(join(shared, 'node_modules'), { recursive: true });
+      writeFileSync(join(shared, 'node_modules', 'winner'), 'x');
+      mkdirSync(join(dir, 'node_modules'), { recursive: true });
+      writeFileSync(join(dir, 'node_modules', 'loser'), 'x');
+    };
+    const run = testConsumer(NAME, ['awilix'], racing);
+    made.push(run);
+    expect(existsSync(join(run, 'node_modules', 'winner'))).toBe(true);
+    expect(existsSync(join(run, 'node_modules', 'loser'))).toBe(false);
+    expect(
+      readdirNames(join(BENCHMARKS, 'tmp')).filter((e) =>
+        e.startsWith(`${NAME}-staging-`),
+      ),
+    ).toEqual([]);
+  });
+
+  it('removes what earlier runs left: other pins, old staging and run directories, the old cache', () => {
+    const tmp = join(BENCHMARKS, 'tmp');
+    const old = new Date(Date.now() - 2 * 3600 * 1000);
+    const make = (name: string, aged: boolean) => {
+      mkdirSync(join(tmp, name), { recursive: true });
+      if (aged) utimesSync(join(tmp, name), old, old);
+    };
+    make(`${NAME}-install-000000000000`, false);
+    make(`${NAME}-staging-old`, true);
+    make(`${NAME}-staging-fresh`, false);
+    make(`${NAME}-run-old`, true);
+    make(`${NAME}-run-fresh`, false);
+    make(NAME, false);
+    const { install } = counting();
+    made.push(testConsumer(NAME, ['awilix'], install));
+    const left = new Set(readdirNames(tmp));
+    expect(left.has(`${NAME}-install-000000000000`)).toBe(false);
+    expect(left.has(`${NAME}-staging-old`)).toBe(false);
+    expect(left.has(`${NAME}-run-old`)).toBe(false);
+    expect(left.has(NAME)).toBe(false);
+    expect(left.has(`${NAME}-staging-fresh`)).toBe(true);
+    expect(left.has(`${NAME}-run-fresh`)).toBe(true);
+    expect(left.has(sharedInstallName(NAME, ['awilix']))).toBe(true);
   });
 });
