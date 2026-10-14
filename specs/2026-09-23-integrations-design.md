@@ -1,17 +1,19 @@
 # NexusDI 0.4 framework integrations and edge runtimes
 
-Status: revision 3, 2026-10-14, refreshed against `0.4.0-rc.1` (`origin/release/0.4` at
+Status: revision 3, 2026-10-14, with the owner's answers of 2026-10-15 (section 20),
+refreshed against `0.4.0-rc.1` (`origin/release/0.4` at
 `cef5f39a`). Revision 2 (`1de86ff6` on `spec/integrations`, 2026-09-24) was aligned with
 core revision 2 and never implemented. Section 0 lists what revision 3 changed. Section
 2.1 keeps the owner's decisions on the first draft, section 2.2 records the decisions the
-architect settled in this revision, and section 20 holds the questions only the owner can
-answer.
+architect settled in this revision, and section 20 records the owner's answers to the two
+questions this revision raised. The plan is `specs/plans/2026-10-15-integrations-0.4.md`.
 
 Packages (all new, all published):
 
 - `@nexusdi/hono`, `@nexusdi/express`, `@nexusdi/fastify`, `@nexusdi/react-router` and
   `@nexusdi/vitest`, as in revision 2.
-- `@nexusdi/next`, proposed in section 10 and subject to owner question Q1.
+- `@nexusdi/next`, approved by the owner on 2026-10-15 (Q1), gated on the double-evaluation
+  check of section 10.1.
 
 `@nexusdi/react` is released in 0.4 under its own spec (`specs/2026-09-24-react-design.md` on
 `spec/react` at `276f2780`, status "decided"). It does not exist in `libs/` on
@@ -96,6 +98,9 @@ API references checked against rc.1:
     `create({ onInit })` exists in `@nexusdi/testing` (`libs/testing/src/index.ts`).
     `@nexusdi/vitest` builds on it unchanged.
 
+Owner answers of 2026-10-15: Q1 (`@nexusdi/next` in 0.4, gated) and Q2 (rc.2, Next may
+follow in rc.3) are recorded in section 20 and applied in sections 10, 14, 15 and 16.
+
 Rules that arrived after revision 2:
 
 11. P1 (`tools/repo-checks/src/owner-vocabulary.test.ts`) refuses a string literal equal to
@@ -120,7 +125,7 @@ Release machinery that replaced revision 2's section 10:
     `scripts/publish-released.mjs`, its dist-tag table and its `RELEASING.md` rewrite
     are dropped (section 12).
 15. rc.0 and rc.1 were published without the adapters, so revision 2's "all five in rc.0"
-    cannot hold. Owner question Q2 sets the target RC.
+    cannot hold. The owner set rc.2 on 2026-10-15 (Q2).
 
 New scope, from the owner's 2026-10-14 decision to put adapters and edge runtimes in 0.4:
 
@@ -242,7 +247,7 @@ section reference points. Items 6 and 7 changed status in revision 3, as noted.
    left is the owner's bootstrap of each new package name on npm, which the release spec
    requires for every package (section 12).
 7. All five adapters are in rc.0. rc.0 and rc.1 were published without them, so owner question
-   Q2 replaces this item.
+   Q2 replaces this item: the owner set rc.2 on 2026-10-15.
 8. Express stays in scope. The Express middleware list takes no new entries
    (`expressjs/expressjs.com#2375`), so launch material has no Express listing
    (section 17).
@@ -303,7 +308,7 @@ D8. A repo-check, `edge-safe.test.ts`, refuses `eval(` and `new Function` in the
 that claim edge support, because Vercel Edge disables both. Core holds neither today
 (checked with grep on `cef5f39a`).
 
-D9. `@nexusdi/next`, if the owner approves Q1, disposes through Next's `after()`, which
+D9. `@nexusdi/next` (Q1, approved) disposes through Next's `after()`, which
 Next runs after the response finishes and also after an error. It holds no copy of the
 body wrapper. If the abort test of section 10.6 fails, it adds the body wrapper as the
 third copy of `dispose-with-body.ts`, beside Hono's and React Router's, under P4's
@@ -2002,8 +2007,9 @@ job, and "not tested" for Netlify Edge and React Router on edge.
 ### 10.1 Recommendation
 
 Publish `@nexusdi/next` in 0.4 with route handlers and server actions, on the Node
-runtime only, gated on one check in its first plan task. Owner question Q1 asks for the go-ahead,
-because the react spec's ruling R12 (with synthesis C13) said "no `@nexusdi/next`".
+runtime only, gated on one check in its first plan task. The owner approved it on
+2026-10-15 (Q1), which reverses the react spec's ruling R12 (with synthesis C13), "no
+`@nexusdi/next`". `spec/react` carries a note on R12 that points here.
 
 Why now:
 
@@ -2411,7 +2417,7 @@ lists them. Its README leads with Hono.
 
 `react-ssr` stays in the set (D11). It gives the plan its non-federated frontend.
 
-`examples/next-bridge` is new, and exists only if Q1 is approved. It serves the bridge
+`examples/next-bridge` is new, and exists once the gate of section 10.1 passes. It serves the bridge
 API through route handlers and records flight log entries through a server action. It
 imports the same module files as `bridge-api`.
 
@@ -2440,7 +2446,7 @@ applies when it does.
 | new | `/express/`                                                                                        | Platform guide: "Scope an Express request".                                                                                                                                                                                                     |
 | new | `/fastify/`                                                                                        | Platform guide: "Scope a Fastify request".                                                                                                                                                                                                      |
 | new | `/edge/`                                                                                           | Platform guide: "Run on Cloudflare Workers and other edge runtimes": section 9.2's two forms, the CPU budget, the I/O rule for singletons, the ambient scope, the compatibility date and `enable_request_signal`.                               |
-| new | `/next/`                                                                                           | Platform guide: "Scope a Next.js route handler or server action" (only with Q1).                                                                                                                                                                |
+| new | `/next/`                                                                                           | Platform guide: "Scope a Next.js route handler or server action" (after the gate).                                                                                                                                                              |
 | new | `/vitest/`                                                                                         | Question page: "How do I get a container in every Vitest test?"                                                                                                                                                                                 |
 | new | `/api-hono/`, `/api-express/`, `/api-fastify/`, `/api-react-router/`, `/api-vitest/`, `/api-next/` | Reference pages, one H2 per export.                                                                                                                                                                                                             |
 
@@ -2478,7 +2484,7 @@ The docs spec's §7.1 vocabulary gains two rows, and every guide uses them:
 ### 15.3 Delivery
 
 The adapter guides, the edge guide and the API pages go live with the RC that carries the
-packages (Q2). `/runtimes/` gains its rows when `adapter-runtimes` first passes.
+packages: rc.2, or rc.3 for Next (Q2). `/runtimes/` gains its rows when `adapter-runtimes` first passes.
 
 ## 16. Delivery
 
@@ -2496,7 +2502,7 @@ The implementation order, each step reusing the one before it:
 4. `@nexusdi/react-router`: the second copy of `dispose-with-body.ts`, which adds that
    file's glob to both lists, and the move of `examples/react-ssr`, together with
    `@nexusdi/react`'s plan.
-5. `@nexusdi/next`, if Q1 is approved: the gate test first, then the package, which adds
+5. `@nexusdi/next`: the gate test first, then the package, which adds
    `@nexusdi/next` to the `NEXUS_DISPOSED` entry, and `examples/next-bridge`.
 
 The release checklist gains:
@@ -2562,7 +2568,7 @@ an async one without calling it" (`runtime/scope.ts:180-186`). Section 9.3 measu
 11.59 µs per request with five eager ones. The edge guide's advice (`eager: false` and
 scoped classes) covers 0.4.
 
-## 20. Owner questions
+## 20. Owner questions and answers
 
 Q1. Publish `@nexusdi/next` in 0.4?
 
@@ -2583,6 +2589,8 @@ Q1. Publish `@nexusdi/next` in 0.4?
 - Recommendation: yes, gated. The first task runs the double-evaluation check of section
   10.1. If Next evaluates `nexus.server.ts` twice in one process, the package moves to
   0.5 and 0.4 publishes the guide page only.
+- Answer (owner, 2026-10-15): yes. `@nexusdi/next` is in 0.4, gated on the
+  double-evaluation check.
 
 Q2. Which RC carries the adapters?
 
@@ -2596,3 +2604,5 @@ Q2. Which RC carries the adapters?
   if its gate is still open. 0.4.0 final waits until every adapter has been in at least
   one RC with its demo app green. A new package breaks no existing API, so it does not
   restart the RC count.
+- Answer (owner, 2026-10-15): all adapters in rc.2, and Next may follow in rc.3. 0.4.0
+  final waits until every adapter has been in at least one RC with its demo app green.
