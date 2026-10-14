@@ -32,5 +32,5 @@ Try it: save the region as `fixed.ts` and run `npx tsx fixed.ts`. It prints `[ 1
 
 ## Fields of `DevtoolsError`
 
-- `code`: `'NEXUS_DEVTOOLS_PROFILE_REUSED'`, `'NEXUS_DEVTOOLS_GRAPH_INVALID'` or `'NEXUS_DEVTOOLS_UNREGISTERED'`.
-- `path`: `null` for `NEXUS_DEVTOOLS_PROFILE_REUSED`. [NEXUS_DEVTOOLS_GRAPH_INVALID](/errors/NEXUS_DEVTOOLS_GRAPH_INVALID/) sets it to the first field that failed.
+- `code`: `'NEXUS_DEVTOOLS_PROFILE_REUSED'`, `'NEXUS_DEVTOOLS_PROFILE_INVALID'`, `'NEXUS_DEVTOOLS_GRAPH_INVALID'` or `'NEXUS_DEVTOOLS_UNREGISTERED'`.
+- `path`: `null` for `NEXUS_DEVTOOLS_PROFILE_REUSED`. [NEXUS_DEVTOOLS_PROFILE_INVALID](/errors/NEXUS_DEVTOOLS_PROFILE_INVALID/) and [NEXUS_DEVTOOLS_GRAPH_INVALID](/errors/NEXUS_DEVTOOLS_GRAPH_INVALID/) set it to the first field that failed.

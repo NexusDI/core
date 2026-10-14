@@ -4,19 +4,22 @@ interface DevtoolsFields {
   readonly code:
     | 'NEXUS_DEVTOOLS_UNREGISTERED'
     | 'NEXUS_DEVTOOLS_GRAPH_INVALID'
-    | 'NEXUS_DEVTOOLS_PROFILE_REUSED';
+    | 'NEXUS_DEVTOOLS_PROFILE_REUSED'
+    | 'NEXUS_DEVTOOLS_PROFILE_INVALID';
   /**
    * NEXUS_DEVTOOLS_GRAPH_INVALID: the first bad field, such as
-   * `providers[3].module`. null for NEXUS_DEVTOOLS_UNREGISTERED and
-   * NEXUS_DEVTOOLS_PROFILE_REUSED.
+   * `providers[3].module`. NEXUS_DEVTOOLS_PROFILE_INVALID: the first bad
+   * field, such as `runs[0].builds[3].startMs`. null for
+   * NEXUS_DEVTOOLS_UNREGISTERED and NEXUS_DEVTOOLS_PROFILE_REUSED.
    */
   readonly path: string | null;
 }
 
 /**
  * graph() was called for a container registered without devtools(),
- * parseGraph() was given a value that is not a NexusGraph, or report() was
- * called on a profile() that recorded a second container.
+ * parseGraph() was given a value that is not a NexusGraph, report() was
+ * called on a profile() that recorded a second container, or
+ * parseProfileReport() was given a value that is not a ProfileReport.
  */
 export class DevtoolsError extends errorBase<
   DevtoolsFields['code'],
@@ -28,5 +31,6 @@ declare module '@nexusdi/core' {
     NEXUS_DEVTOOLS_UNREGISTERED: DevtoolsError;
     NEXUS_DEVTOOLS_GRAPH_INVALID: DevtoolsError;
     NEXUS_DEVTOOLS_PROFILE_REUSED: DevtoolsError;
+    NEXUS_DEVTOOLS_PROFILE_INVALID: DevtoolsError;
   }
 }

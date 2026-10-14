@@ -24,3 +24,5 @@ export type {
 } from './profile/report.js';
 export { criticalPath } from './profile/critical-path.js';
 export { profileTable } from './profile/table.js';
+export { parseProfileReport } from './profile/parse.js';
+export { profileStartup } from './profile/startup.js';

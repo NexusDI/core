@@ -1,0 +1,36 @@
+---
+title: NEXUS_DEVTOOLS_PROFILE_INVALID
+kind: code
+description: parseProfileReport() received a value that is not a ProfileReport, and the error names the first field that failed.
+package: '@nexusdi/devtools'
+errorClass: DevtoolsError
+---
+
+# NEXUS_DEVTOOLS_PROFILE_INVALID
+
+`parseProfileReport(value)` throws `NEXUS_DEVTOOLS_PROFILE_INVALID` when `value` is not a `ProfileReport`. `parseProfileReport` checks every field of a report read back with `JSON.parse`, and the error's `path` names the first field that failed. It also refuses a `format` other than `'nexusdi-profile'` and a `version` other than 1. The call throws synchronously and bare. `nexusdi profile` from `@nexusdi/cli` calls `parseProfileReport` for a `.json` entry, and for a file that holds no report it prints `nexusdi: <file>: ` followed by this error's message, then exits with code 2.
+
+## Reproduce `NEXUS_DEVTOOLS_PROFILE_INVALID`
+
+`parseProfileReport` throws `NEXUS_DEVTOOLS_PROFILE_INVALID` for a saved report whose first build has lost its `startMs` field. `@nexusdi/devtools` writes this message itself, so it carries its full text and fix line with no text pack.
+
+```ts file=examples/meridian/src/errors/NEXUS_DEVTOOLS_PROFILE_INVALID.md region=reproduce
+
+```
+
+Try it: run `npm install @nexusdi/core@next` and `npm install -D @nexusdi/devtools@next`, save the region as `parse.ts` and run `npx tsx parse.ts`. It prints the path, `runs[0].builds[0].startMs`, then the two-line message: `[NEXUS_DEVTOOLS_PROFILE_INVALID] not a ProfileReport: runs[0].builds[0].startMs is missing or has the wrong type.` and its `Fix:` line, `Fix: re-record the report with this version of @nexusdi/devtools.`
+
+## Fix `NEXUS_DEVTOOLS_PROFILE_INVALID`
+
+`NEXUS_DEVTOOLS_PROFILE_INVALID` goes away when `parseProfileReport` receives what `profiler.report()` or `profileStartup` returned, unedited. Write the file with `JSON.stringify` of the report, or with `nexusdi profile --json`, and pass `JSON.parse` of its text. A report recorded by an older `@nexusdi/devtools` that this version no longer reads fails the same way; record it again.
+
+```ts file=examples/meridian/src/errors/NEXUS_DEVTOOLS_PROFILE_INVALID.md region=fix
+
+```
+
+Try it: save the region as `fixed.ts` and run `npx tsx fixed.ts`. It prints `1`, the one create run the report holds. Change `JSON.parse(text)` to `JSON.parse(text.replace('"startMs"', '"startedMs"'))` and run it again: `npx tsx fixed.ts` throws an uncaught `DevtoolsError` headed `DevtoolsError: [NEXUS_DEVTOOLS_PROFILE_INVALID] not a ProfileReport:`, and the error object ends with `path: 'runs[0].startMs'`, the first `startMs` in the text. Change the call back and the program prints `1` again.
+
+## Fields of `DevtoolsError`
+
+- `code`: `'NEXUS_DEVTOOLS_PROFILE_INVALID'`, `'NEXUS_DEVTOOLS_PROFILE_REUSED'`, `'NEXUS_DEVTOOLS_GRAPH_INVALID'` or `'NEXUS_DEVTOOLS_UNREGISTERED'`.
+- `path`: the first field that failed, such as `'runs[0].builds[3].startMs'`. `parseProfileReport` checks the top-level fields in order (`format`, `version`, `timeOrigin`, `reportedMs`, `runs`, `graph`, `dropped`, `dispose`) and each run's fields in their own order, so the first failure in that order wins. `'(root)'` names a value that is no object. A time that is not a finite number fails as a wrong type. `null` for [NEXUS_DEVTOOLS_UNREGISTERED](/errors/NEXUS_DEVTOOLS_UNREGISTERED/) and [NEXUS_DEVTOOLS_PROFILE_REUSED](/errors/NEXUS_DEVTOOLS_PROFILE_REUSED/).
