@@ -743,9 +743,10 @@ function checkCellsBehindRows(file: ScaleTimingsFile): void {
   };
   file.results.forEach((r, i) => needs(`scale-timings.results[${i}]`, r));
   file.growth.forEach((g, i) => {
-    const next = (SIZES as readonly number[])[
-      (SIZES as readonly number[]).indexOf(g.from) + 1
-    ];
+    const sizes: readonly number[] = SIZES;
+    if (!sizes.includes(g.from))
+      fail(`scale-timings.growth[${i}].from`, `one of ${sizes.join(', ')}`);
+    const next = sizes[sizes.indexOf(g.from) + 1];
     if (g.to !== next)
       fail(
         `scale-timings.growth[${i}].to`,
