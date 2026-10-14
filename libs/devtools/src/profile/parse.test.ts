@@ -33,6 +33,25 @@ describe('parseProfileReport', () => {
     expect(pathOf(42)).toBe('(root)');
   });
 
+  it('reads a run kind and a lifetime it does not know as given', () => {
+    const newer = JSON.parse(JSON.stringify(good));
+    newer.runs[0].kind = 'fork';
+    newer.runs[0].builds[0].lifetime = 'pooled';
+    expect(parseProfileReport(newer)).toMatchObject({
+      runs: [{ kind: 'fork', builds: [{ lifetime: 'pooled' }] }],
+    });
+  });
+
+  it('names a list field that holds no list', () => {
+    expect(pathOf({ ...good, runs: {} })).toBe('runs');
+  });
+
+  it('returns the value it checked, an unknown field included', () => {
+    const value = { ...JSON.parse(JSON.stringify(good)), notes: 'kept' };
+    expect(parseProfileReport(value)).toBe(value);
+    expect(parseProfileReport(value)).toMatchObject({ notes: 'kept' });
+  });
+
   it('rejects a time that is not a finite number', () => {
     expect(pathOf({ ...good, reportedMs: Number.NaN })).toBe('reportedMs');
   });
