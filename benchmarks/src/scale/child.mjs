@@ -56,16 +56,19 @@ async function settledHeap() {
   return last;
 }
 
+// The indices to resolve after the target, from the model, so the array is
+// built before the base heap read and sits in it. verify-child.mjs has
+// already checked that the app declares the same count and target.
+const others = [];
+for (let i = 0; i < graph.providers.length; i++)
+  if (i !== graph.target) others.push(i);
+
 const base = await settledHeap();
 
 let t = ns();
 const { scale } = await import(pathToFileURL(bundle).href);
 const load = Number(ns() - t);
 if (scale === undefined) fail('the bundle exports no scale app');
-
-// The indices to resolve after the target, built before the timed phases.
-const others = [];
-for (let i = 0; i < scale.count; i++) if (i !== scale.target) others.push(i);
 
 collect();
 t = ns();
