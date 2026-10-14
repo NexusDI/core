@@ -8,3 +8,17 @@ export type { TraceEvent, TraceEventByType } from '@nexusdi/core';
 export { toDot } from './render/dot.js';
 export type { GraphView, RenderOptions } from './render/labels.js';
 export { toMermaid } from './render/mermaid.js';
+export {
+  profile,
+  type ProfileOptions,
+  type Profiler,
+} from './profile/profile.js';
+export type {
+  CpuProfile,
+  CriticalPath,
+  ProfileBuild,
+  ProfileInit,
+  ProfileReport,
+  ProfileRun,
+  TraceFile,
+} from './profile/report.js';

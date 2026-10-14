@@ -1,0 +1,36 @@
+---
+title: NEXUS_DEVTOOLS_PROFILE_REUSED
+kind: code
+description: report() was called on a profile() that a second Nexus.create registered, so its runs would mix two containers.
+package: '@nexusdi/devtools'
+errorClass: DevtoolsError
+---
+
+# NEXUS_DEVTOOLS_PROFILE_REUSED
+
+`report()` throws `NEXUS_DEVTOOLS_PROFILE_REUSED` when the `profile()` it belongs to was registered in a second `Nexus.create`. Trace events carry no container identity, so one profiler that hears two creates cannot keep their runs apart, and it stops recording at the second one. Neither create fails because of it. The call throws synchronously and bare.
+
+## Reproduce `NEXUS_DEVTOOLS_PROFILE_REUSED`
+
+One `profile()` passed to two `Nexus.create` calls records the first container, then stops at the second, and `report()` throws. `@nexusdi/devtools` writes this message itself, so it carries its full text and fix line with no text pack.
+
+```ts file=examples/meridian/src/errors/NEXUS_DEVTOOLS_PROFILE_REUSED.md region=reproduce
+
+```
+
+Try it: run `npm install @nexusdi/core@next` and `npm install -D @nexusdi/devtools@next`, save the region as `reuse.ts` and run `npx tsx reuse.ts`. It prints `NEXUS_DEVTOOLS_PROFILE_REUSED`. Delete the second `Nexus.create` and run it again: `report()` returns a report, and the program throws it, since it is no `DevtoolsError`. Put the second `Nexus.create` back and the program prints the code again.
+
+## Fix `NEXUS_DEVTOOLS_PROFILE_REUSED`
+
+`NEXUS_DEVTOOLS_PROFILE_REUSED` goes away when each container gets a `profile()` of its own. Create the profiler next to the `Nexus.create` call it measures, so each call of `profiled()` creates one.
+
+```ts file=examples/meridian/src/errors/NEXUS_DEVTOOLS_PROFILE_REUSED.md region=fix
+
+```
+
+Try it: save the region as `fixed.ts` and run `npx tsx fixed.ts`. It prints `[ 1, 1 ]`: each profiler recorded the one run of its own container. Move `const profiler = profile();` out of `profiled` to the top level and run it again: the second `report()` throws `NEXUS_DEVTOOLS_PROFILE_REUSED`. Move the line back into `profiled` and the program prints `[ 1, 1 ]` again.
+
+## Fields of `DevtoolsError`
+
+- `code`: `'NEXUS_DEVTOOLS_PROFILE_REUSED'`, `'NEXUS_DEVTOOLS_GRAPH_INVALID'` or `'NEXUS_DEVTOOLS_UNREGISTERED'`.
+- `path`: `null` for `NEXUS_DEVTOOLS_PROFILE_REUSED`. [NEXUS_DEVTOOLS_GRAPH_INVALID](/errors/NEXUS_DEVTOOLS_GRAPH_INVALID/) sets it to the first field that failed.
