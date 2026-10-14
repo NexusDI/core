@@ -1348,7 +1348,7 @@ for (const b of probe.rows())
 - Core spec 10.2: the event list and fields of section 3.1.
 - Core spec 3.10.5: the order guarantees of 3.4 and the failure-path rule of 3.5.
 - Core spec 3.10.2: untouched. No version raise.
-- Extension principle 2.5.11: unchanged. P1's wording waits on owner item (c) 1.
+- Extension principle 2.5.11: unchanged. Owner item (c) 1 records the P1 amendment.
 - Graph CLI spec section 3: a second command in the same bin.
 - Docs spec 4.3: two pages, `/profiling/` and `/trace-events/`, inventory 43. `/api-devtools/`
   stays docs spec page 38.
@@ -1474,9 +1474,13 @@ withdrawn, and the field keeps its rc.0 values. Two behaviour changes touch rc.0
    consumer does. The compiler checks that literal against core's exported `TraceEvent`
    union, so a typo fails to build. The P1 repo-check does not flag it today, and `trace()`
    never compares types, so `profile()` is the first first-party case. Recommendation: add
-   to P1 "A discriminant compare against a union the owner exports, checked by the
-   compiler, reads through the owner's export", and require a default branch for unknown
-   types (P2). Approved by the owner, 2026-10-14.
+   to P1 "A compare on a trace event's `type`, or on one of its fields, against a union the
+   owner exports and checked by the compiler, reads through the owner's export
+   (`event.type === 'construct'` against core's `TraceEvent`). Code that branches that way
+   handles an unknown member with a default branch (P2). Error codes keep their own rule:
+   an equality check on a code needs an allowance." Approved by the owner, 2026-10-14.
+   This item is the record of the P1 amendment until the extension principle spec
+   (`specs/2026-09-30-extension-principle-design.md`) next changes.
 2. Docs spec 4.6: every size and time figure on the site comes from the benchmark harness,
    and no page states one by hand. `/profiling/` has to show profiler output, which is full
    of milliseconds. A static code block with "NavCharts 21.8 ms" breaks the rule and the
