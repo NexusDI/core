@@ -242,16 +242,13 @@ async function buildScope(scope: ScopeState, trace: RunTrace): Promise<Scope> {
  * an older scoped class a new factory built on first use stays in its
  * slot, and so does a transient a get() built meanwhile.
  */
-async function extendNow(scope: ScopeState, target: Blueprint): Promise<void> {
+async function extendNow(
+  scope: ScopeState,
+  target: Blueprint,
+  trace: RunTrace,
+): Promise<void> {
   const { root } = scope;
   const tracer = root.tracer;
-  const trace: RunTrace = {
-    id: root.nextRun++,
-    kind: 'extend',
-    scope: scope.scopeId,
-    start: tracer.now(),
-    errors: undefined,
-  };
   const pinned = scope.blueprint;
   try {
     assertScopeOpen(scope);
@@ -331,17 +328,38 @@ async function extendNow(scope: ScopeState, target: Blueprint): Promise<void> {
 /**
  * Re-pins the scope to the root's current blueprint and builds the scoped
  * factories that later loads added (spec §7.4). Calls run one at a time; a
- * call for the blueprint an in-flight call targets shares its promise. The
+ * call for the blueprint an in-flight call targets waits for that call and
+ * ends its own run with the same outcome. The
  * work joins root.inflight, so root disposal waits for it. It is async so
  * a throw before the queue, such as NEXUS_DISPOSED, rejects the promise
  * guardAsync formats.
  */
 async function extendScope(scope: ScopeState): Promise<void> {
-  assertScopeOpen(scope);
-  const target = scope.root.blueprint;
-  if (scope.pendingExtend?.target === target)
-    return scope.pendingExtend.promise;
-  const promise = scope.extendQueue.then(() => extendNow(scope, target));
+  const { root } = scope;
+  const tracer = root.tracer;
+  // Every call is a run (spec 3.3), a closed scope's and a shared one's too.
+  const trace: RunTrace = {
+    id: root.nextRun++,
+    kind: 'extend',
+    scope: scope.scopeId,
+    start: tracer.now(),
+    errors: undefined,
+  };
+  const target = root.blueprint;
+  const pending = scope.pendingExtend;
+  try {
+    assertScopeOpen(scope);
+    if (pending?.target === target) await pending.promise;
+  } catch (error) {
+    // No list holds an observer's throw here (spec 3.5).
+    emitRun(tracer, trace, []);
+    throw error;
+  }
+  if (pending?.target === target) {
+    emitRun(tracer, trace);
+    return;
+  }
+  const promise = scope.extendQueue.then(() => extendNow(scope, target, trace));
   const settled = promise.then(ignore, ignore);
   scope.extendQueue = settled;
   scope.pendingExtend = { target, promise };
