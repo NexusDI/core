@@ -284,9 +284,13 @@ describe('runInit', () => {
     await startBlueprint(root, {
       bp,
       isNew: () => true,
-      run: 0,
-      kind: 'create',
-      start: 0,
+      run: {
+        id: 0,
+        kind: 'create',
+        scope: null,
+        start: 0,
+        errors: undefined,
+      },
     });
     expect(await rejected(runInit(root, bp, () => true))).toMatchObject({
       code: 'NEXUS_DISPOSED',

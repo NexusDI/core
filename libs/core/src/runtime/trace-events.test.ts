@@ -1,10 +1,12 @@
 import { describe, expect, it, vi } from 'vitest';
 
 import { rejected } from '../../test-support/catch.js';
+import { deferred } from '../../test-support/deferred.js';
 import { recordEvents } from '../../test-support/observe.js';
 import { defineModule } from '../definitions/define-module.js';
 import { provide } from '../definitions/provide.js';
 import { Token } from '../definitions/token.js';
+import { REQUEST } from '../definitions/request.js';
 import { Nexus } from './nexus.js';
 import type { TraceEvent } from './trace.js';
 
@@ -317,5 +319,247 @@ describe('compile failure with a throwing observer', () => {
       Nexus.create(Engineering, { plugins: [watcher] }),
     )) as { code: string };
     expect(error.code).toBe('NEXUS_PROVIDER_FAILED');
+  });
+});
+
+describe('an observer throw on the closing run event of a success', () => {
+  const thrown = new Error('telemetry down');
+  const onRun = (fire: () => boolean) => ({
+    name: 'test:watcher',
+    apiVersion: 1,
+    observe(event: TraceEvent) {
+      if (event.type === 'run' && event.ok && fire()) throw thrown;
+    },
+  });
+
+  it('fails create and disposes the container it built', async () => {
+    const disposed: string[] = [];
+    class Airlock {
+      [Symbol.dispose]() {
+        disposed.push('Airlock');
+      }
+    }
+    const error = (await rejected(
+      Nexus.create([Airlock], { plugins: [onRun(() => true)] }),
+    )) as { code: string; cause: unknown };
+    expect(error.code).toBe('NEXUS_PROVIDER_FAILED');
+    expect(error.cause).toBe(thrown);
+    expect(disposed).toEqual(['Airlock']);
+  });
+
+  it('rejects load with a ProviderError, keeps the module, and makes a retry a no-op run', async () => {
+    let armed = false;
+    const { events, plugin } = recordEvents();
+    const ship = await Nexus.create(Engineering, {
+      plugins: [plugin, onRun(() => armed)],
+    });
+    const PROBE = new Token<object>('Probe');
+    const Science = defineModule({
+      name: 'Science',
+      providers: [provide(PROBE, { useValue: {} })],
+      exports: [PROBE],
+    });
+    armed = true;
+    expect(await rejected(ship.load(Science))).toMatchObject({
+      code: 'NEXUS_PROVIDER_FAILED',
+      cause: thrown,
+    });
+    armed = false;
+    expect(ship.has(PROBE)).toBe(true);
+    await ship.load(Science);
+    expect(only(events, 'compile').map((e) => e.run)).toEqual([0, 1]);
+    expect(only(events, 'run').at(-1)).toMatchObject({
+      run: 2,
+      kind: 'load',
+      ok: true,
+    });
+    await ship[Symbol.asyncDispose]();
+  });
+});
+
+describe('runs that build nothing', () => {
+  const MISSION = new Token<unknown>('Mission');
+  const Tactical = defineModule({
+    name: 'Tactical',
+    providers: [
+      provide(MISSION, {
+        useFactory: (request) => request,
+        deps: [REQUEST],
+        lifetime: 'scoped',
+      }),
+    ],
+    exports: [MISSION],
+  });
+  const Science = defineModule({
+    name: 'Science',
+    providers: [
+      provide(new Token<object>('Probe'), {
+        useFactory: () => ({}),
+        lifetime: 'scoped',
+      }),
+    ],
+  });
+
+  it('counts an extend() to the pinned blueprint as a run with no scope:extend', async () => {
+    const { events, plugin } = recordEvents();
+    await using ship = await Nexus.create(Engineering, { plugins: [plugin] });
+    await using shuttle = await ship.createScope();
+    await shuttle.extend();
+    expect(only(events, 'run').map((e) => [e.run, e.kind, e.ok])).toEqual([
+      [0, 'create', true],
+      [1, 'createScope', true],
+      [2, 'extend', true],
+    ]);
+    expect(only(events, 'run').at(-1)?.scope).toBe(shuttle.id);
+    expect(only(events, 'scope:extend')).toEqual([]);
+  });
+
+  it('gives each of two concurrent extend() calls for one blueprint its own run', async () => {
+    const { events, plugin } = recordEvents();
+    await using ship = await Nexus.create(Engineering, { plugins: [plugin] });
+    await using shuttle = await ship.createScope();
+    await ship.load(Science);
+    await Promise.all([shuttle.extend(), shuttle.extend()]);
+    expect(
+      only(events, 'run')
+        .filter((e) => e.kind === 'extend')
+        .map((e) => [e.run, e.scope, e.ok]),
+    ).toEqual([
+      [3, shuttle.id, true],
+      [4, shuttle.id, true],
+    ]);
+    expect(only(events, 'scope:extend')).toHaveLength(1);
+  });
+
+  it('counts an extend() on a closed scope as a failed run', async () => {
+    const { events, plugin } = recordEvents();
+    await using ship = await Nexus.create(Engineering, { plugins: [plugin] });
+    const shuttle = await ship.createScope();
+    await shuttle[Symbol.asyncDispose]();
+    await rejected(shuttle.extend());
+    expect(only(events, 'run').at(-1)).toMatchObject({
+      run: 2,
+      kind: 'extend',
+      scope: shuttle.id,
+      ok: false,
+    });
+  });
+
+  it('counts an extend() that misses its request as a failed run', async () => {
+    const { events, plugin } = recordEvents();
+    await using ship = await Nexus.create(Engineering, { plugins: [plugin] });
+    await using shuttle = await ship.createScope();
+    await ship.load(Tactical);
+    expect(await rejected(shuttle.extend())).toMatchObject({
+      code: 'NEXUS_REQUEST_MISSING',
+    });
+    expect(only(events, 'run').at(-1)).toMatchObject({
+      run: 3,
+      kind: 'extend',
+      scope: shuttle.id,
+      ok: false,
+    });
+  });
+
+  it('counts a createScope that misses its request as a failed run with no scope', async () => {
+    const { events, plugin } = recordEvents();
+    await using ship = await Nexus.create(Tactical, { plugins: [plugin] });
+    expect(await rejected(ship.createScope())).toMatchObject({
+      code: 'NEXUS_REQUEST_MISSING',
+    });
+    expect(only(events, 'run').at(-1)).toMatchObject({
+      run: 1,
+      kind: 'createScope',
+      scope: null,
+      ok: false,
+    });
+  });
+
+  it('counts a createScope on a disposed root as a failed run with no scope', async () => {
+    const { events, plugin } = recordEvents();
+    const ship = await Nexus.create(Engineering, { plugins: [plugin] });
+    await ship[Symbol.asyncDispose]();
+    expect(await rejected(ship.createScope())).toMatchObject({
+      code: 'NEXUS_DISPOSED',
+    });
+    expect(only(events, 'run').at(-1)).toMatchObject({
+      run: 1,
+      kind: 'createScope',
+      scope: null,
+      ok: false,
+    });
+  });
+});
+
+describe('the span of a queued run', () => {
+  it('starts a load queued behind another at its call', async () => {
+    const { events, plugin } = recordEvents();
+    await using ship = await Nexus.create(Engineering, { plugins: [plugin] });
+    const gate = deferred();
+    const first = ship.load(
+      defineModule({
+        name: 'Science',
+        providers: [
+          provide(new Token<object>('Probe'), {
+            useFactory: async () => {
+              await gate.promise;
+              return {};
+            },
+          }),
+        ],
+      }),
+    );
+    const second = ship.load(defineModule({ name: 'Medical' }));
+    const called = performance.now();
+    gate.resolve();
+    await Promise.all([first, second]);
+    const loads = only(events, 'run').filter((e) => e.kind === 'load');
+    expect(loads.map((e) => e.run)).toEqual([1, 2]);
+    expect(loads[1]?.startMs).toBeLessThanOrEqual(called);
+  });
+});
+
+describe('an observer throw on a scope event', () => {
+  const thrown = new Error('telemetry down');
+  const throwOn = (type: TraceEvent['type']) => {
+    const { events, plugin } = recordEvents();
+    const watcher = {
+      name: 'test:watcher',
+      apiVersion: 1,
+      observe(event: TraceEvent) {
+        if (event.type === type) throw thrown;
+      },
+    };
+    return { events, plugins: [plugin, watcher] };
+  };
+
+  it('rejects createScope with the raw throw and closes its run once', async () => {
+    const { events, plugins } = throwOn('scope:create');
+    await using ship = await Nexus.create(Engineering, { plugins });
+    expect(await rejected(ship.createScope())).toBe(thrown);
+    expect(
+      only(events, 'run').filter((e) => e.kind === 'createScope'),
+    ).toMatchObject([{ run: 1, ok: false }]);
+  });
+
+  it('rejects extend() with the raw throw and closes its run once', async () => {
+    const { events, plugins } = throwOn('scope:extend');
+    await using ship = await Nexus.create(Engineering, { plugins });
+    await using shuttle = await ship.createScope();
+    await ship.load(
+      defineModule({
+        name: 'Science',
+        providers: [
+          provide(new Token<object>('Probe'), {
+            useFactory: () => ({}),
+            lifetime: 'scoped',
+          }),
+        ],
+      }),
+    );
+    expect(await rejected(shuttle.extend())).toBe(thrown);
+    expect(
+      only(events, 'run').filter((e) => e.kind === 'extend'),
+    ).toMatchObject([{ run: 3, scope: shuttle.id, ok: false }]);
   });
 });

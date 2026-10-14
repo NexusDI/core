@@ -7,7 +7,7 @@ import { Ownership, type OwnedEntry } from './ownership.js';
 import { NO_PLUGINS, type PluginSet } from './plugins.js';
 import { Slots } from './readiness.js';
 import type { Scope } from './scope.js';
-import type { Tracer } from './trace.js';
+import type { RunTrace, Tracer } from './trace.js';
 
 /** Why a built transient has no owner, for the `untracked` trace event. */
 export type UntrackedReason = 'root-transient' | 'singleton-thunk';
@@ -156,12 +156,6 @@ export interface Owner {
  * factory, a scoped class) joins `owner` and `touched`, so a failed run
  * disposes and forgets it with the rest of its builds.
  */
-/** A run's id, and the observer throws its failure path collected (spec 3.5). */
-export interface RunTrace {
-  readonly id: number;
-  errors: unknown[] | undefined;
-}
-
 export interface Run extends RunTrace {
   /** Whether the run's blueprint added this provider id. */
   readonly isNew: (id: string) => boolean;

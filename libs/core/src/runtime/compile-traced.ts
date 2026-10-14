@@ -3,10 +3,17 @@ import { compile, type CompileInput } from '../blueprint/compile.js';
 import { BlueprintError, LoadError, ProviderError } from '../errors/index.js';
 import { emitCollecting, type Tracer } from './trace.js';
 
-/** An observe hook's own throw while reporting `compile`. The compile itself passed. */
-function traceFailed(error: unknown, module: string): ProviderError {
+/**
+ * An observe hook's own throw while reporting an operation that itself
+ * passed: a compile, or the create its closing `run` event ends.
+ */
+export function observerFailed(
+  error: unknown,
+  module: string,
+  disposalErrors: readonly unknown[] = [],
+): ProviderError {
   return new ProviderError(
-    { token: 'startup', module, path: [], alsoFailed: [], disposalErrors: [] },
+    { token: 'startup', module, path: [], alsoFailed: [], disposalErrors },
     { cause: error },
   );
 }
@@ -66,7 +73,7 @@ export function compileTraced(
       durationMs: tracer.now() - start,
     }));
   } catch (traceError) {
-    throw traceFailed(
+    throw observerFailed(
       traceError,
       blueprint.modules.get(blueprint.root)?.name ?? '',
     );
