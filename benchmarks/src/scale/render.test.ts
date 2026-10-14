@@ -1,0 +1,186 @@
+import { spawnSync } from 'node:child_process';
+import {
+  mkdirSync,
+  mkdtempSync,
+  readFileSync,
+  rmSync,
+  writeFileSync,
+} from 'node:fs';
+import { tmpdir } from 'node:os';
+import { join } from 'node:path';
+import { afterAll, describe, expect, it } from 'vitest';
+
+import { fixtureScale, fixtureTimings } from './render.fixture.ts';
+import {
+  problems,
+  renderAll,
+  spliceSection,
+  type RenderInput,
+} from './render.ts';
+
+const GOLDEN = join(
+  import.meta.dirname,
+  '..',
+  '..',
+  'fixtures',
+  '__test__',
+  'scale-render',
+);
+const input = (): RenderInput => ({
+  scale: fixtureScale(),
+  timings: fixtureTimings(),
+});
+
+describe('renderAll', () => {
+  const out = renderAll(input());
+
+  it('matches the committed scale.md', () => {
+    expect(out.files['scale.md']).toBe(
+      readFileSync(join(GOLDEN, 'scale.md'), 'utf8'),
+    );
+  });
+  it('puts the round counts and skipped-cell count in the caption', () => {
+    const md = out.files['scale.md'] ?? '';
+    expect(md).toMatch(
+      /1,000 measured rounds per size after 10 warm-up rounds/,
+    );
+    expect(md).toMatch(/1 library skipped above n = 200/);
+  });
+  it('shows a skipped cell with its outcome and a footnote', () => {
+    const md = out.files['scale.md'] ?? '';
+    expect(md).toMatch(/runtime-error<sup>1<\/sup>/);
+    expect(md).toMatch(
+      /<sup>1<\/sup> tsyringe at 1,000 providers: runtime-error \(RangeError: Maximum call stack size exceeded\)/,
+    );
+  });
+  it('omits growth pairs that touch a failed size', () => {
+    const md = out.files['scale.md'] ?? '';
+    const growth = md.slice(md.indexOf('## Local growth exponents'));
+    const tsyringe = growth.split('\n').find((l) => l.startsWith('| tsyringe'));
+    // The fixture has a tsyringe pair 50 to 200 only.
+    expect(tsyringe?.match(/\|/g)?.length).toBeGreaterThan(2);
+    expect(tsyringe).toMatch(
+      /\| tsyringe\s+\| \d\.\d{2} \[[^\]]+\]\s+\| -\s+\| -\s+\|/,
+    );
+  });
+  it('writes the startup chart with an end marker for the skipped line', () => {
+    const svg = out.files['scale-startup.svg'] ?? '';
+    expect(svg).toMatch(
+      /class="end-marker[^"]*" data-series="tsyringe" data-n="200"/,
+    );
+    expect(svg).toMatch(/tsyringe fails at 1,000: runtime-error/);
+  });
+  it('writes the bundle chart from scale.json alone', () => {
+    const only = renderAll({ scale: fixtureScale() });
+    expect(only.files['scale-bundle.svg']).toMatch(/<svg /);
+    expect(only.files['scale-startup.svg']).toBeUndefined();
+    expect(only.files['scale.md']).toMatch(/No timing run yet/);
+  });
+  it('states the figures and the method without framing them', () => {
+    const md = out.files['scale.md'] ?? '';
+    expect(md).toMatch(/1\.33 \[1\.27, 1\.40\]/);
+    expect(md).not.toMatch(/is slower than|is faster than/);
+    expect(md).not.toMatch(/validates the whole graph/);
+  });
+  it('follows the writing rules in the prose it writes', () => {
+    for (const text of [...Object.values(out.files), out.readmeSection]) {
+      expect(text).not.toMatch(/—/);
+      expect(text).not.toMatch(/\b(instead of|rather than)\b/i);
+      expect(text).not.toMatch(/\bnot [^.\n]* but\b/i);
+      expect(text).not.toMatch(
+        /\b(bites|lands|buys|earns|pays|survives|ships)\b/i,
+      );
+      expect(text).not.toMatch(/\bnative\b/i);
+    }
+  });
+  it('is deterministic', () => {
+    expect(renderAll(input())).toEqual(out);
+  });
+});
+
+describe('problems', () => {
+  it('finds none in matching inputs', () => {
+    expect(problems(input())).toEqual([]);
+  });
+  it('names both hashes when the timing file was made with another generator', () => {
+    const i = input();
+    if (i.timings)
+      i.timings.graphs[1] = { ...i.timings.graphs[1]!, hash: 'ffffffffffff' };
+    const found = problems(i).join('\n');
+    expect(found).toContain('ffffffffffff');
+    expect(found).toContain(fixtureScale().graphs[1]?.hash);
+  });
+  it('fails when cells disagree with scale.json at a size both cover', () => {
+    const i = input();
+    const t = i.timings;
+    const c = t?.cells.find((x) => x.library === 'awilix' && x.size === 200);
+    if (c) c.outcome = 'runtime-error';
+    expect(problems(i).join('\n')).toMatch(
+      /awilix.*mixed 200.*runtime-error.*scale\.json.*pass/s,
+    );
+  });
+});
+
+describe('spliceSection', () => {
+  const section = 'SECTION';
+  it('creates the file when there is none', () => {
+    const out = spliceSection(undefined, section);
+    expect(out).toMatch(
+      /<!-- scale:begin -->\n\nSECTION\n\n<!-- scale:end -->/,
+    );
+  });
+  it('replaces only what lies between the markers', () => {
+    const before =
+      'intro\n\n<!-- scale:begin -->\n\nold\n\n<!-- scale:end -->\n\noutro\n';
+    expect(spliceSection(before, section)).toBe(
+      'intro\n\n<!-- scale:begin -->\n\nSECTION\n\n<!-- scale:end -->\n\noutro\n',
+    );
+  });
+  it('appends the section to a file without markers', () => {
+    expect(spliceSection('intro\n', section)).toBe(
+      'intro\n\n<!-- scale:begin -->\n\nSECTION\n\n<!-- scale:end -->\n',
+    );
+  });
+});
+
+describe('render.ts as a command', () => {
+  const dir = mkdtempSync(join(tmpdir(), 'scale-render-'));
+  afterAll(() => rmSync(dir, { recursive: true, force: true }));
+  const run = (...args: string[]) =>
+    spawnSync(
+      process.execPath,
+      [join(import.meta.dirname, 'render.ts'), `--results=${dir}`, ...args],
+      { encoding: 'utf8' },
+    );
+  mkdirSync(join(dir, 'scale'), { recursive: true });
+  writeFileSync(join(dir, 'scale.json'), JSON.stringify(fixtureScale()));
+  writeFileSync(
+    join(dir, 'scale', '2026-10-14-abc1234.json'),
+    JSON.stringify(fixtureTimings()),
+  );
+
+  it('fails --check before the files exist, then passes after a write', () => {
+    expect(run('--check').status).toBe(1);
+    expect(run('--check').stderr).toMatch(/stale: .*scale\.md/);
+    expect(run().status).toBe(0);
+    expect(run('--check').status).toBe(0);
+  });
+  it('fails --check when a file was edited', () => {
+    writeFileSync(join(dir, 'scale.md'), 'edited\n');
+    const r = run('--check');
+    expect(r.status).toBe(1);
+    expect(r.stderr).toMatch(/stale: scale\.md/);
+  });
+  it('fails with both hashes when the inputs disagree', () => {
+    const t = fixtureTimings();
+    t.graphs[0] = { ...t.graphs[0]!, hash: 'ffffffffffff' };
+    writeFileSync(
+      join(dir, 'scale', '2026-10-14-abc1234.json'),
+      JSON.stringify(t),
+    );
+    const r = run('--check');
+    expect(r.status).toBe(1);
+    expect(r.stderr).toContain('ffffffffffff');
+    expect(r.stderr).toContain(fixtureScale().graphs[0]?.hash);
+  });
+});

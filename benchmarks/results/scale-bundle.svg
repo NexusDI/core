@@ -1,0 +1,74 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 720 420" width="720" height="420" role="img" font-family="system-ui, sans-serif" font-size="12">
+<title>Bundle size against providers, mixed</title>
+<desc>Gzip bytes of each library's bundle on mixed graphs of 50, 200, 1,000 and 5,000 providers.</desc>
+<style>
+svg{--bg:#ffffff;--ink:#1a1a19;--muted:#5f5f5b;--grid:#e3e3e0;--c0:#0072B2;--c1:#E69F00;--c2:#009E73;--c3:#CC79A7;--c4:#D55E00}
+@media (prefers-color-scheme: dark){svg{--bg:#1a1a19;--ink:#ecece9;--muted:#a3a39e;--grid:#3a3a37;--c0:#308DCF;--c1:#C38603;--c2:#028964;--c3:#C976A4;--c4:#A84900}}
+.bg{fill:var(--bg)}text{fill:var(--ink)}.muted{fill:var(--muted)}
+.grid{stroke:var(--grid);stroke-width:1}.line{fill:none;stroke-width:2}.range{stroke-width:1.5;opacity:.55}
+.swatch{stroke-width:3}.leader{stroke-width:1;opacity:.7}.dot{stroke:var(--bg);stroke-width:2}.end-marker path{fill:none;stroke-width:2.5}
+.s0{stroke:var(--c0);color:var(--c0)}.dot.s0{fill:var(--c0)}
+.s1{stroke:var(--c1);color:var(--c1)}.dot.s1{fill:var(--c1)}
+.s2{stroke:var(--c2);color:var(--c2)}.dot.s2{fill:var(--c2)}
+.s3{stroke:var(--c3);color:var(--c3)}.dot.s3{fill:var(--c3)}
+.s4{stroke:var(--c4);color:var(--c4)}.dot.s4{fill:var(--c4)}
+</style>
+<rect class="bg" width="720" height="420"/>
+<line class="grid xtick" x1="72" y1="36" x2="72" y2="364"/>
+<text class="muted" x="72" y="382" text-anchor="middle">10</text>
+<line class="grid xtick" x1="242.67" y1="36" x2="242.67" y2="364"/>
+<text class="muted" x="242.67" y="382" text-anchor="middle">100</text>
+<line class="grid xtick" x1="413.33" y1="36" x2="413.33" y2="364"/>
+<text class="muted" x="413.33" y="382" text-anchor="middle">1,000</text>
+<line class="grid xtick" x1="584" y1="36" x2="584" y2="364"/>
+<text class="muted" x="584" y="382" text-anchor="middle">10,000</text>
+<line class="grid ytick" x1="72" y1="364" x2="584" y2="364"/>
+<text class="muted" x="64" y="368" text-anchor="end">1,000</text>
+<line class="grid ytick" x1="72" y1="254.67" x2="584" y2="254.67"/>
+<text class="muted" x="64" y="258.67" text-anchor="end">10,000</text>
+<line class="grid ytick" x1="72" y1="145.33" x2="584" y2="145.33"/>
+<text class="muted" x="64" y="149.33" text-anchor="end">100,000</text>
+<line class="grid ytick" x1="72" y1="36" x2="584" y2="36"/>
+<text class="muted" x="64" y="40" text-anchor="end">1,000,000</text>
+<text class="muted" x="328" y="410" text-anchor="middle">providers</text>
+<text class="muted" x="14" y="200" text-anchor="middle" transform="rotate(-90 14 200)">gzip bytes</text>
+<polyline class="line s0" data-series="nexusdi" points="191.29,220.97 294.04,211.53 413.33,181.12 532.62,123.48"/>
+<circle class="dot s0" data-series="nexusdi" data-n="50" cx="191.29" cy="220.97" r="4"/>
+<circle class="dot s0" data-series="nexusdi" data-n="200" cx="294.04" cy="211.53" r="4"/>
+<circle class="dot s0" data-series="nexusdi" data-n="1000" cx="413.33" cy="181.12" r="4"/>
+<circle class="dot s0" data-series="nexusdi" data-n="5000" cx="532.62" cy="123.48" r="4"/>
+<polyline class="line s1" data-series="inversify" points="191.29,214.09 294.04,205.56 413.33,176.97 532.62,120.35"/>
+<circle class="dot s1" data-series="inversify" data-n="50" cx="191.29" cy="214.09" r="4"/>
+<circle class="dot s1" data-series="inversify" data-n="200" cx="294.04" cy="205.56" r="4"/>
+<circle class="dot s1" data-series="inversify" data-n="1000" cx="413.33" cy="176.97" r="4"/>
+<circle class="dot s1" data-series="inversify" data-n="5000" cx="532.62" cy="120.35" r="4"/>
+<polyline class="line s2" data-series="tsyringe" points="191.29,250.03 294.04,236.4 413.33,197.28 532.62,134.15"/>
+<circle class="dot s2" data-series="tsyringe" data-n="50" cx="191.29" cy="250.03" r="4"/>
+<circle class="dot s2" data-series="tsyringe" data-n="200" cx="294.04" cy="236.4" r="4"/>
+<circle class="dot s2" data-series="tsyringe" data-n="1000" cx="413.33" cy="197.28" r="4"/>
+<circle class="dot s2" data-series="tsyringe" data-n="5000" cx="532.62" cy="134.15" r="4"/>
+<polyline class="line s3" data-series="awilix" points="191.29,287.17 294.04,261.95 413.33,209.39 532.62,140.23"/>
+<circle class="dot s3" data-series="awilix" data-n="50" cx="191.29" cy="287.17" r="4"/>
+<circle class="dot s3" data-series="awilix" data-n="200" cx="294.04" cy="261.95" r="4"/>
+<circle class="dot s3" data-series="awilix" data-n="1000" cx="413.33" cy="209.39" r="4"/>
+<circle class="dot s3" data-series="awilix" data-n="5000" cx="532.62" cy="140.23" r="4"/>
+<polyline class="line s4" data-series="needle-di" points="191.29,291.84 294.04,266.79 413.33,212.39 532.62,143.08"/>
+<circle class="dot s4" data-series="needle-di" data-n="50" cx="191.29" cy="291.84" r="4"/>
+<circle class="dot s4" data-series="needle-di" data-n="200" cx="294.04" cy="266.79" r="4"/>
+<circle class="dot s4" data-series="needle-di" data-n="1000" cx="413.33" cy="212.39" r="4"/>
+<circle class="dot s4" data-series="needle-di" data-n="5000" cx="532.62" cy="143.08" r="4"/>
+<line class="leader s0" data-series="nexusdi" x1="532.62" y1="123.48" x2="542.62" y2="135.35"/>
+<line class="swatch s0" data-series="nexusdi" x1="542.62" y1="135.35" x2="554.62" y2="135.35"/>
+<text class="end-label" x="558.62" y="139.35">NexusDI</text>
+<line class="swatch s1" data-series="inversify" x1="542.62" y1="120.35" x2="554.62" y2="120.35"/>
+<text class="end-label" x="558.62" y="124.35">InversifyJS</text>
+<line class="leader s2" data-series="tsyringe" x1="532.62" y1="134.15" x2="542.62" y2="150.35"/>
+<line class="swatch s2" data-series="tsyringe" x1="542.62" y1="150.35" x2="554.62" y2="150.35"/>
+<text class="end-label" x="558.62" y="154.35">tsyringe</text>
+<line class="leader s3" data-series="awilix" x1="532.62" y1="140.23" x2="542.62" y2="165.35"/>
+<line class="swatch s3" data-series="awilix" x1="542.62" y1="165.35" x2="554.62" y2="165.35"/>
+<text class="end-label" x="558.62" y="169.35">awilix</text>
+<line class="leader s4" data-series="needle-di" x1="532.62" y1="143.08" x2="542.62" y2="180.35"/>
+<line class="swatch s4" data-series="needle-di" x1="542.62" y1="180.35" x2="554.62" y2="180.35"/>
+<text class="end-label" x="558.62" y="184.35">needle-di</text>
+</svg>
