@@ -295,4 +295,17 @@ describe('spawnChild', () => {
       /sent no sample message/,
     );
   }, 30_000);
+  it('keeps a message that arrives with the exit, under load', async () => {
+    // Node may report the exit before it hands over the last IPC message.
+    const file = script(
+      'burst.mjs',
+      "process.send({ type: 'sample', v: 1 }); process.exit(0);",
+    );
+    const results = await Promise.all(
+      Array.from({ length: 60 }, () =>
+        spawnChild<{ type: string; v: number }>(file, [], [], 'sample'),
+      ),
+    );
+    expect(results.map((r) => r.message.v)).toEqual(new Array(60).fill(1));
+  }, 60_000);
 });

@@ -36,12 +36,28 @@ export function spawnChild<M extends { type: string }>(
     child.once('error', (error) =>
       reject(new Error(`could not run ${script}: ${error.message}`)),
     );
-    child.once('exit', (code, signal) => {
+    // Node can report the exit before it hands over the last IPC message, so
+    // the outcome waits for the process to close (exit and stderr drained) and for the channel to close, which
+    // happens after every message was delivered.
+    let ended:
+      { code: number | null; signal: NodeJS.Signals | null } | undefined;
+    let closed = !child.connected;
+    const settle = () => {
+      if (ended === undefined || !closed) return;
+      const { code, signal } = ended;
       if (code === 0 && got !== undefined) return resolve(got);
       const how = code === null ? `signal ${signal}` : `code ${code}`;
       const why =
         code === 0 ? `sent no ${type} message` : stderr.trim() || 'no stderr';
       reject(new Error(`exited with ${how}: ${why}`));
+    };
+    child.once('close', (code, signal) => {
+      ended = { code, signal };
+      settle();
+    });
+    child.once('disconnect', () => {
+      closed = true;
+      settle();
     });
   });
 }
