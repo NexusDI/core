@@ -1,14 +1,27 @@
+import type { Blueprint } from '../blueprint/blueprint.js';
 import { isForeign } from '../definitions/brand.js';
 import { resolveModuleRef } from '../definitions/define-module.js';
 import { describeValue } from '../definitions/describe.js';
 import { HOOK_SITES } from '../definitions/hook-sites.js';
 import { InvalidModuleError } from '../errors/index.js';
-import { compileTraced } from './compile-traced.js';
+import { compileTraced, observerFailed } from './compile-traced.js';
 import { startBlueprint, type StartupPlan } from './startup.js';
 import { assertOpen, track, type RootState } from './state.js';
-import { emitRun, type RunTrace } from './trace.js';
+import { emitRun, type RunTrace, type Tracer } from './trace.js';
 
 const ignore = (): void => undefined;
+
+/**
+ * Ends a load's run with ok: true. The load succeeded, so an observer's
+ * throw here rejects with the same shape as a throw on its compile event.
+ */
+function closeLoad(tracer: Tracer, trace: RunTrace, bp: Blueprint): void {
+  try {
+    emitRun(tracer, trace);
+  } catch (error) {
+    throw observerFailed(error, bp.modules.get(bp.root)?.name ?? '');
+  }
+}
 
 /**
  * Compiles the module against the live graph as a new root import, builds
@@ -21,7 +34,7 @@ async function loadNow(
   trace: RunTrace,
 ): Promise<void> {
   const tracer = root.tracer;
-  let plan: StartupPlan;
+  let plan: StartupPlan | undefined;
   try {
     assertOpen(root);
     const definition = resolveModuleRef(module);
@@ -40,43 +53,42 @@ async function loadNow(
       current.moduleByDefinition.get(definition) ??
       current.moduleByReplaced.get(definition);
     if (
-      existing !== undefined &&
-      current.modules.get(current.root)?.imports.includes(existing)
+      existing === undefined ||
+      !current.modules.get(current.root)?.imports.includes(existing)
     ) {
-      emitRun(tracer, trace);
-      return;
+      // With `previous`, compile() rejects a global module the graph lacks.
+      const next = compileTraced(
+        tracer,
+        {
+          root: root.rootRef,
+          extraImports: [...current.extraImports, module],
+          pluginImports: root.plugins.modules,
+          hooks: root.plugins.compile,
+          canon: root.canon,
+          phase: 'load',
+          wantsView: HOOK_SITES && root.plugins.formatError.length > 0,
+          previous: current,
+        },
+        'load',
+        trace.id,
+      );
+      plan = {
+        bp: next,
+        isNew: (pid) => !current.providers.has(pid),
+        run: trace,
+      };
     }
-
-    // With `previous`, compile() rejects a global module the graph lacks.
-    const next = compileTraced(
-      tracer,
-      {
-        root: root.rootRef,
-        extraImports: [...current.extraImports, module],
-        pluginImports: root.plugins.modules,
-        hooks: root.plugins.compile,
-        canon: root.canon,
-        phase: 'load',
-        wantsView: HOOK_SITES && root.plugins.formatError.length > 0,
-        previous: current,
-      },
-      'load',
-      trace.id,
-    );
-    plan = {
-      bp: next,
-      isNew: (pid) => !current.providers.has(pid),
-      run: trace,
-    };
   } catch (error) {
     // No list holds an observer's throw here (spec 3.5).
     emitRun(tracer, trace, []);
     throw error;
   }
-  // A failed build emits the run's closing event in its rollback.
-  await startBlueprint(root, plan);
-  root.blueprint = plan.bp;
-  emitRun(tracer, trace);
+  if (plan !== undefined) {
+    // A failed build emits the run's closing event in its rollback.
+    await startBlueprint(root, plan);
+    root.blueprint = plan.bp;
+  }
+  closeLoad(tracer, trace, root.blueprint);
 }
 
 export function loadModule(root: RootState, module: unknown): Promise<void> {

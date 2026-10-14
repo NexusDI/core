@@ -347,10 +347,11 @@ describe('an observer throw on the closing run event of a success', () => {
     expect(disposed).toEqual(['Airlock']);
   });
 
-  it('rejects load with the throw and keeps the loaded module', async () => {
+  it('rejects load with a ProviderError, keeps the module, and makes a retry a no-op run', async () => {
     let armed = false;
+    const { events, plugin } = recordEvents();
     const ship = await Nexus.create(Engineering, {
-      plugins: [onRun(() => armed)],
+      plugins: [plugin, onRun(() => armed)],
     });
     const PROBE = new Token<object>('Probe');
     const Science = defineModule({
@@ -359,9 +360,19 @@ describe('an observer throw on the closing run event of a success', () => {
       exports: [PROBE],
     });
     armed = true;
-    expect(await rejected(ship.load(Science))).toBe(thrown);
+    expect(await rejected(ship.load(Science))).toMatchObject({
+      code: 'NEXUS_PROVIDER_FAILED',
+      cause: thrown,
+    });
     armed = false;
     expect(ship.has(PROBE)).toBe(true);
+    await ship.load(Science);
+    expect(only(events, 'compile').map((e) => e.run)).toEqual([0, 1]);
+    expect(only(events, 'run').at(-1)).toMatchObject({
+      run: 2,
+      kind: 'load',
+      ok: true,
+    });
     await ship[Symbol.asyncDispose]();
   });
 });
