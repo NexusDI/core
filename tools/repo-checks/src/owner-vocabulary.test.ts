@@ -182,15 +182,28 @@ describe('ownerVocabulary', () => {
     expect(
       ownerVocabulary(fixture('sabotaged/event-table'), []).violations,
     ).toEqual([
-      `@acme/profiler table.ts:3 writes 'scope:create', ${TABLE} an object literal; ${FILL}`,
       `@acme/profiler table.ts:4 looks up event.type in WEIGHT, a table keyed by string; ${BRANCH}`,
       `@acme/profiler table.ts:6 looks up event.type in WEIGHT, a table keyed by string; ${BRANCH}`,
-      `@acme/profiler table.ts:8 writes 'compile', ${TABLE} an array literal; ${FILL}`,
-      `@acme/profiler table.ts:8 writes 'construct', ${TABLE} an array literal; ${FILL}`,
       `@acme/profiler table.ts:9 widens event.type to string; ${BRANCH}`,
       `@acme/profiler table.ts:11 writes 'init', ${TABLE} an array literal; ${FILL}`,
       `@acme/profiler table.ts:14 writes 'compile', ${TABLE} an object literal; ${FILL}`,
       `@acme/profiler table.ts:15 writes 'run', ${TABLE} an object literal; ${FILL}`,
+    ]);
+  });
+
+  it("reports core's keys written into a table whose type names the owner's union", () => {
+    const TABLE = 'an event type @acme/core declares, into';
+    const FILL = 'fill a table from the events at run time';
+    expect(
+      ownerVocabulary(fixture('sabotaged/event-typed-table'), []).violations,
+    ).toEqual([
+      `@acme/profiler tables.ts:5 writes 'construct', ${TABLE} an array literal; ${FILL}`,
+      `@acme/profiler tables.ts:5 writes 'init', ${TABLE} an array literal; ${FILL}`,
+      `@acme/profiler tables.ts:7 writes 'construct', ${TABLE} an object literal; ${FILL}`,
+      `@acme/profiler tables.ts:7 writes 'init', ${TABLE} an object literal; ${FILL}`,
+      `@acme/profiler tables.ts:9 writes 'construct', ${TABLE} an array literal; ${FILL}`,
+      `@acme/profiler tables.ts:11 writes 'init', ${TABLE} an array literal; ${FILL}`,
+      `@acme/profiler tables.ts:13 writes 'construct', ${TABLE} an array literal; ${FILL}`,
     ]);
   });
 
@@ -241,6 +254,7 @@ describe('ownerVocabulary', () => {
       `@acme/profiler wrapped.ts:6 widens event.type to any; ${BRANCH}`,
       `@acme/profiler wrapped.ts:9 uses event.type as a key of an object typed {}; ${BRANCH}`,
       `@acme/profiler wrapped.ts:13 reads the text of box.t with box.t.startsWith; ${BRANCH}`,
+      `@acme/profiler wrapped.ts:22 widens event.type to unknown; ${BRANCH}`,
     ]);
   });
 

@@ -16,3 +16,7 @@ export function held(event: TraceEvent): boolean {
 // The check does not follow a read out of a callback's return value.
 export const mapped = (events: readonly TraceEvent[]): string =>
   events.map((event) => event.type).join(',');
+
+const join = (...parts: unknown[]): string => parts.join('/');
+export const scoped = (event: TraceEvent): boolean =>
+  join(event.type).startsWith('scope');
