@@ -163,7 +163,7 @@ async function bundleBytes(
 }
 
 /** A library's documented variant: the only one the scale suite measures (decision 4). */
-function documentedVariant(lib: Library): Variant {
+export function documentedVariant(lib: Library): Variant {
   const entry = Object.entries(lib.variants).find(
     ([, v]) => v.documented === true,
   );
