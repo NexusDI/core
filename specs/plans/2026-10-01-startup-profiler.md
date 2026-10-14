@@ -4191,7 +4191,7 @@ export async function profileStartup(
 
 Export both from `index.ts`.
 
-- [ ] Step 4: The code page, as Task 8, Step 8, for `NEXUS_DEVTOOLS_PROFILE_INVALID`. The regions in `examples/meridian/src/errors/NEXUS_DEVTOOLS_PROFILE_INVALID.md` build their report with `await profileStartup(Engineering)`, keep each import on one line, and put each `// ->` claim on a declaration. Its reproduce region deletes `runs[0].builds[0].startMs` from `JSON.parse(JSON.stringify(report))` and prints `error.path` (`// -> 'runs[0].builds[0].startMs'`) and the message lines; its fix region parses an untouched report and prints `parseProfileReport(saved).runs.length` (`// -> 1`). The lead paragraph says `nexusdi profile` prints `nexusdi: <file>: ` before this message and exits with code 2.
+- [ ] Step 4: The code page, as Task 8, Step 8, for `NEXUS_DEVTOOLS_PROFILE_INVALID`. The regions in `examples/meridian/src/errors/NEXUS_DEVTOOLS_PROFILE_INVALID.md` build their report with `await profileStartup(Engineering)`, keep each import on one line, and put each `// ->` claim on a declaration. Its reproduce region deletes `runs[0].builds[0].startMs` from `JSON.parse(JSON.stringify(report))` and prints `error.path` (`// -> 'runs[0].builds[0].startMs'`) and the message lines; its fix region parses an untouched report and prints `parseProfileReport(saved).runs.length` (`// -> 1`). The lead paragraph says nothing of `nexusdi profile` until Task 16, Step 7 adds that sentence.
 
 - [ ] Step 5: Run the targets (as Task 8, Step 9), then commit with `feat(devtools): parse saved reports and profile a startup in one call`.
 
@@ -5960,7 +5960,9 @@ export async function runProfile(
 Run: `NX_NO_CLOUD=true NX_DAEMON=false npx nx run-many -t lint test build typecheck -p @nexusdi/cli @nexusdi/devtools`
 Expected: PASS.
 
-- [ ] Step 7: Commit with `feat(cli): profile a startup and write the table and trace files`.
+- [ ] Step 7: Put the CLI sentence back on `apps/docs/content/errors/NEXUS_DEVTOOLS_PROFILE_INVALID.mdx`, at the end of its opening paragraph, once this task makes it true: "`nexusdi profile` from `@nexusdi/cli` calls `parseProfileReport` for each report of a `.json` entry, and for a file that holds no report it prints `nexusdi: <file>: ` followed by this error's message, then exits with code 2." Check each clause against `libs/cli/src/profile.ts` first (the prefix, the exit code, and that an array entry is parsed per element), and edit the sentence to what the CLI does.
+
+- [ ] Step 8: Commit with `feat(cli): profile a startup and write the table and trace files`.
 
 ### Task 17: `--timeout` and the exit codes
 
