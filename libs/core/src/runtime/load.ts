@@ -15,15 +15,12 @@ const ignore = (): void => undefined;
  * the new singletons, and then publishes the new blueprint. A compile error
  * leaves the container unchanged; a build error disposes what this load built.
  */
-async function loadNow(root: RootState, module: unknown): Promise<void> {
+async function loadNow(
+  root: RootState,
+  module: unknown,
+  trace: RunTrace,
+): Promise<void> {
   const tracer = root.tracer;
-  const trace: RunTrace = {
-    id: root.nextRun++,
-    kind: 'load',
-    scope: null,
-    start: tracer.now(),
-    errors: undefined,
-  };
   let plan: StartupPlan;
   try {
     assertOpen(root);
@@ -83,7 +80,16 @@ async function loadNow(root: RootState, module: unknown): Promise<void> {
 }
 
 export function loadModule(root: RootState, module: unknown): Promise<void> {
-  const run = root.loadQueue.then(() => loadNow(root, module));
+  // The run spans from the call, so a load queued behind another counts
+  // its wait.
+  const trace: RunTrace = {
+    id: root.nextRun++,
+    kind: 'load',
+    scope: null,
+    start: root.tracer.now(),
+    errors: undefined,
+  };
+  const run = root.loadQueue.then(() => loadNow(root, module, trace));
   root.loadQueue = run.then(ignore, ignore);
   track(root.inflight, run);
   return run;

@@ -1,6 +1,7 @@
 import { describe, expect, it, vi } from 'vitest';
 
 import { rejected } from '../../test-support/catch.js';
+import { deferred } from '../../test-support/deferred.js';
 import { recordEvents } from '../../test-support/observe.js';
 import { defineModule } from '../definitions/define-module.js';
 import { provide } from '../definitions/provide.js';
@@ -476,5 +477,33 @@ describe('runs that build nothing', () => {
       scope: null,
       ok: false,
     });
+  });
+});
+
+describe('the span of a queued run', () => {
+  it('starts a load queued behind another at its call', async () => {
+    const { events, plugin } = recordEvents();
+    await using ship = await Nexus.create(Engineering, { plugins: [plugin] });
+    const gate = deferred();
+    const first = ship.load(
+      defineModule({
+        name: 'Science',
+        providers: [
+          provide(new Token<object>('Probe'), {
+            useFactory: async () => {
+              await gate.promise;
+              return {};
+            },
+          }),
+        ],
+      }),
+    );
+    const second = ship.load(defineModule({ name: 'Medical' }));
+    const called = performance.now();
+    gate.resolve();
+    await Promise.all([first, second]);
+    const loads = only(events, 'run').filter((e) => e.kind === 'load');
+    expect(loads.map((e) => e.run)).toEqual([1, 2]);
+    expect(loads[1]?.startMs).toBeLessThanOrEqual(called);
   });
 });
