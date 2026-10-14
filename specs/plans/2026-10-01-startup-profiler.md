@@ -3198,6 +3198,8 @@ describe('criticalPath', () => {
     expect(path.boundMs).toBe(10);
     expect(path.barrierMs).toBe(2);
     expect(path.waits[0]).toMatchObject({ token: 'C', waitMs: 9 });
+    expect(path.path[1]?.latestDep).toMatchObject({ token: 'B', earlierMs: 9 });
+    expect(path.path[0]?.latestDep).toBeNull();
   });
 
   it('follows a dependency chain through a transient', () => {
@@ -3305,10 +3307,53 @@ const meridian = report(
   [['n', 'r']],
 );
 
+// A barrier on a sibling of the previous member (C), one with no dependency
+// built in the run (F), and an async member that starts late behind a sync
+// sibling (G).
+const fleet = report(
+  [
+    build({ providerId: 'a', token: 'A', startMs: 0, durationMs: 10 }),
+    build({ providerId: 'b', token: 'B', startMs: 0, durationMs: 1 }),
+    build({
+      providerId: 'c',
+      token: 'C',
+      startMs: 10,
+      durationMs: 2,
+      level: 1,
+    }),
+    build({
+      providerId: 'f',
+      token: 'F',
+      startMs: 12,
+      durationMs: 1,
+      level: 2,
+    }),
+    build({
+      providerId: 'h',
+      token: 'H',
+      startMs: 13,
+      durationMs: 0.5,
+      level: 3,
+    }),
+    build({
+      providerId: 'g',
+      token: 'G',
+      startMs: 13.5,
+      durationMs: 5,
+      awaitMs: 4.5,
+      level: 3,
+    }),
+  ],
+  [
+    ['c', 'b'],
+    ['g', 'f'],
+  ],
+);
+
 describe('profileTable', () => {
   it('prints the steps, the slowest providers, the levels and the critical path', () => {
     const text = profileTable(meridian);
-    expect(text.split('\n')[0]).toBe('create 25.0 ms');
+    expect(text.split('\n')[0]).toBe('create 25.0 ms, cold');
     expect(text).toContain('slowest providers');
     expect(text).toMatch(
       /NavCharts\s+Tactical\s+1\s+singleton\s+0\.3\s+21\.4\s+0\.1\s+21\.8\s+0\.0\s+async/,
@@ -3317,6 +3362,41 @@ describe('profileTable', () => {
       /ReactorCore\s+Engineering\s+0\s+singleton\s+0\.9\s+-\s+0\.0\s+0\.9\s+0\.3/,
     );
     expect(text).toContain('critical path');
+  });
+
+  it('pins the steps, levels and critical path of the meridian fixture', () => {
+    const text = profileTable(meridian);
+    expect(text).toMatch(
+      /^build\s+23\.0\s+95\.8%\s+2 levels, 2 providers, 1 async$/m,
+    );
+    expect(text).toMatch(/^\s*0\s+1\s+1\.2\s+ReactorCore 0\.9$/m);
+    expect(text).toMatch(/^\s*1\s+1\s+21\.8\s+NavCharts 21\.8$/m);
+    expect(text).toContain(
+      'critical path, build 23.0 ms: dependency bound 22.7 ms, level barriers 0.3 ms',
+    );
+    expect(text).toMatch(
+      /^level 1\s+NavCharts\s+21\.8 ms\s+depends on ReactorCore$/m,
+    );
+  });
+
+  it("names a barrier's latest dependency, or says the run built none", () => {
+    const text = profileTable(fleet);
+    expect(text).toMatch(
+      /^level 1\s+C\s+2\.0 ms\s+barrier: depends on B, which ended 9\.0 ms earlier$/m,
+    );
+    expect(text).toMatch(
+      /^level 2\s+F\s+1\.0 ms\s+barrier: no dependency built in this run$/m,
+    );
+    expect(text).toMatch(
+      /^level 3\s+G\s+5\.0 ms\s+depends on F; started 0\.5 ms late, behind sync siblings$/m,
+    );
+    const waits = text.slice(text.indexOf('barrier waits'));
+    expect(
+      waits
+        .split('\n')
+        .slice(1, 5)
+        .map((line) => line.split(/\s+/).slice(0, 2).join(' ')),
+    ).toEqual(['H 13.0', 'F 12.0', 'C 9.0', 'G 0.5']);
   });
 
   it('limits the provider rows to top', () => {
@@ -3458,14 +3538,26 @@ export function criticalPathOf(run: ProfileRun, graph: Graph): CriticalPath {
     const members = levelled.filter((b) => b.level === level);
     const levelStart = Math.min(...members.map((b) => b.startMs));
     const last = members.reduce((a, b) => (endOf(b) > endOf(a) ? b : a));
+    const deps = depsOf(last.providerId);
+    const latest =
+      previous === undefined || deps.length === 0
+        ? undefined
+        : deps.reduce((a, b) => (endOf(b) > endOf(a) ? b : a));
     path.push({
       providerId: last.providerId,
       token: last.token,
       level,
       ownMs: ownMs(last),
-      dependsOnPrevious:
-        previous !== undefined && depsOf(last.providerId).includes(previous),
+      dependsOnPrevious: previous !== undefined && deps.includes(previous),
       lateMs: last.async ? last.startMs - levelStart : null,
+      latestDep:
+        latest === undefined || previous === undefined
+          ? null
+          : {
+              providerId: latest.providerId,
+              token: latest.token,
+              earlierMs: endOf(previous) - endOf(latest),
+            },
     });
     previous = last;
   }
@@ -3583,9 +3675,9 @@ export function profileTable(
   const status =
     run.ok === false ? ', failed' : run.ok === null ? ', still running' : '';
   lines.push(
-    `${runLabel(run)} ${ms(spanOf(run))} ms${status}` +
+    `${runLabel(run)} ${ms(spanOf(run))} ms${status}, cold` +
       (warmRuns.length > 0
-        ? `, cold; ${warmRuns.length} warm, median ${ms(median(warmRuns.map(spanOf)))} ms`
+        ? `; ${warmRuns.length} warm, median ${ms(median(warmRuns.map(spanOf)))} ms`
         : ''),
   );
 
@@ -3714,16 +3806,22 @@ export function profileTable(
           `level ${p.level}`,
           p.token,
           `${ms(p.ownMs)} ms`,
-          i === 0
-            ? ''
-            : p.dependsOnPrevious
-              ? `depends on ${path.path[i - 1]?.token ?? ''}`
-              : 'barrier: depends on nothing in the level before',
-          p.lateMs !== null && p.lateMs > 0
-            ? `started ${ms(p.lateMs)} ms late, behind sync siblings`
-            : '',
+          [
+            i === 0
+              ? ''
+              : p.dependsOnPrevious
+                ? `depends on ${path.path[i - 1]?.token ?? ''}`
+                : p.latestDep === null
+                  ? 'barrier: no dependency built in this run'
+                  : `barrier: depends on ${p.latestDep.token}, which ended ${ms(p.latestDep.earlierMs)} ms earlier`,
+            p.lateMs !== null && p.lateMs > 0
+              ? `started ${ms(p.lateMs)} ms late, behind sync siblings`
+              : '',
+          ]
+            .filter((note) => note !== '')
+            .join('; '),
         ]),
-        [false, false, true, false, false],
+        [false, false, true, false],
       ),
     );
     if (path.waits.length > 0)
@@ -4093,7 +4191,7 @@ export async function profileStartup(
 
 Export both from `index.ts`.
 
-- [ ] Step 4: The code page, as Task 8, Step 8, for `NEXUS_DEVTOOLS_PROFILE_INVALID`. Its reproduce region deletes `runs[0].builds[0].startMs` from `JSON.parse(JSON.stringify(report))` and prints `error.path` (`// -> 'runs[0].builds[0].startMs'`) and the message lines; its fix region parses an untouched report and prints `parseProfileReport(saved).runs.length` (`// -> 1`). The lead paragraph says `nexusdi profile` prints `nexusdi: <file>: ` before this message and exits with code 2.
+- [ ] Step 4: The code page, as Task 8, Step 8, for `NEXUS_DEVTOOLS_PROFILE_INVALID`. The regions in `examples/meridian/src/errors/NEXUS_DEVTOOLS_PROFILE_INVALID.md` build their report with `await profileStartup(Engineering)`, keep each import on one line, and put each `// ->` claim on a declaration. Its reproduce region deletes `runs[0].builds[0].startMs` from `JSON.parse(JSON.stringify(report))` and prints `error.path` (`// -> 'runs[0].builds[0].startMs'`) and the message lines; its fix region parses an untouched report and prints `parseProfileReport(saved).runs.length` (`// -> 1`). The lead paragraph says `nexusdi profile` prints `nexusdi: <file>: ` before this message and exits with code 2.
 
 - [ ] Step 5: Run the targets (as Task 8, Step 9), then commit with `feat(devtools): parse saved reports and profile a startup in one call`.
 
