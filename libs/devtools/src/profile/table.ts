@@ -1,3 +1,4 @@
+import { least, most } from './extent.js';
 import { criticalPathOf, ownMs } from './critical-path.js';
 import type { ProfileBuild, ProfileReport, ProfileRun } from './report.js';
 import { runLabel, stepsOf } from './steps.js';
@@ -20,7 +21,10 @@ function columns(
   right: readonly boolean[],
 ): string[] {
   const widths = right.map((_, i) =>
-    Math.max(...rows.map((r) => (r[i] ?? '').length)),
+    most(
+      rows.map((r) => (r[i] ?? '').length),
+      0,
+    ),
   );
   return rows.map((r) =>
     r
@@ -34,7 +38,10 @@ function columns(
 
 const spanOf = (run: ProfileRun): number =>
   run.durationMs ??
-  Math.max(0, ...run.builds.map((b) => b.startMs + b.durationMs - run.startMs));
+  most(
+    run.builds.map((b) => b.startMs + b.durationMs - run.startMs),
+    0,
+  );
 
 function pick(
   report: ProfileReport,
@@ -163,9 +170,13 @@ export function profileTable(
           ...[...levels]
             .sort(([a], [b]) => a - b)
             .map(([level, builds]) => {
-              const start = Math.min(...builds.map((b) => b.startMs));
-              const end = Math.max(
-                ...builds.map((b) => b.startMs + b.durationMs),
+              const start = least(
+                builds.map((b) => b.startMs),
+                Infinity,
+              );
+              const end = most(
+                builds.map((b) => b.startMs + b.durationMs),
+                -Infinity,
               );
               const slowest = builds.reduce((a, b) =>
                 ownMs(b) > ownMs(a) ? b : a,

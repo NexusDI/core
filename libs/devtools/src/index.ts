@@ -26,3 +26,4 @@ export { criticalPath } from './profile/critical-path.js';
 export { profileTable } from './profile/table.js';
 export { parseProfileReport } from './profile/parse.js';
 export { profileStartup } from './profile/startup.js';
+export { toChromeTrace } from './profile/chrome.js';

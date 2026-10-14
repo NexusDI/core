@@ -15,6 +15,7 @@ import type {
   ProfileReport,
   ProfileRun,
 } from './report.js';
+import { liveSink } from './live.js';
 import { stepsOf } from './steps.js';
 
 export interface ProfileOptions {
@@ -70,7 +71,23 @@ export function runOf(rec: Recording): ProfileRun {
   return { ...run, steps: stepsOf(run) };
 }
 
+// The view is one frozen object per blueprint, so a graph built from it
+// stays valid until a load or extend() gives the container a new blueprint.
+const graphs = new WeakMap<
+  BlueprintView,
+  NonNullable<ProfileReport['graph']>
+>();
+
+/** The report's graph of `view`, built once per blueprint. */
 function graphOf(view: BlueprintView): NonNullable<ProfileReport['graph']> {
+  const known = graphs.get(view);
+  if (known !== undefined) return known;
+  const graph = buildGraph(view);
+  graphs.set(view, graph);
+  return graph;
+}
+
+function buildGraph(view: BlueprintView): NonNullable<ProfileReport['graph']> {
   const names = new Map(view.modules.map((m) => [m.id, m.name]));
   return {
     root: names.get(view.root) ?? view.root,
@@ -96,6 +113,10 @@ const REUSED_TEXT =
 
 export function profile(options: ProfileOptions = {}): Profiler {
   const scopes = options.scopes ?? false;
+  const live =
+    options.live === true
+      ? liveSink(options.trackGroup ?? 'NexusDI')
+      : undefined;
   const maxRuns = options.maxRuns ?? 1000;
   const runs = new Map<number, Recording>();
   // Builds with no run wait here for the build that ran them (spec 6.2).
@@ -291,6 +312,17 @@ export function profile(options: ProfileOptions = {}): Profiler {
         rec.durationMs = event.durationMs;
         rec.pending.clear();
         if (event.scope !== null) seenScopes.add(event.scope);
+        // A run's spans are drawn when it closes, so the critical-path colour
+        // is known (spec 6.5). An observe hook never throws (spec 6.3).
+        if (live !== undefined)
+          try {
+            live(
+              runOf(rec),
+              context === undefined ? null : graphOf(context.blueprint()),
+            );
+          } catch {
+            // The view or the sink failed; the app being measured does not.
+          }
         return;
       }
       case 'dispose':
