@@ -1,5 +1,3 @@
-import { dirname, join } from 'node:path';
-
 import ts from 'typescript';
 
 import { parse, resolveRelative, type Sources } from './core-layers.js';
@@ -13,6 +11,7 @@ import {
   packCodes,
   unwrap,
 } from './error-codes.js';
+import { checkerOf } from './type-checker.js';
 
 /**
  * Where each error's text lives (spec section 2.5.1).
@@ -436,63 +435,6 @@ function pluginHook(
     argument: text,
     message: `${at(node)} sets ${hook} to ${text}, which is neither a function written there nor a package-local function; write the hook as one, or allowlist the site with a reason`,
   };
-}
-
-const LIB_DIR = dirname(ts.getDefaultLibFilePath({}));
-const LIB = 'lib.es2022.d.ts';
-const libFiles = new Map<string, ts.SourceFile | undefined>();
-
-/** A default lib file, parsed once and shared by every package's checker. */
-function libFile(name: string): ts.SourceFile | undefined {
-  if (!libFiles.has(name)) {
-    const text = ts.sys.readFile(name);
-    libFiles.set(
-      name,
-      text === undefined
-        ? undefined
-        : ts.createSourceFile(name, text, ts.ScriptTarget.ESNext, true),
-    );
-  }
-  return libFiles.get(name);
-}
-
-/**
- * A type checker over one package's sources and the es2022 lib. It
- * resolves local bindings, relative imports and lib types, and nothing
- * outside the package: another package's types are unresolved.
- */
-function checkerOf(sources: Sources): ts.TypeChecker {
-  const host: ts.CompilerHost = {
-    getSourceFile: (name) =>
-      name.startsWith(LIB_DIR) ? libFile(name) : sources.get(name),
-    fileExists: (name) =>
-      name.startsWith(LIB_DIR) ? ts.sys.fileExists(name) : sources.has(name),
-    readFile: (name) =>
-      name.startsWith(LIB_DIR)
-        ? ts.sys.readFile(name)
-        : sources.get(name)?.text,
-    getDefaultLibFileName: () => join(LIB_DIR, LIB),
-    getDefaultLibLocation: () => LIB_DIR,
-    writeFile: () => undefined,
-    getCurrentDirectory: () => '',
-    getCanonicalFileName: (name) => name,
-    useCaseSensitiveFileNames: () => true,
-    getNewLine: () => '\n',
-  };
-  return ts
-    .createProgram({
-      rootNames: [...sources.keys()],
-      options: {
-        lib: [LIB],
-        noEmit: true,
-        types: [],
-        target: ts.ScriptTarget.ES2022,
-        module: ts.ModuleKind.ESNext,
-        moduleResolution: ts.ModuleResolutionKind.Bundler,
-      },
-      host,
-    })
-    .getTypeChecker();
 }
 
 /** Where a package's plugin contexts go. */
