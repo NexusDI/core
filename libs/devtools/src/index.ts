@@ -22,3 +22,5 @@ export type {
   ProfileRun,
   TraceFile,
 } from './profile/report.js';
+export { criticalPath } from './profile/critical-path.js';
+export { profileTable } from './profile/table.js';

@@ -283,6 +283,7 @@ export function profile(options: ProfileOptions = {}): Profiler {
           return;
         }
         const rec = open(event.run, event.kind, event.scope, event.startMs);
+        // RunKind is open to core's additions (spec 5.2, P2), so the run's own kind wins over the inferred one.
         rec.kind = event.kind;
         rec.scope = event.scope;
         rec.ok = event.ok;

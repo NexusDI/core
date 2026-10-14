@@ -886,7 +886,7 @@ level  providers  wall ms  slowest
 
 critical path, build 27.9 ms: dependency bound 26.0 ms, level barriers 1.9 ms
 level 0  ReactorCore        0.9 ms
-level 1  SubspaceLink       2.4 ms   barrier: depends on nothing in level 0
+level 1  SubspaceLink       2.4 ms   barrier: no dependency built in this run
 level 2  NavCharts         21.8 ms   depends on SubspaceLink; started 0.4 ms late, behind sync siblings
 level 3  DiagnosticsPanel   0.4 ms   barrier: depends on SubspaceLink, which ended 21.8 ms earlier
 
@@ -915,8 +915,10 @@ Critical path, per run, from `construct` events with a level plus the report's g
    level, so this chain is the build step's length.
 3. For each barrier-path member, `depends` is true when it reaches the previous member
    through edges with `ordersBuild`, passing through providers with `inline` (section 3.7).
-   Otherwise the line says "barrier". devtools reads both fields from the report's graph and
-   compares no edge kind or lifetime.
+   Otherwise the line says "barrier", and names the member's latest-ending dependency built
+   in the run and how long before the previous member's end it ended, or says the run built
+   none. devtools reads both fields from the report's graph and compares no edge kind or
+   lifetime.
 4. Barrier wait of `p`: `startMs(p) - max end(d)` over its strong deps `d` built in the same
    run, or the build step's start when it has none. The table lists the largest.
 5. Dependency bound: `f(p) = max f(d) + own(p)` over the same deps, in level order. The
@@ -945,6 +947,16 @@ export interface CriticalPath {
     readonly dependsOnPrevious: boolean;
     /** Async providers only; null otherwise. */
     readonly lateMs: number | null;
+    /**
+     * Its latest-ending dependency built in this run, and how long before the
+     * previous path member's end that dependency ended. null when it has no
+     * such dependency, and on the first member.
+     */
+    readonly latestDep: {
+      readonly providerId: string;
+      readonly token: string;
+      readonly earlierMs: number;
+    } | null;
   }[];
   readonly waits: readonly {
     readonly providerId: string;
