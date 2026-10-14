@@ -2,8 +2,9 @@ import {
   existsSync,
   mkdirSync,
   readdirSync,
-  utimesSync,
   rmSync,
+  symlinkSync,
+  utimesSync,
   writeFileSync,
 } from 'node:fs';
 import { join } from 'node:path';
@@ -121,5 +122,22 @@ describe('testConsumer', () => {
     expect(left.has(`${NAME}-staging-fresh`)).toBe(true);
     expect(left.has(`${NAME}-run-fresh`)).toBe(true);
     expect(left.has(sharedInstallName(NAME, ['awilix']))).toBe(true);
+  });
+
+  it('skips an entry another run deleted between the listing and the stat', () => {
+    const tmp = join(BENCHMARKS, 'tmp');
+    // A dangling link lists but cannot be stat'ed, as a directory removed
+    // by a concurrent sweep would not.
+    const gone = join(tmp, `${NAME}-run-gone`);
+    rmSync(gone, { force: true });
+    symlinkSync(join(tmp, 'does-not-exist'), gone);
+    try {
+      const { install } = counting();
+      expect(() =>
+        made.push(testConsumer(NAME, ['awilix'], install)),
+      ).not.toThrow();
+    } finally {
+      rmSync(gone, { force: true });
+    }
   });
 });
