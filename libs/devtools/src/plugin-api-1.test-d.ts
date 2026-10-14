@@ -16,6 +16,7 @@ import {
   type NexusPlugin,
   type PluginContext,
   type ProviderView,
+  type RunKind,
   type TraceEvent,
   type TraceEventByType,
 } from '@nexusdi/core';
@@ -202,5 +203,59 @@ describe('NexusPlugin', () => {
     expectTypeOf<
       Parameters<NonNullable<NexusPlugin['construct']>>[1]
     >().toEqualTypeOf<ProviderView>();
+  });
+});
+
+describe('a third-party profiler (startup profiler spec 5.3)', () => {
+  it('reads every stable field of the run and build events', () => {
+    const rows: unknown[] = [];
+    const plugin: NexusPlugin = {
+      name: 'acme:profiler',
+      apiVersion: 1,
+      observe(event: TraceEvent) {
+        switch (event.type) {
+          case 'run':
+            rows.push([
+              event.run,
+              event.kind,
+              event.scope,
+              event.ok,
+              event.startMs,
+              event.durationMs,
+            ]);
+            break;
+          case 'construct':
+          case 'construct:await':
+          case 'construct:failed':
+          case 'init':
+          case 'init:await':
+          case 'init:failed':
+            rows.push([
+              event.run,
+              event.level,
+              event.parent,
+              event.token,
+              event.providerId,
+              event.module,
+              event.lifetime,
+              event.scope,
+              event.async,
+              event.startMs,
+              event.syncMs,
+              event.awaitMs,
+              event.finishMs,
+              event.durationMs,
+            ]);
+            break;
+          case 'compile':
+            rows.push([event.run, event.startMs]);
+            break;
+          default:
+            break;
+        }
+      },
+    };
+    expectTypeOf(plugin).toExtend<NexusPlugin>();
+    expectTypeOf<RunKind>().toExtend<string>();
   });
 });

@@ -1,3 +1,4 @@
+import { ordersBuild } from './build-order.js';
 import type { ModuleDefinition } from '../definitions/define-module.js';
 import { HOOK_SITES } from '../definitions/hook-sites.js';
 import { REQUEST } from '../definitions/request.js';
@@ -199,7 +200,7 @@ export function compile(input: CompileInput): Blueprint {
   );
 
   // Pass 4: cycles, ignoring lazy edges.
-  const strong = successorsOf(bound.edges, (kind) => kind !== 'lazy');
+  const strong = successorsOf(bound.edges, ordersBuild);
   for (const component of findCycles([...providers.keys()], strong)) {
     const path = cyclePath(
       component,
