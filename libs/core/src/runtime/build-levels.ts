@@ -8,20 +8,22 @@ import { settleLevel } from './settle.js';
  * between levels, where the callers mark providers ready and check for
  * disposal. A caller that rolls back records what it touched in `buildOne`,
  * which runs synchronously for every id of a level before any build settles.
+ * `buildOne` receives the level's index into `levels`, skipped levels
+ * counted, which the construct and init events report.
  * Returns how many ids it ran.
  */
 export async function buildLevels(
   levels: readonly (readonly string[])[],
   include: (id: string) => boolean,
-  buildOne: (id: string) => Promise<void>,
+  buildOne: (id: string, level: number) => Promise<void>,
   afterLevel: (ids: readonly string[]) => void,
 ): Promise<number> {
   let built = 0;
-  for (const level of levels) {
+  for (const [i, level] of levels.entries()) {
     const ids = level.filter(include);
     if (ids.length === 0) continue;
     built += ids.length;
-    await settleLevel(ids, buildOne);
+    await settleLevel(ids, buildOne, i);
     afterLevel(ids);
   }
   return built;
