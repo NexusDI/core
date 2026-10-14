@@ -776,3 +776,248 @@ describe('construct spans', () => {
     });
   });
 });
+
+describe('construct:failed', () => {
+  it('reports a throwing constructor before the rollback disposes', async () => {
+    const { events, plugin } = recordEvents();
+    class Hull {
+      [Symbol.dispose]() {}
+    }
+    class Breach {
+      static deps = [Hull] as const;
+      constructor(_: Hull) {
+        throw new Error('hull breach');
+      }
+    }
+    await rejected(Nexus.create([Hull, Breach], { plugins: [plugin] }));
+    const types = events.map((e) => e.type);
+    expect(only(events, 'construct:failed')).toMatchObject([
+      { token: 'Breach', run: 0, level: 1, async: false, parent: null },
+    ]);
+    expect(types.indexOf('construct:failed')).toBeLessThan(
+      types.indexOf('dispose:instance'),
+    );
+    expect(events.at(-1)).toMatchObject({ type: 'run', ok: false });
+  });
+
+  it('reports a rejected factory with async true after its construct:await', async () => {
+    const { events, plugin } = recordEvents();
+    const LINK = new Token<object>('SubspaceLink');
+    await rejected(
+      Nexus.create(
+        [
+          provide(LINK, {
+            useFactory: async () => Promise.reject(new Error('no carrier')),
+          }),
+        ],
+        { plugins: [plugin] },
+      ),
+    );
+    expect(events.map((e) => e.type)).toEqual([
+      'compile',
+      'construct:await',
+      'construct:failed',
+      'run',
+    ]);
+    expect(only(events, 'construct:failed')).toMatchObject([
+      {
+        async: true,
+        level: 0,
+      },
+    ]);
+  });
+
+  it('reports a failure after the factory returned, in options validation or a construct hook', async () => {
+    const { events, plugin } = recordEvents();
+    const wrecker = {
+      name: 'test:wrecker',
+      apiVersion: 1,
+      construct() {
+        throw new Error('wrapper failed');
+      },
+    };
+    await rejected(
+      Nexus.create([FusionReactor], { plugins: [plugin, wrecker] }),
+    );
+    expect(only(events, 'construct:failed')).toMatchObject([
+      { token: 'FusionReactor', async: false },
+    ]);
+  });
+
+  it('reports an on-demand failure with no run and no level', async () => {
+    const { events, plugin } = recordEvents();
+    class Flaky {
+      constructor() {
+        throw new Error('flaky');
+      }
+    }
+    await using ship = await Nexus.create([provide(Flaky, { eager: false })], {
+      plugins: [plugin],
+    });
+    expect(() => ship.get(Flaky)).toThrow();
+    expect(only(events, 'construct:failed')).toMatchObject([
+      { token: 'Flaky', run: null, level: null, parent: null },
+    ]);
+  });
+
+  it('reports an on-demand async factory with async true', async () => {
+    const { events, plugin } = recordEvents();
+    const LINK = new Token<object>('Link');
+    await using ship = await Nexus.create(
+      [
+        provide(LINK, {
+          eager: false,
+          // The types refuse an async factory with eager: false; the cast
+          // reaches the runtime refusal this test reads.
+          useFactory: (async () => ({})) as () => object,
+        }),
+      ],
+      { plugins: [plugin] },
+    );
+    expect(() => ship.get(LINK)).toThrow();
+    expect(only(events, 'construct:failed')).toMatchObject([
+      { token: 'Link', run: null, async: true },
+    ]);
+  });
+
+  it("names the parent's failure only when a transient inside it throws", async () => {
+    const { events, plugin } = recordEvents();
+    const SPARK = new Token<object>('Spark');
+    class Panel {
+      static deps = [SPARK] as const;
+      constructor(readonly spark: object) {}
+    }
+    await rejected(
+      Nexus.create(
+        [
+          provide(SPARK, {
+            lifetime: 'transient',
+            useFactory: (): object => {
+              throw new Error('short');
+            },
+          }),
+          Panel,
+        ],
+        { plugins: [plugin] },
+      ),
+    );
+    expect(only(events, 'construct:failed').map((e) => e.token)).toEqual([
+      'Panel',
+    ]);
+  });
+
+  it('puts an observer throw on construct:failed after the disposer errors', async () => {
+    const thrown = new Error('telemetry down');
+    const watcher = {
+      name: 'test:watcher',
+      apiVersion: 1,
+      observe(event: TraceEvent) {
+        if (event.type === 'construct:failed') throw thrown;
+      },
+    };
+    class Breach {
+      constructor() {
+        throw new Error('hull breach');
+      }
+    }
+    const error = (await rejected(
+      Nexus.create([Breach], { plugins: [watcher] }),
+    )) as {
+      code: string;
+      disposalErrors: readonly unknown[];
+    };
+    expect(error.code).toBe('NEXUS_PROVIDER_FAILED');
+    expect(error.disposalErrors).toEqual([thrown]);
+  });
+
+  it('fails the build when an observer throws on construct:await', async () => {
+    const { events, plugin } = recordEvents();
+    const thrown = new Error('telemetry down');
+    const watcher = {
+      name: 'test:watcher',
+      apiVersion: 1,
+      observe(event: TraceEvent) {
+        if (event.type === 'construct:await') throw thrown;
+      },
+    };
+    const CHARTS = new Token<object>('NavCharts');
+    const error = (await rejected(
+      Nexus.create([provide(CHARTS, { useFactory: async () => ({}) })], {
+        plugins: [plugin, watcher],
+      }),
+    )) as { code: string; cause: unknown };
+    expect(error).toMatchObject({
+      code: 'NEXUS_PROVIDER_FAILED',
+      cause: thrown,
+    });
+    expect(only(events, 'construct:failed')).toMatchObject([
+      { token: 'NavCharts', async: true },
+    ]);
+  });
+  it('leaves no unhandled rejection when an observer throws on construct:await', async () => {
+    const watcher = {
+      name: 'test:watcher',
+      apiVersion: 1,
+      observe(event: TraceEvent) {
+        if (event.type === 'construct:await') throw new Error('telemetry down');
+      },
+    };
+    const unhandled: unknown[] = [];
+    const onUnhandled = (reason: unknown) => void unhandled.push(reason);
+    process.on('unhandledRejection', onUnhandled);
+    try {
+      const CHARTS = new Token<object>('NavCharts');
+      await rejected(
+        Nexus.create(
+          [
+            provide(CHARTS, {
+              useFactory: async () => {
+                await sleep(1);
+                throw new Error('no carrier');
+              },
+            }),
+          ],
+          { plugins: [watcher] },
+        ),
+      );
+      await sleep(20);
+    } finally {
+      process.off('unhandledRejection', onUnhandled);
+    }
+    expect(unhandled).toEqual([]);
+  });
+
+  it('keeps one on-demand instance when an observer throws on its construct event', async () => {
+    const thrown = new Error('telemetry down');
+    let armed = false;
+    const watcher = {
+      name: 'test:watcher',
+      apiVersion: 1,
+      observe(event: TraceEvent) {
+        if (armed && event.type === 'construct') throw thrown;
+      },
+    };
+    const log: string[] = [];
+    class Sensor {
+      constructor() {
+        log.push('built');
+      }
+      onInit() {
+        log.push('init');
+      }
+      [Symbol.dispose]() {
+        log.push('disposed');
+      }
+    }
+    const ship = await Nexus.create([provide(Sensor, { eager: false })], {
+      plugins: [watcher],
+    });
+    armed = true;
+    expect(() => ship.get(Sensor)).toThrow(thrown);
+    armed = false;
+    const sensor = ship.get(Sensor);
+    expect(ship.get(Sensor)).toBe(sensor);
+    await ship[Symbol.asyncDispose]();
+    expect(log).toEqual(['built', 'init', 'disposed']);
+  });
+});

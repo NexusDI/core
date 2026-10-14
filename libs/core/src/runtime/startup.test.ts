@@ -383,7 +383,6 @@ describe('Nexus', () => {
             kind: 'create',
             scope: null,
             start: 0,
-            errors: undefined,
           },
         }),
       ).rejects.toMatchObject({ code: 'NEXUS_PROVIDER_FAILED' });
@@ -419,7 +418,6 @@ describe('Nexus', () => {
           kind: 'create',
           scope: null,
           start: 0,
-          errors: undefined,
         },
       });
       // `shared` is now registered as a useValue object by the first build,
@@ -446,7 +444,6 @@ describe('Nexus', () => {
             kind: 'load',
             scope: null,
             start: 0,
-            errors: undefined,
           },
         }),
       ).rejects.toMatchObject({ code: 'NEXUS_PROVIDER_FAILED' });

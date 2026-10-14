@@ -99,7 +99,6 @@ export function loadModule(root: RootState, module: unknown): Promise<void> {
     kind: 'load',
     scope: null,
     start: root.tracer.now(),
-    errors: undefined,
   };
   const run = root.loadQueue.then(() => loadNow(root, module, trace));
   root.loadQueue = run.then(ignore, ignore);

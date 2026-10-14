@@ -24,11 +24,11 @@ interface BuildEventFields {
   level: number | null;
   parent: string | null;
   startMs: number;
-  /** From the call until it returned, nested builds included. */
+  /** From the call until it returned or threw, nested builds included. */
   syncMs: number;
-  /** From that return until the thenable settled; null when the call returned no thenable. */
+  /** From that return until the thenable settled or the build failed; null when the call returned no thenable. */
   awaitMs: number | null;
-  /** From the build resuming until the instance was stored: options validation and construct hooks. */
+  /** From the build resuming until the instance was stored or the build failed: options validation and construct hooks. */
   finishMs: number;
   /** Wall time from the call to the event, time queued behind the level's other providers included. */
   durationMs: number;
@@ -53,6 +53,8 @@ export interface TraceEventByType {
   construct: BuildEventFields;
   /** A factory returned a thenable; core now awaits it. The build ends with construct or construct:failed. */
   'construct:await': BuildEventFields;
+  /** A build failed between the constructor or factory call and the store. */
+  'construct:failed': BuildEventFields;
   untracked: {
     token: string;
     providerId: string;
@@ -157,8 +159,9 @@ function send(sinks: readonly TraceSink[], event: TraceEvent): void {
 
 /**
  * Emits on a failure path (spec 3.5): an observer's throw joins `errors`,
- * or is dropped when the failure has no list to hold it, so the
- * operation's own error reaches the caller.
+ * so the operation's own error reaches the caller. A failure with no list
+ * to hold the throw passes a fresh one. With no list, as on a success
+ * path, the throw propagates as tracer.emit's does.
  */
 export function emitCollecting(
   tracer: Tracer,
@@ -168,7 +171,8 @@ export function emitCollecting(
   try {
     tracer.emit(make);
   } catch (error) {
-    errors?.push(error);
+    if (!errors) throw error;
+    errors.push(error);
   }
 }
 
@@ -184,7 +188,7 @@ export interface RunTrace {
   scope: string | null;
   /** When the run began, on the tracer's clock. */
   readonly start: number;
-  errors: unknown[] | undefined;
+  errors?: unknown[];
 }
 
 /**
@@ -206,8 +210,7 @@ export function emitRun(
     startMs: run.start,
     durationMs: tracer.now() - run.start,
   });
-  if (errors) emitCollecting(tracer, errors, make);
-  else tracer.emit(make);
+  emitCollecting(tracer, errors, make);
 }
 
 /** The callback disposeInReverse calls per disposed instance: one dispose:instance event each. */

@@ -89,7 +89,8 @@ export function adopt(
 }
 
 /** The trace events of one build. */
-export type BuildEventType = 'construct' | 'construct:await';
+export type BuildEventType =
+  'construct' | 'construct:await' | 'construct:failed';
 
 /**
  * Emits one build event from one shape. Times are tracer.now() readings:
@@ -97,14 +98,16 @@ export type BuildEventType = 'construct' | 'construct:await';
  * build resumed after its await. A value or alias provider passes no
  * times and reports a zero span at the emit instant. `parent` is the frame
  * on top of the construction stack at emit time: the build whose
- * constructor or factory this one ran inside.
+ * constructor or factory this one ran inside. An observer's throw on a
+ * failure event keeps the operation's own error (spec 3.5): it joins the
+ * run's errors, or is dropped outside a run.
  */
 export function traceBuild(
   type: BuildEventType,
   container: ContainerState,
   bp: Blueprint,
   id: string,
-  run: Pick<RunTrace, 'id'> | undefined,
+  run: Pick<RunTrace, 'id' | 'errors'> | undefined,
   level: number | null,
   isAsync: boolean,
   start?: number,
@@ -112,29 +115,34 @@ export function traceBuild(
   resumed?: number,
 ): void {
   const tracer = container.root.tracer;
-  tracer.emit(() => {
-    const record = recordOf(bp, id);
-    const end = tracer.now();
-    const from = start ?? end;
-    const back = returned ?? end;
-    return {
-      type,
-      token: record.name,
-      providerId: id,
-      module: moduleName(bp, record),
-      lifetime: record.lifetime,
-      scope: container.scopeId,
-      async: isAsync,
-      run: run?.id ?? null,
-      level,
-      parent: constructionStack.top()?.providerId ?? null,
-      startMs: from,
-      syncMs: back - from,
-      awaitMs: isAsync ? (resumed ?? end) - back : null,
-      finishMs: end - (resumed ?? end),
-      durationMs: end - from,
-    };
-  });
+  try {
+    tracer.emit(() => {
+      const record = recordOf(bp, id);
+      const end = tracer.now();
+      const from = start ?? end;
+      const back = returned ?? end;
+      return {
+        type,
+        token: record.name,
+        providerId: id,
+        module: moduleName(bp, record),
+        lifetime: record.lifetime,
+        scope: container.scopeId,
+        async: isAsync,
+        run: run?.id ?? null,
+        level,
+        parent: constructionStack.top()?.providerId ?? null,
+        startMs: from,
+        syncMs: back - from,
+        awaitMs: isAsync ? (resumed ?? end) - back : null,
+        finishMs: end - (resumed ?? end),
+        durationMs: end - from,
+      };
+    });
+  } catch (error) {
+    if (!type.endsWith('failed')) throw error;
+    if (run) (run.errors ??= []).push(error);
+  }
 }
 
 /** Observes a thenable nothing will await, so its rejection is never unhandled. */
@@ -356,45 +364,72 @@ export async function buildInto(
   const tracer = root.tracer;
   const start = tracer.now();
   let isAsync = false;
-  let value = construct(record, { bp, container, owner });
-  const returned = tracer.now();
-  if (record.kind === 'factory' && isThenable(value)) {
-    isAsync = true;
-    const pending = Promise.resolve(value);
-    container.slots.begin(id, pending);
+  let value: unknown;
+  let returned: number | undefined;
+  let resumed: number | undefined;
+  // Every failure from the call to the store, an observer's throw on
+  // construct:await included, ends the build with construct:failed.
+  try {
+    value = construct(record, { bp, container, owner });
+    returned = tracer.now();
+    if (record.kind === 'factory' && isThenable(value)) {
+      isAsync = true;
+      const pending = Promise.resolve(value);
+      container.slots.begin(id, pending);
+      try {
+        traceBuild(
+          'construct:await',
+          container,
+          bp,
+          id,
+          run,
+          level,
+          true,
+          start,
+          returned,
+        );
+      } catch (error) {
+        // Nothing awaits the thenable now; a later rejection stays handled.
+        observeRejection(pending);
+        throw error;
+      }
+      value = await pending;
+    }
+    // Every build yields once more before it stores, an async one after its
+    // await too, so a level's builds store in the order rc.0 gave them: a
+    // sync build ahead of an async sibling that settled at once. Construct
+    // hooks and disposal follow that order.
+    await 0;
+    resumed = tracer.now();
+    // Only an options provider carries a schema. The check skips the
+    // validation's microtask for every other provider.
+    if (record.schema !== undefined) {
+      try {
+        value = (await validateOptions(record, bp, value)).value;
+      } catch (error) {
+        // The rollback disposes the rejected output with what was built.
+        adopt(owner, record, value);
+        throw error;
+      }
+    }
+    // After validation, so the schema checks the factory's own output and
+    // the runtime stores what the construct hooks return.
+    value = applyConstruct(container, owner, bp, record, value);
+  } catch (error) {
     traceBuild(
-      'construct:await',
+      'construct:failed',
       container,
       bp,
       id,
       run,
       level,
-      true,
+      isAsync,
       start,
       returned,
+      resumed,
     );
-    value = await pending;
+    throw error;
   }
-  // Every build yields once more before it stores, an async one after its
-  // await too, so a level's builds store in the order rc.0 gave them: a sync
-  // build ahead of an async sibling that settled at once. Construct hooks
-  // and disposal follow that order.
-  await 0;
-  const resumed = tracer.now();
-  // Only an options provider carries a schema. The check skips the
-  // validation's microtask for every other provider.
-  if (record.schema !== undefined) {
-    try {
-      value = (await validateOptions(record, bp, value)).value;
-    } catch (error) {
-      // The rollback disposes the rejected output with what was built.
-      adopt(owner, record, value);
-      throw error;
-    }
-  }
-  // After validation, so the schema checks the factory's own output and
-  // the runtime stores what the construct hooks return.
-  value = applyConstruct(container, owner, bp, record, value);
   adopt(owner, record, value);
   container.slots.settle(id, value);
   // A root singleton becomes ready after its onInit, unless onInit is off.
@@ -517,24 +552,53 @@ export function buildOnDemand(record: ProviderRecord, ctx: Ctx): unknown {
   };
   const tracer = root.tracer;
   const start = tracer.now();
-  const built = construct(record, { bp: ctx.bp, container, owner });
-  const returned = tracer.now();
-  if (record.kind === 'factory' && isThenable(built)) throw lazyAsync(built);
-  const instance = applyConstruct(container, owner, ctx.bp, record, built);
+  let isAsync = false;
+  let returned: number | undefined;
+  let instance: unknown;
+  try {
+    const built = construct(record, { bp: ctx.bp, container, owner });
+    returned = tracer.now();
+    isAsync = record.kind === 'factory' && isThenable(built);
+    if (isAsync) throw lazyAsync(built);
+    instance = applyConstruct(container, owner, ctx.bp, record, built);
+  } catch (error) {
+    traceBuild(
+      'construct:failed',
+      container,
+      ctx.bp,
+      record.id,
+      run,
+      null,
+      isAsync,
+      start,
+      returned,
+    );
+    throw error;
+  }
   adopt(owner, record, instance);
-  // Reported before onInit, as a level build is (plan choice 4).
-  traceBuild(
-    'construct',
-    container,
-    ctx.bp,
-    record.id,
-    run,
-    null,
-    false,
-    start,
-    returned,
-    returned,
-  );
+  // Settled before the construct event and before onInit, so a get() from
+  // onInit returns the instance, as create settles a singleton first.
+  container.slots.settle(record.id, instance);
+  let traced: { readonly error: unknown } | undefined;
+  try {
+    // Reported before onInit, as a level build is (plan choice 4).
+    traceBuild(
+      'construct',
+      container,
+      ctx.bp,
+      record.id,
+      run,
+      null,
+      false,
+      start,
+      returned,
+      returned,
+    );
+  } catch (error) {
+    // The build finishes first, so the slot holds the one instance and the
+    // next get() returns it; the observer's throw then reaches the caller.
+    traced = { error };
+  }
   if (
     record.lifetime === 'singleton' &&
     root.initEnabled &&
@@ -542,9 +606,6 @@ export function buildOnDemand(record: ProviderRecord, ctx: Ctx): unknown {
     typeof (instance as { onInit?: unknown }).onInit === 'function' &&
     root.ownership.claimInit(instance)
   ) {
-    // Settled first, as create settles a singleton before its onInit, so a
-    // get() from onInit returns the instance.
-    container.slots.settle(record.id, instance);
     let result: unknown;
     try {
       result = (instance as { onInit(): unknown }).onInit();
@@ -563,9 +624,9 @@ export function buildOnDemand(record: ProviderRecord, ctx: Ctx): unknown {
     }
   }
   run?.touched.push(record.id);
-  container.slots.settle(record.id, instance);
   container.slots.markReady(record.id);
   if (record.kind === 'factory') root.asyncFlags.set(record.id, false);
+  if (traced) throw traced.error;
   return instance;
 }
 
