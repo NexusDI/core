@@ -225,6 +225,98 @@ describe('profile', () => {
     expect(isNexusError(error, 'NEXUS_DEVTOOLS_PROFILE_REUSED')).toBe(true);
   });
 
+  it('detects two creates that run at once, before either run closed', async () => {
+    const profiler = profile();
+    let release = (): void => undefined;
+    const gate = new Promise<void>((resolve) => {
+      release = resolve;
+    });
+    const Held = defineModule({
+      name: 'Held',
+      providers: [
+        provide(NAV_CHARTS, {
+          useFactory: async () => {
+            await gate;
+            return { sectors: 3 };
+          },
+        }),
+      ],
+    });
+    // Both runs are open here: only the second compile of a create tells.
+    const creates = [
+      Nexus.create(Held, { plugins: [profiler] }),
+      Nexus.create(Held, { plugins: [profiler] }),
+    ];
+    await sleep(1);
+    expect(
+      isNexusError(
+        thrown(() => profiler.report()),
+        'NEXUS_DEVTOOLS_PROFILE_REUSED',
+      ),
+    ).toBe(true);
+    release();
+    for (const ship of await Promise.all(creates))
+      await ship[Symbol.asyncDispose]();
+  });
+
+  it('drops an onInit from pending once it settled, while the run is still open', async () => {
+    const profiler = profile();
+    let release = (): void => undefined;
+    const gate = new Promise<void>((resolve) => {
+      release = resolve;
+    });
+    class Reactor {
+      async onInit() {}
+    }
+    class Computer {
+      async onInit() {
+        await gate;
+      }
+    }
+    const created = Nexus.create([Reactor, Computer], { plugins: [profiler] });
+    await sleep(10);
+    expect(
+      defined(profiler.report().runs[0]).pending.map((p) => [p.token, p.what]),
+    ).toEqual([['Computer', 'init']]);
+    release();
+    await (await created)[Symbol.asyncDispose]();
+  });
+
+  it('takes a run kind from its run event over the kind its builds implied', () => {
+    const profiler = profile({ scopes: true });
+    const observe = defined(profiler.observe);
+    // A scoped build of a scope the profiler has not seen implies createScope.
+    observe({
+      type: 'construct',
+      token: 'Scanner',
+      providerId: 'p3',
+      module: 'M',
+      lifetime: 'scoped',
+      scope: 's0',
+      async: false,
+      run: 4,
+      level: 0,
+      parent: null,
+      startMs: 1,
+      syncMs: 1,
+      awaitMs: null,
+      finishMs: 0,
+      durationMs: 1,
+    } as never);
+    observe({
+      type: 'run',
+      run: 4,
+      kind: 'extend',
+      scope: 's0',
+      ok: true,
+      startMs: 0,
+      durationMs: 3,
+    } as never);
+    expect(profiler.report().runs).toMatchObject([
+      { id: 4, kind: 'extend', scope: 's0' },
+    ]);
+  });
+
   it('detects reuse after a create that failed before it compiled', async () => {
     const profiler = profile();
     await rejected(Nexus.create(42 as never, { plugins: [profiler] }));
