@@ -103,6 +103,10 @@ const meta: MetaRecord = {
     title: 'NEXUS_DEVTOOLS_PROFILE_REUSED',
     display: 'hidden',
   },
+  NEXUS_DEVTOOLS_PROFILE_INVALID: {
+    title: 'NEXUS_DEVTOOLS_PROFILE_INVALID',
+    display: 'hidden',
+  },
   NEXUS_CONTRACT_VERSION: {
     title: 'NEXUS_CONTRACT_VERSION',
     display: 'hidden',
