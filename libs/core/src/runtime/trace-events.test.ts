@@ -244,3 +244,37 @@ describe('run', () => {
     ]);
   });
 });
+
+describe('compile failure with a throwing observer', () => {
+  it('throws the BlueprintError and drops the observer throw', async () => {
+    const watcher = {
+      name: 'test:watcher',
+      apiVersion: 1,
+      observe(event: TraceEvent) {
+        if (event.type === 'compile') throw new Error('telemetry down');
+      },
+    };
+    class Bridge {
+      static deps = [REACTOR] as const;
+      constructor(readonly reactor: IReactorCore) {}
+    }
+    const error = (await rejected(
+      Nexus.create([Bridge], { plugins: [watcher] }),
+    )) as { code: string };
+    expect(error.code).toBe('NEXUS_BLUEPRINT_INVALID');
+  });
+
+  it('still reports an observer throw on a compile that passed', async () => {
+    const watcher = {
+      name: 'test:watcher',
+      apiVersion: 1,
+      observe(event: TraceEvent) {
+        if (event.type === 'compile') throw new Error('telemetry down');
+      },
+    };
+    const error = (await rejected(
+      Nexus.create(Engineering, { plugins: [watcher] }),
+    )) as { code: string };
+    expect(error.code).toBe('NEXUS_PROVIDER_FAILED');
+  });
+});

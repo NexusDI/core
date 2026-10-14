@@ -1,7 +1,7 @@
 import type { Blueprint } from '../blueprint/blueprint.js';
 import { compile, type CompileInput } from '../blueprint/compile.js';
 import { BlueprintError, LoadError, ProviderError } from '../errors/index.js';
-import type { Tracer } from './trace.js';
+import { emitCollecting, type Tracer } from './trace.js';
 
 /** An observe hook's own throw while reporting `compile`. The compile itself passed. */
 function traceFailed(error: unknown, module: string): ProviderError {
@@ -20,11 +20,13 @@ function errorCount(error: unknown): number | undefined {
 
 /**
  * compile() plus the `compile` trace event, which a failure emits too, with
- * its error count. A throw from an observe hook surfaces as a
- * ProviderError whose `cause` is the hook's exception, the same way a
- * callback throw during construct or init surfaces through startBlueprint's
- * catch. This function runs before startBlueprint, so it wraps the throw
- * itself.
+ * its error count. On a compile that passed, a throw from an observe hook
+ * surfaces as a ProviderError whose `cause` is the hook's exception, the
+ * same way a callback throw during construct or init surfaces through
+ * startBlueprint's catch. This function runs before startBlueprint, so it
+ * wraps the throw itself. On a compile failure an observer's throw is
+ * dropped, since a BlueprintError or LoadError has no list to hold it, and
+ * the compile error reaches the caller.
  */
 export function compileTraced(
   tracer: Tracer,
@@ -38,22 +40,17 @@ export function compileTraced(
     blueprint = compile(input);
   } catch (error) {
     const errors = errorCount(error);
-    if (errors !== undefined) {
-      try {
-        tracer.emit(() => ({
-          type: 'compile',
-          phase,
-          run,
-          modules: 0,
-          providers: 0,
-          errors,
-          startMs: start,
-          durationMs: tracer.now() - start,
-        }));
-      } catch (traceError) {
-        throw traceFailed(traceError, '');
-      }
-    }
+    if (errors !== undefined)
+      emitCollecting(tracer, undefined, () => ({
+        type: 'compile',
+        phase,
+        run,
+        modules: 0,
+        providers: 0,
+        errors,
+        startMs: start,
+        durationMs: tracer.now() - start,
+      }));
     throw error;
   }
   try {
