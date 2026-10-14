@@ -27,20 +27,18 @@ Spec: `specs/2026-10-01-startup-profiler-design.md` on this branch. The section 
 
 ## Owner gates
 
-These are open owner items in spec section 17. A gated task waits for the owner's answer before an implementer starts it; the pull request does not merge until every item is answered.
+These were the open owner items in spec section 17. The owner approved every item on 2026-10-14, so every gate is open and every task may run in plan order.
 
-| Owner item | What it decides | Gates |
-| --- | --- | --- |
-| (a) 1 | core grows about +673 B gzip (+3.6%) | the merge only. Task 7 records the measured figure for the `## Size` section |
-| (b) 1 | `init` fires for `eager: false` singletons with `onInit` | Task 6, Steps 5 to 7 |
-| (b) 2 | a compile failure keeps its error and drops the observer's throw | Task 3 |
-| (c) 1 | P1 wording for a compiler-checked discriminant compare (`event.type`, `RunKind`, `compile.phase`) | the merge, and the final form of the `observe` dispatch in `profile.ts` (Task 8). Task 8 runs now with the planned `switch` |
-| (c) 2 | profiler times appear only in executed output | Tasks 20 and 21 |
-| (c) 3 | the canary installs Chrome stable and beta unpinned | Task 19 |
+| Owner item | What it decides | Gated | State |
+| --- | --- | --- | --- |
+| (a) 1 | core grows about +673 B gzip (+3.6%) | the merge only. Task 7 records the measured figure for the `## Size` section | open: approved 2026-10-14 |
+| (b) 1 | `init` fires for `eager: false` singletons with `onInit` | Task 6, Steps 5 to 7 | open: approved 2026-10-14 |
+| (b) 2 | a compile failure keeps its error and drops the observer's throw | Task 3 | open: approved 2026-10-14 |
+| (c) 1 | P1 wording for a compiler-checked discriminant compare (`event.type`, `RunKind`, `compile.phase`) | the merge, and the final form of the `observe` dispatch in `profile.ts` (Task 8), which keeps the planned `switch` | open: approved 2026-10-14 |
+| (c) 2 | profiler times appear only in executed output | Tasks 20 and 21 | open: approved 2026-10-14 |
+| (c) 3 | the canary installs Chrome stable and beta unpinned | Task 19 | open: approved 2026-10-14 |
 
-Run now, before the owner answers: Tasks 1, 2, 4, 5, 6 (Steps 1 to 4 and 8; Step 8's commit leaves out the on-demand `init` until (b) 1 is answered), 7 to 18, and 22. If the owner rejects (c) 1, a fix round replaces the `switch` in `profile.ts` with the owner's form; no other file changes, since ruling 5 below removed every edge-kind and lifetime compare from devtools.
-
-Wait for the owner: Task 3 ((b) 2), Task 6 Steps 5 to 7 ((b) 1), Task 19 ((c) 3), Tasks 20 and 21 ((c) 2). Task 23 runs last, after every answer.
+Task 6 Step 8 commits the on-demand `init` with the rest of the task. Task 23 runs last.
 
 ## Tech lead rulings (2026-10-14)
 
