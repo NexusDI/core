@@ -1,3 +1,4 @@
+import { isInline, ordersBuild } from './build-order.js';
 import type {
   ModuleDefinition,
   ProviderEntry,
@@ -78,12 +79,20 @@ export interface ProviderView {
   readonly implementation: Class | null;
   /** The plugin whose compile.provider hook rewrote this provider, or null. */
   readonly rewrittenBy: string | null;
+  /**
+   * True when the provider has no build level of its own: a transient, which each dependent
+   * builds inside its own build, or an alias, which resolves to its target. Core counts an
+   * inline provider's ordering edges as its dependents' edges.
+   */
+  readonly inline: boolean;
 }
 
 export interface EdgeView {
   readonly from: string;
   readonly to: string;
   readonly kind: 'required' | 'optional' | 'lazy' | 'all' | 'alias';
+  /** True when core builds the target before the dependent: every kind but lazy today. Cycles count these edges only. */
+  readonly ordersBuild: boolean;
   /** The token the dependent named (an alias: its target), before a tokenKey hook keyed it. `canonical(written)` is the target provider's `token`. */
   readonly written: AnyToken;
 }
@@ -146,6 +155,7 @@ export function providerView(
     eager: record.eager,
     implementation: record.kind === 'class' ? (record.useClass ?? null) : null,
     rewrittenBy,
+    inline: isInline(record),
   });
 }
 
@@ -182,6 +192,7 @@ export function buildView(
         from: e.from,
         to: e.to,
         kind: e.kind,
+        ordersBuild: ordersBuild(e.kind),
         written: e.written,
       }),
     ),

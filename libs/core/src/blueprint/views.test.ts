@@ -2,6 +2,7 @@ import { describe, expect, it } from 'vitest';
 
 import { defineModule } from '../definitions/define-module.js';
 import type { AnyToken } from '../definitions/guards.js';
+import { lazy } from '../definitions/modifiers.js';
 import { provide } from '../definitions/provide.js';
 import { Token } from '../definitions/token.js';
 import { compile } from './compile.js';
@@ -56,5 +57,54 @@ describe('buildView', () => {
       bp.visibility.get('m0')?.get(NAV),
     );
     expect(buildView(parts, (token) => token).visible('m0', copy)).toEqual([]);
+  });
+});
+
+describe('build order on the view', () => {
+  it('marks the edges that order a build and the providers built inline', () => {
+    interface IReactorCore {
+      readonly output: number;
+    }
+    const REACTOR = new Token<IReactorCore>('ReactorCore');
+    const CORE = new Token<IReactorCore>('Core');
+    const PROBE = new Token<object>('Probe');
+    class FusionReactor implements IReactorCore {
+      readonly output = 1.21;
+    }
+    class Console {
+      static deps = [CORE, PROBE, lazy(REACTOR)] as const;
+      constructor(
+        readonly core: IReactorCore,
+        readonly probe: object,
+        readonly reactor: () => IReactorCore,
+      ) {}
+    }
+    const view = viewOfBlueprint(
+      compile({
+        root: defineModule({
+          name: 'Engineering',
+          providers: [
+            provide(REACTOR, { useClass: FusionReactor }),
+            provide(CORE, { useExisting: REACTOR }),
+            provide(PROBE, { lifetime: 'transient', useFactory: () => ({}) }),
+            Console,
+          ],
+        }),
+      }),
+      sameToken,
+    );
+    const name = new Map(view.providers.map((p) => [p.id, p.name]));
+    expect(view.providers.filter((p) => p.inline).map((p) => p.name)).toEqual([
+      'Core',
+      'Probe',
+    ]);
+    expect(
+      view.edges
+        .filter((e) => !e.ordersBuild)
+        .map((e) => [name.get(e.from), name.get(e.to), e.kind]),
+    ).toEqual([['Console', 'ReactorCore', 'lazy']]);
+    expect(view.edges.every((e) => e.ordersBuild === (e.kind !== 'lazy'))).toBe(
+      true,
+    );
   });
 });
