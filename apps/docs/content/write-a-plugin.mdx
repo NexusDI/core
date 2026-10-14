@@ -96,7 +96,7 @@ By augmenting the `TraceEventByType` interface, you can add type-safe events tha
 
 **Try it:**
 
-1. Run `npm install @nexusdi/devtools@next`, save the region as `armed.ts` and run `npx tsx armed.ts`. It prints `[ 'compile', 'construct', 'acme-recorder/armed' ]`.
+1. Run `npm install @nexusdi/devtools@next`, save the region as `armed.ts` and run `npx tsx armed.ts`. It prints `[ 'compile', 'construct', 'acme-recorder/armed', 'run' ]`.
 2. Delete the `declare module '@nexusdi/core'` block. `npx tsc --noEmit` flags the `context.emit` line with `Type '{ type: string; providers: number; }' is not assignable to type 'never'.`, because no `TraceEventByType` key matches. `npx tsx armed.ts` still prints the same three types.
 3. Put the block back and the error goes away.
 

@@ -77,6 +77,8 @@ export interface RootState {
   readonly scopes: Set<ScopeState>;
   /** The number the next scope id uses. */
   nextScope: number;
+  /** The id the next load, createScope or extend() takes. create is run 0. */
+  nextRun: number;
 }
 
 /** A child of the root. Scopes do not nest in 0.4. */
@@ -154,7 +156,13 @@ export interface Owner {
  * factory, a scoped class) joins `owner` and `touched`, so a failed run
  * disposes and forgets it with the rest of its builds.
  */
-export interface Run {
+/** A run's id, and the observer throws its failure path collected (spec 3.5). */
+export interface RunTrace {
+  readonly id: number;
+  errors: unknown[] | undefined;
+}
+
+export interface Run extends RunTrace {
   /** Whether the run's blueprint added this provider id. */
   readonly isNew: (id: string) => boolean;
   /** What the run built, in creation order, until it commits. */
@@ -213,6 +221,7 @@ export function createRootState(init: RootInit): RootState {
     abortErrors: [],
     scopes: new Set(),
     nextScope: 0,
+    nextRun: 1,
   };
   // Data properties, set once the object exists. get() reads
   // container.root on every lookup, and a getter there is a call per get.

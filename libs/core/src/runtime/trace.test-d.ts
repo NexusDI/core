@@ -1,7 +1,7 @@
 import { describe, expectTypeOf, it } from 'vitest';
 
 import '../../test-support/third-party-trace.js';
-import type { Lifetime, PluginContext, TraceEvent } from '../index.js';
+import type { Lifetime, PluginContext, RunKind, TraceEvent } from '../index.js';
 
 // TraceEvent as 0.4.0-rc.0 published it. Later releases add types and fields to it.
 type Rc0TraceEvent =
@@ -102,6 +102,16 @@ describe('TraceEvent', () => {
       TraceEvent<'scope:dispose'>['startMs']
     >().toEqualTypeOf<number>();
     expectTypeOf<TraceEvent<'dispose'>['startMs']>().toEqualTypeOf<number>();
+  });
+});
+
+describe('RunKind', () => {
+  it('is exported with the four kinds', () => {
+    expectTypeOf<RunKind>().toEqualTypeOf<
+      'create' | 'load' | 'createScope' | 'extend'
+    >();
+    expectTypeOf<TraceEvent<'run'>['kind']>().toEqualTypeOf<RunKind>();
+    expectTypeOf<TraceEvent<'compile'>['run']>().toEqualTypeOf<number | null>();
   });
 });
 

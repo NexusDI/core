@@ -176,7 +176,7 @@ await using ship = await Nexus.create(
   }),
   { plugins: [trace((event) => events.push(event)), flightRecorder] },
 );
-const types = events.map((event) => event.type); // -> ['compile', 'construct', 'acme-recorder/armed']
+const types = events.map((event) => event.type); // -> ['compile', 'construct', 'acme-recorder/armed', 'run']
 console.log(types);
 ```
 

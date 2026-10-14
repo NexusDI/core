@@ -39,7 +39,7 @@ await using ship = await Nexus.create(
   { plugins: [devtools(), trace((event) => events.push(event))] },
 );
 graph(ship).edges; // -> [{ from: 'p1', to: 'p0', kind: 'required' }]
-events.map((event) => event.type); // -> ['compile', 'construct', 'construct']
+events.map((event) => event.type); // -> ['compile', 'construct', 'construct', 'run']
 ```
 
 <!-- #endregion graph -->

@@ -47,6 +47,7 @@ describe('trace', () => {
     );
     expect(events).toMatchObject([
       { type: 'compile', phase: 'create', errors: 2 },
+      { type: 'run', kind: 'create', ok: false },
     ]);
   });
 
@@ -250,7 +251,9 @@ describe('trace', () => {
       'compile',
       'construct',
       'init',
+      'run',
       'scope:create',
+      'run',
       'construct',
       'dispose:instance',
       'scope:dispose',
