@@ -164,7 +164,11 @@ export function statusOf(error: unknown): 500 | 503 | undefined {
   return undefined;
 }
 
-/** Logs once through `log` and returns a NexusHttpError for a mapped error; rethrows anything else unchanged. */
+/**
+ * Logs once through `log` and returns a NexusHttpError for a mapped error;
+ * rethrows anything else unchanged. A ContainerBuildError logs with phase
+ * 'build' at every step, because the build is what failed.
+ */
 export function toHttpError(
   error: unknown,
   log: NexusLog,
@@ -173,7 +177,8 @@ export function toHttpError(
 ): NexusHttpError {
   const status = statusOf(error);
   if (status === undefined) throw error;
-  log(error, { adapter, phase, status });
+  const at = error instanceof ContainerBuildError ? 'build' : phase;
+  log(error, { adapter, phase: at, status });
   return new NexusHttpError(status, { cause: error });
 }
 
@@ -194,6 +199,22 @@ export function defaultLog(error: unknown, context: LogContext): void {
   else write(prefix, error);
 }
 
+/**
+ * Wraps the `log` option so a throw changes neither the response nor
+ * disposal. The response may already be sent, and a throw from a close
+ * listener becomes an unhandled rejection, so the guard writes both errors
+ * with console.error and returns.
+ */
+export function guardLog(log: NexusLog): NexusLog {
+  return (error, context) => {
+    try {
+      log(error, context);
+    } catch (failure) {
+      console.error(`[${context.adapter}] log threw:`, failure, error);
+    }
+  };
+}
+
 /** One log call per inner error of a BlueprintError, one call for anything else. */
 export function logEach(
   error: unknown,
@@ -203,6 +224,23 @@ export function logEach(
 ): void {
   const errors = error instanceof BlueprintError ? error.errors : [error];
   for (const inner of errors) log(inner, { adapter, phase });
+}
+
+/**
+ * What a handler passes on when validator() fails on a request. A 500 logs
+ * one line per failing entry through logEach and becomes a NexusHttpError;
+ * a 503 goes through toHttpError; an unmapped error comes back unchanged.
+ */
+export function validateFailure(
+  error: unknown,
+  log: NexusLog,
+  adapter: string,
+): unknown {
+  const status = statusOf(error);
+  if (status === undefined) return error;
+  if (status === 503) return toHttpError(error, log, adapter, 'validate');
+  logEach(error, log, adapter, 'validate');
+  return new NexusHttpError(500, { cause: error });
 }
 
 /**

@@ -378,7 +378,9 @@ type NexusLog = (
 `error` is `unknown` because a build rejection and a disposal error (a user disposer's
 error, or a `SuppressedError` chain) need not be a `NexusError`. The default writes
 `console.error(err.code, { ...err }, err.message)` for a `NexusError` and
-`console.error(context.phase, error)` for anything else.
+`console.error(context.phase, error)` for anything else. A `log` that throws changes neither the response nor
+disposal: the adapter writes the original error and the log's error with
+`console.error`.
 
 The export is named `nexus` in every package, so the guides read the same across
 frameworks. `@nexusdi/vitest` differs because it has no request: it exports

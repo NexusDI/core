@@ -86,15 +86,23 @@ export function existingScope(scope: Scope): ClosableRequestScope;
 
 /** 503 for ContainerBuildError and NEXUS_DISPOSED, 500 for any other NexusError, undefined for anything else. */
 export function statusOf(error: unknown): 500 | 503 | undefined;
-/** Logs once through `log` and returns a NexusHttpError for a mapped error; rethrows anything else unchanged. */
+/** Logs once through `log` and returns a NexusHttpError for a mapped error; rethrows anything else unchanged. A ContainerBuildError logs with phase 'build'. */
 export function toHttpError(
   error: unknown,
   log: NexusLog,
   adapter: string,
   phase: LogPhase,
 ): NexusHttpError;
-/** The default log: code, own enumerable fields and message for a NexusError; phase and error otherwise. */
+/** A validator() failure on a request: a 500 logs each inner error through logEach and returns the NexusHttpError; a 503 goes through toHttpError; an unmapped error comes back unchanged. */
+export function validateFailure(
+  error: unknown,
+  log: NexusLog,
+  adapter: string,
+): unknown;
+/** The default log: code, own enumerable fields and message for a NexusError; phase and error otherwise. A 503 that is not a ContainerBuildError writes console.warn, everything else console.error. */
 export function defaultLog(error: unknown, context: LogContext): void;
+/** Calls log in a try; on a throw writes `[adapter] log threw:`, the log's error and the original error with console.error, and returns. */
+export function guardLog(log: NexusLog): NexusLog;
 
 /** Calls fn at most once; later calls return the first call's promise. */
 export function once(fn: () => Promise<void>): () => Promise<void>;
@@ -121,6 +129,8 @@ export function validator(
 
 export type { DepsMap, ResolvedDeps };
 ```
+
+The committed `libs/express/src/internal/request-scope.ts` is the source of every copy. Task 1's Step 5 block below predates the review fixes (`validateFailure`, `guardLog`, the `'build'` phase in `toHttpError`, the warn level in `defaultLog` and the two `no-empty-object-type` disables), so later tasks copy the committed file, never that block.
 
 ```ts
 // libs/hono/src/internal/dispose-with-body.ts (copied to react-router)

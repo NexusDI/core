@@ -26,6 +26,10 @@ export default [
             '{projectRoot}/test-support/**',
             '{projectRoot}/src/**/*.test-d.ts',
           ],
+          // The declarations import from 'express', whose types come from
+          // @types/express. The rule matches import specifiers to package
+          // names, so it never sees the types package as used.
+          ignoredDependencies: ['@types/express'],
         },
       ],
     },

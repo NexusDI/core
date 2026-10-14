@@ -17,6 +17,7 @@ import {
   containerOf,
   defaultLog,
   existingScope,
+  guardLog,
   loader,
   logEach,
   NexusHttpError,
@@ -25,6 +26,7 @@ import {
   RequestFinishedError,
   statusOf,
   toHttpError,
+  validateFailure,
   validateNow,
   validator,
   type LogContext,
@@ -183,6 +185,18 @@ describe('statusOf and toHttpError', () => {
     expect(log).not.toHaveBeenCalled();
   });
 
+  it('logs a failed build with phase build, whatever the phase it was given', () => {
+    const log = vi.fn();
+    const error = new ContainerBuildError({ cause: new Error('no reactor') });
+    const http = toHttpError(error, log, '@nexusdi/test', 'scope');
+    expect(http.status).toBe(503);
+    expect(log).toHaveBeenCalledExactlyOnceWith(error, {
+      adapter: '@nexusdi/test',
+      phase: 'build',
+      status: 503,
+    } satisfies LogContext);
+  });
+
   it('says Service Unavailable for 503', () => {
     expect(new NexusHttpError(503, { cause: undefined }).message).toBe(
       'Service Unavailable',
@@ -261,6 +275,84 @@ describe('defaultLog and logEach', () => {
     ];
     logEach(new BlueprintError(inner), log, '@nexusdi/test', 'validate');
     expect(log.mock.calls.map(([error]) => error)).toEqual(inner);
+  });
+});
+
+describe('guardLog', () => {
+  it('passes each call through to the log', () => {
+    const log = vi.fn();
+    const error = new Error('disposer failed');
+    const context = { adapter: '@nexusdi/test', phase: 'dispose' } as const;
+    guardLog(log)(error, context);
+    expect(log).toHaveBeenCalledExactlyOnceWith(error, context);
+  });
+
+  it("writes the original error and the log's error when the log throws", () => {
+    const write = vi.spyOn(console, 'error').mockImplementation(() => {});
+    const failure = new Error('log sink offline');
+    const error = new Error('disposer failed');
+    const guarded = guardLog(() => {
+      throw failure;
+    });
+    expect(() =>
+      guarded(error, { adapter: '@nexusdi/test', phase: 'dispose' }),
+    ).not.toThrow();
+    expect(write).toHaveBeenCalledExactlyOnceWith(
+      '[@nexusdi/test] log threw:',
+      failure,
+      error,
+    );
+    write.mockRestore();
+  });
+});
+
+describe('validateFailure', () => {
+  const missing = (token: string) =>
+    new MissingProviderError({ token, module: 'root', path: [] } as never);
+
+  it('logs each inner error once with phase validate and returns a 500', () => {
+    const log = vi.fn();
+    const inner = [missing('NavCharts'), missing('FlightLog')];
+    const blueprint = new BlueprintError(inner);
+    const http = validateFailure(blueprint, log, '@nexusdi/test');
+    expect(http).toBeInstanceOf(NexusHttpError);
+    expect((http as NexusHttpError).status).toBe(500);
+    expect((http as NexusHttpError).cause).toBe(blueprint);
+    expect(log.mock.calls).toEqual([
+      [inner[0], { adapter: '@nexusdi/test', phase: 'validate' }],
+      [inner[1], { adapter: '@nexusdi/test', phase: 'validate' }],
+    ]);
+  });
+
+  it('maps a failed build to 503 with phase build', () => {
+    const log = vi.fn();
+    const error = new ContainerBuildError({ cause: new Error('no reactor') });
+    const http = validateFailure(error, log, '@nexusdi/test');
+    expect((http as NexusHttpError).status).toBe(503);
+    expect(log).toHaveBeenCalledExactlyOnceWith(error, {
+      adapter: '@nexusdi/test',
+      phase: 'build',
+      status: 503,
+    });
+  });
+
+  it('maps a disposed container to 503 with phase validate', () => {
+    const log = vi.fn();
+    const error = new DisposedError({ target: 'container' });
+    const http = validateFailure(error, log, '@nexusdi/test');
+    expect((http as NexusHttpError).status).toBe(503);
+    expect(log).toHaveBeenCalledExactlyOnceWith(error, {
+      adapter: '@nexusdi/test',
+      phase: 'validate',
+      status: 503,
+    });
+  });
+
+  it('returns an error it does not map unchanged, without logging', () => {
+    const log = vi.fn();
+    const plain = new Error('handler bug');
+    expect(validateFailure(plain, log, '@nexusdi/test')).toBe(plain);
+    expect(log).not.toHaveBeenCalled();
   });
 });
 

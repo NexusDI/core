@@ -61,6 +61,12 @@ export interface ReadmeInput {
   readonly version: string;
   /** The package's `@nexusdi/*` peers, unscoped, in package.json order. */
   readonly peers: readonly string[];
+  /**
+   * The package's required peers outside `@nexusdi/*`, such as a framework
+   * an adapter wraps, in package.json order. A user installs them with the
+   * package, so the install line names them after the `@nexusdi/*` ones.
+   */
+  readonly externalPeers?: readonly string[];
   /** The package's `docs/*.md` region files. */
   readonly docs: readonly { readonly file: string; readonly source: string }[];
   /** core's README, whose doctests the root README copies. Needed for `root`. */
@@ -294,6 +300,7 @@ function installLineFor(
   name: Package | 'root',
   version: string,
   peers: readonly string[],
+  externalPeers: readonly string[],
 ): string {
   const pkg = packageOf(name);
   const tag = isPrerelease(version) ? '@next' : '';
@@ -306,6 +313,7 @@ function installLineFor(
     'npm install',
     ...(SPECS[pkg].dev ? ['-D'] : []),
     ...[pkg, ...extras].map((p) => `@nexusdi/${p}${tag}`),
+    ...externalPeers,
   ].join(' ');
 }
 
@@ -532,7 +540,12 @@ function checkInstall(
   const block = parsed.fences.find(
     (f) => f.start >= range.from && f.start < range.to && f.info === 'bash',
   );
-  const expected = installLineFor(input.name, input.version, input.peers);
+  const expected = installLineFor(
+    input.name,
+    input.version,
+    input.peers,
+    input.externalPeers ?? [],
+  );
   const actual = block?.body.filter((l) => l.trim() !== '') ?? [];
   if (actual.length !== 1 || actual[0] !== expected)
     faults.push({
