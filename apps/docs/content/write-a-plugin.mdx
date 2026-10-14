@@ -16,7 +16,7 @@ To ensure that the ecosystem remains stable and maintainable, all NexusDI plugin
 
 **Key Rules for Plugin Authors:**
 
-1. **Own your vocabulary:** Never rely on internal strings or hidden fields of other packages. A package reads another package's codes, event types and ids only through what that package exports. It never lists them in a table, a switch, a regex or a string compare.
+1. **Own your vocabulary:** Never rely on internal strings or hidden fields of other packages. A package reads another package's codes, event types and ids only through what that package exports, and never copies them into a table or a regex. You may compare `event.type` with `===` or a `switch` when the compiler checks it against the union the owner exports, such as `TraceEvent` from `@nexusdi/core`. Give the `switch` a `default` branch, since other packages add event types of their own.
 2. **Open Types:** Use augmentable interfaces (like `NexusErrorByCode`) so other plugins can add their own types. A set that other packages extend is open in its type. `NexusErrorByCode` and `TraceEventByType` are interfaces a package augments, text packs and graph annotators are arguments the application passes, and code that branches on such a set handles a member it does not know.
 3. **Public Hooks:** Only integrate via official plugin hooks or the `PluginContext`. The public, versioned contribution points are a plugin hook, a `PluginContext` member, a view field and an options argument.
 4. **No Logic Duplication:** If two plugins need the same logic, the owner of that logic should export a helper.

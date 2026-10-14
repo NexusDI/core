@@ -27,16 +27,17 @@ Spec: `specs/2026-10-01-startup-profiler-design.md` on this branch. The section 
 
 ## Owner gates
 
-These were the open owner items in spec section 17. The owner approved every item on 2026-10-14, so every gate is open and every task may run in plan order.
+These were the open owner items in spec section 17. The owner approved every item on 2026-10-14, so every task may run in plan order. The event-type check of the last row still gates the merge.
 
 | Owner item | What it decides | Gated | State |
 | --- | --- | --- | --- |
-| (a) 1 | core grows about +673 B gzip (+3.6%) | the merge only. Task 7 records the measured figure for the `## Size` section | open: approved 2026-10-14 |
-| (b) 1 | `init` fires for `eager: false` singletons with `onInit` | Task 6, Steps 5 to 7 | open: approved 2026-10-14 |
-| (b) 2 | a compile failure keeps its error and drops the observer's throw | Task 3 | open: approved 2026-10-14 |
-| (c) 1 | P1 wording for a compiler-checked discriminant compare (`event.type`, `RunKind`, `compile.phase`) | the merge, and the final form of the `observe` dispatch in `profile.ts` (Task 8), which keeps the planned `switch` | open: approved 2026-10-14 |
-| (c) 2 | profiler times appear only in executed output | Tasks 20 and 21 | open: approved 2026-10-14 |
-| (c) 3 | the canary installs Chrome stable and beta unpinned | Task 19 | open: approved 2026-10-14 |
+| (a) 1 | core grows about +673 B gzip (+3.6%) | the merge only. Task 7 records the measured figure for the `## Size` section | approved 2026-10-14 |
+| (b) 1 | `init` fires for `eager: false` singletons with `onInit` | Task 6, Steps 5 to 7 | approved 2026-10-14 |
+| (b) 2 | a compile failure keeps its error and drops the observer's throw | Task 3 | approved 2026-10-14 |
+| (c) 1 | P1 wording for a compiler-checked compare on a trace event's `type` or fields (`event.type`, `RunKind`, `compile.phase`); error codes keep their allowance rule | the merge, and the final form of the `observe` dispatch in `profile.ts` (Task 8), which keeps the planned `switch` | approved 2026-10-14 |
+| (c) 2 | profiler times appear only in executed output | Tasks 20 and 21 | approved 2026-10-14 |
+| (c) 3 | the canary installs Chrome stable and beta unpinned | Task 19 | approved 2026-10-14 |
+| event-type owner-vocabulary check (separate PR to release/0.4) | the P1 repo-check reads trace event types | gates the merge | pending |
 
 Task 6 Step 8 commits the on-demand `init` with the rest of the task. Task 23 runs last.
 
