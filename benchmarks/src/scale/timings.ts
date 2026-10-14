@@ -8,7 +8,7 @@
  *   node src/scale/timings.ts --quick               3 warm-up, 10 measured, 200 steady; tmp/
  *   node src/scale/timings.ts --only=a,b            those libraries and NexusDI; tmp/
  *   node src/scale/timings.ts --sizes=50 --shapes=mixed
- *   node src/scale/timings.ts --core-ref=<ref>      the ref release-core.ts checked out
+ *   node src/scale/timings.ts --core-ref=<ref>      the ref in coreRef; default the one release-core.ts wrote to tmp/core-ref, else workspace
  *   node src/scale/timings.ts --seed=n
  *
  * Every cell is rendered, compiled, bundled and verified first, and the run
@@ -43,6 +43,7 @@ import { tslibVersion } from '../consumer.ts';
 import { ROOT } from '../consumer.ts';
 import { BENCHMARKS } from '../libraries.ts';
 import { versionsOf } from '../matrix.ts';
+import { readCoreRef } from '../release-core.ts';
 import {
   validate,
   type Design,
@@ -474,7 +475,10 @@ if (import.meta.main) {
     runner: runnerInfo(),
     seed,
     graphSeed: GRAPH_SEED,
-    coreRef: { ref: argValue('core-ref') ?? 'workspace', tree: coreTree() },
+    coreRef: {
+      ref: argValue('core-ref') ?? readCoreRef() ?? 'workspace',
+      tree: coreTree(),
+    },
     graphs: graphs.map(({ shape, size, hash }) => ({ shape, size, hash })),
     design: {
       'fresh-process': Object.fromEntries(

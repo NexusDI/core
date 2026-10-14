@@ -8,13 +8,33 @@
  *   node src/release-core.ts [--ref <tag>]
  */
 import { execFileSync } from 'node:child_process';
+import { mkdirSync, readFileSync, writeFileSync } from 'node:fs';
+import { dirname, join } from 'node:path';
 
 import { compareVersions } from './competitor-releases.ts';
 import { ROOT } from './consumer.ts';
+import { BENCHMARKS } from './libraries.ts';
 
 const PREFIX = '@nexusdi/core@';
 /** The first core version whose API the fixtures are written against. */
 const FLOOR = '0.4.0-0';
+
+/** Where a run leaves the ref it checked out, for the scale suite's coreRef. */
+export const CORE_REF_FILE = join(BENCHMARKS, 'tmp', 'core-ref');
+
+export function writeCoreRef(ref: string, file = CORE_REF_FILE): void {
+  mkdirSync(dirname(file), { recursive: true });
+  writeFileSync(file, `${ref}\n`);
+}
+
+/** The ref release-core.ts last restored, or undefined when it has not run. */
+export function readCoreRef(file = CORE_REF_FILE): string | undefined {
+  try {
+    return readFileSync(file, 'utf8').trim() || undefined;
+  } catch {
+    return undefined;
+  }
+}
 
 const git = (...args: string[]) =>
   execFileSync('git', args, { cwd: ROOT, encoding: 'utf8' }).trim();
@@ -39,6 +59,7 @@ if (import.meta.main) {
       ? pushed
       : newestTag(git('tag', '--list', `${PREFIX}*`).split('\n'));
   if (tag === null) {
+    writeCoreRef('workspace');
     console.log(
       `No ${PREFIX} tag at or above ${FLOOR}: the run uses the workspace's libs/.`,
     );
@@ -47,6 +68,7 @@ if (import.meta.main) {
     // compiles beside the released one. It leaves the index alone, so the
     // results commit never picks up libs/.
     git('restore', '--source', tag, '--worktree', '--', 'libs/');
+    writeCoreRef(tag);
     console.log(`libs/ checked out at ${tag}.`);
   }
 }

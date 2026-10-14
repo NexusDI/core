@@ -1,6 +1,27 @@
-import { describe, expect, it } from 'vitest';
+import { mkdtempSync, rmSync } from 'node:fs';
+import { tmpdir } from 'node:os';
+import { join } from 'node:path';
+import { afterAll, describe, expect, it } from 'vitest';
 
-import { newestTag } from './release-core.ts';
+import { newestTag, readCoreRef, writeCoreRef } from './release-core.ts';
+
+describe('the core-ref file', () => {
+  const dir = mkdtempSync(join(tmpdir(), 'core-ref-'));
+  afterAll(() => rmSync(dir, { recursive: true, force: true }));
+  const file = join(dir, 'nested', 'core-ref');
+
+  it('is absent before release-core.ts has run', () => {
+    expect(readCoreRef(file)).toBeUndefined();
+  });
+  it('round-trips the tag release-core.ts restored', () => {
+    writeCoreRef('@nexusdi/core@0.4.0-rc.1', file);
+    expect(readCoreRef(file)).toBe('@nexusdi/core@0.4.0-rc.1');
+  });
+  it('round-trips workspace and replaces the earlier ref', () => {
+    writeCoreRef('workspace', file);
+    expect(readCoreRef(file)).toBe('workspace');
+  });
+});
 
 describe('newestTag', () => {
   it('ignores releases before the 0.4 API', () => {
