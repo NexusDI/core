@@ -29,15 +29,15 @@ Spec: `specs/2026-10-01-startup-profiler-design.md` on this branch. The section 
 
 These were the open owner items in spec section 17. The owner approved every item on 2026-10-14, so every task may run in plan order. The event-type check of the last row still gates the merge.
 
-| Owner item | What it decides | Gated | State |
-| --- | --- | --- | --- |
-| (a) 1 | core grows about +673 B gzip (+3.6%) | the merge only. Task 7 records the measured figure for the `## Size` section | approved 2026-10-14 |
-| (b) 1 | `init` fires for `eager: false` singletons with `onInit` | Task 6, Steps 5 to 7 | approved 2026-10-14 |
-| (b) 2 | a compile failure keeps its error and drops the observer's throw | Task 3 | approved 2026-10-14 |
-| (c) 1 | P1 wording for a compiler-checked compare on a trace event's `type` or fields (`event.type`, `RunKind`, `compile.phase`); error codes keep their allowance rule | the merge, and the final form of the `observe` dispatch in `profile.ts` (Task 8), which keeps the planned `switch` | approved 2026-10-14 |
-| (c) 2 | profiler times appear only in executed output | Tasks 20 and 21 | approved 2026-10-14 |
-| (c) 3 | the canary installs Chrome stable and beta unpinned | Task 19 | approved 2026-10-14 |
-| event-type owner-vocabulary check (separate PR to release/0.4) | the P1 repo-check reads trace event types | gates the merge | pending |
+| Owner item                                                     | What it decides                                                                                                                                                 | Gated                                                                                                              | State               |
+| -------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------ | ------------------- |
+| (a) 1                                                          | core grows about +673 B gzip (+3.6%)                                                                                                                            | the merge only. Task 7 records the measured figure for the `## Size` section                                       | approved 2026-10-14 |
+| (b) 1                                                          | `init` fires for `eager: false` singletons with `onInit`                                                                                                        | Task 6, Steps 5 to 7                                                                                               | approved 2026-10-14 |
+| (b) 2                                                          | a compile failure keeps its error and drops the observer's throw                                                                                                | Task 3                                                                                                             | approved 2026-10-14 |
+| (c) 1                                                          | P1 wording for a compiler-checked compare on a trace event's `type` or fields (`event.type`, `RunKind`, `compile.phase`); error codes keep their allowance rule | the merge, and the final form of the `observe` dispatch in `profile.ts` (Task 8), which keeps the planned `switch` | approved 2026-10-14 |
+| (c) 2                                                          | profiler times appear only in executed output                                                                                                                   | Tasks 20 and 21                                                                                                    | approved 2026-10-14 |
+| (c) 3                                                          | the canary installs Chrome stable and beta unpinned                                                                                                             | Task 19                                                                                                            | approved 2026-10-14 |
+| event-type owner-vocabulary check (separate PR to release/0.4) | the P1 repo-check reads trace event types                                                                                                                       | gates the merge                                                                                                    | pending             |
 
 Task 6 Step 8 commits the on-demand `init` with the rest of the task. Task 23 runs last.
 
@@ -130,6 +130,7 @@ apps/docs/content/{profiling,trace-events}.mdx, errors/NEXUS_DEVTOOLS_PROFILE_*.
 ```
 
 ---
+
 ## Part 1: core events (spec sections 3 to 5)
 
 Tasks 1 to 7 change `@nexusdi/core` only, apart from the event-sequence claims Task 2 updates across the repo. Each core task adds its tests to one new file, `libs/core/src/runtime/trace-events.test.ts`, which Task 1 creates with this header:
@@ -215,7 +216,13 @@ describe('startMs', () => {
         'durationMs' in e,
     );
     expect(timed.map((e) => e.type)).toEqual(
-      expect.arrayContaining(['compile', 'construct', 'scope:create', 'scope:dispose', 'dispose']),
+      expect.arrayContaining([
+        'compile',
+        'construct',
+        'scope:create',
+        'scope:dispose',
+        'dispose',
+      ]),
     );
     for (const e of timed) {
       expect(e.startMs, e.type).toBeGreaterThanOrEqual(before);
@@ -260,9 +267,15 @@ describe('TraceEvent', () => {
     expectTypeOf<TraceEvent<'compile'>['startMs']>().toEqualTypeOf<number>();
     expectTypeOf<TraceEvent<'construct'>['startMs']>().toEqualTypeOf<number>();
     expectTypeOf<TraceEvent<'init'>['startMs']>().toEqualTypeOf<number>();
-    expectTypeOf<TraceEvent<'scope:create'>['startMs']>().toEqualTypeOf<number>();
-    expectTypeOf<TraceEvent<'scope:extend'>['startMs']>().toEqualTypeOf<number>();
-    expectTypeOf<TraceEvent<'scope:dispose'>['startMs']>().toEqualTypeOf<number>();
+    expectTypeOf<
+      TraceEvent<'scope:create'>['startMs']
+    >().toEqualTypeOf<number>();
+    expectTypeOf<
+      TraceEvent<'scope:extend'>['startMs']
+    >().toEqualTypeOf<number>();
+    expectTypeOf<
+      TraceEvent<'scope:dispose'>['startMs']
+    >().toEqualTypeOf<number>();
     expectTypeOf<TraceEvent<'dispose'>['startMs']>().toEqualTypeOf<number>();
   });
 });
@@ -282,20 +295,20 @@ In `trace.ts`, add `startMs: number;` before `durationMs` in `compile`, `constru
 `build.ts`, `traceConstruct`:
 
 ```ts
-  tracer.emit(() => {
-    const end = tracer.now();
-    return {
-      type: 'construct',
-      token: record.name,
-      providerId: record.id,
-      module: moduleName(bp, record),
-      lifetime: record.lifetime,
-      scope: container.scopeId,
-      async: isAsync,
-      startMs: start ?? end,
-      durationMs: start === undefined ? 0 : end - start,
-    };
-  });
+tracer.emit(() => {
+  const end = tracer.now();
+  return {
+    type: 'construct',
+    token: record.name,
+    providerId: record.id,
+    module: moduleName(bp, record),
+    lifetime: record.lifetime,
+    scope: container.scopeId,
+    async: isAsync,
+    startMs: start ?? end,
+    durationMs: start === undefined ? 0 : end - start,
+  };
+});
 ```
 
 `init.ts`: add `startMs: start,`. `scope.ts`: add `startMs: start,` to `scope:create`, `scope:extend` and `scope:dispose`. `shutdown.ts`: add `startMs: start,` to `dispose`.
@@ -339,7 +352,9 @@ describe('run', () => {
   it('ends create with run 0 after every other event, and gives compile the id', async () => {
     const { events, plugin } = recordEvents();
     await using ship = await Nexus.create(Engineering, { plugins: [plugin] });
-    expect(only(events, 'compile')).toMatchObject([{ phase: 'create', run: 0 }]);
+    expect(only(events, 'compile')).toMatchObject([
+      { phase: 'create', run: 0 },
+    ]);
     expect(events.at(-1)).toMatchObject({
       type: 'run',
       run: 0,
@@ -372,7 +387,9 @@ describe('run', () => {
   it('gives a Nexus.check compile no run and emits no run event', () => {
     const { events, plugin } = recordEvents();
     Nexus.check(Engineering, { plugins: [plugin] });
-    expect(events).toMatchObject([{ type: 'compile', phase: 'check', run: null }]);
+    expect(events).toMatchObject([
+      { type: 'compile', phase: 'check', run: null },
+    ]);
   });
 
   it('ends a failed create with one run event after its rollback', async () => {
@@ -388,8 +405,12 @@ describe('run', () => {
     }
     await rejected(Nexus.create([Disposable, Broken], { plugins: [plugin] }));
     const types = events.map((e) => e.type);
-    expect(types.indexOf('dispose:instance')).toBeLessThan(types.indexOf('run'));
-    expect(only(events, 'run')).toMatchObject([{ run: 0, kind: 'create', ok: false }]);
+    expect(types.indexOf('dispose:instance')).toBeLessThan(
+      types.indexOf('run'),
+    );
+    expect(only(events, 'run')).toMatchObject([
+      { run: 0, kind: 'create', ok: false },
+    ]);
     expect(events.at(-1)?.type).toBe('run');
   });
 
@@ -417,10 +438,9 @@ describe('run', () => {
       constructor(readonly reactor: IReactorCore) {}
     }
     await rejected(
-      Nexus.create(
-        [provide(REACTOR, { useClass: FusionReactor }), Late],
-        { plugins: [plugin, holder] },
-      ),
+      Nexus.create([provide(REACTOR, { useClass: FusionReactor }), Late], {
+        plugins: [plugin, holder],
+      }),
     );
     expect(only(events, 'run')).toMatchObject([{ run: 0, ok: false }]);
   });
@@ -486,7 +506,9 @@ Add to `trace.test-d.ts`:
 ```ts
 describe('RunKind', () => {
   it('is exported with the four kinds', () => {
-    expectTypeOf<RunKind>().toEqualTypeOf<'create' | 'load' | 'createScope' | 'extend'>();
+    expectTypeOf<RunKind>().toEqualTypeOf<
+      'create' | 'load' | 'createScope' | 'extend'
+    >();
     expectTypeOf<TraceEvent<'run'>['kind']>().toEqualTypeOf<RunKind>();
     expectTypeOf<TraceEvent<'compile'>['run']>().toEqualTypeOf<number | null>();
   });
@@ -602,53 +624,75 @@ Update its TSDoc: "`close` emits the run's closing event; it runs after the disp
 `startup.ts`: `StartupPlan` gains the three fields from Interfaces. In `startBlueprint`:
 
 ```ts
-  const run: Run = {
-    id: plan.run,
-    errors: undefined,
-    isNew: plan.isNew,
-    owner: built,
-    touched,
-  };
-  root.run = run;
-  try {
-    // unchanged body
-  } catch (error) {
-    root.run = undefined;
-    for (const id of touched) root.asyncFlags.delete(id);
-    for (const value of registered) root.ownership.unregisterValue(value);
-    throw await rollBack(
-      root,
-      { touched, owned: built.owned, errors: run.errors },
-      plan.bp,
-      error,
-      () => (root.disposing ? root.abortErrors : undefined),
-      (errors) =>
-        emitRun(root.tracer, plan.run, plan.kind, null, plan.start, false, errors),
-    );
-  }
+const run: Run = {
+  id: plan.run,
+  errors: undefined,
+  isNew: plan.isNew,
+  owner: built,
+  touched,
+};
+root.run = run;
+try {
+  // unchanged body
+} catch (error) {
+  root.run = undefined;
+  for (const id of touched) root.asyncFlags.delete(id);
+  for (const value of registered) root.ownership.unregisterValue(value);
+  throw await rollBack(
+    root,
+    { touched, owned: built.owned, errors: run.errors },
+    plan.bp,
+    error,
+    () => (root.disposing ? root.abortErrors : undefined),
+    (errors) =>
+      emitRun(
+        root.tracer,
+        plan.run,
+        plan.kind,
+        null,
+        plan.start,
+        false,
+        errors,
+      ),
+  );
+}
 ```
 
 `nexus.ts`, `createContainer`, the body of the outer `try`:
 
 ```ts
-    const tracer = new Tracer(traceSinks(plugins));
-    const start = tracer.now();
-    let module: unknown;
-    let blueprint: Blueprint;
-    try {
-      module = rootModuleOf(root);
-      blueprint = compileTraced(tracer, { /* unchanged input */ }, 'create', 0);
-    } catch (error) {
-      // No list holds an observer's throw here (spec 3.5).
-      emitRun(tracer, 0, 'create', null, start, false);
-      throw error;
-    }
-    compiled = blueprint;
-    const state = createRootState({ blueprint, rootRef: module, tracer, initEnabled: plugins.onInit, plugins, canon, wrap });
-    await buildRoot(state, { bp: blueprint, isNew: () => true, run: 0, kind: 'create', start });
-    await runSetup(state, plugins, state.handle, start);
-    emitRun(tracer, 0, 'create', null, start, true);
-    return state.handle;
+const tracer = new Tracer(traceSinks(plugins));
+const start = tracer.now();
+let module: unknown;
+let blueprint: Blueprint;
+try {
+  module = rootModuleOf(root);
+  blueprint = compileTraced(tracer, {/* unchanged input */}, 'create', 0);
+} catch (error) {
+  // No list holds an observer's throw here (spec 3.5).
+  emitRun(tracer, 0, 'create', null, start, false);
+  throw error;
+}
+compiled = blueprint;
+const state = createRootState({
+  blueprint,
+  rootRef: module,
+  tracer,
+  initEnabled: plugins.onInit,
+  plugins,
+  canon,
+  wrap,
+});
+await buildRoot(state, {
+  bp: blueprint,
+  isNew: () => true,
+  run: 0,
+  kind: 'create',
+  start,
+});
+await runSetup(state, plugins, state.handle, start);
+emitRun(tracer, 0, 'create', null, start, true);
+return state.handle;
 ```
 
 `buildRoot(state, plan: StartupPlan)` passes `plan` to `startBlueprint`. A failure there already emitted the run in the rollback. `runSetup(state, plugins, ship, start)`, in its `catch`:
@@ -676,12 +720,21 @@ async function loadNow(root: RootState, module: unknown): Promise<void> {
   try {
     assertOpen(root);
     // definition, current, existing: unchanged
-    if (existing !== undefined && current.modules.get(current.root)?.imports.includes(existing)) {
+    if (
+      existing !== undefined &&
+      current.modules.get(current.root)?.imports.includes(existing)
+    ) {
       emitRun(tracer, id, 'load', null, start, true);
       return;
     }
-    const next = compileTraced(tracer, { /* unchanged */ }, 'load', id);
-    plan = { bp: next, isNew: (pid) => !current.providers.has(pid), run: id, kind: 'load', start };
+    const next = compileTraced(tracer, {/* unchanged */}, 'load', id);
+    plan = {
+      bp: next,
+      isNew: (pid) => !current.providers.has(pid),
+      run: id,
+      kind: 'load',
+      start,
+    };
   } catch (error) {
     emitRun(tracer, id, 'load', null, start, false);
     throw error;
@@ -842,9 +895,32 @@ export interface Built extends BuildSpan {
   readonly value: unknown;
   readonly isAsync: boolean;
 }
-export function buildInto(container: ContainerState, bp: Blueprint, id: string, owner: Owner, run: RunTrace, level: number): Promise<Built>;
-export function traceConstruct(container: ContainerState, bp: Blueprint, record: ProviderRecord, isAsync: boolean, span: BuildSpan | undefined, resumed: number): void;
-export function store(container: ContainerState, bp: Blueprint, record: ProviderRecord, instance: unknown, isAsync: boolean, ready: boolean, span: BuildSpan | undefined, resumed: number): void;
+export function buildInto(
+  container: ContainerState,
+  bp: Blueprint,
+  id: string,
+  owner: Owner,
+  run: RunTrace,
+  level: number,
+): Promise<Built>;
+export function traceConstruct(
+  container: ContainerState,
+  bp: Blueprint,
+  record: ProviderRecord,
+  isAsync: boolean,
+  span: BuildSpan | undefined,
+  resumed: number,
+): void;
+export function store(
+  container: ContainerState,
+  bp: Blueprint,
+  record: ProviderRecord,
+  instance: unknown,
+  isAsync: boolean,
+  ready: boolean,
+  span: BuildSpan | undefined,
+  resumed: number,
+): void;
 ```
 
 - [ ] Step 1: Write the failing tests
@@ -855,7 +931,9 @@ describe('construct spans', () => {
     const { events, plugin } = recordEvents();
     await using ship = await Nexus.create(Engineering, { plugins: [plugin] });
     const builds = only(events, 'construct');
-    expect(builds.map((b) => [b.token, b.run, b.level, b.parent, b.awaitMs])).toEqual([
+    expect(
+      builds.map((b) => [b.token, b.run, b.level, b.parent, b.awaitMs]),
+    ).toEqual([
       ['ReactorCore', 0, 0, null, null],
       ['ShipComputer', 0, 1, null, null],
     ]);
@@ -914,7 +992,10 @@ describe('construct spans', () => {
     const LOG = new Token<object>('Log');
     class Console {
       static deps = [Gauge, LOG] as const;
-      constructor(readonly gauge: Gauge, readonly log: object) {}
+      constructor(
+        readonly gauge: Gauge,
+        readonly log: object,
+      ) {}
     }
     await using ship = await Nexus.create(
       [
@@ -926,23 +1007,51 @@ describe('construct spans', () => {
     );
     const byToken = new Map(only(events, 'construct').map((b) => [b.token, b]));
     const panel = byToken.get('Console')!;
-    expect(byToken.get('Gauge')).toMatchObject({ run: 0, level: null, parent: panel.providerId });
+    expect(byToken.get('Gauge')).toMatchObject({
+      run: 0,
+      level: null,
+      parent: panel.providerId,
+    });
     expect(byToken.get('Gauge')!.syncMs).toBeGreaterThanOrEqual(1.5);
-    expect(byToken.get('Log')).toMatchObject({ run: null, level: null, parent: panel.providerId });
+    expect(byToken.get('Log')).toMatchObject({
+      run: null,
+      level: null,
+      parent: panel.providerId,
+    });
     expect(panel.syncMs).toBeGreaterThanOrEqual(byToken.get('Gauge')!.syncMs);
   });
 
   it('numbers a loaded provider by the new blueprint levels', async () => {
     const { events, plugin } = recordEvents();
     class L0 {}
-    class L1 { static deps = [L0] as const; constructor(readonly d: L0) {} }
-    class L2 { static deps = [L1] as const; constructor(readonly d: L1) {} }
-    class L3 { static deps = [L2] as const; constructor(readonly d: L2) {} }
-    const Core = defineModule({ name: 'Core', providers: [L0, L1, L2, L3], exports: [L3] });
+    class L1 {
+      static deps = [L0] as const;
+      constructor(readonly d: L0) {}
+    }
+    class L2 {
+      static deps = [L1] as const;
+      constructor(readonly d: L1) {}
+    }
+    class L3 {
+      static deps = [L2] as const;
+      constructor(readonly d: L2) {}
+    }
+    const Core = defineModule({
+      name: 'Core',
+      providers: [L0, L1, L2, L3],
+      exports: [L3],
+    });
     await using ship = await Nexus.create(Core, { plugins: [plugin] });
-    class Probe { static deps = [L3] as const; constructor(readonly d: L3) {} }
-    await ship.load(defineModule({ name: 'Science', imports: [Core], providers: [Probe] }));
-    expect(only(events, 'construct').find((b) => b.token === 'Probe')).toMatchObject({ run: 1, level: 4 });
+    class Probe {
+      static deps = [L3] as const;
+      constructor(readonly d: L3) {}
+    }
+    await ship.load(
+      defineModule({ name: 'Science', imports: [Core], providers: [Probe] }),
+    );
+    expect(
+      only(events, 'construct').find((b) => b.token === 'Probe'),
+    ).toMatchObject({ run: 1, level: 4 });
   });
 
   it('reports scoped builds with the createScope run and scopedLevels index', async () => {
@@ -953,7 +1062,9 @@ describe('construct spans', () => {
       { plugins: [plugin] },
     );
     await using shuttle = await ship.createScope();
-    expect(only(events, 'construct').find((b) => b.token === 'Scanner')).toMatchObject({
+    expect(
+      only(events, 'construct').find((b) => b.token === 'Scanner'),
+    ).toMatchObject({
       run: 1,
       level: 0,
       scope: shuttle.id,
@@ -967,9 +1078,15 @@ describe('construct spans', () => {
 ```ts
 describe('construct timing', () => {
   it('declares the split and the place of a build', () => {
-    expectTypeOf<TraceEvent<'construct'>['awaitMs']>().toEqualTypeOf<number | null>();
-    expectTypeOf<TraceEvent<'construct'>['level']>().toEqualTypeOf<number | null>();
-    expectTypeOf<TraceEvent<'construct:await'>['syncMs']>().toEqualTypeOf<number>();
+    expectTypeOf<TraceEvent<'construct'>['awaitMs']>().toEqualTypeOf<
+      number | null
+    >();
+    expectTypeOf<TraceEvent<'construct'>['level']>().toEqualTypeOf<
+      number | null
+    >();
+    expectTypeOf<
+      TraceEvent<'construct:await'>['syncMs']
+    >().toEqualTypeOf<number>();
   });
 });
 ```
@@ -1104,7 +1221,16 @@ export async function buildInto(
     value = await pending;
     awaitMs = tracer.now() - returned;
   }
-  return { record, value, isAsync, start, syncMs: returned - start, awaitMs, run: run.id, level };
+  return {
+    record,
+    value,
+    isAsync,
+    start,
+    syncMs: returned - start,
+    awaitMs,
+    run: run.id,
+    level,
+  };
 }
 ```
 
@@ -1138,12 +1264,19 @@ export async function buildInto(
 `buildTransient`:
 
 ```ts
-  const start = HOOK_SITES && root.buildHooks ? root.tracer.now() : 0;
-  const built = construct(record, ctx);
-  const returned = HOOK_SITES && root.buildHooks ? root.tracer.now() : 0;
-  // ... thenable branch and applyConstruct unchanged
-  if (HOOK_SITES && root.buildHooks)
-    traceConstruct(ctx.container, ctx.bp, record, false, { start, syncMs: returned - start, awaitMs: null, run: null, level: null }, returned);
+const start = HOOK_SITES && root.buildHooks ? root.tracer.now() : 0;
+const built = construct(record, ctx);
+const returned = HOOK_SITES && root.buildHooks ? root.tracer.now() : 0;
+// ... thenable branch and applyConstruct unchanged
+if (HOOK_SITES && root.buildHooks)
+  traceConstruct(
+    ctx.container,
+    ctx.bp,
+    record,
+    false,
+    { start, syncMs: returned - start, awaitMs: null, run: null, level: null },
+    returned,
+  );
 ```
 
 - [ ] Step 6: Callers
@@ -1151,12 +1284,12 @@ export async function buildInto(
 `startup.ts`: `settleValue` calls `store(root, bp, record, value, false, true, undefined, 0)`; `registerStatic`'s alias line calls `traceConstruct(root, plan.bp, record, false, undefined, 0)`. `buildSingleton(root, bp, id, owner, run: RunTrace, level: number)`:
 
 ```ts
-  const built = await buildInto(root, bp, id, owner, run, level);
-  const resumed = root.tracer.now();
-  const { record, isAsync } = built;
-  let { value } = built;
-  // validateOptions and applyConstruct unchanged
-  store(root, bp, record, value, isAsync, !root.initEnabled, built, resumed);
+const built = await buildInto(root, bp, id, owner, run, level);
+const resumed = root.tracer.now();
+const { record, isAsync } = built;
+let { value } = built;
+// validateOptions and applyConstruct unchanged
+store(root, bp, record, value, isAsync, !root.initEnabled, built, resumed);
 ```
 
 `startBlueprint`'s `buildOne` becomes `(id, level) => { touched.push(id); return buildSingleton(root, plan.bp, id, built, run, level); }`.
@@ -1220,7 +1353,9 @@ describe('construct:failed', () => {
     expect(only(events, 'construct:failed')).toMatchObject([
       { token: 'Breach', run: 0, level: 1, async: false, parent: null },
     ]);
-    expect(types.indexOf('construct:failed')).toBeLessThan(types.indexOf('dispose:instance'));
+    expect(types.indexOf('construct:failed')).toBeLessThan(
+      types.indexOf('dispose:instance'),
+    );
     expect(events.at(-1)).toMatchObject({ type: 'run', ok: false });
   });
 
@@ -1229,12 +1364,24 @@ describe('construct:failed', () => {
     const LINK = new Token<object>('SubspaceLink');
     await rejected(
       Nexus.create(
-        [provide(LINK, { useFactory: async () => Promise.reject(new Error('no carrier')) })],
+        [
+          provide(LINK, {
+            useFactory: async () => Promise.reject(new Error('no carrier')),
+          }),
+        ],
         { plugins: [plugin] },
       ),
     );
-    expect(events.map((e) => e.type)).toEqual(['compile', 'construct:await', 'construct:failed', 'run']);
-    expect(only(events, 'construct:failed')[0]).toMatchObject({ async: true, level: 0 });
+    expect(events.map((e) => e.type)).toEqual([
+      'compile',
+      'construct:await',
+      'construct:failed',
+      'run',
+    ]);
+    expect(only(events, 'construct:failed')[0]).toMatchObject({
+      async: true,
+      level: 0,
+    });
   });
 
   it('reports a failure after the factory returned, in options validation or a construct hook', async () => {
@@ -1246,8 +1393,12 @@ describe('construct:failed', () => {
         throw new Error('wrapper failed');
       },
     };
-    await rejected(Nexus.create([FusionReactor], { plugins: [plugin, wrecker] }));
-    expect(only(events, 'construct:failed')).toMatchObject([{ token: 'FusionReactor', async: false }]);
+    await rejected(
+      Nexus.create([FusionReactor], { plugins: [plugin, wrecker] }),
+    );
+    expect(only(events, 'construct:failed')).toMatchObject([
+      { token: 'FusionReactor', async: false },
+    ]);
   });
 
   it('reports an on-demand failure with no run and no level', async () => {
@@ -1257,9 +1408,13 @@ describe('construct:failed', () => {
         throw new Error('flaky');
       }
     }
-    await using ship = await Nexus.create([provide(Flaky, { eager: false })], { plugins: [plugin] });
+    await using ship = await Nexus.create([provide(Flaky, { eager: false })], {
+      plugins: [plugin],
+    });
     expect(() => ship.get(Flaky)).toThrow();
-    expect(only(events, 'construct:failed')).toMatchObject([{ token: 'Flaky', run: null, level: null, parent: null }]);
+    expect(only(events, 'construct:failed')).toMatchObject([
+      { token: 'Flaky', run: null, level: null, parent: null },
+    ]);
   });
 
   it("names the parent's failure only when a transient inside it throws", async () => {
@@ -1271,11 +1426,21 @@ describe('construct:failed', () => {
     }
     await rejected(
       Nexus.create(
-        [provide(SPARK, { lifetime: 'transient', useFactory: () => { throw new Error('short'); } }), Panel],
+        [
+          provide(SPARK, {
+            lifetime: 'transient',
+            useFactory: () => {
+              throw new Error('short');
+            },
+          }),
+          Panel,
+        ],
         { plugins: [plugin] },
       ),
     );
-    expect(only(events, 'construct:failed').map((e) => e.token)).toEqual(['Panel']);
+    expect(only(events, 'construct:failed').map((e) => e.token)).toEqual([
+      'Panel',
+    ]);
   });
 
   it('puts an observer throw on construct:failed after the disposer errors', async () => {
@@ -1292,7 +1457,9 @@ describe('construct:failed', () => {
         throw new Error('hull breach');
       }
     }
-    const error = (await rejected(Nexus.create([Breach], { plugins: [watcher] }))) as {
+    const error = (await rejected(
+      Nexus.create([Breach], { plugins: [watcher] }),
+    )) as {
       code: string;
       disposalErrors: readonly unknown[];
     };
@@ -1322,20 +1489,25 @@ export function traceFailed(
   level: number | null,
 ): void {
   const tracer = container.root.tracer;
-  emitCollecting(tracer, run === undefined ? undefined : (run.errors ??= []), () => ({
-    type: 'construct:failed',
-    token: record.name,
-    providerId: record.id,
-    module: moduleName(bp, record),
-    lifetime: record.lifetime,
-    scope: container.scopeId,
-    async: isAsync,
-    run: run?.id ?? null,
-    level,
-    parent: level === null ? (constructionStack.top()?.providerId ?? null) : null,
-    startMs: start,
-    durationMs: tracer.now() - start,
-  }));
+  emitCollecting(
+    tracer,
+    run === undefined ? undefined : (run.errors ??= []),
+    () => ({
+      type: 'construct:failed',
+      token: record.name,
+      providerId: record.id,
+      module: moduleName(bp, record),
+      lifetime: record.lifetime,
+      scope: container.scopeId,
+      async: isAsync,
+      run: run?.id ?? null,
+      level,
+      parent:
+        level === null ? (constructionStack.top()?.providerId ?? null) : null,
+      startMs: start,
+      durationMs: tracer.now() - start,
+    }),
+  );
 }
 ```
 
@@ -1344,24 +1516,24 @@ export function traceFailed(
 In `buildInto`, wrap the call and the await:
 
 ```ts
-  let value: unknown;
+let value: unknown;
+try {
+  value = construct(record, { bp, container, owner });
+} catch (error) {
+  traceFailed(container, bp, record, false, start, run, level);
+  throw error;
+}
+// ...
+if (isAsync) {
+  // begin and construct:await unchanged
   try {
-    value = construct(record, { bp, container, owner });
+    value = await pending;
   } catch (error) {
-    traceFailed(container, bp, record, false, start, run, level);
+    traceFailed(container, bp, record, true, start, run, level);
     throw error;
   }
-  // ...
-  if (isAsync) {
-    // begin and construct:await unchanged
-    try {
-      value = await pending;
-    } catch (error) {
-      traceFailed(container, bp, record, true, start, run, level);
-      throw error;
-    }
-    awaitMs = tracer.now() - returned;
-  }
+  awaitMs = tracer.now() - returned;
+}
 ```
 
 `buildSingleton` and `buildScoped`: wrap everything between `buildInto` and `store` (options validation and `applyConstruct`) in `try { ... } catch (error) { traceFailed(container, bp, record, built.isAsync, built.start, run, level); throw error; }`, keeping the existing `adopt` in validation's catch. `async` means the factory returned a thenable, whatever failed after it (plan choice 5).
@@ -1388,8 +1560,25 @@ Interfaces:
 - Produces: the `init`, `init:await` and `init:failed` members of spec 3.1. `runInit(root, bp, isNew, run: RunTrace)`. In `build.ts`:
 
 ```ts
-export function traceInit(root: RootState, bp: Blueprint, id: string, run: number | null, level: number | null, isAsync: boolean, start: number, returned: number): void;
-export function traceInitFailed(root: RootState, bp: Blueprint, id: string, run: RunTrace | undefined, level: number | null, isAsync: boolean, start: number): void;
+export function traceInit(
+  root: RootState,
+  bp: Blueprint,
+  id: string,
+  run: number | null,
+  level: number | null,
+  isAsync: boolean,
+  start: number,
+  returned: number,
+): void;
+export function traceInitFailed(
+  root: RootState,
+  bp: Blueprint,
+  id: string,
+  run: RunTrace | undefined,
+  level: number | null,
+  isAsync: boolean,
+  start: number,
+): void;
 ```
 
 - [ ] Step 1: Write the failing tests for level `onInit`
@@ -1410,7 +1599,9 @@ describe('init', () => {
         await sleep(20);
       }
     }
-    await using ship = await Nexus.create([Reactor, Computer], { plugins: [plugin] });
+    await using ship = await Nexus.create([Reactor, Computer], {
+      plugins: [plugin],
+    });
     const inits = only(events, 'init');
     expect(inits.map((e) => [e.token, e.run, e.level, e.async])).toEqual([
       ['Reactor', 0, 0, false],
@@ -1419,14 +1610,21 @@ describe('init', () => {
     expect(inits[0]).toMatchObject({ awaitMs: null });
     expect(inits[0]!.syncMs).toBeGreaterThanOrEqual(1.5);
     expect(inits[1]!.awaitMs).toBeGreaterThanOrEqual(15);
-    expect(only(events, 'init:await')).toMatchObject([{ token: 'Computer', level: 1, run: 0 }]);
+    expect(only(events, 'init:await')).toMatchObject([
+      { token: 'Computer', level: 1, run: 0 },
+    ]);
     const types = events.map((e) => e.type);
     expect(types.lastIndexOf('construct')).toBeLessThan(types.indexOf('init'));
   });
 
   it('reports a throwing and a rejecting onInit with init:failed', async () => {
     for (const [onInit, isAsync] of [
-      [() => { throw new Error('scram'); }, false],
+      [
+        () => {
+          throw new Error('scram');
+        },
+        false,
+      ],
       [async () => Promise.reject(new Error('scram')), true],
     ] as const) {
       const { events, plugin } = recordEvents();
@@ -1434,7 +1632,9 @@ describe('init', () => {
         onInit = onInit;
       }
       await rejected(Nexus.create([Reactor], { plugins: [plugin] }));
-      expect(only(events, 'init:failed')).toMatchObject([{ token: 'Reactor', run: 0, level: 0, async: isAsync }]);
+      expect(only(events, 'init:failed')).toMatchObject([
+        { token: 'Reactor', run: 0, level: 0, async: isAsync },
+      ]);
       expect(events.at(-1)).toMatchObject({ type: 'run', ok: false });
     }
   });
@@ -1499,51 +1699,55 @@ export function traceInitFailed(
   start: number,
 ): void {
   const tracer = root.tracer;
-  emitCollecting(tracer, run === undefined ? undefined : (run.errors ??= []), () => ({
-    type: 'init:failed',
-    token: bp.providers.get(id)?.name ?? id,
-    providerId: id,
-    run: run?.id ?? null,
-    level,
-    async: isAsync,
-    startMs: start,
-    durationMs: tracer.now() - start,
-  }));
+  emitCollecting(
+    tracer,
+    run === undefined ? undefined : (run.errors ??= []),
+    () => ({
+      type: 'init:failed',
+      token: bp.providers.get(id)?.name ?? id,
+      providerId: id,
+      run: run?.id ?? null,
+      level,
+      async: isAsync,
+      startMs: start,
+      durationMs: tracer.now() - start,
+    }),
+  );
 }
 ```
 
 `init.ts`, the `buildOne` body after the ownership guard:
 
 ```ts
-      const tracer = root.tracer;
-      const start = tracer.now();
-      let result: unknown;
-      try {
-        result = instance.onInit();
-      } catch (error) {
-        traceInitFailed(root, bp, id, run, level, false, start);
-        throw error;
-      }
-      const returned = tracer.now();
-      const isAsync = isThenable(result);
-      if (isAsync)
-        tracer.emit(() => ({
-          type: 'init:await',
-          token: bp.providers.get(id)?.name ?? id,
-          providerId: id,
-          run: run.id,
-          level,
-          startMs: start,
-          syncMs: returned - start,
-        }));
-      try {
-        // Awaited for a plain value too, as rc.0 awaited every onInit.
-        await result;
-      } catch (error) {
-        traceInitFailed(root, bp, id, run, level, isAsync, start);
-        throw error;
-      }
-      traceInit(root, bp, id, run.id, level, isAsync, start, returned);
+const tracer = root.tracer;
+const start = tracer.now();
+let result: unknown;
+try {
+  result = instance.onInit();
+} catch (error) {
+  traceInitFailed(root, bp, id, run, level, false, start);
+  throw error;
+}
+const returned = tracer.now();
+const isAsync = isThenable(result);
+if (isAsync)
+  tracer.emit(() => ({
+    type: 'init:await',
+    token: bp.providers.get(id)?.name ?? id,
+    providerId: id,
+    run: run.id,
+    level,
+    startMs: start,
+    syncMs: returned - start,
+  }));
+try {
+  // Awaited for a plain value too, as rc.0 awaited every onInit.
+  await result;
+} catch (error) {
+  traceInitFailed(root, bp, id, run, level, isAsync, start);
+  throw error;
+}
+traceInit(root, bp, id, run.id, level, isAsync, start, returned);
 ```
 
 `startBlueprint` calls `runInit(root, plan.bp, plan.isNew, run)`. The direct call in `init.test.ts` passes `{ id: 0, errors: undefined }`.
@@ -1562,11 +1766,18 @@ describe('init from an on-demand build', () => {
     class Sensor {
       onInit() {}
     }
-    await using ship = await Nexus.create([provide(Sensor, { eager: false })], { plugins: [plugin] });
+    await using ship = await Nexus.create([provide(Sensor, { eager: false })], {
+      plugins: [plugin],
+    });
     const before = events.length;
     ship.get(Sensor);
-    expect(events.slice(before).map((e) => e.type)).toEqual(['construct', 'init']);
-    expect(only(events, 'init')).toMatchObject([{ token: 'Sensor', run: null, level: null, async: false, awaitMs: null }]);
+    expect(events.slice(before).map((e) => e.type)).toEqual([
+      'construct',
+      'init',
+    ]);
+    expect(only(events, 'init')).toMatchObject([
+      { token: 'Sensor', run: null, level: null, async: false, awaitMs: null },
+    ]);
   });
 
   it('emits init:failed for a throwing on-demand onInit', async () => {
@@ -1576,9 +1787,13 @@ describe('init from an on-demand build', () => {
         throw new Error('calibration');
       }
     }
-    await using ship = await Nexus.create([provide(Sensor, { eager: false })], { plugins: [plugin] });
+    await using ship = await Nexus.create([provide(Sensor, { eager: false })], {
+      plugins: [plugin],
+    });
     expect(() => ship.get(Sensor)).toThrow();
-    expect(only(events, 'init:failed')).toMatchObject([{ token: 'Sensor', async: false }]);
+    expect(only(events, 'init:failed')).toMatchObject([
+      { token: 'Sensor', async: false },
+    ]);
   });
 
   it('emits init:failed with async: true for an on-demand onInit that returns a thenable', async () => {
@@ -1586,9 +1801,13 @@ describe('init from an on-demand build', () => {
     class Sensor {
       async onInit() {}
     }
-    await using ship = await Nexus.create([provide(Sensor, { eager: false })], { plugins: [plugin] });
+    await using ship = await Nexus.create([provide(Sensor, { eager: false })], {
+      plugins: [plugin],
+    });
     expect(() => ship.get(Sensor)).toThrow();
-    expect(only(events, 'init:failed')).toMatchObject([{ token: 'Sensor', run: null, level: null, async: true }]);
+    expect(only(events, 'init:failed')).toMatchObject([
+      { token: 'Sensor', run: null, level: null, async: true },
+    ]);
   });
 });
 ```
@@ -1670,9 +1889,11 @@ describe('order and the in-flight set (spec 3.4)', () => {
     const open = new Map<string, string>();
     for (const e of events) {
       if (e.type === 'construct:await') open.set(`c ${e.providerId}`, e.token);
-      if (e.type === 'construct' || e.type === 'construct:failed') open.delete(`c ${e.providerId}`);
+      if (e.type === 'construct' || e.type === 'construct:failed')
+        open.delete(`c ${e.providerId}`);
       if (e.type === 'init:await') open.set(`i ${e.providerId}`, e.token);
-      if (e.type === 'init' || e.type === 'init:failed') open.delete(`i ${e.providerId}`);
+      if (e.type === 'init' || e.type === 'init:failed')
+        open.delete(`i ${e.providerId}`);
     }
     return [...open.values()];
   }
@@ -1681,7 +1902,11 @@ describe('order and the in-flight set (spec 3.4)', () => {
     const { events, plugin } = recordEvents();
     const CHARTS = new Token<object>('NavCharts');
     void Nexus.create(
-      [provide(CHARTS, { useFactory: () => new Promise<object>(() => undefined) })],
+      [
+        provide(CHARTS, {
+          useFactory: () => new Promise<object>(() => undefined),
+        }),
+      ],
       { plugins: [plugin] },
     );
     await sleep(10);
@@ -1729,11 +1954,31 @@ describe('a third-party profiler (startup profiler spec 5.3)', () => {
       observe(event: TraceEvent) {
         switch (event.type) {
           case 'run':
-            rows.push([event.run, event.kind, event.scope, event.ok, event.startMs, event.durationMs]);
+            rows.push([
+              event.run,
+              event.kind,
+              event.scope,
+              event.ok,
+              event.startMs,
+              event.durationMs,
+            ]);
             break;
           case 'construct':
-            rows.push([event.run, event.level, event.parent, event.token, event.providerId, event.module,
-              event.lifetime, event.async, event.startMs, event.syncMs, event.awaitMs, event.finishMs, event.durationMs]);
+            rows.push([
+              event.run,
+              event.level,
+              event.parent,
+              event.token,
+              event.providerId,
+              event.module,
+              event.lifetime,
+              event.async,
+              event.startMs,
+              event.syncMs,
+              event.awaitMs,
+              event.finishMs,
+              event.durationMs,
+            ]);
             break;
           case 'construct:await':
           case 'init:await':
@@ -1741,10 +1986,22 @@ describe('a third-party profiler (startup profiler spec 5.3)', () => {
             break;
           case 'construct:failed':
           case 'init:failed':
-            rows.push([event.run, event.level, event.async, event.startMs, event.durationMs]);
+            rows.push([
+              event.run,
+              event.level,
+              event.async,
+              event.startMs,
+              event.durationMs,
+            ]);
             break;
           case 'init':
-            rows.push([event.run, event.level, event.async, event.syncMs, event.awaitMs]);
+            rows.push([
+              event.run,
+              event.level,
+              event.async,
+              event.syncMs,
+              event.awaitMs,
+            ]);
             break;
           case 'compile':
             rows.push([event.run, event.startMs]);
@@ -1775,8 +2032,9 @@ import type { EdgeKind, ProviderRecord } from './blueprint.js';
 export const ordersBuild = (kind: EdgeKind): boolean => kind !== 'lazy';
 
 /** True for a provider with no build level of its own: a transient or an alias. */
-export const isInline = (r: Pick<ProviderRecord, 'lifetime' | 'kind'>): boolean =>
-  r.lifetime === 'transient' || r.kind === 'alias';
+export const isInline = (
+  r: Pick<ProviderRecord, 'lifetime' | 'kind'>,
+): boolean => r.lifetime === 'transient' || r.kind === 'alias';
 ```
 
 `compile.ts` pass 4 becomes `successorsOf(bound.edges, ordersBuild)`. `levels.ts` drops the local `passesThrough` in `levelFunction` and the inline copy in `collectReached` and calls `isInline`. `views.ts`: `EdgeView` gains `readonly ordersBuild: boolean;` and `ProviderView` gains `readonly inline: boolean;`, with spec 3.7's TSDoc; `providerView` sets `inline: isInline(record)` and `buildView`'s edge literal sets `ordersBuild: ordersBuild(e.kind)`.
@@ -1793,6 +2051,7 @@ Expected: PASS, every K14 case `pass`.
 - [ ] Step 7: Commit with `test(core): pin the trace event order and the stable profiler fields`.
 
 ---
+
 ## Part 2: devtools (spec sections 6, 7 and 10)
 
 Tasks 8 to 14 add `libs/devtools/src/profile/`. Every module there imports `@nexusdi/core` and its siblings only. `src/index.ts` gains each export in the task that adds it.
@@ -1847,7 +2106,13 @@ export function report(
         ok: true,
         startMs: 0,
         durationMs: end + 1,
-        compile: { startMs: 0, durationMs: 0, modules: 1, providers: builds.length, errors: 0 },
+        compile: {
+          startMs: 0,
+          durationMs: 0,
+          modules: 1,
+          providers: builds.length,
+          errors: 0,
+        },
         steps: [],
         builds,
         inits: [],
@@ -1865,7 +2130,12 @@ export function report(
         kind: 'class',
         inline: false,
       })),
-      edges: edges.map(([from, to]) => ({ from, to, kind: 'required', ordersBuild: true })),
+      edges: edges.map(([from, to]) => ({
+        from,
+        to,
+        kind: 'required',
+        ordersBuild: true,
+      })),
     },
     dropped: 0,
     dispose: null,
@@ -1900,7 +2170,13 @@ Interfaces:
 ```ts
 import { describe, expect, it } from 'vitest';
 
-import { Nexus, Token, defineModule, isNexusError, provide } from '@nexusdi/core';
+import {
+  Nexus,
+  Token,
+  defineModule,
+  isNexusError,
+  provide,
+} from '@nexusdi/core';
 
 import { rejected, thrown } from '../../test-support/catch.js';
 import { profile } from '../index.js';
@@ -1935,24 +2211,39 @@ describe('profile', () => {
     await using ship = await Nexus.create(Engineering, { plugins: [profiler] });
     const report = profiler.report();
     expect(JSON.parse(JSON.stringify(report))).toEqual(report);
-    expect(report).toMatchObject({ format: 'nexusdi-profile', version: 1, dropped: 0 });
+    expect(report).toMatchObject({
+      format: 'nexusdi-profile',
+      version: 1,
+      dropped: 0,
+    });
     const [run] = report.runs;
     expect(run).toMatchObject({ id: 0, kind: 'create', ok: true, pending: [] });
     expect(run!.builds.map((b) => [b.token, b.level, b.async])).toEqual([
       ['ReactorCore', 0, false],
       ['NavCharts', 1, true],
     ]);
-    expect(run!.steps.map((s) => s.step)).toEqual(['compile', 'build', 'setup']);
+    expect(run!.steps.map((s) => s.step)).toEqual([
+      'compile',
+      'build',
+      'setup',
+    ]);
     expect(report.graph?.root).toBe('Engineering');
-    expect(report.graph?.edges).toEqual([{ from: 'p1', to: 'p0', kind: 'required', ordersBuild: true }]);
-    expect(report.graph?.providers.map((p) => p.inline)).toEqual([false, false]);
+    expect(report.graph?.edges).toEqual([
+      { from: 'p1', to: 'p0', kind: 'required', ordersBuild: true },
+    ]);
+    expect(report.graph?.providers.map((p) => p.inline)).toEqual([
+      false,
+      false,
+    ]);
   });
 
   it('records createScope and extend runs only with scopes: true', async () => {
     const SCANNER = new Token<object>('Scanner');
     const Root = defineModule({
       name: 'Root',
-      providers: [provide(SCANNER, { lifetime: 'scoped', useFactory: () => ({}) })],
+      providers: [
+        provide(SCANNER, { lifetime: 'scoped', useFactory: () => ({}) }),
+      ],
     });
     for (const scopes of [false, true]) {
       const profiler = profile({ scopes });
@@ -1968,13 +2259,19 @@ describe('profile', () => {
   it('lists the providers a hung create still awaits', async () => {
     const profiler = profile();
     void Nexus.create(
-      [provide(NAV_CHARTS, { useFactory: () => new Promise<INavCharts>(() => undefined) })],
+      [
+        provide(NAV_CHARTS, {
+          useFactory: () => new Promise<INavCharts>(() => undefined),
+        }),
+      ],
       { plugins: [profiler] },
     );
     await sleep(10);
     const [run] = profiler.report().runs;
     expect(run).toMatchObject({ ok: null, durationMs: null });
-    expect(run!.pending).toMatchObject([{ token: 'NavCharts', what: 'construct', level: 0 }]);
+    expect(run!.pending).toMatchObject([
+      { token: 'NavCharts', what: 'construct', level: 0 },
+    ]);
   });
 
   it('attributes nested on-demand and transient builds to the run of their parent', async () => {
@@ -1983,10 +2280,17 @@ describe('profile', () => {
     const LOG = new Token<object>('Log');
     class Console {
       static deps = [Gauge, LOG] as const;
-      constructor(readonly gauge: Gauge, readonly log: object) {}
+      constructor(
+        readonly gauge: Gauge,
+        readonly log: object,
+      ) {}
     }
     await using ship = await Nexus.create(
-      [provide(Gauge, { eager: false }), provide(LOG, { lifetime: 'transient', useFactory: () => ({}) }), Console],
+      [
+        provide(Gauge, { eager: false }),
+        provide(LOG, { lifetime: 'transient', useFactory: () => ({}) }),
+        Console,
+      ],
       { plugins: [profiler] },
     );
     const tokens = profiler.report().runs[0]!.builds.map((b) => b.token);
@@ -1996,7 +2300,9 @@ describe('profile', () => {
   it('records no on-demand build after startup', async () => {
     const profiler = profile();
     class Gauge {}
-    await using ship = await Nexus.create([provide(Gauge, { eager: false })], { plugins: [profiler] });
+    await using ship = await Nexus.create([provide(Gauge, { eager: false })], {
+      plugins: [profiler],
+    });
     ship.get(Gauge);
     expect(profiler.report().runs[0]!.builds).toEqual([]);
   });
@@ -2004,7 +2310,8 @@ describe('profile', () => {
   it('drops the oldest run past maxRuns', async () => {
     const profiler = profile({ maxRuns: 2 });
     await using ship = await Nexus.create(Engineering, { plugins: [profiler] });
-    for (const name of ['A', 'B', 'C']) await ship.load(defineModule({ name, providers: [] }));
+    for (const name of ['A', 'B', 'C'])
+      await ship.load(defineModule({ name, providers: [] }));
     const report = profiler.report();
     expect(report.runs.map((r) => r.id)).toEqual([2, 3]);
     expect(report.dropped).toBe(2);
@@ -2014,14 +2321,28 @@ describe('profile', () => {
     const profiler = profile();
     const observe = profiler.observe!;
     observe({ type: 'acme/cache/miss', key: 'k' } as never);
-    observe({ type: 'run', run: 7, kind: 'warp', scope: null, ok: true, startMs: 1, durationMs: 2 } as never);
-    expect(profiler.report().runs).toMatchObject([{ id: 7, kind: 'warp', ok: true }]);
+    observe({
+      type: 'run',
+      run: 7,
+      kind: 'warp',
+      scope: null,
+      ok: true,
+      startMs: 1,
+      durationMs: 2,
+    } as never);
+    expect(profiler.report().runs).toMatchObject([
+      { id: 7, kind: 'warp', ok: true },
+    ]);
   });
 
   it('throws NEXUS_DEVTOOLS_PROFILE_REUSED from report() after a second container, and never from create', async () => {
     const profiler = profile();
-    await (await Nexus.create(Engineering, { plugins: [profiler] }))[Symbol.asyncDispose]();
-    await (await Nexus.create(Engineering, { plugins: [profiler] }))[Symbol.asyncDispose]();
+    await (
+      await Nexus.create(Engineering, { plugins: [profiler] })
+    )[Symbol.asyncDispose]();
+    await (
+      await Nexus.create(Engineering, { plugins: [profiler] })
+    )[Symbol.asyncDispose]();
     const error = thrown(() => profiler.report());
     expect(isNexusError(error, 'NEXUS_DEVTOOLS_PROFILE_REUSED')).toBe(true);
   });
@@ -2029,27 +2350,63 @@ describe('profile', () => {
   it('detects reuse after a create that failed before it compiled', async () => {
     const profiler = profile();
     await rejected(Nexus.create(42 as never, { plugins: [profiler] }));
-    await (await Nexus.create(Engineering, { plugins: [profiler] }))[Symbol.asyncDispose]();
-    expect(isNexusError(thrown(() => profiler.report()), 'NEXUS_DEVTOOLS_PROFILE_REUSED')).toBe(true);
+    await (
+      await Nexus.create(Engineering, { plugins: [profiler] })
+    )[Symbol.asyncDispose]();
+    expect(
+      isNexusError(
+        thrown(() => profiler.report()),
+        'NEXUS_DEVTOOLS_PROFILE_REUSED',
+      ),
+    ).toBe(true);
   });
 
   it('ignores a build for a run that already closed, and does not call it reuse', () => {
     const profiler = profile();
     const observe = profiler.observe!;
-    observe({ type: 'run', run: 0, kind: 'create', scope: null, ok: false, startMs: 0, durationMs: 5 } as never);
     observe({
-      type: 'construct', token: 'Late', providerId: 'p9', module: 'M', lifetime: 'singleton', scope: null, async: true,
-      run: 0, level: 0, parent: null, startMs: 1, syncMs: 0, awaitMs: 6, finishMs: 0, durationMs: 6,
+      type: 'run',
+      run: 0,
+      kind: 'create',
+      scope: null,
+      ok: false,
+      startMs: 0,
+      durationMs: 5,
     } as never);
-    expect(profiler.report().runs).toMatchObject([{ id: 0, ok: false, builds: [] }]);
+    observe({
+      type: 'construct',
+      token: 'Late',
+      providerId: 'p9',
+      module: 'M',
+      lifetime: 'singleton',
+      scope: null,
+      async: true,
+      run: 0,
+      level: 0,
+      parent: null,
+      startMs: 1,
+      syncMs: 0,
+      awaitMs: 6,
+      finishMs: 0,
+      durationMs: 6,
+    } as never);
+    expect(profiler.report().runs).toMatchObject([
+      { id: 0, ok: false, builds: [] },
+    ]);
   });
 
   it('records the disposal, and clear() drops every run', async () => {
     const profiler = profile();
-    await (await Nexus.create(Engineering, { plugins: [profiler] }))[Symbol.asyncDispose]();
+    await (
+      await Nexus.create(Engineering, { plugins: [profiler] })
+    )[Symbol.asyncDispose]();
     expect(profiler.report().dispose).toMatchObject({ errors: 0 });
     profiler.clear();
-    expect(profiler.report()).toMatchObject({ runs: [], dropped: 0, dispose: null });
+    expect(profiler.report()).toMatchObject({
+      runs: [],
+      dropped: 0,
+      dispose: null,
+    });
   });
 });
 ```
@@ -2066,14 +2423,45 @@ describe('stepsOf', () => {
   it('derives compile, static, build, init and setup from event spans', () => {
     const run = report(
       [
-        build({ providerId: 'v', token: 'Config', startMs: 2, durationMs: 0, level: null, lifetime: null }),
+        build({
+          providerId: 'v',
+          token: 'Config',
+          startMs: 2,
+          durationMs: 0,
+          level: null,
+          lifetime: null,
+        }),
         build({ providerId: 'a', token: 'A', startMs: 3, durationMs: 4 }),
-        build({ providerId: 'b', token: 'B', startMs: 7, durationMs: 2, level: 1 }),
+        build({
+          providerId: 'b',
+          token: 'B',
+          startMs: 7,
+          durationMs: 2,
+          level: 1,
+        }),
       ],
       [],
       {
-        compile: { startMs: 0, durationMs: 2, modules: 1, providers: 3, errors: 0 },
-        inits: [{ providerId: 'b', token: 'B', level: 1, async: false, startMs: 9, syncMs: 1, awaitMs: null, durationMs: 1, failed: false }],
+        compile: {
+          startMs: 0,
+          durationMs: 2,
+          modules: 1,
+          providers: 3,
+          errors: 0,
+        },
+        inits: [
+          {
+            providerId: 'b',
+            token: 'B',
+            level: 1,
+            async: false,
+            startMs: 9,
+            syncMs: 1,
+            awaitMs: null,
+            durationMs: 1,
+            failed: false,
+          },
+        ],
         durationMs: 12,
       },
     ).runs[0]!;
@@ -2087,11 +2475,15 @@ describe('stepsOf', () => {
   });
 
   it('leaves out a step with no events, and setup while the run is open', () => {
-    const run = report([build({ providerId: 'a', token: 'A', startMs: 1, durationMs: 1 })], [], {
-      compile: null,
-      ok: null,
-      durationMs: null,
-    }).runs[0]!;
+    const run = report(
+      [build({ providerId: 'a', token: 'A', startMs: 1, durationMs: 1 })],
+      [],
+      {
+        compile: null,
+        ok: null,
+        durationMs: null,
+      },
+    ).runs[0]!;
     expect(stepsOf(run).map((s) => s.step)).toEqual(['build']);
   });
 });
@@ -2111,13 +2503,18 @@ function sources(dir: string): string[] {
   return readdirSync(dir, { withFileTypes: true }).flatMap((entry) => {
     const path = join(dir, entry.name);
     if (entry.isDirectory()) return sources(path);
-    return /\.ts$/.test(entry.name) && !/\.test(-d)?\.ts$|\.trace\.ts$/.test(entry.name) ? [path] : [];
+    return /\.ts$/.test(entry.name) &&
+      !/\.test(-d)?\.ts$|\.trace\.ts$/.test(entry.name)
+      ? [path]
+      : [];
   });
 }
 
 describe('devtools runs in a browser', () => {
   it('imports no node: module outside tests', () => {
-    const found = sources(SRC).filter((file) => /from ['"]node:|import\(['"]node:/.test(readFileSync(file, 'utf8')));
+    const found = sources(SRC).filter((file) =>
+      /from ['"]node:|import\(['"]node:/.test(readFileSync(file, 'utf8')),
+    );
     expect(found).toEqual([]);
   });
 });
@@ -2137,7 +2534,9 @@ export type ProfileStep = ProfileRun['steps'][number];
 export type ProfilePending = ProfileRun['pending'][number];
 
 /** spec 7.2. */
-export interface CriticalPath { /* spec 7.2, verbatim */ }
+export interface CriticalPath {
+  /* spec 7.2, verbatim */
+}
 
 /** A V8 .cpuprofile, as Profiler.stop and node --cpu-prof return it. */
 export interface CpuProfile {
@@ -2176,11 +2575,14 @@ export interface TraceFile {
 import type { ProfileRun, ProfileStep } from './report.js';
 
 /** create, load 1, s3, s3 extend 4; a kind from a newer core keeps its name. */
-export function runLabel(run: Pick<ProfileRun, 'id' | 'kind' | 'scope'>): string {
+export function runLabel(
+  run: Pick<ProfileRun, 'id' | 'kind' | 'scope'>,
+): string {
   if (run.kind === 'create') return 'create';
   if (run.kind === 'load') return `load ${run.id}`;
   if (run.kind === 'createScope' && run.scope !== null) return run.scope;
-  if (run.kind === 'extend' && run.scope !== null) return `${run.scope} extend ${run.id}`;
+  if (run.kind === 'extend' && run.scope !== null)
+    return `${run.scope} extend ${run.id}`;
   return `${run.kind} ${run.id}`;
 }
 
@@ -2204,7 +2606,9 @@ export function stepsOf(run: Omit<ProfileRun, 'steps'>): ProfileStep[] {
   const ends = (b: { startMs: number; durationMs: number }) =>
     [b.startMs, b.startMs + b.durationMs] as const;
   const compile = run.compile === null ? [] : [ends(run.compile)];
-  const statics = run.builds.filter((b) => b.level === null && b.lifetime === null && b.parent === null).map(ends);
+  const statics = run.builds
+    .filter((b) => b.level === null && b.lifetime === null && b.parent === null)
+    .map(ends);
   const levelled = run.builds.filter((b) => b.level !== null).map(ends);
   const inits = run.inits.map(ends);
   const steps = [
@@ -2214,9 +2618,17 @@ export function stepsOf(run: Omit<ProfileRun, 'steps'>): ProfileStep[] {
     ...span('init', inits),
   ];
   if (run.durationMs !== null) {
-    const last = Math.max(run.startMs, ...[...levelled, ...inits].map(([, e]) => e));
+    const last = Math.max(
+      run.startMs,
+      ...[...levelled, ...inits].map(([, e]) => e),
+    );
     const end = run.startMs + run.durationMs;
-    if (end > last || steps.length > 0) steps.push({ step: 'setup', startMs: last, durationMs: Math.max(0, end - last) });
+    if (end > last || steps.length > 0)
+      steps.push({
+        step: 'setup',
+        startMs: last,
+        durationMs: Math.max(0, end - last),
+      });
   }
   return steps;
 }
@@ -2234,7 +2646,13 @@ import {
 } from '@nexusdi/core';
 
 import { DevtoolsError } from '../devtools-error.js';
-import type { ProfileBuild, ProfileInit, ProfilePending, ProfileReport, ProfileRun } from './report.js';
+import type {
+  ProfileBuild,
+  ProfileInit,
+  ProfilePending,
+  ProfileReport,
+  ProfileRun,
+} from './report.js';
 import { stepsOf } from './steps.js';
 
 export interface ProfileOptions {
@@ -2302,7 +2720,12 @@ function graphOf(view: BlueprintView): NonNullable<ProfileReport['graph']> {
       kind: p.kind,
       inline: p.inline,
     })),
-    edges: view.edges.map((e) => ({ from: e.from, to: e.to, kind: e.kind, ordersBuild: e.ordersBuild })),
+    edges: view.edges.map((e) => ({
+      from: e.from,
+      to: e.to,
+      kind: e.kind,
+      ordersBuild: e.ordersBuild,
+    })),
   };
 }
 
@@ -2322,7 +2745,12 @@ export function profile(options: ProfileOptions = {}): Profiler {
   let creates = 0;
   let reused = false;
 
-  const open = (id: number, kind: string, scope: string | null, startMs: number): Recording => {
+  const open = (
+    id: number,
+    kind: string,
+    scope: string | null,
+    startMs: number,
+  ): Recording => {
     const known = runs.get(id);
     if (known !== undefined) return known;
     if (runs.size >= maxRuns) {
@@ -2331,21 +2759,39 @@ export function profile(options: ProfileOptions = {}): Profiler {
       dropped++;
     }
     const rec: Recording = {
-      id, kind, scope, ok: null, startMs, durationMs: null, compile: null, builds: [], inits: [], pending: new Map(),
+      id,
+      kind,
+      scope,
+      ok: null,
+      startMs,
+      durationMs: null,
+      compile: null,
+      builds: [],
+      inits: [],
+      pending: new Map(),
     };
     runs.set(id, rec);
     return rec;
   };
 
   /** A scope's first run is its createScope; later ones are extend(). */
-  const forScope = (id: number, scope: string | null, startMs: number): Recording => {
-    if (scope === null || runs.has(id)) return open(id, 'create', scope, startMs);
+  const forScope = (
+    id: number,
+    scope: string | null,
+    startMs: number,
+  ): Recording => {
+    if (scope === null || runs.has(id))
+      return open(id, 'create', scope, startMs);
     const kind = seenScopes.has(scope) ? 'extend' : 'createScope';
     seenScopes.add(scope);
     return open(id, kind, scope, startMs);
   };
 
-  const place = (build: ProfileBuild, run: number | null, parent: string | null): void => {
+  const place = (
+    build: ProfileBuild,
+    run: number | null,
+    parent: string | null,
+  ): void => {
     const waiting = orphans.get(build.providerId);
     if (waiting !== undefined) orphans.delete(build.providerId);
     const group = waiting === undefined ? [build] : [...waiting, build];
@@ -2370,8 +2816,12 @@ export function profile(options: ProfileOptions = {}): Profiler {
     // A build, onInit or await of a run that already closed (an async build that
     // settled after its run failed) is ignored: not reuse, not recorded (plan choice 6).
     if (
-      (event.type === 'construct' || event.type === 'construct:failed' || event.type === 'construct:await' ||
-        event.type === 'init' || event.type === 'init:failed' || event.type === 'init:await') &&
+      (event.type === 'construct' ||
+        event.type === 'construct:failed' ||
+        event.type === 'construct:await' ||
+        event.type === 'init' ||
+        event.type === 'init:failed' ||
+        event.type === 'init:await') &&
       event.run !== null &&
       closed(event.run)
     )
@@ -2416,7 +2866,10 @@ export function profile(options: ProfileOptions = {}): Profiler {
           event.run,
           event.parent,
         );
-        if (event.run !== null) runs.get(event.run)?.pending.delete(`construct ${event.scope} ${event.providerId}`);
+        if (event.run !== null)
+          runs
+            .get(event.run)
+            ?.pending.delete(`construct ${event.scope} ${event.providerId}`);
         return;
       }
       case 'construct:await':
@@ -2424,15 +2877,18 @@ export function profile(options: ProfileOptions = {}): Profiler {
         const scope = event.type === 'construct:await' ? event.scope : null;
         if ((scope !== null && !scopes) || event.run === null) return;
         const what = event.type === 'construct:await' ? 'construct' : 'init';
-        forScope(event.run, scope, event.startMs).pending.set(`${what} ${scope} ${event.providerId}`, {
-          providerId: event.providerId,
-          token: event.token,
-          module: event.type === 'construct:await' ? event.module : '',
-          level: event.level,
-          what,
-          startMs: event.startMs,
-          syncMs: event.syncMs,
-        });
+        forScope(event.run, scope, event.startMs).pending.set(
+          `${what} ${scope} ${event.providerId}`,
+          {
+            providerId: event.providerId,
+            token: event.token,
+            module: event.type === 'construct:await' ? event.module : '',
+            level: event.level,
+            what,
+            startMs: event.startMs,
+            syncMs: event.syncMs,
+          },
+        );
         return;
       }
       case 'init':
@@ -2471,7 +2927,11 @@ export function profile(options: ProfileOptions = {}): Profiler {
         return;
       }
       case 'dispose':
-        dispose = { startMs: event.startMs, durationMs: event.durationMs, errors: event.errors };
+        dispose = {
+          startMs: event.startMs,
+          durationMs: event.durationMs,
+          errors: event.errors,
+        };
         return;
       default:
         // A type from a newer core or another package (spec 5.3).
@@ -2488,7 +2948,10 @@ export function profile(options: ProfileOptions = {}): Profiler {
     },
     report() {
       if (reused)
-        throw new DevtoolsError({ code: 'NEXUS_DEVTOOLS_PROFILE_REUSED', path: null }, { text: REUSED_TEXT });
+        throw new DevtoolsError(
+          { code: 'NEXUS_DEVTOOLS_PROFILE_REUSED', path: null },
+          { text: REUSED_TEXT },
+        );
       return {
         format: 'nexusdi-profile',
         version: 1,
@@ -2517,7 +2980,11 @@ A build still in `orphans` when `report()` runs (its parent never reported) is l
 `index.ts`: add
 
 ```ts
-export { profile, type ProfileOptions, type Profiler } from './profile/profile.js';
+export {
+  profile,
+  type ProfileOptions,
+  type Profiler,
+} from './profile/profile.js';
 export type {
   CpuProfile,
   CriticalPath,
@@ -2544,7 +3011,13 @@ Regions for `apps/docs/content/errors/NEXUS_DEVTOOLS_PROFILE_REUSED.mdx`. Every 
 <!-- #region reproduce -->
 
 ```ts @import.meta.vitest
-import { Nexus, Token, defineModule, isNexusError, provide } from '@nexusdi/core';
+import {
+  Nexus,
+  Token,
+  defineModule,
+  isNexusError,
+  provide,
+} from '@nexusdi/core';
 import { profile } from '@nexusdi/devtools';
 
 interface IReactorCore {
@@ -2560,8 +3033,12 @@ const Engineering = defineModule({
 });
 
 const profiler = profile();
-await (await Nexus.create(Engineering, { plugins: [profiler] }))[Symbol.asyncDispose]();
-await (await Nexus.create(Engineering, { plugins: [profiler] }))[Symbol.asyncDispose]();
+await (
+  await Nexus.create(Engineering, { plugins: [profiler] })
+)[Symbol.asyncDispose]();
+await (
+  await Nexus.create(Engineering, { plugins: [profiler] })
+)[Symbol.asyncDispose]();
 
 let code = '';
 try {
@@ -2596,7 +3073,9 @@ const Engineering = defineModule({
 const runs: number[] = [];
 for (let i = 0; i < 2; i++) {
   const profiler = profile();
-  await (await Nexus.create(Engineering, { plugins: [profiler] }))[Symbol.asyncDispose]();
+  await (
+    await Nexus.create(Engineering, { plugins: [profiler] })
+  )[Symbol.asyncDispose]();
   runs.push(profiler.report().runs.length);
 }
 console.log(runs); // -> [1, 1]
@@ -2605,7 +3084,7 @@ console.log(runs); // -> [1, 1]
 <!-- #endregion fix -->
 ````
 
-`apps/docs/content/errors/NEXUS_DEVTOOLS_PROFILE_REUSED.mdx`, with the frontmatter of the `GRAPH_INVALID` page (`kind: code`, `package: '@nexusdi/devtools'`, `errorClass: DevtoolsError`), a lead paragraph ("`report()` throws `NEXUS_DEVTOOLS_PROFILE_REUSED` when the `profile()` it belongs to was registered in a second `Nexus.create`. Trace events carry no container identity, so one profiler that hears two creates cannot keep their runs apart, and it stops recording at the second one. Neither create fails because of it."), `## Reproduce`, `## Fix` (one `profile()` per container) and `## Fields of DevtoolsError` sections citing the two regions, each with a Try-it line that names the printed value. Add the `_meta.ts` entry after `NEXUS_DEVTOOLS_GRAPH_INVALID` and a row in the devtools block of `api-errors.mdx`: `` | `@nexusdi/devtools` | [`NEXUS_DEVTOOLS_PROFILE_REUSED`](/errors/NEXUS_DEVTOOLS_PROFILE_REUSED/) | `DevtoolsError` | `report()` on a profiler that recorded a second container. | ``. Update the `## Fields of DevtoolsError` lists on both existing devtools code pages to name the new code.
+`apps/docs/content/errors/NEXUS_DEVTOOLS_PROFILE_REUSED.mdx`, with the frontmatter of the `GRAPH_INVALID` page (`kind: code`, `package: '@nexusdi/devtools'`, `errorClass: DevtoolsError`), a lead paragraph ("`report()` throws `NEXUS_DEVTOOLS_PROFILE_REUSED` when the `profile()` it belongs to was registered in a second `Nexus.create`. Trace events carry no container identity, so one profiler that hears two creates cannot keep their runs apart, and it stops recording at the second one. Neither create fails because of it."), `## Reproduce`, `## Fix` (one `profile()` per container) and `## Fields of DevtoolsError` sections citing the two regions, each with a Try-it line that names the printed value. Add the `_meta.ts` entry after `NEXUS_DEVTOOLS_GRAPH_INVALID` and a row in the devtools block of `api-errors.mdx`: ``| `@nexusdi/devtools` | [`NEXUS_DEVTOOLS_PROFILE_REUSED`](/errors/NEXUS_DEVTOOLS_PROFILE_REUSED/) | `DevtoolsError` | `report()` on a profiler that recorded a second container. |``. Update the `## Fields of DevtoolsError` lists on both existing devtools code pages to name the new code.
 
 - [ ] Step 9: Run the targets
 
@@ -2643,12 +3122,21 @@ describe('criticalPath', () => {
       [
         build({ providerId: 'a', token: 'A', startMs: 0, durationMs: 10 }),
         build({ providerId: 'b', token: 'B', startMs: 0, durationMs: 1 }),
-        build({ providerId: 'c', token: 'C', startMs: 10, durationMs: 2, level: 1 }),
+        build({
+          providerId: 'c',
+          token: 'C',
+          startMs: 10,
+          durationMs: 2,
+          level: 1,
+        }),
       ],
       [['c', 'b']],
     );
     const path = criticalPath(r, 0)!;
-    expect(path.path.map((p) => [p.token, p.dependsOnPrevious])).toEqual([['A', false], ['C', false]]);
+    expect(path.path.map((p) => [p.token, p.dependsOnPrevious])).toEqual([
+      ['A', false],
+      ['C', false],
+    ]);
     expect(path.buildMs).toBe(12);
     expect(path.boundMs).toBe(10);
     expect(path.barrierMs).toBe(2);
@@ -2659,31 +3147,68 @@ describe('criticalPath', () => {
     const r = report(
       [
         build({ providerId: 'a', token: 'A', startMs: 0, durationMs: 3 }),
-        build({ providerId: 'c', token: 'C', startMs: 3, durationMs: 2, level: 1 }),
+        build({
+          providerId: 'c',
+          token: 'C',
+          startMs: 3,
+          durationMs: 2,
+          level: 1,
+        }),
       ],
-      [['c', 't'], ['t', 'a']],
+      [
+        ['c', 't'],
+        ['t', 'a'],
+      ],
     );
     const graph = r.graph!;
     const withTransient = {
       ...r,
-      graph: { ...graph, providers: [...graph.providers, { id: 't', token: 'T', module: 'Engineering', lifetime: 'transient', kind: 'factory', inline: true }] },
+      graph: {
+        ...graph,
+        providers: [
+          ...graph.providers,
+          {
+            id: 't',
+            token: 'T',
+            module: 'Engineering',
+            lifetime: 'transient',
+            kind: 'factory',
+            inline: true,
+          },
+        ],
+      },
     };
-    expect(criticalPath(withTransient, 0)!.path.map((p) => p.dependsOnPrevious)).toEqual([false, true]);
+    expect(
+      criticalPath(withTransient, 0)!.path.map((p) => p.dependsOnPrevious),
+    ).toEqual([false, true]);
   });
 
   it('reports the late start of an async provider behind sync siblings', () => {
-    const r = report(
-      [
-        build({ providerId: 's', token: 'Sync', startMs: 0, durationMs: 4 }),
-        build({ providerId: 'n', token: 'NavCharts', startMs: 4, durationMs: 20, awaitMs: 19 }),
-      ],
-    );
-    expect(criticalPath(r, 0)!.path[0]).toMatchObject({ token: 'NavCharts', lateMs: 4 });
+    const r = report([
+      build({ providerId: 's', token: 'Sync', startMs: 0, durationMs: 4 }),
+      build({
+        providerId: 'n',
+        token: 'NavCharts',
+        startMs: 4,
+        durationMs: 20,
+        awaitMs: 19,
+      }),
+    ]);
+    expect(criticalPath(r, 0)!.path[0]).toMatchObject({
+      token: 'NavCharts',
+      lateMs: 4,
+    });
   });
 
   it('returns null with no graph, and an empty path for a run with no level builds', () => {
     expect(criticalPath({ ...report([]), graph: null }, 0)).toBeNull();
-    expect(criticalPath(report([]), 0)).toMatchObject({ buildMs: 0, boundMs: 0, barrierMs: 0, path: [], waits: [] });
+    expect(criticalPath(report([]), 0)).toMatchObject({
+      buildMs: 0,
+      boundMs: 0,
+      barrierMs: 0,
+      path: [],
+      waits: [],
+    });
   });
 });
 ```
@@ -2698,8 +3223,25 @@ import { profileTable } from './table.js';
 
 const meridian = report(
   [
-    build({ providerId: 'r', token: 'ReactorCore', startMs: 1, durationMs: 1.2, syncMs: 0.9, finishMs: 0 }),
-    build({ providerId: 'n', token: 'NavCharts', module: 'Tactical', startMs: 2.2, durationMs: 21.8, awaitMs: 21.4, syncMs: 0.3, finishMs: 0.1, level: 1 }),
+    build({
+      providerId: 'r',
+      token: 'ReactorCore',
+      startMs: 1,
+      durationMs: 1.2,
+      syncMs: 0.9,
+      finishMs: 0,
+    }),
+    build({
+      providerId: 'n',
+      token: 'NavCharts',
+      module: 'Tactical',
+      startMs: 2.2,
+      durationMs: 21.8,
+      awaitMs: 21.4,
+      syncMs: 0.3,
+      finishMs: 0.1,
+      level: 1,
+    }),
   ],
   [['n', 'r']],
 );
@@ -2709,8 +3251,12 @@ describe('profileTable', () => {
     const text = profileTable(meridian);
     expect(text.split('\n')[0]).toBe('create 25.0 ms');
     expect(text).toContain('slowest providers');
-    expect(text).toMatch(/NavCharts\s+Tactical\s+1\s+singleton\s+0\.3\s+21\.4\s+0\.1\s+21\.8\s+0\.0\s+async/);
-    expect(text).toMatch(/ReactorCore\s+Engineering\s+0\s+singleton\s+0\.9\s+-\s+0\.0\s+0\.9\s+0\.3/);
+    expect(text).toMatch(
+      /NavCharts\s+Tactical\s+1\s+singleton\s+0\.3\s+21\.4\s+0\.1\s+21\.8\s+0\.0\s+async/,
+    );
+    expect(text).toMatch(
+      /ReactorCore\s+Engineering\s+0\s+singleton\s+0\.9\s+-\s+0\.0\s+0\.9\s+0\.3/,
+    );
     expect(text).toContain('critical path');
   });
 
@@ -2720,22 +3266,57 @@ describe('profileTable', () => {
 
   it('shows the cold run and warm medians for several reports', () => {
     const text = profileTable([meridian, meridian, meridian]);
-    expect(text.split('\n')[0]).toBe('create 25.0 ms, cold; 2 warm, median 25.0 ms');
+    expect(text.split('\n')[0]).toBe(
+      'create 25.0 ms, cold; 2 warm, median 25.0 ms',
+    );
   });
 
   it('marks a failed provider and lists what an open run still awaits', () => {
-    const failed = report([build({ providerId: 'b', token: 'Breach', startMs: 0, durationMs: 1, failed: true, syncMs: null, finishMs: null })], [], { ok: false });
+    const failed = report(
+      [
+        build({
+          providerId: 'b',
+          token: 'Breach',
+          startMs: 0,
+          durationMs: 1,
+          failed: true,
+          syncMs: null,
+          finishMs: null,
+        }),
+      ],
+      [],
+      { ok: false },
+    );
     expect(profileTable(failed)).toMatch(/Breach.*failed/);
     const open = report([], [], {
       ok: null,
       durationMs: null,
-      pending: [{ providerId: 'n', token: 'NavCharts', module: 'Tactical', level: 0, what: 'construct', startMs: 0, syncMs: 0.2 }],
+      pending: [
+        {
+          providerId: 'n',
+          token: 'NavCharts',
+          module: 'Tactical',
+          level: 0,
+          what: 'construct',
+          startMs: 0,
+          syncMs: 0.2,
+        },
+      ],
     });
-    expect(profileTable(open)).toContain('still awaiting: NavCharts (Tactical) factory');
+    expect(profileTable(open)).toContain(
+      'still awaiting: NavCharts (Tactical) factory',
+    );
   });
 
   it('renders an empty run and an all-zero run without NaN or Infinity', () => {
-    for (const r of [report([]), report([build({ providerId: 'z', token: 'Zero', startMs: 0, durationMs: 0 })], [], { durationMs: 0 })]) {
+    for (const r of [
+      report([]),
+      report(
+        [build({ providerId: 'z', token: 'Zero', startMs: 0, durationMs: 0 })],
+        [],
+        { durationMs: 0 },
+      ),
+    ]) {
       const text = profileTable(r);
       expect(text).not.toMatch(/NaN|Infinity/);
     }
@@ -2751,7 +3332,12 @@ Expected: FAIL, modules missing.
 - [ ] Step 3: `critical-path.ts`
 
 ```ts
-import type { CriticalPath, ProfileBuild, ProfileReport, ProfileRun } from './report.js';
+import type {
+  CriticalPath,
+  ProfileBuild,
+  ProfileReport,
+  ProfileRun,
+} from './report.js';
 
 type Graph = NonNullable<ProfileReport['graph']>;
 
@@ -2762,12 +3348,23 @@ export function ownMs(b: ProfileBuild): number {
 const endOf = (b: ProfileBuild): number => b.startMs + b.durationMs;
 
 export function criticalPathOf(run: ProfileRun, graph: Graph): CriticalPath {
-  const levelled = run.builds.filter((b): b is ProfileBuild & { level: number } => b.level !== null && !b.failed);
+  const levelled = run.builds.filter(
+    (b): b is ProfileBuild & { level: number } => b.level !== null && !b.failed,
+  );
   if (levelled.length === 0)
-    return { run: run.id, buildMs: 0, boundMs: 0, barrierMs: 0, path: [], waits: [] };
+    return {
+      run: run.id,
+      buildMs: 0,
+      boundMs: 0,
+      barrierMs: 0,
+      path: [],
+      waits: [],
+    };
   const built = new Map(levelled.map((b) => [b.providerId, b]));
   // Core's rule, as the recording core stated it on the view (spec 3.7).
-  const through = new Set(graph.providers.filter((p) => p.inline).map((p) => p.id));
+  const through = new Set(
+    graph.providers.filter((p) => p.inline).map((p) => p.id),
+  );
   const out = new Map<string, string[]>();
   for (const e of graph.edges) {
     if (!e.ordersBuild) continue;
@@ -2792,7 +3389,9 @@ export function criticalPathOf(run: ProfileRun, graph: Graph): CriticalPath {
 
   const buildStart = Math.min(...levelled.map((b) => b.startMs));
   const buildEnd = Math.max(...levelled.map(endOf));
-  const levels = [...new Set(levelled.map((b) => b.level))].sort((a, b) => a - b);
+  const levels = [...new Set(levelled.map((b) => b.level))].sort(
+    (a, b) => a - b,
+  );
 
   const path: CriticalPath['path'][number][] = [];
   let previous: ProfileBuild | undefined;
@@ -2805,7 +3404,8 @@ export function criticalPathOf(run: ProfileRun, graph: Graph): CriticalPath {
       token: last.token,
       level,
       ownMs: ownMs(last),
-      dependsOnPrevious: previous !== undefined && depsOf(last.providerId).includes(previous),
+      dependsOnPrevious:
+        previous !== undefined && depsOf(last.providerId).includes(previous),
       lateMs: last.async ? last.startMs - levelStart : null,
     });
     previous = last;
@@ -2814,22 +3414,43 @@ export function criticalPathOf(run: ProfileRun, graph: Graph): CriticalPath {
   const waits = levelled
     .map((b) => {
       const deps = depsOf(b.providerId);
-      const ready = deps.length === 0 ? buildStart : Math.max(...deps.map(endOf));
-      return { providerId: b.providerId, token: b.token, waitMs: b.startMs - ready };
+      const ready =
+        deps.length === 0 ? buildStart : Math.max(...deps.map(endOf));
+      return {
+        providerId: b.providerId,
+        token: b.token,
+        waitMs: b.startMs - ready,
+      };
     })
     .filter((w) => w.waitMs > 0)
     .sort((a, b) => b.waitMs - a.waitMs);
 
   const finish = new Map<string, number>();
   for (const b of [...levelled].sort((x, y) => x.level - y.level))
-    finish.set(b.providerId, Math.max(0, ...depsOf(b.providerId).map((d) => finish.get(d.providerId) ?? 0)) + ownMs(b));
+    finish.set(
+      b.providerId,
+      Math.max(
+        0,
+        ...depsOf(b.providerId).map((d) => finish.get(d.providerId) ?? 0),
+      ) + ownMs(b),
+    );
   const boundMs = Math.max(0, ...finish.values());
   const buildMs = buildEnd - buildStart;
-  return { run: run.id, buildMs, boundMs, barrierMs: Math.max(0, buildMs - boundMs), path, waits };
+  return {
+    run: run.id,
+    buildMs,
+    boundMs,
+    barrierMs: Math.max(0, buildMs - boundMs),
+    path,
+    waits,
+  };
 }
 
 /** null when the report has no graph (no create reached setup) or no such run. */
-export function criticalPath(report: ProfileReport, run: number): CriticalPath | null {
+export function criticalPath(
+  report: ProfileReport,
+  run: number,
+): CriticalPath | null {
   const found = report.runs.find((r) => r.id === run);
   if (report.graph === null || found === undefined) return null;
   return criticalPathOf(found, report.graph);
@@ -2848,22 +3469,42 @@ const ms = (n: number | null): string => (n === null ? '-' : n.toFixed(1));
 function median(xs: readonly number[]): number {
   const s = [...xs].sort((a, b) => a - b);
   const mid = s.length >> 1;
-  return s.length === 0 ? 0 : s.length % 2 === 1 ? s[mid]! : (s[mid - 1]! + s[mid]!) / 2;
+  return s.length === 0
+    ? 0
+    : s.length % 2 === 1
+      ? s[mid]!
+      : (s[mid - 1]! + s[mid]!) / 2;
 }
 
 /** Lines of padded columns; `right` marks the numeric ones. */
-function columns(rows: readonly (readonly string[])[], right: readonly boolean[]): string[] {
-  const widths = right.map((_, i) => Math.max(...rows.map((r) => (r[i] ?? '').length)));
+function columns(
+  rows: readonly (readonly string[])[],
+  right: readonly boolean[],
+): string[] {
+  const widths = right.map((_, i) =>
+    Math.max(...rows.map((r) => (r[i] ?? '').length)),
+  );
   return rows.map((r) =>
-    r.map((cell, i) => (right[i] ? cell.padStart(widths[i]!) : cell.padEnd(widths[i]!))).join('  ').trimEnd(),
+    r
+      .map((cell, i) =>
+        right[i] ? cell.padStart(widths[i]!) : cell.padEnd(widths[i]!),
+      )
+      .join('  ')
+      .trimEnd(),
   );
 }
 
 const spanOf = (run: ProfileRun): number =>
-  run.durationMs ?? Math.max(0, ...run.builds.map((b) => b.startMs + b.durationMs - run.startMs));
+  run.durationMs ??
+  Math.max(0, ...run.builds.map((b) => b.startMs + b.durationMs - run.startMs));
 
-function pick(report: ProfileReport, id: number | undefined): ProfileRun | undefined {
-  return id === undefined ? report.runs[0] : report.runs.find((r) => r.id === id);
+function pick(
+  report: ProfileReport,
+  id: number | undefined,
+): ProfileRun | undefined {
+  return id === undefined
+    ? report.runs[0]
+    : report.runs.find((r) => r.id === id);
 }
 
 /** Steps, slowest providers, levels and the critical path. Several reports: the first as cold, the rest as warm medians. */
@@ -2871,23 +3512,30 @@ export function profileTable(
   report: ProfileReport | readonly ProfileReport[],
   options: { readonly run?: number; readonly top?: number } = {},
 ): string {
-  const reports: readonly ProfileReport[] = Array.isArray(report) ? report : [report as ProfileReport];
+  const reports: readonly ProfileReport[] = Array.isArray(report)
+    ? report
+    : [report as ProfileReport];
   const [cold, ...warm] = reports;
   const run = cold === undefined ? undefined : pick(cold, options.run);
   if (cold === undefined || run === undefined) return 'no run recorded\n';
   const warmRuns = warm.flatMap((r) => pick(r, options.run) ?? []);
   const lines: string[] = [];
 
-  const status = run.ok === false ? ', failed' : run.ok === null ? ', still running' : '';
+  const status =
+    run.ok === false ? ', failed' : run.ok === null ? ', still running' : '';
   lines.push(
     `${runLabel(run)} ${ms(spanOf(run))} ms${status}` +
-      (warmRuns.length > 0 ? `, cold; ${warmRuns.length} warm, median ${ms(median(warmRuns.map(spanOf)))} ms` : ''),
+      (warmRuns.length > 0
+        ? `, cold; ${warmRuns.length} warm, median ${ms(median(warmRuns.map(spanOf)))} ms`
+        : ''),
   );
 
   const steps = run.steps.length > 0 ? run.steps : stepsOf(run);
   const total = steps.reduce((sum, s) => sum + s.durationMs, 0);
   const levels = new Map<number, ProfileBuild[]>();
-  for (const b of run.builds) if (b.level !== null) levels.set(b.level, [...(levels.get(b.level) ?? []), b]);
+  for (const b of run.builds)
+    if (b.level !== null)
+      levels.set(b.level, [...(levels.get(b.level) ?? []), b]);
   const note = (step: string): string => {
     if (step === 'build')
       return `${levels.size} levels, ${run.builds.filter((b) => b.level !== null).length} providers, ${run.builds.filter((b) => b.async).length} async`;
@@ -2895,54 +3543,106 @@ export function profileTable(
     return '';
   };
   const warmStep = (step: string): string =>
-    warmRuns.length === 0 ? '' : ms(median(warmRuns.map((r) => (r.steps.length > 0 ? r.steps : stepsOf(r)).find((s) => s.step === step)?.durationMs ?? 0)));
-  lines.push('', ...columns(
-    [
-      ['step', 'ms', 'share', ...(warmRuns.length > 0 ? ['warm ms'] : []), ''],
-      ...steps.map((s) => [
-        s.step,
-        ms(s.durationMs),
-        `${(total > 0 ? (s.durationMs / total) * 100 : 0).toFixed(1)}%`,
-        ...(warmRuns.length > 0 ? [warmStep(s.step)] : []),
-        note(s.step),
-      ]),
-    ],
-    [false, true, true, ...(warmRuns.length > 0 ? [true] : []), false],
-  ));
+    warmRuns.length === 0
+      ? ''
+      : ms(
+          median(
+            warmRuns.map(
+              (r) =>
+                (r.steps.length > 0 ? r.steps : stepsOf(r)).find(
+                  (s) => s.step === step,
+                )?.durationMs ?? 0,
+            ),
+          ),
+        );
+  lines.push(
+    '',
+    ...columns(
+      [
+        [
+          'step',
+          'ms',
+          'share',
+          ...(warmRuns.length > 0 ? ['warm ms'] : []),
+          '',
+        ],
+        ...steps.map((s) => [
+          s.step,
+          ms(s.durationMs),
+          `${(total > 0 ? (s.durationMs / total) * 100 : 0).toFixed(1)}%`,
+          ...(warmRuns.length > 0 ? [warmStep(s.step)] : []),
+          note(s.step),
+        ]),
+      ],
+      [false, true, true, ...(warmRuns.length > 0 ? [true] : []), false],
+    ),
+  );
 
-  const rows = [...run.builds].sort((a, b) => ownMs(b) - ownMs(a)).slice(0, options.top ?? 20);
-  lines.push('', 'slowest providers', ...columns(
-    [
-      ['provider', 'module', 'level', 'lifetime', 'sync ms', 'await ms', 'finish ms', 'own ms', 'queued ms', ''],
-      ...rows.map((b) => [
-        b.token,
-        b.module,
-        b.level === null ? '-' : String(b.level),
-        b.lifetime ?? '-',
-        ms(b.syncMs),
-        ms(b.awaitMs),
-        ms(b.finishMs),
-        ms(ownMs(b)),
-        ms(b.failed ? null : Math.max(0, b.durationMs - ownMs(b))),
-        b.failed ? 'failed' : b.async ? 'async' : '',
-      ]),
-    ],
-    [false, false, true, false, true, true, true, true, true, false],
-  ));
+  const rows = [...run.builds]
+    .sort((a, b) => ownMs(b) - ownMs(a))
+    .slice(0, options.top ?? 20);
+  lines.push(
+    '',
+    'slowest providers',
+    ...columns(
+      [
+        [
+          'provider',
+          'module',
+          'level',
+          'lifetime',
+          'sync ms',
+          'await ms',
+          'finish ms',
+          'own ms',
+          'queued ms',
+          '',
+        ],
+        ...rows.map((b) => [
+          b.token,
+          b.module,
+          b.level === null ? '-' : String(b.level),
+          b.lifetime ?? '-',
+          ms(b.syncMs),
+          ms(b.awaitMs),
+          ms(b.finishMs),
+          ms(ownMs(b)),
+          ms(b.failed ? null : Math.max(0, b.durationMs - ownMs(b))),
+          b.failed ? 'failed' : b.async ? 'async' : '',
+        ]),
+      ],
+      [false, false, true, false, true, true, true, true, true, false],
+    ),
+  );
 
   if (levels.size > 0) {
-    lines.push('', 'levels', ...columns(
-      [
-        ['level', 'providers', 'wall ms', 'slowest'],
-        ...[...levels].sort(([a], [b]) => a - b).map(([level, builds]) => {
-          const start = Math.min(...builds.map((b) => b.startMs));
-          const end = Math.max(...builds.map((b) => b.startMs + b.durationMs));
-          const slowest = builds.reduce((a, b) => (ownMs(b) > ownMs(a) ? b : a));
-          return [String(level), String(builds.length), ms(end - start), `${slowest.token} ${ms(ownMs(slowest))}`];
-        }),
-      ],
-      [true, true, true, false],
-    ));
+    lines.push(
+      '',
+      'levels',
+      ...columns(
+        [
+          ['level', 'providers', 'wall ms', 'slowest'],
+          ...[...levels]
+            .sort(([a], [b]) => a - b)
+            .map(([level, builds]) => {
+              const start = Math.min(...builds.map((b) => b.startMs));
+              const end = Math.max(
+                ...builds.map((b) => b.startMs + b.durationMs),
+              );
+              const slowest = builds.reduce((a, b) =>
+                ownMs(b) > ownMs(a) ? b : a,
+              );
+              return [
+                String(level),
+                String(builds.length),
+                ms(end - start),
+                `${slowest.token} ${ms(ownMs(slowest))}`,
+              ];
+            }),
+        ],
+        [true, true, true, false],
+      ),
+    );
   }
 
   if (cold.graph !== null && levels.size > 0) {
@@ -2955,25 +3655,44 @@ export function profileTable(
           `level ${p.level}`,
           p.token,
           `${ms(p.ownMs)} ms`,
-          i === 0 ? '' : p.dependsOnPrevious ? `depends on ${path.path[i - 1]!.token}` : 'barrier: depends on nothing in the level before',
-          p.lateMs !== null && p.lateMs > 0 ? `started ${ms(p.lateMs)} ms late, behind sync siblings` : '',
+          i === 0
+            ? ''
+            : p.dependsOnPrevious
+              ? `depends on ${path.path[i - 1]!.token}`
+              : 'barrier: depends on nothing in the level before',
+          p.lateMs !== null && p.lateMs > 0
+            ? `started ${ms(p.lateMs)} ms late, behind sync siblings`
+            : '',
         ]),
         [false, false, true, false, false],
       ),
     );
     if (path.waits.length > 0)
-      lines.push('', 'barrier waits (start minus the end of its own deps)', ...columns(
-        path.waits.slice(0, 5).map((w) => [w.token, `${ms(w.waitMs)} ms`]),
-        [false, true],
-      ));
+      lines.push(
+        '',
+        'barrier waits (start minus the end of its own deps)',
+        ...columns(
+          path.waits.slice(0, 5).map((w) => [w.token, `${ms(w.waitMs)} ms`]),
+          [false, true],
+        ),
+      );
   }
 
   if (run.pending.length > 0)
-    lines.push('', `still awaiting: ${run.pending
-      .map((p) => `${p.token}${p.module === '' ? '' : ` (${p.module})`} ${p.what === 'construct' ? 'factory' : 'onInit'}, ${ms(cold.reportedMs - p.startMs)} ms`)
-      .join('; ')}`);
+    lines.push(
+      '',
+      `still awaiting: ${run.pending
+        .map(
+          (p) =>
+            `${p.token}${p.module === '' ? '' : ` (${p.module})`} ${p.what === 'construct' ? 'factory' : 'onInit'}, ${ms(cold.reportedMs - p.startMs)} ms`,
+        )
+        .join('; ')}`,
+    );
   if (cold.dispose !== null)
-    lines.push('', `dispose ${ms(cold.dispose.durationMs)} ms${cold.dispose.errors > 0 ? `, ${cold.dispose.errors} errors` : ''}`);
+    lines.push(
+      '',
+      `dispose ${ms(cold.dispose.durationMs)} ms${cold.dispose.errors > 0 ? `, ${cold.dispose.errors} errors` : ''}`,
+    );
   return `${lines.join('\n')}\n`;
 }
 ```
@@ -3013,7 +3732,9 @@ import { thrown } from '../../test-support/catch.js';
 import { build, report } from '../../test-support/profile-fixture.js';
 import { parseProfileReport } from './parse.js';
 
-const good = report([build({ providerId: 'a', token: 'A', startMs: 0, durationMs: 1 })]);
+const good = report([
+  build({ providerId: 'a', token: 'A', startMs: 0, durationMs: 1 }),
+]);
 
 function pathOf(value: unknown): string | null {
   const error = thrown(() => parseProfileReport(value));
@@ -3062,7 +3783,10 @@ class FusionReactor implements IReactorCore {
   readonly output = 1.21;
   [Symbol.dispose]() {}
 }
-const Engineering = defineModule({ name: 'Engineering', providers: [provide(REACTOR, { useClass: FusionReactor })] });
+const Engineering = defineModule({
+  name: 'Engineering',
+  providers: [provide(REACTOR, { useClass: FusionReactor })],
+});
 
 describe('profileStartup', () => {
   it('creates, loads in order, disposes and resolves with the report', async () => {
@@ -3070,7 +3794,10 @@ describe('profileStartup', () => {
     const report = await profileStartup(Engineering, {
       load: [defineModule({ name: 'Science', providers: [Probe] })],
     });
-    expect(report.runs.map((r) => [r.kind, r.ok])).toEqual([['create', true], ['load', true]]);
+    expect(report.runs.map((r) => [r.kind, r.ok])).toEqual([
+      ['create', true],
+      ['load', true],
+    ]);
     expect(report.dispose).toMatchObject({ errors: 0 });
   });
 
@@ -3081,7 +3808,11 @@ describe('profileStartup', () => {
       }
     }
     const profiler = profile();
-    await rejected(profileStartup(defineModule({ name: 'Root', providers: [Breach] }), { profiler }));
+    await rejected(
+      profileStartup(defineModule({ name: 'Root', providers: [Breach] }), {
+        profiler,
+      }),
+    );
     expect(profiler.report().runs).toMatchObject([{ ok: false }]);
   });
 
@@ -3091,7 +3822,9 @@ describe('profileStartup', () => {
         throw new Error('seal');
       }
     }
-    const report = await profileStartup(defineModule({ name: 'Root', providers: [Leaky] }));
+    const report = await profileStartup(
+      defineModule({ name: 'Root', providers: [Leaky] }),
+    );
     expect(report.dispose).toMatchObject({ errors: 1 });
   });
 });
@@ -3115,7 +3848,9 @@ type Check = (value: unknown, path: string) => void;
 function fail(path: string, what: string): never {
   throw new DevtoolsError(
     { code: 'NEXUS_DEVTOOLS_PROFILE_INVALID', path },
-    { text: `not a ProfileReport: ${path} ${what}.\n  Fix: re-record the report with this version of @nexusdi/devtools.` },
+    {
+      text: `not a ProfileReport: ${path} ${what}.\n  Fix: re-record the report with this version of @nexusdi/devtools.`,
+    },
   );
 }
 
@@ -3129,42 +3864,95 @@ const str: Check = (v, p) => {
 const bool: Check = (v, p) => {
   if (typeof v !== 'boolean') fail(p, WRONG);
 };
-const orNull = (check: Check): Check => (v, p) => {
-  if (v !== null) check(v, p);
-};
-const literal = (expected: unknown, what: string): Check => (v, p) => {
-  if (v !== expected) fail(p, what);
-};
-const oneOf = (values: readonly string[]): Check => (v, p) => {
-  if (typeof v !== 'string' || !values.includes(v)) fail(p, WRONG);
-};
-const list = (each: Check): Check => (v, p) => {
-  if (!Array.isArray(v)) fail(p, WRONG);
-  v.forEach((item, i) => each(item, `${p}[${i}]`));
-};
-const shape = (fields: Readonly<Record<string, Check>>): Check => (v, p) => {
-  if (typeof v !== 'object' || v === null || Array.isArray(v)) fail(p, WRONG);
-  for (const [key, check] of Object.entries(fields))
-    check((v as Record<string, unknown>)[key], p === '(root)' ? key : `${p}.${key}`);
-};
+const orNull =
+  (check: Check): Check =>
+  (v, p) => {
+    if (v !== null) check(v, p);
+  };
+const literal =
+  (expected: unknown, what: string): Check =>
+  (v, p) => {
+    if (v !== expected) fail(p, what);
+  };
+const oneOf =
+  (values: readonly string[]): Check =>
+  (v, p) => {
+    if (typeof v !== 'string' || !values.includes(v)) fail(p, WRONG);
+  };
+const list =
+  (each: Check): Check =>
+  (v, p) => {
+    if (!Array.isArray(v)) fail(p, WRONG);
+    v.forEach((item, i) => each(item, `${p}[${i}]`));
+  };
+const shape =
+  (fields: Readonly<Record<string, Check>>): Check =>
+  (v, p) => {
+    if (typeof v !== 'object' || v === null || Array.isArray(v)) fail(p, WRONG);
+    for (const [key, check] of Object.entries(fields))
+      check(
+        (v as Record<string, unknown>)[key],
+        p === '(root)' ? key : `${p}.${key}`,
+      );
+  };
 
 const SPAN = { startMs: num, durationMs: num };
 const BUILD = shape({
-  providerId: str, token: str, module: str, lifetime: orNull(str), scope: orNull(str), async: bool,
-  level: orNull(num), parent: orNull(str), startMs: num, syncMs: orNull(num), awaitMs: orNull(num),
-  finishMs: orNull(num), durationMs: num, failed: bool,
+  providerId: str,
+  token: str,
+  module: str,
+  lifetime: orNull(str),
+  scope: orNull(str),
+  async: bool,
+  level: orNull(num),
+  parent: orNull(str),
+  startMs: num,
+  syncMs: orNull(num),
+  awaitMs: orNull(num),
+  finishMs: orNull(num),
+  durationMs: num,
+  failed: bool,
 });
 const INIT = shape({
-  providerId: str, token: str, level: orNull(num), async: bool, startMs: num, syncMs: orNull(num),
-  awaitMs: orNull(num), durationMs: num, failed: bool,
+  providerId: str,
+  token: str,
+  level: orNull(num),
+  async: bool,
+  startMs: num,
+  syncMs: orNull(num),
+  awaitMs: orNull(num),
+  durationMs: num,
+  failed: bool,
 });
 const RUN = shape({
-  id: num, kind: str, scope: orNull(str), ok: orNull(bool), startMs: num, durationMs: orNull(num),
-  compile: orNull(shape({ ...SPAN, modules: num, providers: num, errors: num })),
-  steps: list(shape({ step: oneOf(['compile', 'static', 'build', 'init', 'setup']), ...SPAN })),
+  id: num,
+  kind: str,
+  scope: orNull(str),
+  ok: orNull(bool),
+  startMs: num,
+  durationMs: orNull(num),
+  compile: orNull(
+    shape({ ...SPAN, modules: num, providers: num, errors: num }),
+  ),
+  steps: list(
+    shape({
+      step: oneOf(['compile', 'static', 'build', 'init', 'setup']),
+      ...SPAN,
+    }),
+  ),
   builds: list(BUILD),
   inits: list(INIT),
-  pending: list(shape({ providerId: str, token: str, module: str, level: orNull(num), what: oneOf(['construct', 'init']), startMs: num, syncMs: num })),
+  pending: list(
+    shape({
+      providerId: str,
+      token: str,
+      module: str,
+      level: orNull(num),
+      what: oneOf(['construct', 'init']),
+      startMs: num,
+      syncMs: num,
+    }),
+  ),
 });
 const REPORT = shape({
   format: literal('nexusdi-profile', "is not 'nexusdi-profile'"),
@@ -3172,11 +3960,22 @@ const REPORT = shape({
   timeOrigin: num,
   reportedMs: num,
   runs: list(RUN),
-  graph: orNull(shape({
-    root: str,
-    providers: list(shape({ id: str, token: str, module: str, lifetime: orNull(str), kind: str, inline: bool })),
-    edges: list(shape({ from: str, to: str, kind: str, ordersBuild: bool })),
-  })),
+  graph: orNull(
+    shape({
+      root: str,
+      providers: list(
+        shape({
+          id: str,
+          token: str,
+          module: str,
+          lifetime: orNull(str),
+          kind: str,
+          inline: bool,
+        }),
+      ),
+      edges: list(shape({ from: str, to: str, kind: str, ordersBuild: bool })),
+    }),
+  ),
   dropped: num,
   dispose: orNull(shape({ ...SPAN, errors: num })),
 });
@@ -3191,7 +3990,12 @@ export function parseProfileReport(value: unknown): ProfileReport {
 `startup.ts`:
 
 ```ts
-import { Nexus, type ModuleRef, type NexusPlugin, type RootRef } from '@nexusdi/core';
+import {
+  Nexus,
+  type ModuleRef,
+  type NexusPlugin,
+  type RootRef,
+} from '@nexusdi/core';
 
 import { profile, type Profiler } from './profile.js';
 import type { ProfileReport } from './report.js';
@@ -3212,7 +4016,9 @@ export async function profileStartup(
   } = {},
 ): Promise<ProfileReport> {
   const profiler = options.profiler ?? profile();
-  const ship = await Nexus.create(root as never, { plugins: [profiler, ...(options.plugins ?? [])] });
+  const ship = await Nexus.create(root as never, {
+    plugins: [profiler, ...(options.plugins ?? [])],
+  });
   try {
     for (const module of options.load ?? []) await ship.load(module);
   } catch (error) {
@@ -3243,7 +4049,17 @@ Interfaces:
 - Produces in `spans.ts`:
 
 ```ts
-export type SpanColor = 'primary' | 'primary-light' | 'primary-dark' | 'secondary' | 'secondary-light' | 'secondary-dark' | 'tertiary' | 'tertiary-light' | 'tertiary-dark' | 'error';
+export type SpanColor =
+  | 'primary'
+  | 'primary-light'
+  | 'primary-dark'
+  | 'secondary'
+  | 'secondary-light'
+  | 'secondary-dark'
+  | 'tertiary'
+  | 'tertiary-light'
+  | 'tertiary-dark'
+  | 'error';
 export interface Span {
   readonly name: string;
   readonly track: string;
@@ -3254,7 +4070,11 @@ export interface Span {
   readonly properties: readonly (readonly [string, string])[];
   readonly marker: boolean;
 }
-export function spansOf(run: ProfileRun, graph: ProfileReport['graph'], reportedMs: number): Span[];
+export function spansOf(
+  run: ProfileRun,
+  graph: ProfileReport['graph'],
+  reportedMs: number,
+): Span[];
 ```
 
 - Produces: `toChromeTrace(report: ProfileReport, options?: { readonly cpuProfile?: { readonly profile: CpuProfile; readonly offsetMs: number }; readonly trackGroup?: string }): TraceFile`; `liveSink(trackGroup: string): ((run: ProfileRun, graph: ProfileReport['graph']) => void) | undefined`.
@@ -3271,8 +4091,24 @@ import { spansOf } from './spans.js';
 
 const r = report(
   [
-    build({ providerId: 'r', token: 'ReactorCore', startMs: 1, durationMs: 1.2, syncMs: 0.9, finishMs: 0 }),
-    build({ providerId: 'n', token: 'NavCharts', startMs: 2.2, durationMs: 21.8, syncMs: 0.3, awaitMs: 21.4, finishMs: 0.1, level: 1 }),
+    build({
+      providerId: 'r',
+      token: 'ReactorCore',
+      startMs: 1,
+      durationMs: 1.2,
+      syncMs: 0.9,
+      finishMs: 0,
+    }),
+    build({
+      providerId: 'n',
+      token: 'NavCharts',
+      startMs: 2.2,
+      durationMs: 21.8,
+      syncMs: 0.3,
+      awaitMs: 21.4,
+      finishMs: 0.1,
+      level: 1,
+    }),
   ],
   [['n', 'r']],
 );
@@ -3282,30 +4118,57 @@ describe('spansOf', () => {
     const spans = spansOf(r.runs[0]!, r.graph, r.reportedMs);
     const nav = spans.filter((s) => s.track === 'create · level 1');
     const tenth = (n: number) => Math.round(n * 10) / 10;
-    expect(nav.map((s) => [s.name, tenth(s.startMs), tenth(s.endMs), s.color])).toEqual([
+    expect(
+      nav.map((s) => [s.name, tenth(s.startMs), tenth(s.endMs), s.color]),
+    ).toEqual([
       ['NavCharts', 2.2, 24, 'primary-dark'],
       ['sync', 2.2, 2.5, 'primary-light'],
       ['await', 2.5, 23.9, 'secondary'],
       ['finish', 23.9, 24, 'tertiary-light'],
     ]);
-    expect(nav[0]!.tooltip).toBe('NavCharts 21.8 ms (0.3 sync, 21.4 await), critical path');
+    expect(nav[0]!.tooltip).toBe(
+      'NavCharts 21.8 ms (0.3 sync, 21.4 await), critical path',
+    );
   });
 
   it('draws the run, its steps and a ready marker', () => {
     const spans = spansOf(r.runs[0]!, r.graph, r.reportedMs);
-    expect(spans.filter((s) => s.track === 'Runs' && !s.marker).map((s) => s.name)).toEqual(['create']);
-    expect(spans.filter((s) => s.marker).map((s) => s.name)).toEqual(['create ready']);
-    expect(spans.some((s) => s.track === 'Steps' && s.name === 'build')).toBe(true);
+    expect(
+      spans.filter((s) => s.track === 'Runs' && !s.marker).map((s) => s.name),
+    ).toEqual(['create']);
+    expect(spans.filter((s) => s.marker).map((s) => s.name)).toEqual([
+      'create ready',
+    ]);
+    expect(spans.some((s) => s.track === 'Steps' && s.name === 'build')).toBe(
+      true,
+    );
   });
 
   it('draws a pending build to the report time in the error colour', () => {
     const open = report([], [], {
       ok: null,
       durationMs: null,
-      pending: [{ providerId: 'n', token: 'NavCharts', module: 'Tactical', level: 0, what: 'construct', startMs: 5, syncMs: 0.2 }],
+      pending: [
+        {
+          providerId: 'n',
+          token: 'NavCharts',
+          module: 'Tactical',
+          level: 0,
+          what: 'construct',
+          startMs: 5,
+          syncMs: 0.2,
+        },
+      ],
     });
-    const pending = spansOf(open.runs[0]!, open.graph, 60_005).find((s) => s.name === 'NavCharts')!;
-    expect(pending).toMatchObject({ startMs: 5, endMs: 60_005, color: 'error', tooltip: 'NavCharts still awaiting at timeout' });
+    const pending = spansOf(open.runs[0]!, open.graph, 60_005).find(
+      (s) => s.name === 'NavCharts',
+    )!;
+    expect(pending).toMatchObject({
+      startMs: 5,
+      endMs: 60_005,
+      color: 'error',
+      tooltip: 'NavCharts still awaiting at timeout',
+    });
   });
 });
 ```
@@ -3318,14 +4181,29 @@ import { describe, expect, it } from 'vitest';
 import { build, report } from '../../test-support/profile-fixture.js';
 import { toChromeTrace } from './chrome.js';
 
-const r = report([build({ providerId: 'q', token: 'Quote"\\·Core', startMs: 1, durationMs: 2 })]);
+const r = report([
+  build({ providerId: 'q', token: 'Quote"\\·Core', startMs: 1, durationMs: 2 }),
+]);
 
 describe('toChromeTrace', () => {
   it('starts with the metadata and the TracingStartedInBrowser frame DevTools needs', () => {
     const { traceEvents } = toChromeTrace(r);
-    const started = traceEvents.find((e) => e['name'] === 'TracingStartedInBrowser')!;
-    expect(started).toMatchObject({ pid: 2, tid: 2, cat: 'disabled-by-default-devtools.timeline', ts: 0 });
-    expect((started['args'] as { data: { frames: { frame: string; url: string }[] } }).data.frames[0]).toMatchObject({
+    const started = traceEvents.find(
+      (e) => e['name'] === 'TracingStartedInBrowser',
+    )!;
+    expect(started).toMatchObject({
+      pid: 2,
+      tid: 2,
+      cat: 'disabled-by-default-devtools.timeline',
+      ts: 0,
+    });
+    expect(
+      (
+        started['args'] as {
+          data: { frames: { frame: string; url: string }[] };
+        }
+      ).data.frames[0],
+    ).toMatchObject({
       frame: 'F1',
       url: 'nexusdi://profile/Meridian',
       isInPrimaryMainFrame: true,
@@ -3336,34 +4214,77 @@ describe('toChromeTrace', () => {
 
   it('writes each span as a b/e pair with a JSON detail that stays valid with quotes and backslashes', () => {
     const { traceEvents } = toChromeTrace(r, { trackGroup: 'Ship' });
-    const begin = traceEvents.find((e) => e['ph'] === 'b' && e['name'] === 'Quote"\\·Core')!;
-    const detail = JSON.parse((begin['args'] as { detail: string }).detail) as { devtools: { track: string; trackGroup: string } };
-    expect(detail.devtools).toMatchObject({ track: 'create · level 0', trackGroup: 'Ship' });
+    const begin = traceEvents.find(
+      (e) => e['ph'] === 'b' && e['name'] === 'Quote"\\·Core',
+    )!;
+    const detail = JSON.parse((begin['args'] as { detail: string }).detail) as {
+      devtools: { track: string; trackGroup: string };
+    };
+    expect(detail.devtools).toMatchObject({
+      track: 'create · level 0',
+      trackGroup: 'Ship',
+    });
     expect(begin['ts']).toBe(1000);
-    const end = traceEvents.find((e) => e['ph'] === 'e' && (e['id2'] as { local: string }).local === (begin['id2'] as { local: string }).local)!;
+    const end = traceEvents.find(
+      (e) =>
+        e['ph'] === 'e' &&
+        (e['id2'] as { local: string }).local ===
+          (begin['id2'] as { local: string }).local,
+    )!;
     expect(end['ts']).toBe(3000);
   });
 
   it('merges a CPU profile and shifts every span by offsetMs', () => {
     const profile = {
       nodes: [
-        { id: 1, callFrame: { functionName: '(root)', scriptId: '0', url: '', lineNumber: -1, columnNumber: -1 }, children: [2] },
-        { id: 2, callFrame: { functionName: 'build', scriptId: '1', url: 'file:///a.js', lineNumber: 1, columnNumber: 1 } },
+        {
+          id: 1,
+          callFrame: {
+            functionName: '(root)',
+            scriptId: '0',
+            url: '',
+            lineNumber: -1,
+            columnNumber: -1,
+          },
+          children: [2],
+        },
+        {
+          id: 2,
+          callFrame: {
+            functionName: 'build',
+            scriptId: '1',
+            url: 'file:///a.js',
+            lineNumber: 1,
+            columnNumber: 1,
+          },
+        },
       ],
       startTime: 500_000,
       endTime: 520_000,
       samples: [2, 2],
       timeDeltas: [0, 100],
     };
-    const { traceEvents } = toChromeTrace(r, { cpuProfile: { profile, offsetMs: 500 } });
+    const { traceEvents } = toChromeTrace(r, {
+      cpuProfile: { profile, offsetMs: 500 },
+    });
     const chunk = traceEvents.find((e) => e['name'] === 'ProfileChunk')!;
-    const nodes = (chunk['args'] as { data: { cpuProfile: { nodes: { id: number; parent?: number }[] } } }).data.cpuProfile.nodes;
+    const nodes = (
+      chunk['args'] as {
+        data: { cpuProfile: { nodes: { id: number; parent?: number }[] } };
+      }
+    ).data.cpuProfile.nodes;
     expect(nodes.find((n) => n.id === 2)?.parent).toBe(1);
-    expect(traceEvents.find((e) => e['ph'] === 'b' && e['name'] === 'Quote"\\·Core')!['ts']).toBe(501_000);
+    expect(
+      traceEvents.find(
+        (e) => e['ph'] === 'b' && e['name'] === 'Quote"\\·Core',
+      )!['ts'],
+    ).toBe(501_000);
   });
 
   it('writes no NaN for an empty report', () => {
-    expect(JSON.stringify(toChromeTrace(report([])))).not.toMatch(/NaN|"ts":null|"dur":null/);
+    expect(JSON.stringify(toChromeTrace(report([])))).not.toMatch(
+      /NaN|"ts":null|"dur":null/,
+    );
   });
 });
 ```
@@ -3379,25 +4300,48 @@ describe('liveSink', () => {
   afterEach(() => vi.unstubAllGlobals());
 
   it('draws nothing outside Chromium 134 and later', () => {
-    vi.stubGlobal('navigator', { userAgentData: { brands: [{ brand: 'Chromium', version: '133' }] } });
+    vi.stubGlobal('navigator', {
+      userAgentData: { brands: [{ brand: 'Chromium', version: '133' }] },
+    });
     expect(liveSink('NexusDI')).toBeUndefined();
     vi.stubGlobal('navigator', undefined);
     expect(liveSink('NexusDI')).toBeUndefined();
   });
 
   it('calls console.timeStamp per span and swallows its errors', () => {
-    vi.stubGlobal('navigator', { userAgentData: { brands: [{ brand: 'Chromium', version: '134' }] } });
+    vi.stubGlobal('navigator', {
+      userAgentData: { brands: [{ brand: 'Chromium', version: '134' }] },
+    });
     const stamp = vi.spyOn(console, 'timeStamp').mockImplementation(() => {
       throw new Error('no recorder');
     });
     const sink = liveSink('NexusDI')!;
     expect(() =>
       sink(
-        { id: 0, kind: 'create', scope: null, ok: true, startMs: 0, durationMs: 1, compile: null, steps: [], builds: [], inits: [], pending: [] },
+        {
+          id: 0,
+          kind: 'create',
+          scope: null,
+          ok: true,
+          startMs: 0,
+          durationMs: 1,
+          compile: null,
+          steps: [],
+          builds: [],
+          inits: [],
+          pending: [],
+        },
         null,
       ),
     ).not.toThrow();
-    expect(stamp).toHaveBeenCalledWith('create', 0, 1, 'Runs', 'NexusDI', 'secondary-dark');
+    expect(stamp).toHaveBeenCalledWith(
+      'create',
+      0,
+      1,
+      'Runs',
+      'NexusDI',
+      'secondary-dark',
+    );
   });
 });
 ```
@@ -3418,18 +4362,48 @@ import { runLabel, stepsOf } from './steps.js';
 
 const ms = (n: number): string => n.toFixed(1);
 
-function span(name: string, track: string, startMs: number, endMs: number, color: SpanColor, tooltip = name, properties: Span['properties'] = []): Span {
-  return { name, track, startMs, endMs, color, tooltip, properties, marker: false };
+function span(
+  name: string,
+  track: string,
+  startMs: number,
+  endMs: number,
+  color: SpanColor,
+  tooltip = name,
+  properties: Span['properties'] = [],
+): Span {
+  return {
+    name,
+    track,
+    startMs,
+    endMs,
+    color,
+    tooltip,
+    properties,
+    marker: false,
+  };
 }
 
 /** The spans of one run, in the layout of spec 7.3. live.ts and chrome.ts both draw these. */
-export function spansOf(run: ProfileRun, graph: ProfileReport['graph'], reportedMs: number): Span[] {
+export function spansOf(
+  run: ProfileRun,
+  graph: ProfileReport['graph'],
+  reportedMs: number,
+): Span[] {
   const label = runLabel(run);
-  const end = run.durationMs === null ? reportedMs : run.startMs + run.durationMs;
-  const critical = new Set(graph === null ? [] : criticalPathOf(run, graph).path.map((p) => p.providerId));
-  const spans: Span[] = [span(label, 'Runs', run.startMs, end, 'secondary-dark')];
+  const end =
+    run.durationMs === null ? reportedMs : run.startMs + run.durationMs;
+  const critical = new Set(
+    graph === null
+      ? []
+      : criticalPathOf(run, graph).path.map((p) => p.providerId),
+  );
+  const spans: Span[] = [
+    span(label, 'Runs', run.startMs, end, 'secondary-dark'),
+  ];
   for (const s of run.steps.length > 0 ? run.steps : stepsOf(run))
-    spans.push(span(s.step, 'Steps', s.startMs, s.startMs + s.durationMs, 'tertiary'));
+    spans.push(
+      span(s.step, 'Steps', s.startMs, s.startMs + s.durationMs, 'tertiary'),
+    );
 
   const provider = (b: ProfileBuild & { level: number }): void => {
     const track = `${label} · level ${b.level}`;
@@ -3438,35 +4412,90 @@ export function spansOf(run: ProfileRun, graph: ProfileReport['graph'], reported
     const queued = b.failed ? null : Math.max(0, b.durationMs - ownMs(b));
     const tooltip =
       `${b.token} ${ms(b.durationMs)} ms` +
-      (b.syncMs === null ? '' : ` (${ms(b.syncMs)} sync${b.awaitMs === null ? '' : `, ${ms(b.awaitMs)} await`})`) +
+      (b.syncMs === null
+        ? ''
+        : ` (${ms(b.syncMs)} sync${b.awaitMs === null ? '' : `, ${ms(b.awaitMs)} await`})`) +
       (b.failed ? ', failed' : onPath ? ', critical path' : '');
-    spans.push(span(b.token, track, b.startMs, stop, b.failed ? 'error' : onPath ? 'primary-dark' : 'primary', tooltip, [
-      ['module', b.module],
-      ['lifetime', b.lifetime ?? '-'],
-      ['level', String(b.level)],
-      ['sync ms', b.syncMs === null ? '-' : ms(b.syncMs)],
-      ['await ms', b.awaitMs === null ? '-' : ms(b.awaitMs)],
-      ['finish ms', b.finishMs === null ? '-' : ms(b.finishMs)],
-      ['queued ms', queued === null ? '-' : ms(queued)],
-      ['run', label],
-      ['critical path', onPath ? 'yes' : 'no'],
-    ]));
+    spans.push(
+      span(
+        b.token,
+        track,
+        b.startMs,
+        stop,
+        b.failed ? 'error' : onPath ? 'primary-dark' : 'primary',
+        tooltip,
+        [
+          ['module', b.module],
+          ['lifetime', b.lifetime ?? '-'],
+          ['level', String(b.level)],
+          ['sync ms', b.syncMs === null ? '-' : ms(b.syncMs)],
+          ['await ms', b.awaitMs === null ? '-' : ms(b.awaitMs)],
+          ['finish ms', b.finishMs === null ? '-' : ms(b.finishMs)],
+          ['queued ms', queued === null ? '-' : ms(queued)],
+          ['run', label],
+          ['critical path', onPath ? 'yes' : 'no'],
+        ],
+      ),
+    );
     if (b.syncMs === null) return;
-    spans.push(span('sync', track, b.startMs, b.startMs + b.syncMs, 'primary-light'));
-    if (b.awaitMs !== null) spans.push(span('await', track, b.startMs + b.syncMs, b.startMs + b.syncMs + b.awaitMs, 'secondary'));
-    if (b.finishMs !== null) spans.push(span('finish', track, stop - b.finishMs, stop, 'tertiary-light'));
+    spans.push(
+      span('sync', track, b.startMs, b.startMs + b.syncMs, 'primary-light'),
+    );
+    if (b.awaitMs !== null)
+      spans.push(
+        span(
+          'await',
+          track,
+          b.startMs + b.syncMs,
+          b.startMs + b.syncMs + b.awaitMs,
+          'secondary',
+        ),
+      );
+    if (b.finishMs !== null)
+      spans.push(
+        span('finish', track, stop - b.finishMs, stop, 'tertiary-light'),
+      );
   };
-  for (const b of run.builds) if (b.level !== null) provider(b as ProfileBuild & { level: number });
+  for (const b of run.builds)
+    if (b.level !== null) provider(b as ProfileBuild & { level: number });
 
   for (const i of run.inits)
-    spans.push(span(i.token, `${label} · onInit`, i.startMs, i.startMs + i.durationMs, i.failed ? 'error' : 'primary',
-      `${i.token} onInit ${ms(i.durationMs)} ms${i.failed ? ', failed' : ''}`));
+    spans.push(
+      span(
+        i.token,
+        `${label} · onInit`,
+        i.startMs,
+        i.startMs + i.durationMs,
+        i.failed ? 'error' : 'primary',
+        `${i.token} onInit ${ms(i.durationMs)} ms${i.failed ? ', failed' : ''}`,
+      ),
+    );
 
   for (const p of run.pending)
-    spans.push(span(p.token, p.what === 'init' ? `${label} · onInit` : `${label} · level ${p.level ?? 0}`, p.startMs, reportedMs, 'error', `${p.token} still awaiting at timeout`));
+    spans.push(
+      span(
+        p.token,
+        p.what === 'init'
+          ? `${label} · onInit`
+          : `${label} · level ${p.level ?? 0}`,
+        p.startMs,
+        reportedMs,
+        'error',
+        `${p.token} still awaiting at timeout`,
+      ),
+    );
 
   if (run.ok !== null)
-    spans.push({ ...span(`${label} ${run.ok ? 'ready' : 'failed'}`, 'Runs', end, end, run.ok ? 'tertiary-dark' : 'error'), marker: true });
+    spans.push({
+      ...span(
+        `${label} ${run.ok ? 'ready' : 'failed'}`,
+        'Runs',
+        end,
+        end,
+        run.ok ? 'tertiary-dark' : 'error',
+      ),
+      marker: true,
+    });
   return spans;
 }
 ```
@@ -3482,7 +4511,8 @@ type Event = Readonly<Record<string, unknown>>;
 /** The node tree as a ProfileChunk carries it: each node names its parent. */
 function withParents(profile: CpuProfile): Event[] {
   const parents = new Map<number, number>();
-  for (const node of profile.nodes) for (const child of node.children ?? []) parents.set(child, node.id);
+  for (const node of profile.nodes)
+    for (const child of node.children ?? []) parents.set(child, node.id);
   return profile.nodes.map((n) => ({
     id: n.id,
     callFrame: n.callFrame,
@@ -3498,21 +4528,60 @@ function withParents(profile: CpuProfile): Event[] {
  */
 export function toChromeTrace(
   report: ProfileReport,
-  options: { readonly cpuProfile?: { readonly profile: CpuProfile; readonly offsetMs: number }; readonly trackGroup?: string } = {},
+  options: {
+    readonly cpuProfile?: {
+      readonly profile: CpuProfile;
+      readonly offsetMs: number;
+    };
+    readonly trackGroup?: string;
+  } = {},
 ): TraceFile {
   const trackGroup = options.trackGroup ?? 'NexusDI';
   const offset = options.cpuProfile?.offsetMs ?? 0;
   const us = (msValue: number): number => Math.round((msValue + offset) * 1000);
-  const spans = report.runs.flatMap((run) => spansOf(run, report.graph, report.reportedMs));
+  const spans = report.runs.flatMap((run) =>
+    spansOf(run, report.graph, report.reportedMs),
+  );
   const cpu = options.cpuProfile?.profile;
-  const first = Math.min(...spans.map((s) => us(s.startMs)), ...(cpu === undefined ? [] : [cpu.startTime]));
+  const first = Math.min(
+    ...spans.map((s) => us(s.startMs)),
+    ...(cpu === undefined ? [] : [cpu.startTime]),
+  );
   const origin = Number.isFinite(first) ? first : 0;
 
   const events: Event[] = [
-    { name: 'process_name', ph: 'M', pid: 1, tid: 1, ts: 0, args: { name: 'Renderer' } },
-    { name: 'thread_name', ph: 'M', pid: 1, tid: 1, ts: 0, args: { name: 'CrRendererMain' } },
-    { name: 'process_name', ph: 'M', pid: 2, tid: 2, ts: 0, args: { name: 'Browser' } },
-    { name: 'thread_name', ph: 'M', pid: 2, tid: 2, ts: 0, args: { name: 'CrBrowserMain' } },
+    {
+      name: 'process_name',
+      ph: 'M',
+      pid: 1,
+      tid: 1,
+      ts: 0,
+      args: { name: 'Renderer' },
+    },
+    {
+      name: 'thread_name',
+      ph: 'M',
+      pid: 1,
+      tid: 1,
+      ts: 0,
+      args: { name: 'CrRendererMain' },
+    },
+    {
+      name: 'process_name',
+      ph: 'M',
+      pid: 2,
+      tid: 2,
+      ts: 0,
+      args: { name: 'Browser' },
+    },
+    {
+      name: 'thread_name',
+      ph: 'M',
+      pid: 2,
+      tid: 2,
+      ts: 0,
+      args: { name: 'CrBrowserMain' },
+    },
     {
       name: 'TracingStartedInBrowser',
       ph: 'I',
@@ -3525,7 +4594,19 @@ export function toChromeTrace(
         data: {
           frameTreeNodeId: 1,
           persistentIds: true,
-          frames: [{ frame: 'F1', name: '', processId: 1, isInPrimaryMainFrame: true, isOutermostMainFrame: true, url: report.graph === null ? 'nexusdi://profile' : `nexusdi://profile/${report.graph.root}` }],
+          frames: [
+            {
+              frame: 'F1',
+              name: '',
+              processId: 1,
+              isInPrimaryMainFrame: true,
+              isOutermostMainFrame: true,
+              url:
+                report.graph === null
+                  ? 'nexusdi://profile'
+                  : `nexusdi://profile/${report.graph.root}`,
+            },
+          ],
         },
       },
     },
@@ -3543,15 +4624,42 @@ export function toChromeTrace(
       },
     });
     events.push(
-      { name: s.name, cat: 'blink.user_timing', ph: 'b', id2, pid: 1, tid: 1, ts: us(s.startMs), args: { detail } },
-      { name: s.name, cat: 'blink.user_timing', ph: 'e', id2, pid: 1, tid: 1, ts: us(s.endMs), args: {} },
+      {
+        name: s.name,
+        cat: 'blink.user_timing',
+        ph: 'b',
+        id2,
+        pid: 1,
+        tid: 1,
+        ts: us(s.startMs),
+        args: { detail },
+      },
+      {
+        name: s.name,
+        cat: 'blink.user_timing',
+        ph: 'e',
+        id2,
+        pid: 1,
+        tid: 1,
+        ts: us(s.endMs),
+        args: {},
+      },
     );
   });
 
   if (cpu !== undefined) {
     const cat = 'disabled-by-default-v8.cpu_profiler';
     events.push(
-      { name: 'Profile', ph: 'P', id: '0x1', cat, pid: 1, tid: 1, ts: cpu.startTime, args: { data: { startTime: cpu.startTime } } },
+      {
+        name: 'Profile',
+        ph: 'P',
+        id: '0x1',
+        cat,
+        pid: 1,
+        tid: 1,
+        ts: cpu.startTime,
+        args: { data: { startTime: cpu.startTime } },
+      },
       {
         name: 'ProfileChunk',
         ph: 'P',
@@ -3560,7 +4668,12 @@ export function toChromeTrace(
         pid: 1,
         tid: 1,
         ts: cpu.startTime,
-        args: { data: { cpuProfile: { nodes: withParents(cpu), samples: cpu.samples }, timeDeltas: cpu.timeDeltas } },
+        args: {
+          data: {
+            cpuProfile: { nodes: withParents(cpu), samples: cpu.samples },
+            timeDeltas: cpu.timeDeltas,
+          },
+        },
       },
     );
   }
@@ -3577,19 +4690,35 @@ import type { ProfileReport, ProfileRun } from './report.js';
 import { spansOf } from './spans.js';
 
 interface Brands {
-  readonly userAgentData?: { readonly brands?: readonly { readonly brand: string; readonly version: string }[] };
+  readonly userAgentData?: {
+    readonly brands?: readonly {
+      readonly brand: string;
+      readonly version: string;
+    }[];
+  };
 }
 
-type TimeStamp = (label: string, start: number, end: number, track: string, group: string, color: string) => void;
+type TimeStamp = (
+  label: string,
+  start: number,
+  end: number,
+  track: string,
+  group: string,
+  color: string,
+) => void;
 
 /**
  * The console.timeStamp sink of profile({ live: true }) (spec 6.5), or
  * undefined where it would reach nothing: anything but Chromium 134 and
  * later. A draw never throws; a profiler never fails the app it measures.
  */
-export function liveSink(trackGroup: string): ((run: ProfileRun, graph: ProfileReport['graph']) => void) | undefined {
-  const brands = (globalThis.navigator as Brands | undefined)?.userAgentData?.brands ?? [];
-  if (!brands.some((b) => b.brand === 'Chromium' && Number(b.version) >= 134)) return undefined;
+export function liveSink(
+  trackGroup: string,
+): ((run: ProfileRun, graph: ProfileReport['graph']) => void) | undefined {
+  const brands =
+    (globalThis.navigator as Brands | undefined)?.userAgentData?.brands ?? [];
+  if (!brands.some((b) => b.brand === 'Chromium' && Number(b.version) >= 134))
+    return undefined;
   const stamp = console.timeStamp as unknown as TimeStamp;
   return (run, graph) => {
     for (const s of spansOf(run, graph, performance.now())) {
@@ -3635,8 +4764,23 @@ import { toPerfettoTrace } from './perfetto.js';
 
 const r = report(
   [
-    build({ providerId: 'r', token: 'ReactorCore', startMs: 1, durationMs: 1, syncMs: 1, finishMs: 0 }),
-    build({ providerId: 'c', token: 'ShipComputer', startMs: 2, durationMs: 3, syncMs: 2, finishMs: 1, level: 1 }),
+    build({
+      providerId: 'r',
+      token: 'ReactorCore',
+      startMs: 1,
+      durationMs: 1,
+      syncMs: 1,
+      finishMs: 0,
+    }),
+    build({
+      providerId: 'c',
+      token: 'ShipComputer',
+      startMs: 2,
+      durationMs: 3,
+      syncMs: 2,
+      finishMs: 1,
+      level: 1,
+    }),
   ],
   [['c', 'r']],
 );
@@ -3648,27 +4792,44 @@ describe('toPerfettoTrace', () => {
   const evs = traceEvents as Ev[];
 
   it('gives each run a pid, the steps tid 1 and each provider a named, sorted tid', () => {
-    expect(evs.find((e) => e['name'] === 'process_name')).toMatchObject({ pid: 1, args: { name: 'nexusdi create (run 0)' } });
-    const threads = evs.filter((e) => e['name'] === 'thread_name').map((e) => (e['args'] as { name: string }).name);
+    expect(evs.find((e) => e['name'] === 'process_name')).toMatchObject({
+      pid: 1,
+      args: { name: 'nexusdi create (run 0)' },
+    });
+    const threads = evs
+      .filter((e) => e['name'] === 'thread_name')
+      .map((e) => (e['args'] as { name: string }).name);
     expect(threads).toEqual(['steps', 'ReactorCore', 'ShipComputer']);
-    const sorts = evs.filter((e) => e['name'] === 'thread_sort_index').map((e) => (e['args'] as { sort_index: number }).sort_index);
+    const sorts = evs
+      .filter((e) => e['name'] === 'thread_sort_index')
+      .map((e) => (e['args'] as { sort_index: number }).sort_index);
     expect(sorts).toEqual([0, 1, 10001]);
   });
 
   it('nests the sync and finish slices inside the provider slice on its tid', () => {
-    const tid = (evs.find((e) => e['name'] === 'ShipComputer' && e['ph'] === 'X')!)['tid'];
+    const tid = evs.find(
+      (e) => e['name'] === 'ShipComputer' && e['ph'] === 'X',
+    )!['tid'];
     const slices = evs.filter((e) => e['ph'] === 'X' && e['tid'] === tid);
     const [parent, ...children] = slices;
     for (const child of children) {
-      expect(child['ts'] as number).toBeGreaterThanOrEqual(parent!['ts'] as number);
-      expect((child['ts'] as number) + (child['dur'] as number)).toBeLessThanOrEqual((parent!['ts'] as number) + (parent!['dur'] as number));
+      expect(child['ts'] as number).toBeGreaterThanOrEqual(
+        parent!['ts'] as number,
+      );
+      expect(
+        (child['ts'] as number) + (child['dur'] as number),
+      ).toBeLessThanOrEqual(
+        (parent!['ts'] as number) + (parent!['dur'] as number),
+      );
     }
   });
 
   it('pairs every flow start with one finish, and names the barrier-path edge critical', () => {
     const starts = evs.filter((e) => e['ph'] === 's');
     const finishes = evs.filter((e) => e['ph'] === 'f');
-    expect(starts.map((e) => e['id']).sort()).toEqual(finishes.map((e) => e['id']).sort());
+    expect(starts.map((e) => e['id']).sort()).toEqual(
+      finishes.map((e) => e['id']).sort(),
+    );
     expect(starts.map((e) => e['name'])).toEqual(['critical']);
     expect(finishes[0]).toMatchObject({ bp: 'e' });
   });
@@ -3714,11 +4875,20 @@ export function toPerfettoTrace(report: ProfileReport): TraceFile {
     meta('thread_name', 1, { name: 'steps' });
     meta('thread_sort_index', 1, { sort_index: 0 });
     for (const s of run.steps.length > 0 ? run.steps : stepsOf(run))
-      events.push({ name: s.step, ph: 'X', pid, tid: 1, ts: us(s.startMs), dur: us(s.durationMs) });
+      events.push({
+        name: s.step,
+        ph: 'X',
+        pid,
+        tid: 1,
+        ts: us(s.startMs),
+        dur: us(s.durationMs),
+      });
 
     const tids = new Map<string, number>();
     const order = new Map<number, number>();
-    const builds = [...run.builds].sort((a, b) => (a.level ?? -1) - (b.level ?? -1) || a.startMs - b.startMs);
+    const builds = [...run.builds].sort(
+      (a, b) => (a.level ?? -1) - (b.level ?? -1) || a.startMs - b.startMs,
+    );
     for (const b of builds) {
       const tid = tids.size + 2;
       tids.set(b.providerId, tid);
@@ -3727,22 +4897,72 @@ export function toPerfettoTrace(report: ProfileReport): TraceFile {
       order.set(level, n);
       meta('thread_name', tid, { name: b.token });
       meta('thread_sort_index', tid, { sort_index: level * 10000 + n });
-      const args = { module: b.module, lifetime: b.lifetime, level: b.level, run: run.id, syncMs: b.syncMs, awaitMs: b.awaitMs, finishMs: b.finishMs, async: b.async, failed: b.failed };
-      events.push({ name: b.token, ph: 'X', pid, tid, ts: us(b.startMs), dur: us(b.durationMs), args });
-      if (b.syncMs !== null) events.push({ name: 'sync', ph: 'X', pid, tid, ts: us(b.startMs), dur: us(b.syncMs) });
+      const args = {
+        module: b.module,
+        lifetime: b.lifetime,
+        level: b.level,
+        run: run.id,
+        syncMs: b.syncMs,
+        awaitMs: b.awaitMs,
+        finishMs: b.finishMs,
+        async: b.async,
+        failed: b.failed,
+      };
+      events.push({
+        name: b.token,
+        ph: 'X',
+        pid,
+        tid,
+        ts: us(b.startMs),
+        dur: us(b.durationMs),
+        args,
+      });
+      if (b.syncMs !== null)
+        events.push({
+          name: 'sync',
+          ph: 'X',
+          pid,
+          tid,
+          ts: us(b.startMs),
+          dur: us(b.syncMs),
+        });
       if (b.syncMs !== null && b.awaitMs !== null)
-        events.push({ name: 'await', ph: 'X', pid, tid, ts: us(b.startMs + b.syncMs), dur: us(b.awaitMs) });
+        events.push({
+          name: 'await',
+          ph: 'X',
+          pid,
+          tid,
+          ts: us(b.startMs + b.syncMs),
+          dur: us(b.awaitMs),
+        });
       if (b.finishMs !== null)
-        events.push({ name: 'finish', ph: 'X', pid, tid, ts: us(b.startMs + b.durationMs - b.finishMs), dur: us(b.finishMs) });
+        events.push({
+          name: 'finish',
+          ph: 'X',
+          pid,
+          tid,
+          ts: us(b.startMs + b.durationMs - b.finishMs),
+          dur: us(b.finishMs),
+        });
     }
     for (const i of run.inits) {
       const tid = tids.get(i.providerId);
-      if (tid !== undefined) events.push({ name: 'onInit', ph: 'X', pid, tid, ts: us(i.startMs), dur: us(i.durationMs) });
+      if (tid !== undefined)
+        events.push({
+          name: 'onInit',
+          ph: 'X',
+          pid,
+          tid,
+          ts: us(i.startMs),
+          dur: us(i.durationMs),
+        });
     }
 
     if (report.graph === null) return;
     const path = criticalPathOf(run, report.graph).path;
-    const critical = new Set(path.slice(1).map((p, i) => `${p.providerId} ${path[i]!.providerId}`));
+    const critical = new Set(
+      path.slice(1).map((p, i) => `${p.providerId} ${path[i]!.providerId}`),
+    );
     const byId = new Map(run.builds.map((b) => [b.providerId, b]));
     for (const e of report.graph.edges) {
       const from = byId.get(e.from);
@@ -3751,12 +4971,33 @@ export function toPerfettoTrace(report: ProfileReport): TraceFile {
       const id = ++flow;
       const name = critical.has(`${e.from} ${e.to}`) ? 'critical' : 'dep';
       events.push(
-        { name, cat: 'dep', ph: 's', id, pid, tid: tids.get(to.providerId), ts: us(to.startMs + to.durationMs) - 1 },
-        { name, cat: 'dep', ph: 'f', bp: 'e', id, pid, tid: tids.get(from.providerId), ts: us(from.startMs) + 1 },
+        {
+          name,
+          cat: 'dep',
+          ph: 's',
+          id,
+          pid,
+          tid: tids.get(to.providerId),
+          ts: us(to.startMs + to.durationMs) - 1,
+        },
+        {
+          name,
+          cat: 'dep',
+          ph: 'f',
+          bp: 'e',
+          id,
+          pid,
+          tid: tids.get(from.providerId),
+          ts: us(from.startMs) + 1,
+        },
       );
     }
   });
-  return { traceEvents: events, metadata: { 'nexusdi-profile': 1 }, displayTimeUnit: 'ms' };
+  return {
+    traceEvents: events,
+    metadata: { 'nexusdi-profile': 1 },
+    displayTimeUnit: 'ms',
+  };
 }
 ```
 
@@ -3824,10 +5065,21 @@ import { readFileSync } from 'node:fs';
 import * as Trace from '@paulirish/trace_engine';
 import { describe, expect, it } from 'vitest';
 
-import { parseProfileReport, toChromeTrace, toPerfettoTrace, type CpuProfile, type TraceFile } from '../index.js';
+import {
+  parseProfileReport,
+  toChromeTrace,
+  toPerfettoTrace,
+  type CpuProfile,
+  type TraceFile,
+} from '../index.js';
 
 const fixture = (name: string): unknown =>
-  JSON.parse(readFileSync(new URL(`../../test-fixtures/profile/${name}`, import.meta.url), 'utf8'));
+  JSON.parse(
+    readFileSync(
+      new URL(`../../test-fixtures/profile/${name}`, import.meta.url),
+      'utf8',
+    ),
+  );
 
 async function model(file: TraceFile) {
   const engine = Trace.TraceModel.Model.createWithAllHandlers();
@@ -3840,7 +5092,16 @@ async function model(file: TraceFile) {
 const meridian = parseProfileReport(fixture('meridian.report.json'));
 
 /** The golden track list: Runs, Steps, then each run's level tracks and onInit. */
-const TRACKS = ['Runs', 'Steps', 'create · level 0', 'create · level 1', 'create · level 2', 'create · level 3', 'create · onInit', 'load 1 · level 0'];
+const TRACKS = [
+  'Runs',
+  'Steps',
+  'create · level 0',
+  'create · level 1',
+  'create · level 2',
+  'create · level 3',
+  'create · onInit',
+  'load 1 · level 0',
+];
 
 describe('the Chrome layout, as the DevTools trace engine reads it', () => {
   it('finds the main frame (the tripwire for TracingStartedInBrowser)', async () => {
@@ -3858,36 +5119,65 @@ describe('the Chrome layout, as the DevTools trace engine reads it', () => {
   it('keeps every entry start and duration in µs', async () => {
     const file = toChromeTrace(meridian);
     const data = await model(file);
-    const entries = data.ExtensionTraceData.extensionTrackData.flatMap((g) => (g.tracks ?? []).flatMap((t) => Object.values(t.entriesByTrack).flat()));
-    const begins = file.traceEvents.filter((e) => e['ph'] === 'b' && !String((e['args'] as { detail: string }).detail).includes('"marker"'));
+    const entries = data.ExtensionTraceData.extensionTrackData.flatMap((g) =>
+      (g.tracks ?? []).flatMap((t) => Object.values(t.entriesByTrack).flat()),
+    );
+    const begins = file.traceEvents.filter(
+      (e) =>
+        e['ph'] === 'b' &&
+        !String((e['args'] as { detail: string }).detail).includes('"marker"'),
+    );
     expect(entries).toHaveLength(begins.length);
   });
 
   it('merges the CPU profile into pid 1 inside the run', async () => {
     const profile = fixture('node.cpuprofile') as CpuProfile;
     const offsetMs = profile.startTime / 1000 - meridian.runs[0]!.startMs;
-    const data = await model(toChromeTrace(meridian, { cpuProfile: { profile, offsetMs } }));
+    const data = await model(
+      toChromeTrace(meridian, { cpuProfile: { profile, offsetMs } }),
+    );
     expect(data.Samples.profilesInProcess.size).toBe(1);
   });
 
   it('matches the committed golden file', () => {
     expect(JSON.stringify(toChromeTrace(meridian), null, 2)).toBe(
-      readFileSync(new URL('../../test-fixtures/profile/chrome-trace.golden.json', import.meta.url), 'utf8'),
+      readFileSync(
+        new URL(
+          '../../test-fixtures/profile/chrome-trace.golden.json',
+          import.meta.url,
+        ),
+        'utf8',
+      ),
     );
   });
 
   it('draws the failed and partial fixtures with no throw', async () => {
     for (const name of ['failed.report.json', 'partial.report.json'])
-      expect((await model(toChromeTrace(parseProfileReport(fixture(name))))).Meta.mainFrameId).toBe('F1');
+      expect(
+        (await model(toChromeTrace(parseProfileReport(fixture(name))))).Meta
+          .mainFrameId,
+      ).toBe('F1');
   });
 });
 
 describe('the Perfetto file', () => {
   it('nests slices per tid, pairs every flow and names every tid', () => {
-    const events = toPerfettoTrace(meridian).traceEvents as Record<string, number | string>[];
-    const named = new Set(events.filter((e) => e['name'] === 'thread_name').map((e) => `${e['pid']} ${e['tid']}`));
-    for (const e of events.filter((x) => x['ph'] === 'X')) expect(named.has(`${e['pid']} ${e['tid']}`)).toBe(true);
-    const ids = (ph: string) => events.filter((e) => e['ph'] === ph).map((e) => e['id']).sort();
+    const events = toPerfettoTrace(meridian).traceEvents as Record<
+      string,
+      number | string
+    >[];
+    const named = new Set(
+      events
+        .filter((e) => e['name'] === 'thread_name')
+        .map((e) => `${e['pid']} ${e['tid']}`),
+    );
+    for (const e of events.filter((x) => x['ph'] === 'X'))
+      expect(named.has(`${e['pid']} ${e['tid']}`)).toBe(true);
+    const ids = (ph: string) =>
+      events
+        .filter((e) => e['ph'] === ph)
+        .map((e) => e['id'])
+        .sort();
     expect(ids('s')).toEqual(ids('f'));
   });
 });
@@ -3946,6 +5236,7 @@ Run: `NX_NO_CLOUD=true NX_DAEMON=false npx nx run-many -t lint test typecheck -p
 Commit with `chore(repo): measure the profile fixture in the size report`.
 
 ---
+
 ## Part 3: `nexusdi profile` (spec sections 8 and 9)
 
 The CLI reaches devtools only through `DevtoolsApi`, which `loadDevtools` resolves from the entry's project (the named P5 exception of `optional-dependencies.test.ts` covers it). Process tests spawn the built bin, as `bin.test.ts` does.
@@ -3981,7 +5272,11 @@ export interface ProfileCommand {
   readonly timeout: number;
   readonly quiet: boolean;
 }
-export type Command = GraphCommand | ProfileCommand | { readonly kind: 'help' } | { readonly kind: 'version' };
+export type Command =
+  | GraphCommand
+  | ProfileCommand
+  | { readonly kind: 'help' }
+  | { readonly kind: 'version' };
 ```
 
 `OPTIONS` gains `repeat`, `chrome`, `perfetto`, `json`, `'cpu-interval'`, `top`, `timeout` (all `type: 'string'`) and `cpu`, `quiet` (`type: 'boolean'`).
@@ -3992,7 +5287,9 @@ export type Command = GraphCommand | ProfileCommand | { readonly kind: 'help' } 
 describe('parseCommand, profile', () => {
   const cwd = '/project';
   it('reads the defaults', () => {
-    expect(parseCommand(['profile', 'src/ship.ts#Meridian'], cwd)).toMatchObject({
+    expect(
+      parseCommand(['profile', 'src/ship.ts#Meridian'], cwd),
+    ).toMatchObject({
       kind: 'profile',
       entry: { path: '/project/src/ship.ts', exportName: 'Meridian' },
       repeat: 0,
@@ -4010,11 +5307,43 @@ describe('parseCommand, profile', () => {
   it('reads every flag', () => {
     expect(
       parseCommand(
-        ['profile', 'a.ts', '--load', 'b.ts#B', '--plugins', 'p.ts#plugins', '--repeat', '20', '--chrome', 'c.json',
-          '--perfetto', 'p.json', '--json', 'r.json', '--cpu', '--cpu-interval', '50', '--top', '5', '--timeout', '100', '--quiet'],
+        [
+          'profile',
+          'a.ts',
+          '--load',
+          'b.ts#B',
+          '--plugins',
+          'p.ts#plugins',
+          '--repeat',
+          '20',
+          '--chrome',
+          'c.json',
+          '--perfetto',
+          'p.json',
+          '--json',
+          'r.json',
+          '--cpu',
+          '--cpu-interval',
+          '50',
+          '--top',
+          '5',
+          '--timeout',
+          '100',
+          '--quiet',
+        ],
         cwd,
       ),
-    ).toMatchObject({ repeat: 20, chrome: '/project/c.json', perfetto: '/project/p.json', json: '/project/r.json', cpu: true, cpuInterval: 50, top: 5, timeout: 100, quiet: true });
+    ).toMatchObject({
+      repeat: 20,
+      chrome: '/project/c.json',
+      perfetto: '/project/p.json',
+      json: '/project/r.json',
+      cpu: true,
+      cpuInterval: 50,
+      top: 5,
+      timeout: 100,
+      quiet: true,
+    });
   });
 
   it.each([
@@ -4044,21 +5373,49 @@ Expected: FAIL, `unknown command "profile"`.
 
 ```ts
 const GRAPH_ONLY = ['format', 'out', 'view'] as const;
-const PROFILE_ONLY = ['repeat', 'chrome', 'perfetto', 'json', 'cpu', 'cpu-interval', 'top', 'timeout', 'quiet'] as const;
+const PROFILE_ONLY = [
+  'repeat',
+  'chrome',
+  'perfetto',
+  'json',
+  'cpu',
+  'cpu-interval',
+  'top',
+  'timeout',
+  'quiet',
+] as const;
 
-function refuseFlags(values: Record<string, unknown>, names: readonly string[], owner: string): void {
+function refuseFlags(
+  values: Record<string, unknown>,
+  names: readonly string[],
+  owner: string,
+): void {
   for (const name of names)
     if (values[name] !== undefined) {
-      const short = (OPTIONS as Record<string, { short?: string }>)[name]?.short;
-      throw new CliError(2, `${short === undefined ? `--${name}` : `-${short}`} is a ${owner} option.`, HELP_FIX);
+      const short = (OPTIONS as Record<string, { short?: string }>)[name]
+        ?.short;
+      throw new CliError(
+        2,
+        `${short === undefined ? `--${name}` : `-${short}`} is a ${owner} option.`,
+        HELP_FIX,
+      );
     }
 }
 
-function count(flag: string, value: string | undefined, fallback: number, min: number): number {
+function count(
+  flag: string,
+  value: string | undefined,
+  fallback: number,
+  min: number,
+): number {
   if (value === undefined) return fallback;
   const n = Number(value);
   if (!Number.isInteger(n) || n < min)
-    throw new CliError(2, `${flag} takes a whole number of at least ${min}; got "${value}".`, HELP_FIX);
+    throw new CliError(
+      2,
+      `${flag} takes a whole number of at least ${min}; got "${value}".`,
+      HELP_FIX,
+    );
   return n;
 }
 ```
@@ -4126,7 +5483,9 @@ export const Tactical = defineModule({
 
 export const Hung = defineModule({
   name: 'Hung',
-  providers: [provide(NAV_CHARTS, { useFactory: () => new Promise(() => undefined) })],
+  providers: [
+    provide(NAV_CHARTS, { useFactory: () => new Promise(() => undefined) }),
+  ],
 });
 
 export const Meridian = defineModule({ name: 'Meridian', imports: [Tactical] });
@@ -4150,7 +5509,9 @@ const DIR = join(FIXTURES, 'profile');
 
 describe('nexusdi profile', () => {
   it('prints the table for a module entry and exits 0', () => {
-    const run = runCli(['profile', 'meridian.module.js#Meridian'], { cwd: DIR });
+    const run = runCli(['profile', 'meridian.module.js#Meridian'], {
+      cwd: DIR,
+    });
     expect(run.stderr).toBe('');
     expect(run.status).toBe(0);
     expect(run.stdout).toMatch(/^Node \d+\.\d+\.\d+, @nexusdi\/core /);
@@ -4161,17 +5522,36 @@ describe('nexusdi profile', () => {
   it('writes the Chrome, Perfetto and JSON files, and nothing to stdout with --quiet', () => {
     const dir = tempDir();
     const run = runCli(
-      ['profile', 'meridian.module.js', '--load', 'science.module.js#Science', '--repeat', '2', '--quiet',
-        '--chrome', join(dir, 'c.json'), '--perfetto', join(dir, 'p.json'), '--json', join(dir, 'r.json')],
+      [
+        'profile',
+        'meridian.module.js',
+        '--load',
+        'science.module.js#Science',
+        '--repeat',
+        '2',
+        '--quiet',
+        '--chrome',
+        join(dir, 'c.json'),
+        '--perfetto',
+        join(dir, 'p.json'),
+        '--json',
+        join(dir, 'r.json'),
+      ],
       { cwd: DIR },
     );
     expect(run.status).toBe(0);
     expect(run.stdout).toBe('');
-    const reports = JSON.parse(readFileSync(join(dir, 'r.json'), 'utf8')) as { runs: { kind: string }[] }[];
+    const reports = JSON.parse(readFileSync(join(dir, 'r.json'), 'utf8')) as {
+      runs: { kind: string }[];
+    }[];
     expect(reports).toHaveLength(3);
     expect(reports[0]!.runs.map((r) => r.kind)).toEqual(['create', 'load']);
-    expect(JSON.parse(readFileSync(join(dir, 'c.json'), 'utf8')).traceEvents.length).toBeGreaterThan(0);
-    expect(JSON.parse(readFileSync(join(dir, 'p.json'), 'utf8')).metadata).toMatchObject({ 'nexusdi-profile': 1 });
+    expect(
+      JSON.parse(readFileSync(join(dir, 'c.json'), 'utf8')).traceEvents.length,
+    ).toBeGreaterThan(0);
+    expect(
+      JSON.parse(readFileSync(join(dir, 'p.json'), 'utf8')).metadata,
+    ).toMatchObject({ 'nexusdi-profile': 1 });
   });
 
   it('re-renders a saved report without running the app', () => {
@@ -4183,22 +5563,33 @@ describe('nexusdi profile', () => {
   it('exits 2 for a report devtools rejects, naming the file first', () => {
     const run = runCli(['profile', 'bad-report.json'], { cwd: DIR });
     expect(run.status).toBe(2);
-    expect(run.stderr).toMatch(/^nexusdi: bad-report\.json: \[NEXUS_DEVTOOLS_PROFILE_INVALID\]/);
+    expect(run.stderr).toMatch(
+      /^nexusdi: bad-report\.json: \[NEXUS_DEVTOOLS_PROFILE_INVALID\]/,
+    );
   });
 
   it('exits 1 when the app fails to start, and still writes the table and files', () => {
     const dir = tempDir();
-    const run = runCli(['profile', 'broken.module.js#Broken', '--json', join(dir, 'r.json')], { cwd: DIR });
+    const run = runCli(
+      ['profile', 'broken.module.js#Broken', '--json', join(dir, 'r.json')],
+      { cwd: DIR },
+    );
     expect(run.status).toBe(1);
     expect(run.stderr).toContain('hull breach');
     expect(run.stdout).toContain('failed');
-    expect(JSON.parse(readFileSync(join(dir, 'r.json'), 'utf8'))[0].runs[0].ok).toBe(false);
+    expect(
+      JSON.parse(readFileSync(join(dir, 'r.json'), 'utf8'))[0].runs[0].ok,
+    ).toBe(false);
   });
 
   it('exits 2 when create throws before it compiles', () => {
-    const run = runCli(['profile', 'not-a-module.module.js#NotAModule'], { cwd: DIR });
+    const run = runCli(['profile', 'not-a-module.module.js#NotAModule'], {
+      cwd: DIR,
+    });
     expect(run.status).toBe(2);
-    expect(run.stderr).toMatch(/^nexusdi: create failed:\n.*NEXUS_INVALID_MODULE/);
+    expect(run.stderr).toMatch(
+      /^nexusdi: create failed:\n.*NEXUS_INVALID_MODULE/,
+    );
   });
 
   it('warns on a disposal error and keeps exit 0', () => {
@@ -4244,19 +5635,32 @@ function within(work: Promise<ProfileReport>, ms: number): Promise<Outcome> {
   return new Promise((resolve) => {
     const timer = setTimeout(() => resolve({ kind: 'timeout' }), ms);
     work.then(
-      (report) => { clearTimeout(timer); resolve({ kind: 'done', report }); },
-      (error: unknown) => { clearTimeout(timer); resolve({ kind: 'failed', error }); },
+      (report) => {
+        clearTimeout(timer);
+        resolve({ kind: 'done', report });
+      },
+      (error: unknown) => {
+        clearTimeout(timer);
+        resolve({ kind: 'failed', error });
+      },
     );
   });
 }
 
-async function readReports(command: ProfileCommand, devtools: DevtoolsApi): Promise<ProfileReport[]> {
+async function readReports(
+  command: ProfileCommand,
+  devtools: DevtoolsApi,
+): Promise<ProfileReport[]> {
   const { path, shown } = command.entry;
   let value: unknown;
   try {
     value = JSON.parse(await readFile(path, 'utf8'));
   } catch (error) {
-    throw new CliError(2, `${shown} is not a readable JSON file: ${(error as Error).message}`, 'Pass a file written by nexusdi profile --json.');
+    throw new CliError(
+      2,
+      `${shown} is not a readable JSON file: ${(error as Error).message}`,
+      'Pass a file written by nexusdi profile --json.',
+    );
   }
   const values = Array.isArray(value) ? value : [value];
   try {
@@ -4267,28 +5671,60 @@ async function readReports(command: ProfileCommand, devtools: DevtoolsApi): Prom
   }
 }
 
-async function writeOutputs(io: Io, command: ProfileCommand, devtools: DevtoolsApi, reports: readonly ProfileReport[], version: string, cpu: Parameters<DevtoolsApi['toChromeTrace']>[1]): Promise<void> {
+async function writeOutputs(
+  io: Io,
+  command: ProfileCommand,
+  devtools: DevtoolsApi,
+  reports: readonly ProfileReport[],
+  version: string,
+  cpu: Parameters<DevtoolsApi['toChromeTrace']>[1],
+): Promise<void> {
   const [first] = reports;
   if (first === undefined) return;
-  if (command.json !== null) await emit(JSON.stringify(reports), command.json, io.stdout);
-  if (command.chrome !== null) await emit(JSON.stringify(devtools.toChromeTrace(first, cpu)), command.chrome, io.stdout);
+  if (command.json !== null)
+    await emit(JSON.stringify(reports), command.json, io.stdout);
+  if (command.chrome !== null)
+    await emit(
+      JSON.stringify(devtools.toChromeTrace(first, cpu)),
+      command.chrome,
+      io.stdout,
+    );
   if (command.perfetto !== null) {
     const file = devtools.toPerfettoTrace(first);
-    await emit(JSON.stringify({ ...file, metadata: { ...file.metadata, 'nexusdi-core': version } }), command.perfetto, io.stdout);
+    await emit(
+      JSON.stringify({
+        ...file,
+        metadata: { ...file.metadata, 'nexusdi-core': version },
+      }),
+      command.perfetto,
+      io.stdout,
+    );
   }
 }
 
-export async function runProfile(command: ProfileCommand, io: Io, version: string): Promise<number> {
+export async function runProfile(
+  command: ProfileCommand,
+  io: Io,
+  version: string,
+): Promise<number> {
   const header = `Node ${process.versions.node}, @nexusdi/core ${version}\n`;
   if (entryKind(command.entry) === 'json') {
     const devtools = await loadDevtools(join(io.cwd, 'package.json'), version);
     const reports = await readReports(command, devtools);
     await writeOutputs(io, command, devtools, reports, version, undefined);
-    if (!command.quiet) await writeTo(io.stdout, header + devtools.profileTable(reports, { top: command.top }));
+    if (!command.quiet)
+      await writeTo(
+        io.stdout,
+        header + devtools.profileTable(reports, { top: command.top }),
+      );
     return 0;
   }
 
-  const { root, load, plugins, devtools } = await loadEntry(command, version, 'nexusdi profile');
+  const { root, load, plugins, devtools } = await loadEntry(
+    command,
+    version,
+    'nexusdi profile',
+  );
   const reports: ProfileReport[] = [];
   let code = 0;
   let cpu: Parameters<DevtoolsApi['toChromeTrace']>[1];
@@ -4296,13 +5732,20 @@ export async function runProfile(command: ProfileCommand, io: Io, version: strin
     const profiler: Profiler = devtools.profile();
     // Task 18 starts and stops CPU sampling around iteration 1 here.
     const outcome = await within(
-      devtools.profileStartup(root as never, { plugins: plugins as never, load: load as never, profiler }),
+      devtools.profileStartup(root as never, {
+        plugins: plugins as never,
+        load: load as never,
+        profiler,
+      }),
       command.timeout,
     );
     if (outcome.kind === 'done') {
       reports.push(outcome.report);
       if (outcome.report.dispose !== null && outcome.report.dispose.errors > 0)
-        await writeTo(io.stderr, `nexusdi: warning: disposal after iteration ${i + 1} raised ${outcome.report.dispose.errors} errors; the startup figures stand.\n`);
+        await writeTo(
+          io.stderr,
+          `nexusdi: warning: disposal after iteration ${i + 1} raised ${outcome.report.dispose.errors} errors; the startup figures stand.\n`,
+        );
       continue;
     }
     const partial = profiler.report();
@@ -4310,13 +5753,25 @@ export async function runProfile(command: ProfileCommand, io: Io, version: strin
     const open = partial.runs.find((r) => r.ok === null);
     if (outcome.kind === 'timeout') {
       const waiting = (open?.pending ?? [])
-        .map((p) => `${p.token}${p.module === '' ? '' : ` (${p.module})`} ${p.what === 'construct' ? 'factory' : 'onInit'}, ${Math.round(partial.reportedMs - p.startMs)} ms`)
+        .map(
+          (p) =>
+            `${p.token}${p.module === '' ? '' : ` (${p.module})`} ${p.what === 'construct' ? 'factory' : 'onInit'}, ${Math.round(partial.reportedMs - p.startMs)} ms`,
+        )
         .join('; ');
-      await writeTo(io.stderr, `nexusdi: ${open?.kind ?? 'create'} did not settle within ${command.timeout} ms.\n${waiting === '' ? '' : `  Still awaiting: ${waiting}\n`}`);
+      await writeTo(
+        io.stderr,
+        `nexusdi: ${open?.kind ?? 'create'} did not settle within ${command.timeout} ms.\n${waiting === '' ? '' : `  Still awaiting: ${waiting}\n`}`,
+      );
     } else {
       const failed = partial.runs.find((r) => r.ok === false);
-      const detail = outcome.error instanceof Error ? outcome.error.message : String(outcome.error);
-      await writeTo(io.stderr, `nexusdi: ${failed?.kind ?? 'create'} failed:\n${detail}\n`);
+      const detail =
+        outcome.error instanceof Error
+          ? outcome.error.message
+          : String(outcome.error);
+      await writeTo(
+        io.stderr,
+        `nexusdi: ${failed?.kind ?? 'create'} failed:\n${detail}\n`,
+      );
       // A run that failed before it compiled, or no run at all, is an input error
       // (spec 9.5, plan choice 10). The profiler's data decides; no error code is read.
       if (failed === undefined || failed.compile === null) {
@@ -4328,7 +5783,11 @@ export async function runProfile(command: ProfileCommand, io: Io, version: strin
     break;
   }
   await writeOutputs(io, command, devtools, reports, version, cpu);
-  if (!command.quiet) await writeTo(io.stdout, header + devtools.profileTable(reports, { top: command.top }));
+  if (!command.quiet)
+    await writeTo(
+      io.stdout,
+      header + devtools.profileTable(reports, { top: command.top }),
+    );
   return code;
 }
 ```
@@ -4361,14 +5820,32 @@ describe('nexusdi profile --timeout', () => {
   it('prints what a hung create still awaits, writes the partial report and exits 1', () => {
     const dir = tempDir();
     const started = Date.now();
-    const run = runCli(['profile', 'meridian.module.js#Hung', '--timeout', '300', '--chrome', join(dir, 'c.json'), '--json', join(dir, 'r.json')], { cwd: DIR, timeout: 10_000 });
+    const run = runCli(
+      [
+        'profile',
+        'meridian.module.js#Hung',
+        '--timeout',
+        '300',
+        '--chrome',
+        join(dir, 'c.json'),
+        '--json',
+        join(dir, 'r.json'),
+      ],
+      { cwd: DIR, timeout: 10_000 },
+    );
     expect(Date.now() - started).toBeLessThan(8_000);
     expect(run.status).toBe(1);
-    expect(run.stderr).toMatch(/^nexusdi: create did not settle within 300 ms\.\n  Still awaiting: NavCharts \(Hung\) factory, \d+ ms\n$/);
-    const [report] = JSON.parse(readFileSync(join(dir, 'r.json'), 'utf8')) as { runs: { ok: null; pending: unknown[] }[] }[];
+    expect(run.stderr).toMatch(
+      /^nexusdi: create did not settle within 300 ms\.\n  Still awaiting: NavCharts \(Hung\) factory, \d+ ms\n$/,
+    );
+    const [report] = JSON.parse(readFileSync(join(dir, 'r.json'), 'utf8')) as {
+      runs: { ok: null; pending: unknown[] }[];
+    }[];
     expect(report!.runs[0]).toMatchObject({ ok: null });
     expect(report!.runs[0]!.pending).toHaveLength(1);
-    expect(readFileSync(join(dir, 'c.json'), 'utf8')).toContain('still awaiting at timeout');
+    expect(readFileSync(join(dir, 'c.json'), 'utf8')).toContain(
+      'still awaiting at timeout',
+    );
   });
 });
 
@@ -4414,7 +5891,13 @@ import { describe, expect, it } from 'vitest';
 
 import { alignClocks } from './cpu.js';
 
-const frame = (functionName: string) => ({ functionName, scriptId: '1', url: '', lineNumber: 0, columnNumber: 0 });
+const frame = (functionName: string) => ({
+  functionName,
+  scriptId: '1',
+  url: '',
+  lineNumber: 0,
+  columnNumber: 0,
+});
 const profile = {
   nodes: [
     { id: 1, callFrame: frame('(root)'), children: [2, 3] },
@@ -4432,13 +5915,21 @@ describe('alignClocks', () => {
   it('takes the first sample whose stack holds each anchor, and reports their drift', () => {
     // Start: sample 2 at 1,000,100 µs = 1000.1 ms; anchor read 10 ms -> offset 990.1.
     // End: sample 5 at 1,005,300 µs = 1005.3 ms; anchor read 15.1 ms -> offset 990.2.
-    const aligned = alignClocks(profile, [['nexusdiAnchorStart', 10], ['nexusdiAnchorEnd', 15.1]])!;
+    const aligned = alignClocks(profile, [
+      ['nexusdiAnchorStart', 10],
+      ['nexusdiAnchorEnd', 15.1],
+    ])!;
     expect(aligned.offsetMs).toBeCloseTo(990.1, 6);
     expect(aligned.driftMs).toBeCloseTo(0.1, 6);
   });
 
   it('returns null when an anchor has no sample', () => {
-    expect(alignClocks({ ...profile, samples: [1, 1, 1, 1, 1] }, [['nexusdiAnchorStart', 10], ['nexusdiAnchorEnd', 15]])).toBeNull();
+    expect(
+      alignClocks({ ...profile, samples: [1, 1, 1, 1, 1] }, [
+        ['nexusdiAnchorStart', 10],
+        ['nexusdiAnchorEnd', 15],
+      ]),
+    ).toBeNull();
   });
 });
 ```
@@ -4503,11 +5994,19 @@ export function alignClocks(
   profile: CpuProfile,
   anchors: readonly (readonly [name: string, perfNow: number])[],
 ): { readonly offsetMs: number; readonly driftMs: number } | null {
-  const names = new Map(profile.nodes.map((n) => [n.id, n.callFrame.functionName]));
+  const names = new Map(
+    profile.nodes.map((n) => [n.id, n.callFrame.functionName]),
+  );
   const parents = new Map<number, number>();
-  for (const n of profile.nodes) for (const child of n.children ?? []) parents.set(child, n.id);
+  for (const n of profile.nodes)
+    for (const child of n.children ?? []) parents.set(child, n.id);
   const holds = (id: number, name: string): boolean => {
-    for (let at: number | undefined = id; at !== undefined; at = parents.get(at)) if (names.get(at) === name) return true;
+    for (
+      let at: number | undefined = id;
+      at !== undefined;
+      at = parents.get(at)
+    )
+      if (names.get(at) === name) return true;
     return false;
   };
   const offsets: number[] = [];
@@ -4522,29 +6021,42 @@ export function alignClocks(
     offsets.push(found);
   }
   const [first = 0, ...rest] = offsets;
-  return { offsetMs: first, driftMs: Math.max(0, ...rest.map((o) => Math.abs(o - first))) };
+  return {
+    offsetMs: first,
+    driftMs: Math.max(0, ...rest.map((o) => Math.abs(o - first))),
+  };
 }
 ```
 
 - [ ] Step 4: Wire it into `runProfile`, for iteration 1 only:
 
 ```ts
-    const sampling = i === 0 && command.cpu ? await startCpu(command.cpuInterval) : null;
-    const before = sampling === null ? 0 : nexusdiAnchorStart(command.cpuInterval);
-    const outcome = await within(/* unchanged */);
-    if (sampling !== null) {
-      const after = nexusdiAnchorEnd(command.cpuInterval);
-      const profile = await stopCpu(sampling);
-      const aligned = alignClocks(profile, [['nexusdiAnchorStart', before], ['nexusdiAnchorEnd', after]]);
-      if (aligned === null) {
-        await writeTo(io.stderr, 'nexusdi: warning: no CPU sample landed in an anchor, so the Chrome trace has no CPU profile.\n');
-      } else {
-        const limit = Math.max(1, (4 * command.cpuInterval) / 1000);
-        if (aligned.driftMs > limit)
-          await writeTo(io.stderr, `nexusdi: warning: clock drift ${aligned.driftMs.toFixed(1)} ms; CPU samples may sit up to ${aligned.driftMs.toFixed(1)} ms off the provider spans.\n`);
-        cpu = { cpuProfile: { profile, offsetMs: aligned.offsetMs } };
-      }
-    }
+const sampling =
+  i === 0 && command.cpu ? await startCpu(command.cpuInterval) : null;
+const before = sampling === null ? 0 : nexusdiAnchorStart(command.cpuInterval);
+const outcome = await within(/* unchanged */);
+if (sampling !== null) {
+  const after = nexusdiAnchorEnd(command.cpuInterval);
+  const profile = await stopCpu(sampling);
+  const aligned = alignClocks(profile, [
+    ['nexusdiAnchorStart', before],
+    ['nexusdiAnchorEnd', after],
+  ]);
+  if (aligned === null) {
+    await writeTo(
+      io.stderr,
+      'nexusdi: warning: no CPU sample landed in an anchor, so the Chrome trace has no CPU profile.\n',
+    );
+  } else {
+    const limit = Math.max(1, (4 * command.cpuInterval) / 1000);
+    if (aligned.driftMs > limit)
+      await writeTo(
+        io.stderr,
+        `nexusdi: warning: clock drift ${aligned.driftMs.toFixed(1)} ms; CPU samples may sit up to ${aligned.driftMs.toFixed(1)} ms off the provider spans.\n`,
+      );
+    cpu = { cpuProfile: { profile, offsetMs: aligned.offsetMs } };
+  }
+}
 ```
 
 On a timeout, stop the sampling before writing (the `if (sampling !== null)` block runs on every outcome).
@@ -4553,14 +6065,30 @@ On a timeout, stop the sampling before writing (the `if (sampling !== null)` blo
 
 ```ts
 describe('nexusdi profile --cpu', () => {
-  it.runIf(process.platform === 'linux')('finds both anchors on Linux and merges the samples', () => {
-    const dir = tempDir();
-    const run = runCli(['profile', 'meridian.module.js', '--chrome', join(dir, 'c.json'), '--cpu', '--cpu-interval', '50', '--quiet'], { cwd: DIR });
-    expect(run.status).toBe(0);
-    expect(run.stderr).not.toContain('no CPU sample');
-    const events = JSON.parse(readFileSync(join(dir, 'c.json'), 'utf8')).traceEvents as { name: string }[];
-    expect(events.some((e) => e.name === 'ProfileChunk')).toBe(true);
-  });
+  it.runIf(process.platform === 'linux')(
+    'finds both anchors on Linux and merges the samples',
+    () => {
+      const dir = tempDir();
+      const run = runCli(
+        [
+          'profile',
+          'meridian.module.js',
+          '--chrome',
+          join(dir, 'c.json'),
+          '--cpu',
+          '--cpu-interval',
+          '50',
+          '--quiet',
+        ],
+        { cwd: DIR },
+      );
+      expect(run.status).toBe(0);
+      expect(run.stderr).not.toContain('no CPU sample');
+      const events = JSON.parse(readFileSync(join(dir, 'c.json'), 'utf8'))
+        .traceEvents as { name: string }[];
+      expect(events.some((e) => e.name === 'ProfileChunk')).toBe(true);
+    },
+  );
 });
 ```
 
@@ -4569,6 +6097,7 @@ Record the drift the Linux CI run reports in the ledger: spec 8 says the docs st
 - [ ] Step 6: Run the targets of Task 16 and commit with `feat(cli): sample the CPU and merge it into the Chrome trace`.
 
 ---
+
 ## Part 4: the canary, the docs and the pull request
 
 ### Task 19: the Chrome canary (owner gate (c) 3)
@@ -4600,15 +6129,34 @@ import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 
 const [chrome] = process.argv.slice(2);
-const golden = readFileSync(new URL('../../libs/devtools/test-fixtures/profile/chrome-trace.golden.json', import.meta.url), 'utf8');
-const TRACKS = ['Runs', 'Steps', 'create · level 0', 'create · level 1', 'create · level 2', 'create · level 3', 'create · onInit', 'load 1 · level 0'];
+const golden = readFileSync(
+  new URL(
+    '../../libs/devtools/test-fixtures/profile/chrome-trace.golden.json',
+    import.meta.url,
+  ),
+  'utf8',
+);
+const TRACKS = [
+  'Runs',
+  'Steps',
+  'create · level 0',
+  'create · level 1',
+  'create · level 2',
+  'create · level 3',
+  'create · onInit',
+  'load 1 · level 0',
+];
 const port = 9333;
-const browser = spawn(chrome, [
-  '--headless=new',
-  `--remote-debugging-port=${port}`,
-  `--user-data-dir=${mkdtempSync(join(tmpdir(), 'canary-'))}`,
-  'about:blank',
-], { stdio: 'inherit' });
+const browser = spawn(
+  chrome,
+  [
+    '--headless=new',
+    `--remote-debugging-port=${port}`,
+    `--user-data-dir=${mkdtempSync(join(tmpdir(), 'canary-'))}`,
+    'about:blank',
+  ],
+  { stdio: 'inherit' },
+);
 
 async function cdp(url) {
   for (let i = 0; i < 50; i++) {
@@ -4622,9 +6170,13 @@ async function cdp(url) {
 }
 
 const version = await cdp(`http://127.0.0.1:${port}/json/version`);
-const target = await cdp(`http://127.0.0.1:${port}/json/new?http://127.0.0.1:${port}/devtools/devtools_app.html`);
+const target = await cdp(
+  `http://127.0.0.1:${port}/json/new?http://127.0.0.1:${port}/devtools/devtools_app.html`,
+);
 const socket = new WebSocket(target.webSocketDebuggerUrl);
-await new Promise((resolve) => socket.addEventListener('open', resolve, { once: true }));
+await new Promise((resolve) =>
+  socket.addEventListener('open', resolve, { once: true }),
+);
 let next = 0;
 const send = (method, params) =>
   new Promise((resolve, reject) => {
@@ -4633,7 +6185,10 @@ const send = (method, params) =>
       const data = JSON.parse(String(message.data));
       if (data.id !== id) return;
       socket.removeEventListener('message', onMessage);
-      if (data.error || data.result?.exceptionDetails) reject(new Error(JSON.stringify(data.error ?? data.result.exceptionDetails)));
+      if (data.error || data.result?.exceptionDetails)
+        reject(
+          new Error(JSON.stringify(data.error ?? data.result.exceptionDetails)),
+        );
       else resolve(data.result);
     };
     socket.addEventListener('message', onMessage);
@@ -4656,10 +6211,15 @@ const { result } = await send('Runtime.evaluate', {
 browser.kill();
 const got = result.value;
 const failures = [];
-if (got.frame !== 'F1') failures.push(`mainFrameId is ${JSON.stringify(got.frame)}, expected "F1"`);
-if (JSON.stringify(got.groups) !== JSON.stringify(['NexusDI'])) failures.push(`groups ${JSON.stringify(got.groups)}`);
-if (JSON.stringify(got.tracks) !== JSON.stringify(TRACKS)) failures.push(`tracks ${JSON.stringify(got.tracks)}`);
-console.log(`${version.Browser}: ${failures.length === 0 ? 'the NexusDI layout parses' : failures.join('; ')}`);
+if (got.frame !== 'F1')
+  failures.push(`mainFrameId is ${JSON.stringify(got.frame)}, expected "F1"`);
+if (JSON.stringify(got.groups) !== JSON.stringify(['NexusDI']))
+  failures.push(`groups ${JSON.stringify(got.groups)}`);
+if (JSON.stringify(got.tracks) !== JSON.stringify(TRACKS))
+  failures.push(`tracks ${JSON.stringify(got.tracks)}`);
+console.log(
+  `${version.Browser}: ${failures.length === 0 ? 'the NexusDI layout parses' : failures.join('; ')}`,
+);
 process.exit(failures.length === 0 ? 0 : 1);
 ```
 
