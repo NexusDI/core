@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest';
 
-import { SchemaError, validate } from './schema.ts';
+import { ROUNDS } from './scale/config.ts';
+import { SCALE_MINIMUM_ROUNDS, SchemaError, validate } from './schema.ts';
 
 const versions = {
   core: '0.4.0',
@@ -282,13 +283,36 @@ describe('validate scale-timings', () => {
       validate('scale-timings', scaleTimings({ mixed: 1000 }), 'results'),
     ).not.toThrow();
   });
-  it('holds fresh-process.wide to 200 rounds under results/', () => {
+  it.each([
+    ['mixed', 1000],
+    ['wide', 200],
+    ['deep', 200],
+    ['modular', 200],
+    ['mixed-async', 200],
+  ])('holds fresh-process.%s to %i rounds under results/', (shape, least) => {
     expect(() =>
-      validate('scale-timings', scaleTimings({ wide: 199 }), 'results'),
-    ).toThrow(/scale-timings\.design\.fresh-process\.wide\.measured/);
+      validate(
+        'scale-timings',
+        scaleTimings({ [shape]: least - 1 }),
+        'results',
+      ),
+    ).toThrow(
+      new RegExp(
+        `scale-timings\\.design\\.fresh-process\\.${shape}\\.measured`,
+      ),
+    );
     expect(() =>
-      validate('scale-timings', scaleTimings({ wide: 200 }), 'results'),
+      validate('scale-timings', scaleTimings({ [shape]: least }), 'results'),
     ).not.toThrow();
+  });
+  it('keeps every run ROUNDS entry at or above the published minimum', () => {
+    for (const shape of Object.keys(ROUNDS) as Array<keyof typeof ROUNDS>)
+      expect(ROUNDS[shape], shape).toBeGreaterThanOrEqual(
+        SCALE_MINIMUM_ROUNDS[shape],
+      );
+    expect(Object.keys(ROUNDS).sort()).toEqual(
+      Object.keys(SCALE_MINIMUM_ROUNDS).sort(),
+    );
   });
   it('holds steady-get to 1,000 iterations under results/', () => {
     const file = scaleTimings();
