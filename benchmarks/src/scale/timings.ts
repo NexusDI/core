@@ -15,7 +15,14 @@
  * stops before sampling when one does not pass.
  */
 import { execFileSync } from 'node:child_process';
-import { mkdirSync, mkdtempSync, rmSync, writeFileSync } from 'node:fs';
+import {
+  existsSync,
+  mkdirSync,
+  mkdtempSync,
+  readFileSync,
+  rmSync,
+  writeFileSync,
+} from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { gzipSync } from 'node:zlib';
@@ -49,6 +56,8 @@ import {
   type Design,
   type LibraryId,
   type Outcome,
+  type ScaleCell,
+  type ScaleFile,
   type ScaleGrowth,
   type ScaleMarginal,
   type ScaleMetric,
@@ -57,6 +66,7 @@ import {
   type Variant,
   SCALE_RATIO_METRICS,
 } from '../schema.ts';
+import { firstLine } from '../text.ts';
 import { checkFloor } from '../timings/floor.ts';
 import { pool, scaleCell, type CellResult } from './cells.ts';
 import { documentedVariant } from './deterministic.ts';
@@ -276,6 +286,84 @@ export function coreTree(root = ROOT): string {
   }
 }
 
+/** What one attempted cell came to. */
+export type CellVerdict = ScaleCell;
+
+const cellName = (
+  c: Pick<CellVerdict, 'library' | 'variant' | 'shape' | 'size'>,
+) => `${c.library}/${c.variant} ${c.shape} ${c.size}`;
+const sameCell = (a: CellVerdict, b: CellVerdict) =>
+  cellName(a) === cellName(b);
+
+/**
+ * Decides which attempted cells stop the run, and returns every cell in the
+ * order given. A competitor cell that fails to run (`runtime-error` or
+ * `compile-error`) at a larger size is a scaling result when the same
+ * library, variant and shape passes at n = 50, whether this run or the
+ * committed `scale.json` says so: it is skipped and recorded (scale spec 14).
+ * Everything else stops the run before sampling, because it is a harness
+ * fault or a result that cannot be trusted:
+ *
+ * - a NexusDI plain cell that does not pass at any size;
+ * - a competitor that fails at n = 50, or whose failure is not a
+ *   runtime-error or compile-error (an equivalence fault: wrong-instance);
+ * - a competitor failure with no pass at n = 50 on record;
+ * - an outcome that contradicts `scale.json` at a size both cover.
+ *
+ * A cell that fails while it is sampled stops the run in `freshBlock`
+ * (spec 7.3).
+ */
+export function judgeCells(
+  attempted: readonly CellVerdict[],
+  committed: readonly CellVerdict[],
+): { cells: CellVerdict[]; abort?: string } {
+  const stops: string[] = [];
+  const line = (c: CellVerdict, why = '') =>
+    `  ${cellName(c)}: ${c.outcome}${c.message === undefined ? '' : ` (${firstLine(c.message)})`}${why}`;
+  const passesAt50 = (c: CellVerdict) =>
+    [...attempted, ...committed].some(
+      (o) =>
+        o.outcome === 'pass' &&
+        o.size === 50 &&
+        o.library === c.library &&
+        o.variant === c.variant &&
+        o.shape === c.shape,
+    );
+  for (const c of attempted) {
+    const before = committed.find((o) => sameCell(o, c));
+    if (before !== undefined && before.outcome !== c.outcome) {
+      stops.push(line(c, `; scale.json records ${before.outcome}`));
+      continue;
+    }
+    if (c.outcome === 'pass' || c.outcome === 'not-applicable') continue;
+    if (c.library === 'nexusdi' && c.variant === 'plain') {
+      stops.push(line(c, '; the reference must run'));
+      continue;
+    }
+    const scaling =
+      (c.outcome === 'runtime-error' || c.outcome === 'compile-error') &&
+      c.size !== 50 &&
+      passesAt50(c);
+    if (!scaling) stops.push(line(c));
+  }
+  return {
+    cells: [...attempted],
+    ...(stops.length === 0
+      ? {}
+      : {
+          abort: `cells that stop the run, so nothing was sampled:\n${stops.join('\n')}`,
+        }),
+  };
+}
+
+/** The cells results/scale.json records, or none when the file is absent. */
+function committedCells(): CellVerdict[] {
+  const file = join(BENCHMARKS, 'results', 'scale.json');
+  return existsSync(file)
+    ? (JSON.parse(readFileSync(file, 'utf8')) as ScaleFile).cells
+    : [];
+}
+
 function design(warmup: number, measured: number): Design {
   return {
     order: 'williams',
@@ -310,9 +398,11 @@ const steadyPlan = (quick: boolean) =>
 const WORKER = join(import.meta.dirname, 'worker.mjs');
 
 /** Builds and verifies every cell, then samples: blocks in SHAPES order, then the steady get-cycle. */
-export async function runScaleTimings(
-  opts: ScaleRunOptions,
-): Promise<{ raw: ScaleRaw; graphs: ScaleTimingsFile['graphs'] }> {
+export async function runScaleTimings(opts: ScaleRunOptions): Promise<{
+  raw: ScaleRaw;
+  graphs: ScaleTimingsFile['graphs'];
+  cells: CellVerdict[];
+}> {
   const libraries = selectLibraries(opts.only, 'nexusdi');
   const shapes = SHAPES.filter((s) => (opts.shapes ?? SHAPES).includes(s));
   const sizes = SIZES.filter((n) => (opts.sizes ?? SIZES).includes(n));
@@ -320,6 +410,7 @@ export async function runScaleTimings(
     sizes.map((size) => graphOf(shape, size)),
   );
   const raw: ScaleRaw = { blocks: [], steady: [] };
+  let cells: CellVerdict[] = [];
   await withConsumer(libraries, async (dir) => {
     const jobs = libraries
       .flatMap((lib) =>
@@ -337,18 +428,17 @@ export async function runScaleTimings(
       );
       return { lib, variant, graph, r };
     });
-    const bad = results.filter(
-      (x) => x.r.outcome !== 'pass' && x.r.outcome !== 'not-applicable',
-    );
-    if (bad.length > 0)
-      throw new Error(
-        `cells that do not pass, so nothing was sampled:\n${bad
-          .map(
-            (x) =>
-              `  ${x.lib.id}/${x.variant} ${x.graph.shape} ${x.graph.size}: ${x.r.outcome}${x.r.message === undefined ? '' : ` (${x.r.message})`}`,
-          )
-          .join('\n')}`,
-      );
+    const verdicts: CellVerdict[] = results.map((x) => ({
+      library: x.lib.id,
+      variant: x.variant,
+      shape: x.graph.shape,
+      size: x.graph.size,
+      outcome: x.r.outcome,
+      ...(x.r.message === undefined ? {} : { message: x.r.message }),
+    }));
+    const judged = judgeCells(verdicts, committedCells());
+    if (judged.abort !== undefined) throw new Error(judged.abort);
+    cells = judged.cells;
     const ran = (
       x: (typeof results)[number],
     ): x is typeof x & {
@@ -446,7 +536,7 @@ export async function runScaleTimings(
       }
     }
   });
-  return { raw, graphs: graphs.map(describeGraph) };
+  return { raw, graphs: graphs.map(describeGraph), cells };
 }
 
 if (import.meta.main) {
@@ -460,7 +550,7 @@ if (import.meta.main) {
       ? 'tmp'
       : 'results';
   const startedAt = new Date().toISOString();
-  const { raw, graphs } = await runScaleTimings({
+  const { raw, graphs, cells } = await runScaleTimings({
     only,
     sizes,
     shapes,
@@ -488,6 +578,13 @@ if (import.meta.main) {
       tree: coreTree(),
     },
     graphs: graphs.map(({ shape, size, hash }) => ({ shape, size, hash })),
+    cells: [...cells].sort(
+      (a, b) =>
+        a.library.localeCompare(b.library) ||
+        a.variant.localeCompare(b.variant) ||
+        SHAPES.indexOf(a.shape) - SHAPES.indexOf(b.shape) ||
+        a.size - b.size,
+    ),
     design: {
       'fresh-process': Object.fromEntries(
         raw.blocks.map((b) => [b.shape, design(b.warmup, b.measured)]),
