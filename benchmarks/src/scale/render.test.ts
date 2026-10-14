@@ -137,7 +137,9 @@ describe('problems', () => {
   it('names both hashes when the timing file was made with another generator', () => {
     const i = input();
     if (i.timings)
-      i.timings.graphs[1] = { ...i.timings.graphs[1]!, hash: 'ffffffffffff' };
+      i.timings.graphs = i.timings.graphs.map((g, n) =>
+        n === 1 ? { ...g, hash: 'ffffffffffff' } : g,
+      );
     const found = problems(i).join('\n');
     expect(found).toContain('ffffffffffff');
     expect(found).toContain(fixtureScale().graphs[1]?.hash);
@@ -245,7 +247,9 @@ describe('render.ts as a command', () => {
   }, 30_000);
   it('fails with both hashes when the inputs disagree', () => {
     const t = fixtureTimings();
-    t.graphs[0] = { ...t.graphs[0]!, hash: 'ffffffffffff' };
+    t.graphs = t.graphs.map((g, n) =>
+      n === 0 ? { ...g, hash: 'ffffffffffff' } : g,
+    );
     writeFileSync(
       join(dir, 'scale', '2026-10-14-abc1234.json'),
       JSON.stringify(t),
