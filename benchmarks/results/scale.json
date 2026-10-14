@@ -1,9 +1,9 @@
 {
   "schema": 1,
   "versions": {
-    "core": "0.4.0-rc.0",
+    "core": "0.4.0-rc.1",
     "libraries": {
-      "nexusdi": "0.4.0-rc.0",
+      "nexusdi": "0.4.0-rc.1",
       "inversify": "8.2.3",
       "tsyringe": "4.10.0",
       "awilix": "13.0.5",
@@ -1100,32 +1100,32 @@
       "variant": "plain",
       "shape": "mixed",
       "size": 50,
-      "minified": 64756,
-      "gzip": 20345
+      "minified": 64828,
+      "gzip": 20335
     },
     {
       "library": "nexusdi",
       "variant": "plain",
       "shape": "mixed",
       "size": 200,
-      "minified": 90083,
-      "gzip": 24832
+      "minified": 90160,
+      "gzip": 24805
     },
     {
       "library": "nexusdi",
       "variant": "plain",
       "shape": "mixed",
       "size": 1000,
-      "minified": 226485,
-      "gzip": 47062
+      "minified": 226558,
+      "gzip": 47064
     },
     {
       "library": "nexusdi",
       "variant": "plain",
       "shape": "mixed",
       "size": 5000,
-      "minified": 941603,
-      "gzip": 158469
+      "minified": 941671,
+      "gzip": 158429
     },
     {
       "library": "tsyringe",
@@ -1215,7 +1215,7 @@
       "variant": "plain",
       "shape": "mixed",
       "bytes": "gzip",
-      "perProvider": 27.85
+      "perProvider": 27.84
     },
     {
       "library": "tsyringe",
