@@ -518,3 +518,48 @@ describe('the span of a queued run', () => {
     expect(loads[1]?.startMs).toBeLessThanOrEqual(called);
   });
 });
+
+describe('an observer throw on a scope event', () => {
+  const thrown = new Error('telemetry down');
+  const throwOn = (type: TraceEvent['type']) => {
+    const { events, plugin } = recordEvents();
+    const watcher = {
+      name: 'test:watcher',
+      apiVersion: 1,
+      observe(event: TraceEvent) {
+        if (event.type === type) throw thrown;
+      },
+    };
+    return { events, plugins: [plugin, watcher] };
+  };
+
+  it('rejects createScope with the raw throw and closes its run once', async () => {
+    const { events, plugins } = throwOn('scope:create');
+    await using ship = await Nexus.create(Engineering, { plugins });
+    expect(await rejected(ship.createScope())).toBe(thrown);
+    expect(
+      only(events, 'run').filter((e) => e.kind === 'createScope'),
+    ).toMatchObject([{ run: 1, ok: false }]);
+  });
+
+  it('rejects extend() with the raw throw and closes its run once', async () => {
+    const { events, plugins } = throwOn('scope:extend');
+    await using ship = await Nexus.create(Engineering, { plugins });
+    await using shuttle = await ship.createScope();
+    await ship.load(
+      defineModule({
+        name: 'Science',
+        providers: [
+          provide(new Token<object>('Probe'), {
+            useFactory: () => ({}),
+            lifetime: 'scoped',
+          }),
+        ],
+      }),
+    );
+    expect(await rejected(shuttle.extend())).toBe(thrown);
+    expect(
+      only(events, 'run').filter((e) => e.kind === 'extend'),
+    ).toMatchObject([{ run: 3, scope: shuttle.id, ok: false }]);
+  });
+});

@@ -221,14 +221,21 @@ async function buildScope(scope: ScopeState, trace: RunTrace): Promise<Scope> {
     );
   }
   root.scopes.add(scope);
-  tracer.emit(() => ({
-    type: 'scope:create',
-    scope: scope.scopeId,
-    built,
-    run: trace.id,
-    startMs: start,
-    durationMs: tracer.now() - start,
-  }));
+  try {
+    tracer.emit(() => ({
+      type: 'scope:create',
+      scope: scope.scopeId,
+      built,
+      run: trace.id,
+      startMs: start,
+      durationMs: tracer.now() - start,
+    }));
+  } catch (error) {
+    // The call rejects with the observer's throw as in rc.0, and its run
+    // still closes once (spec 3.4).
+    emitRun(tracer, trace, []);
+    throw error;
+  }
   emitRun(tracer, trace);
   return scope.handle;
 }
@@ -311,17 +318,23 @@ async function extendNow(
   scope.owned.push(...built.owned);
   scope.blueprint = target;
   const known = new Set([...pinned.modules.values()].map((m) => m.definition));
-  tracer.emit(() => ({
-    type: 'scope:extend',
-    scope: scope.scopeId,
-    modules: [...target.modules.values()]
-      .filter((m) => !known.has(m.definition))
-      .map((m) => m.name),
-    built: levelled,
-    run: trace.id,
-    startMs: start,
-    durationMs: tracer.now() - start,
-  }));
+  try {
+    tracer.emit(() => ({
+      type: 'scope:extend',
+      scope: scope.scopeId,
+      modules: [...target.modules.values()]
+        .filter((m) => !known.has(m.definition))
+        .map((m) => m.name),
+      built: levelled,
+      run: trace.id,
+      startMs: start,
+      durationMs: tracer.now() - start,
+    }));
+  } catch (error) {
+    // As for scope:create in buildScope.
+    emitRun(tracer, trace, []);
+    throw error;
+  }
   emitRun(tracer, trace);
 }
 
