@@ -209,6 +209,6 @@ describe('devtools', () => {
     await Nexus.create(Science, {
       plugins: [devtools({ trace: (event) => events.push(event) })],
     });
-    expect(events.map((event) => event.type)).toEqual(['compile']);
+    expect(events.map((event) => event.type)).toEqual(['compile', 'run']);
   });
 });

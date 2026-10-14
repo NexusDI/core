@@ -3,6 +3,9 @@ import { HOOK_SITES } from '../definitions/hook-sites.js';
 import { fromUserCode } from './format.js';
 import type { OwnedEntry } from './ownership.js';
 
+/** The operation a run is. May gain a member in a minor release; handle an unknown kind. */
+export type RunKind = 'create' | 'load' | 'createScope' | 'extend';
+
 /**
  * Each trace event type's fields (spec section 10.2). A package adds its own
  * by augmentation, keyed `<package>/<event>`.
@@ -13,6 +16,8 @@ export interface TraceEventByType {
     modules: number;
     providers: number;
     errors: number;
+    /** The run this compile starts; null for Nexus.check. */
+    run: number | null;
     startMs: number;
     durationMs: number;
   };
@@ -38,9 +43,19 @@ export interface TraceEventByType {
     startMs: number;
     durationMs: number;
   };
+  run: {
+    run: number;
+    kind: RunKind;
+    /** The scope for createScope and extend(); null at the root. */
+    scope: string | null;
+    ok: boolean;
+    startMs: number;
+    durationMs: number;
+  };
   'scope:create': {
     scope: string;
     built: number;
+    run: number;
     startMs: number;
     durationMs: number;
   };
@@ -48,6 +63,7 @@ export interface TraceEventByType {
     scope: string;
     modules: string[];
     built: number;
+    run: number;
     startMs: number;
     durationMs: number;
   };
@@ -116,6 +132,46 @@ function send(sinks: readonly TraceSink[], event: TraceEvent): void {
       throw fromUserCode(error);
     }
   }
+}
+
+/**
+ * Emits on a failure path (spec 3.5): an observer's throw joins `errors`,
+ * or is dropped when the failure has no list to hold it, so the
+ * operation's own error reaches the caller.
+ */
+export function emitCollecting(
+  tracer: Tracer,
+  errors: unknown[] | undefined,
+  make: () => TraceEvent,
+): void {
+  try {
+    tracer.emit(make);
+  } catch (error) {
+    errors?.push(error);
+  }
+}
+
+/** The `run` event that ends a create, load, createScope or extend(). */
+export function emitRun(
+  tracer: Tracer,
+  run: number,
+  kind: RunKind,
+  scope: string | null,
+  start: number,
+  ok: boolean,
+  errors?: unknown[],
+): void {
+  const make = (): TraceEvent => ({
+    type: 'run',
+    run,
+    kind,
+    scope,
+    ok,
+    startMs: start,
+    durationMs: tracer.now() - start,
+  });
+  if (ok) tracer.emit(make);
+  else emitCollecting(tracer, errors, make);
 }
 
 /** The callback disposeInReverse calls per disposed instance: one dispose:instance event each. */

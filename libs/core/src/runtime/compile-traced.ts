@@ -30,6 +30,7 @@ export function compileTraced(
   tracer: Tracer,
   input: CompileInput,
   phase: 'create' | 'load' | 'check',
+  run: number | null,
 ): Blueprint {
   const start = tracer.now();
   let blueprint: Blueprint;
@@ -42,6 +43,7 @@ export function compileTraced(
         tracer.emit(() => ({
           type: 'compile',
           phase,
+          run,
           modules: 0,
           providers: 0,
           errors,
@@ -58,6 +60,7 @@ export function compileTraced(
     tracer.emit(() => ({
       type: 'compile',
       phase,
+      run,
       modules: blueprint.modules.size,
       // The built-in REQUEST provider is not counted.
       providers: blueprint.providers.size - 1,

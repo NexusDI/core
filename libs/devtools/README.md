@@ -56,7 +56,7 @@ toMermaid(graph(ship)).split('\n')[0]; // -> 'flowchart LR'
 const events: string[] = [];
 const plugins = [trace((event) => events.push(event.type))];
 await using traced = await Nexus.create(Navigation, { plugins });
-events; // -> ['compile', 'construct']
+events; // -> ['compile', 'construct', 'run']
 ```
 
 ## Documentation

@@ -16,12 +16,18 @@ import {
 import { buildLevels } from './build-levels.js';
 import { runInit } from './init.js';
 import { rollBack, settleLevel } from './settle.js';
-import { assertOpen, type Owner, type RootState } from './state.js';
+import { assertOpen, type Owner, type RootState, type Run } from './state.js';
+import { emitRun } from './trace.js';
 
 export interface StartupPlan {
   readonly bp: Blueprint;
   /** Whether this blueprint added the provider: all of them at create, the loaded ones at load. */
   readonly isNew: (id: string) => boolean;
+  /** The run id: 0 for create, the root's next id for load. */
+  readonly run: number;
+  readonly kind: 'create' | 'load';
+  /** When the run began, on the tracer's clock. */
+  readonly start: number;
 }
 
 /**
@@ -151,7 +157,14 @@ export async function startBlueprint(
   const built: Owner = { root, owned: [] };
   const touched: string[] = [];
   const registered: unknown[] = [];
-  root.run = { isNew: plan.isNew, owner: built, touched };
+  const run: Run = {
+    id: plan.run,
+    errors: undefined,
+    isNew: plan.isNew,
+    owner: built,
+    touched,
+  };
+  root.run = run;
   try {
     await registerStatic(root, plan, touched, registered);
     await buildLevels(
@@ -181,10 +194,20 @@ export async function startBlueprint(
     for (const value of registered) root.ownership.unregisterValue(value);
     throw await rollBack(
       root,
-      { touched, owned: built.owned },
+      { touched, owned: built.owned, errors: run.errors },
       plan.bp,
       error,
       () => (root.disposing ? root.abortErrors : undefined),
+      (errors) =>
+        emitRun(
+          root.tracer,
+          plan.run,
+          plan.kind,
+          null,
+          plan.start,
+          false,
+          errors,
+        ),
     );
   }
 }

@@ -23,9 +23,9 @@ import {
 import { rootModuleOf, type CheckedRoot, type UninferredRoot } from './root.js';
 import { openScope, type Scope } from './scope.js';
 import { abandonRoot, disposeRoot } from './shutdown.js';
-import { startBlueprint } from './startup.js';
+import { startBlueprint, type StartupPlan } from './startup.js';
 import { assertOpen, createRootState, track, type RootState } from './state.js';
-import { Tracer, type TraceSink } from './trace.js';
+import { emitRun, Tracer, type TraceSink } from './trace.js';
 
 let wrap: (state: RootState) => Nexus;
 
@@ -88,7 +88,7 @@ export class Nexus {
         phase: 'check' as const,
         wantsView: HOOK_SITES && plugins.formatError.length > 0,
       };
-      last = compileTraced(tracer, input, 'check');
+      last = compileTraced(tracer, input, 'check', null);
       for (const module of options?.load ?? []) {
         last = compileTraced(
           tracer,
@@ -98,6 +98,7 @@ export class Nexus {
             previous: last,
           },
           'check',
+          null,
         );
       }
     } catch (error) {
@@ -245,6 +246,7 @@ async function runSetup(
   state: RootState,
   plugins: PluginSet,
   ship: Nexus,
+  runStart: number,
 ): Promise<void> {
   if (HOOK_SITES && plugins.setup.length > 0) {
     const context = pluginContext(state, ship);
@@ -257,8 +259,12 @@ async function runSetup(
     try {
       await work;
     } catch (error) {
-      if (!(error instanceof SetupFailure)) throw error;
+      if (!(error instanceof SetupFailure)) {
+        emitRun(state.tracer, 0, 'create', null, runStart, false);
+        throw error;
+      }
       const disposalErrors = await abandonRoot(state);
+      emitRun(state.tracer, 0, 'create', null, runStart, false, disposalErrors);
       throw pluginFailed(error.plugin, 'setup', error.error, disposalErrors);
     }
     return;
@@ -274,10 +280,7 @@ async function runSetup(
  * either waiter resumes: its methods throw NEXUS_DISPOSED and its
  * [Symbol.asyncDispose]() resolves.
  */
-async function buildRoot(
-  state: RootState,
-  blueprint: Blueprint,
-): Promise<void> {
+async function buildRoot(state: RootState, plan: StartupPlan): Promise<void> {
   let release!: () => void;
   const building = new Promise<void>((resolve) => {
     release = resolve;
@@ -291,7 +294,7 @@ async function buildRoot(
   });
   track(state.inflight, build);
   try {
-    start(startBlueprint(state, { bp: blueprint, isNew: () => true }));
+    start(startBlueprint(state, plan));
     await build;
   } catch (error) {
     state.disposing = true;
@@ -313,20 +316,30 @@ export async function createContainer(
   // view, and a compile error carries its own through failedView().
   let compiled: Blueprint | undefined;
   try {
-    const module = rootModuleOf(root);
     const tracer = new Tracer(traceSinks(plugins));
-    const blueprint = compileTraced(
-      tracer,
-      {
-        root: module,
-        pluginImports: plugins.modules,
-        hooks: plugins.compile,
-        canon,
-        phase: 'create',
-        wantsView: HOOK_SITES && plugins.formatError.length > 0,
-      },
-      'create',
-    );
+    const start = tracer.now();
+    let module: unknown;
+    let blueprint: Blueprint;
+    try {
+      module = rootModuleOf(root);
+      blueprint = compileTraced(
+        tracer,
+        {
+          root: module,
+          pluginImports: plugins.modules,
+          hooks: plugins.compile,
+          canon,
+          phase: 'create',
+          wantsView: HOOK_SITES && plugins.formatError.length > 0,
+        },
+        'create',
+        0,
+      );
+    } catch (error) {
+      // No list holds an observer's throw here (spec 3.5).
+      emitRun(tracer, 0, 'create', null, start, false);
+      throw error;
+    }
     compiled = blueprint;
     const state = createRootState({
       blueprint,
@@ -337,8 +350,16 @@ export async function createContainer(
       canon,
       wrap,
     });
-    await buildRoot(state, blueprint);
-    await runSetup(state, plugins, state.handle);
+    // A failed build emits the run's closing event in its rollback.
+    await buildRoot(state, {
+      bp: blueprint,
+      isNew: () => true,
+      run: 0,
+      kind: 'create',
+      start,
+    });
+    await runSetup(state, plugins, state.handle, start);
+    emitRun(tracer, 0, 'create', null, start, true);
     return state.handle;
   } catch (error) {
     throw formatThrown(
