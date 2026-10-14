@@ -4,7 +4,10 @@ export interface ScaleApp<H = unknown> {
   readonly count: number;
   readonly entries: readonly number[];
   readonly target: number;
-  /** Library modules this app imports, for the child to load first. */
+  /**
+   * Library modules this app imports. Informational: the timed child reads
+   * the cell's packages.mjs, which bundleCell derives from the bundle.
+   */
   readonly packages: readonly string[];
   /**
    * Constructions per provider index, and the kind each construction

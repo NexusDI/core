@@ -1,5 +1,11 @@
 import { orderFor } from '@nexusdi/bench-kit';
-import { mkdirSync, mkdtempSync, rmSync, writeFileSync } from 'node:fs';
+import {
+  mkdirSync,
+  mkdtempSync,
+  readFileSync,
+  rmSync,
+  writeFileSync,
+} from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { pathToFileURL } from 'node:url';
@@ -150,9 +156,10 @@ describe('freshBlock', () => {
     }
   });
 
-  it('keeps a core import out of load', async () => {
-    // fake-lib stands in for a library whose import takes 250 ms. The cell's
-    // packages.mjs imports it untimed; the bundle imports it as well.
+  it('imports the cell packages before the bundle, once', async () => {
+    // fake-lib logs "lib" when it evaluates; the bundle logs "bundle" as its
+    // first statement and imports fake-lib after that.
+    const log = join(dir, 'cell', 'order.log');
     const lib = join(dir, 'cell', 'node_modules', 'fake-lib');
     mkdirSync(lib, { recursive: true });
     writeFileSync(
@@ -161,28 +168,38 @@ describe('freshBlock', () => {
     );
     writeFileSync(
       join(lib, 'index.js'),
-      'const t = Date.now();\nwhile (Date.now() - t < 250);\nexport const loaded = true;\n',
+      "import { appendFileSync } from 'node:fs';\nappendFileSync(process.env.FAKE_LOG, 'lib\\n');\n",
     );
     const bundle = join(dir, 'cell', 'bundle.mjs');
     writeFileSync(
       bundle,
-      `import 'fake-lib';\nexport { scale } from ${JSON.stringify(pathToFileURL(FAKE).href)};\n`,
+      `import { appendFileSync } from 'node:fs';
+appendFileSync(process.env.FAKE_LOG, 'bundle\\n');
+await import('fake-lib');
+export const { scale } = await import(${JSON.stringify(pathToFileURL(FAKE).href)});
+`,
     );
     const graph = join(dir, 'cell', 'graph.json');
     writeFileSync(graph, JSON.stringify(six()));
     const packagesFile = join(dir, 'cell', 'packages.mjs');
-    const run = async () => {
-      const [row] = await freshBlock(
+    process.env.FAKE_LOG = log;
+    const order = async (packages: string) => {
+      writeFileSync(log, '');
+      writeFileSync(packagesFile, packages);
+      await freshBlock(
         [{ library: 'x', size: 6, bundle, graph, packagesFile }],
         { ...opts, warmup: 0, measured: 1 },
       );
-      return row?.load[0] ?? NaN;
+      return readFileSync(log, 'utf8').trim().split('\n');
     };
-    writeFileSync(packagesFile, "import 'fake-lib';\n");
-    expect(await run()).toBeLessThan(100e6);
-    // Without the packages file the bundle's own import pays for it.
-    writeFileSync(packagesFile, '');
-    expect(await run()).toBeGreaterThan(250e6);
+    try {
+      // The package is evaluated once, before the timed bundle import.
+      expect(await order("import 'fake-lib';\n")).toEqual(['lib', 'bundle']);
+      // Without packages.mjs the bundle's own import evaluates it.
+      expect(await order('')).toEqual(['bundle', 'lib']);
+    } finally {
+      delete process.env.FAKE_LOG;
+    }
   }, 60_000);
 
   it('rejects with the child stderr when it exits 1 before sending', async () => {
