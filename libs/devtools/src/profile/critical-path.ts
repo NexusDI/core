@@ -1,3 +1,4 @@
+import { least, most } from './extent.js';
 import type {
   CriticalPath,
   ProfileBuild,
@@ -53,8 +54,11 @@ export function criticalPathOf(run: ProfileRun, graph: Graph): CriticalPath {
     return found;
   };
 
-  const buildStart = Math.min(...levelled.map((b) => b.startMs));
-  const buildEnd = Math.max(...levelled.map(endOf));
+  const buildStart = least(
+    levelled.map((b) => b.startMs),
+    Infinity,
+  );
+  const buildEnd = most(levelled.map(endOf), -Infinity);
   const levels = [...new Set(levelled.map((b) => b.level))].sort(
     (a, b) => a - b,
   );
@@ -63,7 +67,10 @@ export function criticalPathOf(run: ProfileRun, graph: Graph): CriticalPath {
   let previous: ProfileBuild | undefined;
   for (const level of levels) {
     const members = levelled.filter((b) => b.level === level);
-    const levelStart = Math.min(...members.map((b) => b.startMs));
+    const levelStart = least(
+      members.map((b) => b.startMs),
+      Infinity,
+    );
     const last = members.reduce((a, b) => (endOf(b) > endOf(a) ? b : a));
     const deps = depsOf(last.providerId);
     const latest =
@@ -93,7 +100,7 @@ export function criticalPathOf(run: ProfileRun, graph: Graph): CriticalPath {
     .map((b) => {
       const deps = depsOf(b.providerId);
       const ready =
-        deps.length === 0 ? buildStart : Math.max(...deps.map(endOf));
+        deps.length === 0 ? buildStart : most(deps.map(endOf), -Infinity);
       return {
         providerId: b.providerId,
         token: b.token,
@@ -107,12 +114,12 @@ export function criticalPathOf(run: ProfileRun, graph: Graph): CriticalPath {
   for (const b of [...levelled].sort((x, y) => x.level - y.level))
     finish.set(
       b.providerId,
-      Math.max(
+      most(
+        depsOf(b.providerId).map((d) => finish.get(d.providerId) ?? 0),
         0,
-        ...depsOf(b.providerId).map((d) => finish.get(d.providerId) ?? 0),
       ) + ownMs(b),
     );
-  const boundMs = Math.max(0, ...finish.values());
+  const boundMs = most(finish.values(), 0);
   const buildMs = buildEnd - buildStart;
   return {
     run: run.id,

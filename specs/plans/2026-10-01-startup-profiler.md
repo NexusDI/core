@@ -4245,6 +4245,7 @@ export function spansOf(
 ```ts
 import { describe, expect, it } from 'vitest';
 
+import { defined } from '../../test-support/defined.js';
 import { build, report } from '../../test-support/profile-fixture.js';
 import { spansOf } from './spans.js';
 
@@ -4274,7 +4275,7 @@ const r = report(
 
 describe('spansOf', () => {
   it('draws one track per level with sync, await and finish children', () => {
-    const spans = spansOf(r.runs[0]!, r.graph, r.reportedMs);
+    const spans = spansOf(defined(r.runs[0]), r.graph, r.reportedMs);
     const nav = spans.filter((s) => s.track === 'create · level 1');
     const tenth = (n: number) => Math.round(n * 10) / 10;
     expect(
@@ -4285,13 +4286,13 @@ describe('spansOf', () => {
       ['await', 2.5, 23.9, 'secondary'],
       ['finish', 23.9, 24, 'tertiary-light'],
     ]);
-    expect(nav[0]!.tooltip).toBe(
+    expect(defined(nav[0]).tooltip).toBe(
       'NavCharts 21.8 ms (0.3 sync, 21.4 await), critical path',
     );
   });
 
   it('draws the run, its steps and a ready marker', () => {
-    const spans = spansOf(r.runs[0]!, r.graph, r.reportedMs);
+    const spans = spansOf(defined(r.runs[0]), r.graph, r.reportedMs);
     expect(
       spans.filter((s) => s.track === 'Runs' && !s.marker).map((s) => s.name),
     ).toEqual(['create']);
@@ -4319,15 +4320,80 @@ describe('spansOf', () => {
         },
       ],
     });
-    const pending = spansOf(open.runs[0]!, open.graph, 60_005).find(
+    const pending = spansOf(defined(open.runs[0]), open.graph, 60_005).find(
       (s) => s.name === 'NavCharts',
-    )!;
+    );
     expect(pending).toMatchObject({
       startMs: 5,
       endMs: 60_005,
       color: 'error',
       tooltip: 'NavCharts still awaiting at timeout',
     });
+  });
+  it('draws a failed build and its run in the error colour', () => {
+    const failed = report(
+      [
+        build({
+          providerId: 'b',
+          token: 'Breach',
+          startMs: 0,
+          durationMs: 1,
+          failed: true,
+          syncMs: null,
+          finishMs: null,
+        }),
+      ],
+      [],
+      { ok: false },
+    );
+    const spans = spansOf(defined(failed.runs[0]), failed.graph, 2);
+    expect(spans.find((s) => s.name === 'Breach')).toMatchObject({
+      color: 'error',
+      tooltip: 'Breach 1.0 ms, failed',
+    });
+    expect(spans.filter((s) => s.marker)).toMatchObject([
+      { name: 'create failed', color: 'error' },
+    ]);
+  });
+
+  it("draws onInit calls and a pending onInit on the run's onInit track", () => {
+    const open = report([], [], {
+      ok: null,
+      durationMs: null,
+      inits: [
+        {
+          providerId: 'r',
+          token: 'Reactor',
+          level: 0,
+          async: false,
+          startMs: 1,
+          syncMs: 1,
+          awaitMs: null,
+          durationMs: 1,
+          failed: false,
+        },
+      ],
+      pending: [
+        {
+          providerId: 'c',
+          token: 'Computer',
+          module: 'Engineering',
+          level: 0,
+          what: 'init',
+          startMs: 2,
+          syncMs: 0,
+        },
+      ],
+    });
+    const spans = spansOf(defined(open.runs[0]), open.graph, 10);
+    expect(
+      spans
+        .filter((s) => s.track === 'create · onInit')
+        .map((s) => [s.name, s.color]),
+    ).toEqual([
+      ['Reactor', 'primary'],
+      ['Computer', 'error'],
+    ]);
   });
 });
 ```
@@ -4337,6 +4403,7 @@ describe('spansOf', () => {
 ```ts
 import { describe, expect, it } from 'vitest';
 
+import { defined } from '../../test-support/defined.js';
 import { build, report } from '../../test-support/profile-fixture.js';
 import { toChromeTrace } from './chrome.js';
 
@@ -4347,9 +4414,9 @@ const r = report([
 describe('toChromeTrace', () => {
   it('starts with the metadata and the TracingStartedInBrowser frame DevTools needs', () => {
     const { traceEvents } = toChromeTrace(r);
-    const started = traceEvents.find(
-      (e) => e['name'] === 'TracingStartedInBrowser',
-    )!;
+    const started = defined(
+      traceEvents.find((e) => e['name'] === 'TracingStartedInBrowser'),
+    );
     expect(started).toMatchObject({
       pid: 2,
       tid: 2,
@@ -4373,9 +4440,9 @@ describe('toChromeTrace', () => {
 
   it('writes each span as a b/e pair with a JSON detail that stays valid with quotes and backslashes', () => {
     const { traceEvents } = toChromeTrace(r, { trackGroup: 'Ship' });
-    const begin = traceEvents.find(
-      (e) => e['ph'] === 'b' && e['name'] === 'Quote"\\·Core',
-    )!;
+    const begin = defined(
+      traceEvents.find((e) => e['ph'] === 'b' && e['name'] === 'Quote"\\·Core'),
+    );
     const detail = JSON.parse((begin['args'] as { detail: string }).detail) as {
       devtools: { track: string; trackGroup: string };
     };
@@ -4384,12 +4451,14 @@ describe('toChromeTrace', () => {
       trackGroup: 'Ship',
     });
     expect(begin['ts']).toBe(1000);
-    const end = traceEvents.find(
-      (e) =>
-        e['ph'] === 'e' &&
-        (e['id2'] as { local: string }).local ===
-          (begin['id2'] as { local: string }).local,
-    )!;
+    const end = defined(
+      traceEvents.find(
+        (e) =>
+          e['ph'] === 'e' &&
+          (e['id2'] as { local: string }).local ===
+            (begin['id2'] as { local: string }).local,
+      ),
+    );
     expect(end['ts']).toBe(3000);
   });
 
@@ -4426,7 +4495,9 @@ describe('toChromeTrace', () => {
     const { traceEvents } = toChromeTrace(r, {
       cpuProfile: { profile, offsetMs: 500 },
     });
-    const chunk = traceEvents.find((e) => e['name'] === 'ProfileChunk')!;
+    const chunk = defined(
+      traceEvents.find((e) => e['name'] === 'ProfileChunk'),
+    );
     const nodes = (
       chunk['args'] as {
         data: { cpuProfile: { nodes: { id: number; parent?: number }[] } };
@@ -4434,9 +4505,11 @@ describe('toChromeTrace', () => {
     ).data.cpuProfile.nodes;
     expect(nodes.find((n) => n.id === 2)?.parent).toBe(1);
     expect(
-      traceEvents.find(
-        (e) => e['ph'] === 'b' && e['name'] === 'Quote"\\·Core',
-      )!['ts'],
+      defined(
+        traceEvents.find(
+          (e) => e['ph'] === 'b' && e['name'] === 'Quote"\\·Core',
+        ),
+      )['ts'],
     ).toBe(501_000);
   });
 
@@ -4444,6 +4517,16 @@ describe('toChromeTrace', () => {
     expect(JSON.stringify(toChromeTrace(report([])))).not.toMatch(
       /NaN|"ts":null|"dur":null/,
     );
+  });
+  it('names no root in the frame URL when the report has no graph', () => {
+    const { traceEvents } = toChromeTrace({ ...r, graph: null });
+    const started = defined(
+      traceEvents.find((e) => e['name'] === 'TracingStartedInBrowser'),
+    );
+    expect(
+      (started['args'] as { data: { frames: { url: string }[] } }).data
+        .frames[0]?.url,
+    ).toBe('nexusdi://profile');
   });
 });
 ```
@@ -4453,6 +4536,7 @@ describe('toChromeTrace', () => {
 ```ts
 import { afterEach, describe, expect, it, vi } from 'vitest';
 
+import { defined } from '../../test-support/defined.js';
 import { liveSink } from './live.js';
 
 describe('liveSink', () => {
@@ -4471,10 +4555,12 @@ describe('liveSink', () => {
     vi.stubGlobal('navigator', {
       userAgentData: { brands: [{ brand: 'Chromium', version: '134' }] },
     });
-    const stamp = vi.spyOn(console, 'timeStamp').mockImplementation(() => {
+    // Node's console has no timeStamp to spy on, so the test stubs one.
+    const stamp = vi.fn(() => {
       throw new Error('no recorder');
     });
-    const sink = liveSink('NexusDI')!;
+    vi.stubGlobal('console', { ...console, timeStamp: stamp });
+    const sink = defined(liveSink('NexusDI'));
     expect(() =>
       sink(
         {
@@ -4517,7 +4603,29 @@ import { criticalPathOf, ownMs } from './critical-path.js';
 import type { ProfileBuild, ProfileReport, ProfileRun } from './report.js';
 import { runLabel, stepsOf } from './steps.js';
 
-// Span, SpanColor: as in Interfaces.
+/** A colour name DevTools draws a custom-track span in. */
+export type SpanColor =
+  | 'primary'
+  | 'primary-light'
+  | 'primary-dark'
+  | 'secondary'
+  | 'secondary-light'
+  | 'secondary-dark'
+  | 'tertiary'
+  | 'tertiary-light'
+  | 'tertiary-dark'
+  | 'error';
+/** One span of a run, as live mode and the Chrome file draw it. */
+export interface Span {
+  readonly name: string;
+  readonly track: string;
+  readonly startMs: number;
+  readonly endMs: number;
+  readonly color: SpanColor;
+  readonly tooltip: string;
+  readonly properties: readonly (readonly [string, string])[];
+  readonly marker: boolean;
+}
 
 const ms = (n: number): string => n.toFixed(1);
 
@@ -4891,7 +4999,7 @@ export function liveSink(
 }
 ```
 
-In `profile.ts`: `const live = options.live === true ? liveSink(options.trackGroup ?? 'NexusDI') : undefined;` at the top of `profile()`, and at the end of the `run` case: `if (live !== undefined) { const rec = runs.get(event.run); if (rec !== undefined) live(runOf(rec), context === undefined ? null : graphOf(context.blueprint())); }` wrapped in `try {} catch {}`. Add a test to `profile.test.ts` that `profile({ live: true })` under a stubbed Chromium 134 `navigator` calls `console.timeStamp` with track `'Runs'` once the create settles.
+In `profile.ts`: `const live = options.live === true ? liveSink(options.trackGroup ?? 'NexusDI') : undefined;` at the top of `profile()`, and at the end of the `run` case: `if (live !== undefined) { const rec = runs.get(event.run); if (rec !== undefined) live(runOf(rec), context === undefined ? null : graphOf(context.blueprint())); }` wrapped in `try {} catch {}`. Add a test to `profile.test.ts` that `profile({ live: true })` under a stubbed Chromium 134 `navigator` calls `console.timeStamp` with track `'Runs'` once the create settles. Node's `console` has no `timeStamp`, so the live tests stub the global `console` with one (`vi.stubGlobal('console', { ...console, timeStamp: stamp })`) where `vi.spyOn` would throw.
 
 Export `toChromeTrace` from `index.ts`.
 

@@ -1,4 +1,4 @@
-import { describe, expect, it } from 'vitest';
+import { afterEach, describe, expect, it, vi } from 'vitest';
 
 import {
   Nexus,
@@ -377,5 +377,56 @@ describe('profile', () => {
       dropped: 0,
       dispose: null,
     });
+  });
+});
+
+describe('profile live mode', () => {
+  afterEach(() => vi.unstubAllGlobals());
+
+  it('draws the run with console.timeStamp once create settles on Chromium 134', async () => {
+    vi.stubGlobal('navigator', {
+      userAgentData: { brands: [{ brand: 'Chromium', version: '134' }] },
+    });
+    // Node's timeStamp records nothing, so the test stubs one.
+    const stamp = vi.fn();
+    vi.stubGlobal('console', { ...console, timeStamp: stamp });
+    const profiler = profile({ live: true });
+    await using ship = await Nexus.create(Engineering, { plugins: [profiler] });
+    void ship;
+    expect(stamp).toHaveBeenCalledWith(
+      'create',
+      expect.any(Number),
+      expect.any(Number),
+      'Runs',
+      'NexusDI',
+      'secondary-dark',
+    );
+  });
+});
+
+describe('profile graph', () => {
+  it('builds the graph once per blueprint, across createScope runs', async () => {
+    const SCANNER = new Token<object>('Scanner');
+    const profiler = profile({ scopes: true });
+    await using ship = await Nexus.create(
+      defineModule({
+        name: 'Root',
+        providers: [
+          provide(SCANNER, { lifetime: 'scoped', useFactory: () => ({}) }),
+        ],
+      }),
+      { plugins: [profiler] },
+    );
+    const before = profiler.report().graph;
+    await using first = await ship.createScope();
+    await using second = await ship.createScope();
+    void first;
+    void second;
+    expect(profiler.report().graph).toBe(before);
+    class Probe {}
+    await ship.load(defineModule({ name: 'Science', providers: [Probe] }));
+    const after = profiler.report().graph;
+    expect(after).not.toBe(before);
+    expect(after?.providers.map((p) => p.token)).toContain('Probe');
   });
 });
