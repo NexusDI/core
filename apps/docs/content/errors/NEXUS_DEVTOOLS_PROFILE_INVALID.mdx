@@ -8,7 +8,7 @@ errorClass: DevtoolsError
 
 # NEXUS_DEVTOOLS_PROFILE_INVALID
 
-`parseProfileReport(value)` throws `NEXUS_DEVTOOLS_PROFILE_INVALID` when `value` is not a `ProfileReport`. `parseProfileReport` checks every field of a report read back with `JSON.parse`, and the error's `path` names the first field that failed. It also refuses a `format` other than `'nexusdi-profile'` and a `version` other than 1. The call throws synchronously and bare. `nexusdi profile` from `@nexusdi/cli` calls `parseProfileReport` for a `.json` entry, and for a file that holds no report it prints `nexusdi: <file>: ` followed by this error's message, then exits with code 2.
+`parseProfileReport(value)` throws `NEXUS_DEVTOOLS_PROFILE_INVALID` when `value` is not a `ProfileReport`. `parseProfileReport` checks every field of a report read back with `JSON.parse`, and the error's `path` names the first field that failed. It also refuses a `format` other than `'nexusdi-profile'` and a `version` other than 1. The call throws synchronously and bare.
 
 ## Reproduce `NEXUS_DEVTOOLS_PROFILE_INVALID`
 
@@ -22,7 +22,7 @@ Try it: run `npm install @nexusdi/core@next` and `npm install -D @nexusdi/devtoo
 
 ## Fix `NEXUS_DEVTOOLS_PROFILE_INVALID`
 
-`NEXUS_DEVTOOLS_PROFILE_INVALID` goes away when `parseProfileReport` receives what `profiler.report()` or `profileStartup` returned, unedited. Write the file with `JSON.stringify` of the report, or with `nexusdi profile --json`, and pass `JSON.parse` of its text. A report recorded by an older `@nexusdi/devtools` that this version no longer reads fails the same way; record it again.
+`NEXUS_DEVTOOLS_PROFILE_INVALID` goes away when `parseProfileReport` receives what `profiler.report()` or `profileStartup` returned, unedited. Write the file with `JSON.stringify` of the report, and pass `JSON.parse` of its text. A report recorded by an older `@nexusdi/devtools` that this version no longer reads fails the same way; record it again.
 
 ```ts file=examples/meridian/src/errors/NEXUS_DEVTOOLS_PROFILE_INVALID.md region=fix
 
