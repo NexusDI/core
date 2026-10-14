@@ -877,7 +877,8 @@ does. Without the directive, the import itself fails in the RSC bundle on
 `createContext`, with a message that does not name NexusDI. TanStack Query and React
 Redux publish the directive the same way.
 
-The server recipe stays a docs page, as synthesis decided (no `@nexusdi/next`, C13). Its
+The server recipe stays a docs page, as synthesis decided (C13). `@nexusdi/next` covers
+route handlers and server actions only (R12, amended 2026-10-15). Its
 page waits for the Next 16 token identity reproduction.
 
 ## 11. StrictMode
@@ -1316,6 +1317,9 @@ R12. Next.js uses a `clientOnly` provider, and the RSC side stays a recipe.
 
 - Ruling: as sections 9.2 and 10, with no `@nexusdi/next`. The section 9.2 example sets
   `dispose`, matching section 12.4. Accepted as recommended.
+- Amended 2026-10-15: the owner approved `@nexusdi/next` for route handlers and server
+  actions (integrations spec revision 3, section 10 and Q1, on `spec/integrations-0.4`).
+  The client provider and the server-component recipe of this ruling stand.
 - Reason: a module-level client container on the Next server is shared across requests,
   which leaks one user's state into another user's HTML. P2, P6.
 - Users: no server HTML under the provider in Next. Server components use the
