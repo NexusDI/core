@@ -184,6 +184,8 @@ export function toScaleRows(raw: ScaleRaw, seed: number): ScaleTimingRow[] {
   return rows;
 }
 
+const ALL_SIZES: readonly number[] = SIZES;
+
 /** The passing cells of each library-variant in a block, ascending by size. */
 function perLibrary(block: RawBlock): RawScaleCell[][] {
   const groups = new Map<string, RawScaleCell[]>();
@@ -206,6 +208,9 @@ export function toScaleGrowth(raw: ScaleRaw, seed: number): ScaleGrowth[] {
           const lo = sizes[i - 1];
           const hi = sizes[i];
           if (lo === undefined || hi === undefined) continue;
+          // Neighbours in SIZES only: no pair spans a size that failed.
+          if (ALL_SIZES.indexOf(hi.size) !== ALL_SIZES.indexOf(lo.size) + 1)
+            continue;
           out.push({
             metric,
             library: lo.library,
@@ -252,8 +257,8 @@ export function toScaleMarginal(raw: ScaleRaw): ScaleMarginal[] {
 /**
  * The git tree SHA of the libs/core in `root`'s working tree, which is what
  * release-core.ts leaves checked out (it restores the worktree, not HEAD).
- * Hashes the non-ignored files through a throwaway index, so the real index
- * and the working tree stay as they are.
+ * Hashes HEAD plus the working tree's changes through a throwaway index, so
+ * the real index and the working tree stay as they are.
  */
 export function coreTree(root = ROOT): string {
   const scratch = mkdtempSync(join(tmpdir(), 'core-tree-'));
@@ -261,6 +266,9 @@ export function coreTree(root = ROOT): string {
   const git = (...args: string[]) =>
     execFileSync('git', args, { cwd: root, env, encoding: 'utf8' }).trim();
   try {
+    // Start from HEAD, so a tracked file that .gitignore covers stays in
+    // the tree, then take the working tree's changes and deletions.
+    git('read-tree', 'HEAD');
     git('add', '-A', '--', 'libs/core');
     return git('write-tree', '--prefix=libs/core/');
   } finally {
