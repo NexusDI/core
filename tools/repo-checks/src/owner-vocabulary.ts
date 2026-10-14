@@ -1,13 +1,8 @@
 import ts from 'typescript';
 
 import { parse, type Sources } from './core-layers.js';
-import {
-  allNodes,
-  at,
-  declaredCodes,
-  type PackageFiles,
-  unwrap,
-} from './error-codes.js';
+import { allNodes, at, declaredCodes, unwrap } from './error-codes.js';
+import { type EventPackage, eventVocabulary } from './owner-events.js';
 
 /**
  * P1: the owner holds its vocabulary (spec section 1.2).
@@ -25,6 +20,9 @@ import {
  * const. A key two packages call with no single definer fails in both. A
  * `Symbol.for` with a key that is not a string literal, or `Symbol.for`
  * handed on as a value, fails closed.
+ *
+ * (d) Trace event types follow the same rule; owner-events.ts reads them
+ * with a type checker.
  *
  * The check does not look for literals equal to a core-internal id; review
  * catches those.
@@ -46,6 +44,7 @@ export interface OwnerVocabulary {
     readonly files: number;
     readonly codes: number;
     readonly brands: number;
+    readonly events: number;
   };
 }
 
@@ -217,7 +216,7 @@ const list = (names: Iterable<string>): string => [...names].join(' and ');
  * learn who declares each code and defines each key.
  */
 export function ownerVocabulary(
-  packages: readonly PackageFiles[],
+  packages: readonly EventPackage[],
   allowlist: readonly VocabularyAllowance[],
 ): OwnerVocabulary {
   const parsed = packages.map((pkg) => ({
@@ -327,6 +326,9 @@ export function ownerVocabulary(
     }
   }
 
+  const events = eventVocabulary(packages);
+  violations.push(...events.violations);
+
   return {
     violations,
     used,
@@ -334,6 +336,7 @@ export function ownerVocabulary(
       files: packages.reduce((sum, pkg) => sum + pkg.files.length, 0),
       codes: codes.size,
       brands: brands.size,
+      events: events.events,
     },
   };
 }
