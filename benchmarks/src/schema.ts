@@ -7,7 +7,7 @@
  */
 import type { PairedRatio, Stats } from '@nexusdi/bench-kit';
 
-import { SHAPES, type Shape } from './scale/config.ts';
+import { SHAPES, SIZES, type Shape } from './scale/config.ts';
 import { PROVIDER_KINDS, type ProviderKind } from './scale/graph.ts';
 
 export type { PairedRatio, Stats, Shape };
@@ -727,7 +727,15 @@ const cellKey = (c: {
 
 /** Every row, growth pair and marginal figure rests on cells that passed. */
 function checkCellsBehindRows(file: ScaleTimingsFile): void {
-  const outcomes = new Map(file.cells.map((c) => [cellKey(c), c.outcome]));
+  const outcomes = new Map<string, string>();
+  file.cells.forEach((c, i) => {
+    if (outcomes.has(cellKey(c)))
+      fail(
+        `scale-timings.cells[${i}]`,
+        `a cell not listed before: ${cellKey(c)}`,
+      );
+    outcomes.set(cellKey(c), c.outcome);
+  });
   const needs = (at: string, c: Parameters<typeof cellKey>[0]) => {
     const got = outcomes.get(cellKey(c));
     if (got !== 'pass')
@@ -735,6 +743,16 @@ function checkCellsBehindRows(file: ScaleTimingsFile): void {
   };
   file.results.forEach((r, i) => needs(`scale-timings.results[${i}]`, r));
   file.growth.forEach((g, i) => {
+    const next = (SIZES as readonly number[])[
+      (SIZES as readonly number[]).indexOf(g.from) + 1
+    ];
+    if (g.to !== next)
+      fail(
+        `scale-timings.growth[${i}].to`,
+        next === undefined
+          ? `no pair from ${g.from}`
+          : `${next}, the size after ${g.from}`,
+      );
     needs(`scale-timings.growth[${i}]`, { ...g, size: g.from });
     needs(`scale-timings.growth[${i}]`, { ...g, size: g.to });
   });
