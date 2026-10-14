@@ -41,6 +41,7 @@ export async function runInit(
         type: 'init',
         token: bp.providers.get(id)?.name ?? id,
         providerId: id,
+        startMs: start,
         durationMs: tracer.now() - start,
       }));
     },

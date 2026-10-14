@@ -80,6 +80,7 @@ export function disposeRoot(root: RootState): Promise<void> {
         type: 'dispose',
         disposed,
         errors: errors.length,
+        startMs: start,
         durationMs: tracer.now() - start,
       })),
     );
