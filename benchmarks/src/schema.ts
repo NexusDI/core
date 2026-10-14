@@ -784,6 +784,34 @@ const scaleTimingsShape = obj({
   ),
 });
 
+/**
+ * The cells of a published run hold judgeCells' invariants: NexusDI plain
+ * passes everywhere, and a competitor's non-pass outcome is not-applicable,
+ * or a runtime-error or compile-error at a size other than 50 where the same
+ * library, variant and shape passes at 50 in the file. Anything else is a
+ * harness fault that must not be published as a scaling result.
+ */
+function checkPublishedCells(file: ScaleTimingsFile): void {
+  const passes = new Set(
+    file.cells.filter((c) => c.outcome === 'pass').map(cellKey),
+  );
+  file.cells.forEach((c, i) => {
+    const at = `scale-timings.cells[${i}]`;
+    if (c.outcome === 'pass' || c.outcome === 'not-applicable') return;
+    if (c.library === 'nexusdi' && c.variant === 'plain')
+      fail(at, `NexusDI plain to pass at ${c.shape} ${c.size}`);
+    const scaling =
+      (c.outcome === 'runtime-error' || c.outcome === 'compile-error') &&
+      c.size !== 50 &&
+      passes.has(cellKey({ ...c, size: 50 }));
+    if (!scaling)
+      fail(
+        at,
+        `${cellKey(c)} to pass, be not-applicable, or fail by runtime-error or compile-error above n = 50 after a pass at 50, found ${c.outcome}`,
+      );
+  });
+}
+
 const scaleTimings: Check = (v, at) => {
   scaleTimingsShape(v, at);
   checkCellsBehindRows(v as ScaleTimingsFile);
@@ -852,19 +880,7 @@ export function validate(
 ): void {
   CHECKS[kind](value, kind);
   if (where !== 'results') return;
-  if (kind === 'scale-timings')
-    (value as ScaleTimingsFile).cells.forEach((c, i) => {
-      // The reference must run: every ratio is NexusDI plain over a competitor.
-      if (
-        c.library === 'nexusdi' &&
-        c.variant === 'plain' &&
-        c.outcome !== 'pass'
-      )
-        fail(
-          `${kind}.cells[${i}]`,
-          `NexusDI plain to pass at ${c.shape} ${c.size}`,
-        );
-    });
+  if (kind === 'scale-timings') checkPublishedCells(value as ScaleTimingsFile);
   const designs = (value as { design?: unknown }).design;
   for (const [path, least] of minimums(kind)) {
     const at = `${kind}.design.${path.join('.')}`;
