@@ -434,6 +434,13 @@ describe('validate scale-timings', () => {
         /scale-timings\.growth\[0\]\.to: expected 1000/,
       );
     });
+    it('rejects a growth pair that starts at a size outside SIZES', () => {
+      const file = scaleTimings();
+      file.growth[0] = { ...file.growth[0], from: 123, to: 456 };
+      expect(() => validate('scale-timings', file, 'tmp')).toThrow(
+        /scale-timings\.growth\[0\]\.from: expected one of 50, 200, 1000, 5000/,
+      );
+    });
     it('rejects a growth pair that runs backwards or from the last size', () => {
       const file = scaleTimings();
       file.growth[0] = { ...file.growth[0], from: 5000, to: 1000 };
