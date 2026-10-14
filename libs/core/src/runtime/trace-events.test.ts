@@ -1009,13 +1009,19 @@ describe('construct:failed', () => {
         log.push('disposed');
       }
     }
-    const ship = await Nexus.create([provide(Sensor, { eager: false })], {
-      plugins: [watcher],
-    });
+    // A lazy thunk checks that its target is ready, which get() does not.
+    class Panel {
+      static deps = [lazy(Sensor)] as const;
+      constructor(readonly s: () => Sensor) {}
+    }
+    const ship = await Nexus.create(
+      [provide(Sensor, { eager: false }), Panel],
+      { plugins: [watcher] },
+    );
     armed = true;
     expect(() => ship.get(Sensor)).toThrow(thrown);
     armed = false;
-    const sensor = ship.get(Sensor);
+    const sensor = ship.get(Panel).s();
     expect(ship.get(Sensor)).toBe(sensor);
     await ship[Symbol.asyncDispose]();
     expect(log).toEqual(['built', 'init', 'disposed']);
@@ -1201,13 +1207,19 @@ describe('init from an on-demand build', () => {
         log.push('init');
       }
     }
-    await using ship = await Nexus.create([provide(Sensor, { eager: false })], {
-      plugins: [watcher],
-    });
+    // A lazy thunk checks that its target is ready, which get() does not.
+    class Panel {
+      static deps = [lazy(Sensor)] as const;
+      constructor(readonly s: () => Sensor) {}
+    }
+    await using ship = await Nexus.create(
+      [provide(Sensor, { eager: false }), Panel],
+      { plugins: [watcher] },
+    );
     armed = true;
     expect(() => ship.get(Sensor)).toThrow(thrown);
     armed = false;
-    const sensor = ship.get(Sensor);
+    const sensor = ship.get(Panel).s();
     expect(ship.get(Sensor)).toBe(sensor);
     expect(log).toEqual(['built', 'init']);
   });
