@@ -64,6 +64,7 @@ Common events include:
 - `construct`: When a new instance is built.
 - `init`: When a singleton's `onInit` method completes.
 - `scope:create` / `scope:dispose`: When scopes are created or disposed.
+- `run`: When a `create`, `load`, `createScope` or `extend()` settles, with its run id, its kind and whether it succeeded.
 - `dispose:instance`: When a specific instance is cleaned up.
 
 Four more types exist:
@@ -79,7 +80,7 @@ A `construct` event carries its token, lifetime and scope. `scope:create` fires 
 
 The computer has an `onInit`, so one `init` event follows the two `construct` events. Only the reactor has a disposer, so one `dispose:instance` event comes before `dispose`.
 
-**Try it:** Save the region as `trace.ts` and run it. It prints the eight events' types in the order `compile`, `construct`, `construct`, `init`, `scope:create`, `scope:dispose`, `dispose:instance`, `dispose`. Add `[Symbol.dispose]() {}` to `QuantumComputer` and run it again: a second `dispose:instance` appears before `dispose`, and the computer's comes first, because NexusDI disposes in reverse order of construction. Delete that line and the list has one `dispose:instance` again.
+**Try it:** Save the region as `trace.ts` and run it. It prints the ten events' types in the order `compile`, `construct`, `construct`, `init`, `run`, `scope:create`, `run`, `scope:dispose`, `dispose:instance`, `dispose`. Add `[Symbol.dispose]() {}` to `QuantumComputer` and run it again: a second `dispose:instance` appears before `dispose`, and the computer's comes first, because NexusDI disposes in reverse order of construction. Delete that line and the list has one `dispose:instance` again.
 
 ## Handling Minification
 

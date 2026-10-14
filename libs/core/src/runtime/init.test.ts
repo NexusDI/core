@@ -281,7 +281,13 @@ describe('runInit', () => {
     });
     // initEnabled false builds the singletons into root.slots without
     // running onInit, so this test can call runInit on its own afterward.
-    await startBlueprint(root, { bp, isNew: () => true });
+    await startBlueprint(root, {
+      bp,
+      isNew: () => true,
+      run: 0,
+      kind: 'create',
+      start: 0,
+    });
     expect(await rejected(runInit(root, bp, () => true))).toMatchObject({
       code: 'NEXUS_DISPOSED',
     });

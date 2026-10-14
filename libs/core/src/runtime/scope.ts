@@ -17,9 +17,11 @@ import {
   track,
   type Owner,
   type RootState,
+  type Run,
+  type RunTrace,
   type ScopeState,
 } from './state.js';
-import { reportDisposal } from './trace.js';
+import { emitRun, reportDisposal } from './trace.js';
 
 const ignore = (): void => undefined;
 
@@ -185,10 +187,17 @@ async function buildScoped(
  * hook holds the scope meanwhile, so a disposal of the scope stops the next
  * level, as a root disposal does.
  */
-async function buildScope(scope: ScopeState): Promise<Scope> {
+async function buildScope(
+  scope: ScopeState,
+  run: number,
+  runStart: number,
+): Promise<Scope> {
   const { root } = scope;
   const tracer = root.tracer;
   const start = tracer.now();
+  // Observer throws from this run's failure-path events; the rollback adds
+  // them to its disposal errors.
+  const trace: RunTrace = { id: run, errors: undefined };
   let built = 0;
   try {
     built = await buildLevels(
@@ -208,7 +217,7 @@ async function buildScope(scope: ScopeState): Promise<Scope> {
     scope.disposal ??= Promise.resolve();
     throw await rollBack(
       scope,
-      { touched: [], owned: scope.owned },
+      { touched: [], owned: scope.owned, errors: trace.errors },
       scope.blueprint,
       error,
       () =>
@@ -217,6 +226,16 @@ async function buildScope(scope: ScopeState): Promise<Scope> {
           : aborted
             ? scope.abortErrors
             : undefined,
+      (errors) =>
+        emitRun(
+          tracer,
+          run,
+          'createScope',
+          scope.scopeId,
+          runStart,
+          false,
+          errors,
+        ),
     );
   }
   root.scopes.add(scope);
@@ -224,9 +243,11 @@ async function buildScope(scope: ScopeState): Promise<Scope> {
     type: 'scope:create',
     scope: scope.scopeId,
     built,
+    run,
     startMs: start,
     durationMs: tracer.now() - start,
   }));
+  emitRun(tracer, run, 'createScope', scope.scopeId, runStart, true);
   return scope.handle;
 }
 
@@ -241,27 +262,41 @@ async function buildScope(scope: ScopeState): Promise<Scope> {
  */
 async function extendNow(scope: ScopeState, target: Blueprint): Promise<void> {
   const { root } = scope;
-  assertScopeOpen(scope);
-  const pinned = scope.blueprint;
-  if (target === pinned) return;
-  const dependents = target.requestDependents.filter(
-    (name) => !pinned.requestDependents.includes(name),
-  );
-  if (dependents.length > 0 && scope.request === undefined)
-    throw new RequestMissingError({ dependents });
-
   const tracer = root.tracer;
+  const id = root.nextRun++;
+  const runStart = tracer.now();
+  const pinned = scope.blueprint;
+  try {
+    assertScopeOpen(scope);
+    const dependents = target.requestDependents.filter(
+      (name) => !pinned.requestDependents.includes(name),
+    );
+    if (dependents.length > 0 && scope.request === undefined)
+      throw new RequestMissingError({ dependents });
+  } catch (error) {
+    // No list holds an observer's throw here (spec 3.5).
+    emitRun(tracer, id, 'extend', scope.scopeId, runStart, false);
+    throw error;
+  }
+  if (target === pinned) {
+    emitRun(tracer, id, 'extend', scope.scopeId, runStart, true);
+    return;
+  }
+
   const start = tracer.now();
   const built: Owner = { root, owned: [] };
   const touched: string[] = [];
   let levelled = 0;
   // A provider the delta adds that a request builds on first use while
   // extend() runs joins built and touched too (scope.run).
-  scope.run = {
-    isNew: (id) => !pinned.providers.has(id),
+  const run: Run = {
+    id,
+    errors: undefined,
+    isNew: (pid) => !pinned.providers.has(pid),
     owner: built,
     touched,
   };
+  scope.run = run;
   try {
     // The delta, and a scoped factory the pin deferred that a delta
     // factory needs, unless a request built it already. That one is a
@@ -283,10 +318,12 @@ async function extendNow(scope: ScopeState, target: Blueprint): Promise<void> {
     scope.run = undefined;
     throw await rollBack(
       scope,
-      { touched, owned: built.owned },
+      { touched, owned: built.owned, errors: run.errors },
       target,
       error,
       () => (root.disposing ? root.abortErrors : scope.abortErrors),
+      (errors) =>
+        emitRun(tracer, id, 'extend', scope.scopeId, runStart, false, errors),
     );
   }
   scope.run = undefined;
@@ -300,9 +337,11 @@ async function extendNow(scope: ScopeState, target: Blueprint): Promise<void> {
       .filter((m) => !known.has(m.definition))
       .map((m) => m.name),
     built: levelled,
+    run: id,
     startMs: start,
     durationMs: tracer.now() - start,
   }));
+  emitRun(tracer, id, 'extend', scope.scopeId, runStart, true);
 }
 
 /**
@@ -334,22 +373,31 @@ export async function openScope(
   root: RootState,
   options?: { readonly request?: NexusRequest },
 ): Promise<Scope> {
-  assertOpen(root);
-  // A construct hook that calls createScope() during create waits for the
-  // singletons, and a failed create closes the root before this resumes.
-  if (root.building !== undefined) {
-    await root.building;
+  const id = root.nextRun++;
+  const start = root.tracer.now();
+  let scope: ScopeState;
+  try {
     assertOpen(root);
+    // A construct hook that calls createScope() during create waits for the
+    // singletons, and a failed create closes the root before this resumes.
+    if (root.building !== undefined) {
+      await root.building;
+      assertOpen(root);
+    }
+    const bp = root.blueprint;
+    if (bp.needsRequest && options?.request === undefined) {
+      throw new RequestMissingError({ dependents: bp.requestDependents });
+    }
+    scope = createScopeState(
+      root,
+      options?.request,
+      (state) => new ScopeHandle(state),
+    );
+  } catch (error) {
+    // No list holds an observer's throw here (spec 3.5).
+    emitRun(root.tracer, id, 'createScope', null, start, false);
+    throw error;
   }
-  const bp = root.blueprint;
-  if (bp.needsRequest && options?.request === undefined) {
-    throw new RequestMissingError({ dependents: bp.requestDependents });
-  }
-  const scope = createScopeState(
-    root,
-    options?.request,
-    (state) => new ScopeHandle(state),
-  );
   // A disposal or extend() a construct hook starts on the scope waits for
   // the build, as they wait for an extend() in flight. The queue is set
   // before the build starts, so no hook runs ahead of it.
@@ -357,7 +405,7 @@ export async function openScope(
   scope.extendQueue = new Promise<void>((resolve) => {
     settle = resolve;
   });
-  const work = buildScope(scope);
+  const work = buildScope(scope, id, start);
   void work.then(settle, settle);
   track(root.inflight, work);
   return work;
