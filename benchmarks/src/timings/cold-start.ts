@@ -4,10 +4,11 @@
  * spawn to the child's ready message. The child reports its own
  * performance.now() too.
  */
-import { fork } from 'node:child_process';
 import { join } from 'node:path';
 
 import { orderFor } from '@nexusdi/bench-kit';
+
+import { spawnChild } from './spawn.ts';
 
 const CHILD = join(import.meta.dirname, 'cold-child.mjs');
 
@@ -26,27 +27,13 @@ export interface ColdRow {
   childMs: number[];
 }
 
-function spawnOnce(module: string): Promise<{ ns: number; ms: number }> {
-  return new Promise((resolve, reject) => {
-    const t0 = process.hrtime.bigint();
-    const child = fork(CHILD, [module], {
-      execArgv: [],
-      stdio: ['ignore', 'ignore', 'pipe', 'ipc'],
-    });
-    let stderr = '';
-    child.stderr?.on('data', (d: Buffer) => (stderr += d.toString()));
-    let ready: { ns: number; ms: number } | undefined;
-    child.once('message', (m: { type: string; now: number }) => {
-      if (m.type === 'ready')
-        ready = { ns: Number(process.hrtime.bigint() - t0), ms: m.now };
-    });
-    // The next spawn waits for this process to exit.
-    child.once('exit', (code) =>
-      ready !== undefined
-        ? resolve(ready)
-        : reject(new Error(`exited with code ${code}: ${stderr.trim()}`)),
-    );
-  });
+async function spawnOnce(module: string): Promise<{ ns: number; ms: number }> {
+  const { ns, message } = await spawnChild<{ type: string; now: number }>(
+    CHILD,
+    [module],
+    [],
+  );
+  return { ns, ms: message.now };
 }
 
 export async function coldStart(
