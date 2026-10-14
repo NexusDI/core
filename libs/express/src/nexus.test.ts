@@ -254,6 +254,44 @@ describe('a log that throws', () => {
     write.mockRestore();
   });
 
+  it('leaves disposal without an unhandled rejection when an async log rejects', async () => {
+    const write = vi.spyOn(console, 'error').mockImplementation(() => {});
+    const unhandled: unknown[] = [];
+    const record = (reason: unknown) => unhandled.push(reason);
+    process.on('unhandledRejection', record);
+    const HATCH = new Token<AsyncDisposable>('Hatch');
+    await using ship = await Nexus.create([
+      provide(HATCH, {
+        useFactory: () => ({
+          [Symbol.asyncDispose]: () =>
+            Promise.reject(new Error('hatch jammed')),
+        }),
+        lifetime: 'scoped',
+      }),
+    ]);
+    const di = nexus(ship, {
+      log: async () => {
+        throw new Error('log sink offline');
+      },
+    });
+    const req = fakeRequest();
+    const res = fakeResponse();
+    await run(di.middleware, req, res);
+    await di.scope(req);
+    res.emit('close');
+    await vi.waitFor(() =>
+      expect(write).toHaveBeenCalledWith(
+        '[@nexusdi/express] log threw:',
+        expect.objectContaining({ message: 'log sink offline' }),
+        expect.anything(),
+      ),
+    );
+    await new Promise((resolve) => setTimeout(resolve, 10));
+    process.off('unhandledRejection', record);
+    expect(unhandled).toEqual([]);
+    write.mockRestore();
+  });
+
   it('still hands next() the NexusHttpError for a 503', async () => {
     const write = vi.spyOn(console, 'error').mockImplementation(() => {});
     const { ship } = await shipWithTrace();

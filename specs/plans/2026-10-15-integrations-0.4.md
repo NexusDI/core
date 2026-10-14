@@ -101,7 +101,7 @@ export function validateFailure(
 ): unknown;
 /** The default log: code, own enumerable fields and message for a NexusError; phase and error otherwise. A 503 that is not a ContainerBuildError writes console.warn, everything else console.error. */
 export function defaultLog(error: unknown, context: LogContext): void;
-/** Calls log in a try; on a throw writes `[adapter] log threw:`, the log's error and the original error with console.error, and returns. */
+/** Calls log in a try, and catches a returned promise that rejects; on either failure writes `[adapter] log threw:`, the log's error and the original error with console.error, and returns. */
 export function guardLog(log: NexusLog): NexusLog;
 
 /** Calls fn at most once; later calls return the first call's promise. */
@@ -130,7 +130,7 @@ export function validator(
 export type { DepsMap, ResolvedDeps };
 ```
 
-The committed `libs/express/src/internal/request-scope.ts` is the source of every copy. Task 1's Step 5 block below predates the review fixes (`validateFailure`, `guardLog`, the `'build'` phase in `toHttpError`, the warn level in `defaultLog` and the two `no-empty-object-type` disables), so later tasks copy the committed file, never that block.
+The committed request-scope.ts at the branch HEAD (`libs/express/src/internal/request-scope.ts`) is the source of every copy. Task 1's Step 5 block below predates the review fixes (`validateFailure`, `guardLog`, the `'build'` phase in `toHttpError`, the warn level in `defaultLog` and the two `no-empty-object-type` disables), so later tasks copy the committed request-scope.ts at the branch HEAD, never that block.
 
 ```ts
 // libs/hono/src/internal/dispose-with-body.ts (copied to react-router)
@@ -194,7 +194,7 @@ These are the owner's, from a machine logged in to npm with 2FA. No task runs th
 2. OWNER-ONLY: confirm each publisher with `npm trust list @nexusdi/<pkg> --otp=<code>`.
 3. OWNER-ONLY: dispatch the `rc` release event that publishes 0.4.0-rc.2 (and rc.3 if Next follows), per the `nexusdi-release` skill. Publishing is the owner's.
 4. OWNER-ONLY: run any `npm dist-tag add` command that the reconcile step prints when a move fails.
-5. OWNER-ONLY: add the `adapter-runtimes` and `adapter-peers` checks (one per matrix leg) to the required status checks of the release rulesets in GitHub settings, so they gate a release (Task 28 lists the exact check names).
+5. OWNER-ONLY: add the `adapter-runtimes`, `adapter-peers` and `node-floor` checks (one per matrix leg) to the required status checks of the release rulesets in GitHub settings, so they gate a release (Task 28 lists the exact check names).
 6. OWNER-ONLY: dispatch the `stable` release event at 0.4.0 final, which fast-forwards `main` (`RELEASING.md`), after every adapter has been in at least one RC with its demo app green (Q2).
 
 ---
@@ -14509,14 +14509,14 @@ Co-Authored-By: Claude Opus 5.5 (1M context) <noreply@anthropic.com>"
 
 ---
 
-### Task 23: adapter-peers
+### Task 23: adapter-peers and node-floor
 
-Spec 13.4. One leg per supported framework line, each installing that line over the workspace with `--no-save` and running the adapter's own tests.
+Spec 13.4. One leg per supported framework line, each installing that line over the workspace with `--no-save` and running the adapter's own tests. A second job, `node-floor`, runs every published lib's tests on the Node its `engines` field promises.
 
 Files:
 
-- Create: `scripts/adapter-peers.mjs`, `scripts/adapter-peers.json`, `tools/repo-checks/src/adapter-peers.test.ts`
-- Modify: `.github/workflows/ci.yml` (job `adapter-peers`)
+- Create: `scripts/adapter-peers.mjs`, `scripts/adapter-peers.json`, `tools/repo-checks/src/adapter-peers.test.ts`, `tools/repo-checks/src/node-floor.test.ts`
+- Modify: `.github/workflows/ci.yml` (jobs `adapter-peers` and `node-floor`)
 
 Interfaces:
 
@@ -14780,23 +14780,88 @@ adapter-peers:
       run: node scripts/adapter-peers.mjs "$LEG"
 ```
 
-- [ ] **Step 5: Run the check and two legs locally**
+- [ ] **Step 5: Add the `node-floor` job** (CI policy ruling, 2026-10-15)
 
-Run: `NX_NO_CLOUD=true NX_DAEMON=false npx nx test @nexusdi/repo-checks -- adapter-peers release-verify-gate`
+Every published lib declares `engines.node: ">=22.12"`, and only `@nexusdi/cli` runs its tests there (`cli-node-floor`). `node-floor` closes that gap for the rest. It follows `cli-node-floor`: install and build on the `.nvmrc` Node, then put the floor Node first on `PATH` and run `vitest` directly in the lib, because `nx run` would rebuild the project graph on the floor Node. `@nexusdi/react-router` runs on 22.22.0, the floor React Router 8 declares. `@nexusdi/cli` keeps its own job.
+
+Write the check first, `tools/repo-checks/src/node-floor.test.ts`: the matrix `lib` list equals every folder under `libs/` whose `package.json` is not private, minus `cli`, in folder order; each entry's `node` equals the floor of that lib's `engines.node` (22.12.0), except `react-router` at 22.22.0; and no step runs `nx run-many`. Run it and see it fail on the missing job.
+
+```yaml
+# Every published lib promises Node 22.12 in engines, and the other jobs run
+# the .nvmrc Node. This runs each lib's tests on its floor. Install and build
+# run on .nvmrc, as in cli-node-floor: the npm that ships with 22.12 reads the
+# lockfile's optional platform packages as missing. vitest runs directly,
+# because nx run would rebuild the project graph on the floor Node.
+node-floor:
+  runs-on: ubuntu-latest
+  strategy:
+    fail-fast: false
+    matrix:
+      include:
+        - { lib: core, node: 22.12.0 }
+        - { lib: decorators, node: 22.12.0 }
+        - { lib: devtools, node: 22.12.0 }
+        - { lib: errors, node: 22.12.0 }
+        - { lib: express, node: 22.12.0 }
+        - { lib: fastify, node: 22.12.0 }
+        - { lib: federation, node: 22.12.0 }
+        - { lib: hono, node: 22.12.0 }
+        - { lib: interceptors, node: 22.12.0 }
+        - { lib: next, node: 22.12.0 }
+        - { lib: node, node: 22.12.0 }
+        - { lib: react, node: 22.12.0 }
+        - { lib: react-router, node: 22.22.0 }
+        - { lib: testing, node: 22.12.0 }
+        - { lib: vitest, node: 22.12.0 }
+  steps:
+    - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      with:
+        filter: tree:0
+
+    - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
+      with:
+        node-version-file: .nvmrc
+        cache: 'npm'
+
+    - run: npm ci
+
+    - env:
+        LIB: ${{ matrix.lib }}
+      run: npx nx run "@nexusdi/$LIB:build"
+
+    - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
+      with:
+        node-version: ${{ matrix.node }}
+
+    - run: node --version && npx vitest run --configLoader runner
+      working-directory: libs/${{ matrix.lib }}
+```
+
+Try `--configLoader runner` first. Each lib's `vite.config.ts` imports `@nexusdi/doc-examples` through its `.ts` source, which Node 22.12 cannot load with the default bundle loader (`ERR_UNKNOWN_FILE_EXTENSION`, seen on Task 3). If the runner loader cannot load it either, drop the flag and set `NODE_OPTIONS: --experimental-strip-types` on that step only, with the comment `# Node 22.12 strips types only behind this flag, and vite.config.ts imports @nexusdi/doc-examples as .ts.` Libraries added after this task are added to the matrix by the task that creates them; the check fails until they are.
+
+- [ ] **Step 6: Run the checks and two legs locally**
+
+Run: `NX_NO_CLOUD=true NX_DAEMON=false npx nx test @nexusdi/repo-checks -- adapter-peers node-floor release-verify-gate`
 Expected: PASS.
 Run: `node scripts/adapter-peers.mjs hono-floor && node scripts/adapter-peers.mjs fastify-floor && npm ci`
 Expected: both legs PASS. The final `npm ci` restores the workspace versions. A floor that fails is a spec finding: raise the floor in that adapter's `peerDependencies`, in the spec's section of that adapter, and in this leg, in one commit.
 
-- [ ] **Step 6: Commit**
+Run: `cd libs/express && PATH=<node 22.12.0 bin>:$PATH npx vitest run --configLoader runner`
+Expected: PASS, which confirms the loader choice of Step 5 before CI runs it.
+
+- [ ] **Step 7: Commit**
 
 ```bash
-git add scripts/adapter-peers.mjs scripts/adapter-peers.json tools/repo-checks/src/adapter-peers.test.ts .github/workflows/ci.yml
+git add scripts/adapter-peers.mjs scripts/adapter-peers.json tools/repo-checks/src/adapter-peers.test.ts tools/repo-checks/src/node-floor.test.ts .github/workflows/ci.yml
 NX_NO_CLOUD=true NX_DAEMON=false git commit -m "ci(repo): test each adapter against its framework floor and newest lines
 
 adapter-peers installs one framework line per leg over the workspace and
 runs the adapter's tests. The react legs run its e2e suite, and the next
 legs run the demo's e2e. A check holds
 the matrix to the leg list and each floor leg to the peer range.
+
+node-floor runs every published lib's tests on the Node its engines field
+promises, 22.22 for react-router.
 
 Co-Authored-By: Claude Opus 5.5 (1M context) <noreply@anthropic.com>"
 ```
@@ -16257,7 +16322,7 @@ Files:
 
 Interfaces:
 
-- Consumes: the job ids `adapter-runtimes` and `adapter-peers` and the leg list `scripts/adapter-peers.json` (Tasks 21 to 23); the seven package folders; the `core-layers` exception for `libs/react/src/dev.ts` (Task 14); the header's six owner-only steps.
+- Consumes: the job ids `adapter-runtimes`, `adapter-peers` and `node-floor` and the leg list `scripts/adapter-peers.json` (Tasks 21 to 23); the seven package folders; the `core-layers` exception for `libs/react/src/dev.ts` (Task 14); the header's six owner-only steps.
 
 - [ ] **Step 1: Write the failing check** `tools/repo-checks/src/release-packages-doc.test.ts`
 
@@ -16359,17 +16424,17 @@ about 30 seconds, so pass a fresh one to each command.
 
 Mirror the two rounds in the skill's "Bootstrapping a new package" section with the `!`-prefixed commands the skill uses for owner commands.
 
-- [ ] **Step 4: Add the two jobs to the documented required checks**
+- [ ] **Step 4: Add the three jobs to the documented required checks**
 
 In `RELEASING.md` "Repository setup", change the rulesets rule and the skill's "## Branches" paragraph the same way:
 
 ```markdown
 - Required status checks `main`, `workflows`, `format`, `packaging`,
-  `adapter-runtimes` and `adapter-peers` (the job ids in `ci.yml`) with the
-  strict policy.
+  `adapter-runtimes`, `adapter-peers` and `node-floor` (the job ids in
+  `ci.yml`) with the strict policy.
 ```
 
-This records the target state. The rulesets themselves are GitHub settings: the owner adds the two checks to the "Main", "Release branches" and "Maintenance branches" rulesets (owner-only step 5 of the header and the checklist). `tools/release/plan.mjs` reads the required checks from the rulesets, so once the owner adds them, an rc dispatch refuses a commit where either job is not green. A matrix job reports one check per leg (`adapter-runtimes (workerd)`, ...); the checklist names all 21.
+This records the target state. The rulesets themselves are GitHub settings: the owner adds the three checks to the "Main", "Release branches" and "Maintenance branches" rulesets (owner-only step 5 of the header and the checklist). `tools/release/plan.mjs` reads the required checks from the rulesets, so once the owner adds them, an rc dispatch refuses a commit where any of the jobs is not green. A matrix job reports one check per leg (`adapter-runtimes (workerd)`, `node-floor (core, 22.12.0)`, ...); the checklist names all 36: 4 `adapter-runtimes`, 17 `adapter-peers` and 15 `node-floor`.
 
 - [ ] **Step 5: Write the release checklist** `specs/plans/2026-10-15-integrations-0.4-release-checklist.md`
 
@@ -16394,8 +16459,8 @@ timeline below says when each runs.
 3. Dispatch the `rc` event that publishes 0.4.0-rc.2, and rc.3 if Next
    follows. A `resume` dispatch after a failed publish counts as this step.
 4. Run any `npm dist-tag add` command the reconcile step prints.
-5. Add the `adapter-runtimes` and `adapter-peers` checks, one per matrix
-   leg, to the required status checks of the release rulesets.
+5. Add the `adapter-runtimes`, `adapter-peers` and `node-floor` checks, one
+   per matrix leg, to the required status checks of the release rulesets.
 6. Dispatch the `stable` event at 0.4.0 final, which tags 0.4.0 and
    fast-forwards `main`.
 
@@ -16445,9 +16510,13 @@ timeline below says when each runs.
      `react-router-7-latest`, `react-router-8-latest`, `react-floor`,
      `react-19-latest`, `vitest-floor`, `vitest-4-latest`, `vitest-5-latest`,
      `next-floor`, `next-15-latest`, `next-16-latest`
+   - `node-floor (<lib>, <node>)` for each matrix entry of the `node-floor`
+     job: `core`, `decorators`, `devtools`, `errors`, `express`, `fastify`,
+     `federation`, `hono`, `interceptors`, `next`, `node`, `react`,
+     `testing` and `vitest` at `22.12.0`, and `react-router` at `22.22.0`
 
    Agent, after: `gh api repos/NexusDI/core/rules/branches/release%2F0.4`
-   lists all 21 new contexts.
+   lists all 36 new contexts.
 
 4. If the Next gate passed and Task 17 is merged: owner-only steps 1 and 2,
    round two, now, so Next publishes in rc.2:
