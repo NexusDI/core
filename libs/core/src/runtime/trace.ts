@@ -7,6 +7,34 @@ import type { OwnedEntry } from './ownership.js';
 export type RunKind = 'create' | 'load' | 'createScope' | 'extend';
 
 /**
+ * The fields of every build event. One literal in core builds them all.
+ * Each field reads up to the moment its event fires, so on an :await event
+ * awaitMs and finishMs are 0 or close to it.
+ */
+interface BuildEventFields {
+  token: string;
+  providerId: string;
+  module: string;
+  /** null for value and alias providers. */
+  lifetime: Lifetime | null;
+  scope: string | null;
+  /** Whether the call returned a thenable. */
+  async: boolean;
+  run: number | null;
+  level: number | null;
+  parent: string | null;
+  startMs: number;
+  /** From the call until it returned, nested builds included. */
+  syncMs: number;
+  /** From that return until the thenable settled; null when the call returned no thenable. */
+  awaitMs: number | null;
+  /** From the build resuming until the instance was stored: options validation and construct hooks. */
+  finishMs: number;
+  /** Wall time from the call to the event, time queued behind the level's other providers included. */
+  durationMs: number;
+}
+
+/**
  * Each trace event type's fields (spec section 10.2). A package adds its own
  * by augmentation, keyed `<package>/<event>`.
  */
@@ -21,17 +49,10 @@ export interface TraceEventByType {
     startMs: number;
     durationMs: number;
   };
-  construct: {
-    token: string;
-    providerId: string;
-    module: string;
-    /** null for value and alias providers. */
-    lifetime: Lifetime | null;
-    scope: string | null;
-    async: boolean;
-    startMs: number;
-    durationMs: number;
-  };
+  /** A build stored its instance. */
+  construct: BuildEventFields;
+  /** A factory returned a thenable; core now awaits it. The build ends with construct or construct:failed. */
+  'construct:await': BuildEventFields;
   untracked: {
     token: string;
     providerId: string;

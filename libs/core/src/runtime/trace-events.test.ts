@@ -4,11 +4,18 @@ import { rejected } from '../../test-support/catch.js';
 import { deferred } from '../../test-support/deferred.js';
 import { recordEvents } from '../../test-support/observe.js';
 import { defineModule } from '../definitions/define-module.js';
+import { lazy } from '../definitions/modifiers.js';
 import { provide } from '../definitions/provide.js';
 import { Token } from '../definitions/token.js';
 import { REQUEST } from '../definitions/request.js';
 import { Nexus } from './nexus.js';
 import type { TraceEvent } from './trace.js';
+
+/** `value`, after the test checked that it exists. */
+function defined<T>(value: T | undefined): T {
+  expect(value).toBeDefined();
+  return value as T;
+}
 
 function only<K extends TraceEvent['type']>(
   events: readonly TraceEvent[],
@@ -18,6 +25,15 @@ function only<K extends TraceEvent['type']>(
     (e): e is Extract<TraceEvent, { type: K }> => e.type === type,
   );
 }
+
+/** Busy-waits `ms` on the clock, so a constructor takes a measurable time. */
+function spin(ms: number): void {
+  const end = performance.now() + ms;
+  while (performance.now() < end);
+}
+
+const sleep = (ms: number): Promise<void> =>
+  new Promise((resolve) => setTimeout(resolve, ms));
 
 interface IReactorCore {
   readonly output: number;
@@ -561,5 +577,171 @@ describe('an observer throw on a scope event', () => {
     expect(
       only(events, 'run').filter((e) => e.kind === 'extend'),
     ).toMatchObject([{ run: 3, scope: shuttle.id, ok: false }]);
+  });
+});
+
+describe('construct spans', () => {
+  it('reports run, level, parent and the sync, await and finish split', async () => {
+    const { events, plugin } = recordEvents();
+    await using ship = await Nexus.create(Engineering, { plugins: [plugin] });
+    void ship;
+    const builds = only(events, 'construct');
+    expect(
+      builds.map((b) => [b.token, b.run, b.level, b.parent, b.awaitMs]),
+    ).toEqual([
+      ['ReactorCore', 0, 0, null, null],
+      ['ShipComputer', 0, 1, null, null],
+    ]);
+    for (const b of builds) {
+      const own = b.syncMs + (b.awaitMs ?? 0) + b.finishMs;
+      expect(own).toBeLessThanOrEqual(b.durationMs + 1e-6);
+      expect(b.finishMs).toBeGreaterThanOrEqual(0);
+    }
+  });
+
+  it('emits construct:await when a factory returns a thenable, then construct with awaitMs', async () => {
+    const { events, plugin } = recordEvents();
+    const CHARTS = new Token<object>('NavCharts');
+    await using ship = await Nexus.create(
+      [
+        provide(CHARTS, {
+          useFactory: async () => {
+            await sleep(20);
+            return {};
+          },
+        }),
+      ],
+      { plugins: [plugin] },
+    );
+    void ship;
+    const waiting = only(events, 'construct:await');
+    const done = only(events, 'construct');
+    expect(waiting).toMatchObject([{ token: 'NavCharts', run: 0, level: 0 }]);
+    expect(done).toMatchObject([{ token: 'NavCharts', async: true }]);
+    expect(waiting[0]?.startMs).toBe(done[0]?.startMs);
+    expect(waiting[0]?.syncMs).toBe(done[0]?.syncMs);
+    expect(done[0]?.awaitMs).toBeGreaterThanOrEqual(15);
+    const types = events.map((e) => e.type);
+    expect(types.indexOf('construct:await')).toBeLessThan(
+      types.indexOf('construct'),
+    );
+  });
+
+  it('shows a sync provider queued behind its level siblings', async () => {
+    const { events, plugin } = recordEvents();
+    class Fast {}
+    class Slow {
+      constructor() {
+        spin(5);
+      }
+    }
+    await using ship = await Nexus.create([Fast, Slow], { plugins: [plugin] });
+    void ship;
+    const fast = defined(
+      only(events, 'construct').find((b) => b.token === 'Fast'),
+    );
+    const own = fast.syncMs + fast.finishMs;
+    expect(fast.durationMs - own).toBeGreaterThanOrEqual(4);
+  });
+
+  it('reports a real syncMs and a parent for nested on-demand and transient builds', async () => {
+    const { events, plugin } = recordEvents();
+    class Gauge {
+      constructor() {
+        spin(2);
+      }
+    }
+    const LOG = new Token<object>('Log');
+    // A plain dep on an eager: false singleton builds it in a level of its
+    // own (rc.1); lazy() keeps it on demand, inside Console's constructor.
+    class Console {
+      static deps = [lazy(Gauge), LOG] as const;
+      readonly gauge: Gauge;
+      constructor(
+        gauge: () => Gauge,
+        readonly log: object,
+      ) {
+        this.gauge = gauge();
+      }
+    }
+    await using ship = await Nexus.create(
+      [
+        provide(Gauge, { eager: false }),
+        provide(LOG, { lifetime: 'transient', useFactory: () => ({}) }),
+        Console,
+      ],
+      { plugins: [plugin] },
+    );
+    void ship;
+    const byToken = new Map(only(events, 'construct').map((b) => [b.token, b]));
+    const panel = defined(byToken.get('Console'));
+    const gauge = defined(byToken.get('Gauge'));
+    expect(byToken.get('Gauge')).toMatchObject({
+      run: 0,
+      level: null,
+      parent: panel.providerId,
+    });
+    expect(gauge.syncMs).toBeGreaterThanOrEqual(1.5);
+    expect(byToken.get('Log')).toMatchObject({
+      run: null,
+      level: null,
+      parent: panel.providerId,
+    });
+    expect(panel.syncMs).toBeGreaterThanOrEqual(gauge.syncMs);
+  });
+
+  it('numbers a loaded provider by the new blueprint levels', async () => {
+    const { events, plugin } = recordEvents();
+    class L0 {}
+    class L1 {
+      static deps = [L0] as const;
+      constructor(readonly d: L0) {}
+    }
+    class L2 {
+      static deps = [L1] as const;
+      constructor(readonly d: L1) {}
+    }
+    class L3 {
+      static deps = [L2] as const;
+      constructor(readonly d: L2) {}
+    }
+    const Core = defineModule({
+      name: 'Core',
+      providers: [L0, L1, L2, L3],
+      exports: [L3],
+    });
+    // A root that imports Core, so the loaded module's import of Core is a
+    // module the root already holds.
+    await using ship = await Nexus.create(
+      defineModule({ name: 'Ship', imports: [Core] }),
+      { plugins: [plugin] },
+    );
+    class Probe {
+      static deps = [L3] as const;
+      constructor(readonly d: L3) {}
+    }
+    await ship.load(
+      defineModule({ name: 'Science', imports: [Core], providers: [Probe] }),
+    );
+    expect(
+      only(events, 'construct').find((b) => b.token === 'Probe'),
+    ).toMatchObject({ run: 1, level: 4 });
+  });
+
+  it('reports scoped builds with the createScope run and scopedLevels index', async () => {
+    const { events, plugin } = recordEvents();
+    const SCANNER = new Token<object>('Scanner');
+    await using ship = await Nexus.create(
+      [provide(SCANNER, { lifetime: 'scoped', useFactory: () => ({}) })],
+      { plugins: [plugin] },
+    );
+    await using shuttle = await ship.createScope();
+    expect(
+      only(events, 'construct').find((b) => b.token === 'Scanner'),
+    ).toMatchObject({
+      run: 1,
+      level: 0,
+      scope: shuttle.id,
+    });
   });
 });

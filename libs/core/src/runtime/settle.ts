@@ -26,13 +26,15 @@ export class LevelFailure extends Error {
 /**
  * Runs one level's builds together and waits for all of them to settle
  * (Promise.allSettled), so no rejection goes unobserved. Throws LevelFailure
- * when any failed. `ids` arrive in declaration order.
+ * when any failed. `ids` arrive in declaration order. Each build receives
+ * `level`, which is -1 where the caller walks no levels.
  */
 export async function settleLevel(
   ids: readonly string[],
-  build: (id: string) => Promise<void>,
+  build: (id: string, level: number) => Promise<void>,
+  level = -1,
 ): Promise<void> {
-  const results = await Promise.allSettled(ids.map((id) => build(id)));
+  const results = await Promise.allSettled(ids.map((id) => build(id, level)));
   const failures = results.flatMap((result, i) => {
     if (result.status !== 'rejected') return [];
     const id = ids[i];
