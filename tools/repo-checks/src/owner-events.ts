@@ -39,15 +39,17 @@ import { checkerOf, type Packages } from './type-checker.js';
  * switched on with a default clause, used as a key of a table the owner's
  * union types, or passed where the compiler types it as that union. A
  * string-keyed lookup, a text operation and a widening to `string`, `any` or
- * `unknown` fail. A rest parameter typed `any[]` or `unknown[]`, such as
- * `console.log`'s, takes a read as output, and so does a call the checker
- * cannot resolve.
+ * `unknown` fail. A rest parameter typed `any[]` or `unknown[]` of a call
+ * that returns `void` or `undefined`, such as `console.log`'s, takes a read
+ * as output, and so does a call the checker cannot resolve.
  *
  * A table literal copies the vocabulary. Another package's `<package>/<event>`
  * key fails as any array element, property name or property value. A plain
- * word such as core's `init` fails in an array whose elements are all event
- * keys, as a quoted name in an object whose names all are, and as an
- * unquoted name in an object whose declared type names a base declaration.
+ * word such as core's `init` also names a package's own lifecycle steps, so
+ * it fails as an array element, a Map entry key or an object property name
+ * only when the type that gives the table its context names a base
+ * declaration: a variable annotation, a `satisfies` or `as` type, a call's
+ * type arguments or the declared type of its parameter.
  * A `<package>/<event>` literal also fails outside a compare with a read, a
  * case of a switch on a read, a literal type, a call argument whose
  * parameter type derives from a base declaration, and the initializer of a
@@ -168,70 +170,39 @@ function outermost(node: ts.Node): ts.Node {
   return node;
 }
 
-/** The text of a string literal or a plain name, if `node` is one. */
-function textOf(node: ts.Node): string | undefined {
-  if (ts.isComputedPropertyName(node)) node = unwrap(node.expression);
-  return ts.isStringLiteralLike(node) || ts.isIdentifier(node)
-    ? node.text
-    : undefined;
+/** Where a key sits in a table literal. */
+interface TablePosition {
+  /** `an array` or `an object`. */
+  readonly kind: string;
+  /** The array or object literal the key sits in. */
+  readonly table: ts.Expression;
+  /** True for a property value, which only a `<package>/<event>` key fills. */
+  readonly value: boolean;
 }
 
 /**
- * The kind of table literal `literal`, another package's key, sits in: `an
- * array` or `an object`, or none. A `<package>/<event>` key counts as any
- * element, property name or property value. A plain word such as `run` or
- * `init` counts only in an array whose elements are all such keys, or as a
- * name in an object whose names all are, since a tooltip row `['run',
- * label]` or a step list `['compile', 'static']` holds the same words.
+ * The table literal `node` sits in: a string literal as an array element,
+ * property name or property value, or a plain name of an object property
+ * or method.
  */
-function tableOf(
-  literal: ts.StringLiteralLike,
-  foreign: ReadonlySet<string>,
-): string | undefined {
-  const node = outermost(literal);
-  const parent = node.parent;
-  const named = literal.text.includes('/');
-  if (ts.isArrayLiteralExpression(parent))
-    return named ||
-      parent.elements.every((element) => {
-        const text = textOf(unwrap(element));
-        return (
-          ts.isStringLiteralLike(unwrap(element)) &&
-          text !== undefined &&
-          foreign.has(text)
-        );
-      })
-      ? 'an array'
-      : undefined;
+function tablePosition(node: ts.Node): TablePosition | undefined {
+  const at = ts.isIdentifier(node) ? node : outermost(node);
+  const parent = at.parent;
+  if (ts.isStringLiteralLike(node) && ts.isArrayLiteralExpression(parent))
+    return { kind: 'an array', table: parent, value: false };
   const property = ts.isComputedPropertyName(parent) ? parent.parent : parent;
   if (
-    !ts.isPropertyAssignment(property) ||
+    !(ts.isPropertyAssignment(property) || ts.isMethodDeclaration(property)) ||
     !ts.isObjectLiteralExpression(property.parent)
   )
     return undefined;
-  if (named) return 'an object';
-  return property.initializer !== node &&
-    property.parent.properties.every((member) => {
-      const text = member.name === undefined ? undefined : textOf(member.name);
-      return text !== undefined && foreign.has(text);
-    })
-    ? 'an object'
+  if (property.name === at || property.name === parent)
+    return { kind: 'an object', table: property.parent, value: false };
+  return ts.isStringLiteralLike(node) &&
+    ts.isPropertyAssignment(property) &&
+    property.initializer === at
+    ? { kind: 'an object', table: property.parent, value: true }
     : undefined;
-}
-
-/** The type an object literal is declared with: an annotation, `as` or `satisfies`. */
-function declaredTypeOf(
-  object: ts.ObjectLiteralExpression,
-): ts.TypeNode | undefined {
-  const parent = outermost(object).parent;
-  if (
-    (ts.isVariableDeclaration(parent) || ts.isPropertyDeclaration(parent)) &&
-    parent.initializer !== undefined
-  )
-    return parent.type;
-  if (ts.isAsExpression(parent) || ts.isSatisfiesExpression(parent))
-    return parent.type;
-  return undefined;
 }
 
 /** Reads one package's source with a checker that resolves the packages it imports. */
@@ -486,8 +457,10 @@ class Reader {
 
   /**
    * The parameter of `call` that `argument` fills: `output` for a rest
-   * parameter typed `any[]` or `unknown[]`, `unseen` for a call the checker
-   * cannot resolve.
+   * parameter typed `any[]` or `unknown[]` of a call that returns `void` or
+   * `undefined`, such as `console.log`, and `unseen` for a call the checker
+   * cannot resolve. A rest parameter of a call that returns a value hands
+   * the read back, as `join(...parts: unknown[]): string` does.
    */
   #sink(
     call: ts.CallExpression | ts.NewExpression,
@@ -495,6 +468,16 @@ class Reader {
   ): 'output' | 'unseen' | undefined {
     const declaration = this.#signatureOf(call);
     if (declaration === undefined) return 'unseen';
+    const signature = this.#checker.getResolvedSignature(call);
+    const returns =
+      signature === undefined
+        ? undefined
+        : this.#checker.getReturnTypeOfSignature(signature);
+    if (
+      returns === undefined ||
+      (returns.flags & (ts.TypeFlags.Void | ts.TypeFlags.Undefined)) === 0
+    )
+      return undefined;
     const index = call.arguments?.indexOf(argument as ts.Expression) ?? -1;
     const last = declaration.parameters.at(-1);
     if (
@@ -687,23 +670,57 @@ class Reader {
   }
 
   /**
-   * True when `name`, an unquoted property name, keys an object literal
-   * whose declared type names a base declaration.
+   * True when the type that gives `table` its context names a base
+   * declaration: the annotation of the variable it initializes, a
+   * `satisfies` or `as` type, the type arguments of the call or `new` it is
+   * an argument of, or that parameter's declared type. The search climbs
+   * through enclosing array literals, object literals whose property has no
+   * declared type, and `as const`.
    */
-  isTypedTableName(name: ts.Identifier): boolean {
-    const property = name.parent;
-    if (
-      !(
-        ts.isPropertyAssignment(property) ||
-        ts.isShorthandPropertyAssignment(property) ||
-        ts.isMethodDeclaration(property)
-      ) ||
-      property.name !== name ||
-      !ts.isObjectLiteralExpression(property.parent)
-    )
-      return false;
-    const declared = declaredTypeOf(property.parent);
-    return declared !== undefined && this.#mentions(declared);
+  typedTable(table: ts.Expression): boolean {
+    let node: ts.Node = table;
+    for (;;) {
+      const at = outermost(node);
+      const parent = at.parent;
+      if (ts.isAsExpression(parent) || ts.isSatisfiesExpression(parent)) {
+        if (this.#mentions(parent.type)) return true;
+        node = parent;
+      } else if (
+        (ts.isVariableDeclaration(parent) ||
+          ts.isPropertyDeclaration(parent) ||
+          ts.isParameter(parent)) &&
+        parent.initializer === at
+      )
+        return parent.type !== undefined && this.#mentions(parent.type);
+      else if (ts.isArrayLiteralExpression(parent)) node = parent;
+      else if (ts.isPropertyAssignment(parent) && parent.initializer === at) {
+        const name = nameOf(parent.name);
+        const declaration =
+          name === undefined
+            ? undefined
+            : this.#checker.getContextualType(parent.parent)?.getProperty(name)
+                ?.valueDeclaration;
+        if (
+          declaration !== undefined &&
+          (ts.isPropertySignature(declaration) ||
+            ts.isPropertyDeclaration(declaration)) &&
+          declaration.type !== undefined
+        )
+          return this.#mentions(declaration.type);
+        node = parent.parent;
+      } else if (
+        (ts.isCallExpression(parent) || ts.isNewExpression(parent)) &&
+        parent.arguments?.includes(at as ts.Expression) === true
+      ) {
+        if (parent.typeArguments?.some((type) => this.#mentions(type)))
+          return true;
+        const declaration = this.#signatureOf(parent);
+        const index = parent.arguments.indexOf(at as ts.Expression);
+        const parameter =
+          declaration?.parameters[index] ?? declaration?.parameters.at(-1);
+        return parameter?.type !== undefined && this.#mentions(parameter.type);
+      } else return false;
+    }
   }
 }
 
@@ -785,29 +802,31 @@ export function eventVocabulary(
     const owned = (key: string) =>
       `'${key}', an event type ${list(keys.get(key) ?? [])} declares`;
     for (const [, node] of allNodes(reader.sources)) {
-      if (ts.isStringLiteralLike(node) && foreign.has(node.text)) {
-        const table = tableOf(node, foreign);
-        if (table !== undefined)
+      const key =
+        ts.isStringLiteralLike(node) || ts.isIdentifier(node)
+          ? node.text
+          : undefined;
+      if (key !== undefined && foreign.has(key)) {
+        const named = key.includes('/');
+        const table = tablePosition(node);
+        if (
+          table !== undefined &&
+          (named || (!table.value && check?.typedTable(table.table) === true))
+        ) {
           violations.push(
-            `${where(node)} writes ${owned(node.text)}, into ${table} literal; ${FILL}`,
+            `${where(node)} writes ${owned(key)}, into ${table.kind} literal; ${FILL}`,
           );
-        else if (node.text.includes('/') && check?.isTypedKey(node) !== true)
-          violations.push(
-            `${where(node)} names ${owned(node.text)}; compare a typed read with it, or pass it where the owner's union types the argument`,
-          );
-        continue;
+          continue;
+        }
+        if (ts.isStringLiteralLike(node)) {
+          if (named && check?.isTypedKey(node) !== true)
+            violations.push(
+              `${where(node)} names ${owned(key)}; compare a typed read with it, or pass it where the owner's union types the argument`,
+            );
+          continue;
+        }
       }
       if (check === undefined) continue;
-      if (
-        ts.isIdentifier(node) &&
-        foreign.has(node.text) &&
-        check.isTypedTableName(node)
-      ) {
-        violations.push(
-          `${where(node)} writes ${owned(node.text)}, into an object literal; ${FILL}`,
-        );
-        continue;
-      }
       const candidate =
         ts.isPropertyAccessExpression(node) ||
         ts.isElementAccessExpression(node) ||

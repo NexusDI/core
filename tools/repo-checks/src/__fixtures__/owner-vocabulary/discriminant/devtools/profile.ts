@@ -39,7 +39,7 @@ export function label(kind: RunKind): string {
 export const isScoped = (event: TraceEvent<'construct'>): boolean =>
   event.lifetime === 'scoped';
 
-const logger = { debug: (...args: unknown[]): unknown[] => args };
+const logger = { debug: (...args: unknown[]): void => void args };
 
 /** A rest parameter typed any[] or unknown[] takes a read as output. */
 export function log(event: TraceEvent): void {
@@ -50,3 +50,11 @@ export function log(event: TraceEvent): void {
 /** The same words in a list of the profiler's own steps, or a tooltip row. */
 export const STEPS = ['compile', 'static', 'build', 'init', 'setup'];
 export const row = (label: string): [string, string] => ['run', label];
+
+/** A package's own lifecycle words, typed by nothing the owner declares. */
+export const LIFECYCLE = ['init', 'dispose'] as const;
+
+function oneOf<T>(values: readonly T[], value: unknown): T | undefined {
+  return values.find((candidate) => candidate === value);
+}
+export const pendingOf = (value: unknown) => oneOf(['construct', 'init'], value);
