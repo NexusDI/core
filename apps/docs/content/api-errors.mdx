@@ -51,20 +51,21 @@ These errors are raised by `@nexusdi/core` during graph validation or container 
 
 These errors are raised by the other official NexusDI packages.
 
-| Package                 | Code                                                                    | Class                   | Description                                                                                            |
-| :---------------------- | :---------------------------------------------------------------------- | :---------------------- | :----------------------------------------------------------------------------------------------------- |
-| `@nexusdi/interceptors` | [`NEXUS_INTERCEPTOR_INVALID`](/errors/NEXUS_INTERCEPTOR_INVALID/)       | `InterceptorError`      | Interceptor definition or call is malformed.                                                           |
-| `@nexusdi/interceptors` | [`NEXUS_INTERCEPTOR_MISSING`](/errors/NEXUS_INTERCEPTOR_MISSING/)       | `InterceptorError`      | A declared interceptor was not registered in the plugin.                                               |
-| `@nexusdi/interceptors` | [`NEXUS_INTERCEPTOR_LIFETIME`](/errors/NEXUS_INTERCEPTOR_LIFETIME/)     | `InterceptorError`      | An interceptor was marked as scoped or transient.                                                      |
-| `@nexusdi/interceptors` | [`NEXUS_INTERCEPTOR_NOT_READY`](/errors/NEXUS_INTERCEPTOR_NOT_READY/)   | `InterceptorError`      | Interceptor called before build or after disposal.                                                     |
-| `@nexusdi/interceptors` | [`NEXUS_INTERCEPTORS_SHARED`](/errors/NEXUS_INTERCEPTORS_SHARED/)       | `InterceptorError`      | An interceptors plugin object was passed to a second container while another container still holds it. |
-| `@nexusdi/interceptors` | [`NEXUS_INTERCEPTORS_UNCHECKED`](/errors/NEXUS_INTERCEPTORS_UNCHECKED/) | `InterceptorError`      | An instance was wrapped without being checked by the compiler.                                         |
-| `@nexusdi/testing`      | [`NEXUS_OVERRIDE_UNUSED`](/errors/NEXUS_OVERRIDE_UNUSED/)               | `OverrideError`         | An override names a token that no provider binds, or a module the graph never imports.                 |
-| `@nexusdi/testing`      | [`NEXUS_OVERRIDE_EXPORTS`](/errors/NEXUS_OVERRIDE_EXPORTS/)             | `OverrideError`         | A module stub doesn't export everything the original did.                                              |
-| `@nexusdi/decorators`   | [`NEXUS_LEGACY_DECORATORS`](/errors/NEXUS_LEGACY_DECORATORS/)           | `LegacyDecoratorsError` | A decorator ran under `experimentalDecorators`.                                                        |
-| `@nexusdi/devtools`     | [`NEXUS_DEVTOOLS_UNREGISTERED`](/errors/NEXUS_DEVTOOLS_UNREGISTERED/)   | `DevtoolsError`         | `graph()` called on a container without the devtools plugin.                                           |
-| `@nexusdi/devtools`     | [`NEXUS_DEVTOOLS_GRAPH_INVALID`](/errors/NEXUS_DEVTOOLS_GRAPH_INVALID/) | `DevtoolsError`         | The provided JSON is not a valid `NexusGraph`.                                                         |
-| `@nexusdi/federation`   | [`NEXUS_CONTRACT_VERSION`](/errors/NEXUS_CONTRACT_VERSION/)             | `ContractVersionError`  | A dependent needs a contract version its provider does not satisfy.                                    |
+| Package                 | Code                                                                      | Class                   | Description                                                                                            |
+| :---------------------- | :------------------------------------------------------------------------ | :---------------------- | :----------------------------------------------------------------------------------------------------- |
+| `@nexusdi/interceptors` | [`NEXUS_INTERCEPTOR_INVALID`](/errors/NEXUS_INTERCEPTOR_INVALID/)         | `InterceptorError`      | Interceptor definition or call is malformed.                                                           |
+| `@nexusdi/interceptors` | [`NEXUS_INTERCEPTOR_MISSING`](/errors/NEXUS_INTERCEPTOR_MISSING/)         | `InterceptorError`      | A declared interceptor was not registered in the plugin.                                               |
+| `@nexusdi/interceptors` | [`NEXUS_INTERCEPTOR_LIFETIME`](/errors/NEXUS_INTERCEPTOR_LIFETIME/)       | `InterceptorError`      | An interceptor was marked as scoped or transient.                                                      |
+| `@nexusdi/interceptors` | [`NEXUS_INTERCEPTOR_NOT_READY`](/errors/NEXUS_INTERCEPTOR_NOT_READY/)     | `InterceptorError`      | Interceptor called before build or after disposal.                                                     |
+| `@nexusdi/interceptors` | [`NEXUS_INTERCEPTORS_SHARED`](/errors/NEXUS_INTERCEPTORS_SHARED/)         | `InterceptorError`      | An interceptors plugin object was passed to a second container while another container still holds it. |
+| `@nexusdi/interceptors` | [`NEXUS_INTERCEPTORS_UNCHECKED`](/errors/NEXUS_INTERCEPTORS_UNCHECKED/)   | `InterceptorError`      | An instance was wrapped without being checked by the compiler.                                         |
+| `@nexusdi/testing`      | [`NEXUS_OVERRIDE_UNUSED`](/errors/NEXUS_OVERRIDE_UNUSED/)                 | `OverrideError`         | An override names a token that no provider binds, or a module the graph never imports.                 |
+| `@nexusdi/testing`      | [`NEXUS_OVERRIDE_EXPORTS`](/errors/NEXUS_OVERRIDE_EXPORTS/)               | `OverrideError`         | A module stub doesn't export everything the original did.                                              |
+| `@nexusdi/decorators`   | [`NEXUS_LEGACY_DECORATORS`](/errors/NEXUS_LEGACY_DECORATORS/)             | `LegacyDecoratorsError` | A decorator ran under `experimentalDecorators`.                                                        |
+| `@nexusdi/devtools`     | [`NEXUS_DEVTOOLS_UNREGISTERED`](/errors/NEXUS_DEVTOOLS_UNREGISTERED/)     | `DevtoolsError`         | `graph()` called on a container without the devtools plugin.                                           |
+| `@nexusdi/devtools`     | [`NEXUS_DEVTOOLS_GRAPH_INVALID`](/errors/NEXUS_DEVTOOLS_GRAPH_INVALID/)   | `DevtoolsError`         | The provided JSON is not a valid `NexusGraph`.                                                         |
+| `@nexusdi/devtools`     | [`NEXUS_DEVTOOLS_PROFILE_REUSED`](/errors/NEXUS_DEVTOOLS_PROFILE_REUSED/) | `DevtoolsError`         | `report()` on a profiler that recorded a second container.                                             |
+| `@nexusdi/federation`   | [`NEXUS_CONTRACT_VERSION`](/errors/NEXUS_CONTRACT_VERSION/)               | `ContractVersionError`  | A dependent needs a contract version its provider does not satisfy.                                    |
 
 ## How Each Code Arrives
 
