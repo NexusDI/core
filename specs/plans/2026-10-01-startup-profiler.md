@@ -1909,6 +1909,7 @@ describe('order and the in-flight set (spec 3.4)', () => {
       [provide(LINK, { useFactory: async () => ({}) }), Relay],
       { plugins: [plugin] },
     );
+    void ship;
     expect(events.map((e) => e.type)).toEqual([
       'compile',
       'construct:await',

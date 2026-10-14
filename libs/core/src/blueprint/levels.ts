@@ -1,3 +1,4 @@
+import { isInline } from './build-order.js';
 import { unreachable } from '../definitions/unreachable.js';
 import { REQUEST_ID, type ProviderRecord } from './blueprint.js';
 
@@ -30,8 +31,6 @@ function levelFunction(
   member: Member,
 ): (id: string) => number {
   const memo = new Map<string, number>();
-  const passesThrough = (r: ProviderRecord): boolean =>
-    r.lifetime === 'transient' || r.kind === 'alias';
 
   return function contribute(start: string): number {
     const cached = memo.get(start);
@@ -48,7 +47,7 @@ function levelFunction(
     for (let frame = stack.at(-1); frame !== undefined; frame = stack.at(-1)) {
       const record = providers.get(frame.id);
       const isMember = record !== undefined && member(record);
-      const passes = record !== undefined && passesThrough(record);
+      const passes = record !== undefined && isInline(record);
 
       let value: number | undefined;
       if (!isMember && !passes) {
@@ -149,7 +148,7 @@ function collectReached(
       if (isMember(record)) {
         needed.add(next);
         visit(next);
-      } else if (record.lifetime === 'transient' || record.kind === 'alias') {
+      } else if (isInline(record)) {
         visit(next);
       }
     }

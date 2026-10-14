@@ -1,5 +1,6 @@
 import { LifetimeError, type NexusError } from '../errors/index.js';
 import type { ProviderRecord } from './blueprint.js';
+import { isInline } from './build-order.js';
 
 /**
  * The first path from `start` to a scoped provider, walking through
@@ -35,7 +36,7 @@ function scopedPath(
     if (record === undefined) continue;
     if (record.lifetime === 'scoped')
       return [...stack.map((f) => f.node), next];
-    const passes = record.lifetime === 'transient' || record.kind === 'alias';
+    const passes = isInline(record);
     if (passes && !visited.has(next)) {
       visited.add(next);
       stack.push({ node: next, next: 0 });
