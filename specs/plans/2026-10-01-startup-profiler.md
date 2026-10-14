@@ -27,31 +27,56 @@ Spec: `specs/2026-10-01-startup-profiler-design.md` on this branch. The section 
 
 ## Owner gates
 
-These are open owner items in spec section 17. The tasks they gate can be written and reviewed, and the pull request does not merge until the owner rules.
+These are open owner items in spec section 17. A gated task waits for the owner's answer before an implementer starts it; the pull request does not merge until every item is answered.
 
-- (a) 1, core +673 B gzip: gates the merge. Task 7 records the measured figure for the `## Size` section.
-- (b) 1, `init` for on-demand singletons: gates Task 6, step 5 to 7.
-- (b) 2, compile failure keeps the compile error and drops the observer's throw: gates Task 3.
-- (c) 1, P1 wording for a discriminant compare: gates Tasks 8 to 12 (every `switch (event.type)` and edge-kind compare in devtools).
-- (c) 2, times only in executed output: gates Tasks 20 and 21.
-- (c) 3, unpinned Chrome in the canary: gates Task 19.
+| Owner item | What it decides | Gates |
+| --- | --- | --- |
+| (a) 1 | core grows about +673 B gzip (+3.6%) | the merge only. Task 7 records the measured figure for the `## Size` section |
+| (b) 1 | `init` fires for `eager: false` singletons with `onInit` | Task 6, Steps 5 to 7 |
+| (b) 2 | a compile failure keeps its error and drops the observer's throw | Task 3 |
+| (c) 1 | P1 wording for a compiler-checked discriminant compare (`event.type`, `RunKind`, `compile.phase`) | the merge, and the final form of the `observe` dispatch in `profile.ts` (Task 8). Task 8 runs now with the planned `switch` |
+| (c) 2 | profiler times appear only in executed output | Tasks 20 and 21 |
+| (c) 3 | the canary installs Chrome stable and beta unpinned | Task 19 |
 
-## Rulings needed before a task starts
+Run now, before the owner answers: Tasks 1, 2, 4, 5, 6 (Steps 1 to 4 and 8; Step 8's commit leaves out the on-demand `init` until (b) 1 is answered), 7 to 18, and 22. If the owner rejects (c) 1, a fix round replaces the `switch` in `profile.ts` with the owner's form; no other file changes, since ruling 5 below removed every edge-kind and lifetime compare from devtools.
 
-Spec 12 names `/api-cli/` and an "existing" `/api-devtools/`. Neither page exists on `release/0.4`: the CLI is documented on `/graph-cli/` (a `question` page in Guides), the API band holds only `/api-errors/`, and docs spec 4.3 plans no `/api-devtools/`. Task 22 waits for the architect and tech lead to rule where the `nexusdi profile` reference and the new devtools exports go. Record the ruling in the ledger and report it to the owner in one line.
+Wait for the owner: Task 3 ((b) 2), Task 6 Steps 5 to 7 ((b) 1), Task 19 ((c) 3), Tasks 20 and 21 ((c) 2). Task 23 runs last, after every answer.
 
-Choices this plan makes where the spec is silent. The reviewer of the owning task checks each; a reviewer who disagrees sends it to the architect and tech lead.
+## Tech lead rulings (2026-10-14)
 
-1. A `load()` of a module the root already imports is a run: it takes an id and emits `run` with `ok: true` and no `compile` (Task 2).
+The architect proposed rulings on the open questions of this plan; the tech lead checked each against the pillars, users and the code on `release/0.4`. Each is applied to the spec and to the tasks below.
+
+1. Docs placement, accepted. New devtools exports go on `/api-devtools/` (docs spec page 38, absent on `release/0.4`); Task 22 creates the page with every devtools export if it is still absent. `nexusdi profile` gets an H2 on `/profiling/`, as `/graph-cli/` documents graph. No `/api-cli/`. Spec 12 and 14 updated.
+2. Plan choice 9 (`reportedMs`, `graph.root`), accepted. A hung create never reaches `setup`, so its report has `graph: null`; the Chrome frame URL falls back to `nexusdi://profile`. Spec 6.2, 7.3, 10.1 and Tasks 8, 11, 13 updated.
+3. Size report (Task 14), accepted. `<dir>-<feature>.ts` maps to `libs/<dir>`, and Step 3 now checks that the `devtools` row is unchanged and that `devtools+profile` is near spec 11.2's 975 B.
+4. `run` events in every trace, accepted. Core spec 3.10.2 classes a new `TraceEventByType` key as an addition, 0.3 had no trace, and an rc tester who asserts a full event list sees one new type per run. Task 2's commit carries no `!`; Task 23's pull request body gets a "Trace changes for observers" section.
+5. Build-order facts for the critical path, amended. No new top-level core exports. Core adds `EdgeView.ordersBuild` and `ProviderView.inline` (spec 3.7), computed by internal helpers that compile pass 4 and `levels.ts` also call; `ProfileReport.graph` copies both, and devtools compares no edge kind or lifetime. The view is a P3 contribution point every plugin already reads, a field on it raises no plugin API version, and a saved report keeps the rule of the core that recorded it. Task 7, Step 5 and Tasks 8, 9, 10, 12, 13 updated.
+6. Spec-silent choices:
+   1. A no-op `load()` is a run (`ok: true`, no `compile`); a `load()` that throws before it compiles is a run with `ok: false` and no `compile`. Accepted. Spec 3.3, Task 2.
+   2. `extend()` to the pinned blueprint is a run. Accepted. Spec 3.3, Task 2.
+   3. An on-demand failure outside any run drops the observer's throw. Accepted. Spec 3.5, Tasks 5 and 6.
+   4. On-demand `construct` fires before `onInit`; `finishMs` covers construct hooks only. Accepted. Task 4.
+   5. `async` on `construct:failed` and `init:failed` means "the call returned a thenable", as on `construct` and `init`, whatever failed after it (a rejection, `NEXUS_LAZY_ASYNC` on demand, or validation or a construct hook). Amended from the architect's wording to cover the validation case. Spec 3.1, 3.2, Tasks 5 and 6.
+   6. Reuse is a second `compile` with phase `create`, a `compile` for a closed run, or a second `run` event for a closed id. A `construct`, `init` or `:await` event for a closed run is ignored. Accepted. Spec 6.3, Task 8.
+   7. Live mode draws a run when its `run` event arrives; `/profiling/` says so and points a stalled startup at `report()`. Accepted. Spec 6.5, Tasks 11 and 20.
+   8. `spansOf` in `src/profile/spans.ts`; anchors and `alignClocks` in `libs/cli/src/cpu.ts`. Accepted. Tasks 11, 18.
+   9. Covered by ruling 2.
+   10. A failed `create` or `load` whose run has no `compile` in the report, or a report with no run, exits 2; every other failure and the timeout exit 1. The CLI reads profiler data, no error code. Accepted. Spec 9.5, Tasks 16 and 17.
+
+## Plan choices
+
+Choices this plan makes where the spec was silent. The tech lead ruled on each (above); the reviewer of the owning task checks the code against them.
+
+1. A `load()` of a module the root already imports is a run: it takes an id and emits `run` with `ok: true` and no `compile`. A `load()` that throws `NEXUS_INVALID_MODULE` before it compiles emits `run` with `ok: false` and no `compile` (Task 2).
 2. An `extend()` whose target is the pinned blueprint is a run in the same way (Task 2).
 3. On-demand failures outside any run drop an observer's throw on `construct:failed` and `init:failed`; `get()` throws its own error (Tasks 5 and 6).
 4. An on-demand singleton emits `construct` before its `onInit` runs, so `init` follows `construct` as in a level build, and its `finishMs` covers construct hooks only (Task 4).
-5. An `onInit` of an on-demand singleton that returns a thenable emits `init:failed` with `async: false`, since core never awaits it (Task 6).
-6. `profile()` treats any event for a run id that already closed as reuse, besides the second `compile` with phase `create`. A create that fails before its compile emits no `compile`, and the second `create` would otherwise reopen run 0 (Task 8).
+5. `async` on `construct:failed` and `init:failed` is true when the constructor, factory or `onInit` returned a thenable, whatever failed after it. An on-demand `onInit` or factory that returns a thenable fails with `NEXUS_LAZY_ASYNC` and reports `async: true` (Tasks 5 and 6).
+6. `profile()` treats a second `compile` with phase `create`, a `compile` for a closed run, and a second `run` event for a closed id as reuse. It ignores a `construct`, `init` or `:await` event for a closed run (Task 8).
 7. Live mode draws a run's spans when its `run` event arrives, through the same `spansOf`, so the barrier-path colour is known (Task 11).
 8. `spansOf` lives in `src/profile/spans.ts` so `live.ts` does not pull in the Chrome writer. Anchors and `alignClocks` live in `libs/cli/src/cpu.ts` (Task 18).
-9. `ProfileReport` gains `reportedMs` (when `report()` ran) and `graph.root` (the root module's name). A pending span needs an end, and the Chrome frame URL names the root module; spec 6.2's report holds neither (Task 8).
-10. A failed `create` or `load` exits 1 whatever its error, an input error such as `NEXUS_INVALID_MODULE` included, as spec 9.5 reads. `nexusdi graph` keeps its exit 2 for those (Task 16).
+9. `ProfileReport` gains `reportedMs` (when `report()` ran) and `graph.root` (the root module's name), now in spec 6.2 (Task 8).
+10. A failed `create` or `load` exits 2 when its run has no `compile` in the report or the report has no run (an input error such as `NEXUS_INVALID_MODULE`), and 1 otherwise, as spec 9.5 now reads (Task 16).
 
 ## Review Focus
 
@@ -443,6 +468,17 @@ describe('run', () => {
       [1, 'load', true],
     ]);
   });
+
+  it('counts a load that throws before it compiles as a failed run with no compile', async () => {
+    const { events, plugin } = recordEvents();
+    await using ship = await Nexus.create(Engineering, { plugins: [plugin] });
+    await rejected(ship.load(42 as never));
+    expect(only(events, 'compile').map((e) => e.run)).toEqual([0]);
+    expect(only(events, 'run').map((e) => [e.run, e.kind, e.ok])).toEqual([
+      [0, 'create', true],
+      [1, 'load', false],
+    ]);
+  });
 });
 ```
 
@@ -710,7 +746,7 @@ Expected: PASS.
 
 ```bash
 git add libs/core libs/devtools examples/meridian apps/docs/content/introspection.mdx
-NX_NO_CLOUD=true NX_DAEMON=false git commit -m "feat(core): number each run and close it with a run event
+NX_NO_CLOUD=true NX_DAEMON=false git commit -m "feat(core): close every create, load, createScope and extend() with a run event
 
 Co-Authored-By: Claude Opus 5.5 (1M context) <noreply@anthropic.com>"
 ```
@@ -1329,9 +1365,11 @@ In `buildInto`, wrap the call and the await:
   }
 ```
 
-`buildSingleton` and `buildScoped`: wrap everything between `buildInto` and `store` (options validation and `applyConstruct`) in `try { ... } catch (error) { traceFailed(container, bp, record, false, built.start, run, level); throw error; }`, keeping the existing `adopt` in validation's catch.
+`buildSingleton` and `buildScoped`: wrap everything between `buildInto` and `store` (options validation and `applyConstruct`) in `try { ... } catch (error) { traceFailed(container, bp, record, built.isAsync, built.start, run, level); throw error; }`, keeping the existing `adopt` in validation's catch. `async` means the factory returned a thenable, whatever failed after it (plan choice 5).
 
-`buildOnDemand`: wrap from `construct` to `applyConstruct` in `try/catch` that calls `traceFailed(container, ctx.bp, record, false, start, run, null)` and rethrows. A `run` of `undefined` drops the observer's throw (plan choice 3).
+`buildOnDemand`: wrap from `construct` to `applyConstruct` in `try/catch` that calls `traceFailed(container, ctx.bp, record, isAsync, start, run, null)` and rethrows, where `isAsync` is `record.kind === 'factory' && isThenable(built)`, set right after the `construct` call and `false` before it. A factory that returns a thenable on demand fails with `NEXUS_LAZY_ASYNC` and reports `async: true`. A `run` of `undefined` drops the observer's throw (plan choice 3).
+
+Add a test next to the on-demand case: `provide(LINK, { eager: false, useFactory: async () => ({}) })`, `expect(() => ship.get(LINK)).toThrow()`, then `expect(only(events, 'construct:failed')).toMatchObject([{ token: 'Link', run: null, async: true }])`.
 
 - [ ] Step 4: Run the core targets and the dispatch bench (as Task 4, Step 7)
 
@@ -1543,6 +1581,16 @@ describe('init from an on-demand build', () => {
     expect(() => ship.get(Sensor)).toThrow();
     expect(only(events, 'init:failed')).toMatchObject([{ token: 'Sensor', async: false }]);
   });
+
+  it('emits init:failed with async: true for an on-demand onInit that returns a thenable', async () => {
+    const { events, plugin } = recordEvents();
+    class Sensor {
+      async onInit() {}
+    }
+    await using ship = await Nexus.create([provide(Sensor, { eager: false })], { plugins: [plugin] });
+    expect(() => ship.get(Sensor)).toThrow();
+    expect(only(events, 'init:failed')).toMatchObject([{ token: 'Sensor', run: null, level: null, async: true }]);
+  });
 });
 ```
 
@@ -1561,11 +1609,14 @@ describe('init from an on-demand build', () => {
     }
     if (isThenable(result)) {
       container.slots.abandon(record.id);
-      traceInitFailed(root, ctx.bp, record.id, run, null, false, initStart);
+      // async: true, since onInit returned a thenable (plan choice 5).
+      traceInitFailed(root, ctx.bp, record.id, run, null, true, initStart);
       throw lazyAsync(result);
     }
     traceInit(root, ctx.bp, record.id, run?.id ?? null, null, false, initStart, root.tracer.now());
 ```
+
+Both calls take the run the same way as Task 5: `traceInitFailed` takes the `RunTrace` (or `undefined`), so it can collect an observer's throw, and `traceInit` takes `run?.id ?? null`.
 
 - [ ] Step 7: Fix the claims the new on-demand `init` changes. Run `NX_NO_CLOUD=true NX_DAEMON=false npx nx run-many -t test -p @nexusdi/core @nexusdi/devtools @nexusdi/meridian` and update each full event list that builds an `eager: false` singleton with `onInit` (insert `'init'` after its `construct`). Add a line under "Unreleased" in `libs/core/CHANGELOG.md` only if the release tooling reads hand entries there (check `nexusdi-release` skill); otherwise put the sentence "`init` events now fire for `eager: false` singletons with `onInit`" in the pull request body.
 
@@ -1577,11 +1628,14 @@ Files:
 
 - Modify: `libs/core/src/runtime/trace.ts` (contract TSDoc)
 - Modify: `libs/devtools/src/plugin-api-1.test-d.ts`
-- Test: `trace-events.test.ts`
+- Create: `libs/core/src/blueprint/build-order.ts` (Step 5)
+- Modify: `libs/core/src/blueprint/views.ts`, `levels.ts`, `compile.ts` (Step 5)
+- Test: `trace-events.test.ts`, `libs/core/src/blueprint/views.test.ts`
 
 Interfaces:
 
 - Consumes: everything of Tasks 1 to 6.
+- Produces: `EdgeView.ordersBuild: boolean` and `ProviderView.inline: boolean` (spec 3.7), read by Task 8.
 
 - [ ] Step 1: Write the order and in-flight tests (they should pass; they pin spec 3.4)
 
@@ -1709,12 +1763,35 @@ describe('a third-party profiler (startup profiler spec 5.3)', () => {
 
 with `type RunKind` added to the `@nexusdi/core` import.
 
-- [ ] Step 5: Measure. Run `node scripts/size-report.mjs` and record core's gzip figure against rc.1 (18,515 B with zlib level 9) in the ledger for the pull request's `## Size` section. Owner gate (a) 1 expects about +673 B. If the shared-shape factoring of Task 5 saves bytes, keep it.
+- [ ] Step 5: The view fields (spec 3.7, tech lead ruling 5)
+
+Files: `libs/core/src/blueprint/views.ts`, `levels.ts`, `compile.ts`, a new `libs/core/src/blueprint/build-order.ts`, `views.test.ts`, `levels.test.ts`.
+
+`build-order.ts` (internal; `libs/core/src/index.ts` does not export it):
+
+```ts
+import type { EdgeKind, ProviderRecord } from './blueprint.js';
+
+/** True when core builds an edge's target before its dependent. Cycles and levels count these edges only. */
+export const ordersBuild = (kind: EdgeKind): boolean => kind !== 'lazy';
+
+/** True for a provider with no build level of its own: a transient or an alias. */
+export const isInline = (r: Pick<ProviderRecord, 'lifetime' | 'kind'>): boolean =>
+  r.lifetime === 'transient' || r.kind === 'alias';
+```
+
+`compile.ts` pass 4 becomes `successorsOf(bound.edges, ordersBuild)`. `levels.ts` drops the local `passesThrough` in `levelFunction` and the inline copy in `collectReached` and calls `isInline`. `views.ts`: `EdgeView` gains `readonly ordersBuild: boolean;` and `ProviderView` gains `readonly inline: boolean;`, with spec 3.7's TSDoc; `providerView` sets `inline: isInline(record)` and `buildView`'s edge literal sets `ordersBuild: ordersBuild(e.kind)`.
+
+Tests first, in `views.test.ts`: a module with a class provider, a transient factory, an alias and a lazy edge; assert `ordersBuild` is false on the lazy edge only, and `inline` is true on the transient and the alias only. Run the existing `levels.test.ts` and `compile.test.ts` unchanged; they pin that the refactor kept the algorithm. Then run the devtools test that snapshots a view or a graph JSON, if one breaks, and add the two fields to its expectation. `@nexusdi/devtools` `graph()` and `NexusGraph` do not change.
+
+Commit with `feat(core): state on the view which edges order a build and which providers are inline`.
+
+- [ ] Step 6: Measure. Run `node scripts/size-report.mjs` and record core's gzip figure against rc.1 (18,515 B with zlib level 9) in the ledger for the pull request's `## Size` section. Owner gate (a) 1 expects about +673 B. If the shared-shape factoring of Task 5 saves bytes, keep it.
 
 Run: `NX_NO_CLOUD=true NX_DAEMON=false npx nx run-many -t lint test build typecheck -p @nexusdi/core @nexusdi/devtools && NX_NO_CLOUD=true NX_DAEMON=false npx nx run @nexusdi/core:bench-dispatch`
 Expected: PASS, every K14 case `pass`.
 
-- [ ] Step 6: Commit with `test(core): pin the trace event order and the stable profiler fields`.
+- [ ] Step 7: Commit with `test(core): pin the trace event order and the stable profiler fields`.
 
 ---
 ## Part 2: devtools (spec sections 6, 7 and 10)
@@ -1787,8 +1864,9 @@ export function report(
         module: b.module,
         lifetime: b.lifetime,
         kind: 'class',
+        inline: false,
       })),
-      edges: edges.map(([from, to]) => ({ from, to, kind: 'required' })),
+      edges: edges.map(([from, to]) => ({ from, to, kind: 'required', ordersBuild: true })),
     },
     dropped: 0,
     dispose: null,
@@ -1810,8 +1888,8 @@ Files:
 
 Interfaces:
 
-- Consumes: the core events of Tasks 1 to 6, `PluginContext.blueprint()`.
-- Produces in `report.ts`: `ProfileReport`, `ProfileRun`, `ProfileBuild`, `ProfileInit`, `ProfilePending`, `ProfileStep`, `CriticalPath`, `CpuProfile`, `CpuProfileNode`, `TraceFile`, all exported from the package. Spec 6.2's shapes with two additions (plan choice 9): `ProfileReport.reportedMs: number`, the `performance.now()` at which `report()` ran, which a pending span ends at; and `graph.root: string`, the root module's name, for the Chrome file's frame URL.
+- Consumes: the core events of Tasks 1 to 6, `PluginContext.blueprint()`, `EdgeView.ordersBuild` and `ProviderView.inline` (Task 7).
+- Produces in `report.ts`: `ProfileReport`, `ProfileRun`, `ProfileBuild`, `ProfileInit`, `ProfilePending`, `ProfileStep`, `CriticalPath`, `CpuProfile`, `CpuProfileNode`, `TraceFile`, all exported from the package. Spec 6.2's shapes, which include `ProfileReport.reportedMs: number` (the `performance.now()` at which `report()` ran, where a pending span ends), `graph.root: string` (the root module's name, for the Chrome file's frame URL), `graph.providers[].inline` and `graph.edges[].ordersBuild` (tech lead rulings 2 and 5).
 - Produces in `profile.ts`: `ProfileOptions`, `Profiler`, `profile(options?: ProfileOptions): Profiler`, and the internal `runOf(recording): ProfileRun`, which the live sink of Task 11 reads.
 - Produces in `steps.ts`: `stepsOf(run: Omit<ProfileRun, 'steps'>): ProfileStep[]` and `runLabel(run: Pick<ProfileRun, 'id' | 'kind' | 'scope'>): string`, the name the table and both trace files give a run.
 - Produces in `devtools-error.ts`: code `NEXUS_DEVTOOLS_PROFILE_REUSED`, `path: null`.
@@ -1867,7 +1945,8 @@ describe('profile', () => {
     ]);
     expect(run!.steps.map((s) => s.step)).toEqual(['compile', 'build', 'setup']);
     expect(report.graph?.root).toBe('Engineering');
-    expect(report.graph?.edges).toEqual([{ from: 'p1', to: 'p0', kind: 'required' }]);
+    expect(report.graph?.edges).toEqual([{ from: 'p1', to: 'p0', kind: 'required', ordersBuild: true }]);
+    expect(report.graph?.providers.map((p) => p.inline)).toEqual([false, false]);
   });
 
   it('records createScope and extend runs only with scopes: true', async () => {
@@ -1953,6 +2032,17 @@ describe('profile', () => {
     await rejected(Nexus.create(42 as never, { plugins: [profiler] }));
     await (await Nexus.create(Engineering, { plugins: [profiler] }))[Symbol.asyncDispose]();
     expect(isNexusError(thrown(() => profiler.report()), 'NEXUS_DEVTOOLS_PROFILE_REUSED')).toBe(true);
+  });
+
+  it('ignores a build for a run that already closed, and does not call it reuse', () => {
+    const profiler = profile();
+    const observe = profiler.observe!;
+    observe({ type: 'run', run: 0, kind: 'create', scope: null, ok: false, startMs: 0, durationMs: 5 } as never);
+    observe({
+      type: 'construct', token: 'Late', providerId: 'p9', module: 'M', lifetime: 'singleton', scope: null, async: true,
+      run: 0, level: 0, parent: null, startMs: 1, syncMs: 0, awaitMs: 6, finishMs: 0, durationMs: 6,
+    } as never);
+    expect(profiler.report().runs).toMatchObject([{ id: 0, ok: false, builds: [] }]);
   });
 
   it('records the disposal, and clear() drops every run', async () => {
@@ -2041,7 +2131,7 @@ Expected: FAIL, `profile` is not exported. `no-node` passes already.
 
 - [ ] Step 3: The error code. In `devtools-error.ts`, widen `code` to `'NEXUS_DEVTOOLS_UNREGISTERED' | 'NEXUS_DEVTOOLS_GRAPH_INVALID' | 'NEXUS_DEVTOOLS_PROFILE_REUSED'`, add the code to `NexusErrorByCode`, and extend the class TSDoc with "or report() was called on a profile() that recorded a second container."
 
-- [ ] Step 4: `report.ts`. Copy spec 6.2's `ProfileReport`, `ProfileRun`, `ProfileBuild` and `ProfileInit` verbatim, add `readonly reportedMs: number;` after `timeOrigin` with the TSDoc "performance.now() when report() ran; a pending span ends here.", and `readonly root: string;` as the first member of `graph` with "The root module's name." Then:
+- [ ] Step 4: `report.ts`. Copy spec 6.2's `ProfileReport`, `ProfileRun`, `ProfileBuild` and `ProfileInit` verbatim; they already carry `reportedMs`, `graph.root`, `inline` and `ordersBuild`. Then:
 
 ```ts
 export type ProfileStep = ProfileRun['steps'][number];
@@ -2211,8 +2301,9 @@ function graphOf(view: BlueprintView): NonNullable<ProfileReport['graph']> {
       module: names.get(p.module) ?? p.module,
       lifetime: p.lifetime,
       kind: p.kind,
+      inline: p.inline,
     })),
-    edges: view.edges.map((e) => ({ from: e.from, to: e.to, kind: e.kind })),
+    edges: view.edges.map((e) => ({ from: e.from, to: e.to, kind: e.kind, ordersBuild: e.ordersBuild })),
   };
 }
 
@@ -2277,6 +2368,15 @@ export function profile(options: ProfileOptions = {}): Profiler {
 
   const observe = (event: TraceEvent): void => {
     if (reused) return;
+    // A build, onInit or await of a run that already closed (an async build that
+    // settled after its run failed) is ignored: not reuse, not recorded (plan choice 6).
+    if (
+      (event.type === 'construct' || event.type === 'construct:failed' || event.type === 'construct:await' ||
+        event.type === 'init' || event.type === 'init:failed' || event.type === 'init:await') &&
+      event.run !== null &&
+      closed(event.run)
+    )
+      return;
     switch (event.type) {
       case 'compile': {
         if (event.run === null) return;
@@ -2567,7 +2667,7 @@ describe('criticalPath', () => {
     const graph = r.graph!;
     const withTransient = {
       ...r,
-      graph: { ...graph, providers: [...graph.providers, { id: 't', token: 'T', module: 'Engineering', lifetime: 'transient', kind: 'factory' }] },
+      graph: { ...graph, providers: [...graph.providers, { id: 't', token: 'T', module: 'Engineering', lifetime: 'transient', kind: 'factory', inline: true }] },
     };
     expect(criticalPath(withTransient, 0)!.path.map((p) => p.dependsOnPrevious)).toEqual([false, true]);
   });
@@ -2656,9 +2756,6 @@ import type { CriticalPath, ProfileBuild, ProfileReport, ProfileRun } from './re
 
 type Graph = NonNullable<ProfileReport['graph']>;
 
-/** Edges that order a build: lazy edges never wait (spec 7.2, item 3). */
-const STRONG = new Set(['required', 'optional', 'all', 'alias']);
-
 export function ownMs(b: ProfileBuild): number {
   return (b.syncMs ?? 0) + (b.awaitMs ?? 0) + (b.finishMs ?? 0);
 }
@@ -2670,10 +2767,11 @@ export function criticalPathOf(run: ProfileRun, graph: Graph): CriticalPath {
   if (levelled.length === 0)
     return { run: run.id, buildMs: 0, boundMs: 0, barrierMs: 0, path: [], waits: [] };
   const built = new Map(levelled.map((b) => [b.providerId, b]));
-  const through = new Set(graph.providers.filter((p) => p.kind === 'alias' || p.lifetime === 'transient').map((p) => p.id));
+  // Core's rule, as the recording core stated it on the view (spec 3.7).
+  const through = new Set(graph.providers.filter((p) => p.inline).map((p) => p.id));
   const out = new Map<string, string[]>();
   for (const e of graph.edges) {
-    if (!STRONG.has(e.kind)) continue;
+    if (!e.ordersBuild) continue;
     const list = out.get(e.from);
     if (list === undefined) out.set(e.from, [e.to]);
     else list.push(e.to);
@@ -3077,8 +3175,8 @@ const REPORT = shape({
   runs: list(RUN),
   graph: orNull(shape({
     root: str,
-    providers: list(shape({ id: str, token: str, module: str, lifetime: orNull(str), kind: str })),
-    edges: list(shape({ from: str, to: str, kind: str })),
+    providers: list(shape({ id: str, token: str, module: str, lifetime: orNull(str), kind: str, inline: bool })),
+    edges: list(shape({ from: str, to: str, kind: str, ordersBuild: bool })),
   })),
   dropped: num,
   dispose: orNull(shape({ ...SPAN, errors: num })),
@@ -3428,7 +3526,7 @@ export function toChromeTrace(
         data: {
           frameTreeNodeId: 1,
           persistentIds: true,
-          frames: [{ frame: 'F1', name: '', processId: 1, isInPrimaryMainFrame: true, isOutermostMainFrame: true, url: `nexusdi://profile/${report.graph?.root ?? 'app'}` }],
+          frames: [{ frame: 'F1', name: '', processId: 1, isInPrimaryMainFrame: true, isOutermostMainFrame: true, url: report.graph === null ? 'nexusdi://profile' : `nexusdi://profile/${report.graph.root}` }],
         },
       },
     },
@@ -3597,12 +3695,10 @@ import { stepsOf } from './steps.js';
 
 type Event = Readonly<Record<string, unknown>>;
 
-const STRONG = new Set(['required', 'optional', 'all', 'alias']);
-
 /**
  * The report as plain Trace Event Format for ui.perfetto.dev (spec 7.4):
  * one pid per run, tid 1 for the steps, one tid per built provider sorted
- * by level, and a flow arrow per strong edge between two providers the run
+ * by level, and a flow arrow per edge with ordersBuild between two providers the run
  * built. Perfetto requires slices on a tid to nest, so concurrent
  * providers each get a tid.
  */
@@ -3652,7 +3748,7 @@ export function toPerfettoTrace(report: ProfileReport): TraceFile {
     for (const e of report.graph.edges) {
       const from = byId.get(e.from);
       const to = byId.get(e.to);
-      if (!STRONG.has(e.kind) || from === undefined || to === undefined) continue;
+      if (!e.ordersBuild || from === undefined || to === undefined) continue;
       const id = ++flow;
       const name = critical.has(`${e.from} ${e.to}`) ? 'critical' : 'dep';
       events.push(
@@ -3687,7 +3783,7 @@ Interfaces:
 
 Run: `npm view @paulirish/trace_engine version` and `npm i -D -E @paulirish/trace_engine@<that version>` at the repository root. The spec verified 0.0.65; take the newest published version at or above it, and record it in the ledger.
 
-- [ ] Step 2: The fixtures. Write `meridian.report.json` by hand: the spec 6.7 Meridian with 14 providers over four levels, an async `NavCharts` (sync 0.3, await 21.4, finish 0.1), one `load` run of `Science`, a `dispose`, `graph.root: "Meridian"`, `reportedMs` after the last run. Pass it through `parseProfileReport` in the test, so a hand slip fails there first. `failed.report.json` is the same create with `ShieldGrid` failed in level 2 and `ok: false`. `partial.report.json` has `ok: null`, `durationMs: null` and one pending `NavCharts` construct. `node.cpuprofile` is a 20-sample profile: copy `nodes` for the call path `(root) > (program) > build > construct` from any `node --cpu-prof` run, with `startTime` 1,000,000, `timeDeltas` of 100 each, and `samples` that alternate the two leaves.
+- [ ] Step 2: The fixtures. Write `meridian.report.json` by hand: the spec 6.7 Meridian with 14 providers over four levels, an async `NavCharts` (sync 0.3, await 21.4, finish 0.1), one `load` run of `Science`, a `dispose`, `graph.root: "Meridian"`, `reportedMs` after the last run. Pass it through `parseProfileReport` in the test, so a hand slip fails there first. `failed.report.json` is the same create with `ShieldGrid` failed in level 2 and `ok: false`. `partial.report.json` has `ok: null`, `durationMs: null`, one pending `NavCharts` construct and `graph: null`, since a hung create never reaches `setup` (tech lead ruling 2). Every graph provider carries `inline` and every edge `ordersBuild`, as `parseProfileReport` requires. The test of the partial fixture also checks that the frame URL is `nexusdi://profile` and that no span has the colour `primary-dark` (no critical path). `node.cpuprofile` is a 20-sample profile: copy `nodes` for the call path `(root) > (program) > build > construct` from any `node --cpu-prof` run, with `startTime` 1,000,000, `timeDeltas` of 100 each, and `samples` that alternate the two leaves.
 
 - [ ] Step 3: The config and target
 
@@ -3838,12 +3934,12 @@ app.get(UserService).logger.log('ready');
 console.log(profiler.report().runs.length);
 ```
 
-- [ ] Step 2: Measure it. `size-report.mjs` measures `<dir>.ts` and `<dir>-text.ts` only. In `measurePackages`, also measure every `<dir>-<feature>.ts` other than `-text`, reported as `<dir>+<feature>`. Add a case to `size-fixtures.test.ts` that `devtools-profile.ts` is accepted and `gone-profile.ts` (no `libs/gone`) is reported. Write the failing test first, run `NX_NO_CLOUD=true NX_DAEMON=false npx nx test @nexusdi/repo-checks -- size-fixtures`, then implement.
+- [ ] Step 2: Measure it. `size-report.mjs` measures `<dir>.ts` and `<dir>-text.ts` only. In `measurePackages`, also measure every `<dir>-<feature>.ts` other than `-text` whose `<dir>` is a folder under `libs/`, reported as `<dir>+<feature>`, minus core. `size-fixtures.ts` reports a `<dir>-<feature>.ts` fixture whose `<dir>` is no `libs/` folder. `scripts/size-compare.mjs` needs no change: it prints a key with no baseline as `new`. Add a case to `size-fixtures.test.ts` that `devtools-profile.ts` is accepted and `gone-profile.ts` (no `libs/gone`) is reported. Write the failing test first, run `NX_NO_CLOUD=true NX_DAEMON=false npx nx test @nexusdi/repo-checks -- size-fixtures`, then implement.
 
 - [ ] Step 3: Check the claims of spec 11.2
 
 Run: `npm run size`
-Expected: `devtools` is unchanged from the base (no profile code in `devtools()`), and `devtools+profile` minus `devtools` is about 1.0 kB. Record both in the ledger for the pull request. If `devtools` moved, find the import that pulled a profile module into `devtools.ts`, `graph.ts` or `trace.ts` and remove it.
+Expected: the `devtools` row is unchanged from the base (no profile code reaches `devtools()`, `graph()` or `trace()`), and the `devtools+profile` row (the fixture minus core; the fixture never calls `devtools()`) is near spec 11.2's estimate for `profile()` with recording and the live sink, about 975 B. Record both in the ledger for the pull request. If `devtools` moved, find the import that pulled a profile module into `devtools.ts`, `graph.ts` or `trace.ts` and remove it.
 
 - [ ] Step 4: Run the targets and commit
 
@@ -4038,7 +4134,7 @@ export const Meridian = defineModule({ name: 'Meridian', imports: [Tactical] });
 export default Meridian;
 ```
 
-`science.module.js` exports `Science`, a module with one class provider. `broken.module.js` exports `Broken`, whose provider's constructor throws `new Error('hull breach')`. `leaky.module.js` exports `Leaky`, whose provider's `[Symbol.dispose]` throws. `plugins.js` exports `plugins = []`. `report.json` is `JSON.stringify(await profileStartup(Meridian))` saved once (write it with a throwaway script and commit the file); `bad-report.json` is the same with `runs[0].builds[0].startMs` deleted.
+`science.module.js` exports `Science`, a module with one class provider. `broken.module.js` exports `Broken`, whose provider's constructor throws `new Error('hull breach')`. `leaky.module.js` exports `Leaky`, whose provider's `[Symbol.dispose]` throws. `plugins.js` exports `plugins = []`. `not-a-module.module.js` exports `NotAModule`, an object with a key core rejects before it compiles (`{ providers: [], imports: [], wiring: true }`); check the key against `InvalidModuleError` on `release/0.4` when writing it. `report.json` is `JSON.stringify(await profileStartup(Meridian))` saved once (write it with a throwaway script and commit the file); `bad-report.json` is the same with `runs[0].builds[0].startMs` deleted.
 
 - [ ] Step 2: Write the failing process tests `profile.test.ts`
 
@@ -4098,6 +4194,12 @@ describe('nexusdi profile', () => {
     expect(run.stderr).toContain('hull breach');
     expect(run.stdout).toContain('failed');
     expect(JSON.parse(readFileSync(join(dir, 'r.json'), 'utf8'))[0].runs[0].ok).toBe(false);
+  });
+
+  it('exits 2 when create throws before it compiles', () => {
+    const run = runCli(['profile', 'not-a-module.module.js#NotAModule'], { cwd: DIR });
+    expect(run.status).toBe(2);
+    expect(run.stderr).toMatch(/^nexusdi: create failed:\n.*NEXUS_INVALID_MODULE/);
   });
 
   it('warns on a disposal error and keeps exit 0', () => {
@@ -4216,6 +4318,12 @@ export async function runProfile(command: ProfileCommand, io: Io, version: strin
       const failed = partial.runs.find((r) => r.ok === false);
       const detail = outcome.error instanceof Error ? outcome.error.message : String(outcome.error);
       await writeTo(io.stderr, `nexusdi: ${failed?.kind ?? 'create'} failed:\n${detail}\n`);
+      // A run that failed before it compiled, or no run at all, is an input error
+      // (spec 9.5, plan choice 10). The profiler's data decides; no error code is read.
+      if (failed === undefined || failed.compile === null) {
+        code = 2;
+        break;
+      }
     }
     code = 1;
     break;
@@ -4226,7 +4334,7 @@ export async function runProfile(command: ProfileCommand, io: Io, version: strin
 }
 ```
 
-`main.ts`: after `parseCommand`, for `command.kind === 'profile'` run `checkOut` once per output path against the input refs, `requireCore(version)`, then `const { runProfile } = await import('./profile.js'); return await runProfile(command, io, version);`. The bin already calls `process.exit(code)`, so an open handle in user code, or the hung operation of a timeout, cannot keep it alive. `cli-error.ts`: the `ExitCode` TSDoc reads "1: the graph is invalid, or the app failed to start."
+`main.ts`: after `parseCommand`, for `command.kind === 'profile'` run `checkOut` once per output path against the input refs, `requireCore(version)`, then `const { runProfile } = await import('./profile.js'); return await runProfile(command, io, version);`. The bin already calls `process.exit(code)`, so an open handle in user code, or the hung operation of a timeout, cannot keep it alive. `cli-error.ts`: the `ExitCode` TSDoc reads "1: the graph is invalid, or the app failed to start after it compiled."
 
 `emit` falls back to stdout only for a null path, which `writeOutputs` never passes.
 
@@ -4641,7 +4749,7 @@ Interfaces:
 3. `critical-path`: `criticalPath(report, 0)?.path.map((p) => p.token)` with a claim on the token list.
 4. `download`: the Blob download of `JSON.stringify(toChromeTrace(report))`, in a fence marked to type-check only, as the guide shows for browser-only code.
 
-- [ ] Step 3: The page. Frontmatter `kind: question`, title "How do I find out what slows or stalls startup?", a `requires` line naming `introspection`. Sections in Context, Concept, Detail order (spec 12): what the reader can't see today; `profile()` in an app (region 1); reading the table (sync, await, finish, own, queued; levels as barriers; the critical path and barrier waits, region 3), with any output that shows times taken from region output or the page console only; `nexusdi profile` from the terminal with the spec 9.2 commands; opening the Chrome file (DevTools, Performance, Load profile, Show custom tracks) and the Perfetto file (ui.perfetto.dev); `--cpu`; live mode on Chromium 134 and later; the warning that `--repeat` builds every provider again, side effects included; a stalled startup (region 2 and `--timeout`). End with the next step: `/trace-events/`. Add `profiling` to `_meta.ts` in the Guides band after `graph-cli`.
+- [ ] Step 3: The page. Frontmatter `kind: question`, title "How do I find out what slows or stalls startup?", a `requires` line naming `introspection`. Sections in Context, Concept, Detail order (spec 12): what the reader can't see today; `profile()` in an app (region 1); reading the table (sync, await, finish, own, queued; levels as barriers; the critical path and barrier waits, region 3), with any output that shows times taken from region output or the page console only; `nexusdi profile` from the terminal with the spec 9.2 commands; opening the Chrome file (DevTools, Performance, Load profile, Show custom tracks) and the Perfetto file (ui.perfetto.dev); `--cpu`; live mode on Chromium 134 and later; the warning that `--repeat` builds every provider again, side effects included; a stalled startup (region 2 and `--timeout`); live mode draws a run once it settles, so a stalled startup reads through `report()` and `toChromeTrace`; and a reference H2 for `nexusdi profile` with the spec 9.1 synopsis, every flag and the spec 9.5 exit-code table (tech lead ruling 1; check them against `OPTIONS` in `libs/cli/src/args.ts`). End with the next step: `/trace-events/`. Add `profiling` to `_meta.ts` in the Guides band after `graph-cli`.
 
 - [ ] Step 4: Run the docs checks
 
@@ -4659,15 +4767,19 @@ Files:
 
 - [ ] Step 1: The regions. `trace-events.md` holds spec 13's third-party profiler as region `third-party` (with `downloadCharts` and `relay` implemented by stubs in the test, and the claim `probe.rows().map((b) => b.token); // -> ['NavCharts', 'SubspaceLink']` ordered by own time, made deterministic with a factory that awaits a 20 ms timer), and a region `order` that records the events of a create with one async factory and pins `events.map((e) => e.type); // -> ['compile', 'construct:await', 'construct', 'run']`.
 
-- [ ] Step 2: The page, `kind: contract`, title "What the trace events promise", in the Guides band after `profiling`. It holds spec 12's eleven items, in that order: every core event with every field, its type, its tier and what it measures (spec 3.2's table, extended to the rc.0 events); the clock and its mapping to Chrome µs and to an OpenTelemetry start through `performance.timeOrigin`; the contract text of spec 5.1 and the guidance under it, verbatim; the order guarantees of 3.4; what `level` indexes per run kind and that levels are barriers; `parent` and nesting; the step derivation of 7.2; where the graph comes from (`context.blueprint().edges` in `setup`); the third-party region; how devtools draws the Chrome file, with the warning that the layout is Chrome's undocumented format and a link to `libs/devtools/src/profile/trace-engine.trace.ts`; namespacing a package's own events and `PluginContext.emit`. Check every field against `libs/core/src/runtime/trace.ts` after Task 7.
+- [ ] Step 2: The page, `kind: contract`, title "What the trace events promise", in the Guides band after `profiling`. It holds spec 12's eleven items, in that order: every core event with every field, its type, its tier and what it measures (spec 3.2's table, extended to the rc.0 events); the clock and its mapping to Chrome µs and to an OpenTelemetry start through `performance.timeOrigin`; the contract text of spec 5.1 and the guidance under it, verbatim; the order guarantees of 3.4; what `level` indexes per run kind and that levels are barriers; `parent` and nesting; the step derivation of 7.2; where the graph comes from (`context.blueprint().edges` in `setup`, and `EdgeView.ordersBuild` and `ProviderView.inline`, which a critical path reads); the third-party region; how devtools draws the Chrome file, with the warning that the layout is Chrome's undocumented format and a link to `libs/devtools/src/profile/trace-engine.trace.ts`; namespacing a package's own events and `PluginContext.emit`. Check every field against `libs/core/src/runtime/trace.ts` after Task 7.
 
 - [ ] Step 3: `introspection.mdx`: add one paragraph to the trace section: events carry `startMs` and a run id, and `/profiling/` shows how to read them.
 
 - [ ] Step 4: Run the docs checks of Task 20, Step 4, dispatch `docs-reviewer` on both pages, and commit with `docs(docs): document the trace event contract`.
 
-### Task 22: reference entries for `nexusdi profile` and the devtools exports (blocked)
+### Task 22: reference entries for the devtools exports
 
-This task waits for the ruling named under "Rulings needed before a task starts". Spec 12's `/api-cli/` and `/api-devtools/` do not exist. Once the architect and tech lead rule where the entries go, write one H2 per new devtools export (`profile`, `profileStartup`, `profileTable`, `criticalPath`, `toChromeTrace`, `toPerfettoTrace`, `parseProfileReport`, and the exported types) and one H2 for `nexusdi profile` with its flags and the exit-code table of spec 9.5, each with a `signature` fence and a cited region, then run the checks of Task 20, Step 4. Commit with `docs(docs): add the profiler reference`.
+Tech lead ruling 1 placed them. `nexusdi profile` is documented on `/profiling/` (Task 20); there is no `/api-cli/`.
+
+- [ ] Step 1: Check whether `apps/docs/content/api-devtools.mdx` exists on the current `origin/release/0.4`.
+- [ ] Step 2: If it exists, add one H2 per new export (`profile`, `profileStartup`, `profileTable`, `criticalPath`, `toChromeTrace`, `toPerfettoTrace`, `parseProfileReport`, and the exported types), each with the `<!-- reference @nexusdi/devtools#<name> -->` directive and a cited region in `examples/meridian/src/pages/api-devtools.md`. If it is absent, create it as docs spec page 38: `kind: reference`, title `@nexusdi/devtools`, one H2 per export of `@nexusdi/devtools`, the existing ones (`devtools`, `graph`, `inspect`, `trace`, `toDot`, `toMermaid`, `parseGraph`) included, each with the directive and an executed region (reference pages need one per callable export), and an `api-devtools` entry in `_meta.ts` after `api-errors`. Reuse the regions `/introspection/` and `/graph-cli/` already cite where they fit.
+- [ ] Step 3: Run the checks of Task 20, Step 4, including `doc-reference`, dispatch `docs-reviewer`, and commit with `docs(docs): add the devtools reference`.
 
 ### Task 23: the whole branch
 
@@ -4680,7 +4792,7 @@ Expected: PASS; every K14 case `pass`.
 
 - [ ] Step 3: An independent opus reviewer reviews the whole branch against the spec and this plan's Review Focus. Fix rounds until it is satisfied.
 
-- [ ] Step 4: Push and open the pull request against `release/0.4`. The body carries: a `## Size` section with core's measured growth over rc.1 and the `devtools` and `devtools+profile` figures; the owner gates of this plan with their state; the behaviour notes (`init` for on-demand singletons; the compile-failure change; `run`, `construct:await` and `init:await` events in every trace, which changes any test that asserts a full event list); and the plan choices the tech lead ruled on.
+- [ ] Step 4: Push and open the pull request against `release/0.4`. The body carries: a `## Size` section with core's measured growth over rc.1 and the `devtools` and `devtools+profile` figures; the owner gates of this plan with their state; the behaviour notes (`init` for on-demand singletons; the compile-failure change); a "Trace changes for observers" section listing the new events (`run` closing every `create`, `load`, `createScope` and `extend()`; `construct:await` and `init:await` in async startups; `init` for `eager: false` singletons with `onInit`; `construct:failed` and `init:failed`), the two view fields `EdgeView.ordersBuild` and `ProviderView.inline`, and the advice to filter by `event.type` and assert subsequences, never a full event list; and the tech lead rulings of 2026-10-14. Put the same "Trace changes for observers" line in the release notes of the next rc.
 
 ---
 
@@ -4688,4 +4800,5 @@ Expected: PASS; every K14 case `pass`.
 
 - Spec coverage: 3.1 and 3.2 (Tasks 1, 2, 4, 5, 6), 3.3 (Tasks 2, 4), 3.4 (Tasks 2, 7), 3.5 (Tasks 2, 3, 5, 6), 3.6 (Tasks 4, 5), 4 and 11.1 (Tasks 4, 7, 23), 5.1 to 5.3 (Task 7), 6.1 to 6.6 (Tasks 8, 10, 11), 6.7 (Task 20), 7.1 to 7.5 (Tasks 9, 11, 12, 16), 8 (Task 18), 9 (Tasks 15 to 18), 10.1 (Task 13), 10.2 (Task 19), 10.3 (Tasks 1 to 18), 11.2 (Task 14), 12 (Tasks 2, 8, 10, 20, 21, 22), 13 (Tasks 7, 21), 15 (file map).
 - Not in this plan: spec 14's amendments to the core, graph CLI and docs specs. Those specs live on `benchmarks-launch-work` and `spec/package-owned-errors`; amend them in the same pull request as Task 23 only if they are on `release/0.4` by then, else note the amendments in the pull request body.
-- Plan choice 9: `ProfileReport.reportedMs` and `graph.root` are additions to spec 6.2 (Task 8). A pending span needs an end, and the Chrome frame URL names the root module; the report held neither.
+- Plan choice 9: `ProfileReport.reportedMs` and `graph.root` are now in spec 6.2 (tech lead ruling 2).
+- Spec 3.7 (view fields) is Task 7, Step 5.

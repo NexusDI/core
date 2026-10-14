@@ -1,6 +1,7 @@
 # Startup profiler (`profile()` and `nexusdi profile`)
 
-Status: draft, 2026-10-01. The architect's proposal with the tech lead's rulings applied.
+Status: draft, 2026-10-01. The architect's proposal with the tech lead's rulings applied,
+and the tech lead's rulings of 2026-10-14 (listed in the plan) applied on 2026-10-14.
 The owner decisions in section 17 are open.
 Branch: `spec/startup-profiler`, cut from `origin/release/0.4` at 0.4.0-rc.0 and rebased onto
 0.4.0-rc.1 (published 2026-10-08).
@@ -143,7 +144,11 @@ do not change.
 +    module: string;
 +    lifetime: Lifetime | null;
 +    scope: string | null;
-+    /** Whether the factory returned a thenable that then rejected. */
++    /**
++     * Whether the constructor or factory returned a thenable. The failure came after it:
++     * the thenable rejected, an on-demand build refused it (NEXUS_LAZY_ASYNC), or options
++     * validation or a construct hook threw.
++     */
 +    async: boolean;
 +    run: number | null;
 +    level: number | null;
@@ -181,6 +186,7 @@ do not change.
 +    providerId: string;
 +    run: number | null;
 +    level: number | null;
++    /** Whether onInit returned a thenable: it rejected, or an on-demand build refused it (NEXUS_LAZY_ASYNC). */
 +    async: boolean;
 +    startMs: number;
 +    durationMs: number;
@@ -229,7 +235,7 @@ browser. The tier column refers to section 5.2.
 | `syncMs`     | `construct`, `construct:await`, `init`, `init:await`                    | From the call until it returned. Nested builds and property injection run inside it.                                                                                                                                                      | stable                                       |
 | `awaitMs`    | `construct`, `init`                                                     | From that return until the returned promise settled. `null` when no thenable came back.                                                                                                                                                   | stable                                       |
 | `finishMs`   | `construct`                                                             | From the build resuming until the instance was stored. Today that covers options validation and `construct` hooks.                                                                                                                        | field stable; the work it covers evolving    |
-| `async`      | `construct`, `construct:failed`, `init`, `init:failed`                  | `construct`: as rc.0. `construct:failed`: the factory returned a thenable that rejected. `init`: `onInit` returned a thenable. `init:failed`: the thenable rejected.                                                                      | stable                                       |
+| `async`      | `construct`, `construct:failed`, `init`, `init:failed`                  | The call returned a thenable, on all four events. `construct`: as rc.0. `construct:failed`: the factory returned one, and then it rejected, an on-demand build refused it (`NEXUS_LAZY_ASYNC`), or a later step threw. `init:failed`: `onInit` returned one that rejected or that an on-demand build refused. | stable                                       |
 
 Derived values every consumer can compute, and that devtools uses:
 
@@ -243,6 +249,12 @@ Derived values every consumer can compute, and that devtools uses:
 
 `RootState` gains `nextRun`, starting at 0. `Run` (`libs/core/src/runtime/state.ts`) gains
 `id`. Scopes draw ids from the root's counter. `Nexus.check` takes no id.
+
+Every call of `load`, `createScope` and `extend()` is a run, a call that does no work
+included. A `load()` of a module the root already imports emits `run` with `ok: true` and no
+`compile`. A `load()` that throws `NEXUS_INVALID_MODULE` before it compiles emits `run` with
+`ok: false` and no `compile`. An `extend()` whose target is the pinned blueprint emits `run`
+with `ok: true` and no builds.
 
 A build gets its run this way:
 
@@ -312,6 +324,10 @@ The operation's own error always reaches the caller.
   observer's throw. Those errors have no list to hold it.
 - On success paths nothing changes: an observer's throw reaches the caller as core spec
   3.10.5 states.
+- On an on-demand build outside any run (a `get()` after startup), core drops the
+  observer's throw on `construct:failed` and `init:failed`, and `get()` throws its own
+  error. No run holds a list for it. If the owner rejects item (b) 2, this case follows the
+  owner's rule for compile failures.
 
 This changes rc.0 behaviour on compile failure. See owner item (b) 2.
 
@@ -325,6 +341,46 @@ This changes rc.0 behaviour on compile failure. See owner item (b) 2.
 - Every new event and field is built inside the `make` closure.
 - `traceConstruct` builds `construct` and `construct:failed` from one shape.
 - No `input.clock` on `compile()`, no `Tracer.on` getter, no change to `SITE_CONDITIONS`.
+
+### 3.7 Two view fields for build order
+
+The critical path (section 7.2) and the Perfetto flow arrows (7.4) need two facts that only
+core's level algorithm knows: which edges order a build, and which providers have no level
+of their own. A copy of that rule in devtools breaks P4, and a compare on `edge.kind` or
+`lifetime` in devtools reads core's vocabulary by string (P1). Core states both facts on the
+view, a contribution point P3 names and core spec 3.10.2 classes as an addition:
+
+```diff
+ export interface EdgeView {
+   readonly from: string;
+   readonly to: string;
+   readonly kind: 'required' | 'optional' | 'lazy' | 'all' | 'alias';
++  /** True when core builds the target before the dependent: every kind but lazy today. Cycles count these edges only. */
++  readonly ordersBuild: boolean;
+   readonly written: AnyToken;
+ }
+
+ export interface ProviderView {
+   ...
++  /**
++   * True when the provider has no build level of its own: a transient, which each dependent
++   * builds inside its own build, or an alias, which resolves to its target. Core counts an
++   * inline provider's ordering edges as its dependents' edges.
++   */
++  readonly inline: boolean;
+ }
+```
+
+Core computes both from two internal helpers in `libs/core/src/blueprint/`:
+`ordersBuild(kind)`, which compile pass 4 (`compile.ts`, today `kind !== 'lazy'`) calls,
+and `isInline(record)`, which `levels.ts` calls in `levelFunction` and `collectReached`
+(today two copies of `lifetime === 'transient' || kind === 'alias'`). `buildView` and
+`providerView` call the same helpers, so the view and the algorithm cannot drift. Neither
+helper is exported from `@nexusdi/core`. The fields cost a few bytes inside view
+construction, which runs only when a plugin asks for a view.
+
+`ProfileReport.graph` copies both fields (section 6.2), so a report re-rendered later, by
+another devtools version, keeps the rule of the core that recorded it.
 
 ## 4. K14 and core bytes
 
@@ -506,20 +562,28 @@ export interface ProfileReport {
   readonly version: 1;
   /** performance.timeOrigin of the realm that recorded it. */
   readonly timeOrigin: number;
+  /** performance.now() when report() ran; a pending span ends here. */
+  readonly reportedMs: number;
   readonly runs: readonly ProfileRun[];
   /** From context.blueprint() at report time; null when no create reached setup. */
   readonly graph: {
+    /** The root module's name, looked up in view.modules by BlueprintView.root. */
+    readonly root: string;
     readonly providers: readonly {
       readonly id: string;
       readonly token: string;
       readonly module: string;
       readonly lifetime: string | null;
       readonly kind: string;
+      /** ProviderView.inline (section 3.7). */
+      readonly inline: boolean;
     }[];
     readonly edges: readonly {
       readonly from: string;
       readonly to: string;
       readonly kind: string;
+      /** EdgeView.ordersBuild (section 3.7). */
+      readonly ordersBuild: boolean;
     }[];
   } | null;
   readonly dropped: number;
@@ -617,8 +681,12 @@ The profiler object is the plugin, as `devtools()` is. Name `nexus:profile`. Hoo
 `context.blueprint()`.
 
 No hook of the profiler throws. Events carry no container identity, so the profiler
-detects reuse by a second `compile` event with `phase: 'create'`. It then stops recording,
-and `report()` throws `NEXUS_DEVTOOLS_PROFILE_REUSED`. A throw from `setup` would fail the
+detects reuse by a second `compile` event with `phase: 'create'`, a `compile` for a run that
+already closed, or a second `run` event for a closed id. The last case catches a second
+`create` that failed before its compile. It then stops recording, and `report()` throws
+`NEXUS_DEVTOOLS_PROFILE_REUSED`. A `construct`, `init` or `:await` event for a closed run
+(an async build that settles after its run failed) is ignored: it is not reuse, and the
+profiler does not append it. A throw from `setup` would fail the
 user's `create`, and would miss a reuse after a failed `create`, where no `setup` ran.
 
 `observe` branches on `event.type` with a `switch` and a `default` branch that ignores
@@ -647,8 +715,11 @@ a server that leaves the profiler on does not grow without bound.
 
 ### 6.5 Live mode
 
-`profile({ live: true })` draws the spans of section 7.3 as events arrive, so a Performance
-recording of a page shows the NexusDI track group with no file step.
+`profile({ live: true })` draws the spans of section 7.3 for a run when its `run` event
+arrives, so a Performance recording of a page shows the NexusDI track group with no file
+step. The barrier-path colour is known only at the run's end, and `console.timeStamp` takes
+explicit start and end times, so each span keeps its recorded start and end. A run that never
+settles draws nothing live; `report()` and `toChromeTrace` cover a stalled startup.
 
 - One sink: `console.timeStamp(label, start, end, track, trackGroup, color)`.
 - Detection runs once, at `profile()`: the `Chromium` entry of
@@ -810,8 +881,9 @@ Critical path, per run, from `construct` events with a level plus the report's g
 2. Barrier path: per level, the provider with the latest `end`. Its store releases the next
    level, so this chain is the build step's length.
 3. For each barrier-path member, `depends` is true when it reaches the previous member
-   through strong edges (`required`, `optional`, `all`, `alias`; `lazy` excluded), passing
-   through transient and alias nodes. Otherwise the line says "barrier".
+   through edges with `ordersBuild`, passing through providers with `inline` (section 3.7).
+   Otherwise the line says "barrier". devtools reads both fields from the report's graph and
+   compares no edge kind or lifetime.
 4. Barrier wait of `p`: `startMs(p) - max end(d)` over its strong deps `d` built in the same
    run, or the build step's start when it has none. The table lists the largest.
 5. Dependency bound: `f(p) = max f(d) + own(p)` over the same deps, in level order. The
@@ -858,7 +930,8 @@ Layout copied from the research lab's verified `synth-ut2.json` and `combined.js
 - One `TracingStartedInBrowser` instant on pid 2, with
   `cat: "disabled-by-default-devtools.timeline"`, `ts` 1 ms before the first event, and
   one frame in `args.data.frames[0]`: `frame: "F1"`, `isInPrimaryMainFrame: true`,
-  `isOutermostMainFrame: true`, `processId: 1`, `url: "nexusdi://profile/<root module>"`.
+  `isOutermostMainFrame: true`, `processId: 1`, `url: "nexusdi://profile/<graph.root>"`, or
+  `"nexusdi://profile"` when the report has no graph (a create that never reached `setup`).
   Without it DevTools draws one collapsed process row.
 - Each span is a `b`/`e` pair, `cat: "blink.user_timing"`, unique hex `id2.local`, and
   `args.detail` holding the JSON string
@@ -895,8 +968,8 @@ Plain Trace Event Format:
   `thread_sort_index = level × 10000 + order`. A provider slice spans `[startMs, startMs + durationMs]`, with `sync`, `await` and
   `finish` children as in 7.3. Its `onInit` is a later slice on the same tid. Perfetto
   requires slices on one tid to nest, so concurrent providers each get a tid.
-- Flow arrows: v1 `s`/`f` events with `bp: "e"`, one pair per strong edge between two
-  providers built in the run. `s` sits 1 µs before the dependency's end on its tid, `f`
+- Flow arrows: v1 `s`/`f` events with `bp: "e"`, one pair per edge with `ordersBuild`
+  between two providers built in the run. `s` sits 1 µs before the dependency's end on its tid, `f`
   1 µs after the dependent's start on its tid. Name `dep`, or `critical` for barrier-path
   edges. v1, because a provider with several dependents needs several flows, and a v2
   `bind_id` slice carries one.
@@ -1043,12 +1116,15 @@ The graph command's four codes:
 | Code | Meaning                                                                                                                                                                                                                                                |
 | ---- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
 | 0    | The app started, every `load` succeeded, and the outputs were written. A missing CPU anchor or clock drift warns and keeps 0.                                                                                                                          |
-| 1    | The app failed to start: `create` or a `load` threw (a `BlueprintError` included), or `--timeout` fired. The table and the requested files are still written with what was recorded, and the error text goes to stderr.                                |
-| 2    | The invocation or input is wrong: as graph, plus `--cpu` without `--chrome`; `--load`, `--plugins`, `--repeat` or `--cpu` with a `.json` entry; a `.json` file that `parseProfileReport` rejects (the CLI prints `<file>: ` before devtools' message). |
+| 1    | The app failed to start: `create` or a `load` threw after it compiled (a `BlueprintError` included), or `--timeout` fired. The table and the requested files are still written with what was recorded, and the error text goes to stderr.             |
+| 2    | The invocation or input is wrong: as graph, plus `--cpu` without `--chrome`; `--load`, `--plugins`, `--repeat` or `--cpu` with a `.json` entry; a `.json` file that `parseProfileReport` rejects (the CLI prints `<file>: ` before devtools' message); a `create` or `load` that threw before it compiled, such as `NEXUS_INVALID_MODULE` or `NEXUS_PLUGIN_INVALID`. |
 | 3    | The environment lacks something: as graph.                                                                                                                                                                                                             |
 
 Code 1 widens graph's "invalid graph" to "the app failed to start". An invalid graph is one
-way an app fails to start, so each code keeps its family. Every stderr message starts with
+way an app fails to start, so each code keeps its family. The CLI tells the two failures
+apart from the profiler's data: the failed run has no `compile` in the report, or the report
+has no run at all. It reads no error code, so it holds no list of core's codes (P1). graph
+exits 2 for the same input errors. Every stderr message starts with
 `nexusdi:`, and codes 2 and 3 end with the fixing command, as in graph.
 
 ## 10. Golden-file test of the Chrome layout
@@ -1066,7 +1142,8 @@ The test asserts on DevTools' parsed model. No pixel comparison.
   0.0.65).
 - Fixtures in `libs/devtools/test-fixtures/profile/`: a hand-written `ProfileReport` for
   Meridian (14 providers, async `NAV_CHARTS`, one `load`), a failed-run variant, a partial
-  report with one pending build, and a 20-sample `.cpuprofile` cut from the lab's
+  report with one pending build and `graph: null` (a hung create never reaches `setup`; the
+  test checks the fallback frame URL and that no span carries the critical-path colour), and a 20-sample `.cpuprofile` cut from the lab's
   `node.cpuprofile`.
 - Assertions:
   1. `data.Meta.mainFrameId === 'F1'`. A file without `TracingStartedInBrowser` returns
@@ -1145,15 +1222,18 @@ The size report replaces each estimate when the work merges.
 
 ## 12. Docs pages
 
-Under docs spec 4.3, where each feature's spec adds its own pages. The inventory goes from
-41 to 44 pages.
+Under docs spec 4.3, where each feature's spec adds its own pages. This spec adds two pages,
+`/profiling/` and `/trace-events/`, so the inventory goes from 41 to 43. `@nexusdi/cli` gets
+no reference page: the reference loader builds a page from TSDoc, and a CLI has no
+TypeScript export. `nexusdi profile`'s flags and exit codes go on `/profiling/` under their
+own H2, as `/graph-cli/` documents `nexusdi graph`, and the CLI README keeps the full options
+table.
 
 | Path              | Kind        | Band     | Content                                                                                                                                                                                                                                                                                                                                                       |
 | ----------------- | ----------- | -------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `/profiling/`     | `question`  | Guides   | "How do I find out what slows or stalls startup?": `profile()` in an app, `nexusdi profile`, reading the table, barrier waits and the critical path, opening the Chrome and Perfetto files, `--cpu`, live mode, the warning that `--repeat` builds every provider again, and a stalled startup (`report().runs[n].pending` in an app, `--timeout` in the CLI) |
+| `/profiling/`     | `question`  | Guides   | "How do I find out what slows or stalls startup?": `profile()` in an app, `nexusdi profile`, reading the table, barrier waits and the critical path, opening the Chrome and Perfetto files, `--cpu`, live mode, the warning that `--repeat` builds every provider again, and a stalled startup (`report().runs[n].pending` in an app, `--timeout` in the CLI), and an H2 for `nexusdi profile` with its synopsis, flags and the exit codes of 9.5 |
 | `/trace-events/`  | `contract`  | Guides   | the catalogue below                                                                                                                                                                                                                                                                                                                                           |
-| `/api-cli/`       | `reference` | API      | `@nexusdi/cli`: one H2 per command, `graph` and `profile`, with flags and exit codes                                                                                                                                                                                                                                                                          |
-| `/api-devtools/`  | `reference` | API      | existing page; one H2 per new export                                                                                                                                                                                                                                                                                                                          |
+| `/api-devtools/`  | `reference` | API      | docs spec page 38, planned within the RC window and absent on `release/0.4` today; one H2 per new export. If the page is still absent when the profiler's reference task runs, that task creates it with one H2 per export of `@nexusdi/devtools`, existing ones included, after `/api-errors/`                                                               |
 | `/introspection/` | `concept`   | Concepts | existing page; one paragraph in the trace section: events carry `startMs`, link to `/profiling/`                                                                                                                                                                                                                                                              |
 
 `/trace-events/` holds:
@@ -1168,7 +1248,8 @@ Under docs spec 4.3, where each feature's spec adds its own pages. The inventory
 6. `parent` and nesting.
 7. The step derivation of 7.2.
 8. Where the graph comes from: `context.blueprint().edges` in `setup`, available after a
-   `create` succeeded.
+   `create` succeeded, and the two view fields of 3.7 (`EdgeView.ordersBuild`,
+   `ProviderView.inline`) that a critical path reads.
 9. The doctested third-party profiler of section 13.
 10. How `@nexusdi/devtools` draws the Chrome file (7.3), with the warning that the layout is
     Chrome's undocumented format and a link to the golden test.
@@ -1186,6 +1267,7 @@ Everything `profile()` uses is public API of `@nexusdi/core`:
 | the events and their fields                           | `TraceEvent`, `TraceEventByType`, `RunKind`        |
 | the `observe` and `setup` hooks, `name`, `apiVersion` | `NexusPlugin`, `NEXUS_PLUGIN_API`                  |
 | the dependency graph for the critical path            | `PluginContext.blueprint()` (`edges`, `providers`) |
+| which edges order a build, which providers are inline | `EdgeView.ordersBuild`, `ProviderView.inline` (3.7) |
 | `profileStartup`'s run                                | `Nexus.create`, `load`, `Symbol.asyncDispose`      |
 
 devtools reaches core through `@nexusdi/core` only, which the `package-imports` repo-check
@@ -1267,7 +1349,8 @@ for (const b of probe.rows())
 - Core spec 3.10.2: untouched. No version raise.
 - Extension principle 2.5.11: unchanged. P1's wording waits on owner item (c) 1.
 - Graph CLI spec section 3: a second command in the same bin.
-- Docs spec 4.3: three pages, inventory 44.
+- Docs spec 4.3: two pages, `/profiling/` and `/trace-events/`, inventory 43. `/api-devtools/`
+  stays docs spec page 38.
 - Benchmarks spec 14.6: unchanged. No new site condition.
 
 ## 15. Files
@@ -1279,7 +1362,9 @@ collecting emit), `build.ts` (`Built` fields, `traceConstruct` with `failed`,
 `init:await`, `init:failed`), `scope.ts`, `load.ts`, `nexus.ts` (the create run),
 `compile-traced.ts` (`run`, `startMs`, the dropped observer throw on failure),
 `shutdown.ts` (`startMs`), `state.ts` (`nextRun`, `Run.id`), `trace.test-d.ts`; `index.ts`
-exports `RunKind`.
+exports `RunKind`. Core (`libs/core/src/blueprint/`): `views.ts` (`EdgeView.ordersBuild`,
+`ProviderView.inline`), `levels.ts` (`isInline`), `compile.ts` (pass 4 calls `ordersBuild`),
+and the module that holds the two helpers.
 
 devtools: `src/profile/{profile,live,report,steps,table,critical-path,chrome,perfetto,parse,startup}.ts`,
 `src/devtools-error.ts` (two codes), `src/index.ts`, `src/plugin-api-1.test-d.ts`,
@@ -1335,6 +1420,15 @@ root `package.json` (`@paulirish/trace_engine`, exact pin).
   `get()`, and a timing object would be one allocation per provider in every create,
   plugin or not.
 - Throwing `NEXUS_DEVTOOLS_PROFILE_REUSED` from `setup` (section 6.3).
+- Two predicate exports on `@nexusdi/core`'s main entry, `ordersBuild(kind)` and
+  `passesThrough(provider)`, for the facts of 3.7. Each would be a permanent top-level name
+  on `/api/` that no application calls, and each needs an executed region there. A report
+  re-rendered by a newer devtools would apply that devtools' copy of core's rule to an
+  older core's graph. View fields reach every plugin through the view it already reads, and
+  the report records them.
+- An `isTraceEvent(event, type)` guard exported by core, so devtools never compares
+  `event.type`. It swaps the compiler-checked `switch` every documented observer uses for a
+  call per branch. It stays the fallback if the owner rejects item (c) 1.
 - `-f`/`-o` for `profile`, as graph uses. One run writes several files, and one `--out`
   cannot express that.
 - Pixel comparison of DevTools screenshots, and Playwright's pinned Chromium for layer 2.
