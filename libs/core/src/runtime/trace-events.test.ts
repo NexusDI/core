@@ -1021,3 +1021,194 @@ describe('construct:failed', () => {
     expect(log).toEqual(['built', 'init', 'disposed']);
   });
 });
+
+describe('init', () => {
+  it('reports run, level and the sync and await split', async () => {
+    const { events, plugin } = recordEvents();
+    class Reactor {
+      onInit() {
+        spin(2);
+      }
+    }
+    class Computer {
+      static deps = [Reactor] as const;
+      constructor(readonly reactor: Reactor) {}
+      async onInit() {
+        await sleep(20);
+      }
+    }
+    await using ship = await Nexus.create([Reactor, Computer], {
+      plugins: [plugin],
+    });
+    void ship;
+    const inits = only(events, 'init');
+    expect(inits.map((e) => [e.token, e.run, e.level, e.async])).toEqual([
+      ['Reactor', 0, 0, false],
+      ['Computer', 0, 1, true],
+    ]);
+    const [reactor, computer] = inits;
+    expect(reactor).toMatchObject({ awaitMs: null });
+    expect(defined(reactor).syncMs).toBeGreaterThanOrEqual(1.5);
+    expect(defined(computer).awaitMs).toBeGreaterThanOrEqual(15);
+    expect(only(events, 'init:await')).toMatchObject([
+      { token: 'Computer', level: 1, run: 0 },
+    ]);
+    const types = events.map((e) => e.type);
+    expect(types.lastIndexOf('construct')).toBeLessThan(types.indexOf('init'));
+  });
+
+  it('reports a throwing and a rejecting onInit with init:failed', async () => {
+    for (const [onInit, isAsync] of [
+      [
+        () => {
+          throw new Error('scram');
+        },
+        false,
+      ],
+      [async () => Promise.reject(new Error('scram')), true],
+    ] as const) {
+      const { events, plugin } = recordEvents();
+      class Reactor {
+        onInit = onInit;
+      }
+      await rejected(Nexus.create([Reactor], { plugins: [plugin] }));
+      expect(only(events, 'init:failed')).toMatchObject([
+        { token: 'Reactor', run: 0, level: 0, async: isAsync },
+      ]);
+      expect(events.at(-1)).toMatchObject({ type: 'run', ok: false });
+    }
+  });
+
+  it('gives a loaded singleton the load run', async () => {
+    const { events, plugin } = recordEvents();
+    await using ship = await Nexus.create(Engineering, { plugins: [plugin] });
+    class Probe {
+      onInit() {}
+    }
+    await ship.load(defineModule({ name: 'Science', providers: [Probe] }));
+    // FusionReactor's own onInit fires in run 0.
+    expect(
+      only(events, 'init').filter((e) => e.token === 'Probe'),
+    ).toMatchObject([{ token: 'Probe', run: 1 }]);
+  });
+  it('fails the onInit when an observer throws on init:await', async () => {
+    const { events, plugin } = recordEvents();
+    const thrown = new Error('telemetry down');
+    const watcher = {
+      name: 'test:watcher',
+      apiVersion: 1,
+      observe(event: TraceEvent) {
+        if (event.type === 'init:await') throw thrown;
+      },
+    };
+    const unhandled: unknown[] = [];
+    const onUnhandled = (reason: unknown) => void unhandled.push(reason);
+    process.on('unhandledRejection', onUnhandled);
+    try {
+      class Reactor {
+        async onInit() {
+          await sleep(1);
+          throw new Error('scram');
+        }
+      }
+      const error = await rejected(
+        Nexus.create([Reactor], { plugins: [plugin, watcher] }),
+      );
+      expect(error).toMatchObject({
+        code: 'NEXUS_PROVIDER_FAILED',
+        cause: thrown,
+      });
+      await sleep(20);
+    } finally {
+      process.off('unhandledRejection', onUnhandled);
+    }
+    expect(only(events, 'init:failed')).toMatchObject([
+      { token: 'Reactor', async: true },
+    ]);
+    expect(unhandled).toEqual([]);
+  });
+});
+
+describe('init from an on-demand build', () => {
+  it('emits construct then init for an eager: false singleton with onInit', async () => {
+    const { events, plugin } = recordEvents();
+    class Sensor {
+      onInit() {}
+    }
+    await using ship = await Nexus.create([provide(Sensor, { eager: false })], {
+      plugins: [plugin],
+    });
+    const before = events.length;
+    ship.get(Sensor);
+    expect(events.slice(before).map((e) => e.type)).toEqual([
+      'construct',
+      'init',
+    ]);
+    expect(only(events, 'init')).toMatchObject([
+      { token: 'Sensor', run: null, level: null, async: false, awaitMs: null },
+    ]);
+  });
+
+  it('emits init:failed for a throwing on-demand onInit', async () => {
+    const { events, plugin } = recordEvents();
+    class Sensor {
+      onInit() {
+        throw new Error('calibration');
+      }
+    }
+    await using ship = await Nexus.create([provide(Sensor, { eager: false })], {
+      plugins: [plugin],
+    });
+    expect(() => ship.get(Sensor)).toThrow();
+    expect(only(events, 'init:failed')).toMatchObject([
+      { token: 'Sensor', async: false },
+    ]);
+  });
+
+  it('emits init:failed with async: true for an on-demand onInit that returns a thenable', async () => {
+    const { events, plugin } = recordEvents();
+    class Sensor {
+      // An onInit that may return a thenable passes the types with
+      // eager: false, and the runtime refuses the thenable it returns.
+      onInit(): void | Promise<void> {
+        return Promise.resolve();
+      }
+    }
+    await using ship = await Nexus.create([provide(Sensor, { eager: false })], {
+      plugins: [plugin],
+    });
+    expect(() => ship.get(Sensor)).toThrow();
+    expect(only(events, 'init:failed')).toMatchObject([
+      { token: 'Sensor', run: null, level: null, async: true },
+    ]);
+  });
+  it('keeps the one instance when an observer throws on its on-demand init event', async () => {
+    const thrown = new Error('telemetry down');
+    let armed = false;
+    const watcher = {
+      name: 'test:watcher',
+      apiVersion: 1,
+      observe(event: TraceEvent) {
+        if (armed && event.type === 'init') throw thrown;
+      },
+    };
+    const log: string[] = [];
+    class Sensor {
+      constructor() {
+        log.push('built');
+      }
+      onInit() {
+        log.push('init');
+      }
+    }
+    await using ship = await Nexus.create([provide(Sensor, { eager: false })], {
+      plugins: [watcher],
+    });
+    armed = true;
+    expect(() => ship.get(Sensor)).toThrow(thrown);
+    armed = false;
+    const sensor = ship.get(Sensor);
+    expect(ship.get(Sensor)).toBe(sensor);
+    expect(log).toEqual(['built', 'init']);
+  });
+});
