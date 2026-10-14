@@ -151,27 +151,42 @@ export function emitCollecting(
   }
 }
 
-/** The `run` event that ends a create, load, createScope or extend(). */
+/**
+ * One create, load, createScope or extend(), as its closing `run` event
+ * reports it. `errors` collects the observer throws of the run's failure
+ * path (spec 3.5).
+ */
+export interface RunTrace {
+  readonly id: number;
+  readonly kind: RunKind;
+  /** null at the root, and for a createScope until its scope exists. */
+  scope: string | null;
+  /** When the run began, on the tracer's clock. */
+  readonly start: number;
+  errors: unknown[] | undefined;
+}
+
+/**
+ * The `run` event that ends a create, load, createScope or extend(). With
+ * `errors` the run failed, and an observer's throw joins that list; a
+ * failure with no list to hold it passes `[]`, which drops the throw.
+ */
 export function emitRun(
   tracer: Tracer,
-  run: number,
-  kind: RunKind,
-  scope: string | null,
-  start: number,
-  ok: boolean,
+  run: RunTrace,
   errors?: unknown[],
 ): void {
   const make = (): TraceEvent => ({
     type: 'run',
-    run,
-    kind,
-    scope,
-    ok,
-    startMs: start,
-    durationMs: tracer.now() - start,
+    run: run.id,
+    kind: run.kind,
+    scope: run.scope,
+    ok: !errors,
+    startMs: run.start,
+    durationMs: tracer.now() - run.start,
   });
-  if (ok) tracer.emit(make);
-  else emitCollecting(tracer, errors, make);
+  if (errors) emitCollecting(tracer, errors, make);
+  else tracer.emit(make);
 }
 
 /** The callback disposeInReverse calls per disposed instance: one dispose:instance event each. */

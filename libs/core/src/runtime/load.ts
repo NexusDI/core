@@ -6,7 +6,7 @@ import { InvalidModuleError } from '../errors/index.js';
 import { compileTraced } from './compile-traced.js';
 import { startBlueprint, type StartupPlan } from './startup.js';
 import { assertOpen, track, type RootState } from './state.js';
-import { emitRun } from './trace.js';
+import { emitRun, type RunTrace } from './trace.js';
 
 const ignore = (): void => undefined;
 
@@ -17,8 +17,13 @@ const ignore = (): void => undefined;
  */
 async function loadNow(root: RootState, module: unknown): Promise<void> {
   const tracer = root.tracer;
-  const id = root.nextRun++;
-  const start = tracer.now();
+  const trace: RunTrace = {
+    id: root.nextRun++,
+    kind: 'load',
+    scope: null,
+    start: tracer.now(),
+    errors: undefined,
+  };
   let plan: StartupPlan;
   try {
     assertOpen(root);
@@ -41,7 +46,7 @@ async function loadNow(root: RootState, module: unknown): Promise<void> {
       existing !== undefined &&
       current.modules.get(current.root)?.imports.includes(existing)
     ) {
-      emitRun(tracer, id, 'load', null, start, true);
+      emitRun(tracer, trace);
       return;
     }
 
@@ -59,24 +64,22 @@ async function loadNow(root: RootState, module: unknown): Promise<void> {
         previous: current,
       },
       'load',
-      id,
+      trace.id,
     );
     plan = {
       bp: next,
       isNew: (pid) => !current.providers.has(pid),
-      run: id,
-      kind: 'load',
-      start,
+      run: trace,
     };
   } catch (error) {
     // No list holds an observer's throw here (spec 3.5).
-    emitRun(tracer, id, 'load', null, start, false);
+    emitRun(tracer, trace, []);
     throw error;
   }
   // A failed build emits the run's closing event in its rollback.
   await startBlueprint(root, plan);
   root.blueprint = plan.bp;
-  emitRun(tracer, id, 'load', null, start, true);
+  emitRun(tracer, trace);
 }
 
 export function loadModule(root: RootState, module: unknown): Promise<void> {

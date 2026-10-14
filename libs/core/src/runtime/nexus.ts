@@ -25,7 +25,7 @@ import { openScope, type Scope } from './scope.js';
 import { abandonRoot, disposeRoot } from './shutdown.js';
 import { startBlueprint, type StartupPlan } from './startup.js';
 import { assertOpen, createRootState, track, type RootState } from './state.js';
-import { emitRun, Tracer, type TraceSink } from './trace.js';
+import { emitRun, Tracer, type RunTrace, type TraceSink } from './trace.js';
 
 let wrap: (state: RootState) => Nexus;
 
@@ -246,7 +246,7 @@ async function runSetup(
   state: RootState,
   plugins: PluginSet,
   ship: Nexus,
-  runStart: number,
+  trace: RunTrace,
 ): Promise<void> {
   if (HOOK_SITES && plugins.setup.length > 0) {
     const context = pluginContext(state, ship);
@@ -260,11 +260,11 @@ async function runSetup(
       await work;
     } catch (error) {
       if (!(error instanceof SetupFailure)) {
-        emitRun(state.tracer, 0, 'create', null, runStart, false);
+        emitRun(state.tracer, trace, []);
         throw error;
       }
       const disposalErrors = await abandonRoot(state);
-      emitRun(state.tracer, 0, 'create', null, runStart, false, disposalErrors);
+      emitRun(state.tracer, trace, disposalErrors);
       throw pluginFailed(error.plugin, 'setup', error.error, disposalErrors);
     }
     return;
@@ -317,7 +317,13 @@ export async function createContainer(
   let compiled: Blueprint | undefined;
   try {
     const tracer = new Tracer(traceSinks(plugins));
-    const start = tracer.now();
+    const trace: RunTrace = {
+      id: 0,
+      kind: 'create',
+      scope: null,
+      start: tracer.now(),
+      errors: undefined,
+    };
     let module: unknown;
     let blueprint: Blueprint;
     try {
@@ -337,7 +343,7 @@ export async function createContainer(
       );
     } catch (error) {
       // No list holds an observer's throw here (spec 3.5).
-      emitRun(tracer, 0, 'create', null, start, false);
+      emitRun(tracer, trace, []);
       throw error;
     }
     compiled = blueprint;
@@ -354,12 +360,10 @@ export async function createContainer(
     await buildRoot(state, {
       bp: blueprint,
       isNew: () => true,
-      run: 0,
-      kind: 'create',
-      start,
+      run: trace,
     });
-    await runSetup(state, plugins, state.handle, start);
-    emitRun(tracer, 0, 'create', null, start, true);
+    await runSetup(state, plugins, state.handle, trace);
+    emitRun(tracer, trace);
     return state.handle;
   } catch (error) {
     throw formatThrown(
