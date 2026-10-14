@@ -145,6 +145,36 @@ describe('profile', () => {
     expect(tokens).toEqual(expect.arrayContaining(['Gauge', 'Log', 'Console']));
   });
 
+  it('counts an on-demand singleton built after an await as build work, not static', async () => {
+    const profiler = profile();
+    class Gauge {}
+    const CHARTS = new Token<INavCharts>('NavCharts');
+    await using ship = await Nexus.create(
+      [
+        provide(Gauge, { eager: false }),
+        provide(CHARTS, {
+          // After the await the construction stack is empty, so Gauge's
+          // construct has a run but no level and no parent.
+          useFactory: async (gauge: () => Gauge) => {
+            await sleep(1);
+            gauge();
+            return { sectors: 3 };
+          },
+          deps: [lazy(Gauge)],
+        }),
+      ],
+      { plugins: [profiler] },
+    );
+    void ship;
+    const run = defined(profiler.report().runs[0]);
+    expect(run.builds.find((b) => b.token === 'Gauge')).toMatchObject({
+      level: null,
+      parent: null,
+      lifetime: 'singleton',
+    });
+    expect(run.steps.map((s) => s.step)).toEqual(['compile', 'build', 'setup']);
+  });
+
   it('records no on-demand build after startup', async () => {
     const profiler = profile();
     class Gauge {}
