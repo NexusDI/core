@@ -153,6 +153,8 @@ describe('freshBlock', () => {
     for (const row of rows) {
       expect(row.load).toEqual([2, 3, 4]);
       expect(row.startup).toEqual([8, 12, 16]);
+      // The warm-up samples are kept apart, for the raw file (spec 8.3).
+      expect(row.warmup.map((w) => w.load)).toEqual([0, 1]);
     }
   });
 

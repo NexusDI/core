@@ -386,6 +386,7 @@ export async function runScaleTimings(
               firstResolve: [],
               ready: [],
               startup: [],
+              warmup: [],
             }),
             library: x.lib.id,
             variant: x.variant,
@@ -491,8 +492,9 @@ if (import.meta.main) {
   mkdirSync(join(BENCHMARKS, where, 'raw'), { recursive: true });
   const out = join(BENCHMARKS, where, 'scale', `${name}.json`);
   writeFileSync(out, JSON.stringify(file, null, 2) + '\n');
-  // Every round, warm-up included, so a rerun of the statistics reproduces
-  // each interval from the recorded seed (scale spec 8.3).
+  // Every round: each fresh-process cell keeps its warm-up samples in
+  // `warmup` beside the measured rounds, and each steady entry keeps its own,
+  // so a rerun of the statistics reproduces each interval (scale spec 8.3).
   writeFileSync(
     join(BENCHMARKS, where, 'raw', `scale-${name}.json.gz`),
     gzipSync(
