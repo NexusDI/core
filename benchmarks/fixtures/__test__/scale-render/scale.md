@@ -89,13 +89,13 @@ Absolute medians in ms per phase. NexusDI builds its singletons in `create` and 
 
 ### What `create` does
 
-| library     | `create` does                                                                                                           |
-| ----------- | ----------------------------------------------------------------------------------------------------------------------- |
-| NexusDI     | `await Nexus.create(App)`: compiles the blueprint (all validation passes) and builds every singleton (eager by default) |
-| InversifyJS | `new Container()`, then `load` of every `ContainerModule` (`wide`: one `bind` per provider)                             |
-| tsyringe    | nothing: `@singleton()` classes and `@registry` classes register on the global container at load                        |
-| awilix      | `createContainer({ injectionMode: PROXY, strict: true })` and the `register<Module>` calls                              |
-| needle-di   | `new Container()` and the `register<Module>` calls; `@injectable()` classes bind on first `get`                         |
+| library     | `create` does                                                                                                               |
+| ----------- | --------------------------------------------------------------------------------------------------------------------------- |
+| NexusDI     | `await Nexus.create(App)`: compiles the blueprint, runs every validation pass and builds every singleton (eager by default) |
+| InversifyJS | `new Container()`, then `load` of every `ContainerModule` (`wide`: one `bind` per provider)                                 |
+| tsyringe    | nothing: `@singleton()` classes and `@registry` classes register on the global container at load                            |
+| awilix      | `createContainer({ injectionMode: PROXY, strict: true })` and the `register<Module>` calls                                  |
+| needle-di   | `new Container()` and the `register<Module>` calls; `@injectable()` classes bind on first `get`                             |
 
 ## Local growth exponents
 
@@ -123,9 +123,9 @@ Heap retained after startup with the container referenced, in kB, minus the heap
 
 | library  | 50                            | 200                           | 1,000                          | 5,000                           | per provider |
 | -------- | ----------------------------- | ----------------------------- | ------------------------------ | ------------------------------- | ------------ |
-| NexusDI  | 100.0 kB                      | 400.0 kB                      | 2000.0 kB                      | 10000.0 kB                      | 2048 B       |
-| tsyringe | 100.0 kB<br>0.67 [0.63, 0.70] | 400.0 kB<br>0.71 [0.68, 0.75] | runtime-error<sup>1</sup>      | runtime-error<sup>2</sup>       | -            |
-| awilix   | 100.0 kB<br>1.33 [1.27, 1.40] | 400.0 kB<br>1.43 [1.36, 1.50] | 2000.0 kB<br>1.80 [1.71, 1.89] | 10000.0 kB<br>2.14 [2.04, 2.25] | 2048 B       |
+| NexusDI  | 102.4 kB                      | 409.6 kB                      | 2048.0 kB                      | 10240.0 kB                      | 2048 B       |
+| tsyringe | 102.4 kB<br>0.67 [0.63, 0.70] | 409.6 kB<br>0.71 [0.68, 0.75] | runtime-error<sup>1</sup>      | runtime-error<sup>2</sup>       | -            |
+| awilix   | 102.4 kB<br>1.33 [1.27, 1.40] | 409.6 kB<br>1.43 [1.36, 1.50] | 2048.0 kB<br>1.80 [1.71, 1.89] | 10240.0 kB<br>2.14 [2.04, 2.25] | 2048 B       |
 
 <sup>1</sup> tsyringe at 1,000 providers: runtime-error (RangeError: Maximum call stack size exceeded)  
 <sup>2</sup> tsyringe at 5,000 providers: runtime-error (RangeError: Maximum call stack size exceeded)
@@ -161,9 +161,9 @@ esbuild with `--bundle --minify --format=esm`, library included, then gzip at le
 
 Generated from graph seed 20261001. A graph's hash changes when the generator does.
 
-| shape | size  | hash         | providers | edges  | modules | depth | mean fan-out | max fan-out | max fan-in | kinds                          | target closure |
-| ----- | ----- | ------------ | --------- | ------ | ------- | ----- | ------------ | ----------- | ---------- | ------------------------------ | -------------- |
-| mixed | 50    | h50000000000 | 50        | 100    | 5       | 10    | 1.90         | 4           | 20         | 40 class, 5 factory, 5 value   | 16             |
-| mixed | 200   | h20000000000 | 200       | 400    | 20      | 10    | 1.90         | 4           | 20         | 190 class, 5 factory, 5 value  | 16             |
-| mixed | 1,000 | h10000000000 | 1,000     | 2,000  | 100     | 10    | 1.90         | 4           | 20         | 990 class, 5 factory, 5 value  | 16             |
-| mixed | 5,000 | h50000000000 | 5,000     | 10,000 | 500     | 10    | 1.90         | 4           | 20         | 4990 class, 5 factory, 5 value | 16             |
+| shape | size  | hash         | providers | edges  | modules | depth | mean fan-out | max fan-out | max fan-in | kinds                           | target closure |
+| ----- | ----- | ------------ | --------- | ------ | ------- | ----- | ------------ | ----------- | ---------- | ------------------------------- | -------------- |
+| mixed | 50    | h50000000000 | 50        | 100    | 5       | 10    | 1.90         | 4           | 20         | 40 class, 5 factory, 5 value    | 16             |
+| mixed | 200   | h20000000000 | 200       | 400    | 20      | 10    | 1.90         | 4           | 20         | 190 class, 5 factory, 5 value   | 16             |
+| mixed | 1,000 | h10000000000 | 1,000     | 2,000  | 100     | 10    | 1.90         | 4           | 20         | 990 class, 5 factory, 5 value   | 16             |
+| mixed | 5,000 | h50000000000 | 5,000     | 10,000 | 500     | 10    | 1.90         | 4           | 20         | 4,990 class, 5 factory, 5 value | 16             |

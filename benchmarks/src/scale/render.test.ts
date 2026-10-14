@@ -93,6 +93,38 @@ describe('renderAll', () => {
       expect(text).not.toMatch(/\bnative\b/i);
     }
   });
+  it('divides bytes by 1,000 for kB', () => {
+    // 50 providers retain 102,400 bytes in the fixture.
+    expect(out.files['scale.md']).toContain('102.4 kB');
+  });
+  it('digit-groups the kinds column of the graphs table', () => {
+    const scale = fixtureScale();
+    const g = scale.graphs[3];
+    if (g) g.kinds = { ...g.kinds, class: 4990 };
+    expect(renderAll({ scale }).files['scale.md']).toContain('4,990 class');
+  });
+  it('states how to read the ratio in the README caption', () => {
+    expect(out.readmeSection).toContain(
+      "The second line is NexusDI's startup divided by the library's, with its 95% interval; above 1 means NexusDI takes longer.",
+    );
+  });
+  it('omits growth tables that have no data columns on a partial run', () => {
+    const t = fixtureTimings();
+    t.graphs = t.graphs.filter((g) => g.size === 50);
+    t.cells = t.cells.filter((c) => c.size === 50);
+    t.results = t.results.filter((r) => r.size === 50);
+    t.growth = [];
+    t.marginal = [];
+    const md =
+      renderAll({ scale: fixtureScale(), timings: t }).files['scale.md'] ?? '';
+    expect(md).not.toContain('Local growth exponents');
+    expect(md).toContain('## Startup, mixed');
+  });
+  it('words the NexusDI create row as running every validation pass', () => {
+    const md = out.files['scale.md'] ?? '';
+    expect(md).toContain('runs every validation pass');
+    expect(md).not.toContain('all validation passes');
+  });
   it('is deterministic', () => {
     expect(renderAll(input())).toEqual(out);
   });
@@ -119,6 +151,46 @@ describe('problems', () => {
       /awilix.*mixed 200.*runtime-error.*scale\.json.*pass/s,
     );
   });
+});
+
+describe('the newest timing file', () => {
+  it('is the one with the latest startedAt, not the last filename', () => {
+    const dir = mkdtempSync(join(tmpdir(), 'scale-newest-'));
+    try {
+      mkdirSync(join(dir, 'scale'), { recursive: true });
+      writeFileSync(join(dir, 'scale.json'), JSON.stringify(fixtureScale()));
+      // Same day; the later run has the earlier filename.
+      const early = {
+        ...fixtureTimings(),
+        sha: 'zzzzzzz',
+        startedAt: '2026-10-14T01:00:00Z',
+      };
+      const late = {
+        ...fixtureTimings(),
+        sha: 'aaaaaaa',
+        startedAt: '2026-10-14T09:00:00Z',
+      };
+      writeFileSync(
+        join(dir, 'scale', '2026-10-14-zzzzzzz.json'),
+        JSON.stringify(early),
+      );
+      writeFileSync(
+        join(dir, 'scale', '2026-10-14-aaaaaaa.json'),
+        JSON.stringify(late),
+      );
+      const r = spawnSync(
+        process.execPath,
+        [join(import.meta.dirname, 'render.ts'), `--results=${dir}`],
+        { encoding: 'utf8' },
+      );
+      expect(r.status).toBe(0);
+      expect(readFileSync(join(dir, 'scale.md'), 'utf8')).toContain(
+        'Timings from run aaaaaaa.',
+      );
+    } finally {
+      rmSync(dir, { recursive: true, force: true });
+    }
+  }, 30_000);
 });
 
 describe('spliceSection', () => {
@@ -164,13 +236,13 @@ describe('render.ts as a command', () => {
     expect(run('--check').stderr).toMatch(/stale: .*scale\.md/);
     expect(run().status).toBe(0);
     expect(run('--check').status).toBe(0);
-  });
+  }, 30_000);
   it('fails --check when a file was edited', () => {
     writeFileSync(join(dir, 'scale.md'), 'edited\n');
     const r = run('--check');
     expect(r.status).toBe(1);
     expect(r.stderr).toMatch(/stale: scale\.md/);
-  });
+  }, 30_000);
   it('fails with both hashes when the inputs disagree', () => {
     const t = fixtureTimings();
     t.graphs[0] = { ...t.graphs[0]!, hash: 'ffffffffffff' };
@@ -182,5 +254,5 @@ describe('render.ts as a command', () => {
     expect(r.status).toBe(1);
     expect(r.stderr).toContain('ffffffffffff');
     expect(r.stderr).toContain(fixtureScale().graphs[0]?.hash);
-  });
+  }, 30_000);
 });

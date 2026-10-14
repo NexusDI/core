@@ -57,12 +57,17 @@ const INFLATE = join(
 const PHASES = ['load', 'create', 'firstGet', 'rest', 'heapReady'] as const;
 
 describe('freshBlock', () => {
-  it('reports every phase, all non-negative, once per measured round', async () => {
+  it('reports every phase once per measured round, the timed phases non-negative', async () => {
     const [row] = await freshBlock(cellsOf(['a']), opts);
     expect(row?.library).toBe('a');
     for (const phase of PHASES) {
       expect(row?.[phase]).toHaveLength(3);
-      for (const v of row?.[phase] ?? []) expect(v).toBeGreaterThanOrEqual(0);
+      for (const v of row?.[phase] ?? []) {
+        // heap-ready is a difference of two heap reads; for a six-provider
+        // fake with nothing retained, collection noise can make it negative.
+        if (phase === 'heapReady') expect(Number.isFinite(v)).toBe(true);
+        else expect(v).toBeGreaterThanOrEqual(0);
+      }
     }
   }, 60_000);
 

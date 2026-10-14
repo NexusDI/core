@@ -185,7 +185,7 @@ const CREATE_WORK = table(
   [
     [
       'NexusDI',
-      '`await Nexus.create(App)`: compiles the blueprint (all validation passes) and builds every singleton (eager by default)',
+      '`await Nexus.create(App)`: compiles the blueprint, runs every validation pass and builds every singleton (eager by default)',
     ],
     [
       'InversifyJS',
@@ -276,6 +276,7 @@ function timingSections(t: ScaleTimingsFile, input: RenderInput): string[] {
     }
     out.push('### What `create` does', CREATE_WORK);
 
+    const growthStart = out.length;
     out.push(
       '## Local growth exponents',
       "The exponent between two adjacent sizes is log(R) / log(hi / lo), where R is the median over rounds of the same library's time at hi over its time at lo in the same round. The interval is the ratio's bootstrap interval through the same transform. A pair that touches a failed size has no figure. The last column is the marginal ns per provider between 1,000 and 5,000.",
@@ -283,6 +284,11 @@ function timingSections(t: ScaleTimingsFile, input: RenderInput): string[] {
     for (const metric of ['startup', 'ready'] as const) {
       const sizes = sizesOf(mixed);
       const pairs = sizes.slice(1).map((hi, i) => [sizes[i] ?? 0, hi] as const);
+      const marginal = t.marginal.some(
+        (x) => x.metric === 'startup' && x.shape === 'mixed',
+      );
+      // A partial run has no pairs and no marginal: no data columns, no table.
+      if (pairs.length === 0 && !(metric === 'startup' && marginal)) continue;
       const rows = libsOf(mixed).map((l) => [
         NAMES[l],
         ...pairs.map(([from, to]) => {
@@ -327,6 +333,8 @@ function timingSections(t: ScaleTimingsFile, input: RenderInput): string[] {
       );
     }
 
+    if (out.length === growthStart + 2) out.length = growthStart;
+
     const heapNotes = new Notes();
     const sizes = sizesOf(mixed);
     out.push(
@@ -343,7 +351,7 @@ function timingSections(t: ScaleTimingsFile, input: RenderInput): string[] {
               () => {
                 const r = row(t, 'heap-ready', l, 'mixed', s);
                 if (r === undefined) return undefined;
-                const kb = `${(r.stats.median / 1024).toFixed(1)} kB`;
+                const kb = `${(r.stats.median / 1000).toFixed(1)} kB`;
                 return r.vsNexus === undefined
                   ? kb
                   : `${kb}<br>${ratioText(r.vsNexus)}`;
@@ -441,7 +449,7 @@ function graphSection(scale: ScaleFile): string[] {
         String(g.maxFanIn),
         Object.entries(g.kinds)
           .filter(([, n]) => n > 0)
-          .map(([k, n]) => `${n} ${k}`)
+          .map(([k, n]) => `${group(n)} ${k}`)
           .join(', '),
         String(g.targetClosure),
       ]),
@@ -525,7 +533,7 @@ function readmeSection(input: RenderInput): string {
   if (timings !== undefined) {
     const cells = cellsOf(input, 'mixed');
     out.push(
-      `Startup on \`mixed\` graphs. ${caption(timings, 'mixed', cells)}.`,
+      `Startup on \`mixed\` graphs. ${caption(timings, 'mixed', cells)}. The second line is NexusDI's startup divided by the library's, with its 95% interval; above 1 means NexusDI takes longer.`,
       '',
       metricTable(
         timings,
@@ -639,16 +647,18 @@ export function spliceSection(
 /** results/, or the directory --results names (the tests render into a copy). */
 const RESULTS = argValue('results') ?? join(BENCHMARKS, 'results');
 
+/** The run with the latest startedAt; two runs of one day differ by their time, not their file name. */
 function newestTimings(): ScaleTimingsFile | undefined {
   const dir = join(RESULTS, 'scale');
   if (!existsSync(dir)) return undefined;
-  const newest = readdirSync(dir)
+  const runs = readdirSync(dir)
     .filter((f) => f.endsWith('.json'))
-    .sort()
-    .at(-1);
-  return newest === undefined
-    ? undefined
-    : (JSON.parse(readFileSync(join(dir, newest), 'utf8')) as ScaleTimingsFile);
+    .map(
+      (f) => JSON.parse(readFileSync(join(dir, f), 'utf8')) as ScaleTimingsFile,
+    );
+  return runs.sort(
+    (a, b) => Date.parse(b.startedAt) - Date.parse(a.startedAt),
+  )[0];
 }
 
 if (import.meta.main) {
