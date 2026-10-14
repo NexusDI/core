@@ -1696,10 +1696,12 @@ describe('when the charts cannot plot', () => {
     },
   };
   test.override({
-    nexusSetup: (builder) =>
-      builder
-        .override(NAV_CHARTS, { useValue: unplottable })
-        .override(FLIGHT_LOG, { useClass: MemoryFlightLog }),
+    nexusSetup: [
+      (builder) =>
+        builder
+          .override(NAV_CHARTS, { useValue: unplottable })
+          .override(FLIGHT_LOG, { useClass: MemoryFlightLog }),
+    ],
   });
 
   test('answers 500 for an uncharted sector', async ({ nexus }) => {
@@ -1714,12 +1716,17 @@ overrides it still wants. `createBridge` is the Hono app of section 4.1.
 
 Fixtures, all test-scoped and lazy:
 
-| Fixture        | Type                                                                                     | Default                     |
-| -------------- | ---------------------------------------------------------------------------------------- | --------------------------- |
-| `nexusSetup`   | `(builder: TestingContainerBuilder) => TestingContainerBuilder`                          | `options.setup` or identity |
-| `nexusRequest` | `NexusRequest \| undefined`                                                              | `undefined`                 |
-| `nexus`        | `Nexus`, from `createTestingContainer(root)` of `@nexusdi/testing`, through `nexusSetup` | built on first use          |
-| `nexusScope`   | `Scope`, from `nexus.createScope({ request: nexusRequest })`                             | built on first use          |
+| Fixture        | Type                                                                                              | Default                   |
+| -------------- | ------------------------------------------------------------------------------------------------- | ------------------------- |
+| `nexusSetup`   | `readonly NexusSetupStep[]`, each `(builder: TestingContainerBuilder) => TestingContainerBuilder` | `[options.setup]` or `[]` |
+| `nexusRequest` | `NexusRequest \| undefined`                                                                       | `undefined`               |
+| `nexus`        | `Nexus`, from `createTestingContainer(root)` of `@nexusdi/testing`, through `nexusSetup`          | built on first use        |
+| `nexusScope`   | `Scope`, from `nexus.createScope({ request: nexusRequest })`                                      | built on first use        |
+
+`nexusSetup` is an array of builder steps, because Vitest runs any function value in a
+fixture map as a fixture factory. `@nexusdi/vitest` also names `@vitest/runner` as a peer
+(`^4.1.0 || ^5.0.0`), because its declarations import the `Fixtures` type that `vitest`
+does not export.
 
 Every fixture name starts with `nexus`, so none collides with a user's `request` or
 `container` fixture. `test.override` (Vitest 4.1 and later) replaces `nexusSetup` or
@@ -1729,7 +1736,8 @@ Every fixture name starts with `nexus`, so none collides with a user's `request`
 
 ```ts
 nexus: async ({ nexusSetup }, use) => {
-  await using ship = await nexusSetup(createTestingContainer(root)).create(options.create);
+  const builder = nexusSetup.reduce((b, step) => step(b), createTestingContainer(root));
+  await using ship = await builder.create(options.create);
   await use(ship);
 },
 nexusScope: async ({ nexus, nexusRequest }, use) => {
@@ -1764,7 +1772,8 @@ the workspace stays on Vitest 4 while `@nexusdi/vitest` also supports 5.
 "peerDependencies": {
   "@nexusdi/core": "0.4.0-rc.N",
   "@nexusdi/testing": "0.4.0-rc.N",
-  "vitest": "^4.1.0 || ^5.0.0"
+  "vitest": "^4.1.0 || ^5.0.0",
+  "@vitest/runner": "^4.1.0 || ^5.0.0"
 }
 ```
 
