@@ -899,8 +899,8 @@ Steps are derived in devtools from event spans, and `/trace-events/` documents t
 derivation for third parties:
 
 - compile: the `compile` event.
-- static: the `construct` events of value providers (and options schemas), which have no
-  level.
+- static: the `construct` events of value and alias providers (and options schemas): the
+  `construct` events with `lifetime: null` and no level.
 - build: from the first level `construct` start to the last level `construct` end.
 - init: the span of the run's `init` events.
 - setup: from the last `init` or `construct` end to the `run` end.

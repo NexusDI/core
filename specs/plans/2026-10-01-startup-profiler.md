@@ -2647,8 +2647,8 @@ function span(
 
 /**
  * The startup steps of a run, derived from its event spans (spec 7.2).
- * Static work is the value and alias providers and options schemas, which
- * carry no level; build runs from the first level build's start to the last
+ * Static work is the value and alias providers and options schemas: the
+ * construct events with lifetime null and no level. Build runs from the first level build's start to the last
  * one's end; setup runs from the last build or init end to the run's end.
  */
 export function stepsOf(run: Omit<ProfileRun, 'steps'>): ProfileStep[] {
@@ -2656,7 +2656,7 @@ export function stepsOf(run: Omit<ProfileRun, 'steps'>): ProfileStep[] {
     [b.startMs, b.startMs + b.durationMs] as const;
   const compile = run.compile === null ? [] : [ends(run.compile)];
   const statics = run.builds
-    .filter((b) => b.level === null && b.lifetime === null && b.parent === null)
+    .filter((b) => b.level === null && b.lifetime === null)
     .map(ends);
   const levelled = run.builds.filter((b) => b.level !== null).map(ends);
   const inits = run.inits.map(ends);
@@ -6384,7 +6384,7 @@ Files:
 
 - [ ] Step 1: The regions. `trace-events.md` holds spec 13's third-party profiler as region `third-party` (with `downloadCharts` and `relay` implemented by stubs in the test, and the claim `probe.rows().map((b) => b.token); // -> ['NavCharts', 'SubspaceLink']` ordered by own time, made deterministic with a factory that awaits a 20 ms timer), and a region `order` that records the events of a create with one async factory and pins `events.map((e) => e.type); // -> ['compile', 'construct:await', 'construct', 'run']`.
 
-- [ ] Step 2: The page, `kind: contract`, title "What the trace events promise", in the Guides band after `profiling`. It holds spec 12's eleven items, in that order: every core event with every field, its type, its tier and what it measures (spec 3.2's table, extended to the rc.0 events); the clock and its mapping to Chrome µs and to an OpenTelemetry start through `performance.timeOrigin`; the contract text of spec 5.1 and the guidance under it, verbatim; the order guarantees of 3.4; what `level` indexes per run kind and that levels are barriers; `parent` and nesting; the step derivation of 7.2; where the graph comes from (`context.blueprint().edges` in `setup`, and `EdgeView.ordersBuild` and `ProviderView.inline`, which a critical path reads); the third-party region; how devtools draws the Chrome file, with the warning that the layout is Chrome's undocumented format and a link to `libs/devtools/src/profile/trace-engine.trace.ts`; namespacing a package's own events and `PluginContext.emit`. Check every field against `libs/core/src/runtime/trace.ts` after Task 7.
+- [ ] Step 2: The page, `kind: contract`, title "What the trace events promise", in the Guides band after `profiling`. It holds spec 12's eleven items, in that order: every core event with every field, its type, its tier and what it measures (spec 3.2's table, extended to the rc.0 events); the clock and its mapping to Chrome µs and to an OpenTelemetry start through `performance.timeOrigin`; the contract text of spec 5.1 and the guidance under it, verbatim; the order guarantees of 3.4; what `level` indexes per run kind and that levels are barriers; `parent` and nesting; the step derivation of 7.2, whose static step reads "value and alias providers (and options schemas): the `construct` events with `lifetime: null` and no level"; where the graph comes from (`context.blueprint().edges` in `setup`, and `EdgeView.ordersBuild` and `ProviderView.inline`, which a critical path reads); the third-party region; how devtools draws the Chrome file, with the warning that the layout is Chrome's undocumented format and a link to `libs/devtools/src/profile/trace-engine.trace.ts`; namespacing a package's own events and `PluginContext.emit`. Check every field against `libs/core/src/runtime/trace.ts` after Task 7.
 
 - [ ] Step 3: `introspection.mdx`: add one paragraph to the trace section: events carry `startMs` and a run id, and `/profiling/` shows how to read them.
 
