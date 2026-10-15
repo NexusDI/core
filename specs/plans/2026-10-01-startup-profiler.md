@@ -7481,11 +7481,22 @@ Expected: PASS, `doc-benchmark-figures` included. Dispatch the `docs-reviewer` a
 
 - [ ] Step 5: Point the cli README at the new page. In `libs/cli/README.md`'s `## Profile startup`, replace "and `npx nexusdi --help` lists every flag" with a link to `https://nexus.js.org/next/profiling/` that names it as the list of every flag, and in `libs/cli/src/readme.test.ts` make the section test assert `/profiling/`. The npm README check accepts the link once the page exists.
 
+As committed (2026-10-15):
+
+- The regions are `in-app`, `critical-path`, `stalled` and `trace-file`. Each Try-it break has its own region: `in-app-sync`, `critical-path-barrier` and `stalled-settled`. The examples follow the Meridian vocabulary (docs spec 7.1): `REACTOR`, `COMPUTER`, `QuantumComputer`, and `NAV_CHARTS` over `SUBSPACE_LINK` in `Tactical`. The async download is `await Promise.resolve()`, as on `/providers/`, so no `declare const` is needed.
+- The browser download and the live-mode snippet are `ts no-run` fences on the page. The meridian type-check has no DOM lib, and no region tag exists for type-check-only code.
+- The page states no measured time. Spec 12, owner item (c) 2, and docs spec 4.6 (`doc-benchmark-figures`) refuse one in prose. The error bar is given as a rule: the larger of the alignment error and one sampling interval. The Linux and macOS figures stay in spec 8.
+- The page carries no `requires`, because docs spec 5.5 gives a question page no prerequisites box. It links `/introspection/` in its opening paragraph.
+- The Next step links `/write-a-plugin/`. Task 21 points it at `/trace-events/` once that page exists, and adds the `/introspection/` paragraph that links `/profiling/`.
+- The prose stays under the 1,200-word budget of G8. The docs-reviewer's seven defects are fixed.
+
 - [ ] Step 6: Commit with `docs(docs): add the profiling guide`.
 
 ### Task 21: the `/trace-events/` page and the introspection note
 
 Files:
+
+- Modify: `apps/docs/content/profiling.mdx` (its Next step links `/trace-events/`)
 
 - Create: `examples/meridian/src/pages/trace-events.md`, `apps/docs/content/trace-events.mdx`
 - Modify: `apps/docs/content/_meta.ts`, `apps/docs/content/introspection.mdx`, `examples/meridian/src/pages/introspection.md` if the new paragraph cites a region
