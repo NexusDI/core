@@ -747,7 +747,7 @@ spec), which can link the page or read the file.
    `where: 'tmp'`. It proves the child, the worker and the writer run, and gates nothing
    on the figures. About 1 minute.
 
-`bench-check` took 13 minutes 40 seconds on its first run with all five shapes. A NexusDI change that moves bundle bytes changes
+`bench-check` took 13 minutes 40 seconds on its first run with all five shapes at four sizes, 10 minutes 26 seconds after the calibration, and 14 minutes 51 seconds with 2,500 added (97 cells). A NexusDI change that moves bundle bytes changes
 `scale.json`, and the pull request commits the regenerated file, as it does for
 `size.json` today.
 
