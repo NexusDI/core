@@ -21,6 +21,7 @@
     "@nexusdi/interceptors",
     "@nexusdi/cli",
     "@nexusdi/express",
+    "@nexusdi/vitest",
     "@nexusdi/meridian-ui",
   ],
 
@@ -59,6 +60,7 @@
     "libs/devtools/vitest.trace.config.ts",
     "libs/core/test-support/nexus-request.ts",
     "libs/express/test-support/nexus-request.ts",
+    "libs/vitest/test-support/nexus-request.ts",
     "libs/core/src/**/*.test-d.ts",
     "libs/errors/src/**/*.test-d.ts",
     "libs/testing/src/**/*.test-d.ts",
@@ -68,6 +70,8 @@
     "libs/federation/src/**/*.test-d.ts",
     "libs/interceptors/src/**/*.test-d.ts",
     "libs/express/src/**/*.test-d.ts",
+    "libs/vitest/src/**/*.test-d.ts",
+    "libs/vitest/src/__fixtures__/**",
     // fallow's vitest plugin derives entry points from vite.config.ts's
     // test.include glob alone. Each vitest.browser.config.ts, the Chromium
     // project that runs R20, is a separate config file the plugin never
@@ -303,6 +307,9 @@
     // (see the libraries repo's tools/doc-examples, which this mirrors), so
     // it resolves through the root manifest instead.
     "vite-plugin-doctest",
+    // Imported by tools/doc-examples/src/module-fences.ts, for the same
+    // reason: tools/doc-examples carries no dependencies of its own.
+    "ts-blank-space",
     // examples/toolchain-matrix/src/*.ts import @nexusdi/core,
     // @nexusdi/decorators and @nexusdi/devtools, and vite.babel.config.mjs
     // imports @rolldown/plugin-babel, but none belongs in the project's

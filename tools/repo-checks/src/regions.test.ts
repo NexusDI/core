@@ -50,6 +50,17 @@ describe('parseRegions', () => {
     );
   });
 
+  it('strips the module marker from the language', () => {
+    const module = [
+      '<!-- #region suite -->',
+      `${fence}ts @import.meta.vitest @module`,
+      "test('plots', () => {});",
+      fence,
+      '<!-- #endregion suite -->',
+    ].join('\n');
+    expect(parseRegions(module, 'README.md').get('suite')?.lang).toBe('ts');
+  });
+
   it('ignores prose outside any region', () => {
     expect(parseRegions(source, 'README.md').size).toBe(2);
   });

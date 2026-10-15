@@ -1682,7 +1682,7 @@ import { createBridge } from './hono';
 const survey = { mission: { id: 'survey-7', target: 'Kepler-442b' } };
 
 describe('on a survey mission', () => {
-  test.override({ nexusRequest: survey });
+  test.override('nexusRequest', survey);
 
   test('gives each scope its own flight log', async ({ nexus, nexusScope }) => {
     nexusScope.get(FLIGHT_LOG).record('launch');
@@ -1697,14 +1697,12 @@ describe('when the charts cannot plot', () => {
       throw new Error('sector not charted');
     },
   };
-  test.override({
-    nexusSetup: [
-      (builder) =>
-        builder
-          .override(NAV_CHARTS, { useValue: unplottable })
-          .override(FLIGHT_LOG, { useClass: MemoryFlightLog }),
-    ],
-  });
+  test.override('nexusSetup', [
+    (builder) =>
+      builder
+        .override(NAV_CHARTS, { useValue: unplottable })
+        .override(FLIGHT_LOG, { useClass: MemoryFlightLog }),
+  ]);
 
   test('answers 500 for an uncharted sector', async ({ nexus }) => {
     const res = await createBridge(nexus).request('/course/Kepler-442b');
@@ -1731,8 +1729,13 @@ fixture map as a fixture factory. `@nexusdi/vitest` also names `@vitest/runner` 
 does not export.
 
 Every fixture name starts with `nexus`, so none collides with a user's `request` or
-`container` fixture. `test.override` (Vitest 4.1 and later) replaces `nexusSetup` or
-`nexusRequest` for a suite, which is how one file tests several override sets.
+`container` fixture. `test.override(name, value)` (Vitest 4.1 and later) replaces
+`nexusSetup` or `nexusRequest` for a suite, which is how one file tests several override
+sets. The object form `test.override({ ... })` refuses a value only while
+`NexusRequest` is empty, and it leaves a `nexusSetup` step's `builder` untyped in every
+app, so the samples use the name form. The package compiles against core's empty
+`NexusRequest`, so it defines `nexusRequest` with a fixture function that provides
+`undefined`.
 
 ### 8.2 Disposal
 

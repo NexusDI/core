@@ -1,6 +1,7 @@
 import type { Plugin } from 'vite';
 
 import { rewriteJsDoc, rewriteMarkdown } from './expect-comments.ts';
+import { markModuleFences } from './module-fences.ts';
 
 /**
  * The specifiers of the static imports expectComments turned into dynamic
@@ -22,12 +23,13 @@ export function expectComments(imports: DoctestImports): Plugin {
   return {
     name: 'nexusdi:expect-comments',
     enforce: 'pre',
-    transform(code, id) {
+    async transform(code, id) {
       const file = id.split('?')[0] as string;
 
       if (file.endsWith('.md')) {
         const specifiers = new Set<string>();
-        const rewritten = rewriteMarkdown(code, file, (specifier) =>
+        const marked = await markModuleFences(code, file);
+        const rewritten = rewriteMarkdown(marked, file, (specifier) =>
           specifiers.add(specifier),
         );
 

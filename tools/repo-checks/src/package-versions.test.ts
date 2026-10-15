@@ -32,6 +32,14 @@ describe('libs package versions', () => {
     },
   );
 
+  it.each(
+    libs.filter(
+      (dir) => read(dir).peerDependencies?.['@nexusdi/testing'] !== undefined,
+    ),
+  )('gives %s an exact peer dependency on @nexusdi/testing', (dir) => {
+    expect(read(dir).peerDependencies?.['@nexusdi/testing']).toBe(core.version);
+  });
+
   it.each(libs)('pins every @nexusdi dependency of %s exactly', (dir) => {
     for (const [name, range] of Object.entries(read(dir).dependencies ?? {}))
       if (name.startsWith('@nexusdi/')) expect(range).toBe(core.version);
