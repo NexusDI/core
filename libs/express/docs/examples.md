@@ -10,7 +10,7 @@
 import { once } from 'node:events';
 import type { AddressInfo } from 'node:net';
 
-import { Token, provide } from '@nexusdi/core';
+import { Token, defineModule, provide } from '@nexusdi/core';
 import { nexus, type ContainerSource } from '@nexusdi/express';
 import { createTestingContainer } from '@nexusdi/testing';
 import express from 'express';
@@ -19,7 +19,17 @@ interface INavCharts {
   plot(to: string): { to: string; heading: number };
 }
 const NAV_CHARTS = new Token<INavCharts>('NavCharts');
+class StarCharts implements INavCharts {
+  plot(to: string) {
+    return { to, heading: 0 };
+  }
+}
 const fakeCharts: INavCharts = { plot: (to) => ({ to, heading: 42 }) };
+const Tactical = defineModule({
+  name: 'Tactical',
+  providers: [provide(NAV_CHARTS, { useClass: StarCharts })],
+  exports: [NAV_CHARTS],
+});
 
 function createBridge(ship: ContainerSource) {
   const di = nexus(ship);
@@ -33,11 +43,7 @@ function createBridge(ship: ContainerSource) {
     );
 }
 
-const ship = await createTestingContainer({
-  providers: [
-    provide(NAV_CHARTS, { useValue: { plot: () => ({ to: '', heading: 0 }) } }),
-  ],
-})
+const ship = await createTestingContainer(Tactical)
   .override(NAV_CHARTS, { useValue: fakeCharts })
   .create();
 const server = createBridge(ship).listen(0);
