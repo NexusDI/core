@@ -1,5 +1,6 @@
 import { errorBase } from '@nexusdi/core';
 
+/** Every code an `InterceptorError` carries. */
 export type InterceptorErrorCode =
   | 'NEXUS_INTERCEPTOR_INVALID'
   | 'NEXUS_INTERCEPTOR_MISSING'
@@ -8,6 +9,11 @@ export type InterceptorErrorCode =
   | 'NEXUS_INTERCEPTORS_SHARED'
   | 'NEXUS_INTERCEPTORS_UNCHECKED';
 
+/**
+ * Why an error has the code `NEXUS_INTERCEPTOR_INVALID`: a bad option,
+ * declaration, registered interceptor or `next()` argument. The error's
+ * `reason` field holds it.
+ */
 export type InvalidReason =
   | 'options'
   | 'declaration'

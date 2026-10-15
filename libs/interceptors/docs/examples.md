@@ -139,3 +139,73 @@ full; // -> ['[NEXUS_INTERCEPTOR_MISSING] a global entry or binding uses the int
 ```
 
 <!-- #endregion text -->
+
+## Interceptors declared on the class
+
+`@UseInterceptors()` declares a class's interceptors on the class itself, by the tokens the plugin's `register` list binds. `NavAudit` records each `NAV_CHARTS` call in the audit log.
+
+<!-- #region use-interceptors -->
+
+```ts @import.meta.vitest
+import { Nexus, Token, defineModule, provide } from '@nexusdi/core';
+import { interceptor, interceptors } from '@nexusdi/interceptors';
+import { UseInterceptors } from '@nexusdi/interceptors';
+import type { CallContext, Interceptor, Next } from '@nexusdi/interceptors';
+
+interface INavCharts {
+  plot(to: string): string;
+}
+interface IAuditLog {
+  readonly lines: string[];
+}
+const NAV_CHARTS = new Token<INavCharts>('NavCharts');
+const AUDIT_LOG = new Token<IAuditLog>('AuditLog');
+const NAV_AUDIT = new Token<Interceptor>('NavAudit');
+
+class AuditLog implements IAuditLog {
+  readonly lines: string[] = [];
+}
+
+class NavAudit implements Interceptor {
+  static deps = [AUDIT_LOG] as const;
+  constructor(private readonly log: IAuditLog) {}
+  intercept(call: CallContext, next: Next) {
+    this.log.lines.push(`${call.provider.name}.${String(call.method)}`);
+    return next();
+  }
+}
+
+@UseInterceptors(NAV_AUDIT)
+class FakeCharts implements INavCharts {
+  plot(to: string): string {
+    return `course to ${to}`;
+  }
+}
+
+const AuditTrail = defineModule({
+  name: 'AuditTrail',
+  providers: [provide(AUDIT_LOG, { useClass: AuditLog })],
+  exports: [AUDIT_LOG],
+});
+
+await using ship = await Nexus.create(
+  defineModule({
+    name: 'Tactical',
+    imports: [AuditTrail],
+    providers: [provide(NAV_CHARTS, { useClass: FakeCharts })],
+    exports: [NAV_CHARTS, AUDIT_LOG],
+  }),
+  {
+    plugins: [
+      interceptors({
+        imports: [AuditTrail],
+        register: [interceptor(NAV_AUDIT, { useClass: NavAudit })],
+      }),
+    ],
+  },
+);
+ship.get(NAV_CHARTS).plot('Kepler-442b'); // -> 'course to Kepler-442b'
+ship.get(AUDIT_LOG).lines; // -> ['NavCharts.plot']
+```
+
+<!-- #endregion use-interceptors -->
