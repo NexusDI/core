@@ -465,9 +465,8 @@ the range of real apps, and calls `b(2,500, 5,000)` headroom. `pairedRatio` is `
 so the suite adds no bootstrap code.
 
 The sizes live in one list, `SIZES` in `src/scale/config.ts`; the exponent table has one
-column per adjacent pair of it, so a size added there (2,500, the size of the largest
-apps measured, is the candidate) adds a column. Per-provider figures stay on 1,000 to
-5,000.
+column per adjacent pair of it, so each size added there adds its column. 2,500 and
+5,000 each add their column. Per-provider figures stay on 1,000 to 5,000.
 
 Beside it, the marginal cost per provider: `(median(5,000) − median(1,000)) / 4,000` in ns
 for `startup` and in bytes for `heap-ready`.
@@ -1136,8 +1135,5 @@ the results README say so. Adding a size is one entry in the list plus its commi
 and a band row in `shapes.test.ts`; the exponent table gains the columns of its neighbours,
 and per-provider figures stay on 1,000 to 5,000 (`PER_PROVIDER`).
 
-The estimates of section 10.2 for five sizes are 112 minutes for one `scale-timings` job
-(about 120 with the heavier calibrated `mixed`), 30 minutes under its limit, against about
-84 minutes for four sizes. They are estimates: the first run after the budget follow-up
-measures the real figure, and if it passes 120 minutes `wide`, `deep` and `modular` move to
-a second job.
+The budget follow-up runs one job per shape plus `scale-steady` (section 10.2); its first
+dispatch run records the wall time.

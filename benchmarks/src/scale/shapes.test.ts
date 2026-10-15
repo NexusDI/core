@@ -318,22 +318,26 @@ describe.each(SIZES)('mixed-async at %i', (n) => {
 describe.each(SIZES)('mixed at %i over 32 seeds', (n) => {
   const band = BANDS[n];
   const graphs = Array.from({ length: 32 }, (_, k) => mixed(n, GRAPH_SEED + k));
-  const median = (xs: number[]) =>
-    [...xs].sort((a, b) => a - b)[Math.floor(xs.length / 2)];
+  // The true median of 32 values: the mean of the two middle ones.
+  const median = (xs: number[]) => {
+    const sorted = [...xs].sort((a, b) => a - b);
+    return ((sorted[15] ?? NaN) + (sorted[16] ?? NaN)) / 2;
+  };
 
   it.runIf(band !== undefined)(
     'has median depth and target share inside the bands',
     () => {
       const depth = median(graphs.map(collapsedDepth));
-      // The measured bands are whole percents.
-      const share =
-        Math.round(
-          median(graphs.map((g) => describeGraph(g).targetClosure / n)) * 100,
-        ) / 100;
+      const share = median(
+        graphs.map((g) => describeGraph(g).targetClosure / n),
+      );
       expect(depth).toBeGreaterThanOrEqual(band.depth[0]);
       expect(depth).toBeLessThanOrEqual(band.depth[1]);
       expect(share).toBeGreaterThanOrEqual(band.closure[0]);
-      expect(share).toBeLessThanOrEqual(band.closure[1]);
+      // Census closures are floors (spec section 15.1: edges resolve by simple
+      // name, and library providers are not counted), so the upper edge gets one
+      // point of tolerance here. The committed-seed band test stays exact.
+      expect(share).toBeLessThanOrEqual(band.closure[1] + 0.01);
     },
   );
 });
