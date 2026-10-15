@@ -8,6 +8,8 @@ export default defineConfig({
     watch: false,
     environment: 'node',
     include: ['test/**/*.test.ts'],
+    // The workerd suite runs under vitest.workers.config.ts (test-workers).
+    exclude: ['test/worker/**'],
     benchmark: { include: ['bench/**/*.bench.ts'] },
     reporters: ['default'],
   },

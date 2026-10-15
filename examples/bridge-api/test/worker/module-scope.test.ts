@@ -1,0 +1,77 @@
+import { Nexus } from '@nexusdi/core';
+import { nodeScopes } from '@nexusdi/node';
+import { SELF } from 'cloudflare:test';
+import { describe, expect, it } from 'vitest';
+
+import { createBridge } from '../../src/hono';
+import { OfflineMeridian } from '../../src/ship/meridian';
+import offlineWorker from '../../src/worker.offline';
+import { recorder } from './harness';
+
+// Built at module scope, as src/worker.offline.ts does, with a trace plugin
+// so the test counts scopes.
+const seen = recorder();
+const ship = await Nexus.create(OfflineMeridian, { plugins: [seen.plugin] });
+const app = createBridge(ship, { scopes: nodeScopes() });
+
+describe('the bridge API on workerd, built at module scope', () => {
+  it('answers a course with a scope per request', async () => {
+    const res = await app.request('/course/Kepler-442b', {
+      headers: { 'x-mission-id': 'survey-7' },
+    });
+    expect(res.status).toBe(200);
+    const body = (await res.json()) as {
+      course: { to: string };
+      entries: string[];
+    };
+    expect(body.course.to).toBe('Kepler-442b');
+    expect(body.entries.every((entry) => entry.startsWith('survey-7: '))).toBe(
+      true,
+    );
+  });
+
+  it('gives ten concurrent requests ten scopes and disposes each', async () => {
+    const created = seen.count('scope:create');
+    const disposed = seen.count('scope:dispose');
+    await Promise.all(
+      Array.from({ length: 10 }, (_, i) =>
+        Promise.resolve(
+          app.request('/course/Kepler-442b', {
+            headers: { 'x-mission-id': `survey-${i}` },
+          }),
+        ).then((res) => res.text()),
+      ),
+    );
+    expect(seen.count('scope:create') - created).toBe(10);
+    expect(seen.count('scope:dispose') - disposed).toBe(10);
+  });
+
+  it('reads the request scope through nodeScopes() in a service', async () => {
+    const res = await app.request('/mission', {
+      headers: { 'x-mission-id': 'survey-9' },
+    });
+    expect(await res.json()).toEqual({ id: 'survey-9' });
+  });
+
+  it('creates no scope for a route that resolves nothing', async () => {
+    const created = seen.count('scope:create');
+    expect((await app.request('/health')).status).toBe(200);
+    expect(seen.count('scope:create')).toBe(created);
+  });
+
+  it('serves the module-scope entry, src/worker.offline.ts', async () => {
+    const res = await offlineWorker.request('/mission', {
+      headers: { 'x-mission-id': 'survey-3' },
+    });
+    expect(await res.json()).toEqual({ id: 'survey-3' });
+  });
+
+  it('serves the configured entry, src/worker.ts, through the function form', async () => {
+    // RELAY_URL is empty in both configs, so src/worker.ts builds OfflineMeridian.
+    const res = await SELF.fetch('https://bridge.test/course/Kepler-442b');
+    expect(res.status).toBe(200);
+    expect(((await res.json()) as { course: { to: string } }).course.to).toBe(
+      'Kepler-442b',
+    );
+  });
+});

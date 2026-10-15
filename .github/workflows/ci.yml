@@ -309,3 +309,32 @@ jobs:
       - run: npm ci --ignore-scripts
 
       - run: npm run check:type-floor
+
+  # The bridge API's suite on each edge runtime the integrations spec names
+  # (spec 9.8). One leg per runtime, so a red leg names the runtime. Runs on
+  # every push and pull request with no path filter, so the rulesets can
+  # require it. No step runs `nx run-many`: release-verify-gate holds the one
+  # gate step in this file.
+  adapter-runtimes:
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        leg: [workerd]
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          filter: tree:0
+
+      - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
+        with:
+          node-version-file: .nvmrc
+          cache: 'npm'
+
+      - run: npm ci
+
+      - name: workerd
+        if: matrix.leg == 'workerd'
+        run: npx nx run @nexusdi/bridge-api:test-workers
+        env:
+          WRANGLER_SEND_METRICS: false

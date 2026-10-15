@@ -2,7 +2,9 @@
   "$schema": "../../node_modules/nx/schemas/project-schema.json",
   "name": "@nexusdi/bridge-api",
   "targets": {
-    "test": { "dependsOn": ["^build"] },
+    "test": {
+      "dependsOn": ["^build"]
+    },
     "e2e": {
       "dependsOn": ["^build"],
       "executor": "nx:run-commands",
@@ -25,6 +27,19 @@
       "options": {
         "cwd": "examples/bridge-api",
         "command": "vitest bench --run && node bench/cold.mjs"
+      }
+    },
+    "test-workers": {
+      "dependsOn": ["^build"],
+      "executor": "nx:run-commands",
+      "options": {
+        "cwd": "examples/bridge-api",
+        "commands": [
+          "wrangler types --config wrangler.jsonc --check",
+          "vitest run --config vitest.workers.config.ts",
+          "SIGNAL=off vitest run --config vitest.workers.config.ts"
+        ],
+        "parallel": false
       }
     }
   }
