@@ -23,8 +23,8 @@ export const BUDGETS = {
  * The ceiling on one behaviour sidecar, `out/behaviour/<dir>/<name>.json`,
  * which the catalogue fetches and parses when a reader reaches an entry.
  * Raw bytes are what the browser parses and gzip bytes are what it downloads.
- * Measured on 2026-10-15: the largest sidecar, `core/Nexus.json` with 102
- * cases, is 1350 kB raw and 56.6 kB gzipped.
+ * The ceilings sit just above the largest sidecar, `core/Nexus.json` with 102
+ * cases, at 1350 kB raw and 56.6 kB gzipped.
  */
 export const BEHAVIOUR_BUDGET = { raw: 1_400_000, gzip: 60_000 };
 
@@ -167,7 +167,7 @@ export function checkBehaviour(out) {
     )
     .map(
       (row) =>
-        `${row.path}: the behaviour sidecar is ${kB(row.raw)} raw and ${kB(row.gzip)} gzipped, over the ${BEHAVIOUR_BUDGET.raw / 1000} kB raw or ${BEHAVIOUR_BUDGET.gzip / 1000} kB gzipped budget. Split the export's cases or shrink the markup in tools/behaviour-data.mjs.`,
+        `${row.path}: the behaviour sidecar is ${kB(row.raw)} raw and ${kB(row.gzip)} gzipped, over the ${BEHAVIOUR_BUDGET.raw / 1000} kB raw or ${BEHAVIOUR_BUDGET.gzip / 1000} kB gzipped budget. Either raise BEHAVIOUR_BUDGET in the same pull request with the new measurement, or shrink the markup in tools/behaviour-data.mjs (for example, share the popups once per library).`,
     );
 
   return { findings, rows };

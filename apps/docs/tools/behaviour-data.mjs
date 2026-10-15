@@ -2,7 +2,6 @@ import { mkdirSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
 import { basename, dirname, join, relative } from 'node:path';
 
 import { behavioursOf } from '@nexusdi/doc-examples/behaviours';
-import { statedBy } from '@nexusdi/doc-examples/mdx-reference-loader';
 import { createTransformerFactory, rendererRich } from '@shikijs/twoslash';
 import { codeToHast, hastToHtml } from 'shiki';
 import ts from 'typescript';
@@ -10,6 +9,7 @@ import { createTwoslasher } from 'twoslash';
 
 import { codeClasses, stylesheet, THEMES } from './code-classes.mjs';
 import { libraries } from './libraries.mjs';
+import { sidecarsOf } from './sidecars.mjs';
 
 /**
  * Writes what each library's tests state, for the reference loader to render.
@@ -169,7 +169,7 @@ function hoversOf(hovers, body, offsets) {
   return within;
 }
 
-/** Whether an element carries a class, however the producer wrote it. */
+/** The classes an element carries, however the producer wrote them. */
 function classesOf(node) {
   const held = node.properties?.class ?? node.properties?.className ?? [];
   return Array.isArray(held) ? held : String(held).split(/\s+/);
@@ -255,7 +255,10 @@ async function highlight(body, language, hovers, popups) {
 /** How many cases came back without their types, across every library. */
 let fallbacks = 0;
 
-/** One library's index, and the highlighted cases and popups its sidecars draw on. */
+/**
+ * One library's index, and the highlighted cases and popups its sidecars draw
+ * on.
+ */
 async function filesFor(project) {
   const { files, chains, states } = behavioursOf(
     join(workspaceRoot, project.root),
@@ -331,67 +334,6 @@ async function filesFor(project) {
     bodies,
     popups: new Map([...popups].map(([html, at]) => [String(at), html])),
   };
-}
-
-/**
- * Whether an entry can carry this name. The reference loader names an entry
- * after the export it renders, and an export's name is an identifier, so a
- * `describe` title such as `accepts a bare class` names no entry and gets no
- * sidecar.
- */
-const IDENTIFIER = /^[A-Za-z_$][\w$]*$/;
-
-/**
- * One sidecar per name an entry can carry: the cases `statedBy` puts in that
- * entry's rail, and the popups those cases point at, under the numbers the
- * tokens already carry.
- */
-function sidecarsOf(project, contents, bodies, popups) {
-  const written = new Map();
-  const out = [];
-
-  for (const name of Object.keys(contents.states)) {
-    if (!IDENTIFIER.test(name)) continue;
-
-    const ids = statedBy(contents, name).groups.flatMap((group) =>
-      group.rows.map((row) => String(row.id)),
-    );
-    if (ids.length === 0) continue;
-
-    // A filesystem that ignores case (APFS and NTFS by default) would write
-    // both names to one file, and a host that serves `out/` by case would
-    // then answer one of the two fetches with the other export's cases.
-    const folded = name.toLowerCase();
-    if (written.has(folded))
-      throw new Error(
-        `${project.name} states both ${written.get(folded)} and ${name}, ` +
-          'whose sidecars differ only by case',
-      );
-    written.set(folded, name);
-
-    const held = Object.fromEntries(ids.map((id) => [id, bodies[id]]));
-    const pointed = new Set(
-      Object.values(held).flatMap(({ html }) =>
-        [...html.matchAll(/data-pop="(\d+)"/g)].map(([, at]) => at),
-      ),
-    );
-
-    out.push({
-      name,
-      sidecar: {
-        package: project.name,
-        name,
-        bodies: held,
-        popups: Object.fromEntries(
-          [...pointed]
-            .sort((left, right) => Number(left) - Number(right))
-            .map((at) => [at, popups.get(at)]),
-        ),
-      },
-    });
-  }
-
-  return out;
 }
 
 const projects = libraries(workspaceRoot);
