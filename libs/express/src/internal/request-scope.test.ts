@@ -16,8 +16,12 @@ import {
   ContainerBuildError,
   containerOf,
   defaultLog,
+  definitionCheck,
+  disposer,
+  enterSection,
   existingScope,
   guardLog,
+  logLevel,
   loader,
   logEach,
   NexusHttpError,
@@ -230,6 +234,24 @@ describe('defaultLog and logEach', () => {
     write.mockRestore();
   });
 
+  it('gives a disposed container warn and every other mapped error error', () => {
+    const at = { adapter: '@nexusdi/test', phase: 'scope' } as const;
+    expect(
+      logLevel(new DisposedError({ target: 'container' }), {
+        ...at,
+        status: 503,
+      }),
+    ).toBe('warn');
+    expect(
+      logLevel(new ContainerBuildError({ cause: new Error('no reactor') }), {
+        ...at,
+        phase: 'build',
+        status: 503,
+      }),
+    ).toBe('error');
+    expect(logLevel(new Error('disposer failed'), at)).toBe('error');
+  });
+
   it('warns for a disposed container and errors for a failed build', () => {
     const warn = vi.spyOn(console, 'warn').mockImplementation(() => {});
     const write = vi.spyOn(console, 'error').mockImplementation(() => {});
@@ -437,5 +459,72 @@ describe('once, loader and validator', () => {
     await expect(check()).rejects.toBeInstanceOf(BlueprintError);
     await expect(check()).rejects.toBeInstanceOf(BlueprintError);
     expect(validate).toHaveBeenCalledTimes(1);
+  });
+});
+
+describe('disposer, enterSection and definitionCheck', () => {
+  it('closes the handle once and logs a disposal error with phase dispose', async () => {
+    const failure = new Error('hatch jammed');
+    const close = vi.fn(() => Promise.reject(failure));
+    const log = vi.fn();
+    const dispose = disposer(
+      { scope: vi.fn(), started: true, close },
+      log,
+      '@nexusdi/test',
+    );
+    await Promise.all([dispose(), dispose()]);
+    expect(close).toHaveBeenCalledOnce();
+    expect(log).toHaveBeenCalledExactlyOnceWith(failure, {
+      adapter: '@nexusdi/test',
+      phase: 'dispose',
+    });
+  });
+
+  it('loads the module and extends a started scope only', async () => {
+    await using ship = await Nexus.create(providers);
+    const load = vi.fn(() => Promise.resolve(ship));
+    const section = { name: 'Navigation' } as never;
+    await enterSection(load, section, null);
+    const idle = requestScope(containerOf(ship), () => survey);
+    await enterSection(load, section, idle);
+    expect(idle.started).toBe(false);
+    const busy = requestScope(containerOf(ship), () => survey);
+    const scope = await busy.scope();
+    const extend = vi.spyOn(scope, 'extend');
+    await enterSection(load, section, busy);
+    expect(extend).toHaveBeenCalledOnce();
+    expect(load).toHaveBeenCalledTimes(3);
+    await busy.close();
+  });
+
+  it('validates a live container at once and a function source on first use', async () => {
+    await using ship = await Nexus.create(providers);
+    const absent = new Token<string>('Absent');
+    expect(() =>
+      definitionCheck(
+        ship,
+        containerOf(ship),
+        { absent },
+        vi.fn(),
+        '@nexusdi/test',
+      ),
+    ).toThrow(BlueprintError);
+    const live = definitionCheck(
+      ship,
+      containerOf(ship),
+      { mission: MISSION },
+      vi.fn(),
+      '@nexusdi/test',
+    );
+    await expect(live()).resolves.toBeUndefined();
+    const build = () => Promise.resolve(ship);
+    const lazy = definitionCheck(
+      build,
+      containerOf(build),
+      { absent },
+      vi.fn(),
+      '@nexusdi/test',
+    );
+    await expect(lazy()).rejects.toBeInstanceOf(BlueprintError);
   });
 });

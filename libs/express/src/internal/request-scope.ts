@@ -183,17 +183,25 @@ export function toHttpError(
 }
 
 /**
- * The default log: code, own enumerable fields and message for a NexusError;
- * phase and error otherwise. A 503 from a disposed container is a warning,
- * and a 503 from a failed build is an error (integrations spec 3.6). The
- * class tells the two apart, because P1 allows this file one core code.
+ * The level a log writes an error at. A 503 from a disposed container is a
+ * warning, and a 503 from a failed build is an error (integrations spec
+ * 3.6). The class tells the two apart, because P1 allows this file one core
+ * code.
  */
+export function logLevel(
+  error: unknown,
+  context: LogContext,
+): 'warn' | 'error' {
+  return context.status === 503 && !(error instanceof ContainerBuildError)
+    ? 'warn'
+    : 'error';
+}
+
+/** The default log: code, own enumerable fields and message for a NexusError; phase and error otherwise, at logLevel. */
 export function defaultLog(error: unknown, context: LogContext): void {
   const prefix = `[${context.adapter}] ${context.phase}:`;
   const write =
-    context.status === 503 && !(error instanceof ContainerBuildError)
-      ? console.warn
-      : console.error;
+    logLevel(error, context) === 'warn' ? console.warn : console.error;
   if (isNexusError(error))
     write(prefix, error.code, { ...error }, error.message);
   else write(prefix, error);
@@ -314,4 +322,48 @@ export function validator(
     }
     return check;
   };
+}
+
+/** The request's dispose step: close() at most once, a disposal error logged with phase 'dispose' and never thrown (integrations spec 3.4). */
+export function disposer(
+  handle: ClosableRequestScope,
+  log: NexusLog,
+  adapter: string,
+): () => Promise<void> {
+  return once(() =>
+    handle
+      .close()
+      .catch((error: unknown) => log(error, { adapter, phase: 'dispose' })),
+  );
+}
+
+/**
+ * A section's step before its handlers: loads the module, then extends the
+ * request's scope if it has started, so a token from the module resolves
+ * (integrations spec 3.9).
+ */
+export async function enterSection(
+  load: (module: ModuleRef) => Promise<Nexus>,
+  module: ModuleRef,
+  handle: RequestScope | null | undefined,
+): Promise<void> {
+  await load(module);
+  if (handle?.started === true) await (await handle.scope()).extend();
+}
+
+/**
+ * inject's check at route definition: validateNow for a live container, and
+ * a validator() that runs on the first request for the function form.
+ */
+export function definitionCheck(
+  source: ContainerSource,
+  container: () => Promise<Nexus>,
+  deps: DepsMap,
+  log: NexusLog,
+  adapter: string,
+): () => Promise<void> {
+  validateNow(source, deps, log, adapter);
+  return typeof source === 'function'
+    ? validator(container, deps)
+    : () => Promise.resolve();
 }
