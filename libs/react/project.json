@@ -2,8 +2,29 @@
   "$schema": "../../node_modules/nx/schemas/project-schema.json",
   "name": "@nexusdi/react",
   "targets": {
-    "lint": { "options": { "args": ["--max-warnings=0"] } },
-    "test": { "dependsOn": ["^build", "build"] },
-    "stage-publish": {}
+    "lint": {
+      "options": {
+        "args": ["--max-warnings=0"]
+      }
+    },
+    "test": {
+      "dependsOn": ["^build", "build"]
+    },
+    "stage-publish": {},
+    "e2e": {
+      "executor": "nx:run-commands",
+      "dependsOn": [
+        "^build",
+        "build",
+        {
+          "projects": ["@nexusdi/react-router"],
+          "target": "build"
+        }
+      ],
+      "options": {
+        "cwd": "libs/react",
+        "command": "vitest run --config vitest.e2e.config.ts"
+      }
+    }
   }
 }

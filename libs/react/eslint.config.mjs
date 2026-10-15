@@ -20,6 +20,14 @@ export default [
     },
   },
   {
+    // The fixture apps are consumers of the package, so they import it by
+    // name, the way an application's modules do.
+    files: ['test-fixtures/**/*.{ts,tsx}'],
+    rules: {
+      '@nx/enforce-module-boundaries': 'off',
+    },
+  },
+  {
     files: ['**/*.json'],
     rules: {
       '@nx/dependency-checks': [
@@ -29,8 +37,14 @@ export default [
             '{projectRoot}/eslint.config.{js,cjs,mjs,ts,cts,mts}',
             '{projectRoot}/vite.config.{js,ts,mjs,mts}',
             '{projectRoot}/src/support/**',
+            '{projectRoot}/test-support/**',
+            '{projectRoot}/vitest.e2e.config.ts',
             '{projectRoot}/src/**/*.test-d.ts',
+            '{projectRoot}/test-fixtures/**',
           ],
+          // The React Router fixture's entry.server.tsx imports isbot, as
+          // React Router's default entry does; nothing in the package does.
+          ignoredDependencies: ['isbot'],
         },
       ],
     },

@@ -57,6 +57,10 @@ renderToString(page); // -> '<p>42</p>'
 await ship[Symbol.asyncDispose]();
 ```
 
+## Scopes, Sections and Server Rendering
+
+`ScopeProvider` gives its subtree a scope after the page hydrates and disposes it on unmount. `SectionBoundary` loads a `lazySection` into the container once per section name. Both render their fallback on the server. With React Router 8, the server entry passes the request scope of `@nexusdi/react-router` to `NexusProvider` as `scope`. With Next.js, a client provider sets `clientOnly`.
+
 ## Documentation
 
 - [Documentation](https://nexus.js.org/next/)

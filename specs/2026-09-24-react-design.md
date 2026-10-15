@@ -745,7 +745,7 @@ export default async function handleRequest(
   routerContext: EntryContext,
   loadContext: RouterContextProvider,
 ) {
-  const scope = await loadContext.get(NEXUS_SCOPE).scope();
+  const scope = await loadContext.get(NEXUS_SCOPE)?.scope();
   const body = await renderToReadableStream(
     <NexusProvider container={ship} scope={scope}>
       <ServerRouter context={routerContext} url={request.url} />
@@ -756,6 +756,9 @@ export default async function handleRequest(
   return new Response(body, { status, headers });
 }
 ```
+
+React Router renders a request no route matches without the root middleware, so the slot
+is `null` and the page renders under the root with no request scope.
 
 Rules for users, which the React Router guide states:
 

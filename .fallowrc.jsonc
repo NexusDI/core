@@ -72,6 +72,12 @@
     // fixture server as Vitest's globalSetup by path.
     "libs/react-router/test-fixtures/app/**/*.{ts,tsx}",
     "libs/react-router/test-support/fixture-server.ts",
+    // @nexusdi/react's browser suites: a React Router 8 app the e2e test
+    // builds, loaded by file convention, and a Vite app it serves under HMR
+    // from index.html. vitest.e2e.config.ts runs them through the e2e target.
+    "libs/react/test-fixtures/**/*.{ts,tsx}",
+    "libs/react/vitest.e2e.config.ts",
+    "libs/react/src/**/*.e2e.test.ts",
     "libs/vitest/test-support/nexus-request.ts",
     "libs/core/src/**/*.test-d.ts",
     "libs/errors/src/**/*.test-d.ts",
@@ -353,6 +359,10 @@
     // libs/interceptors/package.json, as published packages, carry no
     // devDependencies.
     "@nexusdi/errors",
+    // libs/react/test-fixtures/rr8 imports @nexusdi/react-router, linked by
+    // the workspace. The fixture is the app a user writes, and the package
+    // itself needs nothing from the adapter.
+    "@nexusdi/react-router",
     // The competitor libraries and their polyfill, which the benchmark
     // fixtures import. benchmarks/src/consumer.ts installs the pins from
     // benchmarks/libraries.json into the throwaway consumer the fixtures

@@ -28,6 +28,9 @@
       "path": "../../tools/doc-examples"
     },
     {
+      "path": "../react-router/tsconfig.lib.json"
+    },
+    {
       "path": "../devtools/tsconfig.lib.json"
     },
     {
