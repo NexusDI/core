@@ -139,6 +139,7 @@ async function workspaceInput(): Promise<CoverageInput> {
         '@nexusdi/devtools',
         '@nexusdi/federation',
         '@nexusdi/interceptors',
+        '@nexusdi/react',
         '@nexusdi/testing',
       ].map((name) => [
         name,
