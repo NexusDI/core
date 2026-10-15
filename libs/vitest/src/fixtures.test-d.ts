@@ -8,10 +8,20 @@ import {
 } from '@nexusdi/core';
 import type { TestingContainerBuilder } from '@nexusdi/testing';
 
-import { nexusFixtures, type NexusSetupStep } from './index.js';
+import {
+  nexusFixtures,
+  type NexusFixtureMap,
+  type NexusFixtures,
+  type NexusSetupStep,
+} from './index.js';
 
 const Meridian = defineModule({ name: 'Meridian' });
 const test = base.extend(nexusFixtures(Meridian));
+
+test('returns the fixture map that test.extend takes, typed through vitest', () => {
+  expectTypeOf(nexusFixtures(Meridian)).toEqualTypeOf<NexusFixtureMap>();
+  expectTypeOf<keyof NexusFixtureMap>().toEqualTypeOf<keyof NexusFixtures>();
+});
 
 test('types the fixtures in a test callback', ({
   nexus,

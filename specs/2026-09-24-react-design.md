@@ -801,7 +801,7 @@ graph holds database pools and the client graph holds fetch clients.
 ### 9.2 Next.js App Router
 
 Moved to 0.5 with `@nexusdi/next` (integrations spec 10.1): the double-evaluation gate
-failed, so 0.4 ships the `/next/` guide and no Next fixture or e2e. The `clientOnly` prop
+failed, so 0.4 ships the `/nextjs/` guide and no Next fixture or e2e. The `clientOnly` prop
 of `NexusProvider` ships in 0.4 as built, and the guide shows it; its Next e2e waits for
 0.5 with the rest of this section.
 

@@ -2,7 +2,7 @@
 
 > For agentic workers: REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
 
-Goal: Publish `@nexusdi/express`, `@nexusdi/vitest`, `@nexusdi/fastify`, `@nexusdi/hono`, `@nexusdi/react-router` and `@nexusdi/react` in 0.4.0-rc.2, each running in CI through a demo app, with Hono tested on Node, workerd, Deno, Bun and Vercel's edge-runtime VM. `@nexusdi/next` moved to 0.5 when Task 16's gate failed (integrations spec 10.1); 0.4 ships the `/next/` guide page (Task 25) and keeps the gate as a canary.
+Goal: Publish `@nexusdi/express`, `@nexusdi/vitest`, `@nexusdi/fastify`, `@nexusdi/hono`, `@nexusdi/react-router` and `@nexusdi/react` in 0.4.0-rc.2, each running in CI through a demo app, with Hono tested on Node, workerd, Deno, Bun and Vercel's edge-runtime VM. `@nexusdi/next` moved to 0.5 when Task 16's gate failed (integrations spec 10.1); 0.4 ships the `/nextjs/` guide page (Task 25) and keeps the gate as a canary.
 
 Architecture: Each adapter is its own package under `libs/<name>`, built with tsc like `libs/node`. The server adapters share two byte-identical files under `src/internal/` (`request-scope.ts`, `dispose-with-body.ts`), held together by a copies check under P4's named exception. `examples/bridge-api` runs one Meridian module graph behind Hono, Express, Fastify and a Workers entry; `examples/react-ssr` moves to React Router 8, `@nexusdi/react-router` and `@nexusdi/react`; `examples/next-bridge` holds the Next gate as a canary; the Next demo waits for the 0.5 adapter.
 
@@ -10432,7 +10432,7 @@ action. The gate is open.
 If `evaluations` or `creates` is 2 or more, stop the Next tasks:
 
 1. Record the counts in section 10.1 with the sentence "The gate is closed: `@nexusdi/next` moves to 0.5." and in the ledger (`.superpowers/sdd/integrations-0.4/progress.md`) under Task 16.
-2. Mark Tasks 17 and 20 "moved to 0.5" in the ledger and skip them. Keep this skeleton: Task 27's `/next/` page then teaches the hand-written pattern of `app/nexus.server.ts` and `app/api/course/[to]/route.ts`, with a `globalThis` memo for the container (the pattern `gate-counter.ts` uses), because a module-scope memo would build one container per evaluation.
+2. Mark Tasks 17 and 20 "moved to 0.5" in the ledger and skip them. Keep this skeleton: Task 27's `/nextjs/` page then teaches the hand-written pattern of `app/nexus.server.ts` and `app/api/course/[to]/route.ts`, with a `globalThis` memo for the container (the pattern `gate-counter.ts` uses), because a module-scope memo would build one container per evaluation.
 3. Tell the controller, who reports it to the owner in one line. Round two of the npm bootstrap (header, owner-only step 1) does not happen.
 
 - [ ] Step 7: Lint and commit

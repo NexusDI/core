@@ -79,12 +79,12 @@
     "targets": ["@nexusdi/react:test", "@nexusdi/react:e2e"]
   },
   "vitest-floor": {
-    "install": ["vitest@4.1.0", "@vitest/runner@4.1.0"],
+    "install": ["vitest@4.1.0"],
     "targets": ["@nexusdi/vitest:test"],
     "legacyPeerDeps": true
   },
   "vitest-4-latest": {
-    "install": ["vitest@^4", "@vitest/runner@^4"],
+    "install": ["vitest@^4"],
     "targets": ["@nexusdi/vitest:test"],
     "legacyPeerDeps": true
   },

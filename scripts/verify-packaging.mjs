@@ -903,8 +903,9 @@ try {
         if (!files.includes(file))
           shippedProblems.push(`@nexusdi/${name} ships no ${file}`);
   }
-  // nexusTest is typed by vitest's own TestAPI (spec 8.1): the declarations
-  // it reaches import nothing from @vitest/runner, which Vitest 5 lacks.
+  // nexusTest and nexusFixtures are typed by vitest's own TestAPI (spec 8.1):
+  // the declarations the root entry reaches import nothing from
+  // @vitest/runner, which Vitest 5 does not publish.
   const vitestDist = join(dir, 'node_modules', '@nexusdi', 'vitest', 'dist');
   const reached = new Set();
   const visit = (file) => {
@@ -913,20 +914,20 @@ try {
     const text = readFileSync(join(vitestDist, file), 'utf8');
     if (/from\s+["']@vitest\/runner["']/.test(text))
       shippedProblems.push(
-        `@nexusdi/vitest: dist/${file}, on nexusTest's path, imports @vitest/runner`,
+        `@nexusdi/vitest: dist/${file}, reached from index.d.ts, imports @vitest/runner`,
       );
     for (const [, relative] of text.matchAll(
       /from\s+["']\.\/([^"']+)\.js["']/g,
     ))
       visit(`${relative}.d.ts`);
   };
-  visit('nexus-test.d.ts');
+  visit('index.d.ts');
   if (shippedProblems.length) throw new Error(shippedProblems.join('\n'));
   console.log(
     '  ✓ each adapter ships dist, src, its src/internal copies, README, LICENSE and CHANGELOG, and no test, fixture or test-support file',
   );
   console.log(
-    "  ✓ nexusTest's declarations import nothing from @vitest/runner",
+    "  ✓ @nexusdi/vitest's declarations, from index.d.ts on, import nothing from @vitest/runner",
   );
 
   const adapterDir = mkdtempSync(join(tmpdir(), 'nexusdi-adapters-'));
@@ -1007,6 +1008,65 @@ try {
   if (adapterProblems.length) throw new Error(adapterProblems.join('\n'));
   console.log(
     '  ✓ adapter peers are exact, core is reached through its entries, and the web adapters import no node: module',
+  );
+
+  // Vitest 5 publishes no @vitest/runner, so a consumer on it compiles the
+  // root entry with skipLibCheck false only when no declaration reaches it.
+  console.log('Type-checking a Vitest 5 consumer of @nexusdi/vitest…');
+  const vitest5Dir = mkdtempSync(join(tmpdir(), 'nexusdi-vitest5-'));
+  writeFileSync(
+    join(vitest5Dir, 'package.json'),
+    JSON.stringify({ name: 'vitest5-check', private: true, type: 'module' }),
+  );
+  run(
+    'npm',
+    [
+      'install',
+      '--silent',
+      '--no-audit',
+      '--no-fund',
+      ...['core', 'testing', 'vitest'].map((name) =>
+        join(
+          dir,
+          tarballs.find((t) => t.startsWith(`nexusdi-${name}-0`)) ?? name,
+        ),
+      ),
+      'vitest@5',
+      'typescript@6',
+      '@types/node@22',
+    ],
+    vitest5Dir,
+  );
+  writeFileSync(
+    join(vitest5Dir, 'consumer.ts'),
+    `import { defineModule } from '@nexusdi/core';
+import { nexusFixtures, nexusTest } from '@nexusdi/vitest';
+import { test as base } from 'vitest';
+
+const Meridian = defineModule({ name: 'Meridian' });
+export const test = nexusTest(base, Meridian);
+export const extended = base.extend(nexusFixtures(Meridian));
+`,
+  );
+  writeFileSync(
+    join(vitest5Dir, 'tsconfig.json'),
+    JSON.stringify({
+      compilerOptions: {
+        strict: true,
+        noEmit: true,
+        target: 'es2022',
+        module: 'nodenext',
+        moduleResolution: 'nodenext',
+        lib: ['es2022', 'esnext.disposable', 'dom'],
+        skipLibCheck: false,
+        types: ['node'],
+      },
+      include: ['consumer.ts'],
+    }),
+  );
+  run('npx', ['tsc', '-p', 'tsconfig.json'], vitest5Dir);
+  console.log(
+    '  ✓ nexusTest and nexusFixtures from the root entry compile on Vitest 5 with skipLibCheck false',
   );
 
   // The bin as published: its shebang, and the rule that it loads the

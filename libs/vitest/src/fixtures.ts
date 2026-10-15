@@ -1,20 +1,24 @@
-import type { Fixtures } from '@vitest/runner';
-
 import type { ModuleRef } from '@nexusdi/core';
 import { createTestingContainer } from '@nexusdi/testing';
 
 import type {
+  NexusFixtureMap,
   NexusFixtures,
   NexusFixturesOptions,
   NexusSetupStep,
 } from './types.js';
 
-export type { NexusFixtures, NexusFixturesOptions, NexusSetupStep };
+export type {
+  NexusFixtureMap,
+  NexusFixtures,
+  NexusFixturesOptions,
+  NexusSetupStep,
+};
 
 export function nexusFixtures(
   root: ModuleRef,
   options: NexusFixturesOptions = {},
-): Fixtures<NexusFixtures> {
+): NexusFixtureMap {
   const scope = options.containerScope ?? 'test';
   const steps: readonly NexusSetupStep[] =
     options.setup === undefined ? [] : [options.setup];

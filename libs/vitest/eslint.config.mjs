@@ -28,8 +28,8 @@ export default [
             '{projectRoot}/src/__fixtures__/**',
           ],
           // A user's tests import vitest, and the fixtures run inside it.
-          // The source imports only @vitest/runner's Fixtures type, so the
-          // rule never sees the vitest peer as used.
+          // The source imports only vitest's TestAPI type, which the rule
+          // does not count, so it never sees the vitest peer as used.
           ignoredDependencies: ['vitest'],
         },
       ],
