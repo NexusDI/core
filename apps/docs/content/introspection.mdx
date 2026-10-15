@@ -67,20 +67,26 @@ Common events include:
 - `run`: When a `create`, `load`, `createScope` or `extend()` settles, with its run id, its kind, its scope and whether it succeeded.
 - `dispose:instance`: When a specific instance is cleaned up.
 
-Four more types exist:
+Eight more types exist:
 
-| `type`         | When NexusDI emits it                                     |
-| -------------- | --------------------------------------------------------- |
-| `compile`      | once per compile, at `create`, `load` or `Nexus.check`    |
-| `untracked`    | for a disposable instance that no container or scope owns |
-| `scope:extend` | when `scope.extend()` built what a later `load()` added   |
-| `dispose`      | when the container finished disposing                     |
+| `type`             | When NexusDI emits it                                     |
+| ------------------ | --------------------------------------------------------- |
+| `compile`          | once per compile, at `create`, `load` or `Nexus.check`    |
+| `untracked`        | for a disposable instance that no container or scope owns |
+| `scope:extend`     | when `scope.extend()` built what a later `load()` added   |
+| `dispose`          | when the container finished disposing                     |
+| `construct:await`  | a factory returned a thenable and core starts awaiting it |
+| `construct:failed` | a build failed between the call and the store             |
+| `init:await`       | `onInit` returned a thenable                              |
+| `init:failed`      | `onInit` threw or rejected                                |
 
 A `construct` event carries its token, lifetime and scope. `scope:create` fires when `createScope()` finished building its scoped factories, and `dispose:instance` fires for each instance in disposal order.
 
 The computer has an `onInit`, so one `init` event follows the two `construct` events. Only the reactor has a disposer, so one `dispose:instance` event comes before `dispose`.
 
 **Try it:** Save the region as `trace.ts` and run it. It prints the ten events' types in the order `compile`, `construct`, `construct`, `init`, `run`, `scope:create`, `run`, `scope:dispose`, `dispose:instance`, `dispose`. Add `[Symbol.dispose]() {}` to `QuantumComputer` and run it again: a second `dispose:instance` appears before `dispose`, and the computer's comes first, because NexusDI disposes in reverse order of construction. Delete that line and the list has one `dispose:instance` again.
+
+A `construct`, `init` or `compile` event also carries `startMs` and `durationMs`: when the work began, in milliseconds of `performance.now()`, and how long it took. The compile, build and scope events of one `create`, `load`, `createScope` or `extend()` carry its run id, and a closing `run` event repeats it. [How do I find out what slows or stalls startup?](/profiling/) reads these fields into a startup profile.
 
 ## Handling Minification
 
