@@ -1815,11 +1815,11 @@ The operations, per graph size:
   transient tokens.
 - `createScope`: 1,000 `createScope()` calls, each followed by its disposal.
 
-The sampler. Each operation and graph size runs in 10 fresh pairs of worker processes,
+The sampler. Each operation and graph size runs in 20 fresh pairs of worker processes,
 `on` and `off`, forked with `node --expose-gc`. One round asks each worker of the pair for
 one sample, in the Williams order of `bench-kit` (for two workers, alternating `on, off`
 and `off, on`), with `gc()` before each sample outside the timed region. Each pair runs 20
-warm-up rounds and 20 measured rounds, 200 measured rounds in all. Both workers calibrate
+warm-up rounds and 20 measured rounds, 400 measured rounds in all. Both workers calibrate
 the operation, and both then run the larger of the two batch sizes, so the pair amortises
 the `gc()` before each batch and the first call after it over the same count.
 `dispatch.json` records the batch of every pair. One pair alone reports a
@@ -1836,8 +1836,8 @@ The verdict, per result, checked in this order:
 3. `pass`: otherwise. The median is at or under 1.03 and the interval is narrow enough to
    trust it.
 
-An `inconclusive` case runs 20 more fresh pairs, once, and the verdict is taken again over
-all 30 pairs. The extension is fixed in advance, runs once and pools the first 10 pairs,
+An `inconclusive` case runs 40 more fresh pairs, once, and the verdict is taken again over
+all 60 pairs. The extension is fixed in advance, runs once and pools the first 20 pairs,
 so the two stages form one design with a known error rate. After it, the job
 fails on a `fail`, and on an `inconclusive` whose median is above 1.03. An `inconclusive`
 whose median is at or under 1.03 was too noisy to decide and reports without failing.
@@ -1848,9 +1848,14 @@ it repeats the sampling until one run passes.
 The architect and the tech lead both ruled for the one extension over pooled pairs and
 against exiting 0 on every inconclusive result, since a 4.8% median then passes unseen. The
 architect proposed 20 extra pairs and a split on the median after them. The tech lead
-proposed 10 extra pairs and a failed job on any remaining `inconclusive`. The rule above
-takes 20 pairs, which narrows the interval to about 0.04, and the split on the median, so a
+proposed 10 extra pairs and a failed job on any remaining `inconclusive`. The rule then
+took 20 extra pairs, which narrowed the interval to about 0.04, and the split on the median, so a
 noisy runner whose median is under the bound does not fail an unrelated pull request.
+
+On 2026-10-15 the tech lead doubled both counts, to 20 pairs and an extension of 40. Over 38
+CI runs on unchanged code, get-50 had a mean median of 1.0185 with a standard deviation near
+0.012, and 5 of about 19 runs that day blocked a pull request. get-modules stayed too noisy
+to decide at 10 and 30 pairs. The verdict rule (D2) stayed as written.
 
 Ruling: the benchmark runs as `nx run @nexusdi/core:bench-dispatch`, and a
 `dispatch` job in `benchmarks.yml` runs it on pull requests that touch `libs/core/src/**`.

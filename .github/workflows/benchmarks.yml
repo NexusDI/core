@@ -63,7 +63,7 @@ jobs:
       - run: npx nx run @nexusdi/benchmarks:check
 
   # K14: fails when the hook sites cost more than 3% beyond the measured
-  # noise. An inconclusive case runs 20 more pairs once, and then fails when
+  # noise. An inconclusive case runs 40 more pairs once, and then fails when
   # its median is above 1.03 (benchmarks spec 14.6).
   dispatch:
     needs: changes
