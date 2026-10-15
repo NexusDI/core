@@ -28,11 +28,19 @@ import { filesUnder } from './files-under.mjs';
 /** A file the convention is read from. */
 const TEST_FILE = /\.(test|spec)\.tsx?$/;
 
+/**
+ * A browser suite, which runs under `test-browser` and never under `test`.
+ * Each one is a regression case that names no export, and its cases never
+ * reach the report `doc-behaviour-run.test.ts` holds the data against.
+ */
+const BROWSER_FILE = /\.browser\.test\.tsx?$/;
+
 /** Where the adversarial suite lives, relative to a package root. */
 const SECURITY = join('src', 'security');
 
 /**
- * Every test source under a package, with the adversarial suite left out.
+ * Every test source under a package, with the adversarial suite and the
+ * browser suites left out.
  *
  * `libs/core/src/security` names its blocks after register entries,
  * `SEC-201 metadata is trusted input (CWE-345)`, and `register.test.ts` holds
@@ -45,7 +53,7 @@ export function testFilesOf(packageRoot) {
   const security = join(packageRoot, SECURITY);
   return filesUnder(
     join(packageRoot, 'src'),
-    (name) => TEST_FILE.test(name),
+    (name) => TEST_FILE.test(name) && !BROWSER_FILE.test(name),
     (dir) => dir === security,
   );
 }
