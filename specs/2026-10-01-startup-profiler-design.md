@@ -1357,7 +1357,7 @@ table.
 | ----------------- | ----------- | -------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | `/profiling/`     | `question`  | Guides   | "How do I find out what slows or stalls startup?": `profile()` in an app, `nexusdi profile`, reading the table, barrier waits and the critical path, opening the Chrome and Perfetto files, `--cpu`, live mode, the warning that `--repeat` builds every provider again, and a stalled startup (`report().runs[n].pending` in an app, `--timeout` in the CLI), and an H2 for `nexusdi profile` with its synopsis, flags and the exit codes of 9.5 |
 | `/trace-events/`  | `contract`  | Guides   | the catalogue below                                                                                                                                                                                                                                                                                                                                                                                                                               |
-| `/api-devtools/`  | `reference` | API      | docs spec page 38, planned within the RC window and absent on `release/0.4` today; one H2 per new export. If the page is still absent when the profiler's reference task runs, that task creates it with one H2 per export of `@nexusdi/devtools`, existing ones included, after `/api-errors/`                                                                                                                                                   |
+| `/api-devtools/`  | `reference` | API      | docs spec page 38, phase 2: deferred with the reference pipeline docs spec 5.8 schedules there (ruling of 2026-10-15). It gets one H2 per export of `@nexusdi/devtools`, after `/api-errors/`; the new exports carry the docblock summaries it renders                                                                                                                                                                                            |
 | `/introspection/` | `concept`   | Concepts | existing page; one paragraph in the trace section: events carry `startMs`, link to `/profiling/`                                                                                                                                                                                                                                                                                                                                                  |
 
 `/trace-events/` holds:
@@ -1479,7 +1479,7 @@ for (const b of probe.rows())
 - Extension principle 2.5.11: unchanged. Owner item (c) 1 records the P1 amendment.
 - Graph CLI spec section 3: a second command in the same bin.
 - Docs spec 4.3: two pages, `/profiling/` and `/trace-events/`, inventory 43. `/api-devtools/`
-  stays docs spec page 38.
+  stays docs spec page 38, in phase 2.
 - Benchmarks spec 14.6: unchanged. No new site condition.
 
 ## 15. Files

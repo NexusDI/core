@@ -18,6 +18,7 @@ import type {
 } from './report.js';
 import { stepsOf } from './steps.js';
 
+/** The options of profile(). */
 export interface ProfileOptions {
   /** Draws each run as it closes; pass liveSink() from @nexusdi/devtools/live. Default: no drawing. */
   readonly live?: LiveSink;
@@ -121,6 +122,13 @@ function buildGraph(view: BlueprintView): NonNullable<ProfileReport['graph']> {
 const REUSED_TEXT =
   'not one container: this profile() recorded a second Nexus.create, so its report would mix two containers.\n  Fix: create one profile() per container: Nexus.create(Root, { plugins: [profile()] }).';
 
+/**
+ * A plugin that records where startup time goes: every create and load of
+ * one container, with each provider's build times, from core's trace events.
+ * Register it with Nexus.create(Root, { plugins: [profiler] }) and read
+ * profiler.report(); profileTable, criticalPath, toChromeTrace and
+ * toPerfettoTrace render the report.
+ */
 export function profile(options: ProfileOptions = {}): Profiler {
   const scopes = options.scopes ?? false;
   const live = options.live;
