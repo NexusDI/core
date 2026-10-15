@@ -310,10 +310,22 @@
     "@fontsource/ibm-plex-sans",
     // examples/meridian lists every package its example blocks import. The
     // blocks live in .md files under src/, which fallow does not read, so
-    // these four report as unused because fallow does not read .md files.
+    // these report as unused there.
+    "@hono/node-server",
+    "@nexusdi/express",
+    "@nexusdi/fastify",
     "@nexusdi/federation",
+    "@nexusdi/hono",
     "@nexusdi/interceptors",
     "@nexusdi/node",
+    "@nexusdi/react",
+    "@nexusdi/vitest",
+    "express",
+    "fastify",
+    "hono",
+    "react",
+    "react-dom",
+    "react-router",
     "valibot",
     // Optional peers of @nexusdi/cli. The cli's image tests spawn the built
     // bin, which resolves them by path from the user's project
@@ -455,12 +467,12 @@
     "minTokens": 30,
     "minLines": 3,
 
-    // The figure on 2026-10-15 is 2.03%, after the Hono and React Router
-    // middleware paths moved into serveWithBody and the adapters' fixture
-    // apps left the count. The ceiling is a ratchet,
-    // not a target: it fails the run that adds the next copy and is lowered
-    // whenever a clone group is consolidated.
-    "threshold": 2.1,
+    // The figure on 2026-10-15 is 2.24%: the adapters measured 2.03% and
+    // release/0.4's scale benchmarks 2.1% on their own, and the rebase of the
+    // one onto the other adds both sets of clone groups. The ceiling is a
+    // ratchet, not a target: it fails the run that adds the next copy and is
+    // lowered whenever a clone group is consolidated.
+    "threshold": 2.25,
 
     "ignore": [
       "**/vite.config.*",
@@ -505,6 +517,9 @@
       // its docs page (CONTRIBUTING.md, Benchmarks), so the parallel shape is
       // kept apart per library, and what is identical lives in render/shared.ts.
       "benchmarks/src/scale/render/*.ts",
+      // The bridge API wires the same routes once per framework, so each
+      // server entry reads beside that framework's guide.
+      "examples/bridge-api/src/{express,fastify,hono}.ts",
       // The mission and flight log every adapter example and fixture
       // defines in its own self-contained app: the Next gate's graph and the
       // bridge API's BridgeApi module.

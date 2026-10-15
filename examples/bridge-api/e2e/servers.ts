@@ -31,6 +31,12 @@ function urlOf(address: AddressInfo | string | null): string {
  * (nodejs/node#63452), and undici 6 opens one after a client aborts a
  * stream, so the open connections are closed first.
  */
+/** Waits for `server` to listen, then answers its URL and its close step. */
+async function listening(server: Server) {
+  await once(server, 'listening');
+  return { url: urlOf(server.address()), close: () => shut(server) };
+}
+
 async function shut(server: Server): Promise<void> {
   server.closeAllConnections();
   server.close();
@@ -46,13 +52,10 @@ export const servers: Readonly<
       port: 0,
       hostname: '127.0.0.1',
     }) as Server;
-    await once(server, 'listening');
-    return { url: urlOf(server.address()), close: () => shut(server) };
+    return listening(server);
   },
   async express(ship, scopes) {
-    const server = expressBridge(ship, { scopes }).listen(0, '127.0.0.1');
-    await once(server, 'listening');
-    return { url: urlOf(server.address()), close: () => shut(server) };
+    return listening(expressBridge(ship, { scopes }).listen(0, '127.0.0.1'));
   },
   async fastify(ship, scopes) {
     const bridge = await fastifyBridge(ship, { scopes });
