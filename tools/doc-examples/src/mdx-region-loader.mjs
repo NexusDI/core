@@ -17,7 +17,7 @@ import { readRegion } from './regions.mjs';
  * Whatever else the info string carries is kept and handed to Shiki, so a
  * region block can also be a Twoslash block:
  *
- *     ```ts twoslash file=libs/acl/README.md region=quick-start
+ *     ```ts twoslash file=libs/core/docs/providers.md region=providers
  *     ```
  *
  * Nextra injects the `Popup` component only for a fence whose meta is exactly
@@ -126,7 +126,8 @@ export function expandRegions(source, root, file) {
 
 /**
  * The loader entry point, configured in apps/docs/next.config.ts under
- * `turbopack.rules`. `root` is the workspace root every reference resolves from.
+ * `turbopack.rules`. `root` is the workspace root every reference resolves
+ * from.
  */
 export default function mdxRegionLoader(source) {
   const { root } = this.getOptions();

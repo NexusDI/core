@@ -34,12 +34,12 @@ const SECURITY = join('src', 'security');
 /**
  * Every test source under a package, with the adversarial suite left out.
  *
- * `libs/acl/src/security` names its blocks after register entries, `SEC-007 a
- * narrowed write never carries a prototype setter (CWE-1321)`, and
- * `security-register.test.ts` holds the register, the suite and the published
- * page together on that identifier while `SECURITY.md`'s tier decides what a
- * test there may claim. Those titles are a register's language and say nothing
- * about an export, so nothing here reads them.
+ * `libs/core/src/security` names its blocks after register entries,
+ * `SEC-201 metadata is trusted input (CWE-345)`, and `register.test.ts` holds
+ * the suite and `libs/core/SECURITY.md` together on that identifier while the
+ * register's tier decides what a test there may claim. Those titles are a
+ * register's language and say nothing about an export, so nothing here reads
+ * them.
  */
 export function testFilesOf(packageRoot) {
   const security = join(packageRoot, SECURITY);
@@ -288,8 +288,9 @@ const keyOf = (each) =>
  * a package exports. The reference loader knows which export it is rendering
  * and asks for that name, so the data states what each block is about and the
  * page decides whose entry it belongs on. A case under
- * `describe('hydratePolicy') > describe('canFields')` states something about
- * both and is keyed under both, so it appears on both entries.
+ * `describe('Nexus') > describe('create')` in
+ * `libs/core/src/runtime/nexus.test.ts` is keyed under both titles, so the
+ * `Nexus` entry lists it and an entry named `create` would list it too.
  */
 export function behavioursOf(packageRoot) {
   const files = testFilesOf(packageRoot);
