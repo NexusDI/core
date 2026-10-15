@@ -9,7 +9,8 @@ import { profile, type Profiler } from './profile.js';
 import type { ProfileReport } from './report.js';
 
 /**
- * create with a profiler, each load in order, then disposal. Rejects with
+ * Runs one startup and returns its report: Nexus.create with the profiler,
+ * each load in order, then disposal. Rejects with
  * the error of a failed create or load after disposing what was built; the
  * profiler passed in still holds the partial report. A failed disposal
  * counts in report().dispose.errors and does not reject.
