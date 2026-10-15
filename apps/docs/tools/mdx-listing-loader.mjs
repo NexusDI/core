@@ -1,3 +1,5 @@
+import { mapFences } from './fences.mjs';
+
 /**
  * Wraps every code fence that carries an exemption tag in `<Listing>`, so the
  * reader sees that nothing ran it (docs spec section 12.3).
@@ -34,64 +36,26 @@ const TAGS = [
   'elided',
 ];
 
-/**
- * A fence line: up to three spaces of indent, then three or more backticks or
- * tildes. CommonMark gives a backtick fence no backtick in its info string,
- * so a one-line triple-backtick span is no opener.
- */
-const FENCE = /^( {0,3})(`{3,}(?!.*`)|~{3,})(.*)$/;
-
 /** The first exemption tag among the words of a fence's info string. */
 function tagOf(info) {
   return info.split(/\s+/).find((word) => TAGS.includes(word));
 }
 
-/**
- * Wraps every tagged fence of an MDX source in `<Listing mark="…">`.
- *
- * A fence opened with N backticks or tildes closes on a line of at least N of
- * the same character and nothing else, so a shorter fence, or a fence of the
- * other character, inside it is body text.
- */
+/** Wraps every tagged fence of an MDX source in `<Listing mark="…">`. */
 export function markListings(source) {
-  const out = [];
-  let open = null;
-
-  for (const line of source.split('\n')) {
-    const marker = line.match(FENCE);
-
-    if (open === null) {
-      if (!marker) {
-        out.push(line);
-        continue;
-      }
-      const [, indent, ticks, info] = marker;
-      open = { indent, ticks, mark: tagOf(info), start: out.length };
-      out.push(line);
-      continue;
-    }
-
-    out.push(line);
-    const closes =
-      marker &&
-      !marker[3].trim() &&
-      marker[2][0] === open.ticks[0] &&
-      marker[2].length >= open.ticks.length;
-    if (!closes) continue;
-
-    if (open.mark) {
-      out.splice(
-        open.start,
-        0,
-        `${open.indent}<Listing mark="${open.mark}">`,
-        '',
-      );
-      out.push('', `${open.indent}</Listing>`);
-    }
-    open = null;
-  }
-
-  return out.join('\n');
+  return mapFences(source, ({ indent, info, opener, body, closer }) => {
+    const mark = tagOf(info);
+    const fence = [opener, ...body, closer];
+    return mark
+      ? [
+          `${indent}<Listing mark="${mark}">`,
+          '',
+          ...fence,
+          '',
+          `${indent}</Listing>`,
+        ]
+      : fence;
+  });
 }
 
 /** The Turbopack loader: the entry the chain in `loader-chain.mjs` lists. */

@@ -8,7 +8,7 @@ import { codeToHast } from 'shiki';
 import ts from 'typescript';
 import { createTwoslasher } from 'twoslash';
 
-import { codeClasses, stylesheet, THEMES } from './code-classes.mjs';
+import { classesOf, codeClasses, stylesheet, THEMES } from './code-classes.mjs';
 import { libraries } from './libraries.mjs';
 import { panelHtml } from './popup-fold.mjs';
 import { sidecarsOf } from './sidecars.mjs';
@@ -169,12 +169,6 @@ function hoversOf(hovers, body, offsets) {
   }
 
   return within;
-}
-
-/** The classes an element carries, however the producer wrote them. */
-function classesOf(node) {
-  const held = node.properties?.class ?? node.properties?.className ?? [];
-  return Array.isArray(held) ? held : String(held).split(/\s+/);
 }
 
 /**

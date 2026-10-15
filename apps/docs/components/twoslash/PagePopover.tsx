@@ -3,7 +3,7 @@
 import { useEffect, useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
 
-import { LINGER, place } from '../api/type-card';
+import { LINGER, place, rove } from '../api/type-card';
 import './popup.css';
 import '../api/token-colours.css';
 
@@ -209,22 +209,7 @@ export function PagePopover() {
       const token = tokenOf(event.target);
       if (!token) return;
       const tokens = fenceOf(token);
-      const from = tokens.indexOf(token);
-      const steps: Record<string, number | undefined> = {
-        ArrowRight: from + 1,
-        ArrowDown: from + 1,
-        ArrowLeft: from - 1,
-        ArrowUp: from - 1,
-        Home: 0,
-        End: tokens.length - 1,
-      };
-      const next = steps[event.key];
-      if (next === undefined) return;
-      event.preventDefault();
-      const going = tokens[Math.min(Math.max(next, 0), tokens.length - 1)];
-      if (!going || going === token) return;
-      hold(going);
-      going.focus();
+      rove(event, tokens, tokens.indexOf(token), true);
     };
     const onScroll = (event: Event) => {
       if (!current.current || inCard(event.target) || frame !== 0) return;

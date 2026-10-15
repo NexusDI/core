@@ -1,6 +1,7 @@
 import { readFileSync } from 'node:fs';
 import { dirname, join } from 'node:path';
 
+import { mapFences } from './fences.mjs';
 import {
   RUNTIME_GLOBALS_FILE,
   compilerOptionsFor,
@@ -75,36 +76,12 @@ export default function mdxTwoslashPrelude(source) {
   this.addDependency(RUNTIME_GLOBALS_FILE);
   this.addDependency(COMPILER_OPTIONS_FILE);
 
-  const out = [];
-  let open = null;
-  let body = [];
-
-  for (const line of source.split('\n')) {
-    const marker = line.match(FENCE);
-
-    if (open === null) {
-      out.push(line);
-      if (marker) {
-        open = { ticks: marker[2], twoslash: TWOSLASH.has(marker[3].trim()) };
-        body = [];
-      }
-      continue;
-    }
-
-    if (marker && marker[2].startsWith(open.ticks) && marker[3].trim() === '') {
-      out.push(
-        ...(open.twoslash ? withPrelude(body.join('\n')).split('\n') : body),
-      );
-      out.push(line);
-      open = null;
-      continue;
-    }
-
-    body.push(line);
-  }
-
-  // An unclosed fence reaches the end of the page; MDX reports it.
-  if (open !== null) out.push(...body);
-
-  return out.join('\n');
+  return mapFences(
+    source,
+    ({ info, opener, body, closer }) =>
+      TWOSLASH.has(info.trim())
+        ? [opener, ...withPrelude(body.join('\n')).split('\n'), closer]
+        : [opener, ...body, closer],
+    FENCE,
+  );
 }
