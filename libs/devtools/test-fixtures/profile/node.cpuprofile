@@ -1,0 +1,101 @@
+{
+  "nodes": [
+    {
+      "id": 1,
+      "callFrame": {
+        "functionName": "(root)",
+        "scriptId": "0",
+        "url": "",
+        "lineNumber": -1,
+        "columnNumber": 0
+      },
+      "hitCount": 0,
+      "children": [
+        2,
+        3
+      ]
+    },
+    {
+      "id": 2,
+      "callFrame": {
+        "functionName": "(program)",
+        "scriptId": "0",
+        "url": "",
+        "lineNumber": -1,
+        "columnNumber": 0
+      },
+      "hitCount": 10
+    },
+    {
+      "id": 3,
+      "callFrame": {
+        "functionName": "build",
+        "scriptId": "12",
+        "url": "file:///app/node_modules/@nexusdi/core/dist/runtime/build.js",
+        "lineNumber": 120,
+        "columnNumber": 0
+      },
+      "hitCount": 0,
+      "children": [
+        4
+      ]
+    },
+    {
+      "id": 4,
+      "callFrame": {
+        "functionName": "construct",
+        "scriptId": "12",
+        "url": "file:///app/node_modules/@nexusdi/core/dist/runtime/build.js",
+        "lineNumber": 180,
+        "columnNumber": 0
+      },
+      "hitCount": 10
+    }
+  ],
+  "startTime": 1000000,
+  "endTime": 1002000,
+  "samples": [
+    2,
+    4,
+    2,
+    4,
+    2,
+    4,
+    2,
+    4,
+    2,
+    4,
+    2,
+    4,
+    2,
+    4,
+    2,
+    4,
+    2,
+    4,
+    2,
+    4
+  ],
+  "timeDeltas": [
+    100,
+    100,
+    100,
+    100,
+    100,
+    100,
+    100,
+    100,
+    100,
+    100,
+    100,
+    100,
+    100,
+    100,
+    100,
+    100,
+    100,
+    100,
+    100,
+    100
+  ]
+}

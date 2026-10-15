@@ -54,6 +54,8 @@
     "libs/decorators/vite.decorators.ts",
     "libs/core/vitest.browser.config.ts",
     "libs/decorators/vitest.browser.config.ts",
+    // The test-trace target of @nexusdi/devtools runs this config by path.
+    "libs/devtools/vitest.trace.config.ts",
     "libs/core/test-support/nexus-request.ts",
     "libs/core/src/**/*.test-d.ts",
     "libs/errors/src/**/*.test-d.ts",
@@ -281,6 +283,12 @@
     // hoisted from there; not duplicated into either package.json, which --
     // as a published package -- carries no devDependencies at all.
     "@vitest/browser-playwright",
+    // Imported by libs/devtools/src/profile/trace-engine.trace.test.ts, the
+    // test-trace target's golden test of the Chrome layout. Declared in the
+    // root package.json with an exact pin; not duplicated into
+    // libs/devtools/package.json, which as a published package carries no
+    // devDependencies.
+    "@paulirish/trace_engine",
     // react-pair.test.ts imports tinyglobby directly, but nothing in this
     // workspace declares it: it is a transitive dependency of vite/vitest,
     // hoisted to the root. Mirrors the libraries repo's own entry for the
