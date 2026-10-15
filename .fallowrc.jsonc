@@ -117,6 +117,9 @@
     "benchmarks/src/{matrix,probes,size,build,competitor-releases,release-core,open-results-pr}.ts",
     "benchmarks/src/timings/{orchestrator.ts,worker.mjs,cold-child.mjs}",
     "benchmarks/src/scale/{verify-child,child,worker}.mjs",
+    // The scale timing orchestrator runs from the scale-timings nx target and
+    // the check target; no workflow runs it until the budget follow-up.
+    "benchmarks/src/scale/timings.ts",
     // The check target runs the *.cell.test.ts files through
     // vitest.cells.config.ts, a config the vitest plugin never reads.
     "benchmarks/vitest.cells.config.ts",

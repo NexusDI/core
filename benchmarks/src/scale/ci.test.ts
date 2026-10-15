@@ -97,52 +97,35 @@ describe('benchmarks.yml (scale spec 10.2)', () => {
       s.run === undefined ? [] : [s.run],
     );
 
-  it('runs the scale timings beside the timings job, after the same steps', () => {
-    const scale = jobs['scale-timings'];
-    expect(scale?.if).toBe(jobs.timings?.if);
-    expect(scale?.needs).toBe(jobs.timings?.needs);
-    expect(scale?.['timeout-minutes']).toBe(150);
-    expect(runs('scale-timings')).toEqual(
-      expect.arrayContaining([
-        'node benchmarks/src/release-core.ts --ref "$PUSHED_TAG"',
-        'node benchmarks/src/scale/timings.ts --seed=${{ github.run_id }}',
-      ]),
-    );
-    const download = (scale?.steps ?? []).find(
-      (s) =>
-        s.uses?.includes('download-artifact') &&
-        s.with?.name === 'deterministic',
-    );
-    expect(download?.with?.path).toBe('benchmarks/results');
+  it('has no scale-timings job until the budget follow-up: a job that cannot finish would drop the Meridian-8 results on a tag', () => {
+    expect(jobs['scale-timings']).toBeUndefined();
+    expect(JSON.stringify(workflow)).not.toContain('scale-timings');
   });
-  it('uploads the scale files and the raw samples', () => {
-    const upload = (jobs['scale-timings']?.steps ?? []).find((s) =>
-      s.uses?.includes('upload-artifact'),
-    );
-    expect(upload?.with?.name).toBe('scale-timings');
-    expect(upload?.with?.path).toContain('benchmarks/results/scale/');
-    expect(upload?.with?.path).toContain('benchmarks/results/raw/');
+  it('merges only the jobs that finish', () => {
+    expect(jobs.merge?.needs).toEqual([
+      'deterministic',
+      'build-meridian-8',
+      'build-scale-200',
+      'timings',
+    ]);
   });
   it('writes scale.json in the deterministic job', () => {
     expect(runs('deterministic')).toContain(
       'npx nx run @nexusdi/benchmarks:scale',
     );
   });
-  it('merges the scale timings and renders after downloading them', () => {
-    const merge = jobs.merge;
-    expect(merge?.needs).toContain('scale-timings');
-    const steps = merge?.steps ?? [];
-    const download = steps.findIndex(
+  it('renders the deterministic scale page in the merge job', () => {
+    const steps = jobs.merge?.steps ?? [];
+    const deterministic = steps.findIndex(
       (s) =>
         s.uses?.includes('download-artifact') &&
-        s.with?.name === 'scale-timings',
+        s.with?.name === 'deterministic',
     );
     const render = steps.findIndex(
       (s) => s.run === 'node benchmarks/src/scale/render.ts',
     );
-    expect(download).toBeGreaterThan(-1);
-    expect(steps[download]?.with?.path).toBe('benchmarks/results');
-    expect(render).toBeGreaterThan(download);
+    expect(deterministic).toBeGreaterThan(-1);
+    expect(render).toBeGreaterThan(deterministic);
   });
 });
 
