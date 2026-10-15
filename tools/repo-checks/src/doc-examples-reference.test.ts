@@ -64,6 +64,7 @@ function readAs(
     rest: '',
     tags: [],
     declaration: join(root, 'libs/core/dist/index.d.ts'),
+    docText: '',
     examples: ['libs/core/README.md'],
     ...entry,
   });
@@ -217,6 +218,7 @@ describe('a signature that names another package', () => {
         rootSpecifier: '@nexusdi/devtools',
         summary: 'The compiled graph of a container.',
         declaration: join(root, 'libs/devtools/dist/index.d.ts'),
+        docText: '',
         examples: ['libs/devtools/README.md'],
       },
     );

@@ -361,9 +361,10 @@ function declarationOf(context, resolved, name, kind) {
     .printNode(ts.EmitHint.Unspecified, node, node.getSourceFile())
     .replace(
       new RegExp(
-        `^((?:export\\s+)?(?:declare\\s+)?(?:function|class|interface|type|const|let|var|enum)\\s+)${declared}\\b`,
+        `^((?:export\\s+)?(?:declare\\s+)?(?:function|class|interface|type|const|let|var|enum)\\s+)${declared.replace(/\$/g, '\\$')}(?![\\w$])`,
       ),
-      `$1${name}`,
+      // A function, so a `$` in the name is not read as a replacement pattern.
+      (_match, head) => `${head}${name}`,
     );
 
   const merges = kind === 'function' || kind === 'interface';
@@ -382,12 +383,15 @@ function declarationOf(context, resolved, name, kind) {
   /**
    * Where each name the declaration mentions has to come from.
    *
-   * There are four answers, and each applies to a different kind of name. A
+   * There are five answers, and each applies to a different kind of name. A
    * name the documented entry point exports is imported from it. A name only
    * the package root exports is imported from there, which is what a second
    * entry point needs: `@nexusdi/core/text` declares `coreText`, whose type
    * names `BlueprintView`, and publishes no `BlueprintView` of its own. A name
-   * the declaration file imports from another package is imported from that
+   * a re-exported declaration names is imported from the package that
+   * declared it, when that package exports it: `@nexusdi/devtools`'s
+   * `TraceEventByType` is core's and names core's `Lifetime`. A name the
+   * declaration file imports from another package is imported from that
    * package: `@nexusdi/devtools`'s `graph(ship: Nexus)` names a type only
    * `@nexusdi/core` publishes. A name the package declares and publishes
    * nowhere is printed into the fence above the cut (`provide` prints
@@ -525,6 +529,21 @@ function declarationOf(context, resolved, name, kind) {
   };
 }
 
+/**
+ * Every docblock inside a symbol's declarations: the leading one and its
+ * members'. A `const` carries its docblock on the statement around it.
+ */
+function docTextOf(resolved) {
+  return (resolved.getDeclarations() ?? [])
+    .map((declaration) =>
+      ts.isVariableDeclaration(declaration)
+        ? declaration.parent.parent
+        : declaration,
+    )
+    .flatMap((node) => node.getFullText().match(/\/\*\*[\s\S]*?\*\//g) ?? [])
+    .join('\n');
+}
+
 /** Splits a docblock into its first paragraph and everything after it. */
 function paragraphs(text) {
   const trimmed = text.trim().replace(/\r\n/g, '\n');
@@ -604,6 +623,7 @@ export function readReference(root, specifier, name) {
     rest,
     tags,
     declaration,
+    docText: docTextOf(resolved),
     examples: examplesFilesIn(packageDir).map((path) =>
       relative(root, path).split('\\').join('/'),
     ),
