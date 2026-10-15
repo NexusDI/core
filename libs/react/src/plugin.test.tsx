@@ -3,6 +3,7 @@ import {
   isNexusError,
   MultiToken,
   Nexus,
+  NEXUS_PLUGIN_API,
   provide,
   Token,
   type Scope,
@@ -95,6 +96,42 @@ describe('react()', () => {
     expect(
       thrown(() => hook(ship, () => useService(DRONE_ALIAS))),
     ).toBeInstanceOf(TransientInRenderError);
+  });
+
+  it('follows two alias hops to a transient target', async () => {
+    vi.spyOn(console, 'error').mockImplementation(() => undefined);
+    const RELAY = new Token<ISurveyDrone>('DroneRelay');
+    await using ship = await Nexus.create(
+      [
+        provide(DRONE, { useClass: ScoutDrone, lifetime: 'transient' }),
+        provide(DRONE_ALIAS, { useExisting: DRONE }),
+        provide(RELAY, { useExisting: DRONE_ALIAS }),
+      ],
+      { plugins: [react()] },
+    );
+    expect(thrown(() => hook(ship, () => useService(RELAY)))).toBeInstanceOf(
+      TransientInRenderError,
+    );
+    expect(built).toBe(0);
+  });
+
+  it('reads one blueprint view before and after createScope', async () => {
+    let read: (() => unknown) | undefined;
+    await using ship = await Nexus.create([], {
+      plugins: [
+        {
+          name: 'acme:probe',
+          apiVersion: NEXUS_PLUGIN_API,
+          setup(context) {
+            read = () => context.blueprint();
+          },
+        },
+      ],
+    });
+    const before = read?.();
+    await using scope = await ship.createScope();
+    scope.has(DRONE);
+    expect(read?.()).toBe(before);
   });
 
   it('rejects a MultiToken with one transient contribution', async () => {
