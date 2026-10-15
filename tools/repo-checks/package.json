@@ -10,6 +10,7 @@
     "jsonc-parser": "^3.3.1",
     "remark-mdx": "^3.1.1",
     "remark-parse": "^11.0.0",
+    "twoslash": "0.3.9",
     "typescript": "6.0.3",
     "unified": "^11.0.5",
     "yaml": "^2.9.0"
