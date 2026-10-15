@@ -10,21 +10,21 @@ esbuild with `--bundle --minify --format=esm`, library included, then gzip at le
 
 | library     | 50     | 200    | 1,000  | 5,000   | per provider |
 | ----------- | ------ | ------ | ------ | ------- | ------------ |
-| NexusDI     | 20,451 | 25,186 | 50,405 | 177,309 | 31.73 B      |
-| InversifyJS | 23,586 | 28,663 | 54,599 | 193,492 | 34.72 B      |
-| tsyringe    | 11,097 | 15,014 | 35,708 | 140,881 | 26.29 B      |
-| awilix      | 5,105  | 8,932  | 28,236 | 126,145 | 24.48 B      |
-| needle-di   | 4,610  | 8,219  | 26,865 | 121,330 | 23.62 B      |
+| NexusDI     | 20,451 | 25,186 | 50,405 | 177,279 | 31.72 B      |
+| InversifyJS | 23,586 | 28,663 | 54,599 | 193,288 | 34.67 B      |
+| tsyringe    | 11,097 | 15,014 | 35,708 | 142,529 | 26.71 B      |
+| awilix      | 5,105  | 8,932  | 28,236 | 126,169 | 24.48 B      |
+| needle-di   | 4,610  | 8,219  | 26,865 | 121,438 | 23.64 B      |
 
 ### minified
 
 | library     | 50      | 200     | 1,000   | 5,000     | per provider |
 | ----------- | ------- | ------- | ------- | --------- | ------------ |
-| NexusDI     | 64,800  | 90,887  | 236,792 | 999,364   | 190.64 B     |
-| InversifyJS | 100,180 | 129,535 | 288,041 | 1,118,309 | 207.57 B     |
-| tsyringe    | 36,984  | 58,778  | 178,465 | 807,269   | 157.20 B     |
-| awilix      | 15,149  | 34,656  | 140,876 | 713,081   | 143.05 B     |
-| needle-di   | 25,649  | 78,363  | 359,918 | 1,787,024 | 356.78 B     |
+| NexusDI     | 64,800  | 90,887  | 236,792 | 999,443   | 190.66 B     |
+| InversifyJS | 100,180 | 129,535 | 288,041 | 1,124,064 | 209.01 B     |
+| tsyringe    | 36,984  | 58,778  | 178,465 | 832,768   | 163.58 B     |
+| awilix      | 15,149  | 34,656  | 140,876 | 713,095   | 143.05 B     |
+| needle-di   | 25,649  | 78,363  | 359,918 | 1,786,845 | 356.73 B     |
 
 ## Graphs
 
@@ -35,7 +35,7 @@ Generated from graph seed 20261001. A graph's hash changes when the generator do
 | mixed       | 50    | d5b8307f3e51 | 50        | 102    | 10      | 7     | 2.04         | 7           | 14         | 39 class, 5 factory, 3 value, 3 alias                             | 17             |
 | mixed       | 200   | 43b9dac1a426 | 200       | 451    | 24      | 14    | 2.26         | 14          | 32         | 160 class, 20 factory, 10 value, 10 alias                         | 45             |
 | mixed       | 1,000 | fe96ee84e0db | 1,000     | 2,331  | 184     | 24    | 2.33         | 22          | 231        | 800 class, 100 factory, 50 value, 50 alias                        | 280            |
-| mixed       | 5,000 | 3656b19f07dc | 5,000     | 12,320 | 842     | 52    | 2.46         | 47          | 1335       | 4,001 class, 500 factory, 250 value, 249 alias                    | 1153           |
+| mixed       | 5,000 | b566e9011259 | 5,000     | 12,322 | 842     | 57    | 2.46         | 47          | 1333       | 4,000 class, 500 factory, 250 value, 250 alias                    | 1156           |
 | wide        | 50    | f8b42741a272 | 50        | 80     | 1       | 1     | 1.60         | 2           | 10         | 50 class                                                          | 3              |
 | wide        | 200   | 90df99d9279c | 200       | 320    | 1       | 1     | 1.60         | 2           | 15         | 200 class                                                         | 3              |
 | wide        | 1,000 | 939ca26eb015 | 1,000     | 1,600  | 1       | 1     | 1.60         | 2           | 19         | 1,000 class                                                       | 3              |
@@ -51,4 +51,4 @@ Generated from graph seed 20261001. A graph's hash changes when the generator do
 | mixed-async | 50    | ece185340786 | 50        | 102    | 10      | 7     | 2.04         | 7           | 14         | 39 class, 2 factory, 3 async-factory, 3 value, 3 alias            | 17             |
 | mixed-async | 200   | 491fc1116fa2 | 200       | 451    | 24      | 14    | 2.26         | 14          | 32         | 160 class, 10 factory, 10 async-factory, 10 value, 10 alias       | 45             |
 | mixed-async | 1,000 | e894b28e87ca | 1,000     | 2,331  | 184     | 24    | 2.33         | 22          | 231        | 800 class, 50 factory, 50 async-factory, 50 value, 50 alias       | 280            |
-| mixed-async | 5,000 | 0338b52a6a33 | 5,000     | 12,320 | 842     | 52    | 2.46         | 47          | 1335       | 4,001 class, 250 factory, 250 async-factory, 250 value, 249 alias | 1153           |
+| mixed-async | 5,000 | 3e91cd1ed6ed | 5,000     | 12,322 | 842     | 57    | 2.46         | 47          | 1333       | 4,000 class, 250 factory, 250 async-factory, 250 value, 250 alias | 1156           |

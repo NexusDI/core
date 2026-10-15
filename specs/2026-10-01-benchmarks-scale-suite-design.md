@@ -1088,26 +1088,33 @@ up, and maximum fan-in within 4 to 36%.
 ### 15.3 The committed graph
 
 The figures of the graph the suite publishes, from `GRAPH_SEED`. Max depth counts an alias
-hop as an edge, and the collapsed figure the census uses follows in parentheses.
+hop as an edge, and the collapsed figure the census uses follows in parentheses. Visibility
+entries per provider is the work of NexusDI's visibility pass: each module's own providers
+plus the exports of each module it imports, over the providers. Large NestJS apps measure
+2.4 (twenty) to 4.3 (novu-api).
 
-| size  | modules | imports per module | max depth | target closure | share | max fan-in | exports share |
-| ----- | ------- | ------------------ | --------- | -------------- | ----- | ---------- | ------------- |
-| 50    | 10      | 2.6                | 7 (6)     | 17             | 34%   | 14         | 48%           |
-| 200   | 24      | 3.3                | 14 (14)   | 45             | 23%   | 32         | 37%           |
-| 1,000 | 184     | 4.5                | 24 (24)   | 280            | 28%   | 231        | 40%           |
-| 2,500 | 397     | 4.5                | 42 (42)   | 342            | 14%   | 434        | 38%           |
-| 5,000 | 842     | 4.4                | 52 (50)   | 1,153          | 23%   | 1,335      | 39%           |
+| size  | modules | imports per module | max depth | target closure | share | max fan-in | exports share | visibility entries per provider |
+| ----- | ------- | ------------------ | --------- | -------------- | ----- | ---------- | ------------- | ------------------------------- |
+| 50    | 10      | 2.6                | 7 (6)     | 17             | 34%   | 14         | 48%           | 3.06                            |
+| 200   | 24      | 3.3                | 14 (14)   | 45             | 23%   | 32         | 37%           | 2.79                            |
+| 1,000 | 184     | 4.5                | 24 (24)   | 280            | 28%   | 231        | 40%           | 3.25                            |
+| 2,500 | 397     | 4.5                | 42 (42)   | 342            | 14%   | 434        | 38%           | 3.34                            |
+| 5,000 | 842     | 4.4                | 57 (55)   | 1,156          | 23%   | 1,333      | 39%           | 2.93                            |
 
 The same generator over 32 seeds (`GRAPH_SEED` to `GRAPH_SEED + 31`), p10 / median / p90,
 so a reader sees where the committed graph sits:
 
-| size  | modules         | max depth    | target closure share | max fan-in share |
-| ----- | --------------- | ------------ | -------------------- | ---------------- |
-| 50    | 4 / 10 / 14     | 6 / 9 / 13   | 32 / 44 / 58%        | 18 / 24 / 34%    |
-| 200   | 22 / 32 / 43    | 11 / 15 / 20 | 21 / 31 / 45%        | 16 / 19 / 29%    |
-| 1,000 | 130 / 150 / 184 | 23 / 26 / 36 | 16 / 23 / 30%        | 14 / 17 / 24%    |
-| 2,500 | 356 / 405 / 439 | 32 / 41 / 46 | 12 / 22 / 28%        | 15 / 17 / 25%    |
-| 5,000 | 794 / 835 / 897 | 47 / 58 / 64 | 14 / 24 / 29%        | 15 / 15 / 22%    |
+| size  | modules         | max depth    | target closure share | max fan-in share | visibility entries per provider |
+| ----- | --------------- | ------------ | -------------------- | ---------------- | ------------------------------- |
+| 50    | 4 / 10 / 14     | 6 / 9 / 13   | 32 / 44 / 58%        | 18 / 24 / 34%    | 1.40 / 2.21 / 3.06              |
+| 200   | 22 / 32 / 43    | 11 / 15 / 20 | 21 / 31 / 47%        | 16 / 19 / 29%    | 2.31 / 2.63 / 3.22              |
+| 1,000 | 130 / 150 / 184 | 23 / 26 / 36 | 16 / 23 / 30%        | 14 / 17 / 24%    | 2.60 / 2.87 / 3.45              |
+| 2,500 | 356 / 405 / 439 | 32 / 41 / 47 | 12 / 22 / 30%        | 15 / 17 / 25%    | 2.67 / 2.86 / 3.34              |
+| 5,000 | 794 / 835 / 897 | 47 / 58 / 64 | 13 / 24 / 29%        | 14 / 15 / 22%    | 2.72 / 2.86 / 3.32              |
+
+`shapes.test.ts` also asserts that the 32-seed medians of depth and target share sit inside
+the measured bands at each size with data, so the bands pin the generator and not only its
+committed seed.
 
 The target share spans 16 to 30% at 1,000 across seeds, and real apps span 18 to 33% there.
 Every library runs the same graph, so the seed cannot move a ratio between libraries. The
