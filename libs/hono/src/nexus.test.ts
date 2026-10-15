@@ -407,6 +407,87 @@ describe('nexus', () => {
     expect(count(events, 'scope:extend')).toBe(1);
   });
 
+  it('disposes the scope when an onError handler rethrows', async () => {
+    const events: TraceEvent[] = [];
+    const di = nexus(await ship(events), { request: survey, log: () => {} });
+    const app = new Hono()
+      .use(di.middleware)
+      .get(
+        '/log',
+        di.inject({ log: FLIGHT_LOG }, () => {
+          throw new Error('sector not charted');
+        }),
+      )
+      .onError((error) => {
+        throw error;
+      });
+    await Promise.resolve(app.request('/log')).catch(() => undefined);
+    await settle();
+    expect(count(events, 'scope:create')).toBe(1);
+    expect(count(events, 'scope:dispose')).toBe(1);
+  });
+
+  it('disposes the scope when a handler throws a value that is not an Error', async () => {
+    const events: TraceEvent[] = [];
+    const di = nexus(await ship(events), { request: survey, log: () => {} });
+    const app = new Hono().use(di.middleware).get(
+      '/log',
+      di.inject({ log: FLIGHT_LOG }, () => {
+        throw 'sector not charted';
+      }),
+    );
+    await Promise.resolve(app.request('/log')).catch(() => undefined);
+    await settle();
+    expect(count(events, 'scope:create')).toBe(1);
+    expect(count(events, 'scope:dispose')).toBe(1);
+  });
+
+  it('disposes the ambient scope when next rejects under scopes', async () => {
+    const events: TraceEvent[] = [];
+    const scopes = { run: <R>(_scope: unknown, fn: () => R): R => fn() };
+    const di = nexus(await ship(events), {
+      request: survey,
+      scopes,
+      log: () => {},
+    });
+    const app = new Hono()
+      .use(di.middleware)
+      .get('/log', () => {
+        throw new Error('sector not charted');
+      })
+      .onError((error) => {
+        throw error;
+      });
+    await Promise.resolve(app.request('/log')).catch(() => undefined);
+    await settle();
+    expect(count(events, 'scope:create')).toBe(1);
+    expect(count(events, 'scope:dispose')).toBe(1);
+  });
+
+  it('disposes the ambient scope when the scope runner throws synchronously', async () => {
+    const events: TraceEvent[] = [];
+    const scopes = {
+      run: (): never => {
+        throw new Error('runner down');
+      },
+    };
+    const di = nexus(await ship(events), {
+      request: survey,
+      scopes,
+      log: () => {},
+    });
+    const app = new Hono()
+      .use(di.middleware)
+      .get('/log', (c) => c.text('unreached'))
+      .onError((error) => {
+        throw error;
+      });
+    await Promise.resolve(app.request('/log')).catch(() => undefined);
+    await settle();
+    expect(count(events, 'scope:create')).toBe(1);
+    expect(count(events, 'scope:dispose')).toBe(1);
+  });
+
   it('shares one scope between two first uses in one request', async () => {
     const events: TraceEvent[] = [];
     const di = nexus(await ship(events), { request: survey, log: () => {} });
