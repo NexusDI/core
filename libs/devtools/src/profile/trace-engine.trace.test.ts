@@ -154,6 +154,60 @@ describe('the Chrome layout, as the DevTools trace engine reads it', () => {
     }
   });
 
+  it('reads a recorded node --cpu-prof profile on pid 1, tid 1, its create samples inside the run', async () => {
+    // node --cpu-prof of `nexusdi profile meridian.module.js`: the whole
+    // process, with the samples of core's synchronous create under
+    // createContainer.
+    const profile = fixture('recorded.cpuprofile') as CpuProfile;
+    const run = meridian.runs[0];
+    if (run === undefined || run.durationMs === null)
+      throw new Error('the fixture has no settled create run');
+    const names = new Map(
+      profile.nodes.map((n) => [n.id, n.callFrame.functionName]),
+    );
+    const parents = new Map<number, number>();
+    for (const n of profile.nodes)
+      for (const child of n.children ?? []) parents.set(child, n.id);
+    const inStartup = (id: number): boolean => {
+      for (
+        let at: number | undefined = id;
+        at !== undefined;
+        at = parents.get(at)
+      )
+        if (names.get(at) === 'createContainer') return true;
+      return false;
+    };
+    const startupUs: number[] = [];
+    let t = profile.startTime;
+    for (const [i, sample] of profile.samples.entries()) {
+      t += profile.timeDeltas[i] ?? 0;
+      if (inStartup(sample)) startupUs.push(t);
+    }
+    const [firstUs] = startupUs;
+    if (firstUs === undefined)
+      throw new Error('the recorded profile has no createContainer sample');
+    // Put the first startup sample at the run's start.
+    const offsetMs = firstUs / 1000 - run.startMs;
+    const data = await model(
+      toChromeTrace(meridian, { cpuProfile: { profile, offsetMs } }),
+    );
+    expect([...data.Samples.profilesInProcess.keys()]).toEqual([1]);
+    expect([
+      ...(data.Samples.profilesInProcess.get(1 as never)?.keys() ?? []),
+    ]).toEqual([1]);
+    const [threads] = [...data.Samples.profilesInProcess.values()];
+    const [samples] = [...(threads?.values() ?? [])];
+    const times = new Set(samples?.parsedProfile.timestamps ?? []);
+    const endMs = run.startMs + run.durationMs;
+    expect(startupUs.length).toBeGreaterThan(5);
+    for (const us of startupUs) {
+      const ms = us / 1000;
+      expect(times.has(ms)).toBe(true);
+      expect(ms - offsetMs).toBeGreaterThanOrEqual(run.startMs);
+      expect(ms - offsetMs).toBeLessThanOrEqual(endMs);
+    }
+  });
+
   it('matches the committed golden file', () => {
     const text = `${JSON.stringify(toChromeTrace(meridian), null, 2)}\n`;
     // UPDATE=1 rewrites the golden file; review its diff before committing.
