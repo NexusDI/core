@@ -1,0 +1,58 @@
+---
+title: '@nexusdi/hono'
+kind: reference
+description: The exports of @nexusdi/hono, with each signature, what its tests state and an example.
+package: '@nexusdi/hono'
+---
+
+# `@nexusdi/hono`
+
+A request-scoped service needs one scope per request, disposed when the response is done. A Hono handler that streams keeps writing after `next()` returns, so a scope disposed there is gone while the stream still reads it. `nexus(ship)` returns a `NexusHono`: `di.middleware` gives each request a scope handle, and the first `di.inject` handler creates the scope and resolves its typed deps from it. The scope is disposed once, when the response body ends, errors or is cancelled, or when the request's signal aborts. A NexusDI error in a handler reaches Hono as a `NexusHttpError` with a 500 or 503 status. Each export has one entry below, with what the package's tests state about it.
+
+<ApiFilter />
+
+## `nexus`
+
+<!-- reference @nexusdi/hono#nexus example=getting-started -->
+
+## `NexusHono`
+
+<!-- reference @nexusdi/hono#NexusHono -->
+
+## `NexusHonoOptions`
+
+<!-- reference @nexusdi/hono#NexusHonoOptions -->
+
+## `NexusEnv`
+
+<!-- reference @nexusdi/hono#NexusEnv -->
+
+## `HonoHandler`
+
+<!-- reference @nexusdi/hono#HonoHandler -->
+
+## `SectionMiddleware`
+
+<!-- reference @nexusdi/hono#SectionMiddleware -->
+
+## `RequestScope`
+
+<!-- reference @nexusdi/hono#RequestScope -->
+
+## `ContainerSource`
+
+<!-- reference @nexusdi/hono#ContainerSource -->
+
+## `NexusLog`
+
+<!-- reference @nexusdi/hono#NexusLog -->
+
+## `LogContext`
+
+<!-- reference @nexusdi/hono#LogContext -->
+
+## `NexusHttpError`
+
+<!-- reference @nexusdi/hono#NexusHttpError -->
+
+The guide [Scope a Hono request](/hono/) builds a Hono app whose handlers resolve scoped services, and shows when the scope is disposed.

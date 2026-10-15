@@ -1,0 +1,66 @@
+---
+title: '@nexusdi/react-router'
+kind: reference
+description: The exports of @nexusdi/react-router, with each signature, what its tests state and an example.
+package: '@nexusdi/react-router'
+---
+
+# `@nexusdi/react-router`
+
+A request-scoped service needs one scope per request, disposed when the response is done. React Router finishes the middleware chain before the server writes the body, and deferred data keeps streaming after it, so a scope disposed when the middleware returns is gone while a deferred value still reads it. `nexus(ship)` returns a `NexusRouter`: `di.middleware` in the root route's `middleware` export puts a scope handle on the router context under `NEXUS_SCOPE`, and the first `di.inject` loader or action creates the scope, which loaders that run in parallel share. The scope is disposed once, when the streamed body ends, errors or is cancelled, or when the request's signal aborts. A test puts `existingScope(scope)` under `NEXUS_SCOPE` and calls a loader directly. Each export has one entry below, with what the package's tests state about it.
+
+<ApiFilter />
+
+## `nexus`
+
+<!-- reference @nexusdi/react-router#nexus -->
+
+## `NexusRouter`
+
+<!-- reference @nexusdi/react-router#NexusRouter -->
+
+## `NexusRouterOptions`
+
+<!-- reference @nexusdi/react-router#NexusRouterOptions -->
+
+## `RequestInput`
+
+<!-- reference @nexusdi/react-router#RequestInput -->
+
+## `RouterMiddleware`
+
+<!-- reference @nexusdi/react-router#RouterMiddleware -->
+
+## `SectionMiddleware`
+
+<!-- reference @nexusdi/react-router#SectionMiddleware -->
+
+## `NEXUS_SCOPE`
+
+<!-- reference @nexusdi/react-router#NEXUS_SCOPE -->
+
+## `existingScope`
+
+<!-- reference @nexusdi/react-router#existingScope example=loader-test -->
+
+## `RequestScope`
+
+<!-- reference @nexusdi/react-router#RequestScope -->
+
+## `ContainerSource`
+
+<!-- reference @nexusdi/react-router#ContainerSource -->
+
+## `NexusLog`
+
+<!-- reference @nexusdi/react-router#NexusLog -->
+
+## `LogContext`
+
+<!-- reference @nexusdi/react-router#LogContext -->
+
+## `NexusHttpError`
+
+<!-- reference @nexusdi/react-router#NexusHttpError -->
+
+The guide [React Router server rendering](/react-router-ssr/) adds the middleware to the root route and resolves scoped services in loaders.

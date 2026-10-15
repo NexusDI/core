@@ -70,6 +70,12 @@ const meta: MetaRecord = {
   'api-devtools': { title: '@nexusdi/devtools' },
   'api-federation': { title: '@nexusdi/federation' },
   'api-interceptors': { title: '@nexusdi/interceptors' },
+  'api-hono': { title: '@nexusdi/hono' },
+  'api-express': { title: '@nexusdi/express' },
+  'api-fastify': { title: '@nexusdi/fastify' },
+  'api-react-router': { title: '@nexusdi/react-router' },
+  'api-react': { title: '@nexusdi/react' },
+  'api-vitest': { title: '@nexusdi/vitest' },
   docs: { title: 'Docs', type: 'page', href: '/getting-started/' },
   // The navbar's Blog entry, hidden until the posts migrate at 0.4.0 final
   // (spec §4.1). The folder exists on every branch so the final root build

@@ -1,0 +1,54 @@
+---
+title: '@nexusdi/express'
+kind: reference
+description: The exports of @nexusdi/express, with each signature, what its tests state and an example.
+package: '@nexusdi/express'
+---
+
+# `@nexusdi/express`
+
+A request-scoped service needs one scope per request, disposed when the response is finished or the client is gone. Express runs no middleware after the response, and a client that aborts emits `close` and never `finish`, so a scope disposed on `finish` leaks. `nexus(ship)` returns a `NexusExpress`: `di.middleware` attaches a scope handle to the request, and the first `di.inject` handler creates the scope and resolves its typed deps from it. The response's `close` event disposes the scope once, and a request that resolves nothing creates none. A NexusDI error in a handler reaches Express as a `NexusHttpError` with a 500 or 503 status. Each export has one entry below, with what the package's tests state about it.
+
+<ApiFilter />
+
+## `nexus`
+
+<!-- reference @nexusdi/express#nexus example=route-test -->
+
+## `NexusExpress`
+
+<!-- reference @nexusdi/express#NexusExpress -->
+
+## `NexusExpressOptions`
+
+<!-- reference @nexusdi/express#NexusExpressOptions -->
+
+## `ExpressHandler`
+
+<!-- reference @nexusdi/express#ExpressHandler -->
+
+## `SectionMiddleware`
+
+<!-- reference @nexusdi/express#SectionMiddleware -->
+
+## `RequestScope`
+
+<!-- reference @nexusdi/express#RequestScope -->
+
+## `ContainerSource`
+
+<!-- reference @nexusdi/express#ContainerSource -->
+
+## `NexusLog`
+
+<!-- reference @nexusdi/express#NexusLog -->
+
+## `LogContext`
+
+<!-- reference @nexusdi/express#LogContext -->
+
+## `NexusHttpError`
+
+<!-- reference @nexusdi/express#NexusHttpError -->
+
+The guide [Scope an Express request](/express/) gives an Express app a scope per request, maps NexusDI errors to responses and disposes the container at shutdown.

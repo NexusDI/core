@@ -1,0 +1,58 @@
+---
+title: '@nexusdi/react'
+kind: reference
+description: The exports of @nexusdi/react, with each signature, what its tests state and an example.
+package: '@nexusdi/react'
+---
+
+# `@nexusdi/react`
+
+A React app that uses a container needs the same glue in every codebase: a context and a hook around `get()`, a scope per dialog, a fallback while a lazy section loads. `@nexusdi/react` is that glue, over a container the app creates. `NexusProvider` publishes a container, or the promise `Nexus.create` returns, and `useService(TOKEN)` reads a service with core's synchronous `get()`. `ScopeProvider` gives its subtree a scope of its own, `SectionBoundary` loads a lazy module before it renders its children, and `react()` is a plugin that makes `useService` refuse a transient provider in render. The four error classes have a page each under [Error codes](/api-errors/). Each export has one entry below, with what the package's tests state about it.
+
+<ApiFilter />
+
+## `NexusProvider`
+
+<!-- reference @nexusdi/react#NexusProvider example=provider -->
+
+## `NexusProviderProps`
+
+<!-- reference @nexusdi/react#NexusProviderProps -->
+
+## `useService`
+
+<!-- reference @nexusdi/react#useService example=scope-key -->
+
+## `useContainer`
+
+<!-- reference @nexusdi/react#useContainer -->
+
+## `ScopeProvider`
+
+<!-- reference @nexusdi/react#ScopeProvider example=nested-fix -->
+
+## `ScopeProviderProps`
+
+<!-- reference @nexusdi/react#ScopeProviderProps -->
+
+## `lazySection`
+
+<!-- reference @nexusdi/react#lazySection example=conflict-fix -->
+
+## `LazySection`
+
+<!-- reference @nexusdi/react#LazySection -->
+
+## `SectionBoundary`
+
+<!-- reference @nexusdi/react#SectionBoundary example=section-retry -->
+
+## `SectionBoundaryProps`
+
+<!-- reference @nexusdi/react#SectionBoundaryProps -->
+
+## `react`
+
+<!-- reference @nexusdi/react#react example=transient -->
+
+The guide [Use services in React components](/react/) publishes a container, reads services in components and loads a section on demand.
