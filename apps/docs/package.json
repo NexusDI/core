@@ -66,6 +66,9 @@
           "^production",
           "{workspaceRoot}/examples/meridian/src/**/*",
           {
+            "dependentTasksOutputFiles": "**/*"
+          },
+          {
             "env": "DOCS_BASE_PATH"
           },
           {
