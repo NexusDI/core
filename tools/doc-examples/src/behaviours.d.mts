@@ -22,6 +22,8 @@ export interface Chain {
   line: number;
   /** What the case does, as the author wrote it, dedented. */
   body: string;
+  /** The file position of each character of `body`, index for index. */
+  offsets: number[];
 }
 
 /** One chain with the number the package's own walk gave it. */

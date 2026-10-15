@@ -11,9 +11,8 @@ import { filesUnder } from './files-under.mjs';
  * A reference entry lists the sentences the suite carries about the export it
  * heads. Attribution comes from a stated name: a case belongs to an export when
  * a `describe` in its chain spells that name exactly. So this reads chains and
- * ignores references and coverage. `ruleId`'s lines are executed by 19 of
- * `@nexusdi/core`'s test files and named by 3, and only the `describe` says
- * what the author meant the case to be about.
+ * ignores references and coverage. Many test files execute an export's lines,
+ * and only the `describe` says what the author meant the case to be about.
  *
  * This reads the sources and never runs a test. The reference pages build
  * without a run: `next build` expands a directive, and a 20-second sweep
@@ -110,15 +109,23 @@ function titleOf(node) {
 }
 
 /**
- * A block of source with the indentation its nesting gave it taken off.
+ * A block of source with the indentation its nesting gave it taken off, and
+ * where every character of the result stood in the file.
  *
  * A case three `describe` levels down is written at six spaces, and the pane
  * that shows it is narrower than the editor the author wrote it in. The common
  * indent of the lines below the first is what that nesting added, so taking it
  * off gives the reader the case at column zero and changes no line's shape
  * relative to the others.
+ *
+ * `base` is where `text` starts in its file, and `offsets[i]` holds the file
+ * position of the body's character `i`. `apps/docs/tools/behaviour-data.mjs`
+ * compiles a whole test file once and gets its hovers back at file positions,
+ * so it needs both coordinates to say which case a hover fell in and where in
+ * that case's body it sits. The parser reads both at the position it already
+ * has, and nothing downstream searches the file for the body again.
  */
-function dedent(text) {
+function dedent(text, base) {
   const lines = text.split('\n');
   const depths = lines
     .slice(1)
@@ -126,10 +133,29 @@ function dedent(text) {
     .map((line) => line.length - line.trimStart().length);
   const common = depths.length > 0 ? Math.min(...depths) : 0;
 
-  return lines
-    .map((line, at) => (at === 0 ? line : line.slice(common)))
-    .join('\n')
-    .trim();
+  const kept = [];
+  const offsets = [];
+  let at = base;
+
+  lines.forEach((line, index) => {
+    if (index > 0) {
+      kept.push('\n');
+      offsets.push(at);
+      at += 1;
+      at += Math.min(common, line.length);
+    }
+
+    const rest = index === 0 ? line : line.slice(common);
+    for (let step = 0; step < rest.length; step += 1) offsets.push(at + step);
+    kept.push(rest);
+    at += rest.length;
+  });
+
+  const joined = kept.join('');
+  const from = joined.length - joined.trimStart().length;
+  const to = joined.trimEnd().length;
+
+  return { body: joined.slice(from, to), offsets: offsets.slice(from, to) };
 }
 
 /**
@@ -146,7 +172,8 @@ function dedent(text) {
  */
 function bodyOf(node, seeded) {
   const source = node.getSourceFile();
-  if (seeded) return dedent(node.getText(source));
+  const whole = () => dedent(node.getText(source), node.getStart(source));
+  if (seeded) return whole();
 
   const callback = node.arguments.find(
     (each) =>
@@ -154,7 +181,7 @@ function bodyOf(node, seeded) {
       ts.isFunctionExpression(each) ||
       ts.isIdentifier(each),
   );
-  if (!callback) return dedent(node.getText(source));
+  if (!callback) return whole();
 
   if (
     (ts.isArrowFunction(callback) || ts.isFunctionExpression(callback)) &&
@@ -164,10 +191,10 @@ function bodyOf(node, seeded) {
     const text = callback.body.getText(source);
     // The braces belong to the callback, and the pane draws its own frame
     // around what it shows.
-    return dedent(text.slice(1, -1));
+    return dedent(text.slice(1, -1), callback.body.getStart(source) + 1);
   }
 
-  return dedent(callback.getText(source));
+  return dedent(callback.getText(source), callback.getStart(source));
 }
 
 /** Where a call stands, as a reader would open the file to it. */
@@ -179,12 +206,11 @@ function lineOf(node) {
 /**
  * Every chain a file states, outermost `describe` first.
  *
- * A generated case carries no sentence of its own. 450 of `@nexusdi/core`'s
- * cases are `it.each` seeds titled `seed %i` under
- * `an overlay that matches nothing changes no decision`. That `describe` is
- * already the statement the seeds are about, so the chain stops there and the
- * seeds collapse into it. A case whose own title is computed collapses the same
- * way.
+ * A generated case carries no sentence of its own. An `it.each` case titled
+ * `seed %i` has a title only the runner fills in, and the `describe` above it
+ * is already the statement the seeds are about, so the chain stops there and
+ * the seeds collapse into it. A case whose own title is computed collapses the
+ * same way.
  *
  * A `describe` with a computed title states nothing a reader can be shown, so
  * its cases are dropped, so none of them attaches to a title nobody wrote. A
@@ -235,7 +261,7 @@ export function chainsOf(path) {
     const source = {
       file: path,
       line: lineOf(node),
-      body: bodyOf(node, runner.seeded || title === null),
+      ...bodyOf(node, runner.seeded || title === null),
     };
 
     if (runner.seeded || title === null) {
@@ -259,11 +285,11 @@ const keyOf = (each) =>
  * What a package's tests state, keyed by the name each `describe` spells.
  *
  * Keyed by every `describe` title, because nothing here asks a compiler what
- * a package exports. The reference loader knows which export it is rendering and asks for that name, so the data
- * states what each block is about and the page decides whose entry it belongs
- * on. A case under `describe('hydratePolicy') > describe('canFields')` states
- * something about both and is keyed under both, so it appears on both
- * entries.
+ * a package exports. The reference loader knows which export it is rendering
+ * and asks for that name, so the data states what each block is about and the
+ * page decides whose entry it belongs on. A case under
+ * `describe('hydratePolicy') > describe('canFields')` states something about
+ * both and is keyed under both, so it appears on both entries.
  */
 export function behavioursOf(packageRoot) {
   const files = testFilesOf(packageRoot);
