@@ -1621,12 +1621,16 @@ transformer that rewrites relative imports between the reader's files (`./engine
 into bare specifiers (`@ship/engineering`) and inserts the loop guard (section 11.6). It
 emits a source map per file and keeps it for the run controller (section 11.5).
 
-The compiler options live in one module, `apps/docs/components/runtime/compiler-options.ts`:
-`target: 'es2022'`, `module: 'esnext'`, `moduleResolution: 'bundler'`, `strict: true`,
-`lib: ['es2023', 'esnext.disposable']`, no `experimentalDecorators`, plus one ambient file,
-`runtime-globals.d.ts`, which declares `console`, the timer functions, `queueMicrotask` and
-`performance.now`. The site's twoslash fences compile in the same environment (section
-14.2), and a test asserts that both read this module.
+The compiler options live in one module,
+`apps/docs/components/runtime/compiler-options.ts`: `target: 'es2022'`, `module: 'esnext'`,
+`moduleResolution: 'bundler'`, `strict: true`, `lib: ['es2023', 'esnext.disposable']`, no
+`experimentalDecorators`, plus one ambient file, `runtime-globals.d.ts`, which declares
+`console`, the timer functions, `queueMicrotask`, `performance.now`, and the Fetch API's
+`Request`, `Response` and `Headers` with `URL` and `URLSearchParams`. The Fetch API and
+`URL` are globals on Node 22 and later, Workers, Deno and Bun, and a web adapter's
+signatures and examples name them, so every fence gets them. Their bodies leave out the
+`Blob`, `FormData` and `ReadableStream` forms. The site's twoslash fences compile in the
+same environment (section 14.2), and a test asserts that both read this module.
 
 ### 11.3 Declarations
 
@@ -1651,6 +1655,14 @@ the measurement.
 
 `@nexusdi/node` is left out too. It imports `node:async_hooks`, which no browser has,
 so the Node request guide keeps its server code in doctested regions that run in Node.
+
+The site's twoslash fences make one exception. A fence that imports `@nexusdi/react`
+compiles with the `dom` and `dom.iterable` libs, from `packageCompilerOptions` in
+`compiler-options.ts`, which is keyed by package name as the reference loader keys a
+package. The package renders into a document, and its examples read `textContent` and call
+`click()` on what they rendered. Such a fence gets no `runtime-globals.d.ts`, because
+`lib.dom.d.ts` declares every name in it. No other package gets the `dom` lib, and the
+Playground bundles no `@nexusdi/react`, so its declarations stay as measured above.
 
 ### 11.4 The sandbox
 
