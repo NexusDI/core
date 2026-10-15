@@ -1188,7 +1188,11 @@ The test asserts on DevTools' parsed model. No pixel comparison.
   `nx run-many -t lint test build typecheck` runs it. No browser.
 - Engine: `@paulirish/trace_engine`, pinned exactly, a root devDependency.
   `Trace.TraceModel.Model.createWithAllHandlers()` then `parse(traceEvents)` (verified on
-  0.0.65).
+  0.0.65; pinned at 0.0.66, where `parsedTrace().data` holds the handlers' data and each
+  extension group lists its tracks in `entriesByTrack`). The test is
+  `libs/devtools/src/profile/trace-engine.trace.test.ts`: the `.test.ts` ending lets the
+  repo checks, the dependency lint and fallow treat it as a test, and the main vitest
+  config excludes `*.trace.test.ts` so only `test-trace` runs it.
 - Fixtures in `libs/devtools/test-fixtures/profile/`: a hand-written `ProfileReport` for
   Meridian (14 providers, async `NAV_CHARTS`, one `load`), a failed-run variant, a partial
   report with one pending build and `graph: null` (a hung create never reaches `setup`; the
@@ -1222,8 +1226,8 @@ The test asserts on DevTools' parsed model. No pixel comparison.
   four to eight weeks of warning before stable carries a break.
 - One Ubuntu job of about 2 minutes a week.
 
-Both layers run because each covers the other's gap: the npm engine was last published
-2026-06-02 and trails Chrome 154 by months, and the frontend's module path is internal and
+Both layers run because each covers the other's gap: the npm engine (0.0.66, published
+2026-10-08) trails Chrome 154, and the frontend's module path is internal and
 could move.
 
 ### 10.3 Other tests

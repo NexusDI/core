@@ -120,7 +120,7 @@ libs/devtools/src/profile/
   *.test.ts
 libs/devtools/src/devtools-error.ts   NEXUS_DEVTOOLS_PROFILE_REUSED, NEXUS_DEVTOOLS_PROFILE_INVALID
 libs/devtools/src/no-node.test.ts     the node: scan
-libs/devtools/vitest.trace.config.ts, src/profile/trace-engine.trace.ts, test-fixtures/profile/*
+libs/devtools/vitest.trace.config.ts, src/profile/trace-engine.trace.test.ts, test-fixtures/profile/*
 libs/cli/src/args.ts, main.ts, devtools.ts, profile.ts, cpu.ts, README.md, test-fixtures/profile/*
 examples/size/src/devtools-profile.ts
 examples/meridian/src/errors/NEXUS_DEVTOOLS_PROFILE_{REUSED,INVALID}.md
@@ -5386,7 +5386,7 @@ Each slice's `dur` is `us(end) - us(start)`, so a child that ends inside its par
 
 Files:
 
-- Create: `libs/devtools/vitest.trace.config.ts`, `libs/devtools/src/profile/trace-engine.trace.ts`
+- Create: `libs/devtools/vitest.trace.config.ts`, `libs/devtools/src/profile/trace-engine.trace.test.ts`
 - Create: `libs/devtools/test-fixtures/profile/meridian.report.json`, `failed.report.json`, `partial.report.json`, `node.cpuprofile`, `chrome-trace.golden.json`
 - Modify: `libs/devtools/project.json`, root `package.json` and `package-lock.json`
 
@@ -5414,7 +5414,7 @@ export default defineConfig({
     name: '@nexusdi/devtools:trace',
     watch: false,
     environment: 'node',
-    include: ['src/**/*.trace.ts'],
+    include: ['src/**/*.trace.test.ts'],
     reporters: ['default'],
   },
 });
@@ -5432,10 +5432,10 @@ export default defineConfig({
 "test": { "dependsOn": ["^build", "build", "test-trace"] }
 ```
 
-- [ ] Step 4: Write the test `src/profile/trace-engine.trace.ts`
+- [ ] Step 4: Write the test `src/profile/trace-engine.trace.test.ts`
 
 ```ts
-import { readFileSync } from 'node:fs';
+import { readFileSync, writeFileSync } from 'node:fs';
 
 import * as Trace from '@paulirish/trace_engine';
 import { describe, expect, it } from 'vitest';
@@ -5447,24 +5447,55 @@ import {
   type CpuProfile,
   type TraceFile,
 } from '../index.js';
+import { spansOf } from './spans.js';
+
+const at = (name: string): URL =>
+  new URL(`../../test-fixtures/profile/${name}`, import.meta.url);
 
 const fixture = (name: string): unknown =>
-  JSON.parse(
-    readFileSync(
-      new URL(`../../test-fixtures/profile/${name}`, import.meta.url),
-      'utf8',
-    ),
-  );
+  JSON.parse(readFileSync(at(name), 'utf8'));
 
+/** The trace as the DevTools trace engine, the one DevTools ships, reads it. */
 async function model(file: TraceFile) {
   const engine = Trace.TraceModel.Model.createWithAllHandlers();
   await engine.parse(file.traceEvents as never);
-  const data = engine.parsedTrace();
-  if (data === null) throw new Error('the engine parsed nothing');
-  return data;
+  const parsed = engine.parsedTrace();
+  if (parsed === null) throw new Error('the engine parsed nothing');
+  return parsed.data;
+}
+
+type Event = Readonly<Record<string, unknown>>;
+
+/** The track entries the file writes: each non-marker b/e pair, by track. */
+function spansByTrack(
+  file: TraceFile,
+): Map<string, [string, number, number][]> {
+  const ends = new Map<string, number>();
+  for (const e of file.traceEvents)
+    if (e['ph'] === 'e')
+      ends.set((e['id2'] as { local: string }).local, e['ts'] as number);
+  const byTrack = new Map<string, [string, number, number][]>();
+  for (const e of file.traceEvents as readonly Event[]) {
+    if (e['ph'] !== 'b') continue;
+    const { devtools } = JSON.parse(
+      (e['args'] as { detail: string }).detail,
+    ) as {
+      devtools: { dataType: string; track?: string };
+    };
+    if (devtools.dataType === 'marker' || devtools.track === undefined)
+      continue;
+    const start = e['ts'] as number;
+    const end = ends.get((e['id2'] as { local: string }).local) ?? start;
+    const list = byTrack.get(devtools.track) ?? [];
+    list.push([e['name'] as string, start, end - start]);
+    byTrack.set(devtools.track, list);
+  }
+  return byTrack;
 }
 
 const meridian = parseProfileReport(fixture('meridian.report.json'));
+const partial = parseProfileReport(fixture('partial.report.json'));
+const failed = parseProfileReport(fixture('failed.report.json'));
 
 /** The golden track list: Runs, Steps, then each run's level tracks and onInit. */
 const TRACKS = [
@@ -5484,70 +5515,140 @@ describe('the Chrome layout, as the DevTools trace engine reads it', () => {
   });
 
   it('draws one NexusDI group with the golden tracks and entry counts', async () => {
-    const data = await model(toChromeTrace(meridian));
-    const groups = data.ExtensionTraceData.extensionTrackData;
-    expect(groups.map((g) => g.name)).toEqual(['NexusDI']);
-    const tracks = groups[0]!.tracks ?? [];
-    expect(tracks.map((t) => t.name)).toEqual(TRACKS);
-  });
-
-  it('keeps every entry start and duration in µs', async () => {
     const file = toChromeTrace(meridian);
-    const data = await model(file);
-    const entries = data.ExtensionTraceData.extensionTrackData.flatMap((g) =>
-      (g.tracks ?? []).flatMap((t) => Object.values(t.entriesByTrack).flat()),
-    );
-    const begins = file.traceEvents.filter(
-      (e) =>
-        e['ph'] === 'b' &&
-        !String((e['args'] as { detail: string }).detail).includes('"marker"'),
-    );
-    expect(entries).toHaveLength(begins.length);
-  });
-
-  it('merges the CPU profile into pid 1 inside the run', async () => {
-    const profile = fixture('node.cpuprofile') as CpuProfile;
-    const offsetMs = profile.startTime / 1000 - meridian.runs[0]!.startMs;
-    const data = await model(
-      toChromeTrace(meridian, { cpuProfile: { profile, offsetMs } }),
-    );
-    expect(data.Samples.profilesInProcess.size).toBe(1);
-  });
-
-  it('matches the committed golden file', () => {
-    expect(JSON.stringify(toChromeTrace(meridian), null, 2)).toBe(
-      readFileSync(
-        new URL(
-          '../../test-fixtures/profile/chrome-trace.golden.json',
-          import.meta.url,
-        ),
-        'utf8',
+    const groups = (await model(file)).ExtensionTraceData.extensionTrackData;
+    expect(groups.map((g) => g.name)).toEqual(['NexusDI']);
+    const tracks = Object.entries(groups[0]?.entriesByTrack ?? {});
+    expect(tracks.map(([name]) => name)).toEqual(TRACKS);
+    const written = spansByTrack(file);
+    expect(
+      Object.fromEntries(tracks.map(([name, list]) => [name, list.length])),
+    ).toEqual(
+      Object.fromEntries(
+        [...written].map(([name, list]) => [name, list.length]),
       ),
     );
   });
 
-  it('draws the failed and partial fixtures with no throw', async () => {
-    for (const name of ['failed.report.json', 'partial.report.json'])
-      expect(
-        (await model(toChromeTrace(parseProfileReport(fixture(name))))).Meta
-          .mainFrameId,
-      ).toBe('F1');
+  it("keeps every entry's name, start and duration in µs", async () => {
+    const file = toChromeTrace(meridian);
+    const groups = (await model(file)).ExtensionTraceData.extensionTrackData;
+    const read = Object.entries(groups[0]?.entriesByTrack ?? {}).map(
+      ([track, list]) => [
+        track,
+        list
+          .map((entry) => [entry.name, entry.ts, entry.dur] as const)
+          .sort((a, b) => a[1] - b[1] || a[0].localeCompare(b[0])),
+      ],
+    );
+    // The fixture's own spans, in µs, independent of the file's events.
+    const us = (ms: number) => Math.round(ms * 1000);
+    const expected = new Map<string, (readonly [string, number, number])[]>();
+    for (const run of meridian.runs)
+      for (const span of spansOf(run, meridian.graph, meridian.reportedMs)) {
+        if (span.marker) continue;
+        const list = expected.get(span.track) ?? [];
+        list.push([
+          span.name,
+          us(span.startMs),
+          us(span.endMs) - us(span.startMs),
+        ]);
+        expected.set(span.track, list);
+      }
+    expect(read).toEqual(
+      [...expected].map(([track, list]) => [
+        track,
+        [...list].sort((a, b) => a[1] - b[1] || a[0].localeCompare(b[0])),
+      ]),
+    );
+  });
+
+  it('merges the CPU profile into pid 1, its samples inside the run', async () => {
+    const profile = fixture('node.cpuprofile') as CpuProfile;
+    const run = meridian.runs[0];
+    if (run === undefined || run.durationMs === null)
+      throw new Error('the fixture has no settled create run');
+    const offsetMs = profile.startTime / 1000 - run.startMs;
+    const data = await model(
+      toChromeTrace(meridian, { cpuProfile: { profile, offsetMs } }),
+    );
+    expect(data.Samples.profilesInProcess.size).toBe(1);
+    const [threads] = [...data.Samples.profilesInProcess.values()];
+    const [samples] = [...(threads?.values() ?? [])];
+    const times = samples?.parsedProfile.timestamps ?? [];
+    expect(times.length).toBeGreaterThan(0);
+    // The engine keeps sample times in ms.
+    const startMs = run.startMs + offsetMs;
+    const endMs = run.startMs + run.durationMs + offsetMs;
+    for (const ts of [times[0], times[times.length - 1]]) {
+      expect(ts).toBeGreaterThanOrEqual(startMs);
+      expect(ts).toBeLessThanOrEqual(endMs);
+    }
+  });
+
+  it('matches the committed golden file', () => {
+    const text = `${JSON.stringify(toChromeTrace(meridian), null, 2)}\n`;
+    // UPDATE=1 rewrites the golden file; review its diff before committing.
+    if (process.env['UPDATE'])
+      writeFileSync(at('chrome-trace.golden.json'), text);
+    expect(text).toBe(readFileSync(at('chrome-trace.golden.json'), 'utf8'));
+  });
+
+  it('draws the failed and partial fixtures', async () => {
+    for (const report of [failed, partial])
+      expect((await model(toChromeTrace(report))).Meta.mainFrameId).toBe('F1');
+  });
+
+  it('gives a partial report with no graph the bare frame URL and no critical path', () => {
+    const file = toChromeTrace(partial);
+    const started = file.traceEvents.find(
+      (e) => e['name'] === 'TracingStartedInBrowser',
+    );
+    expect(
+      (started?.['args'] as { data: { frames: { url: string }[] } }).data
+        .frames[0]?.url,
+    ).toBe('nexusdi://profile');
+    const colours = (file.traceEvents as readonly Event[])
+      .filter((e) => e['ph'] === 'b')
+      .map(
+        (e) =>
+          (
+            JSON.parse((e['args'] as { detail: string }).detail) as {
+              devtools: { color: string };
+            }
+          ).devtools.color,
+      );
+    expect(colours).not.toContain('primary-dark');
+    expect(colours).toContain('error');
   });
 });
 
 describe('the Perfetto file', () => {
   it('nests slices per tid, pairs every flow and names every tid', () => {
-    const events = toPerfettoTrace(meridian).traceEvents as Record<
-      string,
-      number | string
-    >[];
+    const events = toPerfettoTrace(meridian).traceEvents as readonly Event[];
     const named = new Set(
       events
         .filter((e) => e['name'] === 'thread_name')
         .map((e) => `${e['pid']} ${e['tid']}`),
     );
-    for (const e of events.filter((x) => x['ph'] === 'X'))
+    const slices = events.filter((e) => e['ph'] === 'X');
+    for (const e of slices)
       expect(named.has(`${e['pid']} ${e['tid']}`)).toBe(true);
+    // On each tid, two slices that overlap nest: one holds the other.
+    const byTid = new Map<string, Event[]>();
+    for (const e of slices) {
+      const key = `${e['pid']} ${e['tid']}`;
+      byTid.set(key, [...(byTid.get(key) ?? []), e]);
+    }
+    const start = (e: Event) => e['ts'] as number;
+    const end = (e: Event) => start(e) + (e['dur'] as number);
+    const holds = (a: Event, b: Event) =>
+      start(a) <= start(b) && end(b) <= end(a);
+    for (const list of byTid.values())
+      for (const a of list)
+        for (const b of list)
+          if (a !== b && start(a) < end(b) && start(b) < end(a))
+            expect(holds(a, b) || holds(b, a)).toBe(true);
     const ids = (ph: string) =>
       events
         .filter((e) => e['ph'] === ph)
@@ -5558,7 +5659,7 @@ describe('the Perfetto file', () => {
 });
 ```
 
-The engine's type names (`parsedTrace`, `entriesByTrack`, `profilesInProcess`) follow the version pinned in Step 1. Where that version names a field differently, read its `.d.ts` and keep each assertion's meaning: spec 10.1 lists the five assertions this file must make.
+The main `vite.config.ts` excludes `src/**/*.trace.test.ts` (with `configDefaults.exclude`), `.fallowrc.jsonc` lists `vitest.trace.config.ts` as an entry and `@paulirish/trace_engine` under `ignoreDependencies`, and `no-node.test.ts` needs no `.trace.ts` exception. Spec 10.1's third assertion compares each engine entry with `spansOf` over the report, so a shift in the writer fails it. The engine's type names (`parsedTrace`, `entriesByTrack`, `profilesInProcess`) follow the version pinned in Step 1. Where that version names a field differently, read its `.d.ts` and keep each assertion's meaning: spec 10.1 lists the five assertions this file must make.
 
 - [ ] Step 5: Write the golden file and run the target
 
@@ -6705,7 +6806,7 @@ Files:
 
 - [ ] Step 1: The regions. `trace-events.md` holds spec 13's third-party profiler as region `third-party` (with `downloadCharts` and `relay` implemented by stubs in the test, and the claim `probe.rows().map((b) => b.token); // -> ['NavCharts', 'SubspaceLink']` ordered by own time, made deterministic with a factory that awaits a 20 ms timer), and a region `order` that records the events of a create with one async factory and pins `events.map((e) => e.type); // -> ['compile', 'construct:await', 'construct', 'run']`.
 
-- [ ] Step 2: The page, `kind: contract`, title "What the trace events promise", in the Guides band after `profiling`. It holds spec 12's eleven items, in that order: every core event with every field, its type, its tier and what it measures (spec 3.2's table, extended to the rc.0 events); the clock and its mapping to Chrome µs and to an OpenTelemetry start through `performance.timeOrigin`; the contract text of spec 5.1 and the guidance under it, verbatim; the order guarantees of 3.4; what `level` indexes per run kind and that levels are barriers; `parent` and nesting; the step derivation of 7.2, whose static step reads "value and alias providers (and options schemas): the `construct` events with `lifetime: null` and no level"; where the graph comes from (`context.blueprint().edges` in `setup`, and `EdgeView.ordersBuild` and `ProviderView.inline`, which a critical path reads); the third-party region; how devtools draws the Chrome file, with the warning that the layout is Chrome's undocumented format and a link to `libs/devtools/src/profile/trace-engine.trace.ts`; namespacing a package's own events and `PluginContext.emit`. Check every field against `libs/core/src/runtime/trace.ts` after Task 7.
+- [ ] Step 2: The page, `kind: contract`, title "What the trace events promise", in the Guides band after `profiling`. It holds spec 12's eleven items, in that order: every core event with every field, its type, its tier and what it measures (spec 3.2's table, extended to the rc.0 events); the clock and its mapping to Chrome µs and to an OpenTelemetry start through `performance.timeOrigin`; the contract text of spec 5.1 and the guidance under it, verbatim; the order guarantees of 3.4; what `level` indexes per run kind and that levels are barriers; `parent` and nesting; the step derivation of 7.2, whose static step reads "value and alias providers (and options schemas): the `construct` events with `lifetime: null` and no level"; where the graph comes from (`context.blueprint().edges` in `setup`, and `EdgeView.ordersBuild` and `ProviderView.inline`, which a critical path reads); the third-party region; how devtools draws the Chrome file, with the warning that the layout is Chrome's undocumented format and a link to `libs/devtools/src/profile/trace-engine.trace.test.ts`; namespacing a package's own events and `PluginContext.emit`. Check every field against `libs/core/src/runtime/trace.ts` after Task 7.
 
 - [ ] Step 3: `introspection.mdx`: add one paragraph to the trace section: events carry `startMs` and a run id, and `/profiling/` shows how to read them.
 
