@@ -23,6 +23,9 @@ apps/docs/next-env.d.ts
 # The docs build targets write their data here (`docs:benchmark-data` writes
 # `benchmark-data.json`), and `apps/docs/.gitignore` keeps it out of git.
 apps/docs/generated
+# Local agent ledgers. Each checkout excludes them from git in
+# `.git/info/exclude`, so no commit carries them.
+.superpowers
 # Guard fixtures are data the docs guards read line by line, and their tests
 # assert source line numbers. A fence prettier pads with a blank line moves
 # every line after it.
