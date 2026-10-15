@@ -4,7 +4,7 @@
 
 ## Scaling
 
-2,500 providers is the scale of the largest applications measured, which hold 1,200 to 2,250 providers of their own. 5,000 is headroom past every application measured; no claim cites it.
+2,500 providers is the scale of the largest applications measured, which hold 1,200 to 2,250 providers of their own. 5,000 is headroom past every application measured. README, docs and post claims stop at 2,500; the per-provider columns use 1,000 and 5,000, the widest span, so the fixed cost weighs least.
 
 Gzip bytes of the bundle on `mixed` graphs.
 
