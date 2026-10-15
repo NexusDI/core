@@ -6075,7 +6075,7 @@ export default Meridian;
 - [ ] Step 2: Write the failing process tests `profile.test.ts`
 
 ```ts
-import { readFileSync } from 'node:fs';
+import { readFileSync, writeFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 
@@ -6093,7 +6093,9 @@ describe('nexusdi profile', () => {
     });
     expect(run.stderr).toBe('');
     expect(run.status).toBe(0);
-    expect(run.stdout).toMatch(/^Node \d+\.\d+\.\d+, @nexusdi\/core /);
+    expect(run.stdout).toMatch(
+      /^create \d+\.\d ms, cold, Node \d+\.\d+\.\d+, @nexusdi\/core \S+\n/,
+    );
     expect(run.stdout).toContain('slowest providers');
     expect(run.stdout).toMatch(/NavCharts\s+Tactical\s+1\s+singleton.*async/);
   });
@@ -6191,6 +6193,187 @@ describe('nexusdi profile', () => {
     expect(run.status).toBe(2);
     expect(run.stderr).toMatch(/^nexusdi: --cpu is not available/);
   });
+  it('prints what a hung create still awaits after --timeout and exits 1', () => {
+    const dir = tempDir();
+    const run = runCli(
+      [
+        'profile',
+        'meridian.module.js#Hung',
+        '--timeout',
+        '50',
+        '--json',
+        join(dir, 'out.json'),
+      ],
+      { cwd: DIR },
+    );
+    expect(run.status).toBe(1);
+    expect(run.stderr).toContain('create did not settle within 50 ms');
+    expect(run.stderr).toContain('Still awaiting: NavCharts (Hung) factory');
+    const [report] = JSON.parse(
+      readFileSync(join(dir, 'out.json'), 'utf8'),
+    ) as { runs: { ok: boolean | null }[] }[];
+    expect(report?.runs).toMatchObject([{ ok: null }]);
+  });
+
+  it('names a disposal that hangs past --timeout, warns and keeps exit 0', () => {
+    const run = runCli(
+      ['profile', 'stuck.module.js#Stuck', '--timeout', '200'],
+      { cwd: DIR },
+    );
+    expect(run.status).toBe(0);
+    expect(run.stderr).toMatch(
+      /^nexusdi: warning: disposal after iteration 1 did not settle within 200 ms/,
+    );
+    expect(run.stderr).not.toContain('create did not settle');
+    expect(run.stdout).toMatch(/^create \d+\.\d ms, cold/);
+  });
+
+  it('records the environment in the JSON, and re-renders it from the report alone', () => {
+    const dir = tempDir();
+    const recorded = runCli(
+      [
+        'profile',
+        'meridian.module.js',
+        '--quiet',
+        '--json',
+        join(dir, 'r.json'),
+      ],
+      { cwd: DIR },
+    );
+    expect(recorded.status).toBe(0);
+    const [report] = JSON.parse(readFileSync(join(dir, 'r.json'), 'utf8')) as {
+      environment?: { node: string; core: string };
+    }[];
+    expect(report?.environment?.node).toBe(process.versions.node);
+    // A report recorded elsewhere keeps its own environment on re-render.
+    writeFileSync(
+      join(dir, 'elsewhere.json'),
+      JSON.stringify({
+        ...report,
+        environment: { node: '20.0.0', core: '9.9.9' },
+      }),
+    );
+    const rendered = runCli(
+      [
+        'profile',
+        join(dir, 'elsewhere.json'),
+        '--perfetto',
+        join(dir, 'p.json'),
+      ],
+      { cwd: DIR },
+    );
+    expect(rendered.status).toBe(0);
+    expect(rendered.stdout.split('\n')[0]).toMatch(
+      /, cold, Node 20\.0\.0, @nexusdi\/core 9\.9\.9$/,
+    );
+    expect(
+      JSON.parse(readFileSync(join(dir, 'p.json'), 'utf8')).metadata,
+    ).toEqual({ 'nexusdi-profile': 1, 'nexusdi-core': '9.9.9' });
+  });
+
+  it('leaves the environment out of a saved report that has none', () => {
+    const dir = tempDir();
+    const run = runCli(
+      ['profile', 'report.json', '--perfetto', join(dir, 'p.json')],
+      { cwd: DIR },
+    );
+    expect(run.status).toBe(0);
+    expect(run.stdout.split('\n')[0]).toMatch(/^create \d+\.\d ms, cold$/);
+    expect(
+      JSON.parse(readFileSync(join(dir, 'p.json'), 'utf8')).metadata,
+    ).toEqual({ 'nexusdi-profile': 1 });
+  });
+
+  it('refuses two outputs on one path, and an output directory that does not exist, before the run', () => {
+    const dir = tempDir();
+    const same = runCli(
+      [
+        'profile',
+        'meridian.module.js#Hung',
+        '--chrome',
+        join(dir, 'x.json'),
+        '--json',
+        join(dir, 'x.json'),
+      ],
+      { cwd: DIR, timeout: 5_000 },
+    );
+    expect(same.status).toBe(2);
+    expect(same.stderr).toMatch(/^nexusdi: --chrome and --json both write /);
+    const missing = runCli(
+      [
+        'profile',
+        'meridian.module.js#Hung',
+        '--json',
+        join(dir, 'no', 'r.json'),
+      ],
+      { cwd: DIR, timeout: 5_000 },
+    );
+    expect(missing.status).toBe(2);
+    expect(missing.stderr).toMatch(
+      /^nexusdi: --json .*: the directory .* does not exist/,
+    );
+  });
+
+  it('prints a cause once when the errors() text already holds it', () => {
+    const run = runCli(
+      [
+        'profile',
+        'broken.module.js#Broken',
+        '--plugins',
+        'errors-plugins.js#plugins',
+        '--quiet',
+      ],
+      { cwd: DIR },
+    );
+    expect(run.status).toBe(1);
+    expect(run.stderr.match(/hull breach/g)).toHaveLength(1);
+  });
+});
+
+describe('nexusdi profile --timeout', () => {
+  it('prints what a hung create still awaits, writes the partial report and exits 1', () => {
+    const dir = tempDir();
+    const started = Date.now();
+    const run = runCli(
+      [
+        'profile',
+        'meridian.module.js#Hung',
+        '--timeout',
+        '300',
+        '--chrome',
+        join(dir, 'c.json'),
+        '--json',
+        join(dir, 'r.json'),
+      ],
+      { cwd: DIR, timeout: 10_000 },
+    );
+    expect(Date.now() - started).toBeLessThan(8_000);
+    expect(run.status).toBe(1);
+    expect(run.stderr).toMatch(
+      /^nexusdi: create did not settle within 300 ms\.\n {2}Still awaiting: NavCharts \(Hung\) factory, \d+ ms\n$/,
+    );
+    const [report] = JSON.parse(readFileSync(join(dir, 'r.json'), 'utf8')) as {
+      runs: { ok: null; pending: unknown[] }[];
+    }[];
+    expect(report?.runs[0]).toMatchObject({ ok: null });
+    expect(report?.runs[0]?.pending).toHaveLength(1);
+    expect(readFileSync(join(dir, 'c.json'), 'utf8')).toContain(
+      'still awaiting at timeout',
+    );
+  });
+});
+
+describe('nexusdi profile exit codes (spec 9.5)', () => {
+  it.each([
+    [['profile', 'meridian.module.js', '--cpu'], 2],
+    [['profile', 'report.json', '--repeat', '1'], 2],
+    [['profile', 'missing.module.js'], 2],
+    [['profile', 'meridian.module.js#Nope'], 2],
+  ])('%j exits %i with a nexusdi: message and a fix line', (argv, status) => {
+    const run = runCli(argv, { cwd: DIR });
+    expect(run.status).toBe(status);
+    expect(run.stderr).toMatch(/^nexusdi: .*\n {2}\S/);
+  });
 });
 ```
 
@@ -6255,13 +6438,11 @@ function describeFailure(error: unknown): string {
       current instanceof Error
         ? `${current.name}: ${current.message}`
         : String(current);
-    lines.push(
-      depth === 0
-        ? current instanceof Error
-          ? current.message
-          : text
-        : `  caused by ${text}`,
-    );
+    // The errors() plugin writes the cause into the message; print it once.
+    if (depth === 0)
+      lines.push(current instanceof Error ? current.message : text);
+    else if (!(lines.at(-1) ?? '').includes(text))
+      lines.push(`  caused by ${text}`);
     current = current instanceof Error ? current.cause : undefined;
   }
   return lines.join('\n');
@@ -6303,16 +6484,27 @@ function coreVersion(fromFile: string): string | null {
     .version;
 }
 
+/** Where a startup is recorded: this Node, and the core the entry resolves. */
+export function environmentOf(
+  fromFile: string,
+): NonNullable<ProfileReport['environment']> {
+  return {
+    node: process.versions.node,
+    core: coreVersion(fromFile) ?? '(unresolved)',
+  };
+}
+
 async function writeOutputs(
   io: Io,
   command: ProfileCommand,
   devtools: DevtoolsApi,
   reports: readonly ProfileReport[],
-  core: string | null,
   cpu: Parameters<DevtoolsApi['toChromeTrace']>[1],
 ): Promise<void> {
   const [first] = reports;
   if (first === undefined) return;
+  // The core that recorded the report, never this machine's (spec 7.4).
+  const core = first.environment?.core;
   if (command.json !== null)
     await emit(JSON.stringify(reports), command.json, io.stdout);
   if (command.chrome !== null)
@@ -6328,7 +6520,9 @@ async function writeOutputs(
         ...file,
         metadata: {
           ...file.metadata,
-          ...(core === null ? {} : { 'nexusdi-core': core }),
+          ...(core === undefined || core === '(unresolved)'
+            ? {}
+            : { 'nexusdi-core': core }),
         },
       }),
       command.perfetto,
@@ -6348,23 +6542,19 @@ export async function runProfile(
       '--cpu is not available in this build of @nexusdi/cli.',
       'Drop --cpu; the --chrome file still holds the provider spans.',
     );
-  const from =
-    entryKind(command.entry) === 'json'
-      ? join(io.cwd, 'package.json')
-      : command.entry.path;
-  const core = coreVersion(from);
-  const header = `Node ${process.versions.node}, @nexusdi/core ${core ?? version}\n`;
   if (entryKind(command.entry) === 'json') {
-    const devtools = await loadDevtools(from, version);
+    // A saved report carries the environment it was recorded in, or none.
+    const devtools = await loadDevtools(join(io.cwd, 'package.json'), version);
     const reports = await readReports(command, devtools);
-    await writeOutputs(io, command, devtools, reports, core, undefined);
+    await writeOutputs(io, command, devtools, reports, undefined);
     if (!command.quiet)
       await writeTo(
         io.stdout,
-        header + devtools.profileTable(reports, { top: command.top }),
+        devtools.profileTable(reports, { top: command.top }),
       );
     return 0;
   }
+  const environment = environmentOf(command.entry.path);
 
   const { root, load, plugins, devtools } = await loadEntry(
     command,
@@ -6385,7 +6575,7 @@ export async function runProfile(
       command.timeout,
     );
     if (outcome.kind === 'done') {
-      reports.push(outcome.report);
+      reports.push({ ...outcome.report, environment });
       if (outcome.report.dispose !== null && outcome.report.dispose.errors > 0)
         await writeTo(
           io.stderr,
@@ -6393,9 +6583,23 @@ export async function runProfile(
         );
       continue;
     }
-    const partial = profiler.report();
+    const partial = { ...profiler.report(), environment };
     reports.push(partial);
     const open = partial.runs.find((r) => r.ok === null);
+    if (
+      outcome.kind === 'timeout' &&
+      open === undefined &&
+      partial.runs.length > 0
+    ) {
+      // Every run settled, so the wait was the disposal profileStartup ends
+      // with. The startup figures stand, as for a disposal error (spec 9.3);
+      // a further iteration would build next to the stuck one, so it stops.
+      await writeTo(
+        io.stderr,
+        `nexusdi: warning: disposal after iteration ${i + 1} did not settle within ${command.timeout} ms; the startup figures stand.\n`,
+      );
+      break;
+    }
     if (outcome.kind === 'timeout') {
       const waiting = (open?.pending ?? [])
         .map(
@@ -6424,11 +6628,11 @@ export async function runProfile(
     code = 1;
     break;
   }
-  await writeOutputs(io, command, devtools, reports, core, cpu);
+  await writeOutputs(io, command, devtools, reports, cpu);
   if (!command.quiet)
     await writeTo(
       io.stdout,
-      header + devtools.profileTable(reports, { top: command.top }),
+      devtools.profileTable(reports, { top: command.top }),
     );
   return code;
 }
@@ -6437,6 +6641,8 @@ export async function runProfile(
 `main.ts`: after `parseCommand`, for `command.kind === 'profile'` run `checkOut` once per output path against the input refs, `requireCore(version)`, then `const { runProfile } = await import('./profile.js'); return await runProfile(command, io, version);`. The bin already calls `process.exit(code)`, so an open handle in user code, or the hung operation of a timeout, cannot keep it alive. `cli-error.ts`: the `ExitCode` TSDoc reads "1: the graph is invalid, or the app failed to start after it compiled."
 
 `emit` falls back to stdout only for a null path, which `writeOutputs` never passes. `checkOut` takes the flag name for its message, so a `--chrome`, `--perfetto` or `--json` path that is an input names its own flag. Core's `ProviderError` message names the provider and leaves out what it threw, so the failure line prints the `cause` chain under it (`  caused by Error: hull breach`). Until Task 18, `runProfile` exits 2 on `--cpu` ("--cpu is not available in this build of @nexusdi/cli."), the README's second Profile startup command carries no `--cpu`, and `--help` leaves out `--cpu` and `--cpu-interval`; the parser already accepts both.
+
+Review round (2026-10-15): `ProfileReport.environment` (spec 6.2) is written by the CLI on every report it records and printed by `profileTable` on its one-line header; a `.json` entry re-renders with its reports' own environment or none, and Perfetto's `nexusdi-core` comes from it. `environmentOf` says `(unresolved)` for an entry no core reaches (`environment.test.ts`). A disposal that outlives `--timeout` warns by name, keeps the exit code and stops iterating (`stuck.module.js`). `checkOutputs` in `write.ts` refuses two outputs on one path and a missing or unwritable output directory before the run. `describeFailure` skips a cause line its message already holds (`errors-plugins.js`, which adds `libs/errors` to the cli tsconfig references through `nx sync`).
 
 - [ ] Step 6: Run the targets
 
@@ -6509,7 +6715,7 @@ describe('nexusdi profile exit codes (spec 9.5)', () => {
 });
 ```
 
-For exit 3, add a case to `bin.test.ts` next to graph's missing-devtools case: the same temp project without `@nexusdi/devtools`, run with `profile`, expects status 3 and the `npm i -D @nexusdi/devtools@<version>` fix line.
+For exit 3, add a case to `typescript.test.ts`, where graph's missing-devtools case lives: the same temp project without `@nexusdi/devtools`, run with `profile`, expects status 3 and the `npm i -D @nexusdi/devtools@<version>` fix line.
 
 - [ ] Step 2: Run them
 
