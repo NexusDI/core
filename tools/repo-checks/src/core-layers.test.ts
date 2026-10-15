@@ -227,6 +227,49 @@ describe('nodeViolations', () => {
     ).toEqual(['decorators/x.ts references process; only node/ and cli/ may']);
   });
 
+  it('lets react/src/dev.ts read process.env.NODE_ENV and nothing else in react', () => {
+    expect(
+      nodeViolations([
+        {
+          path: 'react/src/dev.ts',
+          source:
+            'declare const process: { readonly env: { readonly NODE_ENV?: string } };\n' +
+            "export const dev = process.env.NODE_ENV !== 'production';",
+        },
+        {
+          path: 'react/src/section.tsx',
+          source: 'const x = process.env.NODE_ENV;',
+        },
+      ]),
+    ).toEqual([
+      'react/src/section.tsx references process; only node/ and cli/ may',
+    ]);
+  });
+
+  it('reports any other process member in react/src/dev.ts', () => {
+    expect(
+      nodeViolations([
+        {
+          path: 'react/src/dev.ts',
+          source:
+            "export const dev = process.env.NODE_ENV !== 'production';\nprocess.exit(1);",
+        },
+        {
+          path: 'react/src/dev.ts',
+          source: 'const debug = process.env.DEBUG;',
+        },
+        {
+          path: 'react/src/dev.ts',
+          source: "import { env } from 'node:process';",
+        },
+      ]),
+    ).toEqual([
+      'react/src/dev.ts references process; only node/ and cli/ may',
+      'react/src/dev.ts references process; only node/ and cli/ may',
+      "react/src/dev.ts references 'node:process'; only node/ and cli/ may",
+    ]);
+  });
+
   it('ignores a property named process', () => {
     expect(
       nodeViolations([

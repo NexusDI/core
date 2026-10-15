@@ -243,10 +243,44 @@ export function layerViolations(files: readonly SourceFileText[]): string[] {
  */
 const NODE_ONLY = ['node/src/', 'cli/src/'];
 
+/**
+ * Single files outside NODE_ONLY that may read process.env.NODE_ENV, and
+ * declare the ambient `process` that types it, with no other use of
+ * process. Every React toolchain replaces that expression at build time,
+ * and React itself relies on it (react spec 12.3, 16).
+ */
+const NODE_ENV_READERS = ['react/src/dev.ts'];
+
+/** `process` as the head of `process.env.NODE_ENV`, or as the name in `declare const process`. */
+function isNodeEnvRead(node: ts.Identifier): boolean {
+  const parent = node.parent;
+  if (ts.isVariableDeclaration(parent) && parent.name === node) {
+    const statement = parent.parent.parent;
+    return (
+      ts.isVariableStatement(statement) &&
+      (statement.modifiers?.some(
+        (m) => m.kind === ts.SyntaxKind.DeclareKeyword,
+      ) ??
+        false)
+    );
+  }
+  const env = parent;
+  if (!ts.isPropertyAccessExpression(env) || env.expression !== node)
+    return false;
+  const read = env.parent;
+  return (
+    env.name.text === 'env' &&
+    ts.isPropertyAccessExpression(read) &&
+    read.expression === env &&
+    read.name.text === 'NODE_ENV'
+  );
+}
+
 export function nodeViolations(files: readonly SourceFileText[]): string[] {
   const found: string[] = [];
   for (const file of files) {
     if (NODE_ONLY.some((prefix) => file.path.startsWith(prefix))) continue;
+    const readsNodeEnv = NODE_ENV_READERS.includes(file.path);
     const source = parseFile(file);
     for (const specifier of specifiersOf(source)) {
       if (specifier.startsWith('node:'))
@@ -257,7 +291,11 @@ export function nodeViolations(files: readonly SourceFileText[]): string[] {
     let reported = false;
     const visit = (node: ts.Node): void => {
       if (reported) return;
-      if (ts.isIdentifier(node) && node.text === 'process') {
+      if (
+        ts.isIdentifier(node) &&
+        node.text === 'process' &&
+        !(readsNodeEnv && isNodeEnvRead(node))
+      ) {
         const parent = node.parent;
         const isPropertyAccessName =
           ts.isPropertyAccessExpression(parent) && parent.name === node;
