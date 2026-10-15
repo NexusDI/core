@@ -85,7 +85,7 @@ describe('defineModule', () => {
   });
 });
 
-describe('resolveModuleRef', () => {
+describe('moduleDefinitionOf', () => {
   it('resolves a definition to itself and a registered class to its definition', () => {
     const Engineering = defineModule({ name: 'Engineering' });
     class Command {}
