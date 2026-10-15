@@ -472,3 +472,63 @@ export async function resolveFor<D extends DepsMap>(step: {
     return stopFor(error, log, adapter, 'scope');
   }
 }
+
+/**
+ * The steps every adapter's nexus() starts from, bound to one container
+ * source: the guarded log, the request handle and its dispose step, the
+ * ambient scope, the definition-time and section checks, and the request
+ * path. An adapter adds only its framework's hook and its answers.
+ */
+export function adapterCore(
+  ship: ContainerSource,
+  options: { readonly log?: NexusLog },
+  adapter: string,
+) {
+  const log = guardLog(options.log ?? defaultLog);
+  const container = containerOf(ship);
+  const load = loader(container);
+  return {
+    log,
+    /** A request's lazy handle, and its dispose step (disposer), logged through `requestLog` when given. */
+    open(
+      request: () =>
+        NexusRequest | undefined | Promise<NexusRequest | undefined>,
+      requestLog: NexusLog = log,
+    ) {
+      const handle = requestScope(container, request);
+      return { handle, dispose: disposer(handle, requestLog, adapter) };
+    },
+    /** The ambient scope of the scopes option, created at once; on failure the request is disposed and the error mapped. */
+    async ambient(
+      handle: ClosableRequestScope,
+      dispose: () => Promise<void>,
+      requestLog: NexusLog = log,
+    ): Promise<{ readonly scope: Scope } | { readonly failure: unknown }> {
+      try {
+        return { scope: await handle.scope() };
+      } catch (error) {
+        await dispose();
+        return { failure: mapError(error, requestLog, adapter, 'scope') };
+      }
+    },
+    /** inject's check: definitionCheck for this source. */
+    definition: (deps: DepsMap) =>
+      definitionCheck(ship, container, deps, log, adapter),
+    /** A section inject's check, which runs after the section's first load. */
+    sectionCheck: (deps: DepsMap) => validator(container, deps),
+    /** resolveFor, bound to this container. */
+    resolve: <D extends DepsMap>(step: {
+      readonly handle: () => RequestScope;
+      readonly deps: D;
+      readonly checked: () => Promise<void>;
+      readonly section?: ModuleRef;
+      readonly log?: NexusLog;
+    }) => resolveFor({ ...step, load, log: step.log ?? log, adapter }),
+    /** enterFor, bound to this container. */
+    enter: (
+      section: ModuleRef,
+      handle: RequestScope | null | undefined,
+      requestLog: NexusLog = log,
+    ) => enterFor({ load, section, handle, log: requestLog, adapter }),
+  };
+}

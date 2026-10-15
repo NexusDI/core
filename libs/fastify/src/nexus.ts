@@ -13,27 +13,13 @@ import type {
 } from 'fastify';
 import fp from 'fastify-plugin';
 
-import {
-  isNexusError,
-  type ModuleRef,
-  type Nexus,
-  type Scope,
-} from '@nexusdi/core';
+import { isNexusError, type ModuleRef, type Scope } from '@nexusdi/core';
 
 import {
-  containerOf,
-  defaultLog,
-  definitionCheck,
-  disposer,
-  enterFor,
+  adapterCore,
   guardLog,
-  loader,
   logLevel,
-  mapError,
-  requestScope,
   requireHandle,
-  resolveFor,
-  validator,
   type ContainerSource,
   type DepsMap,
   type NexusLog,
@@ -123,16 +109,17 @@ function stop(result: Stop, reply: FastifyReply): FastifyReply {
   return reply;
 }
 
+type Core = ReturnType<typeof adapterCore>;
+
 /** The onRequest hook, exported for tests. Callback style, so scopes.run(scope, done) carries the scope. */
 export function requestHook(
-  container: () => Promise<Nexus>,
+  core: Core,
   options: NexusFastifyOptions,
   logOf: (req: FastifyRequest) => NexusLog,
 ): onRequestHookHandler {
   return (req, reply, done) => {
     const log = logOf(req);
-    const handle = requestScope(container, () => options.request?.(req));
-    const dispose = disposer(handle, log, ADAPTER);
+    const { handle, dispose } = core.open(() => options.request?.(req), log);
     // Set before the early return, so a route that still runs finds a
     // closed handle: its scope() rejects with RequestFinishedError, and the
     // route ends the reply without a 500.
@@ -148,10 +135,10 @@ export function requestHook(
       return;
     }
     const scopes = options.scopes;
-    handle.scope().then(
-      (scope) => scopes.run(scope, () => done()),
-      (error: unknown) => done(mapError(error, log, ADAPTER, 'scope') as Error),
-    );
+    void core.ambient(handle, dispose, log).then((started) => {
+      if ('failure' in started) done(started.failure as Error);
+      else scopes.run(started.scope, () => done());
+    });
   };
 }
 
@@ -164,35 +151,31 @@ export function nexus(
 ): NexusFastify {
   const options = (args[0] ?? {}) as NexusFastifyOptions;
   // At route definition no request exists, so the console default applies.
-  const definitionLog = guardLog(options.log ?? defaultLog);
+  const core = adapterCore(ship, options, ADAPTER);
   const logOf = (req: FastifyRequest): NexusLog =>
     guardLog(options.log ?? requestLog(req.log));
-  const container = containerOf(ship);
-  const load = loader(container);
 
   const register: FastifyPluginAsync = async (fastify) => {
     fastify.decorateRequest('nexus', null);
-    fastify.addHook('onRequest', requestHook(container, options, logOf));
+    fastify.addHook('onRequest', requestHook(core, options, logOf));
   };
 
   const handlerOf = <D extends DepsMap, G extends RouteGenericInterface>(
     deps: D,
     handler: FastifyHandler<D, G>,
-    check: () => Promise<void>,
+    checked: () => Promise<void>,
     section?: ModuleRef,
   ): Route<G> => {
     const run = async (
       req: FastifyRequest<G>,
       reply: FastifyReply<G>,
     ): Promise<unknown> => {
-      const result = await resolveFor({
+      const result = await core.resolve({
         handle: () => handleOf(req),
         deps,
-        checked: check,
-        load,
+        checked,
         section,
         log: logOf(req),
-        adapter: ADAPTER,
       });
       if (!('deps' in result)) return stop(result, reply);
       return handler(result.deps, req, reply);
@@ -206,26 +189,15 @@ export function nexus(
   return {
     plugin: fp(register, { name: ADAPTER, fastify: '5.x' }),
     encapsulatedPlugin: register,
-    inject: (deps, handler) =>
-      handlerOf(
-        deps,
-        handler,
-        definitionCheck(ship, container, deps, definitionLog, ADAPTER),
-      ),
+    inject: (deps, handler) => handlerOf(deps, handler, core.definition(deps)),
     scope: async (req) => handleOf(req).scope(),
     load(module) {
       const hook: onRequestAsyncHookHandler = async (req, reply) => {
-        const result = await enterFor({
-          load,
-          section: module,
-          handle: req.nexus,
-          log: logOf(req),
-          adapter: ADAPTER,
-        });
+        const result = await core.enter(module, req.nexus, logOf(req));
         if (result !== undefined) stop(result, reply);
       };
       const sectionInject: Inject = (deps, handler) =>
-        handlerOf(deps, handler, validator(container, deps), module);
+        handlerOf(deps, handler, core.sectionCheck(deps), module);
       return Object.assign(hook, { inject: sectionInject });
     },
   };
