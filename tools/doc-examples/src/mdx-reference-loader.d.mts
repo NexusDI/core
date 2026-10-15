@@ -52,8 +52,10 @@ export declare function libraryOf(reference: Reference): string;
 export declare function statedBy(behaviours: StatedFile, name: string): Stated;
 
 export interface ExpandReferencesOptions {
-  /** The prefix of every emitted class, such as `nexus`. Required. */
+  /** The prefix of the entry's own classes, such as `nexus`. Required. */
   classPrefix: string;
+  /** The prefix of the kind class, such as `meridian`. Required. */
+  kindPrefix: string;
   /** The declaration reader, replaced in tests. */
   read?: (root: string, specifier: string, name: string) => Reference;
   /** Called once per resolved entry, so the loader can declare its inputs. */
@@ -69,7 +71,7 @@ export declare function expandReferences(
 
 export default function mdxReferenceLoader(
   this: {
-    getOptions(): { root: string; classPrefix: string };
+    getOptions(): { root: string; classPrefix: string; kindPrefix: string };
     addDependency(path: string): void;
     resourcePath: string;
   },

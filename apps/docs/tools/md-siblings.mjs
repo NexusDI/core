@@ -4,6 +4,7 @@ import { dirname, join } from 'node:path';
 import { mdSiblings } from '@nexusdi/doc-examples/md-siblings';
 
 import { readChannel } from '../app/channel.ts';
+import { referenceOptions } from './reference-options.mjs';
 
 /**
  * Writes the `.md` sibling of every page into the static export: `tokens.mdx`
@@ -17,9 +18,11 @@ import { readChannel } from '../app/channel.ts';
 const app = join(import.meta.dirname, '..');
 const out = join(app, 'out');
 
-const siblings = mdSiblings(join(app, 'content'), join(app, '../..'), {
-  classPrefix: 'nexus',
-});
+const siblings = mdSiblings(
+  join(app, 'content'),
+  join(app, '../..'),
+  referenceOptions,
+);
 
 // The `next` channel leaves the blog out (spec §6.1), and a next/blog/ file
 // fails the rc artifact check.

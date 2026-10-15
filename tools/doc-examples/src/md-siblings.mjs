@@ -14,8 +14,8 @@ import { expandRegions } from './mdx-region-loader.mjs';
  * A page in a folder keeps its folder: `content/errors/<CODE>.mdx` becomes
  * `errors/<CODE>.md` (docs spec §3.3).
  *
- * `options` goes to `expandReferences` unchanged, so a missing `classPrefix`
- * throws the same TypeError the loader throws.
+ * `options` goes to `expandReferences` unchanged, so a missing `classPrefix` or
+ * `kindPrefix` throws the same TypeError the loader throws.
  */
 export function mdSiblings(contentDir, root, options) {
   const siblings = new Map();
