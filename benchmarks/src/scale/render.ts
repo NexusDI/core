@@ -206,6 +206,29 @@ const CREATE_WORK = table(
   ],
 );
 
+/** The size of the target's closure at each size, from the graph descriptors. */
+function targetClosures(scale: ScaleFile, sizes: readonly number[]): string {
+  const rows = sizes.flatMap((size) => {
+    const g = scale.graphs.find((x) => x.shape === 'mixed' && x.size === size);
+    return g === undefined
+      ? []
+      : [{ size, closure: g.targetClosure, n: g.providers }];
+  });
+  if (rows.length === 0) return '';
+  const share = (r: (typeof rows)[number]) => {
+    const pct = (r.closure / r.n) * 100;
+    return `${pct >= 10 ? pct.toFixed(0) : pct < 1 ? pct.toFixed(2) : pct.toFixed(1)}%`;
+  };
+  const sizesText = list(
+    rows.map((r, i) =>
+      i === 0
+        ? `${group(r.closure)} providers at ${group(r.size)}`
+        : `${group(r.closure)} at ${group(r.size)}`,
+    ),
+  );
+  return `The target is the provider with the largest closure; a first get builds ${sizesText} (${list(rows.map(share))} of the graph).`;
+}
+
 function timingSections(t: ScaleTimingsFile, input: RenderInput): string[] {
   const out: string[] = [];
   const shapes = SHAPES.filter(
@@ -241,7 +264,7 @@ function timingSections(t: ScaleTimingsFile, input: RenderInput): string[] {
     ] as const)
       out.push(
         `## ${title}, mixed`,
-        `Median ${what}. ${caption(t, 'mixed', mixed)}.`,
+        `Median ${what}. ${caption(t, 'mixed', mixed)}.${metric === 'first-resolve' ? ` ${targetClosures(input.scale, sizesOf(mixed))}` : ''}`,
         metricTable(
           t,
           metric,

@@ -87,7 +87,7 @@ const scaleFile = () => ({
       meanFanOut: 1.88,
       maxFanOut: 4,
       maxFanIn: 12,
-      kinds: { class: 42, factory: 5, 'async-factory': 0, value: 3 },
+      kinds: { class: 39, factory: 5, 'async-factory': 0, value: 3, alias: 3 },
       target: 49,
       targetClosure: 17,
     },

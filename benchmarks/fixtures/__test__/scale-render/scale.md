@@ -17,7 +17,7 @@ Median startup in ms (load plus ready), and NexusDI's startup divided by the lib
 
 ## First resolve, mixed
 
-Median load, create and the first get: the time until the target is usable. 1,000 measured rounds per size after 10 warm-up rounds, 1 library skipped above n = 200.
+Median load, create and the first get: the time until the target is usable. 1,000 measured rounds per size after 10 warm-up rounds, 1 library skipped above n = 200. The target is the provider with the largest closure; a first get builds 16 providers at 50, 16 at 200, 16 at 1,000 and 16 at 5,000 (32%, 8.0%, 1.6% and 0.32% of the graph).
 
 | library  | 50                           | 200                          | 1,000                        | 5,000                         |
 | -------- | ---------------------------- | ---------------------------- | ---------------------------- | ----------------------------- |
