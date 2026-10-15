@@ -1,0 +1,34 @@
+---
+title: '@nexusdi/decorators'
+kind: reference
+description: The exports of @nexusdi/decorators, with each signature, what its tests state and an example.
+package: '@nexusdi/decorators'
+---
+
+# `@nexusdi/decorators`
+
+A class can carry its own provider definition, with no `provide()` call beside it. `@nexusdi/decorators` exports standard (TC39) decorators that record the definition on the class. `@Injectable()` records the `deps` and `lifetime` that `provide()` would take, so the bare class works in `providers`, and `@Inject()` on an `accessor` field records a property injection, which the container sets after the constructor returns and before `onInit`. `@Module()` makes the class a module the way `defineModule()` does, named after the class; a configurable module, one with `forRoot()`, still uses `defineModule()`. With `experimentalDecorators` set in `tsconfig.json`, each decorator throws `LegacyDecoratorsError` when it runs, and such a project registers its classes with `provide()` and `defineModule()`. Each export has one entry below, with what the package's tests state about it.
+
+<ApiFilter />
+
+## `Injectable`
+
+<!-- reference @nexusdi/decorators#Injectable example=decorators -->
+
+## `Inject`
+
+<!-- reference @nexusdi/decorators#Inject -->
+
+## `Module`
+
+<!-- reference @nexusdi/decorators#Module -->
+
+## `ModuleDecoratorConfig`
+
+<!-- reference @nexusdi/decorators#ModuleDecoratorConfig -->
+
+## `LegacyDecoratorsError`
+
+<!-- reference @nexusdi/decorators#LegacyDecoratorsError -->
+
+The guide [Writing Providers with Decorators](/decorators/) declares dependencies with `@Injectable`, a property injection with `@Inject` and a module with `@Module`.
