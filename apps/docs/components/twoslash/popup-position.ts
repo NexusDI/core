@@ -13,9 +13,9 @@
  * moment the finger lifts, so a tap toggles the panel and pointer enter and
  * leave are ignored for it. Whether the reader is on touch is read per event:
  * a key press ends it, so a reader who taps and then tabs gets the keyboard
- * behaviour. A pointer down anywhere outside the hover and a scroll outside
- * the panel close an open panel, since a fixed panel would otherwise hang
- * over the page while it moves.
+ * behaviour. A pointer down anywhere outside the hover closes an open panel.
+ * A scroll outside the panel moves it with its button, and closes it once the
+ * button has left the window.
  */
 
 const GAP = 6;
@@ -65,14 +65,30 @@ export function attach(root: HTMLElement, opening: Opening): void {
   const onOutside = (event: Event) => {
     if (!root.contains(event.target as Node)) close();
   };
-  // A reader scrolling a long panel keeps it; any other scroll moves the page
-  // under a fixed panel.
+  // A scroll inside the panel is the reader reading it. Any other scroll,
+  // the page scroll that focusing a token causes included, moves the button
+  // under a fixed panel, so the panel follows it, once a frame, and closes
+  // only when the button has left the window.
+  let frame = 0;
   const onScroll = (event: Event) => {
-    if (!panel.contains(event.target as Node)) close();
+    if (panel.contains(event.target as Node) || frame !== 0) return;
+    frame = requestAnimationFrame(() => {
+      frame = 0;
+      const at = button.getBoundingClientRect();
+      const gone =
+        at.bottom < 0 ||
+        at.top > window.innerHeight ||
+        at.right < 0 ||
+        at.left > document.documentElement.clientWidth;
+      if (gone) close();
+      else place(panel, button);
+    });
   };
 
   const close = (): void => {
     clearTimeout(closing);
+    cancelAnimationFrame(frame);
+    frame = 0;
     panel.hidden = true;
     document.removeEventListener('pointerdown', onOutside, true);
     window.removeEventListener('scroll', onScroll, true);
@@ -120,7 +136,20 @@ export function attach(root: HTMLElement, opening: Opening): void {
   button.addEventListener('focus', () => {
     if (!touch || button.matches(':focus-visible')) open();
   });
-  button.addEventListener('blur', close);
+  // A tap inside the open panel blurs the token on Android before the tap
+  // lands; the panel stays, as it does when focus moves into it.
+  let pressingPanel = false;
+  panel.addEventListener('pointerdown', () => {
+    pressingPanel = true;
+    setTimeout(() => {
+      pressingPanel = false;
+    }, 0);
+  });
+  button.addEventListener('blur', (event) => {
+    if (pressingPanel || root.contains(event.relatedTarget as Node | null))
+      return;
+    close();
+  });
   button.addEventListener('keydown', (event) => {
     if (event.key === 'Escape') close();
   });
