@@ -103,3 +103,64 @@ logged; // -> [{ code: 'NEXUS_BLUEPRINT_INVALID', message: 'startup failed' }]
 ```
 
 <!-- #endregion error-message -->
+
+## An error class of your own
+
+`errorBase(code, name, docs)` is the base a package's error class extends, with core's one-line message: its fields, then a link to `docs` followed by the code. `displayName()` and `describeValue()` give a token's name and a value's description the way core's own fields read, and `layoutText()` from `@nexusdi/core/text` lays out a full text the way core writes one.
+
+<!-- #region error-base -->
+
+```ts @import.meta.vitest
+import { Token, describeValue, displayName, errorBase } from '@nexusdi/core';
+import { layoutText } from '@nexusdi/core/text';
+
+interface ISubspaceLink {
+  send(message: string): string;
+}
+const SUBSPACE_LINK = new Token<ISubspaceLink>('SubspaceLink');
+
+interface ChannelFields {
+  readonly token: string;
+  readonly received: string;
+}
+class ChannelError extends errorBase<'COMMS_CHANNEL_CLOSED', ChannelFields>(
+  'COMMS_CHANNEL_CLOSED',
+  'ChannelError',
+  'https://comms.example/errors/',
+) {}
+
+const error = new ChannelError({
+  token: displayName(SUBSPACE_LINK),
+  received: describeValue(null),
+});
+error.message; // -> '[COMMS_CHANNEL_CLOSED] token=SubspaceLink received=null. https://comms.example/errors/COMMS_CHANNEL_CLOSED'
+const text = layoutText(error.code, {
+  message: 'the subspace link is closed.',
+  fix: 'open the channel first.',
+});
+text.split('\n'); // -> ['[COMMS_CHANNEL_CLOSED] the subspace link is closed.', '  Fix: open the channel first.']
+```
+
+<!-- #endregion error-base -->
+
+## A value from another copy of core
+
+`isForeign(value)` is true for a definition another installed copy of `@nexusdi/core` made, which this copy refuses. Core sets `otherCopy` on the error it raises from it.
+
+<!-- #region is-foreign -->
+
+```ts @import.meta.vitest
+import { defineModule, isForeign } from '@nexusdi/core';
+
+// What another copy writes on the definitions it makes.
+const fromAnotherCopy = Object.defineProperty(
+  { name: 'Engineering' },
+  Symbol.for('nexusdi.definition'),
+  { value: true },
+);
+
+isForeign(fromAnotherCopy); // -> true
+isForeign(defineModule({ name: 'Engineering' })); // -> false
+```
+
+<!-- #endregion is-foreign -->
