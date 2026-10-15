@@ -14596,7 +14596,7 @@ Interfaces:
 ```json
 {
   "hono-floor": {
-    "install": ["hono@4.0.0"],
+    "install": ["hono@4.3.3"],
     "targets": ["@nexusdi/hono:test"]
   },
   "hono-latest": { "install": ["hono@^4"], "targets": ["@nexusdi/hono:test"] },

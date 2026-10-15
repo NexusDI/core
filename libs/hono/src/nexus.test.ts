@@ -12,7 +12,7 @@ import {
 } from '@nexusdi/core';
 import { trace } from '@nexusdi/devtools';
 import { nodeScopes } from '@nexusdi/node';
-import { Context, Hono } from 'hono';
+import { Hono } from 'hono';
 import { HTTPException } from 'hono/http-exception';
 import { stream } from 'hono/streaming';
 import { afterEach, describe, expect, it, vi } from 'vitest';
@@ -296,7 +296,13 @@ describe('nexus() for Hono', () => {
       '/log',
       {},
       {},
-      { waitUntil, passThroughOnException() {}, props: {} },
+      // Hono 4.13's ExecutionContext requires props, which 4.3's lacks, so
+      // the fake goes through unknown to fit both.
+      {
+        waitUntil,
+        passThroughOnException() {},
+        props: {},
+      } as unknown as Parameters<typeof app.request>[3],
     );
     await res.text();
     expect(waitUntil).toHaveBeenCalledTimes(1);
@@ -305,7 +311,20 @@ describe('nexus() for Hono', () => {
 
   it('probes executionCtx once per adapter instance where the platform has none', async () => {
     // Hono's getter throws a new Error on Node, Bun and Deno on every read.
-    const getter = vi.spyOn(Context.prototype, 'executionCtx', 'get');
+    // The prototype comes from a live context: Hono exports Context as a
+    // value only from 4.8.
+    let prototype: object = {};
+    await new Hono()
+      .get('/', (c) => {
+        prototype = Object.getPrototypeOf(c) as object;
+        return c.text('');
+      })
+      .request('/');
+    const getter = vi.spyOn(
+      prototype as { executionCtx: unknown },
+      'executionCtx',
+      'get',
+    );
     const di = nexus(await ship(), { request: survey, log: () => {} });
     const app = new Hono().use(di.middleware).get(
       '/log',
