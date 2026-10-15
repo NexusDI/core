@@ -78,6 +78,14 @@ describe('doc-twoslash fixtures', COMPILE, () => {
 });
 
 describe('doc-twoslash on apps/docs', COMPILE, () => {
+  it('finds the fences', async () => {
+    // The reference pages emit a signature and an example fence per entry,
+    // so an empty list means the expansion stopped reaching this guard.
+    expect(
+      (await contentFences(CONTENT, workspaceRoot)).length,
+    ).toBeGreaterThan(0);
+  });
+
   it('holds the meta and query rules on every expanded page', async () => {
     const fences = await contentFences(CONTENT, workspaceRoot);
 

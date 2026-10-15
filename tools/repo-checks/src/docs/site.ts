@@ -74,6 +74,9 @@ const HEADING = /^(#{1,6})\s+(.+?)\s*$/;
 /** Parses MDX without running any transform: a syntax tree, nothing more. */
 const mdxParser = unified().use(remarkParse).use(remarkMdx);
 
+/** A whole line holding a reference directive, as the reference loader reads one. */
+const REFERENCE_DIRECTIVE = /^<!--\s*reference\s[^\n]*-->[ \t]*$/gm;
+
 interface ProseNode {
   type: string;
   position?: { start: { offset: number }; end: { offset: number } };
@@ -342,7 +345,12 @@ export async function readMetaKeys(contentDir: string): Promise<string[]> {
  */
 export function proseLines(page: DocsPage): { line: number; text: string }[] {
   const offset = page.source.split('\n').length - page.body.split('\n').length;
-  const body = page.body;
+  // A `<!-- reference … -->` line is no MDX: `mdx-reference-loader.mjs`
+  // replaces it with the entry before MDX reads the page. Its characters
+  // become spaces here, so the parse succeeds and every offset still lines up.
+  const body = page.body.replace(REFERENCE_DIRECTIVE, (line) =>
+    ' '.repeat(line.length),
+  );
 
   const spans: [number, number][] = [];
   textSpans(mdxParser.parse(body) as ProseNode, spans);
