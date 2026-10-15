@@ -1,3 +1,6 @@
+import { join } from 'node:path';
+import { pathToFileURL } from 'node:url';
+
 import { workspaceRoot } from '@nx/devkit';
 
 import { readSite, type DocsPage } from './site';
@@ -20,11 +23,25 @@ export async function loadRegionExpander(): Promise<Expand> {
   ).expandRegions;
 }
 
+/** The class prefixes the docs build gives the reference loader. */
+export interface ReferenceOptions {
+  classPrefix: string;
+  kindPrefix: string;
+}
+
 type MdSiblings = (
   contentDir: string,
   root: string,
-  options: { classPrefix: string },
+  options: ReferenceOptions,
 ) => Map<string, string>;
+
+/** The docs app's `reference-options.mjs`, which the loader chain reads. */
+export async function loadReferenceOptions(): Promise<ReferenceOptions> {
+  const path = join(workspaceRoot, 'apps/docs/tools/reference-options.mjs');
+  return (
+    await load<{ referenceOptions: ReferenceOptions }>(pathToFileURL(path).href)
+  ).referenceOptions;
+}
 
 export async function loadMdSiblings(): Promise<MdSiblings> {
   return (

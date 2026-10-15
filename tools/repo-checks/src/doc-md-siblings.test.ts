@@ -5,7 +5,11 @@ import { workspaceRoot } from '@nx/devkit';
 import { describe, expect, it } from 'vitest';
 
 import { checkSiblings } from './docs/doc-md-siblings';
-import { loadMdSiblings, loadRegions } from './docs/loaders';
+import {
+  loadMdSiblings,
+  loadReferenceOptions,
+  loadRegions,
+} from './docs/loaders';
 import { CONTENT, FIXTURES } from './docs/paths';
 import { readSite } from './docs/site';
 
@@ -23,9 +27,11 @@ describe('doc-md-siblings fixtures', () => {
     expect(
       checkSiblings({
         pages: readSite(join(ROOT, 'content')),
-        siblings: mdSiblings(join(ROOT, 'content'), ROOT, {
-          classPrefix: 'nexus',
-        }),
+        siblings: mdSiblings(
+          join(ROOT, 'content'),
+          ROOT,
+          await loadReferenceOptions(),
+        ),
         regionCode: await regionCodeUnder(ROOT),
       }),
     ).toEqual([]);
@@ -53,7 +59,11 @@ describe('doc-md-siblings on apps/docs', () => {
     expect(
       checkSiblings({
         pages: readSite(CONTENT),
-        siblings: mdSiblings(CONTENT, workspaceRoot, { classPrefix: 'nexus' }),
+        siblings: mdSiblings(
+          CONTENT,
+          workspaceRoot,
+          await loadReferenceOptions(),
+        ),
         regionCode: await regionCodeUnder(workspaceRoot),
       }),
     ).toEqual([]);

@@ -7,6 +7,7 @@ import { pathToFileURL } from 'node:url';
 import { describe, expect, it } from 'vitest';
 
 import { mdxLoaderChain } from './loader-chain.mjs';
+import { referenceOptions } from './reference-options.mjs';
 
 const fence = '```';
 const ROOT = '/workspace';
@@ -42,11 +43,18 @@ describe('the MDX loader chain', () => {
       'mdx-diagram-loader.mjs',
       'mdx-listing-loader.mjs',
     ]);
+    expect(mdxLoaderChain(ROOT)[1].options).toEqual({ root: ROOT });
+  });
+
+  it('gives the reference loader the prefixes of the shared options module', () => {
     expect(mdxLoaderChain(ROOT)[0].options).toEqual({
       root: ROOT,
-      classPrefix: 'nexus',
+      ...referenceOptions,
     });
-    expect(mdxLoaderChain(ROOT)[1].options).toEqual({ root: ROOT });
+    expect(referenceOptions).toEqual({
+      classPrefix: 'nexus',
+      kindPrefix: 'meridian',
+    });
   });
 
   it('fills a region fence, wraps a tagged fence and rewrites a diagram', async () => {

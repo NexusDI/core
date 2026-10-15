@@ -70,18 +70,37 @@ function readAs(
 /** The stub reader the expansion cases share. */
 const reference = readAs();
 
+/** The prefixes `apps/docs/tools/reference-options.mjs` gives the build. */
+const PREFIXES = { classPrefix: 'nexus', kindPrefix: 'meridian' };
+
+/** One page expanded on the fixture root, with the build's prefixes. */
+function expand(
+  source = page,
+  read: () => Reference = reference,
+  file = 'api.mdx',
+): string {
+  return expandReferences(source, root, file, { ...PREFIXES, read });
+}
+
 beforeAll(() => {
   root = mkdtempSync(join(tmpdir(), 'nexusdi-reference-'));
   mkdirSync(join(root, 'apps/docs/components/api/behaviour'), {
     recursive: true,
   });
-  for (const [library, name] of [
-    ['core', '@nexusdi/core'],
-    ['devtools', '@nexusdi/devtools'],
-  ]) {
+  // `libraryOf` names the file after the directory of the entry's first
+  // example file, so `libs/core/README.md` reads `core.json`.
+  const stated = {
+    core: {
+      create: [
+        { chain: ['create', 'builds a container'], generated: false, id: 0 },
+      ],
+    },
+    devtools: {},
+  };
+  for (const [library, states] of Object.entries(stated)) {
     writeFileSync(
       join(root, `apps/docs/components/api/behaviour/${library}.json`),
-      JSON.stringify({ package: name, files: [], states: {} }),
+      JSON.stringify({ package: `@nexusdi/${library}`, files: [], states }),
     );
   }
 });
@@ -90,25 +109,35 @@ afterAll(() => rmSync(root, { recursive: true, force: true }));
 
 describe('expandReferences', () => {
   it('prefixes every class it emits with the classPrefix option', () => {
-    const out = expandReferences(page, root, 'api.mdx', {
-      classPrefix: 'nexus',
-      read: reference,
-    });
+    const out = expand();
 
-    expect(out).toContain(
-      '<div className="nexus-api-entry nexus-kind-function">',
-    );
     expect(out).toContain('<div className="nexus-api-entry__name">');
     expect(out).toContain('<div className="nexus-api-entry__signature">');
-    expect(out).toContain('nexus-api-entry__states--silent');
+    expect(out).toContain('<div className="nexus-api-entry__states">');
+    expect(expand(page, readAs({}, { name: 'lazy' }))).toContain(
+      'nexus-api-entry__states--silent',
+    );
     expect(out).not.toMatch(/docs-api-entry|baize-kind-/);
   });
 
+  it('puts the kind class in the design system prefix', () => {
+    const out = expand();
+    expect(out).toContain(
+      '<div className="nexus-api-entry meridian-kind-function">',
+    );
+    expect(out).not.toContain('nexus-kind-');
+  });
+
+  it('writes the behaviour count as a span, leaving <Figure> to the benchmarks', () => {
+    const out = expand();
+    expect(out).not.toContain('<Figure>');
+    expect(out).toContain(
+      '<span className="nexus-api-entry__states-count-value">1</span> behaviour',
+    );
+  });
+
   it('writes the summary, the kind chip and the signature fence, and keeps the prose', () => {
-    const out = expandReferences(page, root, 'api.mdx', {
-      classPrefix: 'nexus',
-      read: reference,
-    });
+    const out = expand();
 
     expect(out).toContain('Builds a container.');
     expect(out).toContain('<Chip>function</Chip>');
@@ -130,13 +159,34 @@ describe('expandReferences', () => {
   it('refuses a classPrefix that is no lower-case class name', () => {
     expect(() =>
       expandReferences(page, root, 'api.mdx', {
+        ...PREFIXES,
         classPrefix: 'Nexus',
         read: reference,
       }),
     ).toThrow(TypeError);
     expect(() =>
       expandReferences(page, root, 'api.mdx', {
+        ...PREFIXES,
         classPrefix: 'nexus api',
+        read: reference,
+      }),
+    ).toThrow(TypeError);
+  });
+
+  it('fails at load time without a kindPrefix', () => {
+    expect(() =>
+      expandReferences(page, root, 'page.mdx', {
+        classPrefix: 'nexus',
+        read: reference,
+      } as never),
+    ).toThrow(/kindPrefix/);
+  });
+
+  it('refuses a kindPrefix that is no lower-case class name', () => {
+    expect(() =>
+      expandReferences(page, root, 'api.mdx', {
+        ...PREFIXES,
+        kindPrefix: 'Meridian',
         read: reference,
       }),
     ).toThrow(TypeError);
@@ -180,13 +230,14 @@ describe('a signature that names another package', () => {
   });
 
   it('imports an external type from the package the declaration took it from', () => {
-    const out = expandReferences(graphPage, root, 'api-devtools.mdx', {
-      classPrefix: 'nexus',
-      read: graph({
+    const out = expand(
+      graphPage,
+      graph({
         types: ['NexusGraph'],
         external: [['@nexusdi/core', ['Nexus']]],
       }),
-    });
+      'api-devtools.mdx',
+    );
 
     expect(out).toContain("import type { Nexus } from '@nexusdi/core';");
     expect(
@@ -197,16 +248,17 @@ describe('a signature that names another package', () => {
   });
 
   it('writes one import line per external package, with its names on it', () => {
-    const out = expandReferences(graphPage, root, 'api-devtools.mdx', {
-      classPrefix: 'nexus',
-      read: graph({
+    const out = expand(
+      graphPage,
+      graph({
         types: ['NexusGraph'],
         external: [
           ['@nexusdi/core', ['BlueprintView', 'Nexus']],
           ['@nexusdi/errors', ['ErrorsOptions']],
         ],
       }),
-    });
+      'api-devtools.mdx',
+    );
     const imports = out
       .split('\n')
       .filter((line) => line.startsWith('import type {'));
@@ -290,10 +342,7 @@ describe('an example region', () => {
   it('renders a region only a docs file holds in the example fence', () => {
     holding('# core\n', region('const ship = await create(Bridge);'));
 
-    const out = expandReferences(examplePage, root, 'api.mdx', {
-      classPrefix: 'nexus',
-      read: readAs({}, { examples }),
-    });
+    const out = expand(examplePage, readAs({}, { examples }));
 
     expect(out).toContain(
       '```ts twoslash\nconst ship = await create(Bridge);\n```',
@@ -303,12 +352,9 @@ describe('an example region', () => {
   it('refuses a region the README and a docs file both hold, naming the page and both files', () => {
     holding(region('const a = 1;'), region('const b = 2;'));
 
-    expect(() =>
-      expandReferences(examplePage, root, 'api.mdx', {
-        classPrefix: 'nexus',
-        read: readAs({}, { examples }),
-      }),
-    ).toThrow(/^api\.mdx: .*README\.md.*docs\/providers\.md/s);
+    expect(() => expand(examplePage, readAs({}, { examples }))).toThrow(
+      /^api\.mdx: .*README\.md.*docs\/providers\.md/s,
+    );
   });
 });
 

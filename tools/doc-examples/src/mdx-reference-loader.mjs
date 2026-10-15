@@ -342,7 +342,8 @@ function statedBlock(reference, behaviours, library, prefix) {
     '',
     `<p className="${prefix}-api-entry__states-heading">What the tests state</p>`,
     '',
-    `<p className="${prefix}-api-entry__states-count"><Figure>${stated}</Figure> ` +
+    `<p className="${prefix}-api-entry__states-count">` +
+      `<span className="${prefix}-api-entry__states-count-value">${stated}</span> ` +
       `${stated === 1 ? 'behaviour' : 'behaviours'}</p>`,
     '',
     '</div>',
@@ -449,14 +450,22 @@ function foot(root, reference, behaviours, example, file, prefix) {
   return lines;
 }
 
+/** An example value for each prefix option, which the error names. */
+const PREFIX_EXAMPLES = { classPrefix: 'nexus', kindPrefix: 'meridian' };
+
 /**
- * The class prefix every emitted element carries (docs spec §14.1, change 3).
- * It has no default, so a caller that forgets it fails at load time.
+ * A prefix option the emitted classes carry (docs spec section 22, item 3).
+ *
+ * `classPrefix` starts the entry's own classes and `kindPrefix` starts the
+ * kind class the design system generates. Neither has a default, so a caller
+ * that forgets one fails at load time.
  */
-function assertClassPrefix(prefix) {
-  if (typeof prefix !== 'string' || !/^[a-z][a-z0-9-]*$/.test(prefix)) {
+function assertPrefix(name, value) {
+  if (typeof value !== 'string' || !/^[a-z][a-z0-9-]*$/.test(value)) {
     throw new TypeError(
-      `expandReferences needs a classPrefix option such as 'nexus' (lower-case letters, digits and hyphens); received ${JSON.stringify(prefix)}.`,
+      `expandReferences needs a ${name} option such as ` +
+        `'${PREFIX_EXAMPLES[name]}' (lower-case letters, digits and ` +
+        `hyphens); received ${JSON.stringify(value)}.`,
     );
   }
 }
@@ -474,17 +483,19 @@ function assertClassPrefix(prefix) {
 export function expandReferences(source, root, file, options) {
   const {
     classPrefix: prefix,
+    kindPrefix,
     read = readReference,
     onResolve,
   } = options ?? {};
-  assertClassPrefix(prefix);
+  assertPrefix('classPrefix', prefix);
+  assertPrefix('kindPrefix', kindPrefix);
 
   const out = [];
   let fence = null;
   // The entry whose fences have not been emitted yet.
   let open = null;
-  // One read per package for all its entries: `/acl/api/` holds 107
-  // entries and every one of them asks the same file the same question.
+  // One read per package for all its entries, because every entry of a
+  // package asks the same file the same question.
   const behaviours = new Map();
 
   const statedFor = (reference) => {
@@ -575,7 +586,7 @@ export function expandReferences(source, root, file, options) {
     // stays a markdown heading inside it, which is what keeps its anchor, its
     // place in the table of contents and its entry in the search index.
     out.push(
-      `<div className="${prefix}-api-entry ${prefix}-kind-${kindSlug(reference.kind)}">`,
+      `<div className="${prefix}-api-entry ${kindPrefix}-kind-${kindSlug(reference.kind)}">`,
       '',
       `<div className="${prefix}-api-entry__name">`,
       '',
@@ -602,7 +613,7 @@ export function expandReferences(source, root, file, options) {
  * every specifier resolves from.
  */
 export default function mdxReferenceLoader(source) {
-  const { root, classPrefix } = this.getOptions();
+  const { root, classPrefix, kindPrefix } = this.getOptions();
 
   // Declares what each entry was read from as an input of this page, so
   // rebuilding a library rebuilds the pages quoting its signatures and editing
@@ -611,6 +622,7 @@ export default function mdxReferenceLoader(source) {
   // showing a signature the package no longer has.
   return expandReferences(source, root, this.resourcePath, {
     classPrefix,
+    kindPrefix,
     read: readReference,
     onResolve: (reference, behaviours) => {
       const examples = reference.examples.map((each) => join(root, each));

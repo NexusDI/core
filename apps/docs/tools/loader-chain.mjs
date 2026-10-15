@@ -1,5 +1,7 @@
 import { join } from 'node:path';
 
+import { referenceOptions } from './reference-options.mjs';
+
 const tool = (name) => join(import.meta.dirname, name);
 
 /**
@@ -21,7 +23,7 @@ export function mdxLoaderChain(workspaceRoot) {
   return [
     {
       loader: '@nexusdi/doc-examples/mdx-reference-loader',
-      options: { root: workspaceRoot, classPrefix: 'nexus' },
+      options: { root: workspaceRoot, ...referenceOptions },
     },
     {
       loader: '@nexusdi/doc-examples/mdx-region-loader',
