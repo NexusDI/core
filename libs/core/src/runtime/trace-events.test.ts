@@ -8,6 +8,7 @@ import { lazy } from '../definitions/modifiers.js';
 import { provide } from '../definitions/provide.js';
 import { Token } from '../definitions/token.js';
 import { REQUEST } from '../definitions/request.js';
+import type { StandardSchemaV1 } from '../definitions/standard-schema.js';
 import { Nexus } from './nexus.js';
 import type { TraceEvent } from './trace.js';
 
@@ -599,6 +600,59 @@ describe('construct spans', () => {
     }
   });
 
+  it('counts a slow construct hook in finishMs', async () => {
+    const { events, plugin } = recordEvents();
+    const slowHook = {
+      name: 'test:slow-hook',
+      apiVersion: 1,
+      construct(instance: unknown) {
+        spin(5);
+        return instance;
+      },
+    };
+    await using ship = await Nexus.create([FusionReactor], {
+      plugins: [plugin, slowHook],
+    });
+    void ship;
+    const reactor = defined(
+      only(events, 'construct').find((b) => b.token === 'FusionReactor'),
+    );
+    expect(reactor.finishMs).toBeGreaterThanOrEqual(4);
+  });
+
+  it('counts the validation of forRootAsync() options in finishMs', async () => {
+    const { events, plugin } = recordEvents();
+    const OPTIONS = new Token<{ frequency: number }>('CommsOptions');
+    const schema: StandardSchemaV1<unknown, { frequency: number }> = {
+      '~standard': {
+        version: 1,
+        vendor: 'nexusdi-test',
+        validate: async (value) => {
+          await sleep(10);
+          return { value: value as { frequency: number } };
+        },
+      },
+    };
+    const Comms = defineModule({ name: 'Comms', options: OPTIONS, schema });
+    await using ship = await Nexus.create(
+      defineModule({
+        name: 'Root',
+        imports: [
+          Comms.forRootAsync({
+            useFactory: () => ({ frequency: 1420 }),
+            deps: [],
+          }),
+        ],
+      }),
+      { plugins: [plugin] },
+    );
+    void ship;
+    const options = defined(
+      only(events, 'construct').find((b) => b.token === 'CommsOptions'),
+    );
+    expect(options.finishMs).toBeGreaterThanOrEqual(8);
+  });
+
   it('emits construct:await when a factory returns a thenable, then construct with awaitMs', async () => {
     const { events, plugin } = recordEvents();
     const CHARTS = new Token<object>('NavCharts');
@@ -688,6 +742,34 @@ describe('construct spans', () => {
       parent: panel.providerId,
     });
     expect(panel.syncMs).toBeGreaterThanOrEqual(gauge.syncMs);
+  });
+
+  it('reports run null for a scoped provider built on demand during createScope', async () => {
+    const { events, plugin } = recordEvents();
+    class FlightLog {}
+    const SHUTTLE = new Token<{ log: FlightLog }>('Shuttle');
+    await using ship = await Nexus.create(
+      [
+        provide(FlightLog, { lifetime: 'scoped' }),
+        // A scoped factory builds at createScope; the scoped class it calls
+        // through lazy() builds on demand inside it.
+        provide(SHUTTLE, {
+          lifetime: 'scoped',
+          useFactory: (log: () => FlightLog) => ({ log: log() }),
+          deps: [lazy(FlightLog)],
+        }),
+      ],
+      { plugins: [plugin] },
+    );
+    await using shuttle = await ship.createScope();
+    void shuttle;
+    const byToken = new Map(only(events, 'construct').map((b) => [b.token, b]));
+    expect(byToken.get('Shuttle')).toMatchObject({ run: 1, level: 0 });
+    expect(byToken.get('FlightLog')).toMatchObject({
+      run: null,
+      level: null,
+      parent: byToken.get('Shuttle')?.providerId,
+    });
   });
 
   it('numbers a loaded provider by the new blueprint levels', async () => {
@@ -827,7 +909,37 @@ describe('construct:failed', () => {
     ]);
   });
 
-  it('reports a failure after the factory returned, in options validation or a construct hook', async () => {
+  it('reports a failure after the factory returned, in options validation', async () => {
+    const { events, plugin } = recordEvents();
+    const OPTIONS = new Token<{ frequency: number }>('CommsOptions');
+    const schema: StandardSchemaV1<unknown, { frequency: number }> = {
+      '~standard': {
+        version: 1,
+        vendor: 'nexusdi-test',
+        validate: () => ({ issues: [{ message: 'out of band' }] }),
+      },
+    };
+    const Comms = defineModule({ name: 'Comms', options: OPTIONS, schema });
+    await rejected(
+      Nexus.create(
+        defineModule({
+          name: 'Root',
+          imports: [
+            Comms.forRootAsync({
+              useFactory: () => ({ frequency: -5 }),
+              deps: [],
+            }),
+          ],
+        }),
+        { plugins: [plugin] },
+      ),
+    );
+    expect(only(events, 'construct:failed')).toMatchObject([
+      { token: 'CommsOptions', run: 0, async: false },
+    ]);
+  });
+
+  it('reports a failure after the factory returned, in a construct hook', async () => {
     const { events, plugin } = recordEvents();
     const wrecker = {
       name: 'test:wrecker',
@@ -1151,7 +1263,39 @@ describe('init from an on-demand build', () => {
       'init',
     ]);
     expect(only(events, 'init')).toMatchObject([
-      { token: 'Sensor', run: null, level: null, async: false, awaitMs: null },
+      {
+        token: 'Sensor',
+        run: null,
+        level: null,
+        async: false,
+        awaitMs: null,
+        finishMs: 0,
+        scope: null,
+      },
+    ]);
+  });
+
+  it('reports run 0 and no level for an on-demand init built during a level', async () => {
+    const { events, plugin } = recordEvents();
+    class Sensor {
+      onInit() {}
+    }
+    class Panel {
+      static deps = [lazy(Sensor)] as const;
+      readonly sensor: Sensor;
+      constructor(sensor: () => Sensor) {
+        this.sensor = sensor();
+      }
+    }
+    await using ship = await Nexus.create(
+      [provide(Sensor, { eager: false }), Panel],
+      { plugins: [plugin] },
+    );
+    void ship;
+    expect(
+      only(events, 'init').filter((e) => e.token === 'Sensor'),
+    ).toMatchObject([
+      { run: 0, level: null, finishMs: 0, scope: null, lifetime: 'singleton' },
     ]);
   });
 
@@ -1167,7 +1311,7 @@ describe('init from an on-demand build', () => {
     });
     expect(() => ship.get(Sensor)).toThrow();
     expect(only(events, 'init:failed')).toMatchObject([
-      { token: 'Sensor', async: false },
+      { token: 'Sensor', async: false, finishMs: 0, scope: null },
     ]);
   });
 
