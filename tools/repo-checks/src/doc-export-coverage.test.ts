@@ -129,12 +129,22 @@ async function workspaceInput(): Promise<CoverageInput> {
   return {
     pages,
     packages,
-    exempt: new Map([
+    // An error class is documented by its code's page under /errors/, which
+    // /api-errors/ lists (spec section 22, item 9), in core and in every
+    // first-party package that raises one.
+    exempt: new Map(
       [
         '@nexusdi/core',
-        'Each error class has a code page under /errors/, and /api-errors/ lists them (spec section 22, item 9).',
-      ],
-    ]),
+        '@nexusdi/decorators',
+        '@nexusdi/devtools',
+        '@nexusdi/federation',
+        '@nexusdi/interceptors',
+        '@nexusdi/testing',
+      ].map((name) => [
+        name,
+        'Each error class has a code page under /errors/, and /api-errors/ lists them.',
+      ]),
+    ),
     allowance: JSON.parse(readFileSync(ALLOWANCE, 'utf8')) as Record<
       string,
       { unexercised: string[] }
@@ -186,6 +196,22 @@ describe('checkExportCoverage', () => {
       'apps/docs/content/api-x.mdx',
       'api-x',
       "---\nkind: reference\npackage: '@nexusdi/x'\n---\n\n## `make`\n\n```ts\nmake();\n```\n\n## `Shape`\n",
+    );
+    expect(
+      checkExportCoverage({
+        pages: [page],
+        packages: [X],
+        exempt: new Map(),
+        allowance: {},
+      }),
+    ).toEqual([expect.stringContaining("'make'")]);
+  });
+
+  it('counts no import as a call', () => {
+    const page = parsePage(
+      'apps/docs/content/api-x.mdx',
+      'api-x',
+      "---\nkind: reference\npackage: '@nexusdi/x'\n---\n\n## `make`\n\n```ts twoslash\nimport { make } from '@nexusdi/x';\n```\n\n## `Shape`\n",
     );
     expect(
       checkExportCoverage({

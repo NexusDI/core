@@ -59,16 +59,23 @@ const executable = (meta: string, lang: string): boolean =>
   /(^|\s)(twoslash|executed)(\s|$)/.test(`${lang} ${meta}`) ||
   /(^|\s)file=/.test(meta);
 
-/** The lines of a fence a reader sees: those below its last `// ---cut---`. */
+/**
+ * The lines of a fence a reader sees, those below its last `// ---cut---`,
+ * with the import lines left out: an import names a symbol and calls nothing.
+ */
 function shown(body: string): string {
   const lines = body.split('\n');
   const cut = lines.map((line) => line.trim()).lastIndexOf('// ---cut---');
-  return (cut === -1 ? lines : lines.slice(cut + 1)).join('\n');
+  return (cut === -1 ? lines : lines.slice(cut + 1))
+    .filter((line) => !/^\s*import\b/.test(line))
+    .join('\n');
 }
 
 /** Whether an identifier appears in code as a whole word. */
 const names = (code: string, symbol: string): boolean =>
-  new RegExp(`\\b${symbol.replace(/\$/g, '\\$')}\\b`).test(code);
+  new RegExp(`\\b${symbol.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}\\b`).test(
+    code,
+  );
 
 /** The name a `##` heading spells: `` `make` `` and `` `make()` `` both name `make`. */
 const headingName = (text: string): string =>
