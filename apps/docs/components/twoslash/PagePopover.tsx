@@ -200,12 +200,14 @@ export function PagePopover() {
     };
     const onKeyDown = (event: KeyboardEvent) => {
       touch = false;
-      const token = tokenOf(event.target);
-      if (!token) return;
+      // Escape closes an open card wherever focus is: a card the pointer
+      // opened has focus on the page, not on its token (WCAG 1.4.13).
       if (event.key === 'Escape') {
         if (current.current) close();
         return;
       }
+      const token = tokenOf(event.target);
+      if (!token) return;
       const tokens = fenceOf(token);
       const from = tokens.indexOf(token);
       const steps: Record<string, number | undefined> = {

@@ -151,6 +151,24 @@ for (const theme of ['dark', 'light'] as const) {
     await token.hover();
     await expect(card).toBeVisible();
     await expect(card).toContainText('NodeScopes');
+
+    // A token in the card takes its theme's colour, as a fence's does.
+    const colour = await card.evaluate(
+      (element, property) => {
+        const span = element.querySelector<HTMLElement>('span[class*="sh-"]');
+        if (!span) return null;
+        const wanted = getComputedStyle(span).getPropertyValue(property).trim();
+        const probe = document.createElement('span');
+        probe.style.color = wanted;
+        document.body.append(probe);
+        const expected = getComputedStyle(probe).color;
+        probe.remove();
+        return { wanted, expected, got: getComputedStyle(span).color };
+      },
+      theme === 'dark' ? '--shiki-dark' : '--shiki-light',
+    );
+    expect(colour?.wanted).toBeTruthy();
+    expect(colour?.got).toBe(colour?.expected);
     expect(await token.getAttribute('aria-describedby')).toBe(
       'nexus-type-card',
     );
@@ -401,4 +419,16 @@ test("places a catalogue token's card beside it", async ({ page }) => {
   const card = page.locator('.nexus-behaviours__type:not([hidden])');
   await expect(card).toBeVisible();
   await expectBeside(page, card, token);
+});
+
+test('closes a card the pointer opened on Escape (WCAG 1.4.13)', async ({
+  page,
+}) => {
+  await page.goto(PAGE);
+  const { token, card } = signature(page);
+  await token.hover();
+  await expect(card).toBeVisible();
+  // The pointer stays on the token, and focus stays on the page.
+  await page.keyboard.press('Escape');
+  await expect(card).toHaveCount(0);
 });
