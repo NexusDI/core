@@ -6899,7 +6899,9 @@ Interfaces:
 Run: `NX_NO_CLOUD=true NX_DAEMON=false npx nx run-many -t lint test build typecheck -p @nexusdi/meridian @nexusdi/docs @nexusdi/repo-checks`, then the `docs-page` skill's CI commands.
 Expected: PASS, `doc-benchmark-figures` included. Dispatch the `docs-reviewer` agent on the page and fix what it reports.
 
-- [ ] Step 5: Commit with `docs(docs): add the profiling guide`.
+- [ ] Step 5: Point the cli README at the new page. In `libs/cli/README.md`'s `## Profile startup`, replace "and `npx nexusdi --help` lists every flag" with a link to `https://nexus.js.org/next/profiling/` that names it as the list of every flag, and in `libs/cli/src/readme.test.ts` make the section test assert `/profiling/`. The npm README check accepts the link once the page exists.
+
+- [ ] Step 6: Commit with `docs(docs): add the profiling guide`.
 
 ### Task 21: the `/trace-events/` page and the introspection note
 
