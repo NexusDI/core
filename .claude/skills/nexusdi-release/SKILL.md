@@ -40,7 +40,10 @@ Claude Code prompt.
   with a merge commit. Everything else rebase-merges.
 
 Three rulesets ("Main", "Release branches", "Maintenance branches") require
-the checks `main`, `workflows`, `format` and `packaging`, plus CodeQL. The only
+the checks `main`, `workflows`, `format` and `packaging`, plus CodeQL. The
+target state adds `adapter-runtimes`, `adapter-peers` and `node-floor`, matrix
+jobs that report one check per leg, 32 in all; the owner adds them to the
+rulesets before 0.4.0-rc.2. The only
 bypass actor is the deploy key. The GitHub environment `release` admits
 `main`, `release/*` and `[0-9]*.x`, and holds the `RELEASE_SSH_KEY` secret. npm
 trusted publishing names the same environment, so a run on any other ref gets
@@ -49,10 +52,11 @@ neither the key nor npm.
 ## Packages
 
 The packages under `libs/` form one fixed version group (on `release/0.4` and
-on `main` after 0.4.0). The group publishes nine packages at one version:
+on `main` after 0.4.0). The group publishes 15 packages at one version:
 
 `@nexusdi/core`, `decorators`, `devtools`, `errors`, `federation`, `node`,
-`testing`, `cli`, `interceptors`.
+`testing`, `cli`, `interceptors`, `express`, `fastify`, `hono`,
+`react-router`, `vitest`, `react`.
 
 `tools/bench-kit` and `benchmarks` are private and never publish. Each version
 gets one tag, `@nexusdi/core@<version>`, and one GitHub release.
@@ -196,6 +200,22 @@ from a machine logged in to npm with 2FA:
 3. `! .claude/skills/nexusdi-release/scripts/deprecate.sh <otp> <pkg> [<pkg> ...]`
    deprecates the placeholder.
 4. Check with `npm trust list @nexusdi/<pkg> --otp=<code>` (owner).
+
+For 0.4.0-rc.2, run the round for the six adapters before the rc that first
+publishes them, from a checkout of `release/0.4` that has their folders:
+
+```sh
+! .claude/skills/nexusdi-release/scripts/bootstrap.sh express <otp>
+! .claude/skills/nexusdi-release/scripts/bootstrap.sh fastify <otp>
+! .claude/skills/nexusdi-release/scripts/bootstrap.sh hono <otp>
+! .claude/skills/nexusdi-release/scripts/bootstrap.sh react-router <otp>
+! .claude/skills/nexusdi-release/scripts/bootstrap.sh vitest <otp>
+! .claude/skills/nexusdi-release/scripts/bootstrap.sh react <otp>
+! .claude/skills/nexusdi-release/scripts/deprecate.sh <otp> express fastify hono react-router vitest react
+```
+
+`@nexusdi/next` moved to 0.5, so 0.4 has no second round. A one-time code
+expires in about 30 seconds, so pass a fresh one to each command.
 
 npm may point `latest` at the placeholder. The next rc's reconcile step moves
 it to the rc. The package also needs a commitlint scope and the other

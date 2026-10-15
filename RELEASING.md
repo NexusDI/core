@@ -97,6 +97,19 @@ apart from the sync merges. Replay work from another branch with
 `git cherry-pick` or `git rebase --onto`. The release workflow sets `HUSKY=0`,
 so `npm ci` installs no hooks in CI.
 
+## Packages
+
+The packages under `libs/` form one fixed version group (on `release/0.4` and
+on `main` after 0.4.0). The group publishes 15 packages at one version:
+
+`@nexusdi/core`, `decorators`, `devtools`, `errors`, `federation`, `node`,
+`testing`, `cli`, `interceptors`, `express`, `fastify`, `hono`,
+`react-router`, `vitest`, `react`.
+
+`tools/bench-kit` and `benchmarks` are private and never publish. A check,
+`tools/repo-checks/src/release-packages-doc.test.ts`, holds this list and the
+skill's to the packages under `libs/`.
+
 ## Events
 
 Release has two inputs: `event` and `dry-run`. `dry-run` defaults to `true`.
@@ -462,6 +475,32 @@ since every package has a `latest`; `npm view` shows it. The next rc's
 reconcile step moves `latest` to the rc, because the package has no stable
 version.
 
+#### 0.4 adapters
+
+0.4.0-rc.2 adds six packages, which need their npm names before the rc that
+first publishes them. `bootstrap.sh` reads `libs/<pkg>/package.json`, so run
+the round from a checkout of `release/0.4` that has the folders.
+
+Before 0.4.0-rc.2 (owner):
+
+```sh
+.claude/skills/nexusdi-release/scripts/bootstrap.sh express <otp>
+.claude/skills/nexusdi-release/scripts/bootstrap.sh fastify <otp>
+.claude/skills/nexusdi-release/scripts/bootstrap.sh hono <otp>
+.claude/skills/nexusdi-release/scripts/bootstrap.sh react-router <otp>
+.claude/skills/nexusdi-release/scripts/bootstrap.sh vitest <otp>
+.claude/skills/nexusdi-release/scripts/bootstrap.sh react <otp>
+```
+
+`@nexusdi/next` moved to 0.5, so 0.4 has no second round.
+
+After the round, set each package's trusted publisher (organization
+`NexusDI`, repository `core`, workflow `release.yml`, environment `release`,
+"Allow npm publish" and "Allow npm dist-tag" on), deprecate the placeholders
+with `deprecate.sh <otp> <pkg> ...`, and confirm each with
+`npm trust list @nexusdi/<pkg> --otp=<code>`. A one-time code expires in
+about 30 seconds, so pass a fresh one to each command.
+
 ## Repository setup
 
 This records the live configuration, so a change to it is a deliberate diff
@@ -484,8 +523,12 @@ For the ids of the last two, see `gh api repos/NexusDI/core/rulesets`.
 All three carry the same rules:
 
 - A pull request with 0 required approvals.
-- Required status checks `main`, `workflows`, `format` and `packaging` (the
-  job ids in `ci.yml`) with the strict policy.
+- Required status checks `main`, `workflows`, `format`, `packaging`,
+  `adapter-runtimes`, `adapter-peers` and `node-floor` (the job ids in
+  `ci.yml`) with the strict policy. The last three are matrix jobs, so each
+  reports one check per leg: 4 `adapter-runtimes`, 14 `adapter-peers` and
+  14 `node-floor`. The owner adds the three to the rulesets before 0.4.0-rc.2,
+  and until then this line records the target state.
 - A `code_scanning` rule for CodeQL.
 - `deletion` and `non_fast_forward`.
 - One bypass actor, `DeployKey`, always. No role bypasses, so a failing
