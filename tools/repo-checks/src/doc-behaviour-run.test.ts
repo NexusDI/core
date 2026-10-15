@@ -101,17 +101,35 @@ function reportedBy(directory: string): Reported {
       `${path} does not exist. Run \`npx nx test @nexusdi/${directory}\`.`,
     );
   }
-  const report = JSON.parse(text) as {
-    testResults: {
-      assertionResults: { ancestorTitles: string[]; title: string }[];
-    }[];
-  };
+  return reportedFrom(JSON.parse(text) as Report);
+}
 
+/** The part of Vitest's json report this file reads. */
+interface Report {
+  testResults: {
+    assertionResults: {
+      ancestorTitles: string[];
+      title: string;
+      status: string;
+    }[];
+  }[];
+}
+
+/**
+ * The chains of every case the run passed, and of every block above one.
+ *
+ * Only a passed case counts. A case behind `it.skipIf`, `it.runIf` or a
+ * `skip` the parser cannot see is still in the report, with `skipped` or
+ * `todo` as its status, and a sentence held against it would publish a
+ * behaviour no run executed.
+ */
+function reportedFrom(report: Report): Reported {
   const cases = new Set<string>();
   const groups = new Set<string>();
 
   for (const file of report.testResults) {
     for (const each of file.assertionResults) {
+      if (each.status !== 'passed') continue;
       cases.add([...each.ancestorTitles, each.title].join(' > '));
       for (let at = 1; at <= each.ancestorTitles.length; at += 1) {
         groups.add(each.ancestorTitles.slice(0, at).join(' > '));
@@ -190,6 +208,36 @@ describe('failuresOf', () => {
         reported,
       ),
     ).toEqual([expect.stringContaining('"nodeScopes > a block nobody wrote"')]);
+  });
+
+  it('names a sentence whose only case the run skipped', () => {
+    const skipped = reportedFrom({
+      testResults: [
+        {
+          assertionResults: [
+            {
+              ancestorTitles: ['nodeScopes', 'per request'],
+              title: 'keeps two runs apart',
+              status: 'skipped',
+            },
+          ],
+        },
+      ],
+    });
+
+    expect(
+      failuresOf(
+        behaviours(
+          ['nodeScopes', 'per request', 'keeps two runs apart'],
+          false,
+        ),
+        skipped,
+      ),
+    ).toHaveLength(1);
+    expect(
+      failuresOf(behaviours(['nodeScopes', 'per request'], true), skipped),
+      'A block whose every case was skipped ran nothing either.',
+    ).toHaveLength(1);
   });
 
   it('holds a seeded chain to the block and never to a case title', () => {
