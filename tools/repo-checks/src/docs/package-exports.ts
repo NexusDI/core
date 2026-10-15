@@ -1,101 +1,12 @@
-import { readFileSync } from 'node:fs';
-import { dirname, join } from 'node:path';
-
+import { moduleOf, resolve } from '@nexusdi/doc-examples/package-exports';
 import ts from 'typescript';
 
-export interface ExportInfo {
-  name: string;
-  /** A value with a call or construct signature: a function or a class. */
-  callable: boolean;
-  /** A type, an interface, or a type-only re-export. */
-  typeOnly: boolean;
-  /** A class whose chain reaches `Error`. */
-  error: boolean;
-}
-
-const OPTIONS: ts.CompilerOptions = {
-  target: ts.ScriptTarget.ES2022,
-  module: ts.ModuleKind.ESNext,
-  moduleResolution: ts.ModuleResolutionKind.Bundler,
-  customConditions: ['@nexusdi/source'],
-  allowImportingTsExtensions: true,
-  strict: true,
-  skipLibCheck: true,
-  noEmit: true,
-};
-
-function moduleOf(file: string): {
-  checker: ts.TypeChecker;
-  symbol: ts.Symbol;
-} {
-  const program = ts.createProgram([file], OPTIONS);
-  const checker = program.getTypeChecker();
-  const source = program.getSourceFile(file);
-  const symbol = source && checker.getSymbolAtLocation(source);
-  if (!symbol) throw new Error(`${file}: TypeScript found no module there.`);
-  return { checker, symbol };
-}
-
-function resolve(symbol: ts.Symbol, checker: ts.TypeChecker): ts.Symbol {
-  return symbol.flags & ts.SymbolFlags.Alias
-    ? checker.getAliasedSymbol(symbol)
-    : symbol;
-}
-
-function isErrorType(type: ts.Type, checker: ts.TypeChecker): boolean {
-  if (type.getSymbol()?.getName() === 'Error') return true;
-  if (!type.isClassOrInterface()) return false;
-  return checker.getBaseTypes(type).some((base) => isErrorType(base, checker));
-}
-
-/** Every export of one module, sorted by name. */
-function exportsOfFile(file: string): ExportInfo[] {
-  const { checker, symbol } = moduleOf(file);
-
-  return checker
-    .getExportsOfModule(symbol)
-    .map((each) => {
-      const resolved = resolve(each, checker);
-      const typeOnly = (resolved.flags & ts.SymbolFlags.Value) === 0;
-      const type = typeOnly ? null : checker.getTypeOfSymbol(resolved);
-      const callable =
-        type !== null &&
-        (type.getCallSignatures().length > 0 ||
-          type.getConstructSignatures().length > 0);
-      const error =
-        (resolved.flags & ts.SymbolFlags.Class) !== 0 &&
-        isErrorType(checker.getDeclaredTypeOfSymbol(resolved), checker);
-
-      return { name: each.getName(), callable, typeOnly, error };
-    })
-    .sort((a, b) => a.name.localeCompare(b.name));
-}
-
 /**
- * Every entry of a package's exports map, keyed by the specifier a reader
- * writes, read from the file the `@nexusdi/source` condition names.
+ * `readPackageExports` lives in `@nexusdi/doc-examples/package-exports`, which
+ * `docs:behaviour-data` also reads under plain Node. Only the guards read the
+ * two readers below.
  */
-export function readPackageExports(
-  packageJson: string,
-): Map<string, ExportInfo[]> {
-  const manifest = JSON.parse(readFileSync(packageJson, 'utf8')) as {
-    name: string;
-    exports: Record<string, unknown>;
-  };
-  const exports = new Map<string, ExportInfo[]>();
-
-  for (const [subpath, target] of Object.entries(manifest.exports)) {
-    if (typeof target !== 'object' || target === null) continue;
-    const source = (target as Record<string, string>)['@nexusdi/source'];
-    if (source === undefined) continue;
-
-    const specifier =
-      subpath === '.' ? manifest.name : `${manifest.name}/${subpath.slice(2)}`;
-    exports.set(specifier, exportsOfFile(join(dirname(packageJson), source)));
-  }
-
-  return exports;
-}
+export { readPackageExports } from '@nexusdi/doc-examples/package-exports';
 
 function exported(
   file: string,
