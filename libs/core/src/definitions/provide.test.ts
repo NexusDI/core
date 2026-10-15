@@ -16,7 +16,7 @@ describe('provide', () => {
 
   it('registers its token with the options it was given', async () => {
     const NAME = new Token<string>('Name');
-    const ship = await Nexus.create(
+    await using ship = await Nexus.create(
       defineModule({
         name: 'Root',
         providers: [provide(NAME, { useValue: 'Meridian' })],
@@ -28,7 +28,7 @@ describe('provide', () => {
 
   it('registers the class itself for provide(C)', async () => {
     class Beacon {}
-    const ship = await Nexus.create(
+    await using ship = await Nexus.create(
       defineModule({ name: 'Root', providers: [provide(Beacon)] }),
     );
 
