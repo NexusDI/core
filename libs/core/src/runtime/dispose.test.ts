@@ -137,7 +137,9 @@ describe('chainErrors', () => {
     const third = new Error('third');
     const chained = chainErrors([first, second, third])
       ?.error as SuppressedError;
-    expect(chained).toBeInstanceOf(SuppressedError);
+    // Node 22.12 has no global SuppressedError, and core throws its own
+    // NexusSuppressedError there: the check reads the name and fields.
+    expect(chained.name).toBe('SuppressedError');
     expect(chained.error).toBe(third);
     expect((chained.suppressed as SuppressedError).error).toBe(second);
     expect((chained.suppressed as SuppressedError).suppressed).toBe(first);

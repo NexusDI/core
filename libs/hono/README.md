@@ -19,6 +19,8 @@ A request-scoped service needs a scope per request, disposed when the response i
 npm install @nexusdi/hono@next @nexusdi/core@next hono
 ```
 
+It needs `hono` 4.3.3 or later and Node 22.12 or later.
+
 ## Quick Example
 
 Each request gets its own flight log, so two requests never see each other's entries.

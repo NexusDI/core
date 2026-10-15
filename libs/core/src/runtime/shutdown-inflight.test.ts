@@ -215,7 +215,9 @@ describe('Nexus', () => {
         code: 'NEXUS_DISPOSED',
       });
       const error = (await rejected(closing)) as SuppressedError;
-      expect(error).toBeInstanceOf(SuppressedError);
+      // Node 22.12 has no global SuppressedError, and core throws its own
+      // NexusSuppressedError there: the check reads the name and fields.
+      expect(error.name).toBe('SuppressedError');
       expect(error.error).toBe(reactorStuck);
       expect(error.suppressed).toBe(sessionStuck);
     });
@@ -269,7 +271,9 @@ describe('Nexus', () => {
       });
       const error = (await rejected(closing)) as SuppressedError;
       expect(log).toEqual(['shield disposed', 'hull disposed']);
-      expect(error).toBeInstanceOf(SuppressedError);
+      // Node 22.12 has no global SuppressedError, and core throws its own
+      // NexusSuppressedError there: the check reads the name and fields.
+      expect(error.name).toBe('SuppressedError');
       expect(error.error).toMatchObject({ message: 'hull stuck' });
       expect(error.suppressed).toMatchObject({ message: 'shield stuck' });
     });

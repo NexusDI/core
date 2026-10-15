@@ -371,6 +371,11 @@
     // Imported by tools/doc-examples/src/module-fences.ts, for the same
     // reason: tools/doc-examples carries no dependencies of its own.
     "ts-blank-space",
+    // Imported by tools/doc-examples/src/lower-doctests.ts, for the same
+    // reason. Its output imports @oxc-project/runtime's helpers, which no
+    // source file names.
+    "oxc-transform",
+    "@oxc-project/runtime",
     // examples/toolchain-matrix/src/*.ts import @nexusdi/core,
     // @nexusdi/decorators and @nexusdi/devtools, and vite.babel.config.mjs
     // imports @rolldown/plugin-babel, but none belongs in the project's

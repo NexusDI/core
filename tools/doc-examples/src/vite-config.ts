@@ -6,6 +6,7 @@ import {
   doctestPreload,
   expectComments,
 } from './vite-plugin.ts';
+import { lowerDoctests } from './lower-doctests.ts';
 import { moduleFences } from './module-fences.ts';
 
 /**
@@ -31,11 +32,13 @@ export function docExamples(options: { preamble?: string } = {}) {
     // become an assertion by the time doctest extracts the block around it.
     // `moduleFences` uncomments each `@module` fence at module level, and
     // `doctestPreload` appends the imports `expectComments` rewrote, both
-    // after doctest has commented out the prose.
+    // after doctest has commented out the prose. `lowerDoctests` lowers the
+    // result to Node 22.12, the floor every package promises.
     plugins: [
       expectComments(imports),
       doctest({ markdown: { preamble: options.preamble ?? '' } }),
       moduleFences(),
+      lowerDoctests(),
       doctestPreload(imports),
     ],
     // A doc example imports the package by the specifier a reader would write.

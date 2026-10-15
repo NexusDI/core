@@ -405,3 +405,53 @@ jobs:
         env:
           LEG: ${{ matrix.leg }}
         run: node scripts/adapter-peers.mjs "$LEG"
+
+  # Every published lib promises Node 22.12 in engines, and the other jobs run
+  # the .nvmrc Node. This runs each lib's tests on its floor, 22.22 for
+  # react-router, whose React Router 8 peer needs it. Install and build run on
+  # .nvmrc, as in cli-node-floor: the npm that ships with 22.12 reads the
+  # lockfile's optional platform packages as missing. vitest runs directly,
+  # because nx run would rebuild the project graph on the floor Node.
+  # node-floor.test.ts derives this matrix from libs/.
+  node-floor:
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - { lib: core, node: 22.12.0 }
+          - { lib: decorators, node: 22.12.0 }
+          - { lib: devtools, node: 22.12.0 }
+          - { lib: errors, node: 22.12.0 }
+          - { lib: express, node: 22.12.0 }
+          - { lib: fastify, node: 22.12.0 }
+          - { lib: federation, node: 22.12.0 }
+          - { lib: hono, node: 22.12.0 }
+          - { lib: interceptors, node: 22.12.0 }
+          - { lib: node, node: 22.12.0 }
+          - { lib: react, node: 22.12.0 }
+          - { lib: react-router, node: 22.22.0 }
+          - { lib: testing, node: 22.12.0 }
+          - { lib: vitest, node: 22.12.0 }
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          filter: tree:0
+
+      - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
+        with:
+          node-version-file: .nvmrc
+          cache: 'npm'
+
+      - run: npm ci
+
+      - env:
+          LIB: ${{ matrix.lib }}
+        run: npx nx run "@nexusdi/$LIB:build"
+
+      - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
+        with:
+          node-version: ${{ matrix.node }}
+
+      - run: node --version && npx vitest run --configLoader runner
+        working-directory: libs/${{ matrix.lib }}

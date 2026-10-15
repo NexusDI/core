@@ -24,10 +24,14 @@
  * in it. ts-blank-space refuses TypeScript that emits code (an enum, a
  * namespace, a parameter property), and markModuleFences reports that line.
  */
+import { createRequire } from 'node:module';
+
 import type { Plugin } from 'vite';
 import tsBlankSpace from 'ts-blank-space';
 
 import { readValueClaim } from './expect-comments.ts';
+
+const require = createRequire(import.meta.url);
 
 /** The fence info word that runs a doctest at module level. */
 export const MODULE_MARKER = '@module';
@@ -60,8 +64,10 @@ async function testBodies(
   source: string,
 ): Promise<readonly (readonly [number, number])[]> {
   // Loaded on first use: a vite config that never meets a module fence never
-  // pays for the TypeScript parser.
-  const ts = (await import('typescript')).default;
+  // pays for the TypeScript parser. require, because Vitest's runner config
+  // loader closes its module runner once the config is read, and a later
+  // dynamic import() through it fails.
+  const ts = require('typescript') as typeof import('typescript');
   const file = ts.createSourceFile(
     'fence.ts',
     source,
