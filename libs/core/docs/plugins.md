@@ -105,3 +105,58 @@ provided; // -> true
 ```
 
 <!-- #endregion plugin-canonical -->
+
+## Swapping a module from a plugin
+
+A `compile.module` hook sees each module definition the walk reaches and returns another module to put in its place. `moduleDefinitionOf()` turns a module reference, a definition or an `@Module` class, into the definition the hook compares against.
+
+<!-- #region module-hook -->
+
+```ts @import.meta.vitest
+import { NEXUS_PLUGIN_API, Nexus, Token, defineModule } from '@nexusdi/core';
+import { moduleDefinitionOf, provide } from '@nexusdi/core';
+import type { ModuleRef, NexusPlugin } from '@nexusdi/core';
+
+interface IReactorCore {
+  output(): string;
+}
+const REACTOR = new Token<IReactorCore>('ReactorCore');
+class FusionReactor implements IReactorCore {
+  output() {
+    return 'fusion';
+  }
+}
+class FakeReactor implements IReactorCore {
+  output() {
+    return 'simulated';
+  }
+}
+
+const Engineering = defineModule({
+  name: 'Engineering',
+  providers: [provide(REACTOR, { useClass: FusionReactor })],
+  exports: [REACTOR],
+});
+const SimulatorEngineering = defineModule({
+  name: 'SimulatorEngineering',
+  providers: [provide(REACTOR, { useClass: FakeReactor })],
+  exports: [REACTOR],
+});
+
+const simulator = (swap: ModuleRef, stub: ModuleRef): NexusPlugin => ({
+  name: 'simulator',
+  apiVersion: NEXUS_PLUGIN_API,
+  compile: {
+    module: (module) =>
+      module === moduleDefinitionOf(swap) ? stub : undefined,
+  },
+});
+
+await using ship = await Nexus.create(
+  defineModule({ name: 'Meridian', imports: [Engineering] }),
+  { plugins: [simulator(Engineering, SimulatorEngineering)] },
+);
+ship.get(REACTOR).output(); // -> 'simulated'
+```
+
+<!-- #endregion module-hook -->
