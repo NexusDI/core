@@ -57,7 +57,7 @@ npx nexusdi profile src/ship/meridian.ts#Meridian
 npx nexusdi profile src/ship/meridian.ts#Meridian --chrome startup.json --cpu
 ```
 
-The first prints the startup steps, the slowest providers and the critical path. The second also writes a trace you open in Chrome DevTools, with the CPU samples of the startup under it. `--chrome`, `--perfetto` and `--json` write trace files, and `npx nexusdi --help` lists every flag.
+The first prints the startup steps, the slowest providers and the critical path. The second also writes a trace you open in Chrome DevTools, with the CPU samples of the startup under it. `--chrome`, `--perfetto` and `--json` write trace files, and the [profiling guide](https://nexus.js.org/next/profiling/) lists every flag.
 
 ## Documentation
 
