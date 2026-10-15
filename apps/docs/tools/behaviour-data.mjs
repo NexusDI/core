@@ -2,11 +2,13 @@ import { mkdirSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
 import { basename, dirname, join, relative } from 'node:path';
 
 import { behavioursOf } from '@nexusdi/doc-examples/behaviours';
+import { statedBy } from '@nexusdi/doc-examples/mdx-reference-loader';
 import { createTransformerFactory, rendererRich } from '@shikijs/twoslash';
 import { codeToHast, hastToHtml } from 'shiki';
 import ts from 'typescript';
 import { createTwoslasher } from 'twoslash';
 
+import { codeClasses, stylesheet, THEMES } from './code-classes.mjs';
 import { libraries } from './libraries.mjs';
 
 /**
@@ -14,17 +16,24 @@ import { libraries } from './libraries.mjs';
  *
  * An entry on an API page lists the sentences the package's own suite carries
  * about that export, and opening one shows the case the sentence names. This
- * parses the test sources and writes two files per library. The index, under
- * `components/api/behaviour`, holds the sentences; `mdx-reference-loader.mjs`
- * reads it while expanding a directive during `next build` and puts the
- * sentences in the page. The sidecar, under `public/behaviour`, holds the
- * cases, highlighted, and the catalogue fetches it when a reader reaches one.
+ * parses the test sources and writes an index per library and a sidecar per
+ * export. The index, `components/api/behaviour/<dir>.json`, holds the
+ * sentences; `mdx-reference-loader.mjs` reads it while expanding a directive
+ * during `next build` and puts the sentences in the page. The sidecar,
+ * `public/behaviour/<dir>/<name>.json`, holds the cases one entry's rail
+ * opens, highlighted, and the catalogue fetches it when a reader reaches the
+ * entry.
  *
- * The two files are apart because of what they weigh. A page carrying every
- * highlighted body would send every case of the package to a reader who
- * opened the page to read one signature. The sentences are what search
- * indexes and what a reader scans, so they stay in the HTML; the cases are
- * code, which Nextra's search leaves out of the index anyway.
+ * The sentences and the cases are apart because of what they weigh. A page
+ * carrying every highlighted body would send every case of the package to a
+ * reader who opened the page to read one signature. The sentences are what
+ * search indexes and what a reader scans, so they stay in the HTML; the cases
+ * are code, which Nextra's search leaves out of the index anyway.
+ *
+ * A sidecar holds one export's cases for the same reason. `@nexusdi/core`'s
+ * cases come to several megabytes of JSON with every token's colours in a
+ * class, and a reader who opens one case of `Nexus` downloads and parses
+ * `Nexus`'s file alone.
  *
  * The cases are highlighted here, at build time. `next.config.ts` sets
  * `output: 'export'`, so no request-time route exists to highlight on, and a
@@ -39,6 +48,9 @@ const docsRoot = join(import.meta.dirname, '..');
 const workspaceRoot = join(docsRoot, '..', '..');
 const index = join(docsRoot, 'components', 'api', 'behaviour');
 const sidecars = join(docsRoot, 'public', 'behaviour');
+
+/** The rules for the classes `codeClasses` puts on a case's tokens. */
+const classSheet = join(index, 'code-classes.css');
 
 /**
  * What the compiler is told about a test file.
@@ -215,13 +227,12 @@ async function highlight(body, language, hovers, popups) {
 
   const tree = await codeToHast(body, {
     lang: language,
-    // Nextra's own themes (`nextra/dist/server/rehype-plugins/rehype.js`), so
-    // a case and a page fence share their colours. `defaultColor: false`
-    // writes each token's colour as `--shiki-light` and `--shiki-dark`, and
-    // `behaviour.css` picks one by theme.
-    themes: { light: 'github-light', dark: 'github-dark' },
+    // `defaultColor: false` writes each token's colour as `--shiki-light` and
+    // `--shiki-dark`, `codeClasses` moves the pair into a class that sets the
+    // same two variables, and `behaviour.css` picks one by theme.
+    themes: THEMES,
     defaultColor: false,
-    transformers: [...twoslash],
+    transformers: [...twoslash, codeClasses()],
   });
 
   const code = tree.children[0]?.children?.find(
@@ -244,7 +255,7 @@ async function highlight(body, language, hovers, popups) {
 /** How many cases came back without their types, across every library. */
 let fallbacks = 0;
 
-/** One library's two files, keyed the way the loader and the page look them up. */
+/** One library's index, and the highlighted cases and popups its sidecars draw on. */
 async function filesFor(project) {
   const { files, chains, states } = behavioursOf(
     join(workspaceRoot, project.root),
@@ -317,14 +328,70 @@ async function filesFor(project) {
           .sort(([left], [right]) => left.localeCompare(right)),
       ),
     },
-    sidecar: {
-      package: project.name,
-      bodies,
-      popups: Object.fromEntries(
-        [...popups].map(([html, at]) => [String(at), html]),
-      ),
-    },
+    bodies,
+    popups: new Map([...popups].map(([html, at]) => [String(at), html])),
   };
+}
+
+/**
+ * Whether an entry can carry this name. The reference loader names an entry
+ * after the export it renders, and an export's name is an identifier, so a
+ * `describe` title such as `accepts a bare class` names no entry and gets no
+ * sidecar.
+ */
+const IDENTIFIER = /^[A-Za-z_$][\w$]*$/;
+
+/**
+ * One sidecar per name an entry can carry: the cases `statedBy` puts in that
+ * entry's rail, and the popups those cases point at, under the numbers the
+ * tokens already carry.
+ */
+function sidecarsOf(project, contents, bodies, popups) {
+  const written = new Map();
+  const out = [];
+
+  for (const name of Object.keys(contents.states)) {
+    if (!IDENTIFIER.test(name)) continue;
+
+    const ids = statedBy(contents, name).groups.flatMap((group) =>
+      group.rows.map((row) => String(row.id)),
+    );
+    if (ids.length === 0) continue;
+
+    // A filesystem that ignores case (APFS and NTFS by default) would write
+    // both names to one file, and a host that serves `out/` by case would
+    // then answer one of the two fetches with the other export's cases.
+    const folded = name.toLowerCase();
+    if (written.has(folded))
+      throw new Error(
+        `${project.name} states both ${written.get(folded)} and ${name}, ` +
+          'whose sidecars differ only by case',
+      );
+    written.set(folded, name);
+
+    const held = Object.fromEntries(ids.map((id) => [id, bodies[id]]));
+    const pointed = new Set(
+      Object.values(held).flatMap(({ html }) =>
+        [...html.matchAll(/data-pop="(\d+)"/g)].map(([, at]) => at),
+      ),
+    );
+
+    out.push({
+      name,
+      sidecar: {
+        package: project.name,
+        name,
+        bodies: held,
+        popups: Object.fromEntries(
+          [...pointed]
+            .sort((left, right) => Number(left) - Number(right))
+            .map((at) => [at, popups.get(at)]),
+        ),
+      },
+    });
+  }
+
+  return out;
 }
 
 const projects = libraries(workspaceRoot);
@@ -340,22 +407,36 @@ for (const directory of [index, sidecars]) {
 
 let stated = 0;
 let weight = 0;
+let files = 0;
+let heaviest = { path: '', bytes: 0 };
 const written = [];
 
 for (const project of projects) {
   written.push({ project, ...(await filesFor(project)) });
 }
 
-for (const { name, index: contents, sidecar } of written) {
+writeFileSync(
+  classSheet,
+  `/* Written by \`nx run @nexusdi/docs:behaviour-data\` from tools/code-classes.mjs. */\n${stylesheet}`,
+);
+
+for (const { project, name, index: contents, bodies, popups } of written) {
   stated += Object.keys(contents.states).length;
   writeFileSync(
     join(index, `${name}.json`),
     `${JSON.stringify(contents, null, 2)}\n`,
   );
 
-  const body = `${JSON.stringify(sidecar)}\n`;
-  weight += body.length;
-  writeFileSync(join(sidecars, `${name}.json`), body);
+  mkdirSync(join(sidecars, name));
+  for (const each of sidecarsOf(project, contents, bodies, popups)) {
+    const path = join(sidecars, name, `${each.name}.json`);
+    const body = `${JSON.stringify(each.sidecar)}\n`;
+    const bytes = Buffer.byteLength(body);
+    weight += bytes;
+    files += 1;
+    if (bytes > heaviest.bytes) heaviest = { path, bytes };
+    writeFileSync(path, body);
+  }
 }
 
 console.log(
@@ -363,6 +444,8 @@ console.log(
     `${projects.length} libraries`,
 );
 console.log(
-  `${relative(workspaceRoot, sidecars)}: ${Math.round(weight / 1024)} kB of ` +
-    `cases, ${fallbacks} of them without types`,
+  `${relative(workspaceRoot, sidecars)}: ${files} sidecars, ` +
+    `${Math.round(weight / 1024)} kB of cases, ${fallbacks} of them without ` +
+    `types; the largest is ${relative(sidecars, heaviest.path)} at ` +
+    `${Math.round(heaviest.bytes / 1024)} kB`,
 );
