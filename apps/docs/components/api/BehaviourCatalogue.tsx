@@ -1,7 +1,6 @@
 'use client';
 
 import {
-  Fragment,
   useCallback,
   useEffect,
   useId,
@@ -49,7 +48,9 @@ import './behaviour.css';
  * It is a listbox, since a tab strip puts the labels in a row and needs them
  * short, and these are sentences. The rail is a single-select list, arrow keys
  * move the selection, and `aria-activedescendant` keeps focus on the rail
- * while the pane follows.
+ * while the pane follows. The pane sits after the listbox in both layouts,
+ * never inside it, since a listbox holds options only; the rail names it with
+ * `aria-controls`. On a phone the pane goes under the rail.
  */
 
 /** One sentence a test carries, with the case the sidecar keys by that number. */
@@ -117,27 +118,6 @@ function rowsOf(groups: readonly BehaviourGroup[]): BehaviourRow[] {
   return groups.flatMap((group) => group.rows);
 }
 
-/**
- * Whether the two panes have room to sit side by side.
- *
- * Read from the media query, because the phone layout is a different tree:
- * the pane moves from the second column to the line under the sentence it
- * belongs to.
- */
-function useNarrow(): boolean {
-  const [narrow, setNarrow] = useState(false);
-
-  useEffect(() => {
-    const query = window.matchMedia('(max-width: 48rem)');
-    const read = () => setNarrow(query.matches);
-    read();
-    query.addEventListener('change', read);
-    return () => query.removeEventListener('change', read);
-  }, []);
-
-  return narrow;
-}
-
 /** Every token in a case the compiler gave a type to, in reading order. */
 function typed(within: HTMLElement | null): HTMLElement[] {
   return [...(within?.querySelectorAll<HTMLElement>('[data-pop]') ?? [])];
@@ -146,6 +126,12 @@ function typed(within: HTMLElement | null): HTMLElement[] {
 /** How far the card sits from the token, and from the edge of the window. */
 const GAP = 6;
 const EDGE = 8;
+
+/**
+ * How long the card stays up after the pointer leaves the code or the card,
+ * so a reader can cross the gap between a token and its card (WCAG 1.4.13).
+ */
+const LINGER = 150;
 
 /**
  * Puts the card beside the token it describes, inside the window.
@@ -199,10 +185,11 @@ export default function BehaviourCatalogue({
   const code = useRef<HTMLElement>(null);
   const card = useRef<HTMLDivElement>(null);
   const moved = useRef(false);
-  const narrow = useNarrow();
+  const closing = useRef<ReturnType<typeof setTimeout> | undefined>(undefined);
   const [token, setToken] = useState<HTMLElement | null>(null);
 
   const cardId = `${prefix}-type`;
+  const paneId = `${prefix}-pane`;
 
   const optionId = useCallback(
     (index: number) => `${prefix}-case-${index}`,
@@ -277,17 +264,38 @@ export default function BehaviourCatalogue({
   const open = popup === undefined ? null : token;
 
   useEffect(() => {
-    if (!open || !card.current) return;
+    const shown = card.current;
+    if (!open || !shown) return;
 
     open.setAttribute('aria-describedby', cardId);
-    place(card.current, open);
-    return () => open.removeAttribute('aria-describedby');
+    place(shown, open);
+    return () => {
+      open.removeAttribute('aria-describedby');
+      shown.style.visibility = 'hidden';
+    };
   }, [cardId, open]);
 
-  // The token a pointer or a focus reached, or none where neither is on one.
-  const reach = (event: { target: EventTarget | null }) => {
+  useEffect(() => () => clearTimeout(closing.current), []);
+
+  const stay = () => clearTimeout(closing.current);
+
+  // Leaving the code or the card takes the card down after a moment, unless
+  // the pointer reaches the other one first or focus is still on a token.
+  const leave = () => {
+    stay();
+    closing.current = setTimeout(() => {
+      if (!code.current?.contains(document.activeElement)) setToken(null);
+    }, LINGER);
+  };
+
+  // The token a pointer or a focus reached. A pointer crossing the space
+  // between tokens keeps the card it has, so the card stays reachable.
+  const reach = (event: { target: EventTarget | null; type: string }) => {
     const found = (event.target as Element | null)?.closest?.('[data-pop]');
-    setToken(found instanceof HTMLElement ? found : null);
+    if (found instanceof HTMLElement) {
+      stay();
+      setToken(found);
+    } else if (event.type === 'focus') setToken(null);
   };
 
   /**
@@ -329,7 +337,11 @@ export default function BehaviourCatalogue({
   };
 
   const pane = (
-    <div className="nexus-behaviours__pane" data-pagefind-ignore="all">
+    <div
+      className="nexus-behaviours__pane"
+      data-pagefind-ignore="all"
+      id={paneId}
+    >
       <ConsoleFrame title={body ? `${body.where}:${body.line}` : 'Test case'}>
         <p className="nexus-behaviours__title">
           <Marker shape="corner" />
@@ -348,10 +360,7 @@ export default function BehaviourCatalogue({
               }}
               onFocus={reach}
               onKeyDown={onCodeKeyDown}
-              onPointerLeave={() => {
-                if (!code.current?.contains(document.activeElement))
-                  setToken(null);
-              }}
+              onPointerLeave={leave}
               onPointerOver={reach}
             >
               <code
@@ -359,17 +368,20 @@ export default function BehaviourCatalogue({
                 ref={code}
               />
             </pre>
-            {open ? (
-              /* The type the build read off the compiler, stored once in the
-               sidecar and cited here by the number the token carries. */
-              <div
-                className="nexus-behaviours__type twoslash-popup-container"
-                dangerouslySetInnerHTML={{ __html: popup ?? '' }}
-                id={cardId}
-                ref={card}
-                role="tooltip"
-              />
-            ) : null}
+            {/* The type the build read off the compiler, stored once in the
+              sidecar and cited here by the number the token carries. Always
+              in the document, so the id a token's aria-describedby names
+              exists before the token takes focus. */}
+            <div
+              className="nexus-behaviours__type twoslash-popup-container"
+              dangerouslySetInnerHTML={{ __html: popup ?? '' }}
+              hidden={!open}
+              id={cardId}
+              onPointerEnter={stay}
+              onPointerLeave={leave}
+              ref={card}
+              role="tooltip"
+            />
           </>
         ) : (
           <p className="nexus-behaviours__waiting">
@@ -397,6 +409,7 @@ export default function BehaviourCatalogue({
         tabIndex={0}
         aria-label={`What ${name}'s tests state`}
         aria-activedescendant={optionId(at)}
+        aria-controls={paneId}
         onKeyDown={onKeyDown}
       >
         {groups.map((group, under) => (
@@ -417,26 +430,22 @@ export default function BehaviourCatalogue({
               const index = (offsets[under] ?? 0) + within;
 
               return (
-                <Fragment key={each.id}>
-                  <div
-                    className="nexus-behaviours__row"
-                    id={optionId(index)}
-                    role="option"
-                    aria-selected={index === at}
-                    onClick={() => select(index)}
-                  >
-                    {each.title}
-                  </div>
-                  {narrow && index === at ? (
-                    <div role="presentation">{pane}</div>
-                  ) : null}
-                </Fragment>
+                <div
+                  className="nexus-behaviours__row"
+                  id={optionId(index)}
+                  key={each.id}
+                  role="option"
+                  aria-selected={index === at}
+                  onClick={() => select(index)}
+                >
+                  {each.title}
+                </div>
               );
             })}
           </div>
         ))}
       </div>
-      {narrow ? null : pane}
+      {pane}
     </div>
   );
 }

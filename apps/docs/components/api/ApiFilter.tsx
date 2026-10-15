@@ -151,30 +151,36 @@ export default function ApiFilter() {
             </span>
           </button>
         ))}
-        <span className="nexus-api-filter__count">
+        {/* A live region, so a reader on a screen reader hears the count
+            change as they type. */}
+        <span className="nexus-api-filter__count" role="status">
           {filtering
             ? `${shown} of ${entries.length}`
             : `${entries.length} exports`}
         </span>
       </div>
-      {shown === 0 && entries.length > 0 ? (
-        <p className="nexus-api-filter__empty">
-          Nothing matches{' '}
-          {query.trim() === '' ? 'the filter' : <code>{query.trim()}</code>}
-          {on.length > 0 ? (
-            <> in {on.join(', ')}</>
-          ) : (
-            <> with no kind on</>
-          )}.{' '}
-          <button
-            type="button"
-            className="nexus-api-filter__clear"
-            onClick={clear}
-          >
-            Clear the filter
-          </button>
-        </p>
-      ) : null}
+      {/* Its own live region, present before the message is, since a
+          region added with its text already in it is announced unreliably. */}
+      <div role="status">
+        {shown === 0 && entries.length > 0 ? (
+          <p className="nexus-api-filter__empty">
+            Nothing matches{' '}
+            {query.trim() === '' ? 'the filter' : <code>{query.trim()}</code>}
+            {on.length > 0 ? (
+              <> in {on.join(', ')}</>
+            ) : (
+              <> with no kind on</>
+            )}.{' '}
+            <button
+              type="button"
+              className="nexus-api-filter__clear"
+              onClick={clear}
+            >
+              Clear the filter
+            </button>
+          </p>
+        ) : null}
+      </div>
     </div>
   );
 }

@@ -75,6 +75,20 @@ describe('ApiFilter', () => {
     expect(entries().every((each) => !each.hidden)).toBe(true);
   });
 
+  it('announces the count and the empty result in live regions', async () => {
+    page();
+    const regions = () => screen.getAllByRole('status');
+
+    expect(regions().map((each) => each.textContent)).toContain('3 exports');
+    await userEvent.type(screen.getByRole('searchbox'), 'graph');
+    expect(regions().map((each) => each.textContent)).toContain('2 of 3');
+
+    await userEvent.type(screen.getByRole('searchbox'), 'zzz');
+    expect(
+      regions().some((each) => /Nothing matches/.test(each.textContent ?? '')),
+    ).toBe(true);
+  });
+
   it('renders hidden until it has read the page', () => {
     const html = renderToString(<ApiFilter />);
 

@@ -213,29 +213,21 @@ html.dark .nexus-behaviours__type :where(span) {
 }
 
 /*
- * On a phone the pane opens under the sentence it belongs to.
+ * On a phone the pane goes under the rail.
  *
  * Two columns at this width would give the case about 20 characters, so the
- * rail takes the whole frame and the selected row opens beneath itself, which
- * is the movement the reader's tap asked for.
+ * frame stacks them: the rail over a third of the height, the pane under it.
+ * The pane stays a sibling of the listbox, which holds options only.
  */
 @media (max-width: 48rem) {
   .nexus-behaviours {
     grid-template-columns: minmax(0, 1fr);
+    grid-template-rows: minmax(0, 1fr) minmax(0, 2fr);
   }
 
   .nexus-behaviours__rail {
     border-inline-end: 0;
-  }
-
-  .nexus-behaviours__pane {
-    padding-inline: var(--meridian-space-3);
-    padding-block: var(--meridian-space-2) var(--meridian-space-3);
-  }
-
-  /* The row the pane opened under says the sentence, one line above it. */
-  .nexus-behaviours__pane .nexus-behaviours__title {
-    display: none;
+    border-block-end: 1px solid var(--meridian-rule);
   }
 }
 
