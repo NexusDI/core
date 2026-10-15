@@ -12,7 +12,12 @@ import { describe, expect, it } from 'vitest';
  * and its rules are the github themes' colour pairs as `--shiki-*` values.
  */
 
-const SHEETS = ['api.css', 'entry.css', 'behaviour.css'] as const;
+const SHEETS = [
+  'api.css',
+  'entry.css',
+  'catalogue.css',
+  'behaviour.css',
+] as const;
 
 const read = (name: string): string =>
   readFileSync(join(import.meta.dirname, name), 'utf8');

@@ -1,101 +1,12 @@
 /*
- * The rail and the pane: what a package's tests state about one export, and
- * the case behind the sentence a reader picked.
+ * The pane, the type card and the case tokens: what `BehaviourPane.tsx`
+ * renders once a reader reaches a catalogue. `catalogue.css` holds the frame
+ * and the rail, which the shell renders on the server.
  *
  * Every value here is a `--meridian-*` token from `@nexusdi/meridian-ui`,
  * bound per theme in `tokens.generated.css`, plus the `--shiki-*` variables
  * each token's class sets. No colour, radius or size of its own.
  */
-
-/*
- * One height, whatever the export states.
- *
- * `Nexus` states over a hundred sentences and `nodeScopes` two, and an entry
- * that grew with its catalogue would make the page a column of blocks of
- * random length with no relation to how important the export is. A fixed
- * frame with both panes scrolling inside it takes the same 26rem everywhere,
- * so a reader scrolling for a signature keeps a rhythm.
- */
-.nexus-behaviours {
-  display: grid;
-  grid-template-columns: minmax(0, 15rem) minmax(0, 1fr);
-  height: 26rem;
-  margin-block-start: var(--meridian-space-3);
-  border: 1px solid var(--meridian-rule);
-  border-radius: var(--meridian-radius-panel);
-  overflow: hidden;
-  background: var(--meridian-hull-raised);
-}
-
-.nexus-behaviours__rail {
-  overflow-y: auto;
-  border-inline-end: 1px solid var(--meridian-rule);
-  padding-block: var(--meridian-space-2);
-}
-
-.nexus-behaviours__rail:focus-visible {
-  outline: 2px solid var(--meridian-kind);
-  outline-offset: -2px;
-}
-
-/*
- * The condition the test author wrote, over the sentences that hold under it.
- *
- * `createTestingContainer` states sentences under `load() under overrideModule`
- * and under `a malformed override`, and that split is the suite's own
- * structure; nothing here derives it. The sentences the suite states directly
- * under the export's own name are a group too, labelled with that name,
- * because a run of unlabelled rows above the labelled ones reads as belonging
- * to nowhere.
- */
-.nexus-behaviours__label {
-  font-family: var(--meridian-font-body);
-  font-size: var(--meridian-text-micro);
-  font-weight: 600;
-  letter-spacing: var(--meridian-tracking-micro);
-  color: var(--meridian-text-tertiary);
-  margin: var(--meridian-space-3) 0 var(--meridian-space-1);
-  padding-inline: var(--meridian-space-3);
-}
-
-.nexus-behaviours__group:first-child .nexus-behaviours__label {
-  margin-block-start: 0;
-}
-
-/*
- * One sentence a test carries.
- *
- * No marker and no status. Every sentence here comes from a suite that passes,
- * so a tick beside one states nothing, and the selected row is marked by the
- * kind's own hue, which is the colour the entry's name already carries.
- */
-.nexus-behaviours__row {
-  font-family: var(--meridian-font-body);
-  font-size: var(--meridian-text-small);
-  line-height: var(--meridian-leading-small);
-  color: var(--meridian-text-secondary);
-  padding: var(--meridian-space-1) var(--meridian-space-3);
-  cursor: pointer;
-  border-inline-start: 2px solid transparent;
-}
-
-.nexus-behaviours__row:hover {
-  color: var(--meridian-text);
-}
-
-.nexus-behaviours__row[aria-selected='true'] {
-  color: var(--meridian-text);
-  border-inline-start-color: var(--meridian-kind);
-  background: var(--meridian-hull);
-}
-
-.nexus-behaviours__pane {
-  overflow: auto;
-  padding: var(--meridian-space-3);
-  display: flex;
-  flex-direction: column;
-  gap: var(--meridian-space-2);
-}
 
 /*
  * The sentence heads its own case, because a reader who moved down the rail
@@ -203,32 +114,6 @@ html.dark .nexus-behaviours__type :where(span) {
   padding: 0;
   background: none;
   white-space: pre;
-}
-
-.nexus-behaviours__waiting {
-  font-family: var(--meridian-font-body);
-  font-size: var(--meridian-text-small);
-  color: var(--meridian-text-tertiary);
-  margin: 0;
-}
-
-/*
- * On a phone the pane goes under the rail.
- *
- * Two columns at this width would give the case about 20 characters, so the
- * frame stacks them: the rail over a third of the height, the pane under it.
- * The pane stays a sibling of the listbox, which holds options only.
- */
-@media (max-width: 48rem) {
-  .nexus-behaviours {
-    grid-template-columns: minmax(0, 1fr);
-    grid-template-rows: minmax(0, 1fr) minmax(0, 2fr);
-  }
-
-  .nexus-behaviours__rail {
-    border-inline-end: 0;
-    border-block-end: 1px solid var(--meridian-rule);
-  }
 }
 
 /*
