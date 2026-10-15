@@ -1,12 +1,12 @@
 import { existsSync, readdirSync } from 'node:fs';
 import { join } from 'node:path';
 
+import { readPackageExports } from '@nexusdi/doc-examples/package-exports';
 import { workspaceRoot } from '@nx/devkit';
 import { describe, expect, it } from 'vitest';
 
 import { checkExports } from './docs/doc-exports';
 import { readExpandedSite } from './docs/loaders';
-import { readPackageExports } from './docs/package-exports';
 import { CONTENT, FIXTURES } from './docs/paths';
 import { readSite } from './docs/site';
 

@@ -15,6 +15,7 @@
     "./examples-file": "./src/examples-file.mjs",
     "./files-under": "./src/files-under.mjs",
     "./mdx-reference-loader": "./src/mdx-reference-loader.mjs",
-    "./md-siblings": "./src/md-siblings.mjs"
+    "./md-siblings": "./src/md-siblings.mjs",
+    "./package-exports": "./src/package-exports.mjs"
   }
 }
