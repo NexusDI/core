@@ -36,6 +36,10 @@ interface Running {
 }
 
 /** Starts the leg's graph with a trace, runs `body`, then stops the server and the container. */
+/** GET `path` on the bridge as the mission `id`. */
+const asMission = (url: string, path: string, id: string) =>
+  fetch(`${url}${path}`, { headers: { 'x-mission-id': id } });
+
 async function withBridge(
   leg: Leg,
   body: (running: Running) => Promise<void>,
@@ -72,9 +76,7 @@ export const cases: readonly Case[] = [
     name: 'plots a course with the charts and the request mission',
     run: (leg) =>
       withBridge(leg, async ({ url }) => {
-        const res = await fetch(`${url}/course/Kepler-442b`, {
-          headers: { 'x-mission-id': 'survey-7' },
-        });
+        const res = await asMission(url, '/course/Kepler-442b', 'survey-7');
         leg.check('course', await res.json(), {
           course: { to: 'Kepler-442b', heading: 42 },
           entries: ['survey-7: plotting Kepler-442b'],
@@ -87,9 +89,9 @@ export const cases: readonly Case[] = [
       withBridge(leg, async ({ url, count }) => {
         const bodies = await Promise.all(
           Array.from({ length: 50 }, (_, i) =>
-            fetch(`${url}/course/Proxima-b`, {
-              headers: { 'x-mission-id': `survey-${i}` },
-            }).then((r) => r.json() as Promise<{ entries: string[] }>),
+            asMission(url, '/course/Proxima-b', `survey-${i}`).then(
+              (r) => r.json() as Promise<{ entries: string[] }>,
+            ),
           ),
         );
         leg.check(
@@ -160,9 +162,7 @@ export const cases: readonly Case[] = [
       withBridge(
         leg,
         async ({ url }) => {
-          const res = await fetch(`${url}/mission`, {
-            headers: { 'x-mission-id': 'survey-3' },
-          });
+          const res = await asMission(url, '/mission', 'survey-3');
           leg.check('mission', await res.json(), { id: 'survey-3' });
         },
         nodeScopes(),
@@ -181,9 +181,7 @@ export const cases: readonly Case[] = [
     name: 'keeps the scope open while the stream writes, then disposes it once',
     run: (leg) =>
       withBridge(leg, async ({ url, count }) => {
-        const res = await fetch(`${url}/log/stream`, {
-          headers: { 'x-mission-id': 'survey-4' },
-        });
+        const res = await asMission(url, '/log/stream', 'survey-4');
         const reader = res.body?.getReader();
         if (reader === undefined) throw new Error('no body');
         const decoder = new TextDecoder();
@@ -226,9 +224,11 @@ export const cases: readonly Case[] = [
     name: 'answers 500 with an empty body when the handler resolves an unbound token',
     run: (leg) =>
       withBridge(leg, async ({ url }) => {
-        const res = await fetch(`${url}/course/Kepler-442b`, {
-          headers: { 'x-mission-id': 'missing-provider' },
-        });
+        const res = await asMission(
+          url,
+          '/course/Kepler-442b',
+          'missing-provider',
+        );
         leg.check('status', res.status, 500);
         leg.check('body', await res.text(), '');
       }),

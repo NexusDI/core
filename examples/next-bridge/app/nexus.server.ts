@@ -15,7 +15,7 @@ let ready: Promise<Nexus> | undefined;
  * The process's container, built on first use, so `next build` evaluating
  * this module builds none.
  */
-export function ship(): Promise<Nexus> {
+function ship(): Promise<Nexus> {
   ready ??= Nexus.create(GateBridge, {
     plugins: [
       trace((event) => {
@@ -28,7 +28,12 @@ export function ship(): Promise<Nexus> {
 }
 
 /** The request mapping the adapter will take: works in route handlers and actions. */
-export async function missionRequest() {
+async function missionRequest() {
   const id = (await headers()).get('x-mission-id') ?? 'survey-7';
   return { mission: { id, target: 'Kepler-442b' } };
+}
+
+/** A scope of this layer's container for the current request, for a route handler or an action to dispose. */
+export async function missionScope() {
+  return (await ship()).createScope({ request: await missionRequest() });
 }
