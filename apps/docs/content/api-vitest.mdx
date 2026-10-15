@@ -7,7 +7,7 @@ package: '@nexusdi/vitest'
 
 # `@nexusdi/vitest`
 
-Every test file that exercises the real module graph builds a testing container, overrides a few providers and disposes it, and a test that forgets `await using` never runs its providers' disposers. `nexusTest(base, root, { setup })` returns Vitest's `test` with the NexusDI fixtures: `nexus`, a testing container built on first use, and `nexusScope`, a scope of it. Vitest disposes the scope, then the container, when the test ends, pass or fail. A suite replaces the file's setup with `test.override('nexusSetup', [...])`. `nexusFixtures()` returns the same fixtures as a map for a `test.extend` call of your own. Each export has one entry below, with what the package's tests state about it.
+Every test file that exercises the real module graph builds a testing container, overrides a few providers and disposes it, and a test that forgets `await using` never runs its providers' disposers. `nexusTest(base, root, { setup })` returns `base`, Vitest's `test`, with four NexusDI fixtures: `nexusSetup`, the builder steps; `nexusRequest`, the request the scope gets; `nexus`, a testing container built on first use; and `nexusScope`, a scope of it. Vitest disposes the scope, then the container, when the test ends, pass or fail, or when the file ends with `containerScope: 'file'`. A suite replaces the file's setup with `test.override('nexusSetup', [...])`. `nexusFixtures()` returns the same fixtures as a map for a `test.extend` call of your own. Each export has one entry below, with what the package's tests state about it.
 
 <ApiFilter />
 
@@ -17,7 +17,7 @@ Every test file that exercises the real module graph builds a testing container,
 
 ## `nexusFixtures`
 
-<!-- reference @nexusdi/vitest#nexusFixtures -->
+<!-- reference @nexusdi/vitest#nexusFixtures example=fixture-map -->
 
 ## `NexusFixtures`
 

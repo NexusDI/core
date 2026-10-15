@@ -7,7 +7,9 @@ package: '@nexusdi/devtools'
 
 # `@nexusdi/devtools`
 
-`@nexusdi/devtools` shows what a container holds and what it did while it started. `devtools()` is a development plugin that lets `graph(ship)` return the container's compiled graph as plain JSON. It hands every lifecycle event to the callback in its `trace` option, and it words errors with `@nexusdi/errors`. `inspect(root)` returns the same graph from the compiler alone, building nothing, for a CLI or a CI job, and `trace(fn)` is a plugin that only reports events. `toMermaid()` and `toDot()` draw a graph as a Mermaid flowchart or a Graphviz digraph, and `parseGraph()` reads a saved graph back and checks its shape. Each export has one entry below, with what the package's tests state about it.
+A container that wires the wrong provider or starts slowly leaves a developer asking what it holds and what it did while it started. `@nexusdi/devtools` answers both. `devtools()` is a development plugin that lets `graph(ship)` return the container's compiled graph as plain JSON. It hands every lifecycle event to the callback in its `trace` option, and it words errors with `@nexusdi/errors`. `inspect(root)` returns the same graph from the compiler alone, building nothing, for a CLI or a CI job, and `trace(fn)` is a plugin that only reports events. `toMermaid()` and `toDot()` draw a graph as a Mermaid flowchart or a Graphviz digraph, and `parseGraph()` reads a saved graph back and checks its shape. Each export has one entry below, with what the package's tests state about it.
+
+`profile()` is a plugin that records where startup time goes, each provider's build included, and the profiler's `report()` method returns it as plain JSON. `profileTable()`, `criticalPath()`, `toChromeTrace()` and `toPerfettoTrace()` read that report, and `parseProfileReport()` reads a saved one back. `liveSink()` from `@nexusdi/devtools/live` returns a sink that `profile({ live })` draws each run through in the Chrome DevTools Performance panel, in Chromium 134 and later.
 
 <ApiFilter />
 
@@ -75,8 +77,80 @@ package: '@nexusdi/devtools'
 
 <!-- reference @nexusdi/devtools#TraceEventByType -->
 
+## `profile`
+
+<!-- reference @nexusdi/devtools#profile example=profile -->
+
+## `ProfileOptions`
+
+<!-- reference @nexusdi/devtools#ProfileOptions -->
+
+## `Profiler`
+
+<!-- reference @nexusdi/devtools#Profiler -->
+
+## `profileStartup`
+
+<!-- reference @nexusdi/devtools#profileStartup example=profile-startup -->
+
+## `profileTable`
+
+<!-- reference @nexusdi/devtools#profileTable example=profile-table -->
+
+## `criticalPath`
+
+<!-- reference @nexusdi/devtools#criticalPath example=critical-path-run -->
+
+## `parseProfileReport`
+
+<!-- reference @nexusdi/devtools#parseProfileReport example=parse-report -->
+
+## `toChromeTrace`
+
+<!-- reference @nexusdi/devtools#toChromeTrace example=chrome-trace -->
+
+## `toPerfettoTrace`
+
+<!-- reference @nexusdi/devtools#toPerfettoTrace example=perfetto-trace -->
+
+## `liveSink`
+
+<!-- reference @nexusdi/devtools/live#liveSink example=live-sink -->
+
+## `ProfileReport`
+
+<!-- reference @nexusdi/devtools#ProfileReport -->
+
+## `ProfileRun`
+
+<!-- reference @nexusdi/devtools#ProfileRun -->
+
+## `ProfileBuild`
+
+<!-- reference @nexusdi/devtools#ProfileBuild -->
+
+## `ProfileInit`
+
+<!-- reference @nexusdi/devtools#ProfileInit -->
+
+## `CriticalPath`
+
+<!-- reference @nexusdi/devtools#CriticalPath -->
+
+## `LiveSink`
+
+<!-- reference @nexusdi/devtools#LiveSink -->
+
+## `CpuProfile`
+
+<!-- reference @nexusdi/devtools#CpuProfile -->
+
+## `TraceFile`
+
+<!-- reference @nexusdi/devtools#TraceFile -->
+
 ## `DevtoolsError`
 
 <!-- reference @nexusdi/devtools#DevtoolsError -->
 
-The guide [Introspection and Tracing](/introspection/) registers `devtools()`, reads a container's graph with `graph()` and follows its start with `trace()`.
+The guide [Introspection and Tracing](/introspection/) registers `devtools()`, reads a container's graph with `graph()` and follows its start with `trace()`. The guide [How do I find out what slows or stalls startup?](/profiling/) records a startup with `profile()` and opens the trace in Chrome DevTools or Perfetto.

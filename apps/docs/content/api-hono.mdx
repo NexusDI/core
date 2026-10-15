@@ -7,7 +7,7 @@ package: '@nexusdi/hono'
 
 # `@nexusdi/hono`
 
-A request-scoped service needs one scope per request, disposed when the response is done. A Hono handler that streams keeps writing after `next()` returns, so a scope disposed there is gone while the stream still reads it. `nexus(ship)` returns a `NexusHono`: `di.middleware` gives each request a scope handle, and the first `di.inject` handler creates the scope and resolves its typed deps from it. The scope is disposed once, when the response body ends, errors or is cancelled, or when the request's signal aborts. A NexusDI error in a handler reaches Hono as a `NexusHttpError` with a 500 or 503 status. Each export has one entry below, with what the package's tests state about it.
+A request-scoped service needs one scope per request, disposed when the response is done. A Hono handler that streams keeps writing after `next()` returns, so a scope disposed there is gone while the stream still reads it. `const di = nexus(ship)` gives a `NexusHono`: `di.middleware` gives each request a scope handle, and the first `di.inject` handler creates the scope and resolves its typed deps from it. With the `scopes` option the middleware creates the scope at once. The scope is disposed once, when the response body ends, errors or is cancelled, or when the request's signal aborts. A NexusDI error from creating the scope or resolving a handler's deps reaches Hono as an `HTTPException` with status 500 or 503, whose `cause` is a `NexusHttpError`. Each export has one entry below, with what the package's tests state about it.
 
 <ApiFilter />
 
@@ -55,4 +55,4 @@ A request-scoped service needs one scope per request, disposed when the response
 
 <!-- reference @nexusdi/hono#NexusHttpError -->
 
-The guide [Scope a Hono request](/hono/) builds a Hono app whose handlers resolve scoped services, and shows when the scope is disposed.
+The guide [Scoping Hono Requests](/hono/) builds a Hono app whose handlers resolve scoped services, and shows when the scope is disposed.
