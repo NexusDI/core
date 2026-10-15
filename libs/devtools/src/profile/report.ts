@@ -36,6 +36,14 @@ export interface ProfileReport {
     readonly durationMs: number;
     readonly errors: number;
   } | null;
+  /**
+   * Where the report was recorded: the Node and @nexusdi/core versions.
+   * profile() writes none; nexusdi profile adds it to the reports it records.
+   */
+  readonly environment?: {
+    readonly node: string;
+    readonly core: string;
+  };
 }
 
 /** One create, load, createScope or extend() as the profiler recorded it. */

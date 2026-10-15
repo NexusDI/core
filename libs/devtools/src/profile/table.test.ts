@@ -120,6 +120,16 @@ describe('profileTable', () => {
     ).toEqual(['H 13.0', 'F 12.0', 'C 9.0', 'G 0.5']);
   });
 
+  it('names the recording environment on the header line', () => {
+    const text = profileTable({
+      ...meridian,
+      environment: { node: '24.20.0', core: '0.4.0' },
+    });
+    expect(text.split('\n')[0]).toBe(
+      'create 25.0 ms, cold, Node 24.20.0, @nexusdi/core 0.4.0',
+    );
+  });
+
   it('limits the provider rows to top', () => {
     expect(profileTable(meridian, { top: 1 })).not.toMatch(/^ReactorCore/m);
   });

@@ -3,7 +3,7 @@ import { CliError, formatCliError } from './cli-error.js';
 import { requireCore } from './devtools.js';
 import { render } from './render.js';
 import { cliVersion } from './version.js';
-import { checkOut, emit, writeTo, type Output } from './write.js';
+import { checkOut, checkOutputs, emit, writeTo, type Output } from './write.js';
 
 export interface Io {
   readonly stdout: Output;
@@ -64,12 +64,13 @@ export async function main(argv: readonly string[], io: Io): Promise<number> {
         ...command.load,
         ...(command.plugins === null ? [] : [command.plugins]),
       ];
-      for (const [flag, out] of [
+      const outputs = [
         ['--chrome', command.chrome],
         ['--perfetto', command.perfetto],
         ['--json', command.json],
-      ] as const)
-        checkOut(out, inputs, flag);
+      ] as const;
+      for (const [flag, out] of outputs) checkOut(out, inputs, flag);
+      checkOutputs(outputs);
       requireCore(version);
       // profile.js loads graph.js, which imports @nexusdi/core.
       const { runProfile } = await import('./profile.js');
