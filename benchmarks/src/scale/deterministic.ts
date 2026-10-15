@@ -38,7 +38,14 @@ import type {
   Variant,
 } from '../schema.ts';
 import { pool, scaleCell } from './cells.ts';
-import { GRAPH_SEED, SHAPES, SIZES, type Shape, type Size } from './config.ts';
+import {
+  GRAPH_SEED,
+  PER_PROVIDER,
+  SHAPES,
+  SIZES,
+  type Shape,
+  type Size,
+} from './config.ts';
 import { describeGraph } from './graph.ts';
 import { graphOf } from './shapes.ts';
 
@@ -46,8 +53,7 @@ import { graphOf } from './shapes.ts';
 export const round2 = (x: number) => Math.round(x * 100) / 100;
 
 /** The two sizes the marginal bytes per provider come from (ruling 11). */
-const FROM = 1000;
-const TO = 5000;
+const { from: FROM, to: TO } = PER_PROVIDER;
 
 /**
  * (bytes at 5,000 - bytes at 1,000) / 4,000 for each library-variant with

@@ -7,6 +7,8 @@
  */
 import { median, pairedRatio } from '@nexusdi/bench-kit';
 
+import { PER_PROVIDER } from './config.ts';
+
 export interface LocalExponent {
   exponent: number;
   /** The bootstrap 95% interval of the ratio, through the same transform. */
@@ -45,8 +47,8 @@ export function localExponent(
 export function marginalPerProvider(
   atLo: readonly number[],
   atHi: readonly number[],
-  lo = 1000,
-  hi = 5000,
+  lo: number = PER_PROVIDER.from,
+  hi: number = PER_PROVIDER.to,
 ): number {
   return (median(atHi) - median(atLo)) / (hi - lo);
 }

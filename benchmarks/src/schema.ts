@@ -7,7 +7,7 @@
  */
 import type { PairedRatio, Stats } from '@nexusdi/bench-kit';
 
-import { SHAPES, SIZES, type Shape } from './scale/config.ts';
+import { PER_PROVIDER, SHAPES, SIZES, type Shape } from './scale/config.ts';
 import { PROVIDER_KINDS, type ProviderKind } from './scale/graph.ts';
 
 export type { PairedRatio, Stats, Shape };
@@ -758,8 +758,8 @@ function checkCellsBehindRows(file: ScaleTimingsFile): void {
     needs(`scale-timings.growth[${i}]`, { ...g, size: g.to });
   });
   file.marginal.forEach((m, i) => {
-    needs(`scale-timings.marginal[${i}]`, { ...m, size: 1000 });
-    needs(`scale-timings.marginal[${i}]`, { ...m, size: 5000 });
+    needs(`scale-timings.marginal[${i}]`, { ...m, size: PER_PROVIDER.from });
+    needs(`scale-timings.marginal[${i}]`, { ...m, size: PER_PROVIDER.to });
   });
 }
 

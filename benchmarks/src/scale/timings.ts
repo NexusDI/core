@@ -70,7 +70,14 @@ import { firstLine } from '../text.ts';
 import { checkFloor } from '../timings/floor.ts';
 import { pool, scaleCell, type CellResult } from './cells.ts';
 import { documentedVariant } from './deterministic.ts';
-import { GRAPH_SEED, ROUNDS, SHAPES, SIZES, type Shape } from './config.ts';
+import {
+  GRAPH_SEED,
+  PER_PROVIDER,
+  ROUNDS,
+  SHAPES,
+  SIZES,
+  type Shape,
+} from './config.ts';
 import { freshBlock, type FreshRow } from './fresh.ts';
 import { describeGraph } from './graph.ts';
 import { localExponent, marginalPerProvider } from './growth.ts';
@@ -239,12 +246,12 @@ export function toScaleMarginal(raw: ScaleRaw): ScaleMarginal[] {
   const out: ScaleMarginal[] = [];
   for (const block of raw.blocks)
     for (const lo of block.cells.filter(
-      (c) => c.outcome === 'pass' && c.size === 1000,
+      (c) => c.outcome === 'pass' && c.size === PER_PROVIDER.from,
     )) {
       const hi = block.cells.find(
         (c) =>
           c.outcome === 'pass' &&
-          c.size === 5000 &&
+          c.size === PER_PROVIDER.to &&
           c.library === lo.library &&
           c.variant === lo.variant,
       );
