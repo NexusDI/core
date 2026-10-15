@@ -39,7 +39,7 @@ function within(work: Promise<ProfileReport>, ms: number): Promise<Outcome> {
  * The error's message, then each cause under it: core's ProviderError names
  * the provider, and the cause says what its constructor or factory threw.
  */
-function describeFailure(error: unknown): string {
+export function describeFailure(error: unknown): string {
   const lines: string[] = [];
   let current: unknown = error;
   for (let depth = 0; current !== undefined && depth < 5; depth++) {
@@ -47,10 +47,11 @@ function describeFailure(error: unknown): string {
       current instanceof Error
         ? `${current.name}: ${current.message}`
         : String(current);
-    // The errors() plugin writes the cause into the message; print it once.
+    // The errors() plugin ends the message's first line with its cause;
+    // print that cause once.
     if (depth === 0)
       lines.push(current instanceof Error ? current.message : text);
-    else if (!(lines.at(-1) ?? '').includes(text))
+    else if (!(lines.at(-1) ?? '').split('\n', 1)[0].endsWith(`: ${text}`))
       lines.push(`  caused by ${text}`);
     current = current instanceof Error ? current.cause : undefined;
   }

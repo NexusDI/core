@@ -5,6 +5,7 @@ import { fileURLToPath } from 'node:url';
 import { describe, expect, it } from 'vitest';
 
 import { FIXTURES, runCli } from '../test-support/run.js';
+import { describeFailure } from './profile.js';
 import { tempDir } from '../test-support/temp.js';
 
 const DIR = join(FIXTURES, 'profile');
@@ -296,5 +297,25 @@ describe('nexusdi profile exit codes (spec 9.5)', () => {
     const run = runCli(argv, { cwd: DIR });
     expect(run.status).toBe(status);
     expect(run.stderr).toMatch(/^nexusdi: .*\n {2}\S/);
+  });
+});
+
+describe('describeFailure', () => {
+  it('prints a cause whose text only starts the end of the message', () => {
+    const error = new Error('dock gave up: Error: timeout after 5s', {
+      cause: new Error('timeout'),
+    });
+    expect(describeFailure(error)).toBe(
+      'dock gave up: Error: timeout after 5s\n  caused by Error: timeout',
+    );
+  });
+
+  it('skips a cause the first line of the message ends with', () => {
+    const error = new Error('dock gave up: Error: timeout\nFix: retry', {
+      cause: new Error('timeout'),
+    });
+    expect(describeFailure(error)).toBe(
+      'dock gave up: Error: timeout\nFix: retry',
+    );
   });
 });
