@@ -9,6 +9,7 @@ describe('the built entry', () => {
   // find there (react spec 16). The test target builds first.
   it("starts with 'use client'", () => {
     const built = readFileSync(
+      // fallow-ignore-next-line unresolved-import
       new URL('../dist/index.js', import.meta.url),
       'utf8',
     );
