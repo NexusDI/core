@@ -10,7 +10,18 @@ A scoped factory reads `REQUEST`, and `current()` finds the scope.
 import { Nexus, REQUEST, Token, defineModule, provide } from '@nexusdi/core';
 import { nodeScopes } from '@nexusdi/node';
 
-const MISSION = new Token<string>('Mission');
+interface Mission {
+  readonly id: string;
+  readonly target: string;
+}
+
+declare module '@nexusdi/core' {
+  interface NexusRequest {
+    mission: Mission;
+  }
+}
+
+const MISSION = new Token<Mission>('Mission');
 const Tactical = defineModule({
   name: 'Tactical',
   providers: [
@@ -26,13 +37,13 @@ const scopes = nodeScopes();
 
 async function dispatch() {
   await Promise.resolve();
-  return scopes.current()?.get(MISSION);
+  return scopes.current()?.get(MISSION).id;
 }
 
 await using shuttle = await ship.createScope({
-  request: { mission: 'survey-7' },
+  request: { mission: { id: 'survey-7', target: 'Kepler-442b' } },
 });
-const mission = await scopes.run(shuttle, () => dispatch()); // -> 'survey-7'
+const missionId = await scopes.run(shuttle, () => dispatch()); // -> 'survey-7'
 ```
 
 <!-- #endregion node -->
