@@ -141,7 +141,7 @@ type Bin = readonly [weight: number, lo: number, hi: number];
 
 /**
  * The calibration of `mixed` against the census of 22 real applications
- * (Research/App sizes.md, measured 2026-10-15). Each constant cites the
+ * (spec section 15.1, measured 2026-10-15). Each constant cites the
  * measured figure it is tuned to; the spec's section 15 records the
  * ruling and the 32-seed spread.
  */
@@ -330,13 +330,14 @@ function mixedStructure(
     const k = moduleOf[i];
     const deps: number[] = [];
     const own = range(starts[k], i).filter((d) => !HUBS.includes(d));
-    let kind = kinds[i];
+    const kind = kinds[i];
     if (i === LOGGER) deps.push(CONFIG);
     else if (kind === 'alias') {
-      // An alias points at one provider it can see: an earlier own provider or an export of an import.
+      // An alias points at one provider it can see: an earlier own provider or
+      // an export of an import, else a hub, which core always exports. Like a
+      // dependency slot, it reaches the hubs last, and the count stays exact.
       const pool = [...own, ...visibleExports[k]];
-      if (pool.length > 0) deps.push(pick(rand, pool));
-      else kind = 'class';
+      deps.push(pick(rand, pool.length > 0 ? pool : HUBS));
     } else if (i > LOGGER && kind !== 'value') {
       const imported = visibleExports[k];
       // A slot falls through to the other non-hub pool before the hubs: an
