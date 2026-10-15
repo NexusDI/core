@@ -129,11 +129,8 @@ describe('benchmarks.yml (scale spec 10.2)', () => {
   it('cancels the rest when one part fails, so a partial file is never published', () => {
     expect(scale?.strategy?.['fail-fast']).toBe(true);
   });
-  it('runs on a manual dispatch only, until a dispatch run has published', () => {
-    expect(scale?.if).toBe("github.event_name == 'workflow_dispatch'");
-    expect(readFileSync(WORKFLOW, 'utf8')).toMatch(
-      /one-line follow-up widens the trigger/,
-    );
+  it('runs on a tag, the schedule and a dispatch, and not on a pull request', () => {
+    expect(scale?.if).toBe("github.event_name != 'pull_request'");
   });
   it('runs after the same steps as the timings job', () => {
     expect(scale?.needs).toBe(jobs.timings?.needs);

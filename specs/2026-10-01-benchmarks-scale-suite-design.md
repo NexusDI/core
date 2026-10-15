@@ -625,8 +625,8 @@ image, CPU and kernel, and the rendered caption of a shape names its CPU.
 
 The `scale` job runs on every event except a pull request, as `timings` does. It ran on a
 manual dispatch only until dispatch run 38736285112 published a scale file; a core tag may now
-publish scale timings. `merge`
-runs when `scale` is skipped, to merge the other results, and not when it failed.
+publish scale timings. `merge` runs when `scale` is skipped, to merge the other results, and
+not when it failed.
 
 The matrix runs with `fail-fast: true`, and `merge` needs `scale`, so a partial file is
 never published. When `scale` succeeded, `merge` downloads `scale-timings-*` into `results/scale-parts`, runs
