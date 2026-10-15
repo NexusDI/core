@@ -40,6 +40,10 @@ const NAMES: Record<LibraryId, string> = {
   'needle-di': 'needle-di',
 };
 
+/** Where real-app scale ends: claims stop at 2,500 (spec section 15.4). */
+const SCALE_NOTE =
+  '2,500 providers is the scale of the largest applications measured, which hold 1,200 to 2,250 providers of their own. 5,000 is headroom past every application measured; no claim cites it.';
+
 const BEGIN = '<!-- scale:begin -->';
 const END = '<!-- scale:end -->';
 
@@ -552,7 +556,7 @@ function bundleChart(scale: ScaleFile): string {
 /** The section of results/README.md between the generated markers. */
 function readmeSection(input: RenderInput): string {
   const { scale, timings } = input;
-  const out = ['## Scaling', ''];
+  const out = ['## Scaling', '', SCALE_NOTE, ''];
   if (timings !== undefined) {
     const cells = cellsOf(input, 'mixed');
     out.push(
@@ -601,6 +605,8 @@ export function renderAll(input: RenderInput): {
   const { scale, timings } = input;
   const md = [
     '# Scale results',
+    '',
+    SCALE_NOTE,
     '',
     timings === undefined
       ? 'No timing run yet: this page holds the deterministic results from `scale.json` only.'

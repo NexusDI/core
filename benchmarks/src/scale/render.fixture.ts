@@ -12,7 +12,7 @@ import type {
   Variant,
 } from '../schema.ts';
 
-const SIZES = [50, 200, 1000, 5000];
+const SIZES = [50, 200, 1000, 2500, 5000];
 const ms = (x: number) => x * 1e6;
 
 const LIBS: Array<{
@@ -21,8 +21,8 @@ const LIBS: Array<{
   /** Startup in ms per size; fewer entries means the library failed above. */
   startup: number[];
 }> = [
-  { id: 'nexusdi', variant: 'plain', startup: [4, 5, 9, 30] },
-  { id: 'awilix', variant: 'plain', startup: [3, 3.5, 5, 14] },
+  { id: 'nexusdi', variant: 'plain', startup: [4, 5, 9, 16, 30] },
+  { id: 'awilix', variant: 'plain', startup: [3, 3.5, 5, 8, 14] },
   { id: 'tsyringe', variant: 'decorated', startup: [6, 7] },
 ];
 
@@ -105,7 +105,7 @@ export function fixtureScale(): ScaleFile {
         gzip: 400 + size * 4,
       })),
     ),
-    perProvider: LIBS.filter((l) => l.startup.length === 4).flatMap((l) =>
+    perProvider: LIBS.filter((l) => l.startup.length === 5).flatMap((l) =>
       (['minified', 'gzip'] as const).map((bytes) => ({
         library: l.id,
         variant: l.variant,
@@ -189,14 +189,14 @@ export function fixtureTimings(): ScaleTimingsFile {
           });
       }
     });
-    if (l.startup.length === 4) {
+    if (l.startup.length === 5) {
       marginal.push(
         {
           metric: 'startup',
           library: l.id,
           variant: l.variant,
           shape: 'mixed',
-          perProvider: ((l.startup[3] ?? 0) - (l.startup[2] ?? 0)) * 250,
+          perProvider: ((l.startup[4] ?? 0) - (l.startup[2] ?? 0)) * 250,
         },
         {
           metric: 'heap-ready',
@@ -206,7 +206,6 @@ export function fixtureTimings(): ScaleTimingsFile {
           perProvider: 2048,
         },
       );
-      for (const size of SIZES.slice(0, 4)) void size;
     }
   }
   return {

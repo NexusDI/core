@@ -96,12 +96,12 @@ describe('perProvider', () => {
 });
 
 describe('coverage', () => {
-  it('holds every shape at 50, 200 and 1,000, and mixed alone at 5,000', () => {
+  it('holds every shape at 50, 200, 1,000 and 2,500, and mixed alone at 5,000', () => {
     const cells = coverage(
       ['mixed', 'wide', 'deep', 'modular', 'mixed-async'],
-      [50, 200, 1000, 5000],
+      [50, 200, 1000, 2500, 5000],
     );
-    expect(cells).toHaveLength(16);
+    expect(cells).toHaveLength(21);
     expect(cells.filter((c) => c.size === 5000)).toEqual([
       { shape: 'mixed', size: 5000 },
     ]);

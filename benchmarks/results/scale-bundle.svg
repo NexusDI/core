@@ -1,6 +1,6 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 720 420" width="720" height="420" role="img" font-family="system-ui, sans-serif" font-size="12">
 <title>Bundle size against providers, mixed</title>
-<desc>Gzip bytes of each library's bundle on mixed graphs of 50, 200, 1,000 and 5,000 providers.</desc>
+<desc>Gzip bytes of each library's bundle on mixed graphs of 50, 200, 1,000, 2,500 and 5,000 providers.</desc>
 <style>
 svg{--bg:#ffffff;--ink:#1a1a19;--muted:#5f5f5b;--grid:#e3e3e0;--c0:#0072B2;--c1:#E69F00;--c2:#CC79A7;--c3:#D55E00;--c4:#009E73}
 @media (prefers-color-scheme: dark){svg{--bg:#1a1a19;--ink:#ecece9;--muted:#a3a39e;--grid:#3a3a37;--c0:#3390D2;--c1:#C98300;--c2:#C775A3;--c3:#D55E00;--c4:#23AB7F}}
@@ -32,30 +32,35 @@ svg{--bg:#ffffff;--ink:#1a1a19;--muted:#5f5f5b;--grid:#e3e3e0;--c0:#0072B2;--c1:
 <text class="muted" x="64" y="40" text-anchor="end">1,000,000</text>
 <text class="muted" x="328" y="410" text-anchor="middle">providers</text>
 <text class="muted" x="14" y="200" text-anchor="middle" transform="rotate(-90 14 200)">gzip bytes</text>
-<polyline class="line s0" data-series="nexusdi" points="191.29,220.7 294.04,210.81 413.33,177.86 532.62,118.15"/>
+<polyline class="line s0" data-series="nexusdi" points="191.29,220.7 294.04,210.81 413.33,177.86 481.25,146.38 532.62,118.15"/>
 <circle class="dot s0" data-series="nexusdi" data-n="50" cx="191.29" cy="220.7" r="4"/>
 <circle class="dot s0" data-series="nexusdi" data-n="200" cx="294.04" cy="210.81" r="4"/>
 <circle class="dot s0" data-series="nexusdi" data-n="1000" cx="413.33" cy="177.86" r="4"/>
+<circle class="dot s0" data-series="nexusdi" data-n="2500" cx="481.25" cy="146.38" r="4"/>
 <circle class="dot s0" data-series="nexusdi" data-n="5000" cx="532.62" cy="118.15" r="4"/>
-<polyline class="line s1" data-series="inversify" points="191.29,213.92 294.04,204.67 413.33,174.07 532.62,114.04"/>
+<polyline class="line s1" data-series="inversify" points="191.29,213.92 294.04,204.67 413.33,174.07 481.25,142.46 532.62,114.04"/>
 <circle class="dot s1" data-series="inversify" data-n="50" cx="191.29" cy="213.92" r="4"/>
 <circle class="dot s1" data-series="inversify" data-n="200" cx="294.04" cy="204.67" r="4"/>
 <circle class="dot s1" data-series="inversify" data-n="1000" cx="413.33" cy="174.07" r="4"/>
+<circle class="dot s1" data-series="inversify" data-n="2500" cx="481.25" cy="142.46" r="4"/>
 <circle class="dot s1" data-series="inversify" data-n="5000" cx="532.62" cy="114.04" r="4"/>
-<polyline class="line s2" data-series="tsyringe" points="191.29,249.72 294.04,235.37 413.33,194.23 532.62,128.51"/>
+<polyline class="line s2" data-series="tsyringe" points="191.29,249.72 294.04,235.37 413.33,194.23 481.25,158.31 532.62,128.51"/>
 <circle class="dot s2" data-series="tsyringe" data-n="50" cx="191.29" cy="249.72" r="4"/>
 <circle class="dot s2" data-series="tsyringe" data-n="200" cx="294.04" cy="235.37" r="4"/>
 <circle class="dot s2" data-series="tsyringe" data-n="1000" cx="413.33" cy="194.23" r="4"/>
+<circle class="dot s2" data-series="tsyringe" data-n="2500" cx="481.25" cy="158.31" r="4"/>
 <circle class="dot s2" data-series="tsyringe" data-n="5000" cx="532.62" cy="128.51" r="4"/>
-<polyline class="line s3" data-series="awilix" points="191.29,286.59 294.04,260.03 413.33,205.38 532.62,134.3"/>
+<polyline class="line s3" data-series="awilix" points="191.29,286.59 294.04,260.03 413.33,205.38 481.25,165.46 532.62,134.3"/>
 <circle class="dot s3" data-series="awilix" data-n="50" cx="191.29" cy="286.59" r="4"/>
 <circle class="dot s3" data-series="awilix" data-n="200" cx="294.04" cy="260.03" r="4"/>
 <circle class="dot s3" data-series="awilix" data-n="1000" cx="413.33" cy="205.38" r="4"/>
+<circle class="dot s3" data-series="awilix" data-n="2500" cx="481.25" cy="165.46" r="4"/>
 <circle class="dot s3" data-series="awilix" data-n="5000" cx="532.62" cy="134.3" r="4"/>
-<polyline class="line s4" data-series="needle-di" points="191.29,291.44 294.04,263.98 413.33,207.74 532.62,136.11"/>
+<polyline class="line s4" data-series="needle-di" points="191.29,291.44 294.04,263.98 413.33,207.74 481.25,167.69 532.62,136.11"/>
 <circle class="dot s4" data-series="needle-di" data-n="50" cx="191.29" cy="291.44" r="4"/>
 <circle class="dot s4" data-series="needle-di" data-n="200" cx="294.04" cy="263.98" r="4"/>
 <circle class="dot s4" data-series="needle-di" data-n="1000" cx="413.33" cy="207.74" r="4"/>
+<circle class="dot s4" data-series="needle-di" data-n="2500" cx="481.25" cy="167.69" r="4"/>
 <circle class="dot s4" data-series="needle-di" data-n="5000" cx="532.62" cy="136.11" r="4"/>
 <line class="leader s0" data-series="nexusdi" x1="532.62" y1="118.15" x2="542.62" y2="129.04"/>
 <line class="swatch s0" data-series="nexusdi" x1="542.62" y1="129.04" x2="554.62" y2="129.04"/>

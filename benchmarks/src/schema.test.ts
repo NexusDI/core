@@ -171,6 +171,13 @@ const scaleTimings = (rounds: Partial<Record<string, number>> = {}) => ({
       library: 'nexusdi',
       variant: 'plain',
       shape: 'mixed',
+      size: 2500,
+      outcome: 'pass',
+    },
+    {
+      library: 'nexusdi',
+      variant: 'plain',
+      shape: 'mixed',
       size: 5000,
       outcome: 'pass',
     },
@@ -228,7 +235,7 @@ const scaleTimings = (rounds: Partial<Record<string, number>> = {}) => ({
       variant: 'plain',
       shape: 'mixed',
       from: 1000,
-      to: 5000,
+      to: 2500,
       exponent: 1.02,
       low: 0.98,
       high: 1.06,
@@ -392,19 +399,19 @@ describe('validate scale-timings', () => {
       const file = scaleTimings();
       file.cells.push({ ...skipped(1000), message: undefined });
       expect(() => validate('scale-timings', file, 'results')).toThrow(
-        /scale-timings\.cells\[5\]\.message/,
+        /scale-timings\.cells\[6\]\.message/,
       );
     });
     it('rejects a result row for a cell that did not pass', () => {
       const file = scaleTimings();
-      file.cells[3] = { ...skipped(50) };
+      file.cells[4] = { ...skipped(50) };
       expect(() => validate('scale-timings', file, 'results')).toThrow(
         /scale-timings\.results\[0\]: .*inversify\/decorated mixed 50/,
       );
     });
     it('rejects a result row with no cell at all', () => {
       const file = scaleTimings();
-      file.cells.splice(3, 1);
+      file.cells.splice(4, 1);
       expect(() => validate('scale-timings', file, 'results')).toThrow(
         /scale-timings\.results\[0\]/,
       );
@@ -438,7 +445,7 @@ describe('validate scale-timings', () => {
       const file = scaleTimings();
       file.growth[0] = { ...file.growth[0], from: 123, to: 456 };
       expect(() => validate('scale-timings', file, 'tmp')).toThrow(
-        /scale-timings\.growth\[0\]\.from: expected one of 50, 200, 1000, 5000/,
+        /scale-timings\.growth\[0\]\.from: expected one of 50, 200, 1000, 2500, 5000/,
       );
     });
     it('rejects a growth pair that runs backwards or from the last size', () => {
@@ -452,7 +459,7 @@ describe('validate scale-timings', () => {
       const file = scaleTimings();
       file.cells.push({ ...file.cells[0] });
       expect(() => validate('scale-timings', file, 'tmp')).toThrow(
-        /scale-timings\.cells\[5\]: expected a cell not listed before/,
+        /scale-timings\.cells\[6\]: expected a cell not listed before/,
       );
     });
     it('rejects a marginal figure whose 1,000 or 5,000 cell failed', () => {
@@ -471,7 +478,7 @@ describe('validate scale-timings', () => {
       const file = scaleTimings();
       file.cells.push({ ...skipped(1000), outcome: 'wrong-instance' });
       expect(() => validate('scale-timings', file, 'results')).toThrow(
-        /scale-timings\.cells\[5\]/,
+        /scale-timings\.cells\[6\]/,
       );
       expect(() => validate('scale-timings', file, 'tmp')).not.toThrow();
     });
@@ -479,14 +486,14 @@ describe('validate scale-timings', () => {
       const file = scaleTimings();
       file.cells.push({ ...skipped(50), shape: 'wide' });
       expect(() => validate('scale-timings', file, 'results')).toThrow(
-        /scale-timings\.cells\[5\]/,
+        /scale-timings\.cells\[6\]/,
       );
     });
     it('rejects a competitor failure with no pass at n = 50 in the file', () => {
       const file = scaleTimings();
       file.cells.push({ ...skipped(1000), shape: 'wide' });
       expect(() => validate('scale-timings', file, 'results')).toThrow(
-        /scale-timings\.cells\[5\]/,
+        /scale-timings\.cells\[6\]/,
       );
     });
     it('accepts a compile-error at a larger size and a not-applicable cell', () => {

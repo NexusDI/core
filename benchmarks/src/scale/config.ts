@@ -9,11 +9,13 @@ export const GRAPH_SEED = 20261001;
 
 /**
  * The sizes, ascending. Every table, chart and exponent column follows this
- * list. Adding one (2,500, the size of the largest apps measured, is the
- * candidate) takes its entry here, its committed hashes and a band row in
- * shapes.test.ts, and a regenerated scale.json.
+ * list. 2,500 is real-app scale: the largest applications measured hold 1,200
+ * to 2,250 providers of their own, more with library providers. 5,000 is
+ * headroom past every app measured, and no claim cites it. Adding a size takes
+ * its entry here, its committed hashes and a band row in shapes.test.ts, and a
+ * regenerated scale.json.
  */
-export const SIZES = [50, 200, 1000, 5000] as const;
+export const SIZES = [50, 200, 1000, 2500, 5000] as const;
 
 /**
  * The two sizes the per-provider bytes and time come from, whatever sizes lie
