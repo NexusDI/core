@@ -6176,9 +6176,11 @@ export async function runProfile(
 Run: `NX_NO_CLOUD=true NX_DAEMON=false npx nx run-many -t lint test build typecheck -p @nexusdi/cli @nexusdi/devtools`
 Expected: PASS.
 
-- [ ] Step 7: Put the CLI sentence back on `apps/docs/content/errors/NEXUS_DEVTOOLS_PROFILE_INVALID.mdx`, at the end of its opening paragraph, once this task makes it true: "`nexusdi profile` from `@nexusdi/cli` calls `parseProfileReport` for each report of a `.json` entry, and for a file that holds no report it prints `nexusdi: <file>: ` followed by this error's message, then exits with code 2." Check each clause against `libs/cli/src/profile.ts` first (the prefix, the exit code, and that an array entry is parsed per element), and edit the sentence to what the CLI does.
+- [ ] Step 7: Add `"nexusdi-core": "<version>"` to the Perfetto file's `metadata` before writing it (spec 7.4). Read the version from the `package.json` of the `@nexusdi/core` the entry resolves, as the devtools version check already finds it; add no core export for it. Extend the process test that writes `--perfetto` to assert the field equals that package's version.
 
-- [ ] Step 8: Commit with `feat(cli): profile a startup and write the table and trace files`.
+- [ ] Step 8: Put the CLI sentence back on `apps/docs/content/errors/NEXUS_DEVTOOLS_PROFILE_INVALID.mdx`, at the end of its opening paragraph, once this task makes it true: "`nexusdi profile` from `@nexusdi/cli` calls `parseProfileReport` for each report of a `.json` entry, and for a file that holds no report it prints `nexusdi: <file>: ` followed by this error's message, then exits with code 2." Check each clause against `libs/cli/src/profile.ts` first (the prefix, the exit code, and that an array entry is parsed per element), and edit the sentence to what the CLI does.
+
+- [ ] Step 9: Commit with `feat(cli): profile a startup and write the table and trace files`.
 
 ### Task 17: `--timeout` and the exit codes
 
