@@ -226,7 +226,7 @@ function readBehaviours(root, reference, file) {
     throw new Error(
       `${file}: cannot read '${path}', which is where the behaviours of ` +
         `'${reference.specifier}' are written. Run ` +
-        `\`npx nx run docs:behaviour-data\`.`,
+        `\`npx nx run @nexusdi/docs:behaviour-data\`.`,
     );
   }
 }
@@ -237,17 +237,18 @@ function readBehaviours(root, reference, file) {
  * The owning segment is dropped along with everything above it, because the
  * reader is on that export's entry and has just read its name in the heading.
  * What sits below it is kept, and its first level is kept as structure and
- * stays out of the sentence: `diffMatrix > a widening > reports an added
- * allow branch as granted` states the condition the sentence holds under, and
- * the suite writes several sentences under each condition. So `a widening`
- * labels its own sentences in the rail, which is the one thing a test reporter
- * gives a reader that this block can take.
+ * stays out of the sentence: `createTestingContainer > a malformed override >
+ * is one NEXUS_INVALID_PROVIDER at override(Log), however many modules provide
+ * Log` states the condition the sentence holds under, and the suite writes
+ * several sentences under each condition. So `a malformed override` labels
+ * its own sentences in the rail, which is the one thing a test reporter gives
+ * a reader that this block can take.
  *
  * The sentences the suite states under the export's own name, with nothing
- * between, are a group too, labelled with that name. They used to render flush
- * at the top of the block under no label at all, beside the labelled groups,
- * and read as belonging to nowhere. The `describe` they sit under is the
- * export's own, so that is what the rail calls them.
+ * between, are a group too, labelled with that name. Without a label they
+ * would sit beside the labelled groups and read as belonging to nowhere. The
+ * `describe` they sit under is the export's own, so that is what the rail
+ * calls them.
  *
  * A level below the first is joined with the interpunct the rest of an entry
  * joins with, because a third level of indent in a rail this narrow reads as a
