@@ -8,7 +8,7 @@ errorClass: DevtoolsError
 
 # NEXUS_DEVTOOLS_PROFILE_INVALID
 
-`parseProfileReport(value)` throws `NEXUS_DEVTOOLS_PROFILE_INVALID` when `value` is not a `ProfileReport`. `parseProfileReport` checks every field of a report read back with `JSON.parse`, and the error's `path` names the first field that failed. It also refuses a `format` other than `'nexusdi-profile'` and a `version` other than 1. The call throws synchronously and bare.
+`parseProfileReport(value)` throws `NEXUS_DEVTOOLS_PROFILE_INVALID` when `value` is not a `ProfileReport`. `parseProfileReport` checks every field of a report read back with `JSON.parse`, and the error's `path` names the first field that failed. It also refuses a `format` other than `'nexusdi-profile'` and a `version` other than 1. The call throws synchronously and bare. `nexusdi profile` from `@nexusdi/cli` calls `parseProfileReport` for each report of a `.json` entry, which holds one report or an array of them, and for a file that holds no report it prints `nexusdi: <file>: ` followed by this error's message, then exits with code 2.
 
 ## Reproduce `NEXUS_DEVTOOLS_PROFILE_INVALID`
 

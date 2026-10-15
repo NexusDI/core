@@ -6077,6 +6077,7 @@ export default Meridian;
 ```ts
 import { readFileSync } from 'node:fs';
 import { join } from 'node:path';
+import { fileURLToPath } from 'node:url';
 
 import { describe, expect, it } from 'vitest';
 
@@ -6123,13 +6124,20 @@ describe('nexusdi profile', () => {
       runs: { kind: string }[];
     }[];
     expect(reports).toHaveLength(3);
-    expect(reports[0]!.runs.map((r) => r.kind)).toEqual(['create', 'load']);
+    expect(reports[0]?.runs.map((r) => r.kind)).toEqual(['create', 'load']);
     expect(
       JSON.parse(readFileSync(join(dir, 'c.json'), 'utf8')).traceEvents.length,
     ).toBeGreaterThan(0);
+    // The core version the entry resolves, read from its package.json.
+    const core = JSON.parse(
+      readFileSync(
+        fileURLToPath(import.meta.resolve('@nexusdi/core/package.json')),
+        'utf8',
+      ),
+    ) as { version: string };
     expect(
       JSON.parse(readFileSync(join(dir, 'p.json'), 'utf8')).metadata,
-    ).toMatchObject({ 'nexusdi-profile': 1 });
+    ).toEqual({ 'nexusdi-profile': 1, 'nexusdi-core': core.version });
   });
 
   it('re-renders a saved report without running the app', () => {
@@ -6175,6 +6183,14 @@ describe('nexusdi profile', () => {
     expect(run.status).toBe(0);
     expect(run.stderr).toMatch(/^nexusdi: warning: disposal/);
   });
+  it('refuses --cpu with exit 2 until CPU sampling ships', () => {
+    const run = runCli(
+      ['profile', 'meridian.module.js', '--chrome', 'c.json', '--cpu'],
+      { cwd: DIR },
+    );
+    expect(run.status).toBe(2);
+    expect(run.stderr).toMatch(/^nexusdi: --cpu is not available/);
+  });
 });
 ```
 
@@ -6190,6 +6206,7 @@ Expected: FAIL (the bin knows no `profile` run).
 - [ ] Step 5: `profile.ts`
 
 ```ts
+import { readFileSync } from 'node:fs';
 import { readFile } from 'node:fs/promises';
 import { join } from 'node:path';
 
@@ -6201,6 +6218,7 @@ import { loadDevtools, type DevtoolsApi } from './devtools.js';
 import { entryKind } from './entry.js';
 import { loadEntry } from './graph.js';
 import type { Io } from './main.js';
+import { resolveFrom } from './resolve.js';
 import { emit, writeTo } from './write.js';
 
 type Outcome =
@@ -6223,6 +6241,30 @@ function within(work: Promise<ProfileReport>, ms: number): Promise<Outcome> {
       },
     );
   });
+}
+
+/**
+ * The error's message, then each cause under it: core's ProviderError names
+ * the provider, and the cause says what its constructor or factory threw.
+ */
+function describeFailure(error: unknown): string {
+  const lines: string[] = [];
+  let current: unknown = error;
+  for (let depth = 0; current !== undefined && depth < 5; depth++) {
+    const text =
+      current instanceof Error
+        ? `${current.name}: ${current.message}`
+        : String(current);
+    lines.push(
+      depth === 0
+        ? current instanceof Error
+          ? current.message
+          : text
+        : `  caused by ${text}`,
+    );
+    current = current instanceof Error ? current.cause : undefined;
+  }
+  return lines.join('\n');
 }
 
 async function readReports(
@@ -6249,12 +6291,24 @@ async function readReports(
   }
 }
 
+/**
+ * The version of the @nexusdi/core that `fromFile` resolves, which ran the
+ * app, or null when none resolves. Core exports no version constant, so its
+ * package.json is the source (spec 7.4).
+ */
+function coreVersion(fromFile: string): string | null {
+  const manifest = resolveFrom('@nexusdi/core/package.json', fromFile);
+  if (manifest === null) return null;
+  return (JSON.parse(readFileSync(manifest, 'utf8')) as { version: string })
+    .version;
+}
+
 async function writeOutputs(
   io: Io,
   command: ProfileCommand,
   devtools: DevtoolsApi,
   reports: readonly ProfileReport[],
-  version: string,
+  core: string | null,
   cpu: Parameters<DevtoolsApi['toChromeTrace']>[1],
 ): Promise<void> {
   const [first] = reports;
@@ -6272,7 +6326,10 @@ async function writeOutputs(
     await emit(
       JSON.stringify({
         ...file,
-        metadata: { ...file.metadata, 'nexusdi-core': version },
+        metadata: {
+          ...file.metadata,
+          ...(core === null ? {} : { 'nexusdi-core': core }),
+        },
       }),
       command.perfetto,
       io.stdout,
@@ -6285,11 +6342,22 @@ export async function runProfile(
   io: Io,
   version: string,
 ): Promise<number> {
-  const header = `Node ${process.versions.node}, @nexusdi/core ${version}\n`;
+  if (command.cpu)
+    throw new CliError(
+      2,
+      '--cpu is not available in this build of @nexusdi/cli.',
+      'Drop --cpu; the --chrome file still holds the provider spans.',
+    );
+  const from =
+    entryKind(command.entry) === 'json'
+      ? join(io.cwd, 'package.json')
+      : command.entry.path;
+  const core = coreVersion(from);
+  const header = `Node ${process.versions.node}, @nexusdi/core ${core ?? version}\n`;
   if (entryKind(command.entry) === 'json') {
-    const devtools = await loadDevtools(join(io.cwd, 'package.json'), version);
+    const devtools = await loadDevtools(from, version);
     const reports = await readReports(command, devtools);
-    await writeOutputs(io, command, devtools, reports, version, undefined);
+    await writeOutputs(io, command, devtools, reports, core, undefined);
     if (!command.quiet)
       await writeTo(
         io.stdout,
@@ -6305,10 +6373,9 @@ export async function runProfile(
   );
   const reports: ProfileReport[] = [];
   let code = 0;
-  let cpu: Parameters<DevtoolsApi['toChromeTrace']>[1];
+  const cpu: Parameters<DevtoolsApi['toChromeTrace']>[1] = undefined;
   for (let i = 0; i <= command.repeat; i++) {
     const profiler: Profiler = devtools.profile();
-    // Task 18 starts and stops CPU sampling around iteration 1 here.
     const outcome = await within(
       devtools.profileStartup(root as never, {
         plugins: plugins as never,
@@ -6333,7 +6400,7 @@ export async function runProfile(
       const waiting = (open?.pending ?? [])
         .map(
           (p) =>
-            `${p.token}${p.module === '' ? '' : ` (${p.module})`} ${p.what === 'construct' ? 'factory' : 'onInit'}, ${Math.round(partial.reportedMs - p.startMs)} ms`,
+            `${p.token} (${p.module}) ${p.what === 'construct' ? 'factory' : 'onInit'}, ${Math.round(partial.reportedMs - p.startMs)} ms`,
         )
         .join('; ');
       await writeTo(
@@ -6342,10 +6409,7 @@ export async function runProfile(
       );
     } else {
       const failed = partial.runs.find((r) => r.ok === false);
-      const detail =
-        outcome.error instanceof Error
-          ? outcome.error.message
-          : String(outcome.error);
+      const detail = describeFailure(outcome.error);
       await writeTo(
         io.stderr,
         `nexusdi: ${failed?.kind ?? 'create'} failed:\n${detail}\n`,
@@ -6360,7 +6424,7 @@ export async function runProfile(
     code = 1;
     break;
   }
-  await writeOutputs(io, command, devtools, reports, version, cpu);
+  await writeOutputs(io, command, devtools, reports, core, cpu);
   if (!command.quiet)
     await writeTo(
       io.stdout,
@@ -6372,7 +6436,7 @@ export async function runProfile(
 
 `main.ts`: after `parseCommand`, for `command.kind === 'profile'` run `checkOut` once per output path against the input refs, `requireCore(version)`, then `const { runProfile } = await import('./profile.js'); return await runProfile(command, io, version);`. The bin already calls `process.exit(code)`, so an open handle in user code, or the hung operation of a timeout, cannot keep it alive. `cli-error.ts`: the `ExitCode` TSDoc reads "1: the graph is invalid, or the app failed to start after it compiled."
 
-`emit` falls back to stdout only for a null path, which `writeOutputs` never passes.
+`emit` falls back to stdout only for a null path, which `writeOutputs` never passes. `checkOut` takes the flag name for its message, so a `--chrome`, `--perfetto` or `--json` path that is an input names its own flag. Core's `ProviderError` message names the provider and leaves out what it threw, so the failure line prints the `cause` chain under it (`  caused by Error: hull breach`). Until Task 18, `runProfile` exits 2 on `--cpu` ("--cpu is not available in this build of @nexusdi/cli."), the README's second Profile startup command carries no `--cpu`, and `--help` leaves out `--cpu` and `--cpu-interval`; the parser already accepts both.
 
 - [ ] Step 6: Run the targets
 
@@ -6465,6 +6529,8 @@ Files:
 Interfaces:
 
 - Produces in `cpu.ts`: `startCpu(interval: number): Promise<Sampling>`, `stopCpu(sampling: Sampling): Promise<CpuProfile>`, `nexusdiAnchorStart(interval: number): number`, `nexusdiAnchorEnd(interval: number): number`, `alignClocks(profile: CpuProfile, anchors: readonly (readonly [name: string, perfNow: number])[]): { readonly offsetMs: number; readonly driftMs: number } | null`.
+
+- [ ] Step 0: Lift Task 16's interim `--cpu` refusal: remove the `command.cpu` check at the top of `runProfile` and its process test, restore `--cpu` and `--cpu-interval` to `USAGE` in `main.ts` (spec 9.1's two lines), and put `--cpu` back on the README's second Profile startup command with "The second also writes a trace you open in Chrome DevTools, with the CPU samples of the startup under it." The README's sentence must stay true: a process test runs that command and finds the samples in the file.
 
 - [ ] Step 1: Write the failing unit test `cpu.test.ts`
 

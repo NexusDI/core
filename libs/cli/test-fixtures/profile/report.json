@@ -1,0 +1,119 @@
+{
+  "format": "nexusdi-profile",
+  "version": 1,
+  "timeOrigin": 1792029653688.472,
+  "reportedMs": 106.141042,
+  "runs": [
+    {
+      "id": 0,
+      "kind": "create",
+      "scope": null,
+      "ok": true,
+      "startMs": 74.656625,
+      "durationMs": 30.92675,
+      "compile": {
+        "startMs": 74.833875,
+        "durationMs": 4.2463750000000005,
+        "modules": 3,
+        "providers": 2,
+        "errors": 0
+      },
+      "builds": [
+        {
+          "providerId": "p1",
+          "token": "ReactorCore",
+          "module": "Engineering",
+          "lifetime": "singleton",
+          "scope": null,
+          "async": false,
+          "level": 0,
+          "parent": null,
+          "startMs": 80.248875,
+          "syncMs": 0.2687920000000048,
+          "awaitMs": null,
+          "finishMs": 0.18691700000000822,
+          "durationMs": 0.46187500000000625,
+          "failed": false
+        },
+        {
+          "providerId": "p0",
+          "token": "NavCharts",
+          "module": "Tactical",
+          "lifetime": "singleton",
+          "scope": null,
+          "async": true,
+          "level": 1,
+          "parent": null,
+          "startMs": 80.851792,
+          "syncMs": 0.17974999999999852,
+          "awaitMs": 23.65829099999999,
+          "finishMs": 0.028709000000006313,
+          "durationMs": 23.866749999999996,
+          "failed": false
+        }
+      ],
+      "inits": [],
+      "pending": [],
+      "steps": [
+        {
+          "step": "compile",
+          "startMs": 74.833875,
+          "durationMs": 4.2463750000000005
+        },
+        {
+          "step": "build",
+          "startMs": 80.248875,
+          "durationMs": 24.469667
+        },
+        {
+          "step": "setup",
+          "startMs": 104.718542,
+          "durationMs": 0.8648330000000044
+        }
+      ]
+    }
+  ],
+  "graph": {
+    "root": "Meridian",
+    "providers": [
+      {
+        "id": "p0",
+        "token": "NavCharts",
+        "module": "Tactical",
+        "lifetime": "singleton",
+        "kind": "factory",
+        "inline": false
+      },
+      {
+        "id": "p1",
+        "token": "ReactorCore",
+        "module": "Engineering",
+        "lifetime": "singleton",
+        "kind": "class",
+        "inline": false
+      },
+      {
+        "id": "request",
+        "token": "REQUEST",
+        "module": "Meridian",
+        "lifetime": "scoped",
+        "kind": "value",
+        "inline": false
+      }
+    ],
+    "edges": [
+      {
+        "from": "p0",
+        "to": "p1",
+        "kind": "required",
+        "ordersBuild": true
+      }
+    ]
+  },
+  "dropped": 0,
+  "dispose": {
+    "startMs": 105.692542,
+    "durationMs": 0.34866599999999437,
+    "errors": 0
+  }
+}

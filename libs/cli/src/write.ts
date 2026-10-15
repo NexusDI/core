@@ -45,6 +45,7 @@ function identity(path: string): string | null {
 export function checkOut(
   out: string | null,
   inputs: readonly EntryRef[],
+  flag = '--out',
 ): void {
   if (out === null) return;
   const target = identity(out);
@@ -53,8 +54,8 @@ export function checkOut(
   if (input !== undefined)
     throw new CliError(
       2,
-      `--out ${out} is ${input.shown}, an input to this run.`,
-      'Pass another --out file.',
+      `${flag} ${out} is ${input.shown}, an input to this run.`,
+      `Pass another ${flag} file.`,
     );
 }
 
