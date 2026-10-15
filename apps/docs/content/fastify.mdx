@@ -1,0 +1,114 @@
+---
+title: Scoping Fastify Requests
+kind: platform
+description: Give every Fastify request its own NexusDI scope, typed handler dependencies and disposal when the reply closes.
+---
+
+# Scoping Fastify Requests
+
+A Fastify route that uses request-scoped services needs a scope per request, disposed when the reply is finished or the client is gone. Fastify's `onResponse` hook fires on `finish` only, so a scope disposed there leaks when the client disconnects in the middle of a reply.
+
+`@nexusdi/fastify` is a Fastify plugin that attaches a scope handle to each request and disposes the scope once, on the raw response's `close` event, for a finished reply and for an aborted one. The first handler that asks for a dependency creates the scope. [Scopes and the REQUEST Token](/scopes/) covers scopes themselves, and the [Fastify documentation](https://fastify.dev/docs/latest/) covers Fastify.
+
+The examples on this page run through Fastify's in-process `inject()`, so the tests behind them open no port. The unit they demonstrate is a running server, so this page has no ship console.
+
+## Install
+
+The adapter installs beside core from the `next` tag, because 0.4 is a release candidate and the adapter pins the exact core release candidate:
+
+```bash
+npm install @nexusdi/fastify@next @nexusdi/core@next fastify
+```
+
+It works with `fastify` 5.0 or later, on Node 22.12 or later with TypeScript 5.4 or later.
+
+## Create the Scope per Request
+
+`nexus(ship, options)` from `@nexusdi/fastify` takes your container and a `request` function that maps Fastify's request to your `NexusRequest`. Register `di.plugin` with `await bridge.register(di.plugin)` before you add the routes:
+
+```ts file=examples/meridian/src/pages/fastify.md region=bridge
+
+```
+
+The `request` function reads the `x-mission-id` header into the `mission` field of `NexusRequest`, which the `MISSION` provider reads through `REQUEST`. The scoped `FLIGHT_LOG` records each entry under that mission, and each request gets a log of its own. Map to domain values such as a mission or a user id, and keep Fastify's request out of `NexusRequest`, so your services stay free of Fastify.
+
+To try it, save the region as `bridge.ts` and run `npx tsx bridge.ts`. It prints the course and one log entry, `survey-7: plotting Kepler-442b`. Delete `await bridge.register(di.plugin);` and run it again: the body is Fastify's 500 JSON, with the message `[@nexusdi/fastify] no scope on this request: register di.plugin before this route`. Put the line back.
+
+`request` is required when your `NexusRequest` has a required field, as `mission` is here. [Scoping Node.js HTTP Requests](/node-request-scopes/) shows the `declare module '@nexusdi/core'` augmentation that adds the field.
+
+`di.plugin` registers an `onRequest` hook for the whole app, because `fastify-plugin` wraps it and removes Fastify's encapsulation. To scope only the routes of one encapsulated context, register `di.encapsulatedPlugin` inside that context. The plugin decorates the request with `nexus`, typed as `RequestScope | null`.
+
+## Handlers with `inject`
+
+`di.inject({ name: TOKEN }, handler)` resolves the record from the request's scope and passes it to the handler as the first argument, followed by Fastify's request and reply. The record's types follow the tokens, so `charts` is an `INavCharts` and `log` is an `IFlightLog`. The route's generic, `bridge.get<{ Params: { to: string } }>`, types `req.params` in the handler, and the handler's return value becomes the reply as in any Fastify route.
+
+`optional(TOKEN)`, `lazy(TOKEN)` and `all(MULTI)` work in the record as they do in `static deps`. `inject` checks the record against the container when you define the route. A token that no module provides throws at startup, and the adapter logs one line per failing entry through the `log` option:
+
+```ts file=examples/meridian/src/pages/fastify.md region=missing
+
+```
+
+The thrown error is a `BlueprintError` holding [NEXUS_MISSING_PROVIDER](/errors/NEXUS_MISSING_PROVIDER/). With a live container, a wrong token fails when the app starts. Code that is not a route handler reads the scope with `await di.scope(req)`, which rejects when `di.plugin` has not run on the request.
+
+## When the Scope Is Disposed
+
+The plugin's `onRequest` hook listens once for `reply.raw`'s `close` event and disposes the request's scope there. Node's `http.ServerResponse` emits `close` after `finish` on a normal reply, and emits `close` alone when the client aborts, so one listener covers both. A reply that sends a stream keeps its scope open until the stream ends or the client leaves.
+
+A request that resolves nothing creates no scope, so it disposes nothing. The container belongs to your app, so your app disposes it in an `onClose` hook, as the Shutdown section shows.
+
+## Errors
+
+The adapter catches a NexusDI error from creating the scope or resolving the record, and hands Fastify a `NexusHttpError`. The error carries `statusCode` 500, or 503 while the container shuts down, the status text as its message and the NexusDI error as its `cause`. It has no `code` property, so Fastify's default handler, which serializes a `code` when one is present, sends a body with none.
+
+The adapter logs the error once, by default through `req.log`, so the line carries Fastify's request id, with the NexusDI error's code and fields as structured keys. Fastify's default error handler also logs the error it receives, so under the default handler a failure writes a second line. To keep one line, set an error handler that answers a `NexusHttpError` with its status and status text, and logs nothing:
+
+```ts file=examples/meridian/src/pages/fastify.md region=errors
+
+```
+
+The `MISSION` factory throws, the container reports [NEXUS_PROVIDER_FAILED](/errors/NEXUS_PROVIDER_FAILED/), and the client gets `500 Internal Server Error`. The logger receives one error line, which holds the code and the request id `req-1`. The handler rethrows every other error, so Fastify's default error handler still answers those.
+
+The log line holds the message exactly as core or a plugin wrote it. A plugin's error text, a third-party `construct` hook's included, reaches your log verbatim, so request data that a plugin puts in its message reaches the log too. The response body carries only the status text. Register `errors()` from `@nexusdi/errors` in development to get the full error text in that line ([Error Text Packs](/error-text/)).
+
+## Ambient Scope
+
+`nodeScopes()` from `@nexusdi/node` gives code deep in a service the request's scope without a parameter. Pass it as the `scopes` option, and the `onRequest` hook runs the rest of the request's lifecycle inside it:
+
+```ts file=examples/meridian/src/pages/fastify.md region=ambient
+
+```
+
+`currentMission()` takes no argument and reads the scope from `scopes.current()`. With `scopes` set, the hook creates the scope at once, because `current()` is synchronous and has no way to wait for a first use. The hook uses Fastify's callback style, `scopes.run(scope, done)`, which carries the scope through the hooks and the handler that follow. [Scoping Node.js HTTP Requests](/node-request-scopes/) explains how `nodeScopes()` keeps concurrent requests apart.
+
+## Shutdown
+
+Fastify's `close()` stops accepting requests and runs the `onClose` hooks after the in-flight requests drain, so the app disposes the container in an `onClose` hook:
+
+```ts file=examples/meridian/src/pages/fastify.md region=shutdown
+
+```
+
+After `close()`, the container is disposed and `ship.get()` throws [NEXUS_DISPOSED](/errors/NEXUS_DISPOSED/). An app that disposes the container before its server stops answers the remaining requests with a 503.
+
+`close()` can wait 72 seconds, Fastify's keep-alive timeout, for a connection that never sent a request. Node's HTTP server leaves such a connection open (nodejs/node#63452, fixed in Node 26.12 and not backported to 22 or 24). On Node 22, `fetch` through its bundled undici 6 opens such a connection after a client aborts a streaming response. Node 24's undici 7 drops that connection, and `close()` returns on its own. To close at once on any Node version, pass `forceCloseConnections: true`, or call `bridge.server.closeAllConnections()` before `close()`.
+
+A process entry builds the container, registers the hook and listens. `createBridge(ship)` below stands for an async function that returns the `bridge` app of the first region, built on the container it receives:
+
+```ts no-run
+import { Nexus } from '@nexusdi/core';
+import { errors } from '@nexusdi/errors';
+
+const dev = process.env.NODE_ENV !== 'production';
+
+const ship = await Nexus.create(Meridian, {
+  plugins: dev ? [errors()] : [], // the full error text in development logs
+});
+const bridge = await createBridge(ship); // Fastify({ forceCloseConnections: true })
+bridge.addHook('onClose', () => ship[Symbol.asyncDispose]());
+await bridge.listen({ port: 3000 });
+process.once('SIGTERM', () => void bridge.close());
+```
+
+## Next Steps
+
+[Testing and Overrides](/testing/) builds a container with fakes in every Vitest test. To test a route, pass the `nexus` fixture to `nexus()` in place of `ship` and send the request with `inject()`.

@@ -30,6 +30,10 @@ const meta: MetaRecord = {
   plugins: { title: 'Register a plugin' },
   testing: { title: 'How do I replace a provider in a test?' },
   'node-request-scopes': { title: 'Scope an HTTP request in Node' },
+  hono: { title: 'Scope a Hono request' },
+  express: { title: 'Scope an Express request' },
+  fastify: { title: 'Scope a Fastify request' },
+  nextjs: { title: 'Scope a Next.js route handler or server action' },
   load: { title: 'How do I add a module after startup?' },
   decorators: { title: 'How do I write providers with decorators?' },
   'legacy-decorators': {

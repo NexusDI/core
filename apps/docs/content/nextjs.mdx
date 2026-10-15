@@ -1,0 +1,114 @@
+---
+title: Scoping Next.js Route Handlers and Server Actions
+kind: platform
+description: Build one NexusDI container per Next.js server layer, and give each route handler call and server action call its own scope, disposed in after().
+---
+
+# Scoping Next.js Route Handlers and Server Actions
+
+A Next.js app that uses request-scoped services in route handlers and server actions needs a container that `next build` does not build, and a scope per call that stays open until Next has sent the response. Next also evaluates a server module once per server layer. In one `next start` process, a route handler evaluates `app/nexus.server.ts` and builds a container, and the first server action evaluates the same file again and builds a second one.
+
+NexusDI 0.4 has no Next.js package. This page gives the pattern that works with the layers: one container per layer from a memoised builder, a scope per call disposed in `after()` from `next/server`, and a shared resource such as a connection pool kept on your app's own `globalThis` key. [Scopes and the REQUEST Token](/scopes/) covers scopes themselves, and the [Next.js documentation](https://nextjs.org/docs) covers route handlers and server actions.
+
+The examples on this page run in Node without a Next server, with a stand-in for `after()`. `examples/next-bridge` measures what Next does: its gate canary, `e2e/gate.e2e.ts`, asserts two evaluations of `nexus.server.ts` and two `Nexus.create` calls per process on Next 16.3.4.
+
+## Install
+
+Core installs from the `next` tag, because 0.4 is a release candidate. `server-only` makes a client import of the server module fail the build:
+
+```bash
+npm install @nexusdi/core@next @nexusdi/errors@next server-only
+```
+
+Core runs on Node 22.12 or later with TypeScript 5.4 or later. The pattern needs Next 15.1 or later, where `after()` became stable, and the route handlers and actions run on the Node runtime.
+
+## Build One Container per Layer
+
+`app/nexus.server.ts` exports a function that builds the container on its first call and returns the same promise to every later call. `next build` evaluates the module and calls nothing, so the build creates no container. The first line, `import 'server-only'`, turns an import of the file from a client component into a build error that names the import.
+
+```ts no-run
+// app/nexus.server.ts
+import 'server-only';
+import { Nexus } from '@nexusdi/core';
+import { errors } from '@nexusdi/errors';
+import { Meridian } from './ship/meridian';
+
+let pending: Promise<Nexus> | undefined;
+
+export function ship(): Promise<Nexus> {
+  pending ??= Nexus.create(Meridian, {
+    plugins: process.env.NODE_ENV === 'development' ? [errors()] : [],
+  }).catch((error: unknown) => {
+    pending = undefined; // the next call builds again
+    throw error;
+  });
+  return pending;
+}
+```
+
+`Nexus.create` runs once per evaluation of the module, so each layer gets one container and keeps it. The region below runs the same builder against a smaller `Meridian`:
+
+```ts file=examples/meridian/src/pages/nextjs.md region=builder
+
+```
+
+Two calls to `ship()` return one container. A failed build clears `pending`, so the next request builds again.
+
+## Scope a Route Handler
+
+A route handler creates a scope from the layer's container and hands its disposal to `after()`. Next runs an `after()` callback once the response is finished, also when the handler throws or calls `notFound()` or `redirect()`, so the scope stays open for the whole response:
+
+```ts file=examples/meridian/src/pages/nextjs.md region=route
+
+```
+
+`GET` maps the `x-mission-id` header into the scope's `REQUEST`, and the scoped `FLIGHT_LOG` records the entry under that mission. The flight log is still open when `GET` returns, and the `after()` callback disposes the scope, which calls the log's `[Symbol.dispose]()`. In the app, `after` is the import from `next/server`, and `GET` is the export of `app/course/[to]/route.ts`. `request.mission` type-checks once your app augments `NexusRequest`, as [Scoping Node.js HTTP Requests](/node-request-scopes/) shows.
+
+To try it, delete the `after(...)` line in the region and run it. `afterAfter` stays `[]`, because nothing disposes the scope and the flight log is never closed. Put the line back.
+
+On self-hosted Node, `after()` needs no setup. A hosting platform runs the callback through its own `waitUntil`, which Next documents per platform.
+
+## Scope a Server Action
+
+A server action follows the same steps as a route handler. It reads the request's headers through `headers()` from `next/headers`, which works in actions and route handlers alike:
+
+```ts no-run
+// app/actions.ts
+'use server';
+import { headers } from 'next/headers';
+import { after } from 'next/server';
+import { FLIGHT_LOG } from './ship/contracts';
+import { ship } from './nexus.server';
+
+export async function recordEntry(entry: string) {
+  const id = (await headers()).get('x-mission-id') ?? 'survey-7';
+  const mission = { id, target: 'Kepler-442b' };
+  const scope = await (await ship()).createScope({ request: { mission } });
+  after(() => scope[Symbol.asyncDispose]());
+  const log = scope.get(FLIGHT_LOG);
+  log.record(entry);
+  return log.entries();
+}
+```
+
+Next serializes the action's return value into the response, which `after()` waits for, so the action may return data read from the scope.
+
+## Share a Resource across Layers
+
+A singleton that holds an outside resource, such as a connection pool, exists once per layer, so a process with two layers opens two pools. Keep one pool on a `globalThis` key that your app owns, and bind it with `useValue` in each layer's container:
+
+```ts file=examples/meridian/src/pages/nextjs.md region=pool
+
+```
+
+`evaluateLayer()` stands for one evaluation of the server module, which makes its own `RELAY_POOL` token and its own container. Both containers return the same pool. A container never disposes a `useValue`, so disposing one layer's container leaves the pool open for the other. Your app closes the pool itself when the process stops.
+
+## Why a Process-Global Container Fails
+
+A single container kept on `globalThis` for both layers answers the route handler and refuses the server action. Each layer evaluates the app's module files again, so the action's `FLIGHT_LOG` is a different token object from the route handler's, and the action's copy of `@nexusdi/core` is a different copy. The `@nexusdi/next` prototype on Next 16.3.4 measured it: the shared container refused the action with [NEXUS_INVALID_TOKEN](/errors/NEXUS_INVALID_TOKEN/), with `serverExternalPackages` set and without it.
+
+The gate canary in `examples/next-bridge` fails when Next evaluates the module once per process. NexusDI plans `@nexusdi/next`, with typed route and action wrappers, for 0.5, once tokens can match across module instances.
+
+## Next Steps
+
+[Testing and Overrides](/testing/) shows how to test the services these handlers resolve against a container with fakes.

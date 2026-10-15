@@ -100,3 +100,48 @@ The first container in the region is built with `create({ onInit: false })`, whi
   The simulator bay keeps one base configuration of the Meridian, and each drill
   swaps in the parts it tests.
 </Notice>
+
+## Testing with Vitest Fixtures
+
+A Vitest file that builds and disposes a testing container in every test repeats the same lines in each one. `nexusTest(base, root, options)` from `@nexusdi/vitest` returns Vitest's `test` with that container built for you. Install it beside `@nexusdi/testing`:
+
+```bash
+npm install -D @nexusdi/vitest@next vitest
+```
+
+It works with Vitest 4.1 or later, Vitest 5 included. Its options:
+
+- `setup` is a step `(builder) => builder` that applies the overrides of this page.
+- `create` holds the `TestingCreateOptions` of the build, such as `plugins`.
+- `containerScope: 'file'` shares one container across the file's tests, for a slow `onInit`, and disposes it when the file ends.
+
+The returned `test` carries four fixtures, each built on first use:
+
+- `nexus` is the testing container, built from `root` through the setup steps.
+- `nexusScope` is a scope of `nexus` with `nexusRequest` as its request.
+- `nexusSetup` is the list of setup steps, `[setup]` by default.
+- `nexusRequest` is the request for `nexusScope`, `undefined` by default.
+
+Vitest disposes `nexusScope`, then `nexus`, when the test ends, pass or fail. A disposal error fails the test that owned the container. The region below also registers `interceptors()` from `@nexusdi/interceptors` through `create.plugins`, whose `NavAudit` records each `NAV_CHARTS` call in `AUDIT_LOG` ([Method Interceptors](/interceptors/) explains the plugin):
+
+```ts file=examples/meridian/src/pages/testing.md region=vitest-fixtures
+
+```
+
+The `// ->` comments are this site's claims, which its test runner turns into `expect` calls. In your own tests, write `expect(...)`.
+
+`test.override('nexusSetup', steps)` replaces the setup for the file or `describe` block it is called in, so the block repeats every override it still wants. `test.override('nexusRequest', request)` does the same for the request. Use this name form, because the object form `test.override({ ... })` leaves a setup step's `builder` untyped.
+
+Interceptors skip a `useValue` provider, so a test that checks an interceptor gives the intercepted token a class double, as `FakeCharts` is, and reads the interceptor's store with `nexus.get(AUDIT_LOG).calls`. The second suite's `unplottable` value runs unaudited.
+
+### Testing React Router Loaders
+
+`nexus(ship, { request })` from `@nexusdi/react-router` returns `di`, and `di.inject(record, loader)` resolves the record from the scope stored under `NEXUS_SCOPE` in React Router's `context`. A loader test puts the fixture's scope there with `existingScope(nexusScope)`, and calls the loader:
+
+```ts file=examples/meridian/src/pages/testing.md region=loader-scope
+
+```
+
+`existingScope` wraps a scope the test owns and disposes nothing. The loader records under `survey-9`, the mission the `nexusRequest` override set.
+
+A route whose middleware calls `di.load(Section)` loads the section into the container that `nexus.server.ts` builds when the module is imported, and the fixture's container never sees it. Its test replaces `nexus.server.ts` with `vi.mock` over a testing container and disposes that container in `afterAll`, as `examples/react-ssr/tests/routes/sectors.spec.tsx` does.

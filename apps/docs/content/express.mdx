@@ -1,0 +1,113 @@
+---
+title: Scoping Express Requests
+kind: platform
+description: Give every Express request its own NexusDI scope, typed handler dependencies and disposal when the response closes.
+---
+
+# Scoping Express Requests
+
+An Express handler that uses request-scoped services needs a scope per request, created when a handler first needs it and disposed when the response is finished or the client is gone. Express runs no middleware after the response, and a client that aborts makes the response emit `close` and never `finish`. A scope disposed on `finish` leaks on every aborted request.
+
+`@nexusdi/express` attaches a scope handle to each request and disposes the scope once, on the response's `close` event, which fires for a finished response and for an aborted one. The first handler that asks for a dependency creates the scope. [Scopes and the REQUEST Token](/scopes/) covers scopes themselves, and the [Express documentation](https://expressjs.com/) covers Express.
+
+Express has no in-process request API, so the examples on this page listen on port 0 and send real requests with `fetch`. The unit they demonstrate is a running server, so this page has no ship console.
+
+## Install
+
+The adapter installs beside core from the `next` tag, because 0.4 is a release candidate and the adapter pins the exact core release candidate:
+
+```bash
+npm install @nexusdi/express@next @nexusdi/core@next express
+```
+
+A TypeScript project also installs Express's types, which the adapter's declarations import:
+
+```bash
+npm install -D @types/express
+```
+
+It works with `express` 5.0 or later, on Node 22.12 or later with TypeScript 5.4 or later. Express 4 does not forward a rejected async handler to the error pipeline, and the adapter needs that, so it supports Express 5 only.
+
+## Create the Scope per Request
+
+`nexus(ship, options)` from `@nexusdi/express` takes your container and a `request` function that maps Express's `req` to your `NexusRequest`. Register `di.middleware` with `bridge.use()` before the routes that need a scope:
+
+```ts file=examples/meridian/src/pages/express.md region=bridge
+
+```
+
+The `request` function reads the `x-mission-id` header with `req.get()` into the `mission` field of `NexusRequest`, which the `MISSION` provider reads through `REQUEST`. The scoped `FLIGHT_LOG` records each entry under that mission, and each request gets a log of its own. Map to domain values such as a mission or a user id, and keep `req` out of `NexusRequest`, so your services stay free of Express.
+
+To try it, save the region as `bridge.ts` and run `npx tsx bridge.ts`. It prints the course and one log entry, `survey-7: plotting Kepler-442b`. Delete `bridge.use(di.middleware);` and run it again: the reply is a 500, and Express prints `[@nexusdi/express] no scope on this request: register di.middleware before this route` with its stack. Put the line back.
+
+`request` is required when your `NexusRequest` has a required field, as `mission` is here. [Scoping Node.js HTTP Requests](/node-request-scopes/) shows the `declare module '@nexusdi/core'` augmentation that adds the field.
+
+The middleware stores the handle on `req.nexus`. The adapter types the field through the `Express.Request` augmentation that `@types/express` supports, as `nexus?: RequestScope`. The field is optional because Express applies the augmentation to every route, the ones registered before the middleware included.
+
+## Handlers with `inject`
+
+`di.inject({ name: TOKEN }, handler)` resolves the record from the request's scope and passes it to the handler as the first argument, followed by Express's `req`, `res` and `next`. The record's types follow the tokens, so `charts` is an `INavCharts` and `log` is an `IFlightLog`. `@types/express` 5 types a route parameter as `string | string[]`, since a wildcard segment yields an array, so the `bridge` region converts it with `String(req.params.to)`. `optional(TOKEN)`, `lazy(TOKEN)` and `all(MULTI)` work in the record as they do in `static deps`.
+
+`inject` checks the record against the container when you define the route. A token that no module provides throws at startup, and the adapter logs one line per failing entry through the `log` option:
+
+```ts file=examples/meridian/src/pages/express.md region=missing
+
+```
+
+The thrown error is a `BlueprintError` holding [NEXUS_MISSING_PROVIDER](/errors/NEXUS_MISSING_PROVIDER/). With a live container, a wrong token fails when the app starts. Code that is not a route handler reads the scope with `await di.scope(req)`, which rejects when `di.middleware` has not run on the request.
+
+## When the Scope Is Disposed
+
+The middleware listens once for the response's `close` event and disposes the request's scope there. Node's `http.ServerResponse` emits `close` after `finish` on a normal response, and emits `close` alone when the client aborts, so one listener covers both. A streamed response written with `res.write()` keeps its scope open until the stream ends with `res.end()` or the client leaves.
+
+A request that resolves nothing creates no scope, so it disposes nothing. A client that left before the middleware ran gets no scope and no handler call.
+
+## Errors
+
+The adapter catches a NexusDI error from creating the scope or resolving the record, and passes a `NexusHttpError` to `next()`. Its `status` and `statusCode` are 500, or 503 while the container shuts down. It also carries `expose: false`, the status text as its message and the NexusDI error as its `cause`. Express's final handler sends the status text in production, and in development it sends the wrapper's stack, which holds no core message.
+
+The adapter logs the error once through `log`, whatever error handler the app installs. Express's final handler also prints the `NexusHttpError`'s stack, so under the default handler a failure writes two lines. To keep one line, add an error handler after the routes that answers a `NexusHttpError` with its status and status text, and logs nothing:
+
+```ts file=examples/meridian/src/pages/express.md region=errors
+
+```
+
+The `MISSION` factory throws, the container reports [NEXUS_PROVIDER_FAILED](/errors/NEXUS_PROVIDER_FAILED/), and the client gets `500 Internal Server Error`. `nexusErrors` passes every other error to `next(error)`, so the handler's own errors keep Express's behaviour. The default `log` writes the code, the error's fields and its message with `console.error`.
+
+The log line holds the message exactly as core or a plugin wrote it. A plugin's error text, a third-party `construct` hook's included, reaches your log verbatim, so request data that a plugin puts in its message reaches the log too. The response body holds none of it. Register `errors()` from `@nexusdi/errors` in development to get the full error text in that line ([Error Text Packs](/error-text/)).
+
+## Ambient Scope
+
+`nodeScopes()` from `@nexusdi/node` gives code deep in a service the request's scope without a parameter. Pass it as the `scopes` option, and the middleware calls `next()` inside it:
+
+```ts file=examples/meridian/src/pages/express.md region=ambient
+
+```
+
+`currentMission()` takes no argument and reads the scope from `scopes.current()`. With `scopes` set, the middleware creates the scope at once, because `current()` is synchronous and has no way to wait for a first use. `nodeScopes()` keeps the scope in an `AsyncLocalStorage`, and Express calls the downstream handlers synchronously from `next()`, so the scope reaches them. [Scoping Node.js HTTP Requests](/node-request-scopes/) explains how `nodeScopes()` keeps concurrent requests apart.
+
+## Shutdown
+
+Your entry stops the server first and disposes the container after, because the container serves every request until the server closes. `createBridge(ship)` below stands for a function that returns the `bridge` app of the first region, built on the container it receives:
+
+```ts no-run
+import { Nexus } from '@nexusdi/core';
+import { errors } from '@nexusdi/errors';
+import { once } from 'node:events';
+
+const dev = process.env.NODE_ENV !== 'production';
+
+const ship = await Nexus.create(Meridian, {
+  plugins: dev ? [errors()] : [], // the full error text in development logs
+});
+const server = createBridge(ship).listen(3000);
+process.once('SIGTERM', () => server.close());
+await once(server, 'close');
+await ship[Symbol.asyncDispose](); // after the last request has finished
+```
+
+An app that disposes the container before its server stops answers the remaining requests with a 503.
+
+## Next Steps
+
+[Testing and Overrides](/testing/) builds a container with fakes in every Vitest test. To test a route, pass the `nexus` fixture to `nexus()` in place of `ship` and send the request to a server on port 0.
