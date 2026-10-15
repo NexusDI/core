@@ -1,4 +1,5 @@
-import { join, sep } from 'node:path';
+import { readFileSync } from 'node:fs';
+import { dirname, join, resolve, sep } from 'node:path';
 
 import { behavioursOf, describedBy } from '@nexusdi/doc-examples/behaviours';
 import {
@@ -7,6 +8,7 @@ import {
   type ExportInfo,
 } from '@nexusdi/doc-examples/package-exports';
 import { workspaceRoot } from '@nx/devkit';
+import ts from 'typescript';
 import { beforeAll, describe, expect, it } from 'vitest';
 
 import { loadLibraries, type Library } from './docs/loaders';
@@ -72,6 +74,57 @@ import { loadLibraries, type Library } from './docs/loaders';
  * `describe` naming it.
  */
 const ACCEPTED: Readonly<Record<string, string>> = {};
+
+/**
+ * Unexported `src` names a case on an export's rail may use, keyed
+ * `<package>: <name>`, each with its reason. A test helper that lives under
+ * `src` and is no export belongs here. Helpers under `test-support/` sit
+ * outside `src` and need no entry.
+ *
+ * None today.
+ */
+const HELPERS: Readonly<Record<string, string>> = {};
+
+/**
+ * The names a test file imports from its own package's `src` that the package
+ * does not export, by the local name the file uses. `import type` counts too,
+ * since a case that names an internal type is written against the internals.
+ */
+function internalImports(file: string, src: string, exported: Set<string>) {
+  const source = ts.createSourceFile(
+    file,
+    readFileSync(file, 'utf8'),
+    ts.ScriptTarget.Latest,
+  );
+  const names = new Map<string, string>();
+
+  for (const statement of source.statements) {
+    if (!ts.isImportDeclaration(statement) || !statement.importClause) continue;
+    const specifier = (statement.moduleSpecifier as ts.StringLiteral).text;
+    if (!specifier.startsWith('.')) continue;
+    if (!resolve(dirname(file), specifier).startsWith(src)) continue;
+
+    const bindings = statement.importClause.namedBindings;
+    if (bindings && ts.isNamedImports(bindings))
+      for (const element of bindings.elements) {
+        const original = (element.propertyName ?? element.name).text;
+        if (!exported.has(original)) names.set(element.name.text, original);
+      }
+  }
+
+  return names;
+}
+
+/** Every identifier a case body uses, with comments and strings left out. */
+function identifiersIn(body: string): Set<string> {
+  const found = new Set<string>();
+  const walk = (node: ts.Node): void => {
+    if (ts.isIdentifier(node)) found.add(node.text);
+    ts.forEachChild(node, walk);
+  };
+  walk(ts.createSourceFile('case.ts', body, ts.ScriptTarget.Latest, true));
+  return found;
+}
 
 /** Where a package's tests live, as the shared reader wants it. */
 const rootOf = (item: Library): string => join(workspaceRoot, item.root);
@@ -204,6 +257,51 @@ describe('what the tests state', () => {
     }
 
     expect(sorted([...failures])).toEqual([]);
+  });
+
+  /**
+   * A case on an export's rail is a sentence about that export, and a reader
+   * opens it to see the export used. A case that calls an internal function
+   * (`readProvider`, `moduleInternals`, `startBlueprint`) shows the reader a
+   * name the package does not publish. So a case under a `describe` naming an
+   * export uses the package's public surface, and a white-box case sits under
+   * a `describe` named after the internal function it exercises, which keeps
+   * it off every rail.
+   */
+  it("reaches no unexported src name from a case on an export's rail", () => {
+    const failures: string[] = [];
+
+    for (const item of libraries) {
+      const src = `${join(rootOf(item), 'src')}${sep}`;
+      const published = new Set(exportsOf(item).map((each) => each.name));
+      const imports = new Map<string, Map<string, string>>();
+
+      for (const { chain, file, line, body } of behavioursOf(rootOf(item))
+        .chains) {
+        const owner = chain.find((segment) => published.has(segment));
+        if (owner === undefined) continue;
+
+        if (!imports.has(file))
+          imports.set(file, internalImports(file, src, published));
+        const internal = imports.get(file) as Map<string, string>;
+        const used = [...identifiersIn(body)].filter(
+          (name) =>
+            internal.has(name) &&
+            !(`${item.name}: ${internal.get(name)}` in HELPERS),
+        );
+        if (used.length === 0) continue;
+
+        failures.push(
+          `${file.slice(workspaceRoot.length + 1)}:${line} sits on ` +
+            `${owner}'s rail and uses ${used.join(', ')}, which ` +
+            `${item.name} does not export. Restate the case through the ` +
+            'public surface, or move it under a `describe` named after the ' +
+            'internal function it exercises; no assertion moves.',
+        );
+      }
+    }
+
+    expect(sorted(failures)).toEqual([]);
   });
 
   /**
