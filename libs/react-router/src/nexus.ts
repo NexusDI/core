@@ -7,7 +7,7 @@ import {
 
 import type { ModuleRef, Scope } from '@nexusdi/core';
 
-import { disposeWithBody } from './internal/dispose-with-body.js';
+import { CLIENT_GONE, serveWithBody } from './internal/dispose-with-body.js';
 import {
   adapterCore,
   NexusHttpError,
@@ -24,9 +24,6 @@ import {
 } from './internal/request-scope.js';
 
 const ADAPTER = '@nexusdi/react-router';
-
-/** The status of a response nobody reads, because its client has gone. */
-const CLIENT_GONE = 499;
 
 /**
  * The request's scope handle, which di.middleware sets on the router
@@ -119,22 +116,17 @@ export function nexus(
       options.request?.({ request, params }),
     );
     context.set(NEXUS_SCOPE, handle); // set before any return, so a late loader finds a closed handle
-    if (request.signal.aborted) {
-      await dispose(); // the client left before this ran: no scope, no loaders
-      return new Response(null, { status: CLIENT_GONE });
-    }
-    request.signal.addEventListener('abort', () => void dispose(), {
-      once: true,
+    return serveWithBody({
+      request,
+      handle,
+      dispose,
+      scopes: options.scopes,
+      ambient: core.ambient,
+      next,
+      fail: (failure) => {
+        throw toRouter(failure);
+      },
     });
-    let response: Response;
-    if (options.scopes !== undefined) {
-      const started = await core.ambient(handle, dispose);
-      if ('failure' in started) throw toRouter(started.failure);
-      response = await options.scopes.run(started.scope, next);
-    } else {
-      response = await next(); // loaders create the scope on first use
-    }
-    return disposeWithBody(response, dispose, request.method);
   };
 
   const handlerOf =

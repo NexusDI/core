@@ -430,9 +430,10 @@
     "minTokens": 30,
     "minLines": 3,
 
-    // Today's figure is 2.14%. The ceiling is a ratchet, not a target: it
-    // fails the run that adds the next copy and is lowered whenever a clone
-    // group is consolidated.
+    // The figure on 2026-10-15 is 2.14%, after the Hono and React Router
+    // middleware paths moved into serveWithBody. The ceiling is a ratchet,
+    // not a target: it fails the run that adds the next copy and is lowered
+    // whenever a clone group is consolidated.
     "threshold": 2.2,
 
     "ignore": [

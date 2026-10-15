@@ -4,7 +4,7 @@ import { HTTPException } from 'hono/http-exception';
 
 import type { ModuleRef, Scope } from '@nexusdi/core';
 
-import { disposeWithBody } from './internal/dispose-with-body.js';
+import { CLIENT_GONE, serveWithBody } from './internal/dispose-with-body.js';
 import {
   adapterCore,
   NexusHttpError,
@@ -22,9 +22,6 @@ import {
 } from './internal/request-scope.js';
 
 const ADAPTER = '@nexusdi/hono';
-
-/** The status a response gets when its client has gone. Nobody reads it; Hono needs a Response. */
-const CLIENT_GONE = 499;
 
 export type NexusEnv = { Variables: { nexus: RequestScope } };
 
@@ -116,23 +113,26 @@ export function nexus(
     const handle = opened.handle;
     const dispose = once(() => keepAlive(c, opened.dispose()));
     c.set('nexus', handle);
-    const signal = c.req.raw.signal;
-    if (signal.aborted) {
-      await dispose(); // the client left before the middleware ran: no scope, no handler
-      return new Response(null, { status: CLIENT_GONE });
-    }
-    signal.addEventListener('abort', () => void dispose(), { once: true });
-    if (options.scopes !== undefined) {
-      const started = await core.ambient(handle, dispose);
-      if ('failure' in started) throw toHono(started.failure);
-      await options.scopes.run(started.scope, next);
-    } else {
-      await next(); // inject creates the scope on first use
-    }
-    const wrapped = disposeWithBody(c.res, dispose, c.req.method);
-    if (wrapped !== c.res) {
+    let ran = false;
+    const response = await serveWithBody({
+      request: c.req.raw,
+      handle,
+      dispose,
+      scopes: options.scopes,
+      ambient: core.ambient,
+      next: async () => {
+        ran = true;
+        await next();
+        return c.res;
+      },
+      fail: (failure) => {
+        throw toHono(failure);
+      },
+    });
+    if (!ran) return response; // the client left: Hono needs a Response
+    if (response !== c.res) {
       c.res = undefined; // replace, so Hono does not merge the old headers twice
-      c.res = wrapped;
+      c.res = response;
     }
     return undefined;
   });
