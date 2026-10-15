@@ -175,6 +175,26 @@ describe('reading an export off its declarations', () => {
     ).toMatch(/^function moduleDefinitionOf\(/);
   });
 
+  it('imports a name another package declares, reached through a module of this one', () => {
+    const found = readReference(workspaceRoot, '@nexusdi/hono', 'NexusHono');
+    const fromCore = new Map(found.signature?.external ?? []).get(CORE);
+
+    expect(
+      fromCore,
+      "`@nexusdi/hono`'s private `Inject` names `DepsMap`, which its internal " +
+        'module imports from `@nexusdi/core`.',
+    ).toContain('DepsMap');
+  });
+
+  it("prints another package's private type above the cut", () => {
+    const found = readReference(workspaceRoot, DEVTOOLS, 'TraceEventByType');
+
+    expect(
+      found.signature?.prelude.join('\n'),
+      "`TraceEventByType` names core's `BuildEventFields`, which core never exports.",
+    ).toContain('interface BuildEventFields');
+  });
+
   it('reads an error class as an error', () => {
     expect(readReference(workspaceRoot, DEVTOOLS, 'DevtoolsError').kind).toBe(
       'error',

@@ -210,6 +210,9 @@ function kindOf(resolved, checker, at) {
 
 const printer = ts.createPrinter({ removeComments: true });
 
+/** `text` as a regular expression that matches it literally. */
+const escapeRegExp = (text) => text.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+
 /** The package a specifier names, with any subpath dropped. */
 function packageNameOf(specifier) {
   const match = /^(@[^/]+\/[^/]+|[^@/][^/]*)/.exec(specifier);
@@ -264,6 +267,32 @@ function ownerOf(file) {
     dir = dirname(dir);
   }
   return null;
+}
+
+/**
+ * The first-party package a file belongs to, or `null` for a file under
+ * `node_modules` or outside every package. A workspace package resolves
+ * through its own directory (`libs/core/dist/…`), so the path is enough.
+ */
+function firstParty(file) {
+  if (file.split(/[\\/]/).includes('node_modules')) return null;
+  return ownerOf(file);
+}
+
+/** A package's root exports, or none when it has no declarations entry. */
+const packageExports = new Map();
+function exportsOfPackage(workspace, name) {
+  const key = `${workspace}\0${name}`;
+  if (!packageExports.has(key)) {
+    let found = new Map();
+    try {
+      found = exportsOfSpecifier(workspace, name);
+    } catch {
+      // A package with no declarations entry exports nothing a fence imports.
+    }
+    packageExports.set(key, found);
+  }
+  return packageExports.get(key);
 }
 
 /** An entry point's exports, with whether each is importable as a value. */
@@ -361,7 +390,7 @@ function declarationOf(context, resolved, name, kind) {
     .printNode(ts.EmitHint.Unspecified, node, node.getSourceFile())
     .replace(
       new RegExp(
-        `^((?:export\\s+)?(?:declare\\s+)?(?:function|class|interface|type|const|let|var|enum)\\s+)${declared.replace(/\$/g, '\\$')}(?![\\w$])`,
+        `^((?:export\\s+)?(?:declare\\s+)?(?:function|class|interface|type|const|let|var|enum)\\s+)${escapeRegExp(declared)}(?![\\w$])`,
       ),
       // A function, so a `$` in the name is not read as a replacement pattern.
       (_match, head) => `${head}${name}`,
@@ -419,13 +448,7 @@ function declarationOf(context, resolved, name, kind) {
     // from it, as a reader would.
     const owner = ownerOf(from.getSourceFile().fileName);
     if (owner && owner.dir !== packageDir) {
-      let theirs = new Map();
-      try {
-        theirs = exportsOfSpecifier(workspace, owner.name);
-      } catch {
-        // A file in a package with no declarations entry imports nothing.
-      }
-      if (theirs.has(each)) {
+      if (exportsOfPackage(workspace, owner.name).has(each)) {
         external.set(owner.name, [...(external.get(owner.name) ?? []), each]);
         return;
       }
@@ -452,6 +475,22 @@ function declarationOf(context, resolved, name, kind) {
       checker.resolveName(each, from, ts.SymbolFlags.Type, false),
     );
     const target = symbol?.getDeclarations()?.[0];
+
+    // A name another first-party package declares, reached through a module
+    // of this one (`@nexusdi/hono`'s `Inject` names `DepsMap`, which its
+    // internal module imports from `@nexusdi/core`), is imported from the
+    // package that declares it when that package exports it, as a reader
+    // would. One it keeps private is printed above the cut below.
+    const declarer = target && firstParty(target.getSourceFile().fileName);
+    if (declarer && declarer.dir !== packageDir) {
+      if (exportsOfPackage(workspace, declarer.name).has(each)) {
+        external.set(declarer.name, [
+          ...(external.get(declarer.name) ?? []),
+          each,
+        ]);
+        return;
+      }
+    }
 
     // A class built on `errorBase(...)` extends `X_base`, a const the
     // declaration file declares at the top level and never exports. It is
@@ -491,12 +530,9 @@ function declarationOf(context, resolved, name, kind) {
         ts.isTypeAliasDeclaration(target) ||
         ts.isEnumDeclaration(target));
 
-    if (
-      !standalone ||
-      !target.getSourceFile().fileName.startsWith(packageDir)
-    ) {
-      return;
-    }
+    // A third-party package's private type stays out: a fence imports what
+    // that package publishes, and its declarations are its own business.
+    if (!standalone || !declarer) return;
 
     const body = strip(
       printer.printNode(
