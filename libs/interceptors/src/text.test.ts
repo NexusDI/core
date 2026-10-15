@@ -102,6 +102,19 @@ describe('interceptorsText', () => {
     },
   );
 
+  it.each([
+    {
+      code: 'NEXUS_INTERCEPTOR_LIFETIME',
+      token: 'Audit',
+      detail: ['scoped'],
+    },
+    { code: 'NEXUS_INTERCEPTORS_SHARED' },
+  ] satisfies Fault[])('writes $code', (fault) => {
+    expect(render(fault)).not.toMatch(/undefined|null|https:/);
+  });
+});
+
+describe('errorOf', () => {
   it('leaves an INVALID reason raised with its own text to that text', () => {
     expect(
       explain(
@@ -112,16 +125,5 @@ describe('interceptorsText', () => {
         { text: [interceptorsText] },
       ),
     ).toBeUndefined();
-  });
-
-  it.each([
-    {
-      code: 'NEXUS_INTERCEPTOR_LIFETIME',
-      token: 'Audit',
-      detail: ['scoped'],
-    },
-    { code: 'NEXUS_INTERCEPTORS_SHARED' },
-  ] satisfies Fault[])('writes $code', (fault) => {
-    expect(render(fault)).not.toMatch(/undefined|null|https:/);
   });
 });

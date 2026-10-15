@@ -1,8 +1,10 @@
-import { Token } from '@nexusdi/core';
+import { defineModule, Nexus, Token } from '@nexusdi/core';
 import { describe, expect, it } from 'vitest';
 
-import { findCode, thrown } from '../test-support/catch.js';
+import { findCode, rejected, thrown } from '../test-support/catch.js';
 import { declarationsOf } from './metadata.js';
+import { interceptor } from './options.js';
+import { interceptors } from './plugin.js';
 import type { Interceptor } from './types.js';
 import { UseInterceptors } from './use-interceptors.js';
 
@@ -10,37 +12,84 @@ const A = new Token<Interceptor>('A');
 const B = new Token<Interceptor>('B');
 const C = new Token<Interceptor>('C');
 
+/** A plugin whose interceptors A, B and C each write their own name to `log`. */
+const logging = (log: string[]) =>
+  interceptors({
+    register: (
+      [
+        ['A', A],
+        ['B', B],
+        ['C', C],
+      ] as const
+    ).map(([name, token]) =>
+      interceptor(token, {
+        useFactory: (): Interceptor => ({
+          intercept: (_call, next) => {
+            log.push(name);
+            return next();
+          },
+        }),
+        deps: [],
+      }),
+    ),
+  });
+
 describe('UseInterceptors', () => {
-  it('records class and method interceptors, top decorator outermost', () => {
+  it('runs the class interceptors, then the method ones, top decorator outermost and each token once', async () => {
+    const log: string[] = [];
     @UseInterceptors(A)
     @UseInterceptors(B)
     class PaymentService {
       @UseInterceptors(C)
       @UseInterceptors(A)
-      charge() {}
+      charge() {
+        log.push('charge');
+      }
     }
-    const d = declarationsOf(PaymentService);
-    expect(d.classTokens).toEqual([A, B]);
-    expect(d.methods.get('charge')).toEqual([C, A]);
+    const ship = await Nexus.create(
+      defineModule({ name: 'Billing', providers: [PaymentService] }),
+      { plugins: [logging(log)] },
+    );
+
+    ship.get(PaymentService).charge();
+    expect(log).toEqual(['A', 'B', 'C', 'charge']);
   });
 
-  it('reports both forms on one class', () => {
+  it('fails create for a class that also declares static interceptors', async () => {
     @UseInterceptors(A)
     class Twice {
       static interceptors = { class: [B] };
     }
-    expect(declarationsOf(Twice).problems).toEqual([
-      { reason: 'two-forms', target: 'Twice' },
-    ]);
+    const error = await rejected(
+      Nexus.create(defineModule({ name: 'Billing', providers: [Twice] }), {
+        plugins: [logging([])],
+      }),
+    );
+
+    expect(findCode(error, 'NEXUS_INTERCEPTOR_INVALID')).toMatchObject({
+      reason: 'two-forms',
+      target: 'Twice',
+    });
   });
 
-  it('keeps a subclass decorator off the base class', () => {
+  it('intercepts a subclass with the base decorator and its own, and the base with its own alone', async () => {
+    const log: string[] = [];
     @UseInterceptors(A)
-    class Base {}
+    class Base {
+      run() {
+        log.push('run');
+      }
+    }
     @UseInterceptors(B)
     class Derived extends Base {}
-    expect(declarationsOf(Base).classTokens).toEqual([A]);
-    expect(declarationsOf(Derived).classTokens).toEqual([A, B]);
+    const ship = await Nexus.create(
+      defineModule({ name: 'Billing', providers: [Base, Derived] }),
+      { plugins: [logging(log)] },
+    );
+
+    ship.get(Base).run();
+    ship.get(Derived).run();
+    expect(log).toEqual(['A', 'run', 'A', 'B', 'run']);
   });
 
   it('rejects a private method, a static method and a lifecycle method', () => {
@@ -103,5 +152,39 @@ describe('UseInterceptors', () => {
         'NEXUS_INTERCEPTOR_INVALID',
       ),
     ).toMatchObject({ reason: 'declaration' });
+  });
+});
+
+describe('declarationsOf', () => {
+  it('records class and method interceptors, top decorator outermost', () => {
+    @UseInterceptors(A)
+    @UseInterceptors(B)
+    class PaymentService {
+      @UseInterceptors(C)
+      @UseInterceptors(A)
+      charge() {}
+    }
+    const d = declarationsOf(PaymentService);
+    expect(d.classTokens).toEqual([A, B]);
+    expect(d.methods.get('charge')).toEqual([C, A]);
+  });
+
+  it('reports both forms on one class', () => {
+    @UseInterceptors(A)
+    class Twice {
+      static interceptors = { class: [B] };
+    }
+    expect(declarationsOf(Twice).problems).toEqual([
+      { reason: 'two-forms', target: 'Twice' },
+    ]);
+  });
+
+  it('keeps a subclass decorator off the base class', () => {
+    @UseInterceptors(A)
+    class Base {}
+    @UseInterceptors(B)
+    class Derived extends Base {}
+    expect(declarationsOf(Base).classTokens).toEqual([A]);
+    expect(declarationsOf(Derived).classTokens).toEqual([A, B]);
   });
 });
