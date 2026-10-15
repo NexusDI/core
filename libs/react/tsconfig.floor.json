@@ -1,0 +1,25 @@
+{
+  // The source and the type tests on the oldest TypeScript the package
+  // supports (5.4) and on TypeScript 7; scripts/check-type-floor.mjs runs it.
+  "compilerOptions": {
+    "strict": true,
+    "noEmit": true,
+    "target": "es2022",
+    "module": "esnext",
+    "moduleResolution": "bundler",
+    "customConditions": ["@nexusdi/source"],
+    "jsx": "react-jsx",
+    "lib": ["es2022", "esnext.disposable", "dom"],
+    "types": ["node"],
+    "skipLibCheck": true,
+    "isolatedModules": true,
+    "noUnusedLocals": true
+  },
+  "include": ["src/**/*.ts", "src/**/*.tsx"],
+  "exclude": [
+    "src/**/*.test.ts",
+    "src/**/*.test.tsx",
+    "src/**/__fixtures__/**",
+    "src/support/**"
+  ]
+}

@@ -19,7 +19,7 @@ A request-scoped service needs a scope per request, disposed when the response i
 npm install @nexusdi/hono@next @nexusdi/core@next hono
 ```
 
-It needs `hono` 4.3.3 or later and Node 22.12 or later.
+It works with `hono` 4.3.3 or later, on Node 22.12 or later with TypeScript 5.4 or later.
 
 ## Quick Example
 
