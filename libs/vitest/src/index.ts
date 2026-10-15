@@ -1,5 +1,6 @@
 export {
   nexusFixtures,
+  type NexusFixtureMap,
   type NexusFixtures,
   type NexusFixturesOptions,
   type NexusSetupStep,

@@ -14,7 +14,7 @@ Packages (all new, all published):
   `@nexusdi/vitest`, as in revision 2.
 - `@nexusdi/next`, approved by the owner on 2026-10-15 (Q1), gated on the double-evaluation
   check of section 10.1. The gate failed, so the package moves to 0.5 (section 10.1), and
-  0.4 ships the `/next/` guide page. Six packages reach rc.2: the five above and
+  0.4 ships the `/nextjs/` guide page. Six packages reach rc.2: the five above and
   `@nexusdi/react`.
 
 `@nexusdi/react` is released in 0.4 under its own spec (`specs/2026-09-24-react-design.md` on
@@ -501,10 +501,12 @@ adapter also wraps the dispose call in a `once`, so its listeners call core one 
 request. A disposal error is passed to `log` and never thrown, because the response has
 already been sent and a throw would become an unhandled rejection.
 
-`await using` appears in two places: in `@nexusdi/vitest`'s fixtures, and in the guides'
-server entry, where the user writes `await using ship = await Nexus.create(...)` around
-the server's lifetime. The request path cannot use it, because the scope outlives the
-middleware's frame.
+`await using` appears in `@nexusdi/vitest`'s fixtures. The guides' server entries
+dispose the container explicitly: `const ship = await Nexus.create(...)`, then
+`await once(server, 'close')` and `await ship[Symbol.asyncDispose]()`. The explicit call
+runs on Node 22.12, which has no `await using` syntax, and it states the order, server
+first and container after (Task 25 review, 2026-10-15). The request path cannot use
+`await using`, because the scope outlives the middleware's frame.
 
 Core requires Node 22.12. Node 22 has `Symbol.asyncDispose` but no `await using` syntax.
 The server adapters' sources use `await using` only in tests, and `@nexusdi/vitest`
@@ -576,9 +578,12 @@ core's one line or, with `errors()` registered, the full text. The default `log`
 `console.error(err.code, { ...err }, err.message)`, and Fastify's writes
 `req.log.error({ code: err.code, ...err }, err.message)`. Then it raises the framework's
 own error type with the status, the status text as its message (`Internal Server Error`,
-`Service Unavailable`) and the `NexusError` as `cause`. So the user's error handler can
-read `error.cause.code`, and the framework's default handler sends a body that contains
-nothing from core. The per-framework error type is in each package's section.
+`Service Unavailable`) and the `NexusError` as `cause`. Express and Fastify receive the
+`NexusHttpError` itself, so their error handlers read `error.cause.code`. Hono receives an
+`HTTPException` whose `cause` is the `NexusHttpError`, so the chain is `HTTPException` →
+`NexusHttpError` → `NexusError`, and `app.onError` reads `error.cause.cause.code`. The
+framework's default handler sends a body that contains nothing from core. The
+per-framework error type is in each package's section.
 
 The adapter calls `log` for every error it maps, whatever error handler the application
 installs, so the line with core's code and fields is always written. The framework's
@@ -1014,18 +1019,16 @@ import { once } from 'node:events';
 
 const dev = process.env.NODE_ENV !== 'production';
 
-await using ship = await Nexus.create(Meridian, {
+const ship = await Nexus.create(Meridian, {
   plugins: dev ? [errors()] : [], // full error text in development logs
 });
 const server = serve(createBridge(ship));
 process.once('SIGTERM', () => server.close());
-await once(server, 'close'); // the container is disposed after the server stops
+await once(server, 'close');
+await ship[Symbol.asyncDispose](); // after the server stops (section 3.4)
 ```
 
-The final `await once(server, 'close')` keeps the module's `await using` block open for
-the server's lifetime. Without it, the top-level block would end, and dispose the
-container, as soon as `serve` returns. The Workers, Deno and Bun entries are in section
-9.2.
+The Workers, Deno and Bun entries are in section 9.2.
 
 Exports:
 
@@ -1101,7 +1104,9 @@ hold scoped instances.
 ### 4.3 Errors
 
 The adapter throws `new HTTPException(status, { message: statusText, cause })` from
-`hono/http-exception`. Hono's default `onError` sends `err.getResponse()`, a text body
+`hono/http-exception`, where `cause` is the `NexusHttpError` of section 3.6, whose own
+`cause` is the `NexusError`: `HTTPException` → `NexusHttpError` → `NexusError`. An
+`app.onError` reads the code at `error.cause.cause.code`. Hono's default `onError` sends `err.getResponse()`, a text body
 with the status text. `log` defaults to `console.error(err.code, { ...err }, err.message)`
 (section 3.6).
 
@@ -1208,12 +1213,13 @@ import { once } from 'node:events';
 
 const dev = process.env.NODE_ENV !== 'production';
 
-await using ship = await Nexus.create(Meridian, {
+const ship = await Nexus.create(Meridian, {
   plugins: dev ? [errors()] : [],
 });
 const server = createBridge(ship).listen(3000);
 process.once('SIGTERM', () => server.close());
 await once(server, 'close');
+await ship[Symbol.asyncDispose]();
 ```
 
 The route test on the fixtures of section 3.8 listens on port 0, because Express has no
@@ -1768,11 +1774,12 @@ fixture map as a fixture factory.
 `nexusTest<C>(base: TestAPI<C>, root, options?): TestAPI<C & NexusFixtures>` is the API
 the docs teach. It is typed by the `TestAPI` that Vitest 4 and 5 both export from
 `vitest`, so a test file needs no `@vitest/runner` type, and a further
-`.extend({ extra })` composes. `nexusFixtures(root, options)` stays: it returns the
-fixture map for `test.extend` and types it with `@vitest/runner`'s `Fixtures`, which
-Vitest 5 no longer publishes (5.0 ships only betas of the package), so its types hold on
-Vitest 4 alone. `@vitest/runner` is therefore an optional peer (Task 23 ruling,
-2026-10-15).
+`.extend({ extra })` composes. `nexusFixtures(root, options)` stays at the root as well:
+it returns the fixture map for `test.extend`, typed `NexusFixtureMap`, which the package
+reads from `TestAPI`'s `override` (its last overload takes `Partial<Fixtures<T>>`).
+Neither Vitest 4.1 nor 5 exports `Fixtures` from `vitest`, and Vitest 5 publishes no
+`@vitest/runner`, so no published declaration imports `@vitest/runner`. Both forms work
+on Vitest 4.1 and 5 (Task 24 review, 2026-10-15).
 
 Every fixture name starts with `nexus`, so none collides with a user's `request` or
 `container` fixture. `test.override(name, value)` (Vitest 4.1 and later) replaces
@@ -1824,23 +1831,20 @@ the plan pinned the plugin (2026-10-15). The workspace stays on Vitest 4.1.9 for
 "peerDependencies": {
   "@nexusdi/core": "0.4.0-rc.N",
   "@nexusdi/testing": "0.4.0-rc.N",
-  "vitest": "^4.1.0 || ^5.0.0",
-  "@vitest/runner": "^4.1.0 || ^5.0.0"
-},
-"peerDependenciesMeta": { "@vitest/runner": { "optional": true } }
+  "vitest": "^4.1.0 || ^5.0.0"
+}
 ```
 
-`@vitest/runner` is optional: `nexusTest` needs only `vitest`, and a Vitest 4 user who
-calls `nexusFixtures` has it through `vitest`.
+The package names no `@vitest/runner` peer: its declarations import only `vitest`.
 
 `@nexusdi/testing` is a peer at the same exact version as core, because the user's test
 code imports it too and must see the same copy.
 
 4.1 added `test.override` and the builder form of `test.extend`; the object form this
 package uses is the same in 4.1 and 5.0. The workspace runs 4.1.9, and CI runs the
-package's tests on each supported line (section 13.4): the unit tests and `nexusTest`'s
-type tests on 4.1.0, the latest 4.x and the latest 5.x, and `nexusFixtures`' type test on
-the 4.x legs.
+package's tests on each supported line (section 13.4): the unit tests and the type tests
+of both forms on 4.1.0, the latest 4.x and the latest 5.x. `verify-packaging` compiles a
+root import of both on Vitest 5 with `skipLibCheck: false`.
 
 ### 8.4 Tests
 
@@ -2081,7 +2085,7 @@ job, and "not tested" for Netlify Edge and React Router on edge.
 
 Status: moved to 0.5. The gate of section 10.1 failed, and the owner's rule of
 2026-10-15 applies (the decision below). Sections 10.2 to 10.6 stay as the design 0.5
-starts from; 0.4 ships only the `/next/` guide page (section 15.1).
+starts from; 0.4 ships only the `/nextjs/` guide page (section 15.1).
 
 ### 10.1 Recommendation
 
@@ -2126,7 +2130,7 @@ Decision (owner rule of 2026-10-15): Next evaluates the server module once per l
 evaluates the app's module files again, so its tokens and its copy of core are different
 objects. The prototype shows a shared container answering the route handler and refusing
 the action with `NEXUS_INVALID_TOKEN` (`sameToken: false`, `sameNexus: false`), with and
-without `serverExternalPackages`. 0.4 ships the /next/ guide: one container per layer
+without `serverExternalPackages`. 0.4 ships the /nextjs/ guide: one container per layer
 built by a memoised function, request scopes disposed in `after()`, and a shared resource
 such as a connection pool kept on the app's own `globalThis` key. 0.5 revisits the
 adapter once tokens can match across module instances (see the `tokenKey` work of K3).
@@ -2558,14 +2562,14 @@ applies when it does.
 | new | `/express/`                                                                                        | Platform guide: "Scope an Express request".                                                                                                                                                                                                     |
 | new | `/fastify/`                                                                                        | Platform guide: "Scope a Fastify request".                                                                                                                                                                                                      |
 | new | `/edge/`                                                                                           | Platform guide: "Run on Cloudflare Workers and other edge runtimes": section 9.2's two forms, the CPU budget, the I/O rule for singletons, the ambient scope, the compatibility date and `enable_request_signal`.                               |
-| new | `/next/`                                                                                           | Platform guide: "Scope a Next.js route handler or server action", without a package: the recipe of section 10.1's decision.                                                                                                                     |
+| new | `/nextjs/`                                                                                         | Platform guide: "Scope a Next.js route handler or server action", without a package: the recipe of section 10.1's decision.                                                                                                                     |
 | new | `/vitest/`                                                                                         | Question page: "How do I get a container in every Vitest test?"                                                                                                                                                                                 |
 | new | `/api-hono/`, `/api-express/`, `/api-fastify/`, `/api-react-router/`, `/api-vitest/`, `/api-next/` | Reference pages, one H2 per export. `/api-next/` waits for the 0.5 package.                                                                                                                                                                     |
 
 `/node-request-scopes/` tells readers to keep `const ship` and warns that a top-level
 `await using` disposes the container when the module ends. The adapter guides' server
-entries use `await using` with `await once(server, 'close')`, which keeps the block open.
-Each guide states why its form differs, and links to that warning.
+entries keep `const ship` too, and call `ship[Symbol.asyncDispose]()` after
+`await once(server, 'close')` (section 3.4).
 
 Each platform guide has the same H2s: Install, Create the scope per request, Handlers
 with `inject`, When the scope is disposed, Errors, Ambient scope, Shutdown. Each cites a
@@ -2593,10 +2597,28 @@ The docs spec's §7.1 vocabulary gains two rows, and every guide uses them:
   `FLIGHT_LOG`, bound in `BridgeApi` with `useClass: ShuttleFlightLog`; the doubles
   `fakeCharts` and `MemoryFlightLog`."
 
+The guides of Task 25 add four more rows (Task 25 review, 2026-10-15):
+
+- "An interceptor's store: `IAuditLog` behind `AUDIT_LOG`, bound with `useClass: AuditLog`
+  in the `AuditTrail` module; the interceptor `NavAudit` records each `NAV_CHARTS` call
+  in it (`/testing/`, and `examples/bridge-api`, whose module is `Audit`)."
+- "A class double for an intercepted token: `FakeCharts implements INavCharts`, because
+  interceptors skip a `useValue` such as `fakeCharts`."
+- "A failing double: `unplottable`, an `INavCharts` value whose `plot` throws
+  `sector not charted`."
+- "A resource shared across Next.js layers: `IRelayPool` behind `RELAY_POOL`, bound with
+  `useValue` from `RelayPool`, kept on the app's `globalThis` key `POOL_KEY`
+  (`Symbol.for('meridian.relay-pool')`, `/nextjs/`)."
+
+The docs spec's §4.3 inventory gains the rows `/hono/`, `/express/`, `/fastify/` and
+`/nextjs/` (kind `platform`, Guides band, after `/node-request-scopes/`), as the table of
+section 15.1 lists them. That spec lives on `spec/docs-site-amend`, and its §4.3 and §7.1
+take these rows when that branch next moves.
+
 ### 15.3 Delivery
 
 The adapter guides, the edge guide and the API pages go live with the RC that carries the
-packages: rc.2. `/next/` ships with rc.2 as a guide, since `@nexusdi/next` moved to 0.5. `/runtimes/` gains its rows when `adapter-runtimes` first passes.
+packages: rc.2. `/nextjs/` ships with rc.2 as a guide, since `@nexusdi/next` moved to 0.5. `/runtimes/` gains its rows when `adapter-runtimes` first passes.
 
 ## 16. Delivery
 

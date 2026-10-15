@@ -1,12 +1,10 @@
+import type { TestAPI } from 'vitest';
+
 import type { Nexus, NexusRequest, Scope } from '@nexusdi/core';
 import type {
   TestingContainerBuilder,
   TestingCreateOptions,
 } from '@nexusdi/testing';
-
-// The fixture types, apart from fixtures.ts: nexus-test.ts reaches them
-// without the @vitest/runner type that nexusFixtures' signature needs,
-// which Vitest 5 no longer publishes.
 
 /** One change to the testing container's builder, such as an override. */
 export type NexusSetupStep = (
@@ -25,10 +23,23 @@ export interface NexusFixtures {
 }
 
 export interface NexusFixturesOptions {
-  /** The file's builder step; a suite replaces it with test.override({ nexusSetup: [...] }). */
+  /** The file's builder step; a suite replaces it with test.override('nexusSetup', [...]). */
   readonly setup?: NexusSetupStep;
   /** Passed to the builder's create(): plugins, onInit. */
   readonly create?: TestingCreateOptions;
   /** 'file' shares one container across a file's tests, for a slow onInit. Defaults to 'test'. */
   readonly containerScope?: 'test' | 'file';
 }
+
+/**
+ * Vitest's fixture map for NexusFixtures, read from TestAPI so the published
+ * types import only `vitest`. Neither Vitest 4.1 nor 5 exports the Fixtures
+ * type from `vitest`, and 5 publishes no @vitest/runner. The last overload
+ * of TestAPI's `override` is the one that is not generic: it takes
+ * `Partial<Fixtures<T>>`, and Parameters reads that last overload. The
+ * infer takes Fixtures<T> back out of the Partial alias, so test.extend
+ * infers the fixture types from it as it does from Fixtures itself.
+ */
+type OverrideArg<T extends object> = Parameters<TestAPI<T>['override']>[0];
+export type NexusFixtureMap =
+  OverrideArg<NexusFixtures> extends Partial<infer F> ? F : never;
