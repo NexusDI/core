@@ -38,6 +38,8 @@ Usage: nexusdi profile <entry> [options]
     --chrome <file>      write the Chrome DevTools trace of the first iteration
     --perfetto <file>    write the Perfetto trace of the first iteration
     --json <file>        write every iteration's ProfileReport as an array
+    --cpu                sample the CPU and merge it into --chrome; needs --chrome
+    --cpu-interval <us>  sampling interval, default 100
     --top <n>            rows in the slowest-providers table, default 20
     --timeout <ms>       stop waiting for a create or load, default 60000
     --quiet              no table on stdout
