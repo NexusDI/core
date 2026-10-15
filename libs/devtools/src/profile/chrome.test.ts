@@ -125,4 +125,19 @@ describe('toChromeTrace', () => {
         .frames[0]?.url,
     ).toBe('nexusdi://profile');
   });
+  it('writes a report of 160,000 spans', () => {
+    // scopes: true with maxRuns 1000 can pass the 65,536 arguments a spread
+    // call may take in JavaScriptCore; V8 stops near 125,000.
+    const builds = Array.from({ length: 40_000 }, (_, i) =>
+      build({
+        providerId: `p${i}`,
+        token: `P${i}`,
+        startMs: i,
+        durationMs: 1,
+        finishMs: 0,
+      }),
+    );
+    const { traceEvents } = toChromeTrace(report(builds));
+    expect(traceEvents.length).toBeGreaterThan(160_000);
+  });
 });

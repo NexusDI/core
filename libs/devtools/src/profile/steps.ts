@@ -1,3 +1,4 @@
+import { most, least } from './extent.js';
 import type { ProfileRun, ProfileStep } from './report.js';
 
 /**
@@ -21,8 +22,14 @@ function span(
   spans: readonly (readonly [start: number, end: number])[],
 ): ProfileStep[] {
   if (spans.length === 0) return [];
-  const startMs = Math.min(...spans.map(([s]) => s));
-  const end = Math.max(...spans.map(([, e]) => e));
+  const startMs = least(
+    spans.map(([s]) => s),
+    Infinity,
+  );
+  const end = most(
+    spans.map(([, e]) => e),
+    -Infinity,
+  );
   return [{ step, startMs, durationMs: end - startMs }];
 }
 
@@ -48,9 +55,9 @@ export function stepsOf(run: Omit<ProfileRun, 'steps'>): ProfileStep[] {
     ...span('init', inits),
   ];
   if (run.durationMs !== null) {
-    const last = Math.max(
+    const last = most(
+      [...levelled, ...inits].map(([, e]) => e),
       run.startMs,
-      ...[...levelled, ...inits].map(([, e]) => e),
     );
     const end = run.startMs + run.durationMs;
     if (end > last || steps.length > 0)

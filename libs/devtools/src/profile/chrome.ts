@@ -1,3 +1,4 @@
+import { least } from './extent.js';
 import type { CpuProfile, ProfileReport, TraceFile } from './report.js';
 import { spansOf } from './spans.js';
 
@@ -38,9 +39,9 @@ export function toChromeTrace(
     spansOf(run, report.graph, report.reportedMs),
   );
   const cpu = options.cpuProfile?.profile;
-  const first = Math.min(
-    ...spans.map((s) => us(s.startMs)),
-    ...(cpu === undefined ? [] : [cpu.startTime]),
+  const first = least(
+    spans.map((s) => us(s.startMs)),
+    cpu === undefined ? Infinity : cpu.startTime,
   );
   const origin = Number.isFinite(first) ? first : 0;
 
