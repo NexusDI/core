@@ -63,6 +63,16 @@ export function PopupRoot({ className, ...props }: ComponentProps<'span'>) {
     );
   };
 
+  // The token a reader last used holds the fence's tab stop, however it was
+  // reached, so Tab back into the fence lands on it.
+  const hold = () => {
+    const element = root.current;
+    const button = element?.querySelector<HTMLElement>(BUTTON);
+    if (!element || !button) return;
+    for (const each of tokensOf(element))
+      each.tabIndex = each === button ? 0 : -1;
+  };
+
   const onKeyDown = (event: KeyboardEvent<HTMLSpanElement>) => {
     const element = root.current;
     if (!element) return;
@@ -92,9 +102,15 @@ export function PopupRoot({ className, ...props }: ComponentProps<'span'>) {
     <span
       ref={root}
       className={['nexus-popup', className].filter(Boolean).join(' ')}
-      onPointerDown={(event: PointerEvent) => reach(event)}
+      onPointerDown={(event: PointerEvent) => {
+        hold();
+        reach(event);
+      }}
       onPointerEnter={(event: PointerEvent) => reach(event)}
-      onFocus={reach}
+      onFocus={(event) => {
+        hold();
+        reach(event);
+      }}
       onKeyDown={onKeyDown}
       {...props}
     />

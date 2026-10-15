@@ -210,3 +210,85 @@ test('walks a fence from one tab stop with the arrow keys', async ({
   await page.keyboard.press('Tab');
   expect(await onToken()).toBe(false);
 });
+
+test('shows the type on Tab after a tap', async ({ browser, browserName }) => {
+  test.skip(browserName !== 'webkit', 'the touch case runs in WebKit, as iOS');
+  const context = await browser.newContext({
+    hasTouch: true,
+    viewport: { width: 390, height: 844 },
+  });
+  const page = await context.newPage();
+  await page.goto(PAGE);
+  const fence = page.locator('.nexus-api-entry__signature pre').first();
+  const hover = fence.locator('.nexus-popup').first();
+  const panel = hover.locator('.nexus-popup__panel');
+
+  await hover.getByRole('button').tap();
+  await expect(panel).toBeVisible();
+  await page.locator('h1').tap();
+  await expect(panel).toBeHidden();
+
+  await fence.focus();
+  for (
+    let presses = 0;
+    presses < 5 &&
+    !(await hover
+      .getByRole('button')
+      .evaluate((button) => button === document.activeElement));
+    presses += 1
+  )
+    await page.keyboard.press('Tab');
+  await expect(hover.getByRole('button')).toBeFocused();
+  await expect(panel).toBeVisible();
+  await context.close();
+});
+
+test('keeps a long panel open while the reader scrolls inside it', async ({
+  page,
+}) => {
+  await page.goto(PAGE);
+  const hover = page
+    .locator('.nexus-api-entry__signature .nexus-popup')
+    .first();
+  const panel = hover.locator('.nexus-popup__panel');
+  await hover.getByRole('button').hover();
+  await expect(panel).toBeVisible();
+
+  // Any panel taller than its cap scrolls; this one is capped so it does.
+  await panel.evaluate((element) => {
+    element.style.maxHeight = '1.5em';
+  });
+  expect(
+    await panel.evaluate(
+      (element) => element.scrollHeight > element.clientHeight,
+    ),
+  ).toBe(true);
+
+  await panel.hover();
+  await page.mouse.wheel(0, 40);
+  await expect
+    .poll(() => panel.evaluate((element) => element.scrollTop))
+    .toBeGreaterThan(0);
+  await expect(panel).toBeVisible();
+});
+
+test('toggles the type with Enter', async ({ page }) => {
+  await page.goto(PAGE);
+  const fence = page.locator('.nexus-api-entry__signature pre').first();
+  const button = fence.locator('.nexus-popup__button').first();
+  const panel = fence.locator('.nexus-popup__panel').first();
+
+  await fence.focus();
+  for (
+    let presses = 0;
+    presses < 5 &&
+    !(await button.evaluate((each) => each === document.activeElement));
+    presses += 1
+  )
+    await page.keyboard.press('Tab');
+  await expect(panel).toBeVisible();
+  await page.keyboard.press('Enter');
+  await expect(panel).toBeHidden();
+  await page.keyboard.press('Enter');
+  await expect(panel).toBeVisible();
+});
