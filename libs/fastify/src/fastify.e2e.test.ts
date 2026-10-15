@@ -96,10 +96,13 @@ const mapping = (req: FastifyRequest): NexusRequest => ({
 const apps: FastifyInstance[] = [];
 afterEach(async () => {
   for (const app of apps.splice(0)) {
-    // Every test has awaited its requests by now. On Node 22.12, plain
-    // Fastify's close() waits forever for the socket of a request whose
-    // client aborted (Node 24 closes it), so the remaining connections are
-    // closed first.
+    // Every test has awaited its requests by now. On Node 22.x, Node's
+    // server.close() does not close a connection that has never sent a
+    // request (nodejs/node#63452, fixed in Node 26.12). After a client
+    // aborts a streaming response, undici 6, which Node 22 bundles, opens
+    // such a spare connection, and close() waits out Fastify's 72 s
+    // keep-alive. Node 24's undici 7 drops it. So the remaining connections
+    // are closed first.
     app.server.closeAllConnections();
     await app.close();
   }

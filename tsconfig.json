@@ -80,6 +80,9 @@
     },
     {
       "path": "./libs/react"
+    },
+    {
+      "path": "./examples/next-bridge"
     }
   ],
   "compilerOptions": {

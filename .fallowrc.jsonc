@@ -78,6 +78,10 @@
     "libs/react/test-fixtures/**/*.{ts,tsx}",
     "libs/react/vitest.e2e.config.ts",
     "libs/react/src/**/*.e2e.test.ts",
+    // examples/next-bridge's gate suite, which its e2e target runs through
+    // vitest.e2e.config.ts.
+    "examples/next-bridge/e2e/**/*.ts",
+    "examples/next-bridge/vitest.e2e.config.ts",
     "libs/vitest/test-support/nexus-request.ts",
     "libs/core/src/**/*.test-d.ts",
     "libs/errors/src/**/*.test-d.ts",
@@ -454,6 +458,9 @@
       // its docs page (CONTRIBUTING.md, Benchmarks), so the parallel shape is
       // kept apart per library, and what is identical lives in render/shared.ts.
       "benchmarks/src/scale/render/*.ts",
+      // The Next gate's graph: the mission and flight log every adapter
+      // example and fixture defines in its own self-contained app.
+      "examples/next-bridge/app/ship/gate.module.ts",
     ],
   },
 }
