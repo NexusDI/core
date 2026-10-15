@@ -122,18 +122,18 @@ interface INavCharts {
   plot(to: string): string;
 }
 const NAV_CHARTS = new Token<INavCharts>('NavCharts');
-class StellarCharts implements INavCharts {
+class FakeCharts implements INavCharts {
   plot(to: string): string {
     return `course to ${to}`;
   }
 }
-const Navigation = defineModule({
-  name: 'Navigation',
-  providers: [provide(NAV_CHARTS, { useClass: StellarCharts })],
+const Tactical = defineModule({
+  name: 'Tactical',
+  providers: [provide(NAV_CHARTS, { useClass: FakeCharts })],
   exports: [NAV_CHARTS],
 });
 
-toMermaid(inspect(Navigation)).split('\n')[2]; // -> '    p0["NavCharts<br/>StellarCharts"]'
+toMermaid(inspect(Tactical)).split('\n')[2]; // -> '    p0["NavCharts<br/>FakeCharts"]'
 ```
 
 <!-- #endregion render -->
@@ -152,18 +152,48 @@ interface INavCharts {
   plot(to: string): string;
 }
 const NAV_CHARTS = new Token<INavCharts>('NavCharts');
-class StellarCharts implements INavCharts {
+class FakeCharts implements INavCharts {
   plot(to: string): string {
     return `course to ${to}`;
   }
 }
-const Navigation = defineModule({
-  name: 'Navigation',
-  providers: [provide(NAV_CHARTS, { useClass: StellarCharts })],
+const Tactical = defineModule({
+  name: 'Tactical',
+  providers: [provide(NAV_CHARTS, { useClass: FakeCharts })],
 });
 
-const saved = JSON.stringify(inspect(Navigation));
+const saved = JSON.stringify(inspect(Tactical));
 parseGraph(JSON.parse(saved)).providers[0]?.token; // -> 'NavCharts'
 ```
 
 <!-- #endregion parse -->
+
+## A graph as Graphviz DOT
+
+`toDot()` returns a graph from `inspect()` or `graph()` as Graphviz DOT text, for `dot -Tsvg`, with each module as a cluster.
+
+<!-- #region to-dot -->
+
+```ts @import.meta.vitest
+import { Token, defineModule, provide } from '@nexusdi/core';
+import { inspect, toDot } from '@nexusdi/devtools';
+
+interface INavCharts {
+  plot(to: string): string;
+}
+const NAV_CHARTS = new Token<INavCharts>('NavCharts');
+class FakeCharts implements INavCharts {
+  plot(to: string): string {
+    return `course to ${to}`;
+  }
+}
+const Tactical = defineModule({
+  name: 'Tactical',
+  providers: [provide(NAV_CHARTS, { useClass: FakeCharts })],
+  exports: [NAV_CHARTS],
+});
+
+toDot(inspect(Tactical)).split('\n').slice(5, 7); // -> ['  subgraph "cluster_m0" {', '    label="Tactical";']
+```
+
+<!-- #endregion to-dot -->

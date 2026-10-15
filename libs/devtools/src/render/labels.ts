@@ -3,6 +3,10 @@ import type { NexusGraph } from '../graph.js';
 /** providers: providers grouped by module. modules: the module import graph. */
 export type GraphView = 'providers' | 'modules';
 
+/**
+ * The options `toMermaid()` and `toDot()` take: which view of the graph to
+ * draw, its providers or its modules.
+ */
 export interface RenderOptions {
   /** Defaults to 'providers'. */
   readonly view?: GraphView;

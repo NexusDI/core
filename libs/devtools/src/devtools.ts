@@ -25,6 +25,7 @@ const CONTEXTS = new WeakMap<
   }
 >();
 
+/** The options `devtools()` takes: a trace callback, text packs and graph annotators. */
 export interface DevtoolsOptions {
   /** Receives every lifecycle event, as trace() does. */
   readonly trace?: (event: TraceEvent) => void;
