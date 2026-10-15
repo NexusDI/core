@@ -8,12 +8,14 @@ import {
   useState,
   type KeyboardEvent,
 } from 'react';
+import { createPortal } from 'react-dom';
 
 import { ConsoleFrame, Marker } from '@nexusdi/meridian-ui';
 
 import type { BehaviourRow } from './BehaviourCatalogue';
 import { LINGER, place } from './type-card';
 import './behaviour.css';
+import './token-colours.css';
 
 /**
  * The case behind the sentence a reader picked in a catalogue's rail, and the
@@ -256,17 +258,23 @@ export default function BehaviourPane({
             {/* The type the build read off the compiler, stored once in the
               sidecar and cited here by the number the token carries. Always
               in the document, so the id a token's aria-describedby names
-              exists before the token takes focus. */}
-            <div
-              className="nexus-behaviours__type twoslash-popup-container"
-              dangerouslySetInnerHTML={{ __html: popup ?? '' }}
-              hidden={!open}
-              id={cardId}
-              onPointerEnter={stay}
-              onPointerLeave={leave}
-              ref={card}
-              role="tooltip"
-            />
+              exists before the token takes focus. Portalled to the body:
+              Nextra's article has a backdrop-filter, which would make it the
+              box a fixed card is placed in, and `place()` measures from the
+              window. */}
+            {createPortal(
+              <div
+                className="nexus-behaviours__type twoslash-popup-container"
+                dangerouslySetInnerHTML={{ __html: popup ?? '' }}
+                hidden={!open}
+                id={cardId}
+                onPointerEnter={stay}
+                onPointerLeave={leave}
+                ref={card}
+                role="tooltip"
+              />,
+              document.body,
+            )}
           </>
         ) : (
           <p className="nexus-behaviours__waiting">

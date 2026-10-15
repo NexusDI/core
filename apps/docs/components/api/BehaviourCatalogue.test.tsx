@@ -382,7 +382,8 @@ describe('BehaviourCatalogue', () => {
     const { container } = await mountTyped();
     await waitFor(() => reach(container, 'scopes'));
 
-    expect(container.querySelector('[role=tooltip]')?.id).toMatch(/-type$/);
+    // The card is portalled to the body, outside the catalogue's container.
+    expect(document.querySelector('[role=tooltip]')?.id).toMatch(/-type$/);
   });
 
   it('takes the card back down on Escape', async () => {

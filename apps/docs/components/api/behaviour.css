@@ -43,31 +43,6 @@
 }
 
 /*
- * A token takes the theme's colour the way every other fence on the site does.
- *
- * `code-classes.css` binds `--shiki-light` and `--shiki-dark` on each token's
- * class, and these rules pick which of the pair the document is showing.
- * `nextra-theme-docs` writes the same pair of rules for `.nextra-code span`,
- * and this block exists because the pane is not one of its fences. A bold or
- * italic token keeps an inline style carrying the `-font-weight` and
- * `-font-style` variables, since the classes hold colour pairs only; a token
- * without them inherits.
- */
-.nexus-behaviours__body :where(span),
-.nexus-behaviours__type :where(span) {
-  color: var(--shiki-light);
-  font-weight: var(--shiki-light-font-weight, inherit);
-  font-style: var(--shiki-light-font-style, inherit);
-}
-
-html.dark .nexus-behaviours__body :where(span),
-html.dark .nexus-behaviours__type :where(span) {
-  color: var(--shiki-dark);
-  font-weight: var(--shiki-dark-font-weight, inherit);
-  font-style: var(--shiki-dark-font-style, inherit);
-}
-
-/*
  * A token the compiler gave a type, and the card that states it.
  *
  * `nextra-theme-docs` already ships every `.twoslash-*` rule, so the card takes
@@ -75,9 +50,9 @@ html.dark .nexus-behaviours__type :where(span) {
  * `twoslash-popup-container`, and the dotted underline under a typed token
  * comes from the theme's `.twoslash:hover .twoslash-hover`. What the theme does
  * not cover is where the card goes: Nextra mounts its own through a React
- * popover, and this pane draws a static one. So the card is placed from
- * `BehaviourCatalogue.tsx` against the window, and these rules take the theme's
- * flow positioning back off it.
+ * popover, and this pane draws a static one, portalled to the body. So the
+ * card is placed from `BehaviourPane.tsx` against the window, and these rules
+ * take the theme's flow positioning back off it.
  */
 .nexus-behaviours__body .twoslash-hover:focus-visible {
   outline: 2px solid var(--meridian-kind);
@@ -89,7 +64,7 @@ html.dark .nexus-behaviours__type :where(span) {
   border-block-end-color: var(--meridian-focus);
 }
 
-.nexus-behaviours__pane .nexus-behaviours__type {
+.nexus-behaviours__type.twoslash-popup-container {
   position: fixed;
   z-index: 40;
   margin: 0;

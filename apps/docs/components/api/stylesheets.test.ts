@@ -17,6 +17,7 @@ const SHEETS = [
   'entry.css',
   'catalogue.css',
   'behaviour.css',
+  'token-colours.css',
 ] as const;
 
 const read = (name: string): string =>
@@ -47,8 +48,10 @@ describe('the API entry sheets', () => {
     },
   );
 
-  it('switches a case token between the two shiki themes, weight and style included', () => {
-    const sheet = rules('behaviour.css');
+  it('switches a case token and a type card token between the two shiki themes, weight and style included', () => {
+    const sheet = rules('token-colours.css');
+    expect(sheet).toContain('.nexus-behaviours__body :where(span)');
+    expect(sheet).toContain('.nexus-type-card :where(span)');
     const dark = /html\.dark[^{]*\{([^}]*)\}/.exec(sheet)?.[1] ?? '';
 
     expect(sheet).toContain('var(--shiki-light)');
