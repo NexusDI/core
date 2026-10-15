@@ -21,6 +21,9 @@ export default defineConfig(() => ({
     host: 'localhost',
   },
   plugins: [tailwindcss(), !process.env.VITEST && reactRouter()],
+  // @nexusdi/bridge-api exports its TypeScript sources, so the server
+  // build bundles it.
+  ssr: { noExternal: ['@nexusdi/bridge-api'] },
   // Uncomment this if you are using workers.
   // worker: {
   //  plugins: [ nxViteTsPaths() ],

@@ -9,15 +9,9 @@ import {
 
 import type { Route } from './+types/root';
 import './app.css';
-import { containerMiddleware } from './shared/container';
-import { loggerMiddleware } from './modules/logger/logger.middleware';
-import { performanceMiddleware } from './modules/logger/logger.middleware';
+import { di } from './nexus.server';
 
-export const middleware: Route.MiddlewareFunction[] = [
-  containerMiddleware,
-  loggerMiddleware,
-  performanceMiddleware,
-];
+export const middleware: Route.MiddlewareFunction[] = [di.middleware];
 
 export const links: Route.LinksFunction = () => [
   { rel: 'preconnect', href: 'https://fonts.googleapis.com' },

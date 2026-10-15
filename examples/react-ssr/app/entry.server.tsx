@@ -1,23 +1,29 @@
 import { PassThrough } from 'node:stream';
 
 import type { EntryContext, RouterContextProvider } from 'react-router';
+import { NexusProvider } from '@nexusdi/react';
+import { NEXUS_SCOPE } from '@nexusdi/react-router';
 import { createReadableStreamFromReadable } from '@react-router/node';
 import { ServerRouter } from 'react-router';
 import { isbot } from 'isbot';
 import type { RenderToPipeableStreamOptions } from 'react-dom/server';
 import { renderToPipeableStream } from 'react-dom/server';
 
+import { ship } from './nexus.server';
+
 export const streamTimeout = 5_000;
 
-export default function handleRequest(
+export default async function handleRequest(
   request: Request,
   responseStatusCode: number,
   responseHeaders: Headers,
   routerContext: EntryContext,
-  //loadContext: AppLoadContext
-  // If you have middleware enabled:
-  _loadContext: RouterContextProvider,
+  loadContext: RouterContextProvider,
 ) {
+  // The request scope di.middleware set (react spec 9.1). React Router
+  // renders a request no route matches without the root middleware, so the
+  // slot is null and the page renders with no request scope.
+  const scope = await loadContext.get(NEXUS_SCOPE)?.scope();
   return new Promise((resolve, reject) => {
     let shellRendered = false;
     const userAgent = request.headers.get('user-agent');
@@ -30,7 +36,9 @@ export default function handleRequest(
         : 'onShellReady';
 
     const { pipe, abort } = renderToPipeableStream(
-      <ServerRouter context={routerContext} url={request.url} />,
+      <NexusProvider container={ship} scope={scope}>
+        <ServerRouter context={routerContext} url={request.url} />
+      </NexusProvider>,
       {
         [readyOption]() {
           shellRendered = true;

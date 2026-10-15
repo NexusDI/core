@@ -1,74 +1,79 @@
-// Example: Minimal route test for Home using NexusDI and React Router v7
-// This test demonstrates how to provide a DI container for a single route using createRoutesStub.
-import React from 'react';
-import { describe, it, expect, afterEach, vi } from 'vitest';
+import { afterAll, describe, expect, test as base, vi } from 'vitest';
 import { render, screen, waitFor } from '@testing-library/react';
 import { createRoutesStub, RouterContextProvider } from 'react-router';
-import Home, { loader as homeLoader } from '../../app/routes/home';
-import { type IUserService } from '../../app/modules/users/users.types';
-import { type ILoggerService } from '../../app/modules/logger/logger.types';
-import { routeContext } from '../support/route-context';
+import type { Nexus } from '@nexusdi/core';
+import { NexusProvider } from '@nexusdi/react';
+import { existingScope, NEXUS_SCOPE } from '@nexusdi/react-router';
+import { nexusFixtures } from '@nexusdi/vitest';
+import { FLIGHT_LOG, NAV_CHARTS } from '@nexusdi/bridge-api/contracts';
+import { Meridian } from '@nexusdi/bridge-api/ship';
 
-// Mocks
-const mockUserService: IUserService = {
-  getUsers: vi.fn(),
-  getUserById: vi.fn(),
-  createUser: vi.fn(),
-};
-const mockLoggerService: ILoggerService = {
-  log: vi.fn(),
-  debug: vi.fn(),
-  info: vi.fn(),
-  warn: vi.fn(),
-  error: vi.fn(),
-};
+import { built, fakeCharts } from '../support/testing-di';
 
-describe('Home route (framework mode, minimal DI example)', () => {
-  afterEach(() => {
-    vi.clearAllMocks();
+vi.mock('../../app/nexus.server', async () =>
+  (await import('../support/testing-di')).homeServer(),
+);
+
+const { default: Home, loader, action } = await import('../../app/routes/home');
+
+afterAll(() => Promise.all(built.map((ship) => ship[Symbol.asyncDispose]())));
+
+/** Shown while the stub runs the loader, so React Router has a fallback to render. */
+function HydrateFallback() {
+  return <p>Docking</p>;
+}
+
+/** A fresh Meridian testing container per test, with the fake charts. */
+const test = base.extend(
+  nexusFixtures(Meridian, {
+    setup: (builder) => builder.override(NAV_CHARTS, { useValue: fakeCharts }),
+    create: { onInit: false },
+  }),
+);
+
+const scopeOf = (ship: Nexus, id: string) =>
+  ship.createScope({ request: { mission: { id, target: 'Kepler-442b' } } });
+
+describe('Home route', () => {
+  test('renders the mission and a fresh flight log from the request scope', async ({
+    nexus,
+  }) => {
+    const scope = await scopeOf(nexus, 'survey-7');
+    const Stub = createRoutesStub(
+      [{ path: '/', Component: Home, HydrateFallback, loader, action }],
+      new RouterContextProvider(new Map([[NEXUS_SCOPE, existingScope(scope)]])),
+    );
+    // CoursePlotter reads NAV_CHARTS in render, under the provider the
+    // browser entry renders: a container and no request scope.
+    render(
+      <NexusProvider container={nexus}>
+        <Stub initialEntries={['/']} />
+      </NexusProvider>,
+    );
+    await waitFor(() => {
+      expect(screen.getByText('survey-7')).toBeDefined();
+      expect(screen.getByText('survey-7: docked')).toBeDefined();
+    });
+    await scope[Symbol.asyncDispose]();
   });
 
-  it('renders the home page with both providers registered', async () => {
-    const contextMap = await routeContext({
-      logger: mockLoggerService,
-      users: mockUserService,
-    });
-
-    const Stub = createRoutesStub(
-      [
-        {
-          path: '/',
-          Component: Home,
-          loader: homeLoader,
-        },
-      ],
-      new RouterContextProvider(contextMap),
-    );
-    render(<Stub initialEntries={['/']} />);
-    await waitFor(() => {
-      expect(screen.getAllByText('Registered')).toHaveLength(2);
-      expect(screen.getByText(/Container Status/i)).toBeDefined();
-    });
-  });
-
-  it('renders the home page with only one provider registered', async () => {
-    const contextMap = await routeContext({ logger: mockLoggerService });
-
-    const Stub = createRoutesStub(
-      [
-        {
-          path: '/',
-          Component: Home,
-          loader: homeLoader,
-        },
-      ],
-      new RouterContextProvider(contextMap),
-    );
-    render(<Stub initialEntries={['/']} />);
-    await waitFor(() => {
-      expect(screen.getByText('Registered')).toBeDefined();
-      expect(screen.getByText('Not Registered')).toBeDefined();
-      expect(screen.getByText(/Container Status/i)).toBeDefined();
-    });
+  test('keeps no flight log entry from one request to the next', async ({
+    nexus,
+  }) => {
+    const first = await scopeOf(nexus, 'survey-1');
+    const second = await scopeOf(nexus, 'survey-2');
+    const read = (scope: typeof first) =>
+      loader({
+        params: {},
+        context: new RouterContextProvider(
+          new Map([[NEXUS_SCOPE, existingScope(scope)]]),
+        ),
+        request: new Request('http://bridge/'),
+      } as never);
+    expect((await read(first)).entries).toEqual(['survey-1: docked']);
+    expect((await read(second)).entries).toEqual(['survey-2: docked']);
+    expect(first.get(FLIGHT_LOG).entries()).not.toContain('survey-2: docked');
+    await first[Symbol.asyncDispose]();
+    await second[Symbol.asyncDispose]();
   });
 });

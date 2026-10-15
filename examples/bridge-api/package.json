@@ -6,6 +6,7 @@
   "exports": {
     "./contracts": "./src/ship/contracts.ts",
     "./ship": "./src/ship/index.ts",
+    "./offline": "./src/ship/tactical.module.ts",
     "./hono": "./src/hono.ts"
   },
   "dependencies": {
