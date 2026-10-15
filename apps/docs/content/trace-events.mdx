@@ -1,0 +1,180 @@
+---
+title: What the trace events promise
+kind: contract
+description: Every trace event NexusDI core emits, its fields and their tiers, the clock, the order guarantees, and what a profiler of your own can rely on.
+---
+
+# What the trace events promise
+
+NexusDI core reports what a container does as trace events, which a plugin's `observe` hook and `trace()` from `@nexusdi/devtools` receive. `profile()` and `nexusdi profile` ([How do I find out what slows or stalls startup?](/profiling/)) read nothing else, so your own package can build a profiler on them. This page states which parts hold across a release line.
+
+## The NexusDI trace event types
+
+Each event is an object with a `type` and that type's fields. `TraceEvent` is the union of these objects, `TraceEventByType` maps each type to its fields, and `@nexusdi/core` exports both. `RunKind` names the operations a `run` event closes.
+
+| `type`             | When core emits it                                                        | Fields beside `type`                                                      |
+| ------------------ | ------------------------------------------------------------------------- | ------------------------------------------------------------------------- |
+| `compile`          | once per compile, at `create`, `load` or `Nexus.check`                    | `phase`, `modules`, `providers`, `errors`, `run`, `startMs`, `durationMs` |
+| `construct`        | a build stored its instance                                               | the build fields                                                          |
+| `construct:await`  | a constructor or factory returned a thenable, and core starts awaiting it | the build fields                                                          |
+| `construct:failed` | a build failed between the call and the store                             | the build fields                                                          |
+| `init`             | a singleton's `onInit` settled                                            | the build fields                                                          |
+| `init:await`       | `onInit` returned a thenable, and core starts awaiting it                 | the build fields                                                          |
+| `init:failed`      | `onInit` threw or rejected, or an on-demand build refused its thenable    | the build fields                                                          |
+| `run`              | a `create`, `load`, `createScope` or `extend()` settled                   | `run`, `kind`, `scope`, `ok`, `startMs`, `durationMs`                     |
+| `scope:create`     | `createScope()` finished building its scoped providers                    | `scope`, `built`, `run`, `startMs`, `durationMs`                          |
+| `scope:extend`     | `scope.extend()` built what a later `load()` added                        | `scope`, `modules`, `built`, `run`, `startMs`, `durationMs`               |
+| `scope:dispose`    | a scope finished disposing                                                | `scope`, `disposed`, `errors`, `startMs`, `durationMs`                    |
+| `dispose:instance` | one instance was disposed, in disposal order                              | `token`, `providerId`, `scope`                                            |
+| `dispose`          | the container finished disposing                                          | `disposed`, `errors`, `startMs`, `durationMs`                             |
+| `untracked`        | a disposable instance that no container or scope owns was built           | `token`, `providerId`, `reason`                                           |
+
+A build is one call of a provider's constructor, factory or `onInit`, up to the stored instance. The six build events share one shape, the build fields, and each field means the same on all six, read up to the moment its event fires:
+
+| Field        | Type                                             | Meaning                                                                                                                           | Tier                                         |
+| ------------ | ------------------------------------------------ | --------------------------------------------------------------------------------------------------------------------------------- | -------------------------------------------- |
+| `token`      | `string`                                         | the token's description, or a class's `name` when the class is its own token (a `static name` overrides it)                       | stable                                       |
+| `providerId` | `string`                                         | the provider's id in the graph                                                                                                    | stable                                       |
+| `module`     | `string`                                         | the module that binds the provider                                                                                                | stable                                       |
+| `lifetime`   | `'singleton' \| 'transient' \| 'scoped' \| null` | `null` for value and alias providers; `'singleton'` on the `init` events                                                          | stable                                       |
+| `scope`      | `string \| null`                                 | the scope id, or `null` at the root and on the `init` events                                                                      | stable                                       |
+| `async`      | `boolean`                                        | the call returned a thenable                                                                                                      | stable                                       |
+| `run`        | `number \| null`                                 | the run id; `null` for a transient and for an on-demand build outside the run that added the provider                             | stable                                       |
+| `level`      | `number \| null`                                 | the index into the levels the run built (see What `level` indexes below); `null` for on-demand, transient, value and alias builds | presence and type stable; numbering evolving |
+| `parent`     | `string \| null`                                 | the provider id whose constructor or factory this build ran inside                                                                | stable                                       |
+| `startMs`    | `number`                                         | the moment core called the constructor, factory or `onInit`; for a value or alias provider, the emit instant, with a zero span    | stable                                       |
+| `syncMs`     | `number`                                         | from the call until it returned or threw, nested builds included                                                                  | stable                                       |
+| `awaitMs`    | `number \| null`                                 | from that return until the thenable settled or the build failed; `null` when the call returned no thenable                        | stable                                       |
+| `finishMs`   | `number`                                         | from the build resuming until the instance was stored: options validation and construct hooks today; 0 on the `init` events       | field stable; the work it covers evolving    |
+| `durationMs` | `number`                                         | the wall span from the call to the event, time queued behind the level's other providers included                                 | stable                                       |
+
+On an `:await` event the span ends at the emit, so `awaitMs` and `finishMs` read 0 or close to it. On a `:failed` event the times run to the failure. A profiler computes two values from these fields: own time, `syncMs + (awaitMs ?? 0) + finishMs`, and queued time, `durationMs` minus own time.
+
+The other events carry these fields, all stable:
+
+| Field                   | On                                               | Type                                     | Meaning                                                                          |
+| ----------------------- | ------------------------------------------------ | ---------------------------------------- | -------------------------------------------------------------------------------- |
+| `phase`                 | `compile`                                        | `'create' \| 'load' \| 'check'`          | the operation that compiled                                                      |
+| `modules`               | `compile`                                        | `number`                                 | the count of modules compiled                                                    |
+| `modules`               | `scope:extend`                                   | `string[]`                               | the names of the modules the extension added                                     |
+| `providers`             | `compile`                                        | `number`                                 | the count of providers compiled                                                  |
+| `errors`                | `compile`                                        | `number`                                 | the count of graph errors found                                                  |
+| `errors`                | `scope:dispose`, `dispose`                       | `number`                                 | the count of disposer errors                                                     |
+| `run`                   | `compile`, `run`, `scope:create`, `scope:extend` | `number` (`number \| null` on `compile`) | the run id; `null` on `compile` for `Nexus.check`                                |
+| `kind`                  | `run`                                            | `RunKind`                                | `'create'`, `'load'`, `'createScope'` or `'extend'`; a minor release may add one |
+| `ok`                    | `run`                                            | `boolean`                                | `false` when the operation threw or disposal aborted it                          |
+| `scope`                 | `run`                                            | `string \| null`                         | the scope of a `createScope` or `extend()`, `null` at the root                   |
+| `scope`                 | the scope events                                 | `string`                                 | the scope id                                                                     |
+| `scope`                 | `dispose:instance`                               | `string \| null`                         | the scope that owned the instance, `null` at the root                            |
+| `built`                 | `scope:create`, `scope:extend`                   | `number`                                 | the count of providers built                                                     |
+| `disposed`              | `scope:dispose`, `dispose`                       | `number`                                 | the count of instances disposed                                                  |
+| `reason`                | `untracked`                                      | `'root-transient' \| 'singleton-thunk'`  | why no container owns the instance                                               |
+| `startMs`, `durationMs` | every event with a span                          | `number`                                 | as on the build events                                                           |
+
+The event types and every field on this page are stable in plugin API 1, except where a tier says otherwise.
+
+## The NexusDI trace event clock
+
+Every time field is in milliseconds of `performance.now()` in the realm that emitted the event, with the fraction the runtime gives. Browsers coarsen `performance.now()` on a page without cross-origin isolation, so a short provider can read 0 there.
+
+A Chrome trace file counts in microseconds, so its `ts` is `startMs × 1000`, and `@nexusdi/devtools` adds the CPU profile's offset when it merges one. An OpenTelemetry span takes an absolute start time: add `performance.timeOrigin` to `startMs` for Unix epoch milliseconds. The region computes both:
+
+```ts file=examples/meridian/src/pages/trace-events.md region=clock
+
+```
+
+## The NexusDI trace event contract
+
+Core states these rules in the TSDoc of `TraceEventByType` as well:
+
+> Core may add event types and fields in any minor release. An observer ignores what it does not know. These rules hold across a release line. Every core event with `durationMs` also has `startMs`, both in milliseconds of `performance.now()` in the realm that emitted it. The event's span is `[startMs, startMs + durationMs]` in wall time, and core hands the event to observers synchronously when that span ends. A package that adds a timed event of its own should give it `startMs` with the same meaning. Run ids are unique within one container, and `create` is run 0. A run that settles ends with exactly one `run` event, after every other event of that run. Level numbers, and which work `finishMs` covers beyond options validation and construct hooks, describe how core works today and may change in a minor release.
+
+For profiler authors:
+
+> Read the fields this page marks stable. Treat a level number as a label for one run: compare levels within a run, and never store one to compare with a later release. Handle an event type or a `kind` you do not know with a default branch. When core changes a stable field in a way that breaks your code, `NEXUS_PLUGIN_API` goes up.
+
+## The order of NexusDI trace events in a run
+
+Core emits each event once, when its span ends. `construct:await` and `init:await` are the two exceptions: they fire when core starts awaiting a thenable. Within one run the events come in this order:
+
+1. `compile`, for `create` and `load` only.
+2. The build events of each level in turn. A `construct:await` fires when a factory returns a thenable, and a `construct` or `construct:failed` fires as each build settles, which can differ from the order they started. Every event of level k comes before the first of level k+1.
+3. The `onInit` pass: `init:await`, `init` and `init:failed` of the level builds, level by level.
+4. `scope:create` or `scope:extend`, for those run kinds.
+5. `run`, last.
+
+Items 2 and 3 describe how core schedules builds today and may change in a minor release. Items 1, 4 and 5, one emit per event, and `run` last, are stable. An on-demand build emits its `construct`, then its `init` or `init:failed`, with `level: null`, wherever it runs: inside a level, or inside `onInit`.
+
+A `create` with one async factory emits four events, all with run 0:
+
+```ts file=examples/meridian/src/pages/trace-events.md region=order
+
+```
+
+A failed run's `construct:failed` comes before the `dispose:instance` events of its rollback. A run that never settles has no `run` event. The builds still in flight are the providers whose `:await` event has no later `construct`, `construct:failed`, `init` or `init:failed` in that run. `profiler.report()` and `nexusdi profile --timeout` read that set.
+
+Every call of `load`, `createScope` and `extend()` is a run, a call that does no work included.
+
+## What `level` indexes in each NexusDI run
+
+`level` is the index of a provider's level in its run. A level is a barrier: level k+1 starts after every provider of level k settled. A level's span runs from the earliest `startMs` of its `construct` events to the latest end.
+
+| Run or pass                        | The levels it walks                        | `level` on its events                                                                       |
+| ---------------------------------- | ------------------------------------------ | ------------------------------------------------------------------------------------------- |
+| `create`                           | every singleton of the blueprint           | the index into the blueprint's singleton levels                                             |
+| `load`                             | the singletons new to the loaded blueprint | the index into the new blueprint's levels, so the numbers can start above 0 and skip values |
+| the `onInit` pass                  | the levels of the build it follows         | the same index as its `construct` event                                                     |
+| `createScope`                      | the scope's scoped providers               | the index into the scope's scoped levels                                                    |
+| `extend()`                         | the scoped providers the extension adds    | the index into the target's scoped levels                                                   |
+| on-demand, transient, value, alias | none                                       | `null`                                                                                      |
+
+The numbering is evolving.
+
+## `parent` and nested NexusDI builds
+
+`parent` names the provider whose constructor or factory a build ran inside, read from core's construction stack when the event fires. A transient, or a provider built on demand inside another build, carries its enclosing build in `parent`, and its time sits inside that build's `syncMs`. A level build's `parent` is `null`.
+
+## The steps `profile()` derives from NexusDI trace events
+
+`@nexusdi/devtools` splits each run into five steps from the events alone:
+
+- **compile:** the `compile` event.
+- **static:** value and alias providers (and options schemas): the `construct` events with `lifetime: null` and no level.
+- **build:** from the first level `construct` start to the last level `construct` end.
+- **init:** the span of the run's `init` events.
+- **setup:** from the last `init` or level `construct` end to the `run` end.
+
+Each step's edges can sit microseconds from where core's code switches phase.
+
+## Where a NexusDI profiler finds the dependency graph
+
+A plugin reads the graph in its `setup` hook with `context.blueprint()`, after a `create` succeeded: `edges` and `providers`. Two fields carry core's level rule, so a profiler never copies it:
+
+- **`EdgeView.ordersBuild`:** `true` when core builds the edge's target before the dependent. Every kind but `lazy` orders a build today.
+- **`ProviderView.inline`:** `true` when the provider has no level of its own: a transient, which each dependent builds inside its own build, or an alias, which resolves to its target. Core counts an inline provider's ordering edges as its dependents' edges.
+
+## A third-party profiler on NexusDI trace events
+
+This plugin keeps the `construct` events of run 0 and sorts them by own time:
+
+```ts file=examples/meridian/src/pages/trace-events.md region=third-party
+
+```
+
+Its `default` branch handles new event types.
+
+## How `@nexusdi/devtools` draws NexusDI trace events in Chrome
+
+`toChromeTrace()` writes each span as a pair of `blink.user_timing` events whose detail names a DevTools custom track. One track group, `NexusDI`, holds a `Runs` track, a `Steps` track, one track per level of each run, and one for `onInit` in a run that ran any. A `TracingStartedInBrowser` event names one frame, and without it DevTools draws the file as one collapsed row. With a CPU profile, the samples go on the renderer's main thread.
+
+<Notice kind="warning">
+  This layout is Chrome's undocumented format, and a future Chrome can change
+  it. `@nexusdi/devtools` holds it with a golden test against the DevTools trace
+  engine,
+  [`trace-engine.trace.test.ts`](https://github.com/NexusDI/core/blob/release/0.4/libs/devtools/src/profile/trace-engine.trace.test.ts),
+  and a weekly run against Chrome stable and beta.
+</Notice>
+
+## Events of your own beside NexusDI's
+
+A package that emits events of its own keys them `<package>/<event>`, adds them to `TraceEventByType` by declaration merging, and emits them with `PluginContext.emit` ([Write a plugin](/write-a-plugin/)). A timed event of its own carries `startMs` with the meaning this page gives it.
