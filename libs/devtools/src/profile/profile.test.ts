@@ -12,6 +12,7 @@ import {
 import { rejected, thrown } from '../../test-support/catch.js';
 import { defined } from '../../test-support/defined.js';
 import { profile } from '../index.js';
+import { liveSink } from '../live.js';
 
 interface IReactorCore {
   readonly output: number;
@@ -390,7 +391,7 @@ describe('profile live mode', () => {
     // Node's timeStamp records nothing, so the test stubs one.
     const stamp = vi.fn();
     vi.stubGlobal('console', { ...console, timeStamp: stamp });
-    const profiler = profile({ live: true });
+    const profiler = profile({ live: liveSink() });
     await using ship = await Nexus.create(Engineering, { plugins: [profiler] });
     void ship;
     expect(stamp).toHaveBeenCalledWith(

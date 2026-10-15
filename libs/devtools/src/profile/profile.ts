@@ -9,24 +9,22 @@ import {
 
 import { DevtoolsError } from '../devtools-error.js';
 import type {
+  LiveSink,
   ProfileBuild,
   ProfileInit,
   ProfilePending,
   ProfileReport,
   ProfileRun,
 } from './report.js';
-import { liveSink } from './live.js';
 import { stepsOf } from './steps.js';
 
 export interface ProfileOptions {
-  /** Draw spans live with console.timeStamp on Chromium 134 and later; elsewhere nothing. Default false. */
-  readonly live?: boolean;
+  /** Draws each run as it closes; pass liveSink() from @nexusdi/devtools/live. Default: no drawing. */
+  readonly live?: LiveSink;
   /** Record createScope() and extend() runs as well. Default false: create and load only. */
   readonly scopes?: boolean;
   /** Runs kept; the oldest goes first and counts in report().dropped. Default 1000. */
   readonly maxRuns?: number;
-  /** The DevTools track group for live spans. Default 'NexusDI'. */
-  readonly trackGroup?: string;
 }
 
 /** A plugin that records where startup time goes. One per container. */
@@ -125,10 +123,7 @@ const REUSED_TEXT =
 
 export function profile(options: ProfileOptions = {}): Profiler {
   const scopes = options.scopes ?? false;
-  const live =
-    options.live === true
-      ? liveSink(options.trackGroup ?? 'NexusDI')
-      : undefined;
+  const live = options.live;
   const maxRuns = options.maxRuns ?? 1000;
   const runs = new Map<number, Recording>();
   // Builds with no run wait here for the build that ran them (spec 6.2).
