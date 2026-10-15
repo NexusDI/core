@@ -76,3 +76,26 @@ export function docExampleSources(extension = 'ts'): string[] {
     'docs/**/*.md',
   ];
 }
+
+/** Where a package's tests write the json report, under its package root. */
+export const BEHAVIOUR_REPORT = './test-output/vitest/coverage/report.json';
+
+/**
+ * The reporters every package's tests run with: Vitest's default, and the
+ * json report at `BEHAVIOUR_REPORT`, which `doc-behaviour-run.test.ts` holds
+ * every sentence a reference entry renders against. The report sits inside
+ * the test target's cached output.
+ *
+ * The return type is a tuple: a package whose spec typecheck reads its
+ * `vite.config.ts` types `reporters` through Vitest, which refuses the wider
+ * array an inline literal infers.
+ *
+ * @example
+ * ```ts
+ * // libs/<package>/vite.config.ts
+ * test: { reporters: docReporters() },
+ * ```
+ */
+export function docReporters(): ['default', ['json', { outputFile: string }]] {
+  return ['default', ['json', { outputFile: BEHAVIOUR_REPORT }]];
+}

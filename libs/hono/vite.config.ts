@@ -1,6 +1,10 @@
 import { defineConfig } from 'vite';
 
-import { docExampleSources, docExamples } from '@nexusdi/doc-examples';
+import {
+  docExampleSources,
+  docExamples,
+  docReporters,
+} from '@nexusdi/doc-examples';
 
 export default defineConfig(() => ({
   root: import.meta.dirname,
@@ -20,7 +24,7 @@ export default defineConfig(() => ({
       tsconfig: './tsconfig.spec.json',
       include: ['src/**/*.test-d.ts'],
     },
-    reporters: ['default'],
+    reporters: docReporters(),
     coverage: {
       reportsDirectory: './test-output/vitest/coverage',
       provider: 'v8' as const,

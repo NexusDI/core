@@ -16,7 +16,12 @@ export {
   restoreModuleFences,
 } from './module-fences.ts';
 export type { DoctestImports } from './vite-plugin.ts';
-export { docExampleSources, docExamples } from './vite-config.ts';
+export {
+  BEHAVIOUR_REPORT,
+  docExampleSources,
+  docExamples,
+  docReporters,
+} from './vite-config.ts';
 export {
   PREAMBLE_FILE,
   preamblePath,
