@@ -3186,23 +3186,25 @@ fit. Each item below overrides the text it names. The plan is
 7. `docs:behaviour-data`. The target writes an index per library to
    `apps/docs/components/api/behaviour/<dir>.json`, which the loader reads during the
    build, and the highlighted cases to `apps/docs/public/behaviour/<dir>/<name>.json`, one
-   file per stated identifier (a `describe` title that is an identifier) whose rail lists a case, which the catalogue fetches when a reader
-   scrolls the entry into view. A file holds the cases of that export's rail and the hover
-   popups those cases point at. Both paths are gitignored. The library list is every
-   `libs/*` package whose `exports` map holds an entry other than `./package.json`, read
-   from the package files, so `@nexusdi/cli` has no data and a new package needs no edit
-   to the target. The cases are highlighted with Nextra's own themes (`github-light`,
-   `github-dark`) with `defaultColor: false`, and the libraries `code-classes.mjs` is
-   ported for the cases: it moves each token's `--shiki-light`/`--shiki-dark` pair into
-   an `sh-*` class whose rule sets the same two variables, and the target writes the rules
-   to `apps/docs/components/api/behaviour/code-classes.css`, which the catalogue imports.
+   file per export whose rail lists a case, the exports of every entry point of the package
+   merged (`exportedNames` in `@nexusdi/doc-examples/package-exports`), which the catalogue
+   fetches when a reader scrolls the entry into view. A file holds the cases of that
+   export's rail and the hover popups those cases point at. Both paths are gitignored. The
+   library list is every `libs/*` package whose `exports` map holds an entry other than
+   `./package.json`, read from the package files, so `@nexusdi/cli` has no data and a new
+   package needs no edit to the target. The cases are highlighted with Nextra's own themes
+   (`github-light`, `github-dark`) with `defaultColor: false`, and the libraries
+   `code-classes.mjs` is ported for the cases: it moves each token's
+   `--shiki-light`/`--shiki-dark` pair into an `sh-*` class whose rule sets the same two
+   variables, and the target writes the rules to
+   `apps/docs/components/api/behaviour/code-classes.css`, which the catalogue imports.
    Nextra highlights the page fences, and they keep their inline styles. The catalogue
    fetches through the base path, which `next.config.ts` exposes to the client as
    `NEXUS_BASE_PATH`, because `/next/` serves the sidecar at
    `/next/behaviour/<dir>/<name>.json`. `check-budgets` holds every sidecar to 1400 kB raw
    and 60 kB gzipped. Measured on 2026-10-15, inline styles made `core`'s single sidecar
-   10.7 MB raw (299 kB gzipped), and the largest file, `core/Nexus.json` with
-   102 cases, is 1350 kB raw and 56.6 kB gzipped.
+   10.7 MB raw (299 kB gzipped), and the largest file, `core/Nexus.json` with 102 cases, is
+   1350 kB raw and 56.6 kB gzipped.
 8. Guards. `doc-reference` adds one rule to the libraries version: every export an API
    page names carries a docblock summary, because an entry renders that summary as its
    first sentence. G11 `doc-behaviour` keeps its exceptions inline, as the libraries file
