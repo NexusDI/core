@@ -14,7 +14,7 @@
  * gh's credential helper.
  */
 import { execFileSync } from 'node:child_process';
-import { readdirSync, readFileSync } from 'node:fs';
+import { existsSync, readdirSync, readFileSync } from 'node:fs';
 import { join } from 'node:path';
 
 const ROOT = join(import.meta.dirname, '..', '..');
@@ -37,7 +37,9 @@ const DETERMINISTIC = [
  * samples on a tag run. scale.json arrives with the deterministic artifact,
  * scale/ and the rendered files with the merge job's.
  */
-export function resultsPaths(isTag: boolean): string[] {
+export function resultsPaths(isTag: boolean, root = ROOT): string[] {
+  // A path nothing wrote (scale/ and the startup chart before a timing job
+  // exists) would make `git add` exit 128 and lose every other result.
   return [
     ...DETERMINISTIC,
     `${RESULTS}/build.json`,
@@ -48,7 +50,7 @@ export function resultsPaths(isTag: boolean): string[] {
     `${RESULTS}/scale-bundle.svg`,
     `${RESULTS}/README.md`,
     ...(isTag ? [`${RESULTS}/raw`] : []),
-  ];
+  ].filter((p) => existsSync(join(root, p)));
 }
 
 /** The pull request body's line naming the scale timing file. */
@@ -61,6 +63,7 @@ export function scaleLine(file: string): string {
  * their time, which the file name does not carry.
  */
 export function newestByStartedAt(dir: string): string | undefined {
+  if (!existsSync(dir)) return undefined;
   return readdirSync(dir)
     .filter((f) => f.endsWith('.json'))
     .map((f) => ({

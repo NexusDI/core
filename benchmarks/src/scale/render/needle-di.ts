@@ -58,9 +58,6 @@ const header = (graph: ScaleGraph) =>
 const idOf = (p: ScaleProvider) =>
   p.kind === 'class' ? className(p) : token(p);
 
-/** The type dependants take: the class, a factory's product, or the value's interface. */
-/** registerM0 for module m0. */
-/** The file that declares a provider's class. */
 /**
  * The providers whose closure holds an async factory, themselves
  * included. needle-di constructs a sync factory synchronously, so an

@@ -46,9 +46,6 @@ ${
     : "// Departures: fields for dependencies, because Node's type stripping\n// rejects parameter properties. awilix documents no module unit, so each\n// graph module is a register<Module>(container) function making one\n// container.register({...}) call; create calls them in module order.\n"
 }`;
 
-/** The type dependants take: the class, a factory's product, or the value's interface. */
-/** registerM0 for module m0. */
-/** The file that declares a provider's class. */
 /**
  * The type imports a file needs for the dependencies of `own` that
  * `here` does not declare, plus `Cradle` when `cradle` is set: classes

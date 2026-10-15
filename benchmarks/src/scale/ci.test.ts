@@ -130,21 +130,67 @@ describe('benchmarks.yml (scale spec 10.2)', () => {
 });
 
 describe('open-results-pr', () => {
-  it('lists the scale paths in the commit', () => {
-    const paths = resultsPaths(false);
+  /** A results root holding the named paths, `dir/` entries as directories. */
+  const rootWith = (paths: string[]) => {
+    const root = mkdtempSync(join(tmpdir(), 'results-root-'));
+    roots.push(root);
+    for (const p of paths)
+      if (p.endsWith('/')) mkdirSync(join(root, p), { recursive: true });
+      else {
+        mkdirSync(join(root, p, '..'), { recursive: true });
+        writeFileSync(join(root, p), '');
+      }
+    return root;
+  };
+  const roots: string[] = [];
+  afterAll(() => {
+    for (const r of roots) rmSync(r, { recursive: true, force: true });
+  });
+  const R = 'benchmarks/results';
+  const EVERYTHING = [
+    `${R}/matrix.json`,
+    `${R}/probes.json`,
+    `${R}/size.json`,
+    `${R}/scale.json`,
+    `${R}/build.json`,
+    `${R}/timings/`,
+    `${R}/scale/`,
+    `${R}/scale.md`,
+    `${R}/scale-startup.svg`,
+    `${R}/scale-bundle.svg`,
+    `${R}/README.md`,
+    `${R}/raw/`,
+  ];
+
+  it('lists the scale paths in the commit when they exist', () => {
+    const paths = resultsPaths(false, rootWith(EVERYTHING));
     for (const p of [
-      'benchmarks/results/scale.json',
-      'benchmarks/results/scale',
-      'benchmarks/results/scale.md',
-      'benchmarks/results/scale-startup.svg',
-      'benchmarks/results/scale-bundle.svg',
-      'benchmarks/results/README.md',
+      `${R}/scale.json`,
+      `${R}/scale`,
+      `${R}/scale.md`,
+      `${R}/scale-startup.svg`,
+      `${R}/scale-bundle.svg`,
+      `${R}/README.md`,
     ])
       expect(paths).toContain(p);
-    expect(paths).not.toContain('benchmarks/results/raw');
+    expect(paths).not.toContain(`${R}/raw`);
   });
-  it('adds the raw samples on a tag run', () => {
-    expect(resultsPaths(true)).toContain('benchmarks/results/raw');
+  it('leaves out scale/ and the startup chart when no timing run made them', () => {
+    // git add exits 128 on a missing pathspec, which would lose every result.
+    const without = EVERYTHING.filter(
+      (p) => p !== `${R}/scale/` && p !== `${R}/scale-startup.svg`,
+    );
+    const paths = resultsPaths(false, rootWith(without));
+    expect(paths).not.toContain(`${R}/scale`);
+    expect(paths).not.toContain(`${R}/scale-startup.svg`);
+    expect(paths).toContain(`${R}/scale.md`);
+    expect(paths).toContain(`${R}/timings`);
+  });
+  it('adds the raw samples on a tag run, when they exist', () => {
+    expect(resultsPaths(true, rootWith(EVERYTHING))).toContain(`${R}/raw`);
+    expect(
+      resultsPaths(true, rootWith(EVERYTHING.filter((p) => p !== `${R}/raw/`))),
+    ).not.toContain(`${R}/raw`);
   });
   it('names the scale file in the body', () => {
     expect(scaleLine('2026-10-14-abc1234.json')).toBe(
@@ -166,6 +212,9 @@ describe('open-results-pr', () => {
         JSON.stringify({ startedAt: '2026-10-14T09:00:00Z' }),
       );
       expect(newestByStartedAt(dir)).toBe('2026-10-14-aaaaaaa.json');
+    });
+    it('is undefined for a directory that does not exist', () => {
+      expect(newestByStartedAt(join(dir, 'missing'))).toBeUndefined();
     });
     it('is undefined for an empty directory', () => {
       const empty = mkdtempSync(join(tmpdir(), 'scale-empty-'));
