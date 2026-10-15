@@ -16,6 +16,16 @@ const pct = (base, head) =>
   `${head >= base ? '+' : ''}${(((head - base) / base) * 100).toFixed(2)}%`;
 const bytes = (base, head) => `${head >= base ? '+' : ''}${head - base}`;
 
+/** Whether the description's `## Size` section names a fixture. */
+function sizeSectionNames(body, name, label) {
+  const section = /^## Size\b[^\n]*\n([\s\S]*?)(?=^## |(?![\s\S]))/m.exec(
+    body ?? '',
+  )?.[1];
+  return (
+    section !== undefined && (section.includes(label) || section.includes(name))
+  );
+}
+
 export function compareSizes(base, head, body, threshold) {
   // The merge base's fixture can fail to build against it: the first 0.4
   // pull request's base is core 0.3.1, whose API predates provide() and
@@ -36,7 +46,11 @@ export function compareSizes(base, head, body, threshold) {
       : null;
   const justified = /^## Size\b/m.test(body ?? '');
   const fail =
-    !headHasCore || (baseHasCore && growth > threshold && !justified);
+    !headHasCore ||
+    (baseHasCore && growth > threshold && !justified) ||
+    (head.overBudget ?? []).some(
+      ({ name, label }) => !sizeSectionNames(body, name, label),
+    );
   const coreRow = !headHasCore
     ? `| core | ${baseHasCore ? base.core : 'no figure'} | no figure | | |`
     : baseHasCore
@@ -68,11 +82,30 @@ export function compareSizes(base, head, body, threshold) {
         return `| ${name} (whole bundle) | ${was} | ${now} | ${bytes(was, now)} | ${pct(was, now)} |`;
       }),
   ];
-  // Reported, never fatal: the threshold applies to core alone (spec 13.6).
+  // An adapter fixture over its budget fails like core over its threshold,
+  // unless the description's `## Size` section names that fixture and says
+  // what the added bytes give the user (spec 13.6).
+  const overBudget = head.overBudget ?? [];
+  const unjustified = overBudget.filter(
+    ({ name, label }) => !sizeSectionNames(body, name, label),
+  );
   const budgets =
-    (head.overBudget ?? []).length === 0
+    overBudget.length === 0
       ? []
-      : ['', 'Over budget:', ...head.overBudget.map((line) => `- ${line}`)];
+      : [
+          '',
+          'Over budget:',
+          ...overBudget.map(
+            ({ label, size, budget, reason }) =>
+              `- ${label} is ${size} bytes, over its ${budget}-byte budget (${reason})`,
+          ),
+          ...(unjustified.length === 0
+            ? []
+            : [
+                '',
+                `Name ${unjustified.map(({ label }) => label).join(', ')} in a \`## Size\` section of the pull request description, and say what the added bytes give the user.`,
+              ]),
+        ];
   const verdict = !headHasCore
     ? 'This pull request has no figure for core: it did not bundle against the fixture. Fix the build; a `## Size` section cannot justify a broken build.'
     : !baseHasCore

@@ -2475,8 +2475,14 @@ adapter's `nexus`, its middleware and one `inject` route, bundled with esbuild
 `--bundle --minify --format=esm` and gzip level 9, the framework marked external. It also
 gains `hono-worker`, the Workers entry of section 9.2 bundled with `--platform=neutral`
 and Hono included, which is the figure an edge user compares with a size limit.
-`@nexusdi/vitest` gets no fixture, because nothing bundles a test helper. Adapter growth
-is reported and never fails the job; the threshold applies to core alone.
+`@nexusdi/vitest` gets no fixture, because nothing bundles a test helper. `@nexusdi/react`
+gets one with React external, the figure a browser bundle carries.
+
+Each fixture has a budget in gzip bytes with its reason, in
+`examples/size/src/fixtures.json`. Growth inside a budget is reported. A fixture over its
+budget fails the size check, as core over its threshold does, unless the pull request
+description's `## Size` section names the fixture and says what the added bytes give the
+user. The check reads the name; the reviewer reads the reason.
 
 ## 14. Demo apps
 
