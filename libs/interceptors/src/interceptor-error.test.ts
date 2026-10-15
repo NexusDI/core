@@ -1,5 +1,14 @@
-import { isNexusError, NexusError } from '@nexusdi/core';
+import {
+  defineModule,
+  isNexusError,
+  Nexus,
+  NexusError,
+  provide,
+  Token,
+} from '@nexusdi/core';
 import { describe, expect, it } from 'vitest';
+
+import { findCode, rejected } from '../test-support/catch.js';
 
 import {
   errorOf,
@@ -10,41 +19,64 @@ import {
   unchecked,
 } from './interceptor-error.js';
 import { keyName } from './metadata.js';
+import { interceptor } from './options.js';
+import { interceptors } from './plugin.js';
+import type { Interceptor } from './types.js';
 
 describe('InterceptorError', () => {
-  it('carries the code and every field of a fault', () => {
-    const error = errorOf({
-      code: 'NEXUS_INTERCEPTOR_MISSING',
-      token: 'Audit',
-      target: 'PaymentService',
-      method: 'charge',
-    });
+  it('is the class of a fault the plugin raises, a NexusError carrying its fields', async () => {
+    const AUDIT = new Token<Interceptor>('Audit');
+    const LOG = new Token<Interceptor>('Log');
+    const PAYMENTS = new Token<{ charge(): void }>('Payments');
+    class PaymentService {
+      static interceptors = { methods: { charge: [AUDIT] } };
+      charge() {}
+    }
+    const error = findCode(
+      await rejected(
+        Nexus.create(
+          defineModule({
+            name: 'Billing',
+            providers: [provide(PAYMENTS, { useClass: PaymentService })],
+          }),
+          {
+            plugins: [
+              interceptors({
+                register: [
+                  interceptor(LOG, {
+                    useFactory: (): Interceptor => ({
+                      intercept: (_call, next) => next(),
+                    }),
+                    deps: [],
+                  }),
+                ],
+              }),
+            ],
+          },
+        ),
+      ),
+      'NEXUS_INTERCEPTOR_MISSING',
+    );
+
     expect(error).toBeInstanceOf(InterceptorError);
     expect(error).toBeInstanceOf(NexusError);
     expect(isNexusError(error, 'NEXUS_INTERCEPTOR_MISSING')).toBe(true);
     expect(error).toMatchObject({
-      code: 'NEXUS_INTERCEPTOR_MISSING',
-      reason: null,
       token: 'Audit',
       target: 'PaymentService',
       method: 'charge',
-      state: null,
-      detail: [],
     });
   });
+});
 
-  it("writes core's one line of fields and the docs link for a fault", () => {
-    expect(
-      errorOf({
-        code: 'NEXUS_INTERCEPTOR_INVALID',
-        reason: 'options',
-        detail: ['not-array', 'global'],
-      }).message,
-    ).toBe(
-      '[NEXUS_INTERCEPTOR_INVALID] reason=options detail=not-array,global. https://nexus.js.org/errors/NEXUS_INTERCEPTOR_INVALID',
-    );
+describe('keyName', () => {
+  it('writes a symbol key in brackets and a string key as is', () => {
+    expect(keyName(Symbol('run'))).toBe('[Symbol(run)]');
+    expect(keyName('charge')).toBe('charge');
   });
+});
 
+describe('the fault constructors', () => {
   it('writes the text of an error thrown where no container formats it', () => {
     expect(notReady('PaymentService', 'charge', 'building')).toMatchObject({
       code: 'NEXUS_INTERCEPTOR_NOT_READY',
@@ -76,9 +108,37 @@ describe('InterceptorError', () => {
   });
 });
 
-describe('keyName', () => {
-  it('writes a symbol key in brackets and a string key as is', () => {
-    expect(keyName(Symbol('run'))).toBe('[Symbol(run)]');
-    expect(keyName('charge')).toBe('charge');
+describe('errorOf', () => {
+  it('carries the code and every field of a fault', () => {
+    const error = errorOf({
+      code: 'NEXUS_INTERCEPTOR_MISSING',
+      token: 'Audit',
+      target: 'PaymentService',
+      method: 'charge',
+    });
+    expect(error).toBeInstanceOf(InterceptorError);
+    expect(error).toBeInstanceOf(NexusError);
+    expect(isNexusError(error, 'NEXUS_INTERCEPTOR_MISSING')).toBe(true);
+    expect(error).toMatchObject({
+      code: 'NEXUS_INTERCEPTOR_MISSING',
+      reason: null,
+      token: 'Audit',
+      target: 'PaymentService',
+      method: 'charge',
+      state: null,
+      detail: [],
+    });
+  });
+
+  it("writes core's one line of fields and the docs link for a fault", () => {
+    expect(
+      errorOf({
+        code: 'NEXUS_INTERCEPTOR_INVALID',
+        reason: 'options',
+        detail: ['not-array', 'global'],
+      }).message,
+    ).toBe(
+      '[NEXUS_INTERCEPTOR_INVALID] reason=options detail=not-array,global. https://nexus.js.org/errors/NEXUS_INTERCEPTOR_INVALID',
+    );
   });
 });
