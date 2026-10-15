@@ -1,8 +1,12 @@
-import { describe, expect, it } from 'vitest';
+import { describe, expect, it, vi } from 'vitest';
 
 import { GRAPH_SEED, SIZES } from './config.ts';
 import { checkGraph, describeGraph, hash, type ScaleGraph } from './graph.ts';
 import { deep, mixed, mixedAsync, modular, wide } from './shapes.ts';
+
+// A 5,000-provider mixed graph takes seconds to generate on a loaded CI runner,
+// and some tests build it three times.
+vi.setConfig({ testTimeout: 30_000 });
 
 /** Exact mean fan-out, before describeGraph rounds it. */
 const meanFanOut = (g: ScaleGraph) =>
