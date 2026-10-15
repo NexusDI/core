@@ -59,3 +59,44 @@ describe('when the charts cannot plot', () => {
 ```
 
 <!-- #endregion suite-override -->
+
+## The fixture map in `test.extend`
+
+`nexusFixtures(root, options)` returns the fixtures `nexusTest` adds, as the map `test.extend` takes, with the same options.
+
+<!-- #region fixture-map -->
+
+```ts @import.meta.vitest @module
+import { defineModule, provide, Token } from '@nexusdi/core';
+import { nexusFixtures } from '@nexusdi/vitest';
+import { test as base } from 'vitest';
+
+interface INavCharts {
+  plot(to: string): { to: string; heading: number };
+}
+const NAV_CHARTS = new Token<INavCharts>('NavCharts');
+class StarCharts implements INavCharts {
+  plot(to: string) {
+    return { to, heading: 0 };
+  }
+}
+const fakeCharts: INavCharts = { plot: (to) => ({ to, heading: 42 }) };
+
+const Tactical = defineModule({
+  name: 'Tactical',
+  providers: [provide(NAV_CHARTS, { useClass: StarCharts })],
+  exports: [NAV_CHARTS],
+});
+
+const test = base.extend(
+  nexusFixtures(Tactical, {
+    setup: (builder) => builder.override(NAV_CHARTS, { useValue: fakeCharts }),
+  }),
+);
+
+test('plots with the fixture map', ({ nexus }) => {
+  nexus.get(NAV_CHARTS).plot('Kepler-442b').heading; // -> 42
+});
+```
+
+<!-- #endregion fixture-map -->
