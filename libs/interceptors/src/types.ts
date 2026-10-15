@@ -31,6 +31,10 @@ export interface Interceptor {
   intercept(call: CallContext, next: Next): unknown;
 }
 
+/**
+ * The token an interceptor is registered under, and the token a declaration,
+ * a binding or a global entry names it by.
+ */
 export type InterceptorToken = InjectionToken<Interceptor>;
 
 /** The method names of T; any string or symbol when T is unknown. */
@@ -53,11 +57,16 @@ export type InterceptorMap<T = unknown> = {
   };
 };
 
+/** The provider and method a global entry's `when` is asked about. */
 export interface GlobalTarget {
   readonly provider: ProviderView;
   readonly method: string | symbol;
 }
 
+/**
+ * A `global` entry: the interceptor `use` names, applied to every method
+ * `global` reaches where `when` returns true or is absent.
+ */
 export interface GlobalEntry {
   readonly use: InterceptorToken;
   /** Called once per provider and method; false skips the interceptor there. */
@@ -87,6 +96,7 @@ export interface InterceptorEntry {
 /** A token `exempt` takes: an injection token, or a multi token for `all()` deps. */
 export type ExemptToken = InjectionToken<unknown> | MultiToken<unknown>;
 
+/** The options `interceptors()` takes. */
 export interface InterceptorsOptions {
   /** The interceptors: classes, or interceptor(TOKEN, definition) entries. */
   readonly register: readonly (InterceptorClass | InterceptorEntry)[];
