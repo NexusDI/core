@@ -1073,7 +1073,7 @@ const start = nexusdiAnchorStart(interval); // [name, startMs, endMs]
 const report = await devtools.profileStartup(root, { plugins, load, profiler });
 const end = nexusdiAnchorEnd(interval);
 const { profile } = await session.post('Profiler.stop');
-const aligned = alignClocks(profile, [start, end]); // { offsetMs, errorMs, consistent } | null
+const aligned = alignClocks(profile, [start, end], interval); // { offsetMs, errorMs, consistent } | null
 const trace = devtools.toChromeTrace(report, {
   cpuProfile: { profile, offsetMs: aligned.offsetMs },
 });
@@ -1093,15 +1093,19 @@ Anchors:
   on the second profile in one process).
 - `alignClocks` walks samples in order, accumulating `timeDeltas` from `profile.startTime`.
   A counted sample at `t` ms on the profile clock, in an anchor that read the clock at
-  `startMs` and `endMs`, puts the offset in `[t - endMs, t - startMs]`. The offset is the
-  middle of the bounds every counted sample of both anchors sets, and `errorMs` is half their
-  width. `consistent` is `lo <= hi`. When the bounds cross, the samples contradict the clock
-  reads, and `errorMs` is half the gap.
-- When `consistent` is false, the CLI warns
-  (`the CPU clock and performance.now() disagree by 0.8 ms; CPU samples may sit up to 0.4 ms off the provider spans`).
-  Otherwise, when `errorMs` passes `max(1 ms, 4 × interval)`, it warns
+  `startMs` and `endMs`, puts the offset in `[t - endMs, t - startMs]`. The tightest bounds
+  every counted sample of both anchors sets are `[lo, hi]`. The offset is their middle, and
+  `errorMs` is half their width. When the bounds cross, `errorMs` is half the gap.
+- One bound, `max(1 ms, 4 × interval)`, drives both warnings. `consistent` is
+  `lo - hi <= bound`: a crossing within it is sampler timing noise (2 of 30 macOS runs at
+  50 µs crossed, by at most 0.11 ms). When `consistent` is false, the CLI warns
+  (`the CPU clock and performance.now() disagree by 1.8 ms; CPU samples may sit up to 0.9 ms off the provider spans`).
+  Otherwise, when `errorMs` passes the bound, it warns
   (`the sampler ran too rarely to align the clocks; CPU samples may sit up to 1.8 ms off the provider spans`).
   Both keep the profile.
+- A sample in the anchor before its `startMs` read returns, or after its `endMs` read, sits
+  outside the bounds it sets. It is off by well under one interval: the CLI reads
+  `performance` before sampling starts, so each read takes microseconds.
 - When no anchor has a sample, the CLI warns, writes the Chrome file without the CPU
   profile, and keeps exit code 0. One anchor with samples is enough to align.
 - `libs/cli` builds with `tsc` and no minifier, so the names stay intact.
