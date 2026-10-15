@@ -19,7 +19,7 @@ describe('liveSink', () => {
     vi.stubGlobal('navigator', {
       userAgentData: { brands: [{ brand: 'Chromium', version: '134' }] },
     });
-    // Node's console has no timeStamp to spy on, so the test stubs one.
+    // Node's timeStamp records nothing, so the test stubs one.
     const stamp = vi.fn(() => {
       throw new Error('no recorder');
     });

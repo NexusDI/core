@@ -59,6 +59,19 @@ describe('toChromeTrace', () => {
     expect(end['ts']).toBe(3000);
   });
 
+  it('writes the ready marker with no track or track group', () => {
+    const { traceEvents } = toChromeTrace(r);
+    const marker = defined(
+      traceEvents.find((e) => e['ph'] === 'b' && e['name'] === 'create ready'),
+    );
+    const { devtools } = JSON.parse(
+      (marker['args'] as { detail: string }).detail,
+    ) as { devtools: Record<string, unknown> };
+    expect(devtools['dataType']).toBe('marker');
+    expect(devtools).not.toHaveProperty('track');
+    expect(devtools).not.toHaveProperty('trackGroup');
+  });
+
   it('merges a CPU profile and shifts every span by offsetMs', () => {
     const profile = {
       nodes: [
