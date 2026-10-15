@@ -1,7 +1,7 @@
 import { join } from 'node:path';
 
 import { workspaceRoot } from '@nx/devkit';
-import { describe, expect, it } from 'vitest';
+import { beforeAll, describe, expect, it } from 'vitest';
 
 import {
   checkMeta,
@@ -78,24 +78,27 @@ describe('doc-twoslash fixtures', COMPILE, () => {
 });
 
 describe('doc-twoslash on apps/docs', COMPILE, () => {
-  it('finds the fences', async () => {
+  // Every page expanded once: the reference pages run the reference loader
+  // over each entry, which under a parallel gate outlasts the default 30
+  // seconds per test.
+  let fences: Awaited<ReturnType<typeof contentFences>>;
+  beforeAll(async () => {
+    fences = await contentFences(CONTENT, workspaceRoot);
+  }, 180_000);
+
+  it('finds the fences', () => {
     // The reference pages emit a signature and an example fence per entry,
     // so an empty list means the expansion stopped reaching this guard.
-    expect(
-      (await contentFences(CONTENT, workspaceRoot)).length,
-    ).toBeGreaterThan(0);
+    expect(fences.length).toBeGreaterThan(0);
   });
 
-  it('holds the meta and query rules on every expanded page', async () => {
-    const fences = await contentFences(CONTENT, workspaceRoot);
-
+  it('holds the meta and query rules on every expanded page', () => {
     expect(checkMeta(fences)).toEqual([]);
     expect(checkQueries(fences)).toEqual([]);
   });
 
   it('compiles every expanded twoslash fence', async () => {
     const withPrelude = await loadTwoslashPrelude();
-    const fences = await contentFences(CONTENT, workspaceRoot);
 
     expect(compileFailures(fences, withPrelude)).toEqual([]);
     // Every reference page's signature and example fences compile here, and

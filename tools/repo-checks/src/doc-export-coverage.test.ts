@@ -132,8 +132,8 @@ async function workspaceInput(): Promise<CoverageInput> {
     // An error class is documented by its code's page under /errors/, which
     // /api-errors/ lists (spec section 22, item 9), in core and in every
     // first-party package that raises one.
-    exempt: new Map(
-      [
+    exempt: new Map([
+      ...[
         '@nexusdi/core',
         '@nexusdi/decorators',
         '@nexusdi/devtools',
@@ -141,11 +141,22 @@ async function workspaceInput(): Promise<CoverageInput> {
         '@nexusdi/interceptors',
         '@nexusdi/react',
         '@nexusdi/testing',
-      ].map((name) => [
+      ].map((name): [string, string] => [
         name,
         'Each error class has a code page under /errors/, and /api-errors/ lists them.',
       ]),
-    ),
+      // A web adapter's one error class is the one it hands its framework,
+      // and only the adapter constructs it.
+      ...[
+        '@nexusdi/express',
+        '@nexusdi/fastify',
+        '@nexusdi/hono',
+        '@nexusdi/react-router',
+      ].map((name): [string, string] => [
+        name,
+        'NexusHttpError carries no code: its cause is the NexusDI error, whose code has a page under /errors/.',
+      ]),
+    ]),
     allowance: JSON.parse(readFileSync(ALLOWANCE, 'utf8')) as Record<
       string,
       { unexercised: string[] }
