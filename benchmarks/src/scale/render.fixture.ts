@@ -253,6 +253,7 @@ export function fixtureTimings(): ScaleTimingsFile {
     design: {
       'fresh-process': { mixed: { ...design(10, 1000), heap: design(3, 30) } },
       'steady-get': design(100, 1000),
+      timingMode: 'timing-no-gc' as const,
     },
     results,
     growth,

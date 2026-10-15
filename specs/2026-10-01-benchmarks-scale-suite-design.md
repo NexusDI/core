@@ -587,10 +587,10 @@ fixed before the first dispatch run:
   the block's Williams row count (50 rows for 25 participants, so 300 and 400 already
   qualify).
 - The first run publishes at 1,000 rounds, fixed in advance. The rule applies once, from
-  that run's prefix table, by the tech lead, and the count it gives and the table are
-  recorded in this section. Later runs never change the count; a later change needs a
-  spec change with its own reason. `SCALE_MINIMUM_ROUNDS` keeps `mixed` at 1,000 until the
-  decision is recorded.
+  that run's prefix table, and the count it gives and the table are recorded in this
+  section with a change to `SCALE_MINIMUM_ROUNDS`. If no prefix meets 2%, the count stays
+  at 1,000. Later runs never change the count; a later change needs a spec change with its
+  own reason. `SCALE_MINIMUM_ROUNDS` keeps `mixed` at 1,000 until that change.
 - The other shapes stay at 200 rounds with a 10% target, reported and not used to change
   their count. `heap-ready` keeps its 30 measured rounds.
 
@@ -762,8 +762,11 @@ interface BlockRunner extends Runner {
 `schema.ts` gains `Shape`, the two kinds `'scale'` and `'scale-timings'`, their
 validators, and `minimums('scale-timings')`: `fresh-process.mixed` at least 1,000
 measured, the other shapes at least 200, each shape's `heap` design at least 30, and
-`steady-get` at least 1,000. A file whose `protocolCheck.timingStands` is false is not
-valid under `results/`. `writeResult`'s `kind` union gains `'scale'`.
+`steady-get` at least 1,000. `design.timingMode` records the child mode of the timing blocks. Under `results/`, `validate`
+recomputes each protocol double's `pass` from its ratio, then `timingStands` and
+`gcBeforeCreate` from those, and refuses a stored value that differs. It also refuses a
+file whose `timingStands` is false, and one whose `gcBeforeCreate` is `drop` while
+`timingMode` is `timing`. `writeResult`'s `kind` union gains `'scale'`.
 
 `results`, `growth` and `marginal` hold entries for passing cells only, and a growth entry
 joins two neighbours in `SIZES`. Under `results/`, every NexusDI `plain` cell passes, and
@@ -772,7 +775,7 @@ a competitor cell that does not pass is `not-applicable`, or a `runtime-error` o
 
 One job writes one part (`results/scale-parts/<part>.json` and its raw samples), and
 `timings.ts --merge` writes the file. The merge refuses unless every part has the same
-`sha`, `seed`, `graphSeed`, `coreRef` and `versions`, the SHA-256 of the `scale.json` each
+`sha`, `seed`, `graphSeed`, `coreRef`, `versions` and `timingMode`, the SHA-256 of the `scale.json` each
 validated against equals the merge job's copy, the graph hashes match `scale.json`, every
 shape and the steady part appear once, the steady part judged each `mixed` cell as the
 `mixed` part did, and the SHA-256 of each `mixed` bundle the steady part timed equals the
@@ -866,7 +869,7 @@ skipped and recorded in `cells` with its outcome (section 14).
 
 ### 10.2 Schedule, dispatch and tags
 
-A `scale` matrix job runs beside `timings` with the same trigger and steps
+A `scale` matrix job runs beside `timings` with the same steps
 (`release-core.ts`, then `node benchmarks/src/scale/timings.ts --part=<part>
 --seed=${{ github.run_id }}`): one job per shape (`mixed`, `wide`, `deep`, `modular`,
 `mixed-async`) and one for the steady get-cycle. Each part keeps every library and every
@@ -877,8 +880,13 @@ pool two CPUs into one median. Each part builds only its own cells, writes its p
 raw samples, and uploads `scale-timings-<part>`. Every part records its block's runner
 image, CPU and kernel, and the rendered caption of a shape names its CPU.
 
+The `scale` job runs on a manual dispatch only: a core tag would otherwise publish timings
+before the protocol check of section 7.4 has passed. A one-line follow-up widens the
+trigger to every non-pull-request event once the first dispatch run has passed. `merge`
+runs when `scale` is skipped, to merge the other results, and not when it failed.
+
 The matrix runs with `fail-fast: true`, and `merge` needs `scale`, so a partial file is
-never published. `merge` downloads `scale-timings-*` into `results/scale-parts`, runs
+never published. When `scale` succeeded, `merge` downloads `scale-timings-*` into `results/scale-parts`, runs
 `timings.ts --merge` (section 8.2) and then `render.ts`. `open-results-pr.ts` adds
 `benchmarks/results/scale`, `scale.md` and the two SVGs to the commit and one line naming
 the scale file to the body; `scale.json` arrives with the deterministic artifact.

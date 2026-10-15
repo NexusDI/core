@@ -44,6 +44,8 @@ export interface ScalePart {
   graphSeed: number;
   /** SHA-256 of the scale.json the job validated against. */
   scaleSha256: string;
+  /** The child mode the part's timing block ran in. */
+  timingMode: ScaleTimingsFile['design']['timingMode'];
   coreRef: ScaleTimingsFile['coreRef'];
   graphs: ScaleTimingsFile['graphs'];
   cells: ScaleCell[];
@@ -86,6 +88,7 @@ const SHARED = [
   'coreRef',
   'versions',
   'scaleSha256',
+  'timingMode',
 ] as const;
 
 export function mergeParts(
@@ -218,7 +221,11 @@ export function mergeParts(
           SHAPES.indexOf(a.shape) - SHAPES.indexOf(b.shape) ||
           a.size - b.size,
       ),
-    design: { 'fresh-process': freshProcess, 'steady-get': steadyDesign },
+    design: {
+      'fresh-process': freshProcess,
+      'steady-get': steadyDesign,
+      timingMode: first.timingMode,
+    },
     results: ordered.flatMap((p) => p.results),
     growth: ordered.flatMap((p) => p.growth),
     marginal: ordered.flatMap((p) => p.marginal),

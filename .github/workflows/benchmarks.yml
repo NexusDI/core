@@ -214,10 +214,13 @@ jobs:
   # for the steady get-cycle, each keeping every library and size on one
   # machine. fail-fast cancels the rest when one fails, and merge needs every
   # part, so a partial file is never published. Timeouts follow the estimates
-  # of section 10.2.
+  # of section 10.2. It runs on a manual dispatch only: a core tag would
+  # otherwise publish timings before the protocol check of section 7.4 has
+  # passed. A one-line follow-up widens the trigger to
+  # `github.event_name != 'pull_request'` after the first dispatch passes.
   scale:
     name: scale-${{ matrix.part }}
-    if: github.event_name != 'pull_request'
+    if: github.event_name == 'workflow_dispatch'
     needs: deterministic
     runs-on: ubuntu-24.04
     timeout-minutes: ${{ matrix.timeout }}
@@ -265,6 +268,8 @@ jobs:
   # npm ci and repository scripts. The results job only commits and pushes.
   merge:
     needs: [deterministic, build-meridian-8, build-scale-200, timings, scale]
+    # scale is skipped on a tag run, which still merges the other results.
+    if: ${{ !cancelled() && needs.deterministic.result == 'success' && needs.build-meridian-8.result == 'success' && needs.build-scale-200.result == 'success' && needs.timings.result == 'success' && needs.scale.result != 'failure' }}
     runs-on: ubuntu-24.04
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
@@ -298,13 +303,15 @@ jobs:
         with:
           name: timings
           path: benchmarks/results
-      - uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # v8.0.1
+      - if: ${{ needs.scale.result == 'success' }}
+        uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # v8.0.1
         with:
           pattern: scale-timings-*
           merge-multiple: true
           path: benchmarks/results/scale-parts
       - run: node benchmarks/src/build.ts --merge benchmarks/tmp/build-meridian-8.json benchmarks/tmp/build-scale-200.json
-      - run: node benchmarks/src/scale/timings.ts --merge
+      - if: ${{ needs.scale.result == 'success' }}
+        run: node benchmarks/src/scale/timings.ts --merge
       - run: node benchmarks/src/scale/render.ts
       - uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
         with:

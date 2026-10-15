@@ -31,12 +31,14 @@ const pkg = JSON.parse(
     >;
   };
 };
-const workflow = parse(
-  readFileSync(
-    join(BENCHMARKS, '..', '.github', 'workflows', 'benchmarks.yml'),
-    'utf8',
-  ),
-) as {
+const WORKFLOW = join(
+  BENCHMARKS,
+  '..',
+  '.github',
+  'workflows',
+  'benchmarks.yml',
+);
+const workflow = parse(readFileSync(WORKFLOW, 'utf8')) as {
   jobs: Record<
     string,
     {
@@ -51,6 +53,7 @@ const workflow = parse(
       steps: Array<{
         name?: string;
         run?: string;
+        if?: string;
         uses?: string;
         with?: {
           name?: string;
@@ -126,8 +129,13 @@ describe('benchmarks.yml (scale spec 10.2)', () => {
   it('cancels the rest when one part fails, so a partial file is never published', () => {
     expect(scale?.strategy?.['fail-fast']).toBe(true);
   });
-  it('runs on the same trigger and after the same steps as the timings job', () => {
-    expect(scale?.if).toBe(jobs.timings?.if);
+  it('runs on a manual dispatch only, until the first protocol check has passed', () => {
+    expect(scale?.if).toBe("github.event_name == 'workflow_dispatch'");
+    expect(readFileSync(WORKFLOW, 'utf8')).toMatch(
+      /one-line follow-up widens the trigger/,
+    );
+  });
+  it('runs after the same steps as the timings job', () => {
     expect(scale?.needs).toBe(jobs.timings?.needs);
     expect(
       (scale?.steps ?? []).flatMap((s) => (s.run === undefined ? [] : [s.run])),
@@ -165,6 +173,22 @@ describe('benchmarks.yml (scale spec 10.2)', () => {
     expect(workflow.on.workflow_dispatch?.inputs?.protocol_check?.type).toBe(
       'boolean',
     );
+  });
+  it('merges when scale is skipped, and not when it failed', () => {
+    expect(jobs.merge?.if).toBe(
+      "${{ !cancelled() && needs.deterministic.result == 'success' && needs.build-meridian-8.result == 'success' && needs.build-scale-200.result == 'success' && needs.timings.result == 'success' && needs.scale.result != 'failure' }}",
+    );
+  });
+  it('downloads and merges the scale parts only when scale succeeded', () => {
+    const steps = jobs.merge?.steps ?? [];
+    const guarded = steps.filter(
+      (s) =>
+        s.with?.pattern === 'scale-timings-*' ||
+        s.run === 'node benchmarks/src/scale/timings.ts --merge',
+    );
+    expect(guarded).toHaveLength(2);
+    for (const s of guarded)
+      expect(s.if).toBe("${{ needs.scale.result == 'success' }}");
   });
   it('merges the scale parts as well as the jobs that finish', () => {
     expect(jobs.merge?.needs).toEqual([
