@@ -1,5 +1,5 @@
-import { accessSync, constants, statSync } from 'node:fs';
-import { dirname } from 'node:path';
+import { accessSync, constants, realpathSync, statSync } from 'node:fs';
+import { basename, dirname, join } from 'node:path';
 import { writeFile } from 'node:fs/promises';
 
 import { CliError } from './cli-error.js';
@@ -39,25 +39,32 @@ function identity(path: string): string | null {
 }
 
 /**
+ * Whether the volume holding `dir` finds it under another letter case. The
+ * check swaps the case of every letter in the path and compares device and
+ * inode; a path with no letters counts as case-sensitive.
+ */
+function caseInsensitive(dir: string): boolean {
+  const variant = dir.replace(/[a-z]/gi, (c) =>
+    c === c.toLowerCase() ? c.toUpperCase() : c.toLowerCase(),
+  );
+  return variant !== dir && identity(variant) === identity(dir);
+}
+
+/**
  * Throws CliError 2 before a run when two outputs name one file, or when an
  * output's directory does not exist or is not writable, so a bad path fails
  * at once and not after the startup it would have recorded. Each entry is a
- * flag and its absolute path, or null for an output not asked for.
+ * flag and its absolute path, or null for an output not asked for. Two paths
+ * name one file when their real directories and basenames match, compared
+ * without case on a case-insensitive volume.
  */
 export function checkOutputs(
   outputs: readonly (readonly [flag: string, out: string | null])[],
 ): void {
   const seen = new Map<string, string>();
+  let folds: boolean | undefined;
   for (const [flag, out] of outputs) {
     if (out === null) continue;
-    const other = seen.get(out);
-    if (other !== undefined)
-      throw new CliError(
-        2,
-        `${other} and ${flag} both write ${out}.`,
-        `Pass another ${flag} file.`,
-      );
-    seen.set(out, flag);
     const dir = dirname(out);
     const stat = statSync(dir, { throwIfNoEntry: false });
     if (stat === undefined || !stat.isDirectory())
@@ -75,6 +82,18 @@ export function checkOutputs(
         `Pass a ${flag} file in a directory you can write to.`,
       );
     }
+    const real = realpathSync(dir);
+    folds ??= caseInsensitive(real);
+    const path = join(real, basename(out));
+    const key = folds ? path.toLowerCase() : path;
+    const other = seen.get(key);
+    if (other !== undefined)
+      throw new CliError(
+        2,
+        `${other} and ${flag} both write ${out}.`,
+        `Pass another ${flag} file.`,
+      );
+    seen.set(key, flag);
   }
 }
 

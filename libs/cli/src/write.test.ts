@@ -1,10 +1,16 @@
-import { readFileSync, symlinkSync, writeFileSync } from 'node:fs';
+import {
+  existsSync,
+  mkdirSync,
+  readFileSync,
+  symlinkSync,
+  writeFileSync,
+} from 'node:fs';
 import { join } from 'node:path';
 import { describe, expect, it } from 'vitest';
 
 import { tempDir } from '../test-support/temp.js';
 import { parseEntryRef } from './entry.js';
-import { checkOut, emit, writeTo, type Output } from './write.js';
+import { checkOut, checkOutputs, emit, writeTo, type Output } from './write.js';
 
 function slowStream(): Output & { chunks: unknown[]; done: boolean } {
   const stream = {
@@ -117,5 +123,49 @@ describe('checkOut', () => {
     expect(() => checkOut(join(dir, 'graph.mmd'), [entry])).not.toThrow();
     expect(() => checkOut(join(dir, 'plugins.js'), [entry])).not.toThrow();
     expect(() => checkOut(null, [entry])).not.toThrow();
+  });
+});
+
+describe('checkOutputs', () => {
+  /** Whether the volume holding `dir` finds `dir` under another letter case. */
+  function caseInsensitive(dir: string): boolean {
+    const variant = dir.replace(/[a-z]/gi, (c) =>
+      c === c.toLowerCase() ? c.toUpperCase() : c.toLowerCase(),
+    );
+    return variant !== dir && existsSync(variant);
+  }
+
+  it('exits 2 when two outputs name one file through a linked directory', () => {
+    const dir = tempDir();
+    mkdirSync(join(dir, 'real'));
+    symlinkSync(join(dir, 'real'), join(dir, 'link'));
+    expect(() =>
+      checkOutputs([
+        ['--chrome', join(dir, 'real', 'x.json')],
+        ['--json', join(dir, 'link', 'x.json')],
+      ]),
+    ).toThrow(/^--chrome and --json both write /);
+  });
+
+  it('treats a case variant as the same file only on a case-insensitive volume', () => {
+    const dir = tempDir();
+    const outputs = [
+      ['--chrome', join(dir, 'trace.json')],
+      ['--json', join(dir, 'TRACE.json')],
+    ] as const;
+    if (caseInsensitive(dir))
+      expect(() => checkOutputs(outputs)).toThrow(/both write /);
+    else expect(() => checkOutputs(outputs)).not.toThrow();
+  });
+
+  it('allows two files in one directory', () => {
+    const dir = tempDir();
+    expect(() =>
+      checkOutputs([
+        ['--chrome', join(dir, 'a.json')],
+        ['--json', join(dir, 'b.json')],
+        ['--perfetto', null],
+      ]),
+    ).not.toThrow();
   });
 });
