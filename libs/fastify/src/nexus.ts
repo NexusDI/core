@@ -115,8 +115,8 @@ function stop(result: Stop, reply: FastifyReply): FastifyReply {
 
 type Core = ReturnType<typeof adapterCore>;
 
-/** The onRequest hook, exported for tests. Callback style, so scopes.run(scope, done) carries the scope. */
-export function requestHook(
+/** The onRequest hook. Callback style, so scopes.run(scope, done) carries the scope. */
+function requestHook(
   core: Core,
   options: NexusFastifyOptions,
   logOf: (req: FastifyRequest) => NexusLog,

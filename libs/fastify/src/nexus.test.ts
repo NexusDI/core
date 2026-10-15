@@ -1,6 +1,10 @@
 import { EventEmitter } from 'node:events';
 
-import Fastify, { type FastifyReply, type FastifyRequest } from 'fastify';
+import Fastify, {
+  type FastifyReply,
+  type FastifyRequest,
+  type onRequestHookHandler,
+} from 'fastify';
 import { describe, expect, it, vi } from 'vitest';
 
 import {
@@ -15,9 +19,7 @@ import {
 import { trace } from '@nexusdi/devtools';
 import { nodeScopes } from '@nexusdi/node';
 
-import { adapterCore, defaultLog } from './internal/request-scope.js';
-import { nexus } from './index.js';
-import { requestHook } from './nexus.js';
+import { nexus, type NexusFastify } from './index.js';
 
 interface Mission {
   id: string;
@@ -77,6 +79,24 @@ async function shipWithTrace() {
   return { ship, count };
 }
 
+/**
+ * The onRequest hook `di.encapsulatedPlugin` registers, read off a stand-in
+ * Fastify instance, so a case can call it on a request whose client has
+ * already gone, which a live server never hands a route.
+ */
+async function onRequestOf(di: NexusFastify): Promise<onRequestHookHandler> {
+  let hook: onRequestHookHandler | undefined;
+  const fastify = {
+    decorateRequest: vi.fn(),
+    addHook: (name: string, handler: onRequestHookHandler) => {
+      if (name === 'onRequest') hook = handler;
+    },
+  };
+  await di.encapsulatedPlugin.call(undefined as never, fastify as never, {});
+  if (hook === undefined) throw new Error('the plugin added no onRequest hook');
+  return hook;
+}
+
 describe('nexus', () => {
   describe('the plugin', () => {
     it('resolves typed deps per request and disposes the scope after the reply', async () => {
@@ -118,11 +138,7 @@ describe('nexus', () => {
     it('calls done() and creates nothing when the client left before the hook ran', async () => {
       const { ship, count } = await shipWithTrace();
       const request = vi.fn(mapping);
-      const hook = requestHook(
-        adapterCore(ship, {}, '@nexusdi/fastify'),
-        { request },
-        () => defaultLog,
-      );
+      const hook = await onRequestOf(nexus(ship, { request }));
       const raw = Object.assign(new EventEmitter(), { closed: true });
       const req = {
         nexus: null,
@@ -146,11 +162,7 @@ describe('nexus', () => {
       const { ship, count } = await shipWithTrace();
       const log = vi.fn();
       const di = nexus(ship, { request: mapping, log });
-      const hook = requestHook(
-        adapterCore(ship, {}, '@nexusdi/fastify'),
-        { request: mapping },
-        () => log,
-      );
+      const hook = await onRequestOf(di);
       const raw = Object.assign(new EventEmitter(), {
         closed: true,
         writableEnded: false,
@@ -384,11 +396,7 @@ describe('nexus', () => {
       const { ship, count } = await shipWithTrace();
       const log = vi.fn();
       const di = nexus(ship, { request: mapping, log });
-      const hook = requestHook(
-        adapterCore(ship, {}, '@nexusdi/fastify'),
-        { request: mapping },
-        () => log,
-      );
+      const hook = await onRequestOf(di);
       const raw = Object.assign(new EventEmitter(), {
         closed: false,
         writableEnded: false,
