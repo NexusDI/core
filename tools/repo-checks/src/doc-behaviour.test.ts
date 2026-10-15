@@ -40,7 +40,8 @@ import { whiteBoxNames } from './docs/white-box';
  * `@nexusdi/doc-examples/package-exports`, the list `docs:behaviour-data`
  * writes its sidecars from. The rule and the page read the same two lists.
  * `testFilesOf` leaves out `libs/core/src/security`, whose titles are register
- * identifiers, and the browser suites, so neither satisfies the rule.
+ * identifiers, and the suites a target of their own runs, so neither satisfies
+ * the rule.
  *
  * It also asks that two export names never stack. A `describe` naming an
  * export inside a `describe` naming another one puts the inner export's

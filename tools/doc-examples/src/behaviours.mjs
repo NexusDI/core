@@ -1,4 +1,4 @@
-import { readFileSync } from 'node:fs';
+import { readFileSync, readdirSync } from 'node:fs';
 import { join } from 'node:path';
 
 import ts from 'typescript';
@@ -29,18 +29,27 @@ import { filesUnder } from './files-under.mjs';
 const TEST_FILE = /\.(test|spec)\.tsx?$/;
 
 /**
- * A browser suite, which runs under `test-browser` and never under `test`.
- * Each one is a regression case that names no export, and its cases never
- * reach the report `doc-behaviour-run.test.ts` holds the data against.
+ * The suites a package runs under a target of their own, and never under
+ * `test`: each has a `vitest.<suite>.config.ts` at the package root, which
+ * includes the `*.<suite>.test.ts` files under `src`, and the package's
+ * `vite.config.ts` leaves those files out (`browser` in core, `trace` in
+ * devtools, `e2e` in react). Their cases never reach the report
+ * `doc-behaviour-run.test.ts` holds the data against.
  */
-const BROWSER_FILE = /\.browser\.test\.tsx?$/;
+const OWN_TARGET_CONFIG = /^vitest\.([\w-]+)\.config\.[cm]?[jt]s$/;
+
+function ownTargetSuites(packageRoot) {
+  return readdirSync(packageRoot)
+    .map((name) => OWN_TARGET_CONFIG.exec(name)?.[1])
+    .filter((suite) => suite !== undefined);
+}
 
 /** Where the adversarial suite lives, relative to a package root. */
 const SECURITY = join('src', 'security');
 
 /**
  * Every test source under a package, with the adversarial suite and the
- * browser suites left out.
+ * suites of a target of their own left out.
  *
  * `libs/core/src/security` names its blocks after register entries,
  * `SEC-201 metadata is trusted input (CWE-345)`, and `register.test.ts` holds
@@ -51,9 +60,13 @@ const SECURITY = join('src', 'security');
  */
 export function testFilesOf(packageRoot) {
   const security = join(packageRoot, SECURITY);
+  const ownTarget = ownTargetSuites(packageRoot).map(
+    (suite) => `.${suite}.test.`,
+  );
   return filesUnder(
     join(packageRoot, 'src'),
-    (name) => TEST_FILE.test(name) && !BROWSER_FILE.test(name),
+    (name) =>
+      TEST_FILE.test(name) && !ownTarget.some((infix) => name.includes(infix)),
     (dir) => dir === security,
   );
 }
@@ -67,6 +80,12 @@ const UNRUN = new Set(['skip', 'todo']);
 
 /** Modifiers that mean the title is computed per row, with no literal. */
 const SEEDED = new Set(['each', 'for']);
+
+/**
+ * Vitest's fixture calls on `test`: `test.override('nexusRequest', …)` sets a
+ * fixture for the cases around it, and runs nothing itself.
+ */
+const FIXTURE_CALLS = new Set(['extend', 'override', 'scoped']);
 
 /**
  * What a call is, for a call that runs something.
@@ -101,6 +120,7 @@ function runnerOf(node) {
 
   const name = current.text;
   if (!SUITES.has(name) && !CASES.has(name)) return null;
+  if (modifiers.some((each) => FIXTURE_CALLS.has(each))) return null;
 
   return {
     suite: SUITES.has(name),

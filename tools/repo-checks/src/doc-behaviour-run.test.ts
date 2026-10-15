@@ -261,7 +261,7 @@ describe('the sentences a reference entry would carry', () => {
   });
 
   it('finds a data file for every released library', () => {
-    expect(libraries.map((each) => each.directory)).toEqual(
+    expect(libraries.map((each) => each.directory).sort()).toEqual(
       released.map((each) => each.dir).sort(),
     );
     expect(libraries.map((each) => each.behaviours.package)).toContain(
@@ -269,16 +269,30 @@ describe('the sentences a reference entry would carry', () => {
     );
   });
 
-  it('reads no browser suite, which the `test` target leaves out', () => {
-    // `*.browser.test.ts` runs under `test-browser`, so its cases never reach
-    // the report this file reads, and each one is a regression case that
-    // names no export.
+  it('reads no suite that runs under a target of its own', () => {
+    // A `vitest.<suite>.config.ts` runs `*.<suite>.test.ts` under its own
+    // target (`test-browser`, `test-trace`, `test-e2e`), so those cases never
+    // reach the report this file reads.
     for (const each of released) {
-      const files = behavioursOf(join(workspaceRoot, each.root)).files;
-      expect(files.filter((path) => path.endsWith('.browser.test.ts'))).toEqual(
-        [],
-      );
+      const root = join(workspaceRoot, each.root);
+      const suites = readdirSync(root)
+        .map((name) => /^vitest\.([\w-]+)\.config\./.exec(name)?.[1])
+        .filter((suite): suite is string => suite !== undefined);
+      const files = behavioursOf(root).files;
+      for (const suite of suites)
+        expect(
+          files.filter((path) => path.includes(`.${suite}.test.`)),
+        ).toEqual([]);
     }
+  });
+
+  it('records no fixture call on `test` as a case', () => {
+    const chains = behavioursOf(join(workspaceRoot, 'libs/vitest')).chains.map(
+      ({ chain }) => chain.join(' > '),
+    );
+    expect(
+      chains.filter((chain) => /nexusRequest$|nexusSetup$/.test(chain)),
+    ).toEqual([]);
   });
 
   it.each(libraries)(
