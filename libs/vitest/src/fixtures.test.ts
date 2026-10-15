@@ -10,7 +10,7 @@ import {
 } from '@nexusdi/core';
 import { trace } from '@nexusdi/devtools';
 
-import { nexusTest } from './index.js';
+import { nexusFixtures, nexusTest } from './index.js';
 
 interface Mission {
   id: string;
@@ -133,5 +133,28 @@ describe('containerScope: file', () => {
   });
   fileTest('shares it with the next test in the file', ({ nexus }) => {
     expect(nexus).toBe(first);
+  });
+});
+
+const extended = base.extend(
+  nexusFixtures(Meridian, {
+    setup: (builder) => builder.override(NAV_CHARTS, { useValue: fakeCharts }),
+  }),
+);
+
+describe('nexusFixtures', () => {
+  extended('gives test.extend a container with the setup', ({ nexus }) => {
+    expect(nexus.get(NAV_CHARTS).plot('Kepler-442b').heading).toBe(42);
+  });
+
+  describe('with a request', () => {
+    extended.override('nexusRequest', survey);
+
+    extended(
+      'gives test.extend a scope of that container',
+      ({ nexusScope }) => {
+        expect(nexusScope.get(MISSION)).toEqual(survey.mission);
+      },
+    );
   });
 });

@@ -1,0 +1,34 @@
+---
+title: NEXUS_REACT_NESTED_SCOPE
+kind: code
+description: A ScopeProvider rendered under another scope after hydration, and NexusDI 0.4 scopes do not nest.
+package: '@nexusdi/react'
+errorClass: NestedScopeError
+---
+
+# NEXUS_REACT_NESTED_SCOPE
+
+`ScopeProvider` from `@nexusdi/react` throws `NEXUS_REACT_NESTED_SCOPE` in a browser render when its context already holds a scope: an outer `ScopeProvider`, or a `NexusProvider` given `scope`. Core 0.4 scopes do not nest, and the package refuses both silent choices. Reusing the outer scope would give the inner subtree the outer subtree's scoped instances, and a new scope beside it would hide them. On the server and during hydration a `ScopeProvider` renders its `fallback`, so a React Router server render whose `NexusProvider` carries the request scope never throws it.
+
+## Reproduce `NEXUS_REACT_NESTED_SCOPE`
+
+The region renders a `ScopeProvider` inside another one, under an error boundary that keeps the error:
+
+```ts file=libs/react/docs/errors.md region=nested-reproduce
+
+```
+
+The error has no fields beyond its code.
+
+## Fix `NEXUS_REACT_NESTED_SCOPE`
+
+Move the inner `ScopeProvider` beside the outer one, so each holds a scope of its own:
+
+```ts file=libs/react/docs/errors.md region=nested-fix
+
+```
+
+## Fields of `NestedScopeError`
+
+- `code`: `'NEXUS_REACT_NESTED_SCOPE'`.
+- No other field.

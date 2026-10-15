@@ -1,0 +1,99 @@
+---
+title: Rendering React Router on the Server
+kind: platform
+description: Give every React Router request a NexusDI scope from the root middleware, resolve loader dependencies with di.inject, and render components with the request scope.
+---
+
+# Rendering React Router on the Server
+
+A React Router app that renders on the server runs loaders, actions and components for each request, and the request-scoped services they share need one scope per request. The scope has to stay open after the loaders return, because React Router streams deferred data and the rendered HTML after that. It has to end when the response body ends or the client leaves.
+
+`@nexusdi/react-router` gives each request that scope from one root middleware, and disposes it once, when the body stream ends, errors or is cancelled, or when `request.signal` aborts. Loaders and actions resolve typed dependencies with `di.inject`, and the server entry hands the same scope to the components through `NexusProvider` from `@nexusdi/react`. [Scopes and the REQUEST Token](/scopes/) covers scopes, and [Using Services in React Components](/react/) covers the components.
+
+The examples on this page call the middleware and the loaders the way React Router calls them, with no server, and `examples/react-ssr` is a full app wired the same way. The unit they demonstrate is a running server, so this page has no ship console.
+
+## Install
+
+The adapter installs beside core from the `next` tag, because 0.4 is a release candidate and the adapter pins the exact core release candidate:
+
+```bash
+npm install @nexusdi/react-router@next @nexusdi/core@next react-router
+```
+
+It works with React Router 8 on Node 22.22 or later, and with React Router 7.9 or later on Node 22.12 or later when `future.v8_middleware` is `true` in `react-router.config.ts`. It needs TypeScript 5.4 or later.
+
+## Create the Scope in the Root Middleware
+
+`app/nexus.server.ts` builds the server container and calls `nexus(ship, { request })`, which maps React Router's `request` and `params` to your `NexusRequest`. `app/root.tsx` exports `middleware = [di.middleware]`, so every document request, `.data` request and resource route passes through it:
+
+```ts file=examples/meridian/src/pages/react-router-ssr.md region=loader
+
+```
+
+The `request` option reads `x-mission-id` into the scope's `MISSION`, and the loader records the entry in the scoped `FLIGHT_LOG`, under that mission. A loader that `di.inject` wraps resolves its record from the request's scope, which the adapter creates on the first loader that asks. Loaders of one navigation start together and share that one scope. `request.mission` type-checks once your app augments `NexusRequest`, as [Scoping Node.js HTTP Requests](/node-request-scopes/) shows.
+
+In the dev server, `nexus.server.ts` also disposes the container when Vite replaces the module, with `import.meta.hot?.dispose(() => ship[Symbol.asyncDispose]())`. Without it, each edit leaks a container. To see the scope's source, call `loader({ params, context })` without the middleware: it throws `[@nexusdi/react-router] no scope on this request: register di.middleware before this route`.
+
+## Hand the Scope to the Server Render
+
+`app/entry.server.tsx` reads the scope from the router context with `loadContext.get(NEXUS_SCOPE)?.scope()` and passes it to `NexusProvider` as `scope`, so a component that calls `useService` during the server render reads the request's scoped services. In React Router's `handleRequest(request, status, headers, routerContext, loadContext)`, with `ship` from `nexus.server.ts`, `NEXUS_SCOPE` from `@nexusdi/react-router`, `renderToPipeableStream` from `react-dom/server`, `ServerRouter` from `react-router`, and `options` the stream options of React Router's default `entry.server.tsx`:
+
+```tsx no-run
+const scope = await loadContext.get(NEXUS_SCOPE)?.scope();
+const { pipe } = renderToPipeableStream(
+  <NexusProvider container={ship} scope={scope}>
+    <ServerRouter context={routerContext} url={request.url} />
+  </NexusProvider>,
+  options,
+);
+```
+
+React Router renders a request that no route matches without the root middleware, so on a 404 `loadContext.get(NEXUS_SCOPE)` returns `null`, and the page renders with the container and no scope. `app/entry.client.tsx` awaits the browser's own container, built in `app/ship.client.ts`, before `hydrateRoot`, so the hydration render reads services at once and matches the server HTML. Bind every token a component reads in render in both containers, the server's and the client's.
+
+## Load a Section on Its First Request
+
+A route whose section is a module of its own registers `di.load(Navigation)` as route middleware, in front of its loaders, and writes those loaders with the middleware's `inject`. In the simple form, the section imports the same module object the root imports, here `Tactical`:
+
+```ts file=examples/meridian/src/pages/react-router-ssr.md region=lazy-shell
+
+```
+
+`Navigation` imports `Tactical`, and `load()` finds that module object already in the graph, so the section reads the root's `NAV_CHARTS`. A loaded module sees only what it imports. `examples/react-ssr` picks its charts module at runtime, the relay or the bundled table, so it builds the section with `navigation(charts)` over the module object the root holds:
+
+```ts file=examples/meridian/src/pages/react-router-ssr.md region=lazy-runtime
+
+```
+
+`load()` shares a module already in the graph only when the section imports that same object, so the charts download once. A `navigation()` built over a second `tactical(...)` call would get a second charts module of its own.
+
+## Test a Loader with a Scope It Owns
+
+A loader test puts a scope it owns into the router context with `existingScope(scope)`, under `NEXUS_SCOPE`, and calls the loader with that context:
+
+```ts file=examples/meridian/src/pages/react-router-ssr.md region=route-test
+
+```
+
+`existingScope(scope)` disposes nothing, so the test disposes the scope itself. A route test that renders the route with `createRoutesStub` passes `new RouterContextProvider(new Map([[NEXUS_SCOPE, existingScope(scope)]]))` as its second argument, and gives each stub route a `HydrateFallback`, because React Router renders it while the loader runs. The test of a route that loads a section replaces `nexus.server.ts` with `vi.mock` over a testing container, because `nexus.server.ts` builds its container at import, as `examples/react-ssr/tests/routes/sectors.spec.tsx` does.
+
+## When the Scope Is Disposed
+
+The adapter wraps the response body and disposes the scope when the body stream ends, errors or is cancelled, or when `request.signal` aborts. A deferred value that an `<Await>` renders streams inside that body, so it reads the scope before disposal. A response with no body, a `HEAD` request and a 204 or 304 dispose as soon as the middleware chain returns.
+
+## Errors
+
+The adapter catches a NexusDI error from creating the scope or resolving a record, and logs it once through `log`. It then throws a `Response` whose body is the status text: 500, or 503 while the container shuts down:
+
+```ts file=examples/meridian/src/pages/react-router-ssr.md region=errors
+
+```
+
+React Router renders the nearest error boundary with that status, and `isRouteErrorResponse(error)` reads `error.statusText` there. React Router never passes a thrown `Response` to `handleError`, so the adapter's `log` option writes the only line. Pass `log` to send it to your own logger.
+
+## Ambient Scope
+
+`nodeScopes()` from `@nexusdi/node` gives code deep in a service the request's scope without a parameter. Pass it as the `scopes` option, and the root middleware runs the rest of the request inside it, so `scopes.current()` returns the request's scope in loaders and the services they call. With `scopes` set, the middleware creates the scope at once. [Scoping Node.js HTTP Requests](/node-request-scopes/) explains how `nodeScopes()` keeps concurrent requests apart.
+
+## Next Steps
+
+[Using Services in React Components](/react/) shows `NexusProvider`, `useService` and `ScopeProvider` in the components these routes render.

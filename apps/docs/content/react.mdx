@@ -1,0 +1,119 @@
+---
+title: Using Services in React Components
+kind: platform
+description: Publish a NexusDI container to React components with NexusProvider, read services with useService, and give a subtree its own scope or a lazily loaded section.
+---
+
+# Using Services in React Components
+
+A React component that reads services needs a container from somewhere, and passing it through props couples every component in between to it. Request-scoped state, such as one flight log per open console, also needs a scope that lives exactly as long as the part of the page that uses it.
+
+`@nexusdi/react` publishes the container your app created through `NexusProvider`, and components read services with `useService`. `ScopeProvider` gives a subtree a scope of its own, and `SectionBoundary` loads a code-split module into the container on first render. [Scopes and the REQUEST Token](/scopes/) covers scopes.
+
+The server-side examples on this page render with `react-dom/server` on Node, and the browser-side ones run in jsdom. For a single-team app with a few services, React context alone is enough.
+
+## Install
+
+The package installs beside core from the `next` tag:
+
+```bash
+npm install @nexusdi/react@next @nexusdi/core@next react
+```
+
+It works with React 19.0 or later, on Node 22.12 or later with TypeScript 5.4 or later.
+
+## Publish the Container with `NexusProvider`
+
+`NexusProvider` takes the container as `container`, and every component below it reads services with `useService(TOKEN)`, which returns the type the token carries:
+
+```ts file=examples/meridian/src/pages/react.md region=provider
+
+```
+
+`container` takes three forms:
+
+- A `Nexus`, rendered at once.
+- A `Promise<Nexus>`, which the provider passes to React's `use()`, so it suspends to the nearest `<Suspense>` until `Nexus.create` settles. Create the promise once, at module level.
+- `null`, which renders `fallback`.
+
+```ts file=examples/meridian/src/pages/react.md region=promise
+
+```
+
+The provider disposes a container only when you set `dispose`, because the code that called `Nexus.create` owns it. With `dispose`, the provider disposes a container when it stops rendering it, after a swap or on unmount. `clientOnly` renders `fallback` on the server and during hydration, for a framework such as Next.js whose client components also render on the server. `useContainer()` returns the root container, for code that calls `load()` or `createScope()` in an effect or an event handler. A `load()` you call yourself leaves each `ScopeProvider`'s scope as it was, so load through a `SectionBoundary`, which extends them, or call `extend()` on the scopes you made with `createScope()`.
+
+## Catch Transients in Render with `react()`
+
+A `transient` provider builds a new instance on every `get()`, so a component that reads one in render builds one per render. `react()` from `@nexusdi/react` is a plugin that makes `useService` refuse such a token with `NEXUS_REACT_TRANSIENT_IN_RENDER`:
+
+```ts file=examples/meridian/src/pages/react.md region=transient
+
+```
+
+Register `react()` in development and tests behind your own flag, such as `import.meta.env.DEV`. `react()` checks wherever you register it, and without it the check does not run. To see the switch, save the region as `transient.ts` and run `npx tsx transient.ts`. Set `dev` to `false` and run it again: `renderToString` returns `<p>scout</p>`, and `refused` stays `''`.
+
+## Give a Subtree Its Own Scope with `ScopeProvider`
+
+`ScopeProvider` creates a scope after it mounts in the browser, renders its children under it, and disposes the scope on unmount. Its `request` prop is the `NexusRequest` the scope's `REQUEST` resolves to. On the server and during hydration it renders `fallback`, so a scoped subtree has no server HTML:
+
+```ts file=examples/meridian/src/pages/react.md region=scope-fallback
+
+```
+
+`request` is read once, when the scope is created. To get a new scope for new request data, remount the provider with a `key`:
+
+```ts file=libs/react/docs/guide.md region=scope-key
+
+```
+
+Core 0.4 scopes do not nest, so a `ScopeProvider` under another scope, or under a `NexusProvider` given `scope` (the request scope a server render passes), throws `NEXUS_REACT_NESTED_SCOPE` after hydration. Inside a hidden `<Activity>` (React 19.2 and later), React runs the effect cleanups, so the scope is disposed and its state ends. Move the `ScopeProvider` above the `Activity` to keep it.
+
+## Load a Section with `SectionBoundary`
+
+`lazySection(name, loader)` declares a code-split module at module level, and `SectionBoundary` loads it into the container on its first browser render, then renders its children. The load runs once per container and section name, and on the server and during hydration the boundary renders `fallback`:
+
+```ts file=examples/meridian/src/pages/react.md region=section-fallback
+
+```
+
+On a load failure, the boundary calls `onError` once and renders `errorFallback` with `error` and `retry`:
+
+```ts file=libs/react/docs/guide.md region=section-retry
+
+```
+
+`retry()` runs the loader again. It helps with a failed import, and it repeats a `BlueprintError` until the section or the app's own modules change. Without `errorFallback`, the boundary rethrows the error to your own error boundary. Two `lazySection` calls with one name and different modules fail with `NEXUS_REACT_SECTION_CONFLICT`. An edit to a section's module file in development reloads the page once, and a second edit of that module within 10 seconds of the reload shows the conflict error.
+
+Unmounting a boundary leaves the module loaded, because core 0.4 has no unload. Keep what should end with the section, such as a live socket, `scoped` under a `ScopeProvider` inside the boundary.
+
+## Swap the Container under Vite HMR
+
+An edit to a service file evaluates `ship.ts` again, which creates a new container. In `src/main.tsx`, `shipReady` is the `Nexus.create` promise `ship.ts` exports, `App` is your root component and `root` comes from `createRoot`. The entry accepts `ship.ts` and renders the provider with the new container, and the provider disposes the old one:
+
+```tsx no-run
+// src/main.tsx
+const app = (ship: Nexus) => (
+  <NexusProvider container={ship} dispose>
+    <App />
+  </NexusProvider>
+);
+root.render(app(await shipReady));
+import.meta.hot?.accept('./ship', async (next) => {
+  if (next) root.render(app(await next.shipReady));
+});
+```
+
+Set `dispose` on the provider, because without it each edit leaks a container. An edit to a file that declares tokens, such as `contracts.ts`, creates new `Token` objects that the running graph does not know. Make that file reload the page in full:
+
+```ts no-run
+// contracts.ts
+import.meta.hot?.accept(() => location.reload());
+```
+
+## Tell the Errors Apart on the Server
+
+The package's entry starts with `'use client'`, so a server module that imports `NoProviderError` gets a client reference, and `instanceof` fails. Server code checks the code with `isNexusError(error, 'NEXUS_REACT_NO_PROVIDER')` from `@nexusdi/core`.
+
+## Next Steps
+
+[Rendering React Router on the Server](/react-router-ssr/) passes each request's scope to `NexusProvider` during the server render.

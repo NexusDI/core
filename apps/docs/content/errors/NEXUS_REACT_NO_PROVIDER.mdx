@@ -1,0 +1,38 @@
+---
+title: NEXUS_REACT_NO_PROVIDER
+kind: code
+description: A NexusDI hook or component rendered outside a NexusProvider, so it has no container to read.
+package: '@nexusdi/react'
+errorClass: NoProviderError
+---
+
+# NEXUS_REACT_NO_PROVIDER
+
+`useService`, `useContainer`, `ScopeProvider` and `SectionBoundary` from `@nexusdi/react` read the container from the nearest `NexusProvider`. When one of them renders with no `NexusProvider` above it, it throws `NEXUS_REACT_NO_PROVIDER` during render, and React passes the error to the nearest error boundary. The usual cause is a test or a story that renders a component alone, or a second React root, mounted with its own `createRoot`, that the provider does not wrap. The package writes the error's full text itself, so the message is complete without the `errors()` plugin, and React receives it unwrapped.
+
+## Reproduce `NEXUS_REACT_NO_PROVIDER`
+
+The region renders a component that calls `useService` with no provider above it:
+
+```ts file=examples/meridian/src/errors/NEXUS_REACT_NO_PROVIDER.md region=reproduce
+
+```
+
+The error's `hook` field names the hook that found no provider, here `useService`.
+
+## Fix `NEXUS_REACT_NO_PROVIDER`
+
+Wrap the tree in `NexusProvider` with your container. In a test, wrap the component the same way, with a container from `createTestingContainer`:
+
+```ts file=examples/meridian/src/errors/NEXUS_REACT_NO_PROVIDER.md region=fix
+
+```
+
+A portal created with `createPortal` stays inside the provider's tree. A separate root does not, so give it its own `NexusProvider` over the same container.
+
+## Fields of `NoProviderError`
+
+- `code`: `'NEXUS_REACT_NO_PROVIDER'`.
+- `hook`: the hook or component that found no provider, such as `'useService'`.
+
+Server code checks the code with `isNexusError(error, 'NEXUS_REACT_NO_PROVIDER')`, because the package's `'use client'` entry gives a server module a client reference in place of the class.
