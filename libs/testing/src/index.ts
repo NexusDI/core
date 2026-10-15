@@ -31,11 +31,16 @@ import { testingPlugin } from './plugin.js';
 
 export { OverrideError } from './override-error.js';
 
+/**
+ * The options `create()` takes: every option of `Nexus.create`, plus `onInit`.
+ * The testing plugin goes ahead of the plugins listed here.
+ */
 export interface TestingCreateOptions extends CreateOptions {
   /** Run onInit during create. Defaults to true. */
   readonly onInit?: boolean;
 }
 
+/** The options `overrideModule()` takes. */
 export interface ModuleOverrideOptions {
   /**
    * Marks the override as applying later, when a `ship.load()` call brings
@@ -45,6 +50,11 @@ export interface ModuleOverrideOptions {
   readonly lazy?: boolean;
 }
 
+/**
+ * Collects replacements for a module graph and builds a container with them.
+ * Each method returns a new builder and leaves the one it was called on as it
+ * was, so a `beforeEach` can share a base builder.
+ */
 export interface TestingContainerBuilder {
   /** Replaces every provider of `token` with a value or a class, typed like provide(). */
   // eslint-disable-next-line @typescript-eslint/no-explicit-any -- the class constraint provide() uses
@@ -148,6 +158,15 @@ function builder(state: BuilderState): TestingContainerBuilder {
   };
 }
 
+/**
+ * Starts a builder for a container of `root`'s module graph, with no
+ * replacements yet.
+ *
+ * `override(token, definition)` replaces every provider of a token,
+ * `overrideModule(module, stub)` replaces a module wherever the graph meets
+ * it, and `create(options)` builds a plain `Nexus` with the replacements
+ * applied by the `nexus:testing` plugin, ahead of the caller's plugins.
+ */
 export function createTestingContainer(
   root: ModuleRef,
 ): TestingContainerBuilder {
