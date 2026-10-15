@@ -6,7 +6,13 @@ import type { ProfileReport, Profiler } from '@nexusdi/devtools';
 
 import type { ProfileCommand } from './args.js';
 import { CliError } from './cli-error.js';
-import { alignClocks, startCpu, stopCpu, type Sampling } from './cpu.js';
+import {
+  alignClocks,
+  cpuWarning,
+  startCpu,
+  stopCpu,
+  type Sampling,
+} from './cpu.js';
 import { loadDevtools, type DevtoolsApi } from './devtools.js';
 import { entryKind } from './entry.js';
 import { loadEntry } from './graph.js';
@@ -145,8 +151,8 @@ async function writeOutputs(
 /**
  * Stops the sampling and aligns its clock to performance.now() by the two
  * anchors (spec 8). Warns and returns no CPU profile when no anchor has a
- * sample; warns when the alignment error passes max(1 ms, 4 samples) and
- * keeps the profile.
+ * sample; warns when the anchors disagree or the alignment error passes
+ * max(1 ms, 4 samples), and keeps the profile.
  */
 async function mergeCpu(
   io: Io,
@@ -161,11 +167,8 @@ async function mergeCpu(
     );
     return undefined;
   }
-  if (aligned.errorMs > Math.max(1, (4 * sampling.interval) / 1000))
-    await writeTo(
-      io.stderr,
-      `nexusdi: warning: the sampler ran too rarely to align the clocks; CPU samples may sit up to ${aligned.errorMs.toFixed(1)} ms off the provider spans.\n`,
-    );
+  const warning = cpuWarning(aligned, sampling.interval);
+  if (warning !== null) await writeTo(io.stderr, warning);
   return { cpuProfile: { profile, offsetMs: aligned.offsetMs } };
 }
 

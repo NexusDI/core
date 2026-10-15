@@ -1,7 +1,9 @@
+import { appendFileSync } from 'node:fs';
+
 import type { CpuProfile } from '@nexusdi/devtools';
 import { describe, expect, it } from 'vitest';
 
-import { alignClocks, startCpu, stopCpu } from './cpu.js';
+import { alignClocks, cpuWarning, startCpu, stopCpu } from './cpu.js';
 
 const frame = (functionName: string) => ({
   functionName,
@@ -35,6 +37,7 @@ describe('alignClocks', () => {
     ]);
     expect(aligned?.offsetMs).toBeCloseTo(990.075, 6);
     expect(aligned?.errorMs).toBeCloseTo(0.025, 6);
+    expect(aligned?.consistent).toBe(true);
   });
 
   it('reports half the gap when the anchors disagree', () => {
@@ -45,15 +48,17 @@ describe('alignClocks', () => {
     ]);
     expect(aligned?.offsetMs).toBeCloseTo(989.675, 6);
     expect(aligned?.errorMs).toBeCloseTo(0.375, 6);
+    expect(aligned?.consistent).toBe(false);
   });
 
-  it('skips a sample in the anchor before its spin, where the clock read was still running', () => {
-    // Sample 2 holds the anchor but no spin; only 1000.2 ms counts.
+  it('counts a sample whose spin frame the optimizer inlined away', () => {
+    // Sample 2 holds the anchor alone, as an optimized anchor with its spin
+    // inlined reports it: 1000.1 and 1000.2 ms both count.
     const aligned = alignClocks({ ...profile, samples: [1, 2, 4, 1, 5] }, [
       ['nexusdiAnchorStart', 10, 10.15],
     ]);
-    expect(aligned?.offsetMs).toBeCloseTo(990.125, 6);
-    expect(aligned?.errorMs).toBeCloseTo(0.075, 6);
+    expect(aligned?.offsetMs).toBeCloseTo(990.075, 6);
+    expect(aligned?.errorMs).toBeCloseTo(0.025, 6);
   });
 
   it('aligns from one anchor when the other has no sample', () => {
@@ -74,6 +79,33 @@ describe('alignClocks', () => {
   });
 });
 
+describe('cpuWarning', () => {
+  it('says the clocks disagree, by the gap between the bounds, when they cross', () => {
+    expect(
+      cpuWarning({ offsetMs: 0, errorMs: 0.375, consistent: false }, 100),
+    ).toBe(
+      'nexusdi: warning: the CPU clock and performance.now() disagree by 0.8 ms; CPU samples may sit up to 0.4 ms off the provider spans.\n',
+    );
+  });
+
+  it('says the sampler ran too rarely when the error passes max(1 ms, 4 samples)', () => {
+    expect(
+      cpuWarning({ offsetMs: 0, errorMs: 1.84, consistent: true }, 100),
+    ).toBe(
+      'nexusdi: warning: the sampler ran too rarely to align the clocks; CPU samples may sit up to 1.8 ms off the provider spans.\n',
+    );
+    expect(
+      cpuWarning({ offsetMs: 0, errorMs: 1.9, consistent: true }, 500),
+    ).toBeNull();
+  });
+
+  it('says nothing for a consistent alignment within the bound', () => {
+    expect(
+      cpuWarning({ offsetMs: 0, errorMs: 0.05, consistent: true }, 100),
+    ).toBeNull();
+  });
+});
+
 describe('startCpu and stopCpu', () => {
   // The error depends on how often the OS lets the sampler run, so this
   // test holds only that the anchors get a sample; the CLI warns on error.
@@ -86,5 +118,31 @@ describe('startCpu and stopCpu', () => {
     for (const [, startMs, endMs] of anchors)
       expect(endMs - startMs).toBeGreaterThanOrEqual(10);
     expect(alignClocks(recorded, anchors)).not.toBeNull();
+  });
+
+  // The figure the docs' error bar cites (spec 8). CI appends it to the job
+  // summary; the max goes unasserted, since it follows the runner's load.
+  it('align 10 runs at 100 µs with a median error within max(1 ms, 4 samples)', async () => {
+    const interval = 100;
+    const errors: number[] = [];
+    let crossed = 0;
+    for (let run = 0; run < 10; run++) {
+      const { profile: recorded, anchors } = await stopCpu(
+        await startCpu(interval),
+      );
+      const aligned = alignClocks(recorded, anchors);
+      expect(aligned).not.toBeNull();
+      if (aligned === null) return;
+      errors.push(aligned.errorMs);
+      if (!aligned.consistent) crossed++;
+    }
+    errors.sort((a, b) => a - b);
+    const median = ((errors[4] ?? 0) + (errors[5] ?? 0)) / 2;
+    const max = errors[9] ?? 0;
+    const line = `CPU clock alignment on ${process.platform}, Node ${process.versions.node}, 10 runs at ${interval} µs: errorMs median ${median.toFixed(3)} ms, max ${max.toFixed(3)} ms, ${crossed} with crossed bounds.`;
+    console.log(line);
+    const summary = process.env['GITHUB_STEP_SUMMARY'];
+    if (summary !== undefined) appendFileSync(summary, `${line}\n`);
+    expect(median).toBeLessThanOrEqual(Math.max(1, (4 * interval) / 1000));
   });
 });

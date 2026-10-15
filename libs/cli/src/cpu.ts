@@ -55,21 +55,18 @@ export async function stopCpu(sampling: Sampling): Promise<{
   }
 }
 
-/**
- * Spins for `ms` and returns performance.now() after the spin. alignClocks
- * counts only samples inside it, so every counted sample falls between the
- * anchor's read before the spin and this read after it.
- */
+/** Spins for `ms` and returns performance.now() after the spin. */
 function nexusdiAnchorSpin(ms: number): number {
   const end = performance.now() + ms;
   while (performance.now() < end);
   return performance.now();
 }
 
-// alignClocks finds the anchors in the samples by their names and the
-// spin's. The CLI builds with tsc and no minifier, so the names reach the
-// profile intact. The spin lasts at least 10 ms: the macOS sampler can go
-// 5 to 25 ms without a sample.
+// alignClocks finds the anchors in the samples by their names. The spin
+// gets no name check: once V8 optimizes an anchor, it inlines the spin and
+// the profile drops the spin's frame. The CLI builds with tsc and no
+// minifier, so the names reach the profile intact. The spin lasts at least
+// 10 ms: the macOS sampler can go 5 to 25 ms without a sample.
 
 /** Spins for max(10 ms, 20 samples). */
 function nexusdiAnchorStart(interval: number): Anchor {
@@ -91,19 +88,27 @@ function nexusdiAnchorEnd(interval: number): Anchor {
   ];
 }
 
+/** What alignClocks found: the offset, how far off it can be, and whether the anchors agree. */
+export interface Alignment {
+  readonly offsetMs: number;
+  readonly errorMs: number;
+  /** false when the bounds cross: the samples contradict the clock reads. */
+  readonly consistent: boolean;
+}
+
 /**
  * The offset from performance.now() ms to the profile's clock (spec 8). A
- * sample at profile time t inside an anchor's spin, read between startMs and
- * endMs, puts the offset in [t - endMs, t - startMs]. The offset is the middle
+ * sample at profile time t whose stack holds an anchor, which read the clock
+ * at startMs and endMs, puts the offset in [t - endMs, t - startMs]. The offset is the middle
  * of the bounds every such sample of every anchor sets, and errorMs is half
  * their width: the furthest the true offset can sit from it. When the bounds
- * cross, the anchors disagree, and errorMs is half the gap. null when no
- * anchor has a sample.
+ * cross, the anchors disagree, consistent is false, and errorMs is half the
+ * gap. null when no anchor has a sample.
  */
 export function alignClocks(
   profile: CpuProfile,
   anchors: readonly (readonly [name: string, startMs: number, endMs: number])[],
-): { readonly offsetMs: number; readonly errorMs: number } | null {
+): Alignment | null {
   const names = new Map(
     profile.nodes.map((n) => [n.id, n.callFrame.functionName]),
   );
@@ -111,16 +116,12 @@ export function alignClocks(
   for (const n of profile.nodes)
     for (const child of n.children ?? []) parents.set(child, n.id);
   const holds = (id: number, name: string): boolean => {
-    let spin = false;
     for (
       let at: number | undefined = id;
       at !== undefined;
       at = parents.get(at)
-    ) {
-      const frame = names.get(at);
-      if (frame === 'nexusdiAnchorSpin') spin = true;
-      else if (frame === name) return spin;
-    }
+    )
+      if (names.get(at) === name) return true;
     return false;
   };
   let lo = -Infinity;
@@ -136,5 +137,25 @@ export function alignClocks(
   }
   return hi === Infinity
     ? null
-    : { offsetMs: (lo + hi) / 2, errorMs: Math.abs(hi - lo) / 2 };
+    : {
+        offsetMs: (lo + hi) / 2,
+        errorMs: Math.abs(hi - lo) / 2,
+        consistent: lo <= hi,
+      };
+}
+
+/**
+ * The CLI's warning for an alignment, or null: the anchors disagree, or the
+ * error passes max(1 ms, 4 samples at `interval` µs) (spec 8).
+ */
+export function cpuWarning(
+  aligned: Alignment,
+  interval: number,
+): string | null {
+  const upTo = `CPU samples may sit up to ${aligned.errorMs.toFixed(1)} ms off the provider spans`;
+  if (!aligned.consistent)
+    return `nexusdi: warning: the CPU clock and performance.now() disagree by ${(2 * aligned.errorMs).toFixed(1)} ms; ${upTo}.\n`;
+  if (aligned.errorMs > Math.max(1, (4 * interval) / 1000))
+    return `nexusdi: warning: the sampler ran too rarely to align the clocks; ${upTo}.\n`;
+  return null;
 }
