@@ -1,11 +1,11 @@
-import { existsSync, readFileSync, readdirSync } from 'node:fs';
+import { existsSync, readFileSync } from 'node:fs';
 import { dirname, join, relative } from 'node:path';
 
 import { examplesFilesIn } from '@nexusdi/doc-examples/examples-file';
 import { readPreamble, withPreamble } from '@nexusdi/doc-examples/preamble';
 import { createTwoslasher } from 'twoslash';
 
-import { loadMdSiblings, loadReferenceOptions } from './loaders';
+import { loadLibraries, loadMdSiblings, loadReferenceOptions } from './loaders';
 import { parsePage, type DocsPage } from './site';
 
 /** One fence the compiler reads, named by the file and line it opens on. */
@@ -147,31 +147,14 @@ export function compileFailures(
 }
 
 /**
- * Every `libs/*` package whose `exports` map holds an entry other than
- * `./package.json`, workspace relative. `apps/docs/tools/libraries.mjs` takes
- * this list over when it arrives.
- */
-function libraryRoots(root: string): string[] {
-  return readdirSync(join(root, 'libs'))
-    .map((name) => join('libs', name))
-    .filter((dir) => {
-      const manifest = join(root, dir, 'package.json');
-      if (!existsSync(manifest)) return false;
-      const { exports = {} } = JSON.parse(readFileSync(manifest, 'utf8')) as {
-        exports?: Record<string, unknown>;
-      };
-      return Object.keys(exports).some((key) => key !== './package.json');
-    })
-    .sort();
-}
-
-/**
  * The doctested `ts` and `tsx` fences of every library's example files, each
  * with the package preamble the docs site puts in front of it. The package's
  * test run executes these fences and never type-checks them.
  */
-export function markdownFences(root: string): MarkdownFile[] {
-  return libraryRoots(root).flatMap((packageRoot) => {
+export async function markdownFences(root: string): Promise<MarkdownFile[]> {
+  const libraries = await loadLibraries();
+
+  return libraries(root).flatMap(({ root: packageRoot }) => {
     const packageDir = join(root, packageRoot);
     const preamble = readPreamble(packageDir);
 

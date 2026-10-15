@@ -25,6 +25,12 @@
               "libs/*"
             ],
             "target": "build"
+          },
+          {
+            "projects": [
+              "@nexusdi/docs"
+            ],
+            "target": "behaviour-data"
           }
         ],
         "inputs": [
