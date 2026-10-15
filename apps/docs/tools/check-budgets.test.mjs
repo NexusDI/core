@@ -261,6 +261,11 @@ describe('checkPages', () => {
     ).toBe(3);
   });
 
+  it('skips a script closed with a space before its >, or never closed', () => {
+    expect(elementsOf('<p>a</p><script>"<b>"</script ><i>b</i>')).toBe(2);
+    expect(elementsOf('<p>a</p><script>"<b><i>"')).toBe(1);
+  });
+
   it('passes a page inside both ceilings', () => {
     expect(checkPages(site(10)).findings).toEqual([]);
   });
