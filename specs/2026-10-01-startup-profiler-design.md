@@ -1106,8 +1106,7 @@ Anchors:
   profile, and keeps exit code 0. One anchor with samples is enough to align.
 - `libs/cli` builds with `tsc` and no minifier, so the names stay intact.
 - Error bar: the lab measured 0.22 ms and 0.43 ms agreement at 50 µs on macOS, with the
-  first-sample rule. With the bounds rule, 30 runs of the Meridian fixture on macOS gave
-  `errorMs` median 0.047 ms and max 0.30 ms at 100 µs, and max 0.11 ms at 50 µs. A
+  first-sample rule. With the bounds rule, 30 runs of the Meridian fixture on macOS gave `errorMs` median 0.041 ms and max 0.15 ms at 100 µs, with no crossed bounds. At 50 µs: median 0.020 ms and max 0.057 ms, and 2 of 30 runs crossed by at most 0.11 ms. A
   `cpu.test.ts` case aligns 10 runs at 100 µs, asserts the median within
   `max(1 ms, 4 × interval)`, and writes the median and max to the GitHub job summary; that
   summary gives the Linux figure. The docs state the error bar as at most
