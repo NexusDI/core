@@ -2,7 +2,13 @@
   "extends": "../../tsconfig.base.json",
   "compilerOptions": {
     "outDir": "./out-tsc/vitest",
-    "types": ["vitest/globals", "vitest/importMeta", "node", "vitest"],
+    "types": [
+      "vitest/globals",
+      "vitest/importMeta",
+      "node",
+      "vitest",
+      "@cloudflare/vitest-plugin/types"
+    ],
     "module": "esnext",
     "moduleResolution": "bundler",
     "resolveJsonModule": true,
@@ -12,11 +18,13 @@
   },
   "include": [
     "vite.config.ts",
+    "vitest.workers.config.ts",
     "vitest.e2e.config.ts",
     "test/**/*.ts",
     "e2e/**/*.ts",
     "bench/**/*.ts",
-    "src/**/*.d.ts"
+    "src/**/*.d.ts",
+    "worker-configuration.d.ts"
   ],
   "references": [
     {

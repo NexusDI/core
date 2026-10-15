@@ -87,6 +87,7 @@
     // entry wrangler bundles (Task 21).
     "examples/bridge-api/e2e/**/*.ts",
     "examples/bridge-api/vitest.e2e.config.ts",
+    "examples/bridge-api/vitest.workers.config.ts",
     "examples/bridge-api/bench/*.{ts,mjs}",
     "examples/bridge-api/src/server.*.ts",
     "examples/bridge-api/src/worker.ts",
@@ -210,6 +211,9 @@
   // such import, so it stays analysed.
   "ignorePatterns": [
     "tools/repo-checks/src/__fixtures__/**",
+    // `wrangler types` writes the Workers runtime and env types here, and the
+    // bridge API's test-workers target checks the file is current.
+    "examples/bridge-api/worker-configuration.d.ts",
     "apps/docs/snapshot/docusaurus.overlay.*.ts",
     "apps/docs/snapshot/src/**",
   ],

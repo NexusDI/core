@@ -2040,12 +2040,16 @@ report (section 13.6) gains a `hono-worker` fixture that bundles this entry with
 A job, `adapter-runtimes`, runs `examples/bridge-api`'s suite on each runtime with
 `scopes: nodeScopes()` and without:
 
-| Leg         | Runner                                                                                             | Covers                                                                                                                                            |
-| ----------- | -------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------- |
-| workerd     | `@cloudflare/vitest-pool-workers` 0.23, compat date 2026-09-01, `enable_request_signal` on and off | module-scope build, function-form build with a `fetch` factory, a first request aborted mid-build then a retry, ambient scope, abort, `waitUntil` |
-| Deno        | Deno 2.9.6, `Deno.serve` on port 0                                                                 | module-scope build, ambient scope, abort                                                                                                          |
-| Bun         | Bun 1.4.2, `Bun.serve` on port 0                                                                   | module-scope build, ambient scope, abort                                                                                                          |
-| Vercel Edge | Vitest's `edge-runtime` environment (`@edge-runtime/vm`)                                           | `app.request()`, ambient scope, no `eval` at runtime                                                                                              |
+| Leg         | Runner                                                                                        | Covers                                                                                                                                            |
+| ----------- | --------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------- |
+| workerd     | `@cloudflare/vitest-plugin` 1.3.7, compat date 2026-09-01, `enable_request_signal` on and off | module-scope build, function-form build with a `fetch` factory, a first request aborted mid-build then a retry, ambient scope, abort, `waitUntil` |
+| Deno        | Deno 2.9.6, `Deno.serve` on port 0                                                            | module-scope build, ambient scope, abort                                                                                                          |
+| Bun         | Bun 1.4.2, `Bun.serve` on port 0                                                              | module-scope build, ambient scope, abort                                                                                                          |
+| Vercel Edge | Vitest's `edge-runtime` environment (`@edge-runtime/vm`)                                      | `app.request()`, ambient scope, no `eval` at runtime                                                                                              |
+
+The workerd leg runs `@cloudflare/vitest-plugin` 1.3.7, the renamed
+`@cloudflare/vitest-pool-workers`, with wrangler 4.148.0, which it depends on, and lists
+`nodejs_compat` beside the flag its date already enables.
 
 The workerd leg's `fetch` factory reaches a local mock with `fetchMock` from the pool, so
 the leg needs no network. `/runtimes/` gains a row per adapter per runtime, naming this

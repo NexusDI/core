@@ -1,0 +1,10 @@
+{
+  // The same Worker without enable_request_signal. The disposal test reads
+  // which config it runs under and asserts what the body wrapper alone does
+  // on an abort (spec 9.7).
+  "name": "bridge-api-no-signal",
+  "main": "src/worker.ts",
+  "compatibility_date": "2026-09-01",
+  "compatibility_flags": ["nodejs_compat"],
+  "vars": { "RELAY_URL": "" },
+}

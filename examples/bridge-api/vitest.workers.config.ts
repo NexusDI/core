@@ -1,0 +1,21 @@
+import { cloudflareTest } from '@cloudflare/vitest-plugin';
+import { defineConfig } from 'vitest/config';
+
+// SIGNAL=off runs the suite against wrangler.no-signal.jsonc. The CI leg runs
+// both, so /runtimes/ can state what an abort does with and without the flag.
+const signal = process.env['SIGNAL'] !== 'off';
+
+export default defineConfig({
+  plugins: [
+    cloudflareTest({
+      wrangler: {
+        configPath: signal ? './wrangler.jsonc' : './wrangler.no-signal.jsonc',
+      },
+      miniflare: { bindings: { SIGNAL: signal ? 'on' : 'off' } },
+    }),
+  ],
+  test: {
+    name: `@nexusdi/bridge-api:workers:${signal ? 'signal' : 'no-signal'}`,
+    include: ['test/worker/**/*.test.ts'],
+  },
+});
