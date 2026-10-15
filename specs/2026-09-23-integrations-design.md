@@ -574,6 +574,15 @@ own error type with the status, the status text as its message (`Internal Server
 read `error.cause.code`, and the framework's default handler sends a body that contains
 nothing from core. The per-framework error type is in each package's section.
 
+The adapter calls `log` for every error it maps, whatever error handler the application
+installs, so the line with core's code and fields is always written. The framework's
+default error handler also logs the error it receives: Express prints the
+`NexusHttpError`'s stack, and Fastify logs it at error level with each cause's message
+folded into its own. Under a framework's default handler a failure therefore writes two
+lines for one request. An application that wants one line handles `NexusHttpError` in its
+own error handler, which sends the status and the status text without logging; each
+adapter's guide shows it.
+
 Each adapter's test sends a request that triggers `NEXUS_MISSING_PROVIDER` and asserts
 that the body contains neither `NEXUS_` nor the token's description. A second test throws
 a third-party `errorBase` code from a plugin's `construct` hook during `createScope` and
