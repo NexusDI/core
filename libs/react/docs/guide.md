@@ -5,6 +5,12 @@ Regions for `apps/docs/content/react.mdx` that run in the browser. This package'
 <!-- #region scope-key -->
 
 ```ts @import.meta.vitest
+declare module '@nexusdi/core' {
+  interface NexusRequest {
+    readonly mission: { readonly id: string; readonly target: string };
+  }
+}
+// ---cut---
 import { Nexus, REQUEST, Token, provide } from '@nexusdi/core';
 import { NexusProvider, ScopeProvider, useService } from '@nexusdi/react';
 import { cleanup, render, screen } from '@testing-library/react';
