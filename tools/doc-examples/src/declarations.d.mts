@@ -41,6 +41,11 @@ export interface Reference {
   /** The declaration file the entry was read from. */
   declaration: string;
   /**
+   * Every docblock inside the export's declarations, its own and its members',
+   * joined: the prose a reader meets in the entry and in its hover cards.
+   */
+  docText: string;
+  /**
    * The package's example files, workspace relative: `README.md`, then
    * `docs/*.md`.
    */

@@ -51,6 +51,7 @@ function read(_root: string, specifier: string, name: string): Reference {
     rest: '',
     tags: [],
     declaration: '/nowhere/index.d.ts',
+    docText: '',
     examples: ['libs/testing/README.md'],
   };
 }

@@ -54,6 +54,7 @@ function read(_root: string, specifier: string, name: string): Reference {
     rest: 'The second paragraph.',
     tags: [{ name: 'param', text: 'value the thing to widen' }],
     declaration: '/nowhere/index.d.ts',
+    docText: '',
     examples: ['libs/node/README.md', 'libs/node/docs/examples.md'],
   };
 }
@@ -334,6 +335,23 @@ describe('a reference entry hovers the package', () => {
     });
 
     expect(missing).toEqual([]);
+  });
+
+  it('cites no spec section in any docblock a reader meets', () => {
+    // A reader cannot open the design spec, so `(spec §3.10)` in a summary
+    // or a member comment is a pointer to nothing. The entry and its hover
+    // cards show every docblock inside the declaration.
+    const cited = referenced.flatMap((entry) => {
+      const found = readReference(workspaceRoot, entry.specifier, entry.name);
+      const hit = /spec (§|section)\s*[\w.]*/i.exec(found.docText);
+      return hit
+        ? [
+            `${entry.page}: ${entry.specifier}#${entry.name} cites "${hit[0]}" in a docblock; say what the spec says, in the docblock, or leave it out`,
+          ]
+        : [];
+    });
+
+    expect(cited).toEqual([]);
   });
 
   it('gives every entry a docblock summary to open with', () => {
