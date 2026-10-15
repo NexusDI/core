@@ -7,7 +7,13 @@
  * in the workspace, such as express 4 under @nx/react, is a tool's, which
  * the adapter's tests never load.
  */
-import { existsSync, lstatSync, readdirSync, readFileSync } from 'node:fs';
+import {
+  existsSync,
+  lstatSync,
+  readdirSync,
+  readFileSync,
+  realpathSync,
+} from 'node:fs';
 import { join } from 'node:path';
 
 import semver from 'semver';
@@ -39,6 +45,38 @@ function copiesUnder(modules, pkg, found = []) {
   return found;
 }
 
+/** The names a manifest declares: peers, dependencies and dev dependencies. */
+const declaredBy = (manifest) =>
+  Object.keys({
+    ...manifest.peerDependencies,
+    ...manifest.dependencies,
+    ...manifest.devDependencies,
+  });
+
+/**
+ * The node_modules folders an adapter reaches: its own, each declared
+ * package's (through a workspace link's real path, so a linked lib such as
+ * libs/core counts), and those of the packages each of them declares.
+ */
+function treesOf(root, lib) {
+  const trees = [join(lib, 'node_modules')];
+  const adapter = readJson(join(lib, 'package.json'));
+  for (const dep of declaredBy(adapter)) {
+    const installed = join(root, 'node_modules', dep);
+    if (!existsSync(installed)) continue;
+    const real = realpathSync(installed);
+    trees.push(join(real, 'node_modules'));
+    const manifest = join(real, 'package.json');
+    if (!existsSync(manifest)) continue;
+    for (const next of declaredBy(readJson(manifest))) {
+      const nested = join(root, 'node_modules', next);
+      if (existsSync(nested))
+        trees.push(join(realpathSync(nested), 'node_modules'));
+    }
+  }
+  return trees;
+}
+
 /**
  * The problems of a leg after its install, as text, empty when the leg may
  * run: `specs` are its install specs, `libs` the adapters it tests.
@@ -65,22 +103,10 @@ export function legProblems(root, specs, libs) {
           `${pkg} ${version} is outside ${adapter.name}'s peer range ${peer}`,
         );
     }
-    const trees = libs.flatMap((lib) => {
-      const adapter = readJson(join(lib, 'package.json'));
-      const declared = Object.keys({
-        ...adapter.peerDependencies,
-        ...adapter.devDependencies,
-      });
-      return [
-        join(lib, 'node_modules'),
-        ...declared.map((dep) =>
-          join(root, 'node_modules', dep, 'node_modules'),
-        ),
-      ];
-    });
+    const trees = libs.flatMap((lib) => treesOf(root, lib));
     for (const tree of new Set(trees))
       for (const copy of copiesUnder(tree, pkg))
-        if (copy !== manifest)
+        if (realpathSync(copy) !== realpathSync(manifest))
           problems.push(
             `${pkg}: a second copy at ${copy.slice(0, -'/package.json'.length)} (${readJson(copy).version})`,
           );

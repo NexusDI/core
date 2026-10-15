@@ -214,7 +214,13 @@ describe('fixtures.json options', () => {
         standalone: { 'hono-worker': 8000 },
       }),
     ).toEqual([
-      '@nexusdi/hono is 1200 bytes, over its 1000-byte budget (the middleware)',
+      {
+        name: 'hono',
+        label: '@nexusdi/hono',
+        size: 1200,
+        budget: 1000,
+        reason: 'the middleware',
+      },
     ]);
   });
 });

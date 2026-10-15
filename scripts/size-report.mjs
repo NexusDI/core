@@ -132,23 +132,31 @@ export async function measureStandalone(fixture, root, swallow) {
 
 /**
  * Each figure over the budget its fixtures.json entry sets, with the
- * entry's reason. Reported, never fatal: the threshold applies to core
- * alone (spec 13.6).
+ * entry's reason. size-compare fails a pull request on one unless its
+ * `## Size` section names the fixture (spec 13.6).
  */
 export function overBudget(fixture, sizes) {
   const options = fixtureOptions(fixture);
-  const lines = [];
+  const over = [];
   for (const [name, { budget, reason, standalone }] of Object.entries(
     options,
   )) {
     const size = standalone ? sizes.standalone[name] : sizes.packages[name];
     if (typeof size === 'number' && typeof budget === 'number' && size > budget)
-      lines.push(
-        `${standalone ? name : `@nexusdi/${name}`} is ${size} bytes, over its ${budget}-byte budget (${reason})`,
-      );
+      over.push({
+        name,
+        label: standalone ? name : `@nexusdi/${name}`,
+        size,
+        budget,
+        reason,
+      });
   }
-  return lines;
+  return over;
 }
+
+/** The line size-report and size-compare print for a figure over budget. */
+const overBudgetLine = ({ label, size, budget, reason }) =>
+  `${label} is ${size} bytes, over its ${budget}-byte budget (${reason})`;
 
 async function main() {
   const { values } = parseArgs({
@@ -194,7 +202,7 @@ async function main() {
   const standalone = await measureStandalone(fixture, ROOT, swallow);
   const sizes = { core, packages, standalone };
   sizes.overBudget = overBudget(fixture, sizes);
-  for (const line of sizes.overBudget) console.warn(line);
+  for (const over of sizes.overBudget) console.warn(overBudgetLine(over));
   console.log(JSON.stringify(sizes, null, 2));
   if (values.json) writeFileSync(values.json, JSON.stringify(sizes));
 

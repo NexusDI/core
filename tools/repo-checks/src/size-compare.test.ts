@@ -7,7 +7,13 @@ type Sizes = {
   core: number | null;
   packages: Record<string, number | null>;
   standalone?: Record<string, number | null>;
-  overBudget?: string[];
+  overBudget?: {
+    name: string;
+    label: string;
+    size: number;
+    budget: number;
+    reason: string;
+  }[];
 };
 const { compareSizes } = (await import(
   pathToFileURL(join(workspaceRoot, 'scripts', 'size-compare.mjs')).href
@@ -99,27 +105,41 @@ describe('compareSizes', () => {
     expect(result.markdown).toContain('| core | 17620 | no figure | | |');
   });
 
-  it('lists a standalone bundle and each figure over its budget, and still passes', () => {
-    const head: Sizes = {
-      core: 10_000,
-      packages: { errors: 3000 },
-      standalone: { 'hono-worker': 28_500 },
-      overBudget: [
-        '@nexusdi/hono is 2600 bytes, over its 2500-byte budget (the middleware)',
-      ],
-    };
-    const result = compareSizes(
-      { ...base, standalone: { 'hono-worker': 28_000 } },
-      head,
-      '',
-      2,
-    );
-    expect(result.fail).toBe(false);
+  const over = {
+    name: 'hono',
+    label: '@nexusdi/hono',
+    size: 2600,
+    budget: 2500,
+    reason: 'the middleware',
+  };
+  const head: Sizes = {
+    core: 10_000,
+    packages: { errors: 3000, hono: 2600 },
+    standalone: { 'hono-worker': 28_500 },
+    overBudget: [over],
+  };
+  const withWorker = { ...base, standalone: { 'hono-worker': 28_000 } };
+
+  it('lists a standalone bundle and an adapter over its budget, and fails without a Size section', () => {
+    const result = compareSizes(withWorker, head, '', 2);
+    expect(result.fail).toBe(true);
     expect(result.markdown).toContain(
       '| hono-worker (whole bundle) | 28000 | 28500 | +500 | +1.79% |',
     );
     expect(result.markdown).toContain(
       '- @nexusdi/hono is 2600 bytes, over its 2500-byte budget (the middleware)',
     );
+  });
+
+  it('passes an adapter over its budget when the Size section names it', () => {
+    const body =
+      '## Size\n\n@nexusdi/hono grows 100 bytes: the request signal now disposes the scope on an abort.';
+    expect(compareSizes(withWorker, head, body, 2).fail).toBe(false);
+  });
+
+  it('fails an adapter over its budget when the Size section names another', () => {
+    const body =
+      '## Size\n\n@nexusdi/express grows for its new option.\n\n## Notes\n\n@nexusdi/hono too.';
+    expect(compareSizes(withWorker, head, body, 2).fail).toBe(true);
   });
 });

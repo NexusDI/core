@@ -49,7 +49,113 @@ const LIBS = [
   ['libs/cli', '@nexusdi/cli'],
   ['libs/decorators', '@nexusdi/decorators'],
   ['libs/federation', '@nexusdi/federation'],
+  ['libs/express', '@nexusdi/express'],
+  ['libs/fastify', '@nexusdi/fastify'],
+  ['libs/hono', '@nexusdi/hono'],
+  ['libs/react-router', '@nexusdi/react-router'],
+  ['libs/vitest', '@nexusdi/vitest'],
+  ['libs/react', '@nexusdi/react'],
 ];
+
+/** The integrations packages (integrations spec 13.1), which the adapter stage checks. */
+const ADAPTERS = [
+  'express',
+  'fastify',
+  'hono',
+  'react-router',
+  'vitest',
+  'react',
+];
+/** The adapters that run on the edge or in a browser, so import no node: module. */
+const WEB_ADAPTERS = ['hono', 'react-router', 'react'];
+/** The byte-identical copies each adapter ships under src/internal (spec 3.7). */
+const INTERNAL_COPIES = {
+  express: ['request-scope'],
+  fastify: ['request-scope'],
+  hono: ['request-scope', 'dispose-with-body'],
+  'react-router': ['request-scope', 'dispose-with-body'],
+};
+/** The framework versions the adapter consumer installs beside the tarballs. */
+const FRAMEWORKS = [
+  'hono@4.13.13',
+  '@hono/node-server@2.1.5',
+  'express@5.3.0',
+  '@types/express@5.0.6',
+  'fastify@5.12.7',
+  'react-router@8.4.0',
+  'vitest@4.1.9',
+  'react@19.3.0',
+  'react-dom@19.3.0',
+  '@types/react@19.3.0',
+  '@types/react-dom@19.3.0',
+];
+
+/**
+ * The adapters as an app imports them: each server adapter serves one
+ * request from the packed build, with errors() and nodeScopes(), and the
+ * other entries load. tsc compiles it under nodenext and bundler with
+ * skipLibCheck false.
+ */
+const ADAPTER_CONSUMER = `
+import { once } from 'node:events';
+
+import { Nexus, Token, provide } from '@nexusdi/core';
+import { errors } from '@nexusdi/errors';
+import { nexus as expressNexus } from '@nexusdi/express';
+import { nexus as fastifyNexus } from '@nexusdi/fastify';
+import { nexus as honoNexus } from '@nexusdi/hono';
+import { nodeScopes } from '@nexusdi/node';
+import { NexusProvider, useService } from '@nexusdi/react';
+import { NEXUS_SCOPE, nexus as routerNexus } from '@nexusdi/react-router';
+import { nexusFixtures, nexusTest } from '@nexusdi/vitest';
+import express from 'express';
+import Fastify from 'fastify';
+import { Hono } from 'hono';
+
+interface IGreeting {
+  text(): string;
+}
+const GREETING = new Token<IGreeting>('Greeting');
+const ship = await Nexus.create(
+  [provide(GREETING, { useFactory: () => ({ text: () => 'ok' }), lifetime: 'scoped' })],
+  { plugins: [errors()] },
+);
+const scopes = nodeScopes();
+const deps = { g: GREETING } as const;
+
+const honoDi = honoNexus(ship, { scopes });
+const h = new Hono()
+  .use(honoDi.middleware)
+  .get('/', honoDi.inject(deps, ({ g }, c) => c.text(g.text())));
+if ((await (await h.request('/')).text()) !== 'ok') throw new Error('hono');
+
+const fastifyDi = fastifyNexus(ship, { scopes });
+const f = Fastify();
+await f.register(fastifyDi.plugin);
+f.get('/', fastifyDi.inject(deps, ({ g }) => g.text()));
+if ((await f.inject({ url: '/' })).body !== 'ok') throw new Error('fastify');
+await f.close();
+
+const expressDi = expressNexus(ship, { scopes });
+const e = express()
+  .use(expressDi.middleware)
+  .get(
+    '/',
+    expressDi.inject(deps, ({ g }, _req, res) => void res.send(g.text())),
+  );
+const server = e.listen(0, '127.0.0.1');
+await once(server, 'listening');
+const { port } = server.address() as { port: number };
+const sent = await (await fetch('http://127.0.0.1:' + port + '/')).text();
+server.closeAllConnections();
+server.close();
+if (sent !== 'ok') throw new Error('express');
+
+for (const value of [routerNexus, NEXUS_SCOPE, nexusFixtures, nexusTest, NexusProvider, useService])
+  if (value === undefined) throw new Error('an adapter export is missing');
+await ship[Symbol.asyncDispose]();
+console.log('adapters ok');
+`;
 
 /** Every JavaScript module under `root`, at any depth. */
 const modulesUnder = (root) =>
@@ -768,6 +874,139 @@ try {
   run('node', [join(dir, 'out-nodenext', 'consumer.js')], dir);
   console.log(
     '  ✓ a decorated class, the class metadata functions, scopes, @nexusdi/node, @nexusdi/testing, @nexusdi/devtools, @nexusdi/federation and @nexusdi/interceptors run from the packed build',
+  );
+
+  // The adapters as npm packs them (integrations spec 13.1), in a consumer
+  // of their own so the one above stays unchanged.
+  console.log('Checking the adapter tarballs…');
+  const shippedProblems = [];
+  for (const name of ADAPTERS) {
+    const pkgRoot = join(dir, 'node_modules', '@nexusdi', name);
+    const files = packageFiles(pkgRoot);
+    for (const required of ['README.md', 'LICENSE', 'CHANGELOG.md'])
+      if (!files.includes(required))
+        shippedProblems.push(`@nexusdi/${name} ships no ${required}`);
+    for (const folder of ['dist/', 'src/'])
+      if (!files.some((file) => file.startsWith(folder)))
+        shippedProblems.push(`@nexusdi/${name} ships no ${folder}`);
+    for (const file of files)
+      if (
+        /\.(?:test|spec|test-d)\.[cm]?[jt]sx?$/.test(file) ||
+        /(?:^|\/)(?:test-fixtures|__fixtures__|test-support)\//.test(file)
+      )
+        shippedProblems.push(`@nexusdi/${name} ships ${file}`);
+    for (const copy of INTERNAL_COPIES[name] ?? [])
+      for (const file of [
+        `src/internal/${copy}.ts`,
+        `dist/internal/${copy}.js`,
+      ])
+        if (!files.includes(file))
+          shippedProblems.push(`@nexusdi/${name} ships no ${file}`);
+  }
+  // nexusTest is typed by vitest's own TestAPI (spec 8.1): the declarations
+  // it reaches import nothing from @vitest/runner, which Vitest 5 lacks.
+  const vitestDist = join(dir, 'node_modules', '@nexusdi', 'vitest', 'dist');
+  const reached = new Set();
+  const visit = (file) => {
+    if (reached.has(file)) return;
+    reached.add(file);
+    const text = readFileSync(join(vitestDist, file), 'utf8');
+    if (/from\s+["']@vitest\/runner["']/.test(text))
+      shippedProblems.push(
+        `@nexusdi/vitest: dist/${file}, on nexusTest's path, imports @vitest/runner`,
+      );
+    for (const [, relative] of text.matchAll(
+      /from\s+["']\.\/([^"']+)\.js["']/g,
+    ))
+      visit(`${relative}.d.ts`);
+  };
+  visit('nexus-test.d.ts');
+  if (shippedProblems.length) throw new Error(shippedProblems.join('\n'));
+  console.log(
+    '  ✓ each adapter ships dist, src, its src/internal copies, README, LICENSE and CHANGELOG, and no test, fixture or test-support file',
+  );
+  console.log(
+    "  ✓ nexusTest's declarations import nothing from @vitest/runner",
+  );
+
+  const adapterDir = mkdtempSync(join(tmpdir(), 'nexusdi-adapters-'));
+  writeFileSync(
+    join(adapterDir, 'package.json'),
+    JSON.stringify({ name: 'adapter-check', private: true, type: 'module' }),
+  );
+  writeFileSync(join(adapterDir, 'consumer.ts'), ADAPTER_CONSUMER);
+  for (const resolution of ['nodenext', 'bundler'])
+    writeFileSync(
+      join(adapterDir, `tsconfig.${resolution}.json`),
+      JSON.stringify({
+        compilerOptions: {
+          strict: true,
+          target: 'es2022',
+          module: resolution === 'nodenext' ? 'nodenext' : 'esnext',
+          moduleResolution: resolution,
+          lib: ['es2022', 'esnext.disposable', 'dom'],
+          skipLibCheck: false,
+          outDir: `out-${resolution}`,
+          types: ['node'],
+        },
+        include: ['consumer.ts'],
+      }),
+    );
+  console.log('Installing the adapter tarballs…');
+  run(
+    'npm',
+    [
+      'install',
+      '--silent',
+      '--no-audit',
+      '--no-fund',
+      ...tarballs.map((t) => join(dir, t)),
+      ...FRAMEWORKS,
+      '@types/node@22',
+      'typescript@6',
+    ],
+    adapterDir,
+  );
+  run('npx', ['tsc', '-p', 'tsconfig.nodenext.json'], adapterDir);
+  run('npx', ['tsc', '-p', 'tsconfig.bundler.json', '--noEmit'], adapterDir);
+  const served = run(
+    'node',
+    [join(adapterDir, 'out-nodenext', 'consumer.js')],
+    adapterDir,
+  );
+  if (!served.includes('adapters ok'))
+    throw new Error(`the adapter consumer printed:\n${served}`);
+  console.log(
+    '  ✓ every adapter resolves under nodenext and bundler with no @nexusdi/source condition, and Hono, Express and Fastify serve a request from the packed build',
+  );
+
+  const packedVersion = JSON.parse(
+    readFileSync(join(ROOT, 'libs/core/package.json'), 'utf8'),
+  ).version;
+  const adapterProblems = [];
+  for (const name of ADAPTERS) {
+    const pkgRoot = join(adapterDir, 'node_modules', '@nexusdi', name);
+    const manifest = JSON.parse(
+      readFileSync(join(pkgRoot, 'package.json'), 'utf8'),
+    );
+    for (const [peer, range] of Object.entries(manifest.peerDependencies ?? {}))
+      if (peer.startsWith('@nexusdi/') && range !== packedVersion)
+        adapterProblems.push(
+          `${manifest.name} pins ${peer} at ${range}, and the packed version is ${packedVersion}`,
+        );
+    for (const file of modulesUnder(join(pkgRoot, 'dist'))) {
+      const text = readFileSync(file, 'utf8');
+      if (/from\s+["']@nexusdi\/core\/(?!text["'])[^"']+["']/.test(text))
+        adapterProblems.push(
+          `${file} imports a core path that is not a package entry`,
+        );
+      if (WEB_ADAPTERS.includes(name) && /from\s+["']node:/.test(text))
+        adapterProblems.push(`${file} imports a node: module`);
+    }
+  }
+  if (adapterProblems.length) throw new Error(adapterProblems.join('\n'));
+  console.log(
+    '  ✓ adapter peers are exact, core is reached through its entries, and the web adapters import no node: module',
   );
 
   // The bin as published: its shebang, and the rule that it loads the
