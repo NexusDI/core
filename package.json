@@ -28,6 +28,7 @@
     "@nx/vite": "23.1.1",
     "@nx/vitest": "23.1.1",
     "@nx/web": "23.1.1",
+    "@paulirish/trace_engine": "0.0.66",
     "@playwright/test": "^1.53.1",
     "@resvg/resvg-js": "^2.6.2",
     "@rollup/plugin-node-resolve": "16.0.3",

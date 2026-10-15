@@ -1,4 +1,5 @@
 import { defineConfig } from 'vite';
+import { configDefaults } from 'vitest/config';
 
 import { docExampleSources, docExamples } from '@nexusdi/doc-examples';
 
@@ -27,6 +28,8 @@ export default defineConfig(() => ({
     globals: true,
     environment: 'node',
     include: ['src/**/*.{test,spec}.ts'],
+    // The test-trace target runs these against the DevTools trace engine.
+    exclude: [...configDefaults.exclude, 'src/**/*.trace.test.ts'],
     includeSource: docExampleSources(),
     typecheck: {
       enabled: true,

@@ -1,0 +1,553 @@
+{
+  "format": "nexusdi-profile",
+  "version": 1,
+  "timeOrigin": 1760000000000,
+  "reportedMs": 62.6,
+  "runs": [
+    {
+      "id": 0,
+      "kind": "create",
+      "scope": null,
+      "ok": true,
+      "startMs": 0,
+      "durationMs": 37.6,
+      "compile": {
+        "startMs": 0,
+        "durationMs": 6.1,
+        "modules": 4,
+        "providers": 14,
+        "errors": 0
+      },
+      "steps": [
+        {
+          "step": "compile",
+          "startMs": 0,
+          "durationMs": 6.1
+        },
+        {
+          "step": "build",
+          "startMs": 6.1,
+          "durationMs": 27.3
+        },
+        {
+          "step": "init",
+          "startMs": 33.4,
+          "durationMs": 3.9
+        },
+        {
+          "step": "setup",
+          "startMs": 37.3,
+          "durationMs": 0.3
+        }
+      ],
+      "builds": [
+        {
+          "providerId": "p0",
+          "token": "ReactorCore",
+          "module": "Engineering",
+          "lifetime": "singleton",
+          "scope": null,
+          "async": false,
+          "level": 0,
+          "parent": null,
+          "startMs": 6.1,
+          "syncMs": 0.9,
+          "awaitMs": null,
+          "finishMs": 0.0,
+          "durationMs": 1.4,
+          "failed": false
+        },
+        {
+          "providerId": "p1",
+          "token": "CoolantPump",
+          "module": "Engineering",
+          "lifetime": "singleton",
+          "scope": null,
+          "async": false,
+          "level": 0,
+          "parent": null,
+          "startMs": 7.0,
+          "syncMs": 0.2,
+          "awaitMs": null,
+          "finishMs": 0.0,
+          "durationMs": 0.5,
+          "failed": false
+        },
+        {
+          "providerId": "p2",
+          "token": "HullSensors",
+          "module": "Engineering",
+          "lifetime": "singleton",
+          "scope": null,
+          "async": false,
+          "level": 0,
+          "parent": null,
+          "startMs": 7.2,
+          "syncMs": 0.1,
+          "awaitMs": null,
+          "finishMs": 0.0,
+          "durationMs": 0.3,
+          "failed": false
+        },
+        {
+          "providerId": "p3",
+          "token": "CrewRoster",
+          "module": "Meridian",
+          "lifetime": "singleton",
+          "scope": null,
+          "async": false,
+          "level": 0,
+          "parent": null,
+          "startMs": 7.3,
+          "syncMs": 0.1,
+          "awaitMs": null,
+          "finishMs": 0.0,
+          "durationMs": 0.2,
+          "failed": false
+        },
+        {
+          "providerId": "p4",
+          "token": "StarDatabase",
+          "module": "Tactical",
+          "lifetime": "singleton",
+          "scope": null,
+          "async": false,
+          "level": 0,
+          "parent": null,
+          "startMs": 7.4,
+          "syncMs": 0.1,
+          "awaitMs": null,
+          "finishMs": 0.0,
+          "durationMs": 0.1,
+          "failed": false
+        },
+        {
+          "providerId": "p5",
+          "token": "ShipComputer",
+          "module": "Engineering",
+          "lifetime": "singleton",
+          "scope": null,
+          "async": false,
+          "level": 1,
+          "parent": null,
+          "startMs": 7.5,
+          "syncMs": 1.1,
+          "awaitMs": null,
+          "finishMs": 0.0,
+          "durationMs": 3.6,
+          "failed": false
+        },
+        {
+          "providerId": "p6",
+          "token": "SubspaceLink",
+          "module": "Comms",
+          "lifetime": "singleton",
+          "scope": null,
+          "async": false,
+          "level": 1,
+          "parent": null,
+          "startMs": 8.6,
+          "syncMs": 2.4,
+          "awaitMs": null,
+          "finishMs": 0.0,
+          "durationMs": 2.5,
+          "failed": false
+        },
+        {
+          "providerId": "p7",
+          "token": "PowerRouter",
+          "module": "Engineering",
+          "lifetime": "singleton",
+          "scope": null,
+          "async": false,
+          "level": 1,
+          "parent": null,
+          "startMs": 11.0,
+          "syncMs": 0.1,
+          "awaitMs": null,
+          "finishMs": 0.0,
+          "durationMs": 0.1,
+          "failed": false
+        },
+        {
+          "providerId": "p8",
+          "token": "Transponder",
+          "module": "Comms",
+          "lifetime": "singleton",
+          "scope": null,
+          "async": false,
+          "level": 1,
+          "parent": null,
+          "startMs": 11.1,
+          "syncMs": 0.0,
+          "awaitMs": null,
+          "finishMs": 0.0,
+          "durationMs": 0.0,
+          "failed": false
+        },
+        {
+          "providerId": "p9",
+          "token": "NavCharts",
+          "module": "Tactical",
+          "lifetime": "singleton",
+          "scope": null,
+          "async": true,
+          "level": 2,
+          "parent": null,
+          "startMs": 11.1,
+          "syncMs": 0.3,
+          "awaitMs": 21.4,
+          "finishMs": 0.1,
+          "durationMs": 21.8,
+          "failed": false
+        },
+        {
+          "providerId": "p10",
+          "token": "ShieldGrid",
+          "module": "Tactical",
+          "lifetime": "singleton",
+          "scope": null,
+          "async": false,
+          "level": 2,
+          "parent": null,
+          "startMs": 11.4,
+          "syncMs": 0.1,
+          "awaitMs": null,
+          "finishMs": 0.0,
+          "durationMs": 0.2,
+          "failed": false
+        },
+        {
+          "providerId": "p11",
+          "token": "Helm",
+          "module": "Meridian",
+          "lifetime": "singleton",
+          "scope": null,
+          "async": false,
+          "level": 2,
+          "parent": null,
+          "startMs": 11.5,
+          "syncMs": 0.1,
+          "awaitMs": null,
+          "finishMs": 0.0,
+          "durationMs": 0.1,
+          "failed": false
+        },
+        {
+          "providerId": "p12",
+          "token": "DiagnosticsPanel",
+          "module": "Engineering",
+          "lifetime": "singleton",
+          "scope": null,
+          "async": false,
+          "level": 3,
+          "parent": null,
+          "startMs": 32.9,
+          "syncMs": 0.4,
+          "awaitMs": null,
+          "finishMs": 0.0,
+          "durationMs": 0.5,
+          "failed": false
+        },
+        {
+          "providerId": "p13",
+          "token": "Bridge",
+          "module": "Meridian",
+          "lifetime": "singleton",
+          "scope": null,
+          "async": false,
+          "level": 3,
+          "parent": null,
+          "startMs": 33.3,
+          "syncMs": 0.1,
+          "awaitMs": null,
+          "finishMs": 0.0,
+          "durationMs": 0.1,
+          "failed": false
+        }
+      ],
+      "inits": [
+        {
+          "providerId": "p7",
+          "token": "PowerRouter",
+          "level": 1,
+          "async": true,
+          "startMs": 33.4,
+          "syncMs": 0.2,
+          "awaitMs": 3.4,
+          "durationMs": 3.6,
+          "failed": false
+        },
+        {
+          "providerId": "p13",
+          "token": "Bridge",
+          "level": 3,
+          "async": false,
+          "startMs": 37.0,
+          "syncMs": 0.3,
+          "awaitMs": null,
+          "durationMs": 0.3,
+          "failed": false
+        }
+      ],
+      "pending": []
+    },
+    {
+      "id": 1,
+      "kind": "load",
+      "scope": null,
+      "ok": true,
+      "startMs": 42.6,
+      "durationMs": 1.6,
+      "compile": {
+        "startMs": 42.6,
+        "durationMs": 1.0,
+        "modules": 5,
+        "providers": 15,
+        "errors": 0
+      },
+      "steps": [
+        {
+          "step": "compile",
+          "startMs": 42.6,
+          "durationMs": 1.0
+        },
+        {
+          "step": "build",
+          "startMs": 43.6,
+          "durationMs": 0.4
+        },
+        {
+          "step": "setup",
+          "startMs": 44.0,
+          "durationMs": 0.2
+        }
+      ],
+      "builds": [
+        {
+          "providerId": "p14",
+          "token": "Probe",
+          "module": "Science",
+          "lifetime": "singleton",
+          "scope": null,
+          "async": false,
+          "level": 0,
+          "parent": null,
+          "startMs": 43.6,
+          "syncMs": 0.4,
+          "awaitMs": null,
+          "finishMs": 0.0,
+          "durationMs": 0.4,
+          "failed": false
+        }
+      ],
+      "inits": [],
+      "pending": []
+    }
+  ],
+  "graph": {
+    "root": "Meridian",
+    "providers": [
+      {
+        "id": "p0",
+        "token": "ReactorCore",
+        "module": "Engineering",
+        "lifetime": "singleton",
+        "kind": "class",
+        "inline": false
+      },
+      {
+        "id": "p1",
+        "token": "CoolantPump",
+        "module": "Engineering",
+        "lifetime": "singleton",
+        "kind": "class",
+        "inline": false
+      },
+      {
+        "id": "p2",
+        "token": "HullSensors",
+        "module": "Engineering",
+        "lifetime": "singleton",
+        "kind": "class",
+        "inline": false
+      },
+      {
+        "id": "p3",
+        "token": "CrewRoster",
+        "module": "Meridian",
+        "lifetime": "singleton",
+        "kind": "class",
+        "inline": false
+      },
+      {
+        "id": "p4",
+        "token": "StarDatabase",
+        "module": "Tactical",
+        "lifetime": "singleton",
+        "kind": "class",
+        "inline": false
+      },
+      {
+        "id": "p5",
+        "token": "ShipComputer",
+        "module": "Engineering",
+        "lifetime": "singleton",
+        "kind": "class",
+        "inline": false
+      },
+      {
+        "id": "p6",
+        "token": "SubspaceLink",
+        "module": "Comms",
+        "lifetime": "singleton",
+        "kind": "class",
+        "inline": false
+      },
+      {
+        "id": "p7",
+        "token": "PowerRouter",
+        "module": "Engineering",
+        "lifetime": "singleton",
+        "kind": "class",
+        "inline": false
+      },
+      {
+        "id": "p8",
+        "token": "Transponder",
+        "module": "Comms",
+        "lifetime": "singleton",
+        "kind": "class",
+        "inline": false
+      },
+      {
+        "id": "p9",
+        "token": "NavCharts",
+        "module": "Tactical",
+        "lifetime": "singleton",
+        "kind": "class",
+        "inline": false
+      },
+      {
+        "id": "p10",
+        "token": "ShieldGrid",
+        "module": "Tactical",
+        "lifetime": "singleton",
+        "kind": "class",
+        "inline": false
+      },
+      {
+        "id": "p11",
+        "token": "Helm",
+        "module": "Meridian",
+        "lifetime": "singleton",
+        "kind": "class",
+        "inline": false
+      },
+      {
+        "id": "p12",
+        "token": "DiagnosticsPanel",
+        "module": "Engineering",
+        "lifetime": "singleton",
+        "kind": "class",
+        "inline": false
+      },
+      {
+        "id": "p13",
+        "token": "Bridge",
+        "module": "Meridian",
+        "lifetime": "singleton",
+        "kind": "class",
+        "inline": false
+      },
+      {
+        "id": "p14",
+        "token": "Probe",
+        "module": "Science",
+        "lifetime": "singleton",
+        "kind": "class",
+        "inline": false
+      }
+    ],
+    "edges": [
+      {
+        "from": "p5",
+        "to": "p0",
+        "kind": "required",
+        "ordersBuild": true
+      },
+      {
+        "from": "p6",
+        "to": "p1",
+        "kind": "required",
+        "ordersBuild": true
+      },
+      {
+        "from": "p7",
+        "to": "p0",
+        "kind": "required",
+        "ordersBuild": true
+      },
+      {
+        "from": "p8",
+        "to": "p2",
+        "kind": "required",
+        "ordersBuild": true
+      },
+      {
+        "from": "p9",
+        "to": "p6",
+        "kind": "required",
+        "ordersBuild": true
+      },
+      {
+        "from": "p9",
+        "to": "p4",
+        "kind": "required",
+        "ordersBuild": true
+      },
+      {
+        "from": "p10",
+        "to": "p7",
+        "kind": "required",
+        "ordersBuild": true
+      },
+      {
+        "from": "p11",
+        "to": "p5",
+        "kind": "required",
+        "ordersBuild": true
+      },
+      {
+        "from": "p12",
+        "to": "p6",
+        "kind": "required",
+        "ordersBuild": true
+      },
+      {
+        "from": "p12",
+        "to": "p11",
+        "kind": "required",
+        "ordersBuild": true
+      },
+      {
+        "from": "p13",
+        "to": "p9",
+        "kind": "required",
+        "ordersBuild": true
+      },
+      {
+        "from": "p13",
+        "to": "p11",
+        "kind": "required",
+        "ordersBuild": true
+      }
+    ]
+  },
+  "dropped": 0,
+  "dispose": {
+    "startMs": 52.6,
+    "durationMs": 0.8,
+    "errors": 0
+  }
+}

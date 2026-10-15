@@ -1,0 +1,1606 @@
+{
+  "traceEvents": [
+    {
+      "name": "process_name",
+      "ph": "M",
+      "pid": 1,
+      "tid": 1,
+      "ts": 0,
+      "args": {
+        "name": "Renderer"
+      }
+    },
+    {
+      "name": "thread_name",
+      "ph": "M",
+      "pid": 1,
+      "tid": 1,
+      "ts": 0,
+      "args": {
+        "name": "CrRendererMain"
+      }
+    },
+    {
+      "name": "process_name",
+      "ph": "M",
+      "pid": 2,
+      "tid": 2,
+      "ts": 0,
+      "args": {
+        "name": "Browser"
+      }
+    },
+    {
+      "name": "thread_name",
+      "ph": "M",
+      "pid": 2,
+      "tid": 2,
+      "ts": 0,
+      "args": {
+        "name": "CrBrowserMain"
+      }
+    },
+    {
+      "name": "TracingStartedInBrowser",
+      "ph": "I",
+      "s": "t",
+      "cat": "disabled-by-default-devtools.timeline",
+      "pid": 2,
+      "tid": 2,
+      "ts": 0,
+      "args": {
+        "data": {
+          "frameTreeNodeId": 1,
+          "persistentIds": true,
+          "frames": [
+            {
+              "frame": "F1",
+              "name": "",
+              "processId": 1,
+              "isInPrimaryMainFrame": true,
+              "isOutermostMainFrame": true,
+              "url": "nexusdi://profile/Meridian"
+            }
+          ]
+        }
+      }
+    },
+    {
+      "name": "create",
+      "cat": "blink.user_timing",
+      "ph": "b",
+      "id2": {
+        "local": "0x1"
+      },
+      "pid": 1,
+      "tid": 1,
+      "ts": 0,
+      "args": {
+        "detail": "{\"devtools\":{\"dataType\":\"track-entry\",\"track\":\"Runs\",\"trackGroup\":\"NexusDI\",\"color\":\"secondary-dark\",\"properties\":[],\"tooltipText\":\"create\"}}"
+      }
+    },
+    {
+      "name": "create",
+      "cat": "blink.user_timing",
+      "ph": "e",
+      "id2": {
+        "local": "0x1"
+      },
+      "pid": 1,
+      "tid": 1,
+      "ts": 37600,
+      "args": {}
+    },
+    {
+      "name": "compile",
+      "cat": "blink.user_timing",
+      "ph": "b",
+      "id2": {
+        "local": "0x2"
+      },
+      "pid": 1,
+      "tid": 1,
+      "ts": 0,
+      "args": {
+        "detail": "{\"devtools\":{\"dataType\":\"track-entry\",\"track\":\"Steps\",\"trackGroup\":\"NexusDI\",\"color\":\"tertiary\",\"properties\":[],\"tooltipText\":\"compile\"}}"
+      }
+    },
+    {
+      "name": "compile",
+      "cat": "blink.user_timing",
+      "ph": "e",
+      "id2": {
+        "local": "0x2"
+      },
+      "pid": 1,
+      "tid": 1,
+      "ts": 6100,
+      "args": {}
+    },
+    {
+      "name": "build",
+      "cat": "blink.user_timing",
+      "ph": "b",
+      "id2": {
+        "local": "0x3"
+      },
+      "pid": 1,
+      "tid": 1,
+      "ts": 6100,
+      "args": {
+        "detail": "{\"devtools\":{\"dataType\":\"track-entry\",\"track\":\"Steps\",\"trackGroup\":\"NexusDI\",\"color\":\"tertiary\",\"properties\":[],\"tooltipText\":\"build\"}}"
+      }
+    },
+    {
+      "name": "build",
+      "cat": "blink.user_timing",
+      "ph": "e",
+      "id2": {
+        "local": "0x3"
+      },
+      "pid": 1,
+      "tid": 1,
+      "ts": 33400,
+      "args": {}
+    },
+    {
+      "name": "init",
+      "cat": "blink.user_timing",
+      "ph": "b",
+      "id2": {
+        "local": "0x4"
+      },
+      "pid": 1,
+      "tid": 1,
+      "ts": 33400,
+      "args": {
+        "detail": "{\"devtools\":{\"dataType\":\"track-entry\",\"track\":\"Steps\",\"trackGroup\":\"NexusDI\",\"color\":\"tertiary\",\"properties\":[],\"tooltipText\":\"init\"}}"
+      }
+    },
+    {
+      "name": "init",
+      "cat": "blink.user_timing",
+      "ph": "e",
+      "id2": {
+        "local": "0x4"
+      },
+      "pid": 1,
+      "tid": 1,
+      "ts": 37300,
+      "args": {}
+    },
+    {
+      "name": "setup",
+      "cat": "blink.user_timing",
+      "ph": "b",
+      "id2": {
+        "local": "0x5"
+      },
+      "pid": 1,
+      "tid": 1,
+      "ts": 37300,
+      "args": {
+        "detail": "{\"devtools\":{\"dataType\":\"track-entry\",\"track\":\"Steps\",\"trackGroup\":\"NexusDI\",\"color\":\"tertiary\",\"properties\":[],\"tooltipText\":\"setup\"}}"
+      }
+    },
+    {
+      "name": "setup",
+      "cat": "blink.user_timing",
+      "ph": "e",
+      "id2": {
+        "local": "0x5"
+      },
+      "pid": 1,
+      "tid": 1,
+      "ts": 37600,
+      "args": {}
+    },
+    {
+      "name": "ReactorCore",
+      "cat": "blink.user_timing",
+      "ph": "b",
+      "id2": {
+        "local": "0x6"
+      },
+      "pid": 1,
+      "tid": 1,
+      "ts": 6100,
+      "args": {
+        "detail": "{\"devtools\":{\"dataType\":\"track-entry\",\"track\":\"create · level 0\",\"trackGroup\":\"NexusDI\",\"color\":\"primary-dark\",\"properties\":[[\"module\",\"Engineering\"],[\"lifetime\",\"singleton\"],[\"level\",\"0\"],[\"sync ms\",\"0.9\"],[\"await ms\",\"-\"],[\"finish ms\",\"0.0\"],[\"queued ms\",\"0.5\"],[\"run\",\"create\"],[\"critical path\",\"yes\"]],\"tooltipText\":\"ReactorCore 1.4 ms (0.9 sync), critical path\"}}"
+      }
+    },
+    {
+      "name": "ReactorCore",
+      "cat": "blink.user_timing",
+      "ph": "e",
+      "id2": {
+        "local": "0x6"
+      },
+      "pid": 1,
+      "tid": 1,
+      "ts": 7500,
+      "args": {}
+    },
+    {
+      "name": "sync",
+      "cat": "blink.user_timing",
+      "ph": "b",
+      "id2": {
+        "local": "0x7"
+      },
+      "pid": 1,
+      "tid": 1,
+      "ts": 6100,
+      "args": {
+        "detail": "{\"devtools\":{\"dataType\":\"track-entry\",\"track\":\"create · level 0\",\"trackGroup\":\"NexusDI\",\"color\":\"primary-light\",\"properties\":[],\"tooltipText\":\"sync\"}}"
+      }
+    },
+    {
+      "name": "sync",
+      "cat": "blink.user_timing",
+      "ph": "e",
+      "id2": {
+        "local": "0x7"
+      },
+      "pid": 1,
+      "tid": 1,
+      "ts": 7000,
+      "args": {}
+    },
+    {
+      "name": "finish",
+      "cat": "blink.user_timing",
+      "ph": "b",
+      "id2": {
+        "local": "0x8"
+      },
+      "pid": 1,
+      "tid": 1,
+      "ts": 7500,
+      "args": {
+        "detail": "{\"devtools\":{\"dataType\":\"track-entry\",\"track\":\"create · level 0\",\"trackGroup\":\"NexusDI\",\"color\":\"tertiary-light\",\"properties\":[],\"tooltipText\":\"finish\"}}"
+      }
+    },
+    {
+      "name": "finish",
+      "cat": "blink.user_timing",
+      "ph": "e",
+      "id2": {
+        "local": "0x8"
+      },
+      "pid": 1,
+      "tid": 1,
+      "ts": 7500,
+      "args": {}
+    },
+    {
+      "name": "CoolantPump",
+      "cat": "blink.user_timing",
+      "ph": "b",
+      "id2": {
+        "local": "0x9"
+      },
+      "pid": 1,
+      "tid": 1,
+      "ts": 7000,
+      "args": {
+        "detail": "{\"devtools\":{\"dataType\":\"track-entry\",\"track\":\"create · level 0\",\"trackGroup\":\"NexusDI\",\"color\":\"primary\",\"properties\":[[\"module\",\"Engineering\"],[\"lifetime\",\"singleton\"],[\"level\",\"0\"],[\"sync ms\",\"0.2\"],[\"await ms\",\"-\"],[\"finish ms\",\"0.0\"],[\"queued ms\",\"0.3\"],[\"run\",\"create\"],[\"critical path\",\"no\"]],\"tooltipText\":\"CoolantPump 0.5 ms (0.2 sync)\"}}"
+      }
+    },
+    {
+      "name": "CoolantPump",
+      "cat": "blink.user_timing",
+      "ph": "e",
+      "id2": {
+        "local": "0x9"
+      },
+      "pid": 1,
+      "tid": 1,
+      "ts": 7500,
+      "args": {}
+    },
+    {
+      "name": "sync",
+      "cat": "blink.user_timing",
+      "ph": "b",
+      "id2": {
+        "local": "0xa"
+      },
+      "pid": 1,
+      "tid": 1,
+      "ts": 7000,
+      "args": {
+        "detail": "{\"devtools\":{\"dataType\":\"track-entry\",\"track\":\"create · level 0\",\"trackGroup\":\"NexusDI\",\"color\":\"primary-light\",\"properties\":[],\"tooltipText\":\"sync\"}}"
+      }
+    },
+    {
+      "name": "sync",
+      "cat": "blink.user_timing",
+      "ph": "e",
+      "id2": {
+        "local": "0xa"
+      },
+      "pid": 1,
+      "tid": 1,
+      "ts": 7200,
+      "args": {}
+    },
+    {
+      "name": "finish",
+      "cat": "blink.user_timing",
+      "ph": "b",
+      "id2": {
+        "local": "0xb"
+      },
+      "pid": 1,
+      "tid": 1,
+      "ts": 7500,
+      "args": {
+        "detail": "{\"devtools\":{\"dataType\":\"track-entry\",\"track\":\"create · level 0\",\"trackGroup\":\"NexusDI\",\"color\":\"tertiary-light\",\"properties\":[],\"tooltipText\":\"finish\"}}"
+      }
+    },
+    {
+      "name": "finish",
+      "cat": "blink.user_timing",
+      "ph": "e",
+      "id2": {
+        "local": "0xb"
+      },
+      "pid": 1,
+      "tid": 1,
+      "ts": 7500,
+      "args": {}
+    },
+    {
+      "name": "HullSensors",
+      "cat": "blink.user_timing",
+      "ph": "b",
+      "id2": {
+        "local": "0xc"
+      },
+      "pid": 1,
+      "tid": 1,
+      "ts": 7200,
+      "args": {
+        "detail": "{\"devtools\":{\"dataType\":\"track-entry\",\"track\":\"create · level 0\",\"trackGroup\":\"NexusDI\",\"color\":\"primary\",\"properties\":[[\"module\",\"Engineering\"],[\"lifetime\",\"singleton\"],[\"level\",\"0\"],[\"sync ms\",\"0.1\"],[\"await ms\",\"-\"],[\"finish ms\",\"0.0\"],[\"queued ms\",\"0.2\"],[\"run\",\"create\"],[\"critical path\",\"no\"]],\"tooltipText\":\"HullSensors 0.3 ms (0.1 sync)\"}}"
+      }
+    },
+    {
+      "name": "HullSensors",
+      "cat": "blink.user_timing",
+      "ph": "e",
+      "id2": {
+        "local": "0xc"
+      },
+      "pid": 1,
+      "tid": 1,
+      "ts": 7500,
+      "args": {}
+    },
+    {
+      "name": "sync",
+      "cat": "blink.user_timing",
+      "ph": "b",
+      "id2": {
+        "local": "0xd"
+      },
+      "pid": 1,
+      "tid": 1,
+      "ts": 7200,
+      "args": {
+        "detail": "{\"devtools\":{\"dataType\":\"track-entry\",\"track\":\"create · level 0\",\"trackGroup\":\"NexusDI\",\"color\":\"primary-light\",\"properties\":[],\"tooltipText\":\"sync\"}}"
+      }
+    },
+    {
+      "name": "sync",
+      "cat": "blink.user_timing",
+      "ph": "e",
+      "id2": {
+        "local": "0xd"
+      },
+      "pid": 1,
+      "tid": 1,
+      "ts": 7300,
+      "args": {}
+    },
+    {
+      "name": "finish",
+      "cat": "blink.user_timing",
+      "ph": "b",
+      "id2": {
+        "local": "0xe"
+      },
+      "pid": 1,
+      "tid": 1,
+      "ts": 7500,
+      "args": {
+        "detail": "{\"devtools\":{\"dataType\":\"track-entry\",\"track\":\"create · level 0\",\"trackGroup\":\"NexusDI\",\"color\":\"tertiary-light\",\"properties\":[],\"tooltipText\":\"finish\"}}"
+      }
+    },
+    {
+      "name": "finish",
+      "cat": "blink.user_timing",
+      "ph": "e",
+      "id2": {
+        "local": "0xe"
+      },
+      "pid": 1,
+      "tid": 1,
+      "ts": 7500,
+      "args": {}
+    },
+    {
+      "name": "CrewRoster",
+      "cat": "blink.user_timing",
+      "ph": "b",
+      "id2": {
+        "local": "0xf"
+      },
+      "pid": 1,
+      "tid": 1,
+      "ts": 7300,
+      "args": {
+        "detail": "{\"devtools\":{\"dataType\":\"track-entry\",\"track\":\"create · level 0\",\"trackGroup\":\"NexusDI\",\"color\":\"primary\",\"properties\":[[\"module\",\"Meridian\"],[\"lifetime\",\"singleton\"],[\"level\",\"0\"],[\"sync ms\",\"0.1\"],[\"await ms\",\"-\"],[\"finish ms\",\"0.0\"],[\"queued ms\",\"0.1\"],[\"run\",\"create\"],[\"critical path\",\"no\"]],\"tooltipText\":\"CrewRoster 0.2 ms (0.1 sync)\"}}"
+      }
+    },
+    {
+      "name": "CrewRoster",
+      "cat": "blink.user_timing",
+      "ph": "e",
+      "id2": {
+        "local": "0xf"
+      },
+      "pid": 1,
+      "tid": 1,
+      "ts": 7500,
+      "args": {}
+    },
+    {
+      "name": "sync",
+      "cat": "blink.user_timing",
+      "ph": "b",
+      "id2": {
+        "local": "0x10"
+      },
+      "pid": 1,
+      "tid": 1,
+      "ts": 7300,
+      "args": {
+        "detail": "{\"devtools\":{\"dataType\":\"track-entry\",\"track\":\"create · level 0\",\"trackGroup\":\"NexusDI\",\"color\":\"primary-light\",\"properties\":[],\"tooltipText\":\"sync\"}}"
+      }
+    },
+    {
+      "name": "sync",
+      "cat": "blink.user_timing",
+      "ph": "e",
+      "id2": {
+        "local": "0x10"
+      },
+      "pid": 1,
+      "tid": 1,
+      "ts": 7400,
+      "args": {}
+    },
+    {
+      "name": "finish",
+      "cat": "blink.user_timing",
+      "ph": "b",
+      "id2": {
+        "local": "0x11"
+      },
+      "pid": 1,
+      "tid": 1,
+      "ts": 7500,
+      "args": {
+        "detail": "{\"devtools\":{\"dataType\":\"track-entry\",\"track\":\"create · level 0\",\"trackGroup\":\"NexusDI\",\"color\":\"tertiary-light\",\"properties\":[],\"tooltipText\":\"finish\"}}"
+      }
+    },
+    {
+      "name": "finish",
+      "cat": "blink.user_timing",
+      "ph": "e",
+      "id2": {
+        "local": "0x11"
+      },
+      "pid": 1,
+      "tid": 1,
+      "ts": 7500,
+      "args": {}
+    },
+    {
+      "name": "StarDatabase",
+      "cat": "blink.user_timing",
+      "ph": "b",
+      "id2": {
+        "local": "0x12"
+      },
+      "pid": 1,
+      "tid": 1,
+      "ts": 7400,
+      "args": {
+        "detail": "{\"devtools\":{\"dataType\":\"track-entry\",\"track\":\"create · level 0\",\"trackGroup\":\"NexusDI\",\"color\":\"primary\",\"properties\":[[\"module\",\"Tactical\"],[\"lifetime\",\"singleton\"],[\"level\",\"0\"],[\"sync ms\",\"0.1\"],[\"await ms\",\"-\"],[\"finish ms\",\"0.0\"],[\"queued ms\",\"0.0\"],[\"run\",\"create\"],[\"critical path\",\"no\"]],\"tooltipText\":\"StarDatabase 0.1 ms (0.1 sync)\"}}"
+      }
+    },
+    {
+      "name": "StarDatabase",
+      "cat": "blink.user_timing",
+      "ph": "e",
+      "id2": {
+        "local": "0x12"
+      },
+      "pid": 1,
+      "tid": 1,
+      "ts": 7500,
+      "args": {}
+    },
+    {
+      "name": "sync",
+      "cat": "blink.user_timing",
+      "ph": "b",
+      "id2": {
+        "local": "0x13"
+      },
+      "pid": 1,
+      "tid": 1,
+      "ts": 7400,
+      "args": {
+        "detail": "{\"devtools\":{\"dataType\":\"track-entry\",\"track\":\"create · level 0\",\"trackGroup\":\"NexusDI\",\"color\":\"primary-light\",\"properties\":[],\"tooltipText\":\"sync\"}}"
+      }
+    },
+    {
+      "name": "sync",
+      "cat": "blink.user_timing",
+      "ph": "e",
+      "id2": {
+        "local": "0x13"
+      },
+      "pid": 1,
+      "tid": 1,
+      "ts": 7500,
+      "args": {}
+    },
+    {
+      "name": "finish",
+      "cat": "blink.user_timing",
+      "ph": "b",
+      "id2": {
+        "local": "0x14"
+      },
+      "pid": 1,
+      "tid": 1,
+      "ts": 7500,
+      "args": {
+        "detail": "{\"devtools\":{\"dataType\":\"track-entry\",\"track\":\"create · level 0\",\"trackGroup\":\"NexusDI\",\"color\":\"tertiary-light\",\"properties\":[],\"tooltipText\":\"finish\"}}"
+      }
+    },
+    {
+      "name": "finish",
+      "cat": "blink.user_timing",
+      "ph": "e",
+      "id2": {
+        "local": "0x14"
+      },
+      "pid": 1,
+      "tid": 1,
+      "ts": 7500,
+      "args": {}
+    },
+    {
+      "name": "ShipComputer",
+      "cat": "blink.user_timing",
+      "ph": "b",
+      "id2": {
+        "local": "0x15"
+      },
+      "pid": 1,
+      "tid": 1,
+      "ts": 7500,
+      "args": {
+        "detail": "{\"devtools\":{\"dataType\":\"track-entry\",\"track\":\"create · level 1\",\"trackGroup\":\"NexusDI\",\"color\":\"primary-dark\",\"properties\":[[\"module\",\"Engineering\"],[\"lifetime\",\"singleton\"],[\"level\",\"1\"],[\"sync ms\",\"1.1\"],[\"await ms\",\"-\"],[\"finish ms\",\"0.0\"],[\"queued ms\",\"2.5\"],[\"run\",\"create\"],[\"critical path\",\"yes\"]],\"tooltipText\":\"ShipComputer 3.6 ms (1.1 sync), critical path\"}}"
+      }
+    },
+    {
+      "name": "ShipComputer",
+      "cat": "blink.user_timing",
+      "ph": "e",
+      "id2": {
+        "local": "0x15"
+      },
+      "pid": 1,
+      "tid": 1,
+      "ts": 11100,
+      "args": {}
+    },
+    {
+      "name": "sync",
+      "cat": "blink.user_timing",
+      "ph": "b",
+      "id2": {
+        "local": "0x16"
+      },
+      "pid": 1,
+      "tid": 1,
+      "ts": 7500,
+      "args": {
+        "detail": "{\"devtools\":{\"dataType\":\"track-entry\",\"track\":\"create · level 1\",\"trackGroup\":\"NexusDI\",\"color\":\"primary-light\",\"properties\":[],\"tooltipText\":\"sync\"}}"
+      }
+    },
+    {
+      "name": "sync",
+      "cat": "blink.user_timing",
+      "ph": "e",
+      "id2": {
+        "local": "0x16"
+      },
+      "pid": 1,
+      "tid": 1,
+      "ts": 8600,
+      "args": {}
+    },
+    {
+      "name": "finish",
+      "cat": "blink.user_timing",
+      "ph": "b",
+      "id2": {
+        "local": "0x17"
+      },
+      "pid": 1,
+      "tid": 1,
+      "ts": 11100,
+      "args": {
+        "detail": "{\"devtools\":{\"dataType\":\"track-entry\",\"track\":\"create · level 1\",\"trackGroup\":\"NexusDI\",\"color\":\"tertiary-light\",\"properties\":[],\"tooltipText\":\"finish\"}}"
+      }
+    },
+    {
+      "name": "finish",
+      "cat": "blink.user_timing",
+      "ph": "e",
+      "id2": {
+        "local": "0x17"
+      },
+      "pid": 1,
+      "tid": 1,
+      "ts": 11100,
+      "args": {}
+    },
+    {
+      "name": "SubspaceLink",
+      "cat": "blink.user_timing",
+      "ph": "b",
+      "id2": {
+        "local": "0x18"
+      },
+      "pid": 1,
+      "tid": 1,
+      "ts": 8600,
+      "args": {
+        "detail": "{\"devtools\":{\"dataType\":\"track-entry\",\"track\":\"create · level 1\",\"trackGroup\":\"NexusDI\",\"color\":\"primary\",\"properties\":[[\"module\",\"Comms\"],[\"lifetime\",\"singleton\"],[\"level\",\"1\"],[\"sync ms\",\"2.4\"],[\"await ms\",\"-\"],[\"finish ms\",\"0.0\"],[\"queued ms\",\"0.1\"],[\"run\",\"create\"],[\"critical path\",\"no\"]],\"tooltipText\":\"SubspaceLink 2.5 ms (2.4 sync)\"}}"
+      }
+    },
+    {
+      "name": "SubspaceLink",
+      "cat": "blink.user_timing",
+      "ph": "e",
+      "id2": {
+        "local": "0x18"
+      },
+      "pid": 1,
+      "tid": 1,
+      "ts": 11100,
+      "args": {}
+    },
+    {
+      "name": "sync",
+      "cat": "blink.user_timing",
+      "ph": "b",
+      "id2": {
+        "local": "0x19"
+      },
+      "pid": 1,
+      "tid": 1,
+      "ts": 8600,
+      "args": {
+        "detail": "{\"devtools\":{\"dataType\":\"track-entry\",\"track\":\"create · level 1\",\"trackGroup\":\"NexusDI\",\"color\":\"primary-light\",\"properties\":[],\"tooltipText\":\"sync\"}}"
+      }
+    },
+    {
+      "name": "sync",
+      "cat": "blink.user_timing",
+      "ph": "e",
+      "id2": {
+        "local": "0x19"
+      },
+      "pid": 1,
+      "tid": 1,
+      "ts": 11000,
+      "args": {}
+    },
+    {
+      "name": "finish",
+      "cat": "blink.user_timing",
+      "ph": "b",
+      "id2": {
+        "local": "0x1a"
+      },
+      "pid": 1,
+      "tid": 1,
+      "ts": 11100,
+      "args": {
+        "detail": "{\"devtools\":{\"dataType\":\"track-entry\",\"track\":\"create · level 1\",\"trackGroup\":\"NexusDI\",\"color\":\"tertiary-light\",\"properties\":[],\"tooltipText\":\"finish\"}}"
+      }
+    },
+    {
+      "name": "finish",
+      "cat": "blink.user_timing",
+      "ph": "e",
+      "id2": {
+        "local": "0x1a"
+      },
+      "pid": 1,
+      "tid": 1,
+      "ts": 11100,
+      "args": {}
+    },
+    {
+      "name": "PowerRouter",
+      "cat": "blink.user_timing",
+      "ph": "b",
+      "id2": {
+        "local": "0x1b"
+      },
+      "pid": 1,
+      "tid": 1,
+      "ts": 11000,
+      "args": {
+        "detail": "{\"devtools\":{\"dataType\":\"track-entry\",\"track\":\"create · level 1\",\"trackGroup\":\"NexusDI\",\"color\":\"primary\",\"properties\":[[\"module\",\"Engineering\"],[\"lifetime\",\"singleton\"],[\"level\",\"1\"],[\"sync ms\",\"0.1\"],[\"await ms\",\"-\"],[\"finish ms\",\"0.0\"],[\"queued ms\",\"0.0\"],[\"run\",\"create\"],[\"critical path\",\"no\"]],\"tooltipText\":\"PowerRouter 0.1 ms (0.1 sync)\"}}"
+      }
+    },
+    {
+      "name": "PowerRouter",
+      "cat": "blink.user_timing",
+      "ph": "e",
+      "id2": {
+        "local": "0x1b"
+      },
+      "pid": 1,
+      "tid": 1,
+      "ts": 11100,
+      "args": {}
+    },
+    {
+      "name": "sync",
+      "cat": "blink.user_timing",
+      "ph": "b",
+      "id2": {
+        "local": "0x1c"
+      },
+      "pid": 1,
+      "tid": 1,
+      "ts": 11000,
+      "args": {
+        "detail": "{\"devtools\":{\"dataType\":\"track-entry\",\"track\":\"create · level 1\",\"trackGroup\":\"NexusDI\",\"color\":\"primary-light\",\"properties\":[],\"tooltipText\":\"sync\"}}"
+      }
+    },
+    {
+      "name": "sync",
+      "cat": "blink.user_timing",
+      "ph": "e",
+      "id2": {
+        "local": "0x1c"
+      },
+      "pid": 1,
+      "tid": 1,
+      "ts": 11100,
+      "args": {}
+    },
+    {
+      "name": "finish",
+      "cat": "blink.user_timing",
+      "ph": "b",
+      "id2": {
+        "local": "0x1d"
+      },
+      "pid": 1,
+      "tid": 1,
+      "ts": 11100,
+      "args": {
+        "detail": "{\"devtools\":{\"dataType\":\"track-entry\",\"track\":\"create · level 1\",\"trackGroup\":\"NexusDI\",\"color\":\"tertiary-light\",\"properties\":[],\"tooltipText\":\"finish\"}}"
+      }
+    },
+    {
+      "name": "finish",
+      "cat": "blink.user_timing",
+      "ph": "e",
+      "id2": {
+        "local": "0x1d"
+      },
+      "pid": 1,
+      "tid": 1,
+      "ts": 11100,
+      "args": {}
+    },
+    {
+      "name": "Transponder",
+      "cat": "blink.user_timing",
+      "ph": "b",
+      "id2": {
+        "local": "0x1e"
+      },
+      "pid": 1,
+      "tid": 1,
+      "ts": 11100,
+      "args": {
+        "detail": "{\"devtools\":{\"dataType\":\"track-entry\",\"track\":\"create · level 1\",\"trackGroup\":\"NexusDI\",\"color\":\"primary\",\"properties\":[[\"module\",\"Comms\"],[\"lifetime\",\"singleton\"],[\"level\",\"1\"],[\"sync ms\",\"0.0\"],[\"await ms\",\"-\"],[\"finish ms\",\"0.0\"],[\"queued ms\",\"0.0\"],[\"run\",\"create\"],[\"critical path\",\"no\"]],\"tooltipText\":\"Transponder 0.0 ms (0.0 sync)\"}}"
+      }
+    },
+    {
+      "name": "Transponder",
+      "cat": "blink.user_timing",
+      "ph": "e",
+      "id2": {
+        "local": "0x1e"
+      },
+      "pid": 1,
+      "tid": 1,
+      "ts": 11100,
+      "args": {}
+    },
+    {
+      "name": "sync",
+      "cat": "blink.user_timing",
+      "ph": "b",
+      "id2": {
+        "local": "0x1f"
+      },
+      "pid": 1,
+      "tid": 1,
+      "ts": 11100,
+      "args": {
+        "detail": "{\"devtools\":{\"dataType\":\"track-entry\",\"track\":\"create · level 1\",\"trackGroup\":\"NexusDI\",\"color\":\"primary-light\",\"properties\":[],\"tooltipText\":\"sync\"}}"
+      }
+    },
+    {
+      "name": "sync",
+      "cat": "blink.user_timing",
+      "ph": "e",
+      "id2": {
+        "local": "0x1f"
+      },
+      "pid": 1,
+      "tid": 1,
+      "ts": 11100,
+      "args": {}
+    },
+    {
+      "name": "finish",
+      "cat": "blink.user_timing",
+      "ph": "b",
+      "id2": {
+        "local": "0x20"
+      },
+      "pid": 1,
+      "tid": 1,
+      "ts": 11100,
+      "args": {
+        "detail": "{\"devtools\":{\"dataType\":\"track-entry\",\"track\":\"create · level 1\",\"trackGroup\":\"NexusDI\",\"color\":\"tertiary-light\",\"properties\":[],\"tooltipText\":\"finish\"}}"
+      }
+    },
+    {
+      "name": "finish",
+      "cat": "blink.user_timing",
+      "ph": "e",
+      "id2": {
+        "local": "0x20"
+      },
+      "pid": 1,
+      "tid": 1,
+      "ts": 11100,
+      "args": {}
+    },
+    {
+      "name": "NavCharts",
+      "cat": "blink.user_timing",
+      "ph": "b",
+      "id2": {
+        "local": "0x21"
+      },
+      "pid": 1,
+      "tid": 1,
+      "ts": 11100,
+      "args": {
+        "detail": "{\"devtools\":{\"dataType\":\"track-entry\",\"track\":\"create · level 2\",\"trackGroup\":\"NexusDI\",\"color\":\"primary-dark\",\"properties\":[[\"module\",\"Tactical\"],[\"lifetime\",\"singleton\"],[\"level\",\"2\"],[\"sync ms\",\"0.3\"],[\"await ms\",\"21.4\"],[\"finish ms\",\"0.1\"],[\"queued ms\",\"0.0\"],[\"run\",\"create\"],[\"critical path\",\"yes\"]],\"tooltipText\":\"NavCharts 21.8 ms (0.3 sync, 21.4 await), critical path\"}}"
+      }
+    },
+    {
+      "name": "NavCharts",
+      "cat": "blink.user_timing",
+      "ph": "e",
+      "id2": {
+        "local": "0x21"
+      },
+      "pid": 1,
+      "tid": 1,
+      "ts": 32900,
+      "args": {}
+    },
+    {
+      "name": "sync",
+      "cat": "blink.user_timing",
+      "ph": "b",
+      "id2": {
+        "local": "0x22"
+      },
+      "pid": 1,
+      "tid": 1,
+      "ts": 11100,
+      "args": {
+        "detail": "{\"devtools\":{\"dataType\":\"track-entry\",\"track\":\"create · level 2\",\"trackGroup\":\"NexusDI\",\"color\":\"primary-light\",\"properties\":[],\"tooltipText\":\"sync\"}}"
+      }
+    },
+    {
+      "name": "sync",
+      "cat": "blink.user_timing",
+      "ph": "e",
+      "id2": {
+        "local": "0x22"
+      },
+      "pid": 1,
+      "tid": 1,
+      "ts": 11400,
+      "args": {}
+    },
+    {
+      "name": "await",
+      "cat": "blink.user_timing",
+      "ph": "b",
+      "id2": {
+        "local": "0x23"
+      },
+      "pid": 1,
+      "tid": 1,
+      "ts": 11400,
+      "args": {
+        "detail": "{\"devtools\":{\"dataType\":\"track-entry\",\"track\":\"create · level 2\",\"trackGroup\":\"NexusDI\",\"color\":\"secondary\",\"properties\":[],\"tooltipText\":\"await\"}}"
+      }
+    },
+    {
+      "name": "await",
+      "cat": "blink.user_timing",
+      "ph": "e",
+      "id2": {
+        "local": "0x23"
+      },
+      "pid": 1,
+      "tid": 1,
+      "ts": 32800,
+      "args": {}
+    },
+    {
+      "name": "finish",
+      "cat": "blink.user_timing",
+      "ph": "b",
+      "id2": {
+        "local": "0x24"
+      },
+      "pid": 1,
+      "tid": 1,
+      "ts": 32800,
+      "args": {
+        "detail": "{\"devtools\":{\"dataType\":\"track-entry\",\"track\":\"create · level 2\",\"trackGroup\":\"NexusDI\",\"color\":\"tertiary-light\",\"properties\":[],\"tooltipText\":\"finish\"}}"
+      }
+    },
+    {
+      "name": "finish",
+      "cat": "blink.user_timing",
+      "ph": "e",
+      "id2": {
+        "local": "0x24"
+      },
+      "pid": 1,
+      "tid": 1,
+      "ts": 32900,
+      "args": {}
+    },
+    {
+      "name": "ShieldGrid",
+      "cat": "blink.user_timing",
+      "ph": "b",
+      "id2": {
+        "local": "0x25"
+      },
+      "pid": 1,
+      "tid": 1,
+      "ts": 11400,
+      "args": {
+        "detail": "{\"devtools\":{\"dataType\":\"track-entry\",\"track\":\"create · level 2\",\"trackGroup\":\"NexusDI\",\"color\":\"primary\",\"properties\":[[\"module\",\"Tactical\"],[\"lifetime\",\"singleton\"],[\"level\",\"2\"],[\"sync ms\",\"0.1\"],[\"await ms\",\"-\"],[\"finish ms\",\"0.0\"],[\"queued ms\",\"0.1\"],[\"run\",\"create\"],[\"critical path\",\"no\"]],\"tooltipText\":\"ShieldGrid 0.2 ms (0.1 sync)\"}}"
+      }
+    },
+    {
+      "name": "ShieldGrid",
+      "cat": "blink.user_timing",
+      "ph": "e",
+      "id2": {
+        "local": "0x25"
+      },
+      "pid": 1,
+      "tid": 1,
+      "ts": 11600,
+      "args": {}
+    },
+    {
+      "name": "sync",
+      "cat": "blink.user_timing",
+      "ph": "b",
+      "id2": {
+        "local": "0x26"
+      },
+      "pid": 1,
+      "tid": 1,
+      "ts": 11400,
+      "args": {
+        "detail": "{\"devtools\":{\"dataType\":\"track-entry\",\"track\":\"create · level 2\",\"trackGroup\":\"NexusDI\",\"color\":\"primary-light\",\"properties\":[],\"tooltipText\":\"sync\"}}"
+      }
+    },
+    {
+      "name": "sync",
+      "cat": "blink.user_timing",
+      "ph": "e",
+      "id2": {
+        "local": "0x26"
+      },
+      "pid": 1,
+      "tid": 1,
+      "ts": 11500,
+      "args": {}
+    },
+    {
+      "name": "finish",
+      "cat": "blink.user_timing",
+      "ph": "b",
+      "id2": {
+        "local": "0x27"
+      },
+      "pid": 1,
+      "tid": 1,
+      "ts": 11600,
+      "args": {
+        "detail": "{\"devtools\":{\"dataType\":\"track-entry\",\"track\":\"create · level 2\",\"trackGroup\":\"NexusDI\",\"color\":\"tertiary-light\",\"properties\":[],\"tooltipText\":\"finish\"}}"
+      }
+    },
+    {
+      "name": "finish",
+      "cat": "blink.user_timing",
+      "ph": "e",
+      "id2": {
+        "local": "0x27"
+      },
+      "pid": 1,
+      "tid": 1,
+      "ts": 11600,
+      "args": {}
+    },
+    {
+      "name": "Helm",
+      "cat": "blink.user_timing",
+      "ph": "b",
+      "id2": {
+        "local": "0x28"
+      },
+      "pid": 1,
+      "tid": 1,
+      "ts": 11500,
+      "args": {
+        "detail": "{\"devtools\":{\"dataType\":\"track-entry\",\"track\":\"create · level 2\",\"trackGroup\":\"NexusDI\",\"color\":\"primary\",\"properties\":[[\"module\",\"Meridian\"],[\"lifetime\",\"singleton\"],[\"level\",\"2\"],[\"sync ms\",\"0.1\"],[\"await ms\",\"-\"],[\"finish ms\",\"0.0\"],[\"queued ms\",\"0.0\"],[\"run\",\"create\"],[\"critical path\",\"no\"]],\"tooltipText\":\"Helm 0.1 ms (0.1 sync)\"}}"
+      }
+    },
+    {
+      "name": "Helm",
+      "cat": "blink.user_timing",
+      "ph": "e",
+      "id2": {
+        "local": "0x28"
+      },
+      "pid": 1,
+      "tid": 1,
+      "ts": 11600,
+      "args": {}
+    },
+    {
+      "name": "sync",
+      "cat": "blink.user_timing",
+      "ph": "b",
+      "id2": {
+        "local": "0x29"
+      },
+      "pid": 1,
+      "tid": 1,
+      "ts": 11500,
+      "args": {
+        "detail": "{\"devtools\":{\"dataType\":\"track-entry\",\"track\":\"create · level 2\",\"trackGroup\":\"NexusDI\",\"color\":\"primary-light\",\"properties\":[],\"tooltipText\":\"sync\"}}"
+      }
+    },
+    {
+      "name": "sync",
+      "cat": "blink.user_timing",
+      "ph": "e",
+      "id2": {
+        "local": "0x29"
+      },
+      "pid": 1,
+      "tid": 1,
+      "ts": 11600,
+      "args": {}
+    },
+    {
+      "name": "finish",
+      "cat": "blink.user_timing",
+      "ph": "b",
+      "id2": {
+        "local": "0x2a"
+      },
+      "pid": 1,
+      "tid": 1,
+      "ts": 11600,
+      "args": {
+        "detail": "{\"devtools\":{\"dataType\":\"track-entry\",\"track\":\"create · level 2\",\"trackGroup\":\"NexusDI\",\"color\":\"tertiary-light\",\"properties\":[],\"tooltipText\":\"finish\"}}"
+      }
+    },
+    {
+      "name": "finish",
+      "cat": "blink.user_timing",
+      "ph": "e",
+      "id2": {
+        "local": "0x2a"
+      },
+      "pid": 1,
+      "tid": 1,
+      "ts": 11600,
+      "args": {}
+    },
+    {
+      "name": "DiagnosticsPanel",
+      "cat": "blink.user_timing",
+      "ph": "b",
+      "id2": {
+        "local": "0x2b"
+      },
+      "pid": 1,
+      "tid": 1,
+      "ts": 32900,
+      "args": {
+        "detail": "{\"devtools\":{\"dataType\":\"track-entry\",\"track\":\"create · level 3\",\"trackGroup\":\"NexusDI\",\"color\":\"primary-dark\",\"properties\":[[\"module\",\"Engineering\"],[\"lifetime\",\"singleton\"],[\"level\",\"3\"],[\"sync ms\",\"0.4\"],[\"await ms\",\"-\"],[\"finish ms\",\"0.0\"],[\"queued ms\",\"0.1\"],[\"run\",\"create\"],[\"critical path\",\"yes\"]],\"tooltipText\":\"DiagnosticsPanel 0.5 ms (0.4 sync), critical path\"}}"
+      }
+    },
+    {
+      "name": "DiagnosticsPanel",
+      "cat": "blink.user_timing",
+      "ph": "e",
+      "id2": {
+        "local": "0x2b"
+      },
+      "pid": 1,
+      "tid": 1,
+      "ts": 33400,
+      "args": {}
+    },
+    {
+      "name": "sync",
+      "cat": "blink.user_timing",
+      "ph": "b",
+      "id2": {
+        "local": "0x2c"
+      },
+      "pid": 1,
+      "tid": 1,
+      "ts": 32900,
+      "args": {
+        "detail": "{\"devtools\":{\"dataType\":\"track-entry\",\"track\":\"create · level 3\",\"trackGroup\":\"NexusDI\",\"color\":\"primary-light\",\"properties\":[],\"tooltipText\":\"sync\"}}"
+      }
+    },
+    {
+      "name": "sync",
+      "cat": "blink.user_timing",
+      "ph": "e",
+      "id2": {
+        "local": "0x2c"
+      },
+      "pid": 1,
+      "tid": 1,
+      "ts": 33300,
+      "args": {}
+    },
+    {
+      "name": "finish",
+      "cat": "blink.user_timing",
+      "ph": "b",
+      "id2": {
+        "local": "0x2d"
+      },
+      "pid": 1,
+      "tid": 1,
+      "ts": 33400,
+      "args": {
+        "detail": "{\"devtools\":{\"dataType\":\"track-entry\",\"track\":\"create · level 3\",\"trackGroup\":\"NexusDI\",\"color\":\"tertiary-light\",\"properties\":[],\"tooltipText\":\"finish\"}}"
+      }
+    },
+    {
+      "name": "finish",
+      "cat": "blink.user_timing",
+      "ph": "e",
+      "id2": {
+        "local": "0x2d"
+      },
+      "pid": 1,
+      "tid": 1,
+      "ts": 33400,
+      "args": {}
+    },
+    {
+      "name": "Bridge",
+      "cat": "blink.user_timing",
+      "ph": "b",
+      "id2": {
+        "local": "0x2e"
+      },
+      "pid": 1,
+      "tid": 1,
+      "ts": 33300,
+      "args": {
+        "detail": "{\"devtools\":{\"dataType\":\"track-entry\",\"track\":\"create · level 3\",\"trackGroup\":\"NexusDI\",\"color\":\"primary\",\"properties\":[[\"module\",\"Meridian\"],[\"lifetime\",\"singleton\"],[\"level\",\"3\"],[\"sync ms\",\"0.1\"],[\"await ms\",\"-\"],[\"finish ms\",\"0.0\"],[\"queued ms\",\"0.0\"],[\"run\",\"create\"],[\"critical path\",\"no\"]],\"tooltipText\":\"Bridge 0.1 ms (0.1 sync)\"}}"
+      }
+    },
+    {
+      "name": "Bridge",
+      "cat": "blink.user_timing",
+      "ph": "e",
+      "id2": {
+        "local": "0x2e"
+      },
+      "pid": 1,
+      "tid": 1,
+      "ts": 33400,
+      "args": {}
+    },
+    {
+      "name": "sync",
+      "cat": "blink.user_timing",
+      "ph": "b",
+      "id2": {
+        "local": "0x2f"
+      },
+      "pid": 1,
+      "tid": 1,
+      "ts": 33300,
+      "args": {
+        "detail": "{\"devtools\":{\"dataType\":\"track-entry\",\"track\":\"create · level 3\",\"trackGroup\":\"NexusDI\",\"color\":\"primary-light\",\"properties\":[],\"tooltipText\":\"sync\"}}"
+      }
+    },
+    {
+      "name": "sync",
+      "cat": "blink.user_timing",
+      "ph": "e",
+      "id2": {
+        "local": "0x2f"
+      },
+      "pid": 1,
+      "tid": 1,
+      "ts": 33400,
+      "args": {}
+    },
+    {
+      "name": "finish",
+      "cat": "blink.user_timing",
+      "ph": "b",
+      "id2": {
+        "local": "0x30"
+      },
+      "pid": 1,
+      "tid": 1,
+      "ts": 33400,
+      "args": {
+        "detail": "{\"devtools\":{\"dataType\":\"track-entry\",\"track\":\"create · level 3\",\"trackGroup\":\"NexusDI\",\"color\":\"tertiary-light\",\"properties\":[],\"tooltipText\":\"finish\"}}"
+      }
+    },
+    {
+      "name": "finish",
+      "cat": "blink.user_timing",
+      "ph": "e",
+      "id2": {
+        "local": "0x30"
+      },
+      "pid": 1,
+      "tid": 1,
+      "ts": 33400,
+      "args": {}
+    },
+    {
+      "name": "PowerRouter",
+      "cat": "blink.user_timing",
+      "ph": "b",
+      "id2": {
+        "local": "0x31"
+      },
+      "pid": 1,
+      "tid": 1,
+      "ts": 33400,
+      "args": {
+        "detail": "{\"devtools\":{\"dataType\":\"track-entry\",\"track\":\"create · onInit\",\"trackGroup\":\"NexusDI\",\"color\":\"primary\",\"properties\":[],\"tooltipText\":\"PowerRouter onInit 3.6 ms\"}}"
+      }
+    },
+    {
+      "name": "PowerRouter",
+      "cat": "blink.user_timing",
+      "ph": "e",
+      "id2": {
+        "local": "0x31"
+      },
+      "pid": 1,
+      "tid": 1,
+      "ts": 37000,
+      "args": {}
+    },
+    {
+      "name": "Bridge",
+      "cat": "blink.user_timing",
+      "ph": "b",
+      "id2": {
+        "local": "0x32"
+      },
+      "pid": 1,
+      "tid": 1,
+      "ts": 37000,
+      "args": {
+        "detail": "{\"devtools\":{\"dataType\":\"track-entry\",\"track\":\"create · onInit\",\"trackGroup\":\"NexusDI\",\"color\":\"primary\",\"properties\":[],\"tooltipText\":\"Bridge onInit 0.3 ms\"}}"
+      }
+    },
+    {
+      "name": "Bridge",
+      "cat": "blink.user_timing",
+      "ph": "e",
+      "id2": {
+        "local": "0x32"
+      },
+      "pid": 1,
+      "tid": 1,
+      "ts": 37300,
+      "args": {}
+    },
+    {
+      "name": "create ready",
+      "cat": "blink.user_timing",
+      "ph": "b",
+      "id2": {
+        "local": "0x33"
+      },
+      "pid": 1,
+      "tid": 1,
+      "ts": 37600,
+      "args": {
+        "detail": "{\"devtools\":{\"dataType\":\"marker\",\"color\":\"tertiary-dark\",\"properties\":[],\"tooltipText\":\"create ready\"}}"
+      }
+    },
+    {
+      "name": "create ready",
+      "cat": "blink.user_timing",
+      "ph": "e",
+      "id2": {
+        "local": "0x33"
+      },
+      "pid": 1,
+      "tid": 1,
+      "ts": 37600,
+      "args": {}
+    },
+    {
+      "name": "load 1",
+      "cat": "blink.user_timing",
+      "ph": "b",
+      "id2": {
+        "local": "0x34"
+      },
+      "pid": 1,
+      "tid": 1,
+      "ts": 42600,
+      "args": {
+        "detail": "{\"devtools\":{\"dataType\":\"track-entry\",\"track\":\"Runs\",\"trackGroup\":\"NexusDI\",\"color\":\"secondary-dark\",\"properties\":[],\"tooltipText\":\"load 1\"}}"
+      }
+    },
+    {
+      "name": "load 1",
+      "cat": "blink.user_timing",
+      "ph": "e",
+      "id2": {
+        "local": "0x34"
+      },
+      "pid": 1,
+      "tid": 1,
+      "ts": 44200,
+      "args": {}
+    },
+    {
+      "name": "compile",
+      "cat": "blink.user_timing",
+      "ph": "b",
+      "id2": {
+        "local": "0x35"
+      },
+      "pid": 1,
+      "tid": 1,
+      "ts": 42600,
+      "args": {
+        "detail": "{\"devtools\":{\"dataType\":\"track-entry\",\"track\":\"Steps\",\"trackGroup\":\"NexusDI\",\"color\":\"tertiary\",\"properties\":[],\"tooltipText\":\"compile\"}}"
+      }
+    },
+    {
+      "name": "compile",
+      "cat": "blink.user_timing",
+      "ph": "e",
+      "id2": {
+        "local": "0x35"
+      },
+      "pid": 1,
+      "tid": 1,
+      "ts": 43600,
+      "args": {}
+    },
+    {
+      "name": "build",
+      "cat": "blink.user_timing",
+      "ph": "b",
+      "id2": {
+        "local": "0x36"
+      },
+      "pid": 1,
+      "tid": 1,
+      "ts": 43600,
+      "args": {
+        "detail": "{\"devtools\":{\"dataType\":\"track-entry\",\"track\":\"Steps\",\"trackGroup\":\"NexusDI\",\"color\":\"tertiary\",\"properties\":[],\"tooltipText\":\"build\"}}"
+      }
+    },
+    {
+      "name": "build",
+      "cat": "blink.user_timing",
+      "ph": "e",
+      "id2": {
+        "local": "0x36"
+      },
+      "pid": 1,
+      "tid": 1,
+      "ts": 44000,
+      "args": {}
+    },
+    {
+      "name": "setup",
+      "cat": "blink.user_timing",
+      "ph": "b",
+      "id2": {
+        "local": "0x37"
+      },
+      "pid": 1,
+      "tid": 1,
+      "ts": 44000,
+      "args": {
+        "detail": "{\"devtools\":{\"dataType\":\"track-entry\",\"track\":\"Steps\",\"trackGroup\":\"NexusDI\",\"color\":\"tertiary\",\"properties\":[],\"tooltipText\":\"setup\"}}"
+      }
+    },
+    {
+      "name": "setup",
+      "cat": "blink.user_timing",
+      "ph": "e",
+      "id2": {
+        "local": "0x37"
+      },
+      "pid": 1,
+      "tid": 1,
+      "ts": 44200,
+      "args": {}
+    },
+    {
+      "name": "Probe",
+      "cat": "blink.user_timing",
+      "ph": "b",
+      "id2": {
+        "local": "0x38"
+      },
+      "pid": 1,
+      "tid": 1,
+      "ts": 43600,
+      "args": {
+        "detail": "{\"devtools\":{\"dataType\":\"track-entry\",\"track\":\"load 1 · level 0\",\"trackGroup\":\"NexusDI\",\"color\":\"primary-dark\",\"properties\":[[\"module\",\"Science\"],[\"lifetime\",\"singleton\"],[\"level\",\"0\"],[\"sync ms\",\"0.4\"],[\"await ms\",\"-\"],[\"finish ms\",\"0.0\"],[\"queued ms\",\"0.0\"],[\"run\",\"load 1\"],[\"critical path\",\"yes\"]],\"tooltipText\":\"Probe 0.4 ms (0.4 sync), critical path\"}}"
+      }
+    },
+    {
+      "name": "Probe",
+      "cat": "blink.user_timing",
+      "ph": "e",
+      "id2": {
+        "local": "0x38"
+      },
+      "pid": 1,
+      "tid": 1,
+      "ts": 44000,
+      "args": {}
+    },
+    {
+      "name": "sync",
+      "cat": "blink.user_timing",
+      "ph": "b",
+      "id2": {
+        "local": "0x39"
+      },
+      "pid": 1,
+      "tid": 1,
+      "ts": 43600,
+      "args": {
+        "detail": "{\"devtools\":{\"dataType\":\"track-entry\",\"track\":\"load 1 · level 0\",\"trackGroup\":\"NexusDI\",\"color\":\"primary-light\",\"properties\":[],\"tooltipText\":\"sync\"}}"
+      }
+    },
+    {
+      "name": "sync",
+      "cat": "blink.user_timing",
+      "ph": "e",
+      "id2": {
+        "local": "0x39"
+      },
+      "pid": 1,
+      "tid": 1,
+      "ts": 44000,
+      "args": {}
+    },
+    {
+      "name": "finish",
+      "cat": "blink.user_timing",
+      "ph": "b",
+      "id2": {
+        "local": "0x3a"
+      },
+      "pid": 1,
+      "tid": 1,
+      "ts": 44000,
+      "args": {
+        "detail": "{\"devtools\":{\"dataType\":\"track-entry\",\"track\":\"load 1 · level 0\",\"trackGroup\":\"NexusDI\",\"color\":\"tertiary-light\",\"properties\":[],\"tooltipText\":\"finish\"}}"
+      }
+    },
+    {
+      "name": "finish",
+      "cat": "blink.user_timing",
+      "ph": "e",
+      "id2": {
+        "local": "0x3a"
+      },
+      "pid": 1,
+      "tid": 1,
+      "ts": 44000,
+      "args": {}
+    },
+    {
+      "name": "load 1 ready",
+      "cat": "blink.user_timing",
+      "ph": "b",
+      "id2": {
+        "local": "0x3b"
+      },
+      "pid": 1,
+      "tid": 1,
+      "ts": 44200,
+      "args": {
+        "detail": "{\"devtools\":{\"dataType\":\"marker\",\"color\":\"tertiary-dark\",\"properties\":[],\"tooltipText\":\"load 1 ready\"}}"
+      }
+    },
+    {
+      "name": "load 1 ready",
+      "cat": "blink.user_timing",
+      "ph": "e",
+      "id2": {
+        "local": "0x3b"
+      },
+      "pid": 1,
+      "tid": 1,
+      "ts": 44200,
+      "args": {}
+    }
+  ],
+  "metadata": {
+    "nexusdi-profile": 1
+  }
+}
