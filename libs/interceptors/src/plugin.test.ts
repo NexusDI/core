@@ -62,7 +62,7 @@ const Billing = defineModule({
   exports: [PAYMENTS],
 });
 
-describe('interceptors()', () => {
+describe('interceptors', () => {
   it('intercepts a declared method and resolves the interceptor deps', async () => {
     await using ship = await Nexus.create(Billing, { plugins: [plugin()] });
     expect(ship.get(PAYMENTS).charge(5)).toBe(5);
