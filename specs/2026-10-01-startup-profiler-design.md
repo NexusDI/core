@@ -1110,11 +1110,16 @@ Anchors:
   profile, and keeps exit code 0. One anchor with samples is enough to align.
 - `libs/cli` builds with `tsc` and no minifier, so the names stay intact.
 - Error bar: the lab measured 0.22 ms and 0.43 ms agreement at 50 µs on macOS, with the
-  first-sample rule. With the bounds rule, 30 runs of the Meridian fixture on macOS gave `errorMs` median 0.041 ms and max 0.15 ms at 100 µs, with no crossed bounds. At 50 µs: median 0.020 ms and max 0.057 ms, and 2 of 30 runs crossed by at most 0.11 ms. A
+  first-sample rule. With the bounds rule, 30 runs of the Meridian fixture on macOS gave
+  `errorMs` median 0.041 ms and max 0.15 ms at 100 µs, with no crossed bounds. At 50 µs:
+  median 0.020 ms and max 0.057 ms, and 2 of 30 runs crossed by at most 0.11 ms. A
   `cpu.test.ts` case aligns 10 runs at 100 µs, asserts the median within
-  `max(1 ms, 4 × interval)`, and writes the median and max to the GitHub job summary; that
-  summary gives the Linux figure. The docs state the error bar as at most
-  `max(errorMs, interval)`, never below one sampling interval.
+  `max(1 ms, 4 × interval)`, and writes the median and max to the GitHub job summary. On the
+  CI run of draft PR #116 (run 38676351912, ubuntu-24.04, 100 µs) it gave median 0.071 ms and max 1.673 ms on
+  Node 24.20.0 in the `main` job, which runs the other targets in parallel, and median
+  0.052 ms and max 0.067 ms on Node 22.12.0 in `cli-node-floor`. Every run aligned, and none crossed
+  its bounds. The docs state the error bar as at most `max(errorMs, interval)`, never below
+  one sampling interval.
 
 The V8 profile clock and `performance.now()` differ (the lab measured a 376,936 s offset on
 macOS), which is why alignment uses anchors. `process.hrtime` does not close the gap: on
