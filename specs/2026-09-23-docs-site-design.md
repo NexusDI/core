@@ -6,7 +6,8 @@ decision in section 2 and resolved every open question of the earlier revisions.
 refresh rewrites the inventory, the phases and the deploy sections to match rc.0. Where
 an earlier revision of this spec, or another spec, disagrees with the code at the rc.0 tag,
 the code wins, and section 21 lists each case. Section 20 lists the owner steps phase 1
-waits for; no owner decision is open.
+waits for; no owner decision is open. Section 22 amends sections 5.8 and 14.1 to 14.3
+for the API reference port (2026-10-15).
 Packages: `apps/docs` (exists, `@nexusdi/docs`, private), `apps/docs-e2e` (new, Playwright),
 `internal/meridian-ui` (new, private), `examples/meridian` (new, private),
 `tools/doc-examples` (the libraries copy, extended), `tools/repo-checks` (extended). No
@@ -890,6 +891,8 @@ both. `/upgrade-behaviour/`, `/runtimes/` and `/comparison/` have one H2 per ent
 each entry states its evidence beside it.
 
 ### 5.8 Reference page
+
+Section 22 amends this section.
 
 The package API pages (rows 43 to 51 of section 4.3, phase 2) follow
 `2026-09-21-docs-api-reference.md`: one `## \`symbol\`` heading
@@ -2200,6 +2203,8 @@ asserts that a full mission run requests nothing outside the site's origin (sect
 
 ### 14.1 `tools/doc-examples`
 
+Section 22 amends this section.
+
 The package is copied from the libraries repo's `tools/doc-examples` at a pinned commit
 (`f3f266d` or the newer commit current when Phase 1 starts), and the commit that adds it
 names that libraries commit. From then on this repository owns it. The copy is the whole
@@ -2233,6 +2238,8 @@ writes the `.md` siblings through them on every branch that builds the site.
 a type-check test compiles every block of them with the compiler options of section 11.3.
 
 ### 14.2 Loaders and build steps
+
+Section 22 amends this section.
 
 `apps/docs/next.config.ts` registers the loader chain under `turbopack.rules['*.mdx']`, in
 the libraries order, which Turbopack runs in reverse. Phase 1 registers loaders 1, 2, 4 and
@@ -2286,6 +2293,8 @@ same). `tools/check-budgets.mjs` runs after `postbuild` on every site the deploy
 and `final` mode, and PR #71 reverted `rc` for want of them.
 
 ### 14.3 Guards
+
+Section 22 amends this section.
 
 Each guard lives in `tools/repo-checks/src` and follows the libraries shape: read the
 content tree, hold it against something derived, fail with a message naming the file and
@@ -3128,3 +3137,83 @@ the `@nexusdi/core@0.4.0-rc.0` tag. Each case below follows the code.
     `release.yml` then sets `--latest` with `gh release edit`. An rc is a prerelease and
     never becomes latest. `workflow-release-latest` covers the `gh release create` calls,
     `docs-snapshot.yml`'s and `release.yml`'s.
+
+## 22. Amendment: the API reference port (2026-10-15)
+
+The owner decided on 2026-10-15 that the package API pages (rows 43 to 50 of section 4.3)
+ship for 0.4, built from the API reference components of the libraries repo and restyled
+for this site. The architect measured the libraries code against `release/0.4` at
+`7bd9b8f` and found eleven places where section 5.8 and sections 14.1 to 14.3 no longer
+fit. Each item below overrides the text it names. The plan is
+`specs/plans/2026-10-15-docs-api-reference.md` on `feat/docs-api-reference`.
+
+1. Port source. The port copies from `Evanion/libraries` `main` at `92320250`
+   (2026-10-14), which is newer than the documents `libraries-pin.json` pins. The commit
+   that copies a file names that SHA. The documents stay at the pinned SHA until a pin bump
+   pull request (section 14.5) moves them.
+2. Example source. NexusDI moved each package's reference examples out of its README into
+   region files under `libs/<pkg>/docs/*.md` (`core` has six, every other package has
+   `examples.md`), and each package runs them as tests. A directive's `example=<region>`
+   names a region in the package's `README.md` or in one of its `docs/*.md` files. The
+   loader reads every one of those files, and the build fails when no file holds the region
+   or when two files do. The libraries `examples-file.mjs` reads one `docs/examples.md`, so
+   the port adapts it to a list. `doc-regions` checks `libs/*/docs/*.md` beside the READMEs.
+3. Two class prefixes. Section 14.1, change 3, gave the reference loader one `classPrefix`
+   for every class it emits. The kind class belongs to the design system, which already
+   generates `.meridian-kind-<kind>` and binds `--meridian-kind` (section 5.8), so one
+   prefix emits `nexus-kind-<kind>`, a class no stylesheet defines. The loader takes
+   `classPrefix` for the entry's own elements (`nexus-api-entry…`) and `kindPrefix` for the
+   kind class (`meridian-kind-<kind>`). Neither option has a default. One module,
+   `apps/docs/tools/reference-options.mjs`, holds both values, and the loader chain,
+   `tools/md-siblings.mjs` and the repo-checks loaders import it.
+4. Emitted components. The libraries loader emits baize-ui's `<Chip>` and `<Figure>`. On
+   this site `<Figure of>` is the benchmark figure of section 4.6 and fails the build
+   without a path, so the loader writes the behaviour count as a plain
+   `<span className="nexus-api-entry__states-count-value">`. `<Chip>` becomes a stateless
+   component of `@nexusdi/meridian-ui`, and the docs app maps it in `mdx-components.js`
+   beside `<BehaviourCatalogue>` and `<ApiFilter>`.
+5. Loader order. Turbopack runs `turbopack.rules['*.mdx'].loaders` from the last entry to
+   the first, so the numbered list of section 14.2 runs the prelude before the reference
+   loader writes its fences. The twoslash prelude is the first entry of the list, and it
+   therefore runs last, over every fence the other loaders wrote.
+6. The prelude arrives with the API pages. The reference loader emits a `twoslash`
+   signature fence and a `twoslash` example fence for each entry, so the prelude,
+   `apps/docs/components/runtime/compiler-options.ts`, `runtime-globals.d.ts` and the
+   `doc-twoslash` guard arrive with the first API page, before the Playground. The
+   Playground of section 11 reads the same module when it arrives. Measured under
+   twoslash 0.3.9, a fence that imports `@nexusdi/core` and calls `console.log` fails with
+   TS2584 under Nextra's defaults and compiles under the prelude.
+7. `docs:behaviour-data`. The target writes an index per library to
+   `apps/docs/components/api/behaviour/<dir>.json`, which the loader reads during the
+   build, and the highlighted cases to `apps/docs/public/behaviour/<dir>.json`, which the
+   catalogue fetches when a reader scrolls it into view. Both paths are gitignored. The
+   library list is every `libs/*` package whose `exports` map holds an entry other than
+   `./package.json`, read from the package files, so `@nexusdi/cli` has no data and a new
+   package needs no edit to the target. The cases are highlighted with Nextra's own themes
+   (`github-light`, `github-dark`) as CSS variables, so the libraries `code-classes.mjs` is
+   not ported. The catalogue fetches through the base path, which `next.config.ts` exposes
+   to the client as `NEXUS_BASE_PATH`, because `/next/` serves the sidecar at
+   `/next/behaviour/<dir>.json`.
+8. Guards. `doc-reference` adds one rule to the libraries version: every export an API
+   page names carries a docblock summary, because an entry renders that summary as its
+   first sentence. G11 `doc-behaviour` keeps its exceptions inline, as the libraries file
+   does, and starts with none. `doc-behaviour-run` holds each sentence against the
+   package's own run, so every `libs/*/vite.config.ts` adds Vitest's `json` reporter with
+   `outputFile: './test-output/vitest/coverage/report.json'`, inside the directory the
+   `test` target already caches. `doc-behaviour-render` and `doc-twoslash` are ported.
+9. G10 `doc-export-coverage`. G10 finds a package's page by frontmatter: a `reference`
+   page carries `package: '<name>'`, the field the code pages already carry, and every
+   library of item 7 has exactly one such page. The error classes of `@nexusdi/core` are
+   exempt from the heading rule, since each has a code page under `/errors/` and
+   `/api-errors/` lists them. Every other export of every entry has a `##` heading. The
+   exercised rule keeps its allowance and ratchet. The heading rule has no allowance.
+10. Later packages. A package that adds exports or a library entry adds its entries in the
+    same pull request, because G10 fails the merge otherwise. A new library gets a page at
+    `/api-<dir>/` with `kind: reference` and `package`, and an entry under the API
+    separator of `_meta.ts`. This rule replaces row 51's single `/api-react/` with one page
+    per package the integrations line publishes (`express`, `fastify`, `hono`, `react`,
+    `react-router`, `vitest` on `feat/integrations-0.4`), and it covers the profiler's
+    exports and its `./live` entry on `/api-devtools/` (`feat/startup-profiler`).
+11. Scope in `libs/`. Docblocks and `describe` titles in `libs/*`, and the reporter of
+    item 8, are in scope. They change no runtime behaviour and no type. Section 19's "any
+    change to core for the docs' sake" means a change to what core does or exports.
