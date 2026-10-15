@@ -61,10 +61,9 @@ retained heap and bundle bytes, each against provider count.
    never timed.
 9. One fresh-process timing block per shape holds every size, so drift on the runner falls
    evenly on every size, and growth exponents come from paired per-round ratios between
-   sizes (section 6.4). A serial heap block of its own per shape produces `heap-ready`
-   (section 7.1).
-10. `mixed` runs 1,000 measured rounds, the published minimum of section 14.4, until the
-    width rule of section 7.4 decides a count from the first run. `wide`, `deep`,
+   sizes (section 6.4). `heap-ready` comes from the same rounds.
+10. `mixed` runs 1,000 measured rounds, the published minimum of section 14.4, by the
+    rule of section 7.4, which the first dispatch run applied. `wide`, `deep`,
     `modular` and `mixed-async` run 200, and their tables print the round count.
     Relative claims in the README, the docs and the launch post come from `mixed` only.
 11. Two new results files: `results/scale.json` (deterministic, committed, held by
@@ -74,304 +73,11 @@ retained heap and bundle bytes, each against provider count.
     dependency. The charts are log-log: startup time against providers, and gzip bundle
     bytes against providers.
 13. Pull requests run the deterministic writer with `--check` and a 50-provider timing
-    smoke under `tmp/` in both child modes. The timing run is one job per shape plus a
+    smoke under `tmp/`. The timing run is one job per shape plus a
     steady job (section 10.2). `build-scale-200` and `scale.ts` stay as they are.
-14. The child has a timing mode and a heap mode (section 6.1). Timing rounds drop the heap
-    settles, which halve the cost of a round, and a paired protocol check on the first
-    dispatch run decides whether that changes any comparison (section 7.4).
-
-## 3. The graphs
-
-### 3.1 The model
-
-`src/scale/graph.ts` declares the one graph type every shape produces and every renderer
-reads:
-
-```ts
-type ProviderKind = 'class' | 'factory' | 'async-factory' | 'value' | 'alias';
-
-interface ScaleProvider {
-  /** 0..n-1; also the order of the token table in every rendered app. */
-  index: number;
-  /** p<index>, zero-padded to the width of n-1, e.g. p0042. */
-  name: string;
-  kind: ProviderKind;
-  /** Indexes, in constructor order. A value has none and an alias one. */
-  deps: number[];
-  /** Index into modules. Single-module shapes put every provider in module 0. */
-  module: number;
-}
-
-interface ScaleModule {
-  name: string; // m<index>, zero-padded
-  tier: number;
-  imports: number[];
-  /** Provider indexes the module exports. */
-  exports: number[];
-}
-
-interface ScaleGraph {
-  shape: Shape;
-  size: number;
-  seed: number;
-  providers: ScaleProvider[];
-  modules: ScaleModule[];
-  /** Modules the root imports: those no other module imports. */
-  rootImports: number[];
-  /** Providers get() may ask for at the root: the exports of rootImports, or all for one module. */
-  entries: number[];
-  /** The provider with the largest transitive closure in the whole graph, lowest index on a tie. */
-  target: number;
-}
-```
-
-An `alias` provider has exactly one dep, the provider it aliases, and shares that
-provider's instance; it constructs nothing, like a value. The target is any provider, not
-only an entry: real apps reach their largest closure through a provider the framework
-resolves inside its module, and NexusDI's adapter already passes `{ module }` for a
-provider outside `entries`. The four competitors are flat and need no change.
-
-Every dependency points to a lower index, so the graph is acyclic by construction and a
-renderer can emit providers in index order. `checkGraph(graph)` asserts that, that an
-alias has one dep, and that every dependency is visible: in the provider's own module, or exported by a module its
-module imports directly. NexusDI enforces that rule, so a graph that breaks it would not
-compile in NexusDI and would compile everywhere else.
-
-`describeGraph(graph)` returns the figures `scale.json` records: provider, edge and module
-counts, maximum depth in edges (an alias hop counts as an edge, since every container does
-a lookup per hop), mean and maximum fan-out, maximum fan-in, the count of each kind, the
-target and its closure size, and `hash`: the first 12 hex digits of the SHA-256
-of the canonical JSON of `providers` and `modules`.
-
-The graph seed is `GRAPH_SEED = 20261001` in `src/scale/config.ts`. It changes only when
-the generator changes, which also changes every hash, and the change is reviewed like a
-fixture change. The sampling seed stays `--seed` (the run id in CI), as it is today.
-
-Each shape draws from its own stream, `mulberry32(GRAPH_SEED ^ hash32(shape) ^ size)`,
-where `hash32` is FNV-1a over the shape name. Changing one shape's algorithm leaves the
-others' graphs unchanged.
-
-### 3.2 `wide`
-
-The first `⌈n/5⌉` providers are leaves. Every other provider takes two distinct leaves,
-drawn uniformly. Depth 1, mean fan-out 1.6, one module, every provider a class. It shows
-per-registration and per-lookup work with no recursion and no module structure.
-
-### 3.3 `mixed`
-
-The realistic shape, calibrated against a census of 22 real applications (section 15).
-Every parameter below is a named constant in `src/scale/shapes.ts` that cites the measured
-figure it follows.
-
-- Module sizes are log-normal: `round(exp(ln 3 + 1.18 z))`, `z` a standard normal draw,
-  clamped to 1 to 250. The NestJS pool (1,350 modules) has median 3 and mean 6, and the
-  largest module measured holds 243 providers. Core takes at least 3 so the hubs fit, the
-  last module takes the remainder, and modules sit in index order.
-- There are `T = max(4, round(sqrt M))` tiers for `M` modules, and module `k` sits in tier
-  `floor(T k / M)`. The tier count is the lever that fits the measured depth bands.
-- Module 0 is `core`, tier 0, with three exported hub providers: `config` (a value),
-  `clock` (a factory with no deps) and `logger` (a class taking `config`). Every other
-  module imports `core`, one module of tier `t - 1` where one exists besides core, and
-  `draw - 1` extra imports, `draw` taken from the bins 1: 20%, 2: 25%, 3: 20%, 4 to 6:
-  25%, 7 to 12: 10% (about 4.4 imports per module, the pooled NestJS figure, which counts
-  library modules and so is a ceiling). An extra import comes from tiers `t - 2` and
-  `t - 1` with probability 0.8, else from any lower tier. Only NexusDI expresses module
-  imports at runtime, so a mean above the measured one would charge NexusDI work no other
-  library does.
-- A module exports its last `⌈0.3 size⌉` providers (the pooled NestJS exports over
-  providers is 38%; core also exports the three hubs).
-- Each provider's kind: exactly `round(0.05 n)` values, `round(0.1 n)` factories and
-  `round(0.05 n)` aliases, hubs included (`config` is a value, `clock` a factory, `logger`
-  a class), the rest classes, with the other kinds shuffled over the remaining indexes. A
-  value has no deps. An alias points at one earlier provider of its own module or an
-  export of a module it imports, never a hub; with neither visible it becomes a class.
-  The measured alias share runs from under 2% (NestJS) to 8% (bitwarden, gauzy-ui) and
-  30% (Theia).
-- A class or factory takes a number of deps drawn from the pooled histogram of 10,740
-  providers: 0: 20%, 1: 27%, 2: 19%, 3: 10%, 4: 7%, 5 to 8: 11%, 9 to 16: 5%, 17 to 48:
-  1%, uniform inside a bin, capped at `min(48, round(sqrt n))` (the widest constructor of
-  an app tracks sqrt n up to 1,229 providers and then flattens: n8n 46, twenty 36, Theia
-  31).
-- Each dependency slot draws a hub with probability 0.15, an export of an imported module
-  with 0.6 and an earlier provider of its own module with 0.25; a slot skips a dependency
-  the provider already has. An empty pool falls to the other non-hub pool first and to the
-  hubs last, because the hubs are dead ends: an empty own-module slot that fell to the
-  hubs pinned the closure at 3 to 15% of the graph. A provider whose pools are all empty
-  gets fewer deps.
-
-All providers are singletons. Transient and scoped lifetimes stay with Meridian-8; at
-scale every library's ready work is its singletons. Each renderer sets the singleton
-lifetime explicitly where the library's default is transient (InversifyJS
-`inSingletonScope()`, awilix `.singleton()`, tsyringe `@singleton()` and
-`instanceCachingFactory`); NexusDI and needle-di default to singletons.
-
-### 3.4 `mixed-async`
-
-The `mixed` graph with the same seed and structure, where the lowest-index
-`round(0.05 n)` factories are `async-factory`. Lowest index is lowest tier, where every
-measured async factory sits (infrastructure: a database connection, a cache, a feature
-flag client), and `clock` stays async at every size. The async factory awaits one resolved promise
-(`await Promise.resolve()`) and then constructs. It takes no timer and no I/O, so the
-figure measures each library's async machinery. `scale.json` records the async share
-(5% at every size, an upper bound: the measured median app has none and the maximum is
-4%).
-
-## 4. Rendering each library's idiom
-
-### 4.1 Layout of a generated app
-
-The renderers in `src/scale/render/<library>.ts` turn a `ScaleGraph` into TypeScript
-files:
-
-- `wide`, `deep`: one class per file, as `scale-200` does.
-- `mixed`, `mixed-async`, `modular`: one file per module holding its classes, factories,
-  values and its module or registration code.
-- `tokens.ts` where the library's idiom uses tokens.
-- `app.ts`, which exports the `scale` adapter of section 4.4 and builds nothing at
-  import.
-
-Each class has `readonly id = '<name>'` and one field per dependency, `d0`, `d1`, ..., in
-constructor order, assigned in the constructor. Factories return `new <Class>(...)` of a
-class shaped the same way. A value is `{ id: '<name>' }`. Fields are declared explicitly,
-with no parameter properties, as section 4.2 of the launch spec requires. The constructor
-of every class provider and the body of every factory end with
-`__scaleBuilt(<index>, '<kind>')`, a counter the adapter exports (section 5). The class a
-factory returns does not call it: the factory body reports, so every non-value provider
-counts exactly one construction. The call is identical in every library and does one
-array increment per construction.
-
-### 4.2 The five documented variants
-
-Each renderer follows the library's Meridian-8 fixture for every construct that fixture
-uses, and the library's documentation (cited in a header comment of the generated
-`app.ts` and in `libraries.json`) for modules and async factories, which Meridian-8 does
-not use.
-
-| Library and variant     | Class providers                                                                        | Factory and value providers                                                 | Module form                                                                                      | Async factory                                       |
-| ----------------------- | -------------------------------------------------------------------------------------- | --------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------ | --------------------------------------------------- |
-| NexusDI `plain`         | `Token<IFoo>`, class `implements IFoo` with `static deps`, `provide(T, { useClass })`  | `provide(T, { useFactory, deps })`, `provide(T, { useValue })`              | `defineModule({ name, imports, providers, exports })` per module, root `App` imports the sinks   | `useFactory: async (...) => ...`, built in `create` |
-| InversifyJS `decorated` | `@injectable()`, `@inject(Class)` per parameter, `bind(C).toSelf().inSingletonScope()` | `toResolvedValue(fn, [ids]).inSingletonScope()`, `toConstantValue`          | one `ContainerModule` per module, `container.load(...)` (synchronous in 8.2.3)                   | `toResolvedValue(async fn)`, `getAsync`             |
-| tsyringe `decorated`    | `@singleton()`, constructor types (metadata), `@inject(token)` for tokens              | `{ token, useFactory: instanceCachingFactory(...) }`, `{ token, useValue }` | one `@registry([...])` class per module file, registered at import                               | not applicable                                      |
-| awilix `plain`          | `asClass(C).singleton()`, PROXY cradle constructor, `strict: true`                     | `asFunction(fn).singleton()`, `asValue`                                     | one `register<Module>(container)` function per module file, one `container.register({...})` each | not applicable                                      |
-| needle-di `decorated`   | `@injectable()`, `inject(Class)` fields, bound on first `get`                          | `{ provide, useFactory }`, `{ provide, useValue }`                          | one `register<Module>(container)` function per module file, one `container.bindAll(...)` each    | `{ provide, async: true, useFactory }`, `getAsync`  |
-
-The API forms in this table were read from the packages at the pins (section 13). Task 6
-records each as a claim in `libraries.json` with its documentation URL.
-
-An alias (section 3.3) uses the library's documented redirect, each recorded as a claim
-with its page: NexusDI `provide(T, { useExisting: U })`, InversifyJS `bind(T).toService(U)`
-(it returns `void` and takes no scope, so the renderer omits `inSingletonScope()`),
-tsyringe `{ token, useToken: U }` in the module's `@registry`, awilix `aliasTo('u')` (its
-resolver is leak safe, so `strict: true` raises no lifetime error for a singleton that
-depends on it) and needle-di `{ provide, useExisting: U }`. The four competitors need a
-non-class token for an alias, and take the token type their Meridian-8 fixture uses for
-`NAV_CHARTS`, as for factories and values. Each renderer declares a type alias of the
-alias's target type, so a dependant names the one type the instance has.
-
-The NexusDI renderer is interface-first throughout: an interface and a `Token<IFoo>` per
-provider, classes that take interfaces, and `useClass` bindings. Competitor renderers use
-the tokens their Meridian-8 fixtures use: classes for class providers, and the token type
-the fixture uses for `NAV_CHARTS` (a symbol for InversifyJS, a string for tsyringe, an
-`InjectionToken` for needle-di, a cradle name for awilix) for factories and values.
-
-### 4.3 Libraries without a module system
-
-The provider graph is the same in every library: same providers, same edges, same kinds.
-Module boundaries are a NexusDI feature with work behind it (visibility, export checks).
-
-- InversifyJS: one `ContainerModule` per graph module. InversifyJS has no exports, so
-  every binding is visible everywhere. The graph never depends on a token its module
-  cannot see, so the result is the same.
-- tsyringe: one `@registry([...])` class per graph module, holding that module's factories
-  and values. The README documents `@registry` for grouping registrations, so tsyringe
-  needs no departure. Its `@singleton()` classes and its registries register at import,
-  inside `load`.
-- awilix, needle-di: one file per graph module, exporting a `register<Module>(container)`
-  function that makes one documented bulk call (`container.register({...})` for awilix,
-  `container.bindAll(...)` for needle-di). `app.ts` calls them in module index order.
-  needle-di's `@injectable()` classes need no call.
-
-The `register<Module>` function is plain code that the two libraries' docs neither show
-nor forbid. `libraries.json` records it as a departure (`moduleForm:
-'registration-functions'`) with a one-line reason, and the generated header says so. It
-adds one function call per module and nothing else.
-
-### 4.4 The runtime adapter
-
-`fixtures/scale-adapter.d.ts` declares what every generated `app.ts` exports:
-
-```ts
-export interface ScaleApp<H = unknown> {
-  readonly count: number;
-  readonly entries: readonly number[];
-  readonly target: number;
-  /** Library modules this app imports, for the child to load first. */
-  readonly packages: readonly string[];
-  /** Constructions per provider index, and the kind each construction reported. */
-  readonly built: {
-    readonly counts: Uint32Array;
-    readonly kinds: readonly (string | undefined)[];
-  };
-  create(): H | Promise<H>;
-  /** Synchronous get by provider index, through a token table built at load. */
-  get(handle: H, index: number): unknown;
-  /** Only where the graph has async providers and the library resolves them with getAsync. */
-  getAsync?(handle: H, index: number): Promise<unknown>;
-}
-```
-
-`create` does what each library's documented setup does before the first `get`:
-
-| Library     | `create` does                                                                                                           |
-| ----------- | ----------------------------------------------------------------------------------------------------------------------- |
-| NexusDI     | `await Nexus.create(App)`: compiles the blueprint (all validation passes) and builds every singleton (eager by default) |
-| InversifyJS | `new Container()`, then `load` of every `ContainerModule` (`wide`: one `bind` per provider)                             |
-| tsyringe    | nothing: `@singleton()` classes and `@registry` classes registered on the global container at load                      |
-| awilix      | `createContainer({ injectionMode: PROXY, strict: true })` and the `register<Module>` calls                              |
-| needle-di   | `new Container()` and the `register<Module>` calls; `@injectable()` classes bind on first `get`                         |
-
-Because NexusDI builds its singletons in `create` and the others build on `get`, `create`
-and `first-get` alone compare different work. The results page shows them as absolute
-medians beside this table, and every relative statement uses `first-resolve`, `ready` or
-`startup`.
-
-In `mixed-async` cells the child calls `getAsync` for every get where the adapter has it
-(InversifyJS and needle-di require it for any provider whose closure holds an async
-provider). NexusDI awaits its async factories in `create` and resolves with `get`.
-
-The token table: `app.ts` builds `const T = [t0, t1, ...]` at load, and `get(h, i)` is
-`h.get(T[i])` in the library's call form. NexusDI's root sees only the exports of the
-modules the root imports, so its `get` passes `{ module: M[i] }` (the documented
-`LookupOptions`) for providers outside `entries`. Every library does one array read per
-`get`.
-
-## 5. Equivalence
-
-`src/scale/verify-child.mjs` runs in its own process: imports the cell's bundle, calls
-`create`, resolves every provider (target first, then index order, with `getAsync` where
-the adapter has it), resolves every provider a second time, and prints one JSON line:
-
-- `digest`: SHA-256 of the sorted lines `<id>(<d0.id>,<d1.id>,...)` over every resolved
-  instance;
-- `shared`: true when, for every edge `a -> b`, `a.d<i> === get(b)`, and the two passes
-  return the same object for every provider;
-- `built`: true when `counts[i] === 1` for every provider after both passes, so no
-  provider was constructed twice and none was skipped;
-- `kinds`: true when every provider reported its model kind through `__scaleBuilt`
-  (`class` from a constructor, `factory` or `async-factory` from a factory body, and a
-  value never constructs, so its count is 0 and its object is the module constant). An
-  alias never constructs either: its count is 0, and `get(alias)` returns `get(target)`'s
-  instance, so for an alias `shared` checks identity with its target and the digest line
-  stays `<alias>(<target>)`, with a dependant of an alias naming the alias.
-
-`expectedDigest(graph)` computes the same digest from the model. A cell is `pass` when all
-four hold, `wrong-instance` when any fails, and `runtime-error` or `compile-error` as the
-matrix classifies them (`outcome.ts`). Only `pass` cells are timed.
-
-The `kinds` check stops a renderer from turning a factory into a class or a value into a
-factory, which the digest cannot see. A person still reads each renderer's generated
-`app.ts` at n = 50 beside the cited docs page (task 20), because no runtime check can
-prove a form is the documented one.
+14. The child runs one settled protocol (section 6.1). A protocol check on the first
+    dispatch run withdrew a faster timing mode and dropped the forced `gc()` before
+    `create` (section 7.4).
 
 ## 6. Metrics
 
@@ -379,42 +85,41 @@ prove a form is the documented one.
 
 `src/scale/child.mjs` runs under `node --expose-gc`, one process per sample, with every
 `NODE_*` and `UV_*` variable removed from its environment (compile cache, options and
-thread-pool size would each change what a fresh process does). It takes a mode:
-
-- `heap` runs steps 1 to 9 as written below and is the only mode that reads the heap.
-- `timing` replaces step 2 with `gc()` twice and skips step 7, so it sends no `heapReady`.
-  A real app neither pauses nor collects twenty times before it loads its code, so this is
-  the closer model of a cold start, and it halves the cost of a round: the settles are
-  52% of a heap-mode round.
-- `timing-no-gc` is `timing` without the `gc()` of step 4, which the protocol check of
-  section 7.4 compares with `timing`.
-
-The steps:
+thread-pool size would each change what a fresh process does). It runs one settled
+protocol:
 
 1. Imports the cell's `packages.mjs`, untimed. `bundleCell` writes it beside the bundle
    from the bundle's external imports, `reflect-metadata` first, so every package
    resolves from the cell as the bundle's own imports do. Library import time is already
    the cold-start figure.
-2. Heap mode reads the retained heap (`base`) after a settle loop: pause 10 ms, `gc()`
-   twice, read, and stop when two reads in a row are equal or after ten passes. At this
-   read the loop's own allocations (0.1 to 5 KB per pass) keep any two reads apart, so the
-   base read always makes all ten passes. The final read of step 7 usually stops after
-   four. Both reads hold the same loop allocations, so they cancel in `heap-ready`. The
-   loop waits for V8's background work: concurrent compile jobs still running at this read
+2. Reads the retained heap (`base`) after a settle loop: pause 10 ms, `gc()` twice, read,
+   and stop when two reads in a row are equal or after ten passes. At this read the
+   loop's own allocations (0.1 to 5 KB per pass) keep any two reads apart, so the base
+   read always makes all ten passes. The final read of step 7 usually stops after four.
+   Both reads hold the same loop allocations, so they cancel in `heap-ready`. The loop
+   waits for V8's background work: concurrent compile jobs still running at this read
    made `heap-ready` negative in 6 of 180 parallel runs. The array of indexes step 6
    resolves is built before this read from the model's provider count and target, so it
    sits in `base`.
 3. Times `await import(bundle)`: `load`.
-4. `gc()` twice. Times `create`: `create`.
+4. Times `create`: `create`. Nothing collects before it.
 5. Times `get(target)`: `first-get`.
 6. Times resolving every other provider once, in index order: `rest`.
-7. Heap mode reads the heap the same settled way, with the handle still referenced:
-   `heap-ready` = heap − `base`.
+7. Reads the heap the same settled way, with the handle still referenced: `heap-ready` =
+   heap − `base`.
 8. Checks, untimed, that `built.counts` sums to the number of non-value providers, and
    exits 1 when it does not.
-9. Sends `{ load, create, firstGet, rest }`, with `heapReady` in heap mode, and disconnects
-   from the send callback (a disconnect straight after `send` lost a 200 KB message in 60
-   of 60 runs).
+9. Sends `{ load, create, firstGet, rest, heapReady }` and disconnects from the send
+   callback (a disconnect straight after `send` lost a 200 KB message in 60 of 60 runs).
+
+The only `gc()` calls sit in the two settle loops. A forced `gc()` before `create` was in
+the protocol until the check of section 7.4 measured its effect: it collects the garbage
+the bundle's own load leaves, which a real app collects during `create`, and the
+collection hid a cost of the library that leaves it. Without it NexusDI's startup, over
+the library's, moved by 0.886 [0.878, 0.915] against awilix at 5,000 providers and by
+0.931 [0.907, 0.953] against inversify at 2,500. The settle before `load` collects the
+harness's garbage (the graph parse) and the untimed packages import, and the heap read
+needs it.
 
 Derived, per round before any median: `first-resolve` = `load` + `create` + `first-get`,
 the time until the target is usable; `ready` = `create` + `first-get` + `rest`;
@@ -507,19 +212,12 @@ for `startup` and in bytes for `heap-ready`.
 
 ### 7.1 Fresh-process blocks
 
-Each shape runs two serial blocks of the cells that pass, at every size: 25 participants
+Each shape runs one serial block of the cells that pass, at every size: 25 participants
 on `wide`, `deep`, `modular` and `mixed`, 15 on `mixed-async`. One round spawns one child
 per participant, one at a time, in the round's `orderFor(round, participants, seed)` row,
-and waits for each to exit.
-
-- The timing block runs the child in timing mode: 10 warm-up rounds, recorded in the raw
-  file, then 1,000 measured rounds on `mixed` and 200 on the other shapes. It produces
-  every metric but `heap-ready`.
-- The heap block runs the child in heap mode: 3 warm-up and 30 measured rounds, with its
-  own `orderFor` rows. It produces `heap-ready`, its paired ratios and its marginal bytes
-  per provider, from rounds of 0.7% interval width or less, with block size 4. The block
-  also records the startup of its heap-mode spawns, beside the timing block's, in the raw
-  file: an unpaired cross-check that nothing gates on.
+and waits for each to exit. The block has 10 warm-up rounds, recorded in the raw file, and
+then 1,000 measured rounds on `mixed` and 200 on the other shapes. Every metric, `heap-ready`
+included, comes from these rounds.
 
 Pairs never cross a round, and rounds never cross a block, so a block is independent of
 the others. The paired ratio of a competitor is NexusDI `plain`'s figure over the
@@ -547,52 +245,98 @@ and JIT state belong to one library.
 `checkFloor` applies to `get-cycle`. A child that exits non-zero, or a worker that throws,
 fails the run with the cell, block and round in the message, as `cold-start.ts` does.
 
-### 7.4 Protocol check and the width rule
+### 7.4 The protocol check and the round count
 
-**Protocol check.** Dropping the settles must not change a comparison. No local run can
-resolve a shift of 5% in one library (the 95% interval of a per-cell ratio on a loaded
-laptop spans 10% or more), so the check runs on the CI runner, on the first dispatch run
-only, behind `timings.ts --protocol-check`. After the `mixed` timing block, 33 rounds (3
-warm-up) run every `mixed` cell in three modes: `heap`, `timing` and `timing-no-gc`. Each
-round follows its own `orderFor` row over all 75 spawns, and the raw file records every
-spawn. For each competitor and size the run reports two double ratios on `startup`, each
-with a paired bootstrap interval: per round, NexusDI's shift between two modes divided by
-the competitor's, so a shift every library shares cancels.
+This section records the first dispatch run of the benchmarks workflow (the `mixed` job of
+a run at `@nexusdi/core@0.4.0-rc.1`, on an AMD EPYC 9V45 with 4 cores) and what it decided.
+The run carried two pre-registered checks that no longer exist in the code.
 
-- Timing over heap decides the protocol. A pair passes when its median is within 2% of 1
-  or its interval contains 1. The timing mode stands when every pair passes. Otherwise the
-  timing rounds revert to the heap mode's protocol, the timing figures of the run are not
-  published (`validate` refuses the file), and the budget is planned again.
-- Timing-no-gc over timing decides the `gc()` before `create`, by the same rule. When
-  every pair passes, the `gc()` stays (it lowers variance and changes no comparison).
-  Otherwise the timing mode drops it, because a real app collects the garbage its own
-  load leaves during `create`; `TIMING_MODE` in `config.ts` becomes `timing-no-gc` with a
-  spec change. `create` and `first-get` are published as absolute medians with no ratio,
-  so the coupling of phases that this mode adds changes no published comparison.
+**Protocol check.** A timing mode without the heap settles would halve the cost of a round,
+so the run compared three child protocols on `mixed`: the settled one (`heap`), a `timing`
+mode with `gc()` twice before `load` and twice before `create` and no settles, and a
+`timing-no-gc` mode without the `gc()` before `create`. It ran 30 measured rounds after 3
+warm-up rounds, all 25 cells in all three modes, each round in its own `orderFor` row. For
+each competitor and size it computed two double ratios on `startup`, each with a paired
+bootstrap interval: per round, NexusDI's shift between two modes divided by the
+competitor's, so a shift that every library shares cancels. A pair passes when its median
+is within 2% of 1 or its interval contains 1. Timing mode stood only if every timing-over-heap
+pair passed, and the forced `gc()` before `create` stayed only if every no-gc-over-timing
+pair passed.
 
-The result goes into the timing file (`protocolCheck`) and the rendered page.
+Timing over heap: 2 of 20 pairs failed.
 
-**Width rule.** A round count chosen after seeing data opens forking paths when the choice
-can depend on the estimate. The stopping quantity here is an interval width, which for a
-median of paired ratios is close to independent of the point estimate, and the rule is
-fixed before the first dispatch run:
+| competitor | size  | median | 95% interval   |
+| ---------- | ----- | ------ | -------------- |
+| needle-di  | 50    | 1.053  | [1.037, 1.124] |
+| awilix     | 5,000 | 1.022  | [1.001, 1.032] |
 
-- The metric set: every `mixed` paired ratio on `startup`, `ready`, `first-resolve` and
-  `heap-ready`, and every `mixed` growth ratio.
-- The prefixes: the first 100, 200, 300, 400, 600 and 1,000 measured rounds of the timing
-  block. The run records the maximum relative width (interval over median) of the metric
-  set at each prefix (`prefixWidths`), with the metric that has it.
-- The target is 3% for `mixed`, with a margin of 1.5: the chosen count is the smallest
-  prefix whose maximum width is at most 2%, never below 300, rounded up to a multiple of
-  the block's Williams row count (50 rows for 25 participants, so 300 and 400 already
-  qualify).
-- The first run publishes at 1,000 rounds, fixed in advance. The rule applies once, from
-  that run's prefix table, and the count it gives and the table are recorded in this
-  section with a change to `SCALE_MINIMUM_ROUNDS`. If no prefix meets 2%, the count stays
-  at 1,000. Later runs never change the count; a later change needs a spec change with its
-  own reason. `SCALE_MINIMUM_ROUNDS` keeps `mixed` at 1,000 until that change.
-- The other shapes stay at 200 rounds with a 10% target, reported and not used to change
-  their count. `heap-ready` keeps its 30 measured rounds.
+Awilix at 50 (0.746 [0.537, 1.014]) and at 200 (1.022 [0.800, 1.128]) passed on their
+intervals. The other pairs sit between 0.970 and 1.032.
+
+No-gc over timing: 4 of 20 pairs failed.
+
+| competitor | size  | median | 95% interval   |
+| ---------- | ----- | ------ | -------------- |
+| awilix     | 5,000 | 0.886  | [0.878, 0.915] |
+| inversify  | 2,500 | 0.931  | [0.907, 0.953] |
+| inversify  | 1,000 | 1.031  | [1.016, 1.041] |
+| tsyringe   | 5,000 | 0.972  | [0.936, 0.998] |
+
+The gate tested 20 pairs at 95% each with no correction for multiple comparisons, so two
+marginal failures could come from noise alone, and one of them has an interval edge at
+1.001. The raw rounds carry the decision. Awilix and tsyringe have a stochastic slow path
+of about 3 ms at small sizes, so their startup is bimodal there: tsyringe at 50 has a
+`rest` p50 of 0.36 ms and a p95 of 3.56 ms, and awilix at 50 has a `create` p50 of 2.0 ms
+and a p95 of 5.0 ms. NexusDI, inversify and needle-di show no such mode at 50 (p95 within
+0.6 ms of p50). The fraction of rounds in which `create`, `first-get` and `rest` together
+run more than 1.5 ms over their p10:
+
+| cell         | timing block | heap block | protocol: heap | protocol: timing | protocol: timing-no-gc |
+| ------------ | ------------ | ---------- | -------------- | ---------------- | ---------------------- |
+| awilix 50    | 0.48         | 0.30       | 0.30           | 0.60             | 0.60                   |
+| tsyringe 50  | 0.27         | 0.27       | 0.23           | 0.40             | 0.43                   |
+| awilix 200   | 0.38         | 0.40       | 0.40           | 0.43             | 0.63                   |
+| needle-di 50 | 0.00         | 0.00       | 0.00           | 0.00             | 0.00                   |
+
+Awilix at 50 has a median startup of 2.33 ms in heap mode and 5.15 ms in timing mode.
+Timing mode doubled the rate at which awilix and tsyringe hit the slow path at 50. The
+wait before `load`, while V8's background compile work finishes, is the likely cause, and
+it is the work the settle exists to wait out. So the protocol changes one library's
+figures, and the effect depends on the library.
+
+**Outcome.**
+
+1. Timing mode is withdrawn and the fresh-process rounds use the settled protocol.
+2. The forced `gc()` before `create` is dropped from the settled protocol. A real app
+   collects its own load garbage during `create`, and the check measured that the forced
+   collection hides up to 11% of a competitor's cost (awilix at 5,000).
+3. Each shape is one block again, with `heap-ready` from the same rounds. The separate
+   heap block existed only because timing rounds had no settles.
+4. The check and its code are removed, and `design.protocol` (`settled`) is recorded in
+   every part and required, equal across parts, in a published file.
+
+**Round count.** The pre-registered width rule measured the maximum relative width
+(interval over median) of the `mixed` paired ratios on `startup`, `ready`, `first-resolve`
+and `heap-ready`, and of the growth ratios, at prefixes of the timing block's rounds. The
+target was 3%, and the count was the smallest prefix at 2% or less, never below 300. The
+run, with the 1,000 rounds fixed in advance:
+
+| shape / prefix | 100  | 200  | 300 | 400 | 600 | 1,000 |
+| -------------- | ---- | ---- | --- | --- | --- | ----- |
+| mixed          | 108% | 96%  | 99% | 86% | 87% | 50%   |
+| wide           | 78%  | 76%  |     |     |     |       |
+| deep           | 119% | 112% |     |     |     |       |
+| modular        | 52%  | 48%  |     |     |     |       |
+| mixed-async    | 2.2% | 1.6% |     |     |     |       |
+
+Every maximum comes from the bimodal awilix and tsyringe cells at 50 and 200 (`ready` of
+awilix at 50, the growth of tsyringe from 50 to 200 on `ready`). `mixed-async` has no
+awilix or tsyringe cells, and it meets 2% at 200 rounds. No prefix of `mixed` meets 2%, so
+the count stays at 1,000, and the rule has now been applied. Later runs never change the
+count; a later change needs a spec change with its own reason. The other shapes stay at
+200 rounds, and their tables print the count. A bimodal distribution with a drifting mix
+gives a wide interval at any affordable count, so the published intervals for awilix and
+tsyringe at 50 and 200 are wide, and the page shows them.
 
 ## 8. Results files
 
@@ -737,18 +481,16 @@ interface ScaleTimingsFile {
   graphs: Array<{ shape: Shape; size: number; hash: string }>;
   /** Every cell attempted, with `message` required when `outcome` is not `pass`. */
   cells: ScaleCell[];
-  /** One fresh-process design per shape, with its heap block's design beside it. */
+  /** One fresh-process design per shape, so each records its own round count. */
   design: {
-    'fresh-process': Record<Shape, Design & { heap: Design }>;
+    'fresh-process': Record<Shape, Design>;
     'steady-get': Design;
+    /** The child protocol of the fresh-process blocks (section 6.1). */
+    protocol: 'settled';
   };
   results: ScaleTimingRow[];
   growth: ScaleGrowth[];
   marginal: ScaleMarginal[];
-  /** The maximum interval width at each prefix of a block's rounds (section 7.4). */
-  prefixWidths?: PrefixWidth[];
-  /** The paired protocol check of the first dispatch run (section 7.4). */
-  protocolCheck?: ProtocolCheck;
 }
 
 /** `Runner` plus the runner image and the kernel; the CPU can differ between jobs. */
@@ -761,12 +503,8 @@ interface BlockRunner extends Runner {
 
 `schema.ts` gains `Shape`, the two kinds `'scale'` and `'scale-timings'`, their
 validators, and `minimums('scale-timings')`: `fresh-process.mixed` at least 1,000
-measured, the other shapes at least 200, each shape's `heap` design at least 30, and
-`steady-get` at least 1,000. `design.timingMode` records the child mode of the timing blocks. Under `results/`, `validate`
-recomputes each protocol double's `pass` from its ratio, then `timingStands` and
-`gcBeforeCreate` from those, and refuses a stored value that differs. It also refuses a
-file whose `timingStands` is false, and one whose `gcBeforeCreate` is `drop` while
-`timingMode` is `timing`. `writeResult`'s `kind` union gains `'scale'`.
+measured, the other shapes at least 200, and `steady-get` at least 1,000.
+`design.protocol` must be `settled`. `writeResult`'s `kind` union gains `'scale'`.
 
 `results`, `growth` and `marginal` hold entries for passing cells only, and a growth entry
 joins two neighbours in `SIZES`. Under `results/`, every NexusDI `plain` cell passes, and
@@ -775,7 +513,7 @@ a competitor cell that does not pass is `not-applicable`, or a `runtime-error` o
 
 One job writes one part (`results/scale-parts/<part>.json` and its raw samples), and
 `timings.ts --merge` writes the file. The merge refuses unless every part has the same
-`sha`, `seed`, `graphSeed`, `coreRef`, `versions` and `timingMode`, the SHA-256 of the `scale.json` each
+`sha`, `seed`, `graphSeed`, `coreRef`, `versions` and `design.protocol`, the SHA-256 of the `scale.json` each
 validated against equals the merge job's copy, the graph hashes match `scale.json`, every
 shape and the steady part appear once, the steady part judged each `mixed` cell as the
 `mixed` part did, and the SHA-256 of each `mixed` bundle the steady part timed equals the
@@ -791,8 +529,7 @@ an older generator. `render.ts --check` enforces it.
 ### 8.3 Raw samples
 
 `results/raw/scale-<date>-<sha7>.json.gz` holds `{ seed, graphSeed, coreRef, parts }`, a
-raw part per job (`blocks`, with each shape's heap block, `steady` and the protocol-check
-spawns), with every round's phase values, warm-up included, so a rerun of the statistics
+raw part per job (`blocks` and `steady`), with every round's phase values, warm-up included, so a rerun of the statistics
 reproduces each interval. Committed on tag runs and uploaded as an artifact otherwise,
 as `raw/` is today.
 
@@ -851,9 +588,9 @@ spec), which can link the page or read the file.
    5 at 5,000, run four at a time on the runner's four cores.
 2. `node src/scale/render.ts --check`.
 3. `node src/scale/timings.ts --quick --sizes=50 --shapes=mixed`: 3 warm-up and 10
-   measured timing rounds, 1 warm-up and 3 measured heap rounds, 200 steady iterations,
-   written to `tmp/` through the same part and merge code, validated with
-   `where: 'tmp'`. It proves both child modes, the worker, the merge and the writer run,
+   measured rounds, 200 steady iterations, written to `tmp/` through the same part and
+   merge code, validated with `where: 'tmp'`. It proves the child, the worker, the merge
+   and the writer run,
    and gates nothing on the figures. About 1 minute.
 
 `bench-check` took 13 minutes 40 seconds on its first run with all five shapes at four sizes, 10 minutes 26 seconds after the calibration, and 14 minutes 51 seconds with 2,500 added (97 cells). A NexusDI change that moves bundle bytes changes
@@ -881,8 +618,8 @@ raw samples, and uploads `scale-timings-<part>`. Every part records its block's 
 image, CPU and kernel, and the rendered caption of a shape names its CPU.
 
 The `scale` job runs on a manual dispatch only: a core tag would otherwise publish timings
-before the protocol check of section 7.4 has passed. A one-line follow-up widens the
-trigger to every non-pull-request event once the first dispatch run has passed. `merge`
+before a dispatch run has published a scale file. A later one-line change widens the
+trigger to every non-pull-request event once the next dispatch has published. `merge`
 runs when `scale` is skipped, to merge the other results, and not when it failed.
 
 The matrix runs with `fail-fast: true`, and `merge` needs `scale`, so a partial file is
@@ -892,30 +629,26 @@ never published. When `scale` succeeded, `merge` downloads `scale-timings-*` int
 the scale file to the body; `scale.json` arrives with the deterministic artifact.
 Timeouts: 330 minutes for `mixed`, 120 for each other shape, 30 for the steady part.
 
-**Per-spawn cost.** A heap-mode spawn on an M1 Pro at a load average of 11 to 22 takes
-409, 427, 496, 622 and 881 ms at 50, 200, 1,000, 2,500 and 5,000 providers. Of a 25-spawn
-`mixed` round of 14.2 s, the base settle is 33%, the final settle 19%, Node's boot, the
-packages import and process exit 24%, the timed phases 17% and the `gc()` before `create`,
-the graph parse and IPC 7%. A timing-mode round takes 6.7 s. Two children at once
-inflated `startup` by 15% and four by 49%, so spawns stay serial and the speed-up comes
-from separate jobs.
+**Measured job times**, from the first dispatch run (section 7.4), under the settled
+protocol. A 25-spawn `mixed` round takes 9.0 s on the runner, 0.36 s per spawn, and the
+other shapes take 6.8 to 10.0 s per round. Two children at once inflated `startup` by 15%
+and four by 49% on a 10-core laptop, so spawns stay serial and the speed-up comes from
+separate jobs.
 
-**Job estimates**, in minutes with 3.5 minutes of setup (central estimate, and a high one
-at 1.55 times the central per-spawn cost plus 30% on `mixed`):
+| job                 | content                           | block   | job, with setup and build | timeout |
+| ------------------- | --------------------------------- | ------- | ------------------------- | ------- |
+| `scale-mixed`       | 25 cells, 1,010 rounds            | 152 min | about 157 min             | 330     |
+| `scale-wide`        | 210 rounds, about 10.0 s a round  | 35 min  | about 40 min              | 120     |
+| `scale-deep`        | 210 rounds, about 8.6 s a round   | 30 min  | about 35 min              | 120     |
+| `scale-modular`     | 210 rounds, about 9.1 s a round   | 32 min  | about 37 min              | 120     |
+| `scale-mixed-async` | 15 cells, 210 rounds, about 6.8 s | 24 min  | about 29 min              | 120     |
+| `scale-steady`      | `get-cycle` at five sizes         | n/a     | about 4 min               | 30      |
 
-| job                               | content                                   | central | high | timeout |
-| --------------------------------- | ----------------------------------------- | ------- | ---- | ------- |
-| `scale-mixed`                     | 25 cells, 1,010 timing and 33 heap rounds | 125     | 247  | 330     |
-| `scale-wide`, `-deep`, `-modular` | 210 timing and 33 heap rounds each        | 35      | 52   | 120     |
-| `scale-mixed-async`               | 15 cells, 210 timing and 33 heap rounds   | 22      | 41   | 120     |
-| `scale-steady`                    | `get-cycle` at five sizes on `mixed`      | 7       | 8    | 30      |
-
-The workflow takes `deterministic` (about 12 minutes) plus the longest job, so about 137
-minutes at the central estimate and 259 at the high one. No full run has happened yet:
-the first dispatch run, with `--protocol-check`, measures the real figures, and its wall
-time, prefix table and protocol double ratios go into the pull request that adds this job
-and then into this section. No tag depends on scale timings until that run has passed the
-gate of section 7.4.
+The workflow takes `deterministic` (about 12 minutes), then `scale-mixed` (about 157
+minutes) and `merge` (about 1 minute): about 2 hours 50 minutes of wall time. `mixed` uses
+157 of its 330 minutes, so no round is cut and no job splits by size. If `scale-mixed`
+passes 200 minutes, the timeout is reviewed before the tag trigger opens. No tag depends
+on scale timings until a dispatch run has published a scale file.
 
 ### 10.3 `build-scale-200`
 
