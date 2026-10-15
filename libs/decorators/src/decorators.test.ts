@@ -287,7 +287,7 @@ describe('LegacyDecoratorsError', () => {
       ),
     );
 
-  it('keeps the message revision 1 wrote', () => {
+  it('names the decorator and gives the fix in its message', () => {
     expect((legacyError() as Error).message).toBe(
       "[NEXUS_LEGACY_DECORATORS] @Injectable was called as a legacy decorator, and NexusDI's decorators are standard (TC39) decorators.\n  Fix: remove experimentalDecorators from tsconfig, or register the class with provide() and defineModule().",
     );
