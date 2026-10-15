@@ -2,6 +2,7 @@ import { mkdirSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
 import { basename, dirname, join, relative } from 'node:path';
 
 import { behavioursOf } from '@nexusdi/doc-examples/behaviours';
+import { exportedNames } from '@nexusdi/doc-examples/package-exports';
 import { createTransformerFactory, rendererRich } from '@shikijs/twoslash';
 import { codeToHast, hastToHtml } from 'shiki';
 import ts from 'typescript';
@@ -370,7 +371,10 @@ for (const { project, name, index: contents, bodies, popups } of written) {
   );
 
   mkdirSync(join(sidecars, name));
-  for (const each of sidecarsOf(project, contents, bodies, popups)) {
+  const exported = exportedNames(
+    join(workspaceRoot, project.root, 'package.json'),
+  );
+  for (const each of sidecarsOf(project, contents, bodies, popups, exported)) {
     const path = join(sidecars, name, `${each.name}.json`);
     const body = `${JSON.stringify(each.sidecar)}\n`;
     const bytes = Buffer.byteLength(body);

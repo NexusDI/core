@@ -1,29 +1,24 @@
 import { statedBy } from '@nexusdi/doc-examples/mdx-reference-loader';
 
 /**
- * The names that get a sidecar. The reference loader names an entry after the
- * export it renders, and an export's name is an identifier, so a `describe`
- * title such as `accepts a bare class` names no entry and gets no sidecar.
- * An identifier that names an internal `describe` (`buildView` in
- * `@nexusdi/core`) gets one too, since nothing here reads the package's
- * export list.
- */
-const IDENTIFIER = /^[A-Za-z_$][\w$]*$/;
-
-/**
- * One sidecar per stated identifier: the cases `statedBy` puts in the rail of
- * an entry with that name, and the popups those cases point at, under the
- * numbers the tokens already carry.
+ * One sidecar per export whose rail lists a case: the cases `statedBy` puts in
+ * that entry's rail, and the popups those cases point at, under the numbers
+ * the tokens already carry.
  *
- * `bodies` maps a case's id to its highlighted body, and `popups` maps a
- * popup's number to its HTML. Throws when two names differ only by case.
+ * `exported` is every name the package exports across its entry points
+ * (`exportedNames` in `@nexusdi/doc-examples/package-exports`). The reference
+ * loader names an entry after the export it renders, so a `describe` title
+ * that names an internal function (`buildView` in `@nexusdi/core`) names no
+ * entry and gets no sidecar. `bodies` maps a case's id to its highlighted
+ * body, and `popups` maps a popup's number to its HTML. Throws when two
+ * exports differ only by case.
  */
-export function sidecarsOf(project, contents, bodies, popups) {
+export function sidecarsOf(project, contents, bodies, popups, exported) {
   const written = new Map();
   const out = [];
 
   for (const name of Object.keys(contents.states)) {
-    if (!IDENTIFIER.test(name)) continue;
+    if (!exported.has(name)) continue;
 
     const ids = statedBy(contents, name).groups.flatMap((group) =>
       group.rows.map((row) => String(row.id)),

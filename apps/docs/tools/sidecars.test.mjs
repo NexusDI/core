@@ -33,6 +33,7 @@ describe('sidecarsOf', () => {
           ['0', '<code>A</code>'],
           ['1', '<code>B</code>'],
         ]),
+        new Set(['Foo', 'foo']),
       ),
     ).toThrow('@nexusdi/example states both Foo and foo');
   });
@@ -49,6 +50,7 @@ describe('sidecarsOf', () => {
         ['0', '<code>A</code>'],
         ['1', '<code>B</code>'],
       ]),
+      new Set(['Foo', 'Bar']),
     );
 
     expect(
@@ -69,13 +71,13 @@ describe('sidecarsOf', () => {
     });
   });
 
-  it('writes no sidecar for a title that is not an identifier', () => {
-    const title = 'accepts a bare class';
+  it('writes no sidecar for a describe that names no export', () => {
     const written = sidecarsOf(
       project,
-      { states: { [title]: [stated(title, 0)] } },
+      { states: { buildView: [stated('buildView', 0)] } },
       { 0: body(0) },
       new Map([['0', '<code>A</code>']]),
+      new Set(['Nexus']),
     );
 
     expect(written).toEqual([]);

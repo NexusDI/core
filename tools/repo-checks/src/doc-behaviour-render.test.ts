@@ -9,6 +9,7 @@ import {
   statedBy,
 } from '@nexusdi/doc-examples/mdx-reference-loader';
 import type { StatedFile } from '@nexusdi/doc-examples/mdx-reference-loader';
+import { exportedNames } from '@nexusdi/doc-examples/package-exports';
 import { workspaceRoot } from '@nx/devkit';
 import { beforeAll, describe, expect, it } from 'vitest';
 
@@ -59,7 +60,7 @@ const page = 'apps/docs/content/api-testing.mdx';
 /** One rail row in the props the loader emits: its sentence and its case. */
 const ROW = /\{"title":("(?:[^"\\]|\\.)*"),"id":(\d+)\}/g;
 
-/** One stated identifier's cases, as `docs:behaviour-data` writes them. */
+/** One export's cases, as `docs:behaviour-data` writes them. */
 interface Sidecar {
   package: string;
   name: string;
@@ -330,11 +331,22 @@ describe('the cases a catalogue opens', () => {
   };
 
   /** The names an entry can carry that the rail lists a case under. */
-  const namesWithCases = (stated: StatedFile): string[] =>
-    Object.keys(stated.states).filter(
-      (name) =>
-        /^[A-Za-z_$][\w$]*$/.test(name) && statedBy(stated, name).stated > 0,
-    );
+  /**
+   * The exports of a library whose rail lists a case, across every entry
+   * point of the package, so `@nexusdi/core/text`'s `coreText` counts beside
+   * `Nexus`.
+   */
+  const namesWithCases = (file: string, stated: StatedFile): string[] =>
+    [
+      ...exportedNames(
+        join(
+          workspaceRoot,
+          'libs',
+          file.replace(/\.json$/, ''),
+          'package.json',
+        ),
+      ),
+    ].filter((name) => statedBy(stated, name).stated > 0);
 
   it('writes a directory of sidecars for every library that states something', () => {
     expect(libraryFiles().length).toBeGreaterThan(0);
@@ -346,12 +358,12 @@ describe('the cases a catalogue opens', () => {
   });
 
   it.each(libraryFiles())(
-    'writes one sidecar per stated identifier of %s whose rail lists a case',
+    'writes one sidecar per export of %s whose rail lists a case',
     (file) => {
       const stated = readJson<StatedFile>(join(index, file));
 
       expect([...sidecarsOf(file).keys()].sort()).toEqual(
-        namesWithCases(stated).sort(),
+        namesWithCases(file, stated).sort(),
       );
     },
   );
@@ -363,7 +375,7 @@ describe('the cases a catalogue opens', () => {
       const held = sidecarsOf(file);
       const missing: string[] = [];
 
-      for (const name of namesWithCases(stated)) {
+      for (const name of namesWithCases(file, stated)) {
         const sidecar = held.get(name);
         for (const group of statedBy(stated, name).groups)
           for (const row of group.rows)
