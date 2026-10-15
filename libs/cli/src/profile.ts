@@ -6,6 +6,7 @@ import type { ProfileReport, Profiler } from '@nexusdi/devtools';
 
 import type { ProfileCommand } from './args.js';
 import { CliError } from './cli-error.js';
+import { alignClocks, startCpu, stopCpu, type Sampling } from './cpu.js';
 import { loadDevtools, type DevtoolsApi } from './devtools.js';
 import { entryKind } from './entry.js';
 import { loadEntry } from './graph.js';
@@ -141,17 +142,38 @@ async function writeOutputs(
   }
 }
 
+/**
+ * Stops the sampling and aligns its clock to performance.now() by the two
+ * anchors (spec 8). Warns and returns no CPU profile when no anchor has a
+ * sample; warns when the alignment error passes max(1 ms, 4 samples) and
+ * keeps the profile.
+ */
+async function mergeCpu(
+  io: Io,
+  sampling: Sampling,
+): Promise<Parameters<DevtoolsApi['toChromeTrace']>[1]> {
+  const { profile, anchors } = await stopCpu(sampling);
+  const aligned = alignClocks(profile, anchors);
+  if (aligned === null) {
+    await writeTo(
+      io.stderr,
+      'nexusdi: warning: no CPU sample fell inside an anchor, so the Chrome trace has no CPU profile.\n',
+    );
+    return undefined;
+  }
+  if (aligned.errorMs > Math.max(1, (4 * sampling.interval) / 1000))
+    await writeTo(
+      io.stderr,
+      `nexusdi: warning: the sampler ran too rarely to align the clocks; CPU samples may sit up to ${aligned.errorMs.toFixed(1)} ms off the provider spans.\n`,
+    );
+  return { cpuProfile: { profile, offsetMs: aligned.offsetMs } };
+}
+
 export async function runProfile(
   command: ProfileCommand,
   io: Io,
   version: string,
 ): Promise<number> {
-  if (command.cpu)
-    throw new CliError(
-      2,
-      '--cpu is not available in this build of @nexusdi/cli.',
-      'Drop --cpu; the --chrome file still holds the provider spans.',
-    );
   if (entryKind(command.entry) === 'json') {
     // A saved report carries the environment it was recorded in, or none.
     const devtools = await loadDevtools(join(io.cwd, 'package.json'), version);
@@ -173,9 +195,12 @@ export async function runProfile(
   );
   const reports: ProfileReport[] = [];
   let code = 0;
-  const cpu: Parameters<DevtoolsApi['toChromeTrace']>[1] = undefined;
+  let cpu: Parameters<DevtoolsApi['toChromeTrace']>[1];
   for (let i = 0; i <= command.repeat; i++) {
     const profiler: Profiler = devtools.profile();
+    // The CPU samples go into the --chrome file, which shows iteration 1.
+    const sampling =
+      i === 0 && command.cpu ? await startCpu(command.cpuInterval) : null;
     const outcome = await within(
       devtools.profileStartup(root as never, {
         plugins: plugins as never,
@@ -184,6 +209,7 @@ export async function runProfile(
       }),
       command.timeout,
     );
+    if (sampling !== null) cpu = await mergeCpu(io, sampling);
     if (outcome.kind === 'done') {
       reports.push({ ...outcome.report, environment });
       if (outcome.report.dispose !== null && outcome.report.dispose.errors > 0)

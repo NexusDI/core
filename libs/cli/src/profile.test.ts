@@ -15,8 +15,11 @@ describe('nexusdi profile', () => {
     const run = runCli(['profile', 'meridian.module.js#Meridian'], {
       cwd: DIR,
     });
-    expect(run.stderr).toBe('');
     expect(run.status).toBe(0);
+    expect(run.stderr).not.toContain('no CPU sample');
+    // A few ms means the sampler ran rarely; tens of ms means the anchors'
+    // clock reads sat outside their samples.
+    expect(run.stderr).not.toMatch(/up to \d{2,}/);
     expect(run.stdout).toMatch(
       /^create \d+\.\d ms, cold, Node \d+\.\d+\.\d+, @nexusdi\/core \S+\n/,
     );
@@ -108,14 +111,6 @@ describe('nexusdi profile', () => {
     const run = runCli(['profile', 'leaky.module.js#Leaky'], { cwd: DIR });
     expect(run.status).toBe(0);
     expect(run.stderr).toMatch(/^nexusdi: warning: disposal/);
-  });
-  it('refuses --cpu with exit 2 until CPU sampling ships', () => {
-    const run = runCli(
-      ['profile', 'meridian.module.js', '--chrome', 'c.json', '--cpu'],
-      { cwd: DIR },
-    );
-    expect(run.status).toBe(2);
-    expect(run.stderr).toMatch(/^nexusdi: --cpu is not available/);
   });
   it('prints what a hung create still awaits after --timeout and exits 1', () => {
     const dir = tempDir();
@@ -317,5 +312,36 @@ describe('describeFailure', () => {
     expect(describeFailure(error)).toBe(
       'dock gave up: Error: timeout\nFix: retry',
     );
+  });
+});
+
+describe('nexusdi profile --cpu', () => {
+  it('merges the CPU samples into the Chrome trace, as the README says', () => {
+    const dir = tempDir();
+    const run = runCli(
+      [
+        'profile',
+        'meridian.module.js',
+        '--chrome',
+        join(dir, 'c.json'),
+        '--cpu',
+        '--quiet',
+      ],
+      { cwd: DIR },
+    );
+    expect(run.status).toBe(0);
+    expect(run.stderr).not.toContain('no CPU sample');
+    // A few ms means the sampler ran rarely; tens of ms means the anchors'
+    // clock reads sat outside their samples.
+    expect(run.stderr).not.toMatch(/up to \d{2,}/);
+    const events = JSON.parse(readFileSync(join(dir, 'c.json'), 'utf8'))
+      .traceEvents as {
+      name: string;
+      args?: { data?: { cpuProfile?: { samples?: number[] } } };
+    }[];
+    const samples = events
+      .filter((e) => e.name === 'ProfileChunk')
+      .flatMap((e) => e.args?.data?.cpuProfile?.samples ?? []);
+    expect(samples.length).toBeGreaterThan(0);
   });
 });

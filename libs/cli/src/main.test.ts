@@ -1,5 +1,6 @@
 import { describe, expect, it, vi } from 'vitest';
 
+import { PROFILE_ONLY } from './args.js';
 import { main } from './main.js';
 import { cliVersion } from './version.js';
 import type { Output } from './write.js';
@@ -58,6 +59,8 @@ describe('main', () => {
     expect(code).toBe(0);
     expect(stdout.text()).toContain('Usage: nexusdi profile <entry> [options]');
     expect(stdout.text()).toContain('1 invalid graph or failed startup');
+    for (const flag of PROFILE_ONLY)
+      expect(stdout.text()).toMatch(new RegExp(`^ +--${flag} `, 'm'));
   });
 
   describe('without @nexusdi/core', () => {

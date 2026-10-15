@@ -54,10 +54,10 @@ A `.ts` entry on Node before 22.18 needs `tsx` installed. Every command exits 1 
 
 ```bash
 npx nexusdi profile src/ship/meridian.ts#Meridian
-npx nexusdi profile src/ship/meridian.ts#Meridian --chrome startup.json
+npx nexusdi profile src/ship/meridian.ts#Meridian --chrome startup.json --cpu
 ```
 
-The first prints the startup steps, the slowest providers and the critical path. The second also writes a trace of each provider's build that you open in Chrome DevTools. `--chrome`, `--perfetto` and `--json` write trace files, and `npx nexusdi --help` lists every flag.
+The first prints the startup steps, the slowest providers and the critical path. The second also writes a trace you open in Chrome DevTools, with the CPU samples of the startup under it. `--chrome`, `--perfetto` and `--json` write trace files, and `npx nexusdi --help` lists every flag.
 
 ## Documentation
 
