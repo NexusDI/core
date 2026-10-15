@@ -88,11 +88,16 @@ function nexusdiAnchorEnd(interval: number): Anchor {
   ];
 }
 
+/** max(1 ms, 4 samples at `interval` µs): the bound both CPU warnings use (spec 8). */
+function bound(interval: number): number {
+  return Math.max(1, (4 * interval) / 1000);
+}
+
 /** What alignClocks found: the offset, how far off it can be, and whether the anchors agree. */
 export interface Alignment {
   readonly offsetMs: number;
   readonly errorMs: number;
-  /** false when the bounds cross: the samples contradict the clock reads. */
+  /** false when the bounds cross by more than max(1 ms, 4 samples): the samples contradict the clock reads. */
   readonly consistent: boolean;
 }
 
@@ -102,12 +107,14 @@ export interface Alignment {
  * at startMs and endMs, puts the offset in [t - endMs, t - startMs]. The offset is the middle
  * of the bounds every such sample of every anchor sets, and errorMs is half
  * their width: the furthest the true offset can sit from it. When the bounds
- * cross, the anchors disagree, consistent is false, and errorMs is half the
- * gap. null when no anchor has a sample.
+ * cross, errorMs is half the gap, and consistent is false once the gap passes
+ * max(1 ms, 4 samples): a crossing within it is sampler timing noise. null
+ * when no anchor has a sample.
  */
 export function alignClocks(
   profile: CpuProfile,
-  anchors: readonly (readonly [name: string, startMs: number, endMs: number])[],
+  anchors: readonly Anchor[],
+  interval: number,
 ): Alignment | null {
   const names = new Map(
     profile.nodes.map((n) => [n.id, n.callFrame.functionName]),
@@ -140,7 +147,7 @@ export function alignClocks(
     : {
         offsetMs: (lo + hi) / 2,
         errorMs: Math.abs(hi - lo) / 2,
-        consistent: lo <= hi,
+        consistent: lo - hi <= bound(interval),
       };
 }
 
@@ -155,7 +162,7 @@ export function cpuWarning(
   const upTo = `CPU samples may sit up to ${aligned.errorMs.toFixed(1)} ms off the provider spans`;
   if (!aligned.consistent)
     return `nexusdi: warning: the CPU clock and performance.now() disagree by ${(2 * aligned.errorMs).toFixed(1)} ms; ${upTo}.\n`;
-  if (aligned.errorMs > Math.max(1, (4 * interval) / 1000))
+  if (aligned.errorMs > bound(interval))
     return `nexusdi: warning: the sampler ran too rarely to align the clocks; ${upTo}.\n`;
   return null;
 }

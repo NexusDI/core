@@ -159,7 +159,7 @@ async function mergeCpu(
   sampling: Sampling,
 ): Promise<Parameters<DevtoolsApi['toChromeTrace']>[1]> {
   const { profile, anchors } = await stopCpu(sampling);
-  const aligned = alignClocks(profile, anchors);
+  const aligned = alignClocks(profile, anchors, sampling.interval);
   if (aligned === null) {
     await writeTo(
       io.stderr,

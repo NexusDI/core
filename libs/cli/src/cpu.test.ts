@@ -31,50 +31,81 @@ describe('alignClocks', () => {
   it('bounds the offset by every spin sample of both anchors and takes the middle', () => {
     // Start: 1000.1 and 1000.2 ms in [10, 10.15] -> offset in [990.05, 990.1].
     // End: 1005.3 ms in [15.2, 15.35] -> [989.95, 990.1]; both: [990.05, 990.1].
-    const aligned = alignClocks(profile, [
-      ['nexusdiAnchorStart', 10, 10.15],
-      ['nexusdiAnchorEnd', 15.2, 15.35],
-    ]);
+    const aligned = alignClocks(
+      profile,
+      [
+        ['nexusdiAnchorStart', 10, 10.15],
+        ['nexusdiAnchorEnd', 15.2, 15.35],
+      ],
+      100,
+    );
     expect(aligned?.offsetMs).toBeCloseTo(990.075, 6);
     expect(aligned?.errorMs).toBeCloseTo(0.025, 6);
     expect(aligned?.consistent).toBe(true);
   });
 
-  it('reports half the gap when the anchors disagree', () => {
-    // End: 1005.3 ms in [16, 16.1] -> [989.2, 989.3], below Start's 990.05.
-    const aligned = alignClocks(profile, [
-      ['nexusdiAnchorStart', 10, 10.15],
-      ['nexusdiAnchorEnd', 16, 16.1],
-    ]);
+  it('reports half the gap when the bounds cross, and stays consistent within max(1 ms, 4 samples)', () => {
+    // End: 1005.3 ms in [16, 16.1] -> [989.2, 989.3]; a 0.75 ms gap below Start's 990.05.
+    const aligned = alignClocks(
+      profile,
+      [
+        ['nexusdiAnchorStart', 10, 10.15],
+        ['nexusdiAnchorEnd', 16, 16.1],
+      ],
+      100,
+    );
     expect(aligned?.offsetMs).toBeCloseTo(989.675, 6);
     expect(aligned?.errorMs).toBeCloseTo(0.375, 6);
+    expect(aligned?.consistent).toBe(true);
+  });
+
+  it('is inconsistent when the bounds cross by more than max(1 ms, 4 samples)', () => {
+    // End: 1005.3 ms in [17, 17.1] -> [988.2, 988.3]; a 1.75 ms gap.
+    const anchors = [
+      ['nexusdiAnchorStart', 10, 10.15],
+      ['nexusdiAnchorEnd', 17, 17.1],
+    ] as const;
+    const aligned = alignClocks(profile, anchors, 100);
+    expect(aligned?.errorMs).toBeCloseTo(0.875, 6);
     expect(aligned?.consistent).toBe(false);
+    // At 500 µs the bound is 2 ms, so the same gap is consistent.
+    expect(alignClocks(profile, anchors, 500)?.consistent).toBe(true);
   });
 
   it('counts a sample whose spin frame the optimizer inlined away', () => {
     // Sample 2 holds the anchor alone, as an optimized anchor with its spin
     // inlined reports it: 1000.1 and 1000.2 ms both count.
-    const aligned = alignClocks({ ...profile, samples: [1, 2, 4, 1, 5] }, [
-      ['nexusdiAnchorStart', 10, 10.15],
-    ]);
+    const aligned = alignClocks(
+      { ...profile, samples: [1, 2, 4, 1, 5] },
+      [['nexusdiAnchorStart', 10, 10.15]],
+      100,
+    );
     expect(aligned?.offsetMs).toBeCloseTo(990.075, 6);
     expect(aligned?.errorMs).toBeCloseTo(0.025, 6);
   });
 
   it('aligns from one anchor when the other has no sample', () => {
-    const aligned = alignClocks({ ...profile, samples: [1, 1, 1, 1, 5] }, [
-      ['nexusdiAnchorStart', 10, 10.15],
-      ['nexusdiAnchorEnd', 15.2, 15.35],
-    ]);
+    const aligned = alignClocks(
+      { ...profile, samples: [1, 1, 1, 1, 5] },
+      [
+        ['nexusdiAnchorStart', 10, 10.15],
+        ['nexusdiAnchorEnd', 15.2, 15.35],
+      ],
+      100,
+    );
     expect(aligned?.offsetMs).toBeCloseTo(990.025, 6);
   });
 
   it('returns null when no anchor has a sample', () => {
     expect(
-      alignClocks({ ...profile, samples: [1, 1, 1, 1, 1] }, [
-        ['nexusdiAnchorStart', 10, 12],
-        ['nexusdiAnchorEnd', 15, 17],
-      ]),
+      alignClocks(
+        { ...profile, samples: [1, 1, 1, 1, 1] },
+        [
+          ['nexusdiAnchorStart', 10, 12],
+          ['nexusdiAnchorEnd', 15, 17],
+        ],
+        100,
+      ),
     ).toBeNull();
   });
 });
@@ -82,9 +113,9 @@ describe('alignClocks', () => {
 describe('cpuWarning', () => {
   it('says the clocks disagree, by the gap between the bounds, when they cross', () => {
     expect(
-      cpuWarning({ offsetMs: 0, errorMs: 0.375, consistent: false }, 100),
+      cpuWarning({ offsetMs: 0, errorMs: 0.875, consistent: false }, 100),
     ).toBe(
-      'nexusdi: warning: the CPU clock and performance.now() disagree by 0.8 ms; CPU samples may sit up to 0.4 ms off the provider spans.\n',
+      'nexusdi: warning: the CPU clock and performance.now() disagree by 1.8 ms; CPU samples may sit up to 0.9 ms off the provider spans.\n',
     );
   });
 
@@ -117,7 +148,7 @@ describe('startCpu and stopCpu', () => {
     ]);
     for (const [, startMs, endMs] of anchors)
       expect(endMs - startMs).toBeGreaterThanOrEqual(10);
-    expect(alignClocks(recorded, anchors)).not.toBeNull();
+    expect(alignClocks(recorded, anchors, 100)).not.toBeNull();
   });
 
   // The figure the docs' error bar cites (spec 8). CI appends it to the job
@@ -125,21 +156,21 @@ describe('startCpu and stopCpu', () => {
   it('align 10 runs at 100 µs with a median error within max(1 ms, 4 samples)', async () => {
     const interval = 100;
     const errors: number[] = [];
-    let crossed = 0;
+    let inconsistent = 0;
     for (let run = 0; run < 10; run++) {
       const { profile: recorded, anchors } = await stopCpu(
         await startCpu(interval),
       );
-      const aligned = alignClocks(recorded, anchors);
+      const aligned = alignClocks(recorded, anchors, interval);
       expect(aligned).not.toBeNull();
       if (aligned === null) return;
       errors.push(aligned.errorMs);
-      if (!aligned.consistent) crossed++;
+      if (!aligned.consistent) inconsistent++;
     }
     errors.sort((a, b) => a - b);
     const median = ((errors[4] ?? 0) + (errors[5] ?? 0)) / 2;
     const max = errors[9] ?? 0;
-    const line = `CPU clock alignment on ${process.platform}, Node ${process.versions.node}, 10 runs at ${interval} µs: errorMs median ${median.toFixed(3)} ms, max ${max.toFixed(3)} ms, ${crossed} with crossed bounds.`;
+    const line = `CPU clock alignment on ${process.platform}, Node ${process.versions.node}, 10 runs at ${interval} µs: errorMs median ${median.toFixed(3)} ms, max ${max.toFixed(3)} ms, ${inconsistent} inconsistent.`;
     console.log(line);
     const summary = process.env['GITHUB_STEP_SUMMARY'];
     if (summary !== undefined) appendFileSync(summary, `${line}\n`);
