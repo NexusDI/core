@@ -11,6 +11,9 @@ import {
 } from 'react';
 
 import type { BehaviourPaneProps } from './BehaviourPane';
+// The frame and the rail, which the server renders, so the rail is styled
+// before the pane loads and with JavaScript off.
+import './catalogue.css';
 
 /**
  * What a package's tests state about one export: the names in a rail, the case
@@ -88,6 +91,7 @@ export default function BehaviourCatalogue({
   const [Pane, setPane] = useState<ComponentType<BehaviourPaneProps> | null>(
     null,
   );
+  const [unloaded, setUnloaded] = useState(false);
   const block = useRef<HTMLDivElement>(null);
   const rail = useRef<HTMLDivElement>(null);
   const moved = useRef(false);
@@ -110,9 +114,16 @@ export default function BehaviourCatalogue({
       (entries) => {
         if (!entries.some((entry) => entry.isIntersecting)) return;
         watch.disconnect();
-        void import('./BehaviourPane').then((loaded) => {
-          if (live) setPane(() => loaded.default);
-        });
+        // A chunk a deploy has replaced fails to load; the slot says so in
+        // the words the pane uses for a sidecar that did not load.
+        import('./BehaviourPane').then(
+          (loaded) => {
+            if (live) setPane(() => loaded.default);
+          },
+          () => {
+            if (live) setUnloaded(true);
+          },
+        );
       },
       { rootMargin: '200px' },
     );
@@ -210,7 +221,13 @@ export default function BehaviourCatalogue({
           className="nexus-behaviours__pane"
           data-pagefind-ignore="all"
           id={paneId}
-        />
+        >
+          {unloaded ? (
+            <p className="nexus-behaviours__waiting">
+              The cases for {name} did not load. Reload the page to ask again.
+            </p>
+          ) : null}
+        </div>
       )}
     </div>
   );

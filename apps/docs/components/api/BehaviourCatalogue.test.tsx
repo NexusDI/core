@@ -462,13 +462,48 @@ describe('BehaviourCatalogue', () => {
     expect(asked).toEqual([]);
   });
 
-  it('carries no stylesheet and no pane code in the shell every page loads', () => {
+  it('says the cases did not load when the chunk of the pane does not', async () => {
+    vi.doMock('./BehaviourPane', () => {
+      throw new Error('a chunk the deploy replaced');
+    });
+    try {
+      await show(
+        <BehaviourCatalogue
+          library="testing"
+          name="stale-chunk"
+          groups={GROUPS}
+        />,
+      );
+
+      await screen.findByText(/The cases for stale-chunk did not load/);
+      // The pane never mounted, so the text is the shell's own.
+      expect(document.querySelector('.meridian-console')).toBeNull();
+      expect(asked).toEqual([]);
+    } finally {
+      vi.doUnmock('./BehaviourPane');
+    }
+  });
+
+  it('styles the rail from the shell, and the pane from the lazy module', () => {
+    const read = (sheet: string) =>
+      readFileSync(join(import.meta.dirname, sheet), 'utf8');
+
+    expect(read('catalogue.css')).toContain('.nexus-behaviours__rail');
+    expect(read('behaviour.css')).not.toContain('.nexus-behaviours__rail');
+    expect(read('behaviour.css')).toContain('.nexus-behaviours__type');
+  });
+
+  it('carries only the rail sheet and no pane code in the shell every page loads', () => {
     const shell = readFileSync(
       join(import.meta.dirname, 'BehaviourCatalogue.tsx'),
       'utf8',
     );
 
-    expect(shell).not.toMatch(/^import [^;]*\.css'/m);
+    expect(
+      [...shell.matchAll(/^import '([^']+\.css)';$/gm)].map(
+        ([, sheet]) => sheet,
+      ),
+    ).toEqual(['./catalogue.css']);
     expect(shell).not.toMatch(/^import (?!type )[^;]*'\.\/BehaviourPane'/m);
     expect(shell).not.toMatch(/@nexusdi\/meridian-ui/);
     expect(shell).toContain("import('./BehaviourPane')");

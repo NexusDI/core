@@ -46,6 +46,14 @@ test('shows every entry and sentence with JavaScript off, and no filter row', as
   await expect(page.locator('.nexus-api-entry:visible')).toHaveCount(2);
   await expect(page.getByText('keeps two runs apart').first()).toBeVisible();
   await expect(page.locator('.nexus-api-filter')).toBeHidden();
+  // The rail's rules ship with the shell, so the rail is styled without the
+  // pane's code: it scrolls inside the frame.
+  expect(
+    await page
+      .locator('.nexus-behaviours__rail')
+      .first()
+      .evaluate((rail) => getComputedStyle(rail).overflowY),
+  ).toBe('auto');
   await context.close();
 });
 
