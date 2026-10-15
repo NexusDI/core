@@ -1,0 +1,173 @@
+---
+title: How do I find out what slows or stalls startup?
+kind: question
+description: Record where `Nexus.create` spends its time with `profile()` or `nexusdi profile`, read the critical path, and open the trace in Chrome DevTools or Perfetto.
+---
+
+# How do I find out what slows or stalls startup?
+
+Record the startup with the `profile()` plugin from `@nexusdi/devtools`, or run `nexusdi profile` from `@nexusdi/cli` against your root module. Both say which providers took the time and which one a stalled startup awaits, from the events core emits for `trace()` ([Introspection and trace](/introspection/)).
+
+## Record a startup in your app with `profile()`
+
+`profile()` returns a plugin that records every `create` and `load` of one container. Install `@nexusdi/devtools`, register the plugin, and call `report()`. The report is plain JSON: each run lists its steps and builds, and each build carries its token, module, lifetime and times.
+
+```bash
+npm install -D @nexusdi/devtools@next
+```
+
+```ts file=examples/meridian/src/pages/profiling.md region=in-app
+
+```
+
+`profileTable(report)` returns the table `nexusdi profile` prints, as a string. One profiler records one container: a second `Nexus.create` with it makes `report()` throw `NEXUS_DEVTOOLS_PROFILE_REUSED`.
+
+**Try it:** Save the region as `profile.ts` and run `npx tsx profile.ts`. It prints `[ 'create' ]`, `true` for the async `NavCharts` factory, and the table. Make the factory a plain function and run it again: the second line prints `false`. Put `async` and the `await` back and it prints `true`.
+
+## Read the `nexusdi profile` table
+
+Core sorts the providers into levels, one above the deepest dependency each needs, and starts a level only once the level below is stored. So one slow async factory holds back every provider above it.
+
+The table opens with a header line: the run and its length. A report from `nexusdi profile` adds the Node and `@nexusdi/core` versions, and with `--repeat` the warm run count and median. The steps follow: `compile` checks the module graph, `static` covers value and alias providers, `build` runs from the first provider start to the last store, `init` covers the `onInit` hooks, and `setup` ends the run.
+
+The slowest providers come next, sorted by own time:
+
+- **sync:** from the call of the constructor or factory until it returned.
+- **await:** from that return until its promise settled, or `-` with no promise.
+- **finish:** from the build resuming until core stored the instance.
+- **own:** sync, await and finish together.
+- **queued:** the rest of the span, spent behind other providers of its level.
+
+The `levels` block gives each level's provider count, wall time and slowest provider. The critical-path line splits the build time into the dependency bound, the longest chain of own times, and the barriers. Below, `NAV_CHARTS` depends on `COMPUTER`, giving three levels.
+
+```ts file=examples/meridian/src/pages/profiling.md region=critical-path
+
+```
+
+`criticalPath(report, run)` returns, for the run with that id (`create` is run 0), the provider per level that finished last and released the next level. `dependsOnPrevious` is `true` when a member needs the one before it. A member after the first with `false` waited at a barrier for a provider it does not use, and the table prints `barrier:` beside it. An async member that started after its level began is marked as late. `waits` lists the providers that started after their own dependencies ended, longest first.
+
+**Try it:** Save the region as `path.ts` and run `npx tsx path.ts`. It prints `[ 'ReactorCore', 'ShipComputer', 'NavCharts' ]` and `[ false, true, true ]`. Change the `NavCharts` deps to `[]` and its factory to `async () => ({ plot: (target) => target })`, and run it again. It prints `[ 'NavCharts', 'ShipComputer' ]` and `[ false, false ]`: `NavCharts` now sits at level 0 and finishes last, so `ShipComputer` waits for a provider it does not use. Put the deps and the factory back and the chain returns.
+
+## Profile the startup from the terminal with `nexusdi profile`
+
+`nexusdi profile` starts your app as `Nexus.create` does, with a profiler registered, prints the table and disposes the container. It loads the entry, `--load` and `--plugins` as `nexusdi graph` does ([Visualizing Your Dependency Graph](/graph-cli/)), so the entry file's top-level code runs. Install it beside `@nexusdi/devtools`, both at the project's `@nexusdi/core` version:
+
+```bash
+npm install -D @nexusdi/cli@next @nexusdi/devtools@next
+```
+
+```bash
+npx nexusdi profile src/ship/meridian.ts#Meridian
+npx nexusdi profile src/ship/meridian.ts#Meridian --chrome startup.json --cpu
+npx nexusdi profile src/ship/meridian.ts#Meridian --perfetto startup.perfetto.json --repeat 20
+npx nexusdi profile src/ship/meridian.ts#Meridian --load src/ship/science.ts#Science --json profile.json
+npx nexusdi profile profile.json --chrome startup.json
+```
+
+The third adds twenty warm iterations, and the last draws a saved report without running the app.
+
+<Notice kind="warning">
+  Each iteration of `--repeat` builds every provider again, side effects
+  included. A provider that writes to a database or sends a request does so once
+  per iteration.
+</Notice>
+
+## Open a `nexusdi profile` trace in Chrome DevTools or Perfetto
+
+`--chrome` and `--perfetto` each write a timeline of the startup, and in an app `toChromeTrace(report)` and `toPerfettoTrace(report)` return the trace objects to save:
+
+```ts file=examples/meridian/src/pages/profiling.md region=trace-file
+
+```
+
+**Try it:** Save the region as `trace.ts` and run `npx tsx trace.ts`. It prints the Perfetto tracks, `[ 'steps', 'ReactorCore' ]`. Add `eager: false` to the reactor's provider and run it again: it prints `[ 'steps' ]`, since startup no longer builds the reactor. Remove it and the track returns.
+
+For the Chrome file, open the Performance panel of Chrome or Edge DevTools, choose Load profile, and turn on Show custom tracks in its settings. The NexusDI track group holds `Runs`, `Steps`, one track per level of each run and one for `onInit`. Each provider span has `sync`, `await` and `finish` children, and the critical path has its own colour.
+
+For the Perfetto file, choose Open trace file at ui.perfetto.dev. Each provider gets a track, sorted by level, with an arrow from each dependency that orders its build in the same run.
+
+In a browser app, save the Chrome file with a download link, from the `profiler` passed to `Nexus.create`:
+
+```ts no-run
+import { toChromeTrace } from '@nexusdi/devtools';
+
+const blob = new Blob([JSON.stringify(toChromeTrace(profiler.report()))], {
+  type: 'application/json',
+});
+const link = document.createElement('a');
+link.href = URL.createObjectURL(blob);
+link.download = 'startup.json';
+link.click();
+setTimeout(() => URL.revokeObjectURL(link.href));
+```
+
+## See which functions ran inside a provider with `nexusdi profile --cpu`
+
+`--cpu` samples the CPU of the first iteration with the V8 profiler and merges the samples into the `--chrome` file, so DevTools draws the JavaScript flame chart under the Main track, below the provider spans. `--cpu-interval <us>` sets the sampling interval in microseconds (default `100`).
+
+The V8 profiler keeps its own clock, so the CLI aligns it to `performance.now()` with two marker functions it runs before and after the startup. Read each sample's position as accurate to the larger of the alignment error and one sampling interval. The CLI warns, naming the error, when the markers disagree or the error passes four intervals or one millisecond, whichever is longer. When neither marker has a sample, it writes the Chrome file without the CPU profile. Each case keeps exit code 0.
+
+Node's `--cpu-prof` samples the whole process into a `.cpuprofile` file.
+
+## Draw the startup live in Chrome DevTools with `liveSink()`
+
+Live mode draws each run in the DevTools Performance panel while you record the page, with no file. Pass `liveSink()` from `@nexusdi/devtools/live`:
+
+```ts file=examples/meridian/src/pages/profiling.md region=live
+
+```
+
+`liveSink()` draws in Chromium 134 and later, into the NexusDI track group the Chrome file holds. Elsewhere it returns `undefined`, as in this Node run, and `profile()` draws nothing. It draws a run once the run settles, so a stalled startup draws nothing live.
+
+## Find what a stalled `Nexus.create` awaits
+
+A startup stalls when a factory or an `onInit` hook returns a promise that never settles. `profiler.report()` still answers: the open run has `ok: null`, and `pending` names each provider in flight, its module and level, `what` (`construct` or `init`) and when it started.
+
+```ts file=examples/meridian/src/pages/profiling.md region=stalled
+
+```
+
+`toChromeTrace` draws a pending build up to the report time with the tooltip "still awaiting at timeout". In the terminal, `--timeout <ms>` (default `60000`) stops the wait, prints the pending list, writes every requested file and exits with code 1:
+
+```bash
+npx nexusdi profile src/ship/meridian.ts#Meridian --timeout 5000 --chrome stalled.json
+```
+
+**Try it:** Save the region as `stalled.ts` and run `npx tsx stalled.ts`. It prints `null` and `[ 'NavCharts construct' ]`. Change the factory to `async () => ({ plot: (target) => target })` and run it again: it prints `true` and `[]`. Put the promise back and the pending entry returns.
+
+## The `nexusdi profile` command and its exit codes
+
+`nexusdi profile` takes one entry and these options:
+
+```bash
+npx nexusdi profile <entry> [options]
+```
+
+| Option                    | What it does                                                                                                  |
+| ------------------------- | ------------------------------------------------------------------------------------------------------------- |
+| `<entry>`                 | `path[#export]` to a module file, as for `nexusdi graph`, or a `.json` report to draw without running the app |
+| `--load <path#export>`    | a module to `load()` after `create`, timed as its own run; repeatable                                         |
+| `--plugins <path#export>` | an exported array of plugins, registered after the profiler                                                   |
+| `--repeat <n>`            | warm iterations after the first, default `0`                                                                  |
+| `--chrome <file>`         | write the Chrome DevTools trace of the first iteration                                                        |
+| `--perfetto <file>`       | write the Perfetto trace of the first iteration                                                               |
+| `--json <file>`           | write every iteration's report                                                                                |
+| `--cpu`                   | merge CPU samples into `--chrome`; needs `--chrome`                                                           |
+| `--cpu-interval <us>`     | the sampling interval, default `100`                                                                          |
+| `--top <n>`               | rows of slowest providers, default `20`                                                                       |
+| `--timeout <ms>`          | stop waiting for a `create` or `load`, default `60000`                                                        |
+| `--quiet`                 | print no table                                                                                                |
+| `-h`, `-v`                | print the usage or the version                                                                                |
+
+Each report `nexusdi profile` records holds the Node and `@nexusdi/core` versions, and a saved report draws with its own. Every stderr message starts with `nexusdi:`, and for codes 2 and 3 it ends with the fix.
+
+| Code | Meaning                                                                                                                                                                                                                                                   |
+| ---- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| 0    | The app started and the files were written. A CPU or disposal warning keeps 0.                                                                                                                                                                            |
+| 1    | `create` or a `load` threw after it compiled, or `--timeout` fired before every run settled. The table and files still hold what was recorded.                                                                                                            |
+| 2    | The command or its input is wrong, as for `nexusdi graph`, plus `--cpu` without `--chrome`, a module-only flag with a `.json` entry, a `.json` file that is not a report, two outputs on one path, or a `create` or `load` that threw before it compiled. |
+| 3    | Something is missing, as for `nexusdi graph`.                                                                                                                                                                                                             |
+
+## Next step
+
+The profiler reads the trace events core emits. [Write a plugin](/write-a-plugin/) shows how to observe the same events in a plugin of your own.
