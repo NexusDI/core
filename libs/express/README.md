@@ -75,6 +75,7 @@ await ship[Symbol.asyncDispose]();
 
 ## Documentation
 
+- [Scope an Express request](https://nexus.js.org/next/express/)
 - [Scopes and REQUEST](https://nexus.js.org/next/scopes/)
 - [Documentation](https://nexus.js.org/next/)
 - [Examples](https://github.com/NexusDI/core/tree/@nexusdi/core@0.4.0-rc.1/libs/express/docs)

@@ -69,6 +69,7 @@ await ship[Symbol.asyncDispose]();
 
 ## Documentation
 
+- [Scope a Fastify request](https://nexus.js.org/next/fastify/)
 - [Scopes and REQUEST](https://nexus.js.org/next/scopes/)
 - [Documentation](https://nexus.js.org/next/)
 - [Examples](https://github.com/NexusDI/core/tree/@nexusdi/core@0.4.0-rc.1/libs/fastify/docs)

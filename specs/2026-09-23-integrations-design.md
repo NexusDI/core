@@ -535,8 +535,8 @@ scopes.current()?.get(FLIGHT_LOG);
 ```
 
 The option's type is structural, `{ run<R>(scope: Scope, fn: () => R): R }`, so
-`@nexusdi/hono`, `@nexusdi/react-router` and `@nexusdi/next` import nothing from
-`@nexusdi/node` and stay free of `node:` imports. The user brings the package where the
+`@nexusdi/hono` and `@nexusdi/react-router` (and `@nexusdi/next` in 0.5) import nothing
+from `@nexusdi/node` and stay free of `node:` imports. The user brings the package where the
 runtime has `AsyncLocalStorage`. Section 9.4 lists the runtimes and the evidence.
 
 With `scopes` set, the adapter runs the rest of the request inside
@@ -2035,7 +2035,7 @@ section listing section 9.1's rows.
   fails the leg if that changes.
 - No `eval` and no `new Function`, which Vercel Edge disables. `edge-safe.test.ts`
   (D8) checks core, `@nexusdi/node`, `@nexusdi/errors`, `@nexusdi/hono`,
-  `@nexusdi/react-router` and `@nexusdi/next`.
+  and `@nexusdi/react-router`, and `@nexusdi/next` joins it in 0.5.
 
 Size, measured with `wrangler deploy --dry-run --minify` on the probe Worker (Hono, core,
 `@nexusdi/node`, two providers): 80.08 KiB minified, 28.26 KiB gzip. Hono alone bundles to
@@ -2089,9 +2089,10 @@ starts from; 0.4 ships only the `/nextjs/` guide page (section 15.1).
 
 ### 10.1 Recommendation
 
-Publish `@nexusdi/next` in 0.4 with route handlers and server actions, on the Node
-runtime only, gated on one check in its first plan task. The owner approved it on
-2026-10-15 (Q1), which reverses the react spec's ruling R12 (with synthesis C13), "no
+Decision: `@nexusdi/next` ships in 0.5, because the gate below failed (the decision at the
+end of this section). What follows is the recommendation the gate tested: publish
+`@nexusdi/next` in 0.4 with route handlers and server actions, on the Node runtime only,
+gated on one check in its first plan task. The owner approved it on 2026-10-15 (Q1), which reverses the react spec's ruling R12 (with synthesis C13), "no
 `@nexusdi/next`". `spec/react` carries a note on R12 that points here.
 
 Why now:

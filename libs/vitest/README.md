@@ -56,6 +56,7 @@ test('plots a course with the fake charts', ({ nexus }) => {
 
 ## Documentation
 
+- [How do I get a container in every Vitest test?](https://nexus.js.org/next/vitest/)
 - [How do I replace a provider in a test?](https://nexus.js.org/next/testing/)
 - [Documentation](https://nexus.js.org/next/)
 - [Examples](https://github.com/NexusDI/core/tree/@nexusdi/core@0.4.0-rc.1/libs/vitest/docs)
