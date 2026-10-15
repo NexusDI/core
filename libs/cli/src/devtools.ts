@@ -1,7 +1,18 @@
 import { readFileSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
 
-import type { inspect, parseGraph, toDot, toMermaid } from '@nexusdi/devtools';
+import type {
+  inspect,
+  parseGraph,
+  parseProfileReport,
+  profile,
+  profileStartup,
+  profileTable,
+  toChromeTrace,
+  toDot,
+  toMermaid,
+  toPerfettoTrace,
+} from '@nexusdi/devtools';
 
 import { CliError } from './cli-error.js';
 import { importFile, resolveFrom } from './resolve.js';
@@ -12,6 +23,12 @@ export interface DevtoolsApi {
   readonly parseGraph: typeof parseGraph;
   readonly toDot: typeof toDot;
   readonly toMermaid: typeof toMermaid;
+  readonly profile: typeof profile;
+  readonly profileStartup: typeof profileStartup;
+  readonly profileTable: typeof profileTable;
+  readonly toChromeTrace: typeof toChromeTrace;
+  readonly toPerfettoTrace: typeof toPerfettoTrace;
+  readonly parseProfileReport: typeof parseProfileReport;
 }
 
 /**
