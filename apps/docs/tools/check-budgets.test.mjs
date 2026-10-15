@@ -10,6 +10,11 @@ import {
   BACKGROUND_MARK,
   BEHAVIOUR_BUDGET,
   BUDGETS,
+  GUIDE_BUDGET,
+  GUIDE_PAGE,
+  GUIDE_SLACK,
+  assetsOf,
+  checkGuideTotal,
   ISLAND_MARK,
   checkBehaviour,
   checkBudgets,
@@ -183,5 +188,53 @@ describe('checkBehaviour', () => {
     expect(checkBehaviour(out).findings[0]).toMatch(
       /@nexusdi\/docs:behaviour-data/,
     );
+  });
+});
+
+describe('checkGuideTotal', () => {
+  /** An export whose guide page loads one script of `bytes` random bytes. */
+  function guide(bytes) {
+    const out = mkdtempSync(join(tmpdir(), 'budgets-'));
+    dirs.push(out);
+    mkdirSync(join(out, '_next/static/chunks'), { recursive: true });
+    mkdirSync(join(out, dirname(GUIDE_PAGE)), { recursive: true });
+    writeFileSync(join(out, '_next/static/chunks/a.js'), randomBytes(bytes));
+    writeFileSync(join(out, '_next/static/chunks/a.css'), 'a{}');
+    writeFileSync(
+      join(out, GUIDE_PAGE),
+      '<link rel="stylesheet" href="/next/_next/static/chunks/a.css"><script src="/next/_next/static/chunks/a.js"></script>',
+    );
+    return out;
+  }
+
+  it('reads every script and stylesheet a page loads', () => {
+    expect(
+      assetsOf(
+        '<link href="/next/_next/x.css"><script src="/next/_next/y.js"></script><script src="https://cdn/z.js"></script>',
+        '/next',
+      ),
+    ).toEqual(['/_next/y.js', '/_next/x.css']);
+  });
+
+  it('passes a total inside the ratchet', () => {
+    const { findings } = checkGuideTotal(
+      guide(GUIDE_BUDGET.gzip - GUIDE_SLACK / 2),
+      { basePath: '/next' },
+    );
+    expect(findings).toEqual([]);
+  });
+
+  it('fails a total over the ratchet and names the way out', () => {
+    const { findings } = checkGuideTotal(guide(GUIDE_BUDGET.gzip + 1_000), {
+      basePath: '/next',
+    });
+    expect(findings[0]).toMatch(/over the .* ratchet\. A component/);
+  });
+
+  it('fails a total far enough under the ratchet to lower it', () => {
+    const { findings } = checkGuideTotal(guide(GUIDE_BUDGET.gzip / 2), {
+      basePath: '/next',
+    });
+    expect(findings[0]).toMatch(/Lower GUIDE_BUDGET/);
   });
 });

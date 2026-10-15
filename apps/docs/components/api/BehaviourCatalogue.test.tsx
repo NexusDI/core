@@ -6,8 +6,20 @@ import {
   waitFor,
   type RenderResult,
 } from '@testing-library/react';
+import { readFileSync } from 'node:fs';
+import { join } from 'node:path';
+
 import type { ReactElement } from 'react';
-import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
+import { renderToString } from 'react-dom/server';
+import {
+  afterEach,
+  beforeAll,
+  beforeEach,
+  describe,
+  expect,
+  it,
+  vi,
+} from 'vitest';
 
 import BehaviourCatalogue from './BehaviourCatalogue';
 
@@ -92,6 +104,14 @@ const TYPED = {
     1: '<code class="twoslash-popup-code">function nodeScopes(): NodeScopes</code>',
   },
 };
+
+// The shell imports the pane on intersection. Vite transforms the module, its
+// stylesheets and meridian-ui on the first import, which under a loaded run
+// takes longer than a findBy waits, so the module is warmed once here and
+// each case then times the component and never the transform.
+beforeAll(async () => {
+  await import('./BehaviourPane');
+}, 30_000);
 
 /** The URLs the stubbed fetch was asked for, in order. */
 let asked: string[] = [];
@@ -399,6 +419,60 @@ describe('BehaviourCatalogue', () => {
       );
     },
   );
+
+  it('server-renders every sentence and leaves the pane to the client', () => {
+    const html = renderToString(
+      <BehaviourCatalogue
+        library="testing"
+        name="createTestingContainer"
+        groups={GROUPS}
+      />,
+    );
+
+    for (const { title } of GROUPS.flatMap((group) => group.rows))
+      expect(html).toContain(title);
+    expect(html).toContain('role="listbox"');
+    expect(html).not.toContain('meridian-console');
+  });
+
+  it('asks for the pane and its sidecar only once the reader reaches the block', async () => {
+    vi.stubGlobal(
+      'IntersectionObserver',
+      class {
+        observe() {
+          return undefined;
+        }
+        disconnect() {
+          return undefined;
+        }
+      },
+    );
+    const { container } = await show(
+      <BehaviourCatalogue
+        library="testing"
+        name="never-reached"
+        groups={GROUPS}
+      />,
+    );
+
+    expect(screen.getAllByRole('option')).toHaveLength(3);
+    expect(
+      container.querySelector('.nexus-behaviours__pane')?.childElementCount,
+    ).toBe(0);
+    expect(asked).toEqual([]);
+  });
+
+  it('carries no stylesheet and no pane code in the shell every page loads', () => {
+    const shell = readFileSync(
+      join(import.meta.dirname, 'BehaviourCatalogue.tsx'),
+      'utf8',
+    );
+
+    expect(shell).not.toMatch(/^import [^;]*\.css'/m);
+    expect(shell).not.toMatch(/^import (?!type )[^;]*'\.\/BehaviourPane'/m);
+    expect(shell).not.toMatch(/@nexusdi\/meridian-ui/);
+    expect(shell).toContain("import('./BehaviourPane')");
+  });
 
   it('keeps the cases out of the search index', async () => {
     const { container } = await mount();
