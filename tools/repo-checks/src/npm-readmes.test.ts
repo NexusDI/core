@@ -275,6 +275,12 @@ describe('the banned patterns', () => {
     expect(bannedProse(miss)).toEqual([]);
   });
 
+  it('takes a public NEXUS_ constant for no error code', () => {
+    expect(
+      bannedRaw("import { NEXUS_SCOPE } from '@nexusdi/react-router';"),
+    ).toEqual([]);
+  });
+
   it('holds a hit and a miss for every pattern', () => {
     expect(new Set(banned.raw.map((c) => c.name))).toEqual(
       new Set(BANNED.map((p) => p.name)),

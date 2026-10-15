@@ -117,6 +117,12 @@ export function enterSection(
   module: ModuleRef,
   handle: RequestScope | null | undefined,
 ): Promise<void>;
+/** nexus()'s shared start, bound to one source: log (guardLog), open(request, log?) -> { handle, dispose }, ambient(handle, dispose, log?) -> { scope } | { failure }, definition(deps), sectionCheck(deps), resolve(step), enter(section, handle, log?). */
+export function adapterCore(
+  ship: ContainerSource,
+  options: { readonly log?: NexusLog },
+  adapter: string,
+): AdapterCore;
 /** The request's handle, or the "register <hook> before this route" error. */
 export function requireHandle(
   handle: RequestScope | null | undefined,

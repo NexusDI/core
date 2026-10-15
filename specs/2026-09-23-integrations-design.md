@@ -1618,8 +1618,8 @@ async ({ request, context, params }, next) => {
   const dispose = once(() => handle.close().catch(log));
   context.set(NEXUS_SCOPE, handle); // set before any return, so loaders always find it
   if (request.signal.aborted) {
-    await dispose(); // the client left: close the handle, so a late inject rejects
-    return next();
+    await dispose(); // the client left: no scope, no loaders
+    return new Response(null, { status: 499 }); // a guard; see below
   }
   request.signal.addEventListener('abort', dispose, { once: true });
   const response = options.scopes
@@ -1628,6 +1628,11 @@ async ({ request, context, params }, next) => {
   return disposeWithBody(response, dispose, request.method);
 };
 ```
+
+React Router 8 throws the signal's reason before it calls a middleware on an aborted
+request, so the aborted branch runs only on a version that does not check; there it
+returns a 499 without `next()`, which the pipeline returns as the result
+(`callRouteMiddleware`). The branch stays as a guard.
 
 Parallel loaders of one navigation start together, and their first `inject` calls share
 the handle's one `createScope` promise (section 3.9).
@@ -1643,9 +1648,14 @@ through the root middleware. `@react-router/express` and `react-router-serve` ab
 
 The adapter throws a `Response` with status 500 or 503 and the status text as body.
 React Router renders the nearest error boundary with that status. The `NexusError` goes to
-`log` only. A thrown `Response` has no `cause`, so the guide shows `handleError` in
-`entry.server.tsx` for users who want one log pipeline, and the adapter's `log` defaults
-to `console.error(err.code, { ...err }, err.message)` (section 3.6).
+`log` only. React Router passes a thrown `Response` to `handleError` only for a resource
+route (`server-runtime/server.js`, `handleResourceRequest`); a document or `.data`
+request turns it into an error response without calling `handleError`. So a failure in a
+page's loader writes the adapter's line alone, and one in a resource route writes a
+second line through the default `handleError`, which the guide notes. A thrown
+`Response` has no `cause`, so the guide shows `handleError` in `entry.server.tsx` for
+users who want one log pipeline, and the adapter's `log` defaults to
+`console.error(err.code, { ...err }, err.message)` (section 3.6).
 
 ### 7.5 Runtimes
 

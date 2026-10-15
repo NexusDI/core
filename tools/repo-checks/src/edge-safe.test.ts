@@ -39,7 +39,7 @@ describe('edgeSafe', () => {
   const live = edgeSafe(workspaceRoot);
 
   it('scans every edge package present in libs/', () => {
-    expect(live.scanned.packages).toBeGreaterThanOrEqual(4);
+    expect(live.scanned.packages).toBeGreaterThanOrEqual(5);
     expect(live.scanned.files).toBeGreaterThan(0);
   });
 
