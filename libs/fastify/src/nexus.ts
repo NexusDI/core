@@ -25,25 +25,24 @@ import {
   defaultLog,
   definitionCheck,
   disposer,
-  enterSection,
+  enterFor,
   guardLog,
   loader,
   logLevel,
-  RequestFinishedError,
+  mapError,
   requestScope,
-  statusOf,
-  toHttpError,
-  validateFailure,
+  requireHandle,
+  resolveFor,
   validator,
   type ContainerSource,
   type DepsMap,
-  type LogPhase,
   type NexusLog,
   type OptionsArg,
   type RequestOption,
   type RequestScope,
   type ResolvedDeps,
   type ScopeRunner,
+  type Stop,
 } from './internal/request-scope.js';
 
 declare module 'fastify' {
@@ -112,25 +111,16 @@ function requestLog(logger: FastifyBaseLogger): NexusLog {
   };
 }
 
-/** A mapped error becomes a logged NexusHttpError; anything else goes to Fastify unchanged. */
-function mapped(error: unknown, log: NexusLog, phase: LogPhase): unknown {
-  return statusOf(error) === undefined
-    ? error
-    : toHttpError(error, log, ADAPTER, phase);
-}
-
 /**
- * True for a RequestFinishedError: the response closed before the request's
- * first use of its scope, so scope() created none. No client reads a reply,
- * so this logs the error, takes the reply from Fastify and ends the raw
- * response (integrations spec 3.9).
+ * Ends a stopped request: a failure is thrown to Fastify's error handler,
+ * and a finished request's reply is taken from Fastify and its raw response
+ * ended, since no client reads it.
  */
-function finished(error: unknown, reply: FastifyReply, log: NexusLog): boolean {
-  if (!(error instanceof RequestFinishedError)) return false;
-  log(error, { adapter: ADAPTER, phase: 'scope' });
+function stop(result: Stop, reply: FastifyReply): FastifyReply {
+  if ('failure' in result) throw result.failure;
   reply.hijack();
   if (!reply.raw.writableEnded) reply.raw.end();
-  return true;
+  return reply;
 }
 
 /** The onRequest hook, exported for tests. Callback style, so scopes.run(scope, done) carries the scope. */
@@ -160,18 +150,13 @@ export function requestHook(
     const scopes = options.scopes;
     handle.scope().then(
       (scope) => scopes.run(scope, () => done()),
-      (error: unknown) => done(mapped(error, log, 'scope') as Error),
+      (error: unknown) => done(mapError(error, log, ADAPTER, 'scope') as Error),
     );
   };
 }
 
-function handleOf(req: FastifyRequest): RequestScope {
-  if (req.nexus === null || req.nexus === undefined)
-    throw new Error(
-      `[${ADAPTER}] no scope on this request: register di.plugin before this route`,
-    );
-  return req.nexus;
-}
+const handleOf = (req: FastifyRequest): RequestScope =>
+  requireHandle(req.nexus, ADAPTER, 'di.plugin');
 
 export function nexus(
   ship: ContainerSource,
@@ -200,26 +185,17 @@ export function nexus(
       req: FastifyRequest<G>,
       reply: FastifyReply<G>,
     ): Promise<unknown> => {
-      const log = logOf(req);
-      try {
-        if (section !== undefined) await enterSection(load, section, req.nexus);
-      } catch (error) {
-        if (finished(error, reply, log)) return reply;
-        throw mapped(error, log, 'load');
-      }
-      try {
-        await check();
-      } catch (error) {
-        throw validateFailure(error, log, ADAPTER);
-      }
-      let resolved: ResolvedDeps<D>;
-      try {
-        resolved = (await handleOf(req).scope()).resolve(deps);
-      } catch (error) {
-        if (finished(error, reply, log)) return reply;
-        throw mapped(error, log, 'scope');
-      }
-      return handler(resolved, req, reply);
+      const result = await resolveFor({
+        handle: () => handleOf(req),
+        deps,
+        checked: check,
+        load,
+        section,
+        log: logOf(req),
+        adapter: ADAPTER,
+      });
+      if (!('deps' in result)) return stop(result, reply);
+      return handler(result.deps, req, reply);
     };
     // A RouteHandlerMethod's return type follows G's Reply. The handler's
     // return is unknown, as FastifyHandler declares it, so only the return
@@ -239,12 +215,14 @@ export function nexus(
     scope: async (req) => handleOf(req).scope(),
     load(module) {
       const hook: onRequestAsyncHookHandler = async (req, reply) => {
-        try {
-          await enterSection(load, module, req.nexus);
-        } catch (error) {
-          const log = logOf(req);
-          if (!finished(error, reply, log)) throw mapped(error, log, 'load');
-        }
+        const result = await enterFor({
+          load,
+          section: module,
+          handle: req.nexus,
+          log: logOf(req),
+          adapter: ADAPTER,
+        });
+        if (result !== undefined) stop(result, reply);
       };
       const sectionInject: Inject = (deps, handler) =>
         handlerOf(deps, handler, validator(container, deps), module);

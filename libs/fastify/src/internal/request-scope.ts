@@ -367,3 +367,108 @@ export function definitionCheck(
     ? validator(container, deps)
     : () => Promise.resolve();
 }
+
+/** The request's handle, or the error that tells the user which hook to register. */
+export function requireHandle(
+  handle: RequestScope | null | undefined,
+  adapter: string,
+  hook: string,
+): RequestScope {
+  if (handle === null || handle === undefined)
+    throw new Error(
+      `[${adapter}] no scope on this request: register ${hook} before this route`,
+    );
+  return handle;
+}
+
+/** A mapped error becomes a logged NexusHttpError; anything else comes back unchanged. */
+export function mapError(
+  error: unknown,
+  log: NexusLog,
+  adapter: string,
+  phase: LogPhase,
+): unknown {
+  return statusOf(error) === undefined
+    ? error
+    : toHttpError(error, log, adapter, phase);
+}
+
+/**
+ * What a request step ends in when it does not go on: `finished` when the
+ * response closed before the request's first use of its scope, so scope()
+ * created none (logged here, integrations spec 3.9), or the `failure` the
+ * adapter hands its framework, already mapped and logged.
+ */
+export type Stop = { readonly finished: true } | { readonly failure: unknown };
+
+function stopFor(
+  error: unknown,
+  log: NexusLog,
+  adapter: string,
+  phase: LogPhase,
+): Stop {
+  if (error instanceof RequestFinishedError) {
+    log(error, { adapter, phase: 'scope' });
+    return { finished: true };
+  }
+  return { failure: mapError(error, log, adapter, phase) };
+}
+
+/** A section's step before its handlers (enterSection); undefined when the request goes on. */
+export async function enterFor(step: {
+  readonly load: (module: ModuleRef) => Promise<Nexus>;
+  readonly section: ModuleRef;
+  readonly handle: RequestScope | null | undefined;
+  readonly log: NexusLog;
+  readonly adapter: string;
+}): Promise<Stop | undefined> {
+  try {
+    await enterSection(step.load, step.section, step.handle);
+    return undefined;
+  } catch (error) {
+    return stopFor(error, step.log, step.adapter, 'load');
+  }
+}
+
+/**
+ * inject's request path: the section's load, the deps check, then the deps
+ * resolved from the request's scope, each failure mapped for its phase.
+ */
+export async function resolveFor<D extends DepsMap>(step: {
+  readonly handle: () => RequestScope;
+  readonly deps: D;
+  /** The deps check: definitionCheck's result, or a validator() for a section. */
+  readonly checked: () => Promise<void>;
+  readonly load: (module: ModuleRef) => Promise<Nexus>;
+  readonly section?: ModuleRef;
+  readonly log: NexusLog;
+  readonly adapter: string;
+}): Promise<{ readonly deps: ResolvedDeps<D> } | Stop> {
+  const { log, adapter } = step;
+  if (step.section !== undefined) {
+    let handle: RequestScope | undefined;
+    try {
+      handle = step.handle();
+    } catch {
+      handle = undefined;
+    }
+    const stop = await enterFor({
+      load: step.load,
+      section: step.section,
+      handle,
+      log,
+      adapter,
+    });
+    if (stop !== undefined) return stop;
+  }
+  try {
+    await step.checked();
+  } catch (error) {
+    return { failure: validateFailure(error, log, adapter) };
+  }
+  try {
+    return { deps: (await step.handle().scope()).resolve(step.deps) };
+  } catch (error) {
+    return stopFor(error, log, adapter, 'scope');
+  }
+}
