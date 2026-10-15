@@ -1,0 +1,63 @@
+{
+  "name": "@nexusdi/fastify",
+  "version": "0.4.0-rc.1",
+  "description": "Give every Fastify request its own NexusDI scope, disposed when the response is done.",
+  "keywords": [
+    "nexusdi",
+    "dependency injection",
+    "fastify",
+    "fastify-plugin",
+    "request scope",
+    "typescript"
+  ],
+  "homepage": "https://github.com/NexusDI/core#readme",
+  "bugs": {
+    "url": "https://github.com/NexusDI/core/issues"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/NexusDI/core.git",
+    "directory": "libs/fastify"
+  },
+  "license": "MIT",
+  "type": "module",
+  "sideEffects": false,
+  "engines": {
+    "node": ">=22.12"
+  },
+  "types": "./dist/index.d.ts",
+  "exports": {
+    "./package.json": "./package.json",
+    ".": {
+      "@nexusdi/source": "./src/index.ts",
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js",
+      "default": "./dist/index.js"
+    }
+  },
+  "files": [
+    "dist",
+    "!dist/**/*.tsbuildinfo",
+    "src",
+    "!src/**/*.test.*",
+    "!src/**/*.spec.*",
+    "!src/**/*.test-d.*",
+    "README.md",
+    "LICENSE",
+    "CHANGELOG.md"
+  ],
+  "peerDependencies": {
+    "@nexusdi/core": "0.4.0-rc.1",
+    "fastify": "^5.0.0"
+  },
+  "dependencies": {
+    "fastify-plugin": "^6.0.0"
+  },
+  "devDependencies": {
+    "fastify": "^5.12.7"
+  },
+  "publishConfig": {
+    "access": "public",
+    "provenance": true
+  }
+}

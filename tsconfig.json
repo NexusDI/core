@@ -68,6 +68,9 @@
     },
     {
       "path": "./libs/vitest"
+    },
+    {
+      "path": "./libs/fastify"
     }
   ],
   "compilerOptions": {

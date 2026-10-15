@@ -63,6 +63,7 @@ Package scopes:
 - **devtools**: Changes to the `@nexusdi/devtools` library
 - **cli**: Changes to the `@nexusdi/cli` package
 - **express**: Changes to the `@nexusdi/express` library
+- **fastify**: Changes to the `@nexusdi/fastify` library
 - **vitest**: Changes to the `@nexusdi/vitest` library
 - **federation**: Changes to the `@nexusdi/federation` library
 

@@ -25,6 +25,11 @@ const ALLOWLIST: readonly CopyAllowance[] = [
     reason:
       "test-support, outside published source: core's SEC-009 and devtools' SEC-010 each compile the chain from their own test-support",
   },
+  {
+    glob: 'libs/*/src/internal/request-scope.ts',
+    reason:
+      'P4 exception: the adapter copies (integrations spec 3.7, ruling V13); adapter-shared-copies.test.ts keeps them byte-identical',
+  },
 ];
 
 const FIXTURE_ALLOWANCE: CopyAllowance = {

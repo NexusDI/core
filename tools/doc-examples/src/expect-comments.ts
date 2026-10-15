@@ -145,6 +145,13 @@ export function rewriteLine(
   if (claim === null) return line;
 
   const { indent, statement, expected } = claim;
+  // The message names the claim's own line. vite-plugin-doctest maps a
+  // failure inside its fence to the fence's first code line, so the stack
+  // alone points at the wrong line of a README.
+  const where = JSON.stringify(`${file.split('/').pop()}:${number}`).replaceAll(
+    '"',
+    "'",
+  );
 
   if (statement === '') {
     throw new ExpectCommentError(
@@ -170,7 +177,7 @@ export function rewriteLine(
           'plain comment, without the -> marker',
       );
     }
-    return `${indent}${declaration[1]}; expect(${declaration[2]}).toEqual(${expected});`;
+    return `${indent}${declaration[1]}; expect(${declaration[2]}, ${where}).toEqual(${expected});`;
   }
 
   if (!isExpression(statement)) {
@@ -199,7 +206,7 @@ export function rewriteLine(
   // object and array literal in a doc is a fresh object that toBe rejects.
   // toEqual still compares primitives by value, so the looser matcher costs
   // nothing on the cases toBe would have covered.
-  return `${indent}expect(${statement}).toEqual(${expected});`;
+  return `${indent}expect(${statement}, ${where}).toEqual(${expected});`;
 }
 
 /**
