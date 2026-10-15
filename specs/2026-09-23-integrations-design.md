@@ -631,8 +631,10 @@ wrapper.
 
 The counts are four copies of `request-scope.ts` (Express, Fastify, Hono, React Router)
 and two of `dispose-with-body.ts` (Hono, React Router). `@nexusdi/next`, which would have
-added a fifth copy (D9), moves to 0.5 (section 10.1). A new adapter forces no edit in another adapter. A change to
-a shared file changes every copy in one commit, which the copies check enforces. `@nexusdi/http` can be published later with no user-visible change.
+added a fifth copy (D9), moves to 0.5 (section 10.1). A new adapter forces no edit in
+another adapter. A change to a shared file changes every copy in one commit, which the
+copies check enforces. `@nexusdi/http` can be published later with no user-visible
+change.
 
 ### 3.8 The example app
 

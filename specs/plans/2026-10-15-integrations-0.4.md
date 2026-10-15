@@ -19,8 +19,8 @@ Spec: `specs/2026-09-23-integrations-design.md` (revision 3, with the owner's an
 - Each package is generated with `npx nx g @nx/js:library libs/<name> --name=@nexusdi/<name> --bundler=tsc --unitTestRunner=vitest --linter=eslint --no-interactive`, then aligned with `libs/node`: same `package.json` fields (`type`, `sideEffects`, `engines.node: ">=22.12"`, `exports` with `@nexusdi/source` first, `files`, `publishConfig`), same `project.json` (lint `--max-warnings=0`, test `dependsOn: ["^build", "build"]`, `stage-publish: {}`), same `vite.config.ts` shape (with `docExamples()`), and `docs/examples.md`. Run `git diff nx.json` after the generator and restore any lost comment (the `generator-collateral` check guards it).
 - Version on disk for every new package: `0.4.0-rc.1`, with `"@nexusdi/core": "0.4.0-rc.1"` (exact) in `peerDependencies`. `package-versions.test.ts` holds the core peer.
 - Every new package joins `.fallowrc.jsonc` `publicPackages` and `tools/repo-checks/src/npm-readmes-data.ts` `PACKAGES` in the task that creates it.
-- No `node:` import and no `process` in any adapter's `src` (`core-layers.ts` `nodeViolations` already enforces it). No `eval(` and no `new Function` in `@nexusdi/hono`, `@nexusdi/react-router` and `@nexusdi/next` (Task 8 adds the check).
-- One string literal of a core code per server adapter: `isNexusError(error, 'NEXUS_DISPOSED')`, in `request-scope.ts` only (P1 allowlist entry in `owner-vocabulary.test.ts`; Task 17 adds `@nexusdi/next` to it).
+- No `node:` import and no `process` in any adapter's `src` (`core-layers.ts` `nodeViolations` already enforces it). No `eval(` and no `new Function` in `@nexusdi/hono` and `@nexusdi/react-router` (Task 8 adds the check; `@nexusdi/next` joins it in 0.5).
+- One string literal of a core code per server adapter: `isNexusError(error, 'NEXUS_DISPOSED')`, in `request-scope.ts` only (P1 allowlist entry in `owner-vocabulary.test.ts`; `@nexusdi/next` joins it in 0.5, where Task 17 moved).
 - No adapter imports `@nexusdi/node`, `@nexusdi/errors` or `@nexusdi/devtools` at runtime. Their tests list them as dev dependencies.
 - Samples, tests and READMEs after "Getting started" are interface-first: `Token<IFoo>`, `provide(TOKEN, { useClass })`, `static deps`, Meridian names from docs spec §7.1 plus the two rows of integrations spec 15.2 (`BridgeApi`, `createBridge`, `GET /course/:to`, `x-mission-id`, `INavCharts`/`NAV_CHARTS`, `IFlightLog`/`FLIGHT_LOG`, `ShuttleFlightLog`, `fakeCharts`, `MemoryFlightLog`, `MISSION`, `Mission = { id: string; target: string }`).
 - Prose and comments: plain engineer text, no em dashes, no bold lead-ins in comments or commit prose, never the word "native", never mention reflect-metadata.
@@ -211,7 +211,7 @@ Per-adapter public surface (spec sections 4 to 8 and 10):
 | `@nexusdi/fastify`      | `nexus(ship, options): NexusFastify` with `plugin`, `encapsulatedPlugin`, `inject`, `scope(req)`, `load(module)`; same types                                                           |
 | `@nexusdi/hono`         | `nexus(ship, options): NexusHono` with `middleware`, `inject`, `scope(c)`, `load(module)`; `NexusEnv`, `RequestScope`, `ContainerSource`, `NexusHonoOptions`, `NexusLog`               |
 | `@nexusdi/react-router` | `nexus(ship, options): NexusRouter` with `middleware`, `inject`, `scope(context)`, `load(module)`; `NEXUS_SCOPE`, `existingScope`, same types                                          |
-| `@nexusdi/next`         | `nexus(ship, options): NexusNext` with `route(deps, handler)`, `action(deps, fn)`; `NexusHttpError`, `ContainerSource`, `NexusNextOptions`, `NexusLog`                                 |
+| `@nexusdi/next` (0.5)   | moved to 0.5 (Task 16's gate): `nexus(ship, options): NexusNext` with `route(deps, handler)`, `action(deps, fn)`; `NexusHttpError`, `ContainerSource`, `NexusNextOptions`, `NexusLog`  |
 | `@nexusdi/vitest`       | `nexusFixtures(root, options?)`; `NexusFixtures`, `NexusFixturesOptions`                                                                                                               |
 | `@nexusdi/react`        | react spec section 3: `NexusProvider`, `useService`, `useContainer`, `ScopeProvider`, `lazySection`, `SectionBoundary`, `react()`, the four error classes                              |
 
@@ -234,10 +234,10 @@ libs/fastify/            @nexusdi/fastify (Tasks 5, 6)
 libs/hono/               @nexusdi/hono (Tasks 7, 8); src/internal/dispose-with-body.ts is the first copy
 libs/react-router/       @nexusdi/react-router (Tasks 9, 10)
 libs/react/              @nexusdi/react (Tasks 11 to 15)
-libs/next/               @nexusdi/next (Tasks 16, 17)
+libs/next/               @nexusdi/next, moved to 0.5 (gate Task 16; Task 17 in 0.5)
 examples/bridge-api/     the Meridian server demo (Task 18, edge legs in Tasks 21, 22)
 examples/react-ssr/      migrated (Task 19)
-examples/next-bridge/    Next demo (skeleton in Task 16, full in Task 20)
+examples/next-bridge/    the Next gate canary (Task 16); the demo moved to 0.5 with Task 20
 tools/repo-checks/src/adapter-shared-copies.test.ts   Task 5
 tools/repo-checks/src/edge-safe.test.ts               Task 8
 .github/workflows/ci.yml                               adapter-runtimes, adapter-peers jobs (Tasks 21 to 23)
@@ -15480,6 +15480,7 @@ Notes from the review of Tasks 3 and 6, which each guide carries in its Errors a
 
 - The /express/, /fastify/ and /hono/ guides show the one-line recipe of spec 3.6: an error handler that handles `NexusHttpError` by sending its status and status text without logging, so a failure writes only the adapter's line. Each guide also says that a plugin's error message, a third-party `construct` hook's included, reaches the log verbatim.
 - The /next/ guide (added after Task 16's gate failed, integrations spec 10.1): `apps/docs/content/next.mdx`, `kind: platform`, title "Scoping Next.js Route Handlers and Server Actions", with no `@nexusdi/next` package. Its recipe: one container per Next layer, built by a memoised function in `app/nexus.server.ts` (with `import 'server-only'` first), so `next build` builds none; a request scope per route handler or server action, disposed in `after()` from `next/server`; and a shared resource such as a connection pool kept on the app's own `globalThis` key, because Next evaluates the module once per layer and each layer has its own tokens and its own copy of core. It says that a process-global container cannot work, for that reason, and that 0.5 brings the adapter. Its regions sit in `examples/meridian/src/pages/next.md` and run in Node without a Next server; `examples/next-bridge`'s gate canary is the measurement it cites.
+- The interceptors page (`apps/docs/content/interceptors.mdx`, a page this plan does not otherwise touch) gains one line, from Task 18: "A value provider is never intercepted: it holds an object the container did not build. Bind a `useFactory` that returns the value instead." A backlog issue covers the plugin's own check.
 - The /fastify/ guide tells users to pass `forceCloseConnections` or to call `server.closeAllConnections()` before `close()`. The cause is Node 22's http server with its bundled undici 6, and it applies to any Node http server on 22.x, Fastify included: `server.close()` does not close a connection that has never sent a request (nodejs/node#63452, fixed in Node 26.12, not backported to 22.x or 24.x). After a client aborts a streaming response, undici 6 opens such a spare connection, so `close()` waits out the keep-alive timeout (72 s in Fastify). Node 24 closes, because its undici 7 drops the spare connection.
 
 - [ ] **Step 1: Add the example dependencies** to `examples/meridian/package.json`

@@ -1,0 +1,32 @@
+{
+  "name": "@nexusdi/bridge-api",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "exports": {
+    "./contracts": "./src/ship/contracts.ts",
+    "./ship": "./src/ship/index.ts",
+    "./hono": "./src/hono.ts"
+  },
+  "dependencies": {
+    "@hono/node-server": "2.1.5",
+    "@nexusdi/core": "*",
+    "@nexusdi/devtools": "*",
+    "@nexusdi/errors": "*",
+    "@nexusdi/express": "*",
+    "@nexusdi/fastify": "*",
+    "@nexusdi/hono": "*",
+    "@nexusdi/interceptors": "*",
+    "@nexusdi/node": "*",
+    "express": "5.3.0",
+    "fastify": "5.12.7",
+    "hono": "4.13.13"
+  },
+  "devDependencies": {
+    "@nexusdi/cli": "*",
+    "@nexusdi/testing": "*",
+    "@nexusdi/vitest": "*",
+    "@types/express": "5.0.6",
+    "esbuild": "0.28.2"
+  }
+}

@@ -1,0 +1,218 @@
+{
+  "modules": [
+    {
+      "id": "m0",
+      "name": "Meridian",
+      "global": false,
+      "imports": [
+        "m1",
+        "m3",
+        "m4",
+        "m5"
+      ],
+      "exports": []
+    },
+    {
+      "id": "m1",
+      "name": "Tactical",
+      "global": false,
+      "imports": [
+        "m2"
+      ],
+      "exports": [
+        "p0"
+      ]
+    },
+    {
+      "id": "m2",
+      "name": "Comms",
+      "global": false,
+      "imports": [],
+      "exports": [
+        "p1"
+      ]
+    },
+    {
+      "id": "m3",
+      "name": "BridgeApi",
+      "global": false,
+      "imports": [],
+      "exports": [
+        "p3",
+        "p4"
+      ]
+    },
+    {
+      "id": "m4",
+      "name": "Audit",
+      "global": false,
+      "imports": [],
+      "exports": [
+        "p5"
+      ]
+    },
+    {
+      "id": "m5",
+      "name": "interceptors",
+      "global": false,
+      "imports": [
+        "m4"
+      ],
+      "exports": []
+    }
+  ],
+  "providers": [
+    {
+      "id": "p0",
+      "token": "NavCharts",
+      "module": "m1",
+      "lifetime": "singleton",
+      "kind": "factory",
+      "eager": true,
+      "async": null,
+      "notes": [],
+      "implementation": null,
+      "internal": false
+    },
+    {
+      "id": "p1",
+      "token": "SubspaceLink",
+      "module": "m2",
+      "lifetime": "singleton",
+      "kind": "class",
+      "eager": true,
+      "async": null,
+      "notes": [],
+      "implementation": "SubspaceRelay",
+      "internal": false
+    },
+    {
+      "id": "p2",
+      "token": "CommsOptions",
+      "module": "m2",
+      "lifetime": null,
+      "kind": "value",
+      "eager": true,
+      "async": null,
+      "notes": [],
+      "implementation": null,
+      "internal": false
+    },
+    {
+      "id": "p3",
+      "token": "Mission",
+      "module": "m3",
+      "lifetime": "scoped",
+      "kind": "factory",
+      "eager": false,
+      "async": null,
+      "notes": [],
+      "implementation": null,
+      "internal": false
+    },
+    {
+      "id": "p4",
+      "token": "FlightLog",
+      "module": "m3",
+      "lifetime": "scoped",
+      "kind": "class",
+      "eager": true,
+      "async": null,
+      "notes": [],
+      "implementation": "ShuttleFlightLog",
+      "internal": false
+    },
+    {
+      "id": "p5",
+      "token": "NavAudit",
+      "module": "m4",
+      "lifetime": "singleton",
+      "kind": "class",
+      "eager": true,
+      "async": null,
+      "notes": [],
+      "implementation": "NavAudit",
+      "internal": false
+    },
+    {
+      "id": "p6",
+      "token": "NavAuditHook",
+      "module": "m5",
+      "lifetime": "singleton",
+      "kind": "factory",
+      "eager": true,
+      "async": null,
+      "notes": [],
+      "implementation": null,
+      "internal": false
+    },
+    {
+      "id": "p7",
+      "token": "interceptors registry",
+      "module": "m5",
+      "lifetime": "singleton",
+      "kind": "factory",
+      "eager": true,
+      "async": null,
+      "notes": [],
+      "implementation": null,
+      "internal": false
+    },
+    {
+      "id": "p8",
+      "token": "interceptors guard",
+      "module": "m5",
+      "lifetime": "singleton",
+      "kind": "factory",
+      "eager": true,
+      "async": null,
+      "notes": [],
+      "implementation": null,
+      "internal": false
+    },
+    {
+      "id": "request",
+      "token": "REQUEST",
+      "module": "m0",
+      "lifetime": "scoped",
+      "kind": "value",
+      "eager": true,
+      "async": null,
+      "notes": [],
+      "implementation": null,
+      "internal": true
+    }
+  ],
+  "edges": [
+    {
+      "from": "p0",
+      "to": "p1",
+      "kind": "required"
+    },
+    {
+      "from": "p1",
+      "to": "p2",
+      "kind": "required"
+    },
+    {
+      "from": "p3",
+      "to": "request",
+      "kind": "required"
+    },
+    {
+      "from": "p4",
+      "to": "p3",
+      "kind": "required"
+    },
+    {
+      "from": "p6",
+      "to": "p5",
+      "kind": "required"
+    },
+    {
+      "from": "p7",
+      "to": "p6",
+      "kind": "required"
+    }
+  ]
+}
