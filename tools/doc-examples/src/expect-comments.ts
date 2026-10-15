@@ -298,6 +298,50 @@ function importSpecifier(line: string): string | null {
   return rewritten?.match(/await import\((['"])([^'"]+)\1\);$/)?.[2] ?? null;
 }
 
+/** A line that opens an import whose `from '...'` comes on a later line. */
+const OPENS_IMPORT = /^\s*import\b(?!.*['"][^'"]*['"];?\s*$)/;
+/** The line of a wrapped import that holds its specifier. */
+const CLOSES_IMPORT = /\bfrom\s*['"][^'"]+['"];?\s*$/;
+
+/**
+ * Joins the lines of each import a formatter wrapped, so the one-line import
+ * rewrite reads it. The joined statement goes on the import's first line and
+ * each continuation line becomes empty, so no line moves: doctest maps a
+ * block by line number, and a claim names its own line. A wrapped
+ * `import type` stays as written, because the block's transform drops it.
+ */
+function joinImports(contents: readonly (string | null)[]): (string | null)[] {
+  const out = [...contents];
+  let start = -1;
+  let typeOnly = false;
+  for (let i = 0; i < out.length; i++) {
+    const line = out[i];
+    if (line === null || line === undefined) {
+      start = -1;
+      continue;
+    }
+    if (start < 0) {
+      if (OPENS_IMPORT.test(line)) {
+        start = i;
+        typeOnly = /^\s*import type\b/.test(line);
+      }
+      continue;
+    }
+    if (!CLOSES_IMPORT.test(line)) continue;
+    if (typeOnly) {
+      // null: each line is returned as written.
+      for (let j = start; j <= i; j++) out[j] = null;
+    } else {
+      const parts = out.slice(start, i + 1) as string[];
+      const indent = (parts[0] as string).match(/^\s*/)?.[0] ?? '';
+      out[start] = indent + parts.map((part) => part.trim()).join(' ');
+      for (let j = start + 1; j <= i; j++) out[j] = '';
+    }
+    start = -1;
+  }
+  return out;
+}
+
 /**
  * Whether a fence info string marks the block as a doctest: one that doctest
  * runs, or a module fence (module-fences.ts), whose marker is `@module`.
@@ -324,33 +368,30 @@ export function rewriteMarkdown(
   const lines = code.split('\n');
   let fence: string | null = null;
   let running = false;
+  // Each line's code inside a running fence, null for every other line.
+  const contents = lines.map((line): string | null => {
+    const opening = line.match(/^\s*(`{3,}|~{3,})(.*)$/);
+    if (opening && fence === null) {
+      fence = opening[1] as string;
+      running = isDoctestFence(opening[2] as string);
+      return null;
+    }
+    if (opening && fence !== null && (opening[1] as string).startsWith(fence)) {
+      fence = null;
+      running = false;
+      return null;
+    }
+    return running ? line : null;
+  });
+  const joined = joinImports(contents);
 
   return lines
     .map((line, index) => {
-      const opening = line.match(/^\s*(`{3,}|~{3,})(.*)$/);
-
-      if (opening && fence === null) {
-        fence = opening[1] as string;
-        running = isDoctestFence(opening[2] as string);
-        return line;
-      }
-
-      if (
-        opening &&
-        fence !== null &&
-        (opening[1] as string).startsWith(fence)
-      ) {
-        fence = null;
-        running = false;
-        return line;
-      }
-
-      if (!running) return line;
-
-      const specifier = importSpecifier(line);
+      const content = joined[index];
+      if (content === null || content === undefined) return line;
+      const specifier = importSpecifier(content);
       if (specifier !== null) onImport?.(specifier);
-
-      return rewriteLine(line, file, index + 1);
+      return rewriteLine(content, file, index + 1);
     })
     .join('\n');
 }
@@ -367,32 +408,40 @@ export function rewriteJsDoc(code: string, file: string): string {
   const lines = code.split('\n');
   let inComment = false;
   let running = false;
+  const prefixes: string[] = [];
+  // Each line's example code, without its gutter, null for every other line.
+  const contents = lines.map((line, index): string | null => {
+    if (!inComment) {
+      if (/^\s*\/\*/.test(line)) inComment = !/\*\//.test(line);
+      return null;
+    }
+
+    const gutter = line.match(/^(\s*\*\s?)?(.*)$/) as RegExpMatchArray;
+    prefixes[index] = gutter[1] ?? '';
+    const content = gutter[2] as string;
+
+    const fence = content.match(/^\s*(`{3,})(.*)$/);
+    if (fence) {
+      running = running ? false : isDoctestFence(fence[2] as string);
+      if (/\*\//.test(line)) inComment = false;
+      return null;
+    }
+
+    if (/\*\//.test(line)) {
+      inComment = false;
+      running = false;
+      return null;
+    }
+
+    return running ? content : null;
+  });
+  const joined = joinImports(contents);
 
   return lines
     .map((line, index) => {
-      if (!inComment) {
-        if (/^\s*\/\*/.test(line)) inComment = !/\*\//.test(line);
-        return line;
-      }
-
-      const gutter = line.match(/^(\s*\*\s?)?(.*)$/) as RegExpMatchArray;
-      const prefix = gutter[1] ?? '';
-      const content = gutter[2] as string;
-
-      const fence = content.match(/^\s*(`{3,})(.*)$/);
-      if (fence) {
-        running = running ? false : isDoctestFence(fence[2] as string);
-        if (/\*\//.test(line)) inComment = false;
-        return line;
-      }
-
-      if (/\*\//.test(line)) {
-        inComment = false;
-        running = false;
-        return line;
-      }
-
-      return running ? prefix + rewriteLine(content, file, index + 1) : line;
+      const content = joined[index];
+      if (content === null || content === undefined) return line;
+      return (prefixes[index] ?? '') + rewriteLine(content, file, index + 1);
     })
     .join('\n');
 }

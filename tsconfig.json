@@ -71,6 +71,9 @@
     },
     {
       "path": "./libs/fastify"
+    },
+    {
+      "path": "./libs/hono"
     }
   ],
   "compilerOptions": {

@@ -581,7 +581,8 @@ default error handler also logs the error it receives: Express prints the
 folded into its own. Under a framework's default handler a failure therefore writes two
 lines for one request. An application that wants one line handles `NexusHttpError` in its
 own error handler, which sends the status and the status text without logging; each
-adapter's guide shows it.
+adapter's guide shows it. Hono's default handler sends an `HTTPException`'s own
+response and logs nothing, so under Hono the adapter's line is the only one.
 
 Each adapter's test sends a request that triggers `NEXUS_MISSING_PROVIDER` and asserts
 that the body contains neither `NEXUS_` nor the token's description. A second test throws
@@ -982,12 +983,18 @@ export function createBridge(ship: ContainerSource) {
   return new Hono().use(di.middleware).get(
     '/course/:to',
     di.inject({ charts: NAV_CHARTS, log: FLIGHT_LOG }, ({ charts, log }, c) => {
-      log.record(`plotting ${c.req.param('to')}`);
-      return c.json(charts.plot(c.req.param('to')));
+      const to = c.req.param('to') ?? '';
+      log.record(`plotting ${to}`);
+      return c.json(charts.plot(to));
     }),
   );
 }
 ```
+
+A handler `inject` wraps reads `c.req.param(name)` as `string | undefined`: Hono types a
+path's params only for a handler written inline after the path, as its own
+`createFactory().createHandlers` shows. A handler narrows the value, for example
+`c.req.param('to') ?? ''`.
 
 ```ts
 // server.ts, Node

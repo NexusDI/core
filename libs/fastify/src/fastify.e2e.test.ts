@@ -339,9 +339,14 @@ describe('@nexusdi/fastify on a real server', () => {
     const app = Fastify();
     await app.register(di.plugin);
     app.addHook('onClose', () => ship[Symbol.asyncDispose]());
+    let begun!: () => void;
+    const started = new Promise<void>((resolve) => {
+      begun = resolve;
+    });
     app.get(
       '/slow',
       di.inject({ log: FLIGHT_LOG }, async ({ log }) => {
+        begun();
         await new Promise((resolve) => setTimeout(resolve, 50));
         log.record('drained');
         return log.entries();
@@ -358,7 +363,7 @@ describe('@nexusdi/fastify on a real server', () => {
         res.on('end', () => resolve(JSON.parse(text)));
       }).on('error', reject);
     });
-    await new Promise((resolve) => setTimeout(resolve, 10));
+    await started;
     await app.close();
     expect(await pending).toEqual(['survey-7: drained']);
     expect(count('scope:dispose')).toBe(1);

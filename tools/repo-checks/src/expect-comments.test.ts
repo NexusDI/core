@@ -287,8 +287,86 @@ describe('rewriteMarkdown', () => {
   });
 });
 
+describe('rewriteMarkdown on a wrapped import', () => {
+  const fence = '```';
+  const block = (...body: string[]) =>
+    [`${fence}ts @import.meta.vitest`, ...body, fence].join('\n');
+
+  it('turns a wrapped named import into one dynamic import and keeps the line count', () => {
+    const source = block(
+      'import {',
+      '  Nexus,',
+      '  REQUEST,',
+      '  type NexusRequest,',
+      "} from '@nexusdi/core';",
+      'Nexus;',
+    );
+    const specifiers: string[] = [];
+    const rewritten = rewriteMarkdown(source, 'README.md', (specifier) =>
+      specifiers.push(specifier),
+    ).split('\n');
+    expect(rewritten).toHaveLength(source.split('\n').length);
+    expect(rewritten.slice(1, 6)).toEqual([
+      "const { Nexus, REQUEST } = await import('@nexusdi/core');",
+      '',
+      '',
+      '',
+      '',
+    ]);
+    expect(specifiers).toEqual(['@nexusdi/core']);
+  });
+
+  it('leaves a wrapped type-only import as it is', () => {
+    const source = block(
+      'import type {',
+      '  NexusRequest,',
+      '  Scope,',
+      "} from '@nexusdi/core';",
+    );
+    const specifiers: string[] = [];
+    expect(
+      rewriteMarkdown(source, 'README.md', (specifier) =>
+        specifiers.push(specifier),
+      ),
+    ).toBe(source);
+    expect(specifiers).toEqual([]);
+  });
+
+  it('names its own line for a claim after a wrapped import', () => {
+    const source = block(
+      'import {',
+      '  Nexus,',
+      "} from '@nexusdi/core';",
+      'f(); // -> 1',
+    );
+    expect(rewriteMarkdown(source, 'README.md')).toContain(
+      "expect(f(), 'README.md:5').toEqual(1);",
+    );
+  });
+});
+
 describe('rewriteJsDoc', () => {
   const fence = '```';
+
+  it('turns a wrapped import in an @example into one dynamic import', () => {
+    const source = [
+      '/**',
+      ` * ${fence}ts @import.meta.vitest`,
+      ' * import {',
+      ' *   Nexus,',
+      " * } from '@nexusdi/core';",
+      ' * f(); // -> 1',
+      ` * ${fence}`,
+      ' */',
+    ].join('\n');
+    const rewritten = rewriteJsDoc(source, 'f.ts').split('\n');
+    expect(rewritten.slice(2, 6)).toEqual([
+      " * const { Nexus } = await import('@nexusdi/core');",
+      ' * ',
+      ' * ',
+      " * expect(f(), 'f.ts:6').toEqual(1);",
+    ]);
+  });
 
   it('rewrites inside a marked @example block', () => {
     const source = [

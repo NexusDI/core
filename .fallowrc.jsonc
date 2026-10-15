@@ -22,6 +22,7 @@
     "@nexusdi/cli",
     "@nexusdi/express",
     "@nexusdi/fastify",
+    "@nexusdi/hono",
     "@nexusdi/vitest",
     "@nexusdi/meridian-ui",
   ],
@@ -62,6 +63,7 @@
     "libs/core/test-support/nexus-request.ts",
     "libs/express/test-support/nexus-request.ts",
     "libs/fastify/test-support/nexus-request.ts",
+    "libs/hono/test-support/nexus-request.ts",
     "libs/vitest/test-support/nexus-request.ts",
     "libs/core/src/**/*.test-d.ts",
     "libs/errors/src/**/*.test-d.ts",
@@ -73,6 +75,7 @@
     "libs/interceptors/src/**/*.test-d.ts",
     "libs/express/src/**/*.test-d.ts",
     "libs/fastify/src/**/*.test-d.ts",
+    "libs/hono/src/**/*.test-d.ts",
     "libs/vitest/src/**/*.test-d.ts",
     "libs/vitest/src/__fixtures__/**",
     // fallow's vitest plugin derives entry points from vite.config.ts's
