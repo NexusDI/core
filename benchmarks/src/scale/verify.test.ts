@@ -7,7 +7,7 @@ import { afterAll, describe, expect, it } from 'vitest';
 
 import { classifyScale } from '../outcome.ts';
 import { expectedDigest } from './graph.ts';
-import { six } from './six.ts';
+import { six, sixWithAlias } from './six.ts';
 
 const CHILD = join(import.meta.dirname, 'verify-child.mjs');
 const FAKE = join(
@@ -172,5 +172,49 @@ describe('verify-child.mjs', () => {
       outcome: 'compile-error',
       message: 'TS2304: Cannot find name',
     });
+  });
+});
+
+describe('verify-child.mjs with an alias', () => {
+  const aliasModel = sixWithAlias();
+  const aliasFile = join(dir, 'graph-alias.json');
+  writeFileSync(aliasFile, JSON.stringify(aliasModel));
+  const aliasDigest = expectedDigest(aliasModel);
+  const verifyAlias = (brk?: string) =>
+    JSON.parse(
+      execFileSync(process.execPath, [CHILD, FAKE, aliasFile], {
+        encoding: 'utf8',
+        env: { ...process.env, FAKE_ALIAS: '1', FAKE_BREAK: brk ?? '' },
+      }),
+    ) as Record<string, unknown>;
+
+  it('passes an alias that returns its target instance and constructs nothing', () => {
+    const out = verifyAlias();
+    expect(out).toEqual({
+      digest: aliasDigest,
+      shared: true,
+      built: true,
+      kinds: true,
+      ids: true,
+    });
+    expect(classifyScale(out, null, aliasDigest)).toEqual({ outcome: 'pass' });
+  });
+  it('writes the alias line as <alias>(<target>) in the digest', () => {
+    expect(aliasDigest).toBe(expectedDigest(sixWithAlias()));
+    expect(aliasDigest).not.toBe(expected);
+  });
+  it('reports shared: false for an alias that returns a copy of its target', () => {
+    const out = verifyAlias('alias-copy');
+    expect(out.shared).toBe(false);
+    expect(classifyScale(out, null, aliasDigest).outcome).toBe(
+      'wrong-instance',
+    );
+  });
+  it('reports kinds: false for an alias that counts a construction, as for a value', () => {
+    const out = verifyAlias('alias-counted');
+    expect(out.kinds).toBe(false);
+    expect(classifyScale(out, null, aliasDigest).outcome).toBe(
+      'wrong-instance',
+    );
   });
 });

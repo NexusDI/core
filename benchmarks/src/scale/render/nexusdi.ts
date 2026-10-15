@@ -40,10 +40,14 @@ const header = (graph: ScaleGraph) =>
 
 /** tokens.ts: an interface and a token per provider. */
 function tokensFile(graph: ScaleGraph): string {
-  const lines = graph.providers.map(
-    (p) =>
-      `export interface ${iface(p)} {\n  readonly id: '${p.name}';\n}\nexport const ${token(p)} = new Token<${iface(p)}>('${p.name}');\n`,
-  );
+  const lines = graph.providers.map((p) => {
+    // An alias's interface is its target's: one instance, one type.
+    const type =
+      p.kind === 'alias'
+        ? `export type ${iface(p)} = ${iface(graph.providers[p.deps[0]])};\n`
+        : `export interface ${iface(p)} {\n  readonly id: '${p.name}';\n}\n`;
+    return `${type}export const ${token(p)} = new Token<${iface(p)}>('${p.name}');\n`;
+  });
   return `import { Token } from '@nexusdi/core';\n\n${lines.join('')}`;
 }
 
@@ -67,6 +71,8 @@ function binding(graph: ScaleGraph, p: ScaleProvider): string {
     return `    provide(${token(p)}, { useClass: ${className(p)}, lifetime: 'singleton' }),\n`;
   if (p.kind === 'value')
     return `    provide(${token(p)}, { useValue: ${valueLiteral(p)} }),\n`;
+  if (p.kind === 'alias')
+    return `    provide(${token(p)}, { useExisting: ${token(graph.providers[p.deps[0]])} }),\n`;
   const deps = p.deps.map((d) => token(graph.providers[d]));
   return `    provide(${token(p)}, {
       useFactory: ${factoryFunction(graph, p, { param: iface, product: iface(p), indent: '      ' })},
@@ -87,6 +93,11 @@ function tokensImport(
   const types = new Set<number>();
   for (const p of own) {
     if (opts.bindings) tokens.add(p.index);
+    if (p.kind === 'alias') {
+      // The alias binding names its target's token and nothing else.
+      if (opts.bindings) tokens.add(p.deps[0]);
+      continue;
+    }
     if (!builds(p)) continue;
     // A class implements its interface; a factory returns it.
     if (opts.classes || p.kind !== 'class') types.add(p.index);
