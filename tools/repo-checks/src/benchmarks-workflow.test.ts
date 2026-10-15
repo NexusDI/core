@@ -45,6 +45,9 @@ describe('benchmarks workflow', () => {
     expect(wf.on).toHaveProperty('workflow_dispatch');
     expect(wf.on.push.tags).toEqual(['@nexusdi/core@*']);
   });
+  it('runs the scale jobs on every event except a pull request', () => {
+    expect(wf.jobs.scale.if).toBe("github.event_name != 'pull_request'");
+  });
   it('splits the full run into jobs that a merge job combines for the results job', () => {
     expect(wf.jobs.merge.needs).toEqual(
       expect.arrayContaining([
