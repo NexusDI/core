@@ -1,11 +1,15 @@
-import { readdirSync } from 'node:fs';
+import { readdirSync, readFileSync } from 'node:fs';
 import { join } from 'node:path';
 
 import { workspaceRoot } from '@nx/devkit';
 import { describe, expect, it } from 'vitest';
 
 import { libPackages } from './entry-graph.js';
-import { hasTextExport, sizeFixtureViolations } from './size-fixtures.js';
+import {
+  budgetViolations,
+  hasTextExport,
+  sizeFixtureViolations,
+} from './size-fixtures.js';
 
 const TEXT_EXPORT = { './text': { '@nexusdi/source': './src/text.ts' } };
 
@@ -56,5 +60,58 @@ describe('sizeFixtureViolations', () => {
     );
     expect(packages.filter(hasTextExport)).not.toHaveLength(0);
     expect(sizeFixtureViolations(packages, fixtures)).toEqual([]);
+  });
+});
+
+describe('budgetViolations', () => {
+  it('accepts an entry with a budget and a reason', () => {
+    expect(
+      budgetViolations(
+        {
+          hono: { external: ['hono'], budget: 1500, reason: 'the middleware' },
+        },
+        ['hono.ts'],
+      ),
+    ).toEqual([]);
+  });
+
+  it('reports an entry with no budget, no reason or no fixture', () => {
+    expect(
+      budgetViolations(
+        {
+          hono: { external: ['hono'] },
+          express: { budget: 1500, reason: ' ' },
+          gone: { budget: 1, reason: 'a fixture that left' },
+        },
+        ['hono.ts', 'express.ts'],
+      ),
+    ).toEqual([
+      'examples/size/src/fixtures.json: hono has no positive budget',
+      'examples/size/src/fixtures.json: hono gives no reason for its budget',
+      'examples/size/src/fixtures.json: express gives no reason for its budget',
+      'examples/size/src/fixtures.json: gone has no fixture gone.ts',
+    ]);
+  });
+
+  it('gives every adapter fixture a budget, in the workspace', () => {
+    const fixtures = readdirSync(
+      join(workspaceRoot, 'examples', 'size', 'src'),
+    );
+    const options = JSON.parse(
+      readFileSync(
+        join(workspaceRoot, 'examples', 'size', 'src', 'fixtures.json'),
+        'utf8',
+      ),
+    ) as Record<string, object>;
+    for (const adapter of [
+      'express',
+      'fastify',
+      'hono',
+      'react-router',
+      'react',
+      'hono-worker',
+    ])
+      expect(options[adapter], adapter).toBeDefined();
+    expect(budgetViolations(options, fixtures)).toEqual([]);
   });
 });

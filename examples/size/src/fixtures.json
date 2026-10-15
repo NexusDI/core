@@ -1,0 +1,34 @@
+{
+  "express": {
+    "external": ["express"],
+    "budget": 2000,
+    "reason": "the middleware, inject and the request scope; 1724 bytes on 2026-10-15, express external"
+  },
+  "fastify": {
+    "external": ["fastify", "fastify-plugin"],
+    "budget": 2200,
+    "reason": "the plugin, inject and the request scope; 1921 bytes on 2026-10-15, fastify external"
+  },
+  "hono": {
+    "external": ["hono"],
+    "budget": 2500,
+    "reason": "the middleware, inject, the body wrapper and the execution-context probe; 2199 bytes on 2026-10-15, hono external"
+  },
+  "react-router": {
+    "external": ["react-router"],
+    "budget": 2400,
+    "reason": "the middleware, inject, NEXUS_SCOPE and the body wrapper; 2070 bytes on 2026-10-15, react-router external"
+  },
+  "react": {
+    "external": ["react"],
+    "budget": 1800,
+    "reason": "NexusProvider, useService and the store a browser bundle carries; 1517 bytes on 2026-10-15, react external"
+  },
+  "hono-worker": {
+    "standalone": true,
+    "platform": "neutral",
+    "external": ["node:async_hooks"],
+    "budget": 32000,
+    "reason": "a whole Worker, core and Hono included; 28180 bytes on 2026-10-15, far under the 1 MB gzip of Vercel Edge Hobby"
+  }
+}
