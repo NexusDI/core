@@ -14865,7 +14865,7 @@ Seven of the 15 legs start red on Node 22.12 without three changes, which this s
 - Core's tests check a disposal error by `error.name === 'SuppressedError'` and its `error` and `suppressed` fields, in place of `toBeInstanceOf(SuppressedError)`. Node 22.12 has no global `SuppressedError`, and core throws its own `NexusSuppressedError` there (`runtime/dispose.ts`).
 - `libs/core/src/blueprint/visibility.oracle.test.ts` gets an explicit timeout. Its 600-graph case takes 8.8 s under load against the 5 s default.
 
-Run all 15 legs locally on their floor Node before the job lands in CI, and record each result in the ledger. The `node-floor` job lands in the same commit as the lowering step, never before it, and until then no README or docs fence uses `await using` (ruling of 2026-10-15).
+Run all 15 legs locally on their floor Node before the job lands in CI, and record each result in the ledger. The `node-floor` job lands in the same commit as the lowering step, never before it, and until then no new README or docs fence uses `await using`; the lowering step makes the existing ones pass (ruling of 2026-10-15).
 
 Try `--configLoader runner` first. Each lib's `vite.config.ts` imports `@nexusdi/doc-examples` through its `.ts` source, which Node 22.12 cannot load with the default bundle loader (`ERR_UNKNOWN_FILE_EXTENSION`, seen on Task 3). If the runner loader cannot load it either, drop the flag and set `NODE_OPTIONS: --experimental-strip-types` on that step only, with the comment `# Node 22.12 strips types only behind this flag, and vite.config.ts imports @nexusdi/doc-examples as .ts.` Libraries added after this task are added to the matrix by the task that creates them; the check fails until they are.
 
@@ -15435,6 +15435,11 @@ Files:
 Interfaces:
 
 - Consumes: `nexus` from `@nexusdi/hono`, `@nexusdi/express`, `@nexusdi/fastify`; `nodeScopes` from `@nexusdi/node`.
+
+Notes from the review of Tasks 3 and 6, which each guide carries in its Errors and Shutdown sections:
+
+- The /express/, /fastify/ and /hono/ guides show the one-line recipe of spec 3.6: an error handler that handles `NexusHttpError` by sending its status and status text without logging, so a failure writes only the adapter's line. Each guide also says that a plugin's error message, a third-party `construct` hook's included, reaches the log verbatim.
+- The /fastify/ guide tells users to pass `forceCloseConnections` or to call `server.closeAllConnections()` before `close()`. On Node 22.12, plain Fastify's `close()` waits forever for the socket of a request whose client aborted, when a listener on the raw request's `close` event exists (Node 24 closes).
 
 - [ ] **Step 1: Add the example dependencies** to `examples/meridian/package.json`
 
