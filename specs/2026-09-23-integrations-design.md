@@ -1115,12 +1115,15 @@ gives the entry for each and the CI leg that tests it.
 ### 4.5 Peers
 
 ```json
-"peerDependencies": { "@nexusdi/core": "0.4.0-rc.N", "hono": "^4.0.0" }
+"peerDependencies": { "@nexusdi/core": "0.4.0-rc.N", "hono": "^4.3.3" }
 ```
 
-`createMiddleware`, `c.var`, `c.executionCtx` and `HTTPException` exist from 4.0. The
-`adapter-peers` job (section 13.4) runs the integration test against `hono@4.0.0` and
-proves the floor.
+`createMiddleware`, `c.var`, `c.executionCtx` and `HTTPException` exist from 4.0, and
+`HTTPException` keeps its `cause` from 4.1. The floor is 4.3.3 for the types: before it,
+a handler that `inject` wraps reads its route parameters as `never` (`c.req.param('to')`
+fails to compile), and `c.json` refuses the `readonly` arrays services return. The
+`adapter-peers` job (section 13.4) runs the unit, type and integration tests against
+`hono@4.3.3` and proves the floor (Task 23, 2026-10-15).
 
 ### 4.6 Tests
 
@@ -2319,7 +2322,7 @@ libs/<name>/
     "LICENSE",
     "CHANGELOG.md"
   ],
-  "peerDependencies": { "@nexusdi/core": "0.4.0-rc.N", "hono": "^4.0.0" },
+  "peerDependencies": { "@nexusdi/core": "0.4.0-rc.N", "hono": "^4.3.3" },
   "devDependencies": { "@hono/node-server": "^2.1.5", "hono": "^4.13.13" },
   "keywords": [
     "nexusdi",
@@ -2434,7 +2437,7 @@ runs that adapter's unit, type and integration tests:
 
 | Adapter                 | Legs                                                                       |
 | ----------------------- | -------------------------------------------------------------------------- |
-| `@nexusdi/hono`         | `hono@4.0.0`, latest 4.x                                                   |
+| `@nexusdi/hono`         | `hono@4.3.3`, latest 4.x                                                   |
 | `@nexusdi/express`      | `express@5.0.0`, latest 5.x                                                |
 | `@nexusdi/fastify`      | `fastify@5.0.0` with `fastify-plugin@6.0.0`, latest 5.x with latest 6.x    |
 | `@nexusdi/react-router` | `react-router@7.9.0` and latest 7.x, both with `v8_middleware`; latest 8.x |

@@ -165,7 +165,7 @@ describe('@nexusdi/hono on @hono/node-server', () => {
             for (;;) {
               await s.writeSSE({ data: 'tick' });
               await new Promise((r) => setTimeout(r, 20));
-              if (s.aborted) return;
+              if (c.req.raw.signal.aborted) return;
             }
           }),
         ),
@@ -333,7 +333,7 @@ describe('@nexusdi/hono on @hono/node-server', () => {
         '/feed',
         di.inject({ log: FLIGHT_LOG }, ({ log }, c) =>
           stream(c, async (s) => {
-            for (let n = 0; n < 20 && !s.aborted; n++) {
+            for (let n = 0; n < 20 && !c.req.raw.signal.aborted; n++) {
               try {
                 log.record(`tick ${n}`);
                 await s.write(`${log.entries().length}\n`);
