@@ -334,10 +334,11 @@ thread-pool size would each change what a fresh process does):
    from the bundle's external imports, `reflect-metadata` first, so every package
    resolves from the cell as the bundle's own imports do. Library import time is already
    the cold-start figure.
-2. Reads the retained heap (`base`) once V8's background work has finished: pause 10 ms,
-   `gc()` twice, read, and repeat until two reads in a row are equal, at most ten times
-   (concurrent compile jobs still running at this read made `heap-ready` negative in 6
-   of 180 parallel runs). The array of indexes step 6 resolves is built before this read
+2. Reads the retained heap (`base`) once V8's background work has finished: the read
+   loops pause 10 ms, `gc()` twice, read, and stop after ten passes or when two reads in a
+   row are equal. The base read always runs all ten collects, because two reads rarely
+   agree to the byte (concurrent compile jobs still running at this read made `heap-ready`
+   negative in 6 of 180 parallel runs). The array of indexes step 6 resolves is built before this read
    from the model's provider count and target, so it sits in `base`.
 3. Times `await import(bundle)`: `load`.
 4. `gc()` twice. Times `create`: `create`.
@@ -705,16 +706,24 @@ skipped and recorded in `cells` with its outcome (section 14).
 
 ### 10.2 Schedule, dispatch and tags
 
-A new job, `scale-timings`, runs beside `timings` with the same trigger and steps
-(`release-core.ts`, then `node benchmarks/src/scale/timings.ts --seed=${{ github.run_id }}`),
-`timeout-minutes: 150`, and uploads `results/scale/` and `results/raw/`. `merge` gains it
-in `needs`, downloads its artifact, and runs `render.ts`. `open-results-pr.ts` adds
-`benchmarks/results/scale`, `scale.md` and the two SVGs to the commit and one line naming
-the scale file to the body; `scale.json` arrives with the deterministic artifact.
+This change has no scale timing job. The first dispatch run measured about 17 s per round
+of the `mixed` block against the 2.4 s assumed below, so its 1,010 rounds alone take about
+4.8 hours and one 150-minute job cannot finish. Because `merge` needs every job, a tag run
+would have dropped the Meridian-8 results pull request. The job arrives with the budget
+follow-up, designed in the tech lead's ruling on the scale CI budget: two child modes (a
+timing mode without the heap settles and a heap mode with them), one job per shape plus a
+`scale-steady` job, a strict `timings.ts --merge` that checks every part was made from the
+same sha, seed, core, versions and `scale.json`, a protocol check on the first dispatch
+run, and a width rule for the round count of `mixed` that the spec records before that
+run. Until then `merge` runs `render.ts` on the deterministic parts, `scale.json` arrives
+with the deterministic artifact, and `open-results-pr.ts` adds `benchmarks/results/scale`,
+`scale.md` and the two SVGs to the commit and one line naming the scale file to the body
+when a timing file exists.
 
 All sizes run in one job, so every point on a curve comes from one machine.
 
-Estimate for one full run on the rc.0 runner class. A round of five libraries at all four
+The estimate for one full run on the rc.0 runner class that this section started from, kept
+here because the first run disproved it: A round of five libraries at all four
 sizes takes about 2.4 s (spawns of about 60, 70, 100 and 250 ms by size); a `mixed-async`
 round of three about 1.4 s. All five shapes run; `wide`, `deep` and `modular` each
 take the `wide` figure.
