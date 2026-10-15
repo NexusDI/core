@@ -55,12 +55,12 @@ export function filesUnder(dir: string, root = dir): string[] {
 }
 
 /**
- * Every non-test `.ts` file under `dir`, with `path` relative to `root`;
- * none when `dir` does not exist.
+ * Every non-test `.ts` and `.tsx` file under `dir`, with `path` relative to
+ * `root`; none when `dir` does not exist.
  */
 export function sourcesOf(dir: string, root = dir): SourceFileText[] {
   return filesUnder(dir, root)
-    .filter((path) => path.endsWith('.ts') && !TEST_FILE.test(path))
+    .filter((path) => /\.tsx?$/.test(path) && !TEST_FILE.test(path))
     .map((path) => ({ path, source: readFileSync(join(root, path), 'utf8') }));
 }
 

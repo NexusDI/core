@@ -65,6 +65,14 @@ describe('walkEntry', () => {
 });
 
 describe('sourcesOf', () => {
+  it('reads .tsx sources too', () => {
+    const paths = sourcesOf(join(workspaceRoot, 'libs', 'react', 'src')).map(
+      (f) => f.path,
+    );
+    expect(paths).toContain('provider.tsx');
+    expect(paths.filter((path) => path.includes('.test'))).toEqual([]);
+  });
+
   it('reads every .ts file but tests, with paths relative to the folder', () => {
     const paths = sourcesOf(join(LIBS, 'errors', 'src')).map((f) => f.path);
     expect(paths).toContain('index.ts');
@@ -105,7 +113,18 @@ describe('libPackages', () => {
 });
 
 describe('resolveRelative', () => {
-  const paths = new Set(['index.ts', 'text/index.ts', 'feature.ts']);
+  const paths = new Set([
+    'index.ts',
+    'text/index.ts',
+    'feature.ts',
+    'provider.tsx',
+  ]);
+
+  it('maps a .js specifier to its .tsx file', () => {
+    expect(resolveRelative('index.ts', './provider.js', paths)).toBe(
+      'provider.tsx',
+    );
+  });
 
   it('maps a .js specifier to its .ts file', () => {
     expect(resolveRelative('index.ts', './feature.js', paths)).toBe(

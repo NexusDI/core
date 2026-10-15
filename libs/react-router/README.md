@@ -21,11 +21,11 @@ npm install @nexusdi/react-router@next @nexusdi/core@next react-router
 
 ## Quick Example
 
-A loader resolves its typed deps from the request's scope. This test hands it a scope it owns through `NEXUS_SCOPE`, so it needs no server.
+A loader resolves its typed deps from the request's scope, which the root middleware gives each request.
 
 ```ts @import.meta.vitest
 import { Nexus, Token, provide } from '@nexusdi/core';
-import { existingScope, NEXUS_SCOPE, nexus } from '@nexusdi/react-router';
+import { nexus } from '@nexusdi/react-router';
 import { RouterContextProvider } from 'react-router';
 
 interface IFlightLog {
@@ -43,11 +43,12 @@ class ShuttleFlightLog implements IFlightLog {
 }
 const FLIGHT_LOG = new Token<IFlightLog>('FlightLog');
 
-// app/nexus.server.ts; app/root.tsx exports [di.middleware] as middleware.
+// app/nexus.server.ts
 const ship = await Nexus.create([
   provide(FLIGHT_LOG, { useClass: ShuttleFlightLog, lifetime: 'scoped' }),
 ]);
 const di = nexus(ship);
+const middleware = [di.middleware]; // app/root.tsx exports this as middleware
 
 // app/routes/course.tsx
 interface LoaderArgs {
@@ -62,12 +63,18 @@ const loader = di.inject(
   },
 );
 
-const scope = await ship.createScope();
-const context = new RouterContextProvider(
-  new Map([[NEXUS_SCOPE, existingScope(scope)]]),
-);
-const entries = await loader({ params: { to: 'Kepler-442b' }, context }); // -> ['plotting Kepler-442b']
-await scope[Symbol.asyncDispose]();
+// What React Router does for GET /course/Kepler-442b
+const params = { to: 'Kepler-442b' };
+const context = new RouterContextProvider();
+const res = (await di.middleware(
+  {
+    request: new Request('http://bridge/course/Kepler-442b'),
+    params,
+    context,
+  } as never,
+  async () => Response.json(await loader({ params, context })),
+)) as Response;
+const entries = await res.json(); // -> ['plotting Kepler-442b']
 await ship[Symbol.asyncDispose]();
 ```
 
