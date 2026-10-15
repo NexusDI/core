@@ -117,6 +117,39 @@ export function enterSection(
   module: ModuleRef,
   handle: RequestScope | null | undefined,
 ): Promise<void>;
+/** The request's handle, or the "register <hook> before this route" error. */
+export function requireHandle(
+  handle: RequestScope | null | undefined,
+  adapter: string,
+  hook: string,
+): RequestScope;
+/** statusOf undefined: the error unchanged; otherwise toHttpError for the phase. */
+export function mapError(
+  error: unknown,
+  log: NexusLog,
+  adapter: string,
+  phase: LogPhase,
+): unknown;
+/** How a request step stops: finished (a RequestFinishedError, logged with phase 'scope'), or a failure already mapped and logged. */
+export type Stop = { readonly finished: true } | { readonly failure: unknown };
+/** A section's enterSection, as a Stop for the adapter to act on; undefined when the request goes on. */
+export function enterFor(step: {
+  load: (module: ModuleRef) => Promise<Nexus>;
+  section: ModuleRef;
+  handle: RequestScope | null | undefined;
+  log: NexusLog;
+  adapter: string;
+}): Promise<Stop | undefined>;
+/** inject's request path: the section load, the deps check (validateFailure), then the deps from the scope. */
+export function resolveFor<D extends DepsMap>(step: {
+  handle: () => RequestScope;
+  deps: D;
+  checked: () => Promise<void>;
+  load: (module: ModuleRef) => Promise<Nexus>;
+  section?: ModuleRef;
+  log: NexusLog;
+  adapter: string;
+}): Promise<{ readonly deps: ResolvedDeps<D> } | Stop>;
 /** inject's check: validateNow at definition for a Nexus, a validator() on the first request for a function source. */
 export function definitionCheck(
   source: ContainerSource,
