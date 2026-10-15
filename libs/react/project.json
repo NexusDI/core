@@ -25,6 +25,14 @@
         "cwd": "libs/react",
         "command": "vitest run --config vitest.e2e.config.ts"
       }
+    },
+    "e2e-hmr": {
+      "executor": "nx:run-commands",
+      "dependsOn": ["^build", "build"],
+      "options": {
+        "cwd": "libs/react",
+        "command": "vitest run --config vitest.e2e.config.ts src/hmr.e2e.test.ts"
+      }
     }
   }
 }

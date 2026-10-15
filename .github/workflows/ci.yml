@@ -362,3 +362,46 @@ jobs:
       - name: Edge Runtime VM
         if: matrix.leg == 'edge-runtime'
         run: npx nx run @nexusdi/bridge-api:test-edge
+
+  # Each adapter's tests against the floor and the newest release of every
+  # framework line its peer range admits (integrations spec 13.4). The leg
+  # list lives in scripts/adapter-peers.json; adapter-peers.test.ts holds
+  # this matrix to it and each floor to the adapter's peer range. The runner
+  # installs the leg with --no-save, checks the adapter resolves one copy,
+  # and installs Chromium for the react legs.
+  adapter-peers:
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        leg:
+          - hono-floor
+          - hono-latest
+          - express-floor
+          - express-latest
+          - fastify-floor
+          - fastify-latest
+          - react-router-7-floor
+          - react-router-7-latest
+          - react-router-8-latest
+          - react-floor
+          - react-19-latest
+          - vitest-floor
+          - vitest-4-latest
+          - vitest-5-latest
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          filter: tree:0
+
+      - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
+        with:
+          node-version-file: .nvmrc
+          cache: 'npm'
+
+      - run: npm ci
+
+      - name: Run the leg
+        env:
+          LEG: ${{ matrix.leg }}
+        run: node scripts/adapter-peers.mjs "$LEG"

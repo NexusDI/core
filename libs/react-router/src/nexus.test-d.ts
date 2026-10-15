@@ -43,16 +43,16 @@ describe('@nexusdi/react-router types', () => {
   it('types the middleware to take React Router args and resolve a Response', async () => {
     const context = new RouterContextProvider();
     const request = new Request('http://bridge/course/Kepler-442b');
-    const res = await di.middleware(
-      {
-        request,
-        url: new URL(request.url),
-        pattern: '/course/:to',
-        params: { to: 'Kepler-442b' },
-        context,
-      },
-      async () => Response.json([]),
-    );
+    // React Router 8 adds url and pattern to the args, which 7.9 lacks, so
+    // the object fits either line through the middleware's own parameter.
+    const args = {
+      request,
+      url: new URL(request.url),
+      pattern: '/course/:to',
+      params: { to: 'Kepler-442b' },
+      context,
+    } as unknown as Parameters<typeof di.middleware>[0];
+    const res = await di.middleware(args, async () => Response.json([]));
     expectTypeOf(res).toEqualTypeOf<Response>();
     expectTypeOf(di.middleware).toExtend<MiddlewareFunction<Response>>();
   });

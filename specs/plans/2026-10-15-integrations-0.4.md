@@ -14596,10 +14596,13 @@ Interfaces:
 ```json
 {
   "hono-floor": {
-    "install": ["hono@4.3.3"],
+    "install": ["hono@4.3.3", "@hono/node-server@1.19.17"],
     "targets": ["@nexusdi/hono:test"]
   },
-  "hono-latest": { "install": ["hono@^4"], "targets": ["@nexusdi/hono:test"] },
+  "hono-latest": {
+    "install": ["hono@^4"],
+    "targets": ["@nexusdi/hono:test"]
+  },
   "express-floor": {
     "install": ["express@5.0.0"],
     "targets": ["@nexusdi/express:test"]
@@ -14623,8 +14626,11 @@ Interfaces:
       "@react-router/serve@7.9.0",
       "@react-router/dev@7.9.0"
     ],
-    "env": { "REACT_ROUTER_V8_MIDDLEWARE": "1" },
-    "targets": ["@nexusdi/react-router:test"]
+    "env": {
+      "REACT_ROUTER_V8_MIDDLEWARE": "1"
+    },
+    "targets": ["@nexusdi/react-router:test"],
+    "legacyPeerDeps": true
   },
   "react-router-7-latest": {
     "install": [
@@ -14633,8 +14639,11 @@ Interfaces:
       "@react-router/serve@^7",
       "@react-router/dev@^7"
     ],
-    "env": { "REACT_ROUTER_V8_MIDDLEWARE": "1" },
-    "targets": ["@nexusdi/react-router:test"]
+    "env": {
+      "REACT_ROUTER_V8_MIDDLEWARE": "1"
+    },
+    "targets": ["@nexusdi/react-router:test"],
+    "legacyPeerDeps": true
   },
   "react-router-8-latest": {
     "install": [
@@ -14652,7 +14661,8 @@ Interfaces:
       "@types/react@19.0.0",
       "@types/react-dom@19.0.0"
     ],
-    "targets": ["@nexusdi/react:test", "@nexusdi/react:e2e"]
+    "browsers": true,
+    "targets": ["@nexusdi/react:test", "@nexusdi/react:e2e-hmr"]
   },
   "react-19-latest": {
     "install": [
@@ -14661,19 +14671,23 @@ Interfaces:
       "@types/react@^19",
       "@types/react-dom@^19"
     ],
+    "browsers": true,
     "targets": ["@nexusdi/react:test", "@nexusdi/react:e2e"]
   },
   "vitest-floor": {
-    "install": ["vitest@4.1.0"],
-    "targets": ["@nexusdi/vitest:test"]
+    "install": ["vitest@4.1.0", "@vitest/runner@4.1.0"],
+    "targets": ["@nexusdi/vitest:test"],
+    "legacyPeerDeps": true
   },
   "vitest-4-latest": {
-    "install": ["vitest@^4"],
-    "targets": ["@nexusdi/vitest:test"]
+    "install": ["vitest@^4", "@vitest/runner@^4"],
+    "targets": ["@nexusdi/vitest:test"],
+    "legacyPeerDeps": true
   },
   "vitest-5-latest": {
     "install": ["vitest@^5"],
-    "targets": ["@nexusdi/vitest:test"]
+    "targets": ["@nexusdi/vitest:test"],
+    "legacyPeerDeps": true
   }
 }
 ```
