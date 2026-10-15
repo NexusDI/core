@@ -139,6 +139,7 @@ try {
     code = `${error.code} ${error.token}`;
 }
 const refused = code; // -> 'NEXUS_REACT_TRANSIENT_IN_RENDER SurveyDrone'
+console.log(refused);
 await ship[Symbol.asyncDispose]();
 ```
 

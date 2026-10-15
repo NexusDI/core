@@ -50,7 +50,7 @@ A `transient` provider builds a new instance on every `get()`, so a component th
 
 ```
 
-Register `react()` in development and tests behind your own flag, such as `import.meta.env.DEV`. `react()` checks wherever you register it, and without it the check does not run. To see the switch, save the region as `transient.ts` and run `npx tsx transient.ts`. Set `dev` to `false` and run it again: `renderToString` returns `<p>scout</p>`, and `refused` stays `''`.
+Register `react()` in development and tests behind your own flag, such as `import.meta.env.DEV`. `react()` checks wherever you register it, and without it the check does not run. To see the switch, save the region as `transient.ts` and run `npx tsx transient.ts`. It prints `NEXUS_REACT_TRANSIENT_IN_RENDER SurveyDrone`. Set `dev` to `false` and run it again: the render succeeds, and it prints an empty line, because `refused` stays `''`.
 
 ## Give a Subtree Its Own Scope with `ScopeProvider`
 
