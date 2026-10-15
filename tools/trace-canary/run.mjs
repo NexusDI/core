@@ -63,9 +63,14 @@ const browser = spawn(
   ],
   { stdio: 'ignore' },
 );
+let spawnError = null;
+browser.once('error', (error) => {
+  spawnError = error;
+});
 
 async function endpoint(path, method = 'GET') {
   for (let i = 0; i < 100; i++) {
+    if (spawnError !== null) throw spawnError;
     try {
       const response = await fetch(`http://127.0.0.1:${port}${path}`, {
         method,
@@ -159,11 +164,22 @@ try {
         `${name} has ${length} entries, the file writes ${counts[name] ?? 0}`,
       );
 } catch (error) {
-  failures = [`the frontend did not run the check: ${error.message}`];
+  failures = [
+    error === spawnError
+      ? `Chrome did not start: ${error.message}`
+      : `the frontend did not run the check (the frontend module path may have moved): ${error.message}`,
+  ];
 } finally {
-  const exited = new Promise((resolve) => browser.once('exit', resolve));
-  browser.kill();
-  await exited;
+  // A Chrome that already exited, or never started, sends no exit event.
+  if (
+    spawnError === null &&
+    browser.exitCode === null &&
+    browser.signalCode === null
+  ) {
+    const exited = new Promise((resolve) => browser.once('exit', resolve));
+    browser.kill();
+    await exited;
+  }
   rmSync(profileDir, { recursive: true, force: true });
 }
 console.log(
