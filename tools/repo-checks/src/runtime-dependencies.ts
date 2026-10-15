@@ -49,18 +49,22 @@ function importsOf(path: string, text: string): Set<string> {
   return found;
 }
 
-export function runtimeDependencies(root: string): RuntimeDependencies {
+/** `manifest` names each package's manifest file; fixtures pass another name, so Nx does not read them as projects. */
+export function runtimeDependencies(
+  root: string,
+  manifest = 'package.json',
+): RuntimeDependencies {
   const libs = join(root, 'libs');
   const violations: string[] = [];
   let scanned = 0;
   for (const name of readdirSync(libs).sort()) {
-    const manifestPath = join(libs, name, 'package.json');
+    const manifestPath = join(libs, name, manifest);
     if (!existsSync(manifestPath)) continue;
-    const manifest = JSON.parse(readFileSync(manifestPath, 'utf8')) as {
+    const declared = JSON.parse(readFileSync(manifestPath, 'utf8')) as {
       private?: boolean;
       dependencies?: Record<string, string>;
     };
-    if (manifest.private === true) continue;
+    if (declared.private === true) continue;
     scanned += 1;
     const src = join(libs, name, 'src');
     const imported = new Set<string>();
@@ -69,10 +73,10 @@ export function runtimeDependencies(root: string): RuntimeDependencies {
     ))
       for (const dep of importsOf(path, readFileSync(join(src, path), 'utf8')))
         imported.add(dep);
-    for (const dep of Object.keys(manifest.dependencies ?? {}))
+    for (const dep of Object.keys(declared.dependencies ?? {}))
       if (!imported.has(dep))
         violations.push(
-          `libs/${name}/package.json lists ${dep} in dependencies, and no file in libs/${name}/src imports it; move it to devDependencies or drop it`,
+          `libs/${name}/${manifest} lists ${dep} in dependencies, and no file in libs/${name}/src imports it; move it to devDependencies or drop it`,
         );
   }
   return { violations, scanned };

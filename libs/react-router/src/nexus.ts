@@ -55,8 +55,16 @@ export interface SectionMiddleware extends MiddlewareFunction<Response> {
   readonly inject: Inject;
 }
 
+/**
+ * The root middleware: React Router's middleware args and next(), and
+ * always a Response, which a MiddlewareFunction<Response> also accepts.
+ */
+export type RouterMiddleware = (
+  ...args: Parameters<MiddlewareFunction<Response>>
+) => Promise<Response>;
+
 export interface NexusRouter {
-  readonly middleware: MiddlewareFunction<Response>;
+  readonly middleware: RouterMiddleware;
   readonly inject: Inject;
   scope(context: Readonly<RouterContextProvider>): Promise<Scope>;
   load(module: ModuleRef): SectionMiddleware;
@@ -103,7 +111,7 @@ export function nexus(
   const options = (args[0] ?? {}) as NexusRouterOptions;
   const core = adapterCore(ship, options, ADAPTER);
 
-  const middleware: MiddlewareFunction<Response> = async (
+  const middleware: RouterMiddleware = async (
     { request, context, params },
     next,
   ) => {

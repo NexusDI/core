@@ -6,7 +6,10 @@ import ts from 'typescript';
 /**
  * The NEXUS_ names the packages export as values from src/index.ts, such as
  * @nexusdi/react-router's NEXUS_SCOPE. A README may name these; any other
- * NEXUS_ word reads as an error code.
+ * NEXUS_ word reads as an error code. The scan reads each index.ts's own
+ * statements: `export const`, an exported function or class, and named
+ * re-exports. It does not follow `export * from`, so a constant re-exported
+ * only that way reads as an error code until the index names it.
  */
 export function publicConstants(root: string): Set<string> {
   const found = new Set<string>();

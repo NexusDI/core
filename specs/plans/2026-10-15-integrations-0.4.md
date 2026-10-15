@@ -6491,6 +6491,8 @@ Alignment this task and Tasks 12 to 15 apply to the React spec (`specs/2026-09-2
 
 - R16's rc.0 target is rc.2 (owner answer Q2, 2026-10-15).
 - Section 14 says the four `NEXUS_REACT_*` codes carry core's one-line message and no text. On `release/0.4`, `tools/repo-checks/src/error-text-placement.test.ts` requires every declared code to have a pack entry under `./text` or an inline raise site (`new X(fields, { text })`). A pack would never be shown, because `formatError` does not reach errors raised in render. So the four raise sites pass inline `text`, the form `@nexusdi/decorators` uses for `NEXUS_LEGACY_DECORATORS`. The extension principle's V11 (build that text only outside production) is an open owner question; if the owner approves it, a follow-up task wraps each `text` in the `dev` constant of Task 14. Until then the text ships in every build (about 300 B gzip).
+- Section 14, amended (review of Task 11): the package writes each code's own text, the cause and a `Fix:` line, and ends it with `\n  Docs: https://nexus.js.org/errors/<CODE>`, so the message carries the link core's one-line form would. The amendment applies to `specs/2026-09-24-react-design.md` on `origin/spec/react`, whose branch this plan does not edit; it is recorded here.
+- Server code tells a NoProviderError apart with `isNexusError(error, 'NEXUS_REACT_NO_PROVIDER')`, never `instanceof NoProviderError`: the package's entry is `'use client'`, so a server import of the class is a client reference. Task 15's SSR section and Task 27's React page say so.
 - Each code needs a page under `apps/docs/content/errors/` (`doc-error-codes.test.ts`). This task adds one entry per code to `tools/repo-checks/src/doc-error-codes-allowance.json`; Task 27 writes the pages and removes the entries.
 - The spec's examples use `STAR_CATALOG`, `COURSE_PLOTTER` and `Cartography`, which docs spec §7.1 does not list. Tests here use `NAV_CHARTS`, `FLIGHT_LOG`, `MISSION`, `DIAGNOSTICS` and a `Navigation` section module.
 - The store is one object per container (`storeFor(container)`), so two providers over one container share the section cache and the scope set. Spec section 3.1 says "once per container", and section 7.1 keys the cache by container; section 6.5's "every live scope of its provider" becomes every live scope of the container, which is a superset and costs one `extend()` call that returns at once.
@@ -14941,6 +14943,8 @@ Co-Authored-By: Claude Opus 5.5 (1M context) <noreply@anthropic.com>"
 Spec 9.6, 13.1, 13.2 and 13.6.
 
 Files:
+
+Packaging also asserts that `'use client'` is the first line of `@nexusdi/react`'s packed `dist/index.js` (react spec 16). Until then the package's own `use-client.test.ts` reads its built entry.
 
 - Create: `examples/size/src/express.ts`, `examples/size/src/fastify.ts`, `examples/size/src/hono.ts`, `examples/size/src/react-router.ts`, `examples/size/src/next.ts`, `examples/size/src/hono-worker.ts`, `examples/size/fixtures.json`, `libs/{express,fastify,hono,react-router,vitest,react,next}/tsconfig.floor.json`
 - Modify: `scripts/size-report.mjs`, `scripts/size-compare.mjs`, `tools/repo-checks/src/size-report.test.ts`, `examples/size/package.json`, `scripts/verify-packaging.mjs`, `scripts/check-type-floor.mjs`

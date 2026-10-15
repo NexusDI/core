@@ -66,6 +66,7 @@ Package scopes:
 - **fastify**: Changes to the `@nexusdi/fastify` library
 - **hono**: Changes to the `@nexusdi/hono` library
 - **react-router**: Changes to the `@nexusdi/react-router` library
+- **react**: Changes to the `@nexusdi/react` library
 - **vitest**: Changes to the `@nexusdi/vitest` library
 - **federation**: Changes to the `@nexusdi/federation` library
 

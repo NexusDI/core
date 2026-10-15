@@ -1,0 +1,40 @@
+{
+  "extends": "../../tsconfig.base.json",
+  "compilerOptions": {
+    "baseUrl": ".",
+    "rootDir": "src",
+    "outDir": "dist",
+    "tsBuildInfoFile": "dist/tsconfig.lib.tsbuildinfo",
+    "emitDeclarationOnly": false,
+    // importHelpers stays off (the tsconfig.base.json default). Core's source
+    // applies no decorator and declares no `using`, so tsc emits no helper
+    // that would import tslib. scripts/verify-packaging.mjs checks the packed
+    // output for that, and tools/repo-checks/src/tslib-dependency.test.ts
+    // holds the setting against package.json.
+    "forceConsistentCasingInFileNames": true,
+    "types": [],
+    "jsx": "react-jsx",
+    // esnext.disposable types Symbol.asyncDispose and AsyncDisposable, which
+    // the public declarations use. dom types the browser globals React's
+    // types name; no Node types, so the source cannot reach a node: module.
+    "lib": ["es2022", "dom", "esnext.disposable"],
+    "sourceMap": true,
+    "declarationMap": true,
+    "ignoreDeprecations": "6.0"
+  },
+  "include": ["src/**/*.ts", "src/**/*.tsx"],
+  "references": [
+    { "path": "../core/tsconfig.lib.json" },
+    { "path": "../../tools/doc-examples" }
+  ],
+  "exclude": [
+    "vite.config.ts",
+    "src/**/*.test.ts",
+    "src/**/*.spec.ts",
+    "src/**/*.test-d.ts",
+    "src/**/*.test.tsx",
+    "src/**/*.test-d.tsx",
+    "src/support/**",
+    "src/**/__fixtures__/**"
+  ]
+}

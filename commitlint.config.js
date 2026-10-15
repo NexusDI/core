@@ -48,6 +48,7 @@ module.exports = {
         'devtools',
         'interceptors',
         'cli',
+        'react',
         'express',
         'fastify',
         'hono',
