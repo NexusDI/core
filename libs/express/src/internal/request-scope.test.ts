@@ -18,7 +18,11 @@ import {
   defaultLog,
   definitionCheck,
   disposer,
+  enterFor,
   enterSection,
+  mapError,
+  requireHandle,
+  resolveFor,
   existingScope,
   guardLog,
   logLevel,
@@ -526,5 +530,131 @@ describe('disposer, enterSection and definitionCheck', () => {
       '@nexusdi/test',
     );
     await expect(lazy()).rejects.toBeInstanceOf(BlueprintError);
+  });
+});
+
+describe('requireHandle, mapError, enterFor and resolveFor', () => {
+  const absent = new Token<string>('Absent');
+
+  it('names the hook to register when a request has no handle', () => {
+    expect(() =>
+      requireHandle(undefined, '@nexusdi/test', 'di.middleware'),
+    ).toThrow(
+      '[@nexusdi/test] no scope on this request: register di.middleware before this route',
+    );
+    const handle = existingScope({} as never);
+    expect(requireHandle(handle, '@nexusdi/test', 'di.middleware')).toBe(
+      handle,
+    );
+  });
+
+  it('maps a NexusError and passes anything else through', () => {
+    const log = vi.fn();
+    const plain = new Error('handler bug');
+    expect(mapError(plain, log, '@nexusdi/test', 'scope')).toBe(plain);
+    const http = mapError(
+      new DisposedError({ target: 'container' }),
+      log,
+      '@nexusdi/test',
+      'scope',
+    );
+    expect((http as NexusHttpError).status).toBe(503);
+    expect(log).toHaveBeenCalledOnce();
+  });
+
+  it('resolves the deps from the request scope', async () => {
+    await using ship = await Nexus.create(providers);
+    const handle = requestScope(containerOf(ship), () => survey);
+    const result = await resolveFor({
+      handle: () => handle,
+      deps: { mission: MISSION },
+      checked: () => Promise.resolve(),
+      load: loader(containerOf(ship)),
+      log: vi.fn(),
+      adapter: '@nexusdi/test',
+    });
+    expect(result).toEqual({ deps: { mission: survey.mission } });
+    await handle.close();
+  });
+
+  it('reports a closed request as finished and logs it once', async () => {
+    await using ship = await Nexus.create(providers);
+    const handle = requestScope(containerOf(ship), () => survey);
+    await handle.close();
+    const log = vi.fn();
+    const result = await resolveFor({
+      handle: () => handle,
+      deps: { mission: MISSION },
+      checked: () => Promise.resolve(),
+      load: loader(containerOf(ship)),
+      log,
+      adapter: '@nexusdi/test',
+    });
+    expect(result).toEqual({ finished: true });
+    expect(log).toHaveBeenCalledExactlyOnceWith(
+      expect.any(RequestFinishedError),
+      { adapter: '@nexusdi/test', phase: 'scope' },
+    );
+  });
+
+  it('turns a validate failure into the 500, logged once per entry', async () => {
+    await using ship = await Nexus.create(providers);
+    const log = vi.fn();
+    const result = await resolveFor({
+      handle: () => existingScope({} as never),
+      deps: { absent },
+      checked: validator(containerOf(ship), { absent }),
+      load: loader(containerOf(ship)),
+      log,
+      adapter: '@nexusdi/test',
+    });
+    expect((result as { failure: NexusHttpError }).failure.status).toBe(500);
+    expect(log).toHaveBeenCalledOnce();
+  });
+
+  it('passes a plain error from the handle lookup through unmapped', async () => {
+    await using ship = await Nexus.create(providers);
+    const missing = new Error('register di.middleware');
+    const result = await resolveFor({
+      handle: () => {
+        throw missing;
+      },
+      deps: {},
+      checked: () => Promise.resolve(),
+      load: loader(containerOf(ship)),
+      log: vi.fn(),
+      adapter: '@nexusdi/test',
+    });
+    expect(result).toEqual({ failure: missing });
+  });
+
+  it('loads a section before it resolves, and reports a failed load as a load failure', async () => {
+    await using ship = await Nexus.create(providers);
+    const log = vi.fn();
+    const failing = vi.fn(() =>
+      Promise.reject(new DisposedError({ target: 'container' })),
+    );
+    const result = await enterFor({
+      load: failing,
+      section: { name: 'Navigation' } as never,
+      handle: null,
+      log,
+      adapter: '@nexusdi/test',
+    });
+    expect((result as { failure: NexusHttpError }).failure.status).toBe(503);
+    expect(log.mock.calls[0]?.[1]).toEqual({
+      adapter: '@nexusdi/test',
+      phase: 'load',
+      status: 503,
+    });
+    expect(
+      await enterFor({
+        load: () => Promise.resolve(ship),
+        section: { name: 'Navigation' } as never,
+        handle: null,
+        log,
+        adapter: '@nexusdi/test',
+      }),
+    ).toBeUndefined();
   });
 });
