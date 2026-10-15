@@ -1,4 +1,5 @@
 import {
+  chmodSync,
   existsSync,
   mkdirSync,
   readFileSync,
@@ -157,6 +158,21 @@ describe('checkOutputs', () => {
       expect(() => checkOutputs(outputs)).toThrow(/both write /);
     else expect(() => checkOutputs(outputs)).not.toThrow();
   });
+
+  it.skipIf(process.getuid?.() === 0)(
+    'exits 2 when an output directory is not writable',
+    () => {
+      const dir = tempDir();
+      mkdirSync(join(dir, 'sealed'), { mode: 0o555 });
+      try {
+        expect(() =>
+          checkOutputs([['--json', join(dir, 'sealed', 'r.json')]]),
+        ).toThrow(/the directory .* is not writable/);
+      } finally {
+        chmodSync(join(dir, 'sealed'), 0o755);
+      }
+    },
+  );
 
   it('allows two files in one directory', () => {
     const dir = tempDir();

@@ -147,6 +147,30 @@ describe('nexusdi profile', () => {
     expect(run.stdout).toMatch(/^create \d+\.\d ms, cold/);
   });
 
+  it('runs no further iteration of --repeat after a disposal hangs', () => {
+    const dir = tempDir();
+    const run = runCli(
+      [
+        'profile',
+        'stuck.module.js#Stuck',
+        '--repeat',
+        '3',
+        '--timeout',
+        '200',
+        '--json',
+        join(dir, 'r.json'),
+        '--quiet',
+      ],
+      { cwd: DIR },
+    );
+    expect(run.status).toBe(0);
+    expect(run.stderr.match(/did not settle/g)).toHaveLength(1);
+    const reports = JSON.parse(
+      readFileSync(join(dir, 'r.json'), 'utf8'),
+    ) as unknown[];
+    expect(reports).toHaveLength(1);
+  });
+
   it('records the environment in the JSON, and re-renders it from the report alone', () => {
     const dir = tempDir();
     const recorded = runCli(
@@ -288,11 +312,17 @@ describe('nexusdi profile exit codes (spec 9.5)', () => {
     [['profile', 'report.json', '--repeat', '1'], 2],
     [['profile', 'missing.module.js'], 2],
     [['profile', 'meridian.module.js#Nope'], 2],
-  ])('%j exits %i with a nexusdi: message and a fix line', (argv, status) => {
-    const run = runCli(argv, { cwd: DIR });
-    expect(run.status).toBe(status);
-    expect(run.stderr).toMatch(/^nexusdi: .*\n {2}\S/);
-  });
+    [['profile', 'not-a-module.module.js#NotAModule'], 2],
+  ])(
+    '%j exits %i with a nexusdi: message that ends with a fix line',
+    (argv, status) => {
+      const run = runCli(argv, { cwd: DIR });
+      expect(run.status).toBe(status);
+      expect(run.stderr).toMatch(
+        /^nexusdi: [^\n]*\n(?:[^\n]*\n)*? {2}\S[^\n]*\n$/,
+      );
+    },
+  );
 });
 
 describe('describeFailure', () => {
