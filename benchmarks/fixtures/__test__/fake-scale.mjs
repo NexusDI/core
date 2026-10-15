@@ -2,11 +2,17 @@
  * A hand-written scale app over the six-provider graph of
  * src/scale/six.ts, shaped like a rendered app.ts (fixtures/scale-adapter.d.ts).
  * FAKE_BREAK selects one renderer fault for the verify-child and child tests.
+ * FAKE_ALIAS adds p6, an alias of p5 (src/scale/six.ts sixWithAlias); its
+ * breaks are alias-copy (a copy of p5's instance) and alias-counted (a
+ * construction reported for the alias).
  */
 const brk = process.env.FAKE_BREAK;
 
-const counts = new Uint32Array(6);
-const kinds = new Array(6);
+const alias =
+  process.env.FAKE_ALIAS !== undefined && process.env.FAKE_ALIAS !== '';
+const providerCount = alias ? 7 : 6;
+const counts = new Uint32Array(providerCount);
+const kinds = new Array(providerCount);
 function __scaleBuilt(index, kind) {
   counts[index]++;
   kinds[index] = kind;
@@ -81,11 +87,19 @@ const REGISTRY = [
     : [(d0) => new P5(d0), [3], brk !== 'transient-sink'],
 ];
 // The token table: swap-sinks points p4's and p5's slots at each other.
-const T = brk === 'swap-sinks' ? [0, 1, 2, 3, 5, 4] : [0, 1, 2, 3, 4, 5];
+const T = [
+  ...(brk === 'swap-sinks' ? [0, 1, 2, 3, 5, 4] : [0, 1, 2, 3, 4, 5]),
+  ...(alias ? [6] : []),
+];
 
 class Container {
   cache = new Map();
   get(index) {
+    if (alias && index === 6) {
+      const target = this.get(5);
+      if (brk === 'alias-counted') __scaleBuilt(6, 'alias');
+      return brk === 'alias-copy' ? { ...target } : target;
+    }
     if (this.cache.has(index)) return this.cache.get(index);
     const [build, deps, singleton] = REGISTRY[index];
     const instance = build(...deps.map((d) => this.get(d)));
@@ -95,8 +109,8 @@ class Container {
 }
 
 export const scale = {
-  count: brk === 'declare-count' ? 7 : 6,
-  entries: brk === 'declare-entries' ? [4] : [4, 5],
+  count: brk === 'declare-count' ? 7 : providerCount,
+  entries: brk === 'declare-entries' ? [4] : alias ? [4, 5, 6] : [4, 5],
   target: brk === 'declare-target' ? 5 : 4,
   packages: [],
   built: { counts, kinds },

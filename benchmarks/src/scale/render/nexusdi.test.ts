@@ -9,7 +9,7 @@ import { classifyScale } from '../../outcome.ts';
 import { SHAPES } from '../config.ts';
 import { expectedDigest, type ScaleGraph } from '../graph.ts';
 import { graphOf } from '../shapes.ts';
-import { six } from '../six.ts';
+import { six, sixWithAlias } from '../six.ts';
 import { renderNexusdi } from './nexusdi.ts';
 
 // Under benchmarks/, so the bundles resolve @nexusdi/core through the
@@ -338,6 +338,32 @@ describe('renderNexusdi', () => {
       deps: [TP0, TP1],
     }),`);
   });
+
+  it('renders an alias as useExisting of its target token, with its target type', () => {
+    const files = renderNexusdi(sixWithAlias());
+    expect(files['m1.ts']).toContain('provide(TP6, { useExisting: TP5 }),');
+    expect(files['m1.ts']).not.toContain('class P6');
+    expect(files['tokens.ts']).toContain(
+      "export type IP6 = IP5;\nexport const TP6 = new Token<IP6>('p6');",
+    );
+    expect(files['m1.ts']).toContain('exports: [TP4, TP5, TP6],');
+  });
+
+  it('type-checks and passes verify-child for the six-provider graph with an alias', async () => {
+    const graph = sixWithAlias();
+    const dir = writeApp('six-alias', graph);
+    expect(typecheck(dir)).toBe('');
+    const printed = JSON.parse(
+      execFileSync(
+        process.execPath,
+        [CHILD, await bundle(dir), join(dir, 'graph.json')],
+        { encoding: 'utf8' },
+      ),
+    ) as Record<string, unknown>;
+    expect(classifyScale(printed, null, expectedDigest(graph))).toEqual({
+      outcome: 'pass',
+    });
+  }, 120_000);
 
   it('renders one class per file for wide and deep', () => {
     for (const shape of ['wide', 'deep'] as const) {

@@ -25,7 +25,15 @@ export const moduleConst = (name: string) => name.toUpperCase();
 
 /** The type a dependant names for a provider: an interface for a value, else the class. */
 export const typeOf = (p: ScaleProvider) =>
-  p.kind === 'value' ? iface(p) : className(p);
+  p.kind === 'value' || p.kind === 'alias' ? iface(p) : className(p);
+
+/**
+ * An alias's type: a type alias of its target's type, so a dependant of the
+ * alias names the one type the instance has. The target's own type name
+ * comes from the file that declares the alias, which imports it.
+ */
+export const aliasType = (graph: ScaleGraph, p: ScaleProvider) =>
+  `export type ${iface(p)} = ${typeOf(graph.providers[p.deps[0]])};\n`;
 
 /** The function that registers one module's providers, for libraries without a module system. */
 export const registerOf = (name: string) => `register${moduleConst(name)}`;
@@ -128,8 +136,9 @@ export function classBody(
 
 export const isAsync = (p: ScaleProvider) => p.kind === 'async-factory';
 
-/** Every provider but a value constructs something. */
-export const builds = (p: ScaleProvider) => p.kind !== 'value';
+/** Every provider but a value and an alias constructs something. */
+export const builds = (p: ScaleProvider) =>
+  p.kind !== 'value' && p.kind !== 'alias';
 
 /** The graph has a sync or async factory provider. */
 export const hasFactories = (graph: ScaleGraph) =>

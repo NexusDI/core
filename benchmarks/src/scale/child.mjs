@@ -27,7 +27,10 @@ function fail(message) {
 if (typeof globalThis.gc !== 'function') fail('run with --expose-gc');
 
 const graph = JSON.parse(readFileSync(graphPath, 'utf8'));
-const constructed = graph.providers.filter((p) => p.kind !== 'value').length;
+// A value and an alias construct nothing.
+const constructed = graph.providers.filter(
+  (p) => p.kind !== 'value' && p.kind !== 'alias',
+).length;
 
 const collect = () => {
   globalThis.gc();
