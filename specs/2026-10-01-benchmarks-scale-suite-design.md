@@ -107,7 +107,7 @@ protocol:
 6. Times resolving every other provider once, in index order: `rest`.
 7. Reads the heap the same settled way, with the handle still referenced: `heap-ready` =
    heap − `base`.
-8. Checks, untimed, that `built.counts` sums to the number of non-value providers, and
+8. Checks, untimed, that `built.counts` sums to the number of non-value, non-alias providers, and
    exits 1 when it does not.
 9. Sends `{ load, create, firstGet, rest, heapReady }` and disconnects from the send
    callback (a disconnect straight after `send` lost a 200 KB message in 60 of 60 runs).
@@ -247,11 +247,13 @@ fails the run with the cell, block and round in the message, as `cold-start.ts` 
 
 ### 7.4 The protocol check and the round count
 
-This section records the first dispatch run of the benchmarks workflow (the `mixed` job of
-a run at `@nexusdi/core@0.4.0-rc.1`, on an AMD EPYC 9V45 with 4 cores) and what it decided.
+This section records the first dispatch run of the benchmarks workflow (workflow run
+38713732981, sha da1a536, at `@nexusdi/core@0.4.0-rc.1`, on an AMD EPYC 9V45 with 4 cores) and what it decided.
 The run carried two pre-registered checks that no longer exist in the code.
 
-**Protocol check.** A timing mode without the heap settles would halve the cost of a round,
+#### The protocol check
+
+A timing mode without the heap settles would halve the cost of a round,
 so the run compared three child protocols on `mixed`: the settled one (`heap`), a `timing`
 mode with `gc()` twice before `load` and twice before `create` and no settles, and a
 `timing-no-gc` mode without the `gc()` before `create`. It ran 30 measured rounds after 3
@@ -304,7 +306,7 @@ wait before `load`, while V8's background compile work finishes, is the likely c
 it is the work the settle exists to wait out. So the protocol changes one library's
 figures, and the effect depends on the library.
 
-**Outcome.**
+#### The outcome
 
 1. Timing mode is withdrawn and the fresh-process rounds use the settled protocol.
 2. The forced `gc()` before `create` is dropped from the settled protocol. A real app
@@ -315,7 +317,9 @@ figures, and the effect depends on the library.
 4. The check and its code are removed, and `design.protocol` (`settled`) is recorded in
    every part and required, equal across parts, in a published file.
 
-**Round count.** The pre-registered width rule measured the maximum relative width
+#### The round count
+
+The pre-registered width rule measured the maximum relative width
 (interval over median) of the `mixed` paired ratios on `startup`, `ready`, `first-resolve`
 and `heap-ready`, and of the growth ratios, at prefixes of the timing block's rounds. The
 target was 3%, and the count was the smallest prefix at 2% or less, never below 300. The
@@ -629,7 +633,7 @@ never published. When `scale` succeeded, `merge` downloads `scale-timings-*` int
 the scale file to the body; `scale.json` arrives with the deterministic artifact.
 Timeouts: 330 minutes for `mixed`, 120 for each other shape, 30 for the steady part.
 
-**Measured job times**, from the first dispatch run (section 7.4), under the settled
+Measured job times, from the first dispatch run (section 7.4), under the settled
 protocol. A 25-spawn `mixed` round takes 9.0 s on the runner, 0.36 s per spawn, and the
 other shapes take 6.8 to 10.0 s per round. Two children at once inflated `startup` by 15%
 and four by 49% on a 10-core laptop, so spawns stay serial and the speed-up comes from
