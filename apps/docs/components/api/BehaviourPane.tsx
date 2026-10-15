@@ -12,9 +12,7 @@ import {
 import { ConsoleFrame, Marker } from '@nexusdi/meridian-ui';
 
 import type { BehaviourRow } from './BehaviourCatalogue';
-// The `sh-*` rules `docs:behaviour-data` writes beside the index: every token
-// in a case carries one of these classes in place of an inline style.
-import './behaviour/code-classes.css';
+import { LINGER, place } from './type-card';
 import './behaviour.css';
 
 /**
@@ -96,41 +94,6 @@ function load(library: string, name: string): Promise<Sidecar> {
 /** Every token in a case the compiler gave a type to, in reading order. */
 function typed(within: HTMLElement | null): HTMLElement[] {
   return [...(within?.querySelectorAll<HTMLElement>('[data-pop]') ?? [])];
-}
-
-/** How far the card sits from the token, and from the edge of the window. */
-const GAP = 6;
-const EDGE = 8;
-
-/**
- * How long the card stays up after the pointer leaves the code or the card,
- * so a reader can cross the gap between a token and its card (WCAG 1.4.13).
- */
-const LINGER = 150;
-
-/**
- * Puts the card beside the token it describes, inside the window.
- *
- * The card is `position: fixed` and placed from JavaScript, because the block
- * is a 26rem frame with `overflow: hidden` and both panes scroll inside it. A
- * card laid out in the pane's own flow would be cut off by the first ancestor
- * it grew past, and a card on a phone would open past the right edge. With
- * fixed placement the only box it has to fit in is the window.
- */
-function place(card: HTMLElement, token: HTMLElement): void {
-  const room = document.documentElement.clientWidth;
-  const frame = card.getBoundingClientRect();
-  const at = token.getBoundingClientRect();
-  const above = at.top - frame.height - GAP;
-
-  card.style.left = `${Math.round(
-    Math.min(
-      Math.max(at.left, EDGE),
-      Math.max(room - frame.width - EDGE, EDGE),
-    ),
-  )}px`;
-  card.style.top = `${Math.round(above >= EDGE ? above : at.bottom + GAP)}px`;
-  card.style.visibility = 'visible';
 }
 
 export default function BehaviourPane({

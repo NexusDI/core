@@ -5,6 +5,8 @@ import localFont from 'next/font/local';
 import { Head } from 'nextra/components';
 import 'nextra-theme-docs/style.css';
 import './global.css';
+import { PagePopover } from '../components/twoslash/PagePopover';
+import { readBasePath } from './channel';
 import { meridianBackground, meridianColor } from './meridian-theme';
 
 /**
@@ -87,7 +89,15 @@ export default function RootLayout({ children }: { children: ReactNode }) {
       dir="ltr"
       suppressHydrationWarning
     >
-      <Head backgroundColor={meridianBackground} color={meridianColor} />
+      <Head backgroundColor={meridianBackground} color={meridianColor}>
+        {/* The colours of every highlighted token on the site, one class per
+            pair of theme colours (`tools/code-classes.mjs`), which
+            `docs:behaviour-data` writes. Linked from `public/` and not
+            imported: in Turbopack's module graph, with its classes on the
+            tokens of every page, the libraries site's compile went from 80
+            seconds to 13 minutes. */}
+        <link rel="stylesheet" href={`${readBasePath()}/code-classes.css`} />
+      </Head>
       <body>
         <ThemeProvider
           attribute="class"
@@ -96,6 +106,8 @@ export default function RootLayout({ children }: { children: ReactNode }) {
           storageKey="theme"
         >
           {children}
+          {/* One type card for every typed token on the page. */}
+          <PagePopover />
         </ThemeProvider>
       </body>
     </html>

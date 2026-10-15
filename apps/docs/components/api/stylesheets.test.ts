@@ -8,7 +8,7 @@ import { describe, expect, it } from 'vitest';
  * The API entry sheets take every value from a token, so they switch with the
  * theme and the design system holds their contrast.
  *
- * `behaviour/code-classes.css` is left out: `docs:behaviour-data` writes it,
+ * `public/code-classes.css` is left out: `docs:behaviour-data` writes it,
  * and its rules are the github themes' colour pairs as `--shiki-*` values.
  */
 

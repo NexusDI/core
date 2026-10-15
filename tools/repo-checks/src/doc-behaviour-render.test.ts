@@ -417,7 +417,10 @@ describe('the cases a catalogue opens', () => {
   );
 
   it('colours every token through a class that sets the shiki theme variables', () => {
-    const stylesheet = readFileSync(join(index, 'code-classes.css'), 'utf8');
+    const stylesheet = readFileSync(
+      join(workspaceRoot, 'apps/docs/public/code-classes.css'),
+      'utf8',
+    );
     const defined = new Set(
       [...stylesheet.matchAll(/\.(sh-\w+)\{/g)].map(([, name]) => name),
     );
