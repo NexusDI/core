@@ -32,10 +32,22 @@
           "{projectRoot}/tools/behaviour-data.mjs",
           "{projectRoot}/tools/code-classes.mjs",
           "{projectRoot}/tools/libraries.mjs",
+          "{projectRoot}/tools/sidecars.mjs",
           "{workspaceRoot}/tools/doc-examples/src/*.mjs",
           "{workspaceRoot}/libs/*/package.json",
           "{workspaceRoot}/libs/*/src/**/*.ts",
-          "{workspaceRoot}/libs/*/src/**/*.tsx"
+          "{workspaceRoot}/libs/*/src/**/*.tsx",
+          "{workspaceRoot}/tsconfig.base.json",
+          {
+            "externalDependencies": [
+              "shiki",
+              "@shikijs/themes",
+              "@shikijs/transformers",
+              "@shikijs/twoslash",
+              "twoslash",
+              "typescript"
+            ]
+          }
         ],
         "outputs": [
           "{projectRoot}/components/api/behaviour",

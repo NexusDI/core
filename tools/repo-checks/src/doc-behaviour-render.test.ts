@@ -59,7 +59,7 @@ const page = 'apps/docs/content/api-testing.mdx';
 /** One rail row in the props the loader emits: its sentence and its case. */
 const ROW = /\{"title":("(?:[^"\\]|\\.)*"),"id":(\d+)\}/g;
 
-/** One export's cases, as `docs:behaviour-data` writes them beside the page. */
+/** One stated identifier's cases, as `docs:behaviour-data` writes them. */
 interface Sidecar {
   package: string;
   name: string;
@@ -346,7 +346,7 @@ describe('the cases a catalogue opens', () => {
   });
 
   it.each(libraryFiles())(
-    'writes one sidecar per export of %s whose rail lists a case',
+    'writes one sidecar per stated identifier of %s whose rail lists a case',
     (file) => {
       const stated = readJson<StatedFile>(join(index, file));
 
