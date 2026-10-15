@@ -93,9 +93,12 @@ describe('doc-twoslash on apps/docs', COMPILE, () => {
   });
 });
 
+// Read once at collection, so `it.each` below has one case per package.
+const packageFiles = await markdownFences(workspaceRoot);
+
 describe('doc-twoslash on the package markdown', COMPILE, () => {
   it('finds a doctested fence in more than one package, and one under docs/', () => {
-    const files = markdownFences(workspaceRoot);
+    const files = packageFiles;
     const packages = new Set(
       files.filter(({ fences }) => fences.length > 0).map(({ root }) => root),
     );
@@ -108,14 +111,17 @@ describe('doc-twoslash on the package markdown', COMPILE, () => {
     ).toBe(true);
   });
 
-  it.each(
-    [...new Set(markdownFences(workspaceRoot).map(({ root }) => root))].sort(),
-  )('compiles every doctested fence of %s', async (root) => {
-    const withPrelude = await loadTwoslashPrelude();
-    const failures = markdownFences(workspaceRoot)
-      .filter((each) => each.root === root)
-      .flatMap(({ dir, fences }) => compileFailures(fences, withPrelude, dir));
+  it.each([...new Set(packageFiles.map(({ root }) => root))].sort())(
+    'compiles every doctested fence of %s',
+    async (root) => {
+      const withPrelude = await loadTwoslashPrelude();
+      const failures = packageFiles
+        .filter((each) => each.root === root)
+        .flatMap(({ dir, fences }) =>
+          compileFailures(fences, withPrelude, dir),
+        );
 
-    expect(failures).toEqual([]);
-  });
+      expect(failures).toEqual([]);
+    },
+  );
 });

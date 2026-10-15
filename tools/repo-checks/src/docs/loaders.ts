@@ -49,6 +49,25 @@ export async function loadMdSiblings(): Promise<MdSiblings> {
   ).mdSiblings;
 }
 
+/** One package that publishes a library entry, as `libraries.mjs` lists it. */
+export interface Library {
+  name: string;
+  root: string;
+  dir: string;
+}
+
+/** The docs app's library list, which `docs:behaviour-data` also reads. */
+export async function loadLibraries(): Promise<
+  (workspaceRoot: string) => Library[]
+> {
+  const path = join(workspaceRoot, 'apps/docs/tools/libraries.mjs');
+  return (
+    await load<{ libraries: (workspaceRoot: string) => Library[] }>(
+      pathToFileURL(path).href,
+    )
+  ).libraries;
+}
+
 /** The docs app's twoslash prelude, which the loader chain runs last. */
 export async function loadTwoslashPrelude(): Promise<(code: string) => string> {
   const path = join(workspaceRoot, 'apps/docs/tools/mdx-twoslash-prelude.mjs');
