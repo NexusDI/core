@@ -35,8 +35,14 @@ function hiddenFields(html: string): FormData {
   return fields;
 }
 
-describe('the Next gate (integrations spec 10.1)', () => {
-  it('evaluates nexus.server.ts once and builds one container per process', async () => {
+// The Next gate of integrations spec 10.1, kept as a canary. Next 16
+// evaluates nexus.server.ts once in the route handler layer and once in the
+// server action layer, so each process builds two containers, and
+// @nexusdi/next moved to 0.5. This test asserts the measured counts. It
+// fails, and the gate flips, when Next evaluates the module once per
+// process; @nexusdi/next waits on that. It runs only in the e2e target.
+describe('the Next gate canary (integrations spec 10.1)', () => {
+  it('evaluates nexus.server.ts once per layer, so two containers per process', async () => {
     const route = await fetch(`${server.url}/api/course/Kepler-442b`, {
       headers: { 'x-mission-id': 'survey-7' },
     });
@@ -58,6 +64,6 @@ describe('the Next gate (integrations spec 10.1)', () => {
     expect(await action.text()).toContain('survey-8: docked');
 
     const counters = await (await fetch(`${server.url}/api/gate`)).json();
-    expect(counters).toEqual({ evaluations: 1, creates: 1 });
+    expect(counters).toEqual({ evaluations: 2, creates: 2 });
   });
 });

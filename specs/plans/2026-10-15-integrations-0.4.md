@@ -2,11 +2,11 @@
 
 > For agentic workers: REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
 
-Goal: Publish `@nexusdi/express`, `@nexusdi/vitest`, `@nexusdi/fastify`, `@nexusdi/hono`, `@nexusdi/react-router`, `@nexusdi/react` and `@nexusdi/next` in 0.4.0-rc.2 (Next may follow in rc.3), each running in CI through a demo app, with Hono tested on Node, workerd, Deno, Bun and Vercel's edge-runtime VM.
+Goal: Publish `@nexusdi/express`, `@nexusdi/vitest`, `@nexusdi/fastify`, `@nexusdi/hono`, `@nexusdi/react-router` and `@nexusdi/react` in 0.4.0-rc.2, each running in CI through a demo app, with Hono tested on Node, workerd, Deno, Bun and Vercel's edge-runtime VM. `@nexusdi/next` moved to 0.5 when Task 16's gate failed (integrations spec 10.1); 0.4 ships the `/next/` guide page (Task 25) and keeps the gate as a canary.
 
-Architecture: Each adapter is its own package under `libs/<name>`, built with tsc like `libs/node`. The server adapters share two byte-identical files under `src/internal/` (`request-scope.ts`, `dispose-with-body.ts`), held together by a copies check under P4's named exception. `examples/bridge-api` runs one Meridian module graph behind Hono, Express, Fastify and a Workers entry; `examples/react-ssr` moves to React Router 8, `@nexusdi/react-router` and `@nexusdi/react`; `examples/next-bridge` serves the bridge API through Next route handlers and a server action.
+Architecture: Each adapter is its own package under `libs/<name>`, built with tsc like `libs/node`. The server adapters share two byte-identical files under `src/internal/` (`request-scope.ts`, `dispose-with-body.ts`), held together by a copies check under P4's named exception. `examples/bridge-api` runs one Meridian module graph behind Hono, Express, Fastify and a Workers entry; `examples/react-ssr` moves to React Router 8, `@nexusdi/react-router` and `@nexusdi/react`; `examples/next-bridge` holds the Next gate as a canary; the Next demo waits for the 0.5 adapter.
 
-Tech Stack: Node 24.20 (CI floor 22.12), TypeScript 6.0.3, Vitest 4.1.9, Nx 23.1.1, hono 4.13.13, @hono/node-server 2.1.5, express 5.3.0, fastify 5.12.7, fastify-plugin 6.0.1, react-router 8.4.0 (7.18.4 in the 7.x leg), react 19.3.0, next 16.4.1, wrangler 4.151.0, @cloudflare/vitest-pool-workers 0.23.0, @edge-runtime/vm (latest at install, pinned exactly), Deno 2.9.6, Bun 1.4.2.
+Tech Stack: Node 24.20 (CI floor 22.12), TypeScript 6.0.3, Vitest 4.1.9, Nx 23.1.1, hono 4.13.13, @hono/node-server 2.1.5, express 5.3.0, fastify 5.12.7, fastify-plugin 6.0.1, react-router 8.4.0 (7.18.4 in the 7.x leg), react 19.3.0, next 16.3.4 (the version apps/docs pins), wrangler 4.151.0, @cloudflare/vitest-pool-workers 0.23.0, @edge-runtime/vm (latest at install, pinned exactly), Deno 2.9.6, Bun 1.4.2.
 
 Spec: `specs/2026-09-23-integrations-design.md` (revision 3, with the owner's answers of 2026-10-15 in section 20). React: `specs/2026-09-24-react-design.md`, cherry-picked from `spec/react` at `26cb2a26` (status "decided"). Extension principle: `specs/2026-09-30-extension-principle-design.md` on `origin/spec/package-owned-errors`. Release: `RELEASING.md` and the `nexusdi-release` skill. Docs pages: the `docs-page` skill.
 
@@ -9981,9 +9981,11 @@ Co-Authored-By: Claude Opus 5.5 (1M context) <noreply@anthropic.com>"
 
 ### Task 16: Next gate: the next-bridge skeleton and the double-evaluation check
 
+Result (2026-10-15, `9029ae3d`): the gate is closed. Each `next start` process evaluates `nexus.server.ts` twice and builds two containers, one in the route handler layer and one in the server action layer, on Next 16.3.4 and 16.4.1. `@nexusdi/next` moves to 0.5 (integrations spec 10.1). `e2e/gate.e2e.ts` stays as a canary that asserts `{ evaluations: 2, creates: 2 }`.
+
 This is the first Next task and a gate (spec 10.1). It answers one question before any `@nexusdi/next` code exists: does Next 16 evaluate a server module once per process when both a route handler and a server action import it?
 
-Generator: the workspace already has `@nx/next` 23.1.1 and the `@nx/next/plugin` entry in `nx.json` (it infers `build`, `start`, `dev`), and `apps/docs` is a Next 16 app. So the skeleton uses `nx g @nx/next:application`, the workspace's official generator, and pins `next` to 16.4.1.
+Generator: the workspace already has `@nx/next` 23.1.1 and the `@nx/next/plugin` entry in `nx.json` (it infers `build`, `start`, `dev`), and `apps/docs` is a Next 16 app. So the skeleton uses `nx g @nx/next:application`, the workspace's official generator, and pins `next` to 16.3.4, the version `apps/docs` pins, so the workspace keeps one copy.
 
 Files:
 
@@ -10021,7 +10023,7 @@ If `nx.json` lost comments, run `git checkout nx.json` and re-apply only the gen
   "dependencies": {
     "@nexusdi/core": "*",
     "@nexusdi/devtools": "*",
-    "next": "16.4.1",
+    "next": "16.3.4",
     "react": "19.3.0",
     "react-dom": "19.3.0",
     "server-only": "0.0.1"
@@ -10422,7 +10424,7 @@ Expected: PASS with `{ evaluations: 1, creates: 1 }`.
 If the test passes, the gate is open. Append to section 10.1 of `specs/2026-09-23-integrations-design.md`, after the paragraph that starts "The gate:":
 
 ```markdown
-Gate result (Task 16 of the plan, Next 16.4.1): one evaluation of `nexus.server.ts` and
+Gate result (Task 16 of the plan, Next 16.3.4): one evaluation of `nexus.server.ts` and
 one `Nexus.create` per `next start` process after a route handler, a page and a server
 action. The gate is open.
 ```
@@ -10452,6 +10454,8 @@ Co-Authored-By: Claude Opus 5.5 (1M context) <noreply@anthropic.com>"
 ---
 
 ### Task 17: `@nexusdi/next`: route handlers, server actions and `after()` disposal
+
+Moved to 0.5. Task 16's gate failed (integrations spec 10.1), so this task does not run in 0.4. The text below stays as the 0.5 starting point, and 0.5 revisits it once tokens can match across module instances (the `tokenKey` work of K3).
 
 Runs only when Task 16's gate is open.
 
@@ -13257,6 +13261,8 @@ Co-Authored-By: Claude Opus 5.5 (1M context) <noreply@anthropic.com>"
 
 ### Task 20: `examples/next-bridge`: the Next demo on `@nexusdi/next`
 
+Moved to 0.5 with Task 17. `examples/next-bridge` keeps only the gate canary of Task 16 in 0.4. The text below stays as the 0.5 starting point.
+
 Runs only when Task 16's gate is open. Replaces the gate's hand-written scope with `@nexusdi/next`, serves the bridge API's graph, and decides D9.
 
 Files:
@@ -14584,7 +14590,7 @@ Files:
 
 Interfaces:
 
-- Consumes: the projects `@nexusdi/hono`, `@nexusdi/express`, `@nexusdi/fastify`, `@nexusdi/react-router`, `@nexusdi/vitest`, `@nexusdi/next`, each with a `test` target that includes its e2e file (Tasks 3, 6, 8, 10, 4, 17); `@nexusdi/react` with its `test` target (unit and SSR suites) and its `e2e` target (Tasks 11 to 15); `@nexusdi/next-bridge:e2e` (Task 16).
+- Consumes: the projects `@nexusdi/hono`, `@nexusdi/express`, `@nexusdi/fastify`, `@nexusdi/react-router`, `@nexusdi/vitest`, each with a `test` target that includes its e2e file (Tasks 3, 6, 8, 10, 4); `@nexusdi/react` with its `test` target (unit and SSR suites) and its `e2e` target (Tasks 11 to 15). `@nexusdi/next` moved to 0.5, so this task has no next legs and no `next` row in node-floor.
 - Produces: `scripts/adapter-peers.json`, the leg list that the workflow and the check read.
 
 - [ ] **Step 1: Write the leg list** `scripts/adapter-peers.json`
@@ -14670,18 +14676,6 @@ Interfaces:
   "vitest-5-latest": {
     "install": ["vitest@^5"],
     "targets": ["@nexusdi/vitest:test"]
-  },
-  "next-floor": {
-    "install": ["next@15.1.0"],
-    "targets": ["@nexusdi/next:test", "@nexusdi/next-bridge:e2e"]
-  },
-  "next-15-latest": {
-    "install": ["next@^15"],
-    "targets": ["@nexusdi/next:test", "@nexusdi/next-bridge:e2e"]
-  },
-  "next-16-latest": {
-    "install": ["next@^16"],
-    "targets": ["@nexusdi/next:test", "@nexusdi/next-bridge:e2e"]
   }
 }
 ```
@@ -14745,7 +14739,6 @@ describe('adapter-peers', () => {
     ['react-router', 'react-router', 'react-router-7-floor'],
     ['react', 'react', 'react-floor'],
     ['vitest', 'vitest', 'vitest-floor'],
-    ['next', 'next', 'next-floor'],
   ])("tests the floor of the %s adapter's %s peer", (dir, peer, leg) => {
     expect(legs[leg]?.install).toContain(`${peer}@${peerFloor(dir, peer)}`);
   });
@@ -14829,9 +14822,6 @@ adapter-peers:
         - vitest-floor
         - vitest-4-latest
         - vitest-5-latest
-        - next-floor
-        - next-15-latest
-        - next-16-latest
   steps:
     - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
       with:
@@ -14877,7 +14867,6 @@ node-floor:
         - { lib: federation, node: 22.12.0 }
         - { lib: hono, node: 22.12.0 }
         - { lib: interceptors, node: 22.12.0 }
-        - { lib: next, node: 22.12.0 }
         - { lib: node, node: 22.12.0 }
         - { lib: react, node: 22.12.0 }
         - { lib: react-router, node: 22.22.0 }
@@ -14934,8 +14923,7 @@ git add scripts/adapter-peers.mjs scripts/adapter-peers.json tools/repo-checks/s
 NX_NO_CLOUD=true NX_DAEMON=false git commit -m "ci(repo): test each adapter against its framework floor and newest lines
 
 adapter-peers installs one framework line per leg over the workspace and
-runs the adapter's tests. The react legs run its e2e suite, and the next
-legs run the demo's e2e. A check holds
+runs the adapter's tests. The react legs run its e2e suite. A check holds
 the matrix to the leg list and each floor leg to the peer range.
 
 node-floor runs every published lib's tests on the Node its engines field
@@ -14947,6 +14935,8 @@ Co-Authored-By: Claude Opus 5.5 (1M context) <noreply@anthropic.com>"
 ---
 
 ### Task 24: size fixtures, packaging and the type floor
+
+`@nexusdi/next` moved to 0.5 (Task 16's gate, integrations spec 10.1). Leave out every `next` item below: the `examples/size/src/next.ts` fixture and its `fixtures.json` entry, the `libs/next` row of `LIBS`, `next` in `WEB_ADAPTERS` and the consumer install, and `libs/next/tsconfig.floor.json`.
 
 Spec 9.6, 13.1, 13.2 and 13.6.
 
@@ -15473,7 +15463,7 @@ Co-Authored-By: Claude Opus 5.5 (1M context) <noreply@anthropic.com>"
 
 ---
 
-### Task 25: the Hono, Express and Fastify guides
+### Task 25: the Hono, Express and Fastify guides, and the /next/ guide
 
 Spec 15.1 and 15.2. Three new platform pages, each citing regions in `examples/meridian/src/pages/<slug>.md` that run through the framework's in-process request API. Read the `docs-page` skill and the three pinned documents it names before writing prose.
 
@@ -15489,11 +15479,12 @@ Interfaces:
 Notes from the review of Tasks 3 and 6, which each guide carries in its Errors and Shutdown sections:
 
 - The /express/, /fastify/ and /hono/ guides show the one-line recipe of spec 3.6: an error handler that handles `NexusHttpError` by sending its status and status text without logging, so a failure writes only the adapter's line. Each guide also says that a plugin's error message, a third-party `construct` hook's included, reaches the log verbatim.
+- The /next/ guide (added after Task 16's gate failed, integrations spec 10.1): `apps/docs/content/next.mdx`, `kind: platform`, title "Scoping Next.js Route Handlers and Server Actions", with no `@nexusdi/next` package. Its recipe: one container per Next layer, built by a memoised function in `app/nexus.server.ts` (with `import 'server-only'` first), so `next build` builds none; a request scope per route handler or server action, disposed in `after()` from `next/server`; and a shared resource such as a connection pool kept on the app's own `globalThis` key, because Next evaluates the module once per layer and each layer has its own tokens and its own copy of core. It says that a process-global container cannot work, for that reason, and that 0.5 brings the adapter. Its regions sit in `examples/meridian/src/pages/next.md` and run in Node without a Next server; `examples/next-bridge`'s gate canary is the measurement it cites.
 - The /fastify/ guide tells users to pass `forceCloseConnections` or to call `server.closeAllConnections()` before `close()`. The cause is Node 22's http server with its bundled undici 6, and it applies to any Node http server on 22.x, Fastify included: `server.close()` does not close a connection that has never sent a request (nodejs/node#63452, fixed in Node 26.12, not backported to 22.x or 24.x). After a client aborts a streaming response, undici 6 opens such a spare connection, so `close()` waits out the keep-alive timeout (72 s in Fastify). Node 24 closes, because its undici 7 drops the spare connection.
 
 - [ ] **Step 1: Add the example dependencies** to `examples/meridian/package.json`
 
-`dependencies` gains `"@nexusdi/express": "*"`, `"@nexusdi/fastify": "*"`, `"@nexusdi/hono": "*"`, `"@nexusdi/react-router": "*"`, `"@nexusdi/vitest": "*"`, `"@nexusdi/next": "*"`; `devDependencies` gains `"hono": "4.13.13"`, `"@hono/node-server": "2.1.5"`, `"express": "5.3.0"`, `"@types/express": "5.0.6"`, `"fastify": "5.12.7"`, `"react-router": "8.4.0"`, `"next": "16.4.1"`. Run `npm install`.
+`dependencies` gains `"@nexusdi/express": "*"`, `"@nexusdi/fastify": "*"`, `"@nexusdi/hono": "*"`, `"@nexusdi/react-router": "*"`, `"@nexusdi/vitest": "*"`; `devDependencies` gains `"hono": "4.13.13"`, `"@hono/node-server": "2.1.5"`, `"express": "5.3.0"`, `"@types/express": "5.0.6"`, `"fastify": "5.12.7"`, `"react-router": "8.4.0"`. Run `npm install`.
 
 - [ ] **Step 2: Write the failing regions** `examples/meridian/src/pages/hono.md`
 
@@ -16117,6 +16108,8 @@ Co-Authored-By: Claude Opus 5.5 (1M context) <noreply@anthropic.com>"
 
 ### Task 27: the React Router, React, Next and Vitest pages, and the API pages
 
+`@nexusdi/next` moved to 0.5 (Task 16's gate). The `/next/` page moved to Task 25 as a guide without the package, so this task leaves out `next.mdx`, `examples/meridian/src/pages/next.md`, `/api-next/` and their `_meta.ts` entries, and builds without `@nexusdi/next`.
+
 Spec 15.1 and react spec 14. Created: `/react-router-ssr/` (inventory row 15, absent on `release/0.4`), `/react/`, `/next/`, `/vitest/`, `/api-hono/`, `/api-express/`, `/api-fastify/`, `/api-react-router/`, `/api-vitest/`, `/api-next/`, `/api-react/`, and the four `@nexusdi/react` error pages.
 
 The `/react-router-ssr/` guide's Testing Loaders section shows `existingScope` with `NEXUS_SCOPE`, which the README no longer does. The guide carries the sections moved out of Task 10's README: Typed loaders (`inject`), Lazy routes (`di.load`), When the scope is disposed, Errors, Ambient scope, Testing loaders (`NEXUS_SCOPE` and `existingScope`) and Requirements.
@@ -16400,6 +16393,8 @@ Co-Authored-By: Claude Opus 5.5 (1M context) <noreply@anthropic.com>"
 
 ### Task 28: the release checklist and the bootstrap notes
 
+`@nexusdi/next` moved to 0.5 (Task 16's gate). The text below is already without it: six new packages, one bootstrap round, 15 published packages, and 32 required check contexts (4 `adapter-runtimes`, 14 `adapter-peers`, 14 `node-floor`).
+
 Spec 12 and 16, the owner's answer to Q2, and the header's owner-only list. The agent writes the documentation and the checks; every npm, release and GitHub settings step stays the owner's.
 
 Files:
@@ -16409,7 +16404,7 @@ Files:
 
 Interfaces:
 
-- Consumes: the job ids `adapter-runtimes`, `adapter-peers` and `node-floor` and the leg list `scripts/adapter-peers.json` (Tasks 21 to 23); the seven package folders; the `core-layers` exception for `libs/react/src/dev.ts` (Task 14); the header's six owner-only steps.
+- Consumes: the job ids `adapter-runtimes`, `adapter-peers` and `node-floor` and the leg list `scripts/adapter-peers.json` (Tasks 21 to 23); the six package folders; the `core-layers` exception for `libs/react/src/dev.ts` (Task 14); the header's six owner-only steps.
 
 - [ ] **Step 1: Write the failing check** `tools/repo-checks/src/release-packages-doc.test.ts`
 
@@ -16462,7 +16457,7 @@ describe.each([['RELEASING.md'], ['.claude/skills/nexusdi-release/SKILL.md']])(
 ```
 
 Run: `NX_NO_CLOUD=true NX_DAEMON=false npx nx test @nexusdi/repo-checks -- release-packages-doc`
-Expected: FAIL, `hono` missing and `publishes 9 packages` where 16 are published.
+Expected: FAIL, `hono` missing and `publishes 9 packages` where 15 are published.
 
 If `RELEASING.md` has no `## Packages` heading (the skill has one; `RELEASING.md` may use another), add the section to `RELEASING.md` under that exact heading in Step 2.
 
@@ -16472,11 +16467,11 @@ In `.claude/skills/nexusdi-release/SKILL.md` "## Packages", replace the list par
 
 ```markdown
 The packages under `libs/` form one fixed version group (on `release/0.4` and
-on `main` after 0.4.0). The group publishes 16 packages at one version:
+on `main` after 0.4.0). The group publishes 15 packages at one version:
 
 `@nexusdi/core`, `decorators`, `devtools`, `errors`, `federation`, `node`,
 `testing`, `cli`, `interceptors`, `express`, `fastify`, `hono`,
-`react-router`, `vitest`, `react`, `next`.
+`react-router`, `vitest`, `react`.
 ```
 
 Write the same list and count in `RELEASING.md` "## Packages". Run the check: PASS.
@@ -16486,22 +16481,19 @@ Write the same list and count in `RELEASING.md` "## Packages". Run the check: PA
 ```markdown
 #### 0.4 adapters
 
-0.4.0-rc.2 adds seven packages, which need their npm names before the rc
+0.4.0-rc.2 adds six packages, which need their npm names before the rc
 that first publishes them. `bootstrap.sh` reads `libs/<pkg>/package.json`, so
 run each round from a checkout of `release/0.4` that has the folders.
 
-Round one, before 0.4.0-rc.2 (owner):
+Before 0.4.0-rc.2 (owner):
 
     for pkg in express fastify hono react-router vitest react; do
       .claude/skills/nexusdi-release/scripts/bootstrap.sh "$pkg" <otp>
     done
 
-Round two, after the Next gate passes and `libs/next` is on `release/0.4`,
-before the rc that first carries it (rc.2, or rc.3 if Next follows):
+`@nexusdi/next` moved to 0.5, so 0.4 has no second round.
 
-    .claude/skills/nexusdi-release/scripts/bootstrap.sh next <otp>
-
-After each round: set each package's trusted publisher (organization
+After the round: set each package's trusted publisher (organization
 `NexusDI`, repository `core`, workflow `release.yml`, environment `release`,
 "Allow npm publish" and "Allow npm dist-tag" on), deprecate the placeholders
 with `deprecate.sh <otp> <pkg> ...`, and confirm each with
@@ -16509,7 +16501,7 @@ with `deprecate.sh <otp> <pkg> ...`, and confirm each with
 about 30 seconds, so pass a fresh one to each command.
 ```
 
-Mirror the two rounds in the skill's "Bootstrapping a new package" section with the `!`-prefixed commands the skill uses for owner commands.
+Mirror the round in the skill's "Bootstrapping a new package" section with the `!`-prefixed commands the skill uses for owner commands.
 
 - [ ] **Step 4: Add the three jobs to the documented required checks**
 
@@ -16521,7 +16513,7 @@ In `RELEASING.md` "Repository setup", change the rulesets rule and the skill's "
   `ci.yml`) with the strict policy.
 ```
 
-This records the target state. The rulesets themselves are GitHub settings: the owner adds the three checks to the "Main", "Release branches" and "Maintenance branches" rulesets (owner-only step 5 of the header and the checklist). `tools/release/plan.mjs` reads the required checks from the rulesets, so once the owner adds them, an rc dispatch refuses a commit where any of the jobs is not green. A matrix job reports one check per leg (`adapter-runtimes (workerd)`, `node-floor (core, 22.12.0)`, ...); the checklist names all 36: 4 `adapter-runtimes`, 17 `adapter-peers` and 15 `node-floor`.
+This records the target state. The rulesets themselves are GitHub settings: the owner adds the three checks to the "Main", "Release branches" and "Maintenance branches" rulesets (owner-only step 5 of the header and the checklist). `tools/release/plan.mjs` reads the required checks from the rulesets, so once the owner adds them, an rc dispatch refuses a commit where any of the jobs is not green. A matrix job reports one check per leg (`adapter-runtimes (workerd)`, `node-floor (core, 22.12.0)`, ...); the checklist names all 32: 4 `adapter-runtimes`, 14 `adapter-peers` and 14 `node-floor`.
 
 - [ ] **Step 5: Write the release checklist** `specs/plans/2026-10-15-integrations-0.4-release-checklist.md`
 
@@ -16529,8 +16521,7 @@ This records the target state. The rulesets themselves are GitHub settings: the 
 # 0.4.0-rc.2 with the adapters: release checklist
 
 The agent steps are done when this file is merged. The owner's answers of
-2026-10-15: all adapters in rc.2, Next may follow in rc.3, and 0.4.0 final
-waits until every adapter has been in at least one RC with its demo app
+2026-10-15: all adapters in rc.2, and 0.4.0 final waits until every adapter has been in at least one RC with its demo app
 green.
 
 ## Owner-only steps
@@ -16540,11 +16531,10 @@ admin rights on NexusDI/core. The numbers match the plan header, and the
 timeline below says when each runs.
 
 1. Bootstrap each new npm name, set its trusted publisher and deprecate the
-   placeholder. Round one: `express`, `fastify`, `hono`, `react-router`,
-   `vitest`, `react`. Round two, after the Next gate passes: `next`.
+   placeholder: `express`, `fastify`, `hono`, `react-router`, `vitest`,
+   `react`. `@nexusdi/next` moved to 0.5.
 2. Confirm each publisher with `npm trust list @nexusdi/<pkg> --otp=<code>`.
-3. Dispatch the `rc` event that publishes 0.4.0-rc.2, and rc.3 if Next
-   follows. A `resume` dispatch after a failed publish counts as this step.
+3. Dispatch the `rc` event that publishes 0.4.0-rc.2. A `resume` dispatch after a failed publish counts as this step.
 4. Run any `npm dist-tag add` command the reconcile step prints.
 5. Add the `adapter-runtimes`, `adapter-peers` and `node-floor` checks, one
    per matrix leg, to the required status checks of the release rulesets.
@@ -16560,7 +16550,7 @@ timeline below says when each runs.
   takes the exception with this plan.
 - `tools/repo-checks/src/owner-vocabulary.test.ts`: one
   `isNexusError(error, 'NEXUS_DISPOSED')` literal per server adapter, in
-  its `request-scope.ts` (Tasks 1 and 17).
+  its `request-scope.ts` (Task 1 onward).
 
 ## Before rc.2
 
@@ -16595,27 +16585,17 @@ timeline below says when each runs.
      `hono-floor`, `hono-latest`, `express-floor`, `express-latest`,
      `fastify-floor`, `fastify-latest`, `react-router-7-floor`,
      `react-router-7-latest`, `react-router-8-latest`, `react-floor`,
-     `react-19-latest`, `vitest-floor`, `vitest-4-latest`, `vitest-5-latest`,
-     `next-floor`, `next-15-latest`, `next-16-latest`
+     `react-19-latest`, `vitest-floor`, `vitest-4-latest`, `vitest-5-latest`
    - `node-floor (<lib>, <node>)` for each matrix entry of the `node-floor`
      job: `core`, `decorators`, `devtools`, `errors`, `express`, `fastify`,
-     `federation`, `hono`, `interceptors`, `next`, `node`, `react`,
+     `federation`, `hono`, `interceptors`, `node`, `react`,
      `testing` and `vitest` at `22.12.0`, and `react-router` at `22.22.0`
 
    Agent, after: `gh api repos/NexusDI/core/rules/branches/release%2F0.4`
-   lists all 36 new contexts.
+   lists all 32 new contexts.
 
-4. If the Next gate passed and Task 17 is merged: owner-only steps 1 and 2,
-   round two, now, so Next publishes in rc.2:
-
-   ```sh
-   .claude/skills/nexusdi-release/scripts/bootstrap.sh next <otp>
-   .claude/skills/nexusdi-release/scripts/deprecate.sh <otp> next
-   npm trust list @nexusdi/next --otp=<code>
-   ```
-
-   If the gate has not passed, `libs/next` is not on `release/0.4` and rc.2
-   goes without it.
+4. `@nexusdi/next` moved to 0.5 (integrations spec 10.1), so no second
+   bootstrap round runs before rc.2.
 
 ## rc.2
 
@@ -16642,11 +16622,6 @@ timeline below says when each runs.
    `npm dist-tag add @nexusdi/<pkg>@0.4.0-rc.2 <tag> --otp=<code>` it
    printed. Agent, after: `npm view @nexusdi/<pkg> dist-tags` shows `latest`
    and `next` at `0.4.0-rc.2` for each new package.
-
-## rc.3 (only if Next follows)
-
-8. Owner-only steps 1 and 2, round two (step 4's commands), then steps 5
-   to 7 with rc.3.
 
 ## 0.4.0 final
 
@@ -16685,7 +16660,7 @@ NX_NO_CLOUD=true NX_DAEMON=false git push
 
 ## Self-review notes
 
-- Spec coverage: 3.1 to 3.9 shared design (Task 1, copied in Tasks 5, 7, 9, 17); 3.10 public API only (every adapter task); 4 Hono (Tasks 7, 8); 5 Express (Tasks 1 to 3); 6 Fastify (Tasks 5, 6); 7 React Router (Tasks 9, 10); 8 Vitest (Task 4); 9 edge runtimes (Task 18 worker source, Tasks 21, 22, 24, 26); 10 Next (gate Task 16, package Task 17, demo Task 20, guide Task 27); 11 layout (each package's first task, Task 24); 12 release (Task 28 and the owner-only steps); 13 verification (Tasks 21 to 24); 14 demo apps (Tasks 18 to 20); 15 docs (Tasks 25 to 27); 16 delivery order (task order; the allowlist globs land in Tasks 5 and 9, the `NEXUS_DISPOSED` entry for Next in Task 17).
+- Spec coverage: 3.1 to 3.9 shared design (Task 1, copied in Tasks 5, 7, 9, 17); 3.10 public API only (every adapter task); 4 Hono (Tasks 7, 8); 5 Express (Tasks 1 to 3); 6 Fastify (Tasks 5, 6); 7 React Router (Tasks 9, 10); 8 Vitest (Task 4); 9 edge runtimes (Task 18 worker source, Tasks 21, 22, 24, 26); 10 Next (gate Task 16; package Task 17 and demo Task 20 moved to 0.5; guide Task 25); 11 layout (each package's first task, Task 24); 12 release (Task 28 and the owner-only steps); 13 verification (Tasks 21 to 24); 14 demo apps (Tasks 18 to 20); 15 docs (Tasks 25 to 27); 16 delivery order (task order; the allowlist globs land in Tasks 5 and 9, the `NEXUS_DISPOSED` entry for Next in 0.5).
 - React spec (`specs/2026-09-24-react-design.md`, from `spec/react` at `26cb2a26`): ready to plan. K1, K2, K3 and K6 are in rc.1. Tasks 11 to 15 implement it, with these departures forced by checks on `release/0.4`: the four `NEXUS_REACT_*` codes carry inline text in every build (`error-text-placement.test.ts`; development-only text is extension principle V11, still with the owner); one `core-layers` exception for `libs/react/src/dev.ts`'s `process.env.NODE_ENV` read (Task 14, recorded in Task 28); the `react()` setup keeps a closure over `context.blueprint()` in place of the context itself; four `doc-error-codes` allowance entries that Task 27 removes; Meridian names in place of `STAR_CATALOG` and `Cartography`; rc.2 in place of R16's rc.0.
 - Decisions the tasks took that change spec text, applied in the spec with this plan: `nexusSetup` is an array of builder steps and `@vitest/runner` is a peer of `@nexusdi/vitest` (spec 8.1, 8.3).
 - Departures recorded for the ledger, each with its reason in the owning task: the React Router fixture app lives in `libs/react-router/test-fixtures/app` (its server helper imports `node:` modules, which `nodeViolations` refuses under `src/`) and is served by `@react-router/node` on port 0; `MISSION` lives in `BridgeApi` and `Tactical` is a function of the relay URL (Task 18); `NAV_AUDIT` and `INavAudit` are new names for the demo app's interceptor, which Task 18 records for the docs spec's vocabulary; each adapter's `test-support/nexus-request.ts` augments `NexusRequest` (required `mission` in Hono and React Router to test the required-`request` path, optional elsewhere).
