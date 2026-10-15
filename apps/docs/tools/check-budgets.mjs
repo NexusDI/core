@@ -19,6 +19,15 @@ export const BUDGETS = {
   background: 8_000,
   tool: 200_000,
 };
+/**
+ * The ceiling on one behaviour sidecar, `out/behaviour/<dir>/<name>.json`,
+ * which the catalogue fetches and parses when a reader reaches an entry.
+ * Raw bytes are what the browser parses and gzip bytes are what it downloads.
+ * Measured on 2026-10-15: the largest sidecar, `core/Nexus.json` with 102
+ * cases, is 1350 kB raw and 56.6 kB gzipped.
+ */
+export const BEHAVIOUR_BUDGET = { raw: 1_400_000, gzip: 60_000 };
+
 export const ISLAND_MARK = 'nexus-console-island';
 export const BACKGROUND_MARK = 'meridian-background';
 
@@ -123,6 +132,47 @@ export function checkBudgets(out, { basePath = '' } = {}) {
   return { findings, rows };
 }
 
+/** Holds every behaviour sidecar under `out/behaviour` to `BEHAVIOUR_BUDGET`. */
+export function checkBehaviour(out) {
+  const root = join(out, 'behaviour');
+  let entries;
+  try {
+    entries = readdirSync(root, { recursive: true, withFileTypes: true });
+  } catch {
+    return {
+      findings: [
+        `${relative(out, root)} does not exist. Run \`npx nx run @nexusdi/docs:behaviour-data\` before the build.`,
+      ],
+      rows: [],
+    };
+  }
+
+  const rows = entries
+    .filter((entry) => entry.isFile() && entry.name.endsWith('.json'))
+    .map((entry) => {
+      const path = join(entry.parentPath, entry.name);
+      const text = readFileSync(path);
+      return {
+        path: relative(out, path).split(sep).join('/'),
+        raw: text.length,
+        gzip: gzipSync(text).length,
+      };
+    })
+    .sort((left, right) => right.raw - left.raw);
+
+  const findings = rows
+    .filter(
+      (row) =>
+        row.raw > BEHAVIOUR_BUDGET.raw || row.gzip > BEHAVIOUR_BUDGET.gzip,
+    )
+    .map(
+      (row) =>
+        `${row.path}: the behaviour sidecar is ${kB(row.raw)} raw and ${kB(row.gzip)} gzipped, over the ${BEHAVIOUR_BUDGET.raw / 1000} kB raw or ${BEHAVIOUR_BUDGET.gzip / 1000} kB gzipped budget. Split the export's cases or shrink the markup in tools/behaviour-data.mjs.`,
+    );
+
+  return { findings, rows };
+}
+
 if (import.meta.url === pathToFileURL(process.argv[1] ?? '').href) {
   const out = join(import.meta.dirname, '..', 'out');
   const { findings, rows } = checkBudgets(out, {
@@ -133,6 +183,13 @@ if (import.meta.url === pathToFileURL(process.argv[1] ?? '').href) {
       `${row.path}: ${row.row} ${kB(row.bytes)}, island ${kB(row.island)}, background ${kB(row.background)}`,
     );
   }
+  const behaviour = checkBehaviour(out);
+  const [largest] = behaviour.rows;
+  if (largest)
+    console.log(
+      `${behaviour.rows.length} behaviour sidecars; the largest is ${largest.path} at ${kB(largest.raw)} raw, ${kB(largest.gzip)} gzipped`,
+    );
+  findings.push(...behaviour.findings);
   if (findings.length > 0) {
     console.error(findings.join('\n'));
     process.exit(1);

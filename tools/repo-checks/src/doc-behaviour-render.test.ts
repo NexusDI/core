@@ -4,7 +4,10 @@ import { join } from 'node:path';
 
 import { chainsOf } from '@nexusdi/doc-examples/behaviours';
 import type { Reference } from '@nexusdi/doc-examples/declarations';
-import { expandReferences } from '@nexusdi/doc-examples/mdx-reference-loader';
+import {
+  expandReferences,
+  statedBy,
+} from '@nexusdi/doc-examples/mdx-reference-loader';
 import type { StatedFile } from '@nexusdi/doc-examples/mdx-reference-loader';
 import { workspaceRoot } from '@nx/devkit';
 import { beforeAll, describe, expect, it } from 'vitest';
@@ -56,8 +59,10 @@ const page = 'apps/docs/content/api-testing.mdx';
 /** One rail row in the props the loader emits: its sentence and its case. */
 const ROW = /\{"title":("(?:[^"\\]|\\.)*"),"id":(\d+)\}/g;
 
-/** One package's cases, as `docs:behaviour-data` writes them beside the page. */
+/** One export's cases, as `docs:behaviour-data` writes them beside the page. */
 interface Sidecar {
+  package: string;
+  name: string;
   bodies: Record<string, { where: string; line: number; html: string }>;
   popups: Record<string, string>;
 }
@@ -310,55 +315,125 @@ describe('the cases a catalogue opens', () => {
     }
   };
 
-  const readJson = <T>(directory: string, name: string): T =>
-    JSON.parse(readFileSync(join(directory, name), 'utf8')) as T;
+  const readJson = <T>(path: string): T =>
+    JSON.parse(readFileSync(path, 'utf8')) as T;
 
-  it('writes a sidecar for every library that states something', () => {
+  /** Every sidecar of one library, keyed by the export it belongs to. */
+  const sidecarsOf = (file: string): Map<string, Sidecar> => {
+    const library = file.replace(/\.json$/, '');
+    return new Map(
+      readdirSync(join(sidecars, library)).map((name) => [
+        name.replace(/\.json$/, ''),
+        readJson<Sidecar>(join(sidecars, library, name)),
+      ]),
+    );
+  };
+
+  /** The names an entry can carry that the rail lists a case under. */
+  const namesWithCases = (stated: StatedFile): string[] =>
+    Object.keys(stated.states).filter(
+      (name) =>
+        /^[A-Za-z_$][\w$]*$/.test(name) && statedBy(stated, name).stated > 0,
+    );
+
+  it('writes a directory of sidecars for every library that states something', () => {
     expect(libraryFiles().length).toBeGreaterThan(0);
-    expect(readdirSync(sidecars).sort()).toEqual(libraryFiles().sort());
+    expect(readdirSync(sidecars).sort()).toEqual(
+      libraryFiles()
+        .map((name) => name.replace(/\.json$/, ''))
+        .sort(),
+    );
   });
 
-  it.each(libraryFiles())('carries a case for every sentence of %s', (name) => {
-    const stated = readJson<StatedFile>(index, name);
-    const sidecar = readJson<Sidecar>(sidecars, name);
-    const missing = new Set<number>();
+  it.each(libraryFiles())(
+    'writes one sidecar per export of %s whose rail lists a case',
+    (file) => {
+      const stated = readJson<StatedFile>(join(index, file));
 
-    for (const held of Object.values(stated.states)) {
-      for (const each of held) {
-        if (!(String(each.id) in sidecar.bodies)) missing.add(each.id);
+      expect([...sidecarsOf(file).keys()].sort()).toEqual(
+        namesWithCases(stated).sort(),
+      );
+    },
+  );
+
+  it.each(libraryFiles())(
+    "carries every case an entry's rail opens in %s",
+    (file) => {
+      const stated = readJson<StatedFile>(join(index, file));
+      const held = sidecarsOf(file);
+      const missing: string[] = [];
+
+      for (const name of namesWithCases(stated)) {
+        const sidecar = held.get(name);
+        for (const group of statedBy(stated, name).groups)
+          for (const row of group.rows)
+            if (!sidecar || !(String(row.id) in sidecar.bodies))
+              missing.push(`${name}#${row.id}`);
+      }
+
+      expect(missing).toEqual([]);
+    },
+  );
+
+  it.each(libraryFiles())('highlights every case of %s', (file) => {
+    for (const sidecar of sidecarsOf(file).values()) {
+      const bodies = Object.values(sidecar.bodies);
+
+      expect(bodies.length).toBeGreaterThan(0);
+      for (const body of bodies) {
+        expect(body.where).toMatch(/^libs\//);
+        expect(body.line).toBeGreaterThan(0);
+        expect(body.html.length).toBeGreaterThan(0);
       }
     }
-
-    expect([...missing]).toEqual([]);
   });
 
-  it.each(libraryFiles())('highlights every case of %s', (name) => {
-    const sidecar = readJson<Sidecar>(sidecars, name);
-    const bodies = Object.values(sidecar.bodies);
+  it.each(libraryFiles())(
+    'carries every popup a token of %s points at, and no other',
+    (file) => {
+      for (const sidecar of sidecarsOf(file).values()) {
+        const pointed = new Set(
+          Object.values(sidecar.bodies).flatMap(({ html }) =>
+            [...html.matchAll(/data-pop="(\d+)"/g)].map(([, at]) => at),
+          ),
+        );
 
-    expect(bodies.length).toBeGreaterThan(0);
-    for (const body of bodies) {
-      expect(body.where).toMatch(/^libs\//);
-      expect(body.line).toBeGreaterThan(0);
-      expect(body.html.length).toBeGreaterThan(0);
+        expect(Object.keys(sidecar.popups).sort()).toEqual([...pointed].sort());
+      }
+    },
+  );
+
+  it('colours every token through a class that sets the shiki theme variables', () => {
+    const stylesheet = readFileSync(join(index, 'code-classes.css'), 'utf8');
+    const defined = new Set(
+      [...stylesheet.matchAll(/\.(sh-\w+)\{/g)].map(([, name]) => name),
+    );
+
+    // Nextra's page fences carry the same two variables, so the cases and
+    // the page switch theme with one rule in `behaviour.css`.
+    for (const rule of stylesheet.matchAll(/\.sh-\w+\{([^}]*)\}/g)) {
+      expect(rule[1]).toMatch(
+        /^--shiki-light:#[0-9a-f]+;--shiki-dark:#[0-9a-f]+(;|$)/i,
+      );
     }
-  });
 
-  it('colours every highlighted token through the shiki theme variables', () => {
-    for (const name of libraryFiles()) {
-      const sidecar = readJson<Sidecar>(sidecars, name);
-      const bodies = Object.values(sidecar.bodies)
-        .map((body) => body.html)
-        .join('');
-      const popups = Object.values(sidecar.popups).join('');
+    for (const file of libraryFiles()) {
+      for (const sidecar of sidecarsOf(file).values()) {
+        const html =
+          Object.values(sidecar.bodies)
+            .map((body) => body.html)
+            .join('') + Object.values(sidecar.popups).join('');
 
-      // Nextra's page fences carry the same two variables, so the cases and
-      // the page switch theme with one rule in `behaviour.css`.
-      expect(bodies).toMatch(/--shiki-light:/);
-      expect(bodies).toMatch(/--shiki-dark:/);
-      expect(bodies).not.toMatch(/style="color:/);
-      expect(popups).not.toMatch(/style="color:/);
-      if (popups.length > 0) expect(popups).toMatch(/--shiki-light:/);
+        // A style the stylesheet does not hold stays inline, and the github
+        // themes give only a font style or weight that treatment.
+        for (const [style] of html.matchAll(/style="[^"]*"/g))
+          expect(style).toMatch(/font-style|font-weight/);
+        const used = [...html.matchAll(/class="[^"]*\b(sh-\w+)/g)].map(
+          ([, name]) => name,
+        );
+        expect(used.length).toBeGreaterThan(0);
+        expect(used.filter((name) => !defined.has(name))).toEqual([]);
+      }
     }
   });
 });

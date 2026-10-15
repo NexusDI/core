@@ -8,8 +8,10 @@ import { afterEach, describe, expect, it } from 'vitest';
 
 import {
   BACKGROUND_MARK,
+  BEHAVIOUR_BUDGET,
   BUDGETS,
   ISLAND_MARK,
+  checkBehaviour,
   checkBudgets,
   scriptsOf,
 } from './check-budgets.mjs';
@@ -141,5 +143,45 @@ describe('checkBudgets', () => {
       background: 8_000,
       tool: 200_000,
     });
+  });
+});
+
+describe('checkBehaviour', () => {
+  /** An export holding one behaviour sidecar of `text`. */
+  function sidecar(text) {
+    const out = mkdtempSync(join(tmpdir(), 'budgets-'));
+    dirs.push(out);
+    mkdirSync(join(out, 'behaviour', 'core'), { recursive: true });
+    writeFileSync(join(out, 'behaviour', 'core', 'Nexus.json'), text);
+    return out;
+  }
+
+  it('passes a sidecar inside both ceilings', () => {
+    expect(checkBehaviour(sidecar('{"bodies":{}}')).findings).toEqual([]);
+  });
+
+  it('fails a sidecar over the raw ceiling, however well it compresses', () => {
+    const { findings } = checkBehaviour(
+      sidecar(`{"html":"${'a'.repeat(BEHAVIOUR_BUDGET.raw)}"}`),
+    );
+    expect(findings).toHaveLength(1);
+    expect(findings[0]).toMatch(
+      /^behaviour\/core\/Nexus\.json: the behaviour sidecar is .* over the 1400 kB raw/,
+    );
+  });
+
+  it('fails a sidecar over the gzip ceiling', () => {
+    const { findings } = checkBehaviour(
+      sidecar(`{"html":"${noise(BEHAVIOUR_BUDGET.gzip)}"}`),
+    );
+    expect(findings).toHaveLength(1);
+  });
+
+  it('names the target to run when the export has no sidecars', () => {
+    const out = mkdtempSync(join(tmpdir(), 'budgets-'));
+    dirs.push(out);
+    expect(checkBehaviour(out).findings[0]).toMatch(
+      /@nexusdi\/docs:behaviour-data/,
+    );
   });
 });
