@@ -218,6 +218,7 @@ const scaleTimings = (rounds: Partial<Record<string, number>> = {}) => ({
       ]),
     ),
     'steady-get': design(1000),
+    timingMode: 'timing',
   },
   results: [
     {
@@ -416,10 +417,16 @@ describe('validate scale-timings', () => {
   });
   describe('protocol check and prefix widths', () => {
     const ratio = { median: 1, low: 0.99, high: 1.01, pairs: 30 };
+    const off = { median: 1.1, low: 1.05, high: 1.12, pairs: 30 };
     const check = (timingStands: boolean) => ({
       rounds: 30,
       timingVsHeap: [
-        { library: 'tsyringe', size: 50, ratio, pass: timingStands },
+        {
+          library: 'tsyringe',
+          size: 50,
+          ratio: timingStands ? ratio : off,
+          pass: timingStands,
+        },
       ],
       noGcVsTiming: [{ library: 'tsyringe', size: 50, ratio, pass: true }],
       timingStands,
@@ -445,6 +452,62 @@ describe('validate scale-timings', () => {
         /scale-timings\.protocolCheck\.timingStands/,
       );
       expect(() => validate('scale-timings', file, 'tmp')).not.toThrow();
+    });
+    it('recomputes each double pass from its ratio', () => {
+      const file = scaleTimings() as Record<string, unknown>;
+      const c = check(true);
+      c.timingVsHeap[0] = {
+        ...c.timingVsHeap[0],
+        ratio: off,
+        pass: true,
+      } as never;
+      file.protocolCheck = c;
+      expect(() => validate('scale-timings', file, 'results')).toThrow(
+        /scale-timings\.protocolCheck\.timingVsHeap\[0\]\.pass/,
+      );
+      const inside = { median: 1.04, low: 0.98, high: 1.1, pairs: 30 };
+      const d = check(true);
+      d.timingVsHeap[0] = { ...d.timingVsHeap[0], ratio: inside } as never;
+      file.protocolCheck = d;
+      expect(() => validate('scale-timings', file, 'results')).not.toThrow();
+    });
+    it('recomputes timingStands and gcBeforeCreate from the doubles', () => {
+      const file = scaleTimings() as Record<string, unknown>;
+      const c = check(true);
+      c.timingStands = false;
+      file.protocolCheck = c;
+      expect(() => validate('scale-timings', file, 'results')).toThrow(
+        /scale-timings\.protocolCheck\.timingStands/,
+      );
+      const g = check(true);
+      g.noGcVsTiming[0] = {
+        ...g.noGcVsTiming[0],
+        ratio: off,
+        pass: false,
+      } as never;
+      file.protocolCheck = g;
+      expect(() => validate('scale-timings', file, 'results')).toThrow(
+        /scale-timings\.protocolCheck\.gcBeforeCreate/,
+      );
+      g.gcBeforeCreate = 'drop';
+      (file.design as { timingMode: string }).timingMode = 'timing-no-gc';
+      expect(() => validate('scale-timings', file, 'results')).not.toThrow();
+    });
+    it('refuses a dropped gc() before create under the timing mode', () => {
+      const file = scaleTimings() as Record<string, unknown>;
+      const g = check(true);
+      g.noGcVsTiming[0] = {
+        ...g.noGcVsTiming[0],
+        ratio: off,
+        pass: false,
+      } as never;
+      g.gcBeforeCreate = 'drop';
+      file.protocolCheck = g;
+      expect(() => validate('scale-timings', file, 'results')).toThrow(
+        /scale-timings\.design\.timingMode/,
+      );
+      (file.design as { timingMode: string }).timingMode = 'timing-no-gc';
+      expect(() => validate('scale-timings', file, 'results')).not.toThrow();
     });
     it('rejects a protocol double with no ratio', () => {
       const file = scaleTimings() as Record<string, unknown>;

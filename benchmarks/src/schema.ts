@@ -448,6 +448,8 @@ export interface ScaleTimingsFile {
   design: {
     'fresh-process': Partial<Record<Shape, Design & { heap?: Design }>>;
     'steady-get': Design;
+    /** The child mode the fresh-process timing blocks ran in (scale spec 7.4). */
+    timingMode: 'timing' | 'timing-no-gc';
   };
   results: ScaleTimingRow[];
   growth: ScaleGrowth[];
@@ -868,6 +870,7 @@ const scaleTimingsShape = obj({
   design: obj({
     'fresh-process': record(freshDesign, SHAPES),
     'steady-get': design,
+    timingMode: oneOf('timing', 'timing-no-gc'),
   }),
   prefixWidths: opt(
     arr(obj({ shape, rounds: num, maxWidth: num, metric: str })),
@@ -916,11 +919,38 @@ const scaleTimingsShape = obj({
 function checkPublishedCells(file: ScaleTimingsFile): void {
   // A timing mode that moved NexusDI against a competitor (scale spec 7.4)
   // is not published: its figures rest on a protocol the check rejected.
-  if (file.protocolCheck !== undefined && !file.protocolCheck.timingStands)
-    fail(
-      'scale-timings.protocolCheck.timingStands',
-      'true: the timing figures of a failed protocol check are not published',
-    );
+  const check = file.protocolCheck;
+  if (check !== undefined) {
+    // The stored verdicts are recomputed from the ratios (scale spec 7.4).
+    const passes = (r: PairedRatio) =>
+      Math.abs(r.median - 1) <= 0.02 || (r.low <= 1 && r.high >= 1);
+    for (const key of ['timingVsHeap', 'noGcVsTiming'] as const)
+      check[key].forEach((d, i) => {
+        if (d.pass !== passes(d.ratio))
+          fail(
+            `scale-timings.protocolCheck.${key}[${i}].pass`,
+            String(passes(d.ratio)),
+          );
+      });
+    const stands = check.timingVsHeap.every((d) => passes(d.ratio));
+    if (check.timingStands !== stands)
+      fail('scale-timings.protocolCheck.timingStands', String(stands));
+    const gc = check.noGcVsTiming.every((d) => passes(d.ratio))
+      ? 'keep'
+      : 'drop';
+    if (check.gcBeforeCreate !== gc)
+      fail('scale-timings.protocolCheck.gcBeforeCreate', gc);
+    if (!check.timingStands)
+      fail(
+        'scale-timings.protocolCheck.timingStands',
+        'true: the timing figures of a failed protocol check are not published',
+      );
+    if (check.gcBeforeCreate === 'drop' && file.design.timingMode === 'timing')
+      fail(
+        'scale-timings.design.timingMode',
+        'timing-no-gc: the protocol check dropped the gc() before create',
+      );
+  }
   const passes = new Set(
     file.cells.filter((c) => c.outcome === 'pass').map(cellKey),
   );

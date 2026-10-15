@@ -32,6 +32,7 @@ function part(
     seed: 7,
     graphSeed: 20261001,
     scaleSha256: 'f'.repeat(64),
+    timingMode: 'timing',
     coreRef: {
       ref: 'workspace',
       tree: '4b825dc642cb6eb9a060e54bf8d69288fbee4904',
@@ -272,6 +273,12 @@ describe('mergeParts', () => {
     }
     expect(message).toMatch(/seed/);
     expect(message).toMatch(/modular.*missing/);
+  });
+  it('refuses parts that ran different timing modes and records the mode', () => {
+    expect(mergeParts(all(), opts).file.design.timingMode).toBe('timing');
+    const parts = all();
+    parts[1] = part('wide', { timingMode: 'timing-no-gc' });
+    expect(() => mergeParts(parts, opts)).toThrow(/wide.*timingMode/);
   });
   it('takes the protocol check and the prefix widths from the parts that hold them', () => {
     const parts = all();

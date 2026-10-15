@@ -772,6 +772,7 @@ export async function runPart(
     seed: opts.seed,
     graphSeed: GRAPH_SEED,
     scaleSha256: scaleSha256(),
+    timingMode: TIMING_MODE,
     coreRef: coreRefOf({
       explicit: argValue('core-ref'),
       fromFile: readCoreRef(),
