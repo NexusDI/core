@@ -90,6 +90,10 @@
     "examples/bridge-api/bench/*.{ts,mjs}",
     "examples/bridge-api/src/server.*.ts",
     "examples/bridge-api/src/worker.ts",
+    // examples/react-ssr's serve suite, which its e2e target runs through
+    // vitest.e2e.config.ts.
+    "examples/react-ssr/e2e/**/*.ts",
+    "examples/react-ssr/vitest.e2e.config.ts",
     "libs/vitest/test-support/nexus-request.ts",
     "libs/core/src/**/*.test-d.ts",
     "libs/errors/src/**/*.test-d.ts",
@@ -265,6 +269,12 @@
     // graphPlugins is the array `nexusdi graph --plugins
     // src/ship/plugins.ts#graphPlugins` reads by name, in the bridge API's
     // graph target. No module imports it.
+    // The react-ssr route tests' vi.mock factories call these through a
+    // dynamic import of the module, which fallow does not follow to a member.
+    {
+      "file": "examples/react-ssr/tests/support/testing-di.ts",
+      "exports": ["homeServer", "sectorsServer"],
+    },
     {
       "file": "examples/bridge-api/src/ship/plugins.ts",
       "exports": ["graphPlugins"],
@@ -430,11 +440,12 @@
     "minTokens": 30,
     "minLines": 3,
 
-    // The figure on 2026-10-15 is 2.14%, after the Hono and React Router
-    // middleware paths moved into serveWithBody. The ceiling is a ratchet,
+    // The figure on 2026-10-15 is 2.05%, after the Hono and React Router
+    // middleware paths moved into serveWithBody and the adapters' fixture
+    // apps left the count. The ceiling is a ratchet,
     // not a target: it fails the run that adds the next copy and is lowered
     // whenever a clone group is consolidated.
-    "threshold": 2.2,
+    "threshold": 2.1,
 
     "ignore": [
       "**/vite.config.*",
@@ -465,6 +476,11 @@
       // libs/core/src/blueprint/visibility.ts is tested against.
       "libs/core/test-support/visibility-oracle.ts",
       "tools/repo-checks/src/__fixtures__/**",
+      // The adapters' fixture apps: each is a self-contained consumer a
+      // browser or e2e suite builds, written the way an application writes
+      // its entry files and route modules, so they repeat React Router's
+      // default entries and each other by design.
+      "libs/*/test-fixtures/**",
       // Meridian-8 once per library and variant: each fixture is one
       // self-contained file a toolchain builds alone (benchmarks spec 4.1),
       // and the profile configs differ in one or two keys each.

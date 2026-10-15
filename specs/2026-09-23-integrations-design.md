@@ -2462,11 +2462,16 @@ adapters map onto it like this:
 | `@nexusdi/hono`         | `examples/bridge-api`, Hono entry           | the route suite on Node, workerd, Deno, Bun and the `edge-runtime` VM      |
 | `@nexusdi/express`      | `examples/bridge-api`, Express entry        | the same route suite on Node                                               |
 | `@nexusdi/fastify`      | `examples/bridge-api`, Fastify entry        | the same route suite on Node                                               |
-| `@nexusdi/vitest`       | `examples/bridge-api`, `examples/react-ssr` | every test file of both apps uses `nexusFixtures`                          |
+| `@nexusdi/vitest`       | `examples/bridge-api`, `examples/react-ssr` | the tests of both apps use `nexusFixtures` (rule below the table)          |
 | `@nexusdi/react-router` | `examples/react-ssr`                        | build, serve, the deferred-data stream test and a lazy route first request |
 | `@nexusdi/react`        | `examples/react-ssr`                        | the client container, `ScopeProvider` and hydration (react spec §9.1)      |
 | `@nexusdi/next` (0.5)   | `examples/next-bridge`                      | the gate canary of 10.1, in its `e2e` target outside default CI            |
 | `@nexusdi/node`         | `examples/bridge-api`                       | `scopes: nodeScopes()` on Node and on every edge leg                       |
+
+Every test that needs a container uses `nexusFixtures`, except a route test whose route
+module loads a section into the container `nexus.server.ts` builds at import. Such a test
+mocks the server module with a testing container and disposes it in `afterAll`
+(`examples/react-ssr/tests/routes/sectors.spec.tsx`).
 
 `examples/bridge-api` is the "Meridian app (Hono, backend)" of the plan (D6). One module
 graph (`Meridian`, `Tactical`, `BridgeApi`) serves four entries: `src/hono.ts`,

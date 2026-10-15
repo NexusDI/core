@@ -5,19 +5,26 @@
   "scripts": {},
   "sideEffects": false,
   "dependencies": {
+    "@nexusdi/bridge-api": "*",
     "@nexusdi/core": "*",
-    "@react-router/node": "^7.18.4",
-    "@react-router/serve": "^7.18.4",
+    "@nexusdi/errors": "*",
+    "@nexusdi/react": "*",
+    "@nexusdi/react-router": "*",
+    "@react-router/node": "8.4.0",
+    "@react-router/serve": "8.4.0",
     "class-variance-authority": "^0.7.1",
     "clsx": "^2.1.1",
     "isbot": "^4.4.0",
     "react": "19.3.0",
     "react-dom": "19.3.0",
-    "react-router": "^7.18.4"
+    "react-router": "8.4.0"
   },
   "devDependencies": {
+    "@nexusdi/devtools": "*",
+    "@nexusdi/testing": "*",
+    "@nexusdi/vitest": "*",
     "@nx/eslint-plugin": "23.1.1",
-    "@react-router/dev": "^7.18.4",
+    "@react-router/dev": "8.4.0",
     "@tailwindcss/vite": "^4.1.10",
     "@testing-library/react": "16.3.0",
     "@types/node": "^22",
@@ -48,6 +55,17 @@
           "typegen",
           "^typecheck"
         ]
+      },
+      "e2e": {
+        "dependsOn": [
+          "build",
+          "^build"
+        ],
+        "executor": "nx:run-commands",
+        "options": {
+          "cwd": "examples/react-ssr",
+          "command": "vitest run --config vitest.e2e.config.ts"
+        }
       }
     }
   }

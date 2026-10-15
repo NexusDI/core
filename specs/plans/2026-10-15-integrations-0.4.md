@@ -16109,6 +16109,8 @@ Co-Authored-By: Claude Opus 5.5 (1M context) <noreply@anthropic.com>"
 
 ### Task 27: the React Router, React, Next and Vitest pages, and the API pages
 
+Lazy-section teaching, from Task 19: teach the simple form first, a section with `imports: [Tactical]` against a constant shell module. Then show `navigation(charts)`, a section built over the shell module the app chooses at runtime (`examples/react-ssr/app/nexus.server.ts`), with the reason: a loaded module sees only what it imports, and `load()` shares a module already in the graph only when the section imports that same module object.
+
 `@nexusdi/next` moved to 0.5 (Task 16's gate). The `/next/` page moved to Task 25 as a guide without the package, so this task leaves out `next.mdx`, `examples/meridian/src/pages/next.md`, `/api-next/` and their `_meta.ts` entries, and builds without `@nexusdi/next`.
 
 Spec 15.1 and react spec 14. Created: `/react-router-ssr/` (inventory row 15, absent on `release/0.4`), `/react/`, `/next/`, `/vitest/`, `/api-hono/`, `/api-express/`, `/api-fastify/`, `/api-react-router/`, `/api-vitest/`, `/api-next/`, `/api-react/`, and the four `@nexusdi/react` error pages.

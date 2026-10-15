@@ -9,6 +9,18 @@
   "nx": {
     "implicitDependencies": [
       "@nexusdi/react-ssr"
-    ]
+    ],
+    "targets": {
+      "e2e": {
+        "dependsOn": [
+          {
+            "projects": [
+              "@nexusdi/react-ssr"
+            ],
+            "target": "build"
+          }
+        ]
+      }
+    }
   }
 }

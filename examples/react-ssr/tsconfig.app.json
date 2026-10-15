@@ -63,6 +63,27 @@
   ],
   "references": [
     {
+      "path": "../../libs/react-router/tsconfig.lib.json"
+    },
+    {
+      "path": "../../libs/react/tsconfig.lib.json"
+    },
+    {
+      "path": "../../libs/errors/tsconfig.lib.json"
+    },
+    {
+      "path": "../bridge-api/tsconfig.lib.json"
+    },
+    {
+      "path": "../../libs/vitest/tsconfig.lib.json"
+    },
+    {
+      "path": "../../libs/testing/tsconfig.lib.json"
+    },
+    {
+      "path": "../../libs/devtools/tsconfig.lib.json"
+    },
+    {
       "path": "../../libs/core/tsconfig.lib.json"
     }
   ]

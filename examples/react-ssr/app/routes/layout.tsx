@@ -6,9 +6,9 @@ export default function Layout(props: Route.ComponentProps) {
   return (
     <div className="container mx-auto p-4 max-w-4xl">
       <header className="mb-8 text-center">
-        <h1 className="text-4xl font-bold dark:text-white">NexusDI Showcase</h1>
+        <h1 className="text-4xl font-bold dark:text-white">Bridge</h1>
         <p className="text-lg text-gray-600 dark:text-gray-400">
-          A demonstration of dependency injection in a React Router application.
+          The Meridian bridge API on React Router.
         </p>
       </header>
 
@@ -16,8 +16,8 @@ export default function Layout(props: Route.ComponentProps) {
         <Button as="link" to="/" variant="outline">
           Home
         </Button>
-        <Button as="link" to="/users" variant="outline">
-          Users
+        <Button as="link" to="/sectors/Kepler-442b" variant="outline">
+          Sectors
         </Button>
       </nav>
 
