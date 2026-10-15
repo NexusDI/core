@@ -49,6 +49,57 @@ function landing(node: ts.Node): { outer: ts.Node; inner: ts.Node } {
   return { outer: inner.parent, inner };
 }
 
+/** The name `node` reads off `target`, as `target.name` or `target['name']`. */
+function memberOf(node: ts.Node, target: ts.Node): string | undefined {
+  if (ts.isPropertyAccessExpression(node) && node.expression === target)
+    return node.name.text;
+  if (
+    ts.isElementAccessExpression(node) &&
+    node.expression === target &&
+    ts.isStringLiteralLike(node.argumentExpression)
+  )
+    return node.argumentExpression.text;
+  return undefined;
+}
+
+/**
+ * How the code around a dynamic import takes its value: destructured, with
+ * each entry's local name and the name it reads, bound to one name, read
+ * through by one member, or anything else.
+ */
+type Landing =
+  | {
+      kind: 'destructure';
+      entries: { local: string | undefined; original: string }[];
+    }
+  | { kind: 'bound'; name: string }
+  | { kind: 'member'; name: string }
+  | { kind: 'other' };
+
+function landingOf(call: ts.Node): Landing {
+  const { outer, inner } = landing(call);
+  if (ts.isVariableDeclaration(outer) && outer.initializer === inner) {
+    if (ts.isObjectBindingPattern(outer.name))
+      return {
+        kind: 'destructure',
+        entries: outer.name.elements.flatMap((element) => {
+          const key = element.propertyName ?? element.name;
+          if (!ts.isIdentifier(key) && !ts.isStringLiteral(key)) return [];
+          const local = ts.isIdentifier(element.name)
+            ? element.name.text
+            : undefined;
+          return [{ local, original: key.text }];
+        }),
+      };
+    if (ts.isIdentifier(outer.name))
+      return { kind: 'bound', name: outer.name.text };
+  }
+  const member = memberOf(outer, inner);
+  return member === undefined
+    ? { kind: 'other' }
+    : { kind: 'member', name: member };
+}
+
 export function whiteBoxNames(
   file: string,
   body: string,
@@ -75,33 +126,13 @@ export function whiteBoxNames(
    * is read at once. Anything else is reported by its specifier.
    */
   const followDynamic = (call: ts.Node, specifier: string): void => {
-    const { outer, inner } = landing(call);
-    if (ts.isVariableDeclaration(outer) && outer.initializer === inner) {
-      if (ts.isObjectBindingPattern(outer.name)) {
-        for (const element of outer.name.elements) {
-          const key = element.propertyName ?? element.name;
-          if (ts.isIdentifier(key) || ts.isStringLiteral(key)) named(key.text);
-        }
-        return;
-      }
-      if (ts.isIdentifier(outer.name)) {
-        bindings.set(outer.name.text, { kind: 'namespace' });
-        return;
-      }
-    }
-    if (ts.isPropertyAccessExpression(outer) && outer.expression === inner) {
-      named(outer.name.text);
-      return;
-    }
-    if (
-      ts.isElementAccessExpression(outer) &&
-      outer.expression === inner &&
-      ts.isStringLiteralLike(outer.argumentExpression)
-    ) {
-      named(outer.argumentExpression.text);
-      return;
-    }
-    report(`import('${specifier}')`);
+    const taken = landingOf(call);
+    if (taken.kind === 'destructure')
+      for (const { original } of taken.entries) named(original);
+    else if (taken.kind === 'bound')
+      bindings.set(taken.name, { kind: 'namespace' });
+    else if (taken.kind === 'member') named(taken.name);
+    else report(`import('${specifier}')`);
   };
 
   // The file's own imports, static and dynamic, at module scope.
@@ -129,26 +160,15 @@ export function whiteBoxNames(
       if (specifier !== undefined && inSrc(specifier)) {
         // A destructure at module scope is a named import in all but syntax:
         // the case reaches the names when it uses them.
-        const { outer, inner } = landing(node);
-        if (
-          ts.isVariableDeclaration(outer) &&
-          outer.initializer === inner &&
-          ts.isObjectBindingPattern(outer.name)
-        ) {
-          for (const element of outer.name.elements)
-            if (ts.isIdentifier(element.name))
-              bindings.set(element.name.text, {
-                kind: 'named',
-                original: (element.propertyName ?? element.name).getText(),
-              });
+        const taken = landingOf(node);
+        if (taken.kind === 'destructure') {
+          for (const { local, original } of taken.entries)
+            if (local !== undefined)
+              bindings.set(local, { kind: 'named', original });
           return;
         }
-        if (
-          ts.isVariableDeclaration(outer) &&
-          outer.initializer === inner &&
-          ts.isIdentifier(outer.name)
-        ) {
-          bindings.set(outer.name.text, { kind: 'namespace' });
+        if (taken.kind === 'bound') {
+          bindings.set(taken.name, { kind: 'namespace' });
           return;
         }
       }
@@ -170,21 +190,16 @@ export function whiteBoxNames(
 
   const reads = (node: ts.Node): void => {
     if (
-      ts.isPropertyAccessExpression(node) &&
+      (ts.isPropertyAccessExpression(node) ||
+        ts.isElementAccessExpression(node)) &&
       ts.isIdentifier(node.expression) &&
       bindings.get(node.expression.text)?.kind === 'namespace'
     ) {
-      named(node.name.text);
-      return;
-    }
-    if (
-      ts.isElementAccessExpression(node) &&
-      ts.isIdentifier(node.expression) &&
-      bindings.get(node.expression.text)?.kind === 'namespace' &&
-      ts.isStringLiteralLike(node.argumentExpression)
-    ) {
-      named(node.argumentExpression.text);
-      return;
+      const name = memberOf(node, node.expression);
+      if (name !== undefined) {
+        named(name);
+        return;
+      }
     }
     if (ts.isIdentifier(node)) {
       const parent = node.parent;
