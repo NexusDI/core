@@ -117,8 +117,9 @@ const classes = new Map(
 /** The rules for every class in `classes`, as one stylesheet. */
 export const stylesheet = `${registry.getCSS()}\n`;
 
-function classesOf(node) {
-  const held = node.properties.class ?? node.properties.className ?? [];
+/** The classes an element carries, however the producer wrote them. */
+export function classesOf(node) {
+  const held = node.properties?.class ?? node.properties?.className ?? [];
   return Array.isArray(held) ? held : String(held).split(/\s+/);
 }
 

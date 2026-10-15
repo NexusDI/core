@@ -13,7 +13,7 @@ import { createPortal } from 'react-dom';
 import { ConsoleFrame, Marker } from '@nexusdi/meridian-ui';
 
 import type { BehaviourRow } from './BehaviourCatalogue';
-import { LINGER, place } from './type-card';
+import { LINGER, place, rove } from './type-card';
 import './behaviour.css';
 import './token-colours.css';
 
@@ -203,24 +203,7 @@ export default function BehaviourPane({
     const tokens = typed(code.current);
     const from = tokens.indexOf(document.activeElement as HTMLElement);
     if (from === -1) return;
-
-    const steps: Record<string, number | undefined> = {
-      ArrowRight: from + 1,
-      ArrowLeft: from - 1,
-      Home: 0,
-      End: tokens.length - 1,
-    };
-    const next = steps[event.key];
-    if (next === undefined) return;
-
-    event.preventDefault();
-    const going = tokens[Math.min(Math.max(next, 0), tokens.length - 1)];
-    if (!going) return;
-
-    tokens.forEach((each) => {
-      each.tabIndex = each === going ? 0 : -1;
-    });
-    going.focus();
+    rove(event, tokens, from);
   };
 
   const pane = (

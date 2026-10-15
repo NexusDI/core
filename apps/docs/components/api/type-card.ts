@@ -1,5 +1,6 @@
 /**
- * Where a type card goes and how long it lingers, shared by the behaviour
+ * Where a type card goes, how long it lingers and how the arrow keys walk its
+ * tokens, shared by the behaviour
  * pane's card (`BehaviourPane.tsx`) and the page fences' card
  * (`components/twoslash/PagePopover.tsx`).
  */
@@ -37,4 +38,33 @@ export function place(card: HTMLElement, token: HTMLElement): void {
   )}px`;
   card.style.top = `${Math.round(above >= EDGE ? above : at.bottom + GAP)}px`;
   card.style.visibility = 'visible';
+}
+
+/**
+ * Moves a roving tab stop among `tokens`, from the one at `from`, for an
+ * arrow key, Home or End, and focuses the token it lands on. Up and Down
+ * count with `vertical`, as a fence's lines read. Returns false for any other
+ * key, which the caller then handles.
+ */
+export function rove(
+  event: { readonly key: string; preventDefault(): void },
+  tokens: readonly HTMLElement[],
+  from: number,
+  vertical = false,
+): boolean {
+  const steps: Record<string, number | undefined> = {
+    ArrowRight: from + 1,
+    ArrowLeft: from - 1,
+    Home: 0,
+    End: tokens.length - 1,
+    ...(vertical ? { ArrowDown: from + 1, ArrowUp: from - 1 } : {}),
+  };
+  const next = steps[event.key];
+  if (next === undefined) return false;
+  event.preventDefault();
+  const going = tokens[Math.min(Math.max(next, 0), tokens.length - 1)];
+  if (!going || going === tokens[from]) return true;
+  for (const each of tokens) each.tabIndex = each === going ? 0 : -1;
+  going.focus();
+  return true;
 }
