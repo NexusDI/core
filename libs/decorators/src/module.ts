@@ -20,7 +20,7 @@ type Class = abstract new (...args: never) => unknown;
 
 /**
  * Sugar for defineModule, named after the class. `providers` gets the
- * per-element check defineModule applies (spec §4.6).
+ * per-element check defineModule applies.
  */
 export function Module<const P extends readonly unknown[] = []>(
   config: Omit<ModuleDecoratorConfig, 'providers'> & {

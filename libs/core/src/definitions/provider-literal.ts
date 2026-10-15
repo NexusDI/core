@@ -27,7 +27,7 @@ type Provided<K> =
         : never;
 
 /**
- * A provider entry written as an object (spec §3.2). This is its widened
+ * A provider entry written as an object. This is its widened
  * type; `defineModule` checks each literal element with `ProviderEntries`.
  */
 export interface ProviderLiteral {
@@ -63,7 +63,7 @@ type FactoryLifetimeAndEager<E> = E extends {
     : LifetimeAndEager<{ eager?: boolean }>
   : LifetimeAndEager<{ eager?: boolean }>;
 
-/** The rules provide() enforces (spec §4.3), restated for one literal element. */
+/** The rules provide() enforces, restated for one literal element. */
 type CheckedLiteral<E> = E extends { token: infer K extends AnyToken }
   ? E extends { useValue: unknown }
     ? {
@@ -104,7 +104,7 @@ type CheckedLiteral<E> = E extends { token: infer K extends AnyToken }
  * The check for an element TypeScript could not infer. TypeScript leaves an
  * element unknown when it holds a function whose parameters need a
  * contextual type, because the element's own inferred type would have to
- * supply that context (spec §4.6).
+ * supply that context.
  */
 interface UntypedLiteral {
   readonly token: AnyToken;
