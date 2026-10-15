@@ -68,9 +68,8 @@ retained heap and bundle bytes, each against provider count.
     dependency. The charts are log-log: startup time against providers, and gzip bundle
     bytes against providers.
 13. Pull requests run the deterministic writer with `--check` and a 50-provider timing
-    smoke under `tmp/`. The full timing run is one new job, `scale-timings`, on schedule,
-    dispatch and core tags, estimated at 62 minutes. `build-scale-200` and `scale.ts` stay
-    as they are.
+    smoke under `tmp/`. The full timing run arrives with the budget follow-up (section
+    10.2). `build-scale-200` and `scale.ts` stay as they are.
 
 ## 3. The graphs
 
@@ -334,12 +333,14 @@ thread-pool size would each change what a fresh process does):
    from the bundle's external imports, `reflect-metadata` first, so every package
    resolves from the cell as the bundle's own imports do. Library import time is already
    the cold-start figure.
-2. Reads the retained heap (`base`) once V8's background work has finished: the read
-   loops pause 10 ms, `gc()` twice, read, and stop after ten passes or when two reads in a
-   row are equal. The base read always runs all ten collects, because two reads rarely
-   agree to the byte (concurrent compile jobs still running at this read made `heap-ready`
-   negative in 6 of 180 parallel runs). The array of indexes step 6 resolves is built before this read
-   from the model's provider count and target, so it sits in `base`.
+2. Reads the retained heap (`base`) after a settle loop: pause 10 ms, `gc()` twice, read,
+   and stop when two reads in a row are equal or after ten passes. At this read the loop's
+   own allocations (0.1 to 5 KB per pass) keep any two reads apart, so the base read always
+   makes all ten passes. The final read of step 7 usually stops after four. Both reads hold
+   the same loop allocations, so they cancel in `heap-ready`. The loop waits for V8's
+   background work: concurrent compile jobs still running at this read made `heap-ready`
+   negative in 6 of 180 parallel runs. The array of indexes step 6 resolves is built before
+   this read from the model's provider count and target, so it sits in `base`.
 3. Times `await import(bundle)`: `load`.
 4. `gc()` twice. Times `create`: `create`.
 5. Times `get(target)`: `first-get`.
@@ -710,7 +711,7 @@ This change has no scale timing job. The first dispatch run measured about 17 s 
 of the `mixed` block against the 2.4 s assumed below, so its 1,010 rounds alone take about
 4.8 hours and one 150-minute job cannot finish. Because `merge` needs every job, a tag run
 would have dropped the Meridian-8 results pull request. The job arrives with the budget
-follow-up, designed in the tech lead's ruling on the scale CI budget: two child modes (a
+follow-up, designed in the budget follow-up's spec amendment: two child modes (a
 timing mode without the heap settles and a heap mode with them), one job per shape plus a
 `scale-steady` job, a strict `timings.ts --merge` that checks every part was made from the
 same sha, seed, core, versions and `scale.json`, a protocol check on the first dispatch
@@ -720,7 +721,8 @@ with the deterministic artifact, and `open-results-pr.ts` adds `benchmarks/resul
 `scale.md` and the two SVGs to the commit and one line naming the scale file to the body
 when a timing file exists.
 
-All sizes run in one job, so every point on a curve comes from one machine.
+In that design each shape's sizes run in one job, so every point on a curve comes from
+one machine.
 
 The estimate for one full run on the rc.0 runner class that this section started from, kept
 here because the first run disproved it: A round of five libraries at all four

@@ -933,12 +933,13 @@ these statements:
   MAD, p5 and p95; comparisons as paired ratios within an iteration with a bootstrap 95%
   interval. A comparison whose interval contains 1.0 is reported as no measured difference.
 - How the scale suite was sampled: each fresh-process sample runs in its own Node process,
-  one process per sample, in a balanced rotating order, after 10 warm-up rounds. The measured rounds are 1,000 for `mixed` and 200 for `wide`, `deep`, `modular`
-  and `mixed-async`. Steady `get()` runs in one long-lived worker per library and size on
-  `mixed`, with 100 warm-up and 1,000 measured iterations. Every generated app is compiled
-  with `importHelpers: true` and `tslib`, so a library that uses decorators does not repeat
-  the compiler's helpers in each file. Relative claims come from `mixed`. The other four
-  shapes publish their round count and no README, docs page or post cites them.
+  in a balanced rotating order, after 10 warm-up rounds. The measured rounds are 1,000 for
+  `mixed` and 200 for `wide`, `deep`, `modular` and `mixed-async`. Steady `get()` runs in
+  one long-lived worker per library and size on `mixed`, with 100 warm-up and 1,000
+  measured iterations. Every generated app is compiled with `importHelpers: true` and
+  `tslib`, so a library that uses decorators does not repeat the compiler's helpers in each
+  file. Relative claims come from `mixed`. The other four shapes publish their round count
+  and no README, docs page or post cites them.
 - How to rerun: `git clone`, `npm ci`, `npx nx run benchmarks:bench`, and the note that
   absolute times differ by machine while the paired ratios should fall inside the published
   intervals. `results/raw/` holds every sample of a tag run, so the statistics can be
