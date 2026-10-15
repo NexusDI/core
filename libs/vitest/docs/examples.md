@@ -8,7 +8,7 @@ A `nexusSetup` override replaces the file's `setup` for one suite, so it repeats
 
 ```ts @import.meta.vitest @module
 import { defineModule, provide, Token } from '@nexusdi/core';
-import { nexusFixtures } from '@nexusdi/vitest';
+import { nexusTest } from '@nexusdi/vitest';
 import { describe, test as base } from 'vitest';
 
 interface INavCharts {
@@ -33,11 +33,9 @@ const Tactical = defineModule({
   exports: [NAV_CHARTS],
 });
 
-const test = base.extend(
-  nexusFixtures(Tactical, {
-    setup: (builder) => builder.override(NAV_CHARTS, { useValue: fakeCharts }),
-  }),
-);
+const test = nexusTest(base, Tactical, {
+  setup: (builder) => builder.override(NAV_CHARTS, { useValue: fakeCharts }),
+});
 
 test('plots with the file setup', ({ nexus }) => {
   nexus.get(NAV_CHARTS).plot('Kepler-442b').heading; // -> 42

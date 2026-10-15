@@ -53,6 +53,11 @@
     "vitest": "^4.1.0 || ^5.0.0",
     "@vitest/runner": "^4.1.0 || ^5.0.0"
   },
+  "peerDependenciesMeta": {
+    "@vitest/runner": {
+      "optional": true
+    }
+  },
   "publishConfig": {
     "access": "public",
     "provenance": true

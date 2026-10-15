@@ -4,7 +4,7 @@ import { createRoutesStub, RouterContextProvider } from 'react-router';
 import type { Nexus } from '@nexusdi/core';
 import { NexusProvider } from '@nexusdi/react';
 import { existingScope, NEXUS_SCOPE } from '@nexusdi/react-router';
-import { nexusFixtures } from '@nexusdi/vitest';
+import { nexusTest } from '@nexusdi/vitest';
 import { FLIGHT_LOG, NAV_CHARTS } from '@nexusdi/bridge-api/contracts';
 import { Meridian } from '@nexusdi/bridge-api/ship';
 
@@ -24,12 +24,10 @@ function HydrateFallback() {
 }
 
 /** A fresh Meridian testing container per test, with the fake charts. */
-const test = base.extend(
-  nexusFixtures(Meridian, {
-    setup: (builder) => builder.override(NAV_CHARTS, { useValue: fakeCharts }),
-    create: { onInit: false },
-  }),
-);
+const test = nexusTest(base, Meridian, {
+  setup: (builder) => builder.override(NAV_CHARTS, { useValue: fakeCharts }),
+  create: { onInit: false },
+});
 
 const scopeOf = (ship: Nexus, id: string) =>
   ship.createScope({ request: { mission: { id, target: 'Kepler-442b' } } });

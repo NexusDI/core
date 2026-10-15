@@ -1,7 +1,9 @@
 #!/usr/bin/env node
 /**
  * Installs one leg's framework versions over the workspace with --no-save,
- * checks that the adapter resolves exactly that copy, then runs the leg's
+ * checks each installed version against the leg's spec and the adapter's
+ * peer range, and that the root tree and the adapter hold one copy of it
+ * (adapter-peers-check.mjs), then runs the leg's
  * targets with `nx run`, one at a time, skipping the Nx cache: the cache key
  * does not see the installed version (spec 13.4).
  *
@@ -14,7 +16,9 @@
  */
 import { execFileSync } from 'node:child_process';
 import { existsSync, readFileSync, rmSync } from 'node:fs';
-import { dirname, join, resolve } from 'node:path';
+import { join, resolve } from 'node:path';
+
+import { legProblems, packageOf } from './adapter-peers-check.mjs';
 
 const ROOT = resolve(import.meta.dirname, '..');
 const legs = JSON.parse(
@@ -34,8 +38,6 @@ const run = (cmd, args, env = {}) =>
     env: { ...process.env, NX_NO_CLOUD: 'true', NX_DAEMON: 'false', ...env },
   });
 
-/** The package name of an install spec: `@types/react@19.0.0` is `@types/react`. */
-const packageOf = (spec) => spec.slice(0, spec.lastIndexOf('@'));
 /** The lib folder of a target: `@nexusdi/react:test` is `libs/react`. */
 const libOf = (target) =>
   join(ROOT, 'libs', target.slice('@nexusdi/'.length, target.indexOf(':')));
@@ -55,9 +57,6 @@ run('npm', [
 ]);
 
 const packages = leg.install.map(packageOf);
-// React comes along with the react legs' tools: one copy of it as well.
-if (packages.includes('react-dom') && !packages.includes('react'))
-  packages.push('react');
 const libs = [...new Set(leg.targets.map(libOf))];
 for (const lib of libs)
   for (const pkg of packages) {
@@ -65,33 +64,14 @@ for (const lib of libs)
     if (existsSync(nested)) rmSync(nested, { recursive: true, force: true });
   }
 
-/**
- * The manifest Node's resolution reaches from `from`: the first
- * node_modules/<pkg> up the tree. Read by path, since some versions
- * export no ./package.json.
- */
-function manifestFrom(from, pkg) {
-  for (let dir = from; ; dir = dirname(dir)) {
-    const manifest = join(dir, 'node_modules', pkg, 'package.json');
-    if (existsSync(manifest)) return manifest;
-    if (dirname(dir) === dir) throw new Error(`${pkg} not found from ${from}`);
-  }
-}
-
-let copies = 0;
-for (const pkg of packages) {
-  const rootManifest = join(ROOT, 'node_modules', pkg, 'package.json');
-  const { version } = JSON.parse(readFileSync(rootManifest, 'utf8'));
-  for (const lib of libs) {
-    const seen = manifestFrom(lib, pkg);
-    if (seen !== rootManifest) {
-      console.error(`  ${pkg}: ${lib} resolves ${seen}, not the root copy`);
-      copies += 1;
-    }
-  }
-  console.log(`  ${pkg} ${version}, one copy`);
-}
-if (copies > 0) throw new Error(`leg ${name}: ${copies} second copies`);
+const problems = legProblems(ROOT, leg.install, libs);
+for (const problem of problems) console.error(`  ${problem}`);
+if (problems.length > 0)
+  throw new Error(`leg ${name}: ${problems.length} problem(s) after install`);
+for (const pkg of packages)
+  console.log(
+    `  ${pkg} ${JSON.parse(readFileSync(join(ROOT, 'node_modules', pkg, 'package.json'), 'utf8')).version}, one copy`,
+  );
 
 if (leg.browsers)
   run('npx', ['playwright', 'install', '--with-deps', 'chromium']);

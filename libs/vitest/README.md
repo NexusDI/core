@@ -9,21 +9,23 @@ Every test file that exercises the real module graph builds a testing container,
 
 ## Fixtures for the module graph
 
-`nexusFixtures(root, { setup })` returns Vitest fixtures: `nexus`, a testing container built on first use, and `nexusScope`, a scope of it. Vitest disposes the scope, then the container, when the test ends, pass or fail. A suite swaps the overrides or the request with `test.override`.
+`nexusTest(base, root, { setup })` returns Vitest's `test` with two fixtures: `nexus`, a testing container built on first use, and `nexusScope`, a scope of it. Vitest disposes the scope, then the container, when the test ends, pass or fail. A suite swaps the overrides or the request with `test.override`.
 
 ## Installation
 
 > 0.4 is a release candidate on the npm `next` tag. Install every @nexusdi package from `next` so their versions match. Without `@next`, npm installs core 0.3 and stops with a peer conflict.
 
 ```bash
-npm install -D @nexusdi/vitest@next @nexusdi/testing@next @nexusdi/core@next vitest @vitest/runner
+npm install -D @nexusdi/vitest@next @nexusdi/testing@next @nexusdi/core@next vitest
 ```
+
+It works with Vitest 4.1 or later, including Vitest 5, and Node 22.12 or later.
 
 ## Quick Example
 
 ```ts @import.meta.vitest @module
 import { defineModule, provide, Token } from '@nexusdi/core';
-import { nexusFixtures } from '@nexusdi/vitest';
+import { nexusTest } from '@nexusdi/vitest';
 import { test as base } from 'vitest';
 
 interface INavCharts {
@@ -43,11 +45,9 @@ const Tactical = defineModule({
   exports: [NAV_CHARTS],
 });
 
-const test = base.extend(
-  nexusFixtures(Tactical, {
-    setup: (builder) => builder.override(NAV_CHARTS, { useValue: fakeCharts }),
-  }),
-);
+const test = nexusTest(base, Tactical, {
+  setup: (builder) => builder.override(NAV_CHARTS, { useValue: fakeCharts }),
+});
 
 test('plots a course with the fake charts', ({ nexus }) => {
   nexus.get(NAV_CHARTS).plot('Kepler-442b').heading; // -> 42
