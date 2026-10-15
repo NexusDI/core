@@ -86,11 +86,9 @@ describe('the published README', () => {
       ]);
     expect(listed.sort()).toEqual(accepted.sort());
   });
-  // The README check refuses a link to a docs page that does not exist, and
-  // /profiling/ does not yet, so the section points at --help.
-  it('names the trace-file flags and where every flag is listed', () => {
+  it('names the trace-file flags and links the page that lists every flag', () => {
     const profile = section('Profile startup');
-    expect(profile).toContain('nexusdi --help');
+    expect(profile).toContain('https://nexus.js.org/next/profiling/');
     for (const flag of ['--chrome', '--perfetto', '--json'])
       expect(profile).toContain(flag);
   });
