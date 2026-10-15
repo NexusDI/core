@@ -142,6 +142,32 @@ describe('proseLines', () => {
     expect(text).toBe('A note with nested emphasis.');
   });
 
+  it('reads a reference page, leaving each directive out of the prose', () => {
+    const page = parsePage(
+      'api-node.mdx',
+      'api-node',
+      [
+        '---',
+        'kind: reference',
+        '---',
+        '',
+        'The context.',
+        '',
+        '## `nodeScopes`',
+        '',
+        '<!-- reference @nexusdi/node#nodeScopes example=node -->',
+        '',
+        'The next step.',
+        '',
+      ].join('\n'),
+    );
+
+    expect(proseLines(page)).toEqual([
+      { line: 5, text: 'The context.' },
+      { line: 11, text: 'The next step.' },
+    ]);
+  });
+
   it('drops a comment that spans more than one line', () => {
     // The comment regex ran per line with no `s` flag, so it matched only a
     // comment that opened and closed on the same line (CodeQL

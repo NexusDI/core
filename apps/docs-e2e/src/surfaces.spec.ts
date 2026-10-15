@@ -1,6 +1,6 @@
 import { expect, test } from '@playwright/test';
 
-const PAGES = ['/next/', '/next/tokens/'];
+const PAGES = ['/next/', '/next/tokens/', '/next/api-node/'];
 
 for (const theme of ['dark', 'light'] as const) {
   test(`body has a transparent background in ${theme} mode`, async ({
@@ -94,3 +94,26 @@ for (const theme of ['dark', 'light'] as const) {
     expect(image).toContain('linear-gradient');
   });
 }
+
+test('colours a case token differently in light and dark mode', async ({
+  page,
+}) => {
+  /** The colour of the first highlighted token in the first case pane. */
+  const tokenColour = async (theme: 'dark' | 'light') => {
+    await page.emulateMedia({ colorScheme: theme });
+    await page.goto('/next/api-node/');
+    await expect(page.locator('html')).toHaveClass(
+      theme === 'dark' ? /dark/ : /light/,
+    );
+    await page.locator('.nexus-behaviours').first().scrollIntoViewIfNeeded();
+    const token = page
+      .locator('.nexus-behaviours__body span[class*="sh-"]')
+      .first();
+    await expect(token).toBeVisible();
+    return token.evaluate((element) => getComputedStyle(element).color);
+  };
+
+  const light = await tokenColour('light');
+  const dark = await tokenColour('dark');
+  expect(light).not.toBe(dark);
+});

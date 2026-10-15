@@ -1,0 +1,22 @@
+---
+title: '@nexusdi/node'
+kind: reference
+description: The exports of @nexusdi/node, with each signature, what its tests state and an example.
+package: '@nexusdi/node'
+---
+
+# `@nexusdi/node`
+
+A Node server needs each request's scope wherever the request's code runs, without passing it through every call. `@nexusdi/node` holds the current [NexusDI scope](/scopes/) in one `AsyncLocalStorage` per `nodeScopes()` call. `nodeScopes()` returns a `NodeScopes` object with two methods: `run(scope, fn)` makes `scope` the current scope for `fn` and everything `fn` awaits, and `current()` returns that scope from any code inside the run. Each export has one entry below, with what the package's tests state about it.
+
+<ApiFilter />
+
+## `nodeScopes`
+
+<!-- reference @nexusdi/node#nodeScopes example=node -->
+
+## `NodeScopes`
+
+<!-- reference @nexusdi/node#NodeScopes -->
+
+The guide [Scope an HTTP request in Node](/node-request-scopes/) creates one scope per request in a `node:http` server and runs each handler in it with `run()`.
