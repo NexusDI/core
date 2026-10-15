@@ -74,6 +74,16 @@ This allows a long-lived scope (like a user session) to gain access to features 
 
 **Try it:** Delete the `await shuttle.extend();` line and run the region. The region prints `NEXUS_LOADED_AFTER_SCOPE` for the first `get()`, and the final `get()` throws the same code and stops the program. Put the line back and the region prints `NEXUS_LOADED_AFTER_SCOPE` and then `Kepler-442b`.
 
+## Load a Module for a Lazy Route or Section
+
+A request scope is pinned to the modules that were loaded when it was created, so a route whose module loads after the scope throws `NEXUS_LOADED_AFTER_SCOPE` when it resolves one of that module's tokens. Each adapter's `di.load(Feature)` returns a middleware that loads the module once, extends the request's scope when one exists, and continues. Register it in front of the section's handlers, and write those handlers with the middleware's own `inject`. `di.inject` checks its tokens when you define the route, before `Navigation` is loaded, so it throws for `NAV_ROUTES`; `navigation.inject` checks them after the first load:
+
+```ts file=examples/meridian/src/pages/load.md region=lazy-route
+
+```
+
+The first request into `/navigation/` loads `Navigation`, and `navigation.inject` resolves `NAV_ROUTES` from the request's scope. The adapter creates a request's scope on its first use, so a request that resolves nothing opens none. To try it, change `navigation.inject` to `di.inject` and run the region: the route definition throws `NEXUS_BLUEPRINT_INVALID`. Change it back. [Scoping Hono Requests](/hono/) covers the adapter.
+
 ## Design Constraints
 
 To maintain the integrity of the graph, NexusDI imposes a few restrictions on dynamic loading:

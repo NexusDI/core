@@ -71,6 +71,22 @@ describe('markModuleFences', () => {
     expect(marked).not.toContain('@import.meta.vitest');
   });
 
+  it('names the README line of a parameter property, which the type strip cannot keep', async () => {
+    const markdown = readme([
+      'interface X {}',
+      'class Holder {',
+      '  constructor(private readonly x: X) {}',
+      '}',
+      "test('holds', () => {",
+      '  new Holder({}); // -> {}',
+      '});',
+    ]);
+    // The fence opens on line 5, so its third line is README line 8.
+    await expect(markModuleFences(markdown, README)).rejects.toThrow(
+      'README.md:8:',
+    );
+  });
+
   it('refuses a fence with no test() call', async () => {
     await expect(markModuleFences(readme(['1 + 1;']), README)).rejects.toThrow(
       ModuleFenceError,

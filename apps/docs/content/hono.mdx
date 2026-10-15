@@ -48,13 +48,13 @@ A handler that `inject` wraps reads `c.req.param('to')` as `string | undefined`.
 
 ```
 
-The thrown error is a `BlueprintError` holding [NEXUS_MISSING_PROVIDER](/errors/NEXUS_MISSING_PROVIDER/). With a live container, a wrong token fails when the app starts. With the function form of the Workers section below, the check runs on the first request, which gets a 500. Code that is not a route handler reads the scope with `await di.scope(c)`, which rejects when `di.middleware` has not run on the request.
+The thrown error is a `BlueprintError` holding [NEXUS_MISSING_PROVIDER](/errors/NEXUS_MISSING_PROVIDER/). With a live container, a wrong token fails when the app starts. With the function form, `nexus(() => Nexus.create(Meridian))` ([Running on Edge Runtimes](/edge/)), the check runs on the first request, which gets a 500. Code that is not a route handler reads the scope with `await di.scope(c)`, which rejects when `di.middleware` has not run on the request.
 
 ## When the Scope Is Disposed
 
 The middleware disposes the request's scope once, at the first of four signals: the response body ends, the body errors, the consumer cancels the body, or `c.req.raw.signal` aborts. A response with no body, a `HEAD` request and a 204 or 304 dispose as soon as the handler returns. A request that resolves nothing creates no scope, so it disposes nothing.
 
-The adapter wraps the response body in a pass-through stream to see the first three signals, and keeps the status and headers. `@hono/node-server` aborts the request's signal when the socket closes before the response finishes. A WebSocket upgrade returns a 101 with no body, so its scope is disposed when the upgrade completes. A WebSocket handler must not hold scoped instances, because they are disposed while the socket is still open.
+The adapter wraps the response body in a pass-through stream to see the first three signals. `@hono/node-server` aborts the request's signal when the socket closes before the response finishes. A WebSocket upgrade returns a 101 with no body, so its scope is disposed when the upgrade completes. A WebSocket handler must not hold scoped instances, because they are disposed while the socket is still open.
 
 On Cloudflare Workers the adapter hands the disposal to `c.executionCtx.waitUntil`, so async disposers finish after the response. On Node, Bun and Deno no execution context exists, and the disposal runs in the process.
 
@@ -78,7 +78,7 @@ The log line holds the message exactly as core or a plugin wrote it. A plugin's 
 
 ```
 
-`currentMission()` takes no argument and reads the scope from `scopes.current()`. With `scopes` set, the middleware creates the scope at once, because `current()` is synchronous and has no way to wait for a first use. `nodeScopes()` runs on Node, Bun, Deno and Workers through each runtime's `node:async_hooks`, and Workers needs the `nodejs_compat` flag for it. [Scoping Node.js HTTP Requests](/node-request-scopes/) explains how `nodeScopes()` keeps concurrent requests apart.
+`currentMission()` takes no argument and reads the scope from `scopes.current()`. With `scopes` set, the middleware creates the scope at once, because `current()` is synchronous and has no way to wait for a first use. `nodeScopes()` runs on Node, Bun, Deno and Workers through each runtime's `node:async_hooks`, and Workers needs compatibility date 2026-08-04 or later, or the `nodejs_compat` flag. [Scoping Node.js HTTP Requests](/node-request-scopes/) explains how `nodeScopes()` keeps concurrent requests apart.
 
 ## Shutdown
 
@@ -101,42 +101,10 @@ await once(server, 'close');
 await ship[Symbol.asyncDispose](); // after the last request has finished
 ```
 
-On Node 22 and 24, `server.close()` leaves open a connection that has never sent a request, so it can wait out the keep-alive timeout (nodejs/node#63452). In the `SIGTERM` handler, call `server.closeAllConnections()` before `server.close()` to end those connections at once.
+On Node 22 and 24, `server.close()` leaves open a connection that has never sent a request, so it can wait out the keep-alive timeout (nodejs/node#63452). `server.closeAllConnections()` ends them, along with requests still in flight, so call it after a drain deadline, such as `setTimeout(() => server.closeAllConnections(), 10_000)` in the `SIGTERM` handler.
 
 An app that disposes the container before its server stops answers the remaining requests with a 503.
 
-## Run on Workers and Vercel Edge
-
-An edge isolate evaluates your module once and serves many requests, so the container belongs to the isolate and no request builds one. Pass `nexus` a function that returns `Nexus.create(...)`: the adapter calls it on the first request and keeps the promise. A request whose build rejects gets a 503, and the next request builds again. Workers refuses I/O at module scope, which is why a graph whose factory downloads data needs this form there.
-
-```ts no-run
-// src/worker.ts, on Cloudflare Workers
-export default createBridge(() => Nexus.create(Meridian));
-```
-
-The Worker's `wrangler.jsonc` sets a compatibility date and two flags. `nodejs_compat` gives `nodeScopes()` its `node:async_hooks`, and `enable_request_signal` makes `request.signal` abort when the client disconnects:
-
-```jsonc no-run
-{
-  "main": "src/worker.ts",
-  "compatibility_date": "2026-09-01",
-  "compatibility_flags": ["nodejs_compat", "enable_request_signal"],
-}
-```
-
-On Vercel Edge, export a function that passes Vercel's context to `app.fetch`. `hono/vercel`'s `handle(app)` and `@hono/vercel` 1.0.1 call `app.fetch(request)` with no execution context, so the adapter finds no `waitUntil` and a disposer that is still running after the response can be cut off:
-
-```ts no-run
-const app = createBridge(() => Nexus.create(Meridian));
-
-type VercelContext = { waitUntil(promise: Promise<unknown>): void };
-
-export default (request: Request, context: VercelContext) =>
-  app.fetch(request, {}, context);
-```
-
-A singleton must not hold an I/O object such as a socket or a stream, because Workers refuses I/O on an object that another request created, and every request shares a singleton. Data a factory fetched is fine, and a database client that opens a connection is `scoped`. An isolate gets no shutdown signal, so an edge entry disposes no container.
-
 ## Next Steps
 
-[Testing and Overrides](/testing/) builds a container with fakes in every Vitest test. To test a route, pass the `nexus` fixture to `nexus()` in place of `ship` and send the request with `app.request()`.
+[Testing and Overrides](/testing/) builds a container with fakes in every Vitest test. To test a route, pass the `nexus` fixture to `nexus()` in place of `ship` and send the request with `app.request()`. [Running on Edge Runtimes](/edge/) gives the Worker and Vercel Edge entries.

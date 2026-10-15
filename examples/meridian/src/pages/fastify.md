@@ -280,8 +280,7 @@ const di = nexus(ship, {
   request: () => ({ mission: { id: 'survey-7', target: 'Kepler-442b' } }),
 });
 
-// forceCloseConnections: close() also ends keep-alive connections.
-const bridge = Fastify({ forceCloseConnections: true });
+const bridge = Fastify();
 await bridge.register(di.plugin);
 bridge.addHook('onClose', () => ship[Symbol.asyncDispose]());
 await bridge.listen({ port: 0, host: '127.0.0.1' });

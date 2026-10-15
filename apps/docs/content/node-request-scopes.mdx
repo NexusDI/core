@@ -92,3 +92,9 @@ createServer(async (req, res) => {
 By doing this, every request gets its own isolated set of scoped providers, which are automatically disposed of when the request settles.
 
 **Try it:** In `dispatch.ts`, change `await using ship` to `const ship`, add the server lines at the end, and run it. The terminal prints `survey-7: arrived` once, from the region's own call, and the process keeps running. Open `http://localhost:3000/?mission=survey-9`. The page shows `survey-9: arrived`. Stop the server with Ctrl-C. To see the failure, change `const ship` back to `await using ship` and restart the server: the first request throws `NEXUS_DISPOSED` in the terminal and the process exits without a reply. Change it to `const ship` again to fix it.
+
+## With a Framework
+
+An adapter creates the scope, runs the request in `scopes.run()` and disposes the scope when the response ends, so you write none of the `dispatch()` function from the first region yourself. Pass the same `nodeScopes()` object as the adapter's `scopes` option: [Hono](/hono/), [Express](/express/) and [Fastify](/fastify/). [Next.js](/nextjs/) has no adapter, and its guide creates and disposes the scope by hand.
+
+The adapter guides keep `const ship` as well. The Hono and Express entries call `ship[Symbol.asyncDispose]()` after `await once(server, 'close')`, and the Fastify entry disposes the container in an `onClose` hook, so the container is disposed after the server stops.

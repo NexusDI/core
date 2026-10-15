@@ -1031,21 +1031,41 @@ try {
           tarballs.find((t) => t.startsWith(`nexusdi-${name}-0`)) ?? name,
         ),
       ),
-      'vitest@5',
-      'typescript@6',
+      'vitest@5.0.4',
+      'typescript@6.0.3',
       '@types/node@22',
     ],
     vitest5Dir,
   );
   writeFileSync(
     join(vitest5Dir, 'consumer.ts'),
-    `import { defineModule } from '@nexusdi/core';
+    `import { defineModule, type Nexus, type Scope } from '@nexusdi/core';
 import { nexusFixtures, nexusTest } from '@nexusdi/vitest';
 import { test as base } from 'vitest';
 
 const Meridian = defineModule({ name: 'Meridian' });
-export const test = nexusTest(base, Meridian);
-export const extended = base.extend(nexusFixtures(Meridian));
+const test = nexusTest(base, Meridian);
+const extended = base.extend(nexusFixtures(Meridian));
+
+test('typed', ({ nexus, nexusScope }) => {
+  const n: Nexus = nexus;
+  const s: Scope = nexusScope;
+  // @ts-expect-error a fixture is not a string
+  const wrong: string = nexus;
+  void n;
+  void s;
+  void wrong;
+});
+
+extended('extended', ({ nexus, nexusScope }) => {
+  const n: Nexus = nexus;
+  const s: Scope = nexusScope;
+  // @ts-expect-error a fixture is not a string
+  const wrong: string = nexusScope;
+  void n;
+  void s;
+  void wrong;
+});
 `,
   );
   writeFileSync(
@@ -1066,7 +1086,7 @@ export const extended = base.extend(nexusFixtures(Meridian));
   );
   run('npx', ['tsc', '-p', 'tsconfig.json'], vitest5Dir);
   console.log(
-    '  ✓ nexusTest and nexusFixtures from the root entry compile on Vitest 5 with skipLibCheck false',
+    '  ✓ nexusTest and nexusFixtures from the root entry compile on Vitest 5.0.4 with skipLibCheck false, and type their fixtures',
   );
 
   // The bin as published: its shebang, and the rule that it loads the

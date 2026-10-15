@@ -1,0 +1,110 @@
+---
+title: Running on Edge Runtimes
+kind: platform
+description: Build the NexusDI container once per isolate and scope each Hono request on Cloudflare Workers, Vercel Edge, Deno and Bun.
+---
+
+# Running on Edge Runtimes
+
+An isolate is one instance of an edge runtime: it evaluates your module once and serves many requests from it. Cloudflare Workers caps the CPU time of a request, tightly on the Free plan, and refuses network I/O while the module itself is evaluated. A container built inside a handler spends that budget on every request, and a container whose factories fetch data cannot be built at module scope on Workers at all.
+
+`@nexusdi/hono` runs on these runtimes with core and `@nexusdi/node`. You build the container once per isolate, at module scope when no factory does I/O and on the first request when one does, and the adapter gives each request its own scope. [Scoping Hono Requests](/hono/) covers the adapter itself.
+
+The examples on this page run as tests on Node. The `adapter-runtimes` CI job runs the same adapter code on workerd, Deno, Bun and the Edge Runtime VM, and the unit it tests is a running isolate, so this page has no ship console.
+
+## Install
+
+The adapter and core install from the `next` tag, and `@nexusdi/node` adds the ambient scope:
+
+```bash
+npm install @nexusdi/hono@next @nexusdi/core@next @nexusdi/node@next hono
+```
+
+## Build the Container at Module Scope
+
+A graph whose factories do no I/O builds at the top of the module. Workers gives the global scope a time bound of its own, and the build uses none of a request's CPU:
+
+```ts file=examples/meridian/src/pages/edge.md region=module-scope
+
+```
+
+`OfflineMeridian` binds `NAV_CHARTS` to `bundledCharts`, charts that ship inside the Worker, so `Nexus.create` runs no I/O. In a Worker module, `export default app` serves the requests.
+
+## Build on the First Request when a Factory Needs I/O
+
+Workers refuses I/O in the global scope, so a factory that fetches fails the Worker at startup with [NEXUS_PROVIDER_FAILED](/errors/NEXUS_PROVIDER_FAILED/). Pass `nexus()` a function that returns `Nexus.create(...)`, and the adapter calls it on the first request, shares the build with every request that arrives meanwhile, and keeps the container for the life of the isolate:
+
+```ts file=examples/meridian/src/pages/edge.md region=function-form
+
+```
+
+Two concurrent first requests answer 200, and `downloadCharts` runs once. A request whose build rejects gets a 503, and the next request builds again. The first request spends the build time in its own CPU budget.
+
+Deno, Bun and Vercel Edge allow I/O at module scope, so there the module-scope form also covers a factory that fetches. Serve the app with `Deno.serve(app.fetch)` on Deno and `export default app` on Bun.
+
+## Check the Graph before Deploy
+
+With the function form, `inject` checks its record on the first request, so a wrong token answers a 500 in production. `Nexus.check()` compiles the graph and runs no factory. Call it in a test, and a wrong graph fails CI before deploy:
+
+```ts file=examples/meridian/src/pages/edge.md region=check
+
+```
+
+`COURSE` needs `FLIGHT_LOG`, which no provider binds, so `Nexus.check` throws [NEXUS_BLUEPRINT_INVALID](/errors/NEXUS_BLUEPRINT_INVALID/), and the `NAV_CHARTS` factory never runs (`downloads` stays `0`).
+
+## Configure the Worker
+
+The Worker's `wrangler.jsonc` sets a compatibility date and two flags. `nodejs_compat` gives `nodeScopes()` its `node:async_hooks`, and `enable_request_signal` makes `request.signal` abort when the client disconnects:
+
+```jsonc no-run
+{
+  "main": "src/worker.ts",
+  "compatibility_date": "2026-09-01",
+  "compatibility_flags": ["nodejs_compat", "enable_request_signal"],
+}
+```
+
+From compatibility date 2026-08-04 the date alone turns on `node:async_hooks`, and listing `nodejs_compat` keeps the dependency visible. On an earlier date without the flag, a Worker that imports `@nexusdi/node` fails to start with `No such module "node:async_hooks"`. Read bindings and secrets at module scope with `import { env } from 'cloudflare:workers'`, and pass them to `Comms.forRoot({ frequency: Number(env.FREQUENCY), transport: 'relay' })`. An option that needs a binding call goes through `Comms.forRootAsync`.
+
+## Export the Vercel Edge Entry
+
+Export a function that passes Vercel's context to `app.fetch`, so the adapter hands the scope's disposal to its `waitUntil`. `hono/vercel`'s `handle(app)` and `@hono/vercel` 1.0.1 call `app.fetch(request)` with no execution context, and a disposer still running after the response can then be cut off. `createBridge(ship)` below stands for a function that returns the Hono app of the regions above, built on the container or the function that builds it, and `Meridian` is the ship's root module:
+
+```ts no-run
+const app = createBridge(() => Nexus.create(Meridian));
+
+type VercelContext = { waitUntil(promise: Promise<unknown>): void };
+
+export default (request: Request, context: VercelContext) =>
+  app.fetch(request, {}, context);
+```
+
+Vercel Edge refuses `eval` and `new Function`, and core uses neither.
+
+## Keep Request Work Lazy
+
+`createScope()` runs every eager scoped factory on each request. Mark a synchronous scoped factory `eager: false`, and core builds it on the first `get()`, so a request that never reads it runs nothing:
+
+```ts file=examples/meridian/src/pages/edge.md region=lazy-scoped
+
+```
+
+To try it, save the region as `lazy.ts` and run `npx tsx lazy.ts`. Delete `eager: false` and run it again: `createScope()` now builds `MISSION`, and `beforeGet` is `1`. An async scoped factory stays eager, and `eager: false` on one fails with `NEXUS_LAZY_ASYNC`.
+
+## Keep I/O Objects out of Singletons
+
+A singleton built on the first request is shared by every later request, and Workers refuses I/O on an object that another request created. A singleton holds data, such as fetched charts, and never a socket, a stream or a `Response` body. Register a database client that opens a connection as `scoped`.
+
+## When the Scope Is Disposed
+
+The adapter disposes the scope when the response body ends, and hands the work to `executionCtx.waitUntil`, so async disposers finish after the response. With `enable_request_signal`, a client that disconnects aborts `request.signal`, and the adapter disposes the scope at once. Without the flag, a client that disconnects disposes the scope only when the runtime cancels a streaming body. An isolate gets no shutdown signal, so an edge entry disposes no container.
+
+## Read the Scope through `nodeScopes()`
+
+Pass `scopes: nodeScopes()` from `@nexusdi/node` to `nexus()`, as on Node, and code deep in a service reads the request's scope with `scopes.current()`. `nodeScopes()` runs on Workers, Deno and Bun through their `node:async_hooks`. Vercel documents `node:async_hooks` on Vercel Edge, and no CI leg runs `nodeScopes()` there.
+
+On Workers, `scopes.current()` inside a factory that returns a hand-written thenable can read `undefined`. Pass handler dependencies through `di.inject`, which reads no ambient scope.
+
+## Next Steps
+
+[Where NexusDI Runs](/runtimes/) lists each runtime with the CI job that tests it.

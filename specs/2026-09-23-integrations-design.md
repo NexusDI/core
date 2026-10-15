@@ -2597,23 +2597,9 @@ The docs spec's §7.1 vocabulary gains two rows, and every guide uses them:
   `FLIGHT_LOG`, bound in `BridgeApi` with `useClass: ShuttleFlightLog`; the doubles
   `fakeCharts` and `MemoryFlightLog`."
 
-The guides of Task 25 add four more rows (Task 25 review, 2026-10-15):
-
-- "An interceptor's store: `IAuditLog` behind `AUDIT_LOG`, bound with `useClass: AuditLog`
-  in the `AuditTrail` module; the interceptor `NavAudit` records each `NAV_CHARTS` call
-  in it (`/testing/`, and `examples/bridge-api`, whose module is `Audit`)."
-- "A class double for an intercepted token: `FakeCharts implements INavCharts`, because
-  interceptors skip a `useValue` such as `fakeCharts`."
-- "A failing double: `unplottable`, an `INavCharts` value whose `plot` throws
-  `sector not charted`."
-- "A resource shared across Next.js layers: `IRelayPool` behind `RELAY_POOL`, bound with
-  `useValue` from `RelayPool`, kept on the app's `globalThis` key `POOL_KEY`
-  (`Symbol.for('meridian.relay-pool')`, `/nextjs/`)."
-
-The docs spec's §4.3 inventory gains the rows `/hono/`, `/express/`, `/fastify/` and
-`/nextjs/` (kind `platform`, Guides band, after `/node-request-scopes/`), as the table of
-section 15.1 lists them. That spec lives on `spec/docs-site-amend`, and its §4.3 and §7.1
-take these rows when that branch next moves.
+The rows of Task 25, the audit store, the adapter doubles and the shared Next.js pool, and
+the §4.3 rows for `/hono/`, `/express/`, `/fastify/`, `/edge/` and `/nextjs/`, are in the
+docs spec on `spec/docs-site` (a0c4ad7b).
 
 ### 15.3 Delivery
 
