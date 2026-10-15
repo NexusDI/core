@@ -25,7 +25,26 @@ export const USAGE = `Usage: nexusdi graph <entry> [options]
 -h, --help               print this help
 -v, --version            print the version
 
-Exit codes: 0 written, 1 invalid graph, 2 bad invocation or input, 3 missing tool.
+Usage: nexusdi profile <entry> [options]
+
+<entry>                  path[#export]: a module file as for graph (the default export when
+                         #export is absent), or a .json file holding a ProfileReport or an
+                         array of them, re-rendered without running the app
+    --load <path#export> a module to load() after create, timed as its own run; repeatable
+    --plugins <path#export>
+                         an exported array of plugins, registered after the profiler
+    --repeat <n>         warm iterations after the first, default 0; the table shows the
+                         cold run and the warm medians
+    --chrome <file>      write the Chrome DevTools trace of the first iteration
+    --perfetto <file>    write the Perfetto trace of the first iteration
+    --json <file>        write every iteration's ProfileReport as an array
+    --cpu                sample the CPU and merge it into --chrome; needs --chrome
+    --cpu-interval <us>  sampling interval, default 100
+    --top <n>            rows in the slowest-providers table, default 20
+    --timeout <ms>       stop waiting for a create or load, default 60000
+    --quiet              no table on stdout
+
+Exit codes: 0 written, 1 invalid graph or failed startup, 2 bad invocation or input, 3 missing tool.
 `;
 
 /** Runs one command and returns its exit code. Writes nothing after it returns. */
@@ -41,6 +60,13 @@ export async function main(argv: readonly string[], io: Io): Promise<number> {
       await writeTo(io.stdout, `${version}\n`);
       return 0;
     }
+    // This build parses profile; running it lands with its own module.
+    if (command.kind === 'profile')
+      throw new CliError(
+        2,
+        'nexusdi profile is not available in this build.',
+        'Run: nexusdi graph <entry>',
+      );
     if (
       command.format === 'png' &&
       command.out === null &&

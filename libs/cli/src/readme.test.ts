@@ -7,8 +7,8 @@ import { OPTIONS, parseCommand } from './args.js';
 /**
  * The README shows shell commands, which no doctest runs. This file holds
  * them against the parser instead: every `npx nexusdi` line parses as a
- * graph command, and the options table lists exactly the flags parseArgs
- * accepts.
+ * graph or profile command, and the options table lists exactly the flags
+ * parseArgs accepts.
  */
 
 const README = readFileSync(new URL('../README.md', import.meta.url), 'utf8');
@@ -22,10 +22,11 @@ function section(heading: string): string {
   return end === -1 ? body : body.slice(0, end);
 }
 
+const commandsOf = (body: string): string[] =>
+  body.split('\n').filter((line) => line.startsWith('npx nexusdi '));
 const usage = section('Usage');
-const commands = usage
-  .split('\n')
-  .filter((line) => line.startsWith('npx nexusdi '));
+const commands = commandsOf(usage);
+const profiling = commandsOf(section('Profile startup'));
 
 describe('the published README', () => {
   it('shows between one and four commands under Usage', () => {
@@ -33,13 +34,19 @@ describe('the published README', () => {
     expect(commands.length).toBeLessThanOrEqual(4);
   });
 
-  it('shows commands the parser reads as graph commands', () => {
-    for (const line of commands) {
-      const argv = line.slice('npx nexusdi '.length).split(' ');
-      expect(parseCommand(argv, '/project'), line).toMatchObject({
-        kind: 'graph',
-      });
-    }
+  it('shows commands the parser reads as graph and profile commands', () => {
+    for (const [lines, kind] of [
+      [commands, 'graph'],
+      [profiling, 'profile'],
+    ] as const)
+      for (const line of lines) {
+        const argv = line.slice('npx nexusdi '.length).split(' ');
+        expect(parseCommand(argv, '/project'), line).toMatchObject({ kind });
+      }
+  });
+
+  it('shows two profile commands under Profile startup', () => {
+    expect(profiling).toHaveLength(2);
   });
 
   it('shows Mermaid to stdout, SVG to a file, the modules view and the CI line', () => {
@@ -64,7 +71,7 @@ describe('the published README', () => {
       .filter((line) => line.startsWith('| `-'))
       .flatMap((line) => {
         const cell = /^\| `([^`]+)`/.exec(line)?.[1] ?? '';
-        return [...cell.matchAll(/(--?[a-z]+)/g)].map((m) => m[1]);
+        return [...cell.matchAll(/(--?[a-z][a-z-]*)/g)].map((m) => m[1]);
       });
     const accepted = Object.entries(OPTIONS)
       .filter(([name]) => name !== 'help' && name !== 'version')

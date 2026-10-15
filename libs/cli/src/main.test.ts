@@ -48,6 +48,31 @@ describe('main', () => {
     );
   });
 
+  it('parses profile and exits 2 before loading anything, until it runs', async () => {
+    const stdout = stream(false);
+    const stderr = stream(false);
+    const code = await main(['profile', 'missing.module.ts'], {
+      stdout,
+      stderr,
+      cwd: '/nowhere',
+    });
+    expect(code).toBe(2);
+    expect(stdout.text()).toBe('');
+    expect(stderr.text()).toContain('nexusdi profile is not available');
+  });
+
+  it('prints the profile synopsis under --help', async () => {
+    const stdout = stream(false);
+    const code = await main(['--help'], {
+      stdout,
+      stderr: stream(false),
+      cwd: '/nowhere',
+    });
+    expect(code).toBe(0);
+    expect(stdout.text()).toContain('Usage: nexusdi profile <entry> [options]');
+    expect(stdout.text()).toContain('1 invalid graph or failed startup');
+  });
+
   describe('without @nexusdi/core', () => {
     const run = async (argv: readonly string[]) => {
       const stdout = stream(false);
