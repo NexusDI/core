@@ -105,6 +105,15 @@ describe('PagePopover', () => {
     expect(card()).toBeNull();
   });
 
+  it('closes a card a pointer opened on Escape, with focus on the page', async () => {
+    mount();
+    fireEvent.pointerOver(token('second'));
+    await waitFor(() => expect(card()).not.toBeNull());
+
+    fireEvent.keyDown(document.body, { key: 'Escape' });
+    expect(card()).toBeNull();
+  });
+
   it('toggles on a click with no pointer behind it, as Enter sends', async () => {
     mount();
     act(() => token('first').focus());
