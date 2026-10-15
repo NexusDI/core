@@ -353,105 +353,92 @@ describe('Nexus', () => {
       expect(value.then).toBe(then);
       expect(then).not.toHaveBeenCalled();
     });
+  });
+});
 
-    it("leaves a failed build's useValue objects claimable afterward", async () => {
-      const shared = {};
-      const VALUE = new Token<object>('Value');
-      class Boom {
-        constructor() {
-          throw new Error('boom');
-        }
+describe('startBlueprint', () => {
+  it("leaves a failed build's useValue objects claimable afterward", async () => {
+    const shared = {};
+    const VALUE = new Token<object>('Value');
+    class Boom {
+      constructor() {
+        throw new Error('boom');
       }
-      const bp = compile({
-        root: defineModule({
-          name: 'Root',
-          providers: [provide(VALUE, { useValue: shared }), Boom],
-        }),
-      });
-      const root = rootState({
-        blueprint: bp,
-        rootRef: {},
-        tracer: new Tracer(),
-        initEnabled: true,
-      });
-      await expect(
-        startBlueprint(root, {
-          bp,
-          isNew: () => true,
-          run: {
-            id: 0,
-            kind: 'create',
-            scope: null,
-            start: 0,
-          },
-        }),
-      ).rejects.toMatchObject({ code: 'NEXUS_PROVIDER_FAILED' });
-      expect(root.ownership.claim(shared)).toBe(true);
+    }
+    const bp = compile({
+      root: defineModule({
+        name: 'Root',
+        providers: [provide(VALUE, { useValue: shared }), Boom],
+      }),
     });
-
-    it("keeps an earlier build's useValue object registered when a later failed build reuses it", async () => {
-      const shared = {};
-      const A = new Token<object>('A');
-      const B = new Token<object>('B');
-      class Boom {
-        constructor() {
-          throw new Error('boom');
-        }
-      }
-      const firstBp = compile({
-        root: defineModule({
-          name: 'Root',
-          providers: [provide(A, { useValue: shared })],
-        }),
-      });
-      const root = rootState({
-        blueprint: firstBp,
-        rootRef: {},
-        tracer: new Tracer(),
-        initEnabled: true,
-      });
-      await startBlueprint(root, {
-        bp: firstBp,
+    const root = rootState({
+      blueprint: bp,
+      rootRef: {},
+      tracer: new Tracer(),
+      initEnabled: true,
+    });
+    await expect(
+      startBlueprint(root, {
+        bp,
         isNew: () => true,
-        run: {
-          id: 0,
-          kind: 'create',
-          scope: null,
-          start: 0,
-        },
-      });
-      // `shared` is now registered as a useValue object by the first build,
-      // which succeeded and is not being undone.
-      expect(root.ownership.claim(shared)).toBe(false);
+        run: { id: 0, kind: 'create', scope: null, start: 0 },
+      }),
+    ).rejects.toMatchObject({ code: 'NEXUS_PROVIDER_FAILED' });
+    expect(root.ownership.claim(shared)).toBe(true);
+  });
 
-      const secondBp = compile({
-        root: defineModule({
-          name: 'Root',
-          providers: [
-            provide(A, { useValue: shared }),
-            provide(B, { useValue: shared }),
-            Boom,
-          ],
-        }),
-      });
-      const isNew = (id: string): boolean => !firstBp.providers.has(id);
-      await expect(
-        startBlueprint(root, {
-          bp: secondBp,
-          isNew,
-          run: {
-            id: 1,
-            kind: 'load',
-            scope: null,
-            start: 0,
-          },
-        }),
-      ).rejects.toMatchObject({ code: 'NEXUS_PROVIDER_FAILED' });
-      // The second build's registration of the same object is a no-op
-      // (Ownership.registerValue already saw it), so its failure must not
-      // undo the first build's still-live registration.
-      expect(root.ownership.claim(shared)).toBe(false);
+  it("keeps an earlier build's useValue object registered when a later failed build reuses it", async () => {
+    const shared = {};
+    const A = new Token<object>('A');
+    const B = new Token<object>('B');
+    class Boom {
+      constructor() {
+        throw new Error('boom');
+      }
+    }
+    const firstBp = compile({
+      root: defineModule({
+        name: 'Root',
+        providers: [provide(A, { useValue: shared })],
+      }),
     });
+    const root = rootState({
+      blueprint: firstBp,
+      rootRef: {},
+      tracer: new Tracer(),
+      initEnabled: true,
+    });
+    await startBlueprint(root, {
+      bp: firstBp,
+      isNew: () => true,
+      run: { id: 0, kind: 'create', scope: null, start: 0 },
+    });
+    // `shared` is now registered as a useValue object by the first build,
+    // which succeeded and is not being undone.
+    expect(root.ownership.claim(shared)).toBe(false);
+
+    const secondBp = compile({
+      root: defineModule({
+        name: 'Root',
+        providers: [
+          provide(A, { useValue: shared }),
+          provide(B, { useValue: shared }),
+          Boom,
+        ],
+      }),
+    });
+    const isNew = (id: string): boolean => !firstBp.providers.has(id);
+    await expect(
+      startBlueprint(root, {
+        bp: secondBp,
+        isNew,
+        run: { id: 1, kind: 'load', scope: null, start: 0 },
+      }),
+    ).rejects.toMatchObject({ code: 'NEXUS_PROVIDER_FAILED' });
+    // The second build's registration of the same object is a no-op
+    // (Ownership.registerValue already saw it), so its failure must not
+    // undo the first build's still-live registration.
+    expect(root.ownership.claim(shared)).toBe(false);
   });
 });
 

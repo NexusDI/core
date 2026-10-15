@@ -200,7 +200,9 @@ describe('lazy', () => {
     const ship = await Nexus.create(Root);
     expect(ship.get(Reader).link()).toBe('end');
   });
+});
 
+describe('makeThunk', () => {
   it('resolves a singleton thunk building a transient with a singleton-thunk owner, never the container', () => {
     class Drone {}
     class Bay {}
