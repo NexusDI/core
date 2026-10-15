@@ -96,6 +96,15 @@ describe('nexusdi graph, TypeScript entries', () => {
     );
   });
 
+  it('exits 3 for profile when the project has no @nexusdi/devtools, with the install line', () => {
+    const cwd = makeProject(STRIPPABLE, ['core']);
+    const run = runCli(['profile', 'src/meridian.module.ts'], { cwd });
+    expect(run.status).toBe(3);
+    expect(run.stderr).toMatch(
+      /@nexusdi\/devtools \S+ is required next to @nexusdi\/cli \S+; found none\.\n {2}Install it: npm i -D @nexusdi\/devtools@\S+\n/,
+    );
+  });
+
   it('exits 3 when the project has @nexusdi/devtools at another version', () => {
     const cwd = makeProject(
       {
