@@ -3,6 +3,8 @@ import { dirname, join, relative } from 'node:path';
 
 import ts from 'typescript';
 
+import { examplesFilesIn } from './examples-file.mjs';
+
 /**
  * What a package's own declarations say about one export: its kind, its
  * docblock and its block tags.
@@ -26,7 +28,13 @@ import ts from 'typescript';
  * them from this module.
  */
 
-/** A package resolved once, with its program and checker held for reuse. */
+/**
+ * A package resolved once, with its program and checker held for reuse.
+ *
+ * Keyed by the root as well as the specifier. One process can read the same
+ * specifier under two roots (a test's fixture root and the workspace), and a
+ * program built for one root answers nothing about the other.
+ */
 const programs = new Map();
 
 /** An export, as the reference page needs it. */
@@ -142,7 +150,8 @@ function entryOf(root, specifier) {
 
 /** The program over one entry point, built once and kept. */
 function programOf(root, specifier) {
-  const held = programs.get(specifier);
+  const key = `${root}\0${specifier}`;
+  const held = programs.get(key);
   if (held) return held;
 
   const { packageDir, declaration } = entryOf(root, specifier);
@@ -166,7 +175,7 @@ function programOf(root, specifier) {
     program,
     checker: program.getTypeChecker(),
   };
-  programs.set(specifier, built);
+  programs.set(key, built);
   return built;
 }
 
@@ -204,6 +213,38 @@ const printer = ts.createPrinter({ removeComments: true });
 function packageNameOf(specifier) {
   const match = /^(@[^/]+\/[^/]+|[^@/][^/]*)/.exec(specifier);
   return match ? match[1] : specifier;
+}
+
+/**
+ * The package a declaration file imports a name from, or `null`.
+ *
+ * A published `.d.ts` states where every name it did not declare comes from:
+ * `libs/devtools/dist/devtools.d.ts` opens with
+ * `import { type ErrorTextPack, type Nexus, … } from '@nexusdi/core'`. A fence
+ * naming one of those without that line binds it to nothing, so the fence
+ * repeats the line the file already wrote.
+ *
+ * A relative specifier gives `null`. It names a module inside the package,
+ * which a reader's fence cannot resolve, and the prelude branch of `place`
+ * prints a type declared there into the fence.
+ */
+function importedFrom(name, node) {
+  for (const statement of node.getSourceFile().statements) {
+    if (!ts.isImportDeclaration(statement)) continue;
+
+    const bindings = statement.importClause?.namedBindings;
+    if (!bindings || !ts.isNamedImports(bindings)) continue;
+    if (!bindings.elements.some((element) => element.name.text === name)) {
+      continue;
+    }
+
+    const specifier = statement.moduleSpecifier;
+    if (!ts.isStringLiteral(specifier)) return null;
+
+    return /^[./]/.test(specifier.text) ? null : specifier.text;
+  }
+
+  return null;
 }
 
 /** An entry point's exports, with whether each is importable as a value. */
@@ -306,16 +347,20 @@ function declarationOf(context, resolved, name, kind) {
   const types = [];
   const fromRoot = [];
   const prelude = [];
+  const external = new Map();
   const seen = new Set();
 
   /**
    * Where each name the declaration mentions has to come from.
    *
-   * There are three answers, and each applies to a different kind of name. A name the documented
-   * entry point exports is imported from it. A name only the package root
-   * exports is imported from there, which is what a second entry point needs:
-   * `@nexusdi/core/testing` declares `assertAllowed(decision: Decision)` and
-   * publishes no `Decision` of its own. A name the package declares and
+   * There are four answers, and each applies to a different kind of name. A
+   * name the documented entry point exports is imported from it. A name only
+   * the package root exports is imported from there, which is what a second
+   * entry point needs: `@nexusdi/core/testing` declares
+   * `assertAllowed(decision: Decision)` and publishes no `Decision` of its
+   * own. A name the declaration file imports from another package is imported
+   * from that package: `@nexusdi/devtools`'s `graph(ship: Nexus)` names a
+   * type only `@nexusdi/core` publishes. A name the package declares and
    * publishes nowhere is printed into the fence above the cut, because a fence
    * that leaves it unbound does not fail; it silently binds to the
    * global of that name, and `Cond`'s `node: Node` bound to the DOM's `Node`
@@ -332,6 +377,12 @@ function declarationOf(context, resolved, name, kind) {
 
     if (root.has(each)) {
       fromRoot.push(each);
+      return;
+    }
+
+    const imported = importedFrom(each, from);
+    if (imported) {
+      external.set(imported, [...(external.get(imported) ?? []), each]);
       return;
     }
 
@@ -380,6 +431,7 @@ function declarationOf(context, resolved, name, kind) {
     values: merges && exported.get(name) ? [name, ...values] : values,
     types: merges && !exported.get(name) ? [name, ...types] : types,
     fromRoot,
+    external: [...external],
     prelude,
   };
 }
@@ -398,7 +450,7 @@ function paragraphs(text) {
 /**
  * One export, as a reference entry needs it.
  *
- * `readme` is workspace relative so that an example reference stays correct
+ * `examples` is workspace relative so that an example reference stays correct
  * when the page moves between directories.
  */
 export function readReference(root, specifier, name) {
@@ -462,6 +514,8 @@ export function readReference(root, specifier, name) {
     rest,
     tags,
     declaration,
-    readme: relative(root, join(packageDir, 'README.md')).split('\\').join('/'),
+    examples: examplesFilesIn(packageDir).map((path) =>
+      relative(root, path).split('\\').join('/'),
+    ),
   };
 }

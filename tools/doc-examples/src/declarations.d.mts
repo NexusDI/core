@@ -26,6 +26,8 @@ export interface Reference {
     types: string[];
     /** Names only the package root publishes, for a second entry point. */
     fromRoot: string[];
+    /** Types the declaration file imports from another package. */
+    external: [specifier: string, names: string[]][];
     /** Types the package declares and publishes nowhere, printed hidden. */
     prelude: string[];
   } | null;
@@ -38,8 +40,11 @@ export interface Reference {
   tags: { name: string; text: string }[];
   /** The declaration file the entry was read from. */
   declaration: string;
-  /** The package's README, workspace relative. */
-  readme: string;
+  /**
+   * The package's example files, workspace relative: `README.md`, then
+   * `docs/*.md`.
+   */
+  examples: string[];
 }
 
 export declare class DeclarationError extends Error {}

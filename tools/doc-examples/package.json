@@ -12,6 +12,7 @@
     "./mdx-region-loader": "./src/mdx-region-loader.mjs",
     "./declarations": "./src/declarations.mjs",
     "./behaviours": "./src/behaviours.mjs",
+    "./examples-file": "./src/examples-file.mjs",
     "./files-under": "./src/files-under.mjs",
     "./mdx-reference-loader": "./src/mdx-reference-loader.mjs",
     "./md-siblings": "./src/md-siblings.mjs"
