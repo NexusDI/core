@@ -7507,6 +7507,14 @@ Files:
 
 - [ ] Step 3: `introspection.mdx`: add one paragraph to the trace section: events carry `startMs` and a run id, and `/profiling/` shows how to read them.
 
+As committed (2026-10-15):
+
+- The regions are `order`, `clock` and `third-party`. The third-party region uses `StarCharts.download(link)` with a 20 ms timer, and `relay` as a stub.
+- The page adds a field table for the non-build events, and defines a build.
+- The order list follows core: the build events go level by level, so a `construct` of level k comes before a `construct:await` of level k+1. Spec 3.4 is amended to match.
+- `/introspection/` says "Eight more types exist" and lists the four new build-event types. The paragraph that links `/profiling/` ends the trace section.
+- Both pages stay under the 1,200-word budget. The docs-reviewer's four defects are fixed.
+
 - [ ] Step 4: Run the docs checks of Task 20, Step 4, dispatch `docs-reviewer` on both pages, and commit with `docs(docs): document the trace event contract`.
 
 ### Task 22: reference entries for the devtools exports
