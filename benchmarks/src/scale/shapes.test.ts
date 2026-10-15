@@ -103,7 +103,7 @@ function allReachable(g: ScaleGraph): boolean {
   return seen.size === g.modules.length;
 }
 
-/** The measured figures of Research/App sizes.md that the committed seed must meet, by suite size. */
+/** The measured figures of census (spec section 15.1) that the committed seed must meet, by suite size. */
 const BANDS: Readonly<
   Record<number, { depth: [number, number]; closure: [number, number] }>
 > = {
@@ -206,25 +206,45 @@ describe.each(SIZES)('mixed at %i', (n) => {
   it('reaches every module from the root', () => {
     expect(allReachable(g)).toBe(true);
   });
-  it('gives values 5%, factories 10% and at most 5% aliases, exact counts', () => {
+  it('gives values 5%, factories 10% and aliases 5%, exact counts', () => {
     expect(d.kinds.value).toBe(Math.round(n * 0.05));
     expect(d.kinds.factory).toBe(Math.round(n * 0.1));
     expect(d.kinds['async-factory']).toBe(0);
-    // An alias with nothing visible to point at becomes a class.
-    expect(d.kinds.alias).toBeLessThanOrEqual(Math.round(n * 0.05));
-    expect(d.kinds.alias).toBeGreaterThanOrEqual(Math.round(n * 0.05) - 2);
+    expect(d.kinds.alias).toBe(Math.round(n * 0.05));
   });
-  it('points each alias at one earlier provider of its module or an export of an import', () => {
+  it.each([GRAPH_SEED + 1, GRAPH_SEED + 2])(
+    'keeps the exact alias count at seed %i',
+    (seed) => {
+      const other = describeGraph(mixed(n, seed));
+      expect(other.kinds.alias).toBe(Math.round(n * 0.05));
+      expect(other.kinds.value).toBe(Math.round(n * 0.05));
+      expect(other.kinds.factory).toBe(Math.round(n * 0.1));
+    },
+  );
+  it('points each alias at one earlier provider it can see, a hub only when nothing else is visible', () => {
+    const hubs = [0, 1, 2];
     for (const p of g.providers.filter((x) => x.kind === 'alias')) {
       expect(p.deps).toHaveLength(1);
       const target = g.providers[p.deps[0]];
       expect(target.index).toBeLessThan(p.index);
-      expect([0, 1, 2]).not.toContain(target.index);
       const own = target.module === p.module;
       const exported =
         g.modules[p.module].imports.includes(target.module) &&
         g.modules[target.module].exports.includes(target.index);
       expect(own || exported).toBe(true);
+      if (hubs.includes(target.index)) {
+        // Nothing but hubs was visible: no earlier own provider, no export of an import.
+        const ownEarlier = g.providers.filter(
+          (q) =>
+            q.module === p.module &&
+            q.index < p.index &&
+            !hubs.includes(q.index),
+        );
+        const imported = g.modules[p.module].imports
+          .flatMap((j) => g.modules[j].exports)
+          .filter((e) => !hubs.includes(e));
+        expect(ownEarlier.length + imported.length).toBe(0);
+      }
     }
   });
   it('caps the fan-out of a class or factory at min(48, round(sqrt n))', () => {
@@ -286,10 +306,36 @@ describe.each(SIZES)('mixed-async at %i', (n) => {
 });
 
 /**
- * The committed seed against the measured bands (Research/App sizes.md):
+ * The committed seed against the measured bands (spec section 15.1):
  * the figures of the graph the suite publishes, not a 32-seed median. A
  * different seed can land outside a band, and GRAPH_SEED does not move.
  */
+/**
+ * The generator, not just its committed seed: the median over 32 seeds of the
+ * depth and the target closure share sits inside the measured band, so a
+ * parameter change that only a lucky seed hides still fails.
+ */
+describe.each(SIZES)('mixed at %i over 32 seeds', (n) => {
+  const band = BANDS[n];
+  const graphs = Array.from({ length: 32 }, (_, k) => mixed(n, GRAPH_SEED + k));
+  const median = (xs: number[]) =>
+    [...xs].sort((a, b) => a - b)[Math.floor(xs.length / 2)];
+
+  it.runIf(band !== undefined)(
+    'has median depth and target share inside the bands',
+    () => {
+      const depth = median(graphs.map(collapsedDepth));
+      const share = median(
+        graphs.map((g) => describeGraph(g).targetClosure / n),
+      );
+      expect(depth).toBeGreaterThanOrEqual(band.depth[0]);
+      expect(depth).toBeLessThanOrEqual(band.depth[1]);
+      expect(share).toBeGreaterThanOrEqual(band.closure[0]);
+      expect(share).toBeLessThanOrEqual(band.closure[1]);
+    },
+  );
+});
+
 describe.each(SIZES)('mixed at %i against the measured bands', (n) => {
   const g = mixed(n);
   const d = describeGraph(g);
@@ -464,7 +510,7 @@ describe('committed hashes', () => {
       'd5b8307f3e51',
       '43b9dac1a426',
       'fe96ee84e0db',
-      '3656b19f07dc',
+      'b566e9011259',
     ]);
   });
   it('mixed-async', () => {
@@ -472,7 +518,7 @@ describe('committed hashes', () => {
       'ece185340786',
       '491fc1116fa2',
       'e894b28e87ca',
-      '0338b52a6a33',
+      '3e91cd1ed6ed',
     ]);
   });
   it('modular', () => {
