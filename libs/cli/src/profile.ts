@@ -47,13 +47,11 @@ function describeFailure(error: unknown): string {
       current instanceof Error
         ? `${current.name}: ${current.message}`
         : String(current);
-    lines.push(
-      depth === 0
-        ? current instanceof Error
-          ? current.message
-          : text
-        : `  caused by ${text}`,
-    );
+    // The errors() plugin writes the cause into the message; print it once.
+    if (depth === 0)
+      lines.push(current instanceof Error ? current.message : text);
+    else if (!(lines.at(-1) ?? '').includes(text))
+      lines.push(`  caused by ${text}`);
     current = current instanceof Error ? current.cause : undefined;
   }
   return lines.join('\n');
@@ -95,16 +93,27 @@ function coreVersion(fromFile: string): string | null {
     .version;
 }
 
+/** Where a startup is recorded: this Node, and the core the entry resolves. */
+export function environmentOf(
+  fromFile: string,
+): NonNullable<ProfileReport['environment']> {
+  return {
+    node: process.versions.node,
+    core: coreVersion(fromFile) ?? '(unresolved)',
+  };
+}
+
 async function writeOutputs(
   io: Io,
   command: ProfileCommand,
   devtools: DevtoolsApi,
   reports: readonly ProfileReport[],
-  core: string | null,
   cpu: Parameters<DevtoolsApi['toChromeTrace']>[1],
 ): Promise<void> {
   const [first] = reports;
   if (first === undefined) return;
+  // The core that recorded the report, never this machine's (spec 7.4).
+  const core = first.environment?.core;
   if (command.json !== null)
     await emit(JSON.stringify(reports), command.json, io.stdout);
   if (command.chrome !== null)
@@ -120,7 +129,9 @@ async function writeOutputs(
         ...file,
         metadata: {
           ...file.metadata,
-          ...(core === null ? {} : { 'nexusdi-core': core }),
+          ...(core === undefined || core === '(unresolved)'
+            ? {}
+            : { 'nexusdi-core': core }),
         },
       }),
       command.perfetto,
@@ -140,23 +151,19 @@ export async function runProfile(
       '--cpu is not available in this build of @nexusdi/cli.',
       'Drop --cpu; the --chrome file still holds the provider spans.',
     );
-  const from =
-    entryKind(command.entry) === 'json'
-      ? join(io.cwd, 'package.json')
-      : command.entry.path;
-  const core = coreVersion(from);
-  const header = `Node ${process.versions.node}, @nexusdi/core ${core ?? version}\n`;
   if (entryKind(command.entry) === 'json') {
-    const devtools = await loadDevtools(from, version);
+    // A saved report carries the environment it was recorded in, or none.
+    const devtools = await loadDevtools(join(io.cwd, 'package.json'), version);
     const reports = await readReports(command, devtools);
-    await writeOutputs(io, command, devtools, reports, core, undefined);
+    await writeOutputs(io, command, devtools, reports, undefined);
     if (!command.quiet)
       await writeTo(
         io.stdout,
-        header + devtools.profileTable(reports, { top: command.top }),
+        devtools.profileTable(reports, { top: command.top }),
       );
     return 0;
   }
+  const environment = environmentOf(command.entry.path);
 
   const { root, load, plugins, devtools } = await loadEntry(
     command,
@@ -177,7 +184,7 @@ export async function runProfile(
       command.timeout,
     );
     if (outcome.kind === 'done') {
-      reports.push(outcome.report);
+      reports.push({ ...outcome.report, environment });
       if (outcome.report.dispose !== null && outcome.report.dispose.errors > 0)
         await writeTo(
           io.stderr,
@@ -185,9 +192,23 @@ export async function runProfile(
         );
       continue;
     }
-    const partial = profiler.report();
+    const partial = { ...profiler.report(), environment };
     reports.push(partial);
     const open = partial.runs.find((r) => r.ok === null);
+    if (
+      outcome.kind === 'timeout' &&
+      open === undefined &&
+      partial.runs.length > 0
+    ) {
+      // Every run settled, so the wait was the disposal profileStartup ends
+      // with. The startup figures stand, as for a disposal error (spec 9.3);
+      // a further iteration would build next to the stuck one, so it stops.
+      await writeTo(
+        io.stderr,
+        `nexusdi: warning: disposal after iteration ${i + 1} did not settle within ${command.timeout} ms; the startup figures stand.\n`,
+      );
+      break;
+    }
     if (outcome.kind === 'timeout') {
       const waiting = (open?.pending ?? [])
         .map(
@@ -216,11 +237,11 @@ export async function runProfile(
     code = 1;
     break;
   }
-  await writeOutputs(io, command, devtools, reports, core, cpu);
+  await writeOutputs(io, command, devtools, reports, cpu);
   if (!command.quiet)
     await writeTo(
       io.stdout,
-      header + devtools.profileTable(reports, { top: command.top }),
+      devtools.profileTable(reports, { top: command.top }),
     );
   return code;
 }
