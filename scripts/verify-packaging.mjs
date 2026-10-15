@@ -737,6 +737,21 @@ try {
     dir,
   );
 
+  // @nexusdi/react's entry must keep its directive, which some bundlers strip
+  // from dependencies they pre-bundle (react spec 16). The check runs once
+  // LIBS packs the package.
+  if (LIBS.some(([, name]) => name === '@nexusdi/react')) {
+    const reactEntry = readFileSync(
+      join(dir, 'node_modules/@nexusdi/react/dist/index.js'),
+      'utf8',
+    );
+    if (!/^['"]use client['"];/.test(reactEntry))
+      throw new Error(
+        '@nexusdi/react: dist/index.js does not start with "use client"',
+      );
+    console.log("  ✓ @nexusdi/react's dist/index.js starts with 'use client'");
+  }
+
   console.log('Type-checking a strict consumer…');
   run('npx', ['tsc', '-p', 'tsconfig.nodenext.json'], dir);
   console.log(

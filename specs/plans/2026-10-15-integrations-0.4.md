@@ -14686,6 +14686,12 @@ Interfaces:
 }
 ```
 
+Notes from Task 15 for the React legs:
+
+- `@nexusdi/react:e2e` has no CI job before this task. The job runs `npx playwright install --with-deps chromium` before `@nexusdi/react:e2e`, on every leg that lists it.
+- `libs/react/package.json` pins `react` and `react-dom` 19.3.0 as devDependencies, so an install at the root alone leaves a nested 19.3.0 under `libs/react`, and `@testing-library/react` resolves the root copy. The leg installs the version where both resolve, and checks `npm ls react` shows one copy.
+- React Router 8.4 requires `react >=19.2.7`, so `react-floor` cannot build the rr8 fixture of `react.e2e.test.ts`. On that leg the e2e target runs the HMR suite only, or the leg lists `@nexusdi/react:test` alone; the unit, SSR and hydration suites pass on 19.0.0.
+
 `REACT_ROUTER_V8_MIDDLEWARE` is the switch Task 10's fixture `libs/react-router/test-fixtures/app/react-router.config.ts` reads to set `future.v8_middleware: true` on a 7.x install (spec 7.7).
 
 - [ ] **Step 2: Write the failing check** `tools/repo-checks/src/adapter-peers.test.ts`

@@ -1581,7 +1581,8 @@ Exports:
 
 - `nexus(ship, options): NexusRouter`, with
   `{ middleware: MiddlewareFunction<Response>; inject; scope(context): Promise<Scope>; load(module): MiddlewareFunction<Response> & { inject } }`.
-- `NEXUS_SCOPE`, the `RouterContext<RequestScope>` the middleware sets. Route tests use
+- `NEXUS_SCOPE`, the `RouterContext<RequestScope | null>` the middleware sets, with the
+  default `null` where the middleware has not run. Route tests use
   it with `createRoutesStub` and
   `new RouterContextProvider(new Map([[NEXUS_SCOPE, existingScope(scope)]]))`.
 - `existingScope(scope): RequestScope`, for tests.

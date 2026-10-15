@@ -1,0 +1,12 @@
+{
+  "extends": "../../../../tsconfig.base.json",
+  "compilerOptions": {
+    "jsx": "react-jsx",
+    "module": "esnext",
+    "moduleResolution": "bundler",
+    "rootDirs": [".", "./.react-router/types"],
+    "types": ["node", "vite/client"],
+    "noEmit": true
+  },
+  "include": ["app/**/*", ".react-router/types/**/*", "*.ts"]
+}

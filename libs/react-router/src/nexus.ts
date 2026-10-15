@@ -28,8 +28,12 @@ const ADAPTER = '@nexusdi/react-router';
 /** The status of a response nobody reads, because its client has gone. */
 const CLIENT_GONE = 499;
 
-/** The request's scope handle, which di.middleware sets on the router context. */
-export const NEXUS_SCOPE = createContext<RequestScope>();
+/**
+ * The request's scope handle, which di.middleware sets on the router
+ * context. null where the middleware has not run, as for a request no
+ * route matches.
+ */
+export const NEXUS_SCOPE = createContext<RequestScope | null>(null);
 
 /** What the `request` option maps: the request and the route's params. */
 export interface RequestInput {
@@ -74,11 +78,7 @@ export interface NexusRouter {
 function handleIn(
   context: Readonly<RouterContextProvider>,
 ): RequestScope | undefined {
-  try {
-    return context.get(NEXUS_SCOPE);
-  } catch {
-    return undefined; // React Router throws for a context with no value and no default
-  }
+  return context.get(NEXUS_SCOPE) ?? undefined;
 }
 
 const handleOf = (context: Readonly<RouterContextProvider>): RequestScope =>

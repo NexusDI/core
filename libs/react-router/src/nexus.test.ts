@@ -162,6 +162,12 @@ describe('nexus() for React Router', () => {
     expect(count(events, 'scope:create')).toBe(0);
   });
 
+  it('reads NEXUS_SCOPE as null on a context the middleware never saw', () => {
+    // React Router renders a request no route matches without the root
+    // middleware, and the server entry reads the slot all the same.
+    expect(new RouterContextProvider().get(NEXUS_SCOPE)).toBeNull();
+  });
+
   it('sets NEXUS_SCOPE and answers without next() when the client left before the middleware ran', async () => {
     const events: TraceEvent[] = [];
     const di = nexus(await ship(events), { request, log: () => {} });
@@ -171,8 +177,8 @@ describe('nexus() for React Router', () => {
     });
     expect(downstream).not.toHaveBeenCalled();
     expect(response.status).toBe(499);
-    expect(context.get(NEXUS_SCOPE).started).toBe(false);
-    await expect(context.get(NEXUS_SCOPE).scope()).rejects.toThrow(
+    expect(context.get(NEXUS_SCOPE)?.started).toBe(false);
+    await expect(context.get(NEXUS_SCOPE)?.scope()).rejects.toThrow(
       'the request has finished',
     );
     expect(count(events, 'scope:create')).toBe(0);
