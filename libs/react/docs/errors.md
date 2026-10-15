@@ -107,8 +107,10 @@ const page = createElement(
 await act(async () => {
   render(page);
 });
-const conflict = isNexusError(caught, 'NEXUS_REACT_SECTION_CONFLICT');
-const section = conflict ? caught.section : ''; // -> 'navigation'
+// A const narrows; `caught` is a let the fallback assigns.
+const error = caught;
+const conflict = isNexusError(error, 'NEXUS_REACT_SECTION_CONFLICT');
+const section = conflict ? error.section : ''; // -> 'navigation'
 cleanup();
 await ship[Symbol.asyncDispose]();
 ```
