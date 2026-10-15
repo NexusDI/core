@@ -122,6 +122,23 @@ describe('reading an export off its declarations', () => {
     ).toContain('constructor(');
   });
 
+  it('declares the private base an error class extends above the cut', () => {
+    const found = readReference(
+      workspaceRoot,
+      '@nexusdi/testing',
+      'OverrideError',
+    );
+    const prelude = found.signature?.prelude.join('\n') ?? '';
+
+    expect(
+      found.signature?.text,
+      'A class built on errorBase(...) extends a const the declaration file ' +
+        'declares and never exports, so the fence has to declare it too.',
+    ).toContain('extends OverrideError_base');
+    expect(prelude).toMatch(/^declare const OverrideError_base: /m);
+    expect(prelude).toContain('interface OverrideFields');
+  });
+
   it('reads an error class as an error', () => {
     expect(readReference(workspaceRoot, DEVTOOLS, 'DevtoolsError').kind).toBe(
       'error',

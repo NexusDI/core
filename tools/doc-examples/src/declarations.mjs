@@ -393,6 +393,37 @@ function declarationOf(context, resolved, name, kind) {
     // of the fence as though it were a statement.
     const symbol = checker.resolveName(each, from, ts.SymbolFlags.Type, false);
     const target = symbol?.getDeclarations()?.[0];
+
+    // A class built on `errorBase(...)` extends `X_base`, a const the
+    // declaration file declares at the top level and never exports. It is
+    // printed above the cut as the file declares it, `declare` kept, since a
+    // `const` with no initializer outside an ambient context does not
+    // compile. Parameter names are no variable declarations, so none of them
+    // reaches here.
+    const value = checker.resolveName(each, from, ts.SymbolFlags.Value, false);
+    const variable = value?.getDeclarations()?.[0];
+    if (
+      !target &&
+      variable &&
+      ts.isVariableDeclaration(variable) &&
+      ts.isVariableStatement(variable.parent.parent) &&
+      ts.isSourceFile(variable.parent.parent.parent) &&
+      variable.getSourceFile().fileName.startsWith(packageDir)
+    ) {
+      const printed = printer
+        .printNode(
+          ts.EmitHint.Unspecified,
+          variable.parent.parent,
+          variable.getSourceFile(),
+        )
+        .replace(/^export\s+/, '');
+      const body = /^declare\s/.test(printed) ? printed : `declare ${printed}`;
+      prelude.push(body);
+      for (const mentioned of body.match(/[A-Za-z_$][\w$]*/g) ?? []) {
+        if (mentioned !== each) place(mentioned, variable);
+      }
+      return;
+    }
     const standalone =
       target &&
       (ts.isInterfaceDeclaration(target) ||
