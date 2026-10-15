@@ -5,7 +5,7 @@
 
 **Audit and visualize your application architecture from the terminal.**
 
-As dependency graphs grow, it becomes difficult to detect circular dependencies, unintended couplings, or missing bindings without running the entire application. `@nexusdi/cli` solves this by extracting your dependency tree into a visual or structured format without instantiating your providers.
+As dependency graphs grow, it becomes difficult to detect circular dependencies, unintended couplings, or missing bindings without running the entire application. `@nexusdi/cli` solves this: `nexusdi graph` extracts your dependency tree into a visual or structured format without instantiating your providers, and `nexusdi profile` starts the app to show where startup time goes.
 
 ```bash
 npx nexusdi graph src/app.module.ts#AppModule -o graph.svg
@@ -13,11 +13,11 @@ npx nexusdi graph src/app.module.ts#AppModule -o graph.svg
 
 ## Key Features
 
-The CLI imports your entry file and analyzes the graph without instantiating any provider. Keep the `Nexus.create` call that starts your app out of that file, because its top-level code runs. It supports multiple output formats including Mermaid, DOT, JSON, SVG, and PNG. The tool returns exit code `1` on invalid graphs, allowing you to block broken wiring in CI/CD pipelines.
+`nexusdi graph` imports your entry file and analyzes the graph without instantiating any provider. Keep the `Nexus.create` call that starts your app out of that file, because its top-level code runs. It supports multiple output formats including Mermaid, DOT, JSON, SVG, and PNG. The tool returns exit code `1` on invalid graphs, allowing you to block broken wiring in CI/CD pipelines.
 
-## Options
+## Graph options
 
-The CLI provides several flags to control the analysis and output.
+`nexusdi graph` takes these flags to control the analysis and output.
 
 | Flag           | Purpose                                                                                                                                                                          | Example                            |
 | :------------- | :------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | :--------------------------------- |
@@ -47,6 +47,17 @@ npx nexusdi graph src/app.module.ts#AppModule -f json -o graph.json
 ```
 
 A `.ts` entry on Node before 22.18 needs `tsx` installed. Every command exits 1 when the graph is invalid. Add the last one to your CI pipeline to prevent broken wiring from being merged.
+
+## Profile startup
+
+`nexusdi profile` starts your app the way `Nexus.create` does and shows where the startup time went.
+
+```bash
+npx nexusdi profile src/ship/meridian.ts#Meridian
+npx nexusdi profile src/ship/meridian.ts#Meridian --chrome startup.json --cpu
+```
+
+The first prints the startup steps, the slowest providers and the critical path. The second also writes a trace you open in Chrome DevTools, with the CPU samples of the startup under it. `--chrome`, `--perfetto` and `--json` write trace files, and `npx nexusdi --help` lists every flag.
 
 ## Documentation
 

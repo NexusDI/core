@@ -20,8 +20,31 @@ export interface GraphCommand {
   readonly plugins: EntryRef | null;
 }
 
+export interface ProfileCommand {
+  readonly kind: 'profile';
+  readonly entry: EntryRef;
+  readonly load: readonly EntryRef[];
+  readonly plugins: EntryRef | null;
+  /** Warm iterations after the first. */
+  readonly repeat: number;
+  /** Absolute paths; null writes no file. */
+  readonly chrome: string | null;
+  readonly perfetto: string | null;
+  readonly json: string | null;
+  readonly cpu: boolean;
+  /** µs. */
+  readonly cpuInterval: number;
+  readonly top: number;
+  /** ms. */
+  readonly timeout: number;
+  readonly quiet: boolean;
+}
+
 export type Command =
-  GraphCommand | { readonly kind: 'help' } | { readonly kind: 'version' };
+  | GraphCommand
+  | ProfileCommand
+  | { readonly kind: 'help' }
+  | { readonly kind: 'version' };
 
 const BY_EXTENSION: Readonly<Record<string, Format>> = {
   '.mmd': 'mermaid',
@@ -40,11 +63,70 @@ export const OPTIONS = {
   view: { type: 'string' },
   load: { type: 'string', multiple: true },
   plugins: { type: 'string' },
+  repeat: { type: 'string' },
+  chrome: { type: 'string' },
+  perfetto: { type: 'string' },
+  json: { type: 'string' },
+  cpu: { type: 'boolean' },
+  'cpu-interval': { type: 'string' },
+  top: { type: 'string' },
+  timeout: { type: 'string' },
+  quiet: { type: 'boolean' },
   help: { type: 'boolean', short: 'h' },
   version: { type: 'boolean', short: 'v' },
 } as const satisfies ParseArgsConfig['options'];
 
 const HELP_FIX = 'Run nexusdi --help for the options.';
+
+const GRAPH_ONLY = ['format', 'out', 'view'] as const;
+/** The flags only nexusdi profile takes. */
+export const PROFILE_ONLY = [
+  'repeat',
+  'chrome',
+  'perfetto',
+  'json',
+  'cpu',
+  'cpu-interval',
+  'top',
+  'timeout',
+  'quiet',
+] as const;
+
+/** Refuses any of `names` given on a command that `owner` owns them for. */
+function refuseFlags(
+  values: Readonly<Record<string, unknown>>,
+  names: readonly (keyof typeof OPTIONS)[],
+  owner: string,
+): void {
+  for (const name of names)
+    if (values[name] !== undefined) {
+      const option = OPTIONS[name];
+      throw new CliError(
+        2,
+        `${'short' in option ? `-${option.short}` : `--${name}`} is a ${owner} option.`,
+        HELP_FIX,
+      );
+    }
+}
+
+/** A whole-number flag of at least `min`, or `fallback` when absent. */
+function count(
+  flag: string,
+  value: string | undefined,
+  fallback: number,
+  min: number,
+): number {
+  if (value === undefined) return fallback;
+  // Digits only: Number() also reads '', '0x10', '1e2' and ' 5' as numbers.
+  const n = /^\d+$/.test(value) ? Number(value) : Number.NaN;
+  if (!Number.isInteger(n) || n < min)
+    throw new CliError(
+      2,
+      `${flag} takes a whole number of at least ${min}; got "${value}".`,
+      HELP_FIX,
+    );
+  return n;
+}
 
 function isOneOf<T extends string>(
   values: readonly T[],
@@ -83,19 +165,19 @@ export function parseCommand(argv: readonly string[], cwd: string): Command {
   if (values.version === true) return { kind: 'version' };
 
   const [command, entryArg, ...rest] = positionals;
-  if (command !== 'graph')
+  if (command !== 'graph' && command !== 'profile')
     throw new CliError(
       2,
       command === undefined
         ? 'no command given.'
         : `unknown command "${command}".`,
-      'Run: nexusdi graph <entry>',
+      'Run: nexusdi graph <entry> or nexusdi profile <entry>',
     );
   if (entryArg === undefined)
     throw new CliError(
       2,
-      'graph needs an entry file.',
-      'Run: nexusdi graph src/app.module.ts#AppModule',
+      `${command} needs an entry file.`,
+      `Run: nexusdi ${command} src/app.module.ts#AppModule`,
     );
   if (rest.length > 0)
     throw new CliError(
@@ -103,26 +185,34 @@ export function parseCommand(argv: readonly string[], cwd: string): Command {
       `unexpected argument "${rest[0]}".`,
       'Pass one entry, and --load for each module to compile after it.',
     );
-
-  const out = values.out === undefined ? null : resolve(cwd, values.out);
-  const format = formatOf(values.format, out);
-  const view = values.view ?? 'providers';
-  if (!isOneOf(VIEWS, view))
-    throw new CliError(
-      2,
-      `unknown view "${view}".`,
-      `Use one of: ${VIEWS.join(', ')}.`,
-    );
+  refuseFlags(
+    values,
+    command === 'graph' ? PROFILE_ONLY : GRAPH_ONLY,
+    command === 'graph' ? 'profile' : 'graph',
+  );
 
   const entry = parseEntryRef(entryArg, cwd);
   const load = (values.load ?? []).map((value) => parseEntryRef(value, cwd));
   const plugins =
     values.plugins === undefined ? null : parseEntryRef(values.plugins, cwd);
-  if (entryKind(entry) === 'json' && (load.length > 0 || plugins !== null))
+  const finished = entryKind(entry) === 'json';
+  if (command === 'graph' && finished && (load.length > 0 || plugins !== null))
     throw new CliError(
       2,
       '--load and --plugins need a module entry; a .json entry is a finished graph.',
       'Drop --load and --plugins, or pass the file that defines the root module.',
+    );
+  const repeat = count('--repeat', values.repeat, 0, 0);
+  const cpu = values.cpu === true;
+  if (
+    command === 'profile' &&
+    finished &&
+    (load.length > 0 || plugins !== null || repeat > 0 || cpu)
+  )
+    throw new CliError(
+      2,
+      '--load, --plugins, --repeat and --cpu need a module entry; a .json entry is a finished report.',
+      'Drop them, or pass the file that defines the root module.',
     );
   for (const [flag, ref] of [
     ...load.map((ref) => ['--load', ref] as const),
@@ -134,5 +224,42 @@ export function parseCommand(argv: readonly string[], cwd: string): Command {
         `${flag} ${ref.shown}: ${flag} takes a module file, and a .json file holds no exports.`,
         `Pass the .ts or .js file that exports it: ${flag} src/file.ts#Export`,
       );
+
+  if (command === 'profile') {
+    const chrome =
+      values.chrome === undefined ? null : resolve(cwd, values.chrome);
+    if (cpu && chrome === null)
+      throw new CliError(
+        2,
+        '--cpu needs --chrome: the CPU profile merges into the Chrome trace.',
+        'Add --chrome startup.json',
+      );
+    return {
+      kind: 'profile',
+      entry,
+      load,
+      plugins,
+      repeat,
+      chrome,
+      perfetto:
+        values.perfetto === undefined ? null : resolve(cwd, values.perfetto),
+      json: values.json === undefined ? null : resolve(cwd, values.json),
+      cpu,
+      cpuInterval: count('--cpu-interval', values['cpu-interval'], 100, 1),
+      top: count('--top', values.top, 20, 1),
+      timeout: count('--timeout', values.timeout, 60_000, 1),
+      quiet: values.quiet === true,
+    };
+  }
+
+  const out = values.out === undefined ? null : resolve(cwd, values.out);
+  const format = formatOf(values.format, out);
+  const view = values.view ?? 'providers';
+  if (!isOneOf(VIEWS, view))
+    throw new CliError(
+      2,
+      `unknown view "${view}".`,
+      `Use one of: ${VIEWS.join(', ')}.`,
+    );
   return { kind: 'graph', entry, format, out, view, load, plugins };
 }
