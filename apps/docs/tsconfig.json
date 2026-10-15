@@ -65,7 +65,16 @@
       "path": "../../tools/doc-examples"
     },
     {
+      "path": "../../libs/vitest"
+    },
+    {
       "path": "../../libs/testing"
+    },
+    {
+      "path": "../../libs/react-router"
+    },
+    {
+      "path": "../../libs/react"
     },
     {
       "path": "../../libs/node"
@@ -74,7 +83,16 @@
       "path": "../../libs/interceptors"
     },
     {
+      "path": "../../libs/hono"
+    },
+    {
       "path": "../../libs/federation"
+    },
+    {
+      "path": "../../libs/fastify"
+    },
+    {
+      "path": "../../libs/express"
     },
     {
       "path": "../../libs/errors"

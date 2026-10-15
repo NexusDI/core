@@ -1,0 +1,54 @@
+---
+title: '@nexusdi/fastify'
+kind: reference
+description: The exports of @nexusdi/fastify, with each signature, what its tests state and an example.
+package: '@nexusdi/fastify'
+---
+
+# `@nexusdi/fastify`
+
+A request-scoped service needs one scope per request, disposed when the reply is finished or the client is gone. Fastify's `onResponse` hook fires on `finish` only, so a scope disposed there leaks when the client disconnects mid-reply. `nexus(ship)` returns a `NexusFastify`: registering `di.plugin` adds an `onRequest` hook that attaches a scope handle to each request, and `di.encapsulatedPlugin` does the same for one encapsulated context. The first `di.inject` handler creates the scope and resolves its typed deps from it, and the raw response's `close` event disposes it once. A NexusDI error in a handler reaches Fastify as a `NexusHttpError` with a 500 or 503 status. Each export has one entry below, with what the package's tests state about it.
+
+<ApiFilter />
+
+## `nexus`
+
+<!-- reference @nexusdi/fastify#nexus example=route-test -->
+
+## `NexusFastify`
+
+<!-- reference @nexusdi/fastify#NexusFastify -->
+
+## `NexusFastifyOptions`
+
+<!-- reference @nexusdi/fastify#NexusFastifyOptions -->
+
+## `FastifyHandler`
+
+<!-- reference @nexusdi/fastify#FastifyHandler -->
+
+## `SectionHook`
+
+<!-- reference @nexusdi/fastify#SectionHook -->
+
+## `RequestScope`
+
+<!-- reference @nexusdi/fastify#RequestScope -->
+
+## `ContainerSource`
+
+<!-- reference @nexusdi/fastify#ContainerSource -->
+
+## `NexusLog`
+
+<!-- reference @nexusdi/fastify#NexusLog -->
+
+## `LogContext`
+
+<!-- reference @nexusdi/fastify#LogContext -->
+
+## `NexusHttpError`
+
+<!-- reference @nexusdi/fastify#NexusHttpError -->
+
+The guide [Scope a Fastify request](/fastify/) registers the plugin, resolves scoped services in handlers and disposes the container at shutdown.

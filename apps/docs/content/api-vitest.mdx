@@ -1,0 +1,38 @@
+---
+title: '@nexusdi/vitest'
+kind: reference
+description: The exports of @nexusdi/vitest, with each signature, what its tests state and an example.
+package: '@nexusdi/vitest'
+---
+
+# `@nexusdi/vitest`
+
+Every test file that exercises the real module graph builds a testing container, overrides a few providers and disposes it, and a test that forgets `await using` never runs its providers' disposers. `nexusTest(base, root, { setup })` returns Vitest's `test` with the NexusDI fixtures: `nexus`, a testing container built on first use, and `nexusScope`, a scope of it. Vitest disposes the scope, then the container, when the test ends, pass or fail. A suite replaces the file's setup with `test.override('nexusSetup', [...])`. `nexusFixtures()` returns the same fixtures as a map for a `test.extend` call of your own. Each export has one entry below, with what the package's tests state about it.
+
+<ApiFilter />
+
+## `nexusTest`
+
+<!-- reference @nexusdi/vitest#nexusTest example=suite-override -->
+
+## `nexusFixtures`
+
+<!-- reference @nexusdi/vitest#nexusFixtures -->
+
+## `NexusFixtures`
+
+<!-- reference @nexusdi/vitest#NexusFixtures -->
+
+## `NexusFixturesOptions`
+
+<!-- reference @nexusdi/vitest#NexusFixturesOptions -->
+
+## `NexusSetupStep`
+
+<!-- reference @nexusdi/vitest#NexusSetupStep -->
+
+## `NexusFixtureMap`
+
+<!-- reference @nexusdi/vitest#NexusFixtureMap -->
+
+The guide [How do I get a container in every Vitest test?](/vitest/) sets up the fixtures for a file, changes the setup for one suite and composes them with fixtures of your own.
