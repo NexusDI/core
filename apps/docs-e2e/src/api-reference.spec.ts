@@ -145,7 +145,8 @@ for (const theme of ['dark', 'light'] as const) {
     const { token, card } = signature(page);
 
     // The HTML carries no panel; the page's table holds them.
-    await expect(page.locator('.twoslash-popup-container')).toHaveCount(0);
+    const html = await (await page.request.get(PAGE)).text();
+    expect(html).not.toContain('twoslash-popup-container');
 
     await token.hover();
     await expect(card).toBeVisible();
@@ -360,4 +361,44 @@ test('shows a type after a client navigation from a guide to an API page', async
   await token.hover();
   await expect(card).toBeVisible();
   await expect(card).toContainText('NodeScopes');
+});
+
+/**
+ * The card's box is inside the window and touches its token's row: just
+ * above it or just below. A card placed from a containing block other than
+ * the window lands elsewhere, as it did under Nextra's article, whose
+ * backdrop-filter makes it the box a fixed descendant is placed in.
+ */
+async function expectBeside(page: Page, card: Locator, token: Locator) {
+  const viewport = page.viewportSize();
+  const at = await token.boundingBox();
+  const box = await card.boundingBox();
+  if (!viewport || !at || !box) throw new Error('no box to measure');
+  expect(box.y).toBeGreaterThanOrEqual(0);
+  expect(box.y + box.height).toBeLessThanOrEqual(viewport.height);
+  expect(box.x).toBeGreaterThanOrEqual(0);
+  expect(box.x + box.width).toBeLessThanOrEqual(viewport.width);
+  const below = Math.abs(box.y - (at.y + at.height));
+  const above = Math.abs(at.y - (box.y + box.height));
+  expect(Math.min(below, above)).toBeLessThan(12);
+}
+
+for (const path of [PAGE, '/next/api-devtools/'])
+  test(`places a fence token's card beside it on ${path}`, async ({ page }) => {
+    await page.goto(path);
+    const { token, card } = signature(page);
+    await token.scrollIntoViewIfNeeded();
+    await token.hover();
+    await expect(card).toBeVisible();
+    await expectBeside(page, card, token);
+  });
+
+test("places a catalogue token's card beside it", async ({ page }) => {
+  await page.goto(PAGE);
+  const region = await openCase(page);
+  const token = region.locator('.twoslash-hover[data-pop]').first();
+  await token.hover();
+  const card = page.locator('.nexus-behaviours__type:not([hidden])');
+  await expect(card).toBeVisible();
+  await expectBeside(page, card, token);
 });
