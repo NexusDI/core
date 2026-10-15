@@ -1058,9 +1058,10 @@ aligned profile as data. The Chrome layout stays in devtools, under one golden t
 browser user with a CPU profile from Playwright or CDP can merge it with the same call.
 
 ```ts
-// libs/cli/src/profile.ts (Node only)
+// libs/cli/src/cpu.ts and profile.ts (Node only)
 import { Session } from 'node:inspector/promises';
 
+performance.now(); // loads perf_hooks before sampling starts
 const session = new Session();
 session.connect();
 await session.post('Profiler.enable');
@@ -1068,37 +1069,45 @@ await session.post('Profiler.setSamplingInterval', {
   interval: command.cpuInterval,
 }); // µs, default 100
 await session.post('Profiler.start');
-const before = nexusdiAnchorStart();
+const start = nexusdiAnchorStart(interval); // [name, startMs, endMs]
 const report = await devtools.profileStartup(root, { plugins, load, profiler });
-const after = nexusdiAnchorEnd();
+const end = nexusdiAnchorEnd(interval);
 const { profile } = await session.post('Profiler.stop');
-const offsetMs = alignClocks(profile, [
-  ['nexusdiAnchorStart', before],
-  ['nexusdiAnchorEnd', after],
-]);
+const aligned = alignClocks(profile, [start, end]); // { offsetMs, errorMs } | null
 const trace = devtools.toChromeTrace(report, {
-  cpuProfile: { profile, offsetMs },
+  cpuProfile: { profile, offsetMs: aligned.offsetMs },
 });
 ```
 
 Anchors:
 
-- Two functions with distinct names. Each records `performance.now()` on entry and spins
-  for `max(2 ms, 20 × interval)`, so at least 20 samples fall inside it.
-- `alignClocks` walks samples in order, accumulating `timeDeltas` from `profile.startTime`,
-  and takes the first sample whose stack contains the anchor's name. Offset =
-  `sampleUs / 1000 - anchorPerfNow`.
-- The two offsets must agree within `max(1 ms, 4 × interval)`. Otherwise the CLI warns
-  (`clock drift 1.8 ms; CPU samples may sit up to 1.8 ms off the provider spans`) and uses
-  the first anchor.
-- When either anchor has no sample, the CLI warns, writes the Chrome file without the CPU
-  profile, and keeps exit code 0.
+- Two functions with distinct names. Each reads `performance.now()`, calls
+  `nexusdiAnchorSpin` for `max(10 ms, 20 × interval)`, and reads `performance.now()` again
+  when the spin returns. The macOS sampler can go 5 to 25 ms without a sample, which is why
+  the spin lasts at least 10 ms.
+- Node loads `perf_hooks` on the first read of the `performance` global, which takes tens
+  of ms with the profiler on. The CLI reads it once before `Profiler.start`. A sample taken
+  during that load holds the anchor's name but no spin, so `alignClocks` counts only samples
+  whose stack holds the anchor and `nexusdiAnchorSpin`.
+- `alignClocks` walks samples in order, accumulating `timeDeltas` from `profile.startTime`.
+  A counted sample at `t` ms on the profile clock, inside a spin read between `startMs` and
+  `endMs`, puts the offset in `[t - endMs, t - startMs]`. The offset is the middle of the
+  bounds every counted sample of both anchors sets, and `errorMs` is half their width. When
+  the bounds cross, the anchors disagree, and `errorMs` is half the gap.
+- When `errorMs` passes `max(1 ms, 4 × interval)`, the CLI warns
+  (`the sampler ran too rarely to align the clocks; CPU samples may sit up to 1.8 ms off the provider spans`)
+  and keeps the profile.
+- When no anchor has a sample, the CLI warns, writes the Chrome file without the CPU
+  profile, and keeps exit code 0. One anchor with samples is enough to align.
 - `libs/cli` builds with `tsc` and no minifier, so the names stay intact.
-- Error bar: the lab measured 0.22 ms and 0.43 ms agreement at 50 µs on macOS. A CLI
-  process test on Linux CI must find both anchors before the docs state an error bar.
+- Error bar: the lab measured 0.22 ms and 0.43 ms agreement at 50 µs on macOS, with the
+  first-sample rule. With the bounds rule, 30 runs of the Meridian fixture on macOS gave
+  `errorMs` median 0.047 ms and max 0.30 ms at 100 µs, and max 0.11 ms at 50 µs. A CLI
+  process test on Linux CI must find the anchors before the docs state an error bar.
 
 The V8 profile clock and `performance.now()` differ (the lab measured a 376,936 s offset on
-macOS), which is why alignment uses anchors.
+macOS), which is why alignment uses anchors. `process.hrtime` does not close the gap: on
+macOS it ran 469,632 s apart from the V8 clock.
 
 ## 9. `nexusdi profile`
 
@@ -1193,7 +1202,7 @@ The graph command's four codes:
 
 | Code | Meaning                                                                                                                                                                                                                                                                                                                                                              |
 | ---- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| 0    | The app started, every `load` succeeded, and the outputs were written. A missing CPU anchor or clock drift warns and keeps 0.                                                                                                                                                                                                                                        |
+| 0    | The app started, every `load` succeeded, and the outputs were written. A CPU profile with no anchor sample, or an alignment error past the bound of section 8, warns and keeps 0.                                                                                                                                                                                    |
 | 1    | The app failed to start: `create` or a `load` threw after it compiled (a `BlueprintError` included), or `--timeout` fired before every run settled (a disposal that hangs warns and keeps the code, section 9.3). The table and the requested files are still written with what was recorded, and the error text goes to stderr.                                     |
 | 2    | The invocation or input is wrong: as graph, plus `--cpu` without `--chrome`; `--load`, `--plugins`, `--repeat` or `--cpu` with a `.json` entry; a `.json` file that `parseProfileReport` rejects (the CLI prints `<file>: ` before devtools' message); a `create` or `load` that threw before it compiled, such as `NEXUS_INVALID_MODULE` or `NEXUS_PLUGIN_INVALID`. |
 | 3    | The environment lacks something: as graph.                                                                                                                                                                                                                                                                                                                           |
@@ -1270,8 +1279,8 @@ could move.
   with a barrier, a dependency chain and a late async start; and the `node:` scan over
   `libs/devtools/src`.
 - CLI: argument parsing and every exit code of 9.5; process tests with a Meridian entry
-  that has an async factory, a hanging variant for `--timeout`, and `--cpu` on Linux
-  finding both anchors.
+  that has an async factory, a hanging variant for `--timeout`, and `--cpu` finding
+  the anchors and the samples in the Chrome file.
 
 ## 11. Bundle cost
 

@@ -6734,16 +6734,19 @@ Files:
 
 Interfaces:
 
-- Produces in `cpu.ts`: `startCpu(interval: number): Promise<Sampling>`, `stopCpu(sampling: Sampling): Promise<CpuProfile>`, `nexusdiAnchorStart(interval: number): number`, `nexusdiAnchorEnd(interval: number): number`, `alignClocks(profile: CpuProfile, anchors: readonly (readonly [name: string, perfNow: number])[]): { readonly offsetMs: number; readonly driftMs: number } | null`.
+- Produces in `cpu.ts`: `type Anchor = readonly [name, startMs, endMs]`, `startCpu(interval: number): Promise<Sampling>` (runs the first anchor), `stopCpu(sampling: Sampling): Promise<{ profile: CpuProfile; anchors: readonly Anchor[] }>` (runs the second), `alignClocks(profile: CpuProfile, anchors: readonly Anchor[]): { readonly offsetMs: number; readonly errorMs: number } | null`.
 
-- [ ] Step 0: Lift Task 16's interim `--cpu` refusal: remove the `command.cpu` check at the top of `runProfile` and its process test, restore `--cpu` and `--cpu-interval` to `USAGE` in `main.ts` (spec 9.1's two lines), and put `--cpu` back on the README's second Profile startup command with "The second also writes a trace you open in Chrome DevTools, with the CPU samples of the startup under it." The README's sentence must stay true: a process test runs that command and finds the samples in the file.
+Round 1 (2026-10-15): the first-sample rule of the first draft drifted 1.4 to 65 ms on macOS. Node loaded `perf_hooks` inside `nexusdiAnchorStart` before its clock read, and the macOS sampler went 5 to 25 ms without a sample. `startCpu` now reads `performance` before `Profiler.start`, the spins last `max(10 ms, 20 × interval)`, only samples under `nexusdiAnchorSpin` count, and the offset is the middle of the bounds every counted sample sets (spec 8). 30 macOS runs: `errorMs` median 0.047 ms, max 0.30 ms at 100 µs. The process test runs on every platform.
+
+- [ ] Step 0: Lift Task 16's interim `--cpu` refusal: remove the `command.cpu` check at the top of `runProfile` and its process test, restore `--cpu` and `--cpu-interval` to `USAGE` in `main.ts` (spec 9.1's two lines), and put `--cpu` back on the README's second Profile startup command with "The second also writes a trace you open in Chrome DevTools, with the CPU samples of the startup under it." The README's sentence must stay true: a process test runs that command and finds the samples in the file. `main.test.ts` checks that `--help` lists every flag in `PROFILE_ONLY`.
 
 - [ ] Step 1: Write the failing unit test `cpu.test.ts`
 
 ```ts
+import type { CpuProfile } from '@nexusdi/devtools';
 import { describe, expect, it } from 'vitest';
 
-import { alignClocks } from './cpu.js';
+import { alignClocks, startCpu, stopCpu } from './cpu.js';
 
 const frame = (functionName: string) => ({
   functionName,
@@ -6752,38 +6755,82 @@ const frame = (functionName: string) => ({
   lineNumber: 0,
   columnNumber: 0,
 });
-const profile = {
+const profile: CpuProfile = {
   nodes: [
     { id: 1, callFrame: frame('(root)'), children: [2, 3] },
     { id: 2, callFrame: frame('nexusdiAnchorStart'), children: [4] },
-    { id: 3, callFrame: frame('nexusdiAnchorEnd') },
-    { id: 4, callFrame: frame('spin') },
+    { id: 3, callFrame: frame('nexusdiAnchorEnd'), children: [5] },
+    { id: 4, callFrame: frame('nexusdiAnchorSpin') },
+    { id: 5, callFrame: frame('nexusdiAnchorSpin') },
   ],
   startTime: 1_000_000,
   endTime: 1_010_000,
-  samples: [1, 4, 4, 1, 3],
+  samples: [1, 4, 4, 1, 5],
   timeDeltas: [0, 100, 100, 5000, 100],
 };
 
+// Sample times: 1000.0, 1000.1, 1000.2, 1005.2 and 1005.3 ms.
 describe('alignClocks', () => {
-  it('takes the first sample whose stack holds each anchor, and reports their drift', () => {
-    // Start: sample 2 at 1,000,100 µs = 1000.1 ms; anchor read 10 ms -> offset 990.1.
-    // End: sample 5 at 1,005,300 µs = 1005.3 ms; anchor read 15.1 ms -> offset 990.2.
+  it('bounds the offset by every spin sample of both anchors and takes the middle', () => {
+    // Start: 1000.1 and 1000.2 ms in [10, 10.15] -> offset in [990.05, 990.1].
+    // End: 1005.3 ms in [15.2, 15.35] -> [989.95, 990.1]; both: [990.05, 990.1].
     const aligned = alignClocks(profile, [
-      ['nexusdiAnchorStart', 10],
-      ['nexusdiAnchorEnd', 15.1],
-    ])!;
-    expect(aligned.offsetMs).toBeCloseTo(990.1, 6);
-    expect(aligned.driftMs).toBeCloseTo(0.1, 6);
+      ['nexusdiAnchorStart', 10, 10.15],
+      ['nexusdiAnchorEnd', 15.2, 15.35],
+    ]);
+    expect(aligned?.offsetMs).toBeCloseTo(990.075, 6);
+    expect(aligned?.errorMs).toBeCloseTo(0.025, 6);
   });
 
-  it('returns null when an anchor has no sample', () => {
+  it('reports half the gap when the anchors disagree', () => {
+    // End: 1005.3 ms in [16, 16.1] -> [989.2, 989.3], below Start's 990.05.
+    const aligned = alignClocks(profile, [
+      ['nexusdiAnchorStart', 10, 10.15],
+      ['nexusdiAnchorEnd', 16, 16.1],
+    ]);
+    expect(aligned?.offsetMs).toBeCloseTo(989.675, 6);
+    expect(aligned?.errorMs).toBeCloseTo(0.375, 6);
+  });
+
+  it('skips a sample in the anchor before its spin, where the clock read was still running', () => {
+    // Sample 2 holds the anchor but no spin; only 1000.2 ms counts.
+    const aligned = alignClocks({ ...profile, samples: [1, 2, 4, 1, 5] }, [
+      ['nexusdiAnchorStart', 10, 10.15],
+    ]);
+    expect(aligned?.offsetMs).toBeCloseTo(990.125, 6);
+    expect(aligned?.errorMs).toBeCloseTo(0.075, 6);
+  });
+
+  it('aligns from one anchor when the other has no sample', () => {
+    const aligned = alignClocks({ ...profile, samples: [1, 1, 1, 1, 5] }, [
+      ['nexusdiAnchorStart', 10, 10.15],
+      ['nexusdiAnchorEnd', 15.2, 15.35],
+    ]);
+    expect(aligned?.offsetMs).toBeCloseTo(990.025, 6);
+  });
+
+  it('returns null when no anchor has a sample', () => {
     expect(
       alignClocks({ ...profile, samples: [1, 1, 1, 1, 1] }, [
-        ['nexusdiAnchorStart', 10],
-        ['nexusdiAnchorEnd', 15],
+        ['nexusdiAnchorStart', 10, 12],
+        ['nexusdiAnchorEnd', 15, 17],
       ]),
     ).toBeNull();
+  });
+});
+
+describe('startCpu and stopCpu', () => {
+  // The error depends on how often the OS lets the sampler run, so this
+  // test holds only that the anchors get a sample; the CLI warns on error.
+  it('sample the anchors in this process', async () => {
+    const { profile: recorded, anchors } = await stopCpu(await startCpu(100));
+    expect(anchors.map(([name]) => name)).toEqual([
+      'nexusdiAnchorStart',
+      'nexusdiAnchorEnd',
+    ]);
+    for (const [, startMs, endMs] of anchors)
+      expect(endMs - startMs).toBeGreaterThanOrEqual(10);
+    expect(alignClocks(recorded, anchors)).not.toBeNull();
   });
 });
 ```
@@ -6800,54 +6847,108 @@ import { Session } from 'node:inspector/promises';
 
 import type { CpuProfile } from '@nexusdi/devtools';
 
+/** An anchor's name, and performance.now() before and after its spin. */
+export type Anchor = readonly [name: string, startMs: number, endMs: number];
+
+/** An open inspector session with the V8 sampling profiler running. */
 export interface Sampling {
   readonly session: Session;
+  readonly interval: number;
+  readonly start: Anchor;
 }
 
+/**
+ * Starts the V8 sampling profiler in this process, sampling every `interval`
+ * µs, and runs the first anchor.
+ */
 export async function startCpu(interval: number): Promise<Sampling> {
+  // Node loads perf_hooks on the first read of the performance global, which
+  // takes tens of ms with the profiler on. Reading it here keeps that load
+  // out of the profile and out of the first anchor.
+  performance.now();
   const session = new Session();
   session.connect();
   await session.post('Profiler.enable');
   await session.post('Profiler.setSamplingInterval', { interval });
   await session.post('Profiler.start');
-  return { session };
-}
-
-export async function stopCpu(sampling: Sampling): Promise<CpuProfile> {
-  const { profile } = await sampling.session.post('Profiler.stop');
-  sampling.session.disconnect();
-  return profile as unknown as CpuProfile;
-}
-
-function spin(ms: number): void {
-  const end = performance.now() + ms;
-  while (performance.now() < end);
-}
-
-// The anchors' names are what alignClocks looks for in the samples. The
-// CLI builds with tsc and no minifier, so the names reach the profile intact.
-/** Records performance.now(), then spins long enough for at least 20 samples. */
-export function nexusdiAnchorStart(interval: number): number {
-  const at = performance.now();
-  spin(Math.max(2, (20 * interval) / 1000));
-  return at;
-}
-
-export function nexusdiAnchorEnd(interval: number): number {
-  const at = performance.now();
-  spin(Math.max(2, (20 * interval) / 1000));
-  return at;
+  return { session, interval, start: nexusdiAnchorStart(interval) };
 }
 
 /**
- * The offset from performance.now() ms to the profile's clock (spec 8):
- * per anchor, the time of the first sample whose stack holds its name,
- * minus the time the anchor read. null when an anchor has no sample.
+ * Runs the second anchor, stops the profiler and closes the session. Returns
+ * the profile and both anchors for alignClocks.
+ */
+export async function stopCpu(sampling: Sampling): Promise<{
+  readonly profile: CpuProfile;
+  readonly anchors: readonly Anchor[];
+}> {
+  const end = nexusdiAnchorEnd(sampling.interval);
+  try {
+    const { profile } = await sampling.session.post('Profiler.stop');
+    return {
+      profile: {
+        nodes: profile.nodes,
+        startTime: profile.startTime,
+        endTime: profile.endTime,
+        samples: profile.samples ?? [],
+        timeDeltas: profile.timeDeltas ?? [],
+      },
+      anchors: [sampling.start, end],
+    };
+  } finally {
+    sampling.session.disconnect();
+  }
+}
+
+/**
+ * Spins for `ms` and returns performance.now() after the spin. alignClocks
+ * counts only samples inside it, so every counted sample falls between the
+ * anchor's read before the spin and this read after it.
+ */
+function nexusdiAnchorSpin(ms: number): number {
+  const end = performance.now() + ms;
+  while (performance.now() < end);
+  return performance.now();
+}
+
+// alignClocks finds the anchors in the samples by their names and the
+// spin's. The CLI builds with tsc and no minifier, so the names reach the
+// profile intact. The spin lasts at least 10 ms: the macOS sampler can go
+// 5 to 25 ms without a sample.
+
+/** Spins for max(10 ms, 20 samples). */
+function nexusdiAnchorStart(interval: number): Anchor {
+  const at = performance.now();
+  return [
+    'nexusdiAnchorStart',
+    at,
+    nexusdiAnchorSpin(Math.max(10, (20 * interval) / 1000)),
+  ];
+}
+
+/** The second anchor, the same as the first under another name. */
+function nexusdiAnchorEnd(interval: number): Anchor {
+  const at = performance.now();
+  return [
+    'nexusdiAnchorEnd',
+    at,
+    nexusdiAnchorSpin(Math.max(10, (20 * interval) / 1000)),
+  ];
+}
+
+/**
+ * The offset from performance.now() ms to the profile's clock (spec 8). A
+ * sample at profile time t inside an anchor's spin, read between startMs and
+ * endMs, puts the offset in [t - endMs, t - startMs]. The offset is the middle
+ * of the bounds every such sample of every anchor sets, and errorMs is half
+ * their width: the furthest the true offset can sit from it. When the bounds
+ * cross, the anchors disagree, and errorMs is half the gap. null when no
+ * anchor has a sample.
  */
 export function alignClocks(
   profile: CpuProfile,
-  anchors: readonly (readonly [name: string, perfNow: number])[],
-): { readonly offsetMs: number; readonly driftMs: number } | null {
+  anchors: readonly (readonly [name: string, startMs: number, endMs: number])[],
+): { readonly offsetMs: number; readonly errorMs: number } | null {
   const names = new Map(
     profile.nodes.map((n) => [n.id, n.callFrame.functionName]),
   );
@@ -6855,62 +6956,78 @@ export function alignClocks(
   for (const n of profile.nodes)
     for (const child of n.children ?? []) parents.set(child, n.id);
   const holds = (id: number, name: string): boolean => {
+    let spin = false;
     for (
       let at: number | undefined = id;
       at !== undefined;
       at = parents.get(at)
-    )
-      if (names.get(at) === name) return true;
+    ) {
+      const frame = names.get(at);
+      if (frame === 'nexusdiAnchorSpin') spin = true;
+      else if (frame === name) return spin;
+    }
     return false;
   };
-  const offsets: number[] = [];
-  for (const [name, perfNow] of anchors) {
-    let t = profile.startTime;
-    let found: number | null = null;
-    for (let i = 0; i < profile.samples.length && found === null; i++) {
-      t += profile.timeDeltas[i] ?? 0;
-      if (holds(profile.samples[i]!, name)) found = t / 1000 - perfNow;
-    }
-    if (found === null) return null;
-    offsets.push(found);
+  let lo = -Infinity;
+  let hi = Infinity;
+  let t = profile.startTime;
+  for (const [i, sample] of profile.samples.entries()) {
+    t += profile.timeDeltas[i] ?? 0;
+    for (const [name, startMs, endMs] of anchors)
+      if (holds(sample, name)) {
+        lo = Math.max(lo, t / 1000 - endMs);
+        hi = Math.min(hi, t / 1000 - startMs);
+      }
   }
-  const [first = 0, ...rest] = offsets;
-  return {
-    offsetMs: first,
-    driftMs: Math.max(0, ...rest.map((o) => Math.abs(o - first))),
-  };
+  return hi === Infinity
+    ? null
+    : { offsetMs: (lo + hi) / 2, errorMs: Math.abs(hi - lo) / 2 };
 }
 ```
 
 - [ ] Step 4: Wire it into `runProfile`, for iteration 1 only:
 
 ```ts
-const sampling =
-  i === 0 && command.cpu ? await startCpu(command.cpuInterval) : null;
-const before = sampling === null ? 0 : nexusdiAnchorStart(command.cpuInterval);
-const outcome = await within(/* unchanged */);
-if (sampling !== null) {
-  const after = nexusdiAnchorEnd(command.cpuInterval);
-  const profile = await stopCpu(sampling);
-  const aligned = alignClocks(profile, [
-    ['nexusdiAnchorStart', before],
-    ['nexusdiAnchorEnd', after],
-  ]);
+/**
+ * Stops the sampling and aligns its clock to performance.now() by the two
+ * anchors (spec 8). Warns and returns no CPU profile when no anchor has a
+ * sample; warns when the alignment error passes max(1 ms, 4 samples) and
+ * keeps the profile.
+ */
+async function mergeCpu(
+  io: Io,
+  sampling: Sampling,
+): Promise<Parameters<DevtoolsApi['toChromeTrace']>[1]> {
+  const { profile, anchors } = await stopCpu(sampling);
+  const aligned = alignClocks(profile, anchors);
   if (aligned === null) {
     await writeTo(
       io.stderr,
-      'nexusdi: warning: no CPU sample landed in an anchor, so the Chrome trace has no CPU profile.\n',
+      'nexusdi: warning: no CPU sample fell inside an anchor, so the Chrome trace has no CPU profile.\n',
     );
-  } else {
-    const limit = Math.max(1, (4 * command.cpuInterval) / 1000);
-    if (aligned.driftMs > limit)
-      await writeTo(
-        io.stderr,
-        `nexusdi: warning: clock drift ${aligned.driftMs.toFixed(1)} ms; CPU samples may sit up to ${aligned.driftMs.toFixed(1)} ms off the provider spans.\n`,
-      );
-    cpu = { cpuProfile: { profile, offsetMs: aligned.offsetMs } };
+    return undefined;
   }
+  if (aligned.errorMs > Math.max(1, (4 * sampling.interval) / 1000))
+    await writeTo(
+      io.stderr,
+      `nexusdi: warning: the sampler ran too rarely to align the clocks; CPU samples may sit up to ${aligned.errorMs.toFixed(1)} ms off the provider spans.\n`,
+    );
+  return { cpuProfile: { profile, offsetMs: aligned.offsetMs } };
 }
+
+// in runProfile's loop:
+// The CPU samples go into the --chrome file, which shows iteration 1.
+const sampling =
+  i === 0 && command.cpu ? await startCpu(command.cpuInterval) : null;
+const outcome = await within(
+  devtools.profileStartup(root as never, {
+    plugins: plugins as never,
+    load: load as never,
+    profiler,
+  }),
+  command.timeout,
+);
+if (sampling !== null) cpu = await mergeCpu(io, sampling);
 ```
 
 On a timeout, stop the sampling before writing (the `if (sampling !== null)` block runs on every outcome).
@@ -6919,36 +7036,40 @@ On a timeout, stop the sampling before writing (the `if (sampling !== null)` blo
 
 ```ts
 describe('nexusdi profile --cpu', () => {
-  it.runIf(process.platform === 'linux')(
-    'finds both anchors on Linux and merges the samples',
-    () => {
-      const dir = tempDir();
-      const run = runCli(
-        [
-          'profile',
-          'meridian.module.js',
-          '--chrome',
-          join(dir, 'c.json'),
-          '--cpu',
-          '--cpu-interval',
-          '50',
-          '--quiet',
-        ],
-        { cwd: DIR },
-      );
-      expect(run.status).toBe(0);
-      expect(run.stderr).not.toContain('no CPU sample');
-      const events = JSON.parse(readFileSync(join(dir, 'c.json'), 'utf8'))
-        .traceEvents as { name: string }[];
-      expect(events.some((e) => e.name === 'ProfileChunk')).toBe(true);
-    },
-  );
+  it('merges the CPU samples into the Chrome trace, as the README says', () => {
+    const dir = tempDir();
+    const run = runCli(
+      [
+        'profile',
+        'meridian.module.js',
+        '--chrome',
+        join(dir, 'c.json'),
+        '--cpu',
+        '--quiet',
+      ],
+      { cwd: DIR },
+    );
+    expect(run.status).toBe(0);
+    expect(run.stderr).not.toContain('no CPU sample');
+    // A few ms means the sampler ran rarely; tens of ms means the anchors'
+    // clock reads sat outside their samples.
+    expect(run.stderr).not.toMatch(/up to \d{2,}/);
+    const events = JSON.parse(readFileSync(join(dir, 'c.json'), 'utf8'))
+      .traceEvents as {
+      name: string;
+      args?: { data?: { cpuProfile?: { samples?: number[] } } };
+    }[];
+    const samples = events
+      .filter((e) => e.name === 'ProfileChunk')
+      .flatMap((e) => e.args?.data?.cpuProfile?.samples ?? []);
+    expect(samples.length).toBeGreaterThan(0);
+  });
 });
 ```
 
 Record the drift the Linux CI run reports in the ledger: spec 8 says the docs state an error bar only after this test finds both anchors there.
 
-- [ ] Step 6: Record a real profile for the golden test: run the Meridian fixture with `node --cpu-prof`, keep the `.cpuprofile` in `libs/devtools/test-fixtures/profile/recorded.cpuprofile`, and add a case to `trace-engine.trace.test.ts` that merges it through `toChromeTrace` and finds its samples on pid 1, tid 1 inside the run.
+- [ ] Step 6: Record a real profile for the golden test: run the Meridian fixture with `node --cpu-prof`, keep the `.cpuprofile` in `libs/devtools/test-fixtures/profile/recorded.cpuprofile`, and add a case to `trace-engine.trace.test.ts` that merges it through `toChromeTrace` and finds its samples on pid 1, tid 1 inside the run. The profile covers the whole process, so the case puts the first sample under `createContainer` at the run's start and checks that every sample under `createContainer` (core's synchronous create) reaches the engine inside the run.
 
 - [ ] Step 7: Run the targets of Task 16 and commit with `feat(cli): sample the CPU and merge it into the Chrome trace`.
 
