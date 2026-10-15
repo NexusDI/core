@@ -403,3 +403,30 @@ describe('profile live mode', () => {
     );
   });
 });
+
+describe('profile graph', () => {
+  it('builds the graph once per blueprint, across createScope runs', async () => {
+    const SCANNER = new Token<object>('Scanner');
+    const profiler = profile({ scopes: true });
+    await using ship = await Nexus.create(
+      defineModule({
+        name: 'Root',
+        providers: [
+          provide(SCANNER, { lifetime: 'scoped', useFactory: () => ({}) }),
+        ],
+      }),
+      { plugins: [profiler] },
+    );
+    const before = profiler.report().graph;
+    await using first = await ship.createScope();
+    await using second = await ship.createScope();
+    void first;
+    void second;
+    expect(profiler.report().graph).toBe(before);
+    class Probe {}
+    await ship.load(defineModule({ name: 'Science', providers: [Probe] }));
+    const after = profiler.report().graph;
+    expect(after).not.toBe(before);
+    expect(after?.providers.map((p) => p.token)).toContain('Probe');
+  });
+});

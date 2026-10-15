@@ -71,7 +71,23 @@ export function runOf(rec: Recording): ProfileRun {
   return { ...run, steps: stepsOf(run) };
 }
 
+// The view is one frozen object per blueprint, so a graph built from it
+// stays valid until a load or extend() gives the container a new blueprint.
+const graphs = new WeakMap<
+  BlueprintView,
+  NonNullable<ProfileReport['graph']>
+>();
+
+/** The report's graph of `view`, built once per blueprint. */
 function graphOf(view: BlueprintView): NonNullable<ProfileReport['graph']> {
+  const known = graphs.get(view);
+  if (known !== undefined) return known;
+  const graph = buildGraph(view);
+  graphs.set(view, graph);
+  return graph;
+}
+
+function buildGraph(view: BlueprintView): NonNullable<ProfileReport['graph']> {
   const names = new Map(view.modules.map((m) => [m.id, m.name]));
   return {
     root: names.get(view.root) ?? view.root,
