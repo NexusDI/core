@@ -1073,7 +1073,7 @@ const start = nexusdiAnchorStart(interval); // [name, startMs, endMs]
 const report = await devtools.profileStartup(root, { plugins, load, profiler });
 const end = nexusdiAnchorEnd(interval);
 const { profile } = await session.post('Profiler.stop');
-const aligned = alignClocks(profile, [start, end]); // { offsetMs, errorMs } | null
+const aligned = alignClocks(profile, [start, end]); // { offsetMs, errorMs, consistent } | null
 const trace = devtools.toChromeTrace(report, {
   cpuProfile: { profile, offsetMs: aligned.offsetMs },
 });
@@ -1086,24 +1086,32 @@ Anchors:
   when the spin returns. The macOS sampler can go 5 to 25 ms without a sample, which is why
   the spin lasts at least 10 ms.
 - Node loads `perf_hooks` on the first read of the `performance` global, which takes tens
-  of ms with the profiler on. The CLI reads it once before `Profiler.start`. A sample taken
-  during that load holds the anchor's name but no spin, so `alignClocks` counts only samples
-  whose stack holds the anchor and `nexusdiAnchorSpin`.
+  of ms with the profiler on. The CLI reads it once before `Profiler.start`, so the load
+  falls outside the first anchor's clock read.
+- A sample counts when its stack holds the anchor's name. The spin's frame is no test: once
+  V8 optimizes an anchor, it inlines the spin, and the profile drops the spin's frame (seen
+  on the second profile in one process).
 - `alignClocks` walks samples in order, accumulating `timeDeltas` from `profile.startTime`.
-  A counted sample at `t` ms on the profile clock, inside a spin read between `startMs` and
-  `endMs`, puts the offset in `[t - endMs, t - startMs]`. The offset is the middle of the
-  bounds every counted sample of both anchors sets, and `errorMs` is half their width. When
-  the bounds cross, the anchors disagree, and `errorMs` is half the gap.
-- When `errorMs` passes `max(1 ms, 4 × interval)`, the CLI warns
-  (`the sampler ran too rarely to align the clocks; CPU samples may sit up to 1.8 ms off the provider spans`)
-  and keeps the profile.
+  A counted sample at `t` ms on the profile clock, in an anchor that read the clock at
+  `startMs` and `endMs`, puts the offset in `[t - endMs, t - startMs]`. The offset is the
+  middle of the bounds every counted sample of both anchors sets, and `errorMs` is half their
+  width. `consistent` is `lo <= hi`. When the bounds cross, the samples contradict the clock
+  reads, and `errorMs` is half the gap.
+- When `consistent` is false, the CLI warns
+  (`the CPU clock and performance.now() disagree by 0.8 ms; CPU samples may sit up to 0.4 ms off the provider spans`).
+  Otherwise, when `errorMs` passes `max(1 ms, 4 × interval)`, it warns
+  (`the sampler ran too rarely to align the clocks; CPU samples may sit up to 1.8 ms off the provider spans`).
+  Both keep the profile.
 - When no anchor has a sample, the CLI warns, writes the Chrome file without the CPU
   profile, and keeps exit code 0. One anchor with samples is enough to align.
 - `libs/cli` builds with `tsc` and no minifier, so the names stay intact.
 - Error bar: the lab measured 0.22 ms and 0.43 ms agreement at 50 µs on macOS, with the
   first-sample rule. With the bounds rule, 30 runs of the Meridian fixture on macOS gave
-  `errorMs` median 0.047 ms and max 0.30 ms at 100 µs, and max 0.11 ms at 50 µs. A CLI
-  process test on Linux CI must find the anchors before the docs state an error bar.
+  `errorMs` median 0.047 ms and max 0.30 ms at 100 µs, and max 0.11 ms at 50 µs. A
+  `cpu.test.ts` case aligns 10 runs at 100 µs, asserts the median within
+  `max(1 ms, 4 × interval)`, and writes the median and max to the GitHub job summary; that
+  summary gives the Linux figure. The docs state the error bar as at most
+  `max(errorMs, interval)`, never below one sampling interval.
 
 The V8 profile clock and `performance.now()` differ (the lab measured a 376,936 s offset on
 macOS), which is why alignment uses anchors. `process.hrtime` does not close the gap: on

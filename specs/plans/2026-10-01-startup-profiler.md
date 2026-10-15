@@ -6734,19 +6734,23 @@ Files:
 
 Interfaces:
 
-- Produces in `cpu.ts`: `type Anchor = readonly [name, startMs, endMs]`, `startCpu(interval: number): Promise<Sampling>` (runs the first anchor), `stopCpu(sampling: Sampling): Promise<{ profile: CpuProfile; anchors: readonly Anchor[] }>` (runs the second), `alignClocks(profile: CpuProfile, anchors: readonly Anchor[]): { readonly offsetMs: number; readonly errorMs: number } | null`.
+- Produces in `cpu.ts`: `type Anchor = readonly [name, startMs, endMs]`, `startCpu(interval: number): Promise<Sampling>` (runs the first anchor), `stopCpu(sampling: Sampling): Promise<{ profile: CpuProfile; anchors: readonly Anchor[] }>` (runs the second), `alignClocks(profile: CpuProfile, anchors: readonly Anchor[]): Alignment | null` with `Alignment = { offsetMs, errorMs, consistent }`, `cpuWarning(aligned: Alignment, interval: number): string | null`.
 
 Round 1 (2026-10-15): the first-sample rule of the first draft drifted 1.4 to 65 ms on macOS. Node loaded `perf_hooks` inside `nexusdiAnchorStart` before its clock read, and the macOS sampler went 5 to 25 ms without a sample. `startCpu` now reads `performance` before `Profiler.start`, the spins last `max(10 ms, 20 × interval)`, only samples under `nexusdiAnchorSpin` count, and the offset is the middle of the bounds every counted sample sets (spec 8). 30 macOS runs: `errorMs` median 0.047 ms, max 0.30 ms at 100 µs. The process test runs on every platform.
+
+Round 2 (2026-10-15): `alignClocks` returns `consistent: lo <= hi`, and `cpuWarning` says the CPU clock and `performance.now()` disagree when it is false. The spin-frame check is gone: on the second profile in one process V8 had inlined the spin into the optimized anchor and dropped its frame, so runs 2 to 10 found no anchor. A `cpu.test.ts` case aligns 10 runs at 100 µs, asserts each aligns and the median sits within `max(1 ms, 4 × interval)`, and appends the median and max to `$GITHUB_STEP_SUMMARY`. The recorded profile's script URLs read `file:///app/node_modules/@nexusdi/...`, and `tools/repo-checks/src/fixture-local-paths.test.ts` refuses a committed fixture that holds a local path.
 
 - [ ] Step 0: Lift Task 16's interim `--cpu` refusal: remove the `command.cpu` check at the top of `runProfile` and its process test, restore `--cpu` and `--cpu-interval` to `USAGE` in `main.ts` (spec 9.1's two lines), and put `--cpu` back on the README's second Profile startup command with "The second also writes a trace you open in Chrome DevTools, with the CPU samples of the startup under it." The README's sentence must stay true: a process test runs that command and finds the samples in the file. `main.test.ts` checks that `--help` lists every flag in `PROFILE_ONLY`.
 
 - [ ] Step 1: Write the failing unit test `cpu.test.ts`
 
 ```ts
+import { appendFileSync } from 'node:fs';
+
 import type { CpuProfile } from '@nexusdi/devtools';
 import { describe, expect, it } from 'vitest';
 
-import { alignClocks, startCpu, stopCpu } from './cpu.js';
+import { alignClocks, cpuWarning, startCpu, stopCpu } from './cpu.js';
 
 const frame = (functionName: string) => ({
   functionName,
@@ -6780,6 +6784,7 @@ describe('alignClocks', () => {
     ]);
     expect(aligned?.offsetMs).toBeCloseTo(990.075, 6);
     expect(aligned?.errorMs).toBeCloseTo(0.025, 6);
+    expect(aligned?.consistent).toBe(true);
   });
 
   it('reports half the gap when the anchors disagree', () => {
@@ -6790,15 +6795,17 @@ describe('alignClocks', () => {
     ]);
     expect(aligned?.offsetMs).toBeCloseTo(989.675, 6);
     expect(aligned?.errorMs).toBeCloseTo(0.375, 6);
+    expect(aligned?.consistent).toBe(false);
   });
 
-  it('skips a sample in the anchor before its spin, where the clock read was still running', () => {
-    // Sample 2 holds the anchor but no spin; only 1000.2 ms counts.
+  it('counts a sample whose spin frame the optimizer inlined away', () => {
+    // Sample 2 holds the anchor alone, as an optimized anchor with its spin
+    // inlined reports it: 1000.1 and 1000.2 ms both count.
     const aligned = alignClocks({ ...profile, samples: [1, 2, 4, 1, 5] }, [
       ['nexusdiAnchorStart', 10, 10.15],
     ]);
-    expect(aligned?.offsetMs).toBeCloseTo(990.125, 6);
-    expect(aligned?.errorMs).toBeCloseTo(0.075, 6);
+    expect(aligned?.offsetMs).toBeCloseTo(990.075, 6);
+    expect(aligned?.errorMs).toBeCloseTo(0.025, 6);
   });
 
   it('aligns from one anchor when the other has no sample', () => {
@@ -6819,6 +6826,33 @@ describe('alignClocks', () => {
   });
 });
 
+describe('cpuWarning', () => {
+  it('says the clocks disagree, by the gap between the bounds, when they cross', () => {
+    expect(
+      cpuWarning({ offsetMs: 0, errorMs: 0.375, consistent: false }, 100),
+    ).toBe(
+      'nexusdi: warning: the CPU clock and performance.now() disagree by 0.8 ms; CPU samples may sit up to 0.4 ms off the provider spans.\n',
+    );
+  });
+
+  it('says the sampler ran too rarely when the error passes max(1 ms, 4 samples)', () => {
+    expect(
+      cpuWarning({ offsetMs: 0, errorMs: 1.84, consistent: true }, 100),
+    ).toBe(
+      'nexusdi: warning: the sampler ran too rarely to align the clocks; CPU samples may sit up to 1.8 ms off the provider spans.\n',
+    );
+    expect(
+      cpuWarning({ offsetMs: 0, errorMs: 1.9, consistent: true }, 500),
+    ).toBeNull();
+  });
+
+  it('says nothing for a consistent alignment within the bound', () => {
+    expect(
+      cpuWarning({ offsetMs: 0, errorMs: 0.05, consistent: true }, 100),
+    ).toBeNull();
+  });
+});
+
 describe('startCpu and stopCpu', () => {
   // The error depends on how often the OS lets the sampler run, so this
   // test holds only that the anchors get a sample; the CLI warns on error.
@@ -6831,6 +6865,32 @@ describe('startCpu and stopCpu', () => {
     for (const [, startMs, endMs] of anchors)
       expect(endMs - startMs).toBeGreaterThanOrEqual(10);
     expect(alignClocks(recorded, anchors)).not.toBeNull();
+  });
+
+  // The figure the docs' error bar cites (spec 8). CI appends it to the job
+  // summary; the max goes unasserted, since it follows the runner's load.
+  it('align 10 runs at 100 µs with a median error within max(1 ms, 4 samples)', async () => {
+    const interval = 100;
+    const errors: number[] = [];
+    let crossed = 0;
+    for (let run = 0; run < 10; run++) {
+      const { profile: recorded, anchors } = await stopCpu(
+        await startCpu(interval),
+      );
+      const aligned = alignClocks(recorded, anchors);
+      expect(aligned).not.toBeNull();
+      if (aligned === null) return;
+      errors.push(aligned.errorMs);
+      if (!aligned.consistent) crossed++;
+    }
+    errors.sort((a, b) => a - b);
+    const median = ((errors[4] ?? 0) + (errors[5] ?? 0)) / 2;
+    const max = errors[9] ?? 0;
+    const line = `CPU clock alignment on ${process.platform}, Node ${process.versions.node}, 10 runs at ${interval} µs: errorMs median ${median.toFixed(3)} ms, max ${max.toFixed(3)} ms, ${crossed} with crossed bounds.`;
+    console.log(line);
+    const summary = process.env['GITHUB_STEP_SUMMARY'];
+    if (summary !== undefined) appendFileSync(summary, `${line}\n`);
+    expect(median).toBeLessThanOrEqual(Math.max(1, (4 * interval) / 1000));
   });
 });
 ```
@@ -6900,21 +6960,18 @@ export async function stopCpu(sampling: Sampling): Promise<{
   }
 }
 
-/**
- * Spins for `ms` and returns performance.now() after the spin. alignClocks
- * counts only samples inside it, so every counted sample falls between the
- * anchor's read before the spin and this read after it.
- */
+/** Spins for `ms` and returns performance.now() after the spin. */
 function nexusdiAnchorSpin(ms: number): number {
   const end = performance.now() + ms;
   while (performance.now() < end);
   return performance.now();
 }
 
-// alignClocks finds the anchors in the samples by their names and the
-// spin's. The CLI builds with tsc and no minifier, so the names reach the
-// profile intact. The spin lasts at least 10 ms: the macOS sampler can go
-// 5 to 25 ms without a sample.
+// alignClocks finds the anchors in the samples by their names. The spin
+// gets no name check: once V8 optimizes an anchor, it inlines the spin and
+// the profile drops the spin's frame. The CLI builds with tsc and no
+// minifier, so the names reach the profile intact. The spin lasts at least
+// 10 ms: the macOS sampler can go 5 to 25 ms without a sample.
 
 /** Spins for max(10 ms, 20 samples). */
 function nexusdiAnchorStart(interval: number): Anchor {
@@ -6936,19 +6993,27 @@ function nexusdiAnchorEnd(interval: number): Anchor {
   ];
 }
 
+/** What alignClocks found: the offset, how far off it can be, and whether the anchors agree. */
+export interface Alignment {
+  readonly offsetMs: number;
+  readonly errorMs: number;
+  /** false when the bounds cross: the samples contradict the clock reads. */
+  readonly consistent: boolean;
+}
+
 /**
  * The offset from performance.now() ms to the profile's clock (spec 8). A
- * sample at profile time t inside an anchor's spin, read between startMs and
- * endMs, puts the offset in [t - endMs, t - startMs]. The offset is the middle
+ * sample at profile time t whose stack holds an anchor, which read the clock
+ * at startMs and endMs, puts the offset in [t - endMs, t - startMs]. The offset is the middle
  * of the bounds every such sample of every anchor sets, and errorMs is half
  * their width: the furthest the true offset can sit from it. When the bounds
- * cross, the anchors disagree, and errorMs is half the gap. null when no
- * anchor has a sample.
+ * cross, the anchors disagree, consistent is false, and errorMs is half the
+ * gap. null when no anchor has a sample.
  */
 export function alignClocks(
   profile: CpuProfile,
   anchors: readonly (readonly [name: string, startMs: number, endMs: number])[],
-): { readonly offsetMs: number; readonly errorMs: number } | null {
+): Alignment | null {
   const names = new Map(
     profile.nodes.map((n) => [n.id, n.callFrame.functionName]),
   );
@@ -6956,16 +7021,12 @@ export function alignClocks(
   for (const n of profile.nodes)
     for (const child of n.children ?? []) parents.set(child, n.id);
   const holds = (id: number, name: string): boolean => {
-    let spin = false;
     for (
       let at: number | undefined = id;
       at !== undefined;
       at = parents.get(at)
-    ) {
-      const frame = names.get(at);
-      if (frame === 'nexusdiAnchorSpin') spin = true;
-      else if (frame === name) return spin;
-    }
+    )
+      if (names.get(at) === name) return true;
     return false;
   };
   let lo = -Infinity;
@@ -6981,7 +7042,27 @@ export function alignClocks(
   }
   return hi === Infinity
     ? null
-    : { offsetMs: (lo + hi) / 2, errorMs: Math.abs(hi - lo) / 2 };
+    : {
+        offsetMs: (lo + hi) / 2,
+        errorMs: Math.abs(hi - lo) / 2,
+        consistent: lo <= hi,
+      };
+}
+
+/**
+ * The CLI's warning for an alignment, or null: the anchors disagree, or the
+ * error passes max(1 ms, 4 samples at `interval` µs) (spec 8).
+ */
+export function cpuWarning(
+  aligned: Alignment,
+  interval: number,
+): string | null {
+  const upTo = `CPU samples may sit up to ${aligned.errorMs.toFixed(1)} ms off the provider spans`;
+  if (!aligned.consistent)
+    return `nexusdi: warning: the CPU clock and performance.now() disagree by ${(2 * aligned.errorMs).toFixed(1)} ms; ${upTo}.\n`;
+  if (aligned.errorMs > Math.max(1, (4 * interval) / 1000))
+    return `nexusdi: warning: the sampler ran too rarely to align the clocks; ${upTo}.\n`;
+  return null;
 }
 ```
 
@@ -6991,8 +7072,8 @@ export function alignClocks(
 /**
  * Stops the sampling and aligns its clock to performance.now() by the two
  * anchors (spec 8). Warns and returns no CPU profile when no anchor has a
- * sample; warns when the alignment error passes max(1 ms, 4 samples) and
- * keeps the profile.
+ * sample; warns when the anchors disagree or the alignment error passes
+ * max(1 ms, 4 samples), and keeps the profile.
  */
 async function mergeCpu(
   io: Io,
@@ -7007,11 +7088,8 @@ async function mergeCpu(
     );
     return undefined;
   }
-  if (aligned.errorMs > Math.max(1, (4 * sampling.interval) / 1000))
-    await writeTo(
-      io.stderr,
-      `nexusdi: warning: the sampler ran too rarely to align the clocks; CPU samples may sit up to ${aligned.errorMs.toFixed(1)} ms off the provider spans.\n`,
-    );
+  const warning = cpuWarning(aligned, sampling.interval);
+  if (warning !== null) await writeTo(io.stderr, warning);
   return { cpuProfile: { profile, offsetMs: aligned.offsetMs } };
 }
 
@@ -7285,7 +7363,7 @@ Interfaces:
 3. `critical-path`: `criticalPath(report, 0)?.path.map((p) => p.token)` with a claim on the token list.
 4. `download`: the Blob download of `JSON.stringify(toChromeTrace(report))`, in a fence marked to type-check only, as the guide shows for browser-only code.
 
-- [ ] Step 3: The page. Frontmatter `kind: question`, title "How do I find out what slows or stalls startup?", a `requires` line naming `introspection`. Sections in Context, Concept, Detail order (spec 12): what the reader can't see today; `profile()` in an app (region 1); reading the table (sync, await, finish, own, queued; levels as barriers; the critical path and barrier waits, region 3), with any output that shows times taken from region output or the page console only; `nexusdi profile` from the terminal with the spec 9.2 commands; opening the Chrome file (DevTools, Performance, Load profile, Show custom tracks) and the Perfetto file (ui.perfetto.dev); `--cpu`; live mode on Chromium 134 and later, shown with its import line, `import { liveSink } from '@nexusdi/devtools/live';`, and `profile({ live: liveSink() })`; the warning that `--repeat` builds every provider again, side effects included; a stalled startup (region 2 and `--timeout`); live mode draws a run once it settles, so a stalled startup reads through `report()` and `toChromeTrace`; and a reference H2 for `nexusdi profile` with the spec 9.1 synopsis, every flag and the spec 9.5 exit-code table (tech lead ruling 1; check them against `OPTIONS` in `libs/cli/src/args.ts`). End with the next step: `/trace-events/`. Add `profiling` to `_meta.ts` in the Guides band after `graph-cli`.
+- [ ] Step 3: The page. Frontmatter `kind: question`, title "How do I find out what slows or stalls startup?", a `requires` line naming `introspection`. Sections in Context, Concept, Detail order (spec 12): what the reader can't see today; `profile()` in an app (region 1); reading the table (sync, await, finish, own, queued; levels as barriers; the critical path and barrier waits, region 3), with any output that shows times taken from region output or the page console only; `nexusdi profile` from the terminal with the spec 9.2 commands; opening the Chrome file (DevTools, Performance, Load profile, Show custom tracks) and the Perfetto file (ui.perfetto.dev); `--cpu`, with its error bar stated as at most `max(errorMs, interval)` and never below one sampling interval, citing the Linux figure from the CI job summary of the `cpu.test.ts` 10-run case and the macOS figure from spec 8 (median 0.047 ms, max 0.30 ms at 100 µs); live mode on Chromium 134 and later, shown with its import line, `import { liveSink } from '@nexusdi/devtools/live';`, and `profile({ live: liveSink() })`; the warning that `--repeat` builds every provider again, side effects included; a stalled startup (region 2 and `--timeout`); live mode draws a run once it settles, so a stalled startup reads through `report()` and `toChromeTrace`; and a reference H2 for `nexusdi profile` with the spec 9.1 synopsis, every flag and the spec 9.5 exit-code table (tech lead ruling 1; check them against `OPTIONS` in `libs/cli/src/args.ts`). End with the next step: `/trace-events/`. Add `profiling` to `_meta.ts` in the Guides band after `graph-cli`.
 
 - [ ] Step 4: Run the docs checks
 
