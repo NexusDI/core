@@ -5,15 +5,16 @@ import type { ModuleRef, Scope } from '@nexusdi/core';
 import {
   containerOf,
   defaultLog,
+  definitionCheck,
+  disposer,
+  enterSection,
   guardLog,
   loader,
-  once,
   RequestFinishedError,
   requestScope,
   statusOf,
   toHttpError,
   validateFailure,
-  validateNow,
   validator,
   type ContainerSource,
   type DepsMap,
@@ -107,13 +108,7 @@ export function nexus(
 
   const middleware: RequestHandler = async (req, res, next) => {
     const handle = requestScope(container, () => options.request?.(req));
-    const dispose = once(() =>
-      handle
-        .close()
-        .catch((error: unknown) =>
-          log(error, { adapter: ADAPTER, phase: 'dispose' }),
-        ),
-    );
+    const dispose = disposer(handle, log, ADAPTER);
     if (res.closed) {
       await dispose(); // the client left before this ran: nothing to serve
       return;
@@ -134,24 +129,6 @@ export function nexus(
     options.scopes.run(scope, () => next());
   };
 
-  /** validate() now for a live container (validateNow); on the first request for the function form. */
-  const checkAtDefinition = (deps: DepsMap): (() => Promise<void>) => {
-    validateNow(ship, deps, log, ADAPTER);
-    return typeof ship === 'function'
-      ? validator(container, deps)
-      : () => Promise.resolve();
-  };
-
-  /**
-   * Loads a section's module, then extends the request's scope if it has
-   * started, so a token from the module resolves (integrations spec 3.9).
-   */
-  const enter = async (module: ModuleRef, req: Request): Promise<void> => {
-    await load(module);
-    const handle = req.nexus;
-    if (handle?.started === true) await (await handle.scope()).extend();
-  };
-
   const handlerOf =
     <D extends DepsMap>(
       deps: D,
@@ -161,7 +138,7 @@ export function nexus(
     ): RequestHandler =>
     async (req, res, next) => {
       try {
-        if (section !== undefined) await enter(section, req);
+        if (section !== undefined) await enterSection(load, section, req.nexus);
       } catch (error) {
         if (!finished(error, res)) next(mapped(error, 'load'));
         return;
@@ -186,12 +163,16 @@ export function nexus(
   return {
     middleware,
     inject: (deps, handler) =>
-      handlerOf(deps, handler, checkAtDefinition(deps)),
+      handlerOf(
+        deps,
+        handler,
+        definitionCheck(ship, container, deps, log, ADAPTER),
+      ),
     scope: async (req) => handleOf(req).scope(),
     load(module) {
       const section: RequestHandler = async (req, res, next) => {
         try {
-          await enter(module, req);
+          await enterSection(load, module, req.nexus);
         } catch (error) {
           if (!finished(error, res)) next(mapped(error, 'load'));
           return;
