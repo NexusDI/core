@@ -54,6 +54,24 @@ export function disposeWithBody(
   });
 }
 
+/**
+ * The response `next()` resolves to. When it rejects, as it does for an error
+ * handler that rethrows or a thrown value that is not an Error, or throws
+ * at once, as a `scopes` runner the user wrote can, no body follows to
+ * dispose the scope, so the scope is disposed here before the error goes on.
+ */
+async function settled(
+  next: () => Promise<Response>,
+  dispose: () => Promise<void>,
+): Promise<Response> {
+  try {
+    return await next();
+  } catch (error) {
+    await dispose();
+    throw error;
+  }
+}
+
 /** The status of a response whose client has gone. Nobody reads it. */
 export const CLIENT_GONE = 499;
 
@@ -89,9 +107,13 @@ export async function serveWithBody(step: {
   if (scopes !== undefined) {
     const started = await step.ambient(handle, dispose);
     if ('failure' in started) step.fail(started.failure);
-    response = await scopes.run(started.scope, step.next);
+    response = await settled(
+      () => scopes.run(started.scope, step.next),
+      dispose,
+    );
   } else {
-    response = await step.next(); // the handlers create the scope on first use
+    // the handlers create the scope on first use
+    response = await settled(step.next, dispose);
   }
   return disposeWithBody(response, dispose, request.method);
 }

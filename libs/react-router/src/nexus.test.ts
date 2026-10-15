@@ -129,6 +129,51 @@ describe('nexus', () => {
     expect(count(events, 'scope:dispose')).toBe(1);
   });
 
+  it('disposes the scope when next() rejects after a loader used it', async () => {
+    const events: TraceEvent[] = [];
+    const di = nexus(await ship(events), { request, log: () => {} });
+    const loader = di.inject({ log: FLIGHT_LOG }, ({ log }) => log.entries());
+    await expect(
+      run(di.middleware, async (context) => {
+        await loader({ context });
+        throw new Error('sector not charted');
+      }),
+    ).rejects.toThrow('sector not charted');
+    await settle();
+    expect(count(events, 'scope:create')).toBe(1);
+    expect(count(events, 'scope:dispose')).toBe(1);
+  });
+
+  it('disposes the ambient scope when next() rejects under scopes', async () => {
+    const events: TraceEvent[] = [];
+    const scopes = { run: <R>(_scope: unknown, fn: () => R): R => fn() };
+    const di = nexus(await ship(events), { request, scopes, log: () => {} });
+    await expect(
+      run(di.middleware, async () => {
+        throw new Error('sector not charted');
+      }),
+    ).rejects.toThrow('sector not charted');
+    await settle();
+    expect(count(events, 'scope:create')).toBe(1);
+    expect(count(events, 'scope:dispose')).toBe(1);
+  });
+
+  it('disposes the ambient scope when the scope runner throws synchronously', async () => {
+    const events: TraceEvent[] = [];
+    const scopes = {
+      run: (): never => {
+        throw new Error('runner down');
+      },
+    };
+    const di = nexus(await ship(events), { request, scopes, log: () => {} });
+    await expect(
+      run(di.middleware, async () => Response.json('unreached')),
+    ).rejects.toThrow('runner down');
+    await settle();
+    expect(count(events, 'scope:create')).toBe(1);
+    expect(count(events, 'scope:dispose')).toBe(1);
+  });
+
   it('keeps the scope open while a streamed response reads a scoped instance', async () => {
     const events: TraceEvent[] = [];
     const di = nexus(await ship(events), { request, log: () => {} });
