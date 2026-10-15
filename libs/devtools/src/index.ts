@@ -15,6 +15,7 @@ export {
 } from './profile/profile.js';
 export type {
   CpuProfile,
+  LiveSink,
   CriticalPath,
   ProfileBuild,
   ProfileInit,

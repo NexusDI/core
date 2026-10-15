@@ -507,15 +507,16 @@ event type with a default branch, and a devtools test feeds both through `profil
 import type { NexusPlugin, RootRef, ModuleRef } from '@nexusdi/core';
 
 export interface ProfileOptions {
-  /** Draw spans live with console.timeStamp on Chromium 134 and later; elsewhere nothing. Default false. */
-  readonly live?: boolean;
+  /** Draws each run as it closes; pass liveSink() from @nexusdi/devtools/live. Default: no drawing. */
+  readonly live?: LiveSink;
   /** Record createScope() and extend() runs as well. Default false: create and load only. */
   readonly scopes?: boolean;
   /** Runs kept; the oldest goes first and counts in report().dropped. Default 1000. */
   readonly maxRuns?: number;
-  /** The DevTools track group for live spans. Default 'NexusDI'. */
-  readonly trackGroup?: string;
 }
+
+/** Draws one run as it closes. */
+export type LiveSink = (run: ProfileRun, graph: ProfileReport['graph']) => void;
 
 /** A plugin that records where startup time goes. One per container. */
 export interface Profiler extends NexusPlugin {
@@ -530,6 +531,14 @@ export interface Profiler extends NexusPlugin {
 }
 
 export function profile(options?: ProfileOptions): Profiler;
+
+// @nexusdi/devtools/live, a subpath of its own: an app that never imports it
+// ships none of the live drawing code.
+/** undefined outside Chromium 134 and later, where console.timeStamp draws nothing. */
+export function liveSink(options?: {
+  /** The DevTools track group the spans go in. Default 'NexusDI'. */
+  readonly trackGroup?: string;
+}): LiveSink | undefined;
 
 /** create with a profiler, each load in order, then disposal. */
 export function profileStartup(
@@ -744,16 +753,16 @@ a server that leaves the profiler on does not grow without bound.
 
 ### 6.5 Live mode
 
-`profile({ live: true })` draws the spans of section 7.3 for a run when its `run` event
-arrives, so a Performance recording of a page shows the NexusDI track group with no file
+`profile({ live: liveSink() })`, with `liveSink` from `@nexusdi/devtools/live`, draws the
+spans of section 7.3 for a run when its `run` event arrives, so a Performance recording of a page shows the NexusDI track group with no file
 step. The barrier-path colour is known only at the run's end, and `console.timeStamp` takes
 explicit start and end times, so each span keeps its recorded start and end. A run that never
 settles draws nothing live; `report()` and `toChromeTrace` cover a stalled startup.
 
 - One sink: `console.timeStamp(label, start, end, track, trackGroup, color)`.
-- Detection runs once, at `profile()`: the `Chromium` entry of
-  `navigator.userAgentData.brands` with a version of 134 or later. Every other runtime draws
-  nothing.
+- Detection runs once, at `liveSink()`: the `Chromium` entry of
+  `navigator.userAgentData.brands` with a version of 134 or later. Every other runtime gets
+  `undefined`, and `profile()` draws nothing.
 - Cost per span on Chrome 154: 142 ns when nothing records, 999 ns while recording. A
   500-provider startup draws about 600 spans: 0.09 ms and 0.6 ms.
 - Every live call sits in a `try/catch` that drops the error. An observe hook's throw would
@@ -785,6 +794,7 @@ other than 1.
 ```ts
 import { Nexus, Token, defineModule, provide } from '@nexusdi/core';
 import { profile, profileTable, toChromeTrace } from '@nexusdi/devtools';
+import { liveSink } from '@nexusdi/devtools/live';
 
 interface IReactorCore {
   output(): number;
@@ -827,7 +837,7 @@ const Tactical = defineModule({
 
 const Meridian = defineModule({ name: 'Meridian', imports: [Tactical] });
 
-const profiler = profile({ live: true });
+const profiler = profile({ live: liveSink() });
 await using ship = await Nexus.create(Meridian, { plugins: [profiler] });
 
 const report = profiler.report();
@@ -1254,25 +1264,33 @@ the existing hook guards.
 
 ### 11.2 devtools
 
-Estimated by scaling from `toDot` (178 lines, 840 B gzip) and `toMermaid` (920 B):
+Measured on the implementation, esbuild `--bundle --minify --format=esm`, gzip 9, with
+`@nexusdi/core` external:
 
-| Export                                    | Lines, est. | gzip B, est. |
-| ----------------------------------------- | ----------- | ------------ |
-| `profile()` with recording and `report()` | 150         | 800          |
-| live sink (`console.timeStamp` only)      | 30          | 175          |
-| `profileTable` and `criticalPath`         | 200         | 1,100        |
-| `toChromeTrace` with the CPU merge        | 150         | 800          |
-| `toPerfettoTrace`                         | 130         | 700          |
-| `profileStartup`, `parseProfileReport`    | 80          | 450          |
+| Import                                      | gzip B |
+| ------------------------------------------- | ------ |
+| `profile()` alone                           | 1,952  |
+| `profile()` with `liveSink()` from `/live`  | 3,465  |
+| `/live` on top of `profile()`               | 1,513  |
+| `devtools()` and `graph()`, no profile code | 1,375  |
 
-An app that registers `profile({ live: true })` and calls no formatter adds about 1.0 kB
-gzip over `devtools()`. An app that never imports `profile` adds 0 B: devtools is
-`sideEffects: false`, each formatter is its own module under `libs/devtools/src/profile/`,
-and `devtools()`, `graph()` and `trace()` reference no profile module.
+`profile()`'s bytes go to the recorder in `observe`, `stepsOf`, `graphOf` with its deep
+freeze, and the `NEXUS_DEVTOOLS_PROFILE_REUSED` text. The `/live` subpath carries
+`spansOf`, the critical path it colours by, and the `console.timeStamp` sink. The formatters
+(`profileTable`, `criticalPath`, `toChromeTrace`, `toPerfettoTrace`, `profileStartup`,
+`parseProfileReport`) each add bytes only to an app that imports them.
 
-Enforcement: the `examples/size/src/devtools.ts` fixture does not move in the profiler pull
-request, and a new fixture `examples/size/src/devtools-profile.ts` records `profile()` alone.
-The size report replaces each estimate when the work merges.
+The size report measures each fixture minus core, so shared code compresses with core:
+`devtools+profile` (`examples/size/src/devtools-profile.ts`, plain `profile()`) is 1,622 B and
+`devtools+live` (`examples/size/src/devtools-live.ts`) is 3,077 B. An app that never imports
+`profile` adds 0 B: devtools is `sideEffects: false`, each formatter is its own module under
+`libs/devtools/src/profile/`, and `devtools()`, `graph()` and `trace()` reference no profile
+module. A bundle test in `libs/devtools/src/profile/bundle.test.ts` holds that plain
+`profile()` carries no `console.timeStamp` or span layout code.
+
+Enforcement: the `examples/size/src/devtools.ts` fixture changes only as core does in the
+profiler pull request, and the two fixtures above record `profile()` with and without live
+drawing.
 
 ## 12. Docs pages
 
@@ -1425,16 +1443,19 @@ exports `RunKind`. Core (`libs/core/src/blueprint/`): `views.ts` (`EdgeView.orde
 `ProviderView.inline`), `levels.ts` (`isInline`), `compile.ts` (pass 4 calls `ordersBuild`),
 and the module that holds the two helpers.
 
-devtools: `src/profile/{profile,live,report,steps,table,critical-path,chrome,perfetto,parse,startup}.ts`,
-`src/devtools-error.ts` (two codes), `src/index.ts`, `src/plugin-api-1.test-d.ts`,
-`vitest.trace.config.ts`, `test-fixtures/profile/*`, `project.json` (`test-trace`).
+devtools: `src/profile/{profile,live,report,steps,table,critical-path,spans,chrome,perfetto,parse,startup,extent}.ts`,
+`src/live.ts` (the `@nexusdi/devtools/live` entry, with `exports["./live"]` in
+`package.json`), `src/devtools-error.ts` (two codes), `src/index.ts`,
+`src/plugin-api-1.test-d.ts`, `src/profile/bundle.test.ts`,
+`src/profile/trace-engine.trace.test.ts`, `vitest.trace.config.ts`,
+`test-fixtures/profile/*`, `project.json` (`test-trace`).
 
 CLI: `src/profile.ts` (command, anchors, `alignClocks`, timeout), `src/args.ts` (second
 command), `src/devtools.ts` (`DevtoolsApi`), `src/main.ts`, `test-fixtures/profile/*`,
 `README.md` (its usage lines and options table, which `src/readme.test.ts` holds against
 `OPTIONS` in `src/args.ts`).
 
-Repo: `examples/size/src/devtools-profile.ts`, `.github/workflows/devtools-trace-canary.yml`,
+Repo: `examples/size/src/devtools-profile.ts`, `examples/size/src/devtools-live.ts`, `.github/workflows/devtools-trace-canary.yml`,
 root `package.json` (`@paulirish/trace_engine`, exact pin).
 
 ## 16. Rejected options

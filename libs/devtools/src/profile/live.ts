@@ -1,4 +1,4 @@
-import type { ProfileReport, ProfileRun } from './report.js';
+import type { LiveSink } from './report.js';
 import { spansOf } from './spans.js';
 
 interface Brands {
@@ -20,13 +20,16 @@ type TimeStamp = (
 ) => void;
 
 /**
- * The console.timeStamp sink of profile({ live: true }) (spec 6.5), or
- * undefined where it would reach nothing: anything but Chromium 134 and
- * later. A draw never throws; a profiler never fails the app it measures.
+ * A sink for profile({ live }) that draws each run's spans with
+ * console.timeStamp in the DevTools track group `trackGroup` (default
+ * 'NexusDI'), spec 6.5. undefined outside Chromium 134 and later, where
+ * console.timeStamp draws nothing. A draw never throws; a profiler never
+ * fails the app it measures.
  */
 export function liveSink(
-  trackGroup: string,
-): ((run: ProfileRun, graph: ProfileReport['graph']) => void) | undefined {
+  options: { readonly trackGroup?: string } = {},
+): LiveSink | undefined {
+  const trackGroup = options.trackGroup ?? 'NexusDI';
   const brands =
     (globalThis.navigator as Brands | undefined)?.userAgentData?.brands ?? [];
   if (!brands.some((b) => b.brand === 'Chromium' && Number(b.version) >= 134))

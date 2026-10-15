@@ -1,0 +1,41 @@
+import { describe, expect, it } from 'vitest';
+
+import { build } from 'esbuild';
+
+/** profile() alone, bundled and minified as an app's build would ship it. */
+async function bundled(entry: string): Promise<string> {
+  const result = await build({
+    stdin: {
+      contents: entry,
+      resolveDir: new URL('../..', import.meta.url).pathname,
+      loader: 'ts',
+    },
+    bundle: true,
+    minify: true,
+    format: 'esm',
+    platform: 'neutral',
+    write: false,
+    external: ['@nexusdi/core'],
+    logLevel: 'silent',
+  });
+  return result.outputFiles[0]?.text ?? '';
+}
+
+describe('the profile() bundle', () => {
+  it('carries no live drawing code unless the app imports @nexusdi/devtools/live', async () => {
+    const plain = await bundled("export { profile } from './src/index.ts';");
+    // console.timeStamp is live mode's only sink, and the span colours and
+    // the pending tooltip are spansOf's own strings.
+    for (const mark of [
+      'timeStamp',
+      'primary-light',
+      'still awaiting at timeout',
+    ])
+      expect(plain).not.toContain(mark);
+    const live = await bundled(
+      "export { profile } from './src/index.ts'; export { liveSink } from './src/live.ts';",
+    );
+    for (const mark of ['timeStamp', 'primary-light'])
+      expect(live).toContain(mark);
+  });
+});

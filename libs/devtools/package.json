@@ -35,6 +35,12 @@
       "types": "./dist/index.d.ts",
       "import": "./dist/index.js",
       "default": "./dist/index.js"
+    },
+    "./live": {
+      "@nexusdi/source": "./src/live.ts",
+      "types": "./dist/live.d.ts",
+      "import": "./dist/live.js",
+      "default": "./dist/live.js"
     }
   },
   "files": [
