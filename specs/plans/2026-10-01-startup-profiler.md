@@ -7159,7 +7159,7 @@ Record the drift the Linux CI run reports in the ledger: spec 8 says the docs st
 
 Files:
 
-- Create: `.github/workflows/devtools-trace-canary.yml`, `tools/trace-canary/run.mjs`
+- Create: `.github/workflows/devtools-trace-canary.yml`, `tools/trace-canary/run.mjs`, `tools/trace-canary/package.json` (a private workspace package: `tools/*` is a workspace glob, and fallow warns on a folder under it with no package.json)
 - Create: `tools/repo-checks/src/trace-canary-workflow.test.ts`
 
 Interfaces:
@@ -7176,21 +7176,29 @@ Expected: FAIL, the workflow is missing.
 ```js
 #!/usr/bin/env node
 // Runs the layer-1 assertions of the profiler's golden test inside the
-// DevTools frontend of a real Chrome (startup profiler spec 10.2).
+// DevTools frontend of a real Chrome (startup profiler spec 10.2): the main
+// frame, one NexusDI group, the golden tracks and each track's entry count.
 //   node tools/trace-canary/run.mjs <chrome binary>
 import { spawn } from 'node:child_process';
-import { mkdtempSync, readFileSync } from 'node:fs';
+import { mkdtempSync, readFileSync, rmSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 
 const [chrome] = process.argv.slice(2);
-const golden = readFileSync(
-  new URL(
-    '../../libs/devtools/test-fixtures/profile/chrome-trace.golden.json',
-    import.meta.url,
+if (chrome === undefined || chrome === '') {
+  console.error('usage: node tools/trace-canary/run.mjs <chrome binary>');
+  process.exit(2);
+}
+const golden = JSON.parse(
+  readFileSync(
+    new URL(
+      '../../libs/devtools/test-fixtures/profile/chrome-trace.golden.json',
+      import.meta.url,
+    ),
+    'utf8',
   ),
-  'utf8',
 );
+// The golden track list of libs/devtools/src/profile/trace-engine.trace.test.ts.
 const TRACKS = [
   'Runs',
   'Steps',
@@ -7201,79 +7209,157 @@ const TRACKS = [
   'create · onInit',
   'load 1 · level 0',
 ];
+
+/** The entries the file writes per track: each non-marker `b` event. */
+function writtenCounts(events) {
+  const counts = {};
+  for (const e of events) {
+    if (e.ph !== 'b') continue;
+    const { devtools } = JSON.parse(e.args.detail);
+    if (devtools.dataType === 'marker' || devtools.track === undefined)
+      continue;
+    counts[devtools.track] = (counts[devtools.track] ?? 0) + 1;
+  }
+  return counts;
+}
+
 const port = 9333;
+const profileDir = mkdtempSync(join(tmpdir(), 'trace-canary-'));
 const browser = spawn(
   chrome,
   [
     '--headless=new',
     `--remote-debugging-port=${port}`,
-    `--user-data-dir=${mkdtempSync(join(tmpdir(), 'canary-'))}`,
+    `--user-data-dir=${profileDir}`,
+    '--no-first-run',
+    // Ubuntu 24.04 blocks the unprivileged user namespaces Chrome's sandbox
+    // needs. The browser loads only its own DevTools frontend here.
+    ...(process.platform === 'linux' ? ['--no-sandbox'] : []),
     'about:blank',
   ],
-  { stdio: 'inherit' },
+  { stdio: 'ignore' },
 );
+let spawnError = null;
+browser.once('error', (error) => {
+  spawnError = error;
+});
 
-async function cdp(url) {
-  for (let i = 0; i < 50; i++) {
+async function endpoint(path, method = 'GET') {
+  for (let i = 0; i < 100; i++) {
+    if (spawnError !== null) throw spawnError;
     try {
-      return await (await fetch(url, { method: 'PUT' })).json();
+      const response = await fetch(`http://127.0.0.1:${port}${path}`, {
+        method,
+      });
+      if (response.ok) return await response.json();
     } catch {
-      await new Promise((r) => setTimeout(r, 200));
+      // Chrome is still starting.
     }
+    await new Promise((r) => setTimeout(r, 200));
   }
-  throw new Error(`no DevTools endpoint at ${url}`);
+  throw new Error(`no DevTools endpoint at ${path}`);
 }
 
-const version = await cdp(`http://127.0.0.1:${port}/json/version`);
-const target = await cdp(
-  `http://127.0.0.1:${port}/json/new?http://127.0.0.1:${port}/devtools/devtools_app.html`,
-);
-const socket = new WebSocket(target.webSocketDebuggerUrl);
-await new Promise((resolve) =>
-  socket.addEventListener('open', resolve, { once: true }),
-);
-let next = 0;
-const send = (method, params) =>
-  new Promise((resolve, reject) => {
-    const id = ++next;
-    const onMessage = (message) => {
-      const data = JSON.parse(String(message.data));
-      if (data.id !== id) return;
-      socket.removeEventListener('message', onMessage);
-      if (data.error || data.result?.exceptionDetails)
-        reject(
-          new Error(JSON.stringify(data.error ?? data.result.exceptionDetails)),
-        );
-      else resolve(data.result);
-    };
-    socket.addEventListener('message', onMessage);
-    socket.send(JSON.stringify({ id, method, params }));
+let failures = [];
+let build = 'Chrome';
+try {
+  build = (await endpoint('/json/version')).Browser;
+  const target = await endpoint(
+    `/json/new?http://127.0.0.1:${port}/devtools/devtools_app.html`,
+    'PUT',
+  );
+  const socket = new WebSocket(target.webSocketDebuggerUrl);
+  await new Promise((resolve, reject) => {
+    socket.addEventListener('open', resolve, { once: true });
+    socket.addEventListener('error', reject, { once: true });
   });
+  let next = 0;
+  const send = (method, params) =>
+    new Promise((resolve, reject) => {
+      const id = ++next;
+      const onMessage = (message) => {
+        const data = JSON.parse(String(message.data));
+        if (data.id !== id) return;
+        socket.removeEventListener('message', onMessage);
+        if (data.error || data.result?.exceptionDetails)
+          reject(
+            new Error(
+              JSON.stringify(data.error ?? data.result.exceptionDetails),
+            ),
+          );
+        else resolve(data.result);
+      };
+      socket.addEventListener('message', onMessage);
+      socket.send(JSON.stringify({ id, method, params }));
+    });
 
-await new Promise((r) => setTimeout(r, 3000));
-const { result } = await send('Runtime.evaluate', {
-  awaitPromise: true,
-  returnByValue: true,
-  expression: `(async () => {
+  // The frontend's modules load from the browser; wait until the trace
+  // model imports.
+  const expression = `(async () => {
     const Trace = await import('/devtools/models/trace/trace.js');
     const model = Trace.TraceModel.Model.createWithAllHandlers();
-    await model.parse(${golden}.traceEvents);
-    const data = model.parsedTrace();
+    await model.parse(${JSON.stringify(golden.traceEvents)});
+    const data = model.parsedTrace().data;
     const groups = data.ExtensionTraceData.extensionTrackData;
-    return { frame: data.Meta.mainFrameId, groups: groups.map((g) => g.name), tracks: (groups[0]?.tracks ?? []).map((t) => t.name) };
-  })()`,
-});
-browser.kill();
-const got = result.value;
-const failures = [];
-if (got.frame !== 'F1')
-  failures.push(`mainFrameId is ${JSON.stringify(got.frame)}, expected "F1"`);
-if (JSON.stringify(got.groups) !== JSON.stringify(['NexusDI']))
-  failures.push(`groups ${JSON.stringify(got.groups)}`);
-if (JSON.stringify(got.tracks) !== JSON.stringify(TRACKS))
-  failures.push(`tracks ${JSON.stringify(got.tracks)}`);
+    return {
+      frame: data.Meta.mainFrameId,
+      groups: groups.map((g) => g.name),
+      tracks: Object.entries(groups[0]?.entriesByTrack ?? {}).map(([name, list]) => [name, list.length]),
+    };
+  })()`;
+  let got;
+  for (let i = 0; got === undefined; i++) {
+    try {
+      got = (
+        await send('Runtime.evaluate', {
+          awaitPromise: true,
+          returnByValue: true,
+          expression,
+        })
+      ).result.value;
+    } catch (error) {
+      if (i === 30) throw error;
+      await new Promise((r) => setTimeout(r, 500));
+    }
+  }
+  socket.close();
+
+  const counts = writtenCounts(golden.traceEvents);
+  if (got.frame !== 'F1')
+    failures.push(`mainFrameId is ${JSON.stringify(got.frame)}, expected "F1"`);
+  if (JSON.stringify(got.groups) !== JSON.stringify(['NexusDI']))
+    failures.push(
+      `groups are ${JSON.stringify(got.groups)}, expected ["NexusDI"]`,
+    );
+  const names = got.tracks.map(([name]) => name);
+  if (JSON.stringify(names) !== JSON.stringify(TRACKS))
+    failures.push(`tracks are ${JSON.stringify(names)}`);
+  for (const [name, length] of got.tracks)
+    if (counts[name] !== length)
+      failures.push(
+        `${name} has ${length} entries, the file writes ${counts[name] ?? 0}`,
+      );
+} catch (error) {
+  failures = [
+    error === spawnError
+      ? `Chrome did not start: ${error.message}`
+      : `the frontend did not run the check (the frontend module path may have moved): ${error.message}`,
+  ];
+} finally {
+  // A Chrome that already exited, or never started, sends no exit event.
+  if (
+    spawnError === null &&
+    browser.exitCode === null &&
+    browser.signalCode === null
+  ) {
+    const exited = new Promise((resolve) => browser.once('exit', resolve));
+    browser.kill();
+    await exited;
+  }
+  rmSync(profileDir, { recursive: true, force: true });
+}
 console.log(
-  `${version.Browser}: ${failures.length === 0 ? 'the NexusDI layout parses' : failures.join('; ')}`,
+  `${build}: ${failures.length === 0 ? 'the NexusDI layout parses' : failures.join('; ')}`,
 );
 process.exit(failures.length === 0 ? 0 : 1);
 ```
@@ -7285,6 +7371,9 @@ The frontend's module path and the engine's API names follow Task 13; if Task 13
 ```yaml
 name: devtools trace canary
 
+# Checks the profiler's Chrome trace layout, which Chrome does not document,
+# against the newest Chrome stable and beta and the newest DevTools trace
+# engine (startup profiler spec 10.2). Not a required check.
 on:
   schedule:
     - cron: '17 6 * * 1'
@@ -7292,15 +7381,17 @@ on:
   pull_request:
     paths:
       - 'libs/devtools/src/profile/**'
+      - 'tools/trace-canary/**'
+      - '.github/workflows/devtools-trace-canary.yml'
 
 permissions: {}
 
 jobs:
   canary:
     runs-on: ubuntu-24.04
+    timeout-minutes: 15
     permissions:
       contents: read
-      issues: write # open or update one issue when a scheduled run fails
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
@@ -7310,22 +7401,36 @@ jobs:
           node-version-file: .nvmrc
           cache: npm
       - run: npm ci
-      # Unpinned on purpose: the canary exists to catch a new Chrome
-      # breaking the undocumented layout (owner item (c) 3).
+      # The browsers are unpinned on purpose: the canary exists to catch a
+      # new Chrome breaking the layout (owner item (c) 3). The installer is
+      # pinned.
       - id: stable
-        run: echo "path=$(npx @puppeteer/browsers install chrome@stable --path "$RUNNER_TEMP/chrome" | tail -1 | cut -d' ' -f2-)" >> "$GITHUB_OUTPUT"
+        run: echo "path=$(npx --yes @puppeteer/browsers@3.2.3 install chrome@stable --path "$RUNNER_TEMP/chrome" | tail -1 | cut -d' ' -f2-)" >> "$GITHUB_OUTPUT"
       - id: beta
-        run: echo "path=$(npx @puppeteer/browsers install chrome@beta --path "$RUNNER_TEMP/chrome" | tail -1 | cut -d' ' -f2-)" >> "$GITHUB_OUTPUT"
-      - run: node tools/trace-canary/run.mjs "${{ steps.stable.outputs.path }}"
-      - run: node tools/trace-canary/run.mjs "${{ steps.beta.outputs.path }}"
+        run: echo "path=$(npx --yes @puppeteer/browsers@3.2.3 install chrome@beta --path "$RUNNER_TEMP/chrome" | tail -1 | cut -d' ' -f2-)" >> "$GITHUB_OUTPUT"
+      - run: node tools/trace-canary/run.mjs "$CHROME"
+        env:
+          CHROME: ${{ steps.stable.outputs.path }}
+      - run: node tools/trace-canary/run.mjs "$CHROME"
+        env:
+          CHROME: ${{ steps.beta.outputs.path }}
       - run: |
           npm i --no-save @paulirish/trace_engine@latest
           npx nx run @nexusdi/devtools:test-trace --skip-nx-cache
         env:
           NX_NO_CLOUD: 'true'
           NX_DAEMON: 'false'
-      - if: failure() && github.event_name == 'schedule'
-        env:
+
+  # Opens or updates one issue when a scheduled run fails. A job of its own,
+  # so the job that runs Chrome and npm code holds no write permission.
+  report:
+    needs: canary
+    if: failure() && github.event_name == 'schedule'
+    runs-on: ubuntu-24.04
+    permissions:
+      issues: write
+    steps:
+      - env:
           GH_TOKEN: ${{ github.token }}
         run: |
           gh label create devtools-trace --repo "$GITHUB_REPOSITORY" --force --color d93f0b --description 'Chrome trace layout canary'
@@ -7340,6 +7445,10 @@ The run step prints the Chrome build (`version.Browser`), so the issue's linked 
 
 Run: `NX_NO_CLOUD=true NX_DAEMON=false npx nx test @nexusdi/repo-checks -- trace-canary`, then `node tools/trace-canary/run.mjs "$(npx @puppeteer/browsers install chrome@stable --path /tmp/chrome | tail -1 | cut -d' ' -f2-)"`.
 Expected: PASS, and the script prints `<Chrome build>: the NexusDI layout parses`.
+
+As committed (2026-10-15): the script reads the tracks from `entriesByTrack` as the Task 13 test does, and also checks each track's entry count against the golden file's `b` events. It passes `--no-sandbox` on Linux, where Ubuntu 24.04 blocks the user namespaces Chrome's sandbox needs, and waits for Chrome to exit before removing its profile folder. The workflow pins the installer, `@puppeteer/browsers@3.2.3`, and leaves the browsers unpinned. By hand on macOS: Chrome/155.0.8059.79 and Chrome/156.0.8078.12 (beta) parse the layout, and a sabotaged track list fails with exit 1.
+
+Round 2 (2026-10-15): the report step is its own `report` job (`needs: canary`, `if: failure() && github.event_name == 'schedule'`, `issues: write` only); the canary job keeps `contents: read` and gets `timeout-minutes: 15`; the pull request paths add `tools/trace-canary/**` and the workflow file. `run.mjs` names a Chrome that did not start, says the frontend module path may have moved when the check cannot run, and skips the exit wait for a Chrome already gone.
 
 - [ ] Step 5: Commit with `ci(devtools): run the Chrome trace layout canary weekly`.
 

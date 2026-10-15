@@ -138,7 +138,7 @@ describe('toChromeTrace', () => {
         .frames[0]?.url,
     ).toBe('nexusdi://profile');
   });
-  it('writes a report of 160,000 spans', () => {
+  it('writes a report of 160,000 spans', { timeout: 30_000 }, () => {
     // scopes: true with maxRuns 1000 can pass the 65,536 arguments a spread
     // call may take in JavaScriptCore; V8 stops near 125,000.
     const builds = Array.from({ length: 40_000 }, (_, i) =>

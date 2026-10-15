@@ -1,0 +1,7 @@
+{
+  "name": "@nexusdi/trace-canary",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "description": "Checks the profiler's Chrome trace layout inside a real Chrome's DevTools frontend."
+}
