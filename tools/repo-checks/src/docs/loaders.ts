@@ -49,6 +49,16 @@ export async function loadMdSiblings(): Promise<MdSiblings> {
   ).mdSiblings;
 }
 
+/** The docs app's twoslash prelude, which the loader chain runs last. */
+export async function loadTwoslashPrelude(): Promise<(code: string) => string> {
+  const path = join(workspaceRoot, 'apps/docs/tools/mdx-twoslash-prelude.mjs');
+  return (
+    await load<{ withPrelude: (code: string) => string }>(
+      pathToFileURL(path).href,
+    )
+  ).withPrelude;
+}
+
 export async function loadRegions(): Promise<{
   readRegion: (
     source: string,

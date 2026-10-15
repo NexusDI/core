@@ -52,7 +52,10 @@
     "node_modules",
     ".next",
     "eslint.config.mjs",
-    "snapshot"
+    "snapshot",
+    // The globals the twoslash prelude gives an example, which the `dom` lib
+    // above already declares with other types.
+    "components/runtime/runtime-globals.d.ts"
   ],
   "references": [
     {

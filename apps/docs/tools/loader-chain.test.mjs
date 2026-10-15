@@ -12,6 +12,10 @@ import { referenceOptions } from './reference-options.mjs';
 const fence = '```';
 const ROOT = '/workspace';
 
+/** The chain's entry for a loader, found by the end of its path. */
+const entryOf = (name, root = ROOT) =>
+  mdxLoaderChain(root).find((entry) => entry.loader.endsWith(name));
+
 /** Runs the chain the way Turbopack does: from the last entry to the first. */
 async function run(source, root = ROOT) {
   let out = source;
@@ -33,21 +37,22 @@ async function run(source, root = ROOT) {
 }
 
 describe('the MDX loader chain', () => {
-  it('lists the reference and region loaders first, so they execute last', () => {
+  it('lists the prelude, then the reference and region loaders, so the prelude executes last', () => {
     const names = mdxLoaderChain(ROOT).map((entry) =>
       entry.loader.split('/').at(-1),
     );
     expect(names).toEqual([
+      'mdx-twoslash-prelude.mjs',
       'mdx-reference-loader',
       'mdx-region-loader',
       'mdx-diagram-loader.mjs',
       'mdx-listing-loader.mjs',
     ]);
-    expect(mdxLoaderChain(ROOT)[1].options).toEqual({ root: ROOT });
+    expect(entryOf('mdx-region-loader').options).toEqual({ root: ROOT });
   });
 
   it('gives the reference loader the prefixes of the shared options module', () => {
-    expect(mdxLoaderChain(ROOT)[0].options).toEqual({
+    expect(entryOf('mdx-reference-loader').options).toEqual({
       root: ROOT,
       ...referenceOptions,
     });
@@ -55,6 +60,38 @@ describe('the MDX loader chain', () => {
       classPrefix: 'nexus',
       kindPrefix: 'meridian',
     });
+  });
+
+  it('runs the prelude over a twoslash fence the region loader filled', async () => {
+    const root = mkdtempSync(join(tmpdir(), 'loader-chain-'));
+    mkdirSync(join(root, 'libs/x'), { recursive: true });
+    writeFileSync(
+      join(root, 'libs/x/README.md'),
+      [
+        '<!-- #region r -->',
+        `${fence}ts @import.meta.vitest`,
+        'const frequency = 1420;',
+        fence,
+        '<!-- #endregion r -->',
+        '',
+      ].join('\n'),
+    );
+    const page = [
+      '# Tokens',
+      '',
+      `${fence}ts twoslash file=libs/x/README.md region=r`,
+      fence,
+      '',
+    ].join('\n');
+
+    const out = await run(page, root);
+    rmSync(root, { recursive: true, force: true });
+
+    const filled = out.slice(out.indexOf(`${fence}ts twoslash`));
+    expect(filled).toContain('// @lib: es2023,esnext.disposable');
+    expect(filled.indexOf('// @lib:')).toBeLessThan(
+      filled.indexOf('const frequency = 1420;'),
+    );
   });
 
   it('fills a region fence, wraps a tagged fence and rewrites a diagram', async () => {
