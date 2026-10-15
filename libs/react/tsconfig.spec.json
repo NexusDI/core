@@ -27,8 +27,8 @@
     "src/**/*.d.ts",
     "src/**/*.test.tsx",
     "src/**/*.test-d.tsx",
-    "src/support/**/*.tsx",
-    "test-support/**/*.ts"
+    "test-support/**/*.ts",
+    "test-support/**/*.tsx"
   ],
   "references": [
     {

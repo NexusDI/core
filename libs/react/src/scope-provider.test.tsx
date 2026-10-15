@@ -9,19 +9,21 @@ import {
   type TraceEvent,
 } from '@nexusdi/core';
 import { trace } from '@nexusdi/devtools';
-import { render, screen } from '@testing-library/react';
+import { act, render, screen } from '@testing-library/react';
 import { StrictMode } from 'react';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 
 import {
+  lazySection,
   NestedScopeError,
   NexusProvider,
   react,
   ScopeProvider,
+  SectionBoundary,
   useContainer,
   useService,
 } from './index.js';
-import { Boundary } from './support/boundary.js';
+import { Boundary } from '../test-support/boundary.js';
 
 interface Mission {
   id: string;
@@ -204,7 +206,7 @@ describe('ScopeProvider', () => {
     view.unmount();
   });
 
-  it('extends a live scope after a load, so section tokens resolve', async () => {
+  it('extends a live scope when a section loads, so section tokens resolve', async () => {
     const events: TraceEvent[] = [];
     await using ship = await shipWith(events);
     const Navigation = defineModule({
@@ -217,32 +219,27 @@ describe('ScopeProvider', () => {
       ],
       exports: [NAV_ROUTES],
     });
+    const navigation = lazySection('navigation', async () => Navigation);
     function Routes() {
       return <p>{useService(NAV_ROUTES).sectors.join(',')}</p>;
     }
-    const view = render(
+    const tree = (section: boolean) => (
       <StrictMode>
         <NexusProvider container={ship}>
           <ScopeProvider request={survey}>
             <LogPanel />
+            {section && (
+              <SectionBoundary section={navigation}>
+                <Routes />
+              </SectionBoundary>
+            )}
           </ScopeProvider>
         </NexusProvider>
-      </StrictMode>,
+      </StrictMode>
     );
+    const view = render(tree(false));
     await screen.findByText(/survey-7/);
-    const { storeFor } = await import('./store.js');
-    await ship.load(Navigation);
-    await storeFor(ship).extendAll();
-    view.rerender(
-      <StrictMode>
-        <NexusProvider container={ship}>
-          <ScopeProvider request={survey}>
-            <LogPanel />
-            <Routes />
-          </ScopeProvider>
-        </NexusProvider>
-      </StrictMode>,
-    );
+    await act(async () => view.rerender(tree(true)));
     expect(await screen.findByText('alpha')).toBeTruthy();
     expect(count(events, 'scope:extend')).toBe(1); // no NEXUS_LOADED_AFTER_SCOPE
     view.unmount();
@@ -378,7 +375,12 @@ describe('ScopeProvider', () => {
     await vi.waitFor(() => expect(reported).toHaveBeenCalledOnce());
     vi.unstubAllGlobals();
   });
+});
 
+// Two cases time the store's own extendAll against a scope's creation and its
+// unmount, which no public call can order, so they sit off the ScopeProvider
+// rail under the internal function they drive.
+describe('storeFor', () => {
   it('extends a scope whose creation settles after the load', async () => {
     const events: TraceEvent[] = [];
     await using ship = await shipWith(events);
