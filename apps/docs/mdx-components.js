@@ -6,6 +6,7 @@ import BehaviourCatalogue from './components/api/BehaviourCatalogue';
 import './components/api/entry.css';
 import Diagram from './components/diagram/Diagram';
 import Listing from './components/listing/Listing';
+import TypeCards from './components/twoslash/TypeCards';
 import { PostList } from './components/blog/PostList';
 import {
   Figure,
@@ -47,5 +48,8 @@ export function useMDXComponents(components) {
     BehaviourCatalogue,
     // `mdx-reference-loader.mjs` writes `<Chip>` beside an entry's name.
     Chip,
+    // `tools/mdx-nextra-loader.mjs` ends every page that has a `twoslash`
+    // fence with `<TypeCards />`.
+    TypeCards,
   };
 }

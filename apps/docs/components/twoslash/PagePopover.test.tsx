@@ -8,7 +8,7 @@ import {
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 import { Popup } from './LazyPopup';
-import { PagePopover } from './PagePopover';
+import { PagePopover, tablePath } from './PagePopover';
 
 /** A fence of three tokens as `tools/popup-fold.mjs` leaves them. */
 const fence = () => (
@@ -141,7 +141,62 @@ describe('PagePopover', () => {
     fireEvent.pointerOver(token('second'));
     await waitFor(() => expect(card()?.textContent).toBe('const second: B'));
 
-    expect(vi.mocked(fetch).mock.calls.length).toBeLessThanOrEqual(1);
+    expect(vi.mocked(fetch)).toHaveBeenCalledTimes(1);
+  });
+
+  it("reads the table of the page it mounts on, after another page's", async () => {
+    const first = mount();
+    fireEvent.pointerOver(token('first'));
+    await waitFor(() => expect(card()?.textContent).toBe('const first: A'));
+    first.unmount();
+
+    vi.mocked(fetch).mockResolvedValue({
+      ok: true,
+      json: async () => ({ a: '<code>const other: Z</code>' }),
+    } as Response);
+    mount();
+    fireEvent.pointerOver(token('first'));
+
+    await waitFor(() => expect(card()?.textContent).toBe('const other: Z'));
+    expect(vi.mocked(fetch)).toHaveBeenCalledTimes(2);
+  });
+
+  it('asks for the table again after a failed fetch', async () => {
+    vi.mocked(fetch).mockResolvedValueOnce({
+      ok: false,
+      status: 503,
+    } as Response);
+    mount();
+    fireEvent.pointerOver(token('first'));
+    await waitFor(() => expect(vi.mocked(fetch)).toHaveBeenCalledTimes(1));
+    expect(card()).toBeNull();
+
+    fireEvent.pointerOver(token('second'));
+    await waitFor(() => expect(card()?.textContent).toBe('const second: B'));
+  });
+
+  it('says the type in the live region when a keyboard opens the card, and not on hover', async () => {
+    mount();
+    const spoken = () => screen.getByRole('status').textContent;
+
+    fireEvent.pointerOver(token('second'));
+    await waitFor(() => expect(card()).not.toBeNull());
+    expect(spoken()).toBe('');
+
+    fireEvent.click(token('first'), { detail: 0 });
+    await waitFor(() => expect(spoken()).toBe('const first: A'));
+
+    fireEvent.keyDown(token('first'), { key: 'Escape' });
+    expect(spoken()).toBe('');
+  });
+});
+
+describe('tablePath', () => {
+  it('reads the route off the URL, as the loader names the table', () => {
+    window.history.replaceState(null, '', '/errors/');
+    expect(tablePath()).toBe('/popups/errors.json');
+    window.history.replaceState(null, '', '/');
+    expect(tablePath()).toBe('/popups/index.json');
   });
 });
 

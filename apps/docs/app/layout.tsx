@@ -5,7 +5,6 @@ import localFont from 'next/font/local';
 import { Head } from 'nextra/components';
 import 'nextra-theme-docs/style.css';
 import './global.css';
-import { PagePopover } from '../components/twoslash/PagePopover';
 import { readBasePath } from './channel';
 import { meridianBackground, meridianColor } from './meridian-theme';
 
@@ -106,8 +105,6 @@ export default function RootLayout({ children }: { children: ReactNode }) {
           storageKey="theme"
         >
           {children}
-          {/* One type card for every typed token on the page. */}
-          <PagePopover />
         </ThemeProvider>
       </body>
     </html>

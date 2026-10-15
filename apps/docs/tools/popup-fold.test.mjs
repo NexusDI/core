@@ -4,7 +4,7 @@ import { createRequire } from 'node:module';
 import { dirname, join } from 'node:path';
 import { afterEach, describe, expect, it } from 'vitest';
 
-import loader from './mdx-nextra-loader.mjs';
+import loader, { tableFor } from './mdx-nextra-loader.mjs';
 import { panelHtml } from './popup-fold.mjs';
 
 const docsRoot = join(import.meta.dirname, '..');
@@ -163,5 +163,43 @@ describe('the popup fold', { timeout: 120_000 }, () => {
       '<code class="twoslash-popup-code"><span class="sh-1itgoe">function</span></code>',
     );
     expect(html).not.toMatch(/javascript:|onclick|<script|alert\(3\)/i);
+  });
+
+  it('keeps only shiki theme variables in an inline style', () => {
+    const span = (style) => ({
+      type: 'element',
+      tagName: 'span',
+      properties: { style },
+      children: [{ type: 'text', value: 'x' }],
+    });
+    const html = panelHtml([
+      span('--shiki-light:#24292E;--shiki-dark:#E1E4E8'),
+      span('position:fixed;inset:0'),
+      span('--shiki-dark:url(https://example.com/x.png)'),
+    ]);
+
+    expect(html).toBe(
+      '<span style="--shiki-light:#24292E;--shiki-dark:#E1E4E8">x</span><span>x</span><span>x</span>',
+    );
+  });
+
+  it('mounts the type cards on a page with a twoslash fence and on no other', async () => {
+    expect(await compile(FENCE)).toContain('TypeCards');
+    expect(
+      await compile('# A guide\n\n```ts\nconst a = 1;\n```'),
+    ).not.toContain('TypeCards');
+  });
+
+  it("names a page's table after its route, as the popover reads it", () => {
+    const at = (path) =>
+      tableFor(join(docsRoot, 'content', path))?.slice(
+        join(docsRoot, 'public', 'popups').length + 1,
+      );
+
+    expect(at('index.mdx')).toBe('index.json');
+    expect(at('api-node.mdx')).toBe('api-node.json');
+    expect(at('errors/index.mdx')).toBe('errors.json');
+    expect(at('errors/NEXUS_DISPOSED.mdx')).toBe('errors/NEXUS_DISPOSED.json');
+    expect(tableFor(join(docsRoot, 'tools', 'x.mdx'))).toBeNull();
   });
 });
