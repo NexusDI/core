@@ -29,7 +29,7 @@
         },
         {
           "claim": "provide(token, { useExisting: otherToken }) points one token at another so both resolve to one instance; it takes no lifetime",
-          "source": "https://github.com/NexusDI/core/blob/main/libs/core/docs/providers.md",
+          "source": "https://github.com/NexusDI/core/blob/release/0.4/libs/core/docs/providers.md",
           "verifiedAgainst": "workspace",
           "form": "alias"
         }
