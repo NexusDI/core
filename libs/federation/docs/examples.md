@@ -11,62 +11,60 @@ import { Nexus, Token, defineModule, provide } from '@nexusdi/core';
 import type { BlueprintError } from '@nexusdi/core';
 import { defineContract, federation } from '@nexusdi/federation';
 
-interface IAuth {
-  user(): string;
+interface IReactorCore {
+  status(): string;
 }
-interface IStatements {
-  owner(): string;
-}
-interface ITransfers {
-  sender(): string;
+interface INavRoutes {
+  plot(to: string): string;
 }
 
-// The shell's copy and a remote's copy of one contracts package.
-const shellBank = defineContract({ key: 'bank', version: '2.3.0' });
-const remoteBank = defineContract({ key: 'bank', version: '2.1.0' });
+// The shell's copy and a section's copy of one contracts package.
+const shellContracts = defineContract({ key: 'meridian', version: '2.3.0' });
+const sectionContracts = defineContract({ key: 'meridian', version: '2.1.0' });
 
-const AUTH = shellBank.token<IAuth>('Auth');
-const Shell = defineModule({
-  name: 'Shell',
-  providers: [provide(AUTH, { useValue: { user: () => 'ada' } })],
-  exports: [AUTH],
+const REACTOR = shellContracts.token<IReactorCore>('ReactorCore');
+const Engineering = defineModule({
+  name: 'Engineering',
+  providers: [provide(REACTOR, { useValue: { status: () => 'online' } })],
+  exports: [REACTOR],
   global: true,
 });
-await using ship = await Nexus.create(Shell, { plugins: [federation()] });
+await using ship = await Nexus.create(Engineering, {
+  plugins: [federation()],
+});
 
-// The remote names the token through its own copy.
-const STATEMENTS = new Token<IStatements>('Statements');
-class Statements implements IStatements {
-  static deps = [remoteBank.token<IAuth>('Auth')] as const;
-  constructor(private readonly auth: IAuth) {}
-  owner() {
-    return this.auth.user();
+// The section names the token through its own copy.
+const NAV_ROUTES = new Token<INavRoutes>('NavRoutes');
+class SectorRoutes implements INavRoutes {
+  static deps = [sectionContracts.token<IReactorCore>('ReactorCore')] as const;
+  constructor(private readonly reactor: IReactorCore) {}
+  plot(to: string) {
+    return `course to ${to}, reactor ${this.reactor.status()}`;
   }
 }
 await ship.load(
   defineModule({
-    name: 'Statements',
-    providers: [provide(STATEMENTS, { useClass: Statements })],
-    exports: [STATEMENTS],
+    name: 'Navigation',
+    providers: [provide(NAV_ROUTES, { useClass: SectorRoutes })],
+    exports: [NAV_ROUTES],
   }),
 );
-ship.get(STATEMENTS).owner(); // -> 'ada'
+ship.get(NAV_ROUTES).plot('Kepler-442b'); // -> 'course to Kepler-442b, reactor online'
 
-// A remote built against a newer minor than the shell provides.
-const newerBank = defineContract({ key: 'bank', version: '2.4.0' });
-const TRANSFERS = new Token<ITransfers>('Transfers');
-class Transfers implements ITransfers {
-  static deps = [newerBank.token<IAuth>('Auth')] as const;
-  constructor(private readonly auth: IAuth) {}
-  sender() {
-    return this.auth.user();
-  }
-}
+// A section built against a newer minor than the shell provides.
+const newerContracts = defineContract({ key: 'meridian', version: '2.4.0' });
 const refused = await ship
   .load(
     defineModule({
-      name: 'Transfers',
-      providers: [provide(TRANSFERS, { useClass: Transfers })],
+      name: 'Cartography',
+      providers: [
+        provide(new Token<INavRoutes>('CartographyRoutes'), {
+          useFactory: (reactor: IReactorCore) => ({
+            plot: (to: string) => `${to}, reactor ${reactor.status()}`,
+          }),
+          deps: [newerContracts.token<IReactorCore>('ReactorCore')],
+        }),
+      ],
     }),
   )
   .catch((error: unknown) => error as BlueprintError);

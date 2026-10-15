@@ -10,11 +10,12 @@ function parts(version: string): [number, number, number] {
 }
 
 /**
- * Whether a provider at `have` satisfies a dependent built against `want`,
- * as npm's `^want` range does. The majors must match. With the same minor,
- * the dependent's patch must be no newer than the provider's. A newer
- * provider minor satisfies at major 1 and above; at major 0 a minor is a
- * breaking change, so it does not. A prerelease tag is not compared.
+ * Whether a provider at `have` satisfies a dependent built against `want`.
+ * The majors must match. With the same minor, the dependent's patch must be
+ * no newer than the provider's, at `0.0.x` too, where npm's `^` range would
+ * accept only the one patch. A newer provider minor satisfies at major 1 and
+ * above; at major 0 a minor is a breaking change, so it does not. A
+ * prerelease tag is not compared.
  */
 function satisfies(want: string, have: string): boolean {
   const [wantMajor, wantMinor, wantPatch] = parts(want);
