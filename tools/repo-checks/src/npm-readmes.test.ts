@@ -18,6 +18,7 @@ import {
   type Rule,
 } from './npm-readmes.js';
 import { PACKAGES, type Package } from './npm-readmes-data.js';
+import { publicConstants } from './public-constants.js';
 
 const FIXTURES = join(import.meta.dirname, '__fixtures__', 'npm-readmes');
 const PASS = join(FIXTURES, 'pass');
@@ -275,10 +276,32 @@ describe('the banned patterns', () => {
     expect(bannedProse(miss)).toEqual([]);
   });
 
-  it('takes a public NEXUS_ constant for no error code', () => {
-    expect(
-      bannedRaw("import { NEXUS_SCOPE } from '@nexusdi/react-router';"),
-    ).toEqual([]);
+  describe('NEXUS_ words', () => {
+    const live = publicConstants(workspaceRoot);
+
+    it('takes a value a package exports as NEXUS_ for no error code', () => {
+      expect(
+        bannedRaw("import { NEXUS_SCOPE } from '@nexusdi/react-router';", live),
+      ).toEqual([]);
+    });
+
+    it.each(['NEXUS_SCOPE_REQUIRED', 'NEXUS_DISPOSED'])(
+      'refuses %s, which no package exports',
+      (word) => {
+        expect(
+          bannedRaw(`Throws \`${word}\`.`, live).map(
+            (h) => h.split(' at line ')[0],
+          ),
+        ).toEqual(['error code']);
+      },
+    );
+
+    it('reads a new export with no edit to the check', () => {
+      const fixture = publicConstants(join(FIXTURES, 'constants'));
+      expect([...fixture].sort()).toEqual(['NEXUS_BEACON', 'NEXUS_RENAMED']);
+      expect(bannedRaw('NEXUS_BEACON and NEXUS_RENAMED', fixture)).toEqual([]);
+      expect(bannedRaw('NEXUS_TYPE_ONLY', fixture)).toHaveLength(1);
+    });
   });
 
   it('holds a hit and a miss for every pattern', () => {
@@ -307,6 +330,8 @@ describe('published READMEs', () => {
       peerDependenciesMeta?: Record<string, { optional?: boolean }>;
     };
 
+  const constants = publicConstants(workspaceRoot);
+
   function workspaceInput(name: Name): ReadmeInput {
     const pkg = name === 'root' ? 'core' : name;
     const {
@@ -325,6 +350,7 @@ describe('published READMEs', () => {
     return {
       ...inputFrom(workspaceRoot, name, version, peers),
       externalPeers,
+      constants,
     };
   }
 

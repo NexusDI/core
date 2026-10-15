@@ -1,0 +1,1 @@
+{ "name": "@acme/a", "dependencies": { "fastify-plugin": "^6.0.0", "hono": "^4.0.0" } }

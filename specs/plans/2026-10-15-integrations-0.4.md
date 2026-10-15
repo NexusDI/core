@@ -16107,7 +16107,7 @@ Co-Authored-By: Claude Opus 5.5 (1M context) <noreply@anthropic.com>"
 
 Spec 15.1 and react spec 14. Created: `/react-router-ssr/` (inventory row 15, absent on `release/0.4`), `/react/`, `/next/`, `/vitest/`, `/api-hono/`, `/api-express/`, `/api-fastify/`, `/api-react-router/`, `/api-vitest/`, `/api-next/`, `/api-react/`, and the four `@nexusdi/react` error pages.
 
-The `/react-router-ssr/` guide carries the sections moved out of Task 10's README: Typed loaders (`inject`), Lazy routes (`di.load`), When the scope is disposed, Errors, Ambient scope, Testing loaders (`NEXUS_SCOPE` and `existingScope`) and Requirements.
+The `/react-router-ssr/` guide's Testing Loaders section shows `existingScope` with `NEXUS_SCOPE`, which the README no longer does. The guide carries the sections moved out of Task 10's README: Typed loaders (`inject`), Lazy routes (`di.load`), When the scope is disposed, Errors, Ambient scope, Testing loaders (`NEXUS_SCOPE` and `existingScope`) and Requirements.
 
 Files:
 

@@ -164,8 +164,10 @@ export function resolveRelative(
   const joined = posix.join(posix.dirname(from), specifier);
   for (const candidate of [
     joined.replace(/\.js$/, '.ts'),
+    joined.replace(/\.js$/, '.tsx'),
     joined,
     `${joined}.ts`,
+    `${joined}.tsx`,
     `${joined}/index.ts`,
   ])
     if (paths.has(candidate)) return candidate;

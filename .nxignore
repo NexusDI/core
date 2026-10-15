@@ -1,0 +1,3 @@
+# The repo-checks fixtures are data the checks read. A package.json in one
+# (runtime-dependencies) is no project, and two of them share a name.
+tools/repo-checks/src/__fixtures__

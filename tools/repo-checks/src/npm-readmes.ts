@@ -73,6 +73,8 @@ export interface ReadmeInput {
   readonly core?: string;
   /** Whether a path relative to the repository root exists. */
   readonly exists: (path: string) => boolean;
+  /** The NEXUS_ values the packages export (publicConstants). */
+  readonly constants?: ReadonlySet<string>;
 }
 
 interface Pattern {
@@ -84,9 +86,9 @@ interface Pattern {
 export const BANNED: readonly Pattern[] = [
   { name: 'native', pattern: /\bnative\b/i },
   { name: 'reflect-metadata', pattern: /reflect-metadata/i },
-  // NEXUS_SCOPE is a public constant of @nexusdi/react-router (the router
-  // context key), not an error code, and its README imports it.
-  { name: 'error code', pattern: /\bNEXUS_(?!SCOPE\b)[A-Z_]+/ },
+  // A NEXUS_ word a package exports as a value (publicConstants) is no
+  // error code; bannedRaw skips it.
+  { name: 'error code', pattern: /\bNEXUS_[A-Z_]+\b/g },
   { name: 'emoji', pattern: /\p{Extended_Pictographic}/u },
   { name: 'size figure', pattern: /\b\d+(\.\d+)?\s?KB\b/i },
   { name: 'lightweight', pattern: /\blightweight\b/i },
@@ -251,12 +253,19 @@ export function proseOf(source: string): string {
 }
 
 /** `name at line N: text` for each line of `text` that a pattern matches. */
-function hits(text: string, patterns: readonly Pattern[]): string[] {
+function hits(
+  text: string,
+  patterns: readonly Pattern[],
+  allowed: ReadonlySet<string> = new Set(),
+): string[] {
   const found: string[] = [];
   text.split('\n').forEach((line, i) => {
-    for (const { name, pattern } of patterns)
-      if (pattern.test(line))
-        found.push(`${name} at line ${i + 1}: ${line.trim()}`);
+    for (const { name, pattern } of patterns) {
+      const matched = pattern.global
+        ? [...line.matchAll(pattern)].some(([word]) => !allowed.has(word))
+        : pattern.test(line);
+      if (matched) found.push(`${name} at line ${i + 1}: ${line.trim()}`);
+    }
   });
   return found;
 }
@@ -267,8 +276,11 @@ export function bannedProse(source: string): string[] {
 }
 
 /** Each pattern banned from the raw file that `source` matches. */
-export function bannedRaw(source: string): string[] {
-  return hits(source, BANNED);
+export function bannedRaw(
+  source: string,
+  constants: ReadonlySet<string> = new Set(),
+): string[] {
+  return hits(source, BANNED, constants);
 }
 
 function isPrerelease(version: string): boolean {
@@ -880,7 +892,7 @@ export function readmeFaults(input: ReadmeInput): Fault[] {
   checkDoctests(input, parsed, faults);
   checkInterfaceFirst(input, parsed, faults);
   checkPackages(input, faults);
-  for (const hit of bannedRaw(input.source))
+  for (const hit of bannedRaw(input.source, input.constants))
     faults.push({ rule: 'banned', message: hit });
   for (const hit of bannedProse(input.source))
     faults.push({ rule: 'banned-prose', message: hit });
