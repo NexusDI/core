@@ -1,4 +1,4 @@
-/** 1: the graph is invalid. 2: the invocation or the input is wrong. 3: the environment lacks something. */
+/** 1: the graph is invalid, or the app failed to start after it compiled. 2: the invocation or the input is wrong. 3: the environment lacks something. */
 export type ExitCode = 1 | 2 | 3;
 
 /** A failure the CLI classified, with the line that fixes it. */

@@ -38,8 +38,6 @@ Usage: nexusdi profile <entry> [options]
     --chrome <file>      write the Chrome DevTools trace of the first iteration
     --perfetto <file>    write the Perfetto trace of the first iteration
     --json <file>        write every iteration's ProfileReport as an array
-    --cpu                sample the CPU and merge it into --chrome; needs --chrome
-    --cpu-interval <us>  sampling interval, default 100
     --top <n>            rows in the slowest-providers table, default 20
     --timeout <ms>       stop waiting for a create or load, default 60000
     --quiet              no table on stdout
@@ -60,13 +58,23 @@ export async function main(argv: readonly string[], io: Io): Promise<number> {
       await writeTo(io.stdout, `${version}\n`);
       return 0;
     }
-    // This build parses profile; running it lands with its own module.
-    if (command.kind === 'profile')
-      throw new CliError(
-        2,
-        'nexusdi profile is not available in this build.',
-        'Run: nexusdi graph <entry>',
-      );
+    if (command.kind === 'profile') {
+      const inputs = [
+        command.entry,
+        ...command.load,
+        ...(command.plugins === null ? [] : [command.plugins]),
+      ];
+      for (const [flag, out] of [
+        ['--chrome', command.chrome],
+        ['--perfetto', command.perfetto],
+        ['--json', command.json],
+      ] as const)
+        checkOut(out, inputs, flag);
+      requireCore(version);
+      // profile.js loads graph.js, which imports @nexusdi/core.
+      const { runProfile } = await import('./profile.js');
+      return await runProfile(command, io, version);
+    }
     if (
       command.format === 'png' &&
       command.out === null &&

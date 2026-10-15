@@ -62,6 +62,70 @@ function readGraph(
   }
 }
 
+/** What an entry and its --load and --plugins refs export, and the project's devtools. */
+export interface LoadedEntry {
+  readonly root: unknown;
+  readonly load: readonly unknown[];
+  readonly plugins: unknown[] | undefined;
+  readonly devtools: DevtoolsApi;
+}
+
+/**
+ * Imports the entry, each --load module and the --plugins array, with the
+ * loader the entry's project uses, and the project's devtools. `via` names
+ * the command in a missing-export message.
+ */
+export async function loadEntry(
+  command: {
+    readonly entry: EntryRef;
+    readonly load: readonly EntryRef[];
+    readonly plugins: EntryRef | null;
+  },
+  version: string,
+  via: string,
+): Promise<LoadedEntry> {
+  const refs = [
+    command.entry,
+    ...command.load,
+    ...(command.plugins === null ? [] : [command.plugins]),
+  ];
+  for (const ref of refs) await prepareLoader(ref);
+  const devtools = await loadDevtools(command.entry.path, version);
+
+  const namespaces = new Map<string, Record<string, unknown>>();
+  const exportOf = async (ref: EntryRef, use?: ExportUse): Promise<unknown> => {
+    let namespace = namespaces.get(ref.path);
+    if (namespace === undefined) {
+      namespace = await importEntry(ref);
+      namespaces.set(ref.path, namespace);
+    }
+    return pickExport(namespace, ref, use);
+  };
+
+  const root = await exportOf(command.entry, { via });
+  const load: unknown[] = [];
+  for (const ref of command.load)
+    load.push(await exportOf(ref, { via: '--load' }));
+  let plugins: unknown[] | undefined;
+  if (command.plugins !== null) {
+    const value = await exportOf(command.plugins, {
+      via: '--plugins',
+      fits: Array.isArray,
+    });
+    if (!Array.isArray(value))
+      throw new CliError(
+        2,
+        `${command.plugins.shown}#${
+          command.plugins.exportName ?? 'default'
+        } is not an array of plugins.`,
+        'Export the array you pass to Nexus.create: export const plugins = [federation()];',
+      );
+    plugins = value;
+  }
+
+  return { root, load, plugins, devtools };
+}
+
 export async function graphFor(
   command: GraphCommand,
   cwd: string,
@@ -87,45 +151,11 @@ export async function graphFor(
     };
   }
 
-  const refs = [
-    command.entry,
-    ...command.load,
-    ...(command.plugins === null ? [] : [command.plugins]),
-  ];
-  for (const ref of refs) await prepareLoader(ref);
-  const devtools = await loadDevtools(command.entry.path, version);
-
-  const namespaces = new Map<string, Record<string, unknown>>();
-  const exportOf = async (ref: EntryRef, use?: ExportUse): Promise<unknown> => {
-    let namespace = namespaces.get(ref.path);
-    if (namespace === undefined) {
-      namespace = await importEntry(ref);
-      namespaces.set(ref.path, namespace);
-    }
-    return pickExport(namespace, ref, use);
-  };
-
-  const root = await exportOf(command.entry);
-  const load: unknown[] = [];
-  for (const ref of command.load)
-    load.push(await exportOf(ref, { via: '--load' }));
-  let plugins: unknown[] | undefined;
-  if (command.plugins !== null) {
-    const value = await exportOf(command.plugins, {
-      via: '--plugins',
-      fits: Array.isArray,
-    });
-    if (!Array.isArray(value))
-      throw new CliError(
-        2,
-        `${command.plugins.shown}#${
-          command.plugins.exportName ?? 'default'
-        } is not an array of plugins.`,
-        'Export the array you pass to Nexus.create: export const plugins = [federation()];',
-      );
-    plugins = value;
-  }
-
+  const { root, load, plugins, devtools } = await loadEntry(
+    command,
+    version,
+    'nexusdi graph',
+  );
   try {
     const graph = devtools.inspect(root as never, {
       load: load as never,
