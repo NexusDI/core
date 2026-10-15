@@ -70,7 +70,7 @@ Every package must be at the version of `@nexusdi/core`. Each one declares an ex
 
 Some plugins provide similar functionality. For example, both `errors()` and a custom internal plugin might want to format error messages.
 
-NexusDI handles this using a "first-win" strategy for `formatError` and `tokenKey`: the first plugin in the array that returns a result wins, and later plugins are not asked. Other hooks, such as `observe`, `construct`, `compile.check` and `setup`, run for every plugin in array order. This application plugin words one code, and `errors()` after it words the rest:
+NexusDI handles this using a "first-win" strategy for `formatError` and `tokenKey`: the first plugin in the array that returns a result wins, and later plugins are not asked. `compile.module` and `compile.provider` ask every plugin, and a second plugin that returns a rewrite raises `NEXUS_PLUGIN_CONFLICT`. `observe`, `construct`, `compile.check` and `setup` run for each plugin in array order, and `dispose` runs in reverse order. This application plugin words one code, and `errors()` after it words the rest:
 
 ```ts file=examples/meridian/src/pages/plugins.md region=order
 
