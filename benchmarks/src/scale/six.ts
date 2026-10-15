@@ -35,3 +35,16 @@ export function six(): ScaleGraph {
   ];
   return assemble('mixed', 6, 1, providers, modules);
 }
+
+/**
+ * The six-provider graph plus p6, an alias of p5 in m1 that m1 exports: the
+ * smallest graph with every kind but an async factory. The alias holds p5's
+ * instance and constructs nothing.
+ */
+export function sixWithAlias(): ScaleGraph {
+  const g = six();
+  g.providers.push(p(6, 'alias', [5], 1));
+  g.modules[1].exports = [4, 5, 6];
+  g.size = 7;
+  return assemble('mixed', 7, 1, g.providers, g.modules);
+}

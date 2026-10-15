@@ -6,13 +6,20 @@ import { createHash } from 'node:crypto';
 
 import type { Shape } from './config.ts';
 
-export type ProviderKind = 'class' | 'factory' | 'async-factory' | 'value';
+export type ProviderKind =
+  | 'class'
+  | 'factory'
+  | 'async-factory'
+  | 'value'
+  /** One dep, the provider it aliases: the same instance, constructed by nobody. */
+  | 'alias';
 
 export const PROVIDER_KINDS: readonly ProviderKind[] = [
   'class',
   'factory',
   'async-factory',
   'value',
+  'alias',
 ];
 
 export interface ScaleProvider {
@@ -21,7 +28,7 @@ export interface ScaleProvider {
   /** p<index>, zero-padded to the width of n-1, e.g. p0042. */
   name: string;
   kind: ProviderKind;
-  /** Indexes, in constructor order. A value has none. */
+  /** Indexes, in constructor order. A value has none and an alias one. */
   deps: number[];
   /** Index into modules. Single-module shapes put every provider in module 0. */
   module: number;
@@ -46,7 +53,12 @@ export interface ScaleGraph {
   rootImports: number[];
   /** Providers get() may ask for at the root: the exports of rootImports. */
   entries: number[];
-  /** The entry with the largest transitive closure, lowest index on a tie. */
+  /**
+   * The provider with the largest transitive closure in the whole graph,
+   * lowest index on a tie. Real apps reach their largest closure through a
+   * provider the framework resolves inside its module, so the target need
+   * not be an entry.
+   */
   target: number;
 }
 
@@ -78,7 +90,7 @@ export function padName(prefix: string, index: number, count: number): string {
 /**
  * Completes a graph from its providers and modules: the root imports every
  * module no other module imports, its entries are those modules' exports,
- * and the target is the entry whose closure is largest.
+ * and the target is the provider whose closure is largest.
  */
 export function assemble(
   shape: Shape,
@@ -92,13 +104,13 @@ export function assemble(
   const entries = rootImports
     .flatMap((i) => modules[i].exports)
     .sort((a, b) => a - b);
-  let target = -1;
+  let target = 0;
   let best = -1;
-  for (const e of entries) {
-    const reach = closureSize(providers, e);
+  for (const p of providers) {
+    const reach = closureSize(providers, p.index);
     if (reach > best) {
       best = reach;
-      target = e;
+      target = p.index;
     }
   }
   return {
@@ -152,6 +164,8 @@ export function checkGraph(graph: ScaleGraph): void {
       fail(`${p.name} sits in missing module ${p.module}`);
     if (p.kind === 'value' && p.deps.length > 0)
       fail(`${p.name} is a value with deps`);
+    if (p.kind === 'alias' && p.deps.length !== 1)
+      fail(`${p.name} is an alias with ${p.deps.length} deps, expected 1`);
     if (new Set(p.deps).size !== p.deps.length)
       fail(`${p.name} lists a dependency twice`);
     const imports = modules[p.module].imports;
@@ -174,8 +188,8 @@ export function checkGraph(graph: ScaleGraph): void {
       if (providers[e]?.module !== k)
         fail(`${m.name} exports p${e}, not its own`);
   });
-  if (!graph.entries.includes(graph.target))
-    fail(`target ${graph.target} is not an entry`);
+  if (!(graph.target >= 0 && graph.target < providers.length))
+    fail(`target ${graph.target} is not a provider`);
 }
 
 /** The first 12 hex digits of the SHA-256 of the canonical providers and modules. */
