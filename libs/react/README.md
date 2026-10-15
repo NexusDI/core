@@ -21,11 +21,11 @@ npm install @nexusdi/react@next @nexusdi/core@next react
 
 ## Quick Example
 
-The app creates the container, and `NexusProvider` publishes it to every component below.
+The app creates the container, and `NexusProvider` publishes it to every component below. `react()` reads the graph when the container starts, so a transient token read in render fails on the first render; register it in development and tests.
 
 ```ts @import.meta.vitest
 import { Nexus, Token, provide } from '@nexusdi/core';
-import { NexusProvider, useService } from '@nexusdi/react';
+import { NexusProvider, react, useService } from '@nexusdi/react';
 import { createElement } from 'react';
 import { renderToString } from 'react-dom/server';
 
@@ -44,9 +44,10 @@ function Heading() {
   return createElement('p', null, charts.plot('Kepler-442b').heading);
 }
 
-const ship = await Nexus.create([
-  provide(NAV_CHARTS, { useClass: StarCharts }),
-]);
+const ship = await Nexus.create(
+  [provide(NAV_CHARTS, { useClass: StarCharts })],
+  { plugins: [react()] }, // in development and tests
+);
 const page = createElement(
   NexusProvider,
   { container: ship },
