@@ -298,3 +298,66 @@ test('toggles the type with Enter', async ({ page }) => {
   await page.keyboard.press('Enter');
   await expect(card).toBeVisible();
 });
+
+test('says the type in the live region after Tab and Enter', async ({
+  page,
+}) => {
+  await page.goto(PAGE);
+  const { fence, token, card } = signature(page);
+  const spoken = page.locator('.nexus-type-card__spoken[role=status]');
+
+  await tabInto(page, fence);
+  await expect(token).toBeFocused();
+  await expect(spoken).toContainText('NodeScopes');
+  await page.keyboard.press('Enter');
+  await expect(card).toHaveCount(0);
+  await expect(spoken).toHaveText('');
+  await page.keyboard.press('Enter');
+  await expect(card).toBeVisible();
+  await expect(spoken).toContainText('NodeScopes');
+});
+
+/**
+ * Follows the first visible link to `path` and waits for the page, checking
+ * the router moved there without a document load.
+ */
+async function navigate(page: Page, path: string) {
+  await page.evaluate(() => {
+    (window as { stayed?: boolean }).stayed = true;
+  });
+  await page.locator(`a[href="${path}"]:visible`).first().click();
+  await expect(page).toHaveURL(new RegExp(`${path}$`));
+  expect(
+    await page.evaluate(() => (window as { stayed?: boolean }).stayed),
+  ).toBe(true);
+}
+
+test('shows a type after a client navigation from one API page to another', async ({
+  page,
+}) => {
+  await page.goto(PAGE);
+  const before = signature(page);
+  await before.token.hover();
+  await expect(before.card).toBeVisible();
+  await page.mouse.move(0, 0);
+
+  await navigate(page, '/next/api-testing/');
+  await expect(page.locator('h1')).toContainText('@nexusdi/testing');
+  const after = signature(page);
+  await after.token.hover();
+  await expect(after.card).toBeVisible();
+  await expect(after.card).not.toBeEmpty();
+});
+
+test('shows a type after a client navigation from a guide to an API page', async ({
+  page,
+}) => {
+  await page.goto('/next/scopes/');
+  await expect(page.locator('button[data-pop]')).toHaveCount(0);
+
+  await navigate(page, PAGE);
+  const { token, card } = signature(page);
+  await token.hover();
+  await expect(card).toBeVisible();
+  await expect(card).toContainText('NodeScopes');
+});

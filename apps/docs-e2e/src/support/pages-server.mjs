@@ -1,5 +1,4 @@
 import { createReadStream, existsSync, readFileSync, statSync } from 'node:fs';
-import { createServer } from 'node:http';
 import { extname, join, normalize, sep } from 'node:path';
 
 const TYPES = {
@@ -29,10 +28,10 @@ const TYPES = {
  * `Access-Control-Allow-Origin: *`, which the sandboxed frame's module fetch
  * needs (spec §11.4), so this server sends it too.
  */
-export function createPagesServer(root) {
+export function pagesHandler(root) {
   const notFound = join(root, '404.html');
 
-  return createServer((request, response) => {
+  return (request, response) => {
     const url = new URL(request.url ?? '/', 'http://localhost');
     response.setHeader('Access-Control-Allow-Origin', '*');
 
@@ -70,5 +69,5 @@ export function createPagesServer(root) {
 
     response.writeHead(404, { 'Content-Type': TYPES['.html'] });
     response.end(existsSync(notFound) ? readFileSync(notFound) : 'Not Found');
-  });
+  };
 }
