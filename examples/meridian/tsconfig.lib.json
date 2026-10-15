@@ -12,7 +12,13 @@
   "include": ["src/**/*.ts"],
   "references": [
     {
+      "path": "../../libs/vitest/tsconfig.lib.json"
+    },
+    {
       "path": "../../libs/testing/tsconfig.lib.json"
+    },
+    {
+      "path": "../../libs/react-router/tsconfig.lib.json"
     },
     {
       "path": "../../libs/node/tsconfig.lib.json"
@@ -21,7 +27,16 @@
       "path": "../../libs/interceptors/tsconfig.lib.json"
     },
     {
+      "path": "../../libs/hono/tsconfig.lib.json"
+    },
+    {
       "path": "../../libs/federation/tsconfig.lib.json"
+    },
+    {
+      "path": "../../libs/fastify/tsconfig.lib.json"
+    },
+    {
+      "path": "../../libs/express/tsconfig.lib.json"
     },
     {
       "path": "../../libs/errors/tsconfig.lib.json"

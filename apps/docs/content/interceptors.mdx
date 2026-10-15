@@ -131,6 +131,8 @@ It is important to understand that:
 
 If you need an internal call to be intercepted, call the method through the token from outside the class, or move the method to another service and call it through that service's proxy. Do not inject the class's own token into the class: a class that depends on itself is a cycle, and `Nexus.create` rejects it.
 
+A value provider is never intercepted: `provide(TOKEN, { useValue })` holds an object the container did not build, so the plugin gives it no proxy. Bind a `useFactory` that returns the value, and the plugin wraps the factory's result.
+
 ## Interceptor Lifetimes
 
 Interceptors are always **Singletons**. Each interceptor is built once per container. A scoped or transient interceptor makes `create` reject with `NEXUS_BLUEPRINT_INVALID`, which holds `NEXUS_INTERCEPTOR_LIFETIME`. A scoped interceptor also holds core's [NEXUS_LIFETIME_VIOLATION](/errors/NEXUS_LIFETIME_VIOLATION/) for the singleton registry that would capture it. If an interceptor needs request-specific data, it reads it from `call.scope` or `call.instance`.
