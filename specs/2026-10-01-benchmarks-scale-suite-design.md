@@ -59,12 +59,14 @@ retained heap and bundle bytes, each against provider count.
    child checks the dependency digest, singleton identity, one construction per provider
    and each provider's kind (section 5). A cell that fails is recorded with its outcome and
    never timed.
-9. One fresh-process block per shape holds every size, so drift on the runner falls
+9. One fresh-process timing block per shape holds every size, so drift on the runner falls
    evenly on every size, and growth exponents come from paired per-round ratios between
-   sizes (section 6.4).
-10. `mixed` runs 1,000 measured rounds, the published minimum of section 14.4. `wide` and
-    `mixed-async` run 200, and their tables print the round count. Relative claims in the
-    README, the docs and the launch post come from `mixed` only.
+   sizes (section 6.4). A serial heap block of its own per shape produces `heap-ready`
+   (section 7.1).
+10. `mixed` runs 1,000 measured rounds, the published minimum of section 14.4, until the
+    width rule of section 7.4 decides a count from the first run. `wide`, `deep`,
+    `modular` and `mixed-async` run 200, and their tables print the round count.
+    Relative claims in the README, the docs and the launch post come from `mixed` only.
 11. Two new results files: `results/scale.json` (deterministic, committed, held by
     `--check`) and `results/scale/<date>-<sha7>.json` (one per published run, like
     `results/timings/`). Raw samples go to `results/raw/scale-<date>-<sha7>.json.gz`.
@@ -72,8 +74,11 @@ retained heap and bundle bytes, each against provider count.
     dependency. The charts are log-log: startup time against providers, and gzip bundle
     bytes against providers.
 13. Pull requests run the deterministic writer with `--check` and a 50-provider timing
-    smoke under `tmp/`. The full timing run arrives with the budget follow-up (section
-    10.2). `build-scale-200` and `scale.ts` stay as they are.
+    smoke under `tmp/` in both child modes. The timing run is one job per shape plus a
+    steady job (section 10.2). `build-scale-200` and `scale.ts` stay as they are.
+14. The child has a timing mode and a heap mode (section 6.1). Timing rounds drop the heap
+    settles, which halve the cost of a round, and a paired protocol check on the first
+    dispatch run decides whether that changes any comparison (section 7.4).
 
 ## 3. The graphs
 
@@ -374,30 +379,42 @@ prove a form is the documented one.
 
 `src/scale/child.mjs` runs under `node --expose-gc`, one process per sample, with every
 `NODE_*` and `UV_*` variable removed from its environment (compile cache, options and
-thread-pool size would each change what a fresh process does):
+thread-pool size would each change what a fresh process does). It takes a mode:
+
+- `heap` runs steps 1 to 9 as written below and is the only mode that reads the heap.
+- `timing` replaces step 2 with `gc()` twice and skips step 7, so it sends no `heapReady`.
+  A real app neither pauses nor collects twenty times before it loads its code, so this is
+  the closer model of a cold start, and it halves the cost of a round: the settles are
+  52% of a heap-mode round.
+- `timing-no-gc` is `timing` without the `gc()` of step 4, which the protocol check of
+  section 7.4 compares with `timing`.
+
+The steps:
 
 1. Imports the cell's `packages.mjs`, untimed. `bundleCell` writes it beside the bundle
    from the bundle's external imports, `reflect-metadata` first, so every package
    resolves from the cell as the bundle's own imports do. Library import time is already
    the cold-start figure.
-2. Reads the retained heap (`base`) after a settle loop: pause 10 ms, `gc()` twice, read,
-   and stop when two reads in a row are equal or after ten passes. At this read the loop's
-   own allocations (0.1 to 5 KB per pass) keep any two reads apart, so the base read always
-   makes all ten passes. The final read of step 7 usually stops after four. Both reads hold
-   the same loop allocations, so they cancel in `heap-ready`. The loop waits for V8's
-   background work: concurrent compile jobs still running at this read made `heap-ready`
-   negative in 6 of 180 parallel runs. The array of indexes step 6 resolves is built before
-   this read from the model's provider count and target, so it sits in `base`.
+2. Heap mode reads the retained heap (`base`) after a settle loop: pause 10 ms, `gc()`
+   twice, read, and stop when two reads in a row are equal or after ten passes. At this
+   read the loop's own allocations (0.1 to 5 KB per pass) keep any two reads apart, so the
+   base read always makes all ten passes. The final read of step 7 usually stops after
+   four. Both reads hold the same loop allocations, so they cancel in `heap-ready`. The
+   loop waits for V8's background work: concurrent compile jobs still running at this read
+   made `heap-ready` negative in 6 of 180 parallel runs. The array of indexes step 6
+   resolves is built before this read from the model's provider count and target, so it
+   sits in `base`.
 3. Times `await import(bundle)`: `load`.
 4. `gc()` twice. Times `create`: `create`.
 5. Times `get(target)`: `first-get`.
 6. Times resolving every other provider once, in index order: `rest`.
-7. Reads the heap the same settled way, with the handle still referenced: `heap-ready` =
-   heap − `base`.
+7. Heap mode reads the heap the same settled way, with the handle still referenced:
+   `heap-ready` = heap − `base`.
 8. Checks, untimed, that `built.counts` sums to the number of non-value providers, and
    exits 1 when it does not.
-9. Sends `{ load, create, firstGet, rest, heapReady }` and disconnects from the send
-   callback (a disconnect straight after `send` lost a 200 KB message in 60 of 60 runs).
+9. Sends `{ load, create, firstGet, rest }`, with `heapReady` in heap mode, and disconnects
+   from the send callback (a disconnect straight after `send` lost a 200 KB message in 60
+   of 60 runs).
 
 Derived, per round before any median: `first-resolve` = `load` + `create` + `first-get`,
 the time until the target is usable; `ready` = `create` + `first-get` + `rest`;
@@ -490,17 +507,25 @@ for `startup` and in bytes for `heap-ready`.
 
 ### 7.1 Fresh-process blocks
 
-One block per shape, holding every passing cell of that shape at every size: 25
-participants on `wide` and `mixed`, 15 on `mixed-async`. One round spawns one child per
-participant, one at a time, in the round's `orderFor(round, participants, seed)` row, and
-waits for each to exit. 10 warm-up rounds run first and are recorded in the raw file.
-Measured rounds follow: 1,000 on `mixed`, 200 on `wide` and `mixed-async`.
+Each shape runs two serial blocks of the cells that pass, at every size: 25 participants
+on `wide`, `deep`, `modular` and `mixed`, 15 on `mixed-async`. One round spawns one child
+per participant, one at a time, in the round's `orderFor(round, participants, seed)` row,
+and waits for each to exit.
+
+- The timing block runs the child in timing mode: 10 warm-up rounds, recorded in the raw
+  file, then 1,000 measured rounds on `mixed` and 200 on the other shapes. It produces
+  every metric but `heap-ready`.
+- The heap block runs the child in heap mode: 3 warm-up and 30 measured rounds, with its
+  own `orderFor` rows. It produces `heap-ready`, its paired ratios and its marginal bytes
+  per provider, from rounds of 0.7% interval width or less, with block size 4. The block
+  also records the startup of its heap-mode spawns, beside the timing block's, in the raw
+  file: an unpaired cross-check that nothing gates on.
 
 Pairs never cross a round, and rounds never cross a block, so a block is independent of
-the others. Blocks run `mixed`, then `wide`, then `mixed-async`. The paired ratio of a
-competitor is NexusDI `plain`'s figure over the competitor's at the same size in the same
-round, `pairedRatio(nexus, other, seed)`, block size `⌈n^(1/3)⌉` (10 for 1,000 rounds, 6
-for 200).
+the others. The paired ratio of a competitor is NexusDI `plain`'s figure over the
+competitor's at the same size in the same round, `pairedRatio(nexus, other, seed)`, block
+size `⌈n^(1/3)⌉` (10 for 1,000 rounds, 6 for 200). A job prints one progress line per 50
+rounds, so a stall shows in its log.
 
 A block that mixes sizes in each round keeps the curves honest: a runner that slows over
 the hour slows every size equally. Size-ordered blocks would put the slow minutes on
@@ -521,6 +546,53 @@ and JIT state belong to one library.
 
 `checkFloor` applies to `get-cycle`. A child that exits non-zero, or a worker that throws,
 fails the run with the cell, block and round in the message, as `cold-start.ts` does.
+
+### 7.4 Protocol check and the width rule
+
+**Protocol check.** Dropping the settles must not change a comparison. No local run can
+resolve a shift of 5% in one library (the 95% interval of a per-cell ratio on a loaded
+laptop spans 10% or more), so the check runs on the CI runner, on the first dispatch run
+only, behind `timings.ts --protocol-check`. After the `mixed` timing block, 33 rounds (3
+warm-up) run every `mixed` cell in three modes: `heap`, `timing` and `timing-no-gc`. Each
+round follows its own `orderFor` row over all 75 spawns, and the raw file records every
+spawn. For each competitor and size the run reports two double ratios on `startup`, each
+with a paired bootstrap interval: per round, NexusDI's shift between two modes divided by
+the competitor's, so a shift every library shares cancels.
+
+- Timing over heap decides the protocol. A pair passes when its median is within 2% of 1
+  or its interval contains 1. The timing mode stands when every pair passes. Otherwise the
+  timing rounds revert to the heap mode's protocol, the timing figures of the run are not
+  published (`validate` refuses the file), and the budget is planned again.
+- Timing-no-gc over timing decides the `gc()` before `create`, by the same rule. When
+  every pair passes, the `gc()` stays (it lowers variance and changes no comparison).
+  Otherwise the timing mode drops it, because a real app collects the garbage its own
+  load leaves during `create`; `TIMING_MODE` in `config.ts` becomes `timing-no-gc` with a
+  spec change. `create` and `first-get` are published as absolute medians with no ratio,
+  so the coupling of phases that this mode adds changes no published comparison.
+
+The result goes into the timing file (`protocolCheck`) and the rendered page.
+
+**Width rule.** A round count chosen after seeing data opens forking paths when the choice
+can depend on the estimate. The stopping quantity here is an interval width, which for a
+median of paired ratios is close to independent of the point estimate, and the rule is
+fixed before the first dispatch run:
+
+- The metric set: every `mixed` paired ratio on `startup`, `ready`, `first-resolve` and
+  `heap-ready`, and every `mixed` growth ratio.
+- The prefixes: the first 100, 200, 300, 400, 600 and 1,000 measured rounds of the timing
+  block. The run records the maximum relative width (interval over median) of the metric
+  set at each prefix (`prefixWidths`), with the metric that has it.
+- The target is 3% for `mixed`, with a margin of 1.5: the chosen count is the smallest
+  prefix whose maximum width is at most 2%, never below 300, rounded up to a multiple of
+  the block's Williams row count (50 rows for 25 participants, so 300 and 400 already
+  qualify).
+- The first run publishes at 1,000 rounds, fixed in advance. The rule applies once, from
+  that run's prefix table, by the tech lead, and the count it gives and the table are
+  recorded in this section. Later runs never change the count; a later change needs a
+  spec change with its own reason. `SCALE_MINIMUM_ROUNDS` keeps `mixed` at 1,000 until the
+  decision is recorded.
+- The other shapes stay at 200 rounds with a 10% target, reported and not used to change
+  their count. `heap-ready` keeps its 30 measured rounds.
 
 ## 8. Results files
 
@@ -646,9 +718,16 @@ interface ScaleTimingsFile {
   sha: string;
   startedAt: string;
   versions: Versions;
-  runner: Runner;
   seed: number;
   graphSeed: number;
+  /** SHA-256 of the scale.json the run validated against. */
+  scaleSha256: string;
+  /** The machine and wall time of each block: each shape runs in its own job. */
+  blocks: Array<{
+    block: Shape | 'steady-get';
+    runner: BlockRunner;
+    wallMs: number;
+  }>;
   /**
    * The ref release-core.ts restored, or 'workspace', and the git tree SHA of the
    * libs/core that was packed. A ref counts only when its tree is the one packed.
@@ -658,23 +737,49 @@ interface ScaleTimingsFile {
   graphs: Array<{ shape: Shape; size: number; hash: string }>;
   /** Every cell attempted, with `message` required when `outcome` is not `pass`. */
   cells: ScaleCell[];
-  /** One fresh-process design per shape, so each records its own round count. */
-  design: { 'fresh-process': Record<Shape, Design>; 'steady-get': Design };
+  /** One fresh-process design per shape, with its heap block's design beside it. */
+  design: {
+    'fresh-process': Record<Shape, Design & { heap: Design }>;
+    'steady-get': Design;
+  };
   results: ScaleTimingRow[];
   growth: ScaleGrowth[];
   marginal: ScaleMarginal[];
+  /** The maximum interval width at each prefix of a block's rounds (section 7.4). */
+  prefixWidths?: PrefixWidth[];
+  /** The paired protocol check of the first dispatch run (section 7.4). */
+  protocolCheck?: ProtocolCheck;
+}
+
+/** `Runner` plus the runner image and the kernel; the CPU can differ between jobs. */
+interface BlockRunner extends Runner {
+  imageOs?: string;
+  imageVersion?: string;
+  kernel: string;
 }
 ```
 
 `schema.ts` gains `Shape`, the two kinds `'scale'` and `'scale-timings'`, their
 validators, and `minimums('scale-timings')`: `fresh-process.mixed` at least 1,000
-measured, `fresh-process.wide` and `fresh-process.mixed-async` at least 200, `steady-get`
-at least 1,000. `writeResult`'s `kind` union gains `'scale'`.
+measured, the other shapes at least 200, each shape's `heap` design at least 30, and
+`steady-get` at least 1,000. A file whose `protocolCheck.timingStands` is false is not
+valid under `results/`. `writeResult`'s `kind` union gains `'scale'`.
 
 `results`, `growth` and `marginal` hold entries for passing cells only, and a growth entry
 joins two neighbours in `SIZES`. Under `results/`, every NexusDI `plain` cell passes, and
 a competitor cell that does not pass is `not-applicable`, or a `runtime-error` or
 `compile-error` above n = 50 where the same library, variant and shape passes at 50.
+
+One job writes one part (`results/scale-parts/<part>.json` and its raw samples), and
+`timings.ts --merge` writes the file. The merge refuses unless every part has the same
+`sha`, `seed`, `graphSeed`, `coreRef` and `versions`, the SHA-256 of the `scale.json` each
+validated against equals the merge job's copy, the graph hashes match `scale.json`, every
+shape and the steady part appear once, the steady part judged each `mixed` cell as the
+`mixed` part did, and the SHA-256 of each `mixed` bundle the steady part timed equals the
+`mixed` part's (esbuild's path comments are reduced to the file below `out/tsc` or
+`node_modules` before hashing), because get-cycle and startup must time the same code.
+Nothing requires the runner images or CPUs to be equal. A "re-run failed jobs" of one
+shape is allowed: the checks above still hold and the block stays on one machine.
 
 A reader cross-checks a timing file against `scale.json`: every `graphs[].hash` must
 equal the committed hash for that shape and size, or the page labels the run as made with
@@ -682,8 +787,9 @@ an older generator. `render.ts --check` enforces it.
 
 ### 8.3 Raw samples
 
-`results/raw/scale-<date>-<sha7>.json.gz` holds `{ seed, graphSeed, blocks, steady }`
-with every round's phase values, warm-up included, so a rerun of the statistics
+`results/raw/scale-<date>-<sha7>.json.gz` holds `{ seed, graphSeed, coreRef, parts }`, a
+raw part per job (`blocks`, with each shape's heap block, `steady` and the protocol-check
+spawns), with every round's phase values, warm-up included, so a rerun of the statistics
 reproduces each interval. Committed on tag runs and uploaded as an artifact otherwise,
 as `raw/` is today.
 
@@ -742,9 +848,10 @@ spec), which can link the page or read the file.
    5 at 5,000, run four at a time on the runner's four cores.
 2. `node src/scale/render.ts --check`.
 3. `node src/scale/timings.ts --quick --sizes=50 --shapes=mixed`: 3 warm-up and 10
-   measured rounds, 200 steady iterations, written to `tmp/`, validated with
-   `where: 'tmp'`. It proves the child, the worker and the writer run, and gates nothing
-   on the figures. About 1 minute.
+   measured timing rounds, 1 warm-up and 3 measured heap rounds, 200 steady iterations,
+   written to `tmp/` through the same part and merge code, validated with
+   `where: 'tmp'`. It proves both child modes, the worker, the merge and the writer run,
+   and gates nothing on the figures. About 1 minute.
 
 `bench-check` took 13 minutes 40 seconds on its first run with all five shapes at four sizes, 10 minutes 26 seconds after the calibration, and 14 minutes 51 seconds with 2,500 added (97 cells). A NexusDI change that moves bundle bytes changes
 `scale.json`, and the pull request commits the regenerated file, as it does for
@@ -759,43 +866,48 @@ skipped and recorded in `cells` with its outcome (section 14).
 
 ### 10.2 Schedule, dispatch and tags
 
-This change has no scale timing job. The first dispatch run measured about 17 s per round
-of the `mixed` block against the 2.4 s assumed below, so its 1,010 rounds alone take about
-4.8 hours and one 150-minute job cannot finish. Because `merge` needs every job, a tag run
-would have dropped the Meridian-8 results pull request. The job arrives with the budget
-follow-up, designed in the budget follow-up's spec amendment: two child modes (a
-timing mode without the heap settles and a heap mode with them), one job per shape plus a
-`scale-steady` job, a strict `timings.ts --merge` that checks every part was made from the
-same sha, seed, core, versions and `scale.json`, a protocol check on the first dispatch
-run, and a width rule for the round count of `mixed` that the spec records before that
-run. Until then `merge` runs `render.ts` on the deterministic parts, `scale.json` arrives
-with the deterministic artifact, and `open-results-pr.ts` adds `benchmarks/results/scale`,
-`scale.md` and the two SVGs to the commit and one line naming the scale file to the body
-when a timing file exists.
+A `scale` matrix job runs beside `timings` with the same trigger and steps
+(`release-core.ts`, then `node benchmarks/src/scale/timings.ts --part=<part>
+--seed=${{ github.run_id }}`): one job per shape (`mixed`, `wide`, `deep`, `modular`,
+`mixed-async`) and one for the steady get-cycle. Each part keeps every library and every
+size on one machine, so the within-round pairing of competitors and of sizes holds; no
+README, docs or post claim compares shapes, so a different CPU per shape breaks no claim.
+A split by size would break the growth exponents, and a split of one shape's rounds would
+pool two CPUs into one median. Each part builds only its own cells, writes its part and
+raw samples, and uploads `scale-timings-<part>`. Every part records its block's runner
+image, CPU and kernel, and the rendered caption of a shape names its CPU.
 
-In that design each shape's sizes run in one job, so every point on a curve comes from
-one machine.
+The matrix runs with `fail-fast: true`, and `merge` needs `scale`, so a partial file is
+never published. `merge` downloads `scale-timings-*` into `results/scale-parts`, runs
+`timings.ts --merge` (section 8.2) and then `render.ts`. `open-results-pr.ts` adds
+`benchmarks/results/scale`, `scale.md` and the two SVGs to the commit and one line naming
+the scale file to the body; `scale.json` arrives with the deterministic artifact.
+Timeouts: 330 minutes for `mixed`, 120 for each other shape, 30 for the steady part.
 
-The estimate for one full run on the rc.0 runner class that this section started from, kept
-here because the first run disproved it: a round of five libraries at four sizes takes
-about 2.4 s (spawns of about 60, 70, 100 and 250 ms by size, and about 155 ms at 2,500); a `mixed-async`
-round of three about 1.4 s. All five shapes run; `wide`, `deep` and `modular` each
-take the `wide` figure.
+**Per-spawn cost.** A heap-mode spawn on an M1 Pro at a load average of 11 to 22 takes
+409, 427, 496, 622 and 881 ms at 50, 200, 1,000, 2,500 and 5,000 providers. Of a 25-spawn
+`mixed` round of 14.2 s, the base settle is 33%, the final settle 19%, Node's boot, the
+packages import and process exit 24%, the timed phases 17% and the `gc()` before `create`,
+the graph parse and IPC 7%. A timing-mode round takes 6.7 s. Two children at once
+inflated `startup` by 15% and four by 49%, so spawns stay serial and the speed-up comes
+from separate jobs.
 
-| Step                                                         | Minutes   |
-| ------------------------------------------------------------ | --------- |
-| Render, compile, bundle and verify 97 cells, four at a time  | 13        |
-| `mixed` block, 1,010 rounds of 25 spawns                     | 54        |
-| `wide`, `deep` and `modular` blocks, 210 rounds of 25 spawns | 33        |
-| `mixed-async` block, 210 rounds of 15 spawns                 | 7         |
-| Steady `get()`, five sizes                                   | 4         |
-| Statistics and write                                         | 1         |
-| Total                                                        | about 112 |
+**Job estimates**, in minutes with 3.5 minutes of setup (central estimate, and a high one
+at 1.55 times the central per-spawn cost plus 30% on `mixed`):
 
-The per-spawn figures start from rc.0's cold starts (27 to 82 ms) and add load and ready
-time grown from Meridian-8's in-process figures; the first run records the real duration
-in its pull request. The job runs in parallel with `build-scale-200` (39 minutes at rc.0),
-so the workflow's wall time moves from about 47 minutes to about 90.
+| job                               | content                                   | central | high | timeout |
+| --------------------------------- | ----------------------------------------- | ------- | ---- | ------- |
+| `scale-mixed`                     | 25 cells, 1,010 timing and 33 heap rounds | 125     | 247  | 330     |
+| `scale-wide`, `-deep`, `-modular` | 210 timing and 33 heap rounds each        | 35      | 52   | 120     |
+| `scale-mixed-async`               | 15 cells, 210 timing and 33 heap rounds   | 22      | 41   | 120     |
+| `scale-steady`                    | `get-cycle` at five sizes on `mixed`      | 7       | 8    | 30      |
+
+The workflow takes `deterministic` (about 12 minutes) plus the longest job, so about 137
+minutes at the central estimate and 259 at the high one. No full run has happened yet:
+the first dispatch run, with `--protocol-check`, measures the real figures, and its wall
+time, prefix table and protocol double ratios go into the pull request that adds this job
+and then into this section. No tag depends on scale timings until that run has passed the
+gate of section 7.4.
 
 ### 10.3 `build-scale-200`
 
@@ -950,9 +1062,9 @@ Package APIs below were read from inversify 8.2.3 (`@inversifyjs/container`), ts
 4.10.0, awilix 13.0.5 and @needle-di/core 1.2.1, installed at those pins.
 
 1. Rounds. `mixed` runs 1,000 measured rounds, the minimum section 14.4 sets and the count
-   Meridian-8's cold start already publishes. `wide` and `mixed-async` run 200 and print
-   it; no README, docs or post claim cites them. With three shapes the run
-   stays near one hour.
+   Meridian-8's cold start already publishes, until the width rule of section 7.4 decides
+   a count from the first run. The other shapes run 200 and print it; no README, docs or
+   post claim cites them. The run is split into one job per shape (section 10.2).
 2. Headline. `startup` (load + ready) is the headline, with `ready` and `first-resolve`
    published beside it with ratios. tsyringe registers everything at import and needle-di
    binds lazily, so `ready` alone omits their registration work.
@@ -1135,5 +1247,5 @@ the results README say so. Adding a size is one entry in the list plus its commi
 and a band row in `shapes.test.ts`; the exponent table gains the columns of its neighbours,
 and per-provider figures stay on 1,000 to 5,000 (`PER_PROVIDER`).
 
-The budget follow-up runs one job per shape plus `scale-steady` (section 10.2); its first
-dispatch run records the wall time.
+The timing run is one job per shape plus `scale-steady` (section 10.2); its first dispatch
+run records the wall time.
