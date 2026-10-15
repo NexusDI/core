@@ -1,13 +1,27 @@
-import { Token, type NexusPlugin, type TraceEvent } from '@nexusdi/core';
+import type { NexusPlugin, TraceEvent } from '@nexusdi/core';
 import { devtools, trace } from '@nexusdi/devtools';
 import { errors } from '@nexusdi/errors';
-import { interceptor, interceptors } from '@nexusdi/interceptors';
+import {
+  interceptors,
+  type CallContext,
+  type Interceptor,
+  type Next,
+} from '@nexusdi/interceptors';
 
-import { Audit, NAV_AUDIT, type INavAudit } from './audit';
+import { Audit, AUDIT_LOG, type IAuditLog } from './audit';
 import { NAV_CHARTS } from './contracts';
 
-/** The interceptor entry: the shared audit, resolved from the Audit module. */
-const NAV_AUDIT_HOOK = new Token<INavAudit>('NavAuditHook');
+/** Records each NAV_CHARTS call in the audit log. Private: the class is its own token. */
+class NavAudit implements Interceptor {
+  static deps = [AUDIT_LOG] as const;
+  constructor(private readonly log: IAuditLog) {}
+  intercept(call: CallContext, next: Next) {
+    this.log.record(
+      `${String(call.method)} ${call.args.map(String).join(' ')}`,
+    );
+    return next();
+  }
+}
 
 /** The demo app's plugins: the audit interceptor always; errors() and devtools() in development. */
 export function bridgePlugins(
@@ -16,13 +30,8 @@ export function bridgePlugins(
   return [
     interceptors({
       imports: [Audit],
-      register: [
-        interceptor(NAV_AUDIT_HOOK, {
-          useFactory: (audit) => audit,
-          deps: [NAV_AUDIT],
-        }),
-      ],
-      bindings: [{ token: NAV_CHARTS, class: [NAV_AUDIT_HOOK] }],
+      register: [NavAudit],
+      bindings: [{ token: NAV_CHARTS, class: [NavAudit] }],
     }),
     ...(options.dev ? [errors(), devtools()] : []),
     ...(options.trace ? [trace(options.trace)] : []),

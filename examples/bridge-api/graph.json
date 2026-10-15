@@ -124,26 +124,26 @@
     },
     {
       "id": "p5",
-      "token": "NavAudit",
+      "token": "AuditLog",
       "module": "m4",
       "lifetime": "singleton",
       "kind": "class",
       "eager": true,
       "async": null,
       "notes": [],
-      "implementation": "NavAudit",
+      "implementation": "AuditLog",
       "internal": false
     },
     {
       "id": "p6",
-      "token": "NavAuditHook",
+      "token": "NavAudit",
       "module": "m5",
       "lifetime": "singleton",
-      "kind": "factory",
+      "kind": "class",
       "eager": true,
       "async": null,
       "notes": [],
-      "implementation": null,
+      "implementation": "NavAudit",
       "internal": false
     },
     {

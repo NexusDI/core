@@ -56,21 +56,8 @@ export interface NexusHono {
   load(module: ModuleRef): SectionMiddleware;
 }
 
-/**
- * Hands the disposal to the platform's waitUntil where one exists (spec
- * D5), so a Worker keeps running until the scope's disposers finish.
- * Hono's executionCtx getter throws on Node, Bun and Deno, which have none.
- */
-function keepAlive(c: Context, done: Promise<void>): Promise<void> {
-  let ctx: { waitUntil(promise: Promise<unknown>): void } | undefined;
-  try {
-    ctx = c.executionCtx;
-  } catch {
-    ctx = undefined;
-  }
-  ctx?.waitUntil(done);
-  return done;
-}
+/** The platform's waitUntil, as Hono's executionCtx exposes it. */
+type WaitUntil = { waitUntil(promise: Promise<unknown>): void };
 
 const handleOf = (c: Context): RequestScope =>
   requireHandle(
@@ -101,6 +88,28 @@ export function nexus(
 ): NexusHono {
   const options = (args[0] ?? {}) as NexusHonoOptions;
   const core = adapterCore(ship, options, ADAPTER);
+
+  // Hono's executionCtx getter throws a new Error on Node, Bun and Deno,
+  // which have no execution context. One adapter instance serves one
+  // runtime, so the first request tells, and later requests skip the read.
+  let noExecutionCtx = false;
+
+  /**
+   * Hands the disposal to the platform's waitUntil where one exists (spec
+   * D5), so a Worker keeps running until the scope's disposers finish.
+   */
+  const keepAlive = (c: Context, done: Promise<void>): Promise<void> => {
+    if (noExecutionCtx) return done;
+    let ctx: WaitUntil;
+    try {
+      ctx = c.executionCtx;
+    } catch {
+      noExecutionCtx = true;
+      return done;
+    }
+    ctx.waitUntil(done);
+    return done;
+  };
 
   const middleware = createMiddleware<NexusEnv>(async (c, next) => {
     const opened = core.open(() => options.request?.(c));
