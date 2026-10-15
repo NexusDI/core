@@ -22,6 +22,8 @@ import {
 import { workspaceRoot } from '@nx/devkit';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 
+import { loadReferenceOptions, type ReferenceOptions } from './docs/loaders';
+
 let root: string;
 
 const page = [
@@ -71,7 +73,7 @@ function readAs(
 const reference = readAs();
 
 /** The prefixes `apps/docs/tools/reference-options.mjs` gives the build. */
-const PREFIXES = { classPrefix: 'nexus', kindPrefix: 'meridian' };
+let PREFIXES: ReferenceOptions;
 
 /** One page expanded on the fixture root, with the build's prefixes. */
 function expand(
@@ -82,7 +84,8 @@ function expand(
   return expandReferences(source, root, file, { ...PREFIXES, read });
 }
 
-beforeAll(() => {
+beforeAll(async () => {
+  PREFIXES = await loadReferenceOptions();
   root = mkdtempSync(join(tmpdir(), 'nexusdi-reference-'));
   mkdirSync(join(root, 'apps/docs/components/api/behaviour'), {
     recursive: true,
@@ -278,7 +281,8 @@ describe('a signature that names another package', () => {
 
 describe('examples files', () => {
   it('lists the README, then every docs file in name order', () => {
-    const dir = join(root, 'libs/core');
+    // A directory no other case writes, so the listing holds in any order.
+    const dir = join(root, 'libs/listing');
     mkdirSync(join(dir, 'docs'), { recursive: true });
     writeFileSync(join(dir, 'README.md'), '# core\n');
     writeFileSync(join(dir, 'docs/scopes.md'), '');
