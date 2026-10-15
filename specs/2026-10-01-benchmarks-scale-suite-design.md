@@ -803,8 +803,8 @@ Package APIs below were read from inversify 8.2.3 (`@inversifyjs/container`), ts
 4.10.0, awilix 13.0.5 and @needle-di/core 1.2.1, installed at those pins.
 
 1. Rounds. `mixed` runs 1,000 measured rounds, the minimum section 14.4 sets and the count
-   Meridian-8's cold start already publishes, until the width rule of section 7.4 decides
-   a count from the first run. The other shapes run 200 and print it; no README, docs or
+   Meridian-8's cold start already publishes; the rule of section 7.4 kept it
+   at 1,000. The other shapes run 200 and print it; no README, docs or
    post claim cites them. The run is split into one job per shape (section 10.2).
 2. Headline. `startup` (load + ready) is the headline, with `ready` and `first-resolve`
    published beside it with ratios. tsyringe registers everything at import and needle-di
