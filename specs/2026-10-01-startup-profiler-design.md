@@ -244,8 +244,9 @@ A build gets its run this way:
   `Run` (`root.run?.id`, `scope.run?.id`) inside `make`.
 - A value or alias provider's `construct` carries the id of the run that registered it,
   with `level: null` and a zero span at the emit.
-- Every other build carries `run: null`: a transient, and an on-demand build outside any
-  run. A transient or nested build names its enclosing build in `parent`, and its time is
+- Every other build carries `run: null`: a transient, an on-demand build outside any run,
+  and an on-demand build outside the run that added the provider, such as a scoped class a
+  scoped factory reaches through `lazy()` during `createScope`. A transient or nested build names its enclosing build in `parent`, and its time is
   inside that build's `syncMs`.
 
 What `level` indexes, per caller of `buildLevels`:
@@ -541,7 +542,7 @@ export interface Profiler extends NexusPlugin {
 export function profile(options?: ProfileOptions): Profiler;
 
 // @nexusdi/devtools/live, a subpath of its own: an app that never imports it
-// ships none of the live drawing code.
+// bundles none of the live drawing code.
 /** undefined outside Chromium 134 and later, where console.timeStamp draws nothing. */
 export function liveSink(options?: {
   /** The DevTools track group the spans go in. Default 'NexusDI'. */

@@ -12,7 +12,7 @@ Spec: `specs/2026-10-01-startup-profiler-design.md` on this branch. The section 
 
 ## Global Constraints
 
-- Worktree: `/Volumes/projects/Personal/NexusDI/.claude/worktrees/startup-profiler`, branch `spec/startup-profiler`, based on `origin/release/0.4` (0.4.0-rc.1). Implementation goes on a branch cut from it, `feat/startup-profiler`, and its pull request targets `release/0.4`.
+- Worktree: `.claude/worktrees/startup-profiler` under the repository root, branch `spec/startup-profiler`, based on `origin/release/0.4` (0.4.0-rc.1). Implementation goes on a branch cut from it, `feat/startup-profiler`, and its pull request targets `release/0.4`.
 - Prefix every nx command and every `git commit` and `git push` with `NX_NO_CLOUD=true NX_DAEMON=false`.
 - Never `--no-verify`, never a bare `git stash`, never a merge commit (rebase), force-push only the feature branch with `--force-with-lease`. Never publish, never touch `main` or GitHub settings.
 - Commit messages: conventional commits, scopes from `commitlint.config.js` (`core`, `devtools`, `cli`, `docs`, `examples`, `ci`, `repo`, `specs`), ending with `Co-Authored-By: Claude Opus 5.5 (1M context) <noreply@anthropic.com>`.
