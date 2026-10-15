@@ -7239,9 +7239,14 @@ const browser = spawn(
   ],
   { stdio: 'ignore' },
 );
+let spawnError = null;
+browser.once('error', (error) => {
+  spawnError = error;
+});
 
 async function endpoint(path, method = 'GET') {
   for (let i = 0; i < 100; i++) {
+    if (spawnError !== null) throw spawnError;
     try {
       const response = await fetch(`http://127.0.0.1:${port}${path}`, {
         method,
@@ -7335,11 +7340,22 @@ try {
         `${name} has ${length} entries, the file writes ${counts[name] ?? 0}`,
       );
 } catch (error) {
-  failures = [`the frontend did not run the check: ${error.message}`];
+  failures = [
+    error === spawnError
+      ? `Chrome did not start: ${error.message}`
+      : `the frontend did not run the check (the frontend module path may have moved): ${error.message}`,
+  ];
 } finally {
-  const exited = new Promise((resolve) => browser.once('exit', resolve));
-  browser.kill();
-  await exited;
+  // A Chrome that already exited, or never started, sends no exit event.
+  if (
+    spawnError === null &&
+    browser.exitCode === null &&
+    browser.signalCode === null
+  ) {
+    const exited = new Promise((resolve) => browser.once('exit', resolve));
+    browser.kill();
+    await exited;
+  }
   rmSync(profileDir, { recursive: true, force: true });
 }
 console.log(
@@ -7365,15 +7381,17 @@ on:
   pull_request:
     paths:
       - 'libs/devtools/src/profile/**'
+      - 'tools/trace-canary/**'
+      - '.github/workflows/devtools-trace-canary.yml'
 
 permissions: {}
 
 jobs:
   canary:
     runs-on: ubuntu-24.04
+    timeout-minutes: 15
     permissions:
       contents: read
-      issues: write # open or update one issue when a scheduled run fails
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
@@ -7402,8 +7420,17 @@ jobs:
         env:
           NX_NO_CLOUD: 'true'
           NX_DAEMON: 'false'
-      - if: failure() && github.event_name == 'schedule'
-        env:
+
+  # Opens or updates one issue when a scheduled run fails. A job of its own,
+  # so the job that runs Chrome and npm code holds no write permission.
+  report:
+    needs: canary
+    if: failure() && github.event_name == 'schedule'
+    runs-on: ubuntu-24.04
+    permissions:
+      issues: write
+    steps:
+      - env:
           GH_TOKEN: ${{ github.token }}
         run: |
           gh label create devtools-trace --repo "$GITHUB_REPOSITORY" --force --color d93f0b --description 'Chrome trace layout canary'
@@ -7420,6 +7447,8 @@ Run: `NX_NO_CLOUD=true NX_DAEMON=false npx nx test @nexusdi/repo-checks -- trace
 Expected: PASS, and the script prints `<Chrome build>: the NexusDI layout parses`.
 
 As committed (2026-10-15): the script reads the tracks from `entriesByTrack` as the Task 13 test does, and also checks each track's entry count against the golden file's `b` events. It passes `--no-sandbox` on Linux, where Ubuntu 24.04 blocks the user namespaces Chrome's sandbox needs, and waits for Chrome to exit before removing its profile folder. The workflow pins the installer, `@puppeteer/browsers@3.2.3`, and leaves the browsers unpinned. By hand on macOS: Chrome/155.0.8059.79 and Chrome/156.0.8078.12 (beta) parse the layout, and a sabotaged track list fails with exit 1.
+
+Round 2 (2026-10-15): the report step is its own `report` job (`needs: canary`, `if: failure() && github.event_name == 'schedule'`, `issues: write` only); the canary job keeps `contents: read` and gets `timeout-minutes: 15`; the pull request paths add `tools/trace-canary/**` and the workflow file. `run.mjs` names a Chrome that did not start, says the frontend module path may have moved when the check cannot run, and skips the exit wait for a Chrome already gone.
 
 - [ ] Step 5: Commit with `ci(devtools): run the Chrome trace layout canary weekly`.
 
