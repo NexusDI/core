@@ -1,0 +1,104 @@
+---
+title: '@nexusdi/interceptors'
+kind: reference
+description: The exports of @nexusdi/interceptors, with each signature, what its tests state and an example.
+package: '@nexusdi/interceptors'
+---
+
+# `@nexusdi/interceptors`
+
+An audit log or a timer runs around a service's methods, and the service's class carries none of that code. `@nexusdi/interceptors` wraps the instance the container builds. The `interceptors()` plugin registers interceptor classes and `interceptor()` entries, and wraps each class or factory instance that has interceptors. A class declares them with `static interceptors` or `@UseInterceptors()`, and a `bindings` entry names them for a token. A `global` entry applies them to every method, or to the methods its `when` filter accepts. An interceptor's `intercept(call, next)` runs around the method and calls `next()` to run the rest of the chain and the method.
+
+`tap()` reports a call's outcome, sync or async. A sync call returns its own value, and an async call returns a new promise that settles the same way. An observer that throws replaces the outcome with its own error. A bad option fails `create()` with a `BlueprintError` whose `errors` list holds an `InterceptorError`, and a bad `@UseInterceptors()` throws one when the class is defined. `interceptorsText` from `@nexusdi/interceptors/text` words those errors for `@nexusdi/errors`. Each export has one entry below, with what the package's tests state about it.
+
+<ApiFilter />
+
+## `interceptors`
+
+<!-- reference @nexusdi/interceptors#interceptors example=intercept -->
+
+## `interceptor`
+
+<!-- reference @nexusdi/interceptors#interceptor example=intercept -->
+
+## `tap`
+
+<!-- reference @nexusdi/interceptors#tap example=intercept -->
+
+## `UseInterceptors`
+
+<!-- reference @nexusdi/interceptors#UseInterceptors example=use-interceptors -->
+
+## `CallContext`
+
+<!-- reference @nexusdi/interceptors#CallContext -->
+
+## `ExemptToken`
+
+<!-- reference @nexusdi/interceptors#ExemptToken -->
+
+## `GlobalEntry`
+
+<!-- reference @nexusdi/interceptors#GlobalEntry -->
+
+## `GlobalTarget`
+
+<!-- reference @nexusdi/interceptors#GlobalTarget -->
+
+## `Interceptor`
+
+<!-- reference @nexusdi/interceptors#Interceptor example=intercept -->
+
+## `InterceptorBinding`
+
+<!-- reference @nexusdi/interceptors#InterceptorBinding -->
+
+## `InterceptorClass`
+
+<!-- reference @nexusdi/interceptors#InterceptorClass -->
+
+## `InterceptorEntry`
+
+<!-- reference @nexusdi/interceptors#InterceptorEntry -->
+
+## `InterceptorErrorCode`
+
+<!-- reference @nexusdi/interceptors#InterceptorErrorCode -->
+
+## `InterceptorMap`
+
+<!-- reference @nexusdi/interceptors#InterceptorMap -->
+
+## `InterceptorsOptions`
+
+<!-- reference @nexusdi/interceptors#InterceptorsOptions -->
+
+## `InterceptorToken`
+
+<!-- reference @nexusdi/interceptors#InterceptorToken -->
+
+## `InvalidReason`
+
+<!-- reference @nexusdi/interceptors#InvalidReason -->
+
+## `MethodKey`
+
+<!-- reference @nexusdi/interceptors#MethodKey -->
+
+## `Next`
+
+<!-- reference @nexusdi/interceptors#Next -->
+
+## `TapObserver`
+
+<!-- reference @nexusdi/interceptors#TapObserver -->
+
+## `InterceptorError`
+
+<!-- reference @nexusdi/interceptors#InterceptorError -->
+
+## `interceptorsText`
+
+<!-- reference @nexusdi/interceptors/text#interceptorsText example=text -->
+
+The guide [Method Interceptors](/interceptors/) attaches interceptors to a service, controls the call through `next()` and lists the rules they follow.

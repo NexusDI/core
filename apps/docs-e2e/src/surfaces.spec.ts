@@ -7,6 +7,9 @@ const PAGES = [
   '/next/api-testing/',
   '/next/api-decorators/',
   '/next/api-errors-package/',
+  '/next/api-devtools/',
+  '/next/api-federation/',
+  '/next/api-interceptors/',
 ];
 
 for (const theme of ['dark', 'light'] as const) {

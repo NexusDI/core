@@ -1,0 +1,82 @@
+---
+title: '@nexusdi/devtools'
+kind: reference
+description: The exports of @nexusdi/devtools, with each signature, what its tests state and an example.
+package: '@nexusdi/devtools'
+---
+
+# `@nexusdi/devtools`
+
+`@nexusdi/devtools` shows what a container holds and what it did while it started. `devtools()` is a development plugin that lets `graph(ship)` return the container's compiled graph as plain JSON. It hands every lifecycle event to the callback in its `trace` option, and it words errors with `@nexusdi/errors`. `inspect(root)` returns the same graph from the compiler alone, building nothing, for a CLI or a CI job, and `trace(fn)` is a plugin that only reports events. `toMermaid()` and `toDot()` draw a graph as a Mermaid flowchart or a Graphviz digraph, and `parseGraph()` reads a saved graph back and checks its shape. Each export has one entry below, with what the package's tests state about it.
+
+<ApiFilter />
+
+## `devtools`
+
+<!-- reference @nexusdi/devtools#devtools example=graph -->
+
+## `graph`
+
+<!-- reference @nexusdi/devtools#graph example=graph -->
+
+## `inspect`
+
+<!-- reference @nexusdi/devtools#inspect example=inspect -->
+
+## `trace`
+
+<!-- reference @nexusdi/devtools#trace example=graph -->
+
+## `toMermaid`
+
+<!-- reference @nexusdi/devtools#toMermaid example=render -->
+
+## `toDot`
+
+<!-- reference @nexusdi/devtools#toDot example=to-dot -->
+
+## `parseGraph`
+
+<!-- reference @nexusdi/devtools#parseGraph example=parse -->
+
+## `DevtoolsOptions`
+
+<!-- reference @nexusdi/devtools#DevtoolsOptions -->
+
+## `GraphAnnotator`
+
+<!-- reference @nexusdi/devtools#GraphAnnotator example=annotate -->
+
+## `GraphNote`
+
+<!-- reference @nexusdi/devtools#GraphNote -->
+
+## `GraphView`
+
+<!-- reference @nexusdi/devtools#GraphView -->
+
+## `InspectOptions`
+
+<!-- reference @nexusdi/devtools#InspectOptions -->
+
+## `NexusGraph`
+
+<!-- reference @nexusdi/devtools#NexusGraph -->
+
+## `RenderOptions`
+
+<!-- reference @nexusdi/devtools#RenderOptions -->
+
+## `TraceEvent`
+
+<!-- reference @nexusdi/devtools#TraceEvent -->
+
+## `TraceEventByType`
+
+<!-- reference @nexusdi/devtools#TraceEventByType -->
+
+## `DevtoolsError`
+
+<!-- reference @nexusdi/devtools#DevtoolsError -->
+
+The guide [Introspection and Tracing](/introspection/) registers `devtools()`, reads a container's graph with `graph()` and follows its start with `trace()`.
