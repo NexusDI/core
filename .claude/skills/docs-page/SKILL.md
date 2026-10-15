@@ -24,6 +24,21 @@ This file holds the procedure and the traps, and nothing the specs hold.
 
 Section 18.1 item 3 lists the phase 1 pages in teaching order: Start, the Concepts, the Guides, Migration, then the error codes. Section 18.2 holds phase 2. A page written out of order gets rewritten when an earlier page changes what it may assume. If you are asked for a page, check where it sits in that order before starting. The examples a page cites live in `examples/meridian/src/pages/<slug>.md`; run them with `npx nx test @nexusdi/meridian`.
 
+## Adding an API page or entry
+
+Each library has one `kind: reference` page, `apps/docs/content/api-<dir>.mdx` (core's is `api.mdx`, and `@nexusdi/errors` takes `api-errors-package.mdx`), found by its `package` frontmatter.
+
+A new export needs four things:
+
+1. A docblock summary above its declaration in `libs/<pkg>/src`, whose first sentence says what the export is or does.
+2. If it is callable, a `describe` block naming it in the package's tests, holding only cases that use the public surface.
+3. A `` ## `name` `` heading on its package's page, followed by `<!-- reference @nexusdi/<pkg>#name -->`.
+4. If it is callable, an `example=<region>` on that directive, naming a region in `libs/<pkg>/docs/*.md` that calls it.
+
+A new library needs its page with `kind: reference` and `package: '@nexusdi/<pkg>'`, an entry under the API separator of `apps/docs/content/_meta.ts`, and the `json` reporter in its `vite.config.ts`. `tools/repo-checks/package.json`'s test target already depends on every `libs/*` test.
+
+The guards that fail otherwise: `doc-export-coverage` (the page, the headings and the examples), `doc-reference` (the docblock summary), `doc-behaviour` (the `describe`, and no internal name on a rail) and `doc-behaviour-run` (every sentence a run reported).
+
 ## Verifying
 
 CI runs this, over every project, with no filter:
@@ -55,6 +70,10 @@ This is the first thing to suspect. Two symptoms, and either is enough: the buil
 ### The Nx cache is shared across every worktree on the machine
 
 `.nx/cache` is keyed on content, so a task another worktree ran can replay into yours. Treat a foreign path in the output as a cache hit, and suspect the cache before the code you just changed.
+
+### A stale `components/api/behaviour/` serves old sentences
+
+`docs:behaviour-data` writes the sentences and the cases from the test sources. Run `npx nx run @nexusdi/docs:behaviour-data` after renaming a test.
 
 ### A stale `libs/core/dist` reports the old signatures
 
