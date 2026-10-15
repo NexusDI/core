@@ -1,4 +1,12 @@
-import { fireEvent, render, screen, waitFor } from '@testing-library/react';
+import {
+  act,
+  fireEvent,
+  render,
+  screen,
+  waitFor,
+  type RenderResult,
+} from '@testing-library/react';
+import type { ReactElement } from 'react';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 import BehaviourCatalogue from './BehaviourCatalogue';
@@ -138,19 +146,35 @@ function serve(answer: (url: string) => unknown): void {
   );
 }
 
+/**
+ * Renders inside an awaited act, so the cached sidecar's `then`, which lands a
+ * microtask after the mount, applies inside it.
+ */
+async function show(element: ReactElement): Promise<RenderResult> {
+  let result: RenderResult | undefined;
+  await act(async () => {
+    result = render(element);
+  });
+  return result as RenderResult;
+}
+
 // The fetch is cached per library and name for the whole module. A case that
 // wants a different answer from the network asks for a different name.
 const mount = (name = 'createTestingContainer') =>
-  render(<BehaviourCatalogue library="testing" name={name} groups={GROUPS} />);
+  show(<BehaviourCatalogue library="testing" name={name} groups={GROUPS} />);
 
 const mountTyped = () =>
-  render(
+  show(
     <BehaviourCatalogue
       library="node"
       name="nodeScopes"
       groups={TYPED_GROUPS}
     />,
   );
+
+/** The pane once the sidecar's first case has reached it. */
+const loaded = () =>
+  screen.findByRole('region', { name: 'libs/testing/src/index.test.ts:41' });
 
 /** The typed token spelling a name, once the sidecar has reached the pane. */
 function reach(container: HTMLElement, text: string): HTMLElement {
@@ -162,8 +186,9 @@ function reach(container: HTMLElement, text: string): HTMLElement {
 }
 
 describe('BehaviourCatalogue', () => {
-  it('names every sentence in the rail, under the group the suite wrote', () => {
-    mount();
+  it('names every sentence in the rail, under the group the suite wrote', async () => {
+    await mount();
+    await loaded();
 
     expect(screen.getByRole('group', { name: 'a malformed override' })).toBe(
       screen.getAllByRole('group')[1],
@@ -178,7 +203,7 @@ describe('BehaviourCatalogue', () => {
   });
 
   it('titles the pane with the file and line of the case', async () => {
-    mount();
+    await mount();
 
     const pane = await screen.findByRole('region', {
       name: 'libs/testing/src/index.test.ts:41',
@@ -187,7 +212,7 @@ describe('BehaviourCatalogue', () => {
   });
 
   it('follows a click to the case the clicked sentence names', async () => {
-    mount();
+    await mount();
     fireEvent.click(
       screen.getByRole('option', {
         name: 'names the module the override targets',
@@ -204,7 +229,7 @@ describe('BehaviourCatalogue', () => {
   });
 
   it('moves the selection down the rail on an arrow key', async () => {
-    mount();
+    await mount();
     const rail = screen.getByRole('listbox');
     fireEvent.keyDown(rail, { key: 'ArrowDown' });
 
@@ -216,8 +241,9 @@ describe('BehaviourCatalogue', () => {
     await screen.findByText("expect(error.code).toBe('NEXUS_OVERRIDE')");
   });
 
-  it('stops at the last sentence and never wraps past it', () => {
-    mount();
+  it('stops at the last sentence and never wraps past it', async () => {
+    await mount();
+    await loaded();
     const rail = screen.getByRole('listbox');
     fireEvent.keyDown(rail, { key: 'End' });
     fireEvent.keyDown(rail, { key: 'ArrowDown' });
@@ -229,7 +255,7 @@ describe('BehaviourCatalogue', () => {
 
   it('fetches the sidecar under the base path', async () => {
     vi.stubEnv('NEXUS_BASE_PATH', '/next');
-    render(
+    await show(
       <BehaviourCatalogue
         library="node"
         name="nodeScopes-under-next"
@@ -245,7 +271,9 @@ describe('BehaviourCatalogue', () => {
   });
 
   it('encodes the export name in the sidecar URL', async () => {
-    render(<BehaviourCatalogue library="core" name="$weird" groups={GROUPS} />);
+    await show(
+      <BehaviourCatalogue library="core" name="$weird" groups={GROUPS} />,
+    );
 
     await waitFor(() =>
       expect(asked).toEqual([
@@ -262,18 +290,18 @@ describe('BehaviourCatalogue', () => {
         return { ok: false, status: 404 };
       }),
     );
-    const first = mount('Missing');
+    const first = await mount('Missing');
 
     await screen.findByText(/The cases for Missing did not load/);
     first.unmount();
-    mount('Missing');
+    await mount('Missing');
 
     await screen.findByText(/The cases for Missing did not load/);
     expect(asked).toEqual(['/behaviour/testing/Missing.json']);
   });
 
   it('states the type behind a token the pointer reached', async () => {
-    const { container } = mountTyped();
+    const { container } = await mountTyped();
     const token = await waitFor(() => reach(container, 'scopes'));
 
     fireEvent.pointerOver(token);
@@ -284,7 +312,7 @@ describe('BehaviourCatalogue', () => {
   });
 
   it('skips a token whose type the sidecar does not hold', async () => {
-    const { container } = mountTyped();
+    const { container } = await mountTyped();
     const token = await waitFor(() => reach(container, 'run'));
 
     fireEvent.pointerOver(token);
@@ -294,13 +322,13 @@ describe('BehaviourCatalogue', () => {
   });
 
   it('walks the typed tokens from the one tab stop the pane holds', async () => {
-    const { container } = mountTyped();
+    const { container } = await mountTyped();
     const [first, second] = await waitFor(() => [
       reach(container, 'scopes'),
       reach(container, 'nodeScopes'),
     ]);
 
-    first?.focus();
+    act(() => first?.focus());
     fireEvent.keyDown(first as HTMLElement, { key: 'ArrowRight' });
 
     expect(
@@ -313,8 +341,32 @@ describe('BehaviourCatalogue', () => {
     );
   });
 
+  it('keeps the card up while the pointer moves from the token onto it', async () => {
+    const { container } = await mountTyped();
+    const token = await waitFor(() => reach(container, 'scopes'));
+    fireEvent.pointerOver(token);
+    const card = screen.getByRole('tooltip');
+
+    fireEvent.pointerLeave(container.querySelector('pre') as HTMLElement, {
+      relatedTarget: card,
+    });
+    fireEvent.pointerEnter(card);
+    await new Promise((settle) => setTimeout(settle, 300));
+    expect(screen.getByRole('tooltip')).toBe(card);
+
+    fireEvent.pointerLeave(card);
+    await waitFor(() => expect(screen.queryByRole('tooltip')).toBeNull());
+  });
+
+  it('names the card before any token takes focus', async () => {
+    const { container } = await mountTyped();
+    await waitFor(() => reach(container, 'scopes'));
+
+    expect(container.querySelector('[role=tooltip]')?.id).toMatch(/-type$/);
+  });
+
   it('takes the card back down on Escape', async () => {
-    const { container } = mountTyped();
+    const { container } = await mountTyped();
     const token = await waitFor(() => reach(container, 'scopes'));
 
     fireEvent.pointerOver(token);
@@ -323,8 +375,34 @@ describe('BehaviourCatalogue', () => {
     expect(screen.queryByRole('tooltip')).toBeNull();
   });
 
-  it('keeps the cases out of the search index', () => {
-    const { container } = mount();
+  it.each([
+    ['wide', false],
+    ['narrow', true],
+  ])(
+    'keeps the pane outside the listbox, which the rail names as what it controls, when %s',
+    async (_layout, narrow) => {
+      vi.stubGlobal('matchMedia', (query: string) => ({
+        matches: narrow,
+        media: query,
+        addEventListener: () => undefined,
+        removeEventListener: () => undefined,
+      }));
+      const { container } = await mount();
+      await screen.findByRole('region', {
+        name: 'libs/testing/src/index.test.ts:41',
+      });
+
+      const pane = container.querySelector('.nexus-behaviours__pane');
+      expect(pane?.closest('[role=listbox]')).toBeNull();
+      expect(screen.getByRole('listbox').getAttribute('aria-controls')).toBe(
+        pane?.id,
+      );
+    },
+  );
+
+  it('keeps the cases out of the search index', async () => {
+    const { container } = await mount();
+    await loaded();
 
     expect(
       container
