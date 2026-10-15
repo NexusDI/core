@@ -64,14 +64,17 @@ function mark<M extends Modifier>(modifier: M): M {
   return modifier;
 }
 
+/** Marks a dep as optional: it resolves to `undefined` when no provider of the token is visible. */
 export function optional<T>(token: InjectionToken<T>): Optional<T> {
   return mark({ kind: 'optional', token });
 }
 
+/** Marks a dep as lazy: it resolves to a thunk, which is how a provider declares one edge of a cycle. */
 export function lazy<T>(token: InjectionToken<T>): Lazy<T> {
   return mark({ kind: 'lazy', token });
 }
 
+/** Collects a MultiToken: the dep resolves to every contribution visible to the provider. */
 export function all<T>(token: MultiToken<T>): All<T> {
   return mark({ kind: 'all', token });
 }

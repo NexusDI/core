@@ -168,3 +168,130 @@ ship.get(POWER_ROUTER).divert(); // -> 0.4
 ```
 
 <!-- #endregion lazy -->
+
+## Optional deps
+
+`optional(TOKEN)` marks a dep the provider can run without: with no provider of the token visible, the dep resolves to `undefined`. `StatusBoard` returns its report with `held` appended when no provider of `SUBSPACE_LINK` is visible.
+
+<!-- #region optional -->
+
+```ts @import.meta.vitest
+import { MultiToken, Nexus, Token, all, optional } from '@nexusdi/core';
+import { defineModule, provide } from '@nexusdi/core';
+
+interface Diagnostic {
+  readonly name: string;
+  check(): boolean;
+}
+interface ISubspaceLink {
+  send(message: string): string;
+}
+interface IDiagnosticsPanel {
+  passed(): string[];
+  report(): string;
+}
+const DIAGNOSTICS = new MultiToken<Diagnostic>('Diagnostics');
+const SUBSPACE_LINK = new Token<ISubspaceLink>('SubspaceLink');
+const DIAGNOSTICS_PANEL = new Token<IDiagnosticsPanel>('DiagnosticsPanel');
+
+class StatusBoard implements IDiagnosticsPanel {
+  static deps = [all(DIAGNOSTICS), optional(SUBSPACE_LINK)] as const;
+  constructor(
+    private readonly diagnostics: Diagnostic[],
+    private readonly link: ISubspaceLink | undefined,
+  ) {}
+  passed() {
+    return this.diagnostics
+      .filter((diagnostic) => diagnostic.check())
+      .map((diagnostic) => diagnostic.name);
+  }
+  report() {
+    const text = `${this.passed().length} of ${this.diagnostics.length} passed`;
+    return this.link ? this.link.send(text) : `${text}, held`;
+  }
+}
+
+await using ship = await Nexus.create(
+  defineModule({
+    name: 'Meridian',
+    providers: [provide(DIAGNOSTICS_PANEL, { useClass: StatusBoard })],
+  }),
+);
+ship.get(DIAGNOSTICS_PANEL).report(); // -> '0 of 0 passed, held'
+```
+
+<!-- #endregion optional -->
+
+## Every contribution of a MultiToken
+
+`all(TOKEN)` collects a `MultiToken`: the dep resolves to every contribution visible to the provider, in the order `Nexus.create` walks the modules, and in declaration order inside one module. `StatusBoard` runs the diagnostics `Engineering` and `Tactical` contribute.
+
+<!-- #region all -->
+
+```ts @import.meta.vitest
+import { MultiToken, Nexus, Token, all, optional } from '@nexusdi/core';
+import { defineModule, provide } from '@nexusdi/core';
+
+interface Diagnostic {
+  readonly name: string;
+  check(): boolean;
+}
+interface ISubspaceLink {
+  send(message: string): string;
+}
+interface IDiagnosticsPanel {
+  passed(): string[];
+  report(): string;
+}
+const DIAGNOSTICS = new MultiToken<Diagnostic>('Diagnostics');
+const SUBSPACE_LINK = new Token<ISubspaceLink>('SubspaceLink');
+const DIAGNOSTICS_PANEL = new Token<IDiagnosticsPanel>('DiagnosticsPanel');
+
+class StatusBoard implements IDiagnosticsPanel {
+  static deps = [all(DIAGNOSTICS), optional(SUBSPACE_LINK)] as const;
+  constructor(
+    private readonly diagnostics: Diagnostic[],
+    private readonly link: ISubspaceLink | undefined,
+  ) {}
+  passed() {
+    return this.diagnostics
+      .filter((diagnostic) => diagnostic.check())
+      .map((diagnostic) => diagnostic.name);
+  }
+  report() {
+    const text = `${this.passed().length} of ${this.diagnostics.length} passed`;
+    return this.link ? this.link.send(text) : `${text}, held`;
+  }
+}
+
+class ReactorDiagnostic implements Diagnostic {
+  readonly name = 'reactor';
+  check() {
+    return true;
+  }
+}
+const hullDiagnostic: Diagnostic = { name: 'hull', check: () => false };
+
+const Engineering = defineModule({
+  name: 'Engineering',
+  providers: [provide(DIAGNOSTICS, { useClass: ReactorDiagnostic })],
+  exports: [DIAGNOSTICS],
+});
+const Tactical = defineModule({
+  name: 'Tactical',
+  providers: [provide(DIAGNOSTICS, { useValue: hullDiagnostic })],
+  exports: [DIAGNOSTICS],
+});
+
+await using ship = await Nexus.create(
+  defineModule({
+    name: 'Meridian',
+    imports: [Engineering, Tactical],
+    providers: [provide(DIAGNOSTICS_PANEL, { useClass: StatusBoard })],
+  }),
+);
+ship.get(DIAGNOSTICS_PANEL).passed(); // -> ['reactor']
+ship.get(DIAGNOSTICS_PANEL).report(); // -> '1 of 2 passed, held'
+```
+
+<!-- #endregion all -->

@@ -32,7 +32,7 @@ let wrap: (state: RootState) => Nexus;
 /**
  * A compiled, sealed container. Create one with `await Nexus.create(Root)`.
  * `get()` and `has()` are synchronous; async work happens only in `create`,
- * `load`, `createScope` and a scope's `extend()`.
+ * `load`, `createScope`, a scope's `extend()` and `[Symbol.asyncDispose]()`.
  */
 export class Nexus {
   readonly #state: RootState;
