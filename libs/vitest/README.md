@@ -19,7 +19,7 @@ Every test file that exercises the real module graph builds a testing container,
 npm install -D @nexusdi/vitest@next @nexusdi/testing@next @nexusdi/core@next vitest
 ```
 
-It works with Vitest 4.1 or later, including Vitest 5, and Node 22.12 or later.
+It works with Vitest 4.1 or later, Vitest 5 included, on Node 22.12 or later with TypeScript 5.4 or later.
 
 ## Quick Example
 

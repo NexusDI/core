@@ -19,6 +19,8 @@ A React app that uses a container writes the same glue in every team: a context 
 npm install @nexusdi/react@next @nexusdi/core@next react
 ```
 
+It works with `react` 19.0 or later, on Node 22.12 or later with TypeScript 5.4 or later.
+
 ## Quick Example
 
 The app creates the container, and `NexusProvider` publishes it to every component below. `react()` reads the graph when the container starts, so a transient token read in render fails on the first render; register it in development and tests.

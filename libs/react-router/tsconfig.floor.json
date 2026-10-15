@@ -1,0 +1,19 @@
+{
+  // The source and the type tests on the oldest TypeScript the package
+  // supports (5.4) and on TypeScript 7; scripts/check-type-floor.mjs runs it.
+  "compilerOptions": {
+    "strict": true,
+    "noEmit": true,
+    "target": "es2022",
+    "module": "esnext",
+    "moduleResolution": "bundler",
+    "customConditions": ["@nexusdi/source"],
+    "lib": ["es2022", "esnext.disposable"],
+    "types": ["node"],
+    "skipLibCheck": true,
+    "isolatedModules": true,
+    "noUnusedLocals": true
+  },
+  "include": ["src/**/*.ts", "test-support/nexus-request.ts"],
+  "exclude": ["src/**/*.test.ts", "src/**/__fixtures__/**"]
+}

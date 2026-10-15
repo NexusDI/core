@@ -2,11 +2,8 @@ import type { TestAPI } from 'vitest';
 
 import type { ModuleRef } from '@nexusdi/core';
 
-import {
-  nexusFixtures,
-  type NexusFixtures,
-  type NexusFixturesOptions,
-} from './fixtures.js';
+import { nexusFixtures } from './fixtures.js';
+import type { NexusFixtures, NexusFixturesOptions } from './types.js';
 
 /**
  * `base` with the NexusDI fixtures (nexusSetup, nexusRequest, nexus,

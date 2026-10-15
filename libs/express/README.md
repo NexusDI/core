@@ -19,6 +19,8 @@ A request-scoped service needs a scope per request, created when a handler first
 npm install @nexusdi/express@next @nexusdi/core@next express
 ```
 
+It works with `express` 5.0 or later, on Node 22.12 or later with TypeScript 5.4 or later.
+
 ## Quick Example
 
 Each request gets its own flight log, so two requests never see each other's entries.

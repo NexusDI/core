@@ -19,6 +19,8 @@ A request-scoped service needs a scope per request, disposed when the response i
 npm install @nexusdi/react-router@next @nexusdi/core@next react-router
 ```
 
+It works with `react-router` 8, and with 7.9 or later when the `v8_middleware` future flag is on. It runs on Node 22.12 or later (22.22 for React Router 8) with TypeScript 5.4 or later.
+
 ## Quick Example
 
 A loader resolves its typed deps from the request's scope, which the root middleware gives each request.
