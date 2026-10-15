@@ -6,6 +6,8 @@ import { describe, expect, it } from 'vitest';
 type Sizes = {
   core: number | null;
   packages: Record<string, number | null>;
+  standalone?: Record<string, number | null>;
+  overBudget?: string[];
 };
 const { compareSizes } = (await import(
   pathToFileURL(join(workspaceRoot, 'scripts', 'size-compare.mjs')).href
@@ -95,5 +97,29 @@ describe('compareSizes', () => {
     expect(result.fail).toBe(true);
     expect(result.markdown).not.toContain('null');
     expect(result.markdown).toContain('| core | 17620 | no figure | | |');
+  });
+
+  it('lists a standalone bundle and each figure over its budget, and still passes', () => {
+    const head: Sizes = {
+      core: 10_000,
+      packages: { errors: 3000 },
+      standalone: { 'hono-worker': 28_500 },
+      overBudget: [
+        '@nexusdi/hono is 2600 bytes, over its 2500-byte budget (the middleware)',
+      ],
+    };
+    const result = compareSizes(
+      { ...base, standalone: { 'hono-worker': 28_000 } },
+      head,
+      '',
+      2,
+    );
+    expect(result.fail).toBe(false);
+    expect(result.markdown).toContain(
+      '| hono-worker (whole bundle) | 28000 | 28500 | +500 | +1.79% |',
+    );
+    expect(result.markdown).toContain(
+      '- @nexusdi/hono is 2600 bytes, over its 2500-byte budget (the middleware)',
+    );
   });
 });

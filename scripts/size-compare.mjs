@@ -54,7 +54,25 @@ export function compareSizes(base, head, body, threshold) {
           return `| @nexusdi/${name} | no figure | ${now ?? 'no figure'} | | |`;
         return `| @nexusdi/${name} | ${was} | ${now} | ${bytes(was, now)} | ${pct(was, now)} |`;
       }),
+    // A standalone bundle, such as hono-worker, is a whole deployable,
+    // framework included (spec 9.6).
+    ...Object.keys(head.standalone ?? {})
+      .sort()
+      .map((name) => {
+        const was = base.standalone?.[name];
+        const now = head.standalone[name];
+        if (was === undefined)
+          return `| ${name} (whole bundle) | new | ${now ?? 'no figure'} | | |`;
+        if (was === null || now === null)
+          return `| ${name} (whole bundle) | no figure | ${now ?? 'no figure'} | | |`;
+        return `| ${name} (whole bundle) | ${was} | ${now} | ${bytes(was, now)} | ${pct(was, now)} |`;
+      }),
   ];
+  // Reported, never fatal: the threshold applies to core alone (spec 13.6).
+  const budgets =
+    (head.overBudget ?? []).length === 0
+      ? []
+      : ['', 'Over budget:', ...head.overBudget.map((line) => `- ${line}`)];
   const verdict = !headHasCore
     ? 'This pull request has no figure for core: it did not bundle against the fixture. Fix the build; a `## Size` section cannot justify a broken build.'
     : !baseHasCore
@@ -73,6 +91,7 @@ export function compareSizes(base, head, body, threshold) {
     '| Package | main | this PR | bytes | % |',
     '| --- | --- | --- | --- | --- |',
     ...rows,
+    ...budgets,
     '',
     verdict,
   ].join('\n');

@@ -29,14 +29,26 @@ import { pathToFileURL } from 'node:url';
 import { parseArgs } from 'node:util';
 import { gzipSync } from 'node:zlib';
 
-export async function gzipOf(fixture, root, file) {
+/**
+ * Per-fixture options from fixtures.json beside the fixtures, keyed by
+ * fixture name: `external` keeps a framework out of the bundle, `platform`
+ * picks esbuild's, `standalone` reports the whole bundle, and `budget` with
+ * its `reason` is the figure the fixture should stay under (spec 13.6).
+ */
+export function fixtureOptions(fixture) {
+  const file = join(fixture, 'fixtures.json');
+  return existsSync(file) ? JSON.parse(readFileSync(file, 'utf8')) : {};
+}
+
+export async function gzipOf(fixture, root, file, options = {}) {
   const result = await build({
     entryPoints: [join(fixture, file)],
     bundle: true,
     minify: true,
     format: 'esm',
-    platform: 'node',
+    platform: options.platform ?? 'node',
     target: 'es2022',
+    external: options.external ?? [],
     write: false,
     absWorkingDir: root,
     logLevel: 'silent',
@@ -53,9 +65,9 @@ export async function gzipOf(fixture, root, file) {
 // there is the fixture, or core itself, breaking in that pull request, and
 // has to fail the "Measure this pull request" step hard, not read as core
 // having shrunk to nothing (reviewer finding, fix round 1).
-export async function measure(fixture, root, file, swallow) {
+export async function measure(fixture, root, file, swallow, options) {
   try {
-    return await gzipOf(fixture, root, file);
+    return await gzipOf(fixture, root, file, options);
   } catch (err) {
     if (swallow) return null;
     throw err;
@@ -67,7 +79,10 @@ export async function measure(fixture, root, file, swallow) {
 // fixture file. `core.ts` is the baseline itself, so core reports only its
 // pack. A pack with no fixture would go unmeasured here, so the repo-checks
 // size-fixtures check fails on a `./text` export without `<dir>-text.ts`.
+// A framework adapter marks its framework external in fixtures.json, so its
+// figure is the adapter's own weight (spec 13.6).
 export async function measurePackages(fixture, root, libs, core, swallow) {
+  const options = fixtureOptions(fixture);
   const packages = {};
   const files = readdirSync(fixture);
   for (const dir of libs) {
@@ -91,11 +106,48 @@ export async function measurePackages(fixture, root, libs, core, swallow) {
       ...features,
     ]) {
       if (name === 'core' || !existsSync(join(fixture, file))) continue;
-      const size = await measure(fixture, root, file, swallow);
+      const size = await measure(fixture, root, file, swallow, options[name]);
       packages[name] = size === null || core === null ? null : size - core;
     }
   }
   return packages;
+}
+
+// A standalone fixture, such as hono-worker, is a whole deployable: reported
+// at its full size, framework included (spec 9.6).
+export async function measureStandalone(fixture, root, swallow) {
+  const standalone = {};
+  for (const [name, options] of Object.entries(fixtureOptions(fixture))) {
+    if (!options.standalone) continue;
+    standalone[name] = await measure(
+      fixture,
+      root,
+      `${name}.ts`,
+      swallow,
+      options,
+    );
+  }
+  return standalone;
+}
+
+/**
+ * Each figure over the budget its fixtures.json entry sets, with the
+ * entry's reason. Reported, never fatal: the threshold applies to core
+ * alone (spec 13.6).
+ */
+export function overBudget(fixture, sizes) {
+  const options = fixtureOptions(fixture);
+  const lines = [];
+  for (const [name, { budget, reason, standalone }] of Object.entries(
+    options,
+  )) {
+    const size = standalone ? sizes.standalone[name] : sizes.packages[name];
+    if (typeof size === 'number' && typeof budget === 'number' && size > budget)
+      lines.push(
+        `${standalone ? name : `@nexusdi/${name}`} is ${size} bytes, over its ${budget}-byte budget (${reason})`,
+      );
+  }
+  return lines;
 }
 
 async function main() {
@@ -139,7 +191,10 @@ async function main() {
 
   const core = await measure(fixture, ROOT, 'core.ts', swallow);
   const packages = await measurePackages(fixture, ROOT, libs, core, swallow);
-  const sizes = { core, packages };
+  const standalone = await measureStandalone(fixture, ROOT, swallow);
+  const sizes = { core, packages, standalone };
+  sizes.overBudget = overBudget(fixture, sizes);
+  for (const line of sizes.overBudget) console.warn(line);
   console.log(JSON.stringify(sizes, null, 2));
   if (values.json) writeFileSync(values.json, JSON.stringify(sizes));
 

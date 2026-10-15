@@ -9,23 +9,46 @@ import { afterEach, beforeEach, describe, expect, it } from 'vitest';
 // A throwaway one-file fixture, not the workspace's real one, so the
 // esbuild bundle stays a one-file, no-nx-build affair: cheap enough to
 // exercise the swallow/throw policy without the real fixture or a build.
-const { measure, measurePackages } = (await import(
-  pathToFileURL(join(workspaceRoot, 'scripts', 'size-report.mjs')).href
-)) as {
-  measure(
-    fixture: string,
-    root: string,
-    file: string,
-    swallow: boolean,
-  ): Promise<number | null>;
-  measurePackages(
-    fixture: string,
-    root: string,
-    libs: readonly string[],
-    core: number | null,
-    swallow: boolean,
-  ): Promise<Record<string, number | null>>;
-};
+const { gzipOf, measure, measurePackages, measureStandalone, overBudget } =
+  (await import(
+    pathToFileURL(join(workspaceRoot, 'scripts', 'size-report.mjs')).href
+  )) as {
+    measure(
+      fixture: string,
+      root: string,
+      file: string,
+      swallow: boolean,
+    ): Promise<number | null>;
+    measurePackages(
+      fixture: string,
+      root: string,
+      libs: readonly string[],
+      core: number | null,
+      swallow: boolean,
+    ): Promise<Record<string, number | null>>;
+    gzipOf(fixture: string, root: string, file: string): Promise<number>;
+    measureStandalone(
+      fixture: string,
+      root: string,
+      swallow: boolean,
+    ): Promise<Record<string, number | null>>;
+    overBudget(
+      fixture: string,
+      sizes: {
+        packages: Record<string, number | null>;
+        standalone: Record<string, number | null>;
+      },
+    ): string[];
+  };
+
+/** A fixture folder inside the workspace, so '@nexusdi/*' resolves. */
+function tmpFixture(files: Record<string, string>): string {
+  const dir = mkdtempSync(join(workspaceRoot, 'node_modules', '.size-test-'));
+  writeFileSync(join(dir, 'package.json'), '{ "type": "module" }');
+  for (const [name, text] of Object.entries(files))
+    writeFileSync(join(dir, name), text);
+  return dir;
+}
 
 describe('measure', () => {
   let dir: string;
@@ -133,5 +156,65 @@ describe('measurePackages', () => {
     );
     const packages = await measurePackages(dir, dir, ['pkg'], 100, true);
     expect(packages['pkg/text']).toBeNull();
+  });
+});
+
+describe('fixtures.json options', () => {
+  let dir: string;
+  afterEach(() => rmSync(dir, { recursive: true, force: true }));
+
+  it('keeps a framework external, so the figure is the adapter plus core', async () => {
+    dir = tmpFixture({
+      'core.ts': "import { Nexus } from '@nexusdi/core'; console.log(Nexus);",
+      'hono.ts':
+        "import { Hono } from 'hono'; import { Nexus } from '@nexusdi/core'; console.log(Hono, Nexus);",
+      'fixtures.json': JSON.stringify({
+        hono: { external: ['hono'], budget: 100, reason: 'a test' },
+      }),
+    });
+    const core = await gzipOf(dir, workspaceRoot, 'core.ts');
+    const packages = await measurePackages(
+      dir,
+      workspaceRoot,
+      ['hono'],
+      core,
+      false,
+    );
+    expect(packages['hono']).toBeLessThan(200); // the import line, not Hono's ~7.7 KB
+  });
+
+  it('reports a standalone fixture at its full size under its own name', async () => {
+    dir = tmpFixture({
+      'core.ts': "import { Nexus } from '@nexusdi/core'; console.log(Nexus);",
+      'hono-worker.ts':
+        "import { Hono } from 'hono'; export default new Hono();",
+      'fixtures.json': JSON.stringify({
+        'hono-worker': {
+          standalone: true,
+          platform: 'neutral',
+          budget: 100_000,
+          reason: 'a test',
+        },
+      }),
+    });
+    const standalone = await measureStandalone(dir, workspaceRoot, false);
+    expect(standalone['hono-worker']).toBeGreaterThan(5000);
+  });
+
+  it('names each figure over its budget, with the reason the budget gives', () => {
+    dir = tmpFixture({
+      'fixtures.json': JSON.stringify({
+        hono: { external: ['hono'], budget: 1000, reason: 'the middleware' },
+        'hono-worker': { standalone: true, budget: 9000, reason: 'a Worker' },
+      }),
+    });
+    expect(
+      overBudget(dir, {
+        packages: { hono: 1200 },
+        standalone: { 'hono-worker': 8000 },
+      }),
+    ).toEqual([
+      '@nexusdi/hono is 1200 bytes, over its 1000-byte budget (the middleware)',
+    ]);
   });
 });

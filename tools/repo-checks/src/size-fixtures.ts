@@ -62,3 +62,32 @@ export function sizeFixtureViolations(
   }
   return violations;
 }
+
+/** An entry of examples/size/src/fixtures.json, as budgetViolations reads it. */
+export interface FixtureEntry {
+  readonly external?: readonly string[];
+  readonly budget?: unknown;
+  readonly reason?: unknown;
+}
+
+/**
+ * Every fixtures.json entry names a fixture that exists, a positive budget
+ * in gzip bytes, and the reason for that budget (spec 13.6).
+ */
+export function budgetViolations(
+  options: Readonly<Record<string, FixtureEntry>>,
+  fixtures: readonly string[],
+): string[] {
+  const present = new Set(fixtures);
+  const violations: string[] = [];
+  const at = 'examples/size/src/fixtures.json';
+  for (const [name, entry] of Object.entries(options)) {
+    if (typeof entry.budget !== 'number' || entry.budget <= 0)
+      violations.push(`${at}: ${name} has no positive budget`);
+    if (typeof entry.reason !== 'string' || entry.reason.trim() === '')
+      violations.push(`${at}: ${name} gives no reason for its budget`);
+    if (!present.has(`${name}.ts`))
+      violations.push(`${at}: ${name} has no fixture ${name}.ts`);
+  }
+  return violations;
+}
