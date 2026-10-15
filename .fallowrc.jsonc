@@ -21,6 +21,7 @@
     "@nexusdi/interceptors",
     "@nexusdi/cli",
     "@nexusdi/express",
+    "@nexusdi/fastify",
     "@nexusdi/vitest",
     "@nexusdi/meridian-ui",
   ],
@@ -60,6 +61,7 @@
     "libs/devtools/vitest.trace.config.ts",
     "libs/core/test-support/nexus-request.ts",
     "libs/express/test-support/nexus-request.ts",
+    "libs/fastify/test-support/nexus-request.ts",
     "libs/vitest/test-support/nexus-request.ts",
     "libs/core/src/**/*.test-d.ts",
     "libs/errors/src/**/*.test-d.ts",
@@ -70,6 +72,7 @@
     "libs/federation/src/**/*.test-d.ts",
     "libs/interceptors/src/**/*.test-d.ts",
     "libs/express/src/**/*.test-d.ts",
+    "libs/fastify/src/**/*.test-d.ts",
     "libs/vitest/src/**/*.test-d.ts",
     "libs/vitest/src/__fixtures__/**",
     // fallow's vitest plugin derives entry points from vite.config.ts's
@@ -406,6 +409,10 @@
       // compile. Each package's tests reach only their own test-support, so
       // the two copies cannot share one module.
       "libs/*/test-support/security.ts",
+      // The server adapters' shared request scope, P4's named exception
+      // (integrations spec 3.7, ruling V13). adapter-shared-copies.test.ts
+      // keeps the copies byte-identical.
+      "libs/*/src/internal/request-scope.ts",
       // The dense visibility pass, kept as the oracle the sparse pass in
       // libs/core/src/blueprint/visibility.ts is tested against.
       "libs/core/test-support/visibility-oracle.ts",

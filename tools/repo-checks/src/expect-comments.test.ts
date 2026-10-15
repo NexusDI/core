@@ -55,16 +55,20 @@ describe('readValueClaim', () => {
 describe('rewriteLine', () => {
   it('rewrites a value claim', () => {
     expect(at("Luhn.generate('foo'); // -> { checksum: '5' }")).toBe(
-      "expect(Luhn.generate('foo')).toEqual({ checksum: '5' });",
+      "expect(Luhn.generate('foo'), 'test.md:1').toEqual({ checksum: '5' });",
     );
   });
 
   it('keeps the indentation, so a claim inside a block stays in its block', () => {
-    expect(at('  x.y(); // -> 1')).toBe('  expect(x.y()).toEqual(1);');
+    expect(at('  x.y(); // -> 1')).toBe(
+      "  expect(x.y(), 'test.md:1').toEqual(1);",
+    );
   });
 
   it('accepts a claim on an expression with no trailing semicolon', () => {
-    expect(at('Luhn.n // -> 36')).toBe('expect(Luhn.n).toEqual(36);');
+    expect(at('Luhn.n // -> 36')).toBe(
+      "expect(Luhn.n, 'test.md:1').toEqual(36);",
+    );
   });
 
   it('produces exactly one line, because doctest maps blocks by line number', () => {
@@ -74,7 +78,7 @@ describe('rewriteLine', () => {
 
   it('asserts the binding when the claim is on a declaration', () => {
     expect(at('const hex = createLuhn(); // -> 1')).toBe(
-      'const hex = createLuhn(); expect(hex).toEqual(1);',
+      "const hex = createLuhn(); expect(hex, 'test.md:1').toEqual(1);",
     );
   });
 
@@ -216,7 +220,7 @@ describe('rewriteMarkdown', () => {
     ].join('\n');
 
     expect(rewriteMarkdown(source, 'README.md')).toContain(
-      'expect(f()).toEqual(1);',
+      "expect(f(), 'README.md:3').toEqual(1);",
     );
   });
 
@@ -278,7 +282,7 @@ describe('rewriteMarkdown', () => {
     ].join('\n');
 
     expect(rewriteMarkdown(source, 'README.md')).toContain(
-      'expect(f()).toEqual(1);',
+      "expect(f(), 'README.md:4').toEqual(1);",
     );
   });
 });
@@ -298,7 +302,7 @@ describe('rewriteJsDoc', () => {
     ].join('\n');
 
     expect(rewriteJsDoc(source, 'f.ts')).toContain(
-      ' * expect(f()).toEqual(1);',
+      " * expect(f(), 'f.ts:4').toEqual(1);",
     );
   });
 

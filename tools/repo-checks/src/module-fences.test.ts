@@ -121,7 +121,7 @@ describe('moduleFences', () => {
     const block = lines.slice(open, lines.indexOf('}', open) + 1).join('\n');
     expect(block).toMatch(/await import\(['"]@nexusdi\/core['"]\)/);
     expect(block).toMatch(/const heading {9}= 1 \+ 1;/);
-    expect(block).toContain('expect(heading).toEqual(2);');
+    expect(block).toContain("expect(heading, 'README.md:9').toEqual(2);");
     expect(code).not.toContain('import.meta.vitest.test(');
   });
 
@@ -167,6 +167,15 @@ describe('moduleFences', () => {
       });
     });
 
+    it('names the README line of each failing claim in its message', () => {
+      expect(results['failing.md > claims the wrong heading']?.stack).toContain(
+        'failing.md:9: expected 6 to deeply equal 7',
+      );
+      expect(results['mixed.md > mixed.md#0']?.stack).toContain(
+        'mixed.md:13: expected 6 to deeply equal 7',
+      );
+    });
+
     it('reports the README line of a failing claim in a module fence', () => {
       expect(results['failing.md > claims the wrong heading']?.stack).toContain(
         'failing.md:9',
@@ -181,8 +190,11 @@ describe('moduleFences', () => {
       // fence's first code line, with or without a module fence before it.
       // prose-only.md holds the same fence on the same lines with no module
       // fence, so the two must report the same line.
+      // The stack's frames, past the message, which names the claim's line.
       const line = (stack: string | undefined, file: string) =>
-        new RegExp(`${file}:(\\d+)`).exec(stack ?? '')?.[1];
+        new RegExp(`${file}:(\\d+)`).exec(
+          (stack ?? '').split('\n').slice(1).join('\n'),
+        )?.[1];
       expect(line(results['mixed.md > mixed.md#0']?.stack, 'mixed.md')).toBe(
         line(
           results['prose-only.md > prose-only.md#0']?.stack,

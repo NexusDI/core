@@ -103,6 +103,28 @@ export function validateFailure(
 export function defaultLog(error: unknown, context: LogContext): void;
 /** Calls log in a try, and catches a returned promise that rejects; on either failure writes `[adapter] log threw:`, the log's error and the original error with console.error, and returns. */
 export function guardLog(log: NexusLog): NexusLog;
+/** 'warn' for a 503 that is not a ContainerBuildError, 'error' for everything else. defaultLog and Fastify's req.log default both use it. */
+export function logLevel(error: unknown, context: LogContext): 'warn' | 'error';
+/** close() at most once; a disposal error is logged with phase 'dispose' and never thrown. */
+export function disposer(
+  handle: ClosableRequestScope,
+  log: NexusLog,
+  adapter: string,
+): () => Promise<void>;
+/** Loads the module, then extends the handle's scope if it has started. */
+export function enterSection(
+  load: (module: ModuleRef) => Promise<Nexus>,
+  module: ModuleRef,
+  handle: RequestScope | null | undefined,
+): Promise<void>;
+/** inject's check: validateNow at definition for a Nexus, a validator() on the first request for a function source. */
+export function definitionCheck(
+  source: ContainerSource,
+  container: () => Promise<Nexus>,
+  deps: DepsMap,
+  log: NexusLog,
+  adapter: string,
+): () => Promise<void>;
 
 /** Calls fn at most once; later calls return the first call's promise. */
 export function once(fn: () => Promise<void>): () => Promise<void>;
@@ -14843,7 +14865,7 @@ Seven of the 15 legs start red on Node 22.12 without three changes, which this s
 - Core's tests check a disposal error by `error.name === 'SuppressedError'` and its `error` and `suppressed` fields, in place of `toBeInstanceOf(SuppressedError)`. Node 22.12 has no global `SuppressedError`, and core throws its own `NexusSuppressedError` there (`runtime/dispose.ts`).
 - `libs/core/src/blueprint/visibility.oracle.test.ts` gets an explicit timeout. Its 600-graph case takes 8.8 s under load against the 5 s default.
 
-Run all 15 legs locally on their floor Node before the job lands in CI, and record each result in the ledger.
+Run all 15 legs locally on their floor Node before the job lands in CI, and record each result in the ledger. The `node-floor` job lands in the same commit as the lowering step, never before it, and until then no README or docs fence uses `await using` (ruling of 2026-10-15).
 
 Try `--configLoader runner` first. Each lib's `vite.config.ts` imports `@nexusdi/doc-examples` through its `.ts` source, which Node 22.12 cannot load with the default bundle loader (`ERR_UNKNOWN_FILE_EXTENSION`, seen on Task 3). If the runner loader cannot load it either, drop the flag and set `NODE_OPTIONS: --experimental-strip-types` on that step only, with the comment `# Node 22.12 strips types only behind this flag, and vite.config.ts imports @nexusdi/doc-examples as .ts.` Libraries added after this task are added to the matrix by the task that creates them; the check fails until they are.
 
