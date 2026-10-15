@@ -6,7 +6,7 @@ Timings from run abc1234. Relative figures are NexusDI's divided by the library'
 
 ## Startup, mixed
 
-Median startup in ms (load plus ready), and NexusDI's startup divided by the library's with its 95% interval; above 1 means NexusDI takes longer. 1,000 measured rounds per size after 10 warm-up rounds, 1 library skipped above n = 200.
+Median startup in ms (load plus ready), and NexusDI's startup divided by the library's with its 95% interval; above 1 means NexusDI takes longer. 1,000 measured rounds per size after 10 warm-up rounds, 1 library skipped above n = 200, measured on Xeon, 4 cores.
 
 | library  | 50                           | 200                          | 1,000                        | 2,500                        | 5,000                         |
 | -------- | ---------------------------- | ---------------------------- | ---------------------------- | ---------------------------- | ----------------------------- |
@@ -20,7 +20,7 @@ Median startup in ms (load plus ready), and NexusDI's startup divided by the lib
 
 ## First resolve, mixed
 
-Median load, create and the first get: the time until the target is usable. 1,000 measured rounds per size after 10 warm-up rounds, 1 library skipped above n = 200. The target is the provider with the largest closure; a first get builds 16 providers at 50, 16 at 200, 16 at 1,000, 16 at 2,500 and 16 at 5,000 (32%, 8.0%, 1.6%, 0.64% and 0.32% of the graph).
+Median load, create and the first get: the time until the target is usable. 1,000 measured rounds per size after 10 warm-up rounds, 1 library skipped above n = 200, measured on Xeon, 4 cores. The target is the provider with the largest closure; a first get builds 16 providers at 50, 16 at 200, 16 at 1,000, 16 at 2,500 and 16 at 5,000 (32%, 8.0%, 1.6%, 0.64% and 0.32% of the graph).
 
 | library  | 50                           | 200                          | 1,000                        | 2,500                        | 5,000                         |
 | -------- | ---------------------------- | ---------------------------- | ---------------------------- | ---------------------------- | ----------------------------- |
@@ -34,7 +34,7 @@ Median load, create and the first get: the time until the target is usable. 1,00
 
 ## Ready, mixed
 
-Median create, the first get and one get of every other provider. 1,000 measured rounds per size after 10 warm-up rounds, 1 library skipped above n = 200.
+Median create, the first get and one get of every other provider. 1,000 measured rounds per size after 10 warm-up rounds, 1 library skipped above n = 200, measured on Xeon, 4 cores.
 
 | library  | 50                           | 200                          | 1,000                        | 2,500                        | 5,000                         |
 | -------- | ---------------------------- | ---------------------------- | ---------------------------- | ---------------------------- | ----------------------------- |
@@ -137,7 +137,7 @@ The exponent between two adjacent sizes is log(R) / log(hi / lo), where R is the
 
 ## Retained heap, mixed
 
-Heap retained after startup with the container referenced, in kB, minus the heap before the app loaded, and NexusDI's figure divided by the library's. The last column is the marginal bytes per provider between 1,000 and 5,000.
+Heap retained after startup with the container referenced, in kB, minus the heap before the app loaded, and NexusDI's figure divided by the library's. The figures come from a serial block of 30 measured rounds after 3 warm-up rounds, run beside the timing block with the heap read before and after the app. The last column is the marginal bytes per provider between 1,000 and 5,000.
 
 | library  | 50                            | 200                           | 1,000                          | 2,500                          | 5,000                           | per provider |
 | -------- | ----------------------------- | ----------------------------- | ------------------------------ | ------------------------------ | ------------------------------- | ------------ |
@@ -149,11 +149,42 @@ Heap retained after startup with the container referenced, in kB, minus the heap
 <sup>2</sup> tsyringe at 2,500 providers: runtime-error (RangeError: Maximum call stack size exceeded)  
 <sup>3</sup> tsyringe at 5,000 providers: runtime-error (RangeError: Maximum call stack size exceeded)
 
+## Protocol check
+
+30 measured rounds of every `mixed` cell in three modes, in one block. Each ratio is NexusDI's per-round shift between two modes divided by the library's, on startup, so a shift that every library shares cancels. A pair passes when its median is within 2% of 1 or its interval contains 1.
+
+### Timing mode over heap mode
+
+| library  | size | ratio [low, high] | within 2% or contains 1 |
+| -------- | ---- | ----------------- | ----------------------- |
+| awilix   | 50   | 1.00 [0.99, 1.02] | yes                     |
+| tsyringe | 50   | 1.00 [0.98, 1.01] | yes                     |
+
+Timing mode stands: no pair moved NexusDI against a competitor.
+
+### Timing mode without the gc() before create, over timing mode
+
+| library  | size | ratio [low, high] | within 2% or contains 1 |
+| -------- | ---- | ----------------- | ----------------------- |
+| awilix   | 50   | 1.05 [1.03, 1.07] | no                      |
+| tsyringe | 50   | 1.00 [0.99, 1.01] | yes                     |
+
+The gc() before create is dropped: a pair moved NexusDI against a competitor.
+
+## Interval widths
+
+The maximum relative width (interval over median) of the paired ratios of a shape at the first N rounds: startup, ready, first-resolve, the growth ratios and heap-ready. The targets are 3% for `mixed` and 10% for the other shapes. The metric with the maximum follows each width.
+
+| shape | 100                      | 200                                          | 400                       |
+| ----- | ------------------------ | -------------------------------------------- | ------------------------- |
+| mixed | 4.1% (startup awilix 50) | 2.8% (growth awilix/plain 200 to 1000 ready) | 1.9% (ready tsyringe 200) |
+
 ## Run
 
 - Run: abc1234 at 2026-10-14T04:00:00Z, seed 7, graph seed 20261001
 - Core ref: workspace, libs/core tree 4b825dc642cb6eb9a060e54bf8d69288fbee4904
-- Runner: Linux, Xeon, 4 cores, 16 GB, hosted
+- mixed block: Linux 6.8.0, Xeon, 4 cores, 16 GB, hosted, image ubuntu24 20261001.1, 120 min
+- steady-get block: Linux 6.8.0, Xeon, 4 cores, 16 GB, hosted, 7 min
 - Versions: nexusdi 0.4.0-rc.1, inversify 8.2.3, tsyringe 4.10.0, awilix 13.0.5, needle-di 1.2.1, node 24.20.0
 
 ## Bundle bytes, mixed

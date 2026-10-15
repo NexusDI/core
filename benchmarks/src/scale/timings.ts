@@ -15,17 +15,19 @@
  * stops before sampling when one does not pass.
  */
 import { execFileSync } from 'node:child_process';
+import { createHash } from 'node:crypto';
 import {
   existsSync,
   mkdirSync,
   mkdtempSync,
+  readdirSync,
   readFileSync,
   rmSync,
   writeFileSync,
 } from 'node:fs';
-import { tmpdir } from 'node:os';
+import { release, tmpdir } from 'node:os';
 import { join } from 'node:path';
-import { gzipSync } from 'node:zlib';
+import { gunzipSync, gzipSync } from 'node:zlib';
 
 import {
   blockSize,
@@ -53,16 +55,19 @@ import { versionsOf } from '../matrix.ts';
 import { readCoreRef } from '../release-core.ts';
 import {
   validate,
+  type BlockRunner,
   type Design,
   type LibraryId,
   type Outcome,
   type ScaleCell,
+  type PrefixWidth,
+  type ProtocolCheck,
+  type ScaleBlockInfo,
   type ScaleFile,
   type ScaleGrowth,
   type ScaleMarginal,
   type ScaleMetric,
   type ScaleTimingRow,
-  type ScaleTimingsFile,
   type Variant,
   SCALE_RATIO_METRICS,
 } from '../schema.ts';
@@ -72,15 +77,26 @@ import { pool, scaleCell, type CellResult } from './cells.ts';
 import { documentedVariant } from './deterministic.ts';
 import {
   GRAPH_SEED,
+  HEAP_ROUNDS,
+  HEAP_ROUNDS_QUICK,
   PER_PROVIDER,
   ROUNDS,
   SHAPES,
   SIZES,
+  TIMING_MODE,
+  WIDTH_PREFIXES,
   type Shape,
 } from './config.ts';
-import { freshBlock, type FreshRow } from './fresh.ts';
+import { freshBlock, type FreshMode, type FreshRow } from './fresh.ts';
 import { describeGraph } from './graph.ts';
 import { localExponent, marginalPerProvider } from './growth.ts';
+import {
+  bundleSha256,
+  mergeParts,
+  type BundleHash,
+  type ScalePart,
+} from './merge.ts';
+import { prefixWidths, protocolCheck } from './protocol.ts';
 import { graphOf } from './shapes.ts';
 
 /** One cell of a fresh-process block: its rounds, and whether it ran. */
@@ -91,11 +107,20 @@ export interface RawScaleCell extends Omit<FreshRow, 'library'> {
   outcome: Outcome;
 }
 
+/** The serial heap block of a shape: the child in heap mode, 3 warm-up and 30 measured rounds. */
+export interface RawHeapBlock {
+  warmup: number;
+  measured: number;
+  cells: RawScaleCell[];
+}
+
 export interface RawBlock {
   shape: Shape;
   warmup: number;
   measured: number;
   cells: RawScaleCell[];
+  /** Where heap-ready comes from; absent in a run that skips the heap block. */
+  heap?: RawHeapBlock;
 }
 
 /** One library's steady get-cycle at one size on `mixed`, ns per operation. */
@@ -124,7 +149,6 @@ const FRESH: ReadonlyArray<
   ['first-resolve', 'firstResolve', 'ns'],
   ['ready', 'ready', 'ns'],
   ['startup', 'startup', 'ns'],
-  ['heap-ready', 'heapReady', 'bytes'],
 ];
 
 const isReference = (c: { library: string; variant: string }) =>
@@ -148,6 +172,8 @@ export function toScaleRows(raw: ScaleRaw, seed: number): ScaleTimingRow[] {
     batch: number,
     samples: readonly number[],
     reference: readonly number[] | undefined,
+    /** Bootstrap block size; the default follows the round count. */
+    block?: number,
   ) => {
     const row: ScaleTimingRow = {
       metric,
@@ -165,7 +191,7 @@ export function toScaleRows(raw: ScaleRaw, seed: number): ScaleTimingRow[] {
       !isReference(c) &&
       SCALE_RATIO_METRICS.includes(metric)
     )
-      row.vsNexus = pairedRatio(reference, samples, seed);
+      row.vsNexus = pairedRatio(reference, samples, seed, undefined, block);
     rows.push(row);
   };
   for (const block of raw.blocks) {
@@ -185,6 +211,26 @@ export function toScaleRows(raw: ScaleRaw, seed: number): ScaleTimingRow[] {
         );
     }
   }
+  // heap-ready comes from the heap block, whose bootstrap block size is 4.
+  for (const block of raw.blocks) {
+    const passing = (block.heap?.cells ?? []).filter(
+      (c) => c.outcome === 'pass',
+    );
+    for (const c of passing) {
+      const nexus = passing.find((n) => isReference(n) && n.size === c.size);
+      push(
+        'heap-ready',
+        'bytes',
+        c,
+        block.shape,
+        c.size,
+        1,
+        c.heapReady,
+        nexus?.heapReady,
+        HEAP_BLOCK_SIZE,
+      );
+    }
+  }
   for (const s of raw.steady) {
     const nexus = raw.steady.find((n) => isReference(n) && n.size === s.size);
     push(
@@ -202,6 +248,9 @@ export function toScaleRows(raw: ScaleRaw, seed: number): ScaleTimingRow[] {
 }
 
 const ALL_SIZES: readonly number[] = SIZES;
+
+/** Bootstrap block size of the heap block's paired ratios (scale spec 7.1). */
+export const HEAP_BLOCK_SIZE = 4;
 
 /** The passing cells of each library-variant in a block, ascending by size. */
 function perLibrary(block: RawBlock): RawScaleCell[][] {
@@ -244,11 +293,16 @@ export function toScaleGrowth(raw: ScaleRaw, seed: number): ScaleGrowth[] {
 /** ns (`startup`) or bytes (`heap-ready`) per provider between 1,000 and 5,000. */
 export function toScaleMarginal(raw: ScaleRaw): ScaleMarginal[] {
   const out: ScaleMarginal[] = [];
-  for (const block of raw.blocks)
-    for (const lo of block.cells.filter(
+  const between = (
+    metric: ScaleMarginal['metric'],
+    shape: Shape,
+    cells: readonly RawScaleCell[],
+    field: 'startup' | 'heapReady',
+  ) => {
+    for (const lo of cells.filter(
       (c) => c.outcome === 'pass' && c.size === PER_PROVIDER.from,
     )) {
-      const hi = block.cells.find(
+      const hi = cells.find(
         (c) =>
           c.outcome === 'pass' &&
           c.size === PER_PROVIDER.to &&
@@ -256,18 +310,19 @@ export function toScaleMarginal(raw: ScaleRaw): ScaleMarginal[] {
           c.variant === lo.variant,
       );
       if (hi === undefined) continue;
-      for (const [metric, field] of [
-        ['startup', 'startup'],
-        ['heap-ready', 'heapReady'],
-      ] as const)
-        out.push({
-          metric,
-          library: lo.library,
-          variant: lo.variant,
-          shape: block.shape,
-          perProvider: marginalPerProvider(lo[field], hi[field]),
-        });
+      out.push({
+        metric,
+        library: lo.library,
+        variant: lo.variant,
+        shape,
+        perProvider: marginalPerProvider(lo[field], hi[field]),
+      });
     }
+  };
+  for (const block of raw.blocks) {
+    between('startup', block.shape, block.cells, 'startup');
+    between('heap-ready', block.shape, block.heap?.cells ?? [], 'heapReady');
+  }
   return out;
 }
 
@@ -421,37 +476,94 @@ function design(warmup: number, measured: number): Design {
 export interface ScaleRunOptions {
   only?: LibraryId[];
   sizes?: readonly number[];
+  /** The shapes to time; every shape when absent. */
   shapes?: readonly Shape[];
+  /** A job times one shape or the steady part; absent, one process times them all. */
+  part?: Shape | 'steady';
   quick: boolean;
   seed: number;
+  /** Run the protocol check on `mixed` (spec 7.4): the first dispatch run only. */
+  protocolCheck?: boolean;
 }
 
-/** Rounds per block and iterations of the steady get-cycle (spec 7.1, 6.2, 10.1). */
+/** Rounds per timing block (spec 7.1): 10 warm-up and `ROUNDS`, or 3 and 10 under `--quick`. */
 export function plan(quick: boolean, shape: Shape) {
   return {
     warmup: quick ? 3 : 10,
     measured: quick ? 10 : ROUNDS[shape],
   };
 }
+const heapPlan = (quick: boolean) => (quick ? HEAP_ROUNDS_QUICK : HEAP_ROUNDS);
 const steadyPlan = (quick: boolean) =>
   quick ? { warmup: 10, measured: 200 } : { warmup: 100, measured: 1000 };
 
 const WORKER = join(import.meta.dirname, 'worker.mjs');
 
-/** Builds and verifies every cell, then samples: blocks in SHAPES order, then the steady get-cycle. */
-export async function runScaleTimings(opts: ScaleRunOptions): Promise<{
-  raw: ScaleRaw;
-  graphs: ScaleTimingsFile['graphs'];
-  cells: CellVerdict[];
-}> {
+/** The machine of a block: the runner, its image and kernel (the CPU can differ between jobs). */
+export function blockRunner(): BlockRunner {
+  return {
+    ...runnerInfo(),
+    ...(process.env.ImageOS === undefined
+      ? {}
+      : { imageOs: process.env.ImageOS }),
+    ...(process.env.ImageVersion === undefined
+      ? {}
+      : { imageVersion: process.env.ImageVersion }),
+    kernel: release(),
+  };
+}
+
+/** What a part keeps beyond its file: every round of every block, warm-up included. */
+export interface RawPart {
+  part: Shape | 'steady';
+  blocks: RawBlock[];
+  steady: RawSteady[];
+  /** The protocol-check block's rows, every spawn recorded (spec 7.4). */
+  protocol?: Array<Omit<RawScaleCell, 'library'> & { library: LibraryId }>;
+}
+
+const emptyRow = (
+  library: LibraryId,
+  size: number,
+  mode: FreshMode,
+): Omit<FreshRow, 'library'> & { library: LibraryId } => ({
+  library,
+  size,
+  mode,
+  load: [],
+  create: [],
+  firstGet: [],
+  rest: [],
+  heapReady: [],
+  firstResolve: [],
+  ready: [],
+  startup: [],
+  warmup: [],
+});
+
+/**
+ * Builds and verifies the cells of one part, then samples it: a shape's
+ * timing block, serial heap block and, on request for `mixed`, the protocol
+ * check, or the steady get-cycle of `mixed`. Every library and size of the
+ * part runs on this machine.
+ */
+export async function runPart(
+  opts: ScaleRunOptions & { part: Shape | 'steady' },
+): Promise<{ part: ScalePart; raw: RawPart }> {
+  const startedAt = new Date().toISOString();
   const libraries = selectLibraries(opts.only, 'nexusdi');
-  const shapes = SHAPES.filter((s) => (opts.shapes ?? SHAPES).includes(s));
+  const shape: Shape = opts.part === 'steady' ? 'mixed' : opts.part;
   const sizes = SIZES.filter((n) => (opts.sizes ?? SIZES).includes(n));
-  const graphs = shapes.flatMap((shape) =>
-    sizes.map((size) => graphOf(shape, size)),
-  );
-  const raw: ScaleRaw = { blocks: [], steady: [] };
-  let cells: CellVerdict[] = [];
+  const graphs = sizes.map((size) => graphOf(shape, size));
+  const raw: RawPart = { part: opts.part, blocks: [], steady: [] };
+  const info: ScaleBlockInfo[] = [];
+  let verdicts: CellVerdict[] = [];
+  let bundles: BundleHash[] = [];
+  let prefix: PrefixWidth[] = [];
+  let protocol: ProtocolCheck | undefined;
+  let freshDesign: ScalePart['design']['fresh-process'];
+  const log = (line: string) => console.log(line);
+
   await withConsumer(libraries, async (dir) => {
     const jobs = libraries
       .flatMap((lib) =>
@@ -464,12 +576,10 @@ export async function runScaleTimings(opts: ScaleRunOptions): Promise<{
       .sort((a, b) => b.graph.size - a.graph.size);
     const results = await pool(jobs, async ({ lib, variant, graph }) => {
       const r = await scaleCell(dir, lib, variant, graph);
-      console.log(
-        `  ${lib.id} ${variant} ${graph.shape} ${graph.size}: ${r.outcome}`,
-      );
+      log(`  ${lib.id} ${variant} ${graph.shape} ${graph.size}: ${r.outcome}`);
       return { lib, variant, graph, r };
     });
-    const verdicts: CellVerdict[] = results.map((x) => ({
+    const attempted: CellVerdict[] = results.map((x) => ({
       library: x.lib.id,
       variant: x.variant,
       shape: x.graph.shape,
@@ -477,83 +587,142 @@ export async function runScaleTimings(opts: ScaleRunOptions): Promise<{
       outcome: x.r.outcome,
       ...(x.r.message === undefined ? {} : { message: x.r.message }),
     }));
-    const judged = judgeCells(verdicts, committedCells());
+    const judged = judgeCells(attempted, committedCells());
     if (judged.abort !== undefined) throw new Error(judged.abort);
-    cells = judged.cells;
+    verdicts = judged.cells;
+    type Result = (typeof results)[number];
     const ran = (
-      x: (typeof results)[number],
-    ): x is typeof x & {
-      r: CellResult & { bundle: string; cellDir: string };
-    } =>
+      x: Result,
+    ): x is Result & { r: CellResult & { bundle: string; cellDir: string } } =>
       x.r.outcome === 'pass' &&
       x.r.bundle !== undefined &&
       x.r.cellDir !== undefined;
-    const order = (a: (typeof results)[number], b: (typeof results)[number]) =>
+    const order = (a: Result, b: Result) =>
       a.lib.id.localeCompare(b.lib.id) || a.graph.size - b.graph.size;
-
-    for (const shape of shapes) {
-      const here = results.filter((x) => x.graph.shape === shape).sort(order);
-      const live = here.filter(ran);
-      const { warmup, measured } = plan(opts.quick, shape);
-      console.log(
-        `Block ${shape}: ${live.length} cells, ${warmup}+${measured} rounds`,
-      );
-      const rows = await freshBlock(
-        live.map((x) => ({
+    const live = results.slice().sort(order).filter(ran);
+    if (shape === 'mixed')
+      bundles = live.map((x) => ({
+        library: x.lib.id,
+        variant: x.variant,
+        shape,
+        size: x.graph.size,
+        sha256: bundleSha256(readFileSync(x.r.bundle, 'utf8')),
+      }));
+    const fresh = (x: (typeof live)[number], mode: FreshMode) => ({
+      library: x.lib.id,
+      size: x.graph.size,
+      bundle: x.r.bundle,
+      graph: join(x.r.cellDir, 'graph.json'),
+      packagesFile: join(x.r.cellDir, 'packages.mjs'),
+      mode,
+    });
+    const rawCells = (
+      rows: readonly FreshRow[],
+      all: readonly Result[],
+    ): RawScaleCell[] =>
+      [...all].sort(order).map((x) => {
+        const row = rows[live.findIndex((l) => l === x)];
+        return {
+          ...(row ?? emptyRow(x.lib.id, x.graph.size, 'timing')),
           library: x.lib.id,
-          size: x.graph.size,
-          bundle: x.r.bundle,
-          graph: join(x.r.cellDir, 'graph.json'),
-          packagesFile: join(x.r.cellDir, 'packages.mjs'),
-        })),
-        { block: shape, warmup, measured, seed: opts.seed },
+          variant: x.variant,
+          outcome: x.r.outcome,
+        };
+      });
+
+    if (opts.part !== 'steady') {
+      const t0 = Date.now();
+      const { warmup, measured } = plan(opts.quick, shape);
+      log(`Block ${shape}: ${live.length} cells, ${warmup}+${measured} rounds`);
+      const timingRows = await freshBlock(
+        live.map((x) => fresh(x, TIMING_MODE)),
+        { block: shape, warmup, measured, seed: opts.seed, progress: log },
+      );
+      const heap = heapPlan(opts.quick);
+      log(`Heap block ${shape}: ${heap.warmup}+${heap.measured} rounds`);
+      const heapRows = await freshBlock(
+        live.map((x) => fresh(x, 'heap')),
+        {
+          block: `${shape} heap`,
+          warmup: heap.warmup,
+          measured: heap.measured,
+          seed: opts.seed,
+          progress: log,
+        },
       );
       raw.blocks.push({
         shape,
         warmup,
         measured,
-        cells: here.map((x) => {
-          const row = rows[live.findIndex((l) => l === x)];
-          return {
-            ...(row ?? {
-              library: x.lib.id,
-              size: x.graph.size,
-              load: [],
-              create: [],
-              firstGet: [],
-              rest: [],
-              heapReady: [],
-              firstResolve: [],
-              ready: [],
-              startup: [],
-              warmup: [],
-            }),
-            library: x.lib.id,
-            variant: x.variant,
-            outcome: x.r.outcome,
-          };
-        }),
+        cells: rawCells(timingRows, [...results]),
+        heap: {
+          warmup: heap.warmup,
+          measured: heap.measured,
+          cells: rawCells(heapRows, [...results]),
+        },
       });
-    }
-
-    if (shapes.includes('mixed')) {
+      if (opts.protocolCheck === true && shape === 'mixed') {
+        log(
+          `Protocol check: ${heap.warmup}+${heap.measured} rounds, three modes`,
+        );
+        const modes: FreshMode[] = ['heap', 'timing', 'timing-no-gc'];
+        const cells = live.flatMap((x) => modes.map((m) => fresh(x, m)));
+        const rows = await freshBlock(cells, {
+          block: 'mixed protocol',
+          warmup: heap.warmup,
+          measured: heap.measured,
+          seed: opts.seed,
+          progress: log,
+        });
+        const withVariant = rows.map((r, i) => ({
+          ...r,
+          library: r.library as LibraryId,
+          variant: live[Math.floor(i / modes.length)]?.variant ?? 'plain',
+          outcome: 'pass' as Outcome,
+        }));
+        raw.protocol = withVariant;
+        protocol = protocolCheck(withVariant, opts.seed);
+      }
+      const block = raw.blocks[0];
+      if (block !== undefined) {
+        const passing = (cells: readonly RawScaleCell[]) =>
+          cells.filter((c) => c.outcome === 'pass');
+        prefix = prefixWidths(
+          shape,
+          passing(block.cells),
+          passing(block.heap?.cells ?? []),
+          opts.seed,
+          shape === 'mixed' ? WIDTH_PREFIXES.mixed : WIDTH_PREFIXES.secondary,
+        );
+      }
+      freshDesign = {
+        shape,
+        design: {
+          ...design(warmup, measured),
+          heap: design(heap.warmup, heap.measured),
+        },
+      };
+      info.push({
+        block: shape,
+        runner: blockRunner(),
+        wallMs: Date.now() - t0,
+      });
+    } else {
+      const t0 = Date.now();
       const { warmup, measured } = steadyPlan(opts.quick);
       for (const size of sizes) {
-        const live = results
-          .filter((x) => x.graph.shape === 'mixed' && x.graph.size === size)
-          .sort(order)
-          .filter(ran);
+        const here = live.filter((x) => x.graph.size === size);
         const workers = new Map<
           string,
           { w: Worker; x: (typeof live)[number] }
         >(
-          live.map((x) => {
+          here.map((x) => {
             const id = `${x.lib.id}/${x.variant}@${size}`;
             return [id, { w: forkWorker(id, WORKER, [x.r.bundle]), x }];
           }),
         );
         try {
-          console.log(`Steady get-cycle at ${size}`);
+          log(`Steady get-cycle at ${size}`);
           const samples = await interleave(
             [...workers.values()].map((v) => v.w),
             'get-cycle',
@@ -575,10 +744,76 @@ export async function runScaleTimings(opts: ScaleRunOptions): Promise<{
           for (const { w } of workers.values()) w.close();
         }
       }
+      bundles = live.map((x) => ({
+        library: x.lib.id,
+        variant: x.variant,
+        shape,
+        size: x.graph.size,
+        sha256: bundleSha256(readFileSync(x.r.bundle, 'utf8')),
+      }));
+      info.push({
+        block: 'steady-get',
+        runner: blockRunner(),
+        wallMs: Date.now() - t0,
+      });
     }
   });
-  return { raw, graphs: graphs.map(describeGraph), cells };
+
+  const rows = toScaleRows(
+    { blocks: raw.blocks, steady: raw.steady },
+    opts.seed,
+  );
+  const steady = steadyPlan(opts.quick);
+  const part: ScalePart = {
+    part: opts.part,
+    sha: gitSha(),
+    startedAt,
+    versions: versionsOf(),
+    seed: opts.seed,
+    graphSeed: GRAPH_SEED,
+    scaleSha256: scaleSha256(),
+    coreRef: coreRefOf({
+      explicit: argValue('core-ref'),
+      fromFile: readCoreRef(),
+    }),
+    graphs: graphs.map(describeGraph).map(({ shape: s, size, hash }) => ({
+      shape: s,
+      size,
+      hash,
+    })),
+    cells: verdicts,
+    blocks: info,
+    design: {
+      ...(freshDesign === undefined ? {} : { 'fresh-process': freshDesign }),
+      ...(opts.part === 'steady'
+        ? { 'steady-get': design(steady.warmup, steady.measured) }
+        : {}),
+    },
+    results: rows,
+    growth: toScaleGrowth({ blocks: raw.blocks, steady: [] }, opts.seed),
+    marginal: toScaleMarginal({ blocks: raw.blocks, steady: [] }),
+    ...(prefix.length > 0 ? { prefixWidths: prefix } : {}),
+    ...(protocol === undefined ? {} : { protocolCheck: protocol }),
+    bundles,
+  };
+  return { part, raw };
 }
+
+/** The SHA-256 of results/scale.json, which every part validates against. */
+function scaleSha256(): string {
+  return createHash('sha256')
+    .update(readFileSync(join(BENCHMARKS, 'results', 'scale.json')))
+    .digest('hex');
+}
+
+/** The committed scale.json, for the merge's hash check. */
+function committedScale(): ScaleFile {
+  return JSON.parse(
+    readFileSync(join(BENCHMARKS, 'results', 'scale.json'), 'utf8'),
+  ) as ScaleFile;
+}
+
+const gz = (value: unknown) => gzipSync(JSON.stringify(value));
 
 if (import.meta.main) {
   const quick = process.argv.includes('--quick');
@@ -586,76 +821,95 @@ if (import.meta.main) {
   const sizes = sizesArg();
   const shapes = shapesArg();
   const seed = seedArg();
-  const where =
-    quick || only !== undefined || sizes !== undefined || shapes !== undefined
-      ? 'tmp'
-      : 'results';
-  const startedAt = new Date().toISOString();
-  const { raw, graphs, cells } = await runScaleTimings({
-    only,
-    sizes,
-    shapes,
-    quick,
-    seed,
-  });
-  const rows = toScaleRows(raw, seed);
-  checkFloor(
-    rows
-      .filter((r) => r.metric === 'get-cycle')
-      .map((r) => ({ ...r, scenario: 'get-cycle' })),
-  );
-  const steady = steadyPlan(quick);
-  const sha = gitSha();
-  const file: ScaleTimingsFile = {
-    schema: 1,
-    sha,
-    startedAt,
-    versions: versionsOf(),
-    runner: runnerInfo(),
-    seed,
-    graphSeed: GRAPH_SEED,
-    coreRef: coreRefOf({
-      explicit: argValue('core-ref'),
-      fromFile: readCoreRef(),
-    }),
-    graphs: graphs.map(({ shape, size, hash }) => ({ shape, size, hash })),
-    cells: [...cells].sort(
-      (a, b) =>
-        a.library.localeCompare(b.library) ||
-        a.variant.localeCompare(b.variant) ||
-        SHAPES.indexOf(a.shape) - SHAPES.indexOf(b.shape) ||
-        a.size - b.size,
-    ),
-    design: {
-      'fresh-process': Object.fromEntries(
-        raw.blocks.map((b) => [b.shape, design(b.warmup, b.measured)]),
+  const mergeMode = process.argv.includes('--merge');
+  const partName = argValue('part') as Shape | 'steady' | undefined;
+  const protocol = process.argv.includes('--protocol-check');
+  const partial =
+    quick || only !== undefined || sizes !== undefined || shapes !== undefined;
+  const where = partial ? 'tmp' : 'results';
+  const partsDir = join(BENCHMARKS, where, 'scale-parts');
+  const base = { only, sizes, quick, seed, protocolCheck: protocol };
+
+  if (partName !== undefined) {
+    // One job: its part and raw samples, merged later (spec 10.2).
+    if (
+      partName !== 'steady' &&
+      !(SHAPES as readonly string[]).includes(partName)
+    )
+      throw new Error(`--part=${partName} is not a shape or steady`);
+    const { part, raw } = await runPart({ ...base, part: partName });
+    mkdirSync(partsDir, { recursive: true });
+    writeFileSync(
+      join(partsDir, `${partName}.json`),
+      JSON.stringify(part, null, 2) + '\n',
+    );
+    writeFileSync(join(partsDir, `${partName}.raw.json.gz`), gz(raw));
+    console.log(`Wrote ${join(partsDir, `${partName}.json`)}`);
+  } else {
+    const names: Array<Shape | 'steady'> = mergeMode
+      ? readdirSync(partsDir)
+          .filter((f) => f.endsWith('.json'))
+          .map((f) => f.slice(0, -'.json'.length) as Shape | 'steady')
+      : [
+          ...SHAPES.filter((s) => (shapes ?? SHAPES).includes(s)),
+          ...((shapes ?? SHAPES).includes('mixed')
+            ? (['steady'] as const)
+            : []),
+        ];
+    const parts: ScalePart[] = [];
+    const raws: RawPart[] = [];
+    for (const name of names) {
+      if (mergeMode) {
+        parts.push(
+          JSON.parse(
+            readFileSync(join(partsDir, `${name}.json`), 'utf8'),
+          ) as ScalePart,
+        );
+        raws.push(
+          JSON.parse(
+            gunzipSync(
+              readFileSync(join(partsDir, `${name}.raw.json.gz`)),
+            ).toString(),
+          ) as RawPart,
+        );
+      } else {
+        const r = await runPart({ ...base, part: name });
+        parts.push(r.part);
+        raws.push(r.raw);
+      }
+    }
+    const { file } = mergeParts(parts, {
+      scale: committedScale(),
+      scaleSha256: scaleSha256(),
+      partial,
+      steadyFallback: design(
+        steadyPlan(quick).warmup,
+        steadyPlan(quick).measured,
       ),
-      'steady-get': design(steady.warmup, steady.measured),
-    },
-    results: rows,
-    growth: toScaleGrowth(raw, seed),
-    marginal: toScaleMarginal(raw),
-  };
-  validate('scale-timings', file, where);
-  const name = `${startedAt.slice(0, 10)}-${sha}`;
-  mkdirSync(join(BENCHMARKS, where, 'scale'), { recursive: true });
-  mkdirSync(join(BENCHMARKS, where, 'raw'), { recursive: true });
-  const out = join(BENCHMARKS, where, 'scale', `${name}.json`);
-  writeFileSync(out, JSON.stringify(file, null, 2) + '\n');
-  // Every round: each fresh-process cell keeps its warm-up samples in
-  // `warmup` beside the measured rounds, and each steady entry keeps its own,
-  // so a rerun of the statistics reproduces each interval (scale spec 8.3).
-  writeFileSync(
-    join(BENCHMARKS, where, 'raw', `scale-${name}.json.gz`),
-    gzipSync(
-      JSON.stringify({
-        seed,
+    });
+    checkFloor(
+      file.results
+        .filter((r) => r.metric === 'get-cycle')
+        .map((r) => ({ ...r, scenario: 'get-cycle' })),
+    );
+    validate('scale-timings', file, where);
+    const name = `${file.startedAt.slice(0, 10)}-${file.sha}`;
+    mkdirSync(join(BENCHMARKS, where, 'scale'), { recursive: true });
+    mkdirSync(join(BENCHMARKS, where, 'raw'), { recursive: true });
+    const out = join(BENCHMARKS, where, 'scale', `${name}.json`);
+    writeFileSync(out, JSON.stringify(file, null, 2) + '\n');
+    // Every round, warm-up included, so a rerun of the statistics reproduces
+    // each interval (scale spec 8.3).
+    writeFileSync(
+      join(BENCHMARKS, where, 'raw', `scale-${name}.json.gz`),
+      gz({
+        seed: file.seed,
         graphSeed: GRAPH_SEED,
         coreRef: file.coreRef,
         tslib: tslibVersion(),
-        ...raw,
+        parts: raws,
       }),
-    ),
-  );
-  console.log(`Wrote ${out}`);
+    );
+    console.log(`Wrote ${out}`);
+  }
 }

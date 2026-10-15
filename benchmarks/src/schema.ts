@@ -362,6 +362,55 @@ export interface ScaleMarginal {
   perProvider: number;
 }
 
+/** One double ratio of the protocol check (scale spec 7.4). */
+export interface ProtocolDouble {
+  library: LibraryId;
+  size: number;
+  /** NexusDI's per-round shift between two modes over the library's, on startup. */
+  ratio: PairedRatio;
+  /** Median within 2% of 1, or an interval that contains 1. */
+  pass: boolean;
+}
+
+/**
+ * The paired check of the first dispatch run: every `mixed` cell in the heap
+ * mode (the old protocol), the timing mode and the timing mode without the
+ * gc() before create.
+ */
+export interface ProtocolCheck {
+  /** Measured rounds. */
+  rounds: number;
+  timingVsHeap: ProtocolDouble[];
+  noGcVsTiming: ProtocolDouble[];
+  /** Every timing-over-heap double ratio passes. */
+  timingStands: boolean;
+  /** `drop` when mode N moved a library against NexusDI by more than 2%. */
+  gcBeforeCreate: 'keep' | 'drop';
+}
+
+/** The maximum relative interval width of a block's metric set at a prefix of its rounds (scale spec 7.4). */
+export interface PrefixWidth {
+  shape: Shape;
+  rounds: number;
+  maxWidth: number;
+  /** The metric that has the maximum. */
+  metric: string;
+}
+
+/** Where a block ran: the CPU and runner image differ between jobs. */
+export interface BlockRunner extends Runner {
+  imageOs?: string;
+  imageVersion?: string;
+  kernel: string;
+}
+
+/** One block's machine and wall time (`steady-get` is the get-cycle part). */
+export interface ScaleBlockInfo {
+  block: Shape | 'steady-get';
+  runner: BlockRunner;
+  wallMs: number;
+}
+
 /** results/scale/<date>-<sha7>.json */
 export interface ScaleTimingsFile {
   schema: 1;
@@ -369,9 +418,12 @@ export interface ScaleTimingsFile {
   /** ISO 8601. */
   startedAt: string;
   versions: Versions;
-  runner: Runner;
   seed: number;
   graphSeed: number;
+  /** SHA-256 of the scale.json the run validated against. */
+  scaleSha256: string;
+  /** The machine and wall time of each block, since each shape runs in its own job. */
+  blocks: ScaleBlockInfo[];
   /**
    * The core the run packed (scale spec 14 item 5): the ref passed to
    * release-core.ts --ref, or 'workspace', and the git tree SHA of
@@ -388,14 +440,22 @@ export interface ScaleTimingsFile {
    * (scale spec 14). `message` is required when the outcome is not `pass`.
    */
   cells: ScaleCell[];
-  /** One fresh-process design per shape, so each records its own round count. */
+  /**
+   * One fresh-process design per shape, so each records its own round count,
+   * and its heap block's: heap-ready comes from a serial block of its own
+   * (scale spec 7.1).
+   */
   design: {
-    'fresh-process': Partial<Record<Shape, Design>>;
+    'fresh-process': Partial<Record<Shape, Design & { heap?: Design }>>;
     'steady-get': Design;
   };
   results: ScaleTimingRow[];
   growth: ScaleGrowth[];
   marginal: ScaleMarginal[];
+  /** The width of each block's metric set at prefixes of its rounds (scale spec 7.4). */
+  prefixWidths?: PrefixWidth[];
+  /** The paired protocol check, on the first dispatch run only (scale spec 7.4). */
+  protocolCheck?: ProtocolCheck;
 }
 
 export type Kind =
@@ -763,21 +823,64 @@ function checkCellsBehindRows(file: ScaleTimingsFile): void {
   });
 }
 
+const blockRunner = obj({
+  os: str,
+  cpu: str,
+  cores: num,
+  memoryGb: num,
+  hosted: bool,
+  imageOs: opt(str),
+  imageVersion: opt(str),
+  kernel: str,
+});
+
+/** A fresh-process design with its heap block's design beside it. */
+const freshDesign: Check = (v, at) => {
+  design(v, at);
+  opt(design)((v as { heap?: unknown }).heap, `${at}.heap`);
+};
+
+const protocolDouble = obj({
+  library,
+  size: num,
+  ratio: pairedRatio,
+  pass: bool,
+});
+
 const scaleTimingsShape = obj({
   schema: literal(1),
   sha: str,
   startedAt: str,
   versions,
-  runner,
   seed: num,
   graphSeed: num,
+  scaleSha256: str,
+  blocks: arr(
+    obj({
+      block: oneOf(...SHAPES, 'steady-get'),
+      runner: blockRunner,
+      wallMs: num,
+    }),
+  ),
   coreRef: obj({ ref: str, tree: str }),
   graphs: arr(obj({ shape, size: num, hash: str })),
   cells: arr(timedCell),
   design: obj({
-    'fresh-process': record(design, SHAPES),
+    'fresh-process': record(freshDesign, SHAPES),
     'steady-get': design,
   }),
+  prefixWidths: opt(
+    arr(obj({ shape, rounds: num, maxWidth: num, metric: str })),
+  ),
+  protocolCheck: opt(
+    obj({
+      rounds: num,
+      timingVsHeap: arr(protocolDouble),
+      noGcVsTiming: arr(protocolDouble),
+      timingStands: bool,
+      gcBeforeCreate: oneOf('keep', 'drop'),
+    }),
+  ),
   results: arr(scaleTimingRow),
   growth: arr(
     obj({
@@ -811,6 +914,13 @@ const scaleTimingsShape = obj({
  * harness fault that must not be published as a scaling result.
  */
 function checkPublishedCells(file: ScaleTimingsFile): void {
+  // A timing mode that moved NexusDI against a competitor (scale spec 7.4)
+  // is not published: its figures rest on a protocol the check rejected.
+  if (file.protocolCheck !== undefined && !file.protocolCheck.timingStands)
+    fail(
+      'scale-timings.protocolCheck.timingStands',
+      'true: the timing figures of a failed protocol check are not published',
+    );
   const passes = new Set(
     file.cells.filter((c) => c.outcome === 'pass').map(cellKey),
   );
@@ -851,6 +961,9 @@ const CHECKS: Record<Kind, Check> = {
  * ruling 1). These are literals so that lowering a run's own `ROUNDS` cannot
  * lower the minimum a published file must meet.
  */
+/** Published minimum of measured heap-block rounds per shape (scale spec 7.1). */
+const SCALE_HEAP_ROUNDS = 30;
+
 export const SCALE_MINIMUM_ROUNDS: Readonly<Record<Shape, number>> = {
   mixed: 1000,
   wide: 200,
@@ -881,6 +994,11 @@ function minimums(kind: Kind): Array<[path: string[], least: number]> {
       ...SHAPES.map((s): [string[], number] => [
         ['fresh-process', s],
         SCALE_MINIMUM_ROUNDS[s],
+      ]),
+      // heap-ready comes from a serial block of at least 30 measured rounds.
+      ...SHAPES.map((s): [string[], number] => [
+        ['fresh-process', s, 'heap'],
+        SCALE_HEAP_ROUNDS,
       ]),
       [['steady-get'], MINIMUM.measured],
     ];
