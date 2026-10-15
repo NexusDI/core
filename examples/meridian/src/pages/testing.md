@@ -328,14 +328,14 @@ class NavAudit implements Interceptor {
   }
 }
 
-const Audit = defineModule({
-  name: 'Audit',
+const AuditTrail = defineModule({
+  name: 'AuditTrail',
   providers: [provide(AUDIT_LOG, { useClass: AuditLog })],
   exports: [AUDIT_LOG],
 });
 const Tactical = defineModule({
   name: 'Tactical',
-  imports: [Audit],
+  imports: [AuditTrail],
   providers: [provide(NAV_CHARTS, { useClass: StarCharts })],
   exports: [NAV_CHARTS],
 });
@@ -357,7 +357,7 @@ const test = nexusTest(base, Tactical, {
   create: {
     plugins: [
       interceptors({
-        imports: [Audit],
+        imports: [AuditTrail],
         register: [NavAudit],
         bindings: [{ token: NAV_CHARTS, class: [NavAudit] }],
       }),

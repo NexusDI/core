@@ -101,6 +101,8 @@ await once(server, 'close');
 await ship[Symbol.asyncDispose](); // after the last request has finished
 ```
 
+On Node 22 and 24, `server.close()` leaves open a connection that has never sent a request, so it can wait out the keep-alive timeout (nodejs/node#63452). In the `SIGTERM` handler, call `server.closeAllConnections()` before `server.close()` to end those connections at once.
+
 An app that disposes the container before its server stops answers the remaining requests with a 503.
 
 ## Run on Workers and Vercel Edge

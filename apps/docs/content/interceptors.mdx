@@ -6,18 +6,18 @@ description: Run cross-cutting concerns like logging, metrics, and validation ar
 
 # Method Interceptors
 
-In any complex application, you'll find logic that needs to run across many different services, such as logging every call, measuring performance, or validating inputs. If you write this logic inside every method, your codebase becomes cluttered with boilerplate.
+Logic such as logging every call or measuring performance runs across many services, and written inside every method it repeats in each one.
 
-**Interceptors** solve this by allowing you to "wrap" your service methods with cross-cutting logic. An interceptor can observe a call, change the arguments, cache the result, or even skip the method entirely.
+**Interceptors** wrap your service methods with this cross-cutting logic. An interceptor can observe a call, change its arguments, cache its result or skip the method.
 
 ## How Interceptors Work
 
-An interceptor is a provider that implements the `Interceptor` interface. It declares its deps like any class provider. Its core logic lives in the `intercept(call, next)` method:
+An interceptor is a provider that implements the `Interceptor` interface, declares its deps like any class provider, and does its work in `intercept(call, next)`:
 
 - **`call`**: A context object containing the service instance, the method name, the arguments, and the current scope. The object is a `CallContext`, which also holds the provider and the `async` flag.
-- **`next`**: A function that triggers the next interceptor in the chain, eventually calling the actual service method.
+- **`next`**: A function that calls the next interceptor in the chain, and the last one calls the method.
 
-To use them, you first install the interceptors package:
+Install the package:
 
 ```bash
 npm install @nexusdi/interceptors@next
@@ -25,15 +25,15 @@ npm install @nexusdi/interceptors@next
 
 ### Registering the Plugin
 
-`interceptors({ register })` from `@nexusdi/interceptors` is a plugin that you pass to `Nexus.create`. `register` lists each interceptor under a token with `interceptor(token, { useClass })`, and `imports` names the modules the interceptors' own deps come from. The region below registers an `AUDIT` interceptor that writes to a `FlightLog` from the `Logs` module.
+`interceptors({ register })` from `@nexusdi/interceptors` is a plugin for `Nexus.create`. `register` lists each interceptor under a token with `interceptor(token, { useClass })`, and `imports` names the modules the interceptors' own deps come from. The region below registers an `AUDIT` interceptor that writes to a `FlightLog` from the `Logs` module.
 
 ## Attaching Interceptors
 
-You can attach interceptors at different levels of granularity:
+Interceptors attach at four levels:
 
 ### 1. Method-Level
 
-Target a specific method within a class using a `static interceptors` map. The map is checked by `satisfies InterceptorMap<T>`. `methods` maps a method name to its interceptors.
+Target one method with a `static interceptors` map. The map is checked by `satisfies InterceptorMap<T>`. `methods` maps a method name to its interceptors.
 
 ```ts file=examples/meridian/src/pages/interceptors.md region=audit
 
@@ -48,17 +48,17 @@ Target a specific method within a class using a `static interceptors` map. The m
 
 ### 2. Class-Level
 
-Apply an interceptor to every method in a class by using the `class` key in the map. The `tap` region below attaches `TIMING` with `class: [TIMING]`.
+The `class` key of the map applies an interceptor to every method. The `tap` region below attaches `TIMING` with `class: [TIMING]`.
 
 ### 3. Global-Level
 
-Apply logic to every single service in the container. This is ideal for global logging or security audits. An entry `{ use, when }` skips a method where `when({ provider, method })` returns false, and `when` runs once per provider and method.
+Apply logic to every service in the container. An entry `{ use, when }` skips a method where `when({ provider, method })` returns false, and `when` runs once per provider and method.
 
 ```ts file=examples/meridian/src/pages/interceptors.md region=global
 
 ```
 
-**Note:** Global interceptors must be "exempt" from the services they depend on to avoid infinite recursion (e.g., a logging interceptor should not intercept the `FlightLog` service it uses to write logs). `exempt` lists every service the interceptors directly depend on outside the plugin's own `providers`, and global entries skip an exempt service and every provider it reaches. Without the `exempt` entry, `Nexus.create` rejects with `NEXUS_BLUEPRINT_INVALID`, whose `errors` list holds `NEXUS_INTERCEPTOR_INVALID` with `reason=unexempted-dep`. The message names the service to list:
+**Note:** Global interceptors must be "exempt" from the services they depend on to avoid infinite recursion. `exempt` lists every service the interceptors directly depend on outside the plugin's own `providers`, and global entries skip an exempt service and every provider it reaches. Without the `exempt` entry, `Nexus.create` rejects with `NEXUS_BLUEPRINT_INVALID`, whose `errors` list holds `NEXUS_INTERCEPTOR_INVALID` with `reason=unexempted-dep`. The message names the service to list:
 
 ```ts file=examples/meridian/src/pages/interceptors.md region=exempt-missing
 
@@ -86,10 +86,10 @@ The chain of a method runs the global entries first, then the bindings, then the
 
 ## Controlling the Execution Flow
 
-Interceptors give you full control over the method call:
+An interceptor controls the call:
 
 - **Modify Arguments:** Pass different arguments to `next(args)` to alter the input. The rest of the chain runs with the new input.
-- **Short-circuit:** Return a value without calling `next()` to skip the method entirely (perfect for caching). An interceptor that calls `next()` twice runs the method twice.
+- **Short-circuit:** Return a value without calling `next()` to skip the method. An interceptor that calls `next()` twice runs the method twice.
 - **Observe Results:** Use the `tap()` helper to run logic after the method completes without altering the result.
 
 ```ts file=examples/meridian/src/pages/interceptors.md region=change-the-call
@@ -102,22 +102,22 @@ The cache runs first, so the second call returns the saved value and `plot` runs
 
 ### Observing with `tap()`
 
-`tap(next, { value, error })` runs `next()`, calls `value` with the result or `error` with the failure, and returns or rethrows the original. It handles a plain return, a returned promise, a rejected promise and a synchronous throw alike, so a logging interceptor needs no branch for async methods.
+`tap(next, { value, error })` runs `next()`, calls `value` with the result or `error` with the failure, and returns or rethrows the original. It handles sync and async results alike, so a logging interceptor needs no branch for async methods.
 
 ```ts file=examples/meridian/src/pages/interceptors.md region=tap
 
 ```
 
-A method declared `async` turns a synchronous throw from any interceptor into a rejected promise, so the caller's `.catch` sees it.
+An `async` method turns a synchronous throw from any interceptor into a rejected promise, which the caller's `.catch` sees.
 
 ## The Proxy Pattern
 
 When you `get()` a service that has interceptors, NexusDI returns a **Proxy**. The container stores the proxy, so a call through `get()` or through an injected dependency runs the chain.
 
-It is important to understand that:
+Four rules follow:
 
-1. Calls made through the proxy (e.g., `computer.status()`) are intercepted.
-2. Calls made via `this` inside the class (e.g., `this.status()`) **bypass the proxy** and are not intercepted.
+1. Calls through the proxy (e.g., `computer.status()`) are intercepted.
+2. Calls through `this` inside the class (e.g., `this.status()`) **bypass the proxy**.
 3. A method runs with `this` set to the service itself, so private fields such as `#serial` work.
 4. `instanceof` holds for the proxy, and `get(T) === this` inside the class is false, because `this` is the service itself and `get()` returns its proxy.
 
@@ -129,13 +129,13 @@ It is important to understand that:
 
 **Try it:** Save the region as `identity.ts` and run `npx tsx identity.ts`. It prints `true`, `false`, `online QC-7` and `[ 'isSelf', 'selfTest' ]`. Add `computer.status();` before the `selfTest` line and run it again: the log is `[ 'isSelf', 'status', 'selfTest' ]`, because that call goes through the proxy. Remove the line again.
 
-If you need an internal call to be intercepted, call the method through the token from outside the class, or move the method to another service and call it through that service's proxy. Do not inject the class's own token into the class: a class that depends on itself is a cycle, and `Nexus.create` rejects it.
+To intercept an internal call, call the method through the token from outside the class, or move it to another service. Do not inject the class's own token into the class: a class that depends on itself is a cycle, and `Nexus.create` rejects it.
 
-A value provider is never intercepted: `provide(TOKEN, { useValue })` holds an object the container did not build, so the plugin gives it no proxy. Bind a `useFactory` that returns the value, and the plugin wraps the factory's result.
+A value provider is never intercepted: `useValue` holds an object the container did not build. Bind a `useFactory` that returns the value, and the plugin wraps its result.
 
 ## Interceptor Lifetimes
 
-Interceptors are always **Singletons**. Each interceptor is built once per container. A scoped or transient interceptor makes `create` reject with `NEXUS_BLUEPRINT_INVALID`, which holds `NEXUS_INTERCEPTOR_LIFETIME`. A scoped interceptor also holds core's [NEXUS_LIFETIME_VIOLATION](/errors/NEXUS_LIFETIME_VIOLATION/) for the singleton registry that would capture it. If an interceptor needs request-specific data, it reads it from `call.scope` or `call.instance`.
+An interceptor is a singleton, built once per container. A scoped or transient interceptor makes `create` reject with `NEXUS_BLUEPRINT_INVALID`, which holds `NEXUS_INTERCEPTOR_LIFETIME`. A scoped interceptor also holds core's [NEXUS_LIFETIME_VIOLATION](/errors/NEXUS_LIFETIME_VIOLATION/) for the singleton registry that would capture it. An interceptor reads request data from `call.scope` or `call.instance`.
 
 ```ts file=examples/meridian/src/pages/interceptors.md region=lifetime
 
@@ -145,7 +145,7 @@ Interceptors are always **Singletons**. Each interceptor is built once per conta
 
 ## Error Text
 
-The errors `create` reports through the plugin's checks, and the bad-argument fault a wrapped method raises after setup, carry a one-line message with a link to their page. The full text and fix lines live in `interceptorsText` at `@nexusdi/interceptors/text`. Pass it to `errors()`, as the lifetime region does:
+The errors `create` reports through the plugin's checks, and the bad-argument fault a wrapped method raises after setup, carry a one-line message with a link to their page. `interceptorsText` at `@nexusdi/interceptors/text` holds the full text and fix lines. Pass it to `errors()`, as the lifetime region does:
 
 ```ts no-run
 import { errors } from '@nexusdi/errors';
@@ -155,7 +155,7 @@ import { interceptorsText } from '@nexusdi/interceptors/text';
 const plugins = [errors({ text: [interceptorsText] }), interceptors(options)];
 ```
 
-[Error Text Packs](/error-text/) covers the packs of every package.
+[Error Text Packs](/error-text/) covers every package's pack.
 
 ## Rules
 

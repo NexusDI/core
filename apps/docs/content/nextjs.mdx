@@ -105,9 +105,9 @@ A singleton that holds an outside resource, such as a connection pool, exists on
 
 ## Why a Process-Global Container Fails
 
-A single container kept on `globalThis` for both layers answers the route handler and refuses the server action. Each layer evaluates the app's module files again, so the action's `FLIGHT_LOG` is a different token object from the route handler's, and the action's copy of `@nexusdi/core` is a different copy. The `@nexusdi/next` prototype on Next 16.3.4 measured it: the shared container refused the action with [NEXUS_INVALID_TOKEN](/errors/NEXUS_INVALID_TOKEN/), with `serverExternalPackages` set and without it.
+A single container kept on `globalThis` for both layers answers the route handler and refuses the server action. Each layer evaluates the app's module files again, so the action's `FLIGHT_LOG` is a different token object from the route handler's, and the action's copy of `@nexusdi/core` is a different copy. A prototype of a process-global container in `examples/next-bridge` measured it on Next 16.3.4: the shared container refused the action with [NEXUS_INVALID_TOKEN](/errors/NEXUS_INVALID_TOKEN/), with `serverExternalPackages` set and without it.
 
-The gate canary in `examples/next-bridge` fails when Next evaluates the module once per process. NexusDI plans `@nexusdi/next`, with typed route and action wrappers, for 0.5, once tokens can match across module instances.
+The gate canary in `examples/next-bridge` fails when Next evaluates the module once per process. No `@nexusdi/next` adapter is available; use the recipe above.
 
 ## Next Steps
 
