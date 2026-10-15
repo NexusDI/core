@@ -33,16 +33,16 @@ A build is one call of a provider's constructor, factory or `onInit`, up to the 
 
 | Field        | Type                                             | Meaning                                                                                                                           | Tier                                         |
 | ------------ | ------------------------------------------------ | --------------------------------------------------------------------------------------------------------------------------------- | -------------------------------------------- |
-| `token`      | `string`                                         | the token's description, or the class name of a class used as its own token                                                       | stable                                       |
+| `token`      | `string`                                         | the token's description, or a class's `name` when the class is its own token (a `static name` overrides it)                       | stable                                       |
 | `providerId` | `string`                                         | the provider's id in the graph                                                                                                    | stable                                       |
 | `module`     | `string`                                         | the module that binds the provider                                                                                                | stable                                       |
 | `lifetime`   | `'singleton' \| 'transient' \| 'scoped' \| null` | `null` for value and alias providers; `'singleton'` on the `init` events                                                          | stable                                       |
 | `scope`      | `string \| null`                                 | the scope id, or `null` at the root and on the `init` events                                                                      | stable                                       |
 | `async`      | `boolean`                                        | the call returned a thenable                                                                                                      | stable                                       |
-| `run`        | `number \| null`                                 | the run id; `null` for a transient and for an on-demand build outside any run                                                     | stable                                       |
+| `run`        | `number \| null`                                 | the run id; `null` for a transient and for an on-demand build outside the run that added the provider                             | stable                                       |
 | `level`      | `number \| null`                                 | the index into the levels the run built (see What `level` indexes below); `null` for on-demand, transient, value and alias builds | presence and type stable; numbering evolving |
 | `parent`     | `string \| null`                                 | the provider id whose constructor or factory this build ran inside                                                                | stable                                       |
-| `startMs`    | `number`                                         | the moment core called the constructor, factory or `onInit`                                                                       | stable                                       |
+| `startMs`    | `number`                                         | the moment core called the constructor, factory or `onInit`; for a value or alias provider, the emit instant, with a zero span    | stable                                       |
 | `syncMs`     | `number`                                         | from the call until it returned or threw, nested builds included                                                                  | stable                                       |
 | `awaitMs`    | `number \| null`                                 | from that return until the thenable settled or the build failed; `null` when the call returned no thenable                        | stable                                       |
 | `finishMs`   | `number`                                         | from the build resuming until the instance was stored: options validation and construct hooks today; 0 on the `init` events       | field stable; the work it covers evolving    |
@@ -99,9 +99,11 @@ Core emits each event once, when its span ends. `construct:await` and `init:awai
 
 1. `compile`, for `create` and `load` only.
 2. The build events of each level in turn. A `construct:await` fires when a factory returns a thenable, and a `construct` or `construct:failed` fires as each build settles, which can differ from the order they started. Every event of level k comes before the first of level k+1.
-3. `init:await`, `init` and `init:failed`. A provider built on demand inside `onInit` emits its `construct` among them.
+3. The `onInit` pass: `init:await`, `init` and `init:failed` of the level builds, level by level.
 4. `scope:create` or `scope:extend`, for those run kinds.
 5. `run`, last.
+
+Items 2 and 3 describe how core schedules builds today and may change in a minor release. Items 1, 4 and 5, one emit per event, and `run` last, are stable. An on-demand build emits its `construct`, then its `init` or `init:failed`, with `level: null`, wherever it runs: inside a level, or inside `onInit`.
 
 A `create` with one async factory emits four events, all with run 0:
 
@@ -126,7 +128,7 @@ Every call of `load`, `createScope` and `extend()` is a run, a call that does no
 | `extend()`                         | the scoped providers the extension adds    | the index into the target's scoped levels                                                   |
 | on-demand, transient, value, alias | none                                       | `null`                                                                                      |
 
-The numbering is evolving: compare levels within one run only.
+The numbering is evolving.
 
 ## `parent` and nested NexusDI builds
 
@@ -134,7 +136,7 @@ The numbering is evolving: compare levels within one run only.
 
 ## The steps `profile()` derives from NexusDI trace events
 
-`@nexusdi/devtools` splits each run into five steps from the events alone, and a profiler of your own can do the same:
+`@nexusdi/devtools` splits each run into five steps from the events alone:
 
 - **compile:** the `compile` event.
 - **static:** value and alias providers (and options schemas): the `construct` events with `lifetime: null` and no level.
@@ -142,24 +144,24 @@ The numbering is evolving: compare levels within one run only.
 - **init:** the span of the run's `init` events.
 - **setup:** from the last `init` or level `construct` end to the `run` end.
 
-Each step's edges can sit a few microseconds from where core's code switches phase, the time core spends between one event and the next.
+Each step's edges can sit microseconds from where core's code switches phase.
 
 ## Where a NexusDI profiler finds the dependency graph
 
-A critical path needs the graph's edges. A plugin reads them in its `setup` hook with `context.blueprint()`, after a `create` succeeded: `blueprint().edges` and `blueprint().providers`. Two fields carry core's level rule, so a profiler never copies it:
+A plugin reads the graph in its `setup` hook with `context.blueprint()`, after a `create` succeeded: `edges` and `providers`. Two fields carry core's level rule, so a profiler never copies it:
 
 - **`EdgeView.ordersBuild`:** `true` when core builds the edge's target before the dependent. Every kind but `lazy` orders a build today.
 - **`ProviderView.inline`:** `true` when the provider has no level of its own: a transient, which each dependent builds inside its own build, or an alias, which resolves to its target. Core counts an inline provider's ordering edges as its dependents' edges.
 
 ## A third-party profiler on NexusDI trace events
 
-A slowest-providers list needs only the `observe` hook and the build fields. This plugin keeps the `construct` events of run 0 and sorts them by own time:
+This plugin keeps the `construct` events of run 0 and sorts them by own time:
 
 ```ts file=examples/meridian/src/pages/trace-events.md region=third-party
 
 ```
 
-The `default` branch keeps the plugin working when core adds an event type.
+Its `default` branch handles new event types.
 
 ## How `@nexusdi/devtools` draws NexusDI trace events in Chrome
 

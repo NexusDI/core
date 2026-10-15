@@ -276,10 +276,15 @@ Order within one run:
    thenable, and `construct` or `construct:failed` as each build settles, in settle order,
    which differs from start order. Every event of level k comes before the first of level
    k+1.
-3. `init:await`, `init` and `init:failed`. A provider built on demand inside `onInit` emits
-   its `construct` among them.
+3. The `onInit` pass: `init:await`, `init` and `init:failed` of the level builds, level by
+   level.
 4. `scope:create` or `scope:extend` for those run kinds.
 5. `run`, last.
+
+Items 2 and 3 describe how core schedules builds today and may change in a minor release.
+Items 1, 4 and 5, one emit per event, and `run` last, are stable. An on-demand build emits
+its `construct`, then its `init` or `init:failed`, with `level: null`, wherever it runs:
+inside a level, or inside `onInit`.
 
 A failed run's `construct:failed` comes before its rollback's `dispose:instance` events.
 A run that settles ends with exactly one `run` event. A run that never settles has no
