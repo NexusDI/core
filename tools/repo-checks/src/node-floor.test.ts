@@ -56,4 +56,12 @@ describe('node-floor job', () => {
     expect(runs).toContain('npx vitest run --configLoader runner');
     expect(runs).not.toContain('nx run-many');
   });
+
+  it('runs the typecheck target first, so the spec project references are built', () => {
+    const runs = (job?.steps ?? []).map((s) => s.run ?? '').join('\n');
+    // A spec tsconfig that references another lib's spec project, as
+    // devtools and interceptors reference decorators, needs its out-tsc
+    // declarations before vitest's typecheck reads them.
+    expect(runs).toContain('npx nx run "@nexusdi/$LIB:typecheck"');
+  });
 });
