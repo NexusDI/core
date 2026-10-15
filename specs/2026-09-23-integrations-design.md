@@ -2075,6 +2075,13 @@ demo app, counts `Nexus.create` calls across a route handler and a server action
 a `trace(fn)` plugin, and continues only on one call per process. If the count is two,
 the package moves to 0.5, and 0.4 publishes a guide page with the hand-written pattern.
 
+Gate result (Task 16 of the plan, `examples/next-bridge`, 2026-10-15): two evaluations of
+`nexus.server.ts` and two `Nexus.create` calls per `next start` process. The route handler
+evaluates the module and builds the first container; the page adds nothing; the first
+server action evaluates the module again and builds the second. Further route and action
+requests add nothing, so each layer holds one instance. The count is the same on Next
+16.3.4 and 16.4.1, with Turbopack and with webpack builds. The gate is closed.
+
 ### 10.2 Scope
 
 | Case                               | In 0.4 | How                                                                            |

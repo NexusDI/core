@@ -1,0 +1,21 @@
+{
+  "$schema": "../../node_modules/nx/schemas/project-schema.json",
+  "name": "@nexusdi/next-bridge",
+  "targets": {
+    "build": {
+      "options": {
+        "env": {
+          "NODE_ENV": "production"
+        }
+      }
+    },
+    "e2e": {
+      "dependsOn": ["build", "^build"],
+      "executor": "nx:run-commands",
+      "options": {
+        "cwd": "examples/next-bridge",
+        "command": "vitest run --config vitest.e2e.config.ts"
+      }
+    }
+  }
+}

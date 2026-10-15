@@ -15489,7 +15489,7 @@ Interfaces:
 Notes from the review of Tasks 3 and 6, which each guide carries in its Errors and Shutdown sections:
 
 - The /express/, /fastify/ and /hono/ guides show the one-line recipe of spec 3.6: an error handler that handles `NexusHttpError` by sending its status and status text without logging, so a failure writes only the adapter's line. Each guide also says that a plugin's error message, a third-party `construct` hook's included, reaches the log verbatim.
-- The /fastify/ guide tells users to pass `forceCloseConnections` or to call `server.closeAllConnections()` before `close()`. On Node 22.12, plain Fastify's `close()` waits forever for the socket of a request whose client aborted, when a listener on the raw request's `close` event exists (Node 24 closes).
+- The /fastify/ guide tells users to pass `forceCloseConnections` or to call `server.closeAllConnections()` before `close()`. The cause is Node 22's http server with its bundled undici 6, and it applies to any Node http server on 22.x, Fastify included: `server.close()` does not close a connection that has never sent a request (nodejs/node#63452, fixed in Node 26.12, not backported to 22.x or 24.x). After a client aborts a streaming response, undici 6 opens such a spare connection, so `close()` waits out the keep-alive timeout (72 s in Fastify). Node 24 closes, because its undici 7 drops the spare connection.
 
 - [ ] **Step 1: Add the example dependencies** to `examples/meridian/package.json`
 
