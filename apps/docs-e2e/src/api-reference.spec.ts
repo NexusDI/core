@@ -10,15 +10,26 @@ const PAGE = '/next/api-node/';
 const SIDECAR = '/next/behaviour/node/nodeScopes.json';
 const CASE = /^libs\/node\/src\/.+:\d+$/;
 
-/** Scrolls the first catalogue into view and waits for its case pane. */
-async function openCase(page: Page) {
+/**
+ * Scrolls the first catalogue into view and waits for its case pane. On
+ * `/api-node/` the sidecar is `nodeScopes`'s; elsewhere any sidecar of the
+ * page's library will do.
+ */
+async function openCase(page: Page, library = 'node') {
   const sidecar = page.waitForRequest((request) =>
-    request.url().endsWith(SIDECAR),
+    library === 'node'
+      ? request.url().endsWith(SIDECAR)
+      : request.url().includes(`/next/behaviour/${library}/`),
   );
   await page.locator('.nexus-behaviours').first().scrollIntoViewIfNeeded();
   await sidecar;
-  const region = page.getByRole('region', { name: CASE });
-  await expect(region).toBeVisible();
+  const region = page.getByRole('region', {
+    name:
+      library === 'node' ? CASE : new RegExp(`^libs/${library}/src/.+:\\d+$`),
+  });
+  // `/api/` is seven megabytes of HTML, which Firefox takes a while to lay
+  // out before the pane can mount.
+  await expect(region).toBeVisible({ timeout: 15_000 });
   return region;
 }
 
@@ -82,27 +93,32 @@ test('narrows the entries, says how many match, and keeps every one in the page'
   await expect(status('1 of 2')).toHaveCount(1);
 });
 
-for (const theme of ['dark', 'light'] as const) {
-  test(`fits a 375 px screen in ${theme} mode, with the case pane outside the rail`, async ({
-    page,
-  }) => {
-    await page.setViewportSize({ width: 375, height: 800 });
-    await page.emulateMedia({ colorScheme: theme });
-    await page.goto(PAGE);
-    const region = await openCase(page);
+// `/api/` holds the longest signatures.
+for (const [path, library] of [
+  [PAGE, 'node'],
+  ['/next/api/', 'core'],
+] as const)
+  for (const theme of ['dark', 'light'] as const) {
+    test(`fits ${path} on a 375 px screen in ${theme} mode, with the case pane outside the rail`, async ({
+      page,
+    }) => {
+      await page.setViewportSize({ width: 375, height: 800 });
+      await page.emulateMedia({ colorScheme: theme });
+      await page.goto(path);
+      const region = await openCase(page, library);
 
-    expect(
-      await region.evaluate(
-        (element) => element.closest('[role=listbox]') === null,
-      ),
-    ).toBe(true);
-    const { scroll, client } = await page.evaluate(() => ({
-      scroll: document.documentElement.scrollWidth,
-      client: document.documentElement.clientWidth,
-    }));
-    expect(scroll).toBeLessThanOrEqual(client);
-  });
-}
+      expect(
+        await region.evaluate(
+          (element) => element.closest('[role=listbox]') === null,
+        ),
+      ).toBe(true);
+      const { scroll, client } = await page.evaluate(() => ({
+        scroll: document.documentElement.scrollWidth,
+        client: document.documentElement.clientWidth,
+      }));
+      expect(scroll).toBeLessThanOrEqual(client);
+    });
+  }
 
 for (const theme of ['dark', 'light'] as const) {
   test(`states the type of a signature token on hover and on focus in ${theme} mode`, async ({

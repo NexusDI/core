@@ -1,0 +1,376 @@
+---
+title: '@nexusdi/core'
+kind: reference
+description: The exports of @nexusdi/core, with each signature, what its tests state and an example.
+package: '@nexusdi/core'
+---
+
+# `@nexusdi/core`
+
+An app declares its object graph as a tree of modules, and `@nexusdi/core` checks that tree before it builds anything. `Nexus.create(root)` compiles the tree and checks every provider, import and export. When the graph has faults, the promise rejects with one `BlueprintError` that lists each of them. Core writes each error a container raises as one line with a link to the code's page; `defineModule()` and `new Token()` throw their own full text, because no container exists yet. The `@nexusdi/core/text` entry holds core's full error text, which `@nexusdi/errors` reads. The error classes are listed on [Error codes](/api-errors/), and each code has a page of its own. Each export has one entry below, with what the package's tests state about it.
+
+<ApiFilter />
+
+## `Nexus`
+
+<!-- reference @nexusdi/core#Nexus example=interfaces-and-tokens -->
+
+## `Token`
+
+<!-- reference @nexusdi/core#Token example=interfaces-and-tokens -->
+
+## `MultiToken`
+
+<!-- reference @nexusdi/core#MultiToken example=providers -->
+
+## `defineModule`
+
+<!-- reference @nexusdi/core#defineModule example=modules -->
+
+## `provide`
+
+<!-- reference @nexusdi/core#provide example=providers -->
+
+## `optional`
+
+<!-- reference @nexusdi/core#optional example=optional -->
+
+## `lazy`
+
+<!-- reference @nexusdi/core#lazy example=lazy -->
+
+## `all`
+
+<!-- reference @nexusdi/core#all example=all -->
+
+## `REQUEST`
+
+<!-- reference @nexusdi/core#REQUEST example=scopes -->
+
+## `isNexusError`
+
+<!-- reference @nexusdi/core#isNexusError example=error-message -->
+
+## `errorBase`
+
+<!-- reference @nexusdi/core#errorBase -->
+
+## `NEXUS_PLUGIN_API`
+
+<!-- reference @nexusdi/core#NEXUS_PLUGIN_API example=plugins -->
+
+## `SUPPORTED_PLUGIN_APIS`
+
+<!-- reference @nexusdi/core#SUPPORTED_PLUGIN_APIS -->
+
+## `DOCS_URL`
+
+<!-- reference @nexusdi/core#DOCS_URL -->
+
+## `declareClass`
+
+<!-- reference @nexusdi/core#declareClass -->
+
+## `declareModuleClass`
+
+<!-- reference @nexusdi/core#declareModuleClass -->
+
+## `declareProperty`
+
+<!-- reference @nexusdi/core#declareProperty -->
+
+## `describeValue`
+
+<!-- reference @nexusdi/core#describeValue -->
+
+## `displayName`
+
+<!-- reference @nexusdi/core#displayName -->
+
+## `isForeign`
+
+<!-- reference @nexusdi/core#isForeign -->
+
+## `moduleDefinitionOf`
+
+<!-- reference @nexusdi/core#moduleDefinitionOf -->
+
+## `All`
+
+<!-- reference @nexusdi/core#All -->
+
+## `BlueprintView`
+
+<!-- reference @nexusdi/core#BlueprintView -->
+
+## `CheckedRoot`
+
+<!-- reference @nexusdi/core#CheckedRoot -->
+
+## `CheckOptions`
+
+<!-- reference @nexusdi/core#CheckOptions -->
+
+## `CompileContext`
+
+<!-- reference @nexusdi/core#CompileContext -->
+
+## `CompilePluginHooks`
+
+<!-- reference @nexusdi/core#CompilePluginHooks -->
+
+## `ConfigurableModule`
+
+<!-- reference @nexusdi/core#ConfigurableModule example=configurable-module-async -->
+
+## `ConfigurableModuleConfig`
+
+<!-- reference @nexusdi/core#ConfigurableModuleConfig -->
+
+## `CreateOptions`
+
+<!-- reference @nexusdi/core#CreateOptions -->
+
+Plugins run in the order the `plugins` array lists them, with the exceptions [Plugin Execution Order](/plugins/#plugin-execution-order) lists. The first-party plugins are `errors()` from `@nexusdi/errors`, `devtools()` and `trace()` from `@nexusdi/devtools`, `interceptors()` from `@nexusdi/interceptors` and `federation()` from `@nexusdi/federation`. `createTestingContainer` from `@nexusdi/testing` puts its own plugin ahead of the caller's.
+
+## `Ctor`
+
+<!-- reference @nexusdi/core#Ctor -->
+
+## `Dep`
+
+<!-- reference @nexusdi/core#Dep -->
+
+## `DepFor`
+
+<!-- reference @nexusdi/core#DepFor -->
+
+## `DepsFor`
+
+<!-- reference @nexusdi/core#DepsFor -->
+
+## `DepsMap`
+
+<!-- reference @nexusdi/core#DepsMap -->
+
+## `EdgeView`
+
+<!-- reference @nexusdi/core#EdgeView -->
+
+## `ErrorFields`
+
+<!-- reference @nexusdi/core#ErrorFields -->
+
+## `ErrorLifetime`
+
+<!-- reference @nexusdi/core#ErrorLifetime -->
+
+## `ErrorText`
+
+<!-- reference @nexusdi/core#ErrorText -->
+
+## `ErrorTextKit`
+
+<!-- reference @nexusdi/core#ErrorTextKit -->
+
+## `ErrorTextPack`
+
+<!-- reference @nexusdi/core#ErrorTextPack -->
+
+## `ExportEntry`
+
+<!-- reference @nexusdi/core#ExportEntry -->
+
+## `FactoryDefinition`
+
+<!-- reference @nexusdi/core#FactoryDefinition -->
+
+## `ForRootAsyncConfig`
+
+<!-- reference @nexusdi/core#ForRootAsyncConfig -->
+
+## `InjectionToken`
+
+<!-- reference @nexusdi/core#InjectionToken -->
+
+## `InvalidProviderReason`
+
+<!-- reference @nexusdi/core#InvalidProviderReason -->
+
+## `InvalidTokenReason`
+
+<!-- reference @nexusdi/core#InvalidTokenReason -->
+
+## `Lazy`
+
+<!-- reference @nexusdi/core#Lazy -->
+
+## `LazyAsyncMessage`
+
+<!-- reference @nexusdi/core#LazyAsyncMessage -->
+
+## `Lifetime`
+
+<!-- reference @nexusdi/core#Lifetime -->
+
+## `LookupOptions`
+
+<!-- reference @nexusdi/core#LookupOptions -->
+
+## `ModuleConfig`
+
+<!-- reference @nexusdi/core#ModuleConfig -->
+
+## `ModuleDefinition`
+
+<!-- reference @nexusdi/core#ModuleDefinition -->
+
+## `ModuleRef`
+
+<!-- reference @nexusdi/core#ModuleRef -->
+
+## `ModuleView`
+
+<!-- reference @nexusdi/core#ModuleView -->
+
+## `NearMiss`
+
+<!-- reference @nexusdi/core#NearMiss -->
+
+## `NexusErrorByCode`
+
+<!-- reference @nexusdi/core#NexusErrorByCode -->
+
+## `NexusErrorCode`
+
+<!-- reference @nexusdi/core#NexusErrorCode -->
+
+## `NexusErrorOptions`
+
+<!-- reference @nexusdi/core#NexusErrorOptions -->
+
+## `NexusPlugin`
+
+<!-- reference @nexusdi/core#NexusPlugin example=plugin-canonical -->
+
+## `NexusRequest`
+
+<!-- reference @nexusdi/core#NexusRequest -->
+
+## `NoLifetimeMessage`
+
+<!-- reference @nexusdi/core#NoLifetimeMessage -->
+
+## `Optional`
+
+<!-- reference @nexusdi/core#Optional -->
+
+## `OverrideDefinition`
+
+<!-- reference @nexusdi/core#OverrideDefinition -->
+
+## `PluginContext`
+
+<!-- reference @nexusdi/core#PluginContext -->
+
+## `PluginInvalidReason`
+
+<!-- reference @nexusdi/core#PluginInvalidReason -->
+
+## `PromiseTokenMessage`
+
+<!-- reference @nexusdi/core#PromiseTokenMessage -->
+
+## `Provider`
+
+<!-- reference @nexusdi/core#Provider -->
+
+## `ProviderEntries`
+
+<!-- reference @nexusdi/core#ProviderEntries -->
+
+## `ProviderEntry`
+
+<!-- reference @nexusdi/core#ProviderEntry -->
+
+## `ProviderFailure`
+
+<!-- reference @nexusdi/core#ProviderFailure -->
+
+## `ProviderLiteral`
+
+<!-- reference @nexusdi/core#ProviderLiteral example=provider-literals -->
+
+## `ProviderRewrite`
+
+<!-- reference @nexusdi/core#ProviderRewrite -->
+
+## `ProviderView`
+
+<!-- reference @nexusdi/core#ProviderView -->
+
+## `Resolve`
+
+<!-- reference @nexusdi/core#Resolve -->
+
+## `ResolveAll`
+
+<!-- reference @nexusdi/core#ResolveAll -->
+
+## `ResolvedDeps`
+
+<!-- reference @nexusdi/core#ResolvedDeps -->
+
+## `RootConfig`
+
+<!-- reference @nexusdi/core#RootConfig -->
+
+## `RootKeyMessage`
+
+<!-- reference @nexusdi/core#RootKeyMessage -->
+
+## `RootRef`
+
+<!-- reference @nexusdi/core#RootRef -->
+
+## `SchemaIssue`
+
+<!-- reference @nexusdi/core#SchemaIssue -->
+
+## `Scope`
+
+<!-- reference @nexusdi/core#Scope example=scope-extend -->
+
+## `StandardSchemaV1`
+
+<!-- reference @nexusdi/core#StandardSchemaV1 -->
+
+## `Tokens`
+
+<!-- reference @nexusdi/core#Tokens -->
+
+## `TraceEvent`
+
+<!-- reference @nexusdi/core#TraceEvent -->
+
+## `TraceEventByType`
+
+<!-- reference @nexusdi/core#TraceEventByType -->
+
+## `UninferredRoot`
+
+<!-- reference @nexusdi/core#UninferredRoot -->
+
+## `UntypedFunctionMessage`
+
+<!-- reference @nexusdi/core#UntypedFunctionMessage -->
+
+## `coreText`
+
+<!-- reference @nexusdi/core/text#coreText -->
+
+## `layoutText`
+
+<!-- reference @nexusdi/core/text#layoutText -->
+
+[Getting Started](/getting-started/) builds a first container with `Nexus.create`.

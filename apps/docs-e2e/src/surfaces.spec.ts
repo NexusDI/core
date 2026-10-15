@@ -3,6 +3,7 @@ import { expect, test } from '@playwright/test';
 const PAGES = [
   '/next/',
   '/next/tokens/',
+  '/next/api/',
   '/next/api-node/',
   '/next/api-testing/',
   '/next/api-decorators/',

@@ -98,7 +98,10 @@ describe('doc-twoslash on apps/docs', COMPILE, () => {
     const fences = await contentFences(CONTENT, workspaceRoot);
 
     expect(compileFailures(fences, withPrelude)).toEqual([]);
-  });
+    // Every reference page's signature and example fences compile here, and
+    // `/api/` alone holds 90 entries; under a parallel gate that outlasts
+    // the default 30 seconds.
+  }, 180_000);
 });
 
 // Read once at collection, so `it.each` below has one case per package.

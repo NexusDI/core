@@ -61,6 +61,7 @@ const meta: MetaRecord = {
   upgrade: { title: 'How do I upgrade from 0.3 to 0.4?' },
   'support-policy': { title: '0.3 support policy' },
   '-- api': { type: 'separator', title: 'API' },
+  api: { title: '@nexusdi/core' },
   'api-errors': { title: 'Error codes' },
   'api-node': { title: '@nexusdi/node' },
   'api-testing': { title: '@nexusdi/testing' },
