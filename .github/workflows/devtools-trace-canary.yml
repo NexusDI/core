@@ -1,0 +1,57 @@
+name: devtools trace canary
+
+# Checks the profiler's Chrome trace layout, which Chrome does not document,
+# against the newest Chrome stable and beta and the newest DevTools trace
+# engine (startup profiler spec 10.2). Not a required check.
+on:
+  schedule:
+    - cron: '17 6 * * 1'
+  workflow_dispatch:
+  pull_request:
+    paths:
+      - 'libs/devtools/src/profile/**'
+
+permissions: {}
+
+jobs:
+  canary:
+    runs-on: ubuntu-24.04
+    permissions:
+      contents: read
+      issues: write # open or update one issue when a scheduled run fails
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
+        with:
+          node-version-file: .nvmrc
+          cache: npm
+      - run: npm ci
+      # The browsers are unpinned on purpose: the canary exists to catch a
+      # new Chrome breaking the layout (owner item (c) 3). The installer is
+      # pinned.
+      - id: stable
+        run: echo "path=$(npx --yes @puppeteer/browsers@3.2.3 install chrome@stable --path "$RUNNER_TEMP/chrome" | tail -1 | cut -d' ' -f2-)" >> "$GITHUB_OUTPUT"
+      - id: beta
+        run: echo "path=$(npx --yes @puppeteer/browsers@3.2.3 install chrome@beta --path "$RUNNER_TEMP/chrome" | tail -1 | cut -d' ' -f2-)" >> "$GITHUB_OUTPUT"
+      - run: node tools/trace-canary/run.mjs "$CHROME"
+        env:
+          CHROME: ${{ steps.stable.outputs.path }}
+      - run: node tools/trace-canary/run.mjs "$CHROME"
+        env:
+          CHROME: ${{ steps.beta.outputs.path }}
+      - run: |
+          npm i --no-save @paulirish/trace_engine@latest
+          npx nx run @nexusdi/devtools:test-trace --skip-nx-cache
+        env:
+          NX_NO_CLOUD: 'true'
+          NX_DAEMON: 'false'
+      - if: failure() && github.event_name == 'schedule'
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          gh label create devtools-trace --repo "$GITHUB_REPOSITORY" --force --color d93f0b --description 'Chrome trace layout canary'
+          body="The devtools trace canary failed on $(date -u +%F): $GITHUB_SERVER_URL/$GITHUB_REPOSITORY/actions/runs/$GITHUB_RUN_ID"
+          number=$(gh issue list --repo "$GITHUB_REPOSITORY" --label devtools-trace --state open --json number --jq '.[0].number')
+          if [ -n "$number" ]; then gh issue comment "$number" --repo "$GITHUB_REPOSITORY" --body "$body"; else gh issue create --repo "$GITHUB_REPOSITORY" --label devtools-trace --title 'The Chrome trace layout canary fails' --body "$body"; fi
