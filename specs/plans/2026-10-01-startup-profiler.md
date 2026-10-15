@@ -5918,7 +5918,13 @@ describe('parseCommand, profile', () => {
     [['profile', 'a.ts', '--cpu'], '--cpu needs --chrome'],
     [['profile', 'r.json', '--load', 'b.ts'], 'a .json entry'],
     [['profile', 'r.json', '--repeat', '3'], 'a .json entry'],
-    [['profile', 'a.ts', '--repeat', '-1'], '--repeat takes'],
+    // node:util reads "--repeat -1" as a flag with no value and refuses it;
+    // "--repeat=-1" reaches the CLI's own check.
+    [
+      ['profile', 'a.ts', '--repeat', '-1'],
+      "Option '--repeat' argument is ambiguous",
+    ],
+    [['profile', 'a.ts', '--repeat=-1'], '--repeat takes'],
     [['profile', 'a.ts', '--timeout', 'soon'], '--timeout takes'],
     [['profile', 'a.ts', '-f', 'svg'], '-f is a graph option'],
     [['graph', 'a.ts', '--chrome', 'c.json'], '--chrome is a profile option'],
@@ -5931,6 +5937,8 @@ describe('parseCommand, profile', () => {
 ```
 
 Import `thrown` the way the file's existing tests catch a `CliError` (add a local `thrown` helper if it has none).
+
+`node:util`'s `parseArgs` refuses `--repeat -1` itself (an option value that starts with a dash is ambiguous), with exit 2; the row for the CLI's own `--repeat takes` message passes `--repeat=-1`.
 
 - [ ] Step 2: Run them and see them fail
 
@@ -5992,7 +6000,9 @@ function count(
 
 `USAGE` in `main.ts` becomes the graph block followed by the spec 9.1 synopsis, and its exit-code line becomes "Exit codes: 0 written, 1 invalid graph or failed startup, 2 bad invocation or input, 3 missing tool."
 
-- [ ] Step 4: The README. Add a `## Profile startup` section after `## Usage`, with two `npx nexusdi profile` lines from spec 9.2 and one sentence each, and add every new flag as a row of the `## Options` table, with "profile" in its purpose cell. In `readme.test.ts`: collect command lines from both sections; accept `kind: 'graph'` or `'profile'`; keep the Usage section's count rule at one to four; and change the flag regex to `/(--?[a-z][a-z-]*)/g` so `--cpu-interval` reads as one flag.
+`refuseFlags` reads a flag's short form with `'short' in option`, since a typed `{ short?: string }` view of `OPTIONS` fails TypeScript's weak-type check. Until Task 16 runs the command, `main()` exits 2 on a profile command ("nexusdi profile is not available in this build."), and `main.test.ts` pins that and the `--help` synopsis; Task 16 replaces both.
+
+- [ ] Step 4: The README. Add a `## Profile startup` section after `## Usage`, with two `npx nexusdi profile` lines from spec 9.2 and one sentence each, and add every new flag as a row of the `## Options` table, with "profile" in its purpose cell. In `readme.test.ts`: collect command lines from both sections; accept `kind: 'graph'` or `'profile'`; keep the Usage section's count rule at one to four; and change the flag regex to `/(--?[a-z][a-z-]*)/g` so `--cpu-interval` reads as one flag. The README standard caps a package README at 75 lines, so the nine profile flags share four rows, each listing its flags inside one backtick span (`--repeat, --top`, `--chrome, --perfetto, --json`, `--cpu, --cpu-interval`, `--timeout, --quiet`) the way `-f, --format` does.
 
 - [ ] Step 5: Run the targets
 
