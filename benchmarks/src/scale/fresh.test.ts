@@ -32,7 +32,10 @@ const EMPTY_PACKAGES = join(dir, 'packages.mjs');
 writeFileSync(EMPTY_PACKAGES, '');
 
 /** One graph file per cell, so a recorded spawn names its cell. */
-const cellsOf = (names: string[]): FreshCell[] =>
+const cellsOf = (
+  names: string[],
+  mode: FreshCell['mode'] = 'heap',
+): FreshCell[] =>
   names.map((name, i) => {
     const graph = join(dir, `${name}.json`);
     writeFileSync(graph, JSON.stringify(six()));
@@ -42,6 +45,7 @@ const cellsOf = (names: string[]): FreshCell[] =>
       bundle: FAKE,
       graph,
       packagesFile: EMPTY_PACKAGES,
+      mode,
     };
   });
 
@@ -258,6 +262,108 @@ describe('heap-ready under load', () => {
     const heap = results.map((r) => r.message.heapReady);
     expect(Math.min(...heap)).toBeGreaterThanOrEqual(0);
   }, 120_000);
+});
+
+describe('child modes', () => {
+  const COUNT = join(
+    import.meta.dirname,
+    '..',
+    '..',
+    'fixtures',
+    '__test__',
+    'count-gc.mjs',
+  );
+  const runMode = async (mode: string | undefined, preload = false) => {
+    const countFile = join(dir, `gc-${mode ?? 'default'}`);
+    const graph = cellsOf(['m'])[0]?.graph ?? '';
+    const env = { ...process.env, GC_COUNT_FILE: countFile };
+    const r = await spawnChild<
+      { type: string } & Record<string, number | string>
+    >(
+      CHILD,
+      [FAKE, graph, EMPTY_PACKAGES, ...(mode === undefined ? [] : [mode])],
+      ['--expose-gc', ...(preload ? ['--import', COUNT] : [])],
+      'sample',
+      env,
+    );
+    return {
+      message: r.message,
+      gcCalls: preload ? Number(readFileSync(countFile, 'utf8')) : 0,
+    };
+  };
+
+  it('reads the heap in heap mode, which is the default', async () => {
+    for (const mode of [undefined, 'heap']) {
+      const { message } = await runMode(mode);
+      expect(typeof message.heapReady).toBe('number');
+    }
+  }, 60_000);
+  it.each(['timing', 'timing-no-gc'])(
+    'reports the four phases and no heap in %s mode',
+    async (mode) => {
+      const { message } = await runMode(mode);
+      for (const phase of ['load', 'create', 'firstGet', 'rest'])
+        expect(Number(message[phase])).toBeGreaterThanOrEqual(0);
+      expect(message.heapReady).toBeUndefined();
+    },
+    60_000,
+  );
+  it('runs gc() twice before load and twice before create in timing mode, with no settle', async () => {
+    expect((await runMode('timing', true)).gcCalls).toBe(4);
+  }, 60_000);
+  it('drops the gc() before create in timing-no-gc mode', async () => {
+    expect((await runMode('timing-no-gc', true)).gcCalls).toBe(2);
+  }, 60_000);
+  it('settles the heap twice in heap mode: at least twenty collections for the base read alone', async () => {
+    expect((await runMode('heap', true)).gcCalls).toBeGreaterThanOrEqual(24);
+  }, 60_000);
+  it('rejects an unknown mode with a clear error', async () => {
+    await expect(runMode('fast')).rejects.toThrow(/unknown mode fast/);
+  }, 60_000);
+});
+
+describe('freshBlock modes and progress', () => {
+  it('runs each cell in its mode and keeps heapReady for heap cells only', async () => {
+    const [a] = cellsOf(['a']);
+    if (a === undefined) throw new Error('no cell');
+    const rows = await freshBlock(
+      [
+        { ...a, mode: 'timing' },
+        { ...a, mode: 'heap' },
+        { ...a, mode: 'timing-no-gc' },
+      ],
+      { ...opts, warmup: 0, measured: 2 },
+    );
+    expect(rows.map((r) => r.mode)).toEqual(['timing', 'heap', 'timing-no-gc']);
+    expect(rows.map((r) => r.heapReady.length)).toEqual([0, 2, 0]);
+    for (const r of rows) expect(r.startup).toHaveLength(2);
+  }, 60_000);
+
+  it('prints one progress line per 50 rounds', async () => {
+    const lines: string[] = [];
+    const cells = cellsOf(['a']);
+    await freshBlock(cells, {
+      ...opts,
+      warmup: 10,
+      measured: 110,
+      progress: (line) => lines.push(line),
+      spawn: (() =>
+        Promise.resolve({
+          ns: 0,
+          message: {
+            type: 'sample' as const,
+            load: 1,
+            create: 1,
+            firstGet: 1,
+            rest: 1,
+          },
+        })) as unknown as typeof spawnChild,
+    });
+    expect(lines).toEqual([
+      'mixed block: 50 of 120 rounds',
+      'mixed block: 100 of 120 rounds',
+    ]);
+  });
 });
 
 describe('spawnChild', () => {

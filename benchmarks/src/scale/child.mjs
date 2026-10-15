@@ -3,13 +3,20 @@
  * JavaScript, never compiled, so every library's bundle meets the same code.
  * Run by fresh.ts, one process per sample:
  *
- *   node --expose-gc child.mjs <bundle.mjs> <graph.json> <packages.mjs>
+ *   node --expose-gc child.mjs <bundle.mjs> <graph.json> <packages.mjs> [mode]
  *
- * Imports the cell's packages.mjs untimed, reads the base heap, then times load,
- * create, first-get and rest with process.hrtime.bigint(), and reads the
- * retained heap with the handle still referenced. The gc() calls sit between
- * timed phases. Sends one `sample` message in ns and bytes, or exits 1 with
- * the reason on stderr.
+ * Imports the cell's packages.mjs untimed, then times load, create, first-get
+ * and rest with process.hrtime.bigint(). The gc() calls sit between timed
+ * phases. Sends one `sample` message in ns (and bytes in heap mode), or exits
+ * 1 with the reason on stderr. The mode (scale spec 6.1):
+ *
+ * - `heap` (the default): reads the base heap after a settle loop before
+ *   `load`, and the retained heap after another with the handle still
+ *   referenced, so `heapReady` is in the message.
+ * - `timing`: no settles and no heap. gc() twice before `load` and twice
+ *   before `create`, as a real app collects nothing else on the way.
+ * - `timing-no-gc`: as `timing` without the gc() before `create`, which the
+ *   protocol check of spec 7.4 compares against `timing`.
  */
 import { readFileSync } from 'node:fs';
 import { setTimeout as sleep } from 'node:timers/promises';
@@ -18,13 +25,16 @@ import { getHeapSpaceStatistics } from 'node:v8';
 
 import { retainedHeap } from './heap.mjs';
 
-const [bundle, graphPath, packagesFile] = process.argv.slice(2);
+const [bundle, graphPath, packagesFile, mode = 'heap'] = process.argv.slice(2);
 
 function fail(message) {
   console.error(message);
   process.exit(1);
 }
 if (typeof globalThis.gc !== 'function') fail('run with --expose-gc');
+if (!['heap', 'timing', 'timing-no-gc'].includes(mode))
+  fail(`unknown mode ${mode}`);
+const heapMode = mode === 'heap';
 
 const graph = JSON.parse(readFileSync(graphPath, 'utf8'));
 // A value and an alias construct nothing.
@@ -66,14 +76,15 @@ const others = [];
 for (let i = 0; i < graph.providers.length; i++)
   if (i !== graph.target) others.push(i);
 
-const base = await settledHeap();
+// Timing modes collect twice and read nothing.
+const base = heapMode ? await settledHeap() : (collect(), 0);
 
 let t = ns();
 const { scale } = await import(pathToFileURL(bundle).href);
 const load = Number(ns() - t);
 if (scale === undefined) fail('the bundle exports no scale app');
 
-collect();
+if (mode !== 'timing-no-gc') collect();
 t = ns();
 let handle = scale.create();
 // A synchronous create pays no microtask turn.
@@ -98,7 +109,7 @@ if (typeof scale.getAsync === 'function') {
   rest = Number(ns() - t);
 }
 
-const heapReady = (await settledHeap()) - base;
+const heapReady = heapMode ? (await settledHeap()) - base : undefined;
 // The handle must still be reachable at the heap read above.
 globalThis.__scaleHandle = handle;
 
@@ -107,6 +118,14 @@ if (total !== constructed)
   fail(`construction count ${total}, expected ${constructed}`);
 
 // Disconnecting before the message is flushed loses it.
-process.send({ type: 'sample', load, create, firstGet, rest, heapReady }, () =>
-  process.disconnect(),
+process.send(
+  {
+    type: 'sample',
+    load,
+    create,
+    firstGet,
+    rest,
+    ...(heapMode ? { heapReady } : {}),
+  },
+  () => process.disconnect(),
 );
