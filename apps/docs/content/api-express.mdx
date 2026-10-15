@@ -7,7 +7,7 @@ package: '@nexusdi/express'
 
 # `@nexusdi/express`
 
-A request-scoped service needs one scope per request, disposed when the response is finished or the client is gone. Express runs no middleware after the response, and a client that aborts emits `close` and never `finish`, so a scope disposed on `finish` leaks. `nexus(ship)` returns a `NexusExpress`: `di.middleware` attaches a scope handle to the request, and the first `di.inject` handler creates the scope and resolves its typed deps from it. The response's `close` event disposes the scope once, and a request that resolves nothing creates none. A NexusDI error in a handler reaches Express as a `NexusHttpError` with a 500 or 503 status. Each export has one entry below, with what the package's tests state about it.
+A request-scoped service needs one scope per request, disposed when the response is finished or the client is gone. Express runs no middleware after the response, and a client that aborts emits `close` and never `finish`, so a scope disposed on `finish` leaks. `const di = nexus(ship)` gives a `NexusExpress`: `di.middleware` attaches a scope handle to the request, and the first `di.inject` handler creates the scope and resolves its typed deps from it. Without the `scopes` option, a request that resolves nothing creates no scope; with it, the middleware creates the scope at once. The response's `close` event disposes the scope once. A NexusDI error from creating the scope or resolving a handler's deps reaches Express as a `NexusHttpError` with a 500 or 503 status. Each export has one entry below, with what the package's tests state about it.
 
 <ApiFilter />
 
@@ -51,4 +51,4 @@ A request-scoped service needs one scope per request, disposed when the response
 
 <!-- reference @nexusdi/express#NexusHttpError -->
 
-The guide [Scope an Express request](/express/) gives an Express app a scope per request, maps NexusDI errors to responses and disposes the container at shutdown.
+The guide [Scoping Express Requests](/express/) gives an Express app a scope per request, maps NexusDI errors to responses and disposes the container at shutdown.

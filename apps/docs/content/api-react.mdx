@@ -7,7 +7,7 @@ package: '@nexusdi/react'
 
 # `@nexusdi/react`
 
-A React app that uses a container needs the same glue in every codebase: a context and a hook around `get()`, a scope per dialog, a fallback while a lazy section loads. `@nexusdi/react` is that glue, over a container the app creates. `NexusProvider` publishes a container, or the promise `Nexus.create` returns, and `useService(TOKEN)` reads a service with core's synchronous `get()`. `ScopeProvider` gives its subtree a scope of its own, `SectionBoundary` loads a lazy module before it renders its children, and `react()` is a plugin that makes `useService` refuse a transient provider in render. The four error classes have a page each under [Error codes](/api-errors/). Each export has one entry below, with what the package's tests state about it.
+A React app that uses a container needs the same glue in every codebase: a hook around `get()`, a scope per dialog, a fallback while a lazy section loads, and a guard against building a transient on every render. `@nexusdi/react` is that glue, over a container the app creates. `NexusProvider` publishes a container, or the promise `Nexus.create` returns, and `useService(TOKEN)` reads a service with core's synchronous `get()`. `ScopeProvider` gives its subtree a scope of its own, and `SectionBoundary` loads a lazy module before it renders its children. `react()` is a plugin that makes `useService` refuse a transient provider in render. The four error classes have a page each under [Error codes](/api-errors/). Each export has one entry below, with what the package's tests state about it.
 
 <ApiFilter />
 
@@ -25,7 +25,7 @@ A React app that uses a container needs the same glue in every codebase: a conte
 
 ## `useContainer`
 
-<!-- reference @nexusdi/react#useContainer -->
+<!-- reference @nexusdi/react#useContainer example=root-container -->
 
 ## `ScopeProvider`
 
@@ -55,4 +55,4 @@ A React app that uses a container needs the same glue in every codebase: a conte
 
 <!-- reference @nexusdi/react#react example=transient -->
 
-The guide [Use services in React components](/react/) publishes a container, reads services in components and loads a section on demand.
+The guide [Using Services in React Components](/react/) publishes a container, reads services in components and loads a section on demand.

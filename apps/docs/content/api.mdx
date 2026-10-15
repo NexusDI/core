@@ -131,7 +131,7 @@ An app declares its object graph as a tree of modules, and `@nexusdi/core` check
 
 <!-- reference @nexusdi/core#CreateOptions -->
 
-Plugins run in the order the `plugins` array lists them, with the exceptions [Plugin Execution Order](/plugins/#plugin-execution-order) lists. The first-party plugins are `errors()` from `@nexusdi/errors`, `devtools()` and `trace()` from `@nexusdi/devtools`, `interceptors()` from `@nexusdi/interceptors` and `federation()` from `@nexusdi/federation`. `createTestingContainer` from `@nexusdi/testing` puts its own plugin ahead of the caller's.
+Plugins run in the order the `plugins` array lists them, with the exceptions [Plugin Execution Order](/plugins/#plugin-execution-order) lists. The first-party plugins are `errors()` from `@nexusdi/errors`, `devtools()`, `trace()` and `profile()` from `@nexusdi/devtools`, `interceptors()` from `@nexusdi/interceptors`, `federation()` from `@nexusdi/federation` and `react()` from `@nexusdi/react`. `createTestingContainer` from `@nexusdi/testing` puts its own plugin ahead of the caller's.
 
 ## `Ctor`
 
@@ -356,6 +356,10 @@ Plugins run in the order the `plugins` array lists them, with the exceptions [Pl
 ## `TraceEventByType`
 
 <!-- reference @nexusdi/core#TraceEventByType -->
+
+## `RunKind`
+
+<!-- reference @nexusdi/core#RunKind -->
 
 ## `UninferredRoot`
 

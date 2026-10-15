@@ -37,10 +37,16 @@ describe('libraries', () => {
       'decorators',
       'devtools',
       'errors',
+      'express',
+      'fastify',
       'federation',
+      'hono',
       'interceptors',
       'node',
+      'react',
+      'react-router',
       'testing',
+      'vitest',
     ]);
   });
 });
