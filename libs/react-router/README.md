@@ -1,0 +1,83 @@
+# @nexusdi/react-router
+
+[![npm](https://img.shields.io/npm/v/@nexusdi/react-router/next)](https://www.npmjs.com/package/@nexusdi/react-router)
+[![license](https://img.shields.io/npm/l/@nexusdi/react-router)](https://github.com/NexusDI/core/blob/main/LICENSE)
+
+**Scope every React Router request with NexusDI, from middleware to loaders.**
+
+A request-scoped service needs a scope per request, disposed when the response is done. React Router finishes the middleware chain before the server writes the body, and deferred data keeps streaming after it, so a scope disposed when the middleware returns is gone while a deferred value still reads it.
+
+## How the scope follows the request
+
+`di.middleware` in the root route's `middleware` export puts a scope handle on the router context. The first `di.inject` loader creates the scope, and loaders that run in parallel share it. The scope is disposed once, when the streamed body ends, errors or is cancelled, or when the request's signal aborts.
+
+## Installation
+
+> 0.4 is a release candidate on the npm `next` tag. Install every @nexusdi package from `next` so their versions match. Without `@next`, npm installs core 0.3 and stops with a peer conflict.
+
+```bash
+npm install @nexusdi/react-router@next @nexusdi/core@next react-router
+```
+
+## Quick Example
+
+A loader resolves its typed deps from the request's scope. This test hands it a scope it owns through `NEXUS_SCOPE`, so it needs no server.
+
+```ts @import.meta.vitest
+import { Nexus, Token, provide } from '@nexusdi/core';
+import { existingScope, NEXUS_SCOPE, nexus } from '@nexusdi/react-router';
+import { RouterContextProvider } from 'react-router';
+
+interface IFlightLog {
+  record(entry: string): void;
+  entries(): readonly string[];
+}
+class ShuttleFlightLog implements IFlightLog {
+  readonly #entries: string[] = [];
+  record(entry: string) {
+    this.#entries.push(entry);
+  }
+  entries() {
+    return this.#entries;
+  }
+}
+const FLIGHT_LOG = new Token<IFlightLog>('FlightLog');
+
+// app/nexus.server.ts; app/root.tsx exports [di.middleware] as middleware.
+const ship = await Nexus.create([
+  provide(FLIGHT_LOG, { useClass: ShuttleFlightLog, lifetime: 'scoped' }),
+]);
+const di = nexus(ship);
+
+// app/routes/course.tsx
+interface LoaderArgs {
+  params: { to: string };
+  context: RouterContextProvider;
+}
+const loader = di.inject(
+  { log: FLIGHT_LOG },
+  ({ log }, { params }: LoaderArgs) => {
+    log.record(`plotting ${params.to}`);
+    return log.entries();
+  },
+);
+
+const scope = await ship.createScope();
+const context = new RouterContextProvider(
+  new Map([[NEXUS_SCOPE, existingScope(scope)]]),
+);
+const entries = await loader({ params: { to: 'Kepler-442b' }, context }); // -> ['plotting Kepler-442b']
+await scope[Symbol.asyncDispose]();
+await ship[Symbol.asyncDispose]();
+```
+
+## Documentation
+
+- [Scopes and REQUEST](https://nexus.js.org/next/scopes/)
+- [Documentation](https://nexus.js.org/next/)
+- [Examples](https://github.com/NexusDI/core/tree/@nexusdi/core@0.4.0-rc.1/libs/react-router/docs)
+- [NexusDI on GitHub](https://github.com/NexusDI/core)
+
+## License
+
+MIT

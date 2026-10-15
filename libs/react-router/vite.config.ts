@@ -14,6 +14,8 @@ export default defineConfig(() => ({
     globals: true,
     environment: 'node',
     include: ['src/**/*.{test,spec}.ts'],
+    // Builds the fixture app the e2e suite serves, once per run.
+    globalSetup: ['./test-support/fixture-server.ts'],
     includeSource: docExampleSources(),
     typecheck: {
       enabled: true,

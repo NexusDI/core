@@ -66,6 +66,11 @@
     "libs/fastify/test-support/nexus-request.ts",
     "libs/hono/test-support/nexus-request.ts",
     "libs/react-router/test-support/nexus-request.ts",
+    // The e2e suite's fixture app: React Router loads its route modules,
+    // root and entry by file convention, and vite.config.ts names the
+    // fixture server as Vitest's globalSetup by path.
+    "libs/react-router/test-fixtures/app/**/*.{ts,tsx}",
+    "libs/react-router/test-support/fixture-server.ts",
     "libs/vitest/test-support/nexus-request.ts",
     "libs/core/src/**/*.test-d.ts",
     "libs/errors/src/**/*.test-d.ts",
