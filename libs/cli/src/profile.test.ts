@@ -5,6 +5,7 @@ import { fileURLToPath } from 'node:url';
 import { describe, expect, it } from 'vitest';
 
 import { FIXTURES, runCli } from '../test-support/run.js';
+import { describeFailure } from './profile.js';
 import { tempDir } from '../test-support/temp.js';
 
 const DIR = join(FIXTURES, 'profile');
@@ -250,5 +251,71 @@ describe('nexusdi profile', () => {
     );
     expect(run.status).toBe(1);
     expect(run.stderr.match(/hull breach/g)).toHaveLength(1);
+  });
+});
+
+describe('nexusdi profile --timeout', () => {
+  it('prints what a hung create still awaits, writes the partial report and exits 1', () => {
+    const dir = tempDir();
+    const started = Date.now();
+    const run = runCli(
+      [
+        'profile',
+        'meridian.module.js#Hung',
+        '--timeout',
+        '300',
+        '--chrome',
+        join(dir, 'c.json'),
+        '--json',
+        join(dir, 'r.json'),
+      ],
+      { cwd: DIR, timeout: 10_000 },
+    );
+    expect(Date.now() - started).toBeLessThan(8_000);
+    expect(run.status).toBe(1);
+    expect(run.stderr).toMatch(
+      /^nexusdi: create did not settle within 300 ms\.\n {2}Still awaiting: NavCharts \(Hung\) factory, \d+ ms\n$/,
+    );
+    const [report] = JSON.parse(readFileSync(join(dir, 'r.json'), 'utf8')) as {
+      runs: { ok: null; pending: unknown[] }[];
+    }[];
+    expect(report?.runs[0]).toMatchObject({ ok: null });
+    expect(report?.runs[0]?.pending).toHaveLength(1);
+    expect(readFileSync(join(dir, 'c.json'), 'utf8')).toContain(
+      'still awaiting at timeout',
+    );
+  });
+});
+
+describe('nexusdi profile exit codes (spec 9.5)', () => {
+  it.each([
+    [['profile', 'meridian.module.js', '--cpu'], 2],
+    [['profile', 'report.json', '--repeat', '1'], 2],
+    [['profile', 'missing.module.js'], 2],
+    [['profile', 'meridian.module.js#Nope'], 2],
+  ])('%j exits %i with a nexusdi: message and a fix line', (argv, status) => {
+    const run = runCli(argv, { cwd: DIR });
+    expect(run.status).toBe(status);
+    expect(run.stderr).toMatch(/^nexusdi: .*\n {2}\S/);
+  });
+});
+
+describe('describeFailure', () => {
+  it('prints a cause whose text only starts the end of the message', () => {
+    const error = new Error('dock gave up: Error: timeout after 5s', {
+      cause: new Error('timeout'),
+    });
+    expect(describeFailure(error)).toBe(
+      'dock gave up: Error: timeout after 5s\n  caused by Error: timeout',
+    );
+  });
+
+  it('skips a cause the first line of the message ends with', () => {
+    const error = new Error('dock gave up: Error: timeout\nFix: retry', {
+      cause: new Error('timeout'),
+    });
+    expect(describeFailure(error)).toBe(
+      'dock gave up: Error: timeout\nFix: retry',
+    );
   });
 });
