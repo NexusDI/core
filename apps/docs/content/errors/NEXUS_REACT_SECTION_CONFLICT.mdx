@@ -1,0 +1,36 @@
+---
+title: NEXUS_REACT_SECTION_CONFLICT
+kind: code
+description: Two section modules claim one section name, or two copies of one section are in the page.
+package: '@nexusdi/react'
+errorClass: SectionConflictError
+---
+
+# NEXUS_REACT_SECTION_CONFLICT
+
+`SectionBoundary` from `@nexusdi/react` loads each `lazySection` into the container once per section name, and keeps the module object that name loaded. It fails with `NEXUS_REACT_SECTION_CONFLICT` when a second module arrives under a name it knows. A module with a different `name` means two sections share one section name, in every build. A module with the same `name` in production means two builds of one section are in the page. In development, an edit to a section's module file reloads the page once. The conflict error appears when a second copy is still present right after that reload, or when a second edit of that module comes within 10 seconds of the reload.
+
+## Reproduce `NEXUS_REACT_SECTION_CONFLICT`
+
+The region declares two `lazySection` handles with the name `navigation` and different modules, and renders a boundary for each:
+
+```ts file=libs/react/docs/errors.md region=conflict-reproduce
+
+```
+
+The error's `section` field names the section name the two modules share.
+
+## Fix `NEXUS_REACT_SECTION_CONFLICT`
+
+Give each `lazySection` its own name:
+
+```ts file=libs/react/docs/errors.md region=conflict-fix
+
+```
+
+For two copies of one section, remove the second copy from the page, such as a remote that bundles the section a second time.
+
+## Fields of `SectionConflictError`
+
+- `code`: `'NEXUS_REACT_SECTION_CONFLICT'`.
+- `section`: the section name two modules claimed.

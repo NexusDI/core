@@ -22,7 +22,7 @@ An adapter's `scopes` option takes any object with `run(scope, fn)`, and your co
 
 `run()` sets `active`, calls the rest of the request, and restores the previous scope in `finally`. The handler reads `survey-7` because it runs before `run()` returns. After the request, `current()` returns `undefined`.
 
-This works where the framework calls the handler synchronously inside `next()`, as Hono does. React Router loaders, and Fastify handlers after body parsing, run after `run()` returns and read `undefined`; use `di.inject` there. After an `await`, `current()` returns `undefined` too, because `run()` has already restored the previous value. Read the scope with this runner only in code that runs synchronously inside the handler, before its first `await`, and pass every other dependency through `di.inject`, which needs no ambient scope.
+A plain-variable runner works where the framework calls the handler synchronously inside `next()`, as Hono does. React Router loaders, and Fastify handlers after body parsing, run after `run()` returns and read `undefined`. After an `await`, `current()` returns `undefined` too, because `run()` has already restored the previous value. Read the scope with this runner only in code that runs synchronously inside the handler, before its first `await`, and pass every other dependency through `di.inject`, which needs no ambient scope.
 
 To see the limit, make the handler `async` and add `await Promise.resolve();` before the read. The reply becomes `none`. Remove the line again.
 

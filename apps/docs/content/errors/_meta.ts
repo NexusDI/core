@@ -140,6 +140,22 @@ const meta: MetaRecord = {
     title: 'NEXUS_INTERCEPTORS_UNCHECKED',
     display: 'hidden',
   },
+  NEXUS_REACT_NESTED_SCOPE: {
+    title: 'NEXUS_REACT_NESTED_SCOPE',
+    display: 'hidden',
+  },
+  NEXUS_REACT_NO_PROVIDER: {
+    title: 'NEXUS_REACT_NO_PROVIDER',
+    display: 'hidden',
+  },
+  NEXUS_REACT_SECTION_CONFLICT: {
+    title: 'NEXUS_REACT_SECTION_CONFLICT',
+    display: 'hidden',
+  },
+  NEXUS_REACT_TRANSIENT_IN_RENDER: {
+    title: 'NEXUS_REACT_TRANSIENT_IN_RENDER',
+    display: 'hidden',
+  },
 };
 
 export default meta;

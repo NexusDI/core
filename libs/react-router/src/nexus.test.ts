@@ -104,7 +104,7 @@ async function run(
   return { response: result as Response, context };
 }
 
-describe('nexus() for React Router', () => {
+describe('nexus', () => {
   it('resolves loader deps from the request scope and disposes at body end', async () => {
     const events: TraceEvent[] = [];
     const di = nexus(await ship(events), { request, log: () => {} });

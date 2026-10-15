@@ -21,6 +21,9 @@
       "path": "../../libs/react-router/tsconfig.lib.json"
     },
     {
+      "path": "../../libs/react/tsconfig.lib.json"
+    },
+    {
       "path": "../../libs/node/tsconfig.lib.json"
     },
     {

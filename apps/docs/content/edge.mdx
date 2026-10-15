@@ -28,7 +28,7 @@ A graph whose factories do no I/O builds at the top of the module. Workers gives
 
 ```
 
-`OfflineMeridian` binds `NAV_CHARTS` to `bundledCharts`, charts that ship inside the Worker, so `Nexus.create` runs no I/O. In a Worker module, `export default app` serves the requests.
+`OfflineMeridian` binds `NAV_CHARTS` to `bundledCharts`, charts bundled into the Worker, so `Nexus.create` runs no I/O. In a Worker module, `export default app` serves the requests.
 
 ## Build on the First Request when a Factory Needs I/O
 

@@ -97,7 +97,7 @@ const count = (events: TraceEvent[], type: TraceEvent['type']) =>
   events.filter((event) => event.type === type).length;
 const settle = () => new Promise((resolve) => setTimeout(resolve, 10));
 
-describe('nexus() for Hono', () => {
+describe('nexus', () => {
   it('creates one scope per request and disposes it after the body', async () => {
     const events: TraceEvent[] = [];
     const di = nexus(await ship(events), { request: survey, log: () => {} });

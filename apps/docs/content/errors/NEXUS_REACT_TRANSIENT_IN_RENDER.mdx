@@ -1,0 +1,37 @@
+---
+title: NEXUS_REACT_TRANSIENT_IN_RENDER
+kind: code
+description: useService resolved a transient provider in render, which would build a new instance on every render.
+package: '@nexusdi/react'
+errorClass: TransientInRenderError
+---
+
+# NEXUS_REACT_TRANSIENT_IN_RENDER
+
+`useService` throws `NEXUS_REACT_TRANSIENT_IN_RENDER` when the container has the `react()` plugin from `@nexusdi/react` and the token resolves to a `transient` provider. A transient builds a new instance on every `get()`, so a read in render builds one per render, and React's StrictMode builds two. The check runs before `get()`, so a refused token builds nothing. An alias counts as its target, and a `MultiToken` with one transient contribution is refused too. Without `react()` the check does not run, so register the plugin in development and tests behind your own flag.
+
+## Reproduce `NEXUS_REACT_TRANSIENT_IN_RENDER`
+
+The region binds `NAV_CHARTS` as `transient`, registers `react()` and renders a component that reads it:
+
+```ts file=examples/meridian/src/errors/NEXUS_REACT_TRANSIENT_IN_RENDER.md region=reproduce
+
+```
+
+The error's `token` field names the token, and `provider` names the transient provider it resolved to.
+
+## Fix `NEXUS_REACT_TRANSIENT_IN_RENDER`
+
+Bind the token with a lifetime that keeps one instance. A singleton serves every render:
+
+```ts file=examples/meridian/src/errors/NEXUS_REACT_TRANSIENT_IN_RENDER.md region=fix
+
+```
+
+State that belongs to one part of the page is `scoped`, read under a `ScopeProvider`. A component that needs a fresh object per action resolves the transient in an event handler or an effect through `useContainer()`, or calls a factory function bound as a value.
+
+## Fields of `TransientInRenderError`
+
+- `code`: `'NEXUS_REACT_TRANSIENT_IN_RENDER'`.
+- `token`: the name of the token `useService` was called with, such as `'NavCharts'`.
+- `provider`: the name of the class the transient provider builds, such as `'StarCharts'`, or the provider's own name for a factory.

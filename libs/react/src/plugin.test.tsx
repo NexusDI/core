@@ -68,7 +68,7 @@ afterEach(() => {
   vi.restoreAllMocks();
 });
 
-describe('react()', () => {
+describe('react', () => {
   it('rejects a transient token in render and builds nothing', async () => {
     vi.spyOn(console, 'error').mockImplementation(() => undefined);
     await using ship = await Nexus.create(

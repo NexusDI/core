@@ -138,3 +138,27 @@ describe('useService', () => {
     unmount();
   });
 });
+
+describe('useContainer', () => {
+  it('returns the root container the provider publishes', async () => {
+    await using ship = await Nexus.create([]);
+    const wrapper = ({ children }: { children?: ReactNode }) => (
+      <NexusProvider container={ship}>{children}</NexusProvider>
+    );
+    const { result, unmount } = renderHook(() => useContainer(), { wrapper });
+    expect(result.current).toBe(ship);
+    unmount();
+  });
+
+  it('throws NEXUS_REACT_NO_PROVIDER outside a provider, naming itself', () => {
+    vi.spyOn(console, 'error').mockImplementation(() => undefined);
+    let caught: unknown;
+    try {
+      renderHook(() => useContainer());
+    } catch (error) {
+      caught = error;
+    }
+    expect(isNexusError(caught, 'NEXUS_REACT_NO_PROVIDER')).toBe(true);
+    expect((caught as NoProviderError).hook).toBe('useContainer');
+  });
+});

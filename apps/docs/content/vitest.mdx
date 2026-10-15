@@ -1,0 +1,88 @@
+---
+title: How do I get a container in every Vitest test?
+kind: question
+description: Use nexusTest from @nexusdi/vitest to give every Vitest test a NexusDI testing container and scope, disposed when the test ends.
+---
+
+# How do I get a container in every Vitest test?
+
+Call `nexusTest(base, root, { setup })` from `@nexusdi/vitest` once, in a fixtures file, and import the `test` it returns. Each test then reads a testing container with your overrides from its `nexus` fixture, and Vitest disposes it when the test ends. A test file that builds and disposes its own container repeats those lines in every test, and a test that throws before its disposal line leaks the container. [Testing and Overrides](/testing/) covers the overrides themselves.
+
+```bash
+npm install -D @nexusdi/vitest@next @nexusdi/testing@next @nexusdi/core@next vitest
+```
+
+`@nexusdi/vitest` works with Vitest 4.1 or later, Vitest 5 included, on Node 22.12 or later.
+
+## Give Every Test a Container with `nexusTest`
+
+`nexusTest` takes Vitest's `test`, your root module and options, and returns a `test` with four fixtures. The `setup` option is a step `(builder) => builder` that applies overrides to the testing container:
+
+```ts file=examples/meridian/src/pages/vitest.md region=first-test
+
+```
+
+The test destructures `nexus`, so Vitest builds the container for this test, with `fakeCharts` in place of `StarCharts`. A test that reads no fixture builds nothing. The four fixtures:
+
+| Fixture        | What it holds                                     | Default            |
+| -------------- | ------------------------------------------------- | ------------------ |
+| `nexusSetup`   | the setup steps, applied in order                 | `[setup]`, or `[]` |
+| `nexusRequest` | the request that `REQUEST` resolves to in a scope | `undefined`        |
+| `nexus`        | a testing container from `createTestingContainer` | built on first use |
+| `nexusScope`   | a scope of `nexus`, created with `nexusRequest`   | built on first use |
+
+The `// ->` comments are claims this site's runner turns into `expect` calls. In your own tests, write `expect(...)`. To try it, save the region as `charts.test.ts` with `expect(...).toBe(42)` and run `npx vitest run charts.test.ts`. Delete the `setup` option, and the test fails with `expected 0 to be 42`.
+
+## Change the Setup or the Request for a Suite
+
+`test.override(name, value)` replaces a fixture's value for the file or the `describe` block it is called in. Override `nexusRequest` to give `nexusScope` a request, and `nexusSetup` to swap the overrides:
+
+```ts file=examples/meridian/src/pages/vitest.md region=override
+
+```
+
+A `nexusSetup` override replaces the file's `setup`, so the list repeats every step the suite still wants. Use the name form, `test.override('nexusSetup', steps)`: the object form leaves a step's `builder` untyped.
+
+## Share One Container across a File
+
+`containerScope: 'file'` builds one container for the file's tests and disposes it when the file ends. It suits a graph whose `onInit` work is slow, and the tests then share every singleton and the state it holds:
+
+```ts file=examples/meridian/src/pages/vitest.md region=file-scope
+
+```
+
+With `'file'`, `nexusSetup` is file-scoped too, because Vitest lets a file fixture depend only on file and worker fixtures.
+
+## Compose with Fixtures of Your Own
+
+`nexusFixtures(root, options)` returns the fixture map itself, for `test.extend`, with the same options. Both forms work on Vitest 4.1 and 5. The package's declarations import only `vitest`, so a project on Vitest 5 needs nothing else:
+
+```ts file=examples/meridian/src/pages/vitest.md region=compose
+
+```
+
+The second `.extend` adds `sector` on top, and the test reads both kinds of fixture.
+
+## When the Container Is Disposed
+
+Vitest runs each fixture's teardown when the test finishes, pass or fail, and tears down `nexusScope` before `nexus`, because `nexusScope` depends on it. A `trace(fn)` plugin from `@nexusdi/devtools`, passed through `create.plugins`, records the order:
+
+```ts file=examples/meridian/src/pages/vitest.md region=disposal
+
+```
+
+The first test throws, and its scope and container are still disposed, in that order. A disposal error, such as a disposer that throws, fails the test that owned the container.
+
+## When the Container Fails to Build
+
+With `containerScope: 'file'`, the fixture builds the container on its first use, so the first test that reads `nexus` owns a build failure, an `onInit` that throws included. With the default `'test'` scope, each test that reads `nexus` builds its own container and fails on its own. The test that owns the build fails with the error, and a test that reads no fixture still runs:
+
+```ts file=examples/meridian/src/pages/vitest.md region=oninit-failure
+
+```
+
+`test.fails` marks the first test as expected to fail, so the file passes.
+
+## Next Steps
+
+[Scoping Hono Requests](/hono/) says how a route test passes the `nexus` fixture to the adapter.
