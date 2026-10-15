@@ -3,7 +3,7 @@ import { once } from 'node:events';
 import { readFile } from 'node:fs/promises';
 import { createServer, type Server } from 'node:http';
 import type { AddressInfo } from 'node:net';
-import { join } from 'node:path';
+import { join, resolve, sep } from 'node:path';
 import { pathToFileURL } from 'node:url';
 
 import type { TraceEvent } from '@nexusdi/core';
@@ -43,7 +43,14 @@ describe('React Router 8', () => {
     // The client bundle, which @react-router/serve would send from build/client.
     server = createServer((req, res) => {
       if (!req.url?.startsWith('/assets/')) return void app(req, res);
-      readFile(join(RR8, 'build', 'client', req.url.split('?')[0] ?? '')).then(
+      // Only a file under build/client: a path that climbs out answers 404.
+      const client = resolve(RR8, 'build', 'client');
+      const file = resolve(client, `.${req.url.split('?')[0] ?? ''}`);
+      if (!file.startsWith(`${client}${sep}`)) {
+        res.statusCode = 404;
+        return void res.end();
+      }
+      readFile(file).then(
         (body) => {
           res.setHeader('Content-Type', 'text/javascript');
           res.end(body);
