@@ -373,5 +373,5 @@ describe('computeVisibility against the dense oracle', () => {
     // Each shape the generator aims for shows up in a fair share of graphs.
     for (const [shape, seen] of Object.entries(shapes))
       expect(seen, shape).toBeGreaterThanOrEqual(GRAPHS / 20);
-  });
+  }, 60_000); // 600 graphs take about 9 s under load, past the 5 s default
 });

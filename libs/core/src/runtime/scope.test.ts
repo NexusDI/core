@@ -397,7 +397,9 @@ describe('Nexus', () => {
         shuttle[Symbol.asyncDispose](),
       )) as SuppressedError;
       expect(log).toEqual(['log disposed']);
-      expect(error).toBeInstanceOf(SuppressedError);
+      // Node 22.12 has no global SuppressedError, and core throws its own
+      // NexusSuppressedError there: the check reads the name and fields.
+      expect(error.name).toBe('SuppressedError');
       expect(error.error).toBe(boom);
       expect(error.suppressed).toMatchObject({ message: 'log stuck' });
     });
