@@ -87,25 +87,37 @@ function graphOf(view: BlueprintView): NonNullable<ProfileReport['graph']> {
   return graph;
 }
 
+/**
+ * The graph of `view`, frozen to its leaves: every report that shares the
+ * blueprint shares this object, so no caller may change it for the next.
+ */
 function buildGraph(view: BlueprintView): NonNullable<ProfileReport['graph']> {
   const names = new Map(view.modules.map((m) => [m.id, m.name]));
-  return {
+  return Object.freeze({
     root: names.get(view.root) ?? view.root,
-    providers: view.providers.map((p) => ({
-      id: p.id,
-      token: p.name,
-      module: names.get(p.module) ?? p.module,
-      lifetime: p.lifetime,
-      kind: p.kind,
-      inline: p.inline,
-    })),
-    edges: view.edges.map((e) => ({
-      from: e.from,
-      to: e.to,
-      kind: e.kind,
-      ordersBuild: e.ordersBuild,
-    })),
-  };
+    providers: Object.freeze(
+      view.providers.map((p) =>
+        Object.freeze({
+          id: p.id,
+          token: p.name,
+          module: names.get(p.module) ?? p.module,
+          lifetime: p.lifetime,
+          kind: p.kind,
+          inline: p.inline,
+        }),
+      ),
+    ),
+    edges: Object.freeze(
+      view.edges.map((e) =>
+        Object.freeze({
+          from: e.from,
+          to: e.to,
+          kind: e.kind,
+          ordersBuild: e.ordersBuild,
+        }),
+      ),
+    ),
+  });
 }
 
 const REUSED_TEXT =
