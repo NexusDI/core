@@ -136,6 +136,11 @@ describe('the Chrome layout, as the DevTools trace engine reads it', () => {
       toChromeTrace(meridian, { cpuProfile: { profile, offsetMs } }),
     );
     expect(data.Samples.profilesInProcess.size).toBe(1);
+    // DevTools draws the flame chart under Main: the renderer's pid 1, tid 1.
+    expect([...data.Samples.profilesInProcess.keys()]).toEqual([1]);
+    expect([
+      ...(data.Samples.profilesInProcess.get(1 as never)?.keys() ?? []),
+    ]).toEqual([1]);
     const [threads] = [...data.Samples.profilesInProcess.values()];
     const [samples] = [...(threads?.values() ?? [])];
     const times = samples?.parsedProfile.timestamps ?? [];

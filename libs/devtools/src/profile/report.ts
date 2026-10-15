@@ -183,3 +183,9 @@ export interface TraceFile {
   readonly metadata?: Readonly<Record<string, unknown>>;
   readonly displayTimeUnit?: 'ms' | 'ns';
 }
+
+/**
+ * Draws one run as it closes. liveSink() from @nexusdi/devtools/live makes
+ * one that draws with console.timeStamp.
+ */
+export type LiveSink = (run: ProfileRun, graph: ProfileReport['graph']) => void;
