@@ -4462,6 +4462,19 @@ describe('toChromeTrace', () => {
     expect(end['ts']).toBe(3000);
   });
 
+  it('writes the ready marker with no track or track group', () => {
+    const { traceEvents } = toChromeTrace(r);
+    const marker = defined(
+      traceEvents.find((e) => e['ph'] === 'b' && e['name'] === 'create ready'),
+    );
+    const { devtools } = JSON.parse(
+      (marker['args'] as { detail: string }).detail,
+    ) as { devtools: Record<string, unknown> };
+    expect(devtools['dataType']).toBe('marker');
+    expect(devtools).not.toHaveProperty('track');
+    expect(devtools).not.toHaveProperty('trackGroup');
+  });
+
   it('merges a CPU profile and shifts every span by offsetMs', () => {
     const profile = {
       nodes: [
@@ -4528,6 +4541,21 @@ describe('toChromeTrace', () => {
         .frames[0]?.url,
     ).toBe('nexusdi://profile');
   });
+  it('writes a report of 160,000 spans', () => {
+    // scopes: true with maxRuns 1000 can pass the 65,536 arguments a spread
+    // call may take in JavaScriptCore; V8 stops near 125,000.
+    const builds = Array.from({ length: 40_000 }, (_, i) =>
+      build({
+        providerId: `p${i}`,
+        token: `P${i}`,
+        startMs: i,
+        durationMs: 1,
+        finishMs: 0,
+      }),
+    );
+    const { traceEvents } = toChromeTrace(report(builds));
+    expect(traceEvents.length).toBeGreaterThan(160_000);
+  });
 });
 ```
 
@@ -4555,7 +4583,7 @@ describe('liveSink', () => {
     vi.stubGlobal('navigator', {
       userAgentData: { brands: [{ brand: 'Chromium', version: '134' }] },
     });
-    // Node's console has no timeStamp to spy on, so the test stubs one.
+    // Node's timeStamp records nothing, so the test stubs one.
     const stamp = vi.fn(() => {
       throw new Error('no recorder');
     });
@@ -4770,6 +4798,7 @@ export function spansOf(
 - [ ] Step 4: `chrome.ts`
 
 ```ts
+import { least } from './extent.js';
 import type { CpuProfile, ProfileReport, TraceFile } from './report.js';
 import { spansOf } from './spans.js';
 
@@ -4810,9 +4839,9 @@ export function toChromeTrace(
     spansOf(run, report.graph, report.reportedMs),
   );
   const cpu = options.cpuProfile?.profile;
-  const first = Math.min(
-    ...spans.map((s) => us(s.startMs)),
-    ...(cpu === undefined ? [] : [cpu.startTime]),
+  const first = least(
+    spans.map((s) => us(s.startMs)),
+    cpu === undefined ? Infinity : cpu.startTime,
   );
   const origin = Number.isFinite(first) ? first : 0;
 
@@ -5001,7 +5030,7 @@ export function liveSink(
 
 In `profile.ts`: `const live = options.live === true ? liveSink(options.trackGroup ?? 'NexusDI') : undefined;` at the top of `profile()`, and at the end of the `run` case: `if (live !== undefined) { const rec = runs.get(event.run); if (rec !== undefined) live(runOf(rec), context === undefined ? null : graphOf(context.blueprint())); }` wrapped in `try {} catch {}`. Add a test to `profile.test.ts` that `profile({ live: true })` under a stubbed Chromium 134 `navigator` calls `console.timeStamp` with track `'Runs'` once the create settles. Node's `console` has no `timeStamp`, so the live tests stub the global `console` with one (`vi.stubGlobal('console', { ...console, timeStamp: stamp })`) where `vi.spyOn` would throw.
 
-Export `toChromeTrace` from `index.ts`.
+`least()` and `most()` in `src/profile/extent.ts` replace every `Math.min(...)`/`Math.max(...)` spread in the profile modules: a spread call throws a RangeError past 65,536 arguments in JavaScriptCore (near 125,000 in V8), and 1,000 runs with scopes can hold more spans. `graphOf` keeps one graph per view object in a `WeakMap`, so live mode builds it again only after the blueprint changes. Export `toChromeTrace` from `index.ts`.
 
 - [ ] Step 6: Run the targets
 
@@ -5026,6 +5055,7 @@ Interfaces:
 ```ts
 import { describe, expect, it } from 'vitest';
 
+import { defined } from '../../test-support/defined.js';
 import { build, report } from '../../test-support/profile-fixture.js';
 import { toPerfettoTrace } from './perfetto.js';
 
@@ -5074,19 +5104,20 @@ describe('toPerfettoTrace', () => {
   });
 
   it('nests the sync and finish slices inside the provider slice on its tid', () => {
-    const tid = evs.find(
-      (e) => e['name'] === 'ShipComputer' && e['ph'] === 'X',
-    )!['tid'];
+    const tid = defined(
+      evs.find((e) => e['name'] === 'ShipComputer' && e['ph'] === 'X'),
+    )['tid'];
     const slices = evs.filter((e) => e['ph'] === 'X' && e['tid'] === tid);
-    const [parent, ...children] = slices;
+    const [first, ...children] = slices;
+    const parent = defined(first);
     for (const child of children) {
       expect(child['ts'] as number).toBeGreaterThanOrEqual(
-        parent!['ts'] as number,
+        parent['ts'] as number,
       );
       expect(
         (child['ts'] as number) + (child['dur'] as number),
       ).toBeLessThanOrEqual(
-        (parent!['ts'] as number) + (parent!['dur'] as number),
+        (parent['ts'] as number) + (parent['dur'] as number),
       );
     }
   });
@@ -5106,6 +5137,100 @@ describe('toPerfettoTrace', () => {
     expect(displayTimeUnit).toBe('ms');
   });
 });
+
+describe('toPerfettoTrace edges and slices', () => {
+  it('draws no flow for an edge that orders no build, and names an edge off the path dep', () => {
+    const fleet = report(
+      [
+        build({ providerId: 'a', token: 'A', startMs: 0, durationMs: 1 }),
+        build({ providerId: 'b', token: 'B', startMs: 0, durationMs: 2 }),
+        build({
+          providerId: 'c',
+          token: 'C',
+          startMs: 2,
+          durationMs: 1,
+          level: 1,
+        }),
+      ],
+      [
+        ['c', 'a'],
+        ['c', 'b'],
+      ],
+    );
+    const graph = defined(fleet.graph ?? undefined);
+    const lazy = {
+      ...fleet,
+      graph: {
+        ...graph,
+        edges: graph.edges.map((e) =>
+          e.to === 'a' ? { ...e, kind: 'lazy', ordersBuild: false } : e,
+        ),
+      },
+    };
+    const names = (traceEvents: readonly Ev[]) =>
+      traceEvents.filter((e) => e['ph'] === 's').map((e) => e['name']);
+    expect(names(toPerfettoTrace(fleet).traceEvents as Ev[])).toEqual([
+      'dep',
+      'critical',
+    ]);
+    expect(names(toPerfettoTrace(lazy).traceEvents as Ev[])).toEqual([
+      'critical',
+    ]);
+  });
+
+  it("puts an onInit on its provider's tid", () => {
+    const withInit = report(
+      [build({ providerId: 'r', token: 'Reactor', startMs: 0, durationMs: 1 })],
+      [],
+      {
+        inits: [
+          {
+            providerId: 'r',
+            token: 'Reactor',
+            level: 0,
+            async: false,
+            startMs: 2,
+            syncMs: 1,
+            awaitMs: null,
+            durationMs: 1,
+            failed: false,
+          },
+        ],
+      },
+    );
+    const evs = toPerfettoTrace(withInit).traceEvents as Ev[];
+    const tid = defined(evs.find((e) => e['name'] === 'Reactor'))['tid'];
+    expect(evs.find((e) => e['name'] === 'onInit')).toMatchObject({
+      tid,
+      ts: 2000,
+      dur: 1000,
+    });
+  });
+
+  it('keeps a child slice inside its parent when the ends round apart', () => {
+    // A 1 µs build whose finish is its last 0.5 µs. Rounding the finish's
+    // start (0.5 µs) and length (0.5 µs) apart would end it at 2 µs, past
+    // its parent's end at 1 µs.
+    const tight = report([
+      build({
+        providerId: 't',
+        token: 'Tight',
+        startMs: 0,
+        durationMs: 0.001,
+        syncMs: 0.0005,
+        finishMs: 0.0005,
+      }),
+    ]);
+    const evs = (toPerfettoTrace(tight).traceEvents as Ev[]).filter(
+      (e) => e['ph'] === 'X' && e['tid'] === 2,
+    );
+    const [first, ...children] = evs;
+    const parent = defined(first);
+    const end = (e: Ev) => (e['ts'] as number) + (e['dur'] as number);
+    for (const child of children)
+      expect(end(child)).toBeLessThanOrEqual(end(parent));
+  });
+});
 ```
 
 - [ ] Step 2: Run it and see it fail
@@ -5122,15 +5247,16 @@ import { stepsOf } from './steps.js';
 
 type Event = Readonly<Record<string, unknown>>;
 
+const us = (msValue: number): number => Math.round(msValue * 1000);
+
 /**
  * The report as plain Trace Event Format for ui.perfetto.dev (spec 7.4):
  * one pid per run, tid 1 for the steps, one tid per built provider sorted
- * by level, and a flow arrow per edge with ordersBuild between two providers the run
- * built. Perfetto requires slices on a tid to nest, so concurrent
- * providers each get a tid.
+ * by level, and a flow arrow per edge with ordersBuild between two
+ * providers the run built. Perfetto requires slices on a tid to nest, so
+ * concurrent providers each get a tid.
  */
 export function toPerfettoTrace(report: ProfileReport): TraceFile {
-  const us = (msValue: number): number => Math.round(msValue * 1000);
   const events: Event[] = [];
   let flow = 0;
   report.runs.forEach((run, index) => {
@@ -5138,18 +5264,30 @@ export function toPerfettoTrace(report: ProfileReport): TraceFile {
     const meta = (name: string, tid: number, args: Event): void => {
       events.push({ name, ph: 'M', pid, tid, ts: 0, args });
     };
+    // Both ends round on their own, so a child slice that ends inside its
+    // parent in ms also ends inside it in µs, and the slices still nest.
+    const slice = (
+      name: string,
+      tid: number,
+      startMs: number,
+      endMs: number,
+      args?: Event,
+    ): void => {
+      events.push({
+        name,
+        ph: 'X',
+        pid,
+        tid,
+        ts: us(startMs),
+        dur: us(endMs) - us(startMs),
+        ...(args === undefined ? {} : { args }),
+      });
+    };
     meta('process_name', 0, { name: `nexusdi ${run.kind} (run ${run.id})` });
     meta('thread_name', 1, { name: 'steps' });
     meta('thread_sort_index', 1, { sort_index: 0 });
     for (const s of run.steps.length > 0 ? run.steps : stepsOf(run))
-      events.push({
-        name: s.step,
-        ph: 'X',
-        pid,
-        tid: 1,
-        ts: us(s.startMs),
-        dur: us(s.durationMs),
-      });
+      slice(s.step, 1, s.startMs, s.startMs + s.durationMs);
 
     const tids = new Map<string, number>();
     const order = new Map<number, number>();
@@ -5164,7 +5302,8 @@ export function toPerfettoTrace(report: ProfileReport): TraceFile {
       order.set(level, n);
       meta('thread_name', tid, { name: b.token });
       meta('thread_sort_index', tid, { sort_index: level * 10000 + n });
-      const args = {
+      const end = b.startMs + b.durationMs;
+      slice(b.token, tid, b.startMs, end, {
         module: b.module,
         lifetime: b.lifetime,
         level: b.level,
@@ -5174,61 +5313,30 @@ export function toPerfettoTrace(report: ProfileReport): TraceFile {
         finishMs: b.finishMs,
         async: b.async,
         failed: b.failed,
-      };
-      events.push({
-        name: b.token,
-        ph: 'X',
-        pid,
-        tid,
-        ts: us(b.startMs),
-        dur: us(b.durationMs),
-        args,
       });
-      if (b.syncMs !== null)
-        events.push({
-          name: 'sync',
-          ph: 'X',
-          pid,
-          tid,
-          ts: us(b.startMs),
-          dur: us(b.syncMs),
-        });
-      if (b.syncMs !== null && b.awaitMs !== null)
-        events.push({
-          name: 'await',
-          ph: 'X',
-          pid,
-          tid,
-          ts: us(b.startMs + b.syncMs),
-          dur: us(b.awaitMs),
-        });
-      if (b.finishMs !== null)
-        events.push({
-          name: 'finish',
-          ph: 'X',
-          pid,
-          tid,
-          ts: us(b.startMs + b.durationMs - b.finishMs),
-          dur: us(b.finishMs),
-        });
+      if (b.syncMs !== null) {
+        slice('sync', tid, b.startMs, b.startMs + b.syncMs);
+        if (b.awaitMs !== null)
+          slice(
+            'await',
+            tid,
+            b.startMs + b.syncMs,
+            b.startMs + b.syncMs + b.awaitMs,
+          );
+      }
+      if (b.finishMs !== null) slice('finish', tid, end - b.finishMs, end);
     }
     for (const i of run.inits) {
       const tid = tids.get(i.providerId);
       if (tid !== undefined)
-        events.push({
-          name: 'onInit',
-          ph: 'X',
-          pid,
-          tid,
-          ts: us(i.startMs),
-          dur: us(i.durationMs),
-        });
+        slice('onInit', tid, i.startMs, i.startMs + i.durationMs);
     }
 
     if (report.graph === null) return;
     const path = criticalPathOf(run, report.graph).path;
+    // A barrier-path member and the member before it, as an edge key.
     const critical = new Set(
-      path.slice(1).map((p, i) => `${p.providerId} ${path[i]!.providerId}`),
+      path.slice(1).map((p, i) => `${p.providerId} ${path[i]?.providerId}`),
     );
     const byId = new Map(run.builds.map((b) => [b.providerId, b]));
     for (const e of report.graph.edges) {
@@ -5270,7 +5378,7 @@ export function toPerfettoTrace(report: ProfileReport): TraceFile {
 
 `metadata` also carries `"nexusdi-core": "<version>"` in spec 7.4. The report does not hold core's version, so the CLI adds it to the file before writing (Task 16); `toPerfettoTrace` writes only `nexusdi-profile`.
 
-Export `toPerfettoTrace` from `index.ts`.
+Each slice's `dur` is `us(end) - us(start)`, so a child that ends inside its parent in ms also does in µs, and Perfetto's nesting rule holds after rounding. Export `toPerfettoTrace` from `index.ts`.
 
 - [ ] Step 4: Run the targets (as Task 11, Step 6), then commit with `feat(devtools): write a Perfetto trace with dependency flows`.
 
