@@ -28,6 +28,24 @@ export const BUDGETS = {
  */
 export const BEHAVIOUR_BUDGET = { raw: 1_400_000, gzip: 60_000 };
 
+/**
+ * A ratchet on everything one guide page loads, scripts and stylesheets.
+ *
+ * Nextra 4 serves every MDX page from one catch-all route, so a client
+ * component any page reaches ships with every page, and a guide page pays for
+ * the reference pages' components. `/scopes/` stands for the guides. The
+ * ceiling sits at its measured total; a total over it fails, and a total more
+ * than `GUIDE_SLACK` gzipped bytes under it fails too, so a saving lowers the
+ * ceiling in the same pull request.
+ *
+ * Measured at 1,046,302 bytes raw and 311,350 gzipped, of which Nextra's
+ * twoslash popup, shared once any page carries a `twoslash` fence, is about
+ * 70 kB raw.
+ */
+export const GUIDE_PAGE = 'scopes/index.html';
+export const GUIDE_BUDGET = { raw: 1_047_000, gzip: 312_000 };
+export const GUIDE_SLACK = 5_000;
+
 export const ISLAND_MARK = 'nexus-console-island';
 export const BACKGROUND_MARK = 'meridian-background';
 
@@ -132,6 +150,49 @@ export function checkBudgets(out, { basePath = '' } = {}) {
   return { findings, rows };
 }
 
+/** Every script and stylesheet a page's HTML loads, base path stripped. */
+export function assetsOf(html, basePath) {
+  const local = (url) =>
+    url.startsWith(`${basePath}/_next/`) ? [url.slice(basePath.length)] : [];
+  return [
+    ...new Set([
+      ...[...html.matchAll(/<script\b[^>]*\bsrc="([^"]+\.js)"/g)].flatMap(
+        (match) => local(match[1]),
+      ),
+      ...[...html.matchAll(/<link\b[^>]*\bhref="([^"]+\.css)"/g)].flatMap(
+        (match) => local(match[1]),
+      ),
+    ]),
+  ];
+}
+
+/** Holds the guide page's total to `GUIDE_BUDGET`, both ways. */
+export function checkGuideTotal(out, { basePath = '' } = {}) {
+  const html = readFileSync(join(out, GUIDE_PAGE), 'utf8');
+  const total = assetsOf(html, basePath).reduce(
+    (sum, asset) => {
+      const text = readFileSync(join(out, asset));
+      return {
+        raw: sum.raw + text.length,
+        gzip: sum.gzip + gzipSync(text).length,
+      };
+    },
+    { raw: 0, gzip: 0 },
+  );
+
+  const findings = [];
+  if (total.raw > GUIDE_BUDGET.raw || total.gzip > GUIDE_BUDGET.gzip)
+    findings.push(
+      `${GUIDE_PAGE}: the page loads ${kB(total.raw)} raw and ${kB(total.gzip)} gzipped of scripts and styles, over the ${GUIDE_BUDGET.raw / 1000} kB raw or ${GUIDE_BUDGET.gzip / 1000} kB gzipped ratchet. A component a reference page reaches ships with every guide; load it with import() on use, or raise GUIDE_BUDGET with the new measurement and the reason.`,
+    );
+  else if (GUIDE_BUDGET.gzip - total.gzip > GUIDE_SLACK)
+    findings.push(
+      `${GUIDE_PAGE}: the page loads ${kB(total.gzip)} gzipped, more than ${GUIDE_SLACK / 1000} kB under the ${GUIDE_BUDGET.gzip / 1000} kB ratchet. Lower GUIDE_BUDGET to ${total.raw} raw and ${total.gzip} gzipped.`,
+    );
+
+  return { findings, total };
+}
+
 /** Holds every behaviour sidecar under `out/behaviour` to `BEHAVIOUR_BUDGET`. */
 export function checkBehaviour(out) {
   const root = join(out, 'behaviour');
@@ -183,6 +244,13 @@ if (import.meta.url === pathToFileURL(process.argv[1] ?? '').href) {
       `${row.path}: ${row.row} ${kB(row.bytes)}, island ${kB(row.island)}, background ${kB(row.background)}`,
     );
   }
+  const guide = checkGuideTotal(out, {
+    basePath: process.env.DOCS_BASE_PATH ?? '',
+  });
+  console.log(
+    `${GUIDE_PAGE}: ${kB(guide.total.raw)} raw, ${kB(guide.total.gzip)} gzipped of scripts and styles`,
+  );
+  findings.push(...guide.findings);
   const behaviour = checkBehaviour(out);
   const [largest] = behaviour.rows;
   if (largest)

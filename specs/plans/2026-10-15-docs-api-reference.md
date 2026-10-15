@@ -40,7 +40,7 @@ The first line is the docs build plus the repo-checks; the second to fourth are 
 
 1. The `/next/` base path. A reader on `/next/api-devtools/` opens a catalogue and the case loads from `/next/behaviour/devtools/graph.json`. A fetch of `/behaviour/devtools/graph.json` 404s there and the pane says the cases did not load. Task 9 unit-tests the URL and Task 10's end-to-end test watches the request.
 2. A reader with no JavaScript, and the search index. Every entry, every summary, every docblock paragraph and every test sentence is in the static HTML, and the filter row is absent. Task 10's end-to-end test reads the raw HTML; Task 9 tests that `ApiFilter` writes `hidden` and never removes an entry.
-3. A phone at 375 px. A 150-character signature and a test case body must not scroll the page sideways, and the case pane moves under the selected sentence. Task 10 asserts `scrollWidth <= clientWidth` at 375 px on `/next/api/`, which Task 13 adds.
+3. A phone at 375 px. A 150-character signature and a test case body must not scroll the page sideways, and the case pane sits under the rail, a sibling of the listbox and never inside it. Task 10 asserts `scrollWidth <= clientWidth` at 375 px on `/next/api/`, which Task 13 adds.
 4. Light mode. The case highlighting uses `--shiki-light` when `html` lacks `.dark`, and every text node of an API page sits on a surface of at least 0.86 alpha in both themes. Task 9 tests the stylesheet mapping and Task 10 adds the API pages to `surfaces.spec.ts`.
 5. A package that changes after this merges. A new export with no entry, a renamed `describe` that leaves a stale sentence, an export with no docblock, or a region name present in two files each fail a guard that names the file and the fix. Tasks 2, 7, 10 and 14 carry one test each.
 
@@ -104,10 +104,10 @@ Summary sentence.                                graph      [function]
 │ declare module '@nexusdi/devtools' { … }   │   ┌ signature (wraps) ──┐
 └────────────────────────────────────────────┘   └─────────────────────┘
 │ What the tests state            12 behaviours  │ What the tests state
-│ ┌ rail ─────────┐ ┌ LIBS/DEVTOOLS/…:42 ────┐   │ • sentence one
-│ │ • sentence 1  │ │ sentence 1              │   │   ┌ case pane ─────┐
-│ │   sentence 2  │ │ const view = graph(…)   │   │   └────────────────┘
-│ └───────────────┘ └─────────────────────────┘  │ • sentence two
+│ ┌ rail ─────────┐ ┌ LIBS/DEVTOOLS/…:42 ────┐   │ ┌ rail ────────────┐
+│ │ • sentence 1  │ │ sentence 1              │   │ │ • sentence one   │
+│ │   sentence 2  │ │ const view = graph(…)   │   │ └──────────────────┘
+│ └───────────────┘ └─────────────────────────┘  │ ┌ case pane ───────┐
 ┌ example (twoslash) ────────────────────────┐   ┌ example ────────────┐
 ```
 
@@ -115,7 +115,7 @@ The one memorable element is the case pane: it reuses the ship console's frame (
 
 Light and dark. Every token switches with `html.dark` already (`tokens.generated.css`), and `contrast.test.ts` holds each kind hue to 4.5:1 on the hull in both themes. The case HTML carries `--shiki-light` and `--shiki-dark` per token; `behaviour.css` picks one by theme.
 
-Phone width. The filter row wraps with the query on its own line; signatures use `white-space: pre-wrap`; the catalogue below `48rem` renders the pane under the selected sentence (the libraries `useNarrow` tree), and the pane's `<pre>` scrolls inside itself (`overflow-x: auto`) so the page never does.
+Phone width. The filter row wraps with the query on its own line; signatures use `white-space: pre-wrap`; the catalogue below `48rem` stacks the pane under the rail, a sibling after the listbox in both layouts, and the pane's `<pre>` scrolls inside itself (`overflow-x: auto`) so the page never does.
 
 ## 3. Pages
 
@@ -1126,6 +1126,7 @@ Add `@testing-library/user-event` 14.6.1 to `apps/docs` devDependencies if it is
   - `load(library, name)`: ``fetch(`${process.env.NEXUS_BASE_PATH ?? ''}/behaviour/${library}/${name}.json`)``, cached per library and name, with a comment that `/next/` serves the sidecar under its base path and that a sidecar holds one export's cases.
   - `import './behaviour/code-classes.css'`, the `sh-*` rules `docs:behaviour-data` writes, beside `import './behaviour.css'`.
   - The pane: wrap it in `<ConsoleFrame title={body ? `${body.where}:${body.line}` : 'Test case'}>` and put `<Marker shape="corner" />` before the sentence; delete the separate `__where` paragraph, since the frame's title carries it.
+  - The pane sits after the listbox in both layouts and the rail names it with `aria-controls`; below `48rem` it stacks under the rail. Drop the libraries `useNarrow` tree, which put the pane inside the listbox under the selected row.
   - `docs-behaviours` to `nexus-behaviours` throughout.
   - Comments: the `@evanion/acl` measurements go; the bold paragraphs become plain sentences.
 - [ ] **Step 5: Write the sheets.** `api.css`:
@@ -1469,6 +1470,25 @@ Add `'/next/api-node/'` to `PAGES` in `surfaces.spec.ts`. The sentence `keeps tw
 - [ ] **Step 7: Dispatch the `docs-reviewer` agent on `apps/docs/content/api-node.mdx`** and fix every defect it reports.
 
 - [ ] **Step 8: Commit** in two commits: `docs(node): describe the scope context nodescopes returns`, then `docs(docs): add the @nexusdi/node api page` with the page, `_meta.ts`, the guard and the e2e files (body: "doc-reference ported from Evanion/libraries@92320250, with a rule that every entry has a docblock summary.").
+
+### Task 10b: Keep the reference components off the guide pages
+
+Nextra 4 serves every MDX page from one catch-all route, so each client component reachable from `mdx-components.js` ships with every page. The reviewer measured `/scopes/` paying about 94 kB raw and 20 kB gzip for the reference work; `next/dynamic` and page-level imports changed nothing.
+
+**Files:**
+
+- Modify: `apps/docs/components/api/BehaviourCatalogue.tsx` (the shell)
+- Create: `apps/docs/components/api/BehaviourPane.tsx` (the lazy module), from the pane half of `BehaviourCatalogue.tsx`
+- Modify: `apps/docs/components/api/BehaviourCatalogue.test.tsx`, `apps/docs/tools/check-budgets.mjs`, `apps/docs/tools/check-budgets.test.mjs`
+- Modify: `libs/node/src/index.ts` (the `nodeScopes` docblock)
+
+- [ ] **Step 1: Measure.** Sum the bytes of every `<script src>` and `<link href>` stylesheet `out/scopes/index.html` loads, raw and gzip, on the current build and on a build with the reference components unregistered and `api-node.mdx` moved aside.
+- [ ] **Step 2: Write the failing tests.** The shell server-renders every sentence and no `meridian-console`; with an `IntersectionObserver` that never fires it renders the rail, an empty pane slot and fetches nothing; its source imports no `.css`, no `@nexusdi/meridian-ui` and `BehaviourPane` only through `import('./BehaviourPane')` (a type import is fine).
+- [ ] **Step 3: Split.** `BehaviourCatalogue.tsx` keeps the rail, its selection and its arrow keys (focus on the rail survives the load) and an empty `nexus-behaviours__pane` slot carrying the id `aria-controls` names. On intersection it imports `BehaviourPane.tsx`, which holds the pane, the type card, the token keyboard walk, the sidecar fetch on mount, and imports `./behaviour/code-classes.css` and `./behaviour.css`.
+- [ ] **Step 4: Ratchet.** `check-budgets` holds `/scopes/`'s total of scripts and stylesheets to `GUIDE_BUDGET` at its measured value, raw and gzip; a total over it fails, and a total more than `GUIDE_SLACK` gzipped bytes under it fails with the numbers to lower it to.
+- [ ] **Step 5: Docblock.** `nodeScopes`: "Returns a scope context for Node, backed by its own AsyncLocalStorage, so each call keeps its runs apart."
+- [ ] **Step 6: Run the task gate.** The JavaScript-off end-to-end test still shows every entry and sentence.
+- [ ] **Step 7: Commit** `perf(docs): load the behaviour pane on reach` and `docs(node): say what nodescopes returns`.
 
 ### Task 11: `/api-testing/`, `/api-decorators/` and `/api-errors-package/`
 
