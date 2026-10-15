@@ -35,8 +35,14 @@ const page = [
 
 type Signature = NonNullable<Reference['signature']>;
 
-/** A stub reader, with the signature's fields answered as given. */
-function readAs(signature: Partial<Signature> = {}): () => Reference {
+/**
+ * A stub reader, with the signature's fields and the entry's own fields
+ * answered as given.
+ */
+function readAs(
+  signature: Partial<Signature> = {},
+  entry: Partial<Omit<Reference, 'signature'>> = {},
+): () => Reference {
   return () => ({
     name: 'create',
     specifier: '@nexusdi/core',
@@ -57,6 +63,7 @@ function readAs(signature: Partial<Signature> = {}): () => Reference {
     tags: [],
     declaration: join(root, 'libs/core/dist/index.d.ts'),
     examples: ['libs/core/README.md'],
+    ...entry,
   });
 }
 
@@ -68,10 +75,15 @@ beforeAll(() => {
   mkdirSync(join(root, 'apps/docs/components/api/behaviour'), {
     recursive: true,
   });
-  writeFileSync(
-    join(root, 'apps/docs/components/api/behaviour/core.json'),
-    JSON.stringify({ package: '@nexusdi/core', files: [], states: {} }),
-  );
+  for (const [library, name] of [
+    ['core', '@nexusdi/core'],
+    ['devtools', '@nexusdi/devtools'],
+  ]) {
+    writeFileSync(
+      join(root, `apps/docs/components/api/behaviour/${library}.json`),
+      JSON.stringify({ package: name, files: [], states: {} }),
+    );
+  }
 });
 
 afterAll(() => rmSync(root, { recursive: true, force: true }));
@@ -132,6 +144,30 @@ describe('expandReferences', () => {
 });
 
 describe('a signature that names another package', () => {
+  const graphPage = [
+    '## `graph`',
+    '',
+    '<!-- reference @nexusdi/devtools#graph -->',
+    '',
+  ].join('\n');
+
+  /** `@nexusdi/devtools#graph`, whose declaration names core's `Nexus`. */
+  const graph = (signature: Partial<Signature>) =>
+    readAs(
+      {
+        text: 'declare function graph(ship: Nexus): NexusGraph;',
+        ...signature,
+      },
+      {
+        name: 'graph',
+        specifier: '@nexusdi/devtools',
+        rootSpecifier: '@nexusdi/devtools',
+        summary: 'The compiled graph of a container.',
+        declaration: join(root, 'libs/devtools/dist/index.d.ts'),
+        examples: ['libs/devtools/README.md'],
+      },
+    );
+
   it('imports a type the declaration file takes from another package', () => {
     const found = readReference(workspaceRoot, '@nexusdi/devtools', 'graph');
 
@@ -144,19 +180,27 @@ describe('a signature that names another package', () => {
   });
 
   it('imports an external type from the package the declaration took it from', () => {
-    const out = expandReferences(page, root, 'api.mdx', {
+    const out = expandReferences(graphPage, root, 'api-devtools.mdx', {
       classPrefix: 'nexus',
-      read: readAs({ external: [['@nexusdi/core', ['Nexus']]] }),
+      read: graph({
+        types: ['NexusGraph'],
+        external: [['@nexusdi/core', ['Nexus']]],
+      }),
     });
 
     expect(out).toContain("import type { Nexus } from '@nexusdi/core';");
+    expect(
+      out,
+      'Importing it from the documented specifier would name an export the ' +
+        'package does not have, and the fence would fail the build.',
+    ).not.toContain("import type { Nexus } from '@nexusdi/devtools';");
   });
 
   it('writes one import line per external package, with its names on it', () => {
-    const out = expandReferences(page, root, 'api.mdx', {
+    const out = expandReferences(graphPage, root, 'api-devtools.mdx', {
       classPrefix: 'nexus',
-      read: readAs({
-        types: ['ProviderView'],
+      read: graph({
+        types: ['NexusGraph'],
         external: [
           ['@nexusdi/core', ['BlueprintView', 'Nexus']],
           ['@nexusdi/errors', ['ErrorsOptions']],
@@ -173,7 +217,7 @@ describe('a signature that names another package', () => {
         '"Cannot use import statement outside a module", so each package ' +
         'gets one line and the names go on it.',
     ).toEqual([
-      "import type { ProviderView } from '@nexusdi/core';",
+      "import type { NexusGraph } from '@nexusdi/devtools';",
       "import type { BlueprintView, Nexus } from '@nexusdi/core';",
       "import type { ErrorsOptions } from '@nexusdi/errors';",
     ]);
@@ -220,6 +264,51 @@ describe('examples files', () => {
     expect(() => regionFileOf(['a.md', 'b.md'], 'gone', () => '')).toThrow(
       /gone.*a\.md.*b\.md/s,
     );
+  });
+});
+
+describe('an example region', () => {
+  const examplePage = [
+    '## `create`',
+    '',
+    '<!-- reference @nexusdi/core#create example=wiring -->',
+    '',
+  ].join('\n');
+
+  const region = (code: string) =>
+    `<!-- #region wiring -->\n\`\`\`ts\n${code}\n\`\`\`\n<!-- #endregion wiring -->\n`;
+
+  const examples = ['libs/core/README.md', 'libs/core/docs/providers.md'];
+
+  /** Writes the two example files of the fixture's core package. */
+  function holding(readme: string, providers: string) {
+    mkdirSync(join(root, 'libs/core/docs'), { recursive: true });
+    writeFileSync(join(root, examples[0]), readme);
+    writeFileSync(join(root, examples[1]), providers);
+  }
+
+  it('renders a region only a docs file holds in the example fence', () => {
+    holding('# core\n', region('const ship = await create(Bridge);'));
+
+    const out = expandReferences(examplePage, root, 'api.mdx', {
+      classPrefix: 'nexus',
+      read: readAs({}, { examples }),
+    });
+
+    expect(out).toContain(
+      '```ts twoslash\nconst ship = await create(Bridge);\n```',
+    );
+  });
+
+  it('refuses a region the README and a docs file both hold, naming the page and both files', () => {
+    holding(region('const a = 1;'), region('const b = 2;'));
+
+    expect(() =>
+      expandReferences(examplePage, root, 'api.mdx', {
+        classPrefix: 'nexus',
+        read: readAs({}, { examples }),
+      }),
+    ).toThrow(/^api\.mdx: .*README\.md.*docs\/providers\.md/s);
   });
 });
 
