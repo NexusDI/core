@@ -4,7 +4,7 @@ import { StrictMode, Suspense } from 'react';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 
 import { NexusProvider, useContainer, useService } from './index.js';
-import { Boundary } from './support/boundary.js';
+import { Boundary } from '../test-support/boundary.js';
 
 interface INavCharts {
   plot(to: string): { to: string; heading: number };

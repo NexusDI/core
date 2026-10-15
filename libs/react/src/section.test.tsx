@@ -20,7 +20,7 @@ import {
   SectionBoundary,
   useService,
 } from './index.js';
-import { Boundary } from './support/boundary.js';
+import { Boundary } from '../test-support/boundary.js';
 
 interface INavCharts {
   plot(to: string): { to: string; heading: number };

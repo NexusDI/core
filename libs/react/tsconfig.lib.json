@@ -47,7 +47,6 @@
     "src/**/*.test-d.ts",
     "src/**/*.test.tsx",
     "src/**/*.test-d.tsx",
-    "src/support/**",
     "src/**/__fixtures__/**"
   ]
 }

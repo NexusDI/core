@@ -42,7 +42,6 @@
     "!src/**/*.spec.*",
     "!src/**/*.test-d.*",
     "!src/**/__fixtures__/**",
-    "!src/support/**",
     "README.md",
     "LICENSE",
     "CHANGELOG.md"

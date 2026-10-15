@@ -16,7 +16,7 @@ import {
   useContainer,
   useService,
 } from './index.js';
-import { Boundary } from './support/boundary.js';
+import { Boundary } from '../test-support/boundary.js';
 
 interface Diagnostic {
   readonly system: string;

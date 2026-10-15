@@ -12,7 +12,7 @@ import { afterEach, describe, expect, it, vi } from 'vitest';
 
 import { html } from '../test-support/html.js';
 import * as clientApi from './index.js';
-import { Boundary } from './support/boundary.js';
+import { Boundary } from '../test-support/boundary.js';
 
 interface IFlightLog {
   record(entry: string): void;
