@@ -79,6 +79,7 @@ await ship[Symbol.asyncDispose]();
 
 ## Documentation
 
+- [React Router server rendering](https://nexus.js.org/next/react-router-ssr/)
 - [Scopes and REQUEST](https://nexus.js.org/next/scopes/)
 - [Documentation](https://nexus.js.org/next/)
 - [Examples](https://github.com/NexusDI/core/tree/@nexusdi/core@0.4.0-rc.1/libs/react-router/docs)

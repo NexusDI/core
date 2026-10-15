@@ -10007,7 +10007,7 @@ How the count works. A module-scope `let` cannot reveal a second evaluation, bec
 - [ ] Step 1: Scaffold
 
 ```bash
-cd /Volumes/projects/Personal/NexusDI/.claude/worktrees/integrations-0.4
+cd "$(git rev-parse --show-toplevel)"   # the integrations worktree's root
 NX_NO_CLOUD=true NX_DAEMON=false npx nx g @nx/next:application examples/next-bridge --name=@nexusdi/next-bridge --appDir=true --src=false --style=css --e2eTestRunner=none --unitTestRunner=none --linter=eslint --no-interactive
 git diff nx.json
 ```
@@ -10502,7 +10502,7 @@ export type { ContainerSource, NexusLog };
 - [ ] Step 1: Scaffold and wire
 
 ```bash
-cd /Volumes/projects/Personal/NexusDI/.claude/worktrees/integrations-0.4
+cd "$(git rev-parse --show-toplevel)"   # the integrations worktree's root
 NX_NO_CLOUD=true NX_DAEMON=false npx nx g @nx/js:library libs/next --name=@nexusdi/next --bundler=tsc --unitTestRunner=vitest --linter=eslint --no-interactive
 git diff nx.json
 cp libs/express/src/internal/request-scope.ts libs/next/src/internal/request-scope.ts
@@ -11309,7 +11309,7 @@ Two departures from spec 3.8, both recorded in the commit message: `MISSION` liv
 - [ ] Step 1: Scaffold
 
 ```bash
-cd /Volumes/projects/Personal/NexusDI/.claude/worktrees/integrations-0.4
+cd "$(git rev-parse --show-toplevel)"   # the integrations worktree's root
 NX_NO_CLOUD=true NX_DAEMON=false npx nx g @nx/js:library examples/bridge-api --name=@nexusdi/bridge-api --bundler=none --unitTestRunner=vitest --linter=eslint --no-interactive
 git diff nx.json
 rm -rf examples/bridge-api/src/lib
