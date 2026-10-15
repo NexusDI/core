@@ -23,6 +23,10 @@ export interface RootConfig {
 /** Every root Nexus.create and Nexus.check accept (spec §3.5). */
 export type RootRef = ModuleRef | readonly ProviderEntry[] | RootConfig;
 
+/**
+ * The message TypeScript shows when a root object carries a key other than
+ * `providers`, `imports` and `exports`.
+ */
 export type RootKeyMessage =
   'NEXUS_INVALID_MODULE: a root object takes providers, imports and exports only. Give the module a name with defineModule()';
 

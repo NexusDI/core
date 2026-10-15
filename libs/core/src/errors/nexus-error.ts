@@ -8,6 +8,10 @@ type Reserved = 'message' | 'name' | 'stack' | 'cause';
 /** An error's fields. `code` may appear only to pick the code of a class with several. */
 export type ErrorFields = object & { readonly [K in Reserved]?: never };
 
+/**
+ * The options a `NexusError` takes beside its fields: the standard `cause`, a
+ * whole message text, and hidden properties.
+ */
 export interface NexusErrorOptions extends ErrorOptions {
   /** The whole message body, for an error whose text its raiser owns. */
   readonly text?: string;

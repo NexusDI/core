@@ -110,9 +110,17 @@ export type OverrideDefinition<T, C extends Ctor> =
 export type AsyncTransientMessage =
   "NEXUS_ASYNC_TRANSIENT: get() is synchronous, so a transient factory cannot be async. Use lifetime: 'scoped', or make the token a function type and provide () => Promise<T>";
 
+/**
+ * The message TypeScript shows in place of a token that holds a Promise: the
+ * container awaits a factory's result, so a token types the resolved value.
+ */
 export type PromiseTokenMessage =
   'NEXUS_PROMISE_TOKEN: the container awaits a factory result, so a token cannot hold a Promise. Type the token as the resolved value, or as () => Promise<T>';
 
+/**
+ * What `provide(token, { useFactory })` takes: the factory, its deps, and the
+ * lifetime and eager flags its result allows.
+ */
 export type FactoryDefinition<D extends readonly Dep[], R> = {
   useFactory: (...args: ResolveAll<D>) => R;
   deps?: D;

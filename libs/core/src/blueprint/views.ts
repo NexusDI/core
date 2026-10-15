@@ -50,6 +50,7 @@ export interface ErrorTextKit {
   nearMisses(token: unknown, moduleId: string): readonly NearMiss[];
 }
 
+/** One module of the compiled graph, as a plugin reads it. */
 export interface ModuleView {
   readonly id: string;
   readonly name: string;
@@ -62,6 +63,7 @@ export interface ModuleView {
   readonly replaced: ModuleDefinition | null;
 }
 
+/** One provider of the compiled graph, as a plugin reads it. */
 export interface ProviderView {
   readonly id: string;
   /** The key's canonical token (spec §3.10.3). Compare it to find a provider; read `written` for what a token carries. */
@@ -87,6 +89,7 @@ export interface ProviderView {
   readonly inline: boolean;
 }
 
+/** One dependency edge of the compiled graph: the provider ids it joins and how the dependent asked. */
 export interface EdgeView {
   readonly from: string;
   readonly to: string;
@@ -97,6 +100,10 @@ export interface EdgeView {
   readonly written: AnyToken;
 }
 
+/**
+ * What a compile hook receives beside its subject: the phase, the definition a
+ * configured module came from, and the canonical token for a token.
+ */
 export interface CompileContext {
   readonly phase: 'create' | 'load' | 'check';
   /** The definition a forRoot or forRootAsync instance was made from. */
@@ -105,6 +112,7 @@ export interface CompileContext {
   canonical(token: AnyToken): AnyToken;
 }
 
+/** What a `compile.provider` hook returns to change a provider: a replacement entry, or its removal. */
 export type ProviderRewrite =
   | {
       readonly with: ProviderEntry;

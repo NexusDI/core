@@ -19,6 +19,7 @@ export type ProviderEntry = Provider<unknown> | Class | ProviderLiteral;
 export type ExportEntry =
   InjectionToken<unknown> | MultiToken<unknown> | ModuleRef;
 
+/** The config `defineModule()` takes: a name, the module's imports, providers and exports, and whether it is global. */
 export interface ModuleConfig {
   readonly name: string;
   readonly imports?: readonly ModuleRef[];
@@ -27,6 +28,11 @@ export interface ModuleConfig {
   readonly global?: boolean;
 }
 
+/**
+ * The config of a module with `forRoot()` and `forRootAsync()`: a
+ * `ModuleConfig`, the token its options value resolves under, and an optional
+ * schema that checks the value.
+ */
 export interface ConfigurableModuleConfig<Opts> extends ModuleConfig {
   readonly options: Token<Opts>;
   readonly schema?: StandardSchemaV1<unknown, Opts>;

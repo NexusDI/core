@@ -41,6 +41,10 @@ export interface ProviderLiteral {
   readonly useExisting?: InjectionToken<unknown>;
 }
 
+/**
+ * The message TypeScript shows when a provider literal holds a function whose
+ * parameters it cannot type from the deps.
+ */
 export type UntypedFunctionMessage =
   'A provider literal cannot type a function from its deps. Annotate the parameters, or use provide()';
 

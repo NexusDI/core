@@ -35,6 +35,12 @@ export const NEXUS_PLUGIN_API = 1;
 /** Every plugin API version this core accepts. */
 export const SUPPORTED_PLUGIN_APIS: readonly number[] = Object.freeze([1]);
 
+/**
+ * The hooks a plugin's `compile` object holds: `module` and `provider` rewrite
+ * the graph as it compiles, and `check` reads the compiled graph and reports
+ * errors. `check` also runs after an earlier pass failed, when
+ * `view.complete` is false.
+ */
 export interface CompilePluginHooks {
   module?(
     module: ModuleDefinition,
@@ -47,6 +53,10 @@ export interface CompilePluginHooks {
   check?(view: BlueprintView, report: (error: NexusError) => void): void;
 }
 
+/**
+ * What a plugin's `setup` receives: the container, `blueprint()` for its
+ * current graph, `builtAsync()`, `format()` and `emit()`.
+ */
 export interface PluginContext {
   readonly container: Nexus;
   /** The current blueprint's view: one frozen object per published blueprint. A load() that changes the graph publishes a new one. */
@@ -63,7 +73,7 @@ export interface PluginContext {
   ): void;
 }
 
-/** Extends one container. Every hook is optional (spec §3.10). */
+/** Extends one container. Every hook is optional. */
 export interface NexusPlugin {
   readonly name: string;
   readonly apiVersion: number;
