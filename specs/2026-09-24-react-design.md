@@ -1089,10 +1089,17 @@ public `errorBase` (as `@nexusdi/decorators` does for `NEXUS_LEGACY_DECORATORS`)
 | `NEXUS_REACT_NESTED_SCOPE`        | `ScopeProvider` under a scope, after hydration                                                                     | none                                |
 | `NEXUS_REACT_SECTION_CONFLICT`    | `SectionBoundary`: a different module name, a production duplicate, or a development conflict right after a reload | `section: string`                   |
 
-The message is core's one line with the code, the fields and the link
-`https://nexus.js.org/errors/<CODE>`. The docs site has a page per code with the fix.
+The package writes each code's text itself: the cause, a `Fix:` line, and a last line
+`Docs: https://nexus.js.org/errors/<CODE>`. It passes the text inline where it raises
+the error, as `@nexusdi/decorators` does for `NEXUS_LEGACY_DECORATORS`, because
 `errors()` cannot add text to them: its `formatError` hook runs for errors core raises
 in a container operation (core §3.10.6), and these are raised by the package in render.
+The docs site has a page per code with the fix.
+
+Server code that tells one of these errors apart uses
+`isNexusError(error, 'NEXUS_REACT_NO_PROVIDER')`, never `instanceof NoProviderError`.
+The package's entry starts with `'use client'` (section 10), so a server module that
+imports the class gets a client reference, not the class.
 
 ## 15. Bundle cost
 
