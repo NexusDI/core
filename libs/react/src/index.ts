@@ -8,3 +8,4 @@ export {
 export { NexusProvider, type NexusProviderProps } from './provider.js';
 export { useContainer, useService } from './use-service.js';
 export { react } from './plugin.js';
+export { ScopeProvider, type ScopeProviderProps } from './scope-provider.js';

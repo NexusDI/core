@@ -4,12 +4,37 @@ type Memo = Map<unknown, Map<unknown, readonly unknown[]>>;
 
 /**
  * What the components of one container share: the MultiToken memo (react
- * spec 4.3). Tasks 13 and 14 add the scope set and the section cache.
+ * spec 4.3) and the scopes ScopeProviders hold. Task 14 adds the section
+ * cache.
  */
 export class Store {
   readonly #memos = new WeakMap<Nexus | Scope, Memo>();
 
+  /** The scopes ScopeProviders of this container hold, settled and not disposed. */
+  readonly live = new Set<Scope>();
+  /** The createScope calls still in flight. */
+  readonly pending = new Set<Promise<Scope>>();
+
   constructor(readonly container: Nexus) {}
+
+  /**
+   * extend() on every live scope and on every scope still being created
+   * once it settles (react spec 6.5), so a token a load() added resolves
+   * under every ScopeProvider. Section boundaries call it after a load.
+   */
+  async extendAll(): Promise<void> {
+    await Promise.allSettled([...this.pending]);
+    // A ScopeProvider that unmounts while its extend() runs disposes the
+    // scope, and core rejects that extend. The scope has left `live` by
+    // then, and its error concerns no one: the dialog is gone.
+    await Promise.all(
+      [...this.live].map((scope) =>
+        scope.extend().catch((error: unknown) => {
+          if (this.live.has(scope)) throw error;
+        }),
+      ),
+    );
+  }
 
   /** The stored array while `next` holds the same elements by ===, else `next`, frozen and stored. */
   memo(
