@@ -5,6 +5,9 @@
  * level 9. Each package's figure is its fixture minus core's. A package
  * with an error text pack at `./text` adds a `<dir>-text.ts` fixture, and
  * the report lists it as `<dir>/text`, also minus core.
+ * A `<dir>-<feature>.ts` fixture measures one feature of a package, such as
+ * devtools-profile.ts, and the report lists it as `<dir>+<feature>`, minus
+ * core.
  *
  *   node scripts/size-report.mjs [--root <dir>] [--json <file>]
  *     [--record <step>] [--skip-build]
@@ -66,10 +69,26 @@ export async function measure(fixture, root, file, swallow) {
 // size-fixtures check fails on a `./text` export without `<dir>-text.ts`.
 export async function measurePackages(fixture, root, libs, core, swallow) {
   const packages = {};
+  const files = readdirSync(fixture);
   for (const dir of libs) {
+    // A `<dir>-<feature>.ts` fixture measures one feature of the package,
+    // such as devtools-profile.ts for profile(), reported as `<dir>+<feature>`.
+    const features = files
+      .filter(
+        (file) =>
+          file.startsWith(`${dir}-`) &&
+          file.endsWith('.ts') &&
+          file !== `${dir}-text.ts`,
+      )
+      .sort()
+      .map((file) => [
+        `${dir}+${file.slice(dir.length + 1, -'.ts'.length)}`,
+        file,
+      ]);
     for (const [name, file] of [
       [dir, `${dir}.ts`],
       [`${dir}/text`, `${dir}-text.ts`],
+      ...features,
     ]) {
       if (name === 'core' || !existsSync(join(fixture, file))) continue;
       const size = await measure(fixture, root, file, swallow);
