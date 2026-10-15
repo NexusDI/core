@@ -3,7 +3,7 @@ import { dirname, join } from 'node:path';
 
 import {
   RUNTIME_GLOBALS_FILE,
-  compilerOptions,
+  compilerOptionsFor,
 } from '../components/runtime/compiler-options.ts';
 
 /**
@@ -31,9 +31,9 @@ const FENCE = /^(\s*)(`{3,})(.*)$/;
 const TWOSLASH = new Set(['ts twoslash', 'tsx twoslash']);
 const CUT = /^\s*\/\/\s*---cut---\s*$/m;
 
-/** `compilerOptions` as the `// @` flags Twoslash reads. */
-function optionLines() {
-  return Object.entries(compilerOptions).map(
+/** A fence's compiler options as the `// @` flags Twoslash reads. */
+function optionLines(options) {
+  return Object.entries(options).map(
     ([name, value]) =>
       `// @${name}: ${Array.isArray(value) ? value.join(',') : value}`,
   );
@@ -45,12 +45,22 @@ function optionLines() {
  * A fence that already carries a `// ---cut---` keeps it as the one cut: the
  * region and reference loaders write one above a fence's hidden imports, and
  * a second cut here would cut nothing more.
+ *
+ * The options are the site's, with the override of every first-party package
+ * the fence imports (`compilerOptionsFor`). A fence with the `dom` lib gets no
+ * runtime globals file: `lib.dom.d.ts` declares every name in it.
  */
 export function withPrelude(code) {
+  const options = compilerOptionsFor(code);
+  const dom = Array.isArray(options.lib) && options.lib.includes('dom');
   return [
-    ...optionLines(),
-    '// @filename: runtime-globals.d.ts',
-    readFileSync(RUNTIME_GLOBALS_FILE, 'utf8').trimEnd(),
+    ...optionLines(options),
+    ...(dom
+      ? []
+      : [
+          '// @filename: runtime-globals.d.ts',
+          readFileSync(RUNTIME_GLOBALS_FILE, 'utf8').trimEnd(),
+        ]),
     '// @filename: example.ts',
     ...(CUT.test(code) ? [] : ['// ---cut---']),
     code,

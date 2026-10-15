@@ -54,4 +54,32 @@ describe('the twoslash prelude', { timeout: 30_000 }, () => {
       "const T = new Token<string>('T');\nconsole.log(T, PRE);",
     );
   });
+
+  it('declares the web globals a request handler names, with no dom lib', () => {
+    const code = [
+      "const url = new URL('/course/Kepler-442b', 'https://meridian.test');",
+      'const request = new Request(url, { headers: { accept: "application/json" } });',
+      'const response = Response.json({ to: url.pathname }, { status: 200 });',
+      'console.log(request.headers.get("accept"), response.status);',
+    ].join('\n');
+    expect(createTwoslasher()(withPrelude(code), 'ts').errors).toEqual([]);
+    expect(
+      () => createTwoslasher()(withPrelude('document.title;'), 'ts'),
+      'A fence that imports no @nexusdi/react has no document.',
+    ).toThrow(/2584|2304/);
+  });
+
+  it('gives a fence that imports @nexusdi/react the dom lib', () => {
+    const code = [
+      "import { NexusProvider } from '@nexusdi/react';",
+      "const panel = document.createElement('div');",
+      'panel.click();',
+      'console.log(panel.textContent, NexusProvider);',
+    ].join('\n');
+    expect(withPrelude(code)).toContain(
+      '// @lib: es2023,esnext.disposable,dom,dom.iterable',
+    );
+    expect(withPrelude(code)).not.toContain('runtime-globals.d.ts');
+    expect(createTwoslasher()(withPrelude(code), 'ts').errors).toEqual([]);
+  });
 });
