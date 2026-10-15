@@ -69,3 +69,26 @@ export function streamSeed(
 ): number {
   return (seed ^ hash32(shape) ^ size) >>> 0;
 }
+
+/**
+ * The mode of the timing child: `timing` collects twice before `load` and
+ * twice before `create`. The protocol check of spec 7.4 decides whether the
+ * collection before `create` stays; if its result says `drop`, this becomes
+ * `timing-no-gc`, with its own spec change.
+ */
+export const TIMING_MODE: 'timing' | 'timing-no-gc' = 'timing';
+
+/**
+ * The serial heap block of each shape and the protocol-check block: 3 warm-up
+ * and 30 measured rounds, or 1 and 3 under `--quick` (spec 7.1 and 7.4).
+ */
+export const HEAP_ROUNDS = { warmup: 3, measured: 30 } as const;
+export const HEAP_ROUNDS_QUICK = { warmup: 1, measured: 3 } as const;
+
+/** Prefixes of a block's rounds whose interval widths the run records (spec 7.4). */
+export const WIDTH_PREFIXES: Readonly<
+  Record<'mixed' | 'secondary', readonly number[]>
+> = {
+  mixed: [100, 200, 300, 400, 600, 1000],
+  secondary: [100, 200],
+};

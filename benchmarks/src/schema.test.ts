@@ -138,15 +138,25 @@ const scaleTimings = (rounds: Partial<Record<string, number>> = {}) => ({
   sha: 'abc1234',
   startedAt: '2026-10-01T04:00:00Z',
   versions,
-  runner: {
-    os: 'linux',
-    cpu: 'Intel Xeon 8573C',
-    cores: 4,
-    memoryGb: 16,
-    hosted: true,
-  },
   seed: 1,
   graphSeed: 20261001,
+  scaleSha256: 'f'.repeat(64),
+  blocks: [
+    {
+      block: 'mixed',
+      runner: {
+        os: 'linux',
+        cpu: 'Intel Xeon 8573C',
+        cores: 4,
+        memoryGb: 16,
+        hosted: true,
+        imageOs: 'ubuntu24',
+        imageVersion: '20261001.1',
+        kernel: '6.8.0',
+      },
+      wallMs: 7_200_000,
+    },
+  ] as Array<Record<string, unknown>>,
   coreRef: {
     ref: 'workspace',
     tree: '4b825dc642cb6eb9a060e54bf8d69288fbee4904',
@@ -199,7 +209,13 @@ const scaleTimings = (rounds: Partial<Record<string, number>> = {}) => ({
   ] as Array<Record<string, unknown>>,
   design: {
     'fresh-process': Object.fromEntries(
-      SHAPES.map((s) => [s, design(rounds[s] ?? (s === 'mixed' ? 1000 : 200))]),
+      SHAPES.map((s) => [
+        s,
+        {
+          ...design(rounds[s] ?? (s === 'mixed' ? 1000 : 200)),
+          heap: design(rounds[`heap:${s}`] ?? 30),
+        },
+      ]),
     ),
     'steady-get': design(1000),
   },
@@ -359,6 +375,87 @@ describe('validate scale-timings', () => {
       Object.keys(SCALE_MINIMUM_ROUNDS).sort(),
     );
   });
+  it.each(['mixed', 'wide', 'deep', 'modular', 'mixed-async'])(
+    'holds fresh-process.%s.heap to 30 rounds under results/',
+    (shape) => {
+      expect(() =>
+        validate(
+          'scale-timings',
+          scaleTimings({ [`heap:${shape}`]: 29 }),
+          'results',
+        ),
+      ).toThrow(
+        new RegExp(
+          `scale-timings\\.design\\.fresh-process\\.${shape}\\.heap\\.measured`,
+        ),
+      );
+      expect(() =>
+        validate(
+          'scale-timings',
+          scaleTimings({ [`heap:${shape}`]: 30 }),
+          'results',
+        ),
+      ).not.toThrow();
+    },
+  );
+  it('accepts a quick run without heap rounds under tmp/', () => {
+    const file = scaleTimings({ 'heap:mixed': 3 });
+    expect(() => validate('scale-timings', file, 'tmp')).not.toThrow();
+  });
+  it('requires scaleSha256 and a runner per block', () => {
+    const noSha = scaleTimings() as { scaleSha256?: string };
+    delete noSha.scaleSha256;
+    expect(() => validate('scale-timings', noSha, 'tmp')).toThrow(
+      /scale-timings\.scaleSha256/,
+    );
+    const noKernel = scaleTimings();
+    delete (noKernel.blocks[0]?.runner as { kernel?: string }).kernel;
+    expect(() => validate('scale-timings', noKernel, 'tmp')).toThrow(
+      /scale-timings\.blocks\[0\]\.runner\.kernel/,
+    );
+  });
+  describe('protocol check and prefix widths', () => {
+    const ratio = { median: 1, low: 0.99, high: 1.01, pairs: 30 };
+    const check = (timingStands: boolean) => ({
+      rounds: 30,
+      timingVsHeap: [
+        { library: 'tsyringe', size: 50, ratio, pass: timingStands },
+      ],
+      noGcVsTiming: [{ library: 'tsyringe', size: 50, ratio, pass: true }],
+      timingStands,
+      gcBeforeCreate: 'keep',
+    });
+    it('accepts a passed protocol check and prefix widths', () => {
+      const file = scaleTimings() as Record<string, unknown>;
+      file.protocolCheck = check(true);
+      file.prefixWidths = [
+        {
+          shape: 'mixed',
+          rounds: 100,
+          maxWidth: 0.05,
+          metric: 'startup awilix 50',
+        },
+      ];
+      expect(() => validate('scale-timings', file, 'results')).not.toThrow();
+    });
+    it('refuses to publish a file whose protocol check failed', () => {
+      const file = scaleTimings() as Record<string, unknown>;
+      file.protocolCheck = check(false);
+      expect(() => validate('scale-timings', file, 'results')).toThrow(
+        /scale-timings\.protocolCheck\.timingStands/,
+      );
+      expect(() => validate('scale-timings', file, 'tmp')).not.toThrow();
+    });
+    it('rejects a protocol double with no ratio', () => {
+      const file = scaleTimings() as Record<string, unknown>;
+      const broken = check(true);
+      delete (broken.timingVsHeap[0] as { ratio?: unknown }).ratio;
+      file.protocolCheck = broken;
+      expect(() => validate('scale-timings', file, 'tmp')).toThrow(
+        /scale-timings\.protocolCheck\.timingVsHeap\[0\]\.ratio/,
+      );
+    });
+  });
   it('holds steady-get to 1,000 iterations under results/', () => {
     const file = scaleTimings();
     file.design['steady-get'] = design(999);
@@ -368,7 +465,9 @@ describe('validate scale-timings', () => {
   });
   it('requires every shape under results/ and accepts one under tmp/', () => {
     const file = scaleTimings();
-    file.design['fresh-process'] = { mixed: design(1000) };
+    file.design['fresh-process'] = {
+      mixed: { ...design(1000), heap: design(30) },
+    };
     expect(() => validate('scale-timings', file, 'results')).toThrow(
       /scale-timings\.design\.fresh-process\.wide/,
     );
