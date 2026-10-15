@@ -1,4 +1,4 @@
-import { defineModule, Nexus, Token } from '@nexusdi/core';
+import { defineModule, Nexus, provide, Token } from '@nexusdi/core';
 import { describe, expect, it } from 'vitest';
 
 import { findCode, rejected, thrown } from '../test-support/catch.js';
@@ -11,6 +11,14 @@ import { UseInterceptors } from './use-interceptors.js';
 const A = new Token<Interceptor>('A');
 const B = new Token<Interceptor>('B');
 const C = new Token<Interceptor>('C');
+
+interface IPayments {
+  charge(): void;
+}
+interface IRunner {
+  run(): void;
+}
+const PAYMENTS = new Token<IPayments>('Payments');
 
 /** A plugin whose interceptors A, B and C each write their own name to `log`. */
 const logging = (log: string[]) =>
@@ -39,31 +47,39 @@ describe('UseInterceptors', () => {
     const log: string[] = [];
     @UseInterceptors(A)
     @UseInterceptors(B)
-    class PaymentService {
+    class PaymentService implements IPayments {
       @UseInterceptors(C)
       @UseInterceptors(A)
       charge() {
         log.push('charge');
       }
     }
-    const ship = await Nexus.create(
-      defineModule({ name: 'Billing', providers: [PaymentService] }),
+    await using ship = await Nexus.create(
+      defineModule({
+        name: 'Billing',
+        providers: [provide(PAYMENTS, { useClass: PaymentService })],
+      }),
       { plugins: [logging(log)] },
     );
 
-    ship.get(PaymentService).charge();
+    ship.get(PAYMENTS).charge();
     expect(log).toEqual(['A', 'B', 'C', 'charge']);
   });
 
   it('fails create for a class that also declares static interceptors', async () => {
     @UseInterceptors(A)
-    class Twice {
+    class Twice implements IPayments {
       static interceptors = { class: [B] };
+      charge() {}
     }
     const error = await rejected(
-      Nexus.create(defineModule({ name: 'Billing', providers: [Twice] }), {
-        plugins: [logging([])],
-      }),
+      Nexus.create(
+        defineModule({
+          name: 'Billing',
+          providers: [provide(PAYMENTS, { useClass: Twice })],
+        }),
+        { plugins: [logging([])] },
+      ),
     );
 
     expect(findCode(error, 'NEXUS_INTERCEPTOR_INVALID')).toMatchObject({
@@ -74,21 +90,29 @@ describe('UseInterceptors', () => {
 
   it('intercepts a subclass with the base decorator and its own, and the base with its own alone', async () => {
     const log: string[] = [];
+    const BASE = new Token<IRunner>('Base');
+    const DERIVED = new Token<IRunner>('Derived');
     @UseInterceptors(A)
-    class Base {
+    class Base implements IRunner {
       run() {
         log.push('run');
       }
     }
     @UseInterceptors(B)
     class Derived extends Base {}
-    const ship = await Nexus.create(
-      defineModule({ name: 'Billing', providers: [Base, Derived] }),
+    await using ship = await Nexus.create(
+      defineModule({
+        name: 'Billing',
+        providers: [
+          provide(BASE, { useClass: Base }),
+          provide(DERIVED, { useClass: Derived }),
+        ],
+      }),
       { plugins: [logging(log)] },
     );
 
-    ship.get(Base).run();
-    ship.get(Derived).run();
+    ship.get(BASE).run();
+    ship.get(DERIVED).run();
     expect(log).toEqual(['A', 'run', 'A', 'B', 'run']);
   });
 
