@@ -104,11 +104,27 @@ async function check(
 ): Promise<void> {
   const source = body.join('\n');
   tsBlankSpace(source, (node) => {
-    const at = node.getSourceFile().getLineAndCharacterOfPosition(node.pos);
+    // ts-blank-space hands over a node whose parent chain may not reach a
+    // SourceFile, so node.getSourceFile() can be undefined. The fence is
+    // parsed again here, and the node's start read against that file.
+    const ts = require('typescript') as typeof import('typescript');
+    const sourceFile = ts.createSourceFile(
+      'fence.ts',
+      source,
+      ts.ScriptTarget.Latest,
+      true,
+    );
+    let start = node.pos;
+    try {
+      start = node.getStart(sourceFile);
+    } catch {
+      // a synthesized node has no text to skip trivia in; pos stands
+    }
+    const at = sourceFile.getLineAndCharacterOfPosition(start);
     throw new ModuleFenceError(
       file,
       first + at.line,
-      `a @module fence holds TypeScript that emits code (${node.getText()}), which the type strip cannot keep in place`,
+      `a @module fence holds TypeScript that emits code (${source.slice(start, node.end).trim()}), which the type strip cannot keep in place`,
     );
   });
   const bodies = await testBodies(source);

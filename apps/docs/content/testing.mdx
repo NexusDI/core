@@ -16,7 +16,7 @@ npm install -D @nexusdi/testing@next
 
 ## Unit Testing without the Container
 
-For simple unit tests, you don't need a NexusDI container at all. Since your classes take their dependencies in the constructor, you can pass a fake object that implements the required interface.
+A unit test needs no container: a class takes its dependencies in the constructor, so the test passes a fake that implements the interface.
 
 ```ts file=examples/meridian/src/pages/testing.md region=unit-test
 
@@ -60,7 +60,7 @@ An override that matches no provider fails as well. `create()` rejects with `NEX
 
 ## Overriding Modules
 
-In some cases, you need to replace an entire set of providers. You can use `overrideModule` to replace one module with a stub module. `overrideModule(Comms, CommsStub)` replaces the module wherever the graph imports it, including every `forRoot()` and `forRootAsync()` instance of it.
+`overrideModule` replaces one module, and every provider in it, with a stub module. `overrideModule(Comms, CommsStub)` replaces the module wherever the graph imports it, including every `forRoot()` and `forRootAsync()` instance of it.
 
 ```ts file=examples/meridian/src/pages/testing.md region=override-module
 
@@ -109,14 +109,14 @@ A test file that builds a testing container in each test repeats those lines. `n
 npm install -D @nexusdi/vitest@next vitest
 ```
 
-It works with Vitest 4.1 or later, Vitest 5 included. Its `setup` option is a step `(builder) => builder` that applies this page's overrides, `create` holds the `TestingCreateOptions` of the build, and `containerScope: 'file'` shares one container across a file's tests. The returned `test` carries four fixtures, each built on first use:
+It works with Vitest 4.1 or later, Vitest 5 included. Its `setup` option is a step `(builder) => builder` that applies this page's overrides, and `create` holds the `TestingCreateOptions` of the build. `containerScope: 'file'` shares one container across a file's tests. The returned `test` carries four fixtures, each built on first use:
 
 - `nexus` is the testing container.
 - `nexusScope` is a scope of `nexus` with `nexusRequest` as its request.
 - `nexusSetup` is the list of setup steps.
 - `nexusRequest` is the request for `nexusScope`, `undefined` by default.
 
-Vitest disposes `nexusScope`, then `nexus` when the test ends, whether it passed or failed. The region also registers `interceptors()` from `@nexusdi/interceptors` through `create.plugins`, and its `NavAudit` records each `NAV_CHARTS` call in `AUDIT_LOG` ([Method Interceptors](/interceptors/)):
+Vitest disposes `nexusScope`, then `nexus`, when the test ends, or at the file's end with `containerScope: 'file'`. The region also registers `interceptors()` from `@nexusdi/interceptors` through `create.plugins`, and its `NavAudit` records each `NAV_CHARTS` call in `AUDIT_LOG` ([Method Interceptors](/interceptors/)):
 
 ```ts file=examples/meridian/src/pages/testing.md region=vitest-fixtures
 
@@ -126,11 +126,11 @@ The `// ->` comments are claims this site's runner turns into `expect` calls.
 
 `test.override('nexusSetup', steps)` replaces the setup for the file or `describe` block it is called in, and `test.override('nexusRequest', request)` replaces the request. Use this name form, because the object form leaves a setup step's `builder` untyped.
 
-Interceptors skip a `useValue` provider, so a test that checks an interceptor gives the token a class double, as `FakeCharts` is, and reads the interceptor's store with `nexus.get(AUDIT_LOG).calls`.
+Interceptors skip a `useValue` provider, so a test that checks an interceptor gives the token a class double, as `FakeCharts` is, and reads the store with `nexus.get(AUDIT_LOG).calls`. The second test binds `unplottable` with `useValue`, so `NavAudit` never runs and `calls` stays `[]`.
 
 ### Testing React Router Loaders
 
-`di.inject(record, loader)` from `@nexusdi/react-router` resolves the record from the scope under `NEXUS_SCOPE` in React Router's `context`. A loader test puts the fixture's scope there with `existingScope(nexusScope)`, which disposes nothing, and calls the loader:
+`nexus(ship, options)` from `@nexusdi/react-router` returns `di`, and `di.inject(record, loader)` resolves the record from the scope under `NEXUS_SCOPE` in React Router's `context`. A loader test puts the fixture's scope there with `existingScope(nexusScope)`, which disposes nothing, and calls the loader:
 
 ```ts file=examples/meridian/src/pages/testing.md region=loader-scope
 

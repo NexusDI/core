@@ -102,7 +102,7 @@ The cache runs first, so the second call returns the saved value and `plot` runs
 
 ### Observing with `tap()`
 
-`tap(next, { value, error })` runs `next()`, calls `value` with the result or `error` with the failure, and returns or rethrows the original. It handles sync and async results alike, so a logging interceptor needs no branch for async methods.
+`tap(next, { value, error })` runs `next()`, calls `value` with the result or `error` with the failure, and returns or rethrows the original. It handles a return, a promise, a rejection and a synchronous throw alike, so a logging interceptor needs no branch for async methods.
 
 ```ts file=examples/meridian/src/pages/interceptors.md region=tap
 
@@ -129,7 +129,7 @@ Four rules follow:
 
 **Try it:** Save the region as `identity.ts` and run `npx tsx identity.ts`. It prints `true`, `false`, `online QC-7` and `[ 'isSelf', 'selfTest' ]`. Add `computer.status();` before the `selfTest` line and run it again: the log is `[ 'isSelf', 'status', 'selfTest' ]`, because that call goes through the proxy. Remove the line again.
 
-To intercept an internal call, call the method through the token from outside the class, or move it to another service. Do not inject the class's own token into the class: a class that depends on itself is a cycle, and `Nexus.create` rejects it.
+To intercept an internal call, call the method through the token from outside the class, or move it to another service. A class that injects its own token is a cycle, and `Nexus.create` rejects it.
 
 A value provider is never intercepted: `useValue` holds an object the container did not build. Bind a `useFactory` that returns the value, and the plugin wraps its result.
 

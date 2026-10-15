@@ -1,0 +1,60 @@
+---
+title: Where NexusDI Runs
+kind: contract
+description: Each runtime NexusDI and its adapters run on, with the CI job that tests it.
+---
+
+# Where NexusDI Runs
+
+`@nexusdi/core` is published as ES modules only. A CommonJS project on Node 22.12 or later can `require()` it. This page lists each runtime the packages run on and names the CI job that tests each row, or says "not tested" when no job does.
+
+| Package                 | Runtime                                      | Evidence                                          |
+| ----------------------- | -------------------------------------------- | ------------------------------------------------- |
+| `@nexusdi/core`         | Node 22.12 and later                         | `main`, `node-floor`, `packaging`                 |
+| `@nexusdi/core`         | Bun 1.4.2, Deno 2.9.6                        | `toolchain-matrix`, `adapter-runtimes`            |
+| `@nexusdi/hono`         | Node 22.12, through `@hono/node-server`      | `main`, `node-floor`, `adapter-peers`             |
+| `@nexusdi/hono`         | Cloudflare Workers (workerd)                 | `adapter-runtimes`, leg `workerd`                 |
+| `@nexusdi/hono`         | Deno 2.9.6                                   | `adapter-runtimes`, leg `deno`                    |
+| `@nexusdi/hono`         | Bun 1.4.2                                    | `adapter-runtimes`, leg `bun`                     |
+| `@nexusdi/hono`         | Vercel Edge, through the Edge Runtime VM     | `adapter-runtimes`, leg `edge-runtime`            |
+| `@nexusdi/hono`         | Netlify Edge                                 | not tested                                        |
+| `@nexusdi/node`         | Workers, Deno, Bun                           | `adapter-runtimes`, legs `workerd`, `deno`, `bun` |
+| `@nexusdi/node`         | Vercel Edge                                  | not tested                                        |
+| `@nexusdi/express`      | Node 22.12 and later                         | `main`, `node-floor`, `adapter-peers`             |
+| `@nexusdi/fastify`      | Node 22.12 and later                         | `main`, `node-floor`, `adapter-peers`             |
+| `@nexusdi/react-router` | Node 22.22 and later, React Router 7.9 and 8 | `main`, `node-floor`, `adapter-peers`             |
+| `@nexusdi/react-router` | Workers, Deno, Bun                           | not tested                                        |
+| `@nexusdi/vitest`       | Vitest 4.1 and 5, on Node 22.12              | `main`, `node-floor`, `adapter-peers`             |
+
+## Node
+
+The `node-floor` job runs each published package's tests on Node 22.12.0, and `@nexusdi/react-router`'s on Node 22.22.0, the floor of React Router 8. `main` runs every test on the version in `.nvmrc`. The `packaging` job installs the packed tarballs in a project outside the workspace, and calls `require()` on the entries of core and the non-adapter packages from a CommonJS consumer on Node 22.12.0 and on Node 24. On 22.12.x the first `require()` prints Node's experimental warning, and Node 22.13.0 and later print none.
+
+## Framework Floors
+
+The `adapter-peers` job installs each adapter's lowest supported framework version and the latest one, and runs the adapter's tests against both:
+
+- `hono` 4.3.3 with `@hono/node-server` 1.19.17, and the latest 4.x. Below 4.3.3 a handler that `inject` wraps reads its route params as `never`.
+- `express` 5.0 and the latest 5.x, `fastify` 5.0 with `fastify-plugin` 6.0.0, and the latest 5.x.
+- `react-router` 7.9.0 and the latest 7.x with `future.v8_middleware` on, and the latest 8.x.
+- `vitest` 4.1.0, the latest 4.x and the latest 5.x, for `nexusTest` and `nexusFixtures` alike.
+
+## Cloudflare Workers
+
+The `workerd` leg runs the bridge API's Worker tests in workerd through `@cloudflare/vitest-plugin` 1.3.7 and wrangler 4.148.0, with compatibility date 2026-09-01 and the flags `nodejs_compat` and `enable_request_signal`. It runs every test twice, with `enable_request_signal` and without it. With the flag, a client abort on a streaming response disposes the scope through `request.signal`. Without it, the scope is disposed when the stream is cancelled, through the adapter's body wrapper. Both runs dispose the scope once.
+
+## Deno
+
+The `deno` leg runs the bridge API's route cases on Deno 2.9.6 through `Deno.serve`, with `nodeScopes()` and without it. Deno 2.9.6 aborts `request.signal` after a successful response, a behaviour it logs at startup, and the adapter still disposes each scope once.
+
+## Bun
+
+The `bun` leg runs the same route cases on Bun 1.4.2 through `Bun.serve`, with `nodeScopes()` and without it.
+
+## Vercel Edge
+
+The `edge-runtime` leg bundles the bridge API's offline graph and dispatches requests to it as `FetchEvent`s in `@edge-runtime/vm` 5.0.0. It checks the routes, disposal through the event's `waitUntil`, and that `eval` and `new Function` are refused. The VM has no `node:async_hooks`, so the leg runs without `nodeScopes()`, and Vercel's own `AsyncLocalStorage` is not tested. The VM reproduces Vercel's globals and does not run Vercel's bundler.
+
+## Next Steps
+
+[Running on Edge Runtimes](/edge/) shows the Worker and Vercel Edge entries.

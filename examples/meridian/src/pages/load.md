@@ -243,3 +243,51 @@ console.log(named);
 ```
 
 <!-- #endregion load-global -->
+
+<!-- #region lazy-route -->
+
+```ts @import.meta.vitest
+import { Nexus, Token, defineModule, provide } from '@nexusdi/core';
+import { nexus } from '@nexusdi/hono';
+import { Hono } from 'hono';
+
+interface INavRoutes {
+  route(sector: string): string;
+}
+const NAV_ROUTES = new Token<INavRoutes>('NavRoutes');
+class SectorRoutes implements INavRoutes {
+  route(sector: string) {
+    return `${sector}: heading 42`;
+  }
+}
+
+// The section's module, loaded on the first request into the section.
+const Navigation = defineModule({
+  name: 'Navigation',
+  providers: [provide(NAV_ROUTES, { useClass: SectorRoutes })],
+  exports: [NAV_ROUTES],
+});
+
+const ship = await Nexus.create(defineModule({ name: 'Meridian' }));
+const di = nexus(ship, {
+  request: () => ({ mission: { id: 'survey-7', target: 'Kepler-442b' } }),
+});
+const navigation = di.load(Navigation);
+
+const app = new Hono()
+  .use(di.middleware)
+  .use('/navigation/*', navigation)
+  .get(
+    '/navigation/:sector',
+    navigation.inject({ routes: NAV_ROUTES }, ({ routes }, c) =>
+      c.text(routes.route(c.req.param('sector') ?? '')),
+    ),
+  );
+
+const res = await app.request('/navigation/Kepler-442b');
+const status = res.status; // -> 200
+const body = await res.text(); // -> 'Kepler-442b: heading 42'
+await ship[Symbol.asyncDispose]();
+```
+
+<!-- #endregion lazy-route -->
