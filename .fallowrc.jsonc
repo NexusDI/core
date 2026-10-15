@@ -57,6 +57,8 @@
     "tools/release/{plan,sync,reconcile,notes,stage}.mjs",
     // The e2e project's webServer command runs serve.mjs by path.
     "apps/docs-e2e/src/support/serve.mjs",
+    // The docs app's behaviour-data target runs this script by path.
+    "apps/docs/tools/behaviour-data.mjs",
     "libs/decorators/vite.decorators.ts",
     "libs/core/vitest.browser.config.ts",
     "libs/decorators/vitest.browser.config.ts",

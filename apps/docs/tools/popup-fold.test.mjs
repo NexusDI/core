@@ -83,14 +83,15 @@ describe('the popup fold', { timeout: 120_000 }, () => {
     for (const key of keys) expect(table[key]).toContain('twoslash-popup-code');
   });
 
-  it('keeps no javascript: link a docblock carries, through the real loader', async () => {
+  it('keeps a docblock link as its text, through the real loader', async () => {
     await compile(FENCE);
     const panels = Object.values(JSON.parse(readFileSync(TABLE, 'utf8'))).join(
       '',
     );
 
-    expect(panels).toContain('href="https://example.com"');
     expect(panels).toContain('the guide');
+    expect(panels).toContain('the site');
+    expect(panels, 'A type card carries no link.').not.toMatch(/<a\b|href=/);
     expect(panels).not.toMatch(/javascript:/i);
   });
 
@@ -201,5 +202,35 @@ describe('the popup fold', { timeout: 120_000 }, () => {
     expect(at('errors/index.mdx')).toBe('errors.json');
     expect(at('errors/NEXUS_DISPOSED.mdx')).toBe('errors/NEXUS_DISPOSED.json');
     expect(tableFor(join(docsRoot, 'tools', 'x.mdx'))).toBeNull();
+  });
+
+  it('keeps only the classes Shiki and Twoslash write, and a token data-pop', () => {
+    const html = panelHtml([
+      {
+        type: 'element',
+        tagName: 'pre',
+        properties: {
+          className: ['shiki', 'github-dark', 'twoslash-popup-code'],
+        },
+        children: [
+          {
+            type: 'element',
+            tagName: 'span',
+            properties: { className: ['sh-1itgoe', 'evil'], dataPop: '3' },
+            children: [{ type: 'text', value: 'x' }],
+          },
+          {
+            type: 'element',
+            tagName: 'img',
+            properties: { src: 'https://example.com/x.png' },
+            children: [],
+          },
+        ],
+      },
+    ]);
+
+    expect(html).toBe(
+      '<pre class="twoslash-popup-code"><span class="sh-1itgoe" data-pop="3">x</span></pre>',
+    );
   });
 });

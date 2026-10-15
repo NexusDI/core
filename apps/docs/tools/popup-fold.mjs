@@ -24,10 +24,11 @@
  * The panel is sanitized before it becomes a string. A hover's docblock comes
  * from whatever declaration the token resolves to, a third-party `.d.ts`
  * included, and a Markdown link in it becomes an `<a href>` whatever its
- * protocol. `hast-util-sanitize`'s GitHub schema keeps what a rendered README
- * may carry, `javascript:` links out, plus the classes Shiki writes and its
- * theme variables as inline styles. `panelHtml` and its schema are ported
- * from `Evanion/libraries` `apps/docs/tools/popup-panels.mjs` at 670ac27f.
+ * protocol. `hast-util-sanitize`'s GitHub schema, cut down to what a type
+ * card shows (`SCHEMA`), keeps the rest. `behaviour-data.mjs` runs the
+ * catalogue's case bodies and types through the same `panelHtml`.
+ * `panelHtml` and its schema are ported from `Evanion/libraries`
+ * `apps/docs/tools/popup-panels.mjs` at 670ac27f.
  */
 import { defaultSchema, sanitize } from 'hast-util-sanitize';
 import { hastToHtml } from 'shiki';
@@ -37,25 +38,41 @@ import { hastToHtml } from 'shiki';
  * value: `--shiki-dark:#e1e4e8;--shiki-light-bg:#fff`. Nothing else a style
  * can carry, a `url()` or a `position`, gets through.
  */
-const SHIKI_STYLE = /^\s*(?:--shiki-[a-z-]+\s*:\s*[#\w.%-]+\s*;?\s*)+$/i;
+const SHIKI_STYLE =
+  /^--shiki-[a-z]+(?:-[a-z]+)*:[#\w.%]+(?:;--shiki-[a-z]+(?:-[a-z]+)*:[#\w.%]+)*;?$/i;
+
+/** A class Shiki or Twoslash writes: a token colour or a part of a hover. */
+const CODE_CLASS = /^(?:sh-|twoslash-)[\w-]+$/;
 
 /**
- * The GitHub schema with any class allowed on any element, and Shiki's theme
- * variables as inline styles on the two elements Shiki writes them on.
+ * The GitHub schema cut down to what a type card shows: the classes Shiki
+ * and Twoslash write, Shiki's theme variables as inline styles on the two
+ * elements it writes them on, and the `data-pop` a catalogue case's token
+ * carries. Links and images go: a docblock's link keeps its text, and no
+ * type needs a picture.
  */
 const SCHEMA = (() => {
   const isClassName = (entry) =>
     (Array.isArray(entry) ? entry[0] : entry) === 'className';
   const attributes = Object.fromEntries(
-    Object.entries(defaultSchema.attributes ?? {}).map(([tag, allowed]) => [
-      tag,
-      allowed.filter((entry) => !isClassName(entry)),
-    ]),
+    Object.entries(defaultSchema.attributes ?? {})
+      .filter(([tag]) => tag !== 'a' && tag !== 'img')
+      .map(([tag, allowed]) => [
+        tag,
+        allowed.filter((entry) => !isClassName(entry)),
+      ]),
   );
-  attributes['*'] = [...(attributes['*'] ?? []), 'className'];
-  attributes.span = [...(attributes.span ?? []), ['style', SHIKI_STYLE]];
+  attributes['*'] = [...(attributes['*'] ?? []), ['className', CODE_CLASS]];
+  attributes.span = [
+    ...(attributes.span ?? []),
+    ['style', SHIKI_STYLE],
+    'dataPop',
+  ];
   attributes.pre = [...(attributes.pre ?? []), ['style', SHIKI_STYLE]];
-  return { ...defaultSchema, attributes };
+  const tagNames = (defaultSchema.tagNames ?? []).filter(
+    (tag) => tag !== 'a' && tag !== 'img',
+  );
+  return { ...defaultSchema, tagNames, attributes };
 })();
 
 const named = (node, name) =>
@@ -116,7 +133,7 @@ export function panelHtml(children) {
 }
 
 /** FNV-1a over a panel's HTML, as a short key two equal panels share. */
-export function keyOf(html) {
+function keyOf(html) {
   let hash = 0x811c9dc5;
   for (let at = 0; at < html.length; at += 1) {
     hash ^= html.charCodeAt(at);

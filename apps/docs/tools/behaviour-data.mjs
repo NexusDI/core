@@ -4,12 +4,13 @@ import { basename, dirname, join, relative } from 'node:path';
 import { behavioursOf } from '@nexusdi/doc-examples/behaviours';
 import { exportedNames } from '@nexusdi/doc-examples/package-exports';
 import { createTransformerFactory, rendererRich } from '@shikijs/twoslash';
-import { codeToHast, hastToHtml } from 'shiki';
+import { codeToHast } from 'shiki';
 import ts from 'typescript';
 import { createTwoslasher } from 'twoslash';
 
 import { codeClasses, stylesheet, THEMES } from './code-classes.mjs';
 import { libraries } from './libraries.mjs';
+import { panelHtml } from './popup-fold.mjs';
 import { sidecarsOf } from './sidecars.mjs';
 
 /**
@@ -197,9 +198,10 @@ function fold(node, popups) {
   if (at === -1) return;
 
   const [popup] = node.children.splice(at, 1);
-  const html = popup.children.map((child) => hastToHtml(child)).join('');
+  // Sanitized as a page fence's panel is: the pane injects it as HTML.
+  const html = panelHtml(popup.children);
   if (!popups.has(html)) popups.set(html, popups.size);
-  node.properties['data-pop'] = String(popups.get(html));
+  node.properties.dataPop = String(popups.get(html));
 }
 
 /**
@@ -243,14 +245,14 @@ async function highlight(body, language, hovers, popups) {
 
   fold(code, popups);
 
-  return code.children
-    .flatMap((child) =>
+  // Sanitized as a type card is, since the pane injects the body as HTML.
+  return panelHtml(
+    code.children.flatMap((child) =>
       child.type === 'element' && classesOf(child).includes('line')
         ? child.children
         : [child],
-    )
-    .map((child) => hastToHtml(child))
-    .join('');
+    ),
+  );
 }
 
 /** How many cases came back without their types, across every library. */
