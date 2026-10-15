@@ -248,6 +248,24 @@ function importedFrom(name, node) {
   return null;
 }
 
+/** The package a file sits in: its directory and the name it publishes. */
+const owners = new Map();
+function ownerOf(file) {
+  let dir = dirname(file);
+  while (dir !== dirname(dir)) {
+    if (owners.has(dir)) return owners.get(dir);
+    const manifest = join(dir, 'package.json');
+    if (ts.sys.fileExists(manifest)) {
+      const name = JSON.parse(ts.sys.readFile(manifest) ?? '{}').name;
+      const owner = typeof name === 'string' ? { dir, name } : null;
+      owners.set(dir, owner);
+      return owner;
+    }
+    dir = dirname(dir);
+  }
+  return null;
+}
+
 /** An entry point's exports, with whether each is importable as a value. */
 function exportsOf(moduleSymbol, checker) {
   return new Map(
@@ -321,7 +339,7 @@ function exportsOfSpecifier(root, specifier) {
  * summary and the disclosure, where the search index can also read it.
  */
 function declarationOf(context, resolved, name, kind) {
-  const { exported, root, packageDir, checker } = context;
+  const { exported, root, packageDir, checker, workspace } = context;
   const declaration = resolved.getDeclarations()?.[0];
   if (!declaration) return null;
 
@@ -379,6 +397,24 @@ function declarationOf(context, resolved, name, kind) {
     if (root.has(each)) {
       fromRoot.push(each);
       return;
+    }
+
+    // A declaration another package wrote, which this one re-exports
+    // (`@nexusdi/devtools` publishes `@nexusdi/core`'s `TraceEventByType`),
+    // names its own package's types. A name that package exports is imported
+    // from it, as a reader would.
+    const owner = ownerOf(from.getSourceFile().fileName);
+    if (owner && owner.dir !== packageDir) {
+      let theirs = new Map();
+      try {
+        theirs = exportsOfSpecifier(workspace, owner.name);
+      } catch {
+        // A file in a package with no declarations entry imports nothing.
+      }
+      if (theirs.has(each)) {
+        external.set(owner.name, [...(external.get(owner.name) ?? []), each]);
+        return;
+      }
     }
 
     const imported = importedFrom(each, from);
@@ -537,7 +573,7 @@ export function readReference(root, specifier, name) {
     specifier,
     kind,
     signature: declarationOf(
-      { exported, root: rootExports, packageDir, checker },
+      { exported, root: rootExports, packageDir, checker, workspace: root },
       resolved,
       name,
       kind,
