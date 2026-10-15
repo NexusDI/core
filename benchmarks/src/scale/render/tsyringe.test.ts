@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
 
 import { graphOf } from '../shapes.ts';
-import { six } from '../six.ts';
+import { six, sixWithAlias } from '../six.ts';
 import { renderTsyringe } from './tsyringe.ts';
 
 describe('renderTsyringe', () => {
@@ -174,5 +174,12 @@ describe('renderTsyringe', () => {
         'create: (): DependencyContainer => container,',
       );
     }
+  });
+
+  it('renders an alias in its documented form, with its target type', () => {
+    const files = renderTsyringe(sixWithAlias());
+    expect(files['m1.ts']).toContain("{ token: 'p6', useToken: P5 },");
+    expect(files['m1.ts']).not.toContain('class P6');
+    expect(files['m1.ts']).toContain('export type IP6 = P5;');
   });
 });

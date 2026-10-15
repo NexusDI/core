@@ -41,4 +41,12 @@ describe('awilix plain scale cells', () => {
       message: awilix.notApplicable['async-factory'],
     });
   });
+
+  // Aliases, factories and values across modules at a size where chains of
+  // aliases and cross-module aliases occur.
+  it('passes mixed at n = 200 through compile, bundle and verify', async () => {
+    const result = await scaleCell(dir, awilix, 'plain', graphOf('mixed', 200));
+    expect(result.message).toBeUndefined();
+    expect(result.outcome).toBe('pass');
+  }, 180_000);
 });

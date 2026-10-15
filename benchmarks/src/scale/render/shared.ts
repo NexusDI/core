@@ -140,6 +140,10 @@ export const isAsync = (p: ScaleProvider) => p.kind === 'async-factory';
 export const builds = (p: ScaleProvider) =>
   p.kind !== 'value' && p.kind !== 'alias';
 
+/** The graph has an alias provider. */
+export const hasAliases = (graph: ScaleGraph) =>
+  graph.providers.some((p) => p.kind === 'alias');
+
 /** The graph has a sync or async factory provider. */
 export const hasFactories = (graph: ScaleGraph) =>
   graph.providers.some(

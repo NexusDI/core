@@ -47,4 +47,13 @@ describe('libraries.json scale fields', () => {
         expect(c.source, `${lib.id}: ${c.claim}`).toMatch(/^https:\/\//);
     }
   });
+
+  it('cites a page for the alias form of every library, checked against its pin', () => {
+    for (const lib of libraries) {
+      const claim = lib.claims.find((c) => c.form === 'alias');
+      expect(claim, lib.id).toBeDefined();
+      expect(claim?.source, lib.id).toMatch(/^https:\/\//);
+      expect(claim?.verifiedAgainst, lib.id).toBe(lib.version);
+    }
+  });
 });

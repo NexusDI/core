@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
 
 import { graphOf } from '../shapes.ts';
-import { six } from '../six.ts';
+import { six, sixWithAlias } from '../six.ts';
 import { renderAwilix } from './awilix.ts';
 
 describe('renderAwilix', () => {
@@ -192,5 +192,15 @@ describe('renderAwilix', () => {
         rendered['app.ts'].match(/container\.register\(\{\n/g),
       ).toHaveLength(1);
     }
+  });
+
+  it('renders an alias in its documented form, with its target type', () => {
+    const files = renderAwilix(sixWithAlias());
+    expect(files['m1.ts']).toContain("p6: aliasTo('p5'),");
+    expect(files['m1.ts']).toContain(
+      "import { asClass, aliasTo, type AwilixContainer } from 'awilix';",
+    );
+    expect(files['cradle.ts']).toContain('export type IP6 = P5;');
+    expect(files['cradle.ts']).toContain('p6: IP6;');
   });
 });

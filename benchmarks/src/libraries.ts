@@ -16,7 +16,7 @@ export interface Claim {
   /** The version the claim was checked against; libraries-claims holds it to the pin. */
   verifiedAgainst: string;
   /** The scale renderer form the claim backs (scale spec 4.2), if any. */
-  form?: 'module' | 'async-factory';
+  form?: 'module' | 'async-factory' | 'alias';
 }
 
 /**

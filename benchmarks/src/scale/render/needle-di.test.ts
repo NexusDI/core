@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
 
 import { graphOf } from '../shapes.ts';
-import { six } from '../six.ts';
+import { six, sixWithAlias } from '../six.ts';
 import { renderNeedleDi } from './needle-di.ts';
 
 describe('renderNeedleDi', () => {
@@ -214,5 +214,14 @@ describe('renderNeedleDi', () => {
         'create: (): Container => new Container(),',
       );
     }
+  });
+
+  it('renders an alias in its documented form, with its target type', () => {
+    const files = renderNeedleDi(sixWithAlias());
+    expect(files['m1.ts']).toContain('{ provide: TP6, useExisting: P5 },');
+    expect(files['m1.ts']).not.toContain('class P6');
+    expect(files['tokens.ts']).toContain(
+      "export type IP6 = P5;\nexport const TP6 = new InjectionToken<IP6>('p6');",
+    );
   });
 });

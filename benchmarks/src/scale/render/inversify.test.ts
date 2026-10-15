@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
 
 import { graphOf } from '../shapes.ts';
-import { six } from '../six.ts';
+import { six, sixWithAlias } from '../six.ts';
 import { renderInversify } from './inversify.ts';
 
 describe('renderInversify', () => {
@@ -201,5 +201,17 @@ describe('renderInversify', () => {
         'container.bind(P49).toSelf().inSingletonScope();',
       );
     }
+  });
+
+  it('renders an alias in its documented form, with its target type', () => {
+    const files = renderInversify(sixWithAlias());
+    expect(files['m1.ts']).toContain('options.bind(TP6).toService(P5);');
+    expect(files['m1.ts']).not.toContain('class P6');
+    expect(files['tokens.ts']).toContain(
+      "export type IP6 = P5;\nexport const TP6 = Symbol.for('p6');",
+    );
+    expect(files['tokens.ts']).toContain("import type { P5 } from './m1.ts';");
+    // toService takes no scope.
+    expect(files['m1.ts']).not.toMatch(/toService\([^)]*\)\.in/);
   });
 });
