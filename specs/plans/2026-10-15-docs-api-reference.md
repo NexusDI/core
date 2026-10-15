@@ -1462,6 +1462,8 @@ for (const theme of ['dark', 'light'] as const) {
 
 Add `'/next/api-node/'` to `PAGES` in `surfaces.spec.ts`. The sentence `keeps two runs apart` is a real title in `libs/node` (measured); if the suite renames it, use the current title.
 
+- [ ] **Step 5b: Restore the content-fence count in `doc-twoslash`.** `/api-node/` is the first page that emits reference `twoslash` fences, so add to `describe('doc-twoslash on apps/docs')` in `tools/repo-checks/src/doc-twoslash.test.ts` a case `finds the fences` that asserts `expect(fences.length).toBeGreaterThan(0)` over `contentFences(CONTENT, workspaceRoot)`. Task 4 left it out because no content page carried a `twoslash` fence.
+
 - [ ] **Step 6: Run the task gate**, the e2e line included. Add `@nexusdi/node` to `--projects`.
 
 - [ ] **Step 7: Dispatch the `docs-reviewer` agent on `apps/docs/content/api-node.mdx`** and fix every defect it reports.
