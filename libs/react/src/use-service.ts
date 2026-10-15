@@ -8,6 +8,12 @@ import {
 import { useNexusContext } from './context.js';
 import { checkTransient } from './plugin.js';
 
+/**
+ * Returns the service a token resolves to from the nearest provider's
+ * resolver: the scope of a `ScopeProvider` or a server render, or the root
+ * container. A `MultiToken` returns an array that stays the same object while
+ * its contents do.
+ */
 export function useService<T>(
   token: MultiToken<T>,
   options?: LookupOptions,

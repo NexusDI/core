@@ -15,6 +15,11 @@ export type {
   NexusSetupStep,
 };
 
+/**
+ * Returns the NexusDI fixture map for `test.extend`: a testing container of
+ * `root` built through the setup steps, and a scope of it, each built on
+ * first use and disposed when the test, or the file, ends.
+ */
 export function nexusFixtures(
   root: ModuleRef,
   options: NexusFixturesOptions = {},

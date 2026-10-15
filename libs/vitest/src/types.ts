@@ -11,6 +11,7 @@ export type NexusSetupStep = (
   builder: TestingContainerBuilder,
 ) => TestingContainerBuilder;
 
+/** The four fixtures, by name and type: the setup steps, the request, the testing container and a scope of it. */
 export interface NexusFixtures {
   /** The builder steps, in order. An array, because Vitest runs a function value as a fixture. */
   nexusSetup: readonly NexusSetupStep[];
@@ -22,6 +23,7 @@ export interface NexusFixtures {
   nexusScope: Scope;
 }
 
+/** The options of `nexusTest` and `nexusFixtures`: the file's setup step, the options of the build and the scope of the container fixture. */
 export interface NexusFixturesOptions {
   /** The file's builder step; a suite replaces it with test.override('nexusSetup', [...]). */
   readonly setup?: NexusSetupStep;
@@ -41,5 +43,6 @@ export interface NexusFixturesOptions {
  * infers the fixture types from it as it does from Fixtures itself.
  */
 type OverrideArg<T extends object> = Parameters<TestAPI<T>['override']>[0];
+/** The fixture map `nexusFixtures` returns, which `test.extend` takes. */
 export type NexusFixtureMap =
   OverrideArg<NexusFixtures> extends Partial<infer F> ? F : never;

@@ -18,6 +18,7 @@ import { useHydrated } from './hydrated.js';
 import { deferred, type Lease } from './release.js';
 import type { Store } from './store.js';
 
+/** The props of `ScopeProvider`: the request the scope's `REQUEST` resolves to, read once, and the fallback rendered until the scope is ready. */
 export interface ScopeProviderProps {
   /** Read once, when the scope is created. Remount with a key for new request data. */
   request?: NexusRequest;
@@ -81,6 +82,11 @@ function hold(
   return holder;
 }
 
+/**
+ * Gives its subtree a scope of its own, created after it mounts in the
+ * browser and disposed on unmount. On the server and during hydration it
+ * renders `fallback`.
+ */
 export function ScopeProvider({
   request,
   fallback = null,

@@ -24,6 +24,7 @@ export type ContainerSource = Nexus | (() => Promise<Nexus>);
 
 export type LogPhase = 'build' | 'scope' | 'load' | 'validate' | 'dispose';
 
+/** What the adapter passes to `log` beside the error: its package name, the phase that failed and, for a mapped error, the status it answered. */
 export interface LogContext {
   readonly adapter: string;
   readonly phase: LogPhase;
@@ -89,6 +90,7 @@ export class NexusHttpError extends Error {
   }
 }
 
+/** A request's scope handle: the adapter creates the scope on the first `scope()` call and disposes it when the response ends. */
 export interface RequestScope {
   /** Creates the scope on the first call; every later call returns the same promise. */
   scope(): Promise<Scope>;

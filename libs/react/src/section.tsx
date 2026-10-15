@@ -14,6 +14,7 @@ import { sectionConflict } from './errors.js';
 import { useHydrated } from './hydrated.js';
 import type { SectionEntry, Store } from './store.js';
 
+/** The handle `lazySection` returns: the section's name and the loader that imports its module. */
 export interface LazySection {
   readonly name: string;
   readonly loader: () => Promise<ModuleRef>;
@@ -30,6 +31,7 @@ export function lazySection(
   return Object.freeze({ name, loader });
 }
 
+/** The props of `SectionBoundary`: the section to load, the fallbacks for loading and for a load failure, and a callback for each failure. */
 export interface SectionBoundaryProps {
   section: LazySection;
   /** Rendered on the server, during hydration and while the section loads. */
