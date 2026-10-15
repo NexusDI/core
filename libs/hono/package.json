@@ -51,6 +51,7 @@
     "hono": "^4.0.0"
   },
   "devDependencies": {
+    "@hono/node-server": "2.1.5",
     "hono": "^4.13.13"
   },
   "publishConfig": {

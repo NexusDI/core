@@ -332,6 +332,21 @@ describe('rewriteMarkdown on a wrapped import', () => {
     expect(specifiers).toEqual([]);
   });
 
+  it('never opens a join on an import.meta or import( line', () => {
+    const source = block(
+      'import.meta.url;',
+      "import('@nexusdi/testing').then(() => undefined);",
+      "import { Nexus } from '@nexusdi/core';",
+      'Nexus;',
+    );
+    const rewritten = rewriteMarkdown(source, 'README.md').split('\n');
+    expect(rewritten.slice(1, 4)).toEqual([
+      'import.meta.url;',
+      "import('@nexusdi/testing').then(() => undefined);",
+      "const { Nexus } = await import('@nexusdi/core');",
+    ]);
+  });
+
   it('names its own line for a claim after a wrapped import', () => {
     const source = block(
       'import {',

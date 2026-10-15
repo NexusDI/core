@@ -5156,7 +5156,6 @@ const Meridian = defineModule({
 });
 const Navigation = defineModule({
   name: 'Navigation',
-  imports: [Meridian],
   providers: [
     provide(NAV_ROUTES, { useValue: { find: (s: string) => `route to ${s}` } }),
   ],
@@ -6457,7 +6456,7 @@ Expected first: FAIL until the fixture files of Step 1 exist and build. After St
 
 - [ ] Step 5: Write the README `libs/react-router/README.md`
 
-Same structure as Task 8 Step 7, with tagline "Scope every React Router request with NexusDI, from middleware to loaders.", Getting started from spec 7.2 (`nexus.server.ts`, the root `middleware` export, a loader with `di.inject`), and H2s Typed loaders (`inject`), Lazy routes (`di.load`), When the scope is disposed, Errors, Ambient scope, Testing loaders (`NEXUS_SCOPE` and `existingScope`), Requirements (`react-router` `^7.9.0` with `future.v8_middleware: true`, or `^8.0.0`; Node 22.12, and 22.22 for React Router 8). The doctest fences build a `RouterContextProvider` with `existingScope` and call the loader directly, so they need no server; one carries `// -> ['survey-7: plotting Kepler-442b']`. Install line: `npm i @nexusdi/core@next @nexusdi/react-router`. `CHANGELOG.md` as in Task 8.
+The README follows the marketing shape of the express, fastify and hono READMEs: tagline "Scope every React Router request with NexusDI, from middleware to loaders.", a lead-in on the problem, one H2 on how the scope follows the request, Installation, Quick Example, Documentation and License, within the sub-package limit of 90 lines. The Quick Example is spec 7.2's Getting started (`nexus.server.ts`, the root `middleware` export, a loader with `di.inject`), as a doctest that builds a `RouterContextProvider` with `existingScope` and calls the loader directly, so it needs no server, with a `// -> ['survey-7: plotting Kepler-442b']` claim and no `await using`. Install line: `npm install @nexusdi/react-router@next @nexusdi/core@next react-router`. `CHANGELOG.md` as in Task 8. The sections Typed loaders (`inject`), Lazy routes (`di.load`), When the scope is disposed, Errors, Ambient scope, Testing loaders (`NEXUS_SCOPE` and `existingScope`) and Requirements (`react-router` `^7.9.0` with `future.v8_middleware: true`, or `^8.0.0`; Node 22.12, and 22.22 for React Router 8) belong to the `/react-router-ssr/` guide of Task 27.
 
 - [ ] Step 6: Run everything for the package
 
@@ -16101,6 +16100,8 @@ Co-Authored-By: Claude Opus 5.5 (1M context) <noreply@anthropic.com>"
 ### Task 27: the React Router, React, Next and Vitest pages, and the API pages
 
 Spec 15.1 and react spec 14. Created: `/react-router-ssr/` (inventory row 15, absent on `release/0.4`), `/react/`, `/next/`, `/vitest/`, `/api-hono/`, `/api-express/`, `/api-fastify/`, `/api-react-router/`, `/api-vitest/`, `/api-next/`, `/api-react/`, and the four `@nexusdi/react` error pages.
+
+The `/react-router-ssr/` guide carries the sections moved out of Task 10's README: Typed loaders (`inject`), Lazy routes (`di.load`), When the scope is disposed, Errors, Ambient scope, Testing loaders (`NEXUS_SCOPE` and `existingScope`) and Requirements.
 
 Files:
 
