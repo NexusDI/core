@@ -37,4 +37,7 @@ export default withNextra({
   trailingSlash: true,
   // `/next` for the `/next/` build and empty for the root build (spec §15.4).
   basePath: readBasePath(),
+  // The behaviour catalogue fetches its sidecars under the base path, so the
+  // client needs the path `basePath` set.
+  env: { NEXUS_BASE_PATH: readBasePath() },
 });

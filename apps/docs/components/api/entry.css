@@ -1,0 +1,88 @@
+/*
+ * An API entry: a list item on the article's hull, separated by a hairline.
+ * The name takes the kind's hue and the chip beside it says the kind in words.
+ */
+.nexus-api-entry {
+  margin-block-start: var(--meridian-space-6);
+  padding-block: var(--meridian-space-4) var(--meridian-space-5);
+  border-block-start: 1px solid var(--meridian-rule);
+}
+
+.nexus-api-entry__name {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: var(--meridian-space-3);
+}
+
+.nexus-api-entry :where(h2) {
+  margin: 0;
+  padding: 0;
+  border: 0;
+  color: var(--meridian-kind);
+  overflow-wrap: anywhere;
+  scroll-margin-top: calc(var(--nextra-navbar-height) + 5rem);
+}
+
+.nexus-api-entry h2 code {
+  padding: 0;
+  border: 0;
+  background: none;
+  color: inherit;
+  font-family: var(--meridian-font-display);
+}
+
+.nexus-api-entry__signature :where(pre),
+.nexus-api-entry__signature :where(pre) :where(code) {
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+}
+
+.nexus-api-entry__more :where(summary) {
+  color: var(--meridian-text-secondary);
+  font-size: var(--meridian-text-small);
+}
+
+.nexus-api-entry__states {
+  margin-block-start: var(--meridian-space-4);
+  padding-inline-start: var(--meridian-space-4);
+  border-inline-start: 1px solid
+    color-mix(in oklab, var(--meridian-kind) 45%, transparent);
+}
+
+.nexus-api-entry__states-head {
+  display: flex;
+  align-items: baseline;
+  gap: var(--meridian-space-3);
+  padding-block-end: var(--meridian-space-2);
+  border-block-end: 1px solid var(--meridian-rule);
+}
+
+.nexus-api-entry__states-heading {
+  margin: 0;
+  color: var(--meridian-text);
+  font-family: var(--meridian-font-display);
+  font-size: var(--meridian-text-small);
+}
+
+.nexus-api-entry__states-count {
+  margin: 0 0 0 auto;
+  color: var(--meridian-text-secondary);
+  font-family: var(--meridian-font-mono);
+  font-size: var(--meridian-text-micro);
+}
+
+.nexus-api-entry__states-count-value {
+  font-variant-numeric: tabular-nums;
+}
+
+.nexus-api-entry__states-note,
+.nexus-api-entry__states-silence {
+  margin: var(--meridian-space-3) 0 0;
+  color: var(--meridian-text-tertiary);
+  font-size: var(--meridian-text-small);
+}
+
+.nexus-api-entry__states--silent {
+  border-inline-start-style: dashed;
+}

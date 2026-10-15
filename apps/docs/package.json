@@ -103,6 +103,12 @@
         "options": {
           "cwd": "{projectRoot}"
         }
+      },
+      "test": {
+        "dependsOn": [
+          "^build",
+          "behaviour-data"
+        ]
       }
     }
   },
@@ -127,6 +133,7 @@
     "@shikijs/twoslash": "3.23.0",
     "@tailwindcss/postcss": "^4.3.3",
     "@testing-library/react": "16.3.0",
+    "@testing-library/user-event": "14.6.1",
     "eslint-config-next": "16.3.4",
     "pagefind": "^1.5.2",
     "shiki": "3.23.0",

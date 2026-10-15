@@ -1,0 +1,81 @@
+/*
+ * The filter above an API page's entries. Sticky under the navbar, on the
+ * raised hull, with the cyan edge the release notice uses, so a reader
+ * scrolling a hundred entries keeps the control in reach.
+ */
+.nexus-api-filter {
+  position: sticky;
+  top: var(--nextra-navbar-height);
+  z-index: 1;
+  margin-block-end: var(--meridian-space-5);
+  padding: var(--meridian-space-3) var(--meridian-space-4);
+  border-inline-start: 2px solid var(--meridian-signal-cyan);
+  border-radius: var(--meridian-radius-chip);
+  background: var(--meridian-hull-raised);
+  box-shadow: var(--meridian-elevation-raised);
+}
+
+.nexus-api-filter__row {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--meridian-space-2);
+}
+
+.nexus-api-filter__query {
+  flex: 1 1 12rem;
+  min-inline-size: 0;
+  padding: var(--meridian-space-2) var(--meridian-space-3);
+  border: 1px solid var(--meridian-control-border);
+  border-radius: var(--meridian-radius-control);
+  background: var(--meridian-hull);
+  color: var(--meridian-text);
+  font: inherit;
+}
+
+.nexus-api-filter__kind {
+  cursor: pointer;
+  background: transparent;
+}
+
+.nexus-api-filter__kind[aria-pressed='false'] {
+  color: var(--meridian-text-tertiary);
+  border-color: var(--meridian-rule);
+  border-style: dashed;
+}
+
+/*
+ * An off kind is struck through and its border dashed, so its state reads
+ * without the hue.
+ */
+.nexus-api-filter__kind[aria-pressed='false'] .nexus-api-filter__kind-label {
+  text-decoration: line-through;
+}
+
+.nexus-api-filter__kind-count {
+  font-variant-numeric: tabular-nums;
+}
+
+.nexus-api-filter__count {
+  margin-inline-start: auto;
+  color: var(--meridian-text-secondary);
+  font-family: var(--meridian-font-mono);
+  font-size: var(--meridian-text-micro);
+  font-variant-numeric: tabular-nums;
+}
+
+.nexus-api-filter__empty {
+  margin: var(--meridian-space-3) 0 0;
+  color: var(--meridian-text-secondary);
+}
+
+.nexus-api-filter__clear {
+  padding: 0;
+  border: 0;
+  background: none;
+  color: var(--meridian-signal-cyan);
+  font: inherit;
+  text-decoration: underline;
+  text-underline-offset: 2px;
+  cursor: pointer;
+}
