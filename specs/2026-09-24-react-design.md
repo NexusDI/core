@@ -800,6 +800,11 @@ graph holds database pools and the client graph holds fetch clients.
 
 ### 9.2 Next.js App Router
 
+Moved to 0.5 with `@nexusdi/next` (integrations spec 10.1): the double-evaluation gate
+failed, so 0.4 ships the `/next/` guide and no Next fixture or e2e. The `clientOnly` prop
+of `NexusProvider` ships in 0.4 as built, and the guide shows it; its Next e2e waits for
+0.5 with the rest of this section.
+
 Next renders client components on the server as well. A client container created at
 module level in `app/providers.tsx` would be one object per server process, shared by
 every request's server render, so one user's state could reach another user's HTML. A
@@ -1178,13 +1183,16 @@ Tests:
   `loadContext` (the item of section 9.1), rendering a component that reads a token bound
   `scoped` in the server graph and `singleton` in the client graph, then hydrating with
   no `NEXUS_SCOPE_REQUIRED` and no hydration warning.
-- Next 16 e2e: a fixture with `providers.tsx`, asserting that no client container is
-  created in the server process and that a server component importing `useService`
-  fails with Next's client-reference error.
+- Next 16 e2e (moved to 0.5 with `@nexusdi/next`, integrations spec 10.1): a fixture with
+  `providers.tsx`, asserting that no client container is created in the server process
+  and that a server component importing `useService` fails with Next's client-reference
+  error.
 - HMR e2e (Vite dev server, Playwright): a service edit swaps the container and disposes
   the old one with no `NEXUS_DISPOSED`; a contracts edit (section 12.2); a section module
   edit reloads the page.
-- Peers: the unit and SSR suites run on `react` 19.0 and the latest 19.x.
+- Peers: the unit and SSR suites run on `react` 19.0 and the latest 19.x. The 19.0 leg
+  covers the unit, SSR and hydration suites only, because React Router 8.4 needs `react`
+  19.2.7 or later, so the React Router 8 e2e runs on the latest 19.x alone.
 
 ## 17. Resolved decisions
 

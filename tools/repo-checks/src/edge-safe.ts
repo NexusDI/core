@@ -18,6 +18,8 @@ export const EDGE_PACKAGES = [
   'errors',
   'hono',
   'react-router',
+  // @nexusdi/next moved to 0.5 (integrations spec 10.1). Its folder does
+  // not exist in 0.4, and the check skips an absent folder.
   'next',
 ] as const;
 
