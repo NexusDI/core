@@ -39,6 +39,36 @@ describe('adapter-runtimes job', () => {
     expect(runs).toContain('nx run @nexusdi/bridge-api:test-workers');
   });
 
+  it('runs Deno, Bun and edge-runtime legs, at the versions toolchains.json pins', () => {
+    expect(job.strategy?.matrix?.leg).toEqual([
+      'workerd',
+      'deno',
+      'bun',
+      'edge-runtime',
+    ]);
+    const runs = job.steps.map((s) => s.run ?? '').join('\n');
+    expect(runs).toContain('nx run @nexusdi/bridge-api:runtime-leg --leg=deno');
+    expect(runs).toContain('nx run @nexusdi/bridge-api:runtime-leg --leg=bun');
+    expect(runs).toContain('nx run @nexusdi/bridge-api:test-edge');
+    const pinned = (id: string) =>
+      (
+        JSON.parse(
+          readFileSync(
+            join(workspaceRoot, 'examples/toolchain-matrix/toolchains.json'),
+            'utf-8',
+          ),
+        ) as { toolchains: { id: string; version: string }[] }
+      ).toolchains.find((t) => t.id === id)?.version;
+    const setup = (action: string) =>
+      job.steps.find((s) => s.uses?.startsWith(`${action}@`));
+    expect(setup('denoland/setup-deno')?.with?.['deno-version']).toBe(
+      pinned('deno'),
+    );
+    expect(setup('oven-sh/setup-bun')?.with?.['bun-version']).toBe(
+      pinned('bun'),
+    );
+  });
+
   it('runs on every push and pull request, with no path filter', () => {
     for (const event of ['push', 'pull_request']) {
       expect(ci.on).toHaveProperty(event);

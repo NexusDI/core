@@ -39,18 +39,18 @@ Depends on:
 
 Measured on 2026-10-14 against the npm registry:
 
-| Package                           | Latest  | Other lines in use          | Node engines of the latest    |
-| --------------------------------- | ------- | --------------------------- | ----------------------------- |
-| `hono`                            | 4.13.13 | none                        | `>=16.9.0`                    |
-| `@hono/node-server`               | 2.1.5   | 1.19.x (`latest-1`)         | `>=20`                        |
-| `express`                         | 5.3.0   | 4.22.x (`latest-4`)         | `>=18`                        |
-| `fastify`                         | 5.12.7  | 4.29.x (`four`)             | none declared; LTS.md: 20, 22 |
-| `fastify-plugin`                  | 6.0.1   | 5.1.0                       | none                          |
-| `react-router`                    | 8.4.0   | 7.18.4 (`version-7`)        | `>=22.22.0`                   |
-| `vitest`                          | 5.0.4   | 4.1.x (`V4`); repo on 4.1.9 | `^22.12.0 \|\| ^24 \|\| >=26` |
-| `next`                            | 16.4.1  | 15.5.28                     | `>=20.9.0`                    |
-| `wrangler`                        | 4.151.0 | none                        | `>=22.0.0`                    |
-| `@cloudflare/vitest-pool-workers` | 0.23.0  | none                        | peer `vitest ^4.1.0`          |
+| Package                     | Latest  | Other lines in use          | Node engines of the latest    |
+| --------------------------- | ------- | --------------------------- | ----------------------------- |
+| `hono`                      | 4.13.13 | none                        | `>=16.9.0`                    |
+| `@hono/node-server`         | 2.1.5   | 1.19.x (`latest-1`)         | `>=20`                        |
+| `express`                   | 5.3.0   | 4.22.x (`latest-4`)         | `>=18`                        |
+| `fastify`                   | 5.12.7  | 4.29.x (`four`)             | none declared; LTS.md: 20, 22 |
+| `fastify-plugin`            | 6.0.1   | 5.1.0                       | none                          |
+| `react-router`              | 8.4.0   | 7.18.4 (`version-7`)        | `>=22.22.0`                   |
+| `vitest`                    | 5.0.4   | 4.1.x (`V4`); repo on 4.1.9 | `^22.12.0 \|\| ^24 \|\| >=26` |
+| `next`                      | 16.4.1  | 15.5.28                     | `>=20.9.0`                    |
+| `wrangler`                  | 4.148.0 | none                        | `>=22.0.0`                    |
+| `@cloudflare/vitest-plugin` | 1.3.7   | none                        | peer `vitest ^4.1.0`          |
 
 Prior art: `examples/react-ssr` on `release/0.4`, which still hand-rolls a React Router
 context around one 0.4 container and stays on React Router 7.18.4;
@@ -307,7 +307,7 @@ entry, an Express entry, a Fastify entry and a Workers entry over one module gra
 (section 14). It is the "Meridian app (Hono, backend)" of the demo apps plan.
 
 D7. Edge CI legs run the bridge API's Hono entry on workerd (through
-`@cloudflare/vitest-pool-workers`), Deno, Bun and Vercel's `edge-runtime` VM. Netlify Edge
+`@cloudflare/vitest-plugin`), Deno, Bun and Vercel's `edge-runtime` VM. Netlify Edge
 runs on Deno and gets a "not tested, runs on Deno" row in `/runtimes/` (section 9.8).
 
 D8. A repo-check, `edge-safe.test.ts`, refuses `eval(` and `new Function` in the packages
@@ -1802,9 +1802,10 @@ The package has no ambient mode in 0.4. A fixture's `use()` does not wrap the te
 async context, so an ambient scope would need an `aroundEach` hook around
 `nodeScopes().run`. A later release can add it if users ask.
 
-The fixtures also run inside `@cloudflare/vitest-pool-workers`, whose peer is
-`vitest ^4.1.0`: the bridge API's workerd leg (section 9.8) uses them, which is the reason
-the workspace stays on Vitest 4 while `@nexusdi/vitest` also supports 5.
+The bridge API's workerd leg (section 9.8) runs `@cloudflare/vitest-plugin` 1.3.7, whose
+peer is `vitest ^4.1.0`. Version 1.4.0 adds `^5.0.0`, and was under seven days old when
+the plan pinned the plugin (2026-10-15). The workspace stays on Vitest 4.1.9 for now, and
+`@nexusdi/vitest` supports 4 and 5 either way (the `vitest-5-latest` leg).
 
 ### 8.3 Peers
 
@@ -1841,13 +1842,13 @@ types in `test` callbacks.
 Edge support means the Hono adapter, core, `@nexusdi/node` and `@nexusdi/errors` run on
 each runtime below, and a CI leg proves it with the bridge API's suite:
 
-| Runtime              | Entry                                 | `AsyncLocalStorage`                                                           | Limits that touch NexusDI                                              | CI leg                |
-| -------------------- | ------------------------------------- | ----------------------------------------------------------------------------- | ---------------------------------------------------------------------- | --------------------- |
-| Cloudflare Workers   | `export default app` (Hono's `fetch`) | `node:async_hooks`, default from compat date 2026-08-04, else `nodejs_compat` | 10 ms CPU per request (Free), 1 s global scope, no I/O at global scope | workerd, pool-workers |
-| Vercel Edge          | `hono/vercel` `handle(app)`           | `node:async_hooks`, WinterCG subset                                           | 1 MB gzip (Hobby), no `eval` or `new Function`                         | `edge-runtime` VM     |
-| Deno and Deno Deploy | `Deno.serve(app.fetch)`               | `node:async_hooks`                                                            | none found                                                             | Deno 2.9.6            |
-| Bun                  | `export default app` or `Bun.serve`   | `node:async_hooks`                                                            | none found                                                             | Bun 1.4.2             |
-| Netlify Edge         | Deno, through `hono/netlify`          | `node:async_hooks` (Deno)                                                     | 50 ms CPU per request, 20 MB compressed                                | none; runs on Deno    |
+| Runtime              | Entry                                   | `AsyncLocalStorage`                                                           | Limits that touch NexusDI                                              | CI leg                 |
+| -------------------- | --------------------------------------- | ----------------------------------------------------------------------------- | ---------------------------------------------------------------------- | ---------------------- |
+| Cloudflare Workers   | `export default app` (Hono's `fetch`)   | `node:async_hooks`, default from compat date 2026-08-04, else `nodejs_compat` | 10 ms CPU per request (Free), 1 s global scope, no I/O at global scope | workerd, vitest-plugin |
+| Vercel Edge          | `(req, ctx) => app.fetch(req, {}, ctx)` | `node:async_hooks`, WinterCG subset                                           | 1 MB gzip (Hobby), no `eval` or `new Function`                         | `edge-runtime` VM      |
+| Deno and Deno Deploy | `Deno.serve(app.fetch)`                 | `node:async_hooks`                                                            | none found                                                             | Deno 2.9.6             |
+| Bun                  | `export default app` or `Bun.serve`     | `node:async_hooks`                                                            | none found                                                             | Bun 1.4.2              |
+| Netlify Edge         | Deno, through `hono/netlify`            | `node:async_hooks` (Deno)                                                     | 50 ms CPU per request, 20 MB compressed                                | none; runs on Deno     |
 
 The limits come from "Performance thresholds" (2026-10-14), each a vendor page. Vercel's
 own Edge page now recommends Node and says Next.js 16.3 no longer supports
@@ -1962,15 +1963,18 @@ Evidence for the second row, from the probe on 2026-10-14 (Hono 4.13.13, core an
 `@nexusdi/node` from source, three concurrent requests, each with a `setTimeout` between
 `scopes.run` and `scopes.current()`):
 
-- workerd through wrangler 4.151.0, compatibility date 2026-09-01, no flags: each request
+- workerd through wrangler 4.151.0 (the probe; the leg runs 4.148.0), compatibility date 2026-09-01, no flags: each request
   read its own scope. With compatibility date 2025-06-01 and no flag, the Worker failed to
   start with `No such module "node:async_hooks"`.
 - Bun 1.3.5 and Deno 1.46.3, the versions on the owner's machine: each request read its
   own scope. Deno 1.46 needed the bundle lowered to ES2022 for `await using`. Bun 1.4.2
-  and Deno 2.9.6, the pinned CI versions, stay unverified until the `adapter-runtimes`
-  legs run.
+  and Deno 2.9.6, the pinned CI versions, pass the bridge API's cases with
+  `nodeScopes()` (Task 22, 2026-10-15). Deno 2.9.6 aborts `request.signal` after a
+  successful response (its legacy behaviour, which it logs at start), and the scope is
+  disposed once either way.
 - Vercel documents `async_hooks` as a supported module with the WinterCG subset of
-  `AsyncLocalStorage`. Not run locally; the `edge-runtime` leg tests it.
+  `AsyncLocalStorage`. The `edge-runtime` VM has no `node:async_hooks`, so its leg runs
+  without `nodeScopes()`, and Vercel's own `AsyncLocalStorage` stays unverified.
 
 Cloudflare's `AsyncLocalStorage` omits `enterWith()` and `disable()`, which
 `nodeScopes()` does not call, and does not carry the context through a custom thenable.
@@ -2029,10 +2033,11 @@ report (section 13.6) gains a `hono-worker` fixture that bundles this entry with
   Without it, a streaming body that the runtime cancels disposes through the wrapper's
   `cancel`. The guide sets the flag, and the workerd leg tests an abort with the flag and
   without it; `/runtimes/` states what the second run shows.
-- Vercel Edge: `hono/vercel` passes no execution context, so `keepAlive` does nothing and
-  disposal runs in the response's own lifetime, which Vercel keeps open while the stream
-  is read. Disposers that do I/O after the response are the user's job through
-  `waitUntil` from `@vercel/functions`, which the guide names.
+- Vercel Edge: `hono/vercel`'s `handle(app)` calls `app.fetch(request)` with no execution
+  context, and so does `@hono/vercel` 1.0.1, the package that replaces it. `keepAlive`
+  then finds no `waitUntil`, and a disposer still running after the response can be cut
+  off. The guide exports `(request, context) => app.fetch(request, {}, context)` with
+  Vercel's context, whose `waitUntil` the adapter hands the disposal to, as on Workers.
 - Deno, Bun and Netlify Edge: as on Node.
 
 ### 9.8 CI
@@ -2043,9 +2048,9 @@ A job, `adapter-runtimes`, runs `examples/bridge-api`'s suite on each runtime wi
 | Leg         | Runner                                                                                        | Covers                                                                                                                                            |
 | ----------- | --------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------- |
 | workerd     | `@cloudflare/vitest-plugin` 1.3.7, compat date 2026-09-01, `enable_request_signal` on and off | module-scope build, function-form build with a `fetch` factory, a first request aborted mid-build then a retry, ambient scope, abort, `waitUntil` |
-| Deno        | Deno 2.9.6, `Deno.serve` on port 0                                                            | module-scope build, ambient scope, abort                                                                                                          |
-| Bun         | Bun 1.4.2, `Bun.serve` on port 0                                                              | module-scope build, ambient scope, abort                                                                                                          |
-| Vercel Edge | Vitest's `edge-runtime` environment (`@edge-runtime/vm`)                                      | `app.request()`, ambient scope, no `eval` at runtime                                                                                              |
+| Deno        | Deno 2.9.6, `Deno.serve(app.fetch)` on port 0                                                 | the Node e2e cases, ambient scope, body-end disposal, abort, no execution context                                                                 |
+| Bun         | Bun 1.4.2, `Bun.serve({ fetch: app.fetch })` on port 0                                        | the Node e2e cases, ambient scope, body-end disposal, abort, no execution context                                                                 |
+| Vercel Edge | `@edge-runtime/vm` 5.0.0, the offline graph bundled and dispatched as a `FetchEvent`          | routes, disposal through the event's `waitUntil`, `eval` and `new Function` refused, no `nodeScopes()`                                            |
 
 The workerd leg runs `@cloudflare/vitest-plugin` 1.3.7, the renamed
 `@cloudflare/vitest-pool-workers`, with wrangler 4.148.0, which it depends on, and lists

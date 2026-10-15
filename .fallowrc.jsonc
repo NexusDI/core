@@ -88,6 +88,12 @@
     "examples/bridge-api/e2e/**/*.ts",
     "examples/bridge-api/vitest.e2e.config.ts",
     "examples/bridge-api/vitest.workers.config.ts",
+    // The Deno, Bun and Edge Runtime legs: runtime-leg.mjs runs by path and
+    // bundles smoke.ts, and the edge test bundles entry.ts by path.
+    "examples/bridge-api/vitest.edge.config.ts",
+    "examples/bridge-api/scripts/runtime-leg.mjs",
+    "examples/bridge-api/test/runtime/smoke.ts",
+    "examples/bridge-api/test/edge/entry.ts",
     "examples/bridge-api/bench/*.{ts,mjs}",
     "examples/bridge-api/src/server.*.ts",
     "examples/bridge-api/src/worker.ts",
@@ -444,7 +450,7 @@
     "minTokens": 30,
     "minLines": 3,
 
-    // The figure on 2026-10-15 is 2.05%, after the Hono and React Router
+    // The figure on 2026-10-15 is 2.03%, after the Hono and React Router
     // middleware paths moved into serveWithBody and the adapters' fixture
     // apps left the count. The ceiling is a ratchet,
     // not a target: it fails the run that adds the next copy and is lowered

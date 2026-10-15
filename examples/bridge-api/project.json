@@ -41,6 +41,22 @@
         ],
         "parallel": false
       }
+    },
+    "runtime-leg": {
+      "dependsOn": ["^build"],
+      "executor": "nx:run-commands",
+      "options": {
+        "cwd": "examples/bridge-api",
+        "command": "node scripts/runtime-leg.mjs --leg={args.leg}"
+      }
+    },
+    "test-edge": {
+      "dependsOn": ["^build"],
+      "executor": "nx:run-commands",
+      "options": {
+        "cwd": "examples/bridge-api",
+        "command": "vitest run --config vitest.edge.config.ts"
+      }
     }
   }
 }
