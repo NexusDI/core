@@ -12,7 +12,9 @@ import './popup.css';
  * and writes the page's panels to `public/popups/<page>.json`. This fetches
  * that table when the browser is idle, or at once when a reader first
  * reaches a token, and renders one card, only while a token is open, with
- * the token's `aria-describedby` naming it.
+ * the token's `aria-describedby` naming it. `TypeCards.tsx` mounts it inside
+ * the page, so each page reads its own table. A polite live region says the
+ * type when a keyboard or a virtual cursor opens the card.
  *
  * Every listener is delegated from the document, so a page with thousands of
  * tokens hydrates no component per token. A mouse opens the card on pointer
@@ -33,11 +35,13 @@ import './popup.css';
 const TOKEN = 'button[data-pop]';
 const CARD_ID = 'nexus-type-card';
 
-/** The page's table, fetched once. */
-let table: Promise<Record<string, string>> | null = null;
+type Table = Record<string, string>;
 
-/** The table's path for this page: its URL under the base path. */
-function tablePath(): string {
+/**
+ * The table's path for this page: its route under the base path, as
+ * `tools/mdx-nextra-loader.mjs` names it, and `index` for the home page.
+ */
+export function tablePath(): string {
   const base = process.env.NEXUS_BASE_PATH ?? '';
   const page = window.location.pathname
     .slice(base.length)
@@ -45,11 +49,17 @@ function tablePath(): string {
   return `${base}/popups/${page === '' ? 'index' : page}.json`;
 }
 
-function load(): Promise<Record<string, string>> {
-  table ??= fetch(tablePath()).then((response) =>
-    response.ok ? (response.json() as Promise<Record<string, string>>) : {},
-  );
-  return table;
+async function fetchTable(): Promise<Table> {
+  const response = await fetch(tablePath());
+  if (!response.ok) throw new Error(`${tablePath()}: ${response.status}`);
+  return (await response.json()) as Table;
+}
+
+/** A panel's words, for the live region to speak. */
+function wordsOf(html: string): string {
+  const template = document.createElement('template');
+  template.innerHTML = html;
+  return (template.content.textContent ?? '').replace(/\s+/g, ' ').trim();
 }
 
 const tokenOf = (target: EventTarget | null): HTMLElement | null =>
@@ -73,11 +83,21 @@ export function PagePopover() {
   const [open, setOpen] = useState<{ token: HTMLElement; html: string } | null>(
     null,
   );
+  const [spoken, setSpoken] = useState('');
   const card = useRef<HTMLDivElement>(null);
   const current = useRef<HTMLElement | null>(null);
 
   useEffect(() => {
-    if (!document.querySelector(TOKEN)) return;
+    // This page's table, fetched once per mount. A failed fetch is not kept,
+    // so the next token a reader reaches asks again.
+    let table: Promise<Table> | null = null;
+    const load = (): Promise<Table> => {
+      table ??= fetchTable().catch((error: unknown) => {
+        table = null;
+        throw error;
+      });
+      return table;
+    };
 
     let touch = false;
     let pressingCard = false;
@@ -91,19 +111,31 @@ export function PagePopover() {
       current.current?.removeAttribute('aria-describedby');
       current.current = null;
       setOpen(null);
+      setSpoken('');
     };
-    const show = (token: HTMLElement) => {
+    /**
+     * Opens the card on `token` once the table is in. `speak` is for a
+     * keyboard or a virtual cursor: the live region says the type, since
+     * the token had no description when focus reached it.
+     */
+    const show = (token: HTMLElement, speak: boolean) => {
       clearTimeout(closing);
       if (current.current === token) return;
       current.current?.removeAttribute('aria-describedby');
       current.current = token;
-      void load().then((loaded) => {
-        const html = loaded[token.dataset.pop ?? ''];
-        if (current.current !== token) return;
-        if (html === undefined) return close();
-        token.setAttribute('aria-describedby', CARD_ID);
-        setOpen({ token, html });
-      });
+      load().then(
+        (loaded) => {
+          const html = loaded[token.dataset.pop ?? ''];
+          if (current.current !== token) return;
+          if (html === undefined) return close();
+          token.setAttribute('aria-describedby', CARD_ID);
+          setOpen({ token, html });
+          if (speak) setSpoken(wordsOf(html));
+        },
+        () => {
+          if (current.current === token) close();
+        },
+      );
     };
     const leave = () => {
       clearTimeout(closing);
@@ -131,7 +163,7 @@ export function PagePopover() {
     const onPointerOver = (event: PointerEvent) => {
       if (event.pointerType === 'touch') return;
       const token = tokenOf(event.target);
-      if (token) show(token);
+      if (token) show(token, false);
       else if (inCard(event.target)) clearTimeout(closing);
     };
     const onPointerOut = (event: PointerEvent) => {
@@ -147,7 +179,8 @@ export function PagePopover() {
       const token = tokenOf(event.target);
       if (!token) return;
       hold(token);
-      if (!touch || token.matches(':focus-visible')) show(token);
+      const keyboard = token.matches(':focus-visible');
+      if (!touch || keyboard) show(token, keyboard);
     };
     const onFocusOut = (event: FocusEvent) => {
       if (tokenOf(event.target) !== current.current) return;
@@ -161,7 +194,7 @@ export function PagePopover() {
       // virtual cursor's activation toggle it.
       if (!touch && event.detail !== 0) return;
       if (current.current === token) close();
-      else show(token);
+      else show(token, event.detail === 0);
     };
     const onKeyDown = (event: KeyboardEvent) => {
       touch = false;
@@ -216,10 +249,11 @@ export function PagePopover() {
     window.addEventListener('scroll', onScroll, true);
 
     // The table, while the browser is idle, so the first card shows at once.
+    const prefetch = () => void load().catch(() => undefined);
     const idle =
       typeof window.requestIdleCallback === 'function'
-        ? window.requestIdleCallback(() => void load(), { timeout: 3000 })
-        : window.setTimeout(() => void load(), 500);
+        ? window.requestIdleCallback(prefetch, { timeout: 3000 })
+        : window.setTimeout(prefetch, 500);
 
     return () => {
       close();
@@ -241,16 +275,22 @@ export function PagePopover() {
     if (open && card.current) place(card.current, open.token);
   }, [open]);
 
-  if (!open) return null;
   return (
-    <div
-      className="nexus-type-card twoslash-popup-container x:max-w-2xl!"
-      id={CARD_ID}
-      ref={card}
-      role="tooltip"
-      // The build sanitized this HTML from the compiler's own output
-      // (`tools/popup-fold.mjs`); nothing a reader supplies reaches it.
-      dangerouslySetInnerHTML={{ __html: open.html }}
-    />
+    <>
+      {open && (
+        <div
+          className="nexus-type-card twoslash-popup-container x:max-w-2xl!"
+          id={CARD_ID}
+          ref={card}
+          role="tooltip"
+          // The build sanitized this HTML from the compiler's own output
+          // (`tools/popup-fold.mjs`); nothing a reader supplies reaches it.
+          dangerouslySetInnerHTML={{ __html: open.html }}
+        />
+      )}
+      <div className="nexus-type-card__spoken" role="status" aria-live="polite">
+        {spoken}
+      </div>
+    </>
   );
 }

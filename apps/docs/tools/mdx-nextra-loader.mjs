@@ -29,20 +29,38 @@ const content = join(import.meta.dirname, '..', 'content');
 const popups = join(import.meta.dirname, '..', 'public', 'popups');
 
 /**
- * Where a page's hover table goes: `public/popups/<page>.json`, named after
- * the page's path under `content/`, which `PagePopover.tsx` derives from the
- * page's URL. A page outside `content/` gets none.
+ * Where a page's hover table goes: `public/popups/<route>.json`, named after
+ * the page's route, the path `PagePopover.tsx` reads off the URL. A folder's
+ * `index.mdx` is its folder's route, and `content/index.mdx` is `index`. A
+ * page outside `content/` gets none.
  */
-function tableFor(file) {
+export function tableFor(file) {
   const path = relative(content, file);
   if (path.startsWith('..')) return null;
-  return join(
-    popups,
-    `${path
-      .split(sep)
-      .join('/')
-      .replace(/\.mdx?$/, '')}.json`,
-  );
+  const route = path
+    .split(sep)
+    .join('/')
+    .replace(/\.mdx?$/, '')
+    .replace(/(^|\/)index$/, '');
+  return join(popups, `${route === '' ? 'index' : route}.json`);
+}
+
+/**
+ * A `twoslash` fence, after the loader chain's prelude has run. Nextra
+ * reads exactly this meta.
+ */
+const TWOSLASH = /^\s*`{3,}tsx? twoslash\s*$/m;
+
+/**
+ * The page with `<TypeCards />` at its end when it has a `twoslash` fence.
+ * The card mounts inside the page's own tree, so a client navigation to
+ * another page mounts a new one, which reads that page's table, and a page
+ * without a typed token never loads it (`components/twoslash/TypeCards.tsx`).
+ */
+function withTypeCards(source) {
+  return TWOSLASH.test(source)
+    ? `${source.trimEnd()}\n\n<TypeCards />\n`
+    : source;
 }
 
 /** Writes a page's table, or removes a stale one when the page has none. */
@@ -103,5 +121,5 @@ export default function loader(source) {
     },
   });
 
-  return require(nextraLoader).call(this, source);
+  return require(nextraLoader).call(this, withTypeCards(source));
 }

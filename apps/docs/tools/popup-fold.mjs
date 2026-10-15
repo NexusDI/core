@@ -10,8 +10,9 @@
  * `fold` does for a behaviour case: each panel leaves the tree, its HTML goes
  * once into the page's table under a key, and the token keeps a real
  * `<button>` carrying `data-pop="<key>"`. `mdx-nextra-loader.mjs` writes the
- * table to `public/popups/<page>.json`, and `components/twoslash/PagePopover.tsx`
- * fetches it and shows one card while a token is open.
+ * table to `public/popups/<route>.json`, and
+ * `components/twoslash/PagePopover.tsx` fetches it and shows one card while a
+ * token is open.
  *
  * It runs in Shiki's `root` hook, which runs after every transformer's `code`
  * hook, and Twoslash builds the popups in its `code` hook. Nextra's renderer
@@ -24,16 +25,23 @@
  * from whatever declaration the token resolves to, a third-party `.d.ts`
  * included, and a Markdown link in it becomes an `<a href>` whatever its
  * protocol. `hast-util-sanitize`'s GitHub schema keeps what a rendered README
- * may carry, `javascript:` links out, plus the classes and inline styles Shiki
- * writes. `panelHtml` and its schema are ported from `Evanion/libraries`
- * `apps/docs/tools/popup-panels.mjs` at 670ac27f.
+ * may carry, `javascript:` links out, plus the classes Shiki writes and its
+ * theme variables as inline styles. `panelHtml` and its schema are ported
+ * from `Evanion/libraries` `apps/docs/tools/popup-panels.mjs` at 670ac27f.
  */
 import { defaultSchema, sanitize } from 'hast-util-sanitize';
 import { hastToHtml } from 'shiki';
 
 /**
- * The GitHub schema with any class allowed on any element, and inline styles
- * on the two elements Shiki writes them on.
+ * An inline style made only of Shiki's theme variables, each set to a plain
+ * value: `--shiki-dark:#e1e4e8;--shiki-light-bg:#fff`. Nothing else a style
+ * can carry, a `url()` or a `position`, gets through.
+ */
+const SHIKI_STYLE = /^\s*(?:--shiki-[a-z-]+\s*:\s*[#\w.%-]+\s*;?\s*)+$/i;
+
+/**
+ * The GitHub schema with any class allowed on any element, and Shiki's theme
+ * variables as inline styles on the two elements Shiki writes them on.
  */
 const SCHEMA = (() => {
   const isClassName = (entry) =>
@@ -45,8 +53,8 @@ const SCHEMA = (() => {
     ]),
   );
   attributes['*'] = [...(attributes['*'] ?? []), 'className'];
-  attributes.span = [...(attributes.span ?? []), 'style'];
-  attributes.pre = [...(attributes.pre ?? []), 'style'];
+  attributes.span = [...(attributes.span ?? []), ['style', SHIKI_STYLE]];
+  attributes.pre = [...(attributes.pre ?? []), ['style', SHIKI_STYLE]];
   return { ...defaultSchema, attributes };
 })();
 
