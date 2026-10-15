@@ -291,9 +291,12 @@ function importSpecifier(line: string): string | null {
   return rewritten?.match(/await import\((['"])([^'"]+)\1\);$/)?.[2] ?? null;
 }
 
-/** Whether a fence info string marks the block as a doctest. */
+/**
+ * Whether a fence info string marks the block as a doctest: one that doctest
+ * runs, or a module fence (module-fences.ts), whose marker is `@module`.
+ */
 const isDoctestFence = (info: string): boolean =>
-  info.includes('@import.meta.vitest');
+  info.includes('@import.meta.vitest') || info.split(/\s+/).includes('@module');
 
 /**
  * Rewrites value claims inside fenced code blocks that vite-plugin-doctest

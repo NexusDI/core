@@ -16,6 +16,7 @@ export const PACKAGES = [
   'interceptors',
   'node',
   'testing',
+  'vitest',
   'cli',
 ] as const;
 
@@ -37,6 +38,7 @@ export const SPECS: Readonly<Record<Package, PackageSpec>> = {
   interceptors: { kind: 'sub-package', dev: false },
   node: { kind: 'sub-package', dev: false },
   testing: { kind: 'sub-package', dev: true },
+  vitest: { kind: 'sub-package', dev: true },
   cli: { kind: 'cli', dev: true },
 };
 

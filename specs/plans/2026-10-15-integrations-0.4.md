@@ -14837,6 +14837,14 @@ node-floor:
       working-directory: libs/${{ matrix.lib }}
 ```
 
+Seven of the 15 legs start red on Node 22.12 without three changes, which this step makes before the job lands:
+
+- Lower the doctest modules to the floor: `@nexusdi/doc-examples` runs an oxc transform with a target of node22.12 over each transformed `.md` module, after `moduleFences`, and returns its source map, so a README fence that uses syntax 22.12 lacks (such as `using`), in a doctest fence or a module fence, is lowered before it runs. Lowering `using` imports helpers from `@oxc-project/runtime`, so the step adds it as an exact-pinned root dev dependency at the oxc version rolldown uses.
+- Core's tests check a disposal error by `error.name === 'SuppressedError'` and its `error` and `suppressed` fields, in place of `toBeInstanceOf(SuppressedError)`. Node 22.12 has no global `SuppressedError`, and core throws its own `NexusSuppressedError` there (`runtime/dispose.ts`).
+- `libs/core/src/blueprint/visibility.oracle.test.ts` gets an explicit timeout. Its 600-graph case takes 8.8 s under load against the 5 s default.
+
+Run all 15 legs locally on their floor Node before the job lands in CI, and record each result in the ledger.
+
 Try `--configLoader runner` first. Each lib's `vite.config.ts` imports `@nexusdi/doc-examples` through its `.ts` source, which Node 22.12 cannot load with the default bundle loader (`ERR_UNKNOWN_FILE_EXTENSION`, seen on Task 3). If the runner loader cannot load it either, drop the flag and set `NODE_OPTIONS: --experimental-strip-types` on that step only, with the comment `# Node 22.12 strips types only behind this flag, and vite.config.ts imports @nexusdi/doc-examples as .ts.` Libraries added after this task are added to the matrix by the task that creates them; the check fails until they are.
 
 - [ ] **Step 6: Run the checks and two legs locally**
@@ -14846,8 +14854,8 @@ Expected: PASS.
 Run: `node scripts/adapter-peers.mjs hono-floor && node scripts/adapter-peers.mjs fastify-floor && npm ci`
 Expected: both legs PASS. The final `npm ci` restores the workspace versions. A floor that fails is a spec finding: raise the floor in that adapter's `peerDependencies`, in the spec's section of that adapter, and in this leg, in one commit.
 
-Run: `cd libs/express && PATH=<node 22.12.0 bin>:$PATH npx vitest run --configLoader runner`
-Expected: PASS, which confirms the loader choice of Step 5 before CI runs it.
+Run, for each of the 15 legs: `cd libs/<lib> && PATH=<floor node bin>:$PATH npx vitest run --configLoader runner`
+Expected: PASS on every leg, which confirms the loader choice and the three changes of Step 5 before CI runs them. `--configLoader runner` loads the express and vitest configs on 22.12.0 with no strip-types flag (checked on Task 4).
 
 - [ ] **Step 7: Commit**
 

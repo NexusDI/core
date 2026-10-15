@@ -226,9 +226,12 @@ function parseMarkdownRegions(source, file) {
     const marker = line.match(FENCE);
     if (marker && fence === null) {
       fence = marker[1];
-      // The fence info carries the doctest marker, which is meaningful to the
-      // test run and noise on a docs page.
-      lang = marker[2].replace('@import.meta.vitest', '').trim();
+      // The fence info carries the doctest and module markers, which are
+      // meaningful to the test run and noise on a docs page.
+      lang = marker[2]
+        .replace('@import.meta.vitest', '')
+        .replace('@module', '')
+        .trim();
       body = [];
       blocks++;
       return;

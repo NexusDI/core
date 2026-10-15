@@ -163,6 +163,16 @@ describe('readmeFaults', () => {
     expect(rulesOf({ ...errors, source })).toEqual([]);
   });
 
+  it('counts a module doctest as a doctest', () => {
+    const errors = fixture('errors');
+    const source = errors.source.replace(
+      '```ts @import.meta.vitest',
+      '```ts @import.meta.vitest @module',
+    );
+    expect(source).not.toBe(errors.source);
+    expect(rulesOf({ ...errors, source })).toEqual([]);
+  });
+
   it("asks the root README's doctests to match core's, which runs them", () => {
     const root = fixture('root');
     expect(

@@ -7,6 +7,14 @@ export {
 } from './expect-comments.ts';
 export type { ValueClaim } from './expect-comments.ts';
 export { doctestPreload, expectComments } from './vite-plugin.ts';
+export {
+  MODULE_MARKER,
+  ModuleFenceError,
+  isModuleFence,
+  markModuleFences,
+  moduleFences,
+  restoreModuleFences,
+} from './module-fences.ts';
 export type { DoctestImports } from './vite-plugin.ts';
 export { docExampleSources, docExamples } from './vite-config.ts';
 export {

@@ -49,6 +49,7 @@ module.exports = {
         'interceptors',
         'cli',
         'express',
+        'vitest',
         // Repository scopes, for work that is not one package's. None of
         // them names a project, so nx attributes such a commit to no package
         // and it can contribute at most a patch bump to whatever files it

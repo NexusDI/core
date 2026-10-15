@@ -111,6 +111,10 @@ const LICENSE_LINK = 'https://github.com/NexusDI/core/blob/main/LICENSE';
 const RC_NOTICE =
   /^> (\d+\.\d+) is (?:currently )?(?:in )?(?:a )?release candidate\b/i;
 const DOCTEST = 'ts @import.meta.vitest';
+/** A doctest that runs at module level (doc-examples' module-fences.ts). */
+const MODULE_DOCTEST = 'ts @import.meta.vitest @module';
+const isDoctest = (info: string): boolean =>
+  info === DOCTEST || info === MODULE_DOCTEST;
 const CLAIM = '// -> ';
 const BOLD_LINE = /^\*\*[^*]+\*\*$/;
 const HERO_TAGLINE = /^\s*<p>(.+)<\/p>\s*$/;
@@ -710,7 +714,7 @@ function fenceFaults(file: string, parsed: Parsed): Fault[] {
   const faults: Fault[] = [];
   for (const fence of parsed.fences) {
     const at = `${file}:${fence.start + 1}`;
-    if (fence.info !== DOCTEST && /^(ts|typescript)\b/.test(fence.info))
+    if (!isDoctest(fence.info) && /^(ts|typescript)\b/.test(fence.info))
       faults.push({
         rule: 'doctests',
         message: `${at}: a \`\`\`${fence.info} block is not a doctest; use \`\`\`${DOCTEST}`,
@@ -736,7 +740,7 @@ function regionFileFaults(file: string, parsed: Parsed): Fault[] {
         return (parsed.lines[i] as string).trim();
     return '';
   };
-  for (const fence of parsed.fences.filter((f) => f.info === DOCTEST)) {
+  for (const fence of parsed.fences.filter((f) => isDoctest(f.info))) {
     const at = `${file}:${fence.start + 1}`;
     const open = /^<!-- #region (\S+) -->$/.exec(nonBlank(fence.start - 1, -1));
     const close = /^<!-- #endregion (\S+) -->$/.exec(
@@ -768,7 +772,7 @@ function checkDoctests(
 ): void {
   const kind = kindOf(input.name);
   faults.push(...fenceFaults('README.md', parsed));
-  const doctests = parsed.fences.filter((f) => f.info === DOCTEST);
+  const doctests = parsed.fences.filter((f) => isDoctest(f.info));
   if (kind === 'cli' && doctests.length > 0)
     faults.push({
       rule: 'doctests',
@@ -784,7 +788,7 @@ function checkDoctests(
     });
   if (kind === 'root') {
     const core = parse(input.core ?? '')
-      .fences.filter((f) => f.info === DOCTEST)
+      .fences.filter((f) => isDoctest(f.info))
       .map((f) => f.body.join('\n'));
     for (const fence of doctests)
       if (!core.includes(fence.body.join('\n')))
@@ -810,7 +814,7 @@ function checkInterfaceFirst(
 ): void {
   const kind = kindOf(input.name);
   if (kind === 'root' || kind === 'cli') return;
-  const doctests = parsed.fences.filter((f) => f.info === DOCTEST);
+  const doctests = parsed.fences.filter((f) => isDoctest(f.info));
   const checked = kind === 'core' ? doctests.slice(1) : doctests;
   for (const fence of checked) {
     const body = fence.body.join('\n');

@@ -6,6 +6,7 @@ import {
   doctestPreload,
   expectComments,
 } from './vite-plugin.ts';
+import { moduleFences } from './module-fences.ts';
 
 /**
  * The Vite configuration that makes a package's documented examples run.
@@ -28,11 +29,13 @@ export function docExamples(options: { preamble?: string } = {}) {
   return {
     // `expectComments` is enforce: 'pre', so a `// -> value` claim has already
     // become an assertion by the time doctest extracts the block around it.
-    // `doctestPreload` appends the imports `expectComments` rewrote, after
-    // doctest has commented out the prose.
+    // `moduleFences` uncomments each `@module` fence at module level, and
+    // `doctestPreload` appends the imports `expectComments` rewrote, both
+    // after doctest has commented out the prose.
     plugins: [
       expectComments(imports),
       doctest({ markdown: { preamble: options.preamble ?? '' } }),
+      moduleFences(),
       doctestPreload(imports),
     ],
     // A doc example imports the package by the specifier a reader would write.
