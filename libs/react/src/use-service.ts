@@ -6,6 +6,7 @@ import {
 } from '@nexusdi/core';
 
 import { useNexusContext } from './context.js';
+import { checkTransient } from './plugin.js';
 
 export function useService<T>(
   token: MultiToken<T>,
@@ -19,7 +20,8 @@ export function useService(
   token: InjectionToken<unknown> | MultiToken<unknown>,
   options?: LookupOptions,
 ): unknown {
-  const { resolver, store } = useNexusContext('useService');
+  const { container, resolver, store } = useNexusContext('useService');
+  checkTransient(container, token, options); // before get(): a rejected token builds nothing
   if (token instanceof MultiToken)
     return store.memo(
       resolver,
