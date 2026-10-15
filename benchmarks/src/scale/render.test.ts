@@ -130,12 +130,22 @@ describe('renderAll', () => {
     const at = md.indexOf('## First resolve, mixed');
     const section = md.slice(at, md.indexOf('## Ready, mixed'));
     expect(section).toMatch(
-      /The target is the provider with the largest closure; a first get builds 16 providers at 50, 16 at 200, 16 at 1,000 and 16 at 5,000 \(32%, 8\.0%, 1\.6% and 0\.32% of the graph\)\./,
+      /The target is the provider with the largest closure; a first get builds 16 providers at 50, 16 at 200, 16 at 1,000, 16 at 2,500 and 16 at 5,000 \(32%, 8\.0%, 1\.6%, 0\.64% and 0\.32% of the graph\)\./,
     );
     // Only the first-resolve table carries it.
     expect(md.slice(md.indexOf('## Ready, mixed'))).not.toMatch(
       /largest closure; a first get builds/,
     );
+  });
+  it('says where real-app scale ends and what 5,000 is', () => {
+    const note =
+      '2,500 providers is the scale of the largest applications measured, which hold 1,200 to 2,250 providers of their own. 5,000 is headroom past every application measured; no claim cites it.';
+    expect(out.files['scale.md']).toContain(note);
+    expect(out.readmeSection).toContain(note);
+    // Also without a timing run.
+    const only = renderAll({ scale: fixtureScale() });
+    expect(only.files['scale.md']).toContain(note);
+    expect(only.readmeSection).toContain(note);
   });
   it('is deterministic', () => {
     expect(renderAll(input())).toEqual(out);

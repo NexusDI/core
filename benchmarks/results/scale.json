@@ -94,6 +94,27 @@
     },
     {
       "shape": "mixed",
+      "size": 2500,
+      "hash": "aa2baa6f0cb0",
+      "providers": 2500,
+      "edges": 6234,
+      "modules": 397,
+      "maxDepth": 42,
+      "meanFanOut": 2.49,
+      "maxFanOut": 47,
+      "maxFanIn": 434,
+      "kinds": {
+        "class": 2000,
+        "factory": 250,
+        "async-factory": 0,
+        "value": 125,
+        "alias": 125
+      },
+      "target": 2420,
+      "targetClosure": 342
+    },
+    {
+      "shape": "mixed",
       "size": 5000,
       "hash": "b566e9011259",
       "providers": 5000,
@@ -178,6 +199,27 @@
     },
     {
       "shape": "wide",
+      "size": 2500,
+      "hash": "3ec0c5a1ba7b",
+      "providers": 2500,
+      "edges": 4000,
+      "modules": 1,
+      "maxDepth": 1,
+      "meanFanOut": 1.6,
+      "maxFanOut": 2,
+      "maxFanIn": 18,
+      "kinds": {
+        "class": 2500,
+        "factory": 0,
+        "async-factory": 0,
+        "value": 0,
+        "alias": 0
+      },
+      "target": 500,
+      "targetClosure": 3
+    },
+    {
+      "shape": "wide",
       "size": 5000,
       "hash": "39f1234937b6",
       "providers": 5000,
@@ -252,6 +294,27 @@
       "maxFanIn": 8,
       "kinds": {
         "class": 1000,
+        "factory": 0,
+        "async-factory": 0,
+        "value": 0,
+        "alias": 0
+      },
+      "target": 99,
+      "targetClosure": 100
+    },
+    {
+      "shape": "deep",
+      "size": 2500,
+      "hash": "6cfe2249e512",
+      "providers": 2500,
+      "edges": 3951,
+      "modules": 1,
+      "maxDepth": 99,
+      "meanFanOut": 1.58,
+      "maxFanOut": 2,
+      "maxFanIn": 8,
+      "kinds": {
+        "class": 2500,
         "factory": 0,
         "async-factory": 0,
         "value": 0,
@@ -346,6 +409,27 @@
     },
     {
       "shape": "modular",
+      "size": 2500,
+      "hash": "44db90b24802",
+      "providers": 2500,
+      "edges": 3996,
+      "modules": 250,
+      "maxDepth": 45,
+      "meanFanOut": 1.6,
+      "maxFanOut": 2,
+      "maxFanIn": 27,
+      "kinds": {
+        "class": 2500,
+        "factory": 0,
+        "async-factory": 0,
+        "value": 0,
+        "alias": 0
+      },
+      "target": 2489,
+      "targetClosure": 144
+    },
+    {
+      "shape": "modular",
       "size": 5000,
       "hash": "a4cf51a0b4ea",
       "providers": 5000,
@@ -430,6 +514,27 @@
     },
     {
       "shape": "mixed-async",
+      "size": 2500,
+      "hash": "ca2c726c5efc",
+      "providers": 2500,
+      "edges": 6234,
+      "modules": 397,
+      "maxDepth": 42,
+      "meanFanOut": 2.49,
+      "maxFanOut": 47,
+      "maxFanIn": 434,
+      "kinds": {
+        "class": 2000,
+        "factory": 125,
+        "async-factory": 125,
+        "value": 125,
+        "alias": 125
+      },
+      "target": 2420,
+      "targetClosure": 342
+    },
+    {
+      "shape": "mixed-async",
       "size": 5000,
       "hash": "3e91cd1ed6ed",
       "providers": 5000,
@@ -476,6 +581,13 @@
       "library": "awilix",
       "variant": "plain",
       "shape": "mixed",
+      "size": 2500,
+      "outcome": "pass"
+    },
+    {
+      "library": "awilix",
+      "variant": "plain",
+      "shape": "mixed",
       "size": 5000,
       "outcome": "pass"
     },
@@ -503,6 +615,13 @@
     {
       "library": "awilix",
       "variant": "plain",
+      "shape": "wide",
+      "size": 2500,
+      "outcome": "pass"
+    },
+    {
+      "library": "awilix",
+      "variant": "plain",
       "shape": "deep",
       "size": 50,
       "outcome": "pass"
@@ -524,6 +643,13 @@
     {
       "library": "awilix",
       "variant": "plain",
+      "shape": "deep",
+      "size": 2500,
+      "outcome": "pass"
+    },
+    {
+      "library": "awilix",
+      "variant": "plain",
       "shape": "modular",
       "size": 50,
       "outcome": "pass"
@@ -540,6 +666,13 @@
       "variant": "plain",
       "shape": "modular",
       "size": 1000,
+      "outcome": "pass"
+    },
+    {
+      "library": "awilix",
+      "variant": "plain",
+      "shape": "modular",
+      "size": 2500,
       "outcome": "pass"
     },
     {
@@ -567,6 +700,14 @@
       "message": "awilix 13.0.5 resolves synchronously, and its README sends asynchronous init to awilix-manager (https://github.com/jeffijoe/awilix#ecosystem)."
     },
     {
+      "library": "awilix",
+      "variant": "plain",
+      "shape": "mixed-async",
+      "size": 2500,
+      "outcome": "not-applicable",
+      "message": "awilix 13.0.5 resolves synchronously, and its README sends asynchronous init to awilix-manager (https://github.com/jeffijoe/awilix#ecosystem)."
+    },
+    {
       "library": "inversify",
       "variant": "decorated",
       "shape": "mixed",
@@ -585,6 +726,13 @@
       "variant": "decorated",
       "shape": "mixed",
       "size": 1000,
+      "outcome": "pass"
+    },
+    {
+      "library": "inversify",
+      "variant": "decorated",
+      "shape": "mixed",
+      "size": 2500,
       "outcome": "pass"
     },
     {
@@ -618,6 +766,13 @@
     {
       "library": "inversify",
       "variant": "decorated",
+      "shape": "wide",
+      "size": 2500,
+      "outcome": "pass"
+    },
+    {
+      "library": "inversify",
+      "variant": "decorated",
       "shape": "deep",
       "size": 50,
       "outcome": "pass"
@@ -634,6 +789,13 @@
       "variant": "decorated",
       "shape": "deep",
       "size": 1000,
+      "outcome": "pass"
+    },
+    {
+      "library": "inversify",
+      "variant": "decorated",
+      "shape": "deep",
+      "size": 2500,
       "outcome": "pass"
     },
     {
@@ -660,6 +822,13 @@
     {
       "library": "inversify",
       "variant": "decorated",
+      "shape": "modular",
+      "size": 2500,
+      "outcome": "pass"
+    },
+    {
+      "library": "inversify",
+      "variant": "decorated",
       "shape": "mixed-async",
       "size": 50,
       "outcome": "pass"
@@ -679,6 +848,13 @@
       "outcome": "pass"
     },
     {
+      "library": "inversify",
+      "variant": "decorated",
+      "shape": "mixed-async",
+      "size": 2500,
+      "outcome": "pass"
+    },
+    {
       "library": "needle-di",
       "variant": "decorated",
       "shape": "mixed",
@@ -697,6 +873,13 @@
       "variant": "decorated",
       "shape": "mixed",
       "size": 1000,
+      "outcome": "pass"
+    },
+    {
+      "library": "needle-di",
+      "variant": "decorated",
+      "shape": "mixed",
+      "size": 2500,
       "outcome": "pass"
     },
     {
@@ -730,6 +913,13 @@
     {
       "library": "needle-di",
       "variant": "decorated",
+      "shape": "wide",
+      "size": 2500,
+      "outcome": "pass"
+    },
+    {
+      "library": "needle-di",
+      "variant": "decorated",
       "shape": "deep",
       "size": 50,
       "outcome": "pass"
@@ -746,6 +936,13 @@
       "variant": "decorated",
       "shape": "deep",
       "size": 1000,
+      "outcome": "pass"
+    },
+    {
+      "library": "needle-di",
+      "variant": "decorated",
+      "shape": "deep",
+      "size": 2500,
       "outcome": "pass"
     },
     {
@@ -772,6 +969,13 @@
     {
       "library": "needle-di",
       "variant": "decorated",
+      "shape": "modular",
+      "size": 2500,
+      "outcome": "pass"
+    },
+    {
+      "library": "needle-di",
+      "variant": "decorated",
       "shape": "mixed-async",
       "size": 50,
       "outcome": "pass"
@@ -791,6 +995,13 @@
       "outcome": "pass"
     },
     {
+      "library": "needle-di",
+      "variant": "decorated",
+      "shape": "mixed-async",
+      "size": 2500,
+      "outcome": "pass"
+    },
+    {
       "library": "nexusdi",
       "variant": "plain",
       "shape": "mixed",
@@ -809,6 +1020,13 @@
       "variant": "plain",
       "shape": "mixed",
       "size": 1000,
+      "outcome": "pass"
+    },
+    {
+      "library": "nexusdi",
+      "variant": "plain",
+      "shape": "mixed",
+      "size": 2500,
       "outcome": "pass"
     },
     {
@@ -842,6 +1060,13 @@
     {
       "library": "nexusdi",
       "variant": "plain",
+      "shape": "wide",
+      "size": 2500,
+      "outcome": "pass"
+    },
+    {
+      "library": "nexusdi",
+      "variant": "plain",
       "shape": "deep",
       "size": 50,
       "outcome": "pass"
@@ -858,6 +1083,13 @@
       "variant": "plain",
       "shape": "deep",
       "size": 1000,
+      "outcome": "pass"
+    },
+    {
+      "library": "nexusdi",
+      "variant": "plain",
+      "shape": "deep",
+      "size": 2500,
       "outcome": "pass"
     },
     {
@@ -884,6 +1116,13 @@
     {
       "library": "nexusdi",
       "variant": "plain",
+      "shape": "modular",
+      "size": 2500,
+      "outcome": "pass"
+    },
+    {
+      "library": "nexusdi",
+      "variant": "plain",
       "shape": "mixed-async",
       "size": 50,
       "outcome": "pass"
@@ -903,6 +1142,13 @@
       "outcome": "pass"
     },
     {
+      "library": "nexusdi",
+      "variant": "plain",
+      "shape": "mixed-async",
+      "size": 2500,
+      "outcome": "pass"
+    },
+    {
       "library": "tsyringe",
       "variant": "decorated",
       "shape": "mixed",
@@ -921,6 +1167,13 @@
       "variant": "decorated",
       "shape": "mixed",
       "size": 1000,
+      "outcome": "pass"
+    },
+    {
+      "library": "tsyringe",
+      "variant": "decorated",
+      "shape": "mixed",
+      "size": 2500,
       "outcome": "pass"
     },
     {
@@ -954,6 +1207,13 @@
     {
       "library": "tsyringe",
       "variant": "decorated",
+      "shape": "wide",
+      "size": 2500,
+      "outcome": "pass"
+    },
+    {
+      "library": "tsyringe",
+      "variant": "decorated",
       "shape": "deep",
       "size": 50,
       "outcome": "pass"
@@ -975,6 +1235,13 @@
     {
       "library": "tsyringe",
       "variant": "decorated",
+      "shape": "deep",
+      "size": 2500,
+      "outcome": "pass"
+    },
+    {
+      "library": "tsyringe",
+      "variant": "decorated",
       "shape": "modular",
       "size": 50,
       "outcome": "pass"
@@ -991,6 +1258,13 @@
       "variant": "decorated",
       "shape": "modular",
       "size": 1000,
+      "outcome": "pass"
+    },
+    {
+      "library": "tsyringe",
+      "variant": "decorated",
+      "shape": "modular",
+      "size": 2500,
       "outcome": "pass"
     },
     {
@@ -1014,6 +1288,14 @@
       "variant": "decorated",
       "shape": "mixed-async",
       "size": 1000,
+      "outcome": "not-applicable",
+      "message": "tsyringe 4.10.0 declares no async resolution: resolve() returns the instance and the README documents no async provider."
+    },
+    {
+      "library": "tsyringe",
+      "variant": "decorated",
+      "shape": "mixed-async",
+      "size": 2500,
       "outcome": "not-applicable",
       "message": "tsyringe 4.10.0 declares no async resolution: resolve() returns the instance and the README documents no async provider."
     }
@@ -1042,6 +1324,14 @@
       "size": 1000,
       "minified": 140876,
       "gzip": 28236
+    },
+    {
+      "library": "awilix",
+      "variant": "plain",
+      "shape": "mixed",
+      "size": 2500,
+      "minified": 359800,
+      "gzip": 65454
     },
     {
       "library": "awilix",
@@ -1079,6 +1369,14 @@
       "library": "inversify",
       "variant": "decorated",
       "shape": "mixed",
+      "size": 2500,
+      "minified": 598953,
+      "gzip": 106247
+    },
+    {
+      "library": "inversify",
+      "variant": "decorated",
+      "shape": "mixed",
       "size": 5000,
       "minified": 1124064,
       "gzip": 193288
@@ -1106,6 +1404,14 @@
       "size": 1000,
       "minified": 359918,
       "gzip": 26865
+    },
+    {
+      "library": "needle-di",
+      "variant": "decorated",
+      "shape": "mixed",
+      "size": 2500,
+      "minified": 894761,
+      "gzip": 62442
     },
     {
       "library": "needle-di",
@@ -1143,6 +1449,14 @@
       "library": "nexusdi",
       "variant": "plain",
       "shape": "mixed",
+      "size": 2500,
+      "minified": 521119,
+      "gzip": 97815
+    },
+    {
+      "library": "nexusdi",
+      "variant": "plain",
+      "shape": "mixed",
       "size": 5000,
       "minified": 999443,
       "gzip": 177279
@@ -1170,6 +1484,14 @@
       "size": 1000,
       "minified": 178465,
       "gzip": 35708
+    },
+    {
+      "library": "tsyringe",
+      "variant": "decorated",
+      "shape": "mixed",
+      "size": 2500,
+      "minified": 425268,
+      "gzip": 76082
     },
     {
       "library": "tsyringe",

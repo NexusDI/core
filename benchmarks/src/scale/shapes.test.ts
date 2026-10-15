@@ -325,9 +325,11 @@ describe.each(SIZES)('mixed at %i over 32 seeds', (n) => {
     'has median depth and target share inside the bands',
     () => {
       const depth = median(graphs.map(collapsedDepth));
-      const share = median(
-        graphs.map((g) => describeGraph(g).targetClosure / n),
-      );
+      // The measured bands are whole percents.
+      const share =
+        Math.round(
+          median(graphs.map((g) => describeGraph(g).targetClosure / n)) * 100,
+        ) / 100;
       expect(depth).toBeGreaterThanOrEqual(band.depth[0]);
       expect(depth).toBeLessThanOrEqual(band.depth[1]);
       expect(share).toBeGreaterThanOrEqual(band.closure[0]);
@@ -494,6 +496,7 @@ describe('committed hashes', () => {
       'f8b42741a272',
       '90df99d9279c',
       '939ca26eb015',
+      '3ec0c5a1ba7b',
       '39f1234937b6',
     ]);
   });
@@ -502,6 +505,7 @@ describe('committed hashes', () => {
       'b699102e63db',
       '51192d61165d',
       '52f6eba9dafb',
+      '6cfe2249e512',
       'c2318eb9e719',
     ]);
   });
@@ -510,6 +514,7 @@ describe('committed hashes', () => {
       'd5b8307f3e51',
       '43b9dac1a426',
       'fe96ee84e0db',
+      'aa2baa6f0cb0',
       'b566e9011259',
     ]);
   });
@@ -518,6 +523,7 @@ describe('committed hashes', () => {
       'ece185340786',
       '491fc1116fa2',
       'e894b28e87ca',
+      'ca2c726c5efc',
       '3e91cd1ed6ed',
     ]);
   });
@@ -526,6 +532,7 @@ describe('committed hashes', () => {
       'c40c06b1d07d',
       '354dcd425810',
       '0477fd9a8552',
+      '44db90b24802',
       'a4cf51a0b4ea',
     ]);
   });

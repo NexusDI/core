@@ -251,7 +251,7 @@ describe('warm-up samples', () => {
 });
 
 describe('toScaleGrowth and toScaleMarginal', () => {
-  const sizes = [50, 200, 1000, 5000];
+  const sizes = [50, 200, 1000, 2500, 5000];
   const rounds = [1, 2, 3, 4, 5, 6];
   const timesAt = (size: number) =>
     rounds.map((r) => r * (100_000 + 50 * size));
@@ -270,15 +270,16 @@ describe('toScaleGrowth and toScaleMarginal', () => {
     expect(startup.map((x) => [x.from, x.to])).toEqual([
       [50, 200],
       [200, 1000],
-      [1000, 5000],
+      [1000, 2500],
+      [2500, 5000],
     ]);
-    expect(g.filter((x) => x.metric === 'ready')).toHaveLength(3);
+    expect(g.filter((x) => x.metric === 'ready')).toHaveLength(4);
     expect(startup[2]?.exponent).toBeCloseTo(
       localExponent(
         data.blocks[0]?.cells[2]?.startup ?? [],
         data.blocks[0]?.cells[3]?.startup ?? [],
         1000,
-        5000,
+        2500,
         1,
       ).exponent,
       9,
@@ -291,7 +292,7 @@ describe('toScaleGrowth and toScaleMarginal', () => {
     const startup = m.find((x) => x.metric === 'startup');
     const cells = data.blocks[0]?.cells ?? [];
     expect(startup?.perProvider).toBeCloseTo(
-      (median(cells[3]?.startup ?? []) - median(cells[2]?.startup ?? [])) /
+      (median(cells[4]?.startup ?? []) - median(cells[2]?.startup ?? [])) /
         4000,
       9,
     );
@@ -299,11 +300,11 @@ describe('toScaleGrowth and toScaleMarginal', () => {
   });
 
   it('pairs only sizes that are adjacent, never across a missing one', () => {
-    // 200 failed: 50 and 1,000 are not neighbours, but 1,000 and 5,000 are.
+    // 200 failed: 50 and 1,000 are not neighbours, but 1,000 and 2,500 are.
     const gap = raw(
       block(
         'mixed',
-        [50, 1000, 5000].map((n) =>
+        [50, 1000, 2500].map((n) =>
           cell('nexusdi', 'plain', n, flat([1, 2, 3])),
         ),
       ),
@@ -312,7 +313,7 @@ describe('toScaleGrowth and toScaleMarginal', () => {
       toScaleGrowth(gap, 1)
         .filter((x) => x.metric === 'startup')
         .map((x) => [x.from, x.to]),
-    ).toEqual([[1000, 5000]]);
+    ).toEqual([[1000, 2500]]);
   });
 
   it('skips a library-variant that lacks 1,000 or 5,000', () => {

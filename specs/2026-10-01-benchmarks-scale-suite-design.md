@@ -28,7 +28,10 @@ retained heap and bundle bytes, each against provider count.
 
 ## 2. Decisions
 
-1. Sizes are 50, 200, 1,000 and 5,000 providers.
+1. Sizes are 50, 200, 1,000, 2,500 and 5,000 providers. 2,500 is real-app scale: the
+   largest applications measured hold 1,200 to 2,250 providers of their own, more with
+   library providers. 5,000 is headroom past every application measured, and no README,
+   docs or post claim cites it.
 2. Shapes are `wide`, `mixed` and `mixed-async` (section 3). `mixed` is the realistic
    shape and the headline, calibrated against 22 measured applications (section 15).
    `wide` is the single-module control: no library needs a module form, so no departure
@@ -56,7 +59,7 @@ retained heap and bundle bytes, each against provider count.
    child checks the dependency digest, singleton identity, one construction per provider
    and each provider's kind (section 5). A cell that fails is recorded with its outcome and
    never timed.
-9. One fresh-process block per shape holds all four sizes, so drift on the runner falls
+9. One fresh-process block per shape holds every size, so drift on the runner falls
    evenly on every size, and growth exponents come from paired per-round ratios between
    sizes (section 6.4).
 10. `mixed` runs 1,000 measured rounds, the published minimum of section 14.4. `wide` and
@@ -456,8 +459,9 @@ NexusDI. The suite publishes one local exponent per adjacent pair of sizes:
 `b(lo, hi) = log(R) / log(hi / lo)`, where `R` is `pairedRatio(t_hi, t_lo, seed)`, the
 median over rounds of the same library's time at `hi` over its time at `lo` in the same
 round. The interval is the ratio's bootstrap interval through the same transform. The
-exponent table shows `b(50, 200)`, `b(200, 1,000)` and `b(1,000, 5,000)` for `startup`
-and `ready`; the text reads growth from `b(1,000, 5,000)`. `pairedRatio` is `bench-kit`'s,
+exponent table shows `b(50, 200)`, `b(200, 1,000)`, `b(1,000, 2,500)` and
+`b(2,500, 5,000)` for `startup` and `ready`; the text reads growth from `b(1,000, 2,500)`,
+the range of real apps, and calls `b(2,500, 5,000)` headroom. `pairedRatio` is `bench-kit`'s,
 so the suite adds no bootstrap code.
 
 The sizes live in one list, `SIZES` in `src/scale/config.ts`; the exponent table has one
@@ -487,8 +491,8 @@ for `startup` and in bytes for `heap-ready`.
 
 ### 7.1 Fresh-process blocks
 
-One block per shape, holding every passing cell of that shape at all four sizes: 20
-participants on `wide` and `mixed`, 12 on `mixed-async`. One round spawns one child per
+One block per shape, holding every passing cell of that shape at every size: 25
+participants on `wide` and `mixed`, 15 on `mixed-async`. One round spawns one child per
 participant, one at a time, in the round's `orderFor(round, participants, seed)` row, and
 waits for each to exit. 10 warm-up rounds run first and are recorded in the raw file.
 Measured rounds follow: 1,000 on `mixed`, 200 on `wide` and `mixed-async`.
@@ -580,7 +584,7 @@ interface ScaleFile {
 }
 ```
 
-`cells` covers every shape at 50, 200 and 1,000, and `mixed` at 5,000 (section 10 gives
+`cells` covers every shape at 50, 200, 1,000 and 2,500, and `mixed` at 5,000 (section 10 gives
 the reason). Rounding keeps the file identical across machines whose last floating-point
 bits differ.
 
@@ -701,8 +705,7 @@ Each library gains:
 
 `src/scale/render.ts` reads `scale.json` and the newest `results/scale/` file and writes:
 
-- `results/scale.md`: one `startup` table per shape, rows the five libraries, columns the
-  four sizes, each cell `median ms` and, for competitors, `ratio [low, high]`, with the
+- `results/scale.md`: one `startup` table per shape, rows the five libraries, columns the sizes, each cell `median ms` and, for competitors, `ratio [low, high]`, with the
   shape's round count in the caption; the same for `first-resolve` and `ready` on `mixed`,
   the `first-resolve` caption also stating the size of the target's closure at each size;
   the phase table (`load`, `create`, `first-get`, `rest` medians) for `mixed` beside the
@@ -735,8 +738,8 @@ spec), which can link the page or read the file.
 `check` gains:
 
 1. `node src/scale/deterministic.ts --check`: generates every graph, renders and compiles
-   every cell of section 8.1's coverage, verifies it, bundles `mixed` at the four sizes,
-   and fails when `scale.json` changed. It compiles 69 cells at 50 to 1,000 providers and
+   every cell of section 8.1's coverage, verifies it, bundles `mixed` at every size,
+   and fails when `scale.json` changed. It compiles 92 cells at 50 to 2,500 providers and
    5 at 5,000, run four at a time on the runner's four cores.
 2. `node src/scale/render.ts --check`.
 3. `node src/scale/timings.ts --quick --sizes=50 --shapes=mixed`: 3 warm-up and 10
@@ -749,7 +752,7 @@ spec), which can link the page or read the file.
 `size.json` today.
 
 5,000-provider equivalence for `wide`, `deep`, `modular` and `mixed-async` stays out of
-the pull request job: 18 more 5,000-provider compiles. The timing job verifies every cell it times, at every
+the pull request job: 15 more 5,000-provider compiles. The timing job verifies every cell it times, at every
 size. It fails before sampling when a NexusDI cell does not pass, when a competitor cell
 fails at n = 50 or with an equivalence fault, or when a cell's outcome contradicts
 `scale.json`; a competitor cell that passes at n = 50 and fails at a larger size is
@@ -775,20 +778,20 @@ In that design each shape's sizes run in one job, so every point on a curve come
 one machine.
 
 The estimate for one full run on the rc.0 runner class that this section started from, kept
-here because the first run disproved it: A round of five libraries at all four
-sizes takes about 2.4 s (spawns of about 60, 70, 100 and 250 ms by size); a `mixed-async`
+here because the first run disproved it: a round of five libraries at four sizes takes
+about 2.4 s (spawns of about 60, 70, 100 and 250 ms by size, and about 155 ms at 2,500); a `mixed-async`
 round of three about 1.4 s. All five shapes run; `wide`, `deep` and `modular` each
 take the `wide` figure.
 
-| Step                                                         | Minutes  |
-| ------------------------------------------------------------ | -------- |
-| Render, compile, bundle and verify 92 cells, four at a time  | 9        |
-| `mixed` block, 1,010 rounds of 20 spawns                     | 40       |
-| `wide`, `deep` and `modular` blocks, 210 rounds of 20 spawns | 27       |
-| `mixed-async` block, 210 rounds of 12 spawns                 | 5        |
-| Steady `get()`, four sizes                                   | 2        |
-| Statistics and write                                         | 1        |
-| Total                                                        | about 84 |
+| Step                                                         | Minutes   |
+| ------------------------------------------------------------ | --------- |
+| Render, compile, bundle and verify 97 cells, four at a time  | 13        |
+| `mixed` block, 1,010 rounds of 25 spawns                     | 54        |
+| `wide`, `deep` and `modular` blocks, 210 rounds of 25 spawns | 33        |
+| `mixed-async` block, 210 rounds of 15 spawns                 | 7         |
+| Steady `get()`, five sizes                                   | 4         |
+| Statistics and write                                         | 1         |
+| Total                                                        | about 112 |
 
 The per-spawn figures start from rc.0's cold starts (27 to 82 ms) and add load and ready
 time grown from Meridian-8's in-process figures; the first run records the real duration
@@ -900,7 +903,7 @@ execArgv)` from `cold-start.ts`; `cold-start.test.ts` stays unchanged and green.
     `first-resolve` and `startup` equal the sums of their phases per round; heap figures
     exclude code space (a fake that compiles a large function changes `code_space` and
     leaves `heap-ready` within 1%); a fake whose counts fall short exits 1; one block
-    holds all four sizes and its rounds follow `orderFor`; warm-up rounds are excluded
+    holds every size and its rounds follow `orderFor`; warm-up rounds are excluded
     from `measured`; a child that exits 1 before sending rejects with its stderr.
 14. `worker.mjs` for `get-cycle`. Tests: the fake worker answers calibrate and sample;
     the cycle visits every entry in order; `checkFloor` fails a 1 ns median.
@@ -962,7 +965,7 @@ Package APIs below were read from inversify 8.2.3 (`@inversifyjs/container`), ts
    NexusDI has the largest fixed cost, so one exponent would flatter it. Local exponents
    per adjacent size pair, from paired per-round ratios, replace it; `ols` and the
    `bench-kit` change go with it.
-5. Blocks. One block per shape holds all four sizes, so runner drift falls on every size
+5. Blocks. One block per shape holds every size, so runner drift falls on every size
    alike and the exponents come from paired rounds.
 6. Module form. tsyringe documents `@registry([...])` for grouping registrations, so its
    renderer uses one registry class per module and needs no departure. awilix and
@@ -1124,10 +1127,17 @@ target closure feeds only `first-resolve`, which has no growth exponent, and
 
 ### 15.4 Sizes
 
-The size list is `SIZES` in `src/scale/config.ts`. The census found no app above 2,249
-providers, so 5,000 is twice anything measured. The owner decides whether to add 2,500, the
-size of the largest real apps, and keep 5,000 as headroom, or to replace 5,000. Adding a
-size is one entry in the list plus its committed hashes and a band row in
-`shapes.test.ts`; the exponent table gains the columns of its neighbours, and per-provider
-figures stay on 1,000 to 5,000. README, docs and post claims would stop at 2,500 and state
-that 5,000 is headroom past every app measured.
+The size list is `SIZES` in `src/scale/config.ts`: 50, 200, 1,000, 2,500 and 5,000. The
+census found no app above 2,249 providers, and library providers add 5 to 40%, so the
+largest real container is about 2,500 to 3,000. The owner ruled that 2,500 is added and
+5,000 stays as headroom: 2,500 is the size of the largest real apps, and 5,000 is twice
+anything measured. README, docs and post claims stop at 2,500, and the rendered page and
+the results README say so. Adding a size is one entry in the list plus its committed hashes
+and a band row in `shapes.test.ts`; the exponent table gains the columns of its neighbours,
+and per-provider figures stay on 1,000 to 5,000 (`PER_PROVIDER`).
+
+The estimates of section 10.2 for five sizes are 112 minutes for one `scale-timings` job
+(about 120 with the heavier calibrated `mixed`), 30 minutes under its limit, against about
+84 minutes for four sizes. They are estimates: the first run after the budget follow-up
+measures the real figure, and if it passes 120 minutes `wide`, `deep` and `modular` move to
+a second job.
