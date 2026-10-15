@@ -172,6 +172,10 @@ async function mergeCpu(
   return { cpuProfile: { profile, offsetMs: aligned.offsetMs } };
 }
 
+/** The fix line of a create or load that core refused before it compiled (spec 9.5). */
+const BEFORE_COMPILE_FIX =
+  'Pass a module made with defineModule() as the entry and to --load, and NexusDI plugins to --plugins; the error above names the value core refused.';
+
 /** Prints the table on stdout unless --quiet. */
 async function printTable(
   io: Io,
@@ -263,13 +267,14 @@ export async function runProfile(
     } else {
       const failed = partial.runs.find((r) => r.ok === false);
       const detail = describeFailure(outcome.error);
-      await writeTo(
-        io.stderr,
-        `nexusdi: ${failed?.kind ?? 'create'} failed:\n${detail}\n`,
-      );
       // A run that failed before it compiled, or no run at all, is an input error
       // (spec 9.5, plan choice 10). The profiler's data decides; no error code is read.
-      if (failed === undefined || failed.compile === null) {
+      const input = failed === undefined || failed.compile === null;
+      await writeTo(
+        io.stderr,
+        `nexusdi: ${failed?.kind ?? 'create'} failed:\n${detail}\n${input ? `  ${BEFORE_COMPILE_FIX}\n` : ''}`,
+      );
+      if (input) {
         code = 2;
         break;
       }
