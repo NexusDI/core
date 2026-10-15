@@ -8,7 +8,7 @@
 
 **Tech Stack:** Next 16.3.4, Nextra 4.6.1, React 19.3.0, twoslash 0.3.9, shiki and `@shikijs/twoslash` 3.23.0, TypeScript 6.0.3, Vitest 4, Playwright, Nx 23.
 
-**Spec:** `specs/2026-09-23-docs-site-design.md` on `origin/spec/docs-site` at `4a87f66c`. Read sections 4.3, 5.1, 5.8, 8, 14.1 to 14.3, 16 and 22. Section 22 amends 5.8 and 14.1 to 14.3 and wins where they disagree. The libraries documents it follows are pinned in `apps/docs/libraries-pin.json`; the port copies code from `Evanion/libraries` `main` at `92320250cbb2b5f15483dfae53daf0adb90a57d5`, read with `git -C /Volumes/projects/Personal/open-source show 92320250:<path>` (run `git -C /Volumes/projects/Personal/open-source fetch origin main` first; the checkout's own branch, `feature/docs-rewrite`, is 471 commits behind `main` and holds the older port).
+**Spec:** `specs/2026-09-23-docs-site-design.md` on `origin/spec/docs-site` at `4a87f66c`. Read sections 4.3, 5.1, 5.8, 8, 14.1 to 14.3, 16 and 22. Section 22 amends 5.8 and 14.1 to 14.3 and wins where they disagree. The libraries documents it follows are pinned in `apps/docs/libraries-pin.json`; the port copies code from `Evanion/libraries` `main` at `92320250cbb2b5f15483dfae53daf0adb90a57d5`, read with `git -C <libraries-checkout> show 92320250:<path>` from a local clone of `Evanion/libraries` (run `git -C <libraries-checkout> fetch origin main` first; that clone's own branch, `feature/docs-rewrite`, is 471 commits behind `main` and holds the older port).
 
 ## Global Constraints
 
@@ -227,7 +227,7 @@ The catalogue's type hovers come from compiling a whole test file once (Task 6),
 
 - Produces: `Chain.offsets: number[]`, where `offsets[i]` is the file position of `body[i]`. `chainsOf(path)` and `behavioursOf(root)` keep their signatures.
 
-- [ ] **Step 1: Write the failing test.** Create `tools/repo-checks/src/doc-behaviour-render.test.ts` with the `chainsOf` describe from the libraries file (`git -C /Volumes/projects/Personal/open-source show 92320250:tools/repo-checks/src/doc-behaviour-render.test.ts`, lines 1 to 176), with `@evanion/doc-examples` replaced by `@nexusdi/doc-examples`, and add this case inside `describe('chainsOf', …)`:
+- [ ] **Step 1: Write the failing test.** Create `tools/repo-checks/src/doc-behaviour-render.test.ts` with the `chainsOf` describe from the libraries file (`git -C <libraries-checkout> show 92320250:tools/repo-checks/src/doc-behaviour-render.test.ts`, lines 1 to 176), with `@evanion/doc-examples` replaced by `@nexusdi/doc-examples`, and add this case inside `describe('chainsOf', …)`:
 
 ```ts
 it('maps every character of a body back to where it stood in the file', () => {
@@ -2466,3 +2466,21 @@ it('holds on apps/docs', async () => {
 - [ ] **Step 4: Final review** by an independent opus reviewer over the whole branch against this plan and spec section 22. Fix rounds until it reports nothing.
 
 - [ ] **Step 5: Push and open the pull request** into `release/0.4`: `NX_NO_CLOUD=true NX_DAEMON=false git push -u origin feat/docs-api-reference`, then `gh pr create --base release/0.4` with a body that lists the eight pages, the guards and the owner step. Merging is the owner's (spec section 20). Stop there.
+
+### Task 16: The adapter pages, once `feat/integrations-0.4` merges
+
+**Depends on:** `feat/integrations-0.4` merged into `release/0.4`, and this branch rebased onto it. The six packages (`@nexusdi/hono`, `@nexusdi/express`, `@nexusdi/fastify`, `@nexusdi/react-router`, `@nexusdi/react`, `@nexusdi/vitest`) do not exist on `release/0.4` until then. Section 3's rule for later packages (spec section 22 item 10) already names their pages; this task builds them.
+
+**Files:**
+
+- Create: `apps/docs/content/api-hono.mdx`, `api-express.mdx`, `api-fastify.mdx`, `api-react-router.mdx`, `api-react.mdx`, `api-vitest.mdx`
+- Modify: `apps/docs/content/_meta.ts`
+
+`feat/integrations-0.4` writes the docblock summaries and the G11 `describe` blocks in the six packages. This task writes the pages and their `<!-- reference -->` markers only, and runs the guards to confirm the packages pass; a package that fails goes back to that branch.
+
+- [ ] **Step 1: Rebase and regenerate.** Rebase onto `release/0.4`, run `npx nx run @nexusdi/docs:behaviour-data`, and confirm `libraries()` lists the six packages (each has a library entry in its `exports` map) and that `public/behaviour/<dir>/` holds their sidecars.
+- [ ] **Step 2: One page per package**, in the shape `api-node.mdx` set: frontmatter `title`, `kind: reference`, `description`, `package`; one `# ` heading; a Context paragraph checked against the package's source; `<ApiFilter />`; one `## \`name\``and one`<!-- reference @nexusdi/<dir>#name -->`per export of every entry point, with`example=<region>`where the package's`docs/*.md`holds one; a closing next step to the package's guide. Add each under the API separator of`_meta.ts`.
+- [ ] **Step 3: Confirm the guards pass.** G10 (one `reference` page per package, a heading per export), G11 (a `describe` per callable export, no white-box case on a rail), `doc-reference` (a docblock summary per entry), `doc-behaviour-run`, `doc-twoslash` (the `tsx` example fences of `react` and `react-router` compile under the prelude). A failure in a package is reported to the integrations workstream; this task changes neither the packages nor the guards.
+- [ ] **Step 4: Budgets.** Run `check-budgets`; `GUIDE_BUDGET` holds `/scopes/` and the behaviour sidecars stay under `BEHAVIOUR_BUDGET`.
+- [ ] **Step 5: Run the task gate** with every `libs/*` project, and dispatch `docs-reviewer` on the six pages.
+- [ ] **Step 6: Commit** `docs(docs): add the adapter api pages`.
