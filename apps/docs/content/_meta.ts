@@ -39,6 +39,7 @@ const meta: MetaRecord = {
   interceptors: { title: 'Interceptors' },
   'graph-cli': { title: 'Graph CLI' },
   profiling: { title: 'How do I find out what slows or stalls startup?' },
+  'trace-events': { title: 'What the trace events promise' },
   'error-text': { title: 'Full error text' },
   'write-a-plugin': { title: 'Write a plugin' },
   comparison: {
