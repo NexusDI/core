@@ -1,0 +1,32 @@
+/*
+ * A twoslash hover from `LazyPopup.tsx`. The panel is in the HTML, `hidden`,
+ * and Nextra's `.twoslash-popup-container` places it under the token. Until
+ * `popup-position.ts` loads, hover and focus show it here; once the root
+ * carries `data-positioned`, the script shows it and places it fixed.
+ *
+ * `.twoslash-popup-container` sets `display: inline-flex`, which outranks the
+ * `[hidden]` rule a browser ships, so this sheet restates it.
+ */
+.nexus-popup__panel[hidden] {
+  display: none;
+}
+
+.nexus-popup:not([data-positioned]):hover > .nexus-popup__panel,
+.nexus-popup:not([data-positioned]):focus-within > .nexus-popup__panel {
+  display: inline-flex;
+}
+
+.nexus-popup[data-positioned] > .nexus-popup__panel {
+  position: fixed;
+  z-index: 40;
+  margin: 0;
+  transform: none;
+  max-height: min(20rem, 60vh);
+  overflow: auto;
+}
+
+.nexus-popup__button:focus-visible {
+  outline: 2px solid var(--meridian-focus);
+  outline-offset: 1px;
+  border-radius: 2px;
+}

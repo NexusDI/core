@@ -103,3 +103,33 @@ for (const theme of ['dark', 'light'] as const) {
     expect(scroll).toBeLessThanOrEqual(client);
   });
 }
+
+for (const theme of ['dark', 'light'] as const) {
+  test(`states the type of a signature token on hover and on focus in ${theme} mode`, async ({
+    page,
+  }) => {
+    await page.emulateMedia({ colorScheme: theme });
+    await page.goto(PAGE);
+    const hover = page
+      .locator('.nexus-api-entry__signature .nexus-popup')
+      .filter({ has: page.getByRole('button', { name: 'nodeScopes' }) })
+      .first();
+    const panel = hover.locator('.nexus-popup__panel');
+
+    // The type is in the HTML before any script runs.
+    await expect(panel).toHaveCount(1);
+    await expect(panel).toBeHidden();
+
+    await hover.getByRole('button').hover();
+    await expect(panel).toBeVisible();
+    await expect(panel).toContainText('NodeScopes');
+
+    await page.mouse.move(0, 0);
+    await expect(panel).toBeHidden();
+
+    await hover.getByRole('button').focus();
+    await expect(panel).toBeVisible();
+    await page.keyboard.press('Escape');
+    await expect(panel).toBeHidden();
+  });
+}

@@ -28,6 +28,13 @@ export default withNextra({
         ),
       },
     },
+    // Every page with a `twoslash` fence imports `Popup` from here, and
+    // Nextra's ships headlessui and floating-ui with every page. The shim
+    // re-exports the rest of `nextra/components` and swaps in a lazy `Popup`.
+    // Nextra spreads these aliases into its own.
+    resolveAlias: {
+      'nextra/components': './components/twoslash/nextra-components.ts',
+    },
   },
   // GitHub Pages serves static files only.
   output: 'export',
