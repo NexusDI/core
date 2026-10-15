@@ -1705,8 +1705,9 @@ React Router 8 itself requires Node 22.22, which npm reports from its own manife
 
 ### 8.1 API
 
-`test/fixtures.ts` in section 3.8 is the whole setup: `nexusFixtures(Meridian, { setup })`
-passed to `test.extend`, with `NAV_CHARTS` and `FLIGHT_LOG` overridden. Tests then read
+`test/fixtures.ts` in section 3.8 is the whole setup:
+`export const test = nexusTest(base, Meridian, { setup })`, with `NAV_CHARTS` and
+`FLIGHT_LOG` overridden. Tests then read
 interface tokens from the fixtures, and a suite swaps an override with `test.override`:
 
 ```ts
@@ -1762,9 +1763,16 @@ Fixtures, all test-scoped and lazy:
 | `nexusScope`   | `Scope`, from `nexus.createScope({ request: nexusRequest })`                                      | built on first use        |
 
 `nexusSetup` is an array of builder steps, because Vitest runs any function value in a
-fixture map as a fixture factory. `@nexusdi/vitest` also names `@vitest/runner` as a peer
-(`^4.1.0 || ^5.0.0`), because its declarations import the `Fixtures` type that `vitest`
-does not export.
+fixture map as a fixture factory.
+
+`nexusTest<C>(base: TestAPI<C>, root, options?): TestAPI<C & NexusFixtures>` is the API
+the docs teach. It is typed by the `TestAPI` that Vitest 4 and 5 both export from
+`vitest`, so a test file needs no `@vitest/runner` type, and a further
+`.extend({ extra })` composes. `nexusFixtures(root, options)` stays: it returns the
+fixture map for `test.extend` and types it with `@vitest/runner`'s `Fixtures`, which
+Vitest 5 no longer publishes (5.0 ships only betas of the package), so its types hold on
+Vitest 4 alone. `@vitest/runner` is therefore an optional peer (Task 23 ruling,
+2026-10-15).
 
 Every fixture name starts with `nexus`, so none collides with a user's `request` or
 `container` fixture. `test.override(name, value)` (Vitest 4.1 and later) replaces
@@ -1818,15 +1826,21 @@ the plan pinned the plugin (2026-10-15). The workspace stays on Vitest 4.1.9 for
   "@nexusdi/testing": "0.4.0-rc.N",
   "vitest": "^4.1.0 || ^5.0.0",
   "@vitest/runner": "^4.1.0 || ^5.0.0"
-}
+},
+"peerDependenciesMeta": { "@vitest/runner": { "optional": true } }
 ```
+
+`@vitest/runner` is optional: `nexusTest` needs only `vitest`, and a Vitest 4 user who
+calls `nexusFixtures` has it through `vitest`.
 
 `@nexusdi/testing` is a peer at the same exact version as core, because the user's test
 code imports it too and must see the same copy.
 
 4.1 added `test.override` and the builder form of `test.extend`; the object form this
 package uses is the same in 4.1 and 5.0. The workspace runs 4.1.9, and CI runs the
-package's tests on each supported line (section 13.4).
+package's tests on each supported line (section 13.4): the unit tests and `nexusTest`'s
+type tests on 4.1.0, the latest 4.x and the latest 5.x, and `nexusFixtures`' type test on
+the 4.x legs.
 
 ### 8.4 Tests
 
@@ -2480,7 +2494,7 @@ adapters map onto it like this:
 | `@nexusdi/next` (0.5)   | `examples/next-bridge`                      | the gate canary of 10.1, in its `e2e` target outside default CI            |
 | `@nexusdi/node`         | `examples/bridge-api`                       | `scopes: nodeScopes()` on Node and on every edge leg                       |
 
-Every test that needs a container uses `nexusFixtures`, except a route test whose route
+Every test that needs a container uses `nexusTest` (or `nexusFixtures`), except a route test whose route
 module loads a section into the container `nexus.server.ts` builds at import. Such a test
 mocks the server module with a testing container and disposes it in `afterAll`
 (`examples/react-ssr/tests/routes/sectors.spec.tsx`).

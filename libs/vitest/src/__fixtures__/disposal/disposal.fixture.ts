@@ -2,7 +2,7 @@ import { test as base } from 'vitest';
 
 import { defineModule, provide, Token } from '@nexusdi/core';
 
-import { nexusFixtures } from '../../index.js';
+import { nexusTest } from '../../index.js';
 
 interface IReactorCore {
   scram(): void;
@@ -30,15 +30,9 @@ const clean = defineModule({
   exports: [REACTOR],
 });
 
-base.extend(nexusFixtures(failing))(
-  'passes and still fails on disposal',
-  ({ nexus }) => {
-    nexus.get(REACTOR).scram();
-  },
-);
-base.extend(nexusFixtures(clean))(
-  'passes with a clean container',
-  ({ nexus }) => {
-    nexus.get(REACTOR).scram();
-  },
-);
+nexusTest(base, failing)('passes and still fails on disposal', ({ nexus }) => {
+  nexus.get(REACTOR).scram();
+});
+nexusTest(base, clean)('passes with a clean container', ({ nexus }) => {
+  nexus.get(REACTOR).scram();
+});

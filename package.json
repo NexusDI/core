@@ -67,6 +67,7 @@
     "oxc-transform": "0.150.0",
     "prettier": "^3.9.6",
     "rollup": "4.63.4",
+    "semver": "7.8.5",
     "ts-blank-space": "0.9.0",
     "tsx": "^4.23.15",
     "typescript": "6.0.3",

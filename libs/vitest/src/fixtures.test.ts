@@ -10,7 +10,7 @@ import {
 } from '@nexusdi/core';
 import { trace } from '@nexusdi/devtools';
 
-import { nexusFixtures } from './index.js';
+import { nexusTest } from './index.js';
 
 interface Mission {
   id: string;
@@ -56,16 +56,14 @@ const Meridian = defineModule({
 });
 
 const events: TraceEvent[] = [];
-const test = base.extend(
-  nexusFixtures(Meridian, {
-    setup: (builder) => builder.override(NAV_CHARTS, { useValue: fakeCharts }),
-    create: { plugins: [trace((event) => events.push(event))] },
-  }),
-);
+const test = nexusTest(base, Meridian, {
+  setup: (builder) => builder.override(NAV_CHARTS, { useValue: fakeCharts }),
+  create: { plugins: [trace((event) => events.push(event))] },
+});
 
 const survey = { mission: { id: 'survey-7', target: 'Kepler-442b' } };
 
-describe('nexusFixtures', () => {
+describe('nexusTest', () => {
   test('applies the setup to the container', ({ nexus }) => {
     expect(nexus.get(NAV_CHARTS).plot('Kepler-442b').heading).toBe(42);
   });
@@ -126,9 +124,7 @@ describe('nexusFixtures', () => {
   });
 });
 
-const fileTest = base.extend(
-  nexusFixtures(Meridian, { containerScope: 'file' }),
-);
+const fileTest = nexusTest(base, Meridian, { containerScope: 'file' });
 let first: unknown;
 
 describe('containerScope: file', () => {
