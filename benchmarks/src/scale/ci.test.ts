@@ -129,7 +129,7 @@ describe('benchmarks.yml (scale spec 10.2)', () => {
   it('cancels the rest when one part fails, so a partial file is never published', () => {
     expect(scale?.strategy?.['fail-fast']).toBe(true);
   });
-  it('runs on a manual dispatch only, until the first protocol check has passed', () => {
+  it('runs on a manual dispatch only, until a dispatch run has published', () => {
     expect(scale?.if).toBe("github.event_name == 'workflow_dispatch'");
     expect(readFileSync(WORKFLOW, 'utf8')).toMatch(
       /one-line follow-up widens the trigger/,
@@ -163,16 +163,12 @@ describe('benchmarks.yml (scale spec 10.2)', () => {
     expect(upload?.with?.name).toBe('scale-timings-${{ matrix.part }}');
     expect(upload?.with?.path).toBe('benchmarks/results/scale-parts');
   });
-  it('adds --protocol-check to the mixed job only when the dispatch asks for it', () => {
-    const run = (scale?.steps ?? []).find((s) =>
-      s.run?.includes('scale/timings.ts'),
-    );
-    expect(run?.run).toContain(
-      "matrix.part == 'mixed' && inputs.protocol_check && '--protocol-check'",
-    );
-    expect(workflow.on.workflow_dispatch?.inputs?.protocol_check?.type).toBe(
-      'boolean',
-    );
+  it('has no protocol-check input and passes no --protocol-check', () => {
+    const text = readFileSync(WORKFLOW, 'utf8');
+    expect(text).not.toMatch(/protocol[-_]check/);
+    expect(
+      workflow.on.workflow_dispatch?.inputs?.protocol_check,
+    ).toBeUndefined();
   });
   it('merges when scale is skipped, and not when it failed', () => {
     expect(jobs.merge?.if).toBe(

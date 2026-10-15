@@ -32,7 +32,7 @@ function part(
     seed: 7,
     graphSeed: 20261001,
     scaleSha256: 'f'.repeat(64),
-    timingMode: 'timing',
+    protocol: 'settled',
     coreRef: {
       ref: 'workspace',
       tree: '4b825dc642cb6eb9a060e54bf8d69288fbee4904',
@@ -54,7 +54,7 @@ function part(
         : {
             'fresh-process': {
               shape: name,
-              design: { ...design, heap: design },
+              design,
             },
           },
     results: [],
@@ -274,29 +274,10 @@ describe('mergeParts', () => {
     expect(message).toMatch(/seed/);
     expect(message).toMatch(/modular.*missing/);
   });
-  it('refuses parts that ran different timing modes and records the mode', () => {
-    expect(mergeParts(all(), opts).file.design.timingMode).toBe('timing');
+  it('records the settled protocol and refuses parts that differ in it', () => {
+    expect(mergeParts(all(), opts).file.design.protocol).toBe('settled');
     const parts = all();
-    parts[1] = part('wide', { timingMode: 'timing-no-gc' });
-    expect(() => mergeParts(parts, opts)).toThrow(/wide.*timingMode/);
-  });
-  it('takes the protocol check and the prefix widths from the parts that hold them', () => {
-    const parts = all();
-    const check = {
-      rounds: 33,
-      timingVsHeap: [],
-      noGcVsTiming: [],
-      timingStands: true,
-      gcBeforeCreate: 'keep' as const,
-    };
-    parts[0] = part('mixed', {
-      protocolCheck: check,
-      prefixWidths: [
-        { shape: 'mixed', rounds: 100, maxWidth: 0.05, metric: 'startup x 50' },
-      ],
-    });
-    const { file } = mergeParts(parts, opts);
-    expect(file.protocolCheck).toEqual(check);
-    expect(file.prefixWidths).toHaveLength(1);
+    parts[1] = part('wide', { protocol: 'timing' as never });
+    expect(() => mergeParts(parts, opts)).toThrow(/wide.*protocol/);
   });
 });

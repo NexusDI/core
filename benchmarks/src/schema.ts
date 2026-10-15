@@ -362,41 +362,6 @@ export interface ScaleMarginal {
   perProvider: number;
 }
 
-/** One double ratio of the protocol check (scale spec 7.4). */
-export interface ProtocolDouble {
-  library: LibraryId;
-  size: number;
-  /** NexusDI's per-round shift between two modes over the library's, on startup. */
-  ratio: PairedRatio;
-  /** Median within 2% of 1, or an interval that contains 1. */
-  pass: boolean;
-}
-
-/**
- * The paired check of the first dispatch run: every `mixed` cell in the heap
- * mode (the old protocol), the timing mode and the timing mode without the
- * gc() before create.
- */
-export interface ProtocolCheck {
-  /** Measured rounds. */
-  rounds: number;
-  timingVsHeap: ProtocolDouble[];
-  noGcVsTiming: ProtocolDouble[];
-  /** Every timing-over-heap double ratio passes. */
-  timingStands: boolean;
-  /** `drop` when mode N moved a library against NexusDI by more than 2%. */
-  gcBeforeCreate: 'keep' | 'drop';
-}
-
-/** The maximum relative interval width of a block's metric set at a prefix of its rounds (scale spec 7.4). */
-export interface PrefixWidth {
-  shape: Shape;
-  rounds: number;
-  maxWidth: number;
-  /** The metric that has the maximum. */
-  metric: string;
-}
-
 /** Where a block ran: the CPU and runner image differ between jobs. */
 export interface BlockRunner extends Runner {
   imageOs?: string;
@@ -440,24 +405,16 @@ export interface ScaleTimingsFile {
    * (scale spec 14). `message` is required when the outcome is not `pass`.
    */
   cells: ScaleCell[];
-  /**
-   * One fresh-process design per shape, so each records its own round count,
-   * and its heap block's: heap-ready comes from a serial block of its own
-   * (scale spec 7.1).
-   */
+  /** One fresh-process design per shape, so each records its own round count. */
   design: {
-    'fresh-process': Partial<Record<Shape, Design & { heap?: Design }>>;
+    'fresh-process': Partial<Record<Shape, Design>>;
     'steady-get': Design;
-    /** The child mode the fresh-process timing blocks ran in (scale spec 7.4). */
-    timingMode: 'timing' | 'timing-no-gc';
+    /** The child protocol of the fresh-process blocks (scale spec 6.1). */
+    protocol: 'settled';
   };
   results: ScaleTimingRow[];
   growth: ScaleGrowth[];
   marginal: ScaleMarginal[];
-  /** The width of each block's metric set at prefixes of its rounds (scale spec 7.4). */
-  prefixWidths?: PrefixWidth[];
-  /** The paired protocol check, on the first dispatch run only (scale spec 7.4). */
-  protocolCheck?: ProtocolCheck;
 }
 
 export type Kind =
@@ -836,19 +793,6 @@ const blockRunner = obj({
   kernel: str,
 });
 
-/** A fresh-process design with its heap block's design beside it. */
-const freshDesign: Check = (v, at) => {
-  design(v, at);
-  opt(design)((v as { heap?: unknown }).heap, `${at}.heap`);
-};
-
-const protocolDouble = obj({
-  library,
-  size: num,
-  ratio: pairedRatio,
-  pass: bool,
-});
-
 const scaleTimingsShape = obj({
   schema: literal(1),
   sha: str,
@@ -868,22 +812,10 @@ const scaleTimingsShape = obj({
   graphs: arr(obj({ shape, size: num, hash: str })),
   cells: arr(timedCell),
   design: obj({
-    'fresh-process': record(freshDesign, SHAPES),
+    'fresh-process': record(design, SHAPES),
     'steady-get': design,
-    timingMode: oneOf('timing', 'timing-no-gc'),
+    protocol: literal('settled'),
   }),
-  prefixWidths: opt(
-    arr(obj({ shape, rounds: num, maxWidth: num, metric: str })),
-  ),
-  protocolCheck: opt(
-    obj({
-      rounds: num,
-      timingVsHeap: arr(protocolDouble),
-      noGcVsTiming: arr(protocolDouble),
-      timingStands: bool,
-      gcBeforeCreate: oneOf('keep', 'drop'),
-    }),
-  ),
   results: arr(scaleTimingRow),
   growth: arr(
     obj({
@@ -917,40 +849,6 @@ const scaleTimingsShape = obj({
  * harness fault that must not be published as a scaling result.
  */
 function checkPublishedCells(file: ScaleTimingsFile): void {
-  // A timing mode that moved NexusDI against a competitor (scale spec 7.4)
-  // is not published: its figures rest on a protocol the check rejected.
-  const check = file.protocolCheck;
-  if (check !== undefined) {
-    // The stored verdicts are recomputed from the ratios (scale spec 7.4).
-    const passes = (r: PairedRatio) =>
-      Math.abs(r.median - 1) <= 0.02 || (r.low <= 1 && r.high >= 1);
-    for (const key of ['timingVsHeap', 'noGcVsTiming'] as const)
-      check[key].forEach((d, i) => {
-        if (d.pass !== passes(d.ratio))
-          fail(
-            `scale-timings.protocolCheck.${key}[${i}].pass`,
-            String(passes(d.ratio)),
-          );
-      });
-    const stands = check.timingVsHeap.every((d) => passes(d.ratio));
-    if (check.timingStands !== stands)
-      fail('scale-timings.protocolCheck.timingStands', String(stands));
-    const gc = check.noGcVsTiming.every((d) => passes(d.ratio))
-      ? 'keep'
-      : 'drop';
-    if (check.gcBeforeCreate !== gc)
-      fail('scale-timings.protocolCheck.gcBeforeCreate', gc);
-    if (!check.timingStands)
-      fail(
-        'scale-timings.protocolCheck.timingStands',
-        'true: the timing figures of a failed protocol check are not published',
-      );
-    if (check.gcBeforeCreate === 'drop' && file.design.timingMode === 'timing')
-      fail(
-        'scale-timings.design.timingMode',
-        'timing-no-gc: the protocol check dropped the gc() before create',
-      );
-  }
   const passes = new Set(
     file.cells.filter((c) => c.outcome === 'pass').map(cellKey),
   );
@@ -991,9 +889,6 @@ const CHECKS: Record<Kind, Check> = {
  * ruling 1). These are literals so that lowering a run's own `ROUNDS` cannot
  * lower the minimum a published file must meet.
  */
-/** Published minimum of measured heap-block rounds per shape (scale spec 7.1). */
-const SCALE_HEAP_ROUNDS = 30;
-
 export const SCALE_MINIMUM_ROUNDS: Readonly<Record<Shape, number>> = {
   mixed: 1000,
   wide: 200,
@@ -1024,11 +919,6 @@ function minimums(kind: Kind): Array<[path: string[], least: number]> {
       ...SHAPES.map((s): [string[], number] => [
         ['fresh-process', s],
         SCALE_MINIMUM_ROUNDS[s],
-      ]),
-      // heap-ready comes from a serial block of at least 30 measured rounds.
-      ...SHAPES.map((s): [string[], number] => [
-        ['fresh-process', s, 'heap'],
-        SCALE_HEAP_ROUNDS,
       ]),
       [['steady-get'], MINIMUM.measured],
     ];

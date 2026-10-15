@@ -18,9 +18,6 @@ import { BENCHMARKS } from '../libraries.ts';
 import {
   LIBRARIES,
   type LibraryId,
-  type PrefixWidth,
-  type ProtocolCheck,
-  type ProtocolDouble,
   type ScaleCell,
   type ScaleFile,
   type ScaleTimingRow,
@@ -239,60 +236,6 @@ function targetClosures(scale: ScaleFile, sizes: readonly number[]): string {
   return `The target is the provider with the largest closure; a first get builds ${sizesText} (${list(rows.map(share))} of the graph).`;
 }
 
-/** The protocol check of the first dispatch run: what it compared and what it decided. */
-function protocolSection(c: ProtocolCheck): string[] {
-  const rows = (ds: readonly ProtocolDouble[]) =>
-    ds.map((d) => [
-      NAMES[d.library],
-      group(d.size),
-      ratioText(d.ratio),
-      d.pass ? 'yes' : 'no',
-    ]);
-  const head = [
-    'library',
-    'size',
-    'ratio [low, high]',
-    'within 2% or contains 1',
-  ];
-  return [
-    '## Protocol check',
-    `${group(c.rounds)} measured rounds of every \`mixed\` cell in three modes, in one block. Each ratio is NexusDI's per-round shift between two modes divided by the library's, on startup, so a shift that every library shares cancels. A pair passes when its median is within 2% of 1 or its interval contains 1.`,
-    '### Timing mode over heap mode',
-    table(head, rows(c.timingVsHeap)),
-    c.timingStands
-      ? 'Timing mode stands: no pair moved NexusDI against a competitor.'
-      : 'Timing mode does not stand: a pair moved NexusDI against a competitor, so the timing figures are not published.',
-    '### Timing mode without the gc() before create, over timing mode',
-    table(head, rows(c.noGcVsTiming)),
-    c.gcBeforeCreate === 'keep'
-      ? 'The gc() before create stays: no pair moved.'
-      : 'The gc() before create is dropped: a pair moved NexusDI against a competitor.',
-  ];
-}
-
-/** The maximum interval width of the metric set at each prefix of a block's rounds. */
-function widthSection(widths: readonly PrefixWidth[]): string[] {
-  const prefixes = [...new Set(widths.map((w) => w.rounds))].sort(
-    (a, b) => a - b,
-  );
-  const shapes = SHAPES.filter((s) => widths.some((w) => w.shape === s));
-  const pct = (x: number) => `${(x * 100).toFixed(1)}%`;
-  return [
-    '## Interval widths',
-    'The maximum relative width (interval over median) of the paired ratios of a shape at the first N rounds: startup, ready, first-resolve, the growth ratios and heap-ready. The targets are 3% for `mixed` and 10% for the other shapes. The metric with the maximum follows each width.',
-    table(
-      ['shape', ...prefixes.map(group)],
-      shapes.map((shape) => [
-        shape,
-        ...prefixes.map((n) => {
-          const w = widths.find((x) => x.shape === shape && x.rounds === n);
-          return w === undefined ? '-' : `${pct(w.maxWidth)} (${w.metric})`;
-        }),
-      ]),
-    ),
-  ];
-}
-
 function timingSections(t: ScaleTimingsFile, input: RenderInput): string[] {
   const out: string[] = [];
   const shapes = SHAPES.filter(
@@ -426,7 +369,7 @@ function timingSections(t: ScaleTimingsFile, input: RenderInput): string[] {
     const sizes = sizesOf(mixed);
     out.push(
       '## Retained heap, mixed',
-      `Heap retained after startup with the container referenced, in kB, minus the heap before the app loaded, and NexusDI's figure divided by the library's. The figures come from a serial block of ${t.design['fresh-process'].mixed?.heap?.measured ?? 0} measured rounds after ${t.design['fresh-process'].mixed?.heap?.warmup ?? 0} warm-up rounds, run beside the timing block with the heap read before and after the app. The last column is the marginal bytes per provider between 1,000 and 5,000.`,
+      `Heap retained after startup with the container referenced, in kB, minus the heap before the app loaded, and NexusDI's figure divided by the library's. The figures come from the same rounds as the timings, with the heap read after a settle before and after the app. The last column is the marginal bytes per provider between 1,000 and 5,000.`,
       `${table(
         ['library', ...sizes.map(group), 'per provider'],
         libsOf(mixed).map((l) => [
@@ -458,10 +401,6 @@ function timingSections(t: ScaleTimingsFile, input: RenderInput): string[] {
       )}${heapNotes.text()}`,
     );
   }
-  if (t.protocolCheck !== undefined)
-    out.push(...protocolSection(t.protocolCheck));
-  if (t.prefixWidths !== undefined && t.prefixWidths.length > 0)
-    out.push(...widthSection(t.prefixWidths));
   out.push(
     '## Run',
     [

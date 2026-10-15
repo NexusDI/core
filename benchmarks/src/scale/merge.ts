@@ -12,8 +12,6 @@ import { createHash } from 'node:crypto';
 import type {
   Design,
   LibraryId,
-  ProtocolCheck,
-  PrefixWidth,
   ScaleCell,
   ScaleFile,
   ScaleBlockInfo,
@@ -44,21 +42,19 @@ export interface ScalePart {
   graphSeed: number;
   /** SHA-256 of the scale.json the job validated against. */
   scaleSha256: string;
-  /** The child mode the part's timing block ran in. */
-  timingMode: ScaleTimingsFile['design']['timingMode'];
+  /** The child protocol of the part's fresh-process block. */
+  protocol: ScaleTimingsFile['design']['protocol'];
   coreRef: ScaleTimingsFile['coreRef'];
   graphs: ScaleTimingsFile['graphs'];
   cells: ScaleCell[];
   blocks: ScaleBlockInfo[];
   design: {
-    'fresh-process'?: { shape: Shape; design: Design & { heap?: Design } };
+    'fresh-process'?: { shape: Shape; design: Design };
     'steady-get'?: Design;
   };
   results: ScaleTimingRow[];
   growth: ScaleGrowth[];
   marginal: ScaleMarginal[];
-  prefixWidths?: PrefixWidth[];
-  protocolCheck?: ProtocolCheck;
   /** The `mixed` bundles the part timed. */
   bundles: BundleHash[];
 }
@@ -88,7 +84,7 @@ const SHARED = [
   'coreRef',
   'versions',
   'scaleSha256',
-  'timingMode',
+  'protocol',
 ] as const;
 
 export function mergeParts(
@@ -194,8 +190,6 @@ export function mergeParts(
   const steadyDesign = steady?.design['steady-get'] ?? opts.steadyFallback;
   if (steadyDesign === undefined)
     throw new Error('merge refused: the steady part has no steady-get design');
-  const protocol = ordered.find((p) => p.protocolCheck !== undefined);
-  const widths = ordered.flatMap((p) => p.prefixWidths ?? []);
   const file: ScaleTimingsFile = {
     schema: 1,
     sha: first.sha,
@@ -224,15 +218,11 @@ export function mergeParts(
     design: {
       'fresh-process': freshProcess,
       'steady-get': steadyDesign,
-      timingMode: first.timingMode,
+      protocol: first.protocol,
     },
     results: ordered.flatMap((p) => p.results),
     growth: ordered.flatMap((p) => p.growth),
     marginal: ordered.flatMap((p) => p.marginal),
-    ...(widths.length > 0 ? { prefixWidths: widths } : {}),
-    ...(protocol?.protocolCheck === undefined
-      ? {}
-      : { protocolCheck: protocol.protocolCheck }),
   };
   return { file };
 }

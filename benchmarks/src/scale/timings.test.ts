@@ -43,7 +43,6 @@ function cell(
     variant,
     size,
     outcome,
-    mode: 'timing',
     ...p,
     firstResolve: p.load.map(
       (l, i) => l + (p.create[i] ?? 0) + (p.firstGet[i] ?? 0),
@@ -61,24 +60,11 @@ const flat = (rounds: number[]) => ({
   rest: rounds,
   heapReady: rounds,
 });
-const block = (
-  shape: Shape,
-  cells: RawScaleCell[],
-  heap?: RawScaleCell[],
-): RawBlock => ({
+const block = (shape: Shape, cells: RawScaleCell[]): RawBlock => ({
   shape,
   warmup: 1,
   measured: cells[0]?.load.length ?? 0,
   cells,
-  ...(heap === undefined
-    ? {}
-    : {
-        heap: {
-          warmup: 1,
-          measured: heap[0]?.heapReady.length ?? 0,
-          cells: heap.map((c) => ({ ...c, mode: 'heap' as const })),
-        },
-      }),
 });
 const raw = (...blocks: RawBlock[]): ScaleRaw => ({ blocks, steady: [] });
 const find = (
@@ -164,17 +150,10 @@ describe('toScaleRows', () => {
   it('gives ratios to the five published metrics and none to the phases', () => {
     const rows = toScaleRows(
       raw(
-        block(
-          'mixed',
-          [
-            cell('nexusdi', 'plain', 50, flat([1, 2, 3])),
-            cell('awilix', 'plain', 50, flat([2, 4, 6])),
-          ],
-          [
-            cell('nexusdi', 'plain', 50, flat([1, 2, 3])),
-            cell('awilix', 'plain', 50, flat([2, 4, 6])),
-          ],
-        ),
+        block('mixed', [
+          cell('nexusdi', 'plain', 50, flat([1, 2, 3])),
+          cell('awilix', 'plain', 50, flat([2, 4, 6])),
+        ]),
       ),
       1,
     );
@@ -260,56 +239,31 @@ describe('toScaleRows', () => {
   });
 });
 
-describe('heap-ready from the heap block', () => {
-  const heapOnly = (shape: Shape = 'mixed') =>
-    toScaleRows(
+describe('heap-ready from the timing rounds', () => {
+  it('takes its figures and ratio from the same block as the timings', () => {
+    const rows = toScaleRows(
       raw(
-        block(
-          shape,
-          [
-            cell('nexusdi', 'plain', 50, {
-              ...flat([1, 2, 3]),
-              heapReady: [999, 999, 999],
-            }),
-            cell('awilix', 'plain', 50, {
-              ...flat([2, 4, 6]),
-              heapReady: [999, 999, 999],
-            }),
-          ],
-          [
-            cell('nexusdi', 'plain', 50, {
-              ...flat([1, 2, 3]),
-              heapReady: [10, 20, 30, 40],
-            }),
-            cell('awilix', 'plain', 50, {
-              ...flat([2, 4, 6]),
-              heapReady: [40, 40, 40, 40],
-            }),
-          ],
-        ),
+        block('mixed', [
+          cell('nexusdi', 'plain', 50, {
+            ...flat([1, 2, 3, 4]),
+            heapReady: [10, 20, 30, 40],
+          }),
+          cell('awilix', 'plain', 50, {
+            ...flat([2, 4, 6, 8]),
+            heapReady: [40, 40, 40, 40],
+          }),
+        ]),
       ),
       1,
     );
-
-  it('takes its figures and ratio from the heap block, not the timing block', () => {
-    const awilix = find(heapOnly(), 'heap-ready', 'awilix', 'mixed', 50);
+    const awilix = find(rows, 'heap-ready', 'awilix', 'mixed', 50);
     expect(awilix?.stats.median).toBe(40);
     expect(awilix?.vsNexus?.median).toBe(0.625);
     expect(awilix?.vsNexus?.pairs).toBe(4);
-    expect(
-      find(heapOnly(), 'heap-ready', 'nexusdi', 'mixed', 50)?.stats.median,
-    ).toBe(25);
-  });
-  it('gives no heap-ready row for a block that ran no heap rounds', () => {
-    const rows = toScaleRows(
-      raw(block('mixed', [cell('nexusdi', 'plain', 50, flat([1, 2, 3]))])),
-      1,
+    expect(find(rows, 'heap-ready', 'nexusdi', 'mixed', 50)?.stats.median).toBe(
+      25,
     );
-    expect(rows.some((r) => r.metric === 'heap-ready')).toBe(false);
-  });
-  it('keeps every other metric on the timing block', () => {
-    const rows = heapOnly();
-    expect(find(rows, 'startup', 'awilix', 'mixed', 50)?.stats.median).toBe(16);
+    expect(find(rows, 'startup', 'awilix', 'mixed', 50)?.stats.median).toBe(20);
   });
 });
 
@@ -333,9 +287,11 @@ describe('toScaleGrowth and toScaleMarginal', () => {
     block(
       'mixed',
       sizes.map((n) =>
-        cell('nexusdi', 'plain', n, flat(timesAt(n).map((t) => t / 4))),
+        cell('nexusdi', 'plain', n, {
+          ...flat(timesAt(n).map((t) => t / 4)),
+          heapReady: rounds.map(() => n),
+        }),
       ),
-      sizes.map((n) => cell('nexusdi', 'plain', n, flat([n, n, n, n]))),
     ),
   );
 
@@ -372,7 +328,7 @@ describe('toScaleGrowth and toScaleMarginal', () => {
       9,
     );
     expect(m.map((x) => x.metric).sort()).toEqual(['heap-ready', 'startup']);
-    // heap-ready: (5,000 - 1,000) / 4,000 from the heap block's own values.
+    // heap-ready: (5,000 - 1,000) / 4,000 from the heapReady values.
     expect(m.find((x) => x.metric === 'heap-ready')?.perProvider).toBeCloseTo(
       1,
       9,

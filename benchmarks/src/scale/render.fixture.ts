@@ -251,65 +251,12 @@ export function fixtureTimings(): ScaleTimingsFile {
     graphs: SIZES.map((size) => ({ shape: 'mixed', size, hash: hash(size) })),
     cells: cells(),
     design: {
-      'fresh-process': { mixed: { ...design(10, 1000), heap: design(3, 30) } },
+      'fresh-process': { mixed: design(10, 1000) },
       'steady-get': design(100, 1000),
-      timingMode: 'timing-no-gc' as const,
+      protocol: 'settled' as const,
     },
     results,
     growth,
     marginal,
-    prefixWidths: [
-      {
-        shape: 'mixed',
-        rounds: 100,
-        maxWidth: 0.041,
-        metric: 'startup awilix 50',
-      },
-      {
-        shape: 'mixed',
-        rounds: 200,
-        maxWidth: 0.028,
-        metric: 'growth awilix/plain 200 to 1000 ready',
-      },
-      {
-        shape: 'mixed',
-        rounds: 400,
-        maxWidth: 0.0195,
-        metric: 'ready tsyringe 200',
-      },
-    ],
-    protocolCheck: {
-      rounds: 30,
-      timingVsHeap: [
-        {
-          library: 'awilix',
-          size: 50,
-          ratio: { median: 1.004, low: 0.99, high: 1.02, pairs: 30 },
-          pass: true,
-        },
-        {
-          library: 'tsyringe',
-          size: 50,
-          ratio: { median: 0.996, low: 0.98, high: 1.01, pairs: 30 },
-          pass: true,
-        },
-      ],
-      noGcVsTiming: [
-        {
-          library: 'awilix',
-          size: 50,
-          ratio: { median: 1.05, low: 1.03, high: 1.07, pairs: 30 },
-          pass: false,
-        },
-        {
-          library: 'tsyringe',
-          size: 50,
-          ratio: { median: 1.0, low: 0.99, high: 1.01, pairs: 30 },
-          pass: true,
-        },
-      ],
-      timingStands: true,
-      gcBeforeCreate: 'drop' as const,
-    },
   };
 }
