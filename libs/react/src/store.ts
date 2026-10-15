@@ -1,11 +1,30 @@
-import type { Nexus, Scope } from '@nexusdi/core';
+import type { ModuleRef, Nexus, Scope } from '@nexusdi/core';
+
+/** The promise one lazySection handle renders behind. */
+export interface SectionEntry {
+  /** Resolves when the module is in the container and every live scope is extended. */
+  readonly promise: Promise<void>;
+  /** For a first load, the module object in the container once load() resolved. */
+  module: ModuleRef | undefined;
+  /** The marked rejection, once the promise rejected. */
+  failure: unknown;
+}
+
+/** One section name in one container (react spec 7.1, 12.3). */
+export interface SectionSlot {
+  /** The handle whose loader put the module in the container. */
+  readonly handle: object;
+  readonly origin: SectionEntry;
+  /** Every other handle of this name, each checked against `origin` once. */
+  readonly checks: WeakMap<object, SectionEntry>;
+}
 
 type Memo = Map<unknown, Map<unknown, readonly unknown[]>>;
 
 /**
  * What the components of one container share: the MultiToken memo (react
- * spec 4.3) and the scopes ScopeProviders hold. Task 14 adds the section
- * cache.
+ * spec 4.3), the scopes ScopeProviders hold, and the section cache (react
+ * spec 7.1).
  */
 export class Store {
   readonly #memos = new WeakMap<Nexus | Scope, Memo>();
@@ -14,6 +33,9 @@ export class Store {
   readonly live = new Set<Scope>();
   /** The createScope calls still in flight. */
   readonly pending = new Set<Promise<Scope>>();
+
+  /** Section name to the load its boundaries read (react spec 7.1, 12.3). */
+  readonly sections = new Map<string, SectionSlot>();
 
   constructor(readonly container: Nexus) {}
 
