@@ -40,11 +40,13 @@ declare module 'fastify' {
 
 const ADAPTER = '@nexusdi/fastify';
 
+/** The options of `nexus()`: `request` maps Fastify's request to a `NexusRequest`, `scopes` runs each request in an ambient scope, and `log` receives each mapped error. */
 export type NexusFastifyOptions = RequestOption<FastifyRequest> & {
   readonly scopes?: ScopeRunner;
   readonly log?: NexusLog;
 };
 
+/** A route handler that `inject` wraps: it receives the resolved deps first, then Fastify's request and reply, and its return value becomes the reply. */
 export type FastifyHandler<
   D extends DepsMap,
   G extends RouteGenericInterface,
@@ -69,11 +71,13 @@ type Inject = <
   handler: FastifyHandler<D, G>,
 ) => Route<G>;
 
+/** The `onRequest` hook `di.load(module)` returns: it loads the module once and extends the request's scope before the section's handlers run. */
 export interface SectionHook extends onRequestAsyncHookHandler {
   /** Like di.inject, validated after the section's first successful load. */
   inject: Inject;
 }
 
+/** What `nexus()` returns for Fastify: the plugin in two forms, `inject` for typed handlers, `scope` for other code and `load` for lazy sections. */
 export interface NexusFastify {
   readonly plugin: FastifyPluginAsync;
   /** The same plugin without fastify-plugin's skip-override: scoped to the context it is registered in. */
@@ -145,6 +149,11 @@ export function requestHook(
 const handleOf = (req: FastifyRequest): RequestScope =>
   requireHandle(req.nexus, ADAPTER, 'di.plugin');
 
+/**
+ * Gives a Fastify app one NexusDI scope per request over `ship`, a container
+ * or a function that builds one on the first request, and disposes the scope
+ * when the raw response emits `close`.
+ */
 export function nexus(
   ship: ContainerSource,
   ...args: OptionsArg<NexusFastifyOptions>

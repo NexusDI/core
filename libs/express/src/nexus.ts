@@ -28,11 +28,13 @@ declare global {
 
 const ADAPTER = '@nexusdi/express';
 
+/** The options of `nexus()`: `request` maps Express's `req` to a `NexusRequest`, `scopes` runs each request in an ambient scope, and `log` receives each mapped error. */
 export type NexusExpressOptions = RequestOption<Request> & {
   readonly scopes?: ScopeRunner;
   readonly log?: NexusLog;
 };
 
+/** A route handler that `inject` wraps: it receives the resolved deps first, then Express's `req`, `res` and `next`. */
 export type ExpressHandler<D extends DepsMap> = (
   deps: ResolvedDeps<D>,
   req: Request,
@@ -40,6 +42,7 @@ export type ExpressHandler<D extends DepsMap> = (
   next: NextFunction,
 ) => unknown;
 
+/** The middleware `di.load(module)` returns: it loads the module once and extends the request's scope before the section's handlers run. */
 export interface SectionMiddleware extends RequestHandler {
   /** Like di.inject, validated after the section's first successful load. */
   inject<const D extends DepsMap>(
@@ -48,6 +51,7 @@ export interface SectionMiddleware extends RequestHandler {
   ): RequestHandler;
 }
 
+/** What `nexus()` returns for Express: the middleware, `inject` for typed handlers, `scope` for other code and `load` for lazy sections. */
 export interface NexusExpress {
   readonly middleware: RequestHandler;
   inject<const D extends DepsMap>(
@@ -67,6 +71,11 @@ function stop(result: Stop, res: Response, next: NextFunction): void {
   else if (!res.writableEnded) res.end();
 }
 
+/**
+ * Gives an Express app one NexusDI scope per request over `ship`, a
+ * container or a function that builds one on the first request, and disposes
+ * the scope when the response emits `close`.
+ */
 export function nexus(
   ship: ContainerSource,
   ...args: OptionsArg<NexusExpressOptions>

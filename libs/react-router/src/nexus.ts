@@ -38,6 +38,7 @@ export interface RequestInput {
   readonly params: Params;
 }
 
+/** The options of `nexus()`: `request` maps the request and params to a `NexusRequest`, `scopes` runs each request in an ambient scope, and `log` receives each mapped error. */
 export type NexusRouterOptions = RequestOption<RequestInput> & {
   readonly scopes?: ScopeRunner;
   readonly log?: NexusLog;
@@ -51,6 +52,7 @@ type Inject = <const D extends DepsMap, A extends WithContext, R>(
   handler: (deps: ResolvedDeps<D>, args: A) => R,
 ) => (args: A) => Promise<Awaited<R>>;
 
+/** The route middleware `di.load(module)` returns: it loads the module once and extends the request's scope before the route's loaders run. */
 export interface SectionMiddleware extends MiddlewareFunction<Response> {
   /** Like di.inject, validated after the section's first successful load. */
   readonly inject: Inject;
@@ -64,6 +66,7 @@ export type RouterMiddleware = (
   ...args: Parameters<MiddlewareFunction<Response>>
 ) => Promise<Response>;
 
+/** What `nexus()` returns for React Router: the root middleware, `inject` for typed loaders and actions, `scope` for other code and `load` for lazy routes. */
 export interface NexusRouter {
   readonly middleware: RouterMiddleware;
   readonly inject: Inject;
@@ -101,6 +104,11 @@ function stop(result: Stop): never {
   throw new Response(null, { status: CLIENT_GONE });
 }
 
+/**
+ * Gives a React Router app one NexusDI scope per request over `ship`, a
+ * container or a function that builds one on the first request, and disposes
+ * the scope when the response body ends or the client leaves.
+ */
 export function nexus(
   ship: ContainerSource,
   ...args: OptionsArg<NexusRouterOptions>

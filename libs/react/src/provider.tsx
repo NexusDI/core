@@ -12,6 +12,7 @@ import { useHydrated } from './hydrated.js';
 import { deferred, type Lease } from './release.js';
 import { storeFor } from './store.js';
 
+/** The props of `NexusProvider`: the container in one of three forms, the request scope of a server render, and whether the provider disposes containers it stops rendering. */
 export interface NexusProviderProps {
   container: Nexus | Promise<Nexus> | null;
   /** The request scope during SSR (react spec 9.1). */
@@ -39,6 +40,11 @@ function isPromise(value: Nexus | Promise<Nexus>): value is Promise<Nexus> {
   return typeof (value as { then?: unknown }).then === 'function';
 }
 
+/**
+ * Publishes a container to every component below it, so `useService` reads
+ * services from it. A promise suspends to the nearest `<Suspense>` until the
+ * container is built, and `null` or `clientOnly` render `fallback`.
+ */
 export function NexusProvider({
   container,
   scope,

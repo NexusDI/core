@@ -23,8 +23,10 @@ import {
 
 const ADAPTER = '@nexusdi/hono';
 
+/** The Hono `Env` that `di.middleware` adds to a chained app, so `c.var.nexus` is typed in every route after it. */
 export type NexusEnv = { Variables: { nexus: RequestScope } };
 
+/** The options of `nexus()`: `request` maps Hono's context to a `NexusRequest`, `scopes` runs each request in an ambient scope, and `log` receives each mapped error. */
 export type NexusHonoOptions = RequestOption<Context> & {
   readonly scopes?: ScopeRunner;
   readonly log?: NexusLog;
@@ -41,11 +43,13 @@ type Inject = <const D extends DepsMap, P extends string = string>(
   handler: HonoHandler<D, P>,
 ) => Handler<NexusEnv, P>;
 
+/** The middleware `di.load(module)` returns: it loads the module once and extends the request's scope before the section's handlers run. */
 export interface SectionMiddleware extends MiddlewareHandler<NexusEnv> {
   /** Like di.inject, validated after the section's first successful load. */
   readonly inject: Inject;
 }
 
+/** What `nexus()` returns for Hono: the middleware, `inject` for typed handlers, `scope` for other code and `load` for lazy sections. */
 export interface NexusHono {
   readonly middleware: MiddlewareHandler<NexusEnv>;
   readonly inject: Inject;
@@ -79,6 +83,11 @@ function stop(result: Stop): Response {
   return new Response(null, { status: CLIENT_GONE });
 }
 
+/**
+ * Gives a Hono app one NexusDI scope per request over `ship`, a container or
+ * a function that builds one on the first request, and disposes the scope
+ * when the response body ends or the client leaves.
+ */
 export function nexus(
   ship: ContainerSource,
   ...args: OptionsArg<NexusHonoOptions>
