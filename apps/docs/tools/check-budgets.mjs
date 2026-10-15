@@ -38,15 +38,22 @@ export const BEHAVIOUR_BUDGET = { raw: 1_400_000, gzip: 60_000 };
  * than `GUIDE_SLACK` gzipped bytes under it fails too, so a saving lowers the
  * ceiling in the same pull request.
  *
- * Measured at 980,277 bytes raw and 298,032 gzipped, once
- * `components/twoslash/nextra-components.ts` took Nextra's twoslash popup
- * (68,738 bytes raw) off every page. The roving tab stop of a fence's tokens
- * adds 659 bytes raw to the popup's client root, since the keys have to work
- * before the positioning loads.
+ * Measured at 982,529 bytes raw and 298,531 gzipped. `components/twoslash/
+ * PagePopover.tsx`, the one type card, sits in the root layout and ships
+ * with every page; it replaced a client component per typed token, which
+ * shipped with every page too.
  */
 export const GUIDE_PAGE = 'scopes/index.html';
-export const GUIDE_BUDGET = { raw: 981_000, gzip: 299_000 };
+export const GUIDE_BUDGET = { raw: 983_000, gzip: 299_000 };
 export const GUIDE_SLACK = 5_000;
+
+/**
+ * The ceiling on one page's HTML, gzipped, and on the elements it carries,
+ * for every exported page. `/api/` is the heaviest, ninety reference entries,
+ * and the ceilings sit just above its measurement: 170,553 bytes gzipped and
+ * 15,708 elements, once `tools/popup-fold.mjs` took its type panels out.
+ */
+export const PAGE_BUDGET = { htmlGzip: 175_000, elements: 16_000 };
 
 export const ISLAND_MARK = 'nexus-console-island';
 export const BACKGROUND_MARK = 'meridian-background';
@@ -195,6 +202,40 @@ export function checkGuideTotal(out, { basePath = '' } = {}) {
   return { findings, total };
 }
 
+/**
+ * The elements a page's HTML carries, the DOM it starts with: every start
+ * tag outside a `<script>`, whose contents are the RSC payload.
+ */
+export function elementsOf(html) {
+  return (
+    html.replace(/<script\b[\s\S]*?<\/script>/gi, '').match(/<[a-zA-Z][\w-]*/g)
+      ?.length ?? 0
+  );
+}
+
+/** Holds every page to `PAGE_BUDGET`. */
+export function checkPages(out) {
+  const rows = pages(out).map((path) => {
+    const html = readFileSync(join(out, path));
+    return {
+      path,
+      htmlGzip: gzipSync(html).length,
+      elements: elementsOf(html.toString('utf8')),
+    };
+  });
+  const findings = rows
+    .filter(
+      (row) =>
+        row.htmlGzip > PAGE_BUDGET.htmlGzip ||
+        row.elements > PAGE_BUDGET.elements,
+    )
+    .map(
+      (row) =>
+        `${row.path}: the page's HTML is ${kB(row.htmlGzip)} gzipped with ${row.elements} elements, over the ${PAGE_BUDGET.htmlGzip / 1000} kB or ${PAGE_BUDGET.elements} element budget. Move content out of the HTML, as tools/popup-fold.mjs moves the type panels, or raise PAGE_BUDGET with the new measurement and the reason.`,
+    );
+  return { findings, rows };
+}
+
 /** Holds every behaviour sidecar under `out/behaviour` to `BEHAVIOUR_BUDGET`. */
 export function checkBehaviour(out) {
   const root = join(out, 'behaviour');
@@ -253,6 +294,13 @@ if (import.meta.url === pathToFileURL(process.argv[1] ?? '').href) {
     `${GUIDE_PAGE}: ${kB(guide.total.raw)} raw, ${kB(guide.total.gzip)} gzipped of scripts and styles`,
   );
   findings.push(...guide.findings);
+  const sized = checkPages(out);
+  const [heaviest] = [...sized.rows].sort((a, b) => b.htmlGzip - a.htmlGzip);
+  if (heaviest)
+    console.log(
+      `the heaviest page is ${heaviest.path}: ${kB(heaviest.htmlGzip)} of HTML gzipped, ${heaviest.elements} elements`,
+    );
+  findings.push(...sized.findings);
   const behaviour = checkBehaviour(out);
   const [largest] = behaviour.rows;
   if (largest)

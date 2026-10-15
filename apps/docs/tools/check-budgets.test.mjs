@@ -13,7 +13,10 @@ import {
   GUIDE_BUDGET,
   GUIDE_PAGE,
   GUIDE_SLACK,
+  PAGE_BUDGET,
   assetsOf,
+  checkPages,
+  elementsOf,
   checkGuideTotal,
   ISLAND_MARK,
   checkBehaviour,
@@ -236,5 +239,41 @@ describe('checkGuideTotal', () => {
       basePath: '/next',
     });
     expect(findings[0]).toMatch(/Lower GUIDE_BUDGET/);
+  });
+});
+
+describe('checkPages', () => {
+  /** An export whose one page holds `elements` divs of `text`. */
+  function site(elements, text = '') {
+    const out = mkdtempSync(join(tmpdir(), 'budgets-'));
+    dirs.push(out);
+    mkdirSync(join(out, 'api'), { recursive: true });
+    writeFileSync(
+      join(out, 'api', 'index.html'),
+      `<html><body>${'<div></div>'.repeat(elements)}${text}<script>self.__next_f.push([1,"<div><div><div>"])</script></body></html>`,
+    );
+    return out;
+  }
+
+  it('counts the elements outside scripts', () => {
+    expect(
+      elementsOf('<html><body><p>a</p><script>"<b><i>"</script></body></html>'),
+    ).toBe(3);
+  });
+
+  it('passes a page inside both ceilings', () => {
+    expect(checkPages(site(10)).findings).toEqual([]);
+  });
+
+  it('fails a page with too many elements', () => {
+    expect(checkPages(site(PAGE_BUDGET.elements + 1)).findings[0]).toMatch(
+      /^api\/index\.html: the page's HTML is .* over the .* element budget/,
+    );
+  });
+
+  it('fails a page whose HTML gzips past the ceiling', () => {
+    expect(
+      checkPages(site(1, noise(PAGE_BUDGET.htmlGzip))).findings,
+    ).toHaveLength(1);
   });
 });
