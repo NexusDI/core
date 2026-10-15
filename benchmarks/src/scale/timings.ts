@@ -60,8 +60,6 @@ import {
   type LibraryId,
   type Outcome,
   type ScaleCell,
-  type PrefixWidth,
-  type ProtocolCheck,
   type ScaleBlockInfo,
   type ScaleFile,
   type ScaleGrowth,
@@ -77,17 +75,13 @@ import { pool, scaleCell, type CellResult } from './cells.ts';
 import { documentedVariant } from './deterministic.ts';
 import {
   GRAPH_SEED,
-  HEAP_ROUNDS,
-  HEAP_ROUNDS_QUICK,
   PER_PROVIDER,
   ROUNDS,
   SHAPES,
   SIZES,
-  TIMING_MODE,
-  WIDTH_PREFIXES,
   type Shape,
 } from './config.ts';
-import { freshBlock, type FreshMode, type FreshRow } from './fresh.ts';
+import { freshBlock, type FreshRow } from './fresh.ts';
 import { describeGraph } from './graph.ts';
 import { localExponent, marginalPerProvider } from './growth.ts';
 import {
@@ -96,7 +90,6 @@ import {
   type BundleHash,
   type ScalePart,
 } from './merge.ts';
-import { prefixWidths, protocolCheck } from './protocol.ts';
 import { graphOf } from './shapes.ts';
 
 /** One cell of a fresh-process block: its rounds, and whether it ran. */
@@ -107,20 +100,11 @@ export interface RawScaleCell extends Omit<FreshRow, 'library'> {
   outcome: Outcome;
 }
 
-/** The serial heap block of a shape: the child in heap mode, 3 warm-up and 30 measured rounds. */
-export interface RawHeapBlock {
-  warmup: number;
-  measured: number;
-  cells: RawScaleCell[];
-}
-
 export interface RawBlock {
   shape: Shape;
   warmup: number;
   measured: number;
   cells: RawScaleCell[];
-  /** Where heap-ready comes from; absent in a run that skips the heap block. */
-  heap?: RawHeapBlock;
 }
 
 /** One library's steady get-cycle at one size on `mixed`, ns per operation. */
@@ -149,6 +133,7 @@ const FRESH: ReadonlyArray<
   ['first-resolve', 'firstResolve', 'ns'],
   ['ready', 'ready', 'ns'],
   ['startup', 'startup', 'ns'],
+  ['heap-ready', 'heapReady', 'bytes'],
 ];
 
 const isReference = (c: { library: string; variant: string }) =>
@@ -172,8 +157,6 @@ export function toScaleRows(raw: ScaleRaw, seed: number): ScaleTimingRow[] {
     batch: number,
     samples: readonly number[],
     reference: readonly number[] | undefined,
-    /** Bootstrap block size; the default follows the round count. */
-    block?: number,
   ) => {
     const row: ScaleTimingRow = {
       metric,
@@ -191,7 +174,7 @@ export function toScaleRows(raw: ScaleRaw, seed: number): ScaleTimingRow[] {
       !isReference(c) &&
       SCALE_RATIO_METRICS.includes(metric)
     )
-      row.vsNexus = pairedRatio(reference, samples, seed, undefined, block);
+      row.vsNexus = pairedRatio(reference, samples, seed);
     rows.push(row);
   };
   for (const block of raw.blocks) {
@@ -211,26 +194,6 @@ export function toScaleRows(raw: ScaleRaw, seed: number): ScaleTimingRow[] {
         );
     }
   }
-  // heap-ready comes from the heap block, whose bootstrap block size is 4.
-  for (const block of raw.blocks) {
-    const passing = (block.heap?.cells ?? []).filter(
-      (c) => c.outcome === 'pass',
-    );
-    for (const c of passing) {
-      const nexus = passing.find((n) => isReference(n) && n.size === c.size);
-      push(
-        'heap-ready',
-        'bytes',
-        c,
-        block.shape,
-        c.size,
-        1,
-        c.heapReady,
-        nexus?.heapReady,
-        HEAP_BLOCK_SIZE,
-      );
-    }
-  }
   for (const s of raw.steady) {
     const nexus = raw.steady.find((n) => isReference(n) && n.size === s.size);
     push(
@@ -248,9 +211,6 @@ export function toScaleRows(raw: ScaleRaw, seed: number): ScaleTimingRow[] {
 }
 
 const ALL_SIZES: readonly number[] = SIZES;
-
-/** Bootstrap block size of the heap block's paired ratios (scale spec 7.1). */
-export const HEAP_BLOCK_SIZE = 4;
 
 /** The passing cells of each library-variant in a block, ascending by size. */
 function perLibrary(block: RawBlock): RawScaleCell[][] {
@@ -321,7 +281,7 @@ export function toScaleMarginal(raw: ScaleRaw): ScaleMarginal[] {
   };
   for (const block of raw.blocks) {
     between('startup', block.shape, block.cells, 'startup');
-    between('heap-ready', block.shape, block.heap?.cells ?? [], 'heapReady');
+    between('heap-ready', block.shape, block.cells, 'heapReady');
   }
   return out;
 }
@@ -482,8 +442,6 @@ export interface ScaleRunOptions {
   part?: Shape | 'steady';
   quick: boolean;
   seed: number;
-  /** Run the protocol check on `mixed` (spec 7.4): the first dispatch run only. */
-  protocolCheck?: boolean;
 }
 
 /** Rounds per timing block (spec 7.1): 10 warm-up and `ROUNDS`, or 3 and 10 under `--quick`. */
@@ -493,7 +451,6 @@ export function plan(quick: boolean, shape: Shape) {
     measured: quick ? 10 : ROUNDS[shape],
   };
 }
-const heapPlan = (quick: boolean) => (quick ? HEAP_ROUNDS_QUICK : HEAP_ROUNDS);
 const steadyPlan = (quick: boolean) =>
   quick ? { warmup: 10, measured: 200 } : { warmup: 100, measured: 1000 };
 
@@ -518,18 +475,14 @@ export interface RawPart {
   part: Shape | 'steady';
   blocks: RawBlock[];
   steady: RawSteady[];
-  /** The protocol-check block's rows, every spawn recorded (spec 7.4). */
-  protocol?: Array<Omit<RawScaleCell, 'library'> & { library: LibraryId }>;
 }
 
 const emptyRow = (
   library: LibraryId,
   size: number,
-  mode: FreshMode,
 ): Omit<FreshRow, 'library'> & { library: LibraryId } => ({
   library,
   size,
-  mode,
   load: [],
   create: [],
   firstGet: [],
@@ -543,8 +496,7 @@ const emptyRow = (
 
 /**
  * Builds and verifies the cells of one part, then samples it: a shape's
- * timing block, serial heap block and, on request for `mixed`, the protocol
- * check, or the steady get-cycle of `mixed`. Every library and size of the
+ * block, or the steady get-cycle of `mixed`. Every library and size of the
  * part runs on this machine.
  */
 export async function runPart(
@@ -559,8 +511,6 @@ export async function runPart(
   const info: ScaleBlockInfo[] = [];
   let verdicts: CellVerdict[] = [];
   let bundles: BundleHash[] = [];
-  let prefix: PrefixWidth[] = [];
-  let protocol: ProtocolCheck | undefined;
   let freshDesign: ScalePart['design']['fresh-process'];
   const log = (line: string) => console.log(line);
 
@@ -608,13 +558,12 @@ export async function runPart(
         size: x.graph.size,
         sha256: bundleSha256(readFileSync(x.r.bundle, 'utf8')),
       }));
-    const fresh = (x: (typeof live)[number], mode: FreshMode) => ({
+    const fresh = (x: (typeof live)[number]) => ({
       library: x.lib.id,
       size: x.graph.size,
       bundle: x.r.bundle,
       graph: join(x.r.cellDir, 'graph.json'),
       packagesFile: join(x.r.cellDir, 'packages.mjs'),
-      mode,
     });
     const rawCells = (
       rows: readonly FreshRow[],
@@ -623,7 +572,7 @@ export async function runPart(
       [...all].sort(order).map((x) => {
         const row = rows[live.findIndex((l) => l === x)];
         return {
-          ...(row ?? emptyRow(x.lib.id, x.graph.size, 'timing')),
+          ...(row ?? emptyRow(x.lib.id, x.graph.size)),
           library: x.lib.id,
           variant: x.variant,
           outcome: x.r.outcome,
@@ -634,74 +583,20 @@ export async function runPart(
       const t0 = Date.now();
       const { warmup, measured } = plan(opts.quick, shape);
       log(`Block ${shape}: ${live.length} cells, ${warmup}+${measured} rounds`);
-      const timingRows = await freshBlock(
-        live.map((x) => fresh(x, TIMING_MODE)),
-        { block: shape, warmup, measured, seed: opts.seed, progress: log },
-      );
-      const heap = heapPlan(opts.quick);
-      log(`Heap block ${shape}: ${heap.warmup}+${heap.measured} rounds`);
-      const heapRows = await freshBlock(
-        live.map((x) => fresh(x, 'heap')),
-        {
-          block: `${shape} heap`,
-          warmup: heap.warmup,
-          measured: heap.measured,
-          seed: opts.seed,
-          progress: log,
-        },
-      );
+      const rows = await freshBlock(live.map(fresh), {
+        block: shape,
+        warmup,
+        measured,
+        seed: opts.seed,
+        progress: log,
+      });
       raw.blocks.push({
         shape,
         warmup,
         measured,
-        cells: rawCells(timingRows, [...results]),
-        heap: {
-          warmup: heap.warmup,
-          measured: heap.measured,
-          cells: rawCells(heapRows, [...results]),
-        },
+        cells: rawCells(rows, [...results]),
       });
-      if (opts.protocolCheck === true && shape === 'mixed') {
-        log(
-          `Protocol check: ${heap.warmup}+${heap.measured} rounds, three modes`,
-        );
-        const modes: FreshMode[] = ['heap', 'timing', 'timing-no-gc'];
-        const cells = live.flatMap((x) => modes.map((m) => fresh(x, m)));
-        const rows = await freshBlock(cells, {
-          block: 'mixed protocol',
-          warmup: heap.warmup,
-          measured: heap.measured,
-          seed: opts.seed,
-          progress: log,
-        });
-        const withVariant = rows.map((r, i) => ({
-          ...r,
-          library: r.library as LibraryId,
-          variant: live[Math.floor(i / modes.length)]?.variant ?? 'plain',
-          outcome: 'pass' as Outcome,
-        }));
-        raw.protocol = withVariant;
-        protocol = protocolCheck(withVariant, opts.seed);
-      }
-      const block = raw.blocks[0];
-      if (block !== undefined) {
-        const passing = (cells: readonly RawScaleCell[]) =>
-          cells.filter((c) => c.outcome === 'pass');
-        prefix = prefixWidths(
-          shape,
-          passing(block.cells),
-          passing(block.heap?.cells ?? []),
-          opts.seed,
-          shape === 'mixed' ? WIDTH_PREFIXES.mixed : WIDTH_PREFIXES.secondary,
-        );
-      }
-      freshDesign = {
-        shape,
-        design: {
-          ...design(warmup, measured),
-          heap: design(heap.warmup, heap.measured),
-        },
-      };
+      freshDesign = { shape, design: design(warmup, measured) };
       info.push({
         block: shape,
         runner: blockRunner(),
@@ -772,7 +667,7 @@ export async function runPart(
     seed: opts.seed,
     graphSeed: GRAPH_SEED,
     scaleSha256: scaleSha256(),
-    timingMode: TIMING_MODE,
+    protocol: 'settled',
     coreRef: coreRefOf({
       explicit: argValue('core-ref'),
       fromFile: readCoreRef(),
@@ -793,8 +688,6 @@ export async function runPart(
     results: rows,
     growth: toScaleGrowth({ blocks: raw.blocks, steady: [] }, opts.seed),
     marginal: toScaleMarginal({ blocks: raw.blocks, steady: [] }),
-    ...(prefix.length > 0 ? { prefixWidths: prefix } : {}),
-    ...(protocol === undefined ? {} : { protocolCheck: protocol }),
     bundles,
   };
   return { part, raw };
@@ -824,12 +717,11 @@ if (import.meta.main) {
   const seed = seedArg();
   const mergeMode = process.argv.includes('--merge');
   const partName = argValue('part') as Shape | 'steady' | undefined;
-  const protocol = process.argv.includes('--protocol-check');
   const partial =
     quick || only !== undefined || sizes !== undefined || shapes !== undefined;
   const where = partial ? 'tmp' : 'results';
   const partsDir = join(BENCHMARKS, where, 'scale-parts');
-  const base = { only, sizes, quick, seed, protocolCheck: protocol };
+  const base = { only, sizes, quick, seed };
 
   if (partName !== undefined) {
     // One job: its part and raw samples, merged later (spec 10.2).

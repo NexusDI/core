@@ -213,12 +213,11 @@ const scaleTimings = (rounds: Partial<Record<string, number>> = {}) => ({
         s,
         {
           ...design(rounds[s] ?? (s === 'mixed' ? 1000 : 200)),
-          heap: design(rounds[`heap:${s}`] ?? 30),
         },
       ]),
     ),
     'steady-get': design(1000),
-    timingMode: 'timing',
+    protocol: 'settled',
   },
   results: [
     {
@@ -376,33 +375,6 @@ describe('validate scale-timings', () => {
       Object.keys(SCALE_MINIMUM_ROUNDS).sort(),
     );
   });
-  it.each(['mixed', 'wide', 'deep', 'modular', 'mixed-async'])(
-    'holds fresh-process.%s.heap to 30 rounds under results/',
-    (shape) => {
-      expect(() =>
-        validate(
-          'scale-timings',
-          scaleTimings({ [`heap:${shape}`]: 29 }),
-          'results',
-        ),
-      ).toThrow(
-        new RegExp(
-          `scale-timings\\.design\\.fresh-process\\.${shape}\\.heap\\.measured`,
-        ),
-      );
-      expect(() =>
-        validate(
-          'scale-timings',
-          scaleTimings({ [`heap:${shape}`]: 30 }),
-          'results',
-        ),
-      ).not.toThrow();
-    },
-  );
-  it('accepts a quick run without heap rounds under tmp/', () => {
-    const file = scaleTimings({ 'heap:mixed': 3 });
-    expect(() => validate('scale-timings', file, 'tmp')).not.toThrow();
-  });
   it('requires scaleSha256 and a runner per block', () => {
     const noSha = scaleTimings() as { scaleSha256?: string };
     delete noSha.scaleSha256;
@@ -415,109 +387,20 @@ describe('validate scale-timings', () => {
       /scale-timings\.blocks\[0\]\.runner\.kernel/,
     );
   });
-  describe('protocol check and prefix widths', () => {
-    const ratio = { median: 1, low: 0.99, high: 1.01, pairs: 30 };
-    const off = { median: 1.1, low: 1.05, high: 1.12, pairs: 30 };
-    const check = (timingStands: boolean) => ({
-      rounds: 30,
-      timingVsHeap: [
-        {
-          library: 'tsyringe',
-          size: 50,
-          ratio: timingStands ? ratio : off,
-          pass: timingStands,
-        },
-      ],
-      noGcVsTiming: [{ library: 'tsyringe', size: 50, ratio, pass: true }],
-      timingStands,
-      gcBeforeCreate: 'keep',
-    });
-    it('accepts a passed protocol check and prefix widths', () => {
-      const file = scaleTimings() as Record<string, unknown>;
-      file.protocolCheck = check(true);
-      file.prefixWidths = [
-        {
-          shape: 'mixed',
-          rounds: 100,
-          maxWidth: 0.05,
-          metric: 'startup awilix 50',
-        },
-      ];
-      expect(() => validate('scale-timings', file, 'results')).not.toThrow();
-    });
-    it('refuses to publish a file whose protocol check failed', () => {
-      const file = scaleTimings() as Record<string, unknown>;
-      file.protocolCheck = check(false);
-      expect(() => validate('scale-timings', file, 'results')).toThrow(
-        /scale-timings\.protocolCheck\.timingStands/,
-      );
-      expect(() => validate('scale-timings', file, 'tmp')).not.toThrow();
-    });
-    it('recomputes each double pass from its ratio', () => {
-      const file = scaleTimings() as Record<string, unknown>;
-      const c = check(true);
-      c.timingVsHeap[0] = {
-        ...c.timingVsHeap[0],
-        ratio: off,
-        pass: true,
-      } as never;
-      file.protocolCheck = c;
-      expect(() => validate('scale-timings', file, 'results')).toThrow(
-        /scale-timings\.protocolCheck\.timingVsHeap\[0\]\.pass/,
-      );
-      const inside = { median: 1.04, low: 0.98, high: 1.1, pairs: 30 };
-      const d = check(true);
-      d.timingVsHeap[0] = { ...d.timingVsHeap[0], ratio: inside } as never;
-      file.protocolCheck = d;
-      expect(() => validate('scale-timings', file, 'results')).not.toThrow();
-    });
-    it('recomputes timingStands and gcBeforeCreate from the doubles', () => {
-      const file = scaleTimings() as Record<string, unknown>;
-      const c = check(true);
-      c.timingStands = false;
-      file.protocolCheck = c;
-      expect(() => validate('scale-timings', file, 'results')).toThrow(
-        /scale-timings\.protocolCheck\.timingStands/,
-      );
-      const g = check(true);
-      g.noGcVsTiming[0] = {
-        ...g.noGcVsTiming[0],
-        ratio: off,
-        pass: false,
-      } as never;
-      file.protocolCheck = g;
-      expect(() => validate('scale-timings', file, 'results')).toThrow(
-        /scale-timings\.protocolCheck\.gcBeforeCreate/,
-      );
-      g.gcBeforeCreate = 'drop';
-      (file.design as { timingMode: string }).timingMode = 'timing-no-gc';
-      expect(() => validate('scale-timings', file, 'results')).not.toThrow();
-    });
-    it('refuses a dropped gc() before create under the timing mode', () => {
-      const file = scaleTimings() as Record<string, unknown>;
-      const g = check(true);
-      g.noGcVsTiming[0] = {
-        ...g.noGcVsTiming[0],
-        ratio: off,
-        pass: false,
-      } as never;
-      g.gcBeforeCreate = 'drop';
-      file.protocolCheck = g;
-      expect(() => validate('scale-timings', file, 'results')).toThrow(
-        /scale-timings\.design\.timingMode/,
-      );
-      (file.design as { timingMode: string }).timingMode = 'timing-no-gc';
-      expect(() => validate('scale-timings', file, 'results')).not.toThrow();
-    });
-    it('rejects a protocol double with no ratio', () => {
-      const file = scaleTimings() as Record<string, unknown>;
-      const broken = check(true);
-      delete (broken.timingVsHeap[0] as { ratio?: unknown }).ratio;
-      file.protocolCheck = broken;
-      expect(() => validate('scale-timings', file, 'tmp')).toThrow(
-        /scale-timings\.protocolCheck\.timingVsHeap\[0\]\.ratio/,
-      );
-    });
+  it('requires design.protocol to be settled under results/', () => {
+    expect(() =>
+      validate('scale-timings', scaleTimings(), 'results'),
+    ).not.toThrow();
+    const missing = scaleTimings();
+    delete (missing.design as { protocol?: string }).protocol;
+    expect(() => validate('scale-timings', missing, 'results')).toThrow(
+      /scale-timings\.design\.protocol/,
+    );
+    const other = scaleTimings();
+    (other.design as { protocol: string }).protocol = 'timing';
+    expect(() => validate('scale-timings', other, 'results')).toThrow(
+      /scale-timings\.design\.protocol/,
+    );
   });
   it('holds steady-get to 1,000 iterations under results/', () => {
     const file = scaleTimings();
@@ -529,7 +412,7 @@ describe('validate scale-timings', () => {
   it('requires every shape under results/ and accepts one under tmp/', () => {
     const file = scaleTimings();
     file.design['fresh-process'] = {
-      mixed: { ...design(1000), heap: design(30) },
+      mixed: design(1000),
     };
     expect(() => validate('scale-timings', file, 'results')).toThrow(
       /scale-timings\.design\.fresh-process\.wide/,

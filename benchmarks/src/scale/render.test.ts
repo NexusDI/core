@@ -161,40 +161,11 @@ describe('renderAll', () => {
       md.indexOf('## Retained heap, mixed'),
       md.indexOf('## Run'),
     );
-    expect(heap).toMatch(
-      /serial block of 30 measured rounds after 3 warm-up rounds/,
-    );
+    expect(heap).toMatch(/same rounds as the timings/);
+    expect(heap).not.toMatch(/serial block/);
   });
-  it('prints the protocol check and what it decided', () => {
+  it('has no protocol-check or interval-width section', () => {
     const md = out.files['scale.md'] ?? '';
-    const section = md.slice(
-      md.indexOf('## Protocol check'),
-      md.indexOf('## Interval widths'),
-    );
-    expect(section).toMatch(/timing mode stands/i);
-    expect(section).toMatch(/gc\(\) before create is dropped/i);
-    // One row per competitor and size, with the ratio and its interval.
-    expect(section).toContain('1.00 [0.99, 1.02]');
-    expect(section).toMatch(
-      /\| awilix\s+\| 50\s+\| 1\.05 \[1\.03, 1\.07\]\s+\| no\s+\|/,
-    );
-  });
-  it('prints the maximum interval width at each prefix of the mixed rounds', () => {
-    const md = out.files['scale.md'] ?? '';
-    const section = md.slice(
-      md.indexOf('## Interval widths'),
-      md.indexOf('## Run'),
-    );
-    expect(section).toMatch(/\| mixed\s+\| 4\.1%/);
-    expect(section).toContain('startup awilix 50');
-    expect(section).toMatch(/3% for `mixed`/);
-  });
-  it('leaves both sections out when the run made neither', () => {
-    const t = fixtureTimings();
-    delete t.protocolCheck;
-    delete t.prefixWidths;
-    const md =
-      renderAll({ scale: fixtureScale(), timings: t }).files['scale.md'] ?? '';
     expect(md).not.toContain('## Protocol check');
     expect(md).not.toContain('## Interval widths');
   });

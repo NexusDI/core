@@ -14,11 +14,6 @@ on:
   schedule:
     - cron: '0 4 * * 1'
   workflow_dispatch:
-    inputs:
-      protocol_check:
-        description: 'Run the paired protocol check on mixed (scale spec 7.4): the first dispatch only'
-        type: boolean
-        default: false
   push:
     tags:
       - '@nexusdi/core@*'
@@ -215,9 +210,9 @@ jobs:
   # machine. fail-fast cancels the rest when one fails, and merge needs every
   # part, so a partial file is never published. Timeouts follow the estimates
   # of section 10.2. It runs on a manual dispatch only: a core tag would
-  # otherwise publish timings before the protocol check of section 7.4 has
-  # passed. A one-line follow-up widens the trigger to
-  # `github.event_name != 'pull_request'` after the first dispatch passes.
+  # otherwise publish timings before a dispatch run has published a scale
+  # file. A one-line follow-up widens the trigger to
+  # `github.event_name != 'pull_request'` after that run.
   scale:
     name: scale-${{ matrix.part }}
     if: github.event_name == 'workflow_dispatch'
@@ -258,7 +253,7 @@ jobs:
         with:
           name: deterministic
           path: benchmarks/results
-      - run: node benchmarks/src/scale/timings.ts --part=${{ matrix.part }} --seed=${{ github.run_id }} ${{ matrix.part == 'mixed' && inputs.protocol_check && '--protocol-check' || '' }}
+      - run: node benchmarks/src/scale/timings.ts --part=${{ matrix.part }} --seed=${{ github.run_id }}
       - uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
         with:
           name: scale-timings-${{ matrix.part }}

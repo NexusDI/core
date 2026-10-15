@@ -137,7 +137,7 @@ The exponent between two adjacent sizes is log(R) / log(hi / lo), where R is the
 
 ## Retained heap, mixed
 
-Heap retained after startup with the container referenced, in kB, minus the heap before the app loaded, and NexusDI's figure divided by the library's. The figures come from a serial block of 30 measured rounds after 3 warm-up rounds, run beside the timing block with the heap read before and after the app. The last column is the marginal bytes per provider between 1,000 and 5,000.
+Heap retained after startup with the container referenced, in kB, minus the heap before the app loaded, and NexusDI's figure divided by the library's. The figures come from the same rounds as the timings, with the heap read after a settle before and after the app. The last column is the marginal bytes per provider between 1,000 and 5,000.
 
 | library  | 50                            | 200                           | 1,000                          | 2,500                          | 5,000                           | per provider |
 | -------- | ----------------------------- | ----------------------------- | ------------------------------ | ------------------------------ | ------------------------------- | ------------ |
@@ -148,36 +148,6 @@ Heap retained after startup with the container referenced, in kB, minus the heap
 <sup>1</sup> tsyringe at 1,000 providers: runtime-error (RangeError: Maximum call stack size exceeded)  
 <sup>2</sup> tsyringe at 2,500 providers: runtime-error (RangeError: Maximum call stack size exceeded)  
 <sup>3</sup> tsyringe at 5,000 providers: runtime-error (RangeError: Maximum call stack size exceeded)
-
-## Protocol check
-
-30 measured rounds of every `mixed` cell in three modes, in one block. Each ratio is NexusDI's per-round shift between two modes divided by the library's, on startup, so a shift that every library shares cancels. A pair passes when its median is within 2% of 1 or its interval contains 1.
-
-### Timing mode over heap mode
-
-| library  | size | ratio [low, high] | within 2% or contains 1 |
-| -------- | ---- | ----------------- | ----------------------- |
-| awilix   | 50   | 1.00 [0.99, 1.02] | yes                     |
-| tsyringe | 50   | 1.00 [0.98, 1.01] | yes                     |
-
-Timing mode stands: no pair moved NexusDI against a competitor.
-
-### Timing mode without the gc() before create, over timing mode
-
-| library  | size | ratio [low, high] | within 2% or contains 1 |
-| -------- | ---- | ----------------- | ----------------------- |
-| awilix   | 50   | 1.05 [1.03, 1.07] | no                      |
-| tsyringe | 50   | 1.00 [0.99, 1.01] | yes                     |
-
-The gc() before create is dropped: a pair moved NexusDI against a competitor.
-
-## Interval widths
-
-The maximum relative width (interval over median) of the paired ratios of a shape at the first N rounds: startup, ready, first-resolve, the growth ratios and heap-ready. The targets are 3% for `mixed` and 10% for the other shapes. The metric with the maximum follows each width.
-
-| shape | 100                      | 200                                          | 400                       |
-| ----- | ------------------------ | -------------------------------------------- | ------------------------- |
-| mixed | 4.1% (startup awilix 50) | 2.8% (growth awilix/plain 200 to 1000 ready) | 1.9% (ready tsyringe 200) |
 
 ## Run
 
