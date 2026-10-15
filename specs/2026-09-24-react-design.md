@@ -107,7 +107,7 @@ createRoot(document.getElementById('root')!).render(
     <NexusProvider container={shipReady}>
       <StarList />
     </NexusProvider>
-  </Suspense>
+  </Suspense>,
 );
 ```
 
@@ -187,11 +187,11 @@ export function NexusProvider(props: {
 
 export function useService<T>(
   token: MultiToken<T>,
-  options?: LookupOptions
+  options?: LookupOptions,
 ): readonly T[];
 export function useService<T>(
   token: InjectionToken<T>,
-  options?: LookupOptions
+  options?: LookupOptions,
 ): T;
 export function useContainer(): Nexus; // the root, for load() and createScope() in effects
 
@@ -203,7 +203,7 @@ export function ScopeProvider(props: {
 
 export function lazySection(
   name: string,
-  loader: () => Promise<ModuleRef>
+  loader: () => Promise<ModuleRef>,
 ): LazySection;
 export function SectionBoundary(props: {
   section: LazySection;
@@ -538,7 +538,7 @@ The docs tell such code to call `extend()` on its own scopes, or to load through
 ```tsx
 // shell/src/sections.ts
 export const Cartography = lazySection('cartography', () =>
-  import('@meridian/section-cartography').then((m) => m.Cartography)
+  import('@meridian/section-cartography').then((m) => m.Cartography),
 );
 ```
 
@@ -694,7 +694,7 @@ startTransition(() => {
       <NexusProvider container={ship}>
         <HydratedRouter />
       </NexusProvider>
-    </StrictMode>
+    </StrictMode>,
   );
 });
 ```
@@ -743,14 +743,14 @@ export default async function handleRequest(
   status: number,
   headers: Headers,
   routerContext: EntryContext,
-  loadContext: RouterContextProvider
+  loadContext: RouterContextProvider,
 ) {
   const scope = await loadContext.get(NEXUS_SCOPE).scope();
   const body = await renderToReadableStream(
     <NexusProvider container={ship} scope={scope}>
       <ServerRouter context={routerContext} url={request.url} />
     </NexusProvider>,
-    { signal: request.signal }
+    { signal: request.signal },
   );
   // ...headers and isbot handling as in React Router's default entry
   return new Response(body, { status, headers });
@@ -1035,7 +1035,9 @@ import { Bridge } from './bridge/bridge.module';
 
 test('lists the five nearest stars', async () => {
   await using ship = await createTestingContainer(Bridge)
-    .override(STAR_CATALOG, { useValue: fakeCatalog(sol, proxima, barnard, wolf, lalande) })
+    .override(STAR_CATALOG, {
+      useValue: fakeCatalog(sol, proxima, barnard, wolf, lalande),
+    })
     .create({ plugins: [react()] });
 
   const view = render(<StarList />, {
