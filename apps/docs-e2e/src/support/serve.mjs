@@ -1,7 +1,7 @@
 import { createPagesServer } from './pages-server.mjs';
 import { prepareSite, SITE } from './prepare-site.mjs';
 
-const PORT = 4310;
+import { PORT } from './port.mjs';
 
 await prepareSite();
 createPagesServer(SITE).listen(PORT, () => {

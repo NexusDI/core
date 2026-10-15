@@ -2,7 +2,9 @@ import { workspaceRoot } from '@nx/devkit';
 import { nxE2EPreset } from '@nx/playwright/preset';
 import { defineConfig, devices } from '@playwright/test';
 
-const baseURL = process.env['BASE_URL'] ?? 'http://localhost:4310';
+import { PORT } from './src/support/port.mjs';
+
+const baseURL = process.env['BASE_URL'] ?? `http://localhost:${PORT}`;
 
 /**
  * Runs against the static export served under /next/ by a server that
@@ -16,8 +18,11 @@ export default defineConfig({
   },
   webServer: {
     command: 'node apps/docs-e2e/src/support/serve.mjs',
-    url: 'http://localhost:4310/next/',
-    reuseExistingServer: !process.env['CI'],
+    url: `http://localhost:${PORT}/next/`,
+    // A server already on this checkout's port is this checkout's own (see
+    // `port.mjs`). CI and `DOCS_E2E_FRESH=1` always start a fresh one.
+    reuseExistingServer:
+      !process.env['CI'] && process.env['DOCS_E2E_FRESH'] !== '1',
     cwd: workspaceRoot,
     // The first run builds the site.
     timeout: 600_000,
