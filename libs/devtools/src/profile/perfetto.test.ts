@@ -176,3 +176,33 @@ describe('toPerfettoTrace edges and slices', () => {
       expect(end(child)).toBeLessThanOrEqual(end(parent));
   });
 });
+
+describe('toPerfettoTrace flows on a coarse clock', () => {
+  it('keeps both ends of a flow inside zero-length slices', () => {
+    // A browser clock of 100 µs reads many short builds as 0 ms long.
+    const coarse = report(
+      [
+        build({ providerId: 'a', token: 'A', startMs: 1, durationMs: 0 }),
+        build({
+          providerId: 'b',
+          token: 'B',
+          startMs: 1,
+          durationMs: 0,
+          level: 1,
+        }),
+      ],
+      [['b', 'a']],
+    );
+    const evs = toPerfettoTrace(coarse).traceEvents as Ev[];
+    const sliceOf = (token: string) =>
+      defined(evs.find((e) => e['ph'] === 'X' && e['name'] === token));
+    const within = (ts: unknown, slice: Ev) =>
+      (ts as number) >= (slice['ts'] as number) &&
+      (ts as number) <= (slice['ts'] as number) + (slice['dur'] as number);
+    const start = defined(evs.find((e) => e['ph'] === 's'));
+    const finish = defined(evs.find((e) => e['ph'] === 'f'));
+    expect(start['tid']).toBe(sliceOf('A')['tid']);
+    expect(within(start['ts'], sliceOf('A'))).toBe(true);
+    expect(within(finish['ts'], sliceOf('B'))).toBe(true);
+  });
+});

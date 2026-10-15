@@ -110,7 +110,9 @@ export function toPerfettoTrace(report: ProfileReport): TraceFile {
           id,
           pid,
           tid: tids.get(to.providerId),
-          ts: us(to.startMs + to.durationMs) - 1,
+          // 1 µs inside each end, clamped to the slice, so a zero-length
+          // slice on a coarse browser clock keeps its arrow.
+          ts: Math.max(us(to.startMs), us(to.startMs + to.durationMs) - 1),
         },
         {
           name,
@@ -120,7 +122,10 @@ export function toPerfettoTrace(report: ProfileReport): TraceFile {
           id,
           pid,
           tid: tids.get(from.providerId),
-          ts: us(from.startMs) + 1,
+          ts: Math.min(
+            us(from.startMs) + 1,
+            us(from.startMs + from.durationMs),
+          ),
         },
       );
     }
