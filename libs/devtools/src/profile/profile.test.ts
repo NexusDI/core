@@ -430,3 +430,28 @@ describe('profile graph', () => {
     expect(after?.providers.map((p) => p.token)).toContain('Probe');
   });
 });
+
+describe('profile graph sharing', () => {
+  it('freezes the shared graph, so one caller cannot change a later report', async () => {
+    const profiler = profile();
+    await using ship = await Nexus.create(Engineering, { plugins: [profiler] });
+    void ship;
+    const graph = defined(profiler.report().graph ?? undefined);
+    const provider = defined(graph.providers[0]);
+    const edge = defined(graph.edges[0]);
+    // Test modules run in strict mode, where a write to a frozen object throws.
+    expect(() => {
+      (graph as { root: string }).root = 'Other';
+    }).toThrow(TypeError);
+    expect(() => {
+      (provider as { token: string }).token = 'Other';
+    }).toThrow(TypeError);
+    expect(() => {
+      (edge as { ordersBuild: boolean }).ordersBuild = false;
+    }).toThrow(TypeError);
+    expect(() => {
+      (graph.providers as unknown[]).push({});
+    }).toThrow(TypeError);
+    expect(profiler.report().graph?.root).toBe('Engineering');
+  });
+});
