@@ -1,4 +1,4 @@
-import { expect, test, type Page } from '@playwright/test';
+import { expect, test, type Locator, type Page } from '@playwright/test';
 
 /**
  * The first reference page, end to end: the static HTML a search index and a
@@ -21,15 +21,21 @@ async function openCase(page: Page, library = 'node') {
       ? request.url().endsWith(SIDECAR)
       : request.url().includes(`/next/behaviour/${library}/`),
   );
-  await page.locator('.nexus-behaviours').first().scrollIntoViewIfNeeded();
+  // An entry off the screen skips layout (`content-visibility: auto`), and
+  // Firefox and WebKit give its descendants no box to scroll to, so the
+  // reader's way in is the entry first, then its catalogue.
+  const catalogue = page.locator('.nexus-behaviours').first();
+  await page
+    .locator('.nexus-api-entry', { has: catalogue })
+    .first()
+    .scrollIntoViewIfNeeded();
+  await catalogue.scrollIntoViewIfNeeded();
   await sidecar;
   const region = page.getByRole('region', {
     name:
       library === 'node' ? CASE : new RegExp(`^libs/${library}/src/.+:\\d+$`),
   });
-  // `/api/` is seven megabytes of HTML, which Firefox takes a while to lay
-  // out before the pane can mount.
-  await expect(region).toBeVisible({ timeout: 15_000 });
+  await expect(region).toBeVisible();
   return region;
 }
 
@@ -120,33 +126,41 @@ for (const [path, library] of [
     });
   }
 
+/** The first signature token, the one card, and the token's own fence. */
+const signature = (page: Page) => {
+  const fence = page.locator('.nexus-api-entry__signature pre').first();
+  return {
+    fence,
+    token: fence.locator('button[data-pop]').first(),
+    card: page.locator('#nexus-type-card'),
+  };
+};
+
 for (const theme of ['dark', 'light'] as const) {
   test(`states the type of a signature token on hover and on focus in ${theme} mode`, async ({
     page,
   }) => {
     await page.emulateMedia({ colorScheme: theme });
     await page.goto(PAGE);
-    const hover = page
-      .locator('.nexus-api-entry__signature .nexus-popup')
-      .filter({ has: page.getByRole('button', { name: 'nodeScopes' }) })
-      .first();
-    const panel = hover.locator('.nexus-popup__panel');
+    const { token, card } = signature(page);
 
-    // The type is in the HTML before any script runs.
-    await expect(panel).toHaveCount(1);
-    await expect(panel).toBeHidden();
+    // The HTML carries no panel; the page's table holds them.
+    await expect(page.locator('.twoslash-popup-container')).toHaveCount(0);
 
-    await hover.getByRole('button').hover();
-    await expect(panel).toBeVisible();
-    await expect(panel).toContainText('NodeScopes');
+    await token.hover();
+    await expect(card).toBeVisible();
+    await expect(card).toContainText('NodeScopes');
+    expect(await token.getAttribute('aria-describedby')).toBe(
+      'nexus-type-card',
+    );
 
     await page.mouse.move(0, 0);
-    await expect(panel).toBeHidden();
+    await expect(card).toHaveCount(0);
 
-    await hover.getByRole('button').focus();
-    await expect(panel).toBeVisible();
+    await token.focus();
+    await expect(card).toBeVisible();
     await page.keyboard.press('Escape');
-    await expect(panel).toBeHidden();
+    await expect(card).toHaveCount(0);
   });
 }
 
@@ -161,22 +175,34 @@ test('toggles a type on tap and closes it on a tap outside', async ({
   });
   const page = await context.newPage();
   await page.goto(PAGE);
-  const hover = page
-    .locator('.nexus-api-entry__signature .nexus-popup')
-    .first();
-  const panel = hover.locator('.nexus-popup__panel');
+  const { token, card } = signature(page);
 
-  await hover.getByRole('button').tap();
-  await expect(panel).toBeVisible();
-  await hover.getByRole('button').tap();
-  await expect(panel).toBeHidden();
+  await token.tap();
+  await expect(card).toBeVisible();
+  await token.tap();
+  await expect(card).toHaveCount(0);
 
-  await hover.getByRole('button').tap();
-  await expect(panel).toBeVisible();
+  await token.tap();
+  await expect(card).toBeVisible();
   await page.locator('h1').tap();
-  await expect(panel).toBeHidden();
+  await expect(card).toHaveCount(0);
   await context.close();
 });
+
+/** Tabs from a fence's own <pre> until a token of it has focus. */
+async function tabInto(page: Page, fence: Locator) {
+  const onToken = () =>
+    fence.evaluate((element) =>
+      [...element.querySelectorAll('button[data-pop]')].includes(
+        document.activeElement as Element,
+      ),
+    );
+  // Nextra makes a scrolling <pre> focusable and puts a copy button by it.
+  await fence.focus();
+  for (let presses = 0; presses < 5 && !(await onToken()); presses += 1)
+    await page.keyboard.press('Tab');
+  return onToken;
+}
 
 test('walks a fence from one tab stop with the arrow keys', async ({
   page,
@@ -187,42 +213,28 @@ test('walks a fence from one tab stop with the arrow keys', async ({
     .locator('.nexus-api-entry pre')
     .evaluateAll((all) => {
       const found = all.find(
-        (each) => each.querySelectorAll('.nexus-popup__button').length >= 2,
+        (each) => each.querySelectorAll('button[data-pop]').length >= 2,
       );
       found?.setAttribute('data-walked', '');
       return found !== undefined;
     });
   expect(marked).toBe(true);
   const fence = page.locator('pre[data-walked]');
-  const tokens = fence.locator('.nexus-popup__button');
-  await expect(fence.locator('.nexus-popup__button[tabindex="0"]')).toHaveCount(
-    1,
-  );
+  const tokens = fence.locator('button[data-pop]');
+  await expect(fence.locator('button[data-pop][tabindex="0"]')).toHaveCount(1);
 
-  const onToken = () =>
-    fence.evaluate((element) =>
-      [...element.querySelectorAll('.nexus-popup__button')].includes(
-        document.activeElement as Element,
-      ),
-    );
-
-  // Nextra makes a scrolling <pre> focusable and puts a copy button by it.
-  // Tab from the <pre> reaches the fence's one token stop, past the copy
-  // button.
-  await fence.focus();
-  for (let presses = 0; presses < 5 && !(await onToken()); presses += 1)
-    await page.keyboard.press('Tab');
+  const onToken = await tabInto(page, fence);
   await expect(tokens.first()).toBeFocused();
 
   await page.keyboard.press('ArrowRight');
   await expect(tokens.nth(1)).toBeFocused();
-  const second = page.locator(
-    `[id="${await tokens.nth(1).getAttribute('aria-describedby')}"]`,
+  const card = page.locator('#nexus-type-card');
+  await expect(card).toBeVisible();
+  await expect(card).not.toBeEmpty();
+  expect(await tokens.nth(1).getAttribute('aria-describedby')).toBe(
+    'nexus-type-card',
   );
-  await expect(second).toBeVisible();
-  await expect(second).not.toBeEmpty();
 
-  // The next Tab leaves the fence's tokens for whatever follows them.
   await page.keyboard.press('Tab');
   expect(await onToken()).toBe(false);
 });
@@ -235,76 +247,54 @@ test('shows the type on Tab after a tap', async ({ browser, browserName }) => {
   });
   const page = await context.newPage();
   await page.goto(PAGE);
-  const fence = page.locator('.nexus-api-entry__signature pre').first();
-  const hover = fence.locator('.nexus-popup').first();
-  const panel = hover.locator('.nexus-popup__panel');
+  const { fence, token, card } = signature(page);
 
-  await hover.getByRole('button').tap();
-  await expect(panel).toBeVisible();
+  await token.tap();
+  await expect(card).toBeVisible();
   await page.locator('h1').tap();
-  await expect(panel).toBeHidden();
+  await expect(card).toHaveCount(0);
 
-  await fence.focus();
-  for (
-    let presses = 0;
-    presses < 5 &&
-    !(await hover
-      .getByRole('button')
-      .evaluate((button) => button === document.activeElement));
-    presses += 1
-  )
-    await page.keyboard.press('Tab');
-  await expect(hover.getByRole('button')).toBeFocused();
-  await expect(panel).toBeVisible();
+  await tabInto(page, fence);
+  await expect(token).toBeFocused();
+  await expect(card).toBeVisible();
   await context.close();
 });
 
-test('keeps a long panel open while the reader scrolls inside it', async ({
+test('keeps a long card open while the reader scrolls inside it', async ({
   page,
 }) => {
   await page.goto(PAGE);
-  const hover = page
-    .locator('.nexus-api-entry__signature .nexus-popup')
-    .first();
-  const panel = hover.locator('.nexus-popup__panel');
-  await hover.getByRole('button').hover();
-  await expect(panel).toBeVisible();
+  const { token, card } = signature(page);
+  await token.hover();
+  await expect(card).toBeVisible();
 
-  // Any panel taller than its cap scrolls; this one is capped so it does.
-  await panel.evaluate((element) => {
+  // Any card taller than its cap scrolls; this one is capped so it does.
+  await card.evaluate((element) => {
     element.style.maxHeight = '1.5em';
   });
   expect(
-    await panel.evaluate(
+    await card.evaluate(
       (element) => element.scrollHeight > element.clientHeight,
     ),
   ).toBe(true);
 
-  await panel.hover();
+  await card.hover();
   await page.mouse.wheel(0, 40);
   await expect
-    .poll(() => panel.evaluate((element) => element.scrollTop))
+    .poll(() => card.evaluate((element) => element.scrollTop))
     .toBeGreaterThan(0);
-  await expect(panel).toBeVisible();
+  await expect(card).toBeVisible();
 });
 
 test('toggles the type with Enter', async ({ page }) => {
   await page.goto(PAGE);
-  const fence = page.locator('.nexus-api-entry__signature pre').first();
-  const button = fence.locator('.nexus-popup__button').first();
-  const panel = fence.locator('.nexus-popup__panel').first();
+  const { fence, token, card } = signature(page);
 
-  await fence.focus();
-  for (
-    let presses = 0;
-    presses < 5 &&
-    !(await button.evaluate((each) => each === document.activeElement));
-    presses += 1
-  )
-    await page.keyboard.press('Tab');
-  await expect(panel).toBeVisible();
+  await tabInto(page, fence);
+  await expect(token).toBeFocused();
+  await expect(card).toBeVisible();
   await page.keyboard.press('Enter');
-  await expect(panel).toBeHidden();
+  await expect(card).toHaveCount(0);
   await page.keyboard.press('Enter');
-  await expect(panel).toBeVisible();
+  await expect(card).toBeVisible();
 });
