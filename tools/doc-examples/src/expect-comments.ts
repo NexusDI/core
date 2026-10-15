@@ -298,8 +298,13 @@ function importSpecifier(line: string): string | null {
   return rewritten?.match(/await import\((['"])([^'"]+)\1\);$/)?.[2] ?? null;
 }
 
-/** A line that opens an import whose `from '...'` comes on a later line. */
-const OPENS_IMPORT = /^\s*import\b(?!.*['"][^'"]*['"];?\s*$)/;
+/**
+ * A line that opens an import whose `from '...'` comes on a later line. An
+ * `import.meta` or `import(` line is an expression, never an import
+ * declaration, so it opens nothing.
+ */
+const OPENS_IMPORT =
+  /^\s*import\s+(?:type\s+)?[\w{*](?!.*['"][^'"]*['"];?\s*$)/;
 /** The line of a wrapped import that holds its specifier. */
 const CLOSES_IMPORT = /\bfrom\s*['"][^'"]+['"];?\s*$/;
 

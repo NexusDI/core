@@ -29,6 +29,10 @@ describe('edgeSafe', () => {
     expect(edgeSafe(join(FIXTURES, 'sabotaged')).violations).toEqual([
       'libs/hono/src/index.ts:1 calls eval(; Vercel Edge disables it',
       'libs/hono/src/index.ts:2 calls new Function; Vercel Edge disables it',
+      'libs/hono/src/index.ts:3 references eval; Vercel Edge disables it',
+      'libs/hono/src/index.ts:4 reads globalThis.eval; Vercel Edge disables it',
+      'libs/hono/src/index.ts:5 reads self.Function; Vercel Edge disables it',
+      'libs/hono/src/index.ts:6 reads window.eval; Vercel Edge disables it',
     ]);
   });
 
