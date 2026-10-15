@@ -3186,7 +3186,7 @@ fit. Each item below overrides the text it names. The plan is
 7. `docs:behaviour-data`. The target writes an index per library to
    `apps/docs/components/api/behaviour/<dir>.json`, which the loader reads during the
    build, and the highlighted cases to `apps/docs/public/behaviour/<dir>/<name>.json`, one
-   file per export whose entry lists a case, which the catalogue fetches when a reader
+   file per stated identifier (a `describe` title that is an identifier) whose rail lists a case, which the catalogue fetches when a reader
    scrolls the entry into view. A file holds the cases of that export's rail and the hover
    popups those cases point at. Both paths are gitignored. The library list is every
    `libs/*` package whose `exports` map holds an entry other than `./package.json`, read
@@ -3201,7 +3201,7 @@ fit. Each item below overrides the text it names. The plan is
    `NEXUS_BASE_PATH`, because `/next/` serves the sidecar at
    `/next/behaviour/<dir>/<name>.json`. `check-budgets` holds every sidecar to 1400 kB raw
    and 60 kB gzipped. Measured on 2026-10-15, inline styles made `core`'s single sidecar
-   10.7 MB raw (299 kB gzipped), and the largest file per export, `core/Nexus.json` with
+   10.7 MB raw (299 kB gzipped), and the largest file, `core/Nexus.json` with
    102 cases, is 1350 kB raw and 56.6 kB gzipped.
 8. Guards. `doc-reference` adds one rule to the libraries version: every export an API
    page names carries a docblock summary, because an entry renders that summary as its
