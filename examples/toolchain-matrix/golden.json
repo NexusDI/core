@@ -138,8 +138,10 @@
   "trace": {
     "counts": {
       "compile": 1,
+      "construct:await": 1,
       "construct": 7,
       "init": 1,
+      "run": 2,
       "scope:create": 1,
       "scope:dispose": 1,
       "dispose:instance": 2,
