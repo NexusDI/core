@@ -172,6 +172,20 @@ async function mergeCpu(
   return { cpuProfile: { profile, offsetMs: aligned.offsetMs } };
 }
 
+/** Prints the table on stdout unless --quiet. */
+async function printTable(
+  io: Io,
+  command: ProfileCommand,
+  devtools: DevtoolsApi,
+  reports: readonly ProfileReport[],
+): Promise<void> {
+  if (!command.quiet)
+    await writeTo(
+      io.stdout,
+      devtools.profileTable(reports, { top: command.top }),
+    );
+}
+
 export async function runProfile(
   command: ProfileCommand,
   io: Io,
@@ -182,11 +196,7 @@ export async function runProfile(
     const devtools = await loadDevtools(join(io.cwd, 'package.json'), version);
     const reports = await readReports(command, devtools);
     await writeOutputs(io, command, devtools, reports, undefined);
-    if (!command.quiet)
-      await writeTo(
-        io.stdout,
-        devtools.profileTable(reports, { top: command.top }),
-      );
+    await printTable(io, command, devtools, reports);
     return 0;
   }
   const environment = environmentOf(command.entry.path);
@@ -268,10 +278,6 @@ export async function runProfile(
     break;
   }
   await writeOutputs(io, command, devtools, reports, cpu);
-  if (!command.quiet)
-    await writeTo(
-      io.stdout,
-      devtools.profileTable(reports, { top: command.top }),
-    );
+  await printTable(io, command, devtools, reports);
   return code;
 }
