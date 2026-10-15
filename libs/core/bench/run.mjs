@@ -4,15 +4,15 @@
  * multi-module app (301 providers, 32 modules, size label `modules`), no
  * plugin, hook sites on against compiled out.
  *
- * Each operation runs in 10 fresh pairs of worker processes, 20 measured
+ * Each operation runs in 20 fresh pairs of worker processes, 20 measured
  * rounds per pair. One pair alone reports a tight interval around an
  * offset that a restart moves by several percent (JIT decisions and heap
  * layout differ per process), so clusteredRatio resamples whole pairs and
  * the interval carries the run-to-run noise the spec bounds against. Both
  * workers of a pair run the larger of their two calibrated batches.
  *
- * A case that comes out inconclusive runs 20 more pairs, once, and the
- * verdict is taken again over all 30 (spec 14.6). The job then fails on a
+ * A case that comes out inconclusive runs 40 more pairs, once, and the
+ * verdict is taken again over all 60 (spec 14.6). The job then fails on a
  * `fail`, and on an `inconclusive` whose median is above 1.03.
  *
  * `--quick` runs 2 pairs of 2 warm-up and 5 measured rounds for a local
@@ -33,8 +33,8 @@ import { buildDispatch } from './build.mjs';
 
 const quick = process.argv.includes('--quick');
 const warmup = quick ? 2 : 20;
-const pairs = quick ? 2 : 10;
-const extension = 20;
+const pairs = quick ? 2 : 20;
+const extension = 40;
 const perPair = quick ? 5 : 20;
 const seed = Number(process.env.BENCH_SEED ?? Date.now() % 2 ** 31);
 const out = join(import.meta.dirname, '..', 'tmp', 'bench');
