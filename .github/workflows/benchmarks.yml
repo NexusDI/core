@@ -209,13 +209,12 @@ jobs:
   # for the steady get-cycle, each keeping every library and size on one
   # machine. fail-fast cancels the rest when one fails, and merge needs every
   # part, so a partial file is never published. Timeouts follow the estimates
-  # of section 10.2. It runs on a manual dispatch only: a core tag would
-  # otherwise publish timings before a dispatch run has published a scale
-  # file. A one-line follow-up widens the trigger to
-  # `github.event_name != 'pull_request'` after that run.
+  # of section 10.2. It runs on every event except a pull request, as
+  # `timings` does: the first dispatch run (38736285112) published a scale
+  # file, so a core tag may now publish scale timings.
   scale:
     name: scale-${{ matrix.part }}
-    if: github.event_name == 'workflow_dispatch'
+    if: github.event_name != 'pull_request'
     needs: deterministic
     runs-on: ubuntu-24.04
     timeout-minutes: ${{ matrix.timeout }}
@@ -263,7 +262,7 @@ jobs:
   # npm ci and repository scripts. The results job only commits and pushes.
   merge:
     needs: [deterministic, build-meridian-8, build-scale-200, timings, scale]
-    # scale is skipped on a tag run, which still merges the other results.
+    # scale is skipped on a pull request, which does not reach this job.
     if: ${{ !cancelled() && needs.deterministic.result == 'success' && needs.build-meridian-8.result == 'success' && needs.build-scale-200.result == 'success' && needs.timings.result == 'success' && needs.scale.result != 'failure' }}
     runs-on: ubuntu-24.04
     steps:

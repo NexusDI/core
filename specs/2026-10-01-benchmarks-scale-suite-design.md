@@ -1,6 +1,8 @@
 # Benchmarks: the scale suite
 
-Status: amended by the tech lead's rulings (sections 13 and 15); ready for planning.
+Status: amended by the tech lead's rulings (sections 13 and 15); ready for planning. The
+`scale` trigger is widened to every non-pull-request event: dispatch run 38736285112
+published a scale file.
 Branch: `feat/benchmarks-scale-suite`, from `origin/release/0.4` at `8824502`.
 Project: `benchmarks` (`@nexusdi/benchmarks`) and `.github/workflows/benchmarks.yml`.
 `libs/core` and `tools/bench-kit` do not change.
@@ -621,9 +623,9 @@ pool two CPUs into one median. Each part builds only its own cells, writes its p
 raw samples, and uploads `scale-timings-<part>`. Every part records its block's runner
 image, CPU and kernel, and the rendered caption of a shape names its CPU.
 
-The `scale` job runs on a manual dispatch only: a core tag would otherwise publish timings
-before a dispatch run has published a scale file. A later one-line change widens the
-trigger to every non-pull-request event once the next dispatch has published. `merge`
+The `scale` job runs on every event except a pull request, as `timings` does. It ran on a
+manual dispatch only until dispatch run 38736285112 published a scale file; a core tag may now
+publish scale timings. `merge`
 runs when `scale` is skipped, to merge the other results, and not when it failed.
 
 The matrix runs with `fail-fast: true`, and `merge` needs `scale`, so a partial file is
@@ -651,8 +653,7 @@ separate jobs.
 The workflow takes `deterministic` (about 12 minutes), then `scale-mixed` (about 157
 minutes) and `merge` (about 1 minute): about 2 hours 50 minutes of wall time. `mixed` uses
 157 of its 330 minutes, so no round is cut and no job splits by size. If `scale-mixed`
-passes 200 minutes, the timeout is reviewed before the tag trigger opens. No tag depends
-on scale timings until a dispatch run has published a scale file.
+passes 200 minutes, the timeout is reviewed. The tag trigger is open.
 
 ### 10.3 `build-scale-200`
 
