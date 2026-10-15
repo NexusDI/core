@@ -321,7 +321,6 @@ describe.each(SIZES)('mixed-async at %i', (n) => {
  */
 describe.each(SIZES)('mixed at %i over 32 seeds', (n) => {
   const band = BANDS[n];
-  const graphs = Array.from({ length: 32 }, (_, k) => mixed(n, GRAPH_SEED + k));
   // The true median of 32 values: the mean of the two middle ones.
   const median = (xs: number[]) => {
     const sorted = [...xs].sort((a, b) => a - b);
@@ -331,6 +330,10 @@ describe.each(SIZES)('mixed at %i over 32 seeds', (n) => {
   it.runIf(band !== undefined)(
     'has median depth and target share inside the bands',
     () => {
+      // Built here, so a size without a band never pays for 32 graphs.
+      const graphs = Array.from({ length: 32 }, (_, k) =>
+        mixed(n, GRAPH_SEED + k),
+      );
       const depth = median(graphs.map(collapsedDepth));
       const share = median(
         graphs.map((g) => describeGraph(g).targetClosure / n),
