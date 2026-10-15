@@ -1,0 +1,64 @@
+{
+  "name": "@nexusdi/react",
+  "version": "0.4.0-rc.1",
+  "description": "Give React components the services of a NexusDI container.",
+  "keywords": [
+    "nexusdi",
+    "dependency injection",
+    "react",
+    "hooks",
+    "typescript"
+  ],
+  "homepage": "https://github.com/NexusDI/core#readme",
+  "bugs": {
+    "url": "https://github.com/NexusDI/core/issues"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/NexusDI/core.git",
+    "directory": "libs/react"
+  },
+  "license": "MIT",
+  "type": "module",
+  "sideEffects": false,
+  "engines": {
+    "node": ">=22.12"
+  },
+  "types": "./dist/index.d.ts",
+  "exports": {
+    "./package.json": "./package.json",
+    ".": {
+      "@nexusdi/source": "./src/index.ts",
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js",
+      "default": "./dist/index.js"
+    }
+  },
+  "files": [
+    "dist",
+    "!dist/**/*.tsbuildinfo",
+    "src",
+    "!src/**/*.test.*",
+    "!src/**/*.spec.*",
+    "!src/**/*.test-d.*",
+    "!src/**/__fixtures__/**",
+    "!src/support/**",
+    "README.md",
+    "LICENSE",
+    "CHANGELOG.md"
+  ],
+  "peerDependencies": {
+    "@nexusdi/core": "0.4.0-rc.1",
+    "react": "^19.0.0"
+  },
+  "devDependencies": {
+    "@testing-library/react": "16.3.0",
+    "jsdom": "^30.1.1",
+    "react": "19.3.0",
+    "react-dom": "19.3.0"
+  },
+  "publishConfig": {
+    "access": "public",
+    "provenance": true
+  }
+}

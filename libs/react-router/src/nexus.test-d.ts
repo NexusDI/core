@@ -1,5 +1,5 @@
 import { Nexus, Token, optional } from '@nexusdi/core';
-import type { RouterContextProvider } from 'react-router';
+import { RouterContextProvider, type MiddlewareFunction } from 'react-router';
 import { describe, expectTypeOf, it } from 'vitest';
 
 import { nexus } from './index.js';
@@ -38,5 +38,22 @@ describe('@nexusdi/react-router types', () => {
   it('requires the request mapping when NexusRequest has a required field', () => {
     // @ts-expect-error: test-support makes `mission` required
     nexus(ship, {});
+  });
+
+  it('types the middleware to take React Router args and resolve a Response', async () => {
+    const context = new RouterContextProvider();
+    const request = new Request('http://bridge/course/Kepler-442b');
+    const res = await di.middleware(
+      {
+        request,
+        url: new URL(request.url),
+        pattern: '/course/:to',
+        params: { to: 'Kepler-442b' },
+        context,
+      },
+      async () => Response.json([]),
+    );
+    expectTypeOf(res).toEqualTypeOf<Response>();
+    expectTypeOf(di.middleware).toExtend<MiddlewareFunction<Response>>();
   });
 });

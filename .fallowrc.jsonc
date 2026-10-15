@@ -24,6 +24,7 @@
     "@nexusdi/fastify",
     "@nexusdi/hono",
     "@nexusdi/react-router",
+    "@nexusdi/react",
     "@nexusdi/vitest",
     "@nexusdi/meridian-ui",
   ],
@@ -84,6 +85,7 @@
     "libs/fastify/src/**/*.test-d.ts",
     "libs/hono/src/**/*.test-d.ts",
     "libs/react-router/src/**/*.test-d.ts",
+    "libs/react/src/**/*.test-d.{ts,tsx}",
     "libs/vitest/src/**/*.test-d.ts",
     "libs/vitest/src/__fixtures__/**",
     // fallow's vitest plugin derives entry points from vite.config.ts's

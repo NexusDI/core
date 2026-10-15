@@ -66,14 +66,11 @@ const loader = di.inject(
 // What React Router does for GET /course/Kepler-442b
 const params = { to: 'Kepler-442b' };
 const context = new RouterContextProvider();
-const res = (await di.middleware(
-  {
-    request: new Request('http://bridge/course/Kepler-442b'),
-    params,
-    context,
-  } as never,
-  async () => Response.json(await loader({ params, context })),
-)) as Response;
+const request = new Request('http://bridge/course/Kepler-442b');
+const args = { request, url: new URL(request.url), pattern: '/course/:to' };
+const res = await di.middleware({ ...args, params, context }, async () =>
+  Response.json(await loader({ params, context })),
+);
 const entries = await res.json(); // -> ['plotting Kepler-442b']
 await ship[Symbol.asyncDispose]();
 ```

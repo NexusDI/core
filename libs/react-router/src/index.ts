@@ -4,6 +4,7 @@ export {
   type NexusRouter,
   type NexusRouterOptions,
   type RequestInput,
+  type RouterMiddleware,
   type SectionMiddleware,
 } from './nexus.js';
 export {

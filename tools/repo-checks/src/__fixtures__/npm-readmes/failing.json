@@ -374,7 +374,7 @@
     "replace": [
       [
         "[`@nexusdi/cli`](libs/cli/README.md)",
-        "[`@nexusdi/react`](libs/react/README.md)"
+        "[`@nexusdi/vue`](libs/vue/README.md)"
       ]
     ]
   },
