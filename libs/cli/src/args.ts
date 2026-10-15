@@ -79,7 +79,8 @@ export const OPTIONS = {
 const HELP_FIX = 'Run nexusdi --help for the options.';
 
 const GRAPH_ONLY = ['format', 'out', 'view'] as const;
-const PROFILE_ONLY = [
+/** The flags only nexusdi profile takes. */
+export const PROFILE_ONLY = [
   'repeat',
   'chrome',
   'perfetto',
