@@ -193,3 +193,22 @@ describe('parseCommand, profile', () => {
     expect(error.message).toContain(message);
   });
 });
+
+describe('parseCommand, profile counts', () => {
+  it.each(['', '0x10', '1e2', ' 5', '5.0', '+3'])(
+    'refuses --top=%j, which Number() would read as a number',
+    (value) => {
+      const error = thrown(() =>
+        parseCommand(['profile', 'a.ts', `--top=${value}`], '/project'),
+      ) as CliError;
+      expect(error.exitCode).toBe(2);
+      expect(error.message).toContain('--top takes a whole number');
+    },
+  );
+
+  it('reads digits only', () => {
+    expect(
+      parseCommand(['profile', 'a.ts', '--top=007', '--repeat=0'], '/project'),
+    ).toMatchObject({ top: 7, repeat: 0 });
+  });
+});

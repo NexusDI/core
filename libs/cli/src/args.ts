@@ -116,7 +116,8 @@ function count(
   min: number,
 ): number {
   if (value === undefined) return fallback;
-  const n = Number(value);
+  // Digits only: Number() also reads '', '0x10', '1e2' and ' 5' as numbers.
+  const n = /^\d+$/.test(value) ? Number(value) : Number.NaN;
   if (!Number.isInteger(n) || n < min)
     throw new CliError(
       2,
