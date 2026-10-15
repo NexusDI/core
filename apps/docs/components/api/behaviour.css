@@ -1,0 +1,259 @@
+/*
+ * The rail and the pane: what a package's tests state about one export, and
+ * the case behind the sentence a reader picked.
+ *
+ * Every value here is a `--meridian-*` token from `@nexusdi/meridian-ui`,
+ * bound per theme in `tokens.generated.css`, plus the `--shiki-*` variables
+ * each token's class sets. No colour, radius or size of its own.
+ */
+
+/*
+ * One height, whatever the export states.
+ *
+ * `Nexus` states over a hundred sentences and `nodeScopes` two, and an entry
+ * that grew with its catalogue would make the page a column of blocks of
+ * random length with no relation to how important the export is. A fixed
+ * frame with both panes scrolling inside it takes the same 26rem everywhere,
+ * so a reader scrolling for a signature keeps a rhythm.
+ */
+.nexus-behaviours {
+  display: grid;
+  grid-template-columns: minmax(0, 15rem) minmax(0, 1fr);
+  height: 26rem;
+  margin-block-start: var(--meridian-space-3);
+  border: 1px solid var(--meridian-rule);
+  border-radius: var(--meridian-radius-panel);
+  overflow: hidden;
+  background: var(--meridian-hull-raised);
+}
+
+.nexus-behaviours__rail {
+  overflow-y: auto;
+  border-inline-end: 1px solid var(--meridian-rule);
+  padding-block: var(--meridian-space-2);
+}
+
+.nexus-behaviours__rail:focus-visible {
+  outline: 2px solid var(--meridian-kind);
+  outline-offset: -2px;
+}
+
+/*
+ * The condition the test author wrote, over the sentences that hold under it.
+ *
+ * `createTestingContainer` states sentences under `load() under overrideModule`
+ * and under `a malformed override`, and that split is the suite's own
+ * structure; nothing here derives it. The sentences the suite states directly
+ * under the export's own name are a group too, labelled with that name,
+ * because a run of unlabelled rows above the labelled ones reads as belonging
+ * to nowhere.
+ */
+.nexus-behaviours__label {
+  font-family: var(--meridian-font-body);
+  font-size: var(--meridian-text-micro);
+  font-weight: 600;
+  letter-spacing: var(--meridian-tracking-micro);
+  color: var(--meridian-text-tertiary);
+  margin: var(--meridian-space-3) 0 var(--meridian-space-1);
+  padding-inline: var(--meridian-space-3);
+}
+
+.nexus-behaviours__group:first-child .nexus-behaviours__label {
+  margin-block-start: 0;
+}
+
+/*
+ * One sentence a test carries.
+ *
+ * No marker and no status. Every sentence here comes from a suite that passes,
+ * so a tick beside one states nothing, and the selected row is marked by the
+ * kind's own hue, which is the colour the entry's name already carries.
+ */
+.nexus-behaviours__row {
+  font-family: var(--meridian-font-body);
+  font-size: var(--meridian-text-small);
+  line-height: var(--meridian-leading-small);
+  color: var(--meridian-text-secondary);
+  padding: var(--meridian-space-1) var(--meridian-space-3);
+  cursor: pointer;
+  border-inline-start: 2px solid transparent;
+}
+
+.nexus-behaviours__row:hover {
+  color: var(--meridian-text);
+}
+
+.nexus-behaviours__row[aria-selected='true'] {
+  color: var(--meridian-text);
+  border-inline-start-color: var(--meridian-kind);
+  background: var(--meridian-hull);
+}
+
+.nexus-behaviours__pane {
+  overflow: auto;
+  padding: var(--meridian-space-3);
+  display: flex;
+  flex-direction: column;
+  gap: var(--meridian-space-2);
+}
+
+/*
+ * The sentence heads its own case, because a reader who moved down the rail
+ * with the keyboard has the selection behind them and the source in front.
+ */
+.nexus-behaviours__title {
+  font-family: var(--meridian-font-display);
+  font-size: var(--meridian-text-small);
+  color: var(--meridian-text);
+  margin: 0;
+}
+
+/*
+ * The case, as the author wrote it.
+ *
+ * It scrolls and never wraps, for the reason every other fence on the site
+ * scrolls: a wrapped line of code loses the indentation that says what is
+ * inside what. The colours come from the token classes in
+ * `components/api/behaviour/code-classes.css`, which `docs:behaviour-data`
+ * writes.
+ */
+.nexus-behaviours__body {
+  font-family: var(--meridian-font-mono);
+  font-size: var(--meridian-text-micro);
+  line-height: var(--meridian-leading-body);
+  color: var(--meridian-text-secondary);
+  background: var(--meridian-hull-raised);
+  border-radius: var(--meridian-radius-control);
+  padding: var(--meridian-space-3);
+  margin: 0;
+  overflow-x: auto;
+  white-space: pre;
+  tab-size: 2;
+}
+
+/*
+ * A token takes the theme's colour the way every other fence on the site does.
+ *
+ * `code-classes.css` binds `--shiki-light` and `--shiki-dark` on each token's
+ * class, and these rules pick which of the pair the document is showing.
+ * `nextra-theme-docs` writes the same pair of rules for `.nextra-code span`,
+ * and this block exists because the pane is not one of its fences. A bold or
+ * italic token keeps an inline style carrying the `-font-weight` and
+ * `-font-style` variables, since the classes hold colour pairs only; a token
+ * without them inherits.
+ */
+.nexus-behaviours__body :where(span),
+.nexus-behaviours__type :where(span) {
+  color: var(--shiki-light);
+  font-weight: var(--shiki-light-font-weight, inherit);
+  font-style: var(--shiki-light-font-style, inherit);
+}
+
+html.dark .nexus-behaviours__body :where(span),
+html.dark .nexus-behaviours__type :where(span) {
+  color: var(--shiki-dark);
+  font-weight: var(--shiki-dark-font-weight, inherit);
+  font-style: var(--shiki-dark-font-style, inherit);
+}
+
+/*
+ * A token the compiler gave a type, and the card that states it.
+ *
+ * `nextra-theme-docs` already ships every `.twoslash-*` rule, so the card takes
+ * the site's own popup background, border and radius by carrying
+ * `twoslash-popup-container`, and the dotted underline under a typed token
+ * comes from the theme's `.twoslash:hover .twoslash-hover`. What the theme does
+ * not cover is where the card goes: Nextra mounts its own through a React
+ * popover, and this pane draws a static one. So the card is placed from
+ * `BehaviourCatalogue.tsx` against the window, and these rules take the theme's
+ * flow positioning back off it.
+ */
+.nexus-behaviours__body .twoslash-hover:focus-visible {
+  outline: 2px solid var(--meridian-kind);
+  outline-offset: 1px;
+  border-radius: 2px;
+}
+
+.nexus-behaviours__body .twoslash-hover:focus {
+  border-block-end-color: var(--meridian-focus);
+}
+
+.nexus-behaviours__pane .nexus-behaviours__type {
+  position: fixed;
+  z-index: 40;
+  margin: 0;
+  transform: none;
+  visibility: hidden;
+  background: var(--meridian-hull-raised);
+  box-shadow: var(--meridian-elevation-raised);
+  font-family: var(--meridian-font-mono);
+  font-size: var(--meridian-text-micro);
+  line-height: var(--meridian-leading-body);
+  max-width: min(36rem, calc(100vw - 1rem));
+  max-height: min(20rem, 60vh);
+  overflow: auto;
+}
+
+/*
+ * A signature that wraps arrives as a whole highlighted block, which brings its
+ * own frame with it. The card is the frame.
+ */
+.nexus-behaviours__type pre {
+  margin: 0;
+  padding: 0;
+  background: none;
+  white-space: pre;
+}
+
+.nexus-behaviours__waiting {
+  font-family: var(--meridian-font-body);
+  font-size: var(--meridian-text-small);
+  color: var(--meridian-text-tertiary);
+  margin: 0;
+}
+
+/*
+ * On a phone the pane opens under the sentence it belongs to.
+ *
+ * Two columns at this width would give the case about 20 characters, so the
+ * rail takes the whole frame and the selected row opens beneath itself, which
+ * is the movement the reader's tap asked for.
+ */
+@media (max-width: 48rem) {
+  .nexus-behaviours {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .nexus-behaviours__rail {
+    border-inline-end: 0;
+  }
+
+  .nexus-behaviours__pane {
+    padding-inline: var(--meridian-space-3);
+    padding-block: var(--meridian-space-2) var(--meridian-space-3);
+  }
+
+  /* The row the pane opened under says the sentence, one line above it. */
+  .nexus-behaviours__pane .nexus-behaviours__title {
+    display: none;
+  }
+}
+
+/*
+ * The pane sits in the ship's console frame, whose title is the file and line
+ * of the case. A path keeps its case and breaks anywhere.
+ */
+.nexus-behaviours .meridian-console__title {
+  text-transform: none;
+  overflow-wrap: anywhere;
+}
+
+.nexus-behaviours__body {
+  max-inline-size: 100%;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .nexus-behaviours * {
+    transition: none;
+  }
+}

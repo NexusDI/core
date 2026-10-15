@@ -1,6 +1,9 @@
-import { Notice } from '@nexusdi/meridian-ui';
+import { Chip, Notice } from '@nexusdi/meridian-ui';
 import { useMDXComponents as getThemeComponents } from 'nextra-theme-docs';
 
+import ApiFilter from './components/api/ApiFilter';
+import BehaviourCatalogue from './components/api/BehaviourCatalogue';
+import './components/api/entry.css';
 import Diagram from './components/diagram/Diagram';
 import Listing from './components/listing/Listing';
 import { PostList } from './components/blog/PostList';
@@ -38,5 +41,11 @@ export function useMDXComponents(components) {
     PerformanceTable,
     ProbeTable,
     ToolchainGrid,
+    // The author writes `<ApiFilter />` at the top of a reference page.
+    ApiFilter,
+    // `mdx-reference-loader.mjs` writes `<BehaviourCatalogue>` under an entry.
+    BehaviourCatalogue,
+    // `mdx-reference-loader.mjs` writes `<Chip>` beside an entry's name.
+    Chip,
   };
 }
