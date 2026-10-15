@@ -1,0 +1,20 @@
+{
+  "@nexusdi/core": {
+    "unexercised": [
+      "declareClass",
+      "declareModuleClass",
+      "declareProperty",
+      "describeValue",
+      "displayName",
+      "errorBase",
+      "isForeign",
+      "layoutText",
+      "moduleDefinitionOf"
+    ]
+  },
+  "@nexusdi/decorators": { "unexercised": ["LegacyDecoratorsError"] },
+  "@nexusdi/devtools": { "unexercised": ["DevtoolsError"] },
+  "@nexusdi/federation": { "unexercised": ["ContractVersionError"] },
+  "@nexusdi/interceptors": { "unexercised": ["InterceptorError"] },
+  "@nexusdi/testing": { "unexercised": ["OverrideError"] }
+}
