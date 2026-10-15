@@ -7,6 +7,12 @@ The request mapping turns Hono's context into the mission, and a scoped service 
 <!-- #region getting-started -->
 
 ```ts @import.meta.vitest
+declare module '@nexusdi/core' {
+  interface NexusRequest {
+    readonly mission: { readonly id: string; readonly target: string };
+  }
+}
+// ---cut---
 import {
   Nexus,
   REQUEST,
