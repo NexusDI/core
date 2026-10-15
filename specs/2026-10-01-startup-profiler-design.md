@@ -1014,13 +1014,17 @@ Plain Trace Event Format:
   `finish` children as in 7.3. Its `onInit` is a later slice on the same tid. Perfetto
   requires slices on one tid to nest, so concurrent providers each get a tid.
 - Flow arrows: v1 `s`/`f` events with `bp: "e"`, one pair per edge with `ordersBuild`
-  between two providers built in the run. `s` sits 1 µs before the dependency's end on its tid, `f`
-  1 µs after the dependent's start on its tid. Name `dep`, or `critical` for barrier-path
+  between two providers built in the run. `s` sits 1 µs before the dependency's end on its
+  tid, `f` 1 µs after the dependent's start on its tid, each clamped to its slice, so a
+  zero-length slice on a coarse browser clock keeps its arrow. Name `dep`, or `critical` for barrier-path
   edges. v1, because a provider with several dependents needs several flows, and a v2
   `bind_id` slice carries one.
 - `args`: module, lifetime, level, run, syncMs, awaitMs, finishMs, async, failed.
 - `metadata: { "nexusdi-profile": 1, "nexusdi-core": "<version>" }`,
-  `displayTimeUnit: "ms"`.
+  `displayTimeUnit: "ms"`. `@nexusdi/core` exports no version constant, and this spec adds
+  no core API for one, so `toPerfettoTrace` writes `"nexusdi-profile": 1` only. The CLI
+  reads the project's core version from its `package.json` and adds `"nexusdi-core"` to the
+  file before writing it.
 
 ### 7.5 Report JSON
 
