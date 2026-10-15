@@ -1,6 +1,6 @@
 # Benchmarks: the scale suite
 
-Status: amended by the tech lead's rulings (section 13); ready for planning.
+Status: amended by the tech lead's rulings (sections 13 and 15); ready for planning.
 Branch: `feat/benchmarks-scale-suite`, from `origin/release/0.4` at `8824502`.
 Project: `benchmarks` (`@nexusdi/benchmarks`) and `.github/workflows/benchmarks.yml`.
 `libs/core` and `tools/bench-kit` do not change.
@@ -30,10 +30,11 @@ retained heap and bundle bytes, each against provider count.
 
 1. Sizes are 50, 200, 1,000 and 5,000 providers.
 2. Shapes are `wide`, `mixed` and `mixed-async` (section 3). `mixed` is the realistic
-   shape and the headline. `wide` is the single-module control: no library needs a
-   module form, so no departure from any library's docs applies to it. `mixed-async` is
-   `mixed` with its low-tier factories made async, measured only for libraries that
-   document async factories.
+   shape and the headline, calibrated against 22 measured applications (section 15).
+   `wide` is the single-module control: no library needs a module form, so no departure
+   from any library's docs applies to it. `mixed-async` is `mixed` with its lowest-index
+   5% of factories made async, measured only for libraries that document async
+   factories.
 3. One seeded generator (`mulberry32` from `bench-kit`) builds every graph from a fixed
    graph seed committed in the harness. Both results files record the graph seed and a
    hash of every graph, so a reader can regenerate the exact graph a figure came from.
@@ -79,7 +80,7 @@ retained heap and bundle bytes, each against provider count.
 reads:
 
 ```ts
-type ProviderKind = 'class' | 'factory' | 'async-factory' | 'value';
+type ProviderKind = 'class' | 'factory' | 'async-factory' | 'value' | 'alias';
 
 interface ScaleProvider {
   /** 0..n-1; also the order of the token table in every rendered app. */
@@ -87,7 +88,7 @@ interface ScaleProvider {
   /** p<index>, zero-padded to the width of n-1, e.g. p0042. */
   name: string;
   kind: ProviderKind;
-  /** Indexes, in constructor order. A value has none. */
+  /** Indexes, in constructor order. A value has none and an alias one. */
   deps: number[];
   /** Index into modules. Single-module shapes put every provider in module 0. */
   module: number;
@@ -111,20 +112,27 @@ interface ScaleGraph {
   rootImports: number[];
   /** Providers get() may ask for at the root: the exports of rootImports, or all for one module. */
   entries: number[];
-  /** The entry with the largest transitive closure, lowest index on a tie. */
+  /** The provider with the largest transitive closure in the whole graph, lowest index on a tie. */
   target: number;
 }
 ```
 
+An `alias` provider has exactly one dep, the provider it aliases, and shares that
+provider's instance; it constructs nothing, like a value. The target is any provider, not
+only an entry: real apps reach their largest closure through a provider the framework
+resolves inside its module, and NexusDI's adapter already passes `{ module }` for a
+provider outside `entries`. The four competitors are flat and need no change.
+
 Every dependency points to a lower index, so the graph is acyclic by construction and a
-renderer can emit providers in index order. `checkGraph(graph)` asserts that, and that
-every dependency is visible: in the provider's own module, or exported by a module its
+renderer can emit providers in index order. `checkGraph(graph)` asserts that, that an
+alias has one dep, and that every dependency is visible: in the provider's own module, or exported by a module its
 module imports directly. NexusDI enforces that rule, so a graph that breaks it would not
 compile in NexusDI and would compile everywhere else.
 
 `describeGraph(graph)` returns the figures `scale.json` records: provider, edge and module
-counts, maximum depth in edges, mean and maximum fan-out, maximum fan-in, the count of each
-kind, the target and its closure size, and `hash`: the first 12 hex digits of the SHA-256
+counts, maximum depth in edges (an alias hop counts as an edge, since every container does
+a lookup per hop), mean and maximum fan-out, maximum fan-in, the count of each kind, the
+target and its closure size, and `hash`: the first 12 hex digits of the SHA-256
 of the canonical JSON of `providers` and `modules`.
 
 The graph seed is `GRAPH_SEED = 20261001` in `src/scale/config.ts`. It changes only when
@@ -143,25 +151,45 @@ per-registration and per-lookup work with no recursion and no module structure.
 
 ### 3.3 `mixed`
 
-The realistic shape, in four tiers of modules:
+The realistic shape, calibrated against a census of 22 real applications (section 15).
+Every parameter below is a named constant in `src/scale/shapes.ts` that cites the measured
+figure it follows.
 
-- Module sizes are drawn uniformly from 4 to 16 (mean 10); the last module takes the
-  remainder. Module `k` of `M` sits in tier `floor(4k / M)`.
+- Module sizes are log-normal: `round(exp(ln 3 + 1.18 z))`, `z` a standard normal draw,
+  clamped to 1 to 250. The NestJS pool (1,350 modules) has median 3 and mean 6, and the
+  largest module measured holds 243 providers. Core takes at least 3 so the hubs fit, the
+  last module takes the remainder, and modules sit in index order.
+- There are `T = max(4, round(sqrt M))` tiers for `M` modules, and module `k` sits in tier
+  `floor(T k / M)`. The tier count is the lever that fits the measured depth bands.
 - Module 0 is `core`, tier 0, with three exported hub providers: `config` (a value),
   `clock` (a factory with no deps) and `logger` (a class taking `config`). Every other
-  module imports `core` plus one or two modules from lower tiers, at least one from tier
-  `t - 1` where one exists.
-- Each provider's kind: exactly `round(0.05 n)` values, `round(0.1 n)` factories and the
-  rest classes, hubs included (`config` is a value, `clock` a factory, `logger` a class),
-  with the other kinds shuffled over the remaining indexes, so every size holds the
-  stated shares. A value has no deps.
-- A class or factory takes `k` deps with `P(k)` = 0:10%, 1:30%, 2:30%, 3:20%, 4:10%
-  (mean 1.9). Each dependency slot draws a hub with probability 0.25, an export of an
-  imported module with 0.25 and an earlier provider of its own module with 0.5. A slot
-  skips a dependency the provider already has. An empty pool falls through to the next
-  in that order and wraps from the last back to the first; a provider whose pools are
-  all empty gets fewer deps.
-- A module exports its last `⌈size/4⌉` providers.
+  module imports `core`, one module of tier `t - 1` where one exists besides core, and
+  `draw - 1` extra imports, `draw` taken from the bins 1: 20%, 2: 25%, 3: 20%, 4 to 6:
+  25%, 7 to 12: 10% (about 4.4 imports per module, the pooled NestJS figure, which counts
+  library modules and so is a ceiling). An extra import comes from tiers `t - 2` and
+  `t - 1` with probability 0.8, else from any lower tier. Only NexusDI expresses module
+  imports at runtime, so a mean above the measured one would charge NexusDI work no other
+  library does.
+- A module exports its last `⌈0.3 size⌉` providers (the pooled NestJS exports over
+  providers is 38%; core also exports the three hubs).
+- Each provider's kind: exactly `round(0.05 n)` values, `round(0.1 n)` factories and
+  `round(0.05 n)` aliases, hubs included (`config` is a value, `clock` a factory, `logger`
+  a class), the rest classes, with the other kinds shuffled over the remaining indexes. A
+  value has no deps. An alias points at one earlier provider of its own module or an
+  export of a module it imports, never a hub; with neither visible it becomes a class.
+  The measured alias share runs from under 2% (NestJS) to 8% (bitwarden, gauzy-ui) and
+  30% (Theia).
+- A class or factory takes a number of deps drawn from the pooled histogram of 10,740
+  providers: 0: 20%, 1: 27%, 2: 19%, 3: 10%, 4: 7%, 5 to 8: 11%, 9 to 16: 5%, 17 to 48:
+  1%, uniform inside a bin, capped at `min(48, round(sqrt n))` (the widest constructor of
+  an app tracks sqrt n up to 1,229 providers and then flattens: n8n 46, twenty 36, Theia
+  31).
+- Each dependency slot draws a hub with probability 0.15, an export of an imported module
+  with 0.6 and an earlier provider of its own module with 0.25; a slot skips a dependency
+  the provider already has. An empty pool falls to the other non-hub pool first and to the
+  hubs last, because the hubs are dead ends: an empty own-module slot that fell to the
+  hubs pinned the closure at 3 to 15% of the graph. A provider whose pools are all empty
+  gets fewer deps.
 
 All providers are singletons. Transient and scoped lifetimes stay with Meridian-8; at
 scale every library's ready work is its singletons. Each renderer sets the singleton
@@ -171,11 +199,14 @@ lifetime explicitly where the library's default is transient (InversifyJS
 
 ### 3.4 `mixed-async`
 
-The `mixed` graph with the same seed and structure, where every factory in a tier-0 or
-tier-1 module is `async-factory`. The async factory awaits one resolved promise
+The `mixed` graph with the same seed and structure, where the lowest-index
+`round(0.05 n)` factories are `async-factory`. Lowest index is lowest tier, where every
+measured async factory sits (infrastructure: a database connection, a cache, a feature
+flag client), and `clock` stays async at every size. The async factory awaits one resolved promise
 (`await Promise.resolve()`) and then constructs. It takes no timer and no I/O, so the
 figure measures each library's async machinery. `scale.json` records the async share
-(about 5% at every size).
+(5% at every size, an upper bound: the measured median app has none and the maximum is
+4%).
 
 ## 4. Rendering each library's idiom
 
@@ -218,6 +249,16 @@ not use.
 
 The API forms in this table were read from the packages at the pins (section 13). Task 6
 records each as a claim in `libraries.json` with its documentation URL.
+
+An alias (section 3.3) uses the library's documented redirect, each recorded as a claim
+with its page: NexusDI `provide(T, { useExisting: U })`, InversifyJS `bind(T).toService(U)`
+(it returns `void` and takes no scope, so the renderer omits `inSingletonScope()`),
+tsyringe `{ token, useToken: U }` in the module's `@registry`, awilix `aliasTo('u')` (its
+resolver is leak safe, so `strict: true` raises no lifetime error for a singleton that
+depends on it) and needle-di `{ provide, useExisting: U }`. The four competitors need a
+non-class token for an alias, and take the token type their Meridian-8 fixture uses for
+`NAV_CHARTS`, as for factories and values. Each renderer declares a type alias of the
+alias's target type, so a dependant names the one type the instance has.
 
 The NexusDI renderer is interface-first throughout: an interface and a `Token<IFoo>` per
 provider, classes that take interfaces, and `useClass` bindings. Competitor renderers use
@@ -310,7 +351,10 @@ the adapter has it), resolves every provider a second time, and prints one JSON 
   provider was constructed twice and none was skipped;
 - `kinds`: true when every provider reported its model kind through `__scaleBuilt`
   (`class` from a constructor, `factory` or `async-factory` from a factory body, and a
-  value never constructs, so its count is 0 and its object is the module constant).
+  value never constructs, so its count is 0 and its object is the module constant). An
+  alias never constructs either: its count is 0, and `get(alias)` returns `get(target)`'s
+  instance, so for an alias `shared` checks identity with its target and the digest line
+  stays `<alias>(<target>)`, with a dependant of an alias naming the alias.
 
 `expectedDigest(graph)` computes the same digest from the model. A cell is `pass` when all
 four hold, `wrong-instance` when any fails, and `runtime-error` or `compile-error` as the
@@ -415,6 +459,11 @@ round. The interval is the ratio's bootstrap interval through the same transform
 exponent table shows `b(50, 200)`, `b(200, 1,000)` and `b(1,000, 5,000)` for `startup`
 and `ready`; the text reads growth from `b(1,000, 5,000)`. `pairedRatio` is `bench-kit`'s,
 so the suite adds no bootstrap code.
+
+The sizes live in one list, `SIZES` in `src/scale/config.ts`; the exponent table has one
+column per adjacent pair of it, so a size added there (2,500, the size of the largest
+apps measured, is the candidate) adds a column. Per-provider figures stay on 1,000 to
+5,000.
 
 Beside it, the marginal cost per provider: `(median(5,000) − median(1,000)) / 4,000` in ns
 for `startup` and in bytes for `heap-ready`.
@@ -654,7 +703,8 @@ Each library gains:
 
 - `results/scale.md`: one `startup` table per shape, rows the five libraries, columns the
   four sizes, each cell `median ms` and, for competitors, `ratio [low, high]`, with the
-  shape's round count in the caption; the same for `first-resolve` and `ready` on `mixed`;
+  shape's round count in the caption; the same for `first-resolve` and `ready` on `mixed`,
+  the `first-resolve` caption also stating the size of the target's closure at each size;
   the phase table (`load`, `create`, `first-get`, `rest` medians) for `mixed` beside the
   `create` work table of section 4.4; the growth table (local exponents with intervals and
   ns per provider); a `heap-ready` table with bytes per provider; the bundle bytes table
@@ -984,3 +1034,93 @@ example a stack overflow on `deep`) is recorded with its outcome; that is a scal
    that was packed. `render.ts` prints both in the caption. The suite can measure two
    cores by running `release-core.ts --ref <ref>` before each run; results from two refs
    live in two files.
+
+## 15. Calibration amendment (2026-10-15)
+
+A census of 22 real applications in 20 repositories (NestJS, Angular, n8n, Theia and
+VS Code, measured 2026-10-15 from shallow clones, 22 to 2,249 providers) showed that the
+first `mixed` generator was uniform where real graphs are skewed, and an order of magnitude
+short on closure at 1,000 and 5,000 providers. No timing figure was published yet, so
+`mixed` is replaced in place under the same name, and the rule that relative claims come
+from `mixed` now points at a graph tied to measured apps. `wide`, `deep` and `modular` draw
+from their own streams and keep their hashes; `mixed` and `mixed-async` change at every
+size, and the `scale.json` hashes were regenerated.
+
+### 15.1 What the census measured
+
+| suite size | measured apps                               | max depth | largest closure (share of graph) |
+| ---------- | ------------------------------------------- | --------- | -------------------------------- |
+| 50         | 31 to 115 providers (5 apps)                | 3 to 17   | 16 to 50%                        |
+| 200        | 115 to 350 (9 apps)                         | 7 to 28   | 17 to 45%                        |
+| 1,000      | 570 to 1,229 (bitwarden, vscode, novu, n8n) | 22 to 32  | 18 to 33%                        |
+| 2,500      | 1,635 to 2,249 (gauzy, twenty, Theia)       | 10 to 42  | 7 to 22%                         |
+| 5,000      | none: twice the largest app measured        | no data   | no data                          |
+
+Pooled NestJS modules (14 apps, 1,350 modules): 1 to 3 providers 50% (56% with empty
+modules), 4 to 16 37%, 17 or more 8%, median 3, mean 6, p90 12, 4.4 imports per module,
+exports 38% of providers. Fan-out over 10,740 providers: 0: 20%, 1: 27%, 2: 19%, 3: 10%,
+4: 7%, 5 to 8: 11%, 9 or more: 6%; the widest constructor of an app runs 10 to 56 and
+tracks sqrt n. Maximum fan-in is 4 to 36% of the graph. Async providers are 0 to 4%
+(median 0%), all infrastructure. Aliases are under 2% in NestJS apps, 8% in bitwarden and
+gauzy-ui, 30% in Theia. The largest app-authored graph holds 2,249 providers; library
+providers add 5 to 40%, so the largest real container is about 2,500 to 3,000.
+
+### 15.2 The ruling
+
+The parameters of section 3.3 are the architect's calibration with four amendments from
+the tech lead. Imports drop from about 5 to the measured 4.4 per module with extras kept
+near their tier (probability 0.8), because only NexusDI expresses module imports at
+runtime and every extra import adds work to its compile and none to the other four. Exports
+drop from `⌈0.4 size⌉` to `⌈0.3 size⌉`, which realizes 36 to 40% of providers at 200 and up
+against the measured 38%. The extra-import source stays closer to the tier. The target
+becomes the provider with the largest closure anywhere in the graph, since the census
+measures the closure of every provider and the largest root closure of an entry-only rule
+resolved 8% of the 50-provider graph against a measured 16 to 50%.
+
+The seed does not change: `GRAPH_SEED` stays 20261001, because a seed picked after seeing
+its figures is a fit to the seed. The parameters were chosen on medians over 32 seeds and
+the committed seed is checked afterwards. `shapes.test.ts` asserts the committed-seed
+figures inside the measured bands: depth and target closure share at each size with data,
+imports per module 4.0 to 5.0, realized export share 33 to 45%, module sizes (median, mean
+and bin shares) and the fan-out histogram within 3 points of the pooled bins at 1,000 and
+up, and maximum fan-in within 4 to 36%.
+
+### 15.3 The committed graph
+
+The figures of the graph the suite publishes, from `GRAPH_SEED`. Max depth counts an alias
+hop as an edge, and the collapsed figure the census uses follows in parentheses.
+
+| size  | modules | imports per module | max depth | target closure | share | max fan-in | exports share |
+| ----- | ------- | ------------------ | --------- | -------------- | ----- | ---------- | ------------- |
+| 50    | 10      | 2.6                | 7 (6)     | 17             | 34%   | 14         | 48%           |
+| 200   | 24      | 3.3                | 14 (14)   | 45             | 23%   | 32         | 37%           |
+| 1,000 | 184     | 4.5                | 24 (24)   | 280            | 28%   | 231        | 40%           |
+| 2,500 | 397     | 4.5                | 42 (42)   | 342            | 14%   | 434        | 38%           |
+| 5,000 | 842     | 4.4                | 52 (50)   | 1,153          | 23%   | 1,335      | 39%           |
+
+The same generator over 32 seeds (`GRAPH_SEED` to `GRAPH_SEED + 31`), p10 / median / p90,
+so a reader sees where the committed graph sits:
+
+| size  | modules         | max depth    | target closure share | max fan-in share |
+| ----- | --------------- | ------------ | -------------------- | ---------------- |
+| 50    | 4 / 10 / 14     | 6 / 9 / 13   | 32 / 44 / 58%        | 18 / 24 / 34%    |
+| 200   | 22 / 32 / 43    | 11 / 15 / 20 | 21 / 31 / 45%        | 16 / 19 / 29%    |
+| 1,000 | 130 / 150 / 184 | 23 / 26 / 36 | 16 / 23 / 30%        | 14 / 17 / 24%    |
+| 2,500 | 356 / 405 / 439 | 32 / 41 / 46 | 12 / 22 / 28%        | 15 / 17 / 25%    |
+| 5,000 | 794 / 835 / 897 | 47 / 58 / 64 | 14 / 24 / 29%        | 15 / 15 / 22%    |
+
+The target share spans 16 to 30% at 1,000 across seeds, and real apps span 18 to 33% there.
+Every library runs the same graph, so the seed cannot move a ratio between libraries. The
+target closure feeds only `first-resolve`, which has no growth exponent, and
+`render.ts` prints the closure size of the target at each size in the caption of every
+`first-resolve` table.
+
+### 15.4 Sizes
+
+The size list is `SIZES` in `src/scale/config.ts`. The census found no app above 2,249
+providers, so 5,000 is twice anything measured. The owner decides whether to add 2,500, the
+size of the largest real apps, and keep 5,000 as headroom, or to replace 5,000. Adding a
+size is one entry in the list plus its committed hashes and a band row in
+`shapes.test.ts`; the exponent table gains the columns of its neighbours, and per-provider
+figures stay on 1,000 to 5,000. README, docs and post claims would stop at 2,500 and state
+that 5,000 is headroom past every app measured.

@@ -125,6 +125,18 @@ describe('renderAll', () => {
     expect(md).toContain('runs every validation pass');
     expect(md).not.toContain('all validation passes');
   });
+  it('prints the target closure size in the caption of the first-resolve table', () => {
+    const md = out.files['scale.md'] ?? '';
+    const at = md.indexOf('## First resolve, mixed');
+    const section = md.slice(at, md.indexOf('## Ready, mixed'));
+    expect(section).toMatch(
+      /The target is the provider with the largest closure; a first get builds 16 providers at 50, 16 at 200, 16 at 1,000 and 16 at 5,000 \(32%, 8\.0%, 1\.6% and 0\.32% of the graph\)\./,
+    );
+    // Only the first-resolve table carries it.
+    expect(md.slice(md.indexOf('## Ready, mixed'))).not.toMatch(
+      /largest closure; a first get builds/,
+    );
+  });
   it('is deterministic', () => {
     expect(renderAll(input())).toEqual(out);
   });

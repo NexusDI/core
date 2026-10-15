@@ -32,82 +32,86 @@
     {
       "shape": "mixed",
       "size": 50,
-      "hash": "868ff8f30086",
+      "hash": "d5b8307f3e51",
       "providers": 50,
-      "edges": 101,
-      "modules": 5,
-      "maxDepth": 10,
-      "meanFanOut": 2.02,
-      "maxFanOut": 4,
-      "maxFanIn": 18,
+      "edges": 102,
+      "modules": 10,
+      "maxDepth": 7,
+      "meanFanOut": 2.04,
+      "maxFanOut": 7,
+      "maxFanIn": 14,
       "kinds": {
-        "class": 42,
+        "class": 39,
         "factory": 5,
         "async-factory": 0,
-        "value": 3
+        "value": 3,
+        "alias": 3
       },
-      "target": 48,
-      "targetClosure": 16
+      "target": 41,
+      "targetClosure": 17
     },
     {
       "shape": "mixed",
       "size": 200,
-      "hash": "e9e0741a34d7",
+      "hash": "43b9dac1a426",
       "providers": 200,
-      "edges": 357,
-      "modules": 20,
-      "maxDepth": 11,
-      "meanFanOut": 1.79,
-      "maxFanOut": 4,
-      "maxFanIn": 43,
+      "edges": 451,
+      "modules": 24,
+      "maxDepth": 14,
+      "meanFanOut": 2.26,
+      "maxFanOut": 14,
+      "maxFanIn": 32,
       "kinds": {
-        "class": 170,
+        "class": 160,
         "factory": 20,
         "async-factory": 0,
-        "value": 10
+        "value": 10,
+        "alias": 10
       },
-      "target": 177,
-      "targetClosure": 27
+      "target": 172,
+      "targetClosure": 45
     },
     {
       "shape": "mixed",
       "size": 1000,
-      "hash": "dc0a808a1c32",
+      "hash": "fe96ee84e0db",
       "providers": 1000,
-      "edges": 1799,
-      "modules": 103,
-      "maxDepth": 12,
-      "meanFanOut": 1.8,
-      "maxFanOut": 4,
-      "maxFanIn": 209,
+      "edges": 2331,
+      "modules": 184,
+      "maxDepth": 24,
+      "meanFanOut": 2.33,
+      "maxFanOut": 22,
+      "maxFanIn": 231,
       "kinds": {
-        "class": 850,
+        "class": 800,
         "factory": 100,
         "async-factory": 0,
-        "value": 50
+        "value": 50,
+        "alias": 50
       },
-      "target": 684,
-      "targetClosure": 31
+      "target": 974,
+      "targetClosure": 280
     },
     {
       "shape": "mixed",
       "size": 5000,
-      "hash": "7690f0bd862b",
+      "hash": "3656b19f07dc",
       "providers": 5000,
-      "edges": 9156,
-      "modules": 497,
-      "maxDepth": 19,
-      "meanFanOut": 1.83,
-      "maxFanOut": 4,
-      "maxFanIn": 984,
+      "edges": 12320,
+      "modules": 842,
+      "maxDepth": 52,
+      "meanFanOut": 2.46,
+      "maxFanOut": 47,
+      "maxFanIn": 1335,
       "kinds": {
-        "class": 4250,
+        "class": 4001,
         "factory": 500,
         "async-factory": 0,
-        "value": 250
+        "value": 250,
+        "alias": 249
       },
-      "target": 4296,
-      "targetClosure": 42
+      "target": 4693,
+      "targetClosure": 1153
     },
     {
       "shape": "wide",
@@ -124,7 +128,8 @@
         "class": 50,
         "factory": 0,
         "async-factory": 0,
-        "value": 0
+        "value": 0,
+        "alias": 0
       },
       "target": 10,
       "targetClosure": 3
@@ -144,7 +149,8 @@
         "class": 200,
         "factory": 0,
         "async-factory": 0,
-        "value": 0
+        "value": 0,
+        "alias": 0
       },
       "target": 40,
       "targetClosure": 3
@@ -164,7 +170,8 @@
         "class": 1000,
         "factory": 0,
         "async-factory": 0,
-        "value": 0
+        "value": 0,
+        "alias": 0
       },
       "target": 200,
       "targetClosure": 3
@@ -184,7 +191,8 @@
         "class": 5000,
         "factory": 0,
         "async-factory": 0,
-        "value": 0
+        "value": 0,
+        "alias": 0
       },
       "target": 1000,
       "targetClosure": 3
@@ -204,7 +212,8 @@
         "class": 50,
         "factory": 0,
         "async-factory": 0,
-        "value": 0
+        "value": 0,
+        "alias": 0
       },
       "target": 49,
       "targetClosure": 50
@@ -224,7 +233,8 @@
         "class": 200,
         "factory": 0,
         "async-factory": 0,
-        "value": 0
+        "value": 0,
+        "alias": 0
       },
       "target": 99,
       "targetClosure": 100
@@ -244,7 +254,8 @@
         "class": 1000,
         "factory": 0,
         "async-factory": 0,
-        "value": 0
+        "value": 0,
+        "alias": 0
       },
       "target": 99,
       "targetClosure": 100
@@ -264,7 +275,8 @@
         "class": 5000,
         "factory": 0,
         "async-factory": 0,
-        "value": 0
+        "value": 0,
+        "alias": 0
       },
       "target": 99,
       "targetClosure": 100
@@ -284,10 +296,11 @@
         "class": 50,
         "factory": 0,
         "async-factory": 0,
-        "value": 0
+        "value": 0,
+        "alias": 0
       },
-      "target": 49,
-      "targetClosure": 21
+      "target": 36,
+      "targetClosure": 24
     },
     {
       "shape": "modular",
@@ -304,7 +317,8 @@
         "class": 200,
         "factory": 0,
         "async-factory": 0,
-        "value": 0
+        "value": 0,
+        "alias": 0
       },
       "target": 199,
       "targetClosure": 47
@@ -324,10 +338,11 @@
         "class": 1000,
         "factory": 0,
         "async-factory": 0,
-        "value": 0
+        "value": 0,
+        "alias": 0
       },
-      "target": 877,
-      "targetClosure": 78
+      "target": 996,
+      "targetClosure": 85
     },
     {
       "shape": "modular",
@@ -344,7 +359,8 @@
         "class": 5000,
         "factory": 0,
         "async-factory": 0,
-        "value": 0
+        "value": 0,
+        "alias": 0
       },
       "target": 4379,
       "targetClosure": 205
@@ -352,82 +368,86 @@
     {
       "shape": "mixed-async",
       "size": 50,
-      "hash": "ab964e4f3c49",
+      "hash": "ece185340786",
       "providers": 50,
-      "edges": 101,
-      "modules": 5,
-      "maxDepth": 10,
-      "meanFanOut": 2.02,
-      "maxFanOut": 4,
-      "maxFanIn": 18,
+      "edges": 102,
+      "modules": 10,
+      "maxDepth": 7,
+      "meanFanOut": 2.04,
+      "maxFanOut": 7,
+      "maxFanIn": 14,
       "kinds": {
-        "class": 42,
+        "class": 39,
         "factory": 2,
         "async-factory": 3,
-        "value": 3
+        "value": 3,
+        "alias": 3
       },
-      "target": 48,
-      "targetClosure": 16
+      "target": 41,
+      "targetClosure": 17
     },
     {
       "shape": "mixed-async",
       "size": 200,
-      "hash": "926edb1318b3",
+      "hash": "491fc1116fa2",
       "providers": 200,
-      "edges": 357,
-      "modules": 20,
-      "maxDepth": 11,
-      "meanFanOut": 1.79,
-      "maxFanOut": 4,
-      "maxFanIn": 43,
+      "edges": 451,
+      "modules": 24,
+      "maxDepth": 14,
+      "meanFanOut": 2.26,
+      "maxFanOut": 14,
+      "maxFanIn": 32,
       "kinds": {
-        "class": 170,
-        "factory": 8,
-        "async-factory": 12,
-        "value": 10
+        "class": 160,
+        "factory": 10,
+        "async-factory": 10,
+        "value": 10,
+        "alias": 10
       },
-      "target": 177,
-      "targetClosure": 27
+      "target": 172,
+      "targetClosure": 45
     },
     {
       "shape": "mixed-async",
       "size": 1000,
-      "hash": "7cc8accc5c8e",
+      "hash": "e894b28e87ca",
       "providers": 1000,
-      "edges": 1799,
-      "modules": 103,
-      "maxDepth": 12,
-      "meanFanOut": 1.8,
-      "maxFanOut": 4,
-      "maxFanIn": 209,
+      "edges": 2331,
+      "modules": 184,
+      "maxDepth": 24,
+      "meanFanOut": 2.33,
+      "maxFanOut": 22,
+      "maxFanIn": 231,
       "kinds": {
-        "class": 850,
-        "factory": 51,
-        "async-factory": 49,
-        "value": 50
+        "class": 800,
+        "factory": 50,
+        "async-factory": 50,
+        "value": 50,
+        "alias": 50
       },
-      "target": 684,
-      "targetClosure": 31
+      "target": 974,
+      "targetClosure": 280
     },
     {
       "shape": "mixed-async",
       "size": 5000,
-      "hash": "8731cafb4eda",
+      "hash": "0338b52a6a33",
       "providers": 5000,
-      "edges": 9156,
-      "modules": 497,
-      "maxDepth": 19,
-      "meanFanOut": 1.83,
-      "maxFanOut": 4,
-      "maxFanIn": 984,
+      "edges": 12320,
+      "modules": 842,
+      "maxDepth": 52,
+      "meanFanOut": 2.46,
+      "maxFanOut": 47,
+      "maxFanIn": 1335,
       "kinds": {
-        "class": 4250,
-        "factory": 235,
-        "async-factory": 265,
-        "value": 250
+        "class": 4001,
+        "factory": 250,
+        "async-factory": 250,
+        "value": 250,
+        "alias": 249
       },
-      "target": 4296,
-      "targetClosure": 42
+      "target": 4693,
+      "targetClosure": 1153
     }
   ],
   "cells": [
@@ -1004,160 +1024,160 @@
       "variant": "plain",
       "shape": "mixed",
       "size": 50,
-      "minified": 15087,
-      "gzip": 5043
+      "minified": 15149,
+      "gzip": 5105
     },
     {
       "library": "awilix",
       "variant": "plain",
       "shape": "mixed",
       "size": 200,
-      "minified": 33288,
-      "gzip": 8578
+      "minified": 34656,
+      "gzip": 8932
     },
     {
       "library": "awilix",
       "variant": "plain",
       "shape": "mixed",
       "size": 1000,
-      "minified": 130981,
-      "gzip": 25950
+      "minified": 140876,
+      "gzip": 28236
     },
     {
       "library": "awilix",
       "variant": "plain",
       "shape": "mixed",
       "size": 5000,
-      "minified": 653813,
-      "gzip": 111342
+      "minified": 713081,
+      "gzip": 126145
     },
     {
       "library": "inversify",
       "variant": "decorated",
       "shape": "mixed",
       "size": 50,
-      "minified": 100425,
-      "gzip": 23504
+      "minified": 100180,
+      "gzip": 23586
     },
     {
       "library": "inversify",
       "variant": "decorated",
       "shape": "mixed",
       "size": 200,
-      "minified": 128072,
-      "gzip": 28129
+      "minified": 129535,
+      "gzip": 28663
     },
     {
       "library": "inversify",
       "variant": "decorated",
       "shape": "mixed",
       "size": 1000,
-      "minified": 277482,
-      "gzip": 51363
+      "minified": 288041,
+      "gzip": 54599
     },
     {
       "library": "inversify",
       "variant": "decorated",
       "shape": "mixed",
       "size": 5000,
-      "minified": 1047309,
-      "gzip": 169226
+      "minified": 1118309,
+      "gzip": 193492
     },
     {
       "library": "needle-di",
       "variant": "decorated",
       "shape": "mixed",
       "size": 50,
-      "minified": 26555,
-      "gzip": 4571
+      "minified": 25649,
+      "gzip": 4610
     },
     {
       "library": "needle-di",
       "variant": "decorated",
       "shape": "mixed",
       "size": 200,
-      "minified": 80873,
-      "gzip": 7746
+      "minified": 78363,
+      "gzip": 8219
     },
     {
       "library": "needle-di",
       "variant": "decorated",
       "shape": "mixed",
       "size": 1000,
-      "minified": 370951,
-      "gzip": 24362
+      "minified": 359918,
+      "gzip": 26865
     },
     {
       "library": "needle-di",
       "variant": "decorated",
       "shape": "mixed",
       "size": 5000,
-      "minified": 1838553,
-      "gzip": 104871
+      "minified": 1787024,
+      "gzip": 121330
     },
     {
       "library": "nexusdi",
       "variant": "plain",
       "shape": "mixed",
       "size": 50,
-      "minified": 64828,
-      "gzip": 20335
+      "minified": 64800,
+      "gzip": 20451
     },
     {
       "library": "nexusdi",
       "variant": "plain",
       "shape": "mixed",
       "size": 200,
-      "minified": 90160,
-      "gzip": 24805
+      "minified": 90887,
+      "gzip": 25186
     },
     {
       "library": "nexusdi",
       "variant": "plain",
       "shape": "mixed",
       "size": 1000,
-      "minified": 226558,
-      "gzip": 47064
+      "minified": 236792,
+      "gzip": 50405
     },
     {
       "library": "nexusdi",
       "variant": "plain",
       "shape": "mixed",
       "size": 5000,
-      "minified": 941671,
-      "gzip": 158429
+      "minified": 999364,
+      "gzip": 177309
     },
     {
       "library": "tsyringe",
       "variant": "decorated",
       "shape": "mixed",
       "size": 50,
-      "minified": 37220,
-      "gzip": 11026
+      "minified": 36984,
+      "gzip": 11097
     },
     {
       "library": "tsyringe",
       "variant": "decorated",
       "shape": "mixed",
       "size": 200,
-      "minified": 58039,
-      "gzip": 14693
+      "minified": 58778,
+      "gzip": 15014
     },
     {
       "library": "tsyringe",
       "variant": "decorated",
       "shape": "mixed",
       "size": 1000,
-      "minified": 171775,
-      "gzip": 33488
+      "minified": 178465,
+      "gzip": 35708
     },
     {
       "library": "tsyringe",
       "variant": "decorated",
       "shape": "mixed",
       "size": 5000,
-      "minified": 763670,
-      "gzip": 126559
+      "minified": 807269,
+      "gzip": 140881
     }
   ],
   "perProvider": [
@@ -1166,70 +1186,70 @@
       "variant": "plain",
       "shape": "mixed",
       "bytes": "minified",
-      "perProvider": 130.71
+      "perProvider": 143.05
     },
     {
       "library": "awilix",
       "variant": "plain",
       "shape": "mixed",
       "bytes": "gzip",
-      "perProvider": 21.35
+      "perProvider": 24.48
     },
     {
       "library": "inversify",
       "variant": "decorated",
       "shape": "mixed",
       "bytes": "minified",
-      "perProvider": 192.46
+      "perProvider": 207.57
     },
     {
       "library": "inversify",
       "variant": "decorated",
       "shape": "mixed",
       "bytes": "gzip",
-      "perProvider": 29.47
+      "perProvider": 34.72
     },
     {
       "library": "needle-di",
       "variant": "decorated",
       "shape": "mixed",
       "bytes": "minified",
-      "perProvider": 366.9
+      "perProvider": 356.78
     },
     {
       "library": "needle-di",
       "variant": "decorated",
       "shape": "mixed",
       "bytes": "gzip",
-      "perProvider": 20.13
+      "perProvider": 23.62
     },
     {
       "library": "nexusdi",
       "variant": "plain",
       "shape": "mixed",
       "bytes": "minified",
-      "perProvider": 178.78
+      "perProvider": 190.64
     },
     {
       "library": "nexusdi",
       "variant": "plain",
       "shape": "mixed",
       "bytes": "gzip",
-      "perProvider": 27.84
+      "perProvider": 31.73
     },
     {
       "library": "tsyringe",
       "variant": "decorated",
       "shape": "mixed",
       "bytes": "minified",
-      "perProvider": 147.97
+      "perProvider": 157.2
     },
     {
       "library": "tsyringe",
       "variant": "decorated",
       "shape": "mixed",
       "bytes": "gzip",
-      "perProvider": 23.27
+      "perProvider": 26.29
     }
   ]
 }
