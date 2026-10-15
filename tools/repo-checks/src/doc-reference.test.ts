@@ -139,6 +139,17 @@ describe('reading an export off its declarations', () => {
     expect(prelude).toContain('interface OverrideFields');
   });
 
+  it('imports a name a re-exported declaration takes from its own package', () => {
+    const found = readReference(workspaceRoot, DEVTOOLS, 'TraceEventByType');
+    const fromCore = new Map(found.signature?.external ?? []).get(CORE);
+
+    expect(
+      fromCore,
+      '`@nexusdi/devtools` re-exports `TraceEventByType` from `@nexusdi/core`, ' +
+        'whose declaration names `Lifetime`, which devtools does not export.',
+    ).toContain('Lifetime');
+  });
+
   it('reads an error class as an error', () => {
     expect(readReference(workspaceRoot, DEVTOOLS, 'DevtoolsError').kind).toBe(
       'error',
