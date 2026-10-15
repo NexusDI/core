@@ -41,16 +41,27 @@ const workflow = parse(
     string,
     {
       if?: string;
+      name?: string;
       needs?: string | string[];
-      'timeout-minutes'?: number;
+      'timeout-minutes'?: number | string;
+      strategy?: {
+        'fail-fast'?: boolean;
+        matrix: { include: Array<{ part: string; timeout: number }> };
+      };
       steps: Array<{
         name?: string;
         run?: string;
         uses?: string;
-        with?: { name?: string; path?: string };
+        with?: {
+          name?: string;
+          path?: string;
+          pattern?: string;
+          'merge-multiple'?: boolean;
+        };
       }>;
     }
   >;
+  on: { workflow_dispatch?: { inputs?: Record<string, { type?: string }> } };
 };
 
 describe('Nx targets (scale spec 10.4)', () => {
@@ -97,16 +108,71 @@ describe('benchmarks.yml (scale spec 10.2)', () => {
       s.run === undefined ? [] : [s.run],
     );
 
-  it('has no scale-timings job until the budget follow-up: a job that cannot finish would drop the Meridian-8 results on a tag', () => {
-    expect(jobs['scale-timings']).toBeUndefined();
-    expect(JSON.stringify(workflow)).not.toContain('scale-timings');
+  const scale = jobs.scale;
+  const parts = scale?.strategy?.matrix.include ?? [];
+
+  it('runs one job per shape and one for the steady get-cycle, each with its own timeout', () => {
+    expect(Object.fromEntries(parts.map((p) => [p.part, p.timeout]))).toEqual({
+      mixed: 330,
+      wide: 120,
+      deep: 120,
+      modular: 120,
+      'mixed-async': 120,
+      steady: 30,
+    });
+    expect(scale?.['timeout-minutes']).toBe('${{ matrix.timeout }}');
+    expect(scale?.name).toBe('scale-${{ matrix.part }}');
   });
-  it('merges only the jobs that finish', () => {
+  it('cancels the rest when one part fails, so a partial file is never published', () => {
+    expect(scale?.strategy?.['fail-fast']).toBe(true);
+  });
+  it('runs on the same trigger and after the same steps as the timings job', () => {
+    expect(scale?.if).toBe(jobs.timings?.if);
+    expect(scale?.needs).toBe(jobs.timings?.needs);
+    expect(
+      (scale?.steps ?? []).flatMap((s) => (s.run === undefined ? [] : [s.run])),
+    ).toEqual(
+      expect.arrayContaining([
+        'node benchmarks/src/release-core.ts --ref "$PUSHED_TAG"',
+      ]),
+    );
+    const download = (scale?.steps ?? []).find(
+      (s) =>
+        s.uses?.includes('download-artifact') &&
+        s.with?.name === 'deterministic',
+    );
+    expect(download?.with?.path).toBe('benchmarks/results');
+  });
+  it('times its own part with the run id as the seed and uploads it as scale-timings-<part>', () => {
+    const run = (scale?.steps ?? []).find((s) =>
+      s.run?.includes('scale/timings.ts'),
+    );
+    expect(run?.run).toContain('--part=${{ matrix.part }}');
+    expect(run?.run).toContain('--seed=${{ github.run_id }}');
+    const upload = (scale?.steps ?? []).find((s) =>
+      s.uses?.includes('upload-artifact'),
+    );
+    expect(upload?.with?.name).toBe('scale-timings-${{ matrix.part }}');
+    expect(upload?.with?.path).toBe('benchmarks/results/scale-parts');
+  });
+  it('adds --protocol-check to the mixed job only when the dispatch asks for it', () => {
+    const run = (scale?.steps ?? []).find((s) =>
+      s.run?.includes('scale/timings.ts'),
+    );
+    expect(run?.run).toContain(
+      "matrix.part == 'mixed' && inputs.protocol_check && '--protocol-check'",
+    );
+    expect(workflow.on.workflow_dispatch?.inputs?.protocol_check?.type).toBe(
+      'boolean',
+    );
+  });
+  it('merges the scale parts as well as the jobs that finish', () => {
     expect(jobs.merge?.needs).toEqual([
       'deterministic',
       'build-meridian-8',
       'build-scale-200',
       'timings',
+      'scale',
     ]);
   });
   it('writes scale.json in the deterministic job', () => {
@@ -114,18 +180,22 @@ describe('benchmarks.yml (scale spec 10.2)', () => {
       'npx nx run @nexusdi/benchmarks:scale',
     );
   });
-  it('renders the deterministic scale page in the merge job', () => {
+  it('downloads every scale part, merges them, then renders the page', () => {
     const steps = jobs.merge?.steps ?? [];
-    const deterministic = steps.findIndex(
-      (s) =>
-        s.uses?.includes('download-artifact') &&
-        s.with?.name === 'deterministic',
+    const download = steps.findIndex(
+      (s) => s.with?.pattern === 'scale-timings-*',
+    );
+    const merge = steps.findIndex(
+      (s) => s.run === 'node benchmarks/src/scale/timings.ts --merge',
     );
     const render = steps.findIndex(
       (s) => s.run === 'node benchmarks/src/scale/render.ts',
     );
-    expect(deterministic).toBeGreaterThan(-1);
-    expect(render).toBeGreaterThan(deterministic);
+    expect(download).toBeGreaterThan(-1);
+    expect(steps[download]?.with?.['merge-multiple']).toBe(true);
+    expect(steps[download]?.with?.path).toBe('benchmarks/results/scale-parts');
+    expect(merge).toBeGreaterThan(download);
+    expect(render).toBeGreaterThan(merge);
   });
 });
 
