@@ -2,7 +2,14 @@
  * An API entry: a list item on the article's hull, separated by a hairline.
  * The name takes the kind's hue and the chip beside it says the kind in words.
  */
+/*
+ * A reference page holds dozens of entries, `/api/` ninety. An entry off the
+ * screen skips layout and paint until a reader scrolls near it, and holds an
+ * estimated height meanwhile, then the one it last rendered at.
+ */
 .nexus-api-entry {
+  content-visibility: auto;
+  contain-intrinsic-size: auto 40rem;
   margin-block-start: var(--meridian-space-6);
   padding-block: var(--meridian-space-4) var(--meridian-space-5);
   border-block-start: 1px solid var(--meridian-rule);
