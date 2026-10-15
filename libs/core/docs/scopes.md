@@ -10,13 +10,24 @@ A scope is a child container for one request, and `REQUEST` resolves to that req
 import { Nexus, REQUEST, Token, defineModule } from '@nexusdi/core';
 import { provide, type NexusError } from '@nexusdi/core';
 
-interface IFlightLog {
-  readonly mission: string;
+interface Mission {
+  readonly id: string;
+  readonly target: string;
 }
-const MISSION = new Token<string>('Mission');
+
+declare module '@nexusdi/core' {
+  interface NexusRequest {
+    mission: Mission;
+  }
+}
+
+interface IFlightLog {
+  readonly mission: Mission;
+}
+const MISSION = new Token<Mission>('Mission');
 const FLIGHT_LOG = new Token<IFlightLog>('FlightLog');
 class ShuttleFlightLog implements IFlightLog {
-  constructor(readonly mission: string) {}
+  constructor(readonly mission: Mission) {}
 }
 
 const Tactical = defineModule({
@@ -37,9 +48,9 @@ const Tactical = defineModule({
 
 await using ship = await Nexus.create(Tactical);
 await using shuttle = await ship.createScope({
-  request: { mission: 'survey-7' },
+  request: { mission: { id: 'survey-7', target: 'Kepler-442b' } },
 });
-shuttle.get(FLIGHT_LOG).mission; // -> 'survey-7'
+shuttle.get(FLIGHT_LOG).mission.id; // -> 'survey-7'
 shuttle.get(FLIGHT_LOG) === shuttle.get(FLIGHT_LOG); // -> true
 
 let code = '';
