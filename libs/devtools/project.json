@@ -2,8 +2,23 @@
   "$schema": "../../node_modules/nx/schemas/project-schema.json",
   "name": "@nexusdi/devtools",
   "targets": {
-    "lint": { "options": { "args": ["--max-warnings=0"] } },
-    "test": { "dependsOn": ["^build", "build"] },
-    "stage-publish": {}
+    "lint": {
+      "options": {
+        "args": ["--max-warnings=0"]
+      }
+    },
+    "test": {
+      "dependsOn": ["^build", "build", "test-trace"]
+    },
+    "stage-publish": {},
+    "test-trace": {
+      "executor": "nx:run-commands",
+      "cache": true,
+      "inputs": ["default", "^production"],
+      "options": {
+        "cwd": "libs/devtools",
+        "command": "vitest run --config vitest.trace.config.ts"
+      }
+    }
   }
 }
