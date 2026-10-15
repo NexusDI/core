@@ -2697,6 +2697,7 @@ import {
 
 import { DevtoolsError } from '../devtools-error.js';
 import type {
+  LiveSink,
   ProfileBuild,
   ProfileInit,
   ProfilePending,
@@ -2706,14 +2707,12 @@ import type {
 import { stepsOf } from './steps.js';
 
 export interface ProfileOptions {
-  /** Draw spans live with console.timeStamp on Chromium 134 and later; elsewhere nothing. Default false. */
-  readonly live?: boolean;
+  /** Draws each run as it closes; pass liveSink() from @nexusdi/devtools/live. Default: no drawing. */
+  readonly live?: LiveSink;
   /** Record createScope() and extend() runs as well. Default false: create and load only. */
   readonly scopes?: boolean;
   /** Runs kept; the oldest goes first and counts in report().dropped. Default 1000. */
   readonly maxRuns?: number;
-  /** The DevTools track group for live spans. Default 'NexusDI'. */
-  readonly trackGroup?: string;
 }
 
 /** A plugin that records where startup time goes. One per container. */
@@ -2758,25 +2757,53 @@ export function runOf(rec: Recording): ProfileRun {
   return { ...run, steps: stepsOf(run) };
 }
 
+// The view is one frozen object per blueprint, so a graph built from it
+// stays valid until a load or extend() gives the container a new blueprint.
+const graphs = new WeakMap<
+  BlueprintView,
+  NonNullable<ProfileReport['graph']>
+>();
+
+/** The report's graph of `view`, built once per blueprint. */
 function graphOf(view: BlueprintView): NonNullable<ProfileReport['graph']> {
+  const known = graphs.get(view);
+  if (known !== undefined) return known;
+  const graph = buildGraph(view);
+  graphs.set(view, graph);
+  return graph;
+}
+
+/**
+ * The graph of `view`, frozen to its leaves: every report that shares the
+ * blueprint shares this object, so no caller may change it for the next.
+ */
+function buildGraph(view: BlueprintView): NonNullable<ProfileReport['graph']> {
   const names = new Map(view.modules.map((m) => [m.id, m.name]));
-  return {
+  return Object.freeze({
     root: names.get(view.root) ?? view.root,
-    providers: view.providers.map((p) => ({
-      id: p.id,
-      token: p.name,
-      module: names.get(p.module) ?? p.module,
-      lifetime: p.lifetime,
-      kind: p.kind,
-      inline: p.inline,
-    })),
-    edges: view.edges.map((e) => ({
-      from: e.from,
-      to: e.to,
-      kind: e.kind,
-      ordersBuild: e.ordersBuild,
-    })),
-  };
+    providers: Object.freeze(
+      view.providers.map((p) =>
+        Object.freeze({
+          id: p.id,
+          token: p.name,
+          module: names.get(p.module) ?? p.module,
+          lifetime: p.lifetime,
+          kind: p.kind,
+          inline: p.inline,
+        }),
+      ),
+    ),
+    edges: Object.freeze(
+      view.edges.map((e) =>
+        Object.freeze({
+          from: e.from,
+          to: e.to,
+          kind: e.kind,
+          ordersBuild: e.ordersBuild,
+        }),
+      ),
+    ),
+  });
 }
 
 const REUSED_TEXT =
@@ -2784,6 +2811,7 @@ const REUSED_TEXT =
 
 export function profile(options: ProfileOptions = {}): Profiler {
   const scopes = options.scopes ?? false;
+  const live = options.live;
   const maxRuns = options.maxRuns ?? 1000;
   const runs = new Map<number, Recording>();
   // Builds with no run wait here for the build that ran them (spec 6.2).
@@ -2971,6 +2999,7 @@ export function profile(options: ProfileOptions = {}): Profiler {
           return;
         }
         const rec = open(event.run, event.kind, event.scope, event.startMs);
+        // RunKind is open to core's additions (spec 5.2, P2), so the run's own kind wins over the inferred one.
         rec.kind = event.kind;
         rec.scope = event.scope;
         rec.ok = event.ok;
@@ -2978,6 +3007,17 @@ export function profile(options: ProfileOptions = {}): Profiler {
         rec.durationMs = event.durationMs;
         rec.pending.clear();
         if (event.scope !== null) seenScopes.add(event.scope);
+        // A run's spans are drawn when it closes, so the critical-path colour
+        // is known (spec 6.5). An observe hook never throws (spec 6.3).
+        if (live !== undefined)
+          try {
+            live(
+              runOf(rec),
+              context === undefined ? null : graphOf(context.blueprint()),
+            );
+          } catch {
+            // The view or the sink failed; the app being measured does not.
+          }
         return;
       }
       case 'dispose':
@@ -4236,7 +4276,7 @@ export function spansOf(
 ): Span[];
 ```
 
-- Produces: `toChromeTrace(report: ProfileReport, options?: { readonly cpuProfile?: { readonly profile: CpuProfile; readonly offsetMs: number }; readonly trackGroup?: string }): TraceFile`; `liveSink(trackGroup: string): ((run: ProfileRun, graph: ProfileReport['graph']) => void) | undefined`.
+- Produces: `toChromeTrace(report: ProfileReport, options?: { readonly cpuProfile?: { readonly profile: CpuProfile; readonly offsetMs: number }; readonly trackGroup?: string }): TraceFile`; in `@nexusdi/devtools/live`, `liveSink(options?: { readonly trackGroup?: string }): LiveSink | undefined`, with `type LiveSink = (run: ProfileRun, graph: ProfileReport['graph']) => void` exported from both entries.
 
 - [ ] Step 1: Write the failing tests
 
@@ -4562,10 +4602,12 @@ describe('toChromeTrace', () => {
 `live.test.ts`:
 
 ```ts
+import { readFileSync } from 'node:fs';
+
 import { afterEach, describe, expect, it, vi } from 'vitest';
 
 import { defined } from '../../test-support/defined.js';
-import { liveSink } from './live.js';
+import { liveSink } from '../live.js';
 
 describe('liveSink', () => {
   afterEach(() => vi.unstubAllGlobals());
@@ -4574,9 +4616,9 @@ describe('liveSink', () => {
     vi.stubGlobal('navigator', {
       userAgentData: { brands: [{ brand: 'Chromium', version: '133' }] },
     });
-    expect(liveSink('NexusDI')).toBeUndefined();
+    expect(liveSink()).toBeUndefined();
     vi.stubGlobal('navigator', undefined);
-    expect(liveSink('NexusDI')).toBeUndefined();
+    expect(liveSink()).toBeUndefined();
   });
 
   it('calls console.timeStamp per span and swallows its errors', () => {
@@ -4588,7 +4630,7 @@ describe('liveSink', () => {
       throw new Error('no recorder');
     });
     vi.stubGlobal('console', { ...console, timeStamp: stamp });
-    const sink = defined(liveSink('NexusDI'));
+    const sink = defined(liveSink());
     expect(() =>
       sink(
         {
@@ -4615,6 +4657,49 @@ describe('liveSink', () => {
       'NexusDI',
       'secondary-dark',
     );
+  });
+  it('draws in the track group it is given', () => {
+    vi.stubGlobal('navigator', {
+      userAgentData: { brands: [{ brand: 'Chromium', version: '154' }] },
+    });
+    // Node's timeStamp records nothing, so the test stubs one.
+    const stamp = vi.fn();
+    vi.stubGlobal('console', { ...console, timeStamp: stamp });
+    defined(liveSink({ trackGroup: 'Ship' }))(
+      {
+        id: 0,
+        kind: 'create',
+        scope: null,
+        ok: true,
+        startMs: 0,
+        durationMs: 1,
+        compile: null,
+        steps: [],
+        builds: [],
+        inits: [],
+        pending: [],
+      },
+      null,
+    );
+    expect(stamp).toHaveBeenCalledWith(
+      'create',
+      0,
+      1,
+      'Runs',
+      'Ship',
+      'secondary-dark',
+    );
+  });
+  it('is the module the @nexusdi/devtools/live subpath exports', () => {
+    const manifest = JSON.parse(
+      readFileSync(new URL('../../package.json', import.meta.url), 'utf8'),
+    ) as { exports: Record<string, Record<string, string>> };
+    expect(manifest.exports['./live']).toEqual({
+      '@nexusdi/source': './src/live.ts',
+      types: './dist/live.d.ts',
+      import: './dist/live.js',
+      default: './dist/live.js',
+    });
   });
 });
 ```
@@ -4982,7 +5067,7 @@ export function toChromeTrace(
 - [ ] Step 5: `live.ts` and the option
 
 ```ts
-import type { ProfileReport, ProfileRun } from './report.js';
+import type { LiveSink } from './report.js';
 import { spansOf } from './spans.js';
 
 interface Brands {
@@ -5004,13 +5089,16 @@ type TimeStamp = (
 ) => void;
 
 /**
- * The console.timeStamp sink of profile({ live: true }) (spec 6.5), or
- * undefined where it would reach nothing: anything but Chromium 134 and
- * later. A draw never throws; a profiler never fails the app it measures.
+ * A sink for profile({ live }) that draws each run's spans with
+ * console.timeStamp in the DevTools track group `trackGroup` (default
+ * 'NexusDI'), spec 6.5. undefined outside Chromium 134 and later, where
+ * console.timeStamp draws nothing. A draw never throws; a profiler never
+ * fails the app it measures.
  */
 export function liveSink(
-  trackGroup: string,
-): ((run: ProfileRun, graph: ProfileReport['graph']) => void) | undefined {
+  options: { readonly trackGroup?: string } = {},
+): LiveSink | undefined {
+  const trackGroup = options.trackGroup ?? 'NexusDI';
   const brands =
     (globalThis.navigator as Brands | undefined)?.userAgentData?.brands ?? [];
   if (!brands.some((b) => b.brand === 'Chromium' && Number(b.version) >= 134))
@@ -5028,7 +5116,7 @@ export function liveSink(
 }
 ```
 
-In `profile.ts`: `const live = options.live === true ? liveSink(options.trackGroup ?? 'NexusDI') : undefined;` at the top of `profile()`, and at the end of the `run` case: `if (live !== undefined) { const rec = runs.get(event.run); if (rec !== undefined) live(runOf(rec), context === undefined ? null : graphOf(context.blueprint())); }` wrapped in `try {} catch {}`. Add a test to `profile.test.ts` that `profile({ live: true })` under a stubbed Chromium 134 `navigator` calls `console.timeStamp` with track `'Runs'` once the create settles. Node's `console` has no `timeStamp`, so the live tests stub the global `console` with one (`vi.stubGlobal('console', { ...console, timeStamp: stamp })`) where `vi.spyOn` would throw.
+Live mode is a subpath of its own (tech lead ruling, 2026-10-15). `libs/devtools/src/live.ts` is the `@nexusdi/devtools/live` entry: it re-exports `liveSink` and the `LiveSink` type, and `package.json` gains `exports["./live"]` with the `@nexusdi/source`, `types`, `import` and `default` conditions. `LiveSink` is declared in `report.ts` and exported as a type from both entries. `ProfileOptions` takes `readonly live?: LiveSink` ("Draws each run as it closes; pass liveSink() from @nexusdi/devtools/live. Default: no drawing.") and has no `trackGroup`; `liveSink({ trackGroup })` takes it. `profile.ts` imports nothing from `live.ts`: it reads `options.live`, and at the end of the `run` case calls it with `runOf(rec)` and the graph, inside `try {} catch {}`. The profile test passes `profile({ live: liveSink() })`, and the tests import the entry as `../live.js`, since the project lint forbids a package importing itself by name; `live.test.ts` also asserts the `exports["./live"]` entry. `src/profile/bundle.test.ts` bundles plain `profile()` with esbuild and asserts it holds no `timeStamp` and none of `spansOf`'s strings, and that `profile()` with `/live` holds both. Node's `console` has no `timeStamp`, so the live tests stub the global `console` with one (`vi.stubGlobal('console', { ...console, timeStamp: stamp })`) where `vi.spyOn` would throw.
 
 `least()` and `most()` in `src/profile/extent.ts` replace every `Math.min(...)`/`Math.max(...)` spread in the profile modules: a spread call throws a RangeError past 65,536 arguments in JavaScriptCore (near 125,000 in V8), and 1,000 runs with scopes can hold more spans. `graphOf` keeps one graph per view object in a `WeakMap`, so live mode builds it again only after the blueprint changes. Export `toChromeTrace` from `index.ts`.
 
@@ -5661,6 +5749,8 @@ describe('the Perfetto file', () => {
 
 The main `vite.config.ts` excludes `src/**/*.trace.test.ts` (with `configDefaults.exclude`), `.fallowrc.jsonc` lists `vitest.trace.config.ts` as an entry and `@paulirish/trace_engine` under `ignoreDependencies`, and `no-node.test.ts` needs no `.trace.ts` exception. Spec 10.1's third assertion compares each engine entry with `spansOf` over the report, so a shift in the writer fails it. The engine's type names (`parsedTrace`, `entriesByTrack`, `profilesInProcess`) follow the version pinned in Step 1. Where that version names a field differently, read its `.d.ts` and keep each assertion's meaning: spec 10.1 lists the five assertions this file must make.
 
+The CPU test asserts the samples land on pid 1, tid 1, where DevTools draws the flame chart under Main. The 20-sample `node.cpuprofile` is hand-cut; Task 18 adds a recorded fixture from a real `node --cpu-prof` run and holds the merge against it too.
+
 - [ ] Step 5: Write the golden file and run the target
 
 Run once with `UPDATE=1`, guarded in the test as `if (process.env['UPDATE']) writeFileSync(...)`, then read the file in review: every span of the fixture appears once, the frame URL is `nexusdi://profile/Meridian`, and the `ts` values are integers.
@@ -5678,7 +5768,7 @@ Expected: PASS. Add `test-fixtures/profile/**` to fallow's ignore list in `.fall
 
 Files:
 
-- Create: `examples/size/src/devtools-profile.ts`
+- Create: `examples/size/src/devtools-profile.ts`, `examples/size/src/devtools-live.ts`
 - Modify: `scripts/size-report.mjs`, `tools/repo-checks/src/size-fixtures.ts` and its test
 
 Interfaces:
@@ -5693,18 +5783,20 @@ import { profile } from '@nexusdi/devtools';
 
 import { App, UserService } from './app.ts';
 
-const profiler = profile({ live: true });
+const profiler = profile();
 const app = await Nexus.create(App, { plugins: [profiler] });
 app.get(UserService).logger.log('ready');
 console.log(profiler.report().runs.length);
 ```
+
+`devtools-live.ts` is the same app with `profile({ live: liveSink() })` and `import { liveSink } from '@nexusdi/devtools/live';`.
 
 - [ ] Step 2: Measure it. `size-report.mjs` measures `<dir>.ts` and `<dir>-text.ts` only. In `measurePackages`, also measure every `<dir>-<feature>.ts` other than `-text` whose `<dir>` is a folder under `libs/`, reported as `<dir>+<feature>`, minus core. `size-fixtures.ts` reports a `<dir>-<feature>.ts` fixture whose `<dir>` is no `libs/` folder. `scripts/size-compare.mjs` needs no change: it prints a key with no baseline as `new`. Add a case to `size-fixtures.test.ts` that `devtools-profile.ts` is accepted and `gone-profile.ts` (no `libs/gone`) is reported. Write the failing test first, run `NX_NO_CLOUD=true NX_DAEMON=false npx nx test @nexusdi/repo-checks -- size-fixtures`, then implement.
 
 - [ ] Step 3: Check the claims of spec 11.2
 
 Run: `npm run size`
-Expected: the `devtools` row is unchanged from the base (no profile code reaches `devtools()`, `graph()` or `trace()`), and the `devtools+profile` row (the fixture minus core; the fixture never calls `devtools()`) is near spec 11.2's estimate for `profile()` with recording and the live sink, about 975 B. Record both in the ledger for the pull request. If `devtools` moved, find the import that pulled a profile module into `devtools.ts`, `graph.ts` or `trace.ts` and remove it.
+Expected: the `devtools` row moves only as core does (no profile code reaches `devtools()`, `graph()` or `trace()`; their sources do not change). `devtools+profile` and `devtools+live` match spec 11.2's report figures (1,622 B and 3,077 B at Task 14), and a standalone build with core external gives `profile()` near 1,960 B and `/live` near 1,530 B on top. Record both in the ledger for the pull request. If `devtools` moved, find the import that pulled a profile module into `devtools.ts`, `graph.ts` or `trace.ts` and remove it.
 
 - [ ] Step 4: Run the targets and commit
 
@@ -6574,7 +6666,9 @@ describe('nexusdi profile --cpu', () => {
 
 Record the drift the Linux CI run reports in the ledger: spec 8 says the docs state an error bar only after this test finds both anchors there.
 
-- [ ] Step 6: Run the targets of Task 16 and commit with `feat(cli): sample the CPU and merge it into the Chrome trace`.
+- [ ] Step 6: Record a real profile for the golden test: run the Meridian fixture with `node --cpu-prof`, keep the `.cpuprofile` in `libs/devtools/test-fixtures/profile/recorded.cpuprofile`, and add a case to `trace-engine.trace.test.ts` that merges it through `toChromeTrace` and finds its samples on pid 1, tid 1 inside the run.
+
+- [ ] Step 7: Run the targets of Task 16 and commit with `feat(cli): sample the CPU and merge it into the Chrome trace`.
 
 ---
 
@@ -6788,7 +6882,7 @@ Interfaces:
 3. `critical-path`: `criticalPath(report, 0)?.path.map((p) => p.token)` with a claim on the token list.
 4. `download`: the Blob download of `JSON.stringify(toChromeTrace(report))`, in a fence marked to type-check only, as the guide shows for browser-only code.
 
-- [ ] Step 3: The page. Frontmatter `kind: question`, title "How do I find out what slows or stalls startup?", a `requires` line naming `introspection`. Sections in Context, Concept, Detail order (spec 12): what the reader can't see today; `profile()` in an app (region 1); reading the table (sync, await, finish, own, queued; levels as barriers; the critical path and barrier waits, region 3), with any output that shows times taken from region output or the page console only; `nexusdi profile` from the terminal with the spec 9.2 commands; opening the Chrome file (DevTools, Performance, Load profile, Show custom tracks) and the Perfetto file (ui.perfetto.dev); `--cpu`; live mode on Chromium 134 and later; the warning that `--repeat` builds every provider again, side effects included; a stalled startup (region 2 and `--timeout`); live mode draws a run once it settles, so a stalled startup reads through `report()` and `toChromeTrace`; and a reference H2 for `nexusdi profile` with the spec 9.1 synopsis, every flag and the spec 9.5 exit-code table (tech lead ruling 1; check them against `OPTIONS` in `libs/cli/src/args.ts`). End with the next step: `/trace-events/`. Add `profiling` to `_meta.ts` in the Guides band after `graph-cli`.
+- [ ] Step 3: The page. Frontmatter `kind: question`, title "How do I find out what slows or stalls startup?", a `requires` line naming `introspection`. Sections in Context, Concept, Detail order (spec 12): what the reader can't see today; `profile()` in an app (region 1); reading the table (sync, await, finish, own, queued; levels as barriers; the critical path and barrier waits, region 3), with any output that shows times taken from region output or the page console only; `nexusdi profile` from the terminal with the spec 9.2 commands; opening the Chrome file (DevTools, Performance, Load profile, Show custom tracks) and the Perfetto file (ui.perfetto.dev); `--cpu`; live mode on Chromium 134 and later, shown with its import line, `import { liveSink } from '@nexusdi/devtools/live';`, and `profile({ live: liveSink() })`; the warning that `--repeat` builds every provider again, side effects included; a stalled startup (region 2 and `--timeout`); live mode draws a run once it settles, so a stalled startup reads through `report()` and `toChromeTrace`; and a reference H2 for `nexusdi profile` with the spec 9.1 synopsis, every flag and the spec 9.5 exit-code table (tech lead ruling 1; check them against `OPTIONS` in `libs/cli/src/args.ts`). End with the next step: `/trace-events/`. Add `profiling` to `_meta.ts` in the Guides band after `graph-cli`.
 
 - [ ] Step 4: Run the docs checks
 
