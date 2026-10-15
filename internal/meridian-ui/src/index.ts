@@ -3,6 +3,8 @@
  * from React; `react-imports.test.ts` and `scripts/verify-packaging.mjs` hold
  * the allowlist.
  */
+export { Chip } from './components/chip.js';
+export type { ChipProps } from './components/chip.js';
 export { ConsoleFrame } from './components/console-frame.js';
 export type { ConsoleFrameProps } from './components/console-frame.js';
 export { Marker } from './components/marker.js';

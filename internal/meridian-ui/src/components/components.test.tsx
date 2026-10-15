@@ -2,6 +2,7 @@ import { render, screen } from '@testing-library/react';
 import { describe, expect, it } from 'vitest';
 
 import {
+  Chip,
   ConsoleFrame,
   Marker,
   Notice,
@@ -73,5 +74,15 @@ describe('Marker', () => {
     expect(marker.className).toBe(
       'meridian-marker meridian-marker--lifetime meridian-lifetime-scoped',
     );
+  });
+});
+
+describe('Chip', () => {
+  it('renders a span with the chip class and keeps the caller class', () => {
+    const { container } = render(<Chip className="x">function</Chip>);
+    const chip = container.firstElementChild as HTMLElement;
+    expect(chip.tagName).toBe('SPAN');
+    expect(chip.className).toBe('meridian-chip x');
+    expect(chip.textContent).toBe('function');
   });
 });

@@ -98,6 +98,29 @@
   font-variant-numeric: tabular-nums;
 }
 
+/*
+ * A chip takes its kind's hue from an ancestor's `meridian-kind-<kind>` class,
+ * such as a reference entry's wrapper, or from its own, such as a kind toggle
+ * of the API filter.
+ */
+.meridian-chip {
+  display: inline-block;
+  padding: 0 var(--meridian-space-2);
+  border: 1px solid var(--meridian-rule);
+  border-radius: var(--meridian-radius-chip);
+  color: var(--meridian-text-secondary);
+  font-family: var(--meridian-font-mono);
+  font-size: var(--meridian-text-micro);
+  line-height: var(--meridian-leading-micro);
+  letter-spacing: var(--meridian-tracking-micro);
+}
+
+[class*='meridian-kind-'] .meridian-chip,
+.meridian-chip[class*='meridian-kind-'] {
+  color: var(--meridian-kind);
+  border-color: color-mix(in oklab, var(--meridian-kind) 45%, transparent);
+}
+
 .meridian-marker {
   display: inline-block;
   border-radius: var(--meridian-radius-marker);

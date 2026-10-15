@@ -36,6 +36,36 @@ describe('the export-kind hues', () => {
   }
 });
 
+describe('a kind chip on the raised hull', () => {
+  // The API filter's kind toggles are chips on the sticky filter row, which
+  // paints `--meridian-hull-raised`. A chip outside a kind wrapper takes
+  // `textSecondary`.
+  const DARK_RAISED_WORST = composite(
+    surface.dark.hullRaised.hex,
+    surface.dark.hullRaised.alpha,
+    '#ffffff',
+  );
+  const LIGHT_RAISED = composite(
+    surface.light.hullRaised.hex,
+    surface.light.hullRaised.alpha,
+    colour.light.space2,
+  );
+
+  for (const role of new Set([
+    ...exportKinds.map((kind) => kindRole[kind]),
+    'textSecondary' as const,
+  ])) {
+    it(`keeps ${role} legible on the raised hull in both themes`, () => {
+      expect(
+        contrast(colour.dark[role], DARK_RAISED_WORST),
+      ).toBeGreaterThanOrEqual(CONTRAST_FLOOR.text);
+      expect(contrast(colour.light[role], LIGHT_RAISED)).toBeGreaterThanOrEqual(
+        CONTRAST_FLOOR.text,
+      );
+    });
+  }
+});
+
 describe('the lifetime roles', () => {
   it('reuses the signal colours spec §8.2 names', () => {
     expect(lifetimeRole).toEqual({
