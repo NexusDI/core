@@ -6,7 +6,7 @@ import { expect } from 'vitest';
 import { createBridge as expressBridge } from '../src/express';
 import { createBridge as fastifyBridge } from '../src/fastify';
 import { createBridge as honoBridge } from '../src/hono';
-import { NAV_AUDIT } from '../src/ship/audit';
+import { AUDIT_LOG } from '../src/ship/audit';
 import { test } from './fixtures';
 
 const course = { to: 'Kepler-442b', heading: 42 };
@@ -48,5 +48,5 @@ test('serves the course from Fastify with the fake charts', async ({
 test('the audit interceptor sees every plot', async ({ nexus }) => {
   const res = await honoBridge(nexus).request('/course/Kepler-442b');
   expect(res.status).toBe(200);
-  expect(nexus.get(NAV_AUDIT).calls).toEqual(['plot Kepler-442b']);
+  expect(nexus.get(AUDIT_LOG).calls).toEqual(['plot Kepler-442b']);
 });

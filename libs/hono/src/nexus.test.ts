@@ -12,7 +12,7 @@ import {
 } from '@nexusdi/core';
 import { trace } from '@nexusdi/devtools';
 import { nodeScopes } from '@nexusdi/node';
-import { Hono } from 'hono';
+import { Context, Hono } from 'hono';
 import { HTTPException } from 'hono/http-exception';
 import { stream } from 'hono/streaming';
 import { afterEach, describe, expect, it, vi } from 'vitest';
@@ -301,6 +301,19 @@ describe('nexus() for Hono', () => {
     await res.text();
     expect(waitUntil).toHaveBeenCalledTimes(1);
     expect(waitUntil.mock.calls[0][0]).toBeInstanceOf(Promise);
+  });
+
+  it('probes executionCtx once per adapter instance where the platform has none', async () => {
+    // Hono's getter throws a new Error on Node, Bun and Deno on every read.
+    const getter = vi.spyOn(Context.prototype, 'executionCtx', 'get');
+    const di = nexus(await ship(), { request: survey, log: () => {} });
+    const app = new Hono().use(di.middleware).get(
+      '/log',
+      di.inject({ log: FLIGHT_LOG }, ({ log }, c) => c.json(log.entries())),
+    );
+    for (let i = 0; i < 3; i += 1) await (await app.request('/log')).text();
+    expect(getter).toHaveBeenCalledTimes(1);
+    getter.mockRestore();
   });
 
   it('runs the rest of the request inside scopes.run when scopes is set', async () => {

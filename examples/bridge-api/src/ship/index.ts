@@ -1,4 +1,4 @@
-export { Audit, NAV_AUDIT, type INavAudit } from './audit';
+export { Audit, AUDIT_LOG, type IAuditLog } from './audit';
 export { BridgeApi } from './bridge-api.module';
 export { Comms } from './comms.module';
 export {
