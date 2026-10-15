@@ -350,11 +350,21 @@ function declarationOf(context, resolved, name, kind) {
     : declaration;
   const strip = (printed) =>
     printed.replace(/^export\s+/, '').replace(/^declare\s+/, '');
-  const printed = printer.printNode(
-    ts.EmitHint.Unspecified,
-    node,
-    node.getSourceFile(),
-  );
+  // An export can rename its declaration (`resolveModuleRef as
+  // moduleDefinitionOf`). The fence declares the name the package publishes,
+  // since that is the name it merges with and a reader imports.
+  const declared =
+    declaration.name && ts.isIdentifier(declaration.name)
+      ? declaration.name.text
+      : name;
+  const printed = printer
+    .printNode(ts.EmitHint.Unspecified, node, node.getSourceFile())
+    .replace(
+      new RegExp(
+        `^((?:export\\s+)?(?:declare\\s+)?(?:function|class|interface|type|const|let|var|enum)\\s+)${declared}\\b`,
+      ),
+      `$1${name}`,
+    );
 
   const merges = kind === 'function' || kind === 'interface';
   // Inside a module block the declaration is already ambient and already
@@ -427,7 +437,16 @@ function declarationOf(context, resolved, name, kind) {
     // private to it. Types only: a declaration's parameter names and property
     // names resolve too, and printing one puts `decision: Decision` at the top
     // of the fence as though it were a statement.
-    const symbol = checker.resolveName(each, from, ts.SymbolFlags.Type, false);
+    // Followed through an import, since a declaration file names a private
+    // type another file of the package declares (`views.d.ts` imports
+    // `AnyToken` from `guards.d.ts`).
+    const follow = (found) =>
+      found && found.flags & ts.SymbolFlags.Alias
+        ? checker.getAliasedSymbol(found)
+        : found;
+    const symbol = follow(
+      checker.resolveName(each, from, ts.SymbolFlags.Type, false),
+    );
     const target = symbol?.getDeclarations()?.[0];
 
     // A class built on `errorBase(...)` extends `X_base`, a const the
@@ -436,7 +455,9 @@ function declarationOf(context, resolved, name, kind) {
     // `const` with no initializer outside an ambient context does not
     // compile. Parameter names are no variable declarations, so none of them
     // reaches here.
-    const value = checker.resolveName(each, from, ts.SymbolFlags.Value, false);
+    const value = follow(
+      checker.resolveName(each, from, ts.SymbolFlags.Value, false),
+    );
     const variable = value?.getDeclarations()?.[0];
     if (
       !target &&
