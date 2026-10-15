@@ -38,6 +38,17 @@ describe('sizeFixtureViolations', () => {
     ]);
   });
 
+  it('accepts a feature fixture of a package, and reports one whose package is gone', () => {
+    expect(
+      sizeFixtureViolations(
+        [{ dir: 'devtools', exports: { '.': './src/index.ts' } }],
+        ['devtools.ts', 'devtools-profile.ts', 'gone-profile.ts'],
+      ),
+    ).toEqual([
+      'examples/size/src/gone-profile.ts measures a feature of libs/gone, which is no package',
+    ]);
+  });
+
   it('holds for the workspace', () => {
     const packages = libPackages(join(workspaceRoot, 'libs'));
     const fixtures = readdirSync(

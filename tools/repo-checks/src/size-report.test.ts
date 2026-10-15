@@ -92,6 +92,29 @@ describe('measurePackages', () => {
     expect(packages['pkg/text']).toBe(text - core);
   });
 
+  it('reports a `<dir>-<feature>.ts` fixture under `<dir>+<feature>`, minus core', async () => {
+    writeFileSync(
+      join(dir, 'pkg-profile.ts'),
+      'console.log(1, "a feature fixture that bundles more of the package");\n',
+    );
+    const core = (await measure(dir, dir, 'core.ts', false)) as number;
+    const feature = (await measure(
+      dir,
+      dir,
+      'pkg-profile.ts',
+      false,
+    )) as number;
+    const packages = await measurePackages(
+      dir,
+      dir,
+      ['core', 'pkg'],
+      core,
+      false,
+    );
+    expect(Object.keys(packages)).toEqual(['pkg', 'pkg/text', 'pkg+profile']);
+    expect(packages['pkg+profile']).toBe(feature - core);
+  });
+
   it('reports nothing for a package with no fixture of its own', async () => {
     const packages = await measurePackages(
       dir,

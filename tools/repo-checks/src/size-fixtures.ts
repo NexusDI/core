@@ -7,7 +7,9 @@ import { subpathEntryOf } from './entry-graph.js';
  * examples/size/src/<dir>-text.ts exists, so a pack with no fixture goes
  * unmeasured and the report says nothing. The check fails on a package
  * whose manifest exports `./text` with no `<dir>-text.ts` fixture, and on a
- * `<dir>-text.ts` fixture whose package exports no `./text`.
+ * `<dir>-text.ts` fixture whose package exports no `./text`. A
+ * `<dir>-<feature>.ts` fixture measures one feature of a package, so it
+ * fails when `<dir>` is no folder under libs/.
  */
 
 /** The part of a package under libs/ the check reads. */
@@ -18,6 +20,8 @@ export interface SizedPackage {
 }
 
 const PACK_FIXTURE = /^(.+)-text\.ts$/;
+/** `<dir>-<feature>.ts`: a fixture of one package feature. */
+const FEATURE_FIXTURE = /^([a-z0-9]+)-[a-z0-9-]+\.ts$/;
 
 /** True when the package's manifest exports `./text`. */
 export function hasTextExport(pkg: SizedPackage): boolean {
@@ -40,11 +44,20 @@ export function sizeFixtureViolations(
       violations.push(
         `libs/${dir} exports ./text, and examples/size/src/${dir}-text.ts is missing, so npm run size does not measure its pack`,
       );
+  const dirs = new Set(packages.map((pkg) => pkg.dir));
   for (const fixture of [...fixtures].sort()) {
     const dir = PACK_FIXTURE.exec(fixture)?.[1];
-    if (dir !== undefined && !packed.has(dir))
+    if (dir !== undefined) {
+      if (!packed.has(dir))
+        violations.push(
+          `examples/size/src/${fixture} measures a pack, and libs/${dir} has no ./text export`,
+        );
+      continue;
+    }
+    const owner = FEATURE_FIXTURE.exec(fixture)?.[1];
+    if (owner !== undefined && !dirs.has(owner))
       violations.push(
-        `examples/size/src/${fixture} measures a pack, and libs/${dir} has no ./text export`,
+        `examples/size/src/${fixture} measures a feature of libs/${owner}, which is no package`,
       );
   }
   return violations;
