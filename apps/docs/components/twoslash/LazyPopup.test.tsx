@@ -111,4 +111,28 @@ describe('Popup', () => {
       expect(panel?.textContent).toContain(button.textContent ?? '');
     }
   });
+
+  it('toggles the panel on a click with no pointer behind it, as Enter sends', async () => {
+    render(hover());
+    const root = document.querySelector('.nexus-popup') as HTMLElement;
+    const button = screen.getByRole('button', { name: 'nodeScopes' });
+    const panel = document.querySelector('.nexus-popup__panel') as HTMLElement;
+
+    act(() => button.focus());
+    await waitFor(() =>
+      expect(root.hasAttribute('data-positioned')).toBe(true),
+    );
+    fireEvent.click(button, { detail: 0 });
+    expect(panel.hidden).toBe(true);
+    fireEvent.click(button, { detail: 0 });
+    expect(panel.hidden).toBe(false);
+  });
+
+  it('moves the tab stop to a token a pointer reached', () => {
+    render(fence());
+    const [, second] = buttons();
+
+    fireEvent.pointerDown(second);
+    expect(buttons().map((each) => each.tabIndex)).toEqual([-1, 0, -1]);
+  });
 });

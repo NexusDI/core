@@ -6,12 +6,16 @@
  *
  * A mouse opens the panel on pointer enter and closes it on pointer leave,
  * after `LINGER` milliseconds so a reader can move onto the panel (WCAG
- * 1.4.13). A keyboard opens it on focus and closes it on blur and Escape.
- * Touch has neither hover nor, on iOS, focus on a tapped button, and a touch
- * pointer leaves the moment the finger lifts, so a tap toggles the panel and
- * pointer enter and leave are ignored for it. A pointer down anywhere outside
- * the hover and any scroll close an open panel, since a fixed panel would
- * otherwise hang over the page while it moves.
+ * 1.4.13). A keyboard opens it on focus and closes it on blur and Escape, and
+ * Enter or Space toggles it, as does a screen reader's virtual cursor, whose
+ * activation arrives as a click with no pointer behind it. Touch has neither
+ * hover nor, on iOS, focus on a tapped button, and a touch pointer leaves the
+ * moment the finger lifts, so a tap toggles the panel and pointer enter and
+ * leave are ignored for it. Whether the reader is on touch is read per event:
+ * a key press ends it, so a reader who taps and then tabs gets the keyboard
+ * behaviour. A pointer down anywhere outside the hover and a scroll outside
+ * the panel close an open panel, since a fixed panel would otherwise hang
+ * over the page while it moves.
  */
 
 const GAP = 6;
@@ -61,7 +65,11 @@ export function attach(root: HTMLElement, opening: Opening): void {
   const onOutside = (event: Event) => {
     if (!root.contains(event.target as Node)) close();
   };
-  const onScroll = () => close();
+  // A reader scrolling a long panel keeps it; any other scroll moves the page
+  // under a fixed panel.
+  const onScroll = (event: Event) => {
+    if (!panel.contains(event.target as Node)) close();
+  };
 
   const close = (): void => {
     clearTimeout(closing);
@@ -95,21 +103,24 @@ export function attach(root: HTMLElement, opening: Opening): void {
   root.addEventListener('pointerleave', (event) => {
     if (event.pointerType !== 'touch') leave();
   });
-  button.addEventListener('click', () => {
-    if (!touch) return;
+  root.addEventListener('keydown', () => {
+    touch = false;
+  });
+  // A click from a mouse leaves the panel to hover. A tap, Enter or Space,
+  // and a virtual cursor's activation (a click with `detail` 0) toggle it.
+  button.addEventListener('click', (event) => {
     if (swallowClick) {
       swallowClick = false;
       return;
     }
+    if (!touch && event.detail !== 0) return;
     if (isOpen()) close();
     else open();
   });
   button.addEventListener('focus', () => {
-    if (!touch) open();
+    if (!touch || button.matches(':focus-visible')) open();
   });
-  button.addEventListener('blur', () => {
-    if (!touch) close();
-  });
+  button.addEventListener('blur', close);
   button.addEventListener('keydown', (event) => {
     if (event.key === 'Escape') close();
   });
