@@ -625,6 +625,15 @@ export interface ProfileReport {
     readonly durationMs: number;
     readonly errors: number;
   } | null;
+  /**
+   * Where the report was recorded: the Node and @nexusdi/core versions. profile() writes
+   * none; nexusdi profile adds it to every report it records. Optional, so a report from
+   * profile() in an app parses. core is "(unresolved)" when the entry reached no core.
+   */
+  readonly environment?: {
+    readonly node: string;
+    readonly core: string;
+  };
 }
 
 export interface ProfileRun {
@@ -1033,8 +1042,9 @@ Plain Trace Event Format:
 - `metadata: { "nexusdi-profile": 1, "nexusdi-core": "<version>" }`,
   `displayTimeUnit: "ms"`. `@nexusdi/core` exports no version constant, and this spec adds
   no core API for one, so `toPerfettoTrace` writes `"nexusdi-profile": 1` only. The CLI
-  reads the project's core version from its `package.json` and adds `"nexusdi-core"` to the
-  file before writing it.
+  adds `"nexusdi-core"` from the report's `environment.core` (section 6.2), and leaves it
+  out when the report has no environment or its core is unresolved: a re-rendered report
+  names the core that recorded it, never the machine's own.
 
 ### 7.5 Report JSON
 
@@ -1144,7 +1154,16 @@ Each iteration creates a new profiler and calls
 then `ship[Symbol.asyncDispose]()`. Disposal closes database pools and servers the
 providers opened before the next iteration. Its time goes into `report.dispose` and one
 table line. A disposal error prints a warning and leaves the exit code alone, since the
-command measures startup. After writing, the CLI calls `process.exit(code)`, as graph does,
+command measures startup. A disposal that does not settle within `--timeout` warns by name
+(`nexusdi: warning: disposal after iteration 1 did not settle within 60000 ms; the startup
+figures stand.`), keeps the exit code, and runs no further iteration, which would build
+next to the stuck one.
+
+The CLI adds `environment` (section 6.2) to each report it records, and `profileTable`
+prints it on the header line: `create 38.4 ms, cold, Node 24.20.0, @nexusdi/core 0.4.0`.
+A `.json` entry re-renders with the environment its reports carry, or none, and never the
+machine's own. Before a run, two outputs on one path, or an output directory that is
+missing or not writable, exit 2. After writing, the CLI calls `process.exit(code)`, as graph does,
 so an open handle in user code cannot keep it alive.
 
 `--repeat`: iteration 1 is the cold run. V8 compiles core's functions on first call, about

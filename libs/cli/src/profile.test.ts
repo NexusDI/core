@@ -1,4 +1,4 @@
-import { readFileSync } from 'node:fs';
+import { readFileSync, writeFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 
@@ -16,7 +16,9 @@ describe('nexusdi profile', () => {
     });
     expect(run.stderr).toBe('');
     expect(run.status).toBe(0);
-    expect(run.stdout).toMatch(/^Node \d+\.\d+\.\d+, @nexusdi\/core /);
+    expect(run.stdout).toMatch(
+      /^create \d+\.\d ms, cold, Node \d+\.\d+\.\d+, @nexusdi\/core \S+\n/,
+    );
     expect(run.stdout).toContain('slowest providers');
     expect(run.stdout).toMatch(/NavCharts\s+Tactical\s+1\s+singleton.*async/);
   });
@@ -113,5 +115,140 @@ describe('nexusdi profile', () => {
     );
     expect(run.status).toBe(2);
     expect(run.stderr).toMatch(/^nexusdi: --cpu is not available/);
+  });
+  it('prints what a hung create still awaits after --timeout and exits 1', () => {
+    const dir = tempDir();
+    const run = runCli(
+      [
+        'profile',
+        'meridian.module.js#Hung',
+        '--timeout',
+        '50',
+        '--json',
+        join(dir, 'out.json'),
+      ],
+      { cwd: DIR },
+    );
+    expect(run.status).toBe(1);
+    expect(run.stderr).toContain('create did not settle within 50 ms');
+    expect(run.stderr).toContain('Still awaiting: NavCharts (Hung) factory');
+    const [report] = JSON.parse(
+      readFileSync(join(dir, 'out.json'), 'utf8'),
+    ) as { runs: { ok: boolean | null }[] }[];
+    expect(report?.runs).toMatchObject([{ ok: null }]);
+  });
+
+  it('names a disposal that hangs past --timeout, warns and keeps exit 0', () => {
+    const run = runCli(
+      ['profile', 'stuck.module.js#Stuck', '--timeout', '200'],
+      { cwd: DIR },
+    );
+    expect(run.status).toBe(0);
+    expect(run.stderr).toMatch(
+      /^nexusdi: warning: disposal after iteration 1 did not settle within 200 ms/,
+    );
+    expect(run.stderr).not.toContain('create did not settle');
+    expect(run.stdout).toMatch(/^create \d+\.\d ms, cold/);
+  });
+
+  it('records the environment in the JSON, and re-renders it from the report alone', () => {
+    const dir = tempDir();
+    const recorded = runCli(
+      [
+        'profile',
+        'meridian.module.js',
+        '--quiet',
+        '--json',
+        join(dir, 'r.json'),
+      ],
+      { cwd: DIR },
+    );
+    expect(recorded.status).toBe(0);
+    const [report] = JSON.parse(readFileSync(join(dir, 'r.json'), 'utf8')) as {
+      environment?: { node: string; core: string };
+    }[];
+    expect(report?.environment?.node).toBe(process.versions.node);
+    // A report recorded elsewhere keeps its own environment on re-render.
+    writeFileSync(
+      join(dir, 'elsewhere.json'),
+      JSON.stringify({
+        ...report,
+        environment: { node: '20.0.0', core: '9.9.9' },
+      }),
+    );
+    const rendered = runCli(
+      [
+        'profile',
+        join(dir, 'elsewhere.json'),
+        '--perfetto',
+        join(dir, 'p.json'),
+      ],
+      { cwd: DIR },
+    );
+    expect(rendered.status).toBe(0);
+    expect(rendered.stdout.split('\n')[0]).toMatch(
+      /, cold, Node 20\.0\.0, @nexusdi\/core 9\.9\.9$/,
+    );
+    expect(
+      JSON.parse(readFileSync(join(dir, 'p.json'), 'utf8')).metadata,
+    ).toEqual({ 'nexusdi-profile': 1, 'nexusdi-core': '9.9.9' });
+  });
+
+  it('leaves the environment out of a saved report that has none', () => {
+    const dir = tempDir();
+    const run = runCli(
+      ['profile', 'report.json', '--perfetto', join(dir, 'p.json')],
+      { cwd: DIR },
+    );
+    expect(run.status).toBe(0);
+    expect(run.stdout.split('\n')[0]).toMatch(/^create \d+\.\d ms, cold$/);
+    expect(
+      JSON.parse(readFileSync(join(dir, 'p.json'), 'utf8')).metadata,
+    ).toEqual({ 'nexusdi-profile': 1 });
+  });
+
+  it('refuses two outputs on one path, and an output directory that does not exist, before the run', () => {
+    const dir = tempDir();
+    const same = runCli(
+      [
+        'profile',
+        'meridian.module.js#Hung',
+        '--chrome',
+        join(dir, 'x.json'),
+        '--json',
+        join(dir, 'x.json'),
+      ],
+      { cwd: DIR, timeout: 5_000 },
+    );
+    expect(same.status).toBe(2);
+    expect(same.stderr).toMatch(/^nexusdi: --chrome and --json both write /);
+    const missing = runCli(
+      [
+        'profile',
+        'meridian.module.js#Hung',
+        '--json',
+        join(dir, 'no', 'r.json'),
+      ],
+      { cwd: DIR, timeout: 5_000 },
+    );
+    expect(missing.status).toBe(2);
+    expect(missing.stderr).toMatch(
+      /^nexusdi: --json .*: the directory .* does not exist/,
+    );
+  });
+
+  it('prints a cause once when the errors() text already holds it', () => {
+    const run = runCli(
+      [
+        'profile',
+        'broken.module.js#Broken',
+        '--plugins',
+        'errors-plugins.js#plugins',
+        '--quiet',
+      ],
+      { cwd: DIR },
+    );
+    expect(run.status).toBe(1);
+    expect(run.stderr.match(/hull breach/g)).toHaveLength(1);
   });
 });

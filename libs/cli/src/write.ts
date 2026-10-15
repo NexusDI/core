@@ -1,4 +1,5 @@
-import { statSync } from 'node:fs';
+import { accessSync, constants, statSync } from 'node:fs';
+import { dirname } from 'node:path';
 import { writeFile } from 'node:fs/promises';
 
 import { CliError } from './cli-error.js';
@@ -35,6 +36,46 @@ export function writeTo(
 function identity(path: string): string | null {
   const stat = statSync(path, { throwIfNoEntry: false, bigint: true });
   return stat === undefined ? null : `${stat.dev}:${stat.ino}`;
+}
+
+/**
+ * Throws CliError 2 before a run when two outputs name one file, or when an
+ * output's directory does not exist or is not writable, so a bad path fails
+ * at once and not after the startup it would have recorded. Each entry is a
+ * flag and its absolute path, or null for an output not asked for.
+ */
+export function checkOutputs(
+  outputs: readonly (readonly [flag: string, out: string | null])[],
+): void {
+  const seen = new Map<string, string>();
+  for (const [flag, out] of outputs) {
+    if (out === null) continue;
+    const other = seen.get(out);
+    if (other !== undefined)
+      throw new CliError(
+        2,
+        `${other} and ${flag} both write ${out}.`,
+        `Pass another ${flag} file.`,
+      );
+    seen.set(out, flag);
+    const dir = dirname(out);
+    const stat = statSync(dir, { throwIfNoEntry: false });
+    if (stat === undefined || !stat.isDirectory())
+      throw new CliError(
+        2,
+        `${flag} ${out}: the directory ${dir} does not exist.`,
+        `Create it, or pass a ${flag} file in a directory that exists.`,
+      );
+    try {
+      accessSync(dir, constants.W_OK);
+    } catch {
+      throw new CliError(
+        2,
+        `${flag} ${out}: the directory ${dir} is not writable.`,
+        `Pass a ${flag} file in a directory you can write to.`,
+      );
+    }
+  }
 }
 
 /**

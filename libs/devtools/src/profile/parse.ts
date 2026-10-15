@@ -27,6 +27,11 @@ const orNull =
   (v, p) => {
     if (v !== null) check(v, p);
   };
+const optional =
+  (check: Check): Check =>
+  (v, p) => {
+    if (v !== undefined) check(v, p);
+  };
 const literal =
   (expected: unknown, what: string): Check =>
   (v, p) => {
@@ -138,6 +143,7 @@ const REPORT = shape({
   ),
   dropped: num,
   dispose: orNull(shape({ ...SPAN, errors: num })),
+  environment: optional(shape({ node: str, core: str })),
 });
 
 /** Throws NEXUS_DEVTOOLS_PROFILE_INVALID with the path of the first bad field. */

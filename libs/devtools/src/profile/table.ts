@@ -68,8 +68,12 @@ export function profileTable(
 
   const status =
     run.ok === false ? ', failed' : run.ok === null ? ', still running' : '';
+  const where =
+    cold.environment === undefined
+      ? ''
+      : `, Node ${cold.environment.node}, @nexusdi/core ${cold.environment.core}`;
   lines.push(
-    `${runLabel(run)} ${ms(spanOf(run))} ms${status}, cold` +
+    `${runLabel(run)} ${ms(spanOf(run))} ms${status}, cold${where}` +
       (warmRuns.length > 0
         ? `; ${warmRuns.length} warm, median ${ms(median(warmRuns.map(spanOf)))} ms`
         : ''),

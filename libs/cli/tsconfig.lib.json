@@ -22,6 +22,9 @@
       "path": "../decorators/tsconfig.lib.json"
     },
     {
+      "path": "../errors/tsconfig.lib.json"
+    },
+    {
       "path": "../devtools/tsconfig.lib.json"
     },
     {

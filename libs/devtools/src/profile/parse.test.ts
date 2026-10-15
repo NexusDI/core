@@ -55,4 +55,20 @@ describe('parseProfileReport', () => {
   it('rejects a time that is not a finite number', () => {
     expect(pathOf({ ...good, reportedMs: Number.NaN })).toBe('reportedMs');
   });
+  it('reads an environment when the report carries one, and checks its fields', () => {
+    const recorded = {
+      ...JSON.parse(JSON.stringify(good)),
+      environment: { node: '24.20.0', core: '0.4.0' },
+    };
+    expect(parseProfileReport(recorded).environment).toEqual({
+      node: '24.20.0',
+      core: '0.4.0',
+    });
+    expect(
+      pathOf({ ...recorded, environment: { node: 24, core: '0.4.0' } }),
+    ).toBe('environment.node');
+    expect(
+      parseProfileReport(JSON.parse(JSON.stringify(good))).environment,
+    ).toBe(undefined);
+  });
 });
