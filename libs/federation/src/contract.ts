@@ -9,6 +9,12 @@ export interface ContractMark {
   readonly version: string;
 }
 
+/**
+ * The token maker `defineContract()` returns. `token(name)` and `multi(name)`
+ * return a `Token` or a `MultiToken` keyed `<key>/<name>`. A second call with
+ * the same name returns the same token, and `multi()` throws a `TypeError`
+ * for a name `token()` made, and the reverse.
+ */
 export interface Contract {
   token<T>(name: string): Token<T>;
   multi<T>(name: string): MultiToken<T>;
