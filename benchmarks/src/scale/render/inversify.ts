@@ -50,7 +50,6 @@ const header = (graph: ScaleGraph) =>
 const idOf = (p: ScaleProvider) =>
   p.kind === 'class' ? className(p) : token(p);
 
-/** The type dependants take: the class, a factory's product, or the value's interface. */
 /** Names a file refers to: providers whose id or type it uses. */
 interface Refs {
   ids: Set<number>;
@@ -120,7 +119,6 @@ function importsOf(
   return `${local}${lineOf(tokens, './tokens.ts')}`;
 }
 
-/** The file that declares a provider's class. */
 /** A class provider's class, or a factory's product class. */
 function classOf(graph: ScaleGraph, p: ScaleProvider): string {
   const bound = p.kind === 'class';

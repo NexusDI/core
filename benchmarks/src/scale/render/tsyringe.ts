@@ -51,8 +51,6 @@ const header = (graph: ScaleGraph) =>
 /** The token a factory or value registers under. */
 const tokenOf = (p: ScaleProvider) => `'${p.name}'`;
 
-/** The type dependants take: the class, a factory's product, or the value's interface. */
-/** The file that declares a provider's class or value interface. */
 /**
  * The imports of the dependencies of `own` that `here` does not declare:
  * a class by name, a value's interface as a type, from its file.
