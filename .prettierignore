@@ -37,3 +37,10 @@ internal/meridian-ui/src/tokens.generated.css
 # The docs-e2e site assembled for each run, and the docs build it copies.
 apps/docs-e2e/.site
 apps/docs-e2e/.next-out
+# The bridge API's graph, which `nx run @nexusdi/bridge-api:graph` writes
+# with the nexusdi CLI and diffs against the committed copy. A format pass
+# would make the formatter a second producer of the file.
+examples/bridge-api/graph.json
+# examples/next-bridge's Next build output and the file next build rewrites.
+examples/next-bridge/.next
+examples/next-bridge/next-env.d.ts

@@ -79,8 +79,9 @@ module.exports = {
         'benchmarks',
         // The README graph generator. Not under release.projects either.
         'readme-assets',
-        // The private Next example the @nexusdi/next e2e suites run against.
-        // Not under release.projects.
+        // The private demo apps of integrations spec 14. Not under
+        // release.projects.
+        'bridge-api',
         'next-bridge',
       ],
     ],

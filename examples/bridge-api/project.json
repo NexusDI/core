@@ -1,0 +1,31 @@
+{
+  "$schema": "../../node_modules/nx/schemas/project-schema.json",
+  "name": "@nexusdi/bridge-api",
+  "targets": {
+    "test": { "dependsOn": ["^build"] },
+    "e2e": {
+      "dependsOn": ["^build"],
+      "executor": "nx:run-commands",
+      "options": {
+        "cwd": "examples/bridge-api",
+        "command": "vitest run --config vitest.e2e.config.ts"
+      }
+    },
+    "graph": {
+      "dependsOn": ["^build"],
+      "executor": "nx:run-commands",
+      "options": {
+        "cwd": "examples/bridge-api",
+        "command": "nexusdi graph src/ship/meridian.ts#Meridian --plugins src/ship/plugins.ts#graphPlugins -f json -o graph.json && git diff --exit-code graph.json"
+      }
+    },
+    "bench": {
+      "dependsOn": ["^build"],
+      "executor": "nx:run-commands",
+      "options": {
+        "cwd": "examples/bridge-api",
+        "command": "vitest bench --run && node bench/cold.mjs"
+      }
+    }
+  }
+}
