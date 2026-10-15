@@ -3,18 +3,8 @@ import type { NextFunction, Request, RequestHandler, Response } from 'express';
 import type { ModuleRef, Scope } from '@nexusdi/core';
 
 import {
-  containerOf,
-  defaultLog,
-  definitionCheck,
-  disposer,
-  enterFor,
-  guardLog,
-  loader,
-  mapError,
-  requestScope,
+  adapterCore,
   requireHandle,
-  resolveFor,
-  validator,
   type ContainerSource,
   type DepsMap,
   type NexusLog,
@@ -82,13 +72,10 @@ export function nexus(
   ...args: OptionsArg<NexusExpressOptions>
 ): NexusExpress {
   const options = (args[0] ?? {}) as NexusExpressOptions;
-  const log = guardLog(options.log ?? defaultLog);
-  const container = containerOf(ship);
-  const load = loader(container);
+  const core = adapterCore(ship, options, ADAPTER);
 
   const middleware: RequestHandler = async (req, res, next) => {
-    const handle = requestScope(container, () => options.request?.(req));
-    const dispose = disposer(handle, log, ADAPTER);
+    const { handle, dispose } = core.open(() => options.request?.(req));
     if (res.closed) {
       await dispose(); // the client left before this ran: nothing to serve
       return;
@@ -99,64 +86,43 @@ export function nexus(
       next(); // inject creates the scope on first use
       return;
     }
-    let scope: Scope;
-    try {
-      scope = await handle.scope();
-    } catch (error) {
-      next(mapError(error, log, ADAPTER, 'scope'));
-      return;
-    }
-    options.scopes.run(scope, () => next());
+    const started = await core.ambient(handle, dispose);
+    if ('failure' in started) next(started.failure);
+    else options.scopes.run(started.scope, () => next());
   };
 
   const handlerOf =
     <D extends DepsMap>(
       deps: D,
       handler: ExpressHandler<D>,
-      check: () => Promise<void>,
+      checked: () => Promise<void>,
       section?: ModuleRef,
     ): RequestHandler =>
     async (req, res, next) => {
-      const result = await resolveFor({
+      const result = await core.resolve({
         handle: () => handleOf(req),
         deps,
-        checked: check,
-        load,
+        checked,
         section,
-        log,
-        adapter: ADAPTER,
       });
-      if (!('deps' in result)) {
-        stop(result, res, next);
-        return;
-      }
-      await handler(result.deps, req, res, next); // Express 5 forwards a rejection to next(err)
+      if ('deps' in result)
+        await handler(result.deps, req, res, next); // Express 5 forwards a rejection to next(err)
+      else stop(result, res, next);
     };
 
   return {
     middleware,
-    inject: (deps, handler) =>
-      handlerOf(
-        deps,
-        handler,
-        definitionCheck(ship, container, deps, log, ADAPTER),
-      ),
+    inject: (deps, handler) => handlerOf(deps, handler, core.definition(deps)),
     scope: async (req) => handleOf(req).scope(),
     load(module) {
       const section: RequestHandler = async (req, res, next) => {
-        const result = await enterFor({
-          load,
-          section: module,
-          handle: req.nexus,
-          log,
-          adapter: ADAPTER,
-        });
+        const result = await core.enter(module, req.nexus);
         if (result === undefined) next();
         else stop(result, res, next);
       };
       return Object.assign(section, {
         inject<const D extends DepsMap>(deps: D, handler: ExpressHandler<D>) {
-          return handlerOf(deps, handler, validator(container, deps), module);
+          return handlerOf(deps, handler, core.sectionCheck(deps), module);
         },
       });
     },

@@ -13,6 +13,7 @@ import {
 } from '@nexusdi/core';
 
 import {
+  adapterCore,
   ContainerBuildError,
   containerOf,
   defaultLog,
@@ -656,5 +657,52 @@ describe('requireHandle, mapError, enterFor and resolveFor', () => {
         adapter: '@nexusdi/test',
       }),
     ).toBeUndefined();
+  });
+});
+
+describe('adapterCore', () => {
+  it('opens a lazy handle whose dispose step runs once', async () => {
+    await using ship = await Nexus.create(providers);
+    const core = adapterCore(ship, {}, '@nexusdi/test');
+    const { handle, dispose } = core.open(() => survey);
+    expect(handle.started).toBe(false);
+    const scope = await handle.scope();
+    await Promise.all([dispose(), dispose()]);
+    expect(() => scope.get(MISSION)).toThrow(DisposedError);
+  });
+
+  it('starts an ambient scope, or disposes and maps the failure', async () => {
+    const ship = await Nexus.create(providers);
+    const log = vi.fn();
+    const core = adapterCore(ship, { log }, '@nexusdi/test');
+    const { handle, dispose } = core.open(() => survey);
+    const started = await core.ambient(handle, dispose);
+    expect('scope' in started && started.scope.get(MISSION)).toEqual(
+      survey.mission,
+    );
+    await dispose();
+    await ship[Symbol.asyncDispose]();
+    const late = core.open(() => survey);
+    const failed = await core.ambient(late.handle, late.dispose);
+    expect((failed as { failure: NexusHttpError }).failure.status).toBe(503);
+    expect(log).toHaveBeenCalledOnce();
+  });
+
+  it('resolves deps through the bound request path', async () => {
+    await using ship = await Nexus.create(providers);
+    const core = adapterCore(ship, {}, '@nexusdi/test');
+    const { handle, dispose } = core.open(() => survey);
+    const deps = { mission: MISSION };
+    expect(
+      await core.resolve({
+        handle: () => handle,
+        deps,
+        checked: core.definition(deps),
+      }),
+    ).toEqual({ deps: { mission: survey.mission } });
+    expect(await core.enter({ name: 'Navigation' } as never, handle)).toEqual({
+      failure: expect.anything(),
+    });
+    await dispose();
   });
 });

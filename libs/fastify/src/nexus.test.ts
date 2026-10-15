@@ -15,7 +15,7 @@ import {
 import { trace } from '@nexusdi/devtools';
 import { nodeScopes } from '@nexusdi/node';
 
-import { containerOf, defaultLog } from './internal/request-scope.js';
+import { adapterCore, defaultLog } from './internal/request-scope.js';
 import { nexus } from './index.js';
 import { requestHook } from './nexus.js';
 
@@ -117,7 +117,11 @@ describe('the plugin', () => {
   it('calls done() and creates nothing when the client left before the hook ran', async () => {
     const { ship, count } = await shipWithTrace();
     const request = vi.fn(mapping);
-    const hook = requestHook(containerOf(ship), { request }, () => defaultLog);
+    const hook = requestHook(
+      adapterCore(ship, {}, '@nexusdi/fastify'),
+      { request },
+      () => defaultLog,
+    );
     const raw = Object.assign(new EventEmitter(), { closed: true });
     const req = {
       nexus: null,
@@ -142,7 +146,7 @@ describe('the plugin', () => {
     const log = vi.fn();
     const di = nexus(ship, { request: mapping, log });
     const hook = requestHook(
-      containerOf(ship),
+      adapterCore(ship, {}, '@nexusdi/fastify'),
       { request: mapping },
       () => log,
     );
@@ -380,7 +384,7 @@ describe('logging', () => {
     const log = vi.fn();
     const di = nexus(ship, { request: mapping, log });
     const hook = requestHook(
-      containerOf(ship),
+      adapterCore(ship, {}, '@nexusdi/fastify'),
       { request: mapping },
       () => log,
     );
