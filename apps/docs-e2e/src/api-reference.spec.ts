@@ -133,3 +133,80 @@ for (const theme of ['dark', 'light'] as const) {
     await expect(panel).toBeHidden();
   });
 }
+
+test('toggles a type on tap and closes it on a tap outside', async ({
+  browser,
+  browserName,
+}) => {
+  test.skip(browserName !== 'webkit', 'the touch case runs in WebKit, as iOS');
+  const context = await browser.newContext({
+    hasTouch: true,
+    viewport: { width: 390, height: 844 },
+  });
+  const page = await context.newPage();
+  await page.goto(PAGE);
+  const hover = page
+    .locator('.nexus-api-entry__signature .nexus-popup')
+    .first();
+  const panel = hover.locator('.nexus-popup__panel');
+
+  await hover.getByRole('button').tap();
+  await expect(panel).toBeVisible();
+  await hover.getByRole('button').tap();
+  await expect(panel).toBeHidden();
+
+  await hover.getByRole('button').tap();
+  await expect(panel).toBeVisible();
+  await page.locator('h1').tap();
+  await expect(panel).toBeHidden();
+  await context.close();
+});
+
+test('walks a fence from one tab stop with the arrow keys', async ({
+  page,
+}) => {
+  await page.goto(PAGE);
+  // The first fence with two typed tokens, so an arrow has somewhere to go.
+  const marked = await page
+    .locator('.nexus-api-entry pre')
+    .evaluateAll((all) => {
+      const found = all.find(
+        (each) => each.querySelectorAll('.nexus-popup__button').length >= 2,
+      );
+      found?.setAttribute('data-walked', '');
+      return found !== undefined;
+    });
+  expect(marked).toBe(true);
+  const fence = page.locator('pre[data-walked]');
+  const tokens = fence.locator('.nexus-popup__button');
+  await expect(fence.locator('.nexus-popup__button[tabindex="0"]')).toHaveCount(
+    1,
+  );
+
+  const onToken = () =>
+    fence.evaluate((element) =>
+      [...element.querySelectorAll('.nexus-popup__button')].includes(
+        document.activeElement as Element,
+      ),
+    );
+
+  // Nextra makes a scrolling <pre> focusable and puts a copy button by it.
+  // Tab from the <pre> reaches the fence's one token stop, past the copy
+  // button.
+  await fence.focus();
+  for (let presses = 0; presses < 5 && !(await onToken()); presses += 1)
+    await page.keyboard.press('Tab');
+  await expect(tokens.first()).toBeFocused();
+
+  await page.keyboard.press('ArrowRight');
+  await expect(tokens.nth(1)).toBeFocused();
+  const second = page.locator(
+    `[id="${await tokens.nth(1).getAttribute('aria-describedby')}"]`,
+  );
+  await expect(second).toBeVisible();
+  await expect(second).not.toBeEmpty();
+
+  // The next Tab leaves the fence's tokens for whatever follows them.
+  await page.keyboard.press('Tab');
+  expect(await onToken()).toBe(false);
+});

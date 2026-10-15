@@ -4,9 +4,14 @@
  * inside the window on a phone. Loaded by `popup.client.tsx` on the first
  * pointer or focus that reaches a hover.
  *
- * The panel opens on pointer enter and focus and closes on pointer leave,
- * blur and Escape. Leaving the token or the panel waits `LINGER` milliseconds,
- * so a reader can move onto the panel (WCAG 1.4.13).
+ * A mouse opens the panel on pointer enter and closes it on pointer leave,
+ * after `LINGER` milliseconds so a reader can move onto the panel (WCAG
+ * 1.4.13). A keyboard opens it on focus and closes it on blur and Escape.
+ * Touch has neither hover nor, on iOS, focus on a tapped button, and a touch
+ * pointer leaves the moment the finger lifts, so a tap toggles the panel and
+ * pointer enter and leave are ignored for it. A pointer down anywhere outside
+ * the hover and any scroll close an open panel, since a fixed panel would
+ * otherwise hang over the page while it moves.
  */
 
 const GAP = 6;
@@ -31,7 +36,12 @@ function place(panel: HTMLElement, button: HTMLElement): void {
   )}px`;
 }
 
-export function attach(root: HTMLElement, opening: string): void {
+export interface Opening {
+  type: string;
+  pointerType?: string;
+}
+
+export function attach(root: HTMLElement, opening: Opening): void {
   const button = root.querySelector<HTMLElement>(
     ':scope > .nexus-popup__button',
   );
@@ -39,17 +49,35 @@ export function attach(root: HTMLElement, opening: string): void {
   if (!button || !panel) return;
 
   let closing: ReturnType<typeof setTimeout> | undefined;
+  let touch = opening.pointerType === 'touch';
+  // The tap that loaded this module opened the panel. Its click may land
+  // after this runs, and must not close it again; a new pointer down means
+  // that click is gone, landed before this module or never fired.
+  let swallowClick = false;
   root.dataset.positioned = '';
 
-  const open = () => {
-    clearTimeout(closing);
-    panel.hidden = false;
-    place(panel, button);
+  const isOpen = () => !panel.hidden;
+
+  const onOutside = (event: Event) => {
+    if (!root.contains(event.target as Node)) close();
   };
-  const close = () => {
+  const onScroll = () => close();
+
+  const close = (): void => {
     clearTimeout(closing);
     panel.hidden = true;
+    document.removeEventListener('pointerdown', onOutside, true);
+    window.removeEventListener('scroll', onScroll, true);
   };
+  const open = () => {
+    clearTimeout(closing);
+    if (isOpen()) return;
+    panel.hidden = false;
+    place(panel, button);
+    document.addEventListener('pointerdown', onOutside, true);
+    window.addEventListener('scroll', onScroll, true);
+  };
+
   const leave = () => {
     clearTimeout(closing);
     closing = setTimeout(() => {
@@ -57,16 +85,40 @@ export function attach(root: HTMLElement, opening: string): void {
     }, LINGER);
   };
 
-  root.addEventListener('pointerenter', open);
-  root.addEventListener('pointerleave', leave);
-  button.addEventListener('focus', open);
-  button.addEventListener('blur', close);
+  root.addEventListener('pointerdown', (event) => {
+    touch = event.pointerType === 'touch';
+    swallowClick = false;
+  });
+  root.addEventListener('pointerenter', (event) => {
+    if (event.pointerType !== 'touch') open();
+  });
+  root.addEventListener('pointerleave', (event) => {
+    if (event.pointerType !== 'touch') leave();
+  });
+  button.addEventListener('click', () => {
+    if (!touch) return;
+    if (swallowClick) {
+      swallowClick = false;
+      return;
+    }
+    if (isOpen()) close();
+    else open();
+  });
+  button.addEventListener('focus', () => {
+    if (!touch) open();
+  });
+  button.addEventListener('blur', () => {
+    if (!touch) close();
+  });
   button.addEventListener('keydown', (event) => {
     if (event.key === 'Escape') close();
   });
 
-  if (
-    opening === 'focus'
+  if (touch) {
+    swallowClick = true;
+    open();
+  } else if (
+    opening.type === 'focus'
       ? root.contains(document.activeElement)
       : root.matches(':hover')
   )

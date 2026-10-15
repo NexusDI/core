@@ -38,12 +38,14 @@ export const BEHAVIOUR_BUDGET = { raw: 1_400_000, gzip: 60_000 };
  * than `GUIDE_SLACK` gzipped bytes under it fails too, so a saving lowers the
  * ceiling in the same pull request.
  *
- * Measured at 979,618 bytes raw and 297,748 gzipped, once
+ * Measured at 980,277 bytes raw and 298,032 gzipped, once
  * `components/twoslash/nextra-components.ts` took Nextra's twoslash popup
- * (68,738 bytes raw) off every page.
+ * (68,738 bytes raw) off every page. The roving tab stop of a fence's tokens
+ * adds 659 bytes raw to the popup's client root, since the keys have to work
+ * before the positioning loads.
  */
 export const GUIDE_PAGE = 'scopes/index.html';
-export const GUIDE_BUDGET = { raw: 980_000, gzip: 298_000 };
+export const GUIDE_BUDGET = { raw: 981_000, gzip: 299_000 };
 export const GUIDE_SLACK = 5_000;
 
 export const ISLAND_MARK = 'nexus-console-island';

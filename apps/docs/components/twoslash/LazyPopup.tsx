@@ -25,9 +25,11 @@ function Button({ className, ...props }: ComponentProps<'button'>) {
   );
 }
 
-function Panel({ className, ...props }: ComponentProps<'div'>) {
+// A span, since the panel sits inside the fence's `<code>`, which holds
+// phrasing content only. `.twoslash-popup-container` gives it its block box.
+function Panel({ className, ...props }: ComponentProps<'span'>) {
   return (
-    <div
+    <span
       hidden
       className={['nexus-popup__panel', 'x:max-w-2xl!', className]
         .filter(Boolean)
