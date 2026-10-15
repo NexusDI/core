@@ -1,0 +1,28 @@
+/*
+ * A token takes the theme's colour the way every other fence on the site does,
+ * in the blocks outside Nextra's fences: the catalogue's case pane and its
+ * card (`BehaviourPane.tsx`), and the page fences' card (`PagePopover.tsx`),
+ * which renders in the body. Both components import this sheet.
+ *
+ * `code-classes.css` binds `--shiki-light` and `--shiki-dark` on each token's
+ * class, and these rules pick which of the pair the document is showing, as
+ * `nextra-theme-docs` does for `.nextra-code span`. A bold or italic token
+ * keeps an inline style carrying the `-font-weight` and `-font-style`
+ * variables, since the classes hold colour pairs only; a token without them
+ * inherits.
+ */
+.nexus-behaviours__body :where(span),
+.nexus-behaviours__type :where(span),
+.nexus-type-card :where(span) {
+  color: var(--shiki-light);
+  font-weight: var(--shiki-light-font-weight, inherit);
+  font-style: var(--shiki-light-font-style, inherit);
+}
+
+html.dark .nexus-behaviours__body :where(span),
+html.dark .nexus-behaviours__type :where(span),
+html.dark .nexus-type-card :where(span) {
+  color: var(--shiki-dark);
+  font-weight: var(--shiki-dark-font-weight, inherit);
+  font-style: var(--shiki-dark-font-style, inherit);
+}

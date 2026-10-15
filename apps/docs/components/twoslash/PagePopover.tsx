@@ -1,9 +1,11 @@
 'use client';
 
 import { useEffect, useRef, useState } from 'react';
+import { createPortal } from 'react-dom';
 
 import { LINGER, place } from '../api/type-card';
 import './popup.css';
+import '../api/token-colours.css';
 
 /**
  * The one type card a page shows for the typed tokens of its fences.
@@ -277,17 +279,22 @@ export function PagePopover() {
 
   return (
     <>
-      {open && (
-        <div
-          className="nexus-type-card twoslash-popup-container x:max-w-2xl!"
-          id={CARD_ID}
-          ref={card}
-          role="tooltip"
-          // The build sanitized this HTML from the compiler's own output
-          // (`tools/popup-fold.mjs`); nothing a reader supplies reaches it.
-          dangerouslySetInnerHTML={{ __html: open.html }}
-        />
-      )}
+      {/* Portalled to the body: Nextra's article has a backdrop-filter,
+          which would make it the box a fixed card is placed in, and
+          `place()` measures from the window. */}
+      {open &&
+        createPortal(
+          <div
+            className="nexus-type-card twoslash-popup-container x:max-w-2xl!"
+            id={CARD_ID}
+            ref={card}
+            role="tooltip"
+            // The build sanitized this HTML from the compiler's own output
+            // (`tools/popup-fold.mjs`); nothing a reader supplies reaches it.
+            dangerouslySetInnerHTML={{ __html: open.html }}
+          />,
+          document.body,
+        )}
       <div className="nexus-type-card__spoken" role="status" aria-live="polite">
         {spoken}
       </div>
