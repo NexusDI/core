@@ -105,7 +105,7 @@ setTimeout(() => URL.revokeObjectURL(link.href));
 
 `--cpu` samples the CPU of the first iteration with the V8 profiler and merges the samples into the `--chrome` file, so DevTools draws the JavaScript flame chart under the Main track, below the provider spans. `--cpu-interval <us>` sets the sampling interval in microseconds (default `100`).
 
-The V8 profiler keeps its own clock, so the CLI aligns it to `performance.now()` with two marker functions it runs before and after the startup. Read each sample's position as accurate to the larger of the alignment error and one sampling interval. The CLI warns, naming the error, when the markers disagree or the error passes four intervals or one millisecond, whichever is longer. When neither marker has a sample, it writes the Chrome file without the CPU profile. Each case keeps exit code 0.
+The V8 profiler keeps its own clock, so the CLI aligns it to `performance.now()` with two marker functions it runs before and after the startup. Read each sample's position as accurate to the larger of the alignment error and one sampling interval. The CLI warns, naming the error, only when the error or the markers' disagreement passes four intervals or one millisecond, whichever is longer. When neither marker has a sample, it writes the Chrome file without the CPU profile. Each case keeps exit code 0.
 
 Node's `--cpu-prof` samples the whole process into a `.cpuprofile` file.
 
