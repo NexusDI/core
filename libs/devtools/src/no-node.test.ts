@@ -22,4 +22,16 @@ describe('devtools runs in a browser', () => {
     );
     expect(found).toEqual([]);
   });
+
+  it('reads no process global outside tests (spec 6.4)', () => {
+    const found = sources(SRC).filter((file) =>
+      /\bprocess\s*[.[?]|globalThis\s*\.\s*process\b/.test(
+        // Comments may name process; code may not read it.
+        readFileSync(file, 'utf8')
+          .replace(/\/\*[\s\S]*?\*\//g, '')
+          .replace(/\/\/.*$/gm, ''),
+      ),
+    );
+    expect(found).toEqual([]);
+  });
 });
