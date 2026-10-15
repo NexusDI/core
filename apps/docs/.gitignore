@@ -7,3 +7,5 @@ public/academy-runtime
 components/api/behaviour
 components/console/fixtures
 generated
+public/code-classes.css
+public/popups

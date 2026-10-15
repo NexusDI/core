@@ -1,5 +1,6 @@
 import { join } from 'node:path';
 
+import type { NextConfig } from 'next';
 import nextra from 'nextra';
 
 import { readBasePath } from './app/channel.ts';
@@ -17,7 +18,7 @@ const withNextra = nextra({
 
 const workspaceRoot = join(import.meta.dirname, '../..');
 
-export default withNextra({
+const config = withNextra({
   // Next 16 builds with Turbopack and never calls `webpack()`, so the MDX
   // loaders are registered here. `tools/loader-chain.mjs` holds their order.
   turbopack: {
@@ -48,3 +49,37 @@ export default withNextra({
   // client needs the path `basePath` set.
   env: { NEXUS_BASE_PATH: readBasePath() },
 });
+
+/**
+ * Swaps `tools/mdx-nextra-loader.mjs` in for Nextra's own loader in every MDX
+ * rule Nextra adds, so the Shiki transformers it appends run on every page
+ * fence. Ported from `Evanion/libraries` `apps/docs/next.config.ts` at
+ * 670ac27f.
+ */
+function withShikiTransformers(next: NextConfig): NextConfig {
+  const loader = join(import.meta.dirname, 'tools/mdx-nextra-loader.mjs');
+  const rules = Object.fromEntries(
+    Object.entries(next.turbopack?.rules ?? {}).map(([glob, rule]) => {
+      if (!glob.includes('{md,mdx}') || !rule || !('loaders' in rule))
+        return [glob, rule];
+      return [
+        glob,
+        {
+          ...rule,
+          loaders: (rule.loaders ?? []).map((each) =>
+            typeof each === 'object' &&
+            each.loader.endsWith('/nextra/loader.cjs')
+              ? {
+                  loader,
+                  options: { ...each.options, nextraLoader: each.loader },
+                }
+              : each,
+          ),
+        },
+      ];
+    }),
+  );
+  return { ...next, turbopack: { ...next.turbopack, rules } };
+}
+
+export default withShikiTransformers(config);

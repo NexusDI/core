@@ -27,6 +27,8 @@ apps/docs/generated
 # here, and `apps/docs/.gitignore` keeps both out of git.
 apps/docs/components/api/behaviour
 apps/docs/public/behaviour
+apps/docs/public/code-classes.css
+apps/docs/public/popups
 # Local agent ledgers. Each checkout excludes them from git in
 # `.git/info/exclude`, so no commit carries them.
 .superpowers

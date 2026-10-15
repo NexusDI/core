@@ -51,7 +51,7 @@ const index = join(docsRoot, 'components', 'api', 'behaviour');
 const sidecars = join(docsRoot, 'public', 'behaviour');
 
 /** The rules for the classes `codeClasses` puts on a case's tokens. */
-const classSheet = join(index, 'code-classes.css');
+const classSheet = join(docsRoot, 'public', 'code-classes.css');
 
 /**
  * What the compiler is told about a test file.

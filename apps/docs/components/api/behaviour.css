@@ -25,8 +25,8 @@
  * It scrolls and never wraps, for the reason every other fence on the site
  * scrolls: a wrapped line of code loses the indentation that says what is
  * inside what. The colours come from the token classes in
- * `components/api/behaviour/code-classes.css`, which `docs:behaviour-data`
- * writes.
+ * `public/code-classes.css`, which `docs:behaviour-data` writes and the
+ * layout links on every page.
  */
 .nexus-behaviours__body {
   font-family: var(--meridian-font-mono);

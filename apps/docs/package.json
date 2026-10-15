@@ -51,7 +51,8 @@
         ],
         "outputs": [
           "{projectRoot}/components/api/behaviour",
-          "{projectRoot}/public/behaviour"
+          "{projectRoot}/public/behaviour",
+          "{projectRoot}/public/code-classes.css"
         ]
       },
       "build": {
@@ -143,6 +144,7 @@
     "@testing-library/react": "16.3.0",
     "@testing-library/user-event": "14.6.1",
     "eslint-config-next": "16.3.4",
+    "hast-util-sanitize": "5.0.2",
     "pagefind": "^1.5.2",
     "shiki": "3.23.0",
     "tailwindcss": "^4.3.3",

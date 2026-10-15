@@ -1,20 +1,17 @@
 import type { ComponentProps } from 'react';
 
-import { PopupRoot } from './popup.client';
-import './popup.css';
-
 /**
- * The twoslash hover Nextra's renderer writes as `<Popup>`, `<Popup.Button>`
- * and `<Popup.Panel>` (`nextra/dist/server/twoslash.js`), with the panel
- * rendered on the server.
+ * What Nextra's `Popup` resolves to on this site.
  *
- * The button is a real `<button>` and the panel carries the type in the HTML,
- * `hidden`, so a reader without JavaScript sees it on hover or focus through
- * `popup.css`. `PopupRoot` loads the positioning on the first pointer or
- * focus that reaches it. Search is unaffected: every `<pre>` on the site
- * carries `data-pagefind-ignore`.
+ * `tools/popup-fold.mjs` turns every Twoslash hover into a plain button
+ * before `rehypeTwoslashPopup` runs, and `PagePopover.tsx` shows its type, so
+ * no page renders this. `rehypeTwoslashPopup` still adds
+ * `import { Popup } from 'nextra/components'` to every page with a `twoslash`
+ * fence, and Nextra's `Popup` brings headlessui and floating-ui to every page
+ * through the one route Nextra 4 serves them from. The shim in
+ * `nextra-components.ts` points that import here: plain elements, with no
+ * client code.
  */
-
 function Button({ className, ...props }: ComponentProps<'button'>) {
   return (
     <button
@@ -25,21 +22,11 @@ function Button({ className, ...props }: ComponentProps<'button'>) {
   );
 }
 
-// A span, since the panel sits inside the fence's `<code>`, which holds
-// phrasing content only. `.twoslash-popup-container` gives it its block box.
-function Panel({ className, ...props }: ComponentProps<'span'>) {
-  return (
-    <span
-      hidden
-      className={['nexus-popup__panel', 'x:max-w-2xl!', className]
-        .filter(Boolean)
-        .join(' ')}
-      {...props}
-    />
-  );
+function Panel(props: ComponentProps<'span'>) {
+  return <span hidden {...props} />;
 }
 
 export const Popup = Object.assign(
-  (props: ComponentProps<'span'>) => <PopupRoot {...props} />,
+  (props: ComponentProps<'span'>) => <span {...props} />,
   { Button, Panel },
 );
