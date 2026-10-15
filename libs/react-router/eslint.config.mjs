@@ -15,6 +15,14 @@ export default [
     },
   },
   {
+    // The fixture app is a consumer of the package, so it imports it by
+    // name, the way an application's route modules do.
+    files: ['test-fixtures/**/*.{ts,tsx}'],
+    rules: {
+      '@nx/enforce-module-boundaries': 'off',
+    },
+  },
+  {
     files: ['**/*.json'],
     rules: {
       '@nx/dependency-checks': [
@@ -25,7 +33,11 @@ export default [
             '{projectRoot}/vite.config.{js,ts,mjs,mts}',
             '{projectRoot}/test-support/**',
             '{projectRoot}/src/**/*.test-d.ts',
+            '{projectRoot}/test-fixtures/**',
           ],
+          // The fixture app's entry.server.tsx imports isbot, as React
+          // Router's default entry does; nothing in the package does.
+          ignoredDependencies: ['isbot'],
         },
       ],
     },

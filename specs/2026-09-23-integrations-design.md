@@ -1648,11 +1648,10 @@ through the root middleware. `@react-router/express` and `react-router-serve` ab
 
 The adapter throws a `Response` with status 500 or 503 and the status text as body.
 React Router renders the nearest error boundary with that status. The `NexusError` goes to
-`log` only. React Router passes a thrown `Response` to `handleError` only for a resource
-route (`server-runtime/server.js`, `handleResourceRequest`); a document or `.data`
-request turns it into an error response without calling `handleError`. So a failure in a
-page's loader writes the adapter's line alone, and one in a resource route writes a
-second line through the default `handleError`, which the guide notes. A thrown
+`log` only. React Router never passes a thrown `Response` to `handleError`: a document
+or `.data` request turns it into an error response, and a resource route returns it as
+it is (`server-runtime/server.js`, `handleResourceRequest`). So a mapped failure
+writes the adapter's line alone, in a page loader and in a resource route alike. A thrown
 `Response` has no `cause`, so the guide shows `handleError` in `entry.server.tsx` for
 users who want one log pipeline, and the adapter's `log` defaults to
 `console.error(err.code, { ...err }, err.message)` (section 3.6).
