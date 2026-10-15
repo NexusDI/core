@@ -24,9 +24,9 @@
  *
  * `// #region` is TypeScript's and VS Code's own folding marker, so the markers
  * fold in an editor and mean nothing to the compiler. This is what puts a
- * type-level claim on a docs page: `expectTypeOf` and `@ts-expect-error` live in
- * a `*.test-d.ts` file, which has no README fence to sit in, and the claim the
- * page renders is then the one `tsc` checked.
+ * type-level claim on a docs page: `expectTypeOf` and `@ts-expect-error` live
+ * in a `*.test-d.ts` file, which has no README fence to sit in, and the claim
+ * the page renders is then the one `tsc` checked.
  *
  * An `.astro` component is two languages in one file, so it takes both marker
  * spellings. The frontmatter is TypeScript and takes the line comment above.

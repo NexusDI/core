@@ -13,9 +13,9 @@ import { readRegion } from './regions.mjs';
  * A page writes the heading and whatever editorial prose it owes a reader, and
  * one directive under the heading:
  *
- *     ## `hydratePolicy`
+ *     ## `provide`
  *
- *     <!-- reference @nexusdi/core#hydratePolicy example=quick-start -->
+ *     <!-- reference @nexusdi/core#provide example=providers -->
  *
  *     Prose the author writes, which this never touches.
  *
@@ -111,9 +111,10 @@ function kindSlug(kind) {
 /**
  * The block tags as one prose line.
  *
- * Prose, because this is the half of an entry the search index
- * can reach, which a fence would hide: every `<pre>` on the site carries `data-pagefind-ignore`, so a
- * parameter named only inside the signature is a name no search finds.
+ * Prose, because this is the half of an entry the search index can reach,
+ * which a fence would hide: every `<pre>` on the site carries
+ * `data-pagefind-ignore`, so a parameter named only inside the signature is a
+ * name no search finds.
  */
 function tagLine(tags) {
   const rendered = tags.map((tag) => {
@@ -158,11 +159,11 @@ function signatureFence(reference, prefix) {
     ...signature.prelude,
   ].filter(Boolean);
 
-  // The imports and the private types are compilation context and add nothing to the
-  // entry's content, so they are cut from what the reader sees. A merging
-  // declaration is wrapped in a module block for the reason `declarations.mjs`
-  // gives, and the two lines of wrapper are cut as well, so the fence shows the
-  // declaration and nothing around it.
+  // The imports and the private types are compilation context and add nothing
+  // to the entry's content, so they are cut from what the reader sees. A
+  // merging declaration is wrapped in a module block for the reason
+  // `declarations.mjs` gives, and the two lines of wrapper are cut as well, so
+  // the fence shows the declaration and nothing around it.
   const body = signature.merges
     ? [
         '// ---cut-start---',
@@ -201,7 +202,7 @@ const STATED_KINDS = new Set(['function', 'class']);
  * through its example file paths. A missing file fails the build, for the
  * reason an unresolved symbol and a missing example region already do: an
  * entry that rendered its catalogue as empty because a target had not run
- * would be making the claim of § 9 without having looked.
+ * would claim that no test states the export without having looked.
  */
 export function behaviourPath(root, reference) {
   return join(root, BEHAVIOURS, `${libraryOf(reference)}.json`);
@@ -302,21 +303,21 @@ export function statedBy(behaviours, name) {
  * The pane shows the case verbatim and offers no reading of it. A summary of
  * what a test asserts is this loader's opinion about a suite it did not write,
  * and the docs site design (`specs/2026-09-23-docs-site-design.md`) has the
- * entry report what the suite states and infer nothing. The source is the answer a
- * reader can argue with.
+ * entry report what the suite states and infer nothing. The source is the
+ * answer a reader can argue with.
  *
  * The heading says `state` and the line at the foot says what that leaves open.
  * The suite's authors wrote these sentences and this block reports them; a
  * sentence here is a name a test carries, and the assertions under that name
- * are in the pane. `libs/acl/SECURITY.md` is the other kind of claim: a person
- * wrote each of its rows and chose its tier.
+ * are in the pane. `libs/core/SECURITY.md` is the other kind of claim: a
+ * person wrote each of its rows and chose its tier.
  *
  * An export with nothing stated says so, in a block of its own shape. A blank,
  * an empty list or a hidden block would leave the page silent, and an absent
  * catalogue on a page built for a sceptic is the hardest thing on the page for
  * the project to publish honestly. The block says no test states a behaviour
- * under this name, which is narrower than untested, because a name with no `describe` of its own can
- * still be exercised by every case in the file.
+ * under this name, which is narrower than untested, because a name with no
+ * `describe` of its own can still be exercised by every case in the file.
  */
 function statedBlock(reference, behaviours, library, prefix) {
   const { groups, stated } = statedBy(behaviours, reference.name);
@@ -357,7 +358,8 @@ function statedBlock(reference, behaviours, library, prefix) {
       `groups={${JSON.stringify(groups)}} />`,
     '',
     // One line, because MDX reads an indented block inside a tag as markdown
-    // and wraps it in a paragraph of its own, which puts a `<p>` inside a `<p>`.
+    // and wraps it in a paragraph of its own, which puts a `<p>` inside a
+    // `<p>`.
     `<p className="${prefix}-api-entry__states-note">Each line is the name of a ` +
       'test in the package. A test states a behaviour; whether it proves one ' +
       'is a question its own source answers, and the pane carries that ' +

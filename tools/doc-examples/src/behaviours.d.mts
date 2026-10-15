@@ -8,7 +8,9 @@
 
 /** One case, or one block of generated cases, as the chain above it. */
 export interface Chain {
-  /** The `describe` titles above the case, outermost first, ending in its own. */
+  /**
+   * The `describe` titles above the case, outermost first, ending in its own.
+   */
   chain: string[];
   /**
    * Whether this stands for a block of cases whose titles the runner computes

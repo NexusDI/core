@@ -15,12 +15,12 @@ import { examplesFilesIn } from './examples-file.mjs';
  *
  * Declarations are read from the package's `dist/`, through the `types`
  * condition of its own `exports` map. The `@nexusdi/source` condition the
- * workspace sets would point at `src/`, and the docs app already declined it. `apps/docs/tsconfig.json` sets `customConditions:
- * []`, with a comment saying the site documents the published surface, and a
- * reference page documenting something a reader cannot install is worse than
- * one that cannot link to a line of source. `nx.json` orders the libraries'
- * builds ahead of the docs app's, so the declarations exist by the time this
- * runs.
+ * workspace sets would point at `src/`, and the docs app already declined it:
+ * `apps/docs/tsconfig.json` sets `customConditions: []`, with a comment saying
+ * the site documents the published surface, and a reference page documenting
+ * something a reader cannot install is worse than one that cannot link to a
+ * line of source. `nx.json` orders the libraries' builds ahead of the docs
+ * app's, so the declarations exist by the time this runs.
  *
  * `commentText` and `internalMark` were written for
  * `tools/repo-checks/src/doc-export-coverage.test.ts` and moved here so that
@@ -71,15 +71,16 @@ export function resolveAlias(symbol, checker) {
  * nothing marks it.
  *
  * The tag is read off the declaration and its two enclosing nodes, because
- * which node carries it depends on how the name is exported. `export const x` puts it
- * on the `VariableStatement` two levels above the declaration, and
+ * which node carries it depends on how the name is exported. `export const x`
+ * puts it on the `VariableStatement` two levels above the declaration, and
  * `export { x } from './x.js'` puts it on the `ExportDeclaration` two levels
  * above the specifier. An author writes the tag above the line either way.
  *
  * The prose returned is the comment of the block the tag sits in, which may
- * differ from the symbol's documentation. A re-export tagged `@internal` whose target carries a
- * long docblock about what the function does has still said nothing about why
- * it is not public API, and that sentence is the one being asked for.
+ * differ from the symbol's documentation. A re-export tagged `@internal` whose
+ * target carries a long docblock about what the function does has still said
+ * nothing about why it is not public API, and that sentence is the one being
+ * asked for.
  */
 export function internalMark(symbol, resolved, checker) {
   const nodes = [
@@ -182,10 +183,10 @@ function programOf(root, specifier) {
 /**
  * What an export is, from the kind of its first declaration.
  *
- * An error is its own kind and no class, which the repository's own
- * export lists settle: 38 classes whose name ends `Error` against 4 that do
- * not, and every documented package carries an `errors.mdx`. A `const` holding
- * a function is a function, because what a reader does with it is call it.
+ * An error is its own kind and no class. A reader catches an exported class
+ * whose name ends `Error` and looks it up by its code, and builds with the
+ * others (`Token`, `MultiToken`, `Nexus`). A `const` holding a function is a
+ * function, because what a reader does with it is call it.
  */
 function kindOf(resolved, checker, at) {
   const declaration = resolved.getDeclarations()?.[0];
@@ -285,21 +286,22 @@ function exportsOfSpecifier(root, specifier) {
 /**
  * The declaration the package published, as source a Twoslash fence compiles.
  *
- * Printed from the `.d.ts`, with no query through Twoslash's `^?`. A
- * query renders as an overlay inside the `<pre>`, which cannot wrap: the
- * `hydratePolicy` signature is 154 characters on one line and the overlay
- * clips it. The printed form also answers the two cases a query cannot. `^?` over an
- * interface's own name returns the name, so an interface entry would show its
- * identity and none of its fields, and a query reports no constructor at all, so a
- * reader asking what to pass `new InvalidConditionError(...)` would get
+ * Printed from the `.d.ts`, with no query through Twoslash's `^?`. A query
+ * renders as an overlay inside the `<pre>`, which cannot wrap: the
+ * `errorBase` signature is 210 characters on one line and the overlay clips
+ * it. The printed form also answers the two cases a query cannot. `^?` over
+ * an interface's own name returns the name, so an interface entry would show
+ * its identity and none of its fields, and a query reports no constructor at
+ * all, so a reader asking what to pass `new NexusError(...)` would get
  * nothing.
  *
  * A printed declaration names types the fence has to import or it will not
  * compile, so the names it mentions are intersected with the entry point's own
- * export list and imported. A type parameter is not an export, so `Sub` and
- * `Keys` fall out without being reasoned about. A declaration naming a type the
- * package does not publish fails `next build`, which is the right outcome: a
- * reference entry a reader cannot type out is wrong.
+ * export list and imported. A type parameter is not an export, so the `C` of
+ * `provide<C extends Ctor>` falls out without being reasoned about. A
+ * declaration naming a type the package does not publish fails `next build`,
+ * which is the right outcome: a reference entry a reader cannot type out is
+ * wrong.
  *
  * `merges` decides whether the entry's own name carries its docblock.
  * Twoslash compiles the fence, so it answers about the symbol the fence
@@ -310,9 +312,8 @@ function exportsOfSpecifier(root, specifier) {
  * with the published symbol and does not shadow it, so the hover answers for
  * the package and carries its documentation.
  *
- * Measured against `@nexusdi/core`, merging works for a function and an
- * interface, both of which TypeScript merges by design, and throws for a
- * class, a `const` and a type alias, none of which can be declared twice. So
+ * TypeScript merges a second declaration of a function or an interface by
+ * design, and refuses one of a class, a `const` or a type alias. So
  * those three keep the plain printed declaration and their own name's hover
  * shows a type with no prose. A type alias loses nothing by it: a printed alias
  * produces no hover on its own name either way. A class and a `const` do lose
@@ -356,15 +357,15 @@ function declarationOf(context, resolved, name, kind) {
    * There are four answers, and each applies to a different kind of name. A
    * name the documented entry point exports is imported from it. A name only
    * the package root exports is imported from there, which is what a second
-   * entry point needs: `@nexusdi/core/testing` declares
-   * `assertAllowed(decision: Decision)` and publishes no `Decision` of its
-   * own. A name the declaration file imports from another package is imported
-   * from that package: `@nexusdi/devtools`'s `graph(ship: Nexus)` names a
-   * type only `@nexusdi/core` publishes. A name the package declares and
-   * publishes nowhere is printed into the fence above the cut, because a fence
-   * that leaves it unbound does not fail; it silently binds to the
-   * global of that name, and `Cond`'s `node: Node` bound to the DOM's `Node`
-   * for as long as the entry existed.
+   * entry point needs: `@nexusdi/core/text` declares `coreText`, whose type
+   * names `BlueprintView`, and publishes no `BlueprintView` of its own. A name
+   * the declaration file imports from another package is imported from that
+   * package: `@nexusdi/devtools`'s `graph(ship: Nexus)` names a type only
+   * `@nexusdi/core` publishes. A name the package declares and publishes
+   * nowhere is printed into the fence above the cut (`provide` prints
+   * `ClassOptions` this way), because a fence that leaves it unbound does not
+   * always fail: a global of the same name, such as the DOM's `Node`, binds it
+   * silently.
    */
   const place = (each, from) => {
     if (seen.has(each)) return;
@@ -468,9 +469,10 @@ export function readReference(root, specifier, name) {
   // package's own surface decides what a fence may name.
   const exported = exportsOf(moduleSymbol, checker);
 
-  // The package root, when this is a second entry point. `@nexusdi/core/testing`
-  // declares `assertAllowed(decision: Decision)` and publishes no `Decision`,
-  // so a fence that imported only from `/testing` would not compile.
+  // The package root, when this is a second entry point. `@nexusdi/core/text`
+  // declares `coreText` with a type naming `BlueprintView` and publishes no
+  // `BlueprintView`, so a fence that imported only from `/text` would not
+  // compile.
   const rootSpecifier = packageNameOf(specifier);
   const rootExports =
     rootSpecifier === specifier
