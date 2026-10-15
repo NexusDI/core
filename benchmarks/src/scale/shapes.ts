@@ -136,14 +136,88 @@ const CLOCK = 1;
 const LOGGER = 2;
 const HUBS = [CONFIG, CLOCK, LOGGER];
 
-/** P(k deps) for a class or factory of `mixed`: mean 1.9. */
-const MIXED_DEP_COUNTS = [0.1, 0.3, 0.3, 0.2, 0.1];
+/** [weight, lo, hi]: a bin of a histogram, drawn uniformly inside. */
+type Bin = readonly [weight: number, lo: number, hi: number];
 
 /**
- * The realistic shape: modules of 4 to 16 providers in four tiers. Core
- * holds the config, clock and logger hubs; every other module imports core
- * and one or two lower-tier modules, one of them from the tier just below.
- * Values are 5% of providers and factories 10%.
+ * The calibration of `mixed` against the census of 22 real applications
+ * (Research/App sizes.md, measured 2026-10-15). Each constant cites the
+ * measured figure it is tuned to; the spec's section 15 records the
+ * ruling and the 32-seed spread.
+ */
+
+/** Module size: round(exp(ln 3 + 1.18 z)), clamped to 1..250. NestJS pool: 1,350 modules, median 3, mean 6; the largest module measured has 243 providers. */
+const SIZE_MEDIAN = 3;
+const SIZE_SIGMA = 1.18;
+const MAX_MODULE = 250;
+/** Tiers: max(4, round(sqrt M)). Fitted to the measured depth bands. */
+const MIN_TIERS = 4;
+/**
+ * Imports beyond core are the draw minus one, from these bins. The pooled
+ * NestJS mean is 4.4 imports per module, a ceiling: every `imports` entry
+ * counts, library modules included. Only NexusDI expresses imports at
+ * runtime, so a mean above the measured one would charge NexusDI work no
+ * other library does.
+ */
+const IMPORT_BINS: readonly Bin[] = [
+  [0.2, 1, 1],
+  [0.25, 2, 2],
+  [0.2, 3, 3],
+  [0.25, 4, 6],
+  [0.1, 7, 12],
+];
+/** An extra import comes from the two nearest lower tiers with this odds, else from any lower tier. Fitted to the closure bands. */
+const NEAR_TIERS = 2;
+const P_NEAR = 0.8;
+/** Fan-out of a class or factory: the pooled histogram of 10,740 providers (immich excluded), no fitting. */
+const FAN_BINS: readonly Bin[] = [
+  [0.2, 0, 0],
+  [0.27, 1, 1],
+  [0.19, 2, 2],
+  [0.1, 3, 3],
+  [0.07, 4, 4],
+  [0.11, 5, 8],
+  [0.05, 9, 16],
+  [0.01, 17, 48],
+];
+/** The cap on fan-out is min(48, round(sqrt n)): per-app maxima track sqrt n up to n8n (46 at 1,229), then flatten (twenty 36, Theia 31). */
+const MAX_FAN_OUT = 48;
+/** A dependency slot draws a hub, an export of an imported module, or an earlier own provider. Fitted to the closure, depth and fan-in bands. */
+const P_HUB = 0.15;
+const P_IMPORT = 0.6;
+/** A module exports its last ceil(0.3 size) providers. Pooled NestJS exports over providers: 38%. */
+const EXPORT_SHARE = 0.3;
+/** Kind shares, exact counts: values 5% and factories 10% (Angular and Inversify apps 6 to 13%), aliases 5% (NestJS under 2%, bitwarden and gauzy-ui 8%, Theia 30%). */
+const VALUE_SHARE = 0.05;
+const FACTORY_SHARE = 0.1;
+const ALIAS_SHARE = 0.05;
+/** mixed-async lifts the lowest-index round(0.05 n) factories: measured async share 0 to 4%, all infrastructure at the bottom of the graph. */
+const ASYNC_SHARE = 0.05;
+
+/** A standard normal draw (Box-Muller), two rand() calls. */
+function normal(rand: Rand): number {
+  const u = 1 - rand();
+  const v = rand();
+  return Math.sqrt(-2 * Math.log(u)) * Math.cos(2 * Math.PI * v);
+}
+
+/** An integer drawn from the bins: a bin by weight, then uniform inside it. */
+function drawBin(rand: Rand, bins: readonly Bin[]): number {
+  let r = rand();
+  for (const [weight, lo, hi] of bins) {
+    if (r < weight) return randInt(rand, lo, hi);
+    r -= weight;
+  }
+  const [, lo, hi] = bins[bins.length - 1];
+  return randInt(rand, lo, hi);
+}
+
+/**
+ * The calibrated shape: modules of log-normal size in max(4, round(sqrt M))
+ * tiers. Core holds the config, clock and logger hubs; every other module
+ * imports core, one module of the tier just below and the draw's extras,
+ * mostly from the nearest tiers. A class or factory takes the measured
+ * number of deps from the modules it can see.
  */
 export function mixed(size: number, seed = GRAPH_SEED): ScaleGraph {
   const { providers, modules } = mixedStructure(size, seed);
@@ -151,13 +225,16 @@ export function mixed(size: number, seed = GRAPH_SEED): ScaleGraph {
 }
 
 /**
- * `mixed` with every factory in a tier 0 or tier 1 module made async: the
- * same stream and structure, so the two differ in those kinds alone.
+ * `mixed` with its lowest-index round(0.05 n) factories made async: the same
+ * stream and structure, so the two differ in those kinds alone. Lowest index
+ * is lowest tier, where every measured async factory sits; `clock` stays
+ * async at every size.
  */
 export function mixedAsync(size: number, seed = GRAPH_SEED): ScaleGraph {
   const { providers, modules } = mixedStructure(size, seed);
+  let left = Math.round(size * ASYNC_SHARE);
   const lifted = providers.map((p) =>
-    p.kind === 'factory' && modules[p.module].tier <= 1
+    p.kind === 'factory' && left-- > 0
       ? { ...p, kind: 'async-factory' as const }
       : p,
   );
@@ -172,7 +249,13 @@ function mixedStructure(
 
   const sizes: number[] = [];
   for (let total = 0; total < size;) {
-    const next = Math.min(randInt(rand, 4, 16), size - total);
+    const raw = Math.round(
+      Math.exp(Math.log(SIZE_MEDIAN) + SIZE_SIGMA * normal(rand)),
+    );
+    // Core takes at least three providers, so the hubs fit.
+    const least = sizes.length === 0 ? HUBS.length : 1;
+    const drawn = Math.min(Math.max(raw, least), MAX_MODULE);
+    const next = Math.min(drawn, size - total);
     sizes.push(next);
     total += next;
   }
@@ -180,11 +263,12 @@ function mixedStructure(
   const starts = sizes.map((_, k) =>
     sizes.slice(0, k).reduce((a, b) => a + b, 0),
   );
-  const tier = (k: number) => Math.floor((4 * k) / count);
+  const tiers = Math.max(MIN_TIERS, Math.round(Math.sqrt(count)));
+  const tier = (k: number) => Math.floor((tiers * k) / count);
 
   const modules: ScaleModule[] = sizes.map((n, k) => {
     const own = range(starts[k], starts[k] + n);
-    const last = own.slice(-Math.ceil(n / 4));
+    const last = own.slice(-Math.ceil(n * EXPORT_SHARE));
     const exports = k === 0 ? [...new Set([...HUBS, ...last])] : last;
     return {
       name: padName('m', k, count),
@@ -196,21 +280,30 @@ function mixedStructure(
   for (let k = 1; k < count; k++) {
     const t = tier(k);
     const imports = [0];
-    // Core is imported already, so the extra imports come from the others.
+    // Core is imported already, so the others come from the other modules.
     const lower = range(1, k).filter((j) => tier(j) < t);
     const below = lower.filter((j) => tier(j) === t - 1);
     // When tier t-1 holds core alone, core is the import from it.
     if (below.length > 0) {
       imports.push(pick(rand, below));
+      const extras = drawBin(rand, IMPORT_BINS) - 1;
       const rest = lower.filter((j) => j !== imports[1]);
-      if (rand() < 0.5 && rest.length > 0) imports.push(pick(rand, rest));
+      const near = rest.filter((j) => tier(j) >= t - NEAR_TIERS);
+      for (let e = 0; e < extras; e++) {
+        const from = rand() < P_NEAR ? near : rest;
+        const pool = from.filter((j) => !imports.includes(j));
+        const any = rest.filter((j) => !imports.includes(j));
+        if (pool.length > 0) imports.push(pick(rand, pool));
+        else if (any.length > 0) imports.push(pick(rand, any));
+      }
     }
     modules[k].imports = imports;
   }
 
   // Exact kind counts, hubs included, so every size holds the stated shares.
-  const values = Math.round(size * 0.05);
-  const factories = Math.round(size * 0.1);
+  const values = Math.round(size * VALUE_SHARE);
+  const factories = Math.round(size * FACTORY_SHARE);
+  const aliases = Math.round(size * ALIAS_SHARE);
   const kinds: ProviderKind[] = [
     'value',
     'factory',
@@ -218,7 +311,10 @@ function mixedStructure(
     ...shuffle(rand, [
       ...new Array<ProviderKind>(values - 1).fill('value'),
       ...new Array<ProviderKind>(factories - 1).fill('factory'),
-      ...new Array<ProviderKind>(size - values - factories - 1).fill('class'),
+      ...new Array<ProviderKind>(aliases).fill('alias'),
+      ...new Array<ProviderKind>(size - values - factories - aliases - 1).fill(
+        'class',
+      ),
     ]),
   ];
 
@@ -228,37 +324,39 @@ function mixedStructure(
       .flatMap((j) => modules[j].exports)
       .filter((d) => !HUBS.includes(d)),
   );
+  const cap = Math.min(MAX_FAN_OUT, Math.round(Math.sqrt(size)));
   const providers: ScaleProvider[] = [];
   for (let i = 0; i < size; i++) {
     const k = moduleOf[i];
     const deps: number[] = [];
+    const own = range(starts[k], i).filter((d) => !HUBS.includes(d));
+    let kind = kinds[i];
     if (i === LOGGER) deps.push(CONFIG);
-    else if (i > LOGGER && kinds[i] !== 'value') {
-      const pools = [
-        HUBS,
-        visibleExports[k],
-        range(starts[k], i).filter((d) => !HUBS.includes(d)),
+    else if (kind === 'alias') {
+      // An alias points at one provider it can see: an earlier own provider or an export of an import.
+      const pool = [...own, ...visibleExports[k]];
+      if (pool.length > 0) deps.push(pick(rand, pool));
+      else kind = 'class';
+    } else if (i > LOGGER && kind !== 'value') {
+      const imported = visibleExports[k];
+      // A slot falls through to the other non-hub pool before the hubs: an
+      // empty own pool sent to the hubs, which are dead ends, would pin
+      // the closure at a few percent.
+      const orders = [
+        [HUBS, imported, own],
+        [imported, own, HUBS],
+        [own, imported, HUBS],
       ];
-      const want = drawCount(rand, MIXED_DEP_COUNTS);
+      const want = Math.min(cap, drawBin(rand, FAN_BINS));
       for (let slot = 0; slot < want; slot++) {
         const r = rand();
-        const start = r < 0.25 ? 0 : r < 0.5 ? 1 : 2;
-        if (!drawDep(rand, pools, start, deps)) break;
+        const start = r < P_HUB ? 0 : r < P_HUB + P_IMPORT ? 1 : 2;
+        if (!drawDep(rand, orders[start], 0, deps)) break;
       }
     }
-    providers.push(provider(i, size, kinds[i], deps, k));
+    providers.push(provider(i, size, kind, deps, k));
   }
   return { providers, modules };
-}
-
-/** An index drawn with the given probabilities. */
-function drawCount(rand: Rand, weights: readonly number[]): number {
-  let r = rand();
-  for (let k = 0; k < weights.length - 1; k++) {
-    if (r < weights[k]) return k;
-    r -= weights[k];
-  }
-  return weights.length - 1;
 }
 
 const MODULE_SIZE = 10;
