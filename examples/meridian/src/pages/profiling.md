@@ -359,6 +359,10 @@ console.log(waiting);
 <!-- #region trace-file -->
 
 ```ts @import.meta.vitest
+import { writeFileSync } from 'node:fs';
+import { tmpdir } from 'node:os';
+import { join } from 'node:path';
+
 import { Nexus, Token, defineModule, provide } from '@nexusdi/core';
 import { profile, toChromeTrace, toPerfettoTrace } from '@nexusdi/devtools';
 
@@ -378,13 +382,90 @@ const profiler = profile();
 await using ship = await Nexus.create(Meridian, { plugins: [profiler] });
 const report = profiler.report();
 
-// Save each string as a .json file: the first opens in Chrome DevTools, the
-// second in ui.perfetto.dev.
-const chrome = JSON.stringify(toChromeTrace(report));
-const perfetto = JSON.stringify(toPerfettoTrace(report));
-const firstKey = (text: string) => Object.keys(JSON.parse(text))[0];
-const keys = [firstKey(chrome), firstKey(perfetto)]; // -> ['traceEvents', 'traceEvents']
-console.log(keys);
+// startup.json opens in Chrome DevTools, startup.perfetto.json in ui.perfetto.dev.
+const chrome = toChromeTrace(report);
+const perfetto = toPerfettoTrace(report);
+writeFileSync(join(tmpdir(), 'startup.json'), JSON.stringify(chrome));
+writeFileSync(
+  join(tmpdir(), 'startup.perfetto.json'),
+  JSON.stringify(perfetto),
+);
+
+const threads = perfetto.traceEvents.filter((e) => e['name'] === 'thread_name');
+const names = threads.map((e) => (e['args'] as { name: string }).name);
+const tracks = names; // -> ['steps', 'ReactorCore']
+console.log(tracks);
 ```
 
 <!-- #endregion trace-file -->
+
+<!-- #region trace-file-value -->
+
+```ts @import.meta.vitest
+import { writeFileSync } from 'node:fs';
+import { tmpdir } from 'node:os';
+import { join } from 'node:path';
+
+import { Nexus, Token, defineModule, provide } from '@nexusdi/core';
+import { profile, toChromeTrace, toPerfettoTrace } from '@nexusdi/devtools';
+
+interface IReactorCore {
+  readonly output: number;
+}
+const REACTOR = new Token<IReactorCore>('ReactorCore');
+class FusionReactor implements IReactorCore {
+  readonly output = 1.21;
+}
+const Meridian = defineModule({
+  name: 'Meridian',
+  providers: [provide(REACTOR, { useClass: FusionReactor, eager: false })],
+});
+
+const profiler = profile();
+await using ship = await Nexus.create(Meridian, { plugins: [profiler] });
+const report = profiler.report();
+
+// startup.json opens in Chrome DevTools, startup.perfetto.json in ui.perfetto.dev.
+const chrome = toChromeTrace(report);
+const perfetto = toPerfettoTrace(report);
+writeFileSync(join(tmpdir(), 'startup.json'), JSON.stringify(chrome));
+writeFileSync(
+  join(tmpdir(), 'startup.perfetto.json'),
+  JSON.stringify(perfetto),
+);
+
+const threads = perfetto.traceEvents.filter((e) => e['name'] === 'thread_name');
+const names = threads.map((e) => (e['args'] as { name: string }).name);
+const tracks = names; // -> ['steps']
+console.log(tracks);
+```
+
+<!-- #endregion trace-file-value -->
+
+<!-- #region live -->
+
+```ts @import.meta.vitest
+import { Nexus, Token, defineModule, provide } from '@nexusdi/core';
+import { profile } from '@nexusdi/devtools';
+import { liveSink } from '@nexusdi/devtools/live';
+
+interface IReactorCore {
+  readonly output: number;
+}
+const REACTOR = new Token<IReactorCore>('ReactorCore');
+class FusionReactor implements IReactorCore {
+  readonly output = 1.21;
+}
+const Meridian = defineModule({
+  name: 'Meridian',
+  providers: [provide(REACTOR, { useClass: FusionReactor })],
+});
+
+// undefined outside Chromium 134 and later, so this run in Node draws nothing.
+const sink = liveSink(); // -> undefined
+console.log(sink);
+const profiler = profile({ live: sink });
+await using ship = await Nexus.create(Meridian, { plugins: [profiler] });
+```
+
+<!-- #endregion live -->
