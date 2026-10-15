@@ -63,6 +63,9 @@ const meta: MetaRecord = {
   '-- api': { type: 'separator', title: 'API' },
   'api-errors': { title: 'Error codes' },
   'api-node': { title: '@nexusdi/node' },
+  'api-testing': { title: '@nexusdi/testing' },
+  'api-decorators': { title: '@nexusdi/decorators' },
+  'api-errors-package': { title: '@nexusdi/errors' },
   docs: { title: 'Docs', type: 'page', href: '/getting-started/' },
   // The navbar's Blog entry, hidden until the posts migrate at 0.4.0 final
   // (spec §4.1). The folder exists on every branch so the final root build

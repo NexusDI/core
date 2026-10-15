@@ -1,0 +1,34 @@
+---
+title: '@nexusdi/testing'
+kind: reference
+description: The exports of @nexusdi/testing, with each signature, what its tests state and an example.
+package: '@nexusdi/testing'
+---
+
+# `@nexusdi/testing`
+
+A test that wants the real module graph with a few providers or modules replaced builds its container through `@nexusdi/testing`. `createTestingContainer(root)` returns a `TestingContainerBuilder`: `override()` replaces every provider of a token, `overrideModule()` puts a stub wherever the graph meets a module, and `create()` builds a plain `Nexus` with the replacements in place. Each `override()` and `overrideModule()` call returns a new builder and leaves the one it was called on unchanged, so a `beforeEach` can extend one base builder. When an override matches nothing in the graph, or a stub leaves out an export of the module it replaces, `create()` rejects with a `BlueprintError` whose `errors` list holds one `OverrideError` for each. An override passed `{ lazy: true }` is checked when `ship.load()` brings its module in. Each export has one entry below, with what the package's tests state about it.
+
+<ApiFilter />
+
+## `createTestingContainer`
+
+<!-- reference @nexusdi/testing#createTestingContainer example=override-lifetime -->
+
+## `TestingContainerBuilder`
+
+<!-- reference @nexusdi/testing#TestingContainerBuilder example=override-module -->
+
+## `TestingCreateOptions`
+
+<!-- reference @nexusdi/testing#TestingCreateOptions -->
+
+## `ModuleOverrideOptions`
+
+<!-- reference @nexusdi/testing#ModuleOverrideOptions -->
+
+## `OverrideError`
+
+<!-- reference @nexusdi/testing#OverrideError -->
+
+The guide [Testing and Overrides](/testing/) replaces a provider with `override()` and a module with `overrideModule()` in an integration test.

@@ -1,6 +1,13 @@
 import { expect, test } from '@playwright/test';
 
-const PAGES = ['/next/', '/next/tokens/', '/next/api-node/'];
+const PAGES = [
+  '/next/',
+  '/next/tokens/',
+  '/next/api-node/',
+  '/next/api-testing/',
+  '/next/api-decorators/',
+  '/next/api-errors-package/',
+];
 
 for (const theme of ['dark', 'light'] as const) {
   test(`body has a transparent background in ${theme} mode`, async ({

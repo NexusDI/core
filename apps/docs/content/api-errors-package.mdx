@@ -1,0 +1,30 @@
+---
+title: '@nexusdi/errors'
+kind: reference
+description: The exports of @nexusdi/errors, with each signature, what its tests state and an example.
+package: '@nexusdi/errors'
+---
+
+# `@nexusdi/errors`
+
+Core writes each error as its code, one line of fields and a link to the code's page, so a production bundle carries no message text. `@nexusdi/errors` adds the full text from text packs: a text pack maps each error code to a function that words it. `errors({ text })` is a plugin that words each error whose code a pack covers, reading the packs in `text` in array order and then core's `coreText`, and adds the message and the fix line. It also names near misses, such as a module that provides the missing token without exporting it. An error no pack covers keeps core's one-line message. `explain(error, { view, text })` words an error caught outside a container, such as one read from a log. It returns an `ErrorText` with `message`, `hints` and `fix`, lists near misses only when it gets the container's `view`, and returns `undefined` for a code no pack covers. Each export has one entry below, with what the package's tests state about it.
+
+<ApiFilter />
+
+## `errors`
+
+<!-- reference @nexusdi/errors#errors example=errors -->
+
+## `explain`
+
+<!-- reference @nexusdi/errors#explain example=explain -->
+
+## `ErrorsOptions`
+
+<!-- reference @nexusdi/errors#ErrorsOptions -->
+
+## `ExplainOptions`
+
+<!-- reference @nexusdi/errors#ExplainOptions -->
+
+The guide [Error Text Packs](/error-text/) registers `errors()` with the first-party text packs and words a logged error with `explain()`.
