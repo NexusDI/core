@@ -65,6 +65,30 @@
       "path": "../../tools/doc-examples"
     },
     {
+      "path": "../../libs/testing"
+    },
+    {
+      "path": "../../libs/node"
+    },
+    {
+      "path": "../../libs/interceptors"
+    },
+    {
+      "path": "../../libs/federation"
+    },
+    {
+      "path": "../../libs/errors"
+    },
+    {
+      "path": "../../libs/devtools"
+    },
+    {
+      "path": "../../libs/decorators"
+    },
+    {
+      "path": "../../libs/core"
+    },
+    {
       "path": "../../internal/meridian-ui"
     }
   ]

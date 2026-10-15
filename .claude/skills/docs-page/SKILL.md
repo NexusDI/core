@@ -35,7 +35,7 @@ A new export needs four things:
 3. A `` ## `name` `` heading on its package's page, followed by `<!-- reference @nexusdi/<pkg>#name -->`.
 4. If it is callable, an `example=<region>` on that directive, naming a region in `libs/<pkg>/docs/*.md` that calls it.
 
-A new library needs its page with `kind: reference` and `package: '@nexusdi/<pkg>'`, an entry under the API separator of `apps/docs/content/_meta.ts`, and the `json` reporter in its `vite.config.ts`. `tools/repo-checks/package.json`'s test target already depends on every `libs/*` test.
+A new library needs its page with `kind: reference` and `package: '@nexusdi/<pkg>'`, an entry under the API separator of `apps/docs/content/_meta.ts`, its name in `apps/docs/package.json`'s `devDependencies`, and the `json` reporter in its `vite.config.ts`. `tools/repo-checks/package.json`'s test target already depends on every `libs/*` test.
 
 The guards that fail otherwise: `doc-export-coverage` (the page, the headings and the examples), `doc-reference` (the docblock summary), `doc-behaviour` (the `describe`, and no internal name on a rail) and `doc-behaviour-run` (every sentence a run reported).
 
@@ -70,6 +70,10 @@ This is the first thing to suspect. Two symptoms, and either is enough: the buil
 ### The Nx cache is shared across every worktree on the machine
 
 `.nx/cache` is keyed on content, so a task another worktree ran can replay into yours. Treat a foreign path in the output as a cache hit, and suspect the cache before the code you just changed.
+
+### A library the docs read has to be a dependency of `apps/docs`
+
+The reference pages read each library's declarations, docblocks and `docs/*.md` regions. `docs:build` hashes a library and builds it first only when it is in `apps/docs/package.json`'s `devDependencies`; without that, the Nx cache replays a build made from the old docblocks. Add a new library there with `"*"` in the same pull request as its page.
 
 ### A stale `components/api/behaviour/` serves old sentences
 
