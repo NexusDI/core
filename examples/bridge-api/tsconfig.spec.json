@@ -19,12 +19,14 @@
   "include": [
     "vite.config.ts",
     "vitest.workers.config.ts",
+    "vitest.edge.config.ts",
     "vitest.e2e.config.ts",
     "test/**/*.ts",
     "e2e/**/*.ts",
     "bench/**/*.ts",
     "src/**/*.d.ts",
-    "worker-configuration.d.ts"
+    "worker-configuration.d.ts",
+    "scripts/*.d.mts"
   ],
   "references": [
     {

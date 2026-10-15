@@ -6,7 +6,7 @@ Goal: Publish `@nexusdi/express`, `@nexusdi/vitest`, `@nexusdi/fastify`, `@nexus
 
 Architecture: Each adapter is its own package under `libs/<name>`, built with tsc like `libs/node`. The server adapters share two byte-identical files under `src/internal/` (`request-scope.ts`, `dispose-with-body.ts`), held together by a copies check under P4's named exception. `examples/bridge-api` runs one Meridian module graph behind Hono, Express, Fastify and a Workers entry; `examples/react-ssr` moves to React Router 8, `@nexusdi/react-router` and `@nexusdi/react`; `examples/next-bridge` holds the Next gate as a canary; the Next demo waits for the 0.5 adapter.
 
-Tech Stack: Node 24.20 (CI floor 22.12), TypeScript 6.0.3, Vitest 4.1.9, Nx 23.1.1, hono 4.13.13, @hono/node-server 2.1.5, express 5.3.0, fastify 5.12.7, fastify-plugin 6.0.1, react-router 8.4.0 (7.18.4 in the 7.x leg), react 19.3.0, next 16.3.4 (the version apps/docs pins), wrangler 4.151.0, @cloudflare/vitest-pool-workers 0.23.0, @edge-runtime/vm (latest at install, pinned exactly), Deno 2.9.6, Bun 1.4.2.
+Tech Stack: Node 24.20 (CI floor 22.12), TypeScript 6.0.3, Vitest 4.1.9, Nx 23.1.1, hono 4.13.13, @hono/node-server 2.1.5, express 5.3.0, fastify 5.12.7, fastify-plugin 6.0.1, react-router 8.4.0 (7.18.4 in the 7.x leg), react 19.3.0, next 16.3.4 (the version apps/docs pins), wrangler 4.148.0, @cloudflare/vitest-plugin 1.3.7 (the renamed @cloudflare/vitest-pool-workers), @edge-runtime/vm (latest at install, pinned exactly), Deno 2.9.6, Bun 1.4.2.
 
 Spec: `specs/2026-09-23-integrations-design.md` (revision 3, with the owner's answers of 2026-10-15 in section 20). React: `specs/2026-09-24-react-design.md`, cherry-picked from `spec/react` at `26cb2a26` (status "decided"). Extension principle: `specs/2026-09-30-extension-principle-design.md` on `origin/spec/package-owned-errors`. Release: `RELEASING.md` and the `nexusdi-release` skill. Docs pages: the `docs-page` skill.
 
@@ -13723,7 +13723,7 @@ Co-Authored-By: Claude Opus 5.5 (1M context) <noreply@anthropic.com>"
 
 ### Task 21: adapter-runtimes, the workerd leg
 
-Spec 9.2, 9.4, 9.7 and 9.8. The bridge API's Hono entry runs inside workerd through `@cloudflare/vitest-pool-workers`, twice: with `enable_request_signal` and without it.
+Spec 9.2, 9.4, 9.7 and 9.8. The bridge API's Hono entry runs inside workerd through `@cloudflare/vitest-plugin` (the renamed `@cloudflare/vitest-pool-workers`), twice: with `enable_request_signal` and without it.
 
 Files:
 
@@ -13799,10 +13799,10 @@ Expected: FAIL, `expected undefined to be defined` (no `adapter-runtimes` job).
 - [ ] **Step 3: Install the workerd toolchain in the demo app**
 
 ```bash
-npm install --workspace @nexusdi/bridge-api --save-dev --save-exact wrangler@4.151.0 @cloudflare/vitest-pool-workers@0.23.0
+npm install --workspace @nexusdi/bridge-api --save-dev --save-exact wrangler@4.148.0 @cloudflare/vitest-plugin@1.3.7
 ```
 
-`@cloudflare/vitest-pool-workers` 0.23.0 declares `vitest ^4.1.0`, which the workspace's 4.1.9 meets. Before writing the config, read `node_modules/@cloudflare/vitest-pool-workers/README.md` and confirm that 0.23.0 exports `defineWorkersConfig` from `@cloudflare/vitest-pool-workers/config` and the `cloudflare:test` module with `env`, `SELF`, `createExecutionContext` and `waitOnExecutionContext`. If the README names a different config entry for Vitest 4, use that entry in Step 4 with the same `wrangler.configPath` and `miniflare` options; the test files do not change.
+`@cloudflare/vitest-plugin` 1.3.7 declares `vitest ^4.1.0`, which the workspace's 4.1.9 meets, and depends on wrangler 4.148.0 exactly, so the leg pins that wrangler and the workspace holds one copy. Its root exports `cloudflareTest()`, a Vite plugin that takes the `wrangler.configPath` and `miniflare` options; `cloudflare:test` provides `env`, `SELF`, `createExecutionContext` and `waitOnExecutionContext`.
 
 - [ ] **Step 4: Write the two wrangler configs and the Vitest config**
 
@@ -13842,27 +13842,25 @@ npm install --workspace @nexusdi/bridge-api --save-dev --save-exact wrangler@4.1
 `examples/bridge-api/vitest.workers.config.ts`:
 
 ```ts
-import { defineWorkersConfig } from '@cloudflare/vitest-pool-workers/config';
+import { cloudflareTest } from '@cloudflare/vitest-plugin';
+import { defineConfig } from 'vitest/config';
 
 // SIGNAL=off runs the suite against wrangler.no-signal.jsonc. The CI leg runs
 // both, so /runtimes/ can state what an abort does with and without the flag.
 const signal = process.env['SIGNAL'] !== 'off';
 
-export default defineWorkersConfig({
+export default defineConfig({
+  plugins: [
+    cloudflareTest({
+      wrangler: {
+        configPath: signal ? './wrangler.jsonc' : './wrangler.no-signal.jsonc',
+      },
+      miniflare: { bindings: { SIGNAL: signal ? 'on' : 'off' } },
+    }),
+  ],
   test: {
     name: `@nexusdi/bridge-api:workers:${signal ? 'signal' : 'no-signal'}`,
     include: ['test/worker/**/*.test.ts'],
-    poolOptions: {
-      workers: {
-        singleWorker: true,
-        wrangler: {
-          configPath: signal
-            ? './wrangler.jsonc'
-            : './wrangler.no-signal.jsonc',
-        },
-        miniflare: { bindings: { SIGNAL: signal ? 'on' : 'off' } },
-      },
-    },
   },
 });
 ```
@@ -15478,6 +15476,7 @@ Interfaces:
 
 Notes from the review of Tasks 3 and 6, which each guide carries in its Errors and Shutdown sections:
 
+- The /hono/ guide's Vercel Edge section exports `(request, context) => app.fetch(request, {}, context)` with Vercel's context. `hono/vercel`'s `handle(app)`, and `@hono/vercel` 1.0.1's, pass no execution context, so the adapter could not hand the disposal to `waitUntil`.
 - The /express/, /fastify/ and /hono/ guides show the one-line recipe of spec 3.6: an error handler that handles `NexusHttpError` by sending its status and status text without logging, so a failure writes only the adapter's line. Each guide also says that a plugin's error message, a third-party `construct` hook's included, reaches the log verbatim.
 - The /next/ guide (added after Task 16's gate failed, integrations spec 10.1): `apps/docs/content/next.mdx`, `kind: platform`, title "Scoping Next.js Route Handlers and Server Actions", with no `@nexusdi/next` package. Its recipe: one container per Next layer, built by a memoised function in `app/nexus.server.ts` (with `import 'server-only'` first), so `next build` builds none; a request scope per route handler or server action, disposed in `after()` from `next/server`; and a shared resource such as a connection pool kept on the app's own `globalThis` key, because Next evaluates the module once per layer and each layer has its own tokens and its own copy of core. It says that a process-global container cannot work, for that reason, and that 0.5 brings the adapter. Its regions sit in `examples/meridian/src/pages/next.md` and run in Node without a Next server; `examples/next-bridge`'s gate canary is the measurement it cites.
 - The interceptors page (`apps/docs/content/interceptors.mdx`, a page this plan does not otherwise touch) gains one line, from Task 18: "A value provider is never intercepted: it holds an object the container did not build. Bind a `useFactory` that returns the value instead." A backlog issue covers the plugin's own check.
@@ -16667,5 +16666,5 @@ NX_NO_CLOUD=true NX_DAEMON=false git push
 - React spec (`specs/2026-09-24-react-design.md`, from `spec/react` at `26cb2a26`): ready to plan. K1, K2, K3 and K6 are in rc.1. Tasks 11 to 15 implement it, with these departures forced by checks on `release/0.4`: the four `NEXUS_REACT_*` codes carry inline text in every build (`error-text-placement.test.ts`; development-only text is extension principle V11, still with the owner); one `core-layers` exception for `libs/react/src/dev.ts`'s `process.env.NODE_ENV` read (Task 14, recorded in Task 28); the `react()` setup keeps a closure over `context.blueprint()` in place of the context itself; four `doc-error-codes` allowance entries that Task 27 removes; Meridian names in place of `STAR_CATALOG` and `Cartography`; rc.2 in place of R16's rc.0.
 - Decisions the tasks took that change spec text, applied in the spec with this plan: `nexusSetup` is an array of builder steps and `@vitest/runner` is a peer of `@nexusdi/vitest` (spec 8.1, 8.3).
 - Departures recorded for the ledger, each with its reason in the owning task: the React Router fixture app lives in `libs/react-router/test-fixtures/app` (its server helper imports `node:` modules, which `nodeViolations` refuses under `src/`) and is served by `@react-router/node` on port 0; `MISSION` lives in `BridgeApi` and `Tactical` is a function of the relay URL (Task 18); `NAV_AUDIT` and `INavAudit` are new names for the demo app's interceptor, which Task 18 records for the docs spec's vocabulary; each adapter's `test-support/nexus-request.ts` augments `NexusRequest` (required `mission` in Hono and React Router to test the required-`request` path, optional elsewhere).
-- Steps written as checks with a stated fallback, because they depend on behaviour no one has run yet: Fastify's route generic through `inject`, `base.extend(nexusFixtures(...))` inference, `fetchMock` in pool-workers 0.23.0, React Router 8's `loadContext` in `handleRequest` (Task 15 stops and records it if absent), `await using` in Next app files, `ship.load(Navigation)` seeing root exports.
+- Steps written as checks with a stated fallback, because they depend on behaviour no one has run yet: Fastify's route generic through `inject`, `base.extend(nexusFixtures(...))` inference, `fetchMock` in the workerd pool (the leg stubs `globalThis.fetch`), React Router 8's `loadContext` in `handleRequest` (Task 15 stops and records it if absent), `await using` in Next app files, `ship.load(Navigation)` seeing root exports.
 - Placeholder scan: no "TBD", "TODO" or "similar to Task N". Shared names (`ScopeRunner`, `RequestOption`, `validateNow`, `logEach`, `OptionsArg`) are defined once in Task 1's `request-scope.ts` and imported by Tasks 7, 9 and 17.
