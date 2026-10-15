@@ -1,9 +1,10 @@
 /**
  * tsyringe `decorated` (scale spec 4.2): `@singleton()` classes whose
  * constructor types name their class dependencies, `@inject('<name>')` on
- * a parameter that takes a factory or a value; factories as
- * `{ token, useFactory: instanceCachingFactory(...) }` and values as
- * `{ token, useValue }` under string tokens, in one `@registry([...])`
+ * a parameter that takes a factory, a value or an alias; factories as
+ * `{ token, useFactory: instanceCachingFactory(...) }`, values as
+ * `{ token, useValue }` and aliases as `{ token, useToken }` under string
+ * tokens, in one `@registry([...])`
  * class per graph module (ruling 6). Classes and the string token follow
  * fixtures/tsyringe/decorated.ts; the registry and the caching factory
  * follow the README sections the header cites. tsyringe has no async
@@ -12,6 +13,8 @@
  */
 import type { ScaleGraph, ScaleProvider } from '../graph.ts';
 import {
+  aliasType,
+  hasAliases,
   classBody,
   className,
   counterImport,
@@ -38,7 +41,11 @@ const header = (graph: ScaleGraph) =>
 // Registry, read 2026-10-01.
 // Every class is @singleton() and every factory instanceCachingFactory,
 // since tsyringe defaults to transient. Factories and values register
-// under string tokens, as the Meridian-8 fixture registers NavCharts.
+// under string tokens, as the Meridian-8 fixture registers NavCharts.${
+    hasAliases(graph)
+      ? "\n// An alias is { token, useToken }, the README's redirect."
+      : ''
+  }
 // Each graph module with factories or values is one @registry([...])
 // class. tsyringe has no module visibility, so the global container is
 // flat and every registration is visible everywhere.
@@ -68,7 +75,9 @@ function depImports(
     const file = fileOf(graph, p);
     byFile.set(file, [
       ...(byFile.get(file) ?? []),
-      p.kind === 'value' ? `type ${iface(p)}` : className(p),
+      p.kind === 'value' || p.kind === 'alias'
+        ? `type ${iface(p)}`
+        : className(p),
     ]);
   }
   return [...byFile.keys()]
@@ -103,6 +112,11 @@ const resolveOf = (d: ScaleProvider) =>
 function entryOf(graph: ScaleGraph, p: ScaleProvider): string {
   if (p.kind === 'value')
     return `  { token: ${tokenOf(p)}, useValue: ${valueLiteral(p)} },\n`;
+  if (p.kind === 'alias') {
+    const target = graph.providers[p.deps[0]];
+    const to = target.kind === 'class' ? className(target) : tokenOf(target);
+    return `  { token: ${tokenOf(p)}, useToken: ${to} },\n`;
+  }
   const binds = p.deps
     .map((d, i) => `      const d${i} = ${resolveOf(graph.providers[d])};\n`)
     .join('');
@@ -141,9 +155,11 @@ function moduleFile(graph: ScaleGraph, k: number): string {
   const own = ownOf(graph, k);
   const here = (p: ScaleProvider) => p.module === k;
   const values = own
-    .filter((p) => p.kind === 'value')
-    .map(
-      (p) => `export interface ${iface(p)} {\n  readonly id: '${p.name}';\n}\n`,
+    .filter((p) => p.kind === 'value' || p.kind === 'alias')
+    .map((p) =>
+      p.kind === 'alias'
+        ? aliasType(graph, p)
+        : `export interface ${iface(p)} {\n  readonly id: '${p.name}';\n}\n`,
     )
     .join('');
   const registry = hasRegistry(graph, k)

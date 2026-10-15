@@ -33,4 +33,17 @@ describe('InversifyJS decorated scale cells', () => {
         /from ["']inversify["']/,
       );
     }, 120_000);
+
+  // Aliases, factories and values across modules at a size where chains of
+  // aliases and cross-module aliases occur.
+  it('passes mixed at n = 200 through compile, bundle and verify', async () => {
+    const result = await scaleCell(
+      dir,
+      inversify,
+      'decorated',
+      graphOf('mixed', 200),
+    );
+    expect(result.message).toBeUndefined();
+    expect(result.outcome).toBe('pass');
+  }, 180_000);
 });

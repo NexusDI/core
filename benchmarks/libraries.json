@@ -26,6 +26,12 @@
           "source": "https://github.com/NexusDI/core/tree/main/libs/core#interfaces-and-tokens",
           "verifiedAgainst": "workspace",
           "form": "async-factory"
+        },
+        {
+          "claim": "provide(token, { useExisting: otherToken }) points one token at another so both resolve to one instance; it takes no lifetime",
+          "source": "https://github.com/NexusDI/core/blob/main/libs/core/docs/providers.md",
+          "verifiedAgainst": "workspace",
+          "form": "alias"
         }
       ]
     },
@@ -80,6 +86,12 @@
           "claim": "Container's jitless option defaults to true; false enables JIT resolution for better performance where unsafe-eval is permitted",
           "source": "https://inversify.io/docs/api/container/#jitless",
           "verifiedAgainst": "8.2.3"
+        },
+        {
+          "claim": "bind(id).toService(otherId) resolves a service identifier to the service bound under another; it takes no scope",
+          "source": "https://inversify.io/docs/api/binding-syntax/#toservice",
+          "verifiedAgainst": "8.2.3",
+          "form": "alias"
         }
       ]
     },
@@ -111,6 +123,12 @@
           "source": "https://github.com/microsoft/tsyringe#registry",
           "verifiedAgainst": "4.10.0",
           "form": "module"
+        },
+        {
+          "claim": "{ token, useToken } is a token provider, a redirect or an alias from one token to another",
+          "source": "https://github.com/microsoft/tsyringe#token-provider",
+          "verifiedAgainst": "4.10.0",
+          "form": "alias"
         }
       ]
     },
@@ -141,6 +159,12 @@
           "source": "https://github.com/jeffijoe/awilix#containerregister",
           "verifiedAgainst": "13.0.5",
           "form": "module"
+        },
+        {
+          "claim": "aliasTo('name') registers a resolver that resolves another registration by name",
+          "source": "https://github.com/jeffijoe/awilix#aliasto",
+          "verifiedAgainst": "13.0.5",
+          "form": "alias"
         }
       ]
     },
@@ -174,6 +198,12 @@
           "source": "https://needle-di.io/advanced/async-injection.html#async-factory-providers",
           "verifiedAgainst": "1.2.1",
           "form": "async-factory"
+        },
+        {
+          "claim": "{ provide, useExisting } provides an existing token under another, so both resolve to one instance",
+          "source": "https://needle-di.io/concepts/providers.html",
+          "verifiedAgainst": "1.2.1",
+          "form": "alias"
         }
       ]
     }

@@ -3,13 +3,16 @@
  * `@inject(id)` on every constructor parameter, bound with
  * `bind(C).toSelf().inSingletonScope()`; factories as
  * `toResolvedValue(fn, [ids]).inSingletonScope()` under a symbol; values
- * as `toConstantValue` under a symbol; one `ContainerModule` per graph
+ * as `toConstantValue` under a symbol; aliases as `toService` under a
+ * symbol; one `ContainerModule` per graph
  * module, loaded with the synchronous `container.load`. Class and symbol
  * ids follow fixtures/inversify/decorated.ts; modules and async factories
  * follow the pages the header cites.
  */
 import type { ScaleGraph, ScaleProvider } from '../graph.ts';
 import {
+  aliasType,
+  hasAliases,
   classBody,
   className,
   counterImport,
@@ -37,7 +40,7 @@ const header = (graph: ScaleGraph) =>
 // https://inversify.io/docs/api/container-module/,
 // https://inversify.io/docs/api/binding-syntax/#toresolvedvalue and
 // https://inversify.io/docs/api/container/#getasync, read 2026-10-01.
-// Every binding is a singleton, since InversifyJS defaults to transient.
+// Every binding is a singleton, since InversifyJS defaults to transient.${hasAliases(graph) ? '\n// An alias is bind(token).toService(id); toService takes no scope.' : ''}
 // new Container() keeps the getting-started default jitless: true; the
 // docs offer jitless: false for speed where unsafe-eval is allowed.
 // A ContainerModule has no imports or exports, so the container is flat
@@ -67,7 +70,12 @@ function refsOf(
   for (const p of own) {
     if (opts.bindings) {
       r.ids.add(p.index);
-      if (p.kind !== 'class') r.types.add(p.index);
+      if (p.kind !== 'class' && p.kind !== 'alias') r.types.add(p.index);
+    }
+    if (p.kind === 'alias') {
+      // The binding names its target's id and nothing else.
+      if (opts.bindings) r.ids.add(p.deps[0]);
+      continue;
     }
     // @inject ids sit in the class; resolved-value ids in the binding.
     const injects =
@@ -104,7 +112,7 @@ function importsOf(
   for (const i of all) {
     const p = graph.providers[i];
     if (p.kind !== 'class' && r.ids.has(i)) tokens.push(token(p));
-    if (p.kind === 'value') {
+    if (p.kind === 'value' || p.kind === 'alias') {
       if (r.types.has(i)) tokens.push(`type ${iface(p)}`);
       continue;
     }
@@ -144,6 +152,8 @@ function bindingOf(
     return `${indent}${bind}(${className(p)}).toSelf().inSingletonScope();\n`;
   if (p.kind === 'value')
     return `${indent}${bind}<${iface(p)}>(${token(p)}).toConstantValue(${valueLiteral(p)});\n`;
+  if (p.kind === 'alias')
+    return `${indent}${bind}(${token(p)}).toService(${idOf(graph.providers[p.deps[0]])});\n`;
   const ids =
     p.deps.length > 0
       ? `${indent}    [${p.deps.map((d) => idOf(graph.providers[d])).join(', ')}],\n`
@@ -168,19 +178,35 @@ function decorators(own: readonly ScaleProvider[]): string[] {
   ];
 }
 
-/** tokens.ts: a symbol per factory and value, an interface per value. */
+/**
+ * tokens.ts: a symbol per factory, value and alias, an interface per value
+ * and a type alias per alias, which imports the classes it names as types.
+ */
 function tokensFile(graph: ScaleGraph): string {
-  return graph.providers
-    .filter((p) => p.kind !== 'class')
-    .map(
-      (p) =>
-        `${
-          p.kind === 'value'
-            ? `export interface ${iface(p)} {\n  readonly id: '${p.name}';\n}\n`
-            : ''
-        }export const ${token(p)} = Symbol.for('${p.name}');\n`,
-    )
+  const bound = graph.providers.filter((p) => p.kind !== 'class');
+  const named = new Map<string, Set<string>>();
+  for (const p of bound.filter((q) => q.kind === 'alias')) {
+    const target = graph.providers[p.deps[0]];
+    if (target.kind === 'value' || target.kind === 'alias') continue;
+    const file = fileOf(graph, target);
+    named.set(file, (named.get(file) ?? new Set()).add(className(target)));
+  }
+  const imports = [...named.keys()]
+    .sort()
+    .map((f) => lineOf([...(named.get(f) ?? [])], `./${f}`, true))
     .join('');
+  const body = bound
+    .map((p) => {
+      const type =
+        p.kind === 'value'
+          ? `export interface ${iface(p)} {\n  readonly id: '${p.name}';\n}\n`
+          : p.kind === 'alias'
+            ? aliasType(graph, p)
+            : '';
+      return `${type}export const ${token(p)} = Symbol.for('${p.name}');\n`;
+    })
+    .join('');
+  return `${imports}${imports === '' ? '' : '\n'}${body}`;
 }
 
 /** One file per module: its classes and its ContainerModule. */

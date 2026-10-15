@@ -48,4 +48,17 @@ describe('needle-di decorated scale cells', () => {
     expect(result.message).toBeUndefined();
     expect(result.outcome).toBe('pass');
   }, 300_000);
+
+  // Aliases, factories and values across modules at a size where chains of
+  // aliases and cross-module aliases occur.
+  it('passes mixed at n = 200 through compile, bundle and verify', async () => {
+    const result = await scaleCell(
+      dir,
+      needle,
+      'decorated',
+      graphOf('mixed', 200),
+    );
+    expect(result.message).toBeUndefined();
+    expect(result.outcome).toBe('pass');
+  }, 180_000);
 });

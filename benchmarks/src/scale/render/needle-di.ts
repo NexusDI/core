@@ -2,7 +2,8 @@
  * needle-di `decorated` (scale spec 4.2): `@injectable()` classes with an
  * `inject(id)` initializer per dependency field, bound on first `get`;
  * factories as `{ provide, useFactory }` and values as
- * `{ provide, useValue }` under an InjectionToken; async factories as
+ * `{ provide, useValue }` and aliases as `{ provide, useExisting }` under
+ * an InjectionToken; async factories as
  * `{ provide, async: true, useFactory }`, resolved with `getAsync`. Each
  * graph module with factories or values is a `register<Module>(container)`
  * function making one `container.bindAll(...)` call (ruling 6), the
@@ -12,6 +13,8 @@
  */
 import type { ScaleGraph, ScaleProvider } from '../graph.ts';
 import {
+  aliasType,
+  hasAliases,
   classBody,
   className,
   counterImport,
@@ -37,7 +40,7 @@ const header = (graph: ScaleGraph) =>
   `// Scale app: ${graph.shape} at ${graph.size} providers, needle-di decorated.
 // Docs: https://needle-di.io (1.2.1), pages Injection, Tokens, Providers,
 // Binding and Async injection, read 2026-10-01.
-// needle-di documents singletons only, so no lifetime is set.
+// needle-di documents singletons only, so no lifetime is set.${hasAliases(graph) ? '\n// An alias is { provide, useExisting } of the id it points at.' : ''}
 // A factory injects its dependencies with inject(). inject() throws for an
 // async provider, also an indirect one, and works only before the first
 // await, so a factory whose closure holds an async provider is bound
@@ -95,6 +98,8 @@ function entryOf(
 ): string {
   if (p.kind === 'value')
     return `    { provide: ${token(p)}, useValue: ${valueLiteral(p)} },\n`;
+  if (p.kind === 'alias')
+    return `    { provide: ${token(p)}, useExisting: ${idOf(graph.providers[p.deps[0]])} },\n`;
   const deps = p.deps.map((d) => graph.providers[d]);
   if (async.has(p.index)) {
     // inject() works only before the first await, so dependencies with no
@@ -150,8 +155,11 @@ function depImports(
       const dep = graph.providers[d];
       if (dep.kind === 'class') classes.add(d);
       else tokens.add(d);
+      // An alias names its target's id and nothing else.
+      if (p.kind === 'alias') continue;
       // A factory's product constructor names its parameters' types.
-      if (p.kind !== 'class') (dep.kind === 'value' ? types : classes).add(d);
+      if (p.kind !== 'class')
+        (dep.kind === 'value' || dep.kind === 'alias' ? types : classes).add(d);
     }
   }
   const byFile = new Map<string, string[]>();
@@ -193,29 +201,43 @@ function needleNames(
   ];
 }
 
-/** tokens.ts: an InjectionToken per factory and value, an interface per value. */
+/**
+ * tokens.ts: an InjectionToken per factory, value and alias, an interface
+ * per value and a type alias per alias. The classes a token's type names
+ * are imported as types.
+ */
 function tokensFile(graph: ScaleGraph): string {
   const bound = graph.providers.filter((p) => p.kind !== 'class');
-  const products = new Map<string, string[]>();
-  for (const p of bound.filter((q) => q.kind !== 'value')) {
-    const file = fileOf(graph, p);
-    products.set(file, [...(products.get(file) ?? []), className(p)]);
+  const products = new Map<string, Set<string>>();
+  const add = (p: ScaleProvider) =>
+    products.set(
+      fileOf(graph, p),
+      (products.get(fileOf(graph, p)) ?? new Set()).add(className(p)),
+    );
+  for (const p of bound) {
+    if (p.kind === 'factory' || p.kind === 'async-factory') add(p);
+    // An alias's type is its target's: a class or product named by file.
+    if (p.kind === 'alias') {
+      const target = graph.providers[p.deps[0]];
+      if (target.kind !== 'value' && target.kind !== 'alias') add(target);
+    }
   }
   const imports = [...products.keys()]
     .sort()
-    .map((f) => lineOf(products.get(f) ?? [], `./${f}`, true))
+    .map((f) => lineOf([...(products.get(f) ?? [])], `./${f}`, true))
     .join('');
   return `import { InjectionToken } from '${PKG}';
 
 ${imports}${imports === '' ? '' : '\n'}${bound
-    .map(
-      (p) =>
-        `${
-          p.kind === 'value'
-            ? `export interface ${iface(p)} {\n  readonly id: '${p.name}';\n}\n`
-            : ''
-        }export const ${token(p)} = new InjectionToken<${typeOf(p)}>('${p.name}');\n`,
-    )
+    .map((p) => {
+      const type =
+        p.kind === 'value'
+          ? `export interface ${iface(p)} {\n  readonly id: '${p.name}';\n}\n`
+          : p.kind === 'alias'
+            ? aliasType(graph, p)
+            : '';
+      return `${type}export const ${token(p)} = new InjectionToken<${typeOf(p)}>('${p.name}');\n`;
+    })
     .join('')}`;
 }
 

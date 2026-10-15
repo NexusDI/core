@@ -1,8 +1,8 @@
 /**
  * awilix `plain` (scale spec 4.2): plain classes whose constructors
  * destructure the PROXY cradle, `asClass(C).singleton()`,
- * `asFunction(fn).singleton()` for factories and `asValue` for values,
- * under cradle names; `createContainer` with PROXY injection and
+ * `asFunction(fn).singleton()` for factories, `asValue` for values and
+ * `aliasTo` for aliases, under cradle names; `createContainer` with PROXY injection and
  * `strict: true`. Each graph module is a `register<Module>(container)`
  * function making one `container.register({...})` call (ruling 6), the
  * departure libraries.json records. Classes, values and the container
@@ -12,6 +12,9 @@
  */
 import type { ScaleGraph, ScaleProvider } from '../graph.ts';
 import {
+  aliasType,
+  hasAliases,
+  builds,
   classBody,
   className,
   counterImport,
@@ -37,7 +40,7 @@ const header = (graph: ScaleGraph) =>
 // container.register(), read 2026-10-01.
 // PROXY injection and strict mode, as the Meridian-8 fixture sets them;
 // the README warns that CLASSIC breaks under minification.
-// Every registration is .singleton(), since awilix defaults to transient.
+// Every registration is .singleton(), since awilix defaults to transient.${hasAliases(graph) ? "\n// An alias is aliasTo('name'), which resolves the name it points at." : ''}
 // Constructors and factories take the cradle and rename the names they
 // destructure to d0, d1, ...
 ${
@@ -63,9 +66,10 @@ function typeImports(
   );
   for (const i of used) {
     const p = graph.providers[i];
-    // A value's interface lives in cradle.ts, whichever module binds it.
-    if (p.kind !== 'value' && here(p)) continue;
-    const file = p.kind === 'value' ? 'cradle.ts' : fileOf(graph, p);
+    // A value's interface and an alias's type live in cradle.ts, whichever module binds them.
+    const inCradle = p.kind === 'value' || p.kind === 'alias';
+    if (!inCradle && here(p)) continue;
+    const file = inCradle ? 'cradle.ts' : fileOf(graph, p);
     byFile.set(file, [...(byFile.get(file) ?? []), typeOf(p)]);
   }
   return [...byFile.keys()]
@@ -94,6 +98,8 @@ function entryOf(graph: ScaleGraph, p: ScaleProvider, indent: string): string {
     return `${indent}${p.name}: asClass(${className(p)}).singleton(),\n`;
   if (p.kind === 'value')
     return `${indent}${p.name}: asValue(${valueLiteral(p)}),\n`;
+  if (p.kind === 'alias')
+    return `${indent}${p.name}: aliasTo('${graph.providers[p.deps[0]].name}'),\n`;
   const param = p.deps.length > 0 ? cradleParam(graph, p) : '';
   return `${indent}${p.name}: asFunction((${param}): ${className(p)} => {
 ${factoryBody(p, `${indent}  `)}${indent}}).singleton(),\n`;
@@ -104,12 +110,13 @@ const resolvers = (own: readonly ScaleProvider[]) => [
   ...(own.some((p) => p.kind === 'class') ? ['asClass'] : []),
   ...(own.some((p) => p.kind === 'factory') ? ['asFunction'] : []),
   ...(own.some((p) => p.kind === 'value') ? ['asValue'] : []),
+  ...(own.some((p) => p.kind === 'alias') ? ['aliasTo'] : []),
 ];
 
 /** cradle.ts: an interface per value and the cradle, one name per provider. */
 function cradleFile(graph: ScaleGraph): string {
   const byFile = new Map<string, string[]>();
-  for (const p of graph.providers.filter((q) => q.kind !== 'value')) {
+  for (const p of graph.providers.filter(builds)) {
     const file = fileOf(graph, p);
     byFile.set(file, [...(byFile.get(file) ?? []), className(p)]);
   }
@@ -118,10 +125,11 @@ function cradleFile(graph: ScaleGraph): string {
     .map((f) => lineOf(byFile.get(f) ?? [], `./${f}`, true))
     .join('');
   const values = graph.providers
-    .filter((p) => p.kind === 'value')
-    .map(
-      (p) =>
-        `export interface ${iface(p)} {\n  readonly id: '${p.name}';\n}\n\n`,
+    .filter((p) => p.kind === 'value' || p.kind === 'alias')
+    .map((p) =>
+      p.kind === 'alias'
+        ? `${aliasType(graph, p)}\n`
+        : `export interface ${iface(p)} {\n  readonly id: '${p.name}';\n}\n\n`,
     )
     .join('');
   return `${imports}${imports === '' ? '' : '\n'}${values}/** Every registration by name, as the PROXY cradle resolves it. */
