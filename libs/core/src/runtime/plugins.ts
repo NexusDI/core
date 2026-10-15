@@ -86,7 +86,7 @@ export interface NexusPlugin {
    * Runs on each class or factory instance before the runtime stores it; a
    * return other than undefined replaces it. `scope` is the building scope's
    * id, or null at the root. `container` is the Nexus or Scope building the
-   * value, the one create() or createScope() returns (spec §3.10.4).
+   * value, the one create() or createScope() returns.
    */
   construct?(
     instance: unknown,
@@ -305,7 +305,7 @@ export function registerPlugins(input: unknown): PluginSet {
     if (Array.isArray(pluginModules)) modules.push(...pluginModules);
   }
   // The plugins that passed validation format the faults, with no view:
-  // nothing has compiled yet (spec §9.1).
+  // nothing has compiled yet.
   if (errors.length > 0)
     throw formatThrown(
       { formatError: hooks.formatError },

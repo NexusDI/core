@@ -38,7 +38,7 @@ interface BuildEventFields {
 }
 
 /**
- * Each trace event type's fields (spec section 10.2). A package adds its own
+ * Each trace event type's fields. A package adds its own
  * by augmentation, keyed `<package>/<event>`.
  *
  * Core may add event types and fields in any minor release. An observer

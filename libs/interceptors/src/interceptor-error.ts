@@ -85,7 +85,7 @@ export function errorOf(fault: Fault): InterceptorError {
 
 /**
  * A call-time fault raised before setup, when the plugin has no context to
- * format it: it carries `text`, the message body (spec section 2.5.1).
+ * format it: it carries `text`, the message body.
  */
 export function faultWithText(fault: Fault, text: string): InterceptorError {
   return new InterceptorError({ ...NONE, ...fault }, { text });

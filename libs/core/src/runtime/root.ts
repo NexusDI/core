@@ -20,7 +20,7 @@ export interface RootConfig {
   readonly exports?: readonly ExportEntry[];
 }
 
-/** Every root Nexus.create and Nexus.check accept (spec §3.5). */
+/** Every root Nexus.create and Nexus.check accept. */
 export type RootRef = ModuleRef | readonly ProviderEntry[] | RootConfig;
 
 /**
@@ -56,7 +56,7 @@ type CheckedRootConfig<R> = {
 };
 
 /**
- * The root `R` checked the way defineModule checks `providers` (spec §4.6).
+ * The root `R` checked the way defineModule checks `providers`.
  * The parameter is one conditional type, never a union or an overload set,
  * so TypeScript reports a failed check on the element or key that breaks it.
  */

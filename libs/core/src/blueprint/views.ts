@@ -66,7 +66,7 @@ export interface ModuleView {
 /** One provider of the compiled graph, as a plugin reads it. */
 export interface ProviderView {
   readonly id: string;
-  /** The key's canonical token (spec §3.10.3). Compare it to find a provider; read `written` for what a token carries. */
+  /** The key's canonical token. Compare it to find a provider; read `written` for what a token carries. */
   readonly token: AnyToken;
   /** The token the module listed, before a tokenKey hook keyed it. `token` itself without a tokenKey plugin. A compile.provider rewrite keeps it. */
   readonly written: AnyToken;
@@ -268,7 +268,7 @@ export function failedView(error: BlueprintError): BlueprintView | undefined {
 
 /**
  * Keeps the check view's provider views for `bp`, so construct hooks receive
- * the objects the compile's check hooks saw (spec §3.10.3). The rest of the
+ * the objects the compile's check hooks saw. The rest of the
  * view is dropped.
  */
 export function adoptView(bp: Blueprint, view: BlueprintView): void {

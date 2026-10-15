@@ -79,11 +79,11 @@ const NO_DECLARATIONS: Declarations = Object.freeze({
 });
 
 /**
- * The interceptors plugin (spec section 5). Registers every interceptor in
+ * The interceptors plugin. Registers every interceptor in
  * one module with a private registry factory that core builds before any
  * onInit, and wraps class and factory instances that have interceptors.
  * Bad options make every hook but compile.check a no-op; the check reports
- * each fault (spec section 2.5.12 of the extension principle).
+ * each fault.
  */
 export function interceptors(options: InterceptorsOptions): NexusPlugin {
   const parsed = parseOptions(options);
@@ -141,7 +141,7 @@ export function interceptors(options: InterceptorsOptions): NexusPlugin {
       provide(REGISTRY, { deps: tokens, useFactory: bind } as never),
       // A singleton with no deps, so core builds it in the first level. The
       // construct hook replaces it with a disposer bound to the container's
-      // session (spec section 6).
+      // session.
       provide(GUARD, { useFactory: () => ({}) }),
     ],
   });
@@ -260,7 +260,7 @@ export function interceptors(options: InterceptorsOptions): NexusPlugin {
     dispose() {
       // Core runs this after it disposes every instance the container
       // owns, so a disposer that calls an intercepted method still runs
-      // its interceptors (spec section 6). The hook names no container, so
+      // its interceptors. The hook names no container, so
       // it closes each started session whose container is closed: a
       // container that claimed the plugin object meanwhile keeps its own.
       for (const session of started) {
