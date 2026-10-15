@@ -23,6 +23,7 @@
     "@nexusdi/express",
     "@nexusdi/fastify",
     "@nexusdi/hono",
+    "@nexusdi/react-router",
     "@nexusdi/vitest",
     "@nexusdi/meridian-ui",
   ],
@@ -64,6 +65,7 @@
     "libs/express/test-support/nexus-request.ts",
     "libs/fastify/test-support/nexus-request.ts",
     "libs/hono/test-support/nexus-request.ts",
+    "libs/react-router/test-support/nexus-request.ts",
     "libs/vitest/test-support/nexus-request.ts",
     "libs/core/src/**/*.test-d.ts",
     "libs/errors/src/**/*.test-d.ts",
@@ -76,6 +78,7 @@
     "libs/express/src/**/*.test-d.ts",
     "libs/fastify/src/**/*.test-d.ts",
     "libs/hono/src/**/*.test-d.ts",
+    "libs/react-router/src/**/*.test-d.ts",
     "libs/vitest/src/**/*.test-d.ts",
     "libs/vitest/src/__fixtures__/**",
     // fallow's vitest plugin derives entry points from vite.config.ts's
@@ -416,6 +419,11 @@
       // (integrations spec 3.7, ruling V13). adapter-shared-copies.test.ts
       // keeps the copies byte-identical.
       "libs/*/src/internal/request-scope.ts",
+      // The body wrapper of integrations spec 3.4, one byte-identical copy
+      // per adapter that returns its Response before the body is written
+      // (Hono, React Router). P4's named exception (ruling V13);
+      // adapter-shared-copies.test.ts holds the copies equal.
+      "libs/*/src/internal/dispose-with-body.ts",
       // The dense visibility pass, kept as the oracle the sparse pass in
       // libs/core/src/blueprint/visibility.ts is tested against.
       "libs/core/test-support/visibility-oracle.ts",

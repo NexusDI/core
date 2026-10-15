@@ -1,0 +1,9 @@
+{
+  "$schema": "../../node_modules/nx/schemas/project-schema.json",
+  "name": "@nexusdi/react-router",
+  "targets": {
+    "lint": { "options": { "args": ["--max-warnings=0"] } },
+    "test": { "dependsOn": ["^build", "build"] },
+    "stage-publish": {}
+  }
+}

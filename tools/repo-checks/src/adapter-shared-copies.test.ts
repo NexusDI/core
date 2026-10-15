@@ -33,6 +33,12 @@ describe('sharedCopies', () => {
     expect(live.violations).toEqual([]);
   });
 
+  it('finds at least two adapters carrying dispose-with-body.ts', () => {
+    expect(
+      live.copies['dispose-with-body.ts']?.length ?? 0,
+    ).toBeGreaterThanOrEqual(2);
+  });
+
   it('finds at least two adapters carrying request-scope.ts', () => {
     expect(live.copies['request-scope.ts']?.length ?? 0).toBeGreaterThanOrEqual(
       2,

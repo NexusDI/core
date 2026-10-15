@@ -74,6 +74,9 @@
     },
     {
       "path": "./libs/hono"
+    },
+    {
+      "path": "./libs/react-router"
     }
   ],
   "compilerOptions": {

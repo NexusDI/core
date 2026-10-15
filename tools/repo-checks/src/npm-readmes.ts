@@ -84,7 +84,9 @@ interface Pattern {
 export const BANNED: readonly Pattern[] = [
   { name: 'native', pattern: /\bnative\b/i },
   { name: 'reflect-metadata', pattern: /reflect-metadata/i },
-  { name: 'error code', pattern: /\bNEXUS_[A-Z_]+/ },
+  // NEXUS_SCOPE is a public constant of @nexusdi/react-router (the router
+  // context key), not an error code, and its README imports it.
+  { name: 'error code', pattern: /\bNEXUS_(?!SCOPE\b)[A-Z_]+/ },
   { name: 'emoji', pattern: /\p{Extended_Pictographic}/u },
   { name: 'size figure', pattern: /\b\d+(\.\d+)?\s?KB\b/i },
   { name: 'lightweight', pattern: /\blightweight\b/i },
