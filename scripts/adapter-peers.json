@@ -9,11 +9,13 @@
   },
   "express-floor": {
     "install": ["express@5.0.0"],
-    "targets": ["@nexusdi/express:test"]
+    "targets": ["@nexusdi/express:test"],
+    "legacyPeerDeps": true
   },
   "express-latest": {
     "install": ["express@^5"],
-    "targets": ["@nexusdi/express:test"]
+    "targets": ["@nexusdi/express:test"],
+    "legacyPeerDeps": true
   },
   "fastify-floor": {
     "install": ["fastify@5.0.0", "fastify-plugin@6.0.0"],
