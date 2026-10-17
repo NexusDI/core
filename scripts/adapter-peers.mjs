@@ -43,10 +43,11 @@ const libOf = (target) =>
   join(ROOT, 'libs', target.slice('@nexusdi/'.length, target.indexOf(':')));
 
 console.log(`Leg ${name}: installing ${leg.install.join(' ')}`);
-// The workspace's own tools pin peers on the line a leg replaces (@nx/vitest
-// wants vitest ^4, @vitest/browser-playwright an exact 4.1.9, and libs/react
-// and examples/react-ssr @react-router/dev ^8), and the leg tests one adapter,
-// so npm skips those tools' peer checks.
+// The workspace's own tools pin peers on the line a leg replaces (the root
+// pins @vitest/ui, @vitest/coverage-v8 and @vitest/browser-playwright to
+// exactly 5.0.5, which the vitest-floor and vitest-4-latest legs replace with
+// 4.x, and libs/react and examples/react-ssr pin @react-router/dev ^8), and
+// the leg tests one adapter, so npm skips those tools' peer checks.
 run('npm', [
   'install',
   '--no-save',
