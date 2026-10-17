@@ -37,6 +37,8 @@ export default defineConfig(() => ({
     },
   },
   test: {
+    fsModuleCachePath:
+      '../../node_modules/.vite/examples/react-router/fs-modules',
     watch: false,
     globals: true,
     environment: 'jsdom',

@@ -8,6 +8,7 @@ export default defineConfig(() => ({
   cacheDir: '../node_modules/.vite/benchmarks-cells',
   tsconfig: './tsconfig.json',
   test: {
+    fsModuleCachePath: '../node_modules/.vite/benchmarks-cells/fs-modules',
     name: '@nexusdi/benchmarks (cells)',
     watch: false,
     globals: true,

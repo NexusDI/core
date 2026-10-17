@@ -13,6 +13,7 @@ export default defineConfig(() => ({
   ...docExamples(),
   build: { sourcemap: false },
   test: {
+    fsModuleCachePath: '../../node_modules/.vite/libs/hono/fs-modules',
     name: '@nexusdi/hono',
     watch: false,
     globals: true,

@@ -14,6 +14,7 @@ export default defineConfig(() => ({
   // avoids that.
   tsconfig: './tsconfig.json',
   test: {
+    fsModuleCachePath: '../../node_modules/.vite/tools/repo-checks/fs-modules',
     name: '@nexusdi/repo-checks',
     watch: false,
     globals: true,

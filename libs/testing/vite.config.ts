@@ -13,6 +13,7 @@ export default defineConfig(() => ({
   ...docExamples(),
   build: { sourcemap: false },
   test: {
+    fsModuleCachePath: '../../node_modules/.vite/libs/testing/fs-modules',
     name: '@nexusdi/testing',
     watch: false,
     globals: true,

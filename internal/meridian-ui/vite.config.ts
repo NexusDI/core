@@ -62,6 +62,8 @@ export default defineConfig(() => ({
     },
   },
   test: {
+    fsModuleCachePath:
+      '../../node_modules/.vite/internal/meridian-ui/fs-modules',
     watch: false,
     reporters: ['default'],
     coverage: {

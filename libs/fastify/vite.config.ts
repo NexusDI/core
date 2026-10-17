@@ -13,6 +13,7 @@ export default defineConfig(() => ({
   ...docExamples(),
   build: { sourcemap: false },
   test: {
+    fsModuleCachePath: '../../node_modules/.vite/libs/fastify/fs-modules',
     name: '@nexusdi/fastify',
     watch: false,
     globals: true,

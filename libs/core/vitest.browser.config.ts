@@ -8,6 +8,7 @@ export default defineConfig(() => ({
   cacheDir: '../../node_modules/.vite/libs/core-browser',
   tsconfig: './tsconfig.spec.json',
   test: {
+    fsModuleCachePath: '../../node_modules/.vite/libs/core-browser/fs-modules',
     name: '@nexusdi/core (browser)',
     watch: false,
     globals: true,
