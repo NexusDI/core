@@ -59,3 +59,9 @@ updates:
       # oldest supported Node. Raise this with the engines floor.
       - dependency-name: '@types/node'
         versions: ['>=23']
+      # jsdom 30.1.3 needs undici ^8.12.1, and undici 8.12 reads
+      # zlib.createZstdDecompress when it loads, which Node 22.12 lacks, so
+      # the node-floor test legs cannot start the react tests. Lift this when
+      # those legs move to a Node that undici 8.12 supports.
+      - dependency-name: 'jsdom'
+        versions: ['>=30.1.3']
