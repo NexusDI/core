@@ -23,12 +23,11 @@ test('a /next/ page carries the release notice above its heading', async ({
   const notice = page.locator('.nexus-release');
   await expect(notice).toContainText('This page documents');
 
-  const noticeBox = await notice.boundingBox();
-  const headingBox = await page.locator('article h1').boundingBox();
-  if (!noticeBox || !headingBox) {
-    throw new Error('the notice or the heading has no box');
-  }
-  expect(noticeBox.y).toBeLessThan(headingBox.y);
+  await expect(notice).toBeVisible();
+  const top = (element: Element) => element.getBoundingClientRect().top;
+  const noticeTop = await notice.evaluate(top);
+  const headingTop = await page.locator('article h1').evaluate(top);
+  expect(noticeTop).toBeLessThan(headingTop);
 });
 
 test('the content of a /next/ page sits in the search index region', async ({

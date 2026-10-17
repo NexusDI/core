@@ -43,7 +43,7 @@ for (const theme of ['dark', 'light'] as const) {
           const slash = /\/\s*([\d.]+)\s*\)$/.exec(value);
           if (slash) return Number(slash[1]);
           const comma = /^rgba\(([^)]+)\)$/.exec(value);
-          if (comma) return Number(comma[1]!.split(',')[3] ?? 1);
+          if (comma) return Number(comma[1]?.split(',')[3] ?? 1);
           return 1;
         };
         const offenders: string[] = [];
