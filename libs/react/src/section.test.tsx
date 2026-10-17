@@ -51,8 +51,11 @@ const loadEvents = (events: TraceEvent[]) =>
 /** An errorFallback that keeps the error it renders. */
 function capture() {
   const seen: { error?: unknown } = {};
-  function Capture({ error }: { error: unknown; retry(): void }) {
+  const record = (error: unknown) => {
     seen.error = error;
+  };
+  function Capture({ error }: { error: unknown; retry(): void }) {
+    record(error);
     return <p>failed</p>;
   }
   return { seen, Capture };

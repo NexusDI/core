@@ -290,9 +290,12 @@ describe('ScopeProvider', () => {
     const seen: { root?: Nexus; routes: (readonly string[])[] } = {
       routes: [],
     };
+    const record = (root: Nexus, routes: readonly string[]) => {
+      seen.root = root;
+      seen.routes.push(routes);
+    };
     function Probe() {
-      seen.root = useContainer();
-      seen.routes.push(useService(ROUTES));
+      record(useContainer(), useService(ROUTES));
       return <p>{useService(MISSION).id}</p>;
     }
     const view = render(

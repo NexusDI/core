@@ -40,7 +40,7 @@ const extended = test.extend<{ extra: string }>({
   // Vitest reads a fixture's dependencies from its first parameter, which
   // must be a destructuring pattern.
   // eslint-disable-next-line no-empty-pattern
-  extra: async ({}, use) => use('docked'),
+  extra: async ({}, provide) => provide('docked'),
 });
 
 extended('composes with a further extend', ({ nexus, extra }) => {

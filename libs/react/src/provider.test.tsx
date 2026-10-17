@@ -209,17 +209,17 @@ describe('NexusProvider', () => {
     await using ship = await Nexus.create([
       provide(NAV_CHARTS, { useValue: fakeCharts }),
     ]);
-    let seen: Nexus | undefined;
-    function Probe() {
-      seen = useContainer();
+    const seen: Nexus[] = [];
+    function Probe({ record }: { record(container: Nexus): void }) {
+      record(useContainer());
       return null;
     }
     const view = render(
       <NexusProvider container={ship}>
-        <Probe />
+        <Probe record={(container) => seen.push(container)} />
       </NexusProvider>,
     );
-    expect(seen).toBe(ship);
+    expect(seen.at(-1)).toBe(ship);
     view.unmount();
   });
 });
