@@ -54,8 +54,7 @@ export function announcementBar(post) {
   return {
     id: `rc-${post.file.replace(/\.mdx?$/, '')}`,
     isCloseable: true,
-    content:
-      `NexusDI 0.4 is in release candidate. Read the <a href="${post.permalink}">announcement</a>, ` +
-      'or the <a href="/next/upgrade/">upgrade guide</a>.',
+    // Links the post alone until the 0.4 upgrade guide is published.
+    content: `NexusDI 0.4 is in release candidate. Read the <a href="${post.permalink}">announcement</a>.`,
   };
 }
