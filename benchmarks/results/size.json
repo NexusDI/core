@@ -24,7 +24,7 @@
     "node": "24.20.0",
     "bundlers": {
       "esbuild": "0.28.2",
-      "rollup": "4.63.4"
+      "rollup": "4.64.7"
     }
   },
   "sizes": [
