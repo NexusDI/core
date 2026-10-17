@@ -1,6 +1,6 @@
 import { Nexus } from '@nexusdi/core';
 import { Hono } from 'hono';
-import { bench, describe } from 'vitest';
+import { test } from 'vitest';
 
 import { createBridge } from '../src/hono';
 import { NAV_CHARTS } from '../src/ship/contracts';
@@ -13,18 +13,20 @@ const bare = new Hono().get('/course/:to', (c) =>
   c.json({ course: charts.plot(c.req.param('to')), entries: [] }),
 );
 
-describe('Nexus.create, warm', () => {
-  bench('OfflineMeridian', async () => {
+test('Nexus.create, warm', async ({ bench }) => {
+  await bench('OfflineMeridian', async () => {
     const built = await Nexus.create(OfflineMeridian);
     await built[Symbol.asyncDispose]();
-  });
+  }).run();
 });
 
-describe('a request through Hono', () => {
-  bench('bare Hono', async () => {
-    await bare.request('/course/Kepler-442b');
-  });
-  bench('@nexusdi/hono with inject', async () => {
-    await bridge.request('/course/Kepler-442b');
-  });
+test('a request through Hono', async ({ bench }) => {
+  await bench.compare(
+    bench('bare Hono', async () => {
+      await bare.request('/course/Kepler-442b');
+    }),
+    bench('@nexusdi/hono with inject', async () => {
+      await bridge.request('/course/Kepler-442b');
+    }),
+  );
 });
