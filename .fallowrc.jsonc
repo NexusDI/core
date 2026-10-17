@@ -316,6 +316,10 @@
     // blocks live in .md files under src/, which fallow does not read, so
     // these report as unused there.
     "@hono/node-server",
+    // Every libs/*/vite.config.ts imports the doc-example plugin. The libs
+    // do not list the private tools/doc-examples workspace in their
+    // package.json, because their published manifests should not name it.
+    "@nexusdi/doc-examples",
     "@nexusdi/express",
     "@nexusdi/fastify",
     "@nexusdi/federation",
