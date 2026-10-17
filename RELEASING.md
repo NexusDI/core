@@ -177,6 +177,9 @@ On `release/X.Y`, the version is `X.Y.0`. Before dispatching:
    `final` with `finalDate`.
 2. Make sure `apps/docs/archives.json` has an entry for the retiring line.
 3. Run a sync if `main` moved since the last one, and merge its pull request.
+4. Remove `target-branch: release/X.Y` from both entries in
+   `.github/dependabot.yml`, so version updates return to `main` before the
+   run deletes the branch.
 
 The run then:
 
