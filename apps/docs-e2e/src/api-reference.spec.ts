@@ -169,9 +169,7 @@ for (const theme of ['dark', 'light'] as const) {
     );
     expect(colour?.wanted).toBeTruthy();
     expect(colour?.got).toBe(colour?.expected);
-    expect(await token.getAttribute('aria-describedby')).toBe(
-      'nexus-type-card',
-    );
+    await expect(token).toHaveAttribute('aria-describedby', 'nexus-type-card');
 
     await page.mouse.move(0, 0);
     await expect(card).toHaveCount(0);
@@ -250,7 +248,8 @@ test('walks a fence from one tab stop with the arrow keys', async ({
   const card = page.locator('#nexus-type-card');
   await expect(card).toBeVisible();
   await expect(card).not.toBeEmpty();
-  expect(await tokens.nth(1).getAttribute('aria-describedby')).toBe(
+  await expect(tokens.nth(1)).toHaveAttribute(
+    'aria-describedby',
     'nexus-type-card',
   );
 
