@@ -1,4 +1,5 @@
 import nx from '@nx/eslint-plugin';
+import reactHooks from 'eslint-plugin-react-hooks';
 
 /**
  * Rules every project ends up with, whatever else its own config pulls in.
@@ -33,6 +34,14 @@ export default [
   ...nx.configs['flat/base'],
   ...nx.configs['flat/typescript'],
   ...nx.configs['flat/javascript'],
+  {
+    // `recommended` is the flat preset since 6.1 and carries the React
+    // Compiler rules (refs, purity, set-state-in-effect) since 7.0. The
+    // compiler skips files with no component or hook, so non-React
+    // projects pay nothing.
+    ...reactHooks.configs.flat.recommended,
+    files: ['**/*.ts', '**/*.tsx', '**/*.js', '**/*.jsx'],
+  },
   {
     ignores: [
       '**/dist',

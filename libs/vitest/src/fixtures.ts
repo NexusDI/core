@@ -31,22 +31,25 @@ export function nexusFixtures(
     nexusSetup: [steps, { scope }],
     // The package compiles against core's empty NexusRequest, which a
     // function satisfies, so Vitest's Fixture type takes only a factory here.
-    // eslint-disable-next-line no-empty-pattern -- Vitest reads a fixture's dependencies from its first parameter, which must be a destructuring pattern
-    nexusRequest: [async ({}, use) => use(undefined), { scope: 'test' }],
+    nexusRequest: [
+      // eslint-disable-next-line no-empty-pattern -- Vitest reads a fixture's dependencies from its first parameter, which must be a destructuring pattern
+      async ({}, provide) => provide(undefined),
+      { scope: 'test' },
+    ],
     nexus: [
-      async ({ nexusSetup }, use) => {
+      async ({ nexusSetup }, provide) => {
         const builder = nexusSetup.reduce(
           (current, step) => step(current),
           createTestingContainer(root),
         );
         await using ship = await builder.create(options.create);
-        await use(ship);
+        await provide(ship);
       },
       { scope },
     ],
-    nexusScope: async ({ nexus, nexusRequest }, use) => {
+    nexusScope: async ({ nexus, nexusRequest }, provide) => {
       await using scope = await nexus.createScope({ request: nexusRequest });
-      await use(scope);
+      await provide(scope);
     },
   };
 }
