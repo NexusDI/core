@@ -23,7 +23,7 @@
     "@nexusdi/devtools": "*",
     "@nexusdi/testing": "*",
     "@nexusdi/vitest": "*",
-    "@nx/eslint-plugin": "23.1.1",
+    "@nx/eslint-plugin": "23.3.0",
     "@react-router/dev": "8.4.0",
     "@tailwindcss/vite": "^4.1.10",
     "@testing-library/react": "16.3.3",

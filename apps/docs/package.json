@@ -144,7 +144,7 @@
     "@nexusdi/react-router": "*",
     "@nexusdi/testing": "*",
     "@nexusdi/vitest": "*",
-    "@nx/eslint-plugin": "23.1.1",
+    "@nx/eslint-plugin": "23.3.0",
     "@shikijs/themes": "3.23.0",
     "@shikijs/transformers": "3.23.0",
     "@shikijs/twoslash": "3.23.0",
