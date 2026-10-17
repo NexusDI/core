@@ -1,7 +1,7 @@
 import { readFileSync } from 'node:fs';
 import { createRequire } from 'node:module';
 import { join } from 'node:path';
-import { describe, expect, it } from 'vitest';
+import { beforeAll, describe, expect, it } from 'vitest';
 
 import { decadeTicks, renderChart, type ChartInput } from './svg.ts';
 
@@ -55,6 +55,13 @@ const { JSDOM } = createRequire(import.meta.url)('jsdom') as {
 };
 const parse = (svg: string) =>
   new JSDOM(svg, { contentType: 'image/svg+xml' }).window.document;
+
+// The first JSDOM construction initialises the whole window implementation.
+// It takes 6s on a CI runner running 32 projects at once, which used up the
+// 5s budget of whichever test parsed first. Pay it once, outside any test.
+beforeAll(() => {
+  parse('<svg xmlns="http://www.w3.org/2000/svg"/>');
+}, 60_000);
 
 describe('decadeTicks', () => {
   it('gives 10, 100, 1,000 and 10,000 for 50 to 5,000', () => {
