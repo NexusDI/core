@@ -9,6 +9,8 @@ export default defineConfig(() => ({
   // libs/core/vite.config.ts), so the file is named explicitly.
   tsconfig: './tsconfig.json',
   test: {
+    fsModuleCachePath:
+      '../../node_modules/.vite/tools/readme-assets/fs-modules',
     name: '@nexusdi/readme-assets',
     watch: false,
     globals: true,

@@ -24,6 +24,7 @@ export default defineConfig(() => ({
   ...docExampleConfig,
   plugins: [standardDecorators(), ...docExamplePlugins],
   test: {
+    fsModuleCachePath: '../../node_modules/.vite/examples/meridian/fs-modules',
     name: '@nexusdi/meridian',
     watch: false,
     globals: true,

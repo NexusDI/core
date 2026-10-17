@@ -15,6 +15,7 @@ export default defineConfig({
   // tsconfig sets `jsx: preserve` for Next, which esbuild cannot run.
   plugins: [react()],
   test: {
+    fsModuleCachePath: '../../node_modules/.vite/apps/docs/fs-modules',
     name: '@nexusdi/docs',
     watch: false,
     globals: true,

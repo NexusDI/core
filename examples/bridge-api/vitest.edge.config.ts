@@ -5,6 +5,8 @@ import { defineConfig } from 'vitest/config';
 export default defineConfig({
   root: import.meta.dirname,
   test: {
+    fsModuleCachePath:
+      '../../node_modules/.vite/examples/bridge-api-edge/fs-modules',
     name: '@nexusdi/bridge-api:edge-runtime',
     environment: 'node',
     include: ['test/edge/**/*.edge.test.ts'],

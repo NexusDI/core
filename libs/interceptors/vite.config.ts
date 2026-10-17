@@ -25,6 +25,7 @@ export default defineConfig(() => ({
   plugins: [standardDecorators(), ...docExamplePlugins],
   build: { sourcemap: false },
   test: {
+    fsModuleCachePath: '../../node_modules/.vite/libs/interceptors/fs-modules',
     name: '@nexusdi/interceptors',
     watch: false,
     globals: true,

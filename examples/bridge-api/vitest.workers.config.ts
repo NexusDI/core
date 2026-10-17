@@ -15,6 +15,8 @@ export default defineConfig({
     }),
   ],
   test: {
+    fsModuleCachePath:
+      '../../node_modules/.vite/examples/bridge-api-workers/fs-modules',
     name: `@nexusdi/bridge-api:workers:${signal ? 'signal' : 'no-signal'}`,
     include: ['test/worker/**/*.test.ts'],
   },

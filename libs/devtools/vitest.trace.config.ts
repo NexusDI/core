@@ -4,6 +4,8 @@ export default defineConfig({
   root: import.meta.dirname,
   cacheDir: '../../node_modules/.vite/libs/devtools-trace',
   test: {
+    fsModuleCachePath:
+      '../../node_modules/.vite/libs/devtools-trace/fs-modules',
     name: '@nexusdi/devtools:trace',
     watch: false,
     environment: 'node',

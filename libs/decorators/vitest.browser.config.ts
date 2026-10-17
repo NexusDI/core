@@ -11,6 +11,8 @@ export default defineConfig(() => ({
   tsconfig: './tsconfig.spec.json',
   plugins: [standardDecorators()],
   test: {
+    fsModuleCachePath:
+      '../../node_modules/.vite/libs/decorators-browser/fs-modules',
     name: '@nexusdi/decorators (browser)',
     watch: false,
     globals: true,

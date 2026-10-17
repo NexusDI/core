@@ -6,6 +6,7 @@ export default defineConfig({
   root: import.meta.dirname,
   cacheDir: '../../node_modules/.vite/libs/react-e2e',
   test: {
+    fsModuleCachePath: '../../node_modules/.vite/libs/react-e2e/fs-modules',
     name: '@nexusdi/react:e2e',
     watch: false,
     environment: 'node',

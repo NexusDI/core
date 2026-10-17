@@ -6,6 +6,7 @@ export default defineConfig(() => ({
   tsconfig: './tsconfig.spec.json',
   build: { sourcemap: false },
   test: {
+    fsModuleCachePath: '../../node_modules/.vite/libs/cli/fs-modules',
     name: '@nexusdi/cli',
     watch: false,
     globals: true,

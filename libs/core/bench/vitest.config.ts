@@ -9,6 +9,7 @@ export default defineConfig(() => ({
   // (see libs/core/vite.config.ts).
   tsconfig: '../tsconfig.spec.json',
   test: {
+    fsModuleCachePath: '../../../node_modules/.vite/libs/core/bench/fs-modules',
     name: '@nexusdi/core:bench',
     watch: false,
     include: ['**/*.test.ts'],

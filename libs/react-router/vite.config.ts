@@ -13,6 +13,7 @@ export default defineConfig(() => ({
   ...docExamples(),
   build: { sourcemap: false },
   test: {
+    fsModuleCachePath: '../../node_modules/.vite/libs/react-router/fs-modules',
     name: '@nexusdi/react-router',
     watch: false,
     globals: true,
