@@ -6,11 +6,13 @@ import {
   REQUEST,
   Token,
   type NexusRequest,
+  type Scope,
   type TraceEvent,
 } from '@nexusdi/core';
 import { trace } from '@nexusdi/devtools';
 import { act, render, screen } from '@testing-library/react';
-import { StrictMode } from 'react';
+import * as React from 'react';
+import { StrictMode, type ReactNode } from 'react';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 
 import {
@@ -447,5 +449,133 @@ describe('storeFor', () => {
     await tick();
     await expect(extended).resolves.toBeUndefined();
     expect(count(events, 'scope:dispose')).toBe(1);
+  });
+});
+
+/** Activity arrived in React 19.2, and the peer floor is 19.0. */
+const Activity = (
+  React as unknown as {
+    Activity?: (props: {
+      mode: 'visible' | 'hidden';
+      children?: ReactNode;
+    }) => ReactNode;
+  }
+).Activity;
+
+/** A createScope that settles when the test says so. */
+function gateScopes(ship: Nexus) {
+  const gates: {
+    settle(): void;
+    reject(error: unknown): void;
+    promise: Promise<Scope>;
+  }[] = [];
+  const create = ship.createScope.bind(ship);
+  vi.spyOn(ship, 'createScope').mockImplementation((options) => {
+    const real = create(options);
+    let settle!: () => void;
+    let reject!: (error: unknown) => void;
+    const promise = new Promise<Scope>((resolve, fail) => {
+      settle = () => resolve(real);
+      reject = fail;
+    });
+    gates.push({ settle, reject, promise });
+    return promise;
+  });
+  return gates;
+}
+
+describe('ScopeProvider settle order', () => {
+  afterEach(() => vi.restoreAllMocks());
+
+  it('keeps the scope of the current container when a replaced one settles last', async () => {
+    const events: TraceEvent[] = [];
+    await using shipA = await shipWith(events);
+    await using shipB = await shipWith(events);
+    const gatesA = gateScopes(shipA);
+    const gatesB = gateScopes(shipB);
+    const tree = (ship: Nexus) => (
+      <NexusProvider container={ship}>
+        <ScopeProvider request={survey} fallback={<p>Docking</p>}>
+          <LogPanel />
+        </ScopeProvider>
+      </NexusProvider>
+    );
+    const view = render(tree(shipA));
+    await act(async () => undefined);
+    view.rerender(tree(shipB)); // no macrotask yet, so A's disposal timer has not fired
+    // B settles, then A settles, both before A's disposal timer fires.
+    await act(async () => {
+      gatesB[0].settle();
+      await gatesB[0].promise;
+      gatesA[0].settle();
+      await gatesA[0].promise;
+    });
+    expect(screen.queryByText('Docking')).toBeNull();
+    expect(screen.getByText(/survey-7/)).toBeTruthy();
+    view.unmount();
+    await tick();
+  });
+
+  it.skipIf(Activity === undefined)(
+    'shows the fallback while a revealed Activity makes a new scope',
+    async () => {
+      if (Activity === undefined) return;
+      const events: TraceEvent[] = [];
+      await using ship = await shipWith(events);
+      const tree = (mode: 'visible' | 'hidden', note: string): ReactNode => (
+        <NexusProvider container={ship}>
+          <Activity mode={mode}>
+            <ScopeProvider request={survey} fallback={<p>Docking</p>}>
+              <LogPanel />
+              <span>{note}</span>
+            </ScopeProvider>
+          </Activity>
+        </NexusProvider>
+      );
+      const view = render(tree('visible', 'one'));
+      await screen.findByText(/survey-7/);
+      view.rerender(tree('hidden', 'one'));
+      await act(async () => tick()); // the hidden provider's scope is disposed
+      const gates = gateScopes(ship);
+      view.rerender(tree('visible', 'one'));
+      await act(async () => undefined);
+      expect(gates).toHaveLength(1);
+      view.rerender(tree('visible', 'two')); // a render before the new scope settles
+      await act(async () => undefined);
+      expect(screen.getByText('Docking')).toBeTruthy();
+      await act(async () => {
+        gates[0].settle();
+        await gates[0].promise;
+      });
+      expect(await screen.findByText(/survey-7/)).toBeTruthy();
+      view.unmount();
+      await tick();
+    },
+  );
+
+  it('disposes a scope once when the provider unmounts before the create settles', async () => {
+    const events: TraceEvent[] = [];
+    const errors = vi
+      .spyOn(console, 'error')
+      .mockImplementation(() => undefined);
+    await using ship = await shipWith(events);
+    const gates = gateScopes(ship);
+    const view = render(
+      <NexusProvider container={ship}>
+        <ScopeProvider request={survey}>
+          <LogPanel />
+        </ScopeProvider>
+      </NexusProvider>,
+    );
+    await act(async () => undefined);
+    view.unmount();
+    await act(async () => tick()); // the disposal timer fires with the create pending
+    await act(async () => {
+      gates[0].settle();
+      await gates[0].promise;
+    });
+    await tick();
+    expect(count(events, 'scope:dispose')).toBe(1);
+    expect(errors).not.toHaveBeenCalled();
   });
 });

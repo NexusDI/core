@@ -2,8 +2,8 @@ import type { NexusRequest, Scope } from '@nexusdi/core';
 import {
   useEffect,
   useMemo,
-  useReducer,
   useRef,
+  useState,
   type ReactElement,
   type ReactNode,
 } from 'react';
@@ -83,6 +83,34 @@ function hold(
 }
 
 /**
+ * Keeps the holder a ScopeProvider instance started, between the effect runs
+ * that StrictMode and a store change cause. Only effects touch it. The
+ * render reads the holder from state, which `settled` sets once the scope's
+ * creation has an outcome.
+ */
+function createSlot() {
+  let holder: Holder | null = null;
+  return {
+    /** The live holder for `store`, started if there is none. Call from an effect. */
+    adopt(
+      store: Store,
+      request: NexusRequest | undefined,
+      settled: (settledHolder: Holder) => void,
+    ): Holder {
+      if (holder === null || holder.disposed || holder.store !== store) {
+        // A holder replaced by a store change may still settle after its
+        // successor did. Only the holder in the slot reports.
+        const started: Holder = hold(store, request, () => {
+          if (holder === started) settled(started);
+        });
+        holder = started;
+      }
+      return holder;
+    },
+  };
+}
+
+/**
  * Gives its subtree a scope of its own, created after it mounts in the
  * browser and disposed on unmount. On the server and during hydration it
  * renders `fallback`.
@@ -95,8 +123,8 @@ export function ScopeProvider({
   const outer = useNexusContext('ScopeProvider');
   const hydrated = useHydrated();
   const requestRef = useRef(request);
-  const holderRef = useRef<Holder | null>(null);
-  const [, settled] = useReducer((n: number) => n + 1, 0);
+  const [slot] = useState(createSlot);
+  const [held, setHeld] = useState<Holder | null>(null);
 
   // Core 0.4 scopes do not nest (react spec 6.4). On the server and during
   // hydration this renders the fallback, so an SSR scope prop never throws.
@@ -104,18 +132,13 @@ export function ScopeProvider({
 
   useEffect(() => {
     if (!hydrated) return;
-    let holder = holderRef.current;
-    if (holder === null || holder.disposed || holder.store !== outer.store) {
-      holder = hold(outer.store, requestRef.current, settled);
-      holderRef.current = holder;
-    }
+    const holder = slot.adopt(outer.store, requestRef.current, setHeld);
     holder.acquire();
-    const held = holder;
-    return () => held.release();
-  }, [hydrated, outer.store]);
+    return () => holder.release();
+  }, [hydrated, outer.store, slot]);
 
-  const holder = holderRef.current;
-  const current = holder?.store === outer.store ? holder : null;
+  const current =
+    held !== null && held.store === outer.store && !held.disposed ? held : null;
   const scope = current?.scope;
   const value = useMemo<NexusContextValue | null>(
     () =>
