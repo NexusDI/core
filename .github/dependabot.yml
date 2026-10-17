@@ -7,6 +7,9 @@ updates:
   # version is in use, and opens a PR that moves both the SHA and the comment.
   - package-ecosystem: github-actions
     directory: /
+    # While a release line is open, version updates go to it. Remove this key
+    # (back to main) when X.Y.0 promotes; RELEASING.md lists the step.
+    target-branch: release/0.4
     schedule:
       interval: weekly
     commit-message:
@@ -17,6 +20,9 @@ updates:
 
   - package-ecosystem: npm
     directory: /
+    # While a release line is open, version updates go to it. Remove this key
+    # (back to main) when X.Y.0 promotes; RELEASING.md lists the step.
+    target-branch: release/0.4
     schedule:
       interval: weekly
     groups:
@@ -49,3 +55,7 @@ updates:
       # ecosystem (typescript-eslint, eslint-plugin-import, ...) has caught up.
       - dependency-name: 'eslint'
         versions: ['^10.0.0']
+      # The libraries declare engines.node >=22.12, so the types track the
+      # oldest supported Node. Raise this with the engines floor.
+      - dependency-name: '@types/node'
+        versions: ['>=23']
