@@ -37,9 +37,13 @@ interface IBridge {
   readonly callsign: string;
 }
 
+interface IHelm {
+  readonly callsign: string;
+}
+
 const CALLSIGN = new Token<string>('Callsign');
 const BRIDGE = new Token<IBridge>('Bridge');
-const HELM = new Token<IBridge>('Helm');
+const HELM = new Token<IHelm>('Helm');
 
 @Injectable({ deps: [CALLSIGN] })
 class Bridge implements IBridge {
@@ -47,15 +51,23 @@ class Bridge implements IBridge {
 }
 
 // Field injection: @Inject on an accessor field.
-class Helm implements IBridge {
+class HelmControl implements IHelm {
   @Inject(CALLSIGN) accessor callsign!: string;
 }
 
 @Module({
+  providers: [provide(HELM, { useClass: HelmControl })],
+  exports: [HELM],
+})
+class Helm {}
+
+@Module({
+  global: true,
+  imports: [Helm],
+  exports: [CALLSIGN],
   providers: [
     provide(CALLSIGN, { useValue: 'Meridian' }),
     provide(BRIDGE, { useClass: Bridge }),
-    provide(HELM, { useClass: Helm }),
   ],
 })
 class Command {}
