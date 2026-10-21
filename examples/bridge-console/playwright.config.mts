@@ -27,7 +27,12 @@ export default defineConfig({
       url: `${bridgeApiUrl}health`,
       reuseExistingServer: false,
       cwd: `${workspaceRoot}/examples/bridge-console`,
-      env: { PORT: '4211' },
+      env: {
+        PORT: '4211',
+        // Every e2e server runs a manual ship on seed 7 (spec 8.3).
+        SIM_MODE: 'manual',
+        SIM_SEED: '7',
+      },
     },
     {
       command: 'npx react-router-serve ./build/server/index.js',
