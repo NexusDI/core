@@ -2,9 +2,9 @@
  * The integer arithmetic behind the seeded random source.
  *
  * Every operation is `Math.imul`, an XOR, a shift or `>>> 0`, so each step is
- * exact 32-bit integer arithmetic. ECMAScript defines those operations bit for
- * bit, which gives one sequence on every engine. A floating-point multiply
- * would round differently across engines and break the golden run.
+ * exact 32-bit integer arithmetic that ECMAScript defines bit for bit. A plain
+ * `*` of two 32-bit values can exceed 2^53 and lose its low bits, so
+ * `Math.imul` gives the exact low 32 bits of the product.
  */
 
 /** One splitmix32 step: the next `uint32` and the state that follows it. */
