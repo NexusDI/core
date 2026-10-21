@@ -143,7 +143,7 @@ the CI job of section 10 selects by. The four `federation-*` projects also carry
 | `@nexusdi/react`        | console, shell, both remotes          | frontend | `NexusProvider`, `useService`, `ScopeProvider`, `lazySection` and `SectionBoundary`, in Chromium     |
 | `@nexusdi/react-router` | `bridge-console`                      | frontend | `di.middleware`, `di.inject`, `di.load`, `NEXUS_SCOPE` in the server entry, a deferred loader        |
 | `@nexusdi/federation`   | the four `federation-*` projects      | frontend | contract copies bound by key across bundles; `NEXUS_CONTRACT_VERSION` in Chromium                    |
-| `@nexusdi/decorators`   | `federation-command`                  | frontend | `@Module`, `@Injectable` and `@Inject` classes built by rspack, read by the shell's core             |
+| `@nexusdi/decorators`   | `federation-command`                  | frontend | `@Module` and `@Inject` classes built by rspack, read by the shell's core; `@Injectable` comes in G9 |
 
 `@nexusdi/next` moved to 0.5 (integrations section 10.1), and `examples/next-bridge`
 keeps its gate canary outside the set.
