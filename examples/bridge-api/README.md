@@ -51,9 +51,10 @@ The app's checks run as Nx targets, each with the workspace packages built first
 
 ## Where the Docs Use It
 
-Four docs pages link this folder as the full app behind their examples, and two more report or reprint its code. The Hono, Express and Fastify pages cite regions of `examples/meridian/src/pages/`, which repeat these routes in a form one block can run.
+Five docs pages link this folder as the full app behind their examples, and two more report or reprint its code. The Hono, Express and Fastify pages cite regions of `examples/meridian/src/pages/`, which repeat these routes in a form one block can run.
 
 - [Scoping Hono Requests](https://nexus.js.org/next/hono/), [Scoping Express Requests](https://nexus.js.org/next/express/) and [Scoping Fastify Requests](https://nexus.js.org/next/fastify/) point to `src/server.hono.ts`, `src/server.express.ts` and `src/server.fastify.ts`: one graph behind three frameworks.
+- [How do I get a container in every Vitest test?](https://nexus.js.org/next/vitest/) points to `test/fixtures.ts` and `test/routes.test.ts`, which run the route tests on `nexusTest` fixtures.
 - [Visualizing Your Dependency Graph](https://nexus.js.org/next/graph-cli/) points to the `graph` target, which fails when the drawn graph differs from `graph.json`.
 - [Where NexusDI Runs](https://nexus.js.org/next/runtimes/) reports the workerd, Deno, Bun and Edge Runtime legs that run this app's Worker entry and e2e cases.
 - [Running on Edge Runtimes](https://nexus.js.org/next/edge/) shows this app's `wrangler.jsonc` and the function form `src/worker.ts` uses for a container whose factories do I/O.
