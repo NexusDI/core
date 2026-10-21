@@ -30,7 +30,7 @@ export class ProbeLog implements IProbeLog {
 }
 
 /** Passes the ship on unchanged and logs its name and the tick. */
-export abstract class ProbeSystem implements IShipSystem {
+abstract class ProbeSystem implements IShipSystem {
   static deps = [PROBE_LOG] as const;
   abstract readonly name: string;
   abstract readonly phase: Phase;
@@ -43,11 +43,15 @@ export abstract class ProbeSystem implements IShipSystem {
 
 export class ProbeReactor extends ProbeSystem {
   readonly name = 'ProbeReactor';
+  // The tick loop reads phase through IShipSystem, which fallow does not follow.
+  // fallow-ignore-next-line unused-class-member
   readonly phase = 1;
 }
 
 export class ProbeSensor extends ProbeSystem {
   readonly name = 'ProbeSensor';
+  // The tick loop reads phase through IShipSystem, which fallow does not follow.
+  // fallow-ignore-next-line unused-class-member
   readonly phase = 2;
 }
 
