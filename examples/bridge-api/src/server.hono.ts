@@ -3,12 +3,12 @@ import { once } from 'node:events';
 import { serve } from '@hono/node-server';
 
 import { createBridge } from './hono';
-import { listening, port, shipFromEnv } from './ship-from-env';
+import { listening, port, shipFromEnv, stopOnSigterm } from './ship-from-env';
 
 await using ship = await shipFromEnv();
-const server = serve(
-  { fetch: createBridge(ship).fetch, port: port() },
-  (info) => listening(info.port),
+const bridge = createBridge(ship);
+const server = serve({ fetch: bridge.fetch, port: port() }, (info) =>
+  listening(info.port),
 );
-process.once('SIGTERM', () => server.close());
+stopOnSigterm(() => server.close(), ship);
 await once(server, 'close');
