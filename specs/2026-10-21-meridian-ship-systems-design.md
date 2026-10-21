@@ -972,13 +972,12 @@ The console's growth cases run in its `e2e-growth` target, `nx:run-commands` wit
 playwright.e2e-growth.config.mts` with `testDir: './e2e/growth'` on ports 4220 and 4221.
 `playwright.servers.mts` exports `webServers(ports)` for both configs. The gating config
 keeps 4210 and 4211 and sets `testIgnore: ['**/growth/**']`, since Playwright prefixes a
-glob with that segment itself and Nx's `e2e-ci` inference does not. One case reads the
-ship's tick from `GET /sim`, finds it in the strip on `/diagnostics`, posts 600 ticks to
-the backend and reads the tick 600 later, its ship time, 293 K and 101.3 kPa from the
-stream. It starts from the current tick, since the backend keeps its ship across
-retries. The other finds `Simulation`,
-`MeridianSystems` and `Telemetry` on `/diagnostics`, with `system: Telemetry` on the
-feed.
+glob with that segment itself and Nx's `e2e-ci` inference does not. The first case
+starts from the current tick, since the backend keeps its ship across retries. It reads
+the ship's tick from `GET /sim`, finds it in the strip on `/diagnostics`, posts 600 ticks
+to the backend and reads a tick 600 higher, its ship time, 293 K and 101.3 kPa from the
+stream. The second case finds `Simulation`, `MeridianSystems` and `Telemetry` on
+`/diagnostics`, with `system: Telemetry` on the feed.
 
 ## 9. Risks
 
