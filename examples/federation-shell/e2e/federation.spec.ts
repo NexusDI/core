@@ -73,12 +73,16 @@ test('fails the drift build with NEXUS_CONTRACT_VERSION, and again on retry', as
   await failed.getByRole('button', { name: 'Retry' }).click();
   await expect(failed).toContainText('NEXUS_CONTRACT_VERSION');
   await expect(failed).toContainText(text);
-  // Each station's onError logs the load error: once for the first load,
-  // once for the retry.
-  expect(await seen()).toEqual([
-    expect.stringContaining(text),
-    expect.stringContaining(text),
-  ]);
+  // React logs a NEXUS_REACT_SECTION_FAILED that quotes the load error:
+  // once for the first load, once for the retry.
+  const logs = await seen();
+  expect(logs).toHaveLength(2);
+  for (const log of logs) {
+    expect(log).toMatch(
+      /^\[NEXUS_REACT_SECTION_FAILED\] Section 'cartography'/,
+    );
+    expect(log).toContain(text);
+  }
 });
 
 test('fails the unshared build with NEXUS_CORE_NOT_SHARED', async ({
@@ -94,8 +98,10 @@ test('fails the unshared build with NEXUS_CORE_NOT_SHARED', async ({
   await expect(failed).toContainText(
     'In Module Federation, share @nexusdi/core with singleton: true.',
   );
-  // The station's onError logs the load error.
+  // React logs a NEXUS_REACT_SECTION_FAILED that quotes the load error.
   expect(await seen()).toEqual([
-    expect.stringContaining('[NEXUS_CORE_NOT_SHARED]'),
+    expect.stringMatching(
+      /^\[NEXUS_REACT_SECTION_FAILED\] Section 'cartography'[^]*\[NEXUS_CORE_NOT_SHARED\]/,
+    ),
   ]);
 });
