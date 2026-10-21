@@ -10,7 +10,7 @@ errorClass: CoreNotSharedError
 
 `NEXUS_CORE_NOT_SHARED` means a token, a module or a provider that another copy of `@nexusdi/core` made reached this copy. Each copy of core keeps its own record of the definitions it made, so one copy cannot read another's. The error names the value and the place core met it.
 
-`Nexus.create` reports it inside [NEXUS_BLUEPRINT_INVALID](/errors/NEXUS_BLUEPRINT_INVALID/) for an entry of `imports` or `providers`, and throws it directly for a root module that another copy made. `validate()` reports it inside `NEXUS_BLUEPRINT_INVALID` for a `deps` entry. `load()`, `get()`, `resolve()` and `defineModule()` throw it directly, and so do `has()` and `validate()` for their `module` option. `overrideModule()` from `@nexusdi/testing` and `@UseInterceptors` from `@nexusdi/interceptors` throw it directly too, and a value from another copy in `interceptor()` or in the options of `interceptors()` arrives inside `NEXUS_BLUEPRINT_INVALID`.
+`Nexus.create` reports it inside [NEXUS_BLUEPRINT_INVALID](/errors/NEXUS_BLUEPRINT_INVALID/) for an entry of `imports` or `providers`, and throws it directly for a root module that another copy made. `validate()` reports it inside `NEXUS_BLUEPRINT_INVALID` for a `deps` entry. `load()`, `get()`, `has()`, `resolve()` and `defineModule()` throw it directly, and so does `validate()` for its `module` option. `overrideModule()` from `@nexusdi/testing` and `@UseInterceptors` from `@nexusdi/interceptors` throw it directly too, and a value from another copy in `interceptor()` or in the options of `interceptors()` arrives inside `NEXUS_BLUEPRINT_INVALID`.
 
 A second copy of core comes from one of four places:
 
@@ -49,4 +49,4 @@ Core detects a second copy from 0.4 on, and the check has two limits:
 `CoreNotSharedError` carries these fields:
 
 - `received`: the value, named by its own fields, such as `the module Cartography` or `the Token meridian/NavCharts`, and `a provider` for a provider. A MultiToken from another copy reads as a Token.
-- `where`: the place core met the value, such as `load()`, `get()`, `Shell.providers[0]`, `Shell.providers[1], deps[0]` or an import chain such as `Shell → Survey`, and `null` for the root of `Nexus.create`.
+- `where`: the place core met the value, such as `load()`, `get()`, `Shell.providers[0]`, `Shell.providers[1], deps[0]` or the import chain `imported by Shell → Survey`, and `null` for the root of `Nexus.create`.
