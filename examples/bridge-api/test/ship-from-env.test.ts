@@ -86,7 +86,7 @@ describe('stopOnSigterm', () => {
     expect(dispose).toHaveBeenCalledTimes(1);
   });
 
-  it('closes the idle connections each time a response finishes after SIGTERM', async () => {
+  it('closes the idle connections each time a response finishes after SIGTERM', () => {
     const order: string[] = [];
     const signals = new EventEmitter();
     const server = fakeServer(order);
@@ -105,9 +105,15 @@ describe('stopOnSigterm', () => {
     signals.emit('SIGTERM');
     stream.emit('finish');
     expect(order).toEqual(['close', 'idle']);
+
+    // A request that starts after SIGTERM closes the idle ones when it finishes, too.
+    const late = new EventEmitter();
+    server.emit('request', {}, late);
+    late.emit('finish');
+    expect(order).toEqual(['close', 'idle', 'idle']);
   });
 
-  it('calls the close it is given in place of server.close()', async () => {
+  it('calls the close it is given in place of server.close()', () => {
     const order: string[] = [];
     const signals = new EventEmitter();
     stopOnSigterm(

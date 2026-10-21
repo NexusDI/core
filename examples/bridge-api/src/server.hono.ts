@@ -20,6 +20,6 @@ const bridge = createBridge(ship, {
 const server = serve({ fetch: bridge.fetch, port: port() }, (info) =>
   listening(info.port),
 );
-// serve() answers an http.Server unless its options name another server.
+// serve() returns an http.Server unless its options name another server.
 stopOnSigterm(server as Server, ship);
 await once(server, 'close');
