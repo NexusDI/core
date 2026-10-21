@@ -811,7 +811,7 @@ demo-apps:
     - uses: actions/setup-node@... # same pin as main
     - run: npm ci
     - run: npx playwright install --with-deps chromium
-    - run: npx nx run-many -t lint test typecheck --projects=tag:demo-frontend
+    - run: npx nx run-many -t lint test build typecheck --projects=tag:demo-frontend
     - run: npx nx run-many -t e2e --projects=tag:demo
 ```
 
@@ -820,9 +820,10 @@ It runs the `e2e` targets of `bridge-api`, `bridge-console` and `federation-shel
 The four `federation-*` projects also carry the tag `demo-frontend`. `main`'s step becomes
 `nx run-many -t lint test build typecheck --exclude=tag:demo-frontend`, and the
 `release.yml` verify step, which the gate test holds equal to it, takes the same
-`--exclude`. `demo-apps` runs their `lint`, `test` and `typecheck` before the e2e step:
-`nx run-many -t lint test typecheck --projects=tag:demo-frontend`. Their `build` runs as
-a dependency of `e2e`. `bridge-api` and `bridge-console` stay in `main` and in the release
+`--exclude`. `demo-apps` runs main's target list over them before the e2e step:
+`nx run-many -t lint test build typecheck --projects=tag:demo-frontend`. The step runs
+`build` too, because `federation-shell`'s `e2e` depends on `build-e2e`, and no `e2e` task
+runs the shell's production build. `bridge-api` and `bridge-console` stay in `main` and in the release
 verify step. The console takes over the `lint`, `test`, `build` and `typecheck` that
 `react-ssr` ran there, so the release gate keeps that coverage, and `main` stays near its
 10 min 29 s.

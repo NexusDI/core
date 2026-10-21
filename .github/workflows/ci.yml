@@ -193,9 +193,9 @@ jobs:
       - if: steps.playwright-cache.outputs.cache-hit == 'true'
         run: npx playwright install-deps chromium
 
-      # main's target list over the projects main leaves out. build is in it
-      # because federation-shell's e2e depends on build-e2e, so no e2e task
-      # runs the shell's production build.
+      # This step runs main's target list over the projects main leaves out.
+      # The list includes build because federation-shell's e2e depends on
+      # build-e2e, so no e2e task runs the shell's production build.
       - run: npx nx run-many -t lint test build typecheck --projects=tag:demo-frontend
 
       - run: npx nx run-many -t e2e --projects=tag:demo
