@@ -212,6 +212,9 @@ describe('the release verify gate', () => {
 
     const tasks = new Set(
       runs.flatMap((run) => {
+        expect(run, 'each demo-apps step runs nx through npx').toMatch(
+          /^npx nx run-many /,
+        );
         const out = execFileSync(
           join(workspaceRoot, 'node_modules', '.bin', 'nx'),
           [
@@ -225,7 +228,7 @@ describe('the release verify gate', () => {
             cwd: workspaceRoot,
             encoding: 'utf-8',
             env: { ...process.env, NX_DAEMON: 'false', NX_NO_CLOUD: 'true' },
-            stdio: ['ignore', 'pipe', 'ignore'],
+            stdio: ['ignore', 'pipe', 'pipe'],
             maxBuffer: 64 * 1024 * 1024,
           },
         );
