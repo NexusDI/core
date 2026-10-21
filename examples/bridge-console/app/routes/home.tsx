@@ -60,8 +60,8 @@ export default function Home({ loaderData, actionData }: Route.ComponentProps) {
           Watch log
         </h2>
         <ul>
-          {entries.map((entry) => (
-            <li key={entry}>{entry}</li>
+          {entries.map((entry, at) => (
+            <li key={`${at} ${entry}`}>{entry}</li>
           ))}
         </ul>
         <Form method="post">

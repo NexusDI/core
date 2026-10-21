@@ -1,3 +1,5 @@
+// @vitest-environment node
+// The link runs on the console's server, so its test runs with Node's globals.
 import type { AddressInfo } from 'node:net';
 
 import { serve, type ServerType } from '@hono/node-server';
@@ -78,6 +80,10 @@ describe('the bridge link', () => {
     const reader = new AbortController();
     reader.abort();
     await using bridge = await linkTo(base, reader.signal);
-    await expect(bridge.link.course('Kepler-442b')).rejects.toThrow(/abort/i);
+    const sent = paths.length;
+    await expect(bridge.link.course('Kepler-442b')).rejects.toMatchObject({
+      name: 'AbortError',
+    });
+    expect(paths).toHaveLength(sent);
   });
 });
