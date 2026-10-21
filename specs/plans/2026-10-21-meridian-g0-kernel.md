@@ -42,7 +42,7 @@ A heavy job is `npm ci`, a build of more than one project, any `e2e` or `e2e-gro
 Every task ends with this step before its review gate:
 
 ```sh
-rm -rf libs/*/dist libs/*/test-output examples/*/dist examples/*/build \
+setopt null_glob 2>/dev/null; rm -rf libs/*/dist libs/*/test-output examples/*/dist examples/*/build \
   examples/*/test-output examples/*/out-tsc tmp
 ```
 
