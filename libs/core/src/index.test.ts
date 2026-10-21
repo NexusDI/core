@@ -12,6 +12,7 @@ const RUNTIME_EXPORTS: string[] = [
   'AsyncTransientError',
   'BlueprintError',
   'CircularDependencyError',
+  'CoreNotSharedError',
   'declareClass',
   'declareModuleClass',
   'declareProperty',

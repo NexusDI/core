@@ -22,6 +22,8 @@ exports[`NexusError > keeps the message of CircularDependencyError 1`] = `
   Fix: wrap one edge in lazy(), for example the dependency of ShieldGrid on PowerRouter: lazy(PowerRouter)."
 `;
 
+exports[`NexusError > keeps the message of CoreNotSharedError 1`] = `"[NEXUS_CORE_NOT_SHARED] received=the module Cartography where=load(). https://nexus.js.org/errors/NEXUS_CORE_NOT_SHARED"`;
+
 exports[`NexusError > keeps the message of DisposedError 1`] = `"[NEXUS_DISPOSED] the container is disposed or disposing."`;
 
 exports[`NexusError > keeps the message of DuplicateProviderError 1`] = `

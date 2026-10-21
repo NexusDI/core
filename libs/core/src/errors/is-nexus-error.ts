@@ -2,6 +2,7 @@ import type { AmbiguousProviderError } from './ambiguous-provider-error.js';
 import type { AsyncTransientError } from './async-transient-error.js';
 import type { BlueprintError } from './blueprint-error.js';
 import type { CircularDependencyError } from './circular-dependency-error.js';
+import type { CoreNotSharedError } from './core-not-shared-error.js';
 import type { DisposedError } from './disposed-error.js';
 import type { DuplicateProviderError } from './duplicate-provider-error.js';
 import type { InvalidExportError } from './invalid-export-error.js';
@@ -34,6 +35,7 @@ export interface NexusErrorByCode {
   NEXUS_INVALID_PROVIDER: InvalidProviderError;
   NEXUS_INVALID_TOKEN: InvalidTokenError;
   NEXUS_INVALID_MODULE: InvalidModuleError;
+  NEXUS_CORE_NOT_SHARED: CoreNotSharedError;
   NEXUS_MISSING_DEPS: MissingDepsError;
   NEXUS_CIRCULAR_DEPENDENCY: CircularDependencyError;
   NEXUS_LIFETIME_VIOLATION: LifetimeError;

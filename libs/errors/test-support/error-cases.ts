@@ -3,6 +3,7 @@ import {
   AsyncTransientError,
   BlueprintError,
   CircularDependencyError,
+  CoreNotSharedError,
   DisposedError,
   DuplicateProviderError,
   InvalidExportError,
@@ -269,6 +270,15 @@ export const errorCases: readonly ErrorCase[] = [
     }),
     code: 'NEXUS_INVALID_PROVIDER',
     fields: { reason: 'bad-dep', otherCopy: true },
+  },
+  {
+    name: 'CoreNotSharedError',
+    error: new CoreNotSharedError({
+      received: 'the module Cartography',
+      where: 'load()',
+    }),
+    code: 'NEXUS_CORE_NOT_SHARED',
+    fields: { received: 'the module Cartography', where: 'load()' },
   },
   {
     name: 'MissingDepsError',

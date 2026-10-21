@@ -15,6 +15,7 @@ export { AmbiguousProviderError } from './ambiguous-provider-error.js';
 export { AsyncTransientError } from './async-transient-error.js';
 export { BlueprintError, blueprintMessage } from './blueprint-error.js';
 export { CircularDependencyError } from './circular-dependency-error.js';
+export { CoreNotSharedError } from './core-not-shared-error.js';
 export { DisposedError } from './disposed-error.js';
 export { DuplicateProviderError } from './duplicate-provider-error.js';
 export { InvalidExportError } from './invalid-export-error.js';

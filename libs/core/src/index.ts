@@ -4,6 +4,7 @@ export {
   AsyncTransientError,
   BlueprintError,
   CircularDependencyError,
+  CoreNotSharedError,
   DisposedError,
   DOCS_URL,
   DuplicateProviderError,

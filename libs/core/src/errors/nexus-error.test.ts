@@ -28,6 +28,7 @@ const FIELD_ORDER: Readonly<Record<string, readonly string[]>> = {
     'otherCopy',
   ],
   InvalidModuleError: ['received', 'path', 'otherCopy'],
+  CoreNotSharedError: ['received', 'where'],
   MissingDepsError: ['token', 'module', 'arity', 'useClass', 'bare'],
   CircularDependencyError: ['path'],
   LifetimeError: ['path', 'lifetimes'],
