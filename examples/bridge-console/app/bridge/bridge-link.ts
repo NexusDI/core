@@ -6,11 +6,20 @@ import {
   type NexusRequest,
 } from '@nexusdi/core';
 
+import type { NexusGraph } from '@nexusdi/devtools';
+import type { ShipSnapshot } from '@nexusdi/meridian-systems';
+
 import type { Course } from './contracts';
 
 /** The console's link to bridge-api, over HTTP. */
 export interface IBridgeLink {
   course(to: string): Promise<{ course: Course; entries: readonly string[] }>;
+  /** The ship now, from `GET /sim`. */
+  snapshot(): Promise<ShipSnapshot>;
+  /** The body of `GET /telemetry`, a stream of server-sent events. */
+  telemetry(): Promise<ReadableStream<Uint8Array>>;
+  /** The ship's annotated graph from `GET /graph`, or null when the backend serves none. */
+  graph(): Promise<NexusGraph | null>;
 }
 export const BRIDGE_LINK = new Token<IBridgeLink>('BridgeLink');
 const BRIDGE_LINK_OPTIONS = new Token<{ readonly url: string }>(
@@ -29,17 +38,38 @@ class BridgeApiLink implements IBridgeLink {
     private readonly options: { readonly url: string },
   ) {}
   async course(to: string) {
-    const url = new URL(`course/${encodeURIComponent(to)}`, this.options.url);
-    const res = await fetch(url, {
-      headers: { 'x-mission-id': this.request.mission.id },
-      signal: this.request.signal,
-    });
-    if (!res.ok)
-      throw new Error(`bridge-api answered ${res.status} for ${url.pathname}`);
+    const res = await this.#get(`course/${encodeURIComponent(to)}`);
     return (await res.json()) as {
       course: Course;
       entries: readonly string[];
     };
+  }
+  async snapshot() {
+    return (await (await this.#get('sim')).json()) as ShipSnapshot;
+  }
+  async telemetry() {
+    const res = await this.#get('telemetry');
+    if (!res.body) throw new Error('bridge-api sent no telemetry body');
+    return res.body;
+  }
+  async graph() {
+    const res = await this.#get('graph', [404]);
+    if (res.status === 404) return null;
+    return (await res.json()) as NexusGraph;
+  }
+
+  /** Fetches `path` and throws on a status that is neither ok nor in `allowed`. */
+  async #get(path: string, allowed: readonly number[] = []) {
+    const url = new URL(path, this.options.url);
+    const res = await fetch(url, {
+      headers: { 'x-mission-id': this.request.mission.id },
+      signal: this.request.signal,
+    });
+    if (!res.ok && !allowed.includes(res.status)) {
+      await res.body?.cancel();
+      throw new Error(`bridge-api answered ${res.status} for ${url.pathname}`);
+    }
+    return res;
   }
 }
 

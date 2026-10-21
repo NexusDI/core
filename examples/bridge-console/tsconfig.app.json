@@ -50,6 +50,12 @@
     },
     {
       "path": "../bridge-api/tsconfig.lib.json"
+    },
+    {
+      "path": "../meridian-systems/tsconfig.lib.json"
+    },
+    {
+      "path": "../../libs/devtools/tsconfig.lib.json"
     }
   ]
 }
