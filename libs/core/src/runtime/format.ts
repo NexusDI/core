@@ -10,6 +10,7 @@ import {
   layoutText,
   NexusError,
   ownsText,
+  ProviderError,
   type ErrorText,
 } from '../errors/index.js';
 import type { PluginSet } from './plugins.js';
@@ -32,6 +33,16 @@ export function fromUserCode(error: unknown): unknown {
   return error;
 }
 
+/**
+ * Returns the cause of a ProviderError that `failureOf` unwraps, marked as
+ * thrown by user code when the ProviderError was. A factory that rethrows
+ * another container's failure hands its cause over, and an outer
+ * formatError hook leaves that cause's text alone.
+ */
+export function causeOf(error: Error): unknown {
+  return USER_THROWN.has(error) ? fromUserCode(error.cause) : error.cause;
+}
+
 function isText(value: unknown): value is ErrorText {
   return (
     typeof value === 'object' &&
@@ -43,7 +54,10 @@ function isText(value: unknown): value is ErrorText {
 /**
  * Lets the first formatError hook that returns text write the message of a
  * NexusError core raised. Inner errors of a BlueprintError go first, and the
- * aggregate's own line is rebuilt from them. A hook that throws or returns
+ * aggregate's own line is rebuilt from them. A ProviderError's cause and
+ * each alsoFailed cause go first too, so the provider's text embeds a
+ * formatted NEXUS_INVALID_MODULE_OPTIONS; a cause user code threw is
+ * marked by fromUserCode and keeps its text. A hook that throws or returns
  * something else leaves core's line. An error is formatted once. An
  * error built with its own text, or one fromUserCode marked, is never
  * formatted. The code prefix and
@@ -72,6 +86,11 @@ export function formatThrown(
       for (const inner of error.errors)
         formatThrown(plugins, () => scope, inner);
       Reflect.set(error, 'message', blueprintMessage(error.errors));
+    }
+    if (error instanceof ProviderError) {
+      formatThrown(plugins, () => scope, error.cause);
+      for (const failure of error.alsoFailed)
+        formatThrown(plugins, () => scope, failure.cause);
     }
     for (const hook of plugins.formatError) {
       let text: unknown;

@@ -25,7 +25,7 @@ const Tactical = defineModule({
 
 const thin = await Nexus.create(Tactical).catch((error: unknown) => error);
 if (!isNexusError(thin, 'NEXUS_PROVIDER_FAILED')) throw thin;
-const line = thin.message; // -> '[NEXUS_PROVIDER_FAILED] token=NavCharts module=Tactical path=NavCharts. https://nexus.js.org/errors/NEXUS_PROVIDER_FAILED'
+const line = thin.message; // -> '[NEXUS_PROVIDER_FAILED] token=NavCharts module=Tactical path=NavCharts. https://nexus.js.org/errors/NEXUS_PROVIDER_FAILED Cause: Error: subspace link down'
 console.log(line);
 const cause = String(thin.cause); // -> 'Error: subspace link down'
 console.log(cause);

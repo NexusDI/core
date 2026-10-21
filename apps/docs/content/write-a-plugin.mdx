@@ -68,7 +68,7 @@ Every hook is optional:
 
 If your plugin finds a problem with the module graph during `compile.check`, you can report it as a formal NexusDI error. The call is `compile.check(view, report)`. `Nexus.create` adds the error to the `NEXUS_BLUEPRINT_INVALID` it throws.
 
-1. **Define the Error:** Use `errorBase()` to create a stable error class with a code and a link to your documentation. The call is `errorBase(code, name, docsBase)`. The third argument is the base URL of your docs, and the one-line message links to it followed by the code. Add the code to `NexusErrorByCode`, so `isNexusError` narrows it and a text pack can name it.
+1. **Define the Error:** Use `errorBase()` to create a stable error class with a code and a link to your documentation. The call is `errorBase(code, name, docsBase)`. The third argument is the base URL of your docs, and the one-line message links to it followed by the code. An error built with a `cause` adds the cause after `Cause:`. Add the code to `NexusErrorByCode`, so `isNexusError` narrows it and a text pack can name it.
 2. **Provide the Text:** Create a text pack that maps the error code to a human-readable message. Type it with `satisfies ErrorTextPack` and publish it at the package's `./text` subpath. The application passes the pack to `errors({ text })`.
 3. **Report the Error:** Call `report()`, the second parameter of your `compile.check` hook.
 

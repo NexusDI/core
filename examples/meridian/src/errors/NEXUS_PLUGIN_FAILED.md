@@ -34,7 +34,7 @@ const startup = (plugins: NexusPlugin[]) =>
 
 const thin = await startup([cache]);
 if (!isNexusError(thin, 'NEXUS_PLUGIN_FAILED')) throw thin;
-const line = thin.message; // -> '[NEXUS_PLUGIN_FAILED] plugin=acme:cache hook=setup. https://nexus.js.org/errors/NEXUS_PLUGIN_FAILED'
+const line = thin.message; // -> '[NEXUS_PLUGIN_FAILED] plugin=acme:cache hook=setup. https://nexus.js.org/errors/NEXUS_PLUGIN_FAILED Cause: Error: cache store offline'
 console.log(line);
 const hook = thin.hook; // -> 'setup'
 console.log(hook);

@@ -143,4 +143,163 @@ describe('errors', () => {
       });
     },
   );
+  describe('a module whose schema rejects its options', () => {
+    const SIM_OPTIONS = new Token<{ seed: number }>('SimOptions');
+    const issues = [
+      { message: 'expected an integer, received 1.5', path: ['seed'] },
+      { message: 'expected 1 to 10', path: [{ key: 'crew' }, 0] },
+    ];
+    const simulation = (refused: readonly object[]) =>
+      defineModule({
+        name: 'Simulation',
+        options: SIM_OPTIONS,
+        schema: {
+          '~standard': {
+            version: 1,
+            vendor: 'nexusdi-test',
+            validate: () => ({ issues: refused as never }),
+          },
+        },
+      }).forRoot({ seed: 1.5 });
+
+    it('names each issue in the one-line message without errors()', async () => {
+      const error = (await rejected(Nexus.create(simulation(issues)))) as Error;
+      expect(error.message).toBe(
+        '[NEXUS_PROVIDER_FAILED] token=SimOptions module=Simulation path=SimOptions. https://nexus.js.org/errors/NEXUS_PROVIDER_FAILED' +
+          ' Cause: [NEXUS_INVALID_MODULE_OPTIONS] module=Simulation issues=seed: expected an integer, received 1.5; crew.0: expected 1 to 10. https://nexus.js.org/errors/NEXUS_INVALID_MODULE_OPTIONS',
+      );
+    });
+
+    it('lists each issue in the full text with errors()', async () => {
+      const error = (await rejected(
+        Nexus.create(simulation(issues), { plugins: [errors()] }),
+      )) as Error;
+      expect(error.message).toBe(
+        [
+          '[NEXUS_PROVIDER_FAILED] SimOptions (module Simulation) failed: [NEXUS_INVALID_MODULE_OPTIONS] Simulation received options its schema rejects:',
+          '      seed: expected an integer, received 1.5',
+          '      crew.0: expected 1 to 10',
+        ].join('\n'),
+      );
+      expect((error.cause as Error).message).toBe(
+        [
+          '[NEXUS_INVALID_MODULE_OPTIONS] Simulation received options its schema rejects:',
+          '  seed: expected an integer, received 1.5',
+          '  crew.0: expected 1 to 10',
+        ].join('\n'),
+      );
+    });
+
+    it('lists the first ten issues with errors() and counts the rest', async () => {
+      const many = Array.from({ length: 14 }, (_, i) => ({
+        message: `issue ${i + 1}`,
+        path: [`field${i + 1}`],
+      }));
+      const error = (await rejected(
+        Nexus.create(simulation(many), { plugins: [errors()] }),
+      )) as Error;
+      const lines = (error.cause as Error).message.split('\n');
+      expect(lines.slice(1)).toEqual([
+        ...many.slice(0, 10).map((_, i) => `  field${i + 1}: issue ${i + 1}`),
+        '  and 4 more',
+      ]);
+      expect(error.message.split('\n').at(-1)).toBe('      and 4 more');
+    });
+
+    it('formats a schema rejection in alsoFailed and keeps the text of an error user code threw', async () => {
+      const LINK = new Token<object>('SubspaceLink');
+      const Simulation = defineModule({
+        name: 'Simulation',
+        options: SIM_OPTIONS,
+        schema: {
+          '~standard': {
+            version: 1,
+            vendor: 'nexusdi-test',
+            validate: () => ({ issues }),
+          },
+        },
+      });
+      const offline = new Error('subspace link down');
+      const error = (await rejected(
+        Nexus.create(
+          defineModule({
+            name: 'Root',
+            imports: [
+              Simulation.forRootAsync({
+                useFactory: async () => ({ seed: 1 }),
+              }),
+            ],
+            providers: [
+              provide(LINK, {
+                useFactory: async () => {
+                  throw offline;
+                },
+              }),
+            ],
+          }),
+          { plugins: [errors()] },
+        ),
+      )) as Error & { alsoFailed: { cause: unknown }[] };
+      const causes = [error.cause, ...error.alsoFailed.map((f) => f.cause)];
+      expect(causes).toHaveLength(2);
+      expect(causes).toContain(offline);
+      expect(offline.message).toBe('subspace link down');
+      const refused = causes.find((cause) => cause !== offline) as Error;
+      expect(refused.message).toBe(
+        [
+          '[NEXUS_INVALID_MODULE_OPTIONS] Simulation received options its schema rejects:',
+          '  seed: expected an integer, received 1.5',
+          '  crew.0: expected 1 to 10',
+        ].join('\n'),
+      );
+    });
+
+    it("keeps the text of another container's error an async factory rejects with", async () => {
+      const LINK = new Token<object>('SubspaceLink');
+      let nested: unknown;
+      const error = (await rejected(
+        Nexus.create(
+          defineModule({
+            name: 'Root',
+            providers: [
+              provide(LINK, {
+                useFactory: async () => {
+                  nested = await rejected(Nexus.create(simulation(issues)));
+                  throw nested;
+                },
+              }),
+            ],
+          }),
+          { plugins: [errors()] },
+        ),
+      )) as Error;
+      // create reports the nested failure's provider, and its cause keeps
+      // the one-line text the nested container gave it.
+      expect(error.cause).toBe((nested as Error).cause);
+      expect((error.cause as Error).message).toBe(
+        '[NEXUS_INVALID_MODULE_OPTIONS] module=Simulation issues=seed: expected an integer, received 1.5; crew.0: expected 1 to 10. https://nexus.js.org/errors/NEXUS_INVALID_MODULE_OPTIONS',
+      );
+    });
+
+    it('formats the schema rejection of a forRootAsync() factory with errors()', async () => {
+      const Simulation = defineModule({
+        name: 'Simulation',
+        options: SIM_OPTIONS,
+        schema: {
+          '~standard': {
+            version: 1,
+            vendor: 'nexusdi-test',
+            validate: () => ({ issues }),
+          },
+        },
+      });
+      const error = (await rejected(
+        Nexus.create(
+          Simulation.forRootAsync({ useFactory: async () => ({ seed: 1.5 }) }),
+          { plugins: [errors()] },
+        ),
+      )) as Error;
+      expect(error.message).toContain('      crew.0: expected 1 to 10');
+    });
+  });
 });

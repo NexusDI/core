@@ -12,7 +12,7 @@ errorClass: ProviderError
 
 ## Reproduce `NEXUS_PROVIDER_FAILED`
 
-The region binds `NavCharts` to an async factory that throws. Without a plugin, core prints a one-line message that starts with the code and ends with the address of this page. With `errors()` from `@nexusdi/errors` registered (`npm install @nexusdi/errors@next`), the same error carries the full text and its fix.
+The region binds `NavCharts` to an async factory that throws. Without a plugin, core prints a one-line message that starts with the code, gives the address of this page and ends with the cause after `Cause:`. With `errors()` from `@nexusdi/errors` registered (`npm install @nexusdi/errors@next`), the same error carries the full text and its fix.
 
 ```ts file=examples/meridian/src/errors/NEXUS_PROVIDER_FAILED.md region=reproduce
 

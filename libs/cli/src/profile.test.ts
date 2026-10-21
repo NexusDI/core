@@ -4,6 +4,8 @@ import { fileURLToPath } from 'node:url';
 
 import { describe, expect, it } from 'vitest';
 
+import { Nexus, Token, defineModule } from '@nexusdi/core';
+
 import { FIXTURES, runCli } from '../test-support/run.js';
 import { describeFailure } from './profile.js';
 import { tempDir } from '../test-support/temp.js';
@@ -326,6 +328,37 @@ describe('nexusdi profile exit codes (spec 9.5)', () => {
 });
 
 describe('describeFailure', () => {
+  it("skips a NexusError cause that core's one-line message ends with", async () => {
+    const OPTIONS = new Token<{ seed: number }>('SimOptions');
+    const Simulation = defineModule({
+      name: 'Simulation',
+      options: OPTIONS,
+      schema: {
+        '~standard': {
+          version: 1,
+          vendor: 'nexusdi-test',
+          validate: () => ({ issues: [{ message: 'expected 1 to 10' }] }),
+        },
+      },
+    });
+    const error = (await Nexus.create(Simulation.forRoot({ seed: 0 })).catch(
+      (caught: unknown) => caught,
+    )) as Error;
+    expect(describeFailure(error)).toBe(error.message);
+  });
+
+  it('skips a formatted NexusError cause the first line ends with', () => {
+    const cause = Object.assign(
+      new Error('[NEXUS_X] Simulation refused:\n  seed: expected 1 to 10'),
+      { name: 'ModuleOptionsError' },
+    );
+    const error = new Error(
+      '[NEXUS_PROVIDER_FAILED] SimOptions failed: [NEXUS_X] Simulation refused:\n      seed: expected 1 to 10',
+      { cause },
+    );
+    expect(describeFailure(error)).toBe(error.message);
+  });
+
   it('prints a cause whose text only starts the end of the message', () => {
     const error = new Error('dock gave up: Error: timeout after 5s', {
       cause: new Error('timeout'),

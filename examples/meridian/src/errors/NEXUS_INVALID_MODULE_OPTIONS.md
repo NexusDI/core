@@ -41,16 +41,19 @@ const Meridian = defineModule({
   imports: [Comms.forRoot({ frequency: -5 })],
 });
 
-const failed = await Nexus.create(Meridian, { plugins: [errors()] }).catch(
-  (error: unknown) => error,
-);
+const failed = await Nexus.create(Meridian).catch((error: unknown) => error);
 if (!isNexusError(failed, 'NEXUS_PROVIDER_FAILED')) throw failed;
 const cause = failed.cause;
 if (!isNexusError(cause, 'NEXUS_INVALID_MODULE_OPTIONS')) throw failed;
-const line = cause.message; // -> '[NEXUS_INVALID_MODULE_OPTIONS] module=Comms. https://nexus.js.org/errors/NEXUS_INVALID_MODULE_OPTIONS'
+const line = cause.message; // -> '[NEXUS_INVALID_MODULE_OPTIONS] module=Comms issues=frequency: Invalid value: Expected >=1 but received -5. https://nexus.js.org/errors/NEXUS_INVALID_MODULE_OPTIONS'
 console.log(line);
 const text = explain(cause)?.message.split('\n'); // -> ['Comms received options its schema rejects:', '  frequency: Invalid value: Expected >=1 but received -5']
 console.log(text);
+const full = await Nexus.create(Meridian, { plugins: [errors()] }).catch(
+  (error: unknown) => error,
+);
+const outer = isNexusError(full) ? full.message.split('\n') : null; // -> ['[NEXUS_PROVIDER_FAILED] CommsOptions (module Comms) failed: [NEXUS_INVALID_MODULE_OPTIONS] Comms received options its schema rejects:', '      frequency: Invalid value: Expected >=1 but received -5']
+console.log(outer);
 ```
 
 <!-- #endregion reproduce -->

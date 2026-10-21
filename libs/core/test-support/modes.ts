@@ -4,10 +4,14 @@ import { lineOf, type NexusError } from '../src/errors/index.js';
 
 /**
  * Core's one-line message for an error other than a BlueprintError: the
- * code, then the line its own enumerable fields give.
+ * code, then the line its own enumerable fields give, then its cause when
+ * it has one.
  */
 export function coreLine(error: NexusError): string {
-  return `[${error.code}] ${lineOf(error.code, { ...error })}`;
+  const options = Object.hasOwn(error, 'cause')
+    ? { cause: error.cause }
+    : undefined;
+  return `[${error.code}] ${lineOf(error.code, { ...error }, undefined, options)}`;
 }
 
 /**

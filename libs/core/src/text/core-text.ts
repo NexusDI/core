@@ -4,6 +4,7 @@ import type {
   ErrorTextPack,
 } from '../blueprint/views.js';
 import { describeThrown } from '../errors/describe-thrown.js';
+import { issueLine } from '../errors/line.js';
 import type {
   AmbiguousProviderError,
   AsyncTransientError,
@@ -32,7 +33,6 @@ import type {
   ProviderError,
   RequestMissingError,
   ScopeRequiredError,
-  SchemaIssue,
 } from '../errors/index.js';
 import type { MissingLookup } from '../errors/missing-provider-error.js';
 import { PROVIDER_REASONS, tokenReason } from './reasons.js';
@@ -44,6 +44,14 @@ import { PROVIDER_REASONS, tokenReason } from './reasons.js';
 type Builder<E> = (error: E) => ErrorText;
 
 const text = (message: string): ErrorText => ({ message });
+
+/**
+ * Writes a wrapped cause for a message and indents its continuation lines
+ * four spaces, so a formatted cause's lines sit under its first line and
+ * apart from the wrapper's two-space lines.
+ */
+const causeText = (cause: unknown): string =>
+  describeThrown(cause).split('\n').join('\n    ');
 
 function nearMissHint(token: string, module: string, miss: NearMiss): string {
   switch (miss.kind) {
@@ -209,20 +217,23 @@ const moduleImportCycle: Builder<ModuleImportCycleError> = (error) =>
     `${error.path.join(' → ')} is a module import cycle.\n  Fix: move the shared providers into a module that both import.`,
   );
 
-function issueWhere(issue: SchemaIssue): string {
-  if (!issue.path || issue.path.length === 0) return '';
-  const keys = issue.path.map((segment) =>
-    String(typeof segment === 'object' ? segment.key : segment),
-  );
-  return `${keys.join('.')}: `;
-}
+/** How many issues the full text lists before `and N more`. */
+const TEXT_ISSUES = 10;
 
-const moduleOptions: Builder<ModuleOptionsError> = (error) =>
-  text(
-    error.code === 'NEXUS_MODULE_OPTIONS_MISSING'
-      ? `${error.module} is configurable and was imported without forRoot() or forRootAsync().\n  Fix: import ${error.module}.forRoot(options) or ${error.module}.forRootAsync({ useFactory }).`
-      : `${error.module} received options its schema rejects:\n${error.issues.map((issue) => `  ${issueWhere(issue)}${issue.message}`).join('\n')}`,
+const moduleOptions: Builder<ModuleOptionsError> = (error) => {
+  if (error.code === 'NEXUS_MODULE_OPTIONS_MISSING')
+    return text(
+      `${error.module} is configurable and was imported without forRoot() or forRootAsync().\n  Fix: import ${error.module}.forRoot(options) or ${error.module}.forRootAsync({ useFactory }).`,
+    );
+  const lines = error.issues
+    .slice(0, TEXT_ISSUES)
+    .map((issue) => `  ${issueLine(issue)}`);
+  const more = error.issues.length - TEXT_ISSUES;
+  if (more > 0) lines.push(`  and ${more} more`);
+  return text(
+    `${error.module} received options its schema rejects:\n${lines.join('\n')}`,
   );
+};
 
 const load: Builder<LoadError> = (error) =>
   text(
@@ -232,7 +243,7 @@ const load: Builder<LoadError> = (error) =>
 
 const provider: Builder<ProviderError> = (error) => {
   const lines = [
-    `${error.token} (module ${error.module}) failed: ${describeThrown(error.cause)}`,
+    `${error.token} (module ${error.module}) failed: ${causeText(error.cause)}`,
   ];
   if (error.path.length > 1)
     lines.push(`  While building: ${error.path.join(' → ')}`);
@@ -344,7 +355,7 @@ const plugin: Builder<PluginError> = (error) => {
       );
     case 'NEXUS_PLUGIN_FAILED':
       return text(
-        `the ${error.hook} hook of ${error.plugin} failed: ${describeThrown(error.cause)}`,
+        `the ${error.hook} hook of ${error.plugin} failed: ${causeText(error.cause)}`,
       );
   }
 };
