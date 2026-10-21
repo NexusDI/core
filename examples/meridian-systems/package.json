@@ -22,6 +22,18 @@
   "nx": {
     "tags": [
       "demo"
-    ]
+    ],
+    "targets": {
+      "e2e-growth": {
+        "executor": "nx:run-commands",
+        "dependsOn": [
+          "^build"
+        ],
+        "options": {
+          "cwd": "examples/meridian-systems",
+          "command": "vitest run --config vitest.e2e-growth.config.ts"
+        }
+      }
+    }
   }
 }
