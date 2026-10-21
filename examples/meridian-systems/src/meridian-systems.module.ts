@@ -23,6 +23,8 @@ export function meridianSystems(options: SimOptions) {
       // exports of its imports and of the global modules.
       provide(COMMAND_DESK, { useClass: CommandDesk }),
     ],
+    // Re-exporting Engineering hands the root REACTOR, POWER_ROUTER and
+    // SHIELD_GRID. COOLANT_LOOP stays inside Engineering.
     exports: [TICK_LOOP, TELEMETRY, COMMAND_DESK, Engineering],
   });
 }
