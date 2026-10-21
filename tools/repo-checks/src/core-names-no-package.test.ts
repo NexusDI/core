@@ -1,3 +1,4 @@
+import { readFileSync } from 'node:fs';
 import { join } from 'node:path';
 
 import { workspaceRoot } from '@nx/devkit';
@@ -20,6 +21,22 @@ const FIXTURES = join(
 );
 
 const fixture = (name: string) => sourcesOf(join(FIXTURES, name));
+
+/** The scope's condition names in core's package.json exports, such as `@nexusdi/source`. */
+function coreConditions(): string[] {
+  const manifest = JSON.parse(
+    readFileSync(join(workspaceRoot, 'libs', 'core', 'package.json'), 'utf8'),
+  ) as { exports: Record<string, unknown> };
+  return [
+    ...new Set(
+      Object.values(manifest.exports).flatMap((entry) =>
+        typeof entry === 'object' && entry !== null
+          ? Object.keys(entry).filter((key) => key.startsWith('@nexusdi/'))
+          : [],
+      ),
+    ),
+  ];
+}
 
 describe('pluginNameLiterals', () => {
   it('finds each string and template head that starts with nexus:', () => {
@@ -63,9 +80,28 @@ describe('coreNamesNoPackage', () => {
     ]);
   });
 
+  it("accepts core's own export condition, and no name it only starts", () => {
+    expect(
+      coreNamesNoPackage(fixture('condition'), '@acme', ['@acme/source'])
+        .violations,
+    ).toEqual([
+      "fix.ts:4 names @acme/sourcemaps in 'load @acme/sourcemaps'; core names no other package",
+    ]);
+    expect(
+      coreNamesNoPackage(fixture('condition'), '@acme').violations,
+    ).toEqual([
+      "fix.ts:2 names @acme/source in 'check that no bundler resolves the @acme/source condition for one import and dist for another'; core names no other package",
+      "fix.ts:4 names @acme/sourcemaps in 'load @acme/sourcemaps'; core names no other package",
+    ]);
+  });
+
   it('holds for libs/core/src, with files, modules and strings to check', () => {
+    const conditions = coreConditions();
+    expect(conditions).toContain('@nexusdi/source');
     const live = coreNamesNoPackage(
       sourcesOf(join(workspaceRoot, 'libs', 'core', 'src')),
+      '@nexusdi',
+      conditions,
     );
     expect(live.scanned.files).toBeGreaterThan(0);
     expect(live.scanned.modules).toBeGreaterThan(0);
