@@ -18,7 +18,10 @@ export interface IBridgeLink {
   snapshot(): Promise<ShipReading>;
   /** The body of `GET /telemetry`, a stream of server-sent events. */
   telemetry(): Promise<ReadableStream<Uint8Array>>;
-  /** The ship's annotated graph from `GET /graph`, or null when the backend serves none. */
+  /**
+   * The ship's annotated graph from `GET /graph`, or null when the backend
+   * serves none.
+   */
   graph(): Promise<NexusGraph | null>;
 }
 export const BRIDGE_LINK = new Token<IBridgeLink>('BridgeLink');
