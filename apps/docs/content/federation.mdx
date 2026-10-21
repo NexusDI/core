@@ -14,7 +14,7 @@ A micro-frontend app splits into a shell and remotes. The shell holds the contai
 npm install @nexusdi/federation@next @nexusdi/core@next
 ```
 
-## Two Bundles Hold Two Copies of a Token
+## Two Bundles Hold Two Copies of a `Token`
 
 A `Token` is compared by identity: two `new Token()` calls make two tokens, even with the same description. The shell and a remote each bundle their own copy of the package that declares `NAV_CHARTS`, so the remote's `NAV_CHARTS` is a different object from the shell's. Below, `SectorRoutes` in the remote's `Cartography` section depends on the remote's copy, and the shell provides its own. `ship.load(Cartography)` rejects with [NEXUS_BLUEPRINT_INVALID](/errors/NEXUS_BLUEPRINT_INVALID/), whose `errors` list holds [NEXUS_MISSING_PROVIDER](/errors/NEXUS_MISSING_PROVIDER/).
 
@@ -71,7 +71,7 @@ Move the contract's minor when the shell adds a token or a member to a token's i
 
 ## Share One `@nexusdi/core` Between the Bundles
 
-`federation()` binds the copies of a contract token, and every copy still comes from one `@nexusdi/core`. Each copy of core brands the definitions it makes, and it rejects a definition that another copy made. A remote that bundles its own core hands the shell a `Cartography` from another copy, and `load()` rejects with [NEXUS_CORE_NOT_SHARED](/errors/NEXUS_CORE_NOT_SHARED/).
+`federation()` binds the copies of a contract token, and every bundle must load the same copy of `@nexusdi/core`. Each copy of core brands the definitions it makes, and it rejects a definition that another copy made. A remote that bundles its own core hands the shell a `Cartography` from another copy, and `load()` rejects with [NEXUS_CORE_NOT_SHARED](/errors/NEXUS_CORE_NOT_SHARED/).
 
 The shell and every remote list `@nexusdi/core` in the `shared` setting of Module Federation, with `singleton: true` and `requiredVersion` set to core's exact version, since every `@nexusdi` package peers on that version. A remote whose components call [`useService`](/react/) shares `@nexusdi/react` the same way, so that it reads the shell's `NexusProvider`. The federation demo builds that object once, in `meridianShared()` from `@nexusdi/federation-contracts/shared`, the demo's contracts package. Each `rspack.config.ts` passes it to its `ModuleFederationPlugin`:
 
