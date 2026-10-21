@@ -1,7 +1,9 @@
+import playwright from 'eslint-plugin-playwright';
 import nx from '@nx/eslint-plugin';
 import baseConfig, { sharedRules } from '../../eslint.config.mjs';
 
 export default [
+  playwright.configs['flat/recommended'],
   ...baseConfig,
   ...nx.configs['flat/react'],
   {
@@ -10,5 +12,10 @@ export default [
     // sets, so the block goes last and its settings win. The root config's
     // doc comment on sharedRules says why each rule is there.
     rules: sharedRules,
+  },
+  {
+    files: ['**/*.ts', '**/*.js'],
+    // Override or add rules here
+    rules: {},
   },
 ];
