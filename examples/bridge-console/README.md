@@ -52,6 +52,24 @@ The console imports `@nexusdi/meridian-systems` and `@nexusdi/devtools` with
 script of the client build holds a description of the simulation's tokens,
 such as `TickLoop` or `TelemetryFeed`.
 
+## The Engineering Page
+
+`/systems/engineering` sits in the ship layout, under the status strip, and
+sends crew commands to the ship. Its action reads `BRIDGE_LINK` with
+`di.inject`, and `BRIDGE_LINK.command(cmd)` posts the command to
+bridge-api's `POST /commands`. The page holds a throttle form and a shields
+form, and shows the answer to the last command: the tick that applies it, or
+the refusal's message and its `Fix:` line. The gauges wait for the telemetry
+increment (G0b), so the page reads no ship state.
+
+`command(cmd)` resolves a 202 to `{ accepted: true, tick }` and a 400 or a
+409 to `{ accepted: false, status, code, message, fix? }`, and rejects any
+other status. The console imports `ShipCommand` from
+`@nexusdi/meridian-systems` with `import type`, so no simulation code reaches
+its bundle. `tests/routes/engineering.spec.tsx` runs the page on `nexusTest`
+with `fakeBridgeLink`, whose idle reactor refuses a shields raise and queues
+any other command for tick 1.
+
 ## Testing the Console
 
 `npx nx run @nexusdi/bridge-console:e2e` starts both servers itself and
@@ -65,6 +83,10 @@ current tick, since the backend keeps its ship across retries. It reads that
 tick from the backend, opens `/diagnostics` and finds the tick in the strip.
 It posts 600 ticks to the backend's `/sim/advance` and reads a tick 600
 higher, its ship time, 293 K and 101.3 kPa from the live stream with no
-reload. The second case finds `Simulation`, `MeridianSystems` and `Telemetry`
-on `/diagnostics`, with `system: Telemetry` on the feed. Only the non-required
-`demo-growth` CI job runs `e2e-growth` (ship systems spec, section 14).
+reload. The second case finds `Simulation`, `MeridianSystems` and
+`Telemetry` on `/diagnostics`, with `system: Telemetry` on the feed. The
+third, `e2e/growth/engineering.spec.ts`, reads the ship's tick from the
+backend, raises the shields at the idle reactor and reads the
+`MERIDIAN_POWER_BUDGET` text, then sets the throttle and reads `Queued for
+tick` with the next tick. Only the non-required `demo-growth` CI job runs
+`e2e-growth` (ship systems spec, section 14).
