@@ -1,7 +1,7 @@
 # Meridian ship systems
 
-Status: proposed, 2026-10-21. One question is open for the owner (section 14). The tech
-lead settles the rest.
+Status: proposed, 2026-10-21. The owner answered Q1 on 2026-10-21 (section 14). The
+tech lead settles the rest.
 
 Packages: no published package is added or changed. New private project:
 `examples/meridian-systems` (`@nexusdi/meridian-systems`), a library the growth track
@@ -709,8 +709,12 @@ The growth track holds the rich systems. Each increment:
 - adds one module (or one station) to the running simulation, with its physics, its unit
   tests, one e2e case per app it touches, and its `graph.json` change;
 - starts idle in the seeded scenario (S6), so no earlier e2e case changes;
-- merges to `release/0.4` during the RCs or to `main` after 0.4.0, whenever it is green;
-- never gates a release (section 14 asks how CI keeps that true).
+- merges to `release/0.4` during the RCs or to `main` after 0.4.0, and only when green;
+- from its merge on, runs its unit tests and `bridge-api`'s graph check in `main` and in
+  the release verify step, so a package change that breaks one blocks the RC until it is
+  fixed;
+- runs its e2e cases in the non-required `demo-growth` job, which never blocks, until a
+  green RC cycle moves them into the gating `demo-apps` job (section 14).
 
 The suggested order, each step depending only on G0 and the steps it names:
 
@@ -807,17 +811,17 @@ and federation e2e reads a station's gauges from a `bridge-api` started in manua
 
 ## 9. Risks
 
-| Risk                                                                                                              | What the spec does                                                                                                                                                                                                                                                                              |
-| ----------------------------------------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| Ship logic hides NexusDI. A reader opens a module and meets thermodynamics.                                       | Physics lives in `src/physics/` with no NexusDI import (S2). A module file holds tokens, providers and one delegation per system (section 3.4), and the reviewer refuses a module file over 120 lines. Each system's README section names the NexusDI feature it shows first, then the physics. |
-| The demo teaches odd DI. Compartments as request scopes, or a loaded system that attaches itself, read as tricks. | Section 6 gives the reason for each pairing. The scope carries one request's compartment, and nothing in the simulation holds a scope beyond a request. The attach in G7 is the documented `all()` rule, stated where it happens.                                                               |
-| Bundle size. A console or station bundles the simulation.                                                         | Frontends take `import type` only. A G0 test greps the console's client build and each station's build for `stepAtmosphere` and fails on a hit.                                                                                                                                                 |
-| CI time grows with every increment.                                                                               | Each increment adds at most one e2e case per app, and the physics tests run in milliseconds. Manual mode advances 600 ticks in well under a second. The demo spec's 8-minute budget for `demo-apps` stands, and section 14 keeps growth cases out of the gating job.                            |
-| Floating-point drift across engines breaks a golden.                                                              | Goldens run on Node only; other runtimes run a smoke case (section 8.3).                                                                                                                                                                                                                        |
-| A new system changes older e2e expectations.                                                                      | S5 and S6: per-system RNG forks, and idle at start.                                                                                                                                                                                                                                             |
-| Vocabulary drift. The simulation adds about forty names, and a docs page or post picks one up before §7.1 has it. | Section 10 proposes every row. The demo plan's PR G carries them to `spec/docs-site`. Until a row is there, no docs page uses the name, and the domain guard's interface list gains the new interfaces, none ending in `Service`.                                                               |
-| "Tactical" reads as weapons to a naval reader.                                                                    | `Tactical` keeps navigation, as §7.1 has it, and the weapons module is `Weapons`. Section 10.2 records the rule.                                                                                                                                                                                |
-| Humour creeps in through ship colour (alarm text, hail messages).                                                 | §7.4 binds the demo text too: alarm and hail text states facts (`fleet traffic control: sector clear`), and the reviewer checks it.                                                                                                                                                             |
+| Risk                                                                                                              | What the spec does                                                                                                                                                                                                                                                                                         |
+| ----------------------------------------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Ship logic hides NexusDI. A reader opens a module and meets thermodynamics.                                       | Physics lives in `src/physics/` with no NexusDI import (S2). A module file holds tokens, providers and one delegation per system (section 3.4), and the reviewer refuses a module file over 120 lines. Each system's README section names the NexusDI feature it shows first, then the physics.            |
+| The demo teaches odd DI. Compartments as request scopes, or a loaded system that attaches itself, read as tricks. | Section 6 gives the reason for each pairing. The scope carries one request's compartment, and nothing in the simulation holds a scope beyond a request. The attach in G7 is the documented `all()` rule, stated where it happens.                                                                          |
+| Bundle size. A console or station bundles the simulation.                                                         | Frontends take `import type` only. A G0 test greps the console's client build and each station's build for `stepAtmosphere` and fails on a hit.                                                                                                                                                            |
+| CI time grows with every increment.                                                                               | Each increment adds at most one e2e case per app, and the physics tests run in milliseconds. Manual mode advances 600 ticks in well under a second. The demo spec's 8-minute budget for `demo-apps` stands, since growth e2e cases run in `demo-growth` (section 14) until a green RC cycle promotes them. |
+| Floating-point drift across engines breaks a golden.                                                              | Goldens run on Node only; other runtimes run a smoke case (section 8.3).                                                                                                                                                                                                                                   |
+| A new system changes older e2e expectations.                                                                      | S5 and S6: per-system RNG forks, and idle at start.                                                                                                                                                                                                                                                        |
+| Vocabulary drift. The simulation adds about forty names, and a docs page or post picks one up before §7.1 has it. | Section 10 proposes every row. The demo plan's PR G carries them to `spec/docs-site`. Until a row is there, no docs page uses the name, and the domain guard's interface list gains the new interfaces, none ending in `Service`.                                                                          |
+| "Tactical" reads as weapons to a naval reader.                                                                    | `Tactical` keeps navigation, as §7.1 has it, and the weapons module is `Weapons`. Section 10.2 records the rule.                                                                                                                                                                                           |
+| Humour creeps in through ship colour (alarm text, hail messages).                                                 | §7.4 binds the demo text too: alarm and hail text states facts (`fleet traffic control: sector clear`), and the reviewer checks it.                                                                                                                                                                        |
 
 ## 10. Vocabulary
 
@@ -936,3 +940,18 @@ Q1. Where do the growth track's e2e cases run in CI?
 - Recommendation: a separate, non-required `demo-growth` job that runs an `e2e-growth`
   target in each app, with the growth cases tagged so. A growth case that has run green
   for an RC cycle can move into `e2e` by a tech-lead decision.
+- Answer (owner, 2026-10-21): growth-track increments merge only when green. After a merge, their deterministic unit tests and graph check run in `main` and in the release verify step, so a package change that breaks one blocks the RC until it is fixed. Their e2e cases run in a separate, non-required `demo-growth` job and never block. A case moves into the gating job after a green RC cycle.
+
+The rule in CI terms: `examples/meridian-systems`'s `test` target, `bridge-api`'s
+`check.test.ts` and `graph` target, and `tools/repo-checks`' `purity.test.ts` carry no
+`demo-frontend` tag, so `main`'s `run-many` and the release verify step run them. Each
+app's `e2e-growth` target holds the growth cases, and only `demo-growth` runs it.
+
+## 15. Owner decision log
+
+| Date       | Decision                                                                                                                                                                                                | Source            |
+| ---------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ----------------- |
+| 2026-10-21 | The ship is modelled on Stationeers, with the eight systems of decision 1                                                                                                                               | owner, decision 1 |
+| 2026-10-21 | A deterministic, seeded, fixed-step simulation on the backend; the console streams telemetry and commands                                                                                               | owner, decision 2 |
+| 2026-10-21 | The full domain designed now; a 0.4 minimum gates 0.4.0, and the rich systems form a growth track                                                                                                       | owner, decision 3 |
+| 2026-10-21 | Q1: growth increments merge green; their unit tests and graph check gate in `main` and the release verify step; their e2e runs in the non-required `demo-growth` job until a green RC cycle promotes it | owner             |
