@@ -26,6 +26,8 @@ Depends on:
   `spec/docs-site` in a later change.
 - `specs/2026-09-30-extension-principle-design.md` on `origin/spec/package-owned-errors`
   (P1 to P5), against which section 8 checks the core change.
+- `specs/2026-10-21-meridian-ship-systems-design.md`, the ship's domain. Its section 11
+  lists the four places where these apps adopt its names and module boundaries.
 
 Versions, read with `npm view` on 2026-10-21: `create-react-router` 8.5.0, `react-router`
 8.5.0, `@react-router/dev` 8.5.0, `nx` and every `@nx/*` plugin 23.3.0,
@@ -172,7 +174,9 @@ Against the pillars and the users:
 1. Tag the project `demo`, so the `demo-apps` job runs its `e2e` target.
 2. Rename the `Audit` module to `AuditTrail` (A8). Docs §7.1 names "`IAuditLog` behind
    `AUDIT_LOG`, bound with `useClass: AuditLog` in the `AuditTrail` module", and the app
-   uses `Audit`. `graph.json` changes with it.
+   uses `Audit`. `graph.json` changes with it. The file moves from `src/ship/audit.ts` to
+   `src/ship/audit-trail.module.ts`, the `<name>.module.ts` form the other modules use and
+   the ship systems spec keeps.
 3. Audit the app against the generator. `bridge-api` was assembled by hand. Task 1 runs
    `npm create hono@0.19.5 <scratch>/meridian-backend -- --template nodejs --pm npm`
    outside the repo, compares its `package.json` scripts, `tsconfig.json`, lint setup and entry
@@ -415,7 +419,9 @@ leave `federation()` with nothing to do.
 
 ### 7.4 The shell and the remotes
 
-The shell's root is `Meridian`. It imports `Engineering` and `Tactical`. `Tactical`
+The shell's root is `Meridian`. It imports `Tactical`, and no `Engineering`: the ship
+simulation owns the module of that name (ship systems spec S8), and no case here reads
+it. `Tactical`
 provides the contract's `NAV_CHARTS` and is `global: true`, because a module that
 `load()` adds sees only what it imports or what a global module exports, and a remote
 cannot import the shell's module object. The shell registers `federation()`,
@@ -469,7 +475,10 @@ lives in the app code.
 
 The drift build of `federation-cartography` is a second rspack config,
 `rspack.config.drift.ts`, that aliases `@nexusdi/federation-contracts/version` to
-`drift/version.ts` in the remote's folder, which exports `'2.4.0'`. The remote then
+`drift/version.ts` in the remote's folder, which exports the next minor of
+`MERIDIAN_CONTRACT_VERSION`: `'2.4.0'` while the contract is at 2.3.0. The ship systems
+spec moves the contract's minor when stations gain contract tokens, and the drift build
+follows it with no edit. The remote then
 depends on `NAV_CHARTS` at 2.4.0 while the shell provides 2.3.0. `load()` rejects with a
 `BlueprintError` that holds `NEXUS_CONTRACT_VERSION`, and the shell's `SectionFailed`
 renders `meridian/NavCharts is needed at 2.4.0, and the provider has 2.3.0.` from
@@ -670,7 +679,7 @@ uses them.
 | Thing               | The name                                                                                                                                                                    |
 | ------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | The shell           | The app that holds the container and loads remotes, `examples/federation-shell`. Its root is `Meridian`, and its container is `ship`.                                       |
-| A remote            | A bundle built and served apart from the shell, loaded at runtime: `cartography` and `command`.                                                                             |
+| A remote            | A bundle built and served apart from the shell, loaded at runtime: `cartography` and `command`. Each remote is a station of the bridge (ship systems spec §10.2).           |
 | A section package   | What a remote exposes at `./section`: a module and its components. `cartography` exposes `Cartography` and `StarMap`; `command` exposes `Command` and `CommandDeck`.        |
 | A contract          | `meridian = defineContract({ key: 'meridian', version: '2.3.0' })` in `@nexusdi/federation-contracts`, owned by the shell.                                                  |
 | A contract key      | `meridian`. A contract token is described `<key>/<name>`: `NAV_CHARTS = meridian.token<INavCharts>('NavCharts')` is `meridian/NavCharts`.                                   |
