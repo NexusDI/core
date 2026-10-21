@@ -6,9 +6,9 @@ export default [
   ...nx.configs['flat/react'],
   {
     files: ['**/*.ts', '**/*.tsx', '**/*.js', '**/*.jsx'],
-    // flat/react re-enables some of what baseConfig's sharedRules block
-    // turns off/on, so it is re-applied last here to stay the effective
-    // setting -- see the doc comment on sharedRules in the root config.
+    // flat/react sets some rules that baseConfig's sharedRules block also
+    // sets, so the block goes last and its settings win. The root config's
+    // doc comment on sharedRules says why each rule is there.
     rules: sharedRules,
   },
 ];

@@ -7,6 +7,9 @@ export default defineConfig({
   // app/ from the root, so the root is this folder.
   root: import.meta.dirname,
   cacheDir: '../../node_modules/.vite/examples/bridge-console',
+  // Vite looks for a tsconfig in parent folders with no stop at the
+  // workspace root, so it can leave the git worktree. This names the file.
+  tsconfig: './tsconfig.app.json',
   plugins: [tailwindcss(), !process.env.VITEST && reactRouter()],
   resolve: {
     tsconfigPaths: true,
