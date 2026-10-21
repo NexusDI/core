@@ -71,6 +71,11 @@ describe('Home route', () => {
       expect(screen.getByText('survey-7')).toBeDefined();
       expect(screen.getByText('survey-7: docked')).toBeDefined();
     });
+    // The plotter's own scope opens after hydration under the client graph,
+    // and plots with the fake charts.
+    expect(
+      await screen.findByText('heading 42', { exact: false, selector: 'span' }),
+    ).toBeDefined();
     await scope[Symbol.asyncDispose]();
   });
 
