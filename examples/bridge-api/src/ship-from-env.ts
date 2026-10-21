@@ -64,19 +64,17 @@ export interface StoppingServer {
 /**
  * On SIGTERM, calls `close` (default `server.close()`) to stop the server
  * taking connections, then disposes the ship. The server waits for its open
- * connections before it closes, and the ship's telemetry feed ends every
- * open `GET /telemetry` stream when it disposes. It starts the dispose
- * without waiting for close, since close waits on the streams the dispose
- * ends. `server.close()` closes only the connections idle when it runs, so
- * each response that finishes after SIGTERM calls
- * `server.closeIdleConnections()`. Without that call, a keep-alive
- * connection whose stream ended holds the server open until the client's
- * or the server's keep-alive timeout ends it (5 seconds on Node, 72 on
- * Fastify). An entry calls this before
- * its server takes a request. A second dispose, such as an entry's
- * `await using`, returns the first one's promise. A rejection from either
- * step goes to the console and sets exit code 1 (`http.Server.close()`
- * without a callback never throws).
+ * connections before it closes, and the ship's telemetry feed ends every open
+ * `GET /telemetry` stream when it disposes. It starts the dispose without
+ * waiting for close, since close waits on the streams the dispose ends.
+ * `server.close()` closes only the connections idle when it runs, so each
+ * response that finishes after SIGTERM calls `server.closeIdleConnections()`.
+ * Without that call, a keep-alive connection whose stream ended holds the
+ * server open until the client's or the server's keep-alive timeout ends it
+ * (5 seconds on Node, 72 on Fastify). An entry calls this before its server
+ * takes a request. A second dispose, such as an entry's `await using`, returns the
+ * first one's promise. A rejection from either step goes to the console and
+ * sets exit code 1 (`http.Server.close()` without a callback never throws).
  */
 export function stopOnSigterm(
   server: StoppingServer,
