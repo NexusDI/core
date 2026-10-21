@@ -43,7 +43,10 @@ Three rulesets ("Main", "Release branches", "Maintenance branches") require
 the checks `main`, `workflows`, `format` and `packaging`, plus CodeQL. The
 target state adds `adapter-runtimes`, `adapter-peers` and `node-floor`, matrix
 jobs that report one check per leg, 32 in all; the owner adds them to the
-rulesets before 0.4.0-rc.2. The only
+rulesets before 0.4.0-rc.2. The owner adds `demo-apps` to all three rulesets
+once it has run green on three consecutive pushes to `release/0.4` (demo
+apps spec Q5). `release.yml` reads its required checks from the rulesets, so
+no workflow change follows. `demo-growth` never joins them. The only
 bypass actor is the deploy key. The GitHub environment `release` admits
 `main`, `release/*` and `[0-9]*.x`, and holds the `RELEASE_SSH_KEY` secret. npm
 trusted publishing names the same environment, so a run on any other ref gets
@@ -100,6 +103,12 @@ Before the dry run:
    `final` with `finalDate`, and it is merged.
 2. `apps/docs/archives.json` has an entry for the line leaving the docs root.
 3. If `main` moved since the last sync, run `sync` and merge its pull request.
+4. For 0.4.0: each of `@nexusdi/hono`, `@nexusdi/express`, `@nexusdi/fastify`,
+   `@nexusdi/react-router`, `@nexusdi/vitest` and `@nexusdi/react` was
+   published in at least one rc whose commit had `demo-apps` green. The rc's
+   commit is the parent of its release commit:
+   `gh api "repos/NexusDI/core/commits/$(git rev-parse '@nexusdi/core@0.4.0-rc.N^')/check-runs?check_name=demo-apps&filter=latest" --jq '.check_runs[].conclusion'`
+   prints `success`.
 
 ```sh
 gh workflow run release.yml --ref release/0.4 -f event=stable -f dry-run=true
