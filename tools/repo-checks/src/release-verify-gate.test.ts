@@ -1,4 +1,5 @@
 import { createProjectGraphAsync, workspaceRoot } from '@nx/devkit';
+import { execFileSync } from 'node:child_process';
 import { readFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { parse } from 'yaml';
@@ -171,10 +172,6 @@ describe('the release verify gate', () => {
         manifest.private,
         `${node.name} is excluded from the release gate, so it must be private`,
       ).toBe(true);
-      expect(
-        node.data.tags,
-        `${node.name} is excluded from main, so demo-apps must reach it through the demo tag`,
-      ).toContain('demo');
     }
 
     const names = excluded.map((node) => node.name);
@@ -190,6 +187,63 @@ describe('the release verify gate', () => {
       );
     }
   });
+
+  /**
+   * main and the release gate leave out every demo-frontend project, so
+   * demo-apps must run each target of main's list that such a project has.
+   * This asks Nx for the task graph of every `nx run-many` step in
+   * demo-apps and looks for each of those tasks in it. A project's build
+   * may come in as a dependency of a demo's e2e, and the graph shows that.
+   */
+  it('runs every main target of every excluded project in demo-apps', async () => {
+    const graph = await createProjectGraphAsync({ exitOnError: false });
+    const expected = Object.values(graph.nodes)
+      .filter((node) => (node.data.tags ?? []).includes('demo-frontend'))
+      .flatMap((node) =>
+        ci.targets
+          .filter((target) => target in (node.data.targets ?? {}))
+          .map((target) => `${node.name}:${target}`),
+      );
+
+    const runs = stepsOf(readWorkflow('ci.yml'), 'demo-apps')
+      .map((step) => step.run ?? '')
+      .filter((run) => run.includes('nx run-many'));
+    expect(runs.length, 'demo-apps runs nx run-many').toBeGreaterThan(0);
+
+    const tasks = new Set(
+      runs.flatMap((run) => {
+        const out = execFileSync(
+          join(workspaceRoot, 'node_modules', '.bin', 'nx'),
+          [
+            ...run
+              .replace(/^npx nx /, '')
+              .trim()
+              .split(/\s+/),
+            '--graph=stdout',
+          ],
+          {
+            cwd: workspaceRoot,
+            encoding: 'utf-8',
+            env: { ...process.env, NX_DAEMON: 'false', NX_NO_CLOUD: 'true' },
+            stdio: ['ignore', 'pipe', 'ignore'],
+            maxBuffer: 64 * 1024 * 1024,
+          },
+        );
+        return Object.keys(
+          (
+            JSON.parse(out.slice(out.indexOf('{'))) as {
+              tasks: { tasks: Record<string, unknown> };
+            }
+          ).tasks.tasks,
+        );
+      }),
+    );
+
+    expect(
+      expected.filter((task) => !tasks.has(task)),
+      'main leaves these tasks out and demo-apps does not run them',
+    ).toEqual([]);
+  }, 120_000);
 });
 
 /**
@@ -272,7 +326,7 @@ describe('the demo-apps job', () => {
   const runManyIndex = (command: string) =>
     steps.findIndex((step) => step.run?.includes(command));
   const checks = runManyIndex(
-    `nx run-many -t lint test typecheck --projects=${DEMO_FRONTEND}`,
+    `nx run-many -t lint test build typecheck --projects=${DEMO_FRONTEND}`,
   );
   const e2e = runManyIndex('nx run-many -t e2e --projects=tag:demo');
 
