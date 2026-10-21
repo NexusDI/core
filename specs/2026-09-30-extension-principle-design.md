@@ -97,7 +97,9 @@ it.
   than core and for `'nexus:` literals, and `plugin-api-1.test-d.ts`. That file holds one
   third-party plugin, written in a separate file, that uses every contribution point of
   section 2.5.11, including a `GraphAnnotator` matched structurally with no devtools
-  import. It must compile on every commit until `NEXUS_PLUGIN_API` changes.
+  import. It must compile on every commit until `NEXUS_PLUGIN_API` changes. The grep
+  counts core's own export-condition names, such as `@nexusdi/source`, as core, and its
+  test reads them from the `exports` map of `libs/core/package.json`.
 - Exception: none in published source.
 
 ### 1.5 P4. No copy of another package's logic
