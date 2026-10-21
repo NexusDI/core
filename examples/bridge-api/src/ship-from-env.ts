@@ -10,18 +10,18 @@ const MAX_SEED = 2 ** 32 - 1;
 /**
  * The ship setup the Node servers start: SIM_MODE, `live` or `manual`, and
  * SIM_SEED, a whole number from 0 to 4294967295. Unset, they give a live ship
- * on seed 7. A tick is always 0.5 ship seconds.
+ * on seed 7, and so do empty ones. A tick is always 0.5 ship seconds.
  */
 export function setupFromEnv(
   env: Readonly<Record<string, string | undefined>> = process.env,
 ): ShipSetup {
-  const mode = env.SIM_MODE ?? 'live';
+  const mode = env.SIM_MODE || 'live';
   if (!MODES.includes(mode as SimMode)) {
     throw new Error(
       `SIM_MODE is '${mode}'. Set it to 'live' or 'manual', or leave it unset for 'live'.`,
     );
   }
-  const raw = env.SIM_SEED ?? '7';
+  const raw = env.SIM_SEED || '7';
   if (!/^\d+$/.test(raw) || Number(raw) > MAX_SEED) {
     throw new Error(
       `SIM_SEED is '${raw}'. Set it to a whole number from 0 to ${MAX_SEED}, or leave it unset for 7.`,
