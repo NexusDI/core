@@ -11,6 +11,9 @@ export default [
     route('sectors/:sector', 'routes/sectors.tsx'),
     route('course/:to', 'routes/course.tsx'),
     route('charts', 'routes/charts.tsx'),
+    layout('routes/ship-layout.tsx', [
+      route('diagnostics', 'routes/diagnostics.tsx'),
+    ]),
   ]),
   // A resource route outside the page layout: it answers with the stream alone.
   route('telemetry', 'routes/telemetry.ts'),

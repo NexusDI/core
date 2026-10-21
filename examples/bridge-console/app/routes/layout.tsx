@@ -25,6 +25,9 @@ export default function Layout(props: Route.ComponentProps) {
         <Button as="link" to="/charts" variant="outline">
           Charts
         </Button>
+        <Button as="link" to="/diagnostics" variant="outline">
+          Diagnostics
+        </Button>
       </nav>
 
       <main>
