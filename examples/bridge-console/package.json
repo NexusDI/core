@@ -19,6 +19,7 @@
     "@nexusdi/bridge-api": "*",
     "@nexusdi/testing": "*",
     "@nexusdi/vitest": "*",
+    "@nx/eslint-plugin": "23.3.0",
     "@react-router/dev": "8.4.0",
     "@tailwindcss/vite": "^4.2.2",
     "@types/node": "^22",
