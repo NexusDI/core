@@ -144,13 +144,13 @@ describe('interceptor', () => {
     const remote = foreign({ description: 'meridian/Audit' });
     expect(
       parseOptions({
-        register: [LoggingInterceptor],
-        global: [remote],
+        register: [LoggingInterceptor, remote],
+        global: [remote, { use: remote }],
         bindings: [{ token: remote }],
         exempt: [remote],
       }),
     ).toEqual(
-      ['global', 'bindings', 'exempt'].map((option) => ({
+      ['register', 'global', 'global', 'bindings', 'exempt'].map((option) => ({
         foreign: true,
         received: 'the Token meridian/Audit',
         where: `interceptors() ${option}`,

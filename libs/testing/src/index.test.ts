@@ -768,6 +768,12 @@ describe('createTestingContainer', () => {
       received: 'the module Remote',
       where: 'overrideModule()',
     });
+    expect(
+      thrown(() => builder.overrideModule(Comms, Remote as never)),
+    ).toMatchObject({
+      code: 'NEXUS_CORE_NOT_SHARED',
+      received: 'the module Remote',
+    });
     const Versioned = Object.defineProperty(
       { name: 'Versioned' },
       Symbol.for('nexusdi.definition'),
