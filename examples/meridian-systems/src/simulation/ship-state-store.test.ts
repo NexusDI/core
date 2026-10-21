@@ -178,6 +178,22 @@ describe('ShipStateStore setpoint queue', () => {
     expect(store.log()[0].change).toEqual({ reactor: { throttle: 0.5 } });
   });
 
+  it('drops a field a change sets to undefined, from the setpoints and the log', () => {
+    const store = new ShipStateStore(plan);
+    store.queue({ reactor: { throttle: 0.5 } });
+    store.applyQueued(1);
+    store.queue({
+      reactor: { throttle: undefined },
+      shields: { raised: true },
+    });
+    const ship = store.applyQueued(2);
+    expect(ship.setpoints.reactor).toEqual({ throttle: 0.5 });
+    expect(store.log()[1].change).toStrictEqual({
+      reactor: {},
+      shields: { raised: true },
+    });
+  });
+
   it('keeps the newest 1,000 entries in the log', () => {
     const store = new ShipStateStore(plan);
     for (let i = 1; i <= 1_001; i++) {

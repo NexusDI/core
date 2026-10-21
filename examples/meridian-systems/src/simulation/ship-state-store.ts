@@ -67,12 +67,28 @@ export class ShipStateStore implements IShipState {
   }
 }
 
-/** A frozen copy of `change`, so a caller that keeps the object cannot alter the queue or the log. */
+/**
+ * A frozen copy of `change` with its undefined fields dropped, so a caller
+ * that keeps the object cannot alter the queue or the log.
+ */
 function copyChange(change: SetpointChange): SetpointChange {
   const copy: { -readonly [K in keyof Setpoints]?: Partial<Setpoints[K]> } = {};
-  if (change.reactor) copy.reactor = Object.freeze({ ...change.reactor });
-  if (change.shields) copy.shields = Object.freeze({ ...change.shields });
+  if (change.reactor) copy.reactor = definedFields(change.reactor);
+  if (change.shields) copy.shields = definedFields(change.shields);
   return Object.freeze(copy);
+}
+
+/**
+ * A frozen copy of `fields` without the keys set to undefined. `Partial`
+ * lets a caller write `{ throttle: undefined }`, and a merge of that key
+ * would leave undefined in the setpoints.
+ */
+function definedFields<T extends object>(fields: T): T {
+  return Object.freeze(
+    Object.fromEntries(
+      Object.entries(fields).filter(([, value]) => value !== undefined),
+    ) as T,
+  );
 }
 
 function mergeSetpoints(
