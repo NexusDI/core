@@ -217,7 +217,7 @@ Fixes #456
 
 1. Create a feature branch from `main`.
 2. Make your changes, with tests.
-3. Run the gate locally: `npx nx run-many -t lint test build typecheck`.
+3. Run the gate locally: `npx nx run-many -t lint test build typecheck --exclude=tag:demo-frontend`.
 4. Format: `npx prettier --write .`.
 5. Submit a pull request with a clear description. CI runs the same gate,
    plus `npm run verify:packaging`, a workflow-file lint and the size report

@@ -155,10 +155,11 @@ jobs:
   # install 31 s, demo-frontend checks 12 s with no project tagged yet, and
   # the bridge-api and bridge-console e2e suites 27 s, their library builds
   # included. On a cache hit the cache restore takes 5 s and the Chromium
-  # step 13 s for the system libraries. The spec estimates 2 min 45 s more for the federation
-  # projects (45 s of checks, 2 min of rspack builds and Playwright), about
-  # 4 min 50 s in all. Over 8 minutes, the job splits into a console leg
-  # and a federation leg in a matrix (demo apps spec 10.2).
+  # step 13 s for the system libraries. The spec estimates 2 min 45 s more
+  # for the federation projects (45 s of checks, 2 min of rspack builds and
+  # Playwright), about 4 min 50 s in all. Over 8 minutes, the job splits
+  # into a console leg and a federation leg in a matrix (demo apps spec
+  # 10.2).
   demo-apps:
     runs-on: ubuntu-latest
     timeout-minutes: 15
