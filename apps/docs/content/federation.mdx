@@ -52,7 +52,7 @@ Delete `global: true,` from `Tactical` and run the region once more. `Cartograph
 
 ## Check Contract Versions with `NEXUS_CONTRACT_VERSION`
 
-`federation()` compares the version on each contract token a provider depends on with the version on the token the shell provided. It runs when `Nexus.create` or `load()` compiles the graph, before any constructor runs. A remote built against a newer version than the shell provides fails, since it may call a member the shell's provider does not have. The rule follows npm's `^` range, except at 0.0.x, where a newer shell patch also satisfies:
+`federation()` compares the version on each contract token a provider depends on with the version on the token the shell provided. It runs when `Nexus.create` or `load()` compiles the graph, before any constructor runs. A remote built against a newer version than the shell provides fails, since it may call a member the shell's provider does not have. The rule follows npm's `^` range, except at 0.0.x, where a newer shell patch also satisfies. The comparison ignores a prerelease tag:
 
 - The majors must match.
 - From major 1 on, the remote's minor may be older than the shell's or the same.
@@ -73,15 +73,17 @@ Move the contract's minor when the shell adds a token or a member to a token's i
 
 `federation()` binds the copies of a contract token, and every bundle must load the same copy of `@nexusdi/core`. Each copy of core brands the definitions it makes, and it rejects a definition that another copy made. A remote that bundles its own core hands the shell a `Cartography` from another copy, and `load()` rejects with [NEXUS_CORE_NOT_SHARED](/errors/NEXUS_CORE_NOT_SHARED/).
 
-The shell and every remote list `@nexusdi/core` in the `shared` setting of Module Federation, with `singleton: true` and `requiredVersion` set to core's exact version, since every `@nexusdi` package peers on that version. A remote whose components call [`useService`](/react/) shares `@nexusdi/react` the same way, so that it reads the shell's `NexusProvider`. The federation demo builds that object once, in `meridianShared()` from `@nexusdi/federation-contracts/shared`, the demo's contracts package. Each `rspack.config.ts` passes it to its `ModuleFederationPlugin`:
+The shell and every remote list `@nexusdi/core` in the `shared` setting of Module Federation, with `singleton: true` and `requiredVersion` set to core's exact version, since every `@nexusdi` package peers on that version. A remote whose components call [`useService`](/react/) shares `@nexusdi/react` the same way, so that it reads the shell's `NexusProvider`. Each `rspack.config.ts` passes the object to its `ModuleFederationPlugin`:
 
 ```ts file=examples/meridian/src/pages/federation.md region=shared
 
 ```
 
-**Try it:** In a checkout of the NexusDI repository, run `npm install` and `npx nx build @nexusdi/federation-contracts`. Then save the region as `shared.ts` in the checkout and run `npx tsx shared.ts`. It prints the four package names and `true`. Change `meridianShared()` to `meridianShared({ core: false })`, the setting of the demo's unshared build: `@nexusdi/core` drops out of the list, and the second line is `undefined`. Change it back.
+**Try it:** Run `npm install react`, save the region as `shared.ts` and run `npx tsx shared.ts`. It prints `true` twice. Change `requiredVersion: core` on the `@nexusdi/core` line to `requiredVersion: react` and run it again: the second line is `false`. Change it back.
 
-The contracts package has no entry, so each bundle holds its own copy, and `federation()` binds the copies by key. `@nexusdi/federation` and `@nexusdi/decorators` have no entry either. A second copy of `@nexusdi/federation` reads the contract marks every copy writes under a registered `Symbol.for()` key, and a second copy of `@nexusdi/decorators` writes what its decorators declare through the shared core.
+The federation demo builds this object once, in [`meridianShared()`](https://github.com/NexusDI/core/blob/release/0.4/examples/federation-contracts/src/shared.ts). Its unshared build calls `meridianShared({ core: false })`, which drops the `@nexusdi/core` entry.
+
+The contracts package has no entry in `shared`, so each bundle holds its own copy, and `federation()` binds the copies by key. `@nexusdi/federation` and `@nexusdi/decorators` have no entry in `shared` either. A second copy of `@nexusdi/federation` reads the contract marks every copy writes under a registered `Symbol.for()` key, and a second copy of `@nexusdi/decorators` writes what its decorators declare through the shared core.
 
 ## The Full Federation Demo
 

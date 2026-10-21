@@ -1,4 +1,4 @@
-import { existsSync, readFileSync, readdirSync } from 'node:fs';
+import { existsSync, readdirSync } from 'node:fs';
 import { join } from 'node:path';
 
 import { readPackageExports } from '@nexusdi/doc-examples/package-exports';
@@ -41,50 +41,6 @@ describe('doc-exports fixtures', () => {
     ).toBe(true);
   });
 
-  it('accepts an import from a demo entry, and a signature fence only under a published export', () => {
-    const fence = (body: string, tags: string[], section: string) => ({
-      lang: 'ts',
-      meta: tags.join(' '),
-      tags,
-      body,
-      line: 1,
-      section,
-    });
-    const page = {
-      slug: 'federation',
-      file: 'federation.mdx',
-      source: '',
-      body: '',
-      frontmatter: {},
-      kind: 'question',
-      headings: [],
-      sections: [],
-      fences: [
-        fence(
-          "import { meridianShared } from '@nexusdi/federation-contracts/shared';",
-          [],
-          'Share one core',
-        ),
-        fence('meridianShared(): object', ['signature'], '`meridianShared()`'),
-      ],
-    };
-    const demoExportsOf = new Map([
-      ['@nexusdi/federation-contracts/shared', new Set(['meridianShared'])],
-    ]);
-    const findings = checkExports({
-      pages: [page],
-      exportsOf: STUB,
-      demoExportsOf,
-    });
-    expect(findings).toHaveLength(1);
-    expect(findings[0]).toContain('which names no export');
-    expect(checkExports({ pages: [page], exportsOf: STUB })).toContainEqual(
-      expect.stringContaining(
-        "'@nexusdi/federation-contracts/shared' is not an entry of the exports map",
-      ),
-    );
-  });
-
   it('skips a post that describes a version below 0.4.0, and reports nothing else', () => {
     const findings = checkExports({
       pages: tree('sabotaged'),
@@ -111,28 +67,8 @@ describe('doc-exports on apps/docs', () => {
           new Set(entries.map((entry) => entry.name)),
         ]),
     );
-    // The demo packages under examples/ that declare an exports map.
-    const examples = join(workspaceRoot, 'examples');
-    const demoExportsOf = new Map(
-      readdirSync(examples)
-        .map((name) => join(examples, name, 'package.json'))
-        .filter(
-          (file) =>
-            existsSync(file) &&
-            'exports' in (JSON.parse(readFileSync(file, 'utf8')) as object),
-        )
-        .flatMap((file) => [...readPackageExports(file)])
-        .map(([specifier, entries]) => [
-          specifier,
-          new Set(entries.map((entry) => entry.name)),
-        ]),
-    );
     expect(
-      checkExports({
-        pages: await readExpandedSite(CONTENT),
-        exportsOf,
-        demoExportsOf,
-      }),
+      checkExports({ pages: await readExpandedSite(CONTENT), exportsOf }),
     ).toEqual([]);
   });
 });
