@@ -6,6 +6,7 @@ import { isToken } from '../definitions/guards.js';
 import { HOOK_SITES } from '../definitions/hook-sites.js';
 import { MultiToken, displayName } from '../definitions/token.js';
 import {
+  CoreNotSharedError,
   InvalidModuleError,
   InvalidTokenError,
   LoadedAfterScopeError,
@@ -24,7 +25,11 @@ import type { ContainerState, TransientOwner } from './state.js';
  * §3.5), so the option falls back to `moduleByReplaced` and gets the module
  * that stands in for it.
  */
-export function lookupModule(bp: Blueprint, options?: LookupOptions): string {
+export function lookupModule(
+  bp: Blueprint,
+  options: LookupOptions | undefined,
+  where: string,
+): string {
   if (options?.module === undefined) return bp.root;
   const definition = resolveModuleRef(options.module);
   const id =
@@ -33,10 +38,14 @@ export function lookupModule(bp: Blueprint, options?: LookupOptions): string {
       : (bp.moduleByDefinition.get(definition) ??
         bp.moduleByReplaced.get(definition));
   if (id === undefined) {
+    if (isForeign(options.module))
+      throw new CoreNotSharedError({
+        received: describeValue(options.module),
+        where,
+      });
     throw new InvalidModuleError({
       received: definition?.name ?? describeValue(options.module),
       path: [],
-      otherCopy: isForeign(options.module),
     });
   }
   return id;
@@ -92,16 +101,20 @@ export function getFrom(
   owner: TransientOwner,
 ): unknown {
   if (!isToken(token))
-    throw new InvalidTokenError({
-      received: describeValue(token),
-      entry: null,
-      module: null,
-      index: null,
-      reason: null,
-      detail: [],
-      otherCopy: isForeign(token),
-    });
-  const moduleId = lookupModule(bp, options);
+    throw isForeign(token)
+      ? new CoreNotSharedError({
+          received: describeValue(token),
+          where: 'get()',
+        })
+      : new InvalidTokenError({
+          received: describeValue(token),
+          entry: null,
+          module: null,
+          index: null,
+          reason: null,
+          detail: [],
+        });
+  const moduleId = lookupModule(bp, options, 'get()');
   const key = HOOK_SITES ? container.root.canon(token) : token;
   const ids = bp.visibility.get(moduleId)?.get(key) ?? [];
   const ctx = { bp, container, owner };
@@ -121,7 +134,7 @@ export function hasIn(
   if (!isToken(token)) return false;
   return (
     (bp.visibility
-      .get(lookupModule(bp, options))
+      .get(lookupModule(bp, options, 'has()'))
       ?.get(HOOK_SITES ? container.root.canon(token) : token)?.length ?? 0) > 0
   );
 }

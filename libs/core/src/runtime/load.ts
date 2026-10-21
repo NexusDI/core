@@ -3,7 +3,7 @@ import { isForeign } from '../definitions/brand.js';
 import { resolveModuleRef } from '../definitions/define-module.js';
 import { describeValue } from '../definitions/describe.js';
 import { HOOK_SITES } from '../definitions/hook-sites.js';
-import { InvalidModuleError } from '../errors/index.js';
+import { CoreNotSharedError, InvalidModuleError } from '../errors/index.js';
 import { compileTraced, observerFailed } from './compile-traced.js';
 import { startBlueprint, type StartupPlan } from './startup.js';
 import { assertOpen, track, type RootState } from './state.js';
@@ -39,11 +39,12 @@ async function loadNow(
     assertOpen(root);
     const definition = resolveModuleRef(module);
     if (definition === undefined)
-      throw new InvalidModuleError({
-        received: describeValue(module),
-        path: [],
-        otherCopy: isForeign(module),
-      });
+      throw isForeign(module)
+        ? new CoreNotSharedError({
+            received: describeValue(module),
+            where: 'load()',
+          })
+        : new InvalidModuleError({ received: describeValue(module), path: [] });
 
     const current = root.blueprint;
     // A compile.module hook may have replaced `module` at the last compile.

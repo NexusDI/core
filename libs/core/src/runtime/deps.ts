@@ -9,6 +9,7 @@ import { describeValue } from '../definitions/describe.js';
 import { HOOK_SITES } from '../definitions/hook-sites.js';
 import {
   BlueprintError,
+  CoreNotSharedError,
   InvalidTokenError,
   ScopeRequiredError,
   type NexusError,
@@ -60,10 +61,18 @@ function entriesOf(
  * reason of its own.
  */
 function invalidEntry(
+  call: string,
   where: string,
   value: unknown,
   bad: BadDep,
-): InvalidTokenError {
+): NexusError {
+  // depOf's detail ends with the rejected value's name: the entry itself, or
+  // the token a modifier holds.
+  if (bad.otherCopy)
+    return new CoreNotSharedError({
+      received: bad.detail.at(-1) ?? describeValue(value),
+      where: `${call}, ${where}`,
+    });
   const plain = bad.reason === 'not-a-token';
   return new InvalidTokenError({
     received: describeValue(value),
@@ -72,11 +81,15 @@ function invalidEntry(
     index: null,
     reason: plain ? null : bad.reason,
     detail: plain ? [] : bad.detail,
-    otherCopy: bad.otherCopy,
   });
 }
 
-function notADepsValue(deps: unknown): InvalidTokenError {
+function notADepsValue(call: string, deps: unknown): NexusError {
+  if (isForeign(deps))
+    return new CoreNotSharedError({
+      received: describeValue(deps),
+      where: call,
+    });
   return new InvalidTokenError({
     received: describeValue(deps),
     entry: null,
@@ -84,7 +97,6 @@ function notADepsValue(deps: unknown): InvalidTokenError {
     index: null,
     reason: 'not-a-deps-value',
     detail: [],
-    otherCopy: isForeign(deps),
   });
 }
 
@@ -146,15 +158,15 @@ export function resolveDeps(
   owner: TransientOwner,
 ): unknown {
   const read = entriesOf(deps);
-  if (read === null) throw notADepsValue(deps);
-  const moduleId = lookupModule(bp, options);
+  if (read === null) throw notADepsValue('resolve()', deps);
+  const moduleId = lookupModule(bp, options, 'resolve()');
   const visible = bp.visibility.get(moduleId);
   const ctx = { bp, container, owner };
   const result: object = read.tuple ? [] : {};
 
   for (const { key, where, value } of read.entries) {
     const dep = depOf(value);
-    if ('reason' in dep) throw invalidEntry(where, value, dep);
+    if ('reason' in dep) throw invalidEntry('resolve()', where, value, dep);
     const token = HOOK_SITES ? container.root.canon(dep.token) : dep.token;
     const ids = visible?.get(token) ?? [];
     const [id] = ids;
@@ -192,16 +204,16 @@ export function validateDeps(
   deps: unknown,
   options: LookupOptions | undefined,
 ): void {
-  const moduleId = lookupModule(bp, options);
+  const moduleId = lookupModule(bp, options, 'validate()');
   const visible = bp.visibility.get(moduleId);
   const errors: NexusError[] = [];
   const read = entriesOf(deps);
-  if (read === null) errors.push(notADepsValue(deps));
+  if (read === null) errors.push(notADepsValue('validate()', deps));
 
   for (const { where, value } of read?.entries ?? []) {
     const dep = depOf(value);
     if ('reason' in dep) {
-      errors.push(invalidEntry(where, value, dep));
+      errors.push(invalidEntry('validate()', where, value, dep));
       continue;
     }
     if (dep.kind === 'optional' || dep.kind === 'all') continue;

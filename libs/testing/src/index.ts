@@ -11,7 +11,6 @@
 import {
   describeValue,
   InvalidModuleError,
-  isForeign,
   moduleDefinitionOf,
   Nexus,
   provide,
@@ -105,7 +104,6 @@ function definitionOf(ref: ModuleRef): ModuleDefinition {
     throw new InvalidModuleError({
       received: describeValue(ref),
       path: [],
-      otherCopy: isForeign(ref),
     });
   return definition;
 }
