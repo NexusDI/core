@@ -17,6 +17,7 @@ import { checkBlueprint, reach } from './check.js';
 import {
   errorOf,
   invalidAt,
+  optionsErrorOf,
   sharedAtBuild,
   unchecked,
 } from './interceptor-error.js';
@@ -93,7 +94,7 @@ export function interceptors(options: InterceptorsOptions): NexusPlugin {
       apiVersion: NEXUS_PLUGIN_API,
       compile: {
         check(_view: BlueprintView, report: (error: NexusError) => void) {
-          for (const fault of parsed) report(errorOf(fault));
+          for (const problem of parsed) report(optionsErrorOf(problem));
         },
       },
     };

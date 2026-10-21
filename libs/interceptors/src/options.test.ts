@@ -5,6 +5,12 @@ import type { Fault } from './interceptor-error.js';
 import { interceptor, parseOptions, type NormalOptions } from './options.js';
 import type { CallContext, Interceptor, Next } from './types.js';
 
+/** What another copy of core makes: a value with the brand and nothing this copy knows. */
+const foreign = <T extends object>(value: T): T =>
+  Object.defineProperty(value, Symbol.for('nexusdi.definition'), {
+    value: true,
+  });
+
 const AUDIT = new Token<Interceptor>('Audit');
 const PAYMENTS = new Token<unknown>('Payments');
 
@@ -21,10 +27,12 @@ const normalizeOptions = (options: unknown): NormalOptions => {
   return parsed;
 };
 
-/** Every fault of `options`; empty when they are valid. */
+/** Every fault of `options`, without core's errors; empty when they are valid. */
 const faultsOf = (options: unknown): Fault[] => {
   const parsed = parseOptions(options);
-  return Array.isArray(parsed) ? parsed : [];
+  return Array.isArray(parsed)
+    ? parsed.filter((problem): problem is Fault => !('foreign' in problem))
+    : [];
 };
 
 const invalidReason = (options: unknown) => faultsOf(options)[0]?.reason;
@@ -118,6 +126,38 @@ describe('parseOptions', () => {
 });
 
 describe('interceptor', () => {
+  it('marks a token another copy of core made as foreign, for compile.check to report', () => {
+    const remote = foreign({ description: 'meridian/Audit' });
+    const entry = interceptor(remote as never, {
+      useClass: LoggingInterceptor,
+    });
+    expect(parseOptions({ register: [entry] })).toEqual([
+      {
+        foreign: true,
+        received: 'the Token meridian/Audit',
+        where: 'interceptor()',
+      },
+    ]);
+  });
+
+  it('marks each value another copy of core made in the options as foreign', () => {
+    const remote = foreign({ description: 'meridian/Audit' });
+    expect(
+      parseOptions({
+        register: [LoggingInterceptor],
+        global: [remote],
+        bindings: [{ token: remote }],
+        exempt: [remote],
+      }),
+    ).toEqual(
+      ['global', 'bindings', 'exempt'].map((option) => ({
+        foreign: true,
+        received: 'the Token meridian/Audit',
+        where: `interceptors() ${option}`,
+      })),
+    );
+  });
+
   it('turns a token that is not a Token or a class into a fault of the options that register it', () => {
     const entry = interceptor('Audit' as never, {
       useClass: LoggingInterceptor,

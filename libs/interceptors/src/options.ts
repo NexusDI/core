@@ -1,4 +1,5 @@
 import {
+  describeValue,
   displayName,
   isForeign,
   MultiToken,
@@ -13,7 +14,7 @@ import {
   type ProviderEntry,
 } from '@nexusdi/core';
 
-import type { Fault } from './interceptor-error.js';
+import type { Fault, ForeignValue } from './interceptor-error.js';
 import {
   isInterceptorToken,
   own,
@@ -28,14 +29,14 @@ import type {
   InterceptorToken,
 } from './types.js';
 
-/** The entries interceptor() made: each one's registration, or its fault when its token was bad. */
-const ENTRIES = new WeakMap<object, Registered | Fault>();
+/**
+ * A problem of the options: a fault whose text interceptorsText writes, or a
+ * value another copy of core made.
+ */
+export type OptionsProblem = Fault | ForeignValue;
 
-/** A value as an error names it, without calling its own toString. */
-const shown = (value: unknown): string =>
-  isForeign(value)
-    ? `${displayName(value)} from another copy of @nexusdi/core`
-    : displayName(value);
+/** The entries interceptor() made: each one's registration, or its problem when its token was bad. */
+const ENTRIES = new WeakMap<object, Registered | OptionsProblem>();
 
 /** A bad interceptors() option: `detail` names the rule, then what was received. */
 const bad = (...detail: string[]): Fault => ({
@@ -43,6 +44,20 @@ const bad = (...detail: string[]): Fault => ({
   reason: 'options',
   detail,
 });
+
+/**
+ * The problem of a value that breaks `rule`: a ForeignValue when another copy
+ * of core made it, and otherwise a fault that names it without calling its
+ * own toString.
+ */
+const rejected = (
+  rule: string,
+  value: unknown,
+  where: string,
+): OptionsProblem =>
+  isForeign(value)
+    ? { foreign: true, received: describeValue(value), where }
+    : bad(rule, displayName(value));
 
 /** Binds an interceptor to an interface token, typed like provide(). */
 // eslint-disable-next-line @typescript-eslint/no-explicit-any -- the class constraint provide() uses
@@ -66,7 +81,7 @@ export function interceptor(
   const fault =
     token instanceof Token || typeof token === 'function'
       ? undefined
-      : bad('interceptor-token', shown(token));
+      : rejected('interceptor-token', token, 'interceptor()');
   const provider =
     fault === undefined
       ? (provide(token as never, definition as never) as Provider<Interceptor>)
@@ -78,7 +93,7 @@ export function interceptor(
   ENTRIES.set(
     entry,
     provider === undefined
-      ? (fault as Fault)
+      ? (fault as OptionsProblem)
       : { token: token as InterceptorToken, provider },
   );
   return entry;
@@ -111,10 +126,12 @@ export interface NormalOptions {
  * Validates interceptors() options from own keys only (SEC-013). Returns
  * the options, or every fault they have, for compile.check to report.
  */
-export function parseOptions(options: unknown): NormalOptions | Fault[] {
+export function parseOptions(
+  options: unknown,
+): NormalOptions | OptionsProblem[] {
   if (typeof options !== 'object' || options === null)
     return [bad('not-object')];
-  const faults: Fault[] = [];
+  const faults: OptionsProblem[] = [];
   const list = (name: string): readonly unknown[] => {
     const value = own(options, name);
     if (value === undefined) return [];
@@ -141,14 +158,16 @@ export function parseOptions(options: unknown): NormalOptions | Fault[] {
       element !== null &&
       ENTRIES.has(element)
     ) {
-      const made = ENTRIES.get(element) as Registered | Fault;
-      if ('code' in made) {
+      const made = ENTRIES.get(element) as Registered | OptionsProblem;
+      if (!('provider' in made)) {
         faults.push(made);
         continue;
       }
       entry = made;
     } else {
-      faults.push(bad('register-entry', shown(element)));
+      faults.push(
+        rejected('register-entry', element, 'interceptors() register'),
+      );
       continue;
     }
     if (seen.has(entry.token))
@@ -168,27 +187,28 @@ export function parseOptions(options: unknown): NormalOptions | Fault[] {
       global.push({ use: element, when: undefined });
       continue;
     }
-    if (typeof element !== 'object' || element === null) {
-      faults.push(bad('global-entry', shown(element)));
+    if (typeof element !== 'object' || element === null || isForeign(element)) {
+      faults.push(rejected('global-entry', element, 'interceptors() global'));
       continue;
     }
     const use = own(element, 'use');
     const when = own(element, 'when');
-    if (!isInterceptorToken(use)) faults.push(bad('global-use', shown(use)));
+    if (!isInterceptorToken(use))
+      faults.push(rejected('global-use', use, 'interceptors() global'));
     else if (when !== undefined && typeof when !== 'function')
-      faults.push(bad('global-when', shown(when)));
+      faults.push(rejected('global-when', when, 'interceptors() global'));
     else global.push({ use, when: when as NormalGlobal['when'] });
   }
 
   const bindings: NormalBinding[] = [];
   for (const element of list('bindings')) {
-    if (typeof element !== 'object' || element === null) {
-      faults.push(bad('binding', shown(element)));
+    if (typeof element !== 'object' || element === null || isForeign(element)) {
+      faults.push(rejected('binding', element, 'interceptors() bindings'));
       continue;
     }
     const token = own(element, 'token');
     if (!(token instanceof Token) && typeof token !== 'function') {
-      faults.push(bad('binding-token', shown(token)));
+      faults.push(rejected('binding-token', token, 'interceptors() bindings'));
       continue;
     }
     const parsed = parseMap(element, ['token']);
@@ -206,7 +226,8 @@ export function parseOptions(options: unknown): NormalOptions | Fault[] {
   for (const element of list('exempt')) {
     if (isInterceptorToken(element) || element instanceof MultiToken)
       exempt.push(element as ExemptToken);
-    else faults.push(bad('exempt-entry', shown(element)));
+    else
+      faults.push(rejected('exempt-entry', element, 'interceptors() exempt'));
   }
 
   const providers = list('providers') as ProviderEntry[];

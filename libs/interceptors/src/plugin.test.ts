@@ -63,6 +63,31 @@ const Billing = defineModule({
 });
 
 describe('interceptors', () => {
+  it('reports NEXUS_CORE_NOT_SHARED for an interceptor token another copy of core made', async () => {
+    const remote = Object.defineProperty(
+      { description: 'meridian/Audit' },
+      Symbol.for('nexusdi.definition'),
+      { value: true },
+    );
+    const error = await rejected(
+      Nexus.create(defineModule({ name: 'Bridge' }), {
+        plugins: [
+          interceptors({
+            register: [
+              interceptor(remote as never, {
+                useValue: { intercept: () => 1 },
+              }),
+            ],
+          }),
+        ],
+      }),
+    );
+    expect(findCode(error, 'NEXUS_CORE_NOT_SHARED')).toMatchObject({
+      received: 'the Token meridian/Audit',
+      where: 'interceptor()',
+    });
+  });
+
   it('intercepts a declared method and resolves the interceptor deps', async () => {
     await using ship = await Nexus.create(Billing, { plugins: [plugin()] });
     expect(ship.get(PAYMENTS).charge(5)).toBe(5);
