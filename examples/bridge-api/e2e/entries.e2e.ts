@@ -6,13 +6,16 @@ import { describe, expect, it, onTestFinished } from 'vitest';
 
 const LISTENING = /Server is running on (http:\/\/localhost:(\d+))/;
 
-/** Starts one entry under tsx, on a free port and the offline graph. */
+/** Starts one entry under tsx, on a free port, the offline graph and a manual ship. */
 function start(entry: string): ChildProcess {
   const env: NodeJS.ProcessEnv = {
     ...process.env,
     PORT: '0',
     // An empty RELAY_URL selects OfflineMeridian, as an unset one does.
     RELAY_URL: '',
+    // Every e2e server runs a manual ship on seed 7 (spec 8.3).
+    SIM_MODE: 'manual',
+    SIM_SEED: '7',
     // Vitest sets NODE_ENV=test. A reader's shell leaves it unset, and
     // spawn() passes no variable whose value is undefined.
     NODE_ENV: undefined,
