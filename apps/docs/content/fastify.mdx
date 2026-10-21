@@ -105,7 +105,7 @@ const ship = await Nexus.create(Meridian, {
 });
 const bridge = await createBridge(ship);
 bridge.addHook('onClose', () => ship[Symbol.asyncDispose]());
-await bridge.listen({ port: 3000 });
+await bridge.listen({ port: 3000, host: '::' }); // one server; 'localhost' can open two
 process.once('SIGTERM', () => {
   void bridge.close();
   setTimeout(() => bridge.server.closeAllConnections(), 10_000).unref();
