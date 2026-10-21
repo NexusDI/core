@@ -1,0 +1,5 @@
+# The @nx/playwright:configuration output in examples/bridge-console, whose
+# eslint config lints the vitest tests with the Playwright rules and fails
+# the pre-commit hook. The next commit scopes those rules to e2e/ and
+# deletes this file.
+examples/bridge-console
