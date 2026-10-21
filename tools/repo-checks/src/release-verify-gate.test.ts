@@ -366,8 +366,12 @@ describe('the demo-growth job', () => {
   const job = ci.jobs?.['demo-growth'] ?? {};
   const steps = job.steps ?? [];
 
-  it('runs only the e2e-growth targets of the demo projects, after installing Chromium', () => {
+  it('exists with a 20 minute timeout', () => {
     expect(ci.jobs).toHaveProperty('demo-growth');
+    expect(job['timeout-minutes']).toBe(20);
+  });
+
+  it('runs only the e2e-growth targets of the demo projects, after installing Chromium', () => {
     const growth = runManyStep('ci.yml', 'demo-growth');
     expect(growth.targets).toEqual(['e2e-growth']);
     expect(growth.step.run).toContain('--projects=tag:demo');
@@ -384,5 +388,15 @@ describe('the demo-growth job', () => {
 
   it('uses the same action pins as main, each pinned by SHA', () => {
     expectMainPins(ci, steps);
+  });
+
+  it('installs Deno and Bun from the pins adapter-runtimes uses', () => {
+    const runtimes = stepsOf(ci, 'adapter-runtimes');
+    for (const action of ['denoland/setup-deno', 'oven-sh/setup-bun']) {
+      const pin = (each: Step[]) =>
+        each.find((step) => step.uses?.startsWith(`${action}@`))?.uses;
+      expect(pin(runtimes), `adapter-runtimes runs ${action}`).toBeDefined();
+      expect(pin(steps), `demo-growth runs ${action}`).toBe(pin(runtimes));
+    }
   });
 });
