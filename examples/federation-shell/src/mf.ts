@@ -1,7 +1,7 @@
 import { registerRemotes } from '@module-federation/runtime';
 
 /** The federation container names of the two stations. */
-export const STATIONS = [
+const STATIONS = [
   'federation_cartography',
   'federation_command',
 ] as const;
