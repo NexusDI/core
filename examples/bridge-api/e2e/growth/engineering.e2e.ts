@@ -1,47 +1,9 @@
-import { Nexus } from '@nexusdi/core';
-import type { ShipSnapshot } from '@nexusdi/meridian-systems';
 import { describe, expect, it } from 'vitest';
 
-import { offlineMeridian, type ShipSetup } from '../../src/ship/meridian';
-import { bridgePlugins } from '../../src/ship/plugins';
-import { servers } from '../servers';
-
-const manual: ShipSetup = { sim: { seed: 7, dt: 0.5 }, mode: 'manual' };
+import { advance, manual, post, readShip, withShip } from './ship';
 
 const throttle = { system: 'engineering', action: 'throttle', level: 1 };
 const raise = { system: 'engineering', action: 'shields', raised: true };
-
-/** POSTs `body` as JSON to `path` on `url`. */
-const post = (url: string, path: string, body: unknown) =>
-  fetch(`${url}${path}`, {
-    method: 'POST',
-    headers: { 'content-type': 'application/json' },
-    body: JSON.stringify(body),
-  });
-
-/** Advances the ship behind `url` by `ticks` and checks the tick it reaches. */
-async function advance(url: string, ticks: number, tick: number) {
-  const advanced = await post(url, '/sim/advance', { ticks });
-  expect(advanced.status).toBe(200);
-  expect(await advanced.json()).toMatchObject({ tick });
-}
-
-/** Serves a fresh offline ship on `framework`, runs `body`, then stops both. */
-async function withShip(
-  framework: keyof typeof servers,
-  setup: ShipSetup,
-  body: (url: string) => Promise<void>,
-): Promise<void> {
-  await using ship = await Nexus.create(offlineMeridian(setup), {
-    plugins: bridgePlugins(),
-  });
-  const bridge = await servers[framework](ship);
-  try {
-    await body(bridge.url);
-  } finally {
-    await bridge.close();
-  }
-}
 
 describe.each(['hono', 'express', 'fastify'] as const)(
   'engineering on %s',
@@ -70,9 +32,7 @@ describe.each(['hono', 'express', 'fastify'] as const)(
         expect(await raised.json()).toEqual({ tick: 18 });
 
         await advance(url, 1, 18);
-        const read = await fetch(`${url}/sim`);
-        expect(read.status).toBe(200);
-        const ship = (await read.json()) as ShipSnapshot;
+        const ship = await readShip(url);
         expect(ship.reactor.level).toBe(0.18);
         expect(ship.power.loads).toContainEqual(
           expect.objectContaining({ id: 'shields', allocated: 2e8 }),
