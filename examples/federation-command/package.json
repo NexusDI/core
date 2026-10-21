@@ -9,10 +9,16 @@
   },
   "dependencies": {
     "@module-federation/enhanced": "2.9.2",
+    "@nexusdi/core": "*",
+    "@nexusdi/decorators": "*",
+    "@nexusdi/federation-contracts": "*",
+    "@nexusdi/react": "*",
     "react": "19.3.0",
     "react-dom": "19.3.0"
   },
   "devDependencies": {
+    "@nexusdi/federation": "*",
+    "@nexusdi/testing": "*",
     "@rspack/cli": "2.2.9",
     "@rspack/core": "2.2.9",
     "@rspack/dev-server": "2.0.1",
@@ -20,7 +26,8 @@
     "@types/react": "19.3.0",
     "@types/react-dom": "19.3.0",
     "react-refresh": "0.14.2",
-    "typescript": "6.0.3"
+    "typescript": "6.0.3",
+    "unplugin-swc": "2.0.0"
   },
   "nx": {
     "tags": [

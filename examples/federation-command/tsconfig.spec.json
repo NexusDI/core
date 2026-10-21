@@ -21,9 +21,14 @@
   "include": [
     "vite.config.mts",
     "rspack.config.ts",
+    "swc.decorators.ts",
     "src/**/*.test.ts",
     "src/**/*.test.tsx",
     "src/**/*.d.ts"
   ],
-  "references": [{ "path": "./tsconfig.app.json" }]
+  "references": [
+    {
+      "path": "./tsconfig.app.json"
+    }
+  ]
 }
