@@ -84,6 +84,12 @@ module.exports = {
         'bridge-api',
         'bridge-console',
         'next-bridge',
+        // The federation demo of demo apps spec 7. Not under
+        // release.projects.
+        'federation-shell',
+        'federation-cartography',
+        'federation-command',
+        'federation-contracts',
       ],
     ],
     'type-case': [2, 'always', 'lower-case'],
