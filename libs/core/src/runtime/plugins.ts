@@ -16,7 +16,7 @@ import type {
   ModuleRef,
 } from '../definitions/define-module.js';
 import type { AnyToken } from '../definitions/guards.js';
-import { describeValue } from '../definitions/describe.js';
+import { describeValue } from '../definitions/token.js';
 import {
   BlueprintError,
   PluginError,

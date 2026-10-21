@@ -1,7 +1,7 @@
 import type { Blueprint } from '../blueprint/blueprint.js';
 import { isForeign } from '../definitions/brand.js';
 import { resolveModuleRef } from '../definitions/define-module.js';
-import { describeValue, notShared } from '../definitions/describe.js';
+import { describeValue, notShared } from '../definitions/token.js';
 import { HOOK_SITES } from '../definitions/hook-sites.js';
 import { InvalidModuleError } from '../errors/index.js';
 import { compileTraced, observerFailed } from './compile-traced.js';

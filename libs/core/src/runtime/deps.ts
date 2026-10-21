@@ -5,7 +5,7 @@ import {
 } from '../blueprint/blueprint.js';
 import { depOf, type BadDep } from '../blueprint/records.js';
 import { isForeign } from '../definitions/brand.js';
-import { describeValue, notShared } from '../definitions/describe.js';
+import { describeValue, notShared } from '../definitions/token.js';
 import { HOOK_SITES } from '../definitions/hook-sites.js';
 import {
   BlueprintError,

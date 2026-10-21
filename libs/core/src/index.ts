@@ -44,9 +44,13 @@ export type {
   ProviderFailure,
   SchemaIssue,
 } from './errors/index.js';
-export { displayName, MultiToken, Token } from './definitions/token.js';
+export {
+  displayName,
+  MultiToken,
+  Token,
+  describeValue,
+} from './definitions/token.js';
 export type { InjectionToken } from './definitions/token.js';
-export { describeValue } from './definitions/describe.js';
 export { isForeign } from './definitions/brand.js';
 export type { Ctor, Lifetime } from './definitions/types.js';
 export { all, lazy, optional } from './definitions/modifiers.js';
