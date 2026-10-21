@@ -18,8 +18,9 @@ const PORT = 4301;
 const NAME = 'federation_cartography';
 
 /**
- * What tells the three builds of this remote apart: the dist folder, the
- * `shared` object, and the aliases for the contracts package's imports.
+ * What tells the builds of this remote apart: the dist folder and the
+ * `shared` object. The drift build also sets aliases for the contracts
+ * package's imports.
  */
 export interface CartographyBuild {
   readonly out: 'main' | 'drift' | 'unshared';
