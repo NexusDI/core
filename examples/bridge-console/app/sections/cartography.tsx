@@ -1,8 +1,8 @@
-import { defineModule, provide } from '@nexusdi/core';
+import { defineModule } from '@nexusdi/core';
 import { useService } from '@nexusdi/react';
 
 import { Tactical } from '../bridge/tactical';
-import { NAV_ROUTES, SectorRoutes } from '../navigation/navigation.module';
+import { NAV_ROUTES, sectorRoutes } from '../navigation/navigation.module';
 
 /**
  * The section the charts route loads in the browser, in its own chunk. It
@@ -12,7 +12,7 @@ import { NAV_ROUTES, SectorRoutes } from '../navigation/navigation.module';
 export const Cartography = defineModule({
   name: 'Cartography',
   imports: [Tactical],
-  providers: [provide(NAV_ROUTES, { useClass: SectorRoutes })],
+  providers: [sectorRoutes],
   exports: [NAV_ROUTES],
 });
 

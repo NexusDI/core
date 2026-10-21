@@ -7,7 +7,7 @@ import type { IBridgeLink } from '../app/bridge/bridge-link';
  * `GET /course/:to` does, from the scope's mission, with no server.
  * Override BRIDGE_LINK with `useClass: FakeBridgeLink` in a scoped binding.
  */
-export class FakeBridgeLink implements IBridgeLink {
+class FakeBridgeLink implements IBridgeLink {
   static deps = [REQUEST] as const;
   constructor(private readonly request: NexusRequest) {}
   async course(to: string) {

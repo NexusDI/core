@@ -8,13 +8,16 @@ export interface INavRoutes {
 }
 export const NAV_ROUTES = new Token<INavRoutes>('NavRoutes');
 
-export class SectorRoutes implements INavRoutes {
+class SectorRoutes implements INavRoutes {
   static deps = [NAV_CHARTS] as const;
   constructor(private readonly charts: INavCharts) {}
   find(sector: string) {
     return this.charts.plot(sector);
   }
 }
+
+/** NAV_ROUTES over the charts, which both the Navigation and the Cartography section bind. */
+export const sectorRoutes = provide(NAV_ROUTES, { useClass: SectorRoutes });
 
 /**
  * The section the sectors route loads on its first request, with di.load
@@ -24,6 +27,6 @@ export class SectorRoutes implements INavRoutes {
 export const Navigation = defineModule({
   name: 'Navigation',
   imports: [Tactical],
-  providers: [provide(NAV_ROUTES, { useClass: SectorRoutes })],
+  providers: [sectorRoutes],
   exports: [NAV_ROUTES],
 });
