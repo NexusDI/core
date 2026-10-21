@@ -1,7 +1,7 @@
 import {
   COMPARTMENT_IDS,
   GASES,
-  type ShipSnapshot,
+  type ShipReading,
 } from '@nexusdi/meridian-systems';
 
 /** A `fetch` against one bridge: `path` starts with `/`. */
@@ -39,9 +39,9 @@ async function okJson<T>(what: string, res: Response): Promise<T> {
  */
 export const growthCases: readonly GrowthCase[] = [
   {
-    name: 'GET /sim reads tick 0 with four compartments of moles and temperature',
+    name: 'GET /sim reads tick 0 with four compartments of moles, temperature and pressure',
     async run(fetch) {
-      const ship = await okJson<ShipSnapshot>('GET /sim', await fetch('/sim'));
+      const ship = await okJson<ShipReading>('GET /sim', await fetch('/sim'));
       expectEqual('tick', ship.tick, 0);
       expectEqual('time', ship.time, 0);
       expectEqual(
@@ -63,11 +63,13 @@ export const growthCases: readonly GrowthCase[] = [
           typeof room.temperature,
           'number',
         );
+        // Every compartment starts at the deck plan's 101.3 kPa.
+        expectEqual(`${id} pressure`, room.pressure, 101_300);
       }
     },
   },
   {
-    name: 'POST /sim/advance of 600 ticks reaches tick 600 at time 300 and 293 K',
+    name: 'POST /sim/advance of 600 ticks reaches tick 600 at time 300, 293 K and 101.3 kPa',
     async run(fetch) {
       const advanced = await okJson<{ tick: number; time: number }>(
         'POST /sim/advance',
@@ -79,13 +81,18 @@ export const growthCases: readonly GrowthCase[] = [
       );
       expectEqual('advanced tick', advanced.tick, 600);
       expectEqual('advanced time', advanced.time, 300);
-      const ship = await okJson<ShipSnapshot>('GET /sim', await fetch('/sim'));
+      const ship = await okJson<ShipReading>('GET /sim', await fetch('/sim'));
       expectEqual('tick', ship.tick, 600);
       // The idle ship has no system yet, so the air holds the deck's 293 K.
       expectEqual(
         'habitat temperature',
         ship.compartments.habitat.temperature,
         293,
+      );
+      expectEqual(
+        'habitat pressure',
+        ship.compartments.habitat.pressure,
+        101_300,
       );
     },
   },
@@ -119,7 +126,7 @@ export const growthCases: readonly GrowthCase[] = [
         );
       expectEqual(
         'first frame tick',
-        (JSON.parse(data.slice('data: '.length)) as ShipSnapshot).tick,
+        (JSON.parse(data.slice('data: '.length)) as ShipReading).tick,
         0,
       );
     },

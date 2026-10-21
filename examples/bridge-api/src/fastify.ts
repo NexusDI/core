@@ -6,7 +6,8 @@ import { Readable } from 'node:stream';
 
 import { nexus, type ContainerSource } from '@nexusdi/fastify';
 import {
-  roundSnapshot,
+  DECK_PLAN,
+  readShip,
   SHIP_STATE,
   TELEMETRY,
 } from '@nexusdi/meridian-systems';
@@ -82,8 +83,9 @@ export async function createBridge(
     );
     scoped.get(
       '/sim',
-      di.inject({ state: SHIP_STATE }, async ({ state }) =>
-        roundSnapshot(state.snapshot()),
+      di.inject(
+        { state: SHIP_STATE, deck: DECK_PLAN },
+        async ({ state, deck }) => readShip(state.snapshot(), deck),
       ),
     );
     scoped.get(
@@ -104,11 +106,14 @@ export async function createBridge(
           if (driver.mode === 'live') return reply.callNotFound();
         },
       },
-      di.inject({ driver: SIM_DRIVER }, async ({ driver }, req, reply) => {
-        const ticks = parseTicks(req.body);
-        if (ticks === undefined) return reply.code(400).send(TICKS_REFUSED);
-        return roundSnapshot(driver.advance(ticks));
-      }),
+      di.inject(
+        { driver: SIM_DRIVER, deck: DECK_PLAN },
+        async ({ driver, deck }, req, reply) => {
+          const ticks = parseTicks(req.body);
+          if (ticks === undefined) return reply.code(400).send(TICKS_REFUSED);
+          return readShip(driver.advance(ticks), deck);
+        },
+      ),
     );
   });
   return bridge;

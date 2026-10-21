@@ -6,7 +6,8 @@ import { pipeline } from 'node:stream';
 
 import { nexus, type ContainerSource } from '@nexusdi/express';
 import {
-  roundSnapshot,
+  DECK_PLAN,
+  readShip,
   SHIP_STATE,
   TELEMETRY,
 } from '@nexusdi/meridian-systems';
@@ -80,9 +81,12 @@ export function createBridge(
   );
   bridge.get(
     '/sim',
-    di.inject({ state: SHIP_STATE }, ({ state }, _req, res) => {
-      res.json(roundSnapshot(state.snapshot()));
-    }),
+    di.inject(
+      { state: SHIP_STATE, deck: DECK_PLAN },
+      ({ state, deck }, _req, res) => {
+        res.json(readShip(state.snapshot(), deck));
+      },
+    ),
   );
   bridge.get(
     '/telemetry',
@@ -102,14 +106,17 @@ export function createBridge(
       next(driver.mode === 'live' ? 'route' : undefined);
     }),
     express.json({ limit: SIM_BODY_LIMIT }),
-    di.inject({ driver: SIM_DRIVER }, ({ driver }, req, res) => {
-      const ticks = parseTicks(req.body);
-      if (ticks === undefined) {
-        res.status(400).json(TICKS_REFUSED);
-        return;
-      }
-      res.json(roundSnapshot(driver.advance(ticks)));
-    }),
+    di.inject(
+      { driver: SIM_DRIVER, deck: DECK_PLAN },
+      ({ driver, deck }, req, res) => {
+        const ticks = parseTicks(req.body);
+        if (ticks === undefined) {
+          res.status(400).json(TICKS_REFUSED);
+          return;
+        }
+        res.json(readShip(driver.advance(ticks), deck));
+      },
+    ),
   );
   // Every error ends with its status and an empty body, so Express's
   // development handler never sends a stack. NexusHttpError carries status,

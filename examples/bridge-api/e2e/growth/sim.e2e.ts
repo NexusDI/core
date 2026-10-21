@@ -1,7 +1,7 @@
 import { once } from 'node:events';
 
 import { Nexus } from '@nexusdi/core';
-import type { ShipSnapshot } from '@nexusdi/meridian-systems';
+import type { ShipReading } from '@nexusdi/meridian-systems';
 import { describe, expect, it, vi } from 'vitest';
 
 import { offlineMeridian, type ShipSetup } from '../../src/ship/meridian';
@@ -28,10 +28,11 @@ async function sixHundredTicks(url: string) {
 
   const read = await fetch(`${url}/sim`);
   expect(read.status).toBe(200);
-  const ship = (await read.json()) as ShipSnapshot;
+  const ship = (await read.json()) as ShipReading;
   expect(ship.tick).toBe(600);
   // The idle ship has no system yet, so the air holds the deck's 293 K.
   expect(ship.compartments.habitat.temperature).toBe(293);
+  expect(ship.compartments.habitat.pressure).toBe(101_300);
 }
 
 /** Serves a fresh offline ship on `framework`, runs `body`, then stops both. */

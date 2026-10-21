@@ -4,9 +4,10 @@ import type { AddressInfo } from 'node:net';
 import { Nexus } from '@nexusdi/core';
 import { graph } from '@nexusdi/devtools';
 import {
-  roundSnapshot,
+  DECK_PLAN,
+  readShip,
   SHIP_STATE,
-  type ShipSnapshot,
+  type ShipReading,
   TELEMETRY,
 } from '@nexusdi/meridian-systems';
 import { createTestingContainer } from '@nexusdi/testing';
@@ -153,8 +154,13 @@ describe.each(['hono', 'express', 'fastify'] as const)(
     test('GET /sim answers the ship at tick 0', async ({ nexus }) => {
       const { status, body } = await call(nexus, 'GET', '/sim');
       expect(status).toBe(200);
-      expect(body).toEqual(roundSnapshot(nexus.get(SHIP_STATE).snapshot()));
+      expect(body).toEqual(
+        readShip(nexus.get(SHIP_STATE).snapshot(), nexus.get(DECK_PLAN)),
+      );
       expect(body).toMatchObject({ tick: 0, time: 0 });
+      expect(body).toMatchObject({
+        compartments: { habitat: { pressure: 101_300 } },
+      });
     });
 
     test('POST /sim/advance runs the ticks and GET /sim reads the result', async ({
@@ -169,7 +175,7 @@ describe.each(['hono', 'express', 'fastify'] as const)(
       expect(advanced.status).toBe(200);
       expect(advanced.body).toMatchObject({ tick: 3, time: 1.5 });
       expect(advanced.body).toEqual(
-        roundSnapshot(nexus.get(SHIP_STATE).snapshot()),
+        readShip(nexus.get(SHIP_STATE).snapshot(), nexus.get(DECK_PLAN)),
       );
       expect(await call(nexus, 'GET', '/sim')).toEqual(advanced);
     });
@@ -260,7 +266,7 @@ function bodyOf(res: Response) {
 async function nextTick(reader: ReadableStreamDefaultReader<Uint8Array>) {
   const text = decoder.decode((await reader.read()).value);
   expect(text).toMatch(/^event: snapshot\ndata: .+\n\n$/);
-  return (JSON.parse(text.slice(text.indexOf('data: ') + 6)) as ShipSnapshot)
+  return (JSON.parse(text.slice(text.indexOf('data: ') + 6)) as ShipReading)
     .tick;
 }
 
@@ -282,7 +288,7 @@ test('cancelling the Hono body unsubscribes from the feed', async ({
   nexus,
 }) => {
   const feed = new RecordingFeed(
-    roundSnapshot(nexus.get(SHIP_STATE).snapshot()),
+    readShip(nexus.get(SHIP_STATE).snapshot(), nexus.get(DECK_PLAN)),
   );
   await using ship = await createTestingContainer(OfflineMeridian)
     .override(TELEMETRY, { useValue: feed })
@@ -300,7 +306,7 @@ describe.each(['hono', 'express', 'fastify'] as const)(
   (framework) => {
     test('a client abort unsubscribes from the feed', async ({ nexus }) => {
       const feed = new RecordingFeed(
-        roundSnapshot(nexus.get(SHIP_STATE).snapshot()),
+        readShip(nexus.get(SHIP_STATE).snapshot(), nexus.get(DECK_PLAN)),
       );
       await using ship = await createTestingContainer(OfflineMeridian)
         .override(TELEMETRY, { useValue: feed })

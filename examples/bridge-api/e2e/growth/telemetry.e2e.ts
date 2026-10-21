@@ -2,9 +2,10 @@ import { once } from 'node:events';
 
 import { Nexus } from '@nexusdi/core';
 import {
-  roundSnapshot,
+  DECK_PLAN,
+  readShip,
   SHIP_STATE,
-  type ShipSnapshot,
+  type ShipReading,
   TELEMETRY,
 } from '@nexusdi/meridian-systems';
 import { createTestingContainer } from '@nexusdi/testing';
@@ -58,7 +59,7 @@ function events(res: Response) {
     async tick(): Promise<number> {
       const message = await this.next();
       expect(message?.event).toBe('snapshot');
-      return (JSON.parse(message?.data ?? '') as ShipSnapshot).tick;
+      return (JSON.parse(message?.data ?? '') as ShipReading).tick;
     },
   };
 }
@@ -104,7 +105,7 @@ describe.each(['hono', 'express', 'fastify'] as const)(
         offlineMeridian(manual),
       ).create();
       const feed = new RecordingFeed(
-        roundSnapshot(probe.get(SHIP_STATE).snapshot()),
+        readShip(probe.get(SHIP_STATE).snapshot(), probe.get(DECK_PLAN)),
       );
       await using ship = await createTestingContainer(offlineMeridian(manual))
         .override(TELEMETRY, { useValue: feed })
