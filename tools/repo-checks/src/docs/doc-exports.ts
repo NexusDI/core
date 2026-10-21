@@ -27,12 +27,18 @@ function boundNames(
  * sits under a heading naming an export, and a diagram names only exports.
  * A post that describes a version below 0.4.0 keeps its 0.3 imports
  * (amendment A2).
+ *
+ * `demoExportsOf` holds the entries of the demo packages under `examples/`.
+ * A region may import a plain config file from a demo app and claim what it
+ * returns (demo apps spec §11), so an import may name a demo entry. A
+ * signature fence and a diagram name only the published packages.
  */
 export function checkExports(input: {
   pages: DocsPage[];
   exportsOf: Map<string, Set<string>>;
+  demoExportsOf?: Map<string, Set<string>>;
 }): string[] {
-  const { pages, exportsOf } = input;
+  const { pages, exportsOf, demoExportsOf = new Map() } = input;
   const every = new Set([...exportsOf.values()].flatMap((names) => [...names]));
   const entries = [...exportsOf.keys()].join(', ');
   const findings: string[] = [];
@@ -50,7 +56,8 @@ export function checkExports(input: {
           named,
           specifier = '',
         ] of fence.body.matchAll(IMPORT)) {
-          const names = exportsOf.get(specifier);
+          const names =
+            exportsOf.get(specifier) ?? demoExportsOf.get(specifier);
           if (names === undefined) {
             findings.push(
               `${at}: '${specifier}' is not an entry of the exports map. Import from ${entries}.`,
