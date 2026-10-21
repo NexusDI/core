@@ -34,10 +34,14 @@ export function start(entry: string): ChildProcess {
   return child;
 }
 
-/** Resolves the URL the entry prints once it listens, or rejects with its stderr if it exits first. */
+/**
+ * Resolves the URL the entry prints once it listens, with a getter for all
+ * the stderr the entry has written so far, or rejects with its stderr if it
+ * exits first.
+ */
 export function urlOf(
   child: ChildProcess,
-): Promise<{ url: string; port: number }> {
+): Promise<{ url: string; port: number; stderr(): string }> {
   let stdout = '';
   let stderr = '';
   child.stderr?.on('data', (chunk) => (stderr += String(chunk)));
@@ -45,7 +49,12 @@ export function urlOf(
     child.stdout?.on('data', (chunk) => {
       stdout += String(chunk);
       const match = LISTENING.exec(stdout);
-      if (match) resolve({ url: match[1], port: Number(match[2]) });
+      if (match)
+        resolve({
+          url: match[1],
+          port: Number(match[2]),
+          stderr: () => stderr,
+        });
     });
     child.once('exit', (code, signal) =>
       reject(

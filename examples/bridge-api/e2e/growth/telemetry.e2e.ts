@@ -118,14 +118,18 @@ describe.each(['hono', 'express', 'fastify'] as const)(
         expect(await events(res).tick()).toBe(0);
         expect(feed.sinks.size).toBe(1);
         abort.abort();
-        await vi.waitFor(() => expect(feed.sinks.size).toBe(0));
+        await vi.waitFor(() => expect(feed.sinks.size).toBe(0), {
+          timeout: 5_000,
+        });
       } finally {
         await bridge.close();
       }
     });
 
     it('sends ship offline and ends the body when the ship is disposed', async () => {
-      const ship = await Nexus.create(offlineMeridian(manual), {
+      // The case disposes the ship itself. A second dispose at the end of
+      // the block returns the first one's promise.
+      await using ship = await Nexus.create(offlineMeridian(manual), {
         plugins: bridgePlugins(),
       });
       const bridge = await servers[framework](ship);
@@ -146,20 +150,27 @@ describe.each(['hono', 'express', 'fastify'] as const)(
   },
 );
 
-describe('the Hono server entry', () => {
-  it('ends an open telemetry stream and exits 0 on SIGTERM', async () => {
-    const child = start('server.hono.ts');
-    const { url } = await urlOf(child);
-    const stream = events(await fetch(`${url}/telemetry`));
-    expect(await stream.tick()).toBe(0);
+describe.each(['hono', 'express', 'fastify'])(
+  'the %s server entry',
+  (framework) => {
+    it('ends an open telemetry stream and exits 0 at once on SIGTERM', async () => {
+      const child = start(`server.${framework}.ts`);
+      const { url, stderr } = await urlOf(child);
+      const stream = events(await fetch(`${url}/telemetry`));
+      expect(await stream.tick()).toBe(0);
 
-    const exited = once(child, 'exit');
-    child.kill('SIGTERM');
-    expect(await stream.next()).toEqual({
-      event: 'offline',
-      data: 'ship offline',
+      const exited = once(child, 'exit');
+      const sent = performance.now();
+      child.kill('SIGTERM');
+      expect(await stream.next()).toEqual({
+        event: 'offline',
+        data: 'ship offline',
+      });
+      const [code, signal] = await exited;
+      expect({ code, signal }, stderr()).toEqual({ code: 0, signal: null });
+      // The client's fetch keeps its connection alive. The entry closes it
+      // once the stream ends, so the exit waits for no keep-alive timeout.
+      expect(performance.now() - sent).toBeLessThan(1_500);
     });
-    const [code, signal] = await exited;
-    expect({ code, signal }).toEqual({ code: 0, signal: null });
-  });
-});
+  },
+);

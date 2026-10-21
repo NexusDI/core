@@ -25,18 +25,18 @@ function urlOf(address: AddressInfo | string | null): string {
   return `http://127.0.0.1:${address.port}`;
 }
 
-/**
- * Closes `server` once every test request has finished. On Node 22.x,
- * server.close() does not close a connection that has never sent a request
- * (nodejs/node#63452), and undici 6 opens one after a client aborts a
- * stream, so the open connections are closed first.
- */
 /** Waits for `server` to listen, then answers its URL and its close step. */
 async function listening(server: Server) {
   await once(server, 'listening');
   return { url: urlOf(server.address()), close: () => shut(server) };
 }
 
+/**
+ * Closes `server` once every test request has finished. On Node 22.x,
+ * server.close() does not close a connection that has never sent a request
+ * (nodejs/node#63452), and undici 6 opens one after a client aborts a
+ * stream, so the open connections are closed first.
+ */
 async function shut(server: Server): Promise<void> {
   server.closeAllConnections();
   server.close();
