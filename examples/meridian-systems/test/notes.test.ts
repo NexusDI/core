@@ -1,4 +1,4 @@
-import { defineModule } from '@nexusdi/core';
+import { defineModule, provide, Token } from '@nexusdi/core';
 import { inspect, type NexusGraph } from '@nexusdi/devtools';
 import { describe, expect, it } from 'vitest';
 
@@ -7,13 +7,21 @@ import { shipNotes } from '../src/notes';
 import { Simulation } from '../src/simulation/simulation.module';
 import { ShipUnderTest } from './ship-under-test';
 
-/** One provider of the root's own, which the walk must leave unlabelled. */
-class Helm {}
+interface IHelm {
+  readonly heading: number;
+}
+
+const HELM = new Token<IHelm>('Helm');
+
+/** One provider beside the ship, which the walk must leave unlabelled. */
+class Helm implements IHelm {
+  readonly heading = 0;
+}
 
 const Bridge = defineModule({
   name: 'Bridge',
-  providers: [Helm],
-  exports: [Helm],
+  providers: [provide(HELM, { useClass: Helm })],
+  exports: [HELM],
 });
 
 /** Each module's name with the notes of its providers. */
@@ -48,9 +56,11 @@ describe('shipNotes', () => {
     const byModule = notesByModule(
       inspect(ShipUnderTest, { annotate: [shipNotes] }),
     );
-    expect(byModule.ProbeSystems.length).toBeGreaterThan(0);
-    for (const notes of byModule.ProbeSystems) {
-      expect(notes).toEqual(['system: ProbeSystems']);
+    for (const name of ['ShipUnderTest', 'ProbeSystems']) {
+      expect(byModule[name].length).toBeGreaterThan(0);
+      for (const notes of byModule[name]) {
+        expect(notes).toEqual([`system: ${name}`]);
+      }
     }
   });
 
