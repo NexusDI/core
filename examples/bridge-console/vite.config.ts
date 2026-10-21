@@ -1,6 +1,7 @@
 import { reactRouter } from '@react-router/dev/vite';
 import tailwindcss from '@tailwindcss/vite';
-import { defineConfig } from 'vite';
+// vitest/config's defineConfig is vite's, typed with the test block.
+import { defineConfig } from 'vitest/config';
 
 export default defineConfig({
   // Nx loads this file from the workspace root, and reactRouter() finds
@@ -13,5 +14,17 @@ export default defineConfig({
   plugins: [tailwindcss(), !process.env.VITEST && reactRouter()],
   resolve: {
     tsconfigPaths: true,
+  },
+  test: {
+    name: '@nexusdi/bridge-console',
+    watch: false,
+    globals: true,
+    environment: 'jsdom',
+    include: ['{src,tests}/**/*.{test,spec}.{js,mjs,cjs,ts,mts,cts,jsx,tsx}'],
+    reporters: ['default'],
+    coverage: {
+      reportsDirectory: './test-output/vitest/coverage',
+      provider: 'v8' as const,
+    },
   },
 });

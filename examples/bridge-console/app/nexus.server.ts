@@ -1,0 +1,24 @@
+import { Nexus } from '@nexusdi/core';
+import { errors } from '@nexusdi/errors';
+import { nodeScopes } from '@nexusdi/node';
+import { nexus } from '@nexusdi/react-router';
+
+import { BridgeConsole } from './bridge/bridge-console';
+
+export { BridgeConsole };
+
+export const ship = await Nexus.create(BridgeConsole, {
+  plugins: import.meta.env.DEV ? [errors()] : [],
+});
+import.meta.hot?.dispose(() => ship[Symbol.asyncDispose]());
+
+export const di = nexus(ship, {
+  request: ({ request }) => ({
+    mission: {
+      id: request.headers.get('x-mission-id') ?? 'survey-7',
+      target: 'Kepler-442b',
+    },
+    signal: request.signal,
+  }),
+  scopes: nodeScopes(),
+});
