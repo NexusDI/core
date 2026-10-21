@@ -1,9 +1,8 @@
 # Demo apps for 0.4
 
-Status: draft, 2026-10-21. The owner's decisions of 2026-10-12 and 2026-10-21 are settled
-(section 2.1). The architect proposes every other choice in section 2.2. Section 16 lists
-five questions for the owner, and two of them block a task: Q1 (the federation
-generator) blocks task 5, and Q2 (the core error code) blocks task 4.
+Status: decided, 2026-10-21. The owner answered Q1, Q2 and Q5 on 2026-10-21, and the
+tech lead settled Q3 and Q4 the same day on the architect's recommendations. Section 16
+records each answer. No question is open. The plan is `specs/plans/2026-10-21-demo-apps.md`.
 
 Packages: no published package is added. `@nexusdi/core` gains one error code (section
 8), `@nexusdi/testing` and `@nexusdi/interceptors` raise it, and `@nexusdi/federation`
@@ -62,8 +61,9 @@ about the Meridian.
 1. Every package is covered by some demo app, frontend and backend where that applies.
    One app per package is not required. (2026-10-12)
 2. Federation gets its own app, separate from the simple apps. It uses Nx
-   `@nx/react:host` and `remote` on rspack, and runs against the workspace packages in
-   CI. (2026-10-12; see Q1)
+   `@nx/react:consumer` and `provider` on rspack, and runs against the workspace
+   packages in CI. (2026-10-12; the generators changed from `host` and `remote` on
+   2026-10-21, Q1)
 3. A Meridian backend on Hono lives in `examples/`. The plan's coverage table puts core,
    node, interceptors, errors, devtools, testing and cli there. (2026-10-12)
 4. Decorators are shown in a federation remote. That remote writes its classes with
@@ -103,9 +103,9 @@ generator's output with nothing else. The next commit deletes what the app does 
 | --------------------------------- | --------------------------------- | ------------------ | ----------------------------------------- | ----------------------- |
 | `examples/bridge-api`             | `@nexusdi/bridge-api`             | backend            | none (hand-built in integrations task 18) | exists; changes in 5    |
 | `examples/bridge-console`         | `@nexusdi/bridge-console`         | frontend, SSR      | `create-react-router` 8.5.0               | new                     |
-| `examples/federation-shell`       | `@nexusdi/federation-shell`       | frontend, the host | Nx 23.3.0 (Q1)                            | new                     |
-| `examples/federation-cartography` | `@nexusdi/federation-cartography` | frontend, a remote | Nx 23.3.0 (Q1)                            | new                     |
-| `examples/federation-command`     | `@nexusdi/federation-command`     | frontend, a remote | Nx 23.3.0 (Q1)                            | new                     |
+| `examples/federation-shell`       | `@nexusdi/federation-shell`       | frontend, the host | Nx 23.3.0 consumer/provider               | new                     |
+| `examples/federation-cartography` | `@nexusdi/federation-cartography` | frontend, a remote | Nx 23.3.0 consumer/provider               | new                     |
+| `examples/federation-command`     | `@nexusdi/federation-command`     | frontend, a remote | Nx 23.3.0 consumer/provider               | new                     |
 | `examples/federation-contracts`   | `@nexusdi/federation-contracts`   | library            | `@nx/js:library` 23.3.0                   | new                     |
 | `examples/next-bridge`            | `@nexusdi/next-bridge`            | Next gate canary   | unchanged                                 | exists, outside the set |
 | `examples/react-ssr`, `-e2e`      | `@nexusdi/react-ssr`, `-e2e`      | frontend, SSR      | removed                                   | removed in task 3       |
@@ -177,8 +177,8 @@ Against the pillars and the users:
    `npm create hono@0.19.5 <scratch>/meridian-backend -- --template nodejs --pm npm`
    outside the repo, compares its `package.json` scripts, `tsconfig.json`, lint setup and entry
    against `bridge-api`, and adopts each difference that is current idiom. The audit
-   writes its findings into the commit message. Q4 asks whether the owner wants a full
-   re-scaffold in its place.
+   writes its findings into the commit message. The tech lead ruled for the audit with no
+   re-scaffold (Q4).
 4. No route changes. The console uses `GET /course/:to` with `x-mission-id` as it is.
 
 ## 6. The bridge console: `examples/bridge-console`
@@ -359,20 +359,9 @@ Two more builds of `federation-cartography` serve the failure cases: the drift b
 
 ### 7.2 Scaffold
 
-Decision 2 names `@nx/react:host` and `remote`. Nx 23.3.0 marks both deprecated:
+Decision 2 first named `@nx/react:host` and `remote`. Nx 23.3.0 marks both deprecated:
 "Use `@nx/react:consumer` instead (dynamic federation, no static-serve orchestration).
-Removed in Nx v24." Q1 asks the owner to choose. Both command sets follow, and task 5
-runs the one the owner picks.
-
-Decision 2 as written:
-
-```sh
-npx nx g @nx/react:host examples/federation-shell --name=federation-shell \
-  --remotes=federation-cartography,federation-command --bundler=rspack --dynamic \
-  --compiler=swc --style=css --unitTestRunner=vitest --e2eTestRunner=playwright
-```
-
-The recommended replacement (Q1):
+Removed in Nx v24." The owner chose `consumer` and `provider` on rspack (Q1):
 
 ```sh
 npx nx g @nx/react:consumer examples/federation-shell --bundler=rspack --port=4300 \
@@ -385,7 +374,7 @@ npx nx g @nx/playwright:configuration --project=@nexusdi/federation-shell --dire
 array in `src/mf.ts`. It generates no tests, so the two configuration generators add
 vitest to the shell and to each remote, and Playwright to the shell.
 
-Either path installs `@nx/rspack` and `@nx/module-federation` at 23.3.0 as root dev
+The generator installs `@nx/rspack` and `@nx/module-federation` at 23.3.0 as root dev
 dependencies. Neither is in the root `package.json` today.
 
 The contracts library:
@@ -631,7 +620,7 @@ budgets are soft, and the size report records the change.
 - A user on rc.0 or rc.1 who reads `error.otherCopy` loses the field. The field arrived in
   the 0.4 RCs, so no 0.3 user reads it. The `NEXUS_INVALID_MODULE`, `NEXUS_INVALID_TOKEN`
   and `NEXUS_INVALID_PROVIDER` pages drop their `otherCopy` bullet and link the new page.
-  Q2 asks the owner to confirm this removal.
+  The owner confirmed this removal (Q2).
 
 ### 8.7 Tests
 
@@ -666,8 +655,8 @@ regions. The federation e2e case 6 shows the error from a real second copy.
    adds them.
 5. "Ship sections" means modules in the front page notes, and lazily loaded modules in
    the react spec and in core's `load()` wording. The API owns the second meaning:
-   `lazySection`, `SectionBoundary` and `SectionConflictError` are public names. Q3
-   proposes that a docs sentence uses "section" for a module loaded after startup only,
+   `lazySection`, `SectionBoundary` and `SectionConflictError` are public names. The
+   tech lead ruled (Q3) that a docs sentence uses "section" for a module loaded after startup only,
    and that the front page draws modules as parts of the ship with the label "module".
 6. `bridge-api` names the audit module `Audit`, and §7.1 names it `AuditTrail` (A8).
 7. The docs use "the console" for the interactive console of §7.6. The app is always "the
@@ -778,7 +767,7 @@ Academy mission on federation waits for the Academy, which is parked until after
 Decision 8 becomes two checks in the release workflow and the `nexusdi-release` skill:
 
 1. The `demo-apps` check joins the four ruleset checks that `release.yml` requires green on
-   the exact commit it releases. That is a ruleset change on GitHub (Q5).
+   the exact commit it releases. That is a ruleset change on GitHub, which the owner makes after three green runs (Q5).
 2. The stable promotion checklist in the skill gains one line: each of `@nexusdi/hono`,
    `@nexusdi/express`, `@nexusdi/fastify`, `@nexusdi/react-router`, `@nexusdi/vitest` and
    `@nexusdi/react` was published in at least one RC whose commit had `demo-apps` green.
@@ -790,14 +779,14 @@ so it restarts no RC count.
 
 | Task | What                                                                                                         | Waits on |
 | ---- | ------------------------------------------------------------------------------------------------------------ | -------- |
-| 1    | `bridge-api`: the `demo` tag, `AuditTrail`, the generator audit (section 5.2)                                | Q4       |
+| 1    | `bridge-api`: the `demo` tag, `AuditTrail`, the generator audit (section 5.2)                                | none     |
 | 2    | `bridge-console`: scaffold commit, cleanup commit, graphs, routes, tests, e2e (section 6)                    | none     |
 | 3    | remove `examples/react-ssr` and move every reference (section 6.6)                                           | task 2   |
-| 4    | core: `NEXUS_CORE_NOT_SHARED`, `describeValue` names, testing and interceptors, code page (section 8)        | Q2       |
-| 5    | federation: scaffold, contracts, shell, remotes, the drift and unshared builds, e2e (section 7)              | Q1, 4    |
+| 4    | core: `NEXUS_CORE_NOT_SHARED`, `describeValue` names, testing and interceptors, code page (section 8)        | none     |
+| 5    | federation: scaffold, contracts, shell, remotes, the drift and unshared builds, e2e (section 7)              | 4        |
 | 6    | docs: the federation README, the `NEXUS_CONTRACT_VERSION` regions, `/federation/` and the links (section 11) | 5        |
 | 7    | CI: the `demo-apps` job, the gate test change, the measured budget (section 10)                              | 1, 2     |
-| 8    | release: the skill's checklist line; the ruleset change is the owner's (section 12)                          | 7, Q5    |
+| 8    | release: the skill's checklist line; the ruleset change is the owner's (section 12)                          | 7        |
 
 Tasks 1, 2 and 4 run in parallel. Each task ends with an independent review, and the
 branch ends with a final review by an opus reviewer.
@@ -806,13 +795,13 @@ branch ends with a final review by an opus reviewer.
 
 | Risk                                                                                                                                 | What the plan does                                                                                                   |
 | ------------------------------------------------------------------------------------------------------------------------------------ | -------------------------------------------------------------------------------------------------------------------- |
-| Nx 24 removes `@nx/react:host` and `remote`. An app built on them breaks at the next Nx major migration.                             | Q1 recommends `consumer` and `provider`, which Nx keeps.                                                             |
+| Nx 24 removes `@nx/react:host` and `remote`. An app built on them breaks at the next Nx major migration.                             | The apps use `consumer` and `provider`, which Nx keeps (Q1).                                                         |
 | Nx's federation config shares workspace libraries by default, so the contracts package is shared and `federation()` idles.           | The shared function returns `false` for `@nexusdi/federation-contracts`, and e2e case 5 fails if the copy is shared. |
 | An rspack config that adds the `@nexusdi/source` condition bundles the TypeScript sources, and the demo tests what no user installs. | The builds depend on `^build` and resolve the published `import` condition; task 5 checks the bundle's module paths. |
 | `create-react-router` and `create-hono` download templates from GitHub `main`, so two runs of one CLI version differ.                | The scaffold commit records the template's commit hash.                                                              |
 | The swc decorator transform in rspack writes `Symbol.metadata` before core's polyfill runs in the remote.                            | `@nexusdi/decorators` lists its polyfill in `sideEffects`; e2e case 3 fails if the metadata is lost.                 |
 | `demo-apps` exceeds 8 minutes and lengthens every run.                                                                               | Task 7 measures it and splits the job into a matrix if it runs over.                                                 |
-| Removing `otherCopy` breaks an RC tester who reads it.                                                                               | The changelog names the removal and the new code; Q2 asks the owner.                                                 |
+| Removing `otherCopy` breaks an RC tester who reads it.                                                                               | The changelog names the removal and the new code (Q2).                                                               |
 
 ## 15. Out of scope
 
@@ -825,14 +814,19 @@ branch ends with a final review by an opus reviewer.
 
 ## 16. Owner decision log
 
-| Date       | Decision                                                                                       | Source           |
-| ---------- | ---------------------------------------------------------------------------------------------- | ---------------- |
-| 2026-10-12 | Every package covered by a demo app; federation gets its own app; the apps live in `examples/` | decisions 1 to 3 |
-| 2026-10-15 | 0.4.0 final waits until every adapter sat in an RC with its demo app green                     | integrations Q2  |
-| 2026-10-21 | decorators in a federation remote; the bridge console; `react-ssr` removed; the core error     | decisions 4 to 7 |
-| 2026-10-21 | every app scaffolded by its official generator                                                 | generator rule   |
+| Date       | Decision                                                                                                                                       | Source           |
+| ---------- | ---------------------------------------------------------------------------------------------------------------------------------------------- | ---------------- |
+| 2026-10-12 | Every package covered by a demo app; federation gets its own app; the apps live in `examples/`                                                 | decisions 1 to 3 |
+| 2026-10-15 | 0.4.0 final waits until every adapter sat in an RC with its demo app green                                                                     | integrations Q2  |
+| 2026-10-21 | decorators in a federation remote; the bridge console; `react-ssr` removed; the core error                                                     | decisions 4 to 7 |
+| 2026-10-21 | every app scaffolded by its official generator                                                                                                 | generator rule   |
+| 2026-10-21 | Q1: `@nx/react:consumer` and `provider` on rspack, vitest and Playwright added by their configuration generators; replaces `host` and `remote` | owner            |
+| 2026-10-21 | Q2: add `NEXUS_CORE_NOT_SHARED` and drop `otherCopy` in rc.2; the +204 B gzip is accepted                                                      | owner            |
+| 2026-10-21 | Q3: "section" means a module added after startup; the front page labels its parts "modules"                                                    | tech lead        |
+| 2026-10-21 | Q4: audit `bridge-api` against the `create-hono` `nodejs` template, with no re-scaffold                                                        | tech lead        |
+| 2026-10-21 | Q5: `demo-apps` becomes a required check after three green runs on `release/0.4`; the owner changes the rulesets                               | owner            |
 
-Open questions:
+The questions as they were put, with their answers:
 
 Q1. Which Nx generators scaffold the federation app?
 
@@ -850,6 +844,8 @@ Q1. Which Nx generators scaffold the federation app?
   dev setup serves each remote with its own `serve` target. This reverses decision 2,
   which is why it is a question. Nothing published changes.
 - Recommendation: `@nx/react:consumer` and `provider` with `--bundler=rspack`.
+- Answer (owner, 2026-10-21): yes, with vitest and Playwright through their
+  configuration generators.
 
 Q2. Remove `otherCopy` from three error classes?
 
@@ -863,6 +859,7 @@ Q2. Remove `otherCopy` from three error classes?
   `isNexusError(error, 'NEXUS_CORE_NOT_SHARED')`. No 0.3 user is affected. The three code
   pages drop a bullet.
 - Recommendation: remove the field and ship the new code in rc.2.
+- Answer (owner, 2026-10-21): yes, in rc.2, with the +204 B accepted.
 
 Q3. Which meaning of "section" do the docs keep?
 
@@ -876,6 +873,7 @@ Q3. Which meaning of "section" do the docs keep?
   its label to "module".
 - Recommendation: "section" means a module added after startup, everywhere, and the
   front page labels its parts "modules".
+- Answer (tech lead, 2026-10-21): accepted.
 
 Q4. Re-scaffold `bridge-api` with `create-hono`?
 
@@ -888,6 +886,7 @@ Q4. Re-scaffold `bridge-api` with `create-hono`?
   benchmarks, which read this project's targets, and changes no route. The audit of
   section 5.2 adopts the template's idiom without a rebuild.
 - Recommendation: the audit, with no re-scaffold.
+- Answer (tech lead, 2026-10-21): accepted.
 
 Q5. Make `demo-apps` a required check?
 
@@ -899,3 +898,5 @@ Q5. Make `demo-apps` a required check?
 - Consequence: a pull request with a failing demo cannot merge, and a release waits for
   the demos. The job adds no wall time while it stays under `main`'s 10.5 minutes.
 - Recommendation: yes, once task 7 has run green on `release/0.4` three times.
+- Answer (owner, 2026-10-21): yes, after three green runs. The owner changes the
+  rulesets.
