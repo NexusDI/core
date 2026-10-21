@@ -215,6 +215,7 @@ On `release/X.Y`, the version is `X.Y.0`. Before dispatching:
    so this prints `success` for a qualifying rc N:
 
    ```sh
+   git fetch --tags origin
    gh api "repos/NexusDI/core/commits/$(git rev-parse '@nexusdi/core@0.4.0-rc.N^')/check-runs?check_name=demo-apps&filter=latest" \
      --jq '.check_runs[].conclusion'
    ```
