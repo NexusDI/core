@@ -244,16 +244,16 @@ export const errorCases: readonly ErrorCase[] = [
   {
     name: 'CoreNotSharedError (import path)',
     error: new CoreNotSharedError({
-      received: 'an object',
+      received: 'the module Remote',
       where: 'Meridian',
     }),
     code: 'NEXUS_CORE_NOT_SHARED',
-    fields: { received: 'an object', where: 'Meridian' },
+    fields: { received: 'the module Remote', where: 'Meridian' },
   },
   {
     name: 'CoreNotSharedError (providers entry)',
     error: new CoreNotSharedError({
-      received: 'an object',
+      received: 'the Token meridian/NavCharts',
       where: 'Engineering.providers[2]',
     }),
     code: 'NEXUS_CORE_NOT_SHARED',
@@ -262,7 +262,7 @@ export const errorCases: readonly ErrorCase[] = [
   {
     name: 'CoreNotSharedError (dep)',
     error: new CoreNotSharedError({
-      received: 'an object',
+      received: 'the Token meridian/NavCharts',
       where: 'Engineering.providers[1], deps[0]',
     }),
     code: 'NEXUS_CORE_NOT_SHARED',
@@ -270,7 +270,7 @@ export const errorCases: readonly ErrorCase[] = [
   },
   {
     name: 'CoreNotSharedError (no place)',
-    error: new CoreNotSharedError({ received: 'an object', where: null }),
+    error: new CoreNotSharedError({ received: 'a provider', where: null }),
     code: 'NEXUS_CORE_NOT_SHARED',
     fields: { where: null },
   },

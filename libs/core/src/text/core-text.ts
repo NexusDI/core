@@ -8,6 +8,7 @@ import type {
   AmbiguousProviderError,
   AsyncTransientError,
   CircularDependencyError,
+  CoreNotSharedError,
   DisposedError,
   DuplicateProviderError,
   ErrorText,
@@ -156,6 +157,11 @@ const invalidModule: Builder<InvalidModuleError> = (error) => {
     `${error.received} is not a module${where}.\n  Fix: create one with defineModule(), or decorate a class with @Module.`,
   );
 };
+
+const coreNotShared: Builder<CoreNotSharedError> = (error) => ({
+  message: `${error.received} was made by another copy of @nexusdi/core${error.where === null ? '' : ` (${error.where})`}.`,
+  fix: 'load one copy of @nexusdi/core. Check that npm installed it once (npm ls @nexusdi/core), that no test calls vi.resetModules() between the module and the container that reads it, and that no bundler resolves the @nexusdi/source condition for one import and dist for another. In Module Federation, share @nexusdi/core with singleton: true.',
+});
 
 const missingDeps: Builder<MissingDepsError> = (error) => {
   const { useClass } = error;
@@ -356,6 +362,7 @@ export const coreText = {
   NEXUS_INVALID_PROVIDER: invalidProvider,
   NEXUS_INVALID_TOKEN: invalidToken,
   NEXUS_INVALID_MODULE: invalidModule,
+  NEXUS_CORE_NOT_SHARED: coreNotShared,
   NEXUS_MISSING_DEPS: missingDeps,
   NEXUS_CIRCULAR_DEPENDENCY: circularDependency,
   NEXUS_LIFETIME_VIOLATION: lifetime,

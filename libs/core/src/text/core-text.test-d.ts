@@ -8,10 +8,10 @@ import { coreText } from '../text/index.js';
 type CoreCode = Extract<keyof NexusErrorByCode, `NEXUS_${string}`>;
 
 describe('coreText', () => {
-  it('has an entry for every core code but the aggregate the engine renders and the code with no text yet', () => {
-    expectTypeOf<Exclude<CoreCode, keyof typeof coreText>>().toEqualTypeOf<
-      'NEXUS_BLUEPRINT_INVALID' | 'NEXUS_CORE_NOT_SHARED'
-    >();
+  it('has an entry for every core code but the aggregate the engine renders', () => {
+    expectTypeOf<
+      Exclude<CoreCode, keyof typeof coreText>
+    >().toEqualTypeOf<'NEXUS_BLUEPRINT_INVALID'>();
   });
 
   it('is a text pack', () => {

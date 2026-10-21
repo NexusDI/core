@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
 
 import type { BlueprintView, ErrorTextKit, NearMiss } from '../index.js';
-import { MissingProviderError, Token } from '../index.js';
+import { CoreNotSharedError, MissingProviderError, Token } from '../index.js';
 import { coreText } from '../text/index.js';
 
 interface INavCharts {
@@ -85,6 +85,30 @@ describe('coreText', () => {
     expect(text.nearMisses).toEqual([own]);
     expect(text.message).toContain(
       'NavCharts is exported by Science, which Meridian does not import.',
+    );
+  });
+
+  it('names the second copy of core for a value another copy made', () => {
+    const text = coreText.NEXUS_CORE_NOT_SHARED(
+      new CoreNotSharedError({
+        received: 'the module Cartography',
+        where: 'load()',
+      }),
+    );
+    expect(text.message).toBe(
+      'the module Cartography was made by another copy of @nexusdi/core (load()).',
+    );
+    expect(text.fix).toBe(
+      'load one copy of @nexusdi/core. Check that npm installed it once (npm ls @nexusdi/core), that no test calls vi.resetModules() between the module and the container that reads it, and that no bundler resolves the @nexusdi/source condition for one import and dist for another. In Module Federation, share @nexusdi/core with singleton: true.',
+    );
+  });
+
+  it('leaves the place out of the message when core met the value at none', () => {
+    const text = coreText.NEXUS_CORE_NOT_SHARED(
+      new CoreNotSharedError({ received: 'a provider', where: null }),
+    );
+    expect(text.message).toBe(
+      'a provider was made by another copy of @nexusdi/core.',
     );
   });
 });
