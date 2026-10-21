@@ -207,8 +207,9 @@ npx nx g @nx/playwright:configuration --project=@nexusdi/bridge-console \
 
 `create-react-router` 8.4.0 has no template version of its own. Without `--template` it
 downloads `remix-run/react-router-templates/tree/main/default` at the time it runs. The
-task reads the head of that repository's `main` with `git ls-remote` first and passes it
-as `<sha>`, so two runs of the task scaffold the same files, and the scaffold commit
+task takes the last commit on that repository's `main` before 2026-10-19, the day React
+Router 8.5.0 was published, and passes it as `<sha>`. That template predates 8.5.0, so it
+needs nothing from it, and two runs of the task scaffold the same files, and the scaffold commit
 records the hash in its message.
 
 The second commit deletes what the template carries and the app does not use: the
@@ -468,7 +469,9 @@ cannot import the shell's module object. The shell registers `federation()`,
 Every project's `rspack.config.ts` passes `shared: meridianShared()` to its
 `ModuleFederationPlugin`. `meridianShared` lives in `@nexusdi/federation-contracts` at the
 `./shared` subpath, which only the rspack configs import, so the shell and both remotes
-build from one object. It shares `react` and `react-dom` as singletons with
+build from one object. The `.` entry never reaches it: `src/index.ts` imports nothing
+from `src/shared.ts`, so a remote that bundles the contracts package bundles no build
+config and no `package.json` read. It shares `react` and `react-dom` as singletons with
 `requiredVersion` set to React's version, and `@nexusdi/core` and `@nexusdi/react` as
 singletons with `requiredVersion` set to core's exact version, since every `@nexusdi/*`
 package peers on it. A remote's components call `useService`, which reads the shell's
@@ -523,7 +526,8 @@ serves each build on its port.
 The generator's `src/mf.ts` hardcodes the remote URLs, which would take one shell build
 per case. Task D4 replaces it with app code. At startup the shell fetches
 `/remotes.json`, a list of `{ name, entry }`, and passes it to `registerRemotes` from
-`@module-federation/enhanced/runtime` before the first `loadRemote`. A fetch that fails
+`@module-federation/runtime`, the import the generator's `src/mf.ts` already uses, before
+the first `loadRemote`. A fetch that fails
 renders the shell with every station's `SectionFailed`. Development serves
 `public/remotes.json` with the ports of section 7.1, and the e2e server answers the path
 from one file per case. No test switch lives in the app code.
