@@ -128,7 +128,7 @@ for the role, and one class bound with `useClass` (docs §7.3). Names in the exi
 | `AuditTrail`      | the audit store     | `AUDIT_LOG`                                                                        | none                                             | in §7.1; `bridge-api` renames it in 0.4 |
 
 `TICK_LOOP` is bound in the aggregate `MeridianSystems`, which is global. A module's
-`all()` gathers the providers the module binds, its imports' exports and the global modules' exports
+`all()` reads the module's own providers plus the exports of its imports and of the global modules
 (`libs/core/src/blueprint/visibility.ts`), so a loop bound in `Simulation` never sees a
 system that a sibling module imports. Each system module exports `SHIP_SYSTEMS`, and the
 aggregate imports every system module, so its loop sees each one. `Simulation` stays global and binds `SIM_OPTIONS`, `SIM_CLOCK`, `RNG`,
