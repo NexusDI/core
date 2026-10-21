@@ -52,9 +52,11 @@ export function shipFromEnv(): Promise<Nexus> {
  * On SIGTERM, calls `close` to stop the server taking connections, then
  * disposes the ship. The server waits for its open connections before it
  * closes, and the ship's telemetry feed ends every open `GET /telemetry`
- * stream when it disposes, so the server can close. A second dispose, such
- * as an entry's `await using`, returns the first one's promise. An error
- * from either step goes to the console and sets exit code 1.
+ * stream when it disposes, so the server can close. It starts the dispose
+ * without waiting for close, since close waits on the streams the dispose
+ * ends. A second dispose, such as an entry's `await using`, returns the
+ * first one's promise. A rejection from either step goes to the console and
+ * sets exit code 1 (`http.Server.close()` without a callback never throws).
  */
 export function stopOnSigterm(
   close: () => unknown,
@@ -66,6 +68,8 @@ export function stopOnSigterm(
       (async () => close())(),
       ship[Symbol.asyncDispose](),
     ]);
+    // Fastify's close rejects with the dispose's own error through the
+    // onClose hook, so the Set reports that error once.
     const errors = new Set(
       steps.flatMap((step) =>
         step.status === 'rejected' ? [step.reason] : [],
