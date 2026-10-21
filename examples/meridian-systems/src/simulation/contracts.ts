@@ -40,7 +40,7 @@ export interface CompartmentReading extends CompartmentState {
 }
 
 /**
- * What the routes and the telemetry frames send: the rounded snapshot with
+ * What the routes and the telemetry feed send: the rounded snapshot with
  * each compartment's pressure, which `readShip` reads from the deck plan.
  */
 export interface ShipReading extends Omit<ShipSnapshot, 'compartments'> {

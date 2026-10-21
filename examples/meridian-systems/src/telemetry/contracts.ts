@@ -11,9 +11,9 @@ export interface TelemetrySink {
 
 export interface ITelemetryFeed {
   /**
-   * Sends `sink` the reading of the current snapshot at once, then one per tick. The
-   * returned function unsubscribes the sink, runs twice safely and never
-   * calls `close`.
+   * Sends `sink` the reading of the current snapshot at once, then one per
+   * tick. The returned function unsubscribes the sink, runs twice safely and
+   * never calls `close`.
    */
   subscribe(sink: TelemetrySink): () => void;
 }
