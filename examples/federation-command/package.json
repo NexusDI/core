@@ -1,0 +1,24 @@
+{
+  "name": "federation-command",
+  "version": "0.0.0",
+  "private": true,
+  "scripts": {
+    "dev": "rspack serve --mode=development",
+    "build": "rspack build --mode=production"
+  },
+  "dependencies": {
+    "@module-federation/enhanced": "^2.4.0",
+    "react": "^19.0.0",
+    "react-dom": "^19.0.0"
+  },
+  "devDependencies": {
+    "@rspack/cli": "^2.0.3",
+    "@rspack/core": "^2.0.3",
+    "@rspack/dev-server": "2.0.1",
+    "@rspack/plugin-react-refresh": "^2.0.0",
+    "@types/react": "^19.0.0",
+    "@types/react-dom": "^19.0.0",
+    "react-refresh": "~0.14.0",
+    "typescript": "~6.0.3"
+  }
+}

@@ -1,0 +1,23 @@
+{
+  "name": "federation-shell",
+  "$schema": "../../node_modules/nx/schemas/project-schema.json",
+  "sourceRoot": "examples/federation-shell/src",
+  "projectType": "application",
+  "targets": {
+    "serve": {
+      "executor": "nx:run-commands",
+      "continuous": true,
+      "options": {
+        "command": "rspack serve --mode=development",
+        "cwd": "examples/federation-shell"
+      }
+    },
+    "build": {
+      "executor": "nx:run-commands",
+      "options": {
+        "command": "rspack build --mode=production",
+        "cwd": "examples/federation-shell"
+      }
+    }
+  }
+}
