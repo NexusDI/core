@@ -18,7 +18,11 @@
       "options": {
         "command": "rspack build --mode=production",
         "cwd": "examples/federation-cartography"
-      }
+      },
+      "dependsOn": ["^build"],
+      "cache": true,
+      "inputs": ["production", "^production"],
+      "outputs": ["{projectRoot}/dist/main"]
     }
   }
 }
