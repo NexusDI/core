@@ -1,4 +1,4 @@
-export { Audit, AUDIT_LOG, type IAuditLog } from './audit';
+export { AUDIT_LOG, AuditTrail, type IAuditLog } from './audit-trail.module';
 export { BridgeApi } from './bridge-api.module';
 export { Comms } from './comms.module';
 export {

@@ -44,7 +44,7 @@
     },
     {
       "id": "m4",
-      "name": "Audit",
+      "name": "AuditTrail",
       "global": false,
       "imports": [],
       "exports": [
