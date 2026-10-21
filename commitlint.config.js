@@ -90,6 +90,8 @@ module.exports = {
         'federation-cartography',
         'federation-command',
         'federation-contracts',
+        // The simulation library the demo apps run (ship systems spec 3.1).
+        'meridian-systems',
       ],
     ],
     'type-case': [2, 'always', 'lower-case'],
