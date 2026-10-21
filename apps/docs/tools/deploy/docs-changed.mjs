@@ -39,33 +39,45 @@ export function touches(paths, files) {
 
 const ZERO = /^0+$/;
 
-if (import.meta.url === pathToFileURL(process.argv[1] ?? '').href) {
-  const base = process.argv[2] ?? '';
+/** The changed files between `base` and HEAD; throws when git lacks `base`. */
+function gitDiff(base) {
+  return execFileSync('git', ['diff', '--name-only', base, 'HEAD'], {
+    encoding: 'utf8',
+    stdio: ['ignore', 'pipe', 'ignore'],
+  })
+    .split('\n')
+    .filter(Boolean);
+}
+
+/**
+ * The job's verdict for a base commit. `diff` lists the changed files and
+ * throws when the base is unknown; tests inject it so no git process runs.
+ */
+export function decide(base, diff = gitDiff) {
   let touched = true;
   let note = '';
   // A new branch has no base to diff against, so the job checks everything.
   if (base !== '' && !ZERO.test(base)) {
     try {
-      touched = touches(
-        PATHS,
-        execFileSync('git', ['diff', '--name-only', base, 'HEAD'], {
-          encoding: 'utf8',
-          stdio: ['ignore', 'pipe', 'ignore'],
-        })
-          .split('\n')
-          .filter(Boolean),
-      );
+      touched = touches(PATHS, diff(base));
     } catch {
       // A force-push can leave the old tip out of the clone.
       note = 'the base commit is not in the clone; ';
     }
   }
-  console.log(
-    note +
+  return {
+    touched,
+    message:
+      note +
       (touched
         ? 'this change touches a docs input; the docs job builds and checks the site'
         : 'this change touches no docs input; the docs job ends here'),
-  );
+  };
+}
+
+if (import.meta.url === pathToFileURL(process.argv[1] ?? '').href) {
+  const { touched, message } = decide(process.argv[2] ?? '');
+  console.log(message);
   if (process.env.GITHUB_OUTPUT)
     appendFileSync(process.env.GITHUB_OUTPUT, `touched=${touched}\n`);
 }

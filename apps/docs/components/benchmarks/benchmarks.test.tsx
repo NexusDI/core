@@ -30,6 +30,18 @@ vi.mock('./data', async () => {
   };
 });
 
+/**
+ * The one element whose text matches. The tests keep the role queries so the
+ * ARIA roles stay asserted, with `hidden: true` and no `name:`, because
+ * Testing Library's accessible-name computation is the slow part (several
+ * seconds on a loaded CI runner). Matching the text here takes its place.
+ */
+function byText<T extends Element>(els: T[], re: RegExp): T {
+  const hit = els.filter((e) => re.test(e.textContent ?? ''));
+  expect(hit).toHaveLength(1);
+  return hit[0]!;
+}
+
 /** A cell's text without its tooltip. */
 function visible(cell: Element): string {
   const copy = cell.cloneNode(true) as Element;
@@ -88,7 +100,7 @@ describe('PerformanceTable', () => {
   it('renders the four columns of benchmarks spec section 5.6 per library', () => {
     render(<PerformanceTable />);
     const rows = screen
-      .getAllByRole('row')
+      .getAllByRole('row', { hidden: true })
       .map((row) => [...row.querySelectorAll('th, td')].map(visible));
     expect(rows).toEqual([
       ['Library', 'Bundle size (min+gzip)', 'Startup', 'Resolve', 'Build time'],
@@ -117,9 +129,10 @@ describe('PerformanceTable', () => {
     );
     // next/link drops the trailing slash outside `next build`.
     expect(
-      screen
-        .getByRole('link', { name: 'How the benchmarks are measured' })
-        .getAttribute('href'),
+      byText(
+        screen.getAllByRole('link', { hidden: true }),
+        /^How the benchmarks are measured$/,
+      ).getAttribute('href'),
     ).toMatch(/^\/benchmark-method\/?$/);
   });
 });
@@ -127,10 +140,16 @@ describe('PerformanceTable', () => {
 describe('ToolchainGrid', () => {
   it('renders each cell outcome and links the documented limitation', () => {
     render(<ToolchainGrid library="tsyringe" />);
-    const row = screen.getByRole('row', { name: /tsyringe decorated/ });
+    const row = byText(
+      screen.getAllByRole('row', { hidden: true }),
+      /tsyringe decorated/,
+    );
     expect(row.textContent).toContain('wrong instance');
     expect(
-      within(row).getByRole('link', { name: 'documented' }),
+      byText(
+        within(row).getAllByRole('link', { hidden: true }),
+        /^documented$/,
+      ),
     ).toHaveProperty(
       'href',
       'https://esbuild.github.io/content-types/#no-type-system',
@@ -141,20 +160,23 @@ describe('ToolchainGrid', () => {
 describe('ProbeTable', () => {
   it('says where each library reports each mistake, NexusDI beside the one named', () => {
     render(<ProbeTable library="tsyringe" />);
-    const row = screen.getByRole('row', {
-      name: /A missing provider and a cycle together/,
-    });
+    const row = byText(
+      screen.getAllByRole('row', { hidden: true }),
+      /A missing provider and a cycle together/,
+    );
     expect(
       within(row)
-        .getAllByRole('cell')
+        .getAllByRole('cell', { hidden: true })
         .map((cell) => cell.textContent),
     ).toEqual([
       'container creation, names 2 of 2',
       'first resolve, names 1 of 2',
     ]);
-    expect(
-      screen.queryByRole('columnheader', { name: 'needle-di' }),
-    ).toBeNull();
+    const headers = screen
+      .getAllByRole('columnheader', { hidden: true })
+      .map((header) => header.textContent);
+    expect(headers).toEqual(['Mistake', 'NexusDI', 'tsyringe']);
+    expect(headers).not.toContain('needle-di');
   });
 });
 
@@ -167,7 +189,10 @@ describe('MeasuredWith', () => {
     );
     expect(container.textContent).not.toContain('metadata-polyfill@');
     expect(
-      screen.getByRole('link', { name: 'size.json at abcdef1' }),
+      byText(
+        screen.getAllByRole('link', { hidden: true }),
+        /^size\.json at abcdef1$/,
+      ),
     ).toHaveProperty(
       'href',
       'https://github.com/NexusDI/core/blob/abcdef1234567/benchmarks/results/size.json',

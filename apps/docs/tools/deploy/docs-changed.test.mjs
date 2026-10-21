@@ -1,13 +1,7 @@
 // @vitest-environment node
-import { spawnSync } from 'node:child_process';
-import { mkdtempSync, readFileSync } from 'node:fs';
-import { tmpdir } from 'node:os';
-import { join } from 'node:path';
-import { fileURLToPath } from 'node:url';
+import { describe, expect, it, vi } from 'vitest';
 
-import { describe, expect, it } from 'vitest';
-
-import { EXTRA_PATHS, PATHS, touches } from './docs-changed.mjs';
+import { decide, EXTRA_PATHS, PATHS, touches } from './docs-changed.mjs';
 
 describe('the docs inputs', () => {
   it('name every workflow that builds or checks the site', () => {
@@ -35,19 +29,33 @@ describe('touches', () => {
   });
 });
 
-describe('the command line', () => {
+describe('decide', () => {
+  const unknownBase = () => {
+    throw new Error('bad object');
+  };
+
   it('reports a touched change when the base commit is missing', () => {
-    const dir = mkdtempSync(join(tmpdir(), 'docs-changed-'));
-    const output = join(dir, 'out');
-    const script = fileURLToPath(
-      new URL('./docs-changed.mjs', import.meta.url),
-    );
-    const run = spawnSync('node', [script, 'f'.repeat(40)], {
-      encoding: 'utf8',
-      env: { ...process.env, GITHUB_OUTPUT: output },
+    expect(decide('f'.repeat(40), unknownBase)).toEqual({
+      touched: true,
+      message:
+        'the base commit is not in the clone; this change touches a docs input; the docs job builds and checks the site',
     });
-    expect(run.status).toBe(0);
-    expect(run.stdout).toContain('the base commit is not in the clone');
-    expect(readFileSync(output, 'utf8')).toBe('touched=true\n');
+  });
+
+  it('checks everything on a new branch, with no git call', () => {
+    const diff = vi.fn();
+    expect(decide('', diff).touched).toBe(true);
+    expect(decide('0'.repeat(40), diff).touched).toBe(true);
+    expect(diff).not.toHaveBeenCalled();
+  });
+
+  it('reads the diff against a known base', () => {
+    expect(decide('abc', () => ['libs/core/src/index.ts'])).toMatchObject({
+      touched: true,
+    });
+    expect(decide('abc', () => ['README.md'])).toEqual({
+      touched: false,
+      message: 'this change touches no docs input; the docs job ends here',
+    });
   });
 });
