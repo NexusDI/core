@@ -3,6 +3,7 @@ import { explain } from '@nexusdi/errors';
 import { describe, expect, it } from 'vitest';
 
 import { BadCommandError, PowerBudgetError } from './errors';
+import { ENGINEERING_ACTIONS } from './systems/engineering/engineering-commands';
 import { formatNumber, shipText } from './text';
 
 /** The text shipText gives `error`, laid out as core prints it. */
@@ -46,9 +47,6 @@ describe('shipText', () => {
     );
   });
 
-  const ACTIONS =
-    'throttle { level: 0 to 1 } or shields { raised: true or false }';
-
   it.each([
     [
       'envelope',
@@ -68,17 +66,21 @@ describe('shipText', () => {
     ],
     [
       'action',
-      { system: 'engineering', action: 'warp', expected: ACTIONS },
+      { system: 'engineering', action: 'warp', expected: ENGINEERING_ACTIONS },
       [
-        "[MERIDIAN_BAD_COMMAND] engineering has no action 'warp'. It takes throttle { level: 0 to 1 } or shields { raised: true or false }.",
+        "[MERIDIAN_BAD_COMMAND] engineering has no action 'warp'. It takes throttle with a level from 0 to 1 and shields with raised true or false.",
         '  Fix: send one of the actions above with its arguments.',
       ],
     ],
     [
       'argument',
-      { system: 'engineering', action: 'throttle', expected: ACTIONS },
+      {
+        system: 'engineering',
+        action: 'throttle',
+        expected: ENGINEERING_ACTIONS,
+      },
       [
-        '[MERIDIAN_BAD_COMMAND] engineering throttle got an argument it cannot use. It takes throttle { level: 0 to 1 } or shields { raised: true or false }.',
+        '[MERIDIAN_BAD_COMMAND] engineering throttle got an argument it cannot use. It takes throttle with a level from 0 to 1 and shields with raised true or false.',
         '  Fix: send the arguments in the ranges above.',
       ],
     ],
@@ -95,7 +97,7 @@ describe('shipText', () => {
       reason: 'drift' as 'action',
       system: 'engineering',
       action: 'warp',
-      expected: ACTIONS,
+      expected: ENGINEERING_ACTIONS,
     });
     expect(explain(error, { text: [shipText] })).toBeUndefined();
   });

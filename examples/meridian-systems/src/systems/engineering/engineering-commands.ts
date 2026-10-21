@@ -15,7 +15,7 @@ import {
  * The actions engineering takes and their ranges, in words. shipText reads
  * it after "It takes".
  */
-const EXPECTED =
+export const ENGINEERING_ACTIONS =
   'throttle with a level from 0 to 1 and shields with raised true or false';
 
 /** Reads the crew's engineering commands and hands each to the reactor or the shield grid. */
@@ -56,7 +56,7 @@ export class EngineeringCommands implements ICommandHandler {
       reason,
       system: this.system,
       action: command.action,
-      expected: EXPECTED,
+      expected: ENGINEERING_ACTIONS,
     });
   }
 }

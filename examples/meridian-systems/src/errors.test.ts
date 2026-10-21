@@ -2,6 +2,7 @@ import { isNexusError, NexusError } from '@nexusdi/core';
 import { describe, expect, expectTypeOf, it } from 'vitest';
 
 import { BadCommandError, PowerBudgetError } from './errors';
+import { ENGINEERING_ACTIONS } from './systems/engineering/engineering-commands';
 
 const DOCS =
   'https://github.com/NexusDI/core/tree/main/examples/meridian-systems#';
@@ -18,7 +19,7 @@ const badCommand = () =>
     reason: 'action',
     system: 'engineering',
     action: 'warp',
-    expected: 'throttle { level: 0 to 1 } or shields { raised: true or false }',
+    expected: ENGINEERING_ACTIONS,
   });
 
 describe('PowerBudgetError', () => {
@@ -59,8 +60,7 @@ describe('BadCommandError', () => {
       reason: 'action',
       system: 'engineering',
       action: 'warp',
-      expected:
-        'throttle { level: 0 to 1 } or shields { raised: true or false }',
+      expected: ENGINEERING_ACTIONS,
     });
   });
 
