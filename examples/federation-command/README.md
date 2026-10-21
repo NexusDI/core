@@ -12,8 +12,9 @@ It serves on port 4302, and the shell (`examples/federation-shell`) loads it on
 
 rspack's builtin swc loader and vitest's `unplugin-swc` both compile standard decorators
 with the settings in `swc.decorators.ts`: `jsc.parser.decorators: true` and
-`jsc.transform.decoratorVersion: '2023-11'`. The production minifier keeps class names,
-since `@Module` names the module after its class.
+`jsc.transform.decoratorVersion: '2023-11'`. `Command` sets `name: 'Command'`, so the
+default production minifier renames the class and `graph(ship)` still lists the module as
+`Command`.
 
 ## Commands
 
