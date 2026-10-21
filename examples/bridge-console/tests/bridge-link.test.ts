@@ -7,7 +7,7 @@ import { defineModule, Nexus } from '@nexusdi/core';
 import { createBridge } from '@nexusdi/bridge-api/hono';
 import { bridgePlugins, OfflineMeridian } from '@nexusdi/bridge-api/ship';
 import { graph } from '@nexusdi/devtools';
-import { afterAll, beforeAll, describe, expect, it } from 'vitest';
+import { afterAll, beforeAll, describe, expect, it, vi } from 'vitest';
 
 import { BRIDGE_LINK, BridgeLink } from '../app/bridge/bridge-link';
 
@@ -153,6 +153,25 @@ describe('the bridge link', () => {
   it('returns null for the graph when the backend serves none', async () => {
     await using bridge = await linkTo(base);
     expect(await bridge.link.graph()).toBeNull();
+  });
+
+  it("cancels the 404's body, so the connection goes back to the pool", async () => {
+    // The real backend sends the whole 404 at once, so the cancel shows only
+    // on a body that is still open.
+    let cancelled = false;
+    const body = new ReadableStream({
+      cancel() {
+        cancelled = true;
+      },
+    });
+    vi.stubGlobal('fetch', async () => new Response(body, { status: 404 }));
+    try {
+      await using bridge = await linkTo(base);
+      expect(await bridge.link.graph()).toBeNull();
+      expect(cancelled).toBe(true);
+    } finally {
+      vi.unstubAllGlobals();
+    }
   });
 
   it("returns the backend's annotated graph when it serves one", async () => {

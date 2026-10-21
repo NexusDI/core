@@ -8,9 +8,9 @@ import { BridgeConsole } from '../../app/bridge/bridge-console';
 import type { FakeBridgeLink } from '../doubles';
 
 /**
- * A request scope of a BridgeConsole container whose BRIDGE_LINK is an
- * instance of `link`, the link double or a subclass of it. The test disposes the scope, and `built` collects the
- * container for the file's afterAll.
+ * A request scope of a BridgeConsole container whose BRIDGE_LINK is an instance
+ * of `link`, the link double or a subclass of it. The test disposes the scope,
+ * and `built` collects the container for the file's afterAll.
  */
 export async function scopeWith(
   link: typeof FakeBridgeLink,

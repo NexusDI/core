@@ -18,7 +18,9 @@ afterEach(() =>
   Promise.all(built.splice(0).map((s) => s[Symbol.asyncDispose]())),
 );
 
-/** A TELEMETRY_CLIENT that hands the test its callbacks and counts unsubscribes. */
+/**
+ * A TELEMETRY_CLIENT that hands the test its callbacks and counts unsubscribes.
+ */
 class TelemetryDouble implements ITelemetryClient {
   next?: (ship: ShipReading) => void;
   offline?: (reason: string) => void;
@@ -35,7 +37,10 @@ class TelemetryDouble implements ITelemetryClient {
   }
 }
 
-/** Renders the strip for `ship` under the client graph with the telemetry double. */
+/**
+ * Renders the strip for `ship` under the client graph with the telemetry
+ * double.
+ */
 async function strip(ship: ShipReading | null) {
   const telemetry = new TelemetryDouble();
   const container = await createTestingContainer(BridgeClient)

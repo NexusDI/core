@@ -4,7 +4,11 @@ import type { ShipReading } from '@nexusdi/meridian-systems';
 
 import type { IBridgeLink } from '../app/bridge/bridge-link';
 
-/** A compartment of ship air at 293 K and 101.3 kPa, with round moles. */
+/**
+ * A compartment at 293 K that carries the pressure the backend reports for
+ * ship air, 101.3 kPa. The moles are arbitrary round numbers, since the
+ * console reads the pressure and never derives it.
+ */
 const air = (moles: number) => ({
   moles: { O2: moles * 0.21, N2: moles * 0.78, CO2: 2, H2O: 45, volatiles: 3 },
   temperature: 293,

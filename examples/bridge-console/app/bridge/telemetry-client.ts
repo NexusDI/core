@@ -40,7 +40,9 @@ class EventSourceTelemetry implements ITelemetryClient {
   }
 }
 
-/** TELEMETRY_CLIENT, which both the server graph and the client graph import. */
+/**
+ * TELEMETRY_CLIENT, which both the server graph and the client graph import.
+ */
 export const TelemetryClient = defineModule({
   name: 'TelemetryClient',
   providers: [provide(TELEMETRY_CLIENT, { useClass: EventSourceTelemetry })],
