@@ -164,7 +164,7 @@ jobs:
 
       - run: npm ci
 
-      # The browsers are keyed by the Playwright version the lockfile
+      # The cache keys the browsers by the Playwright version the lockfile
       # installs. A cache hit still needs the system libraries, which live
       # outside the cached folder.
       - name: Read the Playwright version
