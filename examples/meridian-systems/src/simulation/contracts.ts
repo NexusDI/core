@@ -107,9 +107,21 @@ export interface IShipSystem {
   step(ship: ShipSnapshot, tick: TickContext): ShipSnapshot;
 }
 
+/** Hears each snapshot the loop commits. */
+export type TickListener = (ship: ShipSnapshot) => void;
+
 export interface ITickLoop {
-  /** Runs `ticks` ticks and returns the last snapshot. */
+  /**
+   * Runs `ticks` ticks and returns the last snapshot. When a listener throws,
+   * the tick stays committed and `advance` throws after that tick.
+   */
   advance(ticks: number): ShipSnapshot;
+  /**
+   * Calls `listener` after each committed tick, in subscription order, and
+   * returns a function that unsubscribes it. A listener must not call
+   * `advance()`, since the loop is still inside the tick.
+   */
+  listen(listener: TickListener): () => void;
 }
 
 export const SIM_OPTIONS = new Token<SimOptions>('SimOptions');
