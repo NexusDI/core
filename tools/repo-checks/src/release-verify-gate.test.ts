@@ -177,10 +177,72 @@ describe('the release verify gate', () => {
     }
 
     const names = excluded.map((node) => node.name);
-    expect(names).not.toContain('@nexusdi/bridge-api');
-    expect(names).not.toContain('@nexusdi/bridge-console');
+    for (const name of ['@nexusdi/bridge-api', '@nexusdi/bridge-console']) {
+      const node = nodes.find((each) => each.name === name);
+      expect(node, `${name} is a project`).toBeDefined();
+      expect(
+        node?.data.tags,
+        `${name} runs its e2e suite in demo-apps`,
+      ).toContain('demo');
+      expect(names, `${name} stays in main and the release gate`).not.toContain(
+        name,
+      );
+    }
   });
 });
+
+/**
+ * The Playwright steps of a job: the browsers cached by the installed
+ * Playwright version, a full install on a cache miss, and the system
+ * libraries alone on a hit (they live outside the cached folder). Returns
+ * the index of the last of them, which every e2e step must follow.
+ */
+function playwrightSetup(steps: Step[], job: string): number {
+  const cacheIndex = steps.findIndex((step) =>
+    step.uses?.startsWith('actions/cache@'),
+  );
+  const cache = steps[cacheIndex] as Step & { id?: string };
+  expect(cache, `${job} caches the Playwright browsers`).toBeDefined();
+  expect(cache.with?.path).toBe('~/.cache/ms-playwright');
+  expect(cache.with?.key).toContain('playwright');
+  expect(cache.with?.key).toMatch(/\$\{\{\s*steps\.[a-z-]+\.outputs\./);
+
+  const hit = `steps.${cache.id}.outputs.cache-hit`;
+  const install = steps.findIndex((step) =>
+    step.run?.includes('playwright install --with-deps chromium'),
+  );
+  const deps = steps.findIndex((step) =>
+    step.run?.includes('playwright install-deps chromium'),
+  );
+
+  expect(install, `${job} installs Chromium on a miss`).toBeGreaterThan(
+    cacheIndex,
+  );
+  expect(steps[install]?.if).toBe(`${hit} != 'true'`);
+  expect(deps, `${job} installs the system libraries on a hit`).toBeGreaterThan(
+    cacheIndex,
+  );
+  expect(steps[deps]?.if).toBe(`${hit} == 'true'`);
+
+  return Math.max(install, deps);
+}
+
+/** Every action pinned by SHA, and by main's SHA where main uses it too. */
+function expectMainPins(ci: Workflow, steps: Step[]): void {
+  const pins = new Map(
+    stepsOf(ci, 'main')
+      .filter((step) => step.uses)
+      .map((step) => (step.uses as string).split('@') as [string, string]),
+  );
+
+  for (const step of steps.filter((each) => each.uses)) {
+    const [action, ref] = (step.uses as string).split('@') as [string, string];
+    expect(ref, `${step.uses} must be pinned by SHA`).toMatch(/^[0-9a-f]{40}$/);
+    if (pins.has(action)) {
+      expect(ref, `${action} must use main's pin`).toBe(pins.get(action));
+    }
+  }
+}
 
 /**
  * The second gate (demo apps spec §10.1): every demo app's e2e suite, on
@@ -196,11 +258,6 @@ describe('the demo-apps job', () => {
   const steps = job.steps ?? [];
   const runManyIndex = (command: string) =>
     steps.findIndex((step) => step.run?.includes(command));
-  const install = steps.findIndex(
-    (step) =>
-      step.run?.includes('playwright install') &&
-      !step.run.includes('install-deps'),
-  );
   const checks = runManyIndex(
     `nx run-many -t lint test typecheck --projects=${DEMO_FRONTEND}`,
   );
@@ -212,65 +269,42 @@ describe('the demo-apps job', () => {
   });
 
   it('runs the demo-frontend checks, then every demo e2e suite, after installing Chromium', () => {
-    expect(install, 'demo-apps installs Chromium').toBeGreaterThanOrEqual(0);
+    const installed = playwrightSetup(steps, 'demo-apps');
     expect(checks, 'demo-apps runs the demo-frontend checks').toBeGreaterThan(
-      install,
+      installed,
     );
     expect(e2e, 'demo-apps runs the demo e2e suites').toBeGreaterThan(checks);
-    expect(steps[install]?.run).toContain('chromium');
   });
 
   it('runs every demo on every run, with the CI runner choosing its parallelism', () => {
-    for (const step of steps.filter((each) =>
-      each.run?.includes('nx run-many'),
-    )) {
+    const runMany = steps.filter((each) => each.run?.includes('nx run-many'));
+    expect(runMany.length).toBe(2);
+    for (const step of runMany) {
       expect(step.run).not.toContain('--parallel');
       expect(step.run).not.toContain('affected');
       expect(step.run).not.toContain('e2e-growth');
     }
   });
 
-  it('caches the Playwright browsers by the installed Playwright version', () => {
-    const cache = steps.find((step) => step.uses?.startsWith('actions/cache@'));
-    expect(cache?.with?.path).toBe('~/.cache/ms-playwright');
-    expect(cache?.with?.key).toContain('playwright');
-    expect(cache?.with?.key).toMatch(/\$\{\{\s*steps\.[a-z-]+\.outputs\./);
-  });
-
   it('uses the same action pins as main, each pinned by SHA', () => {
-    const pins = new Map(
-      stepsOf(ci, 'main')
-        .filter((step) => step.uses)
-        .map((step) => {
-          const [action, ref] = (step.uses as string).split('@');
-          return [action, ref];
-        }),
-    );
-
-    for (const step of steps.filter((each) => each.uses)) {
-      const [action, ref] = (step.uses as string).split('@');
-      expect(ref, `${step.uses} must be pinned by SHA`).toMatch(
-        /^[0-9a-f]{40}$/,
-      );
-      if (pins.has(action as string)) {
-        expect(ref, `${action} must use main's pin`).toBe(
-          pins.get(action as string),
-        );
-      }
-    }
+    expectMainPins(ci, steps);
   });
 });
 
 describe('the demo-growth job', () => {
   const ci = readWorkflow('ci.yml');
   const job = ci.jobs?.['demo-growth'] ?? {};
+  const steps = job.steps ?? [];
 
-  it('runs only the e2e-growth targets of the demo projects', () => {
+  it('runs only the e2e-growth targets of the demo projects, after installing Chromium', () => {
     expect(ci.jobs).toHaveProperty('demo-growth');
     const growth = runManyStep('ci.yml', 'demo-growth');
     expect(growth.targets).toEqual(['e2e-growth']);
     expect(growth.step.run).toContain('--projects=tag:demo');
     expect(growth.step.run).not.toContain('affected');
+    expect(
+      steps.findIndex((step) => step.run === growth.step.run),
+    ).toBeGreaterThan(playwrightSetup(steps, 'demo-growth'));
   });
 
   it('reports red when a growth case fails, since only the ruleset makes a check block', () => {
@@ -278,9 +312,7 @@ describe('the demo-growth job', () => {
     expect(job.needs).toBeUndefined();
   });
 
-  it('pins every action by SHA', () => {
-    for (const step of job.steps ?? []) {
-      if (step.uses) expect(step.uses).toMatch(/@[0-9a-f]{40}$/);
-    }
+  it('uses the same action pins as main, each pinned by SHA', () => {
+    expectMainPins(ci, steps);
   });
 });
