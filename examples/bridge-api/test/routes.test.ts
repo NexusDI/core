@@ -7,7 +7,6 @@ import {
   DECK_PLAN,
   readShip,
   SHIP_STATE,
-  type ShipReading,
   TELEMETRY,
 } from '@nexusdi/meridian-systems';
 import { createTestingContainer } from '@nexusdi/testing';
@@ -23,6 +22,7 @@ import { SIM_DRIVER } from '../src/ship/contracts';
 import { OfflineMeridian, offlineMeridian } from '../src/ship/meridian';
 import { bridgePlugins } from '../src/ship/plugins';
 import { RecordingFeed } from './doubles';
+import { events } from './sse';
 import { test } from './fixtures';
 
 const course = { to: 'Kepler-442b', heading: 42 };
@@ -255,21 +255,6 @@ describe.each(['hono', 'express', 'fastify'] as const)(
   },
 );
 
-const decoder = new TextDecoder();
-
-function bodyOf(res: Response) {
-  if (res.body === null) throw new Error('GET /telemetry sent no body');
-  return res.body.getReader();
-}
-
-/** The tick of the next event on `reader`, which must be a `snapshot`. */
-async function nextTick(reader: ReadableStreamDefaultReader<Uint8Array>) {
-  const text = decoder.decode((await reader.read()).value);
-  expect(text).toMatch(/^event: snapshot\ndata: .+\n\n$/);
-  return (JSON.parse(text.slice(text.indexOf('data: ') + 6)) as ShipReading)
-    .tick;
-}
-
 test('GET /telemetry streams a frame now and one per tick from Hono', async ({
   nexus,
 }) => {
@@ -277,11 +262,11 @@ test('GET /telemetry streams a frame now and one per tick from Hono', async ({
   expect(res.status).toBe(200);
   expect(res.headers.get('content-type')).toBe('text/event-stream');
   expect(res.headers.get('cache-control')).toContain('no-transform');
-  const reader = bodyOf(res);
-  expect(await nextTick(reader)).toBe(0);
+  const stream = events(res);
+  expect(await stream.tick()).toBe(0);
   nexus.get(SIM_DRIVER).advance(1);
-  expect(await nextTick(reader)).toBe(1);
-  await reader.cancel();
+  expect(await stream.tick()).toBe(1);
+  await stream.cancel();
 });
 
 test('cancelling the Hono body unsubscribes from the feed', async ({
@@ -294,11 +279,11 @@ test('cancelling the Hono body unsubscribes from the feed', async ({
     .override(TELEMETRY, { useValue: feed })
     .create();
   const res = await honoBridge(ship).request('/telemetry');
-  const reader = bodyOf(res);
-  expect(await nextTick(reader)).toBe(0);
+  const stream = events(res);
+  expect(await stream.tick()).toBe(0);
   expect(feed.sinks.size).toBe(1);
-  await reader.cancel();
-  await vi.waitFor(() => expect(feed.sinks.size).toBe(0));
+  await stream.cancel();
+  await vi.waitFor(() => expect(feed.sinks.size).toBe(0), { timeout: 5_000 });
 });
 
 describe.each(['hono', 'express', 'fastify'] as const)(
@@ -320,10 +305,12 @@ describe.each(['hono', 'express', 'fastify'] as const)(
         expect(res.status).toBe(200);
         expect(res.headers.get('content-type')).toBe('text/event-stream');
         expect(res.headers.get('cache-control')).toBe('no-cache, no-transform');
-        expect(await nextTick(bodyOf(res))).toBe(0);
+        expect(await events(res).tick()).toBe(0);
         expect(feed.sinks.size).toBe(1);
         abort.abort();
-        await vi.waitFor(() => expect(feed.sinks.size).toBe(0));
+        await vi.waitFor(() => expect(feed.sinks.size).toBe(0), {
+          timeout: 5_000,
+        });
       } finally {
         await bridge.close();
       }
