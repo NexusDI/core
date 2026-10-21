@@ -48,22 +48,54 @@ export function shipFromEnv(): Promise<Nexus> {
   });
 }
 
+/** The parts of a Node `http.Server` that `stopOnSigterm` uses. */
+export interface StoppingServer {
+  close(): unknown;
+  closeIdleConnections(): void;
+  on(
+    event: 'request',
+    listener: (
+      request: unknown,
+      response: { once(event: 'finish', listener: () => void): unknown },
+    ) => void,
+  ): unknown;
+}
+
 /**
- * On SIGTERM, calls `close` to stop the server taking connections, then
- * disposes the ship. The server waits for its open connections before it
- * closes, and the ship's telemetry feed ends every open `GET /telemetry`
- * stream when it disposes, so the server can close. It starts the dispose
+ * On SIGTERM, calls `close` (default `server.close()`) to stop the server
+ * taking connections, then disposes the ship. The server waits for its open
+ * connections before it closes, and the ship's telemetry feed ends every
+ * open `GET /telemetry` stream when it disposes. It starts the dispose
  * without waiting for close, since close waits on the streams the dispose
- * ends. A second dispose, such as an entry's `await using`, returns the
- * first one's promise. A rejection from either step goes to the console and
- * sets exit code 1 (`http.Server.close()` without a callback never throws).
+ * ends. `server.close()` closes only the connections idle when it runs, so
+ * each response that finishes after SIGTERM calls
+ * `server.closeIdleConnections()`. Without that call, a keep-alive
+ * connection whose stream ended holds the server open until its keep-alive
+ * timeout, 5 seconds on Node and 72 on Fastify. An entry calls this before
+ * its server takes a request. A second dispose, such as an entry's
+ * `await using`, returns the first one's promise. A rejection from either
+ * step goes to the console and sets exit code 1 (`http.Server.close()`
+ * without a callback never throws).
  */
 export function stopOnSigterm(
-  close: () => unknown,
+  server: StoppingServer,
   ship: AsyncDisposable,
-  signals: { once(event: 'SIGTERM', listener: () => void): unknown } = process,
+  {
+    close = () => server.close(),
+    signals = process,
+  }: {
+    close?: () => unknown;
+    signals?: { once(event: 'SIGTERM', listener: () => void): unknown };
+  } = {},
 ): void {
+  let stopping = false;
+  server.on('request', (_, response) =>
+    response.once('finish', () => {
+      if (stopping) server.closeIdleConnections();
+    }),
+  );
   signals.once('SIGTERM', async () => {
+    stopping = true;
     const steps = await Promise.allSettled([
       (async () => close())(),
       ship[Symbol.asyncDispose](),
