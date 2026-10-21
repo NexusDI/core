@@ -56,6 +56,18 @@ describe('allocatePower', () => {
     expect(record.shed).toEqual(['second']);
   });
 
+  it('serves two loads of one priority by id, so the later id is shed', () => {
+    const record = allocatePower(250e6, [
+      load('shields', 2, 200e6, 0.25),
+      load('aux', 2, 100e6),
+    ]);
+    expect(record.loads).toEqual([
+      { id: 'aux', priority: 2, demand: 100e6, allocated: 100e6 },
+      { id: 'shields', priority: 2, demand: 200e6, allocated: 0 },
+    ]);
+    expect(record.shed).toEqual(['shields']);
+  });
+
   it('never sheds a load that demands nothing', () => {
     const record = allocatePower(0, [load('idle', 1, 0)]);
     expect(record.loads[0].allocated).toBe(0);
