@@ -22,6 +22,7 @@
     "vitest.workers.config.ts",
     "vitest.edge.config.ts",
     "vitest.e2e.config.ts",
+    "vitest.e2e-growth.config.ts",
     "test/**/*.ts",
     "e2e/**/*.ts",
     "bench/**/*.ts",
