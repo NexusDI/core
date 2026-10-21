@@ -12,7 +12,7 @@ Call `nexusTest(base, root, { setup })` from `@nexusdi/vitest` once, in a fixtur
 npm install -D @nexusdi/vitest@next @nexusdi/testing@next @nexusdi/core@next vitest
 ```
 
-`@nexusdi/vitest` works with Vitest 4.1 or later, Vitest 5 included, on Node 22.12 or later. `examples/bridge-console` runs its React Router route tests on `nexusTest`, and `examples/bridge-api` runs its route tests on the same fixtures.
+`@nexusdi/vitest` works with Vitest 4.1 or later, Vitest 5 included, on Node 22.12 or later.
 
 ## Give Every Test a Container with `nexusTest`
 
@@ -85,4 +85,4 @@ With `containerScope: 'file'`, the fixture builds the container on its first use
 
 ## Next Steps
 
-[Scoping Hono Requests](/hono/) says how a route test passes the `nexus` fixture to the adapter. [`examples/bridge-api`](https://github.com/NexusDI/core/tree/release/0.4/examples/bridge-api) runs these fixtures in a full app: `test/fixtures.ts` overrides the charts and the flight log, and `test/routes.test.ts` sends the course route through Hono, Express and Fastify.
+[Scoping Hono Requests](/hono/) says how a route test passes the `nexus` fixture to the adapter. [`examples/bridge-api`](https://github.com/NexusDI/core/tree/release/0.4/examples/bridge-api) runs these fixtures in a full app: `test/fixtures.ts` overrides the charts and the flight log, and `test/routes.test.ts` sends the course route through Hono, Express and Fastify. [`examples/bridge-console`](https://github.com/NexusDI/core/tree/release/0.4/examples/bridge-console) runs a React Router route's loader and action in a scope from the `nexus` fixture, in `tests/routes/home.spec.tsx`.
