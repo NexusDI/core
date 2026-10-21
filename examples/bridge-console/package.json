@@ -69,6 +69,17 @@
           "build",
           "^build"
         ]
+      },
+      "e2e-growth": {
+        "executor": "nx:run-commands",
+        "dependsOn": [
+          "build",
+          "^build"
+        ],
+        "options": {
+          "cwd": "examples/bridge-console",
+          "command": "playwright test --config playwright.e2e-growth.config.mts"
+        }
       }
     }
   }
