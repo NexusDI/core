@@ -6,7 +6,7 @@ import { GASES, pressure } from '../src/physics/gas';
 import { DECK_PLAN, TICK_LOOP } from '../src/simulation/contracts';
 import { roundNumber, roundSnapshot } from '../src/simulation/round-snapshot';
 import { test } from './fixtures';
-import { LOOP_WATCH, PROBE_LOG } from './ship-under-test';
+import { LOOP_WATCH, PROBE_LOG } from './probes';
 
 describe('meridianSystems', () => {
   it('passes the check', () => {
