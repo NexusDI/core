@@ -197,7 +197,8 @@ Against the pillars and the users:
 
 ```sh
 npx create-react-router@8.4.0 examples/bridge-console --yes --no-install --no-git-init \
-  --template remix-run/react-router-templates/default#<sha>
+  --react-router-version 8.4.0 \
+  --template https://github.com/remix-run/react-router-templates/tree/<sha>/default
 npx nx g @nx/vitest:configuration --project=@nexusdi/bridge-console \
   --uiFramework=react --testEnvironment=jsdom
 npx nx g @nx/playwright:configuration --project=@nexusdi/bridge-console \
