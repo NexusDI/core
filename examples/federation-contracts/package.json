@@ -13,9 +13,36 @@
       "types": "./dist/index.d.ts",
       "import": "./dist/index.js",
       "default": "./dist/index.js"
+    },
+    "./version": {
+      "@nexusdi/source": "./src/version.ts",
+      "types": "./dist/version.d.ts",
+      "import": "./dist/version.js",
+      "default": "./dist/version.js"
+    },
+    "./shared": {
+      "@nexusdi/source": "./src/shared.ts",
+      "types": "./dist/shared.d.ts",
+      "import": "./dist/shared.js",
+      "default": "./dist/shared.js"
     }
   },
   "dependencies": {
-    "tslib": "^2.3.0"
+    "@nexusdi/core": "*",
+    "@nexusdi/federation": "*",
+    "react": "19.3.0"
+  },
+  "nx": {
+    "tags": [
+      "demo-frontend"
+    ],
+    "targets": {
+      "test": {
+        "dependsOn": [
+          "build",
+          "^build"
+        ]
+      }
+    }
   }
 }
