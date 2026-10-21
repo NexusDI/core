@@ -79,10 +79,16 @@ export async function createBridge(
     );
     scoped.post(
       '/sim/advance',
-      di.inject({ driver: SIM_DRIVER }, async ({ driver }, req, reply) => {
+      {
         // A live ship advances on its own timer, so the route exists only in
-        // manual mode: callNotFound() answers as Fastify's 404 does.
-        if (driver.mode === 'live') return reply.callNotFound();
+        // manual mode. The check runs in onRequest, before Fastify parses
+        // the body, and callNotFound() answers as Fastify's 404 does.
+        onRequest: async (req, reply) => {
+          const driver = (await di.scope(req)).get(SIM_DRIVER);
+          if (driver.mode === 'live') return reply.callNotFound();
+        },
+      },
+      di.inject({ driver: SIM_DRIVER }, async ({ driver }, req, reply) => {
         const ticks = parseTicks(req.body);
         if (ticks === undefined) return reply.code(400).send(TICKS_REFUSED);
         return roundSnapshot(driver.advance(ticks));

@@ -7,6 +7,7 @@ import { describe, expect, vi } from 'vitest';
 
 import { createBridge as expressBridge } from '../src/express';
 import { createBridge as fastifyBridge } from '../src/fastify';
+import { TICKS_REFUSED } from '../src/bridge/sim-ticks';
 import { createBridge as honoBridge } from '../src/hono';
 import { AUDIT_LOG } from '../src/ship/audit-trail.module';
 import { offlineMeridian } from '../src/ship/meridian';
@@ -58,12 +59,22 @@ interface Answer {
   readonly status: number;
   readonly body: unknown;
 }
+/** A request body as it goes on the wire. */
+interface Payload {
+  readonly type: string;
+  readonly text: string;
+}
 type Call = (
   ship: Nexus,
   method: 'GET' | 'POST',
   path: string,
-  body?: unknown,
+  payload?: Payload,
 ) => Promise<Answer>;
+
+const json = (body: unknown): Payload => ({
+  type: 'application/json',
+  text: JSON.stringify(body),
+});
 
 /** The status and, for a JSON answer, the parsed body. */
 function answerOf(status: number, type: unknown, text: string): Answer {
@@ -74,41 +85,46 @@ function answerOf(status: number, type: unknown, text: string): Answer {
 const answerOfResponse = async (res: Response): Promise<Answer> =>
   answerOf(res.status, res.headers.get('content-type'), await res.text());
 
-const init = (method: string, body: unknown): RequestInit =>
-  body === undefined
+const init = (method: string, payload?: Payload): RequestInit =>
+  payload === undefined
     ? { method }
     : {
         method,
-        headers: { 'content-type': 'application/json' },
-        body: JSON.stringify(body),
+        headers: { 'content-type': payload.type },
+        body: payload.text,
       };
 
 /** One request to `ship` through each framework's bridge. */
 const calls: Readonly<Record<'hono' | 'express' | 'fastify', Call>> = {
-  async hono(ship, method, path, body) {
+  async hono(ship, method, path, payload) {
     return answerOfResponse(
-      await honoBridge(ship).request(path, init(method, body)),
+      await honoBridge(ship).request(path, init(method, payload)),
     );
   },
-  async express(ship, method, path, body) {
+  async express(ship, method, path, payload) {
     const server = expressBridge(ship).listen(0, '127.0.0.1');
     await once(server, 'listening');
     const { port } = server.address() as AddressInfo;
     try {
       return answerOfResponse(
-        await fetch(`http://127.0.0.1:${port}${path}`, init(method, body)),
+        await fetch(`http://127.0.0.1:${port}${path}`, init(method, payload)),
       );
     } finally {
       server.close();
     }
   },
-  async fastify(ship, method, path, body) {
+  async fastify(ship, method, path, payload) {
     const bridge = await fastifyBridge(ship);
     try {
       const res = await bridge.inject({
         method,
         url: path,
-        ...(body === undefined ? {} : { payload: body as object }),
+        ...(payload === undefined
+          ? {}
+          : {
+              headers: { 'content-type': payload.type },
+              payload: payload.text,
+            }),
       });
       return answerOf(res.statusCode, res.headers['content-type'], res.body);
     } finally {
@@ -132,9 +148,12 @@ describe.each(['hono', 'express', 'fastify'] as const)(
     test('POST /sim/advance runs the ticks and GET /sim reads the result', async ({
       nexus,
     }) => {
-      const advanced = await call(nexus, 'POST', '/sim/advance', {
-        ticks: 3,
-      });
+      const advanced = await call(
+        nexus,
+        'POST',
+        '/sim/advance',
+        json({ ticks: 3 }),
+      );
       expect(advanced.status).toBe(200);
       expect(advanced.body).toMatchObject({ tick: 3, time: 1.5 });
       expect(advanced.body).toEqual(
@@ -146,10 +165,17 @@ describe.each(['hono', 'express', 'fastify'] as const)(
     test('POST /sim/advance answers 400 for a tick count it cannot run', async ({
       nexus,
     }) => {
+      const refused = { status: 400, body: TICKS_REFUSED };
       expect(
-        (await call(nexus, 'POST', '/sim/advance', { ticks: 0 })).status,
-      ).toBe(400);
-      expect((await call(nexus, 'POST', '/sim/advance')).status).toBe(400);
+        await call(nexus, 'POST', '/sim/advance', json({ ticks: 0 })),
+      ).toEqual(refused);
+      expect(await call(nexus, 'POST', '/sim/advance')).toEqual(refused);
+      expect(
+        await call(nexus, 'POST', '/sim/advance', {
+          type: 'text/plain',
+          text: '{ "ticks": 3 }',
+        }),
+      ).toEqual(refused);
       expect(nexus.get(SHIP_STATE).snapshot().tick).toBe(0);
     });
 
@@ -160,10 +186,14 @@ describe.each(['hono', 'express', 'fastify'] as const)(
         await using ship = await Nexus.create(
           offlineMeridian({ sim: { seed: 7, dt: 0.5 }, mode: 'live' }),
         );
-        const { status } = await call(ship, 'POST', '/sim/advance', {
-          ticks: 3,
-        });
-        expect(status).toBe(404);
+        const advance = (payload: Payload) =>
+          call(ship, 'POST', '/sim/advance', payload);
+        expect((await advance(json({ ticks: 3 }))).status).toBe(404);
+        // The mode decides before the body is read, so a malformed body
+        // answers 404 too.
+        expect(
+          (await advance({ type: 'application/json', text: '{ ticks' })).status,
+        ).toBe(404);
         expect(ship.get(SHIP_STATE).snapshot().tick).toBe(0);
       } finally {
         vi.useRealTimers();
