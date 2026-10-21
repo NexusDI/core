@@ -52,7 +52,9 @@ describe('the engineering route', () => {
     await using scope = await scopeOf(nexus);
     renderPage(scope);
     fireEvent.click(screen.getByRole('button', { name: 'Set throttle' }));
-    expect(await screen.findByText('Queued for tick 1')).toBeDefined();
+    expect((await screen.findByRole('status')).textContent).toBe(
+      'Queued for tick 1',
+    );
   });
 
   test('shows the refusal of a shields raise and its fix', async ({
@@ -72,4 +74,58 @@ describe('the engineering route', () => {
       ),
     ).toBeDefined();
   });
+
+  /** Runs the action on a POST of `fields`, as a crafted request would send it. */
+  const post = (scope: Scope, fields: Record<string, string>) =>
+    action({
+      params: {},
+      context: new RouterContextProvider(
+        new Map([[NEXUS_SCOPE, existingScope(scope)]]),
+      ),
+      request: new Request('http://bridge/systems/engineering', {
+        method: 'POST',
+        body: new URLSearchParams(fields),
+      }),
+    } as never);
+
+  test('forwards a throttle with no level, and the backend refuses it', async ({
+    nexus,
+  }) => {
+    await using scope = await scopeOf(nexus);
+    expect(await post(scope, { command: 'throttle' })).toEqual({
+      accepted: false,
+      status: 400,
+      code: 'MERIDIAN_BAD_COMMAND',
+      message: `engineering throttle got an argument it cannot use. It takes ${EXPECTED}.`,
+      fix: 'send the arguments in the ranges above.',
+    });
+  });
+
+  test('forwards a shields command with no raised, and the backend refuses it', async ({
+    nexus,
+  }) => {
+    await using scope = await scopeOf(nexus);
+    expect(await post(scope, { command: 'shields' })).toMatchObject({
+      accepted: false,
+      status: 400,
+      message: `engineering shields got an argument it cannot use. It takes ${EXPECTED}.`,
+    });
+  });
+
+  test('forwards an unknown command, and the backend refuses it', async ({
+    nexus,
+  }) => {
+    await using scope = await scopeOf(nexus);
+    expect(await post(scope, { command: 'vent' })).toEqual({
+      accepted: false,
+      status: 400,
+      code: 'MERIDIAN_BAD_COMMAND',
+      message: `engineering has no action 'vent'. It takes ${EXPECTED}.`,
+      fix: 'send one of the actions above with its arguments.',
+    });
+  });
 });
+
+/** What engineering's refusals say it takes, as meridian-systems words it. */
+const EXPECTED =
+  'throttle with a level from 0 to 1 and shields with raised true or false';

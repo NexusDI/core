@@ -6,33 +6,35 @@ import { di } from '../../nexus.server';
 import type { Route } from './+types/engineering';
 
 /**
- * Sends the submitted form to bridge-api as a ship command. The backend
- * checks the arguments, so a bad level comes back as a refusal.
+ * Sends the submitted form to bridge-api as a ship command. The form's
+ * `command` names the action, and an argument the form leaves blank stays
+ * out of the command. The backend checks both, so a bad command comes back
+ * as a refusal.
  */
 export const action: (args: Route.ActionArgs) => Promise<CommandAnswer> =
   di.inject(
     { link: BRIDGE_LINK },
     async ({ link }, { request }: Route.ActionArgs) => {
       const form = await request.formData();
-      return link.command(
-        form.get('command') === 'throttle'
-          ? {
-              system: 'engineering',
-              action: 'throttle',
-              level: Number(form.get('level')),
-            }
-          : {
-              system: 'engineering',
-              action: 'shields',
-              raised: form.get('raised') === 'true',
-            },
-      );
+      const level = form.get('level');
+      const raised = form.get('raised');
+      return link.command({
+        system: 'engineering',
+        action: String(form.get('command') ?? ''),
+        ...(typeof level === 'string' && level !== ''
+          ? { level: Number(level) }
+          : {}),
+        ...(raised === 'true' || raised === 'false'
+          ? { raised: raised === 'true' }
+          : {}),
+      });
     },
   );
 
 /** The answer to the last command: its tick, or the refusal and its fix. */
 function LastAnswer({ answer }: { answer: CommandAnswer }) {
-  if (answer.accepted) return <p>{`Queued for tick ${answer.tick}`}</p>;
+  if (answer.accepted)
+    return <p role="status">{`Queued for tick ${answer.tick}`}</p>;
   return (
     <div role="alert">
       <p>{answer.message}</p>
