@@ -10,11 +10,14 @@ export const SSE_HEADERS = {
 
 const encoder = new TextEncoder();
 
-/** One server-sent event. Each line of `data` gets its own `data:` field. */
+/**
+ * One server-sent event. Each line of `data` gets its own `data:` field, and
+ * SSE ends a line at CRLF, CR or LF.
+ */
 const sse = (event: TelemetryEvent, data: string): Uint8Array =>
   encoder.encode(
     `event: ${event}\n${data
-      .split('\n')
+      .split(/\r\n|\r|\n/)
       .map((line) => `data: ${line}\n`)
       .join('')}\n`,
   );

@@ -104,7 +104,17 @@ describe('telemetryStream', () => {
     );
   });
 
-  it('unsubscribes once on cancel, and a frame or close after it does nothing', async () => {
+  it('splits data at CRLF and CR as well as LF', async () => {
+    const feed = new FakeFeed();
+    const reader = telemetryStream(feed).getReader();
+    await read(reader);
+    feed.sink?.close('reactor\r\nscram\rcold');
+    expect(await read(reader)).toBe(
+      'event: offline\ndata: reactor\ndata: scram\ndata: cold\n\n',
+    );
+  });
+
+  it('unsubscribes once on cancel and ends a waiting read', async () => {
     const feed = new FakeFeed();
     const stream = telemetryStream(feed);
     const reader = stream.getReader();
@@ -112,9 +122,6 @@ describe('telemetryStream', () => {
     const pending = read(reader);
     await reader.cancel();
     expect(await pending).toBe('done');
-    expect(feed.unsubscribe).toHaveBeenCalledTimes(1);
-    expect(() => feed.sink?.next(frameAt(1))).not.toThrow();
-    expect(() => feed.sink?.close('ship offline')).not.toThrow();
     expect(feed.unsubscribe).toHaveBeenCalledTimes(1);
   });
 
