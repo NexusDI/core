@@ -70,8 +70,9 @@ export interface StoppingServer {
  * ends. `server.close()` closes only the connections idle when it runs, so
  * each response that finishes after SIGTERM calls
  * `server.closeIdleConnections()`. Without that call, a keep-alive
- * connection whose stream ended holds the server open until its keep-alive
- * timeout, 5 seconds on Node and 72 on Fastify. An entry calls this before
+ * connection whose stream ended holds the server open until the client's
+ * or the server's keep-alive timeout ends it (5 seconds on Node, 72 on
+ * Fastify). An entry calls this before
  * its server takes a request. A second dispose, such as an entry's
  * `await using`, returns the first one's promise. A rejection from either
  * step goes to the console and sets exit code 1 (`http.Server.close()`
