@@ -35,7 +35,10 @@ export interface ShipSnapshot {
 }
 
 export interface CompartmentReading extends CompartmentState {
-  /** Pascals, from the moles of every gas, the temperature and the deck volume. */
+  /**
+   * Pascals, from the moles of every gas, the temperature and the deck
+   * volume.
+   */
   readonly pressure: number;
 }
 
@@ -114,7 +117,10 @@ export interface TickContext {
 }
 
 export interface IShipSystem {
-  /** Unique across the ship. The loop forks `RNG` with it and orders a phase by it. */
+  /**
+   * Unique across the ship. The loop forks `RNG` with it and orders a phase
+   * by it.
+   */
   readonly name: string;
   readonly phase: Phase;
   step(ship: ShipSnapshot, tick: TickContext): ShipSnapshot;
