@@ -2,16 +2,20 @@ import { DEFINITION_BRAND } from './brand.js';
 import { MultiToken } from './token.js';
 
 /**
- * The name of a value any copy of core branded, from its own fields: a
- * `description` names a Token, a `name` names a module, and a value with
- * neither is a provider. A MultiToken another copy made carries the fields of
- * a Token, so it reads as one. Undefined for a value with no brand, or one
- * whose Proxy trap throws.
+ * The name of a value any copy of core branded, from its own fields. Every
+ * copy brands only one kind of function, an @Module class, which reads as
+ * the module its class name gives. On an object, a `description` names a
+ * Token, a `name` names a module, and a value with neither is a provider. A
+ * MultiToken another copy made carries the fields of a Token, so it reads as
+ * one. It returns undefined for a value with no brand, or for one whose Proxy
+ * trap throws.
  */
 function definitionName(value: object): string | undefined {
   try {
     if (Object.getOwnPropertyDescriptor(value, DEFINITION_BRAND) === undefined)
       return undefined;
+    if (typeof value === 'function')
+      return `the module ${value.name || '(anonymous module)'}`;
     if (value instanceof MultiToken)
       return `the MultiToken ${value.description}`;
     const { description, name } = value as {
