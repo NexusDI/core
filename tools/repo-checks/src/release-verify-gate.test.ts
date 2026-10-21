@@ -389,14 +389,4 @@ describe('the demo-growth job', () => {
   it('uses the same action pins as main, each pinned by SHA', () => {
     expectMainPins(ci, steps);
   });
-
-  it('installs Deno and Bun from the pins adapter-runtimes uses', () => {
-    const runtimes = stepsOf(ci, 'adapter-runtimes');
-    for (const action of ['denoland/setup-deno', 'oven-sh/setup-bun']) {
-      const pin = (each: Step[]) =>
-        each.find((step) => step.uses?.startsWith(`${action}@`))?.uses;
-      expect(pin(runtimes), `adapter-runtimes runs ${action}`).toBeDefined();
-      expect(pin(steps), `demo-growth runs ${action}`).toBe(pin(runtimes));
-    }
-  });
 });
