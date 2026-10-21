@@ -141,9 +141,10 @@ describe('lineOf', () => {
         throw new Error('trap');
       },
     });
-    for (const cause of [new Unreadable(), symbolic, trapped])
-      expect(lineOf('X', {}, DOCS_URL, { cause })).toMatch(
-        new RegExp(`^${DOCS_URL}X Cause: \\S`),
-      );
+    for (const cause of [new Unreadable(), symbolic, trapped]) {
+      const line = lineOf('X', {}, DOCS_URL, { cause });
+      expect(line.startsWith(`${DOCS_URL}X Cause: `)).toBe(true);
+      expect(line.length).toBeGreaterThan(`${DOCS_URL}X Cause: `.length);
+    }
   });
 });
