@@ -9,8 +9,8 @@
         "m3",
         "m4",
         "m5",
-        "m8",
-        "m9"
+        "m7",
+        "m8"
       ],
       "exports": []
     },
@@ -58,12 +58,11 @@
       "name": "MeridianSystems",
       "global": true,
       "imports": [
-        "m6",
-        "m7"
+        "m6"
       ],
       "exports": [
         "p6",
-        "p12"
+        "p7"
       ]
     },
     {
@@ -72,24 +71,15 @@
       "global": true,
       "imports": [],
       "exports": [
-        "p11",
-        "p7",
+        "p12",
         "p8",
         "p9",
-        "p10"
+        "p10",
+        "p11"
       ]
     },
     {
       "id": "m7",
-      "name": "Telemetry",
-      "global": false,
-      "imports": [],
-      "exports": [
-        "p12"
-      ]
-    },
-    {
-      "id": "m8",
       "name": "SimDriver",
       "global": false,
       "imports": [],
@@ -98,7 +88,7 @@
       ]
     },
     {
-      "id": "m9",
+      "id": "m8",
       "name": "interceptors",
       "global": false,
       "imports": [
@@ -194,6 +184,18 @@
     },
     {
       "id": "p7",
+      "token": "CommandDesk",
+      "module": "m5",
+      "lifetime": "singleton",
+      "kind": "class",
+      "eager": true,
+      "async": null,
+      "notes": [],
+      "implementation": "CommandDesk",
+      "internal": false
+    },
+    {
+      "id": "p8",
       "token": "SimClock",
       "module": "m6",
       "lifetime": "singleton",
@@ -205,7 +207,7 @@
       "internal": false
     },
     {
-      "id": "p8",
+      "id": "p9",
       "token": "RandomSource",
       "module": "m6",
       "lifetime": "singleton",
@@ -217,7 +219,7 @@
       "internal": false
     },
     {
-      "id": "p9",
+      "id": "p10",
       "token": "ShipState",
       "module": "m6",
       "lifetime": "singleton",
@@ -229,7 +231,7 @@
       "internal": false
     },
     {
-      "id": "p10",
+      "id": "p11",
       "token": "DeckPlan",
       "module": "m6",
       "lifetime": null,
@@ -241,7 +243,7 @@
       "internal": false
     },
     {
-      "id": "p11",
+      "id": "p12",
       "token": "SimOptions",
       "module": "m6",
       "lifetime": null,
@@ -253,21 +255,9 @@
       "internal": false
     },
     {
-      "id": "p12",
-      "token": "TelemetryFeed",
-      "module": "m7",
-      "lifetime": "singleton",
-      "kind": "class",
-      "eager": true,
-      "async": null,
-      "notes": [],
-      "implementation": "SnapshotFeed",
-      "internal": false
-    },
-    {
       "id": "p13",
       "token": "SimDriver",
-      "module": "m8",
+      "module": "m7",
       "lifetime": "singleton",
       "kind": "class",
       "eager": true,
@@ -279,7 +269,7 @@
     {
       "id": "p14",
       "token": "DriverOptions",
-      "module": "m8",
+      "module": "m7",
       "lifetime": null,
       "kind": "value",
       "eager": true,
@@ -291,7 +281,7 @@
     {
       "id": "p15",
       "token": "NavAudit",
-      "module": "m9",
+      "module": "m8",
       "lifetime": "singleton",
       "kind": "class",
       "eager": true,
@@ -303,7 +293,7 @@
     {
       "id": "p16",
       "token": "interceptors registry",
-      "module": "m9",
+      "module": "m8",
       "lifetime": "singleton",
       "kind": "factory",
       "eager": true,
@@ -315,7 +305,7 @@
     {
       "id": "p17",
       "token": "interceptors guard",
-      "module": "m9",
+      "module": "m8",
       "lifetime": "singleton",
       "kind": "factory",
       "eager": true,
@@ -360,47 +350,32 @@
     },
     {
       "from": "p6",
-      "to": "p7",
-      "kind": "required"
-    },
-    {
-      "from": "p6",
-      "to": "p9",
-      "kind": "required"
-    },
-    {
-      "from": "p6",
       "to": "p8",
       "kind": "required"
     },
     {
-      "from": "p7",
-      "to": "p11",
-      "kind": "required"
-    },
-    {
-      "from": "p8",
-      "to": "p11",
-      "kind": "required"
-    },
-    {
-      "from": "p9",
+      "from": "p6",
       "to": "p10",
       "kind": "required"
     },
     {
-      "from": "p12",
-      "to": "p6",
-      "kind": "required"
-    },
-    {
-      "from": "p12",
+      "from": "p6",
       "to": "p9",
       "kind": "required"
     },
     {
-      "from": "p12",
-      "to": "p10",
+      "from": "p8",
+      "to": "p12",
+      "kind": "required"
+    },
+    {
+      "from": "p9",
+      "to": "p12",
+      "kind": "required"
+    },
+    {
+      "from": "p10",
+      "to": "p11",
       "kind": "required"
     },
     {
@@ -410,7 +385,7 @@
     },
     {
       "from": "p13",
-      "to": "p11",
+      "to": "p12",
       "kind": "required"
     },
     {
