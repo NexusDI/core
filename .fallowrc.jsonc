@@ -474,7 +474,7 @@
   // tooling is modeled on: a handful of lines duplicated between two
   // decorators, or between two routes in the same app, is exactly the size
   // this is meant to catch. Config files are excluded because a per-project
-  // vite or eslint config is meant to read the same as its neighbours.
+  // vite, rspack or eslint config is meant to read the same as its neighbours.
   "duplicates": {
     "minTokens": 30,
     "minLines": 3,
@@ -491,6 +491,7 @@
       "**/vitest.config.*",
       "**/vitest.browser.config.*",
       "**/eslint.config.*",
+      "**/rspack.config*",
       "**/*.test-d.*",
       "**/*.test.*",
       // Core's error fixtures, one case per code, and the full set
