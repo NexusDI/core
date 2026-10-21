@@ -207,6 +207,16 @@ On `release/X.Y`, the version is `X.Y.0`. Before dispatching:
 4. Remove `target-branch: release/X.Y` from both entries in
    `.github/dependabot.yml`, so version updates return to `main` before the
    run deletes the branch.
+5. For 0.4.0: check that each of `@nexusdi/hono`, `@nexusdi/express`,
+   `@nexusdi/fastify`, `@nexusdi/react-router`, `@nexusdi/vitest` and
+   `@nexusdi/react` was published in at least one rc whose commit had
+   `demo-apps` green. The rc's commit is the parent of its release commit,
+   so this prints `success` for a qualifying rc N:
+
+   ```sh
+   gh api "repos/NexusDI/core/commits/$(git rev-parse '@nexusdi/core@0.4.0-rc.N^')/check-runs?check_name=demo-apps&filter=latest" \
+     --jq '.check_runs[].conclusion'
+   ```
 
 The run then:
 
@@ -532,6 +542,11 @@ All three carry the same rules:
   reports one check per leg: 4 `adapter-runtimes`, 14 `adapter-peers` and
   14 `node-floor`. The owner adds the three to the rulesets before 0.4.0-rc.2,
   and until then this line records the target state.
+- `demo-apps` joins the required checks once it has run green on three
+  consecutive pushes to `release/0.4`. The owner makes that ruleset change
+  in all three rulesets. `release.yml` reads its required checks from the
+  rulesets, so no workflow change follows. The `demo-growth` job runs the
+  growth track's e2e cases and never becomes a required check.
 - A `code_scanning` rule for CodeQL.
 - `deletion` and `non_fast_forward`.
 - One bypass actor, `DeployKey`, always. No role bypasses, so a failing
