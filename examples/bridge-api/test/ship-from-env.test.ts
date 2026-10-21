@@ -17,6 +17,13 @@ describe('setupFromEnv', () => {
     });
   });
 
+  it('reads an empty SIM_MODE and SIM_SEED as unset, as the app reads an empty RELAY_URL', () => {
+    expect(setupFromEnv({ SIM_MODE: '', SIM_SEED: '' })).toEqual({
+      sim: { seed: 7, dt: 0.5 },
+      mode: 'live',
+    });
+  });
+
   it.each(['-1', '1.5', 'abc', '4294967296'])(
     'refuses SIM_SEED=%s and names the accepted values',
     (seed) => {
