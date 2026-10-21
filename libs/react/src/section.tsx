@@ -10,7 +10,7 @@ import {
 
 import { useNexusContext } from './context.js';
 import { dev } from './dev.js';
-import { sectionConflict } from './errors.js';
+import { sectionConflict, sectionFailed } from './errors.js';
 import { useHydrated } from './hydrated.js';
 import type { SectionEntry, Store } from './store.js';
 
@@ -44,15 +44,30 @@ export interface SectionBoundaryProps {
 }
 
 /**
- * The marker on a rejected section promise. The boundary handles what it
- * wraps and passes every other error to the app's own boundary.
+ * Each rejection of a section's promise, mapped to the section it belongs
+ * to and the error the boundary hands onError and errorFallback. A load
+ * error becomes the cause of a SectionError, so React logs the section
+ * name with it. A conflict error maps to itself.
  */
-class LoadFailure {
-  constructor(readonly error: unknown) {}
-}
+const loadFailures = new WeakMap<Error, { section: string; error: unknown }>();
 
-const marked = (error: unknown): LoadFailure =>
-  error instanceof LoadFailure ? error : new LoadFailure(error);
+/**
+ * The load failure of `section` that `thrown` is, or undefined. A
+ * boundary passes every other error to the app's own boundary, a nested
+ * section's failure included.
+ */
+const failureOf = (thrown: unknown, section: string) => {
+  const failure =
+    thrown instanceof Error ? loadFailures.get(thrown) : undefined;
+  return failure?.section === section ? failure : undefined;
+};
+
+const marked = (section: string, error: unknown): Error => {
+  if (error instanceof Error && loadFailures.has(error)) return error;
+  const failure = sectionFailed(section, error);
+  loadFailures.set(failure, { section, error });
+  return failure;
+};
 
 /** The loader's promise, with a loader that throws at once read as a rejection. */
 const call = (section: LazySection): Promise<ModuleRef> =>
@@ -97,9 +112,9 @@ class Entry implements SectionEntry {
   failure: unknown = undefined;
   readonly promise: Promise<void>;
 
-  constructor(run: (entry: Entry) => Promise<void>) {
+  constructor(section: string, run: (entry: Entry) => Promise<void>) {
     this.promise = run(this).catch((error: unknown) => {
-      this.failure = marked(error);
+      this.failure = marked(section, error);
       throw this.failure;
     });
   }
@@ -107,7 +122,7 @@ class Entry implements SectionEntry {
 
 /** The loader, then load(), then extend() on every live scope (react spec 7.1, step 2). */
 function firstLoad(store: Store, section: LazySection): SectionEntry {
-  return new Entry((entry) =>
+  return new Entry(section.name, (entry) =>
     call(section).then(async (module) => {
       await store.container.load(module);
       entry.module = module;
@@ -130,8 +145,12 @@ const pageLeaving = () => new Promise<void>(() => undefined);
  * holding lazySection changed.
  */
 function recheck(origin: SectionEntry, section: LazySection): SectionEntry {
-  const conflict = () => sectionConflict(section.name);
-  return new Entry(() =>
+  const conflict = () => {
+    const error = sectionConflict(section.name);
+    loadFailures.set(error, { section: section.name, error });
+    return error;
+  };
+  return new Entry(section.name, () =>
     origin.promise
       .then(() => call(section))
       .then((module) => {
@@ -181,7 +200,7 @@ function entryFor(store: Store, section: LazySection): SectionEntry {
  * first load, and every recheck that waited on it, clears the name; a
  * failed recheck clears its own handle and leaves the load it checked.
  */
-function forget(store: Store, section: LazySection, failure: LoadFailure) {
+function forget(store: Store, section: LazySection, failure: Error) {
   const slot = store.sections.get(section.name);
   if (slot === undefined) return;
   if (slot.origin.failure === failure) store.sections.delete(section.name);
@@ -216,24 +235,24 @@ class Catcher extends Component<CatcherProps, { failure: unknown }> {
     return { failure: error };
   }
 
-  override componentDidCatch(error: unknown) {
-    if (!(error instanceof LoadFailure)) return;
-    forget(this.props.store, this.props.section, error);
-    this.props.onError?.(error.error);
+  override componentDidCatch(thrown: unknown) {
+    const failure = failureOf(thrown, this.props.section.name);
+    if (failure === undefined) return;
+    forget(this.props.store, this.props.section, thrown as Error);
+    this.props.onError?.(failure.error);
   }
 
   override render() {
     const { failure } = this.state;
     if (failure === null) return this.props.children;
     // The section's own components threw: the app's boundary handles it.
-    if (!(failure instanceof LoadFailure)) throw failure;
+    const load = failureOf(failure, this.props.section.name);
+    if (load === undefined) throw failure;
+    const { error } = load;
     const Fallback = this.props.errorFallback;
-    if (Fallback === undefined) throw failure.error;
+    if (Fallback === undefined) throw error;
     return (
-      <Fallback
-        error={failure.error}
-        retry={() => this.setState({ failure: null })}
-      />
+      <Fallback error={error} retry={() => this.setState({ failure: null })} />
     );
   }
 }

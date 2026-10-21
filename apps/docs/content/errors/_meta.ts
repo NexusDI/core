@@ -156,6 +156,10 @@ const meta: MetaRecord = {
     title: 'NEXUS_REACT_SECTION_CONFLICT',
     display: 'hidden',
   },
+  NEXUS_REACT_SECTION_FAILED: {
+    title: 'NEXUS_REACT_SECTION_FAILED',
+    display: 'hidden',
+  },
   NEXUS_REACT_TRANSIENT_IN_RENDER: {
     title: 'NEXUS_REACT_TRANSIENT_IN_RENDER',
     display: 'hidden',

@@ -24,6 +24,12 @@ export class SectionConflictError extends errorBase<
   { readonly section: string }
 >('NEXUS_REACT_SECTION_CONFLICT', 'SectionConflictError') {}
 
+/** A section failed to load: its loader rejected, or load() or extend() did. The load error is its `cause`. */
+export class SectionError extends errorBase<
+  'NEXUS_REACT_SECTION_FAILED',
+  { readonly section: string }
+>('NEXUS_REACT_SECTION_FAILED', 'SectionError') {}
+
 /** The line every package error's text ends with: the page for its code. */
 const docs = (code: string) => `\n  Docs: https://nexus.js.org/errors/${code}`;
 
@@ -78,11 +84,36 @@ export function sectionConflict(section: string): SectionConflictError {
   );
 }
 
+/** A thrown value's message, or its name when the message is empty, or its string form. */
+function describe(value: unknown): string {
+  try {
+    if (value instanceof Error) return value.message || value.name;
+    return String(value);
+  } catch {
+    return 'a value without a string form';
+  }
+}
+
+export function sectionFailed(section: string, cause: unknown): SectionError {
+  const reason = describe(cause).replaceAll('\n', '\n    ');
+  return new SectionError(
+    { section },
+    {
+      cause,
+      text:
+        `Section '${section}' failed to load:\n    ${reason}\n` +
+        '  Fix: correct the cause above, then offer retry() from an errorFallback.' +
+        docs('NEXUS_REACT_SECTION_FAILED'),
+    },
+  );
+}
+
 declare module '@nexusdi/core' {
   interface NexusErrorByCode {
     NEXUS_REACT_NO_PROVIDER: NoProviderError;
     NEXUS_REACT_TRANSIENT_IN_RENDER: TransientInRenderError;
     NEXUS_REACT_NESTED_SCOPE: NestedScopeError;
     NEXUS_REACT_SECTION_CONFLICT: SectionConflictError;
+    NEXUS_REACT_SECTION_FAILED: SectionError;
   }
 }
