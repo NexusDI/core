@@ -69,7 +69,8 @@ test('fails the drift build with NEXUS_CONTRACT_VERSION, and again on retry', as
   await failed.getByRole('button', { name: 'Retry' }).click();
   await expect(failed).toContainText('NEXUS_CONTRACT_VERSION');
   await expect(failed).toContainText(text);
-  // React logs each error a boundary catches: the first load and the retry.
+  // Each station's onError logs the load error: once for the first load,
+  // once for the retry.
   expect(await seen()).toEqual([
     expect.stringContaining(text),
     expect.stringContaining(text),
@@ -86,7 +87,7 @@ test('fails the unshared build with NEXUS_CORE_NOT_SHARED', async ({
   await expect(failed).toContainText(
     'the module Cartography was made by another copy of @nexusdi/core',
   );
-  // React logs the error the boundary caught.
+  // The station's onError logs the load error.
   expect(await seen()).toEqual([
     expect.stringContaining('[NEXUS_CORE_NOT_SHARED]'),
   ]);
