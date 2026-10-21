@@ -15,7 +15,7 @@ export interface CommandRefusal {
 }
 
 /** The status and body `POST /commands` answers. */
-export type CommandAnswer =
+export type CommandReply =
   | { readonly status: 202; readonly body: QueuedCommand }
   | { readonly status: 400 | 409; readonly body: CommandRefusal };
 
@@ -34,10 +34,7 @@ function refusalOf(error: NexusError): CommandRefusal {
  * `BadCommandError` 400 and any other `NexusError` 409. Any other throw is a
  * bug, and the framework answers it with an empty 500.
  */
-export function answerCommand(
-  desk: ICommandDesk,
-  body: unknown,
-): CommandAnswer {
+export function answerCommand(desk: ICommandDesk, body: unknown): CommandReply {
   try {
     return { status: 202, body: desk.submit(body) };
   } catch (error) {
