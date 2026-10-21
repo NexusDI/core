@@ -114,4 +114,4 @@ process.once('SIGTERM', () => {
 
 ## Next Steps
 
-[Testing and Overrides](/testing/) builds a container with fakes in every Vitest test. To test a route, pass the `nexus` fixture to `nexus()` in place of `ship` and send the request with `inject()`.
+[Testing and Overrides](/testing/) builds a container with fakes in every Vitest test. To test a route, pass the `nexus` fixture to `nexus()` in place of `ship` and send the request with `inject()`. [`examples/bridge-api`](https://github.com/NexusDI/core/tree/release/0.4/examples/bridge-api) runs this setup as a full app in `src/server.fastify.ts`, on the same module graph as its Hono and Express entries.

@@ -112,4 +112,4 @@ An app that disposes the container before its server stops answers the remaining
 
 ## Next Steps
 
-[Testing and Overrides](/testing/) builds a container with fakes in every Vitest test. To test a route, pass the `nexus` fixture to `nexus()` in place of `ship` and send the request to a server on port 0.
+[Testing and Overrides](/testing/) builds a container with fakes in every Vitest test. To test a route, pass the `nexus` fixture to `nexus()` in place of `ship` and send the request to a server on port 0. [`examples/bridge-api`](https://github.com/NexusDI/core/tree/release/0.4/examples/bridge-api) runs this setup as a full app in `src/server.express.ts`, on the same module graph as its Hono and Fastify entries.
