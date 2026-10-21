@@ -22,11 +22,15 @@ const BANNED: readonly (readonly [RegExp, string])[] = [
   [/\bMath\.random\b/, 'Math.random'],
   [/\bDate\.now\b/, 'Date.now'],
   [/\bnew\s+Date\b/, 'new Date'],
+  // Date() without new returns the wall clock as a string.
+  [/(?<!new\s+)\bDate\s*\(/, 'Date()'],
   [/\bperformance\.now\b/, 'performance.now'],
   [/\bprocess\.hrtime\b/, 'process.hrtime'],
   [/\bsetTimeout\b/, 'setTimeout'],
   [/\bsetInterval\b/, 'setInterval'],
   [/\bsetImmediate\b/, 'setImmediate'],
+  [/\bcrypto\.getRandomValues\b/, 'crypto.getRandomValues'],
+  [/\bcrypto\.randomUUID\b/, 'crypto.randomUUID'],
 ];
 
 const NEXUSDI_IMPORT =

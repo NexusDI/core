@@ -1,0 +1,1 @@
+export const salt = () => crypto.getRandomValues(new Uint8Array(4));
