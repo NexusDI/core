@@ -205,12 +205,12 @@ jobs:
 
       - run: npx nx run-many -t e2e --projects=tag:demo
 
-  # The growth track's e2e cases (ship systems spec section 14). Each demo
-  # app keeps them in an e2e-growth target, and only this job runs it. The
+  # The growth track's e2e cases (ship systems spec section 14). Each
+  # project keeps them in an e2e-growth target, and only this job runs it. The
   # rulesets never require this check, so a red growth case shows on the run
   # and blocks no merge or release. A case moves into its app's e2e target,
-  # and so into demo-apps, after a green rc cycle. Until the first growth
-  # increment adds an e2e-growth target, Nx finds no task and the job passes.
+  # and so into demo-apps, after a green rc cycle. bridge-api and
+  # meridian-systems each hold an e2e-growth target.
   demo-growth:
     runs-on: ubuntu-latest
     timeout-minutes: 15
