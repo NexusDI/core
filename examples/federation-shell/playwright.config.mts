@@ -2,7 +2,8 @@ import { defineConfig, devices } from '@playwright/test';
 import { nxE2EPreset } from '@nx/playwright/preset';
 import { workspaceRoot } from '@nx/devkit';
 
-import { REMOTES, SHELLS } from './e2e/ports.ts';
+import { REMOTE_DISTS, SHELL_DIST } from './e2e/dists.ts';
+import { SHELLS } from './e2e/ports.ts';
 
 const cwd = `${workspaceRoot}/examples`;
 
@@ -35,25 +36,12 @@ export default defineConfig({
     trace: 'on-first-retry',
   },
   webServer: [
-    serve(
-      'federation-cartography/dist/main',
-      REMOTES.cartography,
-      '/remoteEntry.js',
-    ),
-    serve('federation-command/dist/main', REMOTES.command, '/remoteEntry.js'),
-    serve(
-      'federation-cartography/dist/drift',
-      REMOTES.drift,
-      '/remoteEntry.js',
-    ),
-    serve(
-      'federation-cartography/dist/unshared',
-      REMOTES.unshared,
-      '/remoteEntry.js',
+    ...REMOTE_DISTS.map(({ dist, port }) =>
+      serve(dist, port, '/remoteEntry.js'),
     ),
     ...(['main', 'drift', 'unshared'] as const).map((list) =>
       serve(
-        'federation-shell/dist/e2e',
+        SHELL_DIST,
         SHELLS[list],
         '/',
         `federation-shell/e2e/remotes/${list}.json`,

@@ -11,19 +11,9 @@ import {
   TICK_LOOP,
 } from '@nexusdi/meridian-systems';
 
-const examples = join(import.meta.dirname, '../..');
+import { DISTS } from './dists.ts';
 
-/**
- * The station builds the e2e target builds first (project.json): the
- * shell's e2e build and the four remote builds it loads.
- */
-const DISTS = [
-  'federation-shell/dist/e2e',
-  'federation-cartography/dist/main',
-  'federation-cartography/dist/drift',
-  'federation-cartography/dist/unshared',
-  'federation-command/dist/main',
-];
+const examples = join(import.meta.dirname, '../..');
 
 /**
  * The descriptions of the simulation's tokens. A minifier keeps a token's
