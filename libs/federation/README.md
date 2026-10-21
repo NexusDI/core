@@ -77,6 +77,7 @@ charts === ship.get(NAV_CHARTS); // -> true
 
 ## Documentation
 
+- [How do I share tokens between a shell and its remotes?](https://nexus.js.org/next/federation/)
 - [@nexusdi/federation API](https://nexus.js.org/next/api-federation/)
 - [Plugins Guide](https://nexus.js.org/next/plugins/)
 - [NexusDI on GitHub](https://github.com/NexusDI/core)
