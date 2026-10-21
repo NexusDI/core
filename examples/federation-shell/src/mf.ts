@@ -10,12 +10,12 @@ const PROVIDERS: Array<{ alias: string; name: string; entry: string }> = [
   {
     alias: 'federation-cartography',
     name: 'federation_cartography',
-    entry: 'http://localhost:8101/remoteEntry.js',
+    entry: 'http://localhost:4301/remoteEntry.js',
   },
   {
     alias: 'federation-command',
     name: 'federation_command',
-    entry: 'http://localhost:8102/remoteEntry.js',
+    entry: 'http://localhost:4302/remoteEntry.js',
   },
 ];
 

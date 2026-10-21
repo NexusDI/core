@@ -1,5 +1,5 @@
 {
-  "name": "federation-shell",
+  "name": "@nexusdi/federation-shell",
   "$schema": "../../node_modules/nx/schemas/project-schema.json",
   "sourceRoot": "examples/federation-shell/src",
   "projectType": "application",
