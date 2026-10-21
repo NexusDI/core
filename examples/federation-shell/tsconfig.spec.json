@@ -19,11 +19,15 @@
     "ignoreDeprecations": "6.0"
   },
   "include": [
-    "vite.config.mts",
+    "vitest.config.mts",
     "rspack.config.ts",
     "src/**/*.test.ts",
     "src/**/*.test.tsx",
     "src/**/*.d.ts"
   ],
-  "references": [{ "path": "./tsconfig.app.json" }]
+  "references": [
+    {
+      "path": "./tsconfig.app.json"
+    }
+  ]
 }

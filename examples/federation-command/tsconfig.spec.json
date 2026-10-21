@@ -19,7 +19,7 @@
     "ignoreDeprecations": "6.0"
   },
   "include": [
-    "vite.config.mts",
+    "vitest.config.mts",
     "rspack.config.ts",
     "swc.decorators.ts",
     "src/**/*.test.ts",
