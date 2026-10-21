@@ -16,6 +16,13 @@ npx nx test core
 npx nx lint core
 ```
 
+`npm ci` links the `nexusdi` command only when `libs/cli/dist/bin.js` exists, and a fresh clone has no `dist`. A target that calls `nexusdi`, such as `npx nx run @nexusdi/bridge-api:graph`, then fails with `nexusdi: command not found`. Build the CLI once and link it:
+
+```bash
+npx nx build @nexusdi/cli
+npm rebuild @nexusdi/cli
+```
+
 ## Commit Message Convention
 
 This project uses [Conventional Commits](https://www.conventionalcommits.org/) to ensure a clear and consistent commit history.
