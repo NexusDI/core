@@ -3,11 +3,13 @@
 // fallow-ignore-file duplicate-export
 
 import { nexus, type ContainerSource } from '@nexusdi/express';
+import { roundSnapshot, SHIP_STATE } from '@nexusdi/meridian-systems';
 import express, { type ErrorRequestHandler } from 'express';
 
+import { parseTicks, TICKS_REFUSED } from './bridge/sim-ticks';
 import { UNCHARTED } from './bridge/uncharted';
 import type { BridgeOptions } from './hono';
-import { FLIGHT_LOG, MISSION, NAV_CHARTS } from './ship/contracts';
+import { FLIGHT_LOG, MISSION, NAV_CHARTS, SIM_DRIVER } from './ship/contracts';
 
 export function createBridge(
   ship: ContainerSource,
@@ -62,6 +64,27 @@ export function createBridge(
         res.write(`data: ${log.entries().at(-1)}\n\n`);
       }
       res.end();
+    }),
+  );
+  bridge.get(
+    '/sim',
+    di.inject({ state: SHIP_STATE }, ({ state }, _req, res) => {
+      res.json(roundSnapshot(state.snapshot()));
+    }),
+  );
+  bridge.post(
+    '/sim/advance',
+    express.json(),
+    di.inject({ driver: SIM_DRIVER }, ({ driver }, req, res, next) => {
+      // A live ship advances on its own timer, so the route exists only in
+      // manual mode: next() falls through to Express's 404.
+      if (driver.mode === 'live') return next();
+      const ticks = parseTicks(req.body);
+      if (ticks === undefined) {
+        res.status(400).json(TICKS_REFUSED);
+        return;
+      }
+      res.json(roundSnapshot(driver.advance(ticks)));
     }),
   );
   // Every error ends with its status and an empty body, so Express's
