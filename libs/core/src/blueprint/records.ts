@@ -3,7 +3,7 @@ import {
   resolveModuleRef,
   type ModuleInternals,
 } from '../definitions/define-module.js';
-import { describeValue } from '../definitions/describe.js';
+import { describeValue, notShared } from '../definitions/describe.js';
 import { isToken } from '../definitions/guards.js';
 import {
   injectableIn,
@@ -247,10 +247,7 @@ function invalidToken(
   reason: 'alias-target' | null,
 ): NexusError {
   if (isForeign(value))
-    return new CoreNotSharedError({
-      received: describeValue(value),
-      where: `${site.module}.providers[${site.index}]`,
-    });
+    return notShared(value, `${site.module}.providers[${site.index}]`);
   return new InvalidTokenError({
     received: describeValue(value),
     entry: null,

@@ -4,11 +4,10 @@ import {
   type ModuleDefinition,
 } from '../definitions/define-module.js';
 import { isForeign } from '../definitions/brand.js';
-import { describeValue } from '../definitions/describe.js';
+import { describeValue, notShared } from '../definitions/describe.js';
 import { isToken } from '../definitions/guards.js';
 import { MultiToken, displayName } from '../definitions/token.js';
 import {
-  CoreNotSharedError,
   DuplicateProviderError,
   InvalidExportError,
   InvalidModuleError,
@@ -155,10 +154,10 @@ export function walk(input: WalkInput, errors: NexusError[]): WalkResult {
       const path = stack.map((m) => m.name);
       errors.push(
         isForeign(ref)
-          ? new CoreNotSharedError({
-              received: describeValue(ref),
-              where: path.length > 0 ? path.join(' → ') : null,
-            })
+          ? notShared(
+              ref,
+              path.length > 0 ? `imported by ${path.join(' → ')}` : null,
+            )
           : new InvalidModuleError({ received: describeValue(ref), path }),
       );
       return undefined;

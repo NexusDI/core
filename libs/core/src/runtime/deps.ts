@@ -5,7 +5,7 @@ import {
 } from '../blueprint/blueprint.js';
 import { depOf, type BadDep } from '../blueprint/records.js';
 import { isForeign } from '../definitions/brand.js';
-import { describeValue } from '../definitions/describe.js';
+import { describeValue, notShared } from '../definitions/describe.js';
 import { HOOK_SITES } from '../definitions/hook-sites.js';
 import {
   BlueprintError,
@@ -44,7 +44,8 @@ function entriesOf(
       })),
     };
   }
-  if (typeof deps !== 'object' || deps === null) return null;
+  // A value another copy of core made is no deps map, though it is an object.
+  if (typeof deps !== 'object' || deps === null || isForeign(deps)) return null;
   return {
     tuple: false,
     entries: Object.keys(deps).map((key) => ({
@@ -85,11 +86,7 @@ function invalidEntry(
 }
 
 function notADepsValue(call: string, deps: unknown): NexusError {
-  if (isForeign(deps))
-    return new CoreNotSharedError({
-      received: describeValue(deps),
-      where: call,
-    });
+  if (isForeign(deps)) return notShared(deps, call);
   return new InvalidTokenError({
     received: describeValue(deps),
     entry: null,

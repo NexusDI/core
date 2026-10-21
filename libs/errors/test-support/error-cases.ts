@@ -245,10 +245,10 @@ export const errorCases: readonly ErrorCase[] = [
     name: 'CoreNotSharedError (import path)',
     error: new CoreNotSharedError({
       received: 'the module Remote',
-      where: 'Meridian',
+      where: 'imported by Meridian',
     }),
     code: 'NEXUS_CORE_NOT_SHARED',
-    fields: { received: 'the module Remote', where: 'Meridian' },
+    fields: { received: 'the module Remote', where: 'imported by Meridian' },
   },
   {
     name: 'CoreNotSharedError (providers entry)',

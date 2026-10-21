@@ -28,7 +28,7 @@ exports[`NexusError > keeps the message of CoreNotSharedError (dep) 1`] = `
 `;
 
 exports[`NexusError > keeps the message of CoreNotSharedError (import path) 1`] = `
-"[NEXUS_CORE_NOT_SHARED] the module Remote was made by another copy of @nexusdi/core (Meridian).
+"[NEXUS_CORE_NOT_SHARED] the module Remote was made by another copy of @nexusdi/core (imported by Meridian).
   Fix: load one copy of @nexusdi/core. Check that npm installed it once (npm ls @nexusdi/core), that no test calls vi.resetModules() between the module and the container that reads it, and that no bundler resolves the @nexusdi/source condition for one import and dist for another. In Module Federation, share @nexusdi/core with singleton: true."
 `;
 

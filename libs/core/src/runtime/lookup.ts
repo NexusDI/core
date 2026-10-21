@@ -1,12 +1,11 @@
 import type { Blueprint, TokenKey } from '../blueprint/blueprint.js';
 import { isForeign } from '../definitions/brand.js';
 import { resolveModuleRef } from '../definitions/define-module.js';
-import { describeValue } from '../definitions/describe.js';
+import { describeValue, notShared } from '../definitions/describe.js';
 import { isToken } from '../definitions/guards.js';
 import { HOOK_SITES } from '../definitions/hook-sites.js';
 import { MultiToken, displayName } from '../definitions/token.js';
 import {
-  CoreNotSharedError,
   InvalidModuleError,
   InvalidTokenError,
   LoadedAfterScopeError,
@@ -38,11 +37,7 @@ export function lookupModule(
       : (bp.moduleByDefinition.get(definition) ??
         bp.moduleByReplaced.get(definition));
   if (id === undefined) {
-    if (isForeign(options.module))
-      throw new CoreNotSharedError({
-        received: describeValue(options.module),
-        where,
-      });
+    if (isForeign(options.module)) throw notShared(options.module, where);
     throw new InvalidModuleError({
       received: definition?.name ?? describeValue(options.module),
       path: [],
@@ -102,10 +97,7 @@ export function getFrom(
 ): unknown {
   if (!isToken(token))
     throw isForeign(token)
-      ? new CoreNotSharedError({
-          received: describeValue(token),
-          where: 'get()',
-        })
+      ? notShared(token, 'get()')
       : new InvalidTokenError({
           received: describeValue(token),
           entry: null,
@@ -131,7 +123,11 @@ export function hasIn(
   token: unknown,
   options: LookupOptions | undefined,
 ): boolean {
-  if (!isToken(token)) return false;
+  if (!isToken(token)) {
+    // A token another copy made would read as absent, which hides the second copy.
+    if (isForeign(token)) throw notShared(token, 'has()');
+    return false;
+  }
   return (
     (bp.visibility
       .get(lookupModule(bp, options, 'has()'))
