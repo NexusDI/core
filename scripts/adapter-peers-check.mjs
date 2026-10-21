@@ -7,6 +7,7 @@
  * in the workspace, such as express 4 under @nx/react, is a tool's, which
  * the adapter's tests never load.
  */
+import { execFileSync } from 'node:child_process';
 import {
   existsSync,
   lstatSync,
@@ -22,6 +23,52 @@ import semver from 'semver';
 export const packageOf = (spec) => spec.slice(0, spec.lastIndexOf('@'));
 /** The range of an install spec: `hono@^4` is `^4`. */
 const rangeOf = (spec) => spec.slice(spec.lastIndexOf('@') + 1);
+
+/**
+ * The install specs of a leg: its `install` list plus one exact spec per
+ * package of each family. A family names packages that release together at
+ * one version (react-router and @react-router/*). Its `version` is a
+ * range, or an exact version, and the family installs the highest version
+ * every member has published inside it, so a member that lags the rest
+ * (a release published to some packages first) holds the family back.
+ * `published(spec)` returns the versions of a package a range admits.
+ */
+export function installSpecs(leg, published = npmVersions) {
+  const specs = [...(leg.install ?? [])];
+  for (const family of leg.families ?? []) {
+    const { packages, version } = family;
+    const label = `family ${(packages ?? []).join(', ') || '(empty)'} at ${version}`;
+    if (!Array.isArray(packages) || packages.length === 0)
+      throw new Error(`${label}: a family needs at least one package`);
+    const sets = packages.map((pkg) => {
+      try {
+        return new Set(published(`${pkg}@${version}`));
+      } catch (error) {
+        throw new Error(`${label}: npm view ${pkg}@${version} failed`, {
+          cause: error,
+        });
+      }
+    });
+    const common = sets.reduce(
+      (a, b) => new Set([...a].filter((v) => b.has(v))),
+    );
+    const best = semver.rsort([...common])[0];
+    if (!best)
+      throw new Error(
+        `${label}: no version satisfies the range for every package`,
+      );
+    specs.push(...packages.map((pkg) => `${pkg}@${best}`));
+  }
+  return specs;
+}
+
+/** The versions npm holds for a `name@range` spec. */
+function npmVersions(spec) {
+  const out = execFileSync('npm', ['view', spec, 'version', '--json'], {
+    encoding: 'utf8',
+  });
+  return [].concat(JSON.parse(out));
+}
 
 const readJson = (path) => JSON.parse(readFileSync(path, 'utf8'));
 
@@ -80,9 +127,17 @@ function treesOf(root, lib) {
 /**
  * The problems of a leg after its install, as text, empty when the leg may
  * run: `specs` are its install specs, `libs` the adapters it tests.
+ * `exceptions` maps a package to the peers of it the leg does not check,
+ * each with the reason; an exception that no longer applies is a problem.
  */
-export function legProblems(root, specs, libs) {
+export function legProblems(root, specs, libs, exceptions = {}) {
   const problems = [];
+  const installed = specs.map(packageOf);
+  for (const pkg of Object.keys(exceptions))
+    if (!installed.includes(pkg))
+      problems.push(
+        `peer exception for ${pkg}, which the leg does not install`,
+      );
   for (const spec of specs) {
     const pkg = packageOf(spec);
     const manifest = join(root, 'node_modules', pkg, 'package.json');
@@ -103,6 +158,39 @@ export function legProblems(root, specs, libs) {
           `${pkg} ${version} is outside ${adapter.name}'s peer range ${peer}`,
         );
     }
+    // npm skips these checks under --legacy-peer-deps, so run them here for
+    // the leg's own packages: each peer the installed copy declares, unless
+    // optional, must be satisfied by the copy at the root.
+    const { peerDependencies = {}, peerDependenciesMeta = {} } =
+      readJson(manifest);
+    for (const [peer, range] of Object.entries(peerDependencies)) {
+      if (peerDependenciesMeta[peer]?.optional) continue;
+      const peerManifest = join(root, 'node_modules', peer, 'package.json');
+      if (!existsSync(peerManifest)) continue;
+      const peerVersion = readJson(peerManifest).version;
+      const satisfied = semver.satisfies(peerVersion, range, {
+        includePrerelease: true,
+      });
+      if (exceptions[pkg]?.[peer] !== undefined) {
+        if (satisfied)
+          problems.push(
+            `${pkg} ${version} peer ${peer} ${range} is met by the root's ${peerVersion}, drop the exception`,
+          );
+        continue;
+      }
+      if (!satisfied)
+        problems.push(
+          `${pkg} ${version} needs ${peer} ${range}, the root has ${peerVersion}`,
+        );
+    }
+    for (const peer of Object.keys(exceptions[pkg] ?? {}))
+      if (
+        peerDependencies[peer] === undefined ||
+        peerDependenciesMeta[peer]?.optional
+      )
+        problems.push(
+          `peer exception ${pkg} > ${peer}, which ${pkg} ${version} does not declare as a required peer`,
+        );
     const trees = libs.flatMap((lib) => treesOf(root, lib));
     for (const tree of new Set(trees))
       for (const copy of copiesUnder(tree, pkg))
