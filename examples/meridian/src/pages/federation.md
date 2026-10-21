@@ -196,16 +196,31 @@ console.log(message);
 <!-- #region shared -->
 
 ```ts @import.meta.vitest
-import { meridianShared } from '@nexusdi/federation-contracts/shared';
+import { createRequire } from 'node:module';
 
-// The `shared` object the shell and both remotes pass to their
-// ModuleFederationPlugin in rspack.config.ts.
-const shared = meridianShared();
+const require = createRequire(import.meta.url);
+const versionOf = (name: string): string =>
+  (require(`${name}/package.json`) as { version: string }).version;
 
-const packages = Object.keys(shared); // -> ['react', 'react-dom', '@nexusdi/core', '@nexusdi/react']
-console.log(packages);
-const core = shared['@nexusdi/core']?.singleton; // -> true
-console.log(core);
+// Every @nexusdi package peers on core's exact version, so the two
+// @nexusdi entries take core's version.
+const react = versionOf('react');
+const core = versionOf('@nexusdi/core');
+
+// The `shared` object the shell and every remote pass to their
+// ModuleFederationPlugin.
+const shared = {
+  react: { singleton: true, requiredVersion: react },
+  'react-dom': { singleton: true, requiredVersion: react },
+  '@nexusdi/core': { singleton: true, requiredVersion: core },
+  '@nexusdi/react': { singleton: true, requiredVersion: core },
+};
+
+const singleton = shared['@nexusdi/core'].singleton; // -> true
+console.log(singleton);
+const installed =
+  shared['@nexusdi/core'].requiredVersion === versionOf('@nexusdi/core'); // -> true
+console.log(installed);
 ```
 
 <!-- #endregion shared -->

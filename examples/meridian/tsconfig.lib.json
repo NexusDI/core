@@ -33,9 +33,6 @@
       "path": "../../libs/hono/tsconfig.lib.json"
     },
     {
-      "path": "../federation-contracts/tsconfig.lib.json"
-    },
-    {
       "path": "../../libs/federation/tsconfig.lib.json"
     },
     {
