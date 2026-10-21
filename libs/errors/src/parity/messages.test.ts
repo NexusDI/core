@@ -53,7 +53,6 @@ describe('explain', () => {
     const error = new InvalidModuleError({
       received: 'an object',
       path: [],
-      otherCopy: false,
     });
     expect(render(error)).toBe(raised.message);
   });
@@ -72,7 +71,6 @@ describe('explain', () => {
       index: null,
       reason: 'bad-description',
       detail: [],
-      otherCopy: false,
     });
     expect(render(error)).toBe(raised.message);
   });

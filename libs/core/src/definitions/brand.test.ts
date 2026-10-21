@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 
-import { rejected } from '../../test-support/catch.js';
+import { rejected, thrown } from '../../test-support/catch.js';
 import { Nexus } from '../runtime/nexus.js';
 import { isForeign } from './brand.js';
 import { declareModuleClass, defineModule } from './define-module.js';
@@ -47,7 +47,7 @@ describe('brand', () => {
     expect(Object.isFrozen(defineModule({ name: 'C' }))).toBe(true);
   });
 
-  it('sets otherCopy for a module and a provider from another copy', async () => {
+  it('raises NEXUS_CORE_NOT_SHARED for a module and a provider from another copy', async () => {
     const Remote = foreign({
       name: 'Remote',
       imports: [],
@@ -65,23 +65,45 @@ describe('brand', () => {
     );
     expect(error).toMatchObject({
       errors: [
-        { code: 'NEXUS_INVALID_PROVIDER', otherCopy: true },
-        { code: 'NEXUS_INVALID_MODULE', otherCopy: true },
+        {
+          code: 'NEXUS_CORE_NOT_SHARED',
+          received: 'an object',
+          where: 'Shell.providers[0]',
+        },
+        {
+          code: 'NEXUS_CORE_NOT_SHARED',
+          received: 'an object',
+          where: 'Shell',
+        },
       ],
     });
   });
 
-  it('sets otherCopy for a token from another copy', async () => {
+  it('raises NEXUS_CORE_NOT_SHARED for a token from another copy', async () => {
     const Remote = foreign(Object.create(null) as object);
     const error = await rejected(
       Nexus.create([provide(Remote as never, { useValue: 1 }) as never]),
     );
     expect(error).toMatchObject({
-      errors: [{ code: 'NEXUS_INVALID_TOKEN', otherCopy: true }],
+      errors: [
+        {
+          code: 'NEXUS_CORE_NOT_SHARED',
+          received: 'an object',
+          where: 'root.providers[0]',
+        },
+      ],
     });
   });
 
-  it('sets otherCopy for a dep from another copy', async () => {
+  it('keeps NEXUS_INVALID_TOKEN for a token from another copy as a description', () => {
+    const Remote = foreign(Object.create(null) as object);
+    expect(thrown(() => new Token(Remote as never))).toMatchObject({
+      code: 'NEXUS_INVALID_TOKEN',
+      reason: 'bad-description',
+    });
+  });
+
+  it('raises NEXUS_CORE_NOT_SHARED for a dep from another copy', async () => {
     const REMOTE = foreign(Object.create(null) as object);
     const LOCAL = new Token<number>('Local');
     const error = await rejected(
@@ -95,15 +117,15 @@ describe('brand', () => {
     expect(error).toMatchObject({
       errors: [
         {
-          code: 'NEXUS_INVALID_PROVIDER',
-          reason: 'bad-dep',
-          otherCopy: true,
+          code: 'NEXUS_CORE_NOT_SHARED',
+          received: 'an object',
+          where: 'root.providers[0], deps[0]',
         },
       ],
     });
   });
 
-  it('leaves otherCopy false for a value no copy of core made', async () => {
+  it('keeps the invalid codes for a value no copy of core made', async () => {
     const error = await rejected(
       Nexus.create(
         defineModule({
@@ -115,13 +137,13 @@ describe('brand', () => {
     );
     expect(error).toMatchObject({
       errors: [
-        { code: 'NEXUS_INVALID_PROVIDER', otherCopy: false },
-        { code: 'NEXUS_INVALID_MODULE', otherCopy: false },
+        { code: 'NEXUS_INVALID_PROVIDER' },
+        { code: 'NEXUS_INVALID_MODULE' },
       ],
     });
   });
 
-  it('leaves otherCopy false for a definition this copy made, in the wrong place', async () => {
+  it('keeps the invalid codes for a definition this copy made, in the wrong place', async () => {
     const NAV = new Token<string>('Nav');
     const CHECKS = new MultiToken<string>('Checks');
     const error = await rejected(
@@ -145,14 +167,10 @@ describe('brand', () => {
     );
     expect(error).toMatchObject({
       errors: [
-        {
-          code: 'NEXUS_INVALID_PROVIDER',
-          reason: 'not-a-provider',
-          otherCopy: false,
-        },
-        { code: 'NEXUS_INVALID_PROVIDER', reason: 'bad-dep', otherCopy: false },
-        { code: 'NEXUS_INVALID_PROVIDER', reason: 'bad-dep', otherCopy: false },
-        { code: 'NEXUS_INVALID_MODULE', otherCopy: false },
+        { code: 'NEXUS_INVALID_PROVIDER', reason: 'not-a-provider' },
+        { code: 'NEXUS_INVALID_PROVIDER', reason: 'bad-dep' },
+        { code: 'NEXUS_INVALID_PROVIDER', reason: 'bad-dep' },
+        { code: 'NEXUS_INVALID_MODULE' },
       ],
     });
   });
@@ -165,7 +183,13 @@ describe('brand', () => {
     );
     expect(error).toMatchObject({
       code: 'NEXUS_BLUEPRINT_INVALID',
-      errors: [{ code: 'NEXUS_INVALID_MODULE', otherCopy: true }],
+      errors: [
+        {
+          code: 'NEXUS_CORE_NOT_SHARED',
+          received: 'an object',
+          where: 'Shell',
+        },
+      ],
     });
   });
 
@@ -182,10 +206,38 @@ describe('brand', () => {
       ),
     );
     expect(error).toMatchObject({
-      code: 'NEXUS_INVALID_MODULE',
-      received: 'an object with the keys "name", "global"',
-      otherCopy: true,
+      code: 'NEXUS_CORE_NOT_SHARED',
+      received: 'an object',
+      where: null,
     });
+  });
+
+  it('raises NEXUS_CORE_NOT_SHARED for a module from another copy at load() and get()', async () => {
+    await using ship = await Nexus.create([]);
+    const Remote = foreign({ name: 'Remote', providers: [] });
+    expect(await rejected(ship.load(Remote as never))).toMatchObject({
+      code: 'NEXUS_CORE_NOT_SHARED',
+      where: 'load()',
+    });
+    const TOKEN = foreign(Object.create(null) as object);
+    expect(thrown(() => ship.get(TOKEN as never))).toMatchObject({
+      code: 'NEXUS_CORE_NOT_SHARED',
+      where: 'get()',
+    });
+  });
+
+  it('reads a Proxy around a token this copy made as its own, and resolves it', async () => {
+    const NAV = new Token<string>('Nav');
+    const proxied = new Proxy(NAV, {});
+    expect(isForeign(proxied)).toBe(false);
+    await using ship = await Nexus.create([
+      provide(proxied, { useValue: 'charted' }),
+    ]);
+    expect(ship.get(proxied)).toBe('charted');
+  });
+
+  it('reads a value an rc.1 copy branded with true as foreign', () => {
+    expect(isForeign(foreign({}))).toBe(true);
   });
 
   it('declares a frozen or proxied module class, which stays unbranded', async () => {

@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
 
 import type { BlueprintView, ErrorTextKit, NearMiss } from '../index.js';
-import { InvalidModuleError, MissingProviderError, Token } from '../index.js';
+import { MissingProviderError, Token } from '../index.js';
 import { coreText } from '../text/index.js';
 
 interface INavCharts {
@@ -86,16 +86,5 @@ describe('coreText', () => {
     expect(text.message).toContain(
       'NavCharts is exported by Science, which Meridian does not import.',
     );
-  });
-
-  it('names the second copy of core for a value another copy made', () => {
-    const text = coreText.NEXUS_INVALID_MODULE(
-      new InvalidModuleError({
-        received: 'an object',
-        path: ['Shell'],
-        otherCopy: true,
-      }),
-    );
-    expect(text.message).toContain('another copy of @nexusdi/core');
   });
 });

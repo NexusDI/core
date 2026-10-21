@@ -6,12 +6,13 @@ import {
   type ProviderEntry,
 } from '../definitions/define-module.js';
 import { isForeign } from '../definitions/brand.js';
+import { describeValue } from '../definitions/describe.js';
 import { pickOwn } from '../definitions/own-keys.js';
 import type {
   ProviderEntries,
   UninferredEntry,
 } from '../definitions/provider-literal.js';
-import { InvalidModuleError } from '../errors/index.js';
+import { CoreNotSharedError, InvalidModuleError } from '../errors/index.js';
 
 /** The object form of a root: a root module without a name. */
 export interface RootConfig {
@@ -94,6 +95,11 @@ export function rootModuleOf(root: unknown): unknown {
     resolveModuleRef(root) !== undefined
   )
     return root;
+  if (isForeign(root))
+    throw new CoreNotSharedError({
+      received: describeValue(root),
+      where: null,
+    });
   const extra = Object.keys(root).filter(
     (key) => !(ROOT_KEYS as readonly string[]).includes(key),
   );
@@ -101,7 +107,6 @@ export function rootModuleOf(root: unknown): unknown {
     throw new InvalidModuleError({
       received: withKeys(extra),
       path: [],
-      otherCopy: isForeign(root),
     });
   return defineModule({ name: 'root', ...pickOwn(root, ROOT_KEYS) } as never);
 }

@@ -4,6 +4,7 @@ import {
   Nexus,
   NexusError,
   Token,
+  isForeign,
   isNexusError,
   lazy,
   optional,
@@ -253,20 +254,20 @@ describe('Module', () => {
     class Hangar {}
     const brand = Symbol.for('nexusdi.definition');
     expect(Object.getOwnPropertyDescriptor(Hangar, brand)).toMatchObject({
-      value: true,
       enumerable: false,
     });
+    expect(isForeign(Hangar)).toBe(false);
     expect(Object.keys(Hangar)).toEqual([]);
   });
 
-  it('leaves otherCopy false for a subclass of a module class, which inherits the brand', async () => {
+  it('reports NEXUS_INVALID_MODULE for a subclass of a module class, which inherits the brand', async () => {
     @Module({ providers: [ReactorCore] })
     class Hangar {}
     class Annex extends Hangar {}
     @Module({ imports: [Annex] })
     class Station {}
     expect(await rejected(Nexus.create(Station))).toMatchObject({
-      errors: [{ code: 'NEXUS_INVALID_MODULE', otherCopy: false }],
+      errors: [{ code: 'NEXUS_INVALID_MODULE' }],
     });
   });
 

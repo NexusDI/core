@@ -19,6 +19,7 @@ import { REQUEST } from '../definitions/request.js';
 import { MultiToken, displayName } from '../definitions/token.js';
 import type { Ctor, Lifetime } from '../definitions/types.js';
 import {
+  CoreNotSharedError,
   describeThrown,
   InvalidProviderError,
   InvalidTokenError,
@@ -193,10 +194,19 @@ interface At {
 
 const NO_PREFIX: readonly string[] = [];
 
+/** Where an entry sits, as a CoreNotSharedError names it: `Shell.providers[0]`. */
+function siteOf(at: At): string {
+  return [`${at.site.module}.providers[${at.site.index}]`, ...at.prefix].join(
+    ' ',
+  );
+}
+
 /**
  * Pushes the InvalidProviderError of a malformed entry: the reason id, then
- * the values its text names. `otherCopy` is true when another copy of core
- * made the rejected value. Returns null for the caller to return.
+ * the values its text names. When another copy of core made the rejected
+ * value (`otherCopy`), it pushes a CoreNotSharedError: the last detail names
+ * that value, and a 'bad-dep' detail opens with the dep's location. Returns
+ * null for the caller to return.
  */
 function report(
   at: At,
@@ -205,13 +215,18 @@ function report(
   detail: readonly string[],
 ): null {
   at.errors.push(
-    new InvalidProviderError({
-      module: at.site.module,
-      index: at.site.index,
-      reason,
-      detail: [...at.prefix, ...detail],
-      otherCopy,
-    }),
+    otherCopy
+      ? new CoreNotSharedError({
+          received: detail.at(-1) ?? 'a value',
+          where:
+            reason === 'bad-dep' ? `${siteOf(at)}, ${detail[0]}` : siteOf(at),
+        })
+      : new InvalidProviderError({
+          module: at.site.module,
+          index: at.site.index,
+          reason,
+          detail: [...at.prefix, ...detail],
+        }),
   );
   return null;
 }
@@ -230,7 +245,12 @@ function invalidToken(
   value: unknown,
   site: ProviderSite,
   reason: 'alias-target' | null,
-): InvalidTokenError {
+): NexusError {
+  if (isForeign(value))
+    return new CoreNotSharedError({
+      received: describeValue(value),
+      where: `${site.module}.providers[${site.index}]`,
+    });
   return new InvalidTokenError({
     received: describeValue(value),
     entry: null,
@@ -238,7 +258,6 @@ function invalidToken(
     index: site.index,
     reason,
     detail: [],
-    otherCopy: isForeign(value),
   });
 }
 

@@ -1,4 +1,4 @@
-import { InvalidModuleError } from '../errors/index.js';
+import { CoreNotSharedError, InvalidModuleError } from '../errors/index.js';
 import { brand, isForeign } from './brand.js';
 import { describeValue } from './describe.js';
 import type { Dep, ResolveAll } from './modifiers.js';
@@ -153,9 +153,11 @@ export function defineModule(
       : undefined;
   if (own === undefined || typeof own.name !== 'string' || own.name === '') {
     const received = describeValue(config);
+    if (isForeign(config))
+      throw new CoreNotSharedError({ received, where: 'defineModule()' });
     // Raised before any container exists, so core keeps its text (spec §9).
     throw new InvalidModuleError(
-      { received, path: [], otherCopy: isForeign(config) },
+      { received, path: [] },
       {
         text: `${received} is not a module.\n  Fix: create one with defineModule(), or decorate a class with @Module.`,
       },

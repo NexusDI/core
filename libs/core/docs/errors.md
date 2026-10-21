@@ -145,7 +145,7 @@ text.split('\n'); // -> ['[COMMS_CHANNEL_CLOSED] the subspace link is closed.', 
 
 ## A value from another copy of core
 
-`isForeign(value)` is true for a definition another installed copy of `@nexusdi/core` made, which this copy refuses. Core sets `otherCopy` on the error it raises from it.
+`isForeign(value)` is true for a definition another installed copy of `@nexusdi/core` made, which this copy refuses. Core raises `NEXUS_CORE_NOT_SHARED` for such a value, with its name in `received` and the place core met it in `where`.
 
 <!-- #region is-foreign -->
 
