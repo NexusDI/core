@@ -75,57 +75,53 @@ describe('the engineering route', () => {
     ).toBeDefined();
   });
 
-  /** Runs the action on a POST of `fields`, as a crafted request would send it. */
-  const post = (scope: Scope, fields: Record<string, string>) =>
-    action({
+  /**
+   * Runs the action on a POST of `fields`, as a crafted request would send
+   * it, and gives the command it handed the scope's bridge link.
+   */
+  async function sent(scope: Scope, fields: Record<string, string>) {
+    const command = vi.spyOn(scope.get(BRIDGE_LINK), 'command');
+    const url = new URL('http://bridge/systems/engineering');
+    const args: Parameters<typeof action>[0] = {
+      request: new Request(url, {
+        method: 'POST',
+        body: new URLSearchParams(fields),
+      }),
+      url,
+      pattern: '/systems/engineering',
       params: {},
       context: new RouterContextProvider(
         new Map([[NEXUS_SCOPE, existingScope(scope)]]),
       ),
-      request: new Request('http://bridge/systems/engineering', {
-        method: 'POST',
-        body: new URLSearchParams(fields),
-      }),
-    } as never);
+    };
+    await action(args);
+    expect(command).toHaveBeenCalledOnce();
+    return command.mock.calls[0]?.[0];
+  }
 
-  test('forwards a throttle with no level, and the backend refuses it', async ({
-    nexus,
-  }) => {
+  test('forwards a throttle with no level as sent', async ({ nexus }) => {
     await using scope = await scopeOf(nexus);
-    expect(await post(scope, { command: 'throttle' })).toEqual({
-      accepted: false,
-      status: 400,
-      code: 'MERIDIAN_BAD_COMMAND',
-      message: `engineering throttle got an argument it cannot use. It takes ${EXPECTED}.`,
-      fix: 'send the arguments in the ranges above.',
+    expect(await sent(scope, { command: 'throttle' })).toStrictEqual({
+      system: 'engineering',
+      action: 'throttle',
     });
   });
 
-  test('forwards a shields command with no raised, and the backend refuses it', async ({
+  test('forwards a shields command with no raised as sent', async ({
     nexus,
   }) => {
     await using scope = await scopeOf(nexus);
-    expect(await post(scope, { command: 'shields' })).toMatchObject({
-      accepted: false,
-      status: 400,
-      message: `engineering shields got an argument it cannot use. It takes ${EXPECTED}.`,
+    expect(await sent(scope, { command: 'shields' })).toStrictEqual({
+      system: 'engineering',
+      action: 'shields',
     });
   });
 
-  test('forwards an unknown command, and the backend refuses it', async ({
-    nexus,
-  }) => {
+  test('forwards an unknown command as sent', async ({ nexus }) => {
     await using scope = await scopeOf(nexus);
-    expect(await post(scope, { command: 'vent' })).toEqual({
-      accepted: false,
-      status: 400,
-      code: 'MERIDIAN_BAD_COMMAND',
-      message: `engineering has no action 'vent'. It takes ${EXPECTED}.`,
-      fix: 'send one of the actions above with its arguments.',
+    expect(await sent(scope, { command: 'vent' })).toStrictEqual({
+      system: 'engineering',
+      action: 'vent',
     });
   });
 });
-
-/** What engineering's refusals say it takes, as meridian-systems words it. */
-const EXPECTED =
-  'throttle with a level from 0 to 1 and shields with raised true or false';

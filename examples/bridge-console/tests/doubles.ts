@@ -64,55 +64,19 @@ export class FakeBridgeLink implements IBridgeLink {
   async graph(): Promise<NexusGraph | null> {
     return null;
   }
-  /**
-   * The idle reactor, with engineering's checks: a throttle level from 0 to
-   * 1 queues for tick 1, a shields lower queues, a shields raise finds no
-   * power, and any other command is refused as meridian-systems words it.
-   */
+  /** The idle reactor: it powers no shields, and it queues any other command for tick 1. */
   async command(cmd: ShipCommand): Promise<CommandAnswer> {
-    const { action, level, raised } = cmd;
-    if (
-      action === 'throttle' &&
-      typeof level === 'number' &&
-      level >= 0 &&
-      level <= 1
-    )
-      return { accepted: true, tick: 1 };
-    if (action === 'shields' && raised === false)
-      return { accepted: true, tick: 1 };
-    if (action === 'shields' && raised === true)
-      return {
-        accepted: false,
-        status: 409,
-        code: 'MERIDIAN_POWER_BUDGET',
-        message:
-          'The shields load needs 200 MW, and the router has 0 MW free beside the loads above it.',
-        fix: 'raise the reactor throttle and wait for the output to climb, or lower a load of higher priority.',
-      };
-    return action === 'throttle' || action === 'shields'
-      ? badCommand(
-          `engineering ${action} got an argument it cannot use. It takes ${TAKES}.`,
-          'send the arguments in the ranges above.',
-        )
-      : badCommand(
-          `engineering has no action '${action}'. It takes ${TAKES}.`,
-          'send one of the actions above with its arguments.',
-        );
+    if (cmd.raised !== true) return { accepted: true, tick: 1 };
+    return {
+      accepted: false,
+      status: 409,
+      code: 'MERIDIAN_POWER_BUDGET',
+      message:
+        'The shields load needs 200 MW, and the router has 0 MW free beside the loads above it.',
+      fix: 'raise the reactor throttle and wait for the output to climb, or lower a load of higher priority.',
+    };
   }
 }
-
-/** What engineering's refusals say it takes, as meridian-systems words it. */
-const TAKES =
-  'throttle with a level from 0 to 1 and shields with raised true or false';
-
-/** A 400 refusal of a ship command, as bridge-api answers one. */
-const badCommand = (message: string, fix: string): CommandAnswer => ({
-  accepted: false,
-  status: 400,
-  code: 'MERIDIAN_BAD_COMMAND',
-  message,
-  fix,
-});
 
 /** The override of BRIDGE_LINK the route tests use. */
 export const fakeBridgeLink = {
