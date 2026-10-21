@@ -3,7 +3,11 @@ import { render, screen, within } from '@testing-library/react';
 import { createRoutesStub } from 'react-router';
 import type { NexusGraph } from '@nexusdi/devtools';
 import type { ShipReading } from '@nexusdi/meridian-systems';
+import { NexusProvider } from '@nexusdi/react';
+import { createTestingContainer } from '@nexusdi/testing';
 
+import { BridgeClient } from '../../app/bridge/bridge.client';
+import { TELEMETRY_CLIENT } from '../../app/bridge/telemetry-client';
 import { FakeBridgeLink, shipAtStart } from '../doubles';
 import { built } from '../support/testing-di';
 import { contextOf, loaderArgs, scopeWith } from './scope-with';
@@ -12,8 +16,11 @@ vi.mock('../../app/nexus.server', async () =>
   (await import('../support/testing-di')).shipServer(),
 );
 
-const { default: Diagnostics, loader } =
-  await import('../../app/routes/diagnostics');
+const {
+  default: Diagnostics,
+  loader,
+  ErrorBoundary,
+} = await import('../../app/routes/diagnostics');
 const layout = await import('../../app/routes/ship-layout');
 
 afterAll(() => Promise.all(built.map((s) => s[Symbol.asyncDispose]())));
@@ -91,11 +98,24 @@ class SilentSim extends FakeBridgeLink {
   }
 }
 
+/** A link whose backend is down: every call rejects. */
+class DownBridge extends FakeBridgeLink {
+  override async snapshot(): Promise<ShipReading> {
+    throw new Error('fetch failed');
+  }
+  override async graph(): Promise<NexusGraph | null> {
+    throw new Error('fetch failed');
+  }
+}
+
 function HydrateFallback() {
   return <p>Reading the graph</p>;
 }
 
-/** Renders /diagnostics for a request whose BRIDGE_LINK is an instance of `link`. */
+/**
+ * Renders /diagnostics for a request whose BRIDGE_LINK is an instance of
+ * `link`.
+ */
 async function diagnostics(link: typeof FakeBridgeLink) {
   const scope = await scopeWith(link, built);
   const Stub = createRoutesStub(
@@ -145,6 +165,42 @@ describe('the diagnostics route', () => {
     expect(
       await screen.findByText('Diagnostics are off on this bridge'),
     ).toBeDefined();
+    await scope[Symbol.asyncDispose]();
+  });
+
+  it('says the bridge is unreachable under the offline strip when the backend is down', async () => {
+    const scope = await scopeWith(DownBridge, built);
+    const browser = await createTestingContainer(BridgeClient)
+      .override(TELEMETRY_CLIENT, { useValue: { subscribe: () => () => {} } })
+      .create();
+    built.push(browser);
+    const Stub = createRoutesStub(
+      [
+        {
+          Component: layout.default,
+          loader: layout.loader,
+          HydrateFallback,
+          children: [
+            {
+              path: '/diagnostics',
+              Component: Diagnostics,
+              ErrorBoundary,
+              loader,
+            },
+          ],
+        },
+      ],
+      contextOf(scope),
+    );
+    render(
+      <NexusProvider container={browser}>
+        <Stub initialEntries={['/diagnostics']} />
+      </NexusProvider>,
+    );
+    expect(await screen.findByText('The bridge is unreachable')).toBeDefined();
+    expect(
+      screen.getByRole('status', { name: 'Ship status' }).textContent,
+    ).toBe('Telemetry offline');
     await scope[Symbol.asyncDispose]();
   });
 });
