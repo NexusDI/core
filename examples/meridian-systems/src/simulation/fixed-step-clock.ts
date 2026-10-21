@@ -1,4 +1,4 @@
-import { type ISimClock, SIM_OPTIONS } from './contracts';
+import { type ISimClock, SIM_OPTIONS, type SimOptions } from './contracts';
 
 /**
  * Counts ticks of `dt` ship seconds. The clock derives the time from the
@@ -11,7 +11,7 @@ export class FixedStepClock implements ISimClock {
   readonly dt: number;
   private current = 0;
 
-  constructor(options: { readonly dt: number }) {
+  constructor(options: Pick<SimOptions, 'dt'>) {
     this.dt = options.dt;
   }
 

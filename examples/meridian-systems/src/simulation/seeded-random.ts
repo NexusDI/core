@@ -1,5 +1,5 @@
 import { fnv1a32, splitmix32 } from '../physics/rng';
-import { type IRandomSource, SIM_OPTIONS } from './contracts';
+import { type IRandomSource, SIM_OPTIONS, type SimOptions } from './contracts';
 
 /**
  * splitmix32 over the seed in `SimOptions`. A fork seeds from FNV-1a of
@@ -17,7 +17,7 @@ export class SeededRandom implements IRandomSource {
   private readonly seed: number;
   private state: number;
 
-  constructor(options: { readonly seed: number }) {
+  constructor(options: Pick<SimOptions, 'seed'>) {
     this.seed = options.seed >>> 0;
     this.state = this.seed;
   }
