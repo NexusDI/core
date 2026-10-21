@@ -1,7 +1,7 @@
 import { SectionBoundary } from '@nexusdi/react';
 import { lazy, Suspense } from 'react';
 
-import { SectionFailed } from '../section-failed';
+import { logSectionError, SectionFailed } from '../section-failed';
 import { Command, command } from '../sections';
 
 const CommandDeck = lazy(() =>
@@ -15,6 +15,7 @@ export function CommandRoute() {
       section={Command}
       fallback={<p>Loading command...</p>}
       errorFallback={SectionFailed}
+      onError={logSectionError}
     >
       <Suspense fallback={<p>Loading the command deck...</p>}>
         <CommandDeck />

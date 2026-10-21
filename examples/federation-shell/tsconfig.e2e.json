@@ -3,7 +3,9 @@
   "compilerOptions": {
     "allowJs": true,
     "outDir": "out-tsc/playwright",
-    "sourceMap": false
+    "sourceMap": false,
+    "allowImportingTsExtensions": true,
+    "types": ["node"]
   },
   "include": ["e2e/**/*.ts", "e2e/**/*.js", "playwright.config.mts"],
   "exclude": [

@@ -10,7 +10,12 @@ if (!container) throw new Error('#root element not found');
 
 const ship = createShip();
 
-createRoot(container).render(
+createRoot(container, {
+  // The app's only error boundaries are the stations' SectionBoundary,
+  // and React would log the marker object the boundary throws. Each
+  // station's onError logs the load error itself (src/routes).
+  onCaughtError: () => undefined,
+}).render(
   <StrictMode>
     <Suspense fallback={<p>Starting the ship...</p>}>
       <NexusProvider container={ship}>

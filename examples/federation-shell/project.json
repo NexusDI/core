@@ -34,6 +34,34 @@
         "command": "rspack build --mode=production --env devtools",
         "cwd": "examples/federation-shell"
       }
+    },
+    "e2e": {
+      "dependsOn": [
+        "build-e2e",
+        {
+          "projects": ["@nexusdi/federation-cartography"],
+          "target": "build"
+        },
+        {
+          "projects": ["@nexusdi/federation-cartography"],
+          "target": "build-drift"
+        },
+        {
+          "projects": ["@nexusdi/federation-cartography"],
+          "target": "build-unshared"
+        },
+        {
+          "projects": ["@nexusdi/federation-command"],
+          "target": "build"
+        }
+      ],
+      "inputs": [
+        "default",
+        "^production",
+        {
+          "dependentTasksOutputFiles": "**/*"
+        }
+      ]
     }
   }
 }

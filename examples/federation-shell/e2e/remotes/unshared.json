@@ -1,0 +1,10 @@
+[
+  {
+    "name": "federation_cartography",
+    "entry": "http://127.0.0.1:4304/remoteEntry.js"
+  },
+  {
+    "name": "federation_command",
+    "entry": "http://127.0.0.1:4302/remoteEntry.js"
+  }
+]
