@@ -35,7 +35,7 @@ const HOST_GLOBALS = [
   'Atomics',
 ].map((name) => ({ name, message: REPLAY }));
 
-/** Refuses every specifier but a relative path and `@nexusdi/core`. */
+/** Refuses every specifier but a relative path and the names in `allowed`. */
 const onlyRelativeAnd = (...allowed) => ({
   patterns: [
     {
