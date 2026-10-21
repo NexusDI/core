@@ -2,15 +2,24 @@ import { once } from 'node:events';
 import type { AddressInfo } from 'node:net';
 
 import { Nexus } from '@nexusdi/core';
-import { roundSnapshot, SHIP_STATE } from '@nexusdi/meridian-systems';
+import {
+  roundSnapshot,
+  SHIP_STATE,
+  type ShipSnapshot,
+  TELEMETRY,
+} from '@nexusdi/meridian-systems';
+import { createTestingContainer } from '@nexusdi/testing';
 import { describe, expect, vi } from 'vitest';
 
+import { servers } from '../e2e/servers';
 import { createBridge as expressBridge } from '../src/express';
 import { createBridge as fastifyBridge } from '../src/fastify';
 import { SIM_BODY_LIMIT, TICKS_REFUSED } from '../src/bridge/sim-ticks';
 import { createBridge as honoBridge } from '../src/hono';
 import { AUDIT_LOG } from '../src/ship/audit-trail.module';
-import { offlineMeridian } from '../src/ship/meridian';
+import { SIM_DRIVER } from '../src/ship/contracts';
+import { OfflineMeridian, offlineMeridian } from '../src/ship/meridian';
+import { RecordingFeed } from './doubles';
 import { test } from './fixtures';
 
 const course = { to: 'Kepler-442b', heading: 42 };
@@ -215,6 +224,82 @@ describe.each(['hono', 'express', 'fastify'] as const)(
         expect(ship.get(SHIP_STATE).snapshot().tick).toBe(0);
       } finally {
         vi.useRealTimers();
+      }
+    });
+  },
+);
+
+const decoder = new TextDecoder();
+
+function bodyOf(res: Response) {
+  if (res.body === null) throw new Error('GET /telemetry sent no body');
+  return res.body.getReader();
+}
+
+/** The tick of the next event on `reader`, which must be a `snapshot`. */
+async function nextTick(reader: ReadableStreamDefaultReader<Uint8Array>) {
+  const text = decoder.decode((await reader.read()).value);
+  expect(text).toMatch(/^event: snapshot\ndata: .+\n\n$/);
+  return (JSON.parse(text.slice(text.indexOf('data: ') + 6)) as ShipSnapshot)
+    .tick;
+}
+
+test('GET /telemetry streams a frame now and one per tick from Hono', async ({
+  nexus,
+}) => {
+  const res = await honoBridge(nexus).request('/telemetry');
+  expect(res.status).toBe(200);
+  expect(res.headers.get('content-type')).toBe('text/event-stream');
+  expect(res.headers.get('cache-control')).toContain('no-transform');
+  const reader = bodyOf(res);
+  expect(await nextTick(reader)).toBe(0);
+  nexus.get(SIM_DRIVER).advance(1);
+  expect(await nextTick(reader)).toBe(1);
+  await reader.cancel();
+});
+
+test('cancelling the Hono body unsubscribes from the feed', async ({
+  nexus,
+}) => {
+  const feed = new RecordingFeed(
+    roundSnapshot(nexus.get(SHIP_STATE).snapshot()),
+  );
+  await using ship = await createTestingContainer(OfflineMeridian)
+    .override(TELEMETRY, { useValue: feed })
+    .create();
+  const res = await honoBridge(ship).request('/telemetry');
+  const reader = bodyOf(res);
+  expect(await nextTick(reader)).toBe(0);
+  expect(feed.sinks.size).toBe(1);
+  await reader.cancel();
+  await vi.waitFor(() => expect(feed.sinks.size).toBe(0));
+});
+
+describe.each(['hono', 'express', 'fastify'] as const)(
+  'GET /telemetry on %s over a socket',
+  (framework) => {
+    test('a client abort unsubscribes from the feed', async ({ nexus }) => {
+      const feed = new RecordingFeed(
+        roundSnapshot(nexus.get(SHIP_STATE).snapshot()),
+      );
+      await using ship = await createTestingContainer(OfflineMeridian)
+        .override(TELEMETRY, { useValue: feed })
+        .create();
+      const bridge = await servers[framework](ship);
+      try {
+        const abort = new AbortController();
+        const res = await fetch(`${bridge.url}/telemetry`, {
+          signal: abort.signal,
+        });
+        expect(res.status).toBe(200);
+        expect(res.headers.get('content-type')).toBe('text/event-stream');
+        expect(res.headers.get('cache-control')).toBe('no-cache, no-transform');
+        expect(await nextTick(bodyOf(res))).toBe(0);
+        expect(feed.sinks.size).toBe(1);
+        abort.abort();
+        await vi.waitFor(() => expect(feed.sinks.size).toBe(0));
+      } finally {
+        await bridge.close();
       }
     });
   },
