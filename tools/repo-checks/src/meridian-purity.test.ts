@@ -24,6 +24,9 @@ describe('impurities', () => {
     ['new-date-spaced.txt', 'new Date'],
     ['performance-now.txt', 'performance.now'],
     ['hrtime.txt', 'process.hrtime'],
+    ['crypto-random-values.txt', 'crypto.getRandomValues'],
+    ['crypto-random-uuid.txt', 'crypto.randomUUID'],
+    ['date-call.txt', 'Date()'],
   ])('reports %s', (name, call) => {
     const hits = impurities([source('src/x.ts', name)]);
     expect(hits).toHaveLength(1);
