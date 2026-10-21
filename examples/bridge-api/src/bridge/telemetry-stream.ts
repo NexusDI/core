@@ -1,0 +1,88 @@
+import type { ITelemetryFeed, ShipSnapshot } from '@nexusdi/meridian-systems';
+
+import type { TelemetryEvent } from '../ship/contracts';
+
+/** The headers of `GET /telemetry`. `no-transform` stops a compressing proxy from buffering the stream. */
+export const SSE_HEADERS = {
+  'content-type': 'text/event-stream',
+  'cache-control': 'no-cache, no-transform',
+} as const;
+
+const encoder = new TextEncoder();
+
+/** One server-sent event. Each line of `data` gets its own `data:` field. */
+const sse = (event: TelemetryEvent, data: string): Uint8Array =>
+  encoder.encode(
+    `event: ${event}\n${data
+      .split('\n')
+      .map((line) => `data: ${line}\n`)
+      .join('')}\n`,
+  );
+
+/**
+ * Streams `feed` as server-sent events: a `snapshot` event per frame, then
+ * one `offline` event with the feed's reason, then the end. The stream keeps
+ * only the latest frame the client has not read and enqueues it when the
+ * client reads, so a `POST /sim/advance` of 600 ticks queues one frame per
+ * client and never 600. A cancel unsubscribes from the feed.
+ */
+export function telemetryStream(
+  feed: ITelemetryFeed,
+): ReadableStream<Uint8Array> {
+  let latest: ShipSnapshot | undefined;
+  let offline: string | undefined;
+  let ended = false;
+  let wake: (() => void) | undefined;
+  let unsubscribe: () => void = () => {};
+
+  const notify = () => {
+    const resolve = wake;
+    wake = undefined;
+    resolve?.();
+  };
+
+  return new ReadableStream<Uint8Array>(
+    {
+      start() {
+        unsubscribe = feed.subscribe({
+          next(frame) {
+            if (ended || offline !== undefined) return;
+            latest = frame;
+            notify();
+          },
+          close(reason) {
+            if (ended || offline !== undefined) return;
+            offline = reason;
+            notify();
+          },
+        });
+      },
+      async pull(controller) {
+        while (latest === undefined && offline === undefined && !ended) {
+          await new Promise<void>((resolve) => (wake = resolve));
+        }
+        if (ended) return;
+        if (latest !== undefined) {
+          controller.enqueue(sse('snapshot', JSON.stringify(latest)));
+          latest = undefined;
+          return;
+        }
+        if (offline !== undefined) {
+          ended = true;
+          controller.enqueue(sse('offline', offline));
+          controller.close();
+        }
+      },
+      cancel() {
+        if (ended) return;
+        ended = true;
+        latest = undefined;
+        unsubscribe();
+        notify();
+      },
+    },
+    // A zero high-water mark makes the stream pull only for a waiting read,
+    // so no frame waits in the queue beside `latest`.
+    { highWaterMark: 0 },
+  );
+}

@@ -36,6 +36,9 @@ export interface ISimDriver {
   advance(ticks: number): ShipSnapshot;
 }
 
+/** The event names `GET /telemetry` sends: a frame per tick, then `offline`. */
+export type TelemetryEvent = 'snapshot' | 'offline';
+
 export const NAV_CHARTS = new Token<INavCharts>('NavCharts');
 export const FLIGHT_LOG = new Token<IFlightLog>('FlightLog');
 export const MISSION = new Token<Mission>('Mission');
