@@ -324,7 +324,7 @@ exports[`NexusError > keeps the message of a providers deps entry that is not a 
 
 exports[`NexusError > keeps the message of a providers deps entry with a bad modif… 1`] = `
 "[NEXUS_BLUEPRINT_INVALID] the module graph has 1 error; nothing was built.
-  [NEXUS_INVALID_PROVIDER] Engineering.providers[0] deps[0] is optional(an object); optional() takes a class or a Token."
+  [NEXUS_INVALID_PROVIDER] Engineering.providers[0] deps[0] is optional(the MultiToken Diagnostics); optional() takes a class or a Token."
 `;
 
 exports[`NexusError > keeps the message of a providers entry that is a module 1`] = `
@@ -382,9 +382,9 @@ exports[`NexusError > keeps the message of defineModule() with a config that has
 
 exports[`NexusError > keeps the message of new Token() with an empty description 1`] = `"[NEXUS_INVALID_TOKEN] the string "" is not a token description. A Token needs a non-empty description string."`;
 
-exports[`NexusError > keeps the message of resolve() with a bad modifier entry 1`] = `"[NEXUS_INVALID_TOKEN] deps.checks: an object is all(an object); all() takes a MultiToken."`;
+exports[`NexusError > keeps the message of resolve() with a bad modifier entry 1`] = `"[NEXUS_INVALID_TOKEN] deps.checks: an object is all(the Token NavCharts); all() takes a MultiToken."`;
 
-exports[`NexusError > keeps the message of resolve() with a bare MultiToken entry 1`] = `"[NEXUS_INVALID_TOKEN] deps.checks: an object is the MultiToken Diagnostics; wrap it in all()."`;
+exports[`NexusError > keeps the message of resolve() with a bare MultiToken entry 1`] = `"[NEXUS_INVALID_TOKEN] deps.checks: the MultiToken Diagnostics collects many providers; wrap it in all()."`;
 
 exports[`NexusError > keeps the message of resolve() with a missing deps[1] 1`] = `
 "[NEXUS_NOT_VISIBLE] deps[1]: ReactorCore is provided in Engineering, and the lookup module cannot see it.

@@ -67,12 +67,12 @@ describe('brand', () => {
       errors: [
         {
           code: 'NEXUS_CORE_NOT_SHARED',
-          received: 'an object',
+          received: 'a provider',
           where: 'Shell.providers[0]',
         },
         {
           code: 'NEXUS_CORE_NOT_SHARED',
-          received: 'an object',
+          received: 'the module Remote',
           where: 'Shell',
         },
       ],
@@ -80,7 +80,7 @@ describe('brand', () => {
   });
 
   it('raises NEXUS_CORE_NOT_SHARED for a token from another copy', async () => {
-    const Remote = foreign(Object.create(null) as object);
+    const Remote = foreign({ description: 'meridian/NavCharts' });
     const error = await rejected(
       Nexus.create([provide(Remote as never, { useValue: 1 }) as never]),
     );
@@ -88,7 +88,7 @@ describe('brand', () => {
       errors: [
         {
           code: 'NEXUS_CORE_NOT_SHARED',
-          received: 'an object',
+          received: 'the Token meridian/NavCharts',
           where: 'root.providers[0]',
         },
       ],
@@ -96,15 +96,16 @@ describe('brand', () => {
   });
 
   it('keeps NEXUS_INVALID_TOKEN for a token from another copy as a description', () => {
-    const Remote = foreign(Object.create(null) as object);
+    const Remote = foreign({ description: 'meridian/NavCharts' });
     expect(thrown(() => new Token(Remote as never))).toMatchObject({
       code: 'NEXUS_INVALID_TOKEN',
+      received: 'the Token meridian/NavCharts',
       reason: 'bad-description',
     });
   });
 
   it('raises NEXUS_CORE_NOT_SHARED for a dep from another copy', async () => {
-    const REMOTE = foreign(Object.create(null) as object);
+    const REMOTE = foreign({ description: 'meridian/Remote' });
     const LOCAL = new Token<number>('Local');
     const error = await rejected(
       Nexus.create([
@@ -118,7 +119,7 @@ describe('brand', () => {
       errors: [
         {
           code: 'NEXUS_CORE_NOT_SHARED',
-          received: 'an object',
+          received: 'the Token meridian/Remote',
           where: 'root.providers[0], deps[0]',
         },
       ],
@@ -186,7 +187,7 @@ describe('brand', () => {
       errors: [
         {
           code: 'NEXUS_CORE_NOT_SHARED',
-          received: 'an object',
+          received: 'a provider',
           where: 'Shell',
         },
       ],
@@ -207,7 +208,7 @@ describe('brand', () => {
     );
     expect(error).toMatchObject({
       code: 'NEXUS_CORE_NOT_SHARED',
-      received: 'an object',
+      received: 'the module Remote',
       where: null,
     });
   });
@@ -217,11 +218,13 @@ describe('brand', () => {
     const Remote = foreign({ name: 'Remote', providers: [] });
     expect(await rejected(ship.load(Remote as never))).toMatchObject({
       code: 'NEXUS_CORE_NOT_SHARED',
+      received: 'the module Remote',
       where: 'load()',
     });
-    const TOKEN = foreign(Object.create(null) as object);
+    const TOKEN = foreign({ description: 'meridian/NavCharts' });
     expect(thrown(() => ship.get(TOKEN as never))).toMatchObject({
       code: 'NEXUS_CORE_NOT_SHARED',
+      received: 'the Token meridian/NavCharts',
       where: 'get()',
     });
   });
