@@ -32,11 +32,7 @@ export function molesAt(
   fractions: Readonly<Record<Gas, number>>,
 ): Record<Gas, number> {
   const total = (pressure * volume) / (R * temperature);
-  return {
-    O2: total * fractions.O2,
-    N2: total * fractions.N2,
-    CO2: total * fractions.CO2,
-    H2O: total * fractions.H2O,
-    volatiles: total * fractions.volatiles,
-  };
+  const moles = {} as Record<Gas, number>;
+  for (const gas of GASES) moles[gas] = total * fractions[gas];
+  return moles;
 }
