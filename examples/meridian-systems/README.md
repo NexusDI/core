@@ -9,32 +9,55 @@ The library is an example in the NexusDI repository. It reaches `@nexusdi/core` 
 A ship imports one module, the one `meridianSystems({ seed, dt })` returns. `seed` picks the random streams, and `dt` sets the ship seconds per tick.
 
 - `Simulation`, in `src/simulation/simulation.module.ts`, is a global module that `Simulation.forRoot({ seed, dt })` configures. It binds the clock, the random source, the ship state and the deck plan, and exports them with `SIM_OPTIONS`. Its schema refuses a `seed` that is not a whole number from 0 to 4294967295 and a `dt` that is not a positive finite number. `Nexus.create` then rejects with `NEXUS_PROVIDER_FAILED` for the `SimOptions` token. Its `cause` is `NEXUS_INVALID_MODULE_OPTIONS`, whose `issues` name each refused field, the value it got and the accepted range. The check runs for `forRoot` and `forRootAsync` alike.
-- `MeridianSystems`, the aggregate in `src/meridian-systems.module.ts`, is global too. It imports `Simulation.forRoot(options)`, and binds and exports `TICK_LOOP` with `FixedStepLoop`.
+- `Telemetry`, in `src/telemetry/telemetry.module.ts`, binds `TELEMETRY` to `SnapshotFeed` and exports it.
+- `MeridianSystems`, the aggregate in `src/meridian-systems.module.ts`, is global too. It imports `Simulation.forRoot(options)` and `Telemetry`, binds `TICK_LOOP` with `FixedStepLoop`, and exports `TICK_LOOP` and `TELEMETRY`.
 
 Each ship system contributes one `IShipSystem`, with a `name` and a `phase` from 1 to 6, to the multi token `SHIP_SYSTEMS`. `FixedStepLoop` takes them all with `all(SHIP_SYSTEMS)`. `all()` reads the binding module's own providers plus the exports of its imports and of the global modules. Each system module exports `SHIP_SYSTEMS`. A loop bound in `Simulation` would miss a system that a sibling module provides, so `TICK_LOOP` sits in the aggregate, which imports each system module from G1 on.
 
 The tokens follow the interface-first rule: each interface has a token named for its role, and the module binds a class to each service token with `useClass`. `src/index.ts` exports the tokens and their interfaces, and keeps the classes internal.
 
-| Token          | Interface       | Bound to                  | Bound in           |
-| -------------- | --------------- | ------------------------- | ------------------ |
-| `SIM_OPTIONS`  | `SimOptions`    | the `forRoot()` value     | `Simulation`       |
-| `SIM_CLOCK`    | `ISimClock`     | `FixedStepClock`          | `Simulation`       |
-| `RNG`          | `IRandomSource` | `SeededRandom`            | `Simulation`       |
-| `SHIP_STATE`   | `IShipState`    | `ShipStateStore`          | `Simulation`       |
-| `DECK_PLAN`    | `DeckPlan`      | `deck/meridian.deck.json` | `Simulation`       |
-| `TICK_LOOP`    | `ITickLoop`     | `FixedStepLoop`           | `MeridianSystems`  |
-| `SHIP_SYSTEMS` | `IShipSystem`   | one class per system      | each system module |
+| Token          | Interface        | Bound to                  | Bound in           |
+| -------------- | ---------------- | ------------------------- | ------------------ |
+| `SIM_OPTIONS`  | `SimOptions`     | the `forRoot()` value     | `Simulation`       |
+| `SIM_CLOCK`    | `ISimClock`      | `FixedStepClock`          | `Simulation`       |
+| `RNG`          | `IRandomSource`  | `SeededRandom`            | `Simulation`       |
+| `SHIP_STATE`   | `IShipState`     | `ShipStateStore`          | `Simulation`       |
+| `DECK_PLAN`    | `DeckPlan`       | `deck/meridian.deck.json` | `Simulation`       |
+| `TICK_LOOP`    | `ITickLoop`      | `FixedStepLoop`           | `MeridianSystems`  |
+| `TELEMETRY`    | `ITelemetryFeed` | `SnapshotFeed`            | `Telemetry`        |
+| `SHIP_SYSTEMS` | `IShipSystem`    | one class per system      | each system module |
 
 ## How a Tick Runs
 
-`TICK_LOOP.advance(ticks)` runs the ship forward. For each tick, the loop calls every system's `step()` in ascending phase, and in name order within a phase, each on the snapshot the previous system returned. It then advances the clock and commits the result to `SHIP_STATE`.
+`TICK_LOOP.advance(ticks)` runs the ship forward. For each tick, the loop calls every system's `step()` in ascending phase, and in name order within a phase, each on the snapshot the previous system returned. It then advances the clock, commits the result to `SHIP_STATE` and calls the tick listeners with the committed snapshot.
 
 - `FixedStepClock` derives the time from the tick, so 600 ticks of 0.5 s read exactly 300 s.
 - `SeededRandom` is splitmix32 over the seed. The loop hands each system its own `RNG.fork(name)`, so a new system leaves the numbers an older system draws unchanged.
 - `ShipStateStore` starts at tick 0 with the deck's four compartments (`bridge`, `habitat`, `reactor-bay`, `airlock`) filled with air at 293 K and 101.3 kPa.
-- `roundSnapshot(ship)` rounds every fraction to four significant digits and keeps integers exact. The `bridge-api` routes and the golden print snapshots in that form.
+- `roundSnapshot(ship)` rounds every fraction to four significant digits and keeps integers exact. The golden prints snapshots in that form.
+- `readShip(ship, deck)` returns a `ShipReading`: the snapshot with each compartment's `pressure` in pascals, from the moles of every gas, the temperature and the compartment's volume in the deck plan. It rounds the result once, as `roundSnapshot` does. The `bridge-api` routes and the telemetry frames send this reading, so the habitat reads 101.3 kPa at tick 0.
 
-This first increment (G0) has no ship system yet. The ship is idle: each tick moves the clock, and the air keeps the deck's initial values.
+The library has no ship system yet, and G1 adds the first. The ship is idle: each tick moves the clock, and the air keeps the deck's initial values.
+
+## Following the Ship Tick by Tick
+
+A console that shows the ship live needs each tick as the loop commits it. The loop calls tick listeners, and the `Telemetry` module turns them into a feed that `bridge-api` streams.
+
+`TICK_LOOP.listen(listener)` adds a listener and returns a function that removes it. The function runs twice safely. A function listened twice hears each tick twice.
+
+- The loop calls the listeners after each commit, in the order they subscribed. A listener added during a tick first hears the next one, and a listener removed during a tick hears it no more.
+- When a listener throws, the loop still calls the others. The tick stays committed, and `advance()` stops after that tick and throws the error, or an `AggregateError` with every error in call order when two or more threw.
+- A listener must not call `advance()`, since the loop is still inside the tick. Nothing guards against it.
+
+`SnapshotFeed` implements `ITelemetryFeed`, with `static deps = [TICK_LOOP, SHIP_STATE, DECK_PLAN] as const`. `TELEMETRY.subscribe(sink)` sends the sink the `readShip` reading of the current snapshot at once, then one reading per tick, and returns a function that unsubscribes the sink without calling its `close`. The feed reads each tick once, and only while a sink is open.
+
+The feed listens to the loop in `onInit`. The container calls `onInit` level by level after it builds the singletons, and the loop is a dependency of the feed, so the feed always subscribes to a loop that is ready. A container built with `onInit: false` gives a feed that never hears a tick. Disposal runs in reverse creation order, so the feed disposes before the loop it listens to. It stops listening and calls `close('ship offline')` on each open sink. A subscribe after that gets `close('ship offline')` at once.
+
+## Labelling the Graph with Ship Notes
+
+The devtools graph lists every provider of the ship beside the server's own. `shipNotes(view)` tells them apart: it labels each ship provider `system: <module name>`, such as `system: Telemetry` on `SnapshotFeed`.
+
+`shipNotes` finds the module that binds the `TICK_LOOP` the root resolves, walks that module's imports transitively and labels each provider in those modules. A module outside that walk, such as one the root imports beside the ship, gets no note. A root without `TICK_LOOP` gets no note at all. The function matches the `GraphAnnotator` shape of `@nexusdi/devtools` and imports nothing from it, so `bridge-api` passes it as `devtools({ annotate: [shipNotes] })`. The `phase: <n>` label waits for the first ship system (G1).
 
 ## The Physics
 
@@ -54,7 +77,7 @@ npx nx test @nexusdi/meridian-systems
 npx nx run @nexusdi/meridian-systems:e2e-growth
 ```
 
-- `test` runs the unit tests beside the files in `src/` and the module tests in `test/`. The module tests build `ShipUnderTest` on `@nexusdi/vitest` fixtures with probe systems, and assert rounded idle values after 600 ticks that hold on any Node.
+- `test` runs the unit tests beside the files in `src/` and the module tests in `test/`. The module tests build `ShipUnderTest` on `@nexusdi/vitest` fixtures with probe systems and the `Telemetry` module, and assert rounded idle values after 600 ticks that hold on any Node. `test/telemetry.test.ts` reads the feed's frames, and `test/notes.test.ts` reads the ship notes through `inspect()` from `@nexusdi/devtools`.
 - `e2e-growth` runs `e2e/idle.e2e.ts`, which compares seed 7 at ticks 0, 1 and 600 with `e2e/golden/idle.seed-7.json`. The suite runs only on the Node version `.nvmrc` names, and stops with both versions in the message on any other. `npx nx run @nexusdi/meridian-systems:e2e-growth -- -u` rewrites the golden. Review its diff as you review a change to `graph.json`. Under `CI`, Vitest writes no snapshot, so a missing golden fails.
 
 The non-required `demo-growth` CI job runs both `e2e-growth` targets (ship systems spec, section 14).
