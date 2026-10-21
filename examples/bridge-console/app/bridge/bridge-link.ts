@@ -53,23 +53,34 @@ class BridgeApiLink implements IBridgeLink {
     return res.body;
   }
   async graph() {
-    const res = await this.#get('graph', [404]);
-    if (res.status === 404) return null;
-    return (await res.json()) as NexusGraph;
+    const url = new URL('graph', this.options.url);
+    const res = await this.#fetch(url);
+    if (res.status === 404) {
+      await res.body?.cancel();
+      return null;
+    }
+    return (await (await this.#ok(res, url)).json()) as NexusGraph;
   }
 
-  /** Fetches `path` and throws on a status that is neither ok nor in `allowed`. */
-  async #get(path: string, allowed: readonly number[] = []) {
+  /** Fetches `path` and throws when the status is not ok. */
+  async #get(path: string) {
     const url = new URL(path, this.options.url);
-    const res = await fetch(url, {
+    return this.#ok(await this.#fetch(url), url);
+  }
+
+  /** Fetches `url` with the request's mission and abort signal. */
+  #fetch(url: URL) {
+    return fetch(url, {
       headers: { 'x-mission-id': this.request.mission.id },
       signal: this.request.signal,
     });
-    if (!res.ok && !allowed.includes(res.status)) {
-      await res.body?.cancel();
-      throw new Error(`bridge-api answered ${res.status} for ${url.pathname}`);
-    }
-    return res;
+  }
+
+  /** Returns `res` when it is ok, or cancels its body and throws its status. */
+  async #ok(res: Response, url: URL) {
+    if (res.ok) return res;
+    await res.body?.cancel();
+    throw new Error(`bridge-api answered ${res.status} for ${url.pathname}`);
   }
 }
 
