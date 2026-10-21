@@ -12,9 +12,9 @@ const messageOf = (error: unknown): string =>
   error instanceof Error ? error.message : String(error);
 
 /**
- * The fallback a station's SectionBoundary renders when its section fails
- * to load: the error code, the message the errors() plugin wrote, and a
- * retry button that loads the section again.
+ * The fallback a station's SectionBoundary renders for a failed load. It
+ * shows the error's code and message, and its retry button loads the
+ * section again.
  */
 export function SectionFailed({
   error,

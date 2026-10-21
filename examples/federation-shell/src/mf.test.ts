@@ -23,14 +23,30 @@ describe('startRemotes', () => {
   it('registers every remote /remotes.json lists before it resolves', async () => {
     const fetch = vi.fn(async () => Response.json(remotes));
     vi.stubGlobal('fetch', fetch);
+    const order: string[] = [];
+    registerRemotes.mockImplementation(() => order.push('registered'));
 
     const stations = await startRemotes();
+    order.push('resolved');
 
     expect(fetch).toHaveBeenCalledWith('/remotes.json');
     expect(registerRemotes).toHaveBeenCalledWith(remotes);
+    expect(order).toEqual(['registered', 'resolved']);
     expect(stations).toEqual({
       federation_cartography: 'registered',
       federation_command: 'registered',
+    });
+  });
+
+  it('marks a station the list leaves out failed', async () => {
+    vi.stubGlobal(
+      'fetch',
+      vi.fn(async () => Response.json([remotes[0]])),
+    );
+
+    expect(await startRemotes()).toEqual({
+      federation_cartography: 'registered',
+      federation_command: 'failed',
     });
   });
 

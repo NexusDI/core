@@ -22,7 +22,7 @@ function Route({ path }: { path: string }) {
   }
 }
 
-/** The shell's layout: the ship's name, the station links and the route. */
+/** The shell's layout: the station links above the current route. */
 export function App() {
   const path = usePath();
   return (
