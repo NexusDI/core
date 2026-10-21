@@ -6,9 +6,16 @@
     "sourceMap": false,
     "module": "esnext",
     "moduleResolution": "bundler",
-    "lib": ["es2022", "dom"]
+    "lib": ["es2022", "dom"],
+    "allowImportingTsExtensions": true
   },
-  "include": ["e2e/**/*.ts", "e2e/**/*.js", "playwright.config.mts"],
+  "include": [
+    "e2e/**/*.ts",
+    "e2e/**/*.js",
+    "playwright.config.mts",
+    "playwright.e2e-growth.config.mts",
+    "playwright.servers.mts"
+  ],
   "exclude": [
     "out-tsc",
     "test-output",

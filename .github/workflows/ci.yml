@@ -209,8 +209,8 @@ jobs:
   # project keeps them in an e2e-growth target, and only this job runs it. The
   # rulesets never require this check, so a red growth case shows on the run
   # and blocks no merge or release. A case moves into its app's e2e target,
-  # and so into demo-apps, after a green rc cycle. bridge-api and
-  # meridian-systems each hold an e2e-growth target.
+  # and so into demo-apps, after a green rc cycle. bridge-api,
+  # bridge-console and meridian-systems each hold an e2e-growth target.
   demo-growth:
     runs-on: ubuntu-latest
     timeout-minutes: 20
