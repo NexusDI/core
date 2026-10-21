@@ -9,8 +9,8 @@
         "m3",
         "m4",
         "m5",
-        "m7",
-        "m8"
+        "m8",
+        "m9"
       ],
       "exports": []
     },
@@ -58,10 +58,12 @@
       "name": "MeridianSystems",
       "global": true,
       "imports": [
-        "m6"
+        "m6",
+        "m7"
       ],
       "exports": [
-        "p6"
+        "p6",
+        "p12"
       ]
     },
     {
@@ -79,7 +81,7 @@
     },
     {
       "id": "m7",
-      "name": "SimDriver",
+      "name": "Telemetry",
       "global": false,
       "imports": [],
       "exports": [
@@ -88,6 +90,15 @@
     },
     {
       "id": "m8",
+      "name": "SimDriver",
+      "global": false,
+      "imports": [],
+      "exports": [
+        "p13"
+      ]
+    },
+    {
+      "id": "m9",
       "name": "interceptors",
       "global": false,
       "imports": [
@@ -243,8 +254,20 @@
     },
     {
       "id": "p12",
-      "token": "SimDriver",
+      "token": "TelemetryFeed",
       "module": "m7",
+      "lifetime": "singleton",
+      "kind": "class",
+      "eager": true,
+      "async": null,
+      "notes": [],
+      "implementation": "SnapshotFeed",
+      "internal": false
+    },
+    {
+      "id": "p13",
+      "token": "SimDriver",
+      "module": "m8",
       "lifetime": "singleton",
       "kind": "class",
       "eager": true,
@@ -254,9 +277,9 @@
       "internal": false
     },
     {
-      "id": "p13",
+      "id": "p14",
       "token": "DriverOptions",
-      "module": "m7",
+      "module": "m8",
       "lifetime": null,
       "kind": "value",
       "eager": true,
@@ -266,9 +289,9 @@
       "internal": false
     },
     {
-      "id": "p14",
+      "id": "p15",
       "token": "NavAudit",
-      "module": "m8",
+      "module": "m9",
       "lifetime": "singleton",
       "kind": "class",
       "eager": true,
@@ -278,9 +301,9 @@
       "internal": false
     },
     {
-      "id": "p15",
+      "id": "p16",
       "token": "interceptors registry",
-      "module": "m8",
+      "module": "m9",
       "lifetime": "singleton",
       "kind": "factory",
       "eager": true,
@@ -290,9 +313,9 @@
       "internal": false
     },
     {
-      "id": "p16",
+      "id": "p17",
       "token": "interceptors guard",
-      "module": "m8",
+      "module": "m9",
       "lifetime": "singleton",
       "kind": "factory",
       "eager": true,
@@ -372,22 +395,32 @@
     },
     {
       "from": "p12",
+      "to": "p9",
+      "kind": "required"
+    },
+    {
+      "from": "p13",
+      "to": "p6",
+      "kind": "required"
+    },
+    {
+      "from": "p13",
       "to": "p11",
       "kind": "required"
     },
     {
-      "from": "p12",
-      "to": "p13",
-      "kind": "required"
-    },
-    {
-      "from": "p14",
-      "to": "p5",
+      "from": "p13",
+      "to": "p14",
       "kind": "required"
     },
     {
       "from": "p15",
-      "to": "p14",
+      "to": "p5",
+      "kind": "required"
+    },
+    {
+      "from": "p16",
+      "to": "p15",
       "kind": "required"
     }
   ]
