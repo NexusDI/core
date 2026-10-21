@@ -69,8 +69,9 @@ export async function sectorsServer() {
 
 /**
  * What the ship routes' mocked nexus.server exports: the BridgeConsole
- * graph with the bridge link double. A test that needs another link opens
- * its scope in its own container and puts that scope on the router context.
+ * graph with the bridge link double, so the engineering action posts no
+ * command to a backend. A test that needs another link opens its scope in
+ * its own container and puts that scope on the router context.
  */
 export async function shipServer() {
   const ship = await createTestingContainer(BridgeConsole)

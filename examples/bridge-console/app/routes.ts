@@ -13,6 +13,7 @@ export default [
     route('charts', 'routes/charts.tsx'),
     layout('routes/ship-layout.tsx', [
       route('diagnostics', 'routes/diagnostics.tsx'),
+      route('systems/engineering', 'routes/systems/engineering.tsx'),
     ]),
   ]),
   // A resource route outside the page layout: it answers with the stream alone.
