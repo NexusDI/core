@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
 
 import { DEFINITION_BRAND } from './brand.js';
-import { defineModule } from './define-module.js';
+import { declareModuleClass, defineModule } from './define-module.js';
 import { describeValue } from './describe.js';
 import { provide } from './provide.js';
 import { MultiToken, Token } from './token.js';
@@ -29,6 +29,18 @@ describe('describeValue', () => {
     expect(
       describeValue(provide(new Token<string>('Nav'), { useValue: 'x' })),
     ).toBe('a provider');
+  });
+
+  it('names an @Module class as a module, whatever its static fields', () => {
+    class Hangar {
+      static description = 'Charts and routes';
+    }
+    declareModuleClass(Hangar, { name: 'Hangar' });
+    expect(describeValue(Hangar)).toBe('the module Hangar');
+    const Unnamed = Object.defineProperty(class {}, 'name', { value: '' });
+    declareModuleClass(Unnamed, { name: 'Bay' });
+    expect(describeValue(Unnamed)).toBe('the module (anonymous module)');
+    expect(describeValue(class Plain {})).toBe('the function Plain');
   });
 
   it('names a value another copy made by its own fields', () => {
