@@ -1,8 +1,8 @@
 /**
  * Every copy of core writes this on the definitions it makes. It never
- * decides acceptance (that is the WeakMaps' job, SEC-003). Core reads it only
- * to raise NEXUS_CORE_NOT_SHARED for a rejected value another copy made.
- * Core writes no global.
+ * decides acceptance (that is the WeakMaps' job, SEC-003). Core reads it to
+ * name a value in an error and to raise NEXUS_CORE_NOT_SHARED for a value
+ * another copy made. Core writes no global.
  */
 export const DEFINITION_BRAND: unique symbol = Symbol.for(
   'nexusdi.definition',

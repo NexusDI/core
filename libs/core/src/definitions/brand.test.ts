@@ -4,7 +4,7 @@ import { rejected, thrown } from '../../test-support/catch.js';
 import { Nexus } from '../runtime/nexus.js';
 import { isForeign } from './brand.js';
 import { declareModuleClass, defineModule } from './define-module.js';
-import { all } from './modifiers.js';
+import { all, optional } from './modifiers.js';
 import { provide } from './provide.js';
 import { MultiToken, Token } from './token.js';
 
@@ -73,7 +73,7 @@ describe('brand', () => {
         {
           code: 'NEXUS_CORE_NOT_SHARED',
           received: 'the module Remote',
-          where: 'Shell',
+          where: 'imported by Shell',
         },
       ],
     });
@@ -188,7 +188,7 @@ describe('brand', () => {
         {
           code: 'NEXUS_CORE_NOT_SHARED',
           received: 'a provider',
-          where: 'Shell',
+          where: 'imported by Shell',
         },
       ],
     });
@@ -213,7 +213,7 @@ describe('brand', () => {
     });
   });
 
-  it('raises NEXUS_CORE_NOT_SHARED for a module from another copy at load() and get()', async () => {
+  it('raises NEXUS_CORE_NOT_SHARED for a value from another copy at load(), get() and has()', async () => {
     await using ship = await Nexus.create([]);
     const Remote = foreign({ name: 'Remote', providers: [] });
     expect(await rejected(ship.load(Remote as never))).toMatchObject({
@@ -226,6 +226,108 @@ describe('brand', () => {
       code: 'NEXUS_CORE_NOT_SHARED',
       received: 'the Token meridian/NavCharts',
       where: 'get()',
+    });
+    expect(thrown(() => ship.has(TOKEN as never))).toMatchObject({
+      code: 'NEXUS_CORE_NOT_SHARED',
+      received: 'the Token meridian/NavCharts',
+      where: 'has()',
+    });
+    expect(ship.has({} as never)).toBe(false);
+  });
+
+  it('raises NEXUS_CORE_NOT_SHARED for a module from another copy as the root, a class included', async () => {
+    const RemoteClass = foreign(class Remote {});
+    expect(await rejected(Nexus.create(RemoteClass as never))).toMatchObject({
+      code: 'NEXUS_CORE_NOT_SHARED',
+      received: 'the module Remote',
+      where: null,
+    });
+  });
+
+  it('raises NEXUS_CORE_NOT_SHARED for a module from another copy in the module option', async () => {
+    const NAV = new Token<string>('Nav');
+    await using ship = await Nexus.create([provide(NAV, { useValue: 'x' })]);
+    const Remote = foreign({ name: 'Remote', providers: [] });
+    const option = { module: Remote as never };
+    expect(thrown(() => ship.get(NAV, option))).toMatchObject({
+      code: 'NEXUS_CORE_NOT_SHARED',
+      where: 'get()',
+    });
+    expect(thrown(() => ship.has(NAV, option))).toMatchObject({
+      code: 'NEXUS_CORE_NOT_SHARED',
+      where: 'has()',
+    });
+    expect(thrown(() => ship.resolve([NAV], option))).toMatchObject({
+      code: 'NEXUS_CORE_NOT_SHARED',
+      where: 'resolve()',
+    });
+    expect(thrown(() => ship.validate([NAV], option))).toMatchObject({
+      code: 'NEXUS_CORE_NOT_SHARED',
+      where: 'validate()',
+    });
+  });
+
+  it('raises NEXUS_CORE_NOT_SHARED for a deps entry and a deps value from another copy', async () => {
+    await using ship = await Nexus.create([]);
+    const REMOTE = foreign({ description: 'meridian/NavCharts' });
+    expect(thrown(() => ship.resolve({ a: REMOTE } as never))).toMatchObject({
+      code: 'NEXUS_CORE_NOT_SHARED',
+      received: 'the Token meridian/NavCharts',
+      where: 'resolve(), deps.a',
+    });
+    expect(
+      thrown(() => ship.resolve([optional(REMOTE as never)] as never)),
+    ).toMatchObject({
+      code: 'NEXUS_CORE_NOT_SHARED',
+      received: 'the Token meridian/NavCharts',
+      where: 'resolve(), deps[0]',
+    });
+    expect(thrown(() => ship.validate([REMOTE] as never))).toMatchObject({
+      code: 'NEXUS_BLUEPRINT_INVALID',
+      errors: [{ code: 'NEXUS_CORE_NOT_SHARED', where: 'validate(), deps[0]' }],
+    });
+    expect(thrown(() => ship.resolve(REMOTE as never))).toMatchObject({
+      code: 'NEXUS_CORE_NOT_SHARED',
+      where: 'resolve()',
+    });
+  });
+
+  it('raises NEXUS_CORE_NOT_SHARED for a value from another copy passed to defineModule()', () => {
+    const REMOTE = foreign({ description: 'meridian/NavCharts' });
+    expect(thrown(() => defineModule(REMOTE as never))).toMatchObject({
+      code: 'NEXUS_CORE_NOT_SHARED',
+      received: 'the Token meridian/NavCharts',
+      where: 'defineModule()',
+    });
+  });
+
+  it('names the forRootAsync() factory in the place of a dep from another copy', async () => {
+    const REMOTE = foreign({ description: 'meridian/NavCharts' });
+    const Charts = defineModule({
+      name: 'Charts',
+      options: new Token<string>('ChartsOptions'),
+    });
+    const error = await rejected(
+      Nexus.create(
+        defineModule({
+          name: 'Shell',
+          imports: [
+            Charts.forRootAsync({
+              useFactory: (n: unknown) => String(n),
+              deps: [REMOTE as never],
+            }),
+          ],
+        }),
+      ),
+    );
+    expect(error).toMatchObject({
+      errors: [
+        {
+          code: 'NEXUS_CORE_NOT_SHARED',
+          received: 'the Token meridian/NavCharts',
+          where: 'Charts.providers[0] (the forRootAsync() factory), deps[0]',
+        },
+      ],
     });
   });
 

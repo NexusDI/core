@@ -1,3 +1,4 @@
+import { CoreNotSharedError } from '../errors/index.js';
 import { DEFINITION_BRAND } from './brand.js';
 import { MultiToken } from './token.js';
 
@@ -28,6 +29,14 @@ function definitionName(value: object): string | undefined {
   } catch {
     return undefined;
   }
+}
+
+/** The error for `value`, which another copy of core made, met at `where`. */
+export function notShared(
+  value: unknown,
+  where: string | null,
+): CoreNotSharedError {
+  return new CoreNotSharedError({ received: describeValue(value), where });
 }
 
 /** A short description of any value, for the `received` field of an error. */

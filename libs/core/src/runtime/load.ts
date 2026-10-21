@@ -1,9 +1,9 @@
 import type { Blueprint } from '../blueprint/blueprint.js';
 import { isForeign } from '../definitions/brand.js';
 import { resolveModuleRef } from '../definitions/define-module.js';
-import { describeValue } from '../definitions/describe.js';
+import { describeValue, notShared } from '../definitions/describe.js';
 import { HOOK_SITES } from '../definitions/hook-sites.js';
-import { CoreNotSharedError, InvalidModuleError } from '../errors/index.js';
+import { InvalidModuleError } from '../errors/index.js';
 import { compileTraced, observerFailed } from './compile-traced.js';
 import { startBlueprint, type StartupPlan } from './startup.js';
 import { assertOpen, track, type RootState } from './state.js';
@@ -40,10 +40,7 @@ async function loadNow(
     const definition = resolveModuleRef(module);
     if (definition === undefined)
       throw isForeign(module)
-        ? new CoreNotSharedError({
-            received: describeValue(module),
-            where: 'load()',
-          })
+        ? notShared(module, 'load()')
         : new InvalidModuleError({ received: describeValue(module), path: [] });
 
     const current = root.blueprint;
