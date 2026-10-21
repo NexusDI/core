@@ -256,6 +256,10 @@ describe('Nexus', () => {
         module: 'Comms',
         issues: [{ message: 'expected a number', path: ['frequency'] }],
       });
+      expect(error.message).toBe(
+        '[NEXUS_PROVIDER_FAILED] token=CommsOptions module=Comms path=CommsOptions. https://nexus.js.org/errors/NEXUS_PROVIDER_FAILED' +
+          ' Cause: [NEXUS_INVALID_MODULE_OPTIONS] module=Comms issues=frequency: expected a number. https://nexus.js.org/errors/NEXUS_INVALID_MODULE_OPTIONS',
+      );
     });
 
     it('validates a forRootAsync() factory result after it resolves', async () => {

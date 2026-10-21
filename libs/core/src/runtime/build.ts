@@ -398,7 +398,13 @@ export async function buildInto(
         observeRejection(pending);
         throw error;
       }
-      value = await pending;
+      try {
+        value = await pending;
+      } catch (error) {
+        // The factory's promise is user code, so a NexusError it rejects
+        // with, such as another container's, keeps its text.
+        throw fromUserCode(error);
+      }
     }
     // Every build yields once more before it stores, an async one after its
     // await too, so a level's builds store in the order rc.0 gave them: a

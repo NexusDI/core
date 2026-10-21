@@ -3,6 +3,7 @@ import { unreachable } from '../definitions/unreachable.js';
 import { DisposedError, ProviderError } from '../errors/index.js';
 import { moduleName } from './build.js';
 import { disposeInReverse } from './dispose.js';
+import { causeOf } from './format.js';
 import type { OwnedEntry } from './ownership.js';
 import type { ContainerState } from './state.js';
 import { emitRun, reportDisposal, type RunTrace } from './trace.js';
@@ -57,7 +58,7 @@ function failureOf(id: string | null, error: unknown, bp: Blueprint): Failure {
       token: error.token,
       module: error.module,
       path: error.path,
-      cause: error.cause,
+      cause: causeOf(error),
     };
   }
   const record = id === null ? undefined : bp.providers.get(id);

@@ -1,7 +1,7 @@
+import { ERROR_BRAND } from './brand.js';
 import { lineOf } from './line.js';
 
-/** Every copy of core writes it, so isNexusError works across copies. */
-export const ERROR_BRAND: unique symbol = Symbol.for('nexusdi.error') as never;
+export { ERROR_BRAND };
 
 type Reserved = 'message' | 'name' | 'stack' | 'cause';
 
@@ -30,7 +30,8 @@ export function ownsText(error: Error): boolean {
 /**
  * The base of every error NexusDI raises. One constructor does all the
  * work: the fields become own enumerable properties; code, name and the
- * brand are own non-enumerable ones; the message is the one-line form.
+ * brand are own non-enumerable ones; the message is the one-line form,
+ * which ends with the `cause` when the options carry one.
  */
 export class NexusError<C extends string = string> extends Error {
   declare readonly code: C;
@@ -47,7 +48,10 @@ export class NexusError<C extends string = string> extends Error {
     options?: NexusErrorOptions,
     docs?: string,
   ) {
-    super(`[${code}] ${options?.text ?? lineOf(code, fields, docs)}`, options);
+    super(
+      `[${code}] ${options?.text ?? lineOf(code, fields, docs, options)}`,
+      options,
+    );
     for (const [key, value] of Object.entries(fields))
       if (key !== 'code') (this as Record<string, unknown>)[key] = value;
     for (const [key, value] of Object.entries(options?.hidden ?? {}))

@@ -1,3 +1,6 @@
+import { describeThrown } from './describe-thrown.js';
+import type { SchemaIssue } from './module-options-error.js';
+
 /** The docs page of each code. */
 export const DOCS_URL = 'https://nexus.js.org/errors/';
 
@@ -22,26 +25,73 @@ function oneLine(value: string): string {
 }
 
 /**
+ * Writes an issue, such as a schema issue, as `path: message`, or as the
+ * message alone when it has no path. A `{ key }` segment prints its key.
+ */
+export function issueLine(issue: SchemaIssue): string {
+  const keys = (issue.path ?? []).map((segment) =>
+    String(
+      segment !== null && typeof segment === 'object' ? segment.key : segment,
+    ),
+  );
+  return keys.length === 0
+    ? issue.message
+    : `${keys.join('.')}: ${issue.message}`;
+}
+
+/**
+ * True for an item lineOf prints with issueLine: an object, not an Error,
+ * with a string message and no path or an array path.
+ */
+const isIssue = (item: unknown): item is SchemaIssue =>
+  typeof item === 'object' &&
+  item !== null &&
+  !(item instanceof Error) &&
+  typeof (item as { message?: unknown }).message === 'string' &&
+  ((item as { path?: unknown }).path === undefined ||
+    Array.isArray((item as { path?: unknown }).path));
+
+/** How many issues the one-line message prints before `(and N more)`. */
+const LINE_ISSUES = 3;
+
+/**
  * Core's message body: the fields that are strings, numbers or non-empty
  * string arrays, as key=value pairs in field order, then the code's docs
- * link under `docs`. A line break inside a value is escaped. No text per
- * code, so the bundle carries none.
+ * link under `docs`. A non-empty array of issues (objects with a string
+ * message that are not Errors) prints its first three as `path: message`,
+ * joined by `; `. A cause in `options` follows the link as `Cause: ` and
+ * its text. A line break inside a value is escaped. No text per code, so
+ * the bundle carries none.
  */
-export function lineOf(code: string, fields: object, docs = DOCS_URL): string {
+export function lineOf(
+  code: string,
+  fields: object,
+  docs = DOCS_URL,
+  options?: ErrorOptions,
+): string {
   const parts: string[] = [];
   for (const [key, value] of Object.entries(fields)) {
     if (key === 'code') continue;
     if (typeof value === 'string' || typeof value === 'number')
       parts.push(`${key}=${oneLine(String(value))}`);
-    else if (
-      Array.isArray(value) &&
-      value.length > 0 &&
-      value.every((item) => typeof item === 'string')
-    )
-      parts.push(`${key}=${oneLine(value.join(','))}`);
+    else if (Array.isArray(value) && value.length > 0) {
+      if (value.every((item) => typeof item === 'string'))
+        parts.push(`${key}=${oneLine(value.join(','))}`);
+      else if (value.every(isIssue)) {
+        const more = value.length - LINE_ISSUES;
+        const shown = value.slice(0, LINE_ISSUES).map(issueLine).join('; ');
+        parts.push(
+          `${key}=${oneLine(more > 0 ? `${shown} (and ${more} more)` : shown)}`,
+        );
+      }
+    }
   }
   const head = parts.length === 0 ? '' : `${parts.join(' ')}. `;
-  return `${head}${docs}${code}`;
+  const cause =
+    options !== undefined && 'cause' in options
+      ? ` Cause: ${oneLine(describeThrown(options.cause))}`
+      : '';
+  return `${head}${docs}${code}${cause}`;
 }
 
 /** The parts of a formatted message, as a formatError hook returns them. */

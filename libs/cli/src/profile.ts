@@ -54,11 +54,18 @@ export function describeFailure(error: unknown): string {
       current instanceof Error
         ? `${current.name}: ${current.message}`
         : String(current);
-    // The errors() plugin ends the message's first line with its cause;
-    // print that cause once.
+    // Core's one-line message and the errors() text both end the first
+    // line with the cause, a NexusError cause by its message alone; print
+    // that cause once.
+    const head = (lines.at(-1) ?? '').split('\n', 1)[0];
+    const message =
+      current instanceof Error ? String(current.message).split('\n', 1)[0] : '';
     if (depth === 0)
       lines.push(current instanceof Error ? current.message : text);
-    else if (!(lines.at(-1) ?? '').split('\n', 1)[0].endsWith(`: ${text}`))
+    else if (
+      !head.endsWith(`: ${text}`) &&
+      !(message !== '' && head.endsWith(` ${message}`))
+    )
       lines.push(`  caused by ${text}`);
     current = current instanceof Error ? current.cause : undefined;
   }
