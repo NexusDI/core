@@ -135,6 +135,44 @@ describe('telemetryStream', () => {
     expect(await read(reader)).toBe('done');
   });
 
+  it('unsubscribes and sends ship offline when the shutdown signal aborts', async () => {
+    const feed = new FakeFeed();
+    const shutdown = new AbortController();
+    const reader = telemetryStream(feed, shutdown.signal).getReader();
+    await read(reader);
+    shutdown.abort();
+    expect(feed.unsubscribe).toHaveBeenCalledTimes(1);
+    expect(await read(reader)).toBe(sse('offline', 'ship offline'));
+    expect(await read(reader)).toBe('done');
+  });
+
+  it('sends ship offline at once and never subscribes after the shutdown signal aborted', async () => {
+    const feed = new FakeFeed();
+    const reader = telemetryStream(feed, AbortSignal.abort()).getReader();
+    expect(await read(reader)).toBe(sse('offline', 'ship offline'));
+    expect(await read(reader)).toBe('done');
+    expect(feed.sink).toBeUndefined();
+  });
+
+  it('stops listening to the shutdown signal once the stream is cancelled or offline', async () => {
+    const feed = new FakeFeed();
+    const shutdown = new AbortController();
+    const remove = vi.spyOn(shutdown.signal, 'removeEventListener');
+    const cancelled = telemetryStream(feed, shutdown.signal).getReader();
+    await read(cancelled);
+    await cancelled.cancel();
+    const offline = telemetryStream(feed, shutdown.signal).getReader();
+    feed.sink?.close('ship offline');
+    expect(remove).toHaveBeenCalledTimes(2);
+
+    shutdown.abort();
+    expect(feed.unsubscribe).toHaveBeenCalledTimes(1);
+    expect(await read(offline)).toBe(
+      sse('snapshot', JSON.stringify(frameAt(0))),
+    );
+    expect(await read(offline)).toBe(sse('offline', 'ship offline'));
+  });
+
   it('names the event-stream type and turns off proxy transforms', () => {
     expect(SSE_HEADERS).toEqual({
       'content-type': 'text/event-stream',

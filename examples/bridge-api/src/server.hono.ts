@@ -14,12 +14,15 @@ import {
 } from './ship-from-env';
 
 await using ship = await shipFromEnv();
+const shutdown = new AbortController();
 const bridge = createBridge(ship, {
   graph: isDev(process.env) ? () => graph(ship) : undefined,
+  shutdown: shutdown.signal,
 });
 const server = serve({ fetch: bridge.fetch, port: port() }, (info) =>
   listening(info.port),
 );
 // serve() returns an http.Server unless its options name another server.
-stopOnSigterm(server as Server, ship);
+stopOnSigterm(server as Server, shutdown);
 await once(server, 'close');
+// `await using` disposes the ship here, after the last response.

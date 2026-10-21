@@ -91,7 +91,9 @@ export async function createBridge(
     scoped.get(
       '/telemetry',
       di.inject({ feed: TELEMETRY }, async ({ feed }, _req, reply) =>
-        reply.headers(SSE_HEADERS).send(telemetryReadable(feed)),
+        reply
+          .headers(SSE_HEADERS)
+          .send(telemetryReadable(feed, options.shutdown)),
       ),
     );
     scoped.post(

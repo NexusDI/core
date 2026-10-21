@@ -1,4 +1,6 @@
 import { once } from 'node:events';
+import { connect } from 'node:net';
+import { setTimeout as sleep } from 'node:timers/promises';
 
 import { Nexus } from '@nexusdi/core';
 import {
@@ -127,6 +129,34 @@ describe.each(['hono', 'express', 'fastify'])(
       // The client's fetch keeps its connection alive. The entry closes it
       // once the stream ends, so the exit waits for no keep-alive timeout.
       expect(performance.now() - sent).toBeLessThan(1_500);
+    });
+
+    it('answers 200 to a request whose body arrives after SIGTERM', async () => {
+      const child = start(`server.${framework}.ts`);
+      const { port, stderr } = await urlOf(child);
+      // An IPv4 client, since a server on `localhost` can listen on ::1
+      // alone or on both ::1 and 127.0.0.1.
+      const socket = connect(port, '127.0.0.1');
+      await once(socket, 'connect');
+      let response = '';
+      socket.setEncoding('utf8');
+      socket.on('data', (chunk: string) => (response += chunk));
+      const body = JSON.stringify({ ticks: 1 });
+      socket.write(
+        'POST /sim/advance HTTP/1.1\r\nHost: localhost\r\n' +
+          `Content-Type: application/json\r\nContent-Length: ${body.length}\r\n\r\n`,
+      );
+      // The headers reach the server before the signal, and the body after.
+      await sleep(200);
+      const exited = once(child, 'exit');
+      child.kill('SIGTERM');
+      await sleep(200);
+      socket.write(body);
+
+      const closed = once(socket, 'close');
+      const [[code, signal]] = await Promise.all([exited, closed]);
+      expect(response.split('\r\n')[0], stderr()).toBe('HTTP/1.1 200 OK');
+      expect({ code, signal }, stderr()).toEqual({ code: 0, signal: null });
     });
   },
 );

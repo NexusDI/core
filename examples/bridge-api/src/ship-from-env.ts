@@ -52,6 +52,7 @@ export function shipFromEnv(): Promise<Nexus> {
 export interface StoppingServer {
   close(): unknown;
   closeIdleConnections(): void;
+  closeAllConnections(): void;
   on(
     event: 'request',
     listener: (
@@ -63,52 +64,50 @@ export interface StoppingServer {
 
 /**
  * On SIGTERM, calls `close` (default `server.close()`) to stop the server
- * taking connections, then disposes the ship. The server waits for its open
- * connections before it closes, and the ship's telemetry feed ends every open
- * `GET /telemetry` stream when it disposes. It starts the dispose without
- * waiting for close, since close waits on the streams the dispose ends.
- * `server.close()` closes only the connections idle when it runs, so each
- * response that finishes after SIGTERM calls `server.closeIdleConnections()`.
- * Without that call, a keep-alive connection whose stream ended holds the
- * server open until the client's or the server's keep-alive timeout ends it
- * (5 seconds on Node, 72 on Fastify). An entry calls this before its server
- * takes a request. A second dispose, such as an entry's `await using`,
- * returns the first one's promise. A rejection from either step goes to the
- * console and sets exit code 1 (`http.Server.close()` without a callback
- * never throws).
+ * taking connections, then aborts `shutdown`, which ends every open
+ * `GET /telemetry` stream with `ship offline`. The server waits for the
+ * requests in flight, so each one answers with the ship still running. The
+ * entry disposes the ship once the server has closed. `server.close()`
+ * closes only the connections idle when it runs, so each response that
+ * finishes after SIGTERM calls `server.closeIdleConnections()`. Without that
+ * call, a keep-alive connection holds the server open until the client's or
+ * the server's keep-alive timeout ends it (5 seconds on Node, 72 on
+ * Fastify). After `drain` milliseconds (default 10 000),
+ * `server.closeAllConnections()` ends the connections still open, such as
+ * one that never sent a request (nodejs/node#63452). The timer keeps no
+ * process alive. An entry calls this before its server takes a request. A
+ * throw or a rejection from `close` goes to the console and sets exit code 1.
  */
 export function stopOnSigterm(
   server: StoppingServer,
-  ship: AsyncDisposable,
+  shutdown: AbortController,
   {
     close = () => server.close(),
+    drain = 10_000,
     signals = process,
   }: {
     close?: () => unknown;
+    drain?: number;
     signals?: { once(event: 'SIGTERM', listener: () => void): unknown };
   } = {},
 ): void {
-  let stopping = false;
   server.on('request', (_, response) =>
     response.once('finish', () => {
-      if (stopping) server.closeIdleConnections();
+      if (shutdown.signal.aborted) server.closeIdleConnections();
     }),
   );
-  signals.once('SIGTERM', async () => {
-    stopping = true;
-    const steps = await Promise.allSettled([
-      (async () => close())(),
-      ship[Symbol.asyncDispose](),
-    ]);
-    // Fastify's close rejects with the dispose's own error through the
-    // onClose hook, so the Set reports that error once.
-    const errors = new Set(
-      steps.flatMap((step) =>
-        step.status === 'rejected' ? [step.reason] : [],
-      ),
-    );
-    for (const error of errors) console.error(error);
-    if (errors.size > 0) process.exitCode = 1;
+  const report = (error: unknown) => {
+    console.error(error);
+    process.exitCode = 1;
+  };
+  signals.once('SIGTERM', () => {
+    try {
+      Promise.resolve(close()).catch(report);
+    } catch (error) {
+      report(error);
+    }
+    shutdown.abort();
+    setTimeout(() => server.closeAllConnections(), drain).unref();
   });
 }
 
