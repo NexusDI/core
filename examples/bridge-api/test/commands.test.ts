@@ -20,7 +20,12 @@ const refuse = (error: unknown) =>
 
 describe('answerCommand', () => {
   it('answers 202 with the tick that applies the command', () => {
-    expect(answerCommand(desk(() => ({ tick: 4 })), {})).toEqual({
+    expect(
+      answerCommand(
+        desk(() => ({ tick: 4 })),
+        {},
+      ),
+    ).toEqual({
       status: 202,
       body: { tick: 4 },
     });

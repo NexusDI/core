@@ -397,9 +397,16 @@ describe.each(['hono', 'express', 'fastify'] as const)(
     test.for(UNREADABLE)(
       'POST /commands answers 400 for %s',
       async ([, payload], { nexus }) => {
-        const { status, body } = await call(nexus, 'POST', '/commands', payload);
+        const { status, body } = await call(
+          nexus,
+          'POST',
+          '/commands',
+          payload,
+        );
         expect(status).toBe(400);
         expect(body).toMatchObject({ code: 'MERIDIAN_BAD_COMMAND' });
+        // A refused body is never queued, so the log stays empty.
+        expect(nexus.get(SHIP_STATE).log()).toEqual([]);
       },
     );
 
@@ -407,9 +414,10 @@ describe.each(['hono', 'express', 'fastify'] as const)(
       nexus,
     }) => {
       const command = { system: 'engineering', action: 'throttle', level: 1 };
-      expect(await call(nexus, 'POST', '/commands', charset(command))).toEqual(
-        { status: 202, body: { tick: 1 } },
-      );
+      expect(await call(nexus, 'POST', '/commands', charset(command))).toEqual({
+        status: 202,
+        body: { tick: 1 },
+      });
     });
 
     test('POST /commands answers 413 for a body over 100 kB', async ({
