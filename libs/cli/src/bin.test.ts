@@ -1,5 +1,5 @@
-import { spawn } from 'node:child_process';
-import { readFileSync, writeFileSync } from 'node:fs';
+import { execFileSync, spawn } from 'node:child_process';
+import { readFileSync, statSync, writeFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { describe, expect, it } from 'vitest';
 
@@ -209,5 +209,14 @@ describe('nexusdi graph, JavaScript entries', () => {
     });
     expect(run.status).toBe(2);
     expect(run.stderr).toMatch(/^nexusdi: /);
+  });
+});
+
+describe('the built bin', () => {
+  it('is executable, so the nexusdi link npm creates runs it', () => {
+    expect(statSync(BIN).mode & 0o111).toBe(0o111);
+    expect(execFileSync(BIN, ['--version'], { encoding: 'utf8' })).toMatch(
+      /^\d+\.\d+\.\d+/,
+    );
   });
 });

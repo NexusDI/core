@@ -27,7 +27,11 @@
       "syncGenerators": ["@nx/js:typescript-sync"],
       "options": {
         "cwd": "libs/cli",
-        "command": "tsc --build tsconfig.lib.json"
+        "commands": [
+          "tsc --build tsconfig.lib.json",
+          "node -e \"require('node:fs').chmodSync('dist/bin.js', 0o755)\""
+        ],
+        "parallel": false
       }
     },
     "lint": { "options": { "args": ["--max-warnings=0"] } },
