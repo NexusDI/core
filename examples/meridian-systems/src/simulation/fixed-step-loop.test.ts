@@ -145,4 +145,98 @@ describe('FixedStepLoop', () => {
     expect(ship.compartments).toBe(start.compartments);
     expect(Object.isFrozen(ship)).toBe(true);
   });
+
+  describe('listen', () => {
+    it('calls a listener with each committed snapshot after the systems ran', () => {
+      const calls: Call[] = [];
+      const { state, loop } = build([probe('a', 4, calls)]);
+      const heard: ShipSnapshot[] = [];
+      loop.listen((ship) => {
+        expect(calls).toHaveLength(ship.tick);
+        expect(state.snapshot()).toBe(ship);
+        heard.push(ship);
+      });
+      loop.advance(2);
+      expect(heard.map((ship) => ship.tick)).toEqual([1, 2]);
+    });
+
+    it('calls the listeners in subscription order', () => {
+      const { loop } = build([]);
+      const heard: string[] = [];
+      loop.listen(() => heard.push('first'));
+      loop.listen(() => heard.push('second'));
+      loop.advance(1);
+      expect(heard).toEqual(['first', 'second']);
+    });
+
+    it('counts one function listened twice as two listeners', () => {
+      const { loop } = build([]);
+      const heard: number[] = [];
+      const listener = (ship: ShipSnapshot) => heard.push(ship.tick);
+      loop.listen(listener);
+      loop.listen(listener);
+      loop.advance(1);
+      expect(heard).toEqual([1, 1]);
+    });
+
+    it('stops a listener at its unsubscribe, which runs twice safely', () => {
+      const { loop } = build([]);
+      const heard: number[] = [];
+      const listener = (ship: ShipSnapshot) => heard.push(ship.tick);
+      const stop = loop.listen(listener);
+      loop.listen(listener);
+      loop.advance(1);
+      stop();
+      stop();
+      loop.advance(1);
+      expect(heard).toEqual([1, 1, 2]);
+    });
+
+    it('skips a listener that an earlier one removed during the tick', () => {
+      const { loop } = build([]);
+      const heard: number[] = [];
+      let stopLater = () => {};
+      loop.listen(() => stopLater());
+      stopLater = loop.listen((ship) => heard.push(ship.tick));
+      loop.advance(2);
+      expect(heard).toEqual([]);
+    });
+
+    it('calls a listener added during a tick from the next tick on', () => {
+      const { loop } = build([]);
+      const heard: number[] = [];
+      let added = false;
+      loop.listen(() => {
+        if (added) return;
+        added = true;
+        loop.listen((ship) => heard.push(ship.tick));
+      });
+      loop.advance(2);
+      expect(heard).toEqual([2]);
+    });
+
+    it('runs the other listeners, keeps the tick and stops advance after one throws', () => {
+      const { state, loop } = build([]);
+      const boom = new Error('boom');
+      const heard: number[] = [];
+      loop.listen(() => {
+        throw boom;
+      });
+      loop.listen((ship) => heard.push(ship.tick));
+      expect(() => loop.advance(3)).toThrow(boom);
+      expect(heard).toEqual([1]);
+      expect(state.snapshot().tick).toBe(1);
+    });
+
+    it('throws an AggregateError when two listeners throw', () => {
+      const { loop } = build([]);
+      loop.listen(() => {
+        throw new Error('first');
+      });
+      loop.listen(() => {
+        throw new Error('second');
+      });
+      expect(() => loop.advance(1)).toThrow(AggregateError);
+    });
+  });
 });

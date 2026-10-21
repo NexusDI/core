@@ -1,4 +1,5 @@
 import { all } from '@nexusdi/core';
+import { callAll } from './call-all';
 import {
   type IRandomSource,
   type ISimClock,
@@ -10,6 +11,7 @@ import {
   SHIP_SYSTEMS,
   SIM_CLOCK,
   type ShipSnapshot,
+  type TickListener,
 } from './contracts';
 
 interface Entry {
@@ -26,6 +28,8 @@ export class FixedStepLoop implements ITickLoop {
   static deps = [SIM_CLOCK, SHIP_STATE, RNG, all(SHIP_SYSTEMS)] as const;
 
   private readonly entries: readonly Entry[];
+  /** Each `listen` adds its own wrapper, so one function listened twice hears twice. */
+  private readonly listeners = new Set<TickListener>();
 
   constructor(
     private readonly clock: ISimClock,
@@ -71,7 +75,26 @@ export class FixedStepLoop implements ITickLoop {
           time: this.clock.time,
         }),
       );
+      callAll(this.liveListeners(), this.state.snapshot());
     }
     return this.state.snapshot();
+  }
+
+  listen(listener: TickListener): () => void {
+    const entry: TickListener = (ship) => listener(ship);
+    this.listeners.add(entry);
+    return () => {
+      this.listeners.delete(entry);
+    };
+  }
+
+  /**
+   * Walks the listeners present when the tick began and skips one removed
+   * since, so a listener added during a tick first hears the next one.
+   */
+  private *liveListeners(): Generator<TickListener> {
+    for (const entry of [...this.listeners]) {
+      if (this.listeners.has(entry)) yield entry;
+    }
   }
 }
