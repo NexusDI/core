@@ -12,6 +12,8 @@
   },
   "include": [
     "vitest.config.mts",
+    "vitest.e2e-growth.config.ts",
+    "e2e/**/*.ts",
     "src/**/*.test.ts",
     "src/**/*.d.ts",
     "src/**/__fixtures__/*.json",

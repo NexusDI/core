@@ -1,0 +1,140 @@
+[
+  {
+    "tick": 0,
+    "time": 0,
+    "compartments": {
+      "bridge": {
+        "moles": {
+          "O2": 524,
+          "N2": 1946,
+          "CO2": 0.998,
+          "H2O": 22.46,
+          "volatiles": 1.497
+        },
+        "temperature": 293
+      },
+      "habitat": {
+        "moles": {
+          "O2": 1048,
+          "N2": 3892,
+          "CO2": 1.996,
+          "H2O": 44.91,
+          "volatiles": 2.994
+        },
+        "temperature": 293
+      },
+      "reactor-bay": {
+        "moles": {
+          "O2": 698.6,
+          "N2": 2595,
+          "CO2": 1.331,
+          "H2O": 29.94,
+          "volatiles": 1.996
+        },
+        "temperature": 293
+      },
+      "airlock": {
+        "moles": {
+          "O2": 104.8,
+          "N2": 389.2,
+          "CO2": 0.1996,
+          "H2O": 4.491,
+          "volatiles": 0.2994
+        },
+        "temperature": 293
+      }
+    }
+  },
+  {
+    "tick": 1,
+    "time": 0.5,
+    "compartments": {
+      "bridge": {
+        "moles": {
+          "O2": 524,
+          "N2": 1946,
+          "CO2": 0.998,
+          "H2O": 22.46,
+          "volatiles": 1.497
+        },
+        "temperature": 293
+      },
+      "habitat": {
+        "moles": {
+          "O2": 1048,
+          "N2": 3892,
+          "CO2": 1.996,
+          "H2O": 44.91,
+          "volatiles": 2.994
+        },
+        "temperature": 293
+      },
+      "reactor-bay": {
+        "moles": {
+          "O2": 698.6,
+          "N2": 2595,
+          "CO2": 1.331,
+          "H2O": 29.94,
+          "volatiles": 1.996
+        },
+        "temperature": 293
+      },
+      "airlock": {
+        "moles": {
+          "O2": 104.8,
+          "N2": 389.2,
+          "CO2": 0.1996,
+          "H2O": 4.491,
+          "volatiles": 0.2994
+        },
+        "temperature": 293
+      }
+    }
+  },
+  {
+    "tick": 600,
+    "time": 300,
+    "compartments": {
+      "bridge": {
+        "moles": {
+          "O2": 524,
+          "N2": 1946,
+          "CO2": 0.998,
+          "H2O": 22.46,
+          "volatiles": 1.497
+        },
+        "temperature": 293
+      },
+      "habitat": {
+        "moles": {
+          "O2": 1048,
+          "N2": 3892,
+          "CO2": 1.996,
+          "H2O": 44.91,
+          "volatiles": 2.994
+        },
+        "temperature": 293
+      },
+      "reactor-bay": {
+        "moles": {
+          "O2": 698.6,
+          "N2": 2595,
+          "CO2": 1.331,
+          "H2O": 29.94,
+          "volatiles": 1.996
+        },
+        "temperature": 293
+      },
+      "airlock": {
+        "moles": {
+          "O2": 104.8,
+          "N2": 389.2,
+          "CO2": 0.1996,
+          "H2O": 4.491,
+          "volatiles": 0.2994
+        },
+        "temperature": 293
+      }
+    }
+  }
+]

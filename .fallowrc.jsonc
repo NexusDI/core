@@ -104,6 +104,11 @@
     "examples/bridge-api/bench/*.{ts,mjs}",
     "examples/bridge-api/src/server.*.ts",
     "examples/bridge-api/src/worker.ts",
+    // examples/meridian-systems: the e2e-growth target runs the idle golden
+    // by path, and the golden is read by the snapshot matcher, never imported.
+    "examples/meridian-systems/e2e/**/*.ts",
+    "examples/meridian-systems/vitest.e2e-growth.config.ts",
+    "examples/meridian-systems/e2e/golden/*.json",
     // examples/bridge-console's Playwright suite, which its e2e target runs
     // through playwright.config.mts.
     "examples/bridge-console/e2e/**/*.ts",
