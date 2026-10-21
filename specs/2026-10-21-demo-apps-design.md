@@ -639,8 +639,11 @@ fence is the Module Federation `shared` entry. `coreText` gains a builder:
 - message: `<received> was made by another copy of @nexusdi/core<, where>.`
 - fix: `load one copy of @nexusdi/core. Check that npm installed it once (npm ls @nexusdi/core), that no test calls vi.resetModules() between the module and the container that reads it, and that no bundler resolves the @nexusdi/source condition for one import and dist for another. In Module Federation, share @nexusdi/core with singleton: true.`
 
-The text names `@nexusdi/core` only. `tools/repo-checks/src/core-names-no-package.ts`
-refuses any string in core's non-test sources that names another package of the scope.
+The text names no package but `@nexusdi/core`. It also names `@nexusdi/source`, an export
+condition of core's own `exports` map. `tools/repo-checks/src/core-names-no-package.ts`
+refuses any string in core's non-test sources that names another package of the scope,
+and its test reads core's condition names from `libs/core/package.json` and passes them
+to the check as core's own.
 The `/errors/NEXUS_CORE_NOT_SHARED/` page carries the `@nexusdi/react` advice: share it as
 a singleton beside core, or a remote's `useService` finds no `NexusProvider`.
 
@@ -672,8 +675,9 @@ version.
 - P2. `NexusErrorByCode` stays open to augmentation, and core adds one member to its own
   codes. `errors()` and `explain()` already handle a code they do not know.
 - P3. No contribution point changes. Core names no other package, in code or in a
-  string: its text names `@nexusdi/core` only, which `core-names-no-package.ts` checks,
-  and the code page names `@nexusdi/react`.
+  string: its text names no package but `@nexusdi/core`, which `core-names-no-package.ts`
+  checks, and the code page names `@nexusdi/react`. The `@nexusdi/source` condition
+  the text names belongs to core's own `exports` map, and the check counts it as core.
 - P4. `@nexusdi/testing` and `@nexusdi/interceptors` construct core's exported class and
   call core's exported `isForeign` and `describeValue`. Neither copies the check.
 - P5. No optional dependency changes.
