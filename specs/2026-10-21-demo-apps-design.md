@@ -121,8 +121,9 @@ generator's output with nothing else. The next commit deletes what the app does 
 coverage table counts them.
 
 Every app in the set carries the Nx tag `demo` in its `package.json` (`nx.tags`), which
-the CI job of section 10 selects by. The five new projects also carry `demo-frontend`,
-which moves their lint, test and typecheck from `main` to that job (section 10.1).
+the CI job of section 10 selects by. The four `federation-*` projects also carry
+`demo-frontend`, which moves their lint, test and typecheck from `main` to that job
+(section 10.1).
 
 ## 4. Coverage by package
 
@@ -212,7 +213,7 @@ records the hash in its message.
 
 The second commit deletes what the template carries and the app does not use: the
 `Dockerfile`, `.dockerignore`, `app/welcome/` and the template README. It sets the
-package name and the `demo` and `demo-frontend` tags, pins `react-router`,
+package name and the `demo` tag, pins `react-router`,
 `@react-router/node`, `@react-router/serve` and `@react-router/dev` at 8.4.0, and wires the `typegen` target
 the way `examples/react-ssr/package.json` does. The `@nx/react/router-plugin` in
 `nx.json` infers `build`, `dev`, `start` and `typecheck` from `react-router.config.ts`.
@@ -224,7 +225,10 @@ The layout follows react spec section 9.1.
 ```text
 app/
   bridge/bridge-link.ts      BRIDGE_LINK, IBridgeLink, BridgeApiLink, the BridgeLink module
-  bridge/bridge.client.ts    the client graph, BridgeClient (OfflineTactical)
+  bridge/contracts.ts        NAV_CHARTS and WATCH_LOG, typed by `import type` from bridge-api
+  bridge/tactical.ts         the console's Tactical: NAV_CHARTS over charts.json (ChartTable)
+  bridge/watch.ts            the Watch module: the scoped WATCH_LOG over REQUEST
+  bridge/bridge.client.ts    the client graph, BridgeClient (the console's Tactical)
   navigation/navigation.module.ts    the Navigation section, loaded by di.load
   sections/cartography.tsx   the Cartography section and StarMap, a client chunk
   nexus.server.ts            ship = Nexus.create(BridgeConsole); di = nexus(ship, ...)
@@ -238,13 +242,23 @@ e2e/                         Playwright, from the generator
 
 ### 6.3 The two graphs and the backend
 
-The server graph's root is `BridgeConsole`. It imports the charts module the
-environment picks (`tactical(RELAY_URL)` or `OfflineTactical`, as `react-ssr` does),
-`BridgeApi` from `@nexusdi/bridge-api/ship` for the console's own `MISSION` and
-`FLIGHT_LOG`, and `BridgeLink.forRoot({ url })` with the backend's URL from
-`BRIDGE_API_URL`. `BridgeLink` imports nothing from `bridge-api`, and the console reaches
-the backend over HTTP only. The console's request function returns the mission and the
-request's `signal`, and `request.d.ts` adds `signal?: AbortSignal` to `NexusRequest`.
+The server graph's root is `BridgeConsole`. It imports the console's own modules and no
+runtime code from `bridge-api`: `Tactical`, `Watch` and `BridgeLink.forRoot({ url })` with
+the backend's URL from `BRIDGE_API_URL`. The console reaches the backend over HTTP only.
+`@nexusdi/bridge-api` is a dev dependency, for `import type` of `INavCharts` and `Course`,
+for the e2e server and for the link test, and `vite.config.ts` drops
+`ssr.noExternal: ['@nexusdi/bridge-api']`.
+
+- The console's `Tactical` binds `NAV_CHARTS` (`Token<INavCharts>('NavCharts')`, the
+  console's own token) with `useClass: ChartTable`, over a copy of `bridge-api`'s
+  `charts.json` in `app/bridge/charts.json`. A unit test asserts the two files are equal.
+  The shell's `Tactical` is the precedent: each app's `Tactical` provides its own
+  `NAV_CHARTS`.
+- `Watch` binds `WATCH_LOG` (`Token<IWatchLog>('WatchLog')`) with
+  `useClass: WatchLog, lifetime: 'scoped'`. `WatchLog` takes `REQUEST` and prefixes each
+  entry with `request.mission.id`, so the console needs no `MISSION` token, and core's
+  `REQUEST` needs no import. The console's request function returns the mission and the
+  request's `signal`, and `request.d.ts` adds `signal?: AbortSignal` to `NexusRequest`.
 
 ```ts
 // app/bridge/bridge-link.ts
@@ -288,11 +302,11 @@ export const BridgeLink = defineModule({
 a reader who leaves the page aborts the backend call.
 `REQUEST` is core's, so the module sees it with no import. A console request
 opens a scope in the console, and its call opens a second scope in `bridge-api`. The
-course page shows both flight logs: the console's entry `survey-9: docked` and the
-backend's entry `survey-9: plotting Kepler-442b`. The reader sees two request scopes on
+course page shows both logs: the console's watch entry `survey-9: docked` and the
+backend's flight log entry `survey-9: plotting Kepler-442b`. The reader sees two request scopes on
 two servers carry one mission id (A2).
 
-The client graph is `BridgeClient` over `OfflineTactical`, as in `react-ssr`. `NAV_CHARTS`
+The client graph is `BridgeClient` over the console's `Tactical`. `NAV_CHARTS`
 is a singleton there, so components read it outside a `ScopeProvider` (react spec 9.1).
 The browser never calls the backend. Every backend call goes through a loader on the
 console's server, so the backend needs no CORS headers.
@@ -301,7 +315,7 @@ console's server, so the backend needs no CORS headers.
 
 | Route              | What it shows                                                                                                         | From        |
 | ------------------ | --------------------------------------------------------------------------------------------------------------------- | ----------- |
-| `/`                | a loader with `di.inject` over `FLIGHT_LOG`, `MISSION` and `NAV_CHARTS`; an action; `ScopeProvider` around a plotter  | `react-ssr` |
+| `/`                | a loader with `di.inject` over `WATCH_LOG`, `REQUEST` and `NAV_CHARTS`; an action; `ScopeProvider` around a plotter   | `react-ssr` |
 | `/sectors/:sector` | `di.load(Navigation)` as route middleware, then `navigation.inject`                                                   | `react-ssr` |
 | `/course/:to`      | a deferred loader that returns `link.course(to)` unawaited; `<Await>` streams it; the scope closes when the body ends | new         |
 | `/charts`          | `SectionBoundary` over `lazySection('cartography', () => import('../sections/cartography'))`, a split chunk           | new         |
@@ -333,8 +347,8 @@ port 4210, with `BRIDGE_API_URL=http://127.0.0.1:4211/`. Its cases:
 5. `/sectors/Kepler-442b` as the first request on a fresh server answers 200 (from
    `react-ssr/e2e/serve.e2e.ts`; the spec starts its own `react-router-serve` process).
 6. The client build holds no server container module (from `serve.e2e.ts`).
-7. `/course/Kepler-442b` streams the backend's answer, and the page shows both flight
-   log entries with `survey-9`.
+7. `/course/Kepler-442b` streams the backend's answer, and the page shows the watch entry
+   and the flight log entry, both with `survey-9`.
 8. `/charts` sends the fallback in the server HTML, and `StarMap` renders after
    hydration with no console error.
 
@@ -756,10 +770,12 @@ uses them.
 | A section           | A module added after startup with `load()`, `di.load()` or `SectionBoundary`. A module present at `Nexus.create` is a module.                                               |
 | The bridge console  | The React Router app `examples/bridge-console`. Its server root is `BridgeConsole`, and its client graph is `BridgeClient`.                                                 |
 | The bridge link     | `IBridgeLink` behind the scoped `BRIDGE_LINK`, bound with `useClass: BridgeApiLink` in `BridgeLink`, configured by `BridgeLink.forRoot({ url })`. Double: `fakeBridgeLink`. |
+| The watch log       | `IWatchLog` behind the scoped `WATCH_LOG`, bound with `useClass: WatchLog` (deps `[REQUEST]`) in the console's `Watch` module. The console's counterpart of `FLIGHT_LOG`.   |
+| The chart table     | `ChartTable implements INavCharts`, bound to the console's `NAV_CHARTS` in the console's `Tactical`, over `app/bridge/charts.json`.                                         |
 | A decorated section | `Command`, an `@Module` class binding `BRIDGE` (`IBridge`) to `Bridge`, whose `@Inject(NAV_CHARTS) accessor charts` reads the contract token.                               |
 
 `Bridge` and `BRIDGE` exist in §7.1 and on `/decorators/`. `NAV_ROUTES`, `SectorRoutes`,
-`StarMap` and `Cartography` exist in §7.1 too. The new nouns are `BridgeConsole`,
+`StarMap` and `Cartography` exist in §7.1 too. The new nouns are `Watch`, `WATCH_LOG`, `IWatchLog`, `WatchLog`, `ChartTable`, `BridgeConsole`,
 `BridgeClient`, `BridgeLink`, `BRIDGE_LINK`, `IBridgeLink`, `BridgeApiLink`,
 `BRIDGE_LINK_OPTIONS`, `fakeBridgeLink`, `CommandDeck` and the contract names. None ends in
 `Service`, so the §7.7 pattern passes them.
@@ -785,14 +801,15 @@ demo-apps:
 
 It runs the `e2e` targets of `bridge-api`, `bridge-console` and `federation-shell`.
 
-The five new projects (`bridge-console` and the four `federation-*` projects) also carry
-the tag `demo-frontend`. `main`'s step becomes
+The four `federation-*` projects also carry the tag `demo-frontend`. `main`'s step becomes
 `nx run-many -t lint test build typecheck --exclude=tag:demo-frontend`, and the
 `release.yml` verify step, which the gate test holds equal to it, takes the same
 `--exclude`. `demo-apps` runs their `lint`, `test` and `typecheck` before the e2e step:
 `nx run-many -t lint test typecheck --projects=tag:demo-frontend`. Their `build` runs as
-a dependency of `e2e`. `main` then keeps its 10 min 29 s, and `bridge-api` stays in
-`main` as today.
+a dependency of `e2e`. `bridge-api` and `bridge-console` stay in `main` and in the release
+verify step. The console takes over the `lint`, `test`, `build` and `typecheck` that
+`react-ssr` ran there, so the release gate keeps that coverage, and `main` stays near its
+10 min 29 s.
 `examples/next-bridge` carries no `demo` tag and stays out. The ship systems growth
 track adds a second, non-required job, `demo-growth`, for its e2e cases (ship systems
 spec section 14). It never blocks, and `demo-apps` takes a growth case after a green RC
@@ -815,16 +832,16 @@ On the `release/0.4` run of 2026-10-18 (`39083642228`), `main` took 10 min 29 s 
 other job took 4 min 22 s or less. The `demo-apps` job has a budget of 8 minutes, so the
 run's wall time stays at `main`'s. The parts, estimated from the jobs that run today:
 
-| Step                                           | Estimate   |
-| ---------------------------------------------- | ---------- |
-| `npm ci` and the Chromium install              | 1 min 30 s |
-| lint, test and typecheck of the five frontends | 1 min      |
-| `^build` of the libs, cold                     | 1 min 30 s |
-| `bridge-api` e2e (three servers, vitest)       | 30 s       |
-| console build and Playwright (eight cases)     | 1 min 30 s |
-| five rspack builds and Playwright (six cases)  | 2 min      |
+| Step                                                | Estimate   |
+| --------------------------------------------------- | ---------- |
+| `npm ci` and the Chromium install                   | 1 min 30 s |
+| lint, test and typecheck of the federation projects | 45 s       |
+| `^build` of the libs, cold                          | 1 min 30 s |
+| `bridge-api` e2e (three servers, vitest)            | 30 s       |
+| console build and Playwright (eight cases)          | 1 min 30 s |
+| five rspack builds and Playwright (six cases)       | 2 min      |
 
-The estimates sum to 8 min 30 s, so the job may need the matrix from its first run. Task 7 records the measured figure in the job's comment. Over 8 minutes, the job splits
+The estimates sum to 8 min 15 s, so the job may need the matrix from its first run. Task 7 records the measured figure in the job's comment. Over 8 minutes, the job splits
 into a console leg and a federation leg in a matrix.
 
 ## 11. Docs pages the demos feed

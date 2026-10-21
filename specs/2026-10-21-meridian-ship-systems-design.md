@@ -93,21 +93,21 @@ Each row is one module. Every token is interface-first: an interface, a typed to
 for the role, and one class bound with `useClass` (docs §7.3). Names in the existing
 §7.1 vocabulary keep their meaning.
 
-| Module        | System              | Tokens it exports                                                         | Configured by                                    | State on 0.4                            |
-| ------------- | ------------------- | ------------------------------------------------------------------------- | ------------------------------------------------ | --------------------------------------- |
-| `Simulation`  | the tick loop       | `SIM_CLOCK`, `RNG`, `SHIP_STATE`, `TICK_LOOP`, `DECK_PLAN`, `COMPARTMENT` | `Simulation.forRoot({ seed, dt })`, `global`     | growth G0                               |
-| `Engineering` | reactor and power   | `REACTOR`, `COMPUTER`, `POWER_ROUTER`, `SHIELD_GRID`, `COOLANT_LOOP`      | none                                             | in §7.1; the simulation's form is G1    |
-| `LifeSupport` | atmosphere          | `ATMOSPHERE_SENSOR`, `ATMOSPHERE_CONTROL`                                 | `LifeSupport.forRootAsync({ deps, useFactory })` | growth G2                               |
-| `Safety`      | doors, fire, alarms | `BLAST_DOORS`, `FIRE_SUPPRESSION`, `MASTER_ALARM`, `ALARM_SINKS`          | none                                             | growth G3                               |
-| `Comms`       | comms               | `SUBSPACE_LINK`, `COMMS_ARRAY`                                            | `Comms.forRoot({ frequency, transport, ... })`   | in `bridge-api`; moves in G5            |
-| `Propulsion`  | the main drive      | `MAIN_DRIVE`                                                              | none                                             | growth G6                               |
-| `Helm`        | manoeuvring         | `HELM`, `THRUSTERS`                                                       | none                                             | growth G6                               |
-| `FtlDrive`    | the FTL drive       | `FTL_DRIVE`                                                               | none; added with `ship.load()`                   | growth G7                               |
-| `Weapons`     | weapons             | `WEAPON_MOUNT`                                                            | none                                             | growth G8                               |
-| `Telemetry`   | the telemetry feed  | `TELEMETRY`                                                               | none                                             | growth G0                               |
-| `Tactical`    | navigation          | `NAV_CHARTS`                                                              | none                                             | in §7.1 and `bridge-api`; unchanged     |
-| `BridgeApi`   | the request side    | `MISSION`, `FLIGHT_LOG`                                                   | none                                             | in §7.1 and `bridge-api`; unchanged     |
-| `AuditTrail`  | the audit store     | `AUDIT_LOG`                                                               | none                                             | in §7.1; `bridge-api` renames it in 0.4 |
+| Module        | System              | Tokens it exports                                                                  | Configured by                                    | State on 0.4                            |
+| ------------- | ------------------- | ---------------------------------------------------------------------------------- | ------------------------------------------------ | --------------------------------------- |
+| `Simulation`  | the tick loop       | `SIM_CLOCK`, `RNG`, `SHIP_STATE`, `TICK_LOOP`, `DECK_PLAN`, `COMPARTMENT`          | `Simulation.forRoot({ seed, dt })`, `global`     | growth G0                               |
+| `Engineering` | reactor and power   | `REACTOR`, `COMPUTER`, `POWER_ROUTER`, `SHIELD_GRID`; `COOLANT_LOOP` stays private | none                                             | in §7.1; the simulation's form is G1    |
+| `LifeSupport` | atmosphere          | `ATMOSPHERE_SENSOR`, `ATMOSPHERE_CONTROL`                                          | `LifeSupport.forRootAsync({ deps, useFactory })` | growth G2                               |
+| `Safety`      | doors, fire, alarms | `BLAST_DOORS`, `FIRE_SUPPRESSION`, `MASTER_ALARM`, `ALARM_SINKS`                   | none                                             | growth G3                               |
+| `Comms`       | comms               | `SUBSPACE_LINK`, `COMMS_ARRAY`                                                     | `Comms.forRoot({ frequency, transport, ... })`   | in `bridge-api`; moves in G5            |
+| `Propulsion`  | the main drive      | `MAIN_DRIVE`                                                                       | none                                             | growth G6                               |
+| `Helm`        | manoeuvring         | `HELM`, `THRUSTERS`                                                                | none                                             | growth G6                               |
+| `FtlDrive`    | the FTL drive       | `FTL_DRIVE`                                                                        | none; added with `ship.load()`                   | growth G7                               |
+| `Weapons`     | weapons             | `WEAPON_MOUNT`                                                                     | none                                             | growth G8                               |
+| `Telemetry`   | the telemetry feed  | `TELEMETRY`                                                                        | none                                             | growth G0                               |
+| `Tactical`    | navigation          | `NAV_CHARTS`                                                                       | none                                             | in §7.1 and `bridge-api`; unchanged     |
+| `BridgeApi`   | the request side    | `MISSION`, `FLIGHT_LOG`                                                            | none                                             | in §7.1 and `bridge-api`; unchanged     |
+| `AuditTrail`  | the audit store     | `AUDIT_LOG`                                                                        | none                                             | in §7.1; `bridge-api` renames it in 0.4 |
 
 `Meridian`, the root in `bridge-api`, imports every module above except `FtlDrive`. The
 FTL drive joins the running ship through `ship.load(FtlDrive)` on its first spool command
@@ -312,9 +312,20 @@ T' = T + dt · (Q_heater + Q_occupants + Q_fire + Q_bay − G · (T − T_hull))
 ```
 
 `Q_occupants` is 100 W per occupant. `Q_bay` is the coolant loop's leak into the reactor
-bay, `0.002 · A_rad · ε · σ · (T_c⁴ − T_bay⁴)`, and zero elsewhere. The habitat holds
-293 K with a 5 kW heater: the loss at 293 K is 150 × 33 = 4,950 W, and the heater and four
-occupants give 5,400 W.
+bay, `0.002 · A_rad · ε · σ · (T_c⁴ − T_bay⁴)`, and zero elsewhere.
+
+The bridge and the habitat each have a thermostat, a proportional controller on a 10 kW
+heater:
+
+```text
+Q_heater = clamp(K_t · (T_set − T), 0, Q_max)      T_set = 293 K, K_t = 10 kW/K, Q_max = 10 kW
+```
+
+A command sets `T_set` or turns the heater off. In the habitat the loss near 293 K is
+150 × 32.5 ≈ 4,880 W, and the four occupants give 400 W, so the heater settles at about
+4,480 W and the room at 292.55 K, 0.45 K under the setpoint (the offset of a proportional
+controller). The loop gain per tick, `K_t · dt / C = 1.25 × 10⁻³`, keeps the explicit step
+far from oscillation.
 
 ### 5.3 Metabolism, scrubbers, oxygen
 
@@ -422,9 +433,13 @@ the router moves on to the next.
 | 6        | weapons capacitor        | 300 MW         |
 | 7        | FTL spool                | 900 MW         |
 
-The sum at full is above 1.21 GW, so a pilot who spools the FTL drive while the main drive
-burns sheds the weapons, which is the trade-off a player makes in Stationeers. A shed
-consumer raises `LOAD_SHED`.
+The sum at full is above 1.21 GW. Priorities 1 to 4 take about 225 MW. With the main drive
+burning, 385 MW remain: the weapons capacitor fits and the FTL spool never does, so the
+router sheds the spool. With the drive cut, 985 MW remain, and the spool fits only while
+the weapons capacitor draws nothing. So a pilot who wants to jump cuts the drive and lets
+the railgun go cold, which is the trade-off a player makes in Stationeers. A spool command
+that the router cannot fit answers `MERIDIAN_POWER_BUDGET`, and a shed consumer raises
+`LOAD_SHED`.
 
 ### 5.8 Propulsion and manoeuvring
 
@@ -453,7 +468,10 @@ e  = wrap(θ_set − θ)                           to (−π, π]
 P_rcs = 20 MW · |τ| / τ_max
 ```
 
-`ω_n · dt = 0.025`, well inside the step's stable range. A 180° turn takes about 70 s.
+`ω_n · dt = 0.025`, well inside the step's stable range. The fastest possible 180° turn
+(full torque to the midpoint, full reverse torque after) takes
+`2 · √(π · I / τ_max)` ≈ 91 s. The PD controller saturates at `τ_max` early and brakes
+before the midpoint, so it takes longer, and the test allows 180 s.
 
 ### 5.9 Weapons and the FTL drive
 
@@ -743,14 +761,14 @@ The physics tests import `src/physics/*` and no NexusDI code:
 - `gas.test.ts`: `P = nRT/V` for the habitat's initial state is 101.3 kPa ± 0.1 %; an open
   door conserves every gas's moles to 1 × 10⁻⁹ relative; two rooms at 100 kPa and 50 kPa
   converge within 1 % after 10 τ; a vent removes `1 − exp(−dt·A/(κV))` per tick.
-- `thermal.test.ts`: the habitat holds 293 K ± 0.5 K for an hour of ticks with its heater
-  on; the coolant loop at full output settles at 1,186 K ± 5 K; the trip fires at
+- `thermal.test.ts`: with its thermostat at 293 K, the habitat settles between 292.4 K and
+  292.7 K within an hour of ticks and stays there; the coolant loop at full output settles at 1,186 K ± 5 K; the trip fires at
   1,450 K.
 - `power.test.ts`: the router fills by priority and sheds a consumer whose demand does
   not fit, with a property test over random demands that the allocation never exceeds
   `P_e`.
-- `motion.test.ts`: the helm turns 180° and settles within 1° in 90 s with no overshoot
-  above 2°; the drive's `F` at 600 MW is 14.4 kN.
+- `motion.test.ts`: the helm turns 180° and settles within 1° in 180 s with no overshoot
+  above 2°, and no turn completes in under 91 s, the bound at full torque; the drive's `F` at 600 MW is 14.4 kN.
 - `rng.test.ts`: seed 7 gives the same first 1,000 numbers on every run (a committed
   fixture); `fork('Safety')` gives the same stream whether or not `fork('Weapons')` was
   called first.
