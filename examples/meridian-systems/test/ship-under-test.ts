@@ -29,7 +29,10 @@ export const ShipUnderTest = defineModule({
   name: 'ShipUnderTest',
   global: true,
   imports: [
-    // test/fixtures.ts overrides SIM_OPTIONS with { seed: 7, dt: 0.5 }.
+    // test/fixtures.ts overrides SIM_OPTIONS with { seed: 7, dt: 0.5 }. These
+    // values differ from the override on purpose: the idle case in
+    // test/simulation.test.ts reads time 300 after 600 ticks only when the
+    // override applied, since dt 1 would read 600.
     Simulation.forRoot({ seed: 1, dt: 1 }),
     ProbeSystems,
   ],
