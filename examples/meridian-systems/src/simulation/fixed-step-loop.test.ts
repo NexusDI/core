@@ -117,6 +117,19 @@ describe('FixedStepLoop', () => {
     expect(clock.tick).toBe(600);
   });
 
+  it('refuses a tick count that is not a whole number of ticks', () => {
+    const { loop } = build([]);
+    for (const ticks of [1.5, -3, Number.NaN, Number.POSITIVE_INFINITY]) {
+      expect(() => loop.advance(ticks)).toThrow(RangeError);
+      expect(() => loop.advance(ticks)).toThrow(String(ticks));
+    }
+  });
+
+  it('returns the current snapshot for zero ticks', () => {
+    const { state, loop } = build([]);
+    expect(loop.advance(0)).toBe(state.snapshot());
+  });
+
   it('refuses two systems with one name', () => {
     expect(() =>
       build([probe('a', 4, []), probe('b', 1, []), probe('a', 2, [])]),
