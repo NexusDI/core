@@ -8,9 +8,10 @@ import { di } from '../nexus.server';
 import type { Route } from './+types/course';
 
 /**
- * The watch log at once, and the backend's answer unawaited, so React
- * Router streams it after the shell. The request's scope stays open until
- * the body ends, so the link's call runs in it.
+ * The loader returns the watch log at once and the backend's answer
+ * unawaited, so React Router streams the answer after the shell. The
+ * request's scope stays open until the body ends, so the link's call runs
+ * in it.
  */
 export const loader: (args: Route.LoaderArgs) => Promise<{
   watch: readonly string[];
@@ -41,7 +42,10 @@ export default function Course({ loaderData }: Route.ComponentProps) {
           Flight log
         </h2>
         <Suspense fallback={<p>Calling the bridge</p>}>
-          <Await resolve={loaderData.flight}>
+          <Await
+            resolve={loaderData.flight}
+            errorElement={<p>The bridge did not answer.</p>}
+          >
             {({ course, entries }) => (
               <>
                 <p>{`${course.to}: heading ${course.heading}`}</p>
