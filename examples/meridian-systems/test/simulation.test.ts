@@ -3,7 +3,11 @@ import { describe, expect, it } from 'vitest';
 
 import { meridianSystems } from '../src/meridian-systems.module';
 import { GASES, pressure } from '../src/physics/gas';
-import { DECK_PLAN, TICK_LOOP } from '../src/simulation/contracts';
+import {
+  DECK_PLAN,
+  type SimOptions,
+  TICK_LOOP,
+} from '../src/simulation/contracts';
 import { roundNumber, roundSnapshot } from '../src/simulation/round-snapshot';
 import { test } from './fixtures';
 import { LOOP_WATCH, PROBE_LOG } from './probes';
@@ -26,6 +30,65 @@ describe('meridianSystems', () => {
     const b = second.get(TICK_LOOP).advance(600);
     expect(roundSnapshot(a)).toEqual(roundSnapshot(b));
     expect(a).toEqual(b);
+  });
+});
+
+describe('Simulation.forRoot', () => {
+  const SEED = 'expected a whole number from 0 to 4294967295 (uint32)';
+  const DT = 'expected a positive finite number of ship seconds';
+
+  // The schema runs at create, and Nexus.create rejects with
+  // NEXUS_PROVIDER_FAILED. The issues sit on error.cause, and the errors()
+  // message does not show them yet (NexusDI/core#176).
+  it.each([
+    [{ seed: 1.5, dt: 0.5 }, 'seed', `${SEED}, got 1.5`],
+    [{ seed: -1, dt: 0.5 }, 'seed', `${SEED}, got -1`],
+    [{ seed: 2 ** 32, dt: 0.5 }, 'seed', `${SEED}, got 4294967296`],
+    [{ seed: Number.NaN, dt: 0.5 }, 'seed', `${SEED}, got NaN`],
+    [{ seed: '7', dt: 0.5 }, 'seed', `${SEED}, got "7"`],
+    [{ seed: 7, dt: 0 }, 'dt', `${DT}, got 0`],
+    [{ seed: 7, dt: -0.5 }, 'dt', `${DT}, got -0.5`],
+    [{ seed: 7, dt: Number.POSITIVE_INFINITY }, 'dt', `${DT}, got Infinity`],
+    [{ seed: 7 }, 'dt', `${DT}, got undefined`],
+  ])('refuses %o at create', async (options, field, message) => {
+    const error = await Nexus.create(
+      meridianSystems(options as unknown as SimOptions),
+    ).then(
+      () => undefined,
+      (refused: unknown) => refused,
+    );
+    expect(error).toMatchObject({
+      code: 'NEXUS_PROVIDER_FAILED',
+      token: 'SimOptions',
+      cause: {
+        code: 'NEXUS_INVALID_MODULE_OPTIONS',
+        module: 'Simulation',
+        issues: [{ path: [field], message }],
+      },
+    });
+  });
+
+  it('lists every refused field', async () => {
+    const error = await Nexus.create(meridianSystems({ seed: -1, dt: 0 })).then(
+      () => undefined,
+      (refused: unknown) => refused,
+    );
+    expect(error).toMatchObject({
+      cause: {
+        issues: [
+          { path: ['seed'], message: `${SEED}, got -1` },
+          { path: ['dt'], message: `${DT}, got 0` },
+        ],
+      },
+    });
+  });
+
+  it.each([
+    { seed: 0, dt: 0.001 },
+    { seed: 4294967295, dt: 60 },
+  ])('accepts %o', async (options) => {
+    await using ship = await Nexus.create(meridianSystems(options));
+    expect(ship.get(TICK_LOOP).advance(1).time).toBe(options.dt);
   });
 });
 
