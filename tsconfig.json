@@ -37,6 +37,9 @@
       "path": "./examples/react-ssr"
     },
     {
+      "path": "./examples/bridge-console"
+    },
+    {
       "path": "./tools/repo-checks"
     },
     {
