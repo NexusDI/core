@@ -21,6 +21,7 @@ describe('impurities', () => {
     ['math-random.txt', 'Math.random'],
     ['date-now.txt', 'Date.now'],
     ['new-date.txt', 'new Date'],
+    ['new-date-spaced.txt', 'new Date'],
     ['performance-now.txt', 'performance.now'],
     ['hrtime.txt', 'process.hrtime'],
   ])('reports %s', (name, call) => {
@@ -49,6 +50,15 @@ describe('impurities', () => {
     ]);
     expect(impurities([{ path: 'src/simulation/gas.ts', text }])).toEqual([]);
   });
+
+  it.each(['physics-side-effect-import.txt', 'physics-require.txt'])(
+    'reports %s under physics',
+    (name) => {
+      expect(impurities([source('src/physics/gas.ts', name)])).toEqual([
+        'src/physics/gas.ts:1 imports @nexusdi/; physics files stay free of DI',
+      ]);
+    },
+  );
 
   it('allows a physics file with relative imports', () => {
     expect(
