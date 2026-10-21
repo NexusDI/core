@@ -214,8 +214,13 @@ describe('the meridian-systems eslint purity rules', () => {
     expect(await purityHits(code)).toEqual([]);
   });
 
-  it('allows vitest in a test file and nowhere else', async () => {
-    const code = "import { it } from 'vitest';\nexport const t = it;";
+  it.each([
+    ['vitest', "import { it } from 'vitest';\nexport const t = it;"],
+    [
+      '@nexusdi/errors',
+      "import { explain } from '@nexusdi/errors';\nexport const e = explain;",
+    ],
+  ])('allows %s in a test file and nowhere else', async (_name, code) => {
     expect(await purityHits(code, 'src/physics/gas.test.ts')).toEqual([]);
     expect(await purityHits(code)).not.toEqual([]);
   });
@@ -293,6 +298,8 @@ describe('the meridian-systems eslint config', () => {
       expect(regex.test('node:crypto')).toBe(true);
       expect(regex.test('crypto')).toBe(true);
       expect(regex.test('@nexusdi/core')).toBe(false);
+      // A test file imports @nexusdi/errors for explain(); src does not.
+      expect(regex.test('@nexusdi/errors')).toBe(!path.endsWith('.test.ts'));
       expect(regex.test('./contracts')).toBe(false);
       expect(regex.test('../../deck/meridian.deck.json')).toBe(false);
 

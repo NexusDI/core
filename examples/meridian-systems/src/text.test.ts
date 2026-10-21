@@ -1,0 +1,63 @@
+import type { NexusError } from '@nexusdi/core';
+import { explain } from '@nexusdi/errors';
+import { describe, expect, it } from 'vitest';
+
+import { BadCommandError, PowerBudgetError } from './errors';
+import { formatNumber, shipText } from './text';
+
+/** The text shipText gives `error`, laid out as core prints it. */
+function render(error: NexusError): string {
+  const text = explain(error, { text: [shipText] });
+  if (text === undefined) throw new Error(`no text for ${error.code}`);
+  return [
+    `[${error.code}] ${text.message}`,
+    ...(text.fix === undefined ? [] : [`  Fix: ${text.fix}`]),
+  ].join('\n');
+}
+
+describe('formatNumber', () => {
+  it.each([
+    [193_600_000 / 1e6, 1, '193.6'],
+    [98_410, 0, '98,410'],
+    [1_234_567.89, 2, '1,234,567.89'],
+    [200, 1, '200'],
+    [1_000, 0, '1,000'],
+    [999.96, 1, '1,000'],
+    [-1_234.5, 0, '-1,235'],
+    [-0.04, 1, '0'],
+    [0.5, 3, '0.5'],
+  ])('writes %d to %d digits as %s', (value, digits, expected) => {
+    expect(formatNumber(value, digits)).toBe(expected);
+  });
+});
+
+describe('shipText', () => {
+  it('words MERIDIAN_POWER_BUDGET in megawatts', () => {
+    const error = new PowerBudgetError({
+      consumer: 'shields',
+      demand: 200e6,
+      available: 193.6e6,
+    });
+    expect(render(error)).toBe(
+      [
+        '[MERIDIAN_POWER_BUDGET] The shields need 200 MW, and the router has 193.6 MW free beside the loads above them.',
+        '  Fix: raise the reactor throttle and wait for the output to climb, or lower a load of higher priority.',
+      ].join('\n'),
+    );
+  });
+
+  it('words MERIDIAN_BAD_COMMAND with the actions the system takes', () => {
+    const error = new BadCommandError({
+      system: 'engineering',
+      action: 'warp',
+      expected:
+        'throttle { level: 0 to 1 } or shields { raised: true or false }',
+    });
+    expect(render(error)).toBe(
+      [
+        "[MERIDIAN_BAD_COMMAND] engineering has no action 'warp'. It takes throttle { level: 0 to 1 } or shields { raised: true or false }.",
+        '  Fix: send one of the actions above with its arguments.',
+      ].join('\n'),
+    );
+  });
+});
