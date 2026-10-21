@@ -121,10 +121,11 @@ describe('the bridge link', () => {
     expect(paths).toHaveLength(sent);
   });
 
-  it("returns the backend's snapshot at tick 0", async () => {
+  it("returns the backend's ship reading at tick 0", async () => {
     await using bridge = await linkTo(base);
     const ship = await bridge.link.snapshot();
     expect(ship.tick).toBe(0);
+    expect(ship.compartments.habitat.pressure).toBe(101_300);
     expect(ship.time).toBe(0);
     expect(Object.keys(ship.compartments)).toEqual([
       'bridge',

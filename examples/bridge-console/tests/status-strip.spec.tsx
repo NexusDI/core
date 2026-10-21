@@ -1,6 +1,6 @@
 import { act, render, screen } from '@testing-library/react';
 import type { Nexus } from '@nexusdi/core';
-import type { ShipSnapshot } from '@nexusdi/meridian-systems';
+import type { ShipReading } from '@nexusdi/meridian-systems';
 import { NexusProvider } from '@nexusdi/react';
 import { createTestingContainer } from '@nexusdi/testing';
 import { afterEach, describe, expect, it } from 'vitest';
@@ -20,11 +20,11 @@ afterEach(() =>
 
 /** A TELEMETRY_CLIENT that hands the test its callbacks and counts unsubscribes. */
 class TelemetryDouble implements ITelemetryClient {
-  next?: (ship: ShipSnapshot) => void;
+  next?: (ship: ShipReading) => void;
   offline?: (reason: string) => void;
   unsubscribed = 0;
   subscribe(
-    next: (ship: ShipSnapshot) => void,
+    next: (ship: ShipReading) => void,
     offline: (reason: string) => void,
   ) {
     this.next = next;
@@ -36,7 +36,7 @@ class TelemetryDouble implements ITelemetryClient {
 }
 
 /** Renders the strip for `ship` under the client graph with the telemetry double. */
-async function strip(ship: ShipSnapshot | null) {
+async function strip(ship: ShipReading | null) {
   const telemetry = new TelemetryDouble();
   const container = await createTestingContainer(BridgeClient)
     .override(TELEMETRY_CLIENT, { useValue: telemetry })
@@ -58,6 +58,15 @@ describe('the status strip', () => {
     expect(status().textContent).toBe(
       'Tick0Ship time0 sHabitat temperature293 KHabitat pressure101.3 kPa',
     );
+  });
+
+  it('shows the habitat pressure the reading carries, in kPa', async () => {
+    const habitat = { ...shipAtStart.compartments.habitat, pressure: 95_420 };
+    await strip({
+      ...shipAtStart,
+      compartments: { ...shipAtStart.compartments, habitat },
+    });
+    expect(screen.getByText('95.42 kPa')).toBeDefined();
   });
 
   it('renders Telemetry offline with no snapshot', async () => {

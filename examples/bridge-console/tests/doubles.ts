@@ -1,38 +1,30 @@
 import { REQUEST, type NexusRequest } from '@nexusdi/core';
 import type { NexusGraph } from '@nexusdi/devtools';
-import type { ShipSnapshot } from '@nexusdi/meridian-systems';
+import type { ShipReading } from '@nexusdi/meridian-systems';
 
 import type { IBridgeLink } from '../app/bridge/bridge-link';
 
-/** The moles of ship air at 101.3 kPa and 293 K in `volume` cubic metres. */
-function air(volume: number) {
-  const total = (101_300 * volume) / (8.314 * 293);
-  return {
-    moles: {
-      O2: total * 0.21,
-      N2: total * 0.78,
-      CO2: total * 0.0004,
-      H2O: total * 0.009,
-      volatiles: total * 0.0006,
-    },
-    temperature: 293,
-  };
-}
+/** A compartment of ship air at 293 K and 101.3 kPa, with round moles. */
+const air = (moles: number) => ({
+  moles: { O2: moles * 0.21, N2: moles * 0.78, CO2: 2, H2O: 45, volatiles: 3 },
+  temperature: 293,
+  pressure: 101_300,
+});
 
-/** The ship at tick 0, with each compartment's volume from the deck plan. */
-export const shipAtStart: ShipSnapshot = {
+/** The ship reading at tick 0, as `GET /sim` answers it. */
+export const shipAtStart: ShipReading = {
   tick: 0,
   time: 0,
   compartments: {
-    bridge: air(60),
-    habitat: air(120),
-    'reactor-bay': air(80),
-    airlock: air(12),
+    bridge: air(2500),
+    habitat: air(5000),
+    'reactor-bay': air(3300),
+    airlock: air(500),
   },
 };
 
 /** One server-sent event as the bridge's `GET /telemetry` frames it. */
-const snapshotEvent = (ship: ShipSnapshot) =>
+const snapshotEvent = (ship: ShipReading) =>
   new TextEncoder().encode(
     `event: snapshot\ndata: ${JSON.stringify(ship)}\n\n`,
   );

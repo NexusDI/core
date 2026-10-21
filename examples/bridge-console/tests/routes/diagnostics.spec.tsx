@@ -2,7 +2,7 @@ import { afterAll, describe, expect, it, vi } from 'vitest';
 import { render, screen, within } from '@testing-library/react';
 import { createRoutesStub } from 'react-router';
 import type { NexusGraph } from '@nexusdi/devtools';
-import type { ShipSnapshot } from '@nexusdi/meridian-systems';
+import type { ShipReading } from '@nexusdi/meridian-systems';
 
 import { FakeBridgeLink, shipAtStart } from '../doubles';
 import { built } from '../support/testing-di';
@@ -86,7 +86,7 @@ class DevBridge extends FakeBridgeLink {
 
 /** A link whose backend does not answer `GET /sim`. */
 class SilentSim extends FakeBridgeLink {
-  override async snapshot(): Promise<ShipSnapshot> {
+  override async snapshot(): Promise<ShipReading> {
     throw new Error('bridge-api answered 502 for /sim');
   }
 }
