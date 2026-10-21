@@ -1,9 +1,12 @@
 import { defineConfig } from '@rspack/cli';
 import { rspack } from '@rspack/core';
 import { ModuleFederationPlugin } from '@module-federation/enhanced/rspack';
+import { meridianShared } from '@nexusdi/federation-contracts/shared';
 import { ReactRefreshRspackPlugin } from '@rspack/plugin-react-refresh';
 import * as path from 'node:path';
 import { fileURLToPath } from 'node:url';
+
+import { decoratorsParser, decoratorsTransform } from './swc.decorators';
 
 // __dirname is undefined when @rspack/cli loads this config as ESM (it
 // does, because the file uses `import` statements). Derive it from the
@@ -22,7 +25,7 @@ export default defineConfig((_env, argv) => {
     context: __dirname,
     entry: { main: './src/index.ts' },
     output: {
-      path: path.resolve(__dirname, 'dist'),
+      path: path.resolve(__dirname, 'dist', 'main'),
       publicPath: 'auto',
       uniqueName: NAME,
       clean: true,
@@ -43,8 +46,15 @@ export default defineConfig((_env, argv) => {
             loader: 'builtin:swc-loader',
             options: {
               jsc: {
-                parser: { syntax: 'typescript', tsx: true },
+                // Standard decorators: Command and Bridge use @Module and
+                // @Inject.
+                parser: {
+                  syntax: 'typescript',
+                  tsx: true,
+                  ...decoratorsParser,
+                },
                 transform: {
+                  ...decoratorsTransform,
                   react: {
                     runtime: 'automatic',
                     development: isDev,
@@ -73,8 +83,9 @@ export default defineConfig((_env, argv) => {
       new ModuleFederationPlugin({
         name: NAME,
         filename: 'remoteEntry.js',
-        exposes: {},
-        shared: ['react', 'react-dom'],
+        exposes: { './section': './src/section.ts' },
+        shared: meridianShared(),
+        dts: false,
       }),
     ].filter(Boolean),
   };

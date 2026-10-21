@@ -1,15 +1,29 @@
 /// <reference types='vitest' />
 import { defineConfig } from 'vite';
 import react from '@vitejs/plugin-react';
+import swc from 'unplugin-swc';
+
+import { decoratorsParser, decoratorsTransform } from './swc.decorators';
 
 export default defineConfig(() => ({
   root: import.meta.dirname,
   cacheDir: '../../node_modules/.vite/examples/federation-command',
-  plugins: [react()],
-  // Uncomment this if you are using workers.
-  // worker: {
-  //  plugins: [],
-  // },
+  plugins: [
+    swc.vite({
+      // false keeps the plugin from reading experimentalDecorators out of a
+      // tsconfig and lowering the legacy form.
+      tsconfigFile: false,
+      jsc: {
+        parser: { syntax: 'typescript', tsx: true, ...decoratorsParser },
+        transform: {
+          ...decoratorsTransform,
+          react: { runtime: 'automatic' },
+        },
+        target: 'es2022',
+      },
+    }),
+    react(),
+  ],
   test: {
     name: '@nexusdi/federation-command',
     watch: false,
