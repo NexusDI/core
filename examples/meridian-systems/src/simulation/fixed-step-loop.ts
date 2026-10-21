@@ -20,9 +20,10 @@ interface Entry {
 }
 
 /**
- * Runs the ship systems once per tick in ascending phase, each on the
- * snapshot the previous one returned, then advances the clock, commits the
- * result and calls the tick listeners (spec §4.2, steps 2 and 3).
+ * Applies the queued setpoint changes, then runs the ship systems once per
+ * tick in ascending phase, each on the snapshot the previous one returned,
+ * then advances the clock, commits the result and calls the tick listeners
+ * (spec §4.2, steps 1 to 3).
  */
 export class FixedStepLoop implements ITickLoop {
   static deps = [SIM_CLOCK, SHIP_STATE, RNG, all(SHIP_SYSTEMS)] as const;
