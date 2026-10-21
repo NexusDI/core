@@ -171,12 +171,14 @@ jobs:
 
       - name: Verify
         if: inputs.event != 'sync'
-        # The target list CI runs, over every project.
+        # The target list and scope of CI's main job.
         # tools/repo-checks/src/release-verify-gate.test.ts holds the two
-        # lists against each other. A fixed release group publishes every
-        # package, so no project filter applies, and `--affected` on a
-        # dispatch compares a commit with itself and verifies nothing.
-        run: npx nx run-many -t lint test build typecheck
+        # steps against each other. A fixed release group publishes every
+        # package, so no --projects filter applies, and `--affected` on a
+        # dispatch compares a commit with itself and verifies nothing. The
+        # one exclusion, tag:demo-frontend, drops the private federation
+        # demos, which the demo-apps job in ci.yml runs on the same commit.
+        run: npx nx run-many -t lint test build typecheck --exclude=tag:demo-frontend
 
       # Problems that exist only once a package is packed, such as emitted
       # .d.ts files a nodenext consumer cannot resolve.
