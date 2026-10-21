@@ -43,6 +43,28 @@
         },
         "temperature": 293
       }
+    },
+    "reactor": {
+      "level": 0,
+      "thermal": 0,
+      "electric": 0,
+      "tripped": false
+    },
+    "coolant": {
+      "temperature": 500
+    },
+    "power": {
+      "output": 0,
+      "loads": [],
+      "shed": []
+    },
+    "setpoints": {
+      "reactor": {
+        "throttle": 0
+      },
+      "shields": {
+        "raised": false
+      }
     }
   },
   {
@@ -89,6 +111,35 @@
         },
         "temperature": 293
       }
+    },
+    "reactor": {
+      "level": 0,
+      "thermal": 0,
+      "electric": 0,
+      "tripped": false
+    },
+    "coolant": {
+      "temperature": 500
+    },
+    "power": {
+      "output": 0,
+      "loads": [
+        {
+          "id": "shields",
+          "priority": 2,
+          "demand": 0,
+          "allocated": 0
+        }
+      ],
+      "shed": []
+    },
+    "setpoints": {
+      "reactor": {
+        "throttle": 0
+      },
+      "shields": {
+        "raised": false
+      }
     }
   },
   {
@@ -134,6 +185,35 @@
           "volatiles": 0.2994
         },
         "temperature": 293
+      }
+    },
+    "reactor": {
+      "level": 0,
+      "thermal": 0,
+      "electric": 0,
+      "tripped": false
+    },
+    "coolant": {
+      "temperature": 500
+    },
+    "power": {
+      "output": 0,
+      "loads": [
+        {
+          "id": "shields",
+          "priority": 2,
+          "demand": 0,
+          "allocated": 0
+        }
+      ],
+      "shed": []
+    },
+    "setpoints": {
+      "reactor": {
+        "throttle": 0
+      },
+      "shields": {
+        "raised": false
       }
     }
   }
