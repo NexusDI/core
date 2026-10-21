@@ -1,0 +1,2 @@
+// This comment names Math.random and nothing else.
+export const x = 1;
