@@ -10,7 +10,7 @@ import { fileURLToPath } from 'node:url';
 // module URL so the config works regardless of how the loader interprets it.
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 
-const PORT = 8102;
+const PORT = 4302;
 const NAME = 'federation_command';
 
 // Read mode from the rspack CLI arg (`--mode=development|production`) so the
@@ -73,9 +73,7 @@ export default defineConfig((_env, argv) => {
       new ModuleFederationPlugin({
         name: NAME,
         filename: 'remoteEntry.js',
-        exposes: {
-          './App': './src/App.tsx',
-        },
+        exposes: {},
         shared: ['react', 'react-dom'],
       }),
     ].filter(Boolean),

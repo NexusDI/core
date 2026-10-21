@@ -1,5 +1,5 @@
 {
-  "name": "federation-command",
+  "name": "@nexusdi/federation-command",
   "$schema": "../../node_modules/nx/schemas/project-schema.json",
   "sourceRoot": "examples/federation-command/src",
   "projectType": "application",
@@ -11,7 +11,7 @@
         "command": "rspack serve --mode=development",
         "cwd": "examples/federation-command"
       },
-      "dependsOn": ["federation-shell:serve"]
+      "dependsOn": ["@nexusdi/federation-shell:serve"]
     },
     "build": {
       "executor": "nx:run-commands",

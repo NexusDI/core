@@ -83,6 +83,15 @@
     },
     {
       "path": "./examples/bridge-api"
+    },
+    {
+      "path": "./examples/federation-shell"
+    },
+    {
+      "path": "./examples/federation-cartography"
+    },
+    {
+      "path": "./examples/federation-command"
     }
   ],
   "compilerOptions": {
