@@ -75,7 +75,8 @@ Two constraints pull against that:
 ```text
 examples/meridian-systems/
   src/physics/          pure functions: gas.ts, thermal.ts, power.ts, motion.ts, rng.ts
-  src/simulation/       the Simulation module: clock, random source, state, tick loop
+  src/meridian-systems.module.ts   the aggregate MeridianSystems, which binds TICK_LOOP
+  src/simulation/       the Simulation module: clock, random source, state, the loop class
   src/systems/<name>/   one folder per system: <name>.module.ts, its classes, its tests
   src/errors.ts         the MERIDIAN_* error classes
   src/text.ts           shipText, at the ./text subpath
@@ -127,10 +128,10 @@ for the role, and one class bound with `useClass` (docs §7.3). Names in the exi
 | `AuditTrail`      | the audit store     | `AUDIT_LOG`                                                                        | none                                             | in §7.1; `bridge-api` renames it in 0.4 |
 
 `TICK_LOOP` is bound in the aggregate `MeridianSystems`, which is global. A module's
-`all()` gathers the providers the module binds or imports, and the global modules' exports
+`all()` gathers the providers the module binds, its imports' exports and the global modules' exports
 (`libs/core/src/blueprint/visibility.ts`), so a loop bound in `Simulation` never sees a
-system that a sibling module imports. The aggregate imports every system module, and its
-loop sees each one. `Simulation` stays global and binds `SIM_OPTIONS`, `SIM_CLOCK`, `RNG`,
+system that a sibling module imports. Each system module exports `SHIP_SYSTEMS`, and the
+aggregate imports every system module, so its loop sees each one. `Simulation` stays global and binds `SIM_OPTIONS`, `SIM_CLOCK`, `RNG`,
 `SHIP_STATE` and `DECK_PLAN`.
 
 `Meridian`, the root in `bridge-api`, imports `meridianSystems(...)`, `BridgeApi` and
@@ -221,7 +222,7 @@ export const LifeSupport = defineModule({
     provide(ATMOSPHERE_CONTROL, { useClass: EnvironmentalController }),
     provide(SHIP_SYSTEMS, { useClass: LifeSupportPhysics }),
   ],
-  exports: [ATMOSPHERE_SENSOR, ATMOSPHERE_CONTROL],
+  exports: [ATMOSPHERE_SENSOR, ATMOSPHERE_CONTROL, SHIP_SYSTEMS],
 });
 
 class LifeSupportPhysics implements IShipSystem {
@@ -596,7 +597,7 @@ package has a row. "When" is the increment that brings the row, and 0.4 means th
 | `load()` of a section                      | `@nexusdi/core`                                         | `ship.load(FtlDrive)` on the first `POST /ftl/spool`; `JumpDrive.onInit()` attaches its physics to the loop                                                            | the FTL drive is the biggest module and most voyages never jump                                                   | `bridge-api`          | G7       |
 | `scope.extend()` after `load()`            | `@nexusdi/core`                                         | the telemetry stream's scope, open while the FTL drive loads, calls `extend()` to read `FTL_DRIVE` (`NEXUS_LOADED_AFTER_SCOPE` otherwise)                              | a long-lived stream outlives the graph it opened on                                                               | `bridge-api`          | G7       |
 | `onInit` order                             | `@nexusdi/core`                                         | `SnapshotFeed` and `MasterAlarm` subscribe to the loop in `onInit`, after the loop is built                                                                            | a listener must never see a loop that is not ready                                                                | `bridge-api`          | G0b      |
-| Dispose order on shutdown                  | `@nexusdi/core`                                         | `ship[Symbol.asyncDispose]()`: the driver stops its timer, the feed closes its streams with `ship offline`, the alarm unsubscribes, and the reactor scram runs last    | a ship stops its consumers before the reactor; the reverse creation order gives that with no code                 | `bridge-api`          | G0       |
+| Dispose order on shutdown                  | `@nexusdi/core`                                         | `ship[Symbol.asyncDispose]()`: the driver stops its timer, the feed closes its streams with `ship offline`, the alarm unsubscribes, and the reactor scram runs last    | a ship stops its consumers before the reactor; the reverse creation order gives that with no code                 | `bridge-api`          | G1       |
 | `Nexus.check`                              | `@nexusdi/core`                                         | `test/check.test.ts` checks `Meridian` with every system, and the console checks its own graphs                                                                        | a broken wiring fails CI before a tick runs                                                                       | `bridge-api`, console | 0.4      |
 | Request scopes on Node                     | `@nexusdi/node`                                         | `nodeScopes()` keeps the current scope across the awaits of a command handler, so `FLIGHT_LOG` records `survey-7: opened habitat-airlock` without an argument          | a command handler awaits the interlock and the log in turn                                                        | `bridge-api`          | 0.4, G3  |
 | Server adapters                            | `@nexusdi/hono`, `@nexusdi/express`, `@nexusdi/fastify` | the three entries serve `/sim/*`, `/telemetry` (SSE) and `/commands` over one graph, and the e2e cases run against each                                                | a ship's bridge picks its server; the systems never notice                                                        | `bridge-api`          | 0.4, G0  |
@@ -604,7 +605,7 @@ package has a row. "When" is the increment that brings the row, and 0.4 means th
 | `errors()` text in console messages        | `@nexusdi/errors`                                       | a refused command answers 409 with `explain(error, { text: [shipText] })`; the console shows the message and its `Fix:` line                                           | a crew member who is refused needs the reason and the fix, in words                                               | `bridge-api`, console | G3       |
 | A text pack from outside the core packages | `@nexusdi/errors`                                       | `@nexusdi/meridian-systems/text` exports `shipText` for the `MERIDIAN_*` codes, registered as `errors({ text: [shipText, interceptorsText] })`                         | the simulation owns its codes and their words (P1, P2) through the public points any package outside NexusDI uses | `bridge-api`          | G3       |
 | Devtools graph                             | `@nexusdi/devtools`                                     | `devtools({ annotate: [shipNotes] })` labels each provider with its system and phase; the console's diagnostics page draws `graph(ship)`                               | an engineer reads the ship's wiring by system                                                                     | `bridge-api`, console | G0b      |
-| Trace                                      | `@nexusdi/devtools`                                     | `trace()` records the dispose events the shutdown test asserts                                                                                                         | the dispose order is a fact a test can read                                                                       | `bridge-api`          | G0       |
+| Trace                                      | `@nexusdi/devtools`                                     | `trace()` records the dispose events the shutdown test asserts                                                                                                         | the dispose order is a fact a test can read                                                                       | `bridge-api`          | G1       |
 | Profiler on the startup graph              | `@nexusdi/devtools`, `@nexusdi/cli`                     | `nexusdi profile src/ship/meridian.ts#Meridian` shows the two async startup steps, the `NAV_CHARTS` download and the `LifeSupport` calibration, on the critical path   | a ship that takes long to start needs to know which system it waits on                                            | `bridge-api`          | G2       |
 | Graph CLI                                  | `@nexusdi/cli`                                          | the `graph` target draws `graph.json` with every system and `--load src/systems/ftl#FtlDrive`, and fails on a diff                                                     | a system added without its wiring reviewed fails CI                                                               | `bridge-api`          | 0.4, G7  |
 | Testing container and overrides            | `@nexusdi/testing`                                      | `override(ATMOSPHERE_SENSOR, { useClass: FailingSensor })` raises `SENSOR_FAULT`; `overrideModule(FtlDrive, SimulatedFtlDrive, { lazy: true })` stubs the loaded drive | a test breaks one sensor and watches the alarm; a test of the helm does not spool a real drive                    | `bridge-api`          | 0.4, G2  |
@@ -677,8 +678,8 @@ request outside `/compartments/` that asks for `COMPARTMENT` gets
 
 `POST /ftl/spool` runs `await ship.load(FtlDrive)` once (a second call is a no-op the
 handler skips), then `FTL_DRIVE.spool()` in a new scope. `FtlDrive` imports
-`Engineering` and `Tactical` and reads `TICK_LOOP` and `SHIP_STATE` through the global
-`Simulation`. `JumpDrive.onInit()` attaches its physics to the loop.
+`Engineering` and `Tactical` and reads `TICK_LOOP` through the global `MeridianSystems`
+and `SHIP_STATE` through the global `Simulation`. `JumpDrive.onInit()` attaches its physics to the loop.
 
 The section teaches two facts a reader meets in a real app. A singleton's `all()` holds
 the contributions present when it was built, so a loaded system attaches itself. And a
@@ -831,7 +832,7 @@ The physics tests import `src/physics/*` and no NexusDI code:
 - `rng.test.ts`: seed 7 gives the same first 1,000 numbers on every run (a committed
   fixture); `fork('Safety')` gives the same stream whether or not `fork('Weapons')` was
   called first.
-- `purity.test.ts` (in `tools/repo-checks`): no file under
+- `tools/repo-checks/src/meridian-purity.test.ts`: no file under
   `examples/meridian-systems/src` calls a clock, a timer or `Math.random`, and no file
   under `src/physics` imports `@nexusdi/*`.
 
@@ -855,6 +856,7 @@ test.override('nexusSetup', [
 ```
 
 `ShipUnderTest` is a root that imports `Simulation.forRoot` and the systems under test.
+It is global, and binds `TICK_LOOP` as `MeridianSystems` does.
 The suite above asserts that ten ticks raise `SENSOR_FAULT` in every sink of
 `all(ALARM_SINKS)`, with `MemoryAlarmSink` added to the multi token by the test.
 `nexusSetup` is the fixture `nexusTest` exposes for the builder steps on `release/0.4`.
@@ -1025,7 +1027,7 @@ Q1. Where do the growth track's e2e cases run in CI?
 - Answer (owner, 2026-10-21): growth-track increments merge only when green. After a merge, their deterministic unit tests and graph check run in `main` and in the release verify step, so a package change that breaks one blocks the RC until it is fixed. Their e2e cases run in a separate, non-required `demo-growth` job and never block. A case moves into the gating job after a green RC cycle.
 
 The rule in CI terms: `examples/meridian-systems`'s `test` target, `bridge-api`'s
-`check.test.ts` and `graph` target, and `tools/repo-checks`' `purity.test.ts` carry no
+`check.test.ts`, and `tools/repo-checks/src/meridian-purity.test.ts` carry no
 `demo-frontend` tag, so `main`'s `run-many` and the release verify step run them. Each
 app's `e2e-growth` target holds the growth cases, and only `demo-growth` runs it.
 `check.test.ts` compares the graph `inspect()` draws with `graph.json`, so the `test`
