@@ -41,10 +41,10 @@ The guards that fail otherwise: `doc-export-coverage` (the page, the headings an
 
 ## Verifying
 
-CI runs this, over every project, with no filter:
+CI's main job runs this, over every project except the private federation demos:
 
 ```
-npx nx run-many -t lint test build typecheck
+npx nx run-many -t lint test build typecheck --exclude=tag:demo-frontend
 ```
 
 Run all four targets. You can scope with `--projects` while you iterate. A page is not done on a subset. The recurring failure is a local run of `test` alone reporting green on work that fails `typecheck`.
