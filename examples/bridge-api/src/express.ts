@@ -2,11 +2,19 @@
 // caller imports the one it serves (./hono, ./express, ./fastify).
 // fallow-ignore-file duplicate-export
 
+import { pipeline } from 'node:stream';
+
 import { nexus, type ContainerSource } from '@nexusdi/express';
-import { roundSnapshot, SHIP_STATE } from '@nexusdi/meridian-systems';
+import {
+  roundSnapshot,
+  SHIP_STATE,
+  TELEMETRY,
+} from '@nexusdi/meridian-systems';
 import express, { type ErrorRequestHandler } from 'express';
 
 import { parseTicks, SIM_BODY_LIMIT, TICKS_REFUSED } from './bridge/sim-ticks';
+import { telemetryReadable } from './bridge/telemetry-readable';
+import { SSE_HEADERS } from './bridge/telemetry-stream';
 import { UNCHARTED } from './bridge/uncharted';
 import type { BridgeOptions } from './hono';
 import { FLIGHT_LOG, MISSION, NAV_CHARTS, SIM_DRIVER } from './ship/contracts';
@@ -70,6 +78,15 @@ export function createBridge(
     '/sim',
     di.inject({ state: SHIP_STATE }, ({ state }, _req, res) => {
       res.json(roundSnapshot(state.snapshot()));
+    }),
+  );
+  bridge.get(
+    '/telemetry',
+    di.inject({ feed: TELEMETRY }, ({ feed }, _req, res) => {
+      res.writeHead(200, SSE_HEADERS);
+      // pipeline destroys the source when the client goes, which cancels the
+      // stream and unsubscribes it from the feed.
+      pipeline(telemetryReadable(feed), res, () => {});
     }),
   );
   bridge.post(

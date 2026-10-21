@@ -1,12 +1,17 @@
 import type { Scope } from '@nexusdi/core';
 import { nexus, type ContainerSource, type NexusLog } from '@nexusdi/hono';
-import { roundSnapshot, SHIP_STATE } from '@nexusdi/meridian-systems';
+import {
+  roundSnapshot,
+  SHIP_STATE,
+  TELEMETRY,
+} from '@nexusdi/meridian-systems';
 import { Hono } from 'hono';
 import { bodyLimit } from 'hono/body-limit';
 import { HTTPException } from 'hono/http-exception';
 import { streamSSE } from 'hono/streaming';
 
 import { parseTicks, SIM_BODY_LIMIT, TICKS_REFUSED } from './bridge/sim-ticks';
+import { SSE_HEADERS, telemetryStream } from './bridge/telemetry-stream';
 import { UNCHARTED } from './bridge/uncharted';
 import { FLIGHT_LOG, MISSION, NAV_CHARTS, SIM_DRIVER } from './ship/contracts';
 
@@ -77,6 +82,12 @@ export function createBridge(
         '/sim',
         di.inject({ state: SHIP_STATE }, ({ state }, c) =>
           c.json(roundSnapshot(state.snapshot())),
+        ),
+      )
+      .get(
+        '/telemetry',
+        di.inject({ feed: TELEMETRY }, ({ feed }, c) =>
+          c.body(telemetryStream(feed), 200, SSE_HEADERS),
         ),
       )
       .post(

@@ -5,10 +5,16 @@
 import { Readable } from 'node:stream';
 
 import { nexus, type ContainerSource } from '@nexusdi/fastify';
-import { roundSnapshot, SHIP_STATE } from '@nexusdi/meridian-systems';
+import {
+  roundSnapshot,
+  SHIP_STATE,
+  TELEMETRY,
+} from '@nexusdi/meridian-systems';
 import Fastify from 'fastify';
 
 import { parseTicks, SIM_BODY_LIMIT, TICKS_REFUSED } from './bridge/sim-ticks';
+import { telemetryReadable } from './bridge/telemetry-readable';
+import { SSE_HEADERS } from './bridge/telemetry-stream';
 import { UNCHARTED } from './bridge/uncharted';
 import type { BridgeOptions } from './hono';
 import { FLIGHT_LOG, MISSION, NAV_CHARTS, SIM_DRIVER } from './ship/contracts';
@@ -75,6 +81,12 @@ export async function createBridge(
       '/sim',
       di.inject({ state: SHIP_STATE }, async ({ state }) =>
         roundSnapshot(state.snapshot()),
+      ),
+    );
+    scoped.get(
+      '/telemetry',
+      di.inject({ feed: TELEMETRY }, async ({ feed }, _req, reply) =>
+        reply.headers(SSE_HEADERS).send(telemetryReadable(feed)),
       ),
     );
     scoped.post(
