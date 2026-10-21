@@ -2,7 +2,11 @@ import { describe, expect, it } from 'vitest';
 
 import deck from '../../../deck/meridian.deck.json';
 import type { PowerLoad } from '../../physics/power';
-import { FUSION_REACTOR, LITHIUM_LOOP } from '../../physics/thermal';
+import {
+  type CoolantRating,
+  FUSION_REACTOR,
+  LITHIUM_LOOP,
+} from '../../physics/thermal';
 import { SeededRandom } from '../../simulation/seeded-random';
 import type {
   DeckPlan,
@@ -46,14 +50,14 @@ function shipAt(running: Running): ShipSnapshot {
 }
 
 /** The physics over a router that lists the shields at 200 MW when raised. */
-function build() {
+function build(rating: CoolantRating = LITHIUM_LOOP) {
   const seen: ShipSnapshot[] = [];
   const reactor: IReactorCore = {
     output: 0,
     rating: FUSION_REACTOR,
     throttle: () => ({ tick: 1 }),
   };
-  const coolant: ICoolantLoop = { rating: LITHIUM_LOOP };
+  const coolant: ICoolantLoop = { rating };
   const router: IPowerRouter = {
     loads(ship): PowerLoad[] {
       seen.push(ship);
@@ -152,6 +156,15 @@ describe('EngineeringPhysics', () => {
     );
     expect(ship.reactor.tripped).toBe(true);
     expect(ship.reactor.level).toBeCloseTo(0.99, 12);
+    expect(ship.setpoints.reactor).toEqual({ throttle: 0 });
+  });
+
+  it('trips the reactor on a loop that reaches the trip during the tick', () => {
+    const { physics } = build({ ...LITHIUM_LOOP, trip: 500.01 });
+    const ship = physics.step(shipAt({ level: 0, throttle: 1 }), tick);
+    expect(ship.coolant.temperature).toBeCloseTo(500.0145, 4);
+    expect(ship.reactor.tripped).toBe(true);
+    expect(ship.reactor.level).toBeCloseTo(0.01, 12);
     expect(ship.setpoints.reactor).toEqual({ throttle: 0 });
   });
 
