@@ -1,29 +1,58 @@
 {
-  "name": "examples-bridge-console",
+  "name": "@nexusdi/bridge-console",
   "private": true,
   "type": "module",
-  "scripts": {
-    "build": "react-router build",
-    "dev": "react-router dev",
-    "start": "react-router-serve ./build/server/index.js",
-    "typecheck": "react-router typegen && tsc"
-  },
   "dependencies": {
-    "@react-router/node": "^8.4.0",
-    "@react-router/serve": "^8.4.0",
+    "@nexusdi/core": "*",
+    "@nexusdi/errors": "*",
+    "@nexusdi/node": "*",
+    "@nexusdi/react": "*",
+    "@nexusdi/react-router": "*",
+    "@react-router/node": "8.4.0",
+    "@react-router/serve": "8.4.0",
     "isbot": "^5.1.36",
-    "react": "^19.2.8",
-    "react-dom": "^19.2.8",
-    "react-router": "^8.4.0"
+    "react": "19.3.0",
+    "react-dom": "19.3.0",
+    "react-router": "8.4.0"
   },
   "devDependencies": {
-    "@react-router/dev": "^8.4.0",
+    "@nexusdi/bridge-api": "*",
+    "@nexusdi/testing": "*",
+    "@nexusdi/vitest": "*",
+    "@react-router/dev": "8.4.0",
     "@tailwindcss/vite": "^4.2.2",
     "@types/node": "^22",
-    "@types/react": "^19.2.18",
-    "@types/react-dom": "^19.2.7",
-    "tailwindcss": "^4.2.2",
-    "typescript": "^5.9.3",
-    "vite": "^8.0.3"
+    "@types/react": "19.3.0",
+    "@types/react-dom": "19.3.0",
+    "tailwindcss": "^4.2.2"
+  },
+  "nx": {
+    "tags": [
+      "demo"
+    ],
+    "targets": {
+      "typegen": {
+        "cache": true,
+        "inputs": [
+          "{projectRoot}/app/**/*",
+          "{projectRoot}/react-router.config.ts",
+          "{projectRoot}/vite.config.ts"
+        ],
+        "outputs": [
+          "{projectRoot}/.react-router"
+        ],
+        "executor": "nx:run-commands",
+        "options": {
+          "cwd": "examples/bridge-console",
+          "command": "react-router typegen"
+        }
+      },
+      "typecheck": {
+        "dependsOn": [
+          "typegen",
+          "^typecheck"
+        ]
+      }
+    }
   }
 }

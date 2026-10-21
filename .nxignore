@@ -1,3 +1,0 @@
-# The create-react-router scaffold of examples/bridge-console, which Nx cannot
-# read until plan task C2 sets its vite.config.ts root. C2 deletes this file.
-examples/bridge-console
