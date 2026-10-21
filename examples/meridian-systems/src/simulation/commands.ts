@@ -1,3 +1,5 @@
+import { MultiToken, Token } from '@nexusdi/core';
+
 /** What the crew asks of each system. A system steps toward its setpoint each tick. */
 export interface Setpoints {
   readonly reactor: {
@@ -24,3 +26,30 @@ export interface LoggedChange {
   readonly tick: number;
   readonly change: SetpointChange;
 }
+
+/** A crew command. `system` and `action` name its target, and the other fields hold the action's arguments. */
+export interface ShipCommand {
+  readonly system: string;
+  readonly action: string;
+  readonly [arg: string]: unknown;
+}
+
+/** One system's commands. handle() throws a NexusError to refuse a command; any other throw is a bug. */
+export interface ICommandHandler {
+  /** The name a command gives in `system`, unique across the ship. */
+  readonly system: string;
+  handle(command: ShipCommand): QueuedCommand;
+}
+
+export interface ICommandDesk {
+  /**
+   * Checks the envelope of `body` and hands it to the handler of its system.
+   * Throws `BadCommandError` for a bad envelope or an unknown system.
+   */
+  submit(body: unknown): QueuedCommand;
+}
+
+export const COMMAND_HANDLERS = new MultiToken<ICommandHandler>(
+  'CommandHandlers',
+);
+export const COMMAND_DESK = new Token<ICommandDesk>('CommandDesk');

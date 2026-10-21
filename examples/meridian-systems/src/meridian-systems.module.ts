@@ -1,5 +1,7 @@
 import { defineModule, provide } from '@nexusdi/core';
 
+import { CommandDesk } from './simulation/command-desk';
+import { COMMAND_DESK } from './simulation/commands';
 import { type SimOptions, TICK_LOOP } from './simulation/contracts';
 import { FixedStepLoop } from './simulation/fixed-step-loop';
 import { Simulation } from './simulation/simulation.module';
@@ -16,7 +18,10 @@ export function meridianSystems(options: SimOptions) {
       // all(SHIP_SYSTEMS) reads this module's own providers plus the exports of
       // its imports and of the global modules.
       provide(TICK_LOOP, { useClass: FixedStepLoop }),
+      // all(COMMAND_HANDLERS) reads this module's own providers plus the
+      // exports of its imports and of the global modules.
+      provide(COMMAND_DESK, { useClass: CommandDesk }),
     ],
-    exports: [TICK_LOOP, TELEMETRY],
+    exports: [TICK_LOOP, TELEMETRY, COMMAND_DESK],
   });
 }
