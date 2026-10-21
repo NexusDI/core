@@ -5,10 +5,6 @@ export default defineConfig(() => ({
   root: import.meta.dirname,
   cacheDir: '../../node_modules/.vite/examples/federation-cartography',
   plugins: [react()],
-  // Uncomment this if you are using workers.
-  // worker: {
-  //  plugins: [],
-  // },
   test: {
     name: '@nexusdi/federation-cartography',
     watch: false,
