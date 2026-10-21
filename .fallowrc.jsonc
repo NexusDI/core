@@ -29,6 +29,10 @@
     "@nexusdi/meridian-ui",
   ],
 
+  // Core reads each class's `static deps` when it builds the class, so no
+  // source file calls it.
+  "usedClassMembers": ["deps"],
+
   // Nextra loads every page and `_meta.ts` under apps/docs/content by file
   // convention, never through an import, so the reachability walk reports
   // the whole content tree as unused without this.
