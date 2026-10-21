@@ -1,0 +1,48 @@
+---
+title: NEXUS_CORE_NOT_SHARED
+kind: code
+description: A token, module or provider that another copy of @nexusdi/core made reached this copy.
+package: '@nexusdi/core'
+errorClass: CoreNotSharedError
+---
+
+# NEXUS_CORE_NOT_SHARED
+
+`NEXUS_CORE_NOT_SHARED` means a token, a module or a provider that another copy of `@nexusdi/core` made reached this copy. Each copy keeps its own record of the definitions it made, so one copy cannot read a definition from another, and the error names the value and the place core met it. `Nexus.create` reports it inside [NEXUS_BLUEPRINT_INVALID](/errors/NEXUS_BLUEPRINT_INVALID/) for an entry of `imports` or `providers`. `load()`, `get()`, `resolve()`, `validate()` and `defineModule()` throw it directly, and so do `overrideModule()` from `@nexusdi/testing` and `@UseInterceptors` from `@nexusdi/interceptors`.
+
+A second copy of core comes from one of four places:
+
+- npm installed `@nexusdi/core` twice, for example once at the root and once under a package that pins another version. `npm ls @nexusdi/core` lists every copy.
+- A test calls `vi.resetModules()` between the import of a module and the container that reads it, so the second import loads core again.
+- A bundler resolves the `@nexusdi/source` condition for one import and the `dist` build for another, so the source and the build each load once.
+- A Module Federation remote bundles its own core, and the shell loads a module from it.
+
+## Reproduce `NEXUS_CORE_NOT_SHARED`
+
+The region builds the module a remote's own copy of core hands over, and loads it into the ship. Without a plugin, core prints a one-line message that starts with the code and ends with the address of this page. With `errors()` from `@nexusdi/errors` registered (`npm install @nexusdi/errors@next`), the same error carries the full text and its fix.
+
+```ts file=examples/meridian/src/errors/NEXUS_CORE_NOT_SHARED.md region=reproduce
+
+```
+
+Try it: save the region as `error.ts` and run `npx tsx error.ts`. It prints the one-line message, whose `where` field reads `load()`, then the full text as an array of two strings.
+
+## Fix `NEXUS_CORE_NOT_SHARED`
+
+`NEXUS_CORE_NOT_SHARED` is fixed by loading one copy of `@nexusdi/core`. Check the first three causes above first: run `npm ls @nexusdi/core` and dedupe the install, move `vi.resetModules()` so the module and the container load after it, and give every import the same resolve conditions. In Module Federation, the shell and every remote list `@nexusdi/core` in `shared` with `singleton: true`, and set `requiredVersion` to the exact core version, since every `@nexusdi` package peers on that version. A remote that calls `useService` shares `@nexusdi/react` the same way, or its components find no `NexusProvider`.
+
+```ts file=examples/meridian/src/errors/NEXUS_CORE_NOT_SHARED.md region=fix
+
+```
+
+Core detects a second copy from 0.4 on, and the check has two limits:
+
+- A remote that bundles core 0.3 writes no mark on its modules, so core reports such a module as [NEXUS_INVALID_MODULE](/errors/NEXUS_INVALID_MODULE/) with no hint of a second copy.
+- With `strictVersion: true` in the shared entry, Module Federation rejects a remote whose core version differs before any NexusDI code runs. The loader's own error then reaches the app, and core raises nothing.
+
+## Fields of `CoreNotSharedError`
+
+`CoreNotSharedError` carries these fields:
+
+- `received`: the value, named by its own fields, such as `the module Cartography`, `the Token meridian/NavCharts` or `a provider`.
+- `where`: the place core met the value, such as `load()`, `get()`, `Shell.providers[0]`, `Shell.providers[1], deps[0]` or the import path `Shell → Survey`, and `null` for the root of `Nexus.create`.

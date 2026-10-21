@@ -8,7 +8,7 @@ errorClass: InvalidTokenError
 
 # NEXUS_INVALID_TOKEN
 
-`NEXUS_INVALID_TOKEN` means a value used as a token is not a class or a token (`Token` or `MultiToken`), or a `Token` was created without a description. `new Token('')` throws it at once, `get()` and `resolve()` throw it for a value that is no token, and `Nexus.create` reports it inside [NEXUS_BLUEPRINT_INVALID](/errors/NEXUS_BLUEPRINT_INVALID/) for a `providers` entry whose token is not a token. `validate()` reports it the same way for a bad `deps` entry. A bad entry in the `deps` of a provider raises [NEXUS_INVALID_PROVIDER](/errors/NEXUS_INVALID_PROVIDER/) with the reason `bad-dep`.
+`NEXUS_INVALID_TOKEN` means a value used as a token is not a class or a token (`Token` or `MultiToken`), or a `Token` was created without a description. `new Token('')` throws it at once, `get()` and `resolve()` throw it for a value that is no token, and `Nexus.create` reports it inside [NEXUS_BLUEPRINT_INVALID](/errors/NEXUS_BLUEPRINT_INVALID/) for a `providers` entry whose token is not a token. `validate()` reports it the same way for a bad `deps` entry. A bad entry in the `deps` of a provider raises [NEXUS_INVALID_PROVIDER](/errors/NEXUS_INVALID_PROVIDER/) with the reason `bad-dep`. A token that another copy of `@nexusdi/core` made raises [NEXUS_CORE_NOT_SHARED](/errors/NEXUS_CORE_NOT_SHARED/), except as the description of `new Token()`.
 
 ## Reproduce `NEXUS_INVALID_TOKEN`
 
@@ -44,4 +44,3 @@ Then save the fix region below as `fixed.ts` and run `npx tsx fixed.ts`. It prin
 - `index`: the index of that providers entry, or `null` outside compilation.
 - `reason`: `bad-description`, `not-a-deps-value`, `bad-modifier`, `bare-multi-token`, `alias-target`, or `null` for a value that is none of the token kinds.
 - `detail`: the values the reason names.
-- `otherCopy`: `true` when another copy of `@nexusdi/core` made the value.
