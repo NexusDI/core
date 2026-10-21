@@ -3,6 +3,7 @@ export {
   NestedScopeError,
   NoProviderError,
   SectionConflictError,
+  SectionError,
   TransientInRenderError,
 } from './errors.js';
 export { NexusProvider, type NexusProviderProps } from './provider.js';

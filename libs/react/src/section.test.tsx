@@ -163,9 +163,10 @@ describe('SectionBoundary', () => {
     vi.spyOn(console, 'error').mockImplementation(() => undefined);
     await using ship = await Nexus.create([]);
     let attempt = 0;
+    const down = new Error('remote down');
     const section = lazySection('navigation', async () => {
       attempt += 1;
-      if (attempt === 1) throw new Error('remote down');
+      if (attempt === 1) throw down;
       return Navigation;
     });
     const onError = vi.fn();
@@ -183,7 +184,7 @@ describe('SectionBoundary', () => {
     const button = await screen.findByRole('button');
     expect(button.textContent).toBe('remote down');
     expect(onError).toHaveBeenCalledTimes(1);
-    expect(onError).toHaveBeenCalledWith(new Error('remote down'));
+    expect(onError.mock.calls[0]?.[0]).toBe(down);
     await act(async () => button.click());
     expect(await screen.findByText('42')).toBeTruthy();
     expect(attempt).toBe(2);
@@ -208,6 +209,117 @@ describe('SectionBoundary', () => {
       </Boundary>,
     );
     expect((await screen.findByRole('alert')).textContent).toBe('remote down');
+    view.unmount();
+  });
+
+  it('hands React an error that names the section and carries the load error', async () => {
+    vi.spyOn(console, 'error').mockImplementation(() => undefined);
+    await using ship = await Nexus.create([]);
+    const down = new Error('remote down');
+    const caught: unknown[] = [];
+    let view!: ReturnType<typeof render>;
+    await act(async () => {
+      view = render(
+        <NexusProvider container={ship}>
+          <SectionBoundary
+            section={lazySection('navigation', async () => {
+              throw down;
+            })}
+            errorFallback={Failed}
+          >
+            <Heading />
+          </SectionBoundary>
+        </NexusProvider>,
+        { onCaughtError: (error) => caught.push(error) },
+      );
+    });
+    await screen.findByRole('button');
+    expect(caught).toHaveLength(1);
+    const [error] = caught;
+    expect(isNexusError(error, 'NEXUS_REACT_SECTION_FAILED')).toBe(true);
+    expect(error).toMatchObject({ section: 'navigation', cause: down });
+    expect((error as Error).message).toContain("'navigation'");
+    expect((error as Error).message).toContain('remote down');
+    view.unmount();
+  });
+
+  it('hands onError and errorFallback the load error itself, a string included', async () => {
+    vi.spyOn(console, 'error').mockImplementation(() => undefined);
+    await using ship = await Nexus.create([]);
+    const { seen, Capture } = capture();
+    const onError = vi.fn();
+    const view = await mount(
+      <NexusProvider container={ship}>
+        <SectionBoundary
+          section={lazySection('navigation', () => Promise.reject('offline'))}
+          errorFallback={Capture}
+          onError={onError}
+        >
+          <Heading />
+        </SectionBoundary>
+      </NexusProvider>,
+    );
+    await screen.findByText('failed');
+    expect(seen.error).toBe('offline');
+    expect(onError).toHaveBeenCalledExactlyOnceWith('offline');
+    view.unmount();
+  });
+
+  it('hands React the conflict error itself for a section conflict', async () => {
+    vi.spyOn(console, 'error').mockImplementation(() => undefined);
+    await using ship = await Nexus.create([]);
+    const Other = defineModule({ name: 'Other', providers: [] });
+    const caught: unknown[] = [];
+    const { seen, Capture } = capture();
+    const tree = (module: ModuleRef) => (
+      <NexusProvider container={ship}>
+        <SectionBoundary
+          section={lazySection('navigation', async () => module)}
+          errorFallback={Capture}
+        >
+          <Heading />
+        </SectionBoundary>
+      </NexusProvider>
+    );
+    let view!: ReturnType<typeof render>;
+    await act(async () => {
+      view = render(tree(Navigation), {
+        onCaughtError: (error) => caught.push(error),
+      });
+    });
+    await screen.findByText('42');
+    await remount(view, tree(Other));
+    await screen.findByText('failed');
+    expect(caught).toEqual([seen.error]);
+    expect(isNexusError(seen.error, 'NEXUS_REACT_SECTION_CONFLICT')).toBe(true);
+    view.unmount();
+  });
+
+  it('hands the app boundary the load error itself without errorFallback', async () => {
+    vi.spyOn(console, 'error').mockImplementation(() => undefined);
+    await using ship = await Nexus.create([]);
+    const down = new Error('remote down');
+    const caught: unknown[] = [];
+    let view!: ReturnType<typeof render>;
+    await act(async () => {
+      view = render(
+        <Boundary>
+          <NexusProvider container={ship}>
+            <SectionBoundary
+              section={lazySection('navigation', async () => {
+                throw down;
+              })}
+            >
+              <Heading />
+            </SectionBoundary>
+          </NexusProvider>
+        </Boundary>,
+        { onCaughtError: (error) => caught.push(error) },
+      );
+    });
+    await screen.findByRole('alert');
+    expect(caught.at(-1)).toBe(down);
+    for (const error of caught) expect(error).toBeInstanceOf(Error);
     view.unmount();
   });
 
@@ -338,6 +450,43 @@ describe('SectionBoundary', () => {
     await remount(view, tree(Other));
     await screen.findByText('failed');
     expect(isNexusError(seen.error, 'NEXUS_REACT_SECTION_CONFLICT')).toBe(true);
+    view.unmount();
+  });
+
+  it("sends a nested section's conflict to the app boundary, past the outer section", async () => {
+    vi.spyOn(console, 'error').mockImplementation(() => undefined);
+    await using ship = await Nexus.create([]);
+    const Other = defineModule({ name: 'Other', providers: [] });
+    const bridge = lazySection('bridge', async () =>
+      defineModule({ name: 'Bridge', providers: [] }),
+    );
+    const outerError = vi.fn();
+    const OuterFallback = () => <p>outer-fallback</p>;
+    const tree = (module: ModuleRef) => (
+      <Boundary>
+        <NexusProvider container={ship}>
+          <SectionBoundary
+            section={bridge}
+            errorFallback={OuterFallback}
+            onError={outerError}
+          >
+            <SectionBoundary
+              section={lazySection('navigation', async () => module)}
+            >
+              <Heading />
+            </SectionBoundary>
+          </SectionBoundary>
+        </NexusProvider>
+      </Boundary>
+    );
+    const view = await mount(tree(Navigation));
+    await screen.findByText('42');
+    await remount(view, tree(Other));
+    expect((await screen.findByRole('alert')).textContent).toContain(
+      'NEXUS_REACT_SECTION_CONFLICT',
+    );
+    expect(outerError).not.toHaveBeenCalled();
+    expect(screen.queryByText('outer-fallback')).toBeNull();
     view.unmount();
   });
 

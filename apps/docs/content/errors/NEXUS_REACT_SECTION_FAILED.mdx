@@ -1,0 +1,41 @@
+---
+title: NEXUS_REACT_SECTION_FAILED
+kind: code
+description: A section failed to load, and React's caught-error log received the load error as the cause.
+package: '@nexusdi/react'
+errorClass: SectionError
+---
+
+# NEXUS_REACT_SECTION_FAILED
+
+`SectionBoundary` from `@nexusdi/react` runs a section's loader and then loads the module into the container and every live scope. When a step rejects, the boundary catches a `SectionError` with the code `NEXUS_REACT_SECTION_FAILED`, and React passes it to the root's `onCaughtError`. React's default `onCaughtError` prints it to the console with `console.error`. Its message names the section and quotes the load error's message in full, and its `cause` holds the load error itself: a failed dynamic import, a `BlueprintError` from `load()`, a `ProviderError` from a factory or a `ProviderError` from a scope's `extend()`. A `NEXUS_REACT_SECTION_CONFLICT` reaches `onCaughtError` as itself, unwrapped.
+
+The boundary passes the `cause` on. `onError` and `errorFallback` receive the load error, and so does your own error boundary when the `SectionBoundary` has no `errorFallback`.
+
+## Reproduce `NEXUS_REACT_SECTION_FAILED`
+
+The region gives the cartography section a loader that rejects, and records what React hands `onCaughtError`:
+
+```ts file=libs/react/docs/errors.md region=failed-reproduce
+
+```
+
+The error's `section` field names the section, and `cause` is the loader's rejection.
+
+## Fix `NEXUS_REACT_SECTION_FAILED`
+
+Read the `cause` first. `retry()` runs the loader again, which helps after a failed import, such as a remote that was down. Give the boundary an `errorFallback` that offers `retry()`:
+
+```ts file=libs/react/docs/errors.md region=failed-fix
+
+```
+
+A `BlueprintError` cause repeats on every retry until the section or the shell changes. Its `errors` list names each missing or colliding token.
+
+To send section failures to an error tracker, report from the boundary's `onError`, which receives the cause once per failure. The root's `onCaughtError` sees the cause a second time when a `SectionBoundary` without `errorFallback` rethrows it to your error boundary.
+
+## Fields of `SectionError`
+
+- `code`: `'NEXUS_REACT_SECTION_FAILED'`.
+- `section`: the name of the section that failed to load.
+- `cause`: the load error, the value the section's loader or the container rejected with.

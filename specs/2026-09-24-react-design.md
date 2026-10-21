@@ -602,10 +602,13 @@ The boundary's error boundary catches what step 2 rejects with:
   `load()` has disposed what it built (core §3.5).
 - A `ProviderError` from a scope's `extend()`.
 
-The boundary tells these apart from errors thrown by the section's own components with an
-internal marker on the rejected promise. It rethrows a component error from its render,
-so that error reaches the app's own error boundary above. The section boundary handles
-the load, and the app handles its components' errors.
+The boundary tells these apart from errors thrown by the section's own components. The
+section's promise rejects with a `SectionError` (`NEXUS_REACT_SECTION_FAILED`) whose
+`cause` is the load error, or with a `SectionConflictError` as itself, and the boundary
+keeps the errors it made in a private map. React's `onCaughtError` receives that error,
+so its console log names the section and the cause. The boundary rethrows a component
+error from its render, so that error reaches the app's own error boundary above. The
+section boundary handles the load, and the app handles its components' errors.
 
 On a load failure it calls `onError(error)` once, clears the store entry, and renders
 `errorFallback` with `{ error, retry }`. `retry()` re-renders the boundary, which starts
