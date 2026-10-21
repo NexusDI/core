@@ -25,6 +25,9 @@
     },
     {
       "path": "../../libs/core/tsconfig.lib.json"
+    },
+    {
+      "path": "../../libs/errors/tsconfig.lib.json"
     }
   ],
   "exclude": [

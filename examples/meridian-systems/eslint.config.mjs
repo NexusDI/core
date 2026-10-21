@@ -94,7 +94,8 @@ export default [
     rules: {
       'no-restricted-imports': [
         'error',
-        onlyRelativeAnd('@nexusdi/core', 'vitest'),
+        // A test reads shipText through explain(), as an errors() call does.
+        onlyRelativeAnd('@nexusdi/core', '@nexusdi/errors', 'vitest'),
       ],
     },
   },
