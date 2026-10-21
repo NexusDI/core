@@ -70,7 +70,7 @@ export default function Diagnostics({ loaderData }: Route.ComponentProps) {
 
 /**
  * The page when the backend fails. It renders inside the ship layout, so the
- * status strip above it still shows the ship offline.
+ * status strip above it keeps showing the ship's state.
  */
 export function ErrorBoundary() {
   return (
