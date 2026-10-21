@@ -8,10 +8,15 @@ const LISTENING = /Server is running on (http:\/\/localhost:(\d+))/;
 
 /** Starts one entry as a reader runs it, on a free port and the offline graph. */
 function start(entry: string): ChildProcess {
-  const env = { ...process.env, PORT: '0' };
-  delete env.RELAY_URL;
-  // Vitest sets NODE_ENV=test. A reader's shell leaves it unset.
-  delete env.NODE_ENV;
+  const env: NodeJS.ProcessEnv = {
+    ...process.env,
+    PORT: '0',
+    // An empty RELAY_URL selects OfflineMeridian, as an unset one does.
+    RELAY_URL: '',
+    // Vitest sets NODE_ENV=test. A reader's shell leaves it unset, and
+    // spawn() passes no variable whose value is undefined.
+    NODE_ENV: undefined,
+  };
   return spawn(process.execPath, ['--import', 'tsx', `src/${entry}`], {
     cwd: join(import.meta.dirname, '..'),
     env,
