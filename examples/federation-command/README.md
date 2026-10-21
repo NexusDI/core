@@ -1,0 +1,24 @@
+# @nexusdi/federation-command
+
+A remote of the federation demo: the `command` station, written with
+`@nexusdi/decorators`. It exposes `./section` with the `@Module` class `Command` and the
+component `CommandDeck`. `Command` binds `BRIDGE` to `Bridge`, which reads the contract's
+`NAV_CHARTS` through `@Inject(NAV_CHARTS) accessor charts`. The shell imports nothing from
+`@nexusdi/decorators`, so `CommandDeck` shows `course to Kepler-442b, heading 42` only
+when the shell's core reads the metadata this bundle wrote.
+
+It serves on port 4302, and the shell (`examples/federation-shell`) loads it on
+`/command`.
+
+rspack's builtin swc loader and vitest's `unplugin-swc` both compile standard decorators
+with the settings in `swc.decorators.ts`: `jsc.parser.decorators: true` and
+`jsc.transform.decoratorVersion: '2023-11'`. The production minifier keeps class names,
+since `@Module` names the module after its class.
+
+## Commands
+
+```sh
+npx nx serve @nexusdi/federation-command
+npx nx build @nexusdi/federation-command
+npx nx test @nexusdi/federation-command
+```
