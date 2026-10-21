@@ -56,6 +56,17 @@ describe('isDev', () => {
   });
 });
 
+/** A server double: records `close` and `closeIdleConnections` in `order`. */
+function fakeServer(order: string[], close: () => unknown = () => {}) {
+  return Object.assign(new EventEmitter(), {
+    close: () => {
+      order.push('close');
+      return close();
+    },
+    closeIdleConnections: () => order.push('idle'),
+  });
+}
+
 describe('stopOnSigterm', () => {
   it('closes the server, then disposes the ship once, on SIGTERM', async () => {
     const order: string[] = [];
@@ -64,15 +75,48 @@ describe('stopOnSigterm', () => {
       order.push('dispose');
     });
     stopOnSigterm(
-      () => order.push('close'),
+      fakeServer(order),
       { [Symbol.asyncDispose]: dispose },
-      signals,
+      { signals },
     );
     expect(order).toEqual([]);
     signals.emit('SIGTERM');
     signals.emit('SIGTERM');
     await vi.waitFor(() => expect(order).toEqual(['close', 'dispose']));
     expect(dispose).toHaveBeenCalledTimes(1);
+  });
+
+  it('closes the idle connections each time a response finishes after SIGTERM', async () => {
+    const order: string[] = [];
+    const signals = new EventEmitter();
+    const server = fakeServer(order);
+    stopOnSigterm(
+      server,
+      { [Symbol.asyncDispose]: async () => {} },
+      { signals },
+    );
+    const before = new EventEmitter();
+    const stream = new EventEmitter();
+    server.emit('request', {}, before);
+    server.emit('request', {}, stream);
+    before.emit('finish');
+    expect(order).toEqual([]);
+
+    signals.emit('SIGTERM');
+    stream.emit('finish');
+    expect(order).toEqual(['close', 'idle']);
+  });
+
+  it('calls the close it is given in place of server.close()', async () => {
+    const order: string[] = [];
+    const signals = new EventEmitter();
+    stopOnSigterm(
+      fakeServer(order),
+      { [Symbol.asyncDispose]: async () => {} },
+      { signals, close: () => order.push('framework close') },
+    );
+    signals.emit('SIGTERM');
+    expect(order).toEqual(['framework close']);
   });
 
   it('disposes the ship when close throws, and reports the error with exit code 1', async () => {
@@ -82,11 +126,11 @@ describe('stopOnSigterm', () => {
     const boom = new Error('server already closed');
     try {
       stopOnSigterm(
-        () => {
+        fakeServer([], () => {
           throw boom;
-        },
+        }),
         { [Symbol.asyncDispose]: dispose },
-        signals,
+        { signals },
       );
       signals.emit('SIGTERM');
       await vi.waitFor(() => expect(report).toHaveBeenCalledWith(boom));

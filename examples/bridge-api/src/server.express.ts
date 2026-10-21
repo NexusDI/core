@@ -19,5 +19,5 @@ const bridge = createBridge(ship, {
 const server = bridge.listen(port(), () =>
   listening((server.address() as AddressInfo).port),
 );
-stopOnSigterm(() => server.close(), ship);
+stopOnSigterm(server, ship);
 await once(server, 'close');

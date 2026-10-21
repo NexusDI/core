@@ -1,4 +1,5 @@
 import { once } from 'node:events';
+import type { Server } from 'node:http';
 
 import { serve } from '@hono/node-server';
 import { graph } from '@nexusdi/devtools';
@@ -19,5 +20,6 @@ const bridge = createBridge(ship, {
 const server = serve({ fetch: bridge.fetch, port: port() }, (info) =>
   listening(info.port),
 );
-stopOnSigterm(() => server.close(), ship);
+// serve() answers an http.Server unless its options name another server.
+stopOnSigterm(server as Server, ship);
 await once(server, 'close');
