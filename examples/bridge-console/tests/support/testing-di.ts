@@ -44,6 +44,18 @@ export async function homeServer() {
 }
 
 /**
+ * What the course route's mocked nexus.server exports: the BridgeConsole
+ * graph with the bridge link double, so the loader calls no backend.
+ */
+export async function courseServer() {
+  const ship = await createTestingContainer(BridgeConsole)
+    .override(BRIDGE_LINK, fakeBridgeLink)
+    .create();
+  built.push(ship);
+  return { di: nexus(ship, { request }), ship };
+}
+
+/**
  * What the sectors route's mocked nexus.server exports: the BridgeConsole
  * graph, whose Tactical the Navigation section imports.
  */
