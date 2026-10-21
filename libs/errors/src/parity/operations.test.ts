@@ -608,7 +608,7 @@ describe('errors', () => {
         rawResolve(ship, { checks: DIAGNOSTICS }),
       ) as NexusError;
       expect(bare.message).toBe(
-        '[NEXUS_INVALID_TOKEN] deps.checks: an object is the MultiToken Diagnostics; wrap it in all().',
+        '[NEXUS_INVALID_TOKEN] deps.checks: the MultiToken Diagnostics collects many providers; wrap it in all().',
       );
     });
   });

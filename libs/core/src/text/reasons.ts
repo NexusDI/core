@@ -82,8 +82,10 @@ export function tokenReason(
     case 'not-a-deps-value':
       return 'is not a deps map or a deps tuple.';
     case 'bad-modifier':
-    case 'bare-multi-token':
       return `${depSentence(reason, detail)}.`;
+    case 'bare-multi-token':
+      // `received` already names the MultiToken.
+      return 'collects many providers; wrap it in all().';
     case 'alias-target':
       return `is not a token, so useExisting cannot alias it. ${NOT_A_TOKEN}`;
     case null:

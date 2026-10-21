@@ -207,7 +207,7 @@ describe('Nexus', () => {
       ) as NexusError;
       expect(bare).toMatchObject({
         code: 'NEXUS_INVALID_TOKEN',
-        received: 'an object',
+        received: 'the MultiToken Diagnostics',
         entry: 'deps.checks',
         reason: 'bare-multi-token',
         detail: ['Diagnostics'],

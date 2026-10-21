@@ -34,7 +34,7 @@ describe('R16', () => {
       expect(container.has(Command, { module: Engineering })).toBe(false);
       expect(thrown(() => container.get(Command))).toMatchObject({
         code: 'NEXUS_INVALID_TOKEN',
-        received: 'the function Command',
+        received: 'the module Command',
       });
       expect(
         thrown(() => container.get(Command, { module: Engineering })),
