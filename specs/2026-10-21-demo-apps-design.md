@@ -434,8 +434,8 @@ npx nx g @nx/js:library examples/federation-contracts \
 ```ts
 // examples/federation-contracts/src/index.ts
 import { defineContract } from '@nexusdi/federation';
-import type { INavCharts } from './nav-charts';
-import { MERIDIAN_CONTRACT_VERSION } from './version';
+import { MERIDIAN_CONTRACT_VERSION } from '@nexusdi/federation-contracts/version';
+import type { INavCharts } from './nav-charts.js';
 
 export const meridian = defineContract({
   key: 'meridian',
@@ -443,6 +443,10 @@ export const meridian = defineContract({
 });
 export const NAV_CHARTS = meridian.token<INavCharts>('NavCharts');
 ```
+
+`src/index.ts` reads the version through the package's own `./version` subpath. A
+bundler alias matches the import's specifier, so the drift build of section 7.6 can map
+that subpath to another file, and it could not map a relative `./version` import.
 
 The shell owns it (A4). The shell provides every contract token, so the team that binds
 the providers decides what the contract promises and when its version moves. The
