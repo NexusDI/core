@@ -98,7 +98,7 @@ jobs:
       - run: npm ci
 
       # `react-router typegen` writes the +types/*.d.ts files
-      # examples/react-ssr reaches through tsconfig.app.json's rootDirs. On a
+      # examples/bridge-console reaches through tsconfig.app.json's rootDirs. On a
       # fresh checkout they don't exist yet. typecheck's own Nx target
       # dependency (dependsOn: [typegen, ...]) already produces them in time
       # for tsc; this step is for fallow below, which cannot see rootDirs at
@@ -112,7 +112,7 @@ jobs:
       # isn't a second `nx run-many` step in this file --
       # tools/repo-checks/src/release-verify-gate.test.ts asserts there is
       # exactly one, the actual gate below.
-      - run: npx nx run @nexusdi/react-ssr:typegen
+      - run: npx nx run @nexusdi/bridge-console:typegen
 
       # A step in this job rather than a job of its own: it needs the install
       # and nothing else, and it costs seconds against the minute that

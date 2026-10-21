@@ -80,7 +80,7 @@ Package scopes:
 Repository scopes (these are not projects and never bump a package on their
 own):
 
-- **examples**: Changes to examples/react-ssr and examples/react-ssr-e2e
+- **examples**: Changes across `examples/`, such as adding or removing an example
 - **ci**: Changes to CI workflows
 - **deps** / **deps-dev**: Changes to dependencies
 - **repo**: Repository-wide chores (tooling, nx.json, tsconfig.base.json, ...)
@@ -140,8 +140,8 @@ This guides you through creating a properly formatted commit message.
 
 ### A note on `typecheck`
 
-`nx run-many -t typecheck` covers `core` and `examples/react-ssr`. Nx infers a
-`typecheck` target from each project's tsconfig.json and runs `tsc --build`
+`nx run-many -t typecheck` covers every project. Nx infers a `typecheck`
+target from each project's tsconfig.json and runs `tsc --build`
 against it; there is no separate `check` target in this repository, because
 nothing here builds through a tool (like Astro) that needs one.
 

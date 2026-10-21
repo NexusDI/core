@@ -74,7 +74,7 @@ npm install @nexusdi/core@next
 
 ## Examples and Contributing
 
-Every package keeps its examples in `libs/<package>/docs`, and [examples/react-ssr](examples/react-ssr/) shows a React Router integration. Read the [Contributing Guide](CONTRIBUTING.md) before you open a pull request.
+Every package keeps its examples in `libs/<package>/docs`, and [examples/bridge-console](examples/bridge-console/) shows a React Router integration. Read the [Contributing Guide](CONTRIBUTING.md) before you open a pull request.
 
 ## Documentation & Community
 

@@ -56,7 +56,7 @@ console.log(`Leg ${name}: installing ${specs.join(' ')}`);
 // exactly 5.0.5, which the vitest-floor and vitest-4-latest legs replace with
 // 4.x, @nx/react 23.3.0 peers express ^4.21.2 where the express legs install 5,
 // libs/react and libs/react-router pin @react-router/dev ^8.4.0 and
-// examples/react-ssr pins @react-router/dev, @react-router/node and
+// examples/bridge-console pins @react-router/dev, @react-router/node and
 // @react-router/serve at exactly 8.4.0, which react-router-8-latest replaces
 // with the newest 8.x, and its peer range ^8.5.0 conflicts with those pins), and
 // the leg tests one adapter, so legacyPeerDeps skips npm's peer checks. The

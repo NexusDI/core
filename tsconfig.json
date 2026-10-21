@@ -31,12 +31,6 @@
       "path": "./libs/errors"
     },
     {
-      "path": "./examples/react-ssr-e2e"
-    },
-    {
-      "path": "./examples/react-ssr"
-    },
-    {
       "path": "./examples/bridge-console"
     },
     {
