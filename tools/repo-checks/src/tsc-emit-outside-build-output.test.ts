@@ -90,17 +90,34 @@ function isInside(child: string, parent: string): boolean {
 }
 
 /**
+ * The command a run-commands target starts with: `options.command`, or the
+ * first entry of `options.commands`, which Nx accepts as a string or as
+ * `{ command }`.
+ */
+function firstCommand(target: TargetConfiguration): string {
+  const options = target.options as
+    { command?: unknown; commands?: unknown } | undefined;
+  if (options?.command !== undefined) return String(options.command);
+  const first: unknown = Array.isArray(options?.commands)
+    ? options.commands[0]
+    : undefined;
+  if (typeof first === 'object' && first !== null && 'command' in first)
+    return String(first.command);
+  return first === undefined ? '' : String(first);
+}
+
+/**
  * A target is the same compiler producing the same artifact when it is
  * `tsc --build` naming that very config, so its emit is not a second producer.
+ * A target with several commands counts when its first command is that build,
+ * as libs/cli's build is: tsc, then a chmod of the bin.
  */
 function buildsConfigItself(
   target: TargetConfiguration,
   config: string,
   projectRoot: string,
 ): boolean {
-  const command = String(
-    (target.options as { command?: unknown } | undefined)?.command ?? '',
-  );
+  const command = firstCommand(target);
   if (!command.startsWith('tsc --build')) return false;
 
   return command
@@ -164,6 +181,62 @@ function collisions(
 
   return found;
 }
+
+describe('buildsConfigItself', () => {
+  const config = resolve(workspaceRoot, 'libs/cli/tsconfig.lib.json');
+  const target = (options: Record<string, unknown>): TargetConfiguration => ({
+    executor: 'nx:run-commands',
+    options,
+  });
+
+  it('reads options.command', () => {
+    expect(
+      buildsConfigItself(
+        target({ command: 'tsc --build tsconfig.lib.json' }),
+        config,
+        'libs/cli',
+      ),
+    ).toBe(true);
+  });
+
+  it('reads the first entry of options.commands, as a string or as { command }', () => {
+    const chmod =
+      "node -e \"require('node:fs').chmodSync('dist/bin.js', 0o755)\"";
+    expect(
+      buildsConfigItself(
+        target({ commands: ['tsc --build tsconfig.lib.json', chmod] }),
+        config,
+        'libs/cli',
+      ),
+    ).toBe(true);
+    expect(
+      buildsConfigItself(
+        target({
+          commands: [{ command: 'tsc --build tsconfig.lib.json' }, chmod],
+        }),
+        config,
+        'libs/cli',
+      ),
+    ).toBe(true);
+  });
+
+  it('refuses a build of another config, or a tsc build that is not the first command', () => {
+    expect(
+      buildsConfigItself(
+        target({ commands: ['tsc --build tsconfig.spec.json'] }),
+        config,
+        'libs/cli',
+      ),
+    ).toBe(false);
+    expect(
+      buildsConfigItself(
+        target({ commands: ['vite build', 'tsc --build tsconfig.lib.json'] }),
+        config,
+        'libs/cli',
+      ),
+    ).toBe(false);
+  });
+});
 
 describe('tsc emit locations', () => {
   it('stay out of directories another target owns', async () => {
