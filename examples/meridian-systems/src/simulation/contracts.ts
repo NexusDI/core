@@ -1,5 +1,13 @@
 import { MultiToken, Token } from '@nexusdi/core';
 import type { Gas } from '../physics/gas';
+import type { PowerRecord } from '../physics/power';
+import type { CoolantRecord, ReactorRecord } from '../physics/thermal';
+import type {
+  LoggedChange,
+  QueuedCommand,
+  SetpointChange,
+  Setpoints,
+} from './commands';
 
 export interface SimOptions {
   readonly seed: number;
@@ -32,6 +40,10 @@ export interface ShipSnapshot {
   /** Ship seconds, `tick * dt`. */
   readonly time: number;
   readonly compartments: Readonly<Record<CompartmentId, CompartmentState>>;
+  readonly reactor: ReactorRecord;
+  readonly coolant: CoolantRecord;
+  readonly power: PowerRecord;
+  readonly setpoints: Setpoints;
 }
 
 export interface CompartmentReading extends CompartmentState {
@@ -106,6 +118,16 @@ export interface ISimClock {
 export interface IShipState {
   snapshot(): ShipSnapshot;
   commit(next: ShipSnapshot): void;
+  /** Queues `change` for the next tick and answers with that tick. */
+  queue(change: SetpointChange): QueuedCommand;
+  /**
+   * Merges the queued changes over the setpoints in queue order, logs each
+   * under `tick`, commits the result and returns it. The tick loop calls it
+   * at step 1 of tick `tick`.
+   */
+  applyQueued(tick: number): ShipSnapshot;
+  /** The newest 1,000 applied changes, oldest first. */
+  log(): readonly LoggedChange[];
 }
 
 export interface TickContext {

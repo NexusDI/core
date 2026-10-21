@@ -146,6 +146,32 @@ describe('FixedStepLoop', () => {
     expect(Object.isFrozen(ship)).toBe(true);
   });
 
+  it('applies a change queued before advance() ahead of the first system', () => {
+    const calls: Call[] = [];
+    const { state, loop } = build([probe('a', 1, calls), probe('b', 4, calls)]);
+    state.queue({ reactor: { throttle: 1 } });
+    loop.advance(1);
+    expect(calls[0].input.setpoints.reactor.throttle).toBe(1);
+    expect(state.log()).toEqual([
+      { tick: 1, change: { reactor: { throttle: 1 } } },
+    ]);
+  });
+
+  it('applies a change queued between two ticks at the second', () => {
+    const calls: Call[] = [];
+    const { state, loop } = build([probe('a', 1, calls)]);
+    loop.advance(1);
+    expect(state.queue({ shields: { raised: true } })).toEqual({ tick: 2 });
+    loop.advance(1);
+    expect(calls.map((call) => call.input.setpoints.shields.raised)).toEqual([
+      false,
+      true,
+    ]);
+    expect(state.log()).toEqual([
+      { tick: 2, change: { shields: { raised: true } } },
+    ]);
+  });
+
   describe('listen', () => {
     it('calls a listener with each committed snapshot after the systems ran', () => {
       const calls: Call[] = [];
