@@ -5,6 +5,7 @@ import { COMMAND_DESK } from './simulation/commands';
 import { type SimOptions, TICK_LOOP } from './simulation/contracts';
 import { FixedStepLoop } from './simulation/fixed-step-loop';
 import { Simulation } from './simulation/simulation.module';
+import { Engineering } from './systems/engineering/engineering.module';
 import { TELEMETRY } from './telemetry/contracts';
 import { Telemetry } from './telemetry/telemetry.module';
 
@@ -13,7 +14,7 @@ export function meridianSystems(options: SimOptions) {
   return defineModule({
     name: 'MeridianSystems',
     global: true,
-    imports: [Simulation.forRoot(options), Telemetry],
+    imports: [Simulation.forRoot(options), Telemetry, Engineering],
     providers: [
       // all(SHIP_SYSTEMS) reads this module's own providers plus the exports of
       // its imports and of the global modules.
@@ -22,6 +23,6 @@ export function meridianSystems(options: SimOptions) {
       // exports of its imports and of the global modules.
       provide(COMMAND_DESK, { useClass: CommandDesk }),
     ],
-    exports: [TICK_LOOP, TELEMETRY, COMMAND_DESK],
+    exports: [TICK_LOOP, TELEMETRY, COMMAND_DESK, Engineering],
   });
 }
