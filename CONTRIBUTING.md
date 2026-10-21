@@ -99,6 +99,8 @@ own):
 - **federation-shell**, **federation-cartography**, **federation-command**,
   **federation-contracts**: Changes to the private federation demo projects of
   the same name under `examples/`
+- **meridian-systems**: Changes to `examples/meridian-systems`, the ship
+  simulation `bridge-api` runs
 
 The list is enforced. `commitlint.config.js` carries it as the `scope-enum`
 rule, and the commit-msg hook rejects anything outside it. It is a static list
