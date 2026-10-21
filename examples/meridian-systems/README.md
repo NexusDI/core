@@ -80,6 +80,6 @@ npx nx run @nexusdi/meridian-systems:e2e-growth
 - `test` runs the unit tests beside the files in `src/` and the module tests in `test/`. The module tests build `ShipUnderTest` on `@nexusdi/vitest` fixtures with probe systems and the `Telemetry` module, and assert rounded idle values after 600 ticks that hold on any Node. `test/telemetry.test.ts` reads the feed's frames, and `test/notes.test.ts` reads the ship notes through `inspect()` from `@nexusdi/devtools`.
 - `e2e-growth` runs `e2e/idle.e2e.ts`, which compares seed 7 at ticks 0, 1 and 600 with `e2e/golden/idle.seed-7.json`. The suite runs only on the Node version `.nvmrc` names, and stops with both versions in the message on any other. `npx nx run @nexusdi/meridian-systems:e2e-growth -- -u` rewrites the golden. Review its diff as you review a change to `graph.json`. Under `CI`, Vitest writes no snapshot, so a missing golden fails.
 
-The non-required `demo-growth` CI job runs both `e2e-growth` targets (ship systems spec, section 14).
+The non-required `demo-growth` CI job runs the `e2e-growth` targets of the three demo projects: `meridian-systems`, `bridge-api` and `bridge-console` (ship systems spec, section 14).
 
 Next, read [`examples/bridge-api`](../bridge-api/README.md), which drives this simulation and serves it over HTTP.
