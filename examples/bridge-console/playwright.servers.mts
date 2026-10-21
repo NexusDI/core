@@ -19,8 +19,8 @@ export const GROWTH_PORTS: SuitePorts = { console: 4220, api: 4221 };
 /**
  * The built console under react-router-serve, as it runs in production,
  * and bridge-api's Hono entry, which the console's loaders call over HTTP.
- * The gating and the growth configs each start their own pair. The e2e and e2e-growth targets
- * build the console first (package.json).
+ * The gating and the growth configs each start their own pair. The e2e and
+ * e2e-growth targets build the console first (package.json).
  */
 export function webServers(
   ports: SuitePorts,
