@@ -19,7 +19,7 @@
     "ignoreDeprecations": "6.0"
   },
   "include": [
-    "vite.config.mts",
+    "vitest.config.mts",
     "rspack.config.ts",
     "rspack.config.drift.ts",
     "rspack.config.unshared.ts",

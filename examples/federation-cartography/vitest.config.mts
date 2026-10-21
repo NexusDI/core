@@ -1,17 +1,16 @@
-/// <reference types='vitest' />
-import { defineConfig } from 'vite';
+import { defineConfig } from 'vitest/config';
 import react from '@vitejs/plugin-react';
 
 export default defineConfig(() => ({
   root: import.meta.dirname,
-  cacheDir: '../../node_modules/.vite/examples/federation-shell',
+  cacheDir: '../../node_modules/.vite/examples/federation-cartography',
   plugins: [react()],
   // Uncomment this if you are using workers.
   // worker: {
   //  plugins: [],
   // },
   test: {
-    name: '@nexusdi/federation-shell',
+    name: '@nexusdi/federation-cartography',
     watch: false,
     globals: true,
     environment: 'jsdom',
