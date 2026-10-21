@@ -52,6 +52,11 @@ export class FixedStepLoop implements ITickLoop {
   }
 
   advance(ticks: number): ShipSnapshot {
+    if (!Number.isSafeInteger(ticks) || ticks < 0) {
+      throw new RangeError(
+        `advance() takes a whole number of ticks, 0 or more, and got ${ticks}.`,
+      );
+    }
     for (let i = 0; i < ticks; i++) {
       const tick = this.clock.tick + 1;
       let ship = this.state.snapshot();
