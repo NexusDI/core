@@ -20,7 +20,7 @@ Because these are standard decorators, they require a toolchain that can compile
 
 **Important:** You must leave `experimentalDecorators` and `emitDecoratorMetadata` **disabled** in your `tsconfig.json`. NexusDI does not rely on compiler-emitted metadata; every dependency is explicitly named via a token in the decorator. A project that must keep `experimentalDecorators` for another library uses `static deps` and `defineModule()`, as [Using NexusDI with experimentalDecorators](/legacy-decorators/) shows.
 
-The [federation demo](/federation/)'s [`examples/federation-command`](https://github.com/NexusDI/core/tree/release/0.4/examples/federation-command) compiles decorated classes with rspack's SWC loader, in a remote bundle that the shell loads at runtime.
+[`examples/federation-command`](https://github.com/NexusDI/core/tree/release/0.4/examples/federation-command), a remote of the [federation demo](/federation/), compiles decorated classes with rspack's SWC loader, and the shell loads it at runtime.
 
 ## Declaring Dependencies with `@Injectable`
 

@@ -26,7 +26,7 @@ A `Token` is compared by identity: two `new Token()` calls make two tokens, even
 
 ## Declare Shared Tokens in a Contract with `defineContract()`
 
-A contract gives every copy of a token the same name and a version. `defineContract({ key, version })` returns a token maker, and `meridian.token<INavCharts>('NavCharts')` makes a `Token<INavCharts>` described `meridian/NavCharts`, the contract key and the token name joined by a slash. Each token also carries the key, the name and the contract's version, and `federation()` reads them from every copy.
+A contract gives every copy of a token the same name and a version. `defineContract({ key, version })` returns a token maker, and `meridian.token<INavCharts>('NavCharts')` makes a `Token<INavCharts>` described `meridian/NavCharts`, the contract key and the token name joined by a slash. Each token also carries a contract mark, `{ key, name, version }`, and `federation()` reads it from every copy.
 
 ```ts file=examples/meridian/src/pages/federation.md region=contract
 
