@@ -1,11 +1,13 @@
 import type { Scope } from '@nexusdi/core';
 import { nexus, type ContainerSource, type NexusLog } from '@nexusdi/hono';
+import { roundSnapshot, SHIP_STATE } from '@nexusdi/meridian-systems';
 import { Hono } from 'hono';
 import { HTTPException } from 'hono/http-exception';
 import { streamSSE } from 'hono/streaming';
 
+import { parseTicks, TICKS_REFUSED } from './bridge/sim-ticks';
 import { UNCHARTED } from './bridge/uncharted';
-import { FLIGHT_LOG, MISSION, NAV_CHARTS } from './ship/contracts';
+import { FLIGHT_LOG, MISSION, NAV_CHARTS, SIM_DRIVER } from './ship/contracts';
 
 export interface BridgeOptions {
   scopes?: {
@@ -69,6 +71,23 @@ export function createBridge(
             }
           }),
         ),
+      )
+      .get(
+        '/sim',
+        di.inject({ state: SHIP_STATE }, ({ state }, c) =>
+          c.json(roundSnapshot(state.snapshot())),
+        ),
+      )
+      .post(
+        '/sim/advance',
+        di.inject({ driver: SIM_DRIVER }, async ({ driver }, c) => {
+          // A live ship advances on its own timer, so the route exists only
+          // in manual mode: notFound() answers as Hono's 404 does.
+          if (driver.mode === 'live') return c.notFound();
+          const ticks = parseTicks(await c.req.json().catch(() => undefined));
+          if (ticks === undefined) return c.json(TICKS_REFUSED, 400);
+          return c.json(roundSnapshot(driver.advance(ticks)));
+        }),
       )
       // The adapter's HTTPException keeps its 500 or 503 (spec 4.3); the
       // handler's own errors answer an empty 500.

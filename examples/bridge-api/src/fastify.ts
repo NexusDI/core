@@ -5,11 +5,13 @@
 import { Readable } from 'node:stream';
 
 import { nexus, type ContainerSource } from '@nexusdi/fastify';
+import { roundSnapshot, SHIP_STATE } from '@nexusdi/meridian-systems';
 import Fastify from 'fastify';
 
+import { parseTicks, TICKS_REFUSED } from './bridge/sim-ticks';
 import { UNCHARTED } from './bridge/uncharted';
 import type { BridgeOptions } from './hono';
-import { FLIGHT_LOG, MISSION, NAV_CHARTS } from './ship/contracts';
+import { FLIGHT_LOG, MISSION, NAV_CHARTS, SIM_DRIVER } from './ship/contracts';
 
 export async function createBridge(
   ship: ContainerSource,
@@ -67,6 +69,23 @@ export async function createBridge(
           }
         }
         return reply.type('text/event-stream').send(Readable.from(ticks()));
+      }),
+    );
+    scoped.get(
+      '/sim',
+      di.inject({ state: SHIP_STATE }, async ({ state }) =>
+        roundSnapshot(state.snapshot()),
+      ),
+    );
+    scoped.post(
+      '/sim/advance',
+      di.inject({ driver: SIM_DRIVER }, async ({ driver }, req, reply) => {
+        // A live ship advances on its own timer, so the route exists only in
+        // manual mode: callNotFound() answers as Fastify's 404 does.
+        if (driver.mode === 'live') return reply.callNotFound();
+        const ticks = parseTicks(req.body);
+        if (ticks === undefined) return reply.code(400).send(TICKS_REFUSED);
+        return roundSnapshot(driver.advance(ticks));
       }),
     );
   });
