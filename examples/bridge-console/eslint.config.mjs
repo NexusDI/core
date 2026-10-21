@@ -3,7 +3,9 @@ import nx from '@nx/eslint-plugin';
 import baseConfig, { sharedRules } from '../../eslint.config.mjs';
 
 export default [
-  playwright.configs['flat/recommended'],
+  // The Playwright rules read e2e/ only: the vitest tests under tests/
+  // have their own test() and expect().
+  { ...playwright.configs['flat/recommended'], files: ['e2e/**/*.ts'] },
   ...baseConfig,
   ...nx.configs['flat/react'],
   {
@@ -12,10 +14,5 @@ export default [
     // sets, so the block goes last and its settings win. The root config's
     // doc comment on sharedRules says why each rule is there.
     rules: sharedRules,
-  },
-  {
-    files: ['**/*.ts', '**/*.js'],
-    // Override or add rules here
-    rules: {},
   },
 ];

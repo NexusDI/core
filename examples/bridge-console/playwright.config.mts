@@ -2,74 +2,45 @@ import { defineConfig, devices } from '@playwright/test';
 import { nxE2EPreset } from '@nx/playwright/preset';
 import { workspaceRoot } from '@nx/devkit';
 
-// For CI, you may want to set BASE_URL to the deployed application.
-const baseURL = process.env['BASE_URL'] || 'http://127.0.0.1:4210';
+const baseURL = 'http://127.0.0.1:4210';
+/** Where the bridge API listens, which the console's server calls. */
+const bridgeApiUrl = 'http://127.0.0.1:4211/';
 
 /**
- * Read environment variables from file.
- * https://github.com/motdotla/dotenv
- */
-// import 'dotenv/config';
-
-/**
- * See https://playwright.dev/docs/test-configuration.
+ * The built console under react-router-serve, as it runs in production,
+ * and bridge-api's Hono entry, which the console's loaders call over HTTP.
+ * The e2e target builds the console first (package.json).
  *
  * Generated as a .mts file so Node forces ESM regardless of workspace
- * `type`. Playwright routes `.mts` through its ESM loader (dynamic import,
- * bypassing the pirates CJS-compile path), and Nx's native TS strip loads
- * `.mts` directly. Playwright's configLoader auto-discovers
- * `playwright.config.mts` via its extension list
- * (.ts/.js/.mts/.mjs/.cts/.cjs).
+ * `type`. Playwright routes `.mts` through its ESM loader, and Nx's native
+ * TS strip loads `.mts` directly.
  */
 export default defineConfig({
   ...nxE2EPreset(import.meta.dirname, { testDir: './e2e' }),
-  /* Shared settings for all the projects below. See https://playwright.dev/docs/api/class-testoptions. */
   use: {
     baseURL,
-    /* Collect trace when retrying the failed test. See https://playwright.dev/docs/trace-viewer */
     trace: 'on-first-retry',
   },
-  /* Run your local dev server before starting the tests */
-  webServer: {
-    command: 'npx react-router-serve ./build/server/index.js',
-    url: 'http://127.0.0.1:4210',
-    reuseExistingServer: true,
-    cwd: workspaceRoot,
-  },
-  projects: [
+  webServer: [
     {
-      name: 'chromium',
-      use: { ...devices['Desktop Chrome'] },
-    },
-
-    {
-      name: 'firefox',
-      use: { ...devices['Desktop Firefox'] },
-    },
-
-    {
-      name: 'webkit',
-      use: { ...devices['Desktop Safari'] },
-    },
-
-    // Uncomment for mobile browsers support
-    /* {
-      name: 'Mobile Chrome',
-      use: { ...devices['Pixel 5'] },
+      command: 'node --import tsx ../bridge-api/src/server.hono.ts',
+      url: `${bridgeApiUrl}health`,
+      reuseExistingServer: false,
+      cwd: `${workspaceRoot}/examples/bridge-console`,
+      env: { PORT: '4211' },
     },
     {
-      name: 'Mobile Safari',
-      use: { ...devices['iPhone 12'] },
-    }, */
-
-    // Uncomment for branded browsers
-    /* {
-      name: 'Microsoft Edge',
-      use: { ...devices['Desktop Edge'], channel: 'msedge' },
+      command: 'npx react-router-serve ./build/server/index.js',
+      url: baseURL,
+      reuseExistingServer: false,
+      cwd: `${workspaceRoot}/examples/bridge-console`,
+      env: {
+        PORT: '4210',
+        HOST: '127.0.0.1',
+        NODE_ENV: 'production',
+        BRIDGE_API_URL: bridgeApiUrl,
+      },
     },
-    {
-      name: 'Google Chrome',
-      use: { ...devices['Desktop Chrome'], channel: 'chrome' },
-    } */
   ],
+  projects: [{ name: 'chromium', use: { ...devices['Desktop Chrome'] } }],
 });
