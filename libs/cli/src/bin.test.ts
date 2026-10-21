@@ -213,10 +213,14 @@ describe('nexusdi graph, JavaScript entries', () => {
 });
 
 describe('the built bin', () => {
-  it('is executable, so the nexusdi link npm creates runs it', () => {
-    expect(statSync(BIN).mode & 0o111).toBe(0o111);
-    expect(execFileSync(BIN, ['--version'], { encoding: 'utf8' })).toMatch(
-      /^\d+\.\d+\.\d+/,
-    );
-  });
+  // Windows has no execute bits, and execFileSync cannot start a .js file.
+  it.skipIf(process.platform === 'win32')(
+    'is executable, so the nexusdi link npm creates runs it',
+    () => {
+      expect(statSync(BIN).mode & 0o111).toBe(0o111);
+      expect(execFileSync(BIN, ['--version'], { encoding: 'utf8' })).toMatch(
+        /^\d+\.\d+\.\d+/,
+      );
+    },
+  );
 });
