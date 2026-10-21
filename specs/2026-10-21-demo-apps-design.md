@@ -29,10 +29,14 @@ Depends on:
 - `specs/2026-10-21-meridian-ship-systems-design.md`, the ship's domain. Its section 11
   lists the four places where these apps adopt its names and module boundaries.
 
-Versions, read with `npm view` on 2026-10-21: `create-react-router` 8.5.0, `react-router`
-8.5.0, `@react-router/dev` 8.5.0, `nx` and every `@nx/*` plugin 23.3.0,
-`@module-federation/enhanced` 2.9.2, `@rspack/core` 2.2.9, `create-hono` 0.19.5, `hono`
-4.13.13, `@hono/node-server` 2.1.5, `@playwright/test` 1.64.1.
+Versions, read with `npm view` on 2026-10-21: `create-react-router` 8.4.0, `react-router`
+8.4.0, `@react-router/dev` 8.4.0, `@react-router/node` 8.4.0, `@react-router/serve` 8.4.0, `nx` and every `@nx/*` plugin 23.3.0,
+`@module-federation/enhanced` and `@module-federation/runtime` 2.9.2, `@rspack/core` and
+`@rspack/cli` 2.2.9, `unplugin-swc` 2.0.0, `create-hono` 0.19.5, `hono`
+4.13.13, `@hono/node-server` 2.1.5, `@playwright/test` 1.64.1. React Router 8.5.0 was
+published on 2026-10-19, inside the seven days a version must age before the repo takes it,
+so every React Router package stays on 8.4.0 (published 2026-09-15). The React Router
+packages move together, since `@react-router/dev` checks that `react-router` matches it.
 
 ## 1. Problem
 
@@ -104,7 +108,7 @@ generator's output with nothing else. The next commit deletes what the app does 
 | App                               | Package                           | Side               | Generator                                 | State on `release/0.4`  |
 | --------------------------------- | --------------------------------- | ------------------ | ----------------------------------------- | ----------------------- |
 | `examples/bridge-api`             | `@nexusdi/bridge-api`             | backend            | none (hand-built in integrations task 18) | exists; changes in 5    |
-| `examples/bridge-console`         | `@nexusdi/bridge-console`         | frontend, SSR      | `create-react-router` 8.5.0               | new                     |
+| `examples/bridge-console`         | `@nexusdi/bridge-console`         | frontend, SSR      | `create-react-router` 8.4.0               | new                     |
 | `examples/federation-shell`       | `@nexusdi/federation-shell`       | frontend, the host | Nx 23.3.0 consumer/provider               | new                     |
 | `examples/federation-cartography` | `@nexusdi/federation-cartography` | frontend, a remote | Nx 23.3.0 consumer/provider               | new                     |
 | `examples/federation-command`     | `@nexusdi/federation-command`     | frontend, a remote | Nx 23.3.0 consumer/provider               | new                     |
@@ -117,7 +121,8 @@ generator's output with nothing else. The next commit deletes what the app does 
 coverage table counts them.
 
 Every app in the set carries the Nx tag `demo` in its `package.json` (`nx.tags`), which
-the CI job of section 10 selects by.
+the CI job of section 10 selects by. The five new projects also carry `demo-frontend`,
+which moves their lint, test and typecheck from `main` to that job (section 10.1).
 
 ## 4. Coverage by package
 
@@ -190,7 +195,8 @@ Against the pillars and the users:
 ### 6.1 Scaffold
 
 ```sh
-npx create-react-router@8.5.0 examples/bridge-console --yes --no-install --no-git-init
+npx create-react-router@8.4.0 examples/bridge-console --yes --no-install --no-git-init \
+  --template remix-run/react-router-templates/default#<sha>
 npx nx g @nx/vitest:configuration --project=@nexusdi/bridge-console \
   --uiFramework=react --testEnvironment=jsdom
 npx nx g @nx/playwright:configuration --project=@nexusdi/bridge-console \
@@ -198,14 +204,16 @@ npx nx g @nx/playwright:configuration --project=@nexusdi/bridge-console \
   --webServerAddress=http://127.0.0.1:4210
 ```
 
-`create-react-router` 8.5.0 has no template version of its own. It downloads
-`remix-run/react-router-templates/tree/main/default` at the time it runs, so the
-scaffold commit records that template's commit hash in its message.
+`create-react-router` 8.4.0 has no template version of its own. Without `--template` it
+downloads `remix-run/react-router-templates/tree/main/default` at the time it runs. The
+task reads the head of that repository's `main` with `git ls-remote` first and passes it
+as `<sha>`, so two runs of the task scaffold the same files, and the scaffold commit
+records the hash in its message.
 
 The second commit deletes what the template carries and the app does not use: the
 `Dockerfile`, `.dockerignore`, `app/welcome/` and the template README. It sets the
-package name and the `demo` tag, pins `react-router`, `@react-router/node`,
-`@react-router/serve` and `@react-router/dev` at 8.5.0, and wires the `typegen` target
+package name and the `demo` and `demo-frontend` tags, pins `react-router`,
+`@react-router/node`, `@react-router/serve` and `@react-router/dev` at 8.4.0, and wires the `typegen` target
 the way `examples/react-ssr/package.json` does. The `@nx/react/router-plugin` in
 `nx.json` infers `build`, `dev`, `start` and `typecheck` from `react-router.config.ts`.
 
@@ -234,7 +242,9 @@ The server graph's root is `BridgeConsole`. It imports the charts module the
 environment picks (`tactical(RELAY_URL)` or `OfflineTactical`, as `react-ssr` does),
 `BridgeApi` from `@nexusdi/bridge-api/ship` for the console's own `MISSION` and
 `FLIGHT_LOG`, and `BridgeLink.forRoot({ url })` with the backend's URL from
-`BRIDGE_API_URL`.
+`BRIDGE_API_URL`. `BridgeLink` imports nothing from `bridge-api`, and the console reaches
+the backend over HTTP only. The console's request function returns the mission and the
+request's `signal`, and `request.d.ts` adds `signal?: AbortSignal` to `NexusRequest`.
 
 ```ts
 // app/bridge/bridge-link.ts
@@ -247,15 +257,19 @@ export const BRIDGE_LINK_OPTIONS = new Token<{ readonly url: string }>(
 );
 
 class BridgeApiLink implements IBridgeLink {
-  static deps = [MISSION, BRIDGE_LINK_OPTIONS] as const;
+  static deps = [REQUEST, BRIDGE_LINK_OPTIONS] as const;
   constructor(
-    private readonly mission: Mission,
+    private readonly request: NexusRequest,
     private readonly options: { readonly url: string },
   ) {}
   async course(to: string) {
-    const res = await fetch(new URL(`course/${to}`, this.options.url), {
-      headers: { 'x-mission-id': this.mission.id },
+    const url = new URL(`course/${encodeURIComponent(to)}`, this.options.url);
+    const res = await fetch(url, {
+      headers: { 'x-mission-id': this.request.mission.id },
+      signal: this.request.signal,
     });
+    if (!res.ok)
+      throw new Error(`bridge-api answered ${res.status} for ${url.pathname}`);
     return res.json();
   }
 }
@@ -263,7 +277,6 @@ class BridgeApiLink implements IBridgeLink {
 export const BridgeLink = defineModule({
   name: 'BridgeLink',
   options: BRIDGE_LINK_OPTIONS,
-  imports: [BridgeApi],
   providers: [
     provide(BRIDGE_LINK, { useClass: BridgeApiLink, lifetime: 'scoped' }),
   ],
@@ -271,7 +284,9 @@ export const BridgeLink = defineModule({
 });
 ```
 
-`BRIDGE_LINK` is scoped, because it forwards the request's mission. A console request
+`BRIDGE_LINK` is scoped, because it forwards the request's mission and its abort signal:
+a reader who leaves the page aborts the backend call.
+`REQUEST` is core's, so the module sees it with no import. A console request
 opens a scope in the console, and its call opens a second scope in `bridge-api`. The
 course page shows both flight logs: the console's entry `survey-9: docked` and the
 backend's entry `survey-9: plotting Kepler-442b`. The reader sees two request scopes on
@@ -374,12 +389,20 @@ npx nx g @nx/vitest:configuration --project=@nexusdi/federation-shell --uiFramew
 npx nx g @nx/playwright:configuration --project=@nexusdi/federation-shell --directory=e2e
 ```
 
-`consumer` generates the providers as siblings and lists them in an inline `PROVIDERS`
-array in `src/mf.ts`. It generates no tests, so the two configuration generators add
-vitest to the shell and to each remote, and Playwright to the shell.
+`consumer` generates the providers as siblings. Each of the three projects gets a plain
+`rspack.config.ts` with an inline `ModuleFederationPlugin` from
+`@module-federation/enhanced/rspack` and `shared: ['react', 'react-dom']`. The generator
+writes no `module-federation.config.ts`, no `shared` function and no manifest, and the
+shell's `src/mf.ts` hardcodes each remote's `remoteEntry.js` URL. It generates no tests,
+so the two configuration generators add vitest to the shell and to each remote, and
+Playwright to the shell.
 
-The generator installs `@nx/rspack` and `@nx/module-federation` at 23.3.0 as root dev
-dependencies. Neither is in the root `package.json` today.
+The generator adds root dependencies with caret ranges: `@module-federation/enhanced` and
+`@module-federation/runtime` at `^2.4.0`, and the `@rspack/*` packages at `^2.0.3`. The
+commit after the scaffold pins each one exactly, at the version the lockfile resolved
+(2.9.2 for both `@module-federation/*` packages and 2.2.9 for `@rspack/core` and
+`@rspack/cli` on 2026-10-21, each published more than seven days earlier), as the root
+pins every other dependency. Task D1 lists every root dependency the generator added.
 
 The contracts library:
 
@@ -411,9 +434,9 @@ remotes depend on the package and never provide its tokens. The README states th
 ownership and the version rule that `federation()` applies: a dependent built against a
 newer minor than the provider fails (`satisfies` in `libs/federation/src/federation.ts`).
 
-Each remote bundles its own copy of the contracts package. The shared configuration
-returns `false` for `@nexusdi/federation-contracts`, so the remote's `NAV_CHARTS` is a
-different `Token` object from the shell's, and `federation()`'s `tokenKey` binds the two
+Each remote bundles its own copy of the contracts package. The `shared` object of
+section 7.4 has no entry for `@nexusdi/federation-contracts`, so the remote's `NAV_CHARTS`
+is a different `Token` object from the shell's, and `federation()`'s `tokenKey` binds the two
 by `meridian/NavCharts`. A shared contracts package would hand both bundles one token and
 leave `federation()` with nothing to do.
 
@@ -428,12 +451,22 @@ cannot import the shell's module object. The shell registers `federation()`,
 `errors({ text: [federationText] })` and, in development and in the e2e build,
 `devtools()`.
 
-The shell shares `react`, `react-dom`, `@nexusdi/core` and `@nexusdi/react` as
-singletons. A remote's components call `useService`, which reads the shell's
+Every project's `rspack.config.ts` passes `shared: meridianShared()` to its
+`ModuleFederationPlugin`. `meridianShared` lives in `@nexusdi/federation-contracts` at the
+`./shared` subpath, which only the rspack configs import, so the shell and both remotes
+build from one object. It shares `react` and `react-dom` as singletons with
+`requiredVersion` set to React's version, and `@nexusdi/core` and `@nexusdi/react` as
+singletons with `requiredVersion` set to core's exact version, since every `@nexusdi/*`
+package peers on it. A remote's components call `useService`, which reads the shell's
 `NexusProvider` only when both bundles hold one copy of `@nexusdi/react`.
-`@nexusdi/federation` and `@nexusdi/decorators` stay unshared. Their keys are registered
-symbols (`Symbol.for('nexusdi.contract')`, `Symbol.for('nexusdi.injectable')`), so a
-second copy of either works, and the demo proves it.
+
+`@nexusdi/federation`, `@nexusdi/decorators` and `@nexusdi/federation-contracts` have no
+entry, so each remote bundles its own copy. A second copy of `@nexusdi/federation` works
+because it marks contract tokens with `Symbol.for('nexusdi.contract')`, a registered
+symbol every copy reads alike. A second copy of `@nexusdi/decorators` works because it
+holds no key of its own: its decorators call the shared core's `declareModuleClass` and
+`declareProperty`, and the key they fill, `Symbol.for('nexusdi.injectable')`, belongs to
+core (`libs/core/src/definitions/metadata.ts`).
 
 `federation-cartography` exposes `./section`, which exports the module `Cartography`
 and the component `StarMap`. `Cartography` binds `NAV_ROUTES` to `SectorRoutes`, whose
@@ -456,8 +489,12 @@ contract's `NAV_CHARTS` through `@Inject(NAV_CHARTS) accessor charts: INavCharts
 remote's rspack config turns on standard decorators in the builtin swc loader with
 `jsc.parser.decorators: true` and `jsc.transform.decoratorVersion: '2023-11'`, the
 settings `examples/toolchain-matrix/.swcrc` checks. The shell imports nothing from
-`@nexusdi/decorators`, so the shell's core reads metadata that only the remote's bundle
-wrote. That is the proof decision 4 asks for.
+`@nexusdi/decorators`. The remote then proves two things, which decision 4 asks for: the
+`Symbol.metadata` polyfill reaches the shell's core, and the swc 2023-11 helper writes the
+metadata where core reads it. E2E case 3 asserts both at runtime, since `CommandDeck`
+shows the course only when the shell's core found the metadata of `Bridge`'s `@Inject`
+accessor. A grep of the bundles proves neither: the shell's bundle carries the
+`nexusdi.injectable` string through core.
 
 Each remote's unit tests build its module with `createTestingContainer` and a
 `useValue` for `NAV_CHARTS`, and run `Nexus.check` on it.
@@ -467,9 +504,15 @@ Each remote's unit tests build its module with `createTestingContainer` and a
 The e2e target depends on the production build of the shell and of every remote build,
 each over the built workspace packages (`dependsOn: ['^build']`), the way a consumer
 installs them from npm. A static server in `examples/federation-shell/e2e/serve.ts`
-serves each build on its port. The shell reads the remote URLs at startup, from the
-manifest the generator sets up, and the e2e serves one manifest per case. No test switch
-lives in the app code.
+serves each build on its port.
+
+The generator's `src/mf.ts` hardcodes the remote URLs, which would take one shell build
+per case. Task D4 replaces it with app code. At startup the shell fetches
+`/remotes.json`, a list of `{ name, entry }`, and passes it to `registerRemotes` from
+`@module-federation/enhanced/runtime` before the first `loadRemote`. A fetch that fails
+renders the shell with every station's `SectionFailed`. Development serves
+`public/remotes.json` with the ports of section 7.1, and the e2e server answers the path
+from one file per case. No test switch lives in the app code.
 
 ### 7.6 The failure cases
 
@@ -485,8 +528,8 @@ renders `meridian/NavCharts is needed at 2.4.0, and the provider has 2.3.0.` fro
 `federationText`. This remote, `cartography`, is the one that shows
 `NEXUS_CONTRACT_VERSION` in a browser.
 
-The unshared build, `rspack.config.unshared.ts`, shares everything the main build shares
-except `@nexusdi/core`. Its `Cartography` module is then a definition of another copy of
+The unshared build, `rspack.config.unshared.ts`, passes `meridianShared({ core: false })`,
+which drops the `@nexusdi/core` entry and keeps the others. Its `Cartography` module is then a definition of another copy of
 core, `load()` rejects with `NEXUS_CORE_NOT_SHARED` (section 8), and `SectionFailed`
 renders its text with the shared-singleton fix.
 
@@ -499,9 +542,9 @@ renders its text with the shared-singleton fix.
    its `@Inject` accessor.
 4. After both loads, the devtools panel lists `Cartography` and `Command` among the
    modules of `graph(ship)`.
-5. With the drift manifest, `/charts` renders `SectionFailed` with
+5. With the drift remote list, `/charts` renders `SectionFailed` with
    `NEXUS_CONTRACT_VERSION` and the text above, and `retry()` fails the same way.
-6. With the unshared manifest, `/charts` renders `SectionFailed` with
+6. With the unshared remote list, `/charts` renders `SectionFailed` with
    `NEXUS_CORE_NOT_SHARED`.
 
 ## 8. Core change: `NEXUS_CORE_NOT_SHARED`
@@ -542,14 +585,29 @@ export class CoreNotSharedError extends errorBase<
 >('NEXUS_CORE_NOT_SHARED', 'CoreNotSharedError') {}
 ```
 
-At each of the eleven sites, core raises `CoreNotSharedError` when `isForeign(value)` is
-true, and the error it raised before otherwise. Inside a compile, the error joins the
+At ten of the eleven sites, core raises `CoreNotSharedError` when `isForeign(value)` is
+true, and the error it raised before otherwise. The site in `definitions/token.ts` keeps
+`NEXUS_INVALID_TOKEN`: `new Token(description)` with a foreign token as its description
+is a wrong argument to a constructor, which that code's page covers. Inside a compile, the error joins the
 `BlueprintError`'s list like any other compile error. `otherCopy` leaves the three
 classes, because no code path sets it to `true` any more.
 
 `describeValue` names a branded value of any copy by its own fields: a `description`
-string gives `the Token <description>`, and a `name` string gives `the module <name>`.
-Every caller of `describeValue` gains the names, `@nexusdi/interceptors` included.
+string gives `the Token <description>`, a `name` string gives `the module <name>`, and a
+branded value with neither, which is a provider, gives `a provider`. A `MultiToken` this
+copy made gives `the MultiToken <description>`. A foreign `MultiToken` reads
+`the Token <description>`, since no field tells it apart from a foreign `Token`. Every
+caller of `describeValue` gains the names, `@nexusdi/interceptors` included.
+
+The brand's value changes. Today every copy writes `true`, and `isForeign` asks a
+`WeakSet` of the values this copy branded. A Proxy around this copy's own token is not in
+the set, and its descriptor read passes through to the brand, so the Proxy reads foreign
+and the user would see `NEXUS_CORE_NOT_SHARED` for a token of their own copy. Each copy
+now writes its own frozen object, `OWN`, as the value, and `isForeign(value)` becomes
+"the value carries an own `DEFINITION_BRAND` property whose value is not `OWN`". The read
+through a Proxy returns this copy's `OWN` and reads false. A copy from rc.0 or rc.1 writes
+`true`, which is not `OWN`, so it still reads foreign. Nothing else reads the
+`WeakSet`, so it goes.
 
 The one-line message with no plugin reads:
 
@@ -561,7 +619,12 @@ The code says what is wrong and what to share, and the link leads to a page whos
 fence is the Module Federation `shared` entry. `coreText` gains a builder:
 
 - message: `<received> was made by another copy of @nexusdi/core<, where>.`
-- fix: `load one copy of @nexusdi/core. In Module Federation, share @nexusdi/core with singleton: true, and share @nexusdi/react with it.`
+- fix: `load one copy of @nexusdi/core. Check that npm installed it once (npm ls @nexusdi/core), that no test calls vi.resetModules() between the module and the container that reads it, and that no bundler resolves the @nexusdi/source condition for one import and dist for another. In Module Federation, share @nexusdi/core with singleton: true.`
+
+The text names `@nexusdi/core` only. `tools/repo-checks/src/core-names-no-package.ts`
+refuses any string in core's non-test sources that names another package of the scope.
+The `/errors/NEXUS_CORE_NOT_SHARED/` page carries the `@nexusdi/react` advice: share it as
+a singleton beside core, or a remote's `useService` finds no `NexusProvider`.
 
 The three `otherCopy` branches of `coreText` go away.
 
@@ -573,7 +636,9 @@ searches one page.
 
 ### 8.3 Detection limits
 
-The brand arrived in 0.4. A remote that bundles core 0.3 writes no brand, so core reports
+A Proxy around this copy's own value reads as this copy's (section 8.2). A Proxy whose
+`getOwnPropertyDescriptor` trap throws reads false, as today, so building an error never
+throws. The brand arrived in 0.4. A remote that bundles core 0.3 writes no brand, so core reports
 its module as `NEXUS_INVALID_MODULE` with no hint of a second copy. The code page says
 so. With `strictVersion: true` in the shared entry, Module Federation itself rejects a
 mismatched core before any NexusDI code runs, and `SectionBoundary` renders the loader's
@@ -588,10 +653,9 @@ version.
   itself, and no package reads a key it does not own.
 - P2. `NexusErrorByCode` stays open to augmentation, and core adds one member to its own
   codes. `errors()` and `explain()` already handle a code they do not know.
-- P3. No contribution point changes. Core names no other package in code. Its fix text
-  names `@nexusdi/react`, which is advice in a string, and the extension spec's tests
-  match package names in code paths only. The plan's reviewer confirms that against the
-  P3 check before task 4 merges.
+- P3. No contribution point changes. Core names no other package, in code or in a
+  string: its text names `@nexusdi/core` only, which `core-names-no-package.ts` checks,
+  and the code page names `@nexusdi/react`.
 - P4. `@nexusdi/testing` and `@nexusdi/interceptors` construct core's exported class and
   call core's exported `isForeign` and `describeValue`. Neither copies the check.
 - P5. No optional dependency changes.
@@ -613,7 +677,8 @@ report's method (esbuild `--bundle --minify --format=esm`, gzip level 9, the
 | with `where` and named values (8.2) | 19,508 B   | +204 B (1.06%) |
 
 The spec takes the last row. A user who meets the error needs the name and the place. The
-prototype named values inside the new error's helper. Moving the names into
+prototype named values inside the new error's helper. The `OWN` brand value adds a
+few bytes and removes the `WeakSet`. Moving the names into
 `describeValue` is expected to add a few bytes, and it changes the `received` text of
 every error that prints a token or module in the wrong place (`an object` becomes
 `the Token ReactorCore`). Task 4 updates the `// ->` claims in `examples/meridian` that
@@ -634,9 +699,13 @@ budgets are soft, and the size report records the change.
 ### 8.7 Tests
 
 `libs/core/src/definitions/brand.test.ts` holds the cases today with a hand-branded
-foreign value. Its five `otherCopy` cases change to expect `NEXUS_CORE_NOT_SHARED` with
-`received` and `where`, and its two "otherCopy false" cases expect the codes they expect
-today. `core-text.test.ts` covers the builder. The error catalogue test, the
+foreign value. Its `otherCopy: true` cases change to expect `NEXUS_CORE_NOT_SHARED` with
+`received` and `where`, except the token-description case, which keeps
+`NEXUS_INVALID_TOKEN`, and its two "otherCopy false" cases expect the codes they expect
+today. Two cases join them: a Proxy around this copy's own `Token` reads `isForeign`
+false and resolves, and a value branded `true` (an rc.1 copy) reads foreign. Every test
+that names `otherCopy` changes with the field; the plan's tasks A2, A4 and A5 list each
+file. `core-text.test.ts` covers the builder. The error catalogue test, the
 `/api-errors/` table and the code page test pick up the new code the way they pick up any
 core code. `examples/meridian/src/errors/NEXUS_CORE_NOT_SHARED.md` holds the page's
 regions. The federation e2e case 6 shows the error from a real second copy.
@@ -710,10 +779,20 @@ demo-apps:
     - uses: actions/setup-node@... # same pin as main
     - run: npm ci
     - run: npx playwright install --with-deps chromium
+    - run: npx nx run-many -t lint test typecheck --projects=tag:demo-frontend
     - run: npx nx run-many -t e2e --projects=tag:demo
 ```
 
 It runs the `e2e` targets of `bridge-api`, `bridge-console` and `federation-shell`.
+
+The five new projects (`bridge-console` and the four `federation-*` projects) also carry
+the tag `demo-frontend`. `main`'s step becomes
+`nx run-many -t lint test build typecheck --exclude=tag:demo-frontend`, and the
+`release.yml` verify step, which the gate test holds equal to it, takes the same
+`--exclude`. `demo-apps` runs their `lint`, `test` and `typecheck` before the e2e step:
+`nx run-many -t lint test typecheck --projects=tag:demo-frontend`. Their `build` runs as
+a dependency of `e2e`. `main` then keeps its 10 min 29 s, and `bridge-api` stays in
+`main` as today.
 `examples/next-bridge` carries no `demo` tag and stays out. `@nexusdi/react`'s own `e2e`
 targets stay in the `adapter-peers` legs that run them today.
 
@@ -733,15 +812,16 @@ On the `release/0.4` run of 2026-10-18 (`39083642228`), `main` took 10 min 29 s 
 other job took 4 min 22 s or less. The `demo-apps` job has a budget of 8 minutes, so the
 run's wall time stays at `main`'s. The parts, estimated from the jobs that run today:
 
-| Step                                          | Estimate   |
-| --------------------------------------------- | ---------- |
-| `npm ci` and the Chromium install             | 1 min 30 s |
-| `^build` of the libs, cold                    | 1 min 30 s |
-| `bridge-api` e2e (three servers, vitest)      | 30 s       |
-| console build and Playwright (eight cases)    | 1 min 30 s |
-| five rspack builds and Playwright (six cases) | 2 min      |
+| Step                                           | Estimate   |
+| ---------------------------------------------- | ---------- |
+| `npm ci` and the Chromium install              | 1 min 30 s |
+| lint, test and typecheck of the five frontends | 1 min      |
+| `^build` of the libs, cold                     | 1 min 30 s |
+| `bridge-api` e2e (three servers, vitest)       | 30 s       |
+| console build and Playwright (eight cases)     | 1 min 30 s |
+| five rspack builds and Playwright (six cases)  | 2 min      |
 
-Task 7 records the measured figure in the job's comment. Over 8 minutes, the job splits
+The estimates sum to 8 min 30 s, so the job may need the matrix from its first run. Task 7 records the measured figure in the job's comment. Over 8 minutes, the job splits
 into a console leg and a federation leg in a matrix.
 
 ## 11. Docs pages the demos feed
@@ -765,9 +845,9 @@ plain config file from an app and claim what it returns.
 | `/graph-cli/`                      | 21            | `bridge-api`                                     | the `graph` target that fails on a diff                                      |
 
 `/federation/` cites `examples/meridian/src/pages/federation.md`. One of its regions
-imports `examples/federation-shell/module-federation.config.ts` and claims what its
-`shared` entry returns for `@nexusdi/core` (`// -> { singleton: true, ... }`), so the page
-shows the config the demo runs. Row 32's description on `spec/docs-site` names
+imports `meridianShared` from `@nexusdi/federation-contracts/shared` and claims that its
+`@nexusdi/core` entry is a singleton (`// -> true`), so the page shows the config the demo
+runs. Row 32's description on `spec/docs-site` names
 `examples/react-ssr`, and the vocabulary change of section 9.2 carries its fix. An
 Academy mission on federation waits for the Academy, which is parked until after launch.
 
@@ -782,7 +862,11 @@ Decision 8 becomes two checks in the release workflow and the `nexusdi-release` 
    `@nexusdi/react` was published in at least one RC whose commit had `demo-apps` green.
 
 The core change of section 8 goes into rc.2 with the adapters. It changes no adapter API,
-so it restarts no RC count.
+so it restarts no RC count. The rc.2 notes carry one changelog line for it:
+"`describeValue` names tokens, multi tokens, modules and providers, which changes the
+`received` text of every error that prints one (`an object` becomes `the Token
+ReactorCore`), and `otherCopy` leaves `InvalidTokenError`, `InvalidModuleError` and
+`InvalidProviderError`; check `isNexusError(error, 'NEXUS_CORE_NOT_SHARED')`."
 
 ## 13. Delivery
 
@@ -805,7 +889,8 @@ branch ends with a final review by an opus reviewer.
 | Risk                                                                                                                                 | What the plan does                                                                                                   |
 | ------------------------------------------------------------------------------------------------------------------------------------ | -------------------------------------------------------------------------------------------------------------------- |
 | Nx 24 removes `@nx/react:host` and `remote`. An app built on them breaks at the next Nx major migration.                             | The apps use `consumer` and `provider`, which Nx keeps (Q1).                                                         |
-| Nx's federation config shares workspace libraries by default, so the contracts package is shared and `federation()` idles.           | The shared function returns `false` for `@nexusdi/federation-contracts`, and e2e case 5 fails if the copy is shared. |
+| The consumer generator adds `@module-federation/*` and `@rspack/*` with caret ranges, so `npm install` can move them between runs.   | The commit after the scaffold pins each one exactly (section 7.2).                                                   |
+| A `shared` entry for the contracts package hands both bundles one token, and `federation()` idles.                                   | `meridianShared()` lists no contracts entry; its test asserts that, and e2e case 5 fails if the copy is shared.      |
 | An rspack config that adds the `@nexusdi/source` condition bundles the TypeScript sources, and the demo tests what no user installs. | The builds depend on `^build` and resolve the published `import` condition; task 5 checks the bundle's module paths. |
 | `create-react-router` and `create-hono` download templates from GitHub `main`, so two runs of one CLI version differ.                | The scaffold commit records the template's commit hash.                                                              |
 | The swc decorator transform in rspack writes `Symbol.metadata` before core's polyfill runs in the remote.                            | `@nexusdi/decorators` lists its polyfill in `sideEffects`; e2e case 3 fails if the metadata is lost.                 |
