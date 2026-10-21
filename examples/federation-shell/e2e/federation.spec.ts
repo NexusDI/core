@@ -1,10 +1,15 @@
 import { expect, test } from '@playwright/test';
+import { MERIDIAN_CONTRACT_VERSION } from '@nexusdi/federation-contracts/version';
 
 import { SHELLS } from './ports.ts';
 import { problems } from './support.ts';
 
 const drift = `http://127.0.0.1:${SHELLS.drift}`;
 const unshared = `http://127.0.0.1:${SHELLS.unshared}`;
+
+/** The drift build's contract version: the next minor of the shell's. */
+const [major, minor] = MERIDIAN_CONTRACT_VERSION.split('.').map(Number);
+const driftVersion = `${major}.${minor + 1}.0`;
 
 test('renders the bridge with no console error', async ({ page }) => {
   const seen = problems(page);
@@ -61,8 +66,7 @@ test('fails the drift build with NEXUS_CONTRACT_VERSION, and again on retry', as
   const seen = problems(page);
   await page.goto(`${drift}/charts`);
   const failed = page.getByTestId('section-failed');
-  const text =
-    'meridian/NavCharts is needed at 2.4.0, and the provider has 2.3.0.';
+  const text = `meridian/NavCharts is needed at ${driftVersion}, and the provider has ${MERIDIAN_CONTRACT_VERSION}.`;
   await expect(failed).toContainText('NEXUS_CONTRACT_VERSION');
   await expect(failed).toContainText(text);
 
@@ -86,6 +90,9 @@ test('fails the unshared build with NEXUS_CORE_NOT_SHARED', async ({
   await expect(failed).toContainText('NEXUS_CORE_NOT_SHARED');
   await expect(failed).toContainText(
     'the module Cartography was made by another copy of @nexusdi/core',
+  );
+  await expect(failed).toContainText(
+    'In Module Federation, share @nexusdi/core with singleton: true.',
   );
   // The station's onError logs the load error.
   expect(await seen()).toEqual([
