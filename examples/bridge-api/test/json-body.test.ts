@@ -25,7 +25,9 @@ describe('readJson', () => {
 
   it('yields undefined for any other media type', () => {
     expect(readJson('text/plain', '{"a":1}')).toBeUndefined();
-    expect(readJson('application/x-www-form-urlencoded', 'a=1')).toBeUndefined();
+    expect(
+      readJson('application/x-www-form-urlencoded', 'a=1'),
+    ).toBeUndefined();
     expect(readJson('application/json-patch+json', '{}')).toBeUndefined();
     expect(readJson(undefined, '{"a":1}')).toBeUndefined();
   });
