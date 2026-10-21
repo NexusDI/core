@@ -13,7 +13,7 @@ export interface IBridgeLink {
   course(to: string): Promise<{ course: Course; entries: readonly string[] }>;
 }
 export const BRIDGE_LINK = new Token<IBridgeLink>('BridgeLink');
-export const BRIDGE_LINK_OPTIONS = new Token<{ readonly url: string }>(
+const BRIDGE_LINK_OPTIONS = new Token<{ readonly url: string }>(
   'BridgeLinkOptions',
 );
 
