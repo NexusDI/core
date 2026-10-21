@@ -9,8 +9,7 @@
       "node",
       "vitest"
     ],
-    "forceConsistentCasingInFileNames": true,
-    "importHelpers": true
+    "forceConsistentCasingInFileNames": true
   },
   "include": [
     "vite.config.ts",
