@@ -865,8 +865,10 @@ into a console leg and a federation leg in a matrix.
 
 A docs page cites regions of `examples/meridian/src/pages/<slug>.md`, and a region is a
 whole program that runs as a test. A demo app needs a bundler or a server, so no region
-imports one. A page links the app's folder as the full setup, and a region may import a
-plain config file from an app and claim what it returns.
+imports one. A page links the app's folder as the full setup. A region imports only
+published packages, because a reader cannot install a private demo package. It writes a
+demo's config inline, and the page links the file the demo builds it in (tech lead
+ruling, 2026-10-21).
 
 | Page                               | Inventory row | The demo it cites                                | What the page takes from it                                                  |
 | ---------------------------------- | ------------- | ------------------------------------------------ | ---------------------------------------------------------------------------- |
@@ -882,9 +884,10 @@ plain config file from an app and claim what it returns.
 | `/graph-cli/`                      | 21            | `bridge-api`                                     | the `graph` target that fails on a diff                                      |
 
 `/federation/` cites `examples/meridian/src/pages/federation.md`. One of its regions
-imports `meridianShared` from `@nexusdi/federation-contracts/shared` and claims that its
-`@nexusdi/core` entry is a singleton (`// -> true`), so the page shows the config the demo
-runs. Row 32's description on `spec/docs-site` names
+writes the `shared` object inline as `meridianShared()` builds it, with each version read
+from the installed `package.json`, and claims that its `@nexusdi/core` entry is a
+singleton (`// -> true`) at the installed core version. The page links
+`examples/federation-contracts/src/shared.ts` as the place the demo builds it. Row 32's description on `spec/docs-site` names
 `examples/react-ssr`, and the vocabulary change of section 9.2 carries its fix. An
 Academy mission on federation waits for the Academy, which is parked until after launch.
 
