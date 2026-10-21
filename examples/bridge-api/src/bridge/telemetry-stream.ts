@@ -1,4 +1,4 @@
-import type { ITelemetryFeed, ShipSnapshot } from '@nexusdi/meridian-systems';
+import type { ITelemetryFeed, ShipReading } from '@nexusdi/meridian-systems';
 
 import type { TelemetryEvent } from '../ship/contracts';
 
@@ -32,7 +32,7 @@ const sse = (event: TelemetryEvent, data: string): Uint8Array =>
 export function telemetryStream(
   feed: ITelemetryFeed,
 ): ReadableStream<Uint8Array> {
-  let latest: ShipSnapshot | undefined;
+  let latest: ShipReading | undefined;
   let offline: string | undefined;
   let ended = false;
   let wake: (() => void) | undefined;
